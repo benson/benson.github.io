@@ -37,6 +37,12 @@ export const SPECIAL_GUESTS_RANGES = {
 // Sets with The Big Score bonus sheet
 export const SETS_WITH_BIG_SCORE = new Set(['otj']);
 
+// Sets with separate "bonus sheet" sets that appear in boosters
+// Maps main set code to bonus set code
+export const BONUS_SHEET_SETS = {
+  'tla': 'tle',  // Avatar: The Last Airbender -> Avatar Eternal (source material cards)
+};
+
 // Sets with Special Guests that we can accurately track
 export const SETS_WITH_SPECIAL_GUESTS = new Set(Object.keys(SPECIAL_GUESTS_RANGES));
 
