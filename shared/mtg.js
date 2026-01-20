@@ -50,7 +50,7 @@ export const COLLECTOR_EXCLUSIVE_PROMOS = [
 ];
 
 // Frame effects that are collector booster exclusives
-export const COLLECTOR_EXCLUSIVE_FRAMES = ['inverted'];
+export const COLLECTOR_EXCLUSIVE_FRAMES = ['inverted', 'extendedart'];
 
 // ============ Utilities ============
 
