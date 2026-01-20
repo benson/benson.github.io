@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <path d="M3 1
+           Q1 1.5 1 4
+           L1 28
+           Q1 31 4 31
+           L28 31
+           Q31 30.5 31 28
+           L31 4
+           Q30.5 1 28 1
+           Z"
+        fill="#fff"/>
+  <text x="16" y="24" 
+        font-family="Times New Roman, Times, serif" 
+        font-size="24" 
+        font-weight="400"
+        text-anchor="middle" 
+        fill="#000">b</text>
+</svg>
