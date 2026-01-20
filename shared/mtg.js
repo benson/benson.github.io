@@ -15,6 +15,10 @@ export const FOIL_START = '1999-02-15';              // Urza's Legacy
 // Jumpstart sets have their own booster type (themed half-decks)
 export const JUMPSTART_SETS = new Set(['jmp', 'j22', 'j25']);
 
+// Sets with only one booster type (no collector variant)
+// These are special products that don't follow the standard booster structure
+export const DRAFT_ONLY_SETS = new Set(['mb2', 'mh1', 'mh2', 'cmm', 'clb', '2xm', '2x2', 'tsr', 'uma', 'ima', 'a25', 'mm3', 'ema', 'mm2', 'mma']);
+
 // Special Guests collector number ranges by set
 export const SPECIAL_GUESTS_RANGES = {
   'lci': [1, 18],
