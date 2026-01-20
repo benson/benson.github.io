@@ -45,7 +45,8 @@ export const SETS_WITH_SPECIAL_GUESTS = new Set(Object.keys(SPECIAL_GUESTS_RANGE
 // Promo types that are collector booster exclusives
 export const COLLECTOR_EXCLUSIVE_PROMOS = [
   'fracturefoil', 'texturedfoil', 'ripplefoil',
-  'halofoil', 'confettifoil', 'galaxyfoil', 'surgefoil'
+  'halofoil', 'confettifoil', 'galaxyfoil', 'surgefoil',
+  'raisedfoil', 'headliner'
 ];
 
 // Frame effects that are collector booster exclusives
