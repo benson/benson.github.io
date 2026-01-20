@@ -43,6 +43,7 @@ export const BONUS_SHEET_SETS = {
   'tla': 'tle',  // Avatar: The Last Airbender -> Avatar Eternal (source material cards)
   'spm': 'mar',  // Marvel's Spider-Man -> Marvel Universe (source material cards)
   'eoe': 'eos',  // Edge of Eternities -> Stellar Sights (premium land reprints)
+  'fin': 'fca',  // Final Fantasy -> Through the Ages (classic reprints with FF artwork)
 };
 
 // Sets with Special Guests that we can accurately track
