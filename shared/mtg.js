@@ -323,3 +323,145 @@ export function getDailySeed(date = new Date()) {
   const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
   return 'daily-' + dateStr;
 }
+
+// ============ Sets Loading ============
+
+const SETS_URL = 'https://bensonperry.com/shared/sets.json';
+
+export async function fetchSets() {
+  const response = await fetch(SETS_URL);
+  return await response.json();
+}
+
+// ============ Set Autocomplete ============
+
+// Creates a set autocomplete with consistent behavior
+// Options:
+//   inputEl: the text input element
+//   dropdownEl: the dropdown container element
+//   hiddenEl: hidden input for the set code (optional)
+//   onSelect: callback when a set is selected (receives set object)
+//   sets: array of set objects (from fetchSets)
+export function createSetAutocomplete({ inputEl, dropdownEl, hiddenEl, onSelect, sets }) {
+  let highlightedIndex = -1;
+  let selectedSetDisplay = '';
+
+  function formatSetDisplay(set) {
+    return set.name.toLowerCase() + ' (' + set.released.slice(0, 4) + ')';
+  }
+
+  function showDropdown(filter) {
+    const filterLower = (filter || '').toLowerCase();
+    const filtered = sets.filter(set =>
+      set.name.toLowerCase().includes(filterLower) ||
+      set.code.toLowerCase().includes(filterLower)
+    ).slice(0, 200);
+
+    if (filtered.length === 0) {
+      dropdownEl.classList.add('hidden');
+      return;
+    }
+
+    dropdownEl.innerHTML = filtered.map(set =>
+      '<div class="option" data-code="' + set.code + '">' +
+        set.name.toLowerCase() +
+        '<span class="year">(' + set.released.slice(0, 4) + ')</span>' +
+      '</div>'
+    ).join('');
+
+    dropdownEl.querySelectorAll('.option').forEach(opt => {
+      opt.addEventListener('click', () => selectSet(opt.dataset.code));
+    });
+
+    dropdownEl.classList.remove('hidden');
+  }
+
+  function selectSet(code) {
+    const set = sets.find(s => s.code === code);
+    if (!set) return;
+
+    const displayText = formatSetDisplay(set);
+    inputEl.value = displayText;
+    selectedSetDisplay = displayText;
+    if (hiddenEl) hiddenEl.value = code;
+    dropdownEl.classList.add('hidden');
+    highlightedIndex = -1;
+    inputEl.blur();
+
+    if (onSelect) onSelect(set);
+  }
+
+  function updateHighlight(options) {
+    options.forEach((opt, i) => {
+      opt.classList.toggle('highlighted', i === highlightedIndex);
+    });
+    if (options[highlightedIndex]) {
+      options[highlightedIndex].scrollIntoView({ block: 'nearest' });
+    }
+  }
+
+  // Clear input on focus so user can start typing
+  inputEl.addEventListener('focus', () => {
+    selectedSetDisplay = inputEl.value;
+    inputEl.value = '';
+    inputEl.placeholder = 'type to search...';
+    showDropdown('');
+  });
+
+  // Restore selected value on blur if nothing new was selected
+  inputEl.addEventListener('blur', () => {
+    setTimeout(() => {
+      if (!inputEl.value && selectedSetDisplay) {
+        inputEl.value = selectedSetDisplay;
+        inputEl.placeholder = '';
+      }
+    }, 150);
+  });
+
+  // Filter on input
+  inputEl.addEventListener('input', () => {
+    highlightedIndex = -1;
+    showDropdown(inputEl.value);
+  });
+
+  // Keyboard navigation
+  inputEl.addEventListener('keydown', (e) => {
+    const options = dropdownEl.querySelectorAll('.option');
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      highlightedIndex = Math.min(highlightedIndex + 1, options.length - 1);
+      updateHighlight(options);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      highlightedIndex = Math.max(highlightedIndex - 1, 0);
+      updateHighlight(options);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (highlightedIndex >= 0 && options[highlightedIndex]) {
+        selectSet(options[highlightedIndex].dataset.code);
+      }
+    } else if (e.key === 'Escape') {
+      dropdownEl.classList.add('hidden');
+      inputEl.blur();
+    }
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.autocomplete-wrapper')) {
+      dropdownEl.classList.add('hidden');
+    }
+  });
+
+  // Return methods for external control
+  return {
+    selectSet,
+    setInitialSet(set) {
+      const displayText = formatSetDisplay(set);
+      inputEl.value = displayText;
+      selectedSetDisplay = displayText;
+      if (hiddenEl) hiddenEl.value = set.code;
+    }
+  };
+}
