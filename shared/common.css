@@ -1,6 +1,7 @@
 /* shared styles for bensonperry.com projects */
+/* add class="no-shared-footer" to body to disable footer styles */
 
-footer {
+body:not(.no-shared-footer) footer {
   position: fixed;
   bottom: 20px;
   right: 30px;
@@ -11,13 +12,13 @@ footer {
   border-radius: 4px;
 }
 
-footer a {
+body:not(.no-shared-footer) footer a {
   color: #999;
   text-decoration: none;
   border-bottom: 1px solid #ccc;
 }
 
-footer a:hover {
+body:not(.no-shared-footer) footer a:hover {
   color: #000;
   border-bottom-color: #000;
 }
