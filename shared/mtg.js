@@ -40,6 +40,7 @@ export const SETS_WITH_BIG_SCORE = new Set(['otj']);
 // Sets with separate "bonus sheet" sets that appear in boosters
 // Maps main set code to bonus set code
 export const BONUS_SHEET_SETS = {
+  'otj': 'otp',  // Outlaws of Thunder Junction -> Breaking News (1 per pack!)
   'tla': 'tle',  // Avatar: The Last Airbender -> Avatar Eternal (source material cards)
   'spm': 'mar',  // Marvel's Spider-Man -> Marvel Universe (source material cards)
   'eoe': 'eos',  // Edge of Eternities -> Stellar Sights (premium land reprints)
