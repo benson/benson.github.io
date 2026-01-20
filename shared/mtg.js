@@ -41,6 +41,7 @@ export const SETS_WITH_BIG_SCORE = new Set(['otj']);
 // Maps main set code to bonus set code
 export const BONUS_SHEET_SETS = {
   'tla': 'tle',  // Avatar: The Last Airbender -> Avatar Eternal (source material cards)
+  'spm': 'mar',  // Marvel's Spider-Man -> Marvel Universe (source material cards)
 };
 
 // Sets with Special Guests that we can accurately track
