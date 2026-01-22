@@ -1,0 +1,8 @@
+{
+  "promos": [
+    "fracturefoil", "texturedfoil", "ripplefoil",
+    "halofoil", "confettifoil", "galaxyfoil", "surgefoil",
+    "raisedfoil", "headliner"
+  ],
+  "frames": ["inverted", "extendedart"]
+}

@@ -50,7 +50,13 @@ export const BONUS_SHEET_SETS = {
 // Sets with Special Guests that we can accurately track
 export const SETS_WITH_SPECIAL_GUESTS = new Set(Object.keys(SPECIAL_GUESTS_RANGES));
 
+// Sets where retro frame cards appear in Play Boosters (not collector-exclusive)
+// These need special handling because Scryfall marks them booster:false
+export const SETS_WITH_RETRO_IN_BOOSTERS = new Set(['mh3']);
+
 // ============ Collector Booster Exclusives ============
+// Source of truth: ./collector-exclusives.json (used by cache scripts)
+// Keep these in sync when adding new foil types
 
 // Promo types that are collector booster exclusives
 export const COLLECTOR_EXCLUSIVE_PROMOS = [
