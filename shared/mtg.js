@@ -131,7 +131,19 @@ export function getAvailableBoosterTypes(setCode, releaseDate) {
 // ============ Card Fetching ============
 
 // Check if a card is a collector booster exclusive
-export function isCollectorExclusive(card) {
+// If setConfig is provided, use it; otherwise fall back to generic rules
+export function isCollectorExclusive(card, setConfig = null) {
+  // If we have a set config, use it for accurate determination
+  if (setConfig) {
+    const inPlayBooster = isInPlayBooster(card, setConfig);
+    if (inPlayBooster === true) return false;  // explicitly in play booster
+    if (inPlayBooster === false) {
+      const inCollectorExclusive = isCollectorExclusiveByConfig(card, setConfig);
+      if (inCollectorExclusive === true) return true;
+    }
+  }
+
+  // Fall back to generic rules based on promo types and frame effects
   const promos = card.promo_types || [];
   const frames = card.frame_effects || [];
   const hasExclusivePromo = promos.some(p => COLLECTOR_EXCLUSIVE_PROMOS.includes(p));
@@ -228,10 +240,17 @@ export async function fetchSpecialGuestsCards(setCode, minPrice = 0) {
 // Fetch ALL cards from a set (for sealed pool generation)
 // No price filter, includes all rarities
 export async function fetchAllSetCards(setCode, boosterType = 'play') {
+  // Load set config for accurate filtering
+  const configs = await fetchSetConfigs();
+  const setConfig = configs[setCode];
+
+  // If we have a set config with play booster ranges, fetch all cards and filter client-side
+  // Otherwise use Scryfall's is:booster filter
   let query = 'set:' + setCode + ' lang:en';
 
-  // For play/draft boosters, only get cards that appear in boosters
-  if (boosterType !== 'collector' && !JUMPSTART_SETS.has(setCode)) {
+  const hasSetConfig = setConfig?.playBooster?.includeCollectorNumbers;
+
+  if (!hasSetConfig && boosterType !== 'collector' && !JUMPSTART_SETS.has(setCode)) {
     query += ' is:booster';
   }
 
@@ -252,9 +271,21 @@ export async function fetchAllSetCards(setCode, boosterType = 'play') {
     if (error.message !== 'HTTP 404') throw error;
   }
 
-  // Filter out collector exclusives for play/draft boosters
+  // Filter for play/draft boosters
   if (boosterType !== 'collector') {
-    cards = cards.filter(card => !isCollectorExclusive(card));
+    if (hasSetConfig) {
+      // Use set config: include cards in play booster ranges OR cards with booster:true that aren't collector-exclusive
+      cards = cards.filter(card => {
+        const inPlayBooster = isInPlayBooster(card, setConfig);
+        if (inPlayBooster === true) return true;
+        if (isCollectorExclusiveByConfig(card, setConfig) === true) return false;
+        // Fall back to Scryfall's booster flag and generic exclusion rules
+        return card.booster && !isCollectorExclusive(card);
+      });
+    } else {
+      // No config, use generic rules
+      cards = cards.filter(card => !isCollectorExclusive(card));
+    }
   }
 
   return cards;
@@ -348,10 +379,54 @@ export function getDailySeed(date = new Date()) {
 // ============ Sets Loading ============
 
 const SETS_URL = 'https://bensonperry.com/shared/sets.json';
+const SET_CONFIGS_URL = 'https://bensonperry.com/shared/set-configs.json';
+
+let setConfigsCache = null;
 
 export async function fetchSets() {
   const response = await fetch(SETS_URL);
   return await response.json();
+}
+
+export async function fetchSetConfigs() {
+  if (setConfigsCache) return setConfigsCache;
+  try {
+    const response = await fetch(SET_CONFIGS_URL);
+    setConfigsCache = await response.json();
+  } catch (e) {
+    setConfigsCache = {};
+  }
+  return setConfigsCache;
+}
+
+// Check if a collector number is within a range string like "262-281" or "342"
+function isInRange(cn, rangeStr) {
+  const cnNum = parseInt(cn, 10);
+  if (isNaN(cnNum)) return false;
+
+  if (rangeStr.includes('-')) {
+    const [start, end] = rangeStr.split('-').map(n => parseInt(n, 10));
+    return cnNum >= start && cnNum <= end;
+  }
+  return cnNum === parseInt(rangeStr, 10);
+}
+
+// Check if a card is in the play booster based on set config
+export function isInPlayBooster(card, setConfig) {
+  if (!setConfig?.playBooster?.includeCollectorNumbers) return null; // no config, use default logic
+
+  const cn = card.collector_number;
+  const ranges = setConfig.playBooster.includeCollectorNumbers;
+  return ranges.some(range => isInRange(cn, range));
+}
+
+// Check if a card is collector-exclusive based on set config
+export function isCollectorExclusiveByConfig(card, setConfig) {
+  if (!setConfig?.collectorExclusive?.collectorNumbers) return null; // no config
+
+  const cn = card.collector_number;
+  const ranges = setConfig.collectorExclusive.collectorNumbers;
+  return ranges.some(range => isInRange(cn, range));
 }
 
 // ============ Set Autocomplete ============

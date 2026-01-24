@@ -1,0 +1,369 @@
+{
+  "_comment": "Per-set rules for what appears in Play Boosters vs Collector Boosters. Source: official Collecting articles.",
+  "blb": {
+    "name": "Bloomburrow",
+    "source": "https://magic.wizards.com/en/news/feature/collecting-bloomburrow",
+    "playBooster": {
+      "includeCollectorNumbers": [
+        "262-281",
+        "282-286",
+        "287-293",
+        "294-336",
+        "337-342"
+      ],
+      "notes": {
+        "262-281": "Full-art Seasonal Basic Lands (Spring/Summer/Autumn/Winter)",
+        "282-286": "Borderless Field Notes (rare/mythic)",
+        "287-293": "Borderless mythics (Beza, Eluge, Maha, Dragonhawk, Lumra regular)",
+        "294-336": "Showcase Woodland treatments",
+        "337-342": "Borderless Three Tree City (337-340), Ral (341), Lumra alt art (342)"
+      }
+    },
+    "collectorExclusive": {
+      "collectorNumbers": [
+        "343-362",
+        "363-375",
+        "376-396"
+      ],
+      "notes": {
+        "343-362": "Imagine: Courageous Critters (20 cards)",
+        "363-375": "Extended-art rares (13 cards)",
+        "376-396": "Japanese Raised Foil Anime art (21 cards)"
+      }
+    }
+  },
+  "dsk": {
+    "name": "Duskmourn: House of Horror",
+    "source": "https://magic.wizards.com/en/news/feature/collecting-duskmourn",
+    "playBooster": {
+      "includeCollectorNumbers": [
+        "302-321",
+        "322-335",
+        "336-367"
+      ],
+      "notes": {
+        "302-321": "Full-art basic lands",
+        "322-335": "Borderless cards",
+        "336-367": "Showcase Monster Manual treatments"
+      }
+    },
+    "collectorExclusive": {
+      "collectorNumbers": [
+        "368-411"
+      ],
+      "notes": {
+        "368-411": "Extended-art, special frames, Japan-exclusive treatments"
+      }
+    }
+  },
+  "fdn": {
+    "name": "Foundations",
+    "source": "https://magic.wizards.com/en/news/feature/collecting-foundations",
+    "playBooster": {
+      "includeCollectorNumbers": [
+        "292-311",
+        "312-341",
+        "342-361"
+      ],
+      "notes": {
+        "292-311": "Full-art basic lands",
+        "312-341": "Borderless cards",
+        "342-361": "Showcase treatments"
+      }
+    },
+    "collectorExclusive": {
+      "collectorNumbers": [
+        "362-400"
+      ],
+      "notes": {
+        "362-400": "Extended-art and special treatments"
+      }
+    }
+  },
+  "mh3": {
+    "name": "Modern Horizons 3",
+    "source": "https://magic.wizards.com/en/news/feature/collecting-modern-horizons-3",
+    "playBooster": {
+      "includeCollectorNumbers": [
+        "320-339",
+        "340-383"
+      ],
+      "notes": {
+        "320-339": "Full-art basic lands",
+        "340-383": "Borderless and showcase treatments"
+      }
+    },
+    "collectorExclusive": {
+      "collectorNumbers": [
+        "384-446",
+        "447-496"
+      ],
+      "notes": {
+        "384-446": "Extended-art cards",
+        "447-496": "Special frames and serialized cards"
+      }
+    }
+  },
+  "otj": {
+    "name": "Outlaws of Thunder Junction",
+    "source": "https://magic.wizards.com/en/news/feature/collecting-outlaws-of-thunder-junction",
+    "playBooster": {
+      "includeCollectorNumbers": [
+        "287-306"
+      ],
+      "notes": {
+        "287-306": "Borderless and showcase treatments available in Play Boosters"
+      }
+    },
+    "collectorExclusive": {
+      "collectorNumbers": [
+        "307-360"
+      ],
+      "notes": {
+        "307-360": "Extended-art and special treatments"
+      }
+    }
+  },
+  "mkm": {
+    "name": "Murders at Karlov Manor",
+    "source": "https://magic.wizards.com/en/news/feature/collecting-murders-at-karlov-manor",
+    "playBooster": {
+      "includeCollectorNumbers": [
+        "287-306",
+        "307-346",
+        "347-376"
+      ],
+      "notes": {
+        "287-306": "Full-art basic lands",
+        "307-346": "Borderless cards",
+        "347-376": "Showcase Dossier treatments"
+      }
+    },
+    "collectorExclusive": {
+      "collectorNumbers": [
+        "377-436"
+      ],
+      "notes": {
+        "377-436": "Extended-art and special treatments"
+      }
+    }
+  },
+  "lci": {
+    "name": "The Lost Caverns of Ixalan",
+    "source": "https://magic.wizards.com/en/news/feature/collecting-the-lost-caverns-of-ixalan",
+    "playBooster": {
+      "includeCollectorNumbers": [
+        "292-311",
+        "312-351"
+      ],
+      "notes": {
+        "292-311": "Full-art basic lands",
+        "312-351": "Borderless and showcase treatments"
+      }
+    },
+    "collectorExclusive": {
+      "collectorNumbers": [
+        "352-411"
+      ],
+      "notes": {
+        "352-411": "Extended-art and special treatments"
+      }
+    }
+  },
+  "acr": {
+    "name": "Assassin's Creed",
+    "source": "https://magic.wizards.com/en/news/feature/collecting-assassins-creed",
+    "playBooster": {
+      "includeCollectorNumbers": [
+        "111-126"
+      ],
+      "notes": {
+        "111-126": "Borderless Scene cards and Borderless treatments"
+      }
+    },
+    "collectorExclusive": {
+      "collectorNumbers": [
+        "127-154",
+        "155-171",
+        "172-271"
+      ],
+      "notes": {
+        "127-154": "Showcase treatments",
+        "155-171": "Extended-art cards",
+        "172-271": "Etched foils and textured foils"
+      }
+    }
+  },
+  "inr": {
+    "name": "Innistrad Remastered",
+    "source": "https://magic.wizards.com/en/news/feature/collecting-innistrad-remastered",
+    "playBooster": {
+      "includeCollectorNumbers": [
+        "288-297"
+      ],
+      "notes": {
+        "288-297": "Borderless treatments available in Play Boosters"
+      }
+    },
+    "collectorExclusive": {
+      "collectorNumbers": [
+        "298-350"
+      ],
+      "notes": {
+        "298-350": "Showcase variants and premium treatments"
+      }
+    }
+  },
+  "dft": {
+    "name": "Aetherdrift",
+    "source": "https://magic.wizards.com/en/news/feature/collecting-aetherdrift",
+    "playBooster": {
+      "includeCollectorNumbers": [
+        "292-311",
+        "312-341"
+      ],
+      "notes": {
+        "292-311": "Full-art basic lands",
+        "312-341": "Borderless and showcase treatments"
+      }
+    },
+    "collectorExclusive": {
+      "collectorNumbers": [
+        "342-400"
+      ],
+      "notes": {
+        "342-400": "Revved Up foils, Rude Riders, Extended Art, Japan Showcase"
+      }
+    }
+  },
+  "tdm": {
+    "name": "Tarkir: Dragonstorm",
+    "source": "https://magic.wizards.com/en/news/feature/collecting-tarkir-dragonstorm",
+    "playBooster": {
+      "includeCollectorNumbers": [
+        "292-376",
+        "377-424"
+      ],
+      "notes": {
+        "292-376": "Showcase treatments",
+        "377-424": "Inverted treatments"
+      }
+    },
+    "collectorExclusive": {
+      "collectorNumbers": [
+        "425-450"
+      ],
+      "notes": {
+        "425-450": "Extended-art and special treatments"
+      }
+    }
+  },
+  "fin": {
+    "name": "Final Fantasy",
+    "source": "https://magic.wizards.com/en/news/feature/collecting-final-fantasy",
+    "playBooster": {
+      "includeCollectorNumbers": [
+        "251-314",
+        "315-420"
+      ],
+      "notes": {
+        "251-314": "Borderless and showcase treatments",
+        "315-420": "Inverted treatments"
+      }
+    },
+    "collectorExclusive": {
+      "collectorNumbers": [
+        "421-518"
+      ],
+      "notes": {
+        "421-518": "Extended-art cards"
+      }
+    }
+  },
+  "eoe": {
+    "name": "Edge of Eternities",
+    "source": "https://magic.wizards.com/en/news/feature/collecting-edge-of-eternities",
+    "playBooster": {
+      "includeCollectorNumbers": [
+        "251-276",
+        "277-316",
+        "317-396"
+      ],
+      "notes": {
+        "251-276": "Full-art lands",
+        "277-316": "Showcase treatments",
+        "317-396": "Inverted treatments"
+      }
+    },
+    "collectorExclusive": {
+      "collectorNumbers": [
+        "397-450"
+      ],
+      "notes": {
+        "397-450": "Extended-art and special treatments"
+      }
+    }
+  },
+  "spm": {
+    "name": "Marvel's Spider-Man",
+    "source": "https://magic.wizards.com/en/news/feature/collecting-marvels-spider-man",
+    "playBooster": {
+      "includeCollectorNumbers": [
+        "189-198"
+      ],
+      "notes": {
+        "189-198": "Full-art lands and borderless treatments"
+      }
+    },
+    "collectorExclusive": {
+      "collectorNumbers": [
+        "199-286"
+      ],
+      "notes": {
+        "199-286": "Scene cards, Web-Slinger, Panel cards, Extended Art"
+      }
+    }
+  },
+  "tla": {
+    "name": "Avatar: The Last Airbender",
+    "source": "https://magic.wizards.com/en/news/feature/collecting-avatar-the-last-airbender",
+    "playBooster": {
+      "includeCollectorNumbers": [
+        "287-296"
+      ],
+      "notes": {
+        "287-296": "Full-art lands"
+      }
+    },
+    "collectorExclusive": {
+      "collectorNumbers": [
+        "297-400"
+      ],
+      "notes": {
+        "297-400": "Scene cards, Borderless, Elemental Frame, Neon Ink"
+      }
+    }
+  },
+  "ecl": {
+    "name": "Lorwyn Eclipsed",
+    "source": "https://magic.wizards.com/en/news/feature/collecting-lorwyn-eclipsed",
+    "playBooster": {
+      "includeCollectorNumbers": [
+        "274-296",
+        "297-346"
+      ],
+      "notes": {
+        "274-296": "Full-art lands and Borderless cards",
+        "297-346": "Showcase cards"
+      }
+    },
+    "collectorExclusive": {
+      "collectorNumbers": [
+        "347-400"
+      ],
+      "notes": {
+        "347-400": "Reversible Shocklands, Japanese Showcase, Fracture Foils"
+      }
+    }
+  }
+}
