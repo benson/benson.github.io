@@ -379,24 +379,125 @@ export function getDailySeed(date = new Date()) {
 // ============ Sets Loading ============
 
 const SETS_URL = 'https://bensonperry.com/shared/sets.json';
-const SET_CONFIGS_URL = 'https://bensonperry.com/shared/set-configs.json';
+const BOOSTER_DATA_URL = 'https://bensonperry.com/booster-data';
 
-let setConfigsCache = null;
+let boosterIndexCache = null;
+let boosterFileCache = {};
 
 export async function fetchSets() {
   const response = await fetch(SETS_URL);
   return await response.json();
 }
 
-export async function fetchSetConfigs() {
-  if (setConfigsCache) return setConfigsCache;
+// Load the booster-data index
+export async function loadBoosterIndex() {
+  if (boosterIndexCache) return boosterIndexCache;
   try {
-    const response = await fetch(SET_CONFIGS_URL);
-    setConfigsCache = await response.json();
+    const response = await fetch(BOOSTER_DATA_URL + '/index.json');
+    boosterIndexCache = await response.json();
   } catch (e) {
-    setConfigsCache = {};
+    boosterIndexCache = { version: '0.0.0', boosters: {} };
   }
-  return setConfigsCache;
+  return boosterIndexCache;
+}
+
+// Load a specific booster file
+export async function loadBoosterFile(setCode, boosterType) {
+  const key = setCode + '-' + boosterType;
+  if (boosterFileCache[key]) return boosterFileCache[key];
+
+  try {
+    const response = await fetch(BOOSTER_DATA_URL + '/boosters/' + key + '.json');
+    boosterFileCache[key] = await response.json();
+  } catch (e) {
+    boosterFileCache[key] = null;
+  }
+  return boosterFileCache[key];
+}
+
+// Get available booster types for a set from booster-data
+export async function getBoosterTypes(setCode) {
+  const index = await loadBoosterIndex();
+  return index.boosters[setCode] || [];
+}
+
+// Check if booster-data has info for a set
+export async function hasBoosterData(setCode) {
+  const index = await loadBoosterIndex();
+  return setCode in index.boosters;
+}
+
+// Get all CN ranges that can appear in a booster type
+// Returns { nonfoil: [...], foil: [...], ... } with merged ranges from all slots
+export async function getBoosterPools(setCode, boosterType) {
+  const boosterFile = await loadBoosterFile(setCode, boosterType);
+  if (!boosterFile) return null;
+
+  const pools = {};
+  for (const slot of boosterFile.slots) {
+    if (!slot.pool) continue;
+    for (const [finish, ranges] of Object.entries(slot.pool)) {
+      if (!pools[finish]) pools[finish] = [];
+      pools[finish].push(...ranges);
+    }
+  }
+
+  // Deduplicate ranges
+  for (const finish of Object.keys(pools)) {
+    pools[finish] = [...new Set(pools[finish])];
+  }
+
+  return pools;
+}
+
+// Legacy: fetchSetConfigs now builds from booster-data
+export async function fetchSetConfigs() {
+  const index = await loadBoosterIndex();
+  const configs = {};
+
+  for (const setCode of Object.keys(index.boosters)) {
+    const types = index.boosters[setCode];
+    const playType = types.includes('play') ? 'play' : types.includes('draft') ? 'draft' : null;
+
+    if (playType) {
+      const playFile = await loadBoosterFile(setCode, playType);
+      const collectorFile = await loadBoosterFile(setCode, 'collector');
+
+      if (playFile) {
+        const playRanges = [];
+        for (const slot of playFile.slots) {
+          if (slot.pool?.nonfoil) playRanges.push(...slot.pool.nonfoil);
+          if (slot.pool?.foil) playRanges.push(...slot.pool.foil);
+        }
+
+        configs[setCode] = {
+          name: playFile.setName,
+          source: playFile.source,
+          playBooster: {
+            includeCollectorNumbers: [...new Set(playRanges)]
+          }
+        };
+
+        if (collectorFile) {
+          const collectorRanges = [];
+          for (const slot of collectorFile.slots) {
+            if (slot.name === 'collectorExclusive' && slot.pool) {
+              for (const ranges of Object.values(slot.pool)) {
+                collectorRanges.push(...ranges);
+              }
+            }
+          }
+          if (collectorRanges.length > 0) {
+            configs[setCode].collectorExclusive = {
+              collectorNumbers: [...new Set(collectorRanges)]
+            };
+          }
+        }
+      }
+    }
+  }
+
+  return configs;
 }
 
 // Check if a collector number is within a range string like "262-281" or "342"
