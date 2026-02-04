@@ -293,8 +293,134 @@ export async function fetchAllSetCards(setCode, boosterType = 'play') {
 
 // ============ Sealed Pool Generation ============
 
+// Generate a sealed pool using booster-data slot definitions
+// Falls back to simplified generation if no booster data available
+export async function generateSealedPoolFromBoosterData(setCode, cards, numPacks = 6, seed = null) {
+  const random = seed ? seededRandom(seed) : Math.random;
+
+  // Try to load booster data
+  const index = await loadBoosterIndex();
+  const types = index.boosters[setCode];
+
+  if (!types) {
+    // No booster data, use legacy generation
+    return generateSealedPool(cards, seed);
+  }
+
+  const boosterType = types.includes('play') ? 'play' : types.includes('draft') ? 'draft' : null;
+  if (!boosterType) {
+    return generateSealedPool(cards, seed);
+  }
+
+  const boosterFile = await loadBoosterFile(setCode, boosterType);
+  if (!boosterFile?.slots) {
+    return generateSealedPool(cards, seed);
+  }
+
+  // Pre-filter cards by collector number ranges and group by rarity
+  const cardsByRarityInPool = {};
+  for (const slot of boosterFile.slots) {
+    if (!slot.pool || !slot.rarities) continue;
+
+    // Get all CN ranges for this slot
+    const ranges = [];
+    for (const finishRanges of Object.values(slot.pool)) {
+      ranges.push(...finishRanges);
+    }
+
+    for (const rarity of slot.rarities) {
+      if (!cardsByRarityInPool[rarity]) {
+        cardsByRarityInPool[rarity] = [];
+      }
+
+      // Find cards matching this rarity and in the CN ranges
+      const matching = cards.filter(card => {
+        if (card.rarity !== rarity) return false;
+        return ranges.some(range => isInRange(card.collector_number, range));
+      });
+
+      // Add unique cards
+      for (const card of matching) {
+        if (!cardsByRarityInPool[rarity].some(c => c.id === card.id)) {
+          cardsByRarityInPool[rarity].push(card);
+        }
+      }
+    }
+  }
+
+  // Fallback pools for slots without specific rarities
+  const allInPool = cards.filter(card => {
+    for (const slot of boosterFile.slots) {
+      if (!slot.pool) continue;
+      const ranges = [];
+      for (const finishRanges of Object.values(slot.pool)) {
+        ranges.push(...finishRanges);
+      }
+      if (ranges.some(range => isInRange(card.collector_number, range))) {
+        return true;
+      }
+    }
+    return false;
+  });
+
+  const pool = [];
+
+  // Generate packs
+  for (let pack = 0; pack < numPacks; pack++) {
+    for (const slot of boosterFile.slots) {
+      // Skip slots without pools or counts (like notes-only slots)
+      if (!slot.pool || !slot.count) continue;
+
+      const count = slot.count;
+
+      for (let i = 0; i < count; i++) {
+        let card = null;
+
+        if (slot.rarities) {
+          // Determine rarity for this card
+          let rarity;
+          if (slot.rarities.includes('mythic') && slot.rarities.includes('rare')) {
+            // Use mythicRate if specified, default to 1/8 (0.125)
+            const mythicRate = slot.mythicRate ?? 0.125;
+            const hasMythics = (cardsByRarityInPool.mythic?.length ?? 0) > 0;
+            rarity = (hasMythics && random() < mythicRate) ? 'mythic' : 'rare';
+          } else {
+            // Pick from available rarities
+            rarity = slot.rarities[Math.floor(random() * slot.rarities.length)];
+          }
+
+          const rarityPool = cardsByRarityInPool[rarity] || [];
+          if (rarityPool.length > 0) {
+            card = pickRandom(rarityPool, random);
+          }
+        } else {
+          // Wildcard slot - pick any card from the pool ranges
+          const ranges = [];
+          for (const finishRanges of Object.values(slot.pool)) {
+            ranges.push(...finishRanges);
+          }
+
+          const slotCards = allInPool.filter(c =>
+            ranges.some(range => isInRange(c.collector_number, range))
+          );
+
+          if (slotCards.length > 0) {
+            card = pickRandom(slotCards, random);
+          }
+        }
+
+        if (card) {
+          pool.push(card);
+        }
+      }
+    }
+  }
+
+  return pool;
+}
+
 // Generate a sealed pool (6 boosters worth of cards)
-// Uses simplified rarity distribution that works for most sets
+// Legacy function - uses simplified rarity distribution
 export function generateSealedPool(cards, seed = null) {
   // Use seeded random if provided
   const random = seed ? seededRandom(seed) : Math.random;
@@ -312,8 +438,8 @@ export function generateSealedPool(cards, seed = null) {
   // Generate 6 packs
   for (let pack = 0; pack < 6; pack++) {
     // Each pack: 1 rare/mythic, 3 uncommons, 10 commons (simplified)
-    // ~1 in 7 chance of mythic instead of rare
-    const isMythic = random() < (1/7) && byRarity.mythic.length > 0;
+    // ~1 in 8 chance of mythic instead of rare (0.125)
+    const isMythic = random() < 0.125 && byRarity.mythic.length > 0;
     const rarePool = isMythic ? byRarity.mythic : byRarity.rare;
 
     if (rarePool.length > 0) {
