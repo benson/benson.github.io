@@ -240,9 +240,8 @@ export async function fetchSpecialGuestsCards(setCode, minPrice = 0) {
 // Fetch ALL cards from a set (for sealed pool generation)
 // No price filter, includes all rarities
 export async function fetchAllSetCards(setCode, boosterType = 'play') {
-  // Load set config for accurate filtering
-  const configs = await fetchSetConfigs();
-  const setConfig = configs[setCode];
+  // Load set config for accurate filtering (only loads this set, not all sets)
+  const setConfig = await fetchSetConfig(setCode);
 
   // If we have a set config with play booster ranges, fetch all cards and filter client-side
   // Otherwise use Scryfall's is:booster filter
@@ -576,7 +575,56 @@ export async function getBoosterPools(setCode, boosterType) {
   return pools;
 }
 
-// Legacy: fetchSetConfigs now builds from booster-data
+// Fetch config for a single set (efficient - only loads what's needed)
+export async function fetchSetConfig(setCode) {
+  const index = await loadBoosterIndex();
+  const types = index.boosters[setCode];
+  if (!types) return null;
+
+  const playType = types.includes('play') ? 'play' : types.includes('draft') ? 'draft' : null;
+  if (!playType) return null;
+
+  const playFile = await loadBoosterFile(setCode, playType);
+  if (!playFile) return null;
+
+  const playRanges = [];
+  for (const slot of playFile.slots) {
+    if (slot.pool?.nonfoil) playRanges.push(...slot.pool.nonfoil);
+    if (slot.pool?.foil) playRanges.push(...slot.pool.foil);
+  }
+
+  const config = {
+    name: playFile.setName,
+    source: playFile.source,
+    playBooster: {
+      includeCollectorNumbers: [...new Set(playRanges)]
+    }
+  };
+
+  // Only load collector file if it exists
+  if (types.includes('collector')) {
+    const collectorFile = await loadBoosterFile(setCode, 'collector');
+    if (collectorFile) {
+      const collectorRanges = [];
+      for (const slot of collectorFile.slots) {
+        if (slot.name === 'collectorExclusive' && slot.pool) {
+          for (const ranges of Object.values(slot.pool)) {
+            collectorRanges.push(...ranges);
+          }
+        }
+      }
+      if (collectorRanges.length > 0) {
+        config.collectorExclusive = {
+          collectorNumbers: [...new Set(collectorRanges)]
+        };
+      }
+    }
+  }
+
+  return config;
+}
+
+// Legacy: fetchSetConfigs loads ALL sets (use fetchSetConfig for single set)
 export async function fetchSetConfigs() {
   const index = await loadBoosterIndex();
   const configs = {};
