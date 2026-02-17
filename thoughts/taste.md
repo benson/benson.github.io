@@ -1,2 +1,2 @@
-# taste ?
-building is easy, taste is hard. can i _show_ you my taste? can you experience it?
+# taste?
+what is taste? will you know it when you see it? i hope so.
