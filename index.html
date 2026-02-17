@@ -23,6 +23,8 @@
     </nav>
   </header>
 
+  <pre id="orbit-strip"></pre>
+
   <section>
     <h2>projects</h2>
     <ul>
@@ -41,5 +43,130 @@
     </ul>
   </section>
 
+  <script>
+    const H = 7;
+    const el = document.getElementById('orbit-strip');
+    let W = Math.floor(window.innerWidth / 6.02);
+    let t = 0;
+    const sunX = 10;
+
+    const bodies = [
+      { rx: 1.5, ry: 0.5, speed: 3.2, ch: '.', col: '#b09080' },
+      { rx: 2.5, ry: 0.8, speed: 2.2, ch: '·', col: '#c0a060' },
+      { rx: 4,   ry: 1.2, speed: 1.5, ch: 'o', col: '#80a0a0' },
+      { rx: 5.5, ry: 1.6, speed: 1.0, ch: 'O', col: '#7090b0' },
+      { rx: 7,   ry: 2.0, speed: 0.7, ch: '◦', col: '#b09070' },
+      { rx: 9,   ry: 2.5, speed: 0.45, ch: '●', col: '#a08860' },
+      { rx: 11,  ry: 2.8, speed: 0.32, ch: '○', col: '#6090a0' },
+      { rx: 14,  ry: 3.0, speed: 0.2, ch: '◎', col: '#8080a0' },
+    ];
+
+    const asteroids = [];
+    for (let i = 0; i < 18; i++) {
+      asteroids.push({
+        a: (Math.PI * 2 * i / 18) + (Math.random() - 0.5) * 0.5,
+        rx: 6 + (Math.random() - 0.5) * 1.2,
+        ry: 1.8 + (Math.random() - 0.5) * 0.3,
+        speed: 0.55 + (Math.random() - 0.5) * 0.2,
+      });
+    }
+
+    const shooters = [
+      { period: 9,  dur: 0.15, y: 1, dir: 1,  len: 5 },
+      { period: 13, dur: 0.12, y: 5, dir: -1, len: 4 },
+      { period: 17, dur: 0.10, y: 2, dir: 1,  len: 3 },
+      { period: 22, dur: 0.08, y: 6, dir: 1,  len: 6 },
+    ];
+
+    function hash(x, y) {
+      let h = x + y * 137;
+      h = ((h >> 16) ^ h) * 0x45d9f3b | 0;
+      h = ((h >> 16) ^ h) * 0x45d9f3b | 0;
+      h = (h >> 16) ^ h;
+      return h;
+    }
+
+    const orbitCol = '#a0a0a0';
+    const sunCol = '#c0a050';
+
+    function render() {
+      t += 0.03;
+      const cx = sunX, cy = H / 2;
+      const g = Array.from({length: H}, () => new Array(W).fill('·'));
+      const c = Array.from({length: H}, () => new Array(W).fill(''));
+
+      const blink = Math.floor(t * 20);
+      const bx1 = ((hash(blink, 0) & 0x7fffffff) % W);
+      const by1 = ((hash(blink, 1) & 0x7fffffff) % H);
+      if ((blink % 15) < 1) { g[by1][bx1] = '*'; c[by1][bx1] = '#909090'; }
+      const bx2 = ((hash(blink + 9999, 2) & 0x7fffffff) % W);
+      const by2 = ((hash(blink + 9999, 3) & 0x7fffffff) % H);
+      if ((blink % 22) < 1) { g[by2][bx2] = '*'; c[by2][bx2] = '#909090'; }
+
+      for (const b of bodies) {
+        const step = Math.min(0.12, 1 / b.rx);
+        for (let a = 0; a < Math.PI * 2; a += step) {
+          const ox = Math.round(cx + Math.cos(a) * b.rx);
+          const oy = Math.round(cy + Math.sin(a) * b.ry);
+          if (ox >= 0 && ox < W && oy >= 0 && oy < H) c[oy][ox] = orbitCol;
+        }
+      }
+
+      for (const ast of asteroids) {
+        const ax = Math.round(cx + Math.cos(t * ast.speed + ast.a) * ast.rx);
+        const ay = Math.round(cy + Math.sin(t * ast.speed + ast.a) * ast.ry);
+        if (ax >= 0 && ax < W && ay >= 0 && ay < H) { g[ay][ax] = '.'; c[ay][ax] = '#a09080'; }
+      }
+
+      for (const s of shooters) {
+        const phase = (t / s.period) % 1;
+        if (phase < s.dur) {
+          const prog = phase / s.dur;
+          const head = s.dir > 0
+            ? Math.round(prog * (W + s.len) - s.len)
+            : Math.round(W - prog * (W + s.len) + s.len);
+          for (let i = 0; i <= s.len; i++) {
+            const px = head - i * s.dir;
+            if (px >= 0 && px < W && s.y >= 0 && s.y < H) {
+              g[s.y][px] = i === 0 ? '*' : '-';
+              c[s.y][px] = i === 0 ? '#90c0d0' : '#80a0b0';
+            }
+          }
+        }
+      }
+
+      const sy = Math.round(cy), sx = Math.round(cx);
+      if (sy >= 0 && sy < H && sx >= 0 && sx < W) { g[sy][sx] = '*'; c[sy][sx] = sunCol; }
+
+      for (const b of bodies) {
+        const bx = Math.round(cx + Math.cos(t * b.speed) * b.rx);
+        const by = Math.round(cy + Math.sin(t * b.speed) * b.ry);
+        if (bx >= 0 && bx < W && by >= 0 && by < H) { g[by][bx] = b.ch; c[by][bx] = b.col; }
+      }
+
+      let html = '';
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          if (c[y][x]) html += `<span style="color:${c[y][x]}">${g[y][x]}</span>`;
+          else html += g[y][x];
+        }
+        if (y < H - 1) html += '\n';
+      }
+      el.innerHTML = html;
+    }
+
+    let last = 0;
+    function loop(ts) {
+      if (ts - last > 50) { last = ts; render(); }
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener('resize', () => {
+      W = Math.floor(window.innerWidth / 6.02);
+    });
+
+    render();
+    requestAnimationFrame(loop);
+  </script>
 </body>
 </html>
