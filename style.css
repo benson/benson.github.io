@@ -85,6 +85,48 @@ li a:hover {
   border-bottom-color: #999;
 }
 
+section + section {
+  margin-top: 40px;
+}
+
+.cube-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 80px;
+  perspective: 600px;
+}
+
+.cube {
+  width: 150px;
+  height: 150px;
+  position: relative;
+  transform-style: preserve-3d;
+  animation: tumble 25s infinite linear;
+}
+
+.cube-face {
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  border: 1px solid #ccc;
+}
+
+.front  { transform: rotateY(0deg) translateZ(75px); }
+.back   { transform: rotateY(180deg) translateZ(75px); }
+.right  { transform: rotateY(90deg) translateZ(75px); }
+.left   { transform: rotateY(-90deg) translateZ(75px); }
+.top    { transform: rotateX(90deg) translateZ(75px); }
+.bottom { transform: rotateX(-90deg) translateZ(75px); }
+
+@keyframes tumble {
+  from { transform: rotateX(0deg) rotateY(0deg); }
+  to { transform: rotateX(360deg) rotateY(480deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cube { animation: none; transform: rotateX(-25deg) rotateY(30deg); }
+}
+
 @media (max-width: 600px) {
   body {
     padding: 20px 15px;
