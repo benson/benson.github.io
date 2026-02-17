@@ -501,6 +501,24 @@ export function getDailySeed(date = new Date()) {
   return 'daily-' + dateStr;
 }
 
+// Pick today's daily challenge set from a list of sets
+export function pickDailySet(sets, date = new Date()) {
+  const seed = getDailySeed(date);
+  const dateStr = seed.replace('daily-', '');
+  const recentSets = sets.filter(s => s.released && s.released >= '2020-01-01');
+  const dayIndex = hashDate(dateStr) % recentSets.length;
+  return recentSets[dayIndex];
+}
+
+function hashDate(dateStr) {
+  let hash = 0;
+  for (let i = 0; i < dateStr.length; i++) {
+    hash = ((hash << 5) - hash) + dateStr.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
 // ============ Sets Loading ============
 
 const SETS_URL = 'https://bensonperry.com/shared/sets.json';
