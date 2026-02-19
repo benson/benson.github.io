@@ -145,6 +145,17 @@ li a:hover {
   display: block;
 }
 
+.album-wrap:first-child .album-tip {
+  left: 0;
+  transform: none;
+}
+
+.album-wrap:last-child .album-tip {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
 #league-recent {
   display: flex;
   gap: 6px;
@@ -196,6 +207,17 @@ li a:hover {
 
 .champ-wrap:hover .champ-tip {
   display: block;
+}
+
+.champ-wrap:first-child .champ-tip {
+  left: 0;
+  transform: none;
+}
+
+.champ-wrap:last-child .champ-tip {
+  left: auto;
+  right: 0;
+  transform: none;
 }
 
 section + section {
