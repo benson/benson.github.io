@@ -1,4 +1,27 @@
 {
   "blurb": "played 20 aram games in the last week, went 9-11",
+  "recent": [
+    {
+      "champion": "TahmKench",
+      "win": false
+    },
+    {
+      "champion": "Veigar",
+      "win": false
+    },
+    {
+      "champion": "Twitch",
+      "win": false
+    },
+    {
+      "champion": "Ziggs",
+      "win": true
+    },
+    {
+      "champion": "MissFortune",
+      "win": true
+    }
+  ],
+  "ddragonVersion": "16.4.1",
   "date": "2026-02-19"
 }

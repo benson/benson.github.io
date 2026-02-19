@@ -99,6 +99,22 @@ li a:hover {
   border-bottom-color: #999;
 }
 
+#league-recent {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.champ-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 3px;
+}
+
+.champ-icon.loss {
+  opacity: 0.4;
+}
+
 #league-blurb {
   color: #999;
   font-size: 0.85rem;

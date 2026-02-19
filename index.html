@@ -49,13 +49,27 @@
 
   <section>
     <h2>recent games</h2>
+    <div id="league-recent"></div>
     <p id="league-blurb"></p>
   </section>
 
   <script>
     fetch('league-history.json')
       .then(r => r.json())
-      .then(d => document.getElementById('league-blurb').textContent = d.blurb)
+      .then(d => {
+        document.getElementById('league-blurb').textContent = d.blurb;
+        if (d.recent && d.recent.length && d.ddragonVersion) {
+          const container = document.getElementById('league-recent');
+          for (const g of d.recent) {
+            const img = document.createElement('img');
+            img.src = `https://ddragon.leagueoflegends.com/cdn/${d.ddragonVersion}/img/champion/${g.champion}.png`;
+            img.alt = g.champion;
+            img.title = g.champion + (g.win ? ' (win)' : ' (loss)');
+            img.className = 'champ-icon' + (g.win ? '' : ' loss');
+            container.appendChild(img);
+          }
+        }
+      })
       .catch(() => {});
   </script>
 

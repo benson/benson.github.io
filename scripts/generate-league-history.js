@@ -64,6 +64,7 @@ async function main() {
     console.error('RIOT_API_KEY not set');
     fs.writeFileSync('league-history.json', JSON.stringify({
       blurb: 'no games this week',
+      recent: [],
       date: new Date().toISOString().slice(0, 10),
     }, null, 2) + '\n');
     process.exit(0);
@@ -94,8 +95,18 @@ async function main() {
     const blurb = buildBlurb(matches, puuid);
     console.log('blurb:', blurb);
 
+    const recent = matches.slice(0, 5).map(m => {
+      const me = m.info.participants.find(p => p.puuid === puuid);
+      return { champion: me?.championName || 'Unknown', win: me?.win || false };
+    });
+
+    const versions = await (await fetch('https://ddragon.leagueoflegends.com/api/versions.json')).json();
+    const ddragonVersion = versions[0];
+
     const output = {
       blurb,
+      recent,
+      ddragonVersion,
       date: new Date().toISOString().slice(0, 10),
     };
 
@@ -105,6 +116,7 @@ async function main() {
     console.error('error:', err.message);
     fs.writeFileSync('league-history.json', JSON.stringify({
       blurb: 'no games this week',
+      recent: [],
       date: new Date().toISOString().slice(0, 10),
     }, null, 2) + '\n');
   }
