@@ -67,7 +67,7 @@
         const container = document.getElementById('spotify-recent');
         for (const t of d.recent) {
           const wrap = document.createElement('a');
-          wrap.className = 'album-wrap hidden';
+          wrap.className = 'album-wrap';
           wrap.href = t.url;
           wrap.target = '_blank';
 
@@ -75,7 +75,6 @@
           img.src = t.art;
           img.alt = t.name;
           img.className = 'album-icon';
-          img.onload = () => wrap.classList.remove('hidden');
 
           const tip = document.createElement('div');
           tip.className = 'album-tip';

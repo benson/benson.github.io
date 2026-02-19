@@ -107,15 +107,6 @@ li a:hover {
 .album-wrap {
   position: relative;
   text-decoration: none;
-  transition: opacity 0.3s;
-}
-
-.album-wrap.hidden {
-  opacity: 0;
-}
-
-.album-wrap.fade-out {
-  opacity: 0;
 }
 
 .album-icon {
