@@ -47,6 +47,18 @@
     </ul>
   </section>
 
+  <section>
+    <h2>recent games</h2>
+    <p id="league-blurb"></p>
+  </section>
+
+  <script>
+    fetch('league-history.json')
+      .then(r => r.json())
+      .then(d => document.getElementById('league-blurb').textContent = d.blurb)
+      .catch(() => {});
+  </script>
+
   <script>
     const H = 7;
     const el = document.getElementById('orbit-strip');

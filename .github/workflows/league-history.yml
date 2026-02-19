@@ -1,0 +1,30 @@
+name: Update League History
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Generate league history
+        run: node scripts/generate-league-history.js
+        env:
+          RIOT_API_KEY: ${{ secrets.RIOT_API_KEY }}
+
+      - name: Commit if changed
+        run: |
+          git diff --quiet league-history.json && exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add league-history.json
+          git commit -m "update league history"
+          git push
