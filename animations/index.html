@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>animation variations — benson perry</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Times New Roman", Times, Georgia, serif;
+      background: #f8f7f4;
+      color: #000;
+      min-height: 100vh;
+      padding: 40px 30px;
+      text-transform: lowercase;
+    }
+    h1 { font-size: 1.5rem; font-weight: 400; letter-spacing: -0.02em; margin-bottom: 8px; }
+    h1 a { color: inherit; text-decoration: none; border-bottom: 1px solid #ccc; }
+    h1 a:hover { border-bottom-color: #000; }
+    .subtitle { font-size: 0.75rem; color: #999; margin-bottom: 40px; }
+    .variation { margin-bottom: 48px; }
+    .label { font-size: 0.75rem; font-weight: 400; color: #999; letter-spacing: 0.03em; margin-bottom: 8px; }
+    pre.anim {
+      font-family: "Courier New", Courier, monospace;
+      font-size: 10px;
+      line-height: 1.2;
+      color: #b0b0a8;
+      padding: 0;
+      white-space: pre;
+      overflow: hidden;
+      user-select: none;
+      margin-left: -30px;
+      margin-right: -30px;
+    }
+    @media (max-width: 600px) {
+      body { padding: 20px 15px; }
+      pre.anim { margin-left: -15px; margin-right: -15px; }
+    }
+  </style>
+</head>
+<body>
+  <h1><a href="/">benson perry</a></h1>
+  <div class="subtitle">animation variations</div>
+
+  <div class="variation"><div class="label">1 — jellyfish</div><pre class="anim" id="v1"></pre></div>
+  <div class="variation"><div class="label">2 — embers</div><pre class="anim" id="v2"></pre></div>
+  <div class="variation"><div class="label">3 — rain</div><pre class="anim" id="v3"></pre></div>
+  <div class="variation"><div class="label">4 — waves</div><pre class="anim" id="v4"></pre></div>
+  <div class="variation"><div class="label">5 — murmuration</div><pre class="anim" id="v5"></pre></div>
+  <div class="variation"><div class="label">6 — galaxy</div><pre class="anim" id="v6"></pre></div>
+  <div class="variation"><div class="label">7 — lissajous</div><pre class="anim" id="v7"></pre></div>
+  <div class="variation"><div class="label">8 — ripples</div><pre class="anim" id="v8"></pre></div>
+  <div class="variation"><div class="label">9 — helix</div><pre class="anim" id="v9"></pre></div>
+  <div class="variation"><div class="label">10 — fireflies</div><pre class="anim" id="v10"></pre></div>
+
+  <script>
+    const H = 7;
+    let W = Math.floor(window.innerWidth / 6.02);
+    window.addEventListener('resize', () => { W = Math.floor(window.innerWidth / 6.02); });
+
+    function hash(x, y) {
+      let h = x + y * 137;
+      h = ((h >> 16) ^ h) * 0x45d9f3b | 0;
+      h = ((h >> 16) ^ h) * 0x45d9f3b | 0;
+      return (h >> 16) ^ h;
+    }
+
+    function addStars(g, c, t) {
+      const bk = Math.floor(t * 20);
+      for (let i = 0; i < 2; i++) {
+        const bx = ((hash(bk + i * 9999, i * 2) & 0x7fffffff) % W);
+        const by = ((hash(bk + i * 9999, i * 2 + 1) & 0x7fffffff) % H);
+        if ((bk % (i === 0 ? 15 : 22)) < 1) { g[by][bx] = '*'; c[by][bx] = '#909090'; }
+      }
+    }
+
+    function addShooters(g, c, t, shooters) {
+      for (const s of shooters) {
+        const phase = (t / s.period) % 1;
+        if (phase < s.dur) {
+          const prog = phase / s.dur;
+          const head = s.dir > 0
+            ? Math.round(prog * (W + s.len) - s.len)
+            : Math.round(W - prog * (W + s.len) + s.len);
+          for (let i = 0; i <= s.len; i++) {
+            const px = head - i * s.dir;
+            if (px >= 0 && px < W && s.y >= 0 && s.y < H) {
+              g[s.y][px] = i === 0 ? '*' : '-';
+              c[s.y][px] = i === 0 ? '#90c0d0' : '#80a0b0';
+            }
+          }
+        }
+      }
+    }
+
+    const anims = [];
+    function reg(id, fn) { anims.push({ el: document.getElementById(id), fn, t: 0 }); }
+
+    function render(a) {
+      const g = Array.from({length: H}, () => new Array(W).fill('\u00B7'));
+      const c = Array.from({length: H}, () => new Array(W).fill(''));
+      a.fn(g, c, a.t);
+      let html = '';
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          html += c[y][x] ? '<span style="color:' + c[y][x] + '">' + g[y][x] + '</span>' : g[y][x];
+        }
+        if (y < H - 1) html += '\n';
+      }
+      a.el.innerHTML = html;
+    }
+
+    // 1 — jellyfish
+    reg('v1', (g, c, t) => {
+      addStars(g, c, t);
+      const jellies = [
+        { cx: 10, cy: 3, rx: 3, ry: 1.3, speed: 0.4, drift: 5, phase: 0, col: '#8060b0' },
+        { cx: 24, cy: 2, rx: 2, ry: 0.9, speed: 0.6, drift: 4, phase: 2, col: '#6070c0' },
+        { cx: 18, cy: 4, rx: 2.5, ry: 1.1, speed: 0.5, drift: 3, phase: 4, col: '#9050a0' },
+      ];
+      for (const j of jellies) {
+        const jx = j.cx + Math.sin(t * j.speed) * j.drift;
+        const jy = j.cy + Math.sin(t * 0.4 + j.phase) * 0.8;
+        const pulse = 1 + 0.25 * Math.sin(t * 2 + j.phase);
+        for (let a = -Math.PI; a < 0; a += 0.2) {
+          const dx = Math.round(jx + Math.cos(a) * j.rx * pulse);
+          const dy = Math.round(jy + Math.sin(a) * j.ry * pulse);
+          if (dx >= 0 && dx < W && dy >= 0 && dy < H) { g[dy][dx] = '~'; c[dy][dx] = j.col; }
+        }
+        const ix = Math.round(jx), iy = Math.round(jy);
+        if (ix >= 0 && ix < W && iy >= 0 && iy < H) { g[iy][ix] = '\u25CE'; c[iy][ix] = j.col; }
+        for (let ti = -1; ti <= 1; ti++) {
+          for (let dy = 1; dy <= 3; dy++) {
+            const tx = Math.round(jx + ti * 1.2 + Math.sin(t * 3 + ti + j.phase) * 0.6);
+            const ty = Math.round(jy + dy);
+            if (tx >= 0 && tx < W && ty >= 0 && ty < H) {
+              g[ty][tx] = dy === 1 ? '|' : (dy === 2 ? ':' : '.');
+              c[ty][tx] = j.col;
+            }
+          }
+        }
+      }
+      for (let i = 0; i < 10; i++) {
+        const bx = ((hash(i, 42) & 0x7fffffff) % (W - 4)) + 2;
+        const by = H - 1 - ((t * 0.7 + i * 1.3) % (H + 2));
+        const iy = Math.round(by);
+        if (iy >= 0 && iy < H && bx < W) { g[iy][bx] = '\u00B0'; c[iy][bx] = '#90b0d0'; }
+      }
+      addShooters(g, c, t, [
+        { period: 11, dur: 0.12, y: 1, dir: 1, len: 4 },
+        { period: 16, dur: 0.10, y: 5, dir: -1, len: 3 },
+      ]);
+    });
+
+    // 2 — embers
+    const embers = [];
+    reg('v2', (g, c, t) => {
+      addStars(g, c, t);
+      if (embers.length < 45 && Math.random() < 0.4) {
+        embers.push({
+          x: 10 + (Math.random() - 0.5) * 2, y: H - 1,
+          vx: (Math.random() - 0.5) * 0.4, vy: -0.08 - Math.random() * 0.12,
+          age: 0, maxAge: 25 + Math.random() * 35,
+        });
+      }
+      for (let i = embers.length - 1; i >= 0; i--) {
+        const e = embers[i];
+        e.x += e.vx; e.y += e.vy;
+        e.vx += (Math.random() - 0.45) * 0.08;
+        e.age++;
+        if (e.age > e.maxAge || e.y < -1 || e.x < 0 || e.x >= W) { embers.splice(i, 1); continue; }
+        const ix = Math.round(e.x), iy = Math.round(e.y);
+        if (ix >= 0 && ix < W && iy >= 0 && iy < H) {
+          const f = e.age / e.maxAge;
+          g[iy][ix] = f < 0.3 ? '*' : '\u00B7';
+          c[iy][ix] = f < 0.2 ? '#e09030' : (f < 0.5 ? '#c07020' : '#806040');
+        }
+      }
+      const flames = ['^', '*', '\u25B2'];
+      for (let dx = -1; dx <= 1; dx++) {
+        const fx = 10 + dx;
+        if (fx >= 0 && fx < W) {
+          g[H-1][fx] = flames[Math.floor(t * 8 + dx * 3) % 3];
+          c[H-1][fx] = '#d08020';
+        }
+        if (fx >= 0 && fx < W && H - 2 >= 0) {
+          g[H-2][fx] = flames[(Math.floor(t * 10 + dx * 2) + 1) % 3];
+          c[H-2][fx] = '#e0a030';
+        }
+      }
+      for (let i = 0; i < 4; i++) {
+        const sx = Math.round(10 + ((t * 1.5 + i * 7) % 25));
+        if (sx >= 0 && sx < W) { g[0][sx] = '~'; c[0][sx] = '#a0a098'; }
+      }
+      addShooters(g, c, t, [
+        { period: 14, dur: 0.10, y: 0, dir: 1, len: 4 },
+        { period: 19, dur: 0.08, y: 3, dir: -1, len: 3 },
+      ]);
+    });
+
+    // 3 — rain
+    reg('v3', (g, c, t) => {
+      for (let i = 0; i < 90; i++) {
+        const x0 = (hash(i, 100) & 0x7fffffff) % W;
+        const speed = 6 + (hash(i, 200) & 0x7fffffff) % 6;
+        const offset = ((hash(i, 300) & 0x7fffffff) % 1000) / 30;
+        const len = 1 + (hash(i, 400) & 0x7fffffff) % 2;
+        const headY = (t * speed + offset) % (H + len + 3) - len;
+        for (let j = 0; j < len; j++) {
+          const y = Math.floor(headY) - j;
+          const x = x0 + Math.floor(j * 0.3);
+          if (y >= 0 && y < H && x >= 0 && x < W) {
+            g[y][x] = j === 0 ? '|' : ':';
+            c[y][x] = j === 0 ? '#6080a0' : '#506070';
+          }
+        }
+      }
+      for (let i = 0; i < 8; i++) {
+        const sx = ((hash(i, 500) & 0x7fffffff) % W);
+        const splashT = (t * 4 + ((hash(i, 600) & 0x7fffffff) % 100) / 10) % 5;
+        if (splashT < 0.3 && H - 1 >= 0) {
+          if (sx >= 0 && sx < W) { g[H-1][sx] = '*'; c[H-1][sx] = '#7090b0'; }
+          if (sx - 1 >= 0 && sx - 1 < W) { g[H-1][sx-1] = '.'; c[H-1][sx-1] = '#607080'; }
+          if (sx + 1 >= 0 && sx + 1 < W) { g[H-1][sx+1] = '.'; c[H-1][sx+1] = '#607080'; }
+        }
+      }
+      const lPhase = Math.floor(t * 0.4);
+      const lFrac = (t * 0.4) % 1;
+      if (lFrac < 0.015) {
+        const ly = (hash(lPhase, 888) & 0x7fffffff) % H;
+        for (let x = 0; x < W; x++) {
+          if ((hash(x + lPhase * 1000, 999) & 0x7fffffff) % 4 !== 0) {
+            g[ly][x] = '-'; c[ly][x] = '#c0c0d0';
+          }
+        }
+      }
+      addShooters(g, c, t, [
+        { period: 12, dur: 0.11, y: 1, dir: 1, len: 5 },
+        { period: 20, dur: 0.09, y: 4, dir: -1, len: 4 },
+      ]);
+    });
+
+    // 4 — waves
+    reg('v4', (g, c, t) => {
+      addStars(g, c, t);
+      const cy = H / 2;
+      const breath = 0.7 + 0.3 * Math.sin(t * 0.25);
+      const waves = [
+        { freq: 0.05, speed: 0.4, amp: 2.8, ch: '~', col: '#408060' },
+        { freq: 0.09, speed: 0.7, amp: 1.8, ch: '-', col: '#509070' },
+        { freq: 0.14, speed: 1.1, amp: 1.0, ch: '.', col: '#60b090' },
+      ];
+      for (const w of waves) {
+        for (let x = 0; x < W; x++) {
+          const y = Math.round(cy + Math.sin(x * w.freq + t * w.speed) * w.amp * breath);
+          if (y >= 0 && y < H) { g[y][x] = w.ch; c[y][x] = w.col; }
+        }
+      }
+      const nx = 10;
+      if (nx < W) { g[Math.round(cy)][nx] = '\u25CF'; c[Math.round(cy)][nx] = '#70c0a0'; }
+      addShooters(g, c, t, [
+        { period: 10, dur: 0.13, y: 0, dir: 1, len: 5 },
+        { period: 15, dur: 0.10, y: 6, dir: -1, len: 4 },
+      ]);
+    });
+
+    // 5 — murmuration
+    const boids = [];
+    for (let i = 0; i < 28; i++) {
+      boids.push({
+        x: 15 + Math.random() * 12, y: Math.random() * H,
+        vx: (Math.random() - 0.5) * 0.5, vy: (Math.random() - 0.5) * 0.3,
+      });
+    }
+    reg('v5', (g, c, t) => {
+      addStars(g, c, t);
+      for (const b of boids) {
+        let sx = 0, sy = 0, ax = 0, ay = 0, cx = 0, cy = 0, n = 0;
+        for (const o of boids) {
+          if (o === b) continue;
+          const dx = o.x - b.x, dy = o.y - b.y;
+          const d = Math.sqrt(dx * dx + dy * dy);
+          if (d < 10 && d > 0) {
+            if (d < 3) { sx -= dx / d; sy -= dy / d; }
+            ax += o.vx; ay += o.vy;
+            cx += o.x; cy += o.y;
+            n++;
+          }
+        }
+        if (n > 0) { ax /= n; ay /= n; cx = cx / n - b.x; cy = cy / n - b.y; }
+        const tx = 15 - b.x, ty = H / 2 - b.y;
+        b.vx += sx * 0.06 + ax * 0.015 + cx * 0.008 + tx * 0.003;
+        b.vy += sy * 0.06 + ay * 0.015 + cy * 0.008 + ty * 0.005;
+        if (b.x < 2) b.vx += 0.1; if (b.x > W - 2) b.vx -= 0.1;
+        if (b.y < 0.5) b.vy += 0.1; if (b.y > H - 1.5) b.vy -= 0.1;
+        const spd = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+        if (spd > 1.2) { b.vx *= 1.2 / spd; b.vy *= 1.2 / spd; }
+        b.x += b.vx; b.y += b.vy;
+      }
+      for (const b of boids) {
+        const ix = Math.round(b.x), iy = Math.round(b.y);
+        if (ix >= 0 && ix < W && iy >= 0 && iy < H) {
+          const a = Math.atan2(b.vy, b.vx);
+          let ch = '>';
+          if (a > Math.PI / 4 && a < 3 * Math.PI / 4) ch = 'v';
+          else if (a < -Math.PI / 4 && a > -3 * Math.PI / 4) ch = '^';
+          else if (Math.abs(a) > 3 * Math.PI / 4) ch = '<';
+          g[iy][ix] = ch;
+          c[iy][ix] = '#706858';
+        }
+      }
+      addShooters(g, c, t, [
+        { period: 11, dur: 0.12, y: 0, dir: 1, len: 4 },
+        { period: 18, dur: 0.09, y: 6, dir: -1, len: 5 },
+      ]);
+    });
+
+    // 6 — galaxy
+    reg('v6', (g, c, t) => {
+      addStars(g, c, t);
+      const cx = 10, cy = H / 2;
+      for (let arm = 0; arm < 2; arm++) {
+        const armOff = Math.PI * arm;
+        for (let r = 1; r < 45; r += 0.25) {
+          const angle = armOff + Math.log(r + 1) * 1.8 + t * 0.25;
+          const x = Math.round(cx + Math.cos(angle) * r);
+          const y = Math.round(cy + Math.sin(angle) * r * 0.15);
+          if (x >= 0 && x < W && y >= 0 && y < H) {
+            if (!c[y][x]) { c[y][x] = '#606878'; }
+          }
+          if ((hash(Math.floor(r * 10), arm) & 0x7fffffff) % 4 === 0) {
+            const sx = x + (hash(Math.floor(r * 10), arm + 10) % 3) - 1;
+            const sy = y + (hash(Math.floor(r * 10), arm + 20) % 3) - 1;
+            if (sx >= 0 && sx < W && sy >= 0 && sy < H) {
+              g[sy][sx] = '.';
+              c[sy][sx] = '#8090a0';
+            }
+          }
+          if ((hash(Math.floor(r * 10), arm + 50) & 0x7fffffff) % 8 === 0) {
+            if (x >= 0 && x < W && y >= 0 && y < H) {
+              g[y][x] = '*';
+              c[y][x] = '#c0b890';
+            }
+          }
+        }
+      }
+      for (let i = 0; i < 6; i++) {
+        const a = t * (0.3 + i * 0.15) + i * 1.2;
+        const r = 2 + i * 1.5;
+        const bx = Math.round(cx + Math.cos(a) * r);
+        const by = Math.round(cy + Math.sin(a) * r * 0.3);
+        if (bx >= 0 && bx < W && by >= 0 && by < H) {
+          g[by][bx] = '\u25CF';
+          c[by][bx] = '#d0c080';
+        }
+      }
+      if (cx < W) { g[Math.round(cy)][cx] = '\u25CE'; c[Math.round(cy)][cx] = '#e0d090'; }
+      addShooters(g, c, t, [
+        { period: 9, dur: 0.14, y: 1, dir: 1, len: 5 },
+        { period: 17, dur: 0.08, y: 5, dir: -1, len: 6 },
+      ]);
+    });
+
+    // 7 — lissajous
+    const tracers = [
+      { a: 1, b: 2, phase: 0, col: '#b07050', trail: [] },
+      { a: 2, b: 3, phase: Math.PI / 4, col: '#c09040', trail: [] },
+      { a: 3, b: 2, phase: Math.PI / 3, col: '#7070b0', trail: [] },
+      { a: 1, b: 3, phase: Math.PI / 6, col: '#60a080', trail: [] },
+    ];
+    reg('v7', (g, c, t) => {
+      addStars(g, c, t);
+      const cx = 18, cy = H / 2, xA = 16, yA = 2.5;
+      for (const tr of tracers) {
+        for (let s = 0; s < Math.PI * 6; s += 0.04) {
+          const gx = Math.round(cx + Math.sin(s * tr.a + tr.phase) * xA);
+          const gy = Math.round(cy + Math.sin(s * tr.b) * yA);
+          if (gx >= 0 && gx < W && gy >= 0 && gy < H && !c[gy][gx]) { c[gy][gx] = '#d8d8d0'; }
+        }
+      }
+      for (const tr of tracers) {
+        const x = cx + Math.sin(t * tr.a * 0.4 + tr.phase) * xA;
+        const y = cy + Math.sin(t * tr.b * 0.4) * yA;
+        tr.trail.push({ x, y });
+        if (tr.trail.length > 45) tr.trail.shift();
+        for (let i = 0; i < tr.trail.length; i++) {
+          const p = tr.trail[i];
+          const ix = Math.round(p.x), iy = Math.round(p.y);
+          if (ix >= 0 && ix < W && iy >= 0 && iy < H) {
+            g[iy][ix] = i === tr.trail.length - 1 ? '\u25CF' : (i > tr.trail.length - 10 ? '\u00B7' : '.');
+            c[iy][ix] = tr.col;
+          }
+        }
+      }
+      addShooters(g, c, t, [
+        { period: 10, dur: 0.13, y: 0, dir: 1, len: 5 },
+        { period: 15, dur: 0.10, y: 6, dir: -1, len: 4 },
+      ]);
+    });
+
+    // 8 — ripples
+    reg('v8', (g, c, t) => {
+      addStars(g, c, t);
+      const cx = 10, cy = H / 2;
+      const interval = 1.8, life = 7;
+      const gen = Math.floor(t / interval);
+      for (let ri = gen; ri > gen - 6; ri--) {
+        const age = t - ri * interval;
+        if (age < 0 || age > life) continue;
+        const radius = age * 5;
+        const fade = 1 - age / life;
+        for (let a = 0; a < Math.PI * 2; a += 0.06) {
+          const rx = Math.round(cx + Math.cos(a) * radius);
+          const ry = Math.round(cy + Math.sin(a) * radius * 0.28);
+          if (rx >= 0 && rx < W && ry >= 0 && ry < H) {
+            g[ry][rx] = fade > 0.6 ? 'o' : (fade > 0.3 ? '\u00B7' : '.');
+            c[ry][rx] = fade > 0.5 ? '#50a0b0' : (fade > 0.25 ? '#408090' : '#306070');
+          }
+        }
+      }
+      if (cx < W) { g[Math.round(cy)][cx] = '\u25CF'; c[Math.round(cy)][cx] = '#70c0d0'; }
+      addShooters(g, c, t, [
+        { period: 13, dur: 0.11, y: 0, dir: 1, len: 4 },
+        { period: 21, dur: 0.09, y: 6, dir: -1, len: 5 },
+      ]);
+    });
+
+    // 9 — helix
+    reg('v9', (g, c, t) => {
+      addStars(g, c, t);
+      const cy = H / 2;
+      for (let x = 0; x < W; x++) {
+        const phase = x * 0.2 - t * 1.5;
+        const y1 = cy + Math.sin(phase) * 2.5;
+        const y2 = cy + Math.sin(phase + Math.PI) * 2.5;
+        const iy1 = Math.round(y1), iy2 = Math.round(y2);
+        if (iy1 >= 0 && iy1 < H) { g[iy1][x] = 'o'; c[iy1][x] = '#6090b0'; }
+        if (iy2 >= 0 && iy2 < H) { g[iy2][x] = 'o'; c[iy2][x] = '#b06060'; }
+        if (x % 4 === 0) {
+          const minY = Math.min(iy1, iy2), maxY = Math.max(iy1, iy2);
+          for (let y = minY + 1; y < maxY; y++) {
+            if (y >= 0 && y < H) { g[y][x] = '|'; c[y][x] = '#909060'; }
+          }
+        }
+      }
+      const nx = 10;
+      if (nx < W) { g[Math.round(cy)][nx] = '\u25CE'; c[Math.round(cy)][nx] = '#a0a070'; }
+      addShooters(g, c, t, [
+        { period: 12, dur: 0.12, y: 0, dir: 1, len: 5 },
+        { period: 16, dur: 0.10, y: 6, dir: -1, len: 4 },
+      ]);
+    });
+
+    // 10 — fireflies
+    reg('v10', (g, c, t) => {
+      const treeCol = '#405030';
+      const canopy = [[9,0],[10,0],[11,0],[8,1],[9,1],[10,1],[11,1],[12,1],[7,2],[8,2],[9,2],[10,2],[11,2],[12,2],[13,2]];
+      for (const [x, y] of canopy) {
+        if (x >= 0 && x < W && y >= 0 && y < H) { g[y][x] = '#'; c[y][x] = '#405030'; }
+      }
+      for (let y = 3; y <= 5; y++) { if (10 < W) { g[y][10] = '|'; c[y][10] = '#504030'; } }
+      if (10 < W) { g[6][10] = '='; c[6][10] = '#504030'; }
+      if (9 < W) { g[6][9] = '='; c[6][9] = '#504030'; }
+      if (11 < W) { g[6][11] = '='; c[6][11] = '#504030'; }
+
+      for (let i = 0; i < 20; i++) {
+        const baseX = ((hash(i, 10) & 0x7fffffff) % (W - 6)) + 3;
+        const baseY = ((hash(i, 20) & 0x7fffffff) % H);
+        const freq = 0.4 + ((hash(i, 30) & 0x7fffffff) % 100) / 250;
+        const phase = ((hash(i, 40) & 0x7fffffff) % 100) / 10;
+        const brightness = Math.sin(t * freq + phase);
+        if (brightness > 0.2) {
+          const x = Math.round(baseX + Math.sin(t * 0.15 + i) * 4);
+          const y = Math.round(baseY + Math.sin(t * 0.12 + i * 2) * 1.2);
+          if (x >= 0 && x < W && y >= 0 && y < H && !c[y][x]) {
+            g[y][x] = brightness > 0.75 ? '*' : '\u00B7';
+            c[y][x] = brightness > 0.75 ? '#c0b040' : '#908030';
+          }
+        }
+      }
+      addShooters(g, c, t, [
+        { period: 14, dur: 0.11, y: 1, dir: 1, len: 4 },
+        { period: 20, dur: 0.08, y: 5, dir: -1, len: 3 },
+      ]);
+    });
+
+    // master loop
+    for (const a of anims) { a.t = 0.03; render(a); }
+    let last = 0;
+    requestAnimationFrame(function loop(ts) {
+      if (ts - last > 50) {
+        last = ts;
+        for (const a of anims) { a.t += 0.03; render(a); }
+      }
+      requestAnimationFrame(loop);
+    });
+  </script>
+</body>
+</html>
