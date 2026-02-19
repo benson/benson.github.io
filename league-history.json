@@ -3,23 +3,48 @@
   "recent": [
     {
       "champion": "TahmKench",
-      "win": false
+      "win": false,
+      "kills": 5,
+      "deaths": 11,
+      "assists": 6,
+      "damage": 6764,
+      "minutes": 9
     },
     {
       "champion": "Veigar",
-      "win": false
+      "win": false,
+      "kills": 13,
+      "deaths": 10,
+      "assists": 20,
+      "damage": 41037,
+      "minutes": 18
     },
     {
       "champion": "Twitch",
-      "win": false
+      "win": false,
+      "kills": 8,
+      "deaths": 12,
+      "assists": 37,
+      "damage": 40773,
+      "minutes": 19
     },
     {
       "champion": "Ziggs",
-      "win": true
+      "win": true,
+      "kills": 8,
+      "deaths": 7,
+      "assists": 28,
+      "damage": 38035,
+      "minutes": 20
     },
     {
       "champion": "MissFortune",
-      "win": true
+      "win": true,
+      "kills": 23,
+      "deaths": 12,
+      "assists": 23,
+      "damage": 44342,
+      "minutes": 17
     }
   ],
   "ddragonVersion": "16.4.1",

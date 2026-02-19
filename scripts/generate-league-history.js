@@ -97,7 +97,16 @@ async function main() {
 
     const recent = matches.slice(0, 5).map(m => {
       const me = m.info.participants.find(p => p.puuid === puuid);
-      return { champion: me?.championName || 'Unknown', win: me?.win || false };
+      const mins = Math.round(m.info.gameDuration / 60);
+      return {
+        champion: me?.championName || 'Unknown',
+        win: me?.win || false,
+        kills: me?.kills || 0,
+        deaths: me?.deaths || 0,
+        assists: me?.assists || 0,
+        damage: me?.totalDamageDealtToChampions || 0,
+        minutes: mins,
+      };
     });
 
     const versions = await (await fetch('https://ddragon.leagueoflegends.com/api/versions.json')).json();

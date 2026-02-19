@@ -102,22 +102,54 @@ li a:hover {
 #league-recent {
   display: flex;
   gap: 6px;
-  margin-bottom: 8px;
+}
+
+.champ-wrap {
+  position: relative;
 }
 
 .champ-icon {
   width: 28px;
   height: 28px;
   border-radius: 3px;
+  display: block;
 }
 
 .champ-icon.loss {
   opacity: 0.4;
 }
 
-#league-blurb {
-  color: #999;
-  font-size: 0.85rem;
+.champ-wrap:hover .champ-icon.loss {
+  opacity: 0.7;
+}
+
+.champ-tip {
+  display: none;
+  position: absolute;
+  top: 34px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 6px 10px;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  color: #666;
+  gap: 6px;
+  z-index: 10;
+}
+
+.champ-tip span {
+  display: block;
+  line-height: 1.4;
+}
+
+.tip-win { color: #5a8a5a; }
+.tip-loss { color: #a05a5a; }
+
+.champ-wrap:hover .champ-tip {
+  display: block;
 }
 
 section + section {
