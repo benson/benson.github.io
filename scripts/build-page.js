@@ -41,34 +41,35 @@ async function buildSpotify() {
   const data = await res.json();
 
   const seen = new Set();
-  const tracks = [];
+  const albums = [];
   for (const item of data.items) {
     const t = item.track;
-    if (seen.has(t.id)) continue;
-    seen.add(t.id);
+    const albumId = t.album.id;
+    if (seen.has(albumId)) continue;
+    seen.add(albumId);
     const artUrl = t.album.images.find(i => i.width <= 64)?.url
       || t.album.images[t.album.images.length - 1]?.url || '';
-    tracks.push({
-      name: t.name,
+    albums.push({
+      album: t.album.name,
       artist: t.artists.map(a => a.name).join(', '),
       artUrl,
-      url: t.external_urls.spotify,
+      url: t.album.external_urls.spotify,
     });
-    if (tracks.length >= 5) break;
+    if (albums.length >= 5) break;
   }
 
   let html = '<div id="spotify-recent">\n';
-  for (const t of tracks) {
-    const art = t.artUrl ? await fetchBase64(t.artUrl) : '';
+  for (const a of albums) {
+    const art = a.artUrl ? await fetchBase64(a.artUrl) : '';
     const esc = s => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-    html += `      <a class="album-wrap" href="${esc(t.url)}" target="_blank">`;
-    html += `<img class="album-icon" src="${art}" alt="${esc(t.name)}">`;
-    html += `<div class="album-tip"><span class="tip-track">${esc(t.name)}</span><span>${esc(t.artist)}</span></div>`;
+    html += `      <a class="album-wrap" href="${esc(a.url)}" target="_blank">`;
+    html += `<img class="album-icon" src="${art}" alt="${esc(a.album)}">`;
+    html += `<div class="album-tip"><span class="tip-track">${esc(a.album)}</span><span>${esc(a.artist)}</span></div>`;
     html += `</a>\n`;
   }
   html += '    </div>';
 
-  console.log(`spotify: ${tracks.length} tracks inlined`);
+  console.log(`spotify: ${albums.length} albums inlined`);
   return html;
 }
 
