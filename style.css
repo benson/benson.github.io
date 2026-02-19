@@ -107,14 +107,14 @@ li a:hover {
 .album-wrap {
   position: relative;
   text-decoration: none;
-  transition: opacity 0.2s;
+  transition: opacity 0.3s;
 }
 
-.album-wrap.fade-out {
+.album-wrap.hidden {
   opacity: 0;
 }
 
-.album-wrap.fade-in {
+.album-wrap.fade-out {
   opacity: 0;
 }
 
@@ -164,6 +164,11 @@ li a:hover {
 
 .champ-wrap {
   position: relative;
+  transition: opacity 0.3s;
+}
+
+.champ-wrap.hidden {
+  opacity: 0;
 }
 
 .champ-icon {
