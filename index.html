@@ -48,9 +48,44 @@
   </section>
 
   <section>
+    <h2>recent listens</h2>
+    <div id="spotify-recent"></div>
+  </section>
+
+  <section>
     <h2>recent games</h2>
     <div id="league-recent"></div>
   </section>
+
+  <script>
+    fetch('spotify-history.json')
+      .then(r => r.json())
+      .then(d => {
+        if (!d.recent || !d.recent.length) return;
+        const container = document.getElementById('spotify-recent');
+        for (const t of d.recent) {
+          const wrap = document.createElement('a');
+          wrap.className = 'album-wrap';
+          wrap.href = t.url;
+          wrap.target = '_blank';
+
+          const img = document.createElement('img');
+          img.src = t.art;
+          img.alt = t.name;
+          img.className = 'album-icon';
+
+          const tip = document.createElement('div');
+          tip.className = 'album-tip';
+          tip.innerHTML = `<span class="tip-track">${t.name}</span>`
+            + `<span>${t.artist}</span>`;
+
+          wrap.appendChild(img);
+          wrap.appendChild(tip);
+          container.appendChild(wrap);
+        }
+      })
+      .catch(() => {});
+  </script>
 
   <script>
     fetch('league-history.json')

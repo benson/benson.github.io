@@ -99,6 +99,52 @@ li a:hover {
   border-bottom-color: #999;
 }
 
+#spotify-recent {
+  display: flex;
+  gap: 6px;
+}
+
+.album-wrap {
+  position: relative;
+  text-decoration: none;
+}
+
+.album-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 3px;
+  display: block;
+}
+
+.album-tip {
+  display: none;
+  position: absolute;
+  top: 34px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 6px 10px;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  color: #666;
+  z-index: 10;
+}
+
+.album-tip span {
+  display: block;
+  line-height: 1.4;
+}
+
+.tip-track {
+  color: #000;
+}
+
+.album-wrap:hover .album-tip {
+  display: block;
+}
+
 #league-recent {
   display: flex;
   gap: 6px;
