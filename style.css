@@ -111,8 +111,8 @@ li a:hover {
 }
 
 .album-icon {
-  width: 28px;
-  height: 28px;
+  width: 42px;
+  height: 42px;
   border-radius: 3px;
   display: block;
   border: 1px solid rgba(0, 0, 0, 0.3);
@@ -121,7 +121,7 @@ li a:hover {
 .album-tip {
   display: none;
   position: absolute;
-  top: 34px;
+  top: 48px;
   left: 50%;
   transform: translateX(-50%);
   background: #fff;
@@ -168,8 +168,8 @@ li a:hover {
 }
 
 .champ-icon {
-  width: 28px;
-  height: 28px;
+  width: 42px;
+  height: 42px;
   border-radius: 3px;
   display: block;
 }
@@ -185,7 +185,7 @@ li a:hover {
 .champ-tip {
   display: none;
   position: absolute;
-  top: 34px;
+  top: 48px;
   left: 50%;
   transform: translateX(-50%);
   background: #fff;
