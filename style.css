@@ -228,6 +228,10 @@ section + section {
   margin-top: 40px;
 }
 
+section.compact + section.compact {
+  margin-top: 20px;
+}
+
 @media (max-width: 600px) {
   body {
     padding: 20px 15px;
