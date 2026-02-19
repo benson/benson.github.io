@@ -75,7 +75,7 @@ async function buildSpotify(token) {
 }
 
 async function buildOnRepeat(token) {
-  const res = await fetch('https://api.spotify.com/v1/me/top/tracks?time_range=short_term&limit=5', {
+  const res = await fetch('https://api.spotify.com/v1/me/top/tracks?time_range=short_term&limit=20', {
     headers: { 'Authorization': `Bearer ${token}` },
   });
   if (!res.ok) throw new Error(`spotify top: ${res.status}`);
@@ -83,14 +83,28 @@ async function buildOnRepeat(token) {
 
   if (!data.items || !data.items.length) return null;
 
-  let html = '<div id="spotify-top">\n';
+  const seen = new Set();
+  const albums = [];
   for (const t of data.items) {
-    const artUrl = t.album.images.find(i => i.width <= 64)?.url
-      || t.album.images[t.album.images.length - 1]?.url || '';
-    const art = artUrl ? await fetchBase64(artUrl) : '';
-    html += `      <a class="album-wrap" href="${esc(t.external_urls.spotify)}" target="_blank">`;
-    html += `<img class="album-icon" src="${art}" alt="${esc(t.name)}">`;
-    html += `<div class="album-tip"><span class="tip-track">${esc(t.name)}</span><span>${esc(t.artists.map(a => a.name).join(', '))}</span></div>`;
+    const albumId = t.album.id;
+    if (seen.has(albumId)) continue;
+    seen.add(albumId);
+    albums.push({
+      album: t.album.name,
+      artist: t.artists.map(a => a.name).join(', '),
+      artUrl: t.album.images.find(i => i.width <= 64)?.url
+        || t.album.images[t.album.images.length - 1]?.url || '',
+      url: t.album.external_urls.spotify,
+    });
+    if (albums.length >= 5) break;
+  }
+
+  let html = '<div id="spotify-top">\n';
+  for (const a of albums) {
+    const art = a.artUrl ? await fetchBase64(a.artUrl) : '';
+    html += `      <a class="album-wrap" href="${esc(a.url)}" target="_blank">`;
+    html += `<img class="album-icon" src="${art}" alt="${esc(a.album)}">`;
+    html += `<div class="album-tip"><span class="tip-track">${esc(a.album)}</span><span>${esc(a.artist)}</span></div>`;
     html += `</a>\n`;
   }
   html += '    </div>';
