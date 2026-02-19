@@ -115,6 +115,7 @@ li a:hover {
   height: 28px;
   border-radius: 3px;
   display: block;
+  border: 1px solid rgba(0, 0, 0, 0.3);
 }
 
 .album-tip {
