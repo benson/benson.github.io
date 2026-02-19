@@ -58,31 +58,70 @@
   </section>
 
   <script>
+    const SPOTIFY_WORKER = 'https://spotify-recent.brostar.workers.dev';
+
+    function renderSpotify(tracks, container) {
+      const items = [];
+      for (const t of tracks) {
+        const wrap = document.createElement('a');
+        wrap.className = 'album-wrap';
+        wrap.href = t.url;
+        wrap.target = '_blank';
+
+        const img = document.createElement('img');
+        img.src = t.art;
+        img.alt = t.name;
+        img.className = 'album-icon';
+
+        const tip = document.createElement('div');
+        tip.className = 'album-tip';
+        tip.innerHTML = `<span class="tip-track">${t.name}</span>`
+          + `<span>${t.artist}</span>`;
+
+        wrap.appendChild(img);
+        wrap.appendChild(tip);
+        items.push(wrap);
+      }
+      return items;
+    }
+
+    function swapSpotify(newTracks) {
+      const container = document.getElementById('spotify-recent');
+      const oldItems = container.querySelectorAll('.album-wrap');
+      const oldKeys = [...oldItems].map(el => el.querySelector('.album-icon')?.alt);
+      const newKeys = newTracks.map(t => t.name);
+      if (JSON.stringify(oldKeys) === JSON.stringify(newKeys)) return;
+
+      oldItems.forEach(el => el.classList.add('fade-out'));
+      setTimeout(() => {
+        container.innerHTML = '';
+        const items = renderSpotify(newTracks, container);
+        items.forEach(el => {
+          el.classList.add('fade-in');
+          container.appendChild(el);
+        });
+        requestAnimationFrame(() => {
+          container.querySelectorAll('.fade-in').forEach(el => el.classList.remove('fade-in'));
+        });
+      }, 200);
+    }
+
+    // load cached data immediately
     fetch('spotify-history.json')
       .then(r => r.json())
       .then(d => {
         if (!d.recent || !d.recent.length) return;
         const container = document.getElementById('spotify-recent');
-        for (const t of d.recent) {
-          const wrap = document.createElement('a');
-          wrap.className = 'album-wrap';
-          wrap.href = t.url;
-          wrap.target = '_blank';
+        renderSpotify(d.recent, container).forEach(el => container.appendChild(el));
+      })
+      .catch(() => {});
 
-          const img = document.createElement('img');
-          img.src = t.art;
-          img.alt = t.name;
-          img.className = 'album-icon';
-
-          const tip = document.createElement('div');
-          tip.className = 'album-tip';
-          tip.innerHTML = `<span class="tip-track">${t.name}</span>`
-            + `<span>${t.artist}</span>`;
-
-          wrap.appendChild(img);
-          wrap.appendChild(tip);
-          container.appendChild(wrap);
-        }
+    // then fetch live data and swap in
+    fetch(SPOTIFY_WORKER)
+      .then(r => r.json())
+      .then(d => {
+        if (!d.recent || !d.recent.length) return;
+        swapSpotify(d.recent);
       })
       .catch(() => {});
   </script>
