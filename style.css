@@ -123,6 +123,9 @@ li a:hover {
   height: 28px;
   border-radius: 3px;
   display: block;
+  background: #ddd;
+  color: transparent;
+  overflow: hidden;
 }
 
 .album-tip {
@@ -168,6 +171,9 @@ li a:hover {
   height: 28px;
   border-radius: 3px;
   display: block;
+  background: #ddd;
+  color: transparent;
+  overflow: hidden;
 }
 
 .champ-icon.loss {
