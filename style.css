@@ -147,7 +147,8 @@ li a:hover {
   display: block;
 }
 
-.album-wrap:first-child .album-tip {
+.album-wrap:first-child .album-tip,
+.album-wrap:nth-child(2) .album-tip {
   left: 0;
   transform: none;
 }
@@ -211,7 +212,8 @@ li a:hover {
   display: block;
 }
 
-.champ-wrap:first-child .champ-tip {
+.champ-wrap:first-child .champ-tip,
+.champ-wrap:nth-child(2) .champ-tip {
   left: 0;
   transform: none;
 }
