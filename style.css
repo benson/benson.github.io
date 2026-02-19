@@ -99,7 +99,8 @@ li a:hover {
   border-bottom-color: #999;
 }
 
-#spotify-recent {
+#spotify-recent,
+#spotify-top {
   display: flex;
   gap: 6px;
 }

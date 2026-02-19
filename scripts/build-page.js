@@ -14,16 +14,15 @@ async function fetchBase64(url) {
   return `data:${type};base64,${btoa(binary)}`;
 }
 
-async function buildSpotify() {
+const esc = s => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+
+async function getSpotifyToken() {
   const clientId = process.env.SPOTIFY_CLIENT_ID;
   const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
   const refreshToken = process.env.SPOTIFY_REFRESH_TOKEN;
-  if (!clientId || !clientSecret || !refreshToken) {
-    console.log('spotify: skipping (no credentials)');
-    return null;
-  }
+  if (!clientId || !clientSecret || !refreshToken) return null;
 
-  const tokenRes = await fetch('https://accounts.spotify.com/api/token', {
+  const res = await fetch('https://accounts.spotify.com/api/token', {
     method: 'POST',
     headers: {
       'Authorization': 'Basic ' + btoa(`${clientId}:${clientSecret}`),
@@ -31,13 +30,16 @@ async function buildSpotify() {
     },
     body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: refreshToken }),
   });
-  const tokenData = await tokenRes.json();
-  if (!tokenData.access_token) throw new Error('spotify: no access token');
+  const data = await res.json();
+  if (!data.access_token) throw new Error('spotify: no access token');
+  return data.access_token;
+}
 
+async function buildSpotify(token) {
   const res = await fetch('https://api.spotify.com/v1/me/player/recently-played?limit=50', {
-    headers: { 'Authorization': `Bearer ${tokenData.access_token}` },
+    headers: { 'Authorization': `Bearer ${token}` },
   });
-  if (!res.ok) throw new Error(`spotify: ${res.status}`);
+  if (!res.ok) throw new Error(`spotify recent: ${res.status}`);
   const data = await res.json();
 
   const seen = new Set();
@@ -61,7 +63,6 @@ async function buildSpotify() {
   let html = '<div id="spotify-recent">\n';
   for (const a of albums) {
     const art = a.artUrl ? await fetchBase64(a.artUrl) : '';
-    const esc = s => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
     html += `      <a class="album-wrap" href="${esc(a.url)}" target="_blank">`;
     html += `<img class="album-icon" src="${art}" alt="${esc(a.album)}">`;
     html += `<div class="album-tip"><span class="tip-track">${esc(a.album)}</span><span>${esc(a.artist)}</span></div>`;
@@ -69,7 +70,32 @@ async function buildSpotify() {
   }
   html += '    </div>';
 
-  console.log(`spotify: ${albums.length} albums inlined`);
+  console.log(`spotify recent: ${albums.length} albums inlined`);
+  return html;
+}
+
+async function buildOnRepeat(token) {
+  const res = await fetch('https://api.spotify.com/v1/me/top/tracks?time_range=short_term&limit=5', {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error(`spotify top: ${res.status}`);
+  const data = await res.json();
+
+  if (!data.items || !data.items.length) return null;
+
+  let html = '<div id="spotify-top">\n';
+  for (const t of data.items) {
+    const artUrl = t.album.images.find(i => i.width <= 64)?.url
+      || t.album.images[t.album.images.length - 1]?.url || '';
+    const art = artUrl ? await fetchBase64(artUrl) : '';
+    html += `      <a class="album-wrap" href="${esc(t.external_urls.spotify)}" target="_blank">`;
+    html += `<img class="album-icon" src="${art}" alt="${esc(t.name)}">`;
+    html += `<div class="album-tip"><span class="tip-track">${esc(t.name)}</span><span>${esc(t.artists.map(a => a.name).join(', '))}</span></div>`;
+    html += `</a>\n`;
+  }
+  html += '    </div>';
+
+  console.log(`spotify on repeat: ${data.items.length} tracks inlined`);
   return html;
 }
 
@@ -112,16 +138,37 @@ async function buildLeague() {
 async function main() {
   let html = fs.readFileSync(HTML_PATH, 'utf8');
 
+  let spotifyToken = null;
   try {
-    const spotifyHtml = await buildSpotify();
-    if (spotifyHtml) {
-      html = html.replace(
-        /<!-- SPOTIFY_START -->[\s\S]*?<!-- SPOTIFY_END -->/,
-        `<!-- SPOTIFY_START -->\n    ${spotifyHtml}\n    <!-- SPOTIFY_END -->`
-      );
-    }
+    spotifyToken = await getSpotifyToken();
   } catch (err) {
-    console.error('spotify error:', err.message);
+    console.error('spotify auth error:', err.message);
+  }
+
+  if (spotifyToken) {
+    try {
+      const spotifyHtml = await buildSpotify(spotifyToken);
+      if (spotifyHtml) {
+        html = html.replace(
+          /<!-- SPOTIFY_START -->[\s\S]*?<!-- SPOTIFY_END -->/,
+          `<!-- SPOTIFY_START -->\n    ${spotifyHtml}\n    <!-- SPOTIFY_END -->`
+        );
+      }
+    } catch (err) {
+      console.error('spotify recent error:', err.message);
+    }
+
+    try {
+      const onRepeatHtml = await buildOnRepeat(spotifyToken);
+      if (onRepeatHtml) {
+        html = html.replace(
+          /<!-- ONREPEAT_START -->[\s\S]*?<!-- ONREPEAT_END -->/,
+          `<!-- ONREPEAT_START -->\n    ${onRepeatHtml}\n    <!-- ONREPEAT_END -->`
+        );
+      }
+    } catch (err) {
+      console.error('spotify on repeat error:', err.message);
+    }
   }
 
   try {
