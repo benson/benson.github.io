@@ -87,35 +87,6 @@
     const el = document.getElementById('orbit-strip');
     let W = Math.floor(window.innerWidth / 6.02);
     let t = 0;
-    const sunX = 10;
-
-    const bodies = [
-      { rx: 1.5, ry: 0.5, speed: 3.2, ch: '.', col: '#b09080' },
-      { rx: 2.5, ry: 0.8, speed: 2.2, ch: '·', col: '#c0a060' },
-      { rx: 4,   ry: 1.2, speed: 1.5, ch: 'o', col: '#80a0a0' },
-      { rx: 5.5, ry: 1.6, speed: 1.0, ch: 'O', col: '#7090b0' },
-      { rx: 7,   ry: 2.0, speed: 0.7, ch: '◦', col: '#b09070' },
-      { rx: 9,   ry: 2.5, speed: 0.45, ch: '●', col: '#a08860' },
-      { rx: 11,  ry: 2.8, speed: 0.32, ch: '○', col: '#6090a0' },
-      { rx: 14,  ry: 3.0, speed: 0.2, ch: '◎', col: '#8080a0' },
-    ];
-
-    const asteroids = [];
-    for (let i = 0; i < 18; i++) {
-      asteroids.push({
-        a: (Math.PI * 2 * i / 18) + (Math.random() - 0.5) * 0.5,
-        rx: 6 + (Math.random() - 0.5) * 1.2,
-        ry: 1.8 + (Math.random() - 0.5) * 0.3,
-        speed: 0.55 + (Math.random() - 0.5) * 0.2,
-      });
-    }
-
-    const shooters = [
-      { period: 9,  dur: 0.15, y: 1, dir: 1,  len: 5 },
-      { period: 13, dur: 0.12, y: 5, dir: -1, len: 4 },
-      { period: 17, dur: 0.10, y: 2, dir: 1,  len: 3 },
-      { period: 22, dur: 0.08, y: 6, dir: 1,  len: 6 },
-    ];
 
     function hash(x, y) {
       let h = x + y * 137;
@@ -125,36 +96,63 @@
       return h;
     }
 
-    const orbitCol = '#a0a0a0';
-    const sunCol = '#c0a050';
+    const shooters = [
+      { period: 11, dur: 0.12, y: 0, dir: 1, len: 4 },
+      { period: 17, dur: 0.09, y: 6, dir: -1, len: 5 },
+    ];
+
+    const flock = [];
+    for (let i = 0; i < 32; i++) {
+      flock.push({
+        x: 20 + (Math.random() - 0.5) * 10, y: H / 2 + (Math.random() - 0.5) * 4,
+        vx: -0.4 + (Math.random() - 0.5) * 0.2, vy: (Math.random() - 0.5) * 0.2,
+      });
+    }
 
     function render() {
       t += 0.03;
-      const cx = sunX, cy = H / 2;
-      const g = Array.from({length: H}, () => new Array(W).fill('·'));
+      const g = Array.from({length: H}, () => new Array(W).fill('\u00B7'));
       const c = Array.from({length: H}, () => new Array(W).fill(''));
 
-      const blink = Math.floor(t * 20);
-      const bx1 = ((hash(blink, 0) & 0x7fffffff) % W);
-      const by1 = ((hash(blink, 1) & 0x7fffffff) % H);
-      if ((blink % 15) < 1) { g[by1][bx1] = '*'; c[by1][bx1] = '#909090'; }
-      const bx2 = ((hash(blink + 9999, 2) & 0x7fffffff) % W);
-      const by2 = ((hash(blink + 9999, 3) & 0x7fffffff) % H);
-      if ((blink % 22) < 1) { g[by2][bx2] = '*'; c[by2][bx2] = '#909090'; }
-
-      for (const b of bodies) {
-        const step = Math.min(0.12, 1 / b.rx);
-        for (let a = 0; a < Math.PI * 2; a += step) {
-          const ox = Math.round(cx + Math.cos(a) * b.rx);
-          const oy = Math.round(cy + Math.sin(a) * b.ry);
-          if (ox >= 0 && ox < W && oy >= 0 && oy < H) c[oy][ox] = orbitCol;
-        }
+      const bk = Math.floor(t * 20);
+      for (let i = 0; i < 2; i++) {
+        const bx = ((hash(bk + i * 9999, i * 2) & 0x7fffffff) % W);
+        const by = ((hash(bk + i * 9999, i * 2 + 1) & 0x7fffffff) % H);
+        if ((bk % (i === 0 ? 15 : 22)) < 1) { g[by][bx] = '*'; c[by][bx] = '#909090'; }
       }
 
-      for (const ast of asteroids) {
-        const ax = Math.round(cx + Math.cos(t * ast.speed + ast.a) * ast.rx);
-        const ay = Math.round(cy + Math.sin(t * ast.speed + ast.a) * ast.ry);
-        if (ax >= 0 && ax < W && ay >= 0 && ay < H) { g[ay][ax] = '.'; c[ay][ax] = '#a09080'; }
+      for (const b of flock) {
+        let sx = 0, sy = 0, ax = 0, ay = 0, cohx = 0, cohy = 0, n = 0;
+        for (const o of flock) {
+          if (o === b) continue;
+          const dx = o.x - b.x, dy = o.y - b.y;
+          const d = Math.sqrt(dx * dx + dy * dy);
+          if (d < 8 && d > 0) {
+            if (d < 2.5) { sx -= dx / d; sy -= dy / d; }
+            ax += o.vx; ay += o.vy;
+            cohx += o.x; cohy += o.y;
+            n++;
+          }
+        }
+        if (n > 0) { ax /= n; ay /= n; cohx = cohx / n - b.x; cohy = cohy / n - b.y; }
+        b.vx += sx * 0.05 + ax * 0.03 + cohx * 0.015 - 0.008;
+        b.vy += sy * 0.05 + ay * 0.03 + cohy * 0.015;
+        if (b.y < 0.5) b.vy += 0.08; if (b.y > H - 1.5) b.vy -= 0.08;
+        const spd = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+        if (spd > 1.4) { b.vx *= 1.4 / spd; b.vy *= 1.4 / spd; }
+        b.x += b.vx; b.y += b.vy;
+        if (b.x < -3) b.x += W + 6;
+        if (b.x > W + 3) b.x -= W + 6;
+      }
+
+      for (let i = 0; i < flock.length; i++) {
+        const b = flock[i];
+        const ix = Math.round(b.x), iy = Math.round(b.y);
+        if (ix >= 0 && ix < W && iy >= 0 && iy < H) {
+          const p = Math.sin(t * 5 + i * 2.3);
+          g[iy][ix] = p > 0.3 ? 'v' : (p < -0.3 ? '^' : '~');
+          c[iy][ix] = '#605040';
+        }
       }
 
       for (const s of shooters) {
@@ -172,15 +170,6 @@
             }
           }
         }
-      }
-
-      const sy = Math.round(cy), sx = Math.round(cx);
-      if (sy >= 0 && sy < H && sx >= 0 && sx < W) { g[sy][sx] = '*'; c[sy][sx] = sunCol; }
-
-      for (const b of bodies) {
-        const bx = Math.round(cx + Math.cos(t * b.speed) * b.rx);
-        const by = Math.round(cy + Math.sin(t * b.speed) * b.ry);
-        if (bx >= 0 && bx < W && by >= 0 && by < H) { g[by][bx] = b.ch; c[by][bx] = b.col; }
       }
 
       let html = '';
