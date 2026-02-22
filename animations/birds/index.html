@@ -41,7 +41,7 @@
 </head>
 <body>
   <h1><a href="/">benson perry</a></h1>
-  <div class="subtitle">single bird sprites — one bird each, flying left to right</div>
+  <div class="subtitle">single bird sprites — exactly one bird per animation, flying left to right</div>
 
   <div class="variation"><div class="label">0 — current (v / ^ / ~)</div><pre class="anim" id="v0"></pre></div>
   <div class="variation"><div class="label">1 — classic (\o/ -o- /o\)</div><pre class="anim" id="v1"></pre></div>
@@ -81,10 +81,10 @@
       a.el.innerHTML = html;
     }
 
-    // single bird path: gentle sine wave across the screen
+    // single bird path: slow drift across the screen
     function birdPos(t) {
-      const x = (t * 3) % (W + 20) - 10;
-      const y = H / 2 + Math.sin(t * 0.6) * 1.5;
+      const x = (t * 1.5) % (W + 20) - 10;
+      const y = H / 2 + Math.sin(t * 0.3) * 0.8;
       return { x: Math.round(x), y: Math.round(y) };
     }
 
