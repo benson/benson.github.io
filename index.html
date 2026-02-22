@@ -92,24 +92,18 @@
     let W = Math.floor(window.innerWidth / 6.02);
     let t = 0;
 
-    function hash(x, y) {
-      let h = x + y * 137;
-      h = ((h >> 16) ^ h) * 0x45d9f3b | 0;
-      h = ((h >> 16) ^ h) * 0x45d9f3b | 0;
-      h = (h >> 16) ^ h;
-      return h;
+    function put(g, c, x, y, ch, col) {
+      if (x >= 0 && x < W && y >= 0 && y < H) { g[y][x] = ch; c[y][x] = col; }
     }
 
-    const shooters = [
-      { period: 11, dur: 0.12, y: 0, dir: 1, len: 4 },
-      { period: 17, dur: 0.09, y: 6, dir: -1, len: 5 },
-    ];
-
     const flock = [];
-    for (let i = 0; i < 32; i++) {
+    for (let i = 0; i < 7; i++) {
       flock.push({
-        x: 20 + (Math.random() - 0.5) * 10, y: H / 2 + (Math.random() - 0.5) * 4,
-        vx: -0.4 + (Math.random() - 0.5) * 0.2, vy: (Math.random() - 0.5) * 0.2,
+        x: i * 22 + (Math.random() - 0.5) * 8,
+        y: 1 + Math.random() * (H - 3),
+        vx: 0.28 + (Math.random() - 0.5) * 0.12,
+        vy: (Math.random() - 0.5) * 0.04,
+        flapOff: Math.random() * Math.PI * 2,
       });
     }
 
@@ -117,62 +111,45 @@
       t += 0.03;
       const g = Array.from({length: H}, () => new Array(W).fill('\u00B7'));
       const c = Array.from({length: H}, () => new Array(W).fill(''));
-
-      const bk = Math.floor(t * 20);
-      for (let i = 0; i < 2; i++) {
-        const bx = ((hash(bk + i * 9999, i * 2) & 0x7fffffff) % W);
-        const by = ((hash(bk + i * 9999, i * 2 + 1) & 0x7fffffff) % H);
-        if ((bk % (i === 0 ? 15 : 22)) < 1) { g[by][bx] = '*'; c[by][bx] = '#909090'; }
-      }
-
-      for (const b of flock) {
-        let sx = 0, sy = 0, ax = 0, ay = 0, cohx = 0, cohy = 0, n = 0;
-        for (const o of flock) {
-          if (o === b) continue;
-          const dx = o.x - b.x, dy = o.y - b.y;
-          const d = Math.sqrt(dx * dx + dy * dy);
-          if (d < 8 && d > 0) {
-            if (d < 2.5) { sx -= dx / d; sy -= dy / d; }
-            ax += o.vx; ay += o.vy;
-            cohx += o.x; cohy += o.y;
-            n++;
-          }
-        }
-        if (n > 0) { ax /= n; ay /= n; cohx = cohx / n - b.x; cohy = cohy / n - b.y; }
-        b.vx += sx * 0.05 + ax * 0.03 + cohx * 0.015 - 0.008;
-        b.vy += sy * 0.05 + ay * 0.03 + cohy * 0.015;
-        if (b.y < 0.5) b.vy += 0.08; if (b.y > H - 1.5) b.vy -= 0.08;
-        const spd = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
-        if (spd > 1.4) { b.vx *= 1.4 / spd; b.vy *= 1.4 / spd; }
-        b.x += b.vx; b.y += b.vy;
-        if (b.x < -3) b.x += W + 6;
-        if (b.x > W + 3) b.x -= W + 6;
-      }
+      const col = '#605040', colM = '#605040', colT = '#807060';
 
       for (let i = 0; i < flock.length; i++) {
         const b = flock[i];
-        const ix = Math.round(b.x), iy = Math.round(b.y);
-        if (ix >= 0 && ix < W && iy >= 0 && iy < H) {
-          const p = Math.sin(t * 5 + i * 2.3);
-          g[iy][ix] = p > 0.3 ? 'v' : (p < -0.3 ? '^' : '~');
-          c[iy][ix] = '#605040';
-        }
-      }
+        b.vy += Math.sin(t * 0.3 + i * 2.1) * 0.002;
+        if (b.y < 1) b.vy += 0.01;
+        if (b.y > H - 2) b.vy -= 0.01;
+        b.x += b.vx;
+        b.y += b.vy;
+        b.vy *= 0.98;
+        if (b.x > W + 5) b.x -= W + 15;
+        if (b.x < -10) b.x += W + 15;
 
-      for (const s of shooters) {
-        const phase = (t / s.period) % 1;
-        if (phase < s.dur) {
-          const prog = phase / s.dur;
-          const head = s.dir > 0
-            ? Math.round(prog * (W + s.len) - s.len)
-            : Math.round(W - prog * (W + s.len) + s.len);
-          for (let i = 0; i <= s.len; i++) {
-            const px = head - i * s.dir;
-            if (px >= 0 && px < W && s.y >= 0 && s.y < H) {
-              g[s.y][px] = i === 0 ? '*' : '-';
-              c[s.y][px] = i === 0 ? '#90c0d0' : '#80a0b0';
-            }
-          }
+        const x = Math.round(b.x), y = Math.round(b.y);
+        const p = Math.sin(t * 2.5 + b.flapOff);
+        if (p > 0.4) {
+          put(g, c, x - 3, y - 1, '\\', colT);
+          put(g, c, x + 3, y - 1, '/', colT);
+          put(g, c, x - 2, y, '\\', colM);
+          put(g, c, x - 1, y, '\\', col);
+          put(g, c, x, y, 'w', col);
+          put(g, c, x + 1, y, '/', col);
+          put(g, c, x + 2, y, '/', colM);
+        } else if (p < -0.4) {
+          put(g, c, x - 3, y + 1, '/', colT);
+          put(g, c, x + 3, y + 1, '\\', colT);
+          put(g, c, x - 2, y, '/', colM);
+          put(g, c, x - 1, y, '/', col);
+          put(g, c, x, y, 'w', col);
+          put(g, c, x + 1, y, '\\', col);
+          put(g, c, x + 2, y, '\\', colM);
+        } else {
+          put(g, c, x - 3, y, '-', colT);
+          put(g, c, x - 2, y, '-', colM);
+          put(g, c, x - 1, y, '-', col);
+          put(g, c, x, y, 'w', col);
+          put(g, c, x + 1, y, '-', col);
+          put(g, c, x + 2, y, '-', colM);
+          put(g, c, x + 3, y, '-', colT);
         }
       }
 
