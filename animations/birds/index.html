@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>bird variations — benson perry</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Times New Roman", Times, Georgia, serif;
+      background: #f8f7f4;
+      color: #000;
+      min-height: 100vh;
+      padding: 40px 30px;
+      text-transform: lowercase;
+    }
+    h1 { font-size: 1.5rem; font-weight: 400; letter-spacing: -0.02em; margin-bottom: 8px; }
+    h1 a { color: inherit; text-decoration: none; border-bottom: 1px solid #ccc; }
+    h1 a:hover { border-bottom-color: #000; }
+    .subtitle { font-size: 0.75rem; color: #999; margin-bottom: 40px; }
+    .variation { margin-bottom: 48px; }
+    .label { font-size: 0.75rem; font-weight: 400; color: #999; letter-spacing: 0.03em; margin-bottom: 8px; }
+    pre.anim {
+      font-family: "Courier New", Courier, monospace;
+      font-size: 10px;
+      line-height: 1.2;
+      color: #b0b0a8;
+      padding: 0;
+      white-space: pre;
+      overflow: hidden;
+      user-select: none;
+      margin-left: -30px;
+      margin-right: -30px;
+    }
+    @media (max-width: 600px) {
+      body { padding: 20px 15px; }
+      pre.anim { margin-left: -15px; margin-right: -15px; }
+    }
+  </style>
+</head>
+<body>
+  <h1><a href="/">benson perry</a></h1>
+  <div class="subtitle">bird animation variations — pick one</div>
+
+  <div class="variation"><div class="label">1 — current (flock)</div><pre class="anim" id="v1"></pre></div>
+  <div class="variation"><div class="label">2 — murmuration</div><pre class="anim" id="v2"></pre></div>
+  <div class="variation"><div class="label">3 — lazy drift</div><pre class="anim" id="v3"></pre></div>
+  <div class="variation"><div class="label">4 — crosswinds</div><pre class="anim" id="v4"></pre></div>
+  <div class="variation"><div class="label">5 — ribbon</div><pre class="anim" id="v5"></pre></div>
+  <div class="variation"><div class="label">6 — predator</div><pre class="anim" id="v6"></pre></div>
+  <div class="variation"><div class="label">7 — thermals</div><pre class="anim" id="v7"></pre></div>
+  <div class="variation"><div class="label">8 — pulse</div><pre class="anim" id="v8"></pre></div>
+  <div class="variation"><div class="label">9 — migration v2</div><pre class="anim" id="v9"></pre></div>
+  <div class="variation"><div class="label">10 — starlings</div><pre class="anim" id="v10"></pre></div>
+
+  <script>
+    const H = 7;
+    let W = Math.floor(window.innerWidth / 6.02);
+    window.addEventListener('resize', () => { W = Math.floor(window.innerWidth / 6.02); });
+
+    function hash(x, y) {
+      let h = x + y * 137;
+      h = ((h >> 16) ^ h) * 0x45d9f3b | 0;
+      h = ((h >> 16) ^ h) * 0x45d9f3b | 0;
+      return (h >> 16) ^ h;
+    }
+
+    function addStars(g, c, t) {
+      const bk = Math.floor(t * 20);
+      for (let i = 0; i < 2; i++) {
+        const bx = ((hash(bk + i * 9999, i * 2) & 0x7fffffff) % W);
+        const by = ((hash(bk + i * 9999, i * 2 + 1) & 0x7fffffff) % H);
+        if ((bk % (i === 0 ? 15 : 22)) < 1) { g[by][bx] = '*'; c[by][bx] = '#909090'; }
+      }
+    }
+
+    function addShooters(g, c, t, shooters) {
+      for (const s of shooters) {
+        const phase = (t / s.period) % 1;
+        if (phase < s.dur) {
+          const prog = phase / s.dur;
+          const head = s.dir > 0
+            ? Math.round(prog * (W + s.len) - s.len)
+            : Math.round(W - prog * (W + s.len) + s.len);
+          for (let i = 0; i <= s.len; i++) {
+            const px = head - i * s.dir;
+            if (px >= 0 && px < W && s.y >= 0 && s.y < H) {
+              g[s.y][px] = i === 0 ? '*' : '-';
+              c[s.y][px] = i === 0 ? '#90c0d0' : '#80a0b0';
+            }
+          }
+        }
+      }
+    }
+
+    function wingChar(t, i) {
+      const p = Math.sin(t * 5 + i * 2.3);
+      return p > 0.3 ? 'v' : (p < -0.3 ? '^' : '~');
+    }
+
+    function wingCharSlow(t, i) {
+      const p = Math.sin(t * 2.5 + i * 1.7);
+      return p > 0.4 ? 'v' : (p < -0.4 ? '^' : '~');
+    }
+
+    const anims = [];
+    function reg(id, fn) { anims.push({ el: document.getElementById(id), fn, t: 0 }); }
+
+    function renderAnim(a) {
+      const g = Array.from({length: H}, () => new Array(W).fill('\u00B7'));
+      const c = Array.from({length: H}, () => new Array(W).fill(''));
+      a.fn(g, c, a.t);
+      let html = '';
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          html += c[y][x] ? '<span style="color:' + c[y][x] + '">' + g[y][x] + '</span>' : g[y][x];
+        }
+        if (y < H - 1) html += '\n';
+      }
+      a.el.innerHTML = html;
+    }
+
+    // ============================================================
+    // 1 — current (flock): exact copy of what's on homepage now
+    // ============================================================
+    const flock1 = [];
+    for (let i = 0; i < 32; i++) {
+      flock1.push({
+        x: 20 + (Math.random() - 0.5) * 10, y: H / 2 + (Math.random() - 0.5) * 4,
+        vx: -0.4 + (Math.random() - 0.5) * 0.2, vy: (Math.random() - 0.5) * 0.2,
+      });
+    }
+    reg('v1', (g, c, t) => {
+      addStars(g, c, t);
+      for (const b of flock1) {
+        let sx = 0, sy = 0, ax = 0, ay = 0, cohx = 0, cohy = 0, n = 0;
+        for (const o of flock1) {
+          if (o === b) continue;
+          const dx = o.x - b.x, dy = o.y - b.y, d = Math.sqrt(dx * dx + dy * dy);
+          if (d < 8 && d > 0) {
+            if (d < 2.5) { sx -= dx / d; sy -= dy / d; }
+            ax += o.vx; ay += o.vy; cohx += o.x; cohy += o.y; n++;
+          }
+        }
+        if (n > 0) { ax /= n; ay /= n; cohx = cohx / n - b.x; cohy = cohy / n - b.y; }
+        b.vx += sx * 0.05 + ax * 0.03 + cohx * 0.015 - 0.008;
+        b.vy += sy * 0.05 + ay * 0.03 + cohy * 0.015;
+        if (b.y < 0.5) b.vy += 0.08; if (b.y > H - 1.5) b.vy -= 0.08;
+        const spd = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+        if (spd > 1.4) { b.vx *= 1.4 / spd; b.vy *= 1.4 / spd; }
+        b.x += b.vx; b.y += b.vy;
+        if (b.x < -3) b.x += W + 6; if (b.x > W + 3) b.x -= W + 6;
+      }
+      for (let i = 0; i < flock1.length; i++) {
+        const b = flock1[i];
+        const ix = Math.round(b.x), iy = Math.round(b.y);
+        if (ix >= 0 && ix < W && iy >= 0 && iy < H) {
+          g[iy][ix] = wingChar(t, i); c[iy][ix] = '#605040';
+        }
+      }
+      addShooters(g, c, t, [
+        { period: 11, dur: 0.12, y: 0, dir: 1, len: 4 },
+        { period: 17, dur: 0.09, y: 6, dir: -1, len: 5 },
+      ]);
+    });
+
+    // ============================================================
+    // 2 — murmuration: large dense flock, very strong cohesion,
+    //     fluid shape-shifting mass that rolls across the screen
+    // ============================================================
+    const murm = [];
+    for (let i = 0; i < 50; i++) {
+      murm.push({
+        x: W / 2 + (Math.random() - 0.5) * 12,
+        y: H / 2 + (Math.random() - 0.5) * 4,
+        vx: -0.3 + (Math.random() - 0.5) * 0.15,
+        vy: (Math.random() - 0.5) * 0.15,
+      });
+    }
+    reg('v2', (g, c, t) => {
+      addStars(g, c, t);
+      // wandering center of mass target
+      const cx = W / 2 + Math.sin(t * 0.15) * (W * 0.3) + Math.sin(t * 0.37) * (W * 0.1);
+      const cy = H / 2 + Math.sin(t * 0.25) * 2;
+      for (const b of murm) {
+        let sx = 0, sy = 0, ax = 0, ay = 0, cohx = 0, cohy = 0, n = 0;
+        for (const o of murm) {
+          if (o === b) continue;
+          const dx = o.x - b.x, dy = o.y - b.y, d = Math.sqrt(dx * dx + dy * dy);
+          if (d < 6 && d > 0) {
+            if (d < 1.8) { sx -= dx / d * 1.2; sy -= dy / d * 1.2; }
+            ax += o.vx; ay += o.vy; cohx += o.x; cohy += o.y; n++;
+          }
+        }
+        if (n > 0) { ax /= n; ay /= n; cohx = cohx / n - b.x; cohy = cohy / n - b.y; }
+        const tox = cx - b.x, toy = cy - b.y;
+        b.vx += sx * 0.06 + ax * 0.04 + cohx * 0.025 + tox * 0.004;
+        b.vy += sy * 0.06 + ay * 0.04 + cohy * 0.025 + toy * 0.006;
+        if (b.y < 0.3) b.vy += 0.1; if (b.y > H - 1.3) b.vy -= 0.1;
+        const spd = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+        if (spd > 1.2) { b.vx *= 1.2 / spd; b.vy *= 1.2 / spd; }
+        b.x += b.vx; b.y += b.vy;
+        if (b.x < -3) b.x += W + 6; if (b.x > W + 3) b.x -= W + 6;
+      }
+      for (let i = 0; i < murm.length; i++) {
+        const b = murm[i];
+        const ix = Math.round(b.x), iy = Math.round(b.y);
+        if (ix >= 0 && ix < W && iy >= 0 && iy < H) {
+          g[iy][ix] = wingChar(t, i); c[iy][ix] = '#504848';
+        }
+      }
+      addShooters(g, c, t, [
+        { period: 13, dur: 0.10, y: 0, dir: 1, len: 5 },
+        { period: 19, dur: 0.08, y: 6, dir: -1, len: 4 },
+      ]);
+    });
+
+    // ============================================================
+    // 3 — lazy drift: few birds (7), slow, wide spacing, long glides
+    //     with very slow wing flaps — peaceful, sparse feel
+    // ============================================================
+    const lazy = [];
+    for (let i = 0; i < 7; i++) {
+      lazy.push({
+        x: ((hash(i, 1000) & 0x7fffffff) % W),
+        y: 1 + ((hash(i, 2000) & 0x7fffffff) % (H - 2)),
+        vx: -0.15 - ((hash(i, 3000) & 0x7fffffff) % 100) / 500,
+        vy: (((hash(i, 4000) & 0x7fffffff) % 100) - 50) / 500,
+      });
+    }
+    reg('v3', (g, c, t) => {
+      addStars(g, c, t);
+      for (let i = 0; i < lazy.length; i++) {
+        const b = lazy[i];
+        // gentle sine wave drift
+        b.vy += Math.sin(t * 0.4 + i * 2.1) * 0.003;
+        b.vx += Math.sin(t * 0.25 + i * 3.3) * 0.001 - 0.001;
+        if (b.y < 0.5) b.vy += 0.02; if (b.y > H - 1.5) b.vy -= 0.02;
+        // very gentle speed limit
+        const spd = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+        if (spd > 0.4) { b.vx *= 0.4 / spd; b.vy *= 0.4 / spd; }
+        b.x += b.vx; b.y += b.vy;
+        if (b.x < -2) b.x += W + 4; if (b.x > W + 2) b.x -= W + 4;
+        const ix = Math.round(b.x), iy = Math.round(b.y);
+        if (ix >= 0 && ix < W && iy >= 0 && iy < H) {
+          g[iy][ix] = wingCharSlow(t, i); c[iy][ix] = '#706858';
+        }
+      }
+      addShooters(g, c, t, [
+        { period: 15, dur: 0.08, y: 0, dir: 1, len: 3 },
+        { period: 21, dur: 0.07, y: 6, dir: -1, len: 4 },
+      ]);
+    });
+
+    // ============================================================
+    // 4 — crosswinds: two flocks crossing paths,
+    //     one moving left-to-right, one right-to-left
+    // ============================================================
+    const crossA = [], crossB = [];
+    for (let i = 0; i < 16; i++) {
+      crossA.push({
+        x: (Math.random()) * W, y: 1 + Math.random() * 2,
+        vx: 0.5 + Math.random() * 0.2, vy: (Math.random() - 0.5) * 0.1,
+      });
+      crossB.push({
+        x: (Math.random()) * W, y: 4 + Math.random() * 2,
+        vx: -0.5 - Math.random() * 0.2, vy: (Math.random() - 0.5) * 0.1,
+      });
+    }
+    function updateCrossFlock(birds, baseY, dirBias) {
+      for (const b of birds) {
+        let sx = 0, sy = 0, ax = 0, ay = 0, cohx = 0, cohy = 0, n = 0;
+        for (const o of birds) {
+          if (o === b) continue;
+          const dx = o.x - b.x, dy = o.y - b.y, d = Math.sqrt(dx * dx + dy * dy);
+          if (d < 7 && d > 0) {
+            if (d < 2) { sx -= dx / d; sy -= dy / d; }
+            ax += o.vx; ay += o.vy; cohx += o.x; cohy += o.y; n++;
+          }
+        }
+        if (n > 0) { ax /= n; ay /= n; cohx = cohx / n - b.x; cohy = cohy / n - b.y; }
+        b.vx += sx * 0.04 + ax * 0.02 + cohx * 0.01 + dirBias * 0.005;
+        b.vy += sy * 0.04 + ay * 0.02 + cohy * 0.01;
+        // keep near home row
+        b.vy += (baseY - b.y) * 0.01;
+        if (b.y < 0.3) b.vy += 0.08; if (b.y > H - 1.3) b.vy -= 0.08;
+        const spd = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+        if (spd > 1.2) { b.vx *= 1.2 / spd; b.vy *= 1.2 / spd; }
+        b.x += b.vx; b.y += b.vy;
+        if (b.x < -3) b.x += W + 6; if (b.x > W + 3) b.x -= W + 6;
+      }
+    }
+    reg('v4', (g, c, t) => {
+      addStars(g, c, t);
+      updateCrossFlock(crossA, 2, 1);
+      updateCrossFlock(crossB, 5, -1);
+      for (let i = 0; i < crossA.length; i++) {
+        const b = crossA[i];
+        const ix = Math.round(b.x), iy = Math.round(b.y);
+        if (ix >= 0 && ix < W && iy >= 0 && iy < H) {
+          g[iy][ix] = wingChar(t, i); c[iy][ix] = '#605848';
+        }
+      }
+      for (let i = 0; i < crossB.length; i++) {
+        const b = crossB[i];
+        const ix = Math.round(b.x), iy = Math.round(b.y);
+        if (ix >= 0 && ix < W && iy >= 0 && iy < H) {
+          g[iy][ix] = wingChar(t, i + 50); c[iy][ix] = '#485060';
+        }
+      }
+      addShooters(g, c, t, [
+        { period: 11, dur: 0.12, y: 0, dir: 1, len: 4 },
+        { period: 17, dur: 0.09, y: 6, dir: -1, len: 5 },
+      ]);
+    });
+
+    // ============================================================
+    // 5 — ribbon: birds following a sine wave path,
+    //     evenly spaced, creating a flowing ribbon effect
+    // ============================================================
+    reg('v5', (g, c, t) => {
+      addStars(g, c, t);
+      const count = 28;
+      for (let i = 0; i < count; i++) {
+        const phase = (i / count) * Math.PI * 4;
+        const rawX = (t * 2.5 + i * (W / count)) % (W + 10) - 5;
+        const rawY = H / 2 + Math.sin(phase + t * 1.8) * 2.5
+                     + Math.sin(phase * 0.5 + t * 0.7) * 0.8;
+        const ix = Math.round(rawX), iy = Math.round(rawY);
+        if (ix >= 0 && ix < W && iy >= 0 && iy < H) {
+          g[iy][ix] = wingChar(t, i); c[iy][ix] = '#585060';
+        }
+      }
+      addShooters(g, c, t, [
+        { period: 12, dur: 0.11, y: 0, dir: 1, len: 5 },
+        { period: 18, dur: 0.09, y: 6, dir: -1, len: 4 },
+      ]);
+    });
+
+    // ============================================================
+    // 6 — predator: flock that periodically scatters when a hawk
+    //     swoops through, then regroups
+    // ============================================================
+    const prey = [];
+    for (let i = 0; i < 28; i++) {
+      prey.push({
+        x: W / 2 + (Math.random() - 0.5) * 16,
+        y: H / 2 + (Math.random() - 0.5) * 4,
+        vx: -0.3 + (Math.random() - 0.5) * 0.2,
+        vy: (Math.random() - 0.5) * 0.15,
+      });
+    }
+    reg('v6', (g, c, t) => {
+      addStars(g, c, t);
+      // hawk swoops every ~8 seconds (t increments 0.03/frame, ~20fps = 160 ticks = t of 4.8)
+      const hawkCycle = 10;
+      const hawkPhase = (t % hawkCycle) / hawkCycle;
+      const hawkActive = hawkPhase < 0.15;
+      const hawkX = hawkActive ? W * (1 - hawkPhase / 0.15) : -10;
+      const hawkY = hawkActive ? H / 2 + Math.sin(hawkPhase * 40) * 1.5 : -10;
+
+      for (const b of prey) {
+        let sx = 0, sy = 0, ax = 0, ay = 0, cohx = 0, cohy = 0, n = 0;
+        for (const o of prey) {
+          if (o === b) continue;
+          const dx = o.x - b.x, dy = o.y - b.y, d = Math.sqrt(dx * dx + dy * dy);
+          if (d < 8 && d > 0) {
+            if (d < 2.5) { sx -= dx / d; sy -= dy / d; }
+            ax += o.vx; ay += o.vy; cohx += o.x; cohy += o.y; n++;
+          }
+        }
+        if (n > 0) { ax /= n; ay /= n; cohx = cohx / n - b.x; cohy = cohy / n - b.y; }
+        b.vx += sx * 0.05 + ax * 0.03 + cohx * 0.015 - 0.005;
+        b.vy += sy * 0.05 + ay * 0.03 + cohy * 0.015;
+        // flee from hawk
+        if (hawkActive) {
+          const hdx = b.x - hawkX, hdy = b.y - hawkY;
+          const hd = Math.sqrt(hdx * hdx + hdy * hdy);
+          if (hd < 15 && hd > 0) {
+            b.vx += (hdx / hd) * 0.25;
+            b.vy += (hdy / hd) * 0.2;
+          }
+        }
+        if (b.y < 0.3) b.vy += 0.1; if (b.y > H - 1.3) b.vy -= 0.1;
+        const spd = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+        const maxSpd = hawkActive ? 2.0 : 1.2;
+        if (spd > maxSpd) { b.vx *= maxSpd / spd; b.vy *= maxSpd / spd; }
+        b.x += b.vx; b.y += b.vy;
+        if (b.x < -3) b.x += W + 6; if (b.x > W + 3) b.x -= W + 6;
+      }
+      for (let i = 0; i < prey.length; i++) {
+        const b = prey[i];
+        const ix = Math.round(b.x), iy = Math.round(b.y);
+        if (ix >= 0 && ix < W && iy >= 0 && iy < H) {
+          g[iy][ix] = wingChar(t, i); c[iy][ix] = '#605040';
+        }
+      }
+      // draw hawk
+      if (hawkActive) {
+        const hx = Math.round(hawkX), hy = Math.round(hawkY);
+        if (hx >= 0 && hx < W && hy >= 0 && hy < H) {
+          g[hy][hx] = 'W'; c[hy][hx] = '#803020';
+        }
+        if (hx - 1 >= 0 && hy >= 0 && hy < H) {
+          g[hy][hx - 1] = '='; c[hy][hx - 1] = '#803020';
+        }
+      }
+      addShooters(g, c, t, [
+        { period: 11, dur: 0.12, y: 0, dir: 1, len: 4 },
+        { period: 17, dur: 0.09, y: 6, dir: -1, len: 5 },
+      ]);
+    });
+
+    // ============================================================
+    // 7 — thermals: birds riding updrafts, spiraling in loose
+    //     columns that drift across the screen
+    // ============================================================
+    const thermalBirds = [];
+    for (let i = 0; i < 24; i++) {
+      const col = Math.floor(i / 8); // 3 thermal columns
+      thermalBirds.push({
+        col,
+        angle: Math.random() * Math.PI * 2,
+        radius: 2 + Math.random() * 3,
+        speed: 0.4 + Math.random() * 0.3,
+        yOffset: Math.random() * H,
+      });
+    }
+    reg('v7', (g, c, t) => {
+      addStars(g, c, t);
+      const centers = [
+        { x: W * 0.2 + Math.sin(t * 0.12) * W * 0.08, y: H / 2 },
+        { x: W * 0.5 + Math.sin(t * 0.1 + 2) * W * 0.06, y: H / 2 },
+        { x: W * 0.8 + Math.sin(t * 0.14 + 4) * W * 0.08, y: H / 2 },
+      ];
+      for (let i = 0; i < thermalBirds.length; i++) {
+        const b = thermalBirds[i];
+        const center = centers[b.col];
+        b.angle += b.speed * 0.04;
+        const r = b.radius + Math.sin(t * 0.3 + i) * 1;
+        const bx = center.x + Math.cos(b.angle) * r;
+        const by = center.y + Math.sin(b.angle) * (r * 0.5);
+        const ix = Math.round(bx), iy = Math.round(by);
+        if (ix >= 0 && ix < W && iy >= 0 && iy < H) {
+          g[iy][ix] = wingCharSlow(t, i); c[iy][ix] = '#586050';
+        }
+      }
+      addShooters(g, c, t, [
+        { period: 14, dur: 0.09, y: 0, dir: 1, len: 4 },
+        { period: 20, dur: 0.08, y: 6, dir: -1, len: 5 },
+      ]);
+    });
+
+    // ============================================================
+    // 8 — pulse: flock that rhythmically expands and contracts
+    //     like a breathing organism
+    // ============================================================
+    const pulse = [];
+    for (let i = 0; i < 36; i++) {
+      const angle = (i / 36) * Math.PI * 2;
+      const r = 3 + Math.random() * 4;
+      pulse.push({
+        x: W / 2 + Math.cos(angle) * r,
+        y: H / 2 + Math.sin(angle) * r * 0.4,
+        vx: (Math.random() - 0.5) * 0.2,
+        vy: (Math.random() - 0.5) * 0.1,
+        homeAngle: angle,
+        homeR: r,
+      });
+    }
+    reg('v8', (g, c, t) => {
+      addStars(g, c, t);
+      // breathing: oscillate target radius
+      const breath = 1 + Math.sin(t * 0.5) * 0.6;
+      const driftX = W / 2 + Math.sin(t * 0.1) * (W * 0.2);
+      const driftY = H / 2 + Math.sin(t * 0.18) * 1.5;
+      for (const b of pulse) {
+        let sx = 0, sy = 0, n = 0;
+        for (const o of pulse) {
+          if (o === b) continue;
+          const dx = o.x - b.x, dy = o.y - b.y, d = Math.sqrt(dx * dx + dy * dy);
+          if (d < 3 && d > 0) { sx -= dx / d; sy -= dy / d; n++; }
+        }
+        // target position based on breath
+        const tgtR = b.homeR * breath;
+        const tgtX = driftX + Math.cos(b.homeAngle + t * 0.2) * tgtR;
+        const tgtY = driftY + Math.sin(b.homeAngle + t * 0.2) * tgtR * 0.4;
+        b.vx += sx * 0.04 + (tgtX - b.x) * 0.02;
+        b.vy += sy * 0.04 + (tgtY - b.y) * 0.02;
+        if (b.y < 0.3) b.vy += 0.1; if (b.y > H - 1.3) b.vy -= 0.1;
+        const spd = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+        if (spd > 1.0) { b.vx *= 1.0 / spd; b.vy *= 1.0 / spd; }
+        b.vx *= 0.95; b.vy *= 0.95;
+        b.x += b.vx; b.y += b.vy;
+        if (b.x < -3) b.x += W + 6; if (b.x > W + 3) b.x -= W + 6;
+      }
+      for (let i = 0; i < pulse.length; i++) {
+        const b = pulse[i];
+        const ix = Math.round(b.x), iy = Math.round(b.y);
+        if (ix >= 0 && ix < W && iy >= 0 && iy < H) {
+          g[iy][ix] = wingChar(t, i); c[iy][ix] = '#505858';
+        }
+      }
+      addShooters(g, c, t, [
+        { period: 10, dur: 0.13, y: 0, dir: 1, len: 4 },
+        { period: 16, dur: 0.10, y: 6, dir: -1, len: 5 },
+      ]);
+    });
+
+    // ============================================================
+    // 9 — migration v2: staggered V-formations with stragglers
+    //     falling behind and catching up, more organic than v2
+    // ============================================================
+    const migBirds = [];
+    const formations = [
+      { leaderY: 2, speed: 2.8, size: 9, offset: 0 },
+      { leaderY: 5, speed: 2.4, size: 6, offset: 60 },
+    ];
+    for (const f of formations) {
+      for (let i = 0; i < f.size; i++) {
+        migBirds.push({
+          formIdx: formations.indexOf(f),
+          rank: i,
+          side: i === 0 ? 0 : (i % 2 === 1 ? 1 : -1),
+          rankNum: Math.ceil(i / 2),
+          straggle: Math.random() * 2, // how far behind
+          wobblePhase: Math.random() * Math.PI * 2,
+        });
+      }
+    }
+    // add 5 stragglers
+    for (let i = 0; i < 5; i++) {
+      migBirds.push({
+        formIdx: i % 2,
+        rank: -1, // straggler
+        straggleX: 8 + Math.random() * 12,
+        straggleY: (Math.random() - 0.5) * 3,
+        wobblePhase: Math.random() * Math.PI * 2,
+        catchUp: 0.3 + Math.random() * 0.5,
+      });
+    }
+    reg('v9', (g, c, t) => {
+      addStars(g, c, t);
+      for (let i = 0; i < migBirds.length; i++) {
+        const b = migBirds[i];
+        const f = formations[b.formIdx];
+        const leaderX = ((f.offset + t * f.speed) % (W + 80)) - 40;
+        let bx, by;
+        if (b.rank >= 0) {
+          // formation bird
+          const spacing = 2.2 + Math.sin(t * 0.3 + b.rank) * 0.3;
+          bx = leaderX - b.rankNum * spacing - b.straggle * Math.sin(t * 0.5 + b.wobblePhase);
+          by = f.leaderY + b.side * b.rankNum * 0.7
+               + Math.sin(t * 3 + b.wobblePhase) * 0.3;
+        } else {
+          // straggler — trails behind, weaves
+          bx = leaderX - b.straggleX + Math.sin(t * b.catchUp + b.wobblePhase) * 3;
+          by = f.leaderY + b.straggleY + Math.sin(t * 1.5 + b.wobblePhase) * 1;
+        }
+        const ix = Math.round(bx), iy = Math.round(by);
+        if (ix >= 0 && ix < W && iy >= 0 && iy < H) {
+          g[iy][ix] = wingChar(t, i); c[iy][ix] = b.rank >= 0 ? '#504838' : '#706050';
+        }
+      }
+      addShooters(g, c, t, [
+        { period: 13, dur: 0.11, y: 0, dir: 1, len: 5 },
+        { period: 19, dur: 0.08, y: 6, dir: -1, len: 4 },
+      ]);
+    });
+
+    // ============================================================
+    // 10 — starlings: dense murmuration with rapid direction
+    //      changes, splitting and merging sub-flocks
+    // ============================================================
+    const starlings = [];
+    for (let i = 0; i < 55; i++) {
+      starlings.push({
+        x: W / 2 + (Math.random() - 0.5) * 20,
+        y: H / 2 + (Math.random() - 0.5) * 5,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: (Math.random() - 0.5) * 0.3,
+      });
+    }
+    reg('v10', (g, c, t) => {
+      addStars(g, c, t);
+      // two attractors that move independently, causing splits
+      const a1x = W * 0.35 + Math.sin(t * 0.3) * W * 0.2 + Math.sin(t * 0.7) * W * 0.05;
+      const a1y = H / 2 + Math.sin(t * 0.4) * 2;
+      const a2x = W * 0.65 + Math.sin(t * 0.25 + 3) * W * 0.2;
+      const a2y = H / 2 + Math.sin(t * 0.35 + 1) * 2;
+      // attractors merge periodically
+      const merge = (Math.sin(t * 0.12) + 1) / 2; // 0..1
+
+      for (const b of starlings) {
+        let sx = 0, sy = 0, ax = 0, ay = 0, cohx = 0, cohy = 0, n = 0;
+        for (const o of starlings) {
+          if (o === b) continue;
+          const dx = o.x - b.x, dy = o.y - b.y, d = Math.sqrt(dx * dx + dy * dy);
+          if (d < 7 && d > 0) {
+            if (d < 1.5) { sx -= dx / d * 1.5; sy -= dy / d * 1.5; }
+            ax += o.vx; ay += o.vy; cohx += o.x; cohy += o.y; n++;
+          }
+        }
+        if (n > 0) { ax /= n; ay /= n; cohx = cohx / n - b.x; cohy = cohy / n - b.y; }
+        // pick nearest attractor (or merged center)
+        const mx = a1x * merge + a2x * (1 - merge);
+        const my = a1y * merge + a2y * (1 - merge);
+        let tgtx, tgty;
+        if (merge > 0.7) {
+          tgtx = mx; tgty = my;
+        } else {
+          const d1 = Math.abs(b.x - a1x) + Math.abs(b.y - a1y);
+          const d2 = Math.abs(b.x - a2x) + Math.abs(b.y - a2y);
+          tgtx = d1 < d2 ? a1x : a2x;
+          tgty = d1 < d2 ? a1y : a2y;
+        }
+        const tox = tgtx - b.x, toy = tgty - b.y;
+        b.vx += sx * 0.06 + ax * 0.035 + cohx * 0.02 + tox * 0.005;
+        b.vy += sy * 0.06 + ay * 0.035 + cohy * 0.02 + toy * 0.007;
+        if (b.y < 0.2) b.vy += 0.12; if (b.y > H - 1.2) b.vy -= 0.12;
+        const spd = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+        if (spd > 1.5) { b.vx *= 1.5 / spd; b.vy *= 1.5 / spd; }
+        b.x += b.vx; b.y += b.vy;
+        if (b.x < -3) b.x += W + 6; if (b.x > W + 3) b.x -= W + 6;
+      }
+      for (let i = 0; i < starlings.length; i++) {
+        const b = starlings[i];
+        const ix = Math.round(b.x), iy = Math.round(b.y);
+        if (ix >= 0 && ix < W && iy >= 0 && iy < H) {
+          g[iy][ix] = wingChar(t, i); c[iy][ix] = '#484850';
+        }
+      }
+      addShooters(g, c, t, [
+        { period: 9, dur: 0.14, y: 0, dir: 1, len: 5 },
+        { period: 15, dur: 0.10, y: 6, dir: -1, len: 4 },
+      ]);
+    });
+
+    // ============================================================
+    // master loop
+    // ============================================================
+    for (const a of anims) { a.t = 0.03; renderAnim(a); }
+    let last = 0;
+    requestAnimationFrame(function loop(ts) {
+      if (ts - last > 50) {
+        last = ts;
+        for (const a of anims) { a.t += 0.03; renderAnim(a); }
+      }
+      requestAnimationFrame(loop);
+    });
+  </script>
+</body>
+</html>
