@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>snow day games</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Times New Roman", Times, Georgia, serif;
+      background: #0a0a0c;
+      color: #c8c4bc;
+      min-height: 100vh;
+      padding: 40px 30px 60px;
+      text-transform: lowercase;
+    }
+
+    header {
+      margin-bottom: 40px;
+    }
+
+    header a {
+      color: #665e54;
+      text-decoration: none;
+      font-size: 0.85rem;
+      border-bottom: 1px solid #333;
+    }
+
+    header a:hover {
+      color: #c8c4bc;
+      border-bottom-color: #665e54;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+      color: #e8e4dc;
+    }
+
+    .subtitle {
+      color: #665e54;
+      font-size: 0.9rem;
+      margin-bottom: 0;
+      line-height: 1.5;
+    }
+
+    .games {
+      display: flex;
+      flex-direction: column;
+      gap: 56px;
+      max-width: 720px;
+    }
+
+    .game {
+      border-top: 1px solid #1e1c1a;
+      padding-top: 32px;
+    }
+
+    .game h2 {
+      font-size: 1.15rem;
+      font-weight: 400;
+      color: #e8e4dc;
+      margin-bottom: 4px;
+    }
+
+    .game h2 a {
+      color: inherit;
+      text-decoration: none;
+      border-bottom: 1px solid #333;
+    }
+
+    .game h2 a:hover {
+      border-bottom-color: #665e54;
+    }
+
+    .tags {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      font-size: 0.7rem;
+      color: #665e54;
+      border: 1px solid #1e1c1a;
+      padding: 2px 8px;
+      border-radius: 2px;
+    }
+
+    .desc {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: #9a9590;
+      margin-bottom: 16px;
+    }
+
+    .couch-note {
+      font-size: 0.85rem;
+      color: #665e54;
+      font-style: italic;
+      margin-bottom: 20px;
+    }
+
+    .screenshots {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .screenshots img {
+      width: 100%;
+      border-radius: 2px;
+      display: block;
+      opacity: 0.85;
+      transition: opacity 0.3s;
+    }
+
+    .screenshots img:hover {
+      opacity: 1;
+    }
+
+    @media (max-width: 600px) {
+      body { padding: 24px 18px 40px; }
+      .screenshots { grid-template-columns: 1fr; }
+      .games { gap: 40px; }
+    }
+  </style>
+</head>
+<body class="no-shared-footer">
+  <header>
+    <a href="/">&larr; back</a>
+  </header>
+
+  <h1>snow day games</h1>
+  <p class="subtitle">couch-friendly psychological horror picks for ellie &amp; benson.<br>no fast camera movement. just vibes, dread, and blankets.</p>
+
+  <div class="games">
+
+    <div class="game">
+      <h2><a href="https://store.steampowered.com/app/424840/Little_Nightmares/">little nightmares</a></h2>
+      <div class="tags">
+        <span class="tag">puzzle platformer</span>
+        <span class="tag">2.5d side-scrolling</span>
+        <span class="tag">~4 hours</span>
+      </div>
+      <p class="desc">
+        you play as a tiny kid in a yellow raincoat, sneaking through a massive, grotesque ship full of
+        oversized creatures trying to catch you. it plays like a dark animated short film — you're hiding
+        under tables, squeezing through vents, and solving little environmental puzzles to escape each room.
+        the whole thing is creepy and beautiful at the same time. no combat, just tension and atmosphere.
+      </p>
+      <p class="couch-note">
+        camera: fixed cinematic angle, very smooth and steady. perfect couch game — easy to follow along.
+      </p>
+      <div class="screenshots">
+        <img src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/424840/8942672a817424d426e65ade0253e428a3f449ee/ss_8942672a817424d426e65ade0253e428a3f449ee.1920x1080.jpg" alt="little nightmares screenshot" loading="lazy">
+        <img src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/424840/351e2a93274cadae4952a1d05847c9a4ea723129/ss_351e2a93274cadae4952a1d05847c9a4ea723129.1920x1080.jpg" alt="little nightmares screenshot" loading="lazy">
+        <img src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/424840/c4f1d9bc136530748c244f6ff217c58472e86f66/ss_c4f1d9bc136530748c244f6ff217c58472e86f66.1920x1080.jpg" alt="little nightmares screenshot" loading="lazy">
+        <img src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/424840/9e419d670f0e7887e06180f5333e3582b3b41c8e/ss_9e419d670f0e7887e06180f5333e3582b3b41c8e.1920x1080.jpg" alt="little nightmares screenshot" loading="lazy">
+      </div>
+    </div>
+
+    <div class="game">
+      <h2><a href="https://store.steampowered.com/app/274520/Darkwood/">darkwood</a></h2>
+      <div class="tags">
+        <span class="tag">survival horror</span>
+        <span class="tag">top-down</span>
+        <span class="tag">~15-20 hours</span>
+      </div>
+      <p class="desc">
+        a top-down survival horror game set in a nightmarish, overgrown forest somewhere in eastern europe.
+        during the day you explore the woods, scavenge materials, and talk to unsettling characters.
+        at night you barricade yourself inside a hideout and try to survive until morning — things bang on
+        the walls, lights flicker, and you never quite see what's out there. the atmosphere is relentless.
+        no jump scares, just a slow, building sense that everything in this forest is deeply wrong.
+      </p>
+      <p class="couch-note">
+        camera: top-down bird's eye view, very steady. great to watch — the limited visibility
+        makes it tense even from the couch.
+      </p>
+      <div class="screenshots">
+        <img src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/274520/ss_212eaf1e681809dbdf30e139ad0a905d215680b5.1920x1080.jpg" alt="darkwood screenshot" loading="lazy">
+        <img src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/274520/ss_819f42429f0c7264e1884527cab58f70dee32b5a.1920x1080.jpg" alt="darkwood screenshot" loading="lazy">
+        <img src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/274520/ss_756ef2f769057c3a76505c995769baff1e54bf3c.1920x1080.jpg" alt="darkwood screenshot" loading="lazy">
+        <img src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/274520/ss_eab8022640f69646966ff06182c5d1b9327d69d9.1920x1080.jpg" alt="darkwood screenshot" loading="lazy">
+      </div>
+    </div>
+
+    <div class="game">
+      <h2><a href="https://store.steampowered.com/app/1989270/Slay_the_Princess__The_Pristine_Cut/">slay the princess — the pristine cut</a></h2>
+      <div class="tags">
+        <span class="tag">visual novel</span>
+        <span class="tag">hand-drawn</span>
+        <span class="tag">~8-10 hours</span>
+      </div>
+      <p class="desc">
+        a choose-your-own-adventure psychological horror game with gorgeous hand-drawn black and white art.
+        a narrator tells you to go into a cabin and slay a princess. that's it. but nothing is what it seems —
+        your choices reshape who the princess is, who you are, and what the story even means. fully voice acted
+        with incredible performances. it's creepy, funny, philosophical, and surprisingly emotional.
+        basically an interactive horror graphic novel.
+      </p>
+      <p class="couch-note">
+        camera: completely static — still images and text. zero motion sickness risk.
+        the best one to play together since you can debate every choice.
+      </p>
+      <div class="screenshots">
+        <img src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1989270/ss_5262a1ed60b5f1f8419f0c0be3dafa92a7167eba.1920x1080.jpg" alt="slay the princess screenshot" loading="lazy">
+        <img src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1989270/ss_d48a0403c8ce84a614120fa419109151f166fb40.1920x1080.jpg" alt="slay the princess screenshot" loading="lazy">
+        <img src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1989270/ss_a21403e66530a55daf306332893ce6cfa3c76948.1920x1080.jpg" alt="slay the princess screenshot" loading="lazy">
+        <img src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1989270/ss_b712f6a2527719b7af9d3a2e92bab2ea91633803.1920x1080.jpg" alt="slay the princess screenshot" loading="lazy">
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
