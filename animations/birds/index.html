@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>bird variations — benson perry</title>
+  <title>bird sprites — benson perry</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -41,77 +41,36 @@
 </head>
 <body>
   <h1><a href="/">benson perry</a></h1>
-  <div class="subtitle">bird rendering variations — pick one</div>
+  <div class="subtitle">single bird sprites — one bird each, flying left to right</div>
 
-  <div class="variation"><div class="label">0 — current (single char v/^/~)</div><pre class="anim" id="v0"></pre></div>
-  <div class="variation"><div class="label">1 — classic flap (\o/ -o- /o\)</div><pre class="anim" id="v1"></pre></div>
-  <div class="variation"><div class="label">2 — wide soaring (--o-- \/o\/)</div><pre class="anim" id="v2"></pre></div>
-  <div class="variation"><div class="label">3 — two-row birds (wings above body)</div><pre class="anim" id="v3"></pre></div>
-  <div class="variation"><div class="label">4 — m silhouettes</div><pre class="anim" id="v4"></pre></div>
-  <div class="variation"><div class="label">5 — depth layers (big close, small far)</div><pre class="anim" id="v5"></pre></div>
-  <div class="variation"><div class="label">6 — motion trails</div><pre class="anim" id="v6"></pre></div>
-  <div class="variation"><div class="label">7 — seagull (wider organic wings)</div><pre class="anim" id="v7"></pre></div>
-  <div class="variation"><div class="label">8 — directional (tail shows heading)</div><pre class="anim" id="v8"></pre></div>
-  <div class="variation"><div class="label">9 — shadow (bird + ground shadow below)</div><pre class="anim" id="v9"></pre></div>
-  <div class="variation"><div class="label">10 — two-row v2 (gentler, wider)</div><pre class="anim" id="v10"></pre></div>
+  <div class="variation"><div class="label">0 — current (v / ^ / ~)</div><pre class="anim" id="v0"></pre></div>
+  <div class="variation"><div class="label">1 — classic (\o/ -o- /o\)</div><pre class="anim" id="v1"></pre></div>
+  <div class="variation"><div class="label">2 — wide soaring (\\o// --o-- //o\\)</div><pre class="anim" id="v2"></pre></div>
+  <div class="variation"><div class="label">3 — two-row (wings above body)</div><pre class="anim" id="v3"></pre></div>
+  <div class="variation"><div class="label">4 — m / M</div><pre class="anim" id="v4"></pre></div>
+  <div class="variation"><div class="label">5 — seagull (~\./~ ~-.-~ ~/.\~)</div><pre class="anim" id="v5"></pre></div>
+  <div class="variation"><div class="label">6 — directional (&lt;o~ ~o&gt;)</div><pre class="anim" id="v6"></pre></div>
+  <div class="variation"><div class="label">7 — wide two-row (\\w/ --w-- /w\\)</div><pre class="anim" id="v7"></pre></div>
+  <div class="variation"><div class="label">8 — bird with trail</div><pre class="anim" id="v8"></pre></div>
+  <div class="variation"><div class="label">9 — bird with shadow</div><pre class="anim" id="v9"></pre></div>
+  <div class="variation"><div class="label">10 — hat bird (^v^ _v_ .v.)</div><pre class="anim" id="v10"></pre></div>
 
   <script>
     const H = 7;
     let W = Math.floor(window.innerWidth / 6.02);
     window.addEventListener('resize', () => { W = Math.floor(window.innerWidth / 6.02); });
 
-    function hash(x, y) {
-      let h = x + y * 137;
-      h = ((h >> 16) ^ h) * 0x45d9f3b | 0;
-      h = ((h >> 16) ^ h) * 0x45d9f3b | 0;
-      return (h >> 16) ^ h;
-    }
-
-    function addStars(g, c, t) {
-      const bk = Math.floor(t * 20);
-      for (let i = 0; i < 2; i++) {
-        const bx = ((hash(bk + i * 9999, i * 2) & 0x7fffffff) % W);
-        const by = ((hash(bk + i * 9999, i * 2 + 1) & 0x7fffffff) % H);
-        if ((bk % (i === 0 ? 15 : 22)) < 1) { g[by][bx] = '*'; c[by][bx] = '#909090'; }
-      }
-    }
-
-    function addShooters(g, c, t, shooters) {
-      for (const s of shooters) {
-        const phase = (t / s.period) % 1;
-        if (phase < s.dur) {
-          const prog = phase / s.dur;
-          const head = s.dir > 0
-            ? Math.round(prog * (W + s.len) - s.len)
-            : Math.round(W - prog * (W + s.len) + s.len);
-          for (let i = 0; i <= s.len; i++) {
-            const px = head - i * s.dir;
-            if (px >= 0 && px < W && s.y >= 0 && s.y < H) {
-              g[s.y][px] = i === 0 ? '*' : '-';
-              c[s.y][px] = i === 0 ? '#90c0d0' : '#80a0b0';
-            }
-          }
-        }
-      }
-    }
-
-    const defaultShooters = [
-      { period: 11, dur: 0.12, y: 0, dir: 1, len: 4 },
-      { period: 17, dur: 0.09, y: 6, dir: -1, len: 5 },
-    ];
-
-    // helper: place a char on the grid with bounds checking
     function put(g, c, x, y, ch, col) {
       if (x >= 0 && x < W && y >= 0 && y < H) { g[y][x] = ch; c[y][x] = col; }
     }
 
     const anims = [];
-    function reg(id, fn) { anims.push({ el: document.getElementById(id), fn, t: 0 }); }
+    function reg(id, fn) { anims.push({ el: document.getElementById(id), fn, t: 0, trail: [] }); }
 
     function renderAnim(a) {
       const g = Array.from({length: H}, () => new Array(W).fill('\u00B7'));
       const c = Array.from({length: H}, () => new Array(W).fill(''));
-      a.fn(g, c, a.t);
+      a.fn(g, c, a.t, a);
       let html = '';
       for (let y = 0; y < H; y++) {
         for (let x = 0; x < W; x++) {
@@ -122,489 +81,250 @@
       a.el.innerHTML = html;
     }
 
-    // shared boids flock generator
-    function makeFlock(n, spread) {
-      const birds = [];
-      for (let i = 0; i < n; i++) {
-        birds.push({
-          x: 20 + (Math.random() - 0.5) * (spread || 10),
-          y: H / 2 + (Math.random() - 0.5) * 4,
-          vx: -0.4 + (Math.random() - 0.5) * 0.2,
-          vy: (Math.random() - 0.5) * 0.2,
-        });
-      }
-      return birds;
+    // single bird path: gentle sine wave across the screen
+    function birdPos(t) {
+      const x = (t * 3) % (W + 20) - 10;
+      const y = H / 2 + Math.sin(t * 0.6) * 1.5;
+      return { x: Math.round(x), y: Math.round(y) };
     }
 
-    function updateBoids(birds, opts) {
-      const sep = opts.sep || 0.05, ali = opts.ali || 0.03, coh = opts.coh || 0.015;
-      const drift = opts.drift || -0.008, maxSpd = opts.maxSpd || 1.4;
-      const sepR = opts.sepR || 2.5, viewR = opts.viewR || 8;
-      for (const b of birds) {
-        let sx = 0, sy = 0, ax = 0, ay = 0, cohx = 0, cohy = 0, n = 0;
-        for (const o of birds) {
-          if (o === b) continue;
-          const dx = o.x - b.x, dy = o.y - b.y, d = Math.sqrt(dx * dx + dy * dy);
-          if (d < viewR && d > 0) {
-            if (d < sepR) { sx -= dx / d; sy -= dy / d; }
-            ax += o.vx; ay += o.vy; cohx += o.x; cohy += o.y; n++;
-          }
-        }
-        if (n > 0) { ax /= n; ay /= n; cohx = cohx / n - b.x; cohy = cohy / n - b.y; }
-        b.vx += sx * sep + ax * ali + cohx * coh + drift;
-        b.vy += sy * sep + ay * ali + cohy * coh;
-        if (b.y < 0.5) b.vy += 0.08; if (b.y > H - 1.5) b.vy -= 0.08;
-        const spd = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
-        if (spd > maxSpd) { b.vx *= maxSpd / spd; b.vy *= maxSpd / spd; }
-        b.x += b.vx; b.y += b.vy;
-        if (b.x < -5) b.x += W + 10; if (b.x > W + 5) b.x -= W + 10;
-      }
-    }
+    const col = '#605040';
+    const colF = '#807060';
 
 
-    // ============================================================
-    // 0 — current: single char v/^/~ (the baseline)
-    // ============================================================
-    const flock0 = makeFlock(32);
+    // 0 — current single char
     reg('v0', (g, c, t) => {
-      addStars(g, c, t);
-      updateBoids(flock0, {});
-      for (let i = 0; i < flock0.length; i++) {
-        const b = flock0[i];
-        const ix = Math.round(b.x), iy = Math.round(b.y);
-        if (ix >= 0 && ix < W && iy >= 0 && iy < H) {
-          const p = Math.sin(t * 5 + i * 2.3);
-          g[iy][ix] = p > 0.3 ? 'v' : (p < -0.3 ? '^' : '~');
-          c[iy][ix] = '#605040';
-        }
-      }
-      addShooters(g, c, t, defaultShooters);
+      const { x, y } = birdPos(t);
+      const p = Math.sin(t * 5);
+      const ch = p > 0.3 ? 'v' : (p < -0.3 ? '^' : '~');
+      put(g, c, x, y, ch, col);
     });
 
-
-    // ============================================================
-    // 1 — classic flap: 3-wide \o/ → -o- → /o\ cycle
-    //     the most universally recognizable ASCII bird
-    // ============================================================
-    const flock1 = makeFlock(14, 16);
+    // 1 — classic \o/
     reg('v1', (g, c, t) => {
-      addStars(g, c, t);
-      updateBoids(flock1, { sepR: 4, viewR: 10, maxSpd: 1.0 });
-      const col = '#605040';
-      for (let i = 0; i < flock1.length; i++) {
-        const b = flock1[i];
-        const ix = Math.round(b.x), iy = Math.round(b.y);
-        const p = Math.sin(t * 4 + i * 2.3);
-        if (p > 0.3) {
-          // wings down: \o/
-          put(g, c, ix - 1, iy, '\\', col);
-          put(g, c, ix, iy, 'o', col);
-          put(g, c, ix + 1, iy, '/', col);
-        } else if (p < -0.3) {
-          // wings up: /o\
-          put(g, c, ix - 1, iy, '/', col);
-          put(g, c, ix, iy, 'o', col);
-          put(g, c, ix + 1, iy, '\\', col);
-        } else {
-          // wings level: -o-
-          put(g, c, ix - 1, iy, '-', col);
-          put(g, c, ix, iy, 'o', col);
-          put(g, c, ix + 1, iy, '-', col);
-        }
+      const { x, y } = birdPos(t);
+      const p = Math.sin(t * 4);
+      if (p > 0.3) {
+        put(g, c, x - 1, y, '\\', col);
+        put(g, c, x, y, 'o', col);
+        put(g, c, x + 1, y, '/', col);
+      } else if (p < -0.3) {
+        put(g, c, x - 1, y, '/', col);
+        put(g, c, x, y, 'o', col);
+        put(g, c, x + 1, y, '\\', col);
+      } else {
+        put(g, c, x - 1, y, '-', col);
+        put(g, c, x, y, 'o', col);
+        put(g, c, x + 1, y, '-', col);
       }
-      addShooters(g, c, t, defaultShooters);
     });
 
-
-    // ============================================================
-    // 2 — wide soaring: 5-wide birds, mostly gliding with rare flaps
-    //     \ . / → - . - → / . \ but wider, more majestic
-    // ============================================================
-    const flock2 = makeFlock(8, 20);
+    // 2 — wide soaring 5-wide
     reg('v2', (g, c, t) => {
-      addStars(g, c, t);
-      updateBoids(flock2, { sepR: 5, viewR: 12, maxSpd: 0.7, drift: -0.005 });
-      const col = '#504838';
-      const colW = '#706858';
-      for (let i = 0; i < flock2.length; i++) {
-        const b = flock2[i];
-        const ix = Math.round(b.x), iy = Math.round(b.y);
-        // slower flap — mostly gliding
-        const p = Math.sin(t * 2 + i * 1.9);
-        if (p > 0.6) {
-          // wings down
-          put(g, c, ix - 2, iy, '\\', colW);
-          put(g, c, ix - 1, iy, '\\', col);
-          put(g, c, ix, iy, 'o', col);
-          put(g, c, ix + 1, iy, '/', col);
-          put(g, c, ix + 2, iy, '/', colW);
-        } else if (p < -0.6) {
-          // wings up
-          put(g, c, ix - 2, iy, '/', colW);
-          put(g, c, ix - 1, iy, '/', col);
-          put(g, c, ix, iy, 'o', col);
-          put(g, c, ix + 1, iy, '\\', col);
-          put(g, c, ix + 2, iy, '\\', colW);
-        } else {
-          // gliding (most of the time)
-          put(g, c, ix - 2, iy, '-', colW);
-          put(g, c, ix - 1, iy, '-', col);
-          put(g, c, ix, iy, 'o', col);
-          put(g, c, ix + 1, iy, '-', col);
-          put(g, c, ix + 2, iy, '-', colW);
-        }
+      const { x, y } = birdPos(t);
+      const p = Math.sin(t * 2);
+      if (p > 0.6) {
+        put(g, c, x - 2, y, '\\', colF);
+        put(g, c, x - 1, y, '\\', col);
+        put(g, c, x, y, 'o', col);
+        put(g, c, x + 1, y, '/', col);
+        put(g, c, x + 2, y, '/', colF);
+      } else if (p < -0.6) {
+        put(g, c, x - 2, y, '/', colF);
+        put(g, c, x - 1, y, '/', col);
+        put(g, c, x, y, 'o', col);
+        put(g, c, x + 1, y, '\\', col);
+        put(g, c, x + 2, y, '\\', colF);
+      } else {
+        put(g, c, x - 2, y, '-', colF);
+        put(g, c, x - 1, y, '-', col);
+        put(g, c, x, y, 'o', col);
+        put(g, c, x + 1, y, '-', col);
+        put(g, c, x + 2, y, '-', colF);
       }
-      addShooters(g, c, t, defaultShooters);
     });
 
-
-    // ============================================================
-    // 3 — two-row birds: wings on top row, body below
-    //     row 0:  \ /    - -    / \
-    //     row 1:   V      V      V
-    // ============================================================
-    const flock3 = makeFlock(10, 20);
+    // 3 — two-row: wings on row above, body below
     reg('v3', (g, c, t) => {
-      addStars(g, c, t);
-      updateBoids(flock3, { sepR: 5, viewR: 10, maxSpd: 0.9 });
-      const col = '#605040';
-      const colW = '#807060';
-      for (let i = 0; i < flock3.length; i++) {
-        const b = flock3[i];
-        const ix = Math.round(b.x), iy = Math.round(b.y);
-        const p = Math.sin(t * 3.5 + i * 2.1);
-        // body always on lower row
-        put(g, c, ix, iy, 'V', col);
-        if (p > 0.3) {
-          // wings angled up: \ /
-          put(g, c, ix - 1, iy - 1, '\\', colW);
-          put(g, c, ix + 1, iy - 1, '/', colW);
-        } else if (p < -0.3) {
-          // wings angled down: / \
-          put(g, c, ix - 1, iy + 1, '/', colW);
-          put(g, c, ix + 1, iy + 1, '\\', colW);
-        } else {
-          // wings level: - -
-          put(g, c, ix - 1, iy, '-', colW);
-          put(g, c, ix + 1, iy, '-', colW);
-        }
+      const { x, y } = birdPos(t);
+      const p = Math.sin(t * 3.5);
+      put(g, c, x, y, 'V', col);
+      if (p > 0.3) {
+        put(g, c, x - 1, y - 1, '\\', colF);
+        put(g, c, x + 1, y - 1, '/', colF);
+      } else if (p < -0.3) {
+        put(g, c, x - 1, y + 1, '/', colF);
+        put(g, c, x + 1, y + 1, '\\', colF);
+      } else {
+        put(g, c, x - 1, y, '-', colF);
+        put(g, c, x + 1, y, '-', colF);
       }
-      addShooters(g, c, t, defaultShooters);
     });
 
-
-    // ============================================================
-    // 4 — m silhouettes: just the letter 'm' — naturally looks
-    //     like a bird silhouette from a distance. dead simple.
-    // ============================================================
-    const flock4 = makeFlock(22, 14);
+    // 4 — m / M
     reg('v4', (g, c, t) => {
-      addStars(g, c, t);
-      updateBoids(flock4, { maxSpd: 1.2 });
-      for (let i = 0; i < flock4.length; i++) {
-        const b = flock4[i];
-        const ix = Math.round(b.x), iy = Math.round(b.y);
-        // slight size variation based on sine — 'm' or 'M'
-        const p = Math.sin(t * 3 + i * 2.3);
-        const ch = p > 0.2 ? 'm' : 'M';
-        put(g, c, ix, iy, ch, '#504838');
-      }
-      addShooters(g, c, t, defaultShooters);
+      const { x, y } = birdPos(t);
+      const p = Math.sin(t * 3);
+      put(g, c, x, y, p > 0.2 ? 'm' : 'M', col);
     });
 
-
-    // ============================================================
-    // 5 — depth layers: close birds are big \o/ (dark, fast),
-    //     mid birds are smaller (medium), far birds are tiny dots (faint, slow)
-    //     creates parallax depth effect
-    // ============================================================
-    const farBirds = makeFlock(18, 30);
-    const midBirds = makeFlock(10, 20);
-    const closeBirds = makeFlock(5, 16);
+    // 5 — seagull 5-wide curvy
     reg('v5', (g, c, t) => {
-      addStars(g, c, t);
-      // far layer: tiny, faint, slow
-      updateBoids(farBirds, { maxSpd: 0.5, drift: -0.003, sepR: 2, viewR: 6 });
-      for (let i = 0; i < farBirds.length; i++) {
-        const b = farBirds[i];
-        const ix = Math.round(b.x), iy = Math.round(b.y);
-        put(g, c, ix, iy, '.', '#a0a098');
+      const { x, y } = birdPos(t);
+      const p = Math.sin(t * 3);
+      if (p > 0.35) {
+        put(g, c, x - 2, y, '~', colF);
+        put(g, c, x - 1, y, '\\', col);
+        put(g, c, x, y, '.', col);
+        put(g, c, x + 1, y, '/', col);
+        put(g, c, x + 2, y, '~', colF);
+      } else if (p < -0.35) {
+        put(g, c, x - 2, y, '~', colF);
+        put(g, c, x - 1, y, '/', col);
+        put(g, c, x, y, '.', col);
+        put(g, c, x + 1, y, '\\', col);
+        put(g, c, x + 2, y, '~', colF);
+      } else {
+        put(g, c, x - 2, y, '~', colF);
+        put(g, c, x - 1, y, '-', col);
+        put(g, c, x, y, '.', col);
+        put(g, c, x + 1, y, '-', col);
+        put(g, c, x + 2, y, '~', colF);
       }
-      // mid layer: m chars, medium speed
-      updateBoids(midBirds, { maxSpd: 0.9, drift: -0.006, sepR: 3, viewR: 8 });
-      for (let i = 0; i < midBirds.length; i++) {
-        const b = midBirds[i];
-        const ix = Math.round(b.x), iy = Math.round(b.y);
-        const p = Math.sin(t * 4 + i * 2);
-        put(g, c, ix, iy, p > 0 ? 'm' : 'M', '#807060');
-      }
-      // close layer: big \o/ birds, dark, fast
-      updateBoids(closeBirds, { maxSpd: 1.4, drift: -0.012, sepR: 6, viewR: 14 });
-      for (let i = 0; i < closeBirds.length; i++) {
-        const b = closeBirds[i];
-        const ix = Math.round(b.x), iy = Math.round(b.y);
-        const col = '#403020';
-        const p = Math.sin(t * 3 + i * 1.8);
-        if (p > 0.3) {
-          put(g, c, ix - 1, iy, '\\', col);
-          put(g, c, ix, iy, 'o', col);
-          put(g, c, ix + 1, iy, '/', col);
-        } else if (p < -0.3) {
-          put(g, c, ix - 1, iy, '/', col);
-          put(g, c, ix, iy, 'o', col);
-          put(g, c, ix + 1, iy, '\\', col);
-        } else {
-          put(g, c, ix - 1, iy, '-', col);
-          put(g, c, ix, iy, 'o', col);
-          put(g, c, ix + 1, iy, '-', col);
-        }
-      }
-      addShooters(g, c, t, defaultShooters);
     });
 
-
-    // ============================================================
-    // 6 — motion trails: bird + fading wake behind it
-    //     shows direction of travel through dot trail
-    // ============================================================
-    const flock6 = makeFlock(12, 16);
-    // store position history for trails
-    for (const b of flock6) b.trail = [];
+    // 6 — directional <o~ or ~o>
     reg('v6', (g, c, t) => {
-      addStars(g, c, t);
-      updateBoids(flock6, { sepR: 4, viewR: 10, maxSpd: 1.0 });
-      const trailLen = 5;
-      const trailCols = ['#d0ccc8', '#c0bbb5', '#b0aaa2', '#a09890', '#908880'];
-      for (let i = 0; i < flock6.length; i++) {
-        const b = flock6[i];
-        // record trail
-        b.trail.push({ x: Math.round(b.x), y: Math.round(b.y) });
-        if (b.trail.length > trailLen) b.trail.shift();
-        // draw trail (oldest first so bird overwrites)
-        for (let j = 0; j < b.trail.length - 1; j++) {
-          const tp = b.trail[j];
-          put(g, c, tp.x, tp.y, '.', trailCols[j] || trailCols[trailCols.length - 1]);
-        }
-        // draw bird
-        const ix = Math.round(b.x), iy = Math.round(b.y);
-        const col = '#504030';
-        const p = Math.sin(t * 4 + i * 2.3);
-        if (p > 0.3) {
-          put(g, c, ix - 1, iy, '\\', col);
-          put(g, c, ix, iy, 'o', col);
-          put(g, c, ix + 1, iy, '/', col);
-        } else if (p < -0.3) {
-          put(g, c, ix - 1, iy, '/', col);
-          put(g, c, ix, iy, 'o', col);
-          put(g, c, ix + 1, iy, '\\', col);
-        } else {
-          put(g, c, ix - 1, iy, '-', col);
-          put(g, c, ix, iy, 'o', col);
-          put(g, c, ix + 1, iy, '-', col);
-        }
+      const { x, y } = birdPos(t);
+      const p = Math.sin(t * 4);
+      // going right
+      if (p > 0.3) {
+        put(g, c, x - 1, y, '~', colF);
+        put(g, c, x, y, 'o', col);
+        put(g, c, x + 1, y, '>', col);
+      } else if (p < -0.3) {
+        put(g, c, x - 1, y, '-', colF);
+        put(g, c, x, y, 'o', col);
+        put(g, c, x + 1, y, '>', col);
+      } else {
+        put(g, c, x - 1, y, '=', colF);
+        put(g, c, x, y, 'o', col);
+        put(g, c, x + 1, y, '>', col);
       }
-      addShooters(g, c, t, defaultShooters);
     });
 
-
-    // ============================================================
-    // 7 — seagull: wider organic wing shape with curves
-    //     ~\./~ → ~-.-~ → ~/.\~ — 5 wide, curvy
-    // ============================================================
-    const flock7 = makeFlock(9, 20);
+    // 7 — wide two-row with w body
     reg('v7', (g, c, t) => {
-      addStars(g, c, t);
-      updateBoids(flock7, { sepR: 5, viewR: 12, maxSpd: 0.8, drift: -0.006 });
-      const col = '#504838';
-      const colT = '#706858';
-      for (let i = 0; i < flock7.length; i++) {
-        const b = flock7[i];
-        const ix = Math.round(b.x), iy = Math.round(b.y);
-        const p = Math.sin(t * 3 + i * 2.1);
-        if (p > 0.35) {
-          // wings down sweep
-          put(g, c, ix - 2, iy, '~', colT);
-          put(g, c, ix - 1, iy, '\\', col);
-          put(g, c, ix, iy, '.', col);
-          put(g, c, ix + 1, iy, '/', col);
-          put(g, c, ix + 2, iy, '~', colT);
-        } else if (p < -0.35) {
-          // wings up sweep
-          put(g, c, ix - 2, iy, '~', colT);
-          put(g, c, ix - 1, iy, '/', col);
-          put(g, c, ix, iy, '.', col);
-          put(g, c, ix + 1, iy, '\\', col);
-          put(g, c, ix + 2, iy, '~', colT);
-        } else {
-          // gliding
-          put(g, c, ix - 2, iy, '~', colT);
-          put(g, c, ix - 1, iy, '-', col);
-          put(g, c, ix, iy, '.', col);
-          put(g, c, ix + 1, iy, '-', col);
-          put(g, c, ix + 2, iy, '~', colT);
-        }
-      }
-      addShooters(g, c, t, defaultShooters);
-    });
-
-
-    // ============================================================
-    // 8 — directional: bird shape changes based on heading
-    //     going left: <-o  or <=o    going right: o->  or o=>
-    //     shows the tail/wake trailing behind
-    // ============================================================
-    const flock8 = makeFlock(12, 16);
-    reg('v8', (g, c, t) => {
-      addStars(g, c, t);
-      updateBoids(flock8, { sepR: 4, viewR: 10, maxSpd: 1.2 });
-      const col = '#504838';
-      const colT = '#706858';
-      for (let i = 0; i < flock8.length; i++) {
-        const b = flock8[i];
-        const ix = Math.round(b.x), iy = Math.round(b.y);
-        const p = Math.sin(t * 4 + i * 2.3);
-        const goingLeft = b.vx < 0;
-        if (goingLeft) {
-          // head on left, tail on right
-          if (p > 0.3) {
-            put(g, c, ix - 1, iy, '<', col);
-            put(g, c, ix, iy, 'o', col);
-            put(g, c, ix + 1, iy, '~', colT);
-          } else if (p < -0.3) {
-            put(g, c, ix - 1, iy, '<', col);
-            put(g, c, ix, iy, 'o', col);
-            put(g, c, ix + 1, iy, '-', colT);
-          } else {
-            put(g, c, ix - 1, iy, '<', col);
-            put(g, c, ix, iy, 'o', col);
-            put(g, c, ix + 1, iy, '=', colT);
-          }
-        } else {
-          // head on right, tail on left
-          if (p > 0.3) {
-            put(g, c, ix - 1, iy, '~', colT);
-            put(g, c, ix, iy, 'o', col);
-            put(g, c, ix + 1, iy, '>', col);
-          } else if (p < -0.3) {
-            put(g, c, ix - 1, iy, '-', colT);
-            put(g, c, ix, iy, 'o', col);
-            put(g, c, ix + 1, iy, '>', col);
-          } else {
-            put(g, c, ix - 1, iy, '=', colT);
-            put(g, c, ix, iy, 'o', col);
-            put(g, c, ix + 1, iy, '>', col);
-          }
-        }
-      }
-      addShooters(g, c, t, defaultShooters);
-    });
-
-
-    // ============================================================
-    // 9 — shadow: bird with a shadow/reflection below it
-    //     bird at row y, faint shadow at row y+2
-    //     creates a sense of altitude
-    // ============================================================
-    const flock9 = makeFlock(10, 16);
-    reg('v9', (g, c, t) => {
-      addStars(g, c, t);
-      // keep birds in upper half so shadows have room
-      updateBoids(flock9, { sepR: 4, viewR: 10, maxSpd: 0.9 });
-      // push birds up
-      for (const b of flock9) {
-        if (b.y > H / 2 - 0.5) b.vy -= 0.03;
-        if (b.y < 0.5) b.vy += 0.06;
-      }
-      const col = '#504030';
-      const shCol = '#c8c4b8';
-      for (let i = 0; i < flock9.length; i++) {
-        const b = flock9[i];
-        const ix = Math.round(b.x), iy = Math.round(b.y);
-        const p = Math.sin(t * 3.5 + i * 2.3);
-        // draw shadow first (2 rows below, fainter)
-        const sy = iy + 2;
-        if (p > 0.3) {
-          put(g, c, ix - 1, sy, '.', shCol);
-          put(g, c, ix, sy, '.', shCol);
-          put(g, c, ix + 1, sy, '.', shCol);
-        } else {
-          put(g, c, ix, sy, '.', shCol);
-        }
-        // draw bird
-        if (p > 0.3) {
-          put(g, c, ix - 1, iy, '\\', col);
-          put(g, c, ix, iy, 'o', col);
-          put(g, c, ix + 1, iy, '/', col);
-        } else if (p < -0.3) {
-          put(g, c, ix - 1, iy, '/', col);
-          put(g, c, ix, iy, 'o', col);
-          put(g, c, ix + 1, iy, '\\', col);
-        } else {
-          put(g, c, ix - 1, iy, '-', col);
-          put(g, c, ix, iy, 'o', col);
-          put(g, c, ix + 1, iy, '-', col);
-        }
-      }
-      addShooters(g, c, t, defaultShooters);
-    });
-
-
-    // ============================================================
-    // 10 — two-row v2: gentler two-row with wider wings
-    //      row-1:  \   /      --+--       /   \
-    //      row 0:   \ /        -+-        / \
-    //               (body implied at center)
-    //      7-wide on top, 5-wide on bottom
-    // ============================================================
-    const flock10 = makeFlock(6, 24);
-    reg('v10', (g, c, t) => {
-      addStars(g, c, t);
-      updateBoids(flock10, { sepR: 7, viewR: 14, maxSpd: 0.6, drift: -0.004 });
-      const col = '#504030';
+      const { x, y } = birdPos(t);
+      const p = Math.sin(t * 2.5);
       const colM = '#605040';
       const colT = '#807060';
-      for (let i = 0; i < flock10.length; i++) {
-        const b = flock10[i];
-        const ix = Math.round(b.x), iy = Math.round(b.y);
-        const p = Math.sin(t * 2.5 + i * 1.9);
-        if (p > 0.4) {
-          // wings down
-          put(g, c, ix - 3, iy - 1, '\\', colT);
-          put(g, c, ix - 2, iy - 1, ' ', '');
-          put(g, c, ix + 2, iy - 1, ' ', '');
-          put(g, c, ix + 3, iy - 1, '/', colT);
-          put(g, c, ix - 2, iy, '\\', colM);
-          put(g, c, ix - 1, iy, '\\', col);
-          put(g, c, ix, iy, 'w', col);
-          put(g, c, ix + 1, iy, '/', col);
-          put(g, c, ix + 2, iy, '/', colM);
-        } else if (p < -0.4) {
-          // wings up
-          put(g, c, ix - 3, iy + 1, '/', colT);
-          put(g, c, ix + 3, iy + 1, '\\', colT);
-          put(g, c, ix - 2, iy, '/', colM);
-          put(g, c, ix - 1, iy, '/', col);
-          put(g, c, ix, iy, 'w', col);
-          put(g, c, ix + 1, iy, '\\', col);
-          put(g, c, ix + 2, iy, '\\', colM);
-        } else {
-          // gliding — flat wide line
-          put(g, c, ix - 3, iy, '-', colT);
-          put(g, c, ix - 2, iy, '-', colM);
-          put(g, c, ix - 1, iy, '-', col);
-          put(g, c, ix, iy, 'w', col);
-          put(g, c, ix + 1, iy, '-', col);
-          put(g, c, ix + 2, iy, '-', colM);
-          put(g, c, ix + 3, iy, '-', colT);
-        }
+      if (p > 0.4) {
+        put(g, c, x - 3, y - 1, '\\', colT);
+        put(g, c, x + 3, y - 1, '/', colT);
+        put(g, c, x - 2, y, '\\', colM);
+        put(g, c, x - 1, y, '\\', col);
+        put(g, c, x, y, 'w', col);
+        put(g, c, x + 1, y, '/', col);
+        put(g, c, x + 2, y, '/', colM);
+      } else if (p < -0.4) {
+        put(g, c, x - 3, y + 1, '/', colT);
+        put(g, c, x + 3, y + 1, '\\', colT);
+        put(g, c, x - 2, y, '/', colM);
+        put(g, c, x - 1, y, '/', col);
+        put(g, c, x, y, 'w', col);
+        put(g, c, x + 1, y, '\\', col);
+        put(g, c, x + 2, y, '\\', colM);
+      } else {
+        put(g, c, x - 3, y, '-', colT);
+        put(g, c, x - 2, y, '-', colM);
+        put(g, c, x - 1, y, '-', col);
+        put(g, c, x, y, 'w', col);
+        put(g, c, x + 1, y, '-', col);
+        put(g, c, x + 2, y, '-', colM);
+        put(g, c, x + 3, y, '-', colT);
       }
-      addShooters(g, c, t, defaultShooters);
+    });
+
+    // 8 — \o/ with trail
+    reg('v8', (g, c, t, a) => {
+      const { x, y } = birdPos(t);
+      // record trail
+      a.trail.push({ x, y });
+      if (a.trail.length > 6) a.trail.shift();
+      const trailCols = ['#d8d4d0', '#ccc8c2', '#c0bbb5', '#b4aea6', '#a8a298'];
+      for (let j = 0; j < a.trail.length - 1; j++) {
+        const tp = a.trail[j];
+        put(g, c, tp.x, tp.y, '.', trailCols[j] || trailCols[trailCols.length - 1]);
+      }
+      const p = Math.sin(t * 4);
+      if (p > 0.3) {
+        put(g, c, x - 1, y, '\\', col);
+        put(g, c, x, y, 'o', col);
+        put(g, c, x + 1, y, '/', col);
+      } else if (p < -0.3) {
+        put(g, c, x - 1, y, '/', col);
+        put(g, c, x, y, 'o', col);
+        put(g, c, x + 1, y, '\\', col);
+      } else {
+        put(g, c, x - 1, y, '-', col);
+        put(g, c, x, y, 'o', col);
+        put(g, c, x + 1, y, '-', col);
+      }
+    });
+
+    // 9 — \o/ with shadow 2 rows below
+    reg('v9', (g, c, t) => {
+      const x = Math.round((t * 3) % (W + 20) - 10);
+      const y = 2 + Math.round(Math.sin(t * 0.6) * 1);
+      const shCol = '#c8c4b8';
+      const sy = y + 2;
+      const p = Math.sin(t * 3.5);
+      // shadow
+      if (p > 0.3) {
+        put(g, c, x - 1, sy, '.', shCol);
+        put(g, c, x, sy, '.', shCol);
+        put(g, c, x + 1, sy, '.', shCol);
+      } else {
+        put(g, c, x, sy, '.', shCol);
+      }
+      // bird
+      if (p > 0.3) {
+        put(g, c, x - 1, y, '\\', col);
+        put(g, c, x, y, 'o', col);
+        put(g, c, x + 1, y, '/', col);
+      } else if (p < -0.3) {
+        put(g, c, x - 1, y, '/', col);
+        put(g, c, x, y, 'o', col);
+        put(g, c, x + 1, y, '\\', col);
+      } else {
+        put(g, c, x - 1, y, '-', col);
+        put(g, c, x, y, 'o', col);
+        put(g, c, x + 1, y, '-', col);
+      }
+    });
+
+    // 10 — hat bird: ^v^ _v_ .v.
+    reg('v10', (g, c, t) => {
+      const { x, y } = birdPos(t);
+      const p = Math.sin(t * 4);
+      if (p > 0.3) {
+        put(g, c, x - 1, y, '^', col);
+        put(g, c, x, y, 'v', col);
+        put(g, c, x + 1, y, '^', col);
+      } else if (p < -0.3) {
+        put(g, c, x - 1, y, '.', colF);
+        put(g, c, x, y, 'v', col);
+        put(g, c, x + 1, y, '.', colF);
+      } else {
+        put(g, c, x - 1, y, '_', colF);
+        put(g, c, x, y, 'v', col);
+        put(g, c, x + 1, y, '_', colF);
+      }
     });
 
 
-    // ============================================================
     // master loop
-    // ============================================================
     for (const a of anims) { a.t = 0.03; renderAnim(a); }
     let last = 0;
     requestAnimationFrame(function loop(ts) {
