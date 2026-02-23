@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>wow advisor</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
+  <script>const whTooltips = { colorLinks: false, iconizeLinks: false, renameLinks: false };</script>
+  <script src="https://wow.zamimg.com/js/tooltips.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #1a1410;
+      --bg-chat: #0f0c09;
+      --surface: #2a2218;
+      --border: #4a3c28;
+      --gold: #c9a959;
+      --gold-dim: #8a7a45;
+      --text: #d4c8a8;
+      --text-dim: #8a8068;
+      --user-bg: #2a2a1a;
+      --assistant-bg: #1e1a14;
+      --input-bg: #15120e;
+      --error: #a04040;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: Georgia, 'Times New Roman', serif;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    h1, h2, h3, .heading { font-family: 'Cinzel', serif; }
+
+    /* header — option a style */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+
+    #header-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 2px solid var(--gold-dim);
+      object-fit: cover;
+      display: none;
+    }
+
+    #header-avatar.loaded { display: block; }
+
+    .char-info { flex: 1; min-width: 0; }
+
+    .char-name {
+      font-family: 'Cinzel', serif;
+      font-size: 1.05rem;
+      color: var(--gold);
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .char-details {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 1px;
+    }
+
+    .char-details img {
+      width: 14px;
+      height: 14px;
+      border-radius: 2px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .header-actions button {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      font-size: 0.75rem;
+      cursor: pointer;
+      font-family: inherit;
+      transition: color 0.15s;
+    }
+
+    .header-actions button:hover { color: var(--gold); }
+
+    /* gear icon for settings */
+    .gear-icon {
+      width: 15px;
+      height: 15px;
+      opacity: 0.5;
+      transition: opacity 0.15s;
+    }
+
+    .header-actions button:hover .gear-icon { opacity: 0.85; }
+
+    /* chat */
+    #chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      background: var(--bg-chat);
+    }
+
+    #chat::-webkit-scrollbar { width: 6px; }
+    #chat::-webkit-scrollbar-track { background: transparent; }
+    #chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .message {
+      max-width: 780px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      gap: 14px;
+      padding: 14px 18px;
+      border-radius: 4px;
+      line-height: 1.65;
+      font-size: 0.92rem;
+    }
+
+    .message-portrait {
+      flex-shrink: 0;
+      width: 42px;
+      height: 42px;
+      border-radius: 4px;
+      border: 2px solid var(--gold-dim);
+      object-fit: cover;
+      background: var(--surface);
+      box-shadow: 0 0 6px rgba(201, 169, 89, 0.15);
+    }
+
+    .message.assistant .message-portrait {
+      border-color: var(--border);
+    }
+
+    .message-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .message.user {
+      background: var(--user-bg);
+      border-left: 3px solid var(--gold-dim);
+    }
+
+    .message.assistant {
+      background: var(--assistant-bg);
+      border-left: 3px solid var(--border);
+    }
+
+    .message.error {
+      background: #2a1515;
+      border-left: 3px solid var(--error);
+      color: #d08080;
+    }
+
+    .message-role {
+      font-family: 'Cinzel', serif;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--gold-dim);
+      margin-bottom: 6px;
+    }
+
+    .message.assistant .message-role { color: var(--text-dim); }
+
+    .message-body p { margin-bottom: 0.6em; }
+    .message-body p:last-child { margin-bottom: 0; }
+    .message-body ul, .message-body ol { margin: 0.4em 0 0.6em 1.4em; }
+    .message-body li { margin-bottom: 0.25em; }
+    .message-body strong { color: var(--gold); }
+    .message-body a.item-link,
+    .message-body span.item-link {
+      color: var(--gold);
+      text-decoration: underline dotted;
+      text-underline-offset: 2px;
+      cursor: pointer;
+    }
+    .message-body a.item-link:hover,
+    .message-body span.item-link:hover { color: #e0c060; }
+
+    .message-body .action-link {
+      color: var(--text);
+      border-bottom: 1px dashed var(--gold-dim);
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .message-body .action-link:hover {
+      color: var(--gold);
+      border-color: var(--gold);
+    }
+
+    /* custom item tooltip */
+    #item-tooltip {
+      display: none;
+      position: fixed;
+      z-index: 200;
+      background: #1a1a2e;
+      border: 1px solid #4a4a6a;
+      border-radius: 4px;
+      padding: 10px 12px;
+      max-width: 320px;
+      min-width: 200px;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #ffd100;
+      pointer-events: none;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+    }
+    #item-tooltip.visible { display: block; }
+    #item-tooltip .tt-name { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+    #item-tooltip .tt-ilvl { color: #ffd100; }
+    #item-tooltip .tt-binding { color: #ffd100; }
+    #item-tooltip .tt-slot { color: #fff; }
+    #item-tooltip .tt-armor { color: #fff; }
+    #item-tooltip .tt-stat { color: #fff; }
+    #item-tooltip .tt-secondary { color: #1eff00; }
+    #item-tooltip .tt-enchant { color: #1eff00; }
+    #item-tooltip .tt-socket { color: #aaa; }
+    #item-tooltip .tt-set { color: #1eff00; }
+    #item-tooltip .tt-req { color: #fff; }
+    #item-tooltip .tt-durability { color: #fff; }
+    #item-tooltip .tt-sell { color: #fff; }
+    .q-POOR { color: #9d9d9d !important; }
+    .q-COMMON { color: #fff !important; }
+    .q-UNCOMMON { color: #1eff00 !important; }
+    .q-RARE { color: #0070dd !important; }
+    .q-EPIC { color: #a335ee !important; }
+    .q-LEGENDARY { color: #ff8000 !important; }
+    .q-ARTIFACT { color: #e6cc80 !important; }
+    .q-HEIRLOOM { color: #00ccff !important; }
+    .message-body code {
+      background: rgba(0,0,0,0.3);
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 0.88em;
+    }
+    .message-body pre {
+      background: rgba(0,0,0,0.3);
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+      margin: 0.5em 0;
+    }
+    .message-body pre code { background: none; padding: 0; }
+    .message-body h1, .message-body h2, .message-body h3 {
+      color: var(--gold);
+      margin: 0.8em 0 0.3em;
+      font-size: 1em;
+    }
+    .message-body h1 { font-size: 1.1em; }
+    .message-body hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0.8em 0;
+    }
+
+    .cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      background: var(--gold);
+      animation: blink 0.8s step-end infinite;
+      vertical-align: text-bottom;
+      margin-left: 2px;
+    }
+
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* input */
+    #input-area {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+
+    #input-row {
+      max-width: 780px;
+      margin: 0 auto;
+      display: flex;
+      gap: 10px;
+    }
+
+    #input {
+      flex: 1;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.92rem;
+      padding: 10px 14px;
+      resize: none;
+      outline: none;
+      line-height: 1.5;
+      min-height: 42px;
+      max-height: 150px;
+    }
+
+    #input:focus { border-color: var(--gold-dim); }
+    #input::placeholder { color: var(--text-dim); }
+
+    #send {
+      background: var(--gold-dim);
+      border: none;
+      color: var(--bg);
+      font-family: 'Cinzel', serif;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 10px 18px;
+      border-radius: 4px;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+      align-self: flex-end;
+      transition: background 0.15s;
+    }
+
+    #send:hover { background: var(--gold); }
+    #send:disabled { opacity: 0.4; cursor: default; }
+
+    /* modals */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .modal.hidden { display: none; }
+
+    .modal-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 32px;
+      max-width: 460px;
+      width: 90%;
+    }
+
+    .modal-box h2 {
+      color: var(--gold);
+      font-size: 1rem;
+      margin-bottom: 16px;
+      text-transform: lowercase;
+    }
+
+    .modal-box label {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+      text-transform: lowercase;
+    }
+
+    .modal-box input, .modal-box select {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.85rem;
+      padding: 10px 12px;
+      outline: none;
+      margin-bottom: 14px;
+    }
+
+    .modal-box input:focus, .modal-box select:focus { border-color: var(--gold-dim); }
+
+    .modal-box select { cursor: pointer; }
+    .modal-box select option { background: var(--surface); color: var(--text); }
+
+    .modal-box .row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .modal-box .row > div { flex: 1; }
+
+    .modal-box .section-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 18px 0;
+    }
+
+    .btn {
+      background: var(--gold-dim);
+      border: none;
+      color: var(--bg);
+      font-family: 'Cinzel', serif;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 9px 22px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn:hover { background: var(--gold); }
+    .btn:disabled { opacity: 0.4; cursor: default; }
+
+    .error-text {
+      color: var(--error);
+      font-size: 0.8rem;
+      margin-bottom: 10px;
+      display: none;
+    }
+
+    #welcome {
+      max-width: 780px;
+      width: 100%;
+      margin: auto;
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    #welcome h2 {
+      color: var(--gold);
+      font-size: 1.2rem;
+      margin-bottom: 10px;
+      text-transform: lowercase;
+    }
+
+    #welcome p {
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 600px) {
+      header { padding: 10px 14px; gap: 10px; }
+      .char-name { font-size: 0.92rem; }
+      .char-details { font-size: 0.68rem; }
+      #header-avatar { width: 32px; height: 32px; }
+      #chat { padding: 14px; gap: 12px; }
+      .message { padding: 12px 14px; font-size: 0.88rem; gap: 10px; }
+      .message-portrait { width: 34px; height: 34px; }
+      #input-area { padding: 10px 14px; }
+      .modal-box { padding: 24px; }
+      .modal-box .row { flex-direction: column; gap: 0; }
+    }
+  </style>
+</head>
+<body class="no-shared-footer">
+  <header>
+    <img id="header-avatar" alt="">
+    <div class="char-info">
+      <div class="char-name" id="header-name">wow advisor</div>
+      <div class="char-details" id="header-details"></div>
+    </div>
+    <div class="header-actions">
+      <button id="clear-btn" title="clear conversation">clear</button>
+      <button id="settings-btn" title="settings">
+        <svg class="gear-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div id="chat">
+    <div id="welcome">
+      <h2>what should i do next?</h2>
+      <p>your personal warcraft advisor for the war within.<br>ask about gearing, dungeons, raids, weeklies — anything.</p>
+    </div>
+  </div>
+
+  <div id="input-area">
+    <div id="input-row">
+      <textarea id="input" rows="1" placeholder="ask your advisor..."></textarea>
+      <button id="send">send</button>
+    </div>
+  </div>
+
+  <div id="item-tooltip"></div>
+
+  <!-- settings modal (character + api key combined) -->
+  <div id="settings-modal" class="modal hidden">
+    <div class="modal-box">
+      <h2>settings</h2>
+
+      <label for="char-name">character</label>
+      <div class="row">
+        <div><input type="text" id="char-name" placeholder="character name"></div>
+        <div><input type="text" id="char-realm" placeholder="realm (e.g. area-52)"></div>
+      </div>
+      <select id="char-region">
+        <option value="us">us</option>
+        <option value="eu">eu</option>
+        <option value="kr">kr</option>
+        <option value="tw">tw</option>
+      </select>
+      <div id="char-error" class="error-text"></div>
+      <button id="char-save" class="btn">load character</button>
+
+      <hr class="section-divider">
+
+      <label for="key-input">anthropic api key (optional — only if worker is down)</label>
+      <input type="password" id="key-input" placeholder="sk-ant-...">
+      <button id="key-save" class="btn">save key</button>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'wow-advisor-history';
+    const API_KEY_STORAGE = 'wow-advisor-api-key';
+    const CHAR_STORAGE = 'wow-advisor-character';
+    const CHAR_DATA_STORAGE = 'wow-advisor-char-data';
+    const WORKER_URL = 'https://wow-advisor-api.brostar.workers.dev';
+
+    const BASE_SYSTEM_PROMPT = `You are a concise, knowledgeable World of Warcraft advisor for The War Within expansion (Season 2). You're helping a returning player get caught up and figure out what to do next.
+
+## Current Expansion Context
+- **The War Within** (TWW) - latest expansion, set in Khaz Algar (underground zones beneath Azeroth)
+- **Zones**: Isle of Dorn, The Ringing Deeps, Hallowfall, Azj-Kahet
+- **Level cap**: 80
+- **Current season**: Season 2
+
+## Season 2 Content
+- **Raid**: Liberation of Undermine (8 bosses) — LFR/Normal/Heroic/Mythic
+- **Mythic+ Dungeons (S2 rotation)**: MOTHERLODE, Mechagon Workshop, Darkflame Cleft, Cinderbrew Meadery, Priory of the Sacred Flame, The Rookery, Theater of Pain, Operation: Floodgate
+- **Delves**: Scalable 1-player (or small group) content, tiers 1-11, great for gearing up solo
+- **World Boss**: Rotates weekly in Khaz Algar zones
+
+## Gearing System
+- **Crests**: Used to upgrade gear. Types from lowest to highest: Weathered, Carved, Runed, Gilded
+- **Upgrade tracks**: Explorer → Adventurer → Veteran → Champion → Hero → Myth
+- **Delves**: Drop up to Champion track gear (tiers 7+), good solo path
+- **M+ dungeons**: Vault rewards scale with key level; end-of-dungeon drops are lower
+- **Raid**: Each difficulty drops a specific track (LFR=Veteran, Normal=Champion, Heroic=Hero, Mythic=Myth)
+- **Great Vault**: Weekly reward chest, pick 1 from up to 9 options (3 raid, 3 dungeon, 3 world/delve)
+- **Valorstones**: Currency for upgrading gear (earned from most endgame content)
+
+## Weekly Checklist Pattern
+- Fill Great Vault slots (ideally at least 1 from each row)
+- World Boss kill (once per week per character)
+- Delve completions for vault slots and crests
+- M+ keys for vault slots and crests
+- Raid bosses for drops + vault
+- Weekly quests from Khaz Algar (often in Azj-Kahet or Severed Threads)
+- Theater Troupe (world event, rewards crests)
+- Spread (world event, rewards crests)
+
+## Prot Warrior Specifics
+- **Hero Talent Trees**: Mountain Thane (lightning/Avatar-focused) or Colossus (big Demolish hits). Both are viable.
+- **Key abilities**: Shield Slam, Thunder Clap, Ignore Pain, Shield Wall, Last Stand, Spell Reflect, Shield Block
+- **Stat priority (general)**: Haste ≥ Versatility > Mastery > Crit (varies by build)
+- **Tier set**: Check current season's set bonuses
+- **Defensives rotation**: Shield Block for physical, Spell Reflect for magic, Ignore Pain as filler absorb
+
+## How to Respond
+- Be concise and actionable — bullet points over paragraphs when listing tasks
+- Prioritize by impact: what gives the biggest power gain for time spent
+- Mention specific content by name (dungeon names, boss names, crest types)
+- If they're overwhelmed, focus on just 2-3 things to do this week
+- Use WoW terminology naturally (ilvl, M+, keys, vault, etc.)
+- For talent/build questions, give general guidance and suggest checking Wowhead or Archon for exact builds since those change with patches
+- You have access to live character data from the Blizzard API — reference it directly instead of asking the player for info you already have`;
+
+    let messages = [];
+    let streaming = false;
+    let characterData = null;
+
+    const chatEl = document.getElementById('chat');
+    const inputEl = document.getElementById('input');
+    const sendBtn = document.getElementById('send');
+    const clearBtn = document.getElementById('clear-btn');
+    const settingsBtn = document.getElementById('settings-btn');
+    const settingsModal = document.getElementById('settings-modal');
+    const keyInput = document.getElementById('key-input');
+    const keySave = document.getElementById('key-save');
+    const charNameInput = document.getElementById('char-name');
+    const charRealmInput = document.getElementById('char-realm');
+    const charRegionInput = document.getElementById('char-region');
+    const charSave = document.getElementById('char-save');
+    const charError = document.getElementById('char-error');
+    const headerAvatar = document.getElementById('header-avatar');
+    const headerName = document.getElementById('header-name');
+    const headerDetails = document.getElementById('header-details');
+
+    // textarea auto-resize
+    inputEl.addEventListener('input', () => {
+      inputEl.style.height = 'auto';
+      inputEl.style.height = Math.min(inputEl.scrollHeight, 150) + 'px';
+    });
+
+    // storage helpers
+    function getKey() { return localStorage.getItem(API_KEY_STORAGE); }
+    function setKey(k) { localStorage.setItem(API_KEY_STORAGE, k); }
+    function getSavedChar() {
+      try { return JSON.parse(localStorage.getItem(CHAR_STORAGE)); } catch { return null; }
+    }
+    function getSavedCharData() {
+      try { return JSON.parse(localStorage.getItem(CHAR_DATA_STORAGE)); } catch { return null; }
+    }
+
+    function showModal(el) { el.classList.remove('hidden'); }
+    function hideModal(el) { el.classList.add('hidden'); }
+
+    // settings modal
+    settingsBtn.addEventListener('click', () => {
+      const saved = getSavedChar();
+      if (saved) {
+        charNameInput.value = saved.name;
+        charRealmInput.value = saved.realm;
+        charRegionInput.value = saved.region;
+      }
+      keyInput.value = '';
+      charError.style.display = 'none';
+      showModal(settingsModal);
+      charNameInput.focus();
+    });
+
+    settingsModal.addEventListener('click', (e) => {
+      if (e.target === settingsModal) { hideModal(settingsModal); inputEl.focus(); }
+    });
+
+    keySave.addEventListener('click', () => {
+      const k = keyInput.value.trim();
+      if (k) { setKey(k); keyInput.value = ''; keySave.textContent = 'saved!'; setTimeout(() => keySave.textContent = 'save key', 1500); }
+    });
+
+    // header rendering
+    function updateHeader() {
+      if (!characterData?.profile) {
+        headerName.textContent = 'wow advisor';
+        headerDetails.innerHTML = '';
+        headerAvatar.classList.remove('loaded');
+        return;
+      }
+
+      const p = characterData.profile;
+      const ilvl = p.equipped_item_level || p.average_item_level || '';
+      const spec = p.active_spec?.name || '';
+      const cls = p.character_class?.name || '';
+      const realm = p.realm?.name || getSavedChar()?.realm || '';
+
+      headerName.textContent = (p.name || '').toLowerCase();
+
+      let detailsHtml = '';
+      if (characterData.specIcon) {
+        detailsHtml += `<img src="${characterData.specIcon}" alt="">`;
+      }
+      const parts = [];
+      if (spec && cls) parts.push(`${spec.toLowerCase()} ${cls.toLowerCase()}`);
+      if (realm) parts.push(realm.toLowerCase());
+      if (ilvl) parts.push(`${ilvl} ilvl`);
+      detailsHtml += parts.join(' · ');
+      headerDetails.innerHTML = detailsHtml;
+
+      // avatar
+      const assets = characterData.media?.assets;
+      if (assets) {
+        const avatar = assets.find(a => a.key === 'avatar');
+        if (avatar) {
+          headerAvatar.src = avatar.value;
+          headerAvatar.classList.add('loaded');
+        }
+      }
+    }
+
+    // character loading
+    async function fetchCharacterData(name, realm, region) {
+      const url = `${WORKER_URL}/character?region=${region}&realm=${encodeURIComponent(realm)}&name=${encodeURIComponent(name)}`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: `${res.status}` }));
+        throw new Error(err.error || `failed to load character (${res.status})`);
+      }
+      return res.json();
+    }
+
+    charSave.addEventListener('click', async () => {
+      const name = charNameInput.value.trim();
+      const realm = charRealmInput.value.trim();
+      const region = charRegionInput.value;
+
+      if (!name || !realm) {
+        charError.textContent = 'name and realm are required';
+        charError.style.display = 'block';
+        return;
+      }
+
+      charSave.disabled = true;
+      charSave.textContent = 'loading...';
+      charError.style.display = 'none';
+
+      try {
+        const data = await fetchCharacterData(name, realm, region);
+        characterData = data;
+        localStorage.setItem(CHAR_STORAGE, JSON.stringify({ name, realm, region }));
+        localStorage.setItem(CHAR_DATA_STORAGE, JSON.stringify(data));
+        updateHeader();
+        hideModal(settingsModal);
+        inputEl.focus();
+      } catch (e) {
+        charError.textContent = e.message;
+        charError.style.display = 'block';
+      }
+
+      charSave.disabled = false;
+      charSave.textContent = 'load character';
+    });
+
+    charNameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') charSave.click(); });
+    charRealmInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') charSave.click(); });
+
+    // format character data for system prompt
+    function formatCharacterData(data) {
+      if (!data) return '';
+
+      let ctx = '\n\n## Live Character Data (from Blizzard API)\n';
+
+      if (data.profile) {
+        const p = data.profile;
+        ctx += `\n### Profile\n`;
+        ctx += `- **Name**: ${p.name}\n`;
+        if (p.level) ctx += `- **Level**: ${p.level}\n`;
+        if (p.race?.name) ctx += `- **Race**: ${p.race.name}\n`;
+        if (p.character_class?.name) ctx += `- **Class**: ${p.character_class.name}\n`;
+        if (p.active_spec?.name) ctx += `- **Spec**: ${p.active_spec.name}\n`;
+        if (p.equipped_item_level) ctx += `- **Equipped ilvl**: ${p.equipped_item_level}\n`;
+        if (p.average_item_level) ctx += `- **Average ilvl**: ${p.average_item_level}\n`;
+        if (p.guild?.name) ctx += `- **Guild**: ${p.guild.name}\n`;
+        if (p.achievement_points) ctx += `- **Achievement points**: ${p.achievement_points}\n`;
+      }
+
+      if (data.equipment?.equipped_items) {
+        ctx += `\n### Equipped Gear\n`;
+        for (const item of data.equipment.equipped_items) {
+          const slot = item.slot?.name || item.slot?.type || '?';
+          const name = item.name || '?';
+          const ilvl = item.level?.value || '?';
+          let extras = [];
+          if (item.quality?.type) extras.push(item.quality.type.toLowerCase());
+          if (item.enchantments?.length) extras.push('enchanted');
+          if (item.sockets?.length) {
+            const gemmed = item.sockets.some(s => s.item);
+            extras.push(gemmed ? 'gemmed' : 'EMPTY SOCKET');
+          }
+          if (item.set) extras.push(`set: ${item.set.item_set.name}`);
+          ctx += `- **${slot}**: ${name} (${ilvl}) ${extras.length ? '[' + extras.join(', ') + ']' : ''}\n`;
+        }
+      }
+
+      if (data.reputations?.reputations) {
+        const twwFactions = data.reputations.reputations.filter(r => {
+          const name = r.faction?.name?.toLowerCase() || '';
+          return name.includes('assembly') || name.includes('severed') ||
+                 name.includes('hallowfall') || name.includes('cartels') ||
+                 name.includes('undermine') || name.includes('theater') ||
+                 name.includes('council') || name.includes('dornogal') ||
+                 name.includes('earthen') || name.includes('khaz') ||
+                 name.includes('brann');
+        });
+        if (twwFactions.length) {
+          ctx += `\n### Reputations (TWW-related)\n`;
+          for (const r of twwFactions) {
+            const standing = r.standing?.name || r.standing?.type || '?';
+            const val = r.standing?.value ?? '';
+            const max = r.standing?.max ?? '';
+            ctx += `- **${r.faction.name}**: ${standing}${val ? ` (${val}/${max})` : ''}\n`;
+          }
+        }
+      }
+
+      if (data.professions?.primaries?.length || data.professions?.secondaries?.length) {
+        ctx += `\n### Professions\n`;
+        const all = [...(data.professions.primaries || []), ...(data.professions.secondaries || [])];
+        for (const prof of all) {
+          const name = prof.profession?.name || '?';
+          const tiers = prof.tiers || [];
+          const current = tiers[tiers.length - 1];
+          if (current) {
+            ctx += `- **${name}**: ${current.skill_points || 0}/${current.max_skill_points || '?'}\n`;
+          } else {
+            ctx += `- **${name}**\n`;
+          }
+        }
+      }
+
+      if (data.stats) {
+        const s = data.stats;
+        ctx += `\n### Combat Stats\n`;
+        if (s.health) ctx += `- **Health**: ${s.health.toLocaleString()}\n`;
+        if (s.stamina) ctx += `- **Stamina**: ${s.stamina.toLocaleString()}\n`;
+        if (s.strength) ctx += `- **Strength**: ${s.strength.toLocaleString()}\n`;
+        if (s.armor) ctx += `- **Armor**: ${s.armor.toLocaleString()}\n`;
+        const ratings = [
+          ['Haste', s.melee_haste?.value],
+          ['Versatility', s.versatility],
+          ['Mastery', s.mastery?.value],
+          ['Crit', s.melee_crit?.value],
+        ];
+        for (const [label, val] of ratings) {
+          if (val != null) ctx += `- **${label}**: ${typeof val === 'number' ? val.toFixed(2) + '%' : val}\n`;
+        }
+      }
+
+      if (data.quests?.quests) {
+        ctx += `\n### Quest Progress\n`;
+        ctx += `- **Total completed quests**: ${data.quests.quests.length}\n`;
+      }
+
+      return ctx;
+    }
+
+    function buildSystemPrompt() {
+      return BASE_SYSTEM_PROMPT + formatCharacterData(characterData);
+    }
+
+    // actionable suggestion linkification
+    // matches list items that start with an action verb
+    const ACTION_RE = /^<li>((<strong>.*?<\/strong>\s*)?((run|queue|kill|complete|do|finish|farm|clear|grab|pick up|start|unlock|check|get|buy|craft|visit|talk to|head to|go to|try|equip|upgrade|open|turn in|accept|collect|push|grind)\b.+?))((<\/li>)|( —)|( –)|( --))/i;
+
+    function linkifyActions(html) {
+      return html.replace(/<li>([\s\S]*?)<\/li>/g, (fullMatch, inner) => {
+        // strip tags to get plain text for matching
+        const plain = inner.replace(/<[^>]+>/g, '');
+        const actionMatch = plain.match(/^((run|queue|kill|complete|do|finish|farm|clear|grab|pick up|start|unlock|check|get|buy|craft|visit|talk to|head to|go to|try|equip|upgrade|open|turn in|accept|collect|push|grind)\b)/i);
+        if (!actionMatch) return fullMatch;
+        // extract the actionable part — up to the first em-dash, explanation, or end
+        const splitRe = /^(.*?)(\s+—|\s+–|\s+--|\s+\(|\s+which|\s+so\b|\s+for a\b|\s+they.ll\b|$)/i;
+        const parts = plain.match(splitRe);
+        const actionText = parts ? parts[1].trim() : plain.trim();
+        if (actionText.length < 8) return fullMatch; // too short to be useful
+        const encoded = actionText.replace(/"/g, '&quot;');
+        return `<li><span class="action-link" data-action="${encoded}">${inner}</span></li>`;
+      });
+    }
+
+    // click handler for action links
+    document.addEventListener('click', (e) => {
+      const link = e.target.closest('.action-link[data-action]');
+      if (!link || streaming) return;
+      const action = link.dataset.action;
+      const followUp = `okay, tell me more about how to do this: "${action}"`;
+      inputEl.value = followUp;
+      sendBtn.click();
+    });
+
+    // item data + tooltip system
+    function buildItemMap() {
+      const map = new Map();
+      const items = characterData?.equipment?.equipped_items;
+      if (!items) return map;
+      for (const item of items) {
+        const name = item.name;
+        const id = item.item?.id;
+        if (name && id) map.set(name.toLowerCase(), item);
+      }
+      return map;
+    }
+
+    // wowhead links (for final render — <a> tags trigger wowhead observer)
+    function linkifyItems(html) {
+      const map = buildItemMap();
+      if (map.size === 0) return html;
+      const entries = [...map.entries()].sort((a, b) => b[0].length - a[0].length);
+      for (const [name, item] of entries) {
+        const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const re = new RegExp(`(?<![<\\/\\w])\\b(${escaped})\\b(?![^<]*>)`, 'gi');
+        const id = item.item?.id;
+        const ilvl = item.level?.value;
+        const ilvlParam = ilvl ? `&ilvl=${ilvl}` : '';
+        html = html.replace(re, `<a class="item-link" href="https://www.wowhead.com/item=${id}" data-wowhead="item=${id}${ilvlParam}">$1</a>`);
+      }
+      return html;
+    }
+
+    // custom tooltip links (for streaming — <span> tags, invisible to wowhead)
+    function linkifyItemsLive(html) {
+      const map = buildItemMap();
+      if (map.size === 0) return html;
+      const entries = [...map.entries()].sort((a, b) => b[0].length - a[0].length);
+      for (const [name] of entries) {
+        const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const re = new RegExp(`(?<![<\\/\\w])\\b(${escaped})\\b(?![^<]*>)`, 'gi');
+        html = html.replace(re, `<span class="item-link" data-item-name="$1">$1</span>`);
+      }
+      return html;
+    }
+
+    // custom tooltip rendering from blizzard data
+    const tooltipEl = document.getElementById('item-tooltip');
+
+    function buildTooltipHtml(item) {
+      const q = item.quality?.type || 'COMMON';
+      const lines = [];
+      lines.push(`<div class="tt-name q-${q}">${item.name}</div>`);
+      if (item.level?.display_string) lines.push(`<div class="tt-ilvl">${item.level.display_string}</div>`);
+      if (item.binding?.name) lines.push(`<div class="tt-binding">${item.binding.name}</div>`);
+      const slotName = item.slot?.name || '';
+      const subclass = item.item_subclass?.name || '';
+      if (slotName || subclass) {
+        lines.push(`<div class="tt-slot" style="display:flex;justify-content:space-between"><span>${slotName}</span><span>${subclass}</span></div>`);
+      }
+      if (item.armor?.display?.display_string) lines.push(`<div class="tt-armor">${item.armor.display.display_string}</div>`);
+      if (item.stats) {
+        for (const stat of item.stats) {
+          const cls = stat.is_equip_bonus ? 'tt-secondary' : 'tt-stat';
+          lines.push(`<div class="${cls}">${stat.display?.display_string || `+${stat.value} ${stat.type?.name || ''}`}</div>`);
+        }
+      }
+      if (item.enchantments) {
+        for (const ench of item.enchantments) {
+          if (ench.display_string) lines.push(`<div class="tt-enchant">${ench.display_string}</div>`);
+        }
+      }
+      if (item.sockets) {
+        for (const sock of item.sockets) {
+          const gemName = sock.item?.name || sock.display_string || 'Empty Socket';
+          lines.push(`<div class="tt-socket">${gemName}</div>`);
+        }
+      }
+      if (item.set) {
+        lines.push(`<div class="tt-set">${item.set.item_set?.name || 'Set'} (${item.set.display_string || ''})</div>`);
+      }
+      if (item.requirements?.level?.display_string) lines.push(`<div class="tt-req">${item.requirements.level.display_string}</div>`);
+      if (item.durability?.display_string) lines.push(`<div class="tt-durability">${item.durability.display_string}</div>`);
+      return lines.join('');
+    }
+
+    function showCustomTooltip(e, itemData) {
+      tooltipEl.innerHTML = buildTooltipHtml(itemData);
+      tooltipEl.classList.add('visible');
+      positionTooltip(e);
+    }
+
+    function hideCustomTooltip() {
+      tooltipEl.classList.remove('visible');
+    }
+
+    function positionTooltip(e) {
+      const pad = 12;
+      let x = e.clientX + pad;
+      let y = e.clientY + pad;
+      const rect = tooltipEl.getBoundingClientRect();
+      if (x + rect.width > window.innerWidth) x = e.clientX - rect.width - pad;
+      if (y + rect.height > window.innerHeight) y = e.clientY - rect.height - pad;
+      tooltipEl.style.left = x + 'px';
+      tooltipEl.style.top = y + 'px';
+    }
+
+    // delegate hover events on .item-link spans (custom tooltips)
+    document.addEventListener('mouseover', (e) => {
+      const span = e.target.closest('span.item-link[data-item-name]');
+      if (!span) return;
+      const map = buildItemMap();
+      const item = map.get(span.dataset.itemName.toLowerCase());
+      if (item) showCustomTooltip(e, item);
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (tooltipEl.classList.contains('visible')) positionTooltip(e);
+    });
+
+    document.addEventListener('mouseout', (e) => {
+      const span = e.target.closest('span.item-link[data-item-name]');
+      if (span) hideCustomTooltip();
+    });
+
+    let tooltipTimer = null;
+    function refreshTooltips(immediate = false) {
+      if (typeof $WowheadPower === 'undefined') return;
+      if (immediate) { clearTimeout(tooltipTimer); $WowheadPower.refreshLinks(); return; }
+      clearTimeout(tooltipTimer);
+      tooltipTimer = setTimeout(() => $WowheadPower.refreshLinks(), 300);
+    }
+
+    // markdown renderer
+    function renderMarkdown(text) {
+      let html = text
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+        .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+        .replace(/^---$/gm, '<hr>');
+
+      const lines = html.split('\n');
+      let result = '';
+      let inList = false;
+      let listType = '';
+
+      for (const line of lines) {
+        const ulMatch = line.match(/^(\s*)[-*] (.+)/);
+        const olMatch = line.match(/^(\s*)\d+\. (.+)/);
+
+        if (ulMatch) {
+          if (!inList || listType !== 'ul') {
+            if (inList) result += listType === 'ol' ? '</ol>' : '</ul>';
+            result += '<ul>';
+            inList = true; listType = 'ul';
+          }
+          result += `<li>${ulMatch[2]}</li>`;
+        } else if (olMatch) {
+          if (!inList || listType !== 'ol') {
+            if (inList) result += listType === 'ol' ? '</ol>' : '</ul>';
+            result += '<ol>';
+            inList = true; listType = 'ol';
+          }
+          result += `<li>${olMatch[2]}</li>`;
+        } else {
+          if (inList) {
+            result += listType === 'ol' ? '</ol>' : '</ul>';
+            inList = false;
+          }
+          if (line.startsWith('<h') || line.startsWith('<hr') || line.startsWith('<pre>')) {
+            result += line;
+          } else if (line.trim() === '') {
+            result += '</p><p>';
+          } else {
+            result += line + ' ';
+          }
+        }
+      }
+      if (inList) result += listType === 'ol' ? '</ol>' : '</ul>';
+
+      result = '<p>' + result + '</p>';
+      result = result.replace(/<p>\s*<\/p>/g, '').replace(/<p>(<h[123]>)/g, '$1').replace(/(<\/h[123]>)<\/p>/g, '$1');
+      result = result.replace(/<p>(<hr>)/g, '$1').replace(/(<hr>)<\/p>/g, '$1');
+      result = result.replace(/<p>(<ul>)/g, '$1').replace(/(<\/ul>)<\/p>/g, '$1');
+      result = result.replace(/<p>(<ol>)/g, '$1').replace(/(<\/ol>)<\/p>/g, '$1');
+      result = result.replace(/<p>(<pre>)/g, '$1').replace(/(<\/pre>)<\/p>/g, '$1');
+      return result;
+    }
+
+    // portrait URLs
+    const ADVISOR_PORTRAIT = 'https://wow.zamimg.com/images/wow/icons/large/achievement_leader_king_magni_bronzebeard.jpg';
+
+    function getUserPortrait() {
+      const assets = characterData?.media?.assets;
+      if (assets) {
+        const avatar = assets.find(a => a.key === 'avatar');
+        if (avatar) return avatar.value;
+      }
+      return null;
+    }
+
+    // messages
+    function addMessageEl(role, content, isStreaming = false) {
+      const w = document.getElementById('welcome');
+      if (w) w.remove();
+      const div = document.createElement('div');
+      div.className = `message ${role}`;
+
+      // portrait
+      if (role !== 'error') {
+        const portrait = document.createElement('img');
+        portrait.className = 'message-portrait';
+        portrait.alt = '';
+        if (role === 'user') {
+          const userSrc = getUserPortrait();
+          if (userSrc) {
+            portrait.src = userSrc;
+          } else {
+            portrait.src = 'https://wow.zamimg.com/images/wow/icons/large/classicon_warrior.jpg';
+          }
+        } else {
+          portrait.src = ADVISOR_PORTRAIT;
+        }
+        div.appendChild(portrait);
+      }
+
+      const contentWrap = document.createElement('div');
+      contentWrap.className = 'message-content';
+
+      const roleLabel = document.createElement('div');
+      roleLabel.className = 'message-role';
+      const charName = characterData?.profile?.name?.toLowerCase();
+      roleLabel.textContent = role === 'user' ? (charName || 'you') : role === 'error' ? 'error' : 'advisor';
+      const body = document.createElement('div');
+      body.className = 'message-body';
+      if (role === 'user') {
+        body.textContent = content;
+      } else if (role === 'error') {
+        body.textContent = content;
+      } else if (isStreaming) {
+        body.innerHTML = '<span class="cursor"></span>';
+      } else {
+        body.innerHTML = linkifyItems(linkifyActions(renderMarkdown(content)));
+      }
+      contentWrap.appendChild(roleLabel);
+      contentWrap.appendChild(body);
+      div.appendChild(contentWrap);
+      chatEl.appendChild(div);
+      chatEl.scrollTop = chatEl.scrollHeight;
+      if (role !== 'user' && !isStreaming) refreshTooltips();
+      return body;
+    }
+
+    // append-only streaming: render new text without destroying existing DOM.
+    // item links are NOT created during streaming (avoids wowhead observer flicker).
+    // on finalize, one innerHTML replacement + one refreshLinks() call.
+    let streamRenderedLen = 0;
+
+    function updateStreamEl(el, content, done = false) {
+      if (done) {
+        // final: swap to wowhead links
+        hideCustomTooltip();
+        el.innerHTML = linkifyItems(linkifyActions(renderMarkdown(content)));
+        refreshTooltips(true);
+        streamRenderedLen = 0;
+      } else {
+        // streaming: use custom tooltip spans (invisible to wowhead)
+        const fullHtml = linkifyItemsLive(linkifyActions(renderMarkdown(content)));
+        const cursor = el.querySelector('.cursor');
+        const temp = document.createElement('div');
+        temp.innerHTML = fullHtml;
+        const frag = document.createDocumentFragment();
+        while (temp.firstChild) frag.appendChild(temp.firstChild);
+        while (el.firstChild && el.firstChild !== cursor) el.firstChild.remove();
+        el.insertBefore(frag, cursor);
+        streamRenderedLen = content.length;
+      }
+      chatEl.scrollTop = chatEl.scrollHeight;
+    }
+
+    // history
+    function saveHistory() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+    }
+
+    function loadHistory() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if (saved && saved.length) {
+          messages = saved;
+          for (const msg of messages) addMessageEl(msg.role, msg.content);
+        }
+      } catch { /* ignore */ }
+    }
+
+    function clearHistory() {
+      messages = [];
+      localStorage.removeItem(STORAGE_KEY);
+      chatEl.innerHTML = '';
+      const w = document.createElement('div');
+      w.id = 'welcome';
+      w.innerHTML = '<h2>what should i do next?</h2><p>your personal warcraft advisor for the war within.<br>ask about gearing, dungeons, raids, weeklies — anything.</p>';
+      chatEl.appendChild(w);
+    }
+
+    clearBtn.addEventListener('click', () => { if (!streaming) clearHistory(); });
+
+    // api
+    async function callApi(msgs, systemPrompt) {
+      try {
+        const res = await fetch(WORKER_URL + '/chat', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ system: systemPrompt, messages: msgs })
+        });
+        if (res.ok) return res;
+      } catch { /* worker unavailable */ }
+
+      const key = getKey();
+      if (!key) {
+        showModal(settingsModal);
+        throw new Error('worker unavailable — add an api key in settings');
+      }
+
+      return fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1024,
+          system: systemPrompt,
+          messages: msgs,
+          stream: true
+        })
+      });
+    }
+
+    async function sendMessage(text) {
+      streaming = true;
+      sendBtn.disabled = true;
+
+      messages.push({ role: 'user', content: text });
+      addMessageEl('user', text);
+      saveHistory();
+
+      let fullText = '';
+      streamRenderedLen = 0;
+      const bodyEl = addMessageEl('assistant', '', true);
+
+      try {
+        const filteredMsgs = messages.filter(m => m.role === 'user' || m.role === 'assistant');
+        const res = await callApi(filteredMsgs, buildSystemPrompt());
+
+        if (!res.ok) {
+          const err = await res.text();
+          throw new Error(`API ${res.status}: ${err}`);
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const data = line.slice(6);
+            if (data === '[DONE]') continue;
+            try {
+              const event = JSON.parse(data);
+              if (event.type === 'content_block_delta' && event.delta?.text) {
+                fullText += event.delta.text;
+                updateStreamEl(bodyEl, fullText);
+              }
+            } catch { /* skip */ }
+          }
+        }
+
+        updateStreamEl(bodyEl, fullText, true);
+        messages.push({ role: 'assistant', content: fullText });
+        saveHistory();
+      } catch (e) {
+        if (fullText) {
+          updateStreamEl(bodyEl, fullText, true);
+          messages.push({ role: 'assistant', content: fullText });
+        } else {
+          bodyEl.parentElement.remove();
+          messages.pop();
+        }
+        addMessageEl('error', e.message);
+        saveHistory();
+      }
+
+      streaming = false;
+      sendBtn.disabled = false;
+    }
+
+    // input
+    sendBtn.addEventListener('click', () => {
+      const text = inputEl.value.trim();
+      if (!text || streaming) return;
+      inputEl.value = '';
+      inputEl.style.height = 'auto';
+      sendMessage(text);
+    });
+
+    inputEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendBtn.click();
+      }
+    });
+
+    // init
+    const savedCharData = getSavedCharData();
+    if (savedCharData) {
+      characterData = savedCharData;
+      updateHeader();
+    }
+    loadHistory();
+
+    if (!getSavedChar()) {
+      showModal(settingsModal);
+      charNameInput.focus();
+    } else {
+      inputEl.focus();
+    }
+  </script>
+</body>
+</html>
