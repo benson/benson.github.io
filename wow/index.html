@@ -293,6 +293,20 @@
 
     @keyframes blink { 50% { opacity: 0; } }
 
+    .search-status {
+      display: block;
+      color: var(--text-dim);
+      font-style: italic;
+      font-size: 0.82rem;
+      padding: 2px 0;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 1; }
+    }
+
     /* input */
     #input-area {
       padding: 14px 20px;
@@ -582,8 +596,13 @@
 - Mention specific content by name (dungeon names, boss names, crest types)
 - If they're overwhelmed, focus on just 2-3 things to do this week
 - Use WoW terminology naturally (ilvl, M+, keys, vault, etc.)
-- For talent/build questions, give general guidance and suggest checking Wowhead or Archon for exact builds since those change with patches
-- You have access to live character data from the Blizzard API — reference it directly instead of asking the player for info you already have`;
+- You have access to live character data from the Blizzard API — reference it directly instead of asking the player for info you already have
+
+## Web Search
+- You have access to web search. USE IT for any questions about current builds, tier lists, talent trees, best-in-slot gear, patch notes, dungeon/raid strategies, or meta recommendations.
+- Your training data is likely outdated for WoW — patches, hotfixes, and balance changes happen constantly. Always search for the latest info rather than relying on what you already know.
+- Prefer searching wowhead.com, icy-veins.com, and archon.gg for WoW-specific info.
+- Do not mention that you searched or cite sources in your response — just incorporate the current info naturally.`;
 
     let messages = [];
     let streaming = false;
@@ -1202,10 +1221,15 @@
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
-          max_tokens: 1024,
+          max_tokens: 2048,
           system: systemPrompt,
           messages: msgs,
-          stream: true
+          stream: true,
+          tools: [{
+            type: 'web_search_20250305',
+            name: 'web_search',
+            max_uses: 5,
+          }]
         })
       });
     }
@@ -1249,7 +1273,22 @@
             if (data === '[DONE]') continue;
             try {
               const event = JSON.parse(data);
+              // detect web search starting
+              if (event.type === 'content_block_start' && event.content_block?.type === 'server_tool_use' && event.content_block?.name === 'web_search') {
+                const cursor = bodyEl.querySelector('.cursor');
+                if (cursor) {
+                  // remove any existing search indicator
+                  bodyEl.querySelectorAll('.search-status').forEach(el => el.remove());
+                  const indicator = document.createElement('span');
+                  indicator.className = 'search-status';
+                  indicator.textContent = 'searching the web\u2026';
+                  cursor.before(indicator);
+                  chatEl.scrollTop = chatEl.scrollHeight;
+                }
+              }
               if (event.type === 'content_block_delta' && event.delta?.text) {
+                // remove search indicator once text flows
+                bodyEl.querySelectorAll('.search-status').forEach(el => el.remove());
                 fullText += event.delta.text;
                 updateStreamEl(bodyEl, fullText);
               }
@@ -1265,7 +1304,7 @@
           updateStreamEl(bodyEl, fullText, true);
           messages.push({ role: 'assistant', content: fullText });
         } else {
-          bodyEl.parentElement.remove();
+          bodyEl.closest('.message').remove();
           messages.pop();
         }
         addMessageEl('error', e.message);
