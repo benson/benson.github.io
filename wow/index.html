@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
-  <script>const whTooltips = { colorLinks: false, iconizeLinks: false, renameLinks: false };</script>
+  <script>const whTooltips = { colorLinks: true, iconizeLinks: true, renameLinks: false, iconSize: 'small' };</script>
   <script src="https://wow.zamimg.com/js/tooltips.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -209,6 +209,12 @@
       text-underline-offset: 2px;
     }
     .message-body a:not(.item-link):hover { color: var(--gold); }
+    .message-body .iconsmall, .message-body .icontiny {
+      display: inline-block !important;
+      position: relative !important;
+      vertical-align: text-bottom;
+      margin-right: 3px;
+    }
 
     .message-body .action-link {
       color: var(--text);
@@ -603,6 +609,11 @@
 - If they're overwhelmed, focus on just 2-3 things to do this week
 - Use WoW terminology naturally (ilvl, M+, keys, vault, etc.)
 - You have access to live character data from the Blizzard API — reference it directly instead of asking the player for info you already have
+- When mentioning specific abilities, talents, or spells, link them with Wowhead URLs so the user gets inline icons and hover tooltips. Format: [Shield Slam](https://www.wowhead.com/spell=23922). Use the spell ID reference below.
+- For talent builds, provide a Wowhead talent calculator link: https://www.wowhead.com/talent-calc/warrior/protection/{import_string} and list the key talent picks with spell links.
+
+## Prot Warrior Spell IDs (for Wowhead links)
+Shield Slam: 23922, Thunder Clap: 6343, Ignore Pain: 190456, Shield Block: 2565, Shield Wall: 871, Last Stand: 12975, Spell Reflect: 23920, Devastate: 20243, Revenge: 6572, Execute: 163201, Heroic Throw: 57755, Charge: 100, Intercept: 198304, Rallying Cry: 97462, Battle Shout: 6673, Berserker Rage: 18499, Pummel: 6552, Taunt: 355, Challenging Shout: 1161, Impending Victory: 202168, Storm Bolt: 107570, Shockwave: 46968, Avatar: 401150, Ravager: 228920, Thunderous Roar: 384318, Champion's Spear: 376079, Demolish: 436358, Thunder Blast: 435222, Shield Charge: 385952, Booming Voice: 202743, Bolster: 280001, Heavy Repercussions: 203177, Anger Management: 152278, Into the Fray: 202603
 
 ## Web Search
 - You have access to web search. USE IT for any questions about current builds, tier lists, talent trees, best-in-slot gear, patch notes, dungeon/raid strategies, or meta recommendations.
@@ -905,6 +916,39 @@
       return map;
     }
 
+    // prot warrior spell ID map for auto-linkification
+    const SPELL_MAP = [
+      ['shield slam', 23922], ['thunder clap', 6343], ['ignore pain', 190456],
+      ['shield block', 2565], ['shield wall', 871], ['last stand', 12975],
+      ['spell reflect', 23920], ['devastate', 20243], ['revenge', 6572],
+      ['execute', 163201], ['heroic throw', 57755], ['charge', 100],
+      ['rallying cry', 97462], ['battle shout', 6673], ['berserker rage', 18499],
+      ['pummel', 6552], ['challenging shout', 1161], ['impending victory', 202168],
+      ['storm bolt', 107570], ['shockwave', 46968], ['avatar', 401150],
+      ['ravager', 228920], ['thunderous roar', 384318], ["champion's spear", 376079],
+      ['demolish', 436358], ['thunder blast', 435222], ['shield charge', 385952],
+      ['booming voice', 202743], ['bolster', 280001], ['heavy repercussions', 203177],
+      ['anger management', 152278], ['into the fray', 202603], ['intercept', 198304],
+      ['demoralizing shout', 1160], ['violent outburst', 386477],
+      ['unstoppable force', 275336], ['crackling thunder', 203201],
+      ['spell block', 392966], ['battle stance', 386164],
+    ].sort((a, b) => b[0].length - a[0].length);
+
+    // auto-link spell names to wowhead (final render only)
+    // uses alternation to skip text already inside <a> tags
+    const _spellLookup = new Map(SPELL_MAP);
+    const _spellPattern = SPELL_MAP.map(([n]) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+    const _spellRe = new RegExp(`(<a\\b[^>]*>[\\s\\S]*?<\\/a>)|(\\b(?:${_spellPattern})\\b)`, 'gi');
+
+    function linkifySpells(html) {
+      return html.replace(_spellRe, (match, link, spell) => {
+        if (link) return link; // already inside a link, pass through
+        const id = _spellLookup.get(spell.toLowerCase());
+        if (!id) return match;
+        return `<a href="https://www.wowhead.com/spell=${id}" data-wowhead="spell=${id}">${spell}</a>`;
+      });
+    }
+
     // wowhead links (for final render — <a> tags trigger wowhead observer)
     function linkifyItems(html) {
       const map = buildItemMap();
@@ -1016,9 +1060,14 @@
     let tooltipTimer = null;
     function refreshTooltips(immediate = false) {
       if (typeof $WowheadPower === 'undefined') return;
-      if (immediate) { clearTimeout(tooltipTimer); $WowheadPower.refreshLinks(); return; }
       clearTimeout(tooltipTimer);
-      tooltipTimer = setTimeout(() => $WowheadPower.refreshLinks(), 300);
+      if (immediate) {
+        requestAnimationFrame(() => $WowheadPower.refreshLinks());
+        return;
+      }
+      if (!streaming) {
+        tooltipTimer = setTimeout(() => $WowheadPower.refreshLinks(), 300);
+      }
     }
 
     // markdown renderer
@@ -1136,7 +1185,7 @@
       } else if (isStreaming) {
         body.innerHTML = '<span class="cursor"></span>';
       } else {
-        body.innerHTML = linkifyItems(linkifyActions(renderMarkdown(content)));
+        body.innerHTML = linkifySpells(linkifyItems(linkifyActions(renderMarkdown(content))));
       }
       contentWrap.appendChild(roleLabel);
       contentWrap.appendChild(body);
@@ -1156,7 +1205,7 @@
       if (done) {
         // final: swap to wowhead links
         hideCustomTooltip();
-        el.innerHTML = linkifyItems(linkifyActions(renderMarkdown(content)));
+        el.innerHTML = linkifySpells(linkifyItems(linkifyActions(renderMarkdown(content))));
         refreshTooltips(true);
         streamRenderedLen = 0;
       } else {
