@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>character card layouts</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #1a1410;
+      --bg-chat: #0f0c09;
+      --surface: #2a2218;
+      --border: #4a3c28;
+      --gold: #c9a959;
+      --gold-dim: #8a7a45;
+      --text: #d4c8a8;
+      --text-dim: #8a8068;
+      --input-bg: #15120e;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: Georgia, 'Times New Roman', serif;
+      padding: 30px 20px;
+    }
+
+    h1, h2, h3 { font-family: 'Cinzel', serif; }
+
+    .label {
+      font-family: 'Cinzel', serif;
+      font-size: 0.85rem;
+      color: var(--gold);
+      margin-bottom: 12px;
+      letter-spacing: 1px;
+      text-transform: lowercase;
+    }
+
+    .section {
+      max-width: 780px;
+      margin: 0 auto 50px;
+    }
+
+    /* ========== OPTION A: inline header bar ========== */
+    .header-a {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-a .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 2px solid var(--gold-dim);
+      object-fit: cover;
+    }
+
+    .header-a .char-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .header-a .char-name {
+      font-family: 'Cinzel', serif;
+      font-size: 1.05rem;
+      color: var(--gold);
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .header-a .char-details {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 1px;
+    }
+
+    .header-a .char-details img {
+      width: 14px;
+      height: 14px;
+      border-radius: 2px;
+    }
+
+    .header-a .ilvl-badge {
+      background: var(--gold-dim);
+      color: var(--bg);
+      font-family: 'Cinzel', serif;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 3px;
+      letter-spacing: 0.5px;
+    }
+
+    .header-a .actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .header-a .actions button {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      font-size: 0.75rem;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    /* ========== OPTION B: card banner under header ========== */
+    .header-b-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-b-bar h1 {
+      font-size: 1.1rem;
+      color: var(--gold);
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: lowercase;
+    }
+
+    .header-b-bar .actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .header-b-bar .actions button {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      font-size: 0.75rem;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .char-banner {
+      position: relative;
+      height: 100px;
+      background: var(--bg-chat);
+      border-bottom: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .char-banner .inset-bg {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center top;
+      opacity: 0.3;
+      filter: blur(2px);
+    }
+
+    .char-banner .banner-content {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 0 24px;
+      height: 100%;
+    }
+
+    .char-banner .avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 6px;
+      border: 2px solid var(--gold-dim);
+      object-fit: cover;
+    }
+
+    .char-banner .char-text {
+      flex: 1;
+    }
+
+    .char-banner .char-name {
+      font-family: 'Cinzel', serif;
+      font-size: 1.15rem;
+      color: var(--gold);
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .char-banner .char-sub {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .char-banner .char-sub img {
+      width: 16px;
+      height: 16px;
+      border-radius: 2px;
+    }
+
+    .char-banner .stat-pills {
+      display: flex;
+      gap: 8px;
+    }
+
+    .char-banner .pill {
+      background: rgba(0,0,0,0.5);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 3px;
+      font-size: 0.72rem;
+      color: var(--text);
+    }
+
+    .char-banner .pill strong {
+      color: var(--gold);
+      font-weight: 600;
+    }
+
+    /* ========== OPTION C: sidebar card ========== */
+    .layout-c {
+      display: flex;
+      gap: 0;
+      background: var(--bg-chat);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .char-sidebar {
+      width: 200px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .char-sidebar .avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 6px;
+      border: 2px solid var(--gold-dim);
+      object-fit: cover;
+    }
+
+    .char-sidebar .char-name {
+      font-family: 'Cinzel', serif;
+      font-size: 0.95rem;
+      color: var(--gold);
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .char-sidebar .char-sub {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      text-align: center;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      justify-content: center;
+    }
+
+    .char-sidebar .char-sub img {
+      width: 14px;
+      height: 14px;
+      border-radius: 2px;
+    }
+
+    .char-sidebar .divider {
+      width: 100%;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .char-sidebar .stat-row {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.72rem;
+    }
+
+    .char-sidebar .stat-row .stat-label { color: var(--text-dim); }
+    .char-sidebar .stat-row .stat-val { color: var(--gold); font-weight: 600; }
+
+    .chat-placeholder {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-dim);
+      font-size: 0.82rem;
+      font-style: italic;
+      min-height: 300px;
+    }
+  </style>
+</head>
+<body>
+  <!-- OPTION A -->
+  <div class="section">
+    <div class="label">option a — integrated header bar</div>
+    <div class="header-a">
+      <img class="avatar" src="https://render.worldofwarcraft.com/us/character/bleeding-hollow/39/248839207-avatar.jpg" alt="">
+      <div class="char-info">
+        <div class="char-name">yoreo</div>
+        <div class="char-details">
+          <img src="https://render.worldofwarcraft.com/us/icons/56/ability_warrior_defensivestance.jpg" alt="">
+          protection warrior · bleeding hollow · 80
+        </div>
+      </div>
+      <div class="ilvl-badge">102 ilvl</div>
+      <div class="actions">
+        <button>clear</button>
+        <button>character</button>
+        <button>key</button>
+      </div>
+    </div>
+    <div class="chat-placeholder">chat area</div>
+  </div>
+
+  <!-- OPTION B -->
+  <div class="section">
+    <div class="label">option b — banner card under header</div>
+    <div class="header-b-bar">
+      <h1>wow advisor</h1>
+      <div class="actions">
+        <button>clear</button>
+        <button>character</button>
+        <button>key</button>
+      </div>
+    </div>
+    <div class="char-banner">
+      <div class="inset-bg" style="background-image: url('https://render.worldofwarcraft.com/us/character/bleeding-hollow/39/248839207-inset.jpg')"></div>
+      <div class="banner-content">
+        <img class="avatar" src="https://render.worldofwarcraft.com/us/character/bleeding-hollow/39/248839207-avatar.jpg" alt="">
+        <div class="char-text">
+          <div class="char-name">yoreo</div>
+          <div class="char-sub">
+            <img src="https://render.worldofwarcraft.com/us/icons/56/ability_warrior_defensivestance.jpg" alt="">
+            protection warrior · bleeding hollow
+          </div>
+        </div>
+        <div class="stat-pills">
+          <div class="pill"><strong>102</strong> ilvl</div>
+          <div class="pill">level <strong>80</strong></div>
+          <div class="pill"><strong>1980</strong> quests</div>
+        </div>
+      </div>
+    </div>
+    <div class="chat-placeholder">chat area</div>
+  </div>
+
+  <!-- OPTION C -->
+  <div class="section">
+    <div class="label">option c — sidebar card</div>
+    <div class="layout-c">
+      <div class="char-sidebar">
+        <img class="avatar" src="https://render.worldofwarcraft.com/us/character/bleeding-hollow/39/248839207-avatar.jpg" alt="">
+        <div class="char-name">yoreo</div>
+        <div class="char-sub">
+          <img src="https://render.worldofwarcraft.com/us/icons/56/ability_warrior_defensivestance.jpg" alt="">
+          prot warrior
+        </div>
+        <div class="divider"></div>
+        <div class="stat-row"><span class="stat-label">ilvl</span><span class="stat-val">102</span></div>
+        <div class="stat-row"><span class="stat-label">level</span><span class="stat-val">80</span></div>
+        <div class="stat-row"><span class="stat-label">realm</span><span class="stat-val">bleeding hollow</span></div>
+        <div class="stat-row"><span class="stat-label">haste</span><span class="stat-val">8.2%</span></div>
+        <div class="stat-row"><span class="stat-label">vers</span><span class="stat-val">3.1%</span></div>
+        <div class="stat-row"><span class="stat-label">mastery</span><span class="stat-val">28.4%</span></div>
+        <div class="stat-row"><span class="stat-label">crit</span><span class="stat-val">12.6%</span></div>
+        <div class="divider"></div>
+        <div class="stat-row"><span class="stat-label">quests</span><span class="stat-val">1,980</span></div>
+      </div>
+      <div class="chat-placeholder">chat area</div>
+    </div>
+  </div>
+</body>
+</html>

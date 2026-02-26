@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>survivor 49 draft — benson perry</title>
+  <meta property="og:title" content="survivor 49 draft — benson perry">
+  <meta property="og:description" content="the perry family survivor draft recap">
+  <meta property="og:url" content="https://bensonperry.com/survivor">
+  <meta property="og:type" content="website">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Times New Roman", Times, Georgia, serif;
+      background: #f8f7f4;
+      color: #000;
+      min-height: 100vh;
+      padding: 40px 30px 80px;
+      text-transform: lowercase;
+    }
+
+    .back {
+      display: inline-block;
+      margin-bottom: 30px;
+      color: #999;
+      text-decoration: none;
+      font-size: 0.9rem;
+      border-bottom: 1px solid #ccc;
+    }
+    .back:hover { color: #000; border-bottom-color: #000; }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      color: #999;
+      font-size: 0.9rem;
+    }
+
+    h2 {
+      font-size: 0.75rem;
+      font-weight: 400;
+      color: #999;
+      letter-spacing: 0.03em;
+      margin-bottom: 12px;
+    }
+
+    section {
+      margin-top: 40px;
+      max-width: 800px;
+    }
+
+    p { line-height: 1.6; font-size: 0.95rem; }
+
+    .section-note {
+      font-size: 0.8rem;
+      color: #999;
+      margin-bottom: 12px;
+    }
+
+    /* winner callout */
+    .winner-callout {
+      margin: 36px auto 0;
+      padding: 20px 24px;
+      text-align: center;
+      max-width: 260px;
+      border: 1px solid #ddd;
+    }
+
+    .trophy { font-size: 1.4rem; margin-bottom: 6px; }
+    .winner-label {
+      display: block;
+      font-size: 0.7rem;
+      color: #999;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+    .winner-name {
+      display: block;
+      font-size: 1.1rem;
+    }
+
+    /* standings */
+    .standings {
+      width: 100%;
+      max-width: 360px;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+
+    .standings th {
+      font-weight: 400;
+      font-size: 0.7rem;
+      color: #999;
+      text-align: left;
+      padding: 0 0 8px;
+      border-bottom: 1px solid #ddd;
+      letter-spacing: 0.03em;
+    }
+
+    .standings td {
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .standings .rank-col { width: 30px; }
+    .standings .pts-col { width: 50px; text-align: right; }
+    .standings td:last-child { text-align: right; }
+    .standings td:first-child { color: #999; }
+
+    .standings .first-place td { color: #000; }
+    .standings .first-place td:first-child { color: #999; }
+
+    /* picks grid */
+    .picks-scroll {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .picks {
+      width: 100%;
+      min-width: 720px;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    .picks th {
+      font-weight: 400;
+      font-size: 0.7rem;
+      color: #999;
+      text-align: left;
+      padding: 0 10px 8px;
+      border-bottom: 1px solid #ddd;
+      letter-spacing: 0.03em;
+      white-space: nowrap;
+    }
+
+    .picks td {
+      padding: 10px 10px;
+      border-bottom: 1px solid #eee;
+      white-space: nowrap;
+    }
+
+    .picks .player-name { min-width: 70px; }
+
+    .pick .pts {
+      font-size: 0.7rem;
+      color: #999;
+      margin-left: 2px;
+    }
+
+    .pick.winner { color: #6a5a2a; }
+    .pick.runner-up { color: #5a5545; }
+    .pick.pre-jury { color: #bbb; }
+    .pick.swapped-out { text-decoration: line-through; color: #ccc; }
+
+    .alt-col { border-left: 1px dashed #ddd; }
+    .pick.swapped-in { border-bottom: 1px dotted #999; }
+
+    /* scoring rules */
+    .scoring-rules p {
+      font-size: 0.85rem;
+      margin-bottom: 6px;
+      line-height: 1.5;
+    }
+
+    /* breakdowns */
+    .breakdowns {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px 40px;
+    }
+
+    .breakdown { min-width: 240px; }
+
+    .breakdown summary {
+      cursor: pointer;
+      font-size: 0.95rem;
+      list-style: none;
+      margin-bottom: 8px;
+    }
+    .breakdown summary::-webkit-details-marker { display: none; }
+    .breakdown summary::before {
+      content: "▸ ";
+      color: #999;
+      font-size: 0.8rem;
+    }
+    .breakdown[open] summary::before { content: "▾ "; }
+
+    .breakdown-table {
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      margin-bottom: 4px;
+    }
+
+    .breakdown-table td {
+      padding: 3px 0;
+    }
+
+    .breakdown-table .calc {
+      color: #999;
+      padding-left: 10px;
+      font-size: 0.75rem;
+    }
+
+    .breakdown-table .bp {
+      text-align: right;
+      padding-left: 14px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .breakdown-table .bonus-row td {
+      color: #999;
+      font-size: 0.75rem;
+      padding-top: 2px;
+    }
+
+    .breakdown-table .total-row td {
+      border-top: 1px solid #ddd;
+      padding-top: 6px;
+      font-size: 0.85rem;
+    }
+
+    /* timeline */
+    .timeline {
+      list-style: none;
+      max-width: 440px;
+      font-size: 0.85rem;
+    }
+
+    .timeline li {
+      padding: 4px 0 4px 14px;
+      border-left: 2px solid #e0e0dc;
+      display: flex;
+      gap: 8px;
+      align-items: baseline;
+    }
+
+    .timeline .jury-start {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed #ddd;
+    }
+
+    .timeline .finale-start {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed #ddd;
+    }
+
+    .timeline .placement {
+      min-width: 28px;
+      color: #999;
+      font-size: 0.75rem;
+    }
+
+    .timeline .contestant { flex: 1; }
+    .timeline .contestant.pre-jury { color: #aaa; }
+    .timeline .contestant.jury { color: #666; }
+    .timeline .contestant.finalist { color: #000; }
+    .timeline .contestant.winner-name { color: #6a5a2a; }
+    .timeline .contestant.medevac { color: #aaa; font-style: italic; }
+
+    .timeline .note {
+      color: #bbb;
+      font-size: 0.7rem;
+      white-space: nowrap;
+    }
+
+    footer {
+      margin-top: 60px;
+      font-size: 0.75rem;
+      color: #ccc;
+    }
+
+    @media (max-width: 600px) {
+      body { padding: 20px 15px 60px; }
+      .picks { min-width: 620px; }
+      .breakdowns { flex-direction: column; gap: 16px; }
+    }
+  </style>
+</head>
+<body class="no-shared-footer">
+  <a href="/" class="back">← back</a>
+  <h1>survivor 49 draft</h1>
+  <p class="subtitle">the perry family draft — fall 2025</p>
+
+  <section>
+    <p>six of us drafted our picks before season 49 started. each player chose six contestants plus one alternate. savannah louie won it all — and mom called the endgame better than anyone.</p>
+  </section>
+
+  <div class="winner-callout">
+    <div class="trophy">🏆</div>
+    <span class="winner-label">draft winner</span>
+    <span class="winner-name">mom — 79 pts</span>
+  </div>
+
+  <section>
+    <h2>final standings</h2>
+    <table class="standings">
+      <thead>
+        <tr>
+          <th class="rank-col">#</th>
+          <th>player</th>
+          <th class="pts-col">pts</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="first-place">
+          <td>1</td><td>mom</td><td>79</td>
+        </tr>
+        <tr>
+          <td>2</td><td>benson</td><td>75</td>
+        </tr>
+        <tr>
+          <td>3</td><td>dad</td><td>75</td>
+        </tr>
+        <tr>
+          <td>4</td><td>lil</td><td>72</td>
+        </tr>
+        <tr>
+          <td>5</td><td>sameh</td><td>72</td>
+        </tr>
+        <tr>
+          <td>6</td><td>ellie</td><td>62</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>draft picks</h2>
+    <p class="section-note">color indicates how far each pick went. alternates replace your earliest-eliminated pick if beneficial.</p>
+    <div class="picks-scroll">
+      <table class="picks">
+        <thead>
+          <tr>
+            <th>player</th>
+            <th>pick 1</th>
+            <th>pick 2</th>
+            <th>pick 3</th>
+            <th>pick 4</th>
+            <th>pick 5</th>
+            <th>pick 6</th>
+            <th class="alt-col">alt</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="player-name">mom</td>
+            <td><span class="pick swapped-out">jake <span class="pts">(3)</span></span></td>
+            <td><span class="pick pre-jury">jason <span class="pts">(6)</span></span></td>
+            <td><span class="pick">mc <span class="pts">(9)</span></span></td>
+            <td><span class="pick winner">savannah <span class="pts">(18)</span></span></td>
+            <td><span class="pick">nate <span class="pts">(8)</span></span></td>
+            <td><span class="pick runner-up">sophi <span class="pts">(17)</span></span></td>
+            <td class="alt-col"><span class="pick swapped-in">steven <span class="pts">(13)</span></span></td>
+          </tr>
+          <tr>
+            <td class="player-name">benson</td>
+            <td><span class="pick">rizo <span class="pts">(15)</span></span></td>
+            <td><span class="pick">nate <span class="pts">(8)</span></span></td>
+            <td><span class="pick">steven <span class="pts">(13)</span></span></td>
+            <td><span class="pick winner">savannah <span class="pts">(18)</span></span></td>
+            <td><span class="pick pre-jury">jason <span class="pts">(6)</span></span></td>
+            <td><span class="pick">alex <span class="pts">(10)</span></span></td>
+            <td class="alt-col"><span class="pick pre-jury">jake <span class="pts">(3)</span></span></td>
+          </tr>
+          <tr>
+            <td class="player-name">dad</td>
+            <td><span class="pick">alex <span class="pts">(10)</span></span></td>
+            <td><span class="pick swapped-out">jake <span class="pts">(3)</span></span></td>
+            <td><span class="pick pre-jury">matt <span class="pts">(5)</span></span></td>
+            <td><span class="pick">mc <span class="pts">(9)</span></span></td>
+            <td><span class="pick winner">savannah <span class="pts">(18)</span></span></td>
+            <td><span class="pick">steven <span class="pts">(13)</span></span></td>
+            <td class="alt-col"><span class="pick swapped-in">rizo <span class="pts">(15)</span></span></td>
+          </tr>
+          <tr>
+            <td class="player-name">lil</td>
+            <td><span class="pick">nate <span class="pts">(8)</span></span></td>
+            <td><span class="pick">rizo <span class="pts">(15)</span></span></td>
+            <td><span class="pick swapped-out">jason <span class="pts">(6)</span></span></td>
+            <td><span class="pick">mc <span class="pts">(9)</span></span></td>
+            <td><span class="pick winner">savannah <span class="pts">(18)</span></span></td>
+            <td><span class="pick">alex <span class="pts">(10)</span></span></td>
+            <td class="alt-col"><span class="pick swapped-in">shannon <span class="pts">(7)</span></span></td>
+          </tr>
+          <tr>
+            <td class="player-name">sameh</td>
+            <td><span class="pick swapped-out">jake <span class="pts">(3)</span></span></td>
+            <td><span class="pick pre-jury">jeremiah <span class="pts">(4)</span></span></td>
+            <td><span class="pick">mc <span class="pts">(9)</span></span></td>
+            <td><span class="pick">rizo <span class="pts">(15)</span></span></td>
+            <td><span class="pick winner">savannah <span class="pts">(18)</span></span></td>
+            <td><span class="pick">nate <span class="pts">(8)</span></span></td>
+            <td class="alt-col"><span class="pick swapped-in">steven <span class="pts">(13)</span></span></td>
+          </tr>
+          <tr>
+            <td class="player-name">ellie</td>
+            <td><span class="pick">nate <span class="pts">(8)</span></span></td>
+            <td><span class="pick">rizo <span class="pts">(15)</span></span></td>
+            <td><span class="pick">mc <span class="pts">(9)</span></span></td>
+            <td><span class="pick">steven <span class="pts">(13)</span></span></td>
+            <td><span class="pick swapped-out">jake <span class="pts">(3)</span></span></td>
+            <td><span class="pick pre-jury">jason <span class="pts">(6)</span></span></td>
+            <td class="alt-col"><span class="pick swapped-in">jawan <span class="pts">(11)</span></span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>scoring</h2>
+    <div class="scoring-rules">
+      <p><b>placement points</b> — each pick earns points based on how far they got. winner = 18 pts, first out = 1 pt.</p>
+      <p><b>alternate swap</b> — your alternate replaces your earliest-eliminated pick, but only if it's an upgrade.</p>
+      <p><b>bonuses</b> — +5 for picking the winner. +3 for picking the runner-up.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>score breakdowns</h2>
+    <div class="breakdowns">
+
+      <details class="breakdown" open>
+        <summary>mom — 79</summary>
+        <table class="breakdown-table">
+          <tr><td>steven (6th)</td><td class="calc">← swapped in for jake</td><td class="bp">13</td></tr>
+          <tr><td>jason (13th)</td><td class="calc"></td><td class="bp">6</td></tr>
+          <tr><td>mc (10th)</td><td class="calc"></td><td class="bp">9</td></tr>
+          <tr><td>savannah (1st)</td><td class="calc"></td><td class="bp">18</td></tr>
+          <tr><td>nate (11th)</td><td class="calc"></td><td class="bp">8</td></tr>
+          <tr><td>sophi (2nd)</td><td class="calc"></td><td class="bp">17</td></tr>
+          <tr class="bonus-row"><td colspan="2">winner bonus (savannah)</td><td class="bp">+5</td></tr>
+          <tr class="bonus-row"><td colspan="2">runner-up bonus (sophi)</td><td class="bp">+3</td></tr>
+          <tr class="total-row"><td colspan="2">total</td><td class="bp">79</td></tr>
+        </table>
+      </details>
+
+      <details class="breakdown">
+        <summary>benson — 75</summary>
+        <table class="breakdown-table">
+          <tr><td>rizo (4th)</td><td class="calc"></td><td class="bp">15</td></tr>
+          <tr><td>nate (11th)</td><td class="calc"></td><td class="bp">8</td></tr>
+          <tr><td>steven (6th)</td><td class="calc"></td><td class="bp">13</td></tr>
+          <tr><td>savannah (1st)</td><td class="calc"></td><td class="bp">18</td></tr>
+          <tr><td>jason (13th)</td><td class="calc"></td><td class="bp">6</td></tr>
+          <tr><td>alex (9th)</td><td class="calc"></td><td class="bp">10</td></tr>
+          <tr class="bonus-row"><td colspan="2">winner bonus (savannah)</td><td class="bp">+5</td></tr>
+          <tr class="bonus-row"><td colspan="2">alt jake (16th) not used — worse</td><td class="bp">—</td></tr>
+          <tr class="total-row"><td colspan="2">total</td><td class="bp">75</td></tr>
+        </table>
+      </details>
+
+      <details class="breakdown">
+        <summary>dad — 75</summary>
+        <table class="breakdown-table">
+          <tr><td>alex (9th)</td><td class="calc"></td><td class="bp">10</td></tr>
+          <tr><td>rizo (4th)</td><td class="calc">← swapped in for jake</td><td class="bp">15</td></tr>
+          <tr><td>matt (14th)</td><td class="calc"></td><td class="bp">5</td></tr>
+          <tr><td>mc (10th)</td><td class="calc"></td><td class="bp">9</td></tr>
+          <tr><td>savannah (1st)</td><td class="calc"></td><td class="bp">18</td></tr>
+          <tr><td>steven (6th)</td><td class="calc"></td><td class="bp">13</td></tr>
+          <tr class="bonus-row"><td colspan="2">winner bonus (savannah)</td><td class="bp">+5</td></tr>
+          <tr class="total-row"><td colspan="2">total</td><td class="bp">75</td></tr>
+        </table>
+      </details>
+
+      <details class="breakdown">
+        <summary>lil — 72</summary>
+        <table class="breakdown-table">
+          <tr><td>nate (11th)</td><td class="calc"></td><td class="bp">8</td></tr>
+          <tr><td>rizo (4th)</td><td class="calc"></td><td class="bp">15</td></tr>
+          <tr><td>shannon (12th)</td><td class="calc">← swapped in for jason</td><td class="bp">7</td></tr>
+          <tr><td>mc (10th)</td><td class="calc"></td><td class="bp">9</td></tr>
+          <tr><td>savannah (1st)</td><td class="calc"></td><td class="bp">18</td></tr>
+          <tr><td>alex (9th)</td><td class="calc"></td><td class="bp">10</td></tr>
+          <tr class="bonus-row"><td colspan="2">winner bonus (savannah)</td><td class="bp">+5</td></tr>
+          <tr class="total-row"><td colspan="2">total</td><td class="bp">72</td></tr>
+        </table>
+      </details>
+
+      <details class="breakdown">
+        <summary>sameh — 72</summary>
+        <table class="breakdown-table">
+          <tr><td>steven (6th)</td><td class="calc">← swapped in for jake</td><td class="bp">13</td></tr>
+          <tr><td>jeremiah (15th)</td><td class="calc"></td><td class="bp">4</td></tr>
+          <tr><td>mc (10th)</td><td class="calc"></td><td class="bp">9</td></tr>
+          <tr><td>rizo (4th)</td><td class="calc"></td><td class="bp">15</td></tr>
+          <tr><td>savannah (1st)</td><td class="calc"></td><td class="bp">18</td></tr>
+          <tr><td>nate (11th)</td><td class="calc"></td><td class="bp">8</td></tr>
+          <tr class="bonus-row"><td colspan="2">winner bonus (savannah)</td><td class="bp">+5</td></tr>
+          <tr class="total-row"><td colspan="2">total</td><td class="bp">72</td></tr>
+        </table>
+      </details>
+
+      <details class="breakdown">
+        <summary>ellie — 62</summary>
+        <table class="breakdown-table">
+          <tr><td>nate (11th)</td><td class="calc"></td><td class="bp">8</td></tr>
+          <tr><td>rizo (4th)</td><td class="calc"></td><td class="bp">15</td></tr>
+          <tr><td>mc (10th)</td><td class="calc"></td><td class="bp">9</td></tr>
+          <tr><td>steven (6th)</td><td class="calc"></td><td class="bp">13</td></tr>
+          <tr><td>jawan (8th)</td><td class="calc">← swapped in for jake</td><td class="bp">11</td></tr>
+          <tr><td>jason (13th)</td><td class="calc"></td><td class="bp">6</td></tr>
+          <tr class="bonus-row"><td colspan="2">no bonuses</td><td class="bp">—</td></tr>
+          <tr class="total-row"><td colspan="2">total</td><td class="bp">62</td></tr>
+        </table>
+      </details>
+
+    </div>
+  </section>
+
+  <section>
+    <h2>elimination order</h2>
+    <ol class="timeline">
+      <li>
+        <span class="placement">18th</span>
+        <span class="contestant pre-jury">nicole mazullo</span>
+        <span class="note">1st voted out</span>
+      </li>
+      <li>
+        <span class="placement">17th</span>
+        <span class="contestant pre-jury">annie davis</span>
+        <span class="note">2nd voted out</span>
+      </li>
+      <li>
+        <span class="placement">16th</span>
+        <span class="contestant medevac">jake latimer</span>
+        <span class="note">medevac</span>
+      </li>
+      <li>
+        <span class="placement">15th</span>
+        <span class="contestant pre-jury">jeremiah ing</span>
+        <span class="note">3rd voted out</span>
+      </li>
+      <li>
+        <span class="placement">14th</span>
+        <span class="contestant pre-jury">matt williams</span>
+        <span class="note">4th voted out</span>
+      </li>
+      <li>
+        <span class="placement">13th</span>
+        <span class="contestant pre-jury">jason treul</span>
+        <span class="note">5th voted out</span>
+      </li>
+      <li>
+        <span class="placement">12th</span>
+        <span class="contestant pre-jury">shannon fairweather</span>
+        <span class="note">6th voted out</span>
+      </li>
+      <li class="jury-start">
+        <span class="placement">11th</span>
+        <span class="contestant jury">nate moore</span>
+        <span class="note">1st jury</span>
+      </li>
+      <li>
+        <span class="placement">10th</span>
+        <span class="contestant jury">mc chukwujekwu</span>
+        <span class="note">2nd jury</span>
+      </li>
+      <li>
+        <span class="placement">9th</span>
+        <span class="contestant jury">alex moore</span>
+        <span class="note">3rd jury</span>
+      </li>
+      <li>
+        <span class="placement">8th</span>
+        <span class="contestant jury">jawan pitts</span>
+        <span class="note">4th jury</span>
+      </li>
+      <li>
+        <span class="placement">7th</span>
+        <span class="contestant jury">sophie segreti</span>
+        <span class="note">5th jury</span>
+      </li>
+      <li>
+        <span class="placement">6th</span>
+        <span class="contestant jury">steven ramm</span>
+        <span class="note">6th jury</span>
+      </li>
+      <li>
+        <span class="placement">5th</span>
+        <span class="contestant jury">kristina mills</span>
+        <span class="note">7th jury</span>
+      </li>
+      <li>
+        <span class="placement">4th</span>
+        <span class="contestant jury">rizo velovic</span>
+        <span class="note">fire-making — 8th jury</span>
+      </li>
+      <li class="finale-start">
+        <span class="placement">3rd</span>
+        <span class="contestant finalist">sage ahrens-nichols</span>
+        <span class="note">2nd runner-up</span>
+      </li>
+      <li>
+        <span class="placement">2nd</span>
+        <span class="contestant finalist">sophi balerdi</span>
+        <span class="note">runner-up</span>
+      </li>
+      <li>
+        <span class="placement">1st</span>
+        <span class="contestant winner-name">savannah louie</span>
+        <span class="note">winner</span>
+      </li>
+    </ol>
+  </section>
+
+  <footer>season 49 — fall 2025</footer>
+</body>
+</html>
