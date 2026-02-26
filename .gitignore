@@ -1,2 +1,2 @@
-worker/.wrangler/
+**/.wrangler/
 scripts/spotify-auth.js
