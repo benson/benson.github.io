@@ -378,7 +378,16 @@ export async function generateSealedPoolFromBoosterData(setCode, cards, numPacks
         if (slot.rarities) {
           // Determine rarity for this card
           let rarity;
-          if (slot.rarities.includes('mythic') && slot.rarities.includes('rare')) {
+          if (slot.rarityWeights) {
+            // Weighted rarity selection (e.g. dedicated creature-type slots)
+            const roll = random();
+            let cumulative = 0;
+            for (const [r, weight] of Object.entries(slot.rarityWeights)) {
+              cumulative += weight;
+              if (roll < cumulative) { rarity = r; break; }
+            }
+            if (!rarity) rarity = slot.rarities[slot.rarities.length - 1];
+          } else if (slot.rarities.includes('mythic') && slot.rarities.includes('rare')) {
             // Use mythicRate if specified, default to 1/8 (0.125)
             const mythicRate = slot.mythicRate ?? 0.125;
             const hasMythics = (cardsByRarityInPool.mythic?.length ?? 0) > 0;
@@ -388,7 +397,17 @@ export async function generateSealedPoolFromBoosterData(setCode, cards, numPacks
             rarity = slot.rarities[Math.floor(random() * slot.rarities.length)];
           }
 
-          const rarityPool = cardsByRarityInPool[rarity] || [];
+          // Filter rarity pool to cards matching this slot's CN ranges
+          let rarityPool = cardsByRarityInPool[rarity] || [];
+          if (slot.pool) {
+            const slotRanges = [];
+            for (const finishRanges of Object.values(slot.pool)) {
+              slotRanges.push(...finishRanges);
+            }
+            rarityPool = rarityPool.filter(c =>
+              slotRanges.some(range => isInRange(c.collector_number, range))
+            );
+          }
           if (rarityPool.length > 0) {
             card = pickRandom(rarityPool, random);
           }
