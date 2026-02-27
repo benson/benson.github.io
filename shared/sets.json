@@ -1,5 +1,25 @@
 [
   {
+    "code": "msh",
+    "name": "Marvel Super Heroes",
+    "released": "2026-06-26"
+  },
+  {
+    "code": "om2",
+    "name": "Through the Omenpaths 2",
+    "released": "2026-06-26"
+  },
+  {
+    "code": "sos",
+    "name": "Secrets of Strixhaven",
+    "released": "2026-04-24"
+  },
+  {
+    "code": "tmt",
+    "name": "Teenage Mutant Ninja Turtles",
+    "released": "2026-03-06"
+  },
+  {
     "code": "ecl",
     "name": "Lorwyn Eclipsed",
     "released": "2026-01-23"
