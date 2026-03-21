@@ -257,6 +257,8 @@ section.compact + section.compact {
   .champ-wrap {
     display: flex;
     flex-direction: column;
+    flex: 1;
+    min-width: 0;
   }
 
   .album-tip,
@@ -269,7 +271,6 @@ section.compact + section.compact {
     padding: 2px 0 0;
     font-size: 0.65rem;
     white-space: normal;
-    width: 42px;
   }
 
   .champ-icon.loss {
