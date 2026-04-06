@@ -87,6 +87,17 @@ li a:hover {
   font-size: 0.85rem;
 }
 
+.wip {
+  display: inline-block;
+  font-size: 0.7rem;
+  color: #999;
+  border: 1px solid #ccc;
+  padding: 0 4px;
+  border-radius: 3px;
+  text-transform: lowercase;
+  vertical-align: middle;
+}
+
 .resume-links {
   display: flex;
   gap: 4px;
