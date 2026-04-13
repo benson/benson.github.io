@@ -873,3 +873,107 @@ export function createSetAutocomplete({ inputEl, dropdownEl, hiddenEl, onSelect,
     }
   };
 }
+
+// ============ TCG Player Constants ============
+
+export const TCG_CONDITIONS = [
+  'Near Mint', 'Lightly Played', 'Moderately Played', 'Heavily Played', 'Damaged'
+];
+
+export const TCG_PRINTINGS = [
+  'Normal', 'Foil', 'Etched Foil', 'Surge Foil', 'Galaxy Foil',
+  'Confetti Foil', 'Gilded Foil', 'Textured Foil', 'Step-and-Compleat Foil',
+  'Oil Slick Raised Foil', 'Halo Foil', 'Ripple Foil', 'Double Rainbow Foil',
+  'Invisible Ink Foil', 'Fracture Foil', 'Raised Foil'
+];
+
+export const TCG_LANGUAGES = [
+  'English', 'Chinese (S)', 'Chinese (T)', 'French', 'German',
+  'Italian', 'Japanese', 'Korean', 'Portuguese', 'Russian', 'Spanish'
+];
+
+// ============ Card Lookup ============
+
+// Fetch a card by set code + collector number (printed on every card)
+// Handles DFC suffixes: tries exact CN, then appends 'a' for front face
+export async function fetchCardByCollectorNumber(setCode, collectorNumber) {
+  const cn = String(collectorNumber).trim();
+  const set = setCode.toLowerCase().trim();
+  const url = SCRYFALL_API + '/cards/' + encodeURIComponent(set) + '/' + encodeURIComponent(cn);
+  try {
+    return await fetchWithRetry(url);
+  } catch (e) {
+    // If exact CN fails, try with 'a' suffix (front face of DFC)
+    if (!cn.match(/[a-z]$/i)) {
+      try {
+        return await fetchWithRetry(url + 'a');
+      } catch (e2) {
+        return null;
+      }
+    }
+    return null;
+  }
+}
+
+// Fuzzy name search via Scryfall
+export async function fetchCardByName(name) {
+  const url = SCRYFALL_API + '/cards/named?fuzzy=' + encodeURIComponent(name);
+  try {
+    return await fetchWithRetry(url);
+  } catch (e) {
+    return null;
+  }
+}
+
+// ============ Card Data Helpers ============
+
+// Get available finishes and their prices from a Scryfall card object
+export function getCardFinishes(card) {
+  if (!card) return [];
+  const finishes = card.finishes || [];
+  const results = [];
+  for (const finish of finishes) {
+    const entry = { finish };
+    if (finish === 'nonfoil') {
+      entry.label = 'Normal';
+      entry.price = card.prices?.usd ?? null;
+    } else if (finish === 'foil') {
+      entry.label = 'Foil';
+      entry.price = card.prices?.usd_foil ?? null;
+    } else if (finish === 'etched') {
+      entry.label = 'Etched Foil';
+      entry.price = card.prices?.usd_etched ?? null;
+    }
+    results.push(entry);
+  }
+  return results;
+}
+
+// Get the image URL for a card, handling DFCs
+// size: 'small' | 'normal' | 'large' | 'png' | 'art_crop' | 'border_crop'
+export function getCardImageUrl(card, size = 'normal') {
+  if (!card) return null;
+  if (card.image_uris) {
+    return card.image_uris[size] || card.image_uris.normal;
+  }
+  if (card.card_faces?.length > 0 && card.card_faces[0].image_uris) {
+    return card.card_faces[0].image_uris[size] || card.card_faces[0].image_uris.normal;
+  }
+  return null;
+}
+
+// Get the printing type label based on Scryfall promo_types and finishes
+export function getCardPrintingType(card, selectedFinish = 'nonfoil') {
+  if (selectedFinish === 'nonfoil') return 'Normal';
+  if (selectedFinish === 'etched') return 'Etched Foil';
+  const promos = card.promo_types || [];
+  if (promos.includes('surgefoil')) return 'Surge Foil';
+  if (promos.includes('galaxyfoil')) return 'Galaxy Foil';
+  if (promos.includes('confettifoil')) return 'Confetti Foil';
+  if (promos.includes('texturedfoil')) return 'Textured Foil';
+  if (promos.includes('halofoil')) return 'Halo Foil';
+  if (promos.includes('ripplefoil')) return 'Ripple Foil';
+  if (promos.includes('fracturefoil')) return 'Fracture Foil';
+  if (promos.includes('raisedfoil')) return 'Raised Foil';
+  return 'Foil';
+}
