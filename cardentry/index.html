@@ -294,10 +294,13 @@
             <label>qty</label>
             <input type="number" id="previewQty" min="1" value="1">
           </div>
-          <div class="field" style="justify-content:end">
-            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 0">
-              <input type="checkbox" id="previewPromo"> promo
-            </label>
+          <div class="field">
+            <label>source</label>
+            <select id="previewSource">
+              <option value="regular">regular</option>
+              <option value="promo">promo pack</option>
+              <option value="prerelease">prerelease</option>
+            </select>
           </div>
         </div>
         <div class="preview-actions">
@@ -466,22 +469,21 @@ function showCardPreview(card) {
   }
 
   document.getElementById('previewQty').value = 1;
-  document.getElementById('previewPromo').checked = !!window._voicePromo;
-  // Auto-select foil printing if voice requested it
+  document.getElementById('previewSource').value = window._voiceSource || 'regular';
   if (window._voiceFoil) {
     const sel = document.getElementById('previewPrinting');
     for (const opt of sel.options) {
       if (opt.value === 'foil') { sel.value = 'foil'; break; }
     }
   }
-  window._voicePromo = false;
+  window._voiceSource = 'regular';
   window._voiceFoil = false;
 }
 
 function clearPreview() {
   currentCard = null;
   preview.classList.remove('active');
-  window._voicePromo = false;
+  window._voiceSource = 'regular';
   setInput.value = '';
   cnInput.value = '';
   setInput.focus();
@@ -500,7 +502,7 @@ function addCard() {
     setName: currentCard.set_name,
     cn: currentCard.collector_number,
     printing: getCardPrintingType(currentCard, finish),
-    promo: document.getElementById('previewPromo').checked,
+    source: document.getElementById('previewSource').value,
     condition: conditionSelect.value,
     language: langSelect.value,
     quantity: Math.max(1, parseInt(document.getElementById('previewQty').value, 10) || 1),
@@ -540,7 +542,7 @@ function renderTable() {
 
   tbody.innerHTML = cards.map(c => `
     <tr>
-      <td class="card-name-cell">${esc(c.name)}${c.promo ? ' <span style="color:#f59e0b;font-size:11px">(promo)</span>' : ''}</td>
+      <td class="card-name-cell">${esc(c.name)}${c.source !== 'regular' ? ' <span style="color:#f59e0b;font-size:11px">(' + esc(c.source) + ')</span>' : ''}</td>
       <td class="muted">${esc(c.set)}</td>
       <td class="muted">${esc(c.cn)}</td>
       <td class="muted">${esc(c.printing)}</td>
@@ -725,7 +727,15 @@ function parseVoice(text) {
     // Extract modifiers from the rest of the utterance
     const rest = clean.slice(match[0].length);
     window._voiceFoil = /\bfoil\b/.test(rest);
-    window._voicePromo = /\b(promo|prerelease|stamp|stamped)\b/.test(rest);
+    // "promo" / "stamp" = promo pack (planeswalker stamp)
+    // "prerelease" / "pre-release" / "date stamp" = prerelease (date stamp)
+    if (/\b(prerelease|pre-release|pre release|date\s*stamp)\b/.test(rest)) {
+      window._voiceSource = 'prerelease';
+    } else if (/\b(promo|stamp|stamped)\b/.test(rest)) {
+      window._voiceSource = 'promo';
+    } else {
+      window._voiceSource = 'regular';
+    }
 
     doLookup();
   } else {
