@@ -95,20 +95,22 @@
     padding: 8px 0 12px;
   }
   .mic-btn {
-    width: 48px; height: 48px;
-    border-radius: 50%;
-    border: 1px solid #ccc;
-    background: #fff;
+    padding: 8px 16px;
+    border-radius: 2px;
+    border: 1px solid #000;
+    background: #000;
+    color: #fff;
     cursor: pointer;
-    font-size: 20px;
-    transition: all 0.2s;
+    font-size: 0.8rem;
+    font-family: inherit;
+    text-transform: lowercase;
+    transition: all 0.15s;
     flex-shrink: 0;
   }
-  .mic-btn:hover { border-color: #000; }
+  .mic-btn:hover { background: #333; }
   .mic-btn.on {
     background: #c00;
     border-color: #c00;
-    animation: pulse 1.5s ease-in-out infinite;
   }
   .manual-toggle { margin-bottom: 8px; }
   .link-btn {
@@ -263,8 +265,8 @@
 <div class="main">
   <!-- Voice (primary) -->
   <div class="mic-section">
-    <button class="mic-btn off" id="micBtn" onclick="toggleMic()">&#127908;</button>
-    <div class="mic-status" id="micStatus">tap to start — say "dsk 260 foil promo"</div>
+    <button class="mic-btn off" id="micBtn" onclick="toggleMic()">start listening</button>
+    <div class="mic-status" id="micStatus">say "dsk 260 foil promo"</div>
   </div>
 
   <!-- Manual entry (collapsed) -->
@@ -727,11 +729,13 @@ function toggleMic() {
     isListening = false;
     recognition.stop();
     btn.className = 'mic-btn off';
+    btn.textContent = 'start listening';
     document.getElementById('micStatus').textContent = 'mic off';
   } else {
     isListening = true;
     recognition.start();
     btn.className = 'mic-btn on';
+    btn.textContent = 'stop';
     document.getElementById('micStatus').textContent = 'listening...';
   }
 }
