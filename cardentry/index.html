@@ -294,6 +294,11 @@
             <label>qty</label>
             <input type="number" id="previewQty" min="1" value="1">
           </div>
+          <div class="field" style="justify-content:end">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 0">
+              <input type="checkbox" id="previewPromo"> promo
+            </label>
+          </div>
         </div>
         <div class="preview-actions">
           <button class="btn btn-add" onclick="addCard()">add to list</button>
@@ -461,11 +466,14 @@ function showCardPreview(card) {
   }
 
   document.getElementById('previewQty').value = 1;
+  document.getElementById('previewPromo').checked = !!window._voicePromo;
+  window._voicePromo = false;
 }
 
 function clearPreview() {
   currentCard = null;
   preview.classList.remove('active');
+  window._voicePromo = false;
   setInput.value = '';
   cnInput.value = '';
   setInput.focus();
@@ -484,6 +492,7 @@ function addCard() {
     setName: currentCard.set_name,
     cn: currentCard.collector_number,
     printing: getCardPrintingType(currentCard, finish),
+    promo: document.getElementById('previewPromo').checked,
     condition: conditionSelect.value,
     language: langSelect.value,
     quantity: Math.max(1, parseInt(document.getElementById('previewQty').value, 10) || 1),
@@ -523,7 +532,7 @@ function renderTable() {
 
   tbody.innerHTML = cards.map(c => `
     <tr>
-      <td class="card-name-cell">${esc(c.name)}</td>
+      <td class="card-name-cell">${esc(c.name)}${c.promo ? ' <span style="color:#f59e0b;font-size:11px">(promo)</span>' : ''}</td>
       <td class="muted">${esc(c.set)}</td>
       <td class="muted">${esc(c.cn)}</td>
       <td class="muted">${esc(c.printing)}</td>
@@ -687,7 +696,7 @@ function toggleMic() {
 }
 window.toggleMic = toggleMic;
 
-// Parse voice like "fin 142" or "FIN 142 foil" or "dft 53 lightly played"
+// Parse voice like "fin 142", "dsk 260 foil", "dsk 260 foil promo"
 function parseVoice(text) {
   // Clean up speech-to-text artifacts
   const clean = text.toLowerCase()
@@ -700,12 +709,27 @@ function parseVoice(text) {
     .trim();
 
   // Try to extract: set code (2-5 letters) + collector number
-  // Handles "fin 142", "fin142", "rvr216", "dft 53"
   const match = clean.match(/^([a-z]{2,5})\s*(\d{1,4}[a-z]?)\b/);
   if (match) {
     setInput.value = match[1];
     cnInput.value = match[2];
-    doLookup();
+
+    // Extract modifiers from the rest of the utterance
+    const rest = clean.slice(match[0].length);
+    const wantsFoil = /\bfoil\b/.test(rest);
+    const wantsPromo = /\b(promo|prerelease|stamp|stamped)\b/.test(rest);
+
+    doLookup().then(() => {
+      // Auto-select foil printing if requested
+      if (wantsFoil) {
+        const sel = document.getElementById('previewPrinting');
+        for (const opt of sel.options) {
+          if (opt.value === 'foil') { sel.value = 'foil'; break; }
+        }
+      }
+      // Store promo flag on the preview for addCard to pick up
+      window._voicePromo = wantsPromo;
+    });
   } else {
     showFeedback('couldn\'t parse "' + esc(text) + '" — say set code then number (e.g. "fin 142")', 'error');
   }
