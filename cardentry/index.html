@@ -365,6 +365,23 @@ let cards = [];
 let nextId = 1;
 let currentCard = null; // scryfall card object in preview
 
+// ---- Persistence ----
+const STORAGE_KEY = 'cardentry_cards';
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ cards, nextId }));
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (Array.isArray(data.cards)) {
+      cards = data.cards;
+      nextId = data.nextId || (cards.length ? Math.max(...cards.map(c => c.id)) + 1 : 1);
+    }
+  } catch (e) {}
+}
+
 // ---- DOM refs ----
 const setInput = document.getElementById('setInput');
 const cnInput = document.getElementById('cnInput');
@@ -470,6 +487,7 @@ function addCard() {
   };
 
   cards.push(entry);
+  save();
   renderTable();
   showFeedback('added ' + entry.name + ' (' + entry.set + ' #' + entry.cn + ')', 'success');
 
@@ -515,6 +533,7 @@ function renderTable() {
 
 function deleteCard(id) {
   cards = cards.filter(c => c.id !== id);
+  save();
   renderTable();
 }
 window.deleteCard = deleteCard;
@@ -547,6 +566,7 @@ function clearAll() {
   if (cards.length && !confirm('clear all ' + cards.length + ' cards?')) return;
   cards = [];
   nextId = 1;
+  save();
   renderTable();
 }
 window.clearAll = clearAll;
@@ -673,7 +693,9 @@ function esc(s) {
   return d.innerHTML;
 }
 
-// Focus set input on load
+// Load saved cards and focus
+load();
+renderTable();
 setInput.focus();
 </script>
 </body>
