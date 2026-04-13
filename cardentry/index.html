@@ -662,7 +662,8 @@ function parseVoice(text) {
     .trim();
 
   // Try to extract: set code (2-5 letters) + collector number
-  const match = clean.match(/^([a-z]{2,5})\s+(\d{1,4}[a-z]?)\b/);
+  // Handles "fin 142", "fin142", "rvr216", "dft 53"
+  const match = clean.match(/^([a-z]{2,5})\s*(\d{1,4}[a-z]?)\b/);
   if (match) {
     setInput.value = match[1];
     cnInput.value = match[2];
