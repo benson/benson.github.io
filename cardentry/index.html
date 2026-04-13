@@ -465,7 +465,8 @@ function showCardPreview(card) {
   }
 
   document.getElementById('previewQty').value = 1;
-  document.getElementById('previewSource').value = window._voiceSource || 'regular';
+  const source = window._voiceSource || 'regular';
+  document.getElementById('previewSource').value = source;
   if (window._voiceFoil) {
     const sel = document.getElementById('previewPrinting');
     for (const opt of sel.options) {
@@ -474,6 +475,28 @@ function showCardPreview(card) {
   }
   window._voiceSource = 'regular';
   window._voiceFoil = false;
+
+  // Fetch promo stamp image if applicable
+  updatePromoImage(card, source);
+}
+
+// Fetch the stamped promo image from Scryfall (p{set}/{cn}s)
+async function updatePromoImage(card, source) {
+  const imgEl = document.getElementById('previewImg');
+  if (source === 'regular') {
+    imgEl.src = getCardImageUrl(card, 'normal') || '';
+    return;
+  }
+  const promoSet = 'p' + card.set;
+  const promoCn = card.collector_number + 's';
+  try {
+    const promoCard = await fetchCardByCollectorNumber(promoSet, promoCn);
+    if (promoCard) {
+      imgEl.src = getCardImageUrl(promoCard, 'normal') || imgEl.src;
+    }
+  } catch (e) {
+    // Fall back to regular image silently
+  }
 }
 
 function clearPreview() {
@@ -743,6 +766,9 @@ cnInput.addEventListener('keydown', e => {
 });
 document.getElementById('previewQty').addEventListener('keydown', e => {
   if (e.key === 'Enter') addCard();
+});
+document.getElementById('previewSource').addEventListener('change', e => {
+  if (currentCard) updatePromoImage(currentCard, e.target.value);
 });
 
 // ---- Util ----
