@@ -1,0 +1,7 @@
+name = "cardentry-queue"
+main = "index.js"
+compatibility_date = "2024-01-01"
+
+[[kv_namespaces]]
+binding = "CARDS"
+id = "f96649c69b204467ad7144370e0d9495"

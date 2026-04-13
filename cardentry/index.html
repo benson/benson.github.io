@@ -214,6 +214,9 @@
   }
   .btn-export { background: #2563eb; color: white; }
   .btn-export:hover { background: #1d4ed8; }
+  .btn-submit { background: #16a34a; color: white; }
+  .btn-submit:hover { background: #15803d; }
+  .btn-submit:disabled { opacity: 0.5; cursor: default; }
   .btn-clear { background: #dc2626; color: white; }
   .btn-clear:hover { background: #b91c1c; }
 
@@ -317,6 +320,7 @@
     </div>
 
     <div class="actions-bar">
+      <button class="btn btn-submit" id="submitBtn" onclick="submitToStore()">submit to store</button>
       <button class="btn btn-export" onclick="copyList()">copy list</button>
       <button class="btn btn-export" onclick="exportCSV()">export csv</button>
       <button class="btn btn-clear" onclick="clearAll()">clear all</button>
@@ -561,6 +565,40 @@ function exportCSV() {
   URL.revokeObjectURL(url);
 }
 window.exportCSV = exportCSV;
+
+const QUEUE_URL = 'https://cardentry-queue.bensonperry.workers.dev';
+
+async function submitToStore() {
+  if (cards.length === 0) {
+    showFeedback('no cards to submit', 'error');
+    return;
+  }
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = 'submitting...';
+  try {
+    const resp = await fetch(QUEUE_URL + '/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cards }),
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      showFeedback('submitted ' + data.count + ' cards to store queue (id: ' + data.id + ')', 'success');
+      cards = [];
+      nextId = 1;
+      save();
+      renderTable();
+    } else {
+      showFeedback('submit failed: ' + (data.error || 'unknown'), 'error');
+    }
+  } catch (e) {
+    showFeedback('submit failed: ' + e.message, 'error');
+  }
+  btn.disabled = false;
+  btn.textContent = 'submit to store';
+}
+window.submitToStore = submitToStore;
 
 function clearAll() {
   if (cards.length && !confirm('clear all ' + cards.length + ' cards?')) return;
