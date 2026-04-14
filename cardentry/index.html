@@ -559,36 +559,10 @@ function showCardPreview(card) {
     });
   }
 
-  // search for variant printings of this card in the same set
+  // hide variants row (no longer used for name-based search)
   const variantsRow = document.getElementById('variantsRow');
   variantsRow.innerHTML = '';
   variantsRow.style.display = 'none';
-  fetchVariants(card.name, card.set).then(variants => {
-    if (variants.length <= 1) return;
-    variantsRow.style.display = 'flex';
-    for (const v of variants) {
-      const wrap = document.createElement('div');
-      wrap.className = 'variant-card' + (v.id === card.id ? ' selected' : '');
-      wrap.dataset.variantId = v.id;
-      wrap.onclick = () => selectVariant(v);
-
-      const img = document.createElement('img');
-      img.className = 'variant-thumb';
-      img.src = getCardImageUrl(v, 'small') || '';
-      wrap.appendChild(img);
-
-      const label = document.createElement('div');
-      label.className = 'variant-label';
-      // derive short label from TCG Player name or card attributes
-      const tcgName = v.tcgProductName || '';
-      const parts = tcgName.match(/\(([^)]+)\)/g) || [];
-      const shortLabel = parts.map(p => p.replace(/[()]/g, '')).join(' · ') || ('#' + v.collector_number);
-      label.textContent = shortLabel.toLowerCase();
-      wrap.appendChild(label);
-
-      variantsRow.appendChild(wrap);
-    }
-  });
 
   const printingSelect = document.getElementById('previewPrinting');
   printingSelect.innerHTML = '';
