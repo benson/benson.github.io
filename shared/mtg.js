@@ -897,7 +897,7 @@ export const TCG_LANGUAGES = [
 // Fetch a card by set code + collector number (printed on every card)
 // Handles DFC suffixes: tries exact CN, then appends 'a' for front face
 export async function fetchCardByCollectorNumber(setCode, collectorNumber) {
-  const cn = String(collectorNumber).trim();
+  const cn = String(collectorNumber).trim().replace(/^0+(\d)/, '$1');
   const set = setCode.toLowerCase().trim();
   const url = SCRYFALL_API + '/cards/' + encodeURIComponent(set) + '/' + encodeURIComponent(cn);
   try {
