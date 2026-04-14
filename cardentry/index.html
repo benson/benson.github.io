@@ -235,6 +235,16 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   .hidden { display: none; }
+  .variant-thumb {
+    width: 80px;
+    border-radius: 3px;
+    cursor: pointer;
+    opacity: 0.5;
+    border: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .variant-thumb:hover { opacity: 0.8; }
+  .variant-thumb.selected { opacity: 1; border-color: #000; }
   .source-tag { color: #999; font-size: 0.7rem; font-style: italic; }
   .divider { border-top: 1px solid #eee; margin: 20px 0; }
 
@@ -296,6 +306,8 @@
       <div class="preview-name" id="previewName"></div>
       <div class="preview-meta" id="previewMeta"></div>
       <div class="preview-meta" id="previewTcg" style="color: #090; font-style: italic;"></div>
+      <div id="variantsRow" class="hidden" style="display: none; gap: 6px; margin: 8px 0; flex-wrap: wrap;">
+      </div>
       <div class="preview-fields">
         <div class="field">
           <label>printing</label>
@@ -491,6 +503,24 @@ function showCardPreview(card) {
       if (name) tcgEl.textContent = 'tcg player: ' + name.toLowerCase();
     });
   }
+
+  // search for variant printings of this card in the same set
+  const variantsRow = document.getElementById('variantsRow');
+  variantsRow.innerHTML = '';
+  variantsRow.style.display = 'none';
+  fetchVariants(card.name, card.set).then(variants => {
+    if (variants.length <= 1) return;
+    variantsRow.style.display = 'flex';
+    for (const v of variants) {
+      const img = document.createElement('img');
+      img.className = 'variant-thumb' + (v.id === card.id ? ' selected' : '');
+      img.src = getCardImageUrl(v, 'small') || '';
+      img.title = (v.collector_number + ' — ' + (v.tcgProductName || v.name)).toLowerCase();
+      img.dataset.variantId = v.id;
+      img.onclick = () => selectVariant(v);
+      variantsRow.appendChild(img);
+    }
+  });
 
   const printingSelect = document.getElementById('previewPrinting');
   printingSelect.innerHTML = '';
@@ -968,6 +998,69 @@ document.getElementById('previewQty').addEventListener('keydown', e => {
 document.getElementById('previewSource').addEventListener('change', e => {
   if (currentCard) updatePromoImage(currentCard, e.target.value);
 });
+
+// ---- Variant detection ----
+const variantCache = {};
+async function fetchVariants(cardName, setCode) {
+  const key = setCode + ':' + cardName;
+  if (variantCache[key]) return variantCache[key];
+  try {
+    const q = encodeURIComponent('name="' + cardName + '" set:' + setCode);
+    const resp = await fetch('https://api.scryfall.com/cards/search?q=' + q + '&unique=prints');
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    const variants = data.data || [];
+    // fetch TCG Player names for each variant in parallel
+    await Promise.all(variants.map(async v => {
+      if (v.tcgplayer_id) {
+        v.tcgProductName = await fetchTcgProductName(v.tcgplayer_id);
+      }
+    }));
+    variantCache[key] = variants;
+    return variants;
+  } catch (e) {
+    return [];
+  }
+}
+
+function selectVariant(variant) {
+  currentCard = variant;
+  document.getElementById('previewImg').src = getCardImageUrl(variant, 'normal') || '';
+  document.getElementById('previewName').textContent = variant.name;
+  const meta = [variant.set_name, variant.type_line, variant.rarity].filter(Boolean).join(' — ');
+  document.getElementById('previewMeta').textContent = meta;
+
+  const tcgEl = document.getElementById('previewTcg');
+  if (variant.tcgProductName) {
+    tcgEl.textContent = 'tcg player: ' + variant.tcgProductName.toLowerCase();
+  } else {
+    tcgEl.textContent = '';
+  }
+
+  // update printing options
+  const printingSelect = document.getElementById('previewPrinting');
+  printingSelect.innerHTML = '';
+  const finishes = getCardFinishes(variant);
+  for (const f of finishes) {
+    const label = getCardPrintingType(variant, f.finish);
+    const priceStr = f.price ? ' ($' + f.price + ')' : '';
+    const opt = document.createElement('option');
+    opt.value = f.finish;
+    opt.textContent = (label + priceStr).toLowerCase();
+    printingSelect.appendChild(opt);
+  }
+  if (window._voiceFoil) {
+    for (const opt of printingSelect.options) {
+      if (opt.value === 'foil') { printingSelect.value = 'foil'; break; }
+    }
+  }
+
+  // highlight selected thumb
+  document.querySelectorAll('.variant-thumb').forEach(t => {
+    t.classList.toggle('selected', t.dataset.variantId === variant.id);
+  });
+}
+window.selectVariant = selectVariant;
 
 // ---- TCG Player product name lookup ----
 const tcgProductCache = {};
