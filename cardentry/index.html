@@ -359,7 +359,7 @@
       <div class="actions-bar">
         <button class="btn btn-secondary" onclick="downloadTcgCsv()">download csv</button>
         <button class="btn btn-secondary" onclick="uploadTcgCsvNow()">upload now</button>
-        <button class="btn btn-secondary" onclick="scheduleTcgCsv()">tonight</button>
+        <button class="btn btn-secondary" onclick="scheduleTcgCsv()">3am est</button>
       </div>
     </div>
 
@@ -754,10 +754,13 @@ window.uploadTcgCsvNow = uploadTcgCsvNow;
 
 async function scheduleTcgCsv() {
   if (!pendingTcgCsv) return;
-  // schedule for 10pm local time tonight
+  // schedule for 3am EST tonight/tomorrow
   const tonight = new Date();
-  tonight.setHours(22, 0, 0, 0);
-  if (tonight <= new Date()) tonight.setDate(tonight.getDate() + 1);
+  // set to 3am EST (UTC-5) = 8am UTC
+  const utcTarget = new Date(tonight);
+  utcTarget.setUTCHours(8, 0, 0, 0);
+  if (utcTarget <= new Date()) utcTarget.setUTCDate(utcTarget.getUTCDate() + 1);
+  const tonight_final = utcTarget;
 
   showFeedback('<span class="loading-spinner"></span> scheduling...', 'info');
   try {
@@ -767,13 +770,12 @@ async function scheduleTcgCsv() {
       body: JSON.stringify({
         csv: pendingTcgCsv,
         cardCount: pendingTcgCsvCount,
-        scheduledFor: tonight.toISOString(),
+        scheduledFor: tonight_final.toISOString(),
       }),
     });
     const data = await resp.json();
     if (data.ok) {
-      const timeStr = tonight.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-      showFeedback('scheduled for ' + timeStr + ' tonight — claude code will upload automatically', 'success');
+      showFeedback('scheduled for 3am est — claude code will upload automatically', 'success');
       document.getElementById('tcgOptions').classList.add('hidden');
       pendingTcgCsv = null;
     } else {
