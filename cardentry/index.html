@@ -295,6 +295,7 @@
     <div class="preview-info">
       <div class="preview-name" id="previewName"></div>
       <div class="preview-meta" id="previewMeta"></div>
+      <div class="preview-meta" id="previewTcg" style="color: #090; font-style: italic;"></div>
       <div class="preview-fields">
         <div class="field">
           <label>printing</label>
@@ -481,6 +482,15 @@ function showCardPreview(card) {
 
   const meta = [card.set_name, card.type_line, card.rarity].filter(Boolean).join(' — ');
   document.getElementById('previewMeta').textContent = meta;
+
+  // fetch TCG Player product name for verification
+  const tcgEl = document.getElementById('previewTcg');
+  tcgEl.textContent = '';
+  if (card.tcgplayer_id) {
+    fetchTcgProductName(card.tcgplayer_id).then(name => {
+      if (name) tcgEl.textContent = 'tcg player: ' + name.toLowerCase();
+    });
+  }
 
   const printingSelect = document.getElementById('previewPrinting');
   printingSelect.innerHTML = '';
@@ -958,6 +968,22 @@ document.getElementById('previewQty').addEventListener('keydown', e => {
 document.getElementById('previewSource').addEventListener('change', e => {
   if (currentCard) updatePromoImage(currentCard, e.target.value);
 });
+
+// ---- TCG Player product name lookup ----
+const tcgProductCache = {};
+async function fetchTcgProductName(productId) {
+  if (tcgProductCache[productId]) return tcgProductCache[productId];
+  try {
+    const resp = await fetch('https://mp-search-api.tcgplayer.com/v1/product/' + productId + '/details');
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    const name = data.productName || null;
+    if (name) tcgProductCache[productId] = name;
+    return name;
+  } catch (e) {
+    return null;
+  }
+}
 
 // ---- Util ----
 function esc(s) {
