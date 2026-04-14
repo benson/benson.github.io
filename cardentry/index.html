@@ -21,8 +21,16 @@
     margin: 0 auto;
     padding: 30px 30px 0;
   }
+  .header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
   .header h1 { font-size: 1.5rem; font-weight: 400; letter-spacing: -0.02em; }
   .header p { color: #999; font-size: 0.75rem; margin-top: 2px; letter-spacing: 0.03em; }
+  .header .mic-status { font-size: 0.75rem; color: #999; margin-top: 4px; }
+  .header .mic-status strong { color: #000; }
 
   .main { max-width: 720px; margin: 0 auto; padding: 20px 30px; }
 
@@ -89,13 +97,7 @@
   }
   .btn-danger:hover { color: #c00; border-color: #c00; }
 
-  /* Mic (hero) */
-  .mic-section {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 8px 0 12px;
-  }
+  /* Mic button */
   .mic-btn {
     padding: 8px 16px;
     border-radius: 2px;
@@ -131,8 +133,6 @@
     0%, 100% { box-shadow: 0 0 0 rgba(204, 0, 0, 0); }
     50% { box-shadow: 0 0 12px rgba(204, 0, 0, 0.3); }
   }
-  .mic-status { font-size: 0.75rem; color: #999; }
-  .mic-status strong { color: #000; }
 
   /* Preview card */
   .preview {
@@ -282,8 +282,21 @@
 
   /* Mobile */
   @media (max-width: 600px) {
-    .header { padding: 20px 15px 0; }
-    .main { padding: 15px; }
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: #f8f7f4;
+      padding: 12px 15px 8px;
+      border-bottom: 1px solid #eee;
+    }
+    .header h1 { font-size: 1.1rem; }
+    .header p { font-size: 0.65rem; }
+    .header .mic-btn {
+      padding: 10px 20px;
+      font-size: 0.85rem;
+    }
+    .main { padding: 10px 15px 80px; }
     .entry-row { gap: 6px; }
     .field-set, .field-cn { width: 60px; }
     .preview { flex-direction: column; }
@@ -298,24 +311,24 @@
     thead th, td { padding: 4px 4px; }
     .sticky-actions.active { display: flex; }
     .preview .preview-actions { display: none; }
-    .main { padding-bottom: 80px; }
+    .manual-toggle { margin-bottom: 4px; }
   }
 </style>
 </head>
 <body>
 
-<div class="header">
-  <h1>card entry</h1>
-  <p>set code + collector number — tcg player listings</p>
+<div class="header" id="headerBar">
+  <div class="header-row">
+    <div>
+      <h1>card entry</h1>
+      <p>set code + collector number — tcg player listings</p>
+    </div>
+    <button class="mic-btn off" id="micBtn" onclick="toggleMic()">start listening</button>
+  </div>
+  <div class="mic-status" id="micStatus">say "dsk 260 foil promo"</div>
 </div>
 
 <div class="main">
-  <!-- Voice (primary) -->
-  <div class="mic-section">
-    <button class="mic-btn off" id="micBtn" onclick="toggleMic()">start listening</button>
-    <div class="mic-status" id="micStatus">say "dsk 260 foil promo"</div>
-  </div>
-
   <!-- Manual entry (collapsed) -->
   <div class="manual-toggle">
     <button class="link-btn" onclick="document.getElementById('manualEntry').classList.toggle('hidden'); this.textContent = this.textContent === 'manual entry' ? 'hide' : 'manual entry'">manual entry</button>
