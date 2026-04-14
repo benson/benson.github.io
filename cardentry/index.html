@@ -349,6 +349,7 @@
     <div class="actions-bar">
       <button class="btn" id="submitBtn" onclick="submitToStore()">submit to store</button>
       <button class="btn btn-secondary" onclick="copyList()">copy list</button>
+      <button class="btn btn-secondary" onclick="exportTcgCsv()">tcg player csv</button>
       <button class="btn btn-secondary" onclick="exportCSV()">export csv</button>
       <button class="btn btn-danger" onclick="clearAll()">clear all</button>
     </div>
@@ -385,6 +386,8 @@ import {
   getCardFinishes,
   getCardImageUrl,
   getCardPrintingType,
+  loadSkuBucket,
+  findSkuId,
   TCG_CONDITIONS,
   TCG_PRINTINGS,
   TCG_LANGUAGES,
@@ -499,8 +502,12 @@ function showCardPreview(card) {
 }
 
 // Fetch the stamped promo image from Scryfall (p{set}/{cn}s)
+// Also captures promo tcgplayer_id for CSV export
+let promoTcgplayerId = null;
+
 async function updatePromoImage(card, source) {
   const imgEl = document.getElementById('previewImg');
+  promoTcgplayerId = null;
   if (source === 'regular') {
     imgEl.src = getCardImageUrl(card, 'normal') || '';
     return;
@@ -511,6 +518,7 @@ async function updatePromoImage(card, source) {
     const promoCard = await fetchCardByCollectorNumber(promoSet, promoCn);
     if (promoCard) {
       imgEl.src = getCardImageUrl(promoCard, 'normal') || imgEl.src;
+      if (promoCard.tcgplayer_id) promoTcgplayerId = promoCard.tcgplayer_id;
     }
   } catch (e) {
     // Fall back to regular image silently
@@ -532,6 +540,11 @@ function addCard() {
   if (!currentCard) return;
 
   const finish = document.getElementById('previewPrinting').value;
+  const source = document.getElementById('previewSource').value;
+  const tcgId = (source !== 'regular' && promoTcgplayerId)
+    ? promoTcgplayerId
+    : (currentCard.tcgplayer_id || null);
+
   const entry = {
     id: nextId++,
     name: currentCard.name,
@@ -539,11 +552,18 @@ function addCard() {
     setName: currentCard.set_name,
     cn: currentCard.collector_number,
     printing: getCardPrintingType(currentCard, finish),
-    source: document.getElementById('previewSource').value,
+    finish: finish,
+    source: source,
     condition: conditionSelect.value,
     language: langSelect.value,
     quantity: Math.max(1, parseInt(document.getElementById('previewQty').value, 10) || 1),
     scryfallId: currentCard.id,
+    tcgplayerId: tcgId,
+    rarity: currentCard.rarity || '',
+    prices: {
+      usd: currentCard.prices?.usd || null,
+      usd_foil: currentCard.prices?.usd_foil || null,
+    },
   };
 
   cards.push(entry);
@@ -619,6 +639,86 @@ function exportCSV() {
   URL.revokeObjectURL(url);
 }
 window.exportCSV = exportCSV;
+
+async function exportTcgCsv() {
+  if (cards.length === 0) {
+    showFeedback('no cards to export', 'error');
+    return;
+  }
+
+  showFeedback('<span class="loading-spinner"></span> looking up tcg player skus...', 'info');
+
+  // load all needed SKU buckets
+  const productIds = [...new Set(cards.map(c => c.tcgplayerId).filter(Boolean))];
+  const buckets = {};
+  for (const pid of productIds) {
+    const bucketStart = Math.floor(pid / 100000) * 100000;
+    if (!buckets[bucketStart]) {
+      buckets[bucketStart] = await loadSkuBucket(pid);
+    }
+  }
+
+  const header = 'TCGplayer Id,Product Line,Set Name,Product Name,Title,Number,Rarity,Condition,TCG Market Price,TCG Direct Low,TCG Low Price With Shipping,TCG Low Price,Total Quantity,Add to Quantity,TCG Marketplace Price,Photo URL';
+  const rows = [];
+  const missing = [];
+  const rarityMap = { common: 'C', uncommon: 'U', rare: 'R', mythic: 'M', special: 'S', bonus: 'B' };
+
+  for (const card of cards) {
+    if (!card.tcgplayerId) {
+      missing.push(card.name + ' (' + card.set + ' #' + card.cn + ') — no tcg id');
+      continue;
+    }
+
+    const bucket = buckets[Math.floor(card.tcgplayerId / 100000) * 100000];
+    const finish = card.finish || 'nonfoil';
+    const skuId = findSkuId(bucket, card.tcgplayerId, card.condition, finish);
+
+    if (!skuId) {
+      missing.push(card.name + ' (' + card.set + ' #' + card.cn + ') — no sku');
+      continue;
+    }
+
+    // TCG Player condition includes foil status
+    const conditionStr = finish !== 'nonfoil'
+      ? card.condition + ' Foil'
+      : card.condition;
+
+    // set name for promos/prerelease
+    let setName = card.setName;
+    if (card.source === 'promo') setName = 'Promo Pack: ' + card.setName;
+    else if (card.source === 'prerelease') setName = 'Prerelease Cards';
+
+    const rarity = rarityMap[card.rarity] || '';
+    const price = (finish !== 'nonfoil' ? card.prices?.usd_foil : card.prices?.usd) || '';
+
+    const q = (v) => '"' + String(v).replace(/"/g, '""') + '"';
+    rows.push([
+      q(skuId), q('Magic'), q(setName), q(card.name), q(''),
+      q(card.cn), q(rarity), q(conditionStr),
+      q(price), q(''), q(''), q(''), q(''),
+      q(card.quantity), q(price), q(''),
+    ].join(','));
+  }
+
+  if (rows.length === 0) {
+    showFeedback('no cards could be matched to tcg player skus. ' + missing.join(', '), 'error');
+    return;
+  }
+
+  const csv = header + '\n' + rows.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'tcgplayer-import.csv'; a.click();
+  URL.revokeObjectURL(url);
+
+  if (missing.length > 0) {
+    showFeedback('exported ' + rows.length + ' cards. missing: ' + missing.join(', '), 'info');
+  } else {
+    showFeedback('exported ' + rows.length + ' cards to tcgplayer-import.csv', 'success');
+  }
+}
+window.exportTcgCsv = exportTcgCsv;
 
 const QUEUE_URL = 'https://cardentry-queue.bensonperry.workers.dev';
 

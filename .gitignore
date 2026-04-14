@@ -1,2 +1,3 @@
 **/.wrangler/
 scripts/spotify-auth.js
+node_modules/

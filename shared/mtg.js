@@ -977,3 +977,34 @@ export function getCardPrintingType(card, selectedFinish = 'nonfoil') {
   if (promos.includes('raisedfoil')) return 'Raised Foil';
   return 'Foil';
 }
+
+// ============ TCG Player SKU Lookup ============
+
+const SKU_BASE_URL = 'https://bensonperry.com/cardentry/skus';
+const SKU_BUCKET_SIZE = 100000;
+const skuBucketCache = {};
+
+export async function loadSkuBucket(productId) {
+  const bucketStart = Math.floor(productId / SKU_BUCKET_SIZE) * SKU_BUCKET_SIZE;
+  if (skuBucketCache[bucketStart]) return skuBucketCache[bucketStart];
+  const url = SKU_BASE_URL + '/' + bucketStart + '.json';
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    skuBucketCache[bucketStart] = data;
+    return data;
+  } catch (e) {
+    return null;
+  }
+}
+
+export function findSkuId(bucket, productId, condition, finish) {
+  if (!bucket) return null;
+  const skus = bucket[String(productId)];
+  if (!skus) return null;
+  const mtgCondition = condition.toUpperCase();
+  const mtgPrinting = (finish === 'nonfoil') ? 'NON FOIL' : 'FOIL';
+  const match = skus.find(s => s.c === mtgCondition && s.p === mtgPrinting);
+  return match ? match.s : null;
+}
