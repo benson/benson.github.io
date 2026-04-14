@@ -347,11 +347,20 @@
     </div>
 
     <div class="actions-bar">
-      <button class="btn" id="submitBtn" onclick="submitToStore()">submit to store</button>
+      <button class="btn" onclick="generateTcgCsv()">tcg player csv</button>
       <button class="btn btn-secondary" onclick="copyList()">copy list</button>
-      <button class="btn btn-secondary" onclick="exportTcgCsv()">tcg player csv</button>
       <button class="btn btn-secondary" onclick="exportCSV()">export csv</button>
       <button class="btn btn-danger" onclick="clearAll()">clear all</button>
+    </div>
+
+    <!-- TCG Player CSV options (shown after generation) -->
+    <div id="tcgOptions" class="hidden" style="margin-bottom: 16px;">
+      <div style="font-size: 0.75rem; color: #999; margin-bottom: 6px;">csv ready — choose how to upload:</div>
+      <div class="actions-bar">
+        <button class="btn btn-secondary" onclick="downloadTcgCsv()">download csv</button>
+        <button class="btn btn-secondary" onclick="uploadTcgCsvNow()">upload now</button>
+        <button class="btn btn-secondary" onclick="scheduleTcgCsv()">tonight</button>
+      </div>
     </div>
 
     <div class="table-wrap">
@@ -640,15 +649,19 @@ function exportCSV() {
 }
 window.exportCSV = exportCSV;
 
-async function exportTcgCsv() {
+// ---- TCG Player CSV ----
+let pendingTcgCsv = null;
+let pendingTcgCsvCount = 0;
+
+async function generateTcgCsv() {
   if (cards.length === 0) {
     showFeedback('no cards to export', 'error');
     return;
   }
 
   showFeedback('<span class="loading-spinner"></span> looking up tcg player skus...', 'info');
+  document.getElementById('tcgOptions').classList.add('hidden');
 
-  // load all needed SKU buckets
   const productIds = [...new Set(cards.map(c => c.tcgplayerId).filter(Boolean))];
   const buckets = {};
   for (const pid of productIds) {
@@ -665,32 +678,22 @@ async function exportTcgCsv() {
 
   for (const card of cards) {
     if (!card.tcgplayerId) {
-      missing.push(card.name + ' (' + card.set + ' #' + card.cn + ') — no tcg id');
+      missing.push(card.name + ' (' + card.set + ' #' + card.cn + ')');
       continue;
     }
-
     const bucket = buckets[Math.floor(card.tcgplayerId / 100000) * 100000];
     const finish = card.finish || 'nonfoil';
     const skuId = findSkuId(bucket, card.tcgplayerId, card.condition, finish);
-
     if (!skuId) {
-      missing.push(card.name + ' (' + card.set + ' #' + card.cn + ') — no sku');
+      missing.push(card.name + ' (' + card.set + ' #' + card.cn + ')');
       continue;
     }
-
-    // TCG Player condition includes foil status
-    const conditionStr = finish !== 'nonfoil'
-      ? card.condition + ' Foil'
-      : card.condition;
-
-    // set name for promos/prerelease
+    const conditionStr = finish !== 'nonfoil' ? card.condition + ' Foil' : card.condition;
     let setName = card.setName;
     if (card.source === 'promo') setName = 'Promo Pack: ' + card.setName;
     else if (card.source === 'prerelease') setName = 'Prerelease Cards';
-
     const rarity = rarityMap[card.rarity] || '';
     const price = (finish !== 'nonfoil' ? card.prices?.usd_foil : card.prices?.usd) || '';
-
     const q = (v) => '"' + String(v).replace(/"/g, '""') + '"';
     rows.push([
       q(skuId), q('Magic'), q(setName), q(card.name), q(''),
@@ -701,24 +704,86 @@ async function exportTcgCsv() {
   }
 
   if (rows.length === 0) {
-    showFeedback('no cards could be matched to tcg player skus. ' + missing.join(', '), 'error');
+    showFeedback('no cards matched to tcg player skus. ' + missing.join(', '), 'error');
     return;
   }
 
-  const csv = header + '\n' + rows.join('\n');
-  const blob = new Blob([csv], { type: 'text/csv' });
+  pendingTcgCsv = header + '\n' + rows.join('\n');
+  pendingTcgCsvCount = rows.length;
+
+  const msg = rows.length + ' cards ready' + (missing.length ? ' (' + missing.length + ' missing skus)' : '');
+  showFeedback(msg, 'success');
+  document.getElementById('tcgOptions').classList.remove('hidden');
+}
+window.generateTcgCsv = generateTcgCsv;
+
+function downloadTcgCsv() {
+  if (!pendingTcgCsv) return;
+  const blob = new Blob([pendingTcgCsv], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = 'tcgplayer-import.csv'; a.click();
   URL.revokeObjectURL(url);
+  showFeedback('downloaded tcgplayer-import.csv', 'success');
+  document.getElementById('tcgOptions').classList.add('hidden');
+}
+window.downloadTcgCsv = downloadTcgCsv;
 
-  if (missing.length > 0) {
-    showFeedback('exported ' + rows.length + ' cards. missing: ' + missing.join(', '), 'info');
-  } else {
-    showFeedback('exported ' + rows.length + ' cards to tcgplayer-import.csv', 'success');
+async function uploadTcgCsvNow() {
+  if (!pendingTcgCsv) return;
+  showFeedback('<span class="loading-spinner"></span> submitting for upload...', 'info');
+  try {
+    const resp = await fetch(QUEUE_URL + '/csv', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ csv: pendingTcgCsv, cardCount: pendingTcgCsvCount }),
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      showFeedback('submitted — claude code will upload to tcg player shortly', 'success');
+      document.getElementById('tcgOptions').classList.add('hidden');
+      pendingTcgCsv = null;
+    } else {
+      showFeedback('submit failed: ' + (data.error || 'unknown'), 'error');
+    }
+  } catch (e) {
+    showFeedback('submit failed: ' + e.message, 'error');
   }
 }
-window.exportTcgCsv = exportTcgCsv;
+window.uploadTcgCsvNow = uploadTcgCsvNow;
+
+async function scheduleTcgCsv() {
+  if (!pendingTcgCsv) return;
+  // schedule for 10pm local time tonight
+  const tonight = new Date();
+  tonight.setHours(22, 0, 0, 0);
+  if (tonight <= new Date()) tonight.setDate(tonight.getDate() + 1);
+
+  showFeedback('<span class="loading-spinner"></span> scheduling...', 'info');
+  try {
+    const resp = await fetch(QUEUE_URL + '/csv', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        csv: pendingTcgCsv,
+        cardCount: pendingTcgCsvCount,
+        scheduledFor: tonight.toISOString(),
+      }),
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      const timeStr = tonight.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      showFeedback('scheduled for ' + timeStr + ' tonight — claude code will upload automatically', 'success');
+      document.getElementById('tcgOptions').classList.add('hidden');
+      pendingTcgCsv = null;
+    } else {
+      showFeedback('schedule failed: ' + (data.error || 'unknown'), 'error');
+    }
+  } catch (e) {
+    showFeedback('schedule failed: ' + e.message, 'error');
+  }
+}
+window.scheduleTcgCsv = scheduleTcgCsv;
 
 const QUEUE_URL = 'https://cardentry-queue.bensonperry.workers.dev';
 

@@ -84,6 +84,51 @@ export default {
       return json({ ok: true }, request);
     }
 
+    // POST /csv — store a generated TCG Player CSV for automated upload
+    if (path === '/csv' && request.method === 'POST') {
+      const body = await request.json();
+      if (!body.csv) {
+        return json({ error: 'csv content required' }, request, 400);
+      }
+      const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      const entry = {
+        id,
+        csv: body.csv,
+        cardCount: body.cardCount || 0,
+        submittedAt: new Date().toISOString(),
+        scheduledFor: body.scheduledFor || null,
+        status: 'pending',
+      };
+      await env.CARDS.put(`csv:${id}`, JSON.stringify(entry));
+      return json({ ok: true, id, scheduledFor: entry.scheduledFor }, request);
+    }
+
+    // GET /csv/pending — list CSVs ready for upload (scheduledFor <= now or null)
+    if (path === '/csv/pending' && request.method === 'GET') {
+      const list = await env.CARDS.list({ prefix: 'csv:' });
+      const ready = [];
+      const now = new Date().toISOString();
+      for (const key of list.keys) {
+        const data = await env.CARDS.get(key.name, 'json');
+        if (!data || data.status !== 'pending') continue;
+        if (data.scheduledFor && data.scheduledFor > now) continue;
+        ready.push(data);
+      }
+      return json({ uploads: ready }, request);
+    }
+
+    // POST /csv/complete/:id — mark a CSV upload as done
+    if (path.startsWith('/csv/complete/') && request.method === 'POST') {
+      const id = path.split('/csv/complete/')[1];
+      const key = `csv:${id}`;
+      const data = await env.CARDS.get(key, 'json');
+      if (!data) return json({ error: 'not found' }, request, 404);
+      data.status = 'completed';
+      data.completedAt = new Date().toISOString();
+      await env.CARDS.put(key, JSON.stringify(data));
+      return json({ ok: true, id }, request);
+    }
+
     return json({ error: 'not found' }, request, 404);
   },
 };
