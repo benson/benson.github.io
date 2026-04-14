@@ -235,16 +235,48 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   .hidden { display: none; }
+  .variant-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: all 0.15s;
+  }
+  .variant-card:hover { opacity: 0.8; }
+  .variant-card.selected { opacity: 1; }
   .variant-thumb {
     width: 80px;
     border-radius: 3px;
-    cursor: pointer;
-    opacity: 0.5;
     border: 2px solid transparent;
-    transition: all 0.15s;
   }
-  .variant-thumb:hover { opacity: 0.8; }
-  .variant-thumb.selected { opacity: 1; border-color: #000; }
+  .variant-card.selected .variant-thumb { border-color: #000; }
+  .variant-label {
+    font-size: 0.6rem;
+    color: #999;
+    text-align: center;
+    max-width: 80px;
+    line-height: 1.2;
+  }
+  .variant-card.selected .variant-label { color: #000; }
+
+  /* Sticky mobile action bar */
+  .sticky-actions {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 12px 15px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    background: #f8f7f4;
+    border-top: 1px solid #ddd;
+    gap: 8px;
+    z-index: 100;
+  }
+  .sticky-actions .btn { flex: 1; padding: 14px 16px; font-size: 0.9rem; }
+  .sticky-actions .btn-secondary { padding: 14px 16px; font-size: 0.9rem; }
   .source-tag { color: #999; font-size: 0.7rem; font-style: italic; }
   .divider { border-top: 1px solid #eee; margin: 20px 0; }
 
@@ -264,6 +296,9 @@
     .actions-bar .btn { font-size: 0.7rem; padding: 6px 10px; flex: 1; text-align: center; }
     table { font-size: 0.7rem; }
     thead th, td { padding: 4px 4px; }
+    .sticky-actions.active { display: flex; }
+    .preview .preview-actions { display: none; }
+    .main { padding-bottom: 80px; }
   }
 </style>
 </head>
@@ -399,6 +434,12 @@
   </div>
 </div>
 
+<!-- Sticky mobile action bar -->
+<div class="sticky-actions" id="stickyActions">
+  <button class="btn" onclick="addCard()">add to list</button>
+  <button class="btn btn-secondary" onclick="clearPreview()">skip</button>
+</div>
+
 <footer><a href="/">bensonperry.com</a></footer>
 
 <script type="module">
@@ -488,6 +529,7 @@ window.doLookup = doLookup;
 function showCardPreview(card) {
   currentCard = card;
   preview.classList.add('active');
+  document.getElementById('stickyActions').classList.add('active');
 
   document.getElementById('previewImg').src = getCardImageUrl(card, 'normal') || '';
   document.getElementById('previewName').textContent = card.name;
@@ -512,13 +554,26 @@ function showCardPreview(card) {
     if (variants.length <= 1) return;
     variantsRow.style.display = 'flex';
     for (const v of variants) {
+      const wrap = document.createElement('div');
+      wrap.className = 'variant-card' + (v.id === card.id ? ' selected' : '');
+      wrap.dataset.variantId = v.id;
+      wrap.onclick = () => selectVariant(v);
+
       const img = document.createElement('img');
-      img.className = 'variant-thumb' + (v.id === card.id ? ' selected' : '');
+      img.className = 'variant-thumb';
       img.src = getCardImageUrl(v, 'small') || '';
-      img.title = (v.collector_number + ' — ' + (v.tcgProductName || v.name)).toLowerCase();
-      img.dataset.variantId = v.id;
-      img.onclick = () => selectVariant(v);
-      variantsRow.appendChild(img);
+      wrap.appendChild(img);
+
+      const label = document.createElement('div');
+      label.className = 'variant-label';
+      // derive short label from TCG Player name or card attributes
+      const tcgName = v.tcgProductName || '';
+      const parts = tcgName.match(/\(([^)]+)\)/g) || [];
+      const shortLabel = parts.map(p => p.replace(/[()]/g, '')).join(' · ') || ('#' + v.collector_number);
+      label.textContent = shortLabel.toLowerCase();
+      wrap.appendChild(label);
+
+      variantsRow.appendChild(wrap);
     }
   });
 
@@ -577,6 +632,8 @@ async function updatePromoImage(card, source) {
 function clearPreview() {
   currentCard = null;
   preview.classList.remove('active');
+  document.getElementById('stickyActions').classList.remove('active');
+  document.getElementById('variantsRow').style.display = 'none';
   window._voiceSource = 'regular';
   setInput.value = '';
   cnInput.value = '';
@@ -1055,8 +1112,8 @@ function selectVariant(variant) {
     }
   }
 
-  // highlight selected thumb
-  document.querySelectorAll('.variant-thumb').forEach(t => {
+  // highlight selected variant
+  document.querySelectorAll('.variant-card').forEach(t => {
     t.classList.toggle('selected', t.dataset.variantId === variant.id);
   });
 }
