@@ -32,6 +32,7 @@ export const SPECIAL_GUESTS_RANGES = {
   'tdm': [104, 118],
   'eoe': [119, 128],
   'fin': [129, 148],
+  'sos': [149, 158],
 };
 
 // Sets with The Big Score bonus sheet
@@ -45,6 +46,7 @@ export const BONUS_SHEET_SETS = {
   'spm': 'mar',  // Marvel's Spider-Man -> Marvel Universe (source material cards)
   'eoe': 'eos',  // Edge of Eternities -> Stellar Sights (premium land reprints)
   'fin': 'fca',  // Final Fantasy -> Through the Ages (classic reprints with FF artwork)
+  'sos': 'soa',  // Secrets of Strixhaven -> Mystical Archive (1 per pack)
 };
 
 // Sets with Special Guests that we can accurately track
