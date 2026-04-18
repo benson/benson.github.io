@@ -402,9 +402,17 @@
 <script type="module">
 import {
   fetchCardByCollectorNumber,
+  fetchSets,
   getCardFinishes,
   getCardImageUrl,
 } from 'https://bensonperry.com/shared/mtg.js';
+
+// Valid set codes, loaded in the background. Until loaded, the voice parser
+// falls back to a simple regex.
+let validSets = new Set();
+fetchSets().then(sets => {
+  validSets = new Set((sets || []).map(s => s.code.toLowerCase()));
+}).catch(() => {});
 
 // ---- Manabox-style vocab (lowercase, underscored) ----
 const CONDITIONS = [
@@ -807,9 +815,54 @@ function toggleMic() {
 }
 window.toggleMic = toggleMic;
 
+// Keyword regexes used both to detect and strip
+const KW_FOIL = /\bfoil\b/g;
+const KW_PRERELEASE = /\b(prerelease|pre-release|pre release|date\s*stamp(ed)?)\b/g;
+const KW_PROMO = /\b(promo|stamp|stamped)\b/g;
+const KW_CONDITIONS = [
+  ['damaged',           /\b(damaged|dmg|poor)\b/g],
+  ['heavily_played',    /\b(heavily\s*played|heavy\s*play(ed)?|hp)\b/g],
+  ['moderately_played', /\b(moderately\s*played|moderate\s*play(ed)?|mp)\b/g],
+  ['lightly_played',    /\b(lightly\s*played|light\s*play(ed)?|lp|excellent)\b/g],
+  ['near_mint',         /\b(near\s*mint|nm|mint|n\.m\.)\b/g],
+];
+
+// Try to parse "set + cn" from a keyword-stripped string.
+// Returns { set, cn } or null.
+function smartParseSetCn(text) {
+  const alnum = text.replace(/[^a-z0-9]/gi, '').toLowerCase();
+  if (!alnum) return null;
+
+  // Prefer valid set code prefixes (longest match wins)
+  if (validSets.size > 0) {
+    for (let k = 5; k >= 2; k--) {
+      const candidate = alnum.slice(0, k);
+      const rest = alnum.slice(k);
+      if (validSets.has(candidate) && /^\d+[a-z]?$/.test(rest)) {
+        return { set: candidate, cn: rest };
+      }
+    }
+    // Tens-fusion fallback: "j 20 5480" (speech: "j twenty-five four-eighty")
+    // Pattern: letters + ten-digit + '0' + more digits → letters + tensD + firstRestD + restRest
+    const m = alnum.match(/^([a-z]+)(\d)0(\d+)$/);
+    if (m && m[3].length >= 1) {
+      const setCode = m[1] + m[2] + m[3][0];
+      const cn = m[3].slice(1);
+      if (validSets.has(setCode) && cn.length > 0) {
+        return { set: setCode, cn };
+      }
+    }
+  }
+
+  // Fallback when sets.json hasn't loaded (or set is unknown): regex-only
+  const m = text.match(/^\s*([a-z0-9]{2,5})\s+(\d{1,4}[a-z]?)\b/i);
+  if (m) return { set: m[1].toLowerCase(), cn: m[2] };
+  return null;
+}
+
 window.parseVoice = parseVoice;
 function parseVoice(text) {
-  const clean = text.toLowerCase()
+  let clean = text.toLowerCase()
     .replace(/\b(um|uh|uhh|okay|ok)\b/g, '')
     .replace(/number\s*/g, '')
     .replace(/hashtag\s*/g, '')
@@ -818,40 +871,41 @@ function parseVoice(text) {
     .replace(/\s+/g, ' ')
     .trim();
 
-  const match = clean.match(/^([a-z0-9]{2,5})\s+(\d{1,4}[a-z]?)\b/);
-  if (match) {
-    setInput.value = match[1];
-    cnInput.value = match[2];
+  // Detect keywords anywhere in the transcript
+  const hasFoil = KW_FOIL.test(clean); KW_FOIL.lastIndex = 0;
+  let source = 'regular';
+  if (KW_PRERELEASE.test(clean)) source = 'prerelease';
+  else if (KW_PROMO.test(clean)) source = 'promo';
+  KW_PRERELEASE.lastIndex = 0; KW_PROMO.lastIndex = 0;
 
-    const rest = clean.slice(match[0].length);
-    window._voiceFoil = /\bfoil\b/.test(rest);
-    if (/\b(prerelease|pre-release|pre release|date\s*stamp(ed)?)\b/.test(rest)) {
-      window._voiceSource = 'prerelease';
-    } else if (/\b(promo|stamp|stamped)\b/.test(rest)) {
-      window._voiceSource = 'promo';
-    } else {
-      window._voiceSource = 'regular';
-    }
-
-    // Condition keywords — check most specific first; dropdown persists until changed
-    const condRules = [
-      ['damaged',           /\b(damaged|dmg|poor)\b/],
-      ['heavily_played',    /\b(heavily\s*played|heavy\s*play(ed)?|hp)\b/],
-      ['moderately_played', /\b(moderately\s*played|moderate\s*play(ed)?|mp)\b/],
-      ['lightly_played',    /\b(lightly\s*played|light\s*play(ed)?|lp|excellent)\b/],
-      ['near_mint',         /\b(near\s*mint|nm|mint|n\.m\.)\b/],
-    ];
-    for (const [value, re] of condRules) {
-      if (re.test(rest)) {
-        document.getElementById('previewCondition').value = value;
-        break;
-      }
-    }
-
-    doLookup();
-  } else {
-    showFeedback('couldn\'t parse "' + esc(text) + '" — say set code then number (e.g. "fin 142")', 'error');
+  let condition = null;
+  for (const [value, re] of KW_CONDITIONS) {
+    re.lastIndex = 0;
+    if (re.test(clean)) { condition = value; break; }
+    re.lastIndex = 0;
   }
+
+  // Strip all keywords to leave "set cn" (roughly)
+  let stripped = clean
+    .replace(KW_FOIL, ' ')
+    .replace(KW_PRERELEASE, ' ')
+    .replace(KW_PROMO, ' ');
+  for (const [, re] of KW_CONDITIONS) stripped = stripped.replace(re, ' ');
+  stripped = stripped.replace(/\s+/g, ' ').trim();
+
+  const parsed = smartParseSetCn(stripped);
+  if (!parsed) {
+    showFeedback('couldn\'t parse "' + esc(text) + '" — say set code then number (e.g. "fin 142")', 'error');
+    return;
+  }
+
+  setInput.value = parsed.set;
+  cnInput.value = parsed.cn;
+  window._voiceFoil = hasFoil;
+  window._voiceSource = source;
+  if (condition) document.getElementById('previewCondition').value = condition;
+
+  doLookup();
 }
 
 // ---- Keyboard shortcuts ----
