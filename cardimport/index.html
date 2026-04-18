@@ -275,7 +275,7 @@
     </div>
     <button class="mic-btn off" id="micBtn" onclick="toggleMic()">start listening</button>
   </div>
-  <div class="mic-status" id="micStatus">say "dsk 260 foil"</div>
+  <div class="mic-status" id="micStatus">say "dsk 260 foil" or "fin 142 promo" or "fin 142 prerelease"</div>
 </div>
 
 <div class="main">
@@ -302,6 +302,14 @@
       <div class="preview-name" id="previewName"></div>
       <div class="preview-meta" id="previewMeta"></div>
       <div class="preview-fields">
+        <div class="field">
+          <label>variant</label>
+          <select id="previewSource">
+            <option value="regular">regular</option>
+            <option value="promo">promo pack</option>
+            <option value="prerelease">prerelease</option>
+          </select>
+        </div>
         <div class="field">
           <label>finish</label>
           <select id="previewFinish"></select>
@@ -462,29 +470,65 @@ document.getElementById('manualToggle').addEventListener('click', (e) => {
   if (!m.classList.contains('hidden')) setInput.focus();
 });
 
+// Map (userSet, userCn, variant) → Scryfall (set, cn) tuple
+function resolveLookupTarget(set, cn, variant) {
+  const s = set.toLowerCase();
+  if (variant === 'promo' || variant === 'prerelease') {
+    const pset = s.startsWith('p') ? s : 'p' + s;
+    const pcn = /[a-z]$/i.test(cn) ? cn : cn + 's';
+    return { set: pset, cn: pcn };
+  }
+  return { set: s, cn };
+}
+
 // ---- Lookup ----
 async function doLookup() {
-  const set = setInput.value.trim();
-  const cn = cnInput.value.trim();
-  if (!set || !cn) {
+  const userSet = setInput.value.trim();
+  const userCn = cnInput.value.trim();
+  if (!userSet || !userCn) {
     showFeedback('enter both set code and collector number', 'error');
     return;
   }
 
-  lookupBtn.disabled = true;
-  showFeedback('<span class="loading-spinner"></span> looking up ' + set + ' #' + cn + '...', 'info');
+  // If voice flagged a variant, sync the dropdown before looking up
+  if (window._voiceSource) {
+    document.getElementById('previewSource').value = window._voiceSource;
+    window._voiceSource = null;
+  }
+  const variant = document.getElementById('previewSource').value;
+  const target = resolveLookupTarget(userSet, userCn, variant);
 
-  const card = await fetchCardByCollectorNumber(set, cn);
+  lookupBtn.disabled = true;
+  const label = variant === 'regular'
+    ? target.set + ' #' + target.cn
+    : variant + ' ' + target.set + ' #' + target.cn;
+  showFeedback('<span class="loading-spinner"></span> looking up ' + label + '...', 'info');
+
+  let card = await fetchCardByCollectorNumber(target.set, target.cn);
+  let fallbackUsed = false;
+
+  // If promo/prerelease fetch failed, fall back to regular so the user sees something
+  if (!card && variant !== 'regular') {
+    card = await fetchCardByCollectorNumber(userSet, userCn);
+    if (card) {
+      fallbackUsed = true;
+      document.getElementById('previewSource').value = 'regular';
+    }
+  }
 
   lookupBtn.disabled = false;
 
   if (!card) {
-    showFeedback('no card found for ' + set + ' #' + cn, 'error');
+    showFeedback('no card found for ' + userSet + ' #' + userCn, 'error');
     return;
   }
 
   showCardPreview(card);
-  hideFeedback();
+  if (fallbackUsed) {
+    showFeedback('no ' + variant + ' variant found — showing regular printing', 'info');
+  } else {
+    hideFeedback();
+  }
   document.getElementById('previewQty').select();
 }
 window.doLookup = doLookup;
@@ -521,11 +565,20 @@ function showCardPreview(card) {
   window._voiceFoil = false;
 }
 
+// Re-fetch when user flips variant dropdown after a lookup
+document.getElementById('previewSource').addEventListener('change', () => {
+  if (setInput.value.trim() && cnInput.value.trim()) {
+    doLookup();
+  }
+});
+
 function clearPreview() {
   currentCard = null;
   preview.classList.remove('active');
   document.getElementById('stickyActions').classList.remove('active');
   window._voiceFoil = false;
+  window._voiceSource = null;
+  document.getElementById('previewSource').value = 'regular';
   setInput.value = '';
   cnInput.value = '';
   if (!document.getElementById('manualEntry').classList.contains('hidden')) setInput.focus();
@@ -763,6 +816,13 @@ function parseVoice(text) {
 
     const rest = clean.slice(match[0].length);
     window._voiceFoil = /\bfoil\b/.test(rest);
+    if (/\b(prerelease|pre-release|pre release|date\s*stamp(ed)?)\b/.test(rest)) {
+      window._voiceSource = 'prerelease';
+    } else if (/\b(promo|stamp|stamped)\b/.test(rest)) {
+      window._voiceSource = 'promo';
+    } else {
+      window._voiceSource = 'regular';
+    }
 
     doLookup();
   } else {
