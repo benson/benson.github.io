@@ -32,6 +32,13 @@
   .header p { color: #999; font-size: 0.75rem; margin-top: 2px; letter-spacing: 0.03em; }
   .header .mic-status { font-size: 0.75rem; color: #999; margin-top: 4px; }
   .header .mic-status strong { color: #000; }
+  .header .vocab-hint {
+    font-size: 0.65rem;
+    color: #bbb;
+    margin-top: 2px;
+    letter-spacing: 0.02em;
+  }
+  .header .vocab-hint strong { color: #888; font-weight: 400; }
 
   .main { max-width: 720px; margin: 0 auto; padding: 20px 30px; }
 
@@ -276,6 +283,7 @@
     <button class="mic-btn off" id="micBtn" onclick="toggleMic()">start listening</button>
   </div>
   <div class="mic-status" id="micStatus">say "dsk 260 foil lightly played" — conditions and promos persist</div>
+  <div class="vocab-hint"><strong>conditions:</strong> nm · lp · mp · hp · damaged &nbsp; <strong>variant:</strong> promo · prerelease &nbsp; <strong>finish:</strong> foil</div>
 </div>
 
 <div class="main">
