@@ -1,43 +1,52 @@
 const fs = require('fs');
 const path = require('path');
 
-const PLAY_BOOSTER_START = '2024-02-09';
 const UPCOMING_WINDOW_DAYS = 90; // include sets releasing within 90 days even without config yet
 
-// Tight whitelist: only set types that actually produce openable boosters for the dropdown
-const VALID_TYPES = new Set(['core', 'expansion', 'masters', 'draft_innovation', 'funny']);
-
-// Set-code prefixes that signal promo/non-consumer products we never want in the dropdown
-const BLACKLIST_PREFIXES = ['ph', 'pz', 'p'];
-
-// Set types that leak through VALID_TYPES but aren't consumer products
-const PROMO_NAME_HINTS = [
-  /heroes of the realm/i,
-  /judge rewards/i,
-  /promo pack/i,
-  /prerelease/i,
-  /box topper/i,
-];
-
-// Explicit overrides. These set codes appear on Scryfall but were never retail boosters.
-const BLACKLIST = new Set([
-  // List + store-exclusive sheets
-  'plst', 'ulst',
-  // Promo/judge/DCI collections
-  'pmei', 'pmh2', 'ptg', 'past', 'pgpx', 'pdci',
-  // Funny/novelty products that aren't openable boosters
-  'unk', 'cmb1', 'cmb2', 'und', 'h17', 'hho',
-  // Foreign-language reprints & misprints
-  'rin', 'ren', 'sum',
+// Pre-play-era sets that pass the retail-booster bar but aren't (yet) in the booster-data index.
+// The booster-data index otherwise serves as the allowlist for every set we ship. Keep this list
+// small and explicit — don't dump novelty/promo junk in here.
+const LEGACY_EXTRAS = new Set([
+  'mat', // March of the Machine: The Aftermath (2023-05-12)
+  'dbl', // Innistrad: Double Feature (2022-01-28)
 ]);
 
-function isConsumerProduct(s) {
-  if (BLACKLIST.has(s.code)) return false;
-  if (PROMO_NAME_HINTS.some(re => re.test(s.name))) return false;
-  // "p" + two-letter code is almost always a promo set (e.g. pmkm, pdsk) but there are
-  // legitimate core sets like "p01" — so only strip 4-letter p-codes starting with "p" + letter.
-  if (/^p[a-z]{2,}/i.test(s.code) && s.code !== 'plc' && s.code !== 'pls' && s.code !== 'pcy') return false;
-  return true;
+/**
+ * Pure filter: given raw Scryfall sets, the booster-data index, and today's date,
+ * return the filtered/sorted list ready for serialization.
+ *
+ * Rule: a set ships iff it produces a retail booster pack consumers can open.
+ *  - In the booster-data index -> ship it.
+ *  - In the legacy extras allowlist -> ship it.
+ *  - Upcoming main release (no parent_set_code, releasing within UPCOMING_WINDOW_DAYS
+ *    of `today`) -> ship it so the dropdown shows it early; the config lands before release.
+ *  - Digital-only -> drop.
+ *  - Sub-products with parent_set_code (tokens, commander decks, bonus sheets) -> drop
+ *    unless explicitly in the booster-data index (e.g. j25 Foundations Jumpstart).
+ */
+function filterSets(scryfallSets, boosterIndex, today) {
+  const boosterSets = new Set(Object.keys(boosterIndex.boosters));
+  const todayDate = new Date(today);
+  const upcomingCutoff = new Date(todayDate);
+  upcomingCutoff.setDate(upcomingCutoff.getDate() + UPCOMING_WINDOW_DAYS);
+
+  const filtered = scryfallSets.filter(s => {
+    if (s.digital) return false;
+    if (boosterSets.has(s.code)) return true;
+    if (LEGACY_EXTRAS.has(s.code)) return true;
+    if (s.parent_set_code) return false;
+    const released = new Date(s.released_at);
+    if (released > todayDate && released <= upcomingCutoff) return true;
+    return false;
+  });
+
+  filtered.sort((a, b) => new Date(b.released_at) - new Date(a.released_at));
+
+  return filtered.map(s => ({
+    code: s.code,
+    name: s.name,
+    released: s.released_at,
+  }));
 }
 
 async function fetchScryfallSets() {
@@ -59,49 +68,19 @@ async function main() {
 
   console.log('Fetching booster-data index...');
   const boosterIndex = await fetchBoosterDataIndex();
-  const boosterSets = new Set(Object.keys(boosterIndex.boosters));
 
-  const now = new Date();
-  const shortCutoff = new Date(now);
-  shortCutoff.setDate(shortCutoff.getDate() + 14);
-  const upcomingCutoff = new Date(now);
-  upcomingCutoff.setDate(upcomingCutoff.getDate() + UPCOMING_WINDOW_DAYS);
-
-  const filtered = sets.filter(s => {
-    if (!VALID_TYPES.has(s.set_type)) return false;
-    if (s.digital) return false;
-    if (!isConsumerProduct(s)) return false;
-    // Sub-products (bonus sheets, timeshifts, etc.) have parent_set_code. Allow only if
-    // booster-data indexes them as their own product (e.g. j25 Foundations Jumpstart).
-    if (s.parent_set_code && !boosterSets.has(s.code)) return false;
-    const released = new Date(s.released_at);
-    if (released > upcomingCutoff) return false;
-
-    // Play-booster-era sets: require config if released, but allow upcoming sets through
-    // so the dropdown shows them early (users can pre-browse; data fills in once configs land)
-    if (s.released_at >= PLAY_BOOSTER_START && released <= shortCutoff && !boosterSets.has(s.code)) {
-      console.log(`  Skipping ${s.code} (${s.name}) — released without booster-data config`);
-      return false;
-    }
-
-    return true;
-  });
-
-  // Sort by release date descending
-  filtered.sort((a, b) => new Date(b.released_at) - new Date(a.released_at));
-
-  const output = filtered.map(s => ({
-    code: s.code,
-    name: s.name,
-    released: s.released_at,
-  }));
+  const output = filterSets(sets, boosterIndex, new Date());
 
   const outPath = path.join(__dirname, '..', 'shared', 'sets.json');
   fs.writeFileSync(outPath, JSON.stringify(output, null, 2) + '\n');
   console.log(`Wrote ${output.length} sets to shared/sets.json`);
 }
 
-main().catch(e => {
-  console.error(e.message);
-  process.exit(1);
-});
+module.exports = { filterSets };
+
+if (require.main === module) {
+  main().catch(e => {
+    console.error(e.message);
+    process.exit(1);
+  });
+}
