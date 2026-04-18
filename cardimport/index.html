@@ -275,7 +275,7 @@
     </div>
     <button class="mic-btn off" id="micBtn" onclick="toggleMic()">start listening</button>
   </div>
-  <div class="mic-status" id="micStatus">say "dsk 260 foil" or "fin 142 promo" or "fin 142 prerelease"</div>
+  <div class="mic-status" id="micStatus">say "dsk 260 foil lightly played" — conditions and promos persist</div>
 </div>
 
 <div class="main">
@@ -799,6 +799,7 @@ function toggleMic() {
 }
 window.toggleMic = toggleMic;
 
+window.parseVoice = parseVoice;
 function parseVoice(text) {
   const clean = text.toLowerCase()
     .replace(/\b(um|uh|uhh|okay|ok)\b/g, '')
@@ -822,6 +823,21 @@ function parseVoice(text) {
       window._voiceSource = 'promo';
     } else {
       window._voiceSource = 'regular';
+    }
+
+    // Condition keywords — check most specific first; dropdown persists until changed
+    const condRules = [
+      ['damaged',           /\b(damaged|dmg|poor)\b/],
+      ['heavily_played',    /\b(heavily\s*played|heavy\s*play(ed)?|hp)\b/],
+      ['moderately_played', /\b(moderately\s*played|moderate\s*play(ed)?|mp)\b/],
+      ['lightly_played',    /\b(lightly\s*played|light\s*play(ed)?|lp|excellent)\b/],
+      ['near_mint',         /\b(near\s*mint|nm|mint|n\.m\.)\b/],
+    ];
+    for (const [value, re] of condRules) {
+      if (re.test(rest)) {
+        document.getElementById('previewCondition').value = value;
+        break;
+      }
     }
 
     doLookup();
