@@ -12,7 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      issues: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,36 +22,15 @@ jobs:
         run: node scripts/update-sets.js
 
       - name: Commit if changed
-        id: commit
         run: |
-          git diff --quiet shared/sets.json && {
-            echo "No changes."
-            exit 0
-          }
-          # Extract added/removed set codes for a descriptive commit message
+          git diff --quiet shared/sets.json && exit 0
           added=$(git diff shared/sets.json | grep -E '^\+\s+"code"' | sed -E 's/.*"code": "([^"]+)".*/\1/' | tr '\n' ',' | sed 's/,$//')
           removed=$(git diff shared/sets.json | grep -E '^-\s+"code"' | sed -E 's/.*"code": "([^"]+)".*/\1/' | tr '\n' ',' | sed 's/,$//')
           msg="update sets.json"
-          [ -n "$added" ]   && msg="$msg (+ $added)"
-          [ -n "$removed" ] && msg="$msg (- $removed)"
+          if [ -n "$added" ]; then msg="$msg (+ $added)"; fi
+          if [ -n "$removed" ]; then msg="$msg (- $removed)"; fi
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add shared/sets.json
           git commit -m "$msg"
           git push
-          echo "committed=true" >> "$GITHUB_OUTPUT"
-
-      - name: Report failure
-        if: failure()
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh issue create \
-            --title "auto: update-sets workflow failed" \
-            --label "automation,bug" \
-            --body "The daily \`update-sets\` workflow failed.
-
-**Workflow run:** https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-
-Check the logs for error details." \
-            || echo "Could not create issue (may already exist)"
