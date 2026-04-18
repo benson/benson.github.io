@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>mtg collection</title>
+<meta name="description" content="browse an mtg collection from any csv export">
+<link rel="stylesheet" href="https://bensonperry.com/shared/common.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Times New Roman", Times, Georgia, serif;
+    background: #f8f7f4;
+    color: #000;
+    min-height: 100vh;
+    text-transform: lowercase;
+    font-size: 0.9rem;
+  }
+
+  .header {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 30px 30px 0;
+  }
+  .header h1 { font-size: 1.5rem; font-weight: 400; letter-spacing: -0.02em; }
+  .header p { color: #999; font-size: 0.75rem; margin-top: 2px; letter-spacing: 0.03em; }
+
+  .main { max-width: 1080px; margin: 0 auto; padding: 20px 30px 80px; }
+
+  .btn {
+    padding: 8px 16px;
+    border: 1px solid #000;
+    border-radius: 2px;
+    font-size: 0.8rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: lowercase;
+    background: #000;
+    color: #fff;
+  }
+  .btn:hover { background: #333; }
+  .btn:disabled { background: #ccc; border-color: #ccc; cursor: default; }
+  .btn-secondary { background: transparent; color: #000; }
+  .btn-secondary:hover { background: #eee; }
+  .btn-danger { background: transparent; color: #999; border-color: #ccc; }
+  .btn-danger:hover { color: #c00; border-color: #c00; }
+
+  /* Drop zone */
+  .drop-zone {
+    border: 2px dashed #ccc;
+    border-radius: 4px;
+    padding: 40px 20px;
+    text-align: center;
+    color: #999;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-bottom: 16px;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: #000;
+    color: #000;
+    background: #fff;
+  }
+  .drop-zone p { margin: 4px 0; }
+  .drop-zone .small { font-size: 0.75rem; color: #ccc; }
+
+  .paste-area {
+    width: 100%;
+    min-height: 120px;
+    border: 1px solid #ccc;
+    border-radius: 2px;
+    padding: 8px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.75rem;
+    resize: vertical;
+    background: #fff;
+    color: #000;
+    text-transform: none;
+    margin-bottom: 8px;
+  }
+  .paste-area:focus { border-color: #000; outline: none; }
+
+  .import-actions { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+
+  /* Stats */
+  .stats {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .stat-label { font-size: 0.7rem; letter-spacing: 0.03em; color: #999; }
+  .stat-value { font-size: 1.5rem; font-weight: 400; }
+
+  /* Controls bar */
+  .controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #eee;
+  }
+  .controls input, .controls select {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #000;
+    color: #000;
+    padding: 4px 2px;
+    font-size: 0.85rem;
+    font-family: inherit;
+    text-transform: lowercase;
+    outline: none;
+    border-radius: 0;
+    -webkit-appearance: none;
+  }
+  .controls input:focus, .controls select:focus { border-bottom-width: 2px; }
+  .controls .search-input { width: 200px; flex: 1; max-width: 280px; }
+  .controls .filter-select { min-width: 90px; padding-right: 16px; }
+
+  /* Grid */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+  }
+  .card-tile {
+    position: relative;
+    border-radius: 4px;
+    overflow: hidden;
+    cursor: pointer;
+    background: #e8e8e8;
+    aspect-ratio: 488 / 680;
+    transition: transform 0.1s;
+  }
+  .card-tile:hover { transform: translateY(-2px); }
+  .card-tile img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .card-tile .placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 8px;
+    text-align: center;
+    font-size: 0.7rem;
+    color: #999;
+    text-transform: none;
+  }
+  .card-badges {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    align-items: flex-end;
+  }
+  .badge {
+    background: rgba(0,0,0,0.8);
+    color: #fff;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 2px;
+    letter-spacing: 0.02em;
+    backdrop-filter: blur(4px);
+  }
+  .badge.foil { background: rgba(180,120,0,0.9); }
+  .badge.etched { background: rgba(100,40,160,0.9); }
+
+  .card-caption {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+    color: #fff;
+    padding: 20px 6px 5px;
+    font-size: 0.65rem;
+    letter-spacing: 0.02em;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .card-tile:hover .card-caption { opacity: 1; }
+
+  /* Table view (compact) */
+  .list-view { display: none; }
+  .list-view.active { display: block; }
+  .grid.hidden { display: none; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  thead th {
+    text-align: left;
+    padding: 6px 8px;
+    border-bottom: 1px solid #000;
+    font-size: 0.7rem;
+    font-weight: 400;
+    letter-spacing: 0.03em;
+    color: #999;
+  }
+  tbody tr { border-bottom: 1px solid #eee; }
+  tbody tr:hover { background: #fff; }
+  td { padding: 6px 8px; }
+  .card-name-cell { text-transform: none; }
+  .muted { color: #999; }
+
+  .toggle-view {
+    font-size: 0.75rem;
+    color: #999;
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-transform: lowercase;
+    font-family: inherit;
+    border-bottom: 1px solid #ccc;
+    padding: 0 0 1px;
+  }
+  .toggle-view:hover { color: #000; border-color: #000; }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: #ccc; font-size: 0.85rem; }
+
+  .feedback {
+    font-size: 0.75rem;
+    padding: 6px 10px;
+    border-radius: 2px;
+    margin-bottom: 12px;
+    display: none;
+  }
+  .feedback.active { display: block; }
+  .feedback.error { background: #fff0f0; border: 1px solid #e8c0c0; color: #900; }
+  .feedback.info { background: #f0f4ff; border: 1px solid #c0d0e8; color: #336; }
+  .feedback.success { background: #f0fff0; border: 1px solid #c0e8c0; color: #060; }
+
+  .loading-spinner {
+    display: inline-block;
+    width: 12px; height: 12px;
+    border: 1.5px solid #ccc;
+    border-top-color: #000;
+    border-radius: 50%;
+    animation: spin 0.5s linear infinite;
+    vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .hidden { display: none !important; }
+  .progress {
+    font-size: 0.75rem;
+    color: #999;
+    margin-left: 8px;
+  }
+
+  details.import-details {
+    margin-bottom: 16px;
+    padding: 12px;
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 2px;
+  }
+  details.import-details summary {
+    cursor: pointer;
+    font-size: 0.8rem;
+    letter-spacing: 0.02em;
+  }
+  details.import-details summary::marker { color: #999; }
+  details.import-details .details-body { margin-top: 12px; }
+
+  .format-note { font-size: 0.7rem; color: #999; margin-top: 6px; }
+  .format-note code {
+    background: #eee;
+    padding: 1px 4px;
+    border-radius: 2px;
+    font-size: 0.95em;
+    text-transform: none;
+  }
+
+  @media (max-width: 600px) {
+    .header { padding: 12px 15px 8px; }
+    .header h1 { font-size: 1.1rem; }
+    .header p { font-size: 0.65rem; }
+    .main { padding: 10px 15px 40px; }
+    .grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 6px; }
+    .controls .search-input { width: 100%; max-width: none; flex-basis: 100%; }
+    .stats { gap: 14px; }
+    .stat-value { font-size: 1.1rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>mtg collection</h1>
+  <p>import a csv from any platform — browse, search, filter</p>
+</div>
+
+<div class="main">
+  <details class="import-details" id="importDetails">
+    <summary id="importSummary">import a csv</summary>
+    <div class="details-body">
+      <div class="drop-zone" id="dropZone">
+        <p><strong>drop a csv here</strong> or click to pick a file</p>
+        <p class="small">manabox, deckbox, moxfield, or any csv with name + set + collector number</p>
+        <input type="file" id="fileInput" accept=".csv,text/csv" style="display:none">
+      </div>
+
+      <textarea class="paste-area" id="pasteArea" placeholder="...or paste csv here"></textarea>
+
+      <div class="import-actions">
+        <button class="btn" onclick="importFromPaste()">import pasted</button>
+        <button class="btn btn-secondary" onclick="loadSample()">load sample</button>
+      </div>
+
+      <div class="format-note">
+        recognized columns (case-insensitive): <code>name</code>, <code>set code</code> / <code>edition</code>, <code>collector number</code> / <code>card number</code>, <code>quantity</code> / <code>count</code>, <code>foil</code>, <code>condition</code>, <code>language</code>, <code>scryfall id</code>
+      </div>
+    </div>
+  </details>
+
+  <div class="feedback" id="feedback"></div>
+
+  <div id="collectionSection" class="hidden">
+    <div class="stats">
+      <div><div class="stat-label">unique</div><div class="stat-value" id="uniqueCount">0</div></div>
+      <div><div class="stat-label">total</div><div class="stat-value" id="totalCount">0</div></div>
+      <div><div class="stat-label">value (usd)</div><div class="stat-value" id="totalValue">0</div></div>
+    </div>
+
+    <div class="controls">
+      <input class="search-input" type="text" id="searchInput" placeholder="search name...">
+      <select class="filter-select" id="filterSet"><option value="">all sets</option></select>
+      <select class="filter-select" id="filterRarity">
+        <option value="">all rarity</option>
+        <option value="common">common</option>
+        <option value="uncommon">uncommon</option>
+        <option value="rare">rare</option>
+        <option value="mythic">mythic</option>
+      </select>
+      <select class="filter-select" id="filterFoil">
+        <option value="">all finishes</option>
+        <option value="normal">normal</option>
+        <option value="foil">foil</option>
+        <option value="etched">etched</option>
+      </select>
+      <select class="filter-select" id="sortBy">
+        <option value="name">sort: name</option>
+        <option value="set">sort: set</option>
+        <option value="price-desc">sort: price ↓</option>
+        <option value="price-asc">sort: price ↑</option>
+        <option value="cmc">sort: mana value</option>
+      </select>
+      <button class="toggle-view" id="toggleView">list view</button>
+      <button class="btn-secondary btn" onclick="exportCsv()">export csv</button>
+      <button class="btn btn-danger" onclick="clearCollection()">clear</button>
+      <span class="progress" id="progress"></span>
+    </div>
+
+    <div class="grid" id="grid"></div>
+    <div class="list-view" id="listView">
+      <table>
+        <thead>
+          <tr>
+            <th>name</th>
+            <th>set</th>
+            <th>cn</th>
+            <th>finish</th>
+            <th>rarity</th>
+            <th>cond</th>
+            <th>qty</th>
+            <th>price</th>
+          </tr>
+        </thead>
+        <tbody id="listBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="empty-state" id="emptyState">
+    <p>import a csv to see your collection</p>
+  </div>
+</div>
+
+<footer><a href="/">bensonperry.com</a></footer>
+
+<script type="module">
+const SCRYFALL_API = 'https://api.scryfall.com';
+
+// ---- State ----
+let collection = [];  // normalized rows with resolved card data
+const STORAGE_KEY = 'mtgcollection_v1';
+let viewMode = 'grid';
+
+function save() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ collection, viewMode }));
+  } catch (e) {
+    showFeedback('collection too large for localstorage — ' + e.message, 'error');
+  }
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (Array.isArray(data.collection)) {
+      collection = data.collection;
+      viewMode = data.viewMode || 'grid';
+    }
+  } catch (e) {}
+}
+
+// ---- DOM refs ----
+const feedbackEl = document.getElementById('feedback');
+const gridEl = document.getElementById('grid');
+const listBodyEl = document.getElementById('listBody');
+const collectionSection = document.getElementById('collectionSection');
+const emptyState = document.getElementById('emptyState');
+const progressEl = document.getElementById('progress');
+
+// ---- Feedback ----
+function showFeedback(html, type = 'info') {
+  feedbackEl.innerHTML = html;
+  feedbackEl.className = 'feedback active ' + type;
+}
+function hideFeedback() { feedbackEl.className = 'feedback'; }
+
+// ---- CSV parser (handles quoted fields) ----
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let cell = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') { cell += '"'; i++; }
+        else inQuotes = false;
+      } else {
+        cell += ch;
+      }
+    } else {
+      if (ch === '"') inQuotes = true;
+      else if (ch === ',') { row.push(cell); cell = ''; }
+      else if (ch === '\n' || ch === '\r') {
+        if (ch === '\r' && text[i + 1] === '\n') i++;
+        row.push(cell); cell = '';
+        if (row.length > 1 || row[0] !== '') rows.push(row);
+        row = [];
+      } else {
+        cell += ch;
+      }
+    }
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  return rows.filter(r => r.some(c => c !== ''));
+}
+
+// ---- Header alias mapping ----
+const ALIASES = {
+  name:       ['name', 'card name', 'card'],
+  setCode:    ['set code', 'set', 'edition', 'setcode', 'set_code'],
+  setName:    ['set name', 'setname', 'edition name'],
+  cn:         ['collector number', 'card number', 'cn', 'collector_number', 'number'],
+  finish:     ['foil', 'finish', 'printing'],
+  qty:        ['quantity', 'count', 'qty'],
+  condition:  ['condition'],
+  language:   ['language', 'lang'],
+  scryfallId: ['scryfall id', 'scryfall_id', 'scryfallid'],
+  rarity:     ['rarity'],
+  price:      ['purchase price', 'price', 'tcg market price'],
+};
+
+function mapHeaders(headerRow) {
+  const idx = {};
+  const lower = headerRow.map(h => h.toLowerCase().trim());
+  for (const [key, aliases] of Object.entries(ALIASES)) {
+    for (const a of aliases) {
+      const i = lower.indexOf(a);
+      if (i !== -1) { idx[key] = i; break; }
+    }
+  }
+  return idx;
+}
+
+// Normalize a finish value from whatever source
+function normalizeFinish(raw) {
+  if (!raw) return 'normal';
+  const v = String(raw).toLowerCase().trim();
+  if (!v || v === 'false' || v === 'no' || v === '0' || v === 'normal' || v === 'nonfoil' || v === 'non-foil') return 'normal';
+  if (v === 'etched' || v === 'etched foil') return 'etched';
+  if (v === 'true' || v === 'yes' || v === '1' || v === 'foil' || v.includes('foil')) return 'foil';
+  return 'normal';
+}
+
+function normalizeCondition(raw) {
+  if (!raw) return 'near_mint';
+  const v = String(raw).toLowerCase().trim().replace(/\s+/g, '_');
+  if (v === 'mint' || v === 'm' || v === 'near_mint' || v === 'nm') return 'near_mint';
+  if (v === 'lightly_played' || v === 'lp' || v === 'excellent' || v === 'ex' || v === 'light_played') return 'lightly_played';
+  if (v === 'moderately_played' || v === 'mp' || v === 'played' || v === 'pl' || v === 'good') return 'moderately_played';
+  if (v === 'heavily_played' || v === 'hp') return 'heavily_played';
+  if (v === 'damaged' || v === 'dmg' || v === 'poor' || v === 'po') return 'damaged';
+  return v;
+}
+
+// ---- Import ----
+async function importCsv(text) {
+  const rows = parseCsv(text);
+  if (rows.length < 2) {
+    showFeedback('csv looks empty', 'error');
+    return;
+  }
+  const headerRow = rows[0];
+  const idx = mapHeaders(headerRow);
+  if (idx.name === undefined && idx.scryfallId === undefined && idx.cn === undefined) {
+    showFeedback('couldn\'t recognize columns — need at least name+set or collector number or scryfall id', 'error');
+    return;
+  }
+
+  const imported = [];
+  for (let r = 1; r < rows.length; r++) {
+    const row = rows[r];
+    const get = (k) => idx[k] !== undefined ? (row[idx[k]] || '').trim() : '';
+    const entry = {
+      name: get('name'),
+      setCode: get('setCode').toLowerCase(),
+      setName: get('setName'),
+      cn: get('cn'),
+      finish: normalizeFinish(get('finish')),
+      qty: parseInt(get('qty'), 10) || 1,
+      condition: normalizeCondition(get('condition')),
+      language: (get('language') || 'en').toLowerCase(),
+      scryfallId: get('scryfallId'),
+      rarity: get('rarity').toLowerCase(),
+      price: parseFloat(get('price')) || null,
+      // populated after scryfall lookup:
+      imageUrl: null,
+      cmc: null,
+      colors: null,
+      typeLine: null,
+      resolvedName: null,
+      scryfallUri: null,
+    };
+    if (!entry.name && !entry.scryfallId && !(entry.setCode && entry.cn)) continue;
+    imported.push(entry);
+  }
+
+  if (imported.length === 0) {
+    showFeedback('no usable rows found', 'error');
+    return;
+  }
+
+  showFeedback('<span class="loading-spinner"></span> imported ' + imported.length + ' rows — resolving via scryfall...', 'info');
+
+  await resolveCards(imported);
+
+  // Merge with existing collection — dedupe by key
+  const byKey = new Map();
+  for (const c of collection) byKey.set(collectionKey(c), c);
+  for (const c of imported) {
+    const k = collectionKey(c);
+    if (byKey.has(k)) {
+      byKey.get(k).qty += c.qty;
+    } else {
+      byKey.set(k, c);
+    }
+  }
+  collection = Array.from(byKey.values());
+  save();
+  populateFilters();
+  render();
+  const resolved = imported.filter(c => c.imageUrl).length;
+  showFeedback('imported ' + imported.length + ' rows (' + resolved + ' resolved)', 'success');
+  document.getElementById('importDetails').open = false;
+}
+
+function collectionKey(c) {
+  return (c.scryfallId || (c.setCode + ':' + c.cn + ':' + c.name)) + ':' + c.finish + ':' + c.condition + ':' + c.language;
+}
+
+async function resolveCards(entries) {
+  // Batch Scryfall /cards/collection requests, up to 75 per call
+  const BATCH = 75;
+  let resolved = 0;
+  for (let i = 0; i < entries.length; i += BATCH) {
+    const batch = entries.slice(i, i + BATCH);
+    const identifiers = batch.map(e => {
+      if (e.scryfallId) return { id: e.scryfallId };
+      if (e.setCode && e.cn) return { set: e.setCode, collector_number: e.cn };
+      if (e.name && e.setCode) return { name: e.name, set: e.setCode };
+      if (e.name) return { name: e.name };
+      return { name: 'UNRESOLVABLE' };
+    });
+    try {
+      const resp = await fetch(SCRYFALL_API + '/cards/collection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifiers }),
+      });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const data = await resp.json();
+      const found = data.data || [];
+      // Match each entry to a found card by identifier
+      for (let j = 0; j < batch.length; j++) {
+        const entry = batch[j];
+        const ident = identifiers[j];
+        let card = null;
+        if (ident.id) card = found.find(c => c.id === ident.id);
+        else if (ident.set && ident.collector_number) {
+          card = found.find(c => c.set === ident.set && c.collector_number === ident.collector_number);
+        } else if (ident.name) {
+          card = found.find(c => c.name.toLowerCase() === ident.name.toLowerCase() && (!ident.set || c.set === ident.set))
+              || found.find(c => c.name.toLowerCase().includes(ident.name.toLowerCase()));
+        }
+        if (card) {
+          entry.scryfallId = card.id;
+          entry.resolvedName = card.name;
+          entry.setCode = card.set;
+          entry.setName = card.set_name;
+          entry.cn = card.collector_number;
+          entry.rarity = entry.rarity || card.rarity;
+          entry.cmc = card.cmc ?? null;
+          entry.colors = card.colors || (card.card_faces?.[0]?.colors) || [];
+          entry.typeLine = card.type_line || '';
+          entry.scryfallUri = card.scryfall_uri;
+          entry.imageUrl = getCardImageUrl(card);
+          if (!entry.price) {
+            entry.price = parseFloat(
+              entry.finish === 'foil' ? card.prices?.usd_foil
+              : entry.finish === 'etched' ? card.prices?.usd_etched
+              : card.prices?.usd
+            ) || null;
+          }
+          resolved++;
+        }
+      }
+    } catch (e) {
+      // leave unresolved; skip batch
+    }
+    progressEl.textContent = 'resolved ' + resolved + ' / ' + entries.length;
+    if (i + BATCH < entries.length) await new Promise(r => setTimeout(r, 120));
+  }
+  progressEl.textContent = '';
+}
+
+function getCardImageUrl(card) {
+  if (!card) return null;
+  if (card.image_uris) return card.image_uris.normal || card.image_uris.small;
+  if (card.card_faces?.length && card.card_faces[0].image_uris) {
+    return card.card_faces[0].image_uris.normal || card.card_faces[0].image_uris.small;
+  }
+  return null;
+}
+
+// ---- Import triggers ----
+function importFromPaste() {
+  const text = document.getElementById('pasteArea').value;
+  if (!text.trim()) { showFeedback('paste some csv first', 'error'); return; }
+  importCsv(text);
+}
+window.importFromPaste = importFromPaste;
+
+async function importFromFile(file) {
+  const text = await file.text();
+  importCsv(text);
+}
+
+function loadSample() {
+  const sample = 'Name,Set code,Foil,Quantity,Condition\n' +
+    'Sol Ring,cmm,normal,1,near_mint\n' +
+    'Lightning Bolt,clb,normal,4,lightly_played\n' +
+    'Counterspell,cmm,normal,2,near_mint\n' +
+    'Brainstorm,mh2,normal,3,near_mint\n' +
+    'Swords to Plowshares,cmm,normal,2,near_mint\n' +
+    'Thoughtseize,akh,foil,1,near_mint\n' +
+    '"Ragavan, Nimble Pilferer",mh2,normal,1,near_mint\n' +
+    'Wrenn and Six,mh1,normal,1,near_mint\n' +
+    'Force of Will,2xm,normal,1,near_mint\n' +
+    'Rhystic Study,cmm,foil,1,near_mint';
+  document.getElementById('pasteArea').value = sample;
+  showFeedback('loaded sample csv — click "import pasted"', 'info');
+}
+window.loadSample = loadSample;
+
+// ---- Drop zone ----
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+dropZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => {
+  if (e.target.files[0]) importFromFile(e.target.files[0]);
+});
+dropZone.addEventListener('dragover', e => {
+  e.preventDefault();
+  dropZone.classList.add('drag-over');
+});
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) importFromFile(file);
+});
+
+// ---- Filters ----
+function populateFilters() {
+  const sets = [...new Set(collection.map(c => c.setCode).filter(Boolean))].sort();
+  const setSelect = document.getElementById('filterSet');
+  const current = setSelect.value;
+  setSelect.innerHTML = '<option value="">all sets</option>' +
+    sets.map(s => '<option value="' + esc(s) + '">' + esc(s.toUpperCase()) + '</option>').join('');
+  setSelect.value = current;
+}
+
+function filteredSorted() {
+  const q = document.getElementById('searchInput').value.toLowerCase().trim();
+  const set = document.getElementById('filterSet').value;
+  const rarity = document.getElementById('filterRarity').value;
+  const finish = document.getElementById('filterFoil').value;
+  const sortBy = document.getElementById('sortBy').value;
+
+  let list = collection.filter(c => {
+    const name = (c.resolvedName || c.name || '').toLowerCase();
+    if (q && !name.includes(q)) return false;
+    if (set && c.setCode !== set) return false;
+    if (rarity && c.rarity !== rarity) return false;
+    if (finish && c.finish !== finish) return false;
+    return true;
+  });
+
+  list.sort((a, b) => {
+    const an = (a.resolvedName || a.name || '').toLowerCase();
+    const bn = (b.resolvedName || b.name || '').toLowerCase();
+    if (sortBy === 'name') return an.localeCompare(bn);
+    if (sortBy === 'set') return (a.setCode || '').localeCompare(b.setCode || '') || an.localeCompare(bn);
+    if (sortBy === 'price-desc') return (b.price || 0) - (a.price || 0);
+    if (sortBy === 'price-asc') return (a.price || 0) - (b.price || 0);
+    if (sortBy === 'cmc') return (a.cmc ?? 999) - (b.cmc ?? 999);
+    return 0;
+  });
+  return list;
+}
+
+// ---- Render ----
+function render() {
+  if (collection.length === 0) {
+    collectionSection.classList.add('hidden');
+    emptyState.classList.remove('hidden');
+    return;
+  }
+  emptyState.classList.add('hidden');
+  collectionSection.classList.remove('hidden');
+
+  const list = filteredSorted();
+
+  document.getElementById('uniqueCount').textContent = list.length;
+  document.getElementById('totalCount').textContent = list.reduce((s, c) => s + c.qty, 0);
+  const value = list.reduce((s, c) => s + (c.price || 0) * c.qty, 0);
+  document.getElementById('totalValue').textContent = value.toFixed(2);
+
+  if (viewMode === 'grid') {
+    document.getElementById('grid').classList.remove('hidden');
+    document.getElementById('listView').classList.remove('active');
+    document.getElementById('toggleView').textContent = 'list view';
+    gridEl.innerHTML = list.map(c => renderTile(c)).join('');
+  } else {
+    document.getElementById('grid').classList.add('hidden');
+    document.getElementById('listView').classList.add('active');
+    document.getElementById('toggleView').textContent = 'grid view';
+    listBodyEl.innerHTML = list.map(c => renderRow(c)).join('');
+  }
+}
+
+function renderTile(c) {
+  const name = c.resolvedName || c.name || '(unknown)';
+  const badges = [];
+  if (c.qty > 1) badges.push('<span class="badge">×' + c.qty + '</span>');
+  if (c.finish === 'foil') badges.push('<span class="badge foil">foil</span>');
+  if (c.finish === 'etched') badges.push('<span class="badge etched">etched</span>');
+  const img = c.imageUrl
+    ? `<img src="${esc(c.imageUrl)}" alt="${esc(name)}" loading="lazy">`
+    : `<div class="placeholder">${esc(name)}<br><small>${esc((c.setCode||'').toUpperCase())} #${esc(c.cn||'')}</small></div>`;
+  const href = c.scryfallUri || '#';
+  const caption = esc(name) + ' · ' + esc((c.setCode || '').toUpperCase());
+  return `<a class="card-tile" href="${esc(href)}" target="_blank" rel="noopener">
+    ${img}
+    <div class="card-badges">${badges.join('')}</div>
+    <div class="card-caption">${caption}</div>
+  </a>`;
+}
+
+function renderRow(c) {
+  const name = c.resolvedName || c.name || '(unknown)';
+  const href = c.scryfallUri || '#';
+  return `<tr>
+    <td class="card-name-cell"><a href="${esc(href)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${esc(name)}</a></td>
+    <td class="muted">${esc((c.setCode || '').toUpperCase())}</td>
+    <td class="muted">${esc(c.cn || '')}</td>
+    <td class="muted">${esc(c.finish)}</td>
+    <td class="muted">${esc(c.rarity || '')}</td>
+    <td class="muted">${esc(c.condition.replace(/_/g, ' '))}</td>
+    <td>${c.qty}</td>
+    <td class="muted">${c.price ? '$' + c.price.toFixed(2) : ''}</td>
+  </tr>`;
+}
+
+// ---- Actions ----
+function clearCollection() {
+  if (!confirm('clear ' + collection.length + ' entries?')) return;
+  collection = [];
+  save();
+  populateFilters();
+  render();
+  hideFeedback();
+}
+window.clearCollection = clearCollection;
+
+function exportCsv() {
+  if (collection.length === 0) return;
+  const list = filteredSorted();
+  const header = 'Name,Set code,Set name,Collector number,Foil,Rarity,Quantity,Scryfall ID,Condition,Language,Purchase price,Purchase price currency';
+  const q = (v) => {
+    const s = v == null ? '' : String(v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const rows = list.map(c => [
+    q(c.resolvedName || c.name),
+    q(c.setCode),
+    q(c.setName),
+    q(c.cn),
+    q(c.finish),
+    q(c.rarity),
+    q(c.qty),
+    q(c.scryfallId),
+    q(c.condition),
+    q(c.language),
+    q(c.price ?? ''),
+    q(c.price ? 'USD' : ''),
+  ].join(','));
+  const csv = header + '\n' + rows.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'collection-' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+window.exportCsv = exportCsv;
+
+document.getElementById('toggleView').addEventListener('click', () => {
+  viewMode = viewMode === 'grid' ? 'list' : 'grid';
+  save();
+  render();
+});
+
+['searchInput', 'filterSet', 'filterRarity', 'filterFoil', 'sortBy'].forEach(id => {
+  document.getElementById(id).addEventListener('input', render);
+  document.getElementById(id).addEventListener('change', render);
+});
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s == null ? '' : String(s);
+  return d.innerHTML;
+}
+
+// Boot
+load();
+populateFilters();
+render();
+if (collection.length > 0) {
+  document.getElementById('importDetails').open = false;
+}
+</script>
+</body>
+</html>

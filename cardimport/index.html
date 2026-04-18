@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>card import</title>
+<meta name="description" content="quick mtg card entry — outputs portable csv">
+<link rel="stylesheet" href="https://bensonperry.com/shared/common.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Times New Roman", Times, Georgia, serif;
+    background: #f8f7f4;
+    color: #000;
+    min-height: 100vh;
+    text-transform: lowercase;
+    font-size: 0.9rem;
+  }
+
+  .header {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 30px 30px 0;
+  }
+  .header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .header h1 { font-size: 1.5rem; font-weight: 400; letter-spacing: -0.02em; }
+  .header p { color: #999; font-size: 0.75rem; margin-top: 2px; letter-spacing: 0.03em; }
+  .header .mic-status { font-size: 0.75rem; color: #999; margin-top: 4px; }
+  .header .mic-status strong { color: #000; }
+
+  .main { max-width: 720px; margin: 0 auto; padding: 20px 30px; }
+
+  .entry-row {
+    display: flex;
+    gap: 8px;
+    align-items: end;
+    flex-wrap: wrap;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .field label {
+    font-size: 0.7rem;
+    letter-spacing: 0.03em;
+    color: #999;
+  }
+  .field input, .field select {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #000;
+    color: #000;
+    padding: 6px 2px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    text-transform: lowercase;
+    outline: none;
+    border-radius: 0;
+    -webkit-appearance: none;
+  }
+  .field select { padding-right: 16px; }
+  .field input:focus, .field select:focus { border-bottom-width: 2px; }
+  .field input::placeholder { color: #ccc; }
+  .field-set { width: 80px; }
+  .field-cn { width: 80px; }
+  .field-qty { width: 50px; }
+
+  .btn {
+    padding: 8px 16px;
+    border: 1px solid #000;
+    border-radius: 2px;
+    font-size: 0.8rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: lowercase;
+    background: #000;
+    color: #fff;
+  }
+  .btn:hover { background: #333; }
+  .btn:disabled { background: #ccc; border-color: #ccc; cursor: default; }
+  .btn-secondary { background: transparent; color: #000; }
+  .btn-secondary:hover { background: #eee; }
+  .btn-danger { background: transparent; color: #999; border-color: #ccc; }
+  .btn-danger:hover { color: #c00; border-color: #c00; }
+
+  .mic-btn {
+    padding: 8px 16px;
+    border-radius: 2px;
+    border: 1px solid #000;
+    background: #000;
+    color: #fff;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-family: inherit;
+    text-transform: lowercase;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .mic-btn:hover { background: #333; }
+  .mic-btn.on { background: #c00; border-color: #c00; }
+  .manual-toggle { margin-bottom: 8px; }
+  .link-btn {
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: 0.75rem;
+    color: #999;
+    cursor: pointer;
+    text-transform: lowercase;
+    border-bottom: 1px solid #ccc;
+    padding: 0;
+  }
+  .link-btn:hover { color: #000; border-bottom-color: #000; }
+
+  .preview {
+    display: none;
+    gap: 16px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #eee;
+  }
+  .preview.active { display: flex; }
+  .preview-img { width: 140px; border-radius: 4px; flex-shrink: 0; }
+  .preview-info { flex: 1; min-width: 0; }
+  .preview-name { font-size: 1.1rem; font-weight: 400; margin-bottom: 2px; text-transform: none; }
+  .preview-meta { font-size: 0.75rem; color: #999; margin-bottom: 10px; }
+  .preview-fields { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .preview-actions { display: flex; gap: 6px; }
+
+  .feedback {
+    font-size: 0.75rem;
+    padding: 6px 10px;
+    border-radius: 2px;
+    margin-top: 12px;
+    display: none;
+  }
+  .feedback.active { display: block; }
+  .feedback.error { background: #fff0f0; border: 1px solid #e8c0c0; color: #900; }
+  .feedback.info { background: #f0f4ff; border: 1px solid #c0d0e8; color: #336; }
+  .feedback.success { background: #f0fff0; border: 1px solid #c0e8c0; color: #060; }
+
+  .stats { display: flex; gap: 20px; margin-bottom: 16px; }
+  .stat-label { font-size: 0.7rem; letter-spacing: 0.03em; color: #999; }
+  .stat-value { font-size: 1.5rem; font-weight: 400; }
+
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  thead th {
+    text-align: left;
+    padding: 6px 8px;
+    border-bottom: 1px solid #000;
+    font-size: 0.7rem;
+    font-weight: 400;
+    letter-spacing: 0.03em;
+    color: #999;
+  }
+  tbody tr { border-bottom: 1px solid #eee; }
+  td { padding: 6px 8px; }
+  .card-name-cell { text-transform: none; }
+  .muted { color: #999; }
+  .btn-sm {
+    padding: 2px 6px;
+    font-size: 0.75rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #ccc;
+    font-family: inherit;
+  }
+  .btn-sm:hover { color: #000; }
+  .btn-sm.delete:hover { color: #c00; }
+
+  .actions-bar {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #ccc;
+    font-size: 0.85rem;
+  }
+
+  .loading-spinner {
+    display: inline-block;
+    width: 12px; height: 12px;
+    border: 1.5px solid #ccc;
+    border-top-color: #000;
+    border-radius: 50%;
+    animation: spin 0.5s linear infinite;
+    vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .hidden { display: none !important; }
+
+  .sticky-actions {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 12px 15px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    background: #f8f7f4;
+    border-top: 1px solid #ddd;
+    gap: 8px;
+    z-index: 100;
+  }
+  .sticky-actions .btn { flex: 1; padding: 14px 16px; font-size: 0.9rem; }
+  .sticky-actions .btn-secondary { padding: 14px 16px; font-size: 0.9rem; }
+
+  .divider { border-top: 1px solid #eee; margin: 20px 0; }
+
+  .format-note {
+    font-size: 0.7rem;
+    color: #999;
+    margin-bottom: 8px;
+  }
+  .format-note code {
+    background: #eee;
+    padding: 1px 4px;
+    border-radius: 2px;
+    font-size: 0.95em;
+  }
+
+  @media (max-width: 600px) {
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: #f8f7f4;
+      padding: 12px 15px 8px;
+      border-bottom: 1px solid #eee;
+    }
+    .header h1 { font-size: 1.1rem; }
+    .header p { font-size: 0.65rem; }
+    .header .mic-btn { padding: 10px 20px; font-size: 0.85rem; }
+    .main { padding: 10px 15px 80px; }
+    .entry-row { gap: 6px; }
+    .field-set, .field-cn { width: 70px; }
+    .preview { flex-direction: column; }
+    .preview-img { width: 100%; max-width: 200px; }
+    .preview-fields { gap: 6px; }
+    .preview-fields .field { min-width: 0; flex: 1 1 45%; }
+    .preview-fields .field-qty { flex: 0 0 50px; }
+    .stats { gap: 12px; }
+    .actions-bar { gap: 4px; }
+    .actions-bar .btn { font-size: 0.7rem; padding: 6px 10px; flex: 1; text-align: center; }
+    table { font-size: 0.7rem; }
+    thead th, td { padding: 4px 4px; }
+    .sticky-actions.active { display: flex; }
+    .preview .preview-actions { display: none; }
+    .manual-toggle { margin-bottom: 4px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header" id="headerBar">
+  <div class="header-row">
+    <div>
+      <h1>card import</h1>
+      <p>quick mtg entry — exports a portable csv</p>
+    </div>
+    <button class="mic-btn off" id="micBtn" onclick="toggleMic()">start listening</button>
+  </div>
+  <div class="mic-status" id="micStatus">say "dsk 260 foil"</div>
+</div>
+
+<div class="main">
+  <div class="manual-toggle">
+    <button class="link-btn" id="manualToggle">manual entry</button>
+  </div>
+  <div class="entry-row hidden" id="manualEntry">
+    <div class="field field-set">
+      <label>set</label>
+      <input type="text" id="setInput" placeholder="fin" maxlength="5"
+        autocomplete="off" spellcheck="false">
+    </div>
+    <div class="field field-cn">
+      <label>cn</label>
+      <input type="text" id="cnInput" placeholder="142" maxlength="6"
+        autocomplete="off" spellcheck="false">
+    </div>
+    <button class="btn" id="lookupBtn" onclick="doLookup()">look up</button>
+  </div>
+
+  <div class="preview" id="preview">
+    <img class="preview-img" id="previewImg" src="" alt="">
+    <div class="preview-info">
+      <div class="preview-name" id="previewName"></div>
+      <div class="preview-meta" id="previewMeta"></div>
+      <div class="preview-fields">
+        <div class="field">
+          <label>finish</label>
+          <select id="previewFinish"></select>
+        </div>
+        <div class="field">
+          <label>condition</label>
+          <select id="previewCondition"></select>
+        </div>
+        <div class="field">
+          <label>language</label>
+          <select id="previewLanguage"></select>
+        </div>
+        <div class="field field-qty">
+          <label>qty</label>
+          <input type="number" id="previewQty" min="1" value="1">
+        </div>
+      </div>
+      <div class="preview-actions">
+        <button class="btn" onclick="addCard()">add to list</button>
+        <button class="btn btn-secondary" onclick="clearPreview()">skip</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="feedback" id="feedback"></div>
+
+  <div class="divider"></div>
+
+  <div id="listSection" class="hidden">
+    <div class="stats">
+      <div>
+        <div class="stat-label">unique</div>
+        <div class="stat-value" id="uniqueCount">0</div>
+      </div>
+      <div>
+        <div class="stat-label">total qty</div>
+        <div class="stat-value" id="totalCount">0</div>
+      </div>
+    </div>
+
+    <div class="format-note">
+      csv output uses <code>manabox</code> columns — readable by moxfield, archidekt, and most collection tools
+    </div>
+
+    <div class="actions-bar">
+      <button class="btn" onclick="downloadCsv()">download csv</button>
+      <button class="btn btn-secondary" onclick="copyCsv()">copy csv</button>
+      <button class="btn btn-danger" onclick="clearAll()">clear all</button>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>card</th>
+            <th>set</th>
+            <th>cn</th>
+            <th>finish</th>
+            <th>cond</th>
+            <th>lang</th>
+            <th>qty</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="cardTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="empty-state" id="emptyState">
+    <p>no cards yet — say or type a set code and collector number to start</p>
+  </div>
+</div>
+
+<div class="sticky-actions" id="stickyActions">
+  <button class="btn" onclick="addCard()">add to list</button>
+  <button class="btn btn-secondary" onclick="clearPreview()">skip</button>
+</div>
+
+<footer><a href="/">bensonperry.com</a></footer>
+
+<script type="module">
+import {
+  fetchCardByCollectorNumber,
+  getCardFinishes,
+  getCardImageUrl,
+} from 'https://bensonperry.com/shared/mtg.js';
+
+// ---- Manabox-style vocab (lowercase, underscored) ----
+const CONDITIONS = [
+  { value: 'near_mint',        label: 'near mint' },
+  { value: 'lightly_played',   label: 'lightly played' },
+  { value: 'moderately_played',label: 'moderately played' },
+  { value: 'heavily_played',   label: 'heavily played' },
+  { value: 'damaged',          label: 'damaged' },
+];
+
+const LANGUAGES = [
+  { value: 'en', label: 'english' },
+  { value: 'ja', label: 'japanese' },
+  { value: 'de', label: 'german' },
+  { value: 'fr', label: 'french' },
+  { value: 'it', label: 'italian' },
+  { value: 'es', label: 'spanish' },
+  { value: 'pt', label: 'portuguese' },
+  { value: 'ru', label: 'russian' },
+  { value: 'ko', label: 'korean' },
+  { value: 'zhs', label: 'chinese (simplified)' },
+  { value: 'zht', label: 'chinese (traditional)' },
+];
+
+// ---- State ----
+let cards = [];
+let nextId = 1;
+let currentCard = null;
+
+const STORAGE_KEY = 'cardimport_cards';
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ cards, nextId }));
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (Array.isArray(data.cards)) {
+      cards = data.cards;
+      nextId = data.nextId || (cards.length ? Math.max(...cards.map(c => c.id)) + 1 : 1);
+    }
+  } catch (e) {}
+}
+
+// ---- DOM refs ----
+const setInput = document.getElementById('setInput');
+const cnInput = document.getElementById('cnInput');
+const lookupBtn = document.getElementById('lookupBtn');
+const preview = document.getElementById('preview');
+const feedbackEl = document.getElementById('feedback');
+
+const conditionSelect = document.getElementById('previewCondition');
+for (const c of CONDITIONS) {
+  const opt = document.createElement('option');
+  opt.value = c.value; opt.textContent = c.label;
+  conditionSelect.appendChild(opt);
+}
+
+const langSelect = document.getElementById('previewLanguage');
+for (const l of LANGUAGES) {
+  const opt = document.createElement('option');
+  opt.value = l.value; opt.textContent = l.label;
+  langSelect.appendChild(opt);
+}
+
+document.getElementById('manualToggle').addEventListener('click', (e) => {
+  const m = document.getElementById('manualEntry');
+  m.classList.toggle('hidden');
+  e.target.textContent = m.classList.contains('hidden') ? 'manual entry' : 'hide';
+  if (!m.classList.contains('hidden')) setInput.focus();
+});
+
+// ---- Lookup ----
+async function doLookup() {
+  const set = setInput.value.trim();
+  const cn = cnInput.value.trim();
+  if (!set || !cn) {
+    showFeedback('enter both set code and collector number', 'error');
+    return;
+  }
+
+  lookupBtn.disabled = true;
+  showFeedback('<span class="loading-spinner"></span> looking up ' + set + ' #' + cn + '...', 'info');
+
+  const card = await fetchCardByCollectorNumber(set, cn);
+
+  lookupBtn.disabled = false;
+
+  if (!card) {
+    showFeedback('no card found for ' + set + ' #' + cn, 'error');
+    return;
+  }
+
+  showCardPreview(card);
+  hideFeedback();
+  document.getElementById('previewQty').select();
+}
+window.doLookup = doLookup;
+
+function showCardPreview(card) {
+  currentCard = card;
+  preview.classList.add('active');
+  document.getElementById('stickyActions').classList.add('active');
+
+  document.getElementById('previewImg').src = getCardImageUrl(card, 'normal') || '';
+  document.getElementById('previewName').textContent = card.name;
+
+  const meta = [card.set_name, card.type_line, card.rarity].filter(Boolean).join(' — ');
+  document.getElementById('previewMeta').textContent = meta;
+
+  const finishSelect = document.getElementById('previewFinish');
+  finishSelect.innerHTML = '';
+  const finishes = getCardFinishes(card);
+  for (const f of finishes) {
+    const priceStr = f.price ? ' ($' + f.price + ')' : '';
+    const opt = document.createElement('option');
+    opt.value = f.finish;
+    opt.textContent = (f.label + priceStr).toLowerCase();
+    finishSelect.appendChild(opt);
+  }
+
+  document.getElementById('previewQty').value = 1;
+
+  if (window._voiceFoil) {
+    for (const opt of finishSelect.options) {
+      if (opt.value === 'foil') { finishSelect.value = 'foil'; break; }
+    }
+  }
+  window._voiceFoil = false;
+}
+
+function clearPreview() {
+  currentCard = null;
+  preview.classList.remove('active');
+  document.getElementById('stickyActions').classList.remove('active');
+  window._voiceFoil = false;
+  setInput.value = '';
+  cnInput.value = '';
+  if (!document.getElementById('manualEntry').classList.contains('hidden')) setInput.focus();
+}
+window.clearPreview = clearPreview;
+
+// ---- Add card ----
+function addCard() {
+  if (!currentCard) return;
+
+  const finish = document.getElementById('previewFinish').value;
+  // Normalize finish to Manabox vocab
+  const finishCsv = finish === 'nonfoil' ? 'normal'
+                  : finish === 'etched' ? 'etched'
+                  : 'foil';
+
+  const entry = {
+    id: nextId++,
+    name: currentCard.name,
+    set: currentCard.set,                       // lowercase code
+    setName: currentCard.set_name,
+    cn: currentCard.collector_number,
+    finish: finishCsv,
+    condition: conditionSelect.value,
+    language: langSelect.value,
+    quantity: Math.max(1, parseInt(document.getElementById('previewQty').value, 10) || 1),
+    scryfallId: currentCard.id,
+    rarity: currentCard.rarity || '',
+    price: (finishCsv === 'foil' ? currentCard.prices?.usd_foil
+           : finishCsv === 'etched' ? currentCard.prices?.usd_etched
+           : currentCard.prices?.usd) || null,
+  };
+
+  cards.push(entry);
+  save();
+  renderTable();
+  showFeedback('added ' + entry.name + ' (' + entry.set.toUpperCase() + ' #' + entry.cn + ')', 'success');
+
+  const prevSet = setInput.value;
+  clearPreview();
+  setInput.value = prevSet;
+  if (!document.getElementById('manualEntry').classList.contains('hidden')) cnInput.focus();
+}
+window.addCard = addCard;
+
+// ---- Table rendering ----
+function renderTable() {
+  const tbody = document.getElementById('cardTableBody');
+  const listSection = document.getElementById('listSection');
+  const emptyState = document.getElementById('emptyState');
+
+  if (cards.length === 0) {
+    listSection.classList.add('hidden');
+    emptyState.classList.remove('hidden');
+    return;
+  }
+
+  listSection.classList.remove('hidden');
+  emptyState.classList.add('hidden');
+
+  document.getElementById('uniqueCount').textContent = cards.length;
+  document.getElementById('totalCount').textContent = cards.reduce((s, c) => s + c.quantity, 0);
+
+  tbody.innerHTML = cards.map(c => `
+    <tr>
+      <td class="card-name-cell">${esc(c.name)}</td>
+      <td class="muted">${esc(c.set.toUpperCase())}</td>
+      <td class="muted">${esc(c.cn)}</td>
+      <td class="muted">${esc(c.finish)}</td>
+      <td class="muted">${esc(c.condition.replace(/_/g, ' '))}</td>
+      <td class="muted">${esc(c.language)}</td>
+      <td>${c.quantity}</td>
+      <td><button class="btn-sm delete" onclick="deleteCard(${c.id})">x</button></td>
+    </tr>
+  `).join('');
+}
+
+function deleteCard(id) {
+  cards = cards.filter(c => c.id !== id);
+  save();
+  renderTable();
+}
+window.deleteCard = deleteCard;
+
+// ---- CSV export (Manabox format) ----
+function buildCsv() {
+  const header = 'Name,Set code,Set name,Collector number,Foil,Rarity,Quantity,Scryfall ID,Condition,Language,Purchase price,Purchase price currency';
+  const q = (v) => {
+    const s = v == null ? '' : String(v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const rows = cards.map(c => [
+    q(c.name),
+    q(c.set),
+    q(c.setName),
+    q(c.cn),
+    q(c.finish),
+    q(c.rarity),
+    q(c.quantity),
+    q(c.scryfallId),
+    q(c.condition),
+    q(c.language),
+    q(c.price ?? ''),
+    q(c.price ? 'USD' : ''),
+  ].join(','));
+  return header + '\n' + rows.join('\n');
+}
+
+function downloadCsv() {
+  if (cards.length === 0) return;
+  const csv = buildCsv();
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const date = new Date().toISOString().slice(0, 10);
+  a.download = 'cards-' + date + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  showFeedback('downloaded ' + cards.length + ' cards', 'success');
+}
+window.downloadCsv = downloadCsv;
+
+async function copyCsv() {
+  if (cards.length === 0) return;
+  await navigator.clipboard.writeText(buildCsv());
+  showFeedback('copied ' + cards.length + ' cards to clipboard', 'success');
+}
+window.copyCsv = copyCsv;
+
+function clearAll() {
+  if (cards.length && !confirm('clear all ' + cards.length + ' cards?')) return;
+  cards = [];
+  nextId = 1;
+  save();
+  renderTable();
+  hideFeedback();
+}
+window.clearAll = clearAll;
+
+// ---- Feedback ----
+function showFeedback(html, type = 'info') {
+  feedbackEl.innerHTML = html;
+  feedbackEl.className = 'feedback active ' + type;
+}
+function hideFeedback() { feedbackEl.className = 'feedback'; }
+
+// ---- Voice ----
+let isListening = false;
+let recognition = null;
+let pendingTranscript = '';
+let debounceTimer = null;
+const DEBOUNCE_MS = 1200;
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SpeechRecognition) {
+  recognition = new SpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+
+  recognition.onresult = (event) => {
+    let final = '';
+    let interim = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const t = event.results[i][0].transcript;
+      if (event.results[i].isFinal) final += t + ' ';
+      else interim += t;
+    }
+    if (final.trim()) {
+      pendingTranscript += final;
+      document.getElementById('micStatus').innerHTML =
+        '<strong>heard:</strong> ' + esc(pendingTranscript.trim());
+
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        const text = pendingTranscript.trim();
+        pendingTranscript = '';
+        if (text.length > 1) parseVoice(text);
+      }, DEBOUNCE_MS);
+    }
+    if (interim) {
+      document.getElementById('micStatus').innerHTML =
+        '<strong>...</strong> ' + esc((pendingTranscript + interim).trim());
+    }
+  };
+
+  recognition.onend = () => {
+    if (isListening) { try { recognition.start(); } catch(e) {} }
+  };
+
+  recognition.onerror = (event) => {
+    if (event.error === 'not-allowed') {
+      document.getElementById('micStatus').textContent = 'mic access denied — allow and reload';
+    }
+  };
+}
+
+function toggleMic() {
+  if (!recognition) {
+    document.getElementById('micStatus').textContent = 'voice not supported in this browser';
+    return;
+  }
+  const btn = document.getElementById('micBtn');
+  if (isListening) {
+    isListening = false;
+    recognition.stop();
+    btn.className = 'mic-btn off';
+    btn.textContent = 'start listening';
+    document.getElementById('micStatus').textContent = 'mic off';
+  } else {
+    isListening = true;
+    recognition.start();
+    btn.className = 'mic-btn on';
+    btn.textContent = 'stop';
+    document.getElementById('micStatus').textContent = 'listening...';
+  }
+}
+window.toggleMic = toggleMic;
+
+function parseVoice(text) {
+  const clean = text.toLowerCase()
+    .replace(/\b(um|uh|uhh|okay|ok)\b/g, '')
+    .replace(/number\s*/g, '')
+    .replace(/hashtag\s*/g, '')
+    .replace(/pound\s*/g, '')
+    .replace(/hash\s*/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const match = clean.match(/^([a-z]{2,5})\s*(\d{1,4}[a-z]?)\b/);
+  if (match) {
+    setInput.value = match[1];
+    cnInput.value = match[2];
+
+    const rest = clean.slice(match[0].length);
+    window._voiceFoil = /\bfoil\b/.test(rest);
+
+    doLookup();
+  } else {
+    showFeedback('couldn\'t parse "' + esc(text) + '" — say set code then number (e.g. "fin 142")', 'error');
+  }
+}
+
+// ---- Keyboard shortcuts ----
+setInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    if (cnInput.value.trim()) doLookup();
+    else cnInput.focus();
+  }
+});
+cnInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLookup();
+});
+document.getElementById('previewQty').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addCard();
+});
+
+// ---- Util ----
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// Boot
+load();
+renderTable();
+</script>
+</body>
+</html>
