@@ -128,14 +128,20 @@
   }
   .card-tile {
     position: relative;
+    border: none;
     border-radius: 4px;
     overflow: hidden;
     cursor: pointer;
     background: #e8e8e8;
     aspect-ratio: 488 / 680;
     transition: transform 0.1s;
+    padding: 0;
+    display: block;
+    width: 100%;
+    font: inherit;
   }
-  .card-tile:hover { transform: translateY(-2px); }
+  .card-tile:hover, .card-tile:focus-visible { transform: translateY(-2px); }
+  .card-tile:focus-visible { outline: 2px solid #000; outline-offset: 2px; }
   .card-tile img {
     width: 100%;
     height: 100%;
@@ -186,8 +192,43 @@
     letter-spacing: 0.02em;
     opacity: 0;
     transition: opacity 0.15s;
+    pointer-events: none;
   }
-  .card-tile:hover .card-caption { opacity: 1; }
+  .card-tile:hover .card-caption, .card-tile:focus-within .card-caption { opacity: 1; }
+  .card-actions {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 18px 6px 5px;
+    background: linear-gradient(to top, rgba(0,0,0,0.82), transparent);
+    color: #fff;
+    opacity: 0;
+    transition: opacity 0.15s;
+    pointer-events: none;
+  }
+  .card-tile:hover .card-actions, .card-tile:focus-within .card-actions { opacity: 1; pointer-events: auto; }
+  .card-action-label, .card-scryfall-link {
+    color: #fff;
+    font-size: 0.65rem;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    text-transform: lowercase;
+  }
+  .card-scryfall-link {
+    appearance: none;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(255,255,255,0.45);
+    cursor: pointer;
+    font: inherit;
+    padding: 0;
+  }
+  .card-scryfall-link:hover, .card-scryfall-link:focus-visible { border-color: #fff; outline: none; }
 
   /* Table view (compact) */
   .list-view { display: none; }
@@ -204,9 +245,21 @@
     color: #999;
   }
   tbody tr { border-bottom: 1px solid #eee; }
-  tbody tr:hover { background: #fff; }
+  tbody tr:hover { background: #fff; cursor: pointer; }
   td { padding: 6px 8px; }
   .card-name-cell { text-transform: none; }
+  .card-name-button {
+    appearance: none;
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    padding: 0;
+    text-align: left;
+    text-transform: none;
+  }
+  .card-name-button:hover, .card-name-button:focus-visible { text-decoration: underline; }
   .card-preview-link { cursor: pointer; }
   .muted { color: #999; }
   .location-input {
@@ -253,6 +306,169 @@
     border-radius: 4%;
     display: block;
   }
+
+  .drawer-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.18);
+    z-index: 1100;
+    display: none;
+  }
+  .drawer-backdrop.visible { display: block; }
+  .detail-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: min(390px, 100vw);
+    height: 100vh;
+    background: #fff;
+    border-left: 1px solid #ddd;
+    z-index: 1101;
+    transform: translateX(100%);
+    transition: transform 0.16s ease;
+    display: flex;
+    flex-direction: column;
+  }
+  .detail-drawer.visible { transform: translateX(0); }
+  .drawer-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px;
+    border-bottom: 1px solid #eee;
+  }
+  .drawer-title {
+    font-size: 1.05rem;
+    font-weight: 400;
+    text-transform: none;
+  }
+  .drawer-subtitle {
+    margin-top: 2px;
+    color: #999;
+    font-size: 0.75rem;
+  }
+  .icon-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: #999;
+    cursor: pointer;
+    font: inherit;
+    font-size: 1.2rem;
+    line-height: 1;
+  }
+  .icon-btn:hover { color: #000; }
+  .drawer-body {
+    overflow: auto;
+    padding: 16px;
+  }
+  .drawer-image {
+    width: min(220px, 70%);
+    margin: 0 auto 16px;
+    display: block;
+    border-radius: 4%;
+  }
+  .drawer-placeholder {
+    width: min(220px, 70%);
+    aspect-ratio: 488 / 680;
+    margin: 0 auto 16px;
+    background: #eee;
+    color: #999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 12px;
+    border-radius: 4px;
+  }
+  .detail-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .detail-field { display: flex; flex-direction: column; gap: 4px; }
+  .detail-field.full { grid-column: 1 / -1; }
+  .detail-field label {
+    font-size: 0.7rem;
+    color: #999;
+    letter-spacing: 0.03em;
+  }
+  .detail-field input, .detail-field select {
+    border: none;
+    border-bottom: 1px solid #ccc;
+    border-radius: 0;
+    background: transparent;
+    color: #000;
+    font: inherit;
+    padding: 5px 0;
+    text-transform: lowercase;
+  }
+  .detail-field input:focus, .detail-field select:focus {
+    border-bottom-color: #000;
+    outline: none;
+  }
+  .condition-toggle {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    border: 1px solid #ccc;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .condition-toggle input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .condition-toggle label { cursor: pointer; }
+  .condition-toggle span {
+    display: block;
+    padding: 6px 4px;
+    text-align: center;
+    border-right: 1px solid #ccc;
+    color: #999;
+    cursor: pointer;
+    font-size: 0.75rem;
+    line-height: 1;
+  }
+  .condition-toggle label:last-child span { border-right: none; }
+  .condition-toggle input:checked + span {
+    background: #000;
+    color: #fff;
+  }
+  .condition-toggle input:focus-visible + span {
+    outline: 2px solid #000;
+    outline-offset: -2px;
+  }
+  .checkbox-field {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #999;
+    font-size: 0.75rem;
+  }
+  .drawer-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+  }
+  .price-display {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px solid #ccc;
+    padding: 5px 0;
+    min-height: 28px;
+    text-transform: none;
+  }
+  .price-display:hover { border-color: #000; }
+  .price-display .price-main { font-size: 0.95rem; }
+  .price-display .price-mark { color: #999; }
 
   .feedback {
     font-size: 0.75rem;
@@ -425,6 +641,64 @@
 
 <footer><a href="/">bensonperry.com</a></footer>
 <div id="cardPreview"><img src="" alt=""></div>
+<div class="drawer-backdrop" id="drawerBackdrop"></div>
+<aside class="detail-drawer" id="detailDrawer" aria-hidden="true">
+  <div class="drawer-head">
+    <div>
+      <h2 class="drawer-title" id="detailTitle">card</h2>
+      <div class="drawer-subtitle" id="detailSubtitle"></div>
+    </div>
+    <button class="icon-btn" id="detailClose" type="button" aria-label="close">×</button>
+  </div>
+  <div class="drawer-body">
+    <div id="detailImageWrap"></div>
+    <form id="detailForm">
+      <div class="detail-form">
+        <div class="detail-field">
+          <label for="detailQty">quantity</label>
+          <input id="detailQty" type="number" min="1" step="1">
+        </div>
+        <div class="detail-field">
+          <label for="detailFinish">finish</label>
+          <select id="detailFinish">
+            <option value="normal">normal</option>
+            <option value="foil">foil</option>
+            <option value="etched">etched</option>
+          </select>
+        </div>
+        <div class="detail-field">
+          <label>condition</label>
+          <div class="condition-toggle" id="detailCondition">
+            <label><input type="radio" name="detailCondition" value="near_mint"><span>nm</span></label>
+            <label><input type="radio" name="detailCondition" value="lightly_played"><span>lp</span></label>
+            <label><input type="radio" name="detailCondition" value="moderately_played"><span>mp</span></label>
+            <label><input type="radio" name="detailCondition" value="heavily_played"><span>hp</span></label>
+            <label><input type="radio" name="detailCondition" value="damaged"><span>dmg</span></label>
+          </div>
+        </div>
+        <div class="detail-field">
+          <label for="detailLanguage">language</label>
+          <input id="detailLanguage" type="text" maxlength="8">
+        </div>
+        <div class="detail-field full">
+          <label for="detailLocation">location</label>
+          <input id="detailLocation" type="text" list="locationOptions">
+        </div>
+        <div class="detail-field">
+          <label>price usd</label>
+          <a class="price-display" id="detailPriceLink" href="#" target="_blank" rel="noopener">
+            <span class="price-main" id="detailPriceText"></span><span class="price-mark" id="detailPriceMark"></span>
+          </a>
+        </div>
+      </div>
+      <div class="drawer-actions">
+        <button class="btn" type="submit">save</button>
+        <button class="btn btn-secondary" id="detailCancel" type="button">cancel</button>
+        <button class="btn btn-danger" id="detailDelete" type="button">delete card</button>
+      </div>
+    </form>
+  </div>
+</aside>
 
 <script type="module">
 const SCRYFALL_API = 'https://api.scryfall.com';
@@ -562,6 +836,10 @@ const progressEl = document.getElementById('progress');
 const priceNoteEl = document.getElementById('priceNote');
 const cardPreviewEl = document.getElementById('cardPreview');
 const cardPreviewImg = cardPreviewEl.querySelector('img');
+const drawerBackdrop = document.getElementById('drawerBackdrop');
+const detailDrawer = document.getElementById('detailDrawer');
+const detailForm = document.getElementById('detailForm');
+let detailIndex = -1;
 
 // ---- Feedback ----
 function showFeedback(html, type = 'info') {
@@ -1057,6 +1335,7 @@ function formatPrice(c) {
 
 function renderTile(c) {
   const name = c.resolvedName || c.name || '(unknown)';
+  const index = collection.indexOf(c);
   const badges = [];
   if (c.qty > 1) badges.push('<span class="badge">×' + c.qty + '</span>');
   if (c.finish === 'foil') badges.push('<span class="badge foil">foil</span>');
@@ -1064,22 +1343,25 @@ function renderTile(c) {
   const img = c.imageUrl
     ? `<img src="${esc(c.imageUrl)}" alt="${esc(name)}" loading="lazy">`
     : `<div class="placeholder">${esc(name)}<br><small>${esc((c.setCode||'').toUpperCase())} #${esc(c.cn||'')}</small></div>`;
-  const href = c.scryfallUri || '#';
   const caption = esc(name) + ' · ' + esc((c.setCode || '').toUpperCase());
-  return `<a class="card-tile" href="${esc(href)}" target="_blank" rel="noopener">
+  const scryfallAction = c.scryfallUri
+    ? `<button class="card-scryfall-link" type="button" data-scryfall-url="${esc(c.scryfallUri)}">scryfall ↗</button>`
+    : '';
+  return `<div class="card-tile detail-trigger" role="button" tabindex="0" data-index="${index}" aria-label="edit ${esc(name)}">
     ${img}
     <div class="card-badges">${badges.join('')}</div>
     <div class="card-caption">${caption}</div>
-  </a>`;
+    <div class="card-actions"><span class="card-action-label">edit</span>${scryfallAction}</div>
+  </div>`;
 }
 
 function renderRow(c) {
   const name = c.resolvedName || c.name || '(unknown)';
-  const href = c.scryfallUri || '#';
   const index = collection.indexOf(c);
-  const previewAttr = c.imageUrl ? ` class="card-preview-link" data-preview-url="${esc(c.imageUrl)}"` : '';
-  return `<tr>
-    <td class="card-name-cell"><a href="${esc(href)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none"${previewAttr}>${esc(name)}</a></td>
+  const previewClasses = c.imageUrl ? 'card-name-button card-preview-link detail-trigger' : 'card-name-button detail-trigger';
+  const previewAttr = c.imageUrl ? ` data-preview-url="${esc(c.imageUrl)}"` : '';
+  return `<tr class="detail-trigger" data-index="${index}">
+    <td class="card-name-cell"><button class="${previewClasses}" type="button" data-index="${index}"${previewAttr}>${esc(name)}</button></td>
     <td class="muted">${esc((c.setCode || '').toUpperCase())}</td>
     <td class="muted">${esc(c.cn || '')}</td>
     <td class="muted">${esc(c.finish)}</td>
@@ -1143,6 +1425,39 @@ document.getElementById('toggleView').addEventListener('click', () => {
   render();
 });
 
+gridEl.addEventListener('click', e => {
+  const scryfallLink = e.target.closest('.card-scryfall-link');
+  if (scryfallLink) {
+    e.stopPropagation();
+    window.open(scryfallLink.dataset.scryfallUrl, '_blank', 'noopener');
+    return;
+  }
+  const trigger = e.target.closest('.detail-trigger');
+  if (!trigger || !gridEl.contains(trigger)) return;
+  openDetail(parseInt(trigger.dataset.index, 10));
+});
+
+gridEl.addEventListener('keydown', e => {
+  const scryfallLink = e.target.closest('.card-scryfall-link');
+  if (scryfallLink && (e.key === 'Enter' || e.key === ' ')) {
+    e.preventDefault();
+    window.open(scryfallLink.dataset.scryfallUrl, '_blank', 'noopener');
+    return;
+  }
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const trigger = e.target.closest('.detail-trigger');
+  if (!trigger || !gridEl.contains(trigger)) return;
+  e.preventDefault();
+  openDetail(parseInt(trigger.dataset.index, 10));
+});
+
+listBodyEl.addEventListener('click', e => {
+  if (e.target.closest('input, select, button, a')) return;
+  const trigger = e.target.closest('.detail-trigger');
+  if (!trigger || !listBodyEl.contains(trigger)) return;
+  openDetail(parseInt(trigger.dataset.index, 10));
+});
+
 listBodyEl.addEventListener('change', e => {
   if (!e.target.classList.contains('location-input')) return;
   const index = parseInt(e.target.dataset.index, 10);
@@ -1164,6 +1479,19 @@ listBodyEl.addEventListener('mouseout', e => {
   const link = e.target.closest('.card-preview-link');
   if (!link || link.contains(e.relatedTarget)) return;
   hideCardPreview();
+});
+
+detailForm.addEventListener('submit', e => {
+  e.preventDefault();
+  saveDetail();
+});
+
+document.getElementById('detailCancel').addEventListener('click', closeDetail);
+document.getElementById('detailClose').addEventListener('click', closeDetail);
+drawerBackdrop.addEventListener('click', closeDetail);
+document.getElementById('detailDelete').addEventListener('click', deleteDetail);
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && detailDrawer.classList.contains('visible')) closeDetail();
 });
 
 ['searchInput', 'filterSet', 'filterRarity', 'filterFoil', 'filterLocation', 'sortBy'].forEach(id => {
@@ -1205,6 +1533,79 @@ function showCardPreview(link) {
 
 function hideCardPreview() {
   cardPreviewEl.classList.remove('visible');
+}
+
+function openDetail(index) {
+  const c = collection[index];
+  if (!c) return;
+  detailIndex = index;
+  hideCardPreview();
+
+  const name = c.resolvedName || c.name || '(unknown)';
+  document.getElementById('detailTitle').textContent = name;
+  document.getElementById('detailSubtitle').textContent =
+    [c.setCode ? c.setCode.toUpperCase() : '', c.cn ? '#' + c.cn : '', c.rarity || ''].filter(Boolean).join(' · ');
+
+  const imageWrap = document.getElementById('detailImageWrap');
+  imageWrap.innerHTML = c.imageUrl
+    ? `<img class="drawer-image" src="${esc(c.imageUrl)}" alt="${esc(name)}">`
+    : `<div class="drawer-placeholder">${esc(name)}</div>`;
+
+  document.getElementById('detailQty').value = c.qty || 1;
+  document.getElementById('detailFinish').value = c.finish || 'normal';
+  const conditionInput = detailForm.querySelector(`input[name="detailCondition"][value="${c.condition || 'near_mint'}"]`)
+    || detailForm.querySelector('input[name="detailCondition"][value="near_mint"]');
+  if (conditionInput) conditionInput.checked = true;
+  document.getElementById('detailLanguage').value = c.language || 'en';
+  document.getElementById('detailLocation').value = c.location || '';
+  document.getElementById('detailPriceText').textContent = c.price ? '$' + c.price.toFixed(2) : 'no price';
+  document.getElementById('detailPriceMark').textContent = c.priceFallback ? '*' : '';
+  const priceLink = document.getElementById('detailPriceLink');
+  priceLink.href = c.scryfallUri || '#';
+  priceLink.classList.toggle('hidden', !c.scryfallUri);
+
+  drawerBackdrop.classList.add('visible');
+  detailDrawer.classList.add('visible');
+  detailDrawer.setAttribute('aria-hidden', 'false');
+  document.getElementById('detailQty').focus();
+}
+
+function closeDetail() {
+  detailIndex = -1;
+  detailDrawer.classList.remove('visible');
+  drawerBackdrop.classList.remove('visible');
+  detailDrawer.setAttribute('aria-hidden', 'true');
+}
+
+function saveDetail() {
+  const c = collection[detailIndex];
+  if (!c) return;
+
+  c.qty = Math.max(1, parseInt(document.getElementById('detailQty').value, 10) || 1);
+  c.finish = normalizeFinish(document.getElementById('detailFinish').value);
+  c.condition = normalizeCondition(detailForm.querySelector('input[name="detailCondition"]:checked')?.value || 'near_mint');
+  c.language = (document.getElementById('detailLanguage').value || 'en').toLowerCase().trim();
+  c.location = normalizeLocation(document.getElementById('detailLocation').value);
+
+  coalesceCollection();
+  save();
+  populateFilters();
+  render();
+  closeDetail();
+  showFeedback('saved ' + esc(c.resolvedName || c.name || 'card'), 'success');
+}
+
+function deleteDetail() {
+  const c = collection[detailIndex];
+  if (!c) return;
+  const name = c.resolvedName || c.name || 'this row';
+  if (!confirm('delete ' + name + ' from collection?')) return;
+  collection.splice(detailIndex, 1);
+  save();
+  populateFilters();
+  render();
+  closeDetail();
+  showFeedback('deleted ' + esc(name), 'success');
 }
 
 // Boot
