@@ -416,13 +416,20 @@
     border-radius: 2px;
     overflow: hidden;
   }
-  .condition-toggle input {
+  .language-toggle {
+    display: flex;
+    flex-wrap: wrap;
+    border: 1px solid #ccc;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .condition-toggle input, .language-toggle input {
     position: absolute;
     opacity: 0;
     pointer-events: none;
   }
-  .condition-toggle label { cursor: pointer; }
-  .condition-toggle span {
+  .condition-toggle label, .language-toggle label { cursor: pointer; }
+  .condition-toggle span, .language-toggle span {
     display: block;
     padding: 6px 4px;
     text-align: center;
@@ -432,14 +439,20 @@
     font-size: 0.75rem;
     line-height: 1;
   }
+  .language-toggle span { min-width: 38px; padding-left: 8px; padding-right: 8px; }
   .condition-toggle label:last-child span { border-right: none; }
-  .condition-toggle input:checked + span {
+  .language-toggle label:last-child span { border-right: none; }
+  .condition-toggle input:checked + span, .language-toggle input:checked + span {
     background: #000;
     color: #fff;
   }
-  .condition-toggle input:focus-visible + span {
+  .condition-toggle input:focus-visible + span, .language-toggle input:focus-visible + span {
     outline: 2px solid #000;
     outline-offset: -2px;
+  }
+  .language-other {
+    margin-top: 6px;
+    width: 70px;
   }
   .checkbox-field {
     grid-column: 1 / -1;
@@ -677,8 +690,9 @@
           </div>
         </div>
         <div class="detail-field">
-          <label for="detailLanguage">language</label>
-          <input id="detailLanguage" type="text" maxlength="8">
+          <label>language</label>
+          <div class="language-toggle" id="detailLanguageOptions"></div>
+          <input class="language-other" id="detailLanguageOther" type="text" maxlength="8" placeholder="other">
         </div>
         <div class="detail-field full">
           <label for="detailLocation">location</label>
@@ -938,7 +952,7 @@ function makeEntry(data) {
     finish: normalizeFinish(data.finish),
     qty: parseInt(data.qty, 10) || 1,
     condition: normalizeCondition(data.condition),
-    language: (data.language || 'en').toLowerCase(),
+    language: normalizeLanguage(data.language),
     location: normalizeLocation(data.location),
     scryfallId: data.scryfallId || '',
     rarity: (data.rarity || '').toLowerCase(),
@@ -955,6 +969,10 @@ function makeEntry(data) {
 
 function normalizeLocation(raw) {
   return String(raw || '').trim().toLowerCase();
+}
+
+function normalizeLanguage(raw) {
+  return String(raw || 'en').trim().toLowerCase() || 'en';
 }
 
 function parseDecklist(text, options = {}) {
@@ -1052,7 +1070,7 @@ async function importCsv(text) {
       finish: normalizeFinish(get('finish')),
       qty: parseInt(get('qty'), 10) || 1,
       condition: normalizeCondition(get('condition')),
-      language: (get('language') || 'en').toLowerCase(),
+      language: normalizeLanguage(get('language')),
       location: get('location'),
       scryfallId: get('scryfallId'),
       rarity: get('rarity').toLowerCase(),
@@ -1263,6 +1281,27 @@ function populateFilters() {
   locationSelect.value = currentLocation;
   document.getElementById('locationOptions').innerHTML =
     locations.map(l => '<option value="' + esc(l) + '"></option>').join('');
+}
+
+function collectionLanguages(extra = '') {
+  const langs = new Set(['en']);
+  collection.forEach(c => langs.add(normalizeLanguage(c.language)));
+  if (extra) langs.add(normalizeLanguage(extra));
+  return [...langs].filter(Boolean).sort((a, b) => {
+    if (a === 'en') return -1;
+    if (b === 'en') return 1;
+    return a.localeCompare(b);
+  });
+}
+
+function renderLanguageOptions(selected) {
+  const lang = normalizeLanguage(selected);
+  const options = collectionLanguages(lang);
+  document.getElementById('detailLanguageOptions').innerHTML = options.map(code =>
+    `<label><input type="radio" name="detailLanguage" value="${esc(code)}"${code === lang ? ' checked' : ''}><span>${esc(code)}</span></label>`
+  ).join('');
+  const other = document.getElementById('detailLanguageOther');
+  other.value = options.includes(lang) ? '' : lang;
 }
 
 function filteredSorted() {
@@ -1493,6 +1532,10 @@ document.getElementById('detailDelete').addEventListener('click', deleteDetail);
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && detailDrawer.classList.contains('visible')) closeDetail();
 });
+document.getElementById('detailLanguageOther').addEventListener('input', e => {
+  if (!e.target.value.trim()) return;
+  detailForm.querySelectorAll('input[name="detailLanguage"]').forEach(input => { input.checked = false; });
+});
 
 ['searchInput', 'filterSet', 'filterRarity', 'filterFoil', 'filterLocation', 'sortBy'].forEach(id => {
   document.getElementById(id).addEventListener('input', render);
@@ -1556,7 +1599,7 @@ function openDetail(index) {
   const conditionInput = detailForm.querySelector(`input[name="detailCondition"][value="${c.condition || 'near_mint'}"]`)
     || detailForm.querySelector('input[name="detailCondition"][value="near_mint"]');
   if (conditionInput) conditionInput.checked = true;
-  document.getElementById('detailLanguage').value = c.language || 'en';
+  renderLanguageOptions(c.language || 'en');
   document.getElementById('detailLocation').value = c.location || '';
   document.getElementById('detailPriceText').textContent = c.price ? '$' + c.price.toFixed(2) : 'no price';
   document.getElementById('detailPriceMark').textContent = c.priceFallback ? '*' : '';
@@ -1584,7 +1627,9 @@ function saveDetail() {
   c.qty = Math.max(1, parseInt(document.getElementById('detailQty').value, 10) || 1);
   c.finish = normalizeFinish(document.getElementById('detailFinish').value);
   c.condition = normalizeCondition(detailForm.querySelector('input[name="detailCondition"]:checked')?.value || 'near_mint');
-  c.language = (document.getElementById('detailLanguage').value || 'en').toLowerCase().trim();
+  c.language = normalizeLanguage(document.getElementById('detailLanguageOther').value
+    || detailForm.querySelector('input[name="detailLanguage"]:checked')?.value
+    || 'en');
   c.location = normalizeLocation(document.getElementById('detailLocation').value);
 
   coalesceCollection();
