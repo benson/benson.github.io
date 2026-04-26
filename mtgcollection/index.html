@@ -207,6 +207,7 @@
   tbody tr:hover { background: #fff; }
   td { padding: 6px 8px; }
   .card-name-cell { text-transform: none; }
+  .card-preview-link { cursor: pointer; }
   .muted { color: #999; }
   .location-input {
     width: 120px;
@@ -237,6 +238,21 @@
   .toggle-view:hover { color: #000; border-color: #000; }
 
   .empty-state { text-align: center; padding: 40px 20px; color: #ccc; font-size: 0.85rem; }
+
+  #cardPreview {
+    position: fixed;
+    width: 300px;
+    pointer-events: none;
+    z-index: 1000;
+    display: none;
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
+  }
+  #cardPreview.visible { display: block; }
+  #cardPreview img {
+    width: 100%;
+    border-radius: 4%;
+    display: block;
+  }
 
   .feedback {
     font-size: 0.75rem;
@@ -408,6 +424,7 @@
 </div>
 
 <footer><a href="/">bensonperry.com</a></footer>
+<div id="cardPreview"><img src="" alt=""></div>
 
 <script type="module">
 const SCRYFALL_API = 'https://api.scryfall.com';
@@ -543,6 +560,8 @@ const collectionSection = document.getElementById('collectionSection');
 const emptyState = document.getElementById('emptyState');
 const progressEl = document.getElementById('progress');
 const priceNoteEl = document.getElementById('priceNote');
+const cardPreviewEl = document.getElementById('cardPreview');
+const cardPreviewImg = cardPreviewEl.querySelector('img');
 
 // ---- Feedback ----
 function showFeedback(html, type = 'info') {
@@ -1058,8 +1077,9 @@ function renderRow(c) {
   const name = c.resolvedName || c.name || '(unknown)';
   const href = c.scryfallUri || '#';
   const index = collection.indexOf(c);
+  const previewAttr = c.imageUrl ? ` class="card-preview-link" data-preview-url="${esc(c.imageUrl)}"` : '';
   return `<tr>
-    <td class="card-name-cell"><a href="${esc(href)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${esc(name)}</a></td>
+    <td class="card-name-cell"><a href="${esc(href)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none"${previewAttr}>${esc(name)}</a></td>
     <td class="muted">${esc((c.setCode || '').toUpperCase())}</td>
     <td class="muted">${esc(c.cn || '')}</td>
     <td class="muted">${esc(c.finish)}</td>
@@ -1134,6 +1154,18 @@ listBodyEl.addEventListener('change', e => {
   render();
 });
 
+listBodyEl.addEventListener('mouseover', e => {
+  const link = e.target.closest('.card-preview-link');
+  if (!link || !listBodyEl.contains(link)) return;
+  showCardPreview(link);
+});
+
+listBodyEl.addEventListener('mouseout', e => {
+  const link = e.target.closest('.card-preview-link');
+  if (!link || link.contains(e.relatedTarget)) return;
+  hideCardPreview();
+});
+
 ['searchInput', 'filterSet', 'filterRarity', 'filterFoil', 'filterLocation', 'sortBy'].forEach(id => {
   document.getElementById(id).addEventListener('input', render);
   document.getElementById(id).addEventListener('change', render);
@@ -1143,6 +1175,36 @@ function esc(s) {
   const d = document.createElement('div');
   d.textContent = s == null ? '' : String(s);
   return d.innerHTML;
+}
+
+function showCardPreview(link) {
+  const url = link.dataset.previewUrl;
+  if (!url) return;
+
+  const rect = link.getBoundingClientRect();
+  cardPreviewImg.src = url;
+  cardPreviewEl.classList.add('visible');
+
+  const previewWidth = 300;
+  const previewHeight = 418;
+  const padding = 20;
+  const linkCenterX = rect.left + rect.width / 2;
+  const windowCenterX = window.innerWidth / 2;
+
+  let left = linkCenterX < windowCenterX
+    ? rect.right + padding
+    : rect.left - previewWidth - padding;
+  let top = rect.top - previewHeight / 2 + rect.height / 2;
+
+  top = Math.max(padding, Math.min(top, window.innerHeight - previewHeight - padding));
+  left = Math.max(padding, Math.min(left, window.innerWidth - previewWidth - padding));
+
+  cardPreviewEl.style.left = left + 'px';
+  cardPreviewEl.style.top = top + 'px';
+}
+
+function hideCardPreview() {
+  cardPreviewEl.classList.remove('visible');
 }
 
 // Boot
