@@ -253,6 +253,11 @@
     color: #999;
     margin-left: 8px;
   }
+  .price-note {
+    font-size: 0.7rem;
+    color: #999;
+    margin: -8px 0 12px;
+  }
 
   details.import-details {
     margin-bottom: 16px;
@@ -311,11 +316,12 @@
 
       <div class="import-actions">
         <button class="btn" onclick="importFromPaste()">import pasted</button>
+        <button class="btn btn-secondary" onclick="loadBreyaDeck()">load breya deck</button>
         <button class="btn btn-secondary" onclick="loadSample()">load sample</button>
       </div>
 
       <div class="format-note">
-        recognized columns (case-insensitive): <code>name</code>, <code>set code</code> / <code>edition</code>, <code>collector number</code> / <code>card number</code>, <code>quantity</code> / <code>count</code>, <code>foil</code>, <code>condition</code>, <code>language</code>, <code>scryfall id</code>
+        recognized columns (case-insensitive): <code>name</code>, <code>set code</code> / <code>edition</code>, <code>collector number</code> / <code>card number</code>, <code>quantity</code> / <code>count</code>, <code>foil</code>, <code>condition</code>, <code>language</code>, <code>scryfall id</code>. moxfield plaintext like <code>1 Sol Ring (SLD) 1011 *F*</code> also works.
       </div>
     </div>
   </details>
@@ -357,6 +363,7 @@
       <button class="btn btn-danger" onclick="clearCollection()">clear</button>
       <span class="progress" id="progress"></span>
     </div>
+    <div class="price-note hidden" id="priceNote">* regular usd shown when exact finish price is unavailable</div>
 
     <div class="grid" id="grid"></div>
     <div class="list-view" id="listView">
@@ -393,6 +400,103 @@ let collection = [];  // normalized rows with resolved card data
 const STORAGE_KEY = 'mtgcollection_v1';
 let viewMode = 'grid';
 
+const BREYA_DECKLIST = `1 Breya, Etherium Shaper (C16) 29 *F*
+1 Ancient Den (SLD) 300 *F*
+1 Ancient Tomb (TMP) 315
+1 Arcane Signet (SLD) 1641★ *F*
+1 Arcum Dagsson (CSP) 27
+1 Arid Mesa (MH2) 475 *F*
+1 Baleful Strix (C16) 181
+1 Blood Crypt (RTR) 238
+1 Bloodstained Mire (KTK) 230
+1 Chromatic Lantern (RTR) 226
+1 City of Brass (7ED) 327
+1 Command Tower (SLD) 1666 *F*
+1 Cyclonic Rift (MM3) 35
+1 Daretti, Ingenious Iconoclast (CN2) 74
+1 Darksteel Citadel (SLD) 608 *F*
+1 Deflecting Swat (SLD) 1552 *F*
+1 Dispatch (NPH) 7
+1 Eldrazi Displacer (OGW) 13
+1 Enlightened Tutor (DMR) 6 *F*
+1 Esper Sentinel (H2R) 2 *F*
+1 Etherium Sculptor (C16) 89
+1 Ethersworn Canonist (MMA) 14 *F*
+1 Everflowing Chalice (WWK) 123 *F*
+1 Exotic Orchard (C16) 295
+1 Fabricate (SLD) 332 *F*
+1 Fellwar Stone (NCC) 367
+1 Fetid Pools (AKH) 243 *F*
+1 Fierce Guardianship (SLD) 1823 *F*
+1 Flooded Strand (KTK) 233
+1 Force of Will (DMR) 284
+1 Forensic Gadgeteer (PMKM) 57s *F*
+1 Ghost Trap (SLD) 871
+1 Glint-Nest Crane (KLD) 50
+1 Goblin Welder (ULG) 80
+1 Godless Shrine (GTC) 242
+1 Grand Architect (SOM) 33
+1 Great Furnace (SLD) 303 *F*
+1 Hallowed Fountain (RTR) 241
+1 Hangarback Walker (ORI) 229
+1 Inventors' Fair (KLD) 247
+2 Island (UND) 89
+1 Krark-Clan Ironworks (SLC) 11 *F*
+1 Lotho, Corrupt Shirriff (LTR) 781 *F*
+1 Lotus Petal (TMP) 294
+1 Mana Confluence (JOU) 163
+1 Mana Vault (2X2) 560 *E*
+1 Moonsilver Key (MID) 255 *F*
+3 Mountain (ELD) 262
+1 Mox Opal (SLD) 1072 *E*
+1 Myr Battlesphere (C16) 263
+1 Myr Retriever (MMA) 210 *F*
+1 Mystic Remora (SLD) 406 *F*
+1 Nim Deathmantle (SOM) 188 *F*
+1 Padeem, Consul of Innovation (KLD) 59
+1 Path to Exile (MM3) 17
+1 Phyrexian Metamorph (PNPH) 42★ *F*
+1 Plains (UND) 87
+1 Polluted Delta (KTK) 239
+1 Purphoros, God of the Forge (PLST) THS-135
+1 Raugrin Triome (IKO) 311 *F*
+1 Reckless Fireweaver (SLD) 1526 *F*
+1 Restoration Angel (MM3) 20
+1 Saheeli, Sublime Artificer (SLD) 1143
+1 Savai Triome (IKO) 312 *F*
+1 Seat of the Synod (SLD) 301 *F*
+1 Sharuum the Hegemon (C16) 221
+1 Sink into Stupor / Soporific Springs (MH3) 241 *F*
+1 Sir Bedivere's Scales (SLD) 1679 *F*
+1 Skullclamp (SLD) 1112 *F*
+1 Sol Ring (SLD) 1011 *F*
+1 Spellskite (SLD) 587 *F*
+1 Spire of Industry (AER) 184 *F*
+1 Stoneforge Mystic (PGPX) 2016 *F*
+2 Swamp (UND) 91
+1 Sword of the Meek (FUT) 165
+1 Swords to Plowshares (ICE) 54
+1 Talisman of Creativity (SLD) 1058 *E*
+1 Talisman of Dominance (SLD) 1053 *E*
+1 Talisman of Progress (SLD) 1052 *E*
+1 Tezzeret the Seeker (MM2) 62
+1 The One Ring (LTR) 451 *F*
+1 Thopter Assembly (PMBS) 140★ *F*
+1 Thopter Foundry (PLST) C16-237
+1 Thought Monitor (PMH2) 71s *F*
+1 Time Sieve (PLST) ARB-31
+1 Tribute Mage (H1R) 10 *E*
+1 Trinket Mage (C16) 102
+1 Trophy Mage (AER) 48 *F*
+1 Unstable Harmonics (SLD) 478
+1 Urborg, Tomb of Yawgmoth (M15) 248
+1 Urza, Lord High Artificer (CMM) 674 *F*
+1 Urza's Saga (PMH2) 259s *F*
+1 Vampiric Tutor (DMR) 430 *F*
+1 Vault of Whispers (SLD) 302 *F*
+1 Whir of Invention (SPG) 96 *F*
+1 Windswept Heath (KTK) 248`;
+
 function save() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ collection, viewMode }));
@@ -403,13 +507,15 @@ function save() {
 function load() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
+    if (!raw) return false;
     const data = JSON.parse(raw);
     if (Array.isArray(data.collection)) {
       collection = data.collection;
       viewMode = data.viewMode || 'grid';
+      return true;
     }
   } catch (e) {}
+  return false;
 }
 
 // ---- DOM refs ----
@@ -419,6 +525,7 @@ const listBodyEl = document.getElementById('listBody');
 const collectionSection = document.getElementById('collectionSection');
 const emptyState = document.getElementById('emptyState');
 const progressEl = document.getElementById('progress');
+const priceNoteEl = document.getElementById('priceNote');
 
 // ---- Feedback ----
 function showFeedback(html, type = 'info') {
@@ -507,54 +614,60 @@ function normalizeCondition(raw) {
   return v;
 }
 
-// ---- Import ----
-async function importCsv(text) {
-  const rows = parseCsv(text);
-  if (rows.length < 2) {
-    showFeedback('csv looks empty', 'error');
-    return;
-  }
-  const headerRow = rows[0];
-  const idx = mapHeaders(headerRow);
-  if (idx.name === undefined && idx.scryfallId === undefined && idx.cn === undefined) {
-    showFeedback('couldn\'t recognize columns — need at least name+set or collector number or scryfall id', 'error');
-    return;
-  }
+function makeEntry(data) {
+  return {
+    name: data.name || '',
+    setCode: (data.setCode || '').toLowerCase(),
+    setName: data.setName || '',
+    cn: data.cn || '',
+    finish: normalizeFinish(data.finish),
+    qty: parseInt(data.qty, 10) || 1,
+    condition: normalizeCondition(data.condition),
+    language: (data.language || 'en').toLowerCase(),
+    scryfallId: data.scryfallId || '',
+    rarity: (data.rarity || '').toLowerCase(),
+    price: parseFloat(data.price) || null,
+    priceFallback: Boolean(data.priceFallback),
+    imageUrl: null,
+    cmc: null,
+    colors: null,
+    typeLine: null,
+    resolvedName: null,
+    scryfallUri: null,
+  };
+}
 
-  const imported = [];
-  for (let r = 1; r < rows.length; r++) {
-    const row = rows[r];
-    const get = (k) => idx[k] !== undefined ? (row[idx[k]] || '').trim() : '';
-    const entry = {
-      name: get('name'),
-      setCode: get('setCode').toLowerCase(),
-      setName: get('setName'),
-      cn: get('cn'),
-      finish: normalizeFinish(get('finish')),
-      qty: parseInt(get('qty'), 10) || 1,
-      condition: normalizeCondition(get('condition')),
-      language: (get('language') || 'en').toLowerCase(),
-      scryfallId: get('scryfallId'),
-      rarity: get('rarity').toLowerCase(),
-      price: parseFloat(get('price')) || null,
-      // populated after scryfall lookup:
-      imageUrl: null,
-      cmc: null,
-      colors: null,
-      typeLine: null,
-      resolvedName: null,
-      scryfallUri: null,
-    };
-    if (!entry.name && !entry.scryfallId && !(entry.setCode && entry.cn)) continue;
-    imported.push(entry);
+function parseDecklist(text) {
+  const entries = [];
+  const errors = [];
+  const lines = text.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line || line.startsWith('//')) continue;
+    const match = line.match(/^(\d+)\s+(.+?)\s+\(([^)]+)\)\s+(\S+)(?:\s+(.*))?$/);
+    if (!match) {
+      errors.push(i + 1);
+      continue;
+    }
+    const [, qty, name, setCode, cn, markerText = ''] = match;
+    const markers = markerText.toUpperCase();
+    const finish = markers.includes('*E*') ? 'etched' : markers.includes('*F*') ? 'foil' : 'normal';
+    entries.push(makeEntry({ qty, name, setCode, cn, finish }));
   }
+  return { entries, errors };
+}
 
+async function importEntries(imported, options = {}) {
+  const { replace = false, silent = false, label = 'rows' } = options;
   if (imported.length === 0) {
-    showFeedback('no usable rows found', 'error');
+    if (!silent) showFeedback('no usable rows found', 'error');
     return;
   }
 
-  showFeedback('<span class="loading-spinner"></span> imported ' + imported.length + ' rows — resolving via scryfall...', 'info');
+  if (replace) collection = [];
+  if (!silent) {
+    showFeedback('<span class="loading-spinner"></span> imported ' + imported.length + ' ' + label + ' — resolving via scryfall...', 'info');
+  }
 
   await resolveCards(imported);
 
@@ -574,12 +687,71 @@ async function importCsv(text) {
   populateFilters();
   render();
   const resolved = imported.filter(c => c.imageUrl).length;
-  showFeedback('imported ' + imported.length + ' rows (' + resolved + ' resolved)', 'success');
-  document.getElementById('importDetails').open = false;
+  if (!silent) {
+    showFeedback('imported ' + imported.length + ' ' + label + ' (' + resolved + ' resolved)', 'success');
+    document.getElementById('importDetails').open = false;
+  }
+}
+
+// ---- Import ----
+async function importCsv(text) {
+  const rows = parseCsv(text);
+  if (rows.length < 2) {
+    showFeedback('csv looks empty', 'error');
+    return;
+  }
+  const headerRow = rows[0];
+  const idx = mapHeaders(headerRow);
+  if (idx.name === undefined && idx.scryfallId === undefined && idx.cn === undefined) {
+    showFeedback('couldn\'t recognize columns — need at least name+set or collector number or scryfall id', 'error');
+    return;
+  }
+
+  const imported = [];
+  for (let r = 1; r < rows.length; r++) {
+    const row = rows[r];
+    const get = (k) => idx[k] !== undefined ? (row[idx[k]] || '').trim() : '';
+    const entry = makeEntry({
+      name: get('name'),
+      setCode: get('setCode').toLowerCase(),
+      setName: get('setName'),
+      cn: get('cn'),
+      finish: normalizeFinish(get('finish')),
+      qty: parseInt(get('qty'), 10) || 1,
+      condition: normalizeCondition(get('condition')),
+      language: (get('language') || 'en').toLowerCase(),
+      scryfallId: get('scryfallId'),
+      rarity: get('rarity').toLowerCase(),
+      price: parseFloat(get('price')) || null,
+    });
+    if (!entry.name && !entry.scryfallId && !(entry.setCode && entry.cn)) continue;
+    imported.push(entry);
+  }
+
+  if (imported.length === 0) {
+    showFeedback('no usable rows found', 'error');
+    return;
+  }
+
+  await importEntries(imported, { label: 'rows' });
 }
 
 function collectionKey(c) {
   return (c.scryfallId || (c.setCode + ':' + c.cn + ':' + c.name)) + ':' + c.finish + ':' + c.condition + ':' + c.language;
+}
+
+function getUsdPrice(card, finish) {
+  const prices = card?.prices || {};
+  const exact = finish === 'foil' ? prices.usd_foil
+    : finish === 'etched' ? prices.usd_etched
+    : prices.usd;
+  const exactPrice = parseFloat(exact);
+  if (exactPrice) return { price: exactPrice, fallback: false };
+
+  const fallbackPrice = parseFloat(prices.usd);
+  if (finish !== 'normal' && fallbackPrice) return { price: fallbackPrice, fallback: true };
+
+  return { price: null, fallback: false };
 }
 
 async function resolveCards(entries) {
@@ -598,7 +770,7 @@ async function resolveCards(entries) {
     try {
       const resp = await fetch(SCRYFALL_API + '/cards/collection', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({ identifiers }),
       });
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -629,11 +801,11 @@ async function resolveCards(entries) {
           entry.scryfallUri = card.scryfall_uri;
           entry.imageUrl = getCardImageUrl(card);
           if (!entry.price) {
-            entry.price = parseFloat(
-              entry.finish === 'foil' ? card.prices?.usd_foil
-              : entry.finish === 'etched' ? card.prices?.usd_etched
-              : card.prices?.usd
-            ) || null;
+            const priced = getUsdPrice(card, entry.finish);
+            entry.price = priced.price;
+            entry.priceFallback = priced.fallback;
+          } else {
+            entry.priceFallback = Boolean(entry.priceFallback);
           }
           resolved++;
         }
@@ -660,7 +832,17 @@ function getCardImageUrl(card) {
 function importFromPaste() {
   const text = document.getElementById('pasteArea').value;
   if (!text.trim()) { showFeedback('paste some csv first', 'error'); return; }
-  importCsv(text);
+  const firstLine = text.trim().split(/\r?\n/, 1)[0] || '';
+  if (firstLine.includes(',')) {
+    importCsv(text);
+    return;
+  }
+  const { entries, errors } = parseDecklist(text);
+  if (errors.length) {
+    showFeedback('couldn\'t parse decklist lines: ' + errors.join(', '), 'error');
+    return;
+  }
+  importEntries(entries, { label: 'decklist cards' });
 }
 window.importFromPaste = importFromPaste;
 
@@ -685,6 +867,18 @@ function loadSample() {
   showFeedback('loaded sample csv — click "import pasted"', 'info');
 }
 window.loadSample = loadSample;
+
+async function loadBreyaDeck(options = {}) {
+  const { replace = true, silent = false } = options;
+  if (replace && collection.length > 0 && !silent && !confirm('replace current collection with the breya deck?')) return;
+  const { entries, errors } = parseDecklist(BREYA_DECKLIST);
+  if (errors.length && !silent) {
+    showFeedback('couldn\'t parse decklist lines: ' + errors.join(', '), 'error');
+    return;
+  }
+  await importEntries(entries, { replace, silent, label: 'breya deck cards' });
+}
+window.loadBreyaDeck = loadBreyaDeck;
 
 // ---- Drop zone ----
 const dropZone = document.getElementById('dropZone');
@@ -749,6 +943,7 @@ function render() {
   if (collection.length === 0) {
     collectionSection.classList.add('hidden');
     emptyState.classList.remove('hidden');
+    priceNoteEl.classList.add('hidden');
     return;
   }
   emptyState.classList.add('hidden');
@@ -760,6 +955,7 @@ function render() {
   document.getElementById('totalCount').textContent = list.reduce((s, c) => s + c.qty, 0);
   const value = list.reduce((s, c) => s + (c.price || 0) * c.qty, 0);
   document.getElementById('totalValue').textContent = value.toFixed(2);
+  priceNoteEl.classList.toggle('hidden', !list.some(c => c.priceFallback));
 
   if (viewMode === 'grid') {
     document.getElementById('grid').classList.remove('hidden');
@@ -772,6 +968,11 @@ function render() {
     document.getElementById('toggleView').textContent = 'grid view';
     listBodyEl.innerHTML = list.map(c => renderRow(c)).join('');
   }
+}
+
+function formatPrice(c) {
+  if (!c.price) return '';
+  return '$' + c.price.toFixed(2) + (c.priceFallback ? '*' : '');
 }
 
 function renderTile(c) {
@@ -803,7 +1004,7 @@ function renderRow(c) {
     <td class="muted">${esc(c.rarity || '')}</td>
     <td class="muted">${esc(c.condition.replace(/_/g, ' '))}</td>
     <td>${c.qty}</td>
-    <td class="muted">${c.price ? '$' + c.price.toFixed(2) : ''}</td>
+    <td class="muted">${formatPrice(c)}</td>
   </tr>`;
 }
 
@@ -821,7 +1022,7 @@ window.clearCollection = clearCollection;
 function exportCsv() {
   if (collection.length === 0) return;
   const list = filteredSorted();
-  const header = 'Name,Set code,Set name,Collector number,Foil,Rarity,Quantity,Scryfall ID,Condition,Language,Purchase price,Purchase price currency';
+  const header = 'Name,Set code,Set name,Collector number,Foil,Rarity,Quantity,Scryfall ID,Condition,Language,Purchase price,Purchase price currency,Purchase price note';
   const q = (v) => {
     const s = v == null ? '' : String(v);
     return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
@@ -839,6 +1040,7 @@ function exportCsv() {
     q(c.language),
     q(c.price ?? ''),
     q(c.price ? 'USD' : ''),
+    q(c.priceFallback ? 'regular usd fallback; exact finish price unavailable' : ''),
   ].join(','));
   const csv = header + '\n' + rows.join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
@@ -869,23 +1071,26 @@ function esc(s) {
 }
 
 // Boot
-load();
-if (collection.length === 0) {
-  fetch('placeholder.json').then(r => r.ok ? r.json() : []).then(data => {
-    if (data.length && collection.length === 0) {
-      collection = data;
+async function boot() {
+  const hasSavedCollection = load();
+  if (!hasSavedCollection) {
+    showFeedback('<span class="loading-spinner"></span> loading breya deck...', 'info');
+    await loadBreyaDeck({ replace: true, silent: true });
+    hideFeedback();
+  } else {
+    const missingPrices = collection.filter(c => !c.price && (c.scryfallId || c.name || (c.setCode && c.cn)));
+    if (missingPrices.length) {
+      await resolveCards(missingPrices);
       save();
-      populateFilters();
-      render();
-      document.getElementById('importDetails').open = false;
     }
-  }).catch(() => {});
+    populateFilters();
+    render();
+  }
+  if (collection.length > 0) {
+    document.getElementById('importDetails').open = false;
+  }
 }
-populateFilters();
-render();
-if (collection.length > 0) {
-  document.getElementById('importDetails').open = false;
-}
+boot();
 </script>
 </body>
 </html>
