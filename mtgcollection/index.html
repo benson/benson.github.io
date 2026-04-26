@@ -208,6 +208,20 @@
   td { padding: 6px 8px; }
   .card-name-cell { text-transform: none; }
   .muted { color: #999; }
+  .location-input {
+    width: 120px;
+    border: none;
+    border-bottom: 1px solid #ddd;
+    background: transparent;
+    color: #000;
+    font: inherit;
+    text-transform: lowercase;
+    padding: 2px 0;
+  }
+  .location-input:focus {
+    outline: none;
+    border-bottom-color: #000;
+  }
 
   .toggle-view {
     font-size: 0.75rem;
@@ -321,7 +335,7 @@
       </div>
 
       <div class="format-note">
-        recognized columns (case-insensitive): <code>name</code>, <code>set code</code> / <code>edition</code>, <code>collector number</code> / <code>card number</code>, <code>quantity</code> / <code>count</code>, <code>foil</code>, <code>condition</code>, <code>language</code>, <code>scryfall id</code>. moxfield plaintext like <code>1 Sol Ring (SLD) 1011 *F*</code> also works.
+        recognized columns (case-insensitive): <code>name</code>, <code>set code</code> / <code>edition</code>, <code>collector number</code> / <code>card number</code>, <code>quantity</code> / <code>count</code>, <code>foil</code>, <code>condition</code>, <code>language</code>, <code>location</code>, <code>scryfall id</code>. moxfield plaintext like <code>1 Sol Ring (SLD) 1011 *F*</code> also works.
       </div>
     </div>
   </details>
@@ -351,6 +365,8 @@
         <option value="foil">foil</option>
         <option value="etched">etched</option>
       </select>
+      <select class="filter-select" id="filterLocation"><option value="">all locations</option></select>
+      <datalist id="locationOptions"></datalist>
       <select class="filter-select" id="sortBy">
         <option value="name">sort: name</option>
         <option value="set">sort: set</option>
@@ -376,6 +392,7 @@
             <th>finish</th>
             <th>rarity</th>
             <th>cond</th>
+            <th>location</th>
             <th>qty</th>
             <th>price</th>
           </tr>
@@ -576,6 +593,7 @@ const ALIASES = {
   qty:        ['quantity', 'count', 'qty'],
   condition:  ['condition'],
   language:   ['language', 'lang'],
+  location:   ['location', 'place', 'storage', 'where'],
   scryfallId: ['scryfall id', 'scryfall_id', 'scryfallid'],
   rarity:     ['rarity'],
   price:      ['purchase price', 'price', 'tcg market price'],
@@ -624,6 +642,7 @@ function makeEntry(data) {
     qty: parseInt(data.qty, 10) || 1,
     condition: normalizeCondition(data.condition),
     language: (data.language || 'en').toLowerCase(),
+    location: normalizeLocation(data.location),
     scryfallId: data.scryfallId || '',
     rarity: (data.rarity || '').toLowerCase(),
     price: parseFloat(data.price) || null,
@@ -637,7 +656,12 @@ function makeEntry(data) {
   };
 }
 
-function parseDecklist(text) {
+function normalizeLocation(raw) {
+  return String(raw || '').trim().toLowerCase();
+}
+
+function parseDecklist(text, options = {}) {
+  const { location = '' } = options;
   const entries = [];
   const errors = [];
   const lines = text.split(/\r?\n/);
@@ -652,7 +676,7 @@ function parseDecklist(text) {
     const [, qty, name, setCode, cn, markerText = ''] = match;
     const markers = markerText.toUpperCase();
     const finish = markers.includes('*E*') ? 'etched' : markers.includes('*F*') ? 'foil' : 'normal';
-    entries.push(makeEntry({ qty, name, setCode, cn, finish }));
+    entries.push(makeEntry({ qty, name, setCode, cn, finish, location }));
   }
   return { entries, errors };
 }
@@ -693,6 +717,18 @@ async function importEntries(imported, options = {}) {
   }
 }
 
+function migrateSavedCollection() {
+  const total = collection.reduce((sum, c) => sum + (parseInt(c.qty, 10) || 0), 0);
+  const hasNoLocations = collection.every(c => !normalizeLocation(c.location));
+  const looksLikeBreyaDefault = collection.length === 96
+    && total === 100
+    && collection.some(c => (c.resolvedName || c.name) === 'Breya, Etherium Shaper');
+  if (hasNoLocations && looksLikeBreyaDefault) {
+    collection.forEach(c => { c.location = 'breya deck'; });
+    save();
+  }
+}
+
 // ---- Import ----
 async function importCsv(text) {
   const rows = parseCsv(text);
@@ -720,6 +756,7 @@ async function importCsv(text) {
       qty: parseInt(get('qty'), 10) || 1,
       condition: normalizeCondition(get('condition')),
       language: (get('language') || 'en').toLowerCase(),
+      location: get('location'),
       scryfallId: get('scryfallId'),
       rarity: get('rarity').toLowerCase(),
       price: parseFloat(get('price')) || null,
@@ -737,7 +774,20 @@ async function importCsv(text) {
 }
 
 function collectionKey(c) {
-  return (c.scryfallId || (c.setCode + ':' + c.cn + ':' + c.name)) + ':' + c.finish + ':' + c.condition + ':' + c.language;
+  return (c.scryfallId || (c.setCode + ':' + c.cn + ':' + c.name)) + ':' + c.finish + ':' + c.condition + ':' + c.language + ':' + normalizeLocation(c.location);
+}
+
+function coalesceCollection() {
+  const byKey = new Map();
+  for (const c of collection) {
+    const k = collectionKey(c);
+    if (byKey.has(k)) {
+      byKey.get(k).qty += c.qty;
+    } else {
+      byKey.set(k, c);
+    }
+  }
+  collection = Array.from(byKey.values());
 }
 
 function getUsdPrice(card, finish) {
@@ -871,7 +921,7 @@ window.loadSample = loadSample;
 async function loadBreyaDeck(options = {}) {
   const { replace = true, silent = false } = options;
   if (replace && collection.length > 0 && !silent && !confirm('replace current collection with the breya deck?')) return;
-  const { entries, errors } = parseDecklist(BREYA_DECKLIST);
+  const { entries, errors } = parseDecklist(BREYA_DECKLIST, { location: 'breya deck' });
   if (errors.length && !silent) {
     showFeedback('couldn\'t parse decklist lines: ' + errors.join(', '), 'error');
     return;
@@ -907,6 +957,15 @@ function populateFilters() {
   setSelect.innerHTML = '<option value="">all sets</option>' +
     sets.map(s => '<option value="' + esc(s) + '">' + esc(s.toUpperCase()) + '</option>').join('');
   setSelect.value = current;
+
+  const locations = [...new Set(collection.map(c => normalizeLocation(c.location)).filter(Boolean))].sort();
+  const locationSelect = document.getElementById('filterLocation');
+  const currentLocation = locationSelect.value;
+  locationSelect.innerHTML = '<option value="">all locations</option>' +
+    locations.map(l => '<option value="' + esc(l) + '">' + esc(l) + '</option>').join('');
+  locationSelect.value = currentLocation;
+  document.getElementById('locationOptions').innerHTML =
+    locations.map(l => '<option value="' + esc(l) + '"></option>').join('');
 }
 
 function filteredSorted() {
@@ -914,6 +973,7 @@ function filteredSorted() {
   const set = document.getElementById('filterSet').value;
   const rarity = document.getElementById('filterRarity').value;
   const finish = document.getElementById('filterFoil').value;
+  const location = document.getElementById('filterLocation').value;
   const sortBy = document.getElementById('sortBy').value;
 
   let list = collection.filter(c => {
@@ -922,6 +982,7 @@ function filteredSorted() {
     if (set && c.setCode !== set) return false;
     if (rarity && c.rarity !== rarity) return false;
     if (finish && c.finish !== finish) return false;
+    if (location && normalizeLocation(c.location) !== location) return false;
     return true;
   });
 
@@ -996,6 +1057,7 @@ function renderTile(c) {
 function renderRow(c) {
   const name = c.resolvedName || c.name || '(unknown)';
   const href = c.scryfallUri || '#';
+  const index = collection.indexOf(c);
   return `<tr>
     <td class="card-name-cell"><a href="${esc(href)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${esc(name)}</a></td>
     <td class="muted">${esc((c.setCode || '').toUpperCase())}</td>
@@ -1003,6 +1065,7 @@ function renderRow(c) {
     <td class="muted">${esc(c.finish)}</td>
     <td class="muted">${esc(c.rarity || '')}</td>
     <td class="muted">${esc(c.condition.replace(/_/g, ' '))}</td>
+    <td><input class="location-input" data-index="${index}" list="locationOptions" value="${esc(c.location || '')}" placeholder="location"></td>
     <td>${c.qty}</td>
     <td class="muted">${formatPrice(c)}</td>
   </tr>`;
@@ -1022,7 +1085,7 @@ window.clearCollection = clearCollection;
 function exportCsv() {
   if (collection.length === 0) return;
   const list = filteredSorted();
-  const header = 'Name,Set code,Set name,Collector number,Foil,Rarity,Quantity,Scryfall ID,Condition,Language,Purchase price,Purchase price currency,Purchase price note';
+  const header = 'Name,Set code,Set name,Collector number,Foil,Rarity,Quantity,Scryfall ID,Condition,Language,Location,Purchase price,Purchase price currency,Purchase price note';
   const q = (v) => {
     const s = v == null ? '' : String(v);
     return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
@@ -1038,6 +1101,7 @@ function exportCsv() {
     q(c.scryfallId),
     q(c.condition),
     q(c.language),
+    q(c.location),
     q(c.price ?? ''),
     q(c.price ? 'USD' : ''),
     q(c.priceFallback ? 'regular usd fallback; exact finish price unavailable' : ''),
@@ -1059,7 +1123,18 @@ document.getElementById('toggleView').addEventListener('click', () => {
   render();
 });
 
-['searchInput', 'filterSet', 'filterRarity', 'filterFoil', 'sortBy'].forEach(id => {
+listBodyEl.addEventListener('change', e => {
+  if (!e.target.classList.contains('location-input')) return;
+  const index = parseInt(e.target.dataset.index, 10);
+  if (!collection[index]) return;
+  collection[index].location = normalizeLocation(e.target.value);
+  coalesceCollection();
+  save();
+  populateFilters();
+  render();
+});
+
+['searchInput', 'filterSet', 'filterRarity', 'filterFoil', 'filterLocation', 'sortBy'].forEach(id => {
   document.getElementById(id).addEventListener('input', render);
   document.getElementById(id).addEventListener('change', render);
 });
@@ -1078,6 +1153,7 @@ async function boot() {
     await loadBreyaDeck({ replace: true, silent: true });
     hideFeedback();
   } else {
+    migrateSavedCollection();
     const missingPrices = collection.filter(c => !c.price && (c.scryfallId || c.name || (c.setCode && c.cn)));
     if (missingPrices.length) {
       await resolveCards(missingPrices);
