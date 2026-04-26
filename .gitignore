@@ -1,3 +1,4 @@
 **/.wrangler/
+.claude/
 scripts/spotify-auth.js
 node_modules/
