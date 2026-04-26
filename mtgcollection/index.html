@@ -902,17 +902,17 @@ async function importFromFile(file) {
 }
 
 function loadSample() {
-  const sample = 'Name,Set code,Foil,Quantity,Condition\n' +
-    'Sol Ring,cmm,normal,1,near_mint\n' +
-    'Lightning Bolt,clb,normal,4,lightly_played\n' +
-    'Counterspell,cmm,normal,2,near_mint\n' +
-    'Brainstorm,mh2,normal,3,near_mint\n' +
-    'Swords to Plowshares,cmm,normal,2,near_mint\n' +
-    'Thoughtseize,akh,foil,1,near_mint\n' +
-    '"Ragavan, Nimble Pilferer",mh2,normal,1,near_mint\n' +
-    'Wrenn and Six,mh1,normal,1,near_mint\n' +
-    'Force of Will,2xm,normal,1,near_mint\n' +
-    'Rhystic Study,cmm,foil,1,near_mint';
+  const sample = 'Name,Set code,Collector number,Foil,Rarity,Quantity,Condition,Location\n' +
+    'Sol Ring,cmm,410,normal,uncommon,1,near_mint,sample binder\n' +
+    'Lightning Bolt,clb,187,normal,common,4,lightly_played,sample binder\n' +
+    'Counterspell,cmm,81,normal,common,2,near_mint,sample binder\n' +
+    'Brainstorm,sta,13,normal,rare,3,near_mint,sample binder\n' +
+    'Swords to Plowshares,cmm,841,normal,uncommon,2,near_mint,sample binder\n' +
+    'Thoughtseize,2xm,109,foil,rare,1,near_mint,sample binder\n' +
+    '"Ragavan, Nimble Pilferer",mh2,138,normal,mythic,1,near_mint,sample binder\n' +
+    'Wrenn and Six,mh1,217,normal,mythic,1,near_mint,sample binder\n' +
+    'Force of Will,2xm,51,normal,mythic,1,near_mint,sample binder\n' +
+    'Rhystic Study,j22,114,normal,rare,1,near_mint,sample binder';
   document.getElementById('pasteArea').value = sample;
   showFeedback('loaded sample csv — click "import pasted"', 'info');
 }
