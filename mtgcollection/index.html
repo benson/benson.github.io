@@ -119,6 +119,34 @@
   .controls input:focus, .controls select:focus { border-bottom-width: 2px; }
   .controls .search-input { width: 200px; flex: 1; max-width: 280px; }
   .controls .filter-select { min-width: 90px; padding-right: 16px; }
+  .segmented {
+    display: inline-flex;
+    border: 1px solid #ccc;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .segment-btn {
+    appearance: none;
+    border: none;
+    border-right: 1px solid #ccc;
+    background: transparent;
+    color: #999;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.75rem;
+    line-height: 1;
+    padding: 6px 8px;
+    text-transform: lowercase;
+  }
+  .segment-btn:last-child { border-right: none; }
+  .segment-btn.active {
+    background: #000;
+    color: #fff;
+  }
+  .segment-btn:focus-visible {
+    outline: 2px solid #000;
+    outline-offset: -2px;
+  }
 
   /* Grid */
   .grid {
@@ -126,6 +154,9 @@
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 10px;
   }
+  .grid.grid-small { grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 7px; }
+  .grid.grid-medium { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .grid.grid-large { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
   .card-tile {
     position: relative;
     border: none;
@@ -417,11 +448,14 @@
     overflow: hidden;
   }
   .language-toggle {
-    display: flex;
+    display: inline-flex;
     flex-wrap: wrap;
     border: 1px solid #ccc;
     border-radius: 2px;
     overflow: hidden;
+    width: fit-content;
+    max-width: 100%;
+    vertical-align: top;
   }
   .condition-toggle input, .language-toggle input {
     position: absolute;
@@ -451,8 +485,27 @@
     outline-offset: -2px;
   }
   .language-other {
-    margin-top: 6px;
-    width: 70px;
+    width: 54px;
+    margin-left: 6px;
+    display: none;
+  }
+  .language-other.visible { display: inline-block; }
+  .language-add {
+    width: 27px;
+    height: 27px;
+    margin-left: 6px;
+    border: 1px solid #ccc;
+    border-radius: 2px;
+    background: transparent;
+    color: #999;
+    cursor: pointer;
+    font: inherit;
+    line-height: 1;
+  }
+  .language-add:hover, .language-add:focus-visible {
+    border-color: #000;
+    color: #000;
+    outline: none;
   }
   .checkbox-field {
     grid-column: 1 / -1;
@@ -547,7 +600,8 @@
     .header h1 { font-size: 1.1rem; }
     .header p { font-size: 0.65rem; }
     .main { padding: 10px 15px 40px; }
-    .grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 6px; }
+    .grid, .grid.grid-small, .grid.grid-medium { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 6px; }
+    .grid.grid-large { grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 8px; }
     .controls .search-input { width: 100%; max-width: none; flex-basis: 100%; }
     .stats { gap: 14px; }
     .stat-value { font-size: 1.1rem; }
@@ -620,6 +674,11 @@
         <option value="cmc">sort: mana value</option>
       </select>
       <button class="toggle-view" id="toggleView">list view</button>
+      <div class="segmented" id="gridSizeControl" aria-label="grid card size">
+        <button class="segment-btn" type="button" data-grid-size="small">s</button>
+        <button class="segment-btn" type="button" data-grid-size="medium">m</button>
+        <button class="segment-btn" type="button" data-grid-size="large">l</button>
+      </div>
       <button class="btn-secondary btn" onclick="exportCsv()">export csv</button>
       <button class="btn btn-danger" onclick="clearCollection()">clear</button>
       <span class="progress" id="progress"></span>
@@ -692,6 +751,7 @@
         <div class="detail-field">
           <label>language</label>
           <div class="language-toggle" id="detailLanguageOptions"></div>
+          <button class="language-add" id="detailLanguageAdd" type="button" aria-label="add language">+</button>
           <input class="language-other" id="detailLanguageOther" type="text" maxlength="8" placeholder="other">
         </div>
         <div class="detail-field full">
@@ -721,6 +781,7 @@ const SCRYFALL_API = 'https://api.scryfall.com';
 let collection = [];  // normalized rows with resolved card data
 const STORAGE_KEY = 'mtgcollection_v1';
 let viewMode = 'grid';
+let gridSize = 'medium';
 
 const BREYA_DECKLIST = `1 Breya, Etherium Shaper (C16) 29 *F*
 1 Ancient Den (SLD) 300 *F*
@@ -821,7 +882,7 @@ const BREYA_DECKLIST = `1 Breya, Etherium Shaper (C16) 29 *F*
 
 function save() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ collection, viewMode }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ collection, viewMode, gridSize }));
   } catch (e) {
     showFeedback('collection too large for localstorage — ' + e.message, 'error');
   }
@@ -834,6 +895,7 @@ function load() {
     if (Array.isArray(data.collection)) {
       collection = data.collection;
       viewMode = data.viewMode || 'grid';
+      gridSize = ['small', 'medium', 'large'].includes(data.gridSize) ? data.gridSize : 'medium';
       return true;
     }
   } catch (e) {}
@@ -1302,6 +1364,7 @@ function renderLanguageOptions(selected) {
   ).join('');
   const other = document.getElementById('detailLanguageOther');
   other.value = options.includes(lang) ? '' : lang;
+  other.classList.toggle('visible', Boolean(other.value));
 }
 
 function filteredSorted() {
@@ -1353,6 +1416,7 @@ function render() {
   const value = list.reduce((s, c) => s + (c.price || 0) * c.qty, 0);
   document.getElementById('totalValue').textContent = value.toFixed(2);
   priceNoteEl.classList.toggle('hidden', !list.some(c => c.priceFallback));
+  applyGridSize();
 
   if (viewMode === 'grid') {
     document.getElementById('grid').classList.remove('hidden');
@@ -1365,6 +1429,14 @@ function render() {
     document.getElementById('toggleView').textContent = 'grid view';
     listBodyEl.innerHTML = list.map(c => renderRow(c)).join('');
   }
+}
+
+function applyGridSize() {
+  gridEl.classList.remove('grid-small', 'grid-medium', 'grid-large');
+  gridEl.classList.add('grid-' + gridSize);
+  document.querySelectorAll('[data-grid-size]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.gridSize === gridSize);
+  });
 }
 
 function formatPrice(c) {
@@ -1464,6 +1536,14 @@ document.getElementById('toggleView').addEventListener('click', () => {
   render();
 });
 
+document.getElementById('gridSizeControl').addEventListener('click', e => {
+  const btn = e.target.closest('[data-grid-size]');
+  if (!btn) return;
+  gridSize = btn.dataset.gridSize;
+  save();
+  applyGridSize();
+});
+
 gridEl.addEventListener('click', e => {
   const scryfallLink = e.target.closest('.card-scryfall-link');
   if (scryfallLink) {
@@ -1531,6 +1611,11 @@ drawerBackdrop.addEventListener('click', closeDetail);
 document.getElementById('detailDelete').addEventListener('click', deleteDetail);
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && detailDrawer.classList.contains('visible')) closeDetail();
+});
+document.getElementById('detailLanguageAdd').addEventListener('click', () => {
+  const other = document.getElementById('detailLanguageOther');
+  other.classList.add('visible');
+  other.focus();
 });
 document.getElementById('detailLanguageOther').addEventListener('input', e => {
   if (!e.target.value.trim()) return;
