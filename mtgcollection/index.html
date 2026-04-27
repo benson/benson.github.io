@@ -485,26 +485,28 @@
     outline: 2px solid #000;
     outline-offset: -2px;
   }
+  .language-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
   .language-other {
     width: 54px;
-    margin-left: 6px;
     display: none;
   }
   .language-other.visible { display: inline-block; }
   .language-add {
-    width: 27px;
-    height: 27px;
-    margin-left: 6px;
-    border: 1px solid #ccc;
-    border-radius: 2px;
+    border: none;
     background: transparent;
     color: #999;
     cursor: pointer;
     font: inherit;
+    font-size: 1rem;
     line-height: 1;
+    padding: 4px 6px;
   }
   .language-add:hover, .language-add:focus-visible {
-    border-color: #000;
     color: #000;
     outline: none;
   }
@@ -522,20 +524,27 @@
     flex-wrap: wrap;
     margin-top: 18px;
   }
-  .price-display {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 4px;
-    color: inherit;
+  .detail-price {
+    font-size: 0.85rem;
+    color: #444;
+    text-transform: none;
+    margin-top: 14px;
+  }
+  .detail-price-label {
+    font-size: 0.7rem;
+    color: #999;
+    letter-spacing: 0.03em;
+    margin-right: 6px;
+    text-transform: lowercase;
+  }
+  .detail-price #detailPriceMark { color: #999; }
+  .detail-price a {
+    color: #999;
+    margin-left: 6px;
     text-decoration: none;
     border-bottom: 1px solid #ccc;
-    padding: 5px 0;
-    min-height: 28px;
-    text-transform: none;
   }
-  .price-display:hover { border-color: #000; }
-  .price-display .price-main { font-size: 0.95rem; }
-  .price-display .price-mark { color: #999; }
+  .detail-price a:hover { color: #000; border-color: #000; }
 
   .feedback {
     font-size: 0.75rem;
@@ -1021,20 +1030,21 @@
         </div>
         <div class="detail-field">
           <label>language</label>
-          <div class="language-toggle" id="detailLanguageOptions"></div>
-          <button class="language-add" id="detailLanguageAdd" type="button" aria-label="add language">+</button>
-          <input class="language-other" id="detailLanguageOther" type="text" maxlength="8" placeholder="other">
+          <div class="language-row">
+            <div class="language-toggle" id="detailLanguageOptions"></div>
+            <button class="language-add" id="detailLanguageAdd" type="button" aria-label="add language">+</button>
+            <input class="language-other" id="detailLanguageOther" type="text" maxlength="8" placeholder="other">
+          </div>
         </div>
         <div class="detail-field full">
           <label for="detailLocation">location</label>
           <input id="detailLocation" type="text" list="locationOptions">
         </div>
-        <div class="detail-field">
-          <label>price usd</label>
-          <a class="price-display" id="detailPriceLink" href="#" target="_blank" rel="noopener">
-            <span class="price-main" id="detailPriceText"></span><span class="price-mark" id="detailPriceMark"></span>
-          </a>
-        </div>
+      </div>
+      <div class="detail-price">
+        <span class="detail-price-label">price</span>
+        <span id="detailPriceText"></span><span id="detailPriceMark"></span>
+        <a id="detailPriceLink" href="#" target="_blank" rel="noopener">(scryfall)</a>
       </div>
       <div class="drawer-actions">
         <button class="btn" type="submit">save</button>
@@ -1641,8 +1651,8 @@ function renderLanguageOptions(selected) {
     `<label><input type="radio" name="detailLanguage" value="${esc(code)}"${code === lang ? ' checked' : ''}><span>${esc(code)}</span></label>`
   ).join('');
   const other = document.getElementById('detailLanguageOther');
-  other.value = options.includes(lang) ? '' : lang;
-  other.classList.toggle('visible', Boolean(other.value));
+  other.value = '';
+  other.classList.remove('visible');
 }
 
 function filteredSorted() {
