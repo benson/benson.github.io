@@ -440,6 +440,7 @@
     border-bottom-color: #000;
     outline: none;
   }
+  #detailQty { max-width: 70px; }
   .condition-toggle {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -571,20 +572,212 @@
     margin: -8px 0 12px;
   }
 
-  details.import-details {
+  details.import-details,
+  details.add-details {
     margin-bottom: 16px;
     padding: 12px;
     background: #fff;
     border: 1px solid #eee;
     border-radius: 2px;
   }
-  details.import-details summary {
+  details.import-details summary,
+  details.add-details summary {
     cursor: pointer;
     font-size: 0.8rem;
     letter-spacing: 0.02em;
   }
-  details.import-details summary::marker { color: #999; }
-  details.import-details .details-body { margin-top: 12px; }
+  details.import-details summary::marker,
+  details.add-details summary::marker { color: #999; }
+  details.import-details .details-body,
+  details.add-details .details-body { margin-top: 12px; }
+
+  /* Add-cards panel */
+  .add-tabs {
+    display: inline-flex;
+    border: 1px solid #ccc;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .add-tab {
+    appearance: none;
+    border: none;
+    border-right: 1px solid #ccc;
+    background: transparent;
+    color: #999;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.75rem;
+    line-height: 1;
+    padding: 6px 12px;
+    text-transform: lowercase;
+  }
+  .add-tab:last-child { border-right: none; }
+  .add-tab.active { background: #000; color: #fff; }
+  .add-tab:focus-visible { outline: 2px solid #000; outline-offset: -2px; }
+
+  .add-mode { display: none; }
+  .add-mode.active { display: block; }
+
+  .name-search { position: relative; max-width: 360px; }
+  .name-search input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #000;
+    padding: 6px 2px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    text-transform: none;
+    outline: none;
+  }
+  .name-search input:focus { border-bottom-width: 2px; }
+  .autocomplete-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-top: none;
+    max-height: 240px;
+    overflow-y: auto;
+    z-index: 50;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: none;
+  }
+  .autocomplete-list.active { display: block; }
+  .autocomplete-list li {
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    text-transform: none;
+  }
+  .autocomplete-list li.highlight,
+  .autocomplete-list li:hover {
+    background: #000;
+    color: #fff;
+  }
+
+  .mic-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .mic-btn {
+    padding: 8px 16px;
+    border-radius: 2px;
+    border: 1px solid #000;
+    background: #000;
+    color: #fff;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-family: inherit;
+    text-transform: lowercase;
+  }
+  .mic-btn:hover { background: #333; }
+  .mic-btn.on { background: #c00; border-color: #c00; }
+  .mic-status { font-size: 0.75rem; color: #999; }
+  .mic-status strong { color: #000; }
+  .vocab-hint {
+    font-size: 0.65rem;
+    color: #bbb;
+    letter-spacing: 0.02em;
+    margin-bottom: 8px;
+  }
+  .vocab-hint strong { color: #888; font-weight: 400; }
+
+  .entry-row {
+    display: flex;
+    gap: 8px;
+    align-items: end;
+    flex-wrap: wrap;
+  }
+  .entry-row .field { display: flex; flex-direction: column; gap: 2px; }
+  .entry-row .field label {
+    font-size: 0.7rem;
+    letter-spacing: 0.03em;
+    color: #999;
+  }
+  .entry-row .field input,
+  .entry-row .field select {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #000;
+    color: #000;
+    padding: 6px 2px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    text-transform: lowercase;
+    outline: none;
+    border-radius: 0;
+    -webkit-appearance: none;
+  }
+  .entry-row .field-set { width: 80px; }
+  .entry-row .field-cn { width: 80px; }
+  .entry-row .field-variant { width: 110px; }
+
+  .add-preview {
+    display: none;
+    gap: 16px;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid #eee;
+  }
+  .add-preview.active { display: flex; }
+  .add-preview-img {
+    width: 140px;
+    border-radius: 4%;
+    flex-shrink: 0;
+    align-self: flex-start;
+  }
+  .add-preview-info { flex: 1; min-width: 0; }
+  .add-preview-name {
+    font-size: 1.05rem;
+    margin-bottom: 2px;
+    text-transform: none;
+  }
+  .add-preview-meta {
+    font-size: 0.75rem;
+    color: #999;
+    margin-bottom: 10px;
+    text-transform: none;
+  }
+  .add-fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    margin-bottom: 12px;
+  }
+  .add-fields .field { display: flex; flex-direction: column; gap: 3px; flex: 0 0 auto; min-width: 0; }
+  .add-fields .field-finish { flex: 0 0 150px; }
+  .add-fields .field-condition { flex: 0 0 150px; }
+  .add-fields .field-language { flex: 0 0 130px; }
+  .add-fields .field-qty { flex: 0 0 60px; }
+  .add-fields .field-location { flex: 0 0 200px; }
+  .add-fields label {
+    font-size: 0.7rem;
+    letter-spacing: 0.03em;
+    color: #999;
+  }
+  .add-fields input,
+  .add-fields select {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #000;
+    padding: 4px 2px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    text-transform: lowercase;
+    outline: none;
+    border-radius: 0;
+    -webkit-appearance: none;
+  }
+  .add-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
   .format-note { font-size: 0.7rem; color: #999; margin-top: 6px; }
   .format-note code {
@@ -616,6 +809,84 @@
 </div>
 
 <div class="main">
+  <details class="add-details" id="addDetails" open>
+    <summary>add cards</summary>
+    <div class="details-body">
+      <div class="add-tabs" role="tablist">
+        <button class="add-tab active" type="button" data-add-mode="name">type a name</button>
+        <button class="add-tab" type="button" data-add-mode="cn">set + cn</button>
+      </div>
+
+      <div class="add-mode active" id="addModeName">
+        <div class="name-search">
+          <input type="text" id="addNameInput" placeholder="search a card name..." autocomplete="off" spellcheck="false">
+          <ul class="autocomplete-list" id="addNameSuggestions" role="listbox"></ul>
+        </div>
+      </div>
+
+      <div class="add-mode" id="addModeCn">
+        <div class="mic-row">
+          <button class="mic-btn off" type="button" id="addMicBtn">start listening</button>
+          <span class="mic-status" id="addMicStatus">say "fin 142 foil lightly played"</span>
+        </div>
+        <div class="vocab-hint"><strong>conditions:</strong> nm · lp · mp · hp · damaged &nbsp; <strong>variants:</strong> promo · prerelease &nbsp; <strong>finishes:</strong> foil</div>
+        <div class="entry-row">
+          <div class="field field-set">
+            <label for="addSetInput">set</label>
+            <input type="text" id="addSetInput" placeholder="fin" maxlength="5" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="field field-cn">
+            <label for="addCnInput">cn</label>
+            <input type="text" id="addCnInput" placeholder="142" maxlength="6" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="field field-variant">
+            <label for="addVariant">variant</label>
+            <select id="addVariant">
+              <option value="regular">regular</option>
+              <option value="promo">promo pack</option>
+              <option value="prerelease">prerelease</option>
+            </select>
+          </div>
+          <button class="btn" type="button" id="addLookupBtn">look up</button>
+        </div>
+      </div>
+
+      <div class="add-preview" id="addPreview">
+        <img class="add-preview-img" id="addPreviewImg" src="" alt="">
+        <div class="add-preview-info">
+          <div class="add-preview-name" id="addPreviewName"></div>
+          <div class="add-preview-meta" id="addPreviewMeta"></div>
+          <div class="add-fields">
+            <div class="field field-finish">
+              <label for="addFinish">finish</label>
+              <select id="addFinish"></select>
+            </div>
+            <div class="field field-condition">
+              <label for="addCondition">condition</label>
+              <select id="addCondition"></select>
+            </div>
+            <div class="field field-language">
+              <label for="addLanguage">language</label>
+              <select id="addLanguage"></select>
+            </div>
+            <div class="field field-qty">
+              <label for="addQty">qty</label>
+              <input type="number" id="addQty" min="1" value="1">
+            </div>
+            <div class="field field-location">
+              <label for="addLocation">location</label>
+              <input type="text" id="addLocation" list="locationOptions" placeholder="optional">
+            </div>
+          </div>
+          <div class="add-actions">
+            <button class="btn" type="button" id="addCardBtn">add to collection</button>
+            <button class="btn btn-secondary" type="button" id="addCardCancel">cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </details>
+
   <details class="import-details" id="importDetails">
     <summary id="importSummary">import a csv</summary>
     <div class="details-body">
@@ -707,7 +978,7 @@
   </div>
 
   <div class="empty-state" id="emptyState">
-    <p>import a csv to see your collection</p>
+    <p>add a card or import a csv to see your collection</p>
   </div>
 </div>
 
@@ -775,6 +1046,13 @@
 </aside>
 
 <script type="module">
+import {
+  fetchSets,
+  fetchCardByCollectorNumber,
+  fetchCardByName,
+  getCardFinishes,
+} from 'https://bensonperry.com/shared/mtg.js';
+
 const SCRYFALL_API = 'https://api.scryfall.com';
 
 // ---- State ----
@@ -1736,6 +2014,470 @@ function deleteDetail() {
   render();
   closeDetail();
   showFeedback('deleted ' + esc(name), 'success');
+}
+
+// ---- Add Cards (manual + voice) ----
+const ADD_CONDITIONS = [
+  { value: 'near_mint',         label: 'near mint' },
+  { value: 'lightly_played',    label: 'lightly played' },
+  { value: 'moderately_played', label: 'moderately played' },
+  { value: 'heavily_played',    label: 'heavily played' },
+  { value: 'damaged',           label: 'damaged' },
+];
+const ADD_LANGUAGES = [
+  { value: 'en',  label: 'english' },
+  { value: 'ja',  label: 'japanese' },
+  { value: 'de',  label: 'german' },
+  { value: 'fr',  label: 'french' },
+  { value: 'it',  label: 'italian' },
+  { value: 'es',  label: 'spanish' },
+  { value: 'pt',  label: 'portuguese' },
+  { value: 'ru',  label: 'russian' },
+  { value: 'ko',  label: 'korean' },
+  { value: 'zhs', label: 'chinese (simplified)' },
+  { value: 'zht', label: 'chinese (traditional)' },
+];
+
+let validSets = new Set();
+fetchSets().then(sets => {
+  validSets = new Set((sets || []).map(s => s.code.toLowerCase()));
+}).catch(() => {});
+
+let addPreviewCard = null;
+let addMode = 'name';
+let lastUsedLocation = '';
+let voiceFoilFlag = false;
+let voiceSourceFlag = null;
+
+const addDetailsEl  = document.getElementById('addDetails');
+const addModeNameEl = document.getElementById('addModeName');
+const addModeCnEl   = document.getElementById('addModeCn');
+const addNameInput  = document.getElementById('addNameInput');
+const addNameList   = document.getElementById('addNameSuggestions');
+const addSetInput   = document.getElementById('addSetInput');
+const addCnInput    = document.getElementById('addCnInput');
+const addVariantSel = document.getElementById('addVariant');
+const addLookupBtn  = document.getElementById('addLookupBtn');
+const addPreviewEl  = document.getElementById('addPreview');
+const addPreviewImg = document.getElementById('addPreviewImg');
+const addPreviewName = document.getElementById('addPreviewName');
+const addPreviewMeta = document.getElementById('addPreviewMeta');
+const addFinishSel    = document.getElementById('addFinish');
+const addConditionSel = document.getElementById('addCondition');
+const addLanguageSel  = document.getElementById('addLanguage');
+const addQtyInput     = document.getElementById('addQty');
+const addLocationInput = document.getElementById('addLocation');
+const addBtn         = document.getElementById('addCardBtn');
+const addCancelBtn   = document.getElementById('addCardCancel');
+const addMicBtn      = document.getElementById('addMicBtn');
+const addMicStatus   = document.getElementById('addMicStatus');
+
+for (const c of ADD_CONDITIONS) {
+  const opt = document.createElement('option');
+  opt.value = c.value; opt.textContent = c.label;
+  addConditionSel.appendChild(opt);
+}
+for (const l of ADD_LANGUAGES) {
+  const opt = document.createElement('option');
+  opt.value = l.value; opt.textContent = l.label;
+  addLanguageSel.appendChild(opt);
+}
+
+function setAddMode(mode) {
+  addMode = mode;
+  document.querySelectorAll('.add-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.addMode === mode);
+  });
+  addModeNameEl.classList.toggle('active', mode === 'name');
+  addModeCnEl.classList.toggle('active', mode === 'cn');
+  hideAddPreview();
+  if (mode === 'name') addNameInput.focus();
+  else if (mode === 'cn') addSetInput.focus();
+}
+document.querySelectorAll('.add-tab').forEach(btn => {
+  btn.addEventListener('click', () => setAddMode(btn.dataset.addMode));
+});
+
+// ---- Name autocomplete ----
+let acDebounce = null;
+let acAbort = null;
+let acItems = [];
+let acIndex = -1;
+
+addNameInput.addEventListener('input', () => {
+  const q = addNameInput.value.trim();
+  clearTimeout(acDebounce);
+  if (q.length < 2) { hideAcList(); return; }
+  acDebounce = setTimeout(() => fetchAcSuggestions(q), 180);
+});
+
+addNameInput.addEventListener('keydown', (e) => {
+  const open = addNameList.classList.contains('active');
+  if (e.key === 'ArrowDown' && open) {
+    e.preventDefault();
+    acIndex = Math.min(acItems.length - 1, acIndex + 1);
+    highlightAc();
+  } else if (e.key === 'ArrowUp' && open) {
+    e.preventDefault();
+    acIndex = Math.max(-1, acIndex - 1);
+    highlightAc();
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (open && acIndex >= 0 && acIndex < acItems.length) pickName(acItems[acIndex]);
+    else if (addNameInput.value.trim()) pickName(addNameInput.value.trim());
+  } else if (e.key === 'Escape' && open) {
+    hideAcList();
+  }
+});
+
+addNameInput.addEventListener('blur', () => {
+  setTimeout(hideAcList, 150);
+});
+
+addNameList.addEventListener('mousedown', (e) => {
+  const li = e.target.closest('li');
+  if (!li) return;
+  e.preventDefault();
+  pickName(li.textContent);
+});
+
+async function fetchAcSuggestions(q) {
+  try {
+    if (acAbort) acAbort.abort();
+    acAbort = new AbortController();
+    const url = SCRYFALL_API + '/cards/autocomplete?q=' + encodeURIComponent(q);
+    const resp = await fetch(url, { signal: acAbort.signal });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    acItems = (data.data || []).slice(0, 12);
+    renderAcList();
+  } catch (e) {}
+}
+
+function renderAcList() {
+  if (!acItems.length) { hideAcList(); return; }
+  acIndex = -1;
+  addNameList.innerHTML = acItems.map(n => `<li role="option">${esc(n)}</li>`).join('');
+  addNameList.classList.add('active');
+}
+
+function highlightAc() {
+  Array.from(addNameList.children).forEach((li, i) => {
+    li.classList.toggle('highlight', i === acIndex);
+  });
+}
+
+function hideAcList() {
+  addNameList.classList.remove('active');
+  acIndex = -1;
+}
+
+async function pickName(name) {
+  hideAcList();
+  showFeedback('<span class="loading-spinner"></span> looking up ' + esc(name) + '...', 'info');
+  const card = await fetchCardByName(name);
+  if (!card) {
+    showFeedback('no card found for ' + esc(name), 'error');
+    return;
+  }
+  hideFeedback();
+  showAddPreview(card);
+}
+
+// ---- Set + CN lookup ----
+function resolveLookupTarget(set, cn, variant) {
+  const s = set.toLowerCase();
+  if (variant === 'promo' || variant === 'prerelease') {
+    const pset = s.startsWith('p') ? s : 'p' + s;
+    const pcn = /[a-z]$/i.test(cn) ? cn : cn + 's';
+    return { set: pset, cn: pcn };
+  }
+  return { set: s, cn };
+}
+
+async function doAddLookup() {
+  const userSet = addSetInput.value.trim();
+  const userCn  = addCnInput.value.trim();
+  if (!userSet || !userCn) {
+    showFeedback('enter both set code and collector number', 'error');
+    return;
+  }
+  if (voiceSourceFlag) {
+    addVariantSel.value = voiceSourceFlag;
+    voiceSourceFlag = null;
+  }
+  const variant = addVariantSel.value;
+  const target = resolveLookupTarget(userSet, userCn, variant);
+
+  addLookupBtn.disabled = true;
+  showFeedback('<span class="loading-spinner"></span> looking up ' + esc(target.set) + ' #' + esc(target.cn) + '...', 'info');
+  let card = await fetchCardByCollectorNumber(target.set, target.cn);
+  let fallback = false;
+  if (!card && variant !== 'regular') {
+    card = await fetchCardByCollectorNumber(userSet, userCn);
+    if (card) { fallback = true; addVariantSel.value = 'regular'; }
+  }
+  addLookupBtn.disabled = false;
+
+  if (!card) {
+    showFeedback('no card found for ' + esc(userSet) + ' #' + esc(userCn), 'error');
+    return;
+  }
+  if (fallback) showFeedback('no ' + variant + ' variant found — showing regular printing', 'info');
+  else hideFeedback();
+  showAddPreview(card);
+}
+addLookupBtn.addEventListener('click', doAddLookup);
+addSetInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    if (addCnInput.value.trim()) doAddLookup();
+    else addCnInput.focus();
+  }
+});
+addCnInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') doAddLookup();
+});
+addVariantSel.addEventListener('change', () => {
+  if (addSetInput.value.trim() && addCnInput.value.trim()) doAddLookup();
+});
+
+// ---- Shared preview ----
+function showAddPreview(card) {
+  addPreviewCard = card;
+  addPreviewEl.classList.add('active');
+  const imageUrl = getCardImageUrl(card);
+  addPreviewImg.src = imageUrl || '';
+  addPreviewImg.alt = card.name;
+  addPreviewName.textContent = card.name;
+  addPreviewMeta.textContent = [card.set_name, card.type_line, card.rarity].filter(Boolean).join(' — ');
+
+  addFinishSel.innerHTML = '';
+  const finishes = getCardFinishes(card);
+  for (const f of finishes) {
+    const value = f.finish === 'nonfoil' ? 'normal' : f.finish;
+    const priceStr = f.price ? ' ($' + f.price + ')' : '';
+    const opt = document.createElement('option');
+    opt.value = value;
+    opt.textContent = (f.label + priceStr).toLowerCase();
+    addFinishSel.appendChild(opt);
+  }
+
+  if (voiceFoilFlag) {
+    for (const opt of addFinishSel.options) {
+      if (opt.value === 'foil') { addFinishSel.value = 'foil'; break; }
+    }
+    voiceFoilFlag = false;
+  }
+
+  addQtyInput.value = 1;
+  addLocationInput.value = lastUsedLocation || '';
+  addBtn.focus();
+}
+
+function hideAddPreview() {
+  addPreviewCard = null;
+  addPreviewEl.classList.remove('active');
+}
+addCancelBtn.addEventListener('click', () => {
+  hideAddPreview();
+  if (addMode === 'name') addNameInput.focus();
+  else addSetInput.focus();
+});
+
+function addCardFromPreview() {
+  const card = addPreviewCard;
+  if (!card) return;
+  const finish = normalizeFinish(addFinishSel.value);
+  const condition = normalizeCondition(addConditionSel.value);
+  const language = normalizeLanguage(addLanguageSel.value);
+  const qty = Math.max(1, parseInt(addQtyInput.value, 10) || 1);
+  const location = normalizeLocation(addLocationInput.value);
+
+  const entry = makeEntry({
+    name: card.name,
+    setCode: card.set,
+    setName: card.set_name,
+    cn: card.collector_number,
+    finish, qty, condition, language, location,
+    scryfallId: card.id,
+    rarity: card.rarity || '',
+  });
+  entry.resolvedName = card.name;
+  entry.cmc = card.cmc ?? null;
+  entry.colors = card.colors || (card.card_faces?.[0]?.colors) || [];
+  entry.typeLine = card.type_line || '';
+  entry.scryfallUri = card.scryfall_uri;
+  entry.imageUrl = getCardImageUrl(card);
+  const priced = getUsdPrice(card, entry.finish);
+  entry.price = priced.price;
+  entry.priceFallback = priced.fallback;
+
+  const k = collectionKey(entry);
+  const existing = collection.find(c => collectionKey(c) === k);
+  if (existing) existing.qty += entry.qty;
+  else collection.push(entry);
+
+  save();
+  populateFilters();
+  render();
+  lastUsedLocation = location;
+  showFeedback('added ' + esc(card.name) + ' (' + (card.set || '').toUpperCase() + ' #' + esc(card.collector_number) + ')', 'success');
+
+  hideAddPreview();
+  if (addMode === 'name') {
+    addNameInput.value = '';
+    addNameInput.focus();
+  } else {
+    addCnInput.value = '';
+    addCnInput.focus();
+  }
+}
+addBtn.addEventListener('click', addCardFromPreview);
+addQtyInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); addCardFromPreview(); }
+});
+addLocationInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); addCardFromPreview(); }
+});
+
+// ---- Voice ----
+let voiceListening = false;
+let voiceRecognition = null;
+let voicePending = '';
+let voiceDebounce = null;
+const VOICE_DEBOUNCE_MS = 1200;
+
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SR) {
+  voiceRecognition = new SR();
+  voiceRecognition.continuous = true;
+  voiceRecognition.interimResults = true;
+  voiceRecognition.lang = 'en-US';
+  voiceRecognition.onresult = (event) => {
+    let final = '', interim = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const t = event.results[i][0].transcript;
+      if (event.results[i].isFinal) final += t + ' ';
+      else interim += t;
+    }
+    if (final.trim()) {
+      voicePending += final;
+      addMicStatus.innerHTML = '<strong>heard:</strong> ' + esc(voicePending.trim());
+      clearTimeout(voiceDebounce);
+      voiceDebounce = setTimeout(() => {
+        const text = voicePending.trim();
+        voicePending = '';
+        if (text.length > 1) parseVoice(text);
+      }, VOICE_DEBOUNCE_MS);
+    }
+    if (interim) {
+      addMicStatus.innerHTML = '<strong>...</strong> ' + esc((voicePending + interim).trim());
+    }
+  };
+  voiceRecognition.onend = () => {
+    if (voiceListening) { try { voiceRecognition.start(); } catch (e) {} }
+  };
+  voiceRecognition.onerror = (event) => {
+    if (event.error === 'not-allowed') {
+      addMicStatus.textContent = 'mic access denied — allow and reload';
+    }
+  };
+}
+
+addMicBtn.addEventListener('click', () => {
+  if (!voiceRecognition) {
+    addMicStatus.textContent = 'voice not supported in this browser';
+    return;
+  }
+  if (voiceListening) {
+    voiceListening = false;
+    voiceRecognition.stop();
+    addMicBtn.className = 'mic-btn off';
+    addMicBtn.textContent = 'start listening';
+    addMicStatus.textContent = 'mic off';
+  } else {
+    voiceListening = true;
+    voiceRecognition.start();
+    addMicBtn.className = 'mic-btn on';
+    addMicBtn.textContent = 'stop';
+    addMicStatus.textContent = 'listening...';
+  }
+});
+
+const KW_FOIL = /\bfoil\b/g;
+const KW_PRERELEASE = /\b(prerelease|pre-release|pre release|date\s*stamp(ed)?)\b/g;
+const KW_PROMO = /\b(promo|stamp|stamped)\b/g;
+const KW_CONDITIONS = [
+  ['damaged',           /\b(damaged|dmg|poor)\b/g],
+  ['heavily_played',    /\b(heavily\s*played|heavy\s*play(ed)?|hp)\b/g],
+  ['moderately_played', /\b(moderately\s*played|moderate\s*play(ed)?|mp)\b/g],
+  ['lightly_played',    /\b(lightly\s*played|light\s*play(ed)?|lp|excellent)\b/g],
+  ['near_mint',         /\b(near\s*mint|nm|mint|n\.m\.)\b/g],
+];
+
+function smartParseSetCn(text) {
+  const alnum = text.replace(/[^a-z0-9]/gi, '').toLowerCase();
+  if (!alnum) return null;
+  if (validSets.size > 0) {
+    for (let k = 5; k >= 2; k--) {
+      const candidate = alnum.slice(0, k);
+      const rest = alnum.slice(k);
+      if (validSets.has(candidate) && /^\d+[a-z]?$/.test(rest)) {
+        return { set: candidate, cn: rest };
+      }
+    }
+    const m = alnum.match(/^([a-z]+)(\d)0(\d+)$/);
+    if (m && m[3].length >= 1) {
+      const setCode = m[1] + m[2] + m[3][0];
+      const cn = m[3].slice(1);
+      if (validSets.has(setCode) && cn.length > 0) return { set: setCode, cn };
+    }
+  }
+  const m = text.match(/^\s*([a-z0-9]{2,5})\s+(\d{1,4}[a-z]?)\b/i);
+  if (m) return { set: m[1].toLowerCase(), cn: m[2] };
+  return null;
+}
+
+function parseVoice(text) {
+  let clean = text.toLowerCase()
+    .replace(/\b(um|uh|uhh|okay|ok)\b/g, '')
+    .replace(/number\s*/g, '')
+    .replace(/hashtag\s*/g, '')
+    .replace(/pound\s*/g, '')
+    .replace(/hash\s*/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const hasFoil = KW_FOIL.test(clean); KW_FOIL.lastIndex = 0;
+  let source = 'regular';
+  if (KW_PRERELEASE.test(clean)) source = 'prerelease';
+  else if (KW_PROMO.test(clean)) source = 'promo';
+  KW_PRERELEASE.lastIndex = 0; KW_PROMO.lastIndex = 0;
+  let condition = null;
+  for (const [value, re] of KW_CONDITIONS) {
+    re.lastIndex = 0;
+    if (re.test(clean)) { condition = value; break; }
+    re.lastIndex = 0;
+  }
+  let stripped = clean
+    .replace(KW_FOIL, ' ')
+    .replace(KW_PRERELEASE, ' ')
+    .replace(KW_PROMO, ' ');
+  for (const [, re] of KW_CONDITIONS) stripped = stripped.replace(re, ' ');
+  stripped = stripped.replace(/\s+/g, ' ').trim();
+
+  const parsed = smartParseSetCn(stripped);
+  if (!parsed) {
+    showFeedback('couldn\'t parse "' + esc(text) + '" — say set code then number (e.g. "fin 142")', 'error');
+    return;
+  }
+  addDetailsEl.open = true;
+  if (addMode !== 'cn') setAddMode('cn');
+  addSetInput.value = parsed.set;
+  addCnInput.value = parsed.cn;
+  voiceFoilFlag = hasFoil;
+  voiceSourceFlag = source;
+  if (condition) addConditionSel.value = condition;
+  doAddLookup();
 }
 
 // Boot
