@@ -277,7 +277,48 @@
   }
   tbody tr { border-bottom: 1px solid #eee; }
   tbody tr:hover { background: #fff; cursor: pointer; }
+  tbody tr.row-selected, tbody tr.row-selected:hover { background: #fff8e6; }
   td { padding: 6px 8px; }
+  .col-check { width: 28px; text-align: center; padding-right: 4px; }
+  .row-check, .header-check { cursor: pointer; }
+
+  .bulk-bar {
+    display: none;
+    align-items: end;
+    flex-wrap: wrap;
+    gap: 14px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 2px;
+    font-size: 0.8rem;
+    position: sticky;
+    top: 0;
+    z-index: 30;
+  }
+  .bulk-bar.active { display: flex; }
+  .bulk-count { font-weight: 400; align-self: center; }
+  .bulk-bar .field { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .bulk-bar .field label {
+    font-size: 0.65rem;
+    color: #999;
+    letter-spacing: 0.03em;
+  }
+  .bulk-bar input, .bulk-bar select {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #000;
+    padding: 4px 2px;
+    font-size: 0.85rem;
+    font-family: inherit;
+    text-transform: lowercase;
+    outline: none;
+    border-radius: 0;
+    -webkit-appearance: none;
+    width: 120px;
+  }
+  .bulk-bar .bulk-spacer { flex: 1; }
   .card-name-cell { text-transform: none; }
   .card-name-button {
     appearance: none;
@@ -557,6 +598,20 @@
   .feedback.error { background: #fff0f0; border: 1px solid #e8c0c0; color: #900; }
   .feedback.info { background: #f0f4ff; border: 1px solid #c0d0e8; color: #336; }
   .feedback.success { background: #f0fff0; border: 1px solid #c0e8c0; color: #060; }
+  .feedback .undo-btn {
+    appearance: none;
+    background: transparent;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    font-size: inherit;
+    text-transform: lowercase;
+    text-decoration: underline;
+    padding: 0;
+    margin-left: 8px;
+  }
+  .feedback .undo-btn:hover { opacity: 0.7; }
 
   .loading-spinner {
     display: inline-block;
@@ -823,7 +878,7 @@
     <div class="details-body">
       <div class="add-tabs" role="tablist">
         <button class="add-tab active" type="button" data-add-mode="name">type a name</button>
-        <button class="add-tab" type="button" data-add-mode="cn">set + cn</button>
+        <button class="add-tab" type="button" data-add-mode="cn">voice input</button>
       </div>
 
       <div class="add-mode active" id="addModeName">
@@ -967,9 +1022,57 @@
 
     <div class="grid" id="grid"></div>
     <div class="list-view" id="listView">
+      <div class="bulk-bar" id="bulkBar" aria-live="polite">
+        <span class="bulk-count" id="bulkCount">0 selected</span>
+        <div class="field">
+          <label for="bulkLocation">location</label>
+          <input id="bulkLocation" type="text" list="locationOptions" placeholder="set...">
+        </div>
+        <div class="field">
+          <label for="bulkCondition">condition</label>
+          <select id="bulkCondition">
+            <option value="">—</option>
+            <option value="near_mint">near mint</option>
+            <option value="lightly_played">lightly played</option>
+            <option value="moderately_played">moderately played</option>
+            <option value="heavily_played">heavily played</option>
+            <option value="damaged">damaged</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="bulkFinish">finish</label>
+          <select id="bulkFinish">
+            <option value="">—</option>
+            <option value="normal">normal</option>
+            <option value="foil">foil</option>
+            <option value="etched">etched</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="bulkLanguage">language</label>
+          <select id="bulkLanguage">
+            <option value="">—</option>
+            <option value="en">english</option>
+            <option value="ja">japanese</option>
+            <option value="de">german</option>
+            <option value="fr">french</option>
+            <option value="it">italian</option>
+            <option value="es">spanish</option>
+            <option value="pt">portuguese</option>
+            <option value="ru">russian</option>
+            <option value="ko">korean</option>
+            <option value="zhs">chinese (simplified)</option>
+            <option value="zht">chinese (traditional)</option>
+          </select>
+        </div>
+        <span class="bulk-spacer"></span>
+        <button class="btn btn-danger" type="button" id="bulkDelete">delete</button>
+        <button class="btn btn-secondary" type="button" id="bulkClear">clear</button>
+      </div>
       <table>
         <thead>
           <tr>
+            <th class="col-check"><input type="checkbox" class="header-check" id="headerCheck" aria-label="select all visible"></th>
             <th>name</th>
             <th>set</th>
             <th>cn</th>
@@ -1070,6 +1173,7 @@ let collection = [];  // normalized rows with resolved card data
 const STORAGE_KEY = 'mtgcollection_v1';
 let viewMode = 'grid';
 let gridSize = 'medium';
+let selectedKeys = new Set();
 
 const BREYA_DECKLIST = `1 Breya, Etherium Shaper (C16) 29 *F*
 1 Ancient Den (SLD) 300 *F*
@@ -1717,6 +1821,7 @@ function render() {
     document.getElementById('toggleView').textContent = 'grid view';
     listBodyEl.innerHTML = list.map(c => renderRow(c)).join('');
   }
+  updateBulkBar();
 }
 
 function applyGridSize() {
@@ -1757,9 +1862,12 @@ function renderTile(c) {
 function renderRow(c) {
   const name = c.resolvedName || c.name || '(unknown)';
   const index = collection.indexOf(c);
+  const key = collectionKey(c);
+  const selected = selectedKeys.has(key);
   const previewClasses = c.imageUrl ? 'card-name-button card-preview-link detail-trigger' : 'card-name-button detail-trigger';
   const previewAttr = c.imageUrl ? ` data-preview-url="${esc(c.imageUrl)}"` : '';
-  return `<tr class="detail-trigger" data-index="${index}">
+  return `<tr class="detail-trigger${selected ? ' row-selected' : ''}" data-index="${index}" data-key="${esc(key)}">
+    <td class="col-check"><input type="checkbox" class="row-check" data-key="${esc(key)}"${selected ? ' checked' : ''} aria-label="select row"></td>
     <td class="card-name-cell"><button class="${previewClasses}" type="button" data-index="${index}"${previewAttr}>${esc(name)}</button></td>
     <td class="muted">${esc((c.setCode || '').toUpperCase())}</td>
     <td class="muted">${esc(c.cn || '')}</td>
@@ -1866,6 +1974,15 @@ listBodyEl.addEventListener('click', e => {
 });
 
 listBodyEl.addEventListener('change', e => {
+  if (e.target.classList.contains('row-check')) {
+    const key = e.target.dataset.key;
+    if (e.target.checked) selectedKeys.add(key);
+    else selectedKeys.delete(key);
+    const tr = e.target.closest('tr');
+    if (tr) tr.classList.toggle('row-selected', e.target.checked);
+    updateBulkBar();
+    return;
+  }
   if (!e.target.classList.contains('location-input')) return;
   const index = parseInt(e.target.dataset.index, 10);
   if (!collection[index]) return;
@@ -1874,6 +1991,124 @@ listBodyEl.addEventListener('change', e => {
   save();
   populateFilters();
   render();
+});
+
+// ---- Bulk select (list view) ----
+const bulkBar = document.getElementById('bulkBar');
+let lastSnapshot = null;
+
+function snapshotCollection() {
+  lastSnapshot = collection.map(c => ({ ...c }));
+}
+
+function undoLast() {
+  if (!lastSnapshot) return;
+  collection = lastSnapshot.map(c => ({ ...c }));
+  lastSnapshot = null;
+  selectedKeys.clear();
+  save();
+  populateFilters();
+  render();
+  showFeedback('undone', 'info');
+}
+
+feedbackEl.addEventListener('click', e => {
+  if (e.target.classList.contains('undo-btn')) undoLast();
+});
+
+function updateBulkBar() {
+  const n = selectedKeys.size;
+  document.getElementById('bulkCount').textContent = n + ' selected';
+  bulkBar.classList.toggle('active', n > 0);
+  syncHeaderCheckbox();
+}
+
+function syncHeaderCheckbox() {
+  const headerCheck = document.getElementById('headerCheck');
+  if (!headerCheck) return;
+  const visibleKeys = filteredSorted().map(c => collectionKey(c));
+  if (visibleKeys.length === 0) {
+    headerCheck.checked = false;
+    headerCheck.indeterminate = false;
+    return;
+  }
+  const selVisible = visibleKeys.filter(k => selectedKeys.has(k)).length;
+  if (selVisible === 0) {
+    headerCheck.checked = false;
+    headerCheck.indeterminate = false;
+  } else if (selVisible === visibleKeys.length) {
+    headerCheck.checked = true;
+    headerCheck.indeterminate = false;
+  } else {
+    headerCheck.checked = false;
+    headerCheck.indeterminate = true;
+  }
+}
+
+document.getElementById('headerCheck').addEventListener('change', e => {
+  const visible = filteredSorted();
+  if (e.target.checked) visible.forEach(c => selectedKeys.add(collectionKey(c)));
+  else visible.forEach(c => selectedKeys.delete(collectionKey(c)));
+  render();
+});
+
+document.getElementById('bulkClear').addEventListener('click', () => {
+  selectedKeys.clear();
+  render();
+});
+
+function applyBulk(field, rawValue, normalizer) {
+  if (!selectedKeys.size) return;
+  snapshotCollection();
+  const v = normalizer ? normalizer(rawValue) : rawValue;
+  let touched = 0;
+  for (const c of collection) {
+    if (selectedKeys.has(collectionKey(c))) {
+      c[field] = v;
+      touched++;
+    }
+  }
+  coalesceCollection();
+  selectedKeys.clear();
+  save();
+  populateFilters();
+  render();
+  const noun = 'card' + (touched === 1 ? '' : 's');
+  showFeedback('updated ' + touched + ' ' + noun + ' <button class="undo-btn" type="button">undo</button>', 'success');
+}
+
+document.getElementById('bulkLocation').addEventListener('change', e => {
+  applyBulk('location', e.target.value, normalizeLocation);
+  e.target.value = '';
+});
+document.getElementById('bulkCondition').addEventListener('change', e => {
+  if (!e.target.value) return;
+  applyBulk('condition', e.target.value, normalizeCondition);
+  e.target.value = '';
+});
+document.getElementById('bulkFinish').addEventListener('change', e => {
+  if (!e.target.value) return;
+  applyBulk('finish', e.target.value, normalizeFinish);
+  e.target.value = '';
+});
+document.getElementById('bulkLanguage').addEventListener('change', e => {
+  if (!e.target.value) return;
+  applyBulk('language', e.target.value, normalizeLanguage);
+  e.target.value = '';
+});
+
+document.getElementById('bulkDelete').addEventListener('click', () => {
+  if (!selectedKeys.size) return;
+  const n = selectedKeys.size;
+  if (!confirm('delete ' + n + ' selected card' + (n === 1 ? '' : 's') + '?')) return;
+  snapshotCollection();
+  collection = collection.filter(c => !selectedKeys.has(collectionKey(c)));
+  selectedKeys.clear();
+  save();
+  populateFilters();
+  render();
+  const noun = 'card' + (n === 1 ? '' : 's');
+  showFeedback('deleted ' + n + ' ' + noun + ' <button class="undo-btn" type="button">undo</button>', 'success');
 });
 
 listBodyEl.addEventListener('mouseover', e => {
