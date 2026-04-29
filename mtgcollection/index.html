@@ -1155,6 +1155,25 @@
   .add-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
   .format-note { font-size: 0.7rem; color: #999; margin-top: 6px; }
+  .danger-zone {
+    margin-top: 14px;
+    padding-top: 10px;
+    border-top: 1px dashed #eee;
+    text-align: right;
+  }
+  .danger-link {
+    appearance: none;
+    background: transparent;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.7rem;
+    text-transform: lowercase;
+    text-decoration: underline;
+    padding: 0;
+  }
+  .danger-link:hover, .danger-link:focus-visible { color: #b04848; outline: none; }
   .format-note code {
     background: #eee;
     padding: 1px 4px;
@@ -1268,6 +1287,10 @@
       <div class="format-note">
         recognized columns (case-insensitive): <code>name</code>, <code>set code</code> / <code>edition</code>, <code>collector number</code> / <code>card number</code>, <code>quantity</code> / <code>count</code>, <code>foil</code>, <code>condition</code>, <code>language</code>, <code>location</code>, <code>scryfall id</code>. moxfield plaintext like <code>1 Sol Ring (SLD) 1011 *F*</code> also works.
       </div>
+
+      <div class="danger-zone">
+        <button class="danger-link" type="button" onclick="clearCollection()">delete entire collection</button>
+      </div>
     </div>
   </details>
 
@@ -1347,6 +1370,7 @@
         <option value="cmc">sort: mana value</option>
       </select>
       <select class="filter-select" id="formatSelect" title="format for legality">
+        <option value="">format: —</option>
         <option value="commander">format: commander</option>
         <option value="standard">format: standard</option>
         <option value="pioneer">format: pioneer</option>
@@ -1363,7 +1387,6 @@
         <button class="segment-btn" type="button" data-grid-size="large">l</button>
       </div>
       <button class="btn-secondary btn" onclick="exportCsv()">export csv</button>
-      <button class="btn btn-danger" onclick="clearCollection()">clear</button>
       <span class="progress" id="progress"></span>
     </div>
     <div class="price-note hidden" id="priceNote">* regular usd shown when exact finish price is unavailable</div>
@@ -1534,7 +1557,7 @@ let collection = [];  // normalized rows with resolved card data
 const STORAGE_KEY = 'mtgcollection_v1';
 let viewMode = 'grid';
 let gridSize = 'medium';
-let selectedFormat = 'commander';
+let selectedFormat = '';
 let selectedKeys = new Set();
 
 const BREYA_DECKLIST = `1 Breya, Etherium Shaper (C16) 29 *F*
@@ -1650,7 +1673,7 @@ function load() {
       collection = data.collection;
       viewMode = data.viewMode || 'grid';
       gridSize = ['small', 'medium', 'large'].includes(data.gridSize) ? data.gridSize : 'medium';
-      selectedFormat = data.selectedFormat || 'commander';
+      selectedFormat = typeof data.selectedFormat === 'string' ? data.selectedFormat : '';
       return true;
     }
   } catch (e) {}
@@ -2462,12 +2485,16 @@ function renderDeckView(list) {
   }).join('');
 
   const total = list.reduce((s, c) => s + (c.qty || 1), 0);
-  const illegal = list.filter(c => c.legalities && c.legalities[selectedFormat] && c.legalities[selectedFormat] !== 'legal' && c.legalities[selectedFormat] !== 'restricted');
   const summary = document.getElementById('deckSummary');
-  if (illegal.length > 0) {
-    summary.innerHTML = total + ' cards · <span class="warn">' + illegal.length + ' not ' + selectedFormat + '-legal</span>';
+  if (!selectedFormat) {
+    summary.textContent = total + ' cards';
   } else {
-    summary.textContent = total + ' cards · all legal in ' + selectedFormat;
+    const illegal = list.filter(c => c.legalities && c.legalities[selectedFormat] && c.legalities[selectedFormat] !== 'legal' && c.legalities[selectedFormat] !== 'restricted');
+    if (illegal.length > 0) {
+      summary.innerHTML = total + ' cards · <span class="warn">' + illegal.length + ' not ' + selectedFormat + '-legal</span>';
+    } else {
+      summary.textContent = total + ' cards · all legal in ' + selectedFormat;
+    }
   }
 }
 
@@ -2906,10 +2933,9 @@ const LEGALITY_LABELS = {
 function renderDetailLegality() {
   const c = collection[detailIndex];
   const chip = document.getElementById('detailLegality');
-  if (!c || !c.legalities || !c.legalities[selectedFormat]) {
-    chip.classList.add('hidden');
-    chip.textContent = '';
+  if (!selectedFormat || !c || !c.legalities || !c.legalities[selectedFormat]) {
     chip.className = 'legality-chip hidden';
+    chip.textContent = '';
     return;
   }
   const status = c.legalities[selectedFormat];
