@@ -587,6 +587,90 @@
   }
   .detail-price a:hover { color: #000; border-color: #000; }
 
+  .image-lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 1200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: zoom-out;
+  }
+  .image-lightbox.visible { display: flex; }
+  .image-lightbox img {
+    max-width: min(90vw, 600px);
+    max-height: 90vh;
+    border-radius: 3%;
+    display: block;
+    box-shadow: 0 6px 30px rgba(0,0,0,0.5);
+  }
+  .image-lightbox .lightbox-close {
+    position: absolute;
+    top: 16px;
+    right: 22px;
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 2rem;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0.7;
+  }
+  .image-lightbox .lightbox-close:hover { opacity: 1; }
+  .image-lightbox .lightbox-flip {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255,255,255,0.92);
+    color: #000;
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.8rem;
+    text-transform: lowercase;
+    padding: 8px 16px;
+  }
+  .image-lightbox .lightbox-flip:hover { background: #fff; }
+  .image-lightbox .lightbox-flip.hidden { display: none; }
+
+  .flip-btn {
+    appearance: none;
+    background: transparent;
+    border: 1px solid #ccc;
+    border-radius: 2px;
+    color: #555;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.7rem;
+    letter-spacing: 0.02em;
+    padding: 4px 10px;
+    text-transform: lowercase;
+  }
+  .flip-btn:hover { border-color: #000; color: #000; }
+  .flip-btn.hidden { display: none; }
+  .drawer-flip-row {
+    display: flex;
+    justify-content: center;
+    margin: -8px 0 12px;
+  }
+
+  .add-preview-existing {
+    display: inline-block;
+    background: #fff7e0;
+    border: 1px solid #e8d49a;
+    color: #7a5a10;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    margin-bottom: 8px;
+    text-transform: lowercase;
+    letter-spacing: 0.02em;
+  }
+  .add-preview-existing.hidden { display: none; }
+
   .feedback {
     font-size: 0.75rem;
     padding: 6px 10px;
@@ -612,6 +696,20 @@
     margin-left: 8px;
   }
   .feedback .undo-btn:hover { opacity: 0.7; }
+  .feedback .backup-btn {
+    appearance: none;
+    background: transparent;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    font-size: inherit;
+    text-transform: lowercase;
+    text-decoration: underline;
+    padding: 0;
+    margin-left: 8px;
+  }
+  .feedback .backup-btn:hover { opacity: 0.7; }
 
   .loading-spinner {
     display: inline-block;
@@ -868,10 +966,14 @@
       </div>
 
       <div class="add-preview" id="addPreview">
-        <img class="add-preview-img" id="addPreviewImg" src="" alt="">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:6px; flex-shrink:0;">
+          <img class="add-preview-img" id="addPreviewImg" src="" alt="">
+          <button class="flip-btn hidden" type="button" id="addFlipBtn">flip card</button>
+        </div>
         <div class="add-preview-info">
           <div class="add-preview-name" id="addPreviewName"></div>
           <div class="add-preview-meta" id="addPreviewMeta"></div>
+          <div class="add-preview-existing hidden" id="addPreviewExisting"></div>
           <div class="add-fields">
             <div class="field field-finish">
               <label for="addFinish">finish</label>
@@ -1048,6 +1150,11 @@
 
 <footer><a href="/">bensonperry.com</a></footer>
 <div id="cardPreview"><img src="" alt=""></div>
+<div id="imageLightbox" class="image-lightbox" aria-hidden="true">
+  <button class="lightbox-close" id="lightboxClose" type="button" aria-label="close">×</button>
+  <img id="imageLightboxImg" src="" alt="">
+  <button class="lightbox-flip hidden" id="lightboxFlip" type="button">flip card</button>
+</div>
 <div class="drawer-backdrop" id="drawerBackdrop"></div>
 <aside class="detail-drawer" id="detailDrawer" aria-hidden="true">
   <div class="drawer-head">
@@ -1571,6 +1678,7 @@ async function resolveCards(entries) {
           entry.typeLine = card.type_line || '';
           entry.scryfallUri = card.scryfall_uri;
           entry.imageUrl = getCardImageUrl(card);
+          entry.backImageUrl = getCardBackImageUrl(card);
           if (!entry.price) {
             const priced = getUsdPrice(card, entry.finish);
             entry.price = priced.price;
@@ -1597,6 +1705,20 @@ function getCardImageUrl(card) {
     return card.card_faces[0].image_uris.normal || card.card_faces[0].image_uris.small;
   }
   return null;
+}
+
+function getCardBackImageUrl(card) {
+  if (!card) return null;
+  const faces = card.card_faces;
+  if (faces?.length >= 2 && faces[1].image_uris) {
+    return faces[1].image_uris.normal || faces[1].image_uris.small;
+  }
+  return null;
+}
+
+function biggerImageUrl(url) {
+  if (!url) return url;
+  return url.replace('/normal/', '/large/');
 }
 
 // ---- Import triggers ----
@@ -1807,7 +1929,7 @@ function renderTile(c) {
     ${img}
     <div class="card-badges">${badges.join('')}</div>
     <div class="card-caption">${caption}</div>
-    <div class="card-actions"><span class="card-action-label">edit</span>${scryfallAction}</div>
+    ${scryfallAction ? `<div class="card-actions">${scryfallAction}</div>` : ''}
   </div>`;
 }
 
@@ -1919,6 +2041,11 @@ gridEl.addEventListener('keydown', e => {
 });
 
 listBodyEl.addEventListener('click', e => {
+  const nameBtn = e.target.closest('.card-name-button');
+  if (nameBtn) {
+    openDetail(parseInt(nameBtn.dataset.index, 10));
+    return;
+  }
   if (e.target.closest('input, select, button, a')) return;
   const trigger = e.target.closest('.detail-trigger');
   if (!trigger || !listBodyEl.contains(trigger)) return;
@@ -2085,7 +2212,9 @@ document.getElementById('detailClose').addEventListener('click', closeDetail);
 drawerBackdrop.addEventListener('click', closeDetail);
 document.getElementById('detailDelete').addEventListener('click', deleteDetail);
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && detailDrawer.classList.contains('visible')) closeDetail();
+  if (e.key !== 'Escape') return;
+  if (lightboxEl.classList.contains('visible')) { hideImageLightbox(); return; }
+  if (detailDrawer.classList.contains('visible')) closeDetail();
 });
 document.getElementById('detailLanguageAdd').addEventListener('click', () => {
   const other = document.getElementById('detailLanguageOther');
@@ -2138,6 +2267,44 @@ function hideCardPreview() {
   cardPreviewEl.classList.remove('visible');
 }
 
+const lightboxEl = document.getElementById('imageLightbox');
+const lightboxImg = document.getElementById('imageLightboxImg');
+const lightboxFlipBtn = document.getElementById('lightboxFlip');
+let lightboxFront = null;
+let lightboxBack = null;
+let lightboxShowingBack = false;
+
+function showImageLightbox(frontUrl, backUrl) {
+  if (!frontUrl) return;
+  lightboxFront = frontUrl;
+  lightboxBack = backUrl;
+  lightboxShowingBack = false;
+  lightboxImg.src = biggerImageUrl(frontUrl);
+  lightboxImg.alt = '';
+  lightboxFlipBtn.classList.toggle('hidden', !backUrl);
+  lightboxFlipBtn.textContent = 'flip card';
+  lightboxEl.classList.add('visible');
+  lightboxEl.setAttribute('aria-hidden', 'false');
+  hideCardPreview();
+}
+
+function hideImageLightbox() {
+  lightboxEl.classList.remove('visible');
+  lightboxEl.setAttribute('aria-hidden', 'true');
+  lightboxImg.src = '';
+}
+
+lightboxEl.addEventListener('click', e => {
+  if (e.target.closest('.lightbox-flip')) return;
+  hideImageLightbox();
+});
+lightboxFlipBtn.addEventListener('click', () => {
+  if (!lightboxBack) return;
+  lightboxShowingBack = !lightboxShowingBack;
+  const url = lightboxShowingBack ? lightboxBack : lightboxFront;
+  lightboxImg.src = biggerImageUrl(url);
+});
+
 function openDetail(index) {
   const c = collection[index];
   if (!c) return;
@@ -2150,9 +2317,27 @@ function openDetail(index) {
     [c.setCode ? c.setCode.toUpperCase() : '', c.cn ? '#' + c.cn : '', c.rarity || ''].filter(Boolean).join(' · ');
 
   const imageWrap = document.getElementById('detailImageWrap');
+  const flipRow = c.backImageUrl
+    ? `<div class="drawer-flip-row"><button type="button" class="flip-btn" id="drawerFlipBtn">flip card</button></div>`
+    : '';
   imageWrap.innerHTML = c.imageUrl
-    ? `<img class="drawer-image" src="${esc(c.imageUrl)}" alt="${esc(name)}">`
+    ? `<img class="drawer-image" src="${esc(c.imageUrl)}" alt="${esc(name)}" data-front="${esc(c.imageUrl)}"${c.backImageUrl ? ` data-back="${esc(c.backImageUrl)}"` : ''} style="cursor:zoom-in;">${flipRow}`
     : `<div class="drawer-placeholder">${esc(name)}</div>`;
+  const drawerImg = imageWrap.querySelector('.drawer-image');
+  if (drawerImg) {
+    drawerImg.addEventListener('click', () => {
+      const cur = drawerImg.dataset.current === 'back' ? c.backImageUrl : c.imageUrl;
+      showImageLightbox(cur || c.imageUrl, c.backImageUrl || null);
+    });
+  }
+  const drawerFlip = document.getElementById('drawerFlipBtn');
+  if (drawerFlip && drawerImg) {
+    drawerFlip.addEventListener('click', () => {
+      const showingBack = drawerImg.dataset.current === 'back';
+      drawerImg.dataset.current = showingBack ? 'front' : 'back';
+      drawerImg.src = showingBack ? c.imageUrl : c.backImageUrl;
+    });
+  }
 
   document.getElementById('detailQty').value = c.qty || 1;
   document.getElementById('detailFinish').value = c.finish || 'normal';
@@ -2184,6 +2369,9 @@ function saveDetail() {
   const c = collection[detailIndex];
   if (!c) return;
 
+  const before = { qty: c.qty, finish: c.finish, condition: c.condition, language: c.language, location: c.location || '' };
+
+  snapshotCollection();
   c.qty = Math.max(1, parseInt(document.getElementById('detailQty').value, 10) || 1);
   c.finish = normalizeFinish(document.getElementById('detailFinish').value);
   c.condition = normalizeCondition(detailForm.querySelector('input[name="detailCondition"]:checked')?.value || 'near_mint');
@@ -2192,25 +2380,42 @@ function saveDetail() {
     || 'en');
   c.location = normalizeLocation(document.getElementById('detailLocation').value);
 
+  const after = { qty: c.qty, finish: c.finish, condition: c.condition, language: c.language, location: c.location || '' };
+  const diffs = [];
+  if (after.qty !== before.qty) diffs.push('qty ' + before.qty + ' → ' + after.qty);
+  if (after.finish !== before.finish) diffs.push(before.finish + ' → ' + after.finish);
+  if (after.condition !== before.condition) {
+    diffs.push(before.condition.replace(/_/g, ' ') + ' → ' + after.condition.replace(/_/g, ' '));
+  }
+  if (after.language !== before.language) diffs.push(before.language + ' → ' + after.language);
+  if (after.location !== before.location) {
+    diffs.push('location: ' + (before.location || '—') + ' → ' + (after.location || '—'));
+  }
+
   coalesceCollection();
   save();
   populateFilters();
   render();
   closeDetail();
-  showFeedback('saved ' + esc(c.resolvedName || c.name || 'card'), 'success');
+  const name = c.resolvedName || c.name || 'card';
+  if (diffs.length === 0) {
+    showFeedback('saved ' + esc(name) + ' (no changes)', 'success');
+  } else {
+    showFeedback('saved ' + esc(name) + ' (' + esc(diffs.join(', ')) + ') <button class="undo-btn" type="button">undo</button>', 'success');
+  }
 }
 
 function deleteDetail() {
   const c = collection[detailIndex];
   if (!c) return;
   const name = c.resolvedName || c.name || 'this row';
-  if (!confirm('delete ' + name + ' from collection?')) return;
+  snapshotCollection();
   collection.splice(detailIndex, 1);
   save();
   populateFilters();
   render();
   closeDetail();
-  showFeedback('deleted ' + esc(name), 'success');
+  showFeedback('deleted ' + esc(name) + ' <button class="undo-btn" type="button">undo</button>', 'success');
 }
 
 // ---- Add Cards (manual + voice) ----
@@ -2410,10 +2615,32 @@ function showAddPreview(card) {
   addPreviewCard = card;
   addPreviewEl.classList.add('active');
   const imageUrl = getCardImageUrl(card);
+  const backUrl = getCardBackImageUrl(card);
   addPreviewImg.src = imageUrl || '';
   addPreviewImg.alt = card.name;
+  addPreviewImg.style.cursor = imageUrl ? 'zoom-in' : '';
+  addPreviewImg.dataset.front = imageUrl || '';
+  addPreviewImg.dataset.back = backUrl || '';
+  addPreviewImg.dataset.current = 'front';
   addPreviewName.textContent = card.name;
   addPreviewMeta.textContent = [card.set_name, card.type_line, card.rarity].filter(Boolean).join(' — ');
+
+  const flipBtn = document.getElementById('addFlipBtn');
+  flipBtn.classList.toggle('hidden', !backUrl);
+
+  const existingEl = document.getElementById('addPreviewExisting');
+  const cardName = (card.name || '').toLowerCase();
+  const matches = collection.filter(c =>
+    (c.scryfallId && c.scryfallId === card.id) ||
+    ((c.resolvedName || c.name || '').toLowerCase() === cardName)
+  );
+  if (matches.length > 0) {
+    const totalQty = matches.reduce((s, c) => s + (parseInt(c.qty, 10) || 0), 0);
+    existingEl.textContent = 'already in collection (×' + totalQty + ')';
+    existingEl.classList.remove('hidden');
+  } else {
+    existingEl.classList.add('hidden');
+  }
 
   addFinishSel.innerHTML = '';
   const finishes = getCardFinishes(card);
@@ -2472,10 +2699,12 @@ function addCardFromPreview() {
   entry.typeLine = card.type_line || '';
   entry.scryfallUri = card.scryfall_uri;
   entry.imageUrl = getCardImageUrl(card);
+  entry.backImageUrl = getCardBackImageUrl(card);
   const priced = getUsdPrice(card, entry.finish);
   entry.price = priced.price;
   entry.priceFallback = priced.fallback;
 
+  snapshotCollection();
   const k = collectionKey(entry);
   const existing = collection.find(c => collectionKey(c) === k);
   if (existing) existing.qty += entry.qty;
@@ -2485,7 +2714,7 @@ function addCardFromPreview() {
   populateFilters();
   render();
   lastUsedLocation = location;
-  showFeedback('added ' + esc(card.name) + ' (' + (card.set || '').toUpperCase() + ' #' + esc(card.collector_number) + ')', 'success');
+  showFeedback('added ' + esc(card.name) + ' (' + (card.set || '').toUpperCase() + ' #' + esc(card.collector_number) + ') <button class="undo-btn" type="button">undo</button>', 'success');
 
   hideAddPreview();
   if (addMode === 'name') {
@@ -2496,6 +2725,24 @@ function addCardFromPreview() {
   }
 }
 addBtn.addEventListener('click', addCardFromPreview);
+
+document.getElementById('addFlipBtn').addEventListener('click', () => {
+  const showingBack = addPreviewImg.dataset.current === 'back';
+  if (showingBack) {
+    addPreviewImg.src = addPreviewImg.dataset.front;
+    addPreviewImg.dataset.current = 'front';
+  } else if (addPreviewImg.dataset.back) {
+    addPreviewImg.src = addPreviewImg.dataset.back;
+    addPreviewImg.dataset.current = 'back';
+  }
+});
+
+addPreviewImg.addEventListener('click', () => {
+  if (!addPreviewImg.src) return;
+  const front = addPreviewImg.dataset.front || addPreviewImg.src;
+  const back = addPreviewImg.dataset.back || null;
+  showImageLightbox(front, back);
+});
 addQtyInput.addEventListener('keydown', e => {
   if (e.key === 'Enter') { e.preventDefault(); addCardFromPreview(); }
 });
@@ -2640,6 +2887,42 @@ function parseVoice(text) {
   doVoiceLookup(parsed.set, parsed.cn, source);
 }
 
+// ---- Backup nag ----
+const BACKUP_LOAD_KEY = 'mtgcollection_loads_since_backup';
+const BACKUP_NAG_THRESHOLD = 15;
+
+function bumpBackupCounter() {
+  const prev = parseInt(localStorage.getItem(BACKUP_LOAD_KEY) || '0', 10) || 0;
+  const next = prev + 1;
+  try { localStorage.setItem(BACKUP_LOAD_KEY, String(next)); } catch (e) {}
+  return next;
+}
+function resetBackupCounter() {
+  try { localStorage.setItem(BACKUP_LOAD_KEY, '0'); } catch (e) {}
+}
+function maybeShowBackupNag(loadCount) {
+  if (loadCount < BACKUP_NAG_THRESHOLD) return;
+  if (collection.length <= 1) return;
+  showFeedback(
+    'localstorage-only — back up your collection. ' +
+    '<button class="backup-btn" type="button" data-backup-action="export">export csv</button>' +
+    '<button class="backup-btn" type="button" data-backup-action="dismiss">remind later</button>',
+    'info'
+  );
+}
+feedbackEl.addEventListener('click', e => {
+  const btn = e.target.closest('[data-backup-action]');
+  if (!btn) return;
+  if (btn.dataset.backupAction === 'export') {
+    exportCsv();
+    resetBackupCounter();
+    hideFeedback();
+  } else if (btn.dataset.backupAction === 'dismiss') {
+    resetBackupCounter();
+    hideFeedback();
+  }
+});
+
 // Boot
 async function boot() {
   const hasSavedCollection = load();
@@ -2660,6 +2943,8 @@ async function boot() {
   if (collection.length > 0) {
     document.getElementById('importDetails').open = false;
   }
+  const loadCount = bumpBackupCounter();
+  if (hasSavedCollection) maybeShowBackupNag(loadCount);
 }
 boot();
 </script>
