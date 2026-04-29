@@ -93,6 +93,88 @@
   .stat-label { font-size: 0.7rem; letter-spacing: 0.03em; color: #999; }
   .stat-value { font-size: 1.5rem; font-weight: 400; }
 
+  .stats-panel {
+    margin-bottom: 16px;
+    border: 1px solid #eee;
+    background: #fff;
+    padding: 10px 14px;
+    border-radius: 2px;
+  }
+  .stats-panel > summary {
+    cursor: pointer;
+    font-size: 0.8rem;
+    letter-spacing: 0.02em;
+    color: #666;
+    list-style: revert;
+  }
+  .stats-panel > summary::marker { color: #999; }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px 24px;
+    margin-top: 14px;
+  }
+  @media (min-width: 720px) {
+    .stats-grid { grid-template-columns: 1.4fr 1fr 1fr 0.8fr; }
+  }
+  .stats-section-title {
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+    color: #999;
+    font-weight: 400;
+    margin-bottom: 8px;
+    text-transform: lowercase;
+  }
+  .curve-row, .breakdown-row {
+    display: grid;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    color: #444;
+    margin-bottom: 3px;
+    text-transform: lowercase;
+  }
+  .curve-row { grid-template-columns: 24px 1fr 28px; }
+  .breakdown-row { grid-template-columns: 1fr 28px; }
+  .curve-bucket { color: #999; }
+  .curve-bar-wrap {
+    background: #f1f1f1;
+    height: 10px;
+    border-radius: 1px;
+    overflow: hidden;
+  }
+  .curve-bar {
+    height: 100%;
+    background: #222;
+  }
+  .breakdown-count, .curve-count { text-align: right; color: #666; font-variant-numeric: tabular-nums; }
+  .color-pie {
+    width: 88px;
+    height: 88px;
+    display: block;
+    margin: 0 auto 4px;
+  }
+  .color-legend {
+    font-size: 0.7rem;
+    color: #555;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px 6px;
+  }
+  .color-legend-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    text-transform: lowercase;
+  }
+  .color-swatch {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.1);
+    flex-shrink: 0;
+  }
+
   /* Controls bar */
   .controls {
     display: flex;
@@ -125,7 +207,23 @@
     flex: 1;
     max-width: 280px;
   }
-  .search-wrap .search-input { flex: 1; padding-right: 26px; max-width: none; }
+  .search-wrap .search-input { flex: 1; padding-right: 46px; max-width: none; }
+  .search-clear-btn {
+    position: absolute;
+    right: 26px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    font-size: 0.95rem;
+    line-height: 1;
+    padding: 0 4px;
+    display: none;
+  }
+  .search-clear-btn.visible { display: block; }
+  .search-clear-btn:hover, .search-clear-btn:focus-visible { color: #000; outline: none; }
   .search-help-btn {
     position: absolute;
     right: 4px;
@@ -265,8 +363,31 @@
     letter-spacing: 0.02em;
     backdrop-filter: blur(4px);
   }
-  .badge.foil { background: rgba(180,120,0,0.9); }
-  .badge.etched { background: rgba(100,40,160,0.9); }
+  .card-tile.is-foil::after,
+  .deck-card.is-foil::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    background: linear-gradient(
+      110deg,
+      transparent 25%,
+      rgba(255, 90, 180, 0.22) 42%,
+      rgba(120, 200, 255, 0.22) 50%,
+      rgba(140, 255, 110, 0.22) 58%,
+      transparent 75%
+    );
+  }
+  .card-tile.is-etched::after,
+  .deck-card.is-etched::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    background: linear-gradient(110deg, transparent 30%, rgba(180, 80, 220, 0.28) 50%, transparent 70%);
+  }
 
   .card-caption {
     position: absolute;
@@ -317,6 +438,56 @@
     padding: 0;
   }
   .card-scryfall-link:hover, .card-scryfall-link:focus-visible { border-color: #fff; outline: none; }
+
+  /* Deck view */
+  .deck-view { display: none; }
+  .deck-view.active { display: block; }
+  .deck-columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 18px 14px;
+  }
+  .deck-col-header {
+    font-size: 0.75rem;
+    color: #999;
+    margin-bottom: 8px;
+    text-transform: lowercase;
+    letter-spacing: 0.04em;
+  }
+  .deck-col-header .deck-col-count { color: #ccc; margin-left: 4px; }
+  .deck-card {
+    position: relative;
+    margin-bottom: 4px;
+    cursor: pointer;
+    border-radius: 4%;
+    overflow: hidden;
+    background: #e8e8e8;
+    aspect-ratio: 488 / 680;
+  }
+  .deck-card img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .deck-card .placeholder {
+    display: flex; align-items: center; justify-content: center;
+    height: 100%; padding: 8px; text-align: center;
+    font-size: 0.7rem; color: #999; text-transform: none;
+  }
+  .deck-qty {
+    position: absolute;
+    top: 4px; right: 4px;
+    background: rgba(0,0,0,0.8);
+    color: #fff;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 2px;
+    backdrop-filter: blur(4px);
+  }
+  .deck-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    align-items: center;
+  }
+  .deck-actions .deck-summary { font-size: 0.75rem; color: #666; margin-left: auto; }
+  .deck-actions .deck-summary .warn { color: #b04848; }
 
   /* Table view (compact) */
   .list-view { display: none; }
@@ -477,6 +648,21 @@
     color: #999;
     font-size: 0.75rem;
   }
+  .legality-chip {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    letter-spacing: 0.02em;
+    text-transform: lowercase;
+    border: 1px solid transparent;
+  }
+  .legality-chip.hidden { display: none; }
+  .legality-chip.legal       { background: #effaef; border-color: #c4e5c4; color: #2c6b2c; }
+  .legality-chip.not_legal   { background: #f4f4f4; border-color: #ddd; color: #777; }
+  .legality-chip.banned      { background: #fbecec; border-color: #e6bebe; color: #8a2828; }
+  .legality-chip.restricted  { background: #fff5dc; border-color: #e8d49a; color: #7a5a10; }
   .icon-btn {
     width: 28px;
     height: 28px;
@@ -494,13 +680,13 @@
     padding: 16px;
   }
   .drawer-image {
-    width: min(220px, 70%);
+    width: 100%;
     margin: 0 auto 16px;
     display: block;
     border-radius: 4%;
   }
   .drawer-placeholder {
-    width: min(220px, 70%);
+    width: 100%;
     aspect-ratio: 488 / 680;
     margin: 0 auto 16px;
     background: #eee;
@@ -1094,9 +1280,33 @@
       <div><div class="stat-label">value (usd)</div><div class="stat-value" id="totalValue">0</div></div>
     </div>
 
+    <details class="stats-panel" id="statsPanel">
+      <summary>breakdown</summary>
+      <div class="stats-grid">
+        <div class="stats-section">
+          <div class="stats-section-title">mana curve</div>
+          <div id="manaCurve"></div>
+        </div>
+        <div class="stats-section">
+          <div class="stats-section-title">colors</div>
+          <svg class="color-pie" id="colorPie" viewBox="0 0 36 36" aria-hidden="true"></svg>
+          <div class="color-legend" id="colorLegend"></div>
+        </div>
+        <div class="stats-section">
+          <div class="stats-section-title">types</div>
+          <div id="typeBreakdown"></div>
+        </div>
+        <div class="stats-section">
+          <div class="stats-section-title">rarity</div>
+          <div id="rarityBreakdown"></div>
+        </div>
+      </div>
+    </details>
+
     <div class="controls">
       <div class="search-wrap">
         <input class="search-input" type="text" id="searchInput" placeholder="search... (try t:creature cmc&lt;=3)">
+        <button class="search-clear-btn" type="button" id="searchClearBtn" aria-label="clear search">×</button>
         <button class="search-help-btn" type="button" id="searchHelpBtn" aria-label="syntax help">?</button>
         <div class="search-help-popover" id="searchHelpPopover">
           <div class="syntax-title">search syntax</div>
@@ -1136,7 +1346,17 @@
         <option value="price-asc">sort: price ↑</option>
         <option value="cmc">sort: mana value</option>
       </select>
+      <select class="filter-select" id="formatSelect" title="format for legality">
+        <option value="commander">format: commander</option>
+        <option value="standard">format: standard</option>
+        <option value="pioneer">format: pioneer</option>
+        <option value="modern">format: modern</option>
+        <option value="legacy">format: legacy</option>
+        <option value="vintage">format: vintage</option>
+        <option value="pauper">format: pauper</option>
+      </select>
       <button class="toggle-view" id="toggleView">list view</button>
+      <button class="toggle-view" id="deckViewBtn">deck view</button>
       <div class="segmented" id="gridSizeControl" aria-label="grid card size">
         <button class="segment-btn" type="button" data-grid-size="small">s</button>
         <button class="segment-btn" type="button" data-grid-size="medium">m</button>
@@ -1149,6 +1369,13 @@
     <div class="price-note hidden" id="priceNote">* regular usd shown when exact finish price is unavailable</div>
 
     <div class="grid" id="grid"></div>
+    <div class="deck-view" id="deckView">
+      <div class="deck-actions">
+        <button class="btn btn-secondary" type="button" id="copyDecklistBtn">copy decklist</button>
+        <span class="deck-summary" id="deckSummary"></span>
+      </div>
+      <div class="deck-columns" id="deckColumns"></div>
+    </div>
     <div class="list-view" id="listView">
       <div class="bulk-bar" id="bulkBar" aria-live="polite">
         <span class="bulk-count" id="bulkCount">0 selected</span>
@@ -1235,6 +1462,7 @@
     <div>
       <h2 class="drawer-title" id="detailTitle">card</h2>
       <div class="drawer-subtitle" id="detailSubtitle"></div>
+      <div class="legality-chip hidden" id="detailLegality"></div>
     </div>
     <button class="icon-btn" id="detailClose" type="button" aria-label="close">×</button>
   </div>
@@ -1306,6 +1534,7 @@ let collection = [];  // normalized rows with resolved card data
 const STORAGE_KEY = 'mtgcollection_v1';
 let viewMode = 'grid';
 let gridSize = 'medium';
+let selectedFormat = 'commander';
 let selectedKeys = new Set();
 
 const BREYA_DECKLIST = `1 Breya, Etherium Shaper (C16) 29 *F*
@@ -1407,7 +1636,7 @@ const BREYA_DECKLIST = `1 Breya, Etherium Shaper (C16) 29 *F*
 
 function save() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ collection, viewMode, gridSize }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ collection, viewMode, gridSize, selectedFormat }));
   } catch (e) {
     showFeedback('collection too large for localstorage — ' + e.message, 'error');
   }
@@ -1421,6 +1650,7 @@ function load() {
       collection = data.collection;
       viewMode = data.viewMode || 'grid';
       gridSize = ['small', 'medium', 'large'].includes(data.gridSize) ? data.gridSize : 'medium';
+      selectedFormat = data.selectedFormat || 'commander';
       return true;
     }
   } catch (e) {}
@@ -1752,6 +1982,7 @@ async function resolveCards(entries) {
           entry.colorIdentity = card.color_identity || [];
           entry.typeLine = card.type_line || (card.card_faces?.map(f => f.type_line).filter(Boolean).join(' // ') || '');
           entry.oracleText = card.oracle_text || (card.card_faces?.map(f => f.oracle_text).filter(Boolean).join(' // ') || '');
+          entry.legalities = card.legalities || {};
           entry.scryfallUri = card.scryfall_uri;
           entry.imageUrl = getCardImageUrl(card);
           entry.backImageUrl = getCardBackImageUrl(card);
@@ -2095,6 +2326,184 @@ function filteredSorted() {
   return list;
 }
 
+// ---- Stats panel ----
+const TYPE_BUCKETS = [
+  ['land',         /\bland\b/i],
+  ['creature',     /\bcreature\b/i],
+  ['planeswalker', /\bplaneswalker\b/i],
+  ['battle',       /\bbattle\b/i],
+  ['instant',      /\binstant\b/i],
+  ['sorcery',      /\bsorcery\b/i],
+  ['enchantment',  /\benchantment\b/i],
+  ['artifact',     /\bartifact\b/i],
+];
+const RARITY_ORDER = ['common', 'uncommon', 'rare', 'mythic'];
+const COLOR_SLICES = [
+  { key: 'w', label: 'white',     fill: '#f0e7c2' },
+  { key: 'u', label: 'blue',      fill: '#9bb9d4' },
+  { key: 'b', label: 'black',     fill: '#5a5450' },
+  { key: 'r', label: 'red',       fill: '#d68a78' },
+  { key: 'g', label: 'green',     fill: '#90b386' },
+  { key: 'm', label: 'multicolor',fill: '#d8b870' },
+  { key: 'c', label: 'colorless', fill: '#cfcfcf' },
+];
+
+function bucketType(typeLine) {
+  if (!typeLine) return 'other';
+  for (const [name, re] of TYPE_BUCKETS) {
+    if (re.test(typeLine)) return name;
+  }
+  return 'other';
+}
+
+function bucketColor(colors) {
+  if (!colors || colors.length === 0) return 'c';
+  if (colors.length > 1) return 'm';
+  return colors[0].toLowerCase();
+}
+
+function renderStatsPanel(list) {
+  const curve = [0, 0, 0, 0, 0, 0, 0, 0];
+  const types = {};
+  const rarity = {};
+  const colors = {};
+  for (const c of list) {
+    const qty = c.qty || 1;
+    const typeBucket = bucketType(c.typeLine);
+    types[typeBucket] = (types[typeBucket] || 0) + qty;
+    if (c.rarity) rarity[c.rarity] = (rarity[c.rarity] || 0) + qty;
+    if (typeBucket !== 'land' && typeof c.cmc === 'number') {
+      const slot = Math.min(7, Math.max(0, Math.floor(c.cmc)));
+      curve[slot] += qty;
+    }
+    const cBucket = bucketColor(c.colors);
+    colors[cBucket] = (colors[cBucket] || 0) + qty;
+  }
+
+  const curveMax = Math.max(1, ...curve);
+  const curveLabels = ['0', '1', '2', '3', '4', '5', '6', '7+'];
+  document.getElementById('manaCurve').innerHTML = curve.map((n, i) => {
+    const pct = (n / curveMax) * 100;
+    return `<div class="curve-row"><span class="curve-bucket">${curveLabels[i]}</span><div class="curve-bar-wrap"><div class="curve-bar" style="width:${pct}%"></div></div><span class="curve-count">${n}</span></div>`;
+  }).join('');
+
+  const typesList = [...TYPE_BUCKETS.map(([n]) => n), 'other'];
+  document.getElementById('typeBreakdown').innerHTML = typesList
+    .filter(t => types[t])
+    .map(t => `<div class="breakdown-row"><span>${t}</span><span class="breakdown-count">${types[t]}</span></div>`)
+    .join('') || '<div class="curve-bucket">—</div>';
+
+  document.getElementById('rarityBreakdown').innerHTML = RARITY_ORDER
+    .filter(r => rarity[r])
+    .map(r => `<div class="breakdown-row"><span>${r}</span><span class="breakdown-count">${rarity[r]}</span></div>`)
+    .join('') || '<div class="curve-bucket">—</div>';
+
+  const totalColored = COLOR_SLICES.reduce((s, sl) => s + (colors[sl.key] || 0), 0);
+  const pieEl = document.getElementById('colorPie');
+  if (totalColored === 0) {
+    pieEl.innerHTML = '<circle cx="18" cy="18" r="14" fill="none" stroke="#eee" stroke-width="6"></circle>';
+  } else {
+    const r = 14;
+    const circ = 2 * Math.PI * r;
+    let offset = 0;
+    const segments = COLOR_SLICES.map(sl => {
+      const n = colors[sl.key] || 0;
+      if (!n) return '';
+      const len = (n / totalColored) * circ;
+      const seg = `<circle cx="18" cy="18" r="${r}" fill="none" stroke="${sl.fill}" stroke-width="6" stroke-dasharray="${len.toFixed(2)} ${(circ - len).toFixed(2)}" stroke-dashoffset="${(-offset).toFixed(2)}" transform="rotate(-90 18 18)"></circle>`;
+      offset += len;
+      return seg;
+    }).join('');
+    pieEl.innerHTML = segments;
+  }
+  document.getElementById('colorLegend').innerHTML = COLOR_SLICES
+    .filter(sl => colors[sl.key])
+    .map(sl => `<div class="color-legend-row"><span class="color-swatch" style="background:${sl.fill}"></span>${sl.label} ${colors[sl.key]}</div>`)
+    .join('');
+}
+
+// ---- Deck view ----
+function renderDeckView(list) {
+  const lands = [];
+  const grouped = Array.from({ length: 8 }, () => []);
+  for (const c of list) {
+    if (bucketType(c.typeLine) === 'land') {
+      lands.push(c);
+    } else {
+      const slot = typeof c.cmc === 'number' ? Math.min(7, Math.max(0, Math.floor(c.cmc))) : 0;
+      grouped[slot].push(c);
+    }
+  }
+  const labels = ['0', '1', '2', '3', '4', '5', '6', '7+'];
+  const sortByName = (a, b) => (a.resolvedName || a.name || '').localeCompare(b.resolvedName || b.name || '');
+  const cols = [];
+  for (let i = 0; i < grouped.length; i++) {
+    if (grouped[i].length === 0) continue;
+    grouped[i].sort(sortByName);
+    cols.push({ label: labels[i], cards: grouped[i] });
+  }
+  if (lands.length > 0) {
+    lands.sort(sortByName);
+    cols.push({ label: 'lands', cards: lands });
+  }
+  const renderDeckCard = (c) => {
+    const name = c.resolvedName || c.name || '?';
+    const idx = collection.indexOf(c);
+    const img = c.imageUrl
+      ? `<img src="${esc(c.imageUrl)}" alt="${esc(name)}" loading="lazy">`
+      : `<div class="placeholder">${esc(name)}</div>`;
+    const qty = c.qty > 1 ? `<span class="deck-qty">×${c.qty}</span>` : '';
+    const finishClass = c.finish === 'foil' ? ' is-foil' : c.finish === 'etched' ? ' is-etched' : '';
+    return `<div class="deck-card detail-trigger${finishClass}" role="button" tabindex="0" data-index="${idx}" aria-label="${esc(name)}">${img}${qty}</div>`;
+  };
+  document.getElementById('deckColumns').innerHTML = cols.map(col => {
+    const total = col.cards.reduce((s, c) => s + (c.qty || 1), 0);
+    return `<div class="deck-col"><div class="deck-col-header">${col.label}<span class="deck-col-count">(${total})</span></div>${col.cards.map(renderDeckCard).join('')}</div>`;
+  }).join('');
+
+  const total = list.reduce((s, c) => s + (c.qty || 1), 0);
+  const illegal = list.filter(c => c.legalities && c.legalities[selectedFormat] && c.legalities[selectedFormat] !== 'legal' && c.legalities[selectedFormat] !== 'restricted');
+  const summary = document.getElementById('deckSummary');
+  if (illegal.length > 0) {
+    summary.innerHTML = total + ' cards · <span class="warn">' + illegal.length + ' not ' + selectedFormat + '-legal</span>';
+  } else {
+    summary.textContent = total + ' cards · all legal in ' + selectedFormat;
+  }
+}
+
+function buildDecklistText(list) {
+  return list.map(c => {
+    const name = c.resolvedName || c.name || '';
+    const setCode = (c.setCode || '').toUpperCase();
+    const cn = c.cn || '';
+    const finishMarker = c.finish === 'foil' ? ' *F*' : c.finish === 'etched' ? ' *E*' : '';
+    return `${c.qty} ${name} (${setCode}) ${cn}${finishMarker}`;
+  }).join('\n');
+}
+
+document.getElementById('copyDecklistBtn').addEventListener('click', async () => {
+  const text = buildDecklistText(filteredSorted());
+  try {
+    await navigator.clipboard.writeText(text);
+    showFeedback('decklist copied (' + filteredSorted().length + ' cards)', 'success');
+  } catch (e) {
+    showFeedback('clipboard unavailable: ' + e.message, 'error');
+  }
+});
+
+document.getElementById('deckViewBtn').addEventListener('click', () => {
+  viewMode = viewMode === 'deck' ? 'grid' : 'deck';
+  save();
+  render();
+});
+
+// Deck cards open the drawer
+document.getElementById('deckColumns').addEventListener('click', e => {
+  const card = e.target.closest('.deck-card');
+  if (!card) return;
+  openDetail(parseInt(card.dataset.index, 10));
+});
+
 // ---- Render ----
 function render() {
   if (collection.length === 0) {
@@ -2113,17 +2522,33 @@ function render() {
   const value = list.reduce((s, c) => s + (c.price || 0) * c.qty, 0);
   document.getElementById('totalValue').textContent = value.toFixed(2);
   priceNoteEl.classList.toggle('hidden', !list.some(c => c.priceFallback));
+  renderStatsPanel(list);
   applyGridSize();
 
-  if (viewMode === 'grid') {
-    document.getElementById('grid').classList.remove('hidden');
-    document.getElementById('listView').classList.remove('active');
+  const gridContainer = document.getElementById('grid');
+  const listContainer = document.getElementById('listView');
+  const deckContainer = document.getElementById('deckView');
+  const deckBtn = document.getElementById('deckViewBtn');
+  if (viewMode === 'deck') {
+    gridContainer.classList.add('hidden');
+    listContainer.classList.remove('active');
+    deckContainer.classList.add('active');
+    document.getElementById('toggleView').textContent = 'grid view';
+    deckBtn.textContent = 'exit deck view';
+    renderDeckView(list);
+  } else if (viewMode === 'grid') {
+    gridContainer.classList.remove('hidden');
+    listContainer.classList.remove('active');
+    deckContainer.classList.remove('active');
     document.getElementById('toggleView').textContent = 'list view';
+    deckBtn.textContent = 'deck view';
     gridEl.innerHTML = list.map(c => renderTile(c)).join('');
   } else {
-    document.getElementById('grid').classList.add('hidden');
-    document.getElementById('listView').classList.add('active');
+    gridContainer.classList.add('hidden');
+    listContainer.classList.add('active');
+    deckContainer.classList.remove('active');
     document.getElementById('toggleView').textContent = 'grid view';
+    deckBtn.textContent = 'deck view';
     listBodyEl.innerHTML = list.map(c => renderRow(c)).join('');
   }
   updateBulkBar();
@@ -2147,8 +2572,6 @@ function renderTile(c) {
   const index = collection.indexOf(c);
   const badges = [];
   if (c.qty > 1) badges.push('<span class="badge">×' + c.qty + '</span>');
-  if (c.finish === 'foil') badges.push('<span class="badge foil">foil</span>');
-  if (c.finish === 'etched') badges.push('<span class="badge etched">etched</span>');
   const img = c.imageUrl
     ? `<img src="${esc(c.imageUrl)}" alt="${esc(name)}" loading="lazy">`
     : `<div class="placeholder">${esc(name)}<br><small>${esc((c.setCode||'').toUpperCase())} #${esc(c.cn||'')}</small></div>`;
@@ -2156,7 +2579,8 @@ function renderTile(c) {
   const scryfallAction = c.scryfallUri
     ? `<button class="card-scryfall-link" type="button" data-scryfall-url="${esc(c.scryfallUri)}">scryfall ↗</button>`
     : '';
-  return `<div class="card-tile detail-trigger" role="button" tabindex="0" data-index="${index}" aria-label="edit ${esc(name)}">
+  const finishClass = c.finish === 'foil' ? ' is-foil' : c.finish === 'etched' ? ' is-etched' : '';
+  return `<div class="card-tile detail-trigger${finishClass}" role="button" tabindex="0" data-index="${index}" aria-label="edit ${esc(name)}">
     ${img}
     <div class="card-badges">${badges.join('')}</div>
     <div class="card-caption">${caption}</div>
@@ -2232,7 +2656,7 @@ function exportCsv() {
 window.exportCsv = exportCsv;
 
 document.getElementById('toggleView').addEventListener('click', () => {
-  viewMode = viewMode === 'grid' ? 'list' : 'grid';
+  viewMode = viewMode === 'list' ? 'grid' : 'list';
   save();
   render();
 });
@@ -2462,6 +2886,50 @@ document.getElementById('detailLanguageOther').addEventListener('input', e => {
   document.getElementById(id).addEventListener('change', render);
 });
 
+// ---- Format selector ----
+const formatSelectEl = document.getElementById('formatSelect');
+formatSelectEl.value = selectedFormat;
+formatSelectEl.addEventListener('change', () => {
+  selectedFormat = formatSelectEl.value;
+  save();
+  if (detailIndex >= 0) renderDetailLegality();
+  if (viewMode === 'deck') render();
+});
+
+const LEGALITY_LABELS = {
+  legal: 'legal',
+  not_legal: 'not legal',
+  banned: 'banned',
+  restricted: 'restricted',
+};
+
+function renderDetailLegality() {
+  const c = collection[detailIndex];
+  const chip = document.getElementById('detailLegality');
+  if (!c || !c.legalities || !c.legalities[selectedFormat]) {
+    chip.classList.add('hidden');
+    chip.textContent = '';
+    chip.className = 'legality-chip hidden';
+    return;
+  }
+  const status = c.legalities[selectedFormat];
+  const label = LEGALITY_LABELS[status] || status.replace(/_/g, ' ');
+  chip.textContent = selectedFormat + ': ' + label;
+  chip.className = 'legality-chip ' + status;
+}
+
+// ---- Search clear button ----
+const searchClearBtn = document.getElementById('searchClearBtn');
+function syncSearchClearBtn() {
+  searchClearBtn.classList.toggle('visible', !!document.getElementById('searchInput').value);
+}
+searchClearBtn.addEventListener('click', () => {
+  const input = document.getElementById('searchInput');
+  input.value = '';
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  input.focus();
+});
+
 // ---- Search help popover ----
 const searchHelpBtn = document.getElementById('searchHelpBtn');
 const searchHelpPopover = document.getElementById('searchHelpPopover');
@@ -2486,6 +2954,7 @@ function syncUrlFromSearch() {
   history.replaceState(null, '', url.pathname + (url.search ? url.search : '') + url.hash);
 }
 searchInputEl.addEventListener('input', () => {
+  syncSearchClearBtn();
   clearTimeout(urlStateDebounce);
   urlStateDebounce = setTimeout(syncUrlFromSearch, 250);
 });
@@ -2496,6 +2965,7 @@ function applyUrlStateOnLoad() {
     searchInputEl.value = q;
     render();
   }
+  syncSearchClearBtn();
 }
 
 function esc(s) {
@@ -2582,6 +3052,7 @@ function openDetail(index) {
   document.getElementById('detailTitle').textContent = name;
   document.getElementById('detailSubtitle').textContent =
     [c.setCode ? c.setCode.toUpperCase() : '', c.cn ? '#' + c.cn : '', c.rarity || ''].filter(Boolean).join(' · ');
+  renderDetailLegality();
 
   const imageWrap = document.getElementById('detailImageWrap');
   const flipRow = c.backImageUrl
@@ -2966,6 +3437,7 @@ function addCardFromPreview() {
   entry.colorIdentity = card.color_identity || [];
   entry.typeLine = card.type_line || (card.card_faces?.map(f => f.type_line).filter(Boolean).join(' // ') || '');
   entry.oracleText = card.oracle_text || (card.card_faces?.map(f => f.oracle_text).filter(Boolean).join(' // ') || '');
+  entry.legalities = card.legalities || {};
   entry.scryfallUri = card.scryfall_uri;
   entry.imageUrl = getCardImageUrl(card);
   entry.backImageUrl = getCardBackImageUrl(card);
@@ -3195,7 +3667,7 @@ feedbackEl.addEventListener('click', e => {
 async function lazyBackfillSearchFields() {
   const stale = collection.filter(c =>
     (c.scryfallId || (c.setCode && c.cn) || c.name) &&
-    (c.oracleText === undefined || c.colorIdentity === undefined)
+    (c.oracleText === undefined || c.colorIdentity === undefined || c.legalities === undefined)
   );
   if (stale.length === 0) return;
   await resolveCards(stale);
