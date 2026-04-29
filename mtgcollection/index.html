@@ -118,6 +118,63 @@
   }
   .controls input:focus, .controls select:focus { border-bottom-width: 2px; }
   .controls .search-input { width: 200px; flex: 1; max-width: 280px; }
+  .search-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 1;
+    max-width: 280px;
+  }
+  .search-wrap .search-input { flex: 1; padding-right: 26px; max-width: none; }
+  .search-help-btn {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: 1px solid #ccc;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 0.65rem;
+    line-height: 1;
+    color: #999;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .search-help-btn:hover, .search-help-btn:focus-visible { color: #000; border-color: #000; outline: none; }
+  .search-help-popover {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 60;
+    background: #fff;
+    border: 1px solid #ccc;
+    padding: 12px 14px;
+    font-size: 0.72rem;
+    line-height: 1.7;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+    width: 320px;
+    text-transform: none;
+    display: none;
+  }
+  .search-help-popover.visible { display: block; }
+  .search-help-popover .syntax-title {
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+    color: #999;
+    margin-bottom: 6px;
+  }
+  .search-help-popover code {
+    background: #f0f0f0;
+    padding: 1px 5px;
+    border-radius: 2px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.92em;
+  }
   .controls .filter-select { min-width: 90px; padding-right: 16px; }
   .segmented {
     display: inline-flex;
@@ -1038,7 +1095,24 @@
     </div>
 
     <div class="controls">
-      <input class="search-input" type="text" id="searchInput" placeholder="search name...">
+      <div class="search-wrap">
+        <input class="search-input" type="text" id="searchInput" placeholder="search... (try t:creature cmc&lt;=3)">
+        <button class="search-help-btn" type="button" id="searchHelpBtn" aria-label="syntax help">?</button>
+        <div class="search-help-popover" id="searchHelpPopover">
+          <div class="syntax-title">search syntax</div>
+          <div><code>lightning bolt</code> — name (multiple words = and)</div>
+          <div><code>t:creature</code> — type line</div>
+          <div><code>c:rg</code> — colors include r and g; <code>c:c</code> = colorless</div>
+          <div><code>ci:wug</code> — color identity</div>
+          <div><code>cmc&lt;=3</code> · <code>cmc=0</code> · <code>cmc&gt;5</code></div>
+          <div><code>o:"flying"</code> — oracle text</div>
+          <div><code>r:mythic</code> · <code>r:r</code> · <code>r:u</code> · <code>r:c</code></div>
+          <div><code>loc:breya</code> — location contains</div>
+          <div><code>set:fin</code> · <code>finish:foil</code> · <code>cond:nm</code></div>
+          <div><code>qty&gt;=2</code> · <code>lang:ja</code></div>
+          <div><code>-t:land</code> — negate any clause</div>
+        </div>
+      </div>
       <select class="filter-select" id="filterSet"><option value="">all sets</option></select>
       <select class="filter-select" id="filterRarity">
         <option value="">all rarity</option>
@@ -1675,7 +1749,9 @@ async function resolveCards(entries) {
           entry.rarity = entry.rarity || card.rarity;
           entry.cmc = card.cmc ?? null;
           entry.colors = card.colors || (card.card_faces?.[0]?.colors) || [];
-          entry.typeLine = card.type_line || '';
+          entry.colorIdentity = card.color_identity || [];
+          entry.typeLine = card.type_line || (card.card_faces?.map(f => f.type_line).filter(Boolean).join(' // ') || '');
+          entry.oracleText = card.oracle_text || (card.card_faces?.map(f => f.oracle_text).filter(Boolean).join(' // ') || '');
           entry.scryfallUri = card.scryfall_uri;
           entry.imageUrl = getCardImageUrl(card);
           entry.backImageUrl = getCardBackImageUrl(card);
@@ -1833,8 +1909,164 @@ function renderLanguageOptions(selected) {
   other.classList.remove('visible');
 }
 
+// ---- Search syntax ----
+const SEARCH_FIELD_ALIASES = {
+  n: 'name', name: 'name',
+  t: 'type', type: 'type',
+  c: 'colors', color: 'colors', colors: 'colors',
+  ci: 'ci', identity: 'ci',
+  cmc: 'cmc', mv: 'cmc',
+  o: 'oracle', oracle: 'oracle', text: 'oracle',
+  r: 'rarity', rarity: 'rarity',
+  loc: 'loc', location: 'loc',
+  s: 'set', set: 'set',
+  f: 'finish', finish: 'finish',
+  qty: 'qty',
+  cond: 'cond', condition: 'cond',
+  lang: 'lang', language: 'lang',
+};
+const RARITY_SHORT = { c: 'common', u: 'uncommon', r: 'rare', m: 'mythic' };
+
+function tokenizeSearch(query) {
+  const tokens = [];
+  let i = 0;
+  const s = query;
+  const isSpace = ch => /\s/.test(ch);
+  while (i < s.length) {
+    while (i < s.length && isSpace(s[i])) i++;
+    if (i >= s.length) break;
+    let neg = false;
+    if (s[i] === '-' && i + 1 < s.length && !isSpace(s[i + 1])) { neg = true; i++; }
+    const fieldStart = i;
+    while (i < s.length && /[a-zA-Z]/.test(s[i])) i++;
+    const fieldRaw = s.slice(fieldStart, i).toLowerCase();
+    let op = null;
+    if (i < s.length && (s[i] === ':' || s[i] === '<' || s[i] === '>' || s[i] === '=')) {
+      if (s[i] === '<' || s[i] === '>') {
+        op = s[i++];
+        if (s[i] === '=') op += s[i++];
+      } else {
+        op = s[i++];
+      }
+    } else {
+      i = fieldStart;
+    }
+    let value = '';
+    if (i < s.length && s[i] === '"') {
+      i++;
+      while (i < s.length && s[i] !== '"') value += s[i++];
+      if (i < s.length && s[i] === '"') i++;
+    } else {
+      while (i < s.length && !isSpace(s[i])) value += s[i++];
+    }
+    if (op && SEARCH_FIELD_ALIASES[fieldRaw]) {
+      tokens.push({ field: SEARCH_FIELD_ALIASES[fieldRaw], op, value, neg });
+    } else if (value) {
+      tokens.push({ field: 'name', op: ':', value, neg });
+    }
+  }
+  return tokens;
+}
+
+function compareNum(a, op, b) {
+  switch (op) {
+    case ':': case '=': return a === b;
+    case '<': return a < b;
+    case '<=': return a <= b;
+    case '>': return a > b;
+    case '>=': return a >= b;
+  }
+  return false;
+}
+
+function colorSetFromValue(value) {
+  const lower = value.toLowerCase();
+  if (lower === 'colorless' || lower === 'c') return new Set();
+  return new Set(lower.replace(/[^wubrg]/g, '').split(''));
+}
+
+function matchToken(c, token) {
+  let result = false;
+  const v = token.value;
+  switch (token.field) {
+    case 'name': {
+      const name = (c.resolvedName || c.name || '').toLowerCase();
+      result = name.includes(v.toLowerCase());
+      break;
+    }
+    case 'type': {
+      result = (c.typeLine || '').toLowerCase().includes(v.toLowerCase());
+      break;
+    }
+    case 'colors':
+    case 'ci': {
+      const arr = (token.field === 'ci' ? c.colorIdentity : c.colors) || [];
+      const cardSet = new Set(arr.map(x => x.toLowerCase()));
+      const wanted = colorSetFromValue(v);
+      if (wanted.size === 0) {
+        result = cardSet.size === 0;
+      } else {
+        result = [...wanted].every(w => cardSet.has(w));
+      }
+      break;
+    }
+    case 'cmc': {
+      const cmc = c.cmc;
+      if (cmc == null) { result = false; break; }
+      const target = parseFloat(v);
+      if (isNaN(target)) { result = false; break; }
+      result = compareNum(cmc, token.op, target);
+      break;
+    }
+    case 'oracle': {
+      result = (c.oracleText || '').toLowerCase().includes(v.toLowerCase());
+      break;
+    }
+    case 'rarity': {
+      const r = (c.rarity || '').toLowerCase();
+      const want = v.toLowerCase();
+      result = r === want || r === RARITY_SHORT[want];
+      break;
+    }
+    case 'loc': {
+      result = normalizeLocation(c.location || '').includes(v.toLowerCase());
+      break;
+    }
+    case 'set': {
+      result = (c.setCode || '').toLowerCase() === v.toLowerCase();
+      break;
+    }
+    case 'finish': {
+      result = (c.finish || '').toLowerCase() === v.toLowerCase();
+      break;
+    }
+    case 'qty': {
+      const target = parseFloat(v);
+      if (isNaN(target)) { result = false; break; }
+      result = compareNum(c.qty || 0, token.op, target);
+      break;
+    }
+    case 'cond': {
+      const cn = (c.condition || '').toLowerCase().replace(/_/g, ' ');
+      result = cn.includes(v.toLowerCase().replace(/_/g, ' '));
+      break;
+    }
+    case 'lang': {
+      result = (c.language || '').toLowerCase() === v.toLowerCase();
+      break;
+    }
+  }
+  return token.neg ? !result : result;
+}
+
+function matchSearch(c, tokens) {
+  if (tokens.length === 0) return true;
+  return tokens.every(t => matchToken(c, t));
+}
+
 function filteredSorted() {
-  const q = document.getElementById('searchInput').value.toLowerCase().trim();
+  const q = document.getElementById('searchInput').value.trim();
+  const tokens = tokenizeSearch(q);
   const set = document.getElementById('filterSet').value;
   const rarity = document.getElementById('filterRarity').value;
   const finish = document.getElementById('filterFoil').value;
@@ -1842,8 +2074,7 @@ function filteredSorted() {
   const sortBy = document.getElementById('sortBy').value;
 
   let list = collection.filter(c => {
-    const name = (c.resolvedName || c.name || '').toLowerCase();
-    if (q && !name.includes(q)) return false;
+    if (!matchSearch(c, tokens)) return false;
     if (set && c.setCode !== set) return false;
     if (rarity && c.rarity !== rarity) return false;
     if (finish && c.finish !== finish) return false;
@@ -2230,6 +2461,42 @@ document.getElementById('detailLanguageOther').addEventListener('input', e => {
   document.getElementById(id).addEventListener('input', render);
   document.getElementById(id).addEventListener('change', render);
 });
+
+// ---- Search help popover ----
+const searchHelpBtn = document.getElementById('searchHelpBtn');
+const searchHelpPopover = document.getElementById('searchHelpPopover');
+searchHelpBtn.addEventListener('click', e => {
+  e.stopPropagation();
+  searchHelpPopover.classList.toggle('visible');
+});
+document.addEventListener('click', e => {
+  if (!searchHelpPopover.classList.contains('visible')) return;
+  if (e.target.closest('#searchHelpPopover') || e.target.closest('#searchHelpBtn')) return;
+  searchHelpPopover.classList.remove('visible');
+});
+
+// ---- URL state ----
+let urlStateDebounce = null;
+const searchInputEl = document.getElementById('searchInput');
+function syncUrlFromSearch() {
+  const q = searchInputEl.value.trim();
+  const url = new URL(window.location.href);
+  if (q) url.searchParams.set('q', q);
+  else url.searchParams.delete('q');
+  history.replaceState(null, '', url.pathname + (url.search ? url.search : '') + url.hash);
+}
+searchInputEl.addEventListener('input', () => {
+  clearTimeout(urlStateDebounce);
+  urlStateDebounce = setTimeout(syncUrlFromSearch, 250);
+});
+function applyUrlStateOnLoad() {
+  const params = new URL(window.location.href).searchParams;
+  const q = params.get('q');
+  if (q) {
+    searchInputEl.value = q;
+    render();
+  }
+}
 
 function esc(s) {
   const d = document.createElement('div');
@@ -2696,7 +2963,9 @@ function addCardFromPreview() {
   entry.resolvedName = card.name;
   entry.cmc = card.cmc ?? null;
   entry.colors = card.colors || (card.card_faces?.[0]?.colors) || [];
-  entry.typeLine = card.type_line || '';
+  entry.colorIdentity = card.color_identity || [];
+  entry.typeLine = card.type_line || (card.card_faces?.map(f => f.type_line).filter(Boolean).join(' // ') || '');
+  entry.oracleText = card.oracle_text || (card.card_faces?.map(f => f.oracle_text).filter(Boolean).join(' // ') || '');
   entry.scryfallUri = card.scryfall_uri;
   entry.imageUrl = getCardImageUrl(card);
   entry.backImageUrl = getCardBackImageUrl(card);
@@ -2923,6 +3192,18 @@ feedbackEl.addEventListener('click', e => {
   }
 });
 
+async function lazyBackfillSearchFields() {
+  const stale = collection.filter(c =>
+    (c.scryfallId || (c.setCode && c.cn) || c.name) &&
+    (c.oracleText === undefined || c.colorIdentity === undefined)
+  );
+  if (stale.length === 0) return;
+  await resolveCards(stale);
+  save();
+  populateFilters();
+  render();
+}
+
 // Boot
 async function boot() {
   const hasSavedCollection = load();
@@ -2943,8 +3224,10 @@ async function boot() {
   if (collection.length > 0) {
     document.getElementById('importDetails').open = false;
   }
+  applyUrlStateOnLoad();
   const loadCount = bumpBackupCounter();
   if (hasSavedCollection) maybeShowBackupNag(loadCount);
+  lazyBackfillSearchFields();
 }
 boot();
 </script>
