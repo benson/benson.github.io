@@ -1,15 +1,13 @@
 import { state } from './state.js';
+import { showFeedback } from './feedback.js';
 import {
   collectionKey,
-  coalesceCollection,
   normalizeLocation,
   normalizeCondition,
   normalizeFinish,
   normalizeLanguage,
-  populateFilters,
-  save,
-  showFeedback,
-} from './app.js';
+} from './collection.js';
+import { commitCollectionChange } from './persistence.js';
 import { filteredSorted } from './search.js';
 import { render } from './view.js';
 
@@ -24,9 +22,7 @@ export function undoLast() {
   state.collection = state.lastSnapshot.map(c => ({ ...c }));
   state.lastSnapshot = null;
   state.selectedKeys.clear();
-  save();
-  populateFilters();
-  render();
+  commitCollectionChange();
   showFeedback('undone', 'info');
 }
 
@@ -70,11 +66,8 @@ function applyBulk(field, rawValue, normalizer) {
       touched++;
     }
   }
-  coalesceCollection();
   state.selectedKeys.clear();
-  save();
-  populateFilters();
-  render();
+  commitCollectionChange({ coalesce: true });
   const noun = 'card' + (touched === 1 ? '' : 's');
   showFeedback('updated ' + touched + ' ' + noun + ' <button class="undo-btn" type="button">undo</button>', 'success');
 }
@@ -127,9 +120,7 @@ export function initBulk() {
     snapshotCollection();
     state.collection = state.collection.filter(c => !state.selectedKeys.has(collectionKey(c)));
     state.selectedKeys.clear();
-    save();
-    populateFilters();
-    render();
+    commitCollectionChange();
     const noun = 'card' + (n === 1 ? '' : 's');
     showFeedback('deleted ' + n + ' ' + noun + ' <button class="undo-btn" type="button">undo</button>', 'success');
   });

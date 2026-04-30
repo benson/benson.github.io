@@ -1,15 +1,12 @@
 import { state } from './state.js';
+import { esc, showFeedback } from './feedback.js';
 import {
-  esc,
-  showFeedback,
   collectionKey,
-  coalesceCollection,
   normalizeLocation,
-  populateFilters,
-  save,
   biggerImageUrl,
-  openDetail,
-} from './app.js';
+} from './collection.js';
+import { save, commitCollectionChange } from './persistence.js';
+import { openDetail } from './detail.js';
 import { filteredSorted } from './search.js';
 import { renderStatsPanel, bucketType } from './stats.js';
 import { updateBulkBar } from './bulk.js';
@@ -336,10 +333,7 @@ export function initView() {
     const index = parseInt(e.target.dataset.index, 10);
     if (!state.collection[index]) return;
     state.collection[index].location = normalizeLocation(e.target.value);
-    coalesceCollection();
-    save();
-    populateFilters();
-    render();
+    commitCollectionChange({ coalesce: true });
   });
 
   listBodyEl.addEventListener('mouseover', e => {

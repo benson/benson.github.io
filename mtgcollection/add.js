@@ -5,10 +5,8 @@ import {
   getCardFinishes,
 } from 'https://bensonperry.com/shared/mtg.js';
 import { state, SCRYFALL_API } from './state.js';
+import { esc, showFeedback, hideFeedback } from './feedback.js';
 import {
-  esc,
-  showFeedback,
-  hideFeedback,
   makeEntry,
   collectionKey,
   normalizeFinish,
@@ -18,10 +16,9 @@ import {
   getCardImageUrl,
   getCardBackImageUrl,
   getUsdPrice,
-  save,
-  populateFilters,
-} from './app.js';
-import { render, showImageLightbox } from './view.js';
+} from './collection.js';
+import { commitCollectionChange } from './persistence.js';
+import { showImageLightbox } from './view.js';
 import { snapshotCollection } from './bulk.js';
 
 const ADD_CONDITIONS = [
@@ -261,9 +258,7 @@ function addCardFromPreview() {
   if (existing) existing.qty += entry.qty;
   else state.collection.push(entry);
 
-  save();
-  populateFilters();
-  render();
+  commitCollectionChange();
   lastUsedLocation = location;
   showFeedback('added ' + esc(card.name) + ' (' + (card.set || '').toUpperCase() + ' #' + esc(card.collector_number) + ') <button class="undo-btn" type="button">undo</button>', 'success');
 
