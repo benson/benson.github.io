@@ -890,12 +890,12 @@ async function boot() {
     }
   });
 
-  // Expose inline-onclick handlers used by index.html
-  window.importFromPaste = importFromPaste;
-  window.loadSample = loadSample;
-  window.loadBreyaDeck = loadBreyaDeck;
-  window.clearCollection = clearCollection;
-  window.exportCsv = exportCsv;
+  // Import / collection action buttons
+  document.getElementById('importPastedBtn').addEventListener('click', importFromPaste);
+  document.getElementById('loadBreyaBtn').addEventListener('click', () => loadBreyaDeck());
+  document.getElementById('loadSampleBtn').addEventListener('click', loadSample);
+  document.getElementById('deleteAllBtn').addEventListener('click', clearCollection);
+  document.getElementById('exportCsvBtn').addEventListener('click', exportCsv);
 
   // Boot the collection
   const hasSavedCollection = load();
