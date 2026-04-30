@@ -248,7 +248,7 @@ export function makeEntry(data) {
     setName: data.setName || '',
     cn: data.cn || '',
     finish: normalizeFinish(data.finish),
-    qty: parseInt(data.qty, 10) || 1,
+    qty: Math.max(1, parseInt(data.qty, 10) || 1),
     condition: normalizeCondition(data.condition),
     language: normalizeLanguage(data.language),
     location: normalizeLocation(data.location),
@@ -343,8 +343,10 @@ async function importCsv(text) {
   }
   const headerRow = rows[0];
   const idx = mapHeaders(headerRow);
-  if (idx.name === undefined && idx.scryfallId === undefined && idx.cn === undefined) {
-    showFeedback('couldn\'t recognize columns — need at least name+set or collector number or scryfall id', 'error');
+  const hasNameOrId = idx.name !== undefined || idx.scryfallId !== undefined;
+  const hasSetAndCn = idx.setCode !== undefined && idx.cn !== undefined;
+  if (!hasNameOrId && !hasSetAndCn) {
+    showFeedback('couldn\'t recognize columns — need name, scryfall id, or both set code + collector number', 'error');
     return;
   }
 
@@ -692,7 +694,8 @@ export function openDetail(index) {
 
   document.getElementById('detailQty').value = c.qty || 1;
   document.getElementById('detailFinish').value = c.finish || 'normal';
-  const conditionInput = detailForm.querySelector(`input[name="detailCondition"][value="${c.condition || 'near_mint'}"]`)
+  const conditionValue = c.condition || 'near_mint';
+  const conditionInput = detailForm.querySelector(`input[name="detailCondition"][value="${CSS.escape(conditionValue)}"]`)
     || detailForm.querySelector('input[name="detailCondition"][value="near_mint"]');
   if (conditionInput) conditionInput.checked = true;
   renderLanguageOptions(c.language || 'en');
