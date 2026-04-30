@@ -79,6 +79,30 @@ test('mapHeaders: alias matching for each known column', () => {
   }
 });
 
+// Pin specific aliases that real exporter CSVs depend on. The loop above
+// proves "everything in ALIASES still maps", but won't catch someone
+// deleting an alias from ALIASES — these explicit tests will.
+test('mapHeaders: pinned canonical aliases from real exporters', () => {
+  // manabox uses these
+  assert.equal(mapHeaders(['Name'])['name'], 0);
+  assert.equal(mapHeaders(['Set code'])['setCode'], 0);
+  assert.equal(mapHeaders(['Collector number'])['cn'], 0);
+  assert.equal(mapHeaders(['Foil'])['finish'], 0);
+  assert.equal(mapHeaders(['Quantity'])['qty'], 0);
+  assert.equal(mapHeaders(['Scryfall ID'])['scryfallId'], 0);
+  // moxfield uses these
+  assert.equal(mapHeaders(['Card Name'])['name'], 0);
+  assert.equal(mapHeaders(['Edition'])['setCode'], 0);
+  assert.equal(mapHeaders(['Count'])['qty'], 0);
+  // deckbox uses these
+  assert.equal(mapHeaders(['Card Number'])['cn'], 0);
+  // common alternates
+  assert.equal(mapHeaders(['Lang'])['language'], 0);
+  assert.equal(mapHeaders(['Location'])['location'], 0);
+  assert.equal(mapHeaders(['Condition'])['condition'], 0);
+  assert.equal(mapHeaders(['Rarity'])['rarity'], 0);
+});
+
 test('mapHeaders: missing columns return undefined', () => {
   const idx = mapHeaders(['something', 'unrelated']);
   assert.equal(idx.name, undefined);

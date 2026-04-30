@@ -33,9 +33,8 @@ async function boot() {
   initDetail();
   initImport();
 
-  // Format selector
+  // Format selector — wire listener now; sync value after loadFromStorage()
   const formatSelectEl = document.getElementById('formatSelect');
-  formatSelectEl.value = state.selectedFormat;
   formatSelectEl.addEventListener('change', () => {
     state.selectedFormat = formatSelectEl.value;
     save();
@@ -59,6 +58,7 @@ async function boot() {
 
   // Boot the collection
   const hasSavedCollection = loadFromStorage();
+  formatSelectEl.value = state.selectedFormat;
   if (!hasSavedCollection) {
     showFeedback('<span class="loading-spinner"></span> loading breya deck...', 'info');
     await loadBreyaDeck({ replace: true, silent: true });
