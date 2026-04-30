@@ -217,9 +217,11 @@ function setDeckPreviewCard(c) {
   const placeholderEl = panel.querySelector('.deck-preview-placeholder');
   const nameEl = panel.querySelector('.deck-preview-name');
   const metaEl = panel.querySelector('.deck-preview-meta');
+  const flipRow = panel.querySelector('.deck-preview-flip-row');
   if (c.imageUrl) {
     imgEl.src = c.imageUrl;
     imgEl.alt = name;
+    imgEl.dataset.current = 'front';
     imgEl.classList.remove('hidden');
     placeholderEl.classList.add('hidden');
   } else {
@@ -228,6 +230,7 @@ function setDeckPreviewCard(c) {
     placeholderEl.textContent = name;
     placeholderEl.classList.remove('hidden');
   }
+  if (flipRow) flipRow.classList.toggle('hidden', !c.backImageUrl || !c.imageUrl);
   // foil/etched shine parity
   imgEl.parentElement.classList.toggle('is-foil', c.finish === 'foil');
   imgEl.parentElement.classList.toggle('is-etched', c.finish === 'etched');
@@ -399,18 +402,35 @@ export function initView() {
   // panel click → open the drawer for whichever card is currently shown
   const previewPanel = document.getElementById('deckPreviewPanel');
   if (previewPanel) {
-    previewPanel.addEventListener('click', () => {
+    previewPanel.addEventListener('click', e => {
+      if (e.target.closest('.deck-preview-flip-row')) return;
       const idx = parseInt(previewPanel.dataset.index, 10);
       if (Number.isNaN(idx)) return;
       openDetail(idx);
     });
     previewPanel.addEventListener('keydown', e => {
       if (e.key !== 'Enter' && e.key !== ' ') return;
+      if (e.target.closest('.deck-preview-flip-row')) return;
       const idx = parseInt(previewPanel.dataset.index, 10);
       if (Number.isNaN(idx)) return;
       e.preventDefault();
       openDetail(idx);
     });
+    const flipBtn = document.getElementById('deckPreviewFlipBtn');
+    if (flipBtn) {
+      flipBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        const idx = parseInt(previewPanel.dataset.index, 10);
+        if (Number.isNaN(idx)) return;
+        const entry = state.collection[idx];
+        if (!entry || !entry.backImageUrl) return;
+        const imgEl = previewPanel.querySelector('.deck-preview-card');
+        if (!imgEl) return;
+        const showingBack = imgEl.dataset.current === 'back';
+        imgEl.dataset.current = showingBack ? 'front' : 'back';
+        imgEl.src = showingBack ? entry.imageUrl : entry.backImageUrl;
+      });
+    }
   }
 
   document.getElementById('toggleView').addEventListener('click', () => {
