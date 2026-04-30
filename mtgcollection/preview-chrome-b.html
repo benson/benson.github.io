@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>chrome b · content-first canvas</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Times New Roman", Times, Georgia, serif;
+    background: #f8f7f4;
+    color: #000;
+    text-transform: lowercase;
+    font-size: 0.85rem;
+  }
+
+  /* TOP STRIP */
+  .top {
+    position: sticky;
+    top: 0;
+    height: 56px;
+    background: rgba(248, 247, 244, 0.92);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid #e3e0d7;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 24px;
+    padding: 0 24px;
+    z-index: 50;
+  }
+  .top h1 {
+    font-size: 1.3rem;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+  }
+  .top .search-wrap {
+    justify-self: center;
+    width: 100%;
+    max-width: 400px;
+  }
+  .top input.search {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #000;
+    padding: 6px 2px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    color: #000;
+    outline: none;
+    text-transform: lowercase;
+    border-radius: 0;
+  }
+  .top input.search::placeholder { color: #aaa; }
+  .top .right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .top .totals {
+    font-size: 0.78rem;
+    color: #555;
+  }
+  .top .totals strong {
+    font-weight: 400;
+    color: #000;
+  }
+  .top .view-mode {
+    display: flex;
+    border: 1px solid #000;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .top .view-mode button {
+    background: transparent;
+    border: none;
+    padding: 5px 11px;
+    font-family: inherit;
+    font-size: 0.76rem;
+    text-transform: lowercase;
+    cursor: pointer;
+    color: #000;
+    border-right: 1px solid #000;
+  }
+  .top .view-mode button:last-child { border-right: none; }
+  .top .view-mode button.active {
+    background: #000;
+    color: #fff;
+  }
+
+  /* MAIN canvas */
+  .canvas {
+    padding: 24px 24px 100px;
+    position: relative;
+  }
+  .canvas .pill {
+    display: inline-block;
+    padding: 4px 10px;
+    border: 1px solid #ddd;
+    background: #fff;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    color: #555;
+    margin-bottom: 16px;
+  }
+  .pill strong { font-weight: 400; color: #000; }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
+  .card {
+    aspect-ratio: 488 / 680;
+    border: 1px solid rgba(0,0,0,0.15);
+    border-radius: 6px;
+    background: #ddd;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+  }
+  .card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(160deg, rgba(255,255,255,0.18), rgba(0,0,0,0.18));
+  }
+  .card.c-w { background: linear-gradient(155deg, #f6efd9, #d8c98a); }
+  .card.c-u { background: linear-gradient(155deg, #cfe1ee, #5b8bb1); }
+  .card.c-b { background: linear-gradient(155deg, #888785, #2a2826); }
+  .card.c-r { background: linear-gradient(155deg, #f0c0a4, #b04826); }
+  .card.c-g { background: linear-gradient(155deg, #cadcb8, #5e8345); }
+  .card.c-c { background: linear-gradient(155deg, #d6d2c6, #8b8579); }
+
+  /* FAB cluster */
+  .fab-stack {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 10px;
+    z-index: 40;
+  }
+  .fab {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #000;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 1.1rem;
+    display: grid;
+    place-items: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+    position: relative;
+    transition: transform 0.12s ease, background 0.12s ease;
+  }
+  .fab:hover {
+    transform: translateY(-1px);
+    background: #222;
+  }
+  .fab .fab-label {
+    position: absolute;
+    right: 58px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #000;
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 2px;
+    font-size: 0.72rem;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.12s ease;
+    text-transform: lowercase;
+  }
+  .fab:hover .fab-label { opacity: 1; }
+
+  /* MODAL */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    width: 500px;
+    max-width: calc(100vw - 32px);
+    background: #f8f7f4;
+    border: 1px solid #000;
+    border-radius: 4px;
+    padding: 22px 24px 20px;
+    position: relative;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+  }
+  .modal h2 {
+    font-size: 1.1rem;
+    font-weight: 400;
+    margin-bottom: 14px;
+    letter-spacing: -0.01em;
+  }
+  .modal .close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    background: transparent;
+    border: none;
+    font-size: 1.3rem;
+    line-height: 1;
+    cursor: pointer;
+    color: #888;
+    font-family: inherit;
+  }
+  .modal .close:hover { color: #000; }
+  .modal .tabs {
+    display: flex;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 12px;
+  }
+  .modal .tabs button {
+    background: transparent;
+    border: none;
+    padding: 6px 12px;
+    font-family: inherit;
+    font-size: 0.8rem;
+    color: #888;
+    cursor: pointer;
+    text-transform: lowercase;
+    border-bottom: 1px solid transparent;
+    margin-bottom: -1px;
+  }
+  .modal .tabs button.active {
+    color: #000;
+    border-bottom-color: #000;
+  }
+  .modal textarea {
+    width: 100%;
+    min-height: 110px;
+    border: 1px solid #ccc;
+    border-radius: 2px;
+    padding: 8px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.78rem;
+    resize: vertical;
+    background: #fff;
+    text-transform: none;
+    outline: none;
+  }
+  .modal textarea:focus { border-color: #000; }
+  .modal .actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 12px;
+  }
+  .modal button.primary {
+    padding: 7px 14px;
+    border: 1px solid #000;
+    background: #000;
+    color: #fff;
+    font-family: inherit;
+    font-size: 0.78rem;
+    text-transform: lowercase;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+  .modal button.secondary {
+    padding: 7px 14px;
+    border: 1px solid #000;
+    background: transparent;
+    color: #000;
+    font-family: inherit;
+    font-size: 0.78rem;
+    text-transform: lowercase;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>mtg collection</h1>
+  <div class="search-wrap">
+    <input class="search" type="text" placeholder="search cards, text, oracle...">
+  </div>
+  <div class="right">
+    <div class="totals"><strong>347 cards</strong> · <strong>$2,889.40</strong></div>
+    <div class="view-mode">
+      <button>list</button>
+      <button class="active">grid</button>
+      <button>deck</button>
+    </div>
+  </div>
+</header>
+
+<main class="canvas">
+  <div class="pill"><strong>100 cards</strong> · selected commander deck · all legal</div>
+  <div class="card-grid" id="cards"></div>
+</main>
+
+<div class="fab-stack">
+  <button class="fab" id="fab-add" title="add">
+    <span>+</span>
+    <span class="fab-label">add</span>
+  </button>
+  <button class="fab" title="filter">
+    <span>f</span>
+    <span class="fab-label">filter</span>
+  </button>
+  <button class="fab" title="import">
+    <span>i</span>
+    <span class="fab-label">import</span>
+  </button>
+  <button class="fab" title="stats">
+    <span>%</span>
+    <span class="fab-label">stats</span>
+  </button>
+</div>
+
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <button class="close" id="modal-close">&times;</button>
+    <h2>add cards</h2>
+    <div class="tabs">
+      <button class="active">paste</button>
+      <button>autocomplete</button>
+      <button>voice</button>
+    </div>
+    <textarea placeholder="1 lightning bolt&#10;2 brainstorm&#10;1 sol ring"></textarea>
+    <div class="actions">
+      <button class="secondary" id="modal-cancel">cancel</button>
+      <button class="primary">add 4 cards</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const colors = ['c-w', 'c-u', 'c-b', 'c-r', 'c-g', 'c-c'];
+  const grid = document.getElementById('cards');
+  for (let i = 0; i < 80; i++) {
+    const d = document.createElement('div');
+    d.className = 'card ' + colors[i % colors.length];
+    grid.appendChild(d);
+  }
+
+  const modal = document.getElementById('modal');
+  document.getElementById('fab-add').addEventListener('click', () => modal.classList.add('open'));
+  document.getElementById('modal-close').addEventListener('click', () => modal.classList.remove('open'));
+  document.getElementById('modal-cancel').addEventListener('click', () => modal.classList.remove('open'));
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('open'); });
+</script>
+</body>
+</html>
