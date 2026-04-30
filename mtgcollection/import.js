@@ -114,7 +114,7 @@ const BREYA_DECKLIST = `1 Breya, Etherium Shaper (C16) 29 *F*
 let progressEl;
 
 // ---- CSV parser (handles quoted fields) ----
-function parseCsv(text) {
+export function parseCsv(text) {
   const rows = [];
   let row = [];
   let cell = '';
@@ -146,7 +146,7 @@ function parseCsv(text) {
 }
 
 // ---- Header alias mapping ----
-const ALIASES = {
+export const ALIASES = {
   name:       ['name', 'card name', 'card'],
   setCode:    ['set code', 'set', 'edition', 'setcode', 'set_code'],
   setName:    ['set name', 'setname', 'edition name'],
@@ -161,7 +161,7 @@ const ALIASES = {
   price:      ['purchase price', 'price', 'tcg market price'],
 };
 
-function mapHeaders(headerRow) {
+export function mapHeaders(headerRow) {
   const idx = {};
   const lower = headerRow.map(h => h.toLowerCase().trim());
   for (const [key, aliases] of Object.entries(ALIASES)) {
@@ -173,7 +173,7 @@ function mapHeaders(headerRow) {
   return idx;
 }
 
-function parseDecklist(text, options = {}) {
+export function parseDecklist(text, options = {}) {
   const { location = '' } = options;
   const entries = [];
   const errors = [];
