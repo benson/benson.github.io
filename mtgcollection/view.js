@@ -28,6 +28,10 @@ export function render() {
   document.querySelectorAll('.app-header-views .toggle-view').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.view === state.viewMode);
   });
+  document.body.classList.toggle('view-list', state.viewMode === 'list');
+  document.body.classList.toggle('has-collection', state.collection.length > 0);
+  // Switching away from list view always closes the right drawer
+  if (state.viewMode !== 'list') closeRightDrawer();
   syncClearFiltersBtn();
   if (state.collection.length === 0) {
     collectionSection.classList.add('hidden');
@@ -418,6 +422,31 @@ export function isLightboxVisible() {
   return lightboxEl.classList.contains('visible');
 }
 
+const RIGHT_DRAWER_PANELS = ['addDetails', 'importDetails', 'statsPanel'];
+
+export function openRightDrawer(targetId) {
+  if (!RIGHT_DRAWER_PANELS.includes(targetId)) return;
+  document.body.classList.add('right-drawer-open');
+  RIGHT_DRAWER_PANELS.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.open = (id === targetId);
+  });
+  // Bring the focused panel into view inside the floating sidebar
+  const target = document.getElementById(targetId);
+  if (target && target.scrollIntoView) {
+    target.scrollIntoView({ block: 'start' });
+  }
+}
+
+export function closeRightDrawer() {
+  document.body.classList.remove('right-drawer-open');
+}
+
+export function isRightDrawerOpen() {
+  return document.body.classList.contains('right-drawer-open');
+}
+
 export function initView() {
   gridEl = document.getElementById('grid');
   listBodyEl = document.getElementById('listBody');
@@ -450,6 +479,29 @@ export function initView() {
     if (next === 'binder') state.binderPage = 0;
     save();
     render();
+  });
+
+  // FAB cluster — list-view summon panels on demand
+  const fabCluster = document.getElementById('fabCluster');
+  if (fabCluster) {
+    fabCluster.addEventListener('click', e => {
+      const btn = e.target.closest('[data-fab-target]');
+      if (!btn) return;
+      openRightDrawer(btn.dataset.fabTarget);
+    });
+  }
+  const appRightBackdrop = document.getElementById('appRightBackdrop');
+  if (appRightBackdrop) {
+    appRightBackdrop.addEventListener('click', closeRightDrawer);
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (!isRightDrawerOpen()) return;
+    // Defer to higher-priority overlays (lightbox / detail drawer handle their own Escape).
+    if (isLightboxVisible()) return;
+    const detailDrawerEl = document.getElementById('detailDrawer');
+    if (detailDrawerEl && detailDrawerEl.classList.contains('visible')) return;
+    closeRightDrawer();
   });
 
   loadBinderSize();

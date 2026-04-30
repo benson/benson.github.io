@@ -202,6 +202,92 @@
     margin-bottom: 0;
   }
 
+  /* List-view: hide right sidebar entirely and collapse the column */
+  body.view-list .app-shell {
+    grid-template-columns: 200px 1fr 0;
+  }
+  body.view-list .app-right { display: none; }
+
+  /* List-view + drawer-open: float the sidebar in from the right with a backdrop */
+  body.view-list.right-drawer-open .app-right {
+    display: flex;
+    position: fixed;
+    top: 60px;
+    right: 0;
+    bottom: 40px;
+    width: 320px;
+    z-index: 50;
+    box-shadow: -2px 0 12px rgba(0,0,0,0.15);
+    border-left: 1px solid #000;
+    background: #f8f7f4;
+  }
+  .app-right-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.18);
+    z-index: 40;
+    display: none;
+  }
+  body.view-list.right-drawer-open .app-right-backdrop { display: block; }
+
+  /* FAB cluster — visible only in list view with a non-empty collection */
+  .fab-cluster {
+    position: fixed;
+    right: 24px;
+    bottom: 60px;
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 30;
+  }
+  body.view-list.has-collection .fab-cluster { display: flex; }
+  body.view-list.right-drawer-open .fab-cluster { display: none; }
+  .fab-btn {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #000;
+    color: #fff;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .fab-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .fab-btn:focus-visible { outline: 2px solid #000; outline-offset: 3px; }
+  .fab-glyph {
+    font-family: "Times New Roman", Times, Georgia, serif;
+    font-size: 1.2rem;
+    line-height: 1;
+    text-transform: none;
+  }
+  .fab-label {
+    position: absolute;
+    right: calc(100% + 10px);
+    top: 50%;
+    transform: translateY(-50%);
+    background: #000;
+    color: #fff;
+    font-size: 0.7rem;
+    letter-spacing: 0.02em;
+    padding: 4px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.12s ease;
+  }
+  .fab-btn:hover .fab-label,
+  .fab-btn:focus-visible .fab-label { opacity: 1; }
+
   .app-footer {
     grid-area: footer;
     border-top: 1px solid #000;
@@ -1864,6 +1950,12 @@
       padding: 12px 14px;
       overflow-y: visible;
     }
+    /* On mobile, keep the right sidebar inline even in list view; FAB cluster off */
+    body.view-list .app-shell { grid-template-columns: 1fr; }
+    body.view-list .app-right { display: flex; position: static; box-shadow: none; width: auto; }
+    body.view-list.right-drawer-open .app-right { position: static; box-shadow: none; width: auto; border-left: none; }
+    body.view-list.has-collection .fab-cluster { display: none; }
+    .app-right-backdrop, body.view-list.right-drawer-open .app-right-backdrop { display: none; }
     .app-footer {
       flex-wrap: wrap;
       padding: 8px 14px;
@@ -2236,6 +2328,12 @@
       <a href="/">bensonperry.com</a>
     </div>
   </footer>
+  <div class="app-right-backdrop" id="appRightBackdrop"></div>
+  <div class="fab-cluster" id="fabCluster" aria-hidden="true">
+    <button class="fab-btn" type="button" data-fab-target="addDetails" aria-label="add cards"><span class="fab-glyph">+</span><span class="fab-label">add</span></button>
+    <button class="fab-btn" type="button" data-fab-target="statsPanel" aria-label="breakdown"><span class="fab-glyph">%</span><span class="fab-label">breakdown</span></button>
+    <button class="fab-btn" type="button" data-fab-target="importDetails" aria-label="import"><span class="fab-glyph">⬇</span><span class="fab-label">import</span></button>
+  </div>
 </div>
 <div id="cardPreview"><img src="" alt=""></div>
 <div id="imageLightbox" class="image-lightbox" aria-hidden="true">
