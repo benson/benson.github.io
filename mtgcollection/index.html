@@ -439,34 +439,61 @@
   }
   .card-scryfall-link:hover, .card-scryfall-link:focus-visible { border-color: #fff; outline: none; }
 
-  /* Deck view */
+  /* Deck view — moxfield-style stacked columns */
   .deck-view { display: none; }
   .deck-view.active { display: block; }
   .deck-columns {
+    --deck-card-w: 210px;
+    --deck-name-bar: 32px;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 18px 14px;
+    grid-template-columns: repeat(auto-fill, var(--deck-card-w));
+    gap: 22px 14px;
+    justify-content: start;
   }
-  .deck-columns.grid-small  { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 14px 10px; }
-  .deck-columns.grid-medium { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 18px 14px; }
-  .deck-columns.grid-large  { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 22px 18px; }
+  .deck-col {
+    min-width: 0;
+  }
   .deck-col-header {
     font-size: 0.75rem;
-    color: #999;
-    margin-bottom: 8px;
+    color: #555;
+    margin-bottom: 6px;
     text-transform: lowercase;
     letter-spacing: 0.04em;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 6px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 4px;
   }
-  .deck-col-header .deck-col-count { color: #ccc; margin-left: 4px; }
+  .deck-col-header .deck-col-count {
+    color: #999;
+    font-variant-numeric: tabular-nums;
+  }
+  .deck-stack {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
   .deck-card {
     position: relative;
-    margin-bottom: 4px;
+    width: 100%;
+    aspect-ratio: 488 / 680;
+    margin-top: calc(var(--deck-name-bar) - 100% * 680 / 488);
     cursor: pointer;
     border-radius: 4%;
     overflow: hidden;
     background: #e8e8e8;
-    aspect-ratio: 488 / 680;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.18);
+    transition: transform 0.1s;
   }
+  .deck-card:first-child { margin-top: 0; }
+  .deck-card.deck-card-last { margin-top: 0; }
+  .deck-card:hover, .deck-card:focus-visible {
+    transform: translateX(2px);
+    z-index: 2;
+  }
+  .deck-card:focus-visible { outline: 2px solid #000; outline-offset: 2px; }
   .deck-card img { display: block; width: 100%; height: 100%; object-fit: cover; }
   .deck-card .placeholder {
     display: flex; align-items: center; justify-content: center;
@@ -482,12 +509,35 @@
     padding: 2px 6px;
     border-radius: 2px;
     backdrop-filter: blur(4px);
+    z-index: 3;
   }
   .deck-actions {
     display: flex;
-    gap: 8px;
+    gap: 12px;
     margin-bottom: 14px;
     align-items: center;
+    flex-wrap: wrap;
+  }
+  .deck-group-control {
+    font-size: 0.75rem;
+    color: #999;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    text-transform: lowercase;
+  }
+  .deck-group-control select {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #000;
+    color: #000;
+    padding: 2px 2px;
+    font-size: 0.8rem;
+    font-family: inherit;
+    text-transform: lowercase;
+    outline: none;
+    border-radius: 0;
+    -webkit-appearance: none;
   }
   .deck-actions .deck-summary { font-size: 0.75rem; color: #666; margin-left: auto; }
   .deck-actions .deck-summary .warn { color: #b04848; }
@@ -1257,8 +1307,7 @@
     .main { padding: 10px 15px 40px; }
     .grid, .grid.grid-small, .grid.grid-medium { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 6px; }
     .grid.grid-large { grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 8px; }
-    .deck-columns, .deck-columns.grid-small, .deck-columns.grid-medium { grid-template-columns: repeat(auto-fit, minmax(95px, 1fr)); gap: 10px 6px; }
-    .deck-columns.grid-large { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px 8px; }
+    .deck-columns { --deck-card-w: 150px; --deck-name-bar: 26px; gap: 16px 8px; }
     .controls .search-input { width: 100%; max-width: none; flex-basis: 100%; }
     .stats { gap: 14px; }
     .stat-value { font-size: 1.1rem; }
@@ -1472,6 +1521,14 @@
     <div class="deck-view" id="deckView">
       <div class="deck-actions">
         <button class="btn btn-secondary" type="button" id="copyDecklistBtn">copy decklist</button>
+        <label class="deck-group-control" for="deckGroupBy">group by:
+          <select id="deckGroupBy">
+            <option value="type">type</option>
+            <option value="cmc">cmc</option>
+            <option value="color">color</option>
+            <option value="rarity">rarity</option>
+          </select>
+        </label>
         <span class="deck-summary" id="deckSummary"></span>
       </div>
       <div class="deck-columns" id="deckColumns"></div>

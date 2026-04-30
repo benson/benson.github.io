@@ -8,7 +8,9 @@ export const state = {
   selectedKeys: new Set(),
   detailIndex: -1,
   lastSnapshot: null,
+  deckGroupBy: 'type',
 };
 
 export const STORAGE_KEY = 'mtgcollection_v1';
+export const DECK_GROUP_KEY = 'mtgcollection_deck_group_v1';
 export const SCRYFALL_API = 'https://api.scryfall.com';

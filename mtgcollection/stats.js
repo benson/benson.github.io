@@ -33,6 +33,138 @@ export function bucketColor(colors) {
   return colors[0].toLowerCase();
 }
 
+// ---- Deck-view grouping helpers (pure) ----
+// Each helper returns an array of { label, cards } in display order, omitting empty groups.
+
+const TYPE_GROUP_ORDER = [
+  ['creature',     'creatures'],
+  ['instant',      'instants'],
+  ['sorcery',      'sorceries'],
+  ['artifact',     'artifacts'],
+  ['enchantment',  'enchantments'],
+  ['planeswalker', 'planeswalkers'],
+  ['battle',       'battles'],
+  ['land',         'lands'],
+  ['other',        'other'],
+];
+
+function sortDeckCards(cards) {
+  return cards.slice().sort((a, b) => {
+    const ac = typeof a.cmc === 'number' ? a.cmc : 0;
+    const bc = typeof b.cmc === 'number' ? b.cmc : 0;
+    if (ac !== bc) return ac - bc;
+    const an = (a.resolvedName || a.name || '').toLowerCase();
+    const bn = (b.resolvedName || b.name || '').toLowerCase();
+    return an.localeCompare(bn);
+  });
+}
+
+export function groupByType(list) {
+  const buckets = new Map();
+  for (const c of list) {
+    const key = bucketType(c.typeLine);
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push(c);
+  }
+  const out = [];
+  for (const [key, label] of TYPE_GROUP_ORDER) {
+    const cards = buckets.get(key);
+    if (cards && cards.length) out.push({ label, cards: sortDeckCards(cards) });
+  }
+  return out;
+}
+
+export function groupByCmc(list) {
+  const buckets = Array.from({ length: 8 }, () => []);
+  const lands = [];
+  for (const c of list) {
+    if (bucketType(c.typeLine) === 'land') {
+      lands.push(c);
+      continue;
+    }
+    const slot = typeof c.cmc === 'number' ? Math.min(7, Math.max(0, Math.floor(c.cmc))) : 0;
+    buckets[slot].push(c);
+  }
+  const labels = ['0', '1', '2', '3', '4', '5', '6', '7+'];
+  const out = [];
+  for (let i = 0; i < buckets.length; i++) {
+    if (buckets[i].length === 0) continue;
+    out.push({ label: labels[i], cards: sortDeckCards(buckets[i]) });
+  }
+  if (lands.length) out.push({ label: 'lands', cards: sortDeckCards(lands) });
+  return out;
+}
+
+const COLOR_GROUP_ORDER = [
+  ['W', 'white'],
+  ['U', 'blue'],
+  ['B', 'black'],
+  ['R', 'red'],
+  ['G', 'green'],
+  ['M', 'multicolor'],
+  ['C', 'colorless'],
+];
+
+function colorBucketKey(ci) {
+  if (!Array.isArray(ci) || ci.length === 0) return 'C';
+  if (ci.length > 1) return 'M';
+  return ci[0].toUpperCase();
+}
+
+export function groupByColor(list) {
+  const buckets = new Map();
+  for (const c of list) {
+    const key = colorBucketKey(c.colorIdentity);
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push(c);
+  }
+  const out = [];
+  for (const [key, label] of COLOR_GROUP_ORDER) {
+    const cards = buckets.get(key);
+    if (cards && cards.length) out.push({ label, cards: sortDeckCards(cards) });
+  }
+  return out;
+}
+
+const RARITY_GROUP_ORDER = [
+  ['mythic', 'mythic'],
+  ['rare', 'rare'],
+  ['uncommon', 'uncommon'],
+  ['common', 'common'],
+];
+
+export function groupByRarity(list) {
+  const buckets = new Map();
+  for (const c of list) {
+    const key = (c.rarity || '').toLowerCase();
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push(c);
+  }
+  const out = [];
+  for (const [key, label] of RARITY_GROUP_ORDER) {
+    const cards = buckets.get(key);
+    if (cards && cards.length) out.push({ label, cards: sortDeckCards(cards) });
+  }
+  // Anything with unknown rarity tucked into 'other' at end (preserves order).
+  const known = new Set(RARITY_GROUP_ORDER.map(([k]) => k));
+  const otherCards = [];
+  for (const [key, cards] of buckets) {
+    if (!known.has(key)) otherCards.push(...cards);
+  }
+  if (otherCards.length) out.push({ label: 'other', cards: sortDeckCards(otherCards) });
+  return out;
+}
+
+export function groupDeck(list, mode) {
+  switch (mode) {
+    case 'cmc':    return groupByCmc(list);
+    case 'color':  return groupByColor(list);
+    case 'rarity': return groupByRarity(list);
+    case 'type':
+    default:       return groupByType(list);
+  }
+}
+
 export function renderStatsPanel(list) {
   const curve = [0, 0, 0, 0, 0, 0, 0, 0];
   const types = {};

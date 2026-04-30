@@ -1,4 +1,4 @@
-import { state } from './state.js';
+import { state, DECK_GROUP_KEY } from './state.js';
 import { esc, showFeedback } from './feedback.js';
 import {
   collectionKey,
@@ -8,8 +8,10 @@ import {
 import { save, commitCollectionChange } from './persistence.js';
 import { openDetail } from './detail.js';
 import { filteredSorted } from './search.js';
-import { renderStatsPanel, bucketType } from './stats.js';
+import { renderStatsPanel, groupDeck } from './stats.js';
 import { updateBulkBar } from './bulk.js';
+
+const VALID_DECK_GROUPS = ['type', 'cmc', 'color', 'rarity'];
 
 let gridEl, listBodyEl, collectionSection, emptyState, priceNoteEl;
 let cardPreviewEl, cardPreviewImg;
@@ -69,11 +71,9 @@ export function render() {
 
 export function applyGridSize() {
   const sizeClass = 'grid-' + state.gridSize;
-  const deckColumnsEl = document.getElementById('deckColumns');
-  for (const el of [gridEl, deckColumnsEl]) {
-    if (!el) continue;
-    el.classList.remove('grid-small', 'grid-medium', 'grid-large');
-    el.classList.add(sizeClass);
+  if (gridEl) {
+    gridEl.classList.remove('grid-small', 'grid-medium', 'grid-large');
+    gridEl.classList.add(sizeClass);
   }
   document.querySelectorAll('[data-grid-size]').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.gridSize === state.gridSize);
@@ -127,43 +127,32 @@ function renderRow(c) {
   </tr>`;
 }
 
+function renderDeckCard(c, isLast) {
+  const name = c.resolvedName || c.name || '?';
+  const idx = state.collection.indexOf(c);
+  const img = c.imageUrl
+    ? `<img src="${esc(c.imageUrl)}" alt="${esc(name)}" loading="lazy">`
+    : `<div class="placeholder">${esc(name)}</div>`;
+  const qty = c.qty > 1 ? `<span class="deck-qty">×${c.qty}</span>` : '';
+  const finishClass = c.finish === 'foil' ? ' is-foil' : c.finish === 'etched' ? ' is-etched' : '';
+  const lastClass = isLast ? ' deck-card-last' : '';
+  return `<div class="deck-card detail-trigger${finishClass}${lastClass}" role="button" tabindex="0" data-index="${idx}" aria-label="${esc(name)}">${img}${qty}</div>`;
+}
+
 function renderDeckView(list) {
-  const lands = [];
-  const grouped = Array.from({ length: 8 }, () => []);
-  for (const c of list) {
-    if (bucketType(c.typeLine) === 'land') {
-      lands.push(c);
-    } else {
-      const slot = typeof c.cmc === 'number' ? Math.min(7, Math.max(0, Math.floor(c.cmc))) : 0;
-      grouped[slot].push(c);
-    }
+  const cols = groupDeck(list, state.deckGroupBy);
+  const deckColumnsEl = document.getElementById('deckColumns');
+  if (cols.length === 0) {
+    deckColumnsEl.innerHTML = '';
+  } else {
+    deckColumnsEl.innerHTML = cols.map(col => {
+      const total = col.cards.reduce((s, c) => s + (c.qty || 1), 0);
+      const price = col.cards.reduce((s, c) => s + (c.price || 0) * (c.qty || 1), 0);
+      const priceStr = price > 0 ? ` · $${price.toFixed(2)}` : '';
+      const stack = col.cards.map((c, i) => renderDeckCard(c, i === col.cards.length - 1)).join('');
+      return `<div class="deck-col"><div class="deck-col-header">${esc(col.label)}<span class="deck-col-count">${total}${priceStr}</span></div><div class="deck-stack">${stack}</div></div>`;
+    }).join('');
   }
-  const labels = ['0', '1', '2', '3', '4', '5', '6', '7+'];
-  const sortByName = (a, b) => (a.resolvedName || a.name || '').localeCompare(b.resolvedName || b.name || '');
-  const cols = [];
-  for (let i = 0; i < grouped.length; i++) {
-    if (grouped[i].length === 0) continue;
-    grouped[i].sort(sortByName);
-    cols.push({ label: labels[i], cards: grouped[i] });
-  }
-  if (lands.length > 0) {
-    lands.sort(sortByName);
-    cols.push({ label: 'lands', cards: lands });
-  }
-  const renderDeckCard = (c) => {
-    const name = c.resolvedName || c.name || '?';
-    const idx = state.collection.indexOf(c);
-    const img = c.imageUrl
-      ? `<img src="${esc(c.imageUrl)}" alt="${esc(name)}" loading="lazy">`
-      : `<div class="placeholder">${esc(name)}</div>`;
-    const qty = c.qty > 1 ? `<span class="deck-qty">×${c.qty}</span>` : '';
-    const finishClass = c.finish === 'foil' ? ' is-foil' : c.finish === 'etched' ? ' is-etched' : '';
-    return `<div class="deck-card detail-trigger${finishClass}" role="button" tabindex="0" data-index="${idx}" aria-label="${esc(name)}">${img}${qty}</div>`;
-  };
-  document.getElementById('deckColumns').innerHTML = cols.map(col => {
-    const total = col.cards.reduce((s, c) => s + (c.qty || 1), 0);
-    return `<div class="deck-col"><div class="deck-col-header">${col.label}<span class="deck-col-count">(${total})</span></div>${col.cards.map(renderDeckCard).join('')}</div>`;
-  }).join('');
 
   const total = list.reduce((s, c) => s + (c.qty || 1), 0);
   const summary = document.getElementById('deckSummary');
@@ -177,6 +166,17 @@ function renderDeckView(list) {
       summary.textContent = total + ' cards · all legal in ' + state.selectedFormat;
     }
   }
+}
+
+function loadDeckGroup() {
+  try {
+    const v = localStorage.getItem(DECK_GROUP_KEY);
+    if (v && VALID_DECK_GROUPS.includes(v)) state.deckGroupBy = v;
+  } catch (e) {}
+}
+
+function saveDeckGroup() {
+  try { localStorage.setItem(DECK_GROUP_KEY, state.deckGroupBy); } catch (e) {}
 }
 
 function buildDecklistText(list) {
@@ -271,9 +271,30 @@ export function initView() {
     render();
   });
 
+  loadDeckGroup();
+  const deckGroupEl = document.getElementById('deckGroupBy');
+  if (deckGroupEl) {
+    deckGroupEl.value = state.deckGroupBy;
+    deckGroupEl.addEventListener('change', () => {
+      const v = deckGroupEl.value;
+      if (!VALID_DECK_GROUPS.includes(v)) return;
+      state.deckGroupBy = v;
+      saveDeckGroup();
+      render();
+    });
+  }
+
   document.getElementById('deckColumns').addEventListener('click', e => {
     const card = e.target.closest('.deck-card');
     if (!card) return;
+    openDetail(parseInt(card.dataset.index, 10));
+  });
+
+  document.getElementById('deckColumns').addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const card = e.target.closest('.deck-card');
+    if (!card) return;
+    e.preventDefault();
     openDetail(parseInt(card.dataset.index, 10));
   });
 
