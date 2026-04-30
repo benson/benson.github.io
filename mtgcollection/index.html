@@ -794,6 +794,57 @@
     color: #000;
     outline: none;
   }
+  .tags-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 1px solid #ccc;
+    padding: 4px 0;
+  }
+  .tags-row:focus-within { border-bottom-color: #000; }
+  .tag-chips {
+    display: contents;
+  }
+  .tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #eee;
+    color: #000;
+    border-radius: 10px;
+    padding: 2px 4px 2px 8px;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    text-transform: lowercase;
+  }
+  .tag-chip-remove {
+    border: none;
+    background: transparent;
+    color: #666;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.9rem;
+    line-height: 1;
+    padding: 0 4px;
+    border-radius: 50%;
+  }
+  .tag-chip-remove:hover, .tag-chip-remove:focus-visible {
+    color: #000;
+    outline: none;
+  }
+  .tag-input {
+    flex: 1 1 100px;
+    min-width: 80px;
+    border: none !important;
+    border-bottom: none !important;
+    background: transparent;
+    color: #000;
+    font: inherit;
+    padding: 2px 0 !important;
+    text-transform: lowercase;
+  }
+  .tag-input:focus { outline: none; }
   .checkbox-field {
     grid-column: 1 / -1;
     display: flex;
@@ -1521,6 +1572,14 @@
             <div class="language-toggle" id="detailLanguageOptions"></div>
             <button class="language-add" id="detailLanguageAdd" type="button" aria-label="add language">+</button>
             <input class="language-other" id="detailLanguageOther" type="text" maxlength="8" placeholder="other">
+          </div>
+        </div>
+        <div class="detail-field full">
+          <label>tags</label>
+          <div class="tags-row" id="detailTagsRow">
+            <div class="tag-chips" id="detailTagChips"></div>
+            <input class="tag-input" id="detailTagInput" type="text" placeholder="add tag..." list="detailTagSuggestions" autocomplete="off">
+            <datalist id="detailTagSuggestions"></datalist>
           </div>
         </div>
         <div class="detail-field full">

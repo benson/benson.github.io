@@ -5,6 +5,8 @@ import {
   normalizeCondition,
   normalizeLanguage,
   normalizeLocation,
+  normalizeTag,
+  allCollectionTags,
 } from './collection.js';
 import { commitCollectionChange } from './persistence.js';
 import { snapshotCollection } from './bulk.js';
@@ -13,6 +15,7 @@ import { hideCardPreview, showImageLightbox, hideImageLightbox, isLightboxVisibl
 let drawerBackdrop;
 let detailDrawer;
 let detailForm;
+let drawerTags = [];
 
 // ---- Filters (set/location dropdown population) ----
 export function populateFilters() {
@@ -43,6 +46,34 @@ function collectionLanguages(extra = '') {
     if (b === 'en') return 1;
     return a.localeCompare(b);
   });
+}
+
+// ---- Tag chips (drawer) ----
+function renderTagChips() {
+  const wrap = document.getElementById('detailTagChips');
+  wrap.innerHTML = drawerTags.map(t =>
+    `<span class="tag-chip">${esc(t)}<button class="tag-chip-remove" type="button" data-tag="${esc(t)}" aria-label="remove ${esc(t)}">×</button></span>`
+  ).join('');
+  updateTagSuggestions();
+}
+
+function updateTagSuggestions() {
+  const datalist = document.getElementById('detailTagSuggestions');
+  const have = new Set(drawerTags);
+  const options = allCollectionTags().filter(t => !have.has(t));
+  datalist.innerHTML = options.map(t => `<option value="${esc(t)}"></option>`).join('');
+}
+
+function commitTagInput() {
+  const input = document.getElementById('detailTagInput');
+  const raw = input.value;
+  if (!raw.trim()) { input.value = ''; return; }
+  const t = normalizeTag(raw);
+  if (t && !drawerTags.includes(t)) {
+    drawerTags.push(t);
+    renderTagChips();
+  }
+  input.value = '';
 }
 
 function renderLanguageOptions(selected) {
@@ -121,6 +152,9 @@ export function openDetail(index) {
     || detailForm.querySelector('input[name="detailCondition"][value="near_mint"]');
   if (conditionInput) conditionInput.checked = true;
   renderLanguageOptions(c.language || 'en');
+  drawerTags = Array.isArray(c.tags) ? [...c.tags] : [];
+  renderTagChips();
+  document.getElementById('detailTagInput').value = '';
   document.getElementById('detailLocation').value = c.location || '';
   document.getElementById('detailPriceText').textContent = c.price ? '$' + c.price.toFixed(2) : 'no price';
   document.getElementById('detailPriceMark').textContent = c.priceFallback ? '*' : '';
@@ -145,7 +179,17 @@ function saveDetail() {
   const c = state.collection[state.detailIndex];
   if (!c) return;
 
-  const before = { qty: c.qty, finish: c.finish, condition: c.condition, language: c.language, location: c.location || '' };
+  // Commit any pending text in the tag input before snapshotting diffs
+  commitTagInput();
+
+  const before = {
+    qty: c.qty,
+    finish: c.finish,
+    condition: c.condition,
+    language: c.language,
+    location: c.location || '',
+    tags: Array.isArray(c.tags) ? [...c.tags] : [],
+  };
 
   snapshotCollection();
   c.qty = Math.max(1, parseInt(document.getElementById('detailQty').value, 10) || 1);
@@ -155,8 +199,16 @@ function saveDetail() {
     || detailForm.querySelector('input[name="detailLanguage"]:checked')?.value
     || 'en');
   c.location = normalizeLocation(document.getElementById('detailLocation').value);
+  c.tags = [...drawerTags];
 
-  const after = { qty: c.qty, finish: c.finish, condition: c.condition, language: c.language, location: c.location || '' };
+  const after = {
+    qty: c.qty,
+    finish: c.finish,
+    condition: c.condition,
+    language: c.language,
+    location: c.location || '',
+    tags: [...c.tags],
+  };
   const diffs = [];
   if (after.qty !== before.qty) diffs.push('qty ' + before.qty + ' → ' + after.qty);
   if (after.finish !== before.finish) diffs.push(before.finish + ' → ' + after.finish);
@@ -166,6 +218,12 @@ function saveDetail() {
   if (after.language !== before.language) diffs.push(before.language + ' → ' + after.language);
   if (after.location !== before.location) {
     diffs.push('location: ' + (before.location || '—') + ' → ' + (after.location || '—'));
+  }
+  const beforeTagsKey = [...before.tags].sort().join(',');
+  const afterTagsKey = [...after.tags].sort().join(',');
+  if (beforeTagsKey !== afterTagsKey) {
+    const fmt = arr => '[' + arr.join(', ') + ']';
+    diffs.push('tags: ' + fmt(before.tags) + ' → ' + fmt(after.tags));
   }
 
   commitCollectionChange({ coalesce: true });
@@ -215,5 +273,24 @@ export function initDetail() {
   document.getElementById('detailLanguageOther').addEventListener('input', e => {
     if (!e.target.value.trim()) return;
     detailForm.querySelectorAll('input[name="detailLanguage"]').forEach(input => { input.checked = false; });
+  });
+
+  const tagInput = document.getElementById('detailTagInput');
+  tagInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      commitTagInput();
+    }
+  });
+  tagInput.addEventListener('blur', () => {
+    if (tagInput.value.trim()) commitTagInput();
+  });
+  document.getElementById('detailTagChips').addEventListener('click', e => {
+    const btn = e.target.closest('.tag-chip-remove');
+    if (!btn) return;
+    e.preventDefault();
+    const tag = btn.dataset.tag;
+    drawerTags = drawerTags.filter(t => t !== tag);
+    renderTagChips();
   });
 }
