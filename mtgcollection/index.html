@@ -214,7 +214,73 @@
   .app-footer-right #copyDecklistBtn { display: none; }
   .app-footer.format-active .app-footer-right #copyDecklistBtn { display: inline-flex; }
   .footer-storage-nag { color: #999; font-size: 0.7rem; letter-spacing: 0.02em; }
-  .footer-export-btn.btn { padding: 4px 10px; font-size: 0.7rem; }
+
+  .center-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .center-actions .btn { padding: 4px 10px; font-size: 0.7rem; }
+
+  /* Multiselect filter control */
+  .multiselect { position: relative; width: 100%; }
+  .multiselect .ms-trigger {
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #ddd;
+    padding: 4px 16px 4px 0;
+    font-family: inherit;
+    font-size: 0.8rem;
+    color: #333;
+    cursor: pointer;
+    text-transform: lowercase;
+    border-radius: 0;
+    min-width: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%23999' d='M0 0l5 6 5-6z'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 2px center;
+  }
+  .multiselect .ms-trigger:hover { border-bottom-color: #000; }
+  .multiselect.has-selection .ms-trigger { color: #000; border-bottom-color: #000; }
+  .multiselect .ms-popover {
+    display: none;
+    position: absolute;
+    z-index: 50;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 2px;
+    background: #fff;
+    border: 1px solid #000;
+    border-radius: 2px;
+    max-height: 240px;
+    overflow-y: auto;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  }
+  .multiselect .ms-popover.open { display: block; }
+  .multiselect .ms-option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    text-transform: lowercase;
+  }
+  .multiselect .ms-option:hover { background: #f4f4f0; }
+  .multiselect .ms-option input { margin: 0; cursor: pointer; }
+  .multiselect .ms-empty { padding: 6px 8px; font-size: 0.75rem; color: #999; }
+
+  .clear-filters-btn {
+    display: none;
+    width: 100%;
+    margin-top: 4px;
+    text-align: center;
+  }
+  .clear-filters-btn.visible { display: block; }
 
   .btn {
     padding: 8px 16px;
@@ -1852,25 +1918,12 @@
     <div class="sidebar-section">
       <div class="sidebar-label">filters</div>
       <div class="sidebar-filters">
-        <select class="filter-select" id="filterSet"><option value="">all sets</option></select>
-        <select class="filter-select" id="filterRarity">
-          <option value="">all rarity</option>
-          <option value="common">common</option>
-          <option value="uncommon">uncommon</option>
-          <option value="rare">rare</option>
-          <option value="mythic">mythic</option>
-        </select>
-        <select class="filter-select" id="filterFoil">
-          <option value="">all finishes</option>
-          <option value="normal">normal</option>
-          <option value="foil">foil</option>
-          <option value="etched">etched</option>
-        </select>
-        <select class="filter-select" id="filterLocation"><option value="">all locations</option></select>
+        <div id="filterSet" data-default-label="all sets" data-noun="sets"></div>
+        <div id="filterRarity" data-default-label="all rarity" data-noun="rarity"></div>
+        <div id="filterFoil" data-default-label="all finishes" data-noun="finishes"></div>
+        <div id="filterLocation" data-default-label="all locations" data-noun="locations"></div>
         <datalist id="locationOptions"></datalist>
-        <select class="filter-select" id="filterTag" title="filter by tag">
-          <option value="">filter by tag</option>
-        </select>
+        <div id="filterTag" data-default-label="filter by tag" data-noun="tags"></div>
         <select class="filter-select" id="sortBy">
           <option value="name">sort: name</option>
           <option value="set">sort: set</option>
@@ -1888,6 +1941,7 @@
           <option value="vintage">format: vintage</option>
           <option value="pauper">format: pauper</option>
         </select>
+        <button class="btn btn-secondary clear-filters-btn" type="button" id="clearFiltersBtn">clear all filters</button>
       </div>
     </div>
 
@@ -1902,7 +1956,6 @@
         <button class="segment-btn" type="button" data-binder-size="3x3">3×3</button>
         <button class="segment-btn" type="button" data-binder-size="2x2">2×2</button>
       </div>
-      <button class="btn-secondary btn" id="exportCsvBtn">export csv</button>
       <span class="progress" id="progress"></span>
     </div>
   </aside>
@@ -1911,6 +1964,9 @@
     <div class="feedback" id="feedback"></div>
 
     <div id="collectionSection" class="hidden">
+      <div class="center-actions">
+        <button class="btn btn-secondary" type="button" id="centerExportCsvBtn">export csv</button>
+      </div>
       <div class="price-note hidden" id="priceNote">* regular usd shown when exact finish price is unavailable</div>
 
       <div class="grid" id="grid"></div>
@@ -2162,7 +2218,6 @@
   <footer class="app-footer">
     <div class="app-footer-left">
       <span class="footer-storage-nag">localstorage only — back up your collection</span>
-      <button class="btn btn-secondary footer-export-btn" type="button" id="footerExportBtn">export csv</button>
     </div>
     <div class="app-footer-right">
       <button class="btn btn-secondary" type="button" id="copyDecklistBtn">copy decklist</button>

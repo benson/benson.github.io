@@ -11,6 +11,7 @@ import {
 import { commitCollectionChange } from './persistence.js';
 import { snapshotCollection } from './bulk.js';
 import { hideCardPreview, showImageLightbox, hideImageLightbox, isLightboxVisible } from './view.js';
+import { populateMultiselect } from './multiselect.js';
 
 let drawerBackdrop;
 let detailDrawer;
@@ -20,27 +21,29 @@ let drawerTags = [];
 // ---- Filters (set/location dropdown population) ----
 export function populateFilters() {
   const sets = [...new Set(state.collection.map(c => c.setCode).filter(Boolean))].sort();
-  const setSelect = document.getElementById('filterSet');
-  const current = setSelect.value;
-  setSelect.innerHTML = '<option value="">all sets</option>' +
-    sets.map(s => '<option value="' + esc(s) + '">' + esc(s.toUpperCase()) + '</option>').join('');
-  setSelect.value = current;
+  populateMultiselect(document.getElementById('filterSet'),
+    sets.map(s => ({ value: s, label: s.toUpperCase() })),
+    { defaultLabel: 'all sets', noun: 'sets' });
+
+  populateMultiselect(document.getElementById('filterRarity'),
+    ['common', 'uncommon', 'rare', 'mythic'],
+    { defaultLabel: 'all rarity', noun: 'rarity' });
+
+  populateMultiselect(document.getElementById('filterFoil'),
+    ['normal', 'foil', 'etched'],
+    { defaultLabel: 'all finishes', noun: 'finishes' });
 
   const locations = [...new Set(state.collection.map(c => normalizeLocation(c.location)).filter(Boolean))].sort();
-  const locationSelect = document.getElementById('filterLocation');
-  const currentLocation = locationSelect.value;
-  locationSelect.innerHTML = '<option value="">all locations</option>' +
-    locations.map(l => '<option value="' + esc(l) + '">' + esc(l) + '</option>').join('');
-  locationSelect.value = currentLocation;
+  populateMultiselect(document.getElementById('filterLocation'),
+    locations,
+    { defaultLabel: 'all locations', noun: 'locations' });
   document.getElementById('locationOptions').innerHTML =
     locations.map(l => '<option value="' + esc(l) + '"></option>').join('');
 
   const tags = allCollectionTags();
-  const tagSelect = document.getElementById('filterTag');
-  const currentTagValue = tagSelect.value;
-  tagSelect.innerHTML = '<option value="">filter by tag</option>' +
-    tags.map(t => '<option value="' + esc(t) + '">' + esc(t) + '</option>').join('');
-  tagSelect.value = currentTagValue;
+  populateMultiselect(document.getElementById('filterTag'),
+    tags,
+    { defaultLabel: 'filter by tag', noun: 'tags' });
 }
 
 // ---- Language options (drawer) ----
@@ -299,21 +302,5 @@ export function initDetail() {
     const tag = btn.dataset.tag;
     drawerTags = drawerTags.filter(t => t !== tag);
     renderTagChips();
-  });
-
-  // Controls-bar tag filter: appends tag:value to the search input.
-  // Tags containing a literal " are not quote-wrapped (the search tokenizer
-  // doesn't support escaped quotes); such tags must be entered manually.
-  const filterTagSelect = document.getElementById('filterTag');
-  filterTagSelect.addEventListener('change', () => {
-    const value = filterTagSelect.value;
-    if (!value) return;
-    const needsQuote = /\s/.test(value) && !value.includes('"');
-    const token = needsQuote ? `tag:"${value}"` : `tag:${value}`;
-    const searchInputEl = document.getElementById('searchInput');
-    const current = searchInputEl.value;
-    searchInputEl.value = current ? `${current} ${token}` : token;
-    filterTagSelect.value = '';
-    searchInputEl.dispatchEvent(new Event('input', { bubbles: true }));
   });
 }

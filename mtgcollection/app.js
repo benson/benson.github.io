@@ -40,7 +40,7 @@ async function boot() {
   });
   updateFooter();
 
-  document.getElementById('footerExportBtn').addEventListener('click', () => exportCsv());
+  document.getElementById('centerExportCsvBtn').addEventListener('click', () => exportCsv());
 
   // Boot the collection
   const hasSavedCollection = loadFromStorage();

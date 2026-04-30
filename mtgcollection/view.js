@@ -9,7 +9,7 @@ import {
 } from './collection.js';
 import { save, commitCollectionChange } from './persistence.js';
 import { openDetail } from './detail.js';
-import { filteredSorted } from './search.js';
+import { filteredSorted, syncClearFiltersBtn } from './search.js';
 import { renderStatsPanel, groupDeck, firstCardForPanel } from './stats.js';
 import { updateBulkBar } from './bulk.js';
 import { paginateForBinder, sortForBinder, BINDER_SIZES, binderSlotCount } from './binder.js';
@@ -28,6 +28,7 @@ export function render() {
   document.querySelectorAll('.app-header-views .toggle-view').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.view === state.viewMode);
   });
+  syncClearFiltersBtn();
   if (state.collection.length === 0) {
     collectionSection.classList.add('hidden');
     emptyState.classList.remove('hidden');

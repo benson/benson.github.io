@@ -528,7 +528,8 @@ export function initImport() {
   document.getElementById('loadBreyaBtn').addEventListener('click', () => loadBreyaDeck());
   document.getElementById('loadSampleBtn').addEventListener('click', loadSample);
   document.getElementById('deleteAllBtn').addEventListener('click', clearCollection);
-  document.getElementById('exportCsvBtn').addEventListener('click', exportCsv);
+  const exportBtn = document.getElementById('exportCsvBtn');
+  if (exportBtn) exportBtn.addEventListener('click', exportCsv);
 }
 
 // Exposed so app.js can wire it into the backup-nag click handler

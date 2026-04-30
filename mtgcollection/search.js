@@ -1,6 +1,7 @@
 import { state } from './state.js';
 import { normalizeLocation } from './collection.js';
 import { render } from './view.js';
+import { getMultiselectValue, setMultiselectValue, initMultiselect } from './multiselect.js';
 
 const SEARCH_FIELD_ALIASES = {
   n: 'name', name: 'name',
@@ -163,22 +164,33 @@ export function matchSearch(c, tokens) {
   return tokens.every(t => matchToken(c, t));
 }
 
+// Pure helper: applies multiselect filters to a card. Exported for tests.
+// Each `*Selected` argument is an array of selected values (empty = no filter).
+export function passesMultiselectFilters(c, { sets, rarities, finishes, locations, tags } = {}) {
+  if (sets && sets.length && !sets.includes(c.setCode)) return false;
+  if (rarities && rarities.length && !rarities.includes(c.rarity)) return false;
+  if (finishes && finishes.length && !finishes.includes(c.finish)) return false;
+  if (locations && locations.length && !locations.includes(normalizeLocation(c.location))) return false;
+  if (tags && tags.length) {
+    const cardTags = c.tags || [];
+    if (!cardTags.some(t => tags.includes(t))) return false;
+  }
+  return true;
+}
+
 export function filteredSorted() {
   const q = document.getElementById('searchInput').value.trim();
   const tokens = tokenizeSearch(q);
-  const set = document.getElementById('filterSet').value;
-  const rarity = document.getElementById('filterRarity').value;
-  const finish = document.getElementById('filterFoil').value;
-  const location = document.getElementById('filterLocation').value;
+  const sets = getMultiselectValue(document.getElementById('filterSet'));
+  const rarities = getMultiselectValue(document.getElementById('filterRarity'));
+  const finishes = getMultiselectValue(document.getElementById('filterFoil'));
+  const locations = getMultiselectValue(document.getElementById('filterLocation'));
+  const tags = getMultiselectValue(document.getElementById('filterTag'));
   const sortBy = document.getElementById('sortBy').value;
 
   let list = state.collection.filter(c => {
     if (!matchSearch(c, tokens)) return false;
-    if (set && c.setCode !== set) return false;
-    if (rarity && c.rarity !== rarity) return false;
-    if (finish && c.finish !== finish) return false;
-    if (location && normalizeLocation(c.location) !== location) return false;
-    return true;
+    return passesMultiselectFilters(c, { sets, rarities, finishes, locations, tags });
   });
 
   list.sort((a, b) => {
@@ -192,6 +204,26 @@ export function filteredSorted() {
     return 0;
   });
   return list;
+}
+
+// True when any filter has a non-default value (search bar, multiselects, sortBy).
+export function hasActiveFilter() {
+  const q = document.getElementById('searchInput').value.trim();
+  if (q) return true;
+  const ids = ['filterSet', 'filterRarity', 'filterFoil', 'filterLocation', 'filterTag'];
+  for (const id of ids) {
+    if (getMultiselectValue(document.getElementById(id)).length > 0) return true;
+  }
+  if (document.getElementById('sortBy').value !== 'name') return true;
+  return false;
+}
+
+export function clearAllFilters() {
+  document.getElementById('searchInput').value = '';
+  ['filterSet', 'filterRarity', 'filterFoil', 'filterLocation', 'filterTag'].forEach(id => {
+    setMultiselectValue(document.getElementById(id), []);
+  });
+  document.getElementById('sortBy').value = 'name';
 }
 
 let urlStateDebounce = null;
@@ -218,6 +250,12 @@ export function applyUrlStateOnLoad() {
     render();
   }
   syncSearchClearBtn();
+}
+
+export function syncClearFiltersBtn() {
+  const btn = document.getElementById('clearFiltersBtn');
+  if (!btn) return;
+  btn.classList.toggle('visible', hasActiveFilter());
 }
 
 export function initSearch() {
@@ -248,8 +286,23 @@ export function initSearch() {
     urlStateDebounce = setTimeout(syncUrlFromSearch, 250);
   });
 
-  ['searchInput', 'filterSet', 'filterRarity', 'filterFoil', 'filterLocation', 'sortBy'].forEach(id => {
+  // Initialize multiselect filter controls (build the trigger + popover DOM)
+  ['filterSet', 'filterRarity', 'filterFoil', 'filterLocation', 'filterTag'].forEach(id => {
+    initMultiselect(document.getElementById(id), { onChange: () => render() });
+  });
+
+  // Native controls that still emit input/change
+  ['searchInput', 'sortBy'].forEach(id => {
     document.getElementById(id).addEventListener('input', render);
     document.getElementById(id).addEventListener('change', render);
   });
+
+  const clearBtn = document.getElementById('clearFiltersBtn');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      clearAllFilters();
+      searchInputEl.dispatchEvent(new Event('input', { bubbles: true }));
+      render();
+    });
+  }
 }

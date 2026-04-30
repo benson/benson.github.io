@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { tokenizeSearch, matchSearch } from '../search.js';
+import { tokenizeSearch, matchSearch, passesMultiselectFilters } from '../search.js';
 
 // ---- tokenizeSearch ----
 
@@ -343,4 +343,73 @@ test('match: multi-clause AND requires both tag substrings present', () => {
   assert.equal(matchSearch(TAG_FIXTURES.edhAndTrade, tokens), true);
   assert.equal(matchSearch(TAG_FIXTURES.edhStaple, tokens), false);
   assert.equal(matchSearch(TAG_FIXTURES.tradeOnly, tokens), false);
+});
+
+// ---- passesMultiselectFilters ----
+
+test('multiselect: empty filters pass everything', () => {
+  assert.equal(passesMultiselectFilters(FIXTURES.solRing, {}), true);
+  assert.equal(passesMultiselectFilters(FIXTURES.bolt, { sets: [], rarities: [], finishes: [], locations: [], tags: [] }), true);
+});
+
+test('multiselect: single-rarity filter selects matches', () => {
+  const args = { rarities: ['mythic'] };
+  assert.equal(passesMultiselectFilters(FIXTURES.ragavan, args), true);
+  assert.equal(passesMultiselectFilters(FIXTURES.breya, args), true);
+  assert.equal(passesMultiselectFilters(FIXTURES.solRing, args), false);
+  assert.equal(passesMultiselectFilters(FIXTURES.bolt, args), false);
+});
+
+test('multiselect: multi-rarity filter is OR within the field', () => {
+  const args = { rarities: ['common', 'mythic'] };
+  assert.equal(passesMultiselectFilters(FIXTURES.bolt, args), true); // common
+  assert.equal(passesMultiselectFilters(FIXTURES.ragavan, args), true); // mythic
+  assert.equal(passesMultiselectFilters(FIXTURES.solRing, args), false); // uncommon
+});
+
+test('multiselect: multi-set filter is OR within the field', () => {
+  const args = { sets: ['cmm', 'clb'] };
+  assert.equal(passesMultiselectFilters(FIXTURES.solRing, args), true);
+  assert.equal(passesMultiselectFilters(FIXTURES.bolt, args), true);
+  assert.equal(passesMultiselectFilters(FIXTURES.ragavan, args), false); // mh2
+});
+
+test('multiselect: combining rarities and finishes is AND across fields', () => {
+  // Want: mythic AND foil
+  const args = { rarities: ['mythic'], finishes: ['foil'] };
+  assert.equal(passesMultiselectFilters(FIXTURES.ragavan, args), true); // mythic + foil
+  assert.equal(passesMultiselectFilters(FIXTURES.breya, args), true);   // mythic + foil
+  assert.equal(passesMultiselectFilters(FIXTURES.bolt, args), false);   // common + normal
+  assert.equal(passesMultiselectFilters(FIXTURES.solRing, args), false); // uncommon + normal
+});
+
+test('multiselect: location filter uses normalized exact match', () => {
+  // FIXTURES.solRing.location is "Breya Deck" (normalized to "breya deck")
+  const args = { locations: ['breya deck'] };
+  assert.equal(passesMultiselectFilters(FIXTURES.solRing, args), true);
+  assert.equal(passesMultiselectFilters(FIXTURES.breya, args), true); // already lowercase
+  assert.equal(passesMultiselectFilters(FIXTURES.bolt, args), false); // 'binder'
+});
+
+test('multiselect: tags filter is OR — card passes if any of its tags is selected', () => {
+  const card = { tags: ['edh', 'commander'] };
+  assert.equal(passesMultiselectFilters(card, { tags: ['edh'] }), true);
+  assert.equal(passesMultiselectFilters(card, { tags: ['commander', 'trade'] }), true);
+  assert.equal(passesMultiselectFilters(card, { tags: ['trade', 'modern'] }), false);
+  // Card with no tags should fail when tag filter is non-empty
+  assert.equal(passesMultiselectFilters({ tags: [] }, { tags: ['edh'] }), false);
+  assert.equal(passesMultiselectFilters({}, { tags: ['edh'] }), false);
+});
+
+test('multiselect: finish filter handles missing/empty finish', () => {
+  const args = { finishes: ['foil'] };
+  assert.equal(passesMultiselectFilters(FIXTURES.ragavan, args), true);
+  assert.equal(passesMultiselectFilters(FIXTURES.solRing, args), false);
+  // Card with undefined finish never matches a non-empty finish filter
+  assert.equal(passesMultiselectFilters({}, args), false);
+});
+
+test('multiselect: every selection unmatched -> card fails', () => {
+  const args = { sets: ['xxx'], rarities: ['mythic'] };
+  assert.equal(passesMultiselectFilters(FIXTURES.ragavan, args), false); // mythic but wrong set
 });
