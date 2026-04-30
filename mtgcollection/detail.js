@@ -34,6 +34,13 @@ export function populateFilters() {
   locationSelect.value = currentLocation;
   document.getElementById('locationOptions').innerHTML =
     locations.map(l => '<option value="' + esc(l) + '"></option>').join('');
+
+  const tags = allCollectionTags();
+  const tagSelect = document.getElementById('filterTag');
+  const currentTagValue = tagSelect.value;
+  tagSelect.innerHTML = '<option value="">+ tag</option>' +
+    tags.map(t => '<option value="' + esc(t) + '">' + esc(t) + '</option>').join('');
+  tagSelect.value = currentTagValue;
 }
 
 // ---- Language options (drawer) ----
@@ -292,5 +299,21 @@ export function initDetail() {
     const tag = btn.dataset.tag;
     drawerTags = drawerTags.filter(t => t !== tag);
     renderTagChips();
+  });
+
+  // Controls-bar tag filter: appends tag:value to the search input.
+  // Tags containing a literal " are not quote-wrapped (the search tokenizer
+  // doesn't support escaped quotes); such tags must be entered manually.
+  const filterTagSelect = document.getElementById('filterTag');
+  filterTagSelect.addEventListener('change', () => {
+    const value = filterTagSelect.value;
+    if (!value) return;
+    const needsQuote = /\s/.test(value) && !value.includes('"');
+    const token = needsQuote ? `tag:"${value}"` : `tag:${value}`;
+    const searchInputEl = document.getElementById('searchInput');
+    const current = searchInputEl.value;
+    searchInputEl.value = current ? `${current} ${token}` : token;
+    filterTagSelect.value = '';
+    searchInputEl.dispatchEvent(new Event('input', { bubbles: true }));
   });
 }
