@@ -165,6 +165,19 @@ export function groupDeck(list, mode) {
   }
 }
 
+// Pick the card to seed the deck-view preview panel with —
+// the first card in the first non-empty group. Returns null if
+// the grouped output has no cards.
+export function firstCardForPanel(groups) {
+  if (!Array.isArray(groups)) return null;
+  for (const g of groups) {
+    if (g && Array.isArray(g.cards) && g.cards.length > 0) {
+      return g.cards[0];
+    }
+  }
+  return null;
+}
+
 export function renderStatsPanel(list) {
   const curve = [0, 0, 0, 0, 0, 0, 0, 0];
   const types = {};

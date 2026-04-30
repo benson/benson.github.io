@@ -10,7 +10,7 @@ import {
 import { save, commitCollectionChange } from './persistence.js';
 import { openDetail } from './detail.js';
 import { filteredSorted } from './search.js';
-import { renderStatsPanel, groupDeck } from './stats.js';
+import { renderStatsPanel, groupDeck, firstCardForPanel } from './stats.js';
 import { updateBulkBar } from './bulk.js';
 
 const VALID_DECK_GROUPS = ['type', 'cmc', 'color', 'rarity'];
@@ -149,6 +149,7 @@ function renderDeckView(list) {
 
   if (!searchQuery) {
     if (deckActionsEl) deckActionsEl.classList.add('hidden');
+    setDeckPreviewCard(null);
     const locations = allCollectionLocations();
     if (locations.length === 0) {
       deckColumnsEl.innerHTML = `<div class="deck-empty-state">
@@ -172,6 +173,7 @@ function renderDeckView(list) {
   const cols = groupDeck(list, state.deckGroupBy);
   if (cols.length === 0) {
     deckColumnsEl.innerHTML = '';
+    setDeckPreviewCard(null);
   } else {
     deckColumnsEl.innerHTML = cols.map(col => {
       const total = col.cards.reduce((s, c) => s + (c.qty || 1), 0);
@@ -180,6 +182,7 @@ function renderDeckView(list) {
       const stack = col.cards.map((c, i) => renderDeckCard(c, i === col.cards.length - 1)).join('');
       return `<div class="deck-col"><div class="deck-col-header">${esc(col.label)}<span class="deck-col-count">${total}${priceStr}</span></div><div class="deck-stack">${stack}</div></div>`;
     }).join('');
+    setDeckPreviewCard(firstCardForPanel(cols));
   }
 
   const total = list.reduce((s, c) => s + (c.qty || 1), 0);
@@ -194,6 +197,57 @@ function renderDeckView(list) {
       summary.textContent = total + ' cards · all legal in ' + state.selectedFormat;
     }
   }
+}
+
+function setDeckPreviewCard(c) {
+  const panel = document.getElementById('deckPreviewPanel');
+  if (!panel) return;
+  if (!c) {
+    panel.classList.add('hidden');
+    panel.dataset.index = '';
+    panel.dataset.previewIndex = '';
+    return;
+  }
+  panel.classList.remove('hidden');
+  const idx = state.collection.indexOf(c);
+  panel.dataset.index = String(idx);
+  panel.dataset.previewIndex = String(idx);
+  const name = c.resolvedName || c.name || '?';
+  const imgEl = panel.querySelector('.deck-preview-card');
+  const placeholderEl = panel.querySelector('.deck-preview-placeholder');
+  const nameEl = panel.querySelector('.deck-preview-name');
+  const metaEl = panel.querySelector('.deck-preview-meta');
+  if (c.imageUrl) {
+    imgEl.src = c.imageUrl;
+    imgEl.alt = name;
+    imgEl.classList.remove('hidden');
+    placeholderEl.classList.add('hidden');
+  } else {
+    imgEl.classList.add('hidden');
+    imgEl.removeAttribute('src');
+    placeholderEl.textContent = name;
+    placeholderEl.classList.remove('hidden');
+  }
+  // foil/etched shine parity
+  imgEl.parentElement.classList.toggle('is-foil', c.finish === 'foil');
+  imgEl.parentElement.classList.toggle('is-etched', c.finish === 'etched');
+  nameEl.textContent = name;
+  const qty = c.qty || 1;
+  const priceTotal = (c.price || 0) * qty;
+  const priceStr = c.price
+    ? `$${c.price.toFixed(2)}${qty > 1 ? ` · $${priceTotal.toFixed(2)} total` : ''}`
+    : '';
+  metaEl.textContent = `×${qty}${priceStr ? '  ·  ' + priceStr : ''}`;
+}
+
+function deckPreviewFromTarget(target) {
+  const card = target && target.closest && target.closest('.deck-card');
+  if (!card) return;
+  const idx = parseInt(card.dataset.index, 10);
+  if (Number.isNaN(idx)) return;
+  const entry = state.collection[idx];
+  if (!entry) return;
+  setDeckPreviewCard(entry);
 }
 
 function loadDeckGroup() {
@@ -333,6 +387,31 @@ export function initView() {
     e.preventDefault();
     openDetail(parseInt(card.dataset.index, 10));
   });
+
+  // hover/focus → update sticky preview panel
+  document.getElementById('deckColumns').addEventListener('mouseover', e => {
+    deckPreviewFromTarget(e.target);
+  });
+  document.getElementById('deckColumns').addEventListener('focusin', e => {
+    deckPreviewFromTarget(e.target);
+  });
+
+  // panel click → open the drawer for whichever card is currently shown
+  const previewPanel = document.getElementById('deckPreviewPanel');
+  if (previewPanel) {
+    previewPanel.addEventListener('click', () => {
+      const idx = parseInt(previewPanel.dataset.index, 10);
+      if (Number.isNaN(idx)) return;
+      openDetail(idx);
+    });
+    previewPanel.addEventListener('keydown', e => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const idx = parseInt(previewPanel.dataset.index, 10);
+      if (Number.isNaN(idx)) return;
+      e.preventDefault();
+      openDetail(idx);
+    });
+  }
 
   document.getElementById('toggleView').addEventListener('click', () => {
     state.viewMode = state.viewMode === 'list' ? 'grid' : 'list';

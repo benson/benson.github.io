@@ -6,6 +6,7 @@ import {
   groupByColor,
   groupByRarity,
   groupDeck,
+  firstCardForPanel,
 } from '../stats.js';
 
 const card = (name, opts = {}) => ({
@@ -239,4 +240,37 @@ test('sort: cmc ascending then alphabetical', () => {
   const groups = groupByType(list);
   const names = groups[0].cards.map(c => c.name);
   assert.deepEqual(names, ['Mid', 'Aardvark', 'Zog']);
+});
+
+// ---- firstCardForPanel ----
+
+test('firstCardForPanel: returns first card from first group', () => {
+  const groups = groupByType([
+    card('Bolt', { typeLine: 'Instant', cmc: 1 }),
+    card('Goblin', { typeLine: 'Creature', cmc: 1 }),
+  ]);
+  // creatures first, so Goblin
+  assert.equal(firstCardForPanel(groups).name, 'Goblin');
+});
+
+test('firstCardForPanel: skips empty groups defensively', () => {
+  const groups = [
+    { label: 'empty', cards: [] },
+    { label: 'real', cards: [card('Sol Ring', { typeLine: 'Artifact', cmc: 1 })] },
+  ];
+  assert.equal(firstCardForPanel(groups).name, 'Sol Ring');
+});
+
+test('firstCardForPanel: returns null for empty input', () => {
+  assert.equal(firstCardForPanel([]), null);
+  assert.equal(firstCardForPanel(null), null);
+  assert.equal(firstCardForPanel(undefined), null);
+});
+
+test('firstCardForPanel: returns null when all groups are empty', () => {
+  const groups = [
+    { label: 'a', cards: [] },
+    { label: 'b', cards: [] },
+  ];
+  assert.equal(firstCardForPanel(groups), null);
 });
