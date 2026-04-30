@@ -547,6 +547,10 @@
     width: 120px;
   }
   .bulk-bar .bulk-spacer { flex: 1; }
+  .bulk-bar .bulk-tag-row { display: flex; align-items: center; gap: 6px; }
+  .bulk-bar .bulk-tag-row input,
+  .bulk-bar .bulk-tag-row select { width: 110px; }
+  .bulk-tag-btn { padding: 2px 8px; font-size: 0.75rem; }
   .card-name-cell { text-transform: none; }
   .card-name-button {
     appearance: none;
@@ -1497,6 +1501,23 @@
             <option value="zhs">chinese (simplified)</option>
             <option value="zht">chinese (traditional)</option>
           </select>
+        </div>
+        <div class="field">
+          <label for="bulkTagAdd">add tag</label>
+          <div class="bulk-tag-row">
+            <input id="bulkTagAdd" type="text" list="bulkTagSuggestions" placeholder="tag...">
+            <button class="btn btn-secondary bulk-tag-btn" type="button" id="bulkTagAddBtn">add</button>
+          </div>
+          <datalist id="bulkTagSuggestions"></datalist>
+        </div>
+        <div class="field">
+          <label for="bulkTagRemove">remove tag</label>
+          <div class="bulk-tag-row">
+            <select id="bulkTagRemove">
+              <option value="">—</option>
+            </select>
+            <button class="btn btn-secondary bulk-tag-btn" type="button" id="bulkTagRemoveBtn">remove</button>
+          </div>
         </div>
         <span class="bulk-spacer"></span>
         <button class="btn btn-danger" type="button" id="bulkDelete">delete</button>
