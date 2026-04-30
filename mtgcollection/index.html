@@ -1146,6 +1146,16 @@
   .mic-btn.on { background: #c00; border-color: #c00; }
   .mic-status { font-size: 0.75rem; color: #999; }
   .mic-status strong { color: #000; }
+  .autoadd-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    color: #999;
+    cursor: pointer;
+    text-transform: lowercase;
+  }
+  .autoadd-toggle input { accent-color: #000; cursor: pointer; }
   .vocab-hint {
     font-size: 0.65rem;
     color: #bbb;
@@ -1282,9 +1292,12 @@
         <div class="mic-row">
           <button class="mic-btn off" type="button" id="addMicBtn">start listening</button>
           <span class="mic-status" id="addMicStatus">mic off</span>
+          <label class="autoadd-toggle">
+            <input type="checkbox" id="addAutoAdd"> auto-add
+          </label>
         </div>
-        <div class="vocab-hint"><strong>say:</strong> set · cn · finish · condition · variant &nbsp;—&nbsp; e.g. "fin 142 foil lp"</div>
-        <div class="vocab-hint"><strong>conditions:</strong> nm · lp · mp · hp · damaged &nbsp; <strong>variants:</strong> promo · prerelease &nbsp; <strong>finishes:</strong> foil</div>
+        <div class="vocab-hint"><strong>say:</strong> qty · set · cn · finish · condition · variant · location &nbsp;—&nbsp; e.g. "two fin 142 foil lp in breya deck"</div>
+        <div class="vocab-hint"><strong>conditions:</strong> nm · lp · mp · hp · damaged &nbsp; <strong>variants:</strong> promo · prerelease &nbsp; <strong>finishes:</strong> foil &nbsp; <strong>repeat:</strong> "again" / "again 3"</div>
       </div>
 
       <div class="add-preview" id="addPreview">

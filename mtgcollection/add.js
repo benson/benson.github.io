@@ -47,12 +47,18 @@ let addPreviewCard = null;
 let addMode = 'name';
 let lastUsedLocation = '';
 let voiceFoilFlag = false;
+let voiceQtyOverride = null;
+let voiceLocationOverride = null;
+let lastAddInput = null;
+let autoAddEnabled = false;
+
+const AUTOADD_KEY = 'mtgcollection_voice_autoadd_v1';
 
 let addDetailsEl, addModeNameEl, addModeCnEl;
 let addNameInput, addNameList;
 let addPreviewEl, addPreviewImg, addPreviewName, addPreviewMeta;
 let addFinishSel, addConditionSel, addLanguageSel, addQtyInput, addLocationInput;
-let addBtn, addCancelBtn, addMicBtn, addMicStatus;
+let addBtn, addCancelBtn, addMicBtn, addMicStatus, addAutoAddEl;
 
 // ---- Name autocomplete state ----
 let acDebounce = null;
@@ -77,6 +83,15 @@ const KW_CONDITIONS = [
   ['lightly_played',    /\b(lightly\s*played|light\s*play(ed)?|lp|excellent)\b/g],
   ['near_mint',         /\b(near\s*mint|nm|mint|n\.m\.)\b/g],
 ];
+
+const QTY_WORDS = {
+  one: 1, two: 2, three: 3, four: 4, five: 5,
+  six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+};
+const QTY_WORD_RE = /\b(one|two|three|four|five|six|seven|eight|nine|ten)\b(?:\s+of)?\s+/;
+const QTY_DIGIT_PREFIX_RE = /^\s*(\d{1,3})\s+(?=[a-z])/;
+const QTY_SUFFIX_RE = /\s+x\s*(\d{1,3})\b/;
+const LOCATION_RE = /\b(?:in|to)\s+(.+?)\s*$/;
 
 function setAddMode(mode) {
   addMode = mode;
@@ -153,12 +168,91 @@ async function doVoiceLookup(userSet, userCn, variant = 'regular') {
     if (card) fallback = true;
   }
   if (!card) {
-    showFeedback('no card found for ' + esc(userSet) + ' #' + esc(userCn), 'error');
+    const msg = 'no card found for ' + esc(userSet) + ' #' + esc(userCn);
+    showFeedback(msg, 'error');
+    voiceQtyOverride = null;
+    voiceLocationOverride = null;
+    voiceFoilFlag = false;
     return;
   }
   if (fallback) showFeedback('no ' + variant + ' variant found — showing regular printing', 'info');
   else hideFeedback();
-  showAddPreview(card);
+
+  if (autoAddEnabled) {
+    autoAddVoiceCard(card, { userSet, userCn, variant });
+  } else {
+    showAddPreview(card);
+  }
+}
+
+function autoAddVoiceCard(card, voiceCtx) {
+  const finishes = getCardFinishes(card);
+  let finish = 'normal';
+  if (voiceFoilFlag && finishes.some(f => f.finish === 'foil')) {
+    finish = 'foil';
+  } else if (finishes[0]) {
+    finish = finishes[0].finish === 'nonfoil' ? 'normal' : finishes[0].finish;
+  }
+  const condition = normalizeCondition(addConditionSel.value);
+  const language = normalizeLanguage(addLanguageSel.value);
+  const qty = Math.max(1, voiceQtyOverride || 1);
+  const location = normalizeLocation(voiceLocationOverride != null ? voiceLocationOverride : lastUsedLocation);
+
+  commitVoiceAdd(card, { finish, qty, condition, language, location }, voiceCtx);
+
+  voiceQtyOverride = null;
+  voiceLocationOverride = null;
+  voiceFoilFlag = false;
+}
+
+function commitVoiceAdd(card, opts, voiceCtx) {
+  const entry = makeEntry({
+    name: card.name,
+    setCode: card.set,
+    setName: card.set_name,
+    cn: card.collector_number,
+    finish: opts.finish,
+    qty: opts.qty,
+    condition: opts.condition,
+    language: opts.language,
+    location: opts.location,
+    scryfallId: card.id,
+    rarity: card.rarity || '',
+  });
+  entry.resolvedName = card.name;
+  entry.cmc = card.cmc ?? null;
+  entry.colors = card.colors || (card.card_faces?.[0]?.colors) || [];
+  entry.colorIdentity = card.color_identity || [];
+  entry.typeLine = card.type_line || (card.card_faces?.map(f => f.type_line).filter(Boolean).join(' // ') || '');
+  entry.oracleText = card.oracle_text || (card.card_faces?.map(f => f.oracle_text).filter(Boolean).join(' // ') || '');
+  entry.legalities = card.legalities || {};
+  entry.scryfallUri = card.scryfall_uri;
+  entry.imageUrl = getCardImageUrl(card);
+  entry.backImageUrl = getCardBackImageUrl(card);
+  const priced = getUsdPrice(card, entry.finish);
+  entry.price = priced.price;
+  entry.priceFallback = priced.fallback;
+
+  snapshotCollection();
+  const k = collectionKey(entry);
+  const existing = state.collection.find(c => collectionKey(c) === k);
+  if (existing) existing.qty += entry.qty;
+  else state.collection.push(entry);
+
+  commitCollectionChange();
+  lastUsedLocation = opts.location;
+  if (voiceCtx) {
+    lastAddInput = {
+      set: voiceCtx.userSet,
+      cn: voiceCtx.userCn,
+      variant: voiceCtx.variant,
+      foil: opts.finish === 'foil',
+      condition: opts.condition,
+      qty: opts.qty,
+      location: opts.location,
+    };
+  }
+  showFeedback('added: ' + esc(card.name) + ' ×' + opts.qty + ' <button class="undo-btn" type="button">undo</button>', 'success');
 }
 
 function showAddPreview(card) {
@@ -210,8 +304,10 @@ function showAddPreview(card) {
     voiceFoilFlag = false;
   }
 
-  addQtyInput.value = 1;
-  addLocationInput.value = lastUsedLocation || '';
+  addQtyInput.value = voiceQtyOverride && voiceQtyOverride > 0 ? voiceQtyOverride : 1;
+  addLocationInput.value = voiceLocationOverride != null ? voiceLocationOverride : (lastUsedLocation || '');
+  voiceQtyOverride = null;
+  voiceLocationOverride = null;
   addBtn.focus();
 }
 
@@ -260,6 +356,17 @@ function addCardFromPreview() {
 
   commitCollectionChange();
   lastUsedLocation = location;
+  if (addMode === 'cn') {
+    lastAddInput = {
+      set: card.set,
+      cn: card.collector_number,
+      variant: 'regular',
+      foil: finish === 'foil',
+      condition,
+      qty,
+      location,
+    };
+  }
   showFeedback('added ' + esc(card.name) + ' (' + (card.set || '').toUpperCase() + ' #' + esc(card.collector_number) + ') <button class="undo-btn" type="button">undo</button>', 'success');
 
   hideAddPreview();
@@ -271,31 +378,9 @@ function addCardFromPreview() {
   }
 }
 
-function smartParseSetCn(text) {
-  const alnum = text.replace(/[^a-z0-9]/gi, '').toLowerCase();
-  if (!alnum) return null;
-  if (validSets.size > 0) {
-    for (let k = 5; k >= 2; k--) {
-      const candidate = alnum.slice(0, k);
-      const rest = alnum.slice(k);
-      if (validSets.has(candidate) && /^\d+[a-z]?$/.test(rest)) {
-        return { set: candidate, cn: rest };
-      }
-    }
-    const m = alnum.match(/^([a-z]+)(\d)0(\d+)$/);
-    if (m && m[3].length >= 1) {
-      const setCode = m[1] + m[2] + m[3][0];
-      const cn = m[3].slice(1);
-      if (validSets.has(setCode) && cn.length > 0) return { set: setCode, cn };
-    }
-  }
-  const m = text.match(/^\s*([a-z0-9]{2,5})\s+(\d{1,4}[a-z]?)\b/i);
-  if (m) return { set: m[1].toLowerCase(), cn: m[2] };
-  return null;
-}
-
-function parseVoice(text) {
-  let clean = text.toLowerCase()
+export function parseVoiceText(text, validSetsArg) {
+  const sets = validSetsArg instanceof Set ? validSetsArg : new Set(validSetsArg || []);
+  let clean = String(text || '').toLowerCase()
     .replace(/\b(um|uh|uhh|okay|ok)\b/g, '')
     .replace(/number\s*/g, '')
     .replace(/hashtag\s*/g, '')
@@ -303,10 +388,54 @@ function parseVoice(text) {
     .replace(/hash\s*/g, '')
     .replace(/\s+/g, ' ')
     .trim();
+  if (!clean) return { kind: 'empty' };
+
+  const againMatch = clean.match(/^again(?:\s+(.+))?$/);
+  if (againMatch) {
+    let qty = null;
+    const tail = (againMatch[1] || '').trim();
+    if (tail) {
+      const tm = tail.match(/^(\d{1,3})(?:\s*(?:times?|x))?$/) ||
+                 tail.match(/^(one|two|three|four|five|six|seven|eight|nine|ten)(?:\s*times?)?$/);
+      if (tm) {
+        const v = QTY_WORDS[tm[1]] ?? parseInt(tm[1], 10);
+        if (v > 0) qty = v;
+      }
+    }
+    return { kind: 'again', qty };
+  }
+
+  let location = null;
+  const locMatch = clean.match(LOCATION_RE);
+  if (locMatch) {
+    location = locMatch[1].trim().toLowerCase();
+    clean = clean.slice(0, locMatch.index).trim();
+  }
+
+  let qty = null;
+  const suffixMatch = clean.match(QTY_SUFFIX_RE);
+  if (suffixMatch) {
+    qty = parseInt(suffixMatch[1], 10);
+    clean = (clean.slice(0, suffixMatch.index) + clean.slice(suffixMatch.index + suffixMatch[0].length)).trim();
+  } else {
+    const wordMatch = clean.match(QTY_WORD_RE);
+    if (wordMatch) {
+      qty = QTY_WORDS[wordMatch[1]];
+      clean = clean.slice(wordMatch[0].length).trim();
+    } else {
+      const digitMatch = clean.match(QTY_DIGIT_PREFIX_RE);
+      if (digitMatch) {
+        qty = parseInt(digitMatch[1], 10);
+        clean = clean.slice(digitMatch[0].length).trim();
+      }
+    }
+  }
+  if (qty != null && (!Number.isFinite(qty) || qty < 1)) qty = null;
+
   const hasFoil = KW_FOIL.test(clean); KW_FOIL.lastIndex = 0;
-  let source = 'regular';
-  if (KW_PRERELEASE.test(clean)) source = 'prerelease';
-  else if (KW_PROMO.test(clean)) source = 'promo';
+  let variant = 'regular';
+  if (KW_PRERELEASE.test(clean)) variant = 'prerelease';
+  else if (KW_PROMO.test(clean)) variant = 'promo';
   KW_PRERELEASE.lastIndex = 0; KW_PROMO.lastIndex = 0;
   let condition = null;
   for (const [value, re] of KW_CONDITIONS) {
@@ -321,16 +450,76 @@ function parseVoice(text) {
   for (const [, re] of KW_CONDITIONS) stripped = stripped.replace(re, ' ');
   stripped = stripped.replace(/\s+/g, ' ').trim();
 
-  const parsed = smartParseSetCn(stripped);
-  if (!parsed) {
+  const parsed = smartParseSetCnWith(stripped, sets);
+  if (!parsed) return { kind: 'unparsed' };
+  return {
+    kind: 'card',
+    set: parsed.set,
+    cn: parsed.cn,
+    variant,
+    foil: hasFoil,
+    condition,
+    qty,
+    location,
+  };
+}
+
+function smartParseSetCnWith(text, sets) {
+  const alnum = text.replace(/[^a-z0-9]/gi, '').toLowerCase();
+  if (!alnum) return null;
+  if (sets && sets.size > 0) {
+    for (let k = 5; k >= 2; k--) {
+      const candidate = alnum.slice(0, k);
+      const rest = alnum.slice(k);
+      if (sets.has(candidate) && /^\d+[a-z]?$/.test(rest)) {
+        return { set: candidate, cn: rest };
+      }
+    }
+    const m = alnum.match(/^([a-z]+)(\d)0(\d+)$/);
+    if (m && m[3].length >= 1) {
+      const setCode = m[1] + m[2] + m[3][0];
+      const cn = m[3].slice(1);
+      if (sets.has(setCode) && cn.length > 0) return { set: setCode, cn };
+    }
+  }
+  const m = text.match(/^\s*([a-z0-9]{2,5})\s+(\d{1,4}[a-z]?)\b/i);
+  if (m) return { set: m[1].toLowerCase(), cn: m[2] };
+  return null;
+}
+
+function parseVoice(text) {
+  const result = parseVoiceText(text, validSets);
+  if (result.kind === 'empty') return;
+  if (result.kind === 'again') {
+    handleAgain(result.qty);
+    return;
+  }
+  if (result.kind === 'unparsed') {
     showFeedback('couldn\'t parse "' + esc(text) + '" — say set code then number (e.g. "fin 142")', 'error');
     return;
   }
   addDetailsEl.open = true;
   if (addMode !== 'cn') setAddMode('cn');
-  voiceFoilFlag = hasFoil;
-  if (condition) addConditionSel.value = condition;
-  doVoiceLookup(parsed.set, parsed.cn, source);
+  voiceFoilFlag = result.foil;
+  voiceQtyOverride = result.qty;
+  voiceLocationOverride = result.location;
+  if (result.condition) addConditionSel.value = result.condition;
+  doVoiceLookup(result.set, result.cn, result.variant);
+}
+
+function handleAgain(qty) {
+  if (!lastAddInput) {
+    showFeedback('no previous add to repeat', 'error');
+    return;
+  }
+  const repeated = { ...lastAddInput, qty: qty != null ? qty : 1 };
+  addDetailsEl.open = true;
+  if (addMode !== 'cn') setAddMode('cn');
+  voiceFoilFlag = repeated.foil;
+  voiceQtyOverride = repeated.qty;
+  voiceLocationOverride = repeated.location;
+  if (repeated.condition) addConditionSel.value = repeated.condition;
+  doVoiceLookup(repeated.set, repeated.cn, repeated.variant);
 }
 
 export function initAdd() {
@@ -352,6 +541,18 @@ export function initAdd() {
   addCancelBtn   = document.getElementById('addCardCancel');
   addMicBtn      = document.getElementById('addMicBtn');
   addMicStatus   = document.getElementById('addMicStatus');
+  addAutoAddEl   = document.getElementById('addAutoAdd');
+
+  try {
+    autoAddEnabled = localStorage.getItem(AUTOADD_KEY) === '1';
+  } catch (e) { autoAddEnabled = false; }
+  if (addAutoAddEl) {
+    addAutoAddEl.checked = autoAddEnabled;
+    addAutoAddEl.addEventListener('change', () => {
+      autoAddEnabled = !!addAutoAddEl.checked;
+      try { localStorage.setItem(AUTOADD_KEY, autoAddEnabled ? '1' : '0'); } catch (e) {}
+    });
+  }
 
   for (const c of ADD_CONDITIONS) {
     const opt = document.createElement('option');
