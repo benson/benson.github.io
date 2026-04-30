@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseCsv, parseDecklist, mapHeaders, ALIASES } from '../import.js';
+import { parseCsv, parseDecklist, mapHeaders, ALIASES, parseTagsCell, serializeTagsCell, mergeIntoCollection } from '../import.js';
+import { makeEntry } from '../collection.js';
 
 // ---- parseCsv ----
 
@@ -204,4 +205,108 @@ test('parseDecklist: cn with star/letter suffix (PNPH 42★)', () => {
   assert.equal(errors.length, 0);
   assert.equal(entries[0].cn, '42★');
   assert.equal(entries[0].finish, 'foil');
+});
+
+// ---- Tags column ----
+
+test('mapHeaders: Tags column resolves to "tags"', () => {
+  assert.equal(mapHeaders(['Tags'])['tags'], 0);
+  assert.equal(mapHeaders(['tags'])['tags'], 0);
+});
+
+test('parseCsv: row with Tags cell containing pipes', () => {
+  const csv = 'Quantity,Name,Set code,Collector number,Foil,Quantity,Condition,Location,Tags\n' +
+              '1,Sol Ring,sld,1011,foil,1,near_mint,binder a,edh staple|trade pile';
+  const out = parseCsv(csv);
+  assert.equal(out.length, 2);
+  assert.equal(out[1][8], 'edh staple|trade pile');
+});
+
+// ---- Tag CSV cell roundtrip ----
+
+test('parseTagsCell + serializeTagsCell: simple tags', () => {
+  const tags = ['edh staple', 'trade pile'];
+  assert.deepEqual(parseTagsCell(serializeTagsCell(tags)), tags);
+});
+
+test('parseTagsCell: empty + missing input', () => {
+  assert.deepEqual(parseTagsCell(''), []);
+  assert.deepEqual(parseTagsCell(undefined), []);
+});
+
+test('serializeTagsCell: empty array → empty string', () => {
+  assert.equal(serializeTagsCell([]), '');
+  assert.equal(serializeTagsCell(undefined), '');
+  assert.equal(serializeTagsCell(null), '');
+});
+
+test('parseTagsCell: pipe inside a tag survives via \\| escape', () => {
+  // Serialize ['foo|bar', 'baz'] → 'foo\|bar|baz' → parse back
+  const tags = ['foo|bar', 'baz'];
+  const cell = serializeTagsCell(tags);
+  assert.equal(cell, 'foo\\|bar|baz');
+  assert.deepEqual(parseTagsCell(cell), tags);
+});
+
+// Regression for codex finding #2 — naive escape made tags ending in `\`
+// ambiguous: ['foo\\', 'bar'] → 'foo\|bar' (intended 'foo\' delimiter 'bar')
+// → parsed back as a single tag 'foo|bar'. Fix: escape `\` itself first.
+test('parseTagsCell: tag ending in backslash roundtrips correctly', () => {
+  const tags = ['foo\\', 'bar'];
+  const cell = serializeTagsCell(tags);
+  // Expected: foo\\|bar  (foo's trailing \ escaped to \\, then literal | as delimiter)
+  assert.equal(cell, 'foo\\\\|bar');
+  assert.deepEqual(parseTagsCell(cell), tags);
+});
+
+test('parseTagsCell: tag containing both \\ and |', () => {
+  const tags = ['weird\\|tag', 'normal'];
+  assert.deepEqual(parseTagsCell(serializeTagsCell(tags)), tags);
+});
+
+test('parseTagsCell: bare backslash inside (not at end) preserved', () => {
+  const tags = ['c:\\users', 'somewhere'];
+  assert.deepEqual(parseTagsCell(serializeTagsCell(tags)), tags);
+});
+
+test('parseTagsCell: dropped empty segments + normalized casing', () => {
+  // Two pipes in a row produce empty segment which gets dropped by normalizeTag
+  assert.deepEqual(parseTagsCell('foo||bar'), ['foo', 'bar']);
+  // Casing normalized
+  assert.deepEqual(parseTagsCell('EDH Staple|Trade Pile'), ['edh staple', 'trade pile']);
+});
+
+// ---- mergeIntoCollection ----
+// Regression for codex finding #1 — the import merge sums qty but used to
+// drop incoming tags. coalesceCollection unions tags but it was never reached
+// because the in-memory dedupe had already dropped the duplicate.
+
+test('mergeIntoCollection: sums qty and unions tags on key collision', () => {
+  const a = makeEntry({ name: 'Sol Ring', setCode: 'sld', cn: '1011', scryfallId: 'abc', qty: 1, tags: ['a'] });
+  const b = makeEntry({ name: 'Sol Ring', setCode: 'sld', cn: '1011', scryfallId: 'abc', qty: 2, tags: ['b'] });
+  const out = mergeIntoCollection([a], [b]);
+  assert.equal(out.length, 1);
+  assert.equal(out[0].qty, 3);
+  assert.deepEqual([...out[0].tags].sort(), ['a', 'b']);
+});
+
+test('mergeIntoCollection: tag union dedupes overlapping tags', () => {
+  const a = makeEntry({ name: 'X', setCode: 's', cn: '1', scryfallId: 'k', qty: 1, tags: ['x', 'y'] });
+  const b = makeEntry({ name: 'X', setCode: 's', cn: '1', scryfallId: 'k', qty: 1, tags: ['y', 'z'] });
+  const out = mergeIntoCollection([a], [b]);
+  assert.deepEqual([...out[0].tags].sort(), ['x', 'y', 'z']);
+});
+
+test('mergeIntoCollection: distinct keys produce two entries', () => {
+  const a = makeEntry({ name: 'A', setCode: 'sld', cn: '1', scryfallId: 'a', qty: 1 });
+  const b = makeEntry({ name: 'B', setCode: 'sld', cn: '2', scryfallId: 'b', qty: 1 });
+  const out = mergeIntoCollection([a], [b]);
+  assert.equal(out.length, 2);
+});
+
+test('mergeIntoCollection: existing-with-tags + imported-without-tags preserves existing tags', () => {
+  const a = makeEntry({ name: 'X', setCode: 's', cn: '1', scryfallId: 'k', qty: 1, tags: ['keep'] });
+  const b = makeEntry({ name: 'X', setCode: 's', cn: '1', scryfallId: 'k', qty: 1 });
+  const out = mergeIntoCollection([a], [b]);
+  assert.deepEqual(out[0].tags, ['keep']);
 });

@@ -1,11 +1,13 @@
 import { state } from './state.js';
-import { showFeedback } from './feedback.js';
+import { showFeedback, esc } from './feedback.js';
 import {
   collectionKey,
   normalizeLocation,
   normalizeCondition,
   normalizeFinish,
   normalizeLanguage,
+  normalizeTag,
+  allCollectionTags,
 } from './collection.js';
 import { commitCollectionChange } from './persistence.js';
 import { filteredSorted } from './search.js';
@@ -31,6 +33,28 @@ export function updateBulkBar() {
   document.getElementById('bulkCount').textContent = n + ' selected';
   bulkBar.classList.toggle('active', n > 0);
   syncHeaderCheckbox();
+  populateBulkTagDropdowns();
+}
+
+function populateBulkTagDropdowns() {
+  const suggestions = document.getElementById('bulkTagSuggestions');
+  if (suggestions) {
+    suggestions.innerHTML = allCollectionTags()
+      .map(t => '<option value="' + esc(t) + '">')
+      .join('');
+  }
+  const removeSelect = document.getElementById('bulkTagRemove');
+  if (!removeSelect) return;
+  const selectedTags = new Set();
+  for (const c of state.collection) {
+    if (state.selectedKeys.has(collectionKey(c))) {
+      for (const t of (c.tags || [])) selectedTags.add(t);
+    }
+  }
+  const current = removeSelect.value;
+  removeSelect.innerHTML = '<option value="">—</option>' +
+    [...selectedTags].sort().map(t => '<option value="' + esc(t) + '">' + esc(t) + '</option>').join('');
+  removeSelect.value = current;
 }
 
 function syncHeaderCheckbox() {
@@ -72,6 +96,49 @@ function applyBulk(field, rawValue, normalizer) {
   showFeedback('updated ' + touched + ' ' + noun + ' <button class="undo-btn" type="button">undo</button>', 'success');
 }
 
+function bulkAddTag(rawTag) {
+  const tag = normalizeTag(rawTag);
+  if (!tag) return;
+  if (!state.selectedKeys.size) return;
+  snapshotCollection();
+  let touched = 0;
+  for (const c of state.collection) {
+    if (state.selectedKeys.has(collectionKey(c))) {
+      const existing = new Set((c.tags || []).map(t => t.toLowerCase()));
+      if (!existing.has(tag)) {
+        c.tags = [...(c.tags || []), tag];
+        touched++;
+      }
+    }
+  }
+  state.selectedKeys.clear();
+  commitCollectionChange({ coalesce: true });
+  const noun = 'card' + (touched === 1 ? '' : 's');
+  showFeedback('added "' + esc(tag) + '" to ' + touched + ' ' + noun + ' <button class="undo-btn" type="button">undo</button>', 'success');
+}
+
+function bulkRemoveTag(rawTag) {
+  const tag = normalizeTag(rawTag);
+  if (!tag) return;
+  if (!state.selectedKeys.size) return;
+  snapshotCollection();
+  let touched = 0;
+  for (const c of state.collection) {
+    if (state.selectedKeys.has(collectionKey(c))) {
+      const before = c.tags || [];
+      const after = before.filter(t => t.toLowerCase() !== tag);
+      if (after.length !== before.length) {
+        c.tags = after;
+        touched++;
+      }
+    }
+  }
+  state.selectedKeys.clear();
+  commitCollectionChange({ coalesce: true });
+  const noun = 'card' + (touched === 1 ? '' : 's');
+  showFeedback('removed "' + esc(tag) + '" from ' + touched + ' ' + noun + ' <button class="undo-btn" type="button">undo</button>', 'success');
+}
+
 export function initBulk() {
   bulkBar = document.getElementById('bulkBar');
   listBodyEl = document.getElementById('listBody');
@@ -111,6 +178,27 @@ export function initBulk() {
     if (!e.target.value) return;
     applyBulk('language', e.target.value, normalizeLanguage);
     e.target.value = '';
+  });
+
+  const bulkTagAddInput = document.getElementById('bulkTagAdd');
+  const bulkTagAddBtn = document.getElementById('bulkTagAddBtn');
+  const bulkTagRemoveSelect = document.getElementById('bulkTagRemove');
+  const bulkTagRemoveBtn = document.getElementById('bulkTagRemoveBtn');
+
+  bulkTagAddBtn.addEventListener('click', () => {
+    const v = bulkTagAddInput.value;
+    if (!v.trim()) return;
+    bulkAddTag(v);
+    bulkTagAddInput.value = '';
+  });
+  bulkTagAddInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); bulkTagAddBtn.click(); }
+  });
+  bulkTagRemoveBtn.addEventListener('click', () => {
+    const v = bulkTagRemoveSelect.value;
+    if (!v) return;
+    bulkRemoveTag(v);
+    bulkTagRemoveSelect.value = '';
   });
 
   document.getElementById('bulkDelete').addEventListener('click', () => {

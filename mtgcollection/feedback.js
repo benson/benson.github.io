@@ -20,7 +20,14 @@ export function getFeedbackEl() {
 }
 
 export function esc(s) {
-  const d = document.createElement('div');
-  d.textContent = s == null ? '' : String(s);
-  return d.innerHTML;
+  if (s == null) return '';
+  // Manual escape covers attribute contexts too (textContent/innerHTML
+  // round-trip leaves `"` and `'` raw, which breaks attribute interpolation
+  // for user-controlled values like tags).
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }

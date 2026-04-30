@@ -11,6 +11,7 @@ const SEARCH_FIELD_ALIASES = {
   o: 'oracle', oracle: 'oracle', text: 'oracle',
   r: 'rarity', rarity: 'rarity',
   loc: 'loc', location: 'loc',
+  tag: 'tag', tags: 'tag',
   s: 'set', set: 'set',
   f: 'finish', finish: 'finish',
   qty: 'qty',
@@ -122,6 +123,12 @@ function matchToken(c, token) {
     }
     case 'loc': {
       result = normalizeLocation(c.location || '').includes(v.toLowerCase());
+      break;
+    }
+    case 'tag': {
+      const cardTags = c.tags || [];
+      const want = v.toLowerCase();
+      result = cardTags.some(t => t.toLowerCase().includes(want));
       break;
     }
     case 'set': {

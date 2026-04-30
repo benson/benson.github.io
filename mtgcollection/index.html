@@ -447,6 +447,9 @@
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 18px 14px;
   }
+  .deck-columns.grid-small  { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 14px 10px; }
+  .deck-columns.grid-medium { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 18px 14px; }
+  .deck-columns.grid-large  { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 22px 18px; }
   .deck-col-header {
     font-size: 0.75rem;
     color: #999;
@@ -547,6 +550,10 @@
     width: 120px;
   }
   .bulk-bar .bulk-spacer { flex: 1; }
+  .bulk-bar .bulk-tag-row { display: flex; align-items: center; gap: 6px; }
+  .bulk-bar .bulk-tag-row input,
+  .bulk-bar .bulk-tag-row select { width: 110px; }
+  .bulk-tag-btn { padding: 2px 8px; font-size: 0.75rem; }
   .card-name-cell { text-transform: none; }
   .card-name-button {
     appearance: none;
@@ -794,6 +801,57 @@
     color: #000;
     outline: none;
   }
+  .tags-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 1px solid #ccc;
+    padding: 4px 0;
+  }
+  .tags-row:focus-within { border-bottom-color: #000; }
+  .tag-chips {
+    display: contents;
+  }
+  .tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #eee;
+    color: #000;
+    border-radius: 10px;
+    padding: 2px 4px 2px 8px;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    text-transform: lowercase;
+  }
+  .tag-chip-remove {
+    border: none;
+    background: transparent;
+    color: #666;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.9rem;
+    line-height: 1;
+    padding: 0 4px;
+    border-radius: 50%;
+  }
+  .tag-chip-remove:hover, .tag-chip-remove:focus-visible {
+    color: #000;
+    outline: none;
+  }
+  .tag-input {
+    flex: 1 1 100px;
+    min-width: 80px;
+    border: none !important;
+    border-bottom: none !important;
+    background: transparent;
+    color: #000;
+    font: inherit;
+    padding: 2px 0 !important;
+    text-transform: lowercase;
+  }
+  .tag-input:focus { outline: none; }
   .checkbox-field {
     grid-column: 1 / -1;
     display: flex;
@@ -1189,6 +1247,8 @@
     .main { padding: 10px 15px 40px; }
     .grid, .grid.grid-small, .grid.grid-medium { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 6px; }
     .grid.grid-large { grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 8px; }
+    .deck-columns, .deck-columns.grid-small, .deck-columns.grid-medium { grid-template-columns: repeat(auto-fit, minmax(95px, 1fr)); gap: 10px 6px; }
+    .deck-columns.grid-large { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px 8px; }
     .controls .search-input { width: 100%; max-width: none; flex-basis: 100%; }
     .stats { gap: 14px; }
     .stat-value { font-size: 1.1rem; }
@@ -1341,6 +1401,7 @@
           <div><code>o:"flying"</code> — oracle text</div>
           <div><code>r:mythic</code> · <code>r:r</code> · <code>r:u</code> · <code>r:c</code></div>
           <div><code>loc:breya</code> — location contains</div>
+          <div><code>tag:edh</code> — tag contains (use quotes for spaces)</div>
           <div><code>set:fin</code> · <code>finish:foil</code> · <code>cond:nm</code></div>
           <div><code>qty&gt;=2</code> · <code>lang:ja</code></div>
           <div><code>-t:land</code> — negate any clause</div>
@@ -1362,6 +1423,9 @@
       </select>
       <select class="filter-select" id="filterLocation"><option value="">all locations</option></select>
       <datalist id="locationOptions"></datalist>
+      <select class="filter-select" id="filterTag" title="filter by tag">
+        <option value="">+ tag</option>
+      </select>
       <select class="filter-select" id="sortBy">
         <option value="name">sort: name</option>
         <option value="set">sort: set</option>
@@ -1443,6 +1507,23 @@
             <option value="zht">chinese (traditional)</option>
           </select>
         </div>
+        <div class="field">
+          <label for="bulkTagAdd">add tag</label>
+          <div class="bulk-tag-row">
+            <input id="bulkTagAdd" type="text" list="bulkTagSuggestions" placeholder="tag...">
+            <button class="btn btn-secondary bulk-tag-btn" type="button" id="bulkTagAddBtn">add</button>
+          </div>
+          <datalist id="bulkTagSuggestions"></datalist>
+        </div>
+        <div class="field">
+          <label for="bulkTagRemove">remove tag</label>
+          <div class="bulk-tag-row">
+            <select id="bulkTagRemove">
+              <option value="">—</option>
+            </select>
+            <button class="btn btn-secondary bulk-tag-btn" type="button" id="bulkTagRemoveBtn">remove</button>
+          </div>
+        </div>
         <span class="bulk-spacer"></span>
         <button class="btn btn-danger" type="button" id="bulkDelete">delete</button>
         <button class="btn btn-secondary" type="button" id="bulkClear">clear</button>
@@ -1521,6 +1602,14 @@
             <div class="language-toggle" id="detailLanguageOptions"></div>
             <button class="language-add" id="detailLanguageAdd" type="button" aria-label="add language">+</button>
             <input class="language-other" id="detailLanguageOther" type="text" maxlength="8" placeholder="other">
+          </div>
+        </div>
+        <div class="detail-field full">
+          <label>tags</label>
+          <div class="tags-row" id="detailTagsRow">
+            <div class="tag-chips" id="detailTagChips"></div>
+            <input class="tag-input" id="detailTagInput" type="text" placeholder="add tag..." list="detailTagSuggestions" autocomplete="off">
+            <datalist id="detailTagSuggestions"></datalist>
           </div>
         </div>
         <div class="detail-field full">

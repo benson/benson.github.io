@@ -25,6 +25,10 @@ export function loadFromStorage() {
     const data = JSON.parse(raw);
     if (Array.isArray(data.collection)) {
       state.collection = data.collection;
+      // Backfill: ensure every entry has a tags array (idempotent).
+      for (const c of state.collection) {
+        if (!Array.isArray(c.tags)) c.tags = [];
+      }
       state.viewMode = data.viewMode || 'grid';
       state.gridSize = ['small', 'medium', 'large'].includes(data.gridSize) ? data.gridSize : 'medium';
       state.selectedFormat = typeof data.selectedFormat === 'string' ? data.selectedFormat : '';
