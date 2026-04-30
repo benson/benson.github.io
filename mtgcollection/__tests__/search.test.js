@@ -264,3 +264,83 @@ test('match: multi-clause AND', () => {
   assert.equal(matchSearch(FIXTURES.bolt, tokens), false); // not a creature
   assert.equal(matchSearch(FIXTURES.breya, tokens), false); // cmc=4
 });
+
+// ---- tag: tokenizer ----
+
+test('tokenize: tag:foo single token', () => {
+  assert.deepEqual(tokenizeSearch('tag:foo'), [
+    { field: 'tag', op: ':', value: 'foo', neg: false },
+  ]);
+});
+
+test('tokenize: tag:"edh staple" preserves quoted spaces', () => {
+  assert.deepEqual(tokenizeSearch('tag:"edh staple"'), [
+    { field: 'tag', op: ':', value: 'edh staple', neg: false },
+  ]);
+});
+
+test('tokenize: -tag:foo negation', () => {
+  assert.deepEqual(tokenizeSearch('-tag:foo'), [
+    { field: 'tag', op: ':', value: 'foo', neg: true },
+  ]);
+});
+
+test('tokenize: tags:foo aliases to tag', () => {
+  assert.deepEqual(tokenizeSearch('tags:foo'), [
+    { field: 'tag', op: ':', value: 'foo', neg: false },
+  ]);
+});
+
+// ---- tag: matcher ----
+
+const TAG_FIXTURES = {
+  edhStaple: { name: 'A', resolvedName: 'A', tags: ['edh staple'] },
+  edhAndTrade: { name: 'B', resolvedName: 'B', tags: ['edh staple', 'trade pile'] },
+  tradeOnly: { name: 'C', resolvedName: 'C', tags: ['trade pile'] },
+  empty: { name: 'D', resolvedName: 'D', tags: [] },
+  noTagsField: { name: 'E', resolvedName: 'E' },
+  upper: { name: 'F', resolvedName: 'F', tags: ['EDH Staple'] },
+};
+
+test('match: tag exact match', () => {
+  const tokens = tokenizeSearch('tag:"edh staple"');
+  assert.equal(matchSearch(TAG_FIXTURES.edhStaple, tokens), true);
+  assert.equal(matchSearch(TAG_FIXTURES.tradeOnly, tokens), false);
+});
+
+test('match: tag substring match (edh matches "edh staple")', () => {
+  const tokens = tokenizeSearch('tag:edh');
+  assert.equal(matchSearch(TAG_FIXTURES.edhStaple, tokens), true);
+  assert.equal(matchSearch(TAG_FIXTURES.edhAndTrade, tokens), true);
+  assert.equal(matchSearch(TAG_FIXTURES.tradeOnly, tokens), false);
+});
+
+test('match: tag is case-insensitive', () => {
+  assert.equal(matchSearch(TAG_FIXTURES.upper, tokenizeSearch('tag:edh')), true);
+  assert.equal(matchSearch(TAG_FIXTURES.upper, tokenizeSearch('tag:EDH')), true);
+  assert.equal(matchSearch(TAG_FIXTURES.edhStaple, tokenizeSearch('tag:STAPLE')), true);
+});
+
+test('match: card with empty tags array does not match tag:', () => {
+  assert.equal(matchSearch(TAG_FIXTURES.empty, tokenizeSearch('tag:edh')), false);
+});
+
+test('match: card with undefined tags is defensive (no throw, no match)', () => {
+  assert.equal(matchSearch(TAG_FIXTURES.noTagsField, tokenizeSearch('tag:edh')), false);
+});
+
+test('match: -tag:foo excludes cards with that tag, includes those without', () => {
+  const tokens = tokenizeSearch('-tag:edh');
+  assert.equal(matchSearch(TAG_FIXTURES.edhStaple, tokens), false);
+  assert.equal(matchSearch(TAG_FIXTURES.edhAndTrade, tokens), false);
+  assert.equal(matchSearch(TAG_FIXTURES.tradeOnly, tokens), true);
+  assert.equal(matchSearch(TAG_FIXTURES.empty, tokens), true);
+  assert.equal(matchSearch(TAG_FIXTURES.noTagsField, tokens), true);
+});
+
+test('match: multi-clause AND requires both tag substrings present', () => {
+  const tokens = tokenizeSearch('tag:edh tag:trade');
+  assert.equal(matchSearch(TAG_FIXTURES.edhAndTrade, tokens), true);
+  assert.equal(matchSearch(TAG_FIXTURES.edhStaple, tokens), false);
+  assert.equal(matchSearch(TAG_FIXTURES.tradeOnly, tokens), false);
+});
