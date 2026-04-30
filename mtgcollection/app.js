@@ -34,12 +34,18 @@ async function boot() {
 
   // Format selector — wire listener now; sync value after loadFromStorage()
   const formatSelectEl = document.getElementById('formatSelect');
+  const footerEl = document.querySelector('.app-footer');
+  const updateFooter = () => {
+    if (footerEl) footerEl.classList.toggle('format-active', !!state.selectedFormat);
+  };
   formatSelectEl.addEventListener('change', () => {
     state.selectedFormat = formatSelectEl.value;
     save();
+    updateFooter();
     if (state.detailIndex >= 0) renderDetailLegality();
     if (state.viewMode === 'deck') render();
   });
+  updateFooter();
 
   // Backup nag actions
   getFeedbackEl().addEventListener('click', e => {
@@ -58,6 +64,7 @@ async function boot() {
   // Boot the collection
   const hasSavedCollection = loadFromStorage();
   formatSelectEl.value = state.selectedFormat;
+  updateFooter();
   if (hasSavedCollection) {
     migrateSavedCollection();
     await backfillMissingPrices();

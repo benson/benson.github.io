@@ -8,24 +8,209 @@
 <link rel="stylesheet" href="../shared/common.css">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
   body {
     font-family: "Times New Roman", Times, Georgia, serif;
     background: #f8f7f4;
     color: #000;
-    min-height: 100vh;
     text-transform: lowercase;
     font-size: 0.9rem;
+    overflow: hidden;
   }
 
-  .header {
-    max-width: 1080px;
-    margin: 0 auto;
-    padding: 30px 30px 0;
+  /* A-shell border-frame layout */
+  .app-shell {
+    height: 100vh;
+    display: grid;
+    grid-template-rows: 60px 1fr 40px;
+    grid-template-columns: 200px 1fr 280px;
+    grid-template-areas:
+      "header header header"
+      "left   main   right"
+      "footer footer footer";
   }
-  .header h1 { font-size: 1.5rem; font-weight: 400; letter-spacing: -0.02em; }
-  .header p { color: #999; font-size: 0.75rem; margin-top: 2px; letter-spacing: 0.03em; }
 
-  .main { max-width: 1080px; margin: 0 auto; padding: 20px 30px 80px; }
+  .app-header {
+    grid-area: header;
+    border-bottom: 1px solid #000;
+    background: #f8f7f4;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    padding: 0 20px;
+    gap: 18px;
+  }
+  .app-header h1 {
+    font-size: 1.3rem;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+  }
+  .app-header-totals {
+    text-align: center;
+    font-size: 0.85rem;
+    color: #333;
+    display: inline-flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .app-header-totals strong { font-weight: 400; color: #000; font-variant-numeric: tabular-nums; }
+  .app-header-totals .stat-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.04em;
+    color: #999;
+    margin-right: 2px;
+  }
+  .app-header-totals .sep { color: #ccc; }
+  .app-header-views {
+    justify-self: end;
+    display: inline-flex;
+    border: 1px solid #000;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .app-header-views .toggle-view {
+    background: transparent;
+    border: none;
+    border-right: 1px solid #000;
+    border-radius: 0;
+    padding: 5px 12px;
+    font-family: inherit;
+    font-size: 0.78rem;
+    text-transform: lowercase;
+    cursor: pointer;
+    color: #000;
+  }
+  .app-header-views .toggle-view:last-child { border-right: none; }
+  .app-header-views .toggle-view:hover { background: #eee; }
+  .app-header-views .toggle-view.active { background: #000; color: #fff; }
+
+  .app-left {
+    grid-area: left;
+    border-right: 1px solid #000;
+    padding: 16px 14px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background: #f8f7f4;
+  }
+  .sidebar-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.06em;
+    color: #999;
+    margin-bottom: 6px;
+    text-transform: lowercase;
+  }
+  .sidebar-section .search-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    max-width: none;
+    width: 100%;
+  }
+  .sidebar-section .search-wrap .search-input {
+    width: 100%;
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #000;
+    padding: 4px 46px 4px 0;
+    font-family: inherit;
+    font-size: 0.85rem;
+    color: #000;
+    outline: none;
+    text-transform: lowercase;
+    border-radius: 0;
+    max-width: none;
+  }
+  .sidebar-section .search-wrap .search-input:focus { border-bottom-width: 2px; }
+  .sidebar-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .sidebar-filters select {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #ddd;
+    padding: 4px 16px 4px 0;
+    font-family: inherit;
+    font-size: 0.8rem;
+    color: #333;
+    width: 100%;
+    outline: none;
+    text-transform: lowercase;
+    border-radius: 0;
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%23999' d='M0 0l5 6 5-6z'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 2px center;
+    cursor: pointer;
+    min-width: 0;
+  }
+  .sidebar-filters select:hover { border-bottom-color: #000; }
+  .sidebar-sizes {
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid #eee;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+  }
+  .sidebar-sizes .segmented { width: 100%; display: flex; }
+  .sidebar-sizes .segmented .segment-btn { flex: 1; }
+  .sidebar-sizes .btn { width: 100%; }
+  .sidebar-sizes .progress { font-size: 0.7rem; color: #999; margin-left: 0; text-align: center; }
+
+  .app-center {
+    grid-area: main;
+    overflow-y: auto;
+    padding: 18px 20px;
+    min-width: 0;
+  }
+  .app-center .feedback { margin-bottom: 12px; }
+
+  .app-right {
+    grid-area: right;
+    border-left: 1px solid #000;
+    overflow-y: auto;
+    padding: 16px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    background: #f8f7f4;
+  }
+  .app-right details.add-details,
+  .app-right details.import-details,
+  .app-right details.stats-panel {
+    margin-bottom: 0;
+  }
+
+  .app-footer {
+    grid-area: footer;
+    border-top: 1px solid #000;
+    background: #f8f7f4;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    font-size: 0.75rem;
+    color: #444;
+    gap: 12px;
+  }
+  .app-footer a {
+    color: #999;
+    text-decoration: none;
+    border-bottom: 1px solid #ddd;
+  }
+  .app-footer a:hover { color: #000; border-bottom-color: #000; }
+  .app-footer-right .btn { padding: 5px 12px; font-size: 0.75rem; }
+  .app-footer-right { display: none; }
+  .app-footer.format-active .app-footer-right { display: flex; gap: 8px; align-items: center; }
 
   .btn {
     padding: 8px 16px;
@@ -110,12 +295,9 @@
   .stats-panel > summary::marker { color: #999; }
   .stats-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 18px 24px;
-    margin-top: 14px;
-  }
-  @media (min-width: 720px) {
-    .stats-grid { grid-template-columns: 1.4fr 1fr 1fr 0.8fr; }
+    grid-template-columns: 1fr;
+    gap: 14px;
+    margin-top: 12px;
   }
   .stats-section-title {
     font-size: 0.7rem;
@@ -256,9 +438,11 @@
     line-height: 1.7;
     box-shadow: 0 6px 16px rgba(0,0,0,0.08);
     width: 320px;
+    max-width: calc(100vw - 40px);
     text-transform: none;
     display: none;
   }
+  .app-left .search-help-popover { left: 0; right: auto; }
   .search-help-popover.visible { display: block; }
   .search-help-popover .syntax-title {
     font-size: 0.7rem;
@@ -1362,6 +1546,7 @@
   .add-mode.active { display: block; }
 
   .name-search { position: relative; max-width: 360px; }
+  .app-right .name-search { max-width: none; }
   .name-search input {
     width: 100%;
     background: transparent;
@@ -1445,17 +1630,25 @@
 
   .add-preview {
     display: none;
-    gap: 16px;
-    margin-top: 16px;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 12px;
     padding-top: 12px;
     border-top: 1px solid #eee;
   }
   .add-preview.active { display: flex; }
+  .add-preview-img-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
   .add-preview-img {
     width: 140px;
+    max-width: 100%;
     border-radius: 4%;
-    flex-shrink: 0;
-    align-self: flex-start;
+    align-self: center;
   }
   .add-preview-info { flex: 1; min-width: 0; }
   .add-preview-name {
@@ -1470,17 +1663,18 @@
     text-transform: none;
   }
   .add-fields {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px 14px;
-    margin-bottom: 12px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 10px;
+    margin-bottom: 10px;
   }
-  .add-fields .field { display: flex; flex-direction: column; gap: 3px; flex: 0 0 auto; min-width: 0; }
-  .add-fields .field-finish { flex: 0 0 150px; }
-  .add-fields .field-condition { flex: 0 0 150px; }
-  .add-fields .field-language { flex: 0 0 130px; }
-  .add-fields .field-qty { flex: 0 0 60px; }
-  .add-fields .field-location { flex: 0 0 200px; }
+  .add-fields .field { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .add-fields .field-finish,
+  .add-fields .field-condition,
+  .add-fields .field-language,
+  .add-fields .field-qty { grid-column: span 1; }
+  .add-fields .field-qty { max-width: 80px; }
+  .add-fields .field-location { grid-column: 1 / -1; }
   .add-fields label {
     font-size: 0.7rem;
     letter-spacing: 0.03em;
@@ -1534,130 +1728,407 @@
     .deck-preview-panel { display: none !important; }
   }
 
+  /* Below ~900px: collapse the border-frame to a single column */
+  @media (max-width: 900px) {
+    html, body { height: auto; overflow: auto; }
+    body { overflow: visible; }
+    .app-shell {
+      height: auto;
+      min-height: 100vh;
+      grid-template-rows: auto auto auto auto auto;
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        "header"
+        "left"
+        "main"
+        "right"
+        "footer";
+    }
+    .app-header {
+      grid-template-columns: 1fr;
+      gap: 4px;
+      padding: 8px 14px;
+      height: auto;
+    }
+    .app-header h1 { font-size: 1.05rem; }
+    .app-header-totals { justify-self: start; text-align: left; }
+    .app-header-views { justify-self: start; }
+    .app-left {
+      border-right: none;
+      border-bottom: 1px solid #000;
+      padding: 12px 14px;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+      overflow-x: auto;
+      overflow-y: visible;
+    }
+    .app-left .sidebar-section { flex: 1 1 220px; min-width: 180px; }
+    .app-left .sidebar-sizes {
+      margin-top: 0;
+      padding-top: 0;
+      border-top: none;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .app-left .sidebar-sizes .segmented { width: auto; }
+    .app-left .sidebar-sizes .btn { width: auto; }
+    .app-center { padding: 14px 14px; overflow-y: visible; }
+    .app-right {
+      border-left: none;
+      border-top: 1px solid #000;
+      padding: 12px 14px;
+      overflow-y: visible;
+    }
+    .app-footer {
+      flex-wrap: wrap;
+      padding: 8px 14px;
+      height: auto;
+    }
+  }
+
   @media (max-width: 600px) {
-    .header { padding: 12px 15px 8px; }
-    .header h1 { font-size: 1.1rem; }
-    .header p { font-size: 0.65rem; }
-    .main { padding: 10px 15px 40px; }
+    .app-header { padding: 8px 12px; }
+    .app-header h1 { font-size: 1rem; }
+    .app-center { padding: 10px 12px 24px; }
+    .app-left, .app-right { padding: 10px 12px; }
     .grid, .grid.grid-small, .grid.grid-medium { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 6px; }
     .grid.grid-large { grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 8px; }
     .deck-columns { --deck-card-w: 150px; --deck-name-bar: 26px; gap: 16px 8px; }
-    .controls .search-input { width: 100%; max-width: none; flex-basis: 100%; }
-    .stats { gap: 14px; }
-    .stat-value { font-size: 1.1rem; }
   }
 </style>
 </head>
-<body>
+<body class="no-shared-footer">
 
-<div class="header">
-  <h1>mtg collection</h1>
-  <p>import a csv from any platform — browse, search, filter</p>
-</div>
+<div class="app-shell">
+  <header class="app-header">
+    <h1>mtg collection</h1>
+    <div class="app-header-totals">
+      <span><span class="stat-label">unique</span> <strong id="uniqueCount">0</strong></span>
+      <span class="sep">·</span>
+      <span><span class="stat-label">total</span> <strong id="totalCount">0</strong></span>
+      <span class="sep">·</span>
+      <span><span class="stat-label">usd</span> <strong id="totalValue">0</strong></span>
+    </div>
+    <div class="app-header-views">
+      <button class="toggle-view" id="toggleView">list view</button>
+      <button class="toggle-view" id="deckViewBtn">deck view</button>
+      <button class="toggle-view" id="binderViewBtn">binder view</button>
+    </div>
+  </header>
 
-<div class="main">
-  <details class="add-details" id="addDetails" open>
-    <summary>add cards</summary>
-    <div class="details-body">
-      <div class="add-tabs" role="tablist">
-        <button class="add-tab active" type="button" data-add-mode="name">type a name</button>
-        <button class="add-tab" type="button" data-add-mode="cn">voice input</button>
-      </div>
-
-      <div class="add-mode active" id="addModeName">
-        <div class="name-search">
-          <input type="text" id="addNameInput" placeholder="search a card name..." autocomplete="off" spellcheck="false">
-          <ul class="autocomplete-list" id="addNameSuggestions" role="listbox"></ul>
+  <aside class="app-left">
+    <div class="sidebar-section">
+      <div class="sidebar-label">search</div>
+      <div class="search-wrap">
+        <input class="search-input" type="text" id="searchInput" placeholder="search... (try t:creature cmc&lt;=3)">
+        <button class="search-clear-btn" type="button" id="searchClearBtn" aria-label="clear search">×</button>
+        <button class="search-help-btn" type="button" id="searchHelpBtn" aria-label="syntax help">?</button>
+        <div class="search-help-popover" id="searchHelpPopover">
+          <div class="syntax-title">search syntax</div>
+          <div><code>lightning bolt</code> — name (multiple words = and)</div>
+          <div><code>t:creature</code> — type line</div>
+          <div><code>c:rg</code> — colors include r and g; <code>c:c</code> = colorless</div>
+          <div><code>ci:wug</code> — color identity</div>
+          <div><code>cmc&lt;=3</code> · <code>cmc=0</code> · <code>cmc&gt;5</code></div>
+          <div><code>o:"flying"</code> — oracle text</div>
+          <div><code>r:mythic</code> · <code>r:r</code> · <code>r:u</code> · <code>r:c</code></div>
+          <div><code>loc:breya</code> — location contains</div>
+          <div><code>tag:edh</code> — tag contains (use quotes for spaces)</div>
+          <div><code>set:fin</code> · <code>finish:foil</code> · <code>cond:nm</code></div>
+          <div><code>qty&gt;=2</code> · <code>lang:ja</code></div>
+          <div><code>-t:land</code> — negate any clause</div>
         </div>
       </div>
+    </div>
 
-      <div class="add-mode" id="addModeCn">
-        <div class="mic-row">
-          <button class="mic-btn off" type="button" id="addMicBtn">start listening</button>
-          <span class="mic-status" id="addMicStatus">mic off</span>
-          <label class="autoadd-toggle">
-            <input type="checkbox" id="addAutoAdd"> auto-add
+    <div class="sidebar-section">
+      <div class="sidebar-label">filters</div>
+      <div class="sidebar-filters">
+        <select class="filter-select" id="filterSet"><option value="">all sets</option></select>
+        <select class="filter-select" id="filterRarity">
+          <option value="">all rarity</option>
+          <option value="common">common</option>
+          <option value="uncommon">uncommon</option>
+          <option value="rare">rare</option>
+          <option value="mythic">mythic</option>
+        </select>
+        <select class="filter-select" id="filterFoil">
+          <option value="">all finishes</option>
+          <option value="normal">normal</option>
+          <option value="foil">foil</option>
+          <option value="etched">etched</option>
+        </select>
+        <select class="filter-select" id="filterLocation"><option value="">all locations</option></select>
+        <datalist id="locationOptions"></datalist>
+        <select class="filter-select" id="filterTag" title="filter by tag">
+          <option value="">+ tag</option>
+        </select>
+        <select class="filter-select" id="sortBy">
+          <option value="name">sort: name</option>
+          <option value="set">sort: set</option>
+          <option value="price-desc">sort: price ↓</option>
+          <option value="price-asc">sort: price ↑</option>
+          <option value="cmc">sort: mana value</option>
+        </select>
+        <select class="filter-select" id="formatSelect" title="format for legality">
+          <option value="">format: —</option>
+          <option value="commander">format: commander</option>
+          <option value="standard">format: standard</option>
+          <option value="pioneer">format: pioneer</option>
+          <option value="modern">format: modern</option>
+          <option value="legacy">format: legacy</option>
+          <option value="vintage">format: vintage</option>
+          <option value="pauper">format: pauper</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="sidebar-section sidebar-sizes">
+      <div class="segmented" id="gridSizeControl" aria-label="grid card size">
+        <button class="segment-btn" type="button" data-grid-size="small">s</button>
+        <button class="segment-btn" type="button" data-grid-size="medium">m</button>
+        <button class="segment-btn" type="button" data-grid-size="large">l</button>
+      </div>
+      <div class="segmented hidden" id="binderSizeControl" aria-label="binder page size">
+        <button class="segment-btn" type="button" data-binder-size="4x3">4×3</button>
+        <button class="segment-btn" type="button" data-binder-size="3x3">3×3</button>
+        <button class="segment-btn" type="button" data-binder-size="2x2">2×2</button>
+      </div>
+      <button class="btn-secondary btn" id="exportCsvBtn">export csv</button>
+      <span class="progress" id="progress"></span>
+    </div>
+  </aside>
+
+  <main class="app-center">
+    <div class="feedback" id="feedback"></div>
+
+    <div id="collectionSection" class="hidden">
+      <div class="price-note hidden" id="priceNote">* regular usd shown when exact finish price is unavailable</div>
+
+      <div class="grid" id="grid"></div>
+      <div class="deck-view" id="deckView">
+        <div class="deck-actions">
+          <label class="deck-group-control" for="deckGroupBy">group by:
+            <select id="deckGroupBy">
+              <option value="type">type</option>
+              <option value="cmc">cmc</option>
+              <option value="color">color</option>
+              <option value="rarity">rarity</option>
+            </select>
           </label>
+          <span class="deck-summary" id="deckSummary"></span>
         </div>
-        <div class="vocab-hint"><strong>say:</strong> qty · set · cn · finish · condition · variant · location &nbsp;—&nbsp; e.g. "two fin 142 foil lp in breya deck"</div>
-        <div class="vocab-hint"><strong>conditions:</strong> nm · lp · mp · hp · damaged &nbsp; <strong>variants:</strong> promo · prerelease &nbsp; <strong>finishes:</strong> foil &nbsp; <strong>repeat:</strong> "again" / "again 3"</div>
+        <div class="deck-view-wrap" id="deckViewWrap">
+          <aside class="deck-preview-panel hidden" id="deckPreviewPanel" role="button" tabindex="0" aria-label="open card detail">
+            <div class="deck-preview-frame">
+              <img class="deck-preview-card hidden" alt="">
+              <div class="deck-preview-placeholder hidden"></div>
+            </div>
+            <div class="drawer-flip-row deck-preview-flip-row hidden"><button type="button" class="flip-btn" id="deckPreviewFlipBtn">flip card</button></div>
+            <div class="deck-preview-name"></div>
+            <div class="deck-preview-meta"></div>
+          </aside>
+          <div class="deck-columns" id="deckColumns"></div>
+        </div>
       </div>
-
-      <div class="add-preview" id="addPreview">
-        <div style="display:flex; flex-direction:column; align-items:center; gap:6px; flex-shrink:0;">
-          <img class="add-preview-img" id="addPreviewImg" src="" alt="">
-          <button class="flip-btn hidden" type="button" id="addFlipBtn">flip card</button>
+      <div class="binder-view" id="binderView">
+        <div class="binder-actions">
+          <span class="binder-summary" id="binderSummary"></span>
         </div>
-        <div class="add-preview-info">
-          <div class="add-preview-name" id="addPreviewName"></div>
-          <div class="add-preview-meta" id="addPreviewMeta"></div>
-          <div class="add-preview-existing hidden" id="addPreviewExisting"></div>
-          <div class="add-fields">
-            <div class="field field-finish">
-              <label for="addFinish">finish</label>
-              <select id="addFinish"></select>
+        <div class="binder-pages" id="binderPages"></div>
+        <div class="binder-nav hidden" id="binderNav">
+          <button class="btn btn-secondary" type="button" id="binderPrev">← prev</button>
+          <span class="binder-page-indicator" id="binderPageIndicator"></span>
+          <button class="btn btn-secondary" type="button" id="binderNext">next →</button>
+        </div>
+      </div>
+      <div class="list-view" id="listView">
+        <div class="bulk-bar" id="bulkBar" aria-live="polite">
+          <span class="bulk-count" id="bulkCount">0 selected</span>
+          <div class="field">
+            <label for="bulkLocation">location</label>
+            <input id="bulkLocation" type="text" list="locationOptions" placeholder="set...">
+          </div>
+          <div class="field">
+            <label for="bulkCondition">condition</label>
+            <select id="bulkCondition">
+              <option value="">—</option>
+              <option value="near_mint">near mint</option>
+              <option value="lightly_played">lightly played</option>
+              <option value="moderately_played">moderately played</option>
+              <option value="heavily_played">heavily played</option>
+              <option value="damaged">damaged</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="bulkFinish">finish</label>
+            <select id="bulkFinish">
+              <option value="">—</option>
+              <option value="normal">normal</option>
+              <option value="foil">foil</option>
+              <option value="etched">etched</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="bulkLanguage">language</label>
+            <select id="bulkLanguage">
+              <option value="">—</option>
+              <option value="en">english</option>
+              <option value="ja">japanese</option>
+              <option value="de">german</option>
+              <option value="fr">french</option>
+              <option value="it">italian</option>
+              <option value="es">spanish</option>
+              <option value="pt">portuguese</option>
+              <option value="ru">russian</option>
+              <option value="ko">korean</option>
+              <option value="zhs">chinese (simplified)</option>
+              <option value="zht">chinese (traditional)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="bulkTagAdd">add tag</label>
+            <div class="bulk-tag-row">
+              <input id="bulkTagAdd" type="text" list="bulkTagSuggestions" placeholder="tag...">
+              <button class="btn btn-secondary bulk-tag-btn" type="button" id="bulkTagAddBtn">add</button>
             </div>
-            <div class="field field-condition">
-              <label for="addCondition">condition</label>
-              <select id="addCondition"></select>
-            </div>
-            <div class="field field-language">
-              <label for="addLanguage">language</label>
-              <select id="addLanguage"></select>
-            </div>
-            <div class="field field-qty">
-              <label for="addQty">qty</label>
-              <input type="number" id="addQty" min="1" value="1">
-            </div>
-            <div class="field field-location">
-              <label for="addLocation">location</label>
-              <input type="text" id="addLocation" list="locationOptions" placeholder="optional">
+            <datalist id="bulkTagSuggestions"></datalist>
+          </div>
+          <div class="field">
+            <label for="bulkTagRemove">remove tag</label>
+            <div class="bulk-tag-row">
+              <select id="bulkTagRemove">
+                <option value="">—</option>
+              </select>
+              <button class="btn btn-secondary bulk-tag-btn" type="button" id="bulkTagRemoveBtn">remove</button>
             </div>
           </div>
-          <div class="add-actions">
-            <button class="btn" type="button" id="addCardBtn">add to collection</button>
-            <button class="btn btn-secondary" type="button" id="addCardCancel">cancel</button>
+          <span class="bulk-spacer"></span>
+          <button class="btn btn-danger" type="button" id="bulkDelete">delete</button>
+          <button class="btn btn-secondary" type="button" id="bulkClear">clear</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th class="col-check"><input type="checkbox" class="header-check" id="headerCheck" aria-label="select all visible"></th>
+              <th>name</th>
+              <th>set</th>
+              <th>cn</th>
+              <th>finish</th>
+              <th>rarity</th>
+              <th>cond</th>
+              <th>location</th>
+              <th>qty</th>
+              <th>price</th>
+            </tr>
+          </thead>
+          <tbody id="listBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="empty-state" id="emptyState">
+      <p>add a card or import a csv to see your collection</p>
+    </div>
+  </main>
+
+  <aside class="app-right">
+    <details class="add-details" id="addDetails" open>
+      <summary>add cards</summary>
+      <div class="details-body">
+        <div class="add-tabs" role="tablist">
+          <button class="add-tab active" type="button" data-add-mode="name">type a name</button>
+          <button class="add-tab" type="button" data-add-mode="cn">voice input</button>
+        </div>
+
+        <div class="add-mode active" id="addModeName">
+          <div class="name-search">
+            <input type="text" id="addNameInput" placeholder="search a card name..." autocomplete="off" spellcheck="false">
+            <ul class="autocomplete-list" id="addNameSuggestions" role="listbox"></ul>
+          </div>
+        </div>
+
+        <div class="add-mode" id="addModeCn">
+          <div class="mic-row">
+            <button class="mic-btn off" type="button" id="addMicBtn">start listening</button>
+            <span class="mic-status" id="addMicStatus">mic off</span>
+            <label class="autoadd-toggle">
+              <input type="checkbox" id="addAutoAdd"> auto-add
+            </label>
+          </div>
+          <div class="vocab-hint"><strong>say:</strong> qty · set · cn · finish · condition · variant · location &nbsp;—&nbsp; e.g. "two fin 142 foil lp in breya deck"</div>
+          <div class="vocab-hint"><strong>conditions:</strong> nm · lp · mp · hp · damaged &nbsp; <strong>variants:</strong> promo · prerelease &nbsp; <strong>finishes:</strong> foil &nbsp; <strong>repeat:</strong> "again" / "again 3"</div>
+        </div>
+
+        <div class="add-preview" id="addPreview">
+          <div class="add-preview-img-wrap">
+            <img class="add-preview-img" id="addPreviewImg" src="" alt="">
+            <button class="flip-btn hidden" type="button" id="addFlipBtn">flip card</button>
+          </div>
+          <div class="add-preview-info">
+            <div class="add-preview-name" id="addPreviewName"></div>
+            <div class="add-preview-meta" id="addPreviewMeta"></div>
+            <div class="add-preview-existing hidden" id="addPreviewExisting"></div>
+            <div class="add-fields">
+              <div class="field field-finish">
+                <label for="addFinish">finish</label>
+                <select id="addFinish"></select>
+              </div>
+              <div class="field field-condition">
+                <label for="addCondition">condition</label>
+                <select id="addCondition"></select>
+              </div>
+              <div class="field field-language">
+                <label for="addLanguage">language</label>
+                <select id="addLanguage"></select>
+              </div>
+              <div class="field field-qty">
+                <label for="addQty">qty</label>
+                <input type="number" id="addQty" min="1" value="1">
+              </div>
+              <div class="field field-location">
+                <label for="addLocation">location</label>
+                <input type="text" id="addLocation" list="locationOptions" placeholder="optional">
+              </div>
+            </div>
+            <div class="add-actions">
+              <button class="btn" type="button" id="addCardBtn">add to collection</button>
+              <button class="btn btn-secondary" type="button" id="addCardCancel">cancel</button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </details>
+    </details>
 
-  <details class="import-details" id="importDetails">
-    <summary id="importSummary">import a csv</summary>
-    <div class="details-body">
-      <div class="drop-zone" id="dropZone">
-        <p><strong>drop a csv here</strong> or click to pick a file</p>
-        <p class="small">manabox, deckbox, moxfield, or any csv with name + set + collector number</p>
-        <input type="file" id="fileInput" accept=".csv,text/csv" style="display:none">
+    <details class="import-details" id="importDetails">
+      <summary id="importSummary">import a csv</summary>
+      <div class="details-body">
+        <div class="drop-zone" id="dropZone">
+          <p><strong>drop a csv here</strong> or click to pick a file</p>
+          <p class="small">manabox, deckbox, moxfield — any csv with name + set + cn</p>
+          <input type="file" id="fileInput" accept=".csv,text/csv" style="display:none">
+        </div>
+
+        <textarea class="paste-area" id="pasteArea" placeholder="...or paste csv here"></textarea>
+
+        <div class="import-actions">
+          <button class="btn" id="importPastedBtn">import pasted</button>
+          <button class="btn btn-secondary" id="loadBreyaBtn">load breya deck</button>
+          <button class="btn btn-secondary" id="loadSampleBtn">load sample</button>
+        </div>
+
+        <div class="format-note">
+          recognized columns: <code>name</code>, <code>set code</code>, <code>collector number</code>, <code>quantity</code>, <code>foil</code>, <code>condition</code>, <code>language</code>, <code>location</code>, <code>scryfall id</code>. moxfield plaintext like <code>1 Sol Ring (SLD) 1011 *F*</code> works too.
+        </div>
+
+        <div class="danger-zone">
+          <button class="danger-link" type="button" id="deleteAllBtn">delete entire collection</button>
+        </div>
       </div>
-
-      <textarea class="paste-area" id="pasteArea" placeholder="...or paste csv here"></textarea>
-
-      <div class="import-actions">
-        <button class="btn" id="importPastedBtn">import pasted</button>
-        <button class="btn btn-secondary" id="loadBreyaBtn">load breya deck</button>
-        <button class="btn btn-secondary" id="loadSampleBtn">load sample</button>
-      </div>
-
-      <div class="format-note">
-        recognized columns (case-insensitive): <code>name</code>, <code>set code</code> / <code>edition</code>, <code>collector number</code> / <code>card number</code>, <code>quantity</code> / <code>count</code>, <code>foil</code>, <code>condition</code>, <code>language</code>, <code>location</code>, <code>scryfall id</code>. moxfield plaintext like <code>1 Sol Ring (SLD) 1011 *F*</code> also works.
-      </div>
-
-      <div class="danger-zone">
-        <button class="danger-link" type="button" id="deleteAllBtn">delete entire collection</button>
-      </div>
-    </div>
-  </details>
-
-  <div class="feedback" id="feedback"></div>
-
-  <div id="collectionSection" class="hidden">
-    <div class="stats">
-      <div><div class="stat-label">unique</div><div class="stat-value" id="uniqueCount">0</div></div>
-      <div><div class="stat-label">total</div><div class="stat-value" id="totalCount">0</div></div>
-      <div><div class="stat-label">value (usd)</div><div class="stat-value" id="totalValue">0</div></div>
-    </div>
+    </details>
 
     <details class="stats-panel" id="statsPanel">
       <summary>breakdown</summary>
@@ -1681,211 +2152,17 @@
         </div>
       </div>
     </details>
+  </aside>
 
-    <div class="controls">
-      <div class="search-wrap">
-        <input class="search-input" type="text" id="searchInput" placeholder="search... (try t:creature cmc&lt;=3)">
-        <button class="search-clear-btn" type="button" id="searchClearBtn" aria-label="clear search">×</button>
-        <button class="search-help-btn" type="button" id="searchHelpBtn" aria-label="syntax help">?</button>
-        <div class="search-help-popover" id="searchHelpPopover">
-          <div class="syntax-title">search syntax</div>
-          <div><code>lightning bolt</code> — name (multiple words = and)</div>
-          <div><code>t:creature</code> — type line</div>
-          <div><code>c:rg</code> — colors include r and g; <code>c:c</code> = colorless</div>
-          <div><code>ci:wug</code> — color identity</div>
-          <div><code>cmc&lt;=3</code> · <code>cmc=0</code> · <code>cmc&gt;5</code></div>
-          <div><code>o:"flying"</code> — oracle text</div>
-          <div><code>r:mythic</code> · <code>r:r</code> · <code>r:u</code> · <code>r:c</code></div>
-          <div><code>loc:breya</code> — location contains</div>
-          <div><code>tag:edh</code> — tag contains (use quotes for spaces)</div>
-          <div><code>set:fin</code> · <code>finish:foil</code> · <code>cond:nm</code></div>
-          <div><code>qty&gt;=2</code> · <code>lang:ja</code></div>
-          <div><code>-t:land</code> — negate any clause</div>
-        </div>
-      </div>
-      <select class="filter-select" id="filterSet"><option value="">all sets</option></select>
-      <select class="filter-select" id="filterRarity">
-        <option value="">all rarity</option>
-        <option value="common">common</option>
-        <option value="uncommon">uncommon</option>
-        <option value="rare">rare</option>
-        <option value="mythic">mythic</option>
-      </select>
-      <select class="filter-select" id="filterFoil">
-        <option value="">all finishes</option>
-        <option value="normal">normal</option>
-        <option value="foil">foil</option>
-        <option value="etched">etched</option>
-      </select>
-      <select class="filter-select" id="filterLocation"><option value="">all locations</option></select>
-      <datalist id="locationOptions"></datalist>
-      <select class="filter-select" id="filterTag" title="filter by tag">
-        <option value="">+ tag</option>
-      </select>
-      <select class="filter-select" id="sortBy">
-        <option value="name">sort: name</option>
-        <option value="set">sort: set</option>
-        <option value="price-desc">sort: price ↓</option>
-        <option value="price-asc">sort: price ↑</option>
-        <option value="cmc">sort: mana value</option>
-      </select>
-      <select class="filter-select" id="formatSelect" title="format for legality">
-        <option value="">format: —</option>
-        <option value="commander">format: commander</option>
-        <option value="standard">format: standard</option>
-        <option value="pioneer">format: pioneer</option>
-        <option value="modern">format: modern</option>
-        <option value="legacy">format: legacy</option>
-        <option value="vintage">format: vintage</option>
-        <option value="pauper">format: pauper</option>
-      </select>
-      <button class="toggle-view" id="toggleView">list view</button>
-      <button class="toggle-view" id="deckViewBtn">deck view</button>
-      <button class="toggle-view" id="binderViewBtn">binder view</button>
-      <div class="segmented" id="gridSizeControl" aria-label="grid card size">
-        <button class="segment-btn" type="button" data-grid-size="small">s</button>
-        <button class="segment-btn" type="button" data-grid-size="medium">m</button>
-        <button class="segment-btn" type="button" data-grid-size="large">l</button>
-      </div>
-      <div class="segmented hidden" id="binderSizeControl" aria-label="binder page size">
-        <button class="segment-btn" type="button" data-binder-size="4x3">4×3</button>
-        <button class="segment-btn" type="button" data-binder-size="3x3">3×3</button>
-        <button class="segment-btn" type="button" data-binder-size="2x2">2×2</button>
-      </div>
-      <button class="btn-secondary btn" id="exportCsvBtn">export csv</button>
-      <span class="progress" id="progress"></span>
+  <footer class="app-footer">
+    <div class="app-footer-left">
+      <a href="/">bensonperry.com</a>
     </div>
-    <div class="price-note hidden" id="priceNote">* regular usd shown when exact finish price is unavailable</div>
-
-    <div class="grid" id="grid"></div>
-    <div class="deck-view" id="deckView">
-      <div class="deck-actions">
-        <button class="btn btn-secondary" type="button" id="copyDecklistBtn">copy decklist</button>
-        <label class="deck-group-control" for="deckGroupBy">group by:
-          <select id="deckGroupBy">
-            <option value="type">type</option>
-            <option value="cmc">cmc</option>
-            <option value="color">color</option>
-            <option value="rarity">rarity</option>
-          </select>
-        </label>
-        <span class="deck-summary" id="deckSummary"></span>
-      </div>
-      <div class="deck-view-wrap" id="deckViewWrap">
-        <aside class="deck-preview-panel hidden" id="deckPreviewPanel" role="button" tabindex="0" aria-label="open card detail">
-          <div class="deck-preview-frame">
-            <img class="deck-preview-card hidden" alt="">
-            <div class="deck-preview-placeholder hidden"></div>
-          </div>
-          <div class="drawer-flip-row deck-preview-flip-row hidden"><button type="button" class="flip-btn" id="deckPreviewFlipBtn">flip card</button></div>
-          <div class="deck-preview-name"></div>
-          <div class="deck-preview-meta"></div>
-        </aside>
-        <div class="deck-columns" id="deckColumns"></div>
-      </div>
+    <div class="app-footer-right">
+      <button class="btn btn-secondary" type="button" id="copyDecklistBtn">copy decklist</button>
     </div>
-    <div class="binder-view" id="binderView">
-      <div class="binder-actions">
-        <span class="binder-summary" id="binderSummary"></span>
-      </div>
-      <div class="binder-pages" id="binderPages"></div>
-      <div class="binder-nav hidden" id="binderNav">
-        <button class="btn btn-secondary" type="button" id="binderPrev">← prev</button>
-        <span class="binder-page-indicator" id="binderPageIndicator"></span>
-        <button class="btn btn-secondary" type="button" id="binderNext">next →</button>
-      </div>
-    </div>
-    <div class="list-view" id="listView">
-      <div class="bulk-bar" id="bulkBar" aria-live="polite">
-        <span class="bulk-count" id="bulkCount">0 selected</span>
-        <div class="field">
-          <label for="bulkLocation">location</label>
-          <input id="bulkLocation" type="text" list="locationOptions" placeholder="set...">
-        </div>
-        <div class="field">
-          <label for="bulkCondition">condition</label>
-          <select id="bulkCondition">
-            <option value="">—</option>
-            <option value="near_mint">near mint</option>
-            <option value="lightly_played">lightly played</option>
-            <option value="moderately_played">moderately played</option>
-            <option value="heavily_played">heavily played</option>
-            <option value="damaged">damaged</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="bulkFinish">finish</label>
-          <select id="bulkFinish">
-            <option value="">—</option>
-            <option value="normal">normal</option>
-            <option value="foil">foil</option>
-            <option value="etched">etched</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="bulkLanguage">language</label>
-          <select id="bulkLanguage">
-            <option value="">—</option>
-            <option value="en">english</option>
-            <option value="ja">japanese</option>
-            <option value="de">german</option>
-            <option value="fr">french</option>
-            <option value="it">italian</option>
-            <option value="es">spanish</option>
-            <option value="pt">portuguese</option>
-            <option value="ru">russian</option>
-            <option value="ko">korean</option>
-            <option value="zhs">chinese (simplified)</option>
-            <option value="zht">chinese (traditional)</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="bulkTagAdd">add tag</label>
-          <div class="bulk-tag-row">
-            <input id="bulkTagAdd" type="text" list="bulkTagSuggestions" placeholder="tag...">
-            <button class="btn btn-secondary bulk-tag-btn" type="button" id="bulkTagAddBtn">add</button>
-          </div>
-          <datalist id="bulkTagSuggestions"></datalist>
-        </div>
-        <div class="field">
-          <label for="bulkTagRemove">remove tag</label>
-          <div class="bulk-tag-row">
-            <select id="bulkTagRemove">
-              <option value="">—</option>
-            </select>
-            <button class="btn btn-secondary bulk-tag-btn" type="button" id="bulkTagRemoveBtn">remove</button>
-          </div>
-        </div>
-        <span class="bulk-spacer"></span>
-        <button class="btn btn-danger" type="button" id="bulkDelete">delete</button>
-        <button class="btn btn-secondary" type="button" id="bulkClear">clear</button>
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th class="col-check"><input type="checkbox" class="header-check" id="headerCheck" aria-label="select all visible"></th>
-            <th>name</th>
-            <th>set</th>
-            <th>cn</th>
-            <th>finish</th>
-            <th>rarity</th>
-            <th>cond</th>
-            <th>location</th>
-            <th>qty</th>
-            <th>price</th>
-          </tr>
-        </thead>
-        <tbody id="listBody"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="empty-state" id="emptyState">
-    <p>add a card or import a csv to see your collection</p>
-  </div>
+  </footer>
 </div>
-
-<footer><a href="/">bensonperry.com</a></footer>
 <div id="cardPreview"><img src="" alt=""></div>
 <div id="imageLightbox" class="image-lightbox" aria-hidden="true">
   <button class="lightbox-close" id="lightboxClose" type="button" aria-label="close">×</button>
