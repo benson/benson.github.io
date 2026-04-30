@@ -1,4 +1,4 @@
-import { state, DECK_GROUP_KEY } from './state.js';
+import { state, DECK_GROUP_KEY, BINDER_SIZE_KEY } from './state.js';
 import { esc, showFeedback } from './feedback.js';
 import {
   collectionKey,
@@ -12,8 +12,10 @@ import { openDetail } from './detail.js';
 import { filteredSorted } from './search.js';
 import { renderStatsPanel, groupDeck, firstCardForPanel } from './stats.js';
 import { updateBulkBar } from './bulk.js';
+import { paginateForBinder, sortForBinder, BINDER_SIZES, binderSlotCount } from './binder.js';
 
 const VALID_DECK_GROUPS = ['type', 'cmc', 'color', 'rarity'];
+const VALID_BINDER_SIZES = Object.keys(BINDER_SIZES);
 
 let gridEl, listBodyEl, collectionSection, emptyState, priceNoteEl;
 let cardPreviewEl, cardPreviewImg;
@@ -41,31 +43,47 @@ export function render() {
   priceNoteEl.classList.toggle('hidden', !list.some(c => c.priceFallback));
   renderStatsPanel(list);
   applyGridSize();
+  applyBinderSizeButtons();
 
   const gridContainer = document.getElementById('grid');
   const listContainer = document.getElementById('listView');
   const deckContainer = document.getElementById('deckView');
+  const binderContainer = document.getElementById('binderView');
   const deckBtn = document.getElementById('deckViewBtn');
+  const binderBtn = document.getElementById('binderViewBtn');
+  const toggleBtn = document.getElementById('toggleView');
+  const gridSizeCtl = document.getElementById('gridSizeControl');
+  const binderSizeCtl = document.getElementById('binderSizeControl');
+
+  // Reset chrome
+  gridContainer.classList.add('hidden');
+  listContainer.classList.remove('active');
+  deckContainer.classList.remove('active');
+  binderContainer.classList.remove('active');
+  deckBtn.textContent = 'deck view';
+  binderBtn.textContent = 'binder view';
+  toggleBtn.textContent = 'list view';
+  gridSizeCtl.classList.add('hidden');
+  binderSizeCtl.classList.add('hidden');
+
   if (state.viewMode === 'deck') {
-    gridContainer.classList.add('hidden');
-    listContainer.classList.remove('active');
     deckContainer.classList.add('active');
-    document.getElementById('toggleView').textContent = 'grid view';
+    toggleBtn.textContent = 'grid view';
     deckBtn.textContent = 'exit deck view';
     renderDeckView(list);
+  } else if (state.viewMode === 'binder') {
+    binderContainer.classList.add('active');
+    toggleBtn.textContent = 'grid view';
+    binderBtn.textContent = 'exit binder view';
+    binderSizeCtl.classList.remove('hidden');
+    renderBinderView(list);
   } else if (state.viewMode === 'grid') {
     gridContainer.classList.remove('hidden');
-    listContainer.classList.remove('active');
-    deckContainer.classList.remove('active');
-    document.getElementById('toggleView').textContent = 'list view';
-    deckBtn.textContent = 'deck view';
+    gridSizeCtl.classList.remove('hidden');
     gridEl.innerHTML = list.map(c => renderTile(c)).join('');
   } else {
-    gridContainer.classList.add('hidden');
     listContainer.classList.add('active');
-    deckContainer.classList.remove('active');
-    document.getElementById('toggleView').textContent = 'grid view';
-    deckBtn.textContent = 'deck view';
+    toggleBtn.textContent = 'grid view';
     listBodyEl.innerHTML = list.map(c => renderRow(c)).join('');
   }
   updateBulkBar();
@@ -141,6 +159,24 @@ function renderDeckCard(c, isLast) {
   return `<div class="deck-card detail-trigger${finishClass}${lastClass}" role="button" tabindex="0" data-index="${idx}" aria-label="${esc(name)}">${img}${qty}</div>`;
 }
 
+function renderEmptyScopeState(targetEl, mode) {
+  const label = mode === 'binder' ? 'binder view' : 'deck view';
+  const locations = allCollectionLocations();
+  if (locations.length === 0) {
+    targetEl.innerHTML = `<div class="deck-empty-state">
+      <p class="deck-empty-prompt">${esc(label)} needs a filter — add a location to a card via the drawer, or apply a search query</p>
+    </div>`;
+    return;
+  }
+  const chips = locations.map(loc =>
+    `<button type="button" class="deck-empty-chip" data-loc="${esc(loc)}">${esc(loc)}</button>`
+  ).join('');
+  targetEl.innerHTML = `<div class="deck-empty-state">
+    <p class="deck-empty-prompt">${esc(label)} needs a filter — try <code>loc:breya</code> or pick a location below</p>
+    <div class="deck-empty-chips">${chips}</div>
+  </div>`;
+}
+
 function renderDeckView(list) {
   const deckColumnsEl = document.getElementById('deckColumns');
   const deckActionsEl = document.querySelector('#deckView .deck-actions');
@@ -150,20 +186,7 @@ function renderDeckView(list) {
   if (!searchQuery) {
     if (deckActionsEl) deckActionsEl.classList.add('hidden');
     setDeckPreviewCard(null);
-    const locations = allCollectionLocations();
-    if (locations.length === 0) {
-      deckColumnsEl.innerHTML = `<div class="deck-empty-state">
-        <p class="deck-empty-prompt">deck view needs a filter — add a location to a card via the drawer, or apply a search query</p>
-      </div>`;
-    } else {
-      const chips = locations.map(loc =>
-        `<button type="button" class="deck-empty-chip" data-loc="${esc(loc)}">${esc(loc)}</button>`
-      ).join('');
-      deckColumnsEl.innerHTML = `<div class="deck-empty-state">
-        <p class="deck-empty-prompt">deck view needs a filter — try <code>loc:breya</code> or pick a location below</p>
-        <div class="deck-empty-chips">${chips}</div>
-      </div>`;
-    }
+    renderEmptyScopeState(deckColumnsEl, 'deck');
     document.getElementById('deckSummary').textContent = '';
     return;
   }
@@ -197,6 +220,80 @@ function renderDeckView(list) {
       summary.textContent = total + ' cards · all legal in ' + state.selectedFormat;
     }
   }
+}
+
+function renderBinderSlot(c) {
+  if (!c) {
+    return '<div class="binder-slot binder-slot-empty" aria-hidden="true"></div>';
+  }
+  const name = c.resolvedName || c.name || '?';
+  const idx = state.collection.indexOf(c);
+  const img = c.imageUrl
+    ? `<img src="${esc(c.imageUrl)}" alt="${esc(name)}" loading="lazy">`
+    : `<div class="placeholder">${esc(name)}</div>`;
+  const qty = c.qty > 1 ? `<span class="binder-qty">×${c.qty}</span>` : '';
+  const finishClass = c.finish === 'foil' ? ' is-foil' : c.finish === 'etched' ? ' is-etched' : '';
+  return `<div class="binder-slot detail-trigger${finishClass}" role="button" tabindex="0" data-index="${idx}" aria-label="${esc(name)}">${img}${qty}</div>`;
+}
+
+function renderBinderView(list) {
+  const pagesEl = document.getElementById('binderPages');
+  const navEl = document.getElementById('binderNav');
+  const summaryEl = document.getElementById('binderSummary');
+  const searchInput = document.getElementById('searchInput');
+  const searchQuery = (searchInput && searchInput.value || '').trim();
+
+  if (!searchQuery) {
+    navEl.classList.add('hidden');
+    summaryEl.textContent = '';
+    renderEmptyScopeState(pagesEl, 'binder');
+    return;
+  }
+
+  if (list.length === 0) {
+    navEl.classList.add('hidden');
+    summaryEl.textContent = '';
+    pagesEl.innerHTML = `<div class="deck-empty-state"><p class="deck-empty-prompt">no cards match</p></div>`;
+    return;
+  }
+
+  const slotsPerPage = binderSlotCount(state.binderSize);
+  const sorted = sortForBinder(list);
+  const pages = paginateForBinder(sorted, slotsPerPage);
+  if (state.binderPage >= pages.length) state.binderPage = 0;
+  if (state.binderPage < 0) state.binderPage = 0;
+
+  const conf = BINDER_SIZES[state.binderSize] || BINDER_SIZES['4x3'];
+  const currentPage = pages[state.binderPage] || [];
+  const slotsHtml = currentPage.map(c => renderBinderSlot(c)).join('');
+  pagesEl.innerHTML = `<div class="binder-page" style="grid-template-columns: repeat(${conf.cols}, 1fr);">${slotsHtml}</div>`;
+
+  navEl.classList.remove('hidden');
+  const prevBtn = document.getElementById('binderPrev');
+  const nextBtn = document.getElementById('binderNext');
+  const indicator = document.getElementById('binderPageIndicator');
+  prevBtn.disabled = state.binderPage <= 0;
+  nextBtn.disabled = state.binderPage >= pages.length - 1;
+  indicator.textContent = `page ${state.binderPage + 1} of ${pages.length}`;
+  const total = list.reduce((s, c) => s + (c.qty || 1), 0);
+  summaryEl.textContent = `${total} cards · ${list.length} unique`;
+}
+
+function applyBinderSizeButtons() {
+  document.querySelectorAll('[data-binder-size]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.binderSize === state.binderSize);
+  });
+}
+
+function loadBinderSize() {
+  try {
+    const v = localStorage.getItem(BINDER_SIZE_KEY);
+    if (v && VALID_BINDER_SIZES.includes(v)) state.binderSize = v;
+  } catch (e) {}
+}
+
+function saveBinderSize() {
+  try { localStorage.setItem(BINDER_SIZE_KEY, state.binderSize); } catch (e) {}
 }
 
 function setDeckPreviewCard(c) {
@@ -354,6 +451,82 @@ export function initView() {
     state.viewMode = state.viewMode === 'deck' ? 'grid' : 'deck';
     save();
     render();
+  });
+
+  document.getElementById('binderViewBtn').addEventListener('click', () => {
+    state.viewMode = state.viewMode === 'binder' ? 'grid' : 'binder';
+    state.binderPage = 0;
+    save();
+    render();
+  });
+
+  loadBinderSize();
+  applyBinderSizeButtons();
+  document.getElementById('binderSizeControl').addEventListener('click', e => {
+    const btn = e.target.closest('[data-binder-size]');
+    if (!btn) return;
+    if (!VALID_BINDER_SIZES.includes(btn.dataset.binderSize)) return;
+    state.binderSize = btn.dataset.binderSize;
+    state.binderPage = 0;
+    saveBinderSize();
+    applyBinderSizeButtons();
+    render();
+  });
+
+  document.getElementById('binderPrev').addEventListener('click', () => {
+    if (state.binderPage > 0) {
+      state.binderPage--;
+      render();
+    }
+  });
+  document.getElementById('binderNext').addEventListener('click', () => {
+    state.binderPage++;
+    render();
+  });
+
+  // Binder slot click → open detail drawer; chip click → set search
+  const binderPagesEl = document.getElementById('binderPages');
+  binderPagesEl.addEventListener('click', e => {
+    const chip = e.target.closest('.deck-empty-chip');
+    if (chip) {
+      const loc = chip.dataset.loc || '';
+      const searchInput = document.getElementById('searchInput');
+      searchInput.value = 'loc:' + quoteLocationForSearch(loc);
+      searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+      return;
+    }
+    const slot = e.target.closest('.binder-slot:not(.binder-slot-empty)');
+    if (!slot) return;
+    openDetail(parseInt(slot.dataset.index, 10));
+  });
+  binderPagesEl.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const slot = e.target.closest('.binder-slot:not(.binder-slot-empty)');
+    if (!slot) return;
+    e.preventDefault();
+    openDetail(parseInt(slot.dataset.index, 10));
+  });
+
+  // Keyboard arrow nav for binder pages (only when binder mode and no input focused)
+  document.addEventListener('keydown', e => {
+    if (state.viewMode !== 'binder') return;
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+    if (e.key === 'ArrowLeft') {
+      if (state.binderPage > 0) { state.binderPage--; render(); }
+    } else {
+      state.binderPage++;
+      render();
+    }
+  });
+
+  // Reset binder page on filter/search changes
+  const searchInputForBinder = document.getElementById('searchInput');
+  searchInputForBinder.addEventListener('input', () => { state.binderPage = 0; });
+  ['filterSet', 'filterRarity', 'filterFoil', 'filterLocation', 'filterTag', 'sortBy'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', () => { state.binderPage = 0; });
   });
 
   loadDeckGroup();

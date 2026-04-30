@@ -9,8 +9,11 @@ export const state = {
   detailIndex: -1,
   lastSnapshot: null,
   deckGroupBy: 'type',
+  binderSize: '4x3',
+  binderPage: 0,
 };
 
 export const STORAGE_KEY = 'mtgcollection_v1';
 export const DECK_GROUP_KEY = 'mtgcollection_deck_group_v1';
+export const BINDER_SIZE_KEY = 'mtgcollection_binder_size_v1';
 export const SCRYFALL_API = 'https://api.scryfall.com';

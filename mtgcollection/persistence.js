@@ -1,4 +1,5 @@
-import { state, STORAGE_KEY } from './state.js';
+import { state, STORAGE_KEY, BINDER_SIZE_KEY } from './state.js';
+import { BINDER_SIZES } from './binder.js';
 import { coalesceCollection, normalizeLocation } from './collection.js';
 import { showFeedback } from './feedback.js';
 import { populateFilters } from './detail.js';
@@ -32,6 +33,10 @@ export function loadFromStorage() {
       state.viewMode = data.viewMode || 'grid';
       state.gridSize = ['small', 'medium', 'large'].includes(data.gridSize) ? data.gridSize : 'medium';
       state.selectedFormat = typeof data.selectedFormat === 'string' ? data.selectedFormat : '';
+      try {
+        const v = localStorage.getItem(BINDER_SIZE_KEY);
+        if (v && Object.prototype.hasOwnProperty.call(BINDER_SIZES, v)) state.binderSize = v;
+      } catch (e) {}
       return true;
     }
   } catch (e) {}

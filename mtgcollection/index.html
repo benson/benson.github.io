@@ -668,6 +668,109 @@
     outline: none;
   }
 
+  /* Binder view — paginated card slots, IRL binder mental model */
+  .binder-view { display: none; }
+  .binder-view.active { display: block; }
+  .binder-actions {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 14px;
+    align-items: center;
+    flex-wrap: wrap;
+    min-height: 18px;
+  }
+  .binder-summary { font-size: 0.75rem; color: #666; margin-left: auto; }
+  .binder-pages {
+    background: #f1ede4;
+    border: 1px solid #d8d2c4;
+    border-radius: 6px;
+    padding: 18px;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .binder-page {
+    display: grid;
+    gap: 14px;
+  }
+  .binder-slot {
+    position: relative;
+    aspect-ratio: 488 / 680;
+    border-radius: 6%;
+    overflow: hidden;
+    cursor: pointer;
+    background: #e8e4d8;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.18), 0 1px 2px rgba(0,0,0,0.08);
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+  .binder-slot:hover, .binder-slot:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.18), 0 4px 10px rgba(0,0,0,0.15);
+  }
+  .binder-slot:focus-visible { outline: 2px solid #000; outline-offset: 2px; }
+  .binder-slot img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .binder-slot .placeholder {
+    display: flex; align-items: center; justify-content: center;
+    height: 100%; padding: 8px; text-align: center;
+    font-size: 0.7rem; color: #999; text-transform: none;
+  }
+  .binder-slot.is-foil::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    background: linear-gradient(
+      110deg,
+      transparent 25%,
+      rgba(255, 90, 180, 0.22) 42%,
+      rgba(120, 200, 255, 0.22) 50%,
+      rgba(140, 255, 110, 0.22) 58%,
+      transparent 75%
+    );
+  }
+  .binder-slot.is-etched::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    background: linear-gradient(110deg, transparent 30%, rgba(180, 80, 220, 0.28) 50%, transparent 70%);
+  }
+  .binder-slot-empty {
+    cursor: default;
+    background: transparent;
+    box-shadow: none;
+    border: 1px dashed #c8c1ad;
+  }
+  .binder-slot-empty:hover { transform: none; box-shadow: none; }
+  .binder-qty {
+    position: absolute;
+    top: 4px; right: 4px;
+    background: rgba(0,0,0,0.8);
+    color: #fff;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 2px;
+    backdrop-filter: blur(4px);
+    z-index: 3;
+  }
+  .binder-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-top: 14px;
+  }
+  .binder-nav.hidden { display: none; }
+  .binder-page-indicator {
+    font-size: 0.8rem;
+    color: #666;
+    min-width: 110px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+
+  #gridSizeControl.hidden, #binderSizeControl.hidden { display: none; }
+
   /* Table view (compact) */
   .list-view { display: none; }
   .list-view.active { display: block; }
@@ -1638,10 +1741,16 @@
       </select>
       <button class="toggle-view" id="toggleView">list view</button>
       <button class="toggle-view" id="deckViewBtn">deck view</button>
+      <button class="toggle-view" id="binderViewBtn">binder view</button>
       <div class="segmented" id="gridSizeControl" aria-label="grid card size">
         <button class="segment-btn" type="button" data-grid-size="small">s</button>
         <button class="segment-btn" type="button" data-grid-size="medium">m</button>
         <button class="segment-btn" type="button" data-grid-size="large">l</button>
+      </div>
+      <div class="segmented hidden" id="binderSizeControl" aria-label="binder page size">
+        <button class="segment-btn" type="button" data-binder-size="4x3">4×3</button>
+        <button class="segment-btn" type="button" data-binder-size="3x3">3×3</button>
+        <button class="segment-btn" type="button" data-binder-size="2x2">2×2</button>
       </div>
       <button class="btn-secondary btn" id="exportCsvBtn">export csv</button>
       <span class="progress" id="progress"></span>
@@ -1673,6 +1782,17 @@
           <div class="deck-preview-meta"></div>
         </aside>
         <div class="deck-columns" id="deckColumns"></div>
+      </div>
+    </div>
+    <div class="binder-view" id="binderView">
+      <div class="binder-actions">
+        <span class="binder-summary" id="binderSummary"></span>
+      </div>
+      <div class="binder-pages" id="binderPages"></div>
+      <div class="binder-nav hidden" id="binderNav">
+        <button class="btn btn-secondary" type="button" id="binderPrev">← prev</button>
+        <span class="binder-page-indicator" id="binderPageIndicator"></span>
+        <button class="btn btn-secondary" type="button" id="binderNext">next →</button>
       </div>
     </div>
     <div class="list-view" id="listView">
