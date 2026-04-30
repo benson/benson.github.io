@@ -61,7 +61,9 @@ async function boot() {
   }
   populateFilters();
   render();
-  if (state.collection.length > 0) {
+  if (state.collection.length === 0) {
+    document.getElementById('addDetails').open = true;
+  } else {
     document.getElementById('importDetails').open = false;
   }
   applyUrlStateOnLoad();
