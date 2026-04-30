@@ -101,6 +101,19 @@ export function allCollectionTags() {
   return Array.from(set).sort();
 }
 
+export function allCollectionLocations(collection = state.collection) {
+  const set = new Set();
+  for (const c of collection) {
+    const loc = normalizeLocation(c.location);
+    if (loc) set.add(loc);
+  }
+  return Array.from(set).sort();
+}
+
+export function quoteLocationForSearch(loc) {
+  return /\s/.test(loc) ? `"${loc}"` : loc;
+}
+
 // ---- Pricing ----
 export function getUsdPrice(card, finish) {
   const prices = card?.prices || {};

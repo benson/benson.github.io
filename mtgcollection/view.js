@@ -4,6 +4,8 @@ import {
   collectionKey,
   normalizeLocation,
   biggerImageUrl,
+  allCollectionLocations,
+  quoteLocationForSearch,
 } from './collection.js';
 import { save, commitCollectionChange } from './persistence.js';
 import { openDetail } from './detail.js';
@@ -140,8 +142,34 @@ function renderDeckCard(c, isLast) {
 }
 
 function renderDeckView(list) {
-  const cols = groupDeck(list, state.deckGroupBy);
   const deckColumnsEl = document.getElementById('deckColumns');
+  const deckActionsEl = document.querySelector('#deckView .deck-actions');
+  const searchInput = document.getElementById('searchInput');
+  const searchQuery = (searchInput && searchInput.value || '').trim();
+
+  if (!searchQuery) {
+    if (deckActionsEl) deckActionsEl.classList.add('hidden');
+    const locations = allCollectionLocations();
+    if (locations.length === 0) {
+      deckColumnsEl.innerHTML = `<div class="deck-empty-state">
+        <p class="deck-empty-prompt">deck view needs a filter — add a location to a card via the drawer, or apply a search query</p>
+      </div>`;
+    } else {
+      const chips = locations.map(loc =>
+        `<button type="button" class="deck-empty-chip" data-loc="${esc(loc)}">${esc(loc)}</button>`
+      ).join('');
+      deckColumnsEl.innerHTML = `<div class="deck-empty-state">
+        <p class="deck-empty-prompt">deck view needs a filter — try <code>loc:breya</code> or pick a location below</p>
+        <div class="deck-empty-chips">${chips}</div>
+      </div>`;
+    }
+    document.getElementById('deckSummary').textContent = '';
+    return;
+  }
+
+  if (deckActionsEl) deckActionsEl.classList.remove('hidden');
+
+  const cols = groupDeck(list, state.deckGroupBy);
   if (cols.length === 0) {
     deckColumnsEl.innerHTML = '';
   } else {
@@ -285,6 +313,14 @@ export function initView() {
   }
 
   document.getElementById('deckColumns').addEventListener('click', e => {
+    const chip = e.target.closest('.deck-empty-chip');
+    if (chip) {
+      const loc = chip.dataset.loc || '';
+      const searchInput = document.getElementById('searchInput');
+      searchInput.value = 'loc:' + quoteLocationForSearch(loc);
+      searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+      return;
+    }
     const card = e.target.closest('.deck-card');
     if (!card) return;
     openDetail(parseInt(card.dataset.index, 10));
