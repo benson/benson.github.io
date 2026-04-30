@@ -205,3 +205,18 @@ test('parseDecklist: cn with star/letter suffix (PNPH 42★)', () => {
   assert.equal(entries[0].cn, '42★');
   assert.equal(entries[0].finish, 'foil');
 });
+
+// ---- Tags column ----
+
+test('mapHeaders: Tags column resolves to "tags"', () => {
+  assert.equal(mapHeaders(['Tags'])['tags'], 0);
+  assert.equal(mapHeaders(['tags'])['tags'], 0);
+});
+
+test('parseCsv: row with Tags cell containing pipes', () => {
+  const csv = 'Quantity,Name,Set code,Collector number,Foil,Quantity,Condition,Location,Tags\n' +
+              '1,Sol Ring,sld,1011,foil,1,near_mint,binder a,edh staple|trade pile';
+  const out = parseCsv(csv);
+  assert.equal(out.length, 2);
+  assert.equal(out[1][8], 'edh staple|trade pile');
+});

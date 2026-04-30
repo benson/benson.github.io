@@ -6,6 +6,7 @@ import {
   normalizeFinish,
   normalizeCondition,
   normalizeLanguage,
+  normalizeTag,
   getUsdPrice,
   getCardImageUrl,
   getCardBackImageUrl,
@@ -159,6 +160,7 @@ export const ALIASES = {
   scryfallId: ['scryfall id', 'scryfall_id', 'scryfallid'],
   rarity:     ['rarity'],
   price:      ['purchase price', 'price', 'tcg market price'],
+  tags:       ['tags'],
 };
 
 export function mapHeaders(headerRow) {
@@ -298,7 +300,7 @@ async function importEntries(imported, options = {}) {
   }
 }
 
-async function importCsv(text) {
+export async function importCsv(text) {
   const rows = parseCsv(text);
   if (rows.length < 2) {
     showFeedback('csv looks empty', 'error');
@@ -330,6 +332,7 @@ async function importCsv(text) {
       scryfallId: get('scryfallId'),
       rarity: get('rarity').toLowerCase(),
       price: parseFloat(get('price')) || null,
+      tags: parseTagsCell(get('tags')),
     });
     if (!entry.name && !entry.scryfallId && !(entry.setCode && entry.cn)) continue;
     imported.push(entry);
@@ -341,6 +344,25 @@ async function importCsv(text) {
   }
 
   await importEntries(imported, { label: 'rows' });
+}
+
+// ---- Tags CSV cell helpers ----
+// Pipe-delimited; literal '|' inside a tag is escaped as '\|'.
+function parseTagsCell(cell) {
+  if (!cell) return [];
+  // Split on '|' that isn't preceded by a backslash. Use a placeholder for escaped pipes.
+  const PLACEHOLDER = String.fromCharCode(0);
+  const protectedStr = cell.replace(/\\\|/g, PLACEHOLDER);
+  return protectedStr
+    .split('|')
+    .map(s => s.split(PLACEHOLDER).join('|'))
+    .map(s => normalizeTag(s))
+    .filter(Boolean);
+}
+
+function serializeTagsCell(tags) {
+  if (!Array.isArray(tags) || tags.length === 0) return '';
+  return tags.map(t => String(t).replace(/\|/g, '\\|')).join('|');
 }
 
 // ---- Import triggers ----
@@ -402,7 +424,7 @@ function clearCollection() {
 function exportCsv() {
   if (state.collection.length === 0) return;
   const list = filteredSorted();
-  const header = 'Name,Set code,Set name,Collector number,Foil,Rarity,Quantity,Scryfall ID,Condition,Language,Location,Purchase price,Purchase price currency,Purchase price note';
+  const header = 'Name,Set code,Set name,Collector number,Foil,Rarity,Quantity,Scryfall ID,Condition,Language,Location,Purchase price,Purchase price currency,Purchase price note,Tags';
   const q = (v) => {
     const s = v == null ? '' : String(v);
     return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
@@ -422,6 +444,7 @@ function exportCsv() {
     q(c.price ?? ''),
     q(c.price ? 'USD' : ''),
     q(c.priceFallback ? 'regular usd fallback; exact finish price unavailable' : ''),
+    q(serializeTagsCell(c.tags)),
   ].join(','));
   const csv = header + '\n' + rows.join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });

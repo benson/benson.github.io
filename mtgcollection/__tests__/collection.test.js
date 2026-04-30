@@ -5,9 +5,12 @@ import {
   normalizeCondition,
   normalizeLocation,
   normalizeLanguage,
+  normalizeTag,
+  normalizeTags,
   makeEntry,
   collectionKey,
   coalesceCollection,
+  allCollectionTags,
   getUsdPrice,
   biggerImageUrl,
 } from '../collection.js';
@@ -256,4 +259,101 @@ test('biggerImageUrl: passes through urls without /normal/', () => {
 test('biggerImageUrl: null/empty pass through', () => {
   assert.equal(biggerImageUrl(null), null);
   assert.equal(biggerImageUrl(''), '');
+});
+
+// ---- normalizeTag ----
+
+test('normalizeTag: lowercases, trims, collapses internal whitespace', () => {
+  assert.equal(normalizeTag('EDH Staple'), 'edh staple');
+  assert.equal(normalizeTag('  Trade Pile  '), 'trade pile');
+  assert.equal(normalizeTag('foo   bar\t\tbaz'), 'foo bar baz');
+});
+
+test('normalizeTag: empty / whitespace-only / null / undefined return empty string', () => {
+  assert.equal(normalizeTag(''), '');
+  assert.equal(normalizeTag('   '), '');
+  assert.equal(normalizeTag(null), '');
+  assert.equal(normalizeTag(undefined), '');
+});
+
+test('normalizeTag: coerces non-string', () => {
+  assert.equal(normalizeTag(42), '42');
+});
+
+// ---- normalizeTags ----
+
+test('normalizeTags: dedupes across whitespace + casing variants', () => {
+  const out = normalizeTags(['EDH Staple', 'edh staple', '  EDH   Staple ']);
+  assert.deepEqual(out, ['edh staple']);
+});
+
+test('normalizeTags: drops empties', () => {
+  const out = normalizeTags(['', '   ', 'foo', null, undefined, 'foo']);
+  assert.deepEqual(out, ['foo']);
+});
+
+test('normalizeTags: accepts undefined', () => {
+  assert.deepEqual(normalizeTags(undefined), []);
+  assert.deepEqual(normalizeTags(null), []);
+});
+
+test('normalizeTags: preserves order of first occurrence', () => {
+  const out = normalizeTags(['b', 'a', 'B', 'A']);
+  assert.deepEqual(out, ['b', 'a']);
+});
+
+// ---- makeEntry tags ----
+
+test('makeEntry: tags are normalized and deduped', () => {
+  const e = makeEntry({ tags: ['EDH Staple', 'edh staple', '  Trade Pile '] });
+  assert.deepEqual([...e.tags].sort(), ['edh staple', 'trade pile']);
+});
+
+test('makeEntry: missing tags defaults to empty array', () => {
+  const e = makeEntry({});
+  assert.deepEqual(e.tags, []);
+  assert.ok(Array.isArray(e.tags));
+});
+
+// ---- collectionKey ignores tags ----
+
+test('collectionKey: ignores tags', () => {
+  const a = { scryfallId: 'abc', finish: 'normal', condition: 'near_mint', language: 'en', location: '', tags: ['x'] };
+  const b = { ...a, tags: ['y', 'z'] };
+  assert.equal(collectionKey(a), collectionKey(b));
+});
+
+// ---- coalesceCollection unions tags ----
+
+test('coalesceCollection: unions tags when collapsing duplicates', () => {
+  state.collection = [];
+  const base = { scryfallId: 'abc', finish: 'normal', condition: 'near_mint', language: 'en', location: '', name: 'Sol Ring', setCode: 'cmm', cn: '410' };
+  state.collection = [
+    { ...base, qty: 2, tags: ['edh staple', 'shared'] },
+    { ...base, qty: 3, tags: ['trade pile', 'shared'] },
+  ];
+  coalesceCollection();
+  assert.equal(state.collection.length, 1);
+  assert.equal(state.collection[0].qty, 5);
+  assert.deepEqual([...state.collection[0].tags].sort(), ['edh staple', 'shared', 'trade pile']);
+  state.collection = [];
+});
+
+// ---- allCollectionTags ----
+
+test('allCollectionTags: returns sorted unique tags across state.collection', () => {
+  state.collection = [];
+  state.collection = [
+    { tags: ['zebra', 'apple'] },
+    { tags: ['mango', 'apple'] },
+    { tags: [] },
+    { tags: undefined },
+  ];
+  assert.deepEqual(allCollectionTags(), ['apple', 'mango', 'zebra']);
+  state.collection = [];
+});
+
+test('allCollectionTags: empty state returns empty array', () => {
+  state.collection = [];
+  assert.deepEqual(allCollectionTags(), []);
 });

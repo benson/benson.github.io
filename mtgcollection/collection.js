@@ -29,6 +29,21 @@ export function normalizeLanguage(raw) {
   return String(raw || 'en').trim().toLowerCase() || 'en';
 }
 
+export function normalizeTag(raw) {
+  if (raw == null) return '';
+  return String(raw).trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+export function normalizeTags(rawList) {
+  if (!rawList) return [];
+  const out = new Set();
+  for (const raw of rawList) {
+    const t = normalizeTag(raw);
+    if (t) out.add(t);
+  }
+  return Array.from(out);
+}
+
 // ---- Entry shape ----
 export function makeEntry(data) {
   return {
@@ -45,6 +60,7 @@ export function makeEntry(data) {
     rarity: (data.rarity || '').toLowerCase(),
     price: parseFloat(data.price) || null,
     priceFallback: Boolean(data.priceFallback),
+    tags: normalizeTags(data.tags),
     imageUrl: null,
     cmc: null,
     colors: null,
@@ -64,12 +80,25 @@ export function coalesceCollection() {
   for (const c of state.collection) {
     const k = collectionKey(c);
     if (byKey.has(k)) {
-      byKey.get(k).qty += c.qty;
+      const survivor = byKey.get(k);
+      survivor.qty += c.qty;
+      survivor.tags = normalizeTags([...(survivor.tags || []), ...(c.tags || [])]);
     } else {
       byKey.set(k, c);
     }
   }
   state.collection = Array.from(byKey.values());
+}
+
+export function allCollectionTags() {
+  const set = new Set();
+  for (const c of state.collection) {
+    if (!Array.isArray(c.tags)) continue;
+    for (const t of c.tags) {
+      if (t) set.add(t);
+    }
+  }
+  return Array.from(set).sort();
 }
 
 // ---- Pricing ----
