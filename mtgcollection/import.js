@@ -280,18 +280,7 @@ async function importEntries(imported, options = {}) {
 
   await resolveCards(imported);
 
-  // Merge with existing collection — dedupe by key
-  const byKey = new Map();
-  for (const c of state.collection) byKey.set(collectionKey(c), c);
-  for (const c of imported) {
-    const k = collectionKey(c);
-    if (byKey.has(k)) {
-      byKey.get(k).qty += c.qty;
-    } else {
-      byKey.set(k, c);
-    }
-  }
-  state.collection = Array.from(byKey.values());
+  state.collection = mergeIntoCollection(state.collection, imported);
   commitCollectionChange();
   const resolved = imported.filter(c => c.imageUrl).length;
   if (!silent) {
@@ -346,23 +335,59 @@ export async function importCsv(text) {
   await importEntries(imported, { label: 'rows' });
 }
 
-// ---- Tags CSV cell helpers ----
-// Pipe-delimited; literal '|' inside a tag is escaped as '\|'.
-function parseTagsCell(cell) {
-  if (!cell) return [];
-  // Split on '|' that isn't preceded by a backslash. Use a placeholder for escaped pipes.
-  const PLACEHOLDER = String.fromCharCode(0);
-  const protectedStr = cell.replace(/\\\|/g, PLACEHOLDER);
-  return protectedStr
-    .split('|')
-    .map(s => s.split(PLACEHOLDER).join('|'))
-    .map(s => normalizeTag(s))
-    .filter(Boolean);
+// ---- Merge import into existing collection ----
+// Pure: takes (existing, imported) → new collection. Dedupes by collectionKey,
+// sums qty on collisions, unions tags on collisions.
+export function mergeIntoCollection(existing, imported) {
+  const byKey = new Map();
+  for (const c of existing) byKey.set(collectionKey(c), c);
+  for (const c of imported) {
+    const k = collectionKey(c);
+    if (byKey.has(k)) {
+      const e = byKey.get(k);
+      e.qty += c.qty;
+      e.tags = [...new Set([...(e.tags || []), ...(c.tags || [])])];
+    } else {
+      byKey.set(k, c);
+    }
+  }
+  return Array.from(byKey.values());
 }
 
-function serializeTagsCell(tags) {
+// ---- Tags CSV cell helpers ----
+// Pipe-delimited. Inside a tag, '\' escapes itself ('\\') and '|' ('\|').
+// Walk char-by-char so escapes can't be ambiguated by a tag literally
+// ending in backslash (the bug was: ['foo\\', 'bar'] would naively
+// serialize as 'foo\|bar' and round-trip back as the single tag 'foo|bar').
+export function parseTagsCell(cell) {
+  if (!cell) return [];
+  const tags = [];
+  let cur = '';
+  for (let i = 0; i < cell.length; i++) {
+    const ch = cell[i];
+    if (ch === '\\' && i + 1 < cell.length) {
+      const next = cell[i + 1];
+      if (next === '\\' || next === '|') {
+        cur += next;
+        i++;
+        continue;
+      }
+    }
+    if (ch === '|') {
+      tags.push(cur);
+      cur = '';
+    } else {
+      cur += ch;
+    }
+  }
+  tags.push(cur);
+  return tags.map(s => normalizeTag(s)).filter(Boolean);
+}
+
+export function serializeTagsCell(tags) {
   if (!Array.isArray(tags) || tags.length === 0) return '';
-  return tags.map(t => String(t).replace(/\|/g, '\\|')).join('|');
+  // Escape '\' first, then '|'. Order matters.
+  return tags.map(t => String(t).replace(/\\/g, '\\\\').replace(/\|/g, '\\|')).join('|');
 }
 
 // ---- Import triggers ----
