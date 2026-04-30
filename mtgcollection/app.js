@@ -15,7 +15,6 @@ import { initAdd } from './add.js';
 import { initDetail, populateFilters, renderDetailLegality } from './detail.js';
 import {
   initImport,
-  loadBreyaDeck,
   exportCsv,
   backfillMissingPrices,
   lazyBackfillSearchFields,
@@ -59,16 +58,12 @@ async function boot() {
   // Boot the collection
   const hasSavedCollection = loadFromStorage();
   formatSelectEl.value = state.selectedFormat;
-  if (!hasSavedCollection) {
-    showFeedback('<span class="loading-spinner"></span> loading breya deck...', 'info');
-    await loadBreyaDeck({ replace: true, silent: true });
-    hideFeedback();
-  } else {
+  if (hasSavedCollection) {
     migrateSavedCollection();
     await backfillMissingPrices();
-    populateFilters();
-    render();
   }
+  populateFilters();
+  render();
   if (state.collection.length > 0) {
     document.getElementById('importDetails').open = false;
   }
