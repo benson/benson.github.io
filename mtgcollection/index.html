@@ -447,6 +447,9 @@
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 18px 14px;
   }
+  .deck-columns.grid-small  { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 14px 10px; }
+  .deck-columns.grid-medium { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 18px 14px; }
+  .deck-columns.grid-large  { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 22px 18px; }
   .deck-col-header {
     font-size: 0.75rem;
     color: #999;
@@ -1244,6 +1247,8 @@
     .main { padding: 10px 15px 40px; }
     .grid, .grid.grid-small, .grid.grid-medium { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 6px; }
     .grid.grid-large { grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 8px; }
+    .deck-columns, .deck-columns.grid-small, .deck-columns.grid-medium { grid-template-columns: repeat(auto-fit, minmax(95px, 1fr)); gap: 10px 6px; }
+    .deck-columns.grid-large { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px 8px; }
     .controls .search-input { width: 100%; max-width: none; flex-basis: 100%; }
     .stats { gap: 14px; }
     .stat-value { font-size: 1.1rem; }

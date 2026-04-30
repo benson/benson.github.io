@@ -68,8 +68,13 @@ export function render() {
 }
 
 export function applyGridSize() {
-  gridEl.classList.remove('grid-small', 'grid-medium', 'grid-large');
-  gridEl.classList.add('grid-' + state.gridSize);
+  const sizeClass = 'grid-' + state.gridSize;
+  const deckColumnsEl = document.getElementById('deckColumns');
+  for (const el of [gridEl, deckColumnsEl]) {
+    if (!el) continue;
+    el.classList.remove('grid-small', 'grid-medium', 'grid-large');
+    el.classList.add(sizeClass);
+  }
   document.querySelectorAll('[data-grid-size]').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.gridSize === state.gridSize);
   });
