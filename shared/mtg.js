@@ -574,7 +574,11 @@ function hashDate(dateStr) {
 
 // ============ Sets Loading ============
 
-const SETS_URL = 'https://bensonperry.com/shared/sets.json';
+// Portable: resolves relative to wherever this module was loaded from,
+// so same-origin imports (../shared/mtg.js) and cross-origin imports
+// (https://bensonperry.com/shared/mtg.js, used by sibling repos like
+// poolbuilder/packcracker) both fetch the right sets.json.
+const SETS_URL = new URL('sets.json', import.meta.url).href;
 const BOOSTER_DATA_URL = 'https://bensonperry.com/booster-data';
 
 let boosterIndexCache = null;

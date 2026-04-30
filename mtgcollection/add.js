@@ -3,7 +3,7 @@ import {
   fetchCardByCollectorNumber,
   fetchCardByName,
   getCardFinishes,
-} from 'https://bensonperry.com/shared/mtg.js';
+} from '../shared/mtg.js';
 import { state, SCRYFALL_API } from './state.js';
 import { esc, showFeedback, hideFeedback } from './feedback.js';
 import {
