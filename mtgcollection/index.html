@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>mtg collection</title>
 <meta name="description" content="browse an mtg collection from any csv export">
-<link rel="stylesheet" href="https://bensonperry.com/shared/common.css">
+<link rel="stylesheet" href="../shared/common.css">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -1279,9 +1279,9 @@
       <textarea class="paste-area" id="pasteArea" placeholder="...or paste csv here"></textarea>
 
       <div class="import-actions">
-        <button class="btn" onclick="importFromPaste()">import pasted</button>
-        <button class="btn btn-secondary" onclick="loadBreyaDeck()">load breya deck</button>
-        <button class="btn btn-secondary" onclick="loadSample()">load sample</button>
+        <button class="btn" id="importPastedBtn">import pasted</button>
+        <button class="btn btn-secondary" id="loadBreyaBtn">load breya deck</button>
+        <button class="btn btn-secondary" id="loadSampleBtn">load sample</button>
       </div>
 
       <div class="format-note">
@@ -1289,7 +1289,7 @@
       </div>
 
       <div class="danger-zone">
-        <button class="danger-link" type="button" onclick="clearCollection()">delete entire collection</button>
+        <button class="danger-link" type="button" id="deleteAllBtn">delete entire collection</button>
       </div>
     </div>
   </details>
@@ -1386,7 +1386,7 @@
         <button class="segment-btn" type="button" data-grid-size="medium">m</button>
         <button class="segment-btn" type="button" data-grid-size="large">l</button>
       </div>
-      <button class="btn-secondary btn" onclick="exportCsv()">export csv</button>
+      <button class="btn-secondary btn" id="exportCsvBtn">export csv</button>
       <span class="progress" id="progress"></span>
     </div>
     <div class="price-note hidden" id="priceNote">* regular usd shown when exact finish price is unavailable</div>

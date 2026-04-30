@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { normalizeLocation } from './app.js';
+import { normalizeLocation } from './collection.js';
 import { render } from './view.js';
 
 const SEARCH_FIELD_ALIASES = {
