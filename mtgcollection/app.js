@@ -1,13 +1,6 @@
 import { state } from './state.js';
-import { initFeedback, showFeedback, hideFeedback, getFeedbackEl } from './feedback.js';
-import {
-  save,
-  loadFromStorage,
-  migrateSavedCollection,
-  bumpBackupCounter,
-  resetBackupCounter,
-  maybeShowBackupNag,
-} from './persistence.js';
+import { initFeedback } from './feedback.js';
+import { save, loadFromStorage, migrateSavedCollection } from './persistence.js';
 import { initSearch, applyUrlStateOnLoad } from './search.js';
 import { render, initView } from './view.js';
 import { initBulk } from './bulk.js';
@@ -47,19 +40,7 @@ async function boot() {
   });
   updateFooter();
 
-  // Backup nag actions
-  getFeedbackEl().addEventListener('click', e => {
-    const btn = e.target.closest('[data-backup-action]');
-    if (!btn) return;
-    if (btn.dataset.backupAction === 'export') {
-      exportCsv();
-      resetBackupCounter();
-      hideFeedback();
-    } else if (btn.dataset.backupAction === 'dismiss') {
-      resetBackupCounter();
-      hideFeedback();
-    }
-  });
+  document.getElementById('footerExportBtn').addEventListener('click', () => exportCsv());
 
   // Boot the collection
   const hasSavedCollection = loadFromStorage();
@@ -75,8 +56,6 @@ async function boot() {
     document.getElementById('importDetails').open = false;
   }
   applyUrlStateOnLoad();
-  const loadCount = bumpBackupCounter();
-  if (hasSavedCollection) maybeShowBackupNag(loadCount);
   lazyBackfillSearchFields();
 }
 

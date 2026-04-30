@@ -25,6 +25,9 @@ let lightboxBack = null;
 let lightboxShowingBack = false;
 
 export function render() {
+  document.querySelectorAll('.app-header-views .toggle-view').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.view === state.viewMode);
+  });
   if (state.collection.length === 0) {
     collectionSection.classList.add('hidden');
     emptyState.classList.remove('hidden');
@@ -49,9 +52,6 @@ export function render() {
   const listContainer = document.getElementById('listView');
   const deckContainer = document.getElementById('deckView');
   const binderContainer = document.getElementById('binderView');
-  const deckBtn = document.getElementById('deckViewBtn');
-  const binderBtn = document.getElementById('binderViewBtn');
-  const toggleBtn = document.getElementById('toggleView');
   const gridSizeCtl = document.getElementById('gridSizeControl');
   const binderSizeCtl = document.getElementById('binderSizeControl');
 
@@ -60,21 +60,14 @@ export function render() {
   listContainer.classList.remove('active');
   deckContainer.classList.remove('active');
   binderContainer.classList.remove('active');
-  deckBtn.textContent = 'deck view';
-  binderBtn.textContent = 'binder view';
-  toggleBtn.textContent = 'list view';
   gridSizeCtl.classList.add('hidden');
   binderSizeCtl.classList.add('hidden');
 
   if (state.viewMode === 'deck') {
     deckContainer.classList.add('active');
-    toggleBtn.textContent = 'grid view';
-    deckBtn.textContent = 'exit deck view';
     renderDeckView(list);
   } else if (state.viewMode === 'binder') {
     binderContainer.classList.add('active');
-    toggleBtn.textContent = 'grid view';
-    binderBtn.textContent = 'exit binder view';
     binderSizeCtl.classList.remove('hidden');
     renderBinderView(list);
   } else if (state.viewMode === 'grid') {
@@ -83,7 +76,6 @@ export function render() {
     gridEl.innerHTML = list.map(c => renderTile(c)).join('');
   } else {
     listContainer.classList.add('active');
-    toggleBtn.textContent = 'grid view';
     listBodyEl.innerHTML = list.map(c => renderRow(c)).join('');
   }
   updateBulkBar();
@@ -447,15 +439,14 @@ export function initView() {
     }
   });
 
-  document.getElementById('deckViewBtn').addEventListener('click', () => {
-    state.viewMode = state.viewMode === 'deck' ? 'grid' : 'deck';
-    save();
-    render();
-  });
-
-  document.getElementById('binderViewBtn').addEventListener('click', () => {
-    state.viewMode = state.viewMode === 'binder' ? 'grid' : 'binder';
-    state.binderPage = 0;
+  document.querySelector('.app-header-views').addEventListener('click', e => {
+    const btn = e.target.closest('[data-view]');
+    if (!btn) return;
+    const next = btn.dataset.view;
+    if (!['list', 'grid', 'deck', 'binder'].includes(next)) return;
+    if (state.viewMode === next) return;
+    state.viewMode = next;
+    if (next === 'binder') state.binderPage = 0;
     save();
     render();
   });
@@ -605,12 +596,6 @@ export function initView() {
       });
     }
   }
-
-  document.getElementById('toggleView').addEventListener('click', () => {
-    state.viewMode = state.viewMode === 'list' ? 'grid' : 'list';
-    save();
-    render();
-  });
 
   document.getElementById('gridSizeControl').addEventListener('click', e => {
     const btn = e.target.closest('[data-grid-size]');

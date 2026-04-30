@@ -38,7 +38,7 @@ export function populateFilters() {
   const tags = allCollectionTags();
   const tagSelect = document.getElementById('filterTag');
   const currentTagValue = tagSelect.value;
-  tagSelect.innerHTML = '<option value="">+ tag</option>' +
+  tagSelect.innerHTML = '<option value="">filter by tag</option>' +
     tags.map(t => '<option value="' + esc(t) + '">' + esc(t) + '</option>').join('');
   tagSelect.value = currentTagValue;
 }

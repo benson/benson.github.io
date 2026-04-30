@@ -208,9 +208,13 @@
     border-bottom: 1px solid #ddd;
   }
   .app-footer a:hover { color: #000; border-bottom-color: #000; }
+  .app-footer-left { display: flex; align-items: center; gap: 10px; }
+  .app-footer-right { display: flex; align-items: center; gap: 12px; }
   .app-footer-right .btn { padding: 5px 12px; font-size: 0.75rem; }
-  .app-footer-right { display: none; }
-  .app-footer.format-active .app-footer-right { display: flex; gap: 8px; align-items: center; }
+  .app-footer-right #copyDecklistBtn { display: none; }
+  .app-footer.format-active .app-footer-right #copyDecklistBtn { display: inline-flex; }
+  .footer-storage-nag { color: #999; font-size: 0.7rem; letter-spacing: 0.02em; }
+  .footer-export-btn.btn { padding: 4px 10px; font-size: 0.7rem; }
 
   .btn {
     padding: 8px 16px;
@@ -1813,9 +1817,10 @@
       <span><span class="stat-label">usd</span> <strong id="totalValue">0</strong></span>
     </div>
     <div class="app-header-views">
-      <button class="toggle-view" id="toggleView">list view</button>
-      <button class="toggle-view" id="deckViewBtn">deck view</button>
-      <button class="toggle-view" id="binderViewBtn">binder view</button>
+      <button class="toggle-view" id="listViewBtn" data-view="list">list view</button>
+      <button class="toggle-view" id="gridViewBtn" data-view="grid">grid view</button>
+      <button class="toggle-view" id="deckViewBtn" data-view="deck">deck view</button>
+      <button class="toggle-view" id="binderViewBtn" data-view="binder">binder view</button>
     </div>
   </header>
 
@@ -1864,7 +1869,7 @@
         <select class="filter-select" id="filterLocation"><option value="">all locations</option></select>
         <datalist id="locationOptions"></datalist>
         <select class="filter-select" id="filterTag" title="filter by tag">
-          <option value="">+ tag</option>
+          <option value="">filter by tag</option>
         </select>
         <select class="filter-select" id="sortBy">
           <option value="name">sort: name</option>
@@ -2156,10 +2161,12 @@
 
   <footer class="app-footer">
     <div class="app-footer-left">
-      <a href="/">bensonperry.com</a>
+      <span class="footer-storage-nag">localstorage only — back up your collection</span>
+      <button class="btn btn-secondary footer-export-btn" type="button" id="footerExportBtn">export csv</button>
     </div>
     <div class="app-footer-right">
       <button class="btn btn-secondary" type="button" id="copyDecklistBtn">copy decklist</button>
+      <a href="/">bensonperry.com</a>
     </div>
   </footer>
 </div>
