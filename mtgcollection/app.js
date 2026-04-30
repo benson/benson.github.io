@@ -1,7 +1,7 @@
 import { state } from './state.js';
 import { initFeedback } from './feedback.js';
 import { save, loadFromStorage, migrateSavedCollection } from './persistence.js';
-import { initSearch, applyUrlStateOnLoad } from './search.js';
+import { initSearch, applyUrlStateOnLoad, clearAllFilters } from './search.js';
 import { render, initView } from './view.js';
 import { initBulk } from './bulk.js';
 import { initAdd } from './add.js';
@@ -41,6 +41,15 @@ async function boot() {
   updateFooter();
 
   document.getElementById('centerExportCsvBtn').addEventListener('click', () => exportCsv());
+
+  document.getElementById('resetAppBtn').addEventListener('click', () => {
+    clearAllFilters();
+    state.viewMode = 'list';
+    state.detailIndex = -1;
+    save();
+    history.replaceState(null, '', location.pathname);
+    render();
+  });
 
   // Boot the collection
   const hasSavedCollection = loadFromStorage();

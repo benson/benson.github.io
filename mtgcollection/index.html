@@ -45,6 +45,18 @@
     font-weight: 400;
     letter-spacing: -0.02em;
   }
+  .title-reset-btn {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    text-transform: lowercase;
+    cursor: pointer;
+    letter-spacing: inherit;
+  }
+  .title-reset-btn:hover { color: #444; }
+  .title-reset-btn:focus-visible { outline: 2px solid #000; outline-offset: 2px; }
   .app-header-totals {
     text-align: center;
     font-size: 0.85rem;
@@ -1874,7 +1886,7 @@
 
 <div class="app-shell">
   <header class="app-header">
-    <h1>mtg collection</h1>
+    <h1><button type="button" id="resetAppBtn" class="title-reset-btn">mtg collection</button></h1>
     <div class="app-header-totals">
       <span><span class="stat-label">unique</span> <strong id="uniqueCount">0</strong></span>
       <span class="sep">·</span>
