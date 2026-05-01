@@ -664,8 +664,10 @@ export async function fetchSetConfig(setCode) {
 
   const playRanges = [];
   for (const slot of playFile.slots) {
-    if (slot.pool?.nonfoil) playRanges.push(...slot.pool.nonfoil);
-    if (slot.pool?.foil) playRanges.push(...slot.pool.foil);
+    if (!slot.pool || slot.bonusSet) continue;
+    for (const finishRanges of Object.values(slot.pool)) {
+      if (Array.isArray(finishRanges)) playRanges.push(...finishRanges);
+    }
   }
 
   const config = {
@@ -715,8 +717,10 @@ export async function fetchSetConfigs() {
       if (playFile) {
         const playRanges = [];
         for (const slot of playFile.slots) {
-          if (slot.pool?.nonfoil) playRanges.push(...slot.pool.nonfoil);
-          if (slot.pool?.foil) playRanges.push(...slot.pool.foil);
+          if (!slot.pool || slot.bonusSet) continue;
+          for (const finishRanges of Object.values(slot.pool)) {
+            if (Array.isArray(finishRanges)) playRanges.push(...finishRanges);
+          }
         }
 
         configs[setCode] = {
