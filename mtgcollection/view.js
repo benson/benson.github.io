@@ -13,10 +13,10 @@ import { filteredSorted, syncClearFiltersBtn } from './search.js';
 import { renderStatsPanel, groupDeck, firstCardForPanel } from './stats.js';
 import { updateBulkBar } from './bulk.js';
 import { paginateForBinder, sortForBinder, BINDER_SIZES, binderSlotCount } from './binder.js';
+import { getSetIconUrl } from './setIcons.js';
 
 const VALID_DECK_GROUPS = ['type', 'cmc', 'color', 'rarity'];
 const VALID_BINDER_SIZES = Object.keys(BINDER_SIZES);
-const SET_ICON_OVERRIDES = { sld: 'star' };
 
 let gridEl, listBodyEl, collectionSection, emptyState;
 let cardPreviewEl, cardPreviewImg;
@@ -144,9 +144,9 @@ function renderRow(c) {
   const previewAttr = c.imageUrl ? ` data-preview-url="${esc(c.imageUrl)}"` : '';
   const setCodeLower = (c.setCode || '').toLowerCase();
   const setCode = setCodeLower.toUpperCase();
-  const iconCode = SET_ICON_OVERRIDES[setCodeLower] || setCodeLower;
-  const setIcon = setCodeLower
-    ? `<img class="set-icon" src="https://svgs.scryfall.io/sets/${esc(iconCode)}.svg" alt="" onerror="this.style.display='none'">`
+  const iconUrl = setCodeLower ? getSetIconUrl(setCodeLower) : '';
+  const setIcon = iconUrl
+    ? `<img class="set-icon" src="${esc(iconUrl)}" alt="" onerror="this.style.display='none'">`
     : '';
   return `<tr class="detail-trigger${selected ? ' row-selected' : ''}" data-index="${index}" data-key="${esc(key)}">
     <td class="col-check"><input type="checkbox" class="row-check" data-key="${esc(key)}"${selected ? ' checked' : ''} aria-label="select row"></td>

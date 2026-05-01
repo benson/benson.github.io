@@ -12,6 +12,7 @@ import {
   backfillMissingPrices,
   lazyBackfillSearchFields,
 } from './import.js';
+import { refreshSetIcons } from './setIcons.js';
 
 async function boot() {
   // Lowest-level init first — feedback + DOM refs
@@ -70,6 +71,11 @@ async function boot() {
   }
   applyUrlStateOnLoad();
   lazyBackfillSearchFields();
+
+  // Populate the set-icon cache from Scryfall in the background; re-render
+  // when it lands so cards with quirky set codes (pmkm, h2r, sld, etc.)
+  // get their proper icons.
+  refreshSetIcons().then(updated => { if (updated) render(); });
 }
 
 boot();
