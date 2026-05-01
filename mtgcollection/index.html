@@ -232,63 +232,43 @@
   }
   body.view-list.right-drawer-open .app-right-backdrop { display: block; }
 
-  /* FAB cluster — visible only in list view with a non-empty collection */
+  /* FAB cluster — visible whenever there's a collection */
   .fab-cluster {
     position: fixed;
-    right: 24px;
-    bottom: 60px;
+    right: 16px;
+    bottom: 56px;
     display: none;
     flex-direction: column;
-    gap: 12px;
+    align-items: stretch;
+    gap: 6px;
     z-index: 30;
   }
   body.has-collection .fab-cluster { display: flex; }
   body.right-drawer-open .fab-cluster { display: none; }
   .fab-btn {
-    position: relative;
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: #000;
-    color: #fff;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    transition: transform 0.12s ease, box-shadow 0.12s ease;
-  }
-  .fab-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  }
-  .fab-btn:focus-visible { outline: 2px solid #000; outline-offset: 3px; }
-  .fab-glyph {
-    font-family: "Times New Roman", Times, Georgia, serif;
-    font-size: 1.2rem;
-    line-height: 1;
-    text-transform: none;
-  }
-  .fab-label {
-    position: absolute;
-    right: calc(100% + 10px);
-    top: 50%;
-    transform: translateY(-50%);
+    gap: 8px;
+    padding: 7px 12px;
     background: #000;
     color: #fff;
-    font-size: 0.7rem;
+    border: 1px solid #000;
+    border-radius: 2px;
+    font-family: inherit;
+    font-size: 0.75rem;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    text-transform: lowercase;
     letter-spacing: 0.02em;
-    padding: 4px 10px;
-    border-radius: 999px;
-    white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.12s ease;
   }
-  .fab-btn:hover .fab-label,
-  .fab-btn:focus-visible .fab-label { opacity: 1; }
+  .fab-btn:hover { background: #333; }
+  .fab-btn:focus-visible { outline: 2px solid #000; outline-offset: 2px; }
+  .fab-glyph {
+    font-family: "Times New Roman", Times, Georgia, serif;
+    font-size: 0.9rem;
+    line-height: 1;
+  }
+  .fab-label { white-space: nowrap; }
 
   .app-footer {
     grid-area: footer;
