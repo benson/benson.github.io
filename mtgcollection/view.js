@@ -17,6 +17,8 @@ import { getSetIconUrl } from './setIcons.js';
 
 const VALID_DECK_GROUPS = ['type', 'cmc', 'color', 'rarity'];
 const VALID_BINDER_SIZES = Object.keys(BINDER_SIZES);
+const RARITY_ABBR = { common: 'c', uncommon: 'u', rare: 'r', mythic: 'm', special: 's', bonus: 'b' };
+const CONDITION_ABBR = { near_mint: 'nm', lightly_played: 'lp', moderately_played: 'mp', heavily_played: 'hp', damaged: 'dmg' };
 
 let gridEl, listBodyEl, collectionSection, emptyState;
 let cardPreviewEl, cardPreviewImg;
@@ -154,8 +156,8 @@ function renderRow(c) {
     <td class="muted set-cell">${setIcon}${esc(setCode)}</td>
     <td class="muted">${esc(c.cn || '')}</td>
     <td class="muted">${esc(c.finish)}</td>
-    <td class="muted">${esc(c.rarity || '')}</td>
-    <td class="muted">${esc(c.condition.replace(/_/g, ' '))}</td>
+    <td class="muted" title="${esc(c.rarity || '')}">${esc(RARITY_ABBR[c.rarity] || c.rarity || '')}</td>
+    <td class="muted" title="${esc((c.condition || '').replace(/_/g, ' '))}">${esc(CONDITION_ABBR[c.condition] || (c.condition || '').replace(/_/g, ' '))}</td>
     <td><input class="location-input" data-index="${index}" list="locationOptions" value="${esc(c.location || '')}" placeholder="location"></td>
     <td>${c.qty}</td>
     <td class="muted">${formatPrice(c)}</td>
