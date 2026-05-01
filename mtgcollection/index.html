@@ -798,6 +798,18 @@
     pointer-events: none;
   }
   .card-tile:hover .card-caption, .card-tile:focus-within .card-caption { opacity: 1; }
+  .card-loc {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    z-index: 2;
+    pointer-events: auto;
+  }
+  .card-loc .loc-pill {
+    box-shadow: 0 1px 2px rgba(0,0,0,0.25);
+    cursor: pointer;
+  }
+  .card-loc .loc-pill:hover { filter: brightness(0.95); }
   .card-actions {
     position: absolute;
     left: 0;
@@ -1289,6 +1301,8 @@
   }
   .loc-pill-name { text-transform: lowercase; }
   body.proper-case .loc-pill-name { text-transform: capitalize !important; }
+  .loc-pill { cursor: pointer; }
+  .loc-pill:hover { filter: brightness(0.95); }
   .loc-pill-deck   { background: #efe6d4; border-color: #cbb98c; }
   .loc-pill-binder { background: #e3eadd; border-color: #9fbb8c; }
   .loc-pill-box    { background: #ece8e0; border-color: #c2bdb0; }

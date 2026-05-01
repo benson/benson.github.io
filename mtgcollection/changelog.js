@@ -2,6 +2,7 @@ import { state } from './state.js';
 import { collectionKey, normalizeLocation, formatLocationLabel } from './collection.js';
 import { commitCollectionChange } from './persistence.js';
 import { esc } from './feedback.js';
+import { navigateToLocation } from './view.js';
 
 const CHANGELOG_KEY = 'mtgcollection_changelog_v1';
 const CAP = 200;
@@ -226,19 +227,6 @@ function composeSummary(summary, cards, className) {
 function locToken(loc) {
   const n = normalizeLocation(loc);
   return n ? '{loc:' + n.type + ':' + n.name + '}' : '';
-}
-
-const VIEW_FOR_TYPE = { deck: 'deck', binder: 'binder', box: 'list' };
-
-function navigateToLocation(type, name) {
-  state.viewMode = VIEW_FOR_TYPE[type] || 'list';
-  const searchInput = document.getElementById('searchInput');
-  if (searchInput) {
-    const label = type + ':' + name;
-    searchInput.value = 'loc:' + (/\s/.test(label) ? '"' + label + '"' : label);
-    searchInput.dispatchEvent(new Event('input', { bubbles: true }));
-  }
-  commitCollectionChange();
 }
 
 export function locationDiffSummary(before, after) {

@@ -25,6 +25,22 @@ const VALID_BINDER_SIZES = Object.keys(BINDER_SIZES);
 const RARITY_ABBR = { common: 'c', uncommon: 'u', rare: 'r', mythic: 'm', special: 's', bonus: 'b' };
 const CONDITION_ABBR = { near_mint: 'nm', lightly_played: 'lp', moderately_played: 'mp', heavily_played: 'hp', damaged: 'dmg' };
 
+const VIEW_FOR_LOC_TYPE = { deck: 'deck', binder: 'binder', box: 'list' };
+
+// Switch to the appropriate view for a typed location and apply a `loc:` filter.
+// Used by clickable location pills (list/grid) and history loc-link buttons.
+export function navigateToLocation(type, name) {
+  state.viewMode = VIEW_FOR_LOC_TYPE[type] || 'list';
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) {
+    const label = type + ':' + name;
+    searchInput.value = 'loc:' + (/\s/.test(label) ? '"' + label + '"' : label);
+    searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  save();
+  render();
+}
+
 const LOC_ICONS = {
   deck: '<svg class="loc-icon" viewBox="0 0 14 14" aria-hidden="true"><rect x="2.5" y="3.5" width="6.5" height="8.5" rx="0.5" fill="none" stroke="currentColor" stroke-width="1"/><rect x="5" y="1.5" width="6.5" height="8.5" rx="0.5" fill="none" stroke="currentColor" stroke-width="1"/></svg>',
   binder: '<svg class="loc-icon" viewBox="0 0 14 14" aria-hidden="true"><rect x="2" y="2" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1"/><line x1="5" y1="2" x2="5" y2="12" stroke="currentColor" stroke-width="1"/><circle cx="5" cy="5" r="0.7" fill="currentColor"/><circle cx="5" cy="7" r="0.7" fill="currentColor"/><circle cx="5" cy="9" r="0.7" fill="currentColor"/></svg>',
@@ -257,10 +273,12 @@ function renderTile(c) {
     ? `<button class="card-scryfall-link" type="button" data-scryfall-url="${esc(c.scryfallUri)}">scryfall ↗</button>`
     : '';
   const finishClass = c.finish === 'foil' ? ' is-foil' : c.finish === 'etched' ? ' is-etched' : '';
+  const locPill = locationPillHtml(c.location);
   return `<div class="card-tile detail-trigger${finishClass}" role="button" tabindex="0" data-index="${index}" aria-label="edit ${esc(name)}">
     ${img}
     <div class="card-badges">${badges.join('')}</div>
     <div class="card-caption">${caption}</div>
+    ${locPill ? `<div class="card-loc">${locPill}</div>` : ''}
     ${scryfallAction ? `<div class="card-actions">${scryfallAction}</div>` : ''}
   </div>`;
 }
@@ -839,6 +857,7 @@ export function initView() {
       window.open(scryfallLink.dataset.scryfallUrl, '_blank', 'noopener');
       return;
     }
+    if (e.target.closest('.loc-pill')) return;
     const trigger = e.target.closest('.detail-trigger');
     if (!trigger || !gridEl.contains(trigger)) return;
     openDetail(parseInt(trigger.dataset.index, 10));
@@ -876,7 +895,7 @@ export function initView() {
       openDetail(parseInt(nameBtn.dataset.index, 10));
       return;
     }
-    if (e.target.closest('input, select, button, a')) return;
+    if (e.target.closest('input, select, button, a, .loc-pill')) return;
     const trigger = e.target.closest('.detail-trigger');
     if (!trigger || !listBodyEl.contains(trigger)) return;
     openDetail(parseInt(trigger.dataset.index, 10));
@@ -916,6 +935,19 @@ export function initView() {
     if (e.target.classList.contains('loc-picker-name')) {
       if (e.target.value.trim()) commitRowLocationFromPicker(e.target);
     }
+  });
+
+  // Clicking a `.loc-pill` (in list, grid, or anywhere) navigates to that
+  // location's view + filter. The remove `×` and the deck-empty-chip
+  // wrapper handle their own clicks.
+  document.addEventListener('click', e => {
+    if (e.target.closest('.loc-pill-remove')) return;
+    if (e.target.closest('.deck-empty-chip')) return;
+    const pill = e.target.closest('.loc-pill');
+    if (!pill) return;
+    const type = pill.dataset.locType;
+    const name = pill.dataset.locName;
+    if (type && name) navigateToLocation(type, name);
   });
 
   // Card-preview hover is delegated at the document level so it works for the
