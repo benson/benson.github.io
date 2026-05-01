@@ -1139,6 +1139,7 @@
   thead th {
     text-align: left;
     padding: 6px 8px;
+    border-top: 1px solid #000;
     border-bottom: 1px solid #000;
     font-size: 0.7rem;
     font-weight: 400;
@@ -1149,6 +1150,8 @@
     background: #f8f7f4;
     z-index: 10;
   }
+  thead th:first-child { border-left: 1px solid #000; }
+  thead th:last-child { border-right: 1px solid #000; }
   tbody tr { border-bottom: 1px solid #eee; }
   tbody tr:hover { background: #fff; cursor: pointer; }
   tbody tr.row-selected, tbody tr.row-selected:hover { background: #fff8e6; }
