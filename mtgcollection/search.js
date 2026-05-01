@@ -270,14 +270,26 @@ export function initSearch() {
 
   const searchHelpBtn = document.getElementById('searchHelpBtn');
   const searchHelpPopover = document.getElementById('searchHelpPopover');
+  function positionSearchHelpPopover() {
+    const wrap = searchHelpBtn.closest('.search-wrap');
+    if (!wrap) return;
+    const rect = wrap.getBoundingClientRect();
+    searchHelpPopover.style.top = (rect.bottom + 4) + 'px';
+    searchHelpPopover.style.left = rect.left + 'px';
+  }
   searchHelpBtn.addEventListener('click', e => {
     e.stopPropagation();
+    const willOpen = !searchHelpPopover.classList.contains('visible');
+    if (willOpen) positionSearchHelpPopover();
     searchHelpPopover.classList.toggle('visible');
   });
   document.addEventListener('click', e => {
     if (!searchHelpPopover.classList.contains('visible')) return;
     if (e.target.closest('#searchHelpPopover') || e.target.closest('#searchHelpBtn')) return;
     searchHelpPopover.classList.remove('visible');
+  });
+  window.addEventListener('resize', () => {
+    if (searchHelpPopover.classList.contains('visible')) positionSearchHelpPopover();
   });
 
   searchInputEl.addEventListener('input', () => {

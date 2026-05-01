@@ -605,10 +605,8 @@
   }
   .search-help-btn:hover, .search-help-btn:focus-visible { color: #000; border-color: #000; outline: none; }
   .search-help-popover {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    z-index: 60;
+    position: fixed;
+    z-index: 100;
     background: #fff;
     border: 1px solid #ccc;
     padding: 12px 14px;
@@ -620,7 +618,6 @@
     text-transform: none;
     display: none;
   }
-  .app-left .search-help-popover { left: 0; right: auto; }
   .search-help-popover.visible { display: block; }
   .search-help-popover .syntax-title {
     font-size: 0.7rem;
@@ -1146,12 +1143,24 @@
     font-weight: 400;
     letter-spacing: 0.03em;
     color: #999;
+    position: sticky;
+    top: 0;
+    background: #fff;
+    z-index: 10;
   }
   tbody tr { border-bottom: 1px solid #eee; }
   tbody tr:hover { background: #fff; cursor: pointer; }
   tbody tr.row-selected, tbody tr.row-selected:hover { background: #fff8e6; }
   td { padding: 6px 8px; }
   .col-check { width: 28px; text-align: center; padding-right: 4px; }
+  .set-cell { white-space: nowrap; }
+  .set-icon {
+    width: 14px;
+    height: 14px;
+    vertical-align: -2px;
+    margin-right: 5px;
+    opacity: 0.55;
+  }
   .row-check, .header-check { cursor: pointer; }
 
   .bulk-bar {
@@ -2227,6 +2236,7 @@
               <th class="col-check"><input type="checkbox" class="header-check" id="headerCheck" aria-label="select all visible"></th>
               <th>name</th>
               <th>set</th>
+              <th>cn</th>
               <th>finish</th>
               <th>rarity</th>
               <th>condition</th>

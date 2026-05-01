@@ -130,13 +130,16 @@ function renderRow(c) {
   const selected = state.selectedKeys.has(key);
   const previewClasses = c.imageUrl ? 'card-name-button card-preview-link detail-trigger' : 'card-name-button detail-trigger';
   const previewAttr = c.imageUrl ? ` data-preview-url="${esc(c.imageUrl)}"` : '';
-  const setCode = (c.setCode || '').toUpperCase();
-  const cn = c.cn || '';
-  const setCn = setCode + (cn ? ': ' + cn : '');
+  const setCodeLower = (c.setCode || '').toLowerCase();
+  const setCode = setCodeLower.toUpperCase();
+  const setIcon = setCodeLower
+    ? `<img class="set-icon" src="https://svgs.scryfall.io/sets/${esc(setCodeLower)}.svg" alt="" onerror="this.style.display='none'">`
+    : '';
   return `<tr class="detail-trigger${selected ? ' row-selected' : ''}" data-index="${index}" data-key="${esc(key)}">
     <td class="col-check"><input type="checkbox" class="row-check" data-key="${esc(key)}"${selected ? ' checked' : ''} aria-label="select row"></td>
     <td class="card-name-cell"><button class="${previewClasses}" type="button" data-index="${index}"${previewAttr}>${esc(name)}</button></td>
-    <td class="muted">${esc(setCn)}</td>
+    <td class="muted set-cell">${setIcon}${esc(setCode)}</td>
+    <td class="muted">${esc(c.cn || '')}</td>
     <td class="muted">${esc(c.finish)}</td>
     <td class="muted">${esc(c.rarity || '')}</td>
     <td class="muted">${esc(c.condition.replace(/_/g, ' '))}</td>
