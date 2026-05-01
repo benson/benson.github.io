@@ -40,7 +40,7 @@ async function boot() {
   });
   updateFooter();
 
-  document.getElementById('centerExportCsvBtn').addEventListener('click', () => exportCsv());
+  document.getElementById('floatingExportCsvBtn').addEventListener('click', () => exportCsv());
 
   document.getElementById('resetAppBtn').addEventListener('click', () => {
     clearAllFilters();

@@ -313,13 +313,28 @@
   .app-footer.format-active .app-footer-right #copyDecklistBtn { display: inline-flex; }
   .footer-storage-nag { color: #999; font-size: 0.7rem; letter-spacing: 0.02em; }
 
-  .center-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-    margin-bottom: 8px;
+  .floating-export-btn {
+    position: fixed;
+    left: 24px;
+    bottom: 56px;
+    display: none;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: #000;
+    color: #fff;
+    border: none;
+    font-family: inherit;
+    font-size: 0.75rem;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    text-transform: lowercase;
+    letter-spacing: 0.02em;
+    z-index: 30;
+    align-items: center;
+    gap: 4px;
   }
-  .center-actions .btn { padding: 4px 10px; font-size: 0.7rem; }
+  .floating-export-btn:hover { background: #333; }
+  body.has-collection .floating-export-btn { display: inline-flex; }
 
   /* Multiselect filter control */
   .multiselect { position: relative; width: 100%; }
@@ -2126,9 +2141,6 @@
     <div class="feedback" id="feedback"></div>
 
     <div id="collectionSection" class="hidden">
-      <div class="center-actions">
-        <button class="btn btn-secondary" type="button" id="centerExportCsvBtn">export csv</button>
-      </div>
       <div class="grid" id="grid"></div>
       <div class="deck-view" id="deckView">
         <div class="deck-actions">
@@ -2385,6 +2397,7 @@
     </div>
   </footer>
   <div class="app-right-backdrop" id="appRightBackdrop"></div>
+  <button class="floating-export-btn" id="floatingExportCsvBtn" type="button" aria-label="export csv">↓ export csv</button>
   <div class="fab-cluster" id="fabCluster" aria-hidden="true">
     <button class="fab-btn" type="button" data-fab-target="addDetails" aria-label="add cards"><span class="fab-glyph">+</span><span class="fab-label">add</span></button>
     <button class="fab-btn" type="button" data-fab-target="statsPanel" aria-label="breakdown"><span class="fab-glyph">%</span><span class="fab-label">breakdown</span></button>
