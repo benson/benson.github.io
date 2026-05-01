@@ -41,6 +41,9 @@ function renderOptions(el) {
     return;
   }
   popover.innerHTML = options.map(opt => {
+    if (opt && typeof opt === 'object' && opt.header) {
+      return '<div class="ms-group-header">' + esc(opt.header) + '</div>';
+    }
     const value = typeof opt === 'string' ? opt : opt.value;
     const label = typeof opt === 'string' ? opt : (opt.label || opt.value);
     const checked = selected.has(value) ? ' checked' : '';
@@ -98,7 +101,12 @@ export function populateMultiselect(el, options, { defaultLabel, noun } = {}) {
   if (noun != null) el.dataset.noun = noun;
   el.dataset.options = JSON.stringify(options);
   // Drop any selected values that no longer exist in options (preserve user intent for set-typed fields).
-  const validValues = new Set(options.map(o => typeof o === 'string' ? o : o.value));
+  // Group-header rows have no `value`; skip them when building the validity set.
+  const validValues = new Set(
+    options
+      .filter(o => !(o && typeof o === 'object' && o.header))
+      .map(o => typeof o === 'string' ? o : o.value)
+  );
   const selected = getSelectedValues(el).filter(v => validValues.has(v));
   setSelectedValues(el, selected);
   renderOptions(el);

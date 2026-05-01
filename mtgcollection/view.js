@@ -335,12 +335,21 @@ function renderEmptyScopeState(targetEl, mode) {
     </div>`;
     return;
   }
-  const chips = locations.map(loc =>
-    `<button type="button" class="deck-empty-chip" data-loc="${esc(formatLocationLabel(loc))}">${locationPillHtml(loc)}</button>`
-  ).join('');
+  const TYPE_HEADERS = { deck: 'decks', binder: 'binders', box: 'boxes' };
+  const groups = LOCATION_TYPES.map(type => {
+    const ofType = locations.filter(l => l.type === type);
+    if (ofType.length === 0) return '';
+    const chips = ofType.map(loc =>
+      `<button type="button" class="deck-empty-chip" data-loc="${esc(formatLocationLabel(loc))}">${locationPillHtml(loc)}</button>`
+    ).join('');
+    return `<div class="deck-empty-group">
+      <div class="deck-empty-group-label">${TYPE_HEADERS[type]}</div>
+      <div class="deck-empty-chips-row">${chips}</div>
+    </div>`;
+  }).join('');
   targetEl.innerHTML = `<div class="deck-empty-state">
-    <p class="deck-empty-prompt">${esc(label)} needs a filter — try <code>loc:breya</code> or pick a location below</p>
-    <div class="deck-empty-chips">${chips}</div>
+    <p class="deck-empty-prompt">${esc(label)} needs a filter — pick a location below</p>
+    <div class="deck-empty-chips">${groups}</div>
   </div>`;
 }
 

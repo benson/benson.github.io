@@ -426,6 +426,15 @@
   .multiselect .ms-option:hover { background: #f4f4f0; }
   .multiselect .ms-option input { margin: 0; cursor: pointer; }
   .multiselect .ms-empty { padding: 6px 8px; font-size: 0.75rem; color: #999; }
+  .multiselect .ms-group-header {
+    padding: 6px 8px 2px;
+    font-size: 0.65rem;
+    letter-spacing: 0.06em;
+    color: #999;
+    text-transform: lowercase;
+    border-top: 1px solid #eee;
+  }
+  .multiselect .ms-group-header:first-child { border-top: none; }
   .multiselect .ms-trigger-label.ms-pills {
     display: flex;
     flex-wrap: wrap;
@@ -1078,10 +1087,28 @@
   }
   .deck-empty-chips {
     display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+    max-width: 600px;
+  }
+  .deck-empty-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .deck-empty-group-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.06em;
+    color: #999;
+    text-transform: lowercase;
+  }
+  .deck-empty-chips-row {
+    display: flex;
     flex-wrap: wrap;
     gap: 6px;
     justify-content: center;
-    max-width: 600px;
   }
   .deck-empty-chip {
     background: #fff;

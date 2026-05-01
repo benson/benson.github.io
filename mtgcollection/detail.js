@@ -39,8 +39,20 @@ export function populateFilters() {
     { defaultLabel: 'All finishes', noun: 'finishes' });
 
   const locations = allCollectionLocations();
+  // Group dropdown options by type with a section header — flat list gets
+  // unwieldy fast as more decks/binders/boxes pile up.
+  const TYPE_HEADERS = { deck: 'decks', binder: 'binders', box: 'boxes' };
+  const groupedLocOptions = [];
+  for (const type of LOCATION_TYPES) {
+    const ofType = locations.filter(l => l.type === type);
+    if (ofType.length === 0) continue;
+    groupedLocOptions.push({ header: TYPE_HEADERS[type] });
+    for (const loc of ofType) {
+      groupedLocOptions.push({ value: loc.type + ':' + loc.name, label: loc.name });
+    }
+  }
   populateMultiselect(document.getElementById('filterLocation'),
-    locations.map(loc => ({ value: loc.type + ':' + loc.name, label: loc.type + ':' + loc.name })),
+    groupedLocOptions,
     { defaultLabel: 'All locations', noun: 'locations' });
   // Datalist for the drawer/bulk/add name fields — just names, no type prefix.
   const uniqueNames = [...new Set(locations.map(loc => loc.name))].sort();
