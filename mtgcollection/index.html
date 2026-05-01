@@ -1202,6 +1202,47 @@
   .bulk-bar .bulk-tag-row input,
   .bulk-bar .bulk-tag-row select { width: 110px; }
   .bulk-tag-btn { padding: 2px 8px; font-size: 0.75rem; }
+  .bulk-pending {
+    display: none;
+    flex-basis: 100%;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-top: 8px;
+    margin-top: 4px;
+    border-top: 1px dashed #ddd;
+  }
+  .bulk-pending.active { display: flex; }
+  .pending-label {
+    font-size: 0.65rem;
+    color: #999;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    margin-right: 4px;
+  }
+  .pending-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #fff8e6;
+    border: 1px solid #f0d977;
+    padding: 2px 4px 2px 8px;
+    border-radius: 2px;
+    font-size: 0.75rem;
+    color: #000;
+  }
+  .pending-pill-remove {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 4px;
+    font-size: 0.95rem;
+    line-height: 1;
+    color: #999;
+  }
+  .pending-pill-remove:hover { color: #000; }
+  .save-pending-btn { padding: 4px 14px; font-size: 0.75rem; }
+  .cancel-pending-btn { padding: 4px 12px; font-size: 0.75rem; }
   .card-name-cell { text-transform: none; }
   .card-name-button {
     appearance: none;
@@ -1527,7 +1568,7 @@
     margin-right: 6px;
     text-transform: lowercase;
   }
-  .detail-price #detailPriceMark { color: #999; }
+  .detail-price #detailPriceMark { color: #999; cursor: help; }
   .detail-price a {
     color: #999;
     margin-left: 6px;
@@ -1677,10 +1718,10 @@
     color: #999;
     margin-left: 8px;
   }
-  .price-note {
-    font-size: 0.7rem;
+  .price-fallback-mark {
     color: #999;
-    margin: -8px 0 12px;
+    cursor: help;
+    margin-left: 1px;
   }
 
   details.import-details,
@@ -2088,8 +2129,6 @@
       <div class="center-actions">
         <button class="btn btn-secondary" type="button" id="centerExportCsvBtn">export csv</button>
       </div>
-      <div class="price-note hidden" id="priceNote">* regular usd shown when exact finish price is unavailable</div>
-
       <div class="grid" id="grid"></div>
       <div class="deck-view" id="deckView">
         <div class="deck-actions">
@@ -2191,6 +2230,7 @@
           <span class="bulk-spacer"></span>
           <button class="btn btn-danger" type="button" id="bulkDelete">delete</button>
           <button class="btn btn-secondary" type="button" id="bulkClear">clear</button>
+          <div class="bulk-pending" id="bulkPending"></div>
         </div>
         <table>
           <thead>

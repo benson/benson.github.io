@@ -17,7 +17,7 @@ import { paginateForBinder, sortForBinder, BINDER_SIZES, binderSlotCount } from 
 const VALID_DECK_GROUPS = ['type', 'cmc', 'color', 'rarity'];
 const VALID_BINDER_SIZES = Object.keys(BINDER_SIZES);
 
-let gridEl, listBodyEl, collectionSection, emptyState, priceNoteEl;
+let gridEl, listBodyEl, collectionSection, emptyState;
 let cardPreviewEl, cardPreviewImg;
 let lightboxEl, lightboxImg, lightboxFlipBtn;
 let lightboxFront = null;
@@ -36,7 +36,6 @@ export function render() {
   if (state.collection.length === 0) {
     collectionSection.classList.add('hidden');
     emptyState.classList.remove('hidden');
-    priceNoteEl.classList.add('hidden');
     return;
   }
   emptyState.classList.add('hidden');
@@ -48,7 +47,6 @@ export function render() {
   document.getElementById('totalCount').textContent = list.reduce((s, c) => s + c.qty, 0);
   const value = list.reduce((s, c) => s + (c.price || 0) * c.qty, 0);
   document.getElementById('totalValue').textContent = value.toFixed(2);
-  priceNoteEl.classList.toggle('hidden', !list.some(c => c.priceFallback));
   renderStatsPanel(list);
   applyGridSize();
   applyBinderSizeButtons();
@@ -99,7 +97,9 @@ export function applyGridSize() {
 
 function formatPrice(c) {
   if (!c.price) return '';
-  return '$' + c.price.toFixed(2) + (c.priceFallback ? '*' : '');
+  const base = '$' + c.price.toFixed(2);
+  if (!c.priceFallback) return base;
+  return base + '<span class="price-fallback-mark" title="regular usd shown when exact finish price is unavailable">*</span>';
 }
 
 function renderTile(c) {
@@ -454,7 +454,6 @@ export function initView() {
   listBodyEl = document.getElementById('listBody');
   collectionSection = document.getElementById('collectionSection');
   emptyState = document.getElementById('emptyState');
-  priceNoteEl = document.getElementById('priceNote');
   cardPreviewEl = document.getElementById('cardPreview');
   cardPreviewImg = cardPreviewEl.querySelector('img');
   lightboxEl = document.getElementById('imageLightbox');

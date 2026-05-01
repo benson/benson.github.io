@@ -167,7 +167,10 @@ export function openDetail(index) {
   document.getElementById('detailTagInput').value = '';
   document.getElementById('detailLocation').value = c.location || '';
   document.getElementById('detailPriceText').textContent = c.price ? '$' + c.price.toFixed(2) : 'no price';
-  document.getElementById('detailPriceMark').textContent = c.priceFallback ? '*' : '';
+  const priceMark = document.getElementById('detailPriceMark');
+  priceMark.textContent = c.priceFallback ? '*' : '';
+  if (c.priceFallback) priceMark.title = 'regular usd shown when exact finish price is unavailable';
+  else priceMark.removeAttribute('title');
   const priceLink = document.getElementById('detailPriceLink');
   priceLink.href = c.scryfallUri || '#';
   priceLink.classList.toggle('hidden', !c.scryfallUri);

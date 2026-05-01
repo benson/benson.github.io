@@ -34,6 +34,8 @@ export function updateBulkBar() {
   bulkBar.classList.toggle('active', n > 0);
   syncHeaderCheckbox();
   populateBulkTagDropdowns();
+  if (n === 0 && pendingChangeCount() > 0) clearPendingBulk();
+  renderPendingRow();
 }
 
 function populateBulkTagDropdowns() {
@@ -79,64 +81,163 @@ function syncHeaderCheckbox() {
   }
 }
 
-function applyBulk(field, rawValue, normalizer) {
-  if (!state.selectedKeys.size) return;
-  snapshotCollection();
-  const v = normalizer ? normalizer(rawValue) : rawValue;
-  let touched = 0;
-  for (const c of state.collection) {
-    if (state.selectedKeys.has(collectionKey(c))) {
-      c[field] = v;
-      touched++;
-    }
-  }
-  state.selectedKeys.clear();
-  commitCollectionChange({ coalesce: true });
-  const noun = 'card' + (touched === 1 ? '' : 's');
-  showFeedback('updated ' + touched + ' ' + noun + ' <button class="undo-btn" type="button">undo</button>', 'success');
+// ---- Staged (pending) bulk changes ----
+const pendingBulk = {
+  location: null,
+  condition: null,
+  finish: null,
+  language: null,
+  addTags: [],
+  removeTags: [],
+};
+
+const LANGUAGE_LABELS = {
+  en: 'english', ja: 'japanese', de: 'german', fr: 'french', it: 'italian',
+  es: 'spanish', pt: 'portuguese', ru: 'russian', ko: 'korean',
+  zhs: 'chinese (simplified)', zht: 'chinese (traditional)',
+};
+
+function pendingChangeCount() {
+  let n = 0;
+  if (pendingBulk.location !== null) n++;
+  if (pendingBulk.condition !== null) n++;
+  if (pendingBulk.finish !== null) n++;
+  if (pendingBulk.language !== null) n++;
+  n += pendingBulk.addTags.length;
+  n += pendingBulk.removeTags.length;
+  return n;
 }
 
-function bulkAddTag(rawTag) {
-  const tag = normalizeTag(rawTag);
-  if (!tag) return;
-  if (!state.selectedKeys.size) return;
-  snapshotCollection();
-  let touched = 0;
-  for (const c of state.collection) {
-    if (state.selectedKeys.has(collectionKey(c))) {
-      const existing = new Set((c.tags || []).map(t => t.toLowerCase()));
-      if (!existing.has(tag)) {
-        c.tags = [...(c.tags || []), tag];
-        touched++;
-      }
-    }
-  }
-  state.selectedKeys.clear();
-  commitCollectionChange({ coalesce: true });
-  const noun = 'card' + (touched === 1 ? '' : 's');
-  showFeedback('added "' + esc(tag) + '" to ' + touched + ' ' + noun + ' <button class="undo-btn" type="button">undo</button>', 'success');
+function clearPendingBulk() {
+  pendingBulk.location = null;
+  pendingBulk.condition = null;
+  pendingBulk.finish = null;
+  pendingBulk.language = null;
+  pendingBulk.addTags.length = 0;
+  pendingBulk.removeTags.length = 0;
 }
 
-function bulkRemoveTag(rawTag) {
+function stageField(field, raw, normalizer) {
+  if (!state.selectedKeys.size) return;
+  pendingBulk[field] = normalizer ? normalizer(raw) : raw;
+  renderPendingRow();
+}
+
+function stageTagAdd(rawTag) {
+  if (!state.selectedKeys.size) return;
   const tag = normalizeTag(rawTag);
   if (!tag) return;
+  pendingBulk.removeTags = pendingBulk.removeTags.filter(t => t !== tag);
+  if (!pendingBulk.addTags.includes(tag)) pendingBulk.addTags.push(tag);
+  renderPendingRow();
+}
+
+function stageTagRemove(rawTag) {
+  if (!state.selectedKeys.size) return;
+  const tag = normalizeTag(rawTag);
+  if (!tag) return;
+  pendingBulk.addTags = pendingBulk.addTags.filter(t => t !== tag);
+  if (!pendingBulk.removeTags.includes(tag)) pendingBulk.removeTags.push(tag);
+  renderPendingRow();
+}
+
+function unstage(kind, value) {
+  if (kind === 'addTag') {
+    pendingBulk.addTags = pendingBulk.addTags.filter(t => t !== value);
+  } else if (kind === 'removeTag') {
+    pendingBulk.removeTags = pendingBulk.removeTags.filter(t => t !== value);
+  } else if (kind in pendingBulk) {
+    pendingBulk[kind] = null;
+  }
+  renderPendingRow();
+}
+
+function pillHTML(kind, value, label) {
+  return '<span class="pending-pill" data-kind="' + esc(kind) + '" data-value="' + esc(value) + '">' +
+    esc(label) +
+    '<button class="pending-pill-remove" type="button" aria-label="remove">×</button>' +
+    '</span>';
+}
+
+function renderPendingRow() {
+  const row = document.getElementById('bulkPending');
+  if (!row) return;
+  const cardCount = state.selectedKeys.size;
+  if (pendingChangeCount() === 0 || cardCount === 0) {
+    row.classList.remove('active');
+    row.innerHTML = '';
+    return;
+  }
+  const pills = [];
+  if (pendingBulk.location !== null) {
+    pills.push(pillHTML('location', '', '→ location: ' + (pendingBulk.location || '(empty)')));
+  }
+  if (pendingBulk.condition !== null) {
+    pills.push(pillHTML('condition', '', '→ condition: ' + pendingBulk.condition.replace(/_/g, ' ')));
+  }
+  if (pendingBulk.finish !== null) {
+    pills.push(pillHTML('finish', '', '→ finish: ' + pendingBulk.finish));
+  }
+  if (pendingBulk.language !== null) {
+    const label = LANGUAGE_LABELS[pendingBulk.language] || pendingBulk.language;
+    pills.push(pillHTML('language', '', '→ language: ' + label));
+  }
+  for (const t of pendingBulk.addTags) pills.push(pillHTML('addTag', t, '+ tag: ' + t));
+  for (const t of pendingBulk.removeTags) pills.push(pillHTML('removeTag', t, '− tag: ' + t));
+  const cardNoun = 'card' + (cardCount === 1 ? '' : 's');
+  row.innerHTML =
+    '<span class="pending-label">pending</span>' +
+    pills.join('') +
+    '<span class="bulk-spacer"></span>' +
+    '<button class="btn save-pending-btn" type="button" id="bulkSavePending">save (' + cardCount + ' ' + cardNoun + ')</button>' +
+    '<button class="btn btn-secondary cancel-pending-btn" type="button" id="bulkCancelPending">cancel</button>';
+  row.classList.add('active');
+}
+
+function commitPending() {
+  if (pendingChangeCount() === 0) return;
   if (!state.selectedKeys.size) return;
   snapshotCollection();
-  let touched = 0;
+  const cardCount = state.selectedKeys.size;
+  const changeCount = pendingChangeCount();
   for (const c of state.collection) {
-    if (state.selectedKeys.has(collectionKey(c))) {
-      const before = c.tags || [];
-      const after = before.filter(t => t.toLowerCase() !== tag);
-      if (after.length !== before.length) {
-        c.tags = after;
-        touched++;
+    if (!state.selectedKeys.has(collectionKey(c))) continue;
+    if (pendingBulk.location !== null) c.location = pendingBulk.location;
+    if (pendingBulk.condition !== null) c.condition = pendingBulk.condition;
+    if (pendingBulk.finish !== null) c.finish = pendingBulk.finish;
+    if (pendingBulk.language !== null) c.language = pendingBulk.language;
+    if (pendingBulk.addTags.length || pendingBulk.removeTags.length) {
+      const removeSet = new Set(pendingBulk.removeTags);
+      let tags = (c.tags || []).filter(t => !removeSet.has(t.toLowerCase()));
+      const existing = new Set(tags.map(t => t.toLowerCase()));
+      for (const t of pendingBulk.addTags) {
+        if (!existing.has(t)) {
+          tags.push(t);
+          existing.add(t);
+        }
       }
+      c.tags = tags;
     }
   }
+  clearPendingBulk();
   state.selectedKeys.clear();
   commitCollectionChange({ coalesce: true });
-  const noun = 'card' + (touched === 1 ? '' : 's');
-  showFeedback('removed "' + esc(tag) + '" from ' + touched + ' ' + noun + ' <button class="undo-btn" type="button">undo</button>', 'success');
+  const changeNoun = 'change' + (changeCount === 1 ? '' : 's');
+  const cardNoun = 'card' + (cardCount === 1 ? '' : 's');
+  showFeedback(
+    'saved ' + changeCount + ' ' + changeNoun + ' to ' + cardCount + ' ' + cardNoun +
+    ' <button class="undo-btn" type="button">undo</button>',
+    'success'
+  );
+}
+
+function cancelPending() {
+  clearPendingBulk();
+  ['bulkLocation', 'bulkCondition', 'bulkFinish', 'bulkLanguage', 'bulkTagAdd', 'bulkTagRemove'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  renderPendingRow();
 }
 
 export function initBulk() {
@@ -161,22 +262,22 @@ export function initBulk() {
   });
 
   document.getElementById('bulkLocation').addEventListener('change', e => {
-    applyBulk('location', e.target.value, normalizeLocation);
+    stageField('location', e.target.value, normalizeLocation);
     e.target.value = '';
   });
   document.getElementById('bulkCondition').addEventListener('change', e => {
     if (!e.target.value) return;
-    applyBulk('condition', e.target.value, normalizeCondition);
+    stageField('condition', e.target.value, normalizeCondition);
     e.target.value = '';
   });
   document.getElementById('bulkFinish').addEventListener('change', e => {
     if (!e.target.value) return;
-    applyBulk('finish', e.target.value, normalizeFinish);
+    stageField('finish', e.target.value, normalizeFinish);
     e.target.value = '';
   });
   document.getElementById('bulkLanguage').addEventListener('change', e => {
     if (!e.target.value) return;
-    applyBulk('language', e.target.value, normalizeLanguage);
+    stageField('language', e.target.value, normalizeLanguage);
     e.target.value = '';
   });
 
@@ -188,7 +289,7 @@ export function initBulk() {
   bulkTagAddBtn.addEventListener('click', () => {
     const v = bulkTagAddInput.value;
     if (!v.trim()) return;
-    bulkAddTag(v);
+    stageTagAdd(v);
     bulkTagAddInput.value = '';
   });
   bulkTagAddInput.addEventListener('keydown', e => {
@@ -197,8 +298,19 @@ export function initBulk() {
   bulkTagRemoveBtn.addEventListener('click', () => {
     const v = bulkTagRemoveSelect.value;
     if (!v) return;
-    bulkRemoveTag(v);
+    stageTagRemove(v);
     bulkTagRemoveSelect.value = '';
+  });
+
+  document.getElementById('bulkPending').addEventListener('click', e => {
+    if (e.target.id === 'bulkSavePending') {
+      commitPending();
+    } else if (e.target.id === 'bulkCancelPending') {
+      cancelPending();
+    } else if (e.target.classList.contains('pending-pill-remove')) {
+      const pill = e.target.closest('.pending-pill');
+      if (pill) unstage(pill.dataset.kind, pill.dataset.value);
+    }
   });
 
   document.getElementById('bulkDelete').addEventListener('click', () => {
