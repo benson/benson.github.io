@@ -27,26 +27,9 @@ export const DRAFT_ONLY_SETS = new Set(['mb2', 'mh1', 'mh2', 'cmm', 'clb', '2xm'
 
 const METADATA_URL = 'https://bensonperry.com/booster-data/metadata.json';
 
-const METADATA_SNAPSHOT = {
-  version: 1,
-  sets: {
-    "blb": { "specialGuests": [54, 63] },
-    "dft": { "specialGuests": [84, 103] },
-    "dsk": { "specialGuests": [64, 73] },
-    "eoe": { "specialGuests": [119, 128], "bonusSheet": "eos" },
-    "fdn": { "specialGuests": [74, 83] },
-    "fin": { "specialGuests": [129, 148], "bonusSheet": "fca" },
-    "lci": { "specialGuests": [1, 18] },
-    "mh3": { "specialGuests": [39, 53] },
-    "mkm": { "specialGuests": [19, 28] },
-    "otj": { "specialGuests": [29, 38], "bonusSheet": "otp", "hasBigScore": true },
-    "sos": { "specialGuests": [149, 158], "bonusSheet": "soa" },
-    "spm": { "bonusSheet": "mar" },
-    "tdm": { "specialGuests": [104, 118] },
-    "tla": { "bonusSheet": "tle" }
-  }
-};
-
+// On fetch failure we degrade to empty metadata rather than serving a stale snapshot.
+// Consumers will lose Special Guests / bonus sheet handling for the duration of the
+// outage, which is loudly visible — preferable to silently lying with frozen-in-time data.
 const _metadata = await (async () => {
   try {
     const res = await fetch(METADATA_URL);
@@ -55,8 +38,8 @@ const _metadata = await (async () => {
     if (!fresh || typeof fresh !== 'object' || !fresh.sets) throw new Error('malformed metadata');
     return fresh;
   } catch (e) {
-    console.warn('[mtg.js] metadata.json load failed, using embedded snapshot:', e.message);
-    return METADATA_SNAPSHOT;
+    console.error('[mtg.js] metadata.json load failed — Special Guests and bonus sheets will be missing this session:', e.message);
+    return { version: 1, sets: {} };
   }
 })();
 
