@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>mtg collection — shadow variants</title>
+<title>mtg collection — chrome shadow variants</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
@@ -13,386 +13,466 @@
     color: #111;
     text-transform: lowercase;
     line-height: 1.4;
-    padding: 24px 28px 80px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
-  h1 {
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin: 0 0 4px;
-    letter-spacing: 0.02em;
-  }
-  .subtitle {
-    color: #777;
-    font-size: 0.78rem;
-    margin: 0 0 18px;
-  }
-  .toolbar {
+
+  /* ───── variant toolbar (fixed strip at the top) ───── */
+  .variant-toolbar {
+    flex: 0 0 auto;
     display: flex;
     flex-wrap: wrap;
-    gap: 18px 28px;
+    gap: 14px 22px;
     align-items: flex-start;
-    padding: 14px 0;
-    border-top: 1px solid #e3e1da;
-    border-bottom: 1px solid #e3e1da;
-    margin-bottom: 22px;
-    position: sticky;
-    top: 0;
-    background: #f8f7f4;
-    z-index: 20;
+    padding: 12px 16px;
+    background: #ece9df;
+    border-bottom: 1px solid #d8d4c8;
+    font-size: 0.78rem;
   }
-  .toolbar-group { display: flex; flex-direction: column; gap: 6px; }
+  .toolbar-group { display: flex; flex-direction: column; gap: 5px; }
   .toolbar-label {
-    font-size: 0.65rem;
+    font-size: 0.62rem;
     color: #888;
     letter-spacing: 0.06em;
   }
-  .toolbar-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .toolbar-row { display: flex; gap: 5px; flex-wrap: wrap; }
   .pill-btn {
     appearance: none;
-    border: 1px solid #d8d4c8;
+    border: 1px solid #c9c4b5;
     background: #fff;
     color: #222;
     font: inherit;
-    font-size: 0.75rem;
-    padding: 5px 11px;
+    font-size: 0.72rem;
+    padding: 4px 10px;
     border-radius: 999px;
     cursor: pointer;
     text-transform: lowercase;
-    letter-spacing: 0.01em;
-    transition: background 0.12s, border-color 0.12s, color 0.12s;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
   }
   .pill-btn:hover { background: #f0ece0; }
   .pill-btn.active { background: #000; color: #fff; border-color: #000; }
   .css-readout {
-    flex: 1 1 320px;
-    min-width: 280px;
+    flex: 1 1 280px;
+    min-width: 240px;
     background: #fff;
-    border: 1px solid #e3e1da;
+    border: 1px solid #d8d4c8;
     border-radius: 6px;
-    padding: 10px 12px;
+    padding: 8px 10px;
     font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     color: #333;
-    line-height: 1.5;
+    line-height: 1.45;
     white-space: pre-wrap;
     word-break: break-word;
+    max-height: 110px;
+    overflow-y: auto;
   }
   .css-readout .css-name {
-    font-family: inherit;
     font-weight: 600;
     color: #111;
-    text-transform: lowercase;
     margin-right: 8px;
   }
   .css-readout .css-desc {
     font-family: ui-sans-serif, system-ui, sans-serif;
     color: #666;
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     display: block;
     margin-top: 2px;
   }
 
-  /* Grid (mirrors index.html) */
-  .grid {
+  /* ───── app shell (replica of the live list view) ───── */
+  .app-shell {
+    flex: 1 1 auto;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 10px;
+    grid-template-rows: 60px 1fr 40px;
+    grid-template-columns: 200px 1fr;
+    grid-template-areas:
+      "header header"
+      "left   main"
+      "footer footer";
+    min-height: 0;
+    background: #f8f7f4;
   }
-  .grid.grid-small  { grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 7px; }
-  .grid.grid-medium { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
-  .grid.grid-large  { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
 
-  .card-tile {
-    position: relative;
-    border: none;
-    border-radius: 4px;
-    overflow: hidden;
-    cursor: default;
-    background: #e8e8e8;
-    aspect-ratio: 488 / 680;
-    transition: transform 0.12s ease, box-shadow 0.18s ease;
-    padding: 0;
-    display: block;
-    width: 100%;
-    font: inherit;
-  }
-  .card-tile:hover { transform: translateY(-2px); }
-  .card-tile img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-  .card-tile .placeholder {
-    display: flex;
+  .app-header {
+    grid-area: header;
+    background: #f8f7f4;
+    border-bottom: 1px solid #000;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    justify-content: center;
-    height: 100%;
-    padding: 8px;
-    text-align: center;
-    font-size: 0.7rem;
-    color: #999;
-    text-transform: none;
+    padding: 0 20px;
+    gap: 18px;
+    z-index: 5;
+    position: relative;
   }
-  .card-badges {
-    position: absolute;
-    top: 6px;
-    right: 6px;
+  .app-header h1 {
+    font-size: 1.3rem;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+  .app-header-totals {
+    text-align: center;
+    font-size: 0.85rem;
+    color: #333;
+    display: inline-flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 8px;
+  }
+  .app-header-totals strong { font-weight: 400; color: #000; font-variant-numeric: tabular-nums; }
+  .app-header-totals .stat-label { font-size: 0.65rem; letter-spacing: 0.04em; color: #999; margin-right: 2px; }
+  .app-header-totals .sep { color: #ccc; }
+  .app-header-views {
+    justify-self: end;
+    display: inline-flex;
+    border: 1px solid #000;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .toggle-view {
+    background: transparent;
+    border: none;
+    border-right: 1px solid #000;
+    border-radius: 0;
+    padding: 5px 12px;
+    font-family: inherit;
+    font-size: 0.78rem;
+    text-transform: lowercase;
+    cursor: pointer;
+    color: #000;
+  }
+  .toggle-view:last-child { border-right: none; }
+  .toggle-view.active { background: #000; color: #fff; }
+
+  .app-left {
+    grid-area: left;
+    background: #f8f7f4;
+    border-right: 1px solid #000;
+    padding: 16px 14px;
     display: flex;
     flex-direction: column;
-    gap: 3px;
-    align-items: flex-end;
+    gap: 14px;
+    overflow-y: auto;
+    z-index: 4;
+    position: relative;
   }
-  .badge {
-    background: rgba(0,0,0,0.78);
-    color: #fff;
-    font-size: 0.7rem;
-    padding: 2px 6px;
-    border-radius: 2px;
-    letter-spacing: 0.02em;
+  .sidebar-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.06em;
+    color: #999;
+    margin-bottom: 4px;
   }
-
-  /* ───── shadow variants ───── */
-
-  /* v0 — none (current baseline) */
-
-  /* v1 — subtle (tailwind shadow-sm style) */
-  .grid.shadow-subtle .card-tile {
-    box-shadow: 0 1px 2px 0 rgba(0,0,0,0.06);
-  }
-  .grid.shadow-subtle .card-tile:hover {
-    box-shadow: 0 2px 4px 0 rgba(0,0,0,0.10);
-  }
-
-  /* v2 — soft (tailwind shadow style — layered key + contact) */
-  .grid.shadow-soft .card-tile {
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px -1px rgba(0,0,0,0.06);
-  }
-  .grid.shadow-soft .card-tile:hover {
-    box-shadow: 0 4px 8px -1px rgba(0,0,0,0.10), 0 2px 4px -2px rgba(0,0,0,0.08);
-  }
-
-  /* v3 — lifted (tailwind shadow-md) */
-  .grid.shadow-lifted .card-tile {
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -2px rgba(0,0,0,0.06);
-  }
-  .grid.shadow-lifted .card-tile:hover {
-    box-shadow: 0 8px 12px -2px rgba(0,0,0,0.12), 0 4px 6px -3px rgba(0,0,0,0.08);
-  }
-
-  /* v4 — floating (tailwind shadow-lg, more presence) */
-  .grid.shadow-floating .card-tile {
-    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.10), 0 4px 6px -4px rgba(0,0,0,0.08);
-  }
-  .grid.shadow-floating .card-tile:hover {
-    box-shadow: 0 14px 22px -4px rgba(0,0,0,0.14), 0 6px 10px -4px rgba(0,0,0,0.10);
-  }
-
-  /* v5 — contact (sharp 1px contact + soft body — feels physically grounded) */
-  .grid.shadow-contact .card-tile {
-    box-shadow: 0 1px 1px rgba(0,0,0,0.10), 0 6px 12px -2px rgba(0,0,0,0.10);
-  }
-  .grid.shadow-contact .card-tile:hover {
-    box-shadow: 0 1px 1px rgba(0,0,0,0.14), 0 10px 18px -3px rgba(0,0,0,0.16);
-  }
-
-  /* v6 — hover only (no resting shadow, big lift on hover) */
-  .grid.shadow-hover .card-tile {
-    box-shadow: none;
-  }
-  .grid.shadow-hover .card-tile:hover {
-    box-shadow: 0 8px 18px -4px rgba(0,0,0,0.18), 0 2px 4px rgba(0,0,0,0.08);
-  }
-
-  /* v7 — warm (color-tinted to match cream surface) */
-  .grid.shadow-warm .card-tile {
-    box-shadow: 0 2px 4px rgba(80,60,40,0.10), 0 6px 14px rgba(80,60,40,0.08);
-  }
-  .grid.shadow-warm .card-tile:hover {
-    box-shadow: 0 4px 6px rgba(80,60,40,0.14), 0 10px 20px rgba(80,60,40,0.12);
-  }
-
-  /* v8 — ring (inset hairline + tiny shadow — definition without elevation) */
-  .grid.shadow-ring .card-tile {
-    box-shadow:
-      inset 0 0 0 1px rgba(0,0,0,0.08),
-      0 1px 3px rgba(0,0,0,0.06);
-  }
-  .grid.shadow-ring .card-tile:hover {
-    box-shadow:
-      inset 0 0 0 1px rgba(0,0,0,0.10),
-      0 3px 6px rgba(0,0,0,0.10);
-  }
-
-  /* compare-all layout */
-  .compare-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-    gap: 28px;
-  }
-  .compare-cell {
-    background: #f8f7f4;
-    padding: 14px 14px 18px;
-    border-radius: 8px;
-  }
-  .compare-cell h3 {
-    margin: 0 0 2px;
+  .sidebar-search {
+    border: none;
+    border-bottom: 1px solid #000;
+    background: transparent;
+    padding: 4px 0;
+    font: inherit;
     font-size: 0.85rem;
-    font-weight: 600;
-    letter-spacing: 0.01em;
+    width: 100%;
+    outline: none;
   }
-  .compare-cell .compare-desc {
-    font-size: 0.72rem;
-    color: #888;
-    margin: 0 0 10px;
+  .sidebar-filter {
+    border: none;
+    border-bottom: 1px solid #ddd;
+    background: transparent;
+    padding: 3px 0;
+    font: inherit;
+    font-size: 0.78rem;
+    color: #555;
   }
-  .compare-cell .grid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
 
-  .footer-link {
-    margin-top: 40px;
-    font-size: 0.75rem;
-    color: #888;
+  .app-center {
+    grid-area: main;
+    overflow-y: auto;
+    min-width: 0;
+    padding: 0;
+    scrollbar-width: thin;
   }
-  .footer-link a { color: #444; }
+
+  .app-footer {
+    grid-area: footer;
+    background: #f8f7f4;
+    border-top: 1px solid #000;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    font-size: 0.75rem;
+    color: #444;
+    z-index: 5;
+    position: relative;
+  }
+  .app-footer-storage { color: #999; font-size: 0.7rem; }
+  .app-footer-right { display: flex; gap: 10px; align-items: center; }
+
+  /* ───── list table (replicates list view) ───── */
+  .list-view { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  .list-view thead th {
+    position: sticky;
+    top: 0;
+    background: #f8f7f4;
+    text-align: left;
+    font-weight: 500;
+    color: #555;
+    padding: 8px 10px;
+    box-shadow: inset 0 -1px 0 #000;
+    font-size: 0.72rem;
+    letter-spacing: 0.02em;
+    z-index: 2;
+  }
+  .list-view tbody td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #ececec;
+    color: #222;
+    vertical-align: middle;
+  }
+  .list-view tbody tr:hover { background: #f3f0e6; }
+  .list-view td.muted { color: #777; }
+  .list-view td.set-cell { text-transform: uppercase; font-size: 0.74rem; letter-spacing: 0.04em; }
+  .list-view td.qty-cell { font-variant-numeric: tabular-nums; }
+  .list-view .row-tag {
+    background: #f0ece0;
+    color: #333;
+    padding: 1px 6px;
+    border-radius: 2px;
+    font-size: 0.7rem;
+    margin-right: 4px;
+  }
+  .list-view .loc-pill {
+    display: inline-block;
+    background: #efe6d4;
+    color: #333;
+    padding: 1px 6px;
+    border-radius: 2px;
+    font-size: 0.7rem;
+  }
+
+  /* ──────────────────────────────────────────────────
+     SHADOW VARIANTS (applied via body.variant-X)
+     Targets: .app-header, .app-left, .app-footer borders
+     ────────────────────────────────────────────────── */
+
+  /* v0 — none: current live state, hard 1px black borders */
+
+  /* v1 — soft inward: keep border, add gentle inward-cast shadow */
+  body.v-soft-inward .app-header { box-shadow: 0 4px 8px -3px rgba(0,0,0,0.10); }
+  body.v-soft-inward .app-left   { box-shadow: 4px 0 8px -3px rgba(0,0,0,0.08); }
+  body.v-soft-inward .app-footer { box-shadow: 0 -4px 8px -3px rgba(0,0,0,0.08); }
+
+  /* v2 — soft inward, no line: drop the black 1px in favor of shadow alone */
+  body.v-soft-no-line .app-header { border-bottom: none; box-shadow: 0 4px 10px -2px rgba(0,0,0,0.12); }
+  body.v-soft-no-line .app-left   { border-right: none;  box-shadow: 6px 0 10px -3px rgba(0,0,0,0.10); }
+  body.v-soft-no-line .app-footer { border-top: none;    box-shadow: 0 -4px 10px -2px rgba(0,0,0,0.10); }
+
+  /* v3 — inset well: borders stay; center looks recessed via inset shadow */
+  body.v-inset-well .app-center {
+    box-shadow:
+      inset 0 6px 8px -6px rgba(0,0,0,0.18),
+      inset 6px 0 8px -6px rgba(0,0,0,0.14),
+      inset 0 -6px 8px -6px rgba(0,0,0,0.14);
+  }
+
+  /* v4 — inset well, no line: recessed center, no hard frame */
+  body.v-inset-no-line .app-header { border-bottom: none; }
+  body.v-inset-no-line .app-left   { border-right: none; }
+  body.v-inset-no-line .app-footer { border-top: none; }
+  body.v-inset-no-line .app-center {
+    box-shadow:
+      inset 0 8px 10px -6px rgba(0,0,0,0.20),
+      inset 8px 0 10px -6px rgba(0,0,0,0.16),
+      inset 0 -8px 10px -6px rgba(0,0,0,0.16);
+  }
+
+  /* v5 — edge fade: replace black borders with a soft gradient fade */
+  body.v-edge-fade .app-header {
+    border-bottom: none;
+    background: linear-gradient(#f8f7f4 0%, #f8f7f4 calc(100% - 8px), rgba(0,0,0,0.12) 100%);
+  }
+  body.v-edge-fade .app-left {
+    border-right: none;
+    background: linear-gradient(to right, #f8f7f4 0%, #f8f7f4 calc(100% - 8px), rgba(0,0,0,0.10) 100%);
+  }
+  body.v-edge-fade .app-footer {
+    border-top: none;
+    background: linear-gradient(#f8f7f4 0%, rgba(0,0,0,0.10) 8px, #f8f7f4 8px, #f8f7f4 100%);
+    box-shadow: 0 -1px 0 rgba(0,0,0,0); /* placeholder */
+  }
+  /* Smarter footer fade: gradient at top inside the strip */
+  body.v-edge-fade .app-footer {
+    background:
+      linear-gradient(rgba(0,0,0,0.10), rgba(0,0,0,0)) top/100% 6px no-repeat,
+      #f8f7f4;
+  }
+
+  /* v6 — lifted chrome: chrome surfaces feel like raised cards above the center */
+  body.v-lifted .app-header {
+    border-bottom: none;
+    background: #fcfbf7;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 6px 12px -2px rgba(0,0,0,0.10);
+  }
+  body.v-lifted .app-left {
+    border-right: none;
+    background: #fcfbf7;
+    box-shadow: 1px 0 0 rgba(0,0,0,0.04), 6px 0 12px -2px rgba(0,0,0,0.08);
+  }
+  body.v-lifted .app-footer {
+    border-top: none;
+    background: #fcfbf7;
+    box-shadow: 0 -1px 0 rgba(0,0,0,0.04), 0 -6px 12px -2px rgba(0,0,0,0.08);
+  }
+  body.v-lifted .app-center { background: #f4f1ea; }
+  body.v-lifted .list-view thead th { background: #f4f1ea; }
+
+  /* v7 — warm soft: subtle warm-tinted soft drop, keep the line */
+  body.v-warm .app-header { box-shadow: 0 4px 10px -3px rgba(80,60,40,0.14); }
+  body.v-warm .app-left   { box-shadow: 4px 0 10px -3px rgba(80,60,40,0.10); }
+  body.v-warm .app-footer { box-shadow: 0 -4px 10px -3px rgba(80,60,40,0.10); }
+
+  /* v8 — hairline + glow: replace black with a 1px hairline + diffuse glow */
+  body.v-hairline .app-header { border-bottom: 1px solid rgba(0,0,0,0.18); box-shadow: 0 3px 8px -3px rgba(0,0,0,0.10); }
+  body.v-hairline .app-left   { border-right: 1px solid rgba(0,0,0,0.16);  box-shadow: 3px 0 8px -3px rgba(0,0,0,0.08); }
+  body.v-hairline .app-footer { border-top: 1px solid rgba(0,0,0,0.18);    box-shadow: 0 -3px 8px -3px rgba(0,0,0,0.08); }
 
   @media (max-width: 700px) {
-    body { padding: 16px 14px 60px; }
-    .toolbar { gap: 12px 18px; }
-    .compare-cell .grid { grid-template-columns: repeat(3, 1fr); }
+    .app-shell { grid-template-columns: 1fr; grid-template-areas: "header" "main" "footer"; }
+    .app-left { display: none; }
   }
 </style>
 </head>
-<body class="no-shared-footer">
+<body class="v-soft-inward">
 
-<h1>mtg collection — grid shadow variants</h1>
-<p class="subtitle">click a variant to apply it. cards come from your local collection if present, otherwise samples.</p>
-
-<div class="toolbar">
+<div class="variant-toolbar">
   <div class="toolbar-group">
-    <span class="toolbar-label">variant</span>
+    <span class="toolbar-label">chrome shadow</span>
     <div class="toolbar-row" id="variantRow"></div>
-  </div>
-  <div class="toolbar-group">
-    <span class="toolbar-label">size</span>
-    <div class="toolbar-row" id="sizeRow">
-      <button class="pill-btn" data-size="small">s</button>
-      <button class="pill-btn active" data-size="medium">m</button>
-      <button class="pill-btn" data-size="large">l</button>
-    </div>
-  </div>
-  <div class="toolbar-group">
-    <span class="toolbar-label">mode</span>
-    <div class="toolbar-row" id="modeRow">
-      <button class="pill-btn active" data-mode="single">single</button>
-      <button class="pill-btn" data-mode="compare">compare all</button>
-    </div>
   </div>
   <div class="css-readout" id="cssReadout"></div>
 </div>
 
-<div id="singleView">
-  <div class="grid grid-medium" id="grid"></div>
+<div class="app-shell">
+  <header class="app-header">
+    <h1>mtg collection</h1>
+    <div class="app-header-totals">
+      <span><span class="stat-label">cards</span><strong>347</strong></span>
+      <span class="sep">·</span>
+      <span><span class="stat-label">unique</span><strong>198</strong></span>
+      <span class="sep">·</span>
+      <span><span class="stat-label">value</span><strong>$1,242</strong></span>
+    </div>
+    <div class="app-header-views">
+      <button class="toggle-view active">≡ list</button>
+      <button class="toggle-view">▦ grid</button>
+      <button class="toggle-view">deck</button>
+      <button class="toggle-view">binder</button>
+    </div>
+  </header>
+
+  <aside class="app-left">
+    <div>
+      <div class="sidebar-label">search</div>
+      <input class="sidebar-search" placeholder="t:creature cmc<3" />
+    </div>
+    <div>
+      <div class="sidebar-label">set</div>
+      <select class="sidebar-filter"><option>all sets</option></select>
+    </div>
+    <div>
+      <div class="sidebar-label">rarity</div>
+      <select class="sidebar-filter"><option>all rarities</option></select>
+    </div>
+    <div>
+      <div class="sidebar-label">finish</div>
+      <select class="sidebar-filter"><option>all finishes</option></select>
+    </div>
+    <div>
+      <div class="sidebar-label">location</div>
+      <select class="sidebar-filter"><option>all locations</option></select>
+    </div>
+    <div>
+      <div class="sidebar-label">tag</div>
+      <select class="sidebar-filter"><option>all tags</option></select>
+    </div>
+  </aside>
+
+  <main class="app-center">
+    <table class="list-view">
+      <thead>
+        <tr>
+          <th>name</th>
+          <th>set</th>
+          <th>cn</th>
+          <th>finish</th>
+          <th>rarity</th>
+          <th>cond</th>
+          <th>location</th>
+          <th>tags</th>
+          <th>qty</th>
+          <th>price</th>
+        </tr>
+      </thead>
+      <tbody id="listBody"></tbody>
+    </table>
+  </main>
+
+  <footer class="app-footer">
+    <span class="app-footer-storage">localstorage only · export csv to back up</span>
+    <div class="app-footer-right">
+      <span>aa</span>
+      <a href="https://bensonperry.com" style="color:#999;text-decoration:none;border-bottom:1px solid #ddd;">bensonperry.com</a>
+    </div>
+  </footer>
 </div>
-
-<div id="compareView" hidden></div>
-
-<p class="footer-link">← <a href="./">back to collection</a></p>
 
 <script>
   const VARIANTS = [
-    {
-      key: 'none',
-      label: 'none',
-      desc: 'baseline — current live behavior, no box-shadow.',
-      css: 'box-shadow: none;'
-    },
-    {
-      key: 'subtle',
-      label: 'subtle',
-      desc: 'minimal hairline lift. enough to separate tiles from the cream bg without drawing attention.',
-      css: 'box-shadow: 0 1px 2px 0 rgba(0,0,0,0.06);\nhover: 0 2px 4px 0 rgba(0,0,0,0.10);'
-    },
-    {
-      key: 'soft',
-      label: 'soft',
-      desc: 'tailwind default shadow — layered contact + small drop. universal "good enough" depth.',
-      css: 'box-shadow:\n  0 1px 3px rgba(0,0,0,0.08),\n  0 1px 2px -1px rgba(0,0,0,0.06);'
-    },
-    {
-      key: 'lifted',
-      label: 'lifted',
-      desc: 'shadow-md scale — clearly elevated. cards feel like they\'re sitting above the surface.',
-      css: 'box-shadow:\n  0 4px 6px -1px rgba(0,0,0,0.08),\n  0 2px 4px -2px rgba(0,0,0,0.06);'
-    },
-    {
-      key: 'floating',
-      label: 'floating',
-      desc: 'shadow-lg scale — strong presence. risks looking heavy at small sizes.',
-      css: 'box-shadow:\n  0 10px 15px -3px rgba(0,0,0,0.10),\n  0 4px 6px -4px rgba(0,0,0,0.08);'
-    },
-    {
-      key: 'contact',
-      label: 'contact',
-      desc: 'sharp 1px contact + diffuse body shadow. evokes "card resting on table" — physical feel for an mtg app.',
-      css: 'box-shadow:\n  0 1px 1px rgba(0,0,0,0.10),\n  0 6px 12px -2px rgba(0,0,0,0.10);'
-    },
-    {
-      key: 'hover',
-      label: 'hover only',
-      desc: 'no resting shadow; big lift only on hover. quietest grid, most reactive.',
-      css: 'rest: box-shadow: none;\nhover: 0 8px 18px -4px rgba(0,0,0,0.18), 0 2px 4px rgba(0,0,0,0.08);'
-    },
-    {
-      key: 'warm',
-      label: 'warm',
-      desc: 'shadow tinted toward brown to harmonize with the cream background instead of pure black.',
-      css: 'box-shadow:\n  0 2px 4px rgba(80,60,40,0.10),\n  0 6px 14px rgba(80,60,40,0.08);'
-    },
-    {
-      key: 'ring',
-      label: 'ring',
-      desc: 'inset hairline + tiny shadow. adds definition without true elevation — useful if shadows feel too "designy".',
-      css: 'box-shadow:\n  inset 0 0 0 1px rgba(0,0,0,0.08),\n  0 1px 3px rgba(0,0,0,0.06);'
-    }
+    { key: 'none',           label: 'none',           desc: 'baseline — current live behavior. hard 1px #000 frame, no shadow.', css: '/* current */\n.app-header { border-bottom: 1px solid #000; }\n.app-left   { border-right:  1px solid #000; }\n.app-footer { border-top:    1px solid #000; }' },
+    { key: 'v-soft-inward',  label: 'soft inward',    desc: 'keep the black frame, add a gentle inward shadow so chrome casts onto the content well.', css: '.app-header { box-shadow: 0 4px 8px -3px rgba(0,0,0,0.10); }\n.app-left   { box-shadow: 4px 0 8px -3px rgba(0,0,0,0.08); }\n.app-footer { box-shadow: 0 -4px 8px -3px rgba(0,0,0,0.08); }' },
+    { key: 'v-soft-no-line', label: 'soft, no line',  desc: 'drop the hard black border entirely; shadow alone separates chrome from content.', css: '.app-header { border-bottom: none; box-shadow: 0 4px 10px -2px rgba(0,0,0,0.12); }\n.app-left   { border-right:  none; box-shadow: 6px 0 10px -3px rgba(0,0,0,0.10); }\n.app-footer { border-top:    none; box-shadow: 0 -4px 10px -2px rgba(0,0,0,0.10); }' },
+    { key: 'v-inset-well',   label: 'inset well',     desc: 'frame stays; the center panel gets an inset shadow so it reads as recessed.', css: '.app-center {\n  box-shadow:\n    inset 0 6px 8px -6px rgba(0,0,0,0.18),\n    inset 6px 0 8px -6px rgba(0,0,0,0.14),\n    inset 0 -6px 8px -6px rgba(0,0,0,0.14);\n}' },
+    { key: 'v-inset-no-line',label: 'inset, no line', desc: 'recessed center without the black frame — softest, least architectural option.', css: '/* borders removed; .app-center inset shadow only */\n.app-center {\n  box-shadow:\n    inset 0 8px 10px -6px rgba(0,0,0,0.20),\n    inset 8px 0 10px -6px rgba(0,0,0,0.16),\n    inset 0 -8px 10px -6px rgba(0,0,0,0.16);\n}' },
+    { key: 'v-edge-fade',    label: 'edge fade',      desc: 'replace each border with a short gradient fade at the chrome edge — softer than a line, no shadow.', css: '.app-header { background: linear-gradient(#f8f7f4 calc(100% - 8px), rgba(0,0,0,0.12) 100%); }\n.app-left   { background: linear-gradient(to right, #f8f7f4 calc(100% - 8px), rgba(0,0,0,0.10) 100%); }\n.app-footer { background: linear-gradient(rgba(0,0,0,0.10), rgba(0,0,0,0)) top/100% 6px no-repeat, #f8f7f4; }' },
+    { key: 'v-lifted',       label: 'lifted chrome',  desc: 'chrome surfaces become slightly lighter & cast outward — they read as raised above the center.', css: '.app-header { background: #fcfbf7; box-shadow: 0 6px 12px -2px rgba(0,0,0,0.10); }\n.app-left   { background: #fcfbf7; box-shadow: 6px 0 12px -2px rgba(0,0,0,0.08); }\n.app-footer { background: #fcfbf7; box-shadow: 0 -6px 12px -2px rgba(0,0,0,0.08); }\n.app-center { background: #f4f1ea; }' },
+    { key: 'v-warm',         label: 'warm',           desc: 'soft inward shadow tinted toward brown so it harmonizes with the cream background.', css: '.app-header { box-shadow: 0 4px 10px -3px rgba(80,60,40,0.14); }\n.app-left   { box-shadow: 4px 0 10px -3px rgba(80,60,40,0.10); }\n.app-footer { box-shadow: 0 -4px 10px -3px rgba(80,60,40,0.10); }' },
+    { key: 'v-hairline',     label: 'hairline + glow',desc: 'soften the black to a low-opacity hairline and add a small diffuse glow — a quieter version of the current frame.', css: '.app-header { border-bottom: 1px solid rgba(0,0,0,0.18); box-shadow: 0 3px 8px -3px rgba(0,0,0,0.10); }\n.app-left   { border-right:  1px solid rgba(0,0,0,0.16); box-shadow: 3px 0 8px -3px rgba(0,0,0,0.08); }\n.app-footer { border-top:    1px solid rgba(0,0,0,0.18); box-shadow: 0 -3px 8px -3px rgba(0,0,0,0.08); }' }
   ];
 
-  const SAMPLE_CARDS = [
-    'lightning bolt', 'counterspell', 'birds of paradise', 'sol ring',
-    'swords to plowshares', 'thoughtseize', 'tarmogoyf', 'snapcaster mage',
-    'liliana of the veil', 'jace, the mind sculptor', 'force of will', 'dark confidant',
-    'ragavan, nimble pilferer', 'ledger shredder', 'bloodbraid elf', 'wrenn and six',
-    'breya, etherium shaper', 'goblin guide', 'delver of secrets', 'mox opal',
-    'sensei\'s divining top', 'oko, thief of crowns', 'fable of the mirror-breaker', 'sheoldred, the apocalypse'
-  ].map(name => ({
-    name,
-    imageUrl: `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}&format=image&version=normal`
-  }));
-
-  function loadCollectionCards() {
-    try {
-      const raw = localStorage.getItem('mtgcollection_v1');
-      if (!raw) return null;
-      const parsed = JSON.parse(raw);
-      const arr = Array.isArray(parsed) ? parsed : (parsed && parsed.collection) || null;
-      if (!arr || arr.length === 0) return null;
-      const filtered = arr.filter(c => c && c.imageUrl);
-      if (filtered.length < 4) return null;
-      return filtered.slice(0, 24);
-    } catch (_) {
-      return null;
-    }
-  }
-
-  const cardSource = loadCollectionCards() || SAMPLE_CARDS;
-
-  function tileHtml(c) {
-    const name = (c.resolvedName || c.name || '').toString();
-    const qty = c.qty && c.qty > 1 ? `<span class="badge">×${c.qty}</span>` : '';
-    const img = c.imageUrl
-      ? `<img src="${c.imageUrl}" alt="${escapeHtml(name)}" loading="lazy">`
-      : `<div class="placeholder">${escapeHtml(name)}</div>`;
-    return `<div class="card-tile">${img}<div class="card-badges">${qty}</div></div>`;
-  }
+  // sample rows — fixed dataset so the visual evaluation is consistent regardless of the user's collection
+  const ROWS = [
+    { name: 'Lightning Bolt',           set: 'm10', cn: '146', finish: 'nonfoil', rarity: 'c', cond: 'nm', loc: 'box:bulk',   tags: ['burn','red'],       qty: 4, price: '$1.20' },
+    { name: 'Counterspell',             set: 'mh2', cn: '267', finish: 'foil',    rarity: 'c', cond: 'nm', loc: 'deck:tron',  tags: ['blue'],             qty: 2, price: '$8.40' },
+    { name: 'Birds of Paradise',        set: '7ed', cn: '230', finish: 'nonfoil', rarity: 'r', cond: 'lp', loc: 'box:bulk',   tags: ['mana','green'],     qty: 3, price: '$5.10' },
+    { name: 'Sol Ring',                 set: 'cmm', cn: '410', finish: 'nonfoil', rarity: 'u', cond: 'nm', loc: 'deck:breya', tags: ['edh','staple'],     qty: 1, price: '$1.85' },
+    { name: 'Swords to Plowshares',     set: 'sld', cn: '12',  finish: 'foil',    rarity: 'u', cond: 'nm', loc: 'box:bulk',   tags: ['removal','white'],  qty: 4, price: '$3.20' },
+    { name: 'Thoughtseize',             set: 'lrw', cn: '145', finish: 'nonfoil', rarity: 'r', cond: 'nm', loc: 'binder:rare',tags: ['discard'],          qty: 2, price: '$24.00' },
+    { name: 'Tarmogoyf',                set: 'mm3', cn: '141', finish: 'nonfoil', rarity: 'm', cond: 'lp', loc: 'binder:rare',tags: ['green','beater'],   qty: 1, price: '$11.40' },
+    { name: 'Snapcaster Mage',          set: 'mh2', cn: '375', finish: 'nonfoil', rarity: 'r', cond: 'nm', loc: 'deck:tron',  tags: ['blue'],             qty: 2, price: '$22.50' },
+    { name: 'Liliana of the Veil',      set: 'mm3', cn: '76',  finish: 'foil',    rarity: 'm', cond: 'nm', loc: 'binder:rare',tags: ['black','pw'],       qty: 1, price: '$58.00' },
+    { name: 'Force of Will',            set: 'mh1', cn: '60',  finish: 'nonfoil', rarity: 'r', cond: 'nm', loc: 'binder:rare',tags: ['blue','staple'],    qty: 1, price: '$78.00' },
+    { name: 'Dark Confidant',           set: 'mma', cn: '78',  finish: 'nonfoil', rarity: 'm', cond: 'mp', loc: 'binder:rare',tags: ['black'],            qty: 1, price: '$32.00' },
+    { name: 'Ragavan, Nimble Pilferer', set: 'mh2', cn: '138', finish: 'nonfoil', rarity: 'm', cond: 'nm', loc: 'deck:burn',  tags: ['red','aggro'],      qty: 1, price: '$48.00' },
+    { name: 'Ledger Shredder',          set: 'snc', cn: '46',  finish: 'foil',    rarity: 'r', cond: 'nm', loc: 'box:bulk',   tags: ['blue'],             qty: 3, price: '$4.10' },
+    { name: 'Bloodbraid Elf',           set: 'arb', cn: '50',  finish: 'nonfoil', rarity: 'u', cond: 'lp', loc: 'box:bulk',   tags: ['cascade'],          qty: 4, price: '$0.80' },
+    { name: 'Wrenn and Six',            set: 'mh1', cn: '217', finish: 'nonfoil', rarity: 'm', cond: 'nm', loc: 'binder:rare',tags: ['pw'],               qty: 1, price: '$72.00' },
+    { name: 'Goblin Guide',             set: 'zen', cn: '130', finish: 'nonfoil', rarity: 'r', cond: 'nm', loc: 'deck:burn',  tags: ['red','aggro'],      qty: 4, price: '$10.00' },
+    { name: 'Delver of Secrets',        set: 'isd', cn: '51',  finish: 'nonfoil', rarity: 'c', cond: 'nm', loc: 'box:bulk',   tags: ['blue'],             qty: 4, price: '$0.30' },
+    { name: 'Mox Opal',                 set: 'som', cn: '209', finish: 'foil',    rarity: 'm', cond: 'lp', loc: 'binder:rare',tags: ['mana','banned'],    qty: 1, price: '$58.00' },
+    { name: "Sensei's Divining Top",    set: 'chk', cn: '264', finish: 'nonfoil', rarity: 'r', cond: 'nm', loc: 'box:bulk',   tags: ['artifact'],         qty: 2, price: '$30.00' },
+    { name: 'Oko, Thief of Crowns',     set: 'eld', cn: '197', finish: 'nonfoil', rarity: 'm', cond: 'nm', loc: 'binder:rare',tags: ['pw','green'],       qty: 1, price: '$15.00' },
+    { name: 'Sheoldred, the Apocalypse',set: 'dmu', cn: '107', finish: 'nonfoil', rarity: 'm', cond: 'nm', loc: 'deck:rock',  tags: ['black'],            qty: 1, price: '$58.00' },
+    { name: 'Fable of the Mirror-Breaker', set: 'neo', cn: '141', finish: 'nonfoil', rarity: 'r', cond: 'nm', loc: 'deck:burn', tags: ['saga','red'],   qty: 2, price: '$22.00' },
+    { name: 'Breya, Etherium Shaper',   set: 'c16', cn: '36',  finish: 'nonfoil', rarity: 'm', cond: 'nm', loc: 'deck:breya', tags: ['edh','commander'],  qty: 1, price: '$2.60' },
+    { name: 'Arcane Signet',            set: 'cmm', cn: '362', finish: 'nonfoil', rarity: 'c', cond: 'nm', loc: 'deck:breya', tags: ['mana','edh'],       qty: 1, price: '$1.10' },
+    { name: 'Command Tower',            set: 'cmm', cn: '436', finish: 'nonfoil', rarity: 'c', cond: 'nm', loc: 'deck:breya', tags: ['land','edh'],       qty: 1, price: '$0.50' },
+    { name: 'Cyclonic Rift',            set: 'rtr', cn: '36',  finish: 'foil',    rarity: 'r', cond: 'nm', loc: 'deck:breya', tags: ['blue','edh'],       qty: 1, price: '$26.00' },
+    { name: 'Ancient Tomb',             set: 'usg', cn: '321', finish: 'nonfoil', rarity: 'r', cond: 'mp', loc: 'binder:rare',tags: ['land','staple'],    qty: 1, price: '$84.00' },
+    { name: 'Blood Crypt',              set: 'rna', cn: '245', finish: 'nonfoil', rarity: 'r', cond: 'nm', loc: 'binder:rare',tags: ['land','dual'],      qty: 2, price: '$18.00' },
+    { name: 'Bloodstained Mire',        set: 'khm', cn: '372', finish: 'nonfoil', rarity: 'r', cond: 'nm', loc: 'binder:rare',tags: ['land','fetch'],     qty: 4, price: '$22.00' },
+    { name: 'Arid Mesa',                set: 'mh2', cn: '244', finish: 'nonfoil', rarity: 'r', cond: 'nm', loc: 'binder:rare',tags: ['land','fetch'],     qty: 2, price: '$26.00' }
+  ];
 
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, ch => ({
@@ -400,37 +480,35 @@
     }[ch]));
   }
 
+  function renderRows() {
+    const html = ROWS.map(r => `
+      <tr>
+        <td>${escapeHtml(r.name)}</td>
+        <td class="muted set-cell">${escapeHtml(r.set)}</td>
+        <td class="muted">${escapeHtml(r.cn)}</td>
+        <td class="muted">${escapeHtml(r.finish)}</td>
+        <td class="muted">${escapeHtml(r.rarity)}</td>
+        <td class="muted">${escapeHtml(r.cond)}</td>
+        <td><span class="loc-pill">${escapeHtml(r.loc)}</span></td>
+        <td>${r.tags.map(t => `<span class="row-tag">${escapeHtml(t)}</span>`).join('')}</td>
+        <td class="qty-cell">${r.qty}</td>
+        <td class="muted">${escapeHtml(r.price)}</td>
+      </tr>
+    `).join('');
+    document.getElementById('listBody').innerHTML = html;
+  }
+
   function renderVariantButtons() {
-    const row = document.getElementById('variantRow');
-    row.innerHTML = VARIANTS.map(v =>
+    document.getElementById('variantRow').innerHTML = VARIANTS.map(v =>
       `<button class="pill-btn" data-variant="${v.key}">${v.label}</button>`
     ).join('');
   }
 
-  function renderGrid(cards) {
-    document.getElementById('grid').innerHTML = cards.map(tileHtml).join('');
-  }
-
-  function renderCompareView(cards) {
-    const sample = cards.slice(0, 8);
-    const wrap = document.getElementById('compareView');
-    wrap.innerHTML = `<div class="compare-grid">${VARIANTS.map(v => `
-      <div class="compare-cell">
-        <h3>${v.label}</h3>
-        <p class="compare-desc">${escapeHtml(v.desc)}</p>
-        <div class="grid grid-small shadow-${v.key}">
-          ${sample.map(tileHtml).join('')}
-        </div>
-      </div>
-    `).join('')}</div>`;
-  }
-
   function applyVariant(key) {
-    const grid = document.getElementById('grid');
-    grid.classList.forEach(cls => {
-      if (cls.startsWith('shadow-')) grid.classList.remove(cls);
+    document.body.classList.forEach(cls => {
+      if (cls.startsWith('v-')) document.body.classList.remove(cls);
     });
-    if (key !== 'none') grid.classList.add('shadow-' + key);
+    if (key !== 'none') document.body.classList.add(key);
 
     document.querySelectorAll('#variantRow .pill-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.variant === key);
@@ -438,50 +516,21 @@
 
     const v = VARIANTS.find(x => x.key === key);
     document.getElementById('cssReadout').innerHTML =
-      `<span class="css-name">${v.label}</span>${escapeHtml(v.css)}<span class="css-desc">${escapeHtml(v.desc)}</span>`;
-    try { localStorage.setItem('mtgcollection_variant_pick', key); } catch (_) {}
-  }
-
-  function applySize(size) {
-    const grid = document.getElementById('grid');
-    grid.classList.remove('grid-small', 'grid-medium', 'grid-large');
-    grid.classList.add('grid-' + size);
-    document.querySelectorAll('#sizeRow .pill-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.size === size);
-    });
-  }
-
-  function applyMode(mode) {
-    document.getElementById('singleView').hidden = mode !== 'single';
-    document.getElementById('compareView').hidden = mode !== 'compare';
-    document.querySelectorAll('#modeRow .pill-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.mode === mode);
-    });
-    if (mode === 'compare' && !document.getElementById('compareView').dataset.rendered) {
-      renderCompareView(cardSource);
-      document.getElementById('compareView').dataset.rendered = '1';
-    }
+      `<span class="css-name">${escapeHtml(v.label)}</span>${escapeHtml(v.css)}<span class="css-desc">${escapeHtml(v.desc)}</span>`;
+    try { localStorage.setItem('mtgcollection_chrome_variant', key); } catch (_) {}
   }
 
   document.getElementById('variantRow').addEventListener('click', e => {
     const btn = e.target.closest('[data-variant]');
     if (btn) applyVariant(btn.dataset.variant);
   });
-  document.getElementById('sizeRow').addEventListener('click', e => {
-    const btn = e.target.closest('[data-size]');
-    if (btn) applySize(btn.dataset.size);
-  });
-  document.getElementById('modeRow').addEventListener('click', e => {
-    const btn = e.target.closest('[data-mode]');
-    if (btn) applyMode(btn.dataset.mode);
-  });
 
   renderVariantButtons();
-  renderGrid(cardSource);
+  renderRows();
   const remembered = (() => {
-    try { return localStorage.getItem('mtgcollection_variant_pick'); } catch (_) { return null; }
+    try { return localStorage.getItem('mtgcollection_chrome_variant'); } catch (_) { return null; }
   })();
-  applyVariant(remembered && VARIANTS.find(v => v.key === remembered) ? remembered : 'soft');
+  applyVariant(remembered && VARIANTS.find(v => v.key === remembered) ? remembered : 'v-soft-inward');
 </script>
 </body>
 </html>
