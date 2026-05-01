@@ -371,6 +371,23 @@
   .multiselect .ms-option:hover { background: #f4f4f0; }
   .multiselect .ms-option input { margin: 0; cursor: pointer; }
   .multiselect .ms-empty { padding: 6px 8px; font-size: 0.75rem; color: #999; }
+  .multiselect .ms-trigger-label.ms-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+  }
+  .multiselect .ms-pill {
+    background: #f0ece0;
+    padding: 1px 6px;
+    border-radius: 2px;
+    font-size: 0.7rem;
+    line-height: 1.4;
+    color: #000;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
   .clear-filters-btn {
     display: none;
@@ -1998,7 +2015,7 @@
     <div class="sidebar-section">
       <div class="sidebar-label">search</div>
       <div class="search-wrap">
-        <input class="search-input" type="text" id="searchInput" placeholder="search... (try t:creature cmc&lt;=3)">
+        <input class="search-input" type="text" id="searchInput" placeholder="search">
         <button class="search-clear-btn" type="button" id="searchClearBtn" aria-label="clear search">×</button>
         <button class="search-help-btn" type="button" id="searchHelpBtn" aria-label="syntax help">?</button>
         <div class="search-help-popover" id="searchHelpPopover">
@@ -2181,10 +2198,9 @@
               <th class="col-check"><input type="checkbox" class="header-check" id="headerCheck" aria-label="select all visible"></th>
               <th>name</th>
               <th>set</th>
-              <th>cn</th>
               <th>finish</th>
               <th>rarity</th>
-              <th>cond</th>
+              <th>condition</th>
               <th>location</th>
               <th>qty</th>
               <th>price</th>

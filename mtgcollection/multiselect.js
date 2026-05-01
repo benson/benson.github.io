@@ -16,19 +16,17 @@ function getSelectedValues(el) {
 }
 
 function updateTriggerLabel(el) {
-  const trigger = el.querySelector('.ms-trigger-label');
-  if (!trigger) return;
+  const labelEl = el.querySelector('.ms-trigger-label');
+  if (!labelEl) return;
   const selected = getSelectedValues(el);
   const defaultLabel = el.dataset.defaultLabel || '';
   if (selected.length === 0) {
-    trigger.textContent = defaultLabel;
+    labelEl.textContent = defaultLabel;
+    labelEl.classList.remove('ms-pills');
     el.classList.remove('has-selection');
-  } else if (selected.length === 1) {
-    trigger.textContent = selected[0];
-    el.classList.add('has-selection');
   } else {
-    const noun = el.dataset.noun || 'selected';
-    trigger.textContent = selected.length + ' ' + noun;
+    labelEl.innerHTML = selected.map(v => '<span class="ms-pill">' + esc(v) + '</span>').join('');
+    labelEl.classList.add('ms-pills');
     el.classList.add('has-selection');
   }
 }
