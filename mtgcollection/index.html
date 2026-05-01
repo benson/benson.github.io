@@ -244,18 +244,18 @@
   }
   body.view-list.right-drawer-open .app-right-backdrop { display: block; }
 
-  /* FAB cluster — visible whenever there's a collection */
+  /* FAB cluster — always visible (even with an empty collection so the user
+     can reach the add panel from list view, where the right sidebar is hidden) */
   .fab-cluster {
     position: fixed;
     right: 16px;
     bottom: 56px;
-    display: none;
+    display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: 6px;
     z-index: 30;
   }
-  body.has-collection .fab-cluster { display: flex; }
   body.right-drawer-open .fab-cluster { display: none; }
   .fab-btn {
     display: inline-flex;
@@ -2756,7 +2756,7 @@
     </div>
   </footer>
   <div class="app-right-backdrop" id="appRightBackdrop"></div>
-  <div class="fab-cluster" id="fabCluster" aria-hidden="true">
+  <div class="fab-cluster" id="fabCluster">
     <button class="fab-btn" type="button" data-fab-target="addDetails,importDetails" aria-label="add cards"><span class="fab-glyph">+</span><span class="fab-label">add</span></button>
     <button class="fab-btn" type="button" data-fab-action="export" aria-label="download csv"><span class="fab-glyph">↓</span><span class="fab-label">download</span></button>
   </div>

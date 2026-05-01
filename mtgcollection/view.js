@@ -164,6 +164,9 @@ export function render() {
   if (state.collection.length === 0) {
     collectionSection.classList.add('hidden');
     emptyState.classList.remove('hidden');
+    // Hide size toggles too — neither makes sense for an empty collection.
+    document.getElementById('gridSizeControl').classList.add('hidden');
+    document.getElementById('binderSizeControl').classList.add('hidden');
     return;
   }
   emptyState.classList.add('hidden');
