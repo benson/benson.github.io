@@ -1321,6 +1321,16 @@
     color: #000;
   }
   .changelog-summary { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .changelog-card-name,
+  .history-card-name {
+    text-transform: none !important;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    cursor: pointer;
+  }
+  .changelog-card-name:hover,
+  .history-card-name:hover { text-decoration-style: solid; }
+  .changelog-more-muted { color: #888; text-transform: none; }
   .changelog-banner-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
   .changelog-undo {
     background: none;

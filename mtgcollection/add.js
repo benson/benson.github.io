@@ -415,10 +415,15 @@ function commitVoiceAdd(card, opts, voiceCtx) {
   }
   recordEvent({
     type: 'add',
-    summary: 'added ' + card.name + ' ×' + opts.qty,
+    summary: 'added ×' + opts.qty,
     before,
     created,
     affectedKeys: [k],
+    cards: [{
+      name: card.name,
+      imageUrl: entry.imageUrl || '',
+      backImageUrl: entry.backImageUrl || '',
+    }],
   });
 }
 
@@ -556,10 +561,15 @@ function addCardFromPreview() {
   }
   recordEvent({
     type: 'add',
-    summary: 'added ' + card.name + ' (' + (card.set || '').toUpperCase() + ' #' + card.collector_number + ')',
+    summary: 'added (' + (card.set || '').toUpperCase() + ' #' + card.collector_number + ')',
     before,
     created,
     affectedKeys: [k],
+    cards: [{
+      name: card.name,
+      imageUrl: entry.imageUrl || '',
+      backImageUrl: entry.backImageUrl || '',
+    }],
   });
 
   hideAddPreview();

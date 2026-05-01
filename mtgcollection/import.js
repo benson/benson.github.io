@@ -284,9 +284,17 @@ async function importEntries(imported, options = {}) {
   // Track which keys are newly-created vs merged-into existing entries
   const existingKeys = new Set(state.collection.map(c => collectionKey(c)));
   const newKeys = [];
+  const newCards = [];
   for (const c of imported) {
     const k = collectionKey(c);
-    if (!existingKeys.has(k)) newKeys.push(k);
+    if (!existingKeys.has(k)) {
+      newKeys.push(k);
+      newCards.push({
+        name: c.resolvedName || c.name || '',
+        imageUrl: c.imageUrl || '',
+        backImageUrl: c.backImageUrl || '',
+      });
+    }
   }
 
   state.collection = mergeIntoCollection(state.collection, imported);
@@ -302,6 +310,7 @@ async function importEntries(imported, options = {}) {
       summary: 'imported ' + imported.length + ' ' + label + ' (' + newKeys.length + ' new)',
       created: newKeys,
       affectedKeys: newKeys,
+      cards: newCards,
     });
   }
 }

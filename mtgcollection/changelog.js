@@ -63,7 +63,21 @@ function softIdentity(c) {
   return (c.scryfallId || '') + '|' + (c.setCode || '') + '|' + (c.cn || '') + '|' + (c.name || '');
 }
 
-export function recordEvent({ type, summary, before = [], created = [], affectedKeys = [] }) {
+const CARDS_PREVIEW_LIMIT = 5;
+
+function normalizeCards(cards) {
+  if (!Array.isArray(cards)) return [];
+  return cards
+    .filter(c => c && (c.name || c.imageUrl))
+    .map(c => ({
+      name: c.name || '',
+      imageUrl: c.imageUrl || '',
+      backImageUrl: c.backImageUrl || '',
+    }));
+}
+
+export function recordEvent({ type, summary, before = [], created = [], affectedKeys = [], cards = [] }) {
+  const normCards = normalizeCards(cards);
   const ev = {
     id: genId(),
     ts: Date.now(),
@@ -72,6 +86,7 @@ export function recordEvent({ type, summary, before = [], created = [], affected
     before: before.map(b => ({ key: b.key, card: cloneEntry(b.card) })),
     created: [...created],
     affectedKeys: [...affectedKeys],
+    cards: normCards,
     dismissed: false,
     undone: false,
   };
@@ -165,6 +180,22 @@ function formatTsIso(ts) {
   return new Date(ts).toISOString();
 }
 
+function renderCardNamesHtml(cards, className) {
+  if (!Array.isArray(cards) || cards.length === 0) return '';
+  const shown = cards.slice(0, CARDS_PREVIEW_LIMIT);
+  const remaining = cards.length - shown.length;
+  const parts = shown.map(c => {
+    const previewAttr = c.imageUrl ? ' data-preview-url="' + esc(c.imageUrl) + '"' : '';
+    const cls = c.imageUrl ? className + ' card-preview-link' : className;
+    return '<span class="' + esc(cls) + '"' + previewAttr + '>' + esc(c.name) + '</span>';
+  });
+  let html = ' ' + parts.join(', ');
+  if (remaining > 0) {
+    html += '<span class="changelog-more-muted"> · +' + remaining + ' more</span>';
+  }
+  return html;
+}
+
 export function renderBannerStack() {
   if (!bannersEl) return;
   const active = log.filter(e => !e.dismissed && !e.undone).slice(0, ACTIVE_BANNERS);
@@ -174,15 +205,16 @@ export function renderBannerStack() {
     return;
   }
   bannersEl.classList.add('active');
-  bannersEl.innerHTML = active.map(ev =>
-    '<div class="changelog-banner" data-event-id="' + esc(ev.id) + '">' +
-      '<span class="changelog-summary">' + esc(ev.summary) + '</span>' +
+  bannersEl.innerHTML = active.map(ev => {
+    const cardsHtml = renderCardNamesHtml(ev.cards, 'changelog-card-name');
+    return '<div class="changelog-banner" data-event-id="' + esc(ev.id) + '">' +
+      '<span class="changelog-summary">' + esc(ev.summary) + cardsHtml + '</span>' +
       '<span class="changelog-banner-actions">' +
         '<button class="changelog-undo" type="button" data-action="undo">undo</button>' +
         '<button class="changelog-dismiss" type="button" data-action="dismiss" aria-label="dismiss">×</button>' +
       '</span>' +
-    '</div>'
-  ).join('');
+    '</div>';
+  }).join('');
 }
 
 function renderHistoryList() {
@@ -193,9 +225,10 @@ function renderHistoryList() {
   }
   historyListEl.innerHTML = log.map(ev => {
     const cls = ev.undone ? 'history-undone' : (ev.dismissed ? 'history-dismissed' : '');
+    const cardsHtml = renderCardNamesHtml(ev.cards, 'history-card-name');
     return '<li class="' + cls + '">' +
       '<time datetime="' + esc(formatTsIso(ev.ts)) + '">' + esc(formatTs(ev.ts)) + '</time> ' +
-      '<span class="history-summary-text">' + esc(ev.summary) + '</span>' +
+      '<span class="history-summary-text">' + esc(ev.summary) + cardsHtml + '</span>' +
     '</li>';
   }).join('');
 }

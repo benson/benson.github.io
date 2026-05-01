@@ -250,9 +250,14 @@ function saveDetail() {
   } else {
     recordEvent({
       type: 'edit',
-      summary: 'edited ' + name + ' (' + diffs.join(', ') + ')',
+      summary: 'edited (' + diffs.join(', ') + ') ·',
       before: beforeSnap,
       affectedKeys: [beforeKey],
+      cards: [{
+        name,
+        imageUrl: c.imageUrl || '',
+        backImageUrl: c.backImageUrl || '',
+      }],
     });
   }
 }
@@ -263,14 +268,20 @@ function deleteDetail() {
   const name = c.resolvedName || c.name || 'this row';
   const beforeKey = collectionKey(c);
   const beforeSnap = captureBefore([beforeKey]);
+  const cardSnapshot = {
+    name,
+    imageUrl: c.imageUrl || '',
+    backImageUrl: c.backImageUrl || '',
+  };
   state.collection.splice(state.detailIndex, 1);
   commitCollectionChange();
   closeDetail();
   recordEvent({
     type: 'delete',
-    summary: 'deleted ' + name,
+    summary: 'deleted card',
     before: beforeSnap,
     affectedKeys: [beforeKey],
+    cards: [cardSnapshot],
   });
 }
 

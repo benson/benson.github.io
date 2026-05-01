@@ -182,11 +182,23 @@ function renderPendingRow() {
   row.classList.add('active');
 }
 
+function cardsFromBefore(before) {
+  return before
+    .map(b => b.card)
+    .filter(Boolean)
+    .map(card => ({
+      name: card.resolvedName || card.name || '',
+      imageUrl: card.imageUrl || '',
+      backImageUrl: card.backImageUrl || '',
+    }));
+}
+
 function commitPending() {
   if (pendingChangeCount() === 0) return;
   if (!state.selectedKeys.size) return;
   const affectedKeys = [...state.selectedKeys];
   const before = captureBefore(affectedKeys);
+  const cards = cardsFromBefore(before);
   const cardCount = state.selectedKeys.size;
   const changeCount = pendingChangeCount();
   for (const c of state.collection) {
@@ -218,6 +230,7 @@ function commitPending() {
     summary: 'saved ' + changeCount + ' ' + changeNoun + ' to ' + cardCount + ' ' + cardNoun,
     before,
     affectedKeys,
+    cards,
   });
 }
 
@@ -304,6 +317,7 @@ export function initBulk() {
     if (!confirm('delete ' + n + ' selected card' + (n === 1 ? '' : 's') + '?')) return;
     const affectedKeys = [...state.selectedKeys];
     const before = captureBefore(affectedKeys);
+    const cards = cardsFromBefore(before);
     state.collection = state.collection.filter(c => !state.selectedKeys.has(collectionKey(c)));
     state.selectedKeys.clear();
     commitCollectionChange();
@@ -313,6 +327,7 @@ export function initBulk() {
       summary: 'deleted ' + n + ' ' + noun,
       before,
       affectedKeys,
+      cards,
     });
   });
 

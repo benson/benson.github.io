@@ -753,13 +753,15 @@ export function initView() {
     commitCollectionChange({ coalesce: true });
   });
 
-  listBodyEl.addEventListener('mouseover', e => {
+  // Card-preview hover is delegated at the document level so it works for the
+  // list rows AND for banner/history rows that also use `.card-preview-link`.
+  document.addEventListener('mouseover', e => {
     const link = e.target.closest('.card-preview-link');
-    if (!link || !listBodyEl.contains(link)) return;
+    if (!link) return;
     showCardPreview(link);
   });
 
-  listBodyEl.addEventListener('mouseout', e => {
+  document.addEventListener('mouseout', e => {
     const link = e.target.closest('.card-preview-link');
     if (!link || link.contains(e.relatedTarget)) return;
     hideCardPreview();
