@@ -1150,6 +1150,23 @@
     background: #f8f7f4;
     z-index: 10;
   }
+  thead th[data-sort] { cursor: pointer; user-select: none; }
+  thead th[data-sort]:hover { color: #000; }
+  thead th.sort-active { color: #000; }
+  thead th .sort-arrow { font-size: 0.85em; margin-left: 2px; }
+  thead th .sort-clear-btn {
+    background: none;
+    border: none;
+    padding: 0 2px 0 4px;
+    margin: 0;
+    color: #999;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.85em;
+    line-height: 1;
+    vertical-align: baseline;
+  }
+  thead th .sort-clear-btn:hover { color: #000; }
   tbody tr { border-bottom: 1px solid #eee; }
   tbody tr:hover { background: #fff; cursor: pointer; }
   tbody tr.row-selected, tbody tr.row-selected:hover { background: #fff8e6; }
@@ -2089,13 +2106,6 @@
         <div id="filterLocation" data-default-label="all locations" data-noun="locations"></div>
         <datalist id="locationOptions"></datalist>
         <div id="filterTag" data-default-label="filter by tag" data-noun="tags"></div>
-        <select class="filter-select" id="sortBy">
-          <option value="name">sort: name</option>
-          <option value="set">sort: set</option>
-          <option value="price-desc">sort: price ↓</option>
-          <option value="price-asc">sort: price ↑</option>
-          <option value="cmc">sort: mana value</option>
-        </select>
         <select class="filter-select" id="formatSelect" title="format for legality">
           <option value="">format: —</option>
           <option value="commander">format: commander</option>
@@ -2236,15 +2246,15 @@
           <thead>
             <tr>
               <th class="col-check"><input type="checkbox" class="header-check" id="headerCheck" aria-label="select all visible"></th>
-              <th>name</th>
-              <th>set</th>
-              <th>cn</th>
-              <th>finish</th>
-              <th>rarity</th>
-              <th>condition</th>
-              <th>location</th>
-              <th>qty</th>
-              <th>price</th>
+              <th data-sort="name">name</th>
+              <th data-sort="set">set</th>
+              <th data-sort="cn">cn</th>
+              <th data-sort="finish">finish</th>
+              <th data-sort="rarity">rarity</th>
+              <th data-sort="condition">condition</th>
+              <th data-sort="location">location</th>
+              <th data-sort="qty">qty</th>
+              <th data-sort="price">price</th>
             </tr>
           </thead>
           <tbody id="listBody"></tbody>

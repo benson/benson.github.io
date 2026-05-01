@@ -16,6 +16,7 @@ import { paginateForBinder, sortForBinder, BINDER_SIZES, binderSlotCount } from 
 
 const VALID_DECK_GROUPS = ['type', 'cmc', 'color', 'rarity'];
 const VALID_BINDER_SIZES = Object.keys(BINDER_SIZES);
+const SET_ICON_OVERRIDES = { sld: 'star' };
 
 let gridEl, listBodyEl, collectionSection, emptyState;
 let cardPreviewEl, cardPreviewImg;
@@ -80,8 +81,25 @@ export function render() {
   } else {
     listContainer.classList.add('active');
     listBodyEl.innerHTML = list.map(c => renderRow(c)).join('');
+    syncSortIndicator();
   }
   updateBulkBar();
+}
+
+function syncSortIndicator() {
+  document.querySelectorAll('thead th[data-sort]').forEach(th => {
+    const field = th.dataset.sort;
+    const isActive = !!state.sortField && field === state.sortField;
+    th.classList.toggle('sort-active', isActive);
+    if (isActive) {
+      const arrow = state.sortDir === 'desc' ? '↓' : '↑';
+      th.innerHTML = esc(field) +
+        ' <span class="sort-arrow">' + arrow + '</span>' +
+        '<button class="sort-clear-btn" type="button" aria-label="clear sort">×</button>';
+    } else {
+      th.textContent = field;
+    }
+  });
 }
 
 export function applyGridSize() {
@@ -132,8 +150,9 @@ function renderRow(c) {
   const previewAttr = c.imageUrl ? ` data-preview-url="${esc(c.imageUrl)}"` : '';
   const setCodeLower = (c.setCode || '').toLowerCase();
   const setCode = setCodeLower.toUpperCase();
+  const iconCode = SET_ICON_OVERRIDES[setCodeLower] || setCodeLower;
   const setIcon = setCodeLower
-    ? `<img class="set-icon" src="https://svgs.scryfall.io/sets/${esc(setCodeLower)}.svg" alt="" onerror="this.style.display='none'">`
+    ? `<img class="set-icon" src="https://svgs.scryfall.io/sets/${esc(iconCode)}.svg" alt="" onerror="this.style.display='none'">`
     : '';
   return `<tr class="detail-trigger${selected ? ' row-selected' : ''}" data-index="${index}" data-key="${esc(key)}">
     <td class="col-check"><input type="checkbox" class="row-check" data-key="${esc(key)}"${selected ? ' checked' : ''} aria-label="select row"></td>
@@ -489,6 +508,27 @@ export function initView() {
     render();
   });
 
+  document.querySelector('table thead').addEventListener('click', e => {
+    if (e.target.closest('.sort-clear-btn')) {
+      state.sortField = null;
+      state.sortDir = 'asc';
+      save();
+      render();
+      return;
+    }
+    const th = e.target.closest('th[data-sort]');
+    if (!th) return;
+    const field = th.dataset.sort;
+    if (state.sortField === field) {
+      state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      state.sortField = field;
+      state.sortDir = 'asc';
+    }
+    save();
+    render();
+  });
+
   // FAB cluster — list-view summon panels on demand
   const fabCluster = document.getElementById('fabCluster');
   if (fabCluster) {
@@ -577,7 +617,7 @@ export function initView() {
   // Reset binder page on filter/search changes
   const searchInputForBinder = document.getElementById('searchInput');
   searchInputForBinder.addEventListener('input', () => { state.binderPage = 0; });
-  ['filterSet', 'filterRarity', 'filterFoil', 'filterLocation', 'filterTag', 'sortBy'].forEach(id => {
+  ['filterSet', 'filterRarity', 'filterFoil', 'filterLocation', 'filterTag'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('change', () => { state.binderPage = 0; });
   });

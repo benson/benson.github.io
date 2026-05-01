@@ -178,6 +178,34 @@ export function passesMultiselectFilters(c, { sets, rarities, finishes, location
   return true;
 }
 
+const RARITY_ORDER = { common: 0, uncommon: 1, rare: 2, mythic: 3, special: 4, bonus: 5 };
+const CONDITION_ORDER = { near_mint: 0, lightly_played: 1, moderately_played: 2, heavily_played: 3, damaged: 4 };
+
+function compareCards(a, b, field) {
+  const an = (a.resolvedName || a.name || '').toLowerCase();
+  const bn = (b.resolvedName || b.name || '').toLowerCase();
+  const fallback = an.localeCompare(bn);
+  switch (field) {
+    case 'name': return an.localeCompare(bn);
+    case 'set': return (a.setCode || '').localeCompare(b.setCode || '') || fallback;
+    case 'cn': {
+      const ai = parseInt(a.cn || '', 10);
+      const bi = parseInt(b.cn || '', 10);
+      const aValid = !isNaN(ai), bValid = !isNaN(bi);
+      if (aValid && bValid && ai !== bi) return ai - bi;
+      return (a.cn || '').localeCompare(b.cn || '') || fallback;
+    }
+    case 'finish': return (a.finish || '').localeCompare(b.finish || '') || fallback;
+    case 'rarity': return ((RARITY_ORDER[a.rarity] ?? 99) - (RARITY_ORDER[b.rarity] ?? 99)) || fallback;
+    case 'condition': return ((CONDITION_ORDER[a.condition] ?? 99) - (CONDITION_ORDER[b.condition] ?? 99)) || fallback;
+    case 'location': return (a.location || '').localeCompare(b.location || '') || fallback;
+    case 'qty': return (a.qty || 0) - (b.qty || 0) || fallback;
+    case 'price': return (a.price || 0) - (b.price || 0) || fallback;
+    case 'cmc': return (a.cmc ?? 999) - (b.cmc ?? 999) || fallback;
+    default: return fallback;
+  }
+}
+
 export function filteredSorted() {
   const q = document.getElementById('searchInput').value.trim();
   const tokens = tokenizeSearch(q);
@@ -186,23 +214,15 @@ export function filteredSorted() {
   const finishes = getMultiselectValue(document.getElementById('filterFoil'));
   const locations = getMultiselectValue(document.getElementById('filterLocation'));
   const tags = getMultiselectValue(document.getElementById('filterTag'));
-  const sortBy = document.getElementById('sortBy').value;
 
   let list = state.collection.filter(c => {
     if (!matchSearch(c, tokens)) return false;
     return passesMultiselectFilters(c, { sets, rarities, finishes, locations, tags });
   });
 
-  list.sort((a, b) => {
-    const an = (a.resolvedName || a.name || '').toLowerCase();
-    const bn = (b.resolvedName || b.name || '').toLowerCase();
-    if (sortBy === 'name') return an.localeCompare(bn);
-    if (sortBy === 'set') return (a.setCode || '').localeCompare(b.setCode || '') || an.localeCompare(bn);
-    if (sortBy === 'price-desc') return (b.price || 0) - (a.price || 0);
-    if (sortBy === 'price-asc') return (a.price || 0) - (b.price || 0);
-    if (sortBy === 'cmc') return (a.cmc ?? 999) - (b.cmc ?? 999);
-    return 0;
-  });
+  const field = state.sortField || 'name';
+  const dir = state.sortDir === 'desc' ? -1 : 1;
+  list.sort((a, b) => dir * compareCards(a, b, field));
   return list;
 }
 
@@ -214,7 +234,6 @@ export function hasActiveFilter() {
   for (const id of ids) {
     if (getMultiselectValue(document.getElementById(id)).length > 0) return true;
   }
-  if (document.getElementById('sortBy').value !== 'name') return true;
   return false;
 }
 
@@ -223,7 +242,6 @@ export function clearAllFilters() {
   ['filterSet', 'filterRarity', 'filterFoil', 'filterLocation', 'filterTag'].forEach(id => {
     setMultiselectValue(document.getElementById(id), []);
   });
-  document.getElementById('sortBy').value = 'name';
 }
 
 let urlStateDebounce = null;
@@ -304,10 +322,8 @@ export function initSearch() {
   });
 
   // Native controls that still emit input/change
-  ['searchInput', 'sortBy'].forEach(id => {
-    document.getElementById(id).addEventListener('input', render);
-    document.getElementById(id).addEventListener('change', render);
-  });
+  document.getElementById('searchInput').addEventListener('input', render);
+  document.getElementById('searchInput').addEventListener('change', render);
 
   const clearBtn = document.getElementById('clearFiltersBtn');
   if (clearBtn) {

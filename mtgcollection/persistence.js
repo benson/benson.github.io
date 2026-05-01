@@ -13,6 +13,8 @@ export function save() {
       viewMode: state.viewMode,
       gridSize: state.gridSize,
       selectedFormat: state.selectedFormat,
+      sortField: state.sortField,
+      sortDir: state.sortDir,
     }));
   } catch (e) {
     showFeedback('collection too large for localstorage — ' + e.message, 'error');
@@ -33,6 +35,8 @@ export function loadFromStorage() {
       state.viewMode = data.viewMode || 'grid';
       state.gridSize = ['small', 'medium', 'large'].includes(data.gridSize) ? data.gridSize : 'medium';
       state.selectedFormat = typeof data.selectedFormat === 'string' ? data.selectedFormat : '';
+      state.sortField = typeof data.sortField === 'string' && data.sortField ? data.sortField : null;
+      state.sortDir = data.sortDir === 'desc' ? 'desc' : 'asc';
       try {
         const v = localStorage.getItem(BINDER_SIZE_KEY);
         if (v && Object.prototype.hasOwnProperty.call(BINDER_SIZES, v)) state.binderSize = v;

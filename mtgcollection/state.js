@@ -11,6 +11,8 @@ export const state = {
   deckGroupBy: 'type',
   binderSize: '4x3',
   binderPage: 0,
+  sortField: null,
+  sortDir: 'asc',
 };
 
 export const STORAGE_KEY = 'mtgcollection_v1';
