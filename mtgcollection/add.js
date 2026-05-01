@@ -6,6 +6,7 @@ import {
 } from '../shared/mtg.js';
 import { state, SCRYFALL_API } from './state.js';
 import { esc, showFeedback, hideFeedback } from './feedback.js';
+import { getSetIconUrl } from './setIcons.js';
 import {
   makeEntry,
   collectionKey,
@@ -59,6 +60,16 @@ let addNameInput, addNameList;
 let addPreviewEl, addPreviewImg, addPreviewName, addPreviewMeta;
 let addFinishSel, addConditionSel, addLanguageSel, addQtyInput, addLocationInput;
 let addBtn, addCancelBtn, addMicBtn, addMicStatus, addAutoAddEl;
+let addPrintingPickerEl, addPrintingListEl, addPrintingCaptionEl;
+
+// ---- Printings state ----
+const PRINTINGS_MAX_PAGES = 3;
+const PRINTINGS_HARD_CAP = 150;
+let currentPrintings = [];
+let currentPrintingsName = '';
+let printingsAbort = null;
+let printingsTotalCount = 0;
+let printingsTruncated = false;
 
 // ---- Name autocomplete state ----
 let acDebounce = null;
@@ -138,14 +149,158 @@ function hideAcList() {
 
 async function pickName(name) {
   hideAcList();
-  showFeedback('<span class="loading-spinner"></span> looking up ' + esc(name) + '...', 'info');
-  const card = await fetchCardByName(name);
-  if (!card) {
-    showFeedback('no card found for ' + esc(name), 'error');
+  addNameInput.value = name;
+  await loadPrintings(name);
+}
+
+async function loadPrintings(name) {
+  if (printingsAbort) printingsAbort.abort();
+  printingsAbort = new AbortController();
+  const signal = printingsAbort.signal;
+
+  currentPrintings = [];
+  currentPrintingsName = name;
+  printingsTotalCount = 0;
+  printingsTruncated = false;
+
+  showPrintingPicker();
+  addPrintingCaptionEl.textContent = 'loading printings...';
+  addPrintingListEl.innerHTML = '';
+
+  try {
+    const query = '!"' + name.replace(/"/g, '\\"') + '"';
+    let url = SCRYFALL_API
+      + '/cards/search?q=' + encodeURIComponent(query)
+      + '&unique=prints&order=released&dir=desc&include_extras=true&include_variations=true';
+    const collected = [];
+    let pages = 0;
+    let totalCards = 0;
+    while (url && pages < PRINTINGS_MAX_PAGES) {
+      const resp = await fetch(url, { signal });
+      if (!resp.ok) {
+        if (resp.status === 404) {
+          // Scryfall returns 404 if no cards match the search.
+          break;
+        }
+        throw new Error('http ' + resp.status);
+      }
+      const data = await resp.json();
+      pages++;
+      if (typeof data.total_cards === 'number') totalCards = data.total_cards;
+      if (Array.isArray(data.data)) {
+        for (const c of data.data) {
+          collected.push(c);
+          if (collected.length >= PRINTINGS_HARD_CAP) break;
+        }
+      }
+      if (collected.length >= PRINTINGS_HARD_CAP) break;
+      url = data.has_more ? data.next_page : null;
+    }
+
+    if (signal.aborted) return;
+
+    if (collected.length === 0) {
+      // Fallback: try a fuzzy name lookup so we still show something.
+      const card = await fetchCardByName(name);
+      if (signal.aborted) return;
+      if (!card) {
+        addPrintingCaptionEl.textContent = 'no printings found';
+        showFeedback('no card found for ' + esc(name), 'error');
+        return;
+      }
+      currentPrintings = [card];
+      currentPrintingsName = name;
+      printingsTotalCount = 1;
+      printingsTruncated = false;
+      hideFeedback();
+      renderPrintingList();
+      selectPrinting(0);
+      return;
+    }
+
+    currentPrintings = collected;
+    printingsTotalCount = Math.max(totalCards, collected.length);
+    printingsTruncated = collected.length < printingsTotalCount;
+    hideFeedback();
+    renderPrintingList();
+    selectPrinting(0);
+  } catch (err) {
+    if (signal.aborted) return;
+    showFeedback("couldn't load printings: " + esc(err.message || String(err)), 'error');
+    // Fallback to single canonical printing so the user can still add the card.
+    const card = await fetchCardByName(name);
+    if (signal.aborted) return;
+    if (card) {
+      currentPrintings = [card];
+      currentPrintingsName = name;
+      printingsTotalCount = 1;
+      printingsTruncated = false;
+      renderPrintingList();
+      selectPrinting(0);
+    } else {
+      hidePrintingPicker();
+    }
+  }
+}
+
+function renderPrintingList() {
+  if (!currentPrintings.length) {
+    addPrintingListEl.innerHTML = '';
+    addPrintingCaptionEl.textContent = 'no printings found';
     return;
   }
-  hideFeedback();
-  showAddPreview(card);
+  const captionParts = ['showing ' + currentPrintings.length + ' of ' + printingsTotalCount];
+  if (printingsTruncated) {
+    captionParts.push('<span class="truncate-hint">more available — narrow by typing the set code</span>');
+  }
+  addPrintingCaptionEl.innerHTML = captionParts.join(' — ');
+
+  const rows = currentPrintings.map((c, i) => {
+    const setCode = (c.set || '').toLowerCase();
+    const iconUrl = setCode ? getSetIconUrl(setCode) : '';
+    const icon = iconUrl
+      ? `<img class="set-icon" src="${esc(iconUrl)}" alt="" onerror="this.style.display='none'">`
+      : '';
+    const finishes = Array.isArray(c.finishes) ? c.finishes : [];
+    const finishBadges = [];
+    if (finishes.includes('foil')) finishBadges.push('<span class="printing-finish-badge">foil</span>');
+    if (finishes.includes('etched')) finishBadges.push('<span class="printing-finish-badge">etched</span>');
+    const year = (c.released_at || '').slice(0, 4);
+    return `<li class="printing-row" role="option" data-index="${i}">
+      ${icon}
+      <span class="printing-set-code">${esc((c.set || '').toUpperCase())}</span>
+      <span class="printing-set-name">${esc(c.set_name || '')}</span>
+      <span class="printing-cn">#${esc(c.collector_number || '')}</span>
+      <span class="printing-finishes">${finishBadges.join('')}</span>
+      <span class="printing-year">${esc(year)}</span>
+    </li>`;
+  });
+  addPrintingListEl.innerHTML = rows.join('');
+}
+
+function selectPrinting(index) {
+  if (!currentPrintings.length) return;
+  const i = Math.max(0, Math.min(currentPrintings.length - 1, index));
+  const card = currentPrintings[i];
+  Array.from(addPrintingListEl.children).forEach((li, idx) => {
+    li.classList.toggle('selected', idx === i);
+  });
+  showAddPreview(card, { preserveFields: addPreviewCard != null });
+}
+
+function showPrintingPicker() {
+  if (addPrintingPickerEl) addPrintingPickerEl.classList.add('active');
+}
+
+function hidePrintingPicker() {
+  if (addPrintingPickerEl) addPrintingPickerEl.classList.remove('active');
+  if (addPrintingListEl) addPrintingListEl.innerHTML = '';
+  if (addPrintingCaptionEl) addPrintingCaptionEl.textContent = '';
+  if (printingsAbort) { try { printingsAbort.abort(); } catch (e) {} printingsAbort = null; }
+  currentPrintings = [];
+  currentPrintingsName = '';
+  printingsTotalCount = 0;
+  printingsTruncated = false;
 }
 
 function resolveLookupTarget(set, cn, variant) {
@@ -267,7 +422,11 @@ function commitVoiceAdd(card, opts, voiceCtx) {
   });
 }
 
-function showAddPreview(card) {
+function showAddPreview(card, opts) {
+  const preserveFields = !!(opts && opts.preserveFields);
+  const prevQty = preserveFields ? addQtyInput.value : null;
+  const prevLocation = preserveFields ? addLocationInput.value : null;
+  const prevFinish = preserveFields ? addFinishSel.value : null;
   addPreviewCard = card;
   addPreviewEl.classList.add('active');
   const imageUrl = getCardImageUrl(card);
@@ -320,12 +479,22 @@ function showAddPreview(card) {
   addLocationInput.value = voiceLocationOverride != null ? voiceLocationOverride : (lastUsedLocation || '');
   voiceQtyOverride = null;
   voiceLocationOverride = null;
+  if (preserveFields) {
+    if (prevQty != null && prevQty !== '') addQtyInput.value = prevQty;
+    if (prevLocation != null) addLocationInput.value = prevLocation;
+    if (prevFinish) {
+      for (const opt of addFinishSel.options) {
+        if (opt.value === prevFinish) { addFinishSel.value = prevFinish; break; }
+      }
+    }
+  }
   addBtn.focus();
 }
 
 function hideAddPreview() {
   addPreviewCard = null;
   addPreviewEl.classList.remove('active');
+  hidePrintingPicker();
 }
 
 function addCardFromPreview() {
@@ -556,6 +725,9 @@ export function initAdd() {
   addPreviewImg = document.getElementById('addPreviewImg');
   addPreviewName = document.getElementById('addPreviewName');
   addPreviewMeta = document.getElementById('addPreviewMeta');
+  addPrintingPickerEl  = document.getElementById('addPrintingPicker');
+  addPrintingListEl    = document.getElementById('addPrintingList');
+  addPrintingCaptionEl = document.getElementById('addPrintingCaption');
   addFinishSel    = document.getElementById('addFinish');
   addConditionSel = document.getElementById('addCondition');
   addLanguageSel  = document.getElementById('addLanguage');
@@ -601,9 +773,19 @@ export function initAdd() {
   addNameInput.addEventListener('input', () => {
     const q = addNameInput.value.trim();
     clearTimeout(acDebounce);
-    if (q.length < 2) { hideAcList(); return; }
+    if (q.length < 2) { hideAcList(); hidePrintingPicker(); return; }
     acDebounce = setTimeout(() => fetchAcSuggestions(q), 180);
   });
+
+  if (addPrintingListEl) {
+    addPrintingListEl.addEventListener('click', (e) => {
+      const li = e.target.closest('.printing-row');
+      if (!li) return;
+      const idx = parseInt(li.dataset.index, 10);
+      if (Number.isNaN(idx)) return;
+      selectPrinting(idx);
+    });
+  }
 
   addNameInput.addEventListener('keydown', (e) => {
     const open = addNameList.classList.contains('active');

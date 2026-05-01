@@ -344,6 +344,9 @@
   body.proper-case .ms-option,
   body.proper-case .filter-select,
   body.proper-case .stat-label,
+  body.proper-case .printing-list-caption,
+  body.proper-case .printing-set-name,
+  body.proper-case .printing-finish-badge,
   body.proper-case .title-reset-btn { text-transform: capitalize; }
 
 
@@ -1984,6 +1987,76 @@
     border-top: 1px solid #eee;
   }
   .add-preview.active { display: flex; }
+
+  .printing-picker {
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #eee;
+  }
+  .printing-picker.active { display: flex; }
+  .printing-list-caption {
+    font-size: 0.7rem;
+    color: #999;
+    margin-bottom: 2px;
+    text-transform: none;
+  }
+  .printing-list-caption .truncate-hint { color: #b08020; }
+  .printing-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 240px;
+    overflow-y: auto;
+    border: 1px solid #eee;
+    border-radius: 2px;
+    background: #fff;
+  }
+  .printing-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    font-size: 0.78rem;
+    line-height: 1.2;
+  }
+  .printing-row:last-child { border-bottom: none; }
+  .printing-row:hover { background: #f4f4f0; }
+  .printing-row.selected { background: #fff8e6; }
+  .printing-row .set-icon { flex-shrink: 0; margin-right: 0; }
+  .printing-set-code {
+    font-weight: 500;
+    text-transform: uppercase;
+    min-width: 38px;
+  }
+  .printing-set-name {
+    color: #888;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-transform: none;
+  }
+  .printing-cn { color: #999; min-width: 38px; text-align: right; }
+  .printing-finishes {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .printing-finish-badge {
+    font-size: 0.65rem;
+    padding: 1px 5px;
+    border-radius: 2px;
+    background: #f0eee8;
+    color: #888;
+    text-transform: none;
+  }
+  .printing-year { color: #999; min-width: 36px; text-align: right; }
   .add-preview-img-wrap {
     display: flex;
     flex-direction: column;
@@ -2394,6 +2467,11 @@
           </div>
           <div class="vocab-hint"><strong>say:</strong> qty · set · cn · finish · condition · variant · location &nbsp;—&nbsp; e.g. "two fin 142 foil lp in breya deck"</div>
           <div class="vocab-hint"><strong>conditions:</strong> nm · lp · mp · hp · damaged &nbsp; <strong>variants:</strong> promo · prerelease &nbsp; <strong>finishes:</strong> foil &nbsp; <strong>repeat:</strong> "again" / "again 3"</div>
+        </div>
+
+        <div class="printing-picker" id="addPrintingPicker">
+          <div class="printing-list-caption" id="addPrintingCaption"></div>
+          <ul class="printing-list" id="addPrintingList"></ul>
         </div>
 
         <div class="add-preview" id="addPreview">
