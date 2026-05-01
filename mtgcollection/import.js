@@ -10,6 +10,7 @@ import {
   getUsdPrice,
   getCardImageUrl,
   getCardBackImageUrl,
+  formatLocationLabel,
 } from './collection.js';
 import { save, commitCollectionChange } from './persistence.js';
 import { filteredSorted } from './search.js';
@@ -457,7 +458,7 @@ function loadSample() {
 export async function loadBreyaDeck(options = {}) {
   const { replace = true, silent = false } = options;
   if (replace && state.collection.length > 0 && !silent && !confirm('replace current collection with the breya deck?')) return;
-  const { entries, errors } = parseDecklist(BREYA_DECKLIST, { location: 'breya deck' });
+  const { entries, errors } = parseDecklist(BREYA_DECKLIST, { location: 'deck:breya' });
   if (errors.length && !silent) {
     showFeedback('couldn\'t parse decklist lines: ' + errors.join(', '), 'error');
     return;
@@ -491,7 +492,7 @@ function exportCsv() {
     q(c.scryfallId),
     q(c.condition),
     q(c.language),
-    q(c.location),
+    q(formatLocationLabel(c.location)),
     q(c.price ?? ''),
     q(c.price ? 'USD' : ''),
     q(c.priceFallback ? 'regular usd fallback; exact finish price unavailable' : ''),

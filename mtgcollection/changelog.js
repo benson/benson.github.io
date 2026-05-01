@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { collectionKey } from './collection.js';
+import { collectionKey, normalizeLocation, formatLocationLabel } from './collection.js';
 import { commitCollectionChange } from './persistence.js';
 import { esc } from './feedback.js';
 
@@ -180,39 +180,70 @@ function cardSpanHtml(c, className) {
   return '<span class="' + esc(cls) + '"' + previewAttr + '>' + esc(c.name) + '</span>';
 }
 
+function locLinkHtml(type, name) {
+  return '<button type="button" class="loc-link loc-link-' + esc(type) + '"' +
+    ' data-loc-type="' + esc(type) + '" data-loc-name="' + esc(name) + '">' +
+    esc(type) + ':' + esc(name) +
+  '</button>';
+}
+
+function substituteLocTokens(html) {
+  return html.replace(/\{loc:(deck|binder|box):([^}]+)\}/g, (_, type, name) => locLinkHtml(type, name));
+}
+
 // Compose a summary line: substitutes `{card}` with the first card's clickable
 // span when present; otherwise appends the card list after the summary text
 // (legacy behavior, used by older events and multi-card events).
+// Also substitutes `{loc:type:name}` tokens with clickable view-switch buttons.
 function composeSummary(summary, cards, className) {
   const safeCards = Array.isArray(cards) ? cards : [];
   const escapedSummary = esc(summary || '');
 
+  let html;
   if (escapedSummary.includes('{card}') && safeCards.length > 0) {
-    let html = escapedSummary.replace('{card}', cardSpanHtml(safeCards[0], className));
+    html = escapedSummary.replace('{card}', cardSpanHtml(safeCards[0], className));
     if (safeCards.length > 1) {
       const rest = safeCards.slice(1, CARDS_PREVIEW_LIMIT);
       const restHtml = rest.map(c => cardSpanHtml(c, className)).join(', ');
       const remaining = safeCards.length - 1 - rest.length;
       html += ' (' + restHtml + (remaining > 0 ? ', +' + remaining + ' more' : '') + ')';
     }
-    return html;
+  } else if (safeCards.length === 0) {
+    html = escapedSummary;
+  } else {
+    const shown = safeCards.slice(0, CARDS_PREVIEW_LIMIT);
+    const remaining = safeCards.length - shown.length;
+    html = escapedSummary + ' ' + shown.map(c => cardSpanHtml(c, className)).join(', ');
+    if (remaining > 0) {
+      html += '<span class="changelog-more-muted"> · +' + remaining + ' more</span>';
+    }
   }
-
-  if (safeCards.length === 0) return escapedSummary;
-  const shown = safeCards.slice(0, CARDS_PREVIEW_LIMIT);
-  const remaining = safeCards.length - shown.length;
-  let html = escapedSummary + ' ' + shown.map(c => cardSpanHtml(c, className)).join(', ');
-  if (remaining > 0) {
-    html += '<span class="changelog-more-muted"> · +' + remaining + ' more</span>';
-  }
-  return html;
+  return substituteLocTokens(html);
 }
 
 // Helpers for building natural-language summaries — exported so call sites
 // (view.js inline edits, detail.js drawer save) stay consistent.
+function locToken(loc) {
+  const n = normalizeLocation(loc);
+  return n ? '{loc:' + n.type + ':' + n.name + '}' : '';
+}
+
+const VIEW_FOR_TYPE = { deck: 'deck', binder: 'binder', box: 'list' };
+
+function navigateToLocation(type, name) {
+  state.viewMode = VIEW_FOR_TYPE[type] || 'list';
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) {
+    const label = type + ':' + name;
+    searchInput.value = 'loc:' + (/\s/.test(label) ? '"' + label + '"' : label);
+    searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  commitCollectionChange();
+}
+
 export function locationDiffSummary(before, after) {
-  const b = (before || '').trim();
-  const a = (after || '').trim();
+  const b = locToken(before);
+  const a = locToken(after);
   if (b && a) return '{card} moved from ' + b + ' to ' + a;
   if (a) return '{card} moved to ' + a;
   if (b) return '{card} removed from ' + b;
@@ -289,10 +320,17 @@ export function initChangelog() {
 
   if (historyListEl) {
     historyListEl.addEventListener('click', e => {
-      const btn = e.target.closest('button.history-undo');
-      if (!btn) return;
-      const id = btn.dataset.eventId;
-      if (id) undoEvent(id);
+      const undoBtn = e.target.closest('button.history-undo');
+      if (undoBtn) {
+        const id = undoBtn.dataset.eventId;
+        if (id) undoEvent(id);
+        return;
+      }
+      const locBtn = e.target.closest('button.loc-link');
+      if (locBtn) {
+        const { locType, locName } = locBtn.dataset;
+        if (locType && locName) navigateToLocation(locType, locName);
+      }
     });
   }
 

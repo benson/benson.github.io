@@ -46,7 +46,7 @@ const ADD_LANGUAGES = [
 let validSets = new Set();
 let addPreviewCard = null;
 let addMode = 'name';
-let lastUsedLocation = '';
+let lastUsedLocation = null;
 let voiceFoilFlag = false;
 let voiceQtyOverride = null;
 let voiceLocationOverride = null;
@@ -58,7 +58,7 @@ const AUTOADD_KEY = 'mtgcollection_voice_autoadd_v1';
 let addDetailsEl, addModeNameEl, addModeCnEl;
 let addNameInput, addNameList;
 let addPreviewEl, addPreviewImg, addPreviewName, addPreviewMeta;
-let addFinishSel, addConditionSel, addLanguageSel, addQtyInput, addLocationInput;
+let addFinishSel, addConditionSel, addLanguageSel, addQtyInput, addLocationTypeSel, addLocationNameInput;
 let addBtn, addCancelBtn, addMicBtn, addMicStatus, addAutoAddEl;
 let addPrintingPickerEl, addPrintingListEl, addPrintingCaptionEl;
 
@@ -430,7 +430,8 @@ function commitVoiceAdd(card, opts, voiceCtx) {
 function showAddPreview(card, opts) {
   const preserveFields = !!(opts && opts.preserveFields);
   const prevQty = preserveFields ? addQtyInput.value : null;
-  const prevLocation = preserveFields ? addLocationInput.value : null;
+  const prevLocationName = preserveFields ? addLocationNameInput.value : null;
+  const prevLocationType = preserveFields ? addLocationTypeSel.value : null;
   const prevFinish = preserveFields ? addFinishSel.value : null;
   addPreviewCard = card;
   addPreviewEl.classList.add('active');
@@ -481,12 +482,15 @@ function showAddPreview(card, opts) {
   }
 
   addQtyInput.value = voiceQtyOverride && voiceQtyOverride > 0 ? voiceQtyOverride : 1;
-  addLocationInput.value = voiceLocationOverride != null ? voiceLocationOverride : (lastUsedLocation || '');
+  const seedLoc = normalizeLocation(voiceLocationOverride != null ? voiceLocationOverride : lastUsedLocation);
+  addLocationTypeSel.value = seedLoc ? seedLoc.type : 'box';
+  addLocationNameInput.value = seedLoc ? seedLoc.name : '';
   voiceQtyOverride = null;
   voiceLocationOverride = null;
   if (preserveFields) {
     if (prevQty != null && prevQty !== '') addQtyInput.value = prevQty;
-    if (prevLocation != null) addLocationInput.value = prevLocation;
+    if (prevLocationType != null) addLocationTypeSel.value = prevLocationType;
+    if (prevLocationName != null) addLocationNameInput.value = prevLocationName;
     if (prevFinish) {
       for (const opt of addFinishSel.options) {
         if (opt.value === prevFinish) { addFinishSel.value = prevFinish; break; }
@@ -509,7 +513,7 @@ function addCardFromPreview() {
   const condition = normalizeCondition(addConditionSel.value);
   const language = normalizeLanguage(addLanguageSel.value);
   const qty = Math.max(1, parseInt(addQtyInput.value, 10) || 1);
-  const location = normalizeLocation(addLocationInput.value);
+  const location = normalizeLocation({ type: addLocationTypeSel.value, name: addLocationNameInput.value });
 
   const entry = makeEntry({
     name: card.name,
@@ -742,7 +746,8 @@ export function initAdd() {
   addConditionSel = document.getElementById('addCondition');
   addLanguageSel  = document.getElementById('addLanguage');
   addQtyInput     = document.getElementById('addQty');
-  addLocationInput = document.getElementById('addLocation');
+  addLocationTypeSel = document.getElementById('addLocationType');
+  addLocationNameInput = document.getElementById('addLocationName');
   addBtn         = document.getElementById('addCardBtn');
   addCancelBtn   = document.getElementById('addCardCancel');
   addMicBtn      = document.getElementById('addMicBtn');
@@ -855,7 +860,7 @@ export function initAdd() {
   addQtyInput.addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); addCardFromPreview(); }
   });
-  addLocationInput.addEventListener('keydown', e => {
+  addLocationNameInput.addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); addCardFromPreview(); }
   });
 

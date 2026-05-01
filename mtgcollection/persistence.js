@@ -28,9 +28,10 @@ export function loadFromStorage() {
     const data = JSON.parse(raw);
     if (Array.isArray(data.collection)) {
       state.collection = data.collection;
-      // Backfill: ensure every entry has a tags array (idempotent).
       for (const c of state.collection) {
         if (!Array.isArray(c.tags)) c.tags = [];
+        // Coerce legacy string locations into typed {type, name} objects.
+        c.location = normalizeLocation(c.location);
       }
       state.viewMode = data.viewMode || 'grid';
       state.gridSize = ['small', 'medium', 'large'].includes(data.gridSize) ? data.gridSize : 'medium';
@@ -54,7 +55,7 @@ export function migrateSavedCollection() {
     && total === 100
     && state.collection.some(c => (c.resolvedName || c.name) === 'Breya, Etherium Shaper');
   if (hasNoLocations && looksLikeBreyaDefault) {
-    state.collection.forEach(c => { c.location = 'breya deck'; });
+    state.collection.forEach(c => { c.location = { type: 'deck', name: 'breya' }; });
     save();
   }
 }

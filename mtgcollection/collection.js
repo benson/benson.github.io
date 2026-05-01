@@ -21,8 +21,48 @@ export function normalizeCondition(raw) {
   return v;
 }
 
+export const LOCATION_TYPES = ['deck', 'binder', 'box'];
+export const DEFAULT_LOCATION_TYPE = 'box';
+
+// Parses a freeform string like "deck breya", "deck:breya", or "breya" into
+// a typed location. The type prefix is optional — bare names default to box.
+export function parseLocationString(raw) {
+  const s = String(raw || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  if (!s) return null;
+  // Bare type word like "binder" or "deck" — treat as that type with same name.
+  if (LOCATION_TYPES.includes(s)) return { type: s, name: s };
+  const m = s.match(/^(deck|binder|box)[\s:]+(.+)$/);
+  if (m) {
+    const name = m[2].trim();
+    return name ? { type: m[1], name } : null;
+  }
+  return { type: DEFAULT_LOCATION_TYPE, name: s };
+}
+
+// Accepts string (freeform), {type, name}, or null/undefined/''.
+// Returns null or a normalized {type, name}.
 export function normalizeLocation(raw) {
-  return String(raw || '').trim().toLowerCase();
+  if (raw == null || raw === '') return null;
+  if (typeof raw === 'string') return parseLocationString(raw);
+  if (typeof raw === 'object') {
+    const name = String(raw.name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    if (!name) return null;
+    const type = LOCATION_TYPES.includes(raw.type) ? raw.type : DEFAULT_LOCATION_TYPE;
+    return { type, name };
+  }
+  return null;
+}
+
+// Stable serialization for collectionKey + filter dedup. Returns "" for null.
+export function locationKey(loc) {
+  const n = normalizeLocation(loc);
+  return n ? n.type + ':' + n.name : '';
+}
+
+// Display label "type:name" used in filter dropdowns + datalist suggestions.
+export function formatLocationLabel(loc) {
+  const n = normalizeLocation(loc);
+  return n ? n.type + ':' + n.name : '';
 }
 
 export function normalizeLanguage(raw) {
@@ -72,7 +112,7 @@ export function makeEntry(data) {
 
 // ---- Keying + coalescing ----
 export function collectionKey(c) {
-  return (c.scryfallId || (c.setCode + ':' + c.cn + ':' + c.name)) + ':' + c.finish + ':' + c.condition + ':' + c.language + ':' + normalizeLocation(c.location);
+  return (c.scryfallId || (c.setCode + ':' + c.cn + ':' + c.name)) + ':' + c.finish + ':' + c.condition + ':' + c.language + ':' + locationKey(c.location);
 }
 
 export function coalesceCollection() {
@@ -101,17 +141,24 @@ export function allCollectionTags() {
   return Array.from(set).sort();
 }
 
+// Returns deduped sorted list of {type, name} objects across the collection.
 export function allCollectionLocations(collection = state.collection) {
-  const set = new Set();
+  const byKey = new Map();
   for (const c of collection) {
     const loc = normalizeLocation(c.location);
-    if (loc) set.add(loc);
+    if (!loc) continue;
+    const k = loc.type + ':' + loc.name;
+    if (!byKey.has(k)) byKey.set(k, loc);
   }
-  return Array.from(set).sort();
+  return Array.from(byKey.values()).sort((a, b) =>
+    a.type.localeCompare(b.type) || a.name.localeCompare(b.name)
+  );
 }
 
+// Build a `loc:` search token from a typed location (or legacy string).
 export function quoteLocationForSearch(loc) {
-  return /\s/.test(loc) ? `"${loc}"` : loc;
+  const label = typeof loc === 'string' ? loc : formatLocationLabel(loc);
+  return /\s/.test(label) ? `"${label}"` : label;
 }
 
 // ---- Pricing ----

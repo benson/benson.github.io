@@ -196,8 +196,8 @@ test('parseDecklist: error line numbers tracked (1-based)', () => {
 });
 
 test('parseDecklist: option.location is applied to entries', () => {
-  const { entries } = parseDecklist('1 Sol Ring (CMM) 410', { location: 'Breya Deck' });
-  assert.equal(entries[0].location, 'breya deck'); // normalizeLocation lowercases+trims
+  const { entries } = parseDecklist('1 Sol Ring (CMM) 410', { location: 'deck:breya' });
+  assert.deepEqual(entries[0].location, { type: 'deck', name: 'breya' });
 });
 
 test('parseDecklist: cn with star/letter suffix (PNPH 42★)', () => {

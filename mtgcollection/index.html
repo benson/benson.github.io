@@ -1267,6 +1267,125 @@
     outline: none;
     background: #fafaf5;
   }
+
+  /* Typed-location pills (list view + history + filter chips) */
+  .loc-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px 4px 1px 5px;
+    border: 1px solid;
+    border-radius: 2px;
+    font-size: 0.7rem;
+    line-height: 1.4;
+    color: #000;
+    white-space: nowrap;
+  }
+  .loc-pill .loc-icon {
+    width: 11px;
+    height: 11px;
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+  .loc-pill-name { text-transform: lowercase; }
+  body.proper-case .loc-pill-name { text-transform: capitalize !important; }
+  .loc-pill-deck   { background: #efe6d4; border-color: #cbb98c; }
+  .loc-pill-binder { background: #e3eadd; border-color: #9fbb8c; }
+  .loc-pill-box    { background: #ece8e0; border-color: #c2bdb0; }
+
+  /* Clickable typed-location button used inside history summaries */
+  .loc-link {
+    display: inline;
+    border: none;
+    background: none;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-transform: lowercase;
+  }
+  .loc-link:hover { text-decoration-style: solid; color: #000; }
+  body.proper-case .loc-link { text-transform: capitalize !important; }
+  .loc-link-deck   { color: #6b5224; }
+  .loc-link-binder { color: #4a6839; }
+  .loc-link-box    { color: #5a5247; }
+  .loc-pill-remove {
+    border: none;
+    background: transparent;
+    color: #888;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.85rem;
+    line-height: 1;
+    padding: 0 2px;
+  }
+  .loc-pill-remove:hover, .loc-pill-remove:focus-visible {
+    color: #000;
+    outline: none;
+  }
+
+  /* Inline location picker (list cell when location is empty) */
+  .loc-picker {
+    display: inline-flex;
+    gap: 3px;
+    align-items: center;
+  }
+  .loc-picker-type {
+    border: none;
+    background: transparent;
+    font: inherit;
+    font-size: 0.7rem;
+    color: #999;
+    text-transform: lowercase;
+    padding: 1px 0;
+    cursor: pointer;
+  }
+  .loc-picker-type:focus { outline: none; color: #000; }
+  .loc-picker-name {
+    flex: 1 1 60px;
+    min-width: 50px;
+    border: none;
+    background: transparent;
+    color: #000;
+    font: inherit;
+    font-size: 0.7rem;
+    padding: 1px 2px;
+    text-transform: lowercase;
+  }
+  .loc-picker-name::placeholder { color: #bbb; }
+  .loc-picker-name:focus { outline: none; background: #fafaf5; }
+
+  /* Drawer / bulk-bar / add-form location field — type select + name input */
+  .loc-field {
+    display: flex;
+    gap: 6px;
+    align-items: stretch;
+    border-bottom: 1px solid #ccc;
+  }
+  .loc-field:focus-within { border-bottom-color: #000; }
+  .loc-field .loc-type-select {
+    border: none;
+    background: transparent;
+    font: inherit;
+    color: #555;
+    text-transform: lowercase;
+    padding: 4px 0;
+    cursor: pointer;
+  }
+  .loc-field .loc-type-select:focus { outline: none; color: #000; }
+  .loc-field .loc-name-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: #000;
+    font: inherit;
+    text-transform: lowercase;
+    padding: 4px 0;
+  }
+  .loc-field .loc-name-input:focus { outline: none; }
+
   .set-icon {
     width: 14px;
     height: 14px;
@@ -1430,20 +1549,6 @@
   .card-name-button:hover, .card-name-button:focus-visible { text-decoration: underline; }
   .card-preview-link { cursor: pointer; }
   .muted { color: #999; }
-  .location-input {
-    width: 120px;
-    border: none;
-    border-bottom: 1px solid #ddd;
-    background: transparent;
-    color: #000;
-    font: inherit;
-    text-transform: lowercase;
-    padding: 2px 0;
-  }
-  .location-input:focus {
-    outline: none;
-    border-bottom-color: #000;
-  }
 
   .toggle-view {
     font-size: 0.75rem;
@@ -2413,8 +2518,15 @@
         <div class="bulk-bar" id="bulkBar" aria-live="polite">
           <span class="bulk-count" id="bulkCount">0 selected</span>
           <div class="field">
-            <label for="bulkLocation">location</label>
-            <input id="bulkLocation" type="text" list="locationOptions" placeholder="set...">
+            <label for="bulkLocationName">location</label>
+            <div class="loc-field">
+              <select class="loc-type-select" id="bulkLocationType">
+                <option value="deck">deck</option>
+                <option value="binder">binder</option>
+                <option value="box" selected>box</option>
+              </select>
+              <input id="bulkLocationName" class="loc-name-input" type="text" list="locationOptions" placeholder="set...">
+            </div>
           </div>
           <div class="field">
             <label for="bulkCondition">condition</label>
@@ -2561,8 +2673,15 @@
                 <input type="number" id="addQty" min="1" value="1">
               </div>
               <div class="field field-location">
-                <label for="addLocation">location</label>
-                <input type="text" id="addLocation" list="locationOptions" placeholder="optional">
+                <label for="addLocationName">location</label>
+                <div class="loc-field">
+                  <select class="loc-type-select" id="addLocationType">
+                    <option value="deck">deck</option>
+                    <option value="binder">binder</option>
+                    <option value="box" selected>box</option>
+                  </select>
+                  <input type="text" id="addLocationName" class="loc-name-input" list="locationOptions" placeholder="optional">
+                </div>
               </div>
             </div>
             <div class="add-actions">
@@ -2701,8 +2820,15 @@
           </div>
         </div>
         <div class="detail-field full">
-          <label for="detailLocation">location</label>
-          <input id="detailLocation" type="text" list="locationOptions">
+          <label for="detailLocationName">location</label>
+          <div class="loc-field">
+            <select class="loc-type-select" id="detailLocationType">
+              <option value="deck">deck</option>
+              <option value="binder">binder</option>
+              <option value="box" selected>box</option>
+            </select>
+            <input id="detailLocationName" class="loc-name-input" type="text" list="locationOptions" placeholder="(none)">
+          </div>
         </div>
       </div>
       <div class="detail-price">

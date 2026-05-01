@@ -7,6 +7,10 @@ import {
   normalizeLocation,
   normalizeTag,
   allCollectionTags,
+  allCollectionLocations,
+  formatLocationLabel,
+  LOCATION_TYPES,
+  DEFAULT_LOCATION_TYPE,
 } from './collection.js';
 import { commitCollectionChange } from './persistence.js';
 import { collectionKey } from './collection.js';
@@ -34,12 +38,14 @@ export function populateFilters() {
     ['normal', 'foil', 'etched'],
     { defaultLabel: 'all finishes', noun: 'finishes' });
 
-  const locations = [...new Set(state.collection.map(c => normalizeLocation(c.location)).filter(Boolean))].sort();
+  const locations = allCollectionLocations();
   populateMultiselect(document.getElementById('filterLocation'),
-    locations,
+    locations.map(loc => ({ value: loc.type + ':' + loc.name, label: loc.type + ':' + loc.name })),
     { defaultLabel: 'all locations', noun: 'locations' });
+  // Datalist for the drawer/bulk/add name fields — just names, no type prefix.
+  const uniqueNames = [...new Set(locations.map(loc => loc.name))].sort();
   document.getElementById('locationOptions').innerHTML =
-    locations.map(l => '<option value="' + esc(l) + '"></option>').join('');
+    uniqueNames.map(n => '<option value="' + esc(n) + '"></option>').join('');
 
   const tags = allCollectionTags();
   populateMultiselect(document.getElementById('filterTag'),
@@ -168,7 +174,9 @@ export function openDetail(index) {
   drawerTags = Array.isArray(c.tags) ? [...c.tags] : [];
   renderTagChips();
   document.getElementById('detailTagInput').value = '';
-  document.getElementById('detailLocation').value = c.location || '';
+  const drawerLoc = normalizeLocation(c.location);
+  document.getElementById('detailLocationType').value = drawerLoc ? drawerLoc.type : DEFAULT_LOCATION_TYPE;
+  document.getElementById('detailLocationName').value = drawerLoc ? drawerLoc.name : '';
   document.getElementById('detailPriceText').textContent = c.price ? '$' + c.price.toFixed(2) : 'no price';
   const priceMark = document.getElementById('detailPriceMark');
   priceMark.textContent = c.priceFallback ? '*' : '';
@@ -203,7 +211,7 @@ function saveDetail() {
     finish: c.finish,
     condition: c.condition,
     language: c.language,
-    location: c.location || '',
+    location: c.location ? { ...c.location } : null,
     tags: Array.isArray(c.tags) ? [...c.tags] : [],
   };
 
@@ -216,7 +224,9 @@ function saveDetail() {
   c.language = normalizeLanguage(document.getElementById('detailLanguageOther').value
     || detailForm.querySelector('input[name="detailLanguage"]:checked')?.value
     || 'en');
-  c.location = normalizeLocation(document.getElementById('detailLocation').value);
+  const newLocType = document.getElementById('detailLocationType').value;
+  const newLocName = document.getElementById('detailLocationName').value;
+  c.location = normalizeLocation({ type: newLocType, name: newLocName });
   c.tags = [...drawerTags];
 
   const after = {
@@ -224,9 +234,12 @@ function saveDetail() {
     finish: c.finish,
     condition: c.condition,
     language: c.language,
-    location: c.location || '',
+    location: c.location ? { ...c.location } : null,
     tags: [...c.tags],
   };
+  const beforeLocLabel = formatLocationLabel(before.location);
+  const afterLocLabel = formatLocationLabel(after.location);
+  const locationChanged = beforeLocLabel !== afterLocLabel;
   const diffs = [];
   if (after.qty !== before.qty) diffs.push('qty ' + before.qty + ' → ' + after.qty);
   if (after.finish !== before.finish) diffs.push(before.finish + ' → ' + after.finish);
@@ -234,8 +247,8 @@ function saveDetail() {
     diffs.push(before.condition.replace(/_/g, ' ') + ' → ' + after.condition.replace(/_/g, ' '));
   }
   if (after.language !== before.language) diffs.push(before.language + ' → ' + after.language);
-  if (after.location !== before.location) {
-    diffs.push('location: ' + (before.location || '—') + ' → ' + (after.location || '—'));
+  if (locationChanged) {
+    diffs.push('location: ' + (beforeLocLabel || '—') + ' → ' + (afterLocLabel || '—'));
   }
   const beforeTagsKey = [...before.tags].sort().join(',');
   const afterTagsKey = [...after.tags].sort().join(',');
@@ -253,7 +266,7 @@ function saveDetail() {
     let summary;
     if (diffs.length === 1 && after.qty !== before.qty) {
       summary = qtyDiffSummary(before.qty, after.qty);
-    } else if (diffs.length === 1 && after.location !== before.location) {
+    } else if (diffs.length === 1 && locationChanged) {
       summary = locationDiffSummary(before.location, after.location);
     } else {
       summary = 'edited (' + diffs.join(', ') + ') · {card}';

@@ -7,6 +7,9 @@ import {
   biggerImageUrl,
   allCollectionLocations,
   quoteLocationForSearch,
+  formatLocationLabel,
+  LOCATION_TYPES,
+  DEFAULT_LOCATION_TYPE,
 } from './collection.js';
 import { save, commitCollectionChange } from './persistence.js';
 import { openDetail } from './detail.js';
@@ -21,6 +24,83 @@ const VALID_DECK_GROUPS = ['type', 'cmc', 'color', 'rarity'];
 const VALID_BINDER_SIZES = Object.keys(BINDER_SIZES);
 const RARITY_ABBR = { common: 'c', uncommon: 'u', rare: 'r', mythic: 'm', special: 's', bonus: 'b' };
 const CONDITION_ABBR = { near_mint: 'nm', lightly_played: 'lp', moderately_played: 'mp', heavily_played: 'hp', damaged: 'dmg' };
+
+const LOC_ICONS = {
+  deck: '<svg class="loc-icon" viewBox="0 0 14 14" aria-hidden="true"><rect x="2.5" y="3.5" width="6.5" height="8.5" rx="0.5" fill="none" stroke="currentColor" stroke-width="1"/><rect x="5" y="1.5" width="6.5" height="8.5" rx="0.5" fill="none" stroke="currentColor" stroke-width="1"/></svg>',
+  binder: '<svg class="loc-icon" viewBox="0 0 14 14" aria-hidden="true"><rect x="2" y="2" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1"/><line x1="5" y1="2" x2="5" y2="12" stroke="currentColor" stroke-width="1"/><circle cx="5" cy="5" r="0.7" fill="currentColor"/><circle cx="5" cy="7" r="0.7" fill="currentColor"/><circle cx="5" cy="9" r="0.7" fill="currentColor"/></svg>',
+  box: '<svg class="loc-icon" viewBox="0 0 14 14" aria-hidden="true"><polygon points="2,4 7,1.5 12,4 12,11.5 2,11.5" fill="none" stroke="currentColor" stroke-width="1"/><line x1="2" y1="4" x2="12" y2="4" stroke="currentColor" stroke-width="1"/><line x1="7" y1="1.5" x2="7" y2="4" stroke="currentColor" stroke-width="1"/></svg>',
+};
+
+export function locationPillHtml(loc, { withRemove = false, index = -1 } = {}) {
+  const n = normalizeLocation(loc);
+  if (!n) return '';
+  const icon = LOC_ICONS[n.type] || LOC_ICONS.box;
+  const removeBtn = withRemove
+    ? '<button class="loc-pill-remove" type="button" data-index="' + index + '" aria-label="remove location">×</button>'
+    : '';
+  return '<span class="loc-pill loc-pill-' + esc(n.type) + '" data-loc-type="' + esc(n.type) + '" data-loc-name="' + esc(n.name) + '">' +
+    icon +
+    '<span class="loc-pill-name">' + esc(n.name) + '</span>' +
+    removeBtn +
+  '</span>';
+}
+
+function locationCellHtml(c, index) {
+  const loc = normalizeLocation(c.location);
+  if (loc) {
+    return locationPillHtml(loc, { withRemove: true, index });
+  }
+  // Inline picker for empty cells.
+  const typeOptions = LOCATION_TYPES.map(t =>
+    '<option value="' + t + '"' + (t === DEFAULT_LOCATION_TYPE ? ' selected' : '') + '>' + t + '</option>'
+  ).join('');
+  return '<span class="loc-picker" data-index="' + index + '">' +
+    '<select class="loc-picker-type" data-index="' + index + '" aria-label="location type">' + typeOptions + '</select>' +
+    '<input class="loc-picker-name" data-index="' + index + '" type="text" list="locationOptions" placeholder="+ loc" autocomplete="off">' +
+  '</span>';
+}
+
+function commitRowLocationFromPicker(input) {
+  const index = parseInt(input.dataset.index, 10);
+  const c = state.collection[index];
+  if (!c) return;
+  const row = input.closest('tr');
+  const typeSel = row && row.querySelector('.loc-picker-type');
+  const type = typeSel ? typeSel.value : DEFAULT_LOCATION_TYPE;
+  const name = input.value;
+  const newLoc = normalizeLocation({ type, name });
+  if (!newLoc) { input.value = ''; return; }
+  const beforeKey = collectionKey(c);
+  const beforeSnap = captureBefore([beforeKey]);
+  c.location = newLoc;
+  const cardName = c.resolvedName || c.name || 'card';
+  recordEvent({
+    type: 'edit',
+    summary: locationDiffSummary(null, newLoc),
+    before: beforeSnap,
+    affectedKeys: [beforeKey],
+    cards: [{ name: cardName, imageUrl: c.imageUrl || '', backImageUrl: c.backImageUrl || '' }],
+  });
+  commitCollectionChange({ coalesce: true });
+}
+
+function clearRowLocation(index) {
+  const c = state.collection[index];
+  if (!c || !c.location) return;
+  const beforeLoc = c.location;
+  const beforeKey = collectionKey(c);
+  const beforeSnap = captureBefore([beforeKey]);
+  c.location = null;
+  const cardName = c.resolvedName || c.name || 'card';
+  recordEvent({
+    type: 'edit',
+    summary: locationDiffSummary(beforeLoc, null),
+    before: beforeSnap,
+    affectedKeys: [beforeKey],
+    cards: [{ name: cardName, imageUrl: c.imageUrl || '', backImageUrl: c.backImageUrl || '' }],
+  });
+  commitCollectionChange({ coalesce: true });
+}
 
 function commitRowTag(input) {
   const index = parseInt(input.dataset.index, 10);
@@ -203,7 +283,7 @@ function renderRow(c) {
     <td class="muted finish-cell">${esc(c.finish)}</td>
     <td class="muted rarity-cell" title="${esc(c.rarity || '')}">${esc(RARITY_ABBR[c.rarity] || c.rarity || '')}</td>
     <td class="muted condition-cell" title="${esc((c.condition || '').replace(/_/g, ' '))}">${esc(CONDITION_ABBR[c.condition] || (c.condition || '').replace(/_/g, ' '))}</td>
-    <td class="location-cell"><input class="location-input" data-index="${index}" list="locationOptions" value="${esc(c.location || '')}" placeholder="location"></td>
+    <td class="location-cell">${locationCellHtml(c, index)}</td>
     <td class="tags-cell">${(c.tags || []).map(t => `<span class="row-tag">${esc(t)}<button class="row-tag-remove" type="button" data-tag="${esc(t)}" data-index="${index}" aria-label="remove ${esc(t)}">×</button></span>`).join('')}<input class="row-tag-input" data-index="${index}" list="rowTagOptions" placeholder="+ tag" autocomplete="off"></td>
     <td class="qty-cell">${c.qty}</td>
     <td class="muted price-cell">${formatPrice(c)}</td>
@@ -232,7 +312,7 @@ function renderEmptyScopeState(targetEl, mode) {
     return;
   }
   const chips = locations.map(loc =>
-    `<button type="button" class="deck-empty-chip" data-loc="${esc(loc)}">${esc(loc)}</button>`
+    `<button type="button" class="deck-empty-chip" data-loc="${esc(formatLocationLabel(loc))}">${locationPillHtml(loc)}</button>`
   ).join('');
   targetEl.innerHTML = `<div class="deck-empty-state">
     <p class="deck-empty-prompt">${esc(label)} needs a filter — try <code>loc:breya</code> or pick a location below</p>
@@ -776,10 +856,16 @@ export function initView() {
   });
 
   listBodyEl.addEventListener('click', e => {
-    const removeBtn = e.target.closest('.row-tag-remove');
-    if (removeBtn) {
+    const removeTagBtn = e.target.closest('.row-tag-remove');
+    if (removeTagBtn) {
       e.preventDefault();
-      removeRowTag(parseInt(removeBtn.dataset.index, 10), removeBtn.dataset.tag);
+      removeRowTag(parseInt(removeTagBtn.dataset.index, 10), removeTagBtn.dataset.tag);
+      return;
+    }
+    const removeLocBtn = e.target.closest('.loc-pill-remove');
+    if (removeLocBtn) {
+      e.preventDefault();
+      clearRowLocation(parseInt(removeLocBtn.dataset.index, 10));
       return;
     }
     const nameBtn = e.target.closest('.card-name-button');
@@ -794,13 +880,24 @@ export function initView() {
   });
 
   listBodyEl.addEventListener('keydown', e => {
-    if (!e.target.classList.contains('row-tag-input')) return;
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      commitRowTag(e.target);
-    } else if (e.key === 'Escape') {
-      e.target.value = '';
-      e.target.blur();
+    if (e.target.classList.contains('row-tag-input')) {
+      if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        commitRowTag(e.target);
+      } else if (e.key === 'Escape') {
+        e.target.value = '';
+        e.target.blur();
+      }
+      return;
+    }
+    if (e.target.classList.contains('loc-picker-name')) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        commitRowLocationFromPicker(e.target);
+      } else if (e.key === 'Escape') {
+        e.target.value = '';
+        e.target.blur();
+      }
     }
   });
 
@@ -813,25 +910,9 @@ export function initView() {
       if (e.target.value.trim()) commitRowTag(e.target);
       return;
     }
-    if (!e.target.classList.contains('location-input')) return;
-    const index = parseInt(e.target.dataset.index, 10);
-    const c = state.collection[index];
-    if (!c) return;
-    const beforeLoc = c.location || '';
-    const newLoc = normalizeLocation(e.target.value);
-    if (beforeLoc === newLoc) return;
-    const beforeKey = collectionKey(c);
-    const beforeSnap = captureBefore([beforeKey]);
-    c.location = newLoc;
-    const name = c.resolvedName || c.name || 'card';
-    recordEvent({
-      type: 'edit',
-      summary: locationDiffSummary(beforeLoc, newLoc),
-      before: beforeSnap,
-      affectedKeys: [beforeKey],
-      cards: [{ name, imageUrl: c.imageUrl || '', backImageUrl: c.backImageUrl || '' }],
-    });
-    commitCollectionChange({ coalesce: true });
+    if (e.target.classList.contains('loc-picker-name')) {
+      if (e.target.value.trim()) commitRowLocationFromPicker(e.target);
+    }
   });
 
   // Card-preview hover is delegated at the document level so it works for the

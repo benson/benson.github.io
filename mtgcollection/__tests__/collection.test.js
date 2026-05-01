@@ -72,14 +72,28 @@ test('normalizeCondition: whitespace handling and snake_case preservation', () =
 
 // ---- normalizeLocation ----
 
-test('normalizeLocation: trims and lowercases', () => {
-  assert.equal(normalizeLocation('  Breya Deck  '), 'breya deck');
-  assert.equal(normalizeLocation('BINDER'), 'binder');
+test('normalizeLocation: bare name defaults to box type', () => {
+  assert.deepEqual(normalizeLocation('  Breya  '), { type: 'box', name: 'breya' });
+  assert.deepEqual(normalizeLocation('BINDER stuff'), { type: 'binder', name: 'stuff' });
 });
 
-test('normalizeLocation: null/undefined become empty', () => {
-  assert.equal(normalizeLocation(null), '');
-  assert.equal(normalizeLocation(undefined), '');
+test('normalizeLocation: typed prefix syntax (deck/binder/box)', () => {
+  assert.deepEqual(normalizeLocation('deck breya'), { type: 'deck', name: 'breya' });
+  assert.deepEqual(normalizeLocation('deck:breya'), { type: 'deck', name: 'breya' });
+  assert.deepEqual(normalizeLocation('binder rares'), { type: 'binder', name: 'rares' });
+  assert.deepEqual(normalizeLocation('box bulk'), { type: 'box', name: 'bulk' });
+});
+
+test('normalizeLocation: object input is validated', () => {
+  assert.deepEqual(normalizeLocation({ type: 'deck', name: 'Breya' }), { type: 'deck', name: 'breya' });
+  assert.deepEqual(normalizeLocation({ type: 'invalid', name: 'foo' }), { type: 'box', name: 'foo' });
+});
+
+test('normalizeLocation: null/undefined/empty become null', () => {
+  assert.equal(normalizeLocation(null), null);
+  assert.equal(normalizeLocation(undefined), null);
+  assert.equal(normalizeLocation(''), null);
+  assert.equal(normalizeLocation({ type: 'deck', name: '' }), null);
 });
 
 // ---- normalizeLanguage ----
@@ -125,7 +139,7 @@ test('makeEntry: defaults for missing fields', () => {
   assert.equal(e.finish, 'normal');
   assert.equal(e.condition, 'near_mint');
   assert.equal(e.language, 'en');
-  assert.equal(e.location, '');
+  assert.equal(e.location, null);
   assert.equal(e.scryfallId, '');
   assert.equal(e.rarity, '');
   assert.equal(e.price, null);

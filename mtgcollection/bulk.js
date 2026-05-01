@@ -8,6 +8,7 @@ import {
   normalizeLanguage,
   normalizeTag,
   allCollectionTags,
+  formatLocationLabel,
 } from './collection.js';
 import { commitCollectionChange } from './persistence.js';
 import { filteredSorted } from './search.js';
@@ -158,7 +159,8 @@ function renderPendingRow() {
   }
   const pills = [];
   if (pendingBulk.location !== null) {
-    pills.push(pillHTML('location', '', '→ location: ' + (pendingBulk.location || '(empty)')));
+    const label = formatLocationLabel(pendingBulk.location) || '(empty)';
+    pills.push(pillHTML('location', '', '→ location: ' + label));
   }
   if (pendingBulk.condition !== null) {
     pills.push(pillHTML('condition', '', '→ condition: ' + pendingBulk.condition.replace(/_/g, ' ')));
@@ -259,9 +261,12 @@ export function initBulk() {
     render();
   });
 
-  document.getElementById('bulkLocation').addEventListener('change', e => {
-    stageField('location', e.target.value, normalizeLocation);
-    e.target.value = '';
+  const bulkLocType = document.getElementById('bulkLocationType');
+  const bulkLocName = document.getElementById('bulkLocationName');
+  bulkLocName.addEventListener('change', () => {
+    const loc = normalizeLocation({ type: bulkLocType.value, name: bulkLocName.value });
+    if (loc) stageField('location', loc);
+    bulkLocName.value = '';
   });
   document.getElementById('bulkCondition').addEventListener('change', e => {
     if (!e.target.value) return;

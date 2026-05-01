@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { normalizeLocation } from './collection.js';
+import { normalizeLocation, locationKey, formatLocationLabel } from './collection.js';
 import { render } from './view.js';
 import { getMultiselectValue, setMultiselectValue, initMultiselect } from './multiselect.js';
 
@@ -123,7 +123,9 @@ function matchToken(c, token) {
       break;
     }
     case 'loc': {
-      result = normalizeLocation(c.location || '').includes(v.toLowerCase());
+      const loc = normalizeLocation(c.location);
+      const want = v.toLowerCase();
+      result = loc ? (loc.type.includes(want) || loc.name.includes(want)) : false;
       break;
     }
     case 'tag': {
@@ -170,7 +172,7 @@ export function passesMultiselectFilters(c, { sets, rarities, finishes, location
   if (sets && sets.length && !sets.includes(c.setCode)) return false;
   if (rarities && rarities.length && !rarities.includes(c.rarity)) return false;
   if (finishes && finishes.length && !finishes.includes(c.finish)) return false;
-  if (locations && locations.length && !locations.includes(normalizeLocation(c.location))) return false;
+  if (locations && locations.length && !locations.includes(locationKey(c.location))) return false;
   if (tags && tags.length) {
     const cardTags = c.tags || [];
     if (!cardTags.some(t => tags.includes(t))) return false;
@@ -198,7 +200,7 @@ function compareCards(a, b, field) {
     case 'finish': return (a.finish || '').localeCompare(b.finish || '') || fallback;
     case 'rarity': return ((RARITY_ORDER[a.rarity] ?? 99) - (RARITY_ORDER[b.rarity] ?? 99)) || fallback;
     case 'condition': return ((CONDITION_ORDER[a.condition] ?? 99) - (CONDITION_ORDER[b.condition] ?? 99)) || fallback;
-    case 'location': return (a.location || '').localeCompare(b.location || '') || fallback;
+    case 'location': return formatLocationLabel(a.location).localeCompare(formatLocationLabel(b.location)) || fallback;
     case 'qty': return (a.qty || 0) - (b.qty || 0) || fallback;
     case 'price': return (a.price || 0) - (b.price || 0) || fallback;
     case 'cmc': return (a.cmc ?? 999) - (b.cmc ?? 999) || fallback;
