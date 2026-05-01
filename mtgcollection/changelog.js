@@ -2,7 +2,7 @@ import { state } from './state.js';
 import { collectionKey, normalizeLocation, formatLocationLabel } from './collection.js';
 import { commitCollectionChange } from './persistence.js';
 import { esc } from './feedback.js';
-import { navigateToLocation } from './view.js';
+import { navigateToLocation, LOC_ICONS } from './view.js';
 
 const CHANGELOG_KEY = 'mtgcollection_changelog_v1';
 const CAP = 200;
@@ -182,9 +182,11 @@ function cardSpanHtml(c, className) {
 }
 
 function locLinkHtml(type, name) {
+  const icon = LOC_ICONS[type] || LOC_ICONS.box;
   return '<button type="button" class="loc-link loc-link-' + esc(type) + '"' +
-    ' data-loc-type="' + esc(type) + '" data-loc-name="' + esc(name) + '">' +
-    esc(type) + ':' + esc(name) +
+    ' data-loc-type="' + esc(type) + '" data-loc-name="' + esc(name) + '"' +
+    ' title="' + esc(type) + ':' + esc(name) + '">' +
+    icon + '<span class="loc-link-name">' + esc(name) + '</span>' +
   '</button>';
 }
 

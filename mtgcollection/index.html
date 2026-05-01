@@ -1318,9 +1318,13 @@
   .loc-pill-binder { background: #e3eadd; border-color: #9fbb8c; }
   .loc-pill-box    { background: #ece8e0; border-color: #c2bdb0; }
 
-  /* Clickable typed-location button used inside history summaries */
+  /* Clickable typed-location button used inside history summaries.
+     Icon prefix instead of "type:" prefix saves horizontal space in the
+     narrow sidebar history list. Hover reveals the type via the title attr. */
   .loc-link {
-    display: inline;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
     border: none;
     background: none;
     padding: 0;
@@ -1329,7 +1333,16 @@
     cursor: pointer;
     text-decoration: underline;
     text-decoration-style: dotted;
+    text-underline-offset: 2px;
     text-transform: lowercase;
+    vertical-align: baseline;
+  }
+  .loc-link .loc-icon {
+    width: 10px;
+    height: 10px;
+    flex-shrink: 0;
+    align-self: center;
+    opacity: 0.85;
   }
   .loc-link:hover { text-decoration-style: solid; color: #000; }
   .loc-link-deck   { color: #6b5224; }
@@ -1513,10 +1526,11 @@
 
   .history-list {
     list-style: none;
-    padding: 0;
+    padding: 0 8px 0 0;
     margin: 0 0 8px 0;
     max-height: 240px;
     overflow-y: auto;
+    scrollbar-gutter: stable;
     font-size: 0.75rem;
   }
   .history-list li {
