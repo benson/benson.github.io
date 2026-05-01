@@ -3,6 +3,7 @@ import { esc, showFeedback } from './feedback.js';
 import {
   collectionKey,
   normalizeLocation,
+  normalizeTag,
   biggerImageUrl,
   allCollectionLocations,
   quoteLocationForSearch,
@@ -14,11 +15,55 @@ import { renderStatsPanel, groupDeck, firstCardForPanel } from './stats.js';
 import { updateBulkBar } from './bulk.js';
 import { paginateForBinder, sortForBinder, BINDER_SIZES, binderSlotCount } from './binder.js';
 import { getSetIconUrl } from './setIcons.js';
+import { recordEvent, captureBefore } from './changelog.js';
 
 const VALID_DECK_GROUPS = ['type', 'cmc', 'color', 'rarity'];
 const VALID_BINDER_SIZES = Object.keys(BINDER_SIZES);
 const RARITY_ABBR = { common: 'c', uncommon: 'u', rare: 'r', mythic: 'm', special: 's', bonus: 'b' };
 const CONDITION_ABBR = { near_mint: 'nm', lightly_played: 'lp', moderately_played: 'mp', heavily_played: 'hp', damaged: 'dmg' };
+
+function commitRowTag(input) {
+  const index = parseInt(input.dataset.index, 10);
+  const c = state.collection[index];
+  if (!c) return;
+  const tag = normalizeTag(input.value);
+  if (!tag) { input.value = ''; return; }
+  if (!Array.isArray(c.tags)) c.tags = [];
+  if (c.tags.includes(tag)) {
+    showFeedback('already tagged ' + tag, 'info');
+    input.value = '';
+    return;
+  }
+  const beforeKey = collectionKey(c);
+  const beforeSnap = captureBefore([beforeKey]);
+  c.tags.push(tag);
+  const name = c.resolvedName || c.name || 'card';
+  recordEvent({
+    type: 'edit',
+    summary: 'tagged ' + tag + ' ·',
+    before: beforeSnap,
+    affectedKeys: [beforeKey],
+    cards: [{ name, imageUrl: c.imageUrl || '', backImageUrl: c.backImageUrl || '' }],
+  });
+  commitCollectionChange({ coalesce: true });
+}
+
+function removeRowTag(index, tag) {
+  const c = state.collection[index];
+  if (!c || !Array.isArray(c.tags) || !c.tags.includes(tag)) return;
+  const beforeKey = collectionKey(c);
+  const beforeSnap = captureBefore([beforeKey]);
+  c.tags = c.tags.filter(t => t !== tag);
+  const name = c.resolvedName || c.name || 'card';
+  recordEvent({
+    type: 'edit',
+    summary: 'untagged ' + tag + ' ·',
+    before: beforeSnap,
+    affectedKeys: [beforeKey],
+    cards: [{ name, imageUrl: c.imageUrl || '', backImageUrl: c.backImageUrl || '' }],
+  });
+  commitCollectionChange({ coalesce: true });
+}
 
 let gridEl, listBodyEl, collectionSection, emptyState;
 let cardPreviewEl, cardPreviewImg;
@@ -159,7 +204,7 @@ function renderRow(c) {
     <td class="muted rarity-cell" title="${esc(c.rarity || '')}">${esc(RARITY_ABBR[c.rarity] || c.rarity || '')}</td>
     <td class="muted condition-cell" title="${esc((c.condition || '').replace(/_/g, ' '))}">${esc(CONDITION_ABBR[c.condition] || (c.condition || '').replace(/_/g, ' '))}</td>
     <td class="location-cell"><input class="location-input" data-index="${index}" list="locationOptions" value="${esc(c.location || '')}" placeholder="location"></td>
-    <td class="tags-cell">${(c.tags || []).map(t => `<span class="row-tag">${esc(t)}</span>`).join('')}</td>
+    <td class="tags-cell">${(c.tags || []).map(t => `<span class="row-tag">${esc(t)}<button class="row-tag-remove" type="button" data-tag="${esc(t)}" data-index="${index}" aria-label="remove ${esc(t)}">×</button></span>`).join('')}<input class="row-tag-input" data-index="${index}" list="rowTagOptions" placeholder="+ tag" autocomplete="off"></td>
     <td class="qty-cell">${c.qty}</td>
     <td class="muted price-cell">${formatPrice(c)}</td>
   </tr>`;
@@ -731,6 +776,12 @@ export function initView() {
   });
 
   listBodyEl.addEventListener('click', e => {
+    const removeBtn = e.target.closest('.row-tag-remove');
+    if (removeBtn) {
+      e.preventDefault();
+      removeRowTag(parseInt(removeBtn.dataset.index, 10), removeBtn.dataset.tag);
+      return;
+    }
     const nameBtn = e.target.closest('.card-name-button');
     if (nameBtn) {
       openDetail(parseInt(nameBtn.dataset.index, 10));
@@ -742,15 +793,44 @@ export function initView() {
     openDetail(parseInt(trigger.dataset.index, 10));
   });
 
+  listBodyEl.addEventListener('keydown', e => {
+    if (!e.target.classList.contains('row-tag-input')) return;
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      commitRowTag(e.target);
+    } else if (e.key === 'Escape') {
+      e.target.value = '';
+      e.target.blur();
+    }
+  });
+
   listBodyEl.addEventListener('change', e => {
     if (e.target.classList.contains('row-check')) {
       // bulk module handles this
       return;
     }
+    if (e.target.classList.contains('row-tag-input')) {
+      if (e.target.value.trim()) commitRowTag(e.target);
+      return;
+    }
     if (!e.target.classList.contains('location-input')) return;
     const index = parseInt(e.target.dataset.index, 10);
-    if (!state.collection[index]) return;
-    state.collection[index].location = normalizeLocation(e.target.value);
+    const c = state.collection[index];
+    if (!c) return;
+    const beforeLoc = c.location || '';
+    const newLoc = normalizeLocation(e.target.value);
+    if (beforeLoc === newLoc) return;
+    const beforeKey = collectionKey(c);
+    const beforeSnap = captureBefore([beforeKey]);
+    c.location = newLoc;
+    const name = c.resolvedName || c.name || 'card';
+    recordEvent({
+      type: 'edit',
+      summary: 'location: ' + (beforeLoc || '—') + ' → ' + (newLoc || '—') + ' ·',
+      before: beforeSnap,
+      affectedKeys: [beforeKey],
+      cards: [{ name, imageUrl: c.imageUrl || '', backImageUrl: c.backImageUrl || '' }],
+    });
     commitCollectionChange({ coalesce: true });
   });
 

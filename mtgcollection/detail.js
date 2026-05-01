@@ -45,6 +45,8 @@ export function populateFilters() {
   populateMultiselect(document.getElementById('filterTag'),
     tags,
     { defaultLabel: 'filter by tag', noun: 'tags' });
+  document.getElementById('rowTagOptions').innerHTML =
+    tags.map(t => '<option value="' + esc(t) + '"></option>').join('');
 }
 
 // ---- Language options (drawer) ----
