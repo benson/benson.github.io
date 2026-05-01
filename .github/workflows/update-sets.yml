@@ -23,14 +23,24 @@ jobs:
 
       - name: Commit if changed
         run: |
-          git diff --quiet shared/sets.json && exit 0
+          if git diff --quiet shared/sets.json shared/metadata.json; then
+            echo "No changes to sets.json or metadata.json."
+            exit 0
+          fi
           added=$(git diff shared/sets.json | grep -E '^\+\s+"code"' | sed -E 's/.*"code": "([^"]+)".*/\1/' | tr '\n' ',' | sed 's/,$//')
           removed=$(git diff shared/sets.json | grep -E '^-\s+"code"' | sed -E 's/.*"code": "([^"]+)".*/\1/' | tr '\n' ',' | sed 's/,$//')
-          msg="update sets.json"
-          if [ -n "$added" ]; then msg="$msg (+ $added)"; fi
-          if [ -n "$removed" ]; then msg="$msg (- $removed)"; fi
+          parts=""
+          if ! git diff --quiet shared/sets.json; then
+            parts="sets.json"
+            if [ -n "$added" ]; then parts="$parts (+ $added)"; fi
+            if [ -n "$removed" ]; then parts="$parts (- $removed)"; fi
+          fi
+          if ! git diff --quiet shared/metadata.json; then
+            if [ -n "$parts" ]; then parts="$parts + metadata.json"; else parts="metadata.json"; fi
+          fi
+          msg="update $parts"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add shared/sets.json
+          git add shared/sets.json shared/metadata.json
           git commit -m "$msg"
           git push

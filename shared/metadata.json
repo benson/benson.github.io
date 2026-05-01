@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "description": "Per-set cross-cutting metadata consumed by homepage/shared/mtg.js. Updated incrementally by scripts/generate-config.js when new sets are ingested.",
+  "sets": {
+    "blb": {
+      "specialGuests": [
+        54,
+        63
+      ]
+    },
+    "dft": {
+      "specialGuests": [
+        84,
+        103
+      ]
+    },
+    "dsk": {
+      "specialGuests": [
+        64,
+        73
+      ]
+    },
+    "eoe": {
+      "specialGuests": [
+        119,
+        128
+      ],
+      "bonusSheet": "eos"
+    },
+    "fdn": {
+      "specialGuests": [
+        74,
+        83
+      ]
+    },
+    "fin": {
+      "specialGuests": [
+        129,
+        148
+      ],
+      "bonusSheet": "fca"
+    },
+    "lci": {
+      "specialGuests": [
+        1,
+        18
+      ]
+    },
+    "mh3": {
+      "specialGuests": [
+        39,
+        53
+      ]
+    },
+    "mkm": {
+      "specialGuests": [
+        19,
+        28
+      ]
+    },
+    "otj": {
+      "specialGuests": [
+        29,
+        38
+      ],
+      "bonusSheet": "otp",
+      "hasBigScore": true
+    },
+    "sos": {
+      "specialGuests": [
+        149,
+        158
+      ],
+      "bonusSheet": "soa"
+    },
+    "spm": {
+      "bonusSheet": "mar"
+    },
+    "tdm": {
+      "specialGuests": [
+        104,
+        118
+      ]
+    },
+    "tla": {
+      "bonusSheet": "tle"
+    }
+  }
+}

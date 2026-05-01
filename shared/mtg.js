@@ -26,20 +26,32 @@ export const DRAFT_ONLY_SETS = new Set(['mb2', 'mh1', 'mh2', 'cmm', 'clb', '2xm'
 // manually when merging auto-generated metadata updates (or via the snapshot refresh script).
 
 const METADATA_URL = 'https://bensonperry.com/booster-data/metadata.json';
+// Sibling fallback: homepage/scripts/update-sets.js mirrors metadata.json into shared/
+// daily, so this URL is colocated with mtg.js itself. If the canonical booster-data fetch
+// fails for any reason (CORS, transient outage, deploy race), we degrade to "yesterday's"
+// metadata rather than serving an empty set. Both URLs failing means homepage itself
+// is down, in which case mtg.js wouldn't have loaded anyway.
+const METADATA_FALLBACK_URL = new URL('metadata.json', import.meta.url).href;
 
-// On fetch failure we degrade to empty metadata rather than serving a stale snapshot.
-// Consumers will lose Special Guests / bonus sheet handling for the duration of the
-// outage, which is loudly visible — preferable to silently lying with frozen-in-time data.
+async function fetchMetadata(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const data = await res.json();
+  if (!data || typeof data !== 'object' || !data.sets) throw new Error('malformed metadata');
+  return data;
+}
+
 const _metadata = await (async () => {
   try {
-    const res = await fetch(METADATA_URL);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const fresh = await res.json();
-    if (!fresh || typeof fresh !== 'object' || !fresh.sets) throw new Error('malformed metadata');
-    return fresh;
+    return await fetchMetadata(METADATA_URL);
   } catch (e) {
-    console.error('[mtg.js] metadata.json load failed — Special Guests and bonus sheets will be missing this session:', e.message);
-    return { version: 1, sets: {} };
+    console.warn('[mtg.js] canonical metadata.json failed, trying sibling fallback:', e.message);
+    try {
+      return await fetchMetadata(METADATA_FALLBACK_URL);
+    } catch (e2) {
+      console.error('[mtg.js] sibling metadata.json also failed — Special Guests and bonus sheets will be missing this session:', e2.message);
+      return { version: 1, sets: {} };
+    }
   }
 })();
 

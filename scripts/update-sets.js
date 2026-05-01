@@ -62,6 +62,12 @@ async function fetchBoosterDataIndex() {
   return res.json();
 }
 
+async function fetchBoosterDataMetadata() {
+  const res = await fetch('https://bensonperry.com/booster-data/metadata.json');
+  if (!res.ok) throw new Error(`booster-data metadata fetch error: ${res.status}`);
+  return res.json();
+}
+
 async function main() {
   console.log('Fetching Scryfall sets...');
   const sets = await fetchScryfallSets();
@@ -69,11 +75,22 @@ async function main() {
   console.log('Fetching booster-data index...');
   const boosterIndex = await fetchBoosterDataIndex();
 
+  console.log('Fetching booster-data metadata...');
+  const metadata = await fetchBoosterDataMetadata();
+
   const output = filterSets(sets, boosterIndex, new Date());
 
-  const outPath = path.join(__dirname, '..', 'shared', 'sets.json');
-  fs.writeFileSync(outPath, JSON.stringify(output, null, 2) + '\n');
+  const setsPath = path.join(__dirname, '..', 'shared', 'sets.json');
+  fs.writeFileSync(setsPath, JSON.stringify(output, null, 2) + '\n');
   console.log(`Wrote ${output.length} sets to shared/sets.json`);
+
+  // Mirror metadata.json so mtg.js has a sibling-origin fallback when the canonical
+  // bensonperry.com/booster-data/metadata.json fetch fails. Auto-refreshed daily by
+  // this same workflow + on-demand by booster-data's new-set dispatch.
+  const metaPath = path.join(__dirname, '..', 'shared', 'metadata.json');
+  fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2) + '\n');
+  const setCount = Object.keys(metadata.sets || {}).length;
+  console.log(`Wrote metadata for ${setCount} sets to shared/metadata.json`);
 }
 
 module.exports = { filterSets };
