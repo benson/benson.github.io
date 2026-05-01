@@ -16,15 +16,25 @@ import { refreshSetIcons } from './setIcons.js';
 import { initChangelog } from './changelog.js';
 
 const TEXT_CASE_KEY = 'mtgcollection_text_case_v1';
+const CHROME_KEY = 'mtgcollection_chrome_v1';
 
 function applyTextCase(mode) {
   document.body.classList.toggle('proper-case', mode === 'proper');
+}
+
+function applyChrome(mode) {
+  document.body.classList.toggle('chrome-classic', mode === 'classic');
 }
 
 async function boot() {
   // Apply text-case preference before anything renders
   try {
     applyTextCase(localStorage.getItem(TEXT_CASE_KEY));
+  } catch (e) {}
+
+  // Apply chrome-border preference before anything renders
+  try {
+    applyChrome(localStorage.getItem(CHROME_KEY));
   } catch (e) {}
 
   // Lowest-level init first — feedback + DOM refs
@@ -94,6 +104,12 @@ async function boot() {
     const next = document.body.classList.contains('proper-case') ? 'lower' : 'proper';
     try { localStorage.setItem(TEXT_CASE_KEY, next); } catch (e) {}
     applyTextCase(next);
+  });
+
+  document.getElementById('chromeToggleBtn').addEventListener('click', () => {
+    const next = document.body.classList.contains('chrome-classic') ? 'soft' : 'classic';
+    try { localStorage.setItem(CHROME_KEY, next); } catch (e) {}
+    applyChrome(next);
   });
 }
 

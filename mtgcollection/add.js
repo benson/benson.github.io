@@ -164,7 +164,7 @@ async function loadPrintings(name) {
   printingsTruncated = false;
 
   showPrintingPicker();
-  addPrintingCaptionEl.textContent = 'loading printings...';
+  addPrintingCaptionEl.textContent = 'Loading printings...';
   addPrintingListEl.innerHTML = '';
 
   try {
@@ -204,7 +204,7 @@ async function loadPrintings(name) {
       const card = await fetchCardByName(name);
       if (signal.aborted) return;
       if (!card) {
-        addPrintingCaptionEl.textContent = 'no printings found';
+        addPrintingCaptionEl.textContent = 'No printings found';
         showFeedback('no card found for ' + esc(name), 'error');
         return;
       }
@@ -246,12 +246,12 @@ async function loadPrintings(name) {
 function renderPrintingList() {
   if (!currentPrintings.length) {
     addPrintingListEl.innerHTML = '';
-    addPrintingCaptionEl.textContent = 'no printings found';
+    addPrintingCaptionEl.textContent = 'No printings found';
     return;
   }
   const captionParts = ['showing ' + currentPrintings.length + ' of ' + printingsTotalCount];
   if (printingsTruncated) {
-    captionParts.push('<span class="truncate-hint">more available — narrow by typing the set code</span>');
+    captionParts.push('<span class="truncate-hint">More available — narrow by typing the set code</span>');
   }
   addPrintingCaptionEl.innerHTML = captionParts.join(' — ');
 
@@ -415,7 +415,7 @@ function commitVoiceAdd(card, opts, voiceCtx) {
   }
   recordEvent({
     type: 'add',
-    summary: 'added ×' + opts.qty,
+    summary: 'Added ×' + opts.qty,
     before,
     created,
     affectedKeys: [k],
@@ -565,7 +565,7 @@ function addCardFromPreview() {
   }
   recordEvent({
     type: 'add',
-    summary: 'added (' + (card.set || '').toUpperCase() + ' #' + card.collector_number + ')',
+    summary: 'Added (' + (card.set || '').toUpperCase() + ' #' + card.collector_number + ')',
     before,
     created,
     affectedKeys: [k],

@@ -248,7 +248,7 @@ export function qtyDiffSummary(before, after) {
 function renderHistoryList() {
   if (!historyListEl) return;
   if (log.length === 0) {
-    historyListEl.innerHTML = '<li class="history-empty">no changes yet</li>';
+    historyListEl.innerHTML = '<li class="history-empty">No changes yet</li>';
     return;
   }
   historyListEl.innerHTML = log.map(ev => {

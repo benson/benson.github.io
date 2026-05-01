@@ -139,7 +139,7 @@ function commitRowTag(input) {
   const name = c.resolvedName || c.name || 'card';
   recordEvent({
     type: 'edit',
-    summary: 'tagged {card} +' + tag,
+    summary: 'Tagged {card} +' + tag,
     before: beforeSnap,
     affectedKeys: [beforeKey],
     cards: [{ name, imageUrl: c.imageUrl || '', backImageUrl: c.backImageUrl || '' }],
@@ -156,7 +156,7 @@ function removeRowTag(index, tag) {
   const name = c.resolvedName || c.name || 'card';
   recordEvent({
     type: 'edit',
-    summary: 'tagged {card} -' + tag,
+    summary: 'Tagged {card} -' + tag,
     before: beforeSnap,
     affectedKeys: [beforeKey],
     cards: [{ name, imageUrl: c.imageUrl || '', backImageUrl: c.backImageUrl || '' }],

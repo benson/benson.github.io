@@ -113,7 +113,8 @@
 
   .app-left {
     grid-area: left;
-    border-right: 1px solid #000;
+    border-right: 1px solid rgba(0,0,0,0.16);
+    box-shadow: 3px 0 8px -3px rgba(0,0,0,0.08);
     padding: 16px 14px;
     overflow-y: auto;
     display: flex;
@@ -203,7 +204,8 @@
 
   .app-right {
     grid-area: right;
-    border-left: 1px solid #000;
+    border-left: 1px solid rgba(0,0,0,0.16);
+    box-shadow: -3px 0 8px -3px rgba(0,0,0,0.08);
     overflow-y: auto;
     padding: 16px 14px;
     display: flex;
@@ -285,7 +287,8 @@
 
   .app-footer {
     grid-area: footer;
-    border-top: 1px solid #000;
+    border-top: 1px solid rgba(0,0,0,0.18);
+    box-shadow: 0 -3px 8px -3px rgba(0,0,0,0.08);
     background: #f8f7f4;
     display: flex;
     align-items: center;
@@ -307,7 +310,8 @@
   .app-footer-right #copyDecklistBtn { display: none; }
   .app-footer.format-active .app-footer-right #copyDecklistBtn { display: inline-flex; }
   .footer-storage-nag { color: #999; font-size: 0.7rem; letter-spacing: 0.02em; }
-  .footer-case-toggle {
+  .footer-case-toggle,
+  .footer-chrome-toggle {
     background: none;
     border: 1px solid #ddd;
     border-radius: 2px;
@@ -319,7 +323,15 @@
     letter-spacing: 0.02em;
     text-transform: none;
   }
-  .footer-case-toggle:hover { color: #000; border-color: #000; }
+  .footer-case-toggle:hover,
+  .footer-chrome-toggle:hover { color: #000; border-color: #000; }
+  .footer-chrome-toggle { font-size: 0.85rem; line-height: 1; padding: 1px 6px 2px; }
+
+  /* Classic chrome — opt-in via toggle, restores the hard 1px #000 frame */
+  body.chrome-classic .app-header { border-bottom: 1px solid #000; box-shadow: none; }
+  body.chrome-classic .app-left   { border-right:  1px solid #000; box-shadow: none; }
+  body.chrome-classic .app-right  { border-left:   1px solid #000; box-shadow: none; }
+  body.chrome-classic .app-footer { border-top:    1px solid #000; box-shadow: none; }
 
   /* Proper-case mode — flip the global lowercase aesthetic */
   body.proper-case * { text-transform: none; }
@@ -333,9 +345,7 @@
   body.proper-case .fab-btn,
   body.proper-case .fab-label,
   body.proper-case label,
-  body.proper-case .footer-storage-nag,
   body.proper-case .pending-label,
-  body.proper-case .history-list .history-summary-text,
   body.proper-case .history-list .history-undo,
   body.proper-case .history-details summary,
   body.proper-case .ms-trigger,
@@ -344,10 +354,15 @@
   body.proper-case .ms-option,
   body.proper-case .filter-select,
   body.proper-case .stat-label,
-  body.proper-case .printing-list-caption,
   body.proper-case .printing-set-name,
   body.proper-case .printing-finish-badge,
   body.proper-case .title-reset-btn { text-transform: capitalize; }
+
+  /* Sentence-style strings — show source as-is in proper-case mode (source is
+     written sentence-case; lowercase mode is handled by body's text-transform). */
+  body.proper-case .footer-storage-nag,
+  body.proper-case .history-list .history-summary-text,
+  body.proper-case .printing-list-caption { text-transform: none; }
 
   /* Tags and locations are user-entered free text — keep them as stored
      (lowercase) regardless of the case toggle. Override the .ms-pill / .ms-option
@@ -1527,10 +1542,12 @@
 
   .history-list {
     list-style: none;
-    /* Right padding gives breathing room between row text and the scrollbar;
-       negative right margin breaks out of the sidebar's 14px right padding so
-       the scrollbar sits flush with the sidebar's right border. */
-    padding: 0 8px 0 0;
+    /* Negative right margin breaks out of the sidebar's 14px right padding so
+       the scrollbar gutter sits flush with the sidebar's right border. The
+       22px right padding then keeps row content at the same x-position as
+       the rest of the sidebar (14px sidebar pad worth of clear space + 8px
+       breathing room from the scrollbar). */
+    padding: 0 22px 0 0;
     margin: 0 -14px 8px 0;
     max-height: 240px;
     overflow-y: auto;
@@ -2789,11 +2806,12 @@
 
   <footer class="app-footer">
     <div class="app-footer-left">
-      <span class="footer-storage-nag">localstorage only — back up your collection</span>
+      <span class="footer-storage-nag">Localstorage only — back up your collection</span>
     </div>
     <div class="app-footer-right">
       <button class="btn btn-secondary" type="button" id="copyDecklistBtn">copy decklist</button>
       <button class="footer-case-toggle" type="button" id="caseToggleBtn" title="toggle text case">Aa</button>
+      <button class="footer-chrome-toggle" type="button" id="chromeToggleBtn" title="toggle border style">▢</button>
       <a href="/">bensonperry.com</a>
     </div>
   </footer>

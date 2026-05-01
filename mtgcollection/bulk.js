@@ -229,7 +229,7 @@ function commitPending() {
   const cardNoun = 'card' + (cardCount === 1 ? '' : 's');
   recordEvent({
     type: 'bulk-edit',
-    summary: 'saved ' + changeCount + ' ' + changeNoun + ' to ' + cardCount + ' ' + cardNoun,
+    summary: 'Saved ' + changeCount + ' ' + changeNoun + ' to ' + cardCount + ' ' + cardNoun,
     before,
     affectedKeys,
     cards,
@@ -329,7 +329,7 @@ export function initBulk() {
     const noun = 'card' + (n === 1 ? '' : 's');
     recordEvent({
       type: 'bulk-delete',
-      summary: 'deleted ' + n + ' ' + noun,
+      summary: 'Deleted ' + n + ' ' + noun,
       before,
       affectedKeys,
       cards,

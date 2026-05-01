@@ -269,7 +269,7 @@ function saveDetail() {
     } else if (diffs.length === 1 && locationChanged) {
       summary = locationDiffSummary(before.location, after.location);
     } else {
-      summary = 'edited (' + diffs.join(', ') + ') · {card}';
+      summary = 'Edited (' + diffs.join(', ') + ') · {card}';
     }
     recordEvent({
       type: 'edit',
@@ -301,7 +301,7 @@ function deleteDetail() {
   closeDetail();
   recordEvent({
     type: 'delete',
-    summary: 'deleted card',
+    summary: 'Deleted card',
     before: beforeSnap,
     affectedKeys: [beforeKey],
     cards: [cardSnapshot],

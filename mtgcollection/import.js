@@ -308,7 +308,7 @@ async function importEntries(imported, options = {}) {
   if (newKeys.length > 0) {
     recordEvent({
       type: 'import',
-      summary: 'imported ' + imported.length + ' ' + label + ' (' + newKeys.length + ' new)',
+      summary: 'Imported ' + imported.length + ' ' + label + ' (' + newKeys.length + ' new)',
       created: newKeys,
       affectedKeys: newKeys,
       cards: newCards,
