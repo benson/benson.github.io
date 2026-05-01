@@ -28,20 +28,20 @@ export function populateFilters() {
   const sets = [...new Set(state.collection.map(c => c.setCode).filter(Boolean))].sort();
   populateMultiselect(document.getElementById('filterSet'),
     sets.map(s => ({ value: s, label: s.toUpperCase() })),
-    { defaultLabel: 'all sets', noun: 'sets' });
+    { defaultLabel: 'All sets', noun: 'sets' });
 
   populateMultiselect(document.getElementById('filterRarity'),
     ['common', 'uncommon', 'rare', 'mythic'],
-    { defaultLabel: 'all rarity', noun: 'rarity' });
+    { defaultLabel: 'All rarity', noun: 'rarity' });
 
   populateMultiselect(document.getElementById('filterFoil'),
     ['normal', 'foil', 'etched'],
-    { defaultLabel: 'all finishes', noun: 'finishes' });
+    { defaultLabel: 'All finishes', noun: 'finishes' });
 
   const locations = allCollectionLocations();
   populateMultiselect(document.getElementById('filterLocation'),
     locations.map(loc => ({ value: loc.type + ':' + loc.name, label: loc.type + ':' + loc.name })),
-    { defaultLabel: 'all locations', noun: 'locations' });
+    { defaultLabel: 'All locations', noun: 'locations' });
   // Datalist for the drawer/bulk/add name fields — just names, no type prefix.
   const uniqueNames = [...new Set(locations.map(loc => loc.name))].sort();
   document.getElementById('locationOptions').innerHTML =
@@ -50,7 +50,7 @@ export function populateFilters() {
   const tags = allCollectionTags();
   populateMultiselect(document.getElementById('filterTag'),
     tags,
-    { defaultLabel: 'filter by tag', noun: 'tags' });
+    { defaultLabel: 'Filter by tag', noun: 'tags' });
   document.getElementById('rowTagOptions').innerHTML =
     tags.map(t => '<option value="' + esc(t) + '"></option>').join('');
 }

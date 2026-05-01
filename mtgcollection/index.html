@@ -338,7 +338,7 @@
   body.proper-case .set-cell,
   body.proper-case .rarity-cell,
   body.proper-case .condition-cell { text-transform: uppercase; }
-  body.proper-case th[data-sort],
+  body.proper-case th,
   body.proper-case .sidebar-label,
   body.proper-case .toggle-view,
   body.proper-case .btn,
@@ -348,8 +348,6 @@
   body.proper-case .pending-label,
   body.proper-case .history-list .history-undo,
   body.proper-case .history-details summary,
-  body.proper-case .ms-trigger,
-  body.proper-case .ms-trigger-label,
   body.proper-case .ms-pill,
   body.proper-case .ms-option,
   body.proper-case .filter-select,
@@ -362,7 +360,8 @@
      written sentence-case; lowercase mode is handled by body's text-transform). */
   body.proper-case .footer-storage-nag,
   body.proper-case .history-list .history-summary-text,
-  body.proper-case .printing-list-caption { text-transform: none; }
+  body.proper-case .printing-list-caption,
+  body.proper-case .ms-trigger-label { text-transform: none; }
 
   /* Tags and locations are user-entered free text — keep them as stored
      (lowercase) regardless of the case toggle. Override the .ms-pill / .ms-option
@@ -2485,13 +2484,13 @@
     <div class="sidebar-section">
       <div class="sidebar-label">filters</div>
       <div class="sidebar-filters">
-        <div id="filterSet" data-default-label="all sets" data-noun="sets"></div>
-        <div id="filterRarity" data-default-label="all rarity" data-noun="rarity"></div>
-        <div id="filterFoil" data-default-label="all finishes" data-noun="finishes"></div>
-        <div id="filterLocation" data-default-label="all locations" data-noun="locations"></div>
+        <div id="filterSet" data-default-label="All sets" data-noun="sets"></div>
+        <div id="filterRarity" data-default-label="All rarity" data-noun="rarity"></div>
+        <div id="filterFoil" data-default-label="All finishes" data-noun="finishes"></div>
+        <div id="filterLocation" data-default-label="All locations" data-noun="locations"></div>
         <datalist id="locationOptions"></datalist>
         <datalist id="rowTagOptions"></datalist>
-        <div id="filterTag" data-default-label="filter by tag" data-noun="tags"></div>
+        <div id="filterTag" data-default-label="Filter by tag" data-noun="tags"></div>
         <select class="filter-select" id="formatSelect" title="format for legality">
           <option value="">format: —</option>
           <option value="commander">format: commander</option>

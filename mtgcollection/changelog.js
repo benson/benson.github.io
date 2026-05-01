@@ -166,8 +166,11 @@ function pad(n) { return n < 10 ? '0' + n : '' + n; }
 
 function formatTs(ts) {
   const d = new Date(ts);
+  const h24 = d.getHours();
+  const h12 = ((h24 + 11) % 12) + 1;
+  const ampm = h24 < 12 ? 'am' : 'pm';
   return pad(d.getMonth() + 1) + '/' + pad(d.getDate()) + ' ' +
-    pad(d.getHours()) + ':' + pad(d.getMinutes());
+    h12 + ':' + pad(d.getMinutes()) + ampm;
 }
 
 function formatTsIso(ts) {
