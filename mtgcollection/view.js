@@ -12,7 +12,7 @@ import {
 } from './collection.js';
 import { save, commitCollectionChange } from './persistence.js';
 import { openDetail } from './detail.js';
-import { filteredSorted, syncClearFiltersBtn } from './search.js';
+import { filteredSorted, syncClearFiltersBtn, hasActiveFilter } from './search.js';
 import { renderStatsPanel, groupDeck, firstCardForPanel } from './stats.js';
 import { updateBulkBar } from './bulk.js';
 import { paginateForBinder, sortForBinder, BINDER_SIZES, binderSlotCount } from './binder.js';
@@ -347,10 +347,8 @@ function renderEmptyScopeState(targetEl, mode) {
 function renderDeckView(list) {
   const deckColumnsEl = document.getElementById('deckColumns');
   const deckActionsEl = document.querySelector('#deckView .deck-actions');
-  const searchInput = document.getElementById('searchInput');
-  const searchQuery = (searchInput && searchInput.value || '').trim();
 
-  if (!searchQuery) {
+  if (!hasActiveFilter()) {
     if (deckActionsEl) deckActionsEl.classList.add('hidden');
     setDeckPreviewCard(null);
     renderEmptyScopeState(deckColumnsEl, 'deck');
@@ -407,10 +405,8 @@ function renderBinderView(list) {
   const pagesEl = document.getElementById('binderPages');
   const navEl = document.getElementById('binderNav');
   const summaryEl = document.getElementById('binderSummary');
-  const searchInput = document.getElementById('searchInput');
-  const searchQuery = (searchInput && searchInput.value || '').trim();
 
-  if (!searchQuery) {
+  if (!hasActiveFilter()) {
     navEl.classList.add('hidden');
     summaryEl.textContent = '';
     renderEmptyScopeState(pagesEl, 'binder');
