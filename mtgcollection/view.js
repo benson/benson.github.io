@@ -91,14 +91,8 @@ function syncSortIndicator() {
     const field = th.dataset.sort;
     const isActive = !!state.sortField && field === state.sortField;
     th.classList.toggle('sort-active', isActive);
-    if (isActive) {
-      const arrow = state.sortDir === 'desc' ? '↓' : '↑';
-      th.innerHTML = esc(field) +
-        ' <span class="sort-arrow">' + arrow + '</span>' +
-        '<button class="sort-clear-btn" type="button" aria-label="clear sort">×</button>';
-    } else {
-      th.textContent = field;
-    }
+    const arrowEl = th.querySelector('.sort-arrow');
+    if (arrowEl) arrowEl.textContent = state.sortDir === 'desc' ? '↓' : '↑';
   });
 }
 
