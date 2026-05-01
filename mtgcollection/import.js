@@ -13,6 +13,7 @@ import {
 } from './collection.js';
 import { save, commitCollectionChange } from './persistence.js';
 import { filteredSorted } from './search.js';
+import { recordEvent } from './changelog.js';
 
 // ---- Breya seed ----
 const BREYA_DECKLIST = `1 Breya, Etherium Shaper (C16) 29 *F*
@@ -280,12 +281,28 @@ async function importEntries(imported, options = {}) {
 
   await resolveCards(imported);
 
+  // Track which keys are newly-created vs merged-into existing entries
+  const existingKeys = new Set(state.collection.map(c => collectionKey(c)));
+  const newKeys = [];
+  for (const c of imported) {
+    const k = collectionKey(c);
+    if (!existingKeys.has(k)) newKeys.push(k);
+  }
+
   state.collection = mergeIntoCollection(state.collection, imported);
   commitCollectionChange();
   const resolved = imported.filter(c => c.imageUrl).length;
   if (!silent) {
     showFeedback('imported ' + imported.length + ' ' + label + ' (' + resolved + ' resolved)', 'success');
     document.getElementById('importDetails').open = false;
+  }
+  if (newKeys.length > 0) {
+    recordEvent({
+      type: 'import',
+      summary: 'imported ' + imported.length + ' ' + label + ' (' + newKeys.length + ' new)',
+      created: newKeys,
+      affectedKeys: newKeys,
+    });
   }
 }
 

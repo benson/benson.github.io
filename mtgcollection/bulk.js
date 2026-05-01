@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { showFeedback, esc } from './feedback.js';
+import { esc } from './feedback.js';
 import {
   collectionKey,
   normalizeLocation,
@@ -12,21 +12,9 @@ import {
 import { commitCollectionChange } from './persistence.js';
 import { filteredSorted } from './search.js';
 import { render } from './view.js';
+import { captureBefore, recordEvent } from './changelog.js';
 
-let bulkBar, listBodyEl, feedbackEl;
-
-export function snapshotCollection() {
-  state.lastSnapshot = state.collection.map(c => ({ ...c }));
-}
-
-export function undoLast() {
-  if (!state.lastSnapshot) return;
-  state.collection = state.lastSnapshot.map(c => ({ ...c }));
-  state.lastSnapshot = null;
-  state.selectedKeys.clear();
-  commitCollectionChange();
-  showFeedback('undone', 'info');
-}
+let bulkBar, listBodyEl;
 
 export function updateBulkBar() {
   const n = state.selectedKeys.size;
@@ -197,7 +185,8 @@ function renderPendingRow() {
 function commitPending() {
   if (pendingChangeCount() === 0) return;
   if (!state.selectedKeys.size) return;
-  snapshotCollection();
+  const affectedKeys = [...state.selectedKeys];
+  const before = captureBefore(affectedKeys);
   const cardCount = state.selectedKeys.size;
   const changeCount = pendingChangeCount();
   for (const c of state.collection) {
@@ -224,11 +213,12 @@ function commitPending() {
   commitCollectionChange({ coalesce: true });
   const changeNoun = 'change' + (changeCount === 1 ? '' : 's');
   const cardNoun = 'card' + (cardCount === 1 ? '' : 's');
-  showFeedback(
-    'saved ' + changeCount + ' ' + changeNoun + ' to ' + cardCount + ' ' + cardNoun +
-    ' <button class="undo-btn" type="button">undo</button>',
-    'success'
-  );
+  recordEvent({
+    type: 'bulk-edit',
+    summary: 'saved ' + changeCount + ' ' + changeNoun + ' to ' + cardCount + ' ' + cardNoun,
+    before,
+    affectedKeys,
+  });
 }
 
 function cancelPending() {
@@ -243,11 +233,6 @@ function cancelPending() {
 export function initBulk() {
   bulkBar = document.getElementById('bulkBar');
   listBodyEl = document.getElementById('listBody');
-  feedbackEl = document.getElementById('feedback');
-
-  feedbackEl.addEventListener('click', e => {
-    if (e.target.classList.contains('undo-btn')) undoLast();
-  });
 
   document.getElementById('headerCheck').addEventListener('change', e => {
     const visible = filteredSorted();
@@ -317,12 +302,18 @@ export function initBulk() {
     if (!state.selectedKeys.size) return;
     const n = state.selectedKeys.size;
     if (!confirm('delete ' + n + ' selected card' + (n === 1 ? '' : 's') + '?')) return;
-    snapshotCollection();
+    const affectedKeys = [...state.selectedKeys];
+    const before = captureBefore(affectedKeys);
     state.collection = state.collection.filter(c => !state.selectedKeys.has(collectionKey(c)));
     state.selectedKeys.clear();
     commitCollectionChange();
     const noun = 'card' + (n === 1 ? '' : 's');
-    showFeedback('deleted ' + n + ' ' + noun + ' <button class="undo-btn" type="button">undo</button>', 'success');
+    recordEvent({
+      type: 'bulk-delete',
+      summary: 'deleted ' + n + ' ' + noun,
+      before,
+      affectedKeys,
+    });
   });
 
   // Row checkbox toggle (delegated on tbody)

@@ -13,6 +13,7 @@ import {
   lazyBackfillSearchFields,
 } from './import.js';
 import { refreshSetIcons } from './setIcons.js';
+import { initChangelog } from './changelog.js';
 
 const TEXT_CASE_KEY = 'mtgcollection_text_case_v1';
 
@@ -36,6 +37,7 @@ async function boot() {
   initAdd();
   initDetail();
   initImport();
+  initChangelog();
 
   // Format selector — wire listener now; sync value after loadFromStorage()
   const formatSelectEl = document.getElementById('formatSelect');

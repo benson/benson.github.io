@@ -7,7 +7,6 @@ export const state = {
   selectedFormat: '',
   selectedKeys: new Set(),
   detailIndex: -1,
-  lastSnapshot: null,
   deckGroupBy: 'type',
   binderSize: '4x3',
   binderPage: 0,

@@ -9,7 +9,8 @@ import {
   allCollectionTags,
 } from './collection.js';
 import { commitCollectionChange } from './persistence.js';
-import { snapshotCollection } from './bulk.js';
+import { collectionKey } from './collection.js';
+import { captureBefore, recordEvent } from './changelog.js';
 import { hideCardPreview, showImageLightbox, hideImageLightbox, isLightboxVisible } from './view.js';
 import { populateMultiselect } from './multiselect.js';
 
@@ -204,7 +205,9 @@ function saveDetail() {
     tags: Array.isArray(c.tags) ? [...c.tags] : [],
   };
 
-  snapshotCollection();
+  const beforeKey = collectionKey(c);
+  const beforeSnap = captureBefore([beforeKey]);
+
   c.qty = Math.max(1, parseInt(document.getElementById('detailQty').value, 10) || 1);
   c.finish = normalizeFinish(document.getElementById('detailFinish').value);
   c.condition = normalizeCondition(detailForm.querySelector('input[name="detailCondition"]:checked')?.value || 'near_mint');
@@ -245,7 +248,12 @@ function saveDetail() {
   if (diffs.length === 0) {
     showFeedback('saved ' + esc(name) + ' (no changes)', 'success');
   } else {
-    showFeedback('saved ' + esc(name) + ' (' + esc(diffs.join(', ')) + ') <button class="undo-btn" type="button">undo</button>', 'success');
+    recordEvent({
+      type: 'edit',
+      summary: 'edited ' + name + ' (' + diffs.join(', ') + ')',
+      before: beforeSnap,
+      affectedKeys: [beforeKey],
+    });
   }
 }
 
@@ -253,11 +261,17 @@ function deleteDetail() {
   const c = state.collection[state.detailIndex];
   if (!c) return;
   const name = c.resolvedName || c.name || 'this row';
-  snapshotCollection();
+  const beforeKey = collectionKey(c);
+  const beforeSnap = captureBefore([beforeKey]);
   state.collection.splice(state.detailIndex, 1);
   commitCollectionChange();
   closeDetail();
-  showFeedback('deleted ' + esc(name) + ' <button class="undo-btn" type="button">undo</button>', 'success');
+  recordEvent({
+    type: 'delete',
+    summary: 'deleted ' + name,
+    before: beforeSnap,
+    affectedKeys: [beforeKey],
+  });
 }
 
 export function initDetail() {

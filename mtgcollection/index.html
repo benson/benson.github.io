@@ -334,6 +334,10 @@
   body.proper-case label,
   body.proper-case .footer-storage-nag,
   body.proper-case .pending-label,
+  body.proper-case .changelog-summary,
+  body.proper-case .changelog-undo,
+  body.proper-case .history-list .history-summary-text,
+  body.proper-case .history-details summary,
   body.proper-case .ms-trigger,
   body.proper-case .ms-trigger-label,
   body.proper-case .ms-pill,
@@ -1293,6 +1297,73 @@
   .pending-pill-remove:hover { color: #000; }
   .save-pending-btn { padding: 4px 14px; font-size: 0.75rem; }
   .cancel-pending-btn { padding: 4px 12px; font-size: 0.75rem; }
+
+  .changelog-banners {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .changelog-banners:not(.active) { display: none; }
+  .changelog-banner {
+    background: #fff8e6;
+    border: 1px solid #f0d977;
+    border-radius: 2px;
+    padding: 6px 10px;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    color: #000;
+  }
+  .changelog-summary { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .changelog-banner-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+  .changelog-undo {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 6px;
+    font: inherit;
+    color: #336;
+    text-decoration: underline;
+  }
+  .changelog-undo:hover { opacity: 0.7; }
+  .changelog-dismiss {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 4px;
+    font-size: 0.95rem;
+    line-height: 1;
+    color: #999;
+  }
+  .changelog-dismiss:hover { color: #000; }
+
+  .history-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 8px 0;
+    max-height: 240px;
+    overflow-y: auto;
+    font-size: 0.75rem;
+  }
+  .history-list li {
+    padding: 3px 0;
+    color: #444;
+    border-bottom: 1px dashed #eee;
+    display: flex;
+    gap: 6px;
+    align-items: baseline;
+  }
+  .history-list li:last-child { border-bottom: none; }
+  .history-list time { color: #999; font-size: 0.7rem; flex-shrink: 0; }
+  .history-list .history-summary-text { flex: 1; min-width: 0; word-break: break-word; }
+  .history-list li.history-undone { text-decoration: line-through; color: #999; }
+  .history-list li.history-dismissed { color: #aaa; }
+  .history-list .history-empty { color: #999; border-bottom: none; font-style: italic; }
+  .history-actions { display: flex; gap: 6px; }
+  .history-actions .btn { font-size: 0.7rem; padding: 4px 10px; }
   .card-name-cell { text-transform: none; }
   .card-name-button {
     appearance: none;
@@ -2165,6 +2236,7 @@
   </aside>
 
   <main class="app-center">
+    <div class="changelog-banners" id="changelogBanners"></div>
     <div class="feedback" id="feedback"></div>
 
     <div id="collectionSection" class="hidden">
@@ -2410,6 +2482,17 @@
         <div class="stats-section">
           <div class="stats-section-title">rarity</div>
           <div id="rarityBreakdown"></div>
+        </div>
+      </div>
+    </details>
+
+    <details class="history-details" id="historyDetails">
+      <summary>history</summary>
+      <div class="details-body">
+        <ol id="historyList" class="history-list"></ol>
+        <div class="history-actions">
+          <button class="btn btn-secondary" type="button" id="exportHistoryBtn">export csv</button>
+          <button class="btn btn-secondary" type="button" id="clearHistoryBtn">clear history</button>
         </div>
       </div>
     </details>

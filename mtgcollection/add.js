@@ -19,7 +19,7 @@ import {
 } from './collection.js';
 import { commitCollectionChange } from './persistence.js';
 import { showImageLightbox } from './view.js';
-import { snapshotCollection } from './bulk.js';
+import { recordEvent } from './changelog.js';
 
 const ADD_CONDITIONS = [
   { value: 'near_mint',         label: 'near mint' },
@@ -233,11 +233,17 @@ function commitVoiceAdd(card, opts, voiceCtx) {
   entry.price = priced.price;
   entry.priceFallback = priced.fallback;
 
-  snapshotCollection();
   const k = collectionKey(entry);
   const existing = state.collection.find(c => collectionKey(c) === k);
-  if (existing) existing.qty += entry.qty;
-  else state.collection.push(entry);
+  let before = [];
+  let created = [];
+  if (existing) {
+    before = [{ key: k, card: { ...existing, tags: Array.isArray(existing.tags) ? [...existing.tags] : [] } }];
+    existing.qty += entry.qty;
+  } else {
+    state.collection.push(entry);
+    created = [k];
+  }
 
   commitCollectionChange();
   lastUsedLocation = opts.location;
@@ -252,7 +258,13 @@ function commitVoiceAdd(card, opts, voiceCtx) {
       location: opts.location,
     };
   }
-  showFeedback('added: ' + esc(card.name) + ' ×' + opts.qty + ' <button class="undo-btn" type="button">undo</button>', 'success');
+  recordEvent({
+    type: 'add',
+    summary: 'added ' + card.name + ' ×' + opts.qty,
+    before,
+    created,
+    affectedKeys: [k],
+  });
 }
 
 function showAddPreview(card) {
@@ -348,11 +360,17 @@ function addCardFromPreview() {
   entry.price = priced.price;
   entry.priceFallback = priced.fallback;
 
-  snapshotCollection();
   const k = collectionKey(entry);
   const existing = state.collection.find(c => collectionKey(c) === k);
-  if (existing) existing.qty += entry.qty;
-  else state.collection.push(entry);
+  let before = [];
+  let created = [];
+  if (existing) {
+    before = [{ key: k, card: { ...existing, tags: Array.isArray(existing.tags) ? [...existing.tags] : [] } }];
+    existing.qty += entry.qty;
+  } else {
+    state.collection.push(entry);
+    created = [k];
+  }
 
   commitCollectionChange();
   lastUsedLocation = location;
@@ -367,7 +385,13 @@ function addCardFromPreview() {
       location,
     };
   }
-  showFeedback('added ' + esc(card.name) + ' (' + (card.set || '').toUpperCase() + ' #' + esc(card.collector_number) + ') <button class="undo-btn" type="button">undo</button>', 'success');
+  recordEvent({
+    type: 'add',
+    summary: 'added ' + card.name + ' (' + (card.set || '').toUpperCase() + ' #' + card.collector_number + ')',
+    before,
+    created,
+    affectedKeys: [k],
+  });
 
   hideAddPreview();
   if (addMode === 'name') {
