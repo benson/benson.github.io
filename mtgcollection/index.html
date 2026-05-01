@@ -348,6 +348,18 @@
   body.proper-case .printing-finish-badge,
   body.proper-case .title-reset-btn { text-transform: capitalize; }
 
+  /* Tags and locations are user-entered free text — keep them as stored
+     (lowercase) regardless of the case toggle. Override the .ms-pill / .ms-option
+     capitalize rule above for those specific multiselects. */
+  body.proper-case #filterLocation .ms-pill,
+  body.proper-case #filterLocation .ms-option,
+  body.proper-case #filterTag .ms-pill,
+  body.proper-case #filterTag .ms-option,
+  body.proper-case .loc-pill-name,
+  body.proper-case .loc-link,
+  body.proper-case .row-tag,
+  body.proper-case .tag-chip { text-transform: none !important; }
+
 
   /* Multiselect filter control */
   .multiselect { position: relative; width: 100%; }
@@ -1300,7 +1312,6 @@
     opacity: 0.7;
   }
   .loc-pill-name { text-transform: lowercase; }
-  body.proper-case .loc-pill-name { text-transform: capitalize !important; }
   .loc-pill { cursor: pointer; }
   .loc-pill:hover { filter: brightness(0.95); }
   .loc-pill-deck   { background: #efe6d4; border-color: #cbb98c; }
@@ -1321,7 +1332,6 @@
     text-transform: lowercase;
   }
   .loc-link:hover { text-decoration-style: solid; color: #000; }
-  body.proper-case .loc-link { text-transform: capitalize !important; }
   .loc-link-deck   { color: #6b5224; }
   .loc-link-binder { color: #4a6839; }
   .loc-link-box    { color: #5a5247; }

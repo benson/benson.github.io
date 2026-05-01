@@ -6,7 +6,6 @@ import {
   normalizeTag,
   biggerImageUrl,
   allCollectionLocations,
-  quoteLocationForSearch,
   formatLocationLabel,
   LOCATION_TYPES,
   DEFAULT_LOCATION_TYPE,
@@ -19,6 +18,7 @@ import { updateBulkBar } from './bulk.js';
 import { paginateForBinder, sortForBinder, BINDER_SIZES, binderSlotCount } from './binder.js';
 import { getSetIconUrl } from './setIcons.js';
 import { recordEvent, captureBefore, locationDiffSummary } from './changelog.js';
+import { setMultiselectValue } from './multiselect.js';
 
 const VALID_DECK_GROUPS = ['type', 'cmc', 'color', 'rarity'];
 const VALID_BINDER_SIZES = Object.keys(BINDER_SIZES);
@@ -27,16 +27,19 @@ const CONDITION_ABBR = { near_mint: 'nm', lightly_played: 'lp', moderately_playe
 
 const VIEW_FOR_LOC_TYPE = { deck: 'deck', binder: 'binder', box: 'list' };
 
-// Switch to the appropriate view for a typed location and apply a `loc:` filter.
-// Used by clickable location pills (list/grid) and history loc-link buttons.
+// Switch to the appropriate view for a typed location and select that
+// location in the locations multiselect. Used by clickable location pills
+// (list/grid), history loc-link buttons, and the empty-state chips.
 export function navigateToLocation(type, name) {
   state.viewMode = VIEW_FOR_LOC_TYPE[type] || 'list';
+  // Clear any stray `loc:` query so the multiselect filter is the source of truth.
   const searchInput = document.getElementById('searchInput');
-  if (searchInput) {
-    const label = type + ':' + name;
-    searchInput.value = 'loc:' + (/\s/.test(label) ? '"' + label + '"' : label);
+  if (searchInput && /\bloc:/.test(searchInput.value)) {
+    searchInput.value = '';
     searchInput.dispatchEvent(new Event('input', { bubbles: true }));
   }
+  const filterEl = document.getElementById('filterLocation');
+  if (filterEl) setMultiselectValue(filterEl, [type + ':' + name]);
   save();
   render();
 }
@@ -725,10 +728,8 @@ export function initView() {
   binderPagesEl.addEventListener('click', e => {
     const chip = e.target.closest('.deck-empty-chip');
     if (chip) {
-      const loc = chip.dataset.loc || '';
-      const searchInput = document.getElementById('searchInput');
-      searchInput.value = 'loc:' + quoteLocationForSearch(loc);
-      searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+      const pill = chip.querySelector('.loc-pill');
+      if (pill) navigateToLocation(pill.dataset.locType, pill.dataset.locName);
       return;
     }
     const slot = e.target.closest('.binder-slot:not(.binder-slot-empty)');
@@ -781,10 +782,8 @@ export function initView() {
   document.getElementById('deckColumns').addEventListener('click', e => {
     const chip = e.target.closest('.deck-empty-chip');
     if (chip) {
-      const loc = chip.dataset.loc || '';
-      const searchInput = document.getElementById('searchInput');
-      searchInput.value = 'loc:' + quoteLocationForSearch(loc);
-      searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+      const pill = chip.querySelector('.loc-pill');
+      if (pill) navigateToLocation(pill.dataset.locType, pill.dataset.locName);
       return;
     }
     const card = e.target.closest('.deck-card');
