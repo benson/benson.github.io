@@ -426,19 +426,23 @@ export function isLightboxVisible() {
 
 const RIGHT_DRAWER_PANELS = ['addDetails', 'importDetails', 'statsPanel'];
 
-export function openRightDrawer(targetId) {
-  if (!RIGHT_DRAWER_PANELS.includes(targetId)) return;
-  document.body.classList.add('right-drawer-open');
-  RIGHT_DRAWER_PANELS.forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.open = (id === targetId);
-  });
-  // Bring the focused panel into view inside the floating sidebar
-  const target = document.getElementById(targetId);
-  if (target && target.scrollIntoView) {
-    target.scrollIntoView({ block: 'start' });
+export function openRightDrawer(targetIds) {
+  const ids = (Array.isArray(targetIds) ? targetIds : [targetIds]).filter(id => RIGHT_DRAWER_PANELS.includes(id));
+  if (ids.length === 0) return;
+  if (state.viewMode === 'list') {
+    document.body.classList.add('right-drawer-open');
+    RIGHT_DRAWER_PANELS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.open = ids.includes(id);
+    });
+  } else {
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.open = true;
+    });
   }
+  const target = document.getElementById(ids[0]);
+  if (target && target.scrollIntoView) target.scrollIntoView({ block: 'start' });
 }
 
 export function closeRightDrawer() {
@@ -488,7 +492,8 @@ export function initView() {
     fabCluster.addEventListener('click', e => {
       const btn = e.target.closest('[data-fab-target]');
       if (!btn) return;
-      openRightDrawer(btn.dataset.fabTarget);
+      const targets = btn.dataset.fabTarget.split(',').map(s => s.trim()).filter(Boolean);
+      openRightDrawer(targets);
     });
   }
   const appRightBackdrop = document.getElementById('appRightBackdrop');

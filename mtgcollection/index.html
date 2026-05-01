@@ -240,8 +240,8 @@
     gap: 12px;
     z-index: 30;
   }
-  body.view-list.has-collection .fab-cluster { display: flex; }
-  body.view-list.right-drawer-open .fab-cluster { display: none; }
+  body.has-collection .fab-cluster { display: flex; }
+  body.right-drawer-open .fab-cluster { display: none; }
   .fab-btn {
     position: relative;
     width: 48px;
@@ -313,28 +313,6 @@
   .app-footer.format-active .app-footer-right #copyDecklistBtn { display: inline-flex; }
   .footer-storage-nag { color: #999; font-size: 0.7rem; letter-spacing: 0.02em; }
 
-  .floating-export-btn {
-    position: fixed;
-    left: 24px;
-    bottom: 56px;
-    display: none;
-    padding: 8px 14px;
-    border-radius: 999px;
-    background: #000;
-    color: #fff;
-    border: none;
-    font-family: inherit;
-    font-size: 0.75rem;
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-    text-transform: lowercase;
-    letter-spacing: 0.02em;
-    z-index: 30;
-    align-items: center;
-    gap: 4px;
-  }
-  .floating-export-btn:hover { background: #333; }
-  body.has-collection .floating-export-btn { display: inline-flex; }
 
   /* Multiselect filter control */
   .multiselect { position: relative; width: 100%; }
@@ -2023,11 +2001,10 @@
       padding: 12px 14px;
       overflow-y: visible;
     }
-    /* On mobile, keep the right sidebar inline even in list view; FAB cluster off */
+    /* On mobile, keep the right sidebar inline even in list view */
     body.view-list .app-shell { grid-template-columns: 1fr; }
     body.view-list .app-right { display: flex; position: static; box-shadow: none; width: auto; }
     body.view-list.right-drawer-open .app-right { position: static; box-shadow: none; width: auto; border-left: none; }
-    body.view-list.has-collection .fab-cluster { display: none; }
     .app-right-backdrop, body.view-list.right-drawer-open .app-right-backdrop { display: none; }
     .app-footer {
       flex-wrap: wrap;
@@ -2397,11 +2374,9 @@
     </div>
   </footer>
   <div class="app-right-backdrop" id="appRightBackdrop"></div>
-  <button class="floating-export-btn" id="floatingExportCsvBtn" type="button" aria-label="export csv">↓ export csv</button>
   <div class="fab-cluster" id="fabCluster" aria-hidden="true">
-    <button class="fab-btn" type="button" data-fab-target="addDetails" aria-label="add cards"><span class="fab-glyph">+</span><span class="fab-label">add</span></button>
-    <button class="fab-btn" type="button" data-fab-target="statsPanel" aria-label="breakdown"><span class="fab-glyph">%</span><span class="fab-label">breakdown</span></button>
-    <button class="fab-btn" type="button" data-fab-target="importDetails" aria-label="import"><span class="fab-glyph">⬇</span><span class="fab-label">import</span></button>
+    <button class="fab-btn" type="button" data-fab-target="addDetails,importDetails" aria-label="add cards"><span class="fab-glyph">+</span><span class="fab-label">add</span></button>
+    <button class="fab-btn" type="button" data-fab-action="export" aria-label="download csv"><span class="fab-glyph">↓</span><span class="fab-label">download</span></button>
   </div>
 </div>
 <div id="cardPreview"><img src="" alt=""></div>
