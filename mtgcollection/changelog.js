@@ -5,10 +5,7 @@ import { esc } from './feedback.js';
 
 const CHANGELOG_KEY = 'mtgcollection_changelog_v1';
 const CAP = 200;
-const ACTIVE_BANNERS = 5;
-
 let log = [];
-let bannersEl;
 let historyDetailsEl;
 let historyListEl;
 
@@ -93,8 +90,7 @@ export function recordEvent({ type, summary, before = [], created = [], affected
   log.unshift(ev);
   if (log.length > CAP) log.length = CAP;
   persist();
-  renderBannerStack();
-  if (historyDetailsEl && historyDetailsEl.open) renderHistoryList();
+  renderHistoryList();
   return ev;
 }
 
@@ -143,8 +139,7 @@ export function undoEvent(id) {
   ev.undone = true;
   persist();
   commitCollectionChange();
-  renderBannerStack();
-  if (historyDetailsEl && historyDetailsEl.open) renderHistoryList();
+  renderHistoryList();
 }
 
 export function dismissEvent(id) {
@@ -152,15 +147,13 @@ export function dismissEvent(id) {
   if (!ev) return;
   ev.dismissed = true;
   persist();
-  renderBannerStack();
-  if (historyDetailsEl && historyDetailsEl.open) renderHistoryList();
+  renderHistoryList();
 }
 
 export function clearLog() {
   log = [];
   persist();
-  renderBannerStack();
-  if (historyDetailsEl && historyDetailsEl.open) renderHistoryList();
+  renderHistoryList();
 }
 
 export function getLog({ activeOnly = false } = {}) {
@@ -231,26 +224,6 @@ export function qtyDiffSummary(before, after) {
   return (delta > 0 ? '+' : '') + delta + ' {card}';
 }
 
-export function renderBannerStack() {
-  if (!bannersEl) return;
-  const active = log.filter(e => !e.dismissed && !e.undone).slice(0, ACTIVE_BANNERS);
-  if (active.length === 0) {
-    bannersEl.innerHTML = '';
-    bannersEl.classList.remove('active');
-    return;
-  }
-  bannersEl.classList.add('active');
-  bannersEl.innerHTML = active.map(ev => {
-    return '<div class="changelog-banner" data-event-id="' + esc(ev.id) + '">' +
-      '<span class="changelog-summary">' + composeSummary(ev.summary, ev.cards, 'changelog-card-name') + '</span>' +
-      '<span class="changelog-banner-actions">' +
-        '<button class="changelog-undo" type="button" data-action="undo">undo</button>' +
-        '<button class="changelog-dismiss" type="button" data-action="dismiss" aria-label="dismiss">×</button>' +
-      '</span>' +
-    '</div>';
-  }).join('');
-}
-
 function renderHistoryList() {
   if (!historyListEl) return;
   if (log.length === 0) {
@@ -259,8 +232,14 @@ function renderHistoryList() {
   }
   historyListEl.innerHTML = log.map(ev => {
     const cls = ev.undone ? 'history-undone' : (ev.dismissed ? 'history-dismissed' : '');
+    const undoBtn = ev.undone
+      ? ''
+      : '<button class="history-undo" type="button" data-action="undo" data-event-id="' + esc(ev.id) + '">undo</button>';
     return '<li class="' + cls + '">' +
-      '<time datetime="' + esc(formatTsIso(ev.ts)) + '">' + esc(formatTs(ev.ts)) + '</time> ' +
+      '<div class="history-row-meta">' +
+        '<time datetime="' + esc(formatTsIso(ev.ts)) + '">' + esc(formatTs(ev.ts)) + '</time>' +
+        undoBtn +
+      '</div>' +
       '<span class="history-summary-text">' + composeSummary(ev.summary, ev.cards, 'history-card-name') + '</span>' +
     '</li>';
   }).join('');
@@ -297,28 +276,23 @@ function downloadCsv() {
 }
 
 export function initChangelog() {
-  bannersEl = document.getElementById('changelogBanners');
   historyDetailsEl = document.getElementById('historyDetails');
   historyListEl = document.getElementById('historyList');
 
   log = load();
 
-  if (bannersEl) {
-    bannersEl.addEventListener('click', e => {
-      const btn = e.target.closest('button[data-action]');
-      if (!btn) return;
-      const banner = btn.closest('.changelog-banner');
-      if (!banner) return;
-      const id = banner.dataset.eventId;
-      if (!id) return;
-      if (btn.dataset.action === 'undo') undoEvent(id);
-      else if (btn.dataset.action === 'dismiss') dismissEvent(id);
-    });
-  }
-
   if (historyDetailsEl) {
     historyDetailsEl.addEventListener('toggle', () => {
       if (historyDetailsEl.open) renderHistoryList();
+    });
+  }
+
+  if (historyListEl) {
+    historyListEl.addEventListener('click', e => {
+      const btn = e.target.closest('button.history-undo');
+      if (!btn) return;
+      const id = btn.dataset.eventId;
+      if (id) undoEvent(id);
     });
   }
 
@@ -334,5 +308,5 @@ export function initChangelog() {
     });
   }
 
-  renderBannerStack();
+  renderHistoryList();
 }

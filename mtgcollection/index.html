@@ -334,9 +334,8 @@
   body.proper-case label,
   body.proper-case .footer-storage-nag,
   body.proper-case .pending-label,
-  body.proper-case .changelog-summary,
-  body.proper-case .changelog-undo,
   body.proper-case .history-list .history-summary-text,
+  body.proper-case .history-list .history-undo,
   body.proper-case .history-details summary,
   body.proper-case .ms-trigger,
   body.proper-case .ms-trigger-label,
@@ -1360,57 +1359,14 @@
   .save-pending-btn { padding: 4px 14px; font-size: 0.75rem; }
   .cancel-pending-btn { padding: 4px 12px; font-size: 0.75rem; }
 
-  .changelog-banners {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-bottom: 8px;
-  }
-  .changelog-banners:not(.active) { display: none; }
-  .changelog-banner {
-    background: #fff8e6;
-    border: 1px solid #f0d977;
-    border-radius: 2px;
-    padding: 6px 10px;
-    font-size: 0.75rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    color: #000;
-  }
-  .changelog-summary { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-  .changelog-card-name,
   .history-card-name {
     text-transform: none !important;
     text-decoration: underline;
     text-decoration-style: dotted;
     cursor: pointer;
   }
-  .changelog-card-name:hover,
   .history-card-name:hover { text-decoration-style: solid; }
   .changelog-more-muted { color: #888; text-transform: none; }
-  .changelog-banner-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
-  .changelog-undo {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 2px 6px;
-    font: inherit;
-    color: #336;
-    text-decoration: underline;
-  }
-  .changelog-undo:hover { opacity: 0.7; }
-  .changelog-dismiss {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0 4px;
-    font-size: 0.95rem;
-    line-height: 1;
-    color: #999;
-  }
-  .changelog-dismiss:hover { color: #000; }
 
   .history-list {
     list-style: none;
@@ -1430,7 +1386,25 @@
     word-break: break-word;
   }
   .history-list li:last-child { border-bottom: none; }
+  .history-list .history-row-meta {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 6px;
+  }
   .history-list time { color: #999; font-size: 0.65rem; }
+  .history-list .history-undo {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    font: inherit;
+    font-size: 0.7rem;
+    color: #336;
+    text-decoration: underline;
+    text-transform: lowercase;
+  }
+  .history-list .history-undo:hover { color: #000; }
   .history-list .history-summary-text { word-break: break-word; }
   .history-list li.history-undone { text-decoration: line-through; color: #999; }
   .history-list li.history-dismissed { color: #aaa; }
@@ -2382,7 +2356,7 @@
       <span class="progress" id="progress"></span>
     </div>
 
-    <details class="history-details sidebar-history" id="historyDetails">
+    <details class="history-details sidebar-history" id="historyDetails" open>
       <summary>history</summary>
       <div class="details-body">
         <ol id="historyList" class="history-list"></ol>
@@ -2395,7 +2369,6 @@
   </aside>
 
   <main class="app-center">
-    <div class="changelog-banners" id="changelogBanners"></div>
     <div class="feedback" id="feedback"></div>
 
     <div id="collectionSection" class="hidden">
