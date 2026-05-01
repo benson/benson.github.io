@@ -159,6 +159,7 @@ function renderRow(c) {
     <td class="muted rarity-cell" title="${esc(c.rarity || '')}">${esc(RARITY_ABBR[c.rarity] || c.rarity || '')}</td>
     <td class="muted condition-cell" title="${esc((c.condition || '').replace(/_/g, ' '))}">${esc(CONDITION_ABBR[c.condition] || (c.condition || '').replace(/_/g, ' '))}</td>
     <td><input class="location-input" data-index="${index}" list="locationOptions" value="${esc(c.location || '')}" placeholder="location"></td>
+    <td class="tags-cell">${(c.tags || []).map(t => `<span class="row-tag">${esc(t)}</span>`).join('')}</td>
     <td>${c.qty}</td>
     <td class="muted">${formatPrice(c)}</td>
   </tr>`;

@@ -1209,6 +1209,21 @@
   td { padding: 6px 8px; }
   .col-check { width: 28px; text-align: center; padding-right: 4px; }
   .set-cell { white-space: nowrap; }
+  .tags-cell {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    max-width: 220px;
+  }
+  .row-tag {
+    background: #f0ece0;
+    padding: 1px 5px;
+    border-radius: 2px;
+    font-size: 0.7rem;
+    line-height: 1.4;
+    color: #000;
+    white-space: nowrap;
+  }
   .set-icon {
     width: 14px;
     height: 14px;
@@ -2437,6 +2452,7 @@
               <th data-sort="rarity">rarity<span class="sort-indicator" aria-hidden="true"> <span class="sort-arrow">↑</span><button class="sort-clear-btn" type="button" aria-label="clear sort" tabindex="-1">×</button></span></th>
               <th data-sort="condition">condition<span class="sort-indicator" aria-hidden="true"> <span class="sort-arrow">↑</span><button class="sort-clear-btn" type="button" aria-label="clear sort" tabindex="-1">×</button></span></th>
               <th data-sort="location">location<span class="sort-indicator" aria-hidden="true"> <span class="sort-arrow">↑</span><button class="sort-clear-btn" type="button" aria-label="clear sort" tabindex="-1">×</button></span></th>
+              <th>tags</th>
               <th data-sort="qty">qty<span class="sort-indicator" aria-hidden="true"> <span class="sort-arrow">↑</span><button class="sort-clear-btn" type="button" aria-label="clear sort" tabindex="-1">×</button></span></th>
               <th data-sort="price">price<span class="sort-indicator" aria-hidden="true"> <span class="sort-arrow">↑</span><button class="sort-clear-btn" type="button" aria-label="clear sort" tabindex="-1">×</button></span></th>
             </tr>
