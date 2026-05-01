@@ -10,7 +10,7 @@ import {
 } from './collection.js';
 import { commitCollectionChange } from './persistence.js';
 import { collectionKey } from './collection.js';
-import { captureBefore, recordEvent } from './changelog.js';
+import { captureBefore, recordEvent, locationDiffSummary, qtyDiffSummary } from './changelog.js';
 import { hideCardPreview, showImageLightbox, hideImageLightbox, isLightboxVisible } from './view.js';
 import { populateMultiselect } from './multiselect.js';
 
@@ -250,9 +250,17 @@ function saveDetail() {
   if (diffs.length === 0) {
     showFeedback('saved ' + esc(name) + ' (no changes)', 'success');
   } else {
+    let summary;
+    if (diffs.length === 1 && after.qty !== before.qty) {
+      summary = qtyDiffSummary(before.qty, after.qty);
+    } else if (diffs.length === 1 && after.location !== before.location) {
+      summary = locationDiffSummary(before.location, after.location);
+    } else {
+      summary = 'edited (' + diffs.join(', ') + ') · {card}';
+    }
     recordEvent({
       type: 'edit',
-      summary: 'edited (' + diffs.join(', ') + ') ·',
+      summary,
       before: beforeSnap,
       affectedKeys: [beforeKey],
       cards: [{

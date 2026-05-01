@@ -15,7 +15,7 @@ import { renderStatsPanel, groupDeck, firstCardForPanel } from './stats.js';
 import { updateBulkBar } from './bulk.js';
 import { paginateForBinder, sortForBinder, BINDER_SIZES, binderSlotCount } from './binder.js';
 import { getSetIconUrl } from './setIcons.js';
-import { recordEvent, captureBefore } from './changelog.js';
+import { recordEvent, captureBefore, locationDiffSummary } from './changelog.js';
 
 const VALID_DECK_GROUPS = ['type', 'cmc', 'color', 'rarity'];
 const VALID_BINDER_SIZES = Object.keys(BINDER_SIZES);
@@ -40,7 +40,7 @@ function commitRowTag(input) {
   const name = c.resolvedName || c.name || 'card';
   recordEvent({
     type: 'edit',
-    summary: 'tagged ' + tag + ' ·',
+    summary: 'tagged {card} +' + tag,
     before: beforeSnap,
     affectedKeys: [beforeKey],
     cards: [{ name, imageUrl: c.imageUrl || '', backImageUrl: c.backImageUrl || '' }],
@@ -57,7 +57,7 @@ function removeRowTag(index, tag) {
   const name = c.resolvedName || c.name || 'card';
   recordEvent({
     type: 'edit',
-    summary: 'untagged ' + tag + ' ·',
+    summary: 'tagged {card} -' + tag,
     before: beforeSnap,
     affectedKeys: [beforeKey],
     cards: [{ name, imageUrl: c.imageUrl || '', backImageUrl: c.backImageUrl || '' }],
@@ -826,7 +826,7 @@ export function initView() {
     const name = c.resolvedName || c.name || 'card';
     recordEvent({
       type: 'edit',
-      summary: 'location: ' + (beforeLoc || '—') + ' → ' + (newLoc || '—') + ' ·',
+      summary: locationDiffSummary(beforeLoc, newLoc),
       before: beforeSnap,
       affectedKeys: [beforeKey],
       cards: [{ name, imageUrl: c.imageUrl || '', backImageUrl: c.backImageUrl || '' }],

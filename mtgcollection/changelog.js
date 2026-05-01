@@ -180,20 +180,55 @@ function formatTsIso(ts) {
   return new Date(ts).toISOString();
 }
 
-function renderCardNamesHtml(cards, className) {
-  if (!Array.isArray(cards) || cards.length === 0) return '';
-  const shown = cards.slice(0, CARDS_PREVIEW_LIMIT);
-  const remaining = cards.length - shown.length;
-  const parts = shown.map(c => {
-    const previewAttr = c.imageUrl ? ' data-preview-url="' + esc(c.imageUrl) + '"' : '';
-    const cls = c.imageUrl ? className + ' card-preview-link' : className;
-    return '<span class="' + esc(cls) + '"' + previewAttr + '>' + esc(c.name) + '</span>';
-  });
-  let html = ' ' + parts.join(', ');
+function cardSpanHtml(c, className) {
+  if (!c) return '';
+  const previewAttr = c.imageUrl ? ' data-preview-url="' + esc(c.imageUrl) + '"' : '';
+  const cls = c.imageUrl ? className + ' card-preview-link' : className;
+  return '<span class="' + esc(cls) + '"' + previewAttr + '>' + esc(c.name) + '</span>';
+}
+
+// Compose a summary line: substitutes `{card}` with the first card's clickable
+// span when present; otherwise appends the card list after the summary text
+// (legacy behavior, used by older events and multi-card events).
+function composeSummary(summary, cards, className) {
+  const safeCards = Array.isArray(cards) ? cards : [];
+  const escapedSummary = esc(summary || '');
+
+  if (escapedSummary.includes('{card}') && safeCards.length > 0) {
+    let html = escapedSummary.replace('{card}', cardSpanHtml(safeCards[0], className));
+    if (safeCards.length > 1) {
+      const rest = safeCards.slice(1, CARDS_PREVIEW_LIMIT);
+      const restHtml = rest.map(c => cardSpanHtml(c, className)).join(', ');
+      const remaining = safeCards.length - 1 - rest.length;
+      html += ' (' + restHtml + (remaining > 0 ? ', +' + remaining + ' more' : '') + ')';
+    }
+    return html;
+  }
+
+  if (safeCards.length === 0) return escapedSummary;
+  const shown = safeCards.slice(0, CARDS_PREVIEW_LIMIT);
+  const remaining = safeCards.length - shown.length;
+  let html = escapedSummary + ' ' + shown.map(c => cardSpanHtml(c, className)).join(', ');
   if (remaining > 0) {
     html += '<span class="changelog-more-muted"> · +' + remaining + ' more</span>';
   }
   return html;
+}
+
+// Helpers for building natural-language summaries — exported so call sites
+// (view.js inline edits, detail.js drawer save) stay consistent.
+export function locationDiffSummary(before, after) {
+  const b = (before || '').trim();
+  const a = (after || '').trim();
+  if (b && a) return '{card} moved from ' + b + ' to ' + a;
+  if (a) return '{card} moved to ' + a;
+  if (b) return '{card} removed from ' + b;
+  return '{card} location unchanged';
+}
+
+export function qtyDiffSummary(before, after) {
+  const delta = (after || 0) - (before || 0);
+  return (delta > 0 ? '+' : '') + delta + ' {card}';
 }
 
 export function renderBannerStack() {
@@ -206,9 +241,8 @@ export function renderBannerStack() {
   }
   bannersEl.classList.add('active');
   bannersEl.innerHTML = active.map(ev => {
-    const cardsHtml = renderCardNamesHtml(ev.cards, 'changelog-card-name');
     return '<div class="changelog-banner" data-event-id="' + esc(ev.id) + '">' +
-      '<span class="changelog-summary">' + esc(ev.summary) + cardsHtml + '</span>' +
+      '<span class="changelog-summary">' + composeSummary(ev.summary, ev.cards, 'changelog-card-name') + '</span>' +
       '<span class="changelog-banner-actions">' +
         '<button class="changelog-undo" type="button" data-action="undo">undo</button>' +
         '<button class="changelog-dismiss" type="button" data-action="dismiss" aria-label="dismiss">×</button>' +
@@ -225,10 +259,9 @@ function renderHistoryList() {
   }
   historyListEl.innerHTML = log.map(ev => {
     const cls = ev.undone ? 'history-undone' : (ev.dismissed ? 'history-dismissed' : '');
-    const cardsHtml = renderCardNamesHtml(ev.cards, 'history-card-name');
     return '<li class="' + cls + '">' +
       '<time datetime="' + esc(formatTsIso(ev.ts)) + '">' + esc(formatTs(ev.ts)) + '</time> ' +
-      '<span class="history-summary-text">' + esc(ev.summary) + cardsHtml + '</span>' +
+      '<span class="history-summary-text">' + composeSummary(ev.summary, ev.cards, 'history-card-name') + '</span>' +
     '</li>';
   }).join('');
 }

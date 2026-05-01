@@ -1187,8 +1187,8 @@
   thead th[data-sort] { cursor: pointer; user-select: none; }
   thead th[data-sort]:hover { color: #000; }
   thead th.sort-active { color: #000; }
-  thead th .sort-indicator { visibility: hidden; }
-  thead th.sort-active .sort-indicator { visibility: visible; }
+  thead th .sort-indicator { display: none; }
+  thead th.sort-active .sort-indicator { display: inline-block; vertical-align: middle; }
   thead th .sort-arrow { font-size: 0.85em; }
   thead th .sort-clear-btn {
     background: none;
@@ -1421,21 +1421,26 @@
     font-size: 0.75rem;
   }
   .history-list li {
-    padding: 3px 0;
+    padding: 4px 0;
     color: #444;
     border-bottom: 1px dashed #eee;
     display: flex;
-    gap: 6px;
-    align-items: baseline;
+    flex-direction: column;
+    gap: 1px;
+    word-break: break-word;
   }
   .history-list li:last-child { border-bottom: none; }
-  .history-list time { color: #999; font-size: 0.7rem; flex-shrink: 0; }
-  .history-list .history-summary-text { flex: 1; min-width: 0; word-break: break-word; }
+  .history-list time { color: #999; font-size: 0.65rem; }
+  .history-list .history-summary-text { word-break: break-word; }
   .history-list li.history-undone { text-decoration: line-through; color: #999; }
   .history-list li.history-dismissed { color: #aaa; }
   .history-list .history-empty { color: #999; border-bottom: none; font-style: italic; }
-  .history-actions { display: flex; gap: 6px; }
-  .history-actions .btn { font-size: 0.7rem; padding: 4px 10px; }
+  .history-actions { display: flex; gap: 4px; flex-wrap: wrap; }
+  .history-actions .btn { font-size: 0.7rem; padding: 4px 8px; }
+  .sidebar-history { margin-top: 8px; }
+  .sidebar-history > summary { font-size: 0.75rem; color: #999; cursor: pointer; }
+  .sidebar-history > summary:hover { color: #000; }
+  .sidebar-history[open] > summary { color: #000; }
   .card-name-cell { text-transform: none; }
   .card-name-button {
     appearance: none;
@@ -2376,6 +2381,17 @@
       </div>
       <span class="progress" id="progress"></span>
     </div>
+
+    <details class="history-details sidebar-history" id="historyDetails">
+      <summary>history</summary>
+      <div class="details-body">
+        <ol id="historyList" class="history-list"></ol>
+        <div class="history-actions">
+          <button class="btn btn-secondary" type="button" id="exportHistoryBtn">export csv</button>
+          <button class="btn btn-secondary" type="button" id="clearHistoryBtn">clear history</button>
+        </div>
+      </div>
+    </details>
   </aside>
 
   <main class="app-center">
@@ -2635,16 +2651,6 @@
       </div>
     </details>
 
-    <details class="history-details" id="historyDetails">
-      <summary>history</summary>
-      <div class="details-body">
-        <ol id="historyList" class="history-list"></ol>
-        <div class="history-actions">
-          <button class="btn btn-secondary" type="button" id="exportHistoryBtn">export csv</button>
-          <button class="btn btn-secondary" type="button" id="clearHistoryBtn">clear history</button>
-        </div>
-      </div>
-    </details>
   </aside>
 
   <footer class="app-footer">
