@@ -97,6 +97,18 @@
   .app-header-views .toggle-view:last-child { border-right: none; }
   .app-header-views .toggle-view:hover { background: #eee; }
   .app-header-views .toggle-view.active { background: #000; color: #fff; }
+  .app-header-views .view-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    margin-right: 5px;
+    vertical-align: -2px;
+    line-height: 1;
+    font-size: 0.95em;
+  }
+  .app-header-views .view-icon-svg { vertical-align: -2px; }
 
   .app-left {
     grid-area: left;
@@ -294,6 +306,35 @@
   .app-footer-right #copyDecklistBtn { display: none; }
   .app-footer.format-active .app-footer-right #copyDecklistBtn { display: inline-flex; }
   .footer-storage-nag { color: #999; font-size: 0.7rem; letter-spacing: 0.02em; }
+  .footer-case-toggle {
+    background: none;
+    border: 1px solid #ddd;
+    border-radius: 2px;
+    color: #999;
+    padding: 2px 6px;
+    font-family: inherit;
+    font-size: 0.7rem;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    text-transform: none;
+  }
+  .footer-case-toggle:hover { color: #000; border-color: #000; }
+
+  /* Proper-case mode — flip the global lowercase aesthetic */
+  body.proper-case * { text-transform: none; }
+  body.proper-case .set-cell,
+  body.proper-case .rarity-cell,
+  body.proper-case .condition-cell { text-transform: uppercase; }
+  body.proper-case th[data-sort],
+  body.proper-case .sidebar-label,
+  body.proper-case .toggle-view,
+  body.proper-case .btn,
+  body.proper-case .fab-btn,
+  body.proper-case label,
+  body.proper-case .footer-storage-nag,
+  body.proper-case .pending-label,
+  body.proper-case .ms-option,
+  body.proper-case .filter-select { text-transform: capitalize; }
 
 
   /* Multiselect filter control */
@@ -2047,10 +2088,10 @@
       <span><span class="stat-label">usd</span> <strong id="totalValue">0</strong></span>
     </div>
     <div class="app-header-views">
-      <button class="toggle-view" id="listViewBtn" data-view="list">list view</button>
-      <button class="toggle-view" id="gridViewBtn" data-view="grid">grid view</button>
-      <button class="toggle-view" id="deckViewBtn" data-view="deck">deck view</button>
-      <button class="toggle-view" id="binderViewBtn" data-view="binder">binder view</button>
+      <button class="toggle-view" id="listViewBtn" data-view="list"><span class="view-icon" aria-hidden="true">≡</span>list view</button>
+      <button class="toggle-view" id="gridViewBtn" data-view="grid"><span class="view-icon" aria-hidden="true">▦</span>grid view</button>
+      <button class="toggle-view" id="deckViewBtn" data-view="deck"><svg class="view-icon view-icon-svg" aria-hidden="true" viewBox="0 0 14 14"><rect x="2.5" y="3.5" width="6.5" height="8.5" rx="0.5" fill="none" stroke="currentColor" stroke-width="1"/><rect x="5" y="1.5" width="6.5" height="8.5" rx="0.5" fill="none" stroke="currentColor" stroke-width="1"/></svg>deck view</button>
+      <button class="toggle-view" id="binderViewBtn" data-view="binder"><svg class="view-icon view-icon-svg" aria-hidden="true" viewBox="0 0 14 14"><rect x="2" y="2" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1"/><line x1="5" y1="2" x2="5" y2="12" stroke="currentColor" stroke-width="1"/><circle cx="5" cy="5" r="0.7" fill="currentColor"/><circle cx="5" cy="7" r="0.7" fill="currentColor"/><circle cx="5" cy="9" r="0.7" fill="currentColor"/></svg>binder view</button>
     </div>
   </header>
 
@@ -2374,6 +2415,7 @@
     </div>
     <div class="app-footer-right">
       <button class="btn btn-secondary" type="button" id="copyDecklistBtn">copy decklist</button>
+      <button class="footer-case-toggle" type="button" id="caseToggleBtn" title="toggle text case">Aa</button>
       <a href="/">bensonperry.com</a>
     </div>
   </footer>

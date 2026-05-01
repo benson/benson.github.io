@@ -14,7 +14,18 @@ import {
 } from './import.js';
 import { refreshSetIcons } from './setIcons.js';
 
+const TEXT_CASE_KEY = 'mtgcollection_text_case_v1';
+
+function applyTextCase(mode) {
+  document.body.classList.toggle('proper-case', mode === 'proper');
+}
+
 async function boot() {
+  // Apply text-case preference before anything renders
+  try {
+    applyTextCase(localStorage.getItem(TEXT_CASE_KEY));
+  } catch (e) {}
+
   // Lowest-level init first — feedback + DOM refs
   initFeedback();
 
@@ -76,6 +87,12 @@ async function boot() {
   // when it lands so cards with quirky set codes (pmkm, h2r, sld, etc.)
   // get their proper icons.
   refreshSetIcons().then(updated => { if (updated) render(); });
+
+  document.getElementById('caseToggleBtn').addEventListener('click', () => {
+    const next = document.body.classList.contains('proper-case') ? 'lower' : 'proper';
+    try { localStorage.setItem(TEXT_CASE_KEY, next); } catch (e) {}
+    applyTextCase(next);
+  });
 }
 
 boot();
