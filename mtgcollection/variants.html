@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mtg collection — shadow variants</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: #f8f7f4;
+    color: #111;
+    text-transform: lowercase;
+    line-height: 1.4;
+    padding: 24px 28px 80px;
+  }
+  h1 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0 4px;
+    letter-spacing: 0.02em;
+  }
+  .subtitle {
+    color: #777;
+    font-size: 0.78rem;
+    margin: 0 0 18px;
+  }
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px 28px;
+    align-items: flex-start;
+    padding: 14px 0;
+    border-top: 1px solid #e3e1da;
+    border-bottom: 1px solid #e3e1da;
+    margin-bottom: 22px;
+    position: sticky;
+    top: 0;
+    background: #f8f7f4;
+    z-index: 20;
+  }
+  .toolbar-group { display: flex; flex-direction: column; gap: 6px; }
+  .toolbar-label {
+    font-size: 0.65rem;
+    color: #888;
+    letter-spacing: 0.06em;
+  }
+  .toolbar-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pill-btn {
+    appearance: none;
+    border: 1px solid #d8d4c8;
+    background: #fff;
+    color: #222;
+    font: inherit;
+    font-size: 0.75rem;
+    padding: 5px 11px;
+    border-radius: 999px;
+    cursor: pointer;
+    text-transform: lowercase;
+    letter-spacing: 0.01em;
+    transition: background 0.12s, border-color 0.12s, color 0.12s;
+  }
+  .pill-btn:hover { background: #f0ece0; }
+  .pill-btn.active { background: #000; color: #fff; border-color: #000; }
+  .css-readout {
+    flex: 1 1 320px;
+    min-width: 280px;
+    background: #fff;
+    border: 1px solid #e3e1da;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.72rem;
+    color: #333;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .css-readout .css-name {
+    font-family: inherit;
+    font-weight: 600;
+    color: #111;
+    text-transform: lowercase;
+    margin-right: 8px;
+  }
+  .css-readout .css-desc {
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    color: #666;
+    font-size: 0.72rem;
+    display: block;
+    margin-top: 2px;
+  }
+
+  /* Grid (mirrors index.html) */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+  }
+  .grid.grid-small  { grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 7px; }
+  .grid.grid-medium { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .grid.grid-large  { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
+
+  .card-tile {
+    position: relative;
+    border: none;
+    border-radius: 4px;
+    overflow: hidden;
+    cursor: default;
+    background: #e8e8e8;
+    aspect-ratio: 488 / 680;
+    transition: transform 0.12s ease, box-shadow 0.18s ease;
+    padding: 0;
+    display: block;
+    width: 100%;
+    font: inherit;
+  }
+  .card-tile:hover { transform: translateY(-2px); }
+  .card-tile img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .card-tile .placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 8px;
+    text-align: center;
+    font-size: 0.7rem;
+    color: #999;
+    text-transform: none;
+  }
+  .card-badges {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    align-items: flex-end;
+  }
+  .badge {
+    background: rgba(0,0,0,0.78);
+    color: #fff;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 2px;
+    letter-spacing: 0.02em;
+  }
+
+  /* ───── shadow variants ───── */
+
+  /* v0 — none (current baseline) */
+
+  /* v1 — subtle (tailwind shadow-sm style) */
+  .grid.shadow-subtle .card-tile {
+    box-shadow: 0 1px 2px 0 rgba(0,0,0,0.06);
+  }
+  .grid.shadow-subtle .card-tile:hover {
+    box-shadow: 0 2px 4px 0 rgba(0,0,0,0.10);
+  }
+
+  /* v2 — soft (tailwind shadow style — layered key + contact) */
+  .grid.shadow-soft .card-tile {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px -1px rgba(0,0,0,0.06);
+  }
+  .grid.shadow-soft .card-tile:hover {
+    box-shadow: 0 4px 8px -1px rgba(0,0,0,0.10), 0 2px 4px -2px rgba(0,0,0,0.08);
+  }
+
+  /* v3 — lifted (tailwind shadow-md) */
+  .grid.shadow-lifted .card-tile {
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -2px rgba(0,0,0,0.06);
+  }
+  .grid.shadow-lifted .card-tile:hover {
+    box-shadow: 0 8px 12px -2px rgba(0,0,0,0.12), 0 4px 6px -3px rgba(0,0,0,0.08);
+  }
+
+  /* v4 — floating (tailwind shadow-lg, more presence) */
+  .grid.shadow-floating .card-tile {
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.10), 0 4px 6px -4px rgba(0,0,0,0.08);
+  }
+  .grid.shadow-floating .card-tile:hover {
+    box-shadow: 0 14px 22px -4px rgba(0,0,0,0.14), 0 6px 10px -4px rgba(0,0,0,0.10);
+  }
+
+  /* v5 — contact (sharp 1px contact + soft body — feels physically grounded) */
+  .grid.shadow-contact .card-tile {
+    box-shadow: 0 1px 1px rgba(0,0,0,0.10), 0 6px 12px -2px rgba(0,0,0,0.10);
+  }
+  .grid.shadow-contact .card-tile:hover {
+    box-shadow: 0 1px 1px rgba(0,0,0,0.14), 0 10px 18px -3px rgba(0,0,0,0.16);
+  }
+
+  /* v6 — hover only (no resting shadow, big lift on hover) */
+  .grid.shadow-hover .card-tile {
+    box-shadow: none;
+  }
+  .grid.shadow-hover .card-tile:hover {
+    box-shadow: 0 8px 18px -4px rgba(0,0,0,0.18), 0 2px 4px rgba(0,0,0,0.08);
+  }
+
+  /* v7 — warm (color-tinted to match cream surface) */
+  .grid.shadow-warm .card-tile {
+    box-shadow: 0 2px 4px rgba(80,60,40,0.10), 0 6px 14px rgba(80,60,40,0.08);
+  }
+  .grid.shadow-warm .card-tile:hover {
+    box-shadow: 0 4px 6px rgba(80,60,40,0.14), 0 10px 20px rgba(80,60,40,0.12);
+  }
+
+  /* v8 — ring (inset hairline + tiny shadow — definition without elevation) */
+  .grid.shadow-ring .card-tile {
+    box-shadow:
+      inset 0 0 0 1px rgba(0,0,0,0.08),
+      0 1px 3px rgba(0,0,0,0.06);
+  }
+  .grid.shadow-ring .card-tile:hover {
+    box-shadow:
+      inset 0 0 0 1px rgba(0,0,0,0.10),
+      0 3px 6px rgba(0,0,0,0.10);
+  }
+
+  /* compare-all layout */
+  .compare-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 28px;
+  }
+  .compare-cell {
+    background: #f8f7f4;
+    padding: 14px 14px 18px;
+    border-radius: 8px;
+  }
+  .compare-cell h3 {
+    margin: 0 0 2px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+  .compare-cell .compare-desc {
+    font-size: 0.72rem;
+    color: #888;
+    margin: 0 0 10px;
+  }
+  .compare-cell .grid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+
+  .footer-link {
+    margin-top: 40px;
+    font-size: 0.75rem;
+    color: #888;
+  }
+  .footer-link a { color: #444; }
+
+  @media (max-width: 700px) {
+    body { padding: 16px 14px 60px; }
+    .toolbar { gap: 12px 18px; }
+    .compare-cell .grid { grid-template-columns: repeat(3, 1fr); }
+  }
+</style>
+</head>
+<body class="no-shared-footer">
+
+<h1>mtg collection — grid shadow variants</h1>
+<p class="subtitle">click a variant to apply it. cards come from your local collection if present, otherwise samples.</p>
+
+<div class="toolbar">
+  <div class="toolbar-group">
+    <span class="toolbar-label">variant</span>
+    <div class="toolbar-row" id="variantRow"></div>
+  </div>
+  <div class="toolbar-group">
+    <span class="toolbar-label">size</span>
+    <div class="toolbar-row" id="sizeRow">
+      <button class="pill-btn" data-size="small">s</button>
+      <button class="pill-btn active" data-size="medium">m</button>
+      <button class="pill-btn" data-size="large">l</button>
+    </div>
+  </div>
+  <div class="toolbar-group">
+    <span class="toolbar-label">mode</span>
+    <div class="toolbar-row" id="modeRow">
+      <button class="pill-btn active" data-mode="single">single</button>
+      <button class="pill-btn" data-mode="compare">compare all</button>
+    </div>
+  </div>
+  <div class="css-readout" id="cssReadout"></div>
+</div>
+
+<div id="singleView">
+  <div class="grid grid-medium" id="grid"></div>
+</div>
+
+<div id="compareView" hidden></div>
+
+<p class="footer-link">← <a href="./">back to collection</a></p>
+
+<script>
+  const VARIANTS = [
+    {
+      key: 'none',
+      label: 'none',
+      desc: 'baseline — current live behavior, no box-shadow.',
+      css: 'box-shadow: none;'
+    },
+    {
+      key: 'subtle',
+      label: 'subtle',
+      desc: 'minimal hairline lift. enough to separate tiles from the cream bg without drawing attention.',
+      css: 'box-shadow: 0 1px 2px 0 rgba(0,0,0,0.06);\nhover: 0 2px 4px 0 rgba(0,0,0,0.10);'
+    },
+    {
+      key: 'soft',
+      label: 'soft',
+      desc: 'tailwind default shadow — layered contact + small drop. universal "good enough" depth.',
+      css: 'box-shadow:\n  0 1px 3px rgba(0,0,0,0.08),\n  0 1px 2px -1px rgba(0,0,0,0.06);'
+    },
+    {
+      key: 'lifted',
+      label: 'lifted',
+      desc: 'shadow-md scale — clearly elevated. cards feel like they\'re sitting above the surface.',
+      css: 'box-shadow:\n  0 4px 6px -1px rgba(0,0,0,0.08),\n  0 2px 4px -2px rgba(0,0,0,0.06);'
+    },
+    {
+      key: 'floating',
+      label: 'floating',
+      desc: 'shadow-lg scale — strong presence. risks looking heavy at small sizes.',
+      css: 'box-shadow:\n  0 10px 15px -3px rgba(0,0,0,0.10),\n  0 4px 6px -4px rgba(0,0,0,0.08);'
+    },
+    {
+      key: 'contact',
+      label: 'contact',
+      desc: 'sharp 1px contact + diffuse body shadow. evokes "card resting on table" — physical feel for an mtg app.',
+      css: 'box-shadow:\n  0 1px 1px rgba(0,0,0,0.10),\n  0 6px 12px -2px rgba(0,0,0,0.10);'
+    },
+    {
+      key: 'hover',
+      label: 'hover only',
+      desc: 'no resting shadow; big lift only on hover. quietest grid, most reactive.',
+      css: 'rest: box-shadow: none;\nhover: 0 8px 18px -4px rgba(0,0,0,0.18), 0 2px 4px rgba(0,0,0,0.08);'
+    },
+    {
+      key: 'warm',
+      label: 'warm',
+      desc: 'shadow tinted toward brown to harmonize with the cream background instead of pure black.',
+      css: 'box-shadow:\n  0 2px 4px rgba(80,60,40,0.10),\n  0 6px 14px rgba(80,60,40,0.08);'
+    },
+    {
+      key: 'ring',
+      label: 'ring',
+      desc: 'inset hairline + tiny shadow. adds definition without true elevation — useful if shadows feel too "designy".',
+      css: 'box-shadow:\n  inset 0 0 0 1px rgba(0,0,0,0.08),\n  0 1px 3px rgba(0,0,0,0.06);'
+    }
+  ];
+
+  const SAMPLE_CARDS = [
+    'lightning bolt', 'counterspell', 'birds of paradise', 'sol ring',
+    'swords to plowshares', 'thoughtseize', 'tarmogoyf', 'snapcaster mage',
+    'liliana of the veil', 'jace, the mind sculptor', 'force of will', 'dark confidant',
+    'ragavan, nimble pilferer', 'ledger shredder', 'bloodbraid elf', 'wrenn and six',
+    'breya, etherium shaper', 'goblin guide', 'delver of secrets', 'mox opal',
+    'sensei\'s divining top', 'oko, thief of crowns', 'fable of the mirror-breaker', 'sheoldred, the apocalypse'
+  ].map(name => ({
+    name,
+    imageUrl: `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}&format=image&version=normal`
+  }));
+
+  function loadCollectionCards() {
+    try {
+      const raw = localStorage.getItem('mtgcollection_v1');
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      const arr = Array.isArray(parsed) ? parsed : (parsed && parsed.collection) || null;
+      if (!arr || arr.length === 0) return null;
+      const filtered = arr.filter(c => c && c.imageUrl);
+      if (filtered.length < 4) return null;
+      return filtered.slice(0, 24);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  const cardSource = loadCollectionCards() || SAMPLE_CARDS;
+
+  function tileHtml(c) {
+    const name = (c.resolvedName || c.name || '').toString();
+    const qty = c.qty && c.qty > 1 ? `<span class="badge">×${c.qty}</span>` : '';
+    const img = c.imageUrl
+      ? `<img src="${c.imageUrl}" alt="${escapeHtml(name)}" loading="lazy">`
+      : `<div class="placeholder">${escapeHtml(name)}</div>`;
+    return `<div class="card-tile">${img}<div class="card-badges">${qty}</div></div>`;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, ch => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+  }
+
+  function renderVariantButtons() {
+    const row = document.getElementById('variantRow');
+    row.innerHTML = VARIANTS.map(v =>
+      `<button class="pill-btn" data-variant="${v.key}">${v.label}</button>`
+    ).join('');
+  }
+
+  function renderGrid(cards) {
+    document.getElementById('grid').innerHTML = cards.map(tileHtml).join('');
+  }
+
+  function renderCompareView(cards) {
+    const sample = cards.slice(0, 8);
+    const wrap = document.getElementById('compareView');
+    wrap.innerHTML = `<div class="compare-grid">${VARIANTS.map(v => `
+      <div class="compare-cell">
+        <h3>${v.label}</h3>
+        <p class="compare-desc">${escapeHtml(v.desc)}</p>
+        <div class="grid grid-small shadow-${v.key}">
+          ${sample.map(tileHtml).join('')}
+        </div>
+      </div>
+    `).join('')}</div>`;
+  }
+
+  function applyVariant(key) {
+    const grid = document.getElementById('grid');
+    grid.classList.forEach(cls => {
+      if (cls.startsWith('shadow-')) grid.classList.remove(cls);
+    });
+    if (key !== 'none') grid.classList.add('shadow-' + key);
+
+    document.querySelectorAll('#variantRow .pill-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.variant === key);
+    });
+
+    const v = VARIANTS.find(x => x.key === key);
+    document.getElementById('cssReadout').innerHTML =
+      `<span class="css-name">${v.label}</span>${escapeHtml(v.css)}<span class="css-desc">${escapeHtml(v.desc)}</span>`;
+    try { localStorage.setItem('mtgcollection_variant_pick', key); } catch (_) {}
+  }
+
+  function applySize(size) {
+    const grid = document.getElementById('grid');
+    grid.classList.remove('grid-small', 'grid-medium', 'grid-large');
+    grid.classList.add('grid-' + size);
+    document.querySelectorAll('#sizeRow .pill-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.size === size);
+    });
+  }
+
+  function applyMode(mode) {
+    document.getElementById('singleView').hidden = mode !== 'single';
+    document.getElementById('compareView').hidden = mode !== 'compare';
+    document.querySelectorAll('#modeRow .pill-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.mode === mode);
+    });
+    if (mode === 'compare' && !document.getElementById('compareView').dataset.rendered) {
+      renderCompareView(cardSource);
+      document.getElementById('compareView').dataset.rendered = '1';
+    }
+  }
+
+  document.getElementById('variantRow').addEventListener('click', e => {
+    const btn = e.target.closest('[data-variant]');
+    if (btn) applyVariant(btn.dataset.variant);
+  });
+  document.getElementById('sizeRow').addEventListener('click', e => {
+    const btn = e.target.closest('[data-size]');
+    if (btn) applySize(btn.dataset.size);
+  });
+  document.getElementById('modeRow').addEventListener('click', e => {
+    const btn = e.target.closest('[data-mode]');
+    if (btn) applyMode(btn.dataset.mode);
+  });
+
+  renderVariantButtons();
+  renderGrid(cardSource);
+  const remembered = (() => {
+    try { return localStorage.getItem('mtgcollection_variant_pick'); } catch (_) { return null; }
+  })();
+  applyVariant(remembered && VARIANTS.find(v => v.key === remembered) ? remembered : 'soft');
+</script>
+</body>
+</html>
