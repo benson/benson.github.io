@@ -330,11 +330,17 @@
   body.proper-case .toggle-view,
   body.proper-case .btn,
   body.proper-case .fab-btn,
+  body.proper-case .fab-label,
   body.proper-case label,
   body.proper-case .footer-storage-nag,
   body.proper-case .pending-label,
+  body.proper-case .ms-trigger,
+  body.proper-case .ms-trigger-label,
+  body.proper-case .ms-pill,
   body.proper-case .ms-option,
-  body.proper-case .filter-select { text-transform: capitalize; }
+  body.proper-case .filter-select,
+  body.proper-case .stat-label,
+  body.proper-case .title-reset-btn { text-transform: capitalize; }
 
 
   /* Multiselect filter control */
@@ -2079,13 +2085,13 @@
 
 <div class="app-shell">
   <header class="app-header">
-    <h1><button type="button" id="resetAppBtn" class="title-reset-btn">mtg collection</button></h1>
+    <h1><button type="button" id="resetAppBtn" class="title-reset-btn">MTG Collection</button></h1>
     <div class="app-header-totals">
       <span><span class="stat-label">unique</span> <strong id="uniqueCount">0</strong></span>
       <span class="sep">·</span>
       <span><span class="stat-label">total</span> <strong id="totalCount">0</strong></span>
       <span class="sep">·</span>
-      <span><span class="stat-label">usd</span> <strong id="totalValue">0</strong></span>
+      <span><span class="stat-label">USD</span> <strong id="totalValue">0</strong></span>
     </div>
     <div class="app-header-views">
       <button class="toggle-view" id="listViewBtn" data-view="list"><span class="view-icon" aria-hidden="true">≡</span>list view</button>
