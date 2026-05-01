@@ -1209,11 +1209,19 @@
   td { padding: 6px 8px; }
   .col-check { width: 28px; text-align: center; padding-right: 4px; }
   .set-cell { white-space: nowrap; }
+  /* Narrow fixed-ish columns — content is bounded so don't let table-auto inflate them */
+  th[data-sort="set"], .set-cell { width: 70px; }
+  th[data-sort="cn"], .cn-cell { width: 48px; }
+  th[data-sort="finish"], .finish-cell { width: 60px; }
+  th[data-sort="rarity"], .rarity-cell { width: 44px; }
+  th[data-sort="condition"], .condition-cell { width: 56px; }
+  th[data-sort="qty"], .qty-cell { width: 44px; }
+  th[data-sort="price"], .price-cell { width: 70px; white-space: nowrap; }
+  .location-cell { min-width: 140px; }
   .tags-cell {
     display: flex;
     flex-wrap: wrap;
     gap: 3px;
-    max-width: 220px;
   }
   .row-tag {
     background: #f0ece0;

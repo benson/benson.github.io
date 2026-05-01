@@ -154,14 +154,14 @@ function renderRow(c) {
     <td class="col-check"><input type="checkbox" class="row-check" data-key="${esc(key)}"${selected ? ' checked' : ''} aria-label="select row"></td>
     <td class="card-name-cell"><button class="${previewClasses}" type="button" data-index="${index}"${previewAttr}>${esc(name)}</button></td>
     <td class="muted set-cell">${setIcon}${esc(setCode)}</td>
-    <td class="muted">${esc(c.cn || '')}</td>
-    <td class="muted">${esc(c.finish)}</td>
+    <td class="muted cn-cell">${esc(c.cn || '')}</td>
+    <td class="muted finish-cell">${esc(c.finish)}</td>
     <td class="muted rarity-cell" title="${esc(c.rarity || '')}">${esc(RARITY_ABBR[c.rarity] || c.rarity || '')}</td>
     <td class="muted condition-cell" title="${esc((c.condition || '').replace(/_/g, ' '))}">${esc(CONDITION_ABBR[c.condition] || (c.condition || '').replace(/_/g, ' '))}</td>
-    <td><input class="location-input" data-index="${index}" list="locationOptions" value="${esc(c.location || '')}" placeholder="location"></td>
+    <td class="location-cell"><input class="location-input" data-index="${index}" list="locationOptions" value="${esc(c.location || '')}" placeholder="location"></td>
     <td class="tags-cell">${(c.tags || []).map(t => `<span class="row-tag">${esc(t)}</span>`).join('')}</td>
-    <td>${c.qty}</td>
-    <td class="muted">${formatPrice(c)}</td>
+    <td class="qty-cell">${c.qty}</td>
+    <td class="muted price-cell">${formatPrice(c)}</td>
   </tr>`;
 }
 
