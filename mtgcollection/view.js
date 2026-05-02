@@ -1,4 +1,4 @@
-import { state, DECK_GROUP_KEY, BINDER_SIZE_KEY } from './state.js';
+import { state, DECK_GROUP_KEY, DECK_VIEW_PREFS_KEY, BINDER_SIZE_KEY } from './state.js';
 import { esc, showFeedback } from './feedback.js';
 import {
   collectionKey,
@@ -27,9 +27,13 @@ import { paginateForBinder, sortForBinder, BINDER_SIZES, binderSlotCount } from 
 import { getSetIconUrl } from './setIcons.js';
 import { recordEvent, captureBefore, locationDiffSummary } from './changelog.js';
 import { setMultiselectValue, getMultiselectValue } from './multiselect.js';
-import { buildDeckExport } from './deckExport.js';
+import { buildDeckExport, defaultDeckExportOptions } from './deckExport.js';
+import { importDecklistText } from './import.js';
 
 const VALID_DECK_GROUPS = ['type', 'cmc', 'color', 'rarity'];
+const VALID_DECK_MODES = ['visual', 'text', 'stats', 'hands', 'notes'];
+const VALID_DECK_BOARD_FILTERS = ['all', 'main', 'sideboard', 'maybe'];
+const VALID_DECK_CARD_SIZES = ['small', 'medium', 'large'];
 const VALID_BINDER_SIZES = Object.keys(BINDER_SIZES);
 const RARITY_ABBR = { common: 'c', uncommon: 'u', rare: 'r', mythic: 'm', special: 's', bonus: 'b' };
 const CONDITION_ABBR = { near_mint: 'nm', lightly_played: 'lp', moderately_played: 'mp', heavily_played: 'hp', damaged: 'dmg' };
@@ -579,16 +583,72 @@ function renderDeckTextRows(list) {
 
 function renderDeckBoardSection(title, cards, { grouped = false } = {}) {
   const total = cards.reduce((s, c) => s + (c.qty || 1), 0);
+  const value = cards.reduce((s, c) => s + (c.price || 0) * (c.qty || 1), 0);
   const body = grouped
     ? groupDeck(cards, state.deckGroupBy).map(col => {
       const colTotal = col.cards.reduce((s, c) => s + (c.qty || 1), 0);
+      const colValue = col.cards.reduce((s, c) => s + (c.price || 0) * (c.qty || 1), 0);
+      const valueStr = state.deckShowPrices && colValue > 0 ? ` - $${colValue.toFixed(2)}` : '';
       const stack = col.cards.map((c, i) => renderDeckCard(c, i === col.cards.length - 1)).join('');
-      return `<div class="deck-col"><div class="deck-col-header">${esc(col.label)}<span class="deck-col-count">${colTotal}</span></div><div class="deck-stack">${stack}</div></div>`;
+      return `<div class="deck-col"><div class="deck-col-header">${esc(col.label)}<span class="deck-col-count">${colTotal}${esc(valueStr)}</span></div><div class="deck-stack">${stack}</div></div>`;
     }).join('')
     : cards.map((c, i) => renderDeckCard(c, i === cards.length - 1)).join('');
+  const valueStr = state.deckShowPrices && value > 0 ? ` - $${value.toFixed(2)}` : '';
   return `<section class="deck-board-section">
-    <div class="deck-board-header"><h3>${esc(title)}</h3><span>${total} cards</span></div>
+    <div class="deck-board-header"><h3>${esc(title)}</h3><span>${total} cards${esc(valueStr)}</span></div>
     <div class="${grouped ? 'deck-columns' : 'deck-side-stack'}">${body || '<div class="deck-empty-prompt">no cards</div>'}</div>
+  </section>`;
+}
+
+function renderDeckStatsDashboard(stats, statHtml, format) {
+  return `<div class="deck-dashboard">
+    <section class="deck-stat-card"><h3>curve</h3>${statHtml.curveHtml}</section>
+    <section class="deck-stat-card"><h3>summary</h3>
+      <div class="breakdown-row"><span>format</span><span class="breakdown-count">${esc(format)}</span></div>
+      <div class="breakdown-row"><span>lands</span><span class="breakdown-count">${stats.lands}</span></div>
+      <div class="breakdown-row"><span>nonlands</span><span class="breakdown-count">${stats.nonlands}</span></div>
+      <div class="breakdown-row"><span>avg mv</span><span class="breakdown-count">${stats.avgManaValue.toFixed(2)}</span></div>
+      <div class="breakdown-row"><span>avg spell mv</span><span class="breakdown-count">${stats.avgSpellManaValue.toFixed(2)}</span></div>
+    </section>
+    <section class="deck-stat-card"><h3>types</h3>${statHtml.typeHtml}</section>
+    <section class="deck-stat-card"><h3>colors</h3>${statHtml.colorHtml}</section>
+  </div>`;
+}
+
+function boardLabel(board) {
+  return board === 'main' ? 'mainboard' : board === 'sideboard' ? 'sideboard' : 'maybeboard';
+}
+
+function filterDeckBoards(boards, filter) {
+  if (filter === 'main') return [['main', boards.main]];
+  if (filter === 'sideboard') return [['sideboard', boards.sideboard]];
+  if (filter === 'maybe') return [['maybe', boards.maybe]];
+  return [['main', boards.main], ['sideboard', boards.sideboard], ['maybe', boards.maybe]];
+}
+
+function renderDeckTextMode(boards) {
+  const sections = filterDeckBoards(boards, state.deckBoardFilter);
+  return `<div class="deck-text-mode">
+    ${sections.map(([board, cards]) => `<section class="deck-board-section">
+      <div class="deck-board-header"><h3>${boardLabel(board)}</h3><span>${cards.reduce((s, c) => s + (c.qty || 1), 0)} cards</span></div>
+      <div class="deck-text-list deck-text-list-full">${renderDeckTextRows(cards)}</div>
+    </section>`).join('')}
+  </div>`;
+}
+
+function renderDeckNotesMode(model) {
+  const hasNotes = !!model.description;
+  return `<section class="deck-board-section deck-notes-panel">
+    <div class="deck-board-header"><h3>notes</h3><button class="btn btn-secondary" type="button" data-edit-deck-details aria-controls="deckDetailsEditor" aria-expanded="false">edit details</button></div>
+    <p class="${hasNotes ? '' : 'deck-empty-prompt'}">${esc(hasNotes ? model.description : 'No deck notes yet.')}</p>
+  </section>`;
+}
+
+function renderDeckSampleHandSection() {
+  return `<section class="deck-sample-hand" id="deckSampleHand">
+    <div class="deck-board-header"><h3>sample hand</h3><div><button class="btn btn-secondary" type="button" data-sample-hand="draw">new hand</button><button class="btn btn-secondary" type="button" data-sample-hand="mulligan">mulligan</button></div></div>
+    <div class="deck-hand-row" id="deckHandCards"></div>
+    <div class="deck-next-row" id="deckNextCards"></div>
   </section>`;
 }
 
@@ -714,8 +774,9 @@ export function renderDeckDetailsHeaderHtml(model) {
           <span><strong>${esc(model.valueText)}</strong> value</span>
         </div>
         <div class="deck-hero-actions">
+          <button class="btn" type="button" data-toggle-deck-add aria-controls="deckAddPanel" aria-expanded="false">add card</button>
+          <button class="btn btn-secondary" type="button" data-toggle-deck-export aria-controls="deckExportPanel" aria-expanded="false">export</button>
           <button class="btn" type="button" data-sample-hand="draw">sample hand</button>
-          <button class="btn btn-secondary" type="button" data-copy-decklist>copy list</button>
           <button class="btn btn-secondary" type="button" data-edit-deck-details aria-controls="deckDetailsEditor" aria-expanded="false">edit details</button>
         </div>
       </div>
@@ -735,6 +796,97 @@ export function renderDeckDetailsHeaderHtml(model) {
     </section>`;
 }
 
+export function renderDeckWorkspaceControls() {
+  const modeBtn = (mode, label) =>
+    `<button class="deck-mode-btn${state.deckMode === mode ? ' active' : ''}" type="button" data-deck-mode="${mode}" aria-pressed="${state.deckMode === mode ? 'true' : 'false'}">${label}</button>`;
+  const boardBtn = (board, label) =>
+    `<button class="deck-board-filter-btn${state.deckBoardFilter === board ? ' active' : ''}" type="button" data-deck-board-filter="${board}" aria-pressed="${state.deckBoardFilter === board ? 'true' : 'false'}">${label}</button>`;
+  return `<div class="deck-workspace-controls">
+    <div class="deck-mode-tabs" aria-label="deck view mode">
+      ${modeBtn('visual', 'visual')}
+      ${modeBtn('text', 'text')}
+      ${modeBtn('stats', 'stats')}
+      ${modeBtn('hands', 'hands')}
+      ${modeBtn('notes', 'notes')}
+    </div>
+    <div class="deck-board-filter-tabs" aria-label="deck board filter">
+      ${boardBtn('all', 'all')}
+      ${boardBtn('main', 'main')}
+      ${boardBtn('sideboard', 'side')}
+      ${boardBtn('maybe', 'maybe')}
+    </div>
+    <details class="deck-view-settings">
+      <summary>view settings</summary>
+      <div class="deck-settings-grid">
+        <label>group by
+          <select data-deck-group>
+            ${VALID_DECK_GROUPS.map(v => `<option value="${v}"${state.deckGroupBy === v ? ' selected' : ''}>${v}</option>`).join('')}
+          </select>
+        </label>
+        <label>card size
+          <select data-deck-card-size>
+            ${VALID_DECK_CARD_SIZES.map(v => `<option value="${v}"${state.deckCardSize === v ? ' selected' : ''}>${v}</option>`).join('')}
+          </select>
+        </label>
+        <label class="deck-settings-check"><input type="checkbox" data-deck-show-prices${state.deckShowPrices ? ' checked' : ''}> show prices</label>
+      </div>
+    </details>
+  </div>`;
+}
+
+export function renderDeckExportPanel() {
+  const opts = defaultDeckExportOptions('moxfield');
+  return `<section class="deck-export-panel hidden" id="deckExportPanel" aria-label="export deck">
+    <form id="deckExportForm" class="deck-export-form">
+      <label>format
+        <select name="preset">
+          <option value="moxfield" selected>moxfield text</option>
+          <option value="plain">plain text</option>
+          <option value="arena">arena</option>
+          <option value="mtgo">mtgo</option>
+          <option value="csv">csv</option>
+          <option value="json">json</option>
+        </select>
+      </label>
+      <div class="deck-export-checks" aria-label="included boards">
+        <label><input type="checkbox" name="includeCommander" checked> commander</label>
+        <label><input type="checkbox" name="board" value="main"${opts.boards.includes('main') ? ' checked' : ''}> main</label>
+        <label><input type="checkbox" name="board" value="sideboard"${opts.boards.includes('sideboard') ? ' checked' : ''}> side</label>
+        <label><input type="checkbox" name="board" value="maybe"${opts.boards.includes('maybe') ? ' checked' : ''}> maybe</label>
+        <label><input type="checkbox" name="collapsePrintings"> collapse printings</label>
+      </div>
+      <div class="deck-export-actions">
+        <button class="btn" type="button" data-export-action="copy">copy</button>
+        <button class="btn btn-secondary" type="button" data-export-action="download">download</button>
+        <button class="btn btn-secondary" type="button" data-close-deck-export>close</button>
+      </div>
+    </form>
+  </section>`;
+}
+
+export function renderDeckAddPanel(deck) {
+  const locLabel = deck ? formatLocationLabel(deck) : '';
+  return `<section class="deck-add-panel hidden" id="deckAddPanel" aria-label="add cards to deck">
+    <form id="deckQuickAddForm" class="deck-add-form">
+      <label>board
+        <select name="board">
+          <option value="main">mainboard</option>
+          <option value="sideboard">sideboard</option>
+          <option value="maybe">maybeboard</option>
+        </select>
+      </label>
+      <label class="deck-add-lines">cards
+        <textarea name="decklist" rows="4" placeholder="1 Sol Ring (CMM) 410"></textarea>
+      </label>
+      <div class="deck-add-actions">
+        <span class="deck-add-destination">${esc(locLabel || 'current deck')}</span>
+        <button class="btn" type="submit">add to deck</button>
+        <button class="btn btn-secondary" type="button" data-close-deck-add>close</button>
+      </div>
+    </form>
+  </section>`;
+}
+
 function renderDeckView(list) {
   const deckColumnsEl = document.getElementById('deckColumns');
   const deckActionsEl = document.querySelector('#deckView .deck-actions');
@@ -748,7 +900,7 @@ function renderDeckView(list) {
     return;
   }
 
-  if (deckActionsEl) deckActionsEl.classList.remove('hidden');
+  if (deckActionsEl) deckActionsEl.classList.add('hidden');
   for (const c of list) c.deckBoard = normalizeDeckBoard(c.deckBoard);
   if (deck && (!deck.deck || typeof deck.deck !== 'object')) deck.deck = defaultDeckMetadata(deck.name);
   const meta = deck?.deck || defaultDeckMetadata(deck?.name || 'deck');
@@ -761,37 +913,45 @@ function renderDeckView(list) {
   const commanderHtml = commanderNames.length
     ? `<section class="deck-board-section deck-commanders"><div class="deck-board-header"><h3>commander</h3><span>${commanderNames.length}</span></div><div class="deck-text-list">${commanderNames.map(n => `<div class="deck-text-row"><span>${esc(n)}</span><span>metadata</span></div>`).join('')}</div></section>`
     : '';
-
-  deckColumnsEl.innerHTML = `<div class="deck-workspace">
-    ${renderDeckDetailsHeaderHtml(headerModel)}
-    <div class="deck-dashboard">
-      <section class="deck-stat-card"><h3>curve</h3>${statHtml.curveHtml}</section>
-      <section class="deck-stat-card"><h3>summary</h3>
-        <div class="breakdown-row"><span>format</span><span class="breakdown-count">${esc(format)}</span></div>
-        <div class="breakdown-row"><span>lands</span><span class="breakdown-count">${stats.lands}</span></div>
-        <div class="breakdown-row"><span>nonlands</span><span class="breakdown-count">${stats.nonlands}</span></div>
-        <div class="breakdown-row"><span>avg mv</span><span class="breakdown-count">${stats.avgManaValue.toFixed(2)}</span></div>
-        <div class="breakdown-row"><span>avg spell mv</span><span class="breakdown-count">${stats.avgSpellManaValue.toFixed(2)}</span></div>
-      </section>
-      <section class="deck-stat-card"><h3>types</h3>${statHtml.typeHtml}</section>
-      <section class="deck-stat-card"><h3>colors</h3>${statHtml.colorHtml}</section>
-    </div>
-    <section class="deck-sample-hand" id="deckSampleHand">
-      <div class="deck-board-header"><h3>sample hand</h3><div><button class="btn btn-secondary" type="button" data-sample-hand="draw">new hand</button><button class="btn btn-secondary" type="button" data-sample-hand="mulligan">mulligan</button></div></div>
-      <div class="deck-hand-row" id="deckHandCards"></div>
-      <div class="deck-next-row" id="deckNextCards"></div>
-    </section>
-    <div class="deck-content-grid">
+  const filteredBoards = filterDeckBoards(boards, state.deckBoardFilter);
+  const visualMainSections = filteredBoards
+    .filter(([board]) => board === 'main')
+    .map(([, cards]) => renderDeckBoardSection('mainboard', cards, { grouped: true }))
+    .join('');
+  const visualSideSections = filteredBoards
+    .filter(([board]) => board !== 'main')
+    .map(([board, cards]) => renderDeckBoardSection(boardLabel(board), cards))
+    .join('');
+  let visualBody;
+  if (state.deckBoardFilter === 'all') {
+    visualBody = `<div class="deck-content-grid${visualSideSections ? '' : ' deck-content-grid-single'}">
       <main>
         ${commanderHtml}
-        ${renderDeckBoardSection('mainboard', boards.main, { grouped: true })}
+        ${visualMainSections || (visualSideSections ? '' : renderDeckBoardSection('mainboard', [], { grouped: true }))}
       </main>
-      <aside class="deck-board-aside">
-        ${renderDeckBoardSection('sideboard', boards.sideboard)}
-        ${renderDeckBoardSection('maybeboard', boards.maybe)}
-        <section class="deck-board-section"><div class="deck-board-header"><h3>text list</h3><span>${stats.total} cards</span></div><div class="deck-text-list">${renderDeckTextRows(list)}</div></section>
-      </aside>
-    </div>
+      ${visualSideSections ? `<aside class="deck-board-aside">${visualSideSections}</aside>` : ''}
+    </div>`;
+  } else if (state.deckBoardFilter === 'main') {
+    visualBody = `<div class="deck-content-grid deck-content-grid-single"><main>${commanderHtml}${visualMainSections}</main></div>`;
+  } else {
+    visualBody = `<div class="deck-content-grid deck-content-grid-single"><main>${visualSideSections}</main></div>`;
+  }
+  const modeBody = state.deckMode === 'stats'
+    ? renderDeckStatsDashboard(stats, statHtml, format)
+    : state.deckMode === 'hands'
+      ? renderDeckSampleHandSection()
+      : state.deckMode === 'text'
+        ? renderDeckTextMode(boards)
+        : state.deckMode === 'notes'
+          ? renderDeckNotesMode(headerModel)
+          : visualBody;
+
+  deckColumnsEl.innerHTML = `<div class="deck-workspace deck-card-size-${esc(state.deckCardSize)}">
+    ${renderDeckDetailsHeaderHtml(headerModel)}
+    ${renderDeckWorkspaceControls()}
+    ${renderDeckExportPanel()}
+    ${renderDeckAddPanel(deck)}
+    ${modeBody}
   </div>`;
 
   const cols = groupDeck(boards.main, state.deckGroupBy);
@@ -938,8 +1098,86 @@ function saveDeckGroup() {
   try { localStorage.setItem(DECK_GROUP_KEY, state.deckGroupBy); } catch (e) {}
 }
 
+function loadDeckPrefs() {
+  try {
+    const raw = localStorage.getItem(DECK_VIEW_PREFS_KEY);
+    if (!raw) return;
+    const prefs = JSON.parse(raw);
+    if (VALID_DECK_MODES.includes(prefs.mode)) state.deckMode = prefs.mode;
+    if (VALID_DECK_BOARD_FILTERS.includes(prefs.boardFilter)) state.deckBoardFilter = prefs.boardFilter;
+    if (VALID_DECK_CARD_SIZES.includes(prefs.cardSize)) state.deckCardSize = prefs.cardSize;
+    if (typeof prefs.showPrices === 'boolean') state.deckShowPrices = prefs.showPrices;
+  } catch (e) {}
+}
+
+function saveDeckPrefs() {
+  try {
+    localStorage.setItem(DECK_VIEW_PREFS_KEY, JSON.stringify({
+      mode: state.deckMode,
+      boardFilter: state.deckBoardFilter,
+      cardSize: state.deckCardSize,
+      showPrices: state.deckShowPrices,
+    }));
+  } catch (e) {}
+}
+
 function buildDecklistText(list) {
   return buildDeckExport(list, currentDeckMetadata(), { preset: 'moxfield' }).body;
+}
+
+function deckExportOptionsFromForm(form) {
+  const fd = new FormData(form);
+  const preset = String(fd.get('preset') || 'moxfield');
+  const boards = fd.getAll('board').map(v => String(v)).filter(v => ['main', 'sideboard', 'maybe'].includes(v));
+  const defaults = defaultDeckExportOptions(preset);
+  const options = {
+    preset,
+    boards: boards.length ? boards : defaults.boards,
+    includeCommander: fd.get('includeCommander') === 'on',
+  };
+  if (fd.get('collapsePrintings') === 'on') options.collapsePrintings = true;
+  return options;
+}
+
+function downloadDeckExport(result) {
+  const blob = new Blob([result.body], { type: result.mime || 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = result.filename || 'deck.txt';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function handleDeckExportAction(action) {
+  const form = document.getElementById('deckExportForm');
+  if (!form) return;
+  const result = buildDeckExport(filteredSorted(), currentDeckMetadata(), deckExportOptionsFromForm(form));
+  if (action === 'download') {
+    downloadDeckExport(result);
+    showFeedback('deck export downloaded', 'success');
+  } else {
+    try {
+      await navigator.clipboard.writeText(result.body);
+      showFeedback('deck export copied', 'success');
+    } catch (err) {
+      showFeedback('clipboard unavailable: ' + err.message, 'error');
+    }
+  }
+  if (result.warnings?.length) showFeedback(result.warnings.join(' '), 'info');
+}
+
+function setDeckPanelOpen(panelId, triggerSelector, open) {
+  const root = document.getElementById('deckColumns');
+  const panel = root?.querySelector('#' + panelId);
+  if (!panel) return;
+  panel.classList.toggle('hidden', !open);
+  const trigger = root.querySelector(triggerSelector);
+  if (trigger) trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+  if (open) {
+    const first = panel.querySelector('textarea, input, select, button');
+    if (first) first.focus();
+  }
 }
 
 function showCardPreview(link) {
@@ -1181,6 +1419,7 @@ export function initView() {
   });
 
   loadDeckGroup();
+  loadDeckPrefs();
   const deckGroupEl = document.getElementById('deckGroupBy');
   if (deckGroupEl) {
     deckGroupEl.value = state.deckGroupBy;
@@ -1198,6 +1437,44 @@ export function initView() {
     if (chip) {
       const pill = chip.querySelector('.loc-pill');
       if (pill) navigateToLocation(pill.dataset.locType, pill.dataset.locName);
+      return;
+    }
+    const modeBtn = e.target.closest('[data-deck-mode]');
+    if (modeBtn) {
+      const mode = modeBtn.dataset.deckMode;
+      if (!VALID_DECK_MODES.includes(mode)) return;
+      state.deckMode = mode;
+      saveDeckPrefs();
+      render();
+      return;
+    }
+    const boardFilterBtn = e.target.closest('[data-deck-board-filter]');
+    if (boardFilterBtn) {
+      const filter = boardFilterBtn.dataset.deckBoardFilter;
+      if (!VALID_DECK_BOARD_FILTERS.includes(filter)) return;
+      state.deckBoardFilter = filter;
+      saveDeckPrefs();
+      render();
+      return;
+    }
+    const addToggle = e.target.closest('[data-toggle-deck-add]');
+    if (addToggle) {
+      const panel = document.getElementById('deckAddPanel');
+      setDeckPanelOpen('deckAddPanel', '[data-toggle-deck-add]', panel?.classList.contains('hidden'));
+      return;
+    }
+    const exportToggle = e.target.closest('[data-toggle-deck-export]');
+    if (exportToggle) {
+      const panel = document.getElementById('deckExportPanel');
+      setDeckPanelOpen('deckExportPanel', '[data-toggle-deck-export]', panel?.classList.contains('hidden'));
+      return;
+    }
+    if (e.target.closest('[data-close-deck-add]')) {
+      setDeckPanelOpen('deckAddPanel', '[data-toggle-deck-add]', false);
+      return;
+    }
+    if (e.target.closest('[data-close-deck-export]')) {
+      setDeckPanelOpen('deckExportPanel', '[data-toggle-deck-export]', false);
       return;
     }
     const menuToggle = e.target.closest('[data-card-menu-toggle]');
@@ -1222,6 +1499,33 @@ export function initView() {
     if (!e.target.closest('.deck-card')) closeDeckCardMenus(document.getElementById('deckColumns'));
   });
 
+  document.getElementById('deckColumns').addEventListener('change', e => {
+    const groupSelect = e.target.closest('[data-deck-group]');
+    if (groupSelect) {
+      const v = groupSelect.value;
+      if (!VALID_DECK_GROUPS.includes(v)) return;
+      state.deckGroupBy = v;
+      saveDeckGroup();
+      render();
+      return;
+    }
+    const sizeSelect = e.target.closest('[data-deck-card-size]');
+    if (sizeSelect) {
+      const v = sizeSelect.value;
+      if (!VALID_DECK_CARD_SIZES.includes(v)) return;
+      state.deckCardSize = v;
+      saveDeckPrefs();
+      render();
+      return;
+    }
+    const priceToggle = e.target.closest('[data-deck-show-prices]');
+    if (priceToggle) {
+      state.deckShowPrices = !!priceToggle.checked;
+      saveDeckPrefs();
+      render();
+    }
+  });
+
   document.getElementById('deckColumns').addEventListener('click', e => {
     const root = document.getElementById('deckColumns');
     const editBtn = e.target.closest('[data-edit-deck-details]');
@@ -1243,6 +1547,29 @@ export function initView() {
   });
 
   document.getElementById('deckColumns').addEventListener('submit', e => {
+    if (e.target.id === 'deckQuickAddForm') {
+      e.preventDefault();
+      const deck = currentDeckContainer();
+      if (!deck) return;
+      const fd = new FormData(e.target);
+      const text = String(fd.get('decklist') || '').trim();
+      if (!text) {
+        showFeedback('paste one or more decklist lines first', 'error');
+        return;
+      }
+      const board = normalizeDeckBoard(fd.get('board'));
+      importDecklistText(text, {
+        location: formatLocationLabel(deck),
+        board,
+        label: 'deck cards',
+      }).then(result => {
+        if (result?.ok) {
+          state.deckSampleHand = null;
+          showFeedback('added ' + result.count + ' deck card' + (result.count === 1 ? '' : 's'), 'success');
+        }
+      });
+      return;
+    }
     if (e.target.id !== 'deckMetadataForm') return;
     e.preventDefault();
     const deck = currentDeckContainer();
@@ -1271,10 +1598,17 @@ export function initView() {
       deckKey: deck ? deck.type + ':' + deck.name : '',
       ...drawSampleHand(boards.main, size),
     };
-    renderSampleHandPanel();
+    state.deckMode = 'hands';
+    saveDeckPrefs();
+    render();
   });
 
   document.getElementById('deckColumns').addEventListener('click', async e => {
+    const exportAction = e.target.closest('[data-export-action]');
+    if (exportAction) {
+      await handleDeckExportAction(exportAction.dataset.exportAction);
+      return;
+    }
     const copyBtn = e.target.closest('[data-copy-decklist]');
     if (!copyBtn) return;
     const text = buildDecklistText(filteredSorted());

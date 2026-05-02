@@ -9,6 +9,10 @@ export const state = {
   selectedKeys: new Set(),
   detailIndex: -1,
   deckGroupBy: 'type',
+  deckMode: 'visual',
+  deckBoardFilter: 'all',
+  deckCardSize: 'medium',
+  deckShowPrices: true,
   deckSampleHand: null,
   binderSize: '4x3',
   binderPage: 0,
@@ -18,5 +22,6 @@ export const state = {
 
 export const STORAGE_KEY = 'mtgcollection_v1';
 export const DECK_GROUP_KEY = 'mtgcollection_deck_group_v1';
+export const DECK_VIEW_PREFS_KEY = 'mtgcollection_deck_view_prefs_v1';
 export const BINDER_SIZE_KEY = 'mtgcollection_binder_size_v1';
 export const SCRYFALL_API = 'https://api.scryfall.com';

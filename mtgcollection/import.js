@@ -11,6 +11,8 @@ import {
   getCardImageUrl,
   getCardBackImageUrl,
   formatLocationLabel,
+  normalizeDeckBoard,
+  normalizeLocation,
 } from './collection.js';
 import { save, commitCollectionChange } from './persistence.js';
 import { filteredSorted } from './search.js';
@@ -268,7 +270,7 @@ async function resolveCards(entries) {
 }
 
 // ---- Imports ----
-async function importEntries(imported, options = {}) {
+export async function importEntries(imported, options = {}) {
   const { replace = false, silent = false, label = 'rows' } = options;
   if (imported.length === 0) {
     if (!silent) showFeedback('no usable rows found', 'error');
@@ -363,6 +365,26 @@ export async function importCsv(text) {
   await importEntries(imported, { label: 'rows' });
 }
 
+export async function importDecklistText(text, options = {}) {
+  const location = options.location || '';
+  const board = normalizeDeckBoard(options.board);
+  const { entries, errors } = parseDecklist(text, { location });
+  if (errors.length) {
+    showFeedback('couldn\'t parse decklist lines: ' + errors.join(', '), 'error');
+    return { ok: false, count: 0, errors };
+  }
+  if (!entries.length) {
+    showFeedback('no usable decklist lines found', 'error');
+    return { ok: false, count: 0, errors: [] };
+  }
+  const loc = normalizeLocation(location);
+  if (loc?.type === 'deck') {
+    for (const entry of entries) entry.deckBoard = board;
+  }
+  await importEntries(entries, { label: options.label || 'decklist cards' });
+  return { ok: true, count: entries.length, errors: [] };
+}
+
 // ---- Merge import into existing collection ----
 // Pure: takes (existing, imported) → new collection. Dedupes by collectionKey,
 // sums qty on collisions, unions tags on collisions.
@@ -427,12 +449,7 @@ function importFromPaste() {
     importCsv(text);
     return;
   }
-  const { entries, errors } = parseDecklist(text);
-  if (errors.length) {
-    showFeedback('couldn\'t parse decklist lines: ' + errors.join(', '), 'error');
-    return;
-  }
-  importEntries(entries, { label: 'decklist cards' });
+  importDecklistText(text, { label: 'decklist cards' });
 }
 
 async function importFromFile(file) {

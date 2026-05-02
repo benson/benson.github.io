@@ -269,7 +269,8 @@
     z-index: 30;
   }
   body.right-drawer-open .fab-cluster { display: none; }
-  body.view-locations .fab-cluster { display: none; }
+  body.view-locations .fab-cluster,
+  body.view-deck .fab-cluster { display: none; }
   .fab-btn {
     display: inline-flex;
     align-items: center;
@@ -976,10 +977,8 @@
     font-variant-numeric: tabular-nums;
   }
   .deck-columns {
-    --deck-card-w: 210px;
-    --deck-name-bar: 32px;
     display: grid;
-    grid-template-columns: repeat(auto-fill, var(--deck-card-w));
+    grid-template-columns: repeat(auto-fill, var(--deck-card-w, 210px));
     gap: 22px 14px;
     justify-content: start;
   }
@@ -1175,6 +1174,18 @@
     flex-direction: column;
     gap: 16px;
   }
+  .deck-workspace.deck-card-size-small {
+    --deck-card-w: 160px;
+    --deck-name-bar: 28px;
+  }
+  .deck-workspace.deck-card-size-medium {
+    --deck-card-w: 210px;
+    --deck-name-bar: 32px;
+  }
+  .deck-workspace.deck-card-size-large {
+    --deck-card-w: 250px;
+    --deck-name-bar: 36px;
+  }
   .deck-hero {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(220px, auto);
@@ -1265,6 +1276,107 @@
     padding: 7px 10px;
     white-space: nowrap;
   }
+  .deck-workspace-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 12px;
+  }
+  .deck-mode-tabs,
+  .deck-board-filter-tabs {
+    display: inline-flex;
+    border: 1px solid #bbb;
+    background: #fff;
+  }
+  .deck-mode-btn,
+  .deck-board-filter-btn {
+    border: 0;
+    border-right: 1px solid #bbb;
+    background: transparent;
+    color: #000;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.75rem;
+    padding: 6px 9px;
+    text-transform: lowercase;
+  }
+  .deck-mode-btn:last-child,
+  .deck-board-filter-btn:last-child {
+    border-right: 0;
+  }
+  .deck-mode-btn.active,
+  .deck-board-filter-btn.active {
+    background: #000;
+    color: #fff;
+  }
+  .deck-mode-btn:focus-visible,
+  .deck-board-filter-btn:focus-visible,
+  .deck-view-settings summary:focus-visible {
+    outline: 2px solid #000;
+    outline-offset: 2px;
+  }
+  .deck-view-settings {
+    margin-left: auto;
+    position: relative;
+  }
+  .deck-view-settings summary {
+    cursor: pointer;
+    border: 1px solid #bbb;
+    background: #fff;
+    color: #000;
+    list-style: none;
+    padding: 6px 10px;
+    font-size: 0.75rem;
+  }
+  .deck-view-settings summary::-webkit-details-marker {
+    display: none;
+  }
+  .deck-settings-grid {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    z-index: 30;
+    min-width: 210px;
+    display: grid;
+    gap: 9px;
+    border: 1px solid #111;
+    background: #fff;
+    padding: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.16);
+  }
+  .deck-settings-grid label,
+  .deck-export-form label,
+  .deck-add-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    color: #777;
+    font-size: 0.68rem;
+    text-transform: lowercase;
+  }
+  .deck-settings-grid select,
+  .deck-export-form select,
+  .deck-add-form select,
+  .deck-add-form textarea {
+    border: 1px solid #ccc;
+    background: #fff;
+    color: #000;
+    font: inherit;
+    font-size: 0.8rem;
+    padding: 7px 8px;
+    text-transform: none;
+  }
+  .deck-settings-check {
+    flex-direction: row !important;
+    align-items: center;
+    color: #000 !important;
+    font-size: 0.75rem !important;
+  }
+  .deck-settings-check input {
+    margin: 0;
+  }
   .deck-details-editor {
     border: 1px solid #ddd;
     background: #fafafa;
@@ -1335,6 +1447,9 @@
     gap: 18px;
     align-items: start;
   }
+  .deck-content-grid-single {
+    grid-template-columns: minmax(0, 1fr);
+  }
   .deck-board-aside,
   .deck-content-grid main {
     display: flex;
@@ -1373,6 +1488,13 @@
     max-height: 360px;
     overflow: auto;
     font-size: 0.75rem;
+  }
+  .deck-text-list-full {
+    max-height: none;
+  }
+  .deck-text-mode {
+    display: grid;
+    gap: 12px;
   }
   .deck-text-row {
     display: flex;
@@ -2438,6 +2560,64 @@
     border-radius: 2px;
     overflow: hidden;
   }
+  .deck-export-panel,
+  .deck-add-panel {
+    border: 1px solid #ddd;
+    background: #fafafa;
+    padding: 12px;
+  }
+  .deck-export-form,
+  .deck-add-form {
+    display: grid;
+    grid-template-columns: minmax(130px, 0.6fr) minmax(0, 1.4fr) auto;
+    gap: 10px;
+    align-items: end;
+  }
+  .deck-export-checks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    align-items: center;
+    color: #000;
+    font-size: 0.75rem;
+  }
+  .deck-export-checks label {
+    flex-direction: row;
+    align-items: center;
+    color: inherit;
+    font-size: inherit;
+  }
+  .deck-export-checks input {
+    margin: 0;
+  }
+  .deck-export-actions,
+  .deck-add-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .deck-add-lines {
+    grid-column: span 1;
+  }
+  .deck-add-form textarea {
+    min-height: 88px;
+    resize: vertical;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  .deck-add-destination {
+    color: #777;
+    font-size: 0.72rem;
+    margin-right: auto;
+  }
+  .deck-notes-panel p {
+    margin: 0;
+    max-width: 780px;
+    line-height: 1.5;
+    text-transform: none;
+    white-space: pre-wrap;
+  }
   .language-toggle {
     display: inline-flex;
     flex-wrap: wrap;
@@ -3100,8 +3280,33 @@
     .deck-content-grid,
     .deck-dashboard,
     .deck-metadata-form,
+    .deck-export-form,
+    .deck-add-form,
     .deck-meta-strip {
       grid-template-columns: 1fr;
+    }
+    .deck-workspace-controls {
+      align-items: stretch;
+    }
+    .deck-mode-tabs,
+    .deck-board-filter-tabs {
+      width: 100%;
+    }
+    .deck-mode-btn,
+    .deck-board-filter-btn {
+      flex: 1 1 0;
+    }
+    .deck-view-settings {
+      margin-left: 0;
+      width: 100%;
+    }
+    .deck-view-settings summary {
+      text-align: center;
+    }
+    .deck-settings-grid {
+      position: static;
+      margin-top: 6px;
+      box-shadow: none;
     }
     .deck-hero-side {
       min-width: 0;
@@ -3120,6 +3325,17 @@
     }
     .deck-metadata-actions .btn {
       flex: 1 1 auto;
+    }
+    .deck-export-actions,
+    .deck-add-actions {
+      justify-content: stretch;
+    }
+    .deck-export-actions .btn,
+    .deck-add-actions .btn {
+      flex: 1 1 auto;
+    }
+    .deck-add-destination {
+      width: 100%;
     }
     .deck-preview-panel {
       display: none;
