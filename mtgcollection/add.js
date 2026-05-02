@@ -107,8 +107,7 @@ function renderFinishRadios(card) {
   const finishes = getCardFinishes(card);
   wrap.innerHTML = finishes.map((f, i) => {
     const value = f.finish === 'nonfoil' ? 'normal' : f.finish;
-    const priceStr = f.price ? ' ($' + f.price + ')' : '';
-    const label = (f.label + priceStr).toLowerCase();
+    const label = f.label.toLowerCase();
     return `<label><input type="radio" name="addFinish" value="${esc(value)}"${i === 0 ? ' checked' : ''}><span>${esc(label)}</span></label>`;
   }).join('');
 }
