@@ -7,8 +7,7 @@ import { navigateToLocation, LOC_ICONS } from './view.js';
 const CHANGELOG_KEY = 'mtgcollection_changelog_v1';
 const CAP = 200;
 let log = [];
-let historyDetailsEl;
-let historyListEl;
+let historyTargets = [];
 
 function persist() {
   try {
@@ -278,26 +277,28 @@ export function qtyDiffSummary(before, after) {
 }
 
 function renderHistoryList() {
-  if (!historyListEl) return;
+  if (!historyTargets.length) return;
   const visible = log.filter(eventVisibleInScope);
+  let html;
   if (visible.length === 0) {
     const msg = currentScope ? 'No changes for this deck yet' : 'No changes yet';
-    historyListEl.innerHTML = '<li class="history-empty">' + msg + '</li>';
-    return;
+    html = '<li class="history-empty">' + msg + '</li>';
+  } else {
+    html = visible.map(ev => {
+      const cls = ev.undone ? 'history-undone' : (ev.dismissed ? 'history-dismissed' : '');
+      const undoBtn = ev.undone
+        ? ''
+        : '<button class="history-undo" type="button" data-action="undo" data-event-id="' + esc(ev.id) + '">undo</button>';
+      return '<li class="' + cls + '">' +
+        '<div class="history-row-meta">' +
+          '<time datetime="' + esc(formatTsIso(ev.ts)) + '">' + esc(formatTs(ev.ts)) + '</time>' +
+          undoBtn +
+        '</div>' +
+        '<span class="history-summary-text">' + composeSummary(ev.summary, ev.cards, 'history-card-name') + '</span>' +
+      '</li>';
+    }).join('');
   }
-  historyListEl.innerHTML = visible.map(ev => {
-    const cls = ev.undone ? 'history-undone' : (ev.dismissed ? 'history-dismissed' : '');
-    const undoBtn = ev.undone
-      ? ''
-      : '<button class="history-undo" type="button" data-action="undo" data-event-id="' + esc(ev.id) + '">undo</button>';
-    return '<li class="' + cls + '">' +
-      '<div class="history-row-meta">' +
-        '<time datetime="' + esc(formatTsIso(ev.ts)) + '">' + esc(formatTs(ev.ts)) + '</time>' +
-        undoBtn +
-      '</div>' +
-      '<span class="history-summary-text">' + composeSummary(ev.summary, ev.cards, 'history-card-name') + '</span>' +
-    '</li>';
-  }).join('');
+  for (const t of historyTargets) t.list.innerHTML = html;
 }
 
 function csvCell(v) {
@@ -331,19 +332,15 @@ function downloadCsv() {
 }
 
 export function initChangelog() {
-  historyDetailsEl = document.getElementById('historyDetails');
-  historyListEl = document.getElementById('historyList');
-
-  log = load();
-
-  if (historyDetailsEl) {
-    historyDetailsEl.addEventListener('toggle', () => {
-      if (historyDetailsEl.open) renderHistoryList();
+  historyTargets = [];
+  document.querySelectorAll('.history-details').forEach(details => {
+    const list = details.querySelector('.history-list');
+    if (!list) return;
+    historyTargets.push({ details, list });
+    details.addEventListener('toggle', () => {
+      if (details.open) renderHistoryList();
     });
-  }
-
-  if (historyListEl) {
-    historyListEl.addEventListener('click', e => {
+    list.addEventListener('click', e => {
       const undoBtn = e.target.closest('button.history-undo');
       if (undoBtn) {
         const id = undoBtn.dataset.eventId;
@@ -356,19 +353,18 @@ export function initChangelog() {
         if (locType && locName) navigateToLocation(locType, locName);
       }
     });
-  }
+    const exportBtn = details.querySelector('.history-export-btn, #exportHistoryBtn');
+    if (exportBtn) exportBtn.addEventListener('click', downloadCsv);
+    const clearBtn = details.querySelector('.history-clear-btn, #clearHistoryBtn');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        if (log.length === 0) return;
+        if (!confirm('clear ' + log.length + ' history ' + (log.length === 1 ? 'entry' : 'entries') + '?')) return;
+        clearLog();
+      });
+    }
+  });
 
-  const exportBtn = document.getElementById('exportHistoryBtn');
-  if (exportBtn) exportBtn.addEventListener('click', downloadCsv);
-
-  const clearBtn = document.getElementById('clearHistoryBtn');
-  if (clearBtn) {
-    clearBtn.addEventListener('click', () => {
-      if (log.length === 0) return;
-      if (!confirm('clear ' + log.length + ' history ' + (log.length === 1 ? 'entry' : 'entries') + '?')) return;
-      clearLog();
-    });
-  }
-
+  log = load();
   renderHistoryList();
 }

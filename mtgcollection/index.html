@@ -227,16 +227,11 @@
   body.view-list .app-right,
   body.view-locations .app-right { display: none; }
   body.view-deck .app-shell {
-    grid-template-columns: 200px minmax(0, 1fr) 0;
+    grid-template-columns: 0 minmax(0, 1fr) 0;
   }
+  body.view-deck .app-left,
   body.view-deck .app-right {
     display: none;
-  }
-  body.view-deck .app-left > .sidebar-section {
-    display: none;
-  }
-  body.view-deck .app-left .sidebar-history {
-    margin-top: auto;
   }
 
   /* List-view + drawer-open: float the sidebar in from the right with a backdrop */
@@ -906,16 +901,53 @@
     gap: 24px;
     align-items: start;
   }
-  .deck-preview-panel {
+  .deck-side-column {
+    display: flex;
+    flex-direction: column;
+    align-self: start;
     position: sticky;
     top: 14px;
-    align-self: start;
+    height: calc(100vh - 80px);
+    min-height: 0;
+  }
+  .deck-preview-panel {
     display: flex;
     flex-direction: column;
     gap: 6px;
     cursor: pointer;
+    flex: 0 0 auto;
   }
   .deck-preview-panel.hidden { display: none; }
+  .deck-side-history {
+    margin-top: auto;
+    flex: 0 0 300px;
+    height: 300px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .deck-side-history > summary {
+    flex: 0 0 auto;
+  }
+  .deck-side-history > .details-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .deck-side-history[open] {
+    flex: 0 0 300px;
+  }
+  .deck-side-history:not([open]) {
+    flex: 0 0 auto;
+    height: auto;
+  }
+  .deck-side-history .history-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
   .deck-preview-frame {
     position: relative;
     width: 100%;
@@ -3539,15 +3571,27 @@
           <span class="deck-summary" id="deckSummary"></span>
         </div>
         <div class="deck-view-wrap" id="deckViewWrap">
-          <aside class="deck-preview-panel hidden" id="deckPreviewPanel" role="button" tabindex="0" aria-label="open card detail">
-            <div class="deck-preview-frame">
-              <img class="deck-preview-card hidden" alt="">
-              <div class="deck-preview-placeholder hidden"></div>
-            </div>
-            <div class="drawer-flip-row deck-preview-flip-row hidden"><button type="button" class="flip-btn" id="deckPreviewFlipBtn">flip card</button></div>
-            <div class="deck-preview-name"></div>
-            <div class="deck-preview-meta"></div>
-          </aside>
+          <div class="deck-side-column">
+            <aside class="deck-preview-panel hidden" id="deckPreviewPanel" role="button" tabindex="0" aria-label="open card detail">
+              <div class="deck-preview-frame">
+                <img class="deck-preview-card hidden" alt="">
+                <div class="deck-preview-placeholder hidden"></div>
+              </div>
+              <div class="drawer-flip-row deck-preview-flip-row hidden"><button type="button" class="flip-btn" id="deckPreviewFlipBtn">flip card</button></div>
+              <div class="deck-preview-name"></div>
+              <div class="deck-preview-meta"></div>
+            </aside>
+            <details class="history-details deck-side-history" id="deckHistoryDetails" open>
+              <summary>history</summary>
+              <div class="details-body">
+                <ol class="history-list" id="deckHistoryList"></ol>
+                <div class="history-actions">
+                  <button class="btn btn-secondary history-export-btn" type="button">export csv</button>
+                  <button class="btn btn-secondary history-clear-btn" type="button">clear history</button>
+                </div>
+              </div>
+            </details>
+          </div>
           <div class="deck-workspace-root" id="deckColumns"></div>
         </div>
       </div>
