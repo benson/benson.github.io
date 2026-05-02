@@ -11,6 +11,7 @@ import {
   ensureContainer,
   renameContainer,
   deleteEmptyContainer,
+  deleteContainerAndUnlocateCards,
   formatLocationLabel,
   LOCATION_TYPES,
   DEFAULT_LOCATION_TYPE,
@@ -344,7 +345,6 @@ function renderLocationsView(containers) {
     const cards = ofType.map(c => {
       const stats = containerStats(c);
       const value = stats.value > 0 ? ' &middot; $' + stats.value.toFixed(2) : '';
-      const disabled = stats.total > 0 ? ' disabled' : '';
       const radioName = 'editLocType_' + esc(c.type) + '_' + esc(c.name);
       const typeRadiosHtml = LOCATION_TYPES.map(t => `<label class="loc-type-radio${t === c.type ? ' is-selected' : ''}">
         <input type="radio" name="${radioName}" value="${esc(t)}"${t === c.type ? ' checked' : ''}>
@@ -358,7 +358,7 @@ function renderLocationsView(containers) {
           <button class="location-card-menu-btn" type="button" aria-label="more options" aria-haspopup="menu">⋯</button>
         </div>
         <div class="location-card-menu" role="menu">
-          <button class="location-card-menu-item location-delete" type="button" role="menuitem"${disabled}>delete</button>
+          <button class="location-card-menu-item location-delete" type="button" role="menuitem">delete</button>
         </div>
         <div class="location-card-stats">${stats.unique} unique &middot; ${stats.total} total${value}</div>
         <div class="location-card-edit-row">
@@ -997,11 +997,21 @@ export function initView() {
       return;
     }
     if (e.target.closest('.location-delete')) {
-      if (!confirm('delete ' + loc.name + '?')) return;
-      if (deleteEmptyContainer(loc)) {
-        save();
-        populateFilters();
-        render();
+      const stats = containerStats(loc);
+      if (stats.total > 0) {
+        const msg = 'delete ' + loc.type + ' "' + loc.name + '"?\n\nthis will clear the location from '
+          + stats.total + ' card' + (stats.total === 1 ? '' : 's')
+          + ' (' + stats.unique + ' unique). the cards stay in your collection.';
+        if (!confirm(msg)) return;
+        deleteContainerAndUnlocateCards(loc);
+        commitCollectionChange();
+      } else {
+        if (!confirm('delete ' + loc.type + ' "' + loc.name + '"?')) return;
+        if (deleteEmptyContainer(loc)) {
+          save();
+          populateFilters();
+          render();
+        }
       }
       return;
     }

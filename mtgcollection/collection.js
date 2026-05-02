@@ -257,6 +257,23 @@ export function deleteEmptyContainer(raw) {
   return true;
 }
 
+// Delete a container and clear the location on every card that was in it.
+// Returns the number of cards whose location was cleared.
+export function deleteContainerAndUnlocateCards(raw) {
+  const loc = normalizeLocation(raw);
+  if (!loc) return 0;
+  const key = locationKey(loc);
+  let cleared = 0;
+  for (const c of state.collection) {
+    if (locationKey(c.location) === key) {
+      c.location = null;
+      cleared++;
+    }
+  }
+  if (state.containers) delete state.containers[key];
+  return cleared;
+}
+
 // Build a `loc:` search token from a typed location (or legacy string).
 export function quoteLocationForSearch(loc) {
   const label = typeof loc === 'string' ? loc : formatLocationLabel(loc);
