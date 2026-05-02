@@ -198,6 +198,7 @@ export function render() {
     btn.classList.toggle('active', btn.dataset.view === state.viewMode);
   });
   document.body.classList.toggle('view-list', shape === 'list');
+  document.body.classList.toggle('view-locations', shape === 'locations');
   document.body.classList.toggle('has-collection', state.collection.length > 0);
   // Switching away from list shape always closes the right drawer
   if (shape !== 'list') closeRightDrawer();
