@@ -227,11 +227,16 @@
   body.view-list .app-right,
   body.view-locations .app-right { display: none; }
   body.view-deck .app-shell {
-    grid-template-columns: 0 minmax(0, 1fr) 0;
+    grid-template-columns: 200px minmax(0, 1fr) 0;
   }
-  body.view-deck .app-left,
   body.view-deck .app-right {
     display: none;
+  }
+  body.view-deck .app-left > .sidebar-section {
+    display: none;
+  }
+  body.view-deck .app-left .sidebar-history {
+    margin-top: auto;
   }
 
   /* List-view + drawer-open: float the sidebar in from the right with a backdrop */

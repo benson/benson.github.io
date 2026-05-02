@@ -74,7 +74,7 @@ function normalizeCards(cards) {
     }));
 }
 
-export function recordEvent({ type, summary, before = [], created = [], affectedKeys = [], cards = [] }) {
+export function recordEvent({ type, summary, before = [], created = [], affectedKeys = [], cards = [], scope, deckLocation }) {
   const normCards = normalizeCards(cards);
   const ev = {
     id: genId(),
@@ -85,6 +85,8 @@ export function recordEvent({ type, summary, before = [], created = [], affected
     created: [...created],
     affectedKeys: [...affectedKeys],
     cards: normCards,
+    scope: scope === 'deck' ? 'deck' : 'collection',
+    deckLocation: deckLocation || '',
     dismissed: false,
     undone: false,
   };
@@ -93,6 +95,33 @@ export function recordEvent({ type, summary, before = [], created = [], affected
   persist();
   renderHistoryList();
   return ev;
+}
+
+let currentScope = null;
+
+export function setHistoryScope(scope) {
+  const next = scope && scope.type && scope.name ? { type: scope.type, name: scope.name } : null;
+  const same = (!next && !currentScope) ||
+    (next && currentScope && next.type === currentScope.type && next.name === currentScope.name);
+  if (same) return;
+  currentScope = next;
+  renderHistoryList();
+}
+
+function eventTouchesDeck(ev, type, name) {
+  if (ev.deckLocation === type + ':' + name) return true;
+  if (Array.isArray(ev.before)) {
+    for (const b of ev.before) {
+      const loc = normalizeLocation(b.card?.location);
+      if (loc?.type === type && loc?.name === name) return true;
+    }
+  }
+  return false;
+}
+
+function eventVisibleInScope(ev) {
+  if (!currentScope) return ev.scope !== 'deck';
+  return eventTouchesDeck(ev, currentScope.type, currentScope.name);
 }
 
 export function undoEvent(id) {
@@ -250,11 +279,13 @@ export function qtyDiffSummary(before, after) {
 
 function renderHistoryList() {
   if (!historyListEl) return;
-  if (log.length === 0) {
-    historyListEl.innerHTML = '<li class="history-empty">No changes yet</li>';
+  const visible = log.filter(eventVisibleInScope);
+  if (visible.length === 0) {
+    const msg = currentScope ? 'No changes for this deck yet' : 'No changes yet';
+    historyListEl.innerHTML = '<li class="history-empty">' + msg + '</li>';
     return;
   }
-  historyListEl.innerHTML = log.map(ev => {
+  historyListEl.innerHTML = visible.map(ev => {
     const cls = ev.undone ? 'history-undone' : (ev.dismissed ? 'history-dismissed' : '');
     const undoBtn = ev.undone
       ? ''

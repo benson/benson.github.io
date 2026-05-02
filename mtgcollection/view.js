@@ -25,7 +25,7 @@ import { groupDeck, firstCardForPanel, splitDeckBoards, deckStats, renderDeckSta
 import { updateBulkBar } from './bulk.js';
 import { paginateForBinder, sortForBinder, BINDER_SIZES, binderSlotCount } from './binder.js';
 import { getSetIconUrl } from './setIcons.js';
-import { recordEvent, captureBefore, locationDiffSummary } from './changelog.js';
+import { recordEvent, captureBefore, locationDiffSummary, setHistoryScope } from './changelog.js';
 import { setMultiselectValue, getMultiselectValue } from './multiselect.js';
 import { buildDeckExport, defaultDeckExportOptions } from './deckExport.js';
 import { importDecklistText } from './import.js';
@@ -71,6 +71,16 @@ export function getEffectiveShape() {
   if (type === 'deck') return 'deck';
   if (type === 'binder') return 'binder';
   return 'list';
+}
+
+function currentDeckScope() {
+  const filterEl = document.getElementById('filterLocation');
+  if (!filterEl) return null;
+  const values = getMultiselectValue(filterEl);
+  if (values.length !== 1) return null;
+  const [type, ...rest] = values[0].split(':');
+  if (type !== 'deck') return null;
+  return { type, name: rest.join(':') };
 }
 
 export const LOC_ICONS = {
@@ -213,6 +223,7 @@ export function render() {
   if (shape !== 'list') closeRightDrawer();
   syncClearFiltersBtn();
   syncViewAsListToggles();
+  setHistoryScope(shape === 'deck' ? currentDeckScope() : null);
   const containers = allContainers();
   if (state.collection.length === 0 && containers.length === 0 && shape !== 'locations') {
     collectionSection.classList.add('hidden');
@@ -530,12 +541,15 @@ function moveDeckCardToBoard(index, rawBoard) {
   const before = captureBefore([beforeKey, afterKey]);
   entry.deckBoard = targetBoard;
   state.deckSampleHand = null;
+  const deckLoc = normalizeLocation(entry.location);
   recordEvent({
     type: 'edit',
     summary: 'Moved {card} to ' + (targetBoard === 'maybe' ? 'maybeboard' : targetBoard),
     before,
     affectedKeys: [beforeKey, afterKey],
     cards: [deckCardEventPayload(entry)],
+    scope: 'deck',
+    deckLocation: deckLoc ? deckLoc.type + ':' + deckLoc.name : '',
   });
   commitCollectionChange({ coalesce: true });
 }
