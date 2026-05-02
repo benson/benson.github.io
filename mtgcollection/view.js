@@ -1,4 +1,4 @@
-import { state, DECK_GROUP_KEY, DECK_VIEW_PREFS_KEY, BINDER_SIZE_KEY } from './state.js';
+import { state, DECK_GROUP_KEY, DECK_VIEW_PREFS_KEY, BINDER_SIZE_KEY, SCRYFALL_API } from './state.js';
 import { esc, showFeedback } from './feedback.js';
 import {
   collectionKey,
@@ -17,6 +17,10 @@ import {
   DEFAULT_LOCATION_TYPE,
   normalizeDeckBoard,
   defaultDeckMetadata,
+  getCardImageUrl,
+  getCardBackImageUrl,
+  makeEntry,
+  getUsdPrice,
 } from './collection.js';
 import { save, commitCollectionChange } from './persistence.js';
 import { openDetail, populateFilters } from './detail.js';
@@ -786,7 +790,13 @@ export function deckDetailsViewModel(deck, meta = {}, stats = {}, selectedFormat
   const description = String(safeMeta.description || '').trim();
   const formatInput = String(safeMeta.format || selectedFormat || '').trim();
   const commander = String(safeMeta.commander || '').trim();
+  const commanderScryfallId = String(safeMeta.commanderScryfallId || '').trim();
+  const commanderImageUrl = String(safeMeta.commanderImageUrl || '').trim();
+  const commanderBackImageUrl = String(safeMeta.commanderBackImageUrl || '').trim();
   const partner = String(safeMeta.partner || '').trim();
+  const partnerScryfallId = String(safeMeta.partnerScryfallId || '').trim();
+  const partnerImageUrl = String(safeMeta.partnerImageUrl || '').trim();
+  const partnerBackImageUrl = String(safeMeta.partnerBackImageUrl || '').trim();
   const companion = String(safeMeta.companion || '').trim();
   const value = Number(safeStats.value) || 0;
   const count = key => parseInt(safeStats[key], 10) || 0;
@@ -798,7 +808,13 @@ export function deckDetailsViewModel(deck, meta = {}, stats = {}, selectedFormat
     format: formatInput || 'unspecified format',
     formatInput,
     commander,
+    commanderScryfallId,
+    commanderImageUrl,
+    commanderBackImageUrl,
     partner,
+    partnerScryfallId,
+    partnerImageUrl,
+    partnerBackImageUrl,
     companion,
     total: count('total'),
     main: count('main'),
@@ -816,6 +832,15 @@ function deckMetaItem(label, value, emptyText) {
   return `<div><dt>${esc(label)}</dt><dd class="${cls}">${esc(hasValue ? value : emptyText)}</dd></div>`;
 }
 
+function deckMetaCardItem(label, name, imageUrl, emptyText) {
+  if (!name) {
+    return `<div><dt>${esc(label)}</dt><dd class="deck-meta-value is-empty">${esc(emptyText)}</dd></div>`;
+  }
+  const previewAttr = imageUrl ? ` data-preview-url="${esc(imageUrl)}"` : '';
+  const cls = 'deck-meta-value deck-meta-card-name' + (imageUrl ? ' card-preview-link' : '');
+  return `<div><dt>${esc(label)}</dt><dd class="${cls}"${previewAttr}>${esc(name)}</dd></div>`;
+}
+
 export function renderDeckDetailsHeaderHtml(model) {
   const descClass = 'deck-description' + (model.description ? '' : ' is-empty');
   return `<section class="deck-hero">
@@ -825,8 +850,8 @@ export function renderDeckDetailsHeaderHtml(model) {
         <p class="${descClass}">${esc(model.descriptionText)}</p>
         <dl class="deck-meta-strip" aria-label="deck details">
           ${deckMetaItem('format', model.formatInput, 'unspecified format')}
-          ${model.formatInput === 'commander' ? deckMetaItem('commander', model.commander, 'not set') : ''}
-          ${model.formatInput === 'commander' && model.partner ? deckMetaItem('partner', model.partner, 'none') : ''}
+          ${model.formatInput === 'commander' ? deckMetaCardItem('commander', model.commander, model.commanderImageUrl, 'not set') : ''}
+          ${model.formatInput === 'commander' && model.partner ? deckMetaCardItem('partner', model.partner, model.partnerImageUrl, 'none') : ''}
           ${model.companion ? deckMetaItem('companion', model.companion, '') : ''}
         </dl>
       </div>
@@ -853,8 +878,18 @@ export function renderDeckDetailsHeaderHtml(model) {
       <form class="deck-metadata-form" id="deckMetadataForm" data-format="${esc(model.formatInput)}">
         <label class="deck-metadata-field"><span>title</span><input name="title" value="${esc(model.title)}" placeholder="deck title" autocomplete="off"></label>
         <label class="deck-metadata-field"><span>format</span>${renderDeckFormatPicker(model.formatInput)}</label>
-        <label class="deck-metadata-field deck-metadata-commander"><span>commander</span><input name="commander" value="${esc(model.commander)}" placeholder="commander" autocomplete="off"></label>
-        <label class="deck-metadata-field deck-metadata-partner"><span>partner</span><input name="partner" value="${esc(model.partner)}" placeholder="partner" autocomplete="off"></label>
+        <label class="deck-metadata-field deck-metadata-commander"><span>commander</span>
+          <span class="deck-meta-ac-wrap">
+            <input name="commander" value="${esc(model.commander)}" placeholder="commander" autocomplete="off" data-meta-ac="commander" data-meta-ac-scryfall-id="${esc(model.commanderScryfallId)}" data-meta-ac-image="${esc(model.commanderImageUrl)}" data-meta-ac-back-image="${esc(model.commanderBackImageUrl)}">
+            <ul class="autocomplete-list deck-meta-ac-list" role="listbox"></ul>
+          </span>
+        </label>
+        <label class="deck-metadata-field deck-metadata-partner"><span>partner</span>
+          <span class="deck-meta-ac-wrap">
+            <input name="partner" value="${esc(model.partner)}" placeholder="partner" autocomplete="off" data-meta-ac="partner" data-meta-ac-scryfall-id="${esc(model.partnerScryfallId)}" data-meta-ac-image="${esc(model.partnerImageUrl)}" data-meta-ac-back-image="${esc(model.partnerBackImageUrl)}">
+            <ul class="autocomplete-list deck-meta-ac-list" role="listbox"></ul>
+          </span>
+        </label>
         <div class="deck-metadata-field deck-metadata-companion">
           <span>companion</span>
           ${model.companion
@@ -868,6 +903,128 @@ export function renderDeckDetailsHeaderHtml(model) {
         </div>
       </form>
     </section>`;
+}
+
+// Commander/partner autocomplete — debounced search against Scryfall with
+// is:commander or is:partner filter, rendered in the .autocomplete-list
+// anchored under the input.
+let metaAcDebounce = null;
+let metaAcAbort = null;
+let metaAcItems = [];
+let metaAcIndex = -1;
+// Cache full Scryfall card objects keyed by scryfallId so we can auto-add
+// the picked commander/partner to the deck on save without a refetch.
+const metaAcCardCache = new Map();
+
+function metaAcWrap(input) { return input?.parentElement?.classList.contains('deck-meta-ac-wrap') ? input.parentElement : null; }
+function metaAcList(input) { return metaAcWrap(input)?.querySelector('.deck-meta-ac-list') || null; }
+
+function hideMetaAc(input) {
+  const list = metaAcList(input);
+  if (!list) return;
+  list.classList.remove('active');
+  list.innerHTML = '';
+  metaAcItems = [];
+  metaAcIndex = -1;
+}
+
+function renderMetaAcList(input) {
+  const list = metaAcList(input);
+  if (!list) return;
+  if (!metaAcItems.length) { hideMetaAc(input); return; }
+  list.innerHTML = metaAcItems.map((item, i) => `<li role="option"${i === metaAcIndex ? ' class="highlight"' : ''} data-ac-index="${i}">${esc(item.name)}</li>`).join('');
+  list.classList.add('active');
+}
+
+async function fetchMetaAc(input) {
+  const kind = input.dataset.metaAc;
+  if (kind !== 'commander' && kind !== 'partner') return;
+  const q = (input.value || '').trim();
+  if (q.length < 2) { hideMetaAc(input); return; }
+  if (metaAcAbort) metaAcAbort.abort();
+  metaAcAbort = new AbortController();
+  const filter = kind === 'partner' ? 'is:partner' : 'is:commander';
+  const url = SCRYFALL_API + '/cards/search?q=' + encodeURIComponent(`${filter} name:${q}`) + '&order=name&unique=cards';
+  try {
+    const resp = await fetch(url, { signal: metaAcAbort.signal });
+    if (!resp.ok) { hideMetaAc(input); return; } // 404 = no matches
+    const data = await resp.json();
+    metaAcItems = (data.data || []).slice(0, 10).map(c => {
+      metaAcCardCache.set(c.id, c);
+      return {
+        id: c.id,
+        name: c.name,
+        imageUrl: getCardImageUrl(c) || '',
+        backImageUrl: getCardBackImageUrl(c) || '',
+      };
+    });
+    metaAcIndex = -1;
+    renderMetaAcList(input);
+  } catch (e) {
+    if (e.name !== 'AbortError') hideMetaAc(input);
+  }
+}
+
+function pickMetaAc(input, item) {
+  input.value = item.name;
+  input.dataset.metaAcScryfallId = item.id || '';
+  input.dataset.metaAcImage = item.imageUrl || '';
+  input.dataset.metaAcBackImage = item.backImageUrl || '';
+  hideMetaAc(input);
+}
+
+// If the picked commander/partner isn't already a card in this deck, add it
+// to the deck (board: main, qty: 1) so the metadata pointer resolves to a
+// real collection entry. Returns the new key if a card was added, else null.
+function ensureCommanderEntryInDeck(scryfallId, deckLocLabel) {
+  if (!scryfallId || !deckLocLabel) return null;
+  const loc = normalizeLocation(deckLocLabel);
+  if (!loc || loc.type !== 'deck') return null;
+  const already = state.collection.some(c =>
+    c.scryfallId === scryfallId
+    && normalizeLocation(c.location)?.type === 'deck'
+    && normalizeLocation(c.location)?.name === loc.name
+  );
+  if (already) return null;
+  const card = metaAcCardCache.get(scryfallId);
+  if (!card) return null;
+  const entry = makeEntry({
+    name: card.name,
+    setCode: card.set,
+    setName: card.set_name,
+    cn: card.collector_number,
+    finish: 'normal',
+    qty: 1,
+    condition: 'near_mint',
+    language: 'en',
+    location: loc,
+    scryfallId: card.id,
+    rarity: card.rarity || '',
+    deckBoard: 'main',
+  });
+  entry.resolvedName = card.name;
+  entry.cmc = card.cmc ?? null;
+  entry.colors = card.colors || (card.card_faces?.[0]?.colors) || [];
+  entry.colorIdentity = card.color_identity || [];
+  entry.typeLine = card.type_line || (card.card_faces?.map(f => f.type_line).filter(Boolean).join(' // ') || '');
+  entry.oracleText = card.oracle_text || (card.card_faces?.map(f => f.oracle_text).filter(Boolean).join(' // ') || '');
+  entry.legalities = card.legalities || {};
+  entry.scryfallUri = card.scryfall_uri;
+  entry.imageUrl = getCardImageUrl(card);
+  entry.backImageUrl = getCardBackImageUrl(card);
+  const priced = getUsdPrice(card, 'normal');
+  entry.price = priced.price;
+  entry.priceFallback = priced.fallback;
+  state.collection.push(entry);
+  const k = collectionKey(entry);
+  recordEvent({
+    type: 'add',
+    summary: 'Added {card} as commander to {loc:' + loc.type + ':' + loc.name + '}',
+    created: [k],
+    affectedKeys: [k],
+    cards: [{ name: card.name, imageUrl: entry.imageUrl, backImageUrl: entry.backImageUrl || '' }],
+  });
+  return k;
 }
 
 function renderDeckFormatPicker(formatInput) {
@@ -1003,10 +1160,6 @@ function renderDeckView(list) {
   const statHtml = renderDeckStatsHtml(boards.main);
   const format = meta.format || state.selectedFormat || 'unspecified format';
   const headerModel = deckDetailsViewModel(deck, meta, stats, state.selectedFormat);
-  const commanderNames = [meta.commander, meta.partner].filter(Boolean);
-  const commanderHtml = commanderNames.length
-    ? `<section class="deck-board-section deck-commanders"><div class="deck-board-header"><h3>commander</h3><span>${commanderNames.length}</span></div><div class="deck-text-list">${commanderNames.map(n => `<div class="deck-text-row"><span>${esc(n)}</span><span>metadata</span></div>`).join('')}</div></section>`
-    : '';
   const filteredBoards = filterDeckBoards(boards, state.deckBoardFilter);
   const visualMainSections = filteredBoards
     .filter(([board]) => board === 'main')
@@ -1020,13 +1173,12 @@ function renderDeckView(list) {
   if (state.deckBoardFilter === 'all') {
     visualBody = `<div class="deck-content-grid${visualSideSections ? '' : ' deck-content-grid-single'}">
       <main>
-        ${commanderHtml}
         ${visualMainSections || (visualSideSections ? '' : renderDeckBoardSection('mainboard', [], { grouped: true }))}
       </main>
       ${visualSideSections ? `<aside class="deck-board-aside">${visualSideSections}</aside>` : ''}
     </div>`;
   } else if (state.deckBoardFilter === 'main') {
-    visualBody = `<div class="deck-content-grid deck-content-grid-single"><main>${commanderHtml}${visualMainSections}</main></div>`;
+    visualBody = `<div class="deck-content-grid deck-content-grid-single"><main>${visualMainSections}</main></div>`;
   } else {
     visualBody = `<div class="deck-content-grid deck-content-grid-single"><main>${visualSideSections}</main></div>`;
   }
@@ -1567,6 +1719,14 @@ export function initView() {
       if (btn) btn.remove();
       return;
     }
+    const acItem = e.target.closest('.deck-meta-ac-list li');
+    if (acItem) {
+      const input = acItem.closest('.deck-meta-ac-wrap')?.querySelector('input[data-meta-ac]');
+      const idx = parseInt(acItem.dataset.acIndex || '-1', 10);
+      const item = metaAcItems[idx];
+      if (input && item) pickMetaAc(input, item);
+      return;
+    }
     const addToggle = e.target.closest('[data-toggle-deck-add]');
     if (addToggle) {
       const panel = document.getElementById('deckAddPanel');
@@ -1653,6 +1813,53 @@ export function initView() {
     }
   });
 
+  document.getElementById('deckColumns').addEventListener('input', e => {
+    const acInput = e.target.closest('input[data-meta-ac]');
+    if (!acInput) return;
+    // Typing invalidates a previously-picked card — clear stashed image+id data
+    // so the form save doesn't carry stale info forward.
+    acInput.dataset.metaAcScryfallId = '';
+    acInput.dataset.metaAcImage = '';
+    acInput.dataset.metaAcBackImage = '';
+    if (metaAcDebounce) clearTimeout(metaAcDebounce);
+    metaAcDebounce = setTimeout(() => fetchMetaAc(acInput), 250);
+  });
+
+  document.getElementById('deckColumns').addEventListener('keydown', e => {
+    const acInput = e.target.closest('input[data-meta-ac]');
+    if (!acInput) return;
+    const list = metaAcList(acInput);
+    if (!list?.classList.contains('active')) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      metaAcIndex = Math.min(metaAcItems.length - 1, metaAcIndex + 1);
+      renderMetaAcList(acInput);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      metaAcIndex = Math.max(-1, metaAcIndex - 1);
+      renderMetaAcList(acInput);
+    } else if (e.key === 'Enter') {
+      const item = metaAcItems[metaAcIndex];
+      if (item) {
+        e.preventDefault();
+        pickMetaAc(acInput, item);
+      }
+    } else if (e.key === 'Escape') {
+      hideMetaAc(acInput);
+    }
+  });
+
+  document.getElementById('deckColumns').addEventListener('focusout', e => {
+    const acInput = e.target.closest('input[data-meta-ac]');
+    if (!acInput) return;
+    // Delay to allow click on a suggestion to register first
+    setTimeout(() => {
+      if (document.activeElement?.closest('.deck-meta-ac-wrap') !== metaAcWrap(acInput)) {
+        hideMetaAc(acInput);
+      }
+    }, 150);
+  });
+
   document.getElementById('deckColumns').addEventListener('click', e => {
     const root = document.getElementById('deckColumns');
     const editBtn = e.target.closest('[data-edit-deck-details]');
@@ -1706,18 +1913,38 @@ export function initView() {
     const custom = String(fd.get('formatCustom') || '').trim();
     const format = preset === 'custom' ? custom : preset;
     const isCommander = format === 'commander';
+    const cmdInput = e.target.querySelector('input[data-meta-ac="commander"]');
+    const partnerInput = e.target.querySelector('input[data-meta-ac="partner"]');
+    const cmdScryfallId = String(cmdInput?.dataset.metaAcScryfallId || '');
+    const partnerScryfallId = String(partnerInput?.dataset.metaAcScryfallId || '');
     deck.deck = {
       ...defaultDeckMetadata(deck.name),
       title: String(fd.get('title') || '').trim() || deck.name,
       format,
       commander: isCommander ? String(fd.get('commander') || '').trim() : '',
+      commanderScryfallId: isCommander ? cmdScryfallId : '',
+      commanderImageUrl: isCommander ? String(cmdInput?.dataset.metaAcImage || '') : '',
+      commanderBackImageUrl: isCommander ? String(cmdInput?.dataset.metaAcBackImage || '') : '',
       partner: isCommander ? String(fd.get('partner') || '').trim() : '',
+      partnerScryfallId: isCommander ? partnerScryfallId : '',
+      partnerImageUrl: isCommander ? String(partnerInput?.dataset.metaAcImage || '') : '',
+      partnerBackImageUrl: isCommander ? String(partnerInput?.dataset.metaAcBackImage || '') : '',
       companion: String(fd.get('companion') || '').trim(),
       description: String(fd.get('description') || '').trim(),
     };
     deck.updatedAt = Date.now();
+    // Lenient mode: if the picked commander/partner isn't already a card
+    // in this deck, auto-add it as a placeholder. Only fires when the user
+    // has explicitly picked from autocomplete (scryfallId set).
+    let added = 0;
+    if (isCommander) {
+      const deckLoc = formatLocationLabel(deck);
+      if (cmdScryfallId && ensureCommanderEntryInDeck(cmdScryfallId, deckLoc)) added++;
+      if (partnerScryfallId && ensureCommanderEntryInDeck(partnerScryfallId, deckLoc)) added++;
+    }
     save();
     render();
+    if (added > 0) showFeedback('added ' + added + ' commander card' + (added === 1 ? '' : 's') + ' to deck', 'success');
   });
 
   document.getElementById('deckColumns').addEventListener('click', e => {

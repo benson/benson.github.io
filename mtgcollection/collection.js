@@ -71,7 +71,13 @@ export function defaultDeckMetadata(name = '') {
     description: '',
     format: '',
     commander: '',
+    commanderScryfallId: '',
+    commanderImageUrl: '',
+    commanderBackImageUrl: '',
     partner: '',
+    partnerScryfallId: '',
+    partnerImageUrl: '',
+    partnerBackImageUrl: '',
     companion: '',
   };
 }
@@ -99,7 +105,13 @@ export function makeContainer(raw, now = Date.now()) {
     out.deck.description = String(out.deck.description || '');
     out.deck.format = String(out.deck.format || '');
     out.deck.commander = String(out.deck.commander || '');
+    out.deck.commanderScryfallId = String(out.deck.commanderScryfallId || '');
+    out.deck.commanderImageUrl = String(out.deck.commanderImageUrl || '');
+    out.deck.commanderBackImageUrl = String(out.deck.commanderBackImageUrl || '');
     out.deck.partner = String(out.deck.partner || '');
+    out.deck.partnerScryfallId = String(out.deck.partnerScryfallId || '');
+    out.deck.partnerImageUrl = String(out.deck.partnerImageUrl || '');
+    out.deck.partnerBackImageUrl = String(out.deck.partnerBackImageUrl || '');
     out.deck.companion = String(out.deck.companion || '');
   }
   return out;
@@ -149,7 +161,13 @@ export function normalizeContainers(rawContainers = {}) {
       c.deck.description = String(c.deck.description || '');
       c.deck.format = String(c.deck.format || '');
       c.deck.commander = String(c.deck.commander || '');
+      c.deck.commanderScryfallId = String(c.deck.commanderScryfallId || '');
+      c.deck.commanderImageUrl = String(c.deck.commanderImageUrl || '');
+      c.deck.commanderBackImageUrl = String(c.deck.commanderBackImageUrl || '');
       c.deck.partner = String(c.deck.partner || '');
+      c.deck.partnerScryfallId = String(c.deck.partnerScryfallId || '');
+      c.deck.partnerImageUrl = String(c.deck.partnerImageUrl || '');
+      c.deck.partnerBackImageUrl = String(c.deck.partnerBackImageUrl || '');
       c.deck.companion = String(c.deck.companion || '');
     }
     out[containerKey(c)] = c;
