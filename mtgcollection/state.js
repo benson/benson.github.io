@@ -9,6 +9,7 @@ export const state = {
   selectedKeys: new Set(),
   detailIndex: -1,
   deckGroupBy: 'type',
+  deckSampleHand: null,
   binderSize: '4x3',
   binderPage: 0,
   sortField: null,

@@ -168,6 +168,121 @@ export function groupDeck(list, mode) {
 // Pick the card to seed the deck-view preview panel with —
 // the first card in the first non-empty group. Returns null if
 // the grouped output has no cards.
+export function deckBoard(card) {
+  const v = String(card?.deckBoard || '').trim().toLowerCase();
+  return v === 'sideboard' || v === 'maybe' ? v : 'main';
+}
+
+export function splitDeckBoards(list) {
+  const boards = { main: [], sideboard: [], maybe: [] };
+  for (const c of list || []) boards[deckBoard(c)].push(c);
+  return boards;
+}
+
+export function cardQuantity(list) {
+  return (list || []).reduce((s, c) => s + (parseInt(c.qty, 10) || 0), 0);
+}
+
+export function deckStats(list) {
+  const boards = splitDeckBoards(list);
+  const main = boards.main;
+  const total = cardQuantity(list);
+  const mainTotal = cardQuantity(main);
+  const value = (list || []).reduce((s, c) => s + (c.price || 0) * (parseInt(c.qty, 10) || 0), 0);
+  const lands = main.reduce((s, c) => s + (bucketType(c.typeLine) === 'land' ? (parseInt(c.qty, 10) || 0) : 0), 0);
+  let cmcSum = 0;
+  let cmcCount = 0;
+  let spellCmcSum = 0;
+  let spellCmcCount = 0;
+  for (const c of main) {
+    const qty = parseInt(c.qty, 10) || 0;
+    if (typeof c.cmc !== 'number') continue;
+    cmcSum += c.cmc * qty;
+    cmcCount += qty;
+    if (bucketType(c.typeLine) !== 'land') {
+      spellCmcSum += c.cmc * qty;
+      spellCmcCount += qty;
+    }
+  }
+  return {
+    total,
+    main: mainTotal,
+    sideboard: cardQuantity(boards.sideboard),
+    maybe: cardQuantity(boards.maybe),
+    unique: (list || []).length,
+    value,
+    lands,
+    nonlands: mainTotal - lands,
+    avgManaValue: cmcCount ? cmcSum / cmcCount : 0,
+    avgSpellManaValue: spellCmcCount ? spellCmcSum / spellCmcCount : 0,
+  };
+}
+
+export function renderDeckStatsHtml(list) {
+  const curve = [0, 0, 0, 0, 0, 0, 0, 0];
+  const types = {};
+  const rarity = {};
+  const colors = {};
+  for (const c of list || []) {
+    const qty = c.qty || 1;
+    const typeBucket = bucketType(c.typeLine);
+    types[typeBucket] = (types[typeBucket] || 0) + qty;
+    if (c.rarity) rarity[c.rarity] = (rarity[c.rarity] || 0) + qty;
+    if (typeBucket !== 'land' && typeof c.cmc === 'number') {
+      const slot = Math.min(7, Math.max(0, Math.floor(c.cmc)));
+      curve[slot] += qty;
+    }
+    const cBucket = bucketColor(c.colors);
+    colors[cBucket] = (colors[cBucket] || 0) + qty;
+  }
+  const curveMax = Math.max(1, ...curve);
+  const curveLabels = ['0', '1', '2', '3', '4', '5', '6', '7+'];
+  const curveHtml = curve.map((n, i) => {
+    const pct = (n / curveMax) * 100;
+    return `<div class="curve-row"><span class="curve-bucket">${curveLabels[i]}</span><div class="curve-bar-wrap"><div class="curve-bar" style="width:${pct}%"></div></div><span class="curve-count">${n}</span></div>`;
+  }).join('');
+  const typesList = [...TYPE_BUCKETS.map(([n]) => n), 'other'];
+  const typeHtml = typesList
+    .filter(t => types[t])
+    .map(t => `<div class="breakdown-row"><span>${t}</span><span class="breakdown-count">${types[t]}</span></div>`)
+    .join('') || '<div class="curve-bucket">-</div>';
+  const rarityHtml = RARITY_ORDER
+    .filter(r => rarity[r])
+    .map(r => `<div class="breakdown-row"><span>${r}</span><span class="breakdown-count">${rarity[r]}</span></div>`)
+    .join('') || '<div class="curve-bucket">-</div>';
+  const colorHtml = COLOR_SLICES
+    .filter(sl => colors[sl.key])
+    .map(sl => `<div class="color-legend-row"><span class="color-swatch" style="background:${sl.fill}"></span>${sl.label} ${colors[sl.key]}</div>`)
+    .join('') || '<div class="curve-bucket">-</div>';
+  return { curveHtml, typeHtml, rarityHtml, colorHtml };
+}
+
+export function expandDecklist(list) {
+  const out = [];
+  for (const c of list || []) {
+    const qty = parseInt(c.qty, 10) || 1;
+    for (let i = 0; i < qty; i++) out.push(c);
+  }
+  return out;
+}
+
+export function shuffleCards(cards, random = Math.random) {
+  const out = (cards || []).slice();
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+export function drawSampleHand(list, handSize = 7, random = Math.random) {
+  const library = shuffleCards(expandDecklist(list), random);
+  return {
+    hand: library.slice(0, handSize),
+    next: library.slice(handSize, handSize + 6),
+  };
+}
+
 export function firstCardForPanel(groups) {
   if (!Array.isArray(groups)) return null;
   for (const g of groups) {

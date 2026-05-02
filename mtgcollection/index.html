@@ -226,6 +226,13 @@
   }
   body.view-list .app-right,
   body.view-locations .app-right { display: none; }
+  body.view-deck .app-shell {
+    grid-template-columns: 0 minmax(0, 1fr) 0;
+  }
+  body.view-deck .app-left,
+  body.view-deck .app-right {
+    display: none;
+  }
 
   /* List-view + drawer-open: float the sidebar in from the right with a backdrop */
   body.view-list.right-drawer-open .app-right {
@@ -1021,6 +1028,19 @@
     height: 100%; padding: 8px; text-align: center;
     font-size: 0.7rem; color: #999; text-transform: none;
   }
+  .deck-card-board {
+    position: absolute;
+    left: 4px;
+    bottom: 4px;
+    max-width: calc(100% - 8px);
+    border: 1px solid rgba(0,0,0,0.35);
+    background: rgba(255,255,255,0.9);
+    color: #000;
+    font: inherit;
+    font-size: 0.65rem;
+    padding: 2px 4px;
+    z-index: 4;
+  }
   .deck-qty {
     position: absolute;
     top: 4px; right: 4px;
@@ -1063,6 +1083,197 @@
   .deck-actions .deck-summary { font-size: 0.75rem; color: #666; margin-left: auto; }
   .deck-actions .deck-summary .warn { color: #b04848; }
   .deck-actions.hidden { display: none; }
+  .deck-workspace {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .deck-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 18px;
+    align-items: end;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 14px;
+  }
+  .deck-kicker {
+    font-size: 0.7rem;
+    color: #777;
+    text-transform: lowercase;
+  }
+  .deck-hero h2 {
+    margin: 0;
+    font-size: 1.7rem;
+    line-height: 1.1;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .deck-hero p {
+    margin: 8px 0 0;
+    color: #555;
+    text-transform: none;
+    max-width: 760px;
+    line-height: 1.45;
+  }
+  .deck-hero-stats {
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+    gap: 8px 18px;
+    font-size: 0.8rem;
+    color: #555;
+  }
+  .deck-hero-stats strong {
+    display: block;
+    color: #000;
+    font-size: 1rem;
+  }
+  .deck-hero-stats .btn {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+  }
+  .deck-metadata-form {
+    display: grid;
+    grid-template-columns: minmax(160px, 1.3fr) repeat(3, minmax(120px, 0.8fr)) auto;
+    gap: 8px;
+    align-items: start;
+  }
+  .deck-metadata-form input,
+  .deck-metadata-form textarea {
+    border: 1px solid #ccc;
+    background: #fff;
+    color: #000;
+    font: inherit;
+    font-size: 0.8rem;
+    padding: 7px 8px;
+    min-width: 0;
+    border-radius: 0;
+    text-transform: none;
+  }
+  .deck-metadata-form textarea {
+    grid-column: 1 / -2;
+    resize: vertical;
+  }
+  .deck-dashboard {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(160px, 1fr));
+    gap: 10px;
+  }
+  .deck-stat-card,
+  .deck-board-section,
+  .deck-sample-hand {
+    border: 1px solid #ddd;
+    background: #fff;
+    padding: 12px;
+  }
+  .deck-stat-card h3,
+  .deck-board-header h3 {
+    margin: 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: lowercase;
+  }
+  .deck-content-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+    gap: 18px;
+    align-items: start;
+  }
+  .deck-board-aside,
+  .deck-content-grid main {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .deck-board-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+    color: #555;
+    font-size: 0.75rem;
+  }
+  .deck-board-header > div {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .deck-side-stack {
+    --deck-card-w: 132px;
+    --deck-name-bar: 24px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+    gap: 10px;
+  }
+  .deck-side-stack .deck-card {
+    margin-top: 0;
+  }
+  .deck-text-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    max-height: 360px;
+    overflow: auto;
+    font-size: 0.75rem;
+  }
+  .deck-text-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 2px 0;
+    border-bottom: 1px solid #f1f1f1;
+    text-transform: none;
+  }
+  .deck-text-row span:last-child {
+    color: #888;
+    white-space: nowrap;
+  }
+  .deck-hand-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+    gap: 8px;
+  }
+  .deck-hand-card {
+    border: 1px solid #ddd;
+    background: #fafafa;
+    padding: 0;
+    cursor: pointer;
+    font: inherit;
+    color: #000;
+    text-align: left;
+  }
+  .deck-hand-card img,
+  .deck-hand-card .placeholder {
+    display: block;
+    width: 100%;
+    aspect-ratio: 488 / 680;
+    object-fit: cover;
+    background: #e8e8e8;
+  }
+  .deck-hand-card span {
+    display: block;
+    padding: 5px;
+    font-size: 0.68rem;
+    line-height: 1.2;
+    text-transform: none;
+  }
+  .deck-next-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+    font-size: 0.72rem;
+    color: #777;
+  }
+  .deck-next-card {
+    border: 1px solid #ddd;
+    background: #fff;
+    font: inherit;
+    font-size: 0.72rem;
+    padding: 3px 6px;
+    cursor: pointer;
+  }
   .shape-bar {
     display: flex;
     align-items: center;
@@ -2724,6 +2935,26 @@
     body.view-list .app-shell { grid-template-columns: 1fr; }
     body.view-list .app-right { display: flex; position: static; box-shadow: none; width: auto; }
     body.view-list.right-drawer-open .app-right { position: static; box-shadow: none; width: auto; border-left: none; }
+    body.view-deck .app-shell { grid-template-columns: 1fr; }
+    body.view-deck .app-left,
+    body.view-deck .app-right { display: none; }
+    .deck-view-wrap,
+    .deck-hero,
+    .deck-content-grid,
+    .deck-dashboard,
+    .deck-metadata-form {
+      grid-template-columns: 1fr;
+    }
+    .deck-metadata-form textarea {
+      grid-column: 1;
+    }
+    .deck-preview-panel {
+      display: none;
+    }
+    .deck-columns {
+      --deck-card-w: minmax(130px, 1fr);
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    }
     .app-right-backdrop, body.view-list.right-drawer-open .app-right-backdrop { display: none; }
     .app-footer {
       flex-wrap: wrap;
@@ -2862,7 +3093,7 @@
             <div class="deck-preview-name"></div>
             <div class="deck-preview-meta"></div>
           </aside>
-          <div class="deck-columns" id="deckColumns"></div>
+          <div class="deck-workspace-root" id="deckColumns"></div>
         </div>
       </div>
       <div class="binder-view" id="binderView">

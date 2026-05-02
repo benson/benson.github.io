@@ -23,6 +23,8 @@ export function normalizeCondition(raw) {
 
 export const LOCATION_TYPES = ['deck', 'binder', 'box'];
 export const DEFAULT_LOCATION_TYPE = 'box';
+export const DECK_BOARDS = ['main', 'sideboard', 'maybe'];
+export const DEFAULT_DECK_BOARD = 'main';
 
 // Parses a freeform string like "deck breya", "deck:breya", or "breya" into
 // a typed location. The type prefix is optional — bare names default to box.
@@ -63,15 +65,42 @@ export function containerKey(container) {
   return locationKey(container);
 }
 
+export function defaultDeckMetadata(name = '') {
+  return {
+    title: name || '',
+    description: '',
+    format: '',
+    commander: '',
+    partner: '',
+  };
+}
+
+export function normalizeDeckBoard(raw) {
+  const v = String(raw || '').trim().toLowerCase();
+  return DECK_BOARDS.includes(v) ? v : DEFAULT_DECK_BOARD;
+}
+
 export function makeContainer(raw, now = Date.now()) {
   const loc = normalizeLocation(raw);
   if (!loc) return null;
-  return {
+  const out = {
     type: loc.type,
     name: loc.name,
     createdAt: now,
     updatedAt: now,
   };
+  if (loc.type === 'deck') {
+    out.deck = {
+      ...defaultDeckMetadata(loc.name),
+      ...(raw && typeof raw.deck === 'object' && !Array.isArray(raw.deck) ? raw.deck : {}),
+    };
+    out.deck.title = String(out.deck.title || loc.name);
+    out.deck.description = String(out.deck.description || '');
+    out.deck.format = String(out.deck.format || '');
+    out.deck.commander = String(out.deck.commander || '');
+    out.deck.partner = String(out.deck.partner || '');
+  }
+  return out;
 }
 
 export function ensureContainer(raw, now = Date.now()) {
@@ -82,6 +111,13 @@ export function ensureContainer(raw, now = Date.now()) {
   if (existing) {
     existing.type = container.type;
     existing.name = container.name;
+    if (container.type === 'deck') {
+      existing.deck = {
+        ...defaultDeckMetadata(container.name),
+        ...(existing.deck && typeof existing.deck === 'object' ? existing.deck : {}),
+      };
+      if (!existing.deck.title) existing.deck.title = container.name;
+    }
     if (!existing.createdAt) existing.createdAt = container.createdAt;
     if (!existing.updatedAt) existing.updatedAt = container.updatedAt;
     return existing;
@@ -102,6 +138,17 @@ export function normalizeContainers(rawContainers = {}) {
     if (!c) continue;
     c.createdAt = createdAt;
     c.updatedAt = raw.updatedAt || c.updatedAt;
+    if (c.type === 'deck' && raw.deck && typeof raw.deck === 'object') {
+      c.deck = {
+        ...defaultDeckMetadata(c.name),
+        ...raw.deck,
+      };
+      c.deck.title = String(c.deck.title || c.name);
+      c.deck.description = String(c.deck.description || '');
+      c.deck.format = String(c.deck.format || '');
+      c.deck.commander = String(c.deck.commander || '');
+      c.deck.partner = String(c.deck.partner || '');
+    }
     out[containerKey(c)] = c;
   }
   return out;
@@ -110,7 +157,11 @@ export function normalizeContainers(rawContainers = {}) {
 export function ensureContainersForCollection(collection = state.collection) {
   for (const c of collection || []) {
     const loc = normalizeLocation(c.location);
-    if (loc) ensureContainer(loc);
+    if (loc) {
+      ensureContainer(loc);
+      if (loc.type === 'deck') c.deckBoard = normalizeDeckBoard(c.deckBoard);
+      else if (Object.prototype.hasOwnProperty.call(c, 'deckBoard')) delete c.deckBoard;
+    }
   }
 }
 
@@ -156,6 +207,7 @@ export function makeEntry(data) {
     price: parseFloat(data.price) || null,
     priceFallback: Boolean(data.priceFallback),
     tags: normalizeTags(data.tags),
+    deckBoard: normalizeLocation(data.location)?.type === 'deck' ? normalizeDeckBoard(data.deckBoard) : undefined,
     imageUrl: null,
     cmc: null,
     colors: null,
@@ -167,7 +219,9 @@ export function makeEntry(data) {
 
 // ---- Keying + coalescing ----
 export function collectionKey(c) {
-  return (c.scryfallId || (c.setCode + ':' + c.cn + ':' + c.name)) + ':' + c.finish + ':' + c.condition + ':' + c.language + ':' + locationKey(c.location);
+  const locKey = locationKey(c.location);
+  const boardPart = locKey.startsWith('deck:') ? ':' + normalizeDeckBoard(c.deckBoard) : '';
+  return (c.scryfallId || (c.setCode + ':' + c.cn + ':' + c.name)) + ':' + c.finish + ':' + c.condition + ':' + c.language + ':' + locKey + boardPart;
 }
 
 export function coalesceCollection() {
@@ -179,6 +233,7 @@ export function coalesceCollection() {
       survivor.qty += c.qty;
       survivor.tags = normalizeTags([...(survivor.tags || []), ...(c.tags || [])]);
     } else {
+      if (normalizeLocation(c.location)?.type === 'deck') c.deckBoard = normalizeDeckBoard(c.deckBoard);
       byKey.set(k, c);
     }
   }

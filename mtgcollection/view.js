@@ -15,11 +15,13 @@ import {
   formatLocationLabel,
   LOCATION_TYPES,
   DEFAULT_LOCATION_TYPE,
+  normalizeDeckBoard,
+  defaultDeckMetadata,
 } from './collection.js';
 import { save, commitCollectionChange } from './persistence.js';
 import { openDetail, populateFilters } from './detail.js';
 import { filteredSorted, syncClearFiltersBtn, hasActiveFilter } from './search.js';
-import { groupDeck, firstCardForPanel } from './stats.js';
+import { groupDeck, firstCardForPanel, splitDeckBoards, deckStats, renderDeckStatsHtml, drawSampleHand } from './stats.js';
 import { updateBulkBar } from './bulk.js';
 import { paginateForBinder, sortForBinder, BINDER_SIZES, binderSlotCount } from './binder.js';
 import { getSetIconUrl } from './setIcons.js';
@@ -199,6 +201,7 @@ export function render() {
     btn.classList.toggle('active', btn.dataset.view === state.viewMode);
   });
   document.body.classList.toggle('view-list', shape === 'list');
+  document.body.classList.toggle('view-deck', shape === 'deck');
   document.body.classList.toggle('view-locations', shape === 'locations');
   document.body.classList.toggle('has-collection', state.collection.length > 0);
   // Switching away from list shape always closes the right drawer
@@ -379,7 +382,7 @@ function renderLocationsView(containers) {
   locationsEl.innerHTML = createHtml + groups;
 }
 
-function renderDeckCard(c, isLast) {
+function renderLegacyDeckCard(c, isLast) {
   const name = c.resolvedName || c.name || '?';
   const idx = state.collection.indexOf(c);
   const img = c.imageUrl
@@ -418,7 +421,55 @@ function renderEmptyScopeState(targetEl, mode) {
   </div>`;
 }
 
-function renderDeckView(list) {
+function currentDeckContainer() {
+  const filterEl = document.getElementById('filterLocation');
+  if (!filterEl) return null;
+  const values = getMultiselectValue(filterEl);
+  if (values.length !== 1) return null;
+  const loc = normalizeLocation(values[0]);
+  if (!loc || loc.type !== 'deck') return null;
+  return ensureContainer(loc);
+}
+
+function renderDeckCard(c, isLast) {
+  const name = c.resolvedName || c.name || '?';
+  const idx = state.collection.indexOf(c);
+  const img = c.imageUrl
+    ? `<img src="${esc(c.imageUrl)}" alt="${esc(name)}" loading="lazy">`
+    : `<div class="placeholder">${esc(name)}</div>`;
+  const qty = c.qty > 1 ? `<span class="deck-qty">x${c.qty}</span>` : '';
+  const finishClass = c.finish === 'foil' ? ' is-foil' : c.finish === 'etched' ? ' is-etched' : '';
+  const lastClass = isLast ? ' deck-card-last' : '';
+  return `<div class="deck-card detail-trigger${finishClass}${lastClass}" role="button" tabindex="0" data-index="${idx}" aria-label="${esc(name)}">${img}${qty}
+    <select class="deck-card-board" data-index="${idx}" aria-label="move ${esc(name)}">
+      <option value="main"${normalizeDeckBoard(c.deckBoard) === 'main' ? ' selected' : ''}>main</option>
+      <option value="sideboard"${normalizeDeckBoard(c.deckBoard) === 'sideboard' ? ' selected' : ''}>side</option>
+      <option value="maybe"${normalizeDeckBoard(c.deckBoard) === 'maybe' ? ' selected' : ''}>maybe</option>
+    </select>
+  </div>`;
+}
+
+function renderDeckTextRows(list) {
+  if (!list.length) return '<div class="deck-empty-prompt">no cards</div>';
+  return list.map(c => `<div class="deck-text-row"><span>${c.qty || 1} ${esc(c.resolvedName || c.name || '')}</span><span>${esc((c.setCode || '').toUpperCase())} ${esc(c.cn || '')}</span></div>`).join('');
+}
+
+function renderDeckBoardSection(title, cards, { grouped = false } = {}) {
+  const total = cards.reduce((s, c) => s + (c.qty || 1), 0);
+  const body = grouped
+    ? groupDeck(cards, state.deckGroupBy).map(col => {
+      const colTotal = col.cards.reduce((s, c) => s + (c.qty || 1), 0);
+      const stack = col.cards.map((c, i) => renderDeckCard(c, i === col.cards.length - 1)).join('');
+      return `<div class="deck-col"><div class="deck-col-header">${esc(col.label)}<span class="deck-col-count">${colTotal}</span></div><div class="deck-stack">${stack}</div></div>`;
+    }).join('')
+    : cards.map((c, i) => renderDeckCard(c, i === cards.length - 1)).join('');
+  return `<section class="deck-board-section">
+    <div class="deck-board-header"><h3>${esc(title)}</h3><span>${total} cards</span></div>
+    <div class="${grouped ? 'deck-columns' : 'deck-side-stack'}">${body || '<div class="deck-empty-prompt">no cards</div>'}</div>
+  </section>`;
+}
+
+function renderLegacyDeckView(list) {
   const deckColumnsEl = document.getElementById('deckColumns');
   const deckActionsEl = document.querySelector('#deckView .deck-actions');
 
@@ -459,6 +510,116 @@ function renderDeckView(list) {
       summary.textContent = total + ' cards · all legal in ' + state.selectedFormat;
     }
   }
+}
+
+function renderSampleHandPanel() {
+  const handEl = document.getElementById('deckHandCards');
+  const nextEl = document.getElementById('deckNextCards');
+  if (!handEl || !nextEl) return;
+  const deck = currentDeckContainer();
+  const deckKey = deck ? deck.type + ':' + deck.name : '';
+  if (!state.deckSampleHand || state.deckSampleHand.deckKey !== deckKey) {
+    handEl.innerHTML = '<div class="deck-empty-prompt">draw a hand to preview opening texture</div>';
+    nextEl.innerHTML = '';
+    return;
+  }
+  const cardTile = c => {
+    const name = c.resolvedName || c.name || '?';
+    const idx = state.collection.indexOf(c);
+    const img = c.imageUrl ? `<img src="${esc(c.imageUrl)}" alt="${esc(name)}" loading="lazy">` : `<div class="placeholder">${esc(name)}</div>`;
+    return `<button class="deck-hand-card" type="button" data-index="${idx}">${img}<span>${esc(name)}</span></button>`;
+  };
+  handEl.innerHTML = state.deckSampleHand.hand.map(cardTile).join('');
+  nextEl.innerHTML = state.deckSampleHand.next.length
+    ? '<span>next</span>' + state.deckSampleHand.next.map(c => `<button class="deck-next-card" type="button" data-index="${state.collection.indexOf(c)}">${esc(c.resolvedName || c.name || '?')}</button>`).join('')
+    : '';
+}
+
+function renderDeckView(list) {
+  const deckColumnsEl = document.getElementById('deckColumns');
+  const deckActionsEl = document.querySelector('#deckView .deck-actions');
+  const deck = currentDeckContainer();
+
+  if (!hasActiveFilter()) {
+    if (deckActionsEl) deckActionsEl.classList.add('hidden');
+    setDeckPreviewCard(null);
+    renderEmptyScopeState(deckColumnsEl, 'deck');
+    document.getElementById('deckSummary').textContent = '';
+    return;
+  }
+
+  if (deckActionsEl) deckActionsEl.classList.remove('hidden');
+  for (const c of list) c.deckBoard = normalizeDeckBoard(c.deckBoard);
+  if (deck && (!deck.deck || typeof deck.deck !== 'object')) deck.deck = defaultDeckMetadata(deck.name);
+  const meta = deck?.deck || defaultDeckMetadata(deck?.name || 'deck');
+  const boards = splitDeckBoards(list);
+  const stats = deckStats(list);
+  const statHtml = renderDeckStatsHtml(boards.main);
+  const format = meta.format || state.selectedFormat || 'unspecified format';
+  const valueStr = stats.value > 0 ? '$' + stats.value.toFixed(2) : '-';
+  const commanderNames = [meta.commander, meta.partner].filter(Boolean);
+  const commanderHtml = commanderNames.length
+    ? `<section class="deck-board-section deck-commanders"><div class="deck-board-header"><h3>commander</h3><span>${commanderNames.length}</span></div><div class="deck-text-list">${commanderNames.map(n => `<div class="deck-text-row"><span>${esc(n)}</span><span>metadata</span></div>`).join('')}</div></section>`
+    : '';
+
+  deckColumnsEl.innerHTML = `<div class="deck-workspace">
+    <section class="deck-hero">
+      <div>
+        <div class="deck-kicker">deck</div>
+        <h2>${esc(meta.title || deck?.name || 'deck')}</h2>
+        <p>${esc(meta.description || 'No description yet.')}</p>
+      </div>
+      <div class="deck-hero-stats">
+        <span><strong>${stats.main}</strong> main</span>
+        <span><strong>${stats.sideboard}</strong> side</span>
+        <span><strong>${stats.maybe}</strong> maybe</span>
+        <span><strong>${valueStr}</strong> value</span>
+        <button class="btn btn-secondary" type="button" data-copy-decklist>copy list</button>
+      </div>
+    </section>
+    <form class="deck-metadata-form" id="deckMetadataForm">
+      <input name="title" value="${esc(meta.title || '')}" placeholder="deck title" autocomplete="off">
+      <input name="format" value="${esc(format === 'unspecified format' ? '' : format)}" placeholder="format" autocomplete="off">
+      <input name="commander" value="${esc(meta.commander || '')}" placeholder="commander" autocomplete="off">
+      <input name="partner" value="${esc(meta.partner || '')}" placeholder="partner" autocomplete="off">
+      <textarea name="description" rows="2" placeholder="description">${esc(meta.description || '')}</textarea>
+      <button class="btn" type="submit">save deck</button>
+    </form>
+    <div class="deck-dashboard">
+      <section class="deck-stat-card"><h3>curve</h3>${statHtml.curveHtml}</section>
+      <section class="deck-stat-card"><h3>summary</h3>
+        <div class="breakdown-row"><span>format</span><span class="breakdown-count">${esc(format)}</span></div>
+        <div class="breakdown-row"><span>lands</span><span class="breakdown-count">${stats.lands}</span></div>
+        <div class="breakdown-row"><span>nonlands</span><span class="breakdown-count">${stats.nonlands}</span></div>
+        <div class="breakdown-row"><span>avg mv</span><span class="breakdown-count">${stats.avgManaValue.toFixed(2)}</span></div>
+        <div class="breakdown-row"><span>avg spell mv</span><span class="breakdown-count">${stats.avgSpellManaValue.toFixed(2)}</span></div>
+      </section>
+      <section class="deck-stat-card"><h3>types</h3>${statHtml.typeHtml}</section>
+      <section class="deck-stat-card"><h3>colors</h3>${statHtml.colorHtml}</section>
+    </div>
+    <section class="deck-sample-hand" id="deckSampleHand">
+      <div class="deck-board-header"><h3>sample hand</h3><div><button class="btn btn-secondary" type="button" data-sample-hand="draw">new hand</button><button class="btn btn-secondary" type="button" data-sample-hand="mulligan">mulligan</button></div></div>
+      <div class="deck-hand-row" id="deckHandCards"></div>
+      <div class="deck-next-row" id="deckNextCards"></div>
+    </section>
+    <div class="deck-content-grid">
+      <main>
+        ${commanderHtml}
+        ${renderDeckBoardSection('mainboard', boards.main, { grouped: true })}
+      </main>
+      <aside class="deck-board-aside">
+        ${renderDeckBoardSection('sideboard', boards.sideboard)}
+        ${renderDeckBoardSection('maybeboard', boards.maybe)}
+        <section class="deck-board-section"><div class="deck-board-header"><h3>text list</h3><span>${stats.total} cards</span></div><div class="deck-text-list">${renderDeckTextRows(list)}</div></section>
+      </aside>
+    </div>
+  </div>`;
+
+  const cols = groupDeck(boards.main, state.deckGroupBy);
+  setDeckPreviewCard(firstCardForPanel(cols) || list[0] || null);
+  renderSampleHandPanel();
+  const summary = document.getElementById('deckSummary');
+  summary.textContent = stats.total + ' cards - ' + format;
 }
 
 function renderBinderSlot(c) {
@@ -599,13 +760,20 @@ function saveDeckGroup() {
 }
 
 function buildDecklistText(list) {
-  return list.map(c => {
+  const line = c => {
     const name = c.resolvedName || c.name || '';
     const setCode = (c.setCode || '').toUpperCase();
     const cn = c.cn || '';
     const finishMarker = c.finish === 'foil' ? ' *F*' : c.finish === 'etched' ? ' *E*' : '';
     return `${c.qty} ${name} (${setCode}) ${cn}${finishMarker}`;
-  }).join('\n');
+  };
+  const boards = splitDeckBoards(list);
+  const sections = [
+    ['Mainboard', boards.main],
+    ['Sideboard', boards.sideboard],
+    ['Maybeboard', boards.maybe],
+  ].filter(([, cards]) => cards.length);
+  return sections.map(([label, cards]) => label + '\n' + cards.map(line).join('\n')).join('\n\n');
 }
 
 function showCardPreview(link) {
@@ -866,9 +1034,69 @@ export function initView() {
       if (pill) navigateToLocation(pill.dataset.locType, pill.dataset.locName);
       return;
     }
+    const handCard = e.target.closest('.deck-hand-card, .deck-next-card');
+    if (handCard) {
+      openDetail(parseInt(handCard.dataset.index, 10));
+      return;
+    }
+    if (e.target.closest('select, input, textarea, button')) return;
     const card = e.target.closest('.deck-card');
     if (!card) return;
     openDetail(parseInt(card.dataset.index, 10));
+  });
+
+  document.getElementById('deckColumns').addEventListener('change', e => {
+    const boardSelect = e.target.closest('.deck-card-board');
+    if (!boardSelect) return;
+    const entry = state.collection[parseInt(boardSelect.dataset.index, 10)];
+    if (!entry) return;
+    entry.deckBoard = normalizeDeckBoard(boardSelect.value);
+    state.deckSampleHand = null;
+    commitCollectionChange({ coalesce: true });
+  });
+
+  document.getElementById('deckColumns').addEventListener('submit', e => {
+    if (e.target.id !== 'deckMetadataForm') return;
+    e.preventDefault();
+    const deck = currentDeckContainer();
+    if (!deck) return;
+    const fd = new FormData(e.target);
+    deck.deck = {
+      ...defaultDeckMetadata(deck.name),
+      title: String(fd.get('title') || '').trim() || deck.name,
+      format: String(fd.get('format') || '').trim(),
+      commander: String(fd.get('commander') || '').trim(),
+      partner: String(fd.get('partner') || '').trim(),
+      description: String(fd.get('description') || '').trim(),
+    };
+    deck.updatedAt = Date.now();
+    save();
+    render();
+  });
+
+  document.getElementById('deckColumns').addEventListener('click', e => {
+    const sampleBtn = e.target.closest('[data-sample-hand]');
+    if (!sampleBtn) return;
+    const boards = splitDeckBoards(filteredSorted());
+    const size = sampleBtn.dataset.sampleHand === 'mulligan' ? 6 : 7;
+    const deck = currentDeckContainer();
+    state.deckSampleHand = {
+      deckKey: deck ? deck.type + ':' + deck.name : '',
+      ...drawSampleHand(boards.main, size),
+    };
+    renderSampleHandPanel();
+  });
+
+  document.getElementById('deckColumns').addEventListener('click', async e => {
+    const copyBtn = e.target.closest('[data-copy-decklist]');
+    if (!copyBtn) return;
+    const text = buildDecklistText(filteredSorted());
+    try {
+      await navigator.clipboard.writeText(text);
+      showFeedback('decklist copied', 'success');
+    } catch (err) {
+      showFeedback('clipboard unavailable: ' + err.message, 'error');
+    }
   });
 
   document.getElementById('deckColumns').addEventListener('keydown', e => {

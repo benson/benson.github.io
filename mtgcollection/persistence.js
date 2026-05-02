@@ -1,6 +1,6 @@
 import { state, STORAGE_KEY, BINDER_SIZE_KEY } from './state.js';
 import { BINDER_SIZES } from './binder.js';
-import { coalesceCollection, normalizeLocation, normalizeContainers, ensureContainersForCollection } from './collection.js';
+import { coalesceCollection, normalizeLocation, normalizeContainers, ensureContainersForCollection, normalizeDeckBoard } from './collection.js';
 import { showFeedback } from './feedback.js';
 import { populateFilters } from './detail.js';
 import { render } from './view.js';
@@ -34,6 +34,8 @@ export function loadFromStorage() {
         if (!Array.isArray(c.tags)) c.tags = [];
         // Coerce legacy string locations into typed {type, name} objects.
         c.location = normalizeLocation(c.location);
+        if (c.location?.type === 'deck') c.deckBoard = normalizeDeckBoard(c.deckBoard);
+        else if (Object.prototype.hasOwnProperty.call(c, 'deckBoard')) delete c.deckBoard;
       }
       ensureContainersForCollection();
       state.viewMode = data.viewMode === 'locations' ? 'locations' : 'list';
