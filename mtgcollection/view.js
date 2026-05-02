@@ -27,6 +27,7 @@ import { paginateForBinder, sortForBinder, BINDER_SIZES, binderSlotCount } from 
 import { getSetIconUrl } from './setIcons.js';
 import { recordEvent, captureBefore, locationDiffSummary } from './changelog.js';
 import { setMultiselectValue, getMultiselectValue } from './multiselect.js';
+import { buildDeckExport } from './deckExport.js';
 
 const VALID_DECK_GROUPS = ['type', 'cmc', 'color', 'rarity'];
 const VALID_BINDER_SIZES = Object.keys(BINDER_SIZES);
@@ -431,7 +432,12 @@ function currentDeckContainer() {
   return ensureContainer(loc);
 }
 
-function renderDeckCard(c, isLast) {
+function currentDeckMetadata() {
+  const deck = currentDeckContainer();
+  return deck?.deck || defaultDeckMetadata(deck?.name || 'deck');
+}
+
+export function renderDeckCard(c, isLast) {
   const name = c.resolvedName || c.name || '?';
   const idx = state.collection.indexOf(c);
   const img = c.imageUrl
@@ -440,13 +446,130 @@ function renderDeckCard(c, isLast) {
   const qty = c.qty > 1 ? `<span class="deck-qty">x${c.qty}</span>` : '';
   const finishClass = c.finish === 'foil' ? ' is-foil' : c.finish === 'etched' ? ' is-etched' : '';
   const lastClass = isLast ? ' deck-card-last' : '';
-  return `<div class="deck-card detail-trigger${finishClass}${lastClass}" role="button" tabindex="0" data-index="${idx}" aria-label="${esc(name)}">${img}${qty}
-    <select class="deck-card-board" data-index="${idx}" aria-label="move ${esc(name)}">
-      <option value="main"${normalizeDeckBoard(c.deckBoard) === 'main' ? ' selected' : ''}>main</option>
-      <option value="sideboard"${normalizeDeckBoard(c.deckBoard) === 'sideboard' ? ' selected' : ''}>side</option>
-      <option value="maybe"${normalizeDeckBoard(c.deckBoard) === 'maybe' ? ' selected' : ''}>maybe</option>
-    </select>
-  </div>`;
+  const board = normalizeDeckBoard(c.deckBoard);
+  const menuId = 'deck-card-menu-' + idx;
+  const moveItem = (targetBoard, label) =>
+    `<button role="menuitem" type="button" data-card-action="move-board" data-board="${targetBoard}" data-index="${idx}"${board === targetBoard ? ' disabled' : ''}>${esc(label)}</button>`;
+  const removeLabel = c.qty > 1 ? `remove ${c.qty} from deck` : 'remove from deck';
+  return `<article class="deck-card${finishClass}${lastClass}" data-index="${idx}" data-board="${esc(board)}">
+    <button class="deck-card-face detail-trigger" type="button" data-card-action="open" data-index="${idx}" aria-label="open ${esc(name)} details">${img}${qty}</button>
+    <button class="deck-card-menu-btn" type="button" data-card-menu-toggle data-index="${idx}" aria-label="card actions for ${esc(name)}" aria-haspopup="menu" aria-expanded="false" aria-controls="${menuId}">...</button>
+    <div class="deck-card-menu" id="${menuId}" role="menu" hidden>
+      <button role="menuitem" type="button" data-card-action="open" data-index="${idx}">open details</button>
+      ${moveItem('main', 'move to mainboard')}
+      ${moveItem('sideboard', 'move to sideboard')}
+      ${moveItem('maybe', 'move to maybeboard')}
+      <button role="menuitem" type="button" class="deck-card-menu-danger" data-card-action="remove-from-deck" data-index="${idx}">${esc(removeLabel)}</button>
+    </div>
+  </article>`;
+}
+
+function closeDeckCardMenus(root = document) {
+  if (!root || !root.querySelectorAll) return;
+  root.querySelectorAll('.deck-card.menu-open').forEach(card => {
+    card.classList.remove('menu-open');
+    const toggle = card.querySelector('[data-card-menu-toggle]');
+    const menu = card.querySelector('.deck-card-menu');
+    if (toggle) toggle.setAttribute('aria-expanded', 'false');
+    if (menu) menu.hidden = true;
+  });
+}
+
+function openDeckCardMenu(toggle, { focusFirst = false } = {}) {
+  const card = toggle?.closest('.deck-card');
+  const menu = card?.querySelector('.deck-card-menu');
+  if (!card || !menu) return;
+  closeDeckCardMenus(document.getElementById('deckColumns') || document);
+  card.classList.add('menu-open');
+  menu.hidden = false;
+  toggle.setAttribute('aria-expanded', 'true');
+  if (focusFirst) {
+    const first = menu.querySelector('[role="menuitem"]:not([disabled])');
+    if (first) first.focus();
+  }
+}
+
+function toggleDeckCardMenu(toggle) {
+  const card = toggle?.closest('.deck-card');
+  if (!card) return;
+  if (card.classList.contains('menu-open')) {
+    closeDeckCardMenus(card.parentElement || document);
+  } else {
+    openDeckCardMenu(toggle);
+  }
+}
+
+function moveFocusInDeckCardMenu(menu, current, direction) {
+  const items = [...menu.querySelectorAll('[role="menuitem"]:not([disabled])')];
+  if (!items.length) return;
+  const idx = Math.max(0, items.indexOf(current));
+  items[(idx + direction + items.length) % items.length].focus();
+}
+
+function deckCardEventPayload(entry) {
+  return {
+    name: entry.resolvedName || entry.name || 'card',
+    imageUrl: entry.imageUrl || '',
+    backImageUrl: entry.backImageUrl || '',
+  };
+}
+
+function moveDeckCardToBoard(index, rawBoard) {
+  const entry = state.collection[index];
+  if (!entry || normalizeLocation(entry.location)?.type !== 'deck') return;
+  const targetBoard = normalizeDeckBoard(rawBoard);
+  const currentBoard = normalizeDeckBoard(entry.deckBoard);
+  if (targetBoard === currentBoard) return;
+
+  const beforeKey = collectionKey(entry);
+  const afterKey = collectionKey({ ...entry, deckBoard: targetBoard });
+  const before = captureBefore([beforeKey, afterKey]);
+  entry.deckBoard = targetBoard;
+  state.deckSampleHand = null;
+  recordEvent({
+    type: 'edit',
+    summary: 'Moved {card} to ' + (targetBoard === 'maybe' ? 'maybeboard' : targetBoard),
+    before,
+    affectedKeys: [beforeKey, afterKey],
+    cards: [deckCardEventPayload(entry)],
+  });
+  commitCollectionChange({ coalesce: true });
+}
+
+function removeDeckCardFromDeck(index) {
+  const entry = state.collection[index];
+  if (!entry || normalizeLocation(entry.location)?.type !== 'deck') return;
+
+  const beforeLoc = entry.location;
+  const beforeKey = collectionKey(entry);
+  const afterKey = collectionKey({ ...entry, location: null, deckBoard: undefined });
+  const before = captureBefore([beforeKey, afterKey]);
+  const payload = deckCardEventPayload(entry);
+  entry.location = null;
+  delete entry.deckBoard;
+  state.deckSampleHand = null;
+  recordEvent({
+    type: 'edit',
+    summary: locationDiffSummary(beforeLoc, null),
+    before,
+    affectedKeys: [beforeKey, afterKey],
+    cards: [payload],
+  });
+  commitCollectionChange({ coalesce: true });
+}
+
+function handleDeckCardAction(actionEl) {
+  const action = actionEl?.dataset.cardAction;
+  const index = parseInt(actionEl?.dataset.index || '', 10);
+  if (Number.isNaN(index)) return;
+  closeDeckCardMenus(document.getElementById('deckColumns') || document);
+  if (action === 'open') {
+    openDetail(index);
+  } else if (action === 'move-board') {
+    moveDeckCardToBoard(index, actionEl.dataset.board);
+  } else if (action === 'remove-from-deck') {
+    removeDeckCardFromDeck(index);
+  }
 }
 
 function renderDeckTextRows(list) {
@@ -535,6 +658,83 @@ function renderSampleHandPanel() {
     : '';
 }
 
+export function deckDetailsViewModel(deck, meta = {}, stats = {}, selectedFormat = '') {
+  const safeMeta = meta && typeof meta === 'object' ? meta : {};
+  const safeStats = stats && typeof stats === 'object' ? stats : {};
+  const deckName = String(deck?.name || '');
+  const title = String(safeMeta.title || '').trim();
+  const description = String(safeMeta.description || '').trim();
+  const formatInput = String(safeMeta.format || selectedFormat || '').trim();
+  const commander = String(safeMeta.commander || '').trim();
+  const partner = String(safeMeta.partner || '').trim();
+  const value = Number(safeStats.value) || 0;
+  const count = key => parseInt(safeStats[key], 10) || 0;
+  return {
+    title,
+    displayTitle: title || deckName || 'deck',
+    description,
+    descriptionText: description || 'No description yet.',
+    format: formatInput || 'unspecified format',
+    formatInput,
+    commander,
+    partner,
+    total: count('total'),
+    main: count('main'),
+    sideboard: count('sideboard'),
+    maybe: count('maybe'),
+    valueText: value > 0 ? '$' + value.toFixed(2) : '-',
+  };
+}
+
+function deckMetaItem(label, value, emptyText) {
+  const hasValue = !!value;
+  const cls = 'deck-meta-value' + (hasValue ? '' : ' is-empty');
+  return `<div><dt>${esc(label)}</dt><dd class="${cls}">${esc(hasValue ? value : emptyText)}</dd></div>`;
+}
+
+export function renderDeckDetailsHeaderHtml(model) {
+  const descClass = 'deck-description' + (model.description ? '' : ' is-empty');
+  return `<section class="deck-hero">
+      <div class="deck-hero-main">
+        <div class="deck-kicker">deck</div>
+        <h2>${esc(model.displayTitle)}</h2>
+        <p class="${descClass}">${esc(model.descriptionText)}</p>
+        <dl class="deck-meta-strip" aria-label="deck details">
+          ${deckMetaItem('format', model.formatInput, 'unspecified format')}
+          ${deckMetaItem('commander', model.commander, 'not set')}
+          ${deckMetaItem('partner', model.partner, 'none')}
+        </dl>
+      </div>
+      <div class="deck-hero-side">
+        <div class="deck-hero-stats" aria-label="deck totals">
+          <span><strong>${model.total}</strong> total</span>
+          <span><strong>${model.main}</strong> main</span>
+          <span><strong>${model.sideboard}</strong> side</span>
+          <span><strong>${model.maybe}</strong> maybe</span>
+          <span><strong>${esc(model.valueText)}</strong> value</span>
+        </div>
+        <div class="deck-hero-actions">
+          <button class="btn" type="button" data-sample-hand="draw">sample hand</button>
+          <button class="btn btn-secondary" type="button" data-copy-decklist>copy list</button>
+          <button class="btn btn-secondary" type="button" data-edit-deck-details aria-controls="deckDetailsEditor" aria-expanded="false">edit details</button>
+        </div>
+      </div>
+    </section>
+    <section class="deck-details-editor hidden" id="deckDetailsEditor" aria-label="edit deck details">
+      <form class="deck-metadata-form" id="deckMetadataForm">
+        <label class="deck-metadata-field"><span>title</span><input name="title" value="${esc(model.title)}" placeholder="deck title" autocomplete="off"></label>
+        <label class="deck-metadata-field"><span>format</span><input name="format" value="${esc(model.formatInput)}" placeholder="format" autocomplete="off"></label>
+        <label class="deck-metadata-field"><span>commander</span><input name="commander" value="${esc(model.commander)}" placeholder="commander" autocomplete="off"></label>
+        <label class="deck-metadata-field"><span>partner</span><input name="partner" value="${esc(model.partner)}" placeholder="partner" autocomplete="off"></label>
+        <label class="deck-metadata-field deck-metadata-description"><span>description</span><textarea name="description" rows="3" placeholder="description">${esc(model.description)}</textarea></label>
+        <div class="deck-metadata-actions">
+          <button class="btn btn-secondary" type="button" data-cancel-deck-details>cancel</button>
+          <button class="btn" type="submit">save deck</button>
+        </div>
+      </form>
+    </section>`;
+}
+
 function renderDeckView(list) {
   const deckColumnsEl = document.getElementById('deckColumns');
   const deckActionsEl = document.querySelector('#deckView .deck-actions');
@@ -556,35 +756,14 @@ function renderDeckView(list) {
   const stats = deckStats(list);
   const statHtml = renderDeckStatsHtml(boards.main);
   const format = meta.format || state.selectedFormat || 'unspecified format';
-  const valueStr = stats.value > 0 ? '$' + stats.value.toFixed(2) : '-';
+  const headerModel = deckDetailsViewModel(deck, meta, stats, state.selectedFormat);
   const commanderNames = [meta.commander, meta.partner].filter(Boolean);
   const commanderHtml = commanderNames.length
     ? `<section class="deck-board-section deck-commanders"><div class="deck-board-header"><h3>commander</h3><span>${commanderNames.length}</span></div><div class="deck-text-list">${commanderNames.map(n => `<div class="deck-text-row"><span>${esc(n)}</span><span>metadata</span></div>`).join('')}</div></section>`
     : '';
 
   deckColumnsEl.innerHTML = `<div class="deck-workspace">
-    <section class="deck-hero">
-      <div>
-        <div class="deck-kicker">deck</div>
-        <h2>${esc(meta.title || deck?.name || 'deck')}</h2>
-        <p>${esc(meta.description || 'No description yet.')}</p>
-      </div>
-      <div class="deck-hero-stats">
-        <span><strong>${stats.main}</strong> main</span>
-        <span><strong>${stats.sideboard}</strong> side</span>
-        <span><strong>${stats.maybe}</strong> maybe</span>
-        <span><strong>${valueStr}</strong> value</span>
-        <button class="btn btn-secondary" type="button" data-copy-decklist>copy list</button>
-      </div>
-    </section>
-    <form class="deck-metadata-form" id="deckMetadataForm">
-      <input name="title" value="${esc(meta.title || '')}" placeholder="deck title" autocomplete="off">
-      <input name="format" value="${esc(format === 'unspecified format' ? '' : format)}" placeholder="format" autocomplete="off">
-      <input name="commander" value="${esc(meta.commander || '')}" placeholder="commander" autocomplete="off">
-      <input name="partner" value="${esc(meta.partner || '')}" placeholder="partner" autocomplete="off">
-      <textarea name="description" rows="2" placeholder="description">${esc(meta.description || '')}</textarea>
-      <button class="btn" type="submit">save deck</button>
-    </form>
+    ${renderDeckDetailsHeaderHtml(headerModel)}
     <div class="deck-dashboard">
       <section class="deck-stat-card"><h3>curve</h3>${statHtml.curveHtml}</section>
       <section class="deck-stat-card"><h3>summary</h3>
@@ -760,20 +939,7 @@ function saveDeckGroup() {
 }
 
 function buildDecklistText(list) {
-  const line = c => {
-    const name = c.resolvedName || c.name || '';
-    const setCode = (c.setCode || '').toUpperCase();
-    const cn = c.cn || '';
-    const finishMarker = c.finish === 'foil' ? ' *F*' : c.finish === 'etched' ? ' *E*' : '';
-    return `${c.qty} ${name} (${setCode}) ${cn}${finishMarker}`;
-  };
-  const boards = splitDeckBoards(list);
-  const sections = [
-    ['Mainboard', boards.main],
-    ['Sideboard', boards.sideboard],
-    ['Maybeboard', boards.maybe],
-  ].filter(([, cards]) => cards.length);
-  return sections.map(([label, cards]) => label + '\n' + cards.map(line).join('\n')).join('\n\n');
+  return buildDeckExport(list, currentDeckMetadata(), { preset: 'moxfield' }).body;
 }
 
 function showCardPreview(link) {
@@ -1034,25 +1200,46 @@ export function initView() {
       if (pill) navigateToLocation(pill.dataset.locType, pill.dataset.locName);
       return;
     }
+    const menuToggle = e.target.closest('[data-card-menu-toggle]');
+    if (menuToggle) {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleDeckCardMenu(menuToggle);
+      return;
+    }
+    const cardAction = e.target.closest('[data-card-action]');
+    if (cardAction) {
+      e.preventDefault();
+      e.stopPropagation();
+      handleDeckCardAction(cardAction);
+      return;
+    }
     const handCard = e.target.closest('.deck-hand-card, .deck-next-card');
     if (handCard) {
       openDetail(parseInt(handCard.dataset.index, 10));
       return;
     }
-    if (e.target.closest('select, input, textarea, button')) return;
-    const card = e.target.closest('.deck-card');
-    if (!card) return;
-    openDetail(parseInt(card.dataset.index, 10));
+    if (!e.target.closest('.deck-card')) closeDeckCardMenus(document.getElementById('deckColumns'));
   });
 
-  document.getElementById('deckColumns').addEventListener('change', e => {
-    const boardSelect = e.target.closest('.deck-card-board');
-    if (!boardSelect) return;
-    const entry = state.collection[parseInt(boardSelect.dataset.index, 10)];
-    if (!entry) return;
-    entry.deckBoard = normalizeDeckBoard(boardSelect.value);
-    state.deckSampleHand = null;
-    commitCollectionChange({ coalesce: true });
+  document.getElementById('deckColumns').addEventListener('click', e => {
+    const root = document.getElementById('deckColumns');
+    const editBtn = e.target.closest('[data-edit-deck-details]');
+    if (editBtn) {
+      const editor = root.querySelector('#deckDetailsEditor');
+      if (!editor) return;
+      editor.classList.remove('hidden');
+      editBtn.setAttribute('aria-expanded', 'true');
+      const firstInput = editor.querySelector('input[name="title"]');
+      if (firstInput) firstInput.focus();
+      return;
+    }
+    const cancelBtn = e.target.closest('[data-cancel-deck-details]');
+    if (!cancelBtn) return;
+    const editor = root.querySelector('#deckDetailsEditor');
+    if (editor) editor.classList.add('hidden');
+    const toggle = root.querySelector('[data-edit-deck-details]');
+    if (toggle) toggle.setAttribute('aria-expanded', 'false');
   });
 
   document.getElementById('deckColumns').addEventListener('submit', e => {
@@ -1100,11 +1287,32 @@ export function initView() {
   });
 
   document.getElementById('deckColumns').addEventListener('keydown', e => {
-    if (e.key !== 'Enter' && e.key !== ' ') return;
-    const card = e.target.closest('.deck-card');
-    if (!card) return;
-    e.preventDefault();
-    openDetail(parseInt(card.dataset.index, 10));
+    if (e.key === 'Escape') {
+      closeDeckCardMenus(document.getElementById('deckColumns'));
+      return;
+    }
+    const toggle = e.target.closest('[data-card-menu-toggle]');
+    if (toggle && (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      openDeckCardMenu(toggle, { focusFirst: true });
+      return;
+    }
+    const menu = e.target.closest('.deck-card-menu');
+    if (!menu) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      moveFocusInDeckCardMenu(menu, e.target, e.key === 'ArrowDown' ? 1 : -1);
+    } else if (e.key === 'Home' || e.key === 'End') {
+      e.preventDefault();
+      const items = [...menu.querySelectorAll('[role="menuitem"]:not([disabled])')];
+      const target = e.key === 'Home' ? items[0] : items[items.length - 1];
+      if (target) target.focus();
+    }
+  });
+
+  document.addEventListener('click', e => {
+    if (e.target.closest('.deck-card')) return;
+    closeDeckCardMenus(document.getElementById('deckColumns'));
   });
 
   // hover/focus → update sticky preview panel
