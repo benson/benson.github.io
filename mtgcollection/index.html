@@ -323,6 +323,37 @@
   .app-footer-right #copyDecklistBtn { display: none; }
   .app-footer.format-active .app-footer-right #copyDecklistBtn { display: inline-flex; }
   .footer-storage-nag { color: #999; font-size: 0.7rem; letter-spacing: 0.02em; }
+  .field-deck-only.hidden { display: none !important; }
+  .add-ownership-readout {
+    display: block;
+    color: #666;
+    font-size: 0.78rem;
+    margin-bottom: 4px;
+  }
+  .add-ownership-readout.placeholder-state { color: #b58a00; }
+  .add-placeholder-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #555;
+    font-size: 0.78rem;
+    cursor: pointer;
+  }
+  .add-placeholder-toggle input { margin: 0; }
+  .footer-test-reset {
+    border: 1px dashed #ccc;
+    background: transparent;
+    color: #888;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.7rem;
+    padding: 3px 8px;
+    text-transform: lowercase;
+  }
+  .footer-test-reset:hover {
+    border-color: #000;
+    color: #000;
+  }
   .footer-case-toggle,
   .footer-chrome-toggle {
     background: none;
@@ -3820,7 +3851,6 @@
           <textarea class="paste-area" id="pasteArea" placeholder="...or paste csv here"></textarea>
           <div class="import-actions">
             <button class="btn" id="importPastedBtn">import pasted</button>
-            <button class="btn btn-secondary" id="loadBreyaBtn">load breya deck</button>
             <button class="btn btn-secondary" id="loadSampleBtn">load sample</button>
           </div>
           <div class="format-note">
@@ -3884,6 +3914,13 @@
                   </div>
                 </div>
               </div>
+              <div class="field field-deck-only field-full hidden" id="addDeckOptions">
+                <span class="add-ownership-readout" id="addOwnershipReadout"></span>
+                <label class="add-placeholder-toggle">
+                  <input type="checkbox" id="addAsPlaceholder">
+                  <span>add as placeholder (don't claim ownership of a physical copy)</span>
+                </label>
+              </div>
             </div>
             <div class="add-actions">
               <button class="btn" type="button" id="addCardBtn">add to collection</button>
@@ -3899,6 +3936,7 @@
   <footer class="app-footer">
     <div class="app-footer-left">
       <span class="footer-storage-nag">Localstorage only — back up your collection</span>
+      <button class="footer-test-reset" type="button" id="loadTestDataBtn" title="reset to a representative test state">reset test data</button>
     </div>
     <div class="app-footer-right">
       <button class="btn btn-secondary" type="button" id="copyDecklistBtn">copy decklist</button>

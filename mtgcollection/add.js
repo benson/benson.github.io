@@ -20,6 +20,8 @@ import {
   getCardImageUrl,
   getCardBackImageUrl,
   getUsdPrice,
+  ensureContainer,
+  addToDeckList,
 } from './collection.js';
 import { commitCollectionChange } from './persistence.js';
 import { showImageLightbox, LOC_ICONS } from './view.js';
@@ -142,10 +144,49 @@ function renderLanguageRadios(selected) {
 let selectedLocation = null;
 let locationNewMode = false;
 
+function syncDeckAddOptions() {
+  const wrap = document.getElementById('addDeckOptions');
+  if (!wrap) return;
+  const loc = readPickerLocation();
+  const isDeck = loc?.type === 'deck';
+  wrap.classList.toggle('hidden', !isDeck);
+  if (!isDeck) return;
+  // Compute ownership for the currently previewed printing.
+  const card = addPreviewCard;
+  const readout = document.getElementById('addOwnershipReadout');
+  const ph = document.getElementById('addAsPlaceholder');
+  if (!readout) return;
+  if (!card) {
+    readout.textContent = '';
+    readout.classList.remove('placeholder-state');
+    return;
+  }
+  const owned = state.collection.filter(c => c.scryfallId === card.id);
+  const ownedQty = owned.reduce((s, c) => s + (c.qty || 0), 0);
+  const inDeck = owned.filter(c => normalizeLocation(c.location)?.type === 'deck' && normalizeLocation(c.location)?.name === loc.name);
+  const inDeckQty = inDeck.reduce((s, c) => s + (c.qty || 0), 0);
+  if (ownedQty === 0) {
+    readout.textContent = "you don't own this printing yet — defaults to placeholder";
+    readout.classList.add('placeholder-state');
+    if (ph && !ph.dataset.userTouched) ph.checked = true;
+  } else {
+    const breakdown = owned.map(c => {
+      const l = normalizeLocation(c.location);
+      return (c.qty || 0) + ' in ' + (l ? l.type + ':' + l.name : 'unsorted');
+    }).join(', ');
+    readout.textContent = 'you own ' + ownedQty + ' of this printing (' + breakdown + ')' + (inDeckQty ? ' · ' + inDeckQty + ' already in this deck' : '');
+    readout.classList.remove('placeholder-state');
+    if (ph && !ph.dataset.userTouched) ph.checked = false;
+  }
+}
+
 function renderLocationPicker() {
   const pillsEl = document.getElementById('addLocationPills');
   const newBoxEl = document.getElementById('addLocationNewBox');
-  if (!pillsEl || !newBoxEl) return;
+  if (!pillsEl || !newBoxEl) {
+    syncDeckAddOptions();
+    return;
+  }
   const TYPE_HEADERS = { deck: 'decks', binder: 'binders', box: 'boxes' };
   const locations = allCollectionLocations();
   const html = [];
@@ -165,6 +206,7 @@ function renderLocationPicker() {
   html.push(`<button class="location-pill-new${locationNewMode ? ' is-selected' : ''}" type="button" id="addLocationNewBtn">+ new location</button>`);
   pillsEl.innerHTML = html.join('');
   newBoxEl.classList.toggle('hidden', !locationNewMode);
+  syncDeckAddOptions();
 }
 
 export function setSelectedLocation(loc) {
@@ -679,6 +721,7 @@ function showAddPreview(card, opts) {
     }
   }
   addBtn.focus();
+  syncDeckAddOptions();
 }
 
 function hideAddPreview() {
@@ -695,6 +738,42 @@ function addCardFromPreview() {
   const language = normalizeLanguage(addLanguageSel.value);
   const qty = Math.max(1, parseInt(addQtyInput.value, 10) || 1);
   const location = readPickerLocation();
+  const placeholderToggle = document.getElementById('addAsPlaceholder');
+  const asPlaceholder = !!(placeholderToggle && placeholderToggle.checked && location?.type === 'deck');
+
+  // When the destination is a deck, always update its decklist. Whether we
+  // also create an inventory row is gated by the placeholder toggle.
+  if (location?.type === 'deck') {
+    const deck = ensureContainer({ type: 'deck', name: location.name });
+    if (deck) {
+      addToDeckList(deck, {
+        scryfallId: card.id,
+        qty,
+        board: 'main',
+        name: card.name,
+        setCode: card.set,
+        cn: card.collector_number,
+        imageUrl: getCardImageUrl(card),
+        backImageUrl: getCardBackImageUrl(card),
+      });
+      deck.updatedAt = Date.now();
+    }
+  }
+
+  if (asPlaceholder) {
+    commitCollectionChange();
+    lastUsedLocation = location;
+    recordEvent({
+      type: 'add',
+      summary: 'Added {card} as placeholder to {loc:' + location.type + ':' + location.name + '}',
+      cards: [{ name: card.name, imageUrl: getCardImageUrl(card), backImageUrl: getCardBackImageUrl(card) || '' }],
+      scope: 'deck',
+      deckLocation: location.type + ':' + location.name,
+    });
+    showFeedback('added placeholder for ' + card.name, 'success');
+    hideAddPreview();
+    return;
+  }
 
   const entry = makeEntry({
     name: card.name,
@@ -932,6 +1011,12 @@ export function initAdd() {
   renderLocationPicker();
   addBtn         = document.getElementById('addCardBtn');
   addCancelBtn   = document.getElementById('addCardCancel');
+  const placeholderToggle = document.getElementById('addAsPlaceholder');
+  if (placeholderToggle) {
+    placeholderToggle.addEventListener('change', () => {
+      placeholderToggle.dataset.userTouched = '1';
+    });
+  }
   addMicBtn      = document.getElementById('addMicBtn');
   addMicStatus   = document.getElementById('addMicStatus');
   addAutoAddEl   = document.getElementById('addAutoAdd');

@@ -380,8 +380,29 @@ export async function importDecklistText(text, options = {}) {
     return { ok: false, count: 0, errors: [] };
   }
   const loc = normalizeLocation(location);
+  // When the destination is a deck, resolve scryfallIds first so we can also
+  // populate the deck's decklist. The import then either fulfills existing
+  // placeholders (if the user re-imports a list) or creates fresh inventory.
   if (loc?.type === 'deck') {
     for (const entry of entries) entry.deckBoard = board;
+    await resolveCards(entries);
+    const deck = ensureContainer({ type: 'deck', name: loc.name });
+    if (deck) {
+      for (const e of entries) {
+        if (!e.scryfallId) continue;
+        addToDeckList(deck, {
+          scryfallId: e.scryfallId,
+          qty: e.qty,
+          board,
+          name: e.resolvedName || e.name,
+          setCode: e.setCode,
+          cn: e.cn,
+          imageUrl: e.imageUrl || '',
+          backImageUrl: e.backImageUrl || '',
+        });
+      }
+      deck.updatedAt = Date.now();
+    }
   }
   await importEntries(entries, { label: options.label || 'decklist cards' });
   return { ok: true, count: entries.length, errors: [] };
@@ -475,26 +496,45 @@ function loadSample() {
   showFeedback('loaded sample csv — click "import pasted"', 'info');
 }
 
-// Seed the breya commander deck as a pure decklist — no physical inventory.
-// Cards render as placeholders in the deck view until the user adds physical
-// copies via the add flow. This matches the build-online → locate-IRL flow.
-export async function loadBreyaDeck(options = {}) {
-  const { replace = true, silent = false } = options;
-  if (replace && state.collection.length > 0 && !silent && !confirm('replace current collection with the breya deck?')) return;
-  const { entries, errors } = parseDecklist(BREYA_DECKLIST, { location: '' });
+// Seed a representative test state: breya decklist + a small spread of
+// inventory in box:bulk and binder:trade binder. Some inventory cards
+// overlap with the decklist (so they render as fulfilled, not placeholders)
+// and some don't (so list/binder/box views have content too).
+const TEST_INVENTORY = [
+  // Overlapping with the breya decklist (same printing) — these resolve to
+  // fulfilled rows in the deck view instead of placeholders.
+  { name: 'Sol Ring', setCode: 'sld', cn: '1011', finish: 'foil', qty: 1, condition: 'near_mint', location: 'box: bulk' },
+  { name: 'Swords to Plowshares', setCode: 'ice', cn: '54', finish: 'normal', qty: 1, condition: 'near_mint', location: 'binder: trade binder' },
+  // Standalone inventory — not in any deck.
+  { name: 'Lightning Bolt', setCode: 'clb', cn: '187', finish: 'normal', qty: 4, condition: 'lightly_played', location: 'box: bulk' },
+  { name: 'Counterspell', setCode: 'cmm', cn: '81', finish: 'normal', qty: 2, condition: 'near_mint', location: 'box: bulk' },
+  { name: 'Brainstorm', setCode: 'sta', cn: '13', finish: 'normal', qty: 1, condition: 'near_mint', location: 'binder: trade binder' },
+  { name: 'Wrenn and Six', setCode: 'mh1', cn: '217', finish: 'normal', qty: 1, condition: 'near_mint', location: 'binder: trade binder' },
+  { name: 'Force of Will', setCode: '2xm', cn: '51', finish: 'normal', qty: 1, condition: 'near_mint', location: 'binder: trade binder' },
+  { name: 'Ragavan, Nimble Pilferer', setCode: 'mh2', cn: '138', finish: 'foil', qty: 1, condition: 'near_mint', location: 'binder: trade binder' },
+];
+
+// Reset to a representative test state: breya decklist (mostly placeholders) +
+// a handful of inventory cards in box:bulk and binder:trade binder, including
+// a few that overlap with the breya decklist so the fulfillment path renders
+// alongside the placeholder path.
+export async function loadTestData(options = {}) {
+  const { silent = false } = options;
+  if (!silent && state.collection.length > 0 && !confirm('reset to test data (replaces collection + decklists)?')) return;
+  state.collection = [];
+  state.containers = {};
+  // 1. Build the breya decklist.
+  const { entries: deckEntries, errors } = parseDecklist(BREYA_DECKLIST, { location: '' });
   if (errors.length && !silent) {
     showFeedback('couldn\'t parse decklist lines: ' + errors.join(', '), 'error');
     return;
   }
-  if (replace) state.collection = [];
-  // Resolve to get scryfallIds + images; resolveCards mutates entries in place.
-  await resolveCards(entries);
+  await resolveCards(deckEntries);
   const deck = ensureContainer({ type: 'deck', name: 'breya' });
   if (deck) {
-    deck.deck = { ...deck.deck, format: 'commander', title: deck.deck?.title || 'breya' };
+    deck.deck = { ...deck.deck, format: 'commander', title: 'breya' };
     deck.deckList = [];
-    let added = 0;
-    for (const e of entries) {
+    for (const e of deckEntries) {
       if (!e.scryfallId) continue;
       addToDeckList(deck, {
         scryfallId: e.scryfallId,
@@ -506,13 +546,25 @@ export async function loadBreyaDeck(options = {}) {
         imageUrl: e.imageUrl || '',
         backImageUrl: e.backImageUrl || '',
       });
-      added++;
     }
-    deck.updatedAt = Date.now();
-    commitCollectionChange();
-    if (!silent) showFeedback('loaded breya decklist (' + added + ' cards) — placeholders until you add physical copies', 'success');
   }
+  // 2. Seed misc inventory.
+  const invEntries = TEST_INVENTORY.map(c => makeEntry(c));
+  await resolveCards(invEntries);
+  for (const e of invEntries) {
+    if (!e.scryfallId) continue;
+    state.collection.push(e);
+  }
+  // 3. Ensure containers for the inventory locations exist.
+  ensureContainer({ type: 'box', name: 'bulk' });
+  ensureContainer({ type: 'binder', name: 'trade binder' });
+  if (deck) deck.updatedAt = Date.now();
+  commitCollectionChange();
+  if (!silent) showFeedback('loaded test data: breya decklist + ' + invEntries.length + ' inventory cards', 'success');
 }
+
+// Backward-compat alias for any UI still calling the old name.
+export const loadBreyaDeck = loadTestData;
 
 function clearCollection() {
   if (!confirm('clear ' + state.collection.length + ' entries?')) return;
@@ -600,7 +652,8 @@ export function initImport() {
   });
 
   document.getElementById('importPastedBtn').addEventListener('click', importFromPaste);
-  document.getElementById('loadBreyaBtn').addEventListener('click', () => loadBreyaDeck());
+  const testDataBtn = document.getElementById('loadTestDataBtn');
+  if (testDataBtn) testDataBtn.addEventListener('click', () => loadTestData());
   document.getElementById('loadSampleBtn').addEventListener('click', loadSample);
   document.getElementById('deleteAllBtn').addEventListener('click', clearCollection);
   const exportBtn = document.getElementById('exportCsvBtn');
