@@ -623,8 +623,6 @@ function renderDeckTextRow(c) {
   const setIcon = iconUrl
     ? `<img class="set-icon" src="${esc(iconUrl)}" alt="" onerror="this.style.display='none'">`
     : '';
-  const board = normalizeDeckBoard(c.deckBoard);
-  const boardLbl = BOARD_LABEL[board] || board;
   const placeholderCls = c.placeholder ? ' deck-text-row-placeholder' : '';
   const physicalLoc = c.placeholder
     ? '<span class="deck-row-loc deck-row-loc-placeholder">placeholder</span>'
@@ -635,7 +633,6 @@ function renderDeckTextRow(c) {
     <td class="card-name-cell"><button class="${previewClasses}" type="button" data-index="${index}"${previewAttr}>${esc(name)}</button>${physicalLoc}</td>
     <td class="muted set-cell">${setIcon}${esc(setCode)}</td>
     <td class="muted cn-cell">${esc(c.cn || '')}</td>
-    <td class="muted board-cell"><span class="board-pill board-pill-${esc(board)}">${esc(boardLbl)}</span></td>
     <td class="muted finish-cell">${esc(c.finish)}</td>
     <td class="muted rarity-cell" title="${esc(c.rarity || '')}">${esc(RARITY_ABBR[c.rarity] || c.rarity || '')}</td>
     <td class="muted condition-cell" title="${esc((c.condition || '').replace(/_/g, ' '))}">${esc(CONDITION_ABBR[c.condition] || (c.condition || '').replace(/_/g, ' '))}</td>
@@ -703,7 +700,6 @@ function renderDeckTextMode(boards) {
           <th>name</th>
           <th>set</th>
           <th>cn</th>
-          <th>board</th>
           <th>finish</th>
           <th>rarity</th>
           <th>condition</th>
@@ -1129,7 +1125,7 @@ function buildDeckCardFromEntry(entry) {
     setCode: entry.setCode || inv?.setCode || '',
     setName: inv?.setName || '',
     cn: entry.cn || inv?.cn || '',
-    rarity: inv?.rarity || '',
+    rarity: inv?.rarity || entry.rarity || '',
     qty: entry.qty,
     deckBoard: entry.board,
     finish: inv?.finish || 'normal',
@@ -1138,10 +1134,10 @@ function buildDeckCardFromEntry(entry) {
     location: inv?.location || null,
     price: inv?.price || 0,
     priceFallback: inv?.priceFallback || false,
-    cmc: inv?.cmc ?? null,
-    colors: inv?.colors || [],
-    colorIdentity: inv?.colorIdentity || [],
-    typeLine: inv?.typeLine || '',
+    cmc: inv?.cmc ?? entry.cmc ?? null,
+    colors: (inv?.colors && inv.colors.length ? inv.colors : entry.colors) || [],
+    colorIdentity: (inv?.colorIdentity && inv.colorIdentity.length ? inv.colorIdentity : entry.colorIdentity) || [],
+    typeLine: inv?.typeLine || entry.typeLine || '',
     oracleText: inv?.oracleText || '',
     legalities: inv?.legalities || {},
     tags: inv?.tags || [],

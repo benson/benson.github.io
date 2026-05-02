@@ -399,6 +399,11 @@ export async function importDecklistText(text, options = {}) {
           cn: e.cn,
           imageUrl: e.imageUrl || '',
           backImageUrl: e.backImageUrl || '',
+          rarity: e.rarity || '',
+          cmc: e.cmc ?? null,
+          typeLine: e.typeLine || '',
+          colors: e.colors || [],
+          colorIdentity: e.colorIdentity || [],
         });
       }
       deck.updatedAt = Date.now();
@@ -500,12 +505,8 @@ function loadSample() {
 // inventory in box:bulk and binder:trade binder. Some inventory cards
 // overlap with the decklist (so they render as fulfilled, not placeholders)
 // and some don't (so list/binder/box views have content too).
-const TEST_INVENTORY = [
-  // Overlapping with the breya decklist (same printing) — these resolve to
-  // fulfilled rows in the deck view instead of placeholders.
-  { name: 'Sol Ring', setCode: 'sld', cn: '1011', finish: 'foil', qty: 1, condition: 'near_mint', location: 'box: bulk' },
-  { name: 'Swords to Plowshares', setCode: 'ice', cn: '54', finish: 'normal', qty: 1, condition: 'near_mint', location: 'binder: trade binder' },
-  // Standalone inventory — not in any deck.
+// Standalone inventory cards seeded alongside the deck — not in any deck.
+const TEST_STANDALONE_INVENTORY = [
   { name: 'Lightning Bolt', setCode: 'clb', cn: '187', finish: 'normal', qty: 4, condition: 'lightly_played', location: 'box: bulk' },
   { name: 'Counterspell', setCode: 'cmm', cn: '81', finish: 'normal', qty: 2, condition: 'near_mint', location: 'box: bulk' },
   { name: 'Brainstorm', setCode: 'sta', cn: '13', finish: 'normal', qty: 1, condition: 'near_mint', location: 'binder: trade binder' },
@@ -514,15 +515,18 @@ const TEST_INVENTORY = [
   { name: 'Ragavan, Nimble Pilferer', setCode: 'mh2', cn: '138', finish: 'foil', qty: 1, condition: 'near_mint', location: 'binder: trade binder' },
 ];
 
-// Reset to a representative test state: breya decklist (mostly placeholders) +
-// a handful of inventory cards in box:bulk and binder:trade binder, including
-// a few that overlap with the breya decklist so the fulfillment path renders
-// alongside the placeholder path.
+// Reset to a representative test state: breya decklist + ~50% of those cards
+// also seeded as inventory (alternating between box:bulk and binder:trade
+// binder) + a handful of standalone inventory cards. Fulfilled and
+// placeholder rows mix in the deck view so both paths exercise from the
+// first reset.
 export async function loadTestData(options = {}) {
   const { silent = false } = options;
   if (!silent && state.collection.length > 0 && !confirm('reset to test data (replaces collection + decklists)?')) return;
   state.collection = [];
   state.containers = {};
+  // Wipe the changelog so reset truly is a clean slate.
+  try { localStorage.removeItem('mtgcollection_changelog_v1'); } catch (e) {}
   // 1. Build the breya decklist.
   const { entries: deckEntries, errors } = parseDecklist(BREYA_DECKLIST, { location: '' });
   if (errors.length && !silent) {
@@ -545,22 +549,65 @@ export async function loadTestData(options = {}) {
         cn: e.cn,
         imageUrl: e.imageUrl || '',
         backImageUrl: e.backImageUrl || '',
+        rarity: e.rarity || '',
+        cmc: e.cmc ?? null,
+        typeLine: e.typeLine || '',
+        colors: e.colors || [],
+        colorIdentity: e.colorIdentity || [],
       });
     }
   }
-  // 2. Seed misc inventory.
-  const invEntries = TEST_INVENTORY.map(c => makeEntry(c));
-  await resolveCards(invEntries);
-  for (const e of invEntries) {
+  // 2. Seed inventory: ~50% of the breya decklist as fulfillment, plus the
+  // standalone misc cards. Cards that fulfill the deck use the same printing
+  // (scryfallId match) and alternate between box:bulk and binder:trade
+  // binder so we get content across views.
+  const fulfillCount = Math.ceil(deckEntries.length / 2);
+  const fulfillEntries = deckEntries
+    .filter(e => e.scryfallId)
+    .filter((_, i) => i % 2 === 0) // every other card
+    .slice(0, fulfillCount)
+    .map((e, i) => {
+      const loc = i % 2 === 0 ? 'box: bulk' : 'binder: trade binder';
+      const entry = makeEntry({
+        name: e.resolvedName || e.name,
+        setCode: e.setCode,
+        cn: e.cn,
+        finish: 'normal',
+        qty: e.qty,
+        condition: 'near_mint',
+        location: loc,
+        scryfallId: e.scryfallId,
+        rarity: e.rarity || '',
+      });
+      // Carry through the resolved Scryfall enrichment so list/binder views
+      // render with images, prices, types, etc.
+      entry.resolvedName = e.resolvedName || e.name;
+      entry.cmc = e.cmc ?? null;
+      entry.colors = e.colors || [];
+      entry.colorIdentity = e.colorIdentity || [];
+      entry.typeLine = e.typeLine || '';
+      entry.oracleText = e.oracleText || '';
+      entry.legalities = e.legalities || {};
+      entry.imageUrl = e.imageUrl || '';
+      entry.backImageUrl = e.backImageUrl || '';
+      entry.price = e.price || 0;
+      entry.priceFallback = e.priceFallback || false;
+      return entry;
+    });
+  for (const e of fulfillEntries) state.collection.push(e);
+  // 3. Standalone inventory.
+  const standaloneEntries = TEST_STANDALONE_INVENTORY.map(c => makeEntry(c));
+  await resolveCards(standaloneEntries);
+  for (const e of standaloneEntries) {
     if (!e.scryfallId) continue;
     state.collection.push(e);
   }
-  // 3. Ensure containers for the inventory locations exist.
+  // 4. Ensure containers for the inventory locations exist.
   ensureContainer({ type: 'box', name: 'bulk' });
   ensureContainer({ type: 'binder', name: 'trade binder' });
   if (deck) deck.updatedAt = Date.now();
   commitCollectionChange();
-  if (!silent) showFeedback('loaded test data: breya decklist + ' + invEntries.length + ' inventory cards', 'success');
+  if (!silent) showFeedback('loaded test data: breya decklist + ' + (fulfillEntries.length + standaloneEntries.length) + ' inventory cards', 'success');
 }
 
 // Backward-compat alias for any UI still calling the old name.

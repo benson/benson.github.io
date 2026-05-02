@@ -103,6 +103,11 @@ export function normalizeDeckListEntry(raw) {
     cn: String(raw.cn || '').trim(),
     imageUrl: String(raw.imageUrl || '').trim(),
     backImageUrl: String(raw.backImageUrl || '').trim(),
+    rarity: String(raw.rarity || '').toLowerCase(),
+    cmc: raw.cmc ?? null,
+    typeLine: String(raw.typeLine || ''),
+    colors: Array.isArray(raw.colors) ? [...raw.colors] : [],
+    colorIdentity: Array.isArray(raw.colorIdentity) ? [...raw.colorIdentity] : [],
   };
 }
 
