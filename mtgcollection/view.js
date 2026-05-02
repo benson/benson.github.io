@@ -42,6 +42,7 @@ const VALID_DECK_GROUPS = ['type', 'cmc', 'color', 'rarity'];
 const VALID_DECK_MODES = ['visual', 'text', 'stats', 'hands', 'notes'];
 const VALID_DECK_BOARD_FILTERS = ['all', 'main', 'sideboard', 'maybe'];
 const VALID_DECK_CARD_SIZES = ['small', 'medium', 'large'];
+const VALID_DECK_OWNERSHIP_VIEWS = ['decklist', 'building'];
 const VALID_BINDER_SIZES = Object.keys(BINDER_SIZES);
 const RARITY_ABBR = { common: 'c', uncommon: 'u', rare: 'r', mythic: 'm', special: 's', bonus: 'b' };
 const CONDITION_ABBR = { near_mint: 'nm', lightly_played: 'lp', moderately_played: 'mp', heavily_played: 'hp', damaged: 'dmg' };
@@ -227,6 +228,7 @@ export function render() {
   document.body.classList.toggle('view-deck', shape === 'deck');
   document.body.classList.toggle('view-locations', shape === 'locations');
   document.body.classList.toggle('has-collection', state.collection.length > 0);
+  document.body.classList.toggle('deck-ownership-decklist', shape === 'deck' && state.deckOwnershipView === 'decklist');
   // Switching away from list shape always closes the right drawer
   if (shape !== 'list') closeRightDrawer();
   syncClearFiltersBtn();
@@ -1055,6 +1057,10 @@ export function renderDeckWorkspaceControls() {
       ${boardBtn('sideboard', 'side')}
       ${boardBtn('maybe', 'maybe')}
     </div>
+    <div class="deck-ownership-toggle" role="group" aria-label="ownership view" title="decklist mode hides ownership and physical location; building mode surfaces them">
+      <button type="button" class="deck-ownership-btn${state.deckOwnershipView === 'decklist' ? ' active' : ''}" data-deck-ownership="decklist" aria-pressed="${state.deckOwnershipView === 'decklist' ? 'true' : 'false'}">decklist</button>
+      <button type="button" class="deck-ownership-btn${state.deckOwnershipView === 'building' ? ' active' : ''}" data-deck-ownership="building" aria-pressed="${state.deckOwnershipView === 'building' ? 'true' : 'false'}">building</button>
+    </div>
     <details class="deck-view-settings">
       <summary>view settings</summary>
       <div class="deck-settings-grid">
@@ -1402,6 +1408,7 @@ function loadDeckPrefs() {
     if (VALID_DECK_BOARD_FILTERS.includes(prefs.boardFilter)) state.deckBoardFilter = prefs.boardFilter;
     if (VALID_DECK_CARD_SIZES.includes(prefs.cardSize)) state.deckCardSize = prefs.cardSize;
     if (typeof prefs.showPrices === 'boolean') state.deckShowPrices = prefs.showPrices;
+    if (VALID_DECK_OWNERSHIP_VIEWS.includes(prefs.ownershipView)) state.deckOwnershipView = prefs.ownershipView;
   } catch (e) {}
 }
 
@@ -1412,6 +1419,7 @@ function saveDeckPrefs() {
       boardFilter: state.deckBoardFilter,
       cardSize: state.deckCardSize,
       showPrices: state.deckShowPrices,
+      ownershipView: state.deckOwnershipView,
     }));
   } catch (e) {}
 }
@@ -1763,6 +1771,15 @@ export function initView() {
       const size = sizeBtn.dataset.deckCardSize;
       if (!VALID_DECK_CARD_SIZES.includes(size)) return;
       state.deckCardSize = size;
+      saveDeckPrefs();
+      render();
+      return;
+    }
+    const ownershipBtn = e.target.closest('[data-deck-ownership]');
+    if (ownershipBtn) {
+      const v = ownershipBtn.dataset.deckOwnership;
+      if (!VALID_DECK_OWNERSHIP_VIEWS.includes(v)) return;
+      state.deckOwnershipView = v;
       saveDeckPrefs();
       render();
       return;

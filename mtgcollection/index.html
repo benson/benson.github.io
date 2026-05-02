@@ -1417,6 +1417,37 @@
     background: #000;
     color: #fff;
   }
+  .deck-ownership-toggle {
+    display: inline-flex;
+    border: 1px solid #bbb;
+    background: #fff;
+  }
+  .deck-ownership-btn {
+    border: 0;
+    border-right: 1px solid #bbb;
+    background: transparent;
+    color: #000;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.75rem;
+    padding: 6px 10px;
+    text-transform: lowercase;
+  }
+  .deck-ownership-btn:last-child { border-right: 0; }
+  .deck-ownership-btn.active {
+    background: #000;
+    color: #fff;
+  }
+  .deck-ownership-btn:focus-visible {
+    outline: 2px solid #000;
+    outline-offset: 2px;
+  }
+  /* Decklist mode: drop the ownership/physical-location surface so the
+     deck reads as a clean list (for sharing, tournament reports, etc.). */
+  body.deck-ownership-decklist .deck-card-placeholder { opacity: 1; }
+  body.deck-ownership-decklist .deck-card-placeholder::after { display: none; }
+  body.deck-ownership-decklist .deck-text-row-placeholder { opacity: 1; }
+  body.deck-ownership-decklist .deck-row-loc { display: none; }
   .deck-mode-btn:focus-visible,
   .deck-board-filter-btn:focus-visible,
   .deck-view-settings summary:focus-visible {

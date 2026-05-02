@@ -13,6 +13,7 @@ export const state = {
   deckBoardFilter: 'all',
   deckCardSize: 'medium',
   deckShowPrices: true,
+  deckOwnershipView: 'building',
   deckSampleHand: null,
   binderSize: '4x3',
   binderPage: 0,
