@@ -345,18 +345,29 @@ function renderLocationsView(containers) {
       const stats = containerStats(c);
       const value = stats.value > 0 ? ' &middot; $' + stats.value.toFixed(2) : '';
       const disabled = stats.total > 0 ? ' disabled' : '';
-      return `<article class="location-card" data-loc-type="${esc(c.type)}" data-loc-name="${esc(c.name)}">
-        <div class="location-card-name">${LOC_ICONS[c.type] || LOC_ICONS.box}<span>${esc(c.name)}</span></div>
-        <div class="location-card-stats">${stats.unique} unique &middot; ${stats.total} total${value}</div>
-        <div class="location-card-actions">
-          <button class="btn btn-secondary location-open" type="button">open</button>
-          <button class="btn btn-secondary location-rename" type="button">rename</button>
-          <button class="btn btn-secondary location-delete" type="button"${disabled}>delete</button>
+      const radioName = 'editLocType_' + esc(c.type) + '_' + esc(c.name);
+      const typeRadiosHtml = LOCATION_TYPES.map(t => `<label class="loc-type-radio${t === c.type ? ' is-selected' : ''}">
+        <input type="radio" name="${radioName}" value="${esc(t)}"${t === c.type ? ' checked' : ''}>
+        <span class="loc-pill loc-pill-${esc(t)}">${LOC_ICONS[t]}<span>${esc(t)}</span></span>
+      </label>`).join('');
+      return `<article class="location-card" data-loc-type="${esc(c.type)}" data-loc-name="${esc(c.name)}" tabindex="0" role="button" aria-label="open ${esc(c.name)}">
+        <button class="location-card-menu-btn" type="button" aria-label="more options" aria-haspopup="menu">⋯</button>
+        <div class="location-card-menu hidden" role="menu">
+          <button class="location-card-menu-item location-delete" type="button" role="menuitem"${disabled}>delete</button>
         </div>
-        <div class="location-rename-row">
+        <div class="location-card-name">
+          ${LOC_ICONS[c.type] || LOC_ICONS.box}
+          <span class="location-card-name-text">${esc(c.name)}</span>
+          <button class="location-card-edit-btn" type="button" aria-label="edit">✎</button>
+        </div>
+        <div class="location-card-stats">${stats.unique} unique &middot; ${stats.total} total${value}</div>
+        <div class="location-card-edit-row">
+          <div class="loc-type-radios">${typeRadiosHtml}</div>
           <input class="location-rename-input" type="text" value="${esc(c.name)}">
-          <button class="btn location-rename-save" type="button">save</button>
-          <button class="btn btn-secondary location-rename-cancel" type="button">cancel</button>
+          <div class="location-card-edit-actions">
+            <button class="btn location-rename-save" type="button">save</button>
+            <button class="btn btn-secondary location-rename-cancel" type="button">cancel</button>
+          </div>
         </div>
       </article>`;
     }).join('') || '<div class="deck-empty-prompt">no ' + esc(typeLabels[type]) + ' yet</div>';
@@ -932,30 +943,84 @@ export function initView() {
     render();
   });
 
+  // Type-radio click delegation inside edit rows: toggle is-selected on the active label.
+  locationsEl.addEventListener('change', e => {
+    if (!e.target || e.target.type !== 'radio') return;
+    if (!e.target.name || !e.target.name.startsWith('editLocType_')) return;
+    const card = e.target.closest('.location-card');
+    if (!card) return;
+    card.querySelectorAll('.location-card-edit-row .loc-type-radio').forEach(l => {
+      const r = l.querySelector('input');
+      l.classList.toggle('is-selected', !!(r && r.checked));
+    });
+  });
+
+  // Close any open card menu when clicking outside.
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.location-card-menu-btn') && !e.target.closest('.location-card-menu')) {
+      locationsEl.querySelectorAll('.location-card.menu-open').forEach(c => c.classList.remove('menu-open'));
+    }
+  });
+
   locationsEl.addEventListener('click', e => {
     const card = e.target.closest('.location-card');
     if (!card) return;
     const loc = { type: card.dataset.locType, name: card.dataset.locName };
-    if (e.target.closest('.location-open')) {
-      navigateToLocation(loc.type, loc.name);
-    } else if (e.target.closest('.location-rename')) {
-      card.classList.add('renaming');
+
+    if (e.target.closest('.location-card-menu-btn')) {
+      e.stopPropagation();
+      const wasOpen = card.classList.contains('menu-open');
+      locationsEl.querySelectorAll('.location-card.menu-open').forEach(c => c.classList.remove('menu-open'));
+      if (!wasOpen) card.classList.add('menu-open');
+      return;
+    }
+    if (e.target.closest('.location-card-edit-btn')) {
+      e.stopPropagation();
+      card.classList.add('editing');
+      card.classList.remove('menu-open');
       const input = card.querySelector('.location-rename-input');
-      if (input) input.focus();
-    } else if (e.target.closest('.location-rename-cancel')) {
-      card.classList.remove('renaming');
-    } else if (e.target.closest('.location-rename-save')) {
+      if (input) { input.focus(); input.select(); }
+      return;
+    }
+    if (e.target.closest('.location-rename-cancel')) {
+      card.classList.remove('editing');
+      return;
+    }
+    if (e.target.closest('.location-rename-save')) {
       const input = card.querySelector('.location-rename-input');
-      if (input && renameContainer(loc, { type: loc.type, name: input.value })) {
+      const checked = card.querySelector('.location-card-edit-row input[type="radio"]:checked');
+      const newType = checked ? checked.value : loc.type;
+      const newName = input ? input.value : loc.name;
+      if (renameContainer(loc, { type: newType, name: newName })) {
         commitCollectionChange({ coalesce: true });
       }
-    } else if (e.target.closest('.location-delete')) {
+      return;
+    }
+    if (e.target.closest('.location-delete')) {
+      if (!confirm('delete ' + loc.name + '?')) return;
       if (deleteEmptyContainer(loc)) {
         save();
         populateFilters();
         render();
       }
+      return;
     }
+    // Click on body / name / stats (not on a control) → open the container.
+    // Don't open while editing or while the menu is open.
+    if (card.classList.contains('editing') || card.classList.contains('menu-open')) return;
+    if (e.target.closest('.location-card-edit-row')) return;
+    navigateToLocation(loc.type, loc.name);
+  });
+
+  // Keyboard activation: Enter/Space on a focused card opens it (matches the
+  // role="button" we set on .location-card).
+  locationsEl.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const card = e.target.closest('.location-card');
+    if (!card || e.target !== card) return;
+    if (card.classList.contains('editing') || card.classList.contains('menu-open')) return;
+    e.preventDefault();
+    navigateToLocation(card.dataset.locType, card.dataset.locName);
   });
 
   listBodyEl.addEventListener('click', e => {
