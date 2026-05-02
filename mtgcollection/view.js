@@ -595,6 +595,35 @@ function renderDeckTextRows(list) {
   return list.map(c => `<div class="deck-text-row"><span>${c.qty || 1} ${esc(c.resolvedName || c.name || '')}</span><span>${esc((c.setCode || '').toUpperCase())} ${esc(c.cn || '')}</span></div>`).join('');
 }
 
+const BOARD_LABEL = { main: 'main', sideboard: 'side', maybe: 'maybe' };
+
+function renderDeckTextRow(c) {
+  const name = c.resolvedName || c.name || '(unknown)';
+  const index = state.collection.indexOf(c);
+  const previewClasses = c.imageUrl ? 'card-name-button card-preview-link detail-trigger' : 'card-name-button detail-trigger';
+  const previewAttr = c.imageUrl ? ` data-preview-url="${esc(c.imageUrl)}"` : '';
+  const setCodeLower = (c.setCode || '').toLowerCase();
+  const setCode = setCodeLower.toUpperCase();
+  const iconUrl = setCodeLower ? getSetIconUrl(setCodeLower) : '';
+  const setIcon = iconUrl
+    ? `<img class="set-icon" src="${esc(iconUrl)}" alt="" onerror="this.style.display='none'">`
+    : '';
+  const board = normalizeDeckBoard(c.deckBoard);
+  const boardLbl = BOARD_LABEL[board] || board;
+  return `<tr class="detail-trigger" data-index="${index}">
+    <td class="card-name-cell"><button class="${previewClasses}" type="button" data-index="${index}"${previewAttr}>${esc(name)}</button></td>
+    <td class="muted set-cell">${setIcon}${esc(setCode)}</td>
+    <td class="muted cn-cell">${esc(c.cn || '')}</td>
+    <td class="muted board-cell"><span class="board-pill board-pill-${esc(board)}">${esc(boardLbl)}</span></td>
+    <td class="muted finish-cell">${esc(c.finish)}</td>
+    <td class="muted rarity-cell" title="${esc(c.rarity || '')}">${esc(RARITY_ABBR[c.rarity] || c.rarity || '')}</td>
+    <td class="muted condition-cell" title="${esc((c.condition || '').replace(/_/g, ' '))}">${esc(CONDITION_ABBR[c.condition] || (c.condition || '').replace(/_/g, ' '))}</td>
+    <td class="tags-cell">${(c.tags || []).map(t => `<span class="row-tag">${esc(t)}</span>`).join('')}</td>
+    <td class="qty-cell">${c.qty}</td>
+    <td class="muted price-cell">${formatPrice(c)}</td>
+  </tr>`;
+}
+
 function renderDeckBoardSection(title, cards, { grouped = false } = {}) {
   const total = cards.reduce((s, c) => s + (c.qty || 1), 0);
   const value = cards.reduce((s, c) => s + (c.price || 0) * (c.qty || 1), 0);
@@ -642,11 +671,28 @@ function filterDeckBoards(boards, filter) {
 
 function renderDeckTextMode(boards) {
   const sections = filterDeckBoards(boards, state.deckBoardFilter);
+  const cards = sections.flatMap(([, c]) => c);
+  if (!cards.length) {
+    return `<div class="deck-text-mode"><div class="deck-empty-prompt">no cards</div></div>`;
+  }
   return `<div class="deck-text-mode">
-    ${sections.map(([board, cards]) => `<section class="deck-board-section">
-      <div class="deck-board-header"><h3>${boardLabel(board)}</h3><span>${cards.reduce((s, c) => s + (c.qty || 1), 0)} cards</span></div>
-      <div class="deck-text-list deck-text-list-full">${renderDeckTextRows(cards)}</div>
-    </section>`).join('')}
+    <table class="deck-text-table">
+      <thead>
+        <tr>
+          <th>name</th>
+          <th>set</th>
+          <th>cn</th>
+          <th>board</th>
+          <th>finish</th>
+          <th>rarity</th>
+          <th>condition</th>
+          <th>tags</th>
+          <th>qty</th>
+          <th>price</th>
+        </tr>
+      </thead>
+      <tbody>${cards.map(c => renderDeckTextRow(c)).join('')}</tbody>
+    </table>
   </div>`;
 }
 
@@ -794,7 +840,10 @@ export function renderDeckDetailsHeaderHtml(model) {
         </div>
         <div class="deck-hero-actions">
           <button class="btn" type="button" data-toggle-deck-add aria-controls="deckAddPanel" aria-expanded="false">add card</button>
-          <button class="btn btn-secondary" type="button" data-toggle-deck-export aria-controls="deckExportPanel" aria-expanded="false">export</button>
+          <div class="deck-export-menu-wrap">
+            <button class="btn btn-secondary" type="button" data-toggle-deck-export aria-controls="deckExportPanel" aria-expanded="false">export</button>
+            ${renderDeckExportPanel()}
+          </div>
           <button class="btn" type="button" data-sample-hand="draw">sample hand</button>
           <button class="btn btn-secondary" type="button" data-edit-deck-details aria-controls="deckDetailsEditor" aria-expanded="false">edit details</button>
         </div>
@@ -994,7 +1043,6 @@ function renderDeckView(list) {
   deckColumnsEl.innerHTML = `<div class="deck-workspace deck-card-size-${esc(state.deckCardSize)}">
     ${renderDeckDetailsHeaderHtml(headerModel)}
     ${renderDeckWorkspaceControls()}
-    ${renderDeckExportPanel()}
     ${renderDeckAddPanel(deck)}
     ${modeBody}
   </div>`;
@@ -1527,6 +1575,7 @@ export function initView() {
     }
     const exportToggle = e.target.closest('[data-toggle-deck-export]');
     if (exportToggle) {
+      e.stopPropagation();
       const panel = document.getElementById('deckExportPanel');
       setDeckPanelOpen('deckExportPanel', '[data-toggle-deck-export]', panel?.classList.contains('hidden'));
       return;
@@ -1557,6 +1606,18 @@ export function initView() {
     if (handCard) {
       openDetail(parseInt(handCard.dataset.index, 10));
       return;
+    }
+    const textNameBtn = e.target.closest('.deck-text-table .card-name-button');
+    if (textNameBtn) {
+      openDetail(parseInt(textNameBtn.dataset.index, 10));
+      return;
+    }
+    if (!e.target.closest('input, select, button, a')) {
+      const textRow = e.target.closest('.deck-text-table tr.detail-trigger');
+      if (textRow) {
+        openDetail(parseInt(textRow.dataset.index, 10));
+        return;
+      }
     }
     if (!e.target.closest('.deck-card')) closeDeckCardMenus(document.getElementById('deckColumns'));
   });
@@ -1970,5 +2031,13 @@ export function initView() {
     lightboxShowingBack = !lightboxShowingBack;
     const url = lightboxShowingBack ? lightboxBack : lightboxFront;
     lightboxImg.src = biggerImageUrl(url);
+  });
+
+  // Close the export dropdown when clicking outside it.
+  document.addEventListener('click', e => {
+    const panel = document.getElementById('deckExportPanel');
+    if (!panel || panel.classList.contains('hidden')) return;
+    if (e.target.closest('.deck-export-menu-wrap')) return;
+    setDeckPanelOpen('deckExportPanel', '[data-toggle-deck-export]', false);
   });
 }

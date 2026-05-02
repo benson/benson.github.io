@@ -907,7 +907,7 @@
     align-self: start;
     position: sticky;
     top: 14px;
-    height: calc(100vh - 130px);
+    height: calc(100vh - 160px);
     min-height: 0;
   }
   .deck-preview-panel {
@@ -928,6 +928,22 @@
   }
   .deck-side-history > summary {
     flex: 0 0 auto;
+    cursor: pointer;
+    padding: 8px 10px;
+    margin: 0 -10px;
+    color: #555;
+    font-size: 0.78rem;
+    user-select: none;
+    transition: background 0.12s, color 0.12s;
+  }
+  .deck-side-history > summary:hover {
+    color: #000;
+    background: rgba(0,0,0,0.06);
+  }
+  .deck-side-history[open] > summary {
+    color: #000;
+    border-bottom: 1px solid #e0dccc;
+    margin-bottom: 8px;
   }
   .deck-side-history > .details-body {
     flex: 1 1 auto;
@@ -1487,6 +1503,7 @@
   }
   .deck-card-size-segmented {
     display: inline-flex;
+    align-self: flex-start;
     border: 1px solid #bbb;
     background: #fff;
   }
@@ -1594,6 +1611,43 @@
     display: grid;
     gap: 12px;
   }
+  .deck-text-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+    text-transform: lowercase;
+  }
+  .deck-text-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: #f8f7f4;
+    color: #555;
+    text-align: left;
+    font-weight: 500;
+    padding: 6px 8px;
+    box-shadow: inset 0 -1px 0 #000;
+    white-space: nowrap;
+  }
+  .deck-text-table tbody td {
+    padding: 4px 8px;
+    border-bottom: 1px solid #f1f1f1;
+    vertical-align: middle;
+  }
+  .deck-text-table tbody tr:hover { background: rgba(0,0,0,0.03); cursor: pointer; }
+  .deck-text-table .board-cell { width: 60px; white-space: nowrap; }
+  .board-pill {
+    display: inline-block;
+    padding: 1px 6px;
+    border: 1px solid #ddd;
+    background: #fafafa;
+    color: #555;
+    font-size: 0.7rem;
+    border-radius: 2px;
+  }
+  .board-pill-main { background: #efe6d4; color: #4a3f1d; border-color: #d8c89a; }
+  .board-pill-sideboard { background: #e3eadd; color: #2d4023; border-color: #b3c8a3; }
+  .board-pill-maybe { background: #ece8e0; color: #555; border-color: #c8c0ad; }
   .deck-text-row {
     display: flex;
     justify-content: space-between;
@@ -2658,7 +2712,28 @@
     border-radius: 2px;
     overflow: hidden;
   }
-  .deck-export-panel,
+  .deck-export-menu-wrap {
+    position: relative;
+    display: inline-flex;
+  }
+  .deck-export-panel {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    z-index: 30;
+    min-width: 320px;
+    border: 1px solid #111;
+    background: #fff;
+    padding: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.16);
+  }
+  .deck-export-panel .deck-export-form {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .deck-export-panel .deck-export-actions {
+    justify-content: flex-end;
+  }
   .deck-add-panel {
     border: 1px solid #ddd;
     background: #fafafa;
@@ -3538,7 +3613,7 @@
     </div>
 
     <details class="history-details sidebar-history" id="historyDetails" open>
-      <summary>history</summary>
+      <summary>collection history</summary>
       <div class="details-body">
         <ol id="historyList" class="history-list"></ol>
         <div class="history-actions">
@@ -3582,7 +3657,7 @@
               <div class="deck-preview-meta"></div>
             </aside>
             <details class="history-details deck-side-history" id="deckHistoryDetails" open>
-              <summary>history</summary>
+              <summary>deck history</summary>
               <div class="details-body">
                 <ol class="history-list" id="deckHistoryList"></ol>
                 <div class="history-actions">
