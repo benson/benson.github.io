@@ -162,7 +162,8 @@ function renderLocationPicker() {
       </button>`);
     }
   }
-  html.push(`<button class="location-pill-new${locationNewMode ? ' is-selected' : ''}" type="button" id="addLocationNewBtn">+ new</button>`);
+  html.push(`<span class="loc-pills-row-break" aria-hidden="true"></span>`);
+  html.push(`<button class="location-pill-new${locationNewMode ? ' is-selected' : ''}" type="button" id="addLocationNewBtn">+ new location</button>`);
   pillsEl.innerHTML = html.join('');
   newBoxEl.classList.toggle('hidden', !locationNewMode);
 }
