@@ -219,11 +219,13 @@
     margin-bottom: 0;
   }
 
-  /* List-view: hide right sidebar entirely and collapse the column */
-  body.view-list .app-shell {
+  /* List-view + locations: hide right sidebar entirely and collapse the column */
+  body.view-list .app-shell,
+  body.view-locations .app-shell {
     grid-template-columns: 200px 1fr 0;
   }
-  body.view-list .app-right { display: none; }
+  body.view-list .app-right,
+  body.view-locations .app-right { display: none; }
 
   /* List-view + drawer-open: float the sidebar in from the right with a backdrop */
   body.view-list.right-drawer-open .app-right {
