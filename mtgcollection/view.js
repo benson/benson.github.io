@@ -6,12 +6,17 @@ import {
   normalizeTag,
   biggerImageUrl,
   allCollectionLocations,
+  allContainers,
+  containerStats,
+  ensureContainer,
+  renameContainer,
+  deleteEmptyContainer,
   formatLocationLabel,
   LOCATION_TYPES,
   DEFAULT_LOCATION_TYPE,
 } from './collection.js';
 import { save, commitCollectionChange } from './persistence.js';
-import { openDetail } from './detail.js';
+import { openDetail, populateFilters } from './detail.js';
 import { filteredSorted, syncClearFiltersBtn, hasActiveFilter } from './search.js';
 import { renderStatsPanel, groupDeck, firstCardForPanel } from './stats.js';
 import { updateBulkBar } from './bulk.js';
@@ -164,7 +169,7 @@ function removeRowTag(index, tag) {
   commitCollectionChange({ coalesce: true });
 }
 
-let gridEl, listBodyEl, collectionSection, emptyState;
+let gridEl, locationsEl, listBodyEl, collectionSection, emptyState;
 let cardPreviewEl, cardPreviewImg;
 let lightboxEl, lightboxImg, lightboxFlipBtn;
 let lightboxFront = null;
@@ -180,7 +185,8 @@ export function render() {
   // Switching away from list view always closes the right drawer
   if (state.viewMode !== 'list') closeRightDrawer();
   syncClearFiltersBtn();
-  if (state.collection.length === 0) {
+  const containers = allContainers();
+  if (state.collection.length === 0 && containers.length === 0 && state.viewMode !== 'locations') {
     collectionSection.classList.add('hidden');
     emptyState.classList.remove('hidden');
     // Hide size toggles too — neither makes sense for an empty collection.
@@ -205,18 +211,23 @@ export function render() {
   const listContainer = document.getElementById('listView');
   const deckContainer = document.getElementById('deckView');
   const binderContainer = document.getElementById('binderView');
+  const locationsContainer = document.getElementById('locationsView');
   const gridSizeCtl = document.getElementById('gridSizeControl');
   const binderSizeCtl = document.getElementById('binderSizeControl');
 
   // Reset chrome
   gridContainer.classList.add('hidden');
+  locationsContainer.classList.remove('active');
   listContainer.classList.remove('active');
   deckContainer.classList.remove('active');
   binderContainer.classList.remove('active');
   gridSizeCtl.classList.add('hidden');
   binderSizeCtl.classList.add('hidden');
 
-  if (state.viewMode === 'deck') {
+  if (state.viewMode === 'locations') {
+    locationsContainer.classList.add('active');
+    renderLocationsView(containers);
+  } else if (state.viewMode === 'deck') {
     deckContainer.classList.add('active');
     renderDeckView(list);
   } else if (state.viewMode === 'binder') {
@@ -312,6 +323,45 @@ function renderRow(c) {
     <td class="qty-cell">${c.qty}</td>
     <td class="muted price-cell">${formatPrice(c)}</td>
   </tr>`;
+}
+
+function renderLocationsView(containers) {
+  const typeLabels = { deck: 'decks', binder: 'binders', box: 'boxes' };
+  const createHtml = `<form class="locations-create" id="locationsCreateForm">
+    <label for="locationsCreateType">new location</label>
+    <select id="locationsCreateType">
+      ${LOCATION_TYPES.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('')}
+    </select>
+    <input id="locationsCreateName" type="text" placeholder="name" autocomplete="off">
+    <button class="btn" type="submit">create</button>
+  </form>`;
+  const groups = LOCATION_TYPES.map(type => {
+    const ofType = containers.filter(c => c.type === type);
+    const cards = ofType.map(c => {
+      const stats = containerStats(c);
+      const value = stats.value > 0 ? ' Â· $' + stats.value.toFixed(2) : '';
+      const disabled = stats.total > 0 ? ' disabled' : '';
+      return `<article class="location-card" data-loc-type="${esc(c.type)}" data-loc-name="${esc(c.name)}">
+        <div class="location-card-name">${LOC_ICONS[c.type] || LOC_ICONS.box}<span>${esc(c.name)}</span></div>
+        <div class="location-card-stats">${stats.unique} unique Â· ${stats.total} total${value}</div>
+        <div class="location-card-actions">
+          <button class="btn btn-secondary location-open" type="button">open</button>
+          <button class="btn btn-secondary location-rename" type="button">rename</button>
+          <button class="btn btn-secondary location-delete" type="button"${disabled}>delete</button>
+        </div>
+        <div class="location-rename-row">
+          <input class="location-rename-input" type="text" value="${esc(c.name)}">
+          <button class="btn location-rename-save" type="button">save</button>
+          <button class="btn btn-secondary location-rename-cancel" type="button">cancel</button>
+        </div>
+      </article>`;
+    }).join('') || '<div class="deck-empty-prompt">no ' + esc(typeLabels[type]) + ' yet</div>';
+    return `<section class="locations-group">
+      <div class="locations-group-title">${esc(typeLabels[type])}</div>
+      <div class="locations-list">${cards}</div>
+    </section>`;
+  }).join('');
+  locationsEl.innerHTML = createHtml + groups;
 }
 
 function renderDeckCard(c, isLast) {
@@ -628,6 +678,7 @@ export function isRightDrawerOpen() {
 
 export function initView() {
   gridEl = document.getElementById('grid');
+  locationsEl = document.getElementById('locationsView');
   listBodyEl = document.getElementById('listBody');
   collectionSection = document.getElementById('collectionSection');
   emptyState = document.getElementById('emptyState');
@@ -651,7 +702,7 @@ export function initView() {
     const btn = e.target.closest('[data-view]');
     if (!btn) return;
     const next = btn.dataset.view;
-    if (!['list', 'grid', 'deck', 'binder'].includes(next)) return;
+    if (!['list', 'grid', 'deck', 'binder', 'locations'].includes(next)) return;
     if (state.viewMode === next) return;
     state.viewMode = next;
     if (next === 'binder') state.binderPage = 0;
@@ -852,6 +903,44 @@ export function initView() {
     state.gridSize = btn.dataset.gridSize;
     save();
     applyGridSize();
+  });
+
+  locationsEl.addEventListener('submit', e => {
+    if (e.target.id !== 'locationsCreateForm') return;
+    e.preventDefault();
+    const type = document.getElementById('locationsCreateType').value;
+    const nameInput = document.getElementById('locationsCreateName');
+    const created = ensureContainer({ type, name: nameInput.value });
+    if (!created) return;
+    save();
+    populateFilters();
+    render();
+  });
+
+  locationsEl.addEventListener('click', e => {
+    const card = e.target.closest('.location-card');
+    if (!card) return;
+    const loc = { type: card.dataset.locType, name: card.dataset.locName };
+    if (e.target.closest('.location-open')) {
+      navigateToLocation(loc.type, loc.name);
+    } else if (e.target.closest('.location-rename')) {
+      card.classList.add('renaming');
+      const input = card.querySelector('.location-rename-input');
+      if (input) input.focus();
+    } else if (e.target.closest('.location-rename-cancel')) {
+      card.classList.remove('renaming');
+    } else if (e.target.closest('.location-rename-save')) {
+      const input = card.querySelector('.location-rename-input');
+      if (input && renameContainer(loc, { type: loc.type, name: input.value })) {
+        commitCollectionChange({ coalesce: true });
+      }
+    } else if (e.target.closest('.location-delete')) {
+      if (deleteEmptyContainer(loc)) {
+        save();
+        populateFilters();
+        render();
+      }
+    }
   });
 
   gridEl.addEventListener('click', e => {

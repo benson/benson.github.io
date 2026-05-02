@@ -59,6 +59,61 @@ export function locationKey(loc) {
   return n ? n.type + ':' + n.name : '';
 }
 
+export function containerKey(container) {
+  return locationKey(container);
+}
+
+export function makeContainer(raw, now = Date.now()) {
+  const loc = normalizeLocation(raw);
+  if (!loc) return null;
+  return {
+    type: loc.type,
+    name: loc.name,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+export function ensureContainer(raw, now = Date.now()) {
+  const container = makeContainer(raw, now);
+  if (!container) return null;
+  const key = containerKey(container);
+  const existing = state.containers && state.containers[key];
+  if (existing) {
+    existing.type = container.type;
+    existing.name = container.name;
+    if (!existing.createdAt) existing.createdAt = container.createdAt;
+    if (!existing.updatedAt) existing.updatedAt = container.updatedAt;
+    return existing;
+  }
+  if (!state.containers || typeof state.containers !== 'object' || Array.isArray(state.containers)) {
+    state.containers = {};
+  }
+  state.containers[key] = container;
+  return container;
+}
+
+export function normalizeContainers(rawContainers = {}) {
+  const out = {};
+  if (!rawContainers || typeof rawContainers !== 'object' || Array.isArray(rawContainers)) return out;
+  for (const raw of Object.values(rawContainers)) {
+    const createdAt = raw?.createdAt || Date.now();
+    const c = makeContainer(raw, raw?.updatedAt || createdAt);
+    if (!c) continue;
+    c.createdAt = createdAt;
+    c.updatedAt = raw.updatedAt || c.updatedAt;
+    out[containerKey(c)] = c;
+  }
+  return out;
+}
+
+export function ensureContainersForCollection(collection = state.collection) {
+  for (const c of collection || []) {
+    const loc = normalizeLocation(c.location);
+    if (loc) ensureContainer(loc);
+  }
+}
+
 // Display label "type:name" used in filter dropdowns + datalist suggestions.
 export function formatLocationLabel(loc) {
   const n = normalizeLocation(loc);
@@ -153,6 +208,53 @@ export function allCollectionLocations(collection = state.collection) {
   return Array.from(byKey.values()).sort((a, b) =>
     a.type.localeCompare(b.type) || a.name.localeCompare(b.name)
   );
+}
+
+export function allContainers() {
+  ensureContainersForCollection();
+  return Object.values(state.containers || {}).sort((a, b) =>
+    a.type.localeCompare(b.type) || a.name.localeCompare(b.name)
+  );
+}
+
+export function containerStats(container, collection = state.collection) {
+  const key = containerKey(container);
+  const cards = (collection || []).filter(c => locationKey(c.location) === key);
+  return {
+    unique: cards.length,
+    total: cards.reduce((sum, c) => sum + (parseInt(c.qty, 10) || 0), 0),
+    value: cards.reduce((sum, c) => sum + (c.price || 0) * (parseInt(c.qty, 10) || 0), 0),
+  };
+}
+
+export function renameContainer(beforeRaw, afterRaw) {
+  const before = normalizeLocation(beforeRaw);
+  const after = normalizeLocation(afterRaw);
+  if (!before || !after) return false;
+  const beforeKey = locationKey(before);
+  const afterKey = locationKey(after);
+  if (beforeKey === afterKey) return true;
+
+  const existing = state.containers?.[beforeKey];
+  ensureContainer(after);
+  if (existing && state.containers?.[afterKey]) {
+    state.containers[afterKey].createdAt = existing.createdAt || state.containers[afterKey].createdAt;
+    state.containers[afterKey].updatedAt = Date.now();
+  }
+  if (state.containers) delete state.containers[beforeKey];
+  for (const c of state.collection) {
+    if (locationKey(c.location) === beforeKey) c.location = { ...after };
+  }
+  return true;
+}
+
+export function deleteEmptyContainer(raw) {
+  const loc = normalizeLocation(raw);
+  if (!loc) return false;
+  const key = locationKey(loc);
+  if (state.collection.some(c => locationKey(c.location) === key)) return false;
+  if (state.containers) delete state.containers[key];
+  return true;
 }
 
 // Build a `loc:` search token from a typed location (or legacy string).

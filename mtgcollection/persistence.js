@@ -1,6 +1,6 @@
 import { state, STORAGE_KEY, BINDER_SIZE_KEY } from './state.js';
 import { BINDER_SIZES } from './binder.js';
-import { coalesceCollection, normalizeLocation } from './collection.js';
+import { coalesceCollection, normalizeLocation, normalizeContainers, ensureContainersForCollection } from './collection.js';
 import { showFeedback } from './feedback.js';
 import { populateFilters } from './detail.js';
 import { render } from './view.js';
@@ -10,6 +10,7 @@ export function save() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       collection: state.collection,
+      containers: state.containers,
       viewMode: state.viewMode,
       gridSize: state.gridSize,
       selectedFormat: state.selectedFormat,
@@ -28,11 +29,13 @@ export function loadFromStorage() {
     const data = JSON.parse(raw);
     if (Array.isArray(data.collection)) {
       state.collection = data.collection;
+      state.containers = normalizeContainers(data.containers);
       for (const c of state.collection) {
         if (!Array.isArray(c.tags)) c.tags = [];
         // Coerce legacy string locations into typed {type, name} objects.
         c.location = normalizeLocation(c.location);
       }
+      ensureContainersForCollection();
       state.viewMode = data.viewMode || 'grid';
       state.gridSize = ['small', 'medium', 'large'].includes(data.gridSize) ? data.gridSize : 'medium';
       state.selectedFormat = typeof data.selectedFormat === 'string' ? data.selectedFormat : '';
@@ -63,6 +66,7 @@ export function migrateSavedCollection() {
 // ---- Commit helper: consolidates the save/populateFilters/render triplet ----
 export function commitCollectionChange({ coalesce = false } = {}) {
   if (coalesce) coalesceCollection();
+  ensureContainersForCollection();
   save();
   populateFilters();
   render();

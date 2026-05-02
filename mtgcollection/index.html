@@ -1229,6 +1229,67 @@
     font-variant-numeric: tabular-nums;
   }
 
+  .locations-view {
+    display: none;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .locations-view.active { display: block; }
+  .locations-create {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 0 18px;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .locations-create input, .locations-create select {
+    border: none;
+    border-bottom: 1px solid #bbb;
+    background: transparent;
+    padding: 6px 2px;
+    font-family: inherit;
+  }
+  .locations-group { margin-bottom: 28px; }
+  .locations-group-title {
+    font-size: 0.75rem;
+    text-transform: lowercase;
+    color: #777;
+    margin-bottom: 8px;
+  }
+  .locations-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+  }
+  .location-card {
+    border: 1px solid #ddd;
+    background: #fff;
+    padding: 10px;
+    min-height: 92px;
+  }
+  .location-card-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 1rem;
+    margin-bottom: 10px;
+  }
+  .location-card-stats {
+    font-size: 0.75rem;
+    color: #666;
+    margin-bottom: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+  .location-card-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .location-rename-row {
+    display: none;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .location-card.renaming .location-rename-row { display: flex; }
+
   #gridSizeControl.hidden, #binderSizeControl.hidden { display: none; }
 
   /* Table view (compact) */
@@ -2480,6 +2541,7 @@
       <button class="toggle-view" id="gridViewBtn" data-view="grid"><span class="view-icon" aria-hidden="true">▦</span>grid view</button>
       <button class="toggle-view" id="deckViewBtn" data-view="deck"><svg class="view-icon view-icon-svg" aria-hidden="true" viewBox="0 0 14 14"><rect x="2.5" y="3.5" width="6.5" height="8.5" rx="0.5" fill="none" stroke="currentColor" stroke-width="1"/><rect x="5" y="1.5" width="6.5" height="8.5" rx="0.5" fill="none" stroke="currentColor" stroke-width="1"/></svg>deck view</button>
       <button class="toggle-view" id="binderViewBtn" data-view="binder"><svg class="view-icon view-icon-svg" aria-hidden="true" viewBox="0 0 14 14"><rect x="2" y="2" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1"/><line x1="5" y1="2" x2="5" y2="12" stroke="currentColor" stroke-width="1"/><circle cx="5" cy="5" r="0.7" fill="currentColor"/><circle cx="5" cy="7" r="0.7" fill="currentColor"/><circle cx="5" cy="9" r="0.7" fill="currentColor"/></svg>binder view</button>
+      <button class="toggle-view" id="locationsViewBtn" data-view="locations"><span class="view-icon" aria-hidden="true">home</span>locations</button>
     </div>
   </header>
 
@@ -2563,6 +2625,7 @@
 
     <div id="collectionSection" class="hidden">
       <div class="grid" id="grid"></div>
+      <div class="locations-view" id="locationsView"></div>
       <div class="deck-view" id="deckView">
         <div class="deck-actions">
           <label class="deck-group-control" for="deckGroupBy">group by:
@@ -2844,7 +2907,7 @@
   <div class="app-right-backdrop" id="appRightBackdrop"></div>
   <div class="fab-cluster" id="fabCluster">
     <button class="fab-btn" type="button" data-fab-target="addDetails,importDetails" aria-label="add cards"><span class="fab-glyph">+</span><span class="fab-label">add</span></button>
-    <button class="fab-btn" type="button" data-fab-action="export" aria-label="download csv"><span class="fab-glyph">↓</span><span class="fab-label">download</span></button>
+    <button class="fab-btn" type="button" data-fab-action="export" aria-label="export csv"><span class="fab-glyph">↓</span><span class="fab-label">export csv</span></button>
   </div>
 </div>
 <div id="cardPreview"><img src="" alt=""></div>

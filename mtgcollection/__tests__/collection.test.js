@@ -11,6 +11,11 @@ import {
   collectionKey,
   coalesceCollection,
   allCollectionTags,
+  ensureContainer,
+  allContainers,
+  containerStats,
+  renameContainer,
+  deleteEmptyContainer,
   getUsdPrice,
   biggerImageUrl,
 } from '../collection.js';
@@ -94,6 +99,61 @@ test('normalizeLocation: null/undefined/empty become null', () => {
   assert.equal(normalizeLocation(undefined), null);
   assert.equal(normalizeLocation(''), null);
   assert.equal(normalizeLocation({ type: 'deck', name: '' }), null);
+});
+
+// ---- containers ----
+
+test('ensureContainer: creates a persisted flat container keyed by typed location', () => {
+  state.collection = [];
+  state.containers = {};
+  const c = ensureContainer({ type: 'deck', name: 'Breya' }, 123);
+  assert.deepEqual(c, { type: 'deck', name: 'breya', createdAt: 123, updatedAt: 123 });
+  assert.deepEqual(Object.keys(state.containers), ['deck:breya']);
+  state.containers = {};
+});
+
+test('allContainers: derives missing containers from collection locations', () => {
+  state.collection = [
+    { location: { type: 'binder', name: 'rares' }, qty: 2 },
+    { location: 'deck breya', qty: 1 },
+  ];
+  state.containers = {};
+  assert.deepEqual(allContainers().map(c => c.type + ':' + c.name), ['binder:rares', 'deck:breya']);
+  state.collection = [];
+  state.containers = {};
+});
+
+test('containerStats: counts unique, total, and value for a container', () => {
+  state.collection = [
+    { location: 'box bulk', qty: 2, price: 1.5 },
+    { location: 'box bulk', qty: 3, price: 2 },
+    { location: 'box other', qty: 1, price: 100 },
+  ];
+  assert.deepEqual(containerStats({ type: 'box', name: 'bulk' }), { unique: 2, total: 5, value: 9 });
+  state.collection = [];
+});
+
+test('renameContainer: updates registry and card locations', () => {
+  state.collection = [{ location: { type: 'deck', name: 'breya' }, qty: 1 }];
+  state.containers = {};
+  ensureContainer({ type: 'deck', name: 'breya' }, 123);
+  assert.equal(renameContainer({ type: 'deck', name: 'breya' }, { type: 'deck', name: 'esper' }), true);
+  assert.deepEqual(Object.keys(state.containers), ['deck:esper']);
+  assert.deepEqual(state.collection[0].location, { type: 'deck', name: 'esper' });
+  state.collection = [];
+  state.containers = {};
+});
+
+test('deleteEmptyContainer: only deletes containers with no cards', () => {
+  state.collection = [{ location: { type: 'box', name: 'bulk' }, qty: 1 }];
+  state.containers = {};
+  ensureContainer({ type: 'box', name: 'bulk' });
+  ensureContainer({ type: 'box', name: 'empty' });
+  assert.equal(deleteEmptyContainer({ type: 'box', name: 'bulk' }), false);
+  assert.equal(deleteEmptyContainer({ type: 'box', name: 'empty' }), true);
+  assert.deepEqual(Object.keys(state.containers), ['box:bulk']);
+  state.collection = [];
+  state.containers = {};
 });
 
 // ---- normalizeLanguage ----

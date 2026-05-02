@@ -2,6 +2,7 @@
 // other modules can both read and reassign through `state.x = ...`.
 export const state = {
   collection: [],
+  containers: {},
   viewMode: 'grid',
   gridSize: 'medium',
   selectedFormat: '',
