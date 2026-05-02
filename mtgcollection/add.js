@@ -21,6 +21,19 @@ import {
 import { commitCollectionChange } from './persistence.js';
 import { showImageLightbox } from './view.js';
 import { recordEvent } from './changelog.js';
+import { getMultiselectValue } from './multiselect.js';
+
+// When a single container is the active filter, that's the user's
+// implicit context — the add flow should default to dropping cards there.
+function currentFilterLocation() {
+  const filterEl = document.getElementById('filterLocation');
+  if (!filterEl) return null;
+  const values = getMultiselectValue(filterEl);
+  if (values.length !== 1) return null;
+  const idx = values[0].indexOf(':');
+  if (idx === -1) return null;
+  return { type: values[0].slice(0, idx), name: values[0].slice(idx + 1) };
+}
 
 const ADD_CONDITIONS = [
   { value: 'near_mint',         label: 'near mint' },
@@ -263,7 +276,11 @@ function renderPrintingList() {
       : '';
     const finishes = Array.isArray(c.finishes) ? c.finishes : [];
     const finishBadges = [];
-    if (finishes.includes('foil')) finishBadges.push('<span class="printing-finish-badge">foil</span>');
+    // Only flag printings that DON'T offer plain nonfoil — most modern printings
+    // are foil-or-nonfoil, so a "foil" badge there is misleading.
+    if (!finishes.includes('nonfoil') && finishes.includes('foil')) {
+      finishBadges.push('<span class="printing-finish-badge">foil only</span>');
+    }
     if (finishes.includes('etched')) finishBadges.push('<span class="printing-finish-badge">etched</span>');
     const year = (c.released_at || '').slice(0, 4);
     return `<li class="printing-row" role="option" data-index="${i}">
@@ -482,7 +499,11 @@ function showAddPreview(card, opts) {
   }
 
   addQtyInput.value = voiceQtyOverride && voiceQtyOverride > 0 ? voiceQtyOverride : 1;
-  const seedLoc = normalizeLocation(voiceLocationOverride != null ? voiceLocationOverride : lastUsedLocation);
+  // Seed the location: voice override > current single-container filter > last-used.
+  const seedSource = voiceLocationOverride != null
+    ? voiceLocationOverride
+    : (currentFilterLocation() || lastUsedLocation);
+  const seedLoc = normalizeLocation(seedSource);
   addLocationTypeSel.value = seedLoc ? seedLoc.type : 'box';
   addLocationNameInput.value = seedLoc ? seedLoc.name : '';
   voiceQtyOverride = null;
