@@ -12,7 +12,7 @@ export function save() {
       collection: state.collection,
       containers: state.containers,
       viewMode: state.viewMode,
-      gridSize: state.gridSize,
+      viewAsList: state.viewAsList,
       selectedFormat: state.selectedFormat,
       sortField: state.sortField,
       sortDir: state.sortDir,
@@ -36,8 +36,8 @@ export function loadFromStorage() {
         c.location = normalizeLocation(c.location);
       }
       ensureContainersForCollection();
-      state.viewMode = data.viewMode || 'grid';
-      state.gridSize = ['small', 'medium', 'large'].includes(data.gridSize) ? data.gridSize : 'medium';
+      state.viewMode = data.viewMode === 'locations' ? 'locations' : 'list';
+      state.viewAsList = !!data.viewAsList;
       state.selectedFormat = typeof data.selectedFormat === 'string' ? data.selectedFormat : '';
       state.sortField = typeof data.sortField === 'string' && data.sortField ? data.sortField : null;
       state.sortDir = data.sortDir === 'desc' ? 'desc' : 'asc';

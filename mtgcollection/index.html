@@ -1060,6 +1060,21 @@
   .deck-actions .deck-summary { font-size: 0.75rem; color: #666; margin-left: auto; }
   .deck-actions .deck-summary .warn { color: #b04848; }
   .deck-actions.hidden { display: none; }
+  .shape-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    margin-bottom: 10px;
+    background: #f3efe6;
+    border-radius: 4px;
+    font-size: 0.75rem;
+  }
+  .shape-bar.hidden { display: none; }
+  body.view-list .shape-bar { margin: 8px 14px 0; }
+  .shape-bar-label { color: #555; flex: 1; }
+  .view-as-list-btn { font-size: 0.75rem; padding: 3px 8px; }
+  .view-as-list-btn.hidden { display: none; }
 
   .deck-empty-state {
     display: flex;
@@ -1244,13 +1259,38 @@
     margin-bottom: 18px;
     flex-wrap: wrap;
   }
-  .locations-create input, .locations-create select {
+  .locations-create input[type="text"], .locations-create select {
     border: none;
     border-bottom: 1px solid #bbb;
     background: transparent;
     padding: 6px 2px;
     font-family: inherit;
   }
+  .locations-create-label { font-size: 0.85rem; color: #555; }
+  .locations-create-types { display: inline-flex; gap: 6px; }
+  .locations-create-type { display: inline-flex; cursor: pointer; }
+  .locations-create-type input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 0;
+    height: 0;
+  }
+  .locations-create-type .loc-pill {
+    padding: 3px 8px;
+    font-size: 0.8rem;
+    opacity: 0.55;
+    transition: opacity 0.12s, box-shadow 0.12s;
+  }
+  .locations-create-type.is-selected .loc-pill {
+    opacity: 1;
+    box-shadow: 0 0 0 1px #000 inset;
+  }
+  .locations-create-type input:focus-visible + .loc-pill {
+    outline: 2px solid #000;
+    outline-offset: 2px;
+  }
+  .locations-create-type .loc-icon { width: 13px; height: 13px; opacity: 0.85; }
   .locations-group { margin-bottom: 28px; }
   .locations-group-title {
     font-size: 0.75rem;
@@ -1295,7 +1335,7 @@
   }
   .location-card.renaming .location-rename-row { display: flex; }
 
-  #gridSizeControl.hidden, #binderSizeControl.hidden { display: none; }
+  #binderSizeControl.hidden { display: none; }
 
   /* Table view (compact) */
   .list-view { display: none; }
@@ -2547,11 +2587,8 @@
       <span><span class="stat-label">USD</span> <strong id="totalValue">0</strong></span>
     </div>
     <div class="app-header-views">
-      <button class="toggle-view" id="listViewBtn" data-view="list"><span class="view-icon" aria-hidden="true">≡</span>list view</button>
-      <button class="toggle-view" id="gridViewBtn" data-view="grid"><span class="view-icon" aria-hidden="true">▦</span>grid view</button>
-      <button class="toggle-view" id="deckViewBtn" data-view="deck"><svg class="view-icon view-icon-svg" aria-hidden="true" viewBox="0 0 14 14"><rect x="2.5" y="3.5" width="6.5" height="8.5" rx="0.5" fill="none" stroke="currentColor" stroke-width="1"/><rect x="5" y="1.5" width="6.5" height="8.5" rx="0.5" fill="none" stroke="currentColor" stroke-width="1"/></svg>deck view</button>
-      <button class="toggle-view" id="binderViewBtn" data-view="binder"><svg class="view-icon view-icon-svg" aria-hidden="true" viewBox="0 0 14 14"><rect x="2" y="2" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1"/><line x1="5" y1="2" x2="5" y2="12" stroke="currentColor" stroke-width="1"/><circle cx="5" cy="5" r="0.7" fill="currentColor"/><circle cx="5" cy="7" r="0.7" fill="currentColor"/><circle cx="5" cy="9" r="0.7" fill="currentColor"/></svg>binder view</button>
-      <button class="toggle-view" id="locationsViewBtn" data-view="locations"><span class="view-icon" aria-hidden="true">⌂</span>locations</button>
+      <button class="toggle-view" id="listViewBtn" data-view="list"><span class="view-icon" aria-hidden="true">≡</span>list</button>
+      <button class="toggle-view" id="locationsViewBtn" data-view="locations"><svg class="view-icon view-icon-svg" aria-hidden="true" viewBox="0 0 14 14"><path d="M2 7 L7 2 L12 7 L12 12 L2 12 Z" fill="none" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/></svg>locations</button>
     </div>
   </header>
 
@@ -2605,11 +2642,6 @@
     </div>
 
     <div class="sidebar-section sidebar-sizes">
-      <div class="segmented" id="gridSizeControl" aria-label="grid card size">
-        <button class="segment-btn" type="button" data-grid-size="small">s</button>
-        <button class="segment-btn" type="button" data-grid-size="medium">m</button>
-        <button class="segment-btn" type="button" data-grid-size="large">l</button>
-      </div>
       <div class="segmented hidden" id="binderSizeControl" aria-label="binder page size">
         <button class="segment-btn" type="button" data-binder-size="4x3">4×3</button>
         <button class="segment-btn" type="button" data-binder-size="3x3">3×3</button>
@@ -2634,7 +2666,10 @@
     <div class="feedback" id="feedback"></div>
 
     <div id="collectionSection" class="hidden">
-      <div class="grid" id="grid"></div>
+      <div class="shape-bar hidden" id="shapeBar">
+        <span class="shape-bar-label" id="shapeBarLabel"></span>
+        <button class="btn btn-secondary view-as-list-btn" type="button" data-view-as-list aria-pressed="false"></button>
+      </div>
       <div class="locations-view" id="locationsView"></div>
       <div class="deck-view" id="deckView">
         <div class="deck-actions">

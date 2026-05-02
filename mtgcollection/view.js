@@ -23,20 +23,19 @@ import { updateBulkBar } from './bulk.js';
 import { paginateForBinder, sortForBinder, BINDER_SIZES, binderSlotCount } from './binder.js';
 import { getSetIconUrl } from './setIcons.js';
 import { recordEvent, captureBefore, locationDiffSummary } from './changelog.js';
-import { setMultiselectValue } from './multiselect.js';
+import { setMultiselectValue, getMultiselectValue } from './multiselect.js';
 
 const VALID_DECK_GROUPS = ['type', 'cmc', 'color', 'rarity'];
 const VALID_BINDER_SIZES = Object.keys(BINDER_SIZES);
 const RARITY_ABBR = { common: 'c', uncommon: 'u', rare: 'r', mythic: 'm', special: 's', bonus: 'b' };
 const CONDITION_ABBR = { near_mint: 'nm', lightly_played: 'lp', moderately_played: 'mp', heavily_played: 'hp', damaged: 'dmg' };
 
-const VIEW_FOR_LOC_TYPE = { deck: 'deck', binder: 'binder', box: 'list' };
-
-// Switch to the appropriate view for a typed location and select that
-// location in the locations multiselect. Used by clickable location pills
-// (list/grid), history loc-link buttons, and the empty-state chips.
+// Switch out of locations-home (if there) and select the location in the
+// multiselect. Effective shape (deck/binder/list) is auto-derived in render()
+// from the single-container filter.
 export function navigateToLocation(type, name) {
-  state.viewMode = VIEW_FOR_LOC_TYPE[type] || 'list';
+  state.viewMode = 'list';
+  state.viewAsList = false;
   // Clear any stray `loc:` query so the multiselect filter is the source of truth.
   const searchInput = document.getElementById('searchInput');
   if (searchInput && /\bloc:/.test(searchInput.value)) {
@@ -47,6 +46,23 @@ export function navigateToLocation(type, name) {
   if (filterEl) setMultiselectValue(filterEl, [type + ':' + name]);
   save();
   render();
+}
+
+// Derive the effective render shape from current state + active filters.
+// 'locations' wins (it's a destination); otherwise: a single-location filter
+// resolves to that location's natural shape, unless the user has toggled
+// "view as list".
+export function getEffectiveShape() {
+  if (state.viewMode === 'locations') return 'locations';
+  if (state.viewAsList) return 'list';
+  const filterEl = document.getElementById('filterLocation');
+  if (!filterEl) return 'list';
+  const values = getMultiselectValue(filterEl);
+  if (values.length !== 1) return 'list';
+  const type = values[0].split(':')[0];
+  if (type === 'deck') return 'deck';
+  if (type === 'binder') return 'binder';
+  return 'list';
 }
 
 export const LOC_ICONS = {
@@ -169,7 +185,7 @@ function removeRowTag(index, tag) {
   commitCollectionChange({ coalesce: true });
 }
 
-let gridEl, locationsEl, listBodyEl, collectionSection, emptyState;
+let locationsEl, listBodyEl, collectionSection, emptyState;
 let cardPreviewEl, cardPreviewImg;
 let lightboxEl, lightboxImg, lightboxFlipBtn;
 let lightboxFront = null;
@@ -177,20 +193,20 @@ let lightboxBack = null;
 let lightboxShowingBack = false;
 
 export function render() {
+  const shape = getEffectiveShape();
   document.querySelectorAll('.app-header-views .toggle-view').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.view === state.viewMode);
   });
-  document.body.classList.toggle('view-list', state.viewMode === 'list');
+  document.body.classList.toggle('view-list', shape === 'list');
   document.body.classList.toggle('has-collection', state.collection.length > 0);
-  // Switching away from list view always closes the right drawer
-  if (state.viewMode !== 'list') closeRightDrawer();
+  // Switching away from list shape always closes the right drawer
+  if (shape !== 'list') closeRightDrawer();
   syncClearFiltersBtn();
+  syncViewAsListToggles();
   const containers = allContainers();
-  if (state.collection.length === 0 && containers.length === 0 && state.viewMode !== 'locations') {
+  if (state.collection.length === 0 && containers.length === 0 && shape !== 'locations') {
     collectionSection.classList.add('hidden');
     emptyState.classList.remove('hidden');
-    // Hide size toggles too — neither makes sense for an empty collection.
-    document.getElementById('gridSizeControl').classList.add('hidden');
     document.getElementById('binderSizeControl').classList.add('hidden');
     return;
   }
@@ -204,46 +220,65 @@ export function render() {
   const value = list.reduce((s, c) => s + (c.price || 0) * c.qty, 0);
   document.getElementById('totalValue').textContent = value.toFixed(2);
   renderStatsPanel(list);
-  applyGridSize();
   applyBinderSizeButtons();
 
-  const gridContainer = document.getElementById('grid');
   const listContainer = document.getElementById('listView');
   const deckContainer = document.getElementById('deckView');
   const binderContainer = document.getElementById('binderView');
   const locationsContainer = document.getElementById('locationsView');
-  const gridSizeCtl = document.getElementById('gridSizeControl');
   const binderSizeCtl = document.getElementById('binderSizeControl');
 
   // Reset chrome
-  gridContainer.classList.add('hidden');
   locationsContainer.classList.remove('active');
   listContainer.classList.remove('active');
   deckContainer.classList.remove('active');
   binderContainer.classList.remove('active');
-  gridSizeCtl.classList.add('hidden');
   binderSizeCtl.classList.add('hidden');
 
-  if (state.viewMode === 'locations') {
+  if (shape === 'locations') {
     locationsContainer.classList.add('active');
     renderLocationsView(containers);
-  } else if (state.viewMode === 'deck') {
+  } else if (shape === 'deck') {
     deckContainer.classList.add('active');
     renderDeckView(list);
-  } else if (state.viewMode === 'binder') {
+  } else if (shape === 'binder') {
     binderContainer.classList.add('active');
     binderSizeCtl.classList.remove('hidden');
     renderBinderView(list);
-  } else if (state.viewMode === 'grid') {
-    gridContainer.classList.remove('hidden');
-    gridSizeCtl.classList.remove('hidden');
-    gridEl.innerHTML = list.map(c => renderTile(c)).join('');
   } else {
     listContainer.classList.add('active');
     listBodyEl.innerHTML = list.map(c => renderRow(c)).join('');
     syncSortIndicator();
   }
   updateBulkBar();
+}
+
+// Shape bar: shows the auto-shape and a toggle to override to list.
+// Visible only when a single deck/binder filter would auto-shape the view.
+function syncViewAsListToggles() {
+  const autoType = (() => {
+    if (state.viewMode === 'locations') return null;
+    const filterEl = document.getElementById('filterLocation');
+    if (!filterEl) return null;
+    const values = getMultiselectValue(filterEl);
+    if (values.length !== 1) return null;
+    const type = values[0].split(':')[0];
+    return (type === 'deck' || type === 'binder') ? type : null;
+  })();
+  const bar = document.getElementById('shapeBar');
+  if (!bar) return;
+  bar.classList.toggle('hidden', !autoType);
+  if (!autoType) return;
+  const label = document.getElementById('shapeBarLabel');
+  const btn = bar.querySelector('[data-view-as-list]');
+  if (state.viewAsList) {
+    label.textContent = 'showing as list';
+    btn.textContent = 'back to ' + autoType + ' view';
+  } else {
+    label.textContent = 'showing as ' + autoType;
+    btn.textContent = 'view as list';
+  }
+  btn.setAttribute('aria-pressed', state.viewAsList ? 'true' : 'false');
 }
 
 function syncSortIndicator() {
@@ -256,45 +291,11 @@ function syncSortIndicator() {
   });
 }
 
-export function applyGridSize() {
-  const sizeClass = 'grid-' + state.gridSize;
-  if (gridEl) {
-    gridEl.classList.remove('grid-small', 'grid-medium', 'grid-large');
-    gridEl.classList.add(sizeClass);
-  }
-  document.querySelectorAll('[data-grid-size]').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.gridSize === state.gridSize);
-  });
-}
-
 function formatPrice(c) {
   if (!c.price) return '';
   const base = '$' + c.price.toFixed(2);
   if (!c.priceFallback) return base;
   return base + '<span class="price-fallback-mark" title="regular usd shown when exact finish price is unavailable">*</span>';
-}
-
-function renderTile(c) {
-  const name = c.resolvedName || c.name || '(unknown)';
-  const index = state.collection.indexOf(c);
-  const badges = [];
-  if (c.qty > 1) badges.push('<span class="badge">×' + c.qty + '</span>');
-  const img = c.imageUrl
-    ? `<img src="${esc(c.imageUrl)}" alt="${esc(name)}" loading="lazy">`
-    : `<div class="placeholder">${esc(name)}<br><small>${esc((c.setCode||'').toUpperCase())} #${esc(c.cn||'')}</small></div>`;
-  const caption = esc(name) + ' · ' + esc((c.setCode || '').toUpperCase());
-  const scryfallAction = c.scryfallUri
-    ? `<button class="card-scryfall-link" type="button" data-scryfall-url="${esc(c.scryfallUri)}">scryfall ↗</button>`
-    : '';
-  const finishClass = c.finish === 'foil' ? ' is-foil' : c.finish === 'etched' ? ' is-etched' : '';
-  const locPill = locationPillHtml(c.location);
-  return `<div class="card-tile detail-trigger${finishClass}" role="button" tabindex="0" data-index="${index}" aria-label="edit ${esc(name)}">
-    ${img}
-    <div class="card-badges">${badges.join('')}</div>
-    <div class="card-caption">${caption}</div>
-    ${locPill ? `<div class="card-loc">${locPill}</div>` : ''}
-    ${scryfallAction ? `<div class="card-actions">${scryfallAction}</div>` : ''}
-  </div>`;
 }
 
 function renderRow(c) {
@@ -328,10 +329,13 @@ function renderRow(c) {
 function renderLocationsView(containers) {
   const typeLabels = { deck: 'decks', binder: 'binders', box: 'boxes' };
   const createHtml = `<form class="locations-create" id="locationsCreateForm">
-    <label for="locationsCreateType">new location</label>
-    <select id="locationsCreateType">
-      ${LOCATION_TYPES.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('')}
-    </select>
+    <span class="locations-create-label">new location</span>
+    <div class="locations-create-types" role="radiogroup" aria-label="container type">
+      ${LOCATION_TYPES.map((t, i) => `<label class="locations-create-type${i === 0 ? ' is-selected' : ''}">
+        <input type="radio" name="locationsCreateType" value="${esc(t)}"${i === 0 ? ' checked' : ''}>
+        <span class="loc-pill loc-pill-${esc(t)}">${LOC_ICONS[t]}<span>${esc(t)}</span></span>
+      </label>`).join('')}
+    </div>
     <input id="locationsCreateName" type="text" placeholder="name" autocomplete="off">
     <button class="btn" type="submit">create</button>
   </form>`;
@@ -677,7 +681,6 @@ export function isRightDrawerOpen() {
 }
 
 export function initView() {
-  gridEl = document.getElementById('grid');
   locationsEl = document.getElementById('locationsView');
   listBodyEl = document.getElementById('listBody');
   collectionSection = document.getElementById('collectionSection');
@@ -702,10 +705,20 @@ export function initView() {
     const btn = e.target.closest('[data-view]');
     if (!btn) return;
     const next = btn.dataset.view;
-    if (!['list', 'grid', 'deck', 'binder', 'locations'].includes(next)) return;
+    if (!['list', 'locations'].includes(next)) return;
     if (state.viewMode === next) return;
     state.viewMode = next;
-    if (next === 'binder') state.binderPage = 0;
+    state.viewAsList = false;
+    save();
+    render();
+  });
+
+  // Per-shape "view as list" toggle. Visible only when a single
+  // deck/binder filter would otherwise auto-shape the view.
+  document.body.addEventListener('click', e => {
+    const btn = e.target.closest('[data-view-as-list]');
+    if (!btn) return;
+    state.viewAsList = !state.viewAsList;
     save();
     render();
   });
@@ -897,18 +910,20 @@ export function initView() {
     }
   }
 
-  document.getElementById('gridSizeControl').addEventListener('click', e => {
-    const btn = e.target.closest('[data-grid-size]');
-    if (!btn) return;
-    state.gridSize = btn.dataset.gridSize;
-    save();
-    applyGridSize();
+  locationsEl.addEventListener('change', e => {
+    if (e.target.name !== 'locationsCreateType') return;
+    const labels = locationsEl.querySelectorAll('.locations-create-type');
+    labels.forEach(l => {
+      const input = l.querySelector('input');
+      l.classList.toggle('is-selected', !!(input && input.checked));
+    });
   });
 
   locationsEl.addEventListener('submit', e => {
     if (e.target.id !== 'locationsCreateForm') return;
     e.preventDefault();
-    const type = document.getElementById('locationsCreateType').value;
+    const checked = document.querySelector('input[name="locationsCreateType"]:checked');
+    const type = checked ? checked.value : 'box';
     const nameInput = document.getElementById('locationsCreateName');
     const created = ensureContainer({ type, name: nameInput.value });
     if (!created) return;
@@ -941,33 +956,6 @@ export function initView() {
         render();
       }
     }
-  });
-
-  gridEl.addEventListener('click', e => {
-    const scryfallLink = e.target.closest('.card-scryfall-link');
-    if (scryfallLink) {
-      e.stopPropagation();
-      window.open(scryfallLink.dataset.scryfallUrl, '_blank', 'noopener');
-      return;
-    }
-    if (e.target.closest('.loc-pill')) return;
-    const trigger = e.target.closest('.detail-trigger');
-    if (!trigger || !gridEl.contains(trigger)) return;
-    openDetail(parseInt(trigger.dataset.index, 10));
-  });
-
-  gridEl.addEventListener('keydown', e => {
-    const scryfallLink = e.target.closest('.card-scryfall-link');
-    if (scryfallLink && (e.key === 'Enter' || e.key === ' ')) {
-      e.preventDefault();
-      window.open(scryfallLink.dataset.scryfallUrl, '_blank', 'noopener');
-      return;
-    }
-    if (e.key !== 'Enter' && e.key !== ' ') return;
-    const trigger = e.target.closest('.detail-trigger');
-    if (!trigger || !gridEl.contains(trigger)) return;
-    e.preventDefault();
-    openDetail(parseInt(trigger.dataset.index, 10));
   });
 
   listBodyEl.addEventListener('click', e => {

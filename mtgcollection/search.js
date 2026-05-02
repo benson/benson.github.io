@@ -1,6 +1,7 @@
 import { state } from './state.js';
 import { normalizeLocation, locationKey, formatLocationLabel } from './collection.js';
 import { render } from './view.js';
+import { save } from './persistence.js';
 import { getMultiselectValue, setMultiselectValue, initMultiselect } from './multiselect.js';
 
 const SEARCH_FIELD_ALIASES = {
@@ -324,7 +325,18 @@ export function initSearch() {
 
   // Initialize multiselect filter controls (build the trigger + popover DOM)
   ['filterSet', 'filterRarity', 'filterFoil', 'filterLocation', 'filterTag'].forEach(id => {
-    initMultiselect(document.getElementById(id), { onChange: () => render() });
+    initMultiselect(document.getElementById(id), {
+      onChange: () => {
+        if (id === 'filterLocation') {
+          // Reset shape-override + binder pagination when the active container changes,
+          // so viewAsList doesn't bleed across containers.
+          state.viewAsList = false;
+          state.binderPage = 0;
+          save();
+        }
+        render();
+      },
+    });
   });
 
   // Native controls that still emit input/change

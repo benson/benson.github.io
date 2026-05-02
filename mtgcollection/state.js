@@ -3,8 +3,8 @@
 export const state = {
   collection: [],
   containers: {},
-  viewMode: 'grid',
-  gridSize: 'medium',
+  viewMode: 'list',
+  viewAsList: false,
   selectedFormat: '',
   selectedKeys: new Set(),
   detailIndex: -1,
