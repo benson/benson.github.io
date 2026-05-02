@@ -14,6 +14,9 @@ import {
   normalizeCondition,
   normalizeLanguage,
   normalizeLocation,
+  formatLocationLabel,
+  locationKey,
+  allCollectionLocations,
   getCardImageUrl,
   getCardBackImageUrl,
   getUsdPrice,
@@ -35,27 +38,6 @@ function currentFilterLocation() {
   return { type: values[0].slice(0, idx), name: values[0].slice(idx + 1) };
 }
 
-const ADD_CONDITIONS = [
-  { value: 'near_mint',         label: 'near mint' },
-  { value: 'lightly_played',    label: 'lightly played' },
-  { value: 'moderately_played', label: 'moderately played' },
-  { value: 'heavily_played',    label: 'heavily played' },
-  { value: 'damaged',           label: 'damaged' },
-];
-const ADD_LANGUAGES = [
-  { value: 'en',  label: 'english' },
-  { value: 'ja',  label: 'japanese' },
-  { value: 'de',  label: 'german' },
-  { value: 'fr',  label: 'french' },
-  { value: 'it',  label: 'italian' },
-  { value: 'es',  label: 'spanish' },
-  { value: 'pt',  label: 'portuguese' },
-  { value: 'ru',  label: 'russian' },
-  { value: 'ko',  label: 'korean' },
-  { value: 'zhs', label: 'chinese (simplified)' },
-  { value: 'zht', label: 'chinese (traditional)' },
-];
-
 let validSets = new Set();
 let addPreviewCard = null;
 let addMode = 'name';
@@ -71,10 +53,162 @@ const AUTOADD_KEY = 'mtgcollection_voice_autoadd_v1';
 let addDetailsEl, addModeNameEl, addModeCnEl, addModeImportEl;
 let addNameInput, addNameList;
 let addPreviewEl, addPreviewImg, addPreviewName, addPreviewMeta;
-let addFinishSel, addConditionSel, addLanguageSel, addQtyInput, addLocationNameInput;
+let addQtyInput, addLocationNameInput;
+
+// Wrappers that mimic a <select>'s `.value` API so existing call sites stay simple.
+const addFinishSel = {
+  get value() {
+    return document.querySelector('input[name="addFinish"]:checked')?.value || '';
+  },
+  set value(v) {
+    document.querySelectorAll('input[name="addFinish"]').forEach(r => { r.checked = (r.value === v); });
+  },
+};
+const addConditionSel = {
+  get value() {
+    return document.querySelector('input[name="addCondition"]:checked')?.value || 'near_mint';
+  },
+  set value(v) {
+    document.querySelectorAll('input[name="addCondition"]').forEach(r => { r.checked = (r.value === v); });
+  },
+};
+const addLanguageSel = {
+  get value() {
+    const other = document.getElementById('addLanguageOther');
+    if (other && other.value.trim()) return other.value.trim();
+    return document.querySelector('input[name="addLanguage"]:checked')?.value || 'en';
+  },
+  set value(v) {
+    const radios = document.querySelectorAll('input[name="addLanguage"]');
+    let matched = false;
+    radios.forEach(r => {
+      const checked = r.value === v;
+      r.checked = checked;
+      if (checked) matched = true;
+    });
+    const other = document.getElementById('addLanguageOther');
+    if (!other) return;
+    if (matched) {
+      other.value = '';
+      other.classList.remove('visible');
+    } else {
+      other.value = v;
+      other.classList.add('visible');
+    }
+  },
+};
 
 const ADD_LOCATION_TYPES = ['deck', 'binder', 'box'];
 const ADD_LOCATION_DEFAULT = 'box';
+
+function renderFinishRadios(card) {
+  const wrap = document.getElementById('addFinish');
+  if (!wrap) return;
+  const finishes = getCardFinishes(card);
+  wrap.innerHTML = finishes.map((f, i) => {
+    const value = f.finish === 'nonfoil' ? 'normal' : f.finish;
+    const priceStr = f.price ? ' ($' + f.price + ')' : '';
+    const label = (f.label + priceStr).toLowerCase();
+    return `<label><input type="radio" name="addFinish" value="${esc(value)}"${i === 0 ? ' checked' : ''}><span>${esc(label)}</span></label>`;
+  }).join('');
+}
+
+function collectionLanguages(extra = '') {
+  const langs = new Set(['en']);
+  state.collection.forEach(c => langs.add(normalizeLanguage(c.language)));
+  if (extra) langs.add(normalizeLanguage(extra));
+  return [...langs].filter(Boolean).sort((a, b) => {
+    if (a === 'en') return -1;
+    if (b === 'en') return 1;
+    return a.localeCompare(b);
+  });
+}
+
+function renderLanguageRadios(selected) {
+  const wrap = document.getElementById('addLanguageOptions');
+  if (!wrap) return;
+  const lang = normalizeLanguage(selected);
+  const options = collectionLanguages(lang);
+  wrap.innerHTML = options.map(code =>
+    `<label><input type="radio" name="addLanguage" value="${esc(code)}"${code === lang ? ' checked' : ''}><span>${esc(code)}</span></label>`
+  ).join('');
+  const other = document.getElementById('addLanguageOther');
+  if (other) {
+    other.value = '';
+    other.classList.remove('visible');
+  }
+}
+
+// ---- Location picker (existing-pills + inline-new) ----
+let selectedLocation = null;
+let locationNewMode = false;
+
+function renderLocationPicker() {
+  const pillsEl = document.getElementById('addLocationPills');
+  const newBoxEl = document.getElementById('addLocationNewBox');
+  if (!pillsEl || !newBoxEl) return;
+  const TYPE_HEADERS = { deck: 'decks', binder: 'binders', box: 'boxes' };
+  const locations = allCollectionLocations();
+  const html = [];
+  for (const type of ADD_LOCATION_TYPES) {
+    const ofType = locations.filter(l => l.type === type);
+    if (ofType.length === 0) continue;
+    html.push(`<span class="loc-group-label">${TYPE_HEADERS[type]}</span>`);
+    for (const loc of ofType) {
+      const isSelected = !locationNewMode && selectedLocation
+        && locationKey(selectedLocation) === locationKey(loc);
+      html.push(`<button class="location-pill-btn${isSelected ? ' is-selected' : ''}" type="button" data-loc-type="${esc(loc.type)}" data-loc-name="${esc(loc.name)}">
+        <span class="loc-pill loc-pill-${esc(loc.type)}">${LOC_ICONS[loc.type]}<span>${esc(loc.name)}</span></span>
+      </button>`);
+    }
+  }
+  html.push(`<button class="location-pill-new${locationNewMode ? ' is-selected' : ''}" type="button" id="addLocationNewBtn">+ new</button>`);
+  pillsEl.innerHTML = html.join('');
+  newBoxEl.classList.toggle('hidden', !locationNewMode);
+}
+
+function setSelectedLocation(loc) {
+  if (loc && loc.type && loc.name) {
+    selectedLocation = { type: loc.type, name: loc.name };
+    locationNewMode = false;
+  } else {
+    selectedLocation = null;
+  }
+  renderLocationPicker();
+}
+
+function setLocationNewMode(seed) {
+  locationNewMode = true;
+  selectedLocation = null;
+  if (seed && seed.type) addLocationType.value = seed.type;
+  const nameInput = document.getElementById('addLocationName');
+  if (nameInput) nameInput.value = seed && seed.name ? seed.name : '';
+  renderLocationPicker();
+  if (nameInput) nameInput.focus();
+}
+
+function readPickerLocation() {
+  if (locationNewMode) {
+    return normalizeLocation({ type: addLocationType.value, name: addLocationNameInput.value });
+  }
+  return selectedLocation ? normalizeLocation(selectedLocation) : null;
+}
+
+function seedLocationPicker(seed) {
+  const seedLoc = normalizeLocation(seed);
+  if (!seedLoc) {
+    selectedLocation = null;
+    locationNewMode = false;
+    renderLocationPicker();
+    return;
+  }
+  const existing = allCollectionLocations().find(l => locationKey(l) === locationKey(seedLoc));
+  if (existing) {
+    setSelectedLocation(seedLoc);
+  } else {
+    setLocationNewMode(seedLoc);
+  }
+}
 
 function buildLocationTypeRadios() {
   const wrap = document.getElementById('addLocationTypeRadios');
@@ -484,9 +618,11 @@ function commitVoiceAdd(card, opts, voiceCtx) {
 function showAddPreview(card, opts) {
   const preserveFields = !!(opts && opts.preserveFields);
   const prevQty = preserveFields ? addQtyInput.value : null;
-  const prevLocationName = preserveFields ? addLocationNameInput.value : null;
-  const prevLocationType = preserveFields ? addLocationType.value : null;
   const prevFinish = preserveFields ? addFinishSel.value : null;
+  const prevSelectedLocation = preserveFields ? selectedLocation : null;
+  const prevLocationNewMode = preserveFields ? locationNewMode : false;
+  const prevLocationType = preserveFields && locationNewMode ? addLocationType.value : null;
+  const prevLocationName = preserveFields && locationNewMode ? addLocationNameInput.value : null;
   addPreviewCard = card;
   addPreviewEl.classList.add('active');
   const imageUrl = getCardImageUrl(card);
@@ -517,21 +653,11 @@ function showAddPreview(card, opts) {
     existingEl.classList.add('hidden');
   }
 
-  addFinishSel.innerHTML = '';
-  const finishes = getCardFinishes(card);
-  for (const f of finishes) {
-    const value = f.finish === 'nonfoil' ? 'normal' : f.finish;
-    const priceStr = f.price ? ' ($' + f.price + ')' : '';
-    const opt = document.createElement('option');
-    opt.value = value;
-    opt.textContent = (f.label + priceStr).toLowerCase();
-    addFinishSel.appendChild(opt);
-  }
+  renderFinishRadios(card);
+  renderLanguageRadios('en');
 
   if (voiceFoilFlag) {
-    for (const opt of addFinishSel.options) {
-      if (opt.value === 'foil') { addFinishSel.value = 'foil'; break; }
-    }
+    addFinishSel.value = 'foil';
     voiceFoilFlag = false;
   }
 
@@ -540,19 +666,16 @@ function showAddPreview(card, opts) {
   const seedSource = voiceLocationOverride != null
     ? voiceLocationOverride
     : (currentFilterLocation() || lastUsedLocation);
-  const seedLoc = normalizeLocation(seedSource);
-  addLocationType.value = seedLoc ? seedLoc.type : 'box';
-  addLocationNameInput.value = seedLoc ? seedLoc.name : '';
+  seedLocationPicker(seedSource);
   voiceQtyOverride = null;
   voiceLocationOverride = null;
   if (preserveFields) {
     if (prevQty != null && prevQty !== '') addQtyInput.value = prevQty;
-    if (prevLocationType != null) addLocationType.value = prevLocationType;
-    if (prevLocationName != null) addLocationNameInput.value = prevLocationName;
-    if (prevFinish) {
-      for (const opt of addFinishSel.options) {
-        if (opt.value === prevFinish) { addFinishSel.value = prevFinish; break; }
-      }
+    if (prevFinish) addFinishSel.value = prevFinish;
+    if (prevLocationNewMode) {
+      setLocationNewMode({ type: prevLocationType, name: prevLocationName });
+    } else if (prevSelectedLocation) {
+      setSelectedLocation(prevSelectedLocation);
     }
   }
   addBtn.focus();
@@ -571,7 +694,7 @@ function addCardFromPreview() {
   const condition = normalizeCondition(addConditionSel.value);
   const language = normalizeLanguage(addLanguageSel.value);
   const qty = Math.max(1, parseInt(addQtyInput.value, 10) || 1);
-  const location = normalizeLocation({ type: addLocationType.value, name: addLocationNameInput.value });
+  const location = readPickerLocation();
 
   const entry = makeEntry({
     name: card.name,
@@ -801,12 +924,12 @@ export function initAdd() {
   addPrintingPickerEl  = document.getElementById('addPrintingPicker');
   addPrintingListEl    = document.getElementById('addPrintingList');
   addPrintingCaptionEl = document.getElementById('addPrintingCaption');
-  addFinishSel    = document.getElementById('addFinish');
-  addConditionSel = document.getElementById('addCondition');
-  addLanguageSel  = document.getElementById('addLanguage');
   addQtyInput     = document.getElementById('addQty');
   buildLocationTypeRadios();
   addLocationNameInput = document.getElementById('addLocationName');
+  // Initial render: empty finish (no card picked yet) + language radios from collection
+  renderLanguageRadios('en');
+  renderLocationPicker();
   addBtn         = document.getElementById('addCardBtn');
   addCancelBtn   = document.getElementById('addCardCancel');
   addMicBtn      = document.getElementById('addMicBtn');
@@ -824,17 +947,6 @@ export function initAdd() {
     });
   }
 
-  for (const c of ADD_CONDITIONS) {
-    const opt = document.createElement('option');
-    opt.value = c.value; opt.textContent = c.label;
-    addConditionSel.appendChild(opt);
-  }
-  for (const l of ADD_LANGUAGES) {
-    const opt = document.createElement('option');
-    opt.value = l.value; opt.textContent = l.label;
-    addLanguageSel.appendChild(opt);
-  }
-
   fetchSets().then(sets => {
     validSets = new Set((sets || []).map(s => s.code.toLowerCase()));
   }).catch(() => {});
@@ -842,6 +954,37 @@ export function initAdd() {
   document.querySelectorAll('.add-tab').forEach(btn => {
     btn.addEventListener('click', () => setAddMode(btn.dataset.addMode));
   });
+
+  // Language: clicking the "+" reveals the free-form input. Typing in it
+  // un-checks the radio so the value-getter falls through to the input.
+  const addLanguageAdd = document.getElementById('addLanguageAdd');
+  const addLanguageOther = document.getElementById('addLanguageOther');
+  if (addLanguageAdd && addLanguageOther) {
+    addLanguageAdd.addEventListener('click', () => {
+      addLanguageOther.classList.add('visible');
+      addLanguageOther.focus();
+    });
+    addLanguageOther.addEventListener('input', () => {
+      if (!addLanguageOther.value.trim()) return;
+      document.querySelectorAll('input[name="addLanguage"]').forEach(r => { r.checked = false; });
+    });
+  }
+
+  // Location pills + "+ new" delegated click.
+  const pillsEl = document.getElementById('addLocationPills');
+  if (pillsEl) {
+    pillsEl.addEventListener('click', e => {
+      if (e.target.closest('#addLocationNewBtn')) {
+        setLocationNewMode();
+        return;
+      }
+      const btn = e.target.closest('.location-pill-btn');
+      if (!btn) return;
+      setSelectedLocation({ type: btn.dataset.locType, name: btn.dataset.locName });
+    });
+  }
+  // Typing a name while in new mode keeps us in new mode (no-op needed —
+  // the picker stays unchanged). Clearing the name is fine too.
 
   // Name autocomplete
   addNameInput.addEventListener('input', () => {

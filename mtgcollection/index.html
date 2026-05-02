@@ -1569,6 +1569,60 @@
     text-transform: lowercase;
     padding: 4px 0;
   }
+  /* Location picker in the add-card form: existing-container pills + inline new */
+  .location-picker { display: flex; flex-direction: column; gap: 8px; }
+  .location-pills { display: flex; flex-wrap: wrap; gap: 4px 6px; }
+  .location-pills .loc-group-label {
+    width: 100%;
+    font-size: 0.65rem;
+    color: #999;
+    text-transform: uppercase;
+    margin: 4px 0 -2px;
+  }
+  .location-pill-btn {
+    border: none;
+    background: none;
+    padding: 0;
+    cursor: pointer;
+    font: inherit;
+  }
+  .location-pill-btn .loc-pill {
+    padding: 2px 6px;
+    font-size: 0.7rem;
+    opacity: 0.55;
+    transition: opacity 0.12s, box-shadow 0.12s;
+  }
+  .location-pill-btn:hover .loc-pill,
+  .location-pill-btn:focus-visible .loc-pill { opacity: 1; }
+  .location-pill-btn.is-selected .loc-pill {
+    opacity: 1;
+    box-shadow: 0 0 0 1px #000 inset;
+  }
+  .location-pill-new {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border: 1px dashed #999;
+    border-radius: 2px;
+    color: #555;
+    font-size: 0.7rem;
+    background: transparent;
+    cursor: pointer;
+  }
+  .location-pill-new:hover, .location-pill-new:focus-visible {
+    color: #000;
+    border-color: #000;
+    outline: none;
+  }
+  .location-pill-new.is-selected {
+    background: #000;
+    color: #fff;
+    border-style: solid;
+    border-color: #000;
+  }
+  .location-new.hidden { display: none; }
+  .field-full { grid-column: 1 / -1; }
+
   /* Typed-pill radio variant of .loc-field — used by the add-card form */
   .loc-field-typed { border-bottom: none; align-items: center; }
   .loc-type-radios { display: inline-flex; gap: 4px; }
@@ -2898,26 +2952,41 @@
             <div class="add-preview-existing hidden" id="addPreviewExisting"></div>
             <div class="add-fields">
               <div class="field field-finish">
-                <label for="addFinish">finish</label>
-                <select id="addFinish"></select>
+                <label>finish</label>
+                <div class="condition-toggle" id="addFinish" role="radiogroup" aria-label="finish"></div>
               </div>
               <div class="field field-condition">
-                <label for="addCondition">condition</label>
-                <select id="addCondition"></select>
+                <label>condition</label>
+                <div class="condition-toggle" id="addCondition" role="radiogroup" aria-label="condition">
+                  <label><input type="radio" name="addCondition" value="near_mint" checked><span>nm</span></label>
+                  <label><input type="radio" name="addCondition" value="lightly_played"><span>lp</span></label>
+                  <label><input type="radio" name="addCondition" value="moderately_played"><span>mp</span></label>
+                  <label><input type="radio" name="addCondition" value="heavily_played"><span>hp</span></label>
+                  <label><input type="radio" name="addCondition" value="damaged"><span>dmg</span></label>
+                </div>
               </div>
               <div class="field field-language">
-                <label for="addLanguage">language</label>
-                <select id="addLanguage"></select>
+                <label>language</label>
+                <div class="language-row">
+                  <div class="language-toggle" id="addLanguageOptions" role="radiogroup" aria-label="language"></div>
+                  <button class="language-add" id="addLanguageAdd" type="button" aria-label="add language">+</button>
+                  <input class="language-other" id="addLanguageOther" type="text" maxlength="8" placeholder="other">
+                </div>
               </div>
               <div class="field field-qty">
                 <label for="addQty">qty</label>
                 <input type="number" id="addQty" min="1" value="1">
               </div>
-              <div class="field field-location">
-                <label for="addLocationName">location</label>
-                <div class="loc-field loc-field-typed">
-                  <div class="loc-type-radios" role="radiogroup" aria-label="location type" id="addLocationTypeRadios"></div>
-                  <input type="text" id="addLocationName" class="loc-name-input" list="locationOptions" placeholder="optional">
+              <div class="field field-location field-full">
+                <label>location</label>
+                <div class="location-picker" id="addLocationPicker">
+                  <div class="location-pills" id="addLocationPills" role="radiogroup" aria-label="location"></div>
+                  <div class="location-new hidden" id="addLocationNewBox">
+                    <div class="loc-field loc-field-typed">
+                      <div class="loc-type-radios" role="radiogroup" aria-label="location type" id="addLocationTypeRadios"></div>
+                      <input type="text" id="addLocationName" class="loc-name-input" placeholder="name">
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
