@@ -832,13 +832,19 @@ function deckMetaItem(label, value, emptyText) {
   return `<div><dt>${esc(label)}</dt><dd class="${cls}">${esc(hasValue ? value : emptyText)}</dd></div>`;
 }
 
-function deckMetaCardItem(label, name, imageUrl, emptyText) {
+function deckMetaCardItem(label, name, imageUrl, backImageUrl, scryfallId, emptyText) {
   if (!name) {
     return `<div><dt>${esc(label)}</dt><dd class="deck-meta-value is-empty">${esc(emptyText)}</dd></div>`;
   }
-  const previewAttr = imageUrl ? ` data-preview-url="${esc(imageUrl)}"` : '';
-  const cls = 'deck-meta-value deck-meta-card-name' + (imageUrl ? ' card-preview-link' : '');
-  return `<div><dt>${esc(label)}</dt><dd class="${cls}"${previewAttr}>${esc(name)}</dd></div>`;
+  // Use .deck-meta-preview-link instead of .card-preview-link so the hover
+  // updates the sticky deck preview panel rather than firing the floating
+  // popup. Falls back to metadata when the card isn't in the deck yet.
+  const cls = 'deck-meta-value deck-meta-card-name deck-meta-preview-link';
+  const dataAttrs = ' data-scryfall-id="' + esc(scryfallId || '') + '"'
+    + ' data-card-name="' + esc(name) + '"'
+    + ' data-image-url="' + esc(imageUrl || '') + '"'
+    + ' data-back-image-url="' + esc(backImageUrl || '') + '"';
+  return `<div><dt>${esc(label)}</dt><dd class="${cls}"${dataAttrs}>${esc(name)}</dd></div>`;
 }
 
 export function renderDeckDetailsHeaderHtml(model) {
@@ -850,8 +856,8 @@ export function renderDeckDetailsHeaderHtml(model) {
         <p class="${descClass}">${esc(model.descriptionText)}</p>
         <dl class="deck-meta-strip" aria-label="deck details">
           ${deckMetaItem('format', model.formatInput, 'unspecified format')}
-          ${model.formatInput === 'commander' ? deckMetaCardItem('commander', model.commander, model.commanderImageUrl, 'not set') : ''}
-          ${model.formatInput === 'commander' && model.partner ? deckMetaCardItem('partner', model.partner, model.partnerImageUrl, 'none') : ''}
+          ${model.formatInput === 'commander' ? deckMetaCardItem('commander', model.commander, model.commanderImageUrl, model.commanderBackImageUrl, model.commanderScryfallId, 'not set') : ''}
+          ${model.formatInput === 'commander' && model.partner ? deckMetaCardItem('partner', model.partner, model.partnerImageUrl, model.partnerBackImageUrl, model.partnerScryfallId, 'none') : ''}
           ${model.companion ? deckMetaItem('companion', model.companion, '') : ''}
         </dl>
       </div>
@@ -1323,13 +1329,47 @@ function setDeckPreviewCard(c) {
 }
 
 function deckPreviewFromTarget(target) {
-  const card = target && target.closest && target.closest('.deck-card');
-  if (!card) return;
-  const idx = parseInt(card.dataset.index, 10);
-  if (Number.isNaN(idx)) return;
-  const entry = state.collection[idx];
-  if (!entry) return;
-  setDeckPreviewCard(entry);
+  if (!target?.closest) return;
+  const card = target.closest('.deck-card');
+  if (card) {
+    const idx = parseInt(card.dataset.index, 10);
+    if (Number.isNaN(idx)) return;
+    const entry = state.collection[idx];
+    if (entry) setDeckPreviewCard(entry);
+    return;
+  }
+  const metaLink = target.closest('.deck-meta-preview-link');
+  if (metaLink) {
+    const scryfallId = metaLink.dataset.scryfallId;
+    const deckScope = currentDeckScope();
+    let entry = null;
+    if (scryfallId) {
+      entry = state.collection.find(c =>
+        c.scryfallId === scryfallId
+        && normalizeLocation(c.location)?.type === 'deck'
+        && (!deckScope || normalizeLocation(c.location)?.name === deckScope.name)
+      );
+    }
+    if (entry) {
+      setDeckPreviewCard(entry);
+    } else {
+      // Commander not yet in deck — render a synthetic card from metadata.
+      const name = metaLink.dataset.cardName || '';
+      const imageUrl = metaLink.dataset.imageUrl || '';
+      const backImageUrl = metaLink.dataset.backImageUrl || '';
+      if (name || imageUrl) {
+        setDeckPreviewCard({
+          name,
+          resolvedName: name,
+          imageUrl,
+          backImageUrl,
+          qty: 1,
+          finish: 'normal',
+          price: 0,
+        });
+      }
+    }
+  }
 }
 
 function loadDeckGroup() {
