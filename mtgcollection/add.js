@@ -19,7 +19,7 @@ import {
   getUsdPrice,
 } from './collection.js';
 import { commitCollectionChange } from './persistence.js';
-import { showImageLightbox } from './view.js';
+import { showImageLightbox, LOC_ICONS } from './view.js';
 import { recordEvent } from './changelog.js';
 import { getMultiselectValue } from './multiselect.js';
 
@@ -71,7 +71,43 @@ const AUTOADD_KEY = 'mtgcollection_voice_autoadd_v1';
 let addDetailsEl, addModeNameEl, addModeCnEl;
 let addNameInput, addNameList;
 let addPreviewEl, addPreviewImg, addPreviewName, addPreviewMeta;
-let addFinishSel, addConditionSel, addLanguageSel, addQtyInput, addLocationTypeSel, addLocationNameInput;
+let addFinishSel, addConditionSel, addLanguageSel, addQtyInput, addLocationNameInput;
+
+const ADD_LOCATION_TYPES = ['deck', 'binder', 'box'];
+const ADD_LOCATION_DEFAULT = 'box';
+
+function buildLocationTypeRadios() {
+  const wrap = document.getElementById('addLocationTypeRadios');
+  if (!wrap) return;
+  wrap.innerHTML = ADD_LOCATION_TYPES.map(t => `<label class="loc-type-radio${t === ADD_LOCATION_DEFAULT ? ' is-selected' : ''}">
+    <input type="radio" name="addLocationType" value="${t}"${t === ADD_LOCATION_DEFAULT ? ' checked' : ''}>
+    <span class="loc-pill loc-pill-${t}">${LOC_ICONS[t]}<span>${t}</span></span>
+  </label>`).join('');
+  wrap.addEventListener('change', e => {
+    if (e.target.name !== 'addLocationType') return;
+    wrap.querySelectorAll('.loc-type-radio').forEach(l => {
+      const r = l.querySelector('input');
+      l.classList.toggle('is-selected', !!(r && r.checked));
+    });
+  });
+}
+
+// Typed-pill radio group for the location type. Mimics a <select>'s `.value`
+// API so existing call sites continue to read/write a plain string.
+const addLocationType = {
+  get value() {
+    const r = document.querySelector('input[name="addLocationType"]:checked');
+    return r ? r.value : 'box';
+  },
+  set value(v) {
+    document.querySelectorAll('input[name="addLocationType"]').forEach(r => {
+      const checked = r.value === v;
+      r.checked = checked;
+      const wrap = r.closest('.loc-type-radio');
+      if (wrap) wrap.classList.toggle('is-selected', checked);
+    });
+  },
+};
 let addBtn, addCancelBtn, addMicBtn, addMicStatus, addAutoAddEl;
 let addPrintingPickerEl, addPrintingListEl, addPrintingCaptionEl;
 
@@ -448,7 +484,7 @@ function showAddPreview(card, opts) {
   const preserveFields = !!(opts && opts.preserveFields);
   const prevQty = preserveFields ? addQtyInput.value : null;
   const prevLocationName = preserveFields ? addLocationNameInput.value : null;
-  const prevLocationType = preserveFields ? addLocationTypeSel.value : null;
+  const prevLocationType = preserveFields ? addLocationType.value : null;
   const prevFinish = preserveFields ? addFinishSel.value : null;
   addPreviewCard = card;
   addPreviewEl.classList.add('active');
@@ -504,13 +540,13 @@ function showAddPreview(card, opts) {
     ? voiceLocationOverride
     : (currentFilterLocation() || lastUsedLocation);
   const seedLoc = normalizeLocation(seedSource);
-  addLocationTypeSel.value = seedLoc ? seedLoc.type : 'box';
+  addLocationType.value = seedLoc ? seedLoc.type : 'box';
   addLocationNameInput.value = seedLoc ? seedLoc.name : '';
   voiceQtyOverride = null;
   voiceLocationOverride = null;
   if (preserveFields) {
     if (prevQty != null && prevQty !== '') addQtyInput.value = prevQty;
-    if (prevLocationType != null) addLocationTypeSel.value = prevLocationType;
+    if (prevLocationType != null) addLocationType.value = prevLocationType;
     if (prevLocationName != null) addLocationNameInput.value = prevLocationName;
     if (prevFinish) {
       for (const opt of addFinishSel.options) {
@@ -534,7 +570,7 @@ function addCardFromPreview() {
   const condition = normalizeCondition(addConditionSel.value);
   const language = normalizeLanguage(addLanguageSel.value);
   const qty = Math.max(1, parseInt(addQtyInput.value, 10) || 1);
-  const location = normalizeLocation({ type: addLocationTypeSel.value, name: addLocationNameInput.value });
+  const location = normalizeLocation({ type: addLocationType.value, name: addLocationNameInput.value });
 
   const entry = makeEntry({
     name: card.name,
@@ -767,7 +803,7 @@ export function initAdd() {
   addConditionSel = document.getElementById('addCondition');
   addLanguageSel  = document.getElementById('addLanguage');
   addQtyInput     = document.getElementById('addQty');
-  addLocationTypeSel = document.getElementById('addLocationType');
+  buildLocationTypeRadios();
   addLocationNameInput = document.getElementById('addLocationName');
   addBtn         = document.getElementById('addCardBtn');
   addCancelBtn   = document.getElementById('addCardCancel');

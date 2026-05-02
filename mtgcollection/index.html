@@ -1569,6 +1569,33 @@
     text-transform: lowercase;
     padding: 4px 0;
   }
+  /* Typed-pill radio variant of .loc-field — used by the add-card form */
+  .loc-field-typed { border-bottom: none; align-items: center; }
+  .loc-type-radios { display: inline-flex; gap: 4px; }
+  .loc-type-radio { display: inline-flex; cursor: pointer; }
+  .loc-type-radio input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 0;
+    height: 0;
+  }
+  .loc-type-radio .loc-pill {
+    padding: 2px 6px;
+    font-size: 0.7rem;
+    opacity: 0.5;
+    transition: opacity 0.12s, box-shadow 0.12s;
+  }
+  .loc-type-radio.is-selected .loc-pill {
+    opacity: 1;
+    box-shadow: 0 0 0 1px #000 inset;
+  }
+  .loc-type-radio input:focus-visible + .loc-pill {
+    outline: 2px solid #000;
+    outline-offset: 2px;
+  }
+  .loc-field-typed .loc-name-input { border-bottom: 1px solid #ccc; }
+  .loc-field-typed:focus-within .loc-name-input { border-bottom-color: #000; }
   .loc-field .loc-name-input:focus { outline: none; }
 
   .set-icon {
@@ -2867,12 +2894,8 @@
               </div>
               <div class="field field-location">
                 <label for="addLocationName">location</label>
-                <div class="loc-field">
-                  <select class="loc-type-select" id="addLocationType">
-                    <option value="deck">deck</option>
-                    <option value="binder">binder</option>
-                    <option value="box" selected>box</option>
-                  </select>
+                <div class="loc-field loc-field-typed">
+                  <div class="loc-type-radios" role="radiogroup" aria-label="location type" id="addLocationTypeRadios"></div>
                   <input type="text" id="addLocationName" class="loc-name-input" list="locationOptions" placeholder="optional">
                 </div>
               </div>
