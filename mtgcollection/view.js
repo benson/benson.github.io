@@ -339,11 +339,11 @@ function renderLocationsView(containers) {
     const ofType = containers.filter(c => c.type === type);
     const cards = ofType.map(c => {
       const stats = containerStats(c);
-      const value = stats.value > 0 ? ' Â· $' + stats.value.toFixed(2) : '';
+      const value = stats.value > 0 ? ' &middot; $' + stats.value.toFixed(2) : '';
       const disabled = stats.total > 0 ? ' disabled' : '';
       return `<article class="location-card" data-loc-type="${esc(c.type)}" data-loc-name="${esc(c.name)}">
         <div class="location-card-name">${LOC_ICONS[c.type] || LOC_ICONS.box}<span>${esc(c.name)}</span></div>
-        <div class="location-card-stats">${stats.unique} unique Â· ${stats.total} total${value}</div>
+        <div class="location-card-stats">${stats.unique} unique &middot; ${stats.total} total${value}</div>
         <div class="location-card-actions">
           <button class="btn btn-secondary location-open" type="button">open</button>
           <button class="btn btn-secondary location-rename" type="button">rename</button>
