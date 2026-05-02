@@ -1352,9 +1352,6 @@
     font-variant-numeric: tabular-nums;
   }
   .location-card-menu-btn {
-    position: absolute;
-    top: 4px;
-    right: 4px;
     border: none;
     background: transparent;
     padding: 2px 6px;
@@ -1363,6 +1360,7 @@
     font-size: 1rem;
     line-height: 1;
     border-radius: 2px;
+    flex: 0 0 auto;
   }
   .location-card-menu-btn:hover, .location-card-menu-btn:focus-visible {
     color: #000;
@@ -1371,8 +1369,8 @@
   }
   .location-card-menu {
     position: absolute;
-    top: 28px;
-    right: 4px;
+    top: 32px;
+    right: 8px;
     background: #fff;
     border: 1px solid #ccc;
     border-radius: 2px;
@@ -1380,8 +1378,8 @@
     z-index: 5;
     min-width: 100px;
     padding: 4px 0;
+    display: none;
   }
-  .location-card-menu.hidden { display: none; }
   .location-card.menu-open .location-card-menu { display: block; }
   .location-card-menu-item {
     display: block;

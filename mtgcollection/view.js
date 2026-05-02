@@ -351,14 +351,14 @@ function renderLocationsView(containers) {
         <span class="loc-pill loc-pill-${esc(t)}">${LOC_ICONS[t]}<span>${esc(t)}</span></span>
       </label>`).join('');
       return `<article class="location-card" data-loc-type="${esc(c.type)}" data-loc-name="${esc(c.name)}" tabindex="0" role="button" aria-label="open ${esc(c.name)}">
-        <button class="location-card-menu-btn" type="button" aria-label="more options" aria-haspopup="menu">⋯</button>
-        <div class="location-card-menu hidden" role="menu">
-          <button class="location-card-menu-item location-delete" type="button" role="menuitem"${disabled}>delete</button>
-        </div>
         <div class="location-card-name">
           ${LOC_ICONS[c.type] || LOC_ICONS.box}
           <span class="location-card-name-text">${esc(c.name)}</span>
           <button class="location-card-edit-btn" type="button" aria-label="edit">✎</button>
+          <button class="location-card-menu-btn" type="button" aria-label="more options" aria-haspopup="menu">⋯</button>
+        </div>
+        <div class="location-card-menu" role="menu">
+          <button class="location-card-menu-item location-delete" type="button" role="menuitem"${disabled}>delete</button>
         </div>
         <div class="location-card-stats">${stats.unique} unique &middot; ${stats.total} total${value}</div>
         <div class="location-card-edit-row">
