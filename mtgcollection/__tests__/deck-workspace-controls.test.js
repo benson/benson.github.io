@@ -1,7 +1,7 @@
 import test, { afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { state } from '../state.js';
-import { renderDeckAddPanel, renderDeckExportPanel, renderDeckWorkspaceControls } from '../view.js';
+import { renderDeckExportPanel, renderDeckWorkspaceControls } from '../view.js';
 
 afterEach(() => {
   state.deckMode = 'visual';
@@ -43,12 +43,3 @@ test('renderDeckExportPanel: exposes portable deck export presets and boards', (
   assert.match(html, /data-export-action="download"/);
 });
 
-test('renderDeckAddPanel: targets the physical deck container', () => {
-  const html = renderDeckAddPanel({ type: 'deck', name: 'Breya Box' });
-
-  assert.match(html, /id="deckQuickAddForm"/);
-  assert.match(html, /value="main">mainboard/);
-  assert.match(html, /value="sideboard">sideboard/);
-  assert.match(html, /value="maybe">maybeboard/);
-  assert.match(html, /deck:breya box/);
-});

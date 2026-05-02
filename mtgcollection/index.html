@@ -234,8 +234,10 @@
     display: none;
   }
 
-  /* List-view + drawer-open: float the sidebar in from the right with a backdrop */
-  body.view-list.right-drawer-open .app-right {
+  /* List-view + drawer-open: float the sidebar in from the right with a backdrop.
+     Same drawer treatment in deck view, where the right sidebar is hidden too. */
+  body.view-list.right-drawer-open .app-right,
+  body.view-deck.right-drawer-open .app-right {
     display: flex;
     position: fixed;
     top: 60px;
@@ -254,7 +256,8 @@
     z-index: 40;
     display: none;
   }
-  body.view-list.right-drawer-open .app-right-backdrop { display: block; }
+  body.view-list.right-drawer-open .app-right-backdrop,
+  body.view-deck.right-drawer-open .app-right-backdrop { display: block; }
 
   /* FAB cluster — always visible (even with an empty collection so the user
      can reach the add panel from list view, where the right sidebar is hidden) */
@@ -270,7 +273,6 @@
   }
   body.right-drawer-open .fab-cluster { display: none; }
   body.view-locations .fab-cluster,
-  body.view-deck .fab-cluster { display: none; }
   .fab-btn {
     display: inline-flex;
     align-items: center;
@@ -1398,8 +1400,7 @@
     box-shadow: 0 8px 24px rgba(0,0,0,0.16);
   }
   .deck-settings-grid label,
-  .deck-export-form label,
-  .deck-add-form label {
+  .deck-export-form label {
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -1408,9 +1409,7 @@
     text-transform: lowercase;
   }
   .deck-settings-grid select,
-  .deck-export-form select,
-  .deck-add-form select,
-  .deck-add-form textarea {
+  .deck-export-form select {
     border: 1px solid #ccc;
     background: #fff;
     color: #000;
@@ -2741,13 +2740,7 @@
   .deck-export-panel .deck-export-actions {
     justify-content: flex-end;
   }
-  .deck-add-panel {
-    border: 1px solid #ddd;
-    background: #fafafa;
-    padding: 12px;
-  }
-  .deck-export-form,
-  .deck-add-form {
+  .deck-export-form {
     display: grid;
     grid-template-columns: minmax(130px, 0.6fr) minmax(0, 1.4fr) auto;
     gap: 10px;
@@ -2770,26 +2763,12 @@
   .deck-export-checks input {
     margin: 0;
   }
-  .deck-export-actions,
-  .deck-add-actions {
+  .deck-export-actions {
     display: flex;
     gap: 8px;
     justify-content: flex-end;
     align-items: center;
     flex-wrap: wrap;
-  }
-  .deck-add-lines {
-    grid-column: span 1;
-  }
-  .deck-add-form textarea {
-    min-height: 88px;
-    resize: vertical;
-    font-family: ui-monospace, "SF Mono", Menlo, monospace;
-  }
-  .deck-add-destination {
-    color: #777;
-    font-size: 0.72rem;
-    margin-right: auto;
   }
   .deck-notes-panel p {
     margin: 0;
@@ -3461,7 +3440,6 @@
     .deck-dashboard,
     .deck-metadata-form,
     .deck-export-form,
-    .deck-add-form,
     .deck-meta-strip {
       grid-template-columns: 1fr;
     }
@@ -3506,16 +3484,11 @@
     .deck-metadata-actions .btn {
       flex: 1 1 auto;
     }
-    .deck-export-actions,
-    .deck-add-actions {
+    .deck-export-actions {
       justify-content: stretch;
     }
-    .deck-export-actions .btn,
-    .deck-add-actions .btn {
+    .deck-export-actions .btn {
       flex: 1 1 auto;
-    }
-    .deck-add-destination {
-      width: 100%;
     }
     .deck-preview-panel {
       display: none;

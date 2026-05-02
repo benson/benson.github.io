@@ -167,7 +167,7 @@ function renderLocationPicker() {
   newBoxEl.classList.toggle('hidden', !locationNewMode);
 }
 
-function setSelectedLocation(loc) {
+export function setSelectedLocation(loc) {
   if (loc && loc.type && loc.name) {
     selectedLocation = { type: loc.type, name: loc.name };
     locationNewMode = false;

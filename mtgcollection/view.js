@@ -24,6 +24,7 @@ import {
 } from './collection.js';
 import { save, commitCollectionChange } from './persistence.js';
 import { openDetail, populateFilters } from './detail.js';
+import { setSelectedLocation } from './add.js';
 import { filteredSorted, syncClearFiltersBtn, hasActiveFilter } from './search.js';
 import { groupDeck, firstCardForPanel, splitDeckBoards, deckStats, renderDeckStatsHtml, drawSampleHand } from './stats.js';
 import { updateBulkBar } from './bulk.js';
@@ -32,7 +33,6 @@ import { getSetIconUrl } from './setIcons.js';
 import { recordEvent, captureBefore, locationDiffSummary, setHistoryScope } from './changelog.js';
 import { setMultiselectValue, getMultiselectValue } from './multiselect.js';
 import { buildDeckExport, defaultDeckExportOptions } from './deckExport.js';
-import { importDecklistText } from './import.js';
 
 const VALID_DECK_GROUPS = ['type', 'cmc', 'color', 'rarity'];
 const VALID_DECK_MODES = ['visual', 'text', 'stats', 'hands', 'notes'];
@@ -870,7 +870,6 @@ export function renderDeckDetailsHeaderHtml(model) {
           <span><strong>${esc(model.valueText)}</strong> value</span>
         </div>
         <div class="deck-hero-actions">
-          <button class="btn" type="button" data-toggle-deck-add aria-controls="deckAddPanel" aria-expanded="false">add card</button>
           <div class="deck-export-menu-wrap">
             <button class="btn btn-secondary" type="button" data-toggle-deck-export aria-controls="deckExportPanel" aria-expanded="false">export</button>
             ${renderDeckExportPanel()}
@@ -1121,29 +1120,6 @@ export function renderDeckExportPanel() {
   </section>`;
 }
 
-export function renderDeckAddPanel(deck) {
-  const locLabel = deck ? formatLocationLabel(deck) : '';
-  return `<section class="deck-add-panel hidden" id="deckAddPanel" aria-label="add cards to deck">
-    <form id="deckQuickAddForm" class="deck-add-form">
-      <label>board
-        <select name="board">
-          <option value="main">mainboard</option>
-          <option value="sideboard">sideboard</option>
-          <option value="maybe">maybeboard</option>
-        </select>
-      </label>
-      <label class="deck-add-lines">cards
-        <textarea name="decklist" rows="4" placeholder="1 Sol Ring (CMM) 410"></textarea>
-      </label>
-      <div class="deck-add-actions">
-        <span class="deck-add-destination">${esc(locLabel || 'current deck')}</span>
-        <button class="btn" type="submit">add to deck</button>
-        <button class="btn btn-secondary" type="button" data-close-deck-add>close</button>
-      </div>
-    </form>
-  </section>`;
-}
-
 function renderDeckView(list) {
   const deckColumnsEl = document.getElementById('deckColumns');
   const deckActionsEl = document.querySelector('#deckView .deck-actions');
@@ -1201,7 +1177,6 @@ function renderDeckView(list) {
   deckColumnsEl.innerHTML = `<div class="deck-workspace deck-card-size-${esc(state.deckCardSize)}">
     ${renderDeckDetailsHeaderHtml(headerModel)}
     ${renderDeckWorkspaceControls()}
-    ${renderDeckAddPanel(deck)}
     ${modeBody}
   </div>`;
 
@@ -1521,10 +1496,12 @@ export function isLightboxVisible() {
 
 const RIGHT_DRAWER_PANELS = ['addDetails'];
 
-export function openRightDrawer(targetIds) {
+export function openRightDrawer(targetIds, options = {}) {
   const ids = (Array.isArray(targetIds) ? targetIds : [targetIds]).filter(id => RIGHT_DRAWER_PANELS.includes(id));
   if (ids.length === 0) return;
-  if (state.viewMode === 'list') {
+  const shape = getEffectiveShape();
+  const useDrawer = shape === 'list' || shape === 'deck';
+  if (useDrawer) {
     document.body.classList.add('right-drawer-open');
     RIGHT_DRAWER_PANELS.forEach(id => {
       const el = document.getElementById(id);
@@ -1535,6 +1512,9 @@ export function openRightDrawer(targetIds) {
       const el = document.getElementById(id);
       if (el) el.open = true;
     });
+  }
+  if (options.seedLocation) {
+    setSelectedLocation(options.seedLocation);
   }
   const target = document.getElementById(ids[0]);
   if (target && target.scrollIntoView) target.scrollIntoView({ block: 'start' });
@@ -1619,7 +1599,8 @@ export function initView() {
       const btn = e.target.closest('[data-fab-target]');
       if (!btn) return;
       const targets = btn.dataset.fabTarget.split(',').map(s => s.trim()).filter(Boolean);
-      openRightDrawer(targets);
+      const seedLocation = getEffectiveShape() === 'deck' ? currentDeckScope() : null;
+      openRightDrawer(targets, { seedLocation });
     });
   }
   const appRightBackdrop = document.getElementById('appRightBackdrop');
@@ -1767,21 +1748,11 @@ export function initView() {
       if (input && item) pickMetaAc(input, item);
       return;
     }
-    const addToggle = e.target.closest('[data-toggle-deck-add]');
-    if (addToggle) {
-      const panel = document.getElementById('deckAddPanel');
-      setDeckPanelOpen('deckAddPanel', '[data-toggle-deck-add]', panel?.classList.contains('hidden'));
-      return;
-    }
     const exportToggle = e.target.closest('[data-toggle-deck-export]');
     if (exportToggle) {
       e.stopPropagation();
       const panel = document.getElementById('deckExportPanel');
       setDeckPanelOpen('deckExportPanel', '[data-toggle-deck-export]', panel?.classList.contains('hidden'));
-      return;
-    }
-    if (e.target.closest('[data-close-deck-add]')) {
-      setDeckPanelOpen('deckAddPanel', '[data-toggle-deck-add]', false);
       return;
     }
     if (e.target.closest('[data-close-deck-export]')) {
@@ -1921,29 +1892,6 @@ export function initView() {
   });
 
   document.getElementById('deckColumns').addEventListener('submit', e => {
-    if (e.target.id === 'deckQuickAddForm') {
-      e.preventDefault();
-      const deck = currentDeckContainer();
-      if (!deck) return;
-      const fd = new FormData(e.target);
-      const text = String(fd.get('decklist') || '').trim();
-      if (!text) {
-        showFeedback('paste one or more decklist lines first', 'error');
-        return;
-      }
-      const board = normalizeDeckBoard(fd.get('board'));
-      importDecklistText(text, {
-        location: formatLocationLabel(deck),
-        board,
-        label: 'deck cards',
-      }).then(result => {
-        if (result?.ok) {
-          state.deckSampleHand = null;
-          showFeedback('added ' + result.count + ' deck card' + (result.count === 1 ? '' : 's'), 'success');
-        }
-      });
-      return;
-    }
     if (e.target.id !== 'deckMetadataForm') return;
     e.preventDefault();
     const deck = currentDeckContainer();
