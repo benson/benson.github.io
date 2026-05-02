@@ -9,13 +9,14 @@ afterEach(() => {
 
 test('renderDeckCard: renders contextual card actions instead of an inline board select', () => {
   const card = {
+    scryfallId: 'sol-ring-id',
     name: 'Sol Ring',
     resolvedName: 'Sol Ring',
     qty: 1,
     deckBoard: 'sideboard',
     imageUrl: 'https://example.test/sol-ring.jpg',
+    inventoryIndex: -1,
   };
-  state.collection = [card];
 
   const html = renderDeckCard(card, true);
 
@@ -24,18 +25,19 @@ test('renderDeckCard: renders contextual card actions instead of an inline board
   assert.match(html, /data-card-menu-toggle/);
   assert.match(html, /role="menu"/);
   assert.match(html, /data-card-action="move-board"/);
-  assert.match(html, /data-board="main"/);
+  assert.match(html, /data-board-target="main"/);
+  assert.match(html, /data-scryfall-id="sol-ring-id"/);
   assert.match(html, /data-card-action="remove-from-deck"/);
   assert.doesNotMatch(html, /deck-card-board/);
   assert.doesNotMatch(html, /<select/);
 });
 
 test('renderDeckCard: disables the move action for the current board', () => {
-  const card = { name: 'Counterspell', qty: 1, deckBoard: 'maybe' };
-  state.collection = [card];
+  const card = { scryfallId: 'cs-id', name: 'Counterspell', qty: 1, deckBoard: 'maybe', inventoryIndex: -1 };
 
   const html = renderDeckCard(card, false);
 
-  assert.match(html, /data-board="maybe" data-index="0" disabled/);
-  assert.doesNotMatch(html, /data-board="main" data-index="0" disabled/);
+  // The button for the current board (maybe) should be disabled.
+  assert.match(html, /data-board-target="maybe"[^>]*disabled/);
+  assert.doesNotMatch(html, /data-board-target="main"[^>]*disabled/);
 });

@@ -21,6 +21,10 @@ import {
   getCardBackImageUrl,
   makeEntry,
   getUsdPrice,
+  resolveDeckListEntry,
+  addToDeckList,
+  removeFromDeckList,
+  moveDeckListEntryBoard,
 } from './collection.js';
 import { save, commitCollectionChange } from './persistence.js';
 import { openDetail, populateFilters } from './detail.js';
@@ -458,27 +462,33 @@ function currentDeckMetadata() {
 
 export function renderDeckCard(c, isLast) {
   const name = c.resolvedName || c.name || '?';
-  const idx = state.collection.indexOf(c);
+  const idx = c.inventoryIndex >= 0 ? c.inventoryIndex : -1;
+  const sid = c.scryfallId || '';
   const img = c.imageUrl
     ? `<img src="${esc(c.imageUrl)}" alt="${esc(name)}" loading="lazy">`
     : `<div class="placeholder">${esc(name)}</div>`;
   const qty = c.qty > 1 ? `<span class="deck-qty">x${c.qty}</span>` : '';
   const finishClass = c.finish === 'foil' ? ' is-foil' : c.finish === 'etched' ? ' is-etched' : '';
+  const placeholderClass = c.placeholder ? ' deck-card-placeholder' : '';
   const lastClass = isLast ? ' deck-card-last' : '';
   const board = normalizeDeckBoard(c.deckBoard);
-  const menuId = 'deck-card-menu-' + idx;
+  const menuId = 'deck-card-menu-' + sid + '-' + board;
+  const dataAttrs = `data-scryfall-id="${esc(sid)}" data-board="${esc(board)}" data-inventory-index="${idx}"`;
   const moveItem = (targetBoard, label) =>
-    `<button role="menuitem" type="button" data-card-action="move-board" data-board="${targetBoard}" data-index="${idx}"${board === targetBoard ? ' disabled' : ''}>${esc(label)}</button>`;
+    `<button role="menuitem" type="button" data-card-action="move-board" data-board-target="${targetBoard}" ${dataAttrs}${board === targetBoard ? ' disabled' : ''}>${esc(label)}</button>`;
+  const openItem = idx >= 0
+    ? `<button role="menuitem" type="button" data-card-action="open" data-inventory-index="${idx}">open details</button>`
+    : '';
   const removeLabel = c.qty > 1 ? `remove ${c.qty} from deck` : 'remove from deck';
-  return `<article class="deck-card${finishClass}${lastClass}" data-index="${idx}" data-board="${esc(board)}">
-    <button class="deck-card-face detail-trigger" type="button" data-card-action="open" data-index="${idx}" aria-label="open ${esc(name)} details">${img}${qty}</button>
-    <button class="deck-card-menu-btn" type="button" data-card-menu-toggle data-index="${idx}" aria-label="card actions for ${esc(name)}" aria-haspopup="menu" aria-expanded="false" aria-controls="${menuId}">...</button>
+  return `<article class="deck-card${finishClass}${placeholderClass}${lastClass}" ${dataAttrs}>
+    <button class="deck-card-face detail-trigger" type="button" data-card-action="open" data-inventory-index="${idx}" aria-label="open ${esc(name)} details">${img}${qty}</button>
+    <button class="deck-card-menu-btn" type="button" data-card-menu-toggle aria-label="card actions for ${esc(name)}" aria-haspopup="menu" aria-expanded="false" aria-controls="${menuId}">...</button>
     <div class="deck-card-menu" id="${menuId}" role="menu" hidden>
-      <button role="menuitem" type="button" data-card-action="open" data-index="${idx}">open details</button>
+      ${openItem}
       ${moveItem('main', 'move to mainboard')}
       ${moveItem('sideboard', 'move to sideboard')}
       ${moveItem('maybe', 'move to maybeboard')}
-      <button role="menuitem" type="button" class="deck-card-menu-danger" data-card-action="remove-from-deck" data-index="${idx}">${esc(removeLabel)}</button>
+      <button role="menuitem" type="button" class="deck-card-menu-danger" data-card-action="remove-from-deck" ${dataAttrs}>${esc(removeLabel)}</button>
     </div>
   </article>`;
 }
@@ -533,64 +543,65 @@ function deckCardEventPayload(entry) {
   };
 }
 
-function moveDeckCardToBoard(index, rawBoard) {
-  const entry = state.collection[index];
-  if (!entry || normalizeLocation(entry.location)?.type !== 'deck') return;
+// Move a decklist entry between boards (main/sideboard/maybe). Only mutates
+// the deck container's decklist — physical inventory locations are untouched.
+function moveDeckCardToBoard(scryfallId, fromBoard, rawBoard) {
+  const deck = currentDeckContainer();
+  if (!deck || !scryfallId) return;
   const targetBoard = normalizeDeckBoard(rawBoard);
-  const currentBoard = normalizeDeckBoard(entry.deckBoard);
+  const currentBoard = normalizeDeckBoard(fromBoard);
   if (targetBoard === currentBoard) return;
-
-  const beforeKey = collectionKey(entry);
-  const afterKey = collectionKey({ ...entry, deckBoard: targetBoard });
-  const before = captureBefore([beforeKey, afterKey]);
-  entry.deckBoard = targetBoard;
+  const entry = (deck.deckList || []).find(e => e.scryfallId === scryfallId && e.board === currentBoard);
+  if (!entry) return;
+  if (!moveDeckListEntryBoard(deck, scryfallId, currentBoard, targetBoard)) return;
   state.deckSampleHand = null;
-  const deckLoc = normalizeLocation(entry.location);
+  const deckLoc = deck.type + ':' + deck.name;
   recordEvent({
     type: 'edit',
     summary: 'Moved {card} to ' + (targetBoard === 'maybe' ? 'maybeboard' : targetBoard),
-    before,
-    affectedKeys: [beforeKey, afterKey],
-    cards: [deckCardEventPayload(entry)],
+    cards: [{ name: entry.name || '', imageUrl: entry.imageUrl || '', backImageUrl: entry.backImageUrl || '' }],
     scope: 'deck',
-    deckLocation: deckLoc ? deckLoc.type + ':' + deckLoc.name : '',
+    deckLocation: deckLoc,
   });
-  commitCollectionChange({ coalesce: true });
+  commitCollectionChange();
 }
 
-function removeDeckCardFromDeck(index) {
-  const entry = state.collection[index];
-  if (!entry || normalizeLocation(entry.location)?.type !== 'deck') return;
-
-  const beforeLoc = entry.location;
-  const beforeKey = collectionKey(entry);
-  const afterKey = collectionKey({ ...entry, location: null, deckBoard: undefined });
-  const before = captureBefore([beforeKey, afterKey]);
-  const payload = deckCardEventPayload(entry);
-  entry.location = null;
-  delete entry.deckBoard;
+// Remove a decklist entry from the deck. Inventory is left alone — physical
+// cards keep their location.
+function removeDeckCardFromDeck(scryfallId, board) {
+  const deck = currentDeckContainer();
+  if (!deck || !scryfallId) return;
+  const norm = normalizeDeckBoard(board);
+  const entry = (deck.deckList || []).find(e => e.scryfallId === scryfallId && e.board === norm);
+  if (!entry) return;
+  if (!removeFromDeckList(deck, scryfallId, norm)) return;
   state.deckSampleHand = null;
+  const deckLoc = deck.type + ':' + deck.name;
   recordEvent({
     type: 'edit',
-    summary: locationDiffSummary(beforeLoc, null),
-    before,
-    affectedKeys: [beforeKey, afterKey],
-    cards: [payload],
+    summary: 'Removed {card} from {loc:' + deck.type + ':' + deck.name + '}',
+    cards: [{ name: entry.name || '', imageUrl: entry.imageUrl || '', backImageUrl: entry.backImageUrl || '' }],
+    scope: 'deck',
+    deckLocation: deckLoc,
   });
-  commitCollectionChange({ coalesce: true });
+  commitCollectionChange();
 }
 
 function handleDeckCardAction(actionEl) {
   const action = actionEl?.dataset.cardAction;
-  const index = parseInt(actionEl?.dataset.index || '', 10);
-  if (Number.isNaN(index)) return;
   closeDeckCardMenus(document.getElementById('deckColumns') || document);
   if (action === 'open') {
-    openDetail(index);
-  } else if (action === 'move-board') {
-    moveDeckCardToBoard(index, actionEl.dataset.board);
+    const idx = parseInt(actionEl.dataset.inventoryIndex || '-1', 10);
+    if (idx >= 0) openDetail(idx);
+    return;
+  }
+  const sid = actionEl?.dataset.scryfallId;
+  const board = actionEl?.dataset.board;
+  if (!sid || !board) return;
+  if (action === 'move-board') {
+    moveDeckCardToBoard(sid, board, actionEl.dataset.boardTarget);
   } else if (action === 'remove-from-deck') {
-    removeDeckCardFromDeck(index);
+    removeDeckCardFromDeck(sid, board);
   }
 }
 
@@ -603,7 +614,7 @@ const BOARD_LABEL = { main: 'main', sideboard: 'side', maybe: 'maybe' };
 
 function renderDeckTextRow(c) {
   const name = c.resolvedName || c.name || '(unknown)';
-  const index = state.collection.indexOf(c);
+  const index = c.inventoryIndex >= 0 ? c.inventoryIndex : -1;
   const previewClasses = c.imageUrl ? 'card-name-button card-preview-link detail-trigger' : 'card-name-button detail-trigger';
   const previewAttr = c.imageUrl ? ` data-preview-url="${esc(c.imageUrl)}"` : '';
   const setCodeLower = (c.setCode || '').toLowerCase();
@@ -614,8 +625,14 @@ function renderDeckTextRow(c) {
     : '';
   const board = normalizeDeckBoard(c.deckBoard);
   const boardLbl = BOARD_LABEL[board] || board;
-  return `<tr class="detail-trigger" data-index="${index}">
-    <td class="card-name-cell"><button class="${previewClasses}" type="button" data-index="${index}"${previewAttr}>${esc(name)}</button></td>
+  const placeholderCls = c.placeholder ? ' deck-text-row-placeholder' : '';
+  const physicalLoc = c.placeholder
+    ? '<span class="deck-row-loc deck-row-loc-placeholder">placeholder</span>'
+    : c.location
+      ? `<span class="deck-row-loc">in ${esc(c.location.type)}:${esc(c.location.name)}</span>`
+      : '';
+  return `<tr class="detail-trigger${placeholderCls}" data-index="${index}">
+    <td class="card-name-cell"><button class="${previewClasses}" type="button" data-index="${index}"${previewAttr}>${esc(name)}</button>${physicalLoc}</td>
     <td class="muted set-cell">${setIcon}${esc(setCode)}</td>
     <td class="muted cn-cell">${esc(c.cn || '')}</td>
     <td class="muted board-cell"><span class="board-pill board-pill-${esc(board)}">${esc(boardLbl)}</span></td>
@@ -978,58 +995,34 @@ function pickMetaAc(input, item) {
   hideMetaAc(input);
 }
 
-// If the picked commander/partner isn't already a card in this deck, add it
-// to the deck (board: main, qty: 1) so the metadata pointer resolves to a
-// real collection entry. Returns the new key if a card was added, else null.
-function ensureCommanderEntryInDeck(scryfallId, deckLocLabel) {
-  if (!scryfallId || !deckLocLabel) return null;
-  const loc = normalizeLocation(deckLocLabel);
-  if (!loc || loc.type !== 'deck') return null;
-  const already = state.collection.some(c =>
-    c.scryfallId === scryfallId
-    && normalizeLocation(c.location)?.type === 'deck'
-    && normalizeLocation(c.location)?.name === loc.name
-  );
+// If the picked commander/partner isn't already in this deck's decklist, add
+// it (board: main, qty: 1). This is purely a decklist mutation — physical
+// inventory is untouched.
+function ensureCommanderEntryInDeck(scryfallId, deck) {
+  if (!scryfallId || !deck || deck.type !== 'deck') return null;
+  if (!Array.isArray(deck.deckList)) deck.deckList = [];
+  const already = deck.deckList.some(e => e.scryfallId === scryfallId);
   if (already) return null;
   const card = metaAcCardCache.get(scryfallId);
   if (!card) return null;
-  const entry = makeEntry({
+  addToDeckList(deck, {
+    scryfallId: card.id,
+    qty: 1,
+    board: 'main',
     name: card.name,
     setCode: card.set,
-    setName: card.set_name,
     cn: card.collector_number,
-    finish: 'normal',
-    qty: 1,
-    condition: 'near_mint',
-    language: 'en',
-    location: loc,
-    scryfallId: card.id,
-    rarity: card.rarity || '',
-    deckBoard: 'main',
+    imageUrl: getCardImageUrl(card),
+    backImageUrl: getCardBackImageUrl(card),
   });
-  entry.resolvedName = card.name;
-  entry.cmc = card.cmc ?? null;
-  entry.colors = card.colors || (card.card_faces?.[0]?.colors) || [];
-  entry.colorIdentity = card.color_identity || [];
-  entry.typeLine = card.type_line || (card.card_faces?.map(f => f.type_line).filter(Boolean).join(' // ') || '');
-  entry.oracleText = card.oracle_text || (card.card_faces?.map(f => f.oracle_text).filter(Boolean).join(' // ') || '');
-  entry.legalities = card.legalities || {};
-  entry.scryfallUri = card.scryfall_uri;
-  entry.imageUrl = getCardImageUrl(card);
-  entry.backImageUrl = getCardBackImageUrl(card);
-  const priced = getUsdPrice(card, 'normal');
-  entry.price = priced.price;
-  entry.priceFallback = priced.fallback;
-  state.collection.push(entry);
-  const k = collectionKey(entry);
   recordEvent({
     type: 'add',
-    summary: 'Added {card} as commander to {loc:' + loc.type + ':' + loc.name + '}',
-    created: [k],
-    affectedKeys: [k],
-    cards: [{ name: card.name, imageUrl: entry.imageUrl, backImageUrl: entry.backImageUrl || '' }],
+    summary: 'Added {card} as commander to {loc:' + deck.type + ':' + deck.name + '}',
+    cards: [{ name: card.name, imageUrl: getCardImageUrl(card), backImageUrl: getCardBackImageUrl(card) || '' }],
+    scope: 'deck',
+    deckLocation: deck.type + ':' + deck.name,
   });
-  return k;
+  return scryfallId;
 }
 
 function renderDeckFormatPicker(formatInput) {
@@ -1120,6 +1113,47 @@ export function renderDeckExportPanel() {
   </section>`;
 }
 
+// Build a render-shaped card for the deck workspace from a (deckList entry,
+// inventory) pair. The result quacks like a collection entry — existing render
+// helpers (renderDeckCard, splitDeckBoards, deckStats, etc.) work on it
+// without modification. `inventoryIndex` lets click handlers open the drawer
+// for the underlying physical card when one exists.
+function buildDeckCardFromEntry(entry) {
+  const resolution = resolveDeckListEntry(entry, state.collection);
+  const inv = resolution.primary;
+  const inventoryIndex = inv ? state.collection.indexOf(inv) : -1;
+  return {
+    scryfallId: entry.scryfallId,
+    name: entry.name || inv?.name || '?',
+    resolvedName: entry.name || inv?.resolvedName || inv?.name || '?',
+    setCode: entry.setCode || inv?.setCode || '',
+    setName: inv?.setName || '',
+    cn: entry.cn || inv?.cn || '',
+    rarity: inv?.rarity || '',
+    qty: entry.qty,
+    deckBoard: entry.board,
+    finish: inv?.finish || 'normal',
+    condition: inv?.condition || 'near_mint',
+    language: inv?.language || 'en',
+    location: inv?.location || null,
+    price: inv?.price || 0,
+    priceFallback: inv?.priceFallback || false,
+    cmc: inv?.cmc ?? null,
+    colors: inv?.colors || [],
+    colorIdentity: inv?.colorIdentity || [],
+    typeLine: inv?.typeLine || '',
+    oracleText: inv?.oracleText || '',
+    legalities: inv?.legalities || {},
+    tags: inv?.tags || [],
+    imageUrl: entry.imageUrl || inv?.imageUrl || '',
+    backImageUrl: entry.backImageUrl || inv?.backImageUrl || '',
+    placeholder: resolution.placeholder,
+    ownedQty: resolution.ownedQty,
+    needed: resolution.needed,
+    inventoryIndex,
+  };
+}
+
 function renderDeckView(list) {
   const deckColumnsEl = document.getElementById('deckColumns');
   const deckActionsEl = document.querySelector('#deckView .deck-actions');
@@ -1134,9 +1168,14 @@ function renderDeckView(list) {
   }
 
   if (deckActionsEl) deckActionsEl.classList.add('hidden');
-  for (const c of list) c.deckBoard = normalizeDeckBoard(c.deckBoard);
   if (deck && (!deck.deck || typeof deck.deck !== 'object')) deck.deck = defaultDeckMetadata(deck.name);
+  if (deck && !Array.isArray(deck.deckList)) deck.deckList = [];
   const meta = deck?.deck || defaultDeckMetadata(deck?.name || 'deck');
+  // Build the list of "deck cards" by resolving the decklist against the
+  // inventory. Each card has identity from the decklist entry, board from the
+  // entry, and finish/price/etc. from the primary inventory match (if any).
+  list = (deck?.deckList || []).map(entry => buildDeckCardFromEntry(entry));
+  for (const c of list) c.deckBoard = normalizeDeckBoard(c.deckBoard);
   const boards = splitDeckBoards(list);
   const stats = deckStats(list);
   const statHtml = renderDeckStatsHtml(boards.main);
@@ -1926,9 +1965,8 @@ export function initView() {
     // has explicitly picked from autocomplete (scryfallId set).
     let added = 0;
     if (isCommander) {
-      const deckLoc = formatLocationLabel(deck);
-      if (cmdScryfallId && ensureCommanderEntryInDeck(cmdScryfallId, deckLoc)) added++;
-      if (partnerScryfallId && ensureCommanderEntryInDeck(partnerScryfallId, deckLoc)) added++;
+      if (cmdScryfallId && ensureCommanderEntryInDeck(cmdScryfallId, deck)) added++;
+      if (partnerScryfallId && ensureCommanderEntryInDeck(partnerScryfallId, deck)) added++;
     }
     save();
     render();

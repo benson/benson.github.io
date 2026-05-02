@@ -13,6 +13,8 @@ import {
   formatLocationLabel,
   normalizeDeckBoard,
   normalizeLocation,
+  ensureContainer,
+  addToDeckList,
 } from './collection.js';
 import { save, commitCollectionChange } from './persistence.js';
 import { filteredSorted } from './search.js';
@@ -473,15 +475,43 @@ function loadSample() {
   showFeedback('loaded sample csv — click "import pasted"', 'info');
 }
 
+// Seed the breya commander deck as a pure decklist — no physical inventory.
+// Cards render as placeholders in the deck view until the user adds physical
+// copies via the add flow. This matches the build-online → locate-IRL flow.
 export async function loadBreyaDeck(options = {}) {
   const { replace = true, silent = false } = options;
   if (replace && state.collection.length > 0 && !silent && !confirm('replace current collection with the breya deck?')) return;
-  const { entries, errors } = parseDecklist(BREYA_DECKLIST, { location: 'deck:breya' });
+  const { entries, errors } = parseDecklist(BREYA_DECKLIST, { location: '' });
   if (errors.length && !silent) {
     showFeedback('couldn\'t parse decklist lines: ' + errors.join(', '), 'error');
     return;
   }
-  await importEntries(entries, { replace, silent, label: 'breya deck cards' });
+  if (replace) state.collection = [];
+  // Resolve to get scryfallIds + images; resolveCards mutates entries in place.
+  await resolveCards(entries);
+  const deck = ensureContainer({ type: 'deck', name: 'breya' });
+  if (deck) {
+    deck.deck = { ...deck.deck, format: 'commander', title: deck.deck?.title || 'breya' };
+    deck.deckList = [];
+    let added = 0;
+    for (const e of entries) {
+      if (!e.scryfallId) continue;
+      addToDeckList(deck, {
+        scryfallId: e.scryfallId,
+        qty: e.qty,
+        board: 'main',
+        name: e.resolvedName || e.name,
+        setCode: e.setCode,
+        cn: e.cn,
+        imageUrl: e.imageUrl || '',
+        backImageUrl: e.backImageUrl || '',
+      });
+      added++;
+    }
+    deck.updatedAt = Date.now();
+    commitCollectionChange();
+    if (!silent) showFeedback('loaded breya decklist (' + added + ' cards) — placeholders until you add physical copies', 'success');
+  }
 }
 
 function clearCollection() {

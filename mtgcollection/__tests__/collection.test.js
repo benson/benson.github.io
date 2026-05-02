@@ -113,6 +113,7 @@ test('ensureContainer: creates a persisted flat container keyed by typed locatio
     createdAt: 123,
     updatedAt: 123,
     deck: { title: 'breya', description: '', format: '', commander: '', commanderScryfallId: '', commanderImageUrl: '', commanderBackImageUrl: '', partner: '', partnerScryfallId: '', partnerImageUrl: '', partnerBackImageUrl: '', companion: '' },
+    deckList: [],
   });
   assert.deepEqual(Object.keys(state.containers), ['deck:breya']);
   state.containers = {};

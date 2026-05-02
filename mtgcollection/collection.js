@@ -87,6 +87,108 @@ export function normalizeDeckBoard(raw) {
   return DECK_BOARDS.includes(v) ? v : DEFAULT_DECK_BOARD;
 }
 
+// A decklist entry is the logical "this is in the deck" record. Independent
+// from physical location: the same scryfallId can appear in a decklist while
+// the physical card sits in a different container (or isn't owned at all).
+export function normalizeDeckListEntry(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const scryfallId = String(raw.scryfallId || '').trim();
+  if (!scryfallId) return null;
+  return {
+    scryfallId,
+    qty: Math.max(1, parseInt(raw.qty, 10) || 1),
+    board: normalizeDeckBoard(raw.board),
+    name: String(raw.name || '').trim(),
+    setCode: String(raw.setCode || '').toLowerCase(),
+    cn: String(raw.cn || '').trim(),
+    imageUrl: String(raw.imageUrl || '').trim(),
+    backImageUrl: String(raw.backImageUrl || '').trim(),
+  };
+}
+
+export function normalizeDeckList(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw.map(normalizeDeckListEntry).filter(Boolean);
+}
+
+// Stable identity for a decklist entry. We keep separate rows for different
+// boards (so "Sol Ring main" and "Sol Ring sideboard" are independent), but
+// the same (scryfallId, board) tuple coalesces qty.
+export function deckListEntryKey(entry) {
+  return entry.scryfallId + '|' + normalizeDeckBoard(entry.board);
+}
+
+export function addToDeckList(container, entry) {
+  if (!container || container.type !== 'deck') return null;
+  if (!Array.isArray(container.deckList)) container.deckList = [];
+  const norm = normalizeDeckListEntry(entry);
+  if (!norm) return null;
+  const k = deckListEntryKey(norm);
+  const existing = container.deckList.find(e => deckListEntryKey(e) === k);
+  if (existing) {
+    existing.qty += norm.qty;
+    if (norm.imageUrl && !existing.imageUrl) existing.imageUrl = norm.imageUrl;
+    if (norm.backImageUrl && !existing.backImageUrl) existing.backImageUrl = norm.backImageUrl;
+    if (norm.name && !existing.name) existing.name = norm.name;
+    if (norm.setCode && !existing.setCode) existing.setCode = norm.setCode;
+    if (norm.cn && !existing.cn) existing.cn = norm.cn;
+    return existing;
+  }
+  container.deckList.push(norm);
+  return norm;
+}
+
+export function removeFromDeckList(container, scryfallId, board) {
+  if (!container || !Array.isArray(container.deckList)) return false;
+  const target = scryfallId + '|' + normalizeDeckBoard(board);
+  const before = container.deckList.length;
+  container.deckList = container.deckList.filter(e => deckListEntryKey(e) !== target);
+  return container.deckList.length < before;
+}
+
+export function moveDeckListEntryBoard(container, scryfallId, fromBoard, toBoard) {
+  if (!container || !Array.isArray(container.deckList)) return false;
+  const fromKey = scryfallId + '|' + normalizeDeckBoard(fromBoard);
+  const entry = container.deckList.find(e => deckListEntryKey(e) === fromKey);
+  if (!entry) return false;
+  const target = normalizeDeckBoard(toBoard);
+  if (entry.board === target) return false;
+  // If a different entry already exists on the target board, merge qty
+  const merge = container.deckList.find(e =>
+    e !== entry && e.scryfallId === scryfallId && e.board === target
+  );
+  if (merge) {
+    merge.qty += entry.qty;
+    container.deckList = container.deckList.filter(e => e !== entry);
+  } else {
+    entry.board = target;
+  }
+  return true;
+}
+
+// Resolve a decklist against the inventory. For each decklist entry, return
+// matching inventory entries (by scryfallId) so the deck view can render the
+// card image + show where it physically is.
+export function resolveDeckListEntry(entry, collection) {
+  const matches = collection.filter(c => c && c.scryfallId === entry.scryfallId);
+  // Prefer entries already physically in this deck (location.type === 'deck')
+  // for the visual + finish display.
+  const sorted = matches.slice().sort((a, b) => {
+    const aDeck = normalizeLocation(a.location)?.type === 'deck' ? 0 : 1;
+    const bDeck = normalizeLocation(b.location)?.type === 'deck' ? 0 : 1;
+    return aDeck - bDeck;
+  });
+  const ownedQty = sorted.reduce((s, c) => s + (c.qty || 0), 0);
+  return {
+    entry,
+    inventory: sorted,
+    primary: sorted[0] || null,
+    ownedQty,
+    needed: Math.max(0, entry.qty - ownedQty),
+    placeholder: ownedQty === 0,
+  };
+}
+
 export function makeContainer(raw, now = Date.now()) {
   const loc = normalizeLocation(raw);
   if (!loc) return null;
@@ -101,6 +203,7 @@ export function makeContainer(raw, now = Date.now()) {
       ...defaultDeckMetadata(loc.name),
       ...(raw && typeof raw.deck === 'object' && !Array.isArray(raw.deck) ? raw.deck : {}),
     };
+    out.deckList = normalizeDeckList(raw && raw.deckList);
     out.deck.title = String(out.deck.title || loc.name);
     out.deck.description = String(out.deck.description || '');
     out.deck.format = String(out.deck.format || '');
@@ -131,6 +234,7 @@ export function ensureContainer(raw, now = Date.now()) {
         ...(existing.deck && typeof existing.deck === 'object' ? existing.deck : {}),
       };
       if (!existing.deck.title) existing.deck.title = container.name;
+      if (!Array.isArray(existing.deckList)) existing.deckList = [];
     }
     if (!existing.createdAt) existing.createdAt = container.createdAt;
     if (!existing.updatedAt) existing.updatedAt = container.updatedAt;
@@ -169,6 +273,7 @@ export function normalizeContainers(rawContainers = {}) {
       c.deck.partnerImageUrl = String(c.deck.partnerImageUrl || '');
       c.deck.partnerBackImageUrl = String(c.deck.partnerBackImageUrl || '');
       c.deck.companion = String(c.deck.companion || '');
+      c.deckList = normalizeDeckList(c.deckList);
     }
     out[containerKey(c)] = c;
   }
