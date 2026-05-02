@@ -1016,12 +1016,10 @@
     transition: transform 0.1s;
   }
   .deck-card:first-child { margin-top: 0; }
-  .deck-card:hover,
   .deck-card:focus-within,
   .deck-card.menu-open {
     z-index: 8;
   }
-  .deck-card:hover { transform: translateY(-1px); }
   .deck-card-face {
     position: absolute;
     inset: 0;
@@ -1398,7 +1396,8 @@
     text-transform: lowercase;
   }
   .deck-metadata-form input,
-  .deck-metadata-form textarea {
+  .deck-metadata-form textarea,
+  .deck-metadata-form select {
     border: 1px solid #ccc;
     background: #fff;
     color: #000;
@@ -1411,6 +1410,68 @@
   }
   .deck-metadata-description {
     grid-column: 1 / -1;
+  }
+  .deck-format-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .deck-metadata-form[data-format=""] .deck-metadata-commander,
+  .deck-metadata-form[data-format=""] .deck-metadata-partner,
+  .deck-metadata-form:not([data-format="commander"]) .deck-metadata-commander,
+  .deck-metadata-form:not([data-format="commander"]) .deck-metadata-partner {
+    display: none;
+  }
+  .deck-companion-add {
+    border: 1px dashed #bbb;
+    background: transparent;
+    color: #666;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.75rem;
+    padding: 7px 8px;
+    text-align: left;
+    text-transform: lowercase;
+  }
+  .deck-companion-add:hover {
+    border-color: #000;
+    color: #000;
+  }
+  .deck-card-size-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    color: #777;
+    font-size: 0.68rem;
+    text-transform: lowercase;
+  }
+  .deck-settings-label {
+    color: inherit;
+  }
+  .deck-card-size-segmented {
+    display: inline-flex;
+    border: 1px solid #bbb;
+    background: #fff;
+  }
+  .deck-card-size-btn {
+    border: 0;
+    border-right: 1px solid #bbb;
+    background: transparent;
+    color: #000;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.75rem;
+    padding: 6px 10px;
+    text-transform: lowercase;
+  }
+  .deck-card-size-btn:last-child { border-right: 0; }
+  .deck-card-size-btn.active {
+    background: #000;
+    color: #fff;
+  }
+  .deck-card-size-btn:focus-visible {
+    outline: 2px solid #000;
+    outline-offset: 2px;
   }
   .deck-metadata-form textarea {
     min-height: 84px;

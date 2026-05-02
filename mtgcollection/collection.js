@@ -72,6 +72,7 @@ export function defaultDeckMetadata(name = '') {
     format: '',
     commander: '',
     partner: '',
+    companion: '',
   };
 }
 
@@ -99,6 +100,7 @@ export function makeContainer(raw, now = Date.now()) {
     out.deck.format = String(out.deck.format || '');
     out.deck.commander = String(out.deck.commander || '');
     out.deck.partner = String(out.deck.partner || '');
+    out.deck.companion = String(out.deck.companion || '');
   }
   return out;
 }
@@ -148,6 +150,7 @@ export function normalizeContainers(rawContainers = {}) {
       c.deck.format = String(c.deck.format || '');
       c.deck.commander = String(c.deck.commander || '');
       c.deck.partner = String(c.deck.partner || '');
+      c.deck.companion = String(c.deck.companion || '');
     }
     out[containerKey(c)] = c;
   }

@@ -272,7 +272,7 @@ function syncViewAsListToggles() {
     const values = getMultiselectValue(filterEl);
     if (values.length !== 1) return null;
     const type = values[0].split(':')[0];
-    return (type === 'deck' || type === 'binder') ? type : null;
+    return type === 'binder' ? type : null;
   })();
   const bar = document.getElementById('shapeBar');
   if (!bar) return;
@@ -727,6 +727,7 @@ export function deckDetailsViewModel(deck, meta = {}, stats = {}, selectedFormat
   const formatInput = String(safeMeta.format || selectedFormat || '').trim();
   const commander = String(safeMeta.commander || '').trim();
   const partner = String(safeMeta.partner || '').trim();
+  const companion = String(safeMeta.companion || '').trim();
   const value = Number(safeStats.value) || 0;
   const count = key => parseInt(safeStats[key], 10) || 0;
   return {
@@ -738,6 +739,7 @@ export function deckDetailsViewModel(deck, meta = {}, stats = {}, selectedFormat
     formatInput,
     commander,
     partner,
+    companion,
     total: count('total'),
     main: count('main'),
     sideboard: count('sideboard'),
@@ -745,6 +747,8 @@ export function deckDetailsViewModel(deck, meta = {}, stats = {}, selectedFormat
     valueText: value > 0 ? '$' + value.toFixed(2) : '-',
   };
 }
+
+const FORMAT_PRESETS = ['standard', 'pioneer', 'modern', 'legacy', 'vintage', 'pauper', 'commander', 'brawl'];
 
 function deckMetaItem(label, value, emptyText) {
   const hasValue = !!value;
@@ -761,8 +765,9 @@ export function renderDeckDetailsHeaderHtml(model) {
         <p class="${descClass}">${esc(model.descriptionText)}</p>
         <dl class="deck-meta-strip" aria-label="deck details">
           ${deckMetaItem('format', model.formatInput, 'unspecified format')}
-          ${deckMetaItem('commander', model.commander, 'not set')}
-          ${deckMetaItem('partner', model.partner, 'none')}
+          ${model.formatInput === 'commander' ? deckMetaItem('commander', model.commander, 'not set') : ''}
+          ${model.formatInput === 'commander' && model.partner ? deckMetaItem('partner', model.partner, 'none') : ''}
+          ${model.companion ? deckMetaItem('companion', model.companion, '') : ''}
         </dl>
       </div>
       <div class="deck-hero-side">
@@ -782,11 +787,17 @@ export function renderDeckDetailsHeaderHtml(model) {
       </div>
     </section>
     <section class="deck-details-editor hidden" id="deckDetailsEditor" aria-label="edit deck details">
-      <form class="deck-metadata-form" id="deckMetadataForm">
+      <form class="deck-metadata-form" id="deckMetadataForm" data-format="${esc(model.formatInput)}">
         <label class="deck-metadata-field"><span>title</span><input name="title" value="${esc(model.title)}" placeholder="deck title" autocomplete="off"></label>
-        <label class="deck-metadata-field"><span>format</span><input name="format" value="${esc(model.formatInput)}" placeholder="format" autocomplete="off"></label>
-        <label class="deck-metadata-field"><span>commander</span><input name="commander" value="${esc(model.commander)}" placeholder="commander" autocomplete="off"></label>
-        <label class="deck-metadata-field"><span>partner</span><input name="partner" value="${esc(model.partner)}" placeholder="partner" autocomplete="off"></label>
+        <label class="deck-metadata-field"><span>format</span>${renderDeckFormatPicker(model.formatInput)}</label>
+        <label class="deck-metadata-field deck-metadata-commander"><span>commander</span><input name="commander" value="${esc(model.commander)}" placeholder="commander" autocomplete="off"></label>
+        <label class="deck-metadata-field deck-metadata-partner"><span>partner</span><input name="partner" value="${esc(model.partner)}" placeholder="partner" autocomplete="off"></label>
+        <div class="deck-metadata-field deck-metadata-companion">
+          <span>companion</span>
+          ${model.companion
+            ? `<input name="companion" value="${esc(model.companion)}" placeholder="companion" autocomplete="off">`
+            : `<button type="button" class="deck-companion-add" data-add-companion>+ add companion</button><input name="companion" value="" placeholder="companion" autocomplete="off" hidden>`}
+        </div>
         <label class="deck-metadata-field deck-metadata-description"><span>description</span><textarea name="description" rows="3" placeholder="description">${esc(model.description)}</textarea></label>
         <div class="deck-metadata-actions">
           <button class="btn btn-secondary" type="button" data-cancel-deck-details>cancel</button>
@@ -794,6 +805,21 @@ export function renderDeckDetailsHeaderHtml(model) {
         </div>
       </form>
     </section>`;
+}
+
+function renderDeckFormatPicker(formatInput) {
+  const isPreset = !formatInput || FORMAT_PRESETS.includes(formatInput);
+  const selectValue = !formatInput ? '' : isPreset ? formatInput : 'custom';
+  const opts = [
+    `<option value=""${selectValue === '' ? ' selected' : ''}>—</option>`,
+    ...FORMAT_PRESETS.map(f => `<option value="${f}"${selectValue === f ? ' selected' : ''}>${f}</option>`),
+    `<option value="custom"${selectValue === 'custom' ? ' selected' : ''}>custom</option>`,
+  ].join('');
+  const customValue = !isPreset ? formatInput : '';
+  return `<span class="deck-format-picker">
+    <select name="formatPreset" data-deck-format-preset>${opts}</select>
+    <input name="formatCustom" data-deck-format-custom value="${esc(customValue)}" placeholder="custom format" autocomplete="off"${selectValue === 'custom' ? '' : ' hidden'}>
+  </span>`;
 }
 
 export function renderDeckWorkspaceControls() {
@@ -823,11 +849,16 @@ export function renderDeckWorkspaceControls() {
             ${VALID_DECK_GROUPS.map(v => `<option value="${v}"${state.deckGroupBy === v ? ' selected' : ''}>${v}</option>`).join('')}
           </select>
         </label>
-        <label>card size
-          <select data-deck-card-size>
-            ${VALID_DECK_CARD_SIZES.map(v => `<option value="${v}"${state.deckCardSize === v ? ' selected' : ''}>${v}</option>`).join('')}
-          </select>
-        </label>
+        <div class="deck-card-size-row">
+          <span class="deck-settings-label">card size</span>
+          <div class="deck-card-size-segmented" role="group" aria-label="card size">
+            ${VALID_DECK_CARD_SIZES.map(v => {
+              const labels = { small: 'sm', medium: 'md', large: 'lg' };
+              const active = state.deckCardSize === v;
+              return `<button type="button" class="deck-card-size-btn${active ? ' active' : ''}" data-deck-card-size="${v}" aria-pressed="${active ? 'true' : 'false'}">${labels[v]}</button>`;
+            }).join('')}
+          </div>
+        </div>
         <label class="deck-settings-check"><input type="checkbox" data-deck-show-prices${state.deckShowPrices ? ' checked' : ''}> show prices</label>
       </div>
     </details>
@@ -1457,6 +1488,23 @@ export function initView() {
       render();
       return;
     }
+    const sizeBtn = e.target.closest('[data-deck-card-size]');
+    if (sizeBtn) {
+      const size = sizeBtn.dataset.deckCardSize;
+      if (!VALID_DECK_CARD_SIZES.includes(size)) return;
+      state.deckCardSize = size;
+      saveDeckPrefs();
+      render();
+      return;
+    }
+    if (e.target.closest('[data-add-companion]')) {
+      const wrap = e.target.closest('.deck-metadata-companion');
+      const input = wrap?.querySelector('input[name="companion"]');
+      const btn = wrap?.querySelector('[data-add-companion]');
+      if (input) { input.hidden = false; input.focus(); }
+      if (btn) btn.remove();
+      return;
+    }
     const addToggle = e.target.closest('[data-toggle-deck-add]');
     if (addToggle) {
       const panel = document.getElementById('deckAddPanel');
@@ -1509,13 +1557,17 @@ export function initView() {
       render();
       return;
     }
-    const sizeSelect = e.target.closest('[data-deck-card-size]');
-    if (sizeSelect) {
-      const v = sizeSelect.value;
-      if (!VALID_DECK_CARD_SIZES.includes(v)) return;
-      state.deckCardSize = v;
-      saveDeckPrefs();
-      render();
+    const formatPreset = e.target.closest('[data-deck-format-preset]');
+    if (formatPreset) {
+      const form = formatPreset.closest('#deckMetadataForm');
+      const customInput = form?.querySelector('[data-deck-format-custom]');
+      if (customInput) {
+        const showCustom = formatPreset.value === 'custom';
+        customInput.hidden = !showCustom;
+        if (showCustom) customInput.focus();
+      }
+      const effective = formatPreset.value === 'custom' ? (customInput?.value || '') : formatPreset.value;
+      if (form) form.dataset.format = effective;
       return;
     }
     const priceToggle = e.target.closest('[data-deck-show-prices]');
@@ -1575,12 +1627,17 @@ export function initView() {
     const deck = currentDeckContainer();
     if (!deck) return;
     const fd = new FormData(e.target);
+    const preset = String(fd.get('formatPreset') || '').trim();
+    const custom = String(fd.get('formatCustom') || '').trim();
+    const format = preset === 'custom' ? custom : preset;
+    const isCommander = format === 'commander';
     deck.deck = {
       ...defaultDeckMetadata(deck.name),
       title: String(fd.get('title') || '').trim() || deck.name,
-      format: String(fd.get('format') || '').trim(),
-      commander: String(fd.get('commander') || '').trim(),
-      partner: String(fd.get('partner') || '').trim(),
+      format,
+      commander: isCommander ? String(fd.get('commander') || '').trim() : '',
+      partner: isCommander ? String(fd.get('partner') || '').trim() : '',
+      companion: String(fd.get('companion') || '').trim(),
       description: String(fd.get('description') || '').trim(),
     };
     deck.updatedAt = Date.now();

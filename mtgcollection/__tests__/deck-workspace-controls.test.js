@@ -23,7 +23,7 @@ test('renderDeckWorkspaceControls: reflects saved deck mode, board, and view pre
   assert.match(html, /data-deck-mode="stats" aria-pressed="true"/);
   assert.match(html, /data-deck-board-filter="sideboard" aria-pressed="true"/);
   assert.match(html, /<option value="cmc" selected>/);
-  assert.match(html, /<option value="large" selected>/);
+  assert.match(html, /data-deck-card-size="large"[^>]*aria-pressed="true"/);
   assert.match(html, /data-deck-show-prices>/);
   assert.doesNotMatch(html, /data-deck-show-prices checked/);
 });
