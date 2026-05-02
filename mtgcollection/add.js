@@ -68,7 +68,7 @@ let autoAddEnabled = false;
 
 const AUTOADD_KEY = 'mtgcollection_voice_autoadd_v1';
 
-let addDetailsEl, addModeNameEl, addModeCnEl;
+let addDetailsEl, addModeNameEl, addModeCnEl, addModeImportEl;
 let addNameInput, addNameList;
 let addPreviewEl, addPreviewImg, addPreviewName, addPreviewMeta;
 let addFinishSel, addConditionSel, addLanguageSel, addQtyInput, addLocationNameInput;
@@ -160,6 +160,7 @@ function setAddMode(mode) {
   });
   addModeNameEl.classList.toggle('active', mode === 'name');
   addModeCnEl.classList.toggle('active', mode === 'cn');
+  if (addModeImportEl) addModeImportEl.classList.toggle('active', mode === 'import');
   hideAddPreview();
   if (mode === 'name') addNameInput.focus();
   else if (mode === 'cn') addMicBtn.focus();
@@ -790,6 +791,7 @@ export function initAdd() {
   addDetailsEl  = document.getElementById('addDetails');
   addModeNameEl = document.getElementById('addModeName');
   addModeCnEl   = document.getElementById('addModeCn');
+  addModeImportEl = document.getElementById('addModeImport');
   addNameInput  = document.getElementById('addNameInput');
   addNameList   = document.getElementById('addNameSuggestions');
   addPreviewEl  = document.getElementById('addPreview');

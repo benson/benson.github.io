@@ -89,8 +89,6 @@ async function boot() {
   render();
   if (state.collection.length === 0) {
     document.getElementById('addDetails').open = true;
-  } else {
-    document.getElementById('importDetails').open = false;
   }
   applyUrlStateOnLoad();
   lazyBackfillSearchFields();

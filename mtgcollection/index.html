@@ -23,7 +23,7 @@
     height: 100vh;
     display: grid;
     grid-template-rows: 60px 1fr 40px;
-    grid-template-columns: 200px 1fr 280px;
+    grid-template-columns: 200px 1fr 360px;
     grid-template-areas:
       "header header header"
       "left   main   right"
@@ -232,7 +232,7 @@
     top: 60px;
     right: 0;
     bottom: 40px;
-    width: 320px;
+    width: 440px;
     z-index: 50;
     box-shadow: -2px 0 12px rgba(0,0,0,0.15);
     border-left: 1px solid #000;
@@ -2838,8 +2838,9 @@
       <summary>add cards</summary>
       <div class="details-body">
         <div class="add-tabs" role="tablist">
-          <button class="add-tab active" type="button" data-add-mode="name">type a name</button>
+          <button class="add-tab active" type="button" data-add-mode="name">lookup card</button>
           <button class="add-tab" type="button" data-add-mode="cn">voice input</button>
+          <button class="add-tab" type="button" data-add-mode="import">import csv</button>
         </div>
 
         <div class="add-mode active" id="addModeName">
@@ -2859,6 +2860,26 @@
           </div>
           <div class="vocab-hint"><strong>say:</strong> qty · set · cn · finish · condition · variant · location &nbsp;—&nbsp; e.g. "two fin 142 foil lp in breya deck"</div>
           <div class="vocab-hint"><strong>conditions:</strong> nm · lp · mp · hp · damaged &nbsp; <strong>variants:</strong> promo · prerelease &nbsp; <strong>finishes:</strong> foil &nbsp; <strong>repeat:</strong> "again" / "again 3"</div>
+        </div>
+
+        <div class="add-mode" id="addModeImport">
+          <div class="drop-zone" id="dropZone">
+            <p><strong>drop a csv here</strong> or click to pick a file</p>
+            <p class="small">manabox, deckbox, moxfield — any csv with name + set + cn</p>
+            <input type="file" id="fileInput" accept=".csv,text/csv" style="display:none">
+          </div>
+          <textarea class="paste-area" id="pasteArea" placeholder="...or paste csv here"></textarea>
+          <div class="import-actions">
+            <button class="btn" id="importPastedBtn">import pasted</button>
+            <button class="btn btn-secondary" id="loadBreyaBtn">load breya deck</button>
+            <button class="btn btn-secondary" id="loadSampleBtn">load sample</button>
+          </div>
+          <div class="format-note">
+            recognized columns: <code>name</code>, <code>set code</code>, <code>collector number</code>, <code>quantity</code>, <code>foil</code>, <code>condition</code>, <code>language</code>, <code>location</code>, <code>scryfall id</code>. moxfield plaintext like <code>1 Sol Ring (SLD) 1011 *F*</code> works too.
+          </div>
+          <div class="danger-zone">
+            <button class="danger-link" type="button" id="deleteAllBtn">delete entire collection</button>
+          </div>
         </div>
 
         <div class="printing-picker" id="addPrintingPicker">
@@ -2909,56 +2930,6 @@
       </div>
     </details>
 
-    <details class="import-details" id="importDetails">
-      <summary id="importSummary">import a csv</summary>
-      <div class="details-body">
-        <div class="drop-zone" id="dropZone">
-          <p><strong>drop a csv here</strong> or click to pick a file</p>
-          <p class="small">manabox, deckbox, moxfield — any csv with name + set + cn</p>
-          <input type="file" id="fileInput" accept=".csv,text/csv" style="display:none">
-        </div>
-
-        <textarea class="paste-area" id="pasteArea" placeholder="...or paste csv here"></textarea>
-
-        <div class="import-actions">
-          <button class="btn" id="importPastedBtn">import pasted</button>
-          <button class="btn btn-secondary" id="loadBreyaBtn">load breya deck</button>
-          <button class="btn btn-secondary" id="loadSampleBtn">load sample</button>
-        </div>
-
-        <div class="format-note">
-          recognized columns: <code>name</code>, <code>set code</code>, <code>collector number</code>, <code>quantity</code>, <code>foil</code>, <code>condition</code>, <code>language</code>, <code>location</code>, <code>scryfall id</code>. moxfield plaintext like <code>1 Sol Ring (SLD) 1011 *F*</code> works too.
-        </div>
-
-        <div class="danger-zone">
-          <button class="danger-link" type="button" id="deleteAllBtn">delete entire collection</button>
-        </div>
-      </div>
-    </details>
-
-    <details class="stats-panel" id="statsPanel">
-      <summary>breakdown</summary>
-      <div class="stats-grid">
-        <div class="stats-section">
-          <div class="stats-section-title">mana curve</div>
-          <div id="manaCurve"></div>
-        </div>
-        <div class="stats-section">
-          <div class="stats-section-title">colors</div>
-          <svg class="color-pie" id="colorPie" viewBox="0 0 36 36" aria-hidden="true"></svg>
-          <div class="color-legend" id="colorLegend"></div>
-        </div>
-        <div class="stats-section">
-          <div class="stats-section-title">types</div>
-          <div id="typeBreakdown"></div>
-        </div>
-        <div class="stats-section">
-          <div class="stats-section-title">rarity</div>
-          <div id="rarityBreakdown"></div>
-        </div>
-      </div>
-    </details>
-
   </aside>
 
   <footer class="app-footer">
@@ -2974,7 +2945,7 @@
   </footer>
   <div class="app-right-backdrop" id="appRightBackdrop"></div>
   <div class="fab-cluster" id="fabCluster">
-    <button class="fab-btn" type="button" data-fab-target="addDetails,importDetails" aria-label="add cards"><span class="fab-glyph">+</span><span class="fab-label">add</span></button>
+    <button class="fab-btn" type="button" data-fab-target="addDetails" aria-label="add cards"><span class="fab-glyph">+</span><span class="fab-label">add</span></button>
     <button class="fab-btn" type="button" data-fab-action="export" aria-label="export csv"><span class="fab-glyph">↓</span><span class="fab-label">export csv</span></button>
   </div>
 </div>

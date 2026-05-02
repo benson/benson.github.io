@@ -303,7 +303,8 @@ async function importEntries(imported, options = {}) {
   const resolved = imported.filter(c => c.imageUrl).length;
   if (!silent) {
     showFeedback('imported ' + imported.length + ' ' + label + ' (' + resolved + ' resolved)', 'success');
-    document.getElementById('importDetails').open = false;
+    const addDetailsEl = document.getElementById('addDetails');
+    if (addDetailsEl) addDetailsEl.open = false;
   }
   if (newKeys.length > 0) {
     recordEvent({

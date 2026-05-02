@@ -18,7 +18,7 @@ import {
 import { save, commitCollectionChange } from './persistence.js';
 import { openDetail, populateFilters } from './detail.js';
 import { filteredSorted, syncClearFiltersBtn, hasActiveFilter } from './search.js';
-import { renderStatsPanel, groupDeck, firstCardForPanel } from './stats.js';
+import { groupDeck, firstCardForPanel } from './stats.js';
 import { updateBulkBar } from './bulk.js';
 import { paginateForBinder, sortForBinder, BINDER_SIZES, binderSlotCount } from './binder.js';
 import { getSetIconUrl } from './setIcons.js';
@@ -219,7 +219,6 @@ export function render() {
   document.getElementById('totalCount').textContent = list.reduce((s, c) => s + c.qty, 0);
   const value = list.reduce((s, c) => s + (c.price || 0) * c.qty, 0);
   document.getElementById('totalValue').textContent = value.toFixed(2);
-  renderStatsPanel(list);
   applyBinderSizeButtons();
 
   const listContainer = document.getElementById('listView');
@@ -651,7 +650,7 @@ export function isLightboxVisible() {
   return lightboxEl.classList.contains('visible');
 }
 
-const RIGHT_DRAWER_PANELS = ['addDetails', 'importDetails', 'statsPanel'];
+const RIGHT_DRAWER_PANELS = ['addDetails'];
 
 export function openRightDrawer(targetIds) {
   const ids = (Array.isArray(targetIds) ? targetIds : [targetIds]).filter(id => RIGHT_DRAWER_PANELS.includes(id));
