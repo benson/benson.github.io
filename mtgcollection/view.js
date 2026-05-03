@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { esc, showFeedback } from './feedback.js';
+import { esc } from './feedback.js';
 import {
   allCollectionLocations,
   allContainers,
@@ -17,14 +17,11 @@ import { setSelectedLocation } from './add.js';
 import { filteredSorted, syncClearFiltersBtn, hasActiveFilter } from './search.js';
 import { groupDeck, firstCardForPanel, splitDeckBoards, deckStats, renderDeckStatsHtml } from './stats.js';
 import { updateBulkBar } from './bulk.js';
-import { recordEvent, setHistoryScope } from './changelog.js';
+import { setHistoryScope } from './changelog.js';
 import {
   loadDeckGroup,
   loadDeckPrefs,
-  saveDeckGroup,
-  saveDeckPrefs,
 } from './deckPreferences.js';
-import { openShareModal } from './share.js';
 import {
   getActiveLocation,
   getActiveLocationOfType,
@@ -34,22 +31,11 @@ import {
   VALID_VIEW_MODES,
 } from './routeState.js';
 import {
-  VALID_DECK_BOARD_FILTERS,
-  VALID_DECK_CARD_SIZES,
-  VALID_DECK_GROUPS,
-  VALID_DECK_MODES,
-  VALID_DECK_OWNERSHIP_VIEWS,
-} from './deckUi.js';
-import {
   deckDetailsViewModel,
   renderDeckDetailsHeaderHtml,
   renderDeckExportPanel,
   renderDeckWorkspaceControls,
 } from './views/deckHeaderView.js';
-import {
-  moveDeckCardToBoardCommand,
-  removeDeckCardFromDeckCommand,
-} from './commands.js';
 import { locationPillHtml } from './ui/locationUi.js';
 import { renderDecksHomeHtml, renderStorageHomeHtml } from './views/locationHomeViews.js';
 import { renderRow } from './views/listRowView.js';
@@ -72,17 +58,10 @@ import { createDeckMetaAutocomplete } from './deckMetaAutocomplete.js';
 import { buildDeckCardFromEntry } from './deckCardModel.js';
 import { createDeckPreviewPanel } from './deckPreviewPanel.js';
 import { createRightDrawer } from './rightDrawer.js';
-import { buildDeckSampleHand, renderDeckSampleHandPanel } from './deckSampleHand.js';
-import { copyDecklist, runDeckExportAction } from './deckExportActions.js';
-import { saveDeckMetadataFromForm } from './deckMetadataForm.js';
+import { renderDeckSampleHandPanel } from './deckSampleHand.js';
+import { bindDeckWorkspaceInteractions } from './deckWorkspaceActions.js';
 import { bindLocationHomeInteractions } from './locationHomeActions.js';
 import { bindListRowInteractions } from './listRowActions.js';
-import {
-  closeDeckCardMenus,
-  moveFocusInDeckCardMenu,
-  openDeckCardMenu,
-  toggleDeckCardMenu,
-} from './deckCardMenu.js';
 
 export function navigateToLocation(type, name) {
   setActiveContainerRoute({ type, name });
@@ -285,38 +264,6 @@ function currentDeckMetadata() {
   return deck?.deck || defaultDeckMetadata(deck?.name || 'deck');
 }
 
-// Move a decklist entry between boards (main/sideboard/maybe). Only mutates
-// the deck container's decklist — physical inventory locations are untouched.
-function moveDeckCardToBoard(scryfallId, fromBoard, rawBoard) {
-  const deck = currentDeckContainer();
-  moveDeckCardToBoardCommand(deck, scryfallId, fromBoard, rawBoard);
-}
-
-// Remove a decklist entry from the deck. Inventory is left alone — physical
-// cards keep their location.
-function removeDeckCardFromDeck(scryfallId, board) {
-  const deck = currentDeckContainer();
-  removeDeckCardFromDeckCommand(deck, scryfallId, board);
-}
-
-function handleDeckCardAction(actionEl) {
-  const action = actionEl?.dataset.cardAction;
-  closeDeckCardMenus(document.getElementById('deckColumns') || document);
-  if (action === 'open') {
-    const idx = parseInt(actionEl.dataset.inventoryIndex || '-1', 10);
-    if (idx >= 0) openDetail(idx);
-    return;
-  }
-  const sid = actionEl?.dataset.scryfallId;
-  const board = actionEl?.dataset.board;
-  if (!sid || !board) return;
-  if (action === 'move-board') {
-    moveDeckCardToBoard(sid, board, actionEl.dataset.boardTarget);
-  } else if (action === 'remove-from-deck') {
-    removeDeckCardFromDeck(sid, board);
-  }
-}
-
 function renderSampleHandPanel() {
   renderDeckSampleHandPanel({
     handEl: document.getElementById('deckHandCards'),
@@ -388,29 +335,6 @@ function renderDeckView(list) {
   renderSampleHandPanel();
   const summary = document.getElementById('deckSummary');
   summary.textContent = stats.total + ' cards - ' + format;
-}
-
-async function handleDeckExportAction(action) {
-  await runDeckExportAction({
-    action,
-    form: document.getElementById('deckExportForm'),
-    list: filteredSorted(),
-    metadata: currentDeckMetadata(),
-    showFeedback,
-  });
-}
-
-function setDeckPanelOpen(panelId, triggerSelector, open) {
-  const root = document.getElementById('deckColumns');
-  const panel = root?.querySelector('#' + panelId);
-  if (!panel) return;
-  panel.classList.toggle('hidden', !open);
-  const trigger = root.querySelector(triggerSelector);
-  if (trigger) trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
-  if (open) {
-    const first = panel.querySelector('textarea, input, select, button');
-    if (first) first.focus();
-  }
 }
 
 export function openRightDrawer(targetIds, options = {}) {
@@ -583,248 +507,19 @@ export function initView() {
 
   loadDeckGroup();
   loadDeckPrefs();
-  const deckGroupEl = document.getElementById('deckGroupBy');
-  if (deckGroupEl) {
-    deckGroupEl.value = state.deckGroupBy;
-    deckGroupEl.addEventListener('change', () => {
-      const v = deckGroupEl.value;
-      if (!VALID_DECK_GROUPS.includes(v)) return;
-      state.deckGroupBy = v;
-      saveDeckGroup();
-      render();
-    });
-  }
-
-  document.getElementById('deckColumns').addEventListener('click', e => {
-    const chip = e.target.closest('.deck-empty-chip');
-    if (chip) {
-      const pill = chip.querySelector('.loc-pill');
-      if (pill) navigateToLocation(pill.dataset.locType, pill.dataset.locName);
-      return;
-    }
-    const modeBtn = e.target.closest('[data-deck-mode]');
-    if (modeBtn) {
-      const mode = modeBtn.dataset.deckMode;
-      if (!VALID_DECK_MODES.includes(mode)) return;
-      state.deckMode = mode;
-      saveDeckPrefs();
-      render();
-      return;
-    }
-    const boardFilterBtn = e.target.closest('[data-deck-board-filter]');
-    if (boardFilterBtn) {
-      const filter = boardFilterBtn.dataset.deckBoardFilter;
-      if (!VALID_DECK_BOARD_FILTERS.includes(filter)) return;
-      state.deckBoardFilter = filter;
-      saveDeckPrefs();
-      render();
-      return;
-    }
-    const sizeBtn = e.target.closest('[data-deck-card-size]');
-    if (sizeBtn) {
-      const size = sizeBtn.dataset.deckCardSize;
-      if (!VALID_DECK_CARD_SIZES.includes(size)) return;
-      state.deckCardSize = size;
-      saveDeckPrefs();
-      render();
-      return;
-    }
-    const ownershipBtn = e.target.closest('[data-deck-ownership]');
-    if (ownershipBtn) {
-      const v = ownershipBtn.dataset.deckOwnership;
-      if (!VALID_DECK_OWNERSHIP_VIEWS.includes(v)) return;
-      state.deckOwnershipView = v;
-      saveDeckPrefs();
-      render();
-      return;
-    }
-    if (e.target.closest('[data-add-companion]')) {
-      const wrap = e.target.closest('.deck-metadata-companion');
-      const input = wrap?.querySelector('input[name="companion"]');
-      const btn = wrap?.querySelector('[data-add-companion]');
-      if (input) { input.hidden = false; input.focus(); }
-      if (btn) btn.remove();
-      return;
-    }
-    if (e.target.closest('[data-deck-action="share"]')) {
-      const deck = currentDeckContainer();
-      if (deck) openShareModal(deck);
-      return;
-    }
-    const exportToggle = e.target.closest('[data-toggle-deck-export]');
-    if (exportToggle) {
-      e.stopPropagation();
-      const panel = document.getElementById('deckExportPanel');
-      setDeckPanelOpen('deckExportPanel', '[data-toggle-deck-export]', panel?.classList.contains('hidden'));
-      return;
-    }
-    if (e.target.closest('[data-close-deck-export]')) {
-      setDeckPanelOpen('deckExportPanel', '[data-toggle-deck-export]', false);
-      return;
-    }
-    const menuToggle = e.target.closest('[data-card-menu-toggle]');
-    if (menuToggle) {
-      e.preventDefault();
-      e.stopPropagation();
-      toggleDeckCardMenu(menuToggle);
-      return;
-    }
-    const cardAction = e.target.closest('[data-card-action]');
-    if (cardAction) {
-      e.preventDefault();
-      e.stopPropagation();
-      handleDeckCardAction(cardAction);
-      return;
-    }
-    // (Sample-hand cards are now rendered as .deck-card articles, so they
-    // route through the data-card-action handler above — no special case.)
-    const textNameBtn = e.target.closest('.deck-text-table .card-name-button');
-    if (textNameBtn) {
-      openDetail(parseInt(textNameBtn.dataset.index, 10));
-      return;
-    }
-    if (!e.target.closest('input, select, button, a')) {
-      const textRow = e.target.closest('.deck-text-table tr.detail-trigger');
-      if (textRow) {
-        openDetail(parseInt(textRow.dataset.index, 10));
-        return;
-      }
-    }
-    if (!e.target.closest('.deck-card')) closeDeckCardMenus(document.getElementById('deckColumns'));
-  });
-
-  document.getElementById('deckColumns').addEventListener('change', e => {
-    const groupSelect = e.target.closest('[data-deck-group]');
-    if (groupSelect) {
-      const v = groupSelect.value;
-      if (!VALID_DECK_GROUPS.includes(v)) return;
-      state.deckGroupBy = v;
-      saveDeckGroup();
-      render();
-      return;
-    }
-    const formatPreset = e.target.closest('[data-deck-format-preset]');
-    if (formatPreset) {
-      const form = formatPreset.closest('#deckMetadataForm');
-      const customInput = form?.querySelector('[data-deck-format-custom]');
-      if (customInput) {
-        const showCustom = formatPreset.value === 'custom';
-        customInput.hidden = !showCustom;
-        if (showCustom) customInput.focus();
-      }
-      const effective = formatPreset.value === 'custom' ? (customInput?.value || '') : formatPreset.value;
-      if (form) form.dataset.format = effective;
-      return;
-    }
-    const priceToggle = e.target.closest('[data-deck-show-prices]');
-    if (priceToggle) {
-      state.deckShowPrices = !!priceToggle.checked;
-      saveDeckPrefs();
-      render();
-    }
-  });
-
-  document.getElementById('deckColumns').addEventListener('click', e => {
-    const root = document.getElementById('deckColumns');
-    const editBtn = e.target.closest('[data-edit-deck-details]');
-    if (editBtn) {
-      const editor = root.querySelector('#deckDetailsEditor');
-      if (!editor) return;
-      editor.classList.remove('hidden');
-      editBtn.setAttribute('aria-expanded', 'true');
-      const firstInput = editor.querySelector('input[name="title"]');
-      if (firstInput) firstInput.focus();
-      return;
-    }
-    const cancelBtn = e.target.closest('[data-cancel-deck-details]');
-    if (!cancelBtn) return;
-    const editor = root.querySelector('#deckDetailsEditor');
-    if (editor) editor.classList.add('hidden');
-    const toggle = root.querySelector('[data-edit-deck-details]');
-    if (toggle) toggle.setAttribute('aria-expanded', 'false');
-  });
-
-  document.getElementById('deckColumns').addEventListener('submit', e => {
-    if (e.target.id !== 'deckMetadataForm') return;
-    e.preventDefault();
-    const deck = currentDeckContainer();
-    if (!deck) return;
-    const { added } = saveDeckMetadataFromForm({
-      form: e.target,
-      deck,
-      getCardById: id => deckMetaAutocomplete?.getCard(id),
-      recordEventImpl: recordEvent,
-    });
-    save();
-    render();
-    if (added > 0) showFeedback('added ' + added + ' commander card' + (added === 1 ? '' : 's') + ' to deck', 'success');
-  });
-
-  document.getElementById('deckColumns').addEventListener('click', e => {
-    const sampleBtn = e.target.closest('[data-sample-hand]');
-    if (!sampleBtn) return;
-    // Source from the resolved decklist, not inventory. After the
-    // deck/decklist split, filteredSorted() only sees inventory rows
-    // physically located in the deck — nearly always empty for decklist-
-    // first decks and useless for sample hands.
-    const deck = currentDeckContainer();
-    const size = sampleBtn.dataset.sampleHand === 'mulligan' ? 6 : 7;
-    state.deckSampleHand = buildDeckSampleHand({ deck, collection: state.collection, handSize: size });
-    state.deckMode = 'hands';
-    saveDeckPrefs();
-    render();
-  });
-
-  document.getElementById('deckColumns').addEventListener('click', async e => {
-    const exportAction = e.target.closest('[data-export-action]');
-    if (exportAction) {
-      await handleDeckExportAction(exportAction.dataset.exportAction);
-      return;
-    }
-    const copyBtn = e.target.closest('[data-copy-decklist]');
-    if (!copyBtn) return;
-    await copyDecklist({
-      list: filteredSorted(),
-      metadata: currentDeckMetadata(),
-      showFeedback,
-    });
-  });
-
-  document.getElementById('deckColumns').addEventListener('keydown', e => {
-    if (e.key === 'Escape') {
-      closeDeckCardMenus(document.getElementById('deckColumns'));
-      return;
-    }
-    const toggle = e.target.closest('[data-card-menu-toggle]');
-    if (toggle && (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ')) {
-      e.preventDefault();
-      openDeckCardMenu(toggle, { focusFirst: true });
-      return;
-    }
-    const menu = e.target.closest('.deck-card-menu');
-    if (!menu) return;
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      e.preventDefault();
-      moveFocusInDeckCardMenu(menu, e.target, e.key === 'ArrowDown' ? 1 : -1);
-    } else if (e.key === 'Home' || e.key === 'End') {
-      e.preventDefault();
-      const items = [...menu.querySelectorAll('[role="menuitem"]:not([disabled])')];
-      const target = e.key === 'Home' ? items[0] : items[items.length - 1];
-      if (target) target.focus();
-    }
-  });
-
-  document.addEventListener('click', e => {
-    if (e.target.closest('.deck-card')) return;
-    closeDeckCardMenus(document.getElementById('deckColumns'));
-  });
-
-  // hover/focus → update sticky preview panel
-  document.getElementById('deckColumns').addEventListener('mouseover', e => {
-    deckPreviewPanel?.showFromTarget(e.target);
-  });
-  document.getElementById('deckColumns').addEventListener('focusin', e => {
-    deckPreviewPanel?.showFromTarget(e.target);
+  bindDeckWorkspaceInteractions({
+    deckColumnsEl: document.getElementById('deckColumns'),
+    deckGroupEl: document.getElementById('deckGroupBy'),
+    stateRef: state,
+    currentDeckContainerImpl: currentDeckContainer,
+    currentDeckMetadataImpl: currentDeckMetadata,
+    filteredSortedImpl: filteredSorted,
+    getCardById: id => deckMetaAutocomplete?.getCard(id),
+    navigateToLocationImpl: navigateToLocation,
+    openDetailImpl: openDetail,
+    renderImpl: render,
+    saveImpl: save,
+    deckPreviewPanel,
   });
 
   bindLocationHomeInteractions({
@@ -853,11 +548,4 @@ export function initView() {
     if (type && name) navigateToLocation(type, name);
   });
 
-  // Close the export dropdown when clicking outside it.
-  document.addEventListener('click', e => {
-    const panel = document.getElementById('deckExportPanel');
-    if (!panel || panel.classList.contains('hidden')) return;
-    if (e.target.closest('.deck-export-menu-wrap')) return;
-    setDeckPanelOpen('deckExportPanel', '[data-toggle-deck-export]', false);
-  });
 }
