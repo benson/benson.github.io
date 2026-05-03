@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { deckDetailsViewModel, renderDeckDetailsHeaderHtml } from '../view.js';
+import { deckDetailsViewModel, renderDeckDetailsHeaderHtml } from '../views/deckHeaderView.js';
 
 test('deckDetailsViewModel: builds read-first deck header data', () => {
   const model = deckDetailsViewModel(

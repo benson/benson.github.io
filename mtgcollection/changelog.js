@@ -2,7 +2,8 @@ import { state } from './state.js';
 import { collectionKey, normalizeLocation, formatLocationLabel } from './collection.js';
 import { commitCollectionChange } from './commit.js';
 import { esc } from './feedback.js';
-import { navigateToLocation, LOC_ICONS } from './view.js';
+import { navigateToLocation } from './view.js';
+import { LOC_ICONS } from './ui/locationUi.js';
 
 const CHANGELOG_KEY = 'mtgcollection_changelog_v1';
 const CAP = 200;

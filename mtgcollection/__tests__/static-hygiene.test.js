@@ -7,16 +7,20 @@ import { fileURLToPath } from 'node:url';
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(testDir, '..', '..');
 
-function topLevelFiles(dir, extensions) {
+function sourceFiles(dir, extensions) {
   return fs.readdirSync(dir, { withFileTypes: true })
-    .filter(entry => entry.isFile() && extensions.has(path.extname(entry.name)))
-    .map(entry => path.join(dir, entry.name));
+    .flatMap(entry => {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) return sourceFiles(fullPath, extensions);
+      if (entry.isFile() && extensions.has(path.extname(entry.name))) return [fullPath];
+      return [];
+    });
 }
 
 test('static files do not contain common UTF-8 mojibake sequences', () => {
   const files = [
-    ...topLevelFiles(path.join(projectRoot, 'mtgcollection'), new Set(['.html', '.js'])),
-    ...topLevelFiles(path.join(projectRoot, 'shared'), new Set(['.js', '.css', '.html'])),
+    ...sourceFiles(path.join(projectRoot, 'mtgcollection'), new Set(['.html', '.js', '.css'])),
+    ...sourceFiles(path.join(projectRoot, 'shared'), new Set(['.js', '.css', '.html'])),
   ];
   const mojibake = /\u00c2|\u00c3|\u00e2|\ufffd/;
   const offenders = [];
@@ -39,6 +43,8 @@ test('mtgcollection document declares UTF-8 before app content', () => {
   const headStart = html.slice(0, 500).toLowerCase();
 
   assert.match(headStart, /<meta\s+charset="utf-8">/);
+  assert.match(headStart, /<link\s+rel="stylesheet"\s+href="\.\/styles\.css">/);
+  assert.doesNotMatch(html, /<style>/);
   assert.match(html, /<script\s+type="module"\s+src="\.\/app\.js"><\/script>/);
 });
 

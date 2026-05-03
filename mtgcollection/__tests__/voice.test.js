@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseVoiceText } from '../add.js';
+import { parseVoiceText } from '../voiceParser.js';
 
 const SETS = new Set(['fin', 'mh2', 'cmm', 'tmt', 'ltr', 'otj', 'p23']);
 

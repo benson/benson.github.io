@@ -1,7 +1,7 @@
 import test, { afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { state } from '../state.js';
-import { renderDeckCard } from '../view.js';
+import { renderDeckCard } from '../views/deckCardView.js';
 
 afterEach(() => {
   state.collection = [];

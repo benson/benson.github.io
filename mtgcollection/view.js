@@ -35,21 +35,40 @@ import { setMultiselectValue, getMultiselectValue } from './multiselect.js';
 import { buildDeckExport, defaultDeckExportOptions } from './deckExport.js';
 import { openShareModal } from './share.js';
 import {
+  CONDITION_ABBR,
+  RARITY_ABBR,
+  VALID_DECK_BOARD_FILTERS,
+  VALID_DECK_CARD_SIZES,
+  VALID_DECK_GROUPS,
+  VALID_DECK_MODES,
+  VALID_DECK_OWNERSHIP_VIEWS,
+} from './deckUi.js';
+import {
+  deckDetailsViewModel,
+  renderDeckDetailsHeaderHtml,
+  renderDeckExportPanel,
+  renderDeckWorkspaceControls,
+} from './views/deckHeaderView.js';
+import {
   deleteContainerAndUnlocateCardsCommand,
   deleteEmptyContainerCommand,
   moveDeckCardToBoardCommand,
   removeDeckCardFromDeckCommand,
   renameContainerCommand,
 } from './commands.js';
+import { LOC_ICONS, locationPillHtml } from './ui/locationUi.js';
+import { formatPrice } from './ui/priceUi.js';
+import { renderDecksHomeHtml, renderStorageHomeHtml } from './views/locationHomeViews.js';
+import { renderDeckCard } from './views/deckCardView.js';
+import {
+  renderDeckNotesMode,
+  renderDeckSampleHandSection,
+  renderDeckStatsDashboard,
+  renderDeckTextMode,
+  renderDeckVisualMode,
+} from './views/deckBodyView.js';
 
-const VALID_DECK_GROUPS = ['type', 'cmc', 'color', 'rarity'];
-const VALID_DECK_MODES = ['visual', 'text', 'stats', 'hands', 'notes'];
-const VALID_DECK_BOARD_FILTERS = ['all', 'main', 'sideboard', 'maybe'];
-const VALID_DECK_CARD_SIZES = ['small', 'medium', 'large'];
-const VALID_DECK_OWNERSHIP_VIEWS = ['decklist', 'building'];
 const VALID_BINDER_SIZES = Object.keys(BINDER_SIZES);
-const RARITY_ABBR = { common: 'c', uncommon: 'u', rare: 'r', mythic: 'm', special: 's', bonus: 'b' };
-const CONDITION_ABBR = { near_mint: 'nm', lightly_played: 'lp', moderately_played: 'mp', heavily_played: 'hp', damaged: 'dmg' };
 
 // Navigate into a specific container. The viewMode is set to the appropriate
 // top-level route; the location filter is set so getEffectiveShape() can
@@ -106,26 +125,6 @@ function currentDeckScope() {
   const [type, ...rest] = values[0].split(':');
   if (type !== 'deck') return null;
   return { type, name: rest.join(':') };
-}
-
-export const LOC_ICONS = {
-  deck: '<svg class="loc-icon" viewBox="0 0 14 14" aria-hidden="true"><rect x="2.5" y="3.5" width="6.5" height="8.5" rx="0.5" fill="none" stroke="currentColor" stroke-width="1"/><rect x="5" y="1.5" width="6.5" height="8.5" rx="0.5" fill="none" stroke="currentColor" stroke-width="1"/></svg>',
-  binder: '<svg class="loc-icon" viewBox="0 0 14 14" aria-hidden="true"><rect x="2" y="2" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1"/><line x1="5" y1="2" x2="5" y2="12" stroke="currentColor" stroke-width="1"/><circle cx="5" cy="5" r="0.7" fill="currentColor"/><circle cx="5" cy="7" r="0.7" fill="currentColor"/><circle cx="5" cy="9" r="0.7" fill="currentColor"/></svg>',
-  box: '<svg class="loc-icon" viewBox="0 0 14 14" aria-hidden="true"><polygon points="2,4 7,1.5 12,4 12,11.5 2,11.5" fill="none" stroke="currentColor" stroke-width="1"/><line x1="2" y1="4" x2="12" y2="4" stroke="currentColor" stroke-width="1"/><line x1="7" y1="1.5" x2="7" y2="4" stroke="currentColor" stroke-width="1"/></svg>',
-};
-
-export function locationPillHtml(loc, { withRemove = false, index = -1 } = {}) {
-  const n = normalizeLocation(loc);
-  if (!n) return '';
-  const icon = LOC_ICONS[n.type] || LOC_ICONS.box;
-  const removeBtn = withRemove
-    ? '<button class="loc-pill-remove" type="button" data-index="' + index + '" aria-label="remove location">×</button>'
-    : '';
-  return '<span class="loc-pill loc-pill-' + esc(n.type) + '" data-loc-type="' + esc(n.type) + '" data-loc-name="' + esc(n.name) + '">' +
-    icon +
-    '<span class="loc-pill-name">' + esc(n.name) + '</span>' +
-    removeBtn +
-  '</span>';
 }
 
 function locationCellHtml(c, index) {
@@ -309,10 +308,10 @@ export function render() {
 
   if (shape === 'decks-home') {
     locationsContainer.classList.add('active');
-    renderDecksHome(containers);
+    locationsEl.innerHTML = renderDecksHomeHtml(containers);
   } else if (shape === 'storage-home') {
     locationsContainer.classList.add('active');
-    renderStorageHome(containers);
+    locationsEl.innerHTML = renderStorageHomeHtml(containers);
   } else if (shape === 'deck') {
     deckContainer.classList.add('active');
     renderDeckView(list);
@@ -368,13 +367,6 @@ function syncSortIndicator() {
   });
 }
 
-function formatPrice(c) {
-  if (!c.price) return '';
-  const base = '$' + c.price.toFixed(2);
-  if (!c.priceFallback) return base;
-  return base + '<span class="price-fallback-mark" title="regular usd shown when exact finish price is unavailable">*</span>';
-}
-
 function renderRow(c) {
   const name = c.resolvedName || c.name || '(unknown)';
   const index = state.collection.indexOf(c);
@@ -403,136 +395,6 @@ function renderRow(c) {
     <td class="qty-cell">${c.qty}</td>
     <td class="muted price-cell">${formatPrice(c)}</td>
   </tr>`;
-}
-
-// Edit-row markup shared by both home views. Matches the original
-// `.location-card-edit-row` structure so existing rename/save handlers work.
-function containerEditRowHtml(c, allowedTypes = LOCATION_TYPES) {
-  const radioName = 'editLocType_' + esc(c.type) + '_' + esc(c.name);
-  const typeRadiosHtml = allowedTypes.map(t => `<label class="loc-type-radio${t === c.type ? ' is-selected' : ''}">
-    <input type="radio" name="${radioName}" value="${esc(t)}"${t === c.type ? ' checked' : ''}>
-    <span class="loc-pill loc-pill-${esc(t)}">${LOC_ICONS[t]}<span>${esc(t)}</span></span>
-  </label>`).join('');
-  return `<div class="location-card-edit-row">
-    <div class="loc-type-radios">${typeRadiosHtml}</div>
-    <input class="location-rename-input" type="text" value="${esc(c.name)}">
-    <div class="location-card-edit-actions">
-      <button class="btn location-rename-save" type="button">save</button>
-      <button class="btn btn-secondary location-rename-cancel" type="button">cancel</button>
-    </div>
-  </div>`;
-}
-
-// Storage home — boxes and binders only. Each tile keeps the existing
-// skeumorphic styling. Handlers are class-name driven (.location-card,
-// .location-card-edit-btn, etc.) so they fire unchanged.
-function renderStorageHome(containers) {
-  const STORAGE_TYPES = ['binder', 'box'];
-  const typeLabels = { binder: 'binders', box: 'boxes' };
-  const createHtml = `<form class="locations-create" id="locationsCreateForm">
-    <span class="locations-create-label">new container</span>
-    <div class="locations-create-types" role="radiogroup" aria-label="container type">
-      ${STORAGE_TYPES.map((t, i) => `<label class="locations-create-type${i === 0 ? ' is-selected' : ''}">
-        <input type="radio" name="locationsCreateType" value="${esc(t)}"${i === 0 ? ' checked' : ''}>
-        <span class="loc-pill loc-pill-${esc(t)}">${LOC_ICONS[t]}<span>${esc(t)}</span></span>
-      </label>`).join('')}
-    </div>
-    <input id="locationsCreateName" type="text" placeholder="name" autocomplete="off">
-    <button class="btn" type="submit">create</button>
-  </form>`;
-  const groups = STORAGE_TYPES.map(type => {
-    const ofType = containers.filter(c => c.type === type);
-    const cards = ofType.map(c => {
-      const stats = containerStats(c);
-      const value = stats.value > 0 ? ' &middot; $' + stats.value.toFixed(2) : '';
-      return `<article class="location-card" data-loc-type="${esc(c.type)}" data-loc-name="${esc(c.name)}" tabindex="0" role="button" aria-label="open ${esc(c.name)}">
-        <div class="location-card-name">
-          ${LOC_ICONS[c.type] || LOC_ICONS.box}
-          <span class="location-card-name-text">${esc(c.name)}</span>
-          <button class="location-card-edit-btn" type="button" aria-label="edit">✎</button>
-          <button class="location-card-menu-btn" type="button" aria-label="more options" aria-haspopup="menu">⋯</button>
-        </div>
-        <div class="location-card-menu" role="menu">
-          <button class="location-card-menu-item location-delete" type="button" role="menuitem">delete</button>
-        </div>
-        <div class="location-card-stats">${stats.unique} unique &middot; ${stats.total} total${value}</div>
-        ${containerEditRowHtml(c, STORAGE_TYPES)}
-      </article>`;
-    }).join('') || '<div class="deck-empty-prompt">no ' + esc(typeLabels[type]) + ' yet</div>';
-    return `<section class="locations-group">
-      <div class="locations-group-title">${esc(typeLabels[type])}</div>
-      <div class="locations-list">${cards}</div>
-    </section>`;
-  }).join('');
-  locationsEl.innerHTML = createHtml + groups;
-}
-
-// Compute decklist total + owned fraction for a deck container.
-function deckOwnership(deck) {
-  const list = Array.isArray(deck.deckList) ? deck.deckList : [];
-  const total = list.reduce((s, e) => s + (e.qty || 0), 0);
-  let owned = 0;
-  let value = 0;
-  for (const entry of list) {
-    const r = resolveDeckListEntry(entry, state.collection);
-    owned += Math.min(entry.qty || 0, r.ownedQty);
-    if (r.primary) value += (r.primary.price || 0) * (entry.qty || 0);
-  }
-  return { total, owned, value };
-}
-
-// Decks home — only deck containers. Tiles show commander art + format badge
-// + owned fraction. The create form has no type picker (always 'deck').
-function renderDecksHome(containers) {
-  const decks = containers.filter(c => c.type === 'deck');
-  const createHtml = `<form class="locations-create locations-create-decks" id="locationsCreateForm">
-    <span class="locations-create-label">new deck</span>
-    <input type="hidden" name="locationsCreateType" value="deck">
-    <input id="locationsCreateName" type="text" placeholder="deck name" autocomplete="off">
-    <button class="btn" type="submit">create deck</button>
-  </form>`;
-  const tiles = decks.map(c => {
-    const meta = c.deck || defaultDeckMetadata(c.name);
-    const own = deckOwnership(c);
-    const formatBadge = meta.format
-      ? `<span class="deck-home-badge deck-home-format">${esc(meta.format)}</span>`
-      : '';
-    const commanderArt = meta.commanderImageUrl
-      ? `<div class="deck-home-art"><img src="${esc(meta.commanderImageUrl)}" alt="" loading="lazy"></div>`
-      : `<div class="deck-home-art deck-home-art-empty">${LOC_ICONS.deck}</div>`;
-    const valueStr = own.value > 0 ? ' &middot; $' + own.value.toFixed(2) : '';
-    const ownedStr = own.total > 0 ? `${own.owned}/${own.total} owned` : 'empty deck';
-    return `<article class="location-card deck-home-card" data-loc-type="deck" data-loc-name="${esc(c.name)}" tabindex="0" role="button" aria-label="open ${esc(c.name)}">
-      ${commanderArt}
-      <div class="location-card-name">
-        ${LOC_ICONS.deck}
-        <span class="location-card-name-text">${esc(c.name)}</span>
-        ${formatBadge}
-        <button class="location-card-edit-btn" type="button" aria-label="edit">✎</button>
-        <button class="location-card-menu-btn" type="button" aria-label="more options" aria-haspopup="menu">⋯</button>
-      </div>
-      <div class="location-card-menu" role="menu">
-        <button class="location-card-menu-item location-delete" type="button" role="menuitem">delete</button>
-      </div>
-      <div class="location-card-stats">${esc(ownedStr)}${valueStr}</div>
-      ${containerEditRowHtml(c, ['deck'])}
-    </article>`;
-  }).join('') || '<div class="deck-empty-prompt">no decks yet</div>';
-  locationsEl.innerHTML = createHtml + `<section class="locations-group">
-    <div class="locations-list">${tiles}</div>
-  </section>`;
-}
-
-function renderLegacyDeckCard(c, isLast) {
-  const name = c.resolvedName || c.name || '?';
-  const idx = state.collection.indexOf(c);
-  const img = c.imageUrl
-    ? `<img src="${esc(c.imageUrl)}" alt="${esc(name)}" loading="lazy">`
-    : `<div class="placeholder">${esc(name)}</div>`;
-  const qty = c.qty > 1 ? `<span class="deck-qty">×${c.qty}</span>` : '';
-  const finishClass = c.finish === 'foil' ? ' is-foil' : c.finish === 'etched' ? ' is-etched' : '';
-  const lastClass = isLast ? ' deck-card-last' : '';
-  return `<div class="deck-card detail-trigger${finishClass}${lastClass}" role="button" tabindex="0" data-index="${idx}" aria-label="${esc(name)}">${img}${qty}</div>`;
 }
 
 function renderEmptyScopeState(targetEl, mode) {
@@ -581,47 +443,6 @@ function currentDeckContainer() {
 function currentDeckMetadata() {
   const deck = currentDeckContainer();
   return deck?.deck || defaultDeckMetadata(deck?.name || 'deck');
-}
-
-export function renderDeckCard(c, isLast) {
-  const name = c.resolvedName || c.name || '?';
-  const idx = c.inventoryIndex >= 0 ? c.inventoryIndex : -1;
-  const sid = c.scryfallId || '';
-  const img = c.imageUrl
-    ? `<img src="${esc(c.imageUrl)}" alt="${esc(name)}" loading="lazy">`
-    : `<div class="placeholder">${esc(name)}</div>`;
-  const qty = c.qty > 1 ? `<span class="deck-qty">x${c.qty}</span>` : '';
-  const finishClass = c.finish === 'foil' ? ' is-foil' : c.finish === 'etched' ? ' is-etched' : '';
-  const placeholderClass = c.placeholder ? ' deck-card-placeholder' : '';
-  const lastClass = isLast ? ' deck-card-last' : '';
-  const board = normalizeDeckBoard(c.deckBoard);
-  const menuId = 'deck-card-menu-' + sid + '-' + board;
-  // Stash enough on the article that the hover handler can synthesize a
-  // preview for placeholders (cards in the decklist but not yet in inventory).
-  const dataAttrs = `data-scryfall-id="${esc(sid)}" data-board="${esc(board)}" data-inventory-index="${idx}"`
-    + ` data-card-name="${esc(name)}"`
-    + ` data-image-url="${esc(c.imageUrl || '')}"`
-    + ` data-back-image-url="${esc(c.backImageUrl || '')}"`
-    + ` data-card-qty="${c.qty || 1}"`
-    + ` data-card-finish="${esc(c.finish || 'normal')}"`
-    + ` data-card-price="${c.price || 0}"`;
-  const moveItem = (targetBoard, label) =>
-    `<button role="menuitem" type="button" data-card-action="move-board" data-board-target="${targetBoard}" ${dataAttrs}${board === targetBoard ? ' disabled' : ''}>${esc(label)}</button>`;
-  const openItem = idx >= 0
-    ? `<button role="menuitem" type="button" data-card-action="open" data-inventory-index="${idx}">open details</button>`
-    : '';
-  const removeLabel = c.qty > 1 ? `remove ${c.qty} from deck` : 'remove from deck';
-  return `<article class="deck-card${finishClass}${placeholderClass}${lastClass}" ${dataAttrs}>
-    <button class="deck-card-face detail-trigger" type="button" data-card-action="open" data-inventory-index="${idx}" aria-label="open ${esc(name)} details">${img}${qty}</button>
-    <button class="deck-card-menu-btn" type="button" data-card-menu-toggle aria-label="card actions for ${esc(name)}" aria-haspopup="menu" aria-expanded="false" aria-controls="${menuId}">...</button>
-    <div class="deck-card-menu" id="${menuId}" role="menu" hidden>
-      ${openItem}
-      ${moveItem('main', 'move to mainboard')}
-      ${moveItem('sideboard', 'move to sideboard')}
-      ${moveItem('maybe', 'move to maybeboard')}
-      <button role="menuitem" type="button" class="deck-card-menu-danger" data-card-action="remove-from-deck" ${dataAttrs}>${esc(removeLabel)}</button>
-    </div>
-  </article>`;
 }
 
 function closeDeckCardMenus(root = document) {
@@ -706,174 +527,6 @@ function handleDeckCardAction(actionEl) {
   }
 }
 
-function renderDeckTextRows(list) {
-  if (!list.length) return '<div class="deck-empty-prompt">no cards</div>';
-  return list.map(c => `<div class="deck-text-row"><span>${c.qty || 1} ${esc(c.resolvedName || c.name || '')}</span><span>${esc((c.setCode || '').toUpperCase())} ${esc(c.cn || '')}</span></div>`).join('');
-}
-
-const BOARD_LABEL = { main: 'main', sideboard: 'side', maybe: 'maybe' };
-
-function renderDeckTextRow(c) {
-  const name = c.resolvedName || c.name || '(unknown)';
-  const index = c.inventoryIndex >= 0 ? c.inventoryIndex : -1;
-  const previewClasses = c.imageUrl ? 'card-name-button card-preview-link detail-trigger' : 'card-name-button detail-trigger';
-  const previewAttr = c.imageUrl
-    ? ` data-preview-url="${esc(c.imageUrl)}" data-preview-finish="${esc(c.finish || 'normal')}"`
-    : '';
-  const setCodeLower = (c.setCode || '').toLowerCase();
-  const setCode = setCodeLower.toUpperCase();
-  const iconUrl = setCodeLower ? getSetIconUrl(setCodeLower) : '';
-  const setIcon = iconUrl
-    ? `<img class="set-icon" src="${esc(iconUrl)}" alt="" onerror="this.style.display='none'">`
-    : '';
-  const placeholderCls = c.placeholder ? ' deck-text-row-placeholder' : '';
-  const physicalLoc = c.placeholder
-    ? '<span class="deck-row-loc deck-row-loc-placeholder">placeholder</span>'
-    : c.location
-      ? `<span class="deck-row-loc">in ${esc(c.location.type)}:${esc(c.location.name)}</span>`
-      : '';
-  return `<tr class="detail-trigger${placeholderCls}" data-index="${index}">
-    <td class="card-name-cell"><button class="${previewClasses}" type="button" data-index="${index}"${previewAttr}>${esc(name)}</button>${physicalLoc}</td>
-    <td class="muted set-cell">${setIcon}${esc(setCode)}</td>
-    <td class="muted cn-cell">${esc(c.cn || '')}</td>
-    <td class="muted finish-cell">${esc(c.finish)}</td>
-    <td class="muted rarity-cell" title="${esc(c.rarity || '')}">${esc(RARITY_ABBR[c.rarity] || c.rarity || '')}</td>
-    <td class="muted condition-cell" title="${esc((c.condition || '').replace(/_/g, ' '))}">${esc(CONDITION_ABBR[c.condition] || (c.condition || '').replace(/_/g, ' '))}</td>
-    <td class="tags-cell">${(c.tags || []).map(t => `<span class="row-tag">${esc(t)}</span>`).join('')}</td>
-    <td class="qty-cell">${c.qty}</td>
-    <td class="muted price-cell">${formatPrice(c)}</td>
-  </tr>`;
-}
-
-function renderDeckBoardSection(title, cards, { grouped = false } = {}) {
-  const total = cards.reduce((s, c) => s + (c.qty || 1), 0);
-  const value = cards.reduce((s, c) => s + (c.price || 0) * (c.qty || 1), 0);
-  const body = grouped
-    ? groupDeck(cards, state.deckGroupBy).map(col => {
-      const colTotal = col.cards.reduce((s, c) => s + (c.qty || 1), 0);
-      const colValue = col.cards.reduce((s, c) => s + (c.price || 0) * (c.qty || 1), 0);
-      const valueStr = state.deckShowPrices && colValue > 0 ? ` - $${colValue.toFixed(2)}` : '';
-      const stack = col.cards.map((c, i) => renderDeckCard(c, i === col.cards.length - 1)).join('');
-      return `<div class="deck-col"><div class="deck-col-header">${esc(col.label)}<span class="deck-col-count">${colTotal}${esc(valueStr)}</span></div><div class="deck-stack">${stack}</div></div>`;
-    }).join('')
-    : cards.map((c, i) => renderDeckCard(c, i === cards.length - 1)).join('');
-  const valueStr = state.deckShowPrices && value > 0 ? ` - $${value.toFixed(2)}` : '';
-  return `<section class="deck-board-section">
-    <div class="deck-board-header"><h3>${esc(title)}</h3><span>${total} cards${esc(valueStr)}</span></div>
-    <div class="${grouped ? 'deck-columns' : 'deck-side-stack'}">${body || '<div class="deck-empty-prompt">no cards</div>'}</div>
-  </section>`;
-}
-
-function renderDeckStatsDashboard(stats, statHtml, format) {
-  return `<div class="deck-dashboard">
-    <section class="deck-stat-card"><h3>curve</h3>${statHtml.curveHtml}</section>
-    <section class="deck-stat-card"><h3>summary</h3>
-      <div class="breakdown-row"><span>format</span><span class="breakdown-count">${esc(format)}</span></div>
-      <div class="breakdown-row"><span>lands</span><span class="breakdown-count">${stats.lands}</span></div>
-      <div class="breakdown-row"><span>nonlands</span><span class="breakdown-count">${stats.nonlands}</span></div>
-      <div class="breakdown-row"><span>avg mv</span><span class="breakdown-count">${stats.avgManaValue.toFixed(2)}</span></div>
-      <div class="breakdown-row"><span>avg spell mv</span><span class="breakdown-count">${stats.avgSpellManaValue.toFixed(2)}</span></div>
-    </section>
-    <section class="deck-stat-card"><h3>types</h3>${statHtml.typeHtml}</section>
-    <section class="deck-stat-card"><h3>colors</h3>${statHtml.colorHtml}</section>
-  </div>`;
-}
-
-function boardLabel(board) {
-  return board === 'main' ? 'mainboard' : board === 'sideboard' ? 'sideboard' : 'maybeboard';
-}
-
-function filterDeckBoards(boards, filter) {
-  if (filter === 'main') return [['main', boards.main]];
-  if (filter === 'sideboard') return [['sideboard', boards.sideboard]];
-  if (filter === 'maybe') return [['maybe', boards.maybe]];
-  return [['main', boards.main], ['sideboard', boards.sideboard], ['maybe', boards.maybe]];
-}
-
-function renderDeckTextMode(boards) {
-  const sections = filterDeckBoards(boards, state.deckBoardFilter);
-  const cards = sections.flatMap(([, c]) => c);
-  if (!cards.length) {
-    return `<div class="deck-text-mode"><div class="deck-empty-prompt">no cards</div></div>`;
-  }
-  return `<div class="deck-text-mode">
-    <table class="deck-text-table">
-      <thead>
-        <tr>
-          <th>name</th>
-          <th>set</th>
-          <th>cn</th>
-          <th>finish</th>
-          <th>rarity</th>
-          <th>condition</th>
-          <th>tags</th>
-          <th>qty</th>
-          <th>price</th>
-        </tr>
-      </thead>
-      <tbody>${cards.map(c => renderDeckTextRow(c)).join('')}</tbody>
-    </table>
-  </div>`;
-}
-
-function renderDeckNotesMode(model) {
-  const hasNotes = !!model.description;
-  return `<section class="deck-board-section deck-notes-panel">
-    <div class="deck-board-header"><h3>notes</h3><button class="btn btn-secondary" type="button" data-edit-deck-details aria-controls="deckDetailsEditor" aria-expanded="false">edit details</button></div>
-    <p class="${hasNotes ? '' : 'deck-empty-prompt'}">${esc(hasNotes ? model.description : 'No deck notes yet.')}</p>
-  </section>`;
-}
-
-function renderDeckSampleHandSection() {
-  return `<section class="deck-sample-hand" id="deckSampleHand">
-    <div class="deck-board-header"><h3>sample hand</h3><div><button class="btn btn-secondary" type="button" data-sample-hand="draw">new hand</button><button class="btn btn-secondary" type="button" data-sample-hand="mulligan">mulligan</button></div></div>
-    <div class="deck-hand-cards" id="deckHandCards"></div>
-  </section>`;
-}
-
-function renderLegacyDeckView(list) {
-  const deckColumnsEl = document.getElementById('deckColumns');
-  const deckActionsEl = document.querySelector('#deckView .deck-actions');
-
-  if (!hasActiveFilter()) {
-    if (deckActionsEl) deckActionsEl.classList.add('hidden');
-    setDeckPreviewCard(null);
-    renderEmptyScopeState(deckColumnsEl, 'deck');
-    document.getElementById('deckSummary').textContent = '';
-    return;
-  }
-
-  if (deckActionsEl) deckActionsEl.classList.remove('hidden');
-
-  const cols = groupDeck(list, state.deckGroupBy);
-  if (cols.length === 0) {
-    deckColumnsEl.innerHTML = '';
-    setDeckPreviewCard(null);
-  } else {
-    deckColumnsEl.innerHTML = cols.map(col => {
-      const total = col.cards.reduce((s, c) => s + (c.qty || 1), 0);
-      const price = col.cards.reduce((s, c) => s + (c.price || 0) * (c.qty || 1), 0);
-      const priceStr = price > 0 ? ` · $${price.toFixed(2)}` : '';
-      const stack = col.cards.map((c, i) => renderDeckCard(c, i === col.cards.length - 1)).join('');
-      return `<div class="deck-col"><div class="deck-col-header">${esc(col.label)}<span class="deck-col-count">${total}${priceStr}</span></div><div class="deck-stack">${stack}</div></div>`;
-    }).join('');
-    setDeckPreviewCard(firstCardForPanel(cols));
-  }
-
-  const total = list.reduce((s, c) => s + (c.qty || 1), 0);
-  const summary = document.getElementById('deckSummary');
-  if (!state.selectedFormat) {
-    summary.textContent = total + ' cards';
-  } else {
-    const illegal = list.filter(c => c.legalities && c.legalities[state.selectedFormat] && c.legalities[state.selectedFormat] !== 'legal' && c.legalities[state.selectedFormat] !== 'restricted');
-    if (illegal.length > 0) {
-      summary.innerHTML = total + ' cards · <span class="warn">' + illegal.length + ' not ' + state.selectedFormat + '-legal</span>';
-    } else {
-      summary.textContent = total + ' cards · all legal in ' + state.selectedFormat;
-    }
-  }
-}
-
 function renderSampleHandPanel() {
   const handEl = document.getElementById('deckHandCards');
   if (!handEl) return;
@@ -893,136 +546,6 @@ function renderSampleHandPanel() {
   handEl.innerHTML = hand.map((c, i) =>
     renderDeckCard({ ...c, qty: 1 }, i === hand.length - 1)
   ).join('');
-}
-
-export function deckDetailsViewModel(deck, meta = {}, stats = {}, selectedFormat = '') {
-  const safeMeta = meta && typeof meta === 'object' ? meta : {};
-  const safeStats = stats && typeof stats === 'object' ? stats : {};
-  const deckName = String(deck?.name || '');
-  const title = String(safeMeta.title || '').trim();
-  const description = String(safeMeta.description || '').trim();
-  const formatInput = String(safeMeta.format || selectedFormat || '').trim();
-  const commander = String(safeMeta.commander || '').trim();
-  const commanderScryfallId = String(safeMeta.commanderScryfallId || '').trim();
-  const commanderImageUrl = String(safeMeta.commanderImageUrl || '').trim();
-  const commanderBackImageUrl = String(safeMeta.commanderBackImageUrl || '').trim();
-  const partner = String(safeMeta.partner || '').trim();
-  const partnerScryfallId = String(safeMeta.partnerScryfallId || '').trim();
-  const partnerImageUrl = String(safeMeta.partnerImageUrl || '').trim();
-  const partnerBackImageUrl = String(safeMeta.partnerBackImageUrl || '').trim();
-  const companion = String(safeMeta.companion || '').trim();
-  const value = Number(safeStats.value) || 0;
-  const count = key => parseInt(safeStats[key], 10) || 0;
-  return {
-    title,
-    displayTitle: title || deckName || 'deck',
-    description,
-    descriptionText: description || 'No description yet.',
-    format: formatInput || 'unspecified format',
-    formatInput,
-    shareId: deck?.shareId || '',
-    commander,
-    commanderScryfallId,
-    commanderImageUrl,
-    commanderBackImageUrl,
-    partner,
-    partnerScryfallId,
-    partnerImageUrl,
-    partnerBackImageUrl,
-    companion,
-    total: count('total'),
-    main: count('main'),
-    sideboard: count('sideboard'),
-    maybe: count('maybe'),
-    valueText: value > 0 ? '$' + value.toFixed(2) : '-',
-  };
-}
-
-const FORMAT_PRESETS = ['standard', 'pioneer', 'modern', 'legacy', 'vintage', 'pauper', 'commander', 'brawl'];
-
-function deckMetaItem(label, value, emptyText) {
-  const hasValue = !!value;
-  const cls = 'deck-meta-value' + (hasValue ? '' : ' is-empty');
-  return `<div><dt>${esc(label)}</dt><dd class="${cls}">${esc(hasValue ? value : emptyText)}</dd></div>`;
-}
-
-function deckMetaCardItem(label, name, imageUrl, backImageUrl, scryfallId, emptyText) {
-  if (!name) {
-    return `<div><dt>${esc(label)}</dt><dd class="deck-meta-value is-empty">${esc(emptyText)}</dd></div>`;
-  }
-  // Use .deck-meta-preview-link instead of .card-preview-link so the hover
-  // updates the sticky deck preview panel rather than firing the floating
-  // popup. Falls back to metadata when the card isn't in the deck yet.
-  const cls = 'deck-meta-value deck-meta-card-name deck-meta-preview-link';
-  const dataAttrs = ' data-scryfall-id="' + esc(scryfallId || '') + '"'
-    + ' data-card-name="' + esc(name) + '"'
-    + ' data-image-url="' + esc(imageUrl || '') + '"'
-    + ' data-back-image-url="' + esc(backImageUrl || '') + '"';
-  return `<div><dt>${esc(label)}</dt><dd class="${cls}"${dataAttrs}>${esc(name)}</dd></div>`;
-}
-
-export function renderDeckDetailsHeaderHtml(model) {
-  const descClass = 'deck-description' + (model.description ? '' : ' is-empty');
-  return `<section class="deck-hero">
-      <div class="deck-hero-main">
-        <div class="deck-kicker">deck</div>
-        <h2>${esc(model.displayTitle)}</h2>
-        <p class="${descClass}">${esc(model.descriptionText)}</p>
-        <dl class="deck-meta-strip" aria-label="deck details">
-          ${deckMetaItem('format', model.formatInput, 'unspecified format')}
-          ${model.formatInput === 'commander' ? deckMetaCardItem('commander', model.commander, model.commanderImageUrl, model.commanderBackImageUrl, model.commanderScryfallId, 'not set') : ''}
-          ${model.formatInput === 'commander' && model.partner ? deckMetaCardItem('partner', model.partner, model.partnerImageUrl, model.partnerBackImageUrl, model.partnerScryfallId, 'none') : ''}
-          ${model.companion ? deckMetaItem('companion', model.companion, '') : ''}
-        </dl>
-      </div>
-      <div class="deck-hero-side">
-        <div class="deck-hero-stats" aria-label="deck totals">
-          <span><strong>${model.total}</strong> total</span>
-          <span><strong>${model.main}</strong> main</span>
-          <span><strong>${model.sideboard}</strong> side</span>
-          <span><strong>${model.maybe}</strong> maybe</span>
-          <span><strong>${esc(model.valueText)}</strong> value</span>
-        </div>
-        <div class="deck-hero-actions">
-          <div class="deck-export-menu-wrap">
-            <button class="btn btn-secondary" type="button" data-toggle-deck-export aria-controls="deckExportPanel" aria-expanded="false">export</button>
-            ${renderDeckExportPanel()}
-          </div>
-          <button class="btn btn-secondary deck-share-btn" type="button" data-deck-action="share">${model.shareId ? 'sharing' : 'share'}</button>
-          <button class="btn" type="button" data-sample-hand="draw">sample hand</button>
-          <button class="btn btn-secondary" type="button" data-edit-deck-details aria-controls="deckDetailsEditor" aria-expanded="false">edit details</button>
-        </div>
-      </div>
-    </section>
-    <section class="deck-details-editor hidden" id="deckDetailsEditor" aria-label="edit deck details">
-      <form class="deck-metadata-form" id="deckMetadataForm" data-format="${esc(model.formatInput)}">
-        <label class="deck-metadata-field"><span>title</span><input name="title" value="${esc(model.title)}" placeholder="deck title" autocomplete="off"></label>
-        <label class="deck-metadata-field"><span>format</span>${renderDeckFormatPicker(model.formatInput)}</label>
-        <label class="deck-metadata-field deck-metadata-commander"><span>commander</span>
-          <span class="deck-meta-ac-wrap">
-            <input name="commander" value="${esc(model.commander)}" placeholder="commander" autocomplete="off" data-meta-ac="commander" data-meta-ac-scryfall-id="${esc(model.commanderScryfallId)}" data-meta-ac-image="${esc(model.commanderImageUrl)}" data-meta-ac-back-image="${esc(model.commanderBackImageUrl)}">
-            <ul class="autocomplete-list deck-meta-ac-list" role="listbox"></ul>
-          </span>
-        </label>
-        <label class="deck-metadata-field deck-metadata-partner"><span>partner</span>
-          <span class="deck-meta-ac-wrap">
-            <input name="partner" value="${esc(model.partner)}" placeholder="partner" autocomplete="off" data-meta-ac="partner" data-meta-ac-scryfall-id="${esc(model.partnerScryfallId)}" data-meta-ac-image="${esc(model.partnerImageUrl)}" data-meta-ac-back-image="${esc(model.partnerBackImageUrl)}">
-            <ul class="autocomplete-list deck-meta-ac-list" role="listbox"></ul>
-          </span>
-        </label>
-        <div class="deck-metadata-field deck-metadata-companion">
-          <span>companion</span>
-          ${model.companion
-            ? `<input name="companion" value="${esc(model.companion)}" placeholder="companion" autocomplete="off">`
-            : `<button type="button" class="deck-companion-add" data-add-companion>+ add companion</button><input name="companion" value="" placeholder="companion" autocomplete="off" hidden>`}
-        </div>
-        <label class="deck-metadata-field deck-metadata-description"><span>description</span><textarea name="description" rows="3" placeholder="description">${esc(model.description)}</textarea></label>
-        <div class="deck-metadata-actions">
-          <button class="btn btn-secondary" type="button" data-cancel-deck-details>cancel</button>
-          <button class="btn" type="submit">save deck</button>
-        </div>
-      </form>
-    </section>`;
 }
 
 // Commander/partner autocomplete — debounced search against Scryfall with
@@ -1123,93 +646,6 @@ function ensureCommanderEntryInDeck(scryfallId, deck) {
   return scryfallId;
 }
 
-function renderDeckFormatPicker(formatInput) {
-  const isPreset = !formatInput || FORMAT_PRESETS.includes(formatInput);
-  const selectValue = !formatInput ? '' : isPreset ? formatInput : 'custom';
-  const opts = [
-    `<option value=""${selectValue === '' ? ' selected' : ''}>—</option>`,
-    ...FORMAT_PRESETS.map(f => `<option value="${f}"${selectValue === f ? ' selected' : ''}>${f}</option>`),
-    `<option value="custom"${selectValue === 'custom' ? ' selected' : ''}>custom</option>`,
-  ].join('');
-  const customValue = !isPreset ? formatInput : '';
-  return `<span class="deck-format-picker">
-    <select name="formatPreset" data-deck-format-preset>${opts}</select>
-    <input name="formatCustom" data-deck-format-custom value="${esc(customValue)}" placeholder="custom format" autocomplete="off"${selectValue === 'custom' ? '' : ' hidden'}>
-  </span>`;
-}
-
-export function renderDeckWorkspaceControls() {
-  const modeBtn = (mode, label) =>
-    `<button class="deck-mode-btn${state.deckMode === mode ? ' active' : ''}" type="button" data-deck-mode="${mode}" aria-pressed="${state.deckMode === mode ? 'true' : 'false'}">${label}</button>`;
-  const boardBtn = (board, label) =>
-    `<button class="deck-board-filter-btn${state.deckBoardFilter === board ? ' active' : ''}" type="button" data-deck-board-filter="${board}" aria-pressed="${state.deckBoardFilter === board ? 'true' : 'false'}">${label}</button>`;
-  return `<div class="deck-workspace-controls">
-    <div class="deck-mode-tabs" aria-label="deck view mode">
-      ${modeBtn('visual', 'visual')}
-      ${modeBtn('text', 'text')}
-      ${modeBtn('stats', 'stats')}
-      ${modeBtn('hands', 'hands')}
-      ${modeBtn('notes', 'notes')}
-    </div>
-    <div class="deck-board-filter-tabs" aria-label="deck board filter">
-      ${boardBtn('all', 'all')}
-      ${boardBtn('main', 'main')}
-      ${boardBtn('sideboard', 'side')}
-      ${boardBtn('maybe', 'maybe')}
-    </div>
-    <div class="deck-ownership-toggle" role="group" aria-label="ownership view" title="decklist mode hides ownership and physical location; building mode surfaces them">
-      <button type="button" class="deck-ownership-btn${state.deckOwnershipView === 'decklist' ? ' active' : ''}" data-deck-ownership="decklist" aria-pressed="${state.deckOwnershipView === 'decklist' ? 'true' : 'false'}">decklist</button>
-      <button type="button" class="deck-ownership-btn${state.deckOwnershipView === 'building' ? ' active' : ''}" data-deck-ownership="building" aria-pressed="${state.deckOwnershipView === 'building' ? 'true' : 'false'}">building</button>
-    </div>
-    <details class="deck-view-settings">
-      <summary>view settings</summary>
-      <div class="deck-settings-grid">
-        <div class="deck-card-size-row">
-          <span class="deck-settings-label">card size</span>
-          <div class="deck-card-size-segmented" role="group" aria-label="card size">
-            ${VALID_DECK_CARD_SIZES.map(v => {
-              const labels = { small: 'sm', medium: 'md', large: 'lg' };
-              const active = state.deckCardSize === v;
-              return `<button type="button" class="deck-card-size-btn${active ? ' active' : ''}" data-deck-card-size="${v}" aria-pressed="${active ? 'true' : 'false'}">${labels[v]}</button>`;
-            }).join('')}
-          </div>
-        </div>
-        <label class="deck-settings-check"><input type="checkbox" data-deck-show-prices${state.deckShowPrices ? ' checked' : ''}> show prices</label>
-      </div>
-    </details>
-  </div>`;
-}
-
-export function renderDeckExportPanel() {
-  const opts = defaultDeckExportOptions('moxfield');
-  return `<section class="deck-export-panel hidden" id="deckExportPanel" aria-label="export deck">
-    <form id="deckExportForm" class="deck-export-form">
-      <label>format
-        <select name="preset">
-          <option value="moxfield" selected>moxfield text</option>
-          <option value="plain">plain text</option>
-          <option value="arena">arena</option>
-          <option value="mtgo">mtgo</option>
-          <option value="csv">csv</option>
-          <option value="json">json</option>
-        </select>
-      </label>
-      <div class="deck-export-checks" aria-label="included boards">
-        <label><input type="checkbox" name="includeCommander" checked> commander</label>
-        <label><input type="checkbox" name="board" value="main"${opts.boards.includes('main') ? ' checked' : ''}> main</label>
-        <label><input type="checkbox" name="board" value="sideboard"${opts.boards.includes('sideboard') ? ' checked' : ''}> side</label>
-        <label><input type="checkbox" name="board" value="maybe"${opts.boards.includes('maybe') ? ' checked' : ''}> maybe</label>
-        <label><input type="checkbox" name="collapsePrintings"> collapse printings</label>
-      </div>
-      <div class="deck-export-actions">
-        <button class="btn" type="button" data-export-action="copy">copy</button>
-        <button class="btn btn-secondary" type="button" data-export-action="download">download</button>
-        <button class="btn btn-secondary" type="button" data-close-deck-export>close</button>
-      </div>
-    </form>
-  </section>`;
-}
-
 // Build a render-shaped card for the deck workspace from a (deckList entry,
 // inventory) pair. The result quacks like a collection entry — existing render
 // helpers (renderDeckCard, splitDeckBoards, deckStats, etc.) work on it
@@ -1280,37 +716,6 @@ function renderDeckView(list) {
   const statHtml = renderDeckStatsHtml(boards.main);
   const format = meta.format || state.selectedFormat || 'unspecified format';
   const headerModel = deckDetailsViewModel(deck, meta, stats, state.selectedFormat);
-  const filteredBoards = filterDeckBoards(boards, state.deckBoardFilter);
-  const visualMainSections = filteredBoards
-    .filter(([board]) => board === 'main')
-    .map(([, cards]) => renderDeckBoardSection('mainboard', cards, { grouped: true }))
-    .join('');
-  const visualSideSections = filteredBoards
-    .filter(([board]) => board !== 'main')
-    .map(([board, cards]) => renderDeckBoardSection(boardLabel(board), cards))
-    .join('');
-  // Group-by control lives inline with the visual mode — irrelevant for
-  // text/stats/hands/notes so it shouldn't share top-level chrome with them.
-  const visualGroupByBar = `<div class="deck-visual-controls">
-    <label class="deck-visual-group-by">group by
-      <select data-deck-group>
-        ${VALID_DECK_GROUPS.map(v => `<option value="${v}"${state.deckGroupBy === v ? ' selected' : ''}>${v}</option>`).join('')}
-      </select>
-    </label>
-  </div>`;
-  let visualBody;
-  if (state.deckBoardFilter === 'all') {
-    visualBody = `${visualGroupByBar}<div class="deck-content-grid${visualSideSections ? '' : ' deck-content-grid-single'}">
-      <main>
-        ${visualMainSections || (visualSideSections ? '' : renderDeckBoardSection('mainboard', [], { grouped: true }))}
-      </main>
-      ${visualSideSections ? `<aside class="deck-board-aside">${visualSideSections}</aside>` : ''}
-    </div>`;
-  } else if (state.deckBoardFilter === 'main') {
-    visualBody = `${visualGroupByBar}<div class="deck-content-grid deck-content-grid-single"><main>${visualMainSections}</main></div>`;
-  } else {
-    visualBody = `${visualGroupByBar}<div class="deck-content-grid deck-content-grid-single"><main>${visualSideSections}</main></div>`;
-  }
   const modeBody = state.deckMode === 'stats'
     ? renderDeckStatsDashboard(stats, statHtml, format)
     : state.deckMode === 'hands'
@@ -1319,7 +724,7 @@ function renderDeckView(list) {
         ? renderDeckTextMode(boards)
         : state.deckMode === 'notes'
           ? renderDeckNotesMode(headerModel)
-          : visualBody;
+          : renderDeckVisualMode(boards);
 
   deckColumnsEl.innerHTML = `<div class="deck-workspace deck-card-size-${esc(state.deckCardSize)}">
     ${renderDeckDetailsHeaderHtml(headerModel)}
