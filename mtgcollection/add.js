@@ -15,11 +15,10 @@ import { getMultiselectValue } from './multiselect.js';
 import { parseVoiceText } from './voiceParser.js';
 import { getActiveLocation } from './routeState.js';
 import { createAddLocationPicker } from './addLocationPicker.js';
-import { renderPrintingList as renderPrintingListView } from './addPrintingView.js';
 import { buildCollectionEntryFromCard, mergeEntryIntoCollection } from './addEntry.js';
 import { createAddOptionControls } from './addOptions.js';
-import { loadCardPrintings } from './addPrintingSearch.js';
 import { createNameAutocomplete } from './addAutocomplete.js';
+import { createAddPrintingPicker } from './addPrintingPicker.js';
 import {
   buildRepeatVoiceInput,
   buildVoiceAddOptions,
@@ -69,6 +68,7 @@ let addPreviewEl, addPreviewImg, addPreviewName, addPreviewMeta;
 let addQtyInput, addLocationNameInput;
 let addOptionControls = null;
 let nameAutocomplete = null;
+let addPrintingPicker = null;
 let speechRecognition = null;
 
 // ---- Location picker (existing-pills + inline-new) ----
@@ -103,14 +103,6 @@ export function setSelectedLocation(loc) {
   else pendingSelectedLocation = loc;
 }
 let addBtn, addCancelBtn, addMicBtn, addMicStatus, addAutoAddEl;
-let addPrintingPickerEl, addPrintingListEl, addPrintingCaptionEl;
-
-// ---- Printings state ----
-let currentPrintings = [];
-let currentPrintingsName = '';
-let printingsAbort = null;
-let printingsTotalCount = 0;
-let printingsTruncated = false;
 
 function setAddMode(mode) {
   addMode = mode;
@@ -123,83 +115,6 @@ function setAddMode(mode) {
   hideAddPreview();
   if (mode === 'name') addNameInput.focus();
   else if (mode === 'cn') addMicBtn.focus();
-}
-
-async function loadPrintings(name) {
-  if (printingsAbort) printingsAbort.abort();
-  printingsAbort = new AbortController();
-  const signal = printingsAbort.signal;
-
-  currentPrintings = [];
-  currentPrintingsName = name;
-  printingsTotalCount = 0;
-  printingsTruncated = false;
-
-  showPrintingPicker();
-  addPrintingCaptionEl.textContent = 'Loading printings...';
-  addPrintingListEl.innerHTML = '';
-
-  const result = await loadCardPrintings({ name, signal });
-  if (result.status === 'aborted') return;
-
-  if (result.status === 'empty') {
-    addPrintingCaptionEl.textContent = 'No printings found';
-    showFeedback('no card found for ' + esc(name), 'error');
-    return;
-  }
-
-  if (result.error) {
-    showFeedback("couldn't load printings: " + esc(result.error.message || String(result.error)), 'error');
-  } else {
-    hideFeedback();
-  }
-
-  if (!result.printings.length) {
-    hidePrintingPicker();
-    return;
-  }
-
-  currentPrintings = result.printings;
-  currentPrintingsName = name;
-  printingsTotalCount = result.totalCount;
-  printingsTruncated = result.truncated;
-  renderPrintingList();
-  selectPrinting(0);
-}
-
-function renderPrintingList() {
-  renderPrintingListView({
-    listEl: addPrintingListEl,
-    captionEl: addPrintingCaptionEl,
-    printings: currentPrintings,
-    totalCount: printingsTotalCount,
-    truncated: printingsTruncated,
-  });
-}
-
-function selectPrinting(index) {
-  if (!currentPrintings.length) return;
-  const i = Math.max(0, Math.min(currentPrintings.length - 1, index));
-  const card = currentPrintings[i];
-  Array.from(addPrintingListEl.children).forEach((li, idx) => {
-    li.classList.toggle('selected', idx === i);
-  });
-  showAddPreview(card, { preserveFields: addPreviewCard != null });
-}
-
-function showPrintingPicker() {
-  if (addPrintingPickerEl) addPrintingPickerEl.classList.add('active');
-}
-
-function hidePrintingPicker() {
-  if (addPrintingPickerEl) addPrintingPickerEl.classList.remove('active');
-  if (addPrintingListEl) addPrintingListEl.innerHTML = '';
-  if (addPrintingCaptionEl) addPrintingCaptionEl.textContent = '';
-  if (printingsAbort) { try { printingsAbort.abort(); } catch (e) {} printingsAbort = null; }
-  currentPrintings = [];
-  currentPrintingsName = '';
-  printingsTotalCount = 0;
-  printingsTruncated = false;
 }
 
 async function doVoiceLookup(userSet, userCn, variant = 'regular') {
@@ -319,7 +234,7 @@ function showAddPreview(card, opts) {
 function hideAddPreview() {
   addPreviewCard = null;
   addPreviewEl.classList.remove('active');
-  hidePrintingPicker();
+  addPrintingPicker?.hide();
 }
 
 function addCardFromPreview() {
@@ -417,19 +332,26 @@ export function initAdd() {
   addPreviewImg = document.getElementById('addPreviewImg');
   addPreviewName = document.getElementById('addPreviewName');
   addPreviewMeta = document.getElementById('addPreviewMeta');
-  addPrintingPickerEl  = document.getElementById('addPrintingPicker');
-  addPrintingListEl    = document.getElementById('addPrintingList');
-  addPrintingCaptionEl = document.getElementById('addPrintingCaption');
+  const addPrintingPickerEl  = document.getElementById('addPrintingPicker');
+  const addPrintingListEl    = document.getElementById('addPrintingList');
+  const addPrintingCaptionEl = document.getElementById('addPrintingCaption');
   addQtyInput     = document.getElementById('addQty');
   addLocationNameInput = document.getElementById('addLocationName');
   addOptionControls = createAddOptionControls({
     getCollection: () => state.collection,
   });
+  addPrintingPicker = createAddPrintingPicker({
+    pickerEl: addPrintingPickerEl,
+    listEl: addPrintingListEl,
+    captionEl: addPrintingCaptionEl,
+    onSelect: showAddPreview,
+    shouldPreserveFields: () => addPreviewCard != null,
+  });
   nameAutocomplete = createNameAutocomplete({
     inputEl: addNameInput,
     listEl: addNameList,
-    onPick: loadPrintings,
-    onEmptyQuery: hidePrintingPicker,
+    onPick: (name) => addPrintingPicker.load(name),
+    onEmptyQuery: () => addPrintingPicker.hide(),
   });
   locationPicker = createAddLocationPicker({
     getNameInput: () => addLocationNameInput,
@@ -481,16 +403,7 @@ export function initAdd() {
   // the picker stays unchanged). Clearing the name is fine too.
 
   nameAutocomplete.bind();
-
-  if (addPrintingListEl) {
-    addPrintingListEl.addEventListener('click', (e) => {
-      const li = e.target.closest('.printing-row');
-      if (!li) return;
-      const idx = parseInt(li.dataset.index, 10);
-      if (Number.isNaN(idx)) return;
-      selectPrinting(idx);
-    });
-  }
+  addPrintingPicker.bind();
 
   addCancelBtn.addEventListener('click', () => {
     hideAddPreview();
