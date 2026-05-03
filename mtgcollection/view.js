@@ -1,4 +1,4 @@
-import { state, DECK_GROUP_KEY, DECK_VIEW_PREFS_KEY, BINDER_SIZE_KEY, SCRYFALL_API } from './state.js';
+import { state, DECK_GROUP_KEY, DECK_VIEW_PREFS_KEY, SCRYFALL_API } from './state.js';
 import { esc, showFeedback } from './feedback.js';
 import {
   collectionKey,
@@ -27,7 +27,6 @@ import { setSelectedLocation } from './add.js';
 import { filteredSorted, syncClearFiltersBtn, hasActiveFilter } from './search.js';
 import { groupDeck, firstCardForPanel, splitDeckBoards, deckStats, renderDeckStatsHtml, drawSampleHand } from './stats.js';
 import { updateBulkBar } from './bulk.js';
-import { paginateForBinder, sortForBinder, BINDER_SIZES, binderSlotCount } from './binder.js';
 import { getSetIconUrl } from './setIcons.js';
 import { recordEvent, captureBefore, locationDiffSummary, setHistoryScope } from './changelog.js';
 import { buildDeckExport, defaultDeckExportOptions } from './deckExport.js';
@@ -73,9 +72,14 @@ import {
   renderDeckTextMode,
   renderDeckVisualMode,
 } from './views/deckBodyView.js';
+import {
+  applyBinderSizeButtons,
+  loadBinderSize,
+  renderBinderView,
+  saveBinderSize,
+  VALID_BINDER_SIZES,
+} from './views/binderView.js';
 import { initCardPreview, isLightboxVisible } from './ui/cardPreview.js';
-
-const VALID_BINDER_SIZES = Object.keys(BINDER_SIZES);
 
 export function navigateToLocation(type, name) {
   setActiveContainerRoute({ type, name });
@@ -286,7 +290,7 @@ export function render() {
   } else if (shape === 'binder') {
     binderContainer.classList.add('active');
     binderSizeCtl.classList.remove('hidden');
-    renderBinderView(list);
+    renderBinderView(list, { hasActiveFilter, renderEmptyScopeState });
   } else {
     // 'collection' or 'box' — both render as flat list. 'box' is just a
     // collection view filtered to a single box container.
@@ -710,78 +714,6 @@ function renderDeckView(list) {
   renderSampleHandPanel();
   const summary = document.getElementById('deckSummary');
   summary.textContent = stats.total + ' cards - ' + format;
-}
-
-function renderBinderSlot(c) {
-  if (!c) {
-    return '<div class="binder-slot binder-slot-empty" aria-hidden="true"></div>';
-  }
-  const name = c.resolvedName || c.name || '?';
-  const idx = state.collection.indexOf(c);
-  const img = c.imageUrl
-    ? `<img src="${esc(c.imageUrl)}" alt="${esc(name)}" loading="lazy">`
-    : `<div class="placeholder">${esc(name)}</div>`;
-  const qty = c.qty > 1 ? `<span class="binder-qty">×${c.qty}</span>` : '';
-  const finishClass = c.finish === 'foil' ? ' is-foil' : c.finish === 'etched' ? ' is-etched' : '';
-  return `<div class="binder-slot detail-trigger${finishClass}" role="button" tabindex="0" data-index="${idx}" aria-label="${esc(name)}">${img}${qty}</div>`;
-}
-
-function renderBinderView(list) {
-  const pagesEl = document.getElementById('binderPages');
-  const navEl = document.getElementById('binderNav');
-  const summaryEl = document.getElementById('binderSummary');
-
-  if (!hasActiveFilter()) {
-    navEl.classList.add('hidden');
-    summaryEl.textContent = '';
-    renderEmptyScopeState(pagesEl, 'binder');
-    return;
-  }
-
-  if (list.length === 0) {
-    navEl.classList.add('hidden');
-    summaryEl.textContent = '';
-    pagesEl.innerHTML = `<div class="deck-empty-state"><p class="deck-empty-prompt">no cards match</p></div>`;
-    return;
-  }
-
-  const slotsPerPage = binderSlotCount(state.binderSize);
-  const sorted = sortForBinder(list);
-  const pages = paginateForBinder(sorted, slotsPerPage);
-  if (state.binderPage >= pages.length) state.binderPage = 0;
-  if (state.binderPage < 0) state.binderPage = 0;
-
-  const conf = BINDER_SIZES[state.binderSize] || BINDER_SIZES['4x3'];
-  const currentPage = pages[state.binderPage] || [];
-  const slotsHtml = currentPage.map(c => renderBinderSlot(c)).join('');
-  pagesEl.innerHTML = `<div class="binder-page" style="grid-template-columns: repeat(${conf.cols}, 1fr);">${slotsHtml}</div>`;
-
-  navEl.classList.remove('hidden');
-  const prevBtn = document.getElementById('binderPrev');
-  const nextBtn = document.getElementById('binderNext');
-  const indicator = document.getElementById('binderPageIndicator');
-  prevBtn.disabled = state.binderPage <= 0;
-  nextBtn.disabled = state.binderPage >= pages.length - 1;
-  indicator.textContent = `page ${state.binderPage + 1} of ${pages.length}`;
-  const total = list.reduce((s, c) => s + (c.qty || 1), 0);
-  summaryEl.textContent = `${total} cards · ${list.length} unique`;
-}
-
-function applyBinderSizeButtons() {
-  document.querySelectorAll('[data-binder-size]').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.binderSize === state.binderSize);
-  });
-}
-
-function loadBinderSize() {
-  try {
-    const v = localStorage.getItem(BINDER_SIZE_KEY);
-    if (v && VALID_BINDER_SIZES.includes(v)) state.binderSize = v;
-  } catch (e) {}
-}
-
-function saveBinderSize() {
-  try { localStorage.setItem(BINDER_SIZE_KEY, state.binderSize); } catch (e) {}
 }
 
 function setDeckPreviewCard(c) {
