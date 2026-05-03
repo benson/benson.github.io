@@ -1637,14 +1637,15 @@ function setDeckPanelOpen(panelId, triggerSelector, open) {
   }
 }
 
+// Track the most recent requested URL so a fast mouse-over a row of cards
+// shows the latest one's image (and not whichever onload happens to fire last).
+let pendingPreviewUrl = null;
+
 function showCardPreview(link) {
   const url = link.dataset.previewUrl;
   if (!url) return;
 
   const rect = link.getBoundingClientRect();
-  cardPreviewImg.src = url;
-  cardPreviewEl.classList.add('visible');
-
   const previewWidth = 300;
   const previewHeight = 418;
   const padding = 20;
@@ -1661,10 +1662,31 @@ function showCardPreview(link) {
 
   cardPreviewEl.style.left = left + 'px';
   cardPreviewEl.style.top = top + 'px';
+  cardPreviewEl.classList.add('visible');
+
+  pendingPreviewUrl = url;
+
+  // If the same image is already cached + decoded, no flicker possible —
+  // just show. This also covers re-hovering the row you were just on.
+  if (cardPreviewImg.src === url && cardPreviewImg.complete && cardPreviewImg.naturalWidth > 0) {
+    cardPreviewImg.style.visibility = 'visible';
+    return;
+  }
+
+  // Otherwise hide the img while the new one decodes so the previous card
+  // doesn't briefly stay on screen. Show it as soon as the new image is
+  // ready — but only if it's still the one the user wants (race guard for
+  // fast cursor movement).
+  cardPreviewImg.style.visibility = 'hidden';
+  cardPreviewImg.onload = () => {
+    if (pendingPreviewUrl === url) cardPreviewImg.style.visibility = 'visible';
+  };
+  cardPreviewImg.src = url;
 }
 
 export function hideCardPreview() {
   cardPreviewEl.classList.remove('visible');
+  pendingPreviewUrl = null;
 }
 
 export function showImageLightbox(frontUrl, backUrl) {
