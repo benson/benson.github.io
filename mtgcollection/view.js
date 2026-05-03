@@ -50,8 +50,6 @@ import {
   applyBinderSizeButtons,
   loadBinderSize,
   renderBinderView,
-  saveBinderSize,
-  VALID_BINDER_SIZES,
 } from './views/binderView.js';
 import { initCardPreview, isLightboxVisible } from './ui/cardPreview.js';
 import { createDeckMetaAutocomplete } from './deckMetaAutocomplete.js';
@@ -59,6 +57,7 @@ import { buildDeckCardFromEntry } from './deckCardModel.js';
 import { createDeckPreviewPanel } from './deckPreviewPanel.js';
 import { createRightDrawer } from './rightDrawer.js';
 import { renderDeckSampleHandPanel } from './deckSampleHand.js';
+import { bindBinderControls } from './binderActions.js';
 import { bindDeckWorkspaceInteractions } from './deckWorkspaceActions.js';
 import { bindLocationHomeInteractions } from './locationHomeActions.js';
 import { bindListRowInteractions } from './listRowActions.js';
@@ -440,69 +439,12 @@ export function initView() {
 
   loadBinderSize();
   applyBinderSizeButtons();
-  document.getElementById('binderSizeControl').addEventListener('click', e => {
-    const btn = e.target.closest('[data-binder-size]');
-    if (!btn) return;
-    if (!VALID_BINDER_SIZES.includes(btn.dataset.binderSize)) return;
-    state.binderSize = btn.dataset.binderSize;
-    state.binderPage = 0;
-    saveBinderSize();
-    applyBinderSizeButtons();
-    render();
-  });
-
-  document.getElementById('binderPrev').addEventListener('click', () => {
-    if (state.binderPage > 0) {
-      state.binderPage--;
-      render();
-    }
-  });
-  document.getElementById('binderNext').addEventListener('click', () => {
-    state.binderPage++;
-    render();
-  });
-
-  // Binder slot click → open detail drawer; chip click → set search
-  const binderPagesEl = document.getElementById('binderPages');
-  binderPagesEl.addEventListener('click', e => {
-    const chip = e.target.closest('.deck-empty-chip');
-    if (chip) {
-      const pill = chip.querySelector('.loc-pill');
-      if (pill) navigateToLocation(pill.dataset.locType, pill.dataset.locName);
-      return;
-    }
-    const slot = e.target.closest('.binder-slot:not(.binder-slot-empty)');
-    if (!slot) return;
-    openDetail(parseInt(slot.dataset.index, 10));
-  });
-  binderPagesEl.addEventListener('keydown', e => {
-    if (e.key !== 'Enter' && e.key !== ' ') return;
-    const slot = e.target.closest('.binder-slot:not(.binder-slot-empty)');
-    if (!slot) return;
-    e.preventDefault();
-    openDetail(parseInt(slot.dataset.index, 10));
-  });
-
-  // Keyboard arrow nav for binder pages (only when binder mode and no input focused)
-  document.addEventListener('keydown', e => {
-    if (getEffectiveShape() !== 'binder') return;
-    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-    const t = e.target;
-    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
-    if (e.key === 'ArrowLeft') {
-      if (state.binderPage > 0) { state.binderPage--; render(); }
-    } else {
-      state.binderPage++;
-      render();
-    }
-  });
-
-  // Reset binder page on filter/search changes
-  const searchInputForBinder = document.getElementById('searchInput');
-  searchInputForBinder.addEventListener('input', () => { state.binderPage = 0; });
-  ['filterSet', 'filterRarity', 'filterFoil', 'filterLocation', 'filterTag'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener('change', () => { state.binderPage = 0; });
+  bindBinderControls({
+    stateRef: state,
+    getEffectiveShapeImpl: getEffectiveShape,
+    navigateToLocationImpl: navigateToLocation,
+    openDetailImpl: openDetail,
+    renderImpl: render,
   });
 
   loadDeckGroup();
