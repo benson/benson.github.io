@@ -5,8 +5,6 @@ import {
   normalizeFinish,
   normalizeCondition,
   normalizeLanguage,
-  getCardImageUrl,
-  getCardBackImageUrl,
   ensureContainer,
   addToDeckList,
 } from './collection.js';
@@ -30,6 +28,13 @@ import {
 } from './addVoice.js';
 import { buildDeckOwnershipReadout } from './addDeckOwnership.js';
 import { buildAddPreviewCardModel, buildExistingPreviewText } from './addPreviewModel.js';
+import {
+  buildDeckListEntryFromCard,
+  buildInventoryAddEvent,
+  buildLastAddInputFromCard,
+  buildPlaceholderAddEvent,
+  buildVoiceAddEvent,
+} from './addCommitModel.js';
 
 // When a single container is the active filter, that's the user's
 // implicit context — the add flow should default to dropping cards there.
@@ -259,18 +264,7 @@ function commitVoiceAdd(card, opts, voiceCtx) {
       location: opts.location,
     };
   }
-  recordEvent({
-    type: 'add',
-    summary: 'Added ×' + opts.qty,
-    before,
-    created,
-    affectedKeys: [k],
-    cards: [{
-      name: card.name,
-      imageUrl: entry.imageUrl || '',
-      backImageUrl: entry.backImageUrl || '',
-    }],
-  });
+  recordEvent(buildVoiceAddEvent({ card, entry, opts, key: k, before, created }));
 }
 
 function showAddPreview(card, opts) {
@@ -349,16 +343,7 @@ function addCardFromPreview() {
   if (location?.type === 'deck') {
     const deck = ensureContainer({ type: 'deck', name: location.name });
     if (deck) {
-      addToDeckList(deck, {
-        scryfallId: card.id,
-        qty,
-        board: 'main',
-        name: card.name,
-        setCode: card.set,
-        cn: card.collector_number,
-        imageUrl: getCardImageUrl(card),
-        backImageUrl: getCardBackImageUrl(card),
-      });
+      addToDeckList(deck, buildDeckListEntryFromCard(card, qty));
       deck.updatedAt = Date.now();
     }
   }
@@ -366,13 +351,7 @@ function addCardFromPreview() {
   if (asPlaceholder) {
     commitCollectionChange();
     lastUsedLocation = location;
-    recordEvent({
-      type: 'add',
-      summary: 'Added {card} as placeholder to {loc:' + location.type + ':' + location.name + '}',
-      cards: [{ name: card.name, imageUrl: getCardImageUrl(card), backImageUrl: getCardBackImageUrl(card) || '' }],
-      scope: 'deck',
-      deckLocation: location.type + ':' + location.name,
-    });
+    recordEvent(buildPlaceholderAddEvent(card, location));
     showFeedback('added placeholder for ' + card.name, 'success');
     hideAddPreview();
     return;
@@ -384,28 +363,9 @@ function addCardFromPreview() {
   commitCollectionChange();
   lastUsedLocation = location;
   if (addMode === 'cn') {
-    lastAddInput = {
-      set: card.set,
-      cn: card.collector_number,
-      variant: 'regular',
-      foil: finish === 'foil',
-      condition,
-      qty,
-      location,
-    };
+    lastAddInput = buildLastAddInputFromCard({ card, finish, condition, qty, location });
   }
-  recordEvent({
-    type: 'add',
-    summary: 'Added (' + (card.set || '').toUpperCase() + ' #' + card.collector_number + ')',
-    before,
-    created,
-    affectedKeys: [k],
-    cards: [{
-      name: card.name,
-      imageUrl: entry.imageUrl || '',
-      backImageUrl: entry.backImageUrl || '',
-    }],
-  });
+  recordEvent(buildInventoryAddEvent({ card, entry, key: k, before, created }));
 
   hideAddPreview();
   if (addMode === 'name') {
