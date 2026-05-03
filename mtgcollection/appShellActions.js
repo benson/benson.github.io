@@ -66,8 +66,19 @@ export function bindAppShellActions({
       const header = event.target.closest('th[data-sort]');
       if (!header) return;
       const field = header.dataset.sort;
-      if (stateRef.sortField === field) {
-        stateRef.sortDir = stateRef.sortDir === 'asc' ? 'desc' : 'asc';
+      if (field === 'name') {
+        if (stateRef.sortField === null || (stateRef.sortField === 'name' && stateRef.sortDir === 'asc')) {
+          stateRef.sortField = 'name';
+          stateRef.sortDir = 'desc';
+        } else {
+          stateRef.sortField = null;
+          stateRef.sortDir = 'asc';
+        }
+      } else if (stateRef.sortField === field && stateRef.sortDir === 'asc') {
+        stateRef.sortDir = 'desc';
+      } else if (stateRef.sortField === field && stateRef.sortDir === 'desc') {
+        stateRef.sortField = null;
+        stateRef.sortDir = 'asc';
       } else {
         stateRef.sortField = field;
         stateRef.sortDir = 'asc';

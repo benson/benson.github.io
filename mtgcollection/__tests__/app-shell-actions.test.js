@@ -79,12 +79,23 @@ test('bindAppShellActions: view-as-list and sort controls update shell state', (
   click(win, document.querySelector('[data-view-as-list]'));
   click(win, document.querySelector('th[data-sort="name"]'));
   click(win, document.querySelector('th[data-sort="name"]'));
+  click(win, document.querySelector('th[data-sort="price"]'));
+  click(win, document.querySelector('th[data-sort="price"]'));
+  click(win, document.querySelector('th[data-sort="price"]'));
   click(win, document.querySelector('.sort-clear-btn'));
 
   assert.equal(stateRef.viewAsList, true);
   assert.equal(stateRef.sortField, null);
   assert.equal(stateRef.sortDir, 'asc');
-  assert.deepEqual(calls, ['save', 'render', 'save', 'render', 'save', 'render', 'save', 'render']);
+  assert.deepEqual(calls, [
+    'save', 'render',
+    'save', 'render',
+    'save', 'render',
+    'save', 'render',
+    'save', 'render',
+    'save', 'render',
+    'save', 'render',
+  ]);
 });
 
 test('bindAppShellActions: fab/backdrop/escape coordinate the right drawer', () => {

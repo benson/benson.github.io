@@ -119,7 +119,7 @@ export function renderDeckNotesMode(model) {
 
 export function renderDeckSampleHandSection() {
   return `<section class="deck-sample-hand" id="deckSampleHand">
-    <div class="deck-board-header"><h3>sample hand</h3><div><button class="btn btn-secondary" type="button" data-sample-hand="draw">new hand</button><button class="btn btn-secondary" type="button" data-sample-hand="mulligan">mulligan</button></div></div>
+    <div class="deck-board-header"><h3>sample hand</h3><div><button class="btn btn-secondary" type="button" data-sample-hand="draw">new hand</button></div></div>
     <div class="deck-hand-cards" id="deckHandCards"></div>
   </section>`;
 }

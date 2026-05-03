@@ -255,11 +255,10 @@ export function bindDeckWorkspaceInteractions({
 
     const sampleButton = event.target.closest('[data-sample-hand]');
     if (sampleButton) {
-      const size = sampleButton.dataset.sampleHand === 'mulligan' ? 6 : 7;
       stateRef.deckSampleHand = buildDeckSampleHandImpl({
         deck: currentDeckContainerImpl(),
         collection: stateRef.collection,
-        handSize: size,
+        handSize: 7,
       });
       stateRef.deckMode = 'hands';
       saveDeckPrefsImpl();

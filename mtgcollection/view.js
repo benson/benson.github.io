@@ -211,10 +211,11 @@ function syncViewAsListToggles() {
 function syncSortIndicator() {
   document.querySelectorAll('thead th[data-sort]').forEach(th => {
     const field = th.dataset.sort;
-    const isActive = !!state.sortField && field === state.sortField;
+    const effectiveField = state.sortField || 'name';
+    const isActive = field === effectiveField;
     th.classList.toggle('sort-active', isActive);
     const arrowEl = th.querySelector('.sort-arrow');
-    if (arrowEl) arrowEl.textContent = state.sortDir === 'desc' ? '↓' : '↑';
+    if (arrowEl) arrowEl.textContent = isActive && state.sortDir === 'desc' ? '↓' : '↑';
   });
 }
 

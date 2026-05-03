@@ -160,7 +160,7 @@ test('bindDeckWorkspaceInteractions: handles form changes, metadata submit, hand
       </select>
       <input data-deck-format-custom name="formatCustom" value="oathbreaker" hidden>
     </form>
-    <button data-sample-hand="mulligan"></button>
+    <button data-sample-hand="draw"></button>
     <form id="deckExportForm"></form>
     <button data-export-action="download"></button>
     <button data-copy-decklist></button>
@@ -209,7 +209,7 @@ test('bindDeckWorkspaceInteractions: handles form changes, metadata submit, hand
   assert.equal(deckColumnsEl.querySelector('#deckMetadataForm').dataset.format, 'oathbreaker');
   assert.equal(deckColumnsEl.querySelector('[data-deck-format-custom]').hidden, false);
   assert.equal(stateRef.deckShowPrices, false);
-  assert.deepEqual(stateRef.deckSampleHand, { drawn: 6, deck: 'breya' });
+  assert.deepEqual(stateRef.deckSampleHand, { drawn: 7, deck: 'breya' });
   assert.equal(stateRef.deckMode, 'hands');
   assert.ok(calls.some(call => call[0] === 'metadata'));
   assert.ok(calls.some(call => call[0] === 'feedback' && /2 commander cards/.test(call[1])));

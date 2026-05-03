@@ -307,36 +307,6 @@ function renderHistoryList() {
   for (const t of historyTargets) t.list.innerHTML = html;
 }
 
-function csvCell(v) {
-  const s = v == null ? '' : String(v);
-  return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-}
-
-export function exportLogCsv() {
-  const header = 'timestamp,iso,type,summary,affected_count,undone,dismissed';
-  const rows = log.map(ev => [
-    csvCell(ev.ts),
-    csvCell(formatTsIso(ev.ts)),
-    csvCell(ev.type),
-    csvCell(ev.summary),
-    csvCell((ev.affectedKeys || []).length || (ev.before || []).length || (ev.created || []).length),
-    csvCell(ev.undone ? 'true' : 'false'),
-    csvCell(ev.dismissed ? 'true' : 'false'),
-  ].join(','));
-  return header + '\n' + rows.join('\n');
-}
-
-function downloadCsv() {
-  const csv = exportLogCsv();
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'mtgcollection-history-' + new Date().toISOString().slice(0, 10) + '.csv';
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 export function initChangelog(options = {}) {
   configureChangelogActions(options);
   historyTargets = [];
@@ -360,8 +330,6 @@ export function initChangelog(options = {}) {
         if (locType && locName) navigateToLocationHandler(locType, locName);
       }
     });
-    const exportBtn = details.querySelector('.history-export-btn, #exportHistoryBtn');
-    if (exportBtn) exportBtn.addEventListener('click', downloadCsv);
     const clearBtn = details.querySelector('.history-clear-btn, #clearHistoryBtn');
     if (clearBtn) {
       clearBtn.addEventListener('click', () => {

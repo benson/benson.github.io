@@ -48,6 +48,15 @@ test('mtgcollection document declares UTF-8 before app content', () => {
   assert.match(html, /<script\s+type="module"\s+src="\.\/app\.js"><\/script>/);
 });
 
+test('history UI does not expose CSV export controls', () => {
+  const html = fs.readFileSync(path.join(projectRoot, 'mtgcollection', 'index.html'), 'utf8');
+  const changelog = fs.readFileSync(path.join(projectRoot, 'mtgcollection', 'changelog.js'), 'utf8');
+
+  assert.doesNotMatch(html, /exportHistoryBtn|history-export-btn/);
+  assert.doesNotMatch(html, /history[^<]*export csv|export csv[^<]*history/i);
+  assert.doesNotMatch(changelog, /exportLogCsv|downloadCsv/);
+});
+
 test('shared ESM files declare their module package boundary', () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(projectRoot, 'shared', 'package.json'), 'utf8'));
 
