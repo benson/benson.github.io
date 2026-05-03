@@ -1,8 +1,6 @@
 import {
+  applyScryfallCardResolution,
   collectionKey,
-  getCardBackImageUrl,
-  getCardImageUrl,
-  getUsdPrice,
   makeEntry,
 } from './collection.js';
 
@@ -20,20 +18,7 @@ export function buildCollectionEntryFromCard(card, opts) {
     scryfallId: card.id,
     rarity: card.rarity || '',
   });
-  entry.resolvedName = card.name;
-  entry.cmc = card.cmc ?? null;
-  entry.colors = card.colors || (card.card_faces?.[0]?.colors) || [];
-  entry.colorIdentity = card.color_identity || [];
-  entry.typeLine = card.type_line || (card.card_faces?.map(f => f.type_line).filter(Boolean).join(' // ') || '');
-  entry.oracleText = card.oracle_text || (card.card_faces?.map(f => f.oracle_text).filter(Boolean).join(' // ') || '');
-  entry.legalities = card.legalities || {};
-  entry.scryfallUri = card.scryfall_uri;
-  entry.imageUrl = getCardImageUrl(card);
-  entry.backImageUrl = getCardBackImageUrl(card);
-  const priced = getUsdPrice(card, entry.finish);
-  entry.price = priced.price;
-  entry.priceFallback = priced.fallback;
-  return entry;
+  return applyScryfallCardResolution(entry, card, { priceMode: 'replace' });
 }
 
 export function mergeEntryIntoCollection(collection, entry) {

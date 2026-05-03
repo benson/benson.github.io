@@ -1,7 +1,7 @@
 import test, { afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { Window } from 'happy-dom';
-import { state, DECK_GROUP_KEY, DECK_VIEW_PREFS_KEY } from '../state.js';
+import { resetState, state, DECK_GROUP_KEY, DECK_VIEW_PREFS_KEY } from '../state.js';
 import {
   currentDeckPrefs,
   deckExportOptionsFromForm,
@@ -14,12 +14,7 @@ import {
 const previousFormData = globalThis.FormData;
 
 afterEach(() => {
-  state.deckGroupBy = 'type';
-  state.deckMode = 'visual';
-  state.deckBoardFilter = 'all';
-  state.deckCardSize = 'medium';
-  state.deckShowPrices = true;
-  state.deckOwnershipView = 'owned';
+  resetState();
   globalThis.FormData = previousFormData;
 });
 

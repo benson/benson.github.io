@@ -1,15 +1,13 @@
 import { state, SCRYFALL_API } from './state.js';
 import { showFeedback, hideFeedback } from './feedback.js';
 import {
+  applyScryfallCardResolution,
   makeEntry,
   collectionKey,
   normalizeFinish,
   normalizeCondition,
   normalizeLanguage,
   normalizeTag,
-  getUsdPrice,
-  getCardImageUrl,
-  getCardBackImageUrl,
   normalizeDeckBoard,
   normalizeLocation,
   ensureContainer,
@@ -238,28 +236,7 @@ async function resolveCards(entries) {
               || found.find(c => c.name.toLowerCase().includes(ident.name.toLowerCase()));
         }
         if (card) {
-          entry.scryfallId = card.id;
-          entry.resolvedName = card.name;
-          entry.setCode = card.set;
-          entry.setName = card.set_name;
-          entry.cn = card.collector_number;
-          entry.rarity = entry.rarity || card.rarity;
-          entry.cmc = card.cmc ?? null;
-          entry.colors = card.colors || (card.card_faces?.[0]?.colors) || [];
-          entry.colorIdentity = card.color_identity || [];
-          entry.typeLine = card.type_line || (card.card_faces?.map(f => f.type_line).filter(Boolean).join(' // ') || '');
-          entry.oracleText = card.oracle_text || (card.card_faces?.map(f => f.oracle_text).filter(Boolean).join(' // ') || '');
-          entry.legalities = card.legalities || {};
-          entry.scryfallUri = card.scryfall_uri;
-          entry.imageUrl = getCardImageUrl(card);
-          entry.backImageUrl = getCardBackImageUrl(card);
-          if (!entry.price) {
-            const priced = getUsdPrice(card, entry.finish);
-            entry.price = priced.price;
-            entry.priceFallback = priced.fallback;
-          } else {
-            entry.priceFallback = Boolean(entry.priceFallback);
-          }
+          applyScryfallCardResolution(entry, card);
           resolved++;
         }
       }

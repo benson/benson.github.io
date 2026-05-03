@@ -1,6 +1,7 @@
 ﻿import { state, STORAGE_KEY, BINDER_SIZE_KEY } from './state.js';
 import { BINDER_SIZES } from './binder.js';
 import { normalizeLocation, ensureContainersForCollection } from './collection.js';
+import { applyLoadedState } from './state.js';
 import { normalizeStoredAppData, serializeAppState } from './storageSchema.js';
 import { showFeedback } from './feedback.js';
 
@@ -24,15 +25,17 @@ export function loadFromStorage() {
     const data = normalizeStoredAppData(JSON.parse(raw));
     if (!data) return false;
 
-    state.collection = data.collection;
-    state.containers = data.containers;
+    applyLoadedState({
+      collection: data.collection,
+      containers: data.containers,
+      viewMode: data.ui.viewMode,
+      activeLocation: null,
+      viewAsList: data.ui.viewAsList,
+      selectedFormat: data.ui.selectedFormat,
+      sortField: data.ui.sortField,
+      sortDir: data.ui.sortDir,
+    });
     ensureContainersForCollection();
-    state.viewMode = data.ui.viewMode;
-    state.activeLocation = null;
-    state.viewAsList = data.ui.viewAsList;
-    state.selectedFormat = data.ui.selectedFormat;
-    state.sortField = data.ui.sortField;
-    state.sortDir = data.ui.sortDir;
     try {
       const v = localStorage.getItem(BINDER_SIZE_KEY);
       if (v && Object.prototype.hasOwnProperty.call(BINDER_SIZES, v)) state.binderSize = v;

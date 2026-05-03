@@ -1,6 +1,6 @@
 import test, { afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { state } from '../state.js';
+import { resetState, state } from '../state.js';
 import { ensureContainer } from '../collection.js';
 import {
   deleteContainerAndUnlocateCardsCommand,
@@ -9,12 +9,6 @@ import {
   removeDeckCardFromDeckCommand,
   renameContainerCommand,
 } from '../commands.js';
-
-function resetState() {
-  state.collection = [];
-  state.containers = {};
-  state.deckSampleHand = null;
-}
 
 function deckWithList() {
   const deck = ensureContainer({ type: 'deck', name: 'breya' });

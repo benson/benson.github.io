@@ -330,31 +330,74 @@ export function normalizeTags(rawList) {
   return Array.from(out);
 }
 
+function normalizeNullableNumber(raw) {
+  if (raw == null || raw === '') return null;
+  const n = typeof raw === 'number' ? raw : parseFloat(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+function normalizeStringArray(raw, fallback = null) {
+  if (!Array.isArray(raw)) return fallback;
+  return raw.map(v => String(v)).filter(Boolean);
+}
+
+function normalizeObject(raw, fallback = {}) {
+  return raw && typeof raw === 'object' && !Array.isArray(raw) ? { ...raw } : fallback;
+}
+
 // ---- Entry shape ----
-export function makeEntry(data) {
-  return {
-    name: data.name || '',
-    setCode: (data.setCode || '').toLowerCase(),
-    setName: data.setName || '',
-    cn: data.cn || '',
+export function normalizeCollectionEntry(data = {}, { preserveResolvedFields = false } = {}) {
+  const location = normalizeLocation(data.location);
+  const entry = {
+    name: String(data.name || ''),
+    setCode: String(data.setCode || '').toLowerCase(),
+    setName: String(data.setName || ''),
+    cn: String(data.cn || ''),
     finish: normalizeFinish(data.finish),
     qty: Math.max(1, parseInt(data.qty, 10) || 1),
     condition: normalizeCondition(data.condition),
     language: normalizeLanguage(data.language),
-    location: normalizeLocation(data.location),
-    scryfallId: data.scryfallId || '',
-    rarity: (data.rarity || '').toLowerCase(),
-    price: parseFloat(data.price) || null,
+    location,
+    scryfallId: String(data.scryfallId || ''),
+    rarity: String(data.rarity || '').toLowerCase(),
+    price: normalizeNullableNumber(data.price),
     priceFallback: Boolean(data.priceFallback),
     tags: normalizeTags(data.tags),
-    deckBoard: normalizeLocation(data.location)?.type === 'deck' ? normalizeDeckBoard(data.deckBoard) : undefined,
+    deckBoard: location?.type === 'deck' ? normalizeDeckBoard(data.deckBoard) : undefined,
     imageUrl: null,
+    backImageUrl: null,
     cmc: null,
     colors: null,
+    colorIdentity: [],
     typeLine: null,
+    oracleText: '',
+    legalities: {},
     resolvedName: null,
     scryfallUri: null,
   };
+
+  if (preserveResolvedFields) {
+    entry.imageUrl = data.imageUrl == null ? null : String(data.imageUrl);
+    entry.backImageUrl = data.backImageUrl == null ? null : String(data.backImageUrl);
+    entry.cmc = normalizeNullableNumber(data.cmc);
+    entry.colors = normalizeStringArray(data.colors, data.colors == null ? null : []);
+    entry.colorIdentity = normalizeStringArray(data.colorIdentity, []);
+    entry.typeLine = data.typeLine == null ? null : String(data.typeLine);
+    entry.oracleText = data.oracleText == null ? '' : String(data.oracleText);
+    entry.legalities = normalizeObject(data.legalities);
+    entry.resolvedName = data.resolvedName == null ? null : String(data.resolvedName);
+    entry.scryfallUri = data.scryfallUri == null ? null : String(data.scryfallUri);
+    if (data._source && typeof data._source === 'object' && !Array.isArray(data._source)) {
+      entry._source = { ...data._source };
+    }
+  }
+
+  if (location?.type !== 'deck') delete entry.deckBoard;
+  return entry;
+}
+
+export function makeEntry(data) {
+  return normalizeCollectionEntry(data);
 }
 
 // ---- Keying + coalescing ----
@@ -507,6 +550,33 @@ export function getCardBackImageUrl(card) {
     return faces[1].image_uris.normal || faces[1].image_uris.small;
   }
   return null;
+}
+
+export function applyScryfallCardResolution(entry, card, { priceMode = 'fill' } = {}) {
+  if (!entry || !card) return entry;
+  entry.scryfallId = card.id || entry.scryfallId || '';
+  entry.resolvedName = card.name || entry.resolvedName || entry.name || '';
+  entry.setCode = card.set || entry.setCode || '';
+  entry.setName = card.set_name || entry.setName || '';
+  entry.cn = card.collector_number || entry.cn || '';
+  entry.rarity = String(entry.rarity || card.rarity || '').toLowerCase();
+  entry.cmc = card.cmc ?? null;
+  entry.colors = card.colors || (card.card_faces?.[0]?.colors) || [];
+  entry.colorIdentity = card.color_identity || [];
+  entry.typeLine = card.type_line || (card.card_faces?.map(f => f.type_line).filter(Boolean).join(' // ') || '');
+  entry.oracleText = card.oracle_text || (card.card_faces?.map(f => f.oracle_text).filter(Boolean).join(' // ') || '');
+  entry.legalities = card.legalities || {};
+  entry.scryfallUri = card.scryfall_uri || '';
+  entry.imageUrl = getCardImageUrl(card);
+  entry.backImageUrl = getCardBackImageUrl(card);
+  if (priceMode === 'replace' || !entry.price) {
+    const priced = getUsdPrice(card, entry.finish);
+    entry.price = priced.price;
+    entry.priceFallback = priced.fallback;
+  } else {
+    entry.priceFallback = Boolean(entry.priceFallback);
+  }
+  return entry;
 }
 
 export function biggerImageUrl(url) {

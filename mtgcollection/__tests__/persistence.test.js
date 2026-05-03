@@ -2,7 +2,7 @@ import test, { afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { loadFromStorage, save } from '../persistence.js';
 import { APP_STORAGE_SCHEMA_VERSION } from '../storageSchema.js';
-import { state, BINDER_SIZE_KEY, STORAGE_KEY } from '../state.js';
+import { resetState, state, BINDER_SIZE_KEY, STORAGE_KEY } from '../state.js';
 
 const originalLocalStorage = globalThis.localStorage;
 
@@ -26,29 +26,6 @@ function installStorage(initial = {}) {
   const storage = makeStorage(initial);
   globalThis.localStorage = storage;
   return storage;
-}
-
-function resetState() {
-  state.collection = [];
-  state.containers = {};
-  state.viewMode = 'collection';
-  state.activeLocation = null;
-  state.viewAsList = false;
-  state.selectedFormat = '';
-  state.selectedKeys = new Set();
-  state.detailIndex = -1;
-  state.deckGroupBy = 'type';
-  state.deckMode = 'visual';
-  state.deckBoardFilter = 'all';
-  state.deckCardSize = 'medium';
-  state.deckShowPrices = true;
-  state.deckOwnershipView = 'building';
-  state.deckSampleHand = null;
-  state.binderSize = '4x3';
-  state.binderPage = 0;
-  state.sortField = null;
-  state.sortDir = 'asc';
-  state.shareSnapshot = null;
 }
 
 afterEach(() => {

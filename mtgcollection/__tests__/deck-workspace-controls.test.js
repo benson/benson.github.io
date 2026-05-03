@@ -1,15 +1,9 @@
 import test, { afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { state } from '../state.js';
+import { resetState, state } from '../state.js';
 import { renderDeckExportPanel, renderDeckWorkspaceControls } from '../views/deckHeaderView.js';
 
-afterEach(() => {
-  state.deckMode = 'visual';
-  state.deckBoardFilter = 'all';
-  state.deckGroupBy = 'type';
-  state.deckCardSize = 'medium';
-  state.deckShowPrices = true;
-});
+afterEach(() => resetState());
 
 test('renderDeckWorkspaceControls: reflects saved deck mode, board, and view prefs', () => {
   state.deckMode = 'stats';

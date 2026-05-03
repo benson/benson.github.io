@@ -1,12 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  applyScryfallCardResolution,
   normalizeFinish,
   normalizeCondition,
   normalizeLocation,
   normalizeLanguage,
   normalizeTag,
   normalizeTags,
+  normalizeCollectionEntry,
   makeEntry,
   collectionKey,
   coalesceCollection,
@@ -398,6 +400,69 @@ test('makeEntry: missing tags defaults to empty array', () => {
   const e = makeEntry({});
   assert.deepEqual(e.tags, []);
   assert.ok(Array.isArray(e.tags));
+});
+
+test('normalizeCollectionEntry: preserves resolved fields only when requested', () => {
+  const raw = {
+    name: 'Sol Ring',
+    imageUrl: 'front.jpg',
+    backImageUrl: 'back.jpg',
+    cmc: '1',
+    colors: ['C'],
+    colorIdentity: ['C'],
+    typeLine: 'Artifact',
+    oracleText: 'Add two colorless mana.',
+    legalities: { commander: 'legal' },
+    resolvedName: 'Sol Ring',
+    scryfallUri: 'https://scryfall.test/card',
+    _source: { canonical: { Name: 'Sol Ring' } },
+  };
+
+  assert.equal(normalizeCollectionEntry(raw).imageUrl, null);
+
+  const preserved = normalizeCollectionEntry(raw, { preserveResolvedFields: true });
+  assert.equal(preserved.imageUrl, 'front.jpg');
+  assert.equal(preserved.backImageUrl, 'back.jpg');
+  assert.equal(preserved.cmc, 1);
+  assert.deepEqual(preserved.colors, ['C']);
+  assert.deepEqual(preserved.colorIdentity, ['C']);
+  assert.equal(preserved.typeLine, 'Artifact');
+  assert.equal(preserved.oracleText, 'Add two colorless mana.');
+  assert.deepEqual(preserved.legalities, { commander: 'legal' });
+  assert.deepEqual(preserved._source, { canonical: { Name: 'Sol Ring' } });
+});
+
+test('applyScryfallCardResolution: enriches entries from one shared Scryfall mapper', () => {
+  const entry = makeEntry({ name: 'Sol Ring', finish: 'foil', price: '' });
+  applyScryfallCardResolution(entry, {
+    id: 'abc',
+    name: 'Sol Ring',
+    set: 'cmm',
+    set_name: 'Commander Masters',
+    collector_number: '410',
+    rarity: 'uncommon',
+    cmc: 1,
+    colors: [],
+    color_identity: [],
+    type_line: 'Artifact',
+    oracle_text: 'Add two colorless mana.',
+    legalities: { commander: 'legal' },
+    scryfall_uri: 'https://scryfall.test/card',
+    image_uris: { normal: 'front.jpg' },
+    prices: { usd: '1.00', usd_foil: '2.50' },
+  });
+
+  assert.equal(entry.scryfallId, 'abc');
+  assert.equal(entry.resolvedName, 'Sol Ring');
+  assert.equal(entry.setCode, 'cmm');
+  assert.equal(entry.setName, 'Commander Masters');
+  assert.equal(entry.cn, '410');
+  assert.equal(entry.rarity, 'uncommon');
+  assert.equal(entry.typeLine, 'Artifact');
+  assert.equal(entry.oracleText, 'Add two colorless mana.');
+  assert.equal(entry.imageUrl, 'front.jpg');
+  assert.equal(entry.price, 2.5);
+  assert.equal(entry.priceFallback, false);
 });
 
 // ---- collectionKey ignores tags ----

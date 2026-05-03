@@ -1,6 +1,6 @@
 import test, { afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { state } from '../state.js';
+import { resetState, state } from '../state.js';
 import {
   getEffectiveShape,
   readActiveLocationFromFilter,
@@ -8,13 +8,7 @@ import {
   setTopLevelViewMode,
 } from '../routeState.js';
 
-afterEach(() => {
-  state.viewMode = 'collection';
-  state.activeLocation = null;
-  state.viewAsList = false;
-  state.binderPage = 0;
-  state.shareSnapshot = null;
-});
+afterEach(() => resetState());
 
 test('setActiveContainerRoute: deck containers enter the deck workspace', () => {
   const loc = setActiveContainerRoute({ type: 'deck', name: 'breya' }, { syncFilter: false });
