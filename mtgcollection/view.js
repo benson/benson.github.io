@@ -1,28 +1,23 @@
 import { state } from './state.js';
 import { esc, showFeedback } from './feedback.js';
 import {
-  collectionKey,
-  normalizeLocation,
-  normalizeTag,
   allCollectionLocations,
   allContainers,
   ensureContainer,
   formatLocationLabel,
   LOCATION_TYPES,
-  DEFAULT_LOCATION_TYPE,
   normalizeDeckBoard,
   defaultDeckMetadata,
   makeEntry,
   getUsdPrice,
 } from './collection.js';
-import { commitCollectionChange } from './commit.js';
 import { save } from './persistence.js';
 import { openDetail, populateFilters } from './detail.js';
 import { setSelectedLocation } from './add.js';
 import { filteredSorted, syncClearFiltersBtn, hasActiveFilter } from './search.js';
 import { groupDeck, firstCardForPanel, splitDeckBoards, deckStats, renderDeckStatsHtml } from './stats.js';
 import { updateBulkBar } from './bulk.js';
-import { recordEvent, captureBefore, locationDiffSummary, setHistoryScope } from './changelog.js';
+import { recordEvent, setHistoryScope } from './changelog.js';
 import {
   loadDeckGroup,
   loadDeckPrefs,
@@ -81,6 +76,7 @@ import { buildDeckSampleHand, renderDeckSampleHandPanel } from './deckSampleHand
 import { copyDecklist, runDeckExportAction } from './deckExportActions.js';
 import { saveDeckMetadataFromForm } from './deckMetadataForm.js';
 import { bindLocationHomeInteractions } from './locationHomeActions.js';
+import { bindListRowInteractions } from './listRowActions.js';
 import {
   closeDeckCardMenus,
   moveFocusInDeckCardMenu,
@@ -109,91 +105,6 @@ function currentDeckScope() {
     return { type: 'deck', name: state.shareSnapshot.container.name };
   }
   return getActiveLocationOfType('deck');
-}
-
-function commitRowLocationFromPicker(input) {
-  const index = parseInt(input.dataset.index, 10);
-  const c = state.collection[index];
-  if (!c) return;
-  const row = input.closest('tr');
-  const typeSel = row && row.querySelector('.loc-picker-type');
-  const type = typeSel ? typeSel.value : DEFAULT_LOCATION_TYPE;
-  const name = input.value;
-  const newLoc = normalizeLocation({ type, name });
-  if (!newLoc) { input.value = ''; return; }
-  const beforeKey = collectionKey(c);
-  const beforeSnap = captureBefore([beforeKey]);
-  c.location = newLoc;
-  const cardName = c.resolvedName || c.name || 'card';
-  recordEvent({
-    type: 'edit',
-    summary: locationDiffSummary(null, newLoc),
-    before: beforeSnap,
-    affectedKeys: [beforeKey],
-    cards: [{ name: cardName, imageUrl: c.imageUrl || '', backImageUrl: c.backImageUrl || '' }],
-  });
-  commitCollectionChange({ coalesce: true });
-}
-
-function clearRowLocation(index) {
-  const c = state.collection[index];
-  if (!c || !c.location) return;
-  const beforeLoc = c.location;
-  const beforeKey = collectionKey(c);
-  const beforeSnap = captureBefore([beforeKey]);
-  c.location = null;
-  const cardName = c.resolvedName || c.name || 'card';
-  recordEvent({
-    type: 'edit',
-    summary: locationDiffSummary(beforeLoc, null),
-    before: beforeSnap,
-    affectedKeys: [beforeKey],
-    cards: [{ name: cardName, imageUrl: c.imageUrl || '', backImageUrl: c.backImageUrl || '' }],
-  });
-  commitCollectionChange({ coalesce: true });
-}
-
-function commitRowTag(input) {
-  const index = parseInt(input.dataset.index, 10);
-  const c = state.collection[index];
-  if (!c) return;
-  const tag = normalizeTag(input.value);
-  if (!tag) { input.value = ''; return; }
-  if (!Array.isArray(c.tags)) c.tags = [];
-  if (c.tags.includes(tag)) {
-    showFeedback('already tagged ' + tag, 'info');
-    input.value = '';
-    return;
-  }
-  const beforeKey = collectionKey(c);
-  const beforeSnap = captureBefore([beforeKey]);
-  c.tags.push(tag);
-  const name = c.resolvedName || c.name || 'card';
-  recordEvent({
-    type: 'edit',
-    summary: 'Tagged {card} +' + tag,
-    before: beforeSnap,
-    affectedKeys: [beforeKey],
-    cards: [{ name, imageUrl: c.imageUrl || '', backImageUrl: c.backImageUrl || '' }],
-  });
-  commitCollectionChange({ coalesce: true });
-}
-
-function removeRowTag(index, tag) {
-  const c = state.collection[index];
-  if (!c || !Array.isArray(c.tags) || !c.tags.includes(tag)) return;
-  const beforeKey = collectionKey(c);
-  const beforeSnap = captureBefore([beforeKey]);
-  c.tags = c.tags.filter(t => t !== tag);
-  const name = c.resolvedName || c.name || 'card';
-  recordEvent({
-    type: 'edit',
-    summary: 'Tagged {card} -' + tag,
-    before: beforeSnap,
-    affectedKeys: [beforeKey],
-    cards: [{ name, imageUrl: c.imageUrl || '', backImageUrl: c.backImageUrl || '' }],
-  });
-  commitCollectionChange({ coalesce: true });
 }
 
 let locationsEl, listBodyEl, collectionSection, emptyState;
@@ -924,64 +835,9 @@ export function initView() {
     renderImpl: render,
   });
 
-  listBodyEl.addEventListener('click', e => {
-    const removeTagBtn = e.target.closest('.row-tag-remove');
-    if (removeTagBtn) {
-      e.preventDefault();
-      removeRowTag(parseInt(removeTagBtn.dataset.index, 10), removeTagBtn.dataset.tag);
-      return;
-    }
-    const removeLocBtn = e.target.closest('.loc-pill-remove');
-    if (removeLocBtn) {
-      e.preventDefault();
-      clearRowLocation(parseInt(removeLocBtn.dataset.index, 10));
-      return;
-    }
-    const nameBtn = e.target.closest('.card-name-button');
-    if (nameBtn) {
-      openDetail(parseInt(nameBtn.dataset.index, 10));
-      return;
-    }
-    if (e.target.closest('input, select, button, a, .loc-pill')) return;
-    const trigger = e.target.closest('.detail-trigger');
-    if (!trigger || !listBodyEl.contains(trigger)) return;
-    openDetail(parseInt(trigger.dataset.index, 10));
-  });
-
-  listBodyEl.addEventListener('keydown', e => {
-    if (e.target.classList.contains('row-tag-input')) {
-      if (e.key === 'Enter' || e.key === ',') {
-        e.preventDefault();
-        commitRowTag(e.target);
-      } else if (e.key === 'Escape') {
-        e.target.value = '';
-        e.target.blur();
-      }
-      return;
-    }
-    if (e.target.classList.contains('loc-picker-name')) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        commitRowLocationFromPicker(e.target);
-      } else if (e.key === 'Escape') {
-        e.target.value = '';
-        e.target.blur();
-      }
-    }
-  });
-
-  listBodyEl.addEventListener('change', e => {
-    if (e.target.classList.contains('row-check')) {
-      // bulk module handles this
-      return;
-    }
-    if (e.target.classList.contains('row-tag-input')) {
-      if (e.target.value.trim()) commitRowTag(e.target);
-      return;
-    }
-    if (e.target.classList.contains('loc-picker-name')) {
-      if (e.target.value.trim()) commitRowLocationFromPicker(e.target);
-    }
+  bindListRowInteractions({
+    listBodyEl,
+    openDetailImpl: openDetail,
   });
 
   // Clicking a `.loc-pill` (in list, grid, or anywhere) navigates to that
