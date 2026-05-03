@@ -14,9 +14,6 @@ import {
   normalizeCondition,
   normalizeLanguage,
   normalizeLocation,
-  formatLocationLabel,
-  locationKey,
-  allCollectionLocations,
   getCardImageUrl,
   getCardBackImageUrl,
   getUsdPrice,
@@ -25,11 +22,11 @@ import {
 } from './collection.js';
 import { commitCollectionChange } from './commit.js';
 import { showImageLightbox } from './ui/cardPreview.js';
-import { LOC_ICONS } from './ui/locationUi.js';
 import { recordEvent } from './changelog.js';
 import { getMultiselectValue } from './multiselect.js';
 import { parseVoiceText } from './voiceParser.js';
 import { getActiveLocation } from './routeState.js';
+import { createAddLocationPicker } from './addLocationPicker.js';
 
 // When a single container is the active filter, that's the user's
 // implicit context — the add flow should default to dropping cards there.
@@ -105,9 +102,6 @@ const addLanguageSel = {
   },
 };
 
-const ADD_LOCATION_TYPES = ['deck', 'binder', 'box'];
-const ADD_LOCATION_DEFAULT = 'box';
-
 function renderFinishRadios(card) {
   const wrap = document.getElementById('addFinish');
   if (!wrap) return;
@@ -146,13 +140,13 @@ function renderLanguageRadios(selected) {
 }
 
 // ---- Location picker (existing-pills + inline-new) ----
-let selectedLocation = null;
-let locationNewMode = false;
+let locationPicker = null;
+let pendingSelectedLocation = null;
 
 function syncDeckAddOptions() {
   const wrap = document.getElementById('addDeckOptions');
   if (!wrap) return;
-  const loc = readPickerLocation();
+  const loc = locationPicker?.readLocation() || null;
   const isDeck = loc?.type === 'deck';
   wrap.classList.toggle('hidden', !isDeck);
   if (!isDeck) return;
@@ -185,110 +179,10 @@ function syncDeckAddOptions() {
   }
 }
 
-function renderLocationPicker() {
-  const pillsEl = document.getElementById('addLocationPills');
-  const newBoxEl = document.getElementById('addLocationNewBox');
-  if (!pillsEl || !newBoxEl) {
-    syncDeckAddOptions();
-    return;
-  }
-  const TYPE_HEADERS = { deck: 'decks', binder: 'binders', box: 'boxes' };
-  const locations = allCollectionLocations();
-  const html = [];
-  for (const type of ADD_LOCATION_TYPES) {
-    const ofType = locations.filter(l => l.type === type);
-    if (ofType.length === 0) continue;
-    html.push(`<span class="loc-group-label">${TYPE_HEADERS[type]}</span>`);
-    for (const loc of ofType) {
-      const isSelected = !locationNewMode && selectedLocation
-        && locationKey(selectedLocation) === locationKey(loc);
-      html.push(`<button class="location-pill-btn${isSelected ? ' is-selected' : ''}" type="button" data-loc-type="${esc(loc.type)}" data-loc-name="${esc(loc.name)}">
-        <span class="loc-pill loc-pill-${esc(loc.type)}">${LOC_ICONS[loc.type]}<span>${esc(loc.name)}</span></span>
-      </button>`);
-    }
-  }
-  html.push(`<span class="loc-pills-row-break" aria-hidden="true"></span>`);
-  html.push(`<button class="location-pill-new${locationNewMode ? ' is-selected' : ''}" type="button" id="addLocationNewBtn">+ new location</button>`);
-  pillsEl.innerHTML = html.join('');
-  newBoxEl.classList.toggle('hidden', !locationNewMode);
-  syncDeckAddOptions();
-}
-
 export function setSelectedLocation(loc) {
-  if (loc && loc.type && loc.name) {
-    selectedLocation = { type: loc.type, name: loc.name };
-    locationNewMode = false;
-  } else {
-    selectedLocation = null;
-  }
-  renderLocationPicker();
+  if (locationPicker) locationPicker.setSelectedLocation(loc);
+  else pendingSelectedLocation = loc;
 }
-
-function setLocationNewMode(seed) {
-  locationNewMode = true;
-  selectedLocation = null;
-  if (seed && seed.type) addLocationType.value = seed.type;
-  const nameInput = document.getElementById('addLocationName');
-  if (nameInput) nameInput.value = seed && seed.name ? seed.name : '';
-  renderLocationPicker();
-  if (nameInput) nameInput.focus();
-}
-
-function readPickerLocation() {
-  if (locationNewMode) {
-    return normalizeLocation({ type: addLocationType.value, name: addLocationNameInput.value });
-  }
-  return selectedLocation ? normalizeLocation(selectedLocation) : null;
-}
-
-function seedLocationPicker(seed) {
-  const seedLoc = normalizeLocation(seed);
-  if (!seedLoc) {
-    selectedLocation = null;
-    locationNewMode = false;
-    renderLocationPicker();
-    return;
-  }
-  const existing = allCollectionLocations().find(l => locationKey(l) === locationKey(seedLoc));
-  if (existing) {
-    setSelectedLocation(seedLoc);
-  } else {
-    setLocationNewMode(seedLoc);
-  }
-}
-
-function buildLocationTypeRadios() {
-  const wrap = document.getElementById('addLocationTypeRadios');
-  if (!wrap) return;
-  wrap.innerHTML = ADD_LOCATION_TYPES.map(t => `<label class="loc-type-radio${t === ADD_LOCATION_DEFAULT ? ' is-selected' : ''}">
-    <input type="radio" name="addLocationType" value="${t}"${t === ADD_LOCATION_DEFAULT ? ' checked' : ''}>
-    <span class="loc-pill loc-pill-${t}">${LOC_ICONS[t]}<span>${t}</span></span>
-  </label>`).join('');
-  wrap.addEventListener('change', e => {
-    if (e.target.name !== 'addLocationType') return;
-    wrap.querySelectorAll('.loc-type-radio').forEach(l => {
-      const r = l.querySelector('input');
-      l.classList.toggle('is-selected', !!(r && r.checked));
-    });
-  });
-}
-
-// Typed-pill radio group for the location type. Mimics a <select>'s `.value`
-// API so existing call sites continue to read/write a plain string.
-const addLocationType = {
-  get value() {
-    const r = document.querySelector('input[name="addLocationType"]:checked');
-    return r ? r.value : 'box';
-  },
-  set value(v) {
-    document.querySelectorAll('input[name="addLocationType"]').forEach(r => {
-      const checked = r.value === v;
-      r.checked = checked;
-      const wrap = r.closest('.loc-type-radio');
-      if (wrap) wrap.classList.toggle('is-selected', checked);
-    });
-  },
-};
 let addBtn, addCancelBtn, addMicBtn, addMicStatus, addAutoAddEl;
 let addPrintingPickerEl, addPrintingListEl, addPrintingCaptionEl;
 
@@ -646,10 +540,7 @@ function showAddPreview(card, opts) {
   const preserveFields = !!(opts && opts.preserveFields);
   const prevQty = preserveFields ? addQtyInput.value : null;
   const prevFinish = preserveFields ? addFinishSel.value : null;
-  const prevSelectedLocation = preserveFields ? selectedLocation : null;
-  const prevLocationNewMode = preserveFields ? locationNewMode : false;
-  const prevLocationType = preserveFields && locationNewMode ? addLocationType.value : null;
-  const prevLocationName = preserveFields && locationNewMode ? addLocationNameInput.value : null;
+  const prevLocationSnapshot = preserveFields ? locationPicker?.snapshot() : null;
   addPreviewCard = card;
   addPreviewEl.classList.add('active');
   const imageUrl = getCardImageUrl(card);
@@ -693,17 +584,13 @@ function showAddPreview(card, opts) {
   const seedSource = voiceLocationOverride != null
     ? voiceLocationOverride
     : (currentFilterLocation() || lastUsedLocation);
-  seedLocationPicker(seedSource);
+  locationPicker?.seed(seedSource);
   voiceQtyOverride = null;
   voiceLocationOverride = null;
   if (preserveFields) {
     if (prevQty != null && prevQty !== '') addQtyInput.value = prevQty;
     if (prevFinish) addFinishSel.value = prevFinish;
-    if (prevLocationNewMode) {
-      setLocationNewMode({ type: prevLocationType, name: prevLocationName });
-    } else if (prevSelectedLocation) {
-      setSelectedLocation(prevSelectedLocation);
-    }
+    locationPicker?.restore(prevLocationSnapshot);
   }
   addBtn.focus();
   syncDeckAddOptions();
@@ -722,7 +609,7 @@ function addCardFromPreview() {
   const condition = normalizeCondition(addConditionSel.value);
   const language = normalizeLanguage(addLanguageSel.value);
   const qty = Math.max(1, parseInt(addQtyInput.value, 10) || 1);
-  const location = readPickerLocation();
+  const location = locationPicker?.readLocation() || null;
   const placeholderToggle = document.getElementById('addAsPlaceholder');
   const asPlaceholder = !!(placeholderToggle && placeholderToggle.checked && location?.type === 'deck');
 
@@ -880,11 +767,19 @@ export function initAdd() {
   addPrintingListEl    = document.getElementById('addPrintingList');
   addPrintingCaptionEl = document.getElementById('addPrintingCaption');
   addQtyInput     = document.getElementById('addQty');
-  buildLocationTypeRadios();
   addLocationNameInput = document.getElementById('addLocationName');
+  locationPicker = createAddLocationPicker({
+    getNameInput: () => addLocationNameInput,
+    onChange: syncDeckAddOptions,
+  });
+  locationPicker.buildTypeRadios();
   // Initial render: empty finish (no card picked yet) + language radios from collection
   renderLanguageRadios('en');
-  renderLocationPicker();
+  locationPicker.render();
+  if (pendingSelectedLocation) {
+    locationPicker.setSelectedLocation(pendingSelectedLocation);
+    pendingSelectedLocation = null;
+  }
   addBtn         = document.getElementById('addCardBtn');
   addCancelBtn   = document.getElementById('addCardCancel');
   const placeholderToggle = document.getElementById('addAsPlaceholder');
@@ -931,19 +826,7 @@ export function initAdd() {
     });
   }
 
-  // Location pills + "+ new" delegated click.
-  const pillsEl = document.getElementById('addLocationPills');
-  if (pillsEl) {
-    pillsEl.addEventListener('click', e => {
-      if (e.target.closest('#addLocationNewBtn')) {
-        setLocationNewMode();
-        return;
-      }
-      const btn = e.target.closest('.location-pill-btn');
-      if (!btn) return;
-      setSelectedLocation({ type: btn.dataset.locType, name: btn.dataset.locName });
-    });
-  }
+  locationPicker.bindPills();
   // Typing a name while in new mode keeps us in new mode (no-op needed —
   // the picker stays unchanged). Clearing the name is fine too.
 
