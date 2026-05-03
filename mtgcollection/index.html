@@ -1759,51 +1759,21 @@
     color: #888;
     white-space: nowrap;
   }
-  .deck-hand-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
-    gap: 8px;
-  }
-  .deck-hand-card {
-    border: 1px solid #ddd;
-    background: #fafafa;
-    padding: 0;
-    cursor: pointer;
-    font: inherit;
-    color: #000;
-    text-align: left;
-  }
-  .deck-hand-card img,
-  .deck-hand-card .placeholder {
-    display: block;
-    width: 100%;
-    aspect-ratio: 488 / 680;
-    object-fit: cover;
-    background: #e8e8e8;
-  }
-  .deck-hand-card span {
-    display: block;
-    padding: 5px;
-    font-size: 0.68rem;
-    line-height: 1.2;
-    text-transform: none;
-  }
-  .deck-next-row {
+  /* Sample hand row — same renderDeckCard articles as the visual deck view,
+     just laid out left-to-right instead of stacked. Inherits card-size from
+     the parent .deck-workspace.deck-card-size-{small|medium|large}. */
+  .deck-hand-cards {
     display: flex;
-    gap: 6px;
     flex-wrap: wrap;
-    margin-top: 8px;
-    font-size: 0.72rem;
-    color: #777;
+    gap: 12px;
+    align-items: flex-start;
   }
-  .deck-next-card {
-    border: 1px solid #ddd;
-    background: #fff;
-    font: inherit;
-    font-size: 0.72rem;
-    padding: 3px 6px;
-    cursor: pointer;
+  .deck-hand-cards .deck-card {
+    width: 160px;
+    margin-top: 0;
   }
+  .deck-card-size-small .deck-hand-cards .deck-card { width: 120px; }
+  .deck-card-size-large .deck-hand-cards .deck-card { width: 200px; }
   .shape-bar {
     display: flex;
     align-items: center;

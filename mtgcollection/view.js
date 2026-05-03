@@ -850,8 +850,7 @@ function renderDeckNotesMode(model) {
 function renderDeckSampleHandSection() {
   return `<section class="deck-sample-hand" id="deckSampleHand">
     <div class="deck-board-header"><h3>sample hand</h3><div><button class="btn btn-secondary" type="button" data-sample-hand="draw">new hand</button><button class="btn btn-secondary" type="button" data-sample-hand="mulligan">mulligan</button></div></div>
-    <div class="deck-hand-row" id="deckHandCards"></div>
-    <div class="deck-next-row" id="deckNextCards"></div>
+    <div class="deck-hand-cards" id="deckHandCards"></div>
   </section>`;
 }
 
@@ -900,25 +899,17 @@ function renderLegacyDeckView(list) {
 
 function renderSampleHandPanel() {
   const handEl = document.getElementById('deckHandCards');
-  const nextEl = document.getElementById('deckNextCards');
-  if (!handEl || !nextEl) return;
+  if (!handEl) return;
   const deck = currentDeckContainer();
   const deckKey = deck ? deck.type + ':' + deck.name : '';
   if (!state.deckSampleHand || state.deckSampleHand.deckKey !== deckKey) {
     handEl.innerHTML = '<div class="deck-empty-prompt">draw a hand to preview opening texture</div>';
-    nextEl.innerHTML = '';
     return;
   }
-  const cardTile = c => {
-    const name = c.resolvedName || c.name || '?';
-    const idx = state.collection.indexOf(c);
-    const img = c.imageUrl ? `<img src="${esc(c.imageUrl)}" alt="${esc(name)}" loading="lazy">` : `<div class="placeholder">${esc(name)}</div>`;
-    return `<button class="deck-hand-card" type="button" data-index="${idx}">${img}<span>${esc(name)}</span></button>`;
-  };
-  handEl.innerHTML = state.deckSampleHand.hand.map(cardTile).join('');
-  nextEl.innerHTML = state.deckSampleHand.next.length
-    ? '<span>next</span>' + state.deckSampleHand.next.map(c => `<button class="deck-next-card" type="button" data-index="${state.collection.indexOf(c)}">${esc(c.resolvedName || c.name || '?')}</button>`).join('')
-    : '';
+  // Use the same deck-card renderer as the visual mode so cards size + look
+  // identical and the existing hover-preview delegation just works.
+  const hand = state.deckSampleHand.hand;
+  handEl.innerHTML = hand.map((c, i) => renderDeckCard(c, i === hand.length - 1)).join('');
 }
 
 export function deckDetailsViewModel(deck, meta = {}, stats = {}, selectedFormat = '') {
@@ -1981,11 +1972,8 @@ export function initView() {
       handleDeckCardAction(cardAction);
       return;
     }
-    const handCard = e.target.closest('.deck-hand-card, .deck-next-card');
-    if (handCard) {
-      openDetail(parseInt(handCard.dataset.index, 10));
-      return;
-    }
+    // (Sample-hand cards are now rendered as .deck-card articles, so they
+    // route through the data-card-action handler above — no special case.)
     const textNameBtn = e.target.closest('.deck-text-table .card-name-button');
     if (textNameBtn) {
       openDetail(parseInt(textNameBtn.dataset.index, 10));
