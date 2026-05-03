@@ -378,6 +378,10 @@ test('normalizeTags: accepts undefined', () => {
   assert.deepEqual(normalizeTags(null), []);
 });
 
+test('normalizeTags: rejects non-array iterables instead of splitting them', () => {
+  assert.deepEqual(normalizeTags('not-an-array'), []);
+});
+
 test('normalizeTags: preserves order of first occurrence', () => {
   const out = normalizeTags(['b', 'a', 'B', 'A']);
   assert.deepEqual(out, ['b', 'a']);

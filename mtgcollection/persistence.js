@@ -1,6 +1,7 @@
 ﻿import { state, STORAGE_KEY, BINDER_SIZE_KEY } from './state.js';
 import { BINDER_SIZES } from './binder.js';
-import { normalizeLocation, normalizeContainers, ensureContainersForCollection, normalizeDeckBoard } from './collection.js';
+import { normalizeLocation, ensureContainersForCollection } from './collection.js';
+import { normalizeStoredAppData, serializeAppState } from './storageSchema.js';
 import { showFeedback } from './feedback.js';
 
 // ---- Persistence ----
@@ -10,15 +11,7 @@ export function save() {
   // so we never corrupt the user's actual collection on disk.
   if (state.shareSnapshot) return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      collection: state.collection,
-      containers: state.containers,
-      viewMode: state.viewMode,
-      viewAsList: state.viewAsList,
-      selectedFormat: state.selectedFormat,
-      sortField: state.sortField,
-      sortDir: state.sortDir,
-    }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeAppState(state)));
   } catch (e) {
     showFeedback('collection too large for localstorage - ' + e.message, 'error');
   }
@@ -28,35 +21,23 @@ export function loadFromStorage() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return false;
-    const data = JSON.parse(raw);
-    if (Array.isArray(data.collection)) {
-      state.collection = data.collection;
-      state.containers = normalizeContainers(data.containers);
-      for (const c of state.collection) {
-        if (!Array.isArray(c.tags)) c.tags = [];
-        // Coerce legacy string locations into typed {type, name} objects.
-        c.location = normalizeLocation(c.location);
-        if (c.location?.type === 'deck') c.deckBoard = normalizeDeckBoard(c.deckBoard);
-        else if (Object.prototype.hasOwnProperty.call(c, 'deckBoard')) delete c.deckBoard;
-      }
-      ensureContainersForCollection();
-      // Top-level route. Migrate legacy 'list' to 'collection', 'locations' to 'storage'
-      // (the closest analog - boxes/binders dominated the old locations home).
-      const VALID_VIEW_MODES = ['collection', 'decks', 'storage'];
-      if (VALID_VIEW_MODES.includes(data.viewMode)) state.viewMode = data.viewMode;
-      else if (data.viewMode === 'locations') state.viewMode = 'storage';
-      else state.viewMode = 'collection';
-      state.activeLocation = null;
-      state.viewAsList = !!data.viewAsList;
-      state.selectedFormat = typeof data.selectedFormat === 'string' ? data.selectedFormat : '';
-      state.sortField = typeof data.sortField === 'string' && data.sortField ? data.sortField : null;
-      state.sortDir = data.sortDir === 'desc' ? 'desc' : 'asc';
-      try {
-        const v = localStorage.getItem(BINDER_SIZE_KEY);
-        if (v && Object.prototype.hasOwnProperty.call(BINDER_SIZES, v)) state.binderSize = v;
-      } catch (e) {}
-      return true;
-    }
+    const data = normalizeStoredAppData(JSON.parse(raw));
+    if (!data) return false;
+
+    state.collection = data.collection;
+    state.containers = data.containers;
+    ensureContainersForCollection();
+    state.viewMode = data.ui.viewMode;
+    state.activeLocation = null;
+    state.viewAsList = data.ui.viewAsList;
+    state.selectedFormat = data.ui.selectedFormat;
+    state.sortField = data.ui.sortField;
+    state.sortDir = data.ui.sortDir;
+    try {
+      const v = localStorage.getItem(BINDER_SIZE_KEY);
+      if (v && Object.prototype.hasOwnProperty.call(BINDER_SIZES, v)) state.binderSize = v;
+    } catch (e) {}
+    return true;
   } catch (e) {}
   return false;
 }

@@ -321,7 +321,7 @@ export function normalizeTag(raw) {
 }
 
 export function normalizeTags(rawList) {
-  if (!rawList) return [];
+  if (!Array.isArray(rawList)) return [];
   const out = new Set();
   for (const raw of rawList) {
     const t = normalizeTag(raw);
