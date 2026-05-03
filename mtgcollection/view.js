@@ -10,6 +10,7 @@ import {
   defaultDeckMetadata,
   makeEntry,
   getUsdPrice,
+  containerStats,
 } from './collection.js';
 import { save } from './persistence.js';
 import { openDetail, populateFilters } from './detail.js';
@@ -35,7 +36,17 @@ import {
   renderDeckWorkspaceControls,
 } from './views/deckHeaderView.js';
 import { LOC_ICONS, locationPillHtml } from './ui/locationUi.js';
-import { renderDecksHomeHtml, renderStorageHomeHtml } from './views/locationHomeViews.js';
+import {
+  deckMatchesHomeFilters,
+  deckOwnership,
+  renderDecksHomeHtml,
+  renderStorageHomeHtml,
+} from './views/locationHomeViews.js';
+import {
+  renderCollectionTotals,
+  renderCountValueTotals,
+  renderDeckTotals,
+} from './views/totalsView.js';
 import { renderRow } from './views/listRowView.js';
 import {
   renderDeckNotesMode,
@@ -146,6 +157,57 @@ function syncSidebarChrome(shape) {
   if (summary) summary.textContent = config.historyLabel;
 }
 
+function setTotalsStrip(html) {
+  const strip = document.getElementById('appTotalsStrip');
+  if (strip) strip.innerHTML = html || '';
+}
+
+function deckHomeFilters() {
+  return {
+    query: document.getElementById('searchInput')?.value || '',
+    formats: getMultiselectValue(document.getElementById('filterDeckFormat')),
+  };
+}
+
+function hasDeckHomeFilter(filters) {
+  return Boolean(String(filters.query || '').trim() || (filters.formats || []).length);
+}
+
+function deckValue(decks) {
+  return decks.reduce((sum, deck) => sum + deckOwnership(deck).value, 0);
+}
+
+function containerValue(containers) {
+  return containers.reduce((sum, container) => sum + containerStats(container).value, 0);
+}
+
+function setCollectionTotals(list) {
+  setTotalsStrip(renderCollectionTotals(list, state.collection, { filteredActive: hasActiveFilter() }));
+}
+
+function setDecksHomeTotals(containers, filters) {
+  const decks = containers.filter(c => c.type === 'deck');
+  const filteredDecks = decks.filter(c => deckMatchesHomeFilters(c, filters));
+  const filteredActive = hasDeckHomeFilter(filters);
+  setTotalsStrip(renderCountValueTotals({
+    label: 'decks',
+    count: filteredDecks.length,
+    totalCount: decks.length,
+    value: deckValue(filteredDecks),
+    totalValue: deckValue(decks),
+    filteredActive,
+  }));
+}
+
+function setStorageHomeTotals(containers) {
+  const storage = containers.filter(c => c.type === 'binder' || c.type === 'box');
+  setTotalsStrip(renderCountValueTotals({
+    label: 'containers',
+    count: storage.length,
+    value: containerValue(storage),
+  }));
+}
+
 export function render() {
   const shape = getEffectiveShape();
   document.querySelectorAll('.app-header-views .toggle-view').forEach(btn => {
@@ -194,6 +256,7 @@ export function render() {
     emptyState.classList.remove('hidden');
     document.getElementById('binderSizeControl').classList.add('hidden');
     syncContainerIdentityStrip([]);
+    setTotalsStrip(renderCollectionTotals([], []));
     return;
   }
   emptyState.classList.add('hidden');
@@ -202,10 +265,6 @@ export function render() {
   const list = filteredSorted();
   syncContainerIdentityStrip(containers);
 
-  document.getElementById('uniqueCount').textContent = list.length;
-  document.getElementById('totalCount').textContent = list.reduce((s, c) => s + c.qty, 0);
-  const value = list.reduce((s, c) => s + (c.price || 0) * c.qty, 0);
-  document.getElementById('totalValue').textContent = value.toFixed(2);
   applyBinderSizeButtons();
   applyBinderPriceToggle();
 
@@ -224,13 +283,13 @@ export function render() {
 
   if (shape === 'decks-home') {
     locationsContainer.classList.add('active');
-    locationsEl.innerHTML = renderDecksHomeHtml(containers, {
-      query: document.getElementById('searchInput')?.value || '',
-      formats: getMultiselectValue(document.getElementById('filterDeckFormat')),
-    });
+    const filters = deckHomeFilters();
+    locationsEl.innerHTML = renderDecksHomeHtml(containers, filters);
+    setDecksHomeTotals(containers, filters);
   } else if (shape === 'storage-home') {
     locationsContainer.classList.add('active');
     locationsEl.innerHTML = renderStorageHomeHtml(containers);
+    setStorageHomeTotals(containers);
   } else if (shape === 'deck') {
     deckContainer.classList.add('active');
     renderDeckView(list);
@@ -238,12 +297,14 @@ export function render() {
     binderContainer.classList.add('active');
     binderSizeCtl.classList.remove('hidden');
     renderBinderView(list, { hasActiveFilter, renderEmptyScopeState });
+    setCollectionTotals(list);
   } else {
     // 'collection' or 'box' — both render as flat list. 'box' is just a
     // collection view filtered to a single box container.
     listContainer.classList.add('active');
     listBodyEl.innerHTML = list.map(c => renderRow(c)).join('');
     syncSortIndicator();
+    setCollectionTotals(list);
   }
   updateBulkBar();
 }
@@ -347,6 +408,7 @@ function renderDeckView(list) {
     deckPreviewPanel?.setCard(null);
     renderEmptyScopeState(deckColumnsEl, 'deck');
     document.getElementById('deckSummary').textContent = '';
+    setTotalsStrip(renderDeckTotals({ main: 0, sideboard: 0, maybe: 0, value: 0 }));
     return;
   }
 
@@ -361,6 +423,7 @@ function renderDeckView(list) {
   for (const c of list) c.deckBoard = normalizeDeckBoard(c.deckBoard);
   const boards = splitDeckBoards(list);
   const stats = deckStats(list);
+  setTotalsStrip(renderDeckTotals(stats));
   const statHtml = renderDeckStatsHtml(boards.main);
   const format = meta.format || state.selectedFormat || 'unspecified format';
   const headerModel = deckDetailsViewModel(deck, meta, stats, state.selectedFormat);

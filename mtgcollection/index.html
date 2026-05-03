@@ -15,13 +15,6 @@
 <div class="app-shell">
   <header class="app-header">
     <h1><button type="button" id="resetAppBtn" class="title-reset-btn">MTG Collection</button></h1>
-    <div class="app-header-totals">
-      <span><span class="stat-label">unique</span> <strong id="uniqueCount">0</strong></span>
-      <span class="sep">·</span>
-      <span><span class="stat-label">total</span> <strong id="totalCount">0</strong></span>
-      <span class="sep">·</span>
-      <span><span class="stat-label">USD</span> <strong id="totalValue">0</strong></span>
-    </div>
     <div class="app-header-views">
       <button class="toggle-view" id="collectionViewBtn" data-view="collection"><span class="view-icon" aria-hidden="true">≡</span>collection</button>
       <button class="toggle-view" id="decksViewBtn" data-view="decks"><svg class="view-icon view-icon-svg" aria-hidden="true" viewBox="0 0 14 14"><rect x="2.5" y="3.5" width="6.5" height="8.5" rx="0.5" fill="none" stroke="currentColor" stroke-width="1"/><rect x="5" y="1.5" width="6.5" height="8.5" rx="0.5" fill="none" stroke="currentColor" stroke-width="1"/></svg>decks</button>
@@ -258,6 +251,7 @@
         <button class="btn btn-secondary" type="button" data-empty-action="load-test">load breya</button>
       </div>
     </div>
+    <div class="app-totals-strip" id="appTotalsStrip" aria-live="polite"></div>
   </main>
 
   <aside class="app-right">

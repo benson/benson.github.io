@@ -73,7 +73,7 @@ test('renderDeckDetailsHeaderHtml: keeps metadata editor hidden until requested'
   assert.match(html, /data-edit-deck-details/);
   assert.match(html, /aria-expanded="false"/);
   assert.match(html, /class="deck-details-editor hidden"/);
-  assert.match(html, /<strong>100<\/strong> total/);
+  assert.doesNotMatch(html, /deck-hero-stats/);
   assert.match(html, /Breya, Etherium Shaper/);
   assert.match(html, /class="deck-commander-widget"/);
   assert.match(html, /data-deck-commander-card/);

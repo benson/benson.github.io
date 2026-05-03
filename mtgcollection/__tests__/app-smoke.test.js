@@ -230,7 +230,7 @@ test('app smoke: seed data, navigate routes, tweak deck, and draw a hand', async
   );
 
   assert.ok(state.collection.length > 0);
-  assert.equal(window.document.querySelector('#uniqueCount').textContent, String(state.collection.length));
+  assert.match(window.document.querySelector('#appTotalsStrip').textContent, new RegExp(String(state.collection.length) + '\\s+unique'));
 
   click(window, '[data-view="decks"]');
   await waitFor(() => window.document.body.classList.contains('view-decks-home'), 'decks home');

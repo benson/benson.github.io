@@ -114,13 +114,6 @@ export function renderDeckDetailsHeaderHtml(model) {
         </dl>
       </div>
       <div class="deck-hero-side">
-        <div class="deck-hero-stats" aria-label="deck totals">
-          <span><strong>${model.total}</strong> total</span>
-          <span><strong>${model.main}</strong> main</span>
-          <span><strong>${model.sideboard}</strong> side</span>
-          <span><strong>${model.maybe}</strong> maybe</span>
-          <span><strong>${esc(model.valueText)}</strong> value</span>
-        </div>
         <div class="deck-hero-actions">
           <div class="deck-export-menu-wrap">
             <button class="btn btn-secondary" type="button" data-toggle-deck-export aria-controls="deckExportPanel" aria-expanded="false">export</button>
