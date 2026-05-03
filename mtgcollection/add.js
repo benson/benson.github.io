@@ -7,15 +7,12 @@ import {
 import { state, SCRYFALL_API } from './state.js';
 import { esc, showFeedback, hideFeedback } from './feedback.js';
 import {
-  makeEntry,
-  collectionKey,
   normalizeFinish,
   normalizeCondition,
   normalizeLanguage,
   normalizeLocation,
   getCardImageUrl,
   getCardBackImageUrl,
-  getUsdPrice,
   ensureContainer,
   addToDeckList,
 } from './collection.js';
@@ -27,6 +24,7 @@ import { parseVoiceText } from './voiceParser.js';
 import { getActiveLocation } from './routeState.js';
 import { createAddLocationPicker } from './addLocationPicker.js';
 import { renderPrintingList as renderPrintingListView } from './addPrintingView.js';
+import { buildCollectionEntryFromCard, mergeEntryIntoCollection } from './addEntry.js';
 
 // When a single container is the active filter, that's the user's
 // implicit context — the add flow should default to dropping cards there.
@@ -441,44 +439,8 @@ function autoAddVoiceCard(card, voiceCtx) {
 }
 
 function commitVoiceAdd(card, opts, voiceCtx) {
-  const entry = makeEntry({
-    name: card.name,
-    setCode: card.set,
-    setName: card.set_name,
-    cn: card.collector_number,
-    finish: opts.finish,
-    qty: opts.qty,
-    condition: opts.condition,
-    language: opts.language,
-    location: opts.location,
-    scryfallId: card.id,
-    rarity: card.rarity || '',
-  });
-  entry.resolvedName = card.name;
-  entry.cmc = card.cmc ?? null;
-  entry.colors = card.colors || (card.card_faces?.[0]?.colors) || [];
-  entry.colorIdentity = card.color_identity || [];
-  entry.typeLine = card.type_line || (card.card_faces?.map(f => f.type_line).filter(Boolean).join(' // ') || '');
-  entry.oracleText = card.oracle_text || (card.card_faces?.map(f => f.oracle_text).filter(Boolean).join(' // ') || '');
-  entry.legalities = card.legalities || {};
-  entry.scryfallUri = card.scryfall_uri;
-  entry.imageUrl = getCardImageUrl(card);
-  entry.backImageUrl = getCardBackImageUrl(card);
-  const priced = getUsdPrice(card, entry.finish);
-  entry.price = priced.price;
-  entry.priceFallback = priced.fallback;
-
-  const k = collectionKey(entry);
-  const existing = state.collection.find(c => collectionKey(c) === k);
-  let before = [];
-  let created = [];
-  if (existing) {
-    before = [{ key: k, card: { ...existing, tags: Array.isArray(existing.tags) ? [...existing.tags] : [] } }];
-    existing.qty += entry.qty;
-  } else {
-    state.collection.push(entry);
-    created = [k];
-  }
+  const entry = buildCollectionEntryFromCard(card, opts);
+  const { key: k, before, created } = mergeEntryIntoCollection(state.collection, entry);
 
   commitCollectionChange();
   lastUsedLocation = opts.location;
@@ -618,40 +580,8 @@ function addCardFromPreview() {
     return;
   }
 
-  const entry = makeEntry({
-    name: card.name,
-    setCode: card.set,
-    setName: card.set_name,
-    cn: card.collector_number,
-    finish, qty, condition, language, location,
-    scryfallId: card.id,
-    rarity: card.rarity || '',
-  });
-  entry.resolvedName = card.name;
-  entry.cmc = card.cmc ?? null;
-  entry.colors = card.colors || (card.card_faces?.[0]?.colors) || [];
-  entry.colorIdentity = card.color_identity || [];
-  entry.typeLine = card.type_line || (card.card_faces?.map(f => f.type_line).filter(Boolean).join(' // ') || '');
-  entry.oracleText = card.oracle_text || (card.card_faces?.map(f => f.oracle_text).filter(Boolean).join(' // ') || '');
-  entry.legalities = card.legalities || {};
-  entry.scryfallUri = card.scryfall_uri;
-  entry.imageUrl = getCardImageUrl(card);
-  entry.backImageUrl = getCardBackImageUrl(card);
-  const priced = getUsdPrice(card, entry.finish);
-  entry.price = priced.price;
-  entry.priceFallback = priced.fallback;
-
-  const k = collectionKey(entry);
-  const existing = state.collection.find(c => collectionKey(c) === k);
-  let before = [];
-  let created = [];
-  if (existing) {
-    before = [{ key: k, card: { ...existing, tags: Array.isArray(existing.tags) ? [...existing.tags] : [] } }];
-    existing.qty += entry.qty;
-  } else {
-    state.collection.push(entry);
-    created = [k];
-  }
+  const entry = buildCollectionEntryFromCard(card, { finish, qty, condition, language, location });
+  const { key: k, before, created } = mergeEntryIntoCollection(state.collection, entry);
 
   commitCollectionChange();
   lastUsedLocation = location;
