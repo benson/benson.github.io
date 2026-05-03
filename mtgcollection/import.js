@@ -503,11 +503,13 @@ export async function loadTestData(options = {}) {
   state.containers = {};
   // Wipe the changelog so reset truly is a clean slate.
   try { localStorage.removeItem('mtgcollection_changelog_v1'); } catch (e) {}
-  // Immediate user feedback — the actual load fires 3 scryfall batches
-  // (~10-20s on cold runs) and the sidebar #progress indicator is too
-  // subtle to notice. Top-banner spinner sticks until commit completes.
-  if (!silent) {
-    showFeedback('<span class="loading-spinner"></span> loading breya test data — fetching cards from scryfall...', 'info');
+  // Immediate inline feedback next to the reset button so the user knows
+  // the click registered. Same pill that holds the "loaded..." success
+  // message — we just rewrite its contents when done.
+  const statusEl = document.getElementById('testDataStatus');
+  if (!silent && statusEl) {
+    statusEl.innerHTML = '<span class="loading-spinner"></span> loading...';
+    statusEl.classList.add('visible');
   }
   // 1. Build the breya decklist.
   const { entries: deckEntries, errors } = parseDecklist(BREYA_DECKLIST, { location: '' });
@@ -606,16 +608,11 @@ export async function loadTestData(options = {}) {
   ensureContainer({ type: 'binder', name: 'trade binder' });
   if (deck) deck.updatedAt = Date.now();
   commitCollectionChange();
-  if (!silent) {
-    // Inline status next to the reset button — keeps the top-of-page banner
-    // free for genuine alerts (errors, import results).
-    const statusEl = document.getElementById('testDataStatus');
-    if (statusEl) {
-      const total = fulfillEntries.length + standaloneEntries.length;
-      statusEl.textContent = 'loaded breya decklist + ' + total + ' inventory cards';
-      statusEl.classList.add('visible');
-      setTimeout(() => statusEl.classList.remove('visible'), 4000);
-    }
+  if (!silent && statusEl) {
+    // Same pill as the loading spinner — just rewrite the contents.
+    const total = fulfillEntries.length + standaloneEntries.length;
+    statusEl.textContent = 'loaded breya decklist + ' + total + ' inventory cards';
+    setTimeout(() => statusEl.classList.remove('visible'), 4000);
   }
 }
 
