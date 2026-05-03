@@ -6,7 +6,6 @@ import {
   normalizeTag,
   allCollectionLocations,
   allContainers,
-  containerStats,
   ensureContainer,
   formatLocationLabel,
   LOCATION_TYPES,
@@ -53,11 +52,8 @@ import {
   renderDeckWorkspaceControls,
 } from './views/deckHeaderView.js';
 import {
-  deleteContainerAndUnlocateCardsCommand,
-  deleteEmptyContainerCommand,
   moveDeckCardToBoardCommand,
   removeDeckCardFromDeckCommand,
-  renameContainerCommand,
 } from './commands.js';
 import { locationPillHtml } from './ui/locationUi.js';
 import { renderDecksHomeHtml, renderStorageHomeHtml } from './views/locationHomeViews.js';
@@ -84,6 +80,7 @@ import { createRightDrawer } from './rightDrawer.js';
 import { buildDeckSampleHand, renderDeckSampleHandPanel } from './deckSampleHand.js';
 import { copyDecklist, runDeckExportAction } from './deckExportActions.js';
 import { saveDeckMetadataFromForm } from './deckMetadataForm.js';
+import { bindLocationHomeInteractions } from './locationHomeActions.js';
 import {
   closeDeckCardMenus,
   moveFocusInDeckCardMenu,
@@ -919,114 +916,12 @@ export function initView() {
     deckPreviewPanel?.showFromTarget(e.target);
   });
 
-  locationsEl.addEventListener('change', e => {
-    if (e.target.name !== 'locationsCreateType') return;
-    const labels = locationsEl.querySelectorAll('.locations-create-type');
-    labels.forEach(l => {
-      const input = l.querySelector('input');
-      l.classList.toggle('is-selected', !!(input && input.checked));
-    });
-  });
-
-  locationsEl.addEventListener('submit', e => {
-    if (e.target.id !== 'locationsCreateForm') return;
-    e.preventDefault();
-    // Decks form uses a hidden input for type; storage form uses a radio group.
-    // Try both — the radio :checked match wins when present, otherwise fall
-    // back to the hidden input's value (or 'box' as a last resort).
-    const checked = document.querySelector('input[name="locationsCreateType"]:checked');
-    const hidden = document.querySelector('input[type="hidden"][name="locationsCreateType"]');
-    const type = checked ? checked.value : (hidden ? hidden.value : 'box');
-    const nameInput = document.getElementById('locationsCreateName');
-    const created = ensureContainer({ type, name: nameInput.value });
-    if (!created) return;
-    nameInput.value = '';
-    save();
-    populateFilters();
-    render();
-  });
-
-  // Type-radio click delegation inside edit rows: toggle is-selected on the active label.
-  locationsEl.addEventListener('change', e => {
-    if (!e.target || e.target.type !== 'radio') return;
-    if (!e.target.name || !e.target.name.startsWith('editLocType_')) return;
-    const card = e.target.closest('.location-card');
-    if (!card) return;
-    card.querySelectorAll('.location-card-edit-row .loc-type-radio').forEach(l => {
-      const r = l.querySelector('input');
-      l.classList.toggle('is-selected', !!(r && r.checked));
-    });
-  });
-
-  // Close any open card menu when clicking outside.
-  document.addEventListener('click', e => {
-    if (!e.target.closest('.location-card-menu-btn') && !e.target.closest('.location-card-menu')) {
-      locationsEl.querySelectorAll('.location-card.menu-open').forEach(c => c.classList.remove('menu-open'));
-    }
-  });
-
-  locationsEl.addEventListener('click', e => {
-    const card = e.target.closest('.location-card');
-    if (!card) return;
-    const loc = { type: card.dataset.locType, name: card.dataset.locName };
-
-    if (e.target.closest('.location-card-menu-btn')) {
-      e.stopPropagation();
-      const wasOpen = card.classList.contains('menu-open');
-      locationsEl.querySelectorAll('.location-card.menu-open').forEach(c => c.classList.remove('menu-open'));
-      if (!wasOpen) card.classList.add('menu-open');
-      return;
-    }
-    if (e.target.closest('.location-card-edit-btn')) {
-      e.stopPropagation();
-      card.classList.add('editing');
-      card.classList.remove('menu-open');
-      const input = card.querySelector('.location-rename-input');
-      if (input) { input.focus(); input.select(); }
-      return;
-    }
-    if (e.target.closest('.location-rename-cancel')) {
-      card.classList.remove('editing');
-      return;
-    }
-    if (e.target.closest('.location-rename-save')) {
-      const input = card.querySelector('.location-rename-input');
-      const checked = card.querySelector('.location-card-edit-row input[type="radio"]:checked');
-      const newType = checked ? checked.value : loc.type;
-      const newName = input ? input.value : loc.name;
-      renameContainerCommand(loc, { type: newType, name: newName });
-      return;
-    }
-    if (e.target.closest('.location-delete')) {
-      const stats = containerStats(loc);
-      if (stats.total > 0) {
-        const msg = 'delete ' + loc.type + ' "' + loc.name + '"?\n\nthis will clear the location from '
-          + stats.total + ' card' + (stats.total === 1 ? '' : 's')
-          + ' (' + stats.unique + ' unique). the cards stay in your collection.';
-        if (!confirm(msg)) return;
-        deleteContainerAndUnlocateCardsCommand(loc);
-      } else {
-        if (!confirm('delete ' + loc.type + ' "' + loc.name + '"?')) return;
-        deleteEmptyContainerCommand(loc);
-      }
-      return;
-    }
-    // Click on body / name / stats (not on a control) → open the container.
-    // Don't open while editing or while the menu is open.
-    if (card.classList.contains('editing') || card.classList.contains('menu-open')) return;
-    if (e.target.closest('.location-card-edit-row')) return;
-    navigateToLocation(loc.type, loc.name);
-  });
-
-  // Keyboard activation: Enter/Space on a focused card opens it (matches the
-  // role="button" we set on .location-card).
-  locationsEl.addEventListener('keydown', e => {
-    if (e.key !== 'Enter' && e.key !== ' ') return;
-    const card = e.target.closest('.location-card');
-    if (!card || e.target !== card) return;
-    if (card.classList.contains('editing') || card.classList.contains('menu-open')) return;
-    e.preventDefault();
-    navigateToLocation(card.dataset.locType, card.dataset.locName);
+  bindLocationHomeInteractions({
+    locationsEl,
+    navigateToLocationImpl: navigateToLocation,
+    saveImpl: save,
+    populateFiltersImpl: populateFilters,
+    renderImpl: render,
   });
 
   listBodyEl.addEventListener('click', e => {
