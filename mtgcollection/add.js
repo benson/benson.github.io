@@ -29,6 +29,7 @@ import {
   resolveVoiceLookupTarget,
 } from './addVoice.js';
 import { buildDeckOwnershipReadout } from './addDeckOwnership.js';
+import { buildAddPreviewCardModel, buildExistingPreviewText } from './addPreviewModel.js';
 
 // When a single container is the active filter, that's the user's
 // implicit context — the add flow should default to dropping cards there.
@@ -279,29 +280,23 @@ function showAddPreview(card, opts) {
   const prevLocationSnapshot = preserveFields ? locationPicker?.snapshot() : null;
   addPreviewCard = card;
   addPreviewEl.classList.add('active');
-  const imageUrl = getCardImageUrl(card);
-  const backUrl = getCardBackImageUrl(card);
-  addPreviewImg.src = imageUrl || '';
-  addPreviewImg.alt = card.name;
-  addPreviewImg.style.cursor = imageUrl ? 'zoom-in' : '';
-  addPreviewImg.dataset.front = imageUrl || '';
-  addPreviewImg.dataset.back = backUrl || '';
+  const preview = buildAddPreviewCardModel(card);
+  addPreviewImg.src = preview.imageUrl || '';
+  addPreviewImg.alt = preview.name;
+  addPreviewImg.style.cursor = preview.imageUrl ? 'zoom-in' : '';
+  addPreviewImg.dataset.front = preview.imageUrl || '';
+  addPreviewImg.dataset.back = preview.backUrl || '';
   addPreviewImg.dataset.current = 'front';
-  addPreviewName.textContent = card.name;
-  addPreviewMeta.textContent = [card.set_name, card.type_line, card.rarity].filter(Boolean).join(' — ');
+  addPreviewName.textContent = preview.name;
+  addPreviewMeta.textContent = preview.meta;
 
   const flipBtn = document.getElementById('addFlipBtn');
-  flipBtn.classList.toggle('hidden', !backUrl);
+  flipBtn.classList.toggle('hidden', !preview.backUrl);
 
   const existingEl = document.getElementById('addPreviewExisting');
-  const cardName = (card.name || '').toLowerCase();
-  const matches = state.collection.filter(c =>
-    (c.scryfallId && c.scryfallId === card.id) ||
-    ((c.resolvedName || c.name || '').toLowerCase() === cardName)
-  );
-  if (matches.length > 0) {
-    const totalQty = matches.reduce((s, c) => s + (parseInt(c.qty, 10) || 0), 0);
-    existingEl.textContent = 'already in collection (×' + totalQty + ')';
+  const existingText = buildExistingPreviewText(state.collection, card);
+  if (existingText) {
+    existingEl.textContent = existingText;
     existingEl.classList.remove('hidden');
   } else {
     existingEl.classList.add('hidden');
