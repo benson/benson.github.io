@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { paginateForBinder, sortForBinder, BINDER_SIZES, binderSlotCount } from '../binder.js';
+import { BINDER_LAYOUTS, BINDER_SIZES, binderSlotCount, paginateForBinder, sortForBinder } from '../binder.js';
 
 const card = (name, opts = {}) => ({
   name,
@@ -92,4 +92,8 @@ test('binderSlotCount: returns slots for known sizes, falls back to 4x3', () => 
   assert.equal(binderSlotCount('3x3'), 9);
   assert.equal(binderSlotCount('2x2'), 4);
   assert.equal(binderSlotCount('bogus'), 12);
+});
+
+test('BINDER_LAYOUTS: includes the list sub-mode alongside grid sizes', () => {
+  assert.deepEqual(BINDER_LAYOUTS, ['4x3', '3x3', '2x2', 'list']);
 });

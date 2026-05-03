@@ -79,11 +79,6 @@
     </div>
 
     <div class="sidebar-section sidebar-sizes">
-      <div class="segmented hidden" id="binderSizeControl" aria-label="binder page size">
-        <button class="segment-btn" type="button" data-binder-size="4x3">4×3</button>
-        <button class="segment-btn" type="button" data-binder-size="3x3">3×3</button>
-        <button class="segment-btn" type="button" data-binder-size="2x2">2×2</button>
-      </div>
       <span class="progress" id="progress"></span>
     </div>
 
@@ -102,10 +97,7 @@
     <div class="feedback" id="feedback"></div>
 
     <div id="collectionSection" class="hidden">
-      <div class="shape-bar hidden" id="shapeBar">
-        <span class="shape-bar-label" id="shapeBarLabel"></span>
-        <button class="btn btn-secondary view-as-list-btn" type="button" data-view-as-list aria-pressed="false"></button>
-      </div>
+      <div class="container-identity-strip hidden" id="containerIdentityStrip"></div>
       <div class="locations-view" id="locationsView"></div>
       <div class="deck-view" id="deckView">
         <div class="deck-actions">
@@ -145,6 +137,13 @@
       </div>
       <div class="binder-view" id="binderView">
         <div class="binder-actions">
+          <div class="segmented" id="binderSizeControl" aria-label="binder layout">
+            <button class="segment-btn" type="button" data-binder-size="4x3" aria-pressed="true">4x3</button>
+            <button class="segment-btn" type="button" data-binder-size="3x3" aria-pressed="false">3x3</button>
+            <button class="segment-btn" type="button" data-binder-size="2x2" aria-pressed="false">2x2</button>
+            <button class="segment-btn" type="button" data-binder-size="list" aria-pressed="false">list</button>
+          </div>
+          <label class="binder-price-toggle"><input type="checkbox" id="binderPriceToggle" checked> prices</label>
           <span class="binder-summary" id="binderSummary"></span>
         </div>
         <div class="binder-pages" id="binderPages"></div>

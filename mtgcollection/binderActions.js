@@ -1,6 +1,8 @@
 import { state } from './state.js';
 import {
   applyBinderSizeButtons,
+  applyBinderPriceToggle,
+  saveBinderPrices,
   saveBinderSize,
   VALID_BINDER_SIZES,
 } from './views/binderView.js';
@@ -21,6 +23,7 @@ export function bindBinderControls({
   binderPrevEl = documentObj?.getElementById('binderPrev'),
   binderNextEl = documentObj?.getElementById('binderNext'),
   binderPagesEl = documentObj?.getElementById('binderPages'),
+  binderPriceToggleEl = documentObj?.getElementById('binderPriceToggle'),
   searchInputEl = documentObj?.getElementById('searchInput'),
   filterEls = ['filterSet', 'filterRarity', 'filterFoil', 'filterLocation', 'filterTag']
     .map(id => documentObj?.getElementById(id))
@@ -30,7 +33,9 @@ export function bindBinderControls({
   openDetailImpl = () => {},
   renderImpl = () => {},
   saveBinderSizeImpl = saveBinderSize,
+  saveBinderPricesImpl = saveBinderPrices,
   applyBinderSizeButtonsImpl = applyBinderSizeButtons,
+  applyBinderPriceToggleImpl = applyBinderPriceToggle,
 } = {}) {
   const cleanups = [];
 
@@ -47,6 +52,17 @@ export function bindBinderControls({
     };
     binderSizeControlEl.addEventListener('click', onSizeClick);
     cleanups.push(() => binderSizeControlEl.removeEventListener('click', onSizeClick));
+  }
+
+  if (binderPriceToggleEl) {
+    const onPriceToggle = () => {
+      stateRef.binderShowPrices = !!binderPriceToggleEl.checked;
+      saveBinderPricesImpl();
+      applyBinderPriceToggleImpl();
+      renderImpl();
+    };
+    binderPriceToggleEl.addEventListener('change', onPriceToggle);
+    cleanups.push(() => binderPriceToggleEl.removeEventListener('change', onPriceToggle));
   }
 
   if (binderPrevEl) {
@@ -77,8 +93,10 @@ export function bindBinderControls({
         return;
       }
       const slot = event.target.closest('.binder-slot:not(.binder-slot-empty)');
-      if (!slot) return;
-      openDetailImpl(parseInt(slot.dataset.index, 10));
+      if (slot) {
+        openDetailImpl(parseInt(slot.dataset.index, 10));
+        return;
+      }
     };
     const onPagesKeydown = event => {
       if (event.key !== 'Enter' && event.key !== ' ') return;

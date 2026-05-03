@@ -26,7 +26,7 @@ test('getEffectiveShape: storage containers distinguish binder and box routes', 
   assert.equal(getEffectiveShape(), 'binder');
 
   state.viewAsList = true;
-  assert.equal(getEffectiveShape(), 'box');
+  assert.equal(getEffectiveShape(), 'binder');
 
   setActiveContainerRoute({ type: 'box', name: 'bulk' }, { syncFilter: false });
   assert.equal(getEffectiveShape(), 'box');

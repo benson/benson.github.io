@@ -31,6 +31,7 @@ export function createInitialState(overrides = {}) {
     deckSampleHand: null,
     binderSize: '4x3',
     binderPage: 0,
+    binderShowPrices: true,
     sortField: null,
     sortDir: 'asc',
     // When non-null, the app is in read-only viewer mode for someone else's
@@ -78,4 +79,5 @@ export const STORAGE_KEY = 'mtgcollection_v1';
 export const DECK_GROUP_KEY = 'mtgcollection_deck_group_v1';
 export const DECK_VIEW_PREFS_KEY = 'mtgcollection_deck_view_prefs_v1';
 export const BINDER_SIZE_KEY = 'mtgcollection_binder_size_v1';
+export const BINDER_PRICES_KEY = 'mtgcollection_binder_prices_v1';
 export const SCRYFALL_API = 'https://api.scryfall.com';

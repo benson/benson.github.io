@@ -143,6 +143,11 @@ export function bindListRowInteractions({
 } = {}) {
   if (!listBodyEl) return () => {};
 
+  const isRowInScope = row => {
+    if (!row || !listBodyEl.contains(row)) return false;
+    return listBodyEl.tagName === 'TBODY' || row.hasAttribute('data-key');
+  };
+
   const onClick = event => {
     const removeTagButton = event.target.closest('.row-tag-remove');
     if (removeTagButton) {
@@ -160,13 +165,14 @@ export function bindListRowInteractions({
 
     const nameButton = event.target.closest('.card-name-button');
     if (nameButton) {
+      if (!isRowInScope(nameButton.closest('tr'))) return;
       openDetailImpl(parseInt(nameButton.dataset.index, 10));
       return;
     }
 
     if (event.target.closest('input, select, button, a, .loc-pill')) return;
-    const trigger = event.target.closest('.detail-trigger');
-    if (!trigger || !listBodyEl.contains(trigger)) return;
+    const trigger = event.target.closest('tr.detail-trigger');
+    if (!isRowInScope(trigger)) return;
     openDetailImpl(parseInt(trigger.dataset.index, 10));
   };
 

@@ -75,7 +75,7 @@ export function getEffectiveShape() {
     return loc?.type === 'deck' ? 'deck' : 'decks-home';
   }
   if (state.viewMode === 'storage') {
-    if (loc?.type === 'binder') return state.viewAsList ? 'box' : 'binder';
+    if (loc?.type === 'binder') return 'binder';
     if (loc?.type === 'box') return 'box';
     return 'storage-home';
   }

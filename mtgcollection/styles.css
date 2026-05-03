@@ -1941,6 +1941,17 @@
     flex-wrap: wrap;
     min-height: 18px;
   }
+  .binder-actions .segmented {
+    display: inline-flex;
+  }
+  .binder-price-toggle {
+    align-items: center;
+    color: #555;
+    display: inline-flex;
+    font-size: 0.75rem;
+    gap: 5px;
+    text-transform: lowercase;
+  }
   .binder-summary { font-size: 0.75rem; color: #666; margin-left: auto; }
   .binder-pages {
     background: #f1ede4;
@@ -1948,6 +1959,20 @@
     border-radius: 6px;
     padding: 18px;
     box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .binder-pages-list {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    overflow-x: auto;
+    padding: 0;
+  }
+  .binder-list-table {
+    width: 100%;
+  }
+  .binder-list-table .col-check {
+    display: none;
   }
   .binder-page {
     display: grid;
@@ -2015,6 +2040,27 @@
     backdrop-filter: blur(4px);
     z-index: 3;
   }
+  .binder-price-badge {
+    position: absolute;
+    right: 5px;
+    bottom: 5px;
+    z-index: 4;
+    background: rgba(0,0,0,0.78);
+    color: #fff;
+    border-radius: 2px;
+    padding: 2px 5px;
+    font-size: 0.68rem;
+    line-height: 1;
+    backdrop-filter: blur(4px);
+  }
+  .binder-page-4x3 .binder-price-badge {
+    font-size: 0.62rem;
+    padding: 2px 4px;
+  }
+  .binder-page-2x2 .binder-price-badge {
+    font-size: 0.78rem;
+    padding: 3px 6px;
+  }
   .binder-nav {
     display: flex;
     align-items: center;
@@ -2037,6 +2083,36 @@
     margin: 0 auto;
   }
   .locations-view.active { display: block; }
+  .container-identity-strip {
+    align-items: center;
+    border-bottom: 1px solid #e2e2e2;
+    display: flex;
+    gap: 8px;
+    margin: 0 0 14px;
+    padding: 0 0 10px;
+  }
+  .container-identity-strip.hidden {
+    display: none;
+  }
+  .container-identity-name {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    color: #000;
+    cursor: pointer;
+    font: inherit;
+    font-size: 1.02rem;
+    padding: 0;
+    text-align: left;
+    text-transform: lowercase;
+  }
+  .container-identity-name:hover,
+  .container-identity-name:focus-visible {
+    text-decoration: underline;
+  }
+  .container-identity-type {
+    cursor: default;
+  }
   .locations-create {
     display: flex;
     align-items: center;

@@ -34,7 +34,7 @@ import {
   renderDeckExportPanel,
   renderDeckWorkspaceControls,
 } from './views/deckHeaderView.js';
-import { locationPillHtml } from './ui/locationUi.js';
+import { LOC_ICONS, locationPillHtml } from './ui/locationUi.js';
 import { renderDecksHomeHtml, renderStorageHomeHtml } from './views/locationHomeViews.js';
 import { renderRow } from './views/listRowView.js';
 import {
@@ -46,6 +46,8 @@ import {
 } from './views/deckBodyView.js';
 import {
   applyBinderSizeButtons,
+  applyBinderPriceToggle,
+  loadBinderPrices,
   loadBinderSize,
   renderBinderView,
 } from './views/binderView.js';
@@ -60,6 +62,7 @@ import { bindBinderControls } from './binderActions.js';
 import { bindDeckWorkspaceInteractions } from './deckWorkspaceActions.js';
 import { bindLocationHomeInteractions } from './locationHomeActions.js';
 import { bindListRowInteractions } from './listRowActions.js';
+import { renameContainerCommand } from './commands.js';
 
 export function navigateToLocation(type, name) {
   setActiveContainerRoute({ type, name });
@@ -82,6 +85,26 @@ function currentDeckScope() {
     return { type: 'deck', name: state.shareSnapshot.container.name };
   }
   return getActiveLocationOfType('deck');
+}
+
+export function containerIdentityHtml(loc) {
+  const icon = LOC_ICONS[loc.type] || '';
+  return `<button class="container-identity-name" type="button" data-container-rename data-loc-type="${esc(loc.type)}" data-loc-name="${esc(loc.name)}">${esc(loc.name)}</button>
+    <span class="loc-pill loc-pill-${esc(loc.type)} container-identity-type">${icon}<span>${esc(loc.type)}</span></span>`;
+}
+
+function syncContainerIdentityStrip(containers = []) {
+  const strip = document.getElementById('containerIdentityStrip');
+  if (!strip) return;
+  const loc = getActiveLocation();
+  const exists = loc && containers.some(c => c.type === loc.type && c.name === loc.name);
+  if (!exists || (loc.type !== 'binder' && loc.type !== 'box')) {
+    strip.classList.add('hidden');
+    strip.innerHTML = '';
+    return;
+  }
+  strip.innerHTML = containerIdentityHtml(loc);
+  strip.classList.remove('hidden');
 }
 
 let locationsEl, listBodyEl, collectionSection, emptyState;
@@ -135,18 +158,21 @@ export function render() {
     collectionSection.classList.add('hidden');
     emptyState.classList.remove('hidden');
     document.getElementById('binderSizeControl').classList.add('hidden');
+    syncContainerIdentityStrip([]);
     return;
   }
   emptyState.classList.add('hidden');
   collectionSection.classList.remove('hidden');
 
   const list = filteredSorted();
+  syncContainerIdentityStrip(containers);
 
   document.getElementById('uniqueCount').textContent = list.length;
   document.getElementById('totalCount').textContent = list.reduce((s, c) => s + c.qty, 0);
   const value = list.reduce((s, c) => s + (c.price || 0) * c.qty, 0);
   document.getElementById('totalValue').textContent = value.toFixed(2);
   applyBinderSizeButtons();
+  applyBinderPriceToggle();
 
   const listContainer = document.getElementById('listView');
   const deckContainer = document.getElementById('deckView');
@@ -369,6 +395,20 @@ export function initView() {
     getShape: getEffectiveShape,
     setSelectedLocation,
   });
+  const identityStrip = document.getElementById('containerIdentityStrip');
+  identityStrip?.addEventListener('click', event => {
+    const button = event.target.closest('[data-container-rename]');
+    if (!button) return;
+    const loc = { type: button.dataset.locType, name: button.dataset.locName };
+    const nextName = globalThis.prompt?.('rename ' + loc.type, loc.name);
+    if (nextName == null) return;
+    const next = { type: loc.type, name: nextName };
+    const result = renameContainerCommand(loc, next);
+    if (!result.ok) return;
+    setActiveContainerRoute(next);
+    save();
+    render();
+  });
 
   bindAppShellActions({
     stateRef: state,
@@ -383,7 +423,9 @@ export function initView() {
   });
 
   loadBinderSize();
+  loadBinderPrices();
   applyBinderSizeButtons();
+  applyBinderPriceToggle();
   bindBinderControls({
     stateRef: state,
     getEffectiveShapeImpl: getEffectiveShape,
@@ -418,7 +460,7 @@ export function initView() {
   });
 
   bindListRowInteractions({
-    listBodyEl,
+    listBodyEl: collectionSection,
     openDetailImpl: openDetail,
   });
 

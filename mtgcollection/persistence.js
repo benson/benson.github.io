@@ -1,5 +1,5 @@
 ﻿import { state, STORAGE_KEY, BINDER_SIZE_KEY } from './state.js';
-import { BINDER_SIZES } from './binder.js';
+import { BINDER_LAYOUTS } from './binder.js';
 import { normalizeLocation, ensureContainersForCollection } from './collection.js';
 import { applyLoadedState } from './state.js';
 import { normalizeStoredAppData, serializeAppState } from './storageSchema.js';
@@ -38,7 +38,7 @@ export function loadFromStorage() {
     ensureContainersForCollection();
     try {
       const v = localStorage.getItem(BINDER_SIZE_KEY);
-      if (v && Object.prototype.hasOwnProperty.call(BINDER_SIZES, v)) state.binderSize = v;
+      if (v && BINDER_LAYOUTS.includes(v)) state.binderSize = v;
     } catch (e) {}
     return true;
   } catch (e) {}

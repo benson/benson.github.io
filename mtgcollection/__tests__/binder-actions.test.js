@@ -9,8 +9,10 @@ function setup() {
     <div id="binderSizeControl">
       <button data-binder-size="4x3"></button>
       <button data-binder-size="3x3"></button>
+      <button data-binder-size="list"></button>
       <button data-binder-size="bogus"></button>
     </div>
+    <input type="checkbox" id="binderPriceToggle" checked>
     <button id="binderPrev"></button>
     <button id="binderNext"></button>
     <div id="binderPages">
@@ -29,7 +31,7 @@ function setup() {
   return {
     win,
     document: win.document,
-    stateRef: { binderPage: 1, binderSize: '4x3' },
+    stateRef: { binderPage: 1, binderSize: '4x3', binderShowPrices: true },
   };
 }
 
@@ -63,6 +65,26 @@ test('bindBinderControls: size and page buttons update state and render', () => 
 
   click(win, document.querySelector('[data-binder-size="bogus"]'));
   assert.equal(stateRef.binderSize, '3x3');
+});
+
+test('bindBinderControls: price toggle persists and rerenders', () => {
+  const { win, document, stateRef } = setup();
+  const calls = [];
+
+  bindBinderControls({
+    documentObj: document,
+    stateRef,
+    renderImpl: () => calls.push('render'),
+    saveBinderPricesImpl: () => calls.push('savePrices'),
+    applyBinderPriceToggleImpl: () => calls.push('applyPrices'),
+  });
+
+  const toggle = document.getElementById('binderPriceToggle');
+  toggle.checked = false;
+  toggle.dispatchEvent(new win.Event('change', { bubbles: true }));
+
+  assert.equal(stateRef.binderShowPrices, false);
+  assert.deepEqual(calls, ['savePrices', 'applyPrices', 'render']);
 });
 
 test('bindBinderControls: binder page slots open detail and chips navigate', () => {

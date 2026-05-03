@@ -7,6 +7,8 @@ export const BINDER_SIZES = {
   '3x3': { cols: 3, rows: 3, slots: 9 },
   '2x2': { cols: 2, rows: 2, slots: 4 },
 };
+export const BINDER_LIST_SIZE = 'list';
+export const BINDER_LAYOUTS = [...Object.keys(BINDER_SIZES), BINDER_LIST_SIZE];
 
 export function binderSlotCount(size) {
   return (BINDER_SIZES[size] || BINDER_SIZES['4x3']).slots;
