@@ -10,7 +10,6 @@ import {
   getUsdPrice,
   getCardImageUrl,
   getCardBackImageUrl,
-  formatLocationLabel,
   normalizeDeckBoard,
   normalizeLocation,
   ensureContainer,
@@ -19,6 +18,7 @@ import {
 import { save, commitCollectionChange } from './persistence.js';
 import { filteredSorted } from './search.js';
 import { recordEvent } from './changelog.js';
+import { detectAdapter, getAdapter, mergeSource, ADAPTERS } from './adapters.js';
 
 // ---- Breya seed ----
 const BREYA_DECKLIST = `1 Breya, Etherium Shaper (C16) 29 *F*
@@ -328,43 +328,17 @@ export async function importCsv(text) {
     return;
   }
   const headerRow = rows[0];
-  const idx = mapHeaders(headerRow);
-  const hasNameOrId = idx.name !== undefined || idx.scryfallId !== undefined;
-  const hasSetAndCn = idx.setCode !== undefined && idx.cn !== undefined;
-  if (!hasNameOrId && !hasSetAndCn) {
-    showFeedback('couldn\'t recognize columns — need name, scryfall id, or both set code + collector number', 'error');
+  const adapter = detectAdapter(headerRow);
+  if (!adapter) {
+    showFeedback('couldn\'t recognize csv format — need name, scryfall id, or both set code + collector number', 'error');
     return;
   }
-
-  const imported = [];
-  for (let r = 1; r < rows.length; r++) {
-    const row = rows[r];
-    const get = (k) => idx[k] !== undefined ? (row[idx[k]] || '').trim() : '';
-    const entry = makeEntry({
-      name: get('name'),
-      setCode: get('setCode').toLowerCase(),
-      setName: get('setName'),
-      cn: get('cn'),
-      finish: normalizeFinish(get('finish')),
-      qty: parseInt(get('qty'), 10) || 1,
-      condition: normalizeCondition(get('condition')),
-      language: normalizeLanguage(get('language')),
-      location: get('location'),
-      scryfallId: get('scryfallId'),
-      rarity: get('rarity').toLowerCase(),
-      price: parseFloat(get('price')) || null,
-      tags: parseTagsCell(get('tags')),
-    });
-    if (!entry.name && !entry.scryfallId && !(entry.setCode && entry.cn)) continue;
-    imported.push(entry);
-  }
-
+  const imported = adapter.parse(rows);
   if (imported.length === 0) {
-    showFeedback('no usable rows found', 'error');
+    showFeedback('no usable rows found in ' + adapter.label + ' csv', 'error');
     return;
   }
-
-  await importEntries(imported, { label: 'rows' });
+  await importEntries(imported, { label: 'rows from ' + adapter.label });
 }
 
 export async function importDecklistText(text, options = {}) {
@@ -415,7 +389,8 @@ export async function importDecklistText(text, options = {}) {
 
 // ---- Merge import into existing collection ----
 // Pure: takes (existing, imported) → new collection. Dedupes by collectionKey,
-// sums qty on collisions, unions tags on collisions.
+// sums qty on collisions, unions tags on collisions, merges per-format
+// `_source` metadata so re-imports don't drop earlier preserved fields.
 export function mergeIntoCollection(existing, imported) {
   const byKey = new Map();
   for (const c of existing) byKey.set(collectionKey(c), c);
@@ -425,6 +400,7 @@ export function mergeIntoCollection(existing, imported) {
       const e = byKey.get(k);
       e.qty += c.qty;
       e.tags = [...new Set([...(e.tags || []), ...(c.tags || [])])];
+      mergeSource(e, c);
     } else {
       byKey.set(k, c);
     }
@@ -536,7 +512,21 @@ export async function loadTestData(options = {}) {
   await resolveCards(deckEntries);
   const deck = ensureContainer({ type: 'deck', name: 'breya' });
   if (deck) {
-    deck.deck = { ...deck.deck, format: 'commander', title: 'breya' };
+    // Locate the resolved Breya entry so we can stamp commander metadata onto
+    // the deck (commander image drives the decks-home tile + default deck
+    // workspace preview).
+    const breya = deckEntries.find(e =>
+      (e.resolvedName || e.name || '').toLowerCase().startsWith('breya')
+    );
+    deck.deck = {
+      ...deck.deck,
+      format: 'commander',
+      title: 'breya',
+      commander: breya ? (breya.resolvedName || breya.name) : '',
+      commanderScryfallId: breya?.scryfallId || '',
+      commanderImageUrl: breya?.imageUrl || '',
+      commanderBackImageUrl: breya?.backImageUrl || '',
+    };
     deck.deckList = [];
     for (const e of deckEntries) {
       if (!e.scryfallId) continue;
@@ -607,7 +597,17 @@ export async function loadTestData(options = {}) {
   ensureContainer({ type: 'binder', name: 'trade binder' });
   if (deck) deck.updatedAt = Date.now();
   commitCollectionChange();
-  if (!silent) showFeedback('loaded test data: breya decklist + ' + (fulfillEntries.length + standaloneEntries.length) + ' inventory cards', 'success');
+  if (!silent) {
+    // Inline status next to the reset button — keeps the top-of-page banner
+    // free for genuine alerts (errors, import results).
+    const statusEl = document.getElementById('testDataStatus');
+    if (statusEl) {
+      const total = fulfillEntries.length + standaloneEntries.length;
+      statusEl.textContent = 'loaded breya decklist + ' + total + ' inventory cards';
+      statusEl.classList.add('visible');
+      setTimeout(() => statusEl.classList.remove('visible'), 4000);
+    }
+  }
 }
 
 // Backward-compat alias for any UI still calling the old name.
@@ -620,37 +620,22 @@ function clearCollection() {
   hideFeedback();
 }
 
-function exportCsv() {
+// Export the current filtered list as CSV in the chosen format. Defaults to
+// canonical (the app's internal portability baseline). The chosen format's
+// adapter does the row-shaping; preserved per-format fields stashed in
+// entry._source[adapterId] are filled back in.
+function exportCsv(formatId = 'canonical') {
   if (state.collection.length === 0) return;
+  const adapter = getAdapter(formatId) || getAdapter('canonical');
   const list = filteredSorted();
-  const header = 'Name,Set code,Set name,Collector number,Foil,Rarity,Quantity,Scryfall ID,Condition,Language,Location,Purchase price,Purchase price currency,Purchase price note,Tags';
-  const q = (v) => {
-    const s = v == null ? '' : String(v);
-    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-  };
-  const rows = list.map(c => [
-    q(c.resolvedName || c.name),
-    q(c.setCode),
-    q(c.setName),
-    q(c.cn),
-    q(c.finish),
-    q(c.rarity),
-    q(c.qty),
-    q(c.scryfallId),
-    q(c.condition),
-    q(c.language),
-    q(formatLocationLabel(c.location)),
-    q(c.price ?? ''),
-    q(c.price ? 'USD' : ''),
-    q(c.priceFallback ? 'regular usd fallback; exact finish price unavailable' : ''),
-    q(serializeTagsCell(c.tags)),
-  ].join(','));
-  const csv = header + '\n' + rows.join('\n');
+  const csv = adapter.export(list);
   const blob = new Blob([csv], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'collection-' + new Date().toISOString().slice(0, 10) + '.csv';
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const suffix = formatId === 'canonical' ? '' : '-' + formatId;
+  a.download = 'collection-' + dateStr + suffix + '.csv';
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -704,7 +689,12 @@ export function initImport() {
   document.getElementById('loadSampleBtn').addEventListener('click', loadSample);
   document.getElementById('deleteAllBtn').addEventListener('click', clearCollection);
   const exportBtn = document.getElementById('exportCsvBtn');
-  if (exportBtn) exportBtn.addEventListener('click', exportCsv);
+  if (exportBtn) exportBtn.addEventListener('click', () => exportCsv('canonical'));
+  const exportNowBtn = document.getElementById('exportNowBtn');
+  const exportFormatSel = document.getElementById('exportFormat');
+  if (exportNowBtn && exportFormatSel) {
+    exportNowBtn.addEventListener('click', () => exportCsv(exportFormatSel.value));
+  }
 }
 
 // Exposed so app.js can wire it into the backup-nag click handler

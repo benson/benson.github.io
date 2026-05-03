@@ -38,7 +38,12 @@ export function loadFromStorage() {
         else if (Object.prototype.hasOwnProperty.call(c, 'deckBoard')) delete c.deckBoard;
       }
       ensureContainersForCollection();
-      state.viewMode = data.viewMode === 'locations' ? 'locations' : 'list';
+      // Top-level route. Migrate legacy 'list'→'collection', 'locations'→'storage'
+      // (the closest analog — boxes/binders dominated the old locations home).
+      const VALID_VIEW_MODES = ['collection', 'decks', 'storage'];
+      if (VALID_VIEW_MODES.includes(data.viewMode)) state.viewMode = data.viewMode;
+      else if (data.viewMode === 'locations') state.viewMode = 'storage';
+      else state.viewMode = 'collection';
       state.viewAsList = !!data.viewAsList;
       state.selectedFormat = typeof data.selectedFormat === 'string' ? data.selectedFormat : '';
       state.sortField = typeof data.sortField === 'string' && data.sortField ? data.sortField : null;

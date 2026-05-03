@@ -3,7 +3,9 @@
 export const state = {
   collection: [],
   containers: {},
-  viewMode: 'list',
+  // Top-level routes: 'collection' | 'decks' | 'storage'.
+  viewMode: 'collection',
+  // Binder-shape escape hatch only. Collection/decks/storage don't use this.
   viewAsList: false,
   selectedFormat: '',
   selectedKeys: new Set(),

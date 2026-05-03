@@ -47,11 +47,13 @@ const VALID_BINDER_SIZES = Object.keys(BINDER_SIZES);
 const RARITY_ABBR = { common: 'c', uncommon: 'u', rare: 'r', mythic: 'm', special: 's', bonus: 'b' };
 const CONDITION_ABBR = { near_mint: 'nm', lightly_played: 'lp', moderately_played: 'mp', heavily_played: 'hp', damaged: 'dmg' };
 
-// Switch out of locations-home (if there) and select the location in the
-// multiselect. Effective shape (deck/binder/list) is auto-derived in render()
-// from the single-container filter.
+// Navigate into a specific container. The viewMode is set to the appropriate
+// top-level route; the location filter is set so getEffectiveShape() can
+// resolve to the workspace shape (deck/binder) or filtered list (box).
 export function navigateToLocation(type, name) {
-  state.viewMode = 'list';
+  if (type === 'deck') state.viewMode = 'decks';
+  else if (type === 'binder' || type === 'box') state.viewMode = 'storage';
+  else state.viewMode = 'collection';
   state.viewAsList = false;
   // Clear any stray `loc:` query so the multiselect filter is the source of truth.
   const searchInput = document.getElementById('searchInput');
@@ -65,21 +67,28 @@ export function navigateToLocation(type, name) {
   render();
 }
 
-// Derive the effective render shape from current state + active filters.
-// 'locations' wins (it's a destination); otherwise: a single-location filter
-// resolves to that location's natural shape, unless the user has toggled
-// "view as list".
+// Derive the effective render shape from viewMode + active container filter.
+// - 'collection' → always 'collection' (flat list across all locations).
+// - 'decks' → 'deck' workspace if a single deck filter is set, else 'decks-home'.
+// - 'storage' → 'binder' if a single binder filter is set; 'box' if a single
+//   box filter is set; else 'storage-home'.
+// 'viewAsList' is a binder-only escape hatch.
 export function getEffectiveShape() {
-  if (state.viewMode === 'locations') return 'locations';
-  if (state.viewAsList) return 'list';
+  if (state.viewMode === 'collection') return 'collection';
   const filterEl = document.getElementById('filterLocation');
-  if (!filterEl) return 'list';
-  const values = getMultiselectValue(filterEl);
-  if (values.length !== 1) return 'list';
-  const type = values[0].split(':')[0];
-  if (type === 'deck') return 'deck';
-  if (type === 'binder') return 'binder';
-  return 'list';
+  const values = filterEl ? getMultiselectValue(filterEl) : [];
+  const single = values.length === 1 ? values[0] : null;
+  const singleType = single ? single.split(':')[0] : null;
+  if (state.viewMode === 'decks') {
+    if (singleType === 'deck') return 'deck';
+    return 'decks-home';
+  }
+  if (state.viewMode === 'storage') {
+    if (singleType === 'binder') return state.viewAsList ? 'box' : 'binder';
+    if (singleType === 'box') return 'box';
+    return 'storage-home';
+  }
+  return 'collection';
 }
 
 function currentDeckScope() {
@@ -224,18 +233,30 @@ export function render() {
   document.querySelectorAll('.app-header-views .toggle-view').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.view === state.viewMode);
   });
-  document.body.classList.toggle('view-list', shape === 'list');
+  // New top-level viewMode classes (drive per-route CSS)
+  document.body.classList.toggle('view-collection', state.viewMode === 'collection');
+  document.body.classList.toggle('view-decks', state.viewMode === 'decks');
+  document.body.classList.toggle('view-storage', state.viewMode === 'storage');
+  // Shape classes (drive per-shape CSS) — keep legacy 'view-list'/'view-locations'
+  // names as aliases so existing CSS keeps working without a sweep.
+  document.body.classList.toggle('view-list', shape === 'collection' || shape === 'box');
   document.body.classList.toggle('view-deck', shape === 'deck');
-  document.body.classList.toggle('view-locations', shape === 'locations');
+  document.body.classList.toggle('view-binder', shape === 'binder');
+  document.body.classList.toggle('view-locations', shape === 'decks-home' || shape === 'storage-home');
+  document.body.classList.toggle('view-decks-home', shape === 'decks-home');
+  document.body.classList.toggle('view-storage-home', shape === 'storage-home');
   document.body.classList.toggle('has-collection', state.collection.length > 0);
   document.body.classList.toggle('deck-ownership-decklist', shape === 'deck' && state.deckOwnershipView === 'decklist');
-  // Switching away from list shape always closes the right drawer
-  if (shape !== 'list') closeRightDrawer();
+  // Right drawer is only meaningful for the flat list / collection / deck shape
+  if (shape !== 'collection' && shape !== 'box' && shape !== 'deck') closeRightDrawer();
   syncClearFiltersBtn();
   syncViewAsListToggles();
   setHistoryScope(shape === 'deck' ? currentDeckScope() : null);
   const containers = allContainers();
-  if (state.collection.length === 0 && containers.length === 0 && shape !== 'locations') {
+  // Decks-home and storage-home render even on an empty collection so the
+  // user can create a container before adding cards.
+  const isHomeShape = shape === 'decks-home' || shape === 'storage-home';
+  if (state.collection.length === 0 && containers.length === 0 && !isHomeShape) {
     collectionSection.classList.add('hidden');
     emptyState.classList.remove('hidden');
     document.getElementById('binderSizeControl').classList.add('hidden');
@@ -265,9 +286,12 @@ export function render() {
   binderContainer.classList.remove('active');
   binderSizeCtl.classList.add('hidden');
 
-  if (shape === 'locations') {
+  if (shape === 'decks-home') {
     locationsContainer.classList.add('active');
-    renderLocationsView(containers);
+    renderDecksHome(containers);
+  } else if (shape === 'storage-home') {
+    locationsContainer.classList.add('active');
+    renderStorageHome(containers);
   } else if (shape === 'deck') {
     deckContainer.classList.add('active');
     renderDeckView(list);
@@ -276,6 +300,8 @@ export function render() {
     binderSizeCtl.classList.remove('hidden');
     renderBinderView(list);
   } else {
+    // 'collection' or 'box' — both render as flat list. 'box' is just a
+    // collection view filtered to a single box container.
     listContainer.classList.add('active');
     listBodyEl.innerHTML = list.map(c => renderRow(c)).join('');
     syncSortIndicator();
@@ -284,10 +310,10 @@ export function render() {
 }
 
 // Shape bar: shows the auto-shape and a toggle to override to list.
-// Visible only when a single deck/binder filter would auto-shape the view.
+// Now binder-only — the only shape with a meaningful "view as list" escape.
 function syncViewAsListToggles() {
   const autoType = (() => {
-    if (state.viewMode === 'locations') return null;
+    if (state.viewMode !== 'storage') return null;
     const filterEl = document.getElementById('filterLocation');
     if (!filterEl) return null;
     const values = getMultiselectValue(filterEl);
@@ -356,12 +382,34 @@ function renderRow(c) {
   </tr>`;
 }
 
-function renderLocationsView(containers) {
-  const typeLabels = { deck: 'decks', binder: 'binders', box: 'boxes' };
+// Edit-row markup shared by both home views. Matches the original
+// `.location-card-edit-row` structure so existing rename/save handlers work.
+function containerEditRowHtml(c, allowedTypes = LOCATION_TYPES) {
+  const radioName = 'editLocType_' + esc(c.type) + '_' + esc(c.name);
+  const typeRadiosHtml = allowedTypes.map(t => `<label class="loc-type-radio${t === c.type ? ' is-selected' : ''}">
+    <input type="radio" name="${radioName}" value="${esc(t)}"${t === c.type ? ' checked' : ''}>
+    <span class="loc-pill loc-pill-${esc(t)}">${LOC_ICONS[t]}<span>${esc(t)}</span></span>
+  </label>`).join('');
+  return `<div class="location-card-edit-row">
+    <div class="loc-type-radios">${typeRadiosHtml}</div>
+    <input class="location-rename-input" type="text" value="${esc(c.name)}">
+    <div class="location-card-edit-actions">
+      <button class="btn location-rename-save" type="button">save</button>
+      <button class="btn btn-secondary location-rename-cancel" type="button">cancel</button>
+    </div>
+  </div>`;
+}
+
+// Storage home — boxes and binders only. Each tile keeps the existing
+// skeumorphic styling. Handlers are class-name driven (.location-card,
+// .location-card-edit-btn, etc.) so they fire unchanged.
+function renderStorageHome(containers) {
+  const STORAGE_TYPES = ['binder', 'box'];
+  const typeLabels = { binder: 'binders', box: 'boxes' };
   const createHtml = `<form class="locations-create" id="locationsCreateForm">
-    <span class="locations-create-label">new location</span>
+    <span class="locations-create-label">new container</span>
     <div class="locations-create-types" role="radiogroup" aria-label="container type">
-      ${LOCATION_TYPES.map((t, i) => `<label class="locations-create-type${i === 0 ? ' is-selected' : ''}">
+      ${STORAGE_TYPES.map((t, i) => `<label class="locations-create-type${i === 0 ? ' is-selected' : ''}">
         <input type="radio" name="locationsCreateType" value="${esc(t)}"${i === 0 ? ' checked' : ''}>
         <span class="loc-pill loc-pill-${esc(t)}">${LOC_ICONS[t]}<span>${esc(t)}</span></span>
       </label>`).join('')}
@@ -369,16 +417,11 @@ function renderLocationsView(containers) {
     <input id="locationsCreateName" type="text" placeholder="name" autocomplete="off">
     <button class="btn" type="submit">create</button>
   </form>`;
-  const groups = LOCATION_TYPES.map(type => {
+  const groups = STORAGE_TYPES.map(type => {
     const ofType = containers.filter(c => c.type === type);
     const cards = ofType.map(c => {
       const stats = containerStats(c);
       const value = stats.value > 0 ? ' &middot; $' + stats.value.toFixed(2) : '';
-      const radioName = 'editLocType_' + esc(c.type) + '_' + esc(c.name);
-      const typeRadiosHtml = LOCATION_TYPES.map(t => `<label class="loc-type-radio${t === c.type ? ' is-selected' : ''}">
-        <input type="radio" name="${radioName}" value="${esc(t)}"${t === c.type ? ' checked' : ''}>
-        <span class="loc-pill loc-pill-${esc(t)}">${LOC_ICONS[t]}<span>${esc(t)}</span></span>
-      </label>`).join('');
       return `<article class="location-card" data-loc-type="${esc(c.type)}" data-loc-name="${esc(c.name)}" tabindex="0" role="button" aria-label="open ${esc(c.name)}">
         <div class="location-card-name">
           ${LOC_ICONS[c.type] || LOC_ICONS.box}
@@ -390,14 +433,7 @@ function renderLocationsView(containers) {
           <button class="location-card-menu-item location-delete" type="button" role="menuitem">delete</button>
         </div>
         <div class="location-card-stats">${stats.unique} unique &middot; ${stats.total} total${value}</div>
-        <div class="location-card-edit-row">
-          <div class="loc-type-radios">${typeRadiosHtml}</div>
-          <input class="location-rename-input" type="text" value="${esc(c.name)}">
-          <div class="location-card-edit-actions">
-            <button class="btn location-rename-save" type="button">save</button>
-            <button class="btn btn-secondary location-rename-cancel" type="button">cancel</button>
-          </div>
-        </div>
+        ${containerEditRowHtml(c, STORAGE_TYPES)}
       </article>`;
     }).join('') || '<div class="deck-empty-prompt">no ' + esc(typeLabels[type]) + ' yet</div>';
     return `<section class="locations-group">
@@ -406,6 +442,62 @@ function renderLocationsView(containers) {
     </section>`;
   }).join('');
   locationsEl.innerHTML = createHtml + groups;
+}
+
+// Compute decklist total + owned fraction for a deck container.
+function deckOwnership(deck) {
+  const list = Array.isArray(deck.deckList) ? deck.deckList : [];
+  const total = list.reduce((s, e) => s + (e.qty || 0), 0);
+  let owned = 0;
+  let value = 0;
+  for (const entry of list) {
+    const r = resolveDeckListEntry(entry, state.collection);
+    owned += Math.min(entry.qty || 0, r.ownedQty);
+    if (r.primary) value += (r.primary.price || 0) * (entry.qty || 0);
+  }
+  return { total, owned, value };
+}
+
+// Decks home — only deck containers. Tiles show commander art + format badge
+// + owned fraction. The create form has no type picker (always 'deck').
+function renderDecksHome(containers) {
+  const decks = containers.filter(c => c.type === 'deck');
+  const createHtml = `<form class="locations-create locations-create-decks" id="locationsCreateForm">
+    <span class="locations-create-label">new deck</span>
+    <input type="hidden" name="locationsCreateType" value="deck">
+    <input id="locationsCreateName" type="text" placeholder="deck name" autocomplete="off">
+    <button class="btn" type="submit">create deck</button>
+  </form>`;
+  const tiles = decks.map(c => {
+    const meta = c.deck || defaultDeckMetadata(c.name);
+    const own = deckOwnership(c);
+    const formatBadge = meta.format
+      ? `<span class="deck-home-badge deck-home-format">${esc(meta.format)}</span>`
+      : '';
+    const commanderArt = meta.commanderImageUrl
+      ? `<div class="deck-home-art"><img src="${esc(meta.commanderImageUrl)}" alt="" loading="lazy"></div>`
+      : `<div class="deck-home-art deck-home-art-empty">${LOC_ICONS.deck}</div>`;
+    const valueStr = own.value > 0 ? ' &middot; $' + own.value.toFixed(2) : '';
+    const ownedStr = own.total > 0 ? `${own.owned}/${own.total} owned` : 'empty deck';
+    return `<article class="location-card deck-home-card" data-loc-type="deck" data-loc-name="${esc(c.name)}" tabindex="0" role="button" aria-label="open ${esc(c.name)}">
+      ${commanderArt}
+      <div class="location-card-name">
+        ${LOC_ICONS.deck}
+        <span class="location-card-name-text">${esc(c.name)}</span>
+        ${formatBadge}
+        <button class="location-card-edit-btn" type="button" aria-label="edit">✎</button>
+        <button class="location-card-menu-btn" type="button" aria-label="more options" aria-haspopup="menu">⋯</button>
+      </div>
+      <div class="location-card-menu" role="menu">
+        <button class="location-card-menu-item location-delete" type="button" role="menuitem">delete</button>
+      </div>
+      <div class="location-card-stats">${esc(ownedStr)}${valueStr}</div>
+      ${containerEditRowHtml(c, ['deck'])}
+    </article>`;
+  }).join('') || '<div class="deck-empty-prompt">no decks yet</div>';
+  locationsEl.innerHTML = createHtml + `<section class="locations-group">
+    <div class="locations-list">${tiles}</div>
+  </section>`;
 }
 
 function renderLegacyDeckCard(c, isLast) {
@@ -475,7 +567,15 @@ export function renderDeckCard(c, isLast) {
   const lastClass = isLast ? ' deck-card-last' : '';
   const board = normalizeDeckBoard(c.deckBoard);
   const menuId = 'deck-card-menu-' + sid + '-' + board;
-  const dataAttrs = `data-scryfall-id="${esc(sid)}" data-board="${esc(board)}" data-inventory-index="${idx}"`;
+  // Stash enough on the article that the hover handler can synthesize a
+  // preview for placeholders (cards in the decklist but not yet in inventory).
+  const dataAttrs = `data-scryfall-id="${esc(sid)}" data-board="${esc(board)}" data-inventory-index="${idx}"`
+    + ` data-card-name="${esc(name)}"`
+    + ` data-image-url="${esc(c.imageUrl || '')}"`
+    + ` data-back-image-url="${esc(c.backImageUrl || '')}"`
+    + ` data-card-qty="${c.qty || 1}"`
+    + ` data-card-finish="${esc(c.finish || 'normal')}"`
+    + ` data-card-price="${c.price || 0}"`;
   const moveItem = (targetBoard, label) =>
     `<button role="menuitem" type="button" data-card-action="move-board" data-board-target="${targetBoard}" ${dataAttrs}${board === targetBoard ? ' disabled' : ''}>${esc(label)}</button>`;
   const openItem = idx >= 0
@@ -1222,7 +1322,20 @@ function renderDeckView(list) {
   </div>`;
 
   const cols = groupDeck(boards.main, state.deckGroupBy);
-  setDeckPreviewCard(firstCardForPanel(cols) || list[0] || null);
+  // Default preview: commander art if the deck has one, otherwise the first
+  // card in the visual grid (today's behavior).
+  const commanderPreview = headerModel.commanderImageUrl
+    ? {
+        name: headerModel.commander || '',
+        resolvedName: headerModel.commander || '',
+        imageUrl: headerModel.commanderImageUrl,
+        backImageUrl: headerModel.commanderBackImageUrl || '',
+        qty: 1,
+        finish: 'normal',
+        price: 0,
+      }
+    : null;
+  setDeckPreviewCard(commanderPreview || firstCardForPanel(cols) || list[0] || null);
   renderSampleHandPanel();
   const summary = document.getElementById('deckSummary');
   summary.textContent = stats.total + ' cards - ' + format;
@@ -1348,10 +1461,26 @@ function deckPreviewFromTarget(target) {
   if (!target?.closest) return;
   const card = target.closest('.deck-card');
   if (card) {
-    const idx = parseInt(card.dataset.index, 10);
-    if (Number.isNaN(idx)) return;
-    const entry = state.collection[idx];
-    if (entry) setDeckPreviewCard(entry);
+    const idx = parseInt(card.dataset.inventoryIndex || '-1', 10);
+    if (idx >= 0) {
+      const entry = state.collection[idx];
+      if (entry) { setDeckPreviewCard(entry); return; }
+    }
+    // Placeholder (no inventory entry) — synthesize a preview from the data
+    // attrs the renderer stamps onto the article.
+    const name = card.dataset.cardName || '';
+    const imageUrl = card.dataset.imageUrl || '';
+    if (name || imageUrl) {
+      setDeckPreviewCard({
+        name,
+        resolvedName: name,
+        imageUrl,
+        backImageUrl: card.dataset.backImageUrl || '',
+        qty: parseInt(card.dataset.cardQty || '1', 10),
+        finish: card.dataset.cardFinish || 'normal',
+        price: parseFloat(card.dataset.cardPrice || '0') || 0,
+      });
+    }
     return;
   }
   const metaLink = target.closest('.deck-meta-preview-link');
@@ -1596,10 +1725,14 @@ export function initView() {
     const btn = e.target.closest('[data-view]');
     if (!btn) return;
     const next = btn.dataset.view;
-    if (!['list', 'locations'].includes(next)) return;
+    if (!['collection', 'decks', 'storage'].includes(next)) return;
     if (state.viewMode === next) return;
     state.viewMode = next;
     state.viewAsList = false;
+    // Switching top-level routes clears the location filter so the home shape
+    // is reached. (User can drill back into a single container after.)
+    const filterEl = document.getElementById('filterLocation');
+    if (filterEl) setMultiselectValue(filterEl, []);
     save();
     render();
   });
@@ -1707,7 +1840,7 @@ export function initView() {
 
   // Keyboard arrow nav for binder pages (only when binder mode and no input focused)
   document.addEventListener('keydown', e => {
-    if (state.viewMode !== 'binder') return;
+    if (getEffectiveShape() !== 'binder') return;
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
     const t = e.target;
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
@@ -2101,11 +2234,16 @@ export function initView() {
   locationsEl.addEventListener('submit', e => {
     if (e.target.id !== 'locationsCreateForm') return;
     e.preventDefault();
+    // Decks form uses a hidden input for type; storage form uses a radio group.
+    // Try both — the radio :checked match wins when present, otherwise fall
+    // back to the hidden input's value (or 'box' as a last resort).
     const checked = document.querySelector('input[name="locationsCreateType"]:checked');
-    const type = checked ? checked.value : 'box';
+    const hidden = document.querySelector('input[type="hidden"][name="locationsCreateType"]');
+    const type = checked ? checked.value : (hidden ? hidden.value : 'box');
     const nameInput = document.getElementById('locationsCreateName');
     const created = ensureContainer({ type, name: nameInput.value });
     if (!created) return;
+    nameInput.value = '';
     save();
     populateFilters();
     render();

@@ -354,6 +354,14 @@
     border-color: #000;
     color: #000;
   }
+  .footer-test-status {
+    font-size: 0.7rem;
+    color: #888;
+    margin-left: 8px;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .footer-test-status.visible { opacity: 1; }
   .footer-case-toggle,
   .footer-chrome-toggle {
     background: none;
@@ -560,6 +568,9 @@
   .paste-area:focus { border-color: #000; outline: none; }
 
   .import-actions { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+  .export-actions { display: flex; gap: 6px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid #eee; }
+  .export-label { font-size: 0.8rem; color: #666; }
+  .export-format-select { font: inherit; font-size: 0.8rem; padding: 4px 6px; border: 1px solid #ccc; background: #fff; }
 
   /* Stats */
   .stats {
@@ -2150,6 +2161,54 @@
   .location-card-edit-row .location-rename-input:focus { border-bottom-color: #000; }
   .location-card-edit-actions { display: flex; gap: 6px; }
 
+  /* Decks home — commander art + format badge */
+  .deck-home-card { padding-top: 0; padding-left: 0; padding-right: 0; }
+  .deck-home-art {
+    width: 100%;
+    height: 132px;
+    overflow: hidden;
+    background: #f0ece0;
+    margin-bottom: 8px;
+    position: relative;
+  }
+  .deck-home-art img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 22%;
+    display: block;
+  }
+  .deck-home-art-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #aaa;
+  }
+  .deck-home-art-empty .loc-icon { width: 36px; height: 36px; }
+  .deck-home-card .location-card-name { padding: 0 10px; }
+  .deck-home-card .location-card-stats { padding: 0 10px 4px; }
+  .deck-home-card .location-card-edit-row { margin: 0 10px; }
+  .deck-home-badge {
+    font-size: 0.7rem;
+    padding: 1px 6px;
+    background: #f0ece0;
+    border: 1px solid #ddd;
+    color: #555;
+    margin-left: 4px;
+    border-radius: 2px;
+  }
+  .locations-create-decks input[type="text"] { min-width: 200px; }
+
+  /* Hide right sidebar on the new home shapes (alias of view-locations) */
+  body.view-decks-home .app-right,
+  body.view-storage-home .app-right { display: none; }
+  /* Hide FAB cluster on home shapes — primary action is "new deck/container" */
+  body.view-decks-home .fab-cluster,
+  body.view-storage-home .fab-cluster { display: none; }
+  /* Hide collection filters on Decks home — they aren't meaningful for decklists */
+  body.view-decks-home .sidebar-filters,
+  body.view-decks-home .sidebar-section:has(#binderSizeControl) { display: none; }
+
   #binderSizeControl.hidden { display: none; }
 
   /* Table view (compact) */
@@ -2660,7 +2719,8 @@
   }
   .toggle-view:hover { color: #000; border-color: #000; }
 
-  .empty-state { text-align: center; padding: 40px 20px; color: #ccc; font-size: 0.85rem; }
+  .empty-state { text-align: center; padding: 40px 20px; color: #999; font-size: 0.85rem; }
+  .empty-state-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 16px; }
 
   #cardPreview {
     position: fixed;
@@ -3613,8 +3673,9 @@
       <span><span class="stat-label">USD</span> <strong id="totalValue">0</strong></span>
     </div>
     <div class="app-header-views">
-      <button class="toggle-view" id="listViewBtn" data-view="list"><span class="view-icon" aria-hidden="true">≡</span>list</button>
-      <button class="toggle-view" id="locationsViewBtn" data-view="locations"><svg class="view-icon view-icon-svg" aria-hidden="true" viewBox="0 0 14 14"><path d="M2 7 L7 2 L12 7 L12 12 L2 12 Z" fill="none" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/></svg>locations</button>
+      <button class="toggle-view" id="collectionViewBtn" data-view="collection"><span class="view-icon" aria-hidden="true">≡</span>collection</button>
+      <button class="toggle-view" id="decksViewBtn" data-view="decks"><svg class="view-icon view-icon-svg" aria-hidden="true" viewBox="0 0 14 14"><rect x="2.5" y="3.5" width="6.5" height="8.5" rx="0.5" fill="none" stroke="currentColor" stroke-width="1"/><rect x="5" y="1.5" width="6.5" height="8.5" rx="0.5" fill="none" stroke="currentColor" stroke-width="1"/></svg>decks</button>
+      <button class="toggle-view" id="storageViewBtn" data-view="storage"><svg class="view-icon view-icon-svg" aria-hidden="true" viewBox="0 0 14 14"><path d="M2 7 L7 2 L12 7 L12 12 L2 12 Z" fill="none" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/></svg>storage</button>
     </div>
   </header>
 
@@ -3841,6 +3902,13 @@
 
     <div class="empty-state" id="emptyState">
       <p>add a card or import a csv to see your collection</p>
+      <div class="empty-state-actions">
+        <button class="btn" type="button" data-empty-action="new-deck">new deck</button>
+        <button class="btn" type="button" data-empty-action="new-container">new container</button>
+        <button class="btn btn-secondary" type="button" data-empty-action="open-import">import collection</button>
+        <button class="btn btn-secondary" type="button" data-empty-action="load-sample">load sample</button>
+        <button class="btn btn-secondary" type="button" data-empty-action="load-test">load breya</button>
+      </div>
     </div>
   </main>
 
@@ -3884,8 +3952,18 @@
             <button class="btn" id="importPastedBtn">import pasted</button>
             <button class="btn btn-secondary" id="loadSampleBtn">load sample</button>
           </div>
+          <div class="export-actions">
+            <span class="export-label">export as:</span>
+            <select id="exportFormat" class="export-format-select">
+              <option value="canonical">canonical csv</option>
+              <option value="moxfield">moxfield csv</option>
+              <option value="manabox">manabox csv</option>
+              <option value="deckbox">deckbox csv</option>
+            </select>
+            <button class="btn" type="button" id="exportNowBtn">download</button>
+          </div>
           <div class="format-note">
-            recognized columns: <code>name</code>, <code>set code</code>, <code>collector number</code>, <code>quantity</code>, <code>foil</code>, <code>condition</code>, <code>language</code>, <code>location</code>, <code>scryfall id</code>. moxfield plaintext like <code>1 Sol Ring (SLD) 1011 *F*</code> works too.
+            csv format auto-detected from headers (moxfield, manabox, deckbox, canonical). moxfield plaintext like <code>1 Sol Ring (SLD) 1011 *F*</code> works too.
           </div>
           <div class="danger-zone">
             <button class="danger-link" type="button" id="deleteAllBtn">delete entire collection</button>
@@ -3967,6 +4045,7 @@
   <footer class="app-footer">
     <div class="app-footer-left">
       <button class="footer-test-reset" type="button" id="loadTestDataBtn" title="reset to a representative test state">reset test data</button>
+      <span class="footer-test-status" id="testDataStatus" aria-live="polite"></span>
     </div>
     <div class="app-footer-right">
       <button class="btn btn-secondary" type="button" id="copyDecklistBtn">copy decklist</button>

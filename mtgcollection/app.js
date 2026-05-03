@@ -60,7 +60,9 @@ async function boot() {
     save();
     updateFooter();
     if (state.detailIndex >= 0) renderDetailLegality();
-    if (state.viewMode === 'deck') render();
+    // Format selector affects deck workspace rendering. Re-render whenever
+    // the deck shape would be active.
+    render();
   });
   updateFooter();
 
@@ -68,9 +70,35 @@ async function boot() {
     if (e.target.closest('[data-fab-action="export"]')) exportCsv();
   });
 
+  document.getElementById('emptyState').addEventListener('click', e => {
+    const btn = e.target.closest('[data-empty-action]');
+    if (!btn) return;
+    const action = btn.dataset.emptyAction;
+    if (action === 'new-deck') {
+      state.viewMode = 'decks';
+      save();
+      render();
+      document.getElementById('locationsCreateName')?.focus();
+    } else if (action === 'new-container') {
+      state.viewMode = 'storage';
+      save();
+      render();
+      document.getElementById('locationsCreateName')?.focus();
+    } else if (action === 'open-import') {
+      const det = document.getElementById('addDetails');
+      if (det) det.open = true;
+      const tabBtn = document.querySelector('[data-add-mode="import"]');
+      if (tabBtn) tabBtn.click();
+    } else if (action === 'load-sample') {
+      document.getElementById('loadSampleBtn')?.click();
+    } else if (action === 'load-test') {
+      document.getElementById('loadTestDataBtn')?.click();
+    }
+  });
+
   document.getElementById('resetAppBtn').addEventListener('click', () => {
     clearAllFilters();
-    state.viewMode = 'list';
+    state.viewMode = 'collection';
     state.detailIndex = -1;
     save();
     history.replaceState(null, '', location.pathname);
