@@ -1,26 +1,16 @@
-import test, { afterEach } from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Window } from 'happy-dom';
 import {
   bindAppControls,
   CHROME_KEY,
   loadChromePreferences,
   TEXT_CASE_KEY,
 } from '../appControls.js';
-import { resetState, state } from '../state.js';
-
-function fakeStorage(entries = []) {
-  const values = new Map(entries);
-  return {
-    values,
-    getItem: key => values.get(key) || null,
-    setItem: (key, value) => values.set(key, value),
-  };
-}
+import { state } from '../state.js';
+import { createFakeStorage, createTestDocument, resetStateAfterEach } from './testUtils.js';
 
 function setupDocument() {
-  const win = new Window();
-  win.document.body.innerHTML = `
+  return createTestDocument(`
     <footer class="app-footer"></footer>
     <select id="formatSelect">
       <option value=""></option>
@@ -43,19 +33,16 @@ function setupDocument() {
     <button type="button" id="resetAppBtn"></button>
     <button type="button" id="caseToggleBtn"></button>
     <button type="button" id="chromeToggleBtn"></button>
-  `;
-  return win.document;
+  `);
 }
 
-afterEach(() => {
-  resetState();
-});
+resetStateAfterEach();
 
 test('loadChromePreferences: applies stored body classes', () => {
   const documentObj = setupDocument();
   loadChromePreferences({
     documentObj,
-    storage: fakeStorage([
+    storage: createFakeStorage([
       [TEXT_CASE_KEY, 'proper'],
       [CHROME_KEY, 'classic'],
     ]),
@@ -120,7 +107,7 @@ test('bindAppControls: empty-state actions route or trigger their target control
 
 test('bindAppControls: reset, export, and chrome toggles stay behind one boundary', () => {
   const documentObj = setupDocument();
-  const storage = fakeStorage();
+  const storage = createFakeStorage();
   const calls = { clears: 0, modes: [], saves: 0, renders: 0, exports: 0, paths: [] };
   state.detailIndex = 5;
   bindAppControls({

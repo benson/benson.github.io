@@ -2,40 +2,19 @@ import test, { afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { loadFromStorage, save } from '../persistence.js';
 import { APP_STORAGE_SCHEMA_VERSION } from '../storageSchema.js';
-import { resetState, state, BINDER_SIZE_KEY, STORAGE_KEY } from '../state.js';
+import { state, BINDER_SIZE_KEY, STORAGE_KEY } from '../state.js';
+import { installLocalStorage, resetStateAfterEach } from './testUtils.js';
 
-const originalLocalStorage = globalThis.localStorage;
-
-function makeStorage(initial = {}) {
-  const values = new Map(Object.entries(initial));
-  return {
-    getItem(key) {
-      return values.has(key) ? values.get(key) : null;
-    },
-    setItem(key, value) {
-      values.set(key, String(value));
-    },
-    removeItem(key) {
-      values.delete(key);
-    },
-    values,
-  };
-}
-
-function installStorage(initial = {}) {
-  const storage = makeStorage(initial);
-  globalThis.localStorage = storage;
-  return storage;
-}
-
+let restoreLocalStorage = () => {};
+resetStateAfterEach();
 afterEach(() => {
-  resetState();
-  if (originalLocalStorage === undefined) delete globalThis.localStorage;
-  else globalThis.localStorage = originalLocalStorage;
+  restoreLocalStorage();
+  restoreLocalStorage = () => {};
 });
 
 test('save: writes versioned app data', () => {
-  const storage = installStorage();
+  const { storage, restore } = installLocalStorage();
+  restoreLocalStorage = restore;
   state.collection = [{ name: 'Sol Ring', qty: 1 }];
   state.containers = { 'deck:breya': { type: 'deck', name: 'breya' } };
   state.viewMode = 'decks';
@@ -59,7 +38,7 @@ test('save: writes versioned app data', () => {
 });
 
 test('loadFromStorage: reads legacy payloads through the schema normalizer', () => {
-  installStorage({
+  const { restore } = installLocalStorage({
     [STORAGE_KEY]: JSON.stringify({
       collection: [{
         name: 'Sol Ring',
@@ -77,6 +56,7 @@ test('loadFromStorage: reads legacy payloads through the schema normalizer', () 
     }),
     [BINDER_SIZE_KEY]: '3x3',
   });
+  restoreLocalStorage = restore;
 
   assert.equal(loadFromStorage(), true);
   assert.equal(state.viewMode, 'storage');
@@ -93,13 +73,14 @@ test('loadFromStorage: reads legacy payloads through the schema normalizer', () 
 });
 
 test('loadFromStorage: returns false for unknown schema versions', () => {
-  installStorage({
+  const { restore } = installLocalStorage({
     [STORAGE_KEY]: JSON.stringify({
       schemaVersion: 999,
       collection: [],
       containers: {},
     }),
   });
+  restoreLocalStorage = restore;
   state.collection = [{ name: 'Existing' }];
 
   assert.equal(loadFromStorage(), false);
@@ -107,7 +88,8 @@ test('loadFromStorage: returns false for unknown schema versions', () => {
 });
 
 test('save: share snapshots do not write local collection state', () => {
-  const storage = installStorage();
+  const { storage, restore } = installLocalStorage();
+  restoreLocalStorage = restore;
   state.shareSnapshot = { container: { type: 'deck', name: 'shared' } };
   state.collection = [{ name: 'Private Card' }];
 

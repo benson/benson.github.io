@@ -17,7 +17,7 @@ import {
   normalizeLanguage,
   formatLocationLabel,
 } from './collection.js';
-import { parseTagsCell, serializeTagsCell } from './import.js';
+import { parseTagsCell, serializeTagsCell } from './importParsing.js';
 
 // ---- shared helpers ----
 const lower = arr => arr.map(s => String(s || '').toLowerCase().trim());
@@ -46,7 +46,7 @@ function getSource(entry, adapterId) {
 
 // ---- Canonical adapter ----
 // The format the app already produces via exportCsv. Header aliases in
-// import.js handle minor variations (manabox/deckbox/moxfield-like CSVs that
+// importParsing.js handles minor variations (manabox/deckbox/moxfield-like CSVs that
 // don't trip the more specific adapters' detect()).
 const CANONICAL_HEADER = [
   'Name', 'Set code', 'Set name', 'Collector number', 'Foil', 'Rarity', 'Quantity',

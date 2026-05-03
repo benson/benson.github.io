@@ -1,14 +1,15 @@
-import test, { afterEach } from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert/strict';
-import { resetState, state } from '../state.js';
+import { state } from '../state.js';
 import {
   getEffectiveShape,
   readActiveLocationFromFilter,
   setActiveContainerRoute,
   setTopLevelViewMode,
 } from '../routeState.js';
+import { resetStateAfterEach } from './testUtils.js';
 
-afterEach(() => resetState());
+resetStateAfterEach();
 
 test('setActiveContainerRoute: deck containers enter the deck workspace', () => {
   const loc = setActiveContainerRoute({ type: 'deck', name: 'breya' }, { syncFilter: false });

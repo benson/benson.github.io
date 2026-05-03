@@ -1,3 +1,13 @@
+  /*
+   * mtgcollection stylesheet map
+   * 1. App shell, global modes, and shared controls
+   * 2. Collection grid and card tiles
+   * 3. Deck workspace, deck cards, and deck settings
+   * 4. Binder, locations, home views, and list/table view
+   * 5. Share/read-only mode, import, and add-card panels
+   * 6. Responsive overrides
+   */
+
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { height: 100%; }
   body {
@@ -650,7 +660,7 @@
     flex-shrink: 0;
   }
 
-  /* Controls bar */
+  /* Shared controls: search, segmented buttons, and filters */
   .controls {
     display: flex;
     gap: 8px;
@@ -777,7 +787,7 @@
     outline-offset: -2px;
   }
 
-  /* Grid */
+  /* Collection grid and card tiles */
   .grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -933,6 +943,7 @@
   }
   .card-scryfall-link:hover, .card-scryfall-link:focus-visible { border-color: #fff; outline: none; }
 
+  /* Deck workspace, cards, settings, and dashboard */
   /* Deck view — moxfield-style stacked columns */
   .deck-view { display: none; }
   .deck-view.active { display: block; }
@@ -1858,6 +1869,7 @@
     outline: none;
   }
 
+  /* Binder, locations, home views, and list/table view */
   /* Binder view — paginated card slots, IRL binder mental model */
   .binder-view { display: none; }
   .binder-view.active { display: block; }
@@ -2692,6 +2704,7 @@
   .empty-state { text-align: center; padding: 40px 20px; color: #999; font-size: 0.85rem; }
   .empty-state-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 16px; }
 
+  /* Share/read-only mode */
   /* ---- Share: viewer banner ---- */
   .share-banner {
     background: #fff8e6;
@@ -3264,6 +3277,7 @@
     margin-left: 1px;
   }
 
+  /* Import and add-card panels */
   details.import-details,
   details.add-details {
     margin-bottom: 16px;
@@ -3559,6 +3573,7 @@
     text-transform: none;
   }
 
+  /* Responsive overrides */
   @media (max-width: 768px) {
     .deck-view-wrap { grid-template-columns: minmax(0, 1fr); gap: 0; }
     .deck-preview-panel { display: none !important; }

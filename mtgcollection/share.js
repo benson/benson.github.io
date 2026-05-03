@@ -19,6 +19,7 @@
 import { state } from './state.js';
 import { showFeedback } from './feedback.js';
 import { setActiveContainerRoute } from './routeState.js';
+import { normalizeDeckBoard } from './collection.js';
 
 // Override via window.MTGCOLLECTION_SHARE_API_URL during dev to point at
 // `wrangler dev` (e.g. http://127.0.0.1:8787). Production URL is whatever
@@ -40,40 +41,62 @@ let pushInFlight = null;
 //   - `priceFallback`  : internal price-fetch metadata
 //   - `cmc`/`typeLine` : kept (used for grouping in deck view)
 
-function pickDeckListEntry(e, { includeTags = false } = {}) {
+function cleanText(value) {
+  return String(value == null ? '' : value).trim();
+}
+
+function cleanStringArray(value) {
+  return Array.isArray(value)
+    ? value.filter(v => typeof v === 'string').map(v => v.trim()).filter(Boolean)
+    : [];
+}
+
+function positiveQty(value) {
+  const qty = parseInt(value, 10);
+  return Number.isFinite(qty) && qty > 0 ? qty : 1;
+}
+
+function numericOrNull(value) {
+  if (value == null || value === '') return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function pickDeckListEntry(e = {}, { includeTags = false } = {}) {
   const out = {
-    scryfallId: e.scryfallId || '',
-    qty: e.qty || 1,
-    board: e.board || 'main',
-    name: e.name || '',
-    setCode: e.setCode || '',
-    cn: e.cn || '',
-    imageUrl: e.imageUrl || '',
-    backImageUrl: e.backImageUrl || '',
-    rarity: e.rarity || '',
-    cmc: e.cmc ?? null,
-    typeLine: e.typeLine || '',
-    colors: Array.isArray(e.colors) ? [...e.colors] : [],
+    scryfallId: cleanText(e.scryfallId),
+    qty: positiveQty(e.qty),
+    board: normalizeDeckBoard(e.board),
+    name: cleanText(e.name),
+    setCode: cleanText(e.setCode),
+    cn: cleanText(e.cn),
+    imageUrl: cleanText(e.imageUrl),
+    backImageUrl: cleanText(e.backImageUrl),
+    rarity: cleanText(e.rarity),
+    cmc: numericOrNull(e.cmc),
+    typeLine: cleanText(e.typeLine),
+    colors: cleanStringArray(e.colors),
   };
-  if (includeTags && Array.isArray(e.tags) && e.tags.length) out.tags = [...e.tags];
+  const tags = cleanStringArray(e.tags);
+  if (includeTags && tags.length) out.tags = tags;
   return out;
 }
 
 function pickDeckMetadata(meta = {}) {
   // Only the fields the viewer actually renders.
   return {
-    title: meta.title || '',
-    description: meta.description || '',
-    format: meta.format || '',
-    commander: meta.commander || '',
-    commanderScryfallId: meta.commanderScryfallId || '',
-    commanderImageUrl: meta.commanderImageUrl || '',
-    commanderBackImageUrl: meta.commanderBackImageUrl || '',
-    partner: meta.partner || '',
-    partnerScryfallId: meta.partnerScryfallId || '',
-    partnerImageUrl: meta.partnerImageUrl || '',
-    partnerBackImageUrl: meta.partnerBackImageUrl || '',
-    companion: meta.companion || '',
+    title: cleanText(meta.title),
+    description: cleanText(meta.description),
+    format: cleanText(meta.format),
+    commander: cleanText(meta.commander),
+    commanderScryfallId: cleanText(meta.commanderScryfallId),
+    commanderImageUrl: cleanText(meta.commanderImageUrl),
+    commanderBackImageUrl: cleanText(meta.commanderBackImageUrl),
+    partner: cleanText(meta.partner),
+    partnerScryfallId: cleanText(meta.partnerScryfallId),
+    partnerImageUrl: cleanText(meta.partnerImageUrl),
+    partnerBackImageUrl: cleanText(meta.partnerBackImageUrl),
+    companion: cleanText(meta.companion),
   };
 }
 
@@ -86,10 +109,25 @@ export function pickDeckSharePayload(container, { includeTags = false } = {}) {
     createdAt: Date.now(),
     container: {
       type: 'deck',
-      name: container.name,
+      name: cleanText(container.name),
       deck: pickDeckMetadata(container.deck || {}),
       deckList: list.map(e => pickDeckListEntry(e, { includeTags })),
     },
+  };
+}
+
+export function normalizeDeckShareSnapshot(snapshot, { includeTags = true } = {}) {
+  if (!snapshot || snapshot.kind !== 'deck' || !snapshot.container || snapshot.container.type !== 'deck') {
+    return null;
+  }
+  const payload = pickDeckSharePayload(snapshot.container, { includeTags });
+  if (!payload) return null;
+  if (!payload.container.name) payload.container.name = 'shared deck';
+  return {
+    kind: 'deck',
+    version: Number.isInteger(snapshot.version) ? snapshot.version : 1,
+    createdAt: Number.isFinite(snapshot.createdAt) ? snapshot.createdAt : payload.createdAt,
+    container: payload.container,
   };
 }
 
@@ -98,8 +136,9 @@ export function pickDeckSharePayload(container, { includeTags = false } = {}) {
 // renders cards without "placeholder" greying. Each entry is located in the
 // snapshot's deck container so location-filter logic still works.
 export function synthesizeInventoryFromSnapshot(snapshot) {
-  if (!snapshot || snapshot.kind !== 'deck' || !snapshot.container) return [];
-  const deck = snapshot.container;
+  const normalized = normalizeDeckShareSnapshot(snapshot);
+  if (!normalized) return [];
+  const deck = normalized.container;
   const list = Array.isArray(deck.deckList) ? deck.deckList : [];
   return list.map(e => ({
     name: e.name,
@@ -107,7 +146,7 @@ export function synthesizeInventoryFromSnapshot(snapshot) {
     setCode: e.setCode,
     cn: e.cn,
     finish: 'normal',
-    qty: e.qty || 1,
+    qty: positiveQty(e.qty),
     condition: 'near_mint',
     language: 'en',
     scryfallId: e.scryfallId,
@@ -115,12 +154,12 @@ export function synthesizeInventoryFromSnapshot(snapshot) {
     imageUrl: e.imageUrl || '',
     backImageUrl: e.backImageUrl || '',
     cmc: e.cmc ?? null,
-    colors: e.colors || [],
-    colorIdentity: e.colors || [],
+    colors: cleanStringArray(e.colors),
+    colorIdentity: cleanStringArray(e.colors),
     typeLine: e.typeLine || '',
     location: { type: 'deck', name: deck.name },
-    deckBoard: e.board || 'main',
-    tags: Array.isArray(e.tags) ? [...e.tags] : [],
+    deckBoard: normalizeDeckBoard(e.board),
+    tags: cleanStringArray(e.tags),
     price: 0,
     priceFallback: false,
   }));
@@ -220,15 +259,16 @@ export function _flushPushTimer() {
 export async function initShareViewer(id) {
   try {
     const snapshot = await loadSnapshot(id);
-    if (!snapshot || snapshot.kind !== 'deck' || !snapshot.container) {
+    const normalized = normalizeDeckShareSnapshot(snapshot);
+    if (!normalized) {
       throw new Error('unrecognized snapshot kind');
     }
-    state.shareSnapshot = { id, ...snapshot };
+    state.shareSnapshot = { id, ...normalized };
     // Populate the existing render path's data sources from the snapshot.
     // The render path is unchanged — it just sees a single-deck collection.
-    const deck = snapshot.container;
+    const deck = normalized.container;
     state.containers = { ['deck:' + deck.name]: deck };
-    state.collection = synthesizeInventoryFromSnapshot(snapshot);
+    state.collection = synthesizeInventoryFromSnapshot(normalized);
     setActiveContainerRoute({ type: 'deck', name: deck.name }, { syncFilter: false });
     return true;
   } catch (e) {
@@ -330,6 +370,7 @@ async function handleCreate() {
     const { id } = await createShare(payload);
     modalCurrentDeck.shareId = id;
     if (includeTags) modalCurrentDeck.shareIncludeTags = true;
+    else delete modalCurrentDeck.shareIncludeTags;
     // Persist + re-render the deck header so the button label flips to
     // "sharing". Lazy-import to dodge the circular dep with persistence.
     const { commitCollectionChange } = await import('./commit.js');
@@ -365,6 +406,10 @@ function handleCopy() {
   const urlInput = modalEl?.querySelector('#shareModalUrl');
   if (!urlInput) return;
   urlInput.select();
+  if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
+    showFeedback('select and copy manually', 'error');
+    return;
+  }
   navigator.clipboard.writeText(urlInput.value)
     .then(() => showFeedback('link copied', 'success'))
     .catch(() => showFeedback('couldn\'t copy — select and copy manually', 'error'));

@@ -1,17 +1,11 @@
 import { state } from './state.js';
 import { esc, showFeedback } from './feedback.js';
 import {
-  normalizeFinish,
-  normalizeCondition,
-  normalizeLanguage,
-  normalizeLocation,
   normalizeTag,
   allCollectionTags,
   allCollectionLocations,
   allContainers,
-  formatLocationLabel,
   LOCATION_TYPES,
-  DEFAULT_LOCATION_TYPE,
 } from './collection.js';
 import { commitCollectionChange } from './commit.js';
 import { collectionKey } from './collection.js';
@@ -19,6 +13,13 @@ import { captureBefore, recordEvent, locationDiffSummary, qtyDiffSummary } from 
 import { hideCardPreview, showImageLightbox, hideImageLightbox, isLightboxVisible } from './ui/cardPreview.js';
 import { populateMultiselect } from './multiselect.js';
 import { syncActiveLocationFromFilter } from './routeState.js';
+import {
+  applyDetailFormValues,
+  detailFieldDiffs,
+  readDetailForm,
+  snapshotDetailFields,
+  writeDetailForm,
+} from './detailFormModel.js';
 
 let drawerBackdrop;
 let detailDrawer;
@@ -84,18 +85,6 @@ export function populateFilters() {
     tags.map(t => '<option value="' + esc(t) + '"></option>').join('');
 }
 
-// ---- Language options (drawer) ----
-function collectionLanguages(extra = '') {
-  const langs = new Set(['en']);
-  state.collection.forEach(c => langs.add(normalizeLanguage(c.language)));
-  if (extra) langs.add(normalizeLanguage(extra));
-  return [...langs].filter(Boolean).sort((a, b) => {
-    if (a === 'en') return -1;
-    if (b === 'en') return 1;
-    return a.localeCompare(b);
-  });
-}
-
 // ---- Tag chips (drawer) ----
 function renderTagChips() {
   const wrap = document.getElementById('detailTagChips');
@@ -122,17 +111,6 @@ function commitTagInput() {
     renderTagChips();
   }
   input.value = '';
-}
-
-function renderLanguageOptions(selected) {
-  const lang = normalizeLanguage(selected);
-  const options = collectionLanguages(lang);
-  document.getElementById('detailLanguageOptions').innerHTML = options.map(code =>
-    `<label><input type="radio" name="detailLanguage" value="${esc(code)}"${code === lang ? ' checked' : ''}><span>${esc(code)}</span></label>`
-  ).join('');
-  const other = document.getElementById('detailLanguageOther');
-  other.value = '';
-  other.classList.remove('visible');
 }
 
 // ---- Legality chip ----
@@ -193,19 +171,9 @@ export function openDetail(index) {
     });
   }
 
-  document.getElementById('detailQty').value = c.qty || 1;
-  document.getElementById('detailFinish').value = c.finish || 'normal';
-  const conditionValue = c.condition || 'near_mint';
-  const conditionInput = detailForm.querySelector(`input[name="detailCondition"][value="${CSS.escape(conditionValue)}"]`)
-    || detailForm.querySelector('input[name="detailCondition"][value="near_mint"]');
-  if (conditionInput) conditionInput.checked = true;
-  renderLanguageOptions(c.language || 'en');
+  writeDetailForm({ form: detailForm, collection: state.collection, card: c });
   drawerTags = Array.isArray(c.tags) ? [...c.tags] : [];
   renderTagChips();
-  document.getElementById('detailTagInput').value = '';
-  const drawerLoc = normalizeLocation(c.location);
-  document.getElementById('detailLocationType').value = drawerLoc ? drawerLoc.type : DEFAULT_LOCATION_TYPE;
-  document.getElementById('detailLocationName').value = drawerLoc ? drawerLoc.name : '';
   document.getElementById('detailPriceText').textContent = c.price ? '$' + c.price.toFixed(2) : 'no price';
   const priceMark = document.getElementById('detailPriceMark');
   priceMark.textContent = c.priceFallback ? '*' : '';
@@ -235,56 +203,14 @@ function saveDetail() {
   // Commit any pending text in the tag input before snapshotting diffs
   commitTagInput();
 
-  const before = {
-    qty: c.qty,
-    finish: c.finish,
-    condition: c.condition,
-    language: c.language,
-    location: c.location ? { ...c.location } : null,
-    tags: Array.isArray(c.tags) ? [...c.tags] : [],
-  };
+  const before = snapshotDetailFields(c);
 
   const beforeKey = collectionKey(c);
   const beforeSnap = captureBefore([beforeKey]);
 
-  c.qty = Math.max(1, parseInt(document.getElementById('detailQty').value, 10) || 1);
-  c.finish = normalizeFinish(document.getElementById('detailFinish').value);
-  c.condition = normalizeCondition(detailForm.querySelector('input[name="detailCondition"]:checked')?.value || 'near_mint');
-  c.language = normalizeLanguage(document.getElementById('detailLanguageOther').value
-    || detailForm.querySelector('input[name="detailLanguage"]:checked')?.value
-    || 'en');
-  const newLocType = document.getElementById('detailLocationType').value;
-  const newLocName = document.getElementById('detailLocationName').value;
-  c.location = normalizeLocation({ type: newLocType, name: newLocName });
-  c.tags = [...drawerTags];
-
-  const after = {
-    qty: c.qty,
-    finish: c.finish,
-    condition: c.condition,
-    language: c.language,
-    location: c.location ? { ...c.location } : null,
-    tags: [...c.tags],
-  };
-  const beforeLocLabel = formatLocationLabel(before.location);
-  const afterLocLabel = formatLocationLabel(after.location);
-  const locationChanged = beforeLocLabel !== afterLocLabel;
-  const diffs = [];
-  if (after.qty !== before.qty) diffs.push('qty ' + before.qty + ' → ' + after.qty);
-  if (after.finish !== before.finish) diffs.push(before.finish + ' → ' + after.finish);
-  if (after.condition !== before.condition) {
-    diffs.push(before.condition.replace(/_/g, ' ') + ' → ' + after.condition.replace(/_/g, ' '));
-  }
-  if (after.language !== before.language) diffs.push(before.language + ' → ' + after.language);
-  if (locationChanged) {
-    diffs.push('location: ' + (beforeLocLabel || '—') + ' → ' + (afterLocLabel || '—'));
-  }
-  const beforeTagsKey = [...before.tags].sort().join(',');
-  const afterTagsKey = [...after.tags].sort().join(',');
-  if (beforeTagsKey !== afterTagsKey) {
-    const fmt = arr => '[' + arr.join(', ') + ']';
-    diffs.push('tags: ' + fmt(before.tags) + ' → ' + fmt(after.tags));
-  }
+  applyDetailFormValues(c, readDetailForm({ form: detailForm, tags: drawerTags }));
+  const after = snapshotDetailFields(c);
+  const { diffs, locationChanged } = detailFieldDiffs(before, after);
 
   commitCollectionChange({ coalesce: true });
   closeDetail();

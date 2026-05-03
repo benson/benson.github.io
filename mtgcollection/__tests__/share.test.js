@@ -1,6 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { pickDeckSharePayload, synthesizeInventoryFromSnapshot } from '../share.js';
+import {
+  initShareViewer,
+  normalizeDeckShareSnapshot,
+  pickDeckSharePayload,
+  synthesizeInventoryFromSnapshot,
+} from '../share.js';
+import { resetState, state } from '../state.js';
 
 const sampleDeck = () => ({
   type: 'deck',
@@ -98,6 +104,66 @@ test('pickDeckSharePayload: round-trips through JSON without loss of essential f
   assert.deepEqual(round, out);
 });
 
+test('pickDeckSharePayload: normalizes malformed decklist values into safe viewer fields', () => {
+  const deck = sampleDeck();
+  Object.assign(deck.deckList[0], {
+    qty: -4,
+    board: 'commander',
+    cmc: 'nope',
+    colors: ['U', { bad: true }, '', 'B'],
+    tags: [' keep ', 12, '', 'private'],
+  });
+  const out = pickDeckSharePayload(deck, { includeTags: true });
+  const entry = out.container.deckList[0];
+  assert.equal(entry.qty, 1);
+  assert.equal(entry.board, 'main');
+  assert.equal(entry.cmc, null);
+  assert.deepEqual(entry.colors, ['U', 'B']);
+  assert.deepEqual(entry.tags, ['keep', 'private']);
+});
+
+test('normalizeDeckShareSnapshot: strips untrusted creator-only and unknown fields from inbound viewer payloads', () => {
+  const snap = {
+    kind: 'deck',
+    version: 99,
+    createdAt: 1234,
+    token: 'should-not-survive',
+    container: {
+      ...sampleDeck(),
+      shareId: 'attacker-controlled-id',
+      shareIncludeTags: true,
+      extra: '<script>alert(1)</script>',
+      deckList: [
+        {
+          ...sampleDeck().deckList[0],
+          shareId: 'nested-share-id',
+          oracleText: 'private-ish bulk text',
+          tags: ['ok'],
+        },
+      ],
+    },
+  };
+  const normalized = normalizeDeckShareSnapshot(snap);
+  assert.equal(normalized.version, 99);
+  assert.equal(normalized.createdAt, 1234);
+  assert.equal(normalized.token, undefined);
+  assert.equal(normalized.container.shareId, undefined);
+  assert.equal(normalized.container.shareIncludeTags, undefined);
+  assert.equal(normalized.container.extra, undefined);
+  assert.equal(normalized.container.deckList[0].shareId, undefined);
+  assert.equal(normalized.container.deckList[0].oracleText, undefined);
+  assert.deepEqual(normalized.container.deckList[0].tags, ['ok']);
+});
+
+test('normalizeDeckShareSnapshot: rejects non-deck snapshots and falls back to a named shared deck', () => {
+  assert.equal(normalizeDeckShareSnapshot({ kind: 'collection' }), null);
+  const normalized = normalizeDeckShareSnapshot({
+    kind: 'deck',
+    container: { type: 'deck', name: '', deck: {}, deckList: [] },
+  });
+  assert.equal(normalized.container.name, 'shared deck');
+});
+
 test('synthesizeInventoryFromSnapshot: each deckList entry becomes an inventory entry in the deck container', () => {
   const snap = {
     kind: 'deck',
@@ -125,4 +191,47 @@ test('synthesizeInventoryFromSnapshot: each deckList entry becomes an inventory 
 test('synthesizeInventoryFromSnapshot: returns empty for non-deck snapshot', () => {
   assert.deepEqual(synthesizeInventoryFromSnapshot({ kind: 'other' }), []);
   assert.deepEqual(synthesizeInventoryFromSnapshot(null), []);
+});
+
+test('initShareViewer: sanitizes fetched snapshots before populating read-only viewer state', async () => {
+  resetState();
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async () => ({
+    status: 200,
+    ok: true,
+    async json() {
+      return {
+        kind: 'deck',
+        version: 1,
+        container: {
+          ...sampleDeck(),
+          shareId: 'leaked-share-id',
+          shareIncludeTags: true,
+          deckList: [
+            {
+              ...sampleDeck().deckList[0],
+              qty: '2',
+              board: 'maybe',
+              colors: ['C', 1],
+            },
+          ],
+        },
+      };
+    },
+  });
+  try {
+    const ok = await initShareViewer('public-id');
+    assert.equal(ok, true);
+    assert.equal(state.shareSnapshot.id, 'public-id');
+    assert.equal(state.shareSnapshot.container.shareId, undefined);
+    assert.equal(state.containers['deck:breya'].shareId, undefined);
+    assert.equal(state.collection.length, 1);
+    assert.equal(state.collection[0].qty, 2);
+    assert.equal(state.collection[0].deckBoard, 'maybe');
+    assert.deepEqual(state.collection[0].colors, ['C']);
+    assert.deepEqual(state.activeLocation, { type: 'deck', name: 'breya' });
+  } finally {
+    globalThis.fetch = previousFetch;
+    resetState();
+  }
 });

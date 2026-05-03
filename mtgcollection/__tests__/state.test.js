@@ -1,4 +1,4 @@
-import test, { afterEach } from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   applyLoadedState,
@@ -6,10 +6,9 @@ import {
   resetState,
   state,
 } from '../state.js';
+import { resetStateAfterEach } from './testUtils.js';
 
-afterEach(() => {
-  resetState();
-});
+resetStateAfterEach();
 
 test('createInitialState: returns fresh mutable containers for each call', () => {
   const a = createInitialState();
