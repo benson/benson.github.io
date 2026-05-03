@@ -1,4 +1,4 @@
-import { state, DECK_GROUP_KEY, DECK_VIEW_PREFS_KEY, SCRYFALL_API } from './state.js';
+import { state, SCRYFALL_API } from './state.js';
 import { esc, showFeedback } from './feedback.js';
 import {
   collectionKey,
@@ -28,7 +28,14 @@ import { filteredSorted, syncClearFiltersBtn, hasActiveFilter } from './search.j
 import { groupDeck, firstCardForPanel, splitDeckBoards, deckStats, renderDeckStatsHtml, drawSampleHand } from './stats.js';
 import { updateBulkBar } from './bulk.js';
 import { recordEvent, captureBefore, locationDiffSummary, setHistoryScope } from './changelog.js';
-import { buildDeckExport, defaultDeckExportOptions } from './deckExport.js';
+import { buildDeckExport } from './deckExport.js';
+import {
+  deckExportOptionsFromForm,
+  loadDeckGroup,
+  loadDeckPrefs,
+  saveDeckGroup,
+  saveDeckPrefs,
+} from './deckPreferences.js';
 import { openShareModal } from './share.js';
 import {
   getActiveLocation,
@@ -772,58 +779,8 @@ function deckPreviewFromTarget(target) {
   }
 }
 
-function loadDeckGroup() {
-  try {
-    const v = localStorage.getItem(DECK_GROUP_KEY);
-    if (v && VALID_DECK_GROUPS.includes(v)) state.deckGroupBy = v;
-  } catch (e) {}
-}
-
-function saveDeckGroup() {
-  try { localStorage.setItem(DECK_GROUP_KEY, state.deckGroupBy); } catch (e) {}
-}
-
-function loadDeckPrefs() {
-  try {
-    const raw = localStorage.getItem(DECK_VIEW_PREFS_KEY);
-    if (!raw) return;
-    const prefs = JSON.parse(raw);
-    if (VALID_DECK_MODES.includes(prefs.mode)) state.deckMode = prefs.mode;
-    if (VALID_DECK_BOARD_FILTERS.includes(prefs.boardFilter)) state.deckBoardFilter = prefs.boardFilter;
-    if (VALID_DECK_CARD_SIZES.includes(prefs.cardSize)) state.deckCardSize = prefs.cardSize;
-    if (typeof prefs.showPrices === 'boolean') state.deckShowPrices = prefs.showPrices;
-    if (VALID_DECK_OWNERSHIP_VIEWS.includes(prefs.ownershipView)) state.deckOwnershipView = prefs.ownershipView;
-  } catch (e) {}
-}
-
-function saveDeckPrefs() {
-  try {
-    localStorage.setItem(DECK_VIEW_PREFS_KEY, JSON.stringify({
-      mode: state.deckMode,
-      boardFilter: state.deckBoardFilter,
-      cardSize: state.deckCardSize,
-      showPrices: state.deckShowPrices,
-      ownershipView: state.deckOwnershipView,
-    }));
-  } catch (e) {}
-}
-
 function buildDecklistText(list) {
   return buildDeckExport(list, currentDeckMetadata(), { preset: 'moxfield' }).body;
-}
-
-function deckExportOptionsFromForm(form) {
-  const fd = new FormData(form);
-  const preset = String(fd.get('preset') || 'moxfield');
-  const boards = fd.getAll('board').map(v => String(v)).filter(v => ['main', 'sideboard', 'maybe'].includes(v));
-  const defaults = defaultDeckExportOptions(preset);
-  const options = {
-    preset,
-    boards: boards.length ? boards : defaults.boards,
-    includeCommander: fd.get('includeCommander') === 'on',
-  };
-  if (fd.get('collapsePrintings') === 'on') options.collapsePrintings = true;
-  return options;
 }
 
 function downloadDeckExport(result) {
