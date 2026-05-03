@@ -2145,9 +2145,16 @@ export function initView() {
   document.getElementById('deckColumns').addEventListener('click', e => {
     const sampleBtn = e.target.closest('[data-sample-hand]');
     if (!sampleBtn) return;
-    const boards = splitDeckBoards(filteredSorted());
-    const size = sampleBtn.dataset.sampleHand === 'mulligan' ? 6 : 7;
+    // Source from the resolved decklist, not inventory. After the
+    // deck/decklist split, filteredSorted() only sees inventory rows
+    // physically located in the deck — nearly always empty for decklist-
+    // first decks and useless for sample hands.
     const deck = currentDeckContainer();
+    const list = (deck?.deckList || [])
+      .map(entry => buildDeckCardFromEntry(entry))
+      .map(c => ({ ...c, deckBoard: normalizeDeckBoard(c.deckBoard) }));
+    const boards = splitDeckBoards(list);
+    const size = sampleBtn.dataset.sampleHand === 'mulligan' ? 6 : 7;
     state.deckSampleHand = {
       deckKey: deck ? deck.type + ':' + deck.name : '',
       ...drawSampleHand(boards.main, size),
