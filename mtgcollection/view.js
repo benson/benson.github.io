@@ -87,6 +87,12 @@ import { createDeckMetaAutocomplete } from './deckMetaAutocomplete.js';
 import { buildDeckCardFromEntry } from './deckCardModel.js';
 import { createDeckPreviewPanel } from './deckPreviewPanel.js';
 import { createRightDrawer } from './rightDrawer.js';
+import {
+  closeDeckCardMenus,
+  moveFocusInDeckCardMenu,
+  openDeckCardMenu,
+  toggleDeckCardMenu,
+} from './deckCardMenu.js';
 
 export function navigateToLocation(type, name) {
   setActiveContainerRoute({ type, name });
@@ -372,56 +378,6 @@ function currentDeckContainer() {
 function currentDeckMetadata() {
   const deck = currentDeckContainer();
   return deck?.deck || defaultDeckMetadata(deck?.name || 'deck');
-}
-
-function closeDeckCardMenus(root = document) {
-  if (!root || !root.querySelectorAll) return;
-  root.querySelectorAll('.deck-card.menu-open').forEach(card => {
-    card.classList.remove('menu-open');
-    const toggle = card.querySelector('[data-card-menu-toggle]');
-    const menu = card.querySelector('.deck-card-menu');
-    if (toggle) toggle.setAttribute('aria-expanded', 'false');
-    if (menu) menu.hidden = true;
-  });
-}
-
-function openDeckCardMenu(toggle, { focusFirst = false } = {}) {
-  const card = toggle?.closest('.deck-card');
-  const menu = card?.querySelector('.deck-card-menu');
-  if (!card || !menu) return;
-  closeDeckCardMenus(document.getElementById('deckColumns') || document);
-  card.classList.add('menu-open');
-  menu.hidden = false;
-  toggle.setAttribute('aria-expanded', 'true');
-  if (focusFirst) {
-    const first = menu.querySelector('[role="menuitem"]:not([disabled])');
-    if (first) first.focus();
-  }
-}
-
-function toggleDeckCardMenu(toggle) {
-  const card = toggle?.closest('.deck-card');
-  if (!card) return;
-  if (card.classList.contains('menu-open')) {
-    closeDeckCardMenus(card.parentElement || document);
-  } else {
-    openDeckCardMenu(toggle);
-  }
-}
-
-function moveFocusInDeckCardMenu(menu, current, direction) {
-  const items = [...menu.querySelectorAll('[role="menuitem"]:not([disabled])')];
-  if (!items.length) return;
-  const idx = Math.max(0, items.indexOf(current));
-  items[(idx + direction + items.length) % items.length].focus();
-}
-
-function deckCardEventPayload(entry) {
-  return {
-    name: entry.resolvedName || entry.name || 'card',
-    imageUrl: entry.imageUrl || '',
-    backImageUrl: entry.backImageUrl || '',
-  };
 }
 
 // Move a decklist entry between boards (main/sideboard/maybe). Only mutates
