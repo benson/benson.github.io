@@ -849,7 +849,8 @@
   .card-tile.is-foil::after,
   .deck-card.is-foil .deck-card-face::after,
   .deck-preview-frame.is-foil::after,
-  .binder-slot.is-foil::after {
+  .binder-slot.is-foil::after,
+  #cardPreview.is-foil::after {
     content: '';
     position: absolute;
     inset: 0;
@@ -868,7 +869,8 @@
   .card-tile.is-etched::after,
   .deck-card.is-etched .deck-card-face::after,
   .deck-preview-frame.is-etched::after,
-  .binder-slot.is-etched::after {
+  .binder-slot.is-etched::after,
+  #cardPreview.is-etched::after {
     content: '';
     position: absolute;
     inset: 0;
@@ -2780,6 +2782,9 @@
     z-index: 1000;
     display: none;
     filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
+    /* Border-radius matches the img inside so the .is-foil/.is-etched
+       ::after overlay clips to card-shaped corners. */
+    border-radius: 4%;
   }
   #cardPreview.visible { display: block; }
   #cardPreview img {

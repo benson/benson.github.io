@@ -378,7 +378,9 @@ function renderRow(c) {
   const key = collectionKey(c);
   const selected = state.selectedKeys.has(key);
   const previewClasses = c.imageUrl ? 'card-name-button card-preview-link detail-trigger' : 'card-name-button detail-trigger';
-  const previewAttr = c.imageUrl ? ` data-preview-url="${esc(c.imageUrl)}"` : '';
+  const previewAttr = c.imageUrl
+    ? ` data-preview-url="${esc(c.imageUrl)}" data-preview-finish="${esc(c.finish || 'normal')}"`
+    : '';
   const setCodeLower = (c.setCode || '').toLowerCase();
   const setCode = setCodeLower.toUpperCase();
   const iconUrl = setCodeLower ? getSetIconUrl(setCodeLower) : '';
@@ -742,7 +744,9 @@ function renderDeckTextRow(c) {
   const name = c.resolvedName || c.name || '(unknown)';
   const index = c.inventoryIndex >= 0 ? c.inventoryIndex : -1;
   const previewClasses = c.imageUrl ? 'card-name-button card-preview-link detail-trigger' : 'card-name-button detail-trigger';
-  const previewAttr = c.imageUrl ? ` data-preview-url="${esc(c.imageUrl)}"` : '';
+  const previewAttr = c.imageUrl
+    ? ` data-preview-url="${esc(c.imageUrl)}" data-preview-finish="${esc(c.finish || 'normal')}"`
+    : '';
   const setCodeLower = (c.setCode || '').toLowerCase();
   const setCode = setCodeLower.toUpperCase();
   const iconUrl = setCodeLower ? getSetIconUrl(setCodeLower) : '';
@@ -1667,6 +1671,12 @@ function showCardPreview(link) {
   cardPreviewEl.style.left = left + 'px';
   cardPreviewEl.style.top = top + 'px';
   cardPreviewEl.classList.add('visible');
+
+  // Mirror the finish onto the popup wrapper so the unified .is-foil /
+  // .is-etched ::after overlay rule fires here too.
+  const finish = link.dataset.previewFinish || 'normal';
+  cardPreviewEl.classList.toggle('is-foil', finish === 'foil');
+  cardPreviewEl.classList.toggle('is-etched', finish === 'etched');
 
   pendingPreviewUrl = url;
 
