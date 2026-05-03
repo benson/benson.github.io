@@ -15,6 +15,7 @@ import {
 import { refreshSetIcons } from './setIcons.js';
 import { initChangelog } from './changelog.js';
 import { initShareViewer, initShare } from './share.js';
+import { setTopLevelViewMode } from './routeState.js';
 
 const TEXT_CASE_KEY = 'mtgcollection_text_case_v1';
 const CHROME_KEY = 'mtgcollection_chrome_v1';
@@ -86,12 +87,12 @@ async function boot() {
     if (!btn) return;
     const action = btn.dataset.emptyAction;
     if (action === 'new-deck') {
-      state.viewMode = 'decks';
+      setTopLevelViewMode('decks');
       save();
       render();
       document.getElementById('locationsCreateName')?.focus();
     } else if (action === 'new-container') {
-      state.viewMode = 'storage';
+      setTopLevelViewMode('storage');
       save();
       render();
       document.getElementById('locationsCreateName')?.focus();
@@ -109,7 +110,7 @@ async function boot() {
 
   document.getElementById('resetAppBtn').addEventListener('click', () => {
     clearAllFilters();
-    state.viewMode = 'collection';
+    setTopLevelViewMode('collection');
     state.detailIndex = -1;
     save();
     history.replaceState(null, '', location.pathname);

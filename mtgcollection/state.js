@@ -5,6 +5,9 @@ export const state = {
   containers: {},
   // Top-level routes: 'collection' | 'decks' | 'storage'.
   viewMode: 'collection',
+  // The single physical container currently being browsed, independent from
+  // broad collection filters. Stored as { type, name } or null.
+  activeLocation: null,
   // Binder-shape escape hatch only. Collection/decks/storage don't use this.
   viewAsList: false,
   selectedFormat: '',

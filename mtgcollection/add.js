@@ -29,10 +29,13 @@ import { LOC_ICONS } from './ui/locationUi.js';
 import { recordEvent } from './changelog.js';
 import { getMultiselectValue } from './multiselect.js';
 import { parseVoiceText } from './voiceParser.js';
+import { getActiveLocation } from './routeState.js';
 
 // When a single container is the active filter, that's the user's
 // implicit context — the add flow should default to dropping cards there.
 function currentFilterLocation() {
+  const active = getActiveLocation();
+  if (active) return active;
   const filterEl = document.getElementById('filterLocation');
   if (!filterEl) return null;
   const values = getMultiselectValue(filterEl);

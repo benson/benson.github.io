@@ -31,9 +31,16 @@ import { updateBulkBar } from './bulk.js';
 import { paginateForBinder, sortForBinder, BINDER_SIZES, binderSlotCount } from './binder.js';
 import { getSetIconUrl } from './setIcons.js';
 import { recordEvent, captureBefore, locationDiffSummary, setHistoryScope } from './changelog.js';
-import { setMultiselectValue, getMultiselectValue } from './multiselect.js';
 import { buildDeckExport, defaultDeckExportOptions } from './deckExport.js';
 import { openShareModal } from './share.js';
+import {
+  getActiveLocation,
+  getActiveLocationOfType,
+  getEffectiveShape as getRouteEffectiveShape,
+  setActiveContainerRoute,
+  setTopLevelViewMode,
+  VALID_VIEW_MODES,
+} from './routeState.js';
 import {
   CONDITION_ABBR,
   RARITY_ABBR,
@@ -70,61 +77,27 @@ import {
 
 const VALID_BINDER_SIZES = Object.keys(BINDER_SIZES);
 
-// Navigate into a specific container. The viewMode is set to the appropriate
-// top-level route; the location filter is set so getEffectiveShape() can
-// resolve to the workspace shape (deck/binder) or filtered list (box).
 export function navigateToLocation(type, name) {
-  if (type === 'deck') state.viewMode = 'decks';
-  else if (type === 'binder' || type === 'box') state.viewMode = 'storage';
-  else state.viewMode = 'collection';
-  state.viewAsList = false;
+  setActiveContainerRoute({ type, name });
   // Clear any stray `loc:` query so the multiselect filter is the source of truth.
   const searchInput = document.getElementById('searchInput');
   if (searchInput && /\bloc:/.test(searchInput.value)) {
     searchInput.value = '';
     searchInput.dispatchEvent(new Event('input', { bubbles: true }));
   }
-  const filterEl = document.getElementById('filterLocation');
-  if (filterEl) setMultiselectValue(filterEl, [type + ':' + name]);
   save();
   render();
 }
 
-// Derive the effective render shape from viewMode + active container filter.
-// - 'collection' → always 'collection' (flat list across all locations).
-// - 'decks' → 'deck' workspace if a single deck filter is set, else 'decks-home'.
-// - 'storage' → 'binder' if a single binder filter is set; 'box' if a single
-//   box filter is set; else 'storage-home'.
-// 'viewAsList' is a binder-only escape hatch.
 export function getEffectiveShape() {
-  // Viewer mode always renders the snapshot's deck workspace (slice 1 is
-  // deck-only). Skip the filter-multiselect dance.
-  if (state.shareSnapshot) return 'deck';
-  if (state.viewMode === 'collection') return 'collection';
-  const filterEl = document.getElementById('filterLocation');
-  const values = filterEl ? getMultiselectValue(filterEl) : [];
-  const single = values.length === 1 ? values[0] : null;
-  const singleType = single ? single.split(':')[0] : null;
-  if (state.viewMode === 'decks') {
-    if (singleType === 'deck') return 'deck';
-    return 'decks-home';
-  }
-  if (state.viewMode === 'storage') {
-    if (singleType === 'binder') return state.viewAsList ? 'box' : 'binder';
-    if (singleType === 'box') return 'box';
-    return 'storage-home';
-  }
-  return 'collection';
+  return getRouteEffectiveShape();
 }
 
 function currentDeckScope() {
-  const filterEl = document.getElementById('filterLocation');
-  if (!filterEl) return null;
-  const values = getMultiselectValue(filterEl);
-  if (values.length !== 1) return null;
-  const [type, ...rest] = values[0].split(':');
-  if (type !== 'deck') return null;
-  return { type, name: rest.join(':') };
+  if (state.shareSnapshot?.container?.type === 'deck') {
+    return { type: 'deck', name: state.shareSnapshot.container.name };
+  }
+  return getActiveLocationOfType('deck');
 }
 
 function locationCellHtml(c, index) {
@@ -334,12 +307,8 @@ export function render() {
 function syncViewAsListToggles() {
   const autoType = (() => {
     if (state.viewMode !== 'storage') return null;
-    const filterEl = document.getElementById('filterLocation');
-    if (!filterEl) return null;
-    const values = getMultiselectValue(filterEl);
-    if (values.length !== 1) return null;
-    const type = values[0].split(':')[0];
-    return type === 'binder' ? type : null;
+    const loc = getActiveLocation();
+    return loc?.type === 'binder' ? loc.type : null;
   })();
   const bar = document.getElementById('shapeBar');
   if (!bar) return;
@@ -431,12 +400,8 @@ function currentDeckContainer() {
     const snapDeck = state.shareSnapshot.container;
     return ensureContainer({ type: 'deck', name: snapDeck.name });
   }
-  const filterEl = document.getElementById('filterLocation');
-  if (!filterEl) return null;
-  const values = getMultiselectValue(filterEl);
-  if (values.length !== 1) return null;
-  const loc = normalizeLocation(values[0]);
-  if (!loc || loc.type !== 'deck') return null;
+  const loc = getActiveLocationOfType('deck');
+  if (!loc) return null;
   return ensureContainer(loc);
 }
 
@@ -1157,14 +1122,9 @@ export function initView() {
     const btn = e.target.closest('[data-view]');
     if (!btn) return;
     const next = btn.dataset.view;
-    if (!['collection', 'decks', 'storage'].includes(next)) return;
-    if (state.viewMode === next) return;
-    state.viewMode = next;
-    state.viewAsList = false;
-    // Switching top-level routes clears the location filter so the home shape
-    // is reached. (User can drill back into a single container after.)
-    const filterEl = document.getElementById('filterLocation');
-    if (filterEl) setMultiselectValue(filterEl, []);
+    if (!VALID_VIEW_MODES.includes(next)) return;
+    if (state.viewMode === next && !getActiveLocation()) return;
+    setTopLevelViewMode(next);
     save();
     render();
   });

@@ -46,6 +46,7 @@ export function loadFromStorage() {
       if (VALID_VIEW_MODES.includes(data.viewMode)) state.viewMode = data.viewMode;
       else if (data.viewMode === 'locations') state.viewMode = 'storage';
       else state.viewMode = 'collection';
+      state.activeLocation = null;
       state.viewAsList = !!data.viewAsList;
       state.selectedFormat = typeof data.selectedFormat === 'string' ? data.selectedFormat : '';
       state.sortField = typeof data.sortField === 'string' && data.sortField ? data.sortField : null;

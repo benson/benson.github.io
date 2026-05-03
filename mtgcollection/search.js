@@ -3,6 +3,7 @@ import { normalizeLocation, locationKey, formatLocationLabel } from './collectio
 import { render } from './view.js';
 import { save } from './persistence.js';
 import { getMultiselectValue, setMultiselectValue, initMultiselect } from './multiselect.js';
+import { clearActiveLocation, syncActiveLocationFromFilter } from './routeState.js';
 
 const SEARCH_FIELD_ALIASES = {
   n: 'name', name: 'name',
@@ -262,6 +263,7 @@ export function clearAllFilters() {
   ['filterSet', 'filterRarity', 'filterFoil', 'filterLocation', 'filterTag'].forEach(id => {
     setMultiselectValue(document.getElementById(id), []);
   });
+  clearActiveLocation();
   // Also clear the format dropdown
   state.selectedFormat = '';
   const fmtEl = document.getElementById('formatSelect');
@@ -346,6 +348,7 @@ export function initSearch() {
     initMultiselect(document.getElementById(id), {
       onChange: () => {
         if (id === 'filterLocation') {
+          syncActiveLocationFromFilter(document.getElementById(id));
           // Reset shape-override + binder pagination when the active container changes,
           // so viewAsList doesn't bleed across containers.
           state.viewAsList = false;

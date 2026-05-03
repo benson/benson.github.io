@@ -18,6 +18,7 @@ import { collectionKey } from './collection.js';
 import { captureBefore, recordEvent, locationDiffSummary, qtyDiffSummary } from './changelog.js';
 import { hideCardPreview, showImageLightbox, hideImageLightbox, isLightboxVisible } from './view.js';
 import { populateMultiselect } from './multiselect.js';
+import { syncActiveLocationFromFilter } from './routeState.js';
 
 let drawerBackdrop;
 let detailDrawer;
@@ -65,9 +66,11 @@ export function populateFilters() {
       groupedLocOptions.push({ value: loc.type + ':' + loc.name, label: loc.name });
     }
   }
-  populateMultiselect(document.getElementById('filterLocation'),
+  const locationFilterEl = document.getElementById('filterLocation');
+  populateMultiselect(locationFilterEl,
     groupedLocOptions,
     { defaultLabel: 'All locations', noun: 'locations' });
+  if (!state.shareSnapshot) syncActiveLocationFromFilter(locationFilterEl);
   // Datalist for the drawer/bulk/add name fields — just names, no type prefix.
   const uniqueNames = [...new Set(locations.map(loc => loc.name))].sort();
   document.getElementById('locationOptions').innerHTML =

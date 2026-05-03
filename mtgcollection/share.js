@@ -18,6 +18,7 @@
 
 import { state } from './state.js';
 import { showFeedback } from './feedback.js';
+import { setActiveContainerRoute } from './routeState.js';
 
 // Override via window.MTGCOLLECTION_SHARE_API_URL during dev to point at
 // `wrangler dev` (e.g. http://127.0.0.1:8787). Production URL is whatever
@@ -228,7 +229,7 @@ export async function initShareViewer(id) {
     const deck = snapshot.container;
     state.containers = { ['deck:' + deck.name]: deck };
     state.collection = synthesizeInventoryFromSnapshot(snapshot);
-    state.viewMode = 'decks';
+    setActiveContainerRoute({ type: 'deck', name: deck.name }, { syncFilter: false });
     return true;
   } catch (e) {
     console.warn('[share] viewer load failed:', e.message);
