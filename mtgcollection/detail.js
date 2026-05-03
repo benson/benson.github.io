@@ -8,6 +8,7 @@ import {
   normalizeTag,
   allCollectionTags,
   allCollectionLocations,
+  allContainers,
   formatLocationLabel,
   LOCATION_TYPES,
   DEFAULT_LOCATION_TYPE,
