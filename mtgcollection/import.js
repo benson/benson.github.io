@@ -562,7 +562,10 @@ export async function loadTestData(options = {}) {
         name: e.resolvedName || e.name,
         setCode: e.setCode,
         cn: e.cn,
-        finish: 'normal',
+        // Preserve the finish parsed from BREYA_DECKLIST's *F* / *E* markers
+        // — otherwise every fulfilled card seeds as `normal` and the visual
+        // deck view never shows the foil/etched overlay.
+        finish: e.finish || 'normal',
         qty: e.qty,
         condition: 'near_mint',
         location: loc,
