@@ -1464,6 +1464,28 @@
   .deck-view-settings summary::-webkit-details-marker {
     display: none;
   }
+  /* Inline group-by bar that lives at the top of the visual deck mode. */
+  .deck-visual-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+    color: #666;
+  }
+  .deck-visual-group-by {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    text-transform: lowercase;
+  }
+  .deck-visual-group-by select {
+    border: 1px solid #ccc;
+    background: #fff;
+    font: inherit;
+    font-size: 0.78rem;
+    padding: 2px 6px;
+  }
   .deck-settings-grid {
     position: absolute;
     right: 0;

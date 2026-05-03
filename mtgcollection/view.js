@@ -1187,11 +1187,6 @@ export function renderDeckWorkspaceControls() {
     <details class="deck-view-settings">
       <summary>view settings</summary>
       <div class="deck-settings-grid">
-        <label>group by
-          <select data-deck-group>
-            ${VALID_DECK_GROUPS.map(v => `<option value="${v}"${state.deckGroupBy === v ? ' selected' : ''}>${v}</option>`).join('')}
-          </select>
-        </label>
         <div class="deck-card-size-row">
           <span class="deck-settings-label">card size</span>
           <div class="deck-card-size-segmented" role="group" aria-label="card size">
@@ -1317,18 +1312,27 @@ function renderDeckView(list) {
     .filter(([board]) => board !== 'main')
     .map(([board, cards]) => renderDeckBoardSection(boardLabel(board), cards))
     .join('');
+  // Group-by control lives inline with the visual mode — irrelevant for
+  // text/stats/hands/notes so it shouldn't share top-level chrome with them.
+  const visualGroupByBar = `<div class="deck-visual-controls">
+    <label class="deck-visual-group-by">group by
+      <select data-deck-group>
+        ${VALID_DECK_GROUPS.map(v => `<option value="${v}"${state.deckGroupBy === v ? ' selected' : ''}>${v}</option>`).join('')}
+      </select>
+    </label>
+  </div>`;
   let visualBody;
   if (state.deckBoardFilter === 'all') {
-    visualBody = `<div class="deck-content-grid${visualSideSections ? '' : ' deck-content-grid-single'}">
+    visualBody = `${visualGroupByBar}<div class="deck-content-grid${visualSideSections ? '' : ' deck-content-grid-single'}">
       <main>
         ${visualMainSections || (visualSideSections ? '' : renderDeckBoardSection('mainboard', [], { grouped: true }))}
       </main>
       ${visualSideSections ? `<aside class="deck-board-aside">${visualSideSections}</aside>` : ''}
     </div>`;
   } else if (state.deckBoardFilter === 'main') {
-    visualBody = `<div class="deck-content-grid deck-content-grid-single"><main>${visualMainSections}</main></div>`;
+    visualBody = `${visualGroupByBar}<div class="deck-content-grid deck-content-grid-single"><main>${visualMainSections}</main></div>`;
   } else {
-    visualBody = `<div class="deck-content-grid deck-content-grid-single"><main>${visualSideSections}</main></div>`;
+    visualBody = `${visualGroupByBar}<div class="deck-content-grid deck-content-grid-single"><main>${visualSideSections}</main></div>`;
   }
   const modeBody = state.deckMode === 'stats'
     ? renderDeckStatsDashboard(stats, statHtml, format)

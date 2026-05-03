@@ -22,10 +22,12 @@ test('renderDeckWorkspaceControls: reflects saved deck mode, board, and view pre
 
   assert.match(html, /data-deck-mode="stats" aria-pressed="true"/);
   assert.match(html, /data-deck-board-filter="sideboard" aria-pressed="true"/);
-  assert.match(html, /<option value="cmc" selected>/);
   assert.match(html, /data-deck-card-size="large"[^>]*aria-pressed="true"/);
   assert.match(html, /data-deck-show-prices>/);
   assert.doesNotMatch(html, /data-deck-show-prices checked/);
+  // group-by lives inline with the visual mode now, not in the cross-mode
+  // workspace controls — assert that.
+  assert.doesNotMatch(html, /data-deck-group/);
 });
 
 test('renderDeckExportPanel: exposes portable deck export presets and boards', () => {
