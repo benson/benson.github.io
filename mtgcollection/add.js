@@ -25,6 +25,7 @@ import { getActiveLocation } from './routeState.js';
 import { createAddLocationPicker } from './addLocationPicker.js';
 import { renderPrintingList as renderPrintingListView } from './addPrintingView.js';
 import { buildCollectionEntryFromCard, mergeEntryIntoCollection } from './addEntry.js';
+import { createAddOptionControls } from './addOptions.js';
 
 // When a single container is the active filter, that's the user's
 // implicit context — the add flow should default to dropping cards there.
@@ -56,86 +57,7 @@ let addDetailsEl, addModeNameEl, addModeCnEl, addModeImportEl;
 let addNameInput, addNameList;
 let addPreviewEl, addPreviewImg, addPreviewName, addPreviewMeta;
 let addQtyInput, addLocationNameInput;
-
-// Wrappers that mimic a <select>'s `.value` API so existing call sites stay simple.
-const addFinishSel = {
-  get value() {
-    return document.querySelector('input[name="addFinish"]:checked')?.value || '';
-  },
-  set value(v) {
-    document.querySelectorAll('input[name="addFinish"]').forEach(r => { r.checked = (r.value === v); });
-  },
-};
-const addConditionSel = {
-  get value() {
-    return document.querySelector('input[name="addCondition"]:checked')?.value || 'near_mint';
-  },
-  set value(v) {
-    document.querySelectorAll('input[name="addCondition"]').forEach(r => { r.checked = (r.value === v); });
-  },
-};
-const addLanguageSel = {
-  get value() {
-    const other = document.getElementById('addLanguageOther');
-    if (other && other.value.trim()) return other.value.trim();
-    return document.querySelector('input[name="addLanguage"]:checked')?.value || 'en';
-  },
-  set value(v) {
-    const radios = document.querySelectorAll('input[name="addLanguage"]');
-    let matched = false;
-    radios.forEach(r => {
-      const checked = r.value === v;
-      r.checked = checked;
-      if (checked) matched = true;
-    });
-    const other = document.getElementById('addLanguageOther');
-    if (!other) return;
-    if (matched) {
-      other.value = '';
-      other.classList.remove('visible');
-    } else {
-      other.value = v;
-      other.classList.add('visible');
-    }
-  },
-};
-
-function renderFinishRadios(card) {
-  const wrap = document.getElementById('addFinish');
-  if (!wrap) return;
-  const finishes = getCardFinishes(card);
-  wrap.innerHTML = finishes.map((f, i) => {
-    const value = f.finish === 'nonfoil' ? 'normal' : f.finish;
-    const label = f.label.toLowerCase();
-    return `<label><input type="radio" name="addFinish" value="${esc(value)}"${i === 0 ? ' checked' : ''}><span>${esc(label)}</span></label>`;
-  }).join('');
-}
-
-function collectionLanguages(extra = '') {
-  const langs = new Set(['en']);
-  state.collection.forEach(c => langs.add(normalizeLanguage(c.language)));
-  if (extra) langs.add(normalizeLanguage(extra));
-  return [...langs].filter(Boolean).sort((a, b) => {
-    if (a === 'en') return -1;
-    if (b === 'en') return 1;
-    return a.localeCompare(b);
-  });
-}
-
-function renderLanguageRadios(selected) {
-  const wrap = document.getElementById('addLanguageOptions');
-  if (!wrap) return;
-  const lang = normalizeLanguage(selected);
-  const options = collectionLanguages(lang);
-  wrap.innerHTML = options.map(code =>
-    `<label><input type="radio" name="addLanguage" value="${esc(code)}"${code === lang ? ' checked' : ''}><span>${esc(code)}</span></label>`
-  ).join('');
-  const other = document.getElementById('addLanguageOther');
-  if (other) {
-    other.value = '';
-    other.classList.remove('visible');
-  }
-}
+let addOptionControls = null;
 
 // ---- Location picker (existing-pills + inline-new) ----
 let locationPicker = null;
@@ -426,8 +348,8 @@ function autoAddVoiceCard(card, voiceCtx) {
   } else if (finishes[0]) {
     finish = finishes[0].finish === 'nonfoil' ? 'normal' : finishes[0].finish;
   }
-  const condition = normalizeCondition(addConditionSel.value);
-  const language = normalizeLanguage(addLanguageSel.value);
+  const condition = normalizeCondition(addOptionControls.condition.value);
+  const language = normalizeLanguage(addOptionControls.language.value);
   const qty = Math.max(1, voiceQtyOverride || 1);
   const location = normalizeLocation(voiceLocationOverride != null ? voiceLocationOverride : lastUsedLocation);
 
@@ -472,7 +394,7 @@ function commitVoiceAdd(card, opts, voiceCtx) {
 function showAddPreview(card, opts) {
   const preserveFields = !!(opts && opts.preserveFields);
   const prevQty = preserveFields ? addQtyInput.value : null;
-  const prevFinish = preserveFields ? addFinishSel.value : null;
+  const prevFinish = preserveFields ? addOptionControls.finish.value : null;
   const prevLocationSnapshot = preserveFields ? locationPicker?.snapshot() : null;
   addPreviewCard = card;
   addPreviewEl.classList.add('active');
@@ -504,11 +426,11 @@ function showAddPreview(card, opts) {
     existingEl.classList.add('hidden');
   }
 
-  renderFinishRadios(card);
-  renderLanguageRadios('en');
+  addOptionControls.renderFinishRadios(card);
+  addOptionControls.renderLanguageRadios('en');
 
   if (voiceFoilFlag) {
-    addFinishSel.value = 'foil';
+    addOptionControls.finish.value = 'foil';
     voiceFoilFlag = false;
   }
 
@@ -522,7 +444,7 @@ function showAddPreview(card, opts) {
   voiceLocationOverride = null;
   if (preserveFields) {
     if (prevQty != null && prevQty !== '') addQtyInput.value = prevQty;
-    if (prevFinish) addFinishSel.value = prevFinish;
+    if (prevFinish) addOptionControls.finish.value = prevFinish;
     locationPicker?.restore(prevLocationSnapshot);
   }
   addBtn.focus();
@@ -538,9 +460,9 @@ function hideAddPreview() {
 function addCardFromPreview() {
   const card = addPreviewCard;
   if (!card) return;
-  const finish = normalizeFinish(addFinishSel.value);
-  const condition = normalizeCondition(addConditionSel.value);
-  const language = normalizeLanguage(addLanguageSel.value);
+  const finish = normalizeFinish(addOptionControls.finish.value);
+  const condition = normalizeCondition(addOptionControls.condition.value);
+  const language = normalizeLanguage(addOptionControls.language.value);
   const qty = Math.max(1, parseInt(addQtyInput.value, 10) || 1);
   const location = locationPicker?.readLocation() || null;
   const placeholderToggle = document.getElementById('addAsPlaceholder');
@@ -634,7 +556,7 @@ function parseVoice(text) {
   voiceFoilFlag = result.foil;
   voiceQtyOverride = result.qty;
   voiceLocationOverride = result.location;
-  if (result.condition) addConditionSel.value = result.condition;
+  if (result.condition) addOptionControls.condition.value = result.condition;
   doVoiceLookup(result.set, result.cn, result.variant);
 }
 
@@ -649,7 +571,7 @@ function handleAgain(qty) {
   voiceFoilFlag = repeated.foil;
   voiceQtyOverride = repeated.qty;
   voiceLocationOverride = repeated.location;
-  if (repeated.condition) addConditionSel.value = repeated.condition;
+  if (repeated.condition) addOptionControls.condition.value = repeated.condition;
   doVoiceLookup(repeated.set, repeated.cn, repeated.variant);
 }
 
@@ -669,13 +591,16 @@ export function initAdd() {
   addPrintingCaptionEl = document.getElementById('addPrintingCaption');
   addQtyInput     = document.getElementById('addQty');
   addLocationNameInput = document.getElementById('addLocationName');
+  addOptionControls = createAddOptionControls({
+    getCollection: () => state.collection,
+  });
   locationPicker = createAddLocationPicker({
     getNameInput: () => addLocationNameInput,
     onChange: syncDeckAddOptions,
   });
   locationPicker.buildTypeRadios();
   // Initial render: empty finish (no card picked yet) + language radios from collection
-  renderLanguageRadios('en');
+  addOptionControls.renderLanguageRadios('en');
   locationPicker.render();
   if (pendingSelectedLocation) {
     locationPicker.setSelectedLocation(pendingSelectedLocation);
@@ -712,20 +637,7 @@ export function initAdd() {
     btn.addEventListener('click', () => setAddMode(btn.dataset.addMode));
   });
 
-  // Language: clicking the "+" reveals the free-form input. Typing in it
-  // un-checks the radio so the value-getter falls through to the input.
-  const addLanguageAdd = document.getElementById('addLanguageAdd');
-  const addLanguageOther = document.getElementById('addLanguageOther');
-  if (addLanguageAdd && addLanguageOther) {
-    addLanguageAdd.addEventListener('click', () => {
-      addLanguageOther.classList.add('visible');
-      addLanguageOther.focus();
-    });
-    addLanguageOther.addEventListener('input', () => {
-      if (!addLanguageOther.value.trim()) return;
-      document.querySelectorAll('input[name="addLanguage"]').forEach(r => { r.checked = false; });
-    });
-  }
+  addOptionControls.bindLanguageOther();
 
   locationPicker.bindPills();
   // Typing a name while in new mode keeps us in new mode (no-op needed —
