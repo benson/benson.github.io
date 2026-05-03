@@ -24,7 +24,7 @@ import { save } from './persistence.js';
 import { openDetail, populateFilters } from './detail.js';
 import { setSelectedLocation } from './add.js';
 import { filteredSorted, syncClearFiltersBtn, hasActiveFilter } from './search.js';
-import { groupDeck, firstCardForPanel, splitDeckBoards, deckStats, renderDeckStatsHtml, drawSampleHand } from './stats.js';
+import { groupDeck, firstCardForPanel, splitDeckBoards, deckStats, renderDeckStatsHtml } from './stats.js';
 import { updateBulkBar } from './bulk.js';
 import { recordEvent, captureBefore, locationDiffSummary, setHistoryScope } from './changelog.js';
 import { buildDeckExport } from './deckExport.js';
@@ -67,7 +67,6 @@ import {
 import { locationPillHtml } from './ui/locationUi.js';
 import { renderDecksHomeHtml, renderStorageHomeHtml } from './views/locationHomeViews.js';
 import { renderRow } from './views/listRowView.js';
-import { renderDeckCard } from './views/deckCardView.js';
 import {
   renderDeckNotesMode,
   renderDeckSampleHandSection,
@@ -87,6 +86,7 @@ import { createDeckMetaAutocomplete } from './deckMetaAutocomplete.js';
 import { buildDeckCardFromEntry } from './deckCardModel.js';
 import { createDeckPreviewPanel } from './deckPreviewPanel.js';
 import { createRightDrawer } from './rightDrawer.js';
+import { buildDeckSampleHand, renderDeckSampleHandPanel } from './deckSampleHand.js';
 import {
   closeDeckCardMenus,
   moveFocusInDeckCardMenu,
@@ -413,24 +413,11 @@ function handleDeckCardAction(actionEl) {
 }
 
 function renderSampleHandPanel() {
-  const handEl = document.getElementById('deckHandCards');
-  if (!handEl) return;
-  const deck = currentDeckContainer();
-  const deckKey = deck ? deck.type + ':' + deck.name : '';
-  if (!state.deckSampleHand || state.deckSampleHand.deckKey !== deckKey) {
-    handEl.innerHTML = '<div class="deck-empty-prompt">draw a hand to preview opening texture</div>';
-    return;
-  }
-  // Use the same deck-card renderer as the visual mode so cards size + look
-  // identical and the existing hover-preview delegation just works. Each
-  // hand entry is a single drawn card — override qty to 1 so the ×N badge
-  // doesn't render the deck total (drawSampleHand pushes the same card
-  // reference N times for an N-of, so the underlying object still has
-  // qty: N).
-  const hand = state.deckSampleHand.hand;
-  handEl.innerHTML = hand.map((c, i) =>
-    renderDeckCard({ ...c, qty: 1 }, i === hand.length - 1)
-  ).join('');
+  renderDeckSampleHandPanel({
+    handEl: document.getElementById('deckHandCards'),
+    deck: currentDeckContainer(),
+    sampleHand: state.deckSampleHand,
+  });
 }
 
 // If the picked commander/partner isn't already in this deck's decklist, add
@@ -955,15 +942,8 @@ export function initView() {
     // physically located in the deck — nearly always empty for decklist-
     // first decks and useless for sample hands.
     const deck = currentDeckContainer();
-    const list = (deck?.deckList || [])
-      .map(entry => buildDeckCardFromEntry(entry, state.collection))
-      .map(c => ({ ...c, deckBoard: normalizeDeckBoard(c.deckBoard) }));
-    const boards = splitDeckBoards(list);
     const size = sampleBtn.dataset.sampleHand === 'mulligan' ? 6 : 7;
-    state.deckSampleHand = {
-      deckKey: deck ? deck.type + ':' + deck.name : '',
-      ...drawSampleHand(boards.main, size),
-    };
+    state.deckSampleHand = buildDeckSampleHand({ deck, collection: state.collection, handSize: size });
     state.deckMode = 'hands';
     saveDeckPrefs();
     render();
