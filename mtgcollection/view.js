@@ -27,8 +27,6 @@ import {
   getActiveLocationOfType,
   getEffectiveShape as getRouteEffectiveShape,
   setActiveContainerRoute,
-  setTopLevelViewMode,
-  VALID_VIEW_MODES,
 } from './routeState.js';
 import {
   deckDetailsViewModel,
@@ -51,12 +49,13 @@ import {
   loadBinderSize,
   renderBinderView,
 } from './views/binderView.js';
-import { initCardPreview, isLightboxVisible } from './ui/cardPreview.js';
+import { initCardPreview } from './ui/cardPreview.js';
 import { createDeckMetaAutocomplete } from './deckMetaAutocomplete.js';
 import { buildDeckCardFromEntry } from './deckCardModel.js';
 import { createDeckPreviewPanel } from './deckPreviewPanel.js';
 import { createRightDrawer } from './rightDrawer.js';
 import { renderDeckSampleHandPanel } from './deckSampleHand.js';
+import { bindAppShellActions } from './appShellActions.js';
 import { bindBinderControls } from './binderActions.js';
 import { bindDeckWorkspaceInteractions } from './deckWorkspaceActions.js';
 import { bindLocationHomeInteractions } from './locationHomeActions.js';
@@ -370,71 +369,16 @@ export function initView() {
     setSelectedLocation,
   });
 
-  document.querySelector('.app-header-views').addEventListener('click', e => {
-    const btn = e.target.closest('[data-view]');
-    if (!btn) return;
-    const next = btn.dataset.view;
-    if (!VALID_VIEW_MODES.includes(next)) return;
-    if (state.viewMode === next && !getActiveLocation()) return;
-    setTopLevelViewMode(next);
-    save();
-    render();
-  });
-
-  // Per-shape "view as list" toggle. Visible only when a single
-  // deck/binder filter would otherwise auto-shape the view.
-  document.body.addEventListener('click', e => {
-    const btn = e.target.closest('[data-view-as-list]');
-    if (!btn) return;
-    state.viewAsList = !state.viewAsList;
-    save();
-    render();
-  });
-
-  document.querySelector('table thead').addEventListener('click', e => {
-    if (e.target.closest('.sort-clear-btn')) {
-      state.sortField = null;
-      state.sortDir = 'asc';
-      save();
-      render();
-      return;
-    }
-    const th = e.target.closest('th[data-sort]');
-    if (!th) return;
-    const field = th.dataset.sort;
-    if (state.sortField === field) {
-      state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
-    } else {
-      state.sortField = field;
-      state.sortDir = 'asc';
-    }
-    save();
-    render();
-  });
-
-  // FAB cluster — list-view summon panels on demand
-  const fabCluster = document.getElementById('fabCluster');
-  if (fabCluster) {
-    fabCluster.addEventListener('click', e => {
-      const btn = e.target.closest('[data-fab-target]');
-      if (!btn) return;
-      const targets = btn.dataset.fabTarget.split(',').map(s => s.trim()).filter(Boolean);
-      const seedLocation = getEffectiveShape() === 'deck' ? currentDeckScope() : null;
-      openRightDrawer(targets, { seedLocation });
-    });
-  }
-  const appRightBackdrop = document.getElementById('appRightBackdrop');
-  if (appRightBackdrop) {
-    appRightBackdrop.addEventListener('click', closeRightDrawer);
-  }
-  document.addEventListener('keydown', e => {
-    if (e.key !== 'Escape') return;
-    if (!isRightDrawerOpen()) return;
-    // Defer to higher-priority overlays (lightbox / detail drawer handle their own Escape).
-    if (isLightboxVisible()) return;
-    const detailDrawerEl = document.getElementById('detailDrawer');
-    if (detailDrawerEl && detailDrawerEl.classList.contains('visible')) return;
-    closeRightDrawer();
+  bindAppShellActions({
+    stateRef: state,
+    getEffectiveShapeImpl: getEffectiveShape,
+    currentDeckScopeImpl: currentDeckScope,
+    openRightDrawerImpl: openRightDrawer,
+    closeRightDrawerImpl: closeRightDrawer,
+    isRightDrawerOpenImpl: isRightDrawerOpen,
+    navigateToLocationImpl: navigateToLocation,
+    saveImpl: save,
+    renderImpl: render,
   });
 
   loadBinderSize();
@@ -475,19 +419,6 @@ export function initView() {
   bindListRowInteractions({
     listBodyEl,
     openDetailImpl: openDetail,
-  });
-
-  // Clicking a `.loc-pill` (in list, grid, or anywhere) navigates to that
-  // location's view + filter. The remove `×` and the deck-empty-chip
-  // wrapper handle their own clicks.
-  document.addEventListener('click', e => {
-    if (e.target.closest('.loc-pill-remove')) return;
-    if (e.target.closest('.deck-empty-chip')) return;
-    const pill = e.target.closest('.loc-pill');
-    if (!pill) return;
-    const type = pill.dataset.locType;
-    const name = pill.dataset.locName;
-    if (type && name) navigateToLocation(type, name);
   });
 
 }
