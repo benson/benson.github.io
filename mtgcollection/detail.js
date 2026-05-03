@@ -38,7 +38,20 @@ export function populateFilters() {
     ['normal', 'foil', 'etched'],
     { defaultLabel: 'All finishes', noun: 'finishes' });
 
-  const locations = allCollectionLocations();
+  // Use BOTH inventory locations and container registry — a deck container
+  // with no physical cards (decklist-only) needs to appear in the filter so
+  // entering it doesn't get reset on every commit.
+  const fromInventory = allCollectionLocations();
+  const fromContainers = allContainers().map(c => ({ type: c.type, name: c.name }));
+  const seen = new Set();
+  const locations = [];
+  for (const loc of [...fromInventory, ...fromContainers]) {
+    const k = loc.type + ':' + loc.name;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    locations.push(loc);
+  }
+  locations.sort((a, b) => a.type.localeCompare(b.type) || a.name.localeCompare(b.name));
   // Group dropdown options by type with a section header — flat list gets
   // unwieldy fast as more decks/binders/boxes pile up.
   const TYPE_HEADERS = { deck: 'decks', binder: 'binders', box: 'boxes' };

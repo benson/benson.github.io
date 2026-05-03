@@ -2778,6 +2778,7 @@
 
   /* ---- Share: viewer mode hides write affordances ---- */
   body.share-mode .fab-cluster,
+  body.share-mode .app-left,
   body.share-mode .app-right,
   body.share-mode .app-header-views,
   body.share-mode .deck-share-btn,
@@ -2791,7 +2792,9 @@
   body.share-mode .add-details,
   body.share-mode .changelog-banners,
   body.share-mode .history-details { display: none !important; }
-  body.share-mode .app-shell { grid-template-columns: 1fr; }
+  /* Collapse the three-column grid into one column when both sidebars are
+     hidden so the deck workspace fills the width. */
+  body.share-mode .app-shell { grid-template-columns: 1fr !important; }
 
   #cardPreview {
     position: fixed;
