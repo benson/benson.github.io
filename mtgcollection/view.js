@@ -86,6 +86,7 @@ import { initCardPreview, isLightboxVisible } from './ui/cardPreview.js';
 import { createDeckMetaAutocomplete } from './deckMetaAutocomplete.js';
 import { buildDeckCardFromEntry } from './deckCardModel.js';
 import { createDeckPreviewPanel } from './deckPreviewPanel.js';
+import { createRightDrawer } from './rightDrawer.js';
 
 export function navigateToLocation(type, name) {
   setActiveContainerRoute({ type, name });
@@ -198,6 +199,7 @@ function removeRowTag(index, tag) {
 let locationsEl, listBodyEl, collectionSection, emptyState;
 let deckMetaAutocomplete = null;
 let deckPreviewPanel = null;
+let rightDrawer = null;
 
 export function render() {
   const shape = getEffectiveShape();
@@ -615,41 +617,16 @@ function setDeckPanelOpen(panelId, triggerSelector, open) {
   }
 }
 
-const RIGHT_DRAWER_PANELS = ['addDetails'];
-
 export function openRightDrawer(targetIds, options = {}) {
-  const ids = (Array.isArray(targetIds) ? targetIds : [targetIds]).filter(id => RIGHT_DRAWER_PANELS.includes(id));
-  if (ids.length === 0) return;
-  const shape = getEffectiveShape();
-  // Drawer overlay is used in shapes where the right sidebar is hidden by
-  // the CSS layout (collection / box list / deck workspace). Other shapes
-  // (binder / decks-home / storage-home) just open the details inline.
-  const useDrawer = shape === 'collection' || shape === 'box' || shape === 'deck';
-  if (useDrawer) {
-    document.body.classList.add('right-drawer-open');
-    RIGHT_DRAWER_PANELS.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.open = ids.includes(id);
-    });
-  } else {
-    ids.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.open = true;
-    });
-  }
-  if (options.seedLocation) {
-    setSelectedLocation(options.seedLocation);
-  }
-  const target = document.getElementById(ids[0]);
-  if (target && target.scrollIntoView) target.scrollIntoView({ block: 'start' });
+  rightDrawer?.open(targetIds, options);
 }
 
 export function closeRightDrawer() {
-  document.body.classList.remove('right-drawer-open');
+  rightDrawer?.close();
 }
 
 export function isRightDrawerOpen() {
-  return document.body.classList.contains('right-drawer-open');
+  return !!rightDrawer?.isOpen();
 }
 
 export function initView() {
@@ -669,6 +646,10 @@ export function initView() {
     openDetail,
   });
   deckPreviewPanel.bind();
+  rightDrawer = createRightDrawer({
+    getShape: getEffectiveShape,
+    setSelectedLocation,
+  });
 
   document.querySelector('.app-header-views').addEventListener('click', e => {
     const btn = e.target.closest('[data-view]');
