@@ -27,9 +27,7 @@ import { filteredSorted, syncClearFiltersBtn, hasActiveFilter } from './search.j
 import { groupDeck, firstCardForPanel, splitDeckBoards, deckStats, renderDeckStatsHtml } from './stats.js';
 import { updateBulkBar } from './bulk.js';
 import { recordEvent, captureBefore, locationDiffSummary, setHistoryScope } from './changelog.js';
-import { buildDeckExport } from './deckExport.js';
 import {
-  deckExportOptionsFromForm,
   loadDeckGroup,
   loadDeckPrefs,
   saveDeckGroup,
@@ -87,6 +85,7 @@ import { buildDeckCardFromEntry } from './deckCardModel.js';
 import { createDeckPreviewPanel } from './deckPreviewPanel.js';
 import { createRightDrawer } from './rightDrawer.js';
 import { buildDeckSampleHand, renderDeckSampleHandPanel } from './deckSampleHand.js';
+import { copyDecklist, runDeckExportAction } from './deckExportActions.js';
 import {
   closeDeckCardMenus,
   moveFocusInDeckCardMenu,
@@ -515,36 +514,14 @@ function renderDeckView(list) {
   summary.textContent = stats.total + ' cards - ' + format;
 }
 
-function buildDecklistText(list) {
-  return buildDeckExport(list, currentDeckMetadata(), { preset: 'moxfield' }).body;
-}
-
-function downloadDeckExport(result) {
-  const blob = new Blob([result.body], { type: result.mime || 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = result.filename || 'deck.txt';
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 async function handleDeckExportAction(action) {
-  const form = document.getElementById('deckExportForm');
-  if (!form) return;
-  const result = buildDeckExport(filteredSorted(), currentDeckMetadata(), deckExportOptionsFromForm(form));
-  if (action === 'download') {
-    downloadDeckExport(result);
-    showFeedback('deck export downloaded', 'success');
-  } else {
-    try {
-      await navigator.clipboard.writeText(result.body);
-      showFeedback('deck export copied', 'success');
-    } catch (err) {
-      showFeedback('clipboard unavailable: ' + err.message, 'error');
-    }
-  }
-  if (result.warnings?.length) showFeedback(result.warnings.join(' '), 'info');
+  await runDeckExportAction({
+    action,
+    form: document.getElementById('deckExportForm'),
+    list: filteredSorted(),
+    metadata: currentDeckMetadata(),
+    showFeedback,
+  });
 }
 
 function setDeckPanelOpen(panelId, triggerSelector, open) {
@@ -957,13 +934,11 @@ export function initView() {
     }
     const copyBtn = e.target.closest('[data-copy-decklist]');
     if (!copyBtn) return;
-    const text = buildDecklistText(filteredSorted());
-    try {
-      await navigator.clipboard.writeText(text);
-      showFeedback('decklist copied', 'success');
-    } catch (err) {
-      showFeedback('clipboard unavailable: ' + err.message, 'error');
-    }
+    await copyDecklist({
+      list: filteredSorted(),
+      metadata: currentDeckMetadata(),
+      showFeedback,
+    });
   });
 
   document.getElementById('deckColumns').addEventListener('keydown', e => {
