@@ -1,12 +1,10 @@
 import {
   applyScryfallCardResolution,
-  getUsdPrice,
   normalizeTag,
 } from './collection.js';
 import { esc } from './feedback.js';
 
 export {
-  availableFinishValues,
   createAddOptionControls,
   createRadioValueAccessor,
   renderFinishRadios,
@@ -101,8 +99,4 @@ export function applyPrintingToEntry(entry, card) {
   entry.name = card.name || entry.name || '';
   applyScryfallCardResolution(entry, card, { priceMode: 'replace' });
   return entry;
-}
-
-export function priceForFinish(card, finish) {
-  return getUsdPrice(card, finish);
 }

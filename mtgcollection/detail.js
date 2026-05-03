@@ -110,33 +110,6 @@ export function populateFilters() {
     tags.map(t => '<option value="' + esc(t) + '"></option>').join('');
 }
 
-// ---- Tag chips (drawer) ----
-function renderTagChips() {
-  const wrap = document.getElementById('detailTagChips');
-  wrap.innerHTML = drawerTags.map(t =>
-    `<span class="tag-chip">${esc(t)}<button class="tag-chip-remove" type="button" data-tag="${esc(t)}" aria-label="remove ${esc(t)}">×</button></span>`
-  ).join('');
-  updateTagSuggestions();
-}
-
-function updateTagSuggestions() {
-  const datalist = document.getElementById('detailTagSuggestions');
-  const have = new Set(drawerTags);
-  const options = allCollectionTags().filter(t => !have.has(t));
-  datalist.innerHTML = options.map(t => `<option value="${esc(t)}"></option>`).join('');
-}
-
-function commitTagInput() {
-  const input = document.getElementById('detailTagInput');
-  const raw = input.value;
-  if (!raw.trim()) { input.value = ''; return; }
-  const t = normalizeTag(raw);
-  if (t && !drawerTags.includes(t)) {
-    drawerTags.push(t);
-    renderTagChips();
-  }
-  input.value = '';
-}
 
 // ---- Legality chip ----
 const LEGALITY_LABELS = {

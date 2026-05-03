@@ -47,11 +47,6 @@ export function finishValueFromScryfallFinish(finish) {
   return finish === 'nonfoil' ? 'normal' : finish;
 }
 
-export function availableFinishValues(card) {
-  const finishes = getCardFinishes(card).map(f => finishValueFromScryfallFinish(f.finish));
-  return finishes.length ? finishes : [card?.finish || 'normal'];
-}
-
 export function renderFinishRadios({
   doc = document,
   card,
