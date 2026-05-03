@@ -28,6 +28,7 @@ import {
 } from './addVoice.js';
 import { buildDeckOwnershipReadout } from './addDeckOwnership.js';
 import { buildAddPreviewCardModel, buildExistingPreviewText } from './addPreviewModel.js';
+import { createAddSpeechRecognition } from './addSpeechRecognition.js';
 import {
   buildDeckListEntryFromCard,
   buildInventoryAddEvent,
@@ -68,6 +69,7 @@ let addPreviewEl, addPreviewImg, addPreviewName, addPreviewMeta;
 let addQtyInput, addLocationNameInput;
 let addOptionControls = null;
 let nameAutocomplete = null;
+let speechRecognition = null;
 
 // ---- Location picker (existing-pills + inline-new) ----
 let locationPicker = null;
@@ -109,13 +111,6 @@ let currentPrintingsName = '';
 let printingsAbort = null;
 let printingsTotalCount = 0;
 let printingsTruncated = false;
-
-// ---- Voice state ----
-let voiceListening = false;
-let voiceRecognition = null;
-let voicePending = '';
-let voiceDebounce = null;
-const VOICE_DEBOUNCE_MS = 1200;
 
 function setAddMode(mode) {
   addMode = mode;
@@ -529,61 +524,10 @@ export function initAdd() {
     if (e.key === 'Enter') { e.preventDefault(); addCardFromPreview(); }
   });
 
-  // ---- Voice ----
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (SR) {
-    voiceRecognition = new SR();
-    voiceRecognition.continuous = true;
-    voiceRecognition.interimResults = true;
-    voiceRecognition.lang = 'en-US';
-    voiceRecognition.onresult = (event) => {
-      let final = '', interim = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const t = event.results[i][0].transcript;
-        if (event.results[i].isFinal) final += t + ' ';
-        else interim += t;
-      }
-      if (final.trim()) {
-        voicePending += final;
-        addMicStatus.innerHTML = '<strong>heard:</strong> ' + esc(voicePending.trim());
-        clearTimeout(voiceDebounce);
-        voiceDebounce = setTimeout(() => {
-          const text = voicePending.trim();
-          voicePending = '';
-          if (text.length > 1) parseVoice(text);
-        }, VOICE_DEBOUNCE_MS);
-      }
-      if (interim) {
-        addMicStatus.innerHTML = '<strong>...</strong> ' + esc((voicePending + interim).trim());
-      }
-    };
-    voiceRecognition.onend = () => {
-      if (voiceListening) { try { voiceRecognition.start(); } catch (e) {} }
-    };
-    voiceRecognition.onerror = (event) => {
-      if (event.error === 'not-allowed') {
-        addMicStatus.textContent = 'mic access denied — allow and reload';
-      }
-    };
-  }
-
-  addMicBtn.addEventListener('click', () => {
-    if (!voiceRecognition) {
-      addMicStatus.textContent = 'voice not supported in this browser';
-      return;
-    }
-    if (voiceListening) {
-      voiceListening = false;
-      voiceRecognition.stop();
-      addMicBtn.className = 'mic-btn off';
-      addMicBtn.textContent = 'start listening';
-      addMicStatus.textContent = 'mic off';
-    } else {
-      voiceListening = true;
-      voiceRecognition.start();
-      addMicBtn.className = 'mic-btn on';
-      addMicBtn.textContent = 'stop';
-      addMicStatus.textContent = 'listening...';
-    }
+  speechRecognition = createAddSpeechRecognition({
+    micBtn: addMicBtn,
+    statusEl: addMicStatus,
+    onText: parseVoice,
   });
+  speechRecognition.bind();
 }
