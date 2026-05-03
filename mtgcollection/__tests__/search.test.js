@@ -414,3 +414,38 @@ test('multiselect: every selection unmatched -> card fails', () => {
   const args = { sets: ['xxx'], rarities: ['mythic'] };
   assert.equal(passesMultiselectFilters(FIXTURES.ragavan, args), false); // mythic but wrong set
 });
+
+// ---- format filter ----
+
+test('format filter: banned card excluded', () => {
+  const c = { setCode: 'sld', rarity: 'rare', finish: 'normal', legalities: { modern: 'banned', commander: 'legal' } };
+  assert.equal(passesMultiselectFilters(c, { format: 'modern' }), false);
+});
+
+test('format filter: legal card included', () => {
+  const c = { setCode: 'sld', rarity: 'rare', finish: 'normal', legalities: { modern: 'legal', commander: 'legal' } };
+  assert.equal(passesMultiselectFilters(c, { format: 'modern' }), true);
+});
+
+test('format filter: not_legal card excluded', () => {
+  const c = { setCode: 'sld', rarity: 'rare', finish: 'normal', legalities: { modern: 'not_legal' } };
+  assert.equal(passesMultiselectFilters(c, { format: 'modern' }), false);
+});
+
+test('format filter: restricted card included (vintage edge case)', () => {
+  const c = { setCode: 'sld', rarity: 'rare', finish: 'normal', legalities: { vintage: 'restricted' } };
+  assert.equal(passesMultiselectFilters(c, { format: 'vintage' }), true);
+});
+
+test('format filter: unknown legality passes (lenient — backfill might be in flight)', () => {
+  const noData = { setCode: 'sld', rarity: 'rare', finish: 'normal' };
+  const empty = { setCode: 'sld', rarity: 'rare', finish: 'normal', legalities: {} };
+  assert.equal(passesMultiselectFilters(noData, { format: 'modern' }), true);
+  assert.equal(passesMultiselectFilters(empty, { format: 'modern' }), true);
+});
+
+test('format filter: empty format string is a no-op', () => {
+  const banned = { setCode: 'sld', rarity: 'rare', finish: 'normal', legalities: { modern: 'banned' } };
+  assert.equal(passesMultiselectFilters(banned, { format: '' }), true);
+  assert.equal(passesMultiselectFilters(banned, {}), true);
+});

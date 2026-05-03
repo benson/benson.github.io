@@ -173,7 +173,12 @@ export function matchSearch(c, tokens) {
 
 // Pure helper: applies multiselect filters to a card. Exported for tests.
 // Each `*Selected` argument is an array of selected values (empty = no filter).
-export function passesMultiselectFilters(c, { sets, rarities, finishes, locations, tags } = {}) {
+// `format`, when truthy, is a Scryfall format key (e.g. 'modern', 'commander').
+// Cards explicitly marked banned/not_legal in that format are excluded.
+// Cards with unknown legality (legacy entries pre-backfill, or in-flight
+// scryfall lookups) pass — lenient default avoids hiding cards just because
+// the metadata hasn't loaded yet.
+export function passesMultiselectFilters(c, { sets, rarities, finishes, locations, tags, format } = {}) {
   if (sets && sets.length && !sets.includes(c.setCode)) return false;
   if (rarities && rarities.length && !rarities.includes(c.rarity)) return false;
   if (finishes && finishes.length && !finishes.includes(c.finish)) return false;
@@ -181,6 +186,10 @@ export function passesMultiselectFilters(c, { sets, rarities, finishes, location
   if (tags && tags.length) {
     const cardTags = c.tags || [];
     if (!cardTags.some(t => tags.includes(t))) return false;
+  }
+  if (format && c.legalities && typeof c.legalities === 'object') {
+    const status = c.legalities[format];
+    if (status === 'banned' || status === 'not_legal') return false;
   }
   return true;
 }
@@ -222,9 +231,11 @@ export function filteredSorted() {
   const locations = getMultiselectValue(document.getElementById('filterLocation'));
   const tags = getMultiselectValue(document.getElementById('filterTag'));
 
+  const format = state.selectedFormat || '';
+
   let list = state.collection.filter(c => {
     if (!matchSearch(c, tokens)) return false;
-    return passesMultiselectFilters(c, { sets, rarities, finishes, locations, tags });
+    return passesMultiselectFilters(c, { sets, rarities, finishes, locations, tags, format });
   });
 
   const field = state.sortField || 'name';
@@ -233,7 +244,8 @@ export function filteredSorted() {
   return list;
 }
 
-// True when any filter has a non-default value (search bar, multiselects, sortBy).
+// True when any filter has a non-default value (search bar, multiselects,
+// format dropdown).
 export function hasActiveFilter() {
   const q = document.getElementById('searchInput').value.trim();
   if (q) return true;
@@ -241,6 +253,7 @@ export function hasActiveFilter() {
   for (const id of ids) {
     if (getMultiselectValue(document.getElementById(id)).length > 0) return true;
   }
+  if (state.selectedFormat) return true;
   return false;
 }
 
@@ -249,6 +262,11 @@ export function clearAllFilters() {
   ['filterSet', 'filterRarity', 'filterFoil', 'filterLocation', 'filterTag'].forEach(id => {
     setMultiselectValue(document.getElementById(id), []);
   });
+  // Also clear the format dropdown
+  state.selectedFormat = '';
+  const fmtEl = document.getElementById('formatSelect');
+  if (fmtEl) fmtEl.value = '';
+  document.querySelector('.app-footer')?.classList.remove('format-active');
 }
 
 let urlStateDebounce = null;
