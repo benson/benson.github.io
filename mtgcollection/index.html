@@ -313,6 +313,7 @@
         </div>
 
         <div class="printing-picker" id="addPrintingPicker">
+          <input class="printing-filter-input" id="addPrintingSearch" type="text" placeholder="filter printings by set" autocomplete="off">
           <div class="printing-list-caption" id="addPrintingCaption"></div>
           <ul class="printing-list" id="addPrintingList"></ul>
         </div>
@@ -352,6 +353,14 @@
               <div class="field field-qty">
                 <label for="addQty">qty</label>
                 <input type="number" id="addQty" min="1" value="1">
+              </div>
+              <div class="field field-full">
+                <label>tags</label>
+                <div class="tags-row" id="addTagsRow">
+                  <div class="tag-chips" id="addTagChips"></div>
+                  <input class="tag-input" id="addTagInput" type="text" placeholder="add tag..." list="addTagSuggestions" autocomplete="off">
+                  <datalist id="addTagSuggestions"></datalist>
+                </div>
               </div>
               <div class="field field-location field-full">
                 <label>location</label>
@@ -426,12 +435,9 @@
           <input id="detailQty" type="number" min="1" step="1">
         </div>
         <div class="detail-field">
-          <label for="detailFinish">finish</label>
-          <select id="detailFinish">
-            <option value="normal">normal</option>
-            <option value="foil">foil</option>
-            <option value="etched">etched</option>
-          </select>
+          <label>finish</label>
+          <div class="language-toggle" id="detailFinish" role="radiogroup" aria-label="finish"></div>
+          <div class="field-hint hidden" id="detailFinishHint"></div>
         </div>
         <div class="detail-field">
           <label>condition</label>
@@ -461,15 +467,21 @@
         </div>
         <div class="detail-field full">
           <label for="detailLocationName">location</label>
-          <div class="loc-field">
-            <select class="loc-type-select" id="detailLocationType">
-              <option value="deck">deck</option>
-              <option value="binder">binder</option>
-              <option value="box" selected>box</option>
-            </select>
-            <input id="detailLocationName" class="loc-name-input" type="text" list="locationOptions" placeholder="(none)">
+          <div class="location-picker" id="detailLocationPicker">
+            <div class="location-pills" id="detailLocationPills" role="radiogroup" aria-label="location"></div>
+            <div class="location-new hidden" id="detailLocationNewBox">
+              <div class="loc-field loc-field-typed">
+                <div class="loc-type-radios" role="radiogroup" aria-label="location type" id="detailLocationTypeRadios"></div>
+                <input id="detailLocationName" class="loc-name-input" type="text" list="locationOptions" placeholder="name">
+              </div>
+            </div>
           </div>
         </div>
+      </div>
+      <div class="printing-picker detail-printing-picker" id="detailPrintingPicker">
+        <input class="printing-filter-input" id="detailPrintingSearch" type="text" placeholder="filter printings by set" autocomplete="off">
+        <div class="printing-list-caption" id="detailPrintingCaption"></div>
+        <ul class="printing-list" id="detailPrintingList"></ul>
       </div>
       <div class="detail-price">
         <span class="detail-price-label">price</span>

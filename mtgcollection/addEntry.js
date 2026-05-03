@@ -17,6 +17,7 @@ export function buildCollectionEntryFromCard(card, opts) {
     location: opts.location,
     scryfallId: card.id,
     rarity: card.rarity || '',
+    tags: opts.tags || [],
   });
   return applyScryfallCardResolution(entry, card, { priceMode: 'replace' });
 }

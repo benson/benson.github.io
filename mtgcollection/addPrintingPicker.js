@@ -6,8 +6,10 @@ export function createAddPrintingPicker({
   pickerEl,
   listEl,
   captionEl,
+  searchEl = null,
   onSelect,
   shouldPreserveFields = () => false,
+  getPreferredScryfallId = () => '',
   loadPrintingsImpl = loadCardPrintings,
   showFeedbackImpl = showFeedback,
   hideFeedbackImpl = hideFeedback,
@@ -17,15 +19,30 @@ export function createAddPrintingPicker({
   let abort = null;
   let totalCount = 0;
   let truncated = false;
+  let filterQuery = '';
+  let selectedId = '';
+
+  function filteredPrintings() {
+    const q = filterQuery.trim().toLowerCase();
+    if (!q) return printings;
+    return printings.filter(c =>
+      String(c.set || '').toLowerCase().includes(q)
+      || String(c.set_name || '').toLowerCase().includes(q)
+    );
+  }
 
   function render() {
+    const visible = filteredPrintings();
     renderPrintingListView({
       listEl,
       captionEl,
-      printings,
+      printings: visible,
       totalCount,
       truncated,
+      loadedCount: printings.length,
+      filterQuery,
     });
+    syncSelectedRow();
   }
 
   function show() {
@@ -44,6 +61,9 @@ export function createAddPrintingPicker({
     currentName = '';
     totalCount = 0;
     truncated = false;
+    filterQuery = '';
+    selectedId = '';
+    if (searchEl) searchEl.value = '';
   }
 
   async function load(name) {
@@ -55,6 +75,9 @@ export function createAddPrintingPicker({
     currentName = name;
     totalCount = 0;
     truncated = false;
+    filterQuery = '';
+    selectedId = '';
+    if (searchEl) searchEl.value = '';
 
     show();
     captionEl.textContent = 'Loading printings...';
@@ -85,18 +108,27 @@ export function createAddPrintingPicker({
     totalCount = result.totalCount;
     truncated = result.truncated;
     render();
-    select(0);
+    const preferredId = getPreferredScryfallId();
+    const preferredIndex = preferredId ? filteredPrintings().findIndex(c => c.id === preferredId) : -1;
+    select(preferredIndex >= 0 ? preferredIndex : 0);
   }
 
   function select(index) {
-    if (!printings.length) return null;
-    const selectedIndex = Math.max(0, Math.min(printings.length - 1, index));
-    const card = printings[selectedIndex];
-    Array.from(listEl.children).forEach((li, idx) => {
-      li.classList.toggle('selected', idx === selectedIndex);
-    });
+    const visible = filteredPrintings();
+    if (!visible.length) return null;
+    const selectedIndex = Math.max(0, Math.min(visible.length - 1, index));
+    const card = visible[selectedIndex];
+    selectedId = card.id || '';
+    syncSelectedRow();
     onSelect(card, { preserveFields: shouldPreserveFields() });
     return card;
+  }
+
+  function syncSelectedRow() {
+    Array.from(listEl?.children || []).forEach((li, idx) => {
+      const card = filteredPrintings()[idx];
+      li.classList.toggle('selected', !!card && !!selectedId && card.id === selectedId);
+    });
   }
 
   function bind() {
@@ -108,6 +140,15 @@ export function createAddPrintingPicker({
       if (Number.isNaN(index)) return;
       select(index);
     });
+    if (searchEl && searchEl.dataset.bound !== '1') {
+      searchEl.dataset.bound = '1';
+      searchEl.addEventListener('input', () => {
+        filterQuery = searchEl.value || '';
+        render();
+        if (selectedId && filteredPrintings().some(c => c.id === selectedId)) return;
+        if (filteredPrintings().length) select(0);
+      });
+    }
   }
 
   return {
@@ -119,5 +160,6 @@ export function createAddPrintingPicker({
     show,
     getPrintings: () => [...printings],
     getCurrentName: () => currentName,
+    getFilteredPrintings: () => filteredPrintings(),
   };
 }

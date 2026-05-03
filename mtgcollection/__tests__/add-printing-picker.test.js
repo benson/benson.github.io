@@ -7,11 +7,13 @@ function installDom() {
   const win = new Window();
   win.document.body.innerHTML = `
     <div id="picker"></div>
+    <input id="search">
     <ol id="list"></ol>
     <div id="caption"></div>
   `;
   return {
     pickerEl: win.document.getElementById('picker'),
+    searchEl: win.document.getElementById('search'),
     listEl: win.document.getElementById('list'),
     captionEl: win.document.getElementById('caption'),
   };
@@ -79,6 +81,57 @@ test('createAddPrintingPicker: binds row clicks to selection', async () => {
 
   assert.deepEqual(selected, ['1', '2']);
   assert.equal(dom.listEl.children[1].classList.contains('selected'), true);
+});
+
+test('createAddPrintingPicker: preselects the preferred Scryfall id when loaded', async () => {
+  const dom = installDom();
+  const selected = [];
+  const picker = createAddPrintingPicker({
+    ...dom,
+    getPreferredScryfallId: () => 'target-id',
+    onSelect: (card) => selected.push(card.id),
+    loadPrintingsImpl: async () => ({
+      status: 'ok',
+      printings: [printing({ id: 'first-id' }), printing({ id: 'target-id', collector_number: '2' })],
+      totalCount: 2,
+      truncated: false,
+    }),
+    hideFeedbackImpl: () => {},
+  });
+
+  await picker.load('Sol Ring');
+
+  assert.deepEqual(selected, ['target-id']);
+  assert.equal(dom.listEl.children[1].classList.contains('selected'), true);
+});
+
+test('createAddPrintingPicker: filters loaded printings by set code or name', async () => {
+  const dom = installDom();
+  const selected = [];
+  const picker = createAddPrintingPicker({
+    ...dom,
+    onSelect: (card) => selected.push(card.set),
+    loadPrintingsImpl: async () => ({
+      status: 'ok',
+      printings: [
+        printing({ set: 'cmm', set_name: 'Commander Masters', collector_number: '1' }),
+        printing({ set: 'sld', set_name: 'Secret Lair Drop', collector_number: '2' }),
+      ],
+      totalCount: 2,
+      truncated: false,
+    }),
+    hideFeedbackImpl: () => {},
+  });
+
+  picker.bind();
+  await picker.load('Sol Ring');
+  dom.searchEl.value = 'secret';
+  dom.searchEl.dispatchEvent(new dom.searchEl.ownerDocument.defaultView.Event('input'));
+
+  assert.equal(dom.captionEl.textContent, 'showing 1 of 2 loaded');
+  assert.equal(dom.listEl.querySelectorAll('.printing-row').length, 1);
+  assert.equal(dom.listEl.querySelector('.printing-set-code').textContent, 'SLD');
+  assert.deepEqual(selected, ['cmm', 'sld']);
 });
 
 test('createAddPrintingPicker: shows empty state and feedback when no card is found', async () => {

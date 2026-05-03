@@ -43,15 +43,42 @@ export function createLanguageValueAccessor({ doc = document } = {}) {
   };
 }
 
-export function renderFinishRadios({ doc = document, card }) {
-  const wrap = doc.getElementById('addFinish');
+export function finishValueFromScryfallFinish(finish) {
+  return finish === 'nonfoil' ? 'normal' : finish;
+}
+
+export function availableFinishValues(card) {
+  const finishes = getCardFinishes(card).map(f => finishValueFromScryfallFinish(f.finish));
+  return finishes.length ? finishes : [card?.finish || 'normal'];
+}
+
+export function renderFinishRadios({
+  doc = document,
+  card,
+  targetId = 'addFinish',
+  name = 'addFinish',
+  selected = '',
+  hintEl = null,
+} = {}) {
+  const wrap = doc.getElementById(targetId);
   if (!wrap) return;
   const finishes = getCardFinishes(card);
-  wrap.innerHTML = finishes.map((f, i) => {
-    const value = f.finish === 'nonfoil' ? 'normal' : f.finish;
+  const options = finishes.length
+    ? finishes.map(f => ({ value: finishValueFromScryfallFinish(f.finish), label: f.label.toLowerCase() }))
+    : [{ value: card?.finish || 'normal', label: card?.finish || 'normal' }];
+  const preferred = selected || options[0]?.value || 'normal';
+  const selectedValue = options.some(o => o.value === preferred) ? preferred : options[0]?.value || 'normal';
+  wrap.innerHTML = options.map((f) => {
+    const value = f.value;
     const label = f.label.toLowerCase();
-    return `<label><input type="radio" name="addFinish" value="${esc(value)}"${i === 0 ? ' checked' : ''}><span>${esc(label)}</span></label>`;
+    return `<label><input type="radio" name="${esc(name)}" value="${esc(value)}"${value === selectedValue ? ' checked' : ''}><span>${esc(label)}</span></label>`;
   }).join('');
+  if (hintEl) {
+    const fellBack = !!selected && selected !== selectedValue;
+    hintEl.textContent = fellBack ? selected + ' is not available for this printing; using ' + selectedValue + '.' : '';
+    hintEl.classList.toggle('hidden', !fellBack);
+  }
+  return selectedValue;
 }
 
 export function collectionLanguages(collection, extra = '') {
@@ -99,8 +126,8 @@ export function createAddOptionControls({ doc = document, getCollection = () => 
     finish: createRadioValueAccessor({ doc, name: 'addFinish', fallback: '' }),
     condition: createRadioValueAccessor({ doc, name: 'addCondition', fallback: 'near_mint' }),
     language: createLanguageValueAccessor({ doc }),
-    renderFinishRadios(card) {
-      renderFinishRadios({ doc, card });
+    renderFinishRadios(card, selected = '') {
+      return renderFinishRadios({ doc, card, selected });
     },
     renderLanguageRadios(selected) {
       renderLanguageRadios({ doc, collection: getCollection(), selected });

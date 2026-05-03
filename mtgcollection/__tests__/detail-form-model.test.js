@@ -17,11 +17,8 @@ function installDom() {
   doc.body.innerHTML = `
     <form id="detailForm">
       <input id="detailQty">
-      <select id="detailFinish">
-        <option value="normal">normal</option>
-        <option value="foil">foil</option>
-        <option value="etched">etched</option>
-      </select>
+      <div id="detailFinish"></div>
+      <div id="detailFinishHint"></div>
       <label><input type="radio" name="detailCondition" value="near_mint"></label>
       <label><input type="radio" name="detailCondition" value="lightly_played"></label>
       <div id="detailLanguageOptions"></div>
@@ -58,11 +55,12 @@ test('writeDetailForm renders normalized drawer fields from a card', () => {
       condition: 'lightly_played',
       language: 'ja',
       location: { type: 'binder', name: 'Trade Binder' },
+      finishes: ['nonfoil', 'foil'],
     },
   });
 
   assert.equal(doc.getElementById('detailQty').value, '3');
-  assert.equal(doc.getElementById('detailFinish').value, 'foil');
+  assert.equal(form.querySelector('input[name="detailFinish"]:checked').value, 'foil');
   assert.equal(form.querySelector('input[name="detailCondition"]:checked').value, 'lightly_played');
   assert.equal(form.querySelector('input[name="detailLanguage"]:checked').value, 'ja');
   assert.equal(doc.getElementById('detailTagInput').value, '');
@@ -75,7 +73,7 @@ test('readDetailForm normalizes drawer values and prefers custom language input'
   renderDetailLanguageOptions({ doc, collection: [{ language: 'en' }], selected: 'en' });
 
   doc.getElementById('detailQty').value = '0';
-  doc.getElementById('detailFinish').value = 'etched';
+  doc.getElementById('detailFinish').innerHTML = '<label><input type="radio" name="detailFinish" value="etched" checked></label>';
   form.querySelector('input[name="detailCondition"][value="lightly_played"]').checked = true;
   doc.getElementById('detailLanguageOther').value = ' DE ';
   doc.getElementById('detailLocationType').value = 'deck';

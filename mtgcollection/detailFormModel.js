@@ -7,6 +7,7 @@ import {
   normalizeLocation,
 } from './collection.js';
 import { esc } from './feedback.js';
+import { renderFinishRadios } from './cardEditor.js';
 
 export function collectionLanguages(collection, extra = '') {
   const langs = new Set(['en']);
@@ -32,7 +33,14 @@ export function renderDetailLanguageOptions({ doc = document, collection = [], s
 
 export function writeDetailForm({ doc = document, form, collection = [], card }) {
   doc.getElementById('detailQty').value = card.qty || 1;
-  doc.getElementById('detailFinish').value = card.finish || 'normal';
+  renderFinishRadios({
+    doc,
+    card,
+    targetId: 'detailFinish',
+    name: 'detailFinish',
+    selected: card.finish || 'normal',
+    hintEl: doc.getElementById('detailFinishHint'),
+  });
 
   const conditionValue = card.condition || 'near_mint';
   const conditionInput = form.querySelector(`input[name="detailCondition"][value="${cssEscape(conditionValue, doc)}"]`)
@@ -43,21 +51,25 @@ export function writeDetailForm({ doc = document, form, collection = [], card })
 
   doc.getElementById('detailTagInput').value = '';
   const drawerLoc = normalizeLocation(card.location);
-  doc.getElementById('detailLocationType').value = drawerLoc ? drawerLoc.type : DEFAULT_LOCATION_TYPE;
-  doc.getElementById('detailLocationName').value = drawerLoc ? drawerLoc.name : '';
+  const legacyType = doc.getElementById('detailLocationType');
+  if (legacyType) legacyType.value = drawerLoc ? drawerLoc.type : DEFAULT_LOCATION_TYPE;
+  const nameInput = doc.getElementById('detailLocationName');
+  if (nameInput) nameInput.value = drawerLoc ? drawerLoc.name : '';
 }
 
-export function readDetailForm({ doc = document, form, tags = [] }) {
-  const newLocType = doc.getElementById('detailLocationType').value;
-  const newLocName = doc.getElementById('detailLocationName').value;
+export function readDetailForm({ doc = document, form, tags = [], location } = {}) {
+  const newLocType = doc.querySelector('input[name="detailLocationType"]:checked')?.value
+    || doc.getElementById('detailLocationType')?.value
+    || DEFAULT_LOCATION_TYPE;
+  const newLocName = doc.getElementById('detailLocationName')?.value || '';
   return {
     qty: Math.max(1, parseInt(doc.getElementById('detailQty').value, 10) || 1),
-    finish: normalizeFinish(doc.getElementById('detailFinish').value),
+    finish: normalizeFinish(form.querySelector('input[name="detailFinish"]:checked')?.value || 'normal'),
     condition: normalizeCondition(form.querySelector('input[name="detailCondition"]:checked')?.value || 'near_mint'),
     language: normalizeLanguage(doc.getElementById('detailLanguageOther').value
       || form.querySelector('input[name="detailLanguage"]:checked')?.value
       || 'en'),
-    location: normalizeLocation({ type: newLocType, name: newLocName }),
+    location: location === undefined ? normalizeLocation({ type: newLocType, name: newLocName }) : normalizeLocation(location),
     tags: [...tags],
   };
 }

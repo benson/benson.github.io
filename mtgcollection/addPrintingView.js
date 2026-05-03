@@ -32,13 +32,19 @@ export function renderPrintingList({
   printings,
   totalCount,
   truncated,
+  loadedCount = printings.length,
+  filterQuery = '',
 }) {
   if (!printings.length) {
     listEl.innerHTML = '';
-    captionEl.textContent = 'No printings found';
+    captionEl.textContent = filterQuery ? 'No printings match this filter' : 'No printings found';
     return;
   }
-  const captionParts = ['showing ' + printings.length + ' of ' + totalCount];
+  const filtered = String(filterQuery || '').trim();
+  const countText = filtered
+    ? 'showing ' + printings.length + ' of ' + loadedCount + ' loaded'
+    : 'showing ' + printings.length + ' of ' + totalCount;
+  const captionParts = [countText];
   if (truncated) {
     captionParts.push('<span class="truncate-hint">More available - narrow by typing the set code</span>');
   }

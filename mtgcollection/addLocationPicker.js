@@ -1,5 +1,6 @@
 import {
   allCollectionLocations,
+  allContainers,
   locationKey,
   normalizeLocation,
 } from './collection.js';
@@ -9,13 +10,13 @@ import { LOC_ICONS } from './ui/locationUi.js';
 export const ADD_LOCATION_TYPES = ['deck', 'binder', 'box'];
 export const ADD_LOCATION_DEFAULT = 'box';
 
-function locationTypeValue(doc) {
-  const r = doc.querySelector('input[name="addLocationType"]:checked');
+function locationTypeValue(doc, radioName = 'addLocationType') {
+  const r = doc.querySelector(`input[name="${radioName}"]:checked`);
   return r ? r.value : ADD_LOCATION_DEFAULT;
 }
 
-function setLocationTypeValue(doc, value) {
-  doc.querySelectorAll('input[name="addLocationType"]').forEach(r => {
+function setLocationTypeValue(doc, value, radioName = 'addLocationType') {
+  doc.querySelectorAll(`input[name="${radioName}"]`).forEach(r => {
     const checked = r.value === value;
     r.checked = checked;
     const wrap = r.closest('.loc-type-radio');
@@ -23,17 +24,18 @@ function setLocationTypeValue(doc, value) {
   });
 }
 
-export function buildLocationTypeRadios(doc = document) {
-  const wrap = doc.getElementById('addLocationTypeRadios');
+export function buildLocationTypeRadios(doc = document, options = {}) {
+  const wrap = doc.getElementById(options.typeRadiosId || 'addLocationTypeRadios');
+  const radioName = options.typeRadioName || 'addLocationType';
   if (!wrap) return;
   wrap.innerHTML = ADD_LOCATION_TYPES.map(t => `<label class="loc-type-radio${t === ADD_LOCATION_DEFAULT ? ' is-selected' : ''}">
-    <input type="radio" name="addLocationType" value="${t}"${t === ADD_LOCATION_DEFAULT ? ' checked' : ''}>
+    <input type="radio" name="${esc(radioName)}" value="${t}"${t === ADD_LOCATION_DEFAULT ? ' checked' : ''}>
     <span class="loc-pill loc-pill-${t}">${LOC_ICONS[t]}<span>${t}</span></span>
   </label>`).join('');
   if (wrap.dataset.bound === '1') return;
   wrap.dataset.bound = '1';
   wrap.addEventListener('change', e => {
-    if (e.target.name !== 'addLocationType') return;
+    if (e.target.name !== radioName) return;
     wrap.querySelectorAll('.loc-type-radio').forEach(l => {
       const r = l.querySelector('input');
       l.classList.toggle('is-selected', !!(r && r.checked));
@@ -44,20 +46,25 @@ export function buildLocationTypeRadios(doc = document) {
 export function createAddLocationPicker({
   doc = document,
   getNameInput = () => doc.getElementById('addLocationName'),
+  pillsId = 'addLocationPills',
+  newBoxId = 'addLocationNewBox',
+  newBtnId = 'addLocationNewBtn',
+  typeRadiosId = 'addLocationTypeRadios',
+  typeRadioName = 'addLocationType',
   onChange = () => {},
 } = {}) {
   let selectedLocation = null;
   let locationNewMode = false;
 
   function render() {
-    const pillsEl = doc.getElementById('addLocationPills');
-    const newBoxEl = doc.getElementById('addLocationNewBox');
+    const pillsEl = doc.getElementById(pillsId);
+    const newBoxEl = doc.getElementById(newBoxId);
     if (!pillsEl || !newBoxEl) {
       onChange();
       return;
     }
     const TYPE_HEADERS = { deck: 'decks', binder: 'binders', box: 'boxes' };
-    const locations = allCollectionLocations();
+    const locations = allKnownLocations();
     const html = [];
     for (const type of ADD_LOCATION_TYPES) {
       const ofType = locations.filter(l => l.type === type);
@@ -72,7 +79,7 @@ export function createAddLocationPicker({
       }
     }
     html.push('<span class="loc-pills-row-break" aria-hidden="true"></span>');
-    html.push(`<button class="location-pill-new${locationNewMode ? ' is-selected' : ''}" type="button" id="addLocationNewBtn">+ new location</button>`);
+    html.push(`<button class="location-pill-new${locationNewMode ? ' is-selected' : ''}" type="button" id="${esc(newBtnId)}">+ new location</button>`);
     pillsEl.innerHTML = html.join('');
     newBoxEl.classList.toggle('hidden', !locationNewMode);
     onChange();
@@ -91,7 +98,7 @@ export function createAddLocationPicker({
   function setNewMode(seed) {
     locationNewMode = true;
     selectedLocation = null;
-    if (seed && seed.type) setLocationTypeValue(doc, seed.type);
+    if (seed && seed.type) setLocationTypeValue(doc, seed.type, typeRadioName);
     const nameInput = getNameInput();
     if (nameInput) nameInput.value = seed && seed.name ? seed.name : '';
     render();
@@ -100,7 +107,7 @@ export function createAddLocationPicker({
 
   function readLocation() {
     if (locationNewMode) {
-      return normalizeLocation({ type: locationTypeValue(doc), name: getNameInput()?.value || '' });
+      return normalizeLocation({ type: locationTypeValue(doc, typeRadioName), name: getNameInput()?.value || '' });
     }
     return selectedLocation ? normalizeLocation(selectedLocation) : null;
   }
@@ -113,7 +120,7 @@ export function createAddLocationPicker({
       render();
       return;
     }
-    const existing = allCollectionLocations().find(l => locationKey(l) === locationKey(seedLoc));
+    const existing = allKnownLocations().find(l => locationKey(l) === locationKey(seedLoc));
     if (existing) {
       setSelectedLocation(seedLoc);
     } else {
@@ -125,7 +132,7 @@ export function createAddLocationPicker({
     return {
       selectedLocation: selectedLocation ? { ...selectedLocation } : null,
       locationNewMode,
-      locationType: locationTypeValue(doc),
+      locationType: locationTypeValue(doc, typeRadioName),
       locationName: getNameInput()?.value || '',
     };
   }
@@ -144,11 +151,11 @@ export function createAddLocationPicker({
   }
 
   function bindPills() {
-    const pillsEl = doc.getElementById('addLocationPills');
+    const pillsEl = doc.getElementById(pillsId);
     if (!pillsEl || pillsEl.dataset.bound === '1') return;
     pillsEl.dataset.bound = '1';
     pillsEl.addEventListener('click', e => {
-      if (e.target.closest('#addLocationNewBtn')) {
+      if (e.target.closest('#' + cssEscape(newBtnId, doc))) {
         setNewMode();
         return;
       }
@@ -160,7 +167,7 @@ export function createAddLocationPicker({
 
   return {
     bindPills,
-    buildTypeRadios: () => buildLocationTypeRadios(doc),
+    buildTypeRadios: () => buildLocationTypeRadios(doc, { typeRadiosId, typeRadioName }),
     readLocation,
     render,
     restore,
@@ -169,4 +176,24 @@ export function createAddLocationPicker({
     setSelectedLocation,
     snapshot,
   };
+}
+
+function allKnownLocations() {
+  const seen = new Set();
+  const out = [];
+  for (const loc of [
+    ...allCollectionLocations(),
+    ...allContainers().map(c => ({ type: c.type, name: c.name })),
+  ]) {
+    const key = locationKey(loc);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(loc);
+  }
+  return out.sort((a, b) => a.type.localeCompare(b.type) || a.name.localeCompare(b.name));
+}
+
+function cssEscape(value, doc) {
+  const css = doc.defaultView?.CSS || globalThis.CSS;
+  return css?.escape ? css.escape(value) : value;
 }

@@ -1,18 +1,17 @@
 import { state } from './state.js';
 import { esc, showFeedback } from './feedback.js';
 import {
-  normalizeTag,
   allCollectionTags,
   allCollectionLocations,
   allContainers,
   LOCATION_TYPES,
+  collectionKey,
 } from './collection.js';
 import { commitCollectionChange } from './commit.js';
-import { collectionKey } from './collection.js';
 import { captureBefore, recordEvent, locationDiffSummary, qtyDiffSummary } from './changelog.js';
 import { hideCardPreview, showImageLightbox, hideImageLightbox, isLightboxVisible } from './ui/cardPreview.js';
-import { populateMultiselect } from './multiselect.js';
-import { syncActiveLocationFromFilter } from './routeState.js';
+import { getMultiselectValue, populateMultiselect } from './multiselect.js';
+import { getActiveLocation, syncActiveLocationFromFilter } from './routeState.js';
 import {
   applyDetailFormValues,
   detailFieldDiffs,
@@ -21,11 +20,33 @@ import {
   writeDetailForm,
 } from './detailFormModel.js';
 import { FORMAT_PRESETS } from './views/deckHeaderView.js';
+import {
+  applyPrintingToEntry,
+  createAddLocationPicker,
+  createAddPrintingPicker,
+  createTagChipEditor,
+  renderFinishRadios,
+} from './cardEditor.js';
 
 let drawerBackdrop;
 let detailDrawer;
 let detailForm;
-let drawerTags = [];
+let detailTagEditor = null;
+let detailLocationPicker = null;
+let detailPrintingPicker = null;
+let detailSelectedPrinting = null;
+
+function currentFilterLocation() {
+  const active = getActiveLocation();
+  if (active) return active;
+  const filterEl = document.getElementById('filterLocation');
+  if (!filterEl) return null;
+  const values = getMultiselectValue(filterEl);
+  if (values.length !== 1) return null;
+  const idx = values[0].indexOf(':');
+  if (idx === -1) return null;
+  return { type: values[0].slice(0, idx), name: values[0].slice(idx + 1) };
+}
 
 // ---- Filters (set/location dropdown population) ----
 export function populateFilters() {
@@ -175,9 +196,11 @@ export function openDetail(index) {
     });
   }
 
+  detailSelectedPrinting = null;
   writeDetailForm({ form: detailForm, collection: state.collection, card: c });
-  drawerTags = Array.isArray(c.tags) ? [...c.tags] : [];
-  renderTagChips();
+  detailTagEditor?.setTags(Array.isArray(c.tags) ? c.tags : []);
+  detailLocationPicker?.seed(c.location || currentFilterLocation());
+  detailPrintingPicker?.load(c.resolvedName || c.name || '');
   document.getElementById('detailPriceText').textContent = c.price ? '$' + c.price.toFixed(2) : 'no price';
   const priceMark = document.getElementById('detailPriceMark');
   priceMark.textContent = c.priceFallback ? '*' : '';
@@ -195,6 +218,7 @@ export function openDetail(index) {
 
 function closeDetail() {
   state.detailIndex = -1;
+  detailPrintingPicker?.hide();
   detailDrawer.classList.remove('visible');
   drawerBackdrop.classList.remove('visible');
   detailDrawer.setAttribute('aria-hidden', 'true');
@@ -205,16 +229,28 @@ function saveDetail() {
   if (!c) return;
 
   // Commit any pending text in the tag input before snapshotting diffs
-  commitTagInput();
+  detailTagEditor?.commitInput();
 
   const before = snapshotDetailFields(c);
+  const beforeScryfallId = c.scryfallId || '';
 
   const beforeKey = collectionKey(c);
   const beforeSnap = captureBefore([beforeKey]);
 
-  applyDetailFormValues(c, readDetailForm({ form: detailForm, tags: drawerTags }));
+  applyDetailFormValues(c, readDetailForm({
+    form: detailForm,
+    tags: detailTagEditor?.getTags() || [],
+    location: detailLocationPicker?.readLocation(),
+  }));
+  const printingChanged = !!(detailSelectedPrinting && detailSelectedPrinting.id && detailSelectedPrinting.id !== beforeScryfallId);
+  if (printingChanged) {
+    applyPrintingToEntry(c, detailSelectedPrinting);
+  }
   const after = snapshotDetailFields(c);
   const { diffs, locationChanged } = detailFieldDiffs(before, after);
+  if (printingChanged) {
+    diffs.push('printing: ' + [c.setCode ? c.setCode.toUpperCase() : '', c.cn ? '#' + c.cn : ''].filter(Boolean).join(' '));
+  }
 
   commitCollectionChange({ coalesce: true });
   closeDetail();
@@ -295,22 +331,41 @@ export function initDetail() {
     detailForm.querySelectorAll('input[name="detailLanguage"]').forEach(input => { input.checked = false; });
   });
 
-  const tagInput = document.getElementById('detailTagInput');
-  tagInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      commitTagInput();
-    }
+  detailTagEditor = createTagChipEditor({
+    chipsEl: document.getElementById('detailTagChips'),
+    inputEl: document.getElementById('detailTagInput'),
+    datalistEl: document.getElementById('detailTagSuggestions'),
+    getSuggestions: allCollectionTags,
   });
-  tagInput.addEventListener('blur', () => {
-    if (tagInput.value.trim()) commitTagInput();
+  detailTagEditor.bind();
+  detailLocationPicker = createAddLocationPicker({
+    getNameInput: () => document.getElementById('detailLocationName'),
+    pillsId: 'detailLocationPills',
+    newBoxId: 'detailLocationNewBox',
+    newBtnId: 'detailLocationNewBtn',
+    typeRadiosId: 'detailLocationTypeRadios',
+    typeRadioName: 'detailLocationType',
   });
-  document.getElementById('detailTagChips').addEventListener('click', e => {
-    const btn = e.target.closest('.tag-chip-remove');
-    if (!btn) return;
-    e.preventDefault();
-    const tag = btn.dataset.tag;
-    drawerTags = drawerTags.filter(t => t !== tag);
-    renderTagChips();
+  detailLocationPicker.buildTypeRadios();
+  detailLocationPicker.bindPills();
+  detailLocationPicker.render();
+  detailPrintingPicker = createAddPrintingPicker({
+    pickerEl: document.getElementById('detailPrintingPicker'),
+    listEl: document.getElementById('detailPrintingList'),
+    captionEl: document.getElementById('detailPrintingCaption'),
+    searchEl: document.getElementById('detailPrintingSearch'),
+    getPreferredScryfallId: () => state.collection[state.detailIndex]?.scryfallId || '',
+    shouldPreserveFields: () => true,
+    onSelect: (card) => {
+      const currentFinish = readDetailForm({ form: detailForm, location: detailLocationPicker?.readLocation() }).finish;
+      detailSelectedPrinting = card;
+      renderFinishRadios({
+        card,
+        targetId: 'detailFinish',
+        name: 'detailFinish',
+        selected: currentFinish,
+        hintEl: document.getElementById('detailFinishHint'),
+      });
+    },
   });
 }

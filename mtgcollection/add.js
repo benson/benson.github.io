@@ -14,11 +14,14 @@ import { recordEvent } from './changelog.js';
 import { getMultiselectValue } from './multiselect.js';
 import { parseVoiceText } from './voiceParser.js';
 import { getActiveLocation } from './routeState.js';
-import { createAddLocationPicker } from './addLocationPicker.js';
 import { buildCollectionEntryFromCard, mergeEntryIntoCollection } from './addEntry.js';
-import { createAddOptionControls } from './addOptions.js';
 import { createNameAutocomplete } from './addAutocomplete.js';
-import { createAddPrintingPicker } from './addPrintingPicker.js';
+import {
+  createAddLocationPicker,
+  createAddOptionControls,
+  createAddPrintingPicker,
+  createTagChipEditor,
+} from './cardEditor.js';
 import {
   buildRepeatVoiceInput,
   buildVoiceAddOptions,
@@ -69,6 +72,7 @@ let addQtyInput, addLocationNameInput;
 let addOptionControls = null;
 let nameAutocomplete = null;
 let addPrintingPicker = null;
+let addTagEditor = null;
 let speechRecognition = null;
 
 // ---- Location picker (existing-pills + inline-new) ----
@@ -158,7 +162,7 @@ function autoAddVoiceCard(card, voiceCtx) {
 }
 
 function commitVoiceAdd(card, opts, voiceCtx) {
-  const entry = buildCollectionEntryFromCard(card, opts);
+  const entry = buildCollectionEntryFromCard(card, { ...opts, tags: addTagEditor?.getTags() || [] });
   const { key: k, before, created } = mergeEntryIntoCollection(state.collection, entry);
 
   commitCollectionChange();
@@ -182,6 +186,7 @@ function showAddPreview(card, opts) {
   const prevQty = preserveFields ? addQtyInput.value : null;
   const prevFinish = preserveFields ? addOptionControls.finish.value : null;
   const prevLocationSnapshot = preserveFields ? locationPicker?.snapshot() : null;
+  const prevTags = preserveFields ? addTagEditor?.getTags() : [];
   addPreviewCard = card;
   addPreviewEl.classList.add('active');
   const preview = buildAddPreviewCardModel(card);
@@ -206,11 +211,12 @@ function showAddPreview(card, opts) {
     existingEl.classList.add('hidden');
   }
 
-  addOptionControls.renderFinishRadios(card);
+  addOptionControls.renderFinishRadios(card, prevFinish || '');
   addOptionControls.renderLanguageRadios('en');
+  addTagEditor?.setTags(prevTags || []);
 
   if (voiceFoilFlag) {
-    addOptionControls.finish.value = 'foil';
+    if (document.querySelector('input[name="addFinish"][value="foil"]')) addOptionControls.finish.value = 'foil';
     voiceFoilFlag = false;
   }
 
@@ -224,7 +230,6 @@ function showAddPreview(card, opts) {
   voiceLocationOverride = null;
   if (preserveFields) {
     if (prevQty != null && prevQty !== '') addQtyInput.value = prevQty;
-    if (prevFinish) addOptionControls.finish.value = prevFinish;
     locationPicker?.restore(prevLocationSnapshot);
   }
   addBtn.focus();
@@ -245,6 +250,8 @@ function addCardFromPreview() {
   const language = normalizeLanguage(addOptionControls.language.value);
   const qty = Math.max(1, parseInt(addQtyInput.value, 10) || 1);
   const location = locationPicker?.readLocation() || null;
+  addTagEditor?.commitInput();
+  const tags = addTagEditor?.getTags() || [];
   const placeholderToggle = document.getElementById('addAsPlaceholder');
   const asPlaceholder = !!(placeholderToggle && placeholderToggle.checked && location?.type === 'deck');
 
@@ -267,7 +274,7 @@ function addCardFromPreview() {
     return;
   }
 
-  const entry = buildCollectionEntryFromCard(card, { finish, qty, condition, language, location });
+  const entry = buildCollectionEntryFromCard(card, { finish, qty, condition, language, location, tags });
   const { key: k, before, created } = mergeEntryIntoCollection(state.collection, entry);
 
   commitCollectionChange();
@@ -335,6 +342,7 @@ export function initAdd() {
   const addPrintingPickerEl  = document.getElementById('addPrintingPicker');
   const addPrintingListEl    = document.getElementById('addPrintingList');
   const addPrintingCaptionEl = document.getElementById('addPrintingCaption');
+  const addPrintingSearchEl  = document.getElementById('addPrintingSearch');
   addQtyInput     = document.getElementById('addQty');
   addLocationNameInput = document.getElementById('addLocationName');
   addOptionControls = createAddOptionControls({
@@ -344,6 +352,7 @@ export function initAdd() {
     pickerEl: addPrintingPickerEl,
     listEl: addPrintingListEl,
     captionEl: addPrintingCaptionEl,
+    searchEl: addPrintingSearchEl,
     onSelect: showAddPreview,
     shouldPreserveFields: () => addPreviewCard != null,
   });
@@ -357,10 +366,18 @@ export function initAdd() {
     getNameInput: () => addLocationNameInput,
     onChange: syncDeckAddOptions,
   });
+  addTagEditor = createTagChipEditor({
+    chipsEl: document.getElementById('addTagChips'),
+    inputEl: document.getElementById('addTagInput'),
+    datalistEl: document.getElementById('addTagSuggestions'),
+    getSuggestions: () => state.collection.flatMap(c => Array.isArray(c.tags) ? c.tags : []),
+  });
   locationPicker.buildTypeRadios();
   // Initial render: empty finish (no card picked yet) + language radios from collection
   addOptionControls.renderLanguageRadios('en');
   locationPicker.render();
+  addTagEditor.bind();
+  addTagEditor.setTags([]);
   if (pendingSelectedLocation) {
     locationPicker.setSelectedLocation(pendingSelectedLocation);
     pendingSelectedLocation = null;

@@ -378,6 +378,7 @@ export function normalizeCollectionEntry(data = {}, { preserveResolvedFields = f
     typeLine: null,
     oracleText: '',
     legalities: {},
+    finishes: [],
     resolvedName: null,
     scryfallUri: null,
   };
@@ -391,6 +392,7 @@ export function normalizeCollectionEntry(data = {}, { preserveResolvedFields = f
     entry.typeLine = data.typeLine == null ? null : String(data.typeLine);
     entry.oracleText = data.oracleText == null ? '' : String(data.oracleText);
     entry.legalities = normalizeObject(data.legalities);
+    entry.finishes = normalizeStringArray(data.finishes, []);
     entry.resolvedName = data.resolvedName == null ? null : String(data.resolvedName);
     entry.scryfallUri = data.scryfallUri == null ? null : String(data.scryfallUri);
     if (data._source && typeof data._source === 'object' && !Array.isArray(data._source)) {
@@ -584,6 +586,7 @@ export function applyScryfallCardResolution(entry, card, { priceMode = 'fill' } 
   entry.typeLine = card.type_line || (card.card_faces?.map(f => f.type_line).filter(Boolean).join(' // ') || '');
   entry.oracleText = card.oracle_text || (card.card_faces?.map(f => f.oracle_text).filter(Boolean).join(' // ') || '');
   entry.legalities = card.legalities || {};
+  entry.finishes = Array.isArray(card.finishes) ? [...card.finishes] : [];
   entry.scryfallUri = card.scryfall_uri || '';
   entry.imageUrl = getCardImageUrl(card);
   entry.backImageUrl = getCardBackImageUrl(card);
