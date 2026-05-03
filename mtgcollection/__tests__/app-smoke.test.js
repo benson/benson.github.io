@@ -201,6 +201,22 @@ function click(window, selectorOrElement) {
   el.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
 }
 
+function mouseOver(window, selectorOrElement) {
+  const el = typeof selectorOrElement === 'string'
+    ? window.document.querySelector(selectorOrElement)
+    : selectorOrElement;
+  assert.ok(el, 'Expected hoverable element: ' + selectorOrElement);
+  el.dispatchEvent(new window.MouseEvent('mouseover', { bubbles: true, cancelable: true }));
+}
+
+function keydown(window, selectorOrElement, key) {
+  const el = typeof selectorOrElement === 'string'
+    ? window.document.querySelector(selectorOrElement)
+    : selectorOrElement;
+  assert.ok(el, 'Expected keydown target: ' + selectorOrElement);
+  el.dispatchEvent(new window.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+}
+
 test('app smoke: seed data, navigate routes, tweak deck, and draw a hand', async () => {
   const window = await bootApp();
   const { state } = await import('../state.js');
@@ -225,6 +241,27 @@ test('app smoke: seed data, navigate routes, tweak deck, and draw a hand', async
   await waitFor(() => window.document.body.classList.contains('view-deck'), 'deck workspace');
   assert.match(window.document.querySelector('#deckColumns').textContent, /breya/i);
   assert.ok(window.document.querySelectorAll('#deckColumns .deck-card').length > 20);
+
+  const firstDeckCard = window.document.querySelector('#deckColumns .deck-card');
+  mouseOver(window, firstDeckCard);
+  await waitFor(
+    () => !window.document.querySelector('#deckPreviewPanel').classList.contains('hidden'),
+    'deck preview panel shown'
+  );
+  assert.ok(window.document.querySelector('#deckPreviewPanel .deck-preview-name').textContent.trim());
+
+  const firstMenuToggle = firstDeckCard.querySelector('[data-card-menu-toggle]');
+  click(window, firstMenuToggle);
+  await waitFor(() => firstDeckCard.classList.contains('menu-open'), 'deck card menu opened');
+  assert.equal(firstMenuToggle.getAttribute('aria-expanded'), 'true');
+  keydown(window, '#deckColumns', 'Escape');
+  await waitFor(() => !firstDeckCard.classList.contains('menu-open'), 'deck card menu closed');
+
+  click(window, '.fab-btn[data-fab-target="addDetails"]');
+  await waitFor(() => window.document.body.classList.contains('right-drawer-open'), 'right drawer opened');
+  assert.equal(window.document.getElementById('addDetails').open, true);
+  click(window, '#appRightBackdrop');
+  await waitFor(() => !window.document.body.classList.contains('right-drawer-open'), 'right drawer closed');
 
   click(window, '#deckColumns [data-card-action="move-board"][data-board-target="sideboard"]');
   await waitFor(
