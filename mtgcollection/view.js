@@ -1691,7 +1691,10 @@ export function openRightDrawer(targetIds, options = {}) {
   const ids = (Array.isArray(targetIds) ? targetIds : [targetIds]).filter(id => RIGHT_DRAWER_PANELS.includes(id));
   if (ids.length === 0) return;
   const shape = getEffectiveShape();
-  const useDrawer = shape === 'list' || shape === 'deck';
+  // Drawer overlay is used in shapes where the right sidebar is hidden by
+  // the CSS layout (collection / box list / deck workspace). Other shapes
+  // (binder / decks-home / storage-home) just open the details inline.
+  const useDrawer = shape === 'collection' || shape === 'box' || shape === 'deck';
   if (useDrawer) {
     document.body.classList.add('right-drawer-open');
     RIGHT_DRAWER_PANELS.forEach(id => {

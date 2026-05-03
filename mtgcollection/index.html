@@ -1769,11 +1769,12 @@
     align-items: flex-start;
   }
   .deck-hand-cards .deck-card {
-    width: 160px;
+    width: 160px !important;
+    flex: 0 0 auto;
     margin-top: 0;
   }
-  .deck-card-size-small .deck-hand-cards .deck-card { width: 120px; }
-  .deck-card-size-large .deck-hand-cards .deck-card { width: 200px; }
+  .deck-card-size-small .deck-hand-cards .deck-card { width: 120px !important; }
+  .deck-card-size-large .deck-hand-cards .deck-card { width: 200px !important; }
   .shape-bar {
     display: flex;
     align-items: center;
