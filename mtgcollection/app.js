@@ -1,43 +1,23 @@
 import { state } from './state.js';
 import { initFeedback } from './feedback.js';
-import { save, loadFromStorage, migrateSavedCollection } from './persistence.js';
-import { initSearch, applyUrlStateOnLoad, clearAllFilters } from './search.js';
+import { loadFromStorage, migrateSavedCollection } from './persistence.js';
+import { initSearch, applyUrlStateOnLoad } from './search.js';
 import { render, initView } from './view.js';
 import { initBulk } from './bulk.js';
 import { initAdd } from './add.js';
-import { initDetail, populateFilters, renderDetailLegality } from './detail.js';
+import { initDetail, populateFilters } from './detail.js';
 import {
   initImport,
-  exportCsv,
   backfillMissingPrices,
   lazyBackfillSearchFields,
 } from './import.js';
 import { refreshSetIcons } from './setIcons.js';
 import { initChangelog } from './changelog.js';
 import { initShareViewer, initShare } from './share.js';
-import { setTopLevelViewMode } from './routeState.js';
-
-const TEXT_CASE_KEY = 'mtgcollection_text_case_v1';
-const CHROME_KEY = 'mtgcollection_chrome_v1';
-
-function applyTextCase(mode) {
-  document.body.classList.toggle('proper-case', mode === 'proper');
-}
-
-function applyChrome(mode) {
-  document.body.classList.toggle('chrome-classic', mode === 'classic');
-}
+import { bindAppControls, loadChromePreferences } from './appControls.js';
 
 async function boot() {
-  // Apply text-case preference before anything renders
-  try {
-    applyTextCase(localStorage.getItem(TEXT_CASE_KEY));
-  } catch (e) {}
-
-  // Apply chrome-border preference before anything renders
-  try {
-    applyChrome(localStorage.getItem(CHROME_KEY));
-  } catch (e) {}
+  loadChromePreferences();
 
   // Detect viewer mode early — if `?share=ID` is present, we'll skip the
   // user's own localStorage entirely and render the snapshot read-only.
@@ -61,61 +41,8 @@ async function boot() {
   initChangelog();
   initShare();
 
-  // Format selector — wire listener now; sync value after loadFromStorage()
-  const formatSelectEl = document.getElementById('formatSelect');
-  const footerEl = document.querySelector('.app-footer');
-  const updateFooter = () => {
-    if (footerEl) footerEl.classList.toggle('format-active', !!state.selectedFormat);
-  };
-  formatSelectEl.addEventListener('change', () => {
-    state.selectedFormat = formatSelectEl.value;
-    save();
-    updateFooter();
-    if (state.detailIndex >= 0) renderDetailLegality();
-    // Format selector affects deck workspace rendering. Re-render whenever
-    // the deck shape would be active.
-    render();
-  });
-  updateFooter();
-
-  document.getElementById('fabCluster').addEventListener('click', e => {
-    if (e.target.closest('[data-fab-action="export"]')) exportCsv();
-  });
-
-  document.getElementById('emptyState').addEventListener('click', e => {
-    const btn = e.target.closest('[data-empty-action]');
-    if (!btn) return;
-    const action = btn.dataset.emptyAction;
-    if (action === 'new-deck') {
-      setTopLevelViewMode('decks');
-      save();
-      render();
-      document.getElementById('locationsCreateName')?.focus();
-    } else if (action === 'new-container') {
-      setTopLevelViewMode('storage');
-      save();
-      render();
-      document.getElementById('locationsCreateName')?.focus();
-    } else if (action === 'open-import') {
-      const det = document.getElementById('addDetails');
-      if (det) det.open = true;
-      const tabBtn = document.querySelector('[data-add-mode="import"]');
-      if (tabBtn) tabBtn.click();
-    } else if (action === 'load-sample') {
-      document.getElementById('loadSampleBtn')?.click();
-    } else if (action === 'load-test') {
-      document.getElementById('loadTestDataBtn')?.click();
-    }
-  });
-
-  document.getElementById('resetAppBtn').addEventListener('click', () => {
-    clearAllFilters();
-    setTopLevelViewMode('collection');
-    state.detailIndex = -1;
-    save();
-    history.replaceState(null, '', location.pathname);
-    render();
-  });
+  // App-level DOM controls; format selector syncs after loadFromStorage().
+  const appControls = bindAppControls();
 
   // Boot the collection — viewer mode short-circuits the localStorage path
   // entirely so the user's own data is never touched.
@@ -139,8 +66,7 @@ async function boot() {
   }
 
   const hasSavedCollection = loadFromStorage();
-  formatSelectEl.value = state.selectedFormat;
-  updateFooter();
+  appControls.syncFormatSelect();
   if (hasSavedCollection) {
     migrateSavedCollection();
     await backfillMissingPrices();
@@ -158,17 +84,6 @@ async function boot() {
   // get their proper icons.
   refreshSetIcons().then(updated => { if (updated) render(); });
 
-  document.getElementById('caseToggleBtn').addEventListener('click', () => {
-    const next = document.body.classList.contains('proper-case') ? 'lower' : 'proper';
-    try { localStorage.setItem(TEXT_CASE_KEY, next); } catch (e) {}
-    applyTextCase(next);
-  });
-
-  document.getElementById('chromeToggleBtn').addEventListener('click', () => {
-    const next = document.body.classList.contains('chrome-classic') ? 'soft' : 'classic';
-    try { localStorage.setItem(CHROME_KEY, next); } catch (e) {}
-    applyChrome(next);
-  });
 }
 
 boot();
