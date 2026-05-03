@@ -1,7 +1,6 @@
 import {
   fetchSets,
   fetchCardByCollectorNumber,
-  fetchCardByName,
   getCardFinishes,
 } from '../shared/mtg.js';
 import { state, SCRYFALL_API } from './state.js';
@@ -26,6 +25,7 @@ import { createAddLocationPicker } from './addLocationPicker.js';
 import { renderPrintingList as renderPrintingListView } from './addPrintingView.js';
 import { buildCollectionEntryFromCard, mergeEntryIntoCollection } from './addEntry.js';
 import { createAddOptionControls } from './addOptions.js';
+import { loadCardPrintings } from './addPrintingSearch.js';
 
 // When a single container is the active filter, that's the user's
 // implicit context — the add flow should default to dropping cards there.
@@ -107,8 +107,6 @@ let addBtn, addCancelBtn, addMicBtn, addMicStatus, addAutoAddEl;
 let addPrintingPickerEl, addPrintingListEl, addPrintingCaptionEl;
 
 // ---- Printings state ----
-const PRINTINGS_MAX_PAGES = 3;
-const PRINTINGS_HARD_CAP = 150;
 let currentPrintings = [];
 let currentPrintingsName = '';
 let printingsAbort = null;
@@ -192,80 +190,32 @@ async function loadPrintings(name) {
   addPrintingCaptionEl.textContent = 'Loading printings...';
   addPrintingListEl.innerHTML = '';
 
-  try {
-    const query = '!"' + name.replace(/"/g, '\\"') + '"';
-    let url = SCRYFALL_API
-      + '/cards/search?q=' + encodeURIComponent(query)
-      + '&unique=prints&order=released&dir=desc&include_extras=true&include_variations=true';
-    const collected = [];
-    let pages = 0;
-    let totalCards = 0;
-    while (url && pages < PRINTINGS_MAX_PAGES) {
-      const resp = await fetch(url, { signal });
-      if (!resp.ok) {
-        if (resp.status === 404) {
-          // Scryfall returns 404 if no cards match the search.
-          break;
-        }
-        throw new Error('http ' + resp.status);
-      }
-      const data = await resp.json();
-      pages++;
-      if (typeof data.total_cards === 'number') totalCards = data.total_cards;
-      if (Array.isArray(data.data)) {
-        for (const c of data.data) {
-          collected.push(c);
-          if (collected.length >= PRINTINGS_HARD_CAP) break;
-        }
-      }
-      if (collected.length >= PRINTINGS_HARD_CAP) break;
-      url = data.has_more ? data.next_page : null;
-    }
+  const result = await loadCardPrintings({ name, signal });
+  if (result.status === 'aborted') return;
 
-    if (signal.aborted) return;
-
-    if (collected.length === 0) {
-      // Fallback: try a fuzzy name lookup so we still show something.
-      const card = await fetchCardByName(name);
-      if (signal.aborted) return;
-      if (!card) {
-        addPrintingCaptionEl.textContent = 'No printings found';
-        showFeedback('no card found for ' + esc(name), 'error');
-        return;
-      }
-      currentPrintings = [card];
-      currentPrintingsName = name;
-      printingsTotalCount = 1;
-      printingsTruncated = false;
-      hideFeedback();
-      renderPrintingList();
-      selectPrinting(0);
-      return;
-    }
-
-    currentPrintings = collected;
-    printingsTotalCount = Math.max(totalCards, collected.length);
-    printingsTruncated = collected.length < printingsTotalCount;
-    hideFeedback();
-    renderPrintingList();
-    selectPrinting(0);
-  } catch (err) {
-    if (signal.aborted) return;
-    showFeedback("couldn't load printings: " + esc(err.message || String(err)), 'error');
-    // Fallback to single canonical printing so the user can still add the card.
-    const card = await fetchCardByName(name);
-    if (signal.aborted) return;
-    if (card) {
-      currentPrintings = [card];
-      currentPrintingsName = name;
-      printingsTotalCount = 1;
-      printingsTruncated = false;
-      renderPrintingList();
-      selectPrinting(0);
-    } else {
-      hidePrintingPicker();
-    }
+  if (result.status === 'empty') {
+    addPrintingCaptionEl.textContent = 'No printings found';
+    showFeedback('no card found for ' + esc(name), 'error');
+    return;
   }
+
+  if (result.error) {
+    showFeedback("couldn't load printings: " + esc(result.error.message || String(result.error)), 'error');
+  } else {
+    hideFeedback();
+  }
+
+  if (!result.printings.length) {
+    hidePrintingPicker();
+    return;
+  }
+
+  currentPrintings = result.printings;
+  currentPrintingsName = name;
+  printingsTotalCount = result.totalCount;
+  printingsTruncated = result.truncated;
+  renderPrintingList();
+  selectPrinting(0);
 }
 
 function renderPrintingList() {
