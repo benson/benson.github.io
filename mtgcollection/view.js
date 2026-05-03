@@ -63,6 +63,7 @@ import { bindDeckWorkspaceInteractions } from './deckWorkspaceActions.js';
 import { bindLocationHomeInteractions } from './locationHomeActions.js';
 import { bindListRowInteractions } from './listRowActions.js';
 import { renameContainerCommand } from './commands.js';
+import { getMultiselectValue } from './multiselect.js';
 
 export function navigateToLocation(type, name) {
   setActiveContainerRoute({ type, name });
@@ -112,6 +113,39 @@ let deckMetaAutocomplete = null;
 let deckPreviewPanel = null;
 let rightDrawer = null;
 
+const SIDEBAR_CONFIG = {
+  decks: {
+    searchPlaceholder: 'search decks',
+    searchHelp: false,
+    collectionFilters: false,
+    deckFormatFilter: true,
+    historyLabel: 'deck history',
+  },
+  default: {
+    searchPlaceholder: 'search collection',
+    searchHelp: true,
+    collectionFilters: true,
+    deckFormatFilter: false,
+    historyLabel: 'collection history',
+  },
+};
+
+function syncSidebarChrome(shape) {
+  const config = shape === 'decks-home' ? SIDEBAR_CONFIG.decks : SIDEBAR_CONFIG.default;
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) searchInput.placeholder = config.searchPlaceholder;
+  const searchHelpBtn = document.getElementById('searchHelpBtn');
+  const searchHelpPopover = document.getElementById('searchHelpPopover');
+  searchHelpBtn?.classList.toggle('hidden', !config.searchHelp);
+  if (!config.searchHelp) searchHelpPopover?.classList.remove('visible');
+  ['filterSet', 'filterRarity', 'filterFoil', 'filterLocation', 'filterTag', 'formatSelect'].forEach(id => {
+    document.getElementById(id)?.classList.toggle('hidden', !config.collectionFilters);
+  });
+  document.getElementById('filterDeckFormat')?.classList.toggle('hidden', !config.deckFormatFilter);
+  const summary = document.querySelector('#historyDetails > summary');
+  if (summary) summary.textContent = config.historyLabel;
+}
+
 export function render() {
   const shape = getEffectiveShape();
   document.querySelectorAll('.app-header-views .toggle-view').forEach(btn => {
@@ -147,9 +181,10 @@ export function render() {
   }
   // Right drawer is only meaningful for the flat list / collection / deck shape
   if (shape !== 'collection' && shape !== 'box' && shape !== 'deck') closeRightDrawer();
+  syncSidebarChrome(shape);
   syncClearFiltersBtn();
   syncViewAsListToggles();
-  setHistoryScope(shape === 'deck' ? currentDeckScope() : null);
+  setHistoryScope(shape === 'deck' ? currentDeckScope() : shape === 'decks-home' ? { kind: 'decks' } : null);
   const containers = allContainers();
   // Decks-home and storage-home render even on an empty collection so the
   // user can create a container before adding cards.
@@ -189,7 +224,10 @@ export function render() {
 
   if (shape === 'decks-home') {
     locationsContainer.classList.add('active');
-    locationsEl.innerHTML = renderDecksHomeHtml(containers);
+    locationsEl.innerHTML = renderDecksHomeHtml(containers, {
+      query: document.getElementById('searchInput')?.value || '',
+      formats: getMultiselectValue(document.getElementById('filterDeckFormat')),
+    });
   } else if (shape === 'storage-home') {
     locationsContainer.classList.add('active');
     locationsEl.innerHTML = renderStorageHomeHtml(containers);

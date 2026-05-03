@@ -67,8 +67,10 @@ test('bindLocationHomeInteractions: creates locations and refreshes the shell', 
     locationsEl,
     ensureContainerImpl: loc => {
       calls.push(['ensure', loc]);
-      return { type: loc.type, name: loc.name };
+      return { type: loc.type, name: loc.name, deck: { title: loc.name } };
     },
+    recordEventImpl: event => calls.push(['record', event.type, event.deckLocation]),
+    containerExistsImpl: () => false,
     saveImpl: () => calls.push(['save']),
     populateFiltersImpl: () => calls.push(['populate']),
     renderImpl: () => calls.push(['render']),
@@ -79,6 +81,7 @@ test('bindLocationHomeInteractions: creates locations and refreshes the shell', 
 
   assert.deepEqual(calls, [
     ['ensure', { type: 'deck', name: 'breya' }],
+    ['record', 'deck-create', 'deck:breya'],
     ['save'],
     ['populate'],
     ['render'],

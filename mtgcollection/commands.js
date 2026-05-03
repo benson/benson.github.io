@@ -2,7 +2,9 @@ import { state } from './state.js';
 import {
   deleteContainerAndUnlocateCards,
   deleteEmptyContainer,
+  defaultDeckMetadata,
   moveDeckListEntryBoard,
+  normalizeLocation,
   normalizeDeckBoard,
   removeFromDeckList,
   renameContainer,
@@ -24,6 +26,10 @@ function deckCardEventPayload(entry) {
     imageUrl: entry?.imageUrl || '',
     backImageUrl: entry?.backImageUrl || '',
   };
+}
+
+function cloneDeckMetadata(deck) {
+  return JSON.parse(JSON.stringify(deck || defaultDeckMetadata('deck')));
 }
 
 export function moveDeckCardToBoardCommand(deck, scryfallId, fromBoard, rawBoard, options = {}) {
@@ -81,8 +87,24 @@ export function removeDeckCardFromDeckCommand(deck, scryfallId, board, options =
 
 export function renameContainerCommand(beforeRaw, afterRaw, options = {}) {
   const commit = options.commit || defaultCommit;
+  const record = options.record || recordEvent;
+  const before = normalizeLocation(beforeRaw);
+  const after = normalizeLocation(afterRaw);
+  const beforeDeck = before?.type === 'deck' ? state.containers?.['deck:' + before.name]?.deck : null;
   if (!renameContainer(beforeRaw, afterRaw)) return { ok: false };
 
+  if (before?.type === 'deck' || after?.type === 'deck') {
+    record({
+      type: 'deck-rename',
+      summary: 'Renamed deck ' + (before?.name || '') + ' to {loc:deck:' + (after?.name || '') + '}',
+      scope: 'deck',
+      deckLocation: 'deck:' + (after?.name || before?.name || ''),
+      containerBefore: before,
+      containerAfter: after,
+      deckBefore: cloneDeckMetadata(beforeDeck),
+      deckAfter: cloneDeckMetadata(state.containers?.['deck:' + (after?.name || '')]?.deck),
+    });
+  }
   commit({ coalesce: true });
   return { ok: true };
 }

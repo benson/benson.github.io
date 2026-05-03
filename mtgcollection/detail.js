@@ -20,6 +20,7 @@ import {
   snapshotDetailFields,
   writeDetailForm,
 } from './detailFormModel.js';
+import { FORMAT_PRESETS } from './views/deckHeaderView.js';
 
 let drawerBackdrop;
 let detailDrawer;
@@ -81,6 +82,9 @@ export function populateFilters() {
   populateMultiselect(document.getElementById('filterTag'),
     tags,
     { defaultLabel: 'Filter by tag', noun: 'tags' });
+  populateMultiselect(document.getElementById('filterDeckFormat'),
+    [...FORMAT_PRESETS, { value: 'unspecified', label: 'unspecified' }],
+    { defaultLabel: 'All deck formats', noun: 'formats' });
   document.getElementById('rowTagOptions').innerHTML =
     tags.map(t => '<option value="' + esc(t) + '"></option>').join('');
 }

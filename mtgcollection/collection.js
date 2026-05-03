@@ -482,8 +482,20 @@ export function renameContainer(beforeRaw, afterRaw) {
   const existing = state.containers?.[beforeKey];
   ensureContainer(after);
   if (existing && state.containers?.[afterKey]) {
-    state.containers[afterKey].createdAt = existing.createdAt || state.containers[afterKey].createdAt;
-    state.containers[afterKey].updatedAt = Date.now();
+    const target = state.containers[afterKey];
+    target.createdAt = existing.createdAt || target.createdAt;
+    target.updatedAt = Date.now();
+    if (before.type === 'deck' && after.type === 'deck') {
+      const previousDeck = existing.deck && typeof existing.deck === 'object' ? existing.deck : {};
+      target.deck = {
+        ...defaultDeckMetadata(after.name),
+        ...previousDeck,
+        title: !previousDeck.title || previousDeck.title === before.name ? after.name : previousDeck.title,
+      };
+      target.deckList = normalizeDeckList(existing.deckList);
+      if (existing.shareId && !target.shareId) target.shareId = existing.shareId;
+      if (existing.shareIncludeTags) target.shareIncludeTags = true;
+    }
   }
   if (state.containers) delete state.containers[beforeKey];
   for (const c of state.collection) {

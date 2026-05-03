@@ -146,9 +146,14 @@ test('renameContainer: updates registry and card locations', () => {
   state.collection = [{ location: { type: 'deck', name: 'breya' }, qty: 1 }];
   state.containers = {};
   ensureContainer({ type: 'deck', name: 'breya' }, 123);
+  state.containers['deck:breya'].deck.description = 'artifact pile';
+  state.containers['deck:breya'].deckList = [{ scryfallId: 'cmd-1', qty: 1, board: 'main' }];
   assert.equal(renameContainer({ type: 'deck', name: 'breya' }, { type: 'deck', name: 'esper' }), true);
   assert.deepEqual(Object.keys(state.containers), ['deck:esper']);
   assert.deepEqual(state.collection[0].location, { type: 'deck', name: 'esper' });
+  assert.equal(state.containers['deck:esper'].deck.title, 'esper');
+  assert.equal(state.containers['deck:esper'].deck.description, 'artifact pile');
+  assert.deepEqual(state.containers['deck:esper'].deckList, [{ scryfallId: 'cmd-1', qty: 1, board: 'main', name: '', setCode: '', cn: '', imageUrl: '', backImageUrl: '', rarity: '', cmc: null, typeLine: '', colors: [], colorIdentity: [] }]);
   state.collection = [];
   state.containers = {};
 });

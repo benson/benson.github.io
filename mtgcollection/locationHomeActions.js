@@ -1,4 +1,6 @@
-import { containerStats, ensureContainer } from './collection.js';
+import { state } from './state.js';
+import { containerKey, containerStats, ensureContainer, normalizeLocation } from './collection.js';
+import { recordEvent } from './changelog.js';
 import {
   deleteContainerAndUnlocateCardsCommand,
   deleteEmptyContainerCommand,
@@ -34,6 +36,8 @@ export function locationDeleteMessage(loc, stats) {
 export function bindLocationHomeInteractions({
   locationsEl,
   ensureContainerImpl = ensureContainer,
+  recordEventImpl = recordEvent,
+  containerExistsImpl = loc => !!state.containers?.[containerKey(loc)],
   containerStatsImpl = containerStats,
   renameContainerImpl = renameContainerCommand,
   deleteContainerAndUnlocateCardsImpl = deleteContainerAndUnlocateCardsCommand,
@@ -57,11 +61,23 @@ export function bindLocationHomeInteractions({
     event.preventDefault();
     const form = event.target;
     const nameInput = form.querySelector('#locationsCreateName');
-    const created = ensureContainerImpl({
+    const loc = normalizeLocation({
       type: readLocationCreateType(form),
       name: nameInput ? nameInput.value : '',
     });
+    const existed = containerExistsImpl(loc);
+    const created = ensureContainerImpl(loc);
     if (!created) return;
+    if (!existed && created.type === 'deck') {
+      recordEventImpl({
+        type: 'deck-create',
+        summary: 'Created {loc:deck:' + created.name + '}',
+        scope: 'deck',
+        deckLocation: 'deck:' + created.name,
+        containerAfter: { type: 'deck', name: created.name },
+        deckAfter: created.deck || null,
+      });
+    }
     if (nameInput) nameInput.value = '';
     saveImpl();
     populateFiltersImpl();

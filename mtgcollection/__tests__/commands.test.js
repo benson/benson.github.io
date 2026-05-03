@@ -96,6 +96,22 @@ test('renameContainerCommand: updates registry and inventory locations via a sin
   assert.deepEqual(fx.calls.commits[0], { coalesce: true });
 });
 
+test('renameContainerCommand: records deck rename snapshots', () => {
+  resetState();
+  const deck = ensureContainer({ type: 'deck', name: 'breya' });
+  deck.deck.description = 'artifact pile';
+  const fx = sideEffects();
+
+  const result = renameContainerCommand({ type: 'deck', name: 'breya' }, { type: 'deck', name: 'esper' }, fx);
+
+  assert.equal(result.ok, true);
+  assert.equal(fx.calls.records.length, 1);
+  assert.equal(fx.calls.records[0].type, 'deck-rename');
+  assert.deepEqual(fx.calls.records[0].containerBefore, { type: 'deck', name: 'breya' });
+  assert.deepEqual(fx.calls.records[0].containerAfter, { type: 'deck', name: 'esper' });
+  assert.equal(fx.calls.records[0].deckBefore.description, 'artifact pile');
+});
+
 test('delete container commands cover empty and occupied physical storage', () => {
   resetState();
   ensureContainer({ type: 'binder', name: 'trade binder' });

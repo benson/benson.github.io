@@ -1,5 +1,13 @@
 import { state } from './state.js';
-import { collectionKey, normalizeLocation, formatLocationLabel } from './collection.js';
+import {
+  collectionKey,
+  deleteEmptyContainer,
+  ensureContainer,
+  formatLocationLabel,
+  locationKey,
+  normalizeLocation,
+  renameContainer,
+} from './collection.js';
 import { esc } from './feedback.js';
 import { LOC_ICONS } from './ui/locationUi.js';
 
@@ -42,6 +50,11 @@ function cloneEntry(c) {
   return copy;
 }
 
+function clonePlain(value) {
+  if (!value || typeof value !== 'object') return value || null;
+  return JSON.parse(JSON.stringify(value));
+}
+
 // Capture before-snapshots for the entries whose CURRENT collectionKey matches
 // any of the requested keys. Returns array of { key, card } where `card` is a
 // shallow clone (with tags array also cloned). The `key` stored is the
@@ -79,7 +92,20 @@ function normalizeCards(cards) {
     }));
 }
 
-export function recordEvent({ type, summary, before = [], created = [], affectedKeys = [], cards = [], scope, deckLocation }) {
+export function recordEvent({
+  type,
+  summary,
+  before = [],
+  created = [],
+  affectedKeys = [],
+  cards = [],
+  scope,
+  deckLocation,
+  containerBefore = null,
+  containerAfter = null,
+  deckBefore = null,
+  deckAfter = null,
+}) {
   const normCards = normalizeCards(cards);
   const ev = {
     id: genId(),
@@ -92,6 +118,10 @@ export function recordEvent({ type, summary, before = [], created = [], affected
     cards: normCards,
     scope: scope === 'deck' ? 'deck' : 'collection',
     deckLocation: deckLocation || '',
+    containerBefore: clonePlain(containerBefore),
+    containerAfter: clonePlain(containerAfter),
+    deckBefore: clonePlain(deckBefore),
+    deckAfter: clonePlain(deckAfter),
     dismissed: false,
     undone: false,
   };
@@ -105,8 +135,11 @@ export function recordEvent({ type, summary, before = [], created = [], affected
 let currentScope = null;
 
 export function setHistoryScope(scope) {
-  const next = scope && scope.type && scope.name ? { type: scope.type, name: scope.name } : null;
+  const next = scope?.kind === 'decks'
+    ? { kind: 'decks' }
+    : scope && scope.type && scope.name ? { type: scope.type, name: scope.name } : null;
   const same = (!next && !currentScope) ||
+    (next?.kind === 'decks' && currentScope?.kind === 'decks') ||
     (next && currentScope && next.type === currentScope.type && next.name === currentScope.name);
   if (same) return;
   currentScope = next;
@@ -114,7 +147,9 @@ export function setHistoryScope(scope) {
 }
 
 function eventTouchesDeck(ev, type, name) {
-  if (ev.deckLocation === type + ':' + name) return true;
+  const key = type + ':' + name;
+  if (locationKey(ev.containerBefore) === key || locationKey(ev.containerAfter) === key) return true;
+  if (ev.deckLocation === key) return true;
   if (Array.isArray(ev.before)) {
     for (const b of ev.before) {
       const loc = normalizeLocation(b.card?.location);
@@ -124,14 +159,38 @@ function eventTouchesDeck(ev, type, name) {
   return false;
 }
 
+function affectedKeysTouchDeck(ev) {
+  if (!Array.isArray(ev.affectedKeys) || ev.affectedKeys.length === 0) return false;
+  const keys = new Set(ev.affectedKeys);
+  return state.collection.some(c => keys.has(collectionKey(c)) && normalizeLocation(c.location)?.type === 'deck');
+}
+
+function eventIsDeckRelated(ev) {
+  if (!ev) return false;
+  if (['deck-create', 'deck-rename', 'deck-update'].includes(ev.type)) return true;
+  if (ev.scope === 'deck' || ev.deckLocation) return true;
+  if (normalizeLocation(ev.containerBefore)?.type === 'deck' || normalizeLocation(ev.containerAfter)?.type === 'deck') return true;
+  return affectedKeysTouchDeck(ev);
+}
+
 function eventVisibleInScope(ev) {
-  if (!currentScope) return ev.scope !== 'deck';
+  if (currentScope?.kind === 'decks') return eventIsDeckRelated(ev);
+  if (!currentScope) return true;
   return eventTouchesDeck(ev, currentScope.type, currentScope.name);
 }
 
 export function undoEvent(id) {
   const ev = log.find(e => e.id === id);
   if (!ev || ev.undone) return;
+
+  if (ev.type === 'deck-create' && ev.containerAfter) {
+    deleteEmptyContainer(ev.containerAfter);
+  } else if (ev.type === 'deck-rename' && ev.containerBefore && ev.containerAfter) {
+    renameContainer(ev.containerAfter, ev.containerBefore);
+  } else if (ev.type === 'deck-update' && ev.containerAfter && ev.deckBefore) {
+    const deck = ensureContainer(ev.containerAfter);
+    if (deck && deck.type === 'deck') deck.deck = clonePlain(ev.deckBefore);
+  }
 
   // Remove created cards (these still match by collectionKey since they
   // weren't mutated after creation)
@@ -287,7 +346,9 @@ function renderHistoryList() {
   const visible = log.filter(eventVisibleInScope);
   let html;
   if (visible.length === 0) {
-    const msg = currentScope ? 'No changes for this deck yet' : 'No changes yet';
+    const msg = currentScope?.kind === 'decks'
+      ? 'No deck changes yet'
+      : currentScope ? 'No changes for this deck yet' : 'No changes yet';
     html = '<li class="history-empty">' + msg + '</li>';
   } else {
     html = visible.map(ev => {

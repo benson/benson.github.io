@@ -3,7 +3,7 @@ import { esc } from '../feedback.js';
 import { defaultDeckExportOptions } from '../deckExport.js';
 import { VALID_DECK_CARD_SIZES } from '../deckUi.js';
 
-const FORMAT_PRESETS = ['standard', 'pioneer', 'modern', 'legacy', 'vintage', 'pauper', 'commander', 'brawl'];
+export const FORMAT_PRESETS = ['standard', 'pioneer', 'modern', 'legacy', 'vintage', 'pauper', 'commander', 'brawl'];
 
 export function deckDetailsViewModel(deck, meta = {}, stats = {}, selectedFormat = '') {
   const safeMeta = meta && typeof meta === 'object' ? meta : {};

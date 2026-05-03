@@ -251,9 +251,13 @@ export function hasActiveFilter() {
   if (q) return true;
   const ids = ['filterSet', 'filterRarity', 'filterFoil', 'filterLocation', 'filterTag'];
   for (const id of ids) {
-    if (getMultiselectValue(document.getElementById(id)).length > 0) return true;
+    const el = document.getElementById(id);
+    if (el && !el.classList.contains('hidden') && getMultiselectValue(el).length > 0) return true;
   }
-  if (state.selectedFormat) return true;
+  const deckFormatEl = document.getElementById('filterDeckFormat');
+  if (deckFormatEl && !deckFormatEl.classList.contains('hidden') && getMultiselectValue(deckFormatEl).length > 0) return true;
+  const formatEl = document.getElementById('formatSelect');
+  if (state.selectedFormat && (!formatEl || !formatEl.classList.contains('hidden'))) return true;
   return false;
 }
 
@@ -262,6 +266,8 @@ export function clearAllFilters() {
   ['filterSet', 'filterRarity', 'filterFoil', 'filterLocation', 'filterTag'].forEach(id => {
     setMultiselectValue(document.getElementById(id), []);
   });
+  setMultiselectValue(document.getElementById('filterDeckFormat'), []);
+  syncDeckFormatUrl([]);
   clearActiveLocation();
   // Also clear the format dropdown
   state.selectedFormat = '';
@@ -291,14 +297,23 @@ function syncUrlFromSearch() {
   history.replaceState(null, '', url.pathname + (url.search ? url.search : '') + url.hash);
 }
 
+function syncDeckFormatUrl(values = getMultiselectValue(document.getElementById('filterDeckFormat'))) {
+  const url = new URL(window.location.href);
+  if (values.length) url.searchParams.set('df', values.join(','));
+  else url.searchParams.delete('df');
+  history.replaceState(null, '', url.pathname + (url.search ? url.search : '') + url.hash);
+}
+
 export function applyUrlStateOnLoad() {
   const params = new URL(window.location.href).searchParams;
   const q = params.get('q');
   if (q) {
     searchInputEl.value = q;
-    renderCurrentView();
   }
+  const deckFormats = (params.get('df') || '').split(',').map(v => v.trim()).filter(Boolean);
+  if (deckFormats.length) setMultiselectValue(document.getElementById('filterDeckFormat'), deckFormats);
   syncSearchClearBtn();
+  if (q || deckFormats.length) renderCurrentView();
 }
 
 export function syncClearFiltersBtn() {
@@ -349,9 +364,9 @@ export function initSearch(options = {}) {
   });
 
   // Initialize multiselect filter controls (build the trigger + popover DOM)
-  ['filterSet', 'filterRarity', 'filterFoil', 'filterLocation', 'filterTag'].forEach(id => {
+  ['filterSet', 'filterRarity', 'filterFoil', 'filterLocation', 'filterTag', 'filterDeckFormat'].forEach(id => {
     initMultiselect(document.getElementById(id), {
-      onChange: () => {
+      onChange: values => {
         if (id === 'filterLocation') {
           syncActiveLocationFromFilter(document.getElementById(id));
           // Reset shape-override + binder pagination when the active container changes,
@@ -360,6 +375,7 @@ export function initSearch(options = {}) {
           state.binderPage = 0;
           save();
         }
+        if (id === 'filterDeckFormat') syncDeckFormatUrl(values);
         renderCurrentView();
       },
     });

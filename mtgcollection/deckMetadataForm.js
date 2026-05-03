@@ -81,9 +81,22 @@ export function saveDeckMetadataFromForm({
   recordEventImpl = () => {},
 } = {}) {
   if (!form || !deck) return { added: 0, metadata: null };
+  const beforeMetadata = JSON.parse(JSON.stringify(deck.deck || defaultDeckMetadata(deck.name)));
   const result = readDeckMetadataForm(form, deck.name);
   deck.deck = result.metadata;
   deck.updatedAt = now();
+
+  if (JSON.stringify(beforeMetadata) !== JSON.stringify(result.metadata)) {
+    recordEventImpl({
+      type: 'deck-update',
+      summary: 'Updated details for {loc:deck:' + deck.name + '}',
+      scope: 'deck',
+      deckLocation: 'deck:' + deck.name,
+      containerAfter: { type: 'deck', name: deck.name },
+      deckBefore: beforeMetadata,
+      deckAfter: result.metadata,
+    });
+  }
 
   let added = 0;
   if (result.isCommander) {

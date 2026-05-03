@@ -60,8 +60,20 @@ export function deckOwnership(deck) {
   return { total, owned, value };
 }
 
-export function renderDecksHomeHtml(containers) {
-  const decks = containers.filter(c => c.type === 'deck');
+export function deckMatchesHomeFilters(deck, { query = '', formats = [] } = {}) {
+  const q = String(query || '').trim().toLowerCase();
+  const deckFormat = deck?.deck?.format || '';
+  if (q && !String(deck?.name || '').toLowerCase().includes(q)) return false;
+  if (formats.length) {
+    const normalized = deckFormat || 'unspecified';
+    if (!formats.includes(normalized)) return false;
+  }
+  return true;
+}
+
+export function renderDecksHomeHtml(containers, filters = {}) {
+  const allDecks = containers.filter(c => c.type === 'deck');
+  const decks = allDecks.filter(c => deckMatchesHomeFilters(c, filters));
   const createHtml = `<form class="locations-create locations-create-decks" id="locationsCreateForm">
     <span class="locations-create-label">new deck</span>
     <input type="hidden" name="locationsCreateType" value="deck">
@@ -94,7 +106,7 @@ export function renderDecksHomeHtml(containers) {
       <div class="location-card-stats">${esc(ownedStr)}${valueStr}</div>
       ${containerEditRowHtml(c, ['deck'])}
     </article>`;
-  }).join('') || '<div class="deck-empty-prompt">no decks yet</div>';
+  }).join('') || `<div class="deck-empty-prompt">${allDecks.length ? 'no decks match' : 'no decks yet'}</div>`;
   return createHtml + `<section class="locations-group">
     <div class="locations-list">${tiles}</div>
   </section>`;

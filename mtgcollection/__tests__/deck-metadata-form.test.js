@@ -138,5 +138,7 @@ test('saveDeckMetadataFromForm: saves metadata and auto-adds commander cards', (
   assert.equal(deck.deck.partnerScryfallUri, 'https://scryfall.test/card/partner-1');
   assert.equal(deck.deck.description, 'Tokens and artifacts');
   assert.deepEqual(deck.deckList.map(entry => entry.scryfallId), ['cmd-1', 'partner-1']);
-  assert.equal(events.length, 2);
+  assert.equal(events.length, 3);
+  assert.equal(events[0].type, 'deck-update');
+  assert.equal(events[0].deckLocation, 'deck:breya');
 });
