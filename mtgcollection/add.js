@@ -1,8 +1,4 @@
-import {
-  fetchSets,
-  fetchCardByCollectorNumber,
-  getCardFinishes,
-} from '../shared/mtg.js';
+import { fetchSets } from '../shared/mtg.js';
 import { state } from './state.js';
 import { esc, showFeedback, hideFeedback } from './feedback.js';
 import {
@@ -27,6 +23,12 @@ import { buildCollectionEntryFromCard, mergeEntryIntoCollection } from './addEnt
 import { createAddOptionControls } from './addOptions.js';
 import { loadCardPrintings } from './addPrintingSearch.js';
 import { createNameAutocomplete } from './addAutocomplete.js';
+import {
+  buildRepeatVoiceInput,
+  buildVoiceAddOptions,
+  lookupVoiceCard,
+  resolveVoiceLookupTarget,
+} from './addVoice.js';
 
 // When a single container is the active filter, that's the user's
 // implicit context — the add flow should default to dropping cards there.
@@ -212,26 +214,11 @@ function hidePrintingPicker() {
   printingsTruncated = false;
 }
 
-function resolveLookupTarget(set, cn, variant) {
-  const s = set.toLowerCase();
-  if (variant === 'promo' || variant === 'prerelease') {
-    const pset = s.startsWith('p') ? s : 'p' + s;
-    const pcn = /[a-z]$/i.test(cn) ? cn : cn + 's';
-    return { set: pset, cn: pcn };
-  }
-  return { set: s, cn };
-}
-
 async function doVoiceLookup(userSet, userCn, variant = 'regular') {
-  const target = resolveLookupTarget(userSet, userCn, variant);
+  const target = resolveVoiceLookupTarget(userSet, userCn, variant);
   showFeedback('<span class="loading-spinner"></span> looking up ' + esc(target.set) + ' #' + esc(target.cn) + '...', 'info');
-  let card = await fetchCardByCollectorNumber(target.set, target.cn);
-  let fallback = false;
-  if (!card && variant !== 'regular') {
-    card = await fetchCardByCollectorNumber(userSet, userCn);
-    if (card) fallback = true;
-  }
-  if (!card) {
+  const result = await lookupVoiceCard({ userSet, userCn, variant });
+  if (!result.card) {
     const msg = 'no card found for ' + esc(userSet) + ' #' + esc(userCn);
     showFeedback(msg, 'error');
     voiceQtyOverride = null;
@@ -239,30 +226,28 @@ async function doVoiceLookup(userSet, userCn, variant = 'regular') {
     voiceFoilFlag = false;
     return;
   }
-  if (fallback) showFeedback('no ' + variant + ' variant found — showing regular printing', 'info');
+  if (result.fallback) showFeedback('no ' + variant + ' variant found — showing regular printing', 'info');
   else hideFeedback();
 
   if (autoAddEnabled) {
-    autoAddVoiceCard(card, { userSet, userCn, variant });
+    autoAddVoiceCard(result.card, { userSet, userCn, variant });
   } else {
-    showAddPreview(card);
+    showAddPreview(result.card);
   }
 }
 
 function autoAddVoiceCard(card, voiceCtx) {
-  const finishes = getCardFinishes(card);
-  let finish = 'normal';
-  if (voiceFoilFlag && finishes.some(f => f.finish === 'foil')) {
-    finish = 'foil';
-  } else if (finishes[0]) {
-    finish = finishes[0].finish === 'nonfoil' ? 'normal' : finishes[0].finish;
-  }
-  const condition = normalizeCondition(addOptionControls.condition.value);
-  const language = normalizeLanguage(addOptionControls.language.value);
-  const qty = Math.max(1, voiceQtyOverride || 1);
-  const location = normalizeLocation(voiceLocationOverride != null ? voiceLocationOverride : lastUsedLocation);
+  const opts = buildVoiceAddOptions({
+    card,
+    wantsFoil: voiceFoilFlag,
+    qtyOverride: voiceQtyOverride,
+    locationOverride: voiceLocationOverride,
+    lastUsedLocation,
+    condition: addOptionControls.condition.value,
+    language: addOptionControls.language.value,
+  });
 
-  commitVoiceAdd(card, { finish, qty, condition, language, location }, voiceCtx);
+  commitVoiceAdd(card, opts, voiceCtx);
 
   voiceQtyOverride = null;
   voiceLocationOverride = null;
@@ -470,11 +455,11 @@ function parseVoice(text) {
 }
 
 function handleAgain(qty) {
-  if (!lastAddInput) {
+  const repeated = buildRepeatVoiceInput(lastAddInput, qty);
+  if (!repeated) {
     showFeedback('no previous add to repeat', 'error');
     return;
   }
-  const repeated = { ...lastAddInput, qty: qty != null ? qty : 1 };
   addDetailsEl.open = true;
   if (addMode !== 'cn') setAddMode('cn');
   voiceFoilFlag = repeated.foil;
