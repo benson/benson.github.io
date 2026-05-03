@@ -3,7 +3,7 @@ import {
   fetchCardByCollectorNumber,
   getCardFinishes,
 } from '../shared/mtg.js';
-import { state, SCRYFALL_API } from './state.js';
+import { state } from './state.js';
 import { esc, showFeedback, hideFeedback } from './feedback.js';
 import {
   normalizeFinish,
@@ -26,6 +26,7 @@ import { renderPrintingList as renderPrintingListView } from './addPrintingView.
 import { buildCollectionEntryFromCard, mergeEntryIntoCollection } from './addEntry.js';
 import { createAddOptionControls } from './addOptions.js';
 import { loadCardPrintings } from './addPrintingSearch.js';
+import { createNameAutocomplete } from './addAutocomplete.js';
 
 // When a single container is the active filter, that's the user's
 // implicit context — the add flow should default to dropping cards there.
@@ -58,6 +59,7 @@ let addNameInput, addNameList;
 let addPreviewEl, addPreviewImg, addPreviewName, addPreviewMeta;
 let addQtyInput, addLocationNameInput;
 let addOptionControls = null;
+let nameAutocomplete = null;
 
 // ---- Location picker (existing-pills + inline-new) ----
 let locationPicker = null;
@@ -113,12 +115,6 @@ let printingsAbort = null;
 let printingsTotalCount = 0;
 let printingsTruncated = false;
 
-// ---- Name autocomplete state ----
-let acDebounce = null;
-let acAbort = null;
-let acItems = [];
-let acIndex = -1;
-
 // ---- Voice state ----
 let voiceListening = false;
 let voiceRecognition = null;
@@ -137,43 +133,6 @@ function setAddMode(mode) {
   hideAddPreview();
   if (mode === 'name') addNameInput.focus();
   else if (mode === 'cn') addMicBtn.focus();
-}
-
-async function fetchAcSuggestions(q) {
-  try {
-    if (acAbort) acAbort.abort();
-    acAbort = new AbortController();
-    const url = SCRYFALL_API + '/cards/autocomplete?q=' + encodeURIComponent(q);
-    const resp = await fetch(url, { signal: acAbort.signal });
-    if (!resp.ok) return;
-    const data = await resp.json();
-    acItems = (data.data || []).slice(0, 12);
-    renderAcList();
-  } catch (e) {}
-}
-
-function renderAcList() {
-  if (!acItems.length) { hideAcList(); return; }
-  acIndex = -1;
-  addNameList.innerHTML = acItems.map(n => `<li role="option">${esc(n)}</li>`).join('');
-  addNameList.classList.add('active');
-}
-
-function highlightAc() {
-  Array.from(addNameList.children).forEach((li, i) => {
-    li.classList.toggle('highlight', i === acIndex);
-  });
-}
-
-function hideAcList() {
-  addNameList.classList.remove('active');
-  acIndex = -1;
-}
-
-async function pickName(name) {
-  hideAcList();
-  addNameInput.value = name;
-  await loadPrintings(name);
 }
 
 async function loadPrintings(name) {
@@ -544,6 +503,12 @@ export function initAdd() {
   addOptionControls = createAddOptionControls({
     getCollection: () => state.collection,
   });
+  nameAutocomplete = createNameAutocomplete({
+    inputEl: addNameInput,
+    listEl: addNameList,
+    onPick: loadPrintings,
+    onEmptyQuery: hidePrintingPicker,
+  });
   locationPicker = createAddLocationPicker({
     getNameInput: () => addLocationNameInput,
     onChange: syncDeckAddOptions,
@@ -593,13 +558,7 @@ export function initAdd() {
   // Typing a name while in new mode keeps us in new mode (no-op needed —
   // the picker stays unchanged). Clearing the name is fine too.
 
-  // Name autocomplete
-  addNameInput.addEventListener('input', () => {
-    const q = addNameInput.value.trim();
-    clearTimeout(acDebounce);
-    if (q.length < 2) { hideAcList(); hidePrintingPicker(); return; }
-    acDebounce = setTimeout(() => fetchAcSuggestions(q), 180);
-  });
+  nameAutocomplete.bind();
 
   if (addPrintingListEl) {
     addPrintingListEl.addEventListener('click', (e) => {
@@ -610,36 +569,6 @@ export function initAdd() {
       selectPrinting(idx);
     });
   }
-
-  addNameInput.addEventListener('keydown', (e) => {
-    const open = addNameList.classList.contains('active');
-    if (e.key === 'ArrowDown' && open) {
-      e.preventDefault();
-      acIndex = Math.min(acItems.length - 1, acIndex + 1);
-      highlightAc();
-    } else if (e.key === 'ArrowUp' && open) {
-      e.preventDefault();
-      acIndex = Math.max(-1, acIndex - 1);
-      highlightAc();
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (open && acIndex >= 0 && acIndex < acItems.length) pickName(acItems[acIndex]);
-      else if (addNameInput.value.trim()) pickName(addNameInput.value.trim());
-    } else if (e.key === 'Escape' && open) {
-      hideAcList();
-    }
-  });
-
-  addNameInput.addEventListener('blur', () => {
-    setTimeout(hideAcList, 150);
-  });
-
-  addNameList.addEventListener('mousedown', (e) => {
-    const li = e.target.closest('li');
-    if (!li) return;
-    e.preventDefault();
-    pickName(li.textContent);
-  });
 
   addCancelBtn.addEventListener('click', () => {
     hideAddPreview();
