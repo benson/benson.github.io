@@ -503,6 +503,12 @@ export async function loadTestData(options = {}) {
   state.containers = {};
   // Wipe the changelog so reset truly is a clean slate.
   try { localStorage.removeItem('mtgcollection_changelog_v1'); } catch (e) {}
+  // Immediate user feedback — the actual load fires 3 scryfall batches
+  // (~10-20s on cold runs) and the sidebar #progress indicator is too
+  // subtle to notice. Top-banner spinner sticks until commit completes.
+  if (!silent) {
+    showFeedback('<span class="loading-spinner"></span> loading breya test data — fetching cards from scryfall...', 'info');
+  }
   // 1. Build the breya decklist.
   const { entries: deckEntries, errors } = parseDecklist(BREYA_DECKLIST, { location: '' });
   if (errors.length && !silent) {
