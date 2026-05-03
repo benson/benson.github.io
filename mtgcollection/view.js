@@ -13,11 +13,8 @@ import {
   DEFAULT_LOCATION_TYPE,
   normalizeDeckBoard,
   defaultDeckMetadata,
-  getCardImageUrl,
-  getCardBackImageUrl,
   makeEntry,
   getUsdPrice,
-  addToDeckList,
 } from './collection.js';
 import { commitCollectionChange } from './commit.js';
 import { save } from './persistence.js';
@@ -86,6 +83,7 @@ import { createDeckPreviewPanel } from './deckPreviewPanel.js';
 import { createRightDrawer } from './rightDrawer.js';
 import { buildDeckSampleHand, renderDeckSampleHandPanel } from './deckSampleHand.js';
 import { copyDecklist, runDeckExportAction } from './deckExportActions.js';
+import { saveDeckMetadataFromForm } from './deckMetadataForm.js';
 import {
   closeDeckCardMenus,
   moveFocusInDeckCardMenu,
@@ -417,36 +415,6 @@ function renderSampleHandPanel() {
     deck: currentDeckContainer(),
     sampleHand: state.deckSampleHand,
   });
-}
-
-// If the picked commander/partner isn't already in this deck's decklist, add
-// it (board: main, qty: 1). This is purely a decklist mutation — physical
-// inventory is untouched.
-function ensureCommanderEntryInDeck(scryfallId, deck) {
-  if (!scryfallId || !deck || deck.type !== 'deck') return null;
-  if (!Array.isArray(deck.deckList)) deck.deckList = [];
-  const already = deck.deckList.some(e => e.scryfallId === scryfallId);
-  if (already) return null;
-  const card = deckMetaAutocomplete?.getCard(scryfallId);
-  if (!card) return null;
-  addToDeckList(deck, {
-    scryfallId: card.id,
-    qty: 1,
-    board: 'main',
-    name: card.name,
-    setCode: card.set,
-    cn: card.collector_number,
-    imageUrl: getCardImageUrl(card),
-    backImageUrl: getCardBackImageUrl(card),
-  });
-  recordEvent({
-    type: 'add',
-    summary: 'Added {card} as commander to {loc:' + deck.type + ':' + deck.name + '}',
-    cards: [{ name: card.name, imageUrl: getCardImageUrl(card), backImageUrl: getCardBackImageUrl(card) || '' }],
-    scope: 'deck',
-    deckLocation: deck.type + ':' + deck.name,
-  });
-  return scryfallId;
 }
 
 function renderDeckView(list) {
@@ -873,39 +841,12 @@ export function initView() {
     e.preventDefault();
     const deck = currentDeckContainer();
     if (!deck) return;
-    const fd = new FormData(e.target);
-    const preset = String(fd.get('formatPreset') || '').trim();
-    const custom = String(fd.get('formatCustom') || '').trim();
-    const format = preset === 'custom' ? custom : preset;
-    const isCommander = format === 'commander';
-    const cmdInput = e.target.querySelector('input[data-meta-ac="commander"]');
-    const partnerInput = e.target.querySelector('input[data-meta-ac="partner"]');
-    const cmdScryfallId = String(cmdInput?.dataset.metaAcScryfallId || '');
-    const partnerScryfallId = String(partnerInput?.dataset.metaAcScryfallId || '');
-    deck.deck = {
-      ...defaultDeckMetadata(deck.name),
-      title: String(fd.get('title') || '').trim() || deck.name,
-      format,
-      commander: isCommander ? String(fd.get('commander') || '').trim() : '',
-      commanderScryfallId: isCommander ? cmdScryfallId : '',
-      commanderImageUrl: isCommander ? String(cmdInput?.dataset.metaAcImage || '') : '',
-      commanderBackImageUrl: isCommander ? String(cmdInput?.dataset.metaAcBackImage || '') : '',
-      partner: isCommander ? String(fd.get('partner') || '').trim() : '',
-      partnerScryfallId: isCommander ? partnerScryfallId : '',
-      partnerImageUrl: isCommander ? String(partnerInput?.dataset.metaAcImage || '') : '',
-      partnerBackImageUrl: isCommander ? String(partnerInput?.dataset.metaAcBackImage || '') : '',
-      companion: String(fd.get('companion') || '').trim(),
-      description: String(fd.get('description') || '').trim(),
-    };
-    deck.updatedAt = Date.now();
-    // Lenient mode: if the picked commander/partner isn't already a card
-    // in this deck, auto-add it as a placeholder. Only fires when the user
-    // has explicitly picked from autocomplete (scryfallId set).
-    let added = 0;
-    if (isCommander) {
-      if (cmdScryfallId && ensureCommanderEntryInDeck(cmdScryfallId, deck)) added++;
-      if (partnerScryfallId && ensureCommanderEntryInDeck(partnerScryfallId, deck)) added++;
-    }
+    const { added } = saveDeckMetadataFromForm({
+      form: e.target,
+      deck,
+      getCardById: id => deckMetaAutocomplete?.getCard(id),
+      recordEventImpl: recordEvent,
+    });
     save();
     render();
     if (added > 0) showFeedback('added ' + added + ' commander card' + (added === 1 ? '' : 's') + ' to deck', 'success');
