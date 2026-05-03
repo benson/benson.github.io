@@ -1,4 +1,4 @@
-import { state, SCRYFALL_API } from './state.js';
+import { state } from './state.js';
 import { esc, showFeedback } from './feedback.js';
 import {
   collectionKey,
@@ -84,6 +84,7 @@ import {
   VALID_BINDER_SIZES,
 } from './views/binderView.js';
 import { initCardPreview, isLightboxVisible } from './ui/cardPreview.js';
+import { createDeckMetaAutocomplete } from './deckMetaAutocomplete.js';
 
 export function navigateToLocation(type, name) {
   setActiveContainerRoute({ type, name });
@@ -194,6 +195,7 @@ function removeRowTag(index, tag) {
 }
 
 let locationsEl, listBodyEl, collectionSection, emptyState;
+let deckMetaAutocomplete = null;
 
 export function render() {
   const shape = getEffectiveShape();
@@ -471,74 +473,6 @@ function renderSampleHandPanel() {
   ).join('');
 }
 
-// Commander/partner autocomplete — debounced search against Scryfall with
-// is:commander or is:partner filter, rendered in the .autocomplete-list
-// anchored under the input.
-let metaAcDebounce = null;
-let metaAcAbort = null;
-let metaAcItems = [];
-let metaAcIndex = -1;
-// Cache full Scryfall card objects keyed by scryfallId so we can auto-add
-// the picked commander/partner to the deck on save without a refetch.
-const metaAcCardCache = new Map();
-
-function metaAcWrap(input) { return input?.parentElement?.classList.contains('deck-meta-ac-wrap') ? input.parentElement : null; }
-function metaAcList(input) { return metaAcWrap(input)?.querySelector('.deck-meta-ac-list') || null; }
-
-function hideMetaAc(input) {
-  const list = metaAcList(input);
-  if (!list) return;
-  list.classList.remove('active');
-  list.innerHTML = '';
-  metaAcItems = [];
-  metaAcIndex = -1;
-}
-
-function renderMetaAcList(input) {
-  const list = metaAcList(input);
-  if (!list) return;
-  if (!metaAcItems.length) { hideMetaAc(input); return; }
-  list.innerHTML = metaAcItems.map((item, i) => `<li role="option"${i === metaAcIndex ? ' class="highlight"' : ''} data-ac-index="${i}">${esc(item.name)}</li>`).join('');
-  list.classList.add('active');
-}
-
-async function fetchMetaAc(input) {
-  const kind = input.dataset.metaAc;
-  if (kind !== 'commander' && kind !== 'partner') return;
-  const q = (input.value || '').trim();
-  if (q.length < 2) { hideMetaAc(input); return; }
-  if (metaAcAbort) metaAcAbort.abort();
-  metaAcAbort = new AbortController();
-  const filter = kind === 'partner' ? 'is:partner' : 'is:commander';
-  const url = SCRYFALL_API + '/cards/search?q=' + encodeURIComponent(`${filter} name:${q}`) + '&order=name&unique=cards';
-  try {
-    const resp = await fetch(url, { signal: metaAcAbort.signal });
-    if (!resp.ok) { hideMetaAc(input); return; } // 404 = no matches
-    const data = await resp.json();
-    metaAcItems = (data.data || []).slice(0, 10).map(c => {
-      metaAcCardCache.set(c.id, c);
-      return {
-        id: c.id,
-        name: c.name,
-        imageUrl: getCardImageUrl(c) || '',
-        backImageUrl: getCardBackImageUrl(c) || '',
-      };
-    });
-    metaAcIndex = -1;
-    renderMetaAcList(input);
-  } catch (e) {
-    if (e.name !== 'AbortError') hideMetaAc(input);
-  }
-}
-
-function pickMetaAc(input, item) {
-  input.value = item.name;
-  input.dataset.metaAcScryfallId = item.id || '';
-  input.dataset.metaAcImage = item.imageUrl || '';
-  input.dataset.metaAcBackImage = item.backImageUrl || '';
-  hideMetaAc(input);
-}
-
 // If the picked commander/partner isn't already in this deck's decklist, add
 // it (board: main, qty: 1). This is purely a decklist mutation — physical
 // inventory is untouched.
@@ -547,7 +481,7 @@ function ensureCommanderEntryInDeck(scryfallId, deck) {
   if (!Array.isArray(deck.deckList)) deck.deckList = [];
   const already = deck.deckList.some(e => e.scryfallId === scryfallId);
   if (already) return null;
-  const card = metaAcCardCache.get(scryfallId);
+  const card = deckMetaAutocomplete?.getCard(scryfallId);
   if (!card) return null;
   addToDeckList(deck, {
     scryfallId: card.id,
@@ -867,6 +801,10 @@ export function initView() {
   collectionSection = document.getElementById('collectionSection');
   emptyState = document.getElementById('emptyState');
   initCardPreview();
+  deckMetaAutocomplete = createDeckMetaAutocomplete({
+    rootEl: document.getElementById('deckColumns'),
+  });
+  deckMetaAutocomplete.bind();
 
   document.querySelector('.app-header-views').addEventListener('click', e => {
     const btn = e.target.closest('[data-view]');
@@ -1072,14 +1010,6 @@ export function initView() {
       if (deck) openShareModal(deck);
       return;
     }
-    const acItem = e.target.closest('.deck-meta-ac-list li');
-    if (acItem) {
-      const input = acItem.closest('.deck-meta-ac-wrap')?.querySelector('input[data-meta-ac]');
-      const idx = parseInt(acItem.dataset.acIndex || '-1', 10);
-      const item = metaAcItems[idx];
-      if (input && item) pickMetaAc(input, item);
-      return;
-    }
     const exportToggle = e.target.closest('[data-toggle-deck-export]');
     if (exportToggle) {
       e.stopPropagation();
@@ -1151,53 +1081,6 @@ export function initView() {
       saveDeckPrefs();
       render();
     }
-  });
-
-  document.getElementById('deckColumns').addEventListener('input', e => {
-    const acInput = e.target.closest('input[data-meta-ac]');
-    if (!acInput) return;
-    // Typing invalidates a previously-picked card — clear stashed image+id data
-    // so the form save doesn't carry stale info forward.
-    acInput.dataset.metaAcScryfallId = '';
-    acInput.dataset.metaAcImage = '';
-    acInput.dataset.metaAcBackImage = '';
-    if (metaAcDebounce) clearTimeout(metaAcDebounce);
-    metaAcDebounce = setTimeout(() => fetchMetaAc(acInput), 250);
-  });
-
-  document.getElementById('deckColumns').addEventListener('keydown', e => {
-    const acInput = e.target.closest('input[data-meta-ac]');
-    if (!acInput) return;
-    const list = metaAcList(acInput);
-    if (!list?.classList.contains('active')) return;
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      metaAcIndex = Math.min(metaAcItems.length - 1, metaAcIndex + 1);
-      renderMetaAcList(acInput);
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      metaAcIndex = Math.max(-1, metaAcIndex - 1);
-      renderMetaAcList(acInput);
-    } else if (e.key === 'Enter') {
-      const item = metaAcItems[metaAcIndex];
-      if (item) {
-        e.preventDefault();
-        pickMetaAc(acInput, item);
-      }
-    } else if (e.key === 'Escape') {
-      hideMetaAc(acInput);
-    }
-  });
-
-  document.getElementById('deckColumns').addEventListener('focusout', e => {
-    const acInput = e.target.closest('input[data-meta-ac]');
-    if (!acInput) return;
-    // Delay to allow click on a suggestion to register first
-    setTimeout(() => {
-      if (document.activeElement?.closest('.deck-meta-ac-wrap') !== metaAcWrap(acInput)) {
-        hideMetaAc(acInput);
-      }
-    }, 150);
   });
 
   document.getElementById('deckColumns').addEventListener('click', e => {
