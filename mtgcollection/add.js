@@ -6,7 +6,6 @@ import {
 } from '../shared/mtg.js';
 import { state, SCRYFALL_API } from './state.js';
 import { esc, showFeedback, hideFeedback } from './feedback.js';
-import { getSetIconUrl } from './setIcons.js';
 import {
   makeEntry,
   collectionKey,
@@ -27,6 +26,7 @@ import { getMultiselectValue } from './multiselect.js';
 import { parseVoiceText } from './voiceParser.js';
 import { getActiveLocation } from './routeState.js';
 import { createAddLocationPicker } from './addLocationPicker.js';
+import { renderPrintingList as renderPrintingListView } from './addPrintingView.js';
 
 // When a single container is the active filter, that's the user's
 // implicit context — the add flow should default to dropping cards there.
@@ -349,42 +349,13 @@ async function loadPrintings(name) {
 }
 
 function renderPrintingList() {
-  if (!currentPrintings.length) {
-    addPrintingListEl.innerHTML = '';
-    addPrintingCaptionEl.textContent = 'No printings found';
-    return;
-  }
-  const captionParts = ['showing ' + currentPrintings.length + ' of ' + printingsTotalCount];
-  if (printingsTruncated) {
-    captionParts.push('<span class="truncate-hint">More available — narrow by typing the set code</span>');
-  }
-  addPrintingCaptionEl.innerHTML = captionParts.join(' — ');
-
-  const rows = currentPrintings.map((c, i) => {
-    const setCode = (c.set || '').toLowerCase();
-    const iconUrl = setCode ? getSetIconUrl(setCode) : '';
-    const icon = iconUrl
-      ? `<img class="set-icon" src="${esc(iconUrl)}" alt="" onerror="this.style.display='none'">`
-      : '';
-    const finishes = Array.isArray(c.finishes) ? c.finishes : [];
-    const finishBadges = [];
-    // Only flag printings that DON'T offer plain nonfoil — most modern printings
-    // are foil-or-nonfoil, so a "foil" badge there is misleading.
-    if (!finishes.includes('nonfoil') && finishes.includes('foil')) {
-      finishBadges.push('<span class="printing-finish-badge">foil only</span>');
-    }
-    if (finishes.includes('etched')) finishBadges.push('<span class="printing-finish-badge">etched</span>');
-    const year = (c.released_at || '').slice(0, 4);
-    return `<li class="printing-row" role="option" data-index="${i}">
-      ${icon}
-      <span class="printing-set-code">${esc((c.set || '').toUpperCase())}</span>
-      <span class="printing-set-name">${esc(c.set_name || '')}</span>
-      <span class="printing-cn">#${esc(c.collector_number || '')}</span>
-      <span class="printing-finishes">${finishBadges.join('')}</span>
-      <span class="printing-year">${esc(year)}</span>
-    </li>`;
+  renderPrintingListView({
+    listEl: addPrintingListEl,
+    captionEl: addPrintingCaptionEl,
+    printings: currentPrintings,
+    totalCount: printingsTotalCount,
+    truncated: printingsTruncated,
   });
-  addPrintingListEl.innerHTML = rows.join('');
 }
 
 function selectPrinting(index) {
