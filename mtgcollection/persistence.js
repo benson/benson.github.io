@@ -4,9 +4,14 @@ import { coalesceCollection, normalizeLocation, normalizeContainers, ensureConta
 import { showFeedback } from './feedback.js';
 import { populateFilters } from './detail.js';
 import { render } from './view.js';
+import { schedulePushForDeck } from './share.js';
 
 // ---- Persistence ----
 export function save() {
+  // Belt-and-suspenders: when we're rendering someone else's shared snapshot
+  // the UI shouldn't trigger writes, but if anything slips through this no-ops
+  // so we never corrupt the user's actual collection on disk.
+  if (state.shareSnapshot) return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       collection: state.collection,
@@ -77,6 +82,14 @@ export function commitCollectionChange({ coalesce = false } = {}) {
   save();
   populateFilters();
   render();
+  // Auto-mirror push for actively-shared decks. Walks all containers and
+  // schedules a debounced push for any with a shareId. Cheap — the schedule
+  // call short-circuits when the timer's already running.
+  if (!state.shareSnapshot) {
+    for (const container of Object.values(state.containers || {})) {
+      if (container.shareId) schedulePushForDeck(container);
+    }
+  }
 }
 
 // ---- Backup nag ----

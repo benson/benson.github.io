@@ -209,6 +209,11 @@ export function makeContainer(raw, now = Date.now()) {
       ...(raw && typeof raw.deck === 'object' && !Array.isArray(raw.deck) ? raw.deck : {}),
     };
     out.deckList = normalizeDeckList(raw && raw.deckList);
+    // Sharing state (auto-mirror): set when the user clicks "share". The ID
+    // alone is the capability; the worker accepts PUT/DELETE from anyone
+    // with it. Cleared on "stop sharing".
+    if (typeof raw?.shareId === 'string' && raw.shareId) out.shareId = raw.shareId;
+    if (raw?.shareIncludeTags) out.shareIncludeTags = true;
     out.deck.title = String(out.deck.title || loc.name);
     out.deck.description = String(out.deck.description || '');
     out.deck.format = String(out.deck.format || '');
@@ -240,6 +245,10 @@ export function ensureContainer(raw, now = Date.now()) {
       };
       if (!existing.deck.title) existing.deck.title = container.name;
       if (!Array.isArray(existing.deckList)) existing.deckList = [];
+      // Preserve sharing state — only stamp from raw if not already set, so
+      // calls without a shareId don't clobber an active share.
+      if (container.shareId && !existing.shareId) existing.shareId = container.shareId;
+      if (container.shareIncludeTags) existing.shareIncludeTags = true;
     }
     if (!existing.createdAt) existing.createdAt = container.createdAt;
     if (!existing.updatedAt) existing.updatedAt = container.updatedAt;

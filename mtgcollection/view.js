@@ -37,6 +37,7 @@ import { getSetIconUrl } from './setIcons.js';
 import { recordEvent, captureBefore, locationDiffSummary, setHistoryScope } from './changelog.js';
 import { setMultiselectValue, getMultiselectValue } from './multiselect.js';
 import { buildDeckExport, defaultDeckExportOptions } from './deckExport.js';
+import { openShareModal } from './share.js';
 
 const VALID_DECK_GROUPS = ['type', 'cmc', 'color', 'rarity'];
 const VALID_DECK_MODES = ['visual', 'text', 'stats', 'hands', 'notes'];
@@ -74,6 +75,9 @@ export function navigateToLocation(type, name) {
 //   box filter is set; else 'storage-home'.
 // 'viewAsList' is a binder-only escape hatch.
 export function getEffectiveShape() {
+  // Viewer mode always renders the snapshot's deck workspace (slice 1 is
+  // deck-only). Skip the filter-multiselect dance.
+  if (state.shareSnapshot) return 'deck';
   if (state.viewMode === 'collection') return 'collection';
   const filterEl = document.getElementById('filterLocation');
   const values = filterEl ? getMultiselectValue(filterEl) : [];
@@ -247,6 +251,20 @@ export function render() {
   document.body.classList.toggle('view-storage-home', shape === 'storage-home');
   document.body.classList.toggle('has-collection', state.collection.length > 0);
   document.body.classList.toggle('deck-ownership-decklist', shape === 'deck' && state.deckOwnershipView === 'decklist');
+  // Share-mode UI: banner visible whenever we're rendering someone else's
+  // snapshot. The body class also gates write affordances via CSS.
+  document.body.classList.toggle('share-mode', !!state.shareSnapshot);
+  const shareBanner = document.getElementById('shareBanner');
+  if (shareBanner) {
+    if (state.shareSnapshot) {
+      const deckName = state.shareSnapshot.container?.name || 'deck';
+      shareBanner.innerHTML = '<span>viewing shared deck <strong>' + esc(deckName) + '</strong> — read-only</span>'
+        + ' <button class="btn btn-secondary" type="button" data-share-banner-action="exit">exit</button>';
+      shareBanner.classList.remove('hidden');
+    } else {
+      shareBanner.classList.add('hidden');
+    }
+  }
   // Right drawer is only meaningful for the flat list / collection / deck shape
   if (shape !== 'collection' && shape !== 'box' && shape !== 'deck') closeRightDrawer();
   syncClearFiltersBtn();
@@ -540,6 +558,12 @@ function renderEmptyScopeState(targetEl, mode) {
 }
 
 function currentDeckContainer() {
+  // Viewer mode: the snapshot's deck IS the current deck. Skip the
+  // multiselect (which doesn't exist meaningfully in share-mode anyway).
+  if (state.shareSnapshot?.container?.type === 'deck') {
+    const snapDeck = state.shareSnapshot.container;
+    return ensureContainer({ type: 'deck', name: snapDeck.name });
+  }
   const filterEl = document.getElementById('filterLocation');
   if (!filterEl) return null;
   const values = getMultiselectValue(filterEl);
@@ -922,6 +946,7 @@ export function deckDetailsViewModel(deck, meta = {}, stats = {}, selectedFormat
     descriptionText: description || 'No description yet.',
     format: formatInput || 'unspecified format',
     formatInput,
+    shareId: deck?.shareId || '',
     commander,
     commanderScryfallId,
     commanderImageUrl,
@@ -989,6 +1014,7 @@ export function renderDeckDetailsHeaderHtml(model) {
             <button class="btn btn-secondary" type="button" data-toggle-deck-export aria-controls="deckExportPanel" aria-expanded="false">export</button>
             ${renderDeckExportPanel()}
           </div>
+          <button class="btn btn-secondary deck-share-btn" type="button" data-deck-action="share">${model.shareId ? 'sharing' : 'share'}</button>
           <button class="btn" type="button" data-sample-hand="draw">sample hand</button>
           <button class="btn btn-secondary" type="button" data-edit-deck-details aria-controls="deckDetailsEditor" aria-expanded="false">edit details</button>
         </div>
@@ -1261,7 +1287,9 @@ function renderDeckView(list) {
   const deckActionsEl = document.querySelector('#deckView .deck-actions');
   const deck = currentDeckContainer();
 
-  if (!hasActiveFilter()) {
+  // Viewer mode always has an "active scope" — the snapshot. Skip the
+  // empty-state guard which assumes the user picked a location.
+  if (!state.shareSnapshot && !hasActiveFilter()) {
     if (deckActionsEl) deckActionsEl.classList.add('hidden');
     setDeckPreviewCard(null);
     renderEmptyScopeState(deckColumnsEl, 'deck');
@@ -1923,6 +1951,11 @@ export function initView() {
       const btn = wrap?.querySelector('[data-add-companion]');
       if (input) { input.hidden = false; input.focus(); }
       if (btn) btn.remove();
+      return;
+    }
+    if (e.target.closest('[data-deck-action="share"]')) {
+      const deck = currentDeckContainer();
+      if (deck) openShareModal(deck);
       return;
     }
     const acItem = e.target.closest('.deck-meta-ac-list li');

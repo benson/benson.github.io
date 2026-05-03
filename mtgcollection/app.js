@@ -14,6 +14,7 @@ import {
 } from './import.js';
 import { refreshSetIcons } from './setIcons.js';
 import { initChangelog } from './changelog.js';
+import { initShareViewer, initShare } from './share.js';
 
 const TEXT_CASE_KEY = 'mtgcollection_text_case_v1';
 const CHROME_KEY = 'mtgcollection_chrome_v1';
@@ -37,6 +38,15 @@ async function boot() {
     applyChrome(localStorage.getItem(CHROME_KEY));
   } catch (e) {}
 
+  // Detect viewer mode early — if `?share=ID` is present, we'll skip the
+  // user's own localStorage entirely and render the snapshot read-only.
+  const shareId = (() => {
+    try { return new URL(location.href).searchParams.get('share') || ''; }
+    catch (e) { return ''; }
+  })();
+  const isViewer = shareId && shareId.length >= 6;
+  if (isViewer) document.body.classList.add('share-mode');
+
   // Lowest-level init first — feedback + DOM refs
   initFeedback();
 
@@ -48,6 +58,7 @@ async function boot() {
   initDetail();
   initImport();
   initChangelog();
+  initShare();
 
   // Format selector — wire listener now; sync value after loadFromStorage()
   const formatSelectEl = document.getElementById('formatSelect');
@@ -105,7 +116,27 @@ async function boot() {
     render();
   });
 
-  // Boot the collection
+  // Boot the collection — viewer mode short-circuits the localStorage path
+  // entirely so the user's own data is never touched.
+  if (isViewer) {
+    const ok = await initShareViewer(shareId);
+    if (!ok) {
+      // Viewer load failed — show an inert error state instead of falling
+      // through to the user's localStorage (which would silently swap data).
+      document.body.classList.add('share-error');
+      const banner = document.getElementById('shareBanner');
+      if (banner) {
+        banner.classList.remove('hidden');
+        banner.innerHTML = '<span>couldn\'t load this snapshot — it may have expired</span>'
+          + ' <a href="' + location.pathname + '">open my collection</a>';
+      }
+      return;
+    }
+    populateFilters();
+    render();
+    return;
+  }
+
   const hasSavedCollection = loadFromStorage();
   formatSelectEl.value = state.selectedFormat;
   updateFooter();

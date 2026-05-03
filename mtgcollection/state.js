@@ -21,6 +21,10 @@ export const state = {
   binderPage: 0,
   sortField: null,
   sortDir: 'asc',
+  // When non-null, the app is in read-only viewer mode for someone else's
+  // shared deck. Set by share.js initShareViewer(); cleared by reloading
+  // without `?share=`. Persisted writes are guarded in persistence.js.
+  shareSnapshot: null,
 };
 
 export const STORAGE_KEY = 'mtgcollection_v1';

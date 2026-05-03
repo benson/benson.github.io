@@ -2722,6 +2722,77 @@
   .empty-state { text-align: center; padding: 40px 20px; color: #999; font-size: 0.85rem; }
   .empty-state-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 16px; }
 
+  /* ---- Share: viewer banner ---- */
+  .share-banner {
+    background: #fff8e6;
+    border-bottom: 1px solid #e6dcb0;
+    padding: 8px 16px;
+    font-size: 0.8rem;
+    color: #555;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .share-banner.hidden { display: none; }
+  .share-banner strong { color: #000; }
+
+  /* ---- Share: modal ---- */
+  .share-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+  .share-modal.visible { display: flex; }
+  .share-modal-card {
+    background: #fff;
+    border: 1px solid #ddd;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    padding: 20px;
+    width: min(440px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+  }
+  .share-modal-title { margin: 0 0 12px; font-size: 1rem; }
+  .share-modal-body { display: flex; flex-direction: column; gap: 12px; }
+  .share-modal-row { display: flex; gap: 8px; align-items: center; }
+  .share-modal-checkbox { font-size: 0.85rem; color: #555; cursor: pointer; }
+  .share-modal-checkbox input { margin: 0; }
+  .share-modal-label { font-size: 0.8rem; color: #555; min-width: 64px; }
+  .share-modal-url {
+    flex: 1;
+    border: 1px solid #ccc;
+    padding: 6px 8px;
+    font: inherit;
+    font-size: 0.8rem;
+    background: #fafafa;
+    min-width: 0;
+  }
+  .share-modal-meta { font-size: 0.75rem; color: #777; line-height: 1.4; }
+  .share-modal-actions { display: flex; gap: 6px; justify-content: flex-end; margin-top: 4px; flex-wrap: wrap; }
+
+  /* ---- Share: viewer mode hides write affordances ---- */
+  body.share-mode .fab-cluster,
+  body.share-mode .app-right,
+  body.share-mode .app-header-views,
+  body.share-mode .deck-share-btn,
+  body.share-mode .deck-card-menu-btn,
+  body.share-mode .deck-card-menu,
+  body.share-mode [data-edit-deck-details],
+  body.share-mode [data-card-action="remove-from-deck"],
+  body.share-mode .deck-details-editor,
+  body.share-mode .footer-test-reset,
+  body.share-mode .bulk-bar,
+  body.share-mode .add-details,
+  body.share-mode .changelog-banners,
+  body.share-mode .history-details { display: none !important; }
+  body.share-mode .app-shell { grid-template-columns: 1fr; }
+
   #cardPreview {
     position: fixed;
     width: 300px;
@@ -3662,6 +3733,8 @@
 </head>
 <body class="no-shared-footer">
 
+<div class="share-banner hidden" id="shareBanner" role="status"></div>
+
 <div class="app-shell">
   <header class="app-header">
     <h1><button type="button" id="resetAppBtn" class="title-reset-btn">MTG Collection</button></h1>
@@ -4143,6 +4216,13 @@
     </form>
   </div>
 </aside>
+
+<div class="share-modal" id="shareModal" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle" aria-hidden="true">
+  <div class="share-modal-card">
+    <h3 class="share-modal-title" id="shareModalTitle">share</h3>
+    <div class="share-modal-body"></div>
+  </div>
+</div>
 
 <script type="module" src="./app.js"></script>
 </body>
