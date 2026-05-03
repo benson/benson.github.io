@@ -1,14 +1,19 @@
 import { state } from './state.js';
 import { collectionKey, normalizeLocation, formatLocationLabel } from './collection.js';
-import { commitCollectionChange } from './commit.js';
 import { esc } from './feedback.js';
-import { navigateToLocation } from './view.js';
 import { LOC_ICONS } from './ui/locationUi.js';
 
 const CHANGELOG_KEY = 'mtgcollection_changelog_v1';
 const CAP = 200;
 let log = [];
 let historyTargets = [];
+let commitCollectionChangeHandler = () => {};
+let navigateToLocationHandler = () => {};
+
+export function configureChangelogActions({ commitCollectionChangeImpl, navigateToLocationImpl } = {}) {
+  if (typeof commitCollectionChangeImpl === 'function') commitCollectionChangeHandler = commitCollectionChangeImpl;
+  if (typeof navigateToLocationImpl === 'function') navigateToLocationHandler = navigateToLocationImpl;
+}
 
 function persist() {
   try {
@@ -168,7 +173,7 @@ export function undoEvent(id) {
 
   ev.undone = true;
   persist();
-  commitCollectionChange();
+  commitCollectionChangeHandler();
   renderHistoryList();
 }
 
@@ -332,7 +337,8 @@ function downloadCsv() {
   URL.revokeObjectURL(url);
 }
 
-export function initChangelog() {
+export function initChangelog(options = {}) {
+  configureChangelogActions(options);
   historyTargets = [];
   document.querySelectorAll('.history-details').forEach(details => {
     const list = details.querySelector('.history-list');
@@ -351,7 +357,7 @@ export function initChangelog() {
       const locBtn = e.target.closest('button.loc-link');
       if (locBtn) {
         const { locType, locName } = locBtn.dataset;
-        if (locType && locName) navigateToLocation(locType, locName);
+        if (locType && locName) navigateToLocationHandler(locType, locName);
       }
     });
     const exportBtn = details.querySelector('.history-export-btn, #exportHistoryBtn');

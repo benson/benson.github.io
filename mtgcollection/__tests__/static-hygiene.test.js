@@ -53,3 +53,87 @@ test('shared ESM files declare their module package boundary', () => {
 
   assert.equal(pkg.type, 'module');
 });
+
+function productionMtgJsFiles() {
+  const mtgRoot = path.join(projectRoot, 'mtgcollection');
+  return sourceFiles(mtgRoot, new Set(['.js']))
+    .filter(file => !file.includes(path.sep + '__tests__' + path.sep))
+    .filter(file => !file.includes(path.sep + '.wrangler' + path.sep));
+}
+
+function relativeMtgPath(file) {
+  return path.relative(path.join(projectRoot, 'mtgcollection'), file).replace(/\\/g, '/');
+}
+
+function mtgImportGraph() {
+  const mtgRoot = path.join(projectRoot, 'mtgcollection');
+  const files = productionMtgJsFiles();
+  const nodes = files.map(relativeMtgPath);
+  const graph = new Map(nodes.map(node => [node, []]));
+  const importPattern = /(?:import|export)\s+(?:[^'";]+?\s+from\s+)?['"](\.\.?\/[^'"]+)['"]/g;
+
+  for (const file of files) {
+    const text = fs.readFileSync(file, 'utf8');
+    const deps = [];
+    let match;
+    while ((match = importPattern.exec(text))) {
+      let target = path.normalize(path.join(path.dirname(file), match[1]));
+      if (!target.endsWith('.js')) target += '.js';
+      if (target.startsWith(mtgRoot) && fs.existsSync(target)) deps.push(relativeMtgPath(target));
+    }
+    graph.set(relativeMtgPath(file), [...new Set(deps)]);
+  }
+
+  return graph;
+}
+
+function stronglyConnectedComponents(graph) {
+  let nextIndex = 0;
+  const stack = [];
+  const onStack = new Set();
+  const index = new Map();
+  const lowlink = new Map();
+  const components = [];
+
+  function visit(node) {
+    index.set(node, nextIndex);
+    lowlink.set(node, nextIndex);
+    nextIndex++;
+    stack.push(node);
+    onStack.add(node);
+
+    for (const dep of graph.get(node) || []) {
+      if (!index.has(dep)) {
+        visit(dep);
+        lowlink.set(node, Math.min(lowlink.get(node), lowlink.get(dep)));
+      } else if (onStack.has(dep)) {
+        lowlink.set(node, Math.min(lowlink.get(node), index.get(dep)));
+      }
+    }
+
+    if (lowlink.get(node) === index.get(node)) {
+      const component = [];
+      let current;
+      do {
+        current = stack.pop();
+        onStack.delete(current);
+        component.push(current);
+      } while (current !== node);
+      components.push(component.sort());
+    }
+  }
+
+  for (const node of graph.keys()) {
+    if (!index.has(node)) visit(node);
+  }
+  return components;
+}
+
+test('mtgcollection production modules stay acyclic', () => {
+  const graph = mtgImportGraph();
+  const cycles = stronglyConnectedComponents(graph)
+    .filter(component => component.length > 1 || (graph.get(component[0]) || []).includes(component[0]))
+    .map(component => component.join(' -> '));
+
+  assert.deepEqual(cycles, []);
+});

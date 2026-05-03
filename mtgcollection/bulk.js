@@ -12,10 +12,10 @@ import {
 } from './collection.js';
 import { commitCollectionChange } from './commit.js';
 import { filteredSorted } from './search.js';
-import { render } from './view.js';
 import { captureBefore, recordEvent } from './changelog.js';
 
 let bulkBar, listBodyEl;
+let renderCurrentView = () => {};
 
 export function updateBulkBar() {
   const n = state.selectedKeys.size;
@@ -245,7 +245,8 @@ function cancelPending() {
   renderPendingRow();
 }
 
-export function initBulk() {
+export function initBulk({ renderImpl = () => {} } = {}) {
+  renderCurrentView = renderImpl;
   bulkBar = document.getElementById('bulkBar');
   listBodyEl = document.getElementById('listBody');
 
@@ -253,12 +254,12 @@ export function initBulk() {
     const visible = filteredSorted();
     if (e.target.checked) visible.forEach(c => state.selectedKeys.add(collectionKey(c)));
     else visible.forEach(c => state.selectedKeys.delete(collectionKey(c)));
-    render();
+    renderCurrentView();
   });
 
   document.getElementById('bulkClear').addEventListener('click', () => {
     state.selectedKeys.clear();
-    render();
+    renderCurrentView();
   });
 
   const bulkLocType = document.getElementById('bulkLocationType');

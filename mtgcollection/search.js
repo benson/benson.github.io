@@ -1,6 +1,5 @@
 import { state } from './state.js';
 import { normalizeLocation, locationKey, formatLocationLabel } from './collection.js';
-import { render } from './view.js';
 import { save } from './persistence.js';
 import { getMultiselectValue, setMultiselectValue, initMultiselect } from './multiselect.js';
 import { clearActiveLocation, syncActiveLocationFromFilter } from './routeState.js';
@@ -274,6 +273,11 @@ export function clearAllFilters() {
 let urlStateDebounce = null;
 let searchInputEl = null;
 let searchClearBtn = null;
+let renderCurrentView = () => {};
+
+export function configureSearchActions({ renderImpl } = {}) {
+  if (typeof renderImpl === 'function') renderCurrentView = renderImpl;
+}
 
 function syncSearchClearBtn() {
   searchClearBtn.classList.toggle('visible', !!searchInputEl.value);
@@ -292,7 +296,7 @@ export function applyUrlStateOnLoad() {
   const q = params.get('q');
   if (q) {
     searchInputEl.value = q;
-    render();
+    renderCurrentView();
   }
   syncSearchClearBtn();
 }
@@ -303,7 +307,8 @@ export function syncClearFiltersBtn() {
   btn.classList.toggle('visible', hasActiveFilter());
 }
 
-export function initSearch() {
+export function initSearch(options = {}) {
+  configureSearchActions(options);
   searchInputEl = document.getElementById('searchInput');
   searchClearBtn = document.getElementById('searchClearBtn');
 
@@ -355,21 +360,21 @@ export function initSearch() {
           state.binderPage = 0;
           save();
         }
-        render();
+        renderCurrentView();
       },
     });
   });
 
   // Native controls that still emit input/change
-  document.getElementById('searchInput').addEventListener('input', render);
-  document.getElementById('searchInput').addEventListener('change', render);
+  document.getElementById('searchInput').addEventListener('input', renderCurrentView);
+  document.getElementById('searchInput').addEventListener('change', renderCurrentView);
 
   const clearBtn = document.getElementById('clearFiltersBtn');
   if (clearBtn) {
     clearBtn.addEventListener('click', () => {
       clearAllFilters();
       searchInputEl.dispatchEvent(new Event('input', { bubbles: true }));
-      render();
+      renderCurrentView();
     });
   }
 }

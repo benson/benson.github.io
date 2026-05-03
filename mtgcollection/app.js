@@ -1,8 +1,10 @@
 import { state } from './state.js';
 import { initFeedback } from './feedback.js';
+import { onCollectionCommit, resetCollectionCommitHooks } from './appRuntime.js';
+import { commitCollectionChange } from './commit.js';
 import { loadFromStorage, migrateSavedCollection } from './persistence.js';
 import { initSearch, applyUrlStateOnLoad } from './search.js';
-import { render, initView } from './view.js';
+import { render, initView, navigateToLocation } from './view.js';
 import { initBulk } from './bulk.js';
 import { initAdd } from './add.js';
 import { initDetail, populateFilters } from './detail.js';
@@ -13,8 +15,21 @@ import {
 } from './import.js';
 import { refreshSetIcons } from './setIcons.js';
 import { initChangelog } from './changelog.js';
-import { initShareViewer, initShare } from './share.js';
+import { initShareViewer, initShare, schedulePushForDeck } from './share.js';
 import { bindAppControls, loadChromePreferences } from './appControls.js';
+
+function mirrorSharedDecks() {
+  if (state.shareSnapshot) return;
+  for (const container of Object.values(state.containers || {})) {
+    if (container.shareId) schedulePushForDeck(container);
+  }
+}
+
+function refreshAfterCollectionCommit() {
+  populateFilters();
+  render();
+  mirrorSharedDecks();
+}
 
 async function boot() {
   loadChromePreferences();
@@ -30,15 +45,20 @@ async function boot() {
 
   // Lowest-level init first — feedback + DOM refs
   initFeedback();
+  resetCollectionCommitHooks();
+  onCollectionCommit(refreshAfterCollectionCommit);
 
   // Init submodules (each wires its own event listeners + DOM refs)
   initView();
-  initSearch();
-  initBulk();
+  initSearch({ renderImpl: render });
+  initBulk({ renderImpl: render });
   initAdd();
   initDetail();
   initImport();
-  initChangelog();
+  initChangelog({
+    commitCollectionChangeImpl: commitCollectionChange,
+    navigateToLocationImpl: navigateToLocation,
+  });
   initShare();
 
   // App-level DOM controls; format selector syncs after loadFromStorage().
