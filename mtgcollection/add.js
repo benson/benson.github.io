@@ -5,7 +5,6 @@ import {
   normalizeFinish,
   normalizeCondition,
   normalizeLanguage,
-  normalizeLocation,
   getCardImageUrl,
   getCardBackImageUrl,
   ensureContainer,
@@ -29,6 +28,7 @@ import {
   lookupVoiceCard,
   resolveVoiceLookupTarget,
 } from './addVoice.js';
+import { buildDeckOwnershipReadout } from './addDeckOwnership.js';
 
 // When a single container is the active filter, that's the user's
 // implicit context — the add flow should default to dropping cards there.
@@ -84,23 +84,10 @@ function syncDeckAddOptions() {
     readout.classList.remove('placeholder-state');
     return;
   }
-  const owned = state.collection.filter(c => c.scryfallId === card.id);
-  const ownedQty = owned.reduce((s, c) => s + (c.qty || 0), 0);
-  const inDeck = owned.filter(c => normalizeLocation(c.location)?.type === 'deck' && normalizeLocation(c.location)?.name === loc.name);
-  const inDeckQty = inDeck.reduce((s, c) => s + (c.qty || 0), 0);
-  if (ownedQty === 0) {
-    readout.textContent = "you don't own this printing yet — defaults to placeholder";
-    readout.classList.add('placeholder-state');
-    if (ph && !ph.dataset.userTouched) ph.checked = true;
-  } else {
-    const breakdown = owned.map(c => {
-      const l = normalizeLocation(c.location);
-      return (c.qty || 0) + ' in ' + (l ? l.type + ':' + l.name : 'unsorted');
-    }).join(', ');
-    readout.textContent = 'you own ' + ownedQty + ' of this printing (' + breakdown + ')' + (inDeckQty ? ' · ' + inDeckQty + ' already in this deck' : '');
-    readout.classList.remove('placeholder-state');
-    if (ph && !ph.dataset.userTouched) ph.checked = false;
-  }
+  const ownership = buildDeckOwnershipReadout({ collection: state.collection, card, location: loc });
+  readout.textContent = ownership.text;
+  readout.classList.toggle('placeholder-state', ownership.placeholderState);
+  if (ph && !ph.dataset.userTouched) ph.checked = ownership.placeholderChecked;
 }
 
 export function setSelectedLocation(loc) {
