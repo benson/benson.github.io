@@ -17,7 +17,6 @@ import {
   getCardBackImageUrl,
   makeEntry,
   getUsdPrice,
-  resolveDeckListEntry,
   addToDeckList,
 } from './collection.js';
 import { commitCollectionChange } from './commit.js';
@@ -85,6 +84,7 @@ import {
 } from './views/binderView.js';
 import { initCardPreview, isLightboxVisible } from './ui/cardPreview.js';
 import { createDeckMetaAutocomplete } from './deckMetaAutocomplete.js';
+import { buildDeckCardFromEntry } from './deckCardModel.js';
 
 export function navigateToLocation(type, name) {
   setActiveContainerRoute({ type, name });
@@ -503,47 +503,6 @@ function ensureCommanderEntryInDeck(scryfallId, deck) {
   return scryfallId;
 }
 
-// Build a render-shaped card for the deck workspace from a (deckList entry,
-// inventory) pair. The result quacks like a collection entry — existing render
-// helpers (renderDeckCard, splitDeckBoards, deckStats, etc.) work on it
-// without modification. `inventoryIndex` lets click handlers open the drawer
-// for the underlying physical card when one exists.
-function buildDeckCardFromEntry(entry) {
-  const resolution = resolveDeckListEntry(entry, state.collection);
-  const inv = resolution.primary;
-  const inventoryIndex = inv ? state.collection.indexOf(inv) : -1;
-  return {
-    scryfallId: entry.scryfallId,
-    name: entry.name || inv?.name || '?',
-    resolvedName: entry.name || inv?.resolvedName || inv?.name || '?',
-    setCode: entry.setCode || inv?.setCode || '',
-    setName: inv?.setName || '',
-    cn: entry.cn || inv?.cn || '',
-    rarity: inv?.rarity || entry.rarity || '',
-    qty: entry.qty,
-    deckBoard: entry.board,
-    finish: inv?.finish || 'normal',
-    condition: inv?.condition || 'near_mint',
-    language: inv?.language || 'en',
-    location: inv?.location || null,
-    price: inv?.price || 0,
-    priceFallback: inv?.priceFallback || false,
-    cmc: inv?.cmc ?? entry.cmc ?? null,
-    colors: (inv?.colors && inv.colors.length ? inv.colors : entry.colors) || [],
-    colorIdentity: (inv?.colorIdentity && inv.colorIdentity.length ? inv.colorIdentity : entry.colorIdentity) || [],
-    typeLine: inv?.typeLine || entry.typeLine || '',
-    oracleText: inv?.oracleText || '',
-    legalities: inv?.legalities || {},
-    tags: inv?.tags || [],
-    imageUrl: entry.imageUrl || inv?.imageUrl || '',
-    backImageUrl: entry.backImageUrl || inv?.backImageUrl || '',
-    placeholder: resolution.placeholder,
-    ownedQty: resolution.ownedQty,
-    needed: resolution.needed,
-    inventoryIndex,
-  };
-}
-
 function renderDeckView(list) {
   const deckColumnsEl = document.getElementById('deckColumns');
   const deckActionsEl = document.querySelector('#deckView .deck-actions');
@@ -566,7 +525,7 @@ function renderDeckView(list) {
   // Build the list of "deck cards" by resolving the decklist against the
   // inventory. Each card has identity from the decklist entry, board from the
   // entry, and finish/price/etc. from the primary inventory match (if any).
-  list = (deck?.deckList || []).map(entry => buildDeckCardFromEntry(entry));
+  list = (deck?.deckList || []).map(entry => buildDeckCardFromEntry(entry, state.collection));
   for (const c of list) c.deckBoard = normalizeDeckBoard(c.deckBoard);
   const boards = splitDeckBoards(list);
   const stats = deckStats(list);
@@ -1155,7 +1114,7 @@ export function initView() {
     // first decks and useless for sample hands.
     const deck = currentDeckContainer();
     const list = (deck?.deckList || [])
-      .map(entry => buildDeckCardFromEntry(entry))
+      .map(entry => buildDeckCardFromEntry(entry, state.collection))
       .map(c => ({ ...c, deckBoard: normalizeDeckBoard(c.deckBoard) }));
     const boards = splitDeckBoards(list);
     const size = sampleBtn.dataset.sampleHand === 'mulligan' ? 6 : 7;
