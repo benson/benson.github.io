@@ -10,7 +10,7 @@ import {
   allCollectionTags,
   formatLocationLabel,
 } from './collection.js';
-import { commitCollectionChange } from './persistence.js';
+import { commitCollectionChange } from './commit.js';
 import { filteredSorted } from './search.js';
 import { render } from './view.js';
 import { captureBefore, recordEvent } from './changelog.js';

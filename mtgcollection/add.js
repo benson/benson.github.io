@@ -23,7 +23,7 @@ import {
   ensureContainer,
   addToDeckList,
 } from './collection.js';
-import { commitCollectionChange } from './persistence.js';
+import { commitCollectionChange } from './commit.js';
 import { showImageLightbox, LOC_ICONS } from './view.js';
 import { recordEvent } from './changelog.js';
 import { getMultiselectValue } from './multiselect.js';

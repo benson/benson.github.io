@@ -9,9 +9,6 @@ import {
   allContainers,
   containerStats,
   ensureContainer,
-  renameContainer,
-  deleteEmptyContainer,
-  deleteContainerAndUnlocateCards,
   formatLocationLabel,
   LOCATION_TYPES,
   DEFAULT_LOCATION_TYPE,
@@ -23,10 +20,9 @@ import {
   getUsdPrice,
   resolveDeckListEntry,
   addToDeckList,
-  removeFromDeckList,
-  moveDeckListEntryBoard,
 } from './collection.js';
-import { save, commitCollectionChange } from './persistence.js';
+import { commitCollectionChange } from './commit.js';
+import { save } from './persistence.js';
 import { openDetail, populateFilters } from './detail.js';
 import { setSelectedLocation } from './add.js';
 import { filteredSorted, syncClearFiltersBtn, hasActiveFilter } from './search.js';
@@ -38,6 +34,13 @@ import { recordEvent, captureBefore, locationDiffSummary, setHistoryScope } from
 import { setMultiselectValue, getMultiselectValue } from './multiselect.js';
 import { buildDeckExport, defaultDeckExportOptions } from './deckExport.js';
 import { openShareModal } from './share.js';
+import {
+  deleteContainerAndUnlocateCardsCommand,
+  deleteEmptyContainerCommand,
+  moveDeckCardToBoardCommand,
+  removeDeckCardFromDeckCommand,
+  renameContainerCommand,
+} from './commands.js';
 
 const VALID_DECK_GROUPS = ['type', 'cmc', 'color', 'rarity'];
 const VALID_DECK_MODES = ['visual', 'text', 'stats', 'hands', 'notes'];
@@ -675,44 +678,14 @@ function deckCardEventPayload(entry) {
 // the deck container's decklist — physical inventory locations are untouched.
 function moveDeckCardToBoard(scryfallId, fromBoard, rawBoard) {
   const deck = currentDeckContainer();
-  if (!deck || !scryfallId) return;
-  const targetBoard = normalizeDeckBoard(rawBoard);
-  const currentBoard = normalizeDeckBoard(fromBoard);
-  if (targetBoard === currentBoard) return;
-  const entry = (deck.deckList || []).find(e => e.scryfallId === scryfallId && e.board === currentBoard);
-  if (!entry) return;
-  if (!moveDeckListEntryBoard(deck, scryfallId, currentBoard, targetBoard)) return;
-  state.deckSampleHand = null;
-  const deckLoc = deck.type + ':' + deck.name;
-  recordEvent({
-    type: 'edit',
-    summary: 'Moved {card} to ' + (targetBoard === 'maybe' ? 'maybeboard' : targetBoard),
-    cards: [{ name: entry.name || '', imageUrl: entry.imageUrl || '', backImageUrl: entry.backImageUrl || '' }],
-    scope: 'deck',
-    deckLocation: deckLoc,
-  });
-  commitCollectionChange();
+  moveDeckCardToBoardCommand(deck, scryfallId, fromBoard, rawBoard);
 }
 
 // Remove a decklist entry from the deck. Inventory is left alone — physical
 // cards keep their location.
 function removeDeckCardFromDeck(scryfallId, board) {
   const deck = currentDeckContainer();
-  if (!deck || !scryfallId) return;
-  const norm = normalizeDeckBoard(board);
-  const entry = (deck.deckList || []).find(e => e.scryfallId === scryfallId && e.board === norm);
-  if (!entry) return;
-  if (!removeFromDeckList(deck, scryfallId, norm)) return;
-  state.deckSampleHand = null;
-  const deckLoc = deck.type + ':' + deck.name;
-  recordEvent({
-    type: 'edit',
-    summary: 'Removed {card} from {loc:' + deck.type + ':' + deck.name + '}',
-    cards: [{ name: entry.name || '', imageUrl: entry.imageUrl || '', backImageUrl: entry.backImageUrl || '' }],
-    scope: 'deck',
-    deckLocation: deckLoc,
-  });
-  commitCollectionChange();
+  removeDeckCardFromDeckCommand(deck, scryfallId, board);
 }
 
 function handleDeckCardAction(actionEl) {
@@ -2360,9 +2333,7 @@ export function initView() {
       const checked = card.querySelector('.location-card-edit-row input[type="radio"]:checked');
       const newType = checked ? checked.value : loc.type;
       const newName = input ? input.value : loc.name;
-      if (renameContainer(loc, { type: newType, name: newName })) {
-        commitCollectionChange({ coalesce: true });
-      }
+      renameContainerCommand(loc, { type: newType, name: newName });
       return;
     }
     if (e.target.closest('.location-delete')) {
@@ -2372,15 +2343,10 @@ export function initView() {
           + stats.total + ' card' + (stats.total === 1 ? '' : 's')
           + ' (' + stats.unique + ' unique). the cards stay in your collection.';
         if (!confirm(msg)) return;
-        deleteContainerAndUnlocateCards(loc);
-        commitCollectionChange();
+        deleteContainerAndUnlocateCardsCommand(loc);
       } else {
         if (!confirm('delete ' + loc.type + ' "' + loc.name + '"?')) return;
-        if (deleteEmptyContainer(loc)) {
-          save();
-          populateFilters();
-          render();
-        }
+        deleteEmptyContainerCommand(loc);
       }
       return;
     }

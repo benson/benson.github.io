@@ -1,8 +1,10 @@
 {
   "scripts": {
-    "test": "node --test scripts/__tests__/*.test.js mtgcollection/__tests__/*.test.js"
+    "test": "node --test scripts/__tests__/*.test.js mtgcollection/__tests__/*.test.js",
+    "check": "npm test"
   },
   "devDependencies": {
+    "happy-dom": "^20.9.0",
     "stream-json": "^2.1.0"
   }
 }

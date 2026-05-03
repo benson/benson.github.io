@@ -331,7 +331,7 @@ async function handleCreate() {
     if (includeTags) modalCurrentDeck.shareIncludeTags = true;
     // Persist + re-render the deck header so the button label flips to
     // "sharing". Lazy-import to dodge the circular dep with persistence.
-    const { commitCollectionChange } = await import('./persistence.js');
+    const { commitCollectionChange } = await import('./commit.js');
     commitCollectionChange();
     rerenderModal();
     showFeedback('share link ready', 'success');
@@ -354,7 +354,7 @@ async function handleStop() {
   delete modalCurrentDeck.shareId;
   delete modalCurrentDeck.shareIncludeTags;
   _flushPushTimer();
-  const { commitCollectionChange } = await import('./persistence.js');
+  const { commitCollectionChange } = await import('./commit.js');
   commitCollectionChange();
   closeShareModal();
   showFeedback('stopped sharing', 'success');

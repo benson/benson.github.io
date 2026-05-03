@@ -1,10 +1,7 @@
-import { state, STORAGE_KEY, BINDER_SIZE_KEY } from './state.js';
+﻿import { state, STORAGE_KEY, BINDER_SIZE_KEY } from './state.js';
 import { BINDER_SIZES } from './binder.js';
-import { coalesceCollection, normalizeLocation, normalizeContainers, ensureContainersForCollection, normalizeDeckBoard } from './collection.js';
+import { normalizeLocation, normalizeContainers, ensureContainersForCollection, normalizeDeckBoard } from './collection.js';
 import { showFeedback } from './feedback.js';
-import { populateFilters } from './detail.js';
-import { render } from './view.js';
-import { schedulePushForDeck } from './share.js';
 
 // ---- Persistence ----
 export function save() {
@@ -23,7 +20,7 @@ export function save() {
       sortDir: state.sortDir,
     }));
   } catch (e) {
-    showFeedback('collection too large for localstorage — ' + e.message, 'error');
+    showFeedback('collection too large for localstorage - ' + e.message, 'error');
   }
 }
 
@@ -43,8 +40,8 @@ export function loadFromStorage() {
         else if (Object.prototype.hasOwnProperty.call(c, 'deckBoard')) delete c.deckBoard;
       }
       ensureContainersForCollection();
-      // Top-level route. Migrate legacy 'list'→'collection', 'locations'→'storage'
-      // (the closest analog — boxes/binders dominated the old locations home).
+      // Top-level route. Migrate legacy 'list' to 'collection', 'locations' to 'storage'
+      // (the closest analog - boxes/binders dominated the old locations home).
       const VALID_VIEW_MODES = ['collection', 'decks', 'storage'];
       if (VALID_VIEW_MODES.includes(data.viewMode)) state.viewMode = data.viewMode;
       else if (data.viewMode === 'locations') state.viewMode = 'storage';
@@ -75,23 +72,6 @@ export function migrateSavedCollection() {
   }
 }
 
-// ---- Commit helper: consolidates the save/populateFilters/render triplet ----
-export function commitCollectionChange({ coalesce = false } = {}) {
-  if (coalesce) coalesceCollection();
-  ensureContainersForCollection();
-  save();
-  populateFilters();
-  render();
-  // Auto-mirror push for actively-shared decks. Walks all containers and
-  // schedules a debounced push for any with a shareId. Cheap — the schedule
-  // call short-circuits when the timer's already running.
-  if (!state.shareSnapshot) {
-    for (const container of Object.values(state.containers || {})) {
-      if (container.shareId) schedulePushForDeck(container);
-    }
-  }
-}
-
 // ---- Backup nag ----
 const BACKUP_LOAD_KEY = 'mtgcollection_loads_since_backup';
 const BACKUP_NAG_THRESHOLD = 15;
@@ -111,7 +91,7 @@ export function maybeShowBackupNag(loadCount) {
   if (loadCount < BACKUP_NAG_THRESHOLD) return;
   if (state.collection.length <= 1) return;
   showFeedback(
-    'localstorage-only — back up your collection. ' +
+    'localstorage-only - back up your collection. ' +
     '<button class="backup-btn" type="button" data-backup-action="export">export csv</button>' +
     '<button class="backup-btn" type="button" data-backup-action="dismiss">remind later</button>',
     'info'

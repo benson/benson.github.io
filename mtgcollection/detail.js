@@ -13,7 +13,7 @@ import {
   LOCATION_TYPES,
   DEFAULT_LOCATION_TYPE,
 } from './collection.js';
-import { commitCollectionChange } from './persistence.js';
+import { commitCollectionChange } from './commit.js';
 import { collectionKey } from './collection.js';
 import { captureBefore, recordEvent, locationDiffSummary, qtyDiffSummary } from './changelog.js';
 import { hideCardPreview, showImageLightbox, hideImageLightbox, isLightboxVisible } from './view.js';

@@ -1,6 +1,6 @@
 import { state } from './state.js';
 import { collectionKey, normalizeLocation, formatLocationLabel } from './collection.js';
-import { commitCollectionChange } from './persistence.js';
+import { commitCollectionChange } from './commit.js';
 import { esc } from './feedback.js';
 import { navigateToLocation, LOC_ICONS } from './view.js';
 

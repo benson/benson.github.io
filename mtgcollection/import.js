@@ -15,7 +15,8 @@ import {
   ensureContainer,
   addToDeckList,
 } from './collection.js';
-import { save, commitCollectionChange } from './persistence.js';
+import { commitCollectionChange } from './commit.js';
+import { save } from './persistence.js';
 import { filteredSorted } from './search.js';
 import { recordEvent } from './changelog.js';
 import { detectAdapter, getAdapter, mergeSource, ADAPTERS } from './adapters.js';
