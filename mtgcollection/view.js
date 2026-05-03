@@ -1739,16 +1739,6 @@ export function initView() {
   lightboxImg = document.getElementById('imageLightboxImg');
   lightboxFlipBtn = document.getElementById('lightboxFlip');
 
-  document.getElementById('copyDecklistBtn').addEventListener('click', async () => {
-    const text = buildDecklistText(filteredSorted());
-    try {
-      await navigator.clipboard.writeText(text);
-      showFeedback('decklist copied (' + filteredSorted().length + ' cards)', 'success');
-    } catch (e) {
-      showFeedback('clipboard unavailable: ' + e.message, 'error');
-    }
-  });
-
   document.querySelector('.app-header-views').addEventListener('click', e => {
     const btn = e.target.closest('[data-view]');
     if (!btn) return;
