@@ -1323,6 +1323,66 @@
   .deck-description.is-empty {
     color: #999;
   }
+  .deck-commander-widget {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    margin-top: 14px;
+  }
+  .deck-commander-card {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    color: inherit;
+    cursor: pointer;
+    display: grid;
+    gap: 6px;
+    justify-items: start;
+    padding: 0;
+    text-align: left;
+    width: min(150px, 45vw);
+  }
+  .deck-commander-card:hover .deck-commander-frame,
+  .deck-commander-card:focus-visible .deck-commander-frame {
+    border-color: #000;
+  }
+  .deck-commander-frame {
+    aspect-ratio: 63 / 88;
+    background: #f4f4f4;
+    border: 1px solid #ddd;
+    display: block;
+    overflow: hidden;
+    width: 100%;
+  }
+  .deck-commander-frame img {
+    display: block;
+    height: 100%;
+    object-fit: cover;
+    width: 100%;
+  }
+  .deck-commander-placeholder {
+    align-items: center;
+    color: #999;
+    display: flex;
+    font-size: 2rem;
+    height: 100%;
+    justify-content: center;
+    text-transform: uppercase;
+  }
+  .deck-commander-role {
+    color: #777;
+    font-size: 0.68rem;
+    line-height: 1;
+    text-transform: lowercase;
+  }
+  .deck-commander-card strong {
+    font-size: 0.82rem;
+    font-weight: 500;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+    text-transform: none;
+  }
   .deck-meta-strip {
     display: grid;
     grid-template-columns: repeat(3, minmax(110px, 1fr));

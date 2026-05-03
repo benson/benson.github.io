@@ -9,7 +9,7 @@ function installDom() {
   win.document.body.innerHTML = `
     <div id="deckColumns">
       <span class="deck-meta-ac-wrap">
-        <input data-meta-ac="commander" value="" data-meta-ac-scryfall-id="old" data-meta-ac-image="old-img" data-meta-ac-back-image="old-back">
+        <input data-meta-ac="commander" value="" data-meta-ac-scryfall-id="old" data-meta-ac-scryfall-uri="old-uri" data-meta-ac-image="old-img" data-meta-ac-back-image="old-back">
         <ul class="autocomplete-list deck-meta-ac-list" role="listbox"></ul>
       </span>
     </div>
@@ -26,6 +26,7 @@ function scryfallCard(extra = {}) {
   return {
     id: 'breya-id',
     name: 'Breya, Etherium Shaper',
+    scryfall_uri: 'https://scryfall.test/card/breya-id',
     image_uris: { normal: 'https://img/front-normal', small: 'https://img/front-small' },
     ...extra,
   };
@@ -73,6 +74,7 @@ test('createDeckMetaAutocomplete: clicking a suggestion fills the input and meta
 
   assert.equal(dom.input.value, 'Breya, Etherium Shaper');
   assert.equal(dom.input.dataset.metaAcScryfallId, 'breya-id');
+  assert.equal(dom.input.dataset.metaAcScryfallUri, 'https://scryfall.test/card/breya-id');
   assert.equal(dom.input.dataset.metaAcImage, 'https://img/front-normal');
   assert.equal(dom.input.dataset.metaAcBackImage, 'back');
   assert.equal(dom.list.classList.contains('active'), false);
@@ -117,6 +119,7 @@ test('createDeckMetaAutocomplete: input clears stale picked metadata before look
   dom.input.dispatchEvent(new dom.win.Event('input', { bubbles: true }));
 
   assert.equal(dom.input.dataset.metaAcScryfallId, '');
+  assert.equal(dom.input.dataset.metaAcScryfallUri, '');
   assert.equal(dom.input.dataset.metaAcImage, '');
   assert.equal(dom.input.dataset.metaAcBackImage, '');
   assert.equal(typeof queued, 'function');

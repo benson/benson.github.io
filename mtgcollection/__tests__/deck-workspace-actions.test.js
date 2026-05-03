@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { Window } from 'happy-dom';
 import {
   bindDeckWorkspaceInteractions,
+  openDeckCommanderCard,
   runDeckCardAction,
   setDeckPanelOpen,
 } from '../deckWorkspaceActions.js';
@@ -100,6 +101,33 @@ test('runDeckCardAction: opens inventory details and delegates board mutations',
   assert.equal(deckColumnsEl.querySelector('.deck-card').classList.contains('menu-open'), false);
 });
 
+test('openDeckCommanderCard: opens local inventory or falls back to Scryfall', () => {
+  const { deckColumnsEl } = setup(`
+    <button data-deck-commander-card data-scryfall-id="cmd-1" data-card-name="Breya" data-scryfall-uri="https://scryfall.test/card/cmd-1"></button>
+    <button data-deck-commander-card data-scryfall-id="missing" data-card-name="Silas Renn"></button>
+  `);
+  const calls = [];
+
+  const local = openDeckCommanderCard(deckColumnsEl.querySelector('[data-scryfall-id="cmd-1"]'), {
+    collection: [{ name: 'Sol Ring', scryfallId: 'sol' }, { name: 'Breya', scryfallId: 'cmd-1' }],
+    openDetailImpl: index => calls.push(['detail', index]),
+    openUrlImpl: url => calls.push(['url', url]),
+  });
+  const remote = openDeckCommanderCard(deckColumnsEl.querySelector('[data-scryfall-id="missing"]'), {
+    collection: [],
+    openDetailImpl: index => calls.push(['detail', index]),
+    openUrlImpl: url => calls.push(['url', url]),
+  });
+
+  assert.deepEqual(local, { ok: true, target: 'inventory', index: 1 });
+  assert.equal(remote.target, 'scryfall');
+  assert.match(remote.url, /^https:\/\/scryfall\.com\/search\?q=/);
+  assert.deepEqual(calls, [
+    ['detail', 1],
+    ['url', remote.url],
+  ]);
+});
+
 test('bindDeckWorkspaceInteractions: updates workspace prefs and simple deck actions', () => {
   const { win, deckColumnsEl, deckGroupEl } = setup(`
     <button data-deck-mode="stats"></button>
@@ -108,9 +136,12 @@ test('bindDeckWorkspaceInteractions: updates workspace prefs and simple deck act
     <button data-deck-ownership="decklist"></button>
     <button class="deck-empty-chip"><span class="loc-pill" data-loc-type="deck" data-loc-name="breya"></span></button>
     <button data-deck-action="share"></button>
+    <button data-deck-commander-card data-scryfall-id="cmd-1" data-card-name="Breya" data-scryfall-uri="https://scryfall.test/card/cmd-1"></button>
+    <button data-deck-commander-card data-scryfall-id="missing" data-card-name="Unknown"></button>
     <label class="deck-metadata-companion"><input name="companion" hidden><button data-add-companion type="button"></button></label>
   `);
   const stateRef = baseState();
+  stateRef.collection = [{ name: 'Breya', scryfallId: 'cmd-1' }];
   const deck = { type: 'deck', name: 'breya' };
   const calls = [];
 
@@ -121,6 +152,8 @@ test('bindDeckWorkspaceInteractions: updates workspace prefs and simple deck act
     stateRef,
     currentDeckContainerImpl: () => deck,
     navigateToLocationImpl: (type, name) => calls.push(['nav', type, name]),
+    openDetailImpl: index => calls.push(['detail', index]),
+    openUrlImpl: url => calls.push(['url', url]),
     openShareModalImpl: deckArg => calls.push(['share', deckArg]),
     renderImpl: () => calls.push(['render']),
     saveDeckGroupImpl: () => calls.push(['saveGroup']),
@@ -133,6 +166,8 @@ test('bindDeckWorkspaceInteractions: updates workspace prefs and simple deck act
   click(win, deckColumnsEl.querySelector('[data-deck-ownership]'));
   click(win, deckColumnsEl.querySelector('.deck-empty-chip'));
   click(win, deckColumnsEl.querySelector('[data-deck-action="share"]'));
+  click(win, deckColumnsEl.querySelector('[data-scryfall-id="cmd-1"]'));
+  click(win, deckColumnsEl.querySelector('[data-scryfall-id="missing"]'));
   click(win, deckColumnsEl.querySelector('[data-add-companion]'));
   deckGroupEl.value = 'cmc';
   change(win, deckGroupEl);
@@ -145,6 +180,8 @@ test('bindDeckWorkspaceInteractions: updates workspace prefs and simple deck act
   assert.equal(deckColumnsEl.querySelector('input[name="companion"]').hidden, false);
   assert.deepEqual(calls.filter(call => call[0] === 'nav'), [['nav', 'deck', 'breya']]);
   assert.deepEqual(calls.filter(call => call[0] === 'share'), [['share', deck]]);
+  assert.deepEqual(calls.filter(call => call[0] === 'detail'), [['detail', 0]]);
+  assert.deepEqual(calls.filter(call => call[0] === 'url'), [['url', 'https://scryfall.com/search?q=!%22Unknown%22']]);
   assert.equal(calls.filter(call => call[0] === 'savePrefs').length, 4);
   assert.equal(calls.filter(call => call[0] === 'saveGroup').length, 1);
 });

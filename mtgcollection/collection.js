@@ -72,10 +72,12 @@ export function defaultDeckMetadata(name = '') {
     format: '',
     commander: '',
     commanderScryfallId: '',
+    commanderScryfallUri: '',
     commanderImageUrl: '',
     commanderBackImageUrl: '',
     partner: '',
     partnerScryfallId: '',
+    partnerScryfallUri: '',
     partnerImageUrl: '',
     partnerBackImageUrl: '',
     companion: '',
@@ -219,10 +221,12 @@ export function makeContainer(raw, now = Date.now()) {
     out.deck.format = String(out.deck.format || '');
     out.deck.commander = String(out.deck.commander || '');
     out.deck.commanderScryfallId = String(out.deck.commanderScryfallId || '');
+    out.deck.commanderScryfallUri = String(out.deck.commanderScryfallUri || '');
     out.deck.commanderImageUrl = String(out.deck.commanderImageUrl || '');
     out.deck.commanderBackImageUrl = String(out.deck.commanderBackImageUrl || '');
     out.deck.partner = String(out.deck.partner || '');
     out.deck.partnerScryfallId = String(out.deck.partnerScryfallId || '');
+    out.deck.partnerScryfallUri = String(out.deck.partnerScryfallUri || '');
     out.deck.partnerImageUrl = String(out.deck.partnerImageUrl || '');
     out.deck.partnerBackImageUrl = String(out.deck.partnerBackImageUrl || '');
     out.deck.companion = String(out.deck.companion || '');
@@ -280,10 +284,12 @@ export function normalizeContainers(rawContainers = {}) {
       c.deck.format = String(c.deck.format || '');
       c.deck.commander = String(c.deck.commander || '');
       c.deck.commanderScryfallId = String(c.deck.commanderScryfallId || '');
+      c.deck.commanderScryfallUri = String(c.deck.commanderScryfallUri || '');
       c.deck.commanderImageUrl = String(c.deck.commanderImageUrl || '');
       c.deck.commanderBackImageUrl = String(c.deck.commanderBackImageUrl || '');
       c.deck.partner = String(c.deck.partner || '');
       c.deck.partnerScryfallId = String(c.deck.partnerScryfallId || '');
+      c.deck.partnerScryfallUri = String(c.deck.partnerScryfallUri || '');
       c.deck.partnerImageUrl = String(c.deck.partnerImageUrl || '');
       c.deck.partnerBackImageUrl = String(c.deck.partnerBackImageUrl || '');
       c.deck.companion = String(c.deck.companion || '');

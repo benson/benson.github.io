@@ -32,8 +32,8 @@ test('readDeckMetadataForm: preserves commander metadata for commander decks', (
   const form = formFromHtml(`
     <input name="title" value="  ">
     <input name="formatPreset" value="commander">
-    <input name="commander" value="Breya, Etherium Shaper" data-meta-ac="commander" data-meta-ac-scryfall-id="cmd-1" data-meta-ac-image="front.jpg" data-meta-ac-back-image="back.jpg">
-    <input name="partner" value="Silas Renn" data-meta-ac="partner" data-meta-ac-scryfall-id="partner-1" data-meta-ac-image="partner.jpg">
+    <input name="commander" value="Breya, Etherium Shaper" data-meta-ac="commander" data-meta-ac-scryfall-id="cmd-1" data-meta-ac-scryfall-uri="https://scryfall.test/card/cmd-1" data-meta-ac-image="front.jpg" data-meta-ac-back-image="back.jpg">
+    <input name="partner" value="Silas Renn" data-meta-ac="partner" data-meta-ac-scryfall-id="partner-1" data-meta-ac-scryfall-uri="https://scryfall.test/card/partner-1" data-meta-ac-image="partner.jpg">
     <input name="companion" value="Lurrus">
     <textarea name="description">Artifact pile</textarea>
   `);
@@ -45,10 +45,12 @@ test('readDeckMetadataForm: preserves commander metadata for commander decks', (
   assert.equal(result.metadata.format, 'commander');
   assert.equal(result.metadata.commander, 'Breya, Etherium Shaper');
   assert.equal(result.metadata.commanderScryfallId, 'cmd-1');
+  assert.equal(result.metadata.commanderScryfallUri, 'https://scryfall.test/card/cmd-1');
   assert.equal(result.metadata.commanderImageUrl, 'front.jpg');
   assert.equal(result.metadata.commanderBackImageUrl, 'back.jpg');
   assert.equal(result.metadata.partner, 'Silas Renn');
   assert.equal(result.metadata.partnerScryfallId, 'partner-1');
+  assert.equal(result.metadata.partnerScryfallUri, 'https://scryfall.test/card/partner-1');
   assert.equal(result.metadata.companion, 'Lurrus');
   assert.equal(result.metadata.description, 'Artifact pile');
 });
@@ -58,8 +60,8 @@ test('readDeckMetadataForm: clears commander fields outside commander format', (
     <input name="title" value="breya">
     <input name="formatPreset" value="custom">
     <input name="formatCustom" value="standard-ish">
-    <input name="commander" value="Breya" data-meta-ac="commander" data-meta-ac-scryfall-id="cmd-1" data-meta-ac-image="front.jpg">
-    <input name="partner" value="Silas Renn" data-meta-ac="partner" data-meta-ac-scryfall-id="partner-1" data-meta-ac-image="partner.jpg">
+    <input name="commander" value="Breya" data-meta-ac="commander" data-meta-ac-scryfall-id="cmd-1" data-meta-ac-scryfall-uri="https://scryfall.test/card/cmd-1" data-meta-ac-image="front.jpg">
+    <input name="partner" value="Silas Renn" data-meta-ac="partner" data-meta-ac-scryfall-id="partner-1" data-meta-ac-scryfall-uri="https://scryfall.test/card/partner-1" data-meta-ac-image="partner.jpg">
   `);
 
   const result = readDeckMetadataForm(form, 'breya');
@@ -68,9 +70,11 @@ test('readDeckMetadataForm: clears commander fields outside commander format', (
   assert.equal(result.metadata.format, 'standard-ish');
   assert.equal(result.metadata.commander, '');
   assert.equal(result.metadata.commanderScryfallId, '');
+  assert.equal(result.metadata.commanderScryfallUri, '');
   assert.equal(result.metadata.commanderImageUrl, '');
   assert.equal(result.metadata.partner, '');
   assert.equal(result.metadata.partnerScryfallId, '');
+  assert.equal(result.metadata.partnerScryfallUri, '');
 });
 
 test('ensureCommanderEntryInDeck: adds one commander placeholder and records the event', () => {
@@ -105,8 +109,8 @@ test('saveDeckMetadataFromForm: saves metadata and auto-adds commander cards', (
   const form = formFromHtml(`
     <input name="title" value="Breya deck">
     <input name="formatPreset" value="commander">
-    <input name="commander" value="Breya" data-meta-ac="commander" data-meta-ac-scryfall-id="cmd-1">
-    <input name="partner" value="Silas Renn" data-meta-ac="partner" data-meta-ac-scryfall-id="partner-1">
+    <input name="commander" value="Breya" data-meta-ac="commander" data-meta-ac-scryfall-id="cmd-1" data-meta-ac-scryfall-uri="https://scryfall.test/card/cmd-1">
+    <input name="partner" value="Silas Renn" data-meta-ac="partner" data-meta-ac-scryfall-id="partner-1" data-meta-ac-scryfall-uri="https://scryfall.test/card/partner-1">
     <textarea name="description">Tokens and artifacts</textarea>
   `);
   const deck = { type: 'deck', name: 'breya', deckList: [] };
@@ -129,7 +133,9 @@ test('saveDeckMetadataFromForm: saves metadata and auto-adds commander cards', (
   assert.equal(deck.deck.title, 'Breya deck');
   assert.equal(deck.deck.format, 'commander');
   assert.equal(deck.deck.commanderScryfallId, 'cmd-1');
+  assert.equal(deck.deck.commanderScryfallUri, 'https://scryfall.test/card/cmd-1');
   assert.equal(deck.deck.partnerScryfallId, 'partner-1');
+  assert.equal(deck.deck.partnerScryfallUri, 'https://scryfall.test/card/partner-1');
   assert.equal(deck.deck.description, 'Tokens and artifacts');
   assert.deepEqual(deck.deckList.map(entry => entry.scryfallId), ['cmd-1', 'partner-1']);
   assert.equal(events.length, 2);

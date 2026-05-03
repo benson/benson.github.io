@@ -14,7 +14,9 @@ export function readDeckMetadataForm(form, deckName = 'deck') {
   const cmdInput = form.querySelector('input[data-meta-ac="commander"]');
   const partnerInput = form.querySelector('input[data-meta-ac="partner"]');
   const commanderScryfallId = String(cmdInput?.dataset.metaAcScryfallId || '');
+  const commanderScryfallUri = String(cmdInput?.dataset.metaAcScryfallUri || '');
   const partnerScryfallId = String(partnerInput?.dataset.metaAcScryfallId || '');
+  const partnerScryfallUri = String(partnerInput?.dataset.metaAcScryfallUri || '');
 
   return {
     metadata: {
@@ -23,10 +25,12 @@ export function readDeckMetadataForm(form, deckName = 'deck') {
       format,
       commander: isCommander ? String(fd.get('commander') || '').trim() : '',
       commanderScryfallId: isCommander ? commanderScryfallId : '',
+      commanderScryfallUri: isCommander ? commanderScryfallUri : '',
       commanderImageUrl: isCommander ? String(cmdInput?.dataset.metaAcImage || '') : '',
       commanderBackImageUrl: isCommander ? String(cmdInput?.dataset.metaAcBackImage || '') : '',
       partner: isCommander ? String(fd.get('partner') || '').trim() : '',
       partnerScryfallId: isCommander ? partnerScryfallId : '',
+      partnerScryfallUri: isCommander ? partnerScryfallUri : '',
       partnerImageUrl: isCommander ? String(partnerInput?.dataset.metaAcImage || '') : '',
       partnerBackImageUrl: isCommander ? String(partnerInput?.dataset.metaAcBackImage || '') : '',
       companion: String(fd.get('companion') || '').trim(),

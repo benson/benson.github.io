@@ -24,6 +24,34 @@ import {
 import { showFeedback } from './feedback.js';
 import { recordEvent } from './changelog.js';
 
+function scryfallFallbackUrl(name) {
+  const clean = String(name || '').trim();
+  if (!clean) return '';
+  return 'https://scryfall.com/search?q=' + encodeURIComponent('!"' + clean + '"');
+}
+
+export function openDeckCommanderCard(cardEl, {
+  collection = [],
+  openDetailImpl = () => {},
+  openUrlImpl = url => globalThis.open?.(url, '_blank', 'noopener'),
+} = {}) {
+  const scryfallId = String(cardEl?.dataset.scryfallId || '').trim();
+  const cardName = String(cardEl?.dataset.cardName || '').trim();
+  if (scryfallId) {
+    const idx = collection.findIndex(c => c?.scryfallId === scryfallId);
+    if (idx >= 0) {
+      openDetailImpl(idx);
+      return { ok: true, target: 'inventory', index: idx };
+    }
+  }
+  const url = String(cardEl?.dataset.scryfallUri || '').trim() || scryfallFallbackUrl(cardName);
+  if (url) {
+    openUrlImpl(url);
+    return { ok: true, target: 'scryfall', url };
+  }
+  return { ok: false, reason: 'missing-card' };
+}
+
 export function setDeckPanelOpen(root, panelId, triggerSelector, open) {
   const panel = root?.querySelector('#' + panelId);
   if (!panel) return false;
@@ -80,6 +108,7 @@ export function bindDeckWorkspaceInteractions({
   getCardById = () => null,
   navigateToLocationImpl = () => {},
   openDetailImpl = () => {},
+  openUrlImpl = url => globalThis.open?.(url, '_blank', 'noopener'),
   openShareModalImpl = openShareModal,
   renderImpl = () => {},
   saveImpl = () => {},
@@ -179,6 +208,16 @@ export function bindDeckWorkspaceInteractions({
     if (event.target.closest('[data-deck-action="share"]')) {
       const deck = currentDeckContainerImpl();
       if (deck) openShareModalImpl(deck);
+      return;
+    }
+
+    const commanderCard = event.target.closest('[data-deck-commander-card]');
+    if (commanderCard) {
+      openDeckCommanderCard(commanderCard, {
+        collection: stateRef.collection,
+        openDetailImpl,
+        openUrlImpl,
+      });
       return;
     }
 

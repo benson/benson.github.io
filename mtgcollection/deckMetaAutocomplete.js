@@ -70,6 +70,7 @@ export function createDeckMetaAutocomplete({
         return {
           id: card.id,
           name: card.name,
+          scryfallUri: card.scryfall_uri || '',
           imageUrl: getCardImageUrl(card) || '',
           backImageUrl: getCardBackImageUrl(card) || '',
         };
@@ -84,6 +85,7 @@ export function createDeckMetaAutocomplete({
   function pick(input, item) {
     input.value = item.name;
     input.dataset.metaAcScryfallId = item.id || '';
+    input.dataset.metaAcScryfallUri = item.scryfallUri || '';
     input.dataset.metaAcImage = item.imageUrl || '';
     input.dataset.metaAcBackImage = item.backImageUrl || '';
     hide(input);
@@ -91,6 +93,7 @@ export function createDeckMetaAutocomplete({
 
   function queueFetch(input) {
     input.dataset.metaAcScryfallId = '';
+    input.dataset.metaAcScryfallUri = '';
     input.dataset.metaAcImage = '';
     input.dataset.metaAcBackImage = '';
     if (debounce) clearTimeoutImpl(debounce);
