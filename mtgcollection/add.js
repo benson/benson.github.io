@@ -24,7 +24,7 @@ import {
   addToDeckList,
 } from './collection.js';
 import { commitCollectionChange } from './commit.js';
-import { showImageLightbox } from './view.js';
+import { showImageLightbox } from './ui/cardPreview.js';
 import { LOC_ICONS } from './ui/locationUi.js';
 import { recordEvent } from './changelog.js';
 import { getMultiselectValue } from './multiselect.js';

@@ -4,7 +4,6 @@ import {
   collectionKey,
   normalizeLocation,
   normalizeTag,
-  biggerImageUrl,
   allCollectionLocations,
   allContainers,
   containerStats,
@@ -74,6 +73,7 @@ import {
   renderDeckTextMode,
   renderDeckVisualMode,
 } from './views/deckBodyView.js';
+import { initCardPreview, isLightboxVisible } from './ui/cardPreview.js';
 
 const VALID_BINDER_SIZES = Object.keys(BINDER_SIZES);
 
@@ -201,11 +201,6 @@ function removeRowTag(index, tag) {
 }
 
 let locationsEl, listBodyEl, collectionSection, emptyState;
-let cardPreviewEl, cardPreviewImg;
-let lightboxEl, lightboxImg, lightboxFlipBtn;
-let lightboxFront = null;
-let lightboxBack = null;
-let lightboxShowingBack = false;
 
 export function render() {
   const shape = getEffectiveShape();
@@ -988,88 +983,6 @@ function setDeckPanelOpen(panelId, triggerSelector, open) {
   }
 }
 
-// Track the most recent requested URL so a fast mouse-over a row of cards
-// shows the latest one's image (and not whichever onload happens to fire last).
-let pendingPreviewUrl = null;
-
-function showCardPreview(link) {
-  const url = link.dataset.previewUrl;
-  if (!url) return;
-
-  const rect = link.getBoundingClientRect();
-  const previewWidth = 300;
-  const previewHeight = 418;
-  const padding = 20;
-  const linkCenterX = rect.left + rect.width / 2;
-  const windowCenterX = window.innerWidth / 2;
-
-  let left = linkCenterX < windowCenterX
-    ? rect.right + padding
-    : rect.left - previewWidth - padding;
-  let top = rect.top - previewHeight / 2 + rect.height / 2;
-
-  top = Math.max(padding, Math.min(top, window.innerHeight - previewHeight - padding));
-  left = Math.max(padding, Math.min(left, window.innerWidth - previewWidth - padding));
-
-  cardPreviewEl.style.left = left + 'px';
-  cardPreviewEl.style.top = top + 'px';
-  cardPreviewEl.classList.add('visible');
-
-  // Mirror the finish onto the popup wrapper so the unified .is-foil /
-  // .is-etched ::after overlay rule fires here too.
-  const finish = link.dataset.previewFinish || 'normal';
-  cardPreviewEl.classList.toggle('is-foil', finish === 'foil');
-  cardPreviewEl.classList.toggle('is-etched', finish === 'etched');
-
-  pendingPreviewUrl = url;
-
-  // If the same image is already cached + decoded, no flicker possible —
-  // just show. This also covers re-hovering the row you were just on.
-  if (cardPreviewImg.src === url && cardPreviewImg.complete && cardPreviewImg.naturalWidth > 0) {
-    cardPreviewImg.style.visibility = 'visible';
-    return;
-  }
-
-  // Otherwise hide the img while the new one decodes so the previous card
-  // doesn't briefly stay on screen. Show it as soon as the new image is
-  // ready — but only if it's still the one the user wants (race guard for
-  // fast cursor movement).
-  cardPreviewImg.style.visibility = 'hidden';
-  cardPreviewImg.onload = () => {
-    if (pendingPreviewUrl === url) cardPreviewImg.style.visibility = 'visible';
-  };
-  cardPreviewImg.src = url;
-}
-
-export function hideCardPreview() {
-  cardPreviewEl.classList.remove('visible');
-  pendingPreviewUrl = null;
-}
-
-export function showImageLightbox(frontUrl, backUrl) {
-  if (!frontUrl) return;
-  lightboxFront = frontUrl;
-  lightboxBack = backUrl;
-  lightboxShowingBack = false;
-  lightboxImg.src = biggerImageUrl(frontUrl);
-  lightboxImg.alt = '';
-  lightboxFlipBtn.classList.toggle('hidden', !backUrl);
-  lightboxFlipBtn.textContent = 'flip card';
-  lightboxEl.classList.add('visible');
-  lightboxEl.setAttribute('aria-hidden', 'false');
-  hideCardPreview();
-}
-
-export function hideImageLightbox() {
-  lightboxEl.classList.remove('visible');
-  lightboxEl.setAttribute('aria-hidden', 'true');
-  lightboxImg.src = '';
-}
-
-export function isLightboxVisible() {
-  return lightboxEl.classList.contains('visible');
-}
-
 const RIGHT_DRAWER_PANELS = ['addDetails'];
 
 export function openRightDrawer(targetIds, options = {}) {
@@ -1112,11 +1025,7 @@ export function initView() {
   listBodyEl = document.getElementById('listBody');
   collectionSection = document.getElementById('collectionSection');
   emptyState = document.getElementById('emptyState');
-  cardPreviewEl = document.getElementById('cardPreview');
-  cardPreviewImg = cardPreviewEl.querySelector('img');
-  lightboxEl = document.getElementById('imageLightbox');
-  lightboxImg = document.getElementById('imageLightboxImg');
-  lightboxFlipBtn = document.getElementById('lightboxFlip');
+  initCardPreview();
 
   document.querySelector('.app-header-views').addEventListener('click', e => {
     const btn = e.target.closest('[data-view]');
@@ -1804,31 +1713,6 @@ export function initView() {
     const type = pill.dataset.locType;
     const name = pill.dataset.locName;
     if (type && name) navigateToLocation(type, name);
-  });
-
-  // Card-preview hover is delegated at the document level so it works for the
-  // list rows AND for banner/history rows that also use `.card-preview-link`.
-  document.addEventListener('mouseover', e => {
-    const link = e.target.closest('.card-preview-link');
-    if (!link) return;
-    showCardPreview(link);
-  });
-
-  document.addEventListener('mouseout', e => {
-    const link = e.target.closest('.card-preview-link');
-    if (!link || link.contains(e.relatedTarget)) return;
-    hideCardPreview();
-  });
-
-  lightboxEl.addEventListener('click', e => {
-    if (e.target.closest('.lightbox-flip')) return;
-    hideImageLightbox();
-  });
-  lightboxFlipBtn.addEventListener('click', () => {
-    if (!lightboxBack) return;
-    lightboxShowingBack = !lightboxShowingBack;
-    const url = lightboxShowingBack ? lightboxBack : lightboxFront;
-    lightboxImg.src = biggerImageUrl(url);
   });
 
   // Close the export dropdown when clicking outside it.

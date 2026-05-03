@@ -16,7 +16,7 @@ import {
 import { commitCollectionChange } from './commit.js';
 import { collectionKey } from './collection.js';
 import { captureBefore, recordEvent, locationDiffSummary, qtyDiffSummary } from './changelog.js';
-import { hideCardPreview, showImageLightbox, hideImageLightbox, isLightboxVisible } from './view.js';
+import { hideCardPreview, showImageLightbox, hideImageLightbox, isLightboxVisible } from './ui/cardPreview.js';
 import { populateMultiselect } from './multiselect.js';
 import { syncActiveLocationFromFilter } from './routeState.js';
 
