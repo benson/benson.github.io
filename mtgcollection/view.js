@@ -907,9 +907,15 @@ function renderSampleHandPanel() {
     return;
   }
   // Use the same deck-card renderer as the visual mode so cards size + look
-  // identical and the existing hover-preview delegation just works.
+  // identical and the existing hover-preview delegation just works. Each
+  // hand entry is a single drawn card — override qty to 1 so the ×N badge
+  // doesn't render the deck total (drawSampleHand pushes the same card
+  // reference N times for an N-of, so the underlying object still has
+  // qty: N).
   const hand = state.deckSampleHand.hand;
-  handEl.innerHTML = hand.map((c, i) => renderDeckCard(c, i === hand.length - 1)).join('');
+  handEl.innerHTML = hand.map((c, i) =>
+    renderDeckCard({ ...c, qty: 1 }, i === hand.length - 1)
+  ).join('');
 }
 
 export function deckDetailsViewModel(deck, meta = {}, stats = {}, selectedFormat = '') {
