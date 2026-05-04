@@ -129,6 +129,25 @@ test('bindAppShellActions: fab/backdrop/escape coordinate the right drawer', () 
   ]);
 });
 
+test('bindAppShellActions: binder add drawer seeds the active binder location', () => {
+  const { win, document, stateRef } = setup();
+  const calls = [];
+
+  bindAppShellActions({
+    documentObj: document,
+    stateRef,
+    getEffectiveShapeImpl: () => 'binder',
+    getActiveLocationImpl: () => ({ type: 'binder', name: 'trade binder' }),
+    openRightDrawerImpl: (targets, options) => calls.push(['open', targets, options]),
+  });
+
+  click(win, document.querySelector('[data-fab-target]'));
+
+  assert.deepEqual(calls, [
+    ['open', ['filters', 'add'], { seedLocation: { type: 'binder', name: 'trade binder' } }],
+  ]);
+});
+
 test('bindAppShellActions: escape respects higher-priority overlays', () => {
   const { win, document, stateRef } = setup();
   const calls = [];

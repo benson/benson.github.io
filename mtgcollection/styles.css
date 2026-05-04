@@ -212,6 +212,24 @@
   }
   .app-totals-strip .sep { color: #bbb; }
 
+  body.view-binder .app-center {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+  body.view-binder #collectionSection {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+  }
+  body.view-binder #collectionSection.hidden { display: none !important; }
+  body.view-binder .app-totals-strip {
+    flex: 0 0 auto;
+    margin-top: 10px;
+  }
+
   .app-right {
     grid-area: right;
     border-left: 1px solid rgba(0,0,0,0.16);
@@ -229,12 +247,14 @@
     margin-bottom: 0;
   }
 
-  /* List-view + locations: hide right sidebar entirely and collapse the column */
+  /* List-view + locations + binder: hide right sidebar until the add drawer opens. */
   body.view-list .app-shell,
+  body.view-binder .app-shell,
   body.view-locations .app-shell {
     grid-template-columns: 200px 1fr 0;
   }
   body.view-list .app-right,
+  body.view-binder .app-right,
   body.view-locations .app-right { display: none; }
   body.view-deck .app-shell {
     grid-template-columns: 0 minmax(0, 1fr) 0;
@@ -244,9 +264,9 @@
     display: none;
   }
 
-  /* List-view + drawer-open: float the sidebar in from the right with a backdrop.
-     Same drawer treatment in deck view, where the right sidebar is hidden too. */
+  /* Drawer-open: float the sidebar in from the right for shapes that hide it. */
   body.view-list.right-drawer-open .app-right,
+  body.view-binder.right-drawer-open .app-right,
   body.view-deck.right-drawer-open .app-right {
     display: flex;
     position: fixed;
@@ -267,6 +287,7 @@
     display: none;
   }
   body.view-list.right-drawer-open .app-right-backdrop,
+  body.view-binder.right-drawer-open .app-right-backdrop,
   body.view-deck.right-drawer-open .app-right-backdrop { display: block; }
 
   /* FAB cluster — always visible (even with an empty collection so the user
@@ -1908,6 +1929,12 @@
   /* Binder view — paginated card slots, IRL binder mental model */
   .binder-view { display: none; }
   .binder-view.active { display: block; }
+  body.view-binder .binder-view.active {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+  }
   .binder-actions {
     display: flex;
     gap: 12px;
@@ -1935,6 +1962,14 @@
     padding: 18px;
     box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
   }
+  body.view-binder .binder-pages {
+    align-items: center;
+    display: flex;
+    flex: 1 1 auto;
+    justify-content: center;
+    min-height: 0;
+    overflow: hidden;
+  }
   .binder-pages-list {
     background: transparent;
     border: 0;
@@ -1943,7 +1978,13 @@
     overflow-x: auto;
     padding: 0;
   }
+  body.view-binder .binder-pages-list {
+    align-items: stretch;
+    justify-content: flex-start;
+    overflow: auto;
+  }
   .binder-list-table {
+    flex: 1 0 100%;
     width: 100%;
   }
   .binder-list-table .col-check {
@@ -1953,6 +1994,14 @@
     display: grid;
     gap: 14px;
   }
+  body.view-binder .binder-page {
+    height: 100%;
+    max-height: 100%;
+    max-width: 100%;
+  }
+  body.view-binder .binder-page-4x3 { aspect-ratio: 1952 / 2040; }
+  body.view-binder .binder-page-3x3 { aspect-ratio: 1464 / 2040; }
+  body.view-binder .binder-page-2x2 { aspect-ratio: 976 / 1360; }
   .binder-slot {
     position: relative;
     aspect-ratio: 488 / 680;
@@ -1962,6 +2011,11 @@
     background: #e8e4d8;
     box-shadow: inset 0 1px 3px rgba(0,0,0,0.18), 0 1px 2px rgba(0,0,0,0.08);
     transition: transform 0.1s, box-shadow 0.1s;
+  }
+  body.view-binder .binder-slot {
+    height: 100%;
+    min-height: 0;
+    width: 100%;
   }
   .binder-slot:hover, .binder-slot:focus-visible {
     transform: translateY(-2px);

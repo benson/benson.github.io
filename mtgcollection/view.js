@@ -241,8 +241,8 @@ export function render() {
       shareBanner.classList.add('hidden');
     }
   }
-  // Right drawer is only meaningful for the flat list / collection / deck shape
-  if (shape !== 'collection' && shape !== 'box' && shape !== 'deck') closeRightDrawer();
+  // Right drawer is only meaningful for card-browsing shapes.
+  if (shape !== 'collection' && shape !== 'box' && shape !== 'deck' && shape !== 'binder') closeRightDrawer();
   syncSidebarChrome(shape);
   syncClearFiltersBtn();
   syncViewAsListToggles();

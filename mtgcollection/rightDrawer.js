@@ -12,7 +12,7 @@ export function createRightDrawer({
     if (ids.length === 0) return;
 
     const shape = getShape();
-    const useDrawer = shape === 'collection' || shape === 'box' || shape === 'deck';
+    const useDrawer = shape === 'collection' || shape === 'box' || shape === 'deck' || shape === 'binder';
     if (useDrawer) {
       documentRef.body.classList.add('right-drawer-open');
       panelIds.forEach(id => {

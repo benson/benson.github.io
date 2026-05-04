@@ -12,29 +12,29 @@ function installDom() {
   return win.document;
 }
 
-test('createRightDrawer: collection-like shapes open allowed panels in the overlay drawer', () => {
+test('createRightDrawer: card-browsing shapes open allowed panels in the overlay drawer', () => {
   const documentRef = installDom();
   const seeded = [];
   const drawer = createRightDrawer({
     documentRef,
-    getShape: () => 'deck',
+    getShape: () => 'binder',
     setSelectedLocation: loc => seeded.push(loc),
   });
 
-  drawer.open(['addDetails', 'otherPanel'], { seedLocation: { type: 'deck', name: 'breya' } });
+  drawer.open(['addDetails', 'otherPanel'], { seedLocation: { type: 'binder', name: 'trade binder' } });
 
   assert.equal(documentRef.body.classList.contains('right-drawer-open'), true);
   assert.equal(documentRef.getElementById('addDetails').open, true);
   assert.equal(documentRef.getElementById('otherPanel').open, false);
-  assert.deepEqual(seeded, [{ type: 'deck', name: 'breya' }]);
+  assert.deepEqual(seeded, [{ type: 'binder', name: 'trade binder' }]);
   assert.equal(drawer.isOpen(), true);
 });
 
-test('createRightDrawer: non-overlay shapes open allowed panels inline', () => {
+test('createRightDrawer: non-card shapes open allowed panels inline', () => {
   const documentRef = installDom();
   const drawer = createRightDrawer({
     documentRef,
-    getShape: () => 'binder',
+    getShape: () => 'decks-home',
   });
 
   drawer.open('addDetails');

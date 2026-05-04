@@ -50,7 +50,8 @@ export function renderBinderView(list, {
   const pagesEl = document.getElementById('binderPages');
   const navEl = document.getElementById('binderNav');
   const summaryEl = document.getElementById('binderSummary');
-  pagesEl.classList.remove('binder-pages-list');
+  pagesEl.classList.remove('binder-pages-list', ...BINDER_LAYOUTS.map(size => 'binder-pages-' + size));
+  pagesEl.classList.add('binder-pages-' + state.binderSize);
 
   if (!hasActiveFilter()) {
     navEl.classList.add('hidden');
@@ -88,7 +89,7 @@ export function renderBinderView(list, {
   const conf = BINDER_SIZES[state.binderSize] || BINDER_SIZES['4x3'];
   const currentPage = pages[state.binderPage] || [];
   const slotsHtml = currentPage.map(c => renderBinderSlot(c)).join('');
-  pagesEl.innerHTML = `<div class="binder-page binder-page-${esc(state.binderSize)}" style="grid-template-columns: repeat(${conf.cols}, 1fr);">${slotsHtml}</div>`;
+  pagesEl.innerHTML = `<div class="binder-page binder-page-${esc(state.binderSize)}" style="grid-template-columns: repeat(${conf.cols}, 1fr); grid-template-rows: repeat(${conf.rows}, minmax(0, 1fr));">${slotsHtml}</div>`;
 
   navEl.classList.remove('hidden');
   const prevBtn = document.getElementById('binderPrev');

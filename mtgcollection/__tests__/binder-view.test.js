@@ -103,6 +103,8 @@ test('renderBinderView: paginates sorted cards and updates binder chrome', () =>
 
   assert.equal(state.binderPage, 0);
   assert.equal(doc.querySelectorAll('.binder-slot.detail-trigger').length, 4);
+  assert.equal(doc.getElementById('binderPages').classList.contains('binder-pages-2x2'), true);
+  assert.match(doc.querySelector('.binder-page').getAttribute('style'), /grid-template-rows: repeat\(2, minmax\(0, 1fr\)\)/);
   assert.equal(doc.querySelector('.binder-slot').getAttribute('aria-label'), 'Alpha');
   assert.equal(doc.getElementById('binderNav').classList.contains('hidden'), false);
   assert.equal(doc.getElementById('binderPrev').disabled, true);

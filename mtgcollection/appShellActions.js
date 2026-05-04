@@ -95,7 +95,10 @@ export function bindAppShellActions({
       const button = event.target.closest('[data-fab-target]');
       if (!button) return;
       const targets = button.dataset.fabTarget.split(',').map(part => part.trim()).filter(Boolean);
-      const seedLocation = getEffectiveShapeImpl() === 'deck' ? currentDeckScopeImpl() : null;
+      const shape = getEffectiveShapeImpl();
+      const seedLocation = shape === 'deck'
+        ? currentDeckScopeImpl()
+        : (shape === 'binder' || shape === 'box') ? getActiveLocationImpl() : null;
       openRightDrawerImpl(targets, { seedLocation });
     };
     fabClusterEl.addEventListener('click', onFabClick);
