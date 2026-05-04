@@ -183,7 +183,6 @@
   }
   body.view-list .app-center { padding: 0; scrollbar-width: none; }
   body.view-list .app-center::-webkit-scrollbar { display: none; }
-  .app-center .feedback { margin-bottom: 12px; }
   .app-totals-strip {
     position: sticky;
     bottom: 0;
@@ -3330,11 +3329,17 @@
   .add-preview-existing.hidden { display: none; }
 
   .feedback {
+    position: fixed;
+    left: 220px;
+    bottom: 56px;
+    z-index: 90;
+    max-width: min(520px, calc(100vw - 260px));
     font-size: 0.75rem;
-    padding: 6px 10px;
+    line-height: 1.35;
+    padding: 8px 10px;
     border-radius: 2px;
-    margin-bottom: 12px;
     display: none;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.14);
   }
   .feedback.active { display: block; }
   .feedback.error { background: #fff0f0; border: 1px solid #e8c0c0; color: #900; }
@@ -3368,6 +3373,11 @@
     margin-left: 8px;
   }
   .feedback .backup-btn:hover { opacity: 0.7; }
+  body.view-deck .feedback,
+  body.share-mode .feedback {
+    left: 20px;
+    max-width: min(520px, calc(100vw - 40px));
+  }
 
   .loading-spinner {
     display: inline-block;
@@ -3777,6 +3787,17 @@
     .app-left .sidebar-sizes .segmented { width: auto; }
     .app-left .sidebar-sizes .btn { width: auto; }
     .app-center { padding: 14px 14px; overflow-y: visible; }
+    .feedback {
+      left: 14px;
+      right: 14px;
+      bottom: 56px;
+      max-width: none;
+    }
+    body.view-deck .feedback,
+    body.share-mode .feedback {
+      left: 14px;
+      max-width: none;
+    }
     .app-right {
       border-left: none;
       border-top: 1px solid #000;
