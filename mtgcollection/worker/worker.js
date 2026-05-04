@@ -2,6 +2,13 @@
 // --------------------
 // Hosts legacy public deck snapshots in KV and authenticated collection sync
 // in D1/Durable Objects. Public GET /share/:id remains capability-link based.
+import {
+  handleByokChatRequest,
+  handleMcpApplyRequest,
+  handleMcpOAuthRequest,
+  handleMcpRequest,
+  isMcpOAuthPath,
+} from './mcp.js';
 
 const ALLOWED_ORIGINS = [
   'https://bensonperry.com',
@@ -358,6 +365,14 @@ export class CollectionSyncObject {
     }
 
     let revision = row.revision || 0;
+    const baseRevision = parseInt(body.baseRevision, 10) || 0;
+    if (body.requireBaseRevision === true && baseRevision !== revision) {
+      return json({
+        error: 'revision conflict',
+        expectedRevision: baseRevision,
+        actualRevision: revision,
+      }, 409, request);
+    }
     let snapshot = JSON.parse(row.snapshot_json || 'null') || makeEmptySnapshot();
     const acceptedOpIds = [];
     for (const op of ops) {
@@ -424,11 +439,34 @@ async function canWriteShare(request, env, shareId, auth) {
   return true;
 }
 
+function workerDeps() {
+  return {
+    authenticate,
+    cloneJson,
+    collectionKey,
+    corsHeaders,
+    generateId,
+    json,
+    locationKey,
+    makeEmptySnapshot,
+    normalizeLocation,
+    routeSync,
+    text,
+    verifyClerkJwt,
+  };
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders(request) });
     const url = new URL(request.url);
     const path = url.pathname;
+    const deps = workerDeps();
+
+    if (isMcpOAuthPath(path)) return handleMcpOAuthRequest(request, env, deps);
+    if (path === '/mcp') return handleMcpRequest(request, env, deps);
+    if (path === '/mcp/chat') return handleByokChatRequest(request, env, deps);
+    if (path === '/mcp/apply') return handleMcpApplyRequest(request, env, deps);
 
     if (path.startsWith('/sync/')) {
       try {

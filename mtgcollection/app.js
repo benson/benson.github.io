@@ -23,6 +23,7 @@ import {
   primeSyncBaseline,
 } from './syncEngine.js';
 import { initSyncUi } from './syncUi.js';
+import { initMcpChat } from './mcpChat.js';
 
 function mirrorSharedDecks() {
   if (state.shareSnapshot) return;
@@ -67,6 +68,7 @@ async function boot() {
   });
   initShare();
   initSyncUi();
+  initMcpChat();
 
   // App-level DOM controls; format selector syncs after loadFromStorage().
   const appControls = bindAppControls();

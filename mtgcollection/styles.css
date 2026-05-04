@@ -430,7 +430,7 @@
     cursor: pointer;
     box-shadow: 0 1px 3px rgba(0,0,0,0.2);
     text-transform: lowercase;
-    letter-spacing: 0.02em;
+    letter-spacing: 0;
   }
   .fab-btn:hover { background: #333; }
   .fab-btn:focus-visible { outline: 2px solid #000; outline-offset: 2px; }
@@ -441,6 +441,13 @@
   }
   .fab-label { white-space: nowrap; }
   .fab-btn.mobile-filter-fab { display: none; }
+  body.right-drawer-open .fab-cluster {
+    display: flex;
+    z-index: 70;
+  }
+  body.right-drawer-open .fab-cluster .fab-btn:not(.mcp-chat-fab) {
+    display: none;
+  }
 
   .app-footer {
     grid-area: footer;
@@ -3552,12 +3559,157 @@
   details.add-details summary {
     cursor: pointer;
     font-size: 0.8rem;
-    letter-spacing: 0.02em;
+    letter-spacing: 0;
   }
   details.import-details summary::marker,
   details.add-details summary::marker { color: #999; }
   details.import-details .details-body,
   details.add-details .details-body { margin-top: 12px; }
+  .mcp-chat {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .mcp-chat-widget {
+    position: fixed;
+    right: 16px;
+    bottom: 148px;
+    z-index: 75;
+    display: flex;
+    flex-direction: column;
+    width: min(430px, calc(100vw - 32px));
+    max-height: min(680px, calc(100dvh - 180px));
+    background: #fff;
+    border: 1px solid #111;
+    border-radius: 6px;
+    box-shadow: 0 14px 38px rgba(0,0,0,0.22);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(8px);
+    visibility: hidden;
+    overflow: hidden;
+    transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
+  }
+  body.mcp-chat-open .mcp-chat-widget {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+    visibility: visible;
+  }
+  .mcp-chat-head {
+    align-items: center;
+    background: #111;
+    color: #fff;
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+    min-height: 42px;
+    padding: 8px 10px 8px 12px;
+  }
+  .mcp-chat-head h2 {
+    font-size: 0.86rem;
+    font-weight: 600;
+    line-height: 1.2;
+    margin: 0;
+  }
+  .mcp-chat-close {
+    align-items: center;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 2px;
+    color: #fff;
+    cursor: pointer;
+    display: inline-flex;
+    font: inherit;
+    height: 28px;
+    justify-content: center;
+    min-width: 28px;
+    padding: 0 8px;
+  }
+  .mcp-chat-close:hover,
+  .mcp-chat-close:focus-visible {
+    border-color: #fff;
+    outline: none;
+  }
+  .mcp-chat-widget .mcp-chat {
+    min-height: 0;
+    padding: 10px;
+  }
+  .mcp-chat-config {
+    display: grid;
+    grid-template-columns: minmax(96px, 0.55fr) minmax(120px, 1fr);
+    gap: 8px;
+  }
+  .mcp-chat select,
+  .mcp-chat input,
+  .mcp-chat textarea {
+    width: 100%;
+    border: 1px solid #ccc;
+    border-radius: 2px;
+    background: #fff;
+    color: #111;
+    font: inherit;
+    min-width: 0;
+  }
+  .mcp-chat input,
+  .mcp-chat textarea { padding: 8px; }
+  .mcp-chat select { padding: 7px 8px; }
+  .mcp-chat-log {
+    min-height: 180px;
+    max-height: min(42vh, 360px);
+    overflow: auto;
+    border: 1px solid #e2ded6;
+    background: #fbfaf7;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .mcp-chat-empty {
+    color: #666;
+    font-size: 0.85rem;
+  }
+  .mcp-chat-message {
+    display: grid;
+    gap: 3px;
+  }
+  .mcp-chat-role {
+    color: #666;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+  }
+  .mcp-chat-body {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-size: 0.9rem;
+    line-height: 1.35;
+  }
+  .mcp-chat-assistant .mcp-chat-body {
+    border-left: 2px solid #777;
+    padding-left: 8px;
+  }
+  .mcp-chat-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: end;
+  }
+  .mcp-chat-form textarea {
+    min-height: 70px;
+    resize: vertical;
+  }
+  .mcp-chat-form .btn {
+    min-height: 38px;
+    min-width: 70px;
+  }
+  .mcp-chat-apply {
+    justify-self: start;
+    margin-top: 4px;
+  }
+  body.share-mode .mcp-chat-widget,
+  body.share-mode .mcp-chat-fab {
+    display: none;
+  }
 
   /* Add-cards panel */
   .add-tabs {
@@ -4263,6 +4415,18 @@
     .fab-cluster {
       bottom: calc(56px + env(safe-area-inset-bottom, 0px));
       display: flex;
+    }
+    .mcp-chat-widget {
+      bottom: calc(106px + env(safe-area-inset-bottom, 0px));
+      max-height: calc(100dvh - 132px - env(safe-area-inset-bottom, 0px));
+      right: 12px;
+      width: calc(100vw - 24px);
+    }
+    .mcp-chat-form {
+      grid-template-columns: 1fr;
+    }
+    .mcp-chat-form .btn {
+      width: 100%;
     }
     body.left-drawer-open .fab-cluster { display: none; }
     .fab-btn.mobile-filter-fab { display: inline-flex; }

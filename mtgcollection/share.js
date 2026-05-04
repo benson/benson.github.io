@@ -24,6 +24,10 @@ import { normalizeDeckBoard } from './collection.js';
 function defaultShareApiUrl() {
   if (typeof window !== 'undefined') {
     if (window.MTGCOLLECTION_SHARE_API_URL) return window.MTGCOLLECTION_SHARE_API_URL;
+    const params = new URLSearchParams(window.location?.search || '');
+    const remoteSync = params.get('sync') === 'remote'
+      || window.localStorage?.getItem('MTGCOLLECTION_LOCAL_SYNC') === 'remote';
+    if (remoteSync) return 'https://mtgcollection-share.bensonperry.workers.dev';
     const host = window.location?.hostname || '';
     if (host === 'localhost' || host === '127.0.0.1') return 'http://127.0.0.1:8787';
   }

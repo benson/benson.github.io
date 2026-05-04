@@ -30,12 +30,17 @@ function configuredPublishableKey() {
   if (explicit) return explicit;
   const meta = document.querySelector('meta[name="mtgcollection-clerk-publishable-key"]')?.content || '';
   const host = window.location?.hostname || '';
-  if ((host === 'localhost' || host === '127.0.0.1') && meta.startsWith('pk_live_')) return '';
+  const params = new URLSearchParams(window.location?.search || '');
+  const useClerkOnLocalhost = params.get('auth') === 'clerk'
+    || window.localStorage?.getItem('MTGCOLLECTION_LOCAL_AUTH') === 'clerk';
+  if ((host === 'localhost' || host === '127.0.0.1') && meta.startsWith('pk_live_') && !useClerkOnLocalhost) return '';
   return meta;
 }
 
 function devUserId() {
   if (typeof window === 'undefined') return '';
+  const params = new URLSearchParams(window.location?.search || '');
+  if (params.get('auth') === 'clerk' || window.localStorage?.getItem('MTGCOLLECTION_LOCAL_AUTH') === 'clerk') return '';
   const explicit = window.MTGCOLLECTION_SYNC_DEV_USER || '';
   if (explicit) return String(explicit);
   const host = window.location?.hostname || '';

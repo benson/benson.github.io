@@ -4,7 +4,11 @@ compatibility_date = "2024-12-01"
 
 [vars]
 CLERK_ISSUER = "https://clerk.bensonperry.com"
-CLERK_AUTHORIZED_PARTIES = "https://bensonperry.com"
+CLERK_AUTHORIZED_PARTIES = "https://bensonperry.com,http://127.0.0.1:8087,http://localhost:8087"
+MCP_PUBLIC_ORIGIN = "https://mtgcollection-share.bensonperry.workers.dev"
+# Configure after creating a Clerk OAuth application for MCP:
+CLERK_FRONTEND_API_URL = "https://clerk.bensonperry.com"
+CLERK_OAUTH_CLIENT_ID = "HNx2PbSrTQUcrsfd"
 
 # Run `wrangler kv:namespace create SHARES` to create this namespace, then
 # paste the returned id here. Same for the preview namespace if you want
@@ -12,6 +16,12 @@ CLERK_AUTHORIZED_PARTIES = "https://bensonperry.com"
 [[kv_namespaces]]
 binding = "SHARES"
 id = "95781565fce640bdbb92d6866919d8b4"
+
+# Stores MCP OAuth clients, authorization codes, access tokens, and refresh tokens.
+# Create with: `wrangler kv:namespace create OAUTH_KV`
+[[kv_namespaces]]
+binding = "OAUTH_KV"
+id = "56b9488153ee482fa6a49a52a32dc0e8"
 
 [[d1_databases]]
 binding = "DB"

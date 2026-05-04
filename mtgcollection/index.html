@@ -387,7 +387,6 @@
         </div>
       </div>
     </details>
-
   </aside>
 
   <footer class="app-footer">
@@ -402,8 +401,30 @@
     </div>
   </footer>
   <div class="app-right-backdrop" id="appRightBackdrop"></div>
+  <section class="mcp-chat-widget" id="mcpChatDetails" aria-label="collection chat" aria-hidden="true">
+    <header class="mcp-chat-head">
+      <h2>collection chat</h2>
+      <button class="mcp-chat-close" type="button" id="mcpChatClose" aria-label="close chat">x</button>
+    </header>
+    <div class="mcp-chat">
+      <div class="mcp-chat-config">
+        <select id="mcpChatProvider" aria-label="chat provider">
+          <option value="openai">OpenAI</option>
+          <option value="anthropic">Anthropic</option>
+        </select>
+        <input id="mcpChatModel" type="text" placeholder="gpt-5.4-mini" autocomplete="off" spellcheck="false" aria-label="model">
+      </div>
+      <input id="mcpChatKey" type="password" autocomplete="off" spellcheck="false" placeholder="API key for this session">
+      <div class="mcp-chat-log" id="mcpChatLog" aria-live="polite"></div>
+      <form class="mcp-chat-form" id="mcpChatForm">
+        <textarea id="mcpChatInput" rows="3" placeholder="ask about your collection or preview an edit"></textarea>
+        <button class="btn" type="submit" id="mcpChatSend">send</button>
+      </form>
+    </div>
+  </section>
   <div class="fab-cluster" id="fabCluster">
     <button class="fab-btn mobile-filter-fab" type="button" data-mobile-filter-toggle aria-label="filters"><span class="fab-label">filters</span></button>
+    <button class="fab-btn mcp-chat-fab" type="button" data-mcp-chat-toggle aria-controls="mcpChatDetails" aria-expanded="false" aria-label="collection chat"><span class="fab-glyph">?</span><span class="fab-label">chat</span></button>
     <button class="fab-btn" type="button" data-fab-target="addDetails" aria-label="add cards"><span class="fab-glyph">+</span><span class="fab-label">add</span></button>
   </div>
 </div>

@@ -275,7 +275,10 @@ export async function initSyncEngine({ render = () => {}, populateFilters = () =
 
 export async function signIn() {
   if (!auth?.configured) {
-    showFeedback('cloud sync needs a Clerk publishable key configured', 'error');
+    const detail = String(status.detail || '');
+    showFeedback(detail.startsWith('cloud sign-in unavailable:')
+      ? detail
+      : 'cloud sync needs a Clerk publishable key configured', 'error');
     return;
   }
   emit({ mode: 'signing-in', label: 'signing in', detail: 'opening sign in' });
@@ -381,4 +384,12 @@ export async function importPendingLocalSnapshot() {
 
 export function getSyncStatus() {
   return status;
+}
+
+export async function getSyncAuthToken() {
+  return auth?.getToken ? auth.getToken() : null;
+}
+
+export function getSyncUser() {
+  return auth?.user || null;
 }
