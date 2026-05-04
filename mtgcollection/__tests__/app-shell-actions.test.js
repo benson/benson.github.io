@@ -19,6 +19,7 @@ function setup() {
       <button data-mobile-filter-toggle></button>
       <button data-fab-target="filters, add"></button>
     </div>
+    <button data-close-right-drawer></button>
     <div id="appRightBackdrop"></div>
     <div id="detailDrawer"></div>
     <span class="loc-pill" data-loc-type="box" data-loc-name="bulk"></span>
@@ -99,6 +100,21 @@ test('bindAppShellActions: view-as-list and sort controls update shell state', (
     'save', 'render',
     'save', 'render',
   ]);
+});
+
+test('bindAppShellActions: close button delegates to the right drawer', () => {
+  const { win, document, stateRef } = setup();
+  const calls = [];
+
+  bindAppShellActions({
+    documentObj: document,
+    stateRef,
+    closeRightDrawerImpl: () => calls.push('close'),
+  });
+
+  click(win, document.querySelector('[data-close-right-drawer]'));
+
+  assert.deepEqual(calls, ['close']);
 });
 
 test('bindAppShellActions: fab/backdrop/escape coordinate the right drawer', () => {

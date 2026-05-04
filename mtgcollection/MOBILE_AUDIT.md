@@ -79,6 +79,23 @@ Re-checked with Playwright:
 - `390x844`: binder center width increased from about `200px` to `390px`; binder surface increased from about `176px` to `364px`.
 - `768x1024`: storage, binder, collection, and deck all reported no document overflow; binder surface increased to about `740px`.
 
+## Pass 2 Implementation Status
+
+Implemented in the add/detail workflow pass:
+
+- Mobile add/import opens as a full-viewport sheet with an explicit close button.
+- The add sheet keeps the tab row, search inputs, autocomplete rows, and printing rows within touch-friendly sizes.
+- Selected card previews use a compact image-and-meta layout so the first actionable fields stay close.
+- Add and detail action rows are sticky at the bottom with safe-area padding.
+- Detail drawer stays full-width/full-height on mobile and caps the card image to the viewport width.
+- The shared backdrop is hidden by default and only blocks taps while a drawer sheet is open.
+
+Re-checked with Playwright at `390x844`:
+
+- Collection default: no horizontal document overflow, hidden left/right panels, visible FAB.
+- Add sheet: no overflow, full `390x844` sheet, close button visible, sticky action row enabled.
+- Detail drawer from binder: no overflow, full `390x844` drawer, card image capped to `340px`, sticky action row enabled.
+
 ## Proposed Implementation Sequence
 
 ### Pass 1: Mobile Shell Foundation

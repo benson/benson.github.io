@@ -46,6 +46,11 @@ export function bindAppShellActions({
   }
 
   const onBodyClick = event => {
+    if (event.target.closest('[data-close-right-drawer]')) {
+      closeRightDrawerImpl();
+      return;
+    }
+
     const button = event.target.closest('[data-view-as-list]');
     if (!button) return;
     stateRef.viewAsList = !stateRef.viewAsList;

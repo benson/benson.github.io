@@ -355,6 +355,9 @@
   .app-right details.stats-panel {
     margin-bottom: 0;
   }
+  .app-right-close {
+    display: none;
+  }
 
   /* List-view + locations + binder: hide right sidebar until the add drawer opens. */
   body.view-list .app-shell,
@@ -3978,6 +3981,134 @@
       width: min(480px, 100vw);
       z-index: 50;
     }
+    .app-right-close {
+      align-items: center;
+      align-self: flex-end;
+      background: transparent;
+      border: 1px solid #ccc;
+      color: #666;
+      cursor: pointer;
+      display: inline-flex;
+      font: inherit;
+      height: 36px;
+      justify-content: center;
+      margin-bottom: 8px;
+      min-width: 36px;
+      padding: 0 10px;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .app-right-close:hover,
+    .app-right-close:focus-visible {
+      border-color: #000;
+      color: #000;
+      outline: none;
+    }
+    .app-right details.add-details,
+    .app-right details.import-details {
+      background: transparent;
+      border: 0;
+      margin: 0;
+      padding: 0;
+    }
+    .app-right details.add-details summary,
+    .app-right details.import-details summary {
+      border-bottom: 1px solid #ddd;
+      font-size: 1rem;
+      padding: 0 0 10px;
+    }
+    .app-right details.add-details .details-body,
+    .app-right details.import-details .details-body {
+      padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+    }
+    .add-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      width: 100%;
+    }
+    .add-tab {
+      min-height: 40px;
+      padding: 8px 6px;
+    }
+    .name-search input,
+    .printing-filter-input {
+      font-size: 16px;
+      min-height: 42px;
+      padding: 9px 4px;
+    }
+    .autocomplete-list li,
+    .printing-row {
+      min-height: 42px;
+      padding: 10px 9px;
+    }
+    .add-preview.active {
+      display: grid;
+      grid-template-columns: 112px minmax(0, 1fr);
+      align-items: start;
+      gap: 12px;
+    }
+    .add-preview-img {
+      width: 112px;
+    }
+    .add-preview-meta {
+      margin-bottom: 4px;
+    }
+    .printing-list {
+      max-height: min(38vh, 320px);
+    }
+    .add-fields,
+    .detail-form {
+      grid-template-columns: 1fr;
+    }
+    .add-fields .field-finish,
+    .add-fields .field-condition,
+    .add-fields .field-language,
+    .add-fields .field-qty,
+    .add-fields .field-location,
+    .add-fields .field-full {
+      grid-column: 1;
+    }
+    .add-fields .field-qty,
+    #detailQty {
+      max-width: 96px;
+    }
+    .condition-toggle span,
+    .language-toggle span {
+      align-items: center;
+      display: flex;
+      justify-content: center;
+      min-height: 36px;
+    }
+    .add-actions,
+    .drawer-actions {
+      background: #fff;
+      border-top: 1px solid #ddd;
+      bottom: 0;
+      margin-top: 14px;
+      padding: 10px 0 calc(10px + env(safe-area-inset-bottom, 0px));
+      position: sticky;
+      z-index: 3;
+    }
+    .add-actions .btn,
+    .drawer-actions .btn {
+      flex: 1 1 0;
+      min-height: 42px;
+    }
+    .detail-drawer {
+      height: 100dvh;
+      width: 100vw;
+    }
+    .drawer-head {
+      padding: 12px 14px;
+    }
+    .drawer-body {
+      padding: 12px 14px 0;
+    }
+    .drawer-image-frame,
+    .drawer-placeholder {
+      max-width: 340px;
+    }
     body.view-list .app-right,
     body.view-binder .app-right,
     body.view-locations .app-right,
@@ -3988,6 +4119,10 @@
       display: flex;
       border-left: 1px solid #000;
       border-top: 0;
+      bottom: 0;
+      height: 100dvh;
+      top: 0;
+      width: 100vw;
     }
     body.view-deck .app-left,
     body.view-deck:not(.right-drawer-open) .app-right { display: none; }
@@ -4049,7 +4184,6 @@
     .list-view.active table {
       min-width: 660px;
     }
-    .app-right-backdrop,
     body.view-list.right-drawer-open .app-right-backdrop,
     body.view-binder.right-drawer-open .app-right-backdrop,
     body.view-deck.right-drawer-open .app-right-backdrop,
