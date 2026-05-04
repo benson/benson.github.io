@@ -102,8 +102,9 @@ async function boot() {
     migrateSavedCollection();
     await backfillMissingPrices();
   }
+  applyRouteStateFromUrl();
   await primeSyncBaseline();
-  initSyncEngine({ render, populateFilters });
+  initSyncEngine({ render, populateFilters, applyRouteState: applyRouteStateFromUrl });
   populateFilters();
   applyRouteStateFromUrl();
   applyUrlStateOnLoad();

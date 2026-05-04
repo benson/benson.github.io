@@ -31,6 +31,7 @@ let pushTimer = null;
 let liveSocket = null;
 let renderImpl = () => {};
 let populateFiltersImpl = () => {};
+let applyRouteStateImpl = () => {};
 const listeners = new Set();
 
 let status = {
@@ -124,6 +125,7 @@ async function applyRemoteSnapshot(snapshot, revision) {
   try {
     applySyncSnapshotToState(snapshot, { replaceHistoryImpl: replaceLog });
     await setBaseline(snapshot, revision);
+    applyRouteStateImpl();
     populateFiltersImpl();
     renderImpl();
   } finally {
@@ -232,9 +234,10 @@ export async function primeSyncBaseline() {
   if (snapshot) await setBaseline(snapshot, status.revision || 0);
 }
 
-export async function initSyncEngine({ render = () => {}, populateFilters = () => {} } = {}) {
+export async function initSyncEngine({ render = () => {}, populateFilters = () => {}, applyRouteState = () => {} } = {}) {
   renderImpl = render;
   populateFiltersImpl = populateFilters;
+  applyRouteStateImpl = applyRouteState;
   meta = await getSyncMeta();
   emit({ revision: meta.baseRevision || 0 });
   baselineSnapshot = (await getLocalSyncSnapshot()) || currentSnapshot();

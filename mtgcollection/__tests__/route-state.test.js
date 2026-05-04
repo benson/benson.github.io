@@ -9,6 +9,7 @@ import {
   setTopLevelViewMode,
   syncRouteUrlFromState,
 } from '../routeState.js';
+import { applySyncSnapshotToState } from '../portableArchive.js';
 import { resetStateAfterEach } from './testUtils.js';
 
 resetStateAfterEach();
@@ -80,6 +81,32 @@ test('applyRouteStateFromUrl: defaults hard reloads to collection without route 
   });
 
   assert.equal(hadRoute, false);
+  assert.equal(state.viewMode, 'collection');
+  assert.equal(state.activeLocation, null);
+});
+
+test('applyRouteStateFromUrl: URL default wins after sync restores a saved tab', () => {
+  applySyncSnapshotToState({
+    app: {
+      schemaVersion: 1,
+      collection: [],
+      containers: {},
+      ui: {
+        viewMode: 'decks',
+        viewAsList: false,
+        selectedFormat: '',
+        sortField: null,
+        sortDir: 'asc',
+      },
+    },
+    history: [],
+    shares: [],
+  });
+
+  applyRouteStateFromUrl({
+    locationObj: { href: 'https://example.com/mtgcollection/?auth=clerk&sync=remote' },
+  });
+
   assert.equal(state.viewMode, 'collection');
   assert.equal(state.activeLocation, null);
 });
