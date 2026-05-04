@@ -2,6 +2,12 @@
 // Used by packcracker and poolbuilder
 
 const SCRYFALL_API = 'https://api.scryfall.com';
+const SCRYFALL_ACCEPT = 'application/json;q=0.9,*/*;q=0.8';
+const SCRYFALL_DELAY_MS = 200;
+const SCRYFALL_HEADERS = { Accept: SCRYFALL_ACCEPT };
+if (typeof window === 'undefined') {
+  SCRYFALL_HEADERS['User-Agent'] = 'bensonperry-shared-mtg/1.0 (https://bensonperry.com)';
+}
 
 // ============ Booster Era Dates ============
 
@@ -101,12 +107,33 @@ export const COLLECTOR_EXCLUSIVE_FRAMES = ['inverted', 'extendedart'];
 
 export const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-export async function fetchWithRetry(url, retries = 3) {
+function getRetryDelayMs(response, attempt) {
+  const retryAfter = response.headers?.get('retry-after');
+  if (retryAfter) {
+    const seconds = Number(retryAfter);
+    if (!Number.isNaN(seconds)) return seconds * 1000;
+
+    const dateMs = Date.parse(retryAfter);
+    if (!Number.isNaN(dateMs)) return Math.max(dateMs - Date.now(), SCRYFALL_DELAY_MS);
+  }
+
+  return Math.min(2000 * attempt, 30000);
+}
+
+export async function fetchWithRetry(url, retries = 6) {
+  let lastError = null;
+
   for (let i = 0; i < retries; i++) {
+    const attempt = i + 1;
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: SCRYFALL_HEADERS,
+      });
       if (response.status === 429) {
-        await delay(1000);
+        lastError = new Error('HTTP 429 after ' + attempt + ' attempt(s)');
+        if (attempt >= retries) break;
+
+        await delay(getRetryDelayMs(response, attempt));
         continue;
       }
       if (!response.ok) {
@@ -114,10 +141,13 @@ export async function fetchWithRetry(url, retries = 3) {
       }
       return await response.json();
     } catch (error) {
-      if (i === retries - 1) throw error;
-      await delay(100 * (i + 1));
+      lastError = error;
+      if (attempt >= retries) break;
+      await delay(500 * attempt);
     }
   }
+
+  throw lastError || new Error('Failed to fetch ' + url);
 }
 
 // ============ Booster Type Detection ============
@@ -207,7 +237,7 @@ export async function fetchSetCards(setCode, boosterType = 'play', options = {})
 
     // Handle pagination
     while (data.has_more && data.next_page) {
-      await delay(100);
+      await delay(SCRYFALL_DELAY_MS);
       data = await fetchWithRetry(data.next_page);
       cards = cards.concat(data.data || []);
     }
@@ -291,7 +321,7 @@ export async function fetchAllSetCards(setCode, boosterType = 'play') {
 
     // Handle pagination
     while (data.has_more && data.next_page) {
-      await delay(100);
+      await delay(SCRYFALL_DELAY_MS);
       data = await fetchWithRetry(data.next_page);
       cards = cards.concat(data.data || []);
     }
