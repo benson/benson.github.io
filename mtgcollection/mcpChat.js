@@ -14,6 +14,7 @@ let formEl = null;
 let providerEl = null;
 let modelEl = null;
 let keyEl = null;
+let keyToggleEl = null;
 let inputEl = null;
 let sendBtn = null;
 let closeBtn = null;
@@ -33,8 +34,7 @@ function setChatOpen(open, { focus = false } = {}) {
   toggleButtons.forEach(button => button.setAttribute('aria-expanded', open ? 'true' : 'false'));
   if (open && focus) {
     globalThis.setTimeout(() => {
-      const target = keyEl?.value ? inputEl : keyEl;
-      target?.focus();
+      inputEl?.focus();
     }, 0);
   }
 }
@@ -98,12 +98,19 @@ function renderTranscript() {
 }
 
 function providerModelDefault(provider) {
-  return provider === 'anthropic' ? 'claude-sonnet-4-5' : 'gpt-5.4-mini';
+  return provider === 'anthropic' ? 'claude-sonnet-4-5' : 'gpt-5-nano';
 }
 
 function syncModelPlaceholder() {
   if (!providerEl || !modelEl) return;
   modelEl.placeholder = providerModelDefault(providerEl.value);
+}
+
+function setKeyFieldVisible(visible) {
+  if (!keyEl || !keyToggleEl) return;
+  keyEl.hidden = !visible;
+  keyToggleEl.setAttribute('aria-expanded', visible ? 'true' : 'false');
+  if (visible) keyEl.focus();
 }
 
 async function sendChat() {
@@ -112,11 +119,6 @@ async function sendChat() {
   const user = getSyncUser();
   if (!user) {
     showFeedback('sign in before using collection chat', 'error');
-    return;
-  }
-  if (!apiKey) {
-    showFeedback('paste an API key for this chat session', 'error');
-    keyEl.focus();
     return;
   }
   if (!prompt) return;
@@ -140,18 +142,19 @@ async function sendChat() {
         .slice(-12)
         .map(message => ({ role: message.role === 'assistant' ? 'assistant' : 'user', content: message.content })),
     ];
+    const payload = {
+      provider,
+      model,
+      messages,
+    };
+    if (apiKey) payload.apiKey = apiKey;
     const res = await fetch(SYNC_API_URL + '/mcp/chat', {
       method: 'POST',
       headers: {
         Authorization: 'Bearer ' + token,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        provider,
-        model,
-        apiKey,
-        messages,
-      }),
+      body: JSON.stringify(payload),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'chat request failed');
@@ -199,6 +202,7 @@ export function initMcpChat({ documentObj = document } = {}) {
   providerEl = documentObj.getElementById('mcpChatProvider');
   modelEl = documentObj.getElementById('mcpChatModel');
   keyEl = documentObj.getElementById('mcpChatKey');
+  keyToggleEl = documentObj.getElementById('mcpChatKeyToggle');
   inputEl = documentObj.getElementById('mcpChatInput');
   sendBtn = documentObj.getElementById('mcpChatSend');
   closeBtn = documentObj.getElementById('mcpChatClose');
@@ -210,6 +214,7 @@ export function initMcpChat({ documentObj = document } = {}) {
     button.addEventListener('click', toggleChat);
   });
   closeBtn?.addEventListener('click', () => setChatOpen(false));
+  keyToggleEl?.addEventListener('click', () => setKeyFieldVisible(!!keyEl?.hidden));
   documentObj.addEventListener('keydown', event => {
     if (event.key === 'Escape' && documentObj.body.classList.contains('mcp-chat-open')) {
       setChatOpen(false);

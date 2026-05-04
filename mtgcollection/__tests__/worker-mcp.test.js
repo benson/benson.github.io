@@ -329,3 +329,116 @@ test('mcp chat: OpenAI remote MCP receives the raw MCP token', async () => {
     globalThis.fetch = originalFetch;
   }
 });
+
+test('mcp chat: hosted OpenAI key is used when no BYOK key is supplied', async () => {
+  const { env } = fakeSyncEnv();
+  env.MTGCOLLECTION_CHAT_OPENAI_API_KEY = 'sk-hosted-secret';
+  const originalFetch = globalThis.fetch;
+  let authHeader = '';
+  let requestBody = null;
+  globalThis.fetch = async (url, init = {}) => {
+    assert.equal(url, 'https://api.openai.com/v1/responses');
+    authHeader = init.headers.Authorization;
+    requestBody = JSON.parse(init.body);
+    return Response.json({ output_text: 'hosted ok' });
+  };
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        provider: 'openai',
+        messages: [{ role: 'user', content: 'is this working?' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.mode, 'hosted');
+    assert.equal(data.model, 'gpt-5-nano');
+    assert.equal(authHeader, 'Bearer sk-hosted-secret');
+    assert.equal(requestBody.max_output_tokens, 1000);
+    assert.equal([...env.OAUTH_KV.values.values()].some(value => String(value).includes('sk-hosted-secret')), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp chat: hosted quota blocks provider calls after the daily limit', async () => {
+  const { env } = fakeSyncEnv();
+  env.MTGCOLLECTION_CHAT_OPENAI_API_KEY = 'sk-hosted-secret';
+  env.MTGCOLLECTION_CHAT_DAILY_LIMIT = '1';
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls += 1;
+    return Response.json({ output_text: 'ok' });
+  };
+  try {
+    const request = () => new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        provider: 'openai',
+        messages: [{ role: 'user', content: 'ping' }],
+      }),
+    });
+    assert.equal((await worker.fetch(request(), env)).status, 200);
+    const blocked = await worker.fetch(request(), env);
+    assert.equal(blocked.status, 429);
+    const data = await blocked.json();
+    assert.match(data.error, /daily limit/);
+    assert.equal(calls, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp chat: chat MCP token can preview but cannot apply', async () => {
+  const { env } = fakeSyncEnv();
+  const originalFetch = globalThis.fetch;
+  let mcpToken = '';
+  globalThis.fetch = async (url, init = {}) => {
+    assert.equal(url, 'https://api.openai.com/v1/responses');
+    const requestBody = JSON.parse(init.body);
+    mcpToken = requestBody.tools.find(tool => tool.type === 'mcp').authorization;
+    return Response.json({ output_text: 'ok' });
+  };
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        provider: 'openai',
+        apiKey: 'sk-test-secret',
+        messages: [{ role: 'user', content: 'create a box named demo' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    assert.match(mcpToken, /^mcp_at_/);
+
+    const listed = await rpc(env, mcpToken, 'tools/list');
+    const names = listed.result.tools.map(tool => tool.name);
+    assert.ok(names.includes('preview_create_container'));
+    assert.equal(names.includes('apply_collection_change'), false);
+    assert.equal(names.includes('undo_last_mcp_change'), false);
+
+    const preview = await callTool(env, mcpToken, 'preview_create_container', { type: 'box', name: 'demo' });
+    assert.equal(preview.result.structuredContent.status, 'preview');
+    const applied = await callTool(env, mcpToken, 'apply_collection_change', {
+      changeToken: preview.result.structuredContent.changeToken,
+    });
+    assert.equal(applied.error.code, -32003);
+    assert.match(applied.error.message, /chat preview/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

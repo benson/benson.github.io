@@ -10,7 +10,8 @@ function setup() {
       <button id="mcpChatClose" type="button"></button>
       <select id="mcpChatProvider"><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option></select>
       <input id="mcpChatModel">
-      <input id="mcpChatKey">
+      <button id="mcpChatKeyToggle" type="button" aria-expanded="false"></button>
+      <input id="mcpChatKey" hidden>
       <div id="mcpChatLog"></div>
       <form id="mcpChatForm"><textarea id="mcpChatInput"></textarea><button id="mcpChatSend"></button></form>
     </section>
@@ -50,4 +51,18 @@ test('initMcpChat: escape closes the floating widget', () => {
   document.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
 
   assert.equal(document.body.classList.contains('mcp-chat-open'), false);
+});
+
+test('initMcpChat: API key field stays tucked behind the own-key toggle', () => {
+  const { win, document } = setup();
+  initMcpChat({ documentObj: document });
+
+  const key = document.getElementById('mcpChatKey');
+  const toggle = document.getElementById('mcpChatKeyToggle');
+  assert.equal(key.hidden, true);
+  assert.equal(toggle.getAttribute('aria-expanded'), 'false');
+
+  click(win, toggle);
+  assert.equal(key.hidden, false);
+  assert.equal(toggle.getAttribute('aria-expanded'), 'true');
 });

@@ -11,6 +11,8 @@ const MCP_CODE_PREFIX = 'mcp:code:';
 const MCP_TOKEN_PREFIX = 'mcp:access:';
 const MCP_REFRESH_PREFIX = 'mcp:refresh:';
 const MCP_PENDING_PREFIX = 'mcp:pending:';
+const MCP_CHAT_CLIENT_ID = 'mtgcollection-chat';
+const CHAT_USAGE_PREFIX = 'mcp:chat-usage:';
 
 const memoryStore = new Map();
 
@@ -133,6 +135,10 @@ function parseScopes(raw, fallback = [MCP_READ_SCOPE]) {
 
 function hasScope(auth, scope) {
   return auth?.scopes?.includes(scope);
+}
+
+function isChatClient(auth) {
+  return auth?.clientId === MCP_CHAT_CLIENT_ID;
 }
 
 function oauthJson(data, status, request, deps, extraHeaders = {}) {
@@ -1286,7 +1292,18 @@ const TOOL_DEFINITIONS = [
 }));
 
 function toolNeedsWrite(name) {
-  return name === 'apply_collection_change' || name === 'undo_last_mcp_change';
+  return name === 'apply_collection_change'
+    || name === 'undo_last_mcp_change'
+    || String(name || '').startsWith('preview_');
+}
+
+function toolHiddenForAuth(tool, auth) {
+  if (!hasScope(auth, MCP_WRITE_SCOPE) && toolNeedsWrite(tool.name)) return true;
+  return isChatClient(auth) && (tool.name === 'apply_collection_change' || tool.name === 'undo_last_mcp_change');
+}
+
+function visibleToolsForAuth(auth) {
+  return TOOL_DEFINITIONS.filter(tool => !toolHiddenForAuth(tool, auth));
 }
 
 async function executeTool(name, args, env, deps, auth) {
@@ -1332,9 +1349,12 @@ async function handleJsonRpc(message, env, deps, auth) {
     }
     if (method === 'notifications/initialized' || method === 'initialized') return null;
     if (method === 'ping') return jsonRpcResult(id, {});
-    if (method === 'tools/list') return jsonRpcResult(id, { tools: TOOL_DEFINITIONS });
+    if (method === 'tools/list') return jsonRpcResult(id, { tools: visibleToolsForAuth(auth) });
     if (method === 'tools/call') {
       const name = params.name;
+      if (isChatClient(auth) && (name === 'apply_collection_change' || name === 'undo_last_mcp_change')) {
+        return jsonRpcError(id, -32003, 'tool unavailable in chat preview session');
+      }
       if (toolNeedsWrite(name) && !hasScope(auth, MCP_WRITE_SCOPE)) {
         return jsonRpcError(id, -32003, 'insufficient_scope', { requiredScope: MCP_WRITE_SCOPE });
       }
@@ -1377,6 +1397,10 @@ function scrubSecret(message, secret) {
   return String(message || '').split(secret).join('[redacted]');
 }
 
+function scrubSecrets(message, secrets) {
+  return secrets.reduce((out, secret) => scrubSecret(out, secret), String(message || ''));
+}
+
 function normalizeChatMessages(messages) {
   if (!Array.isArray(messages)) return [];
   return messages
@@ -1407,8 +1431,72 @@ function extractAnthropicText(data) {
     .trim();
 }
 
+function chatProviderApiKey(env, provider) {
+  if (provider === 'openai') return String(env.MTGCOLLECTION_CHAT_OPENAI_API_KEY || env.OPENAI_API_KEY || '').trim();
+  if (provider === 'anthropic') return String(env.MTGCOLLECTION_CHAT_ANTHROPIC_API_KEY || env.ANTHROPIC_API_KEY || '').trim();
+  return '';
+}
+
+function chatModel(env, provider, body) {
+  const requested = String(body.model || '').trim();
+  if (requested) return requested;
+  if (provider === 'anthropic') return String(env.MTGCOLLECTION_CHAT_ANTHROPIC_MODEL || 'claude-sonnet-4-5').trim();
+  return String(env.MTGCOLLECTION_CHAT_OPENAI_MODEL || 'gpt-5-nano').trim();
+}
+
+function chatMaxOutputTokens(env, body) {
+  const requested = parseInt(body.maxTokens, 10);
+  const configured = parseInt(env.MTGCOLLECTION_CHAT_MAX_OUTPUT_TOKENS || env.CHAT_MAX_OUTPUT_TOKENS, 10);
+  const value = Number.isFinite(requested) && requested > 0 ? requested : configured || 1000;
+  return Math.max(64, Math.min(value, 4000));
+}
+
+function chatDailyLimit(env) {
+  const configured = parseInt(env.MTGCOLLECTION_CHAT_DAILY_LIMIT || env.CHAT_DAILY_LIMIT, 10);
+  if (!Number.isFinite(configured)) return 25;
+  return Math.max(0, configured);
+}
+
+function chatUsageKey(userId, date = new Date()) {
+  return CHAT_USAGE_PREFIX + date.toISOString().slice(0, 10) + ':' + userId;
+}
+
+async function assertHostedChatQuota(env, userId) {
+  const limit = chatDailyLimit(env);
+  if (limit <= 0) return { count: 0, limit };
+  const key = chatUsageKey(userId);
+  const current = await storeGet(env, key) || { count: 0 };
+  const count = parseInt(current.count, 10) || 0;
+  if (count >= limit) {
+    const err = new Error('hosted chat daily limit reached');
+    err.status = 429;
+    err.data = { limit, count };
+    throw err;
+  }
+  const next = {
+    count: count + 1,
+    firstAt: current.firstAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  await storePut(env, key, next, 48 * 60 * 60);
+  return { count: next.count, limit };
+}
+
+function providerErrorMessage(provider, data) {
+  const error = data?.error || data;
+  const message = typeof error === 'string' ? error : error?.message;
+  const code = typeof error === 'object' ? error?.code : '';
+  if (provider === 'openai' && (code === 'insufficient_quota' || /quota|billing/i.test(message || ''))) {
+    return 'OpenAI quota or billing blocked this request for the selected API key/project.';
+  }
+  if (provider === 'anthropic' && /credit|quota|billing|balance/i.test(message || '')) {
+    return 'Anthropic quota or billing blocked this request for the selected API key/project.';
+  }
+  return message || (provider === 'anthropic' ? 'Anthropic request failed' : 'OpenAI request failed');
+}
+
 export async function mintInternalMcpToken(env, { userId, scopes = [MCP_READ_SCOPE] }) {
-  const tokens = await issueMcpTokens(env, { userId, clientId: 'mtgcollection-chat', scopes });
+  const tokens = await issueMcpTokens(env, { userId, clientId: MCP_CHAT_CLIENT_ID, scopes });
   return tokens.access_token;
 }
 
@@ -1438,15 +1526,24 @@ export async function handleByokChatRequest(request, env, deps) {
     return deps.json({ error: e.message || 'unauthorized' }, 401, request);
   }
   const body = await request.json().catch(() => ({}));
-  const provider = String(body.provider || '').toLowerCase();
-  const apiKey = String(body.apiKey || '').trim();
+  const provider = String(body.provider || env.MTGCOLLECTION_CHAT_PROVIDER || 'openai').toLowerCase();
+  const providedApiKey = String(body.apiKey || '').trim();
+  const hostedApiKey = chatProviderApiKey(env, provider);
+  const apiKey = providedApiKey || hostedApiKey;
+  const hosted = !providedApiKey;
   const messages = normalizeChatMessages(body.messages);
-  if (!apiKey) return deps.json({ error: 'apiKey is required' }, 400, request);
+  if (!['openai', 'anthropic'].includes(provider)) return deps.json({ error: 'provider must be openai or anthropic' }, 400, request);
+  if (!apiKey) return deps.json({ error: 'chat provider key is not configured' }, 400, request);
   if (!messages.length) return deps.json({ error: 'messages are required' }, 400, request);
-  const mcpToken = await mintInternalMcpToken(env, { userId: clerkAuth.userId, scopes: [MCP_READ_SCOPE] });
+  const mcpToken = await mintInternalMcpToken(env, { userId: clerkAuth.userId, scopes: [MCP_READ_SCOPE, MCP_WRITE_SCOPE] });
   const mcpUrl = publicOrigin(request, env) + '/mcp';
+  let usage = null;
 
   try {
+    if (hosted) usage = await assertHostedChatQuota(env, clerkAuth.userId);
+    const model = chatModel(env, provider, body);
+    const maxOutputTokens = chatMaxOutputTokens(env, body);
+
     if (provider === 'openai') {
       const res = await fetch('https://api.openai.com/v1/responses', {
         method: 'POST',
@@ -1455,8 +1552,9 @@ export async function handleByokChatRequest(request, env, deps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: body.model || 'gpt-5.4-mini',
+          model,
           input: messages,
+          max_output_tokens: maxOutputTokens,
           tools: [{
             type: 'mcp',
             server_label: 'mtgcollection',
@@ -1468,14 +1566,14 @@ export async function handleByokChatRequest(request, env, deps) {
         }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error?.message || data.error || 'OpenAI request failed');
-      return deps.json({ provider, text: extractOpenAiText(data), raw: data }, 200, request);
+      if (!res.ok) throw new Error(providerErrorMessage(provider, data));
+      return deps.json({ provider, model, mode: hosted ? 'hosted' : 'byok', usage, text: extractOpenAiText(data), raw: data }, 200, request);
     }
 
     if (provider === 'anthropic') {
       const toolConfigs = {};
-      for (const tool of TOOL_DEFINITIONS) {
-        toolConfigs[tool.name] = { enabled: !toolNeedsWrite(tool.name) };
+      for (const tool of visibleToolsForAuth({ clientId: MCP_CHAT_CLIENT_ID, scopes: [MCP_READ_SCOPE, MCP_WRITE_SCOPE] })) {
+        toolConfigs[tool.name] = { enabled: true };
       }
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -1486,8 +1584,8 @@ export async function handleByokChatRequest(request, env, deps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: body.model || 'claude-sonnet-4-5',
-          max_tokens: Math.min(parseInt(body.maxTokens, 10) || 1200, 4000),
+          model,
+          max_tokens: maxOutputTokens,
           messages: messages.filter(message => message.role !== 'system'),
           system: messages.filter(message => message.role === 'system').map(message => message.content).join('\n') || undefined,
           mcp_servers: [{
@@ -1505,12 +1603,14 @@ export async function handleByokChatRequest(request, env, deps) {
         }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error?.message || data.error || 'Anthropic request failed');
-      return deps.json({ provider, text: extractAnthropicText(data), raw: data }, 200, request);
+      if (!res.ok) throw new Error(providerErrorMessage(provider, data));
+      return deps.json({ provider, model, mode: hosted ? 'hosted' : 'byok', usage, text: extractAnthropicText(data), raw: data }, 200, request);
     }
-
-    return deps.json({ error: 'provider must be openai or anthropic' }, 400, request);
   } catch (e) {
-    return deps.json({ error: scrubSecret(e.message || String(e), apiKey) }, 502, request);
+    const status = e.status || 502;
+    return deps.json({
+      error: scrubSecrets(e.message || String(e), [providedApiKey, hostedApiKey]),
+      data: e.data || null,
+    }, status, request);
   }
 }

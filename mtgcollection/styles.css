@@ -3640,6 +3640,15 @@
     grid-template-columns: minmax(96px, 0.55fr) minmax(120px, 1fr);
     gap: 8px;
   }
+  .mcp-chat-key-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px;
+  }
+  .mcp-chat-key-toggle {
+    min-height: 34px;
+    white-space: nowrap;
+  }
   .mcp-chat select,
   .mcp-chat input,
   .mcp-chat textarea {

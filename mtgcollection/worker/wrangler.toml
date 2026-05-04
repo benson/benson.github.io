@@ -9,6 +9,10 @@ MCP_PUBLIC_ORIGIN = "https://mtgcollection-share.bensonperry.workers.dev"
 # Configure after creating a Clerk OAuth application for MCP:
 CLERK_FRONTEND_API_URL = "https://clerk.bensonperry.com"
 CLERK_OAUTH_CLIENT_ID = "HNx2PbSrTQUcrsfd"
+MTGCOLLECTION_CHAT_PROVIDER = "openai"
+MTGCOLLECTION_CHAT_OPENAI_MODEL = "gpt-5-nano"
+MTGCOLLECTION_CHAT_DAILY_LIMIT = "25"
+MTGCOLLECTION_CHAT_MAX_OUTPUT_TOKENS = "1000"
 
 # Run `wrangler kv:namespace create SHARES` to create this namespace, then
 # paste the returned id here. Same for the preview namespace if you want
