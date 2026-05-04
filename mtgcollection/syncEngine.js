@@ -245,7 +245,14 @@ export async function initSyncEngine({ render = () => {}, populateFilters = () =
     });
     if (auth.user) await bootstrapCloud();
   } catch (e) {
-    emit({ mode: 'error', label: 'auth error', detail: e.message });
+    auth = null;
+    emit({
+      mode: 'local',
+      label: 'local',
+      configured: false,
+      user: null,
+      detail: 'cloud sign-in unavailable: ' + (e.message || String(e)),
+    });
   }
   await refreshPendingStatus();
 }
