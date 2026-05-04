@@ -248,6 +248,59 @@ test('mcp: preview/apply inventory move updates snapshot, revision, and history'
   assert.match(state.snapshot.history[0].summary, /Moved 1 Sol Ring/);
 });
 
+test('mcp: preview add inventory resolves a named card through Scryfall', async () => {
+  const { env, state } = fakeSyncEnv(emptySnapshot());
+  const token = await issueMcpToken(env);
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async url => {
+    assert.equal(String(url), 'https://api.scryfall.com/cards/named?exact=maelstrom%20artisan');
+    return Response.json({
+      id: 'maelstrom-artisan-id',
+      name: 'Maelstrom Artisan',
+      set: 'znr',
+      set_name: 'Zendikar Rising',
+      collector_number: '220',
+      lang: 'en',
+      rarity: 'uncommon',
+      cmc: 5,
+      colors: ['G'],
+      color_identity: ['G'],
+      type_line: 'Creature - Elf Artificer',
+      oracle_text: 'When Maelstrom Artisan enters...',
+      legalities: { commander: 'legal' },
+      finishes: ['nonfoil', 'foil'],
+      image_uris: { normal: 'https://img.test/maelstrom.jpg' },
+      prices: { usd: '0.10', usd_foil: '0.25' },
+      scryfall_uri: 'https://scryfall.test/card/znr/220/maelstrom-artisan',
+    });
+  };
+  try {
+    const preview = await callTool(env, token.access_token, 'preview_add_inventory_item', {
+      name: 'maelstrom artisan',
+      finish: 'nonfoil',
+      condition: 'lp',
+    });
+    const data = preview.result.structuredContent;
+    assert.equal(data.status, 'preview');
+    assert.match(data.summary, /Added 1 Maelstrom Artisan/);
+
+    const applied = await callTool(env, token.access_token, 'apply_collection_change', {
+      changeToken: data.changeToken,
+    });
+    assert.equal(applied.result.structuredContent.status, 'applied');
+    const added = state.snapshot.app.collection[0];
+    assert.equal(added.scryfallId, 'maelstrom-artisan-id');
+    assert.equal(added.resolvedName, 'Maelstrom Artisan');
+    assert.equal(added.setCode, 'znr');
+    assert.equal(added.cn, '220');
+    assert.equal(added.finish, 'normal');
+    assert.equal(added.condition, 'lightly_played');
+    assert.equal(added.imageUrl, 'https://img.test/maelstrom.jpg');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('mcp: stale preview tokens are rejected on apply', async () => {
   const entry = card();
   const { env, state } = fakeSyncEnv(emptySnapshot({

@@ -13,6 +13,7 @@ const MCP_REFRESH_PREFIX = 'mcp:refresh:';
 const MCP_PENDING_PREFIX = 'mcp:pending:';
 const MCP_CHAT_CLIENT_ID = 'mtgcollection-chat';
 const CHAT_USAGE_PREFIX = 'mcp:chat-usage:';
+const SCRYFALL_API = 'https://api.scryfall.com';
 
 const memoryStore = new Map();
 
@@ -611,6 +612,121 @@ function collectionKey(entry) {
     + board;
 }
 
+function normalizeMcpFinish(raw, card = null) {
+  const value = String(raw || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  const requested = value === 'foil' ? 'foil'
+    : value === 'etched' || value === 'etched_foil' ? 'etched'
+    : 'normal';
+  const finishes = Array.isArray(card?.finishes) ? card.finishes.map(String) : [];
+  if (requested === 'foil' && finishes.length && !finishes.includes('foil')) {
+    return finishes.includes('nonfoil') ? 'normal' : finishes.includes('etched') ? 'etched' : 'normal';
+  }
+  if (requested === 'etched' && finishes.length && !finishes.includes('etched')) {
+    return finishes.includes('foil') ? 'foil' : 'normal';
+  }
+  if (!raw && finishes.length && !finishes.includes('nonfoil')) {
+    if (finishes.includes('foil')) return 'foil';
+    if (finishes.includes('etched')) return 'etched';
+  }
+  return requested;
+}
+
+function normalizeMcpCondition(raw) {
+  const value = String(raw || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  if (!value || value === 'nm' || value === 'm' || value === 'mint' || value === 'near_mint') return 'near_mint';
+  if (value === 'lp' || value === 'light_played' || value === 'lightly_played') return 'lightly_played';
+  if (value === 'mp' || value === 'moderate_played' || value === 'moderately_played') return 'moderately_played';
+  if (value === 'hp' || value === 'heavy_played' || value === 'heavily_played') return 'heavily_played';
+  if (value === 'dmg' || value === 'poor' || value === 'damaged') return 'damaged';
+  return value;
+}
+
+function getScryfallImageUrl(card) {
+  if (!card) return '';
+  if (card.image_uris) return card.image_uris.normal || card.image_uris.small || '';
+  const face = Array.isArray(card.card_faces) ? card.card_faces[0] : null;
+  return face?.image_uris?.normal || face?.image_uris?.small || '';
+}
+
+function getScryfallBackImageUrl(card) {
+  const face = Array.isArray(card?.card_faces) ? card.card_faces[1] : null;
+  return face?.image_uris?.normal || face?.image_uris?.small || '';
+}
+
+function getScryfallUsdPrice(card, finish) {
+  const prices = card?.prices || {};
+  const exact = finish === 'foil' ? prices.usd_foil
+    : finish === 'etched' ? prices.usd_etched
+    : prices.usd;
+  const parsed = parseFloat(exact);
+  if (parsed) return { price: parsed, priceFallback: false };
+  const fallback = parseFloat(prices.usd);
+  if (finish !== 'normal' && fallback) return { price: fallback, priceFallback: true };
+  return { price: null, priceFallback: false };
+}
+
+async function fetchScryfallJson(url) {
+  const res = await fetch(url, {
+    headers: {
+      Accept: 'application/json',
+    },
+  });
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, status: res.status, data };
+}
+
+async function resolveScryfallCardForAdd(raw) {
+  const scryfallId = String(raw.scryfallId || '').trim();
+  if (scryfallId) {
+    const fetched = await fetchScryfallJson(SCRYFALL_API + '/cards/' + encodeURIComponent(scryfallId));
+    return fetched.ok ? fetched.data : null;
+  }
+  const setCode = String(raw.setCode || raw.set || '').trim().toLowerCase();
+  const cn = String(raw.cn || raw.collectorNumber || '').trim();
+  if (setCode && cn) {
+    const fetched = await fetchScryfallJson(SCRYFALL_API + '/cards/' + encodeURIComponent(setCode) + '/' + encodeURIComponent(cn));
+    return fetched.ok ? fetched.data : null;
+  }
+  const name = String(raw.name || raw.resolvedName || raw.query || '').trim();
+  if (!name) return null;
+  const exact = await fetchScryfallJson(SCRYFALL_API + '/cards/named?exact=' + encodeURIComponent(name));
+  if (exact.ok) return exact.data;
+  const fuzzy = await fetchScryfallJson(SCRYFALL_API + '/cards/named?fuzzy=' + encodeURIComponent(name));
+  return fuzzy.ok ? fuzzy.data : null;
+}
+
+function mergeScryfallCardIntoInventoryEntry(raw, card, location) {
+  const finish = normalizeMcpFinish(raw.finish, card);
+  const priced = getScryfallUsdPrice(card, finish);
+  return {
+    name: String(raw.name || card?.name || '').trim(),
+    resolvedName: String(card?.name || raw.resolvedName || raw.name || '').trim(),
+    scryfallId: String(card?.id || raw.scryfallId || '').trim(),
+    scryfallUri: String(card?.scryfall_uri || raw.scryfallUri || ''),
+    setCode: String(card?.set || raw.setCode || raw.set || '').toLowerCase(),
+    setName: String(card?.set_name || raw.setName || ''),
+    cn: String(card?.collector_number || raw.cn || raw.collectorNumber || '').trim(),
+    finish,
+    condition: normalizeMcpCondition(raw.condition),
+    language: String(raw.language || raw.lang || card?.lang || 'en').toLowerCase(),
+    qty: Math.max(1, parseInt(raw.qty, 10) || 1),
+    location,
+    tags: Array.isArray(raw.tags) ? raw.tags.map(String) : [],
+    rarity: String(card?.rarity || raw.rarity || '').toLowerCase(),
+    cmc: card?.cmc ?? null,
+    colors: card?.colors || card?.card_faces?.[0]?.colors || [],
+    colorIdentity: card?.color_identity || [],
+    typeLine: card?.type_line || (card?.card_faces?.map(face => face.type_line).filter(Boolean).join(' // ') || ''),
+    oracleText: card?.oracle_text || (card?.card_faces?.map(face => face.oracle_text).filter(Boolean).join(' // ') || ''),
+    legalities: card?.legalities || {},
+    finishes: Array.isArray(card?.finishes) ? [...card.finishes] : [],
+    imageUrl: getScryfallImageUrl(card),
+    backImageUrl: getScryfallBackImageUrl(card),
+    price: priced.price,
+    priceFallback: priced.priceFallback,
+  };
+}
+
 function applyOne(snapshot, op) {
   const next = cloneJson(snapshot, makeEmptySnapshot()) || makeEmptySnapshot();
   const payload = op?.payload || {};
@@ -962,14 +1078,15 @@ async function toolPreviewAddInventoryItem(env, deps, auth, args = {}) {
   const cloud = await currentCloud(env, deps, auth.userId);
   const raw = args.entry && typeof args.entry === 'object' ? args.entry : args;
   const location = normalizeLocation(raw.location);
-  const entry = {
+  const resolvedCard = await resolveScryfallCardForAdd(raw);
+  const entry = resolvedCard ? mergeScryfallCardIntoInventoryEntry(raw, resolvedCard, location) : {
     name: String(raw.name || raw.resolvedName || '').trim(),
     resolvedName: String(raw.resolvedName || raw.name || '').trim(),
     scryfallId: String(raw.scryfallId || '').trim(),
     setCode: String(raw.setCode || raw.set || '').toLowerCase(),
     cn: String(raw.cn || raw.collectorNumber || '').trim(),
-    finish: String(raw.finish || 'normal').toLowerCase(),
-    condition: String(raw.condition || 'near_mint').toLowerCase(),
+    finish: normalizeMcpFinish(raw.finish),
+    condition: normalizeMcpCondition(raw.condition),
     language: String(raw.language || 'en').toLowerCase(),
     qty: Math.max(1, parseInt(raw.qty, 10) || 1),
     location,
@@ -1274,7 +1391,24 @@ const TOOL_DEFINITIONS = [
     },
     required: ['toLocation'],
   }],
-  ['preview_add_inventory_item', 'Preview adding a physical inventory entry.', { type: 'object' }],
+  ['preview_add_inventory_item', 'Preview adding a physical inventory entry. A card name is enough; the server resolves it through Scryfall.', {
+    type: 'object',
+    properties: {
+      name: { type: 'string' },
+      scryfallId: { type: 'string' },
+      setCode: { type: 'string' },
+      set: { type: 'string' },
+      cn: { type: 'string' },
+      collectorNumber: { type: 'string' },
+      finish: { type: 'string', enum: ['normal', 'nonfoil', 'non-foil', 'foil', 'etched', 'etched foil'] },
+      condition: { type: 'string' },
+      language: { type: 'string' },
+      qty: { type: 'number' },
+      location: { oneOf: [{ type: 'string' }, { type: 'object' }] },
+      createContainer: { type: 'boolean' },
+      tags: { type: 'array', items: { type: 'string' } },
+    },
+  }],
   ['preview_decklist_change', 'Preview add/remove/move-board changes to a decklist.', { type: 'object' }],
   ['preview_create_container', 'Preview creating a deck, binder, or box.', { type: 'object' }],
   ['preview_rename_container', 'Preview renaming or converting a binder/box container.', { type: 'object' }],
