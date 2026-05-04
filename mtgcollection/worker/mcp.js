@@ -1126,7 +1126,19 @@ async function toolPreviewAddInventoryItem(env, deps, auth, args = {}) {
   ops.push(makeSyncOp('collection.qtyDelta', { key, delta: entry.qty, entry }));
   const summary = 'Added ' + entry.qty + ' ' + (entry.resolvedName || entry.name || 'card') + (locKey ? ' to {loc:' + locKey + '}' : '');
   const event = eventBase({ type: 'add', summary, affectedKeys: [key], containerAfter: location && !containerFromSnapshot(cloud.snapshot, location) ? location : null });
-  return previewFromOps(env, auth, cloud, { summary, ops, event });
+  const preview = await previewFromOps(env, auth, cloud, { summary, ops, event });
+  return {
+    ...preview,
+    previewType: 'inventory.add',
+    card: {
+      name: entry.resolvedName || entry.name || '',
+      setCode: entry.setCode || '',
+      cn: entry.cn || '',
+      finish: entry.finish || 'normal',
+      qty: entry.qty,
+      location,
+    },
+  };
 }
 
 function normalizeDeckBoard(raw) {
@@ -1627,6 +1639,8 @@ function normalizeMcpPreview(value) {
   if (value.expiresAt !== undefined) out.expiresAt = value.expiresAt;
   if (value.opCount !== undefined) out.opCount = value.opCount;
   if (value.totalsAfter && typeof value.totalsAfter === 'object') out.totalsAfter = value.totalsAfter;
+  if (value.previewType !== undefined) out.previewType = String(value.previewType || '');
+  if (value.card && typeof value.card === 'object') out.card = cloneJson(value.card, null);
   return out;
 }
 
@@ -1680,6 +1694,68 @@ function extractMcpPreviews(data) {
   return out;
 }
 
+const PREVIEW_MATCH_STOPWORDS = new Set([
+  'a', 'add', 'an', 'and', 'another', 'binder', 'box', 'card', 'cards', 'collection', 'create', 'deck', 'foil', 'foils', 'from', 'in', 'into',
+  'make', 'move', 'my', 'nonfoil', 'normal', 'of', 'one', 'please', 'put', 'the', 'to', 'two', 'three', 'four',
+  'five', 'six', 'seven', 'eight', 'nine', 'ten', 'with',
+]);
+
+function normalizedMatchTokens(text) {
+  return (String(text || '')
+    .normalize('NFKD')
+    .toLowerCase()
+    .match(/[a-z0-9]+/g) || [])
+    .map(token => (/^\d+$/.test(token) ? String(parseInt(token, 10)) : token))
+    .filter(Boolean);
+}
+
+function significantMatchTokens(text) {
+  return normalizedMatchTokens(text).filter(token => token.length >= 3 && !PREVIEW_MATCH_STOPWORDS.has(token));
+}
+
+function cardNameFromPreview(preview) {
+  const explicit = String(preview?.card?.name || '').trim();
+  if (explicit) return explicit;
+  const match = String(preview?.summary || '').match(/^Added\s+\d+\s+(.+?)(?:\s+to\s+\{loc:|$)/i);
+  return match ? match[1].trim() : '';
+}
+
+function previewLooksLikeUserRequest(preview, userText) {
+  if (preview?.previewType !== 'inventory.add') return true;
+  const userTokens = new Set(normalizedMatchTokens(userText));
+  const userSignificant = significantMatchTokens(userText);
+  if (!userSignificant.length) return true;
+
+  const name = cardNameFromPreview(preview);
+  const nameTokens = significantMatchTokens(name);
+  const overlappingNameTokens = nameTokens.filter(token => userTokens.has(token));
+  if (overlappingNameTokens.length >= 2) return true;
+  if (overlappingNameTokens.length === 1 && userSignificant.length === 1) return true;
+
+  const cn = normalizedMatchTokens(preview?.card?.cn || '')[0] || '';
+  const setCode = String(preview?.card?.setCode || '').trim().toLowerCase();
+  if (cn && userTokens.has(cn) && (!setCode || userTokens.has(setCode))) return true;
+  return false;
+}
+
+function previewMismatchMessage(preview, userText) {
+  const name = cardNameFromPreview(preview) || 'a different card';
+  const request = String(userText || '').trim().replace(/\s+/g, ' ').slice(0, 120);
+  return 'The model previewed "' + name + '", but that does not appear to match your request'
+    + (request ? ' ("' + request + '")' : '')
+    + '. I did not offer that change for approval.';
+}
+
+function filterChatPreviews(previews, lastUserText) {
+  const accepted = [];
+  const warnings = [];
+  for (const preview of previews) {
+    if (previewLooksLikeUserRequest(preview, lastUserText)) accepted.push(preview);
+    else warnings.push(previewMismatchMessage(preview, lastUserText));
+  }
+  return { previews: accepted, previewWarnings: warnings };
+}
+
 function extractOpenAiText(data) {
   if (typeof data.output_text === 'string') return data.output_text;
   const chunks = [];
@@ -1699,14 +1775,20 @@ function extractAnthropicText(data) {
     .trim();
 }
 
-function chatSuccessResponse(deps, request, { provider, model, hosted, usage, data, text }) {
+function chatSuccessResponse(deps, request, { provider, model, hosted, usage, data, text, messages = [] }) {
+  const lastUserText = [...messages].reverse().find(message => message.role === 'user')?.content || '';
+  const filtered = filterChatPreviews(extractMcpPreviews(data), lastUserText);
+  const responseText = filtered.previewWarnings.length && !filtered.previews.length
+    ? filtered.previewWarnings.join('\n')
+    : text;
   return deps.json({
     provider,
     model,
     mode: hosted ? 'hosted' : 'byok',
     usage,
-    text,
-    previews: extractMcpPreviews(data),
+    text: responseText,
+    previews: filtered.previews,
+    previewWarnings: filtered.previewWarnings,
     raw: data,
   }, 200, request);
 }
@@ -1866,6 +1948,7 @@ export async function handleByokChatRequest(request, env, deps) {
         hosted,
         usage,
         data,
+        messages,
         text: extractOpenAiText(data),
       });
     }
@@ -1900,6 +1983,7 @@ export async function handleByokChatRequest(request, env, deps) {
         hosted,
         usage,
         data,
+        messages,
         text: extractOpenAiText(data),
       });
     }
@@ -1944,6 +2028,7 @@ export async function handleByokChatRequest(request, env, deps) {
         hosted,
         usage,
         data,
+        messages,
         text: extractAnthropicText(data),
       });
     }

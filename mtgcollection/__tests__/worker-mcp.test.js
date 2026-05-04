@@ -300,6 +300,8 @@ test('mcp: preview add inventory resolves a named card through Scryfall', async 
     });
     const data = preview.result.structuredContent;
     assert.equal(data.status, 'preview');
+    assert.equal(data.previewType, 'inventory.add');
+    assert.equal(data.card.name, 'Maelstrom Artisan');
     assert.match(data.summary, /Added 1 Maelstrom Artisan/);
 
     const applied = await callTool(env, token.access_token, 'apply_collection_change', {
@@ -360,6 +362,8 @@ test('mcp: preview add inventory tolerates chat-coerced string args', async () =
     });
     const data = preview.result.structuredContent;
     assert.equal(data.status, 'preview');
+    assert.equal(data.previewType, 'inventory.add');
+    assert.equal(data.card.name, 'Prismari Charm');
     assert.match(data.summary, /Added 2 Prismari Charm to \{loc:box:spells\}/);
     const applied = await callTool(env, token.access_token, 'apply_collection_change', {
       changeToken: data.changeToken,
@@ -586,12 +590,14 @@ test('mcp chat: hosted Groq key is used by default with preview-only remote MCP 
   let requestBody = null;
   const preview = {
     status: 'preview',
+    previewType: 'inventory.add',
     summary: 'Added 1 Maelstrom Artisan',
     expectedRevision: 3,
     expiresAt: '2026-05-04T12:00:00.000Z',
     changeToken: 'preview.token',
     opCount: 2,
     totalsAfter: { unique: 1, total: 1, containers: 0 },
+    card: { name: 'Maelstrom Artisan', setCode: 'znr', cn: '220', finish: 'normal', qty: 1 },
   };
   globalThis.fetch = async (url, init = {}) => {
     assert.equal(url, 'https://api.groq.com/openai/v1/responses');
@@ -617,7 +623,7 @@ test('mcp chat: hosted Groq key is used by default with preview-only remote MCP 
         'X-Debug-User': 'user_1',
       },
       body: JSON.stringify({
-        messages: [{ role: 'user', content: 'is this working?' }],
+        messages: [{ role: 'user', content: 'add a maelstrom artisan' }],
       }),
     }), env);
     assert.equal(res.status, 200);
@@ -636,6 +642,54 @@ test('mcp chat: hosted Groq key is used by default with preview-only remote MCP 
     assert.equal(data.previews[0].summary, 'Added 1 Maelstrom Artisan');
     assert.equal(data.previews[0].expectedRevision, 3);
     assert.equal([...env.OAUTH_KV.values.values()].some(value => String(value).includes('gsk-hosted-secret')), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp chat: mismatched add previews are not offered for approval', async () => {
+  const { env } = fakeSyncEnv();
+  env.MTGCOLLECTION_CHAT_GROQ_API_KEY = 'gsk-hosted-secret';
+  const originalFetch = globalThis.fetch;
+  const preview = {
+    status: 'preview',
+    previewType: 'inventory.add',
+    summary: 'Added 1 Chandra, Torch of Defiance',
+    expectedRevision: 3,
+    expiresAt: '2026-05-04T12:00:00.000Z',
+    changeToken: 'wrong.token',
+    opCount: 2,
+    card: { name: 'Chandra, Torch of Defiance', setCode: 'kld', cn: '110', finish: 'foil', qty: 1 },
+  };
+  globalThis.fetch = async (url) => {
+    assert.equal(url, 'https://api.groq.com/openai/v1/responses');
+    return Response.json({
+      output_text: 'It looks like the card was added successfully.',
+      output: [{
+        type: 'mcp_call',
+        name: 'preview_add_inventory_item',
+        result: { structuredContent: preview },
+      }],
+    });
+  };
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'add a foil prismari charm 0211 to my collection' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.deepEqual(data.previews, []);
+    assert.equal(data.previewWarnings.length, 1);
+    assert.match(data.previewWarnings[0], /Chandra, Torch of Defiance/);
+    assert.match(data.previewWarnings[0], /prismari charm/);
+    assert.equal(data.text, data.previewWarnings[0]);
   } finally {
     globalThis.fetch = originalFetch;
   }

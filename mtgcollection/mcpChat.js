@@ -275,15 +275,20 @@ async function sendChat() {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'chat request failed');
-    const responseText = data.text || (Array.isArray(data.previews) && data.previews.length ? 'Preview ready below.' : '(no text response)');
-    pending.content = responseText;
     const previews = Array.isArray(data.previews) ? [...data.previews] : [];
-    for (const token of changeTokensFromText(responseText)) {
+    const warnings = Array.isArray(data.previewWarnings) ? data.previewWarnings.map(String).filter(Boolean) : [];
+    const serverText = data.text || (previews.length ? 'Preview ready below.' : '(no text response)');
+    const responseText = previews.length
+      ? (previews.length === 1 ? 'Preview ready below.' : previews.length + ' previews ready below.')
+      : warnings.length ? warnings.join('\n') : serverText;
+    pending.content = responseText;
+    if (!previews.length && !warnings.length) for (const token of changeTokensFromText(serverText)) {
       if (!previews.some(preview => preview?.changeToken === token)) {
         previews.push({ changeToken: token, summary: 'Previewed collection change' });
       }
     }
     if (addPendingPreviews(previews).length) showFeedback('preview ready to review', 'success');
+    if (warnings.length) showFeedback(warnings[0], 'error');
     delete pending.meta.pending;
   } catch (e) {
     pending.content = e.message || String(e);
