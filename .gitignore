@@ -2,3 +2,4 @@
 .claude/
 scripts/spotify-auth.js
 node_modules/
+.mtgcollection-backups/

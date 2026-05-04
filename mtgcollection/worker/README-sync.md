@@ -6,6 +6,8 @@ cross-device collection sync with D1 and a Durable Object.
 For the Clerk and production deployment checklist, see
 `AUTH_PRODUCTION_CHECKLIST.md`.
 
+For backups, health checks, and recovery steps, see `OPERATIONS.md`.
+
 ## Required Cloudflare Setup
 
 1. Create the D1 database:
