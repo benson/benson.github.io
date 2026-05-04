@@ -4,6 +4,7 @@ import {
   buildPrintingsSearchUrl,
   fetchExactPrintings,
   loadCardPrintings,
+  preferExactCardNamePrintings,
 } from '../addPrintingSearch.js';
 
 function response({ ok = true, status = 200, body = {} } = {}) {
@@ -55,6 +56,47 @@ test('fetchExactPrintings: paginates, reports total count, and marks truncated r
   assert.equal(result.totalCount, 4);
   assert.equal(result.truncated, true);
   assert.equal(calls.length, 2);
+});
+
+test('preferExactCardNamePrintings: prefers real top-level card names over matching faces', () => {
+  const printings = [
+    { id: 'split', name: 'Harmonized Trio // Brainstorm' },
+    { id: 'brainstorm-1', name: 'Brainstorm' },
+    { id: 'brainstorm-2', name: '  Brainstorm  ' },
+  ];
+
+  assert.deepEqual(
+    preferExactCardNamePrintings(printings, 'Brainstorm').map(c => c.id),
+    ['brainstorm-1', 'brainstorm-2']
+  );
+});
+
+test('preferExactCardNamePrintings: keeps face matches when no top-level card exists', () => {
+  const printings = [
+    { id: 'adventure', name: 'Brazen Borrower // Petty Theft' },
+  ];
+
+  assert.deepEqual(preferExactCardNamePrintings(printings, 'Petty Theft'), printings);
+});
+
+test('fetchExactPrintings: filters split-card face matches when exact printings exist', async () => {
+  const fetchImpl = async () => response({
+    body: {
+      total_cards: 3,
+      data: [
+        { id: 'split', name: 'Harmonized Trio // Brainstorm' },
+        { id: 'brainstorm-1', name: 'Brainstorm' },
+        { id: 'brainstorm-2', name: 'Brainstorm' },
+      ],
+      has_more: false,
+    },
+  });
+
+  const result = await fetchExactPrintings({ name: 'Brainstorm', fetchImpl, apiBase: 'api' });
+
+  assert.deepEqual(result.printings.map(c => c.id), ['brainstorm-1', 'brainstorm-2']);
+  assert.equal(result.totalCount, 2);
+  assert.equal(result.truncated, false);
 });
 
 test('fetchExactPrintings: treats Scryfall 404 as no matching printings', async () => {

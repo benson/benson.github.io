@@ -11,6 +11,17 @@ export function buildPrintingsSearchUrl({ apiBase = SCRYFALL_API, name }) {
     + '&unique=prints&order=released&dir=desc&include_extras=true&include_variations=true';
 }
 
+function normalizeExactCardName(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+export function preferExactCardNamePrintings(printings, name) {
+  const target = normalizeExactCardName(name);
+  if (!target) return printings;
+  const exact = printings.filter(card => normalizeExactCardName(card?.name) === target);
+  return exact.length ? exact : printings;
+}
+
 export async function fetchExactPrintings({
   name,
   signal,
@@ -41,11 +52,13 @@ export async function fetchExactPrintings({
     if (collected.length >= hardCap) break;
     url = data.has_more ? data.next_page : null;
   }
-  const totalCount = Math.max(totalCards, collected.length);
+  const printings = preferExactCardNamePrintings(collected, name);
+  const filteredToExact = printings.length !== collected.length;
+  const totalCount = filteredToExact ? printings.length : Math.max(totalCards, collected.length);
   return {
-    printings: collected,
+    printings,
     totalCount,
-    truncated: collected.length < totalCount,
+    truncated: filteredToExact ? false : collected.length < totalCount,
   };
 }
 
