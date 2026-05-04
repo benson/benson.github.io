@@ -386,17 +386,17 @@ test('mcp chat: hosted OpenAI key is used when no BYOK key is supplied', async (
   }
 });
 
-test('mcp chat: hosted xAI key is used by default with preview-only remote MCP tools', async () => {
+test('mcp chat: hosted Groq key is used by default with preview-only remote MCP tools', async () => {
   const { env } = fakeSyncEnv();
-  env.MTGCOLLECTION_CHAT_XAI_API_KEY = 'xai-hosted-secret';
+  env.MTGCOLLECTION_CHAT_GROQ_API_KEY = 'gsk-hosted-secret';
   const originalFetch = globalThis.fetch;
   let authHeader = '';
   let requestBody = null;
   globalThis.fetch = async (url, init = {}) => {
-    assert.equal(url, 'https://api.x.ai/v1/responses');
+    assert.equal(url, 'https://api.groq.com/openai/v1/responses');
     authHeader = init.headers.Authorization;
     requestBody = JSON.parse(init.body);
-    return Response.json({ output_text: 'xai ok' });
+    return Response.json({ output_text: 'groq ok' });
   };
   try {
     const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
@@ -411,16 +411,16 @@ test('mcp chat: hosted xAI key is used by default with preview-only remote MCP t
     }), env);
     assert.equal(res.status, 200);
     const data = await res.json();
-    assert.equal(data.provider, 'xai');
+    assert.equal(data.provider, 'groq');
     assert.equal(data.mode, 'hosted');
-    assert.equal(data.model, 'grok-4-fast-non-reasoning');
-    assert.equal(authHeader, 'Bearer xai-hosted-secret');
-    assert.equal(requestBody.store, false);
+    assert.equal(data.model, 'llama-3.1-8b-instant');
+    assert.equal(authHeader, 'Bearer gsk-hosted-secret');
     const mcpTool = requestBody.tools.find(tool => tool.type === 'mcp');
-    assert.ok(mcpTool.authorization.startsWith('mcp_at_'));
+    assert.equal(mcpTool.headers.Authorization.startsWith('Bearer mcp_at_'), true);
+    assert.equal(mcpTool.require_approval, 'never');
     assert.ok(mcpTool.allowed_tools.includes('preview_create_container'));
     assert.equal(mcpTool.allowed_tools.includes('apply_collection_change'), false);
-    assert.equal([...env.OAUTH_KV.values.values()].some(value => String(value).includes('xai-hosted-secret')), false);
+    assert.equal([...env.OAUTH_KV.values.values()].some(value => String(value).includes('gsk-hosted-secret')), false);
   } finally {
     globalThis.fetch = originalFetch;
   }

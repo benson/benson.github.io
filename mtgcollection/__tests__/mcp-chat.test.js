@@ -8,7 +8,7 @@ function setup() {
   win.document.body.innerHTML = `
     <section id="mcpChatDetails" aria-hidden="true">
       <button id="mcpChatClose" type="button"></button>
-      <select id="mcpChatProvider"><option value="xai">Grok</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option></select>
+      <select id="mcpChatProvider"><option value="groq">Groq</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option></select>
       <input id="mcpChatModel">
       <button id="mcpChatKeyToggle" type="button" aria-expanded="false"></button>
       <input id="mcpChatKey" hidden>

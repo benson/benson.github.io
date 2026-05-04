@@ -98,7 +98,7 @@ function renderTranscript() {
 }
 
 function providerModelDefault(provider) {
-  if (provider === 'xai') return 'grok-4-fast-non-reasoning';
+  if (provider === 'groq') return 'llama-3.1-8b-instant';
   return provider === 'anthropic' ? 'claude-sonnet-4-5' : 'gpt-5-nano';
 }
 

@@ -1432,17 +1432,17 @@ function extractAnthropicText(data) {
 }
 
 function chatProviderApiKey(env, provider) {
+  if (provider === 'groq') return String(env.MTGCOLLECTION_CHAT_GROQ_API_KEY || env.GROQ_API_KEY || '').trim();
   if (provider === 'openai') return String(env.MTGCOLLECTION_CHAT_OPENAI_API_KEY || env.OPENAI_API_KEY || '').trim();
   if (provider === 'anthropic') return String(env.MTGCOLLECTION_CHAT_ANTHROPIC_API_KEY || env.ANTHROPIC_API_KEY || '').trim();
-  if (provider === 'xai') return String(env.MTGCOLLECTION_CHAT_XAI_API_KEY || env.XAI_API_KEY || '').trim();
   return '';
 }
 
 function chatModel(env, provider, body) {
   const requested = String(body.model || '').trim();
   if (requested) return requested;
+  if (provider === 'groq') return String(env.MTGCOLLECTION_CHAT_GROQ_MODEL || 'llama-3.1-8b-instant').trim();
   if (provider === 'anthropic') return String(env.MTGCOLLECTION_CHAT_ANTHROPIC_MODEL || 'claude-sonnet-4-5').trim();
-  if (provider === 'xai') return String(env.MTGCOLLECTION_CHAT_XAI_MODEL || 'grok-4-fast-non-reasoning').trim();
   return String(env.MTGCOLLECTION_CHAT_OPENAI_MODEL || 'gpt-5-nano').trim();
 }
 
@@ -1491,15 +1491,15 @@ function providerErrorMessage(provider, data) {
   if (provider === 'openai' && (code === 'insufficient_quota' || /quota|billing/i.test(message || ''))) {
     return 'OpenAI quota or billing blocked this request for the selected API key/project.';
   }
-  if (provider === 'xai' && /credit|quota|billing|balance|spend/i.test(message || '')) {
-    return 'xAI quota or billing blocked this request for the selected API key/project.';
+  if (provider === 'groq' && /credit|quota|billing|balance|spend|limit/i.test(message || '')) {
+    return 'Groq quota or billing blocked this request for the selected API key/project.';
   }
   if (provider === 'anthropic' && /credit|quota|billing|balance/i.test(message || '')) {
     return 'Anthropic quota or billing blocked this request for the selected API key/project.';
   }
   if (message) return message;
   if (provider === 'anthropic') return 'Anthropic request failed';
-  if (provider === 'xai') return 'xAI request failed';
+  if (provider === 'groq') return 'Groq request failed';
   return 'OpenAI request failed';
 }
 
@@ -1534,13 +1534,13 @@ export async function handleByokChatRequest(request, env, deps) {
     return deps.json({ error: e.message || 'unauthorized' }, 401, request);
   }
   const body = await request.json().catch(() => ({}));
-  const provider = String(body.provider || env.MTGCOLLECTION_CHAT_PROVIDER || 'xai').toLowerCase();
+  const provider = String(body.provider || env.MTGCOLLECTION_CHAT_PROVIDER || 'groq').toLowerCase();
   const providedApiKey = String(body.apiKey || '').trim();
   const hostedApiKey = chatProviderApiKey(env, provider);
   const apiKey = providedApiKey || hostedApiKey;
   const hosted = !providedApiKey;
   const messages = normalizeChatMessages(body.messages);
-  if (!['openai', 'anthropic', 'xai'].includes(provider)) return deps.json({ error: 'provider must be openai, anthropic, or xai' }, 400, request);
+  if (!['groq', 'openai', 'anthropic'].includes(provider)) return deps.json({ error: 'provider must be groq, openai, or anthropic' }, 400, request);
   if (!apiKey) return deps.json({ error: 'chat provider key is not configured' }, 400, request);
   if (!messages.length) return deps.json({ error: 'messages are required' }, 400, request);
   const mcpToken = await mintInternalMcpToken(env, { userId: clerkAuth.userId, scopes: [MCP_READ_SCOPE, MCP_WRITE_SCOPE] });
@@ -1580,8 +1580,8 @@ export async function handleByokChatRequest(request, env, deps) {
       return deps.json({ provider, model, mode: hosted ? 'hosted' : 'byok', usage, text: extractOpenAiText(data), raw: data }, 200, request);
     }
 
-    if (provider === 'xai') {
-      const res = await fetch('https://api.x.ai/v1/responses', {
+    if (provider === 'groq') {
+      const res = await fetch('https://api.groq.com/openai/v1/responses', {
         method: 'POST',
         headers: {
           Authorization: 'Bearer ' + apiKey,
@@ -1591,13 +1591,13 @@ export async function handleByokChatRequest(request, env, deps) {
           model,
           input: messages,
           max_output_tokens: maxOutputTokens,
-          store: false,
           tools: [{
             type: 'mcp',
             server_label: 'mtgcollection',
             server_description: 'Read and preview safe changes to an MTG Collection account.',
             server_url: mcpUrl,
-            authorization: mcpToken,
+            headers: { Authorization: 'Bearer ' + mcpToken },
+            require_approval: 'never',
             allowed_tools: allowedToolNames,
           }],
         }),
