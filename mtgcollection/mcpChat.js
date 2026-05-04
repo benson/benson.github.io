@@ -7,6 +7,7 @@ const SYSTEM_PROMPT = [
   'Use the MTG Collection MCP tools to read the collection and preview safe changes.',
   'Do not apply changes yourself. The app receives preview metadata separately and shows pending changes for user confirmation.',
   'When calling tools, use real JSON types: quantities are numbers and createContainer is a boolean, not quoted strings.',
+  'For a simple single-card add request without an explicit quantity, preview exactly one copy with one tool call.',
 ].join(' ');
 const HOSTED_PROVIDER = 'groq';
 const HOSTED_MODEL = 'llama-3.1-8b-instant';

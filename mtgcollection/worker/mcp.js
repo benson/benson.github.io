@@ -1746,6 +1746,98 @@ function previewMismatchMessage(preview, userText) {
     + '. I did not offer that change for approval.';
 }
 
+const REQUESTED_QTY_WORDS = new Map([
+  ['one', 1],
+  ['two', 2],
+  ['three', 3],
+  ['four', 4],
+  ['five', 5],
+  ['six', 6],
+  ['seven', 7],
+  ['eight', 8],
+  ['nine', 9],
+  ['ten', 10],
+]);
+
+function parseSmallQuantity(raw) {
+  const n = parseInt(raw, 10);
+  return Number.isFinite(n) && n > 0 && n <= 99 ? n : null;
+}
+
+function requestedAddQuantity(userText) {
+  const text = String(userText || '').toLowerCase();
+  const compact = text.replace(/\s+/g, ' ').trim();
+  const wordPattern = Array.from(REQUESTED_QTY_WORDS.keys()).join('|');
+  const patterns = [
+    /\b(?:add|put)\s+(?:me\s+)?(\d{1,2})\b/,
+    /\b(\d{1,2})\s*(?:x|copies?|cards?)\b/,
+    /\bx\s*(\d{1,2})\b/,
+  ];
+  for (const pattern of patterns) {
+    const match = compact.match(pattern);
+    const qty = match ? parseSmallQuantity(match[1]) : null;
+    if (qty) return qty;
+  }
+  const wordMatch = compact.match(new RegExp('\\b(?:add|put)\\s+(?:me\\s+)?(' + wordPattern + ')\\b'))
+    || compact.match(new RegExp('\\b(' + wordPattern + ')\\s+(?:copies?|cards?)\\b'));
+  if (wordMatch) return REQUESTED_QTY_WORDS.get(wordMatch[1]) || null;
+  return /\b(?:add|put)\b/.test(compact) ? 1 : null;
+}
+
+function previewCardQuantity(preview) {
+  const explicit = parseSmallQuantity(preview?.card?.qty);
+  if (explicit) return explicit;
+  const summaryQty = String(preview?.summary || '').match(/^Added\s+(\d{1,2})\b/i);
+  return summaryQty ? parseSmallQuantity(summaryQty[1]) : null;
+}
+
+function previewAddIdentity(preview) {
+  if (preview?.previewType !== 'inventory.add') return '';
+  const name = significantMatchTokens(cardNameFromPreview(preview)).join(' ');
+  if (!name) return '';
+  const setCode = String(preview?.card?.setCode || '').trim().toLowerCase();
+  const cn = normalizedMatchTokens(preview?.card?.cn || '').join('');
+  const finish = String(preview?.card?.finish || '').trim().toLowerCase();
+  const location = JSON.stringify(preview?.card?.location || null);
+  return [name, setCode, cn, finish, location].join('|');
+}
+
+function duplicatePreviewMessage(chosen, dropped, requestedQty) {
+  const name = cardNameFromPreview(chosen) || 'that card';
+  const keptQty = previewCardQuantity(chosen) || requestedQty || 1;
+  const droppedQtys = dropped.map(preview => previewCardQuantity(preview)).filter(Boolean);
+  const suffix = droppedQtys.length
+    ? ' I kept the ' + keptQty + '-copy preview and ignored duplicate/conflicting preview quantities: ' + droppedQtys.join(', ') + '.'
+    : ' I kept one matching preview and ignored the duplicates.';
+  return 'The model produced multiple add previews for "' + name + '."' + suffix;
+}
+
+function dedupeAddPreviews(previews, userText) {
+  const out = [];
+  const warnings = [];
+  const groups = new Map();
+  for (const preview of previews) {
+    const identity = previewAddIdentity(preview);
+    if (!identity) {
+      out.push(preview);
+      continue;
+    }
+    if (!groups.has(identity)) groups.set(identity, []);
+    groups.get(identity).push(preview);
+  }
+  const requestedQty = requestedAddQuantity(userText);
+  for (const group of groups.values()) {
+    if (group.length === 1) {
+      out.push(group[0]);
+      continue;
+    }
+    const chosen = group.find(preview => requestedQty && previewCardQuantity(preview) === requestedQty) || group[0];
+    out.push(chosen);
+    warnings.push(duplicatePreviewMessage(chosen, group.filter(preview => preview !== chosen), requestedQty));
+  }
+  return { previews: out, previewWarnings: warnings };
+}
+
 function filterChatPreviews(previews, lastUserText) {
   const accepted = [];
   const warnings = [];
@@ -1753,7 +1845,8 @@ function filterChatPreviews(previews, lastUserText) {
     if (previewLooksLikeUserRequest(preview, lastUserText)) accepted.push(preview);
     else warnings.push(previewMismatchMessage(preview, lastUserText));
   }
-  return { previews: accepted, previewWarnings: warnings };
+  const deduped = dedupeAddPreviews(accepted, lastUserText);
+  return { previews: deduped.previews, previewWarnings: [...warnings, ...deduped.previewWarnings] };
 }
 
 function extractOpenAiText(data) {

@@ -695,6 +695,78 @@ test('mcp chat: mismatched add previews are not offered for approval', async () 
   }
 });
 
+test('mcp chat: duplicate add previews are reduced to the requested quantity', async () => {
+  const { env } = fakeSyncEnv();
+  env.MTGCOLLECTION_CHAT_GROQ_API_KEY = 'gsk-hosted-secret';
+  const originalFetch = globalThis.fetch;
+  const oneCopy = {
+    status: 'preview',
+    previewType: 'inventory.add',
+    summary: 'Added 1 Dreamroot Cascade',
+    expectedRevision: 70,
+    expiresAt: '2026-05-04T12:00:00.000Z',
+    changeToken: 'one.token',
+    opCount: 2,
+    card: { name: 'Dreamroot Cascade', setCode: 'eoe', cn: '276', finish: 'normal', qty: 1 },
+  };
+  const twoCopies = {
+    ...oneCopy,
+    summary: 'Added 2 Dreamroot Cascade',
+    changeToken: 'two.token',
+    card: { ...oneCopy.card, qty: 2 },
+  };
+  globalThis.fetch = async (url) => {
+    assert.equal(url, 'https://api.groq.com/openai/v1/responses');
+    return Response.json({
+      output_text: '2 previews ready below.',
+      output: [{
+        type: 'mcp_call',
+        name: 'preview_add_inventory_item',
+        result: { structuredContent: oneCopy },
+      }, {
+        type: 'mcp_call',
+        name: 'preview_add_inventory_item',
+        result: { structuredContent: twoCopies },
+      }],
+    });
+  };
+  try {
+    let res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'add a dreamroot cascade to my collection' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    let data = await res.json();
+    assert.equal(data.previews.length, 1);
+    assert.equal(data.previews[0].changeToken, 'one.token');
+    assert.equal(data.previewWarnings.length, 1);
+    assert.match(data.previewWarnings[0], /multiple add previews/);
+
+    res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'add two dreamroot cascade to my collection' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    data = await res.json();
+    assert.equal(data.previews.length, 1);
+    assert.equal(data.previews[0].changeToken, 'two.token');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('mcp chat: hosted quota blocks provider calls after the daily limit', async () => {
   const { env } = fakeSyncEnv();
   env.MTGCOLLECTION_CHAT_OPENAI_API_KEY = 'sk-hosted-secret';
