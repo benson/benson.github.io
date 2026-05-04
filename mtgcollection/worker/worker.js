@@ -14,6 +14,10 @@ const MAX_PAYLOAD_BYTES = 5 * 1024 * 1024;
 const SHARE_KEY_PREFIX = 'share:';
 const ID_PATTERN = /^[a-zA-Z0-9_-]{6,48}$/;
 
+function sharePutOptions(auth) {
+  return auth ? undefined : { expirationTtl: TTL_SECONDS };
+}
+
 function corsHeaders(request) {
   const origin = request?.headers?.get('Origin') || '';
   const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
@@ -441,7 +445,7 @@ export default {
         const auth = await optionalAuth(request, env).catch(e => { throw e; });
         const body = await readBody(request);
         const id = generateId();
-        await env.SHARES.put(SHARE_KEY_PREFIX + id, body, { expirationTtl: TTL_SECONDS });
+        await env.SHARES.put(SHARE_KEY_PREFIX + id, body, sharePutOptions(auth));
         if (auth) await recordShareOwner(env, { shareId: id, userId: auth.userId, collectionId: collectionIdForUser(auth.userId) });
         return json({ id }, 200, request);
       } catch (e) {
@@ -470,7 +474,7 @@ export default {
           const auth = await optionalAuth(request, env);
           if (!(await canWriteShare(request, env, id, auth))) return text('unauthorized', 401, request);
           const body = await readBody(request);
-          await env.SHARES.put(key, body, { expirationTtl: TTL_SECONDS });
+          await env.SHARES.put(key, body, sharePutOptions(auth));
           if (auth) await recordShareOwner(env, { shareId: id, userId: auth.userId, collectionId: collectionIdForUser(auth.userId) });
           return json({ ok: true }, 200, request);
         } catch (e) {

@@ -68,12 +68,28 @@ function isOfflineSyncError(error) {
     || /sync service is unreachable|failed to fetch|networkerror|load failed|network request failed/i.test(message);
 }
 
+function isBackendAvailabilityError(error) {
+  const status = Number(error?.status || 0);
+  const message = String(error?.message || error || '');
+  return status === 429
+    || status === 503
+    || /quota|limit exceeded|daily limits|resource limits|error 1027|D1|database unavailable|backend unavailable/i.test(message);
+}
+
 async function reportSyncFailure(error) {
   if (isOfflineSyncError(error)) {
     await refreshPendingStatus({
       mode: 'queued',
       label: 'offline queued',
-      detail: 'waiting for network',
+      detail: 'local changes saved here; waiting for network',
+    });
+    return;
+  }
+  if (isBackendAvailabilityError(error)) {
+    await refreshPendingStatus({
+      mode: 'queued',
+      label: 'queued',
+      detail: 'cloud sync unavailable; local changes saved here',
     });
     return;
   }

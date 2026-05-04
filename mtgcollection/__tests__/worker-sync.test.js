@@ -7,9 +7,14 @@ const subtle = globalThis.crypto?.subtle || webcrypto.subtle;
 
 function fakeKv() {
   const values = new Map();
+  const putOptions = new Map();
   return {
     values,
-    async put(key, value) { values.set(key, value); },
+    putOptions,
+    async put(key, value, options) {
+      values.set(key, value);
+      putOptions.set(key, options);
+    },
     async get(key) { return values.has(key) ? values.get(key) : null; },
     async delete(key) { values.delete(key); },
   };
@@ -90,7 +95,8 @@ test('worker: sync routes require authentication before touching bindings', asyn
 });
 
 test('worker: public legacy share create and read still work without auth', async () => {
-  const env = { SHARES: fakeKv() };
+  const shares = fakeKv();
+  const env = { SHARES: shares };
   const create = await worker.fetch(new Request('https://example.com/share', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -105,6 +111,33 @@ test('worker: public legacy share create and read still work without auth', asyn
   assert.equal(read.status, 200);
   const body = await read.json();
   assert.equal(body.container.name, 'breya');
+  assert.deepEqual(shares.putOptions.get('share:' + id), { expirationTtl: 2592000 });
+});
+
+test('worker: authenticated share writes do not expire from KV', async () => {
+  const shares = fakeKv();
+  const env = {
+    SYNC_AUTH_DISABLED: '1',
+    SHARES: shares,
+  };
+  const create = await worker.fetch(new Request('https://example.com/share', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Debug-User': 'user_1' },
+    body: JSON.stringify({ kind: 'deck', version: 1, container: { type: 'deck', name: 'breya' } }),
+  }), env);
+
+  assert.equal(create.status, 200);
+  const { id } = await create.json();
+  assert.equal(shares.putOptions.get('share:' + id), undefined);
+
+  const update = await worker.fetch(new Request('https://example.com/share/' + id, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'X-Debug-User': 'user_1' },
+    body: JSON.stringify({ kind: 'deck', version: 1, container: { type: 'deck', name: 'breya updated' } }),
+  }), env);
+
+  assert.equal(update.status, 200);
+  assert.equal(shares.putOptions.get('share:' + id), undefined);
 });
 
 test('worker: debug-auth sync requests route to the Durable Object binding', async () => {
