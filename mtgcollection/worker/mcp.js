@@ -699,13 +699,13 @@ async function resolveScryfallCardForAdd(raw) {
   const scryfallId = String(raw.scryfallId || '').trim();
   if (scryfallId) {
     const fetched = await fetchScryfallJson(SCRYFALL_API + '/cards/' + encodeURIComponent(scryfallId));
-    return fetched.ok ? fetched.data : null;
+    if (fetched.ok) return fetched.data;
   }
   const setCode = String(raw.setCode || raw.set || '').trim().toLowerCase();
   const cn = String(raw.cn || raw.collectorNumber || '').trim();
   if (setCode && cn) {
     const fetched = await fetchScryfallJson(SCRYFALL_API + '/cards/' + encodeURIComponent(setCode) + '/' + encodeURIComponent(cn));
-    return fetched.ok ? fetched.data : null;
+    if (fetched.ok) return fetched.data;
   }
   const name = String(raw.name || raw.resolvedName || raw.query || '').trim();
   if (!name) return null;

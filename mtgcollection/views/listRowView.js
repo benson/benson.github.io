@@ -31,9 +31,17 @@ export function renderRow(c, collection = state.collection) {
   const index = collection.indexOf(c);
   const key = collectionKey(c);
   const selected = state.selectedKeys.has(key);
-  const previewClasses = c.imageUrl ? 'card-name-button card-preview-link detail-trigger' : 'card-name-button detail-trigger';
-  const previewAttr = c.imageUrl
-    ? ` data-preview-url="${esc(c.imageUrl)}" data-preview-finish="${esc(c.finish || 'normal')}"`
+  const canPreview = !!(c.imageUrl || c.scryfallId || c.setCode || c.cn || (name && name !== '(unknown)'));
+  const previewClasses = canPreview ? 'card-name-button card-preview-link detail-trigger' : 'card-name-button detail-trigger';
+  const previewAttr = canPreview
+    ? [
+        c.imageUrl ? ` data-preview-url="${esc(c.imageUrl)}"` : '',
+        c.scryfallId ? ` data-preview-id="${esc(c.scryfallId)}"` : '',
+        c.setCode ? ` data-preview-set="${esc(c.setCode)}"` : '',
+        c.cn ? ` data-preview-cn="${esc(c.cn)}"` : '',
+        name && name !== '(unknown)' ? ` data-preview-name="${esc(name)}"` : '',
+        ` data-preview-finish="${esc(c.finish || 'normal')}"`,
+      ].join('')
     : '';
   const setCodeLower = (c.setCode || '').toLowerCase();
   const setCode = setCodeLower.toUpperCase();

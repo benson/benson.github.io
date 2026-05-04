@@ -12,10 +12,12 @@ import {
 
 const previousWindow = globalThis.window;
 const previousDocument = globalThis.document;
+const previousFetch = globalThis.fetch;
 
 afterEach(() => {
   globalThis.window = previousWindow;
   globalThis.document = previousDocument;
+  globalThis.fetch = previousFetch;
 });
 
 function installDom() {
@@ -90,6 +92,42 @@ test('image lightbox flips between front and back large images', () => {
   hideImageLightbox();
   assert.equal(isLightboxVisible(), false);
   assert.equal(lightbox.getAttribute('aria-hidden'), 'true');
+});
+
+test('card preview lazily resolves an image when row metadata has no cached URL', async () => {
+  const doc = installDom();
+  assert.equal(initCardPreview(doc), true);
+  const link = doc.getElementById('previewLink');
+  delete link.dataset.previewUrl;
+  link.dataset.previewSet = 'ddu';
+  link.dataset.previewCn = '179';
+  link.dataset.previewName = 'Dreamroot Cascade';
+  const fetched = [];
+  globalThis.fetch = async url => {
+    fetched.push(String(url));
+    if (String(url) === 'https://api.scryfall.com/cards/ddu/179') {
+      return Response.json({ error: 'not found' }, { status: 404 });
+    }
+    assert.equal(String(url), 'https://api.scryfall.com/cards/named?exact=Dreamroot%20Cascade');
+    return Response.json({
+      name: 'Dreamroot Cascade',
+      image_uris: { normal: 'https://img.test/dreamroot.jpg' },
+    });
+  };
+
+  link.dispatchEvent(new doc.defaultView.MouseEvent('mouseover', { bubbles: true }));
+  await new Promise(resolve => setTimeout(resolve, 0));
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  const preview = doc.getElementById('cardPreview');
+  const img = preview.querySelector('img');
+  assert.deepEqual(fetched, [
+    'https://api.scryfall.com/cards/ddu/179',
+    'https://api.scryfall.com/cards/named?exact=Dreamroot%20Cascade',
+  ]);
+  assert.equal(link.dataset.previewUrl, 'https://img.test/dreamroot.jpg');
+  assert.equal(preview.classList.contains('visible'), true);
+  assert.equal(img.getAttribute('src'), 'https://img.test/dreamroot.jpg');
 });
 
 test('initCardPreview: missing chrome fails softly', () => {

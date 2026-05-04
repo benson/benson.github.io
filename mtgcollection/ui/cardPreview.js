@@ -12,6 +12,8 @@ let pendingPreviewUrl = null;
 let boundDocument = null;
 let boundLightboxEl = null;
 let boundFlipBtn = null;
+const SCRYFALL_API = 'https://api.scryfall.com';
+const previewLookupCache = new Map();
 
 function getWindowFor(el) {
   return el?.ownerDocument?.defaultView || window;
@@ -20,7 +22,12 @@ function getWindowFor(el) {
 export function showCardPreview(link) {
   if (!cardPreviewEl || !cardPreviewImg) return;
   const url = link.dataset.previewUrl;
-  if (!url) return;
+  if (!url) {
+    resolvePreviewUrl(link).then(resolved => {
+      if (resolved && link.dataset.previewActive === 'true') showCardPreview(link);
+    });
+    return;
+  }
 
   const win = getWindowFor(link);
   const rect = link.getBoundingClientRect();
@@ -66,6 +73,60 @@ export function hideCardPreview() {
   pendingPreviewUrl = null;
 }
 
+function scryfallImageUrl(card) {
+  if (!card) return '';
+  if (card.image_uris) return card.image_uris.normal || card.image_uris.small || '';
+  const face = Array.isArray(card.card_faces) ? card.card_faces[0] : null;
+  return face?.image_uris?.normal || face?.image_uris?.small || '';
+}
+
+function previewLookupKey(link) {
+  const id = String(link.dataset.previewId || '').trim();
+  if (id) return 'id:' + id;
+  const setCode = String(link.dataset.previewSet || '').trim().toLowerCase();
+  const cn = String(link.dataset.previewCn || '').trim();
+  const name = String(link.dataset.previewName || '').trim();
+  if (setCode && cn) return 'printing:' + setCode + ':' + cn + ':' + name.toLowerCase();
+  if (name) return 'name:' + name.toLowerCase();
+  return '';
+}
+
+function previewLookupUrls(link) {
+  const urls = [];
+  const id = String(link.dataset.previewId || '').trim();
+  const setCode = String(link.dataset.previewSet || '').trim().toLowerCase();
+  const cn = String(link.dataset.previewCn || '').trim();
+  const name = String(link.dataset.previewName || '').trim();
+  if (id) urls.push(SCRYFALL_API + '/cards/' + encodeURIComponent(id));
+  if (setCode && cn) urls.push(SCRYFALL_API + '/cards/' + encodeURIComponent(setCode) + '/' + encodeURIComponent(cn));
+  if (name) urls.push(SCRYFALL_API + '/cards/named?exact=' + encodeURIComponent(name));
+  return urls;
+}
+
+async function fetchPreviewUrl(link) {
+  for (const url of previewLookupUrls(link)) {
+    const res = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!res.ok) continue;
+    const data = await res.json().catch(() => null);
+    const imageUrl = scryfallImageUrl(data);
+    if (imageUrl) return imageUrl;
+  }
+  return '';
+}
+
+async function resolvePreviewUrl(link) {
+  if (link.dataset.previewUrl) return link.dataset.previewUrl;
+  if (typeof fetch !== 'function') return '';
+  const key = previewLookupKey(link);
+  if (!key) return '';
+  if (!previewLookupCache.has(key)) {
+    previewLookupCache.set(key, fetchPreviewUrl(link).catch(() => ''));
+  }
+  const url = await previewLookupCache.get(key);
+  if (url) link.dataset.previewUrl = url;
+  return url;
+}
+
 export function showImageLightbox(frontUrl, backUrl) {
   if (!frontUrl || !lightboxEl || !lightboxImg || !lightboxFlipBtn) return;
   lightboxFront = frontUrl;
@@ -103,12 +164,14 @@ function bindDocumentEvents(doc) {
   doc.addEventListener('mouseover', e => {
     const link = e.target.closest('.card-preview-link');
     if (!link) return;
+    link.dataset.previewActive = 'true';
     showCardPreview(link);
   });
 
   doc.addEventListener('mouseout', e => {
     const link = e.target.closest('.card-preview-link');
     if (!link || link.contains(e.relatedTarget)) return;
+    delete link.dataset.previewActive;
     hideCardPreview();
   });
   boundDocument = doc;

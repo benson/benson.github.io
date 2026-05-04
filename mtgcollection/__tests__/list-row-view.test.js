@@ -71,3 +71,29 @@ test('renderRow: renders selection, preview, tags, location, and price cells', (
   assert.equal(row.querySelector('.qty-cell').textContent, '2');
   assert.equal(row.querySelector('.price-cell').textContent, '$3.50');
 });
+
+test('renderRow: exposes lookup metadata for rows missing a cached image', () => {
+  const c = {
+    name: 'Dreamroot Cascade',
+    resolvedName: 'Dreamroot Cascade',
+    setCode: 'ddu',
+    cn: '179',
+    finish: 'normal',
+    condition: 'near_mint',
+    rarity: '',
+    qty: 1,
+    price: null,
+    imageUrl: '',
+    location: { type: 'box', name: '' },
+    tags: [],
+  };
+  state.collection = [c];
+
+  const row = parseRow(renderRow(c));
+  const link = row.querySelector('.card-preview-link');
+  assert.ok(link);
+  assert.equal(link.dataset.previewUrl, undefined);
+  assert.equal(link.dataset.previewSet, 'ddu');
+  assert.equal(link.dataset.previewCn, '179');
+  assert.equal(link.dataset.previewName, 'Dreamroot Cascade');
+});

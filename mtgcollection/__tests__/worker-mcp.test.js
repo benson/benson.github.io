@@ -377,6 +377,67 @@ test('mcp: preview add inventory tolerates chat-coerced string args', async () =
   }
 });
 
+test('mcp: preview add falls back to card name when model-supplied printing misses', async () => {
+  const { env, state } = fakeSyncEnv(emptySnapshot());
+  const token = await issueMcpToken(env);
+  const originalFetch = globalThis.fetch;
+  const urls = [];
+  globalThis.fetch = async url => {
+    urls.push(String(url));
+    if (String(url) === 'https://api.scryfall.com/cards/ddu/179') {
+      return Response.json({ error: 'not found' }, { status: 404 });
+    }
+    assert.equal(String(url), 'https://api.scryfall.com/cards/named?exact=dreamroot%20cascade');
+    return Response.json({
+      id: 'dreamroot-id',
+      name: 'Dreamroot Cascade',
+      set: 'vow',
+      set_name: 'Innistrad: Crimson Vow',
+      collector_number: '262',
+      lang: 'en',
+      rarity: 'rare',
+      cmc: 0,
+      colors: [],
+      color_identity: ['G', 'U'],
+      type_line: 'Land',
+      oracle_text: 'Dreamroot Cascade enters tapped...',
+      legalities: { commander: 'legal' },
+      finishes: ['nonfoil', 'foil'],
+      image_uris: { normal: 'https://img.test/dreamroot.jpg' },
+      prices: { usd: '3.00' },
+      scryfall_uri: 'https://scryfall.test/card/vow/262/dreamroot-cascade',
+    });
+  };
+  try {
+    const preview = await callTool(env, token.access_token, 'preview_add_inventory_item', {
+      name: 'dreamroot cascade',
+      setCode: 'ddu',
+      cn: '179',
+      condition: 'nm',
+    });
+    const data = preview.result.structuredContent;
+    assert.equal(data.status, 'preview');
+    assert.equal(data.card.name, 'Dreamroot Cascade');
+    assert.equal(data.card.setCode, 'vow');
+    assert.deepEqual(urls, [
+      'https://api.scryfall.com/cards/ddu/179',
+      'https://api.scryfall.com/cards/named?exact=dreamroot%20cascade',
+    ]);
+
+    const applied = await callTool(env, token.access_token, 'apply_collection_change', {
+      changeToken: data.changeToken,
+    });
+    assert.equal(applied.result.structuredContent.status, 'applied');
+    const added = state.snapshot.app.collection[0];
+    assert.equal(added.scryfallId, 'dreamroot-id');
+    assert.equal(added.setCode, 'vow');
+    assert.equal(added.cn, '262');
+    assert.equal(added.imageUrl, 'https://img.test/dreamroot.jpg');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('mcp: stale preview tokens are rejected on apply', async () => {
   const entry = card();
   const { env, state } = fakeSyncEnv(emptySnapshot({
