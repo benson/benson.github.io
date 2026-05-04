@@ -4137,6 +4137,11 @@
     }
     .deck-workspace-controls {
       align-items: stretch;
+      background: #f8f7f4;
+      padding-bottom: 10px;
+      position: sticky;
+      top: 0;
+      z-index: 12;
     }
     .deck-mode-tabs,
     .deck-board-filter-tabs {
@@ -4145,6 +4150,27 @@
     .deck-mode-btn,
     .deck-board-filter-btn {
       flex: 1 1 0;
+      min-height: 38px;
+    }
+    .deck-ownership-toggle {
+      width: 100%;
+    }
+    .deck-ownership-btn {
+      flex: 1 1 0;
+      min-height: 38px;
+    }
+    .deck-visual-controls {
+      align-items: stretch;
+      gap: 8px;
+    }
+    .deck-visual-group-by,
+    .deck-visual-card-size,
+    .deck-visual-price-toggle {
+      min-height: 38px;
+    }
+    .deck-visual-group-by select,
+    .deck-card-size-btn {
+      min-height: 34px;
     }
     .deck-hero-side {
       min-width: 0;
@@ -4184,6 +4210,50 @@
     .list-view.active table {
       min-width: 660px;
     }
+    .binder-actions {
+      align-items: stretch;
+      gap: 8px;
+    }
+    .binder-actions .segmented {
+      flex: 1 1 220px;
+    }
+    .binder-actions .segment-btn {
+      flex: 1 1 0;
+      min-height: 38px;
+    }
+    .binder-price-toggle {
+      min-height: 38px;
+    }
+    .binder-summary {
+      flex: 1 1 100%;
+      margin-left: 0;
+      text-align: right;
+    }
+    .binder-surface {
+      padding: 12px;
+    }
+    .binder-page {
+      gap: 10px;
+      width: min(var(--binder-page-width, 760px), calc(100vw - 48px));
+    }
+    .binder-nav {
+      gap: 8px;
+    }
+    .binder-nav .btn {
+      flex: 1 1 96px;
+      min-height: 40px;
+    }
+    .locations-create {
+      align-items: stretch;
+    }
+    .locations-create input[type="text"],
+    .locations-create select,
+    .locations-create .btn {
+      min-height: 40px;
+    }
+    .location-card {
+      min-height: 92px;
+    }
     body.view-list.right-drawer-open .app-right-backdrop,
     body.view-binder.right-drawer-open .app-right-backdrop,
     body.view-deck.right-drawer-open .app-right-backdrop,
@@ -4216,5 +4286,150 @@
     .app-left, .app-right { padding: 10px 12px; }
     .grid, .grid.grid-small, .grid.grid-medium { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 6px; }
     .grid.grid-large { grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 8px; }
+    .locations-create {
+      display: grid;
+      grid-template-columns: 1fr;
+    }
+    .locations-create-types {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .locations-create-type .loc-pill,
+    .locations-create input[type="text"],
+    .locations-create .btn {
+      justify-content: center;
+      width: 100%;
+    }
+    .locations-list {
+      grid-template-columns: 1fr;
+    }
+    .location-card-name {
+      align-items: flex-start;
+    }
+    .location-card-edit-btn,
+    .location-card-menu-btn {
+      min-height: 32px;
+      min-width: 32px;
+    }
+    body.view-list .list-view.active,
+    body.view-binder .binder-pages-list {
+      overflow-x: visible;
+    }
+    body.view-list .list-view.active table,
+    body.view-list .list-view.active thead,
+    body.view-list .list-view.active tbody,
+    body.view-binder .binder-list-table,
+    body.view-binder .binder-list-table thead,
+    body.view-binder .binder-list-table tbody {
+      display: block;
+      min-width: 0;
+      width: 100%;
+    }
+    body.view-list .list-view.active thead,
+    body.view-binder .binder-list-table thead {
+      display: none;
+    }
+    body.view-list .list-view.active tbody,
+    body.view-binder .binder-list-table tbody {
+      display: grid;
+      gap: 8px;
+    }
+    body.view-list .list-view.active tbody tr,
+    body.view-binder .binder-list-table tbody tr {
+      align-items: center;
+      background: #fff;
+      border: 1px solid #ddd;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px 8px;
+      padding: 10px;
+    }
+    body.view-list .list-view.active tbody tr:hover,
+    body.view-binder .binder-list-table tbody tr:hover {
+      background: #fff;
+    }
+    body.view-list .list-view.active td,
+    body.view-binder .binder-list-table td {
+      display: block;
+      padding: 0;
+    }
+    body.view-list .list-view.active .col-check {
+      flex: 0 0 auto;
+      order: 0;
+      width: auto;
+    }
+    body.view-binder .binder-list-table .col-check {
+      display: none;
+    }
+    body.view-list .list-view.active .card-name-cell,
+    body.view-binder .binder-list-table .card-name-cell {
+      flex: 1 1 calc(100% - 96px);
+      order: 1;
+    }
+    body.view-list .list-view.active .card-name-button,
+    body.view-binder .binder-list-table .card-name-button {
+      font-size: 0.95rem;
+      line-height: 1.25;
+      text-align: left;
+      white-space: normal;
+    }
+    body.view-list .list-view.active .price-cell,
+    body.view-binder .binder-list-table .price-cell {
+      color: #000;
+      font-size: 0.85rem;
+      margin-left: auto;
+      order: 2;
+    }
+    body.view-list .list-view.active .set-cell,
+    body.view-list .list-view.active .cn-cell,
+    body.view-list .list-view.active .finish-cell,
+    body.view-list .list-view.active .rarity-cell,
+    body.view-list .list-view.active .condition-cell,
+    body.view-list .list-view.active .qty-cell,
+    body.view-binder .binder-list-table .set-cell,
+    body.view-binder .binder-list-table .cn-cell,
+    body.view-binder .binder-list-table .finish-cell,
+    body.view-binder .binder-list-table .rarity-cell,
+    body.view-binder .binder-list-table .condition-cell,
+    body.view-binder .binder-list-table .qty-cell {
+      flex: 0 1 auto;
+      font-size: 0.72rem;
+      order: 3;
+    }
+    body.view-list .list-view.active .location-cell,
+    body.view-binder .binder-list-table .location-cell {
+      flex: 1 1 100%;
+      margin-top: 4px;
+      order: 4;
+    }
+    body.view-list .list-view.active .tags-cell,
+    body.view-binder .binder-list-table .tags-cell {
+      flex: 1 1 100%;
+      order: 5;
+    }
+    body.view-list .list-view.active .row-tag-input,
+    body.view-binder .binder-list-table .row-tag-input {
+      min-height: 30px;
+    }
+    .binder-surface {
+      padding: 10px;
+    }
+    .binder-page {
+      gap: 8px;
+      width: min(var(--binder-page-width, 760px), calc(100vw - 44px));
+    }
+    .binder-page-indicator {
+      min-width: 82px;
+    }
     .deck-columns { --deck-card-w: 150px; --deck-name-bar: 26px; gap: 16px 8px; }
+  }
+
+  @media (hover: none) {
+    .card-actions {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .card-caption {
+      display: none;
+    }
   }

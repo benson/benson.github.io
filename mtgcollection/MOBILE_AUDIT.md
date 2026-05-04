@@ -96,6 +96,22 @@ Re-checked with Playwright at `390x844`:
 - Add sheet: no overflow, full `390x844` sheet, close button visible, sticky action row enabled.
 - Detail drawer from binder: no overflow, full `390x844` drawer, card image capped to `340px`, sticky action row enabled.
 
+## Pass 3 Implementation Status
+
+Implemented in the mobile browsing pass:
+
+- Phone collection list rows become stacked card-like rows instead of a horizontally scrolled dense table.
+- Binder controls, price toggle, summary, page surface, and pager use touch-sized mobile spacing.
+- Binder list mode also uses stacked mobile rows while keeping binder selection checkboxes hidden.
+- Storage/decks home create forms become single-column on phones, with full-width inputs/actions and one-column container cards.
+- Deck workspace controls are sticky, full-width, and touch-sized; ownership controls now stack cleanly with the mode and board tabs.
+
+Re-checked with Playwright:
+
+- `390x844`: collection card rows, storage home, binder page, binder list mode, and deck controls all reported no horizontal overflow.
+- `390x844`: binder page surface measured `366px` wide with the skeuomorphic page wrapping the cards.
+- `768x1024`: collection, storage, decks home, and binder page all reported no horizontal overflow.
+
 ## Proposed Implementation Sequence
 
 ### Pass 1: Mobile Shell Foundation
