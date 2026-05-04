@@ -39,6 +39,19 @@ function refreshAfterCollectionCommit() {
   mirrorSharedDecks();
 }
 
+function markBootReady() {
+  document.body.classList.remove('app-booting');
+}
+
+function showBootFailure(error) {
+  markBootReady();
+  const feedback = document.getElementById('feedback');
+  if (feedback) {
+    feedback.textContent = error?.message || String(error || 'app failed to load');
+    feedback.classList.add('error');
+  }
+}
+
 async function boot() {
   loadChromePreferences();
 
@@ -88,10 +101,12 @@ async function boot() {
         banner.innerHTML = '<span>couldn\'t load this snapshot — it may have expired</span>'
           + ' <a href="' + location.pathname + '">open my collection</a>';
       }
+      markBootReady();
       return;
     }
     populateFilters();
     render();
+    markBootReady();
     return;
   }
 
@@ -104,11 +119,12 @@ async function boot() {
   }
   applyRouteStateFromUrl();
   await primeSyncBaseline();
-  initSyncEngine({ render, populateFilters, applyRouteState: applyRouteStateFromUrl });
+  await initSyncEngine({ render, populateFilters, applyRouteState: applyRouteStateFromUrl });
   populateFilters();
   applyRouteStateFromUrl();
   applyUrlStateOnLoad();
   render();
+  markBootReady();
   if (state.collection.length === 0) {
     document.getElementById('addDetails').open = true;
   }
@@ -121,4 +137,4 @@ async function boot() {
 
 }
 
-boot();
+boot().catch(showBootFailure);
