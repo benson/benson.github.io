@@ -8,6 +8,66 @@ function locationFilterEl() {
   return typeof document === 'undefined' ? null : document.getElementById('filterLocation');
 }
 
+function currentUrl(locationObj = globalThis.location) {
+  try {
+    if (locationObj?.href) return new URL(locationObj.href);
+    const pathname = locationObj?.pathname || '/mtgcollection/';
+    const search = locationObj?.search || '';
+    const hash = locationObj?.hash || '';
+    return new URL(pathname + search + hash, 'https://example.com');
+  } catch (e) {
+    return new URL('/mtgcollection/', 'https://example.com');
+  }
+}
+
+function routePathFromUrl(url) {
+  return url.pathname + (url.search ? url.search : '') + (url.hash ? url.hash : '');
+}
+
+export function syncRouteUrlFromState({
+  historyObj = globalThis.history,
+  locationObj = globalThis.location,
+  replace = true,
+} = {}) {
+  if (!historyObj || !locationObj) return '';
+  const url = currentUrl(locationObj);
+  if (url.searchParams.get('share')) return '';
+  const loc = getActiveLocation();
+  if (loc) {
+    url.searchParams.set('loc', locationKey(loc));
+    url.searchParams.delete('view');
+  } else if (state.viewMode && state.viewMode !== 'collection') {
+    url.searchParams.set('view', state.viewMode);
+    url.searchParams.delete('loc');
+  } else {
+    url.searchParams.delete('view');
+    url.searchParams.delete('loc');
+  }
+  const path = routePathFromUrl(url);
+  if (replace || typeof historyObj.pushState !== 'function') historyObj.replaceState(null, '', path);
+  else historyObj.pushState(null, '', path);
+  return path;
+}
+
+export function applyRouteStateFromUrl({
+  locationObj = globalThis.location,
+} = {}) {
+  const url = currentUrl(locationObj);
+  if (url.searchParams.get('share')) return false;
+  const loc = normalizeLocation(url.searchParams.get('loc'));
+  if (loc) {
+    setActiveContainerRoute(loc, { updateUrl: false });
+    return true;
+  }
+  const view = url.searchParams.get('view');
+  if (VALID_VIEW_MODES.includes(view)) {
+    setTopLevelViewMode(view, { updateUrl: false });
+    return true;
+  }
+  setTopLevelViewMode('collection', { updateUrl: false });
+  return false;
+}
+
 export function getActiveLocation() {
   const loc = normalizeLocation(state.activeLocation);
   state.activeLocation = loc;
@@ -66,16 +126,17 @@ function viewModeForLocation(loc) {
   return 'collection';
 }
 
-export function setTopLevelViewMode(mode, { syncFilter = true } = {}) {
+export function setTopLevelViewMode(mode, { syncFilter = true, updateUrl = true } = {}) {
   state.viewMode = VALID_VIEW_MODES.includes(mode) ? mode : 'collection';
   state.viewAsList = false;
   state.binderPage = 0;
   clearActiveLocation();
   if (syncFilter) syncLocationFilterFromActiveLocation();
+  if (updateUrl) syncRouteUrlFromState();
   return state.viewMode;
 }
 
-export function setActiveContainerRoute(loc, { syncFilter = true } = {}) {
+export function setActiveContainerRoute(loc, { syncFilter = true, updateUrl = true } = {}) {
   const previous = getActiveLocation();
   const active = setActiveLocation(loc);
   state.viewMode = viewModeForLocation(active);
@@ -83,6 +144,7 @@ export function setActiveContainerRoute(loc, { syncFilter = true } = {}) {
   state.binderPage = 0;
   maybeResetDeckWorkspaceLandingState(previous, active);
   if (syncFilter) syncLocationFilterFromActiveLocation();
+  if (updateUrl) syncRouteUrlFromState();
   return active;
 }
 

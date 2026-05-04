@@ -24,6 +24,7 @@ import {
 } from './syncEngine.js';
 import { initSyncUi } from './syncUi.js';
 import { initMcpChat } from './mcpChat.js';
+import { applyRouteStateFromUrl } from './routeState.js';
 
 function mirrorSharedDecks() {
   if (state.shareSnapshot) return;
@@ -104,11 +105,12 @@ async function boot() {
   await primeSyncBaseline();
   initSyncEngine({ render, populateFilters });
   populateFilters();
+  applyRouteStateFromUrl();
+  applyUrlStateOnLoad();
   render();
   if (state.collection.length === 0) {
     document.getElementById('addDetails').open = true;
   }
-  applyUrlStateOnLoad();
   lazyBackfillSearchFields();
 
   // Populate the set-icon cache from Scryfall in the background; re-render
