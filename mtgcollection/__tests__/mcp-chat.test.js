@@ -9,6 +9,7 @@ function setup() {
     <section id="mcpChatDetails" aria-hidden="true">
       <button id="mcpChatClose" type="button"></button>
       <div id="mcpChatLog"></div>
+      <section id="mcpChatPreviewPanel" hidden></section>
       <form id="mcpChatForm"><textarea id="mcpChatInput"></textarea><button id="mcpChatSend"></button></form>
     </section>
     <button data-mcp-chat-toggle aria-expanded="false"></button>

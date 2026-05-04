@@ -1298,26 +1298,66 @@ async function toolPreviewDeleteContainer(env, deps, auth, args = {}) {
   return previewFromOps(env, auth, cloud, { summary, ops, event });
 }
 
+function changeTokensFromApplyArgs(args = {}) {
+  const tokens = Array.isArray(args.changeTokens) ? args.changeTokens
+    : Array.isArray(args.changeToken) ? args.changeToken
+      : [args.changeToken];
+  return tokens.map(token => String(token || '').trim()).filter(Boolean);
+}
+
+function opsWithSequentialUndoSnapshot(ops, beforeSnapshot) {
+  const adjusted = cloneJson(ops, []);
+  for (const op of adjusted) {
+    if (op?.type === 'history.append' && op.payload?.event?.mcp) {
+      op.payload.event.mcp.beforeSnapshot = cloneJson(beforeSnapshot, makeEmptySnapshot());
+    }
+  }
+  return adjusted;
+}
+
 async function toolApplyCollectionChange(env, deps, auth, args = {}) {
   if (!hasScope(auth, MCP_WRITE_SCOPE)) throw new Error('insufficient_scope');
-  const payload = await verifyChangeToken(env, args.changeToken);
-  if (payload.userId !== auth.userId) throw new Error('change token belongs to another user');
+  const tokens = changeTokensFromApplyArgs(args);
+  if (!tokens.length) throw new Error('changeToken is required');
+  const payloads = [];
+  for (const token of tokens) {
+    const payload = await verifyChangeToken(env, token);
+    if (payload.userId !== auth.userId) throw new Error('change token belongs to another user');
+    if (!Array.isArray(payload.scopes) || !payload.scopes.includes(MCP_WRITE_SCOPE)) {
+      throw new Error('change token does not include collection.write');
+    }
+    payloads.push(payload);
+  }
   const cloud = await currentCloud(env, deps, auth.userId);
-  if (cloud.revision !== payload.expectedRevision) {
+  const expectedRevision = payloads[0].expectedRevision;
+  if (payloads.some(payload => payload.expectedRevision !== expectedRevision) || cloud.revision !== expectedRevision) {
     const err = new Error('cloud collection changed since preview');
     err.status = 409;
-    err.data = { expectedRevision: payload.expectedRevision, actualRevision: cloud.revision };
+    err.data = { expectedRevision, actualRevision: cloud.revision };
     throw err;
   }
+
+  const ops = [];
+  let runningSnapshot = cloneJson(cloud.snapshot, makeEmptySnapshot());
+  for (const payload of payloads) {
+    const adjustedOps = opsWithSequentialUndoSnapshot(payload.ops, runningSnapshot);
+    ops.push(...adjustedOps);
+    runningSnapshot = applyOps(runningSnapshot, adjustedOps);
+  }
+
   const pushed = await pushOps(env, deps, auth.userId, {
-    ops: payload.ops,
+    ops,
     snapshot: cloud.snapshot,
-    baseRevision: payload.expectedRevision,
+    baseRevision: expectedRevision,
     requireBaseRevision: true,
   });
+  const summary = payloads.length === 1
+    ? payloads[0].summary
+    : 'Applied ' + payloads.length + ' previewed collection changes';
   return {
     status: 'applied',
-    summary: payload.summary,
+    summary,
+    summaries: payloads.map(payload => payload.summary).filter(Boolean),
     collectionId: pushed.collectionId,
     revision: pushed.revision,
     acceptedOpIds: pushed.acceptedOpIds || [],
@@ -1546,6 +1586,73 @@ function normalizeChatMessages(messages) {
     .filter(message => message.content.trim());
 }
 
+function normalizeMcpPreview(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const changeToken = typeof value.changeToken === 'string' ? value.changeToken.trim() : '';
+  if (!changeToken) return null;
+  const status = String(value.status || '').toLowerCase();
+  if (status && status !== 'preview') return null;
+  const out = {
+    changeToken,
+    summary: String(value.summary || value.message || 'Previewed collection change'),
+  };
+  if (value.expectedRevision !== undefined) out.expectedRevision = value.expectedRevision;
+  if (value.expiresAt !== undefined) out.expiresAt = value.expiresAt;
+  if (value.opCount !== undefined) out.opCount = value.opCount;
+  if (value.totalsAfter && typeof value.totalsAfter === 'object') out.totalsAfter = value.totalsAfter;
+  return out;
+}
+
+function jsonValuesFromString(text) {
+  const trimmed = String(text || '').trim();
+  if (!trimmed || trimmed.length > 30000) return [];
+  const candidates = [trimmed];
+  const objectStart = trimmed.indexOf('{');
+  const objectEnd = trimmed.lastIndexOf('}');
+  if (objectStart !== -1 && objectEnd > objectStart) candidates.push(trimmed.slice(objectStart, objectEnd + 1));
+  const arrayStart = trimmed.indexOf('[');
+  const arrayEnd = trimmed.lastIndexOf(']');
+  if (arrayStart !== -1 && arrayEnd > arrayStart) candidates.push(trimmed.slice(arrayStart, arrayEnd + 1));
+  const seen = new Set();
+  return candidates
+    .filter(candidate => {
+      if (seen.has(candidate)) return false;
+      seen.add(candidate);
+      return true;
+    })
+    .map(candidate => safeJsonParse(candidate, null))
+    .filter(value => value && typeof value === 'object');
+}
+
+function collectMcpPreviews(value, out, seenObjects, seenTokens, depth = 0) {
+  if (depth > 10 || value == null) return;
+  if (typeof value === 'string') {
+    for (const parsed of jsonValuesFromString(value)) collectMcpPreviews(parsed, out, seenObjects, seenTokens, depth + 1);
+    return;
+  }
+  if (typeof value !== 'object') return;
+  if (seenObjects.has(value)) return;
+  seenObjects.add(value);
+
+  const preview = normalizeMcpPreview(value);
+  if (preview && !seenTokens.has(preview.changeToken)) {
+    seenTokens.add(preview.changeToken);
+    out.push(preview);
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) collectMcpPreviews(item, out, seenObjects, seenTokens, depth + 1);
+    return;
+  }
+  for (const child of Object.values(value)) collectMcpPreviews(child, out, seenObjects, seenTokens, depth + 1);
+}
+
+function extractMcpPreviews(data) {
+  const out = [];
+  collectMcpPreviews(data, out, new WeakSet(), new Set());
+  return out;
+}
+
 function extractOpenAiText(data) {
   if (typeof data.output_text === 'string') return data.output_text;
   const chunks = [];
@@ -1563,6 +1670,18 @@ function extractAnthropicText(data) {
     .map(block => block.text || '')
     .join('\n')
     .trim();
+}
+
+function chatSuccessResponse(deps, request, { provider, model, hosted, usage, data, text }) {
+  return deps.json({
+    provider,
+    model,
+    mode: hosted ? 'hosted' : 'byok',
+    usage,
+    text,
+    previews: extractMcpPreviews(data),
+    raw: data,
+  }, 200, request);
 }
 
 function chatProviderApiKey(env, provider) {
@@ -1711,7 +1830,14 @@ export async function handleByokChatRequest(request, env, deps) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(providerErrorMessage(provider, data));
-      return deps.json({ provider, model, mode: hosted ? 'hosted' : 'byok', usage, text: extractOpenAiText(data), raw: data }, 200, request);
+      return chatSuccessResponse(deps, request, {
+        provider,
+        model,
+        hosted,
+        usage,
+        data,
+        text: extractOpenAiText(data),
+      });
     }
 
     if (provider === 'groq') {
@@ -1738,7 +1864,14 @@ export async function handleByokChatRequest(request, env, deps) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(providerErrorMessage(provider, data));
-      return deps.json({ provider, model, mode: hosted ? 'hosted' : 'byok', usage, text: extractOpenAiText(data), raw: data }, 200, request);
+      return chatSuccessResponse(deps, request, {
+        provider,
+        model,
+        hosted,
+        usage,
+        data,
+        text: extractOpenAiText(data),
+      });
     }
 
     if (provider === 'anthropic') {
@@ -1775,7 +1908,14 @@ export async function handleByokChatRequest(request, env, deps) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(providerErrorMessage(provider, data));
-      return deps.json({ provider, model, mode: hosted ? 'hosted' : 'byok', usage, text: extractAnthropicText(data), raw: data }, 200, request);
+      return chatSuccessResponse(deps, request, {
+        provider,
+        model,
+        hosted,
+        usage,
+        data,
+        text: extractAnthropicText(data),
+      });
     }
   } catch (e) {
     const status = e.status || 502;

@@ -323,6 +323,42 @@ test('mcp: stale preview tokens are rejected on apply', async () => {
   assert.equal(applied.error.data.actualRevision, 2);
 });
 
+test('mcp: apply endpoint can commit multiple preview tokens in one sync push', async () => {
+  const { env, state } = fakeSyncEnv(emptySnapshot(), 7);
+  const token = await issueMcpToken(env);
+  const box = await callTool(env, token.access_token, 'preview_create_container', {
+    type: 'box',
+    name: 'bulk',
+  });
+  const binder = await callTool(env, token.access_token, 'preview_create_container', {
+    type: 'binder',
+    name: 'trades',
+  });
+
+  const res = await worker.fetch(new Request('https://example.com/mcp/apply', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Debug-User': 'user_1',
+    },
+    body: JSON.stringify({
+      changeTokens: [
+        box.result.structuredContent.changeToken,
+        binder.result.structuredContent.changeToken,
+      ],
+    }),
+  }), env);
+  assert.equal(res.status, 200);
+  const data = await res.json();
+  assert.equal(data.status, 'applied');
+  assert.equal(data.summary, 'Applied 2 previewed collection changes');
+  assert.equal(state.snapshot.app.containers['box:bulk'].type, 'box');
+  assert.equal(state.snapshot.app.containers['binder:trades'].type, 'binder');
+  assert.equal(state.snapshot.history.length, 2);
+  assert.ok(state.snapshot.history[0].mcp.beforeSnapshot.app.containers['box:bulk']);
+  assert.equal(state.snapshot.history[1].mcp.beforeSnapshot.app.containers['box:bulk'], undefined);
+});
+
 test('mcp: deleting a non-empty storage container clears locations without deleting cards', async () => {
   const entry = card({ location: { type: 'binder', name: 'trade' } });
   const snapshot = emptySnapshot({
@@ -445,11 +481,30 @@ test('mcp chat: hosted Groq key is used by default with preview-only remote MCP 
   const originalFetch = globalThis.fetch;
   let authHeader = '';
   let requestBody = null;
+  const preview = {
+    status: 'preview',
+    summary: 'Added 1 Maelstrom Artisan',
+    expectedRevision: 3,
+    expiresAt: '2026-05-04T12:00:00.000Z',
+    changeToken: 'preview.token',
+    opCount: 2,
+    totalsAfter: { unique: 1, total: 1, containers: 0 },
+  };
   globalThis.fetch = async (url, init = {}) => {
     assert.equal(url, 'https://api.groq.com/openai/v1/responses');
     authHeader = init.headers.Authorization;
     requestBody = JSON.parse(init.body);
-    return Response.json({ output_text: 'groq ok' });
+    return Response.json({
+      output_text: 'groq ok',
+      output: [{
+        type: 'mcp_call',
+        name: 'preview_add_inventory_item',
+        result: {
+          content: [{ type: 'text', text: JSON.stringify(preview, null, 2) }],
+          structuredContent: preview,
+        },
+      }],
+    });
   };
   try {
     const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
@@ -473,6 +528,10 @@ test('mcp chat: hosted Groq key is used by default with preview-only remote MCP 
     assert.equal(mcpTool.require_approval, 'never');
     assert.ok(mcpTool.allowed_tools.includes('preview_create_container'));
     assert.equal(mcpTool.allowed_tools.includes('apply_collection_change'), false);
+    assert.equal(data.previews.length, 1);
+    assert.equal(data.previews[0].changeToken, 'preview.token');
+    assert.equal(data.previews[0].summary, 'Added 1 Maelstrom Artisan');
+    assert.equal(data.previews[0].expectedRevision, 3);
     assert.equal([...env.OAUTH_KV.values.values()].some(value => String(value).includes('gsk-hosted-secret')), false);
   } finally {
     globalThis.fetch = originalFetch;

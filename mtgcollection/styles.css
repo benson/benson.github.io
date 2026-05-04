@@ -3647,7 +3647,7 @@
   .mcp-chat textarea { padding: 8px; }
   .mcp-chat-log {
     min-height: 180px;
-    max-height: min(42vh, 360px);
+    max-height: min(36vh, 320px);
     overflow: auto;
     border: 1px solid #e2ded6;
     background: #fbfaf7;
@@ -3678,6 +3678,63 @@
   .mcp-chat-assistant .mcp-chat-body {
     border-left: 2px solid #777;
     padding-left: 8px;
+  }
+  .mcp-chat-preview-panel {
+    border: 1px solid #111;
+    background: #fffefb;
+    display: grid;
+    gap: 8px;
+    margin: 8px 0;
+    max-height: min(26vh, 220px);
+    overflow: auto;
+    padding: 8px;
+  }
+  .mcp-chat-preview-panel[hidden] {
+    display: none;
+  }
+  .mcp-chat-preview-head,
+  .mcp-chat-preview-row {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+  .mcp-chat-preview-title {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    color: #555;
+  }
+  .mcp-chat-preview-list {
+    display: grid;
+    gap: 8px;
+  }
+  .mcp-chat-preview-row {
+    border-top: 1px solid #e2ded6;
+    padding-top: 8px;
+  }
+  .mcp-chat-preview-row.has-error .mcp-chat-preview-meta {
+    color: #9f0000;
+  }
+  .mcp-chat-preview-summary {
+    font-size: 0.88rem;
+    line-height: 1.25;
+  }
+  .mcp-chat-preview-meta {
+    color: #666;
+    font-size: 0.72rem;
+    line-height: 1.25;
+    margin-top: 2px;
+  }
+  .mcp-chat-preview-actions,
+  .mcp-chat-preview-row-actions {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+  }
+  .mcp-chat-preview-action {
+    min-height: 28px;
+    min-width: 0;
+    padding: 0 8px;
   }
   .mcp-chat-form {
     display: grid;
