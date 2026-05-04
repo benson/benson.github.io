@@ -27,6 +27,11 @@ Recommended dashboard setup:
 - Cloudflare WAF rate limiting: once the Worker is on a custom `bensonperry.com`
   subdomain, add a small rate limit for write-heavy paths such as `/sync/*`,
   `/share`, `/mcp/chat`, and OAuth registration.
+- Worker Rate Limiting bindings are enabled on the current `workers.dev`
+  endpoint as an application-side backstop for sync, chat, MCP, and share
+  traffic. These are not a replacement for WAF rate limits because the request
+  still reaches the Worker, but they stop hot paths before D1 writes or hosted
+  AI calls.
 
 Runtime brakes currently configured in `wrangler.toml`:
 
@@ -41,6 +46,11 @@ Runtime brakes currently configured in `wrangler.toml`:
   size.
 - `MTGCOLLECTION_CHAT_ENABLED = "1"` can be flipped to `"0"` as an emergency
   hosted chat kill switch.
+- `SYNC_RATE_LIMITER`: `120` requests/minute per client IP.
+- `CHAT_RATE_LIMITER`: `10` hosted chat requests/minute per client IP.
+- `MCP_RATE_LIMITER`: `60` MCP/OAuth requests/minute per client IP.
+- `SHARE_READ_RATE_LIMITER`: `300` public share reads/minute per client IP.
+- `SHARE_WRITE_RATE_LIMITER`: `30` share write attempts/minute per client IP.
 
 Relevant free-tier limits to watch:
 

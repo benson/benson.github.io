@@ -20,6 +20,17 @@ function fakeKv() {
   };
 }
 
+function fakeRateLimiter(success = true) {
+  const calls = [];
+  return {
+    calls,
+    async limit(input) {
+      calls.push(input);
+      return { success };
+    },
+  };
+}
+
 function b64url(value) {
   return Buffer.from(value)
     .toString('base64')
@@ -92,6 +103,32 @@ test('worker: sync routes require authentication before touching bindings', asyn
   });
   assert.equal(res.status, 401);
   assert.match(await res.text(), /missing token|auth/i);
+});
+
+test('worker: sync routes honor the configured rate limiter before auth', async () => {
+  const limiter = fakeRateLimiter(false);
+  const res = await worker.fetch(new Request('https://example.com/sync/bootstrap', {
+    headers: { 'CF-Connecting-IP': '203.0.113.9' },
+  }), {
+    SHARES: fakeKv(),
+    SYNC_RATE_LIMITER: limiter,
+  });
+
+  assert.equal(res.status, 429);
+  assert.deepEqual(limiter.calls, [{ key: 'sync:203.0.113.9' }]);
+});
+
+test('worker: share reads honor their configured rate limiter', async () => {
+  const limiter = fakeRateLimiter(false);
+  const res = await worker.fetch(new Request('https://example.com/share/legacy1', {
+    headers: { 'CF-Connecting-IP': '203.0.113.10' },
+  }), {
+    SHARES: fakeKv(),
+    SHARE_READ_RATE_LIMITER: limiter,
+  });
+
+  assert.equal(res.status, 429);
+  assert.deepEqual(limiter.calls, [{ key: 'share-read:203.0.113.10' }]);
 });
 
 test('worker: public legacy share reads still work without auth', async () => {

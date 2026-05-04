@@ -33,6 +33,35 @@ function allowAnonymousShareWrites(env) {
   return env.SYNC_AUTH_DISABLED === '1' || truthy(env.MTGCOLLECTION_ALLOW_ANON_SHARE_WRITES);
 }
 
+function rateLimitGroup(path, method) {
+  if (path === '/mcp/chat') return 'chat';
+  if (path === '/mcp' || path === '/mcp/apply') return 'mcp';
+  if (isMcpOAuthPath(path)) return 'mcp';
+  if (path.startsWith('/sync/')) return 'sync';
+  if (path === '/share' || path.startsWith('/share/')) return method === 'GET' ? 'share-read' : 'share-write';
+  return '';
+}
+
+function rateLimiterForGroup(env, group) {
+  if (group === 'chat') return env.CHAT_RATE_LIMITER;
+  if (group === 'mcp') return env.MCP_RATE_LIMITER;
+  if (group === 'sync') return env.SYNC_RATE_LIMITER;
+  if (group === 'share-read') return env.SHARE_READ_RATE_LIMITER;
+  if (group === 'share-write') return env.SHARE_WRITE_RATE_LIMITER;
+  return null;
+}
+
+async function enforceRateLimit(request, env, path) {
+  const group = rateLimitGroup(path, request.method);
+  const limiter = rateLimiterForGroup(env, group);
+  if (!group || !limiter?.limit) return null;
+  const ip = request.headers.get('CF-Connecting-IP')
+    || request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim()
+    || 'local';
+  const { success } = await limiter.limit({ key: group + ':' + ip });
+  return success ? null : json({ error: 'rate limit exceeded' }, 429, request);
+}
+
 function corsHeaders(request) {
   const origin = request?.headers?.get('Origin') || '';
   const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
@@ -470,6 +499,8 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
     const deps = workerDeps();
+    const limited = await enforceRateLimit(request, env, path);
+    if (limited) return limited;
 
     if (isMcpOAuthPath(path)) return handleMcpOAuthRequest(request, env, deps);
     if (path === '/mcp') return handleMcpRequest(request, env, deps);

@@ -1,9 +1,51 @@
 name = "mtgcollection-share"
 main = "worker.js"
 compatibility_date = "2024-12-01"
+workers_dev = true
+preview_urls = false
 
 [limits]
 cpu_ms = 500
+
+[[ratelimits]]
+name = "SYNC_RATE_LIMITER"
+namespace_id = "2001"
+
+  [ratelimits.simple]
+  limit = 120
+  period = 60
+
+[[ratelimits]]
+name = "CHAT_RATE_LIMITER"
+namespace_id = "2002"
+
+  [ratelimits.simple]
+  limit = 10
+  period = 60
+
+[[ratelimits]]
+name = "MCP_RATE_LIMITER"
+namespace_id = "2003"
+
+  [ratelimits.simple]
+  limit = 60
+  period = 60
+
+[[ratelimits]]
+name = "SHARE_READ_RATE_LIMITER"
+namespace_id = "2004"
+
+  [ratelimits.simple]
+  limit = 300
+  period = 60
+
+[[ratelimits]]
+name = "SHARE_WRITE_RATE_LIMITER"
+namespace_id = "2005"
+
+  [ratelimits.simple]
+  limit = 30
+  period = 60
 
 [vars]
 CLERK_ISSUER = "https://clerk.bensonperry.com"
