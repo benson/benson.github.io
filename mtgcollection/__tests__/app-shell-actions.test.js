@@ -15,7 +15,10 @@ function setup() {
     <table><thead>
       <tr><th data-sort="name">Name</th><th data-sort="price">Price</th><th><button class="sort-clear-btn"></button></th></tr>
     </thead></table>
-    <div id="fabCluster"><button data-fab-target="filters, add"></button></div>
+    <div id="fabCluster">
+      <button data-mobile-filter-toggle></button>
+      <button data-fab-target="filters, add"></button>
+    </div>
     <div id="appRightBackdrop"></div>
     <div id="detailDrawer"></div>
     <span class="loc-pill" data-loc-type="box" data-loc-name="bulk"></span>
@@ -127,6 +130,37 @@ test('bindAppShellActions: fab/backdrop/escape coordinate the right drawer', () 
     ['close'],
     ['close'],
   ]);
+});
+
+test('bindAppShellActions: mobile filter sheet toggles from fab and closes from backdrop/escape', () => {
+  const { win, document, stateRef } = setup();
+  const calls = [];
+  let rightOpen = false;
+
+  bindAppShellActions({
+    documentObj: document,
+    stateRef,
+    closeRightDrawerImpl: () => {
+      calls.push('close-right');
+      rightOpen = false;
+    },
+    isRightDrawerOpenImpl: () => rightOpen,
+  });
+
+  click(win, document.querySelector('[data-mobile-filter-toggle]'));
+  assert.equal(document.body.classList.contains('left-drawer-open'), true);
+
+  click(win, document.getElementById('appRightBackdrop'));
+  assert.equal(document.body.classList.contains('left-drawer-open'), false);
+
+  click(win, document.querySelector('[data-mobile-filter-toggle]'));
+  document.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  assert.equal(document.body.classList.contains('left-drawer-open'), false);
+
+  rightOpen = true;
+  click(win, document.querySelector('[data-mobile-filter-toggle]'));
+  assert.equal(document.body.classList.contains('left-drawer-open'), true);
+  assert.deepEqual(calls, ['close-right', 'close-right']);
 });
 
 test('bindAppShellActions: binder add drawer seeds the active binder location', () => {

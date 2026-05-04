@@ -63,6 +63,22 @@ Audited with Playwright against local test data at `390x844` phone and `768x1024
 - The storage create form and container cards are good candidates for a simple single-column mobile layout.
 - Storage history should be collapsed or sheeted by default on phones.
 
+## Pass 1 Implementation Status
+
+Implemented in the first mobile shell pass:
+
+- Mobile route layout now resolves to one full-width center column for collection, binder, storage home, decks home, deck, and box shapes.
+- Left filters/history are hidden by default on mobile and open as a sheet from a `filters` FAB.
+- The add/import panel is hidden by default on mobile and opens as a full-width overlay sheet from the `add` FAB.
+- Collection list/table overflow is contained inside the list scroller instead of widening the document.
+- Binder now uses the available mobile width instead of the previous `200px` center column.
+
+Re-checked with Playwright:
+
+- `390x844`: storage, binder, collection, add sheet, filters sheet, and deck all reported no document overflow.
+- `390x844`: binder center width increased from about `200px` to `390px`; binder surface increased from about `176px` to `364px`.
+- `768x1024`: storage, binder, collection, and deck all reported no document overflow; binder surface increased to about `740px`.
+
 ## Proposed Implementation Sequence
 
 ### Pass 1: Mobile Shell Foundation

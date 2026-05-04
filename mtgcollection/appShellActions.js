@@ -36,6 +36,7 @@ export function bindAppShellActions({
       const next = button.dataset.view;
       if (!VALID_VIEW_MODES.includes(next)) return;
       if (stateRef.viewMode === next && !getActiveLocationImpl()) return;
+      documentObj?.body?.classList.remove('left-drawer-open');
       setTopLevelViewModeImpl(next);
       saveImpl();
       renderImpl();
@@ -92,6 +93,14 @@ export function bindAppShellActions({
 
   if (fabClusterEl) {
     const onFabClick = event => {
+      const filterButton = event.target.closest('[data-mobile-filter-toggle]');
+      if (filterButton) {
+        event.preventDefault();
+        if (isRightDrawerOpenImpl()) closeRightDrawerImpl();
+        documentObj?.body?.classList.toggle('left-drawer-open');
+        return;
+      }
+
       const button = event.target.closest('[data-fab-target]');
       if (!button) return;
       const targets = button.dataset.fabTarget.split(',').map(part => part.trim()).filter(Boolean);
@@ -106,12 +115,20 @@ export function bindAppShellActions({
   }
 
   if (appRightBackdropEl) {
-    appRightBackdropEl.addEventListener('click', closeRightDrawerImpl);
-    cleanups.push(() => appRightBackdropEl.removeEventListener('click', closeRightDrawerImpl));
+    const onBackdropClick = () => {
+      documentObj?.body?.classList.remove('left-drawer-open');
+      closeRightDrawerImpl();
+    };
+    appRightBackdropEl.addEventListener('click', onBackdropClick);
+    cleanups.push(() => appRightBackdropEl.removeEventListener('click', onBackdropClick));
   }
 
   const onEscape = event => {
     if (event.key !== 'Escape') return;
+    if (documentObj?.body?.classList.contains('left-drawer-open')) {
+      documentObj.body.classList.remove('left-drawer-open');
+      return;
+    }
     if (!isRightDrawerOpenImpl()) return;
     if (isLightboxVisibleImpl()) return;
     if (detailDrawerEl && detailDrawerEl.classList.contains('visible')) return;
