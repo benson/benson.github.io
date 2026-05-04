@@ -859,6 +859,7 @@
   .card-tile.is-foil::after,
   .deck-card.is-foil .deck-card-face::after,
   .deck-preview-frame.is-foil::after,
+  .drawer-image-frame.is-foil::after,
   .binder-slot.is-foil::after,
   #cardPreview.is-foil::after {
     content: '';
@@ -879,6 +880,7 @@
   .card-tile.is-etched::after,
   .deck-card.is-etched .deck-card-face::after,
   .deck-preview-frame.is-etched::after,
+  .drawer-image-frame.is-etched::after,
   .binder-slot.is-etched::after,
   #cardPreview.is-etched::after {
     content: '';
@@ -2983,11 +2985,17 @@
     overflow: auto;
     padding: 16px;
   }
-  .drawer-image {
+  .drawer-image-frame {
+    position: relative;
     width: 100%;
     margin: 0 auto 16px;
-    display: block;
     border-radius: 4%;
+    overflow: hidden;
+  }
+  .drawer-image {
+    width: 100%;
+    display: block;
+    border-radius: inherit;
   }
   .drawer-placeholder {
     width: 100%;

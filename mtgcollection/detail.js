@@ -38,6 +38,7 @@ let detailTagEditor = null;
 let detailLocationPicker = null;
 let detailPrintingPicker = null;
 let detailSelectedPrinting = null;
+let detailPreviewCard = null;
 
 function currentFilterLocation() {
   const active = getActiveLocation();
@@ -146,7 +147,20 @@ function detailScryfallUri(card) {
   return card?.scryfallUri || card?.scryfall_uri || '';
 }
 
-function renderDetailIdentity(card) {
+function detailFinishClass(finish) {
+  if (finish === 'foil') return 'is-foil';
+  if (finish === 'etched') return 'is-etched';
+  return '';
+}
+
+function syncDetailImageFinish(finish) {
+  const frame = document.querySelector('#detailImageWrap .drawer-image-frame');
+  if (!frame) return;
+  frame.classList.toggle('is-foil', finish === 'foil');
+  frame.classList.toggle('is-etched', finish === 'etched');
+}
+
+function renderDetailIdentity(card, finish = 'normal') {
   const name = detailDisplayName(card);
   const setCode = detailSetCode(card);
   const cn = detailCollectorNumber(card);
@@ -160,8 +174,9 @@ function renderDetailIdentity(card) {
   const flipRow = backUrl
     ? `<div class="drawer-flip-row"><button type="button" class="flip-btn" id="drawerFlipBtn">flip card</button></div>`
     : '';
+  const frameClass = ['drawer-image-frame', detailFinishClass(finish)].filter(Boolean).join(' ');
   imageWrap.innerHTML = frontUrl
-    ? `<img class="drawer-image" src="${esc(frontUrl)}" alt="${esc(name)}" data-front="${esc(frontUrl)}"${backUrl ? ` data-back="${esc(backUrl)}"` : ''} style="cursor:zoom-in;">${flipRow}`
+    ? `<div class="${frameClass}"><img class="drawer-image" src="${esc(frontUrl)}" alt="${esc(name)}" data-front="${esc(frontUrl)}"${backUrl ? ` data-back="${esc(backUrl)}"` : ''} style="cursor:zoom-in;"></div>${flipRow}`
     : `<div class="drawer-placeholder">${esc(name)}</div>`;
   const drawerImg = imageWrap.querySelector('.drawer-image');
   if (drawerImg) {
@@ -196,6 +211,14 @@ function renderDetailPrice(card, finish) {
   priceLink.classList.toggle('hidden', !uri);
 }
 
+function updateDetailFinishPreview() {
+  const card = detailPreviewCard || state.collection[state.detailIndex];
+  if (!card) return;
+  const finish = readDetailForm({ form: detailForm, location: detailLocationPicker?.readLocation() }).finish;
+  syncDetailImageFinish(finish);
+  renderDetailPrice(card, finish);
+}
+
 export function renderDetailLegality(card = state.collection[state.detailIndex]) {
   const chip = document.getElementById('detailLegality');
   if (!state.selectedFormat || !card || !card.legalities || !card.legalities[state.selectedFormat]) {
@@ -216,7 +239,8 @@ export function openDetail(index) {
   state.detailIndex = index;
   hideCardPreview();
 
-  renderDetailIdentity(c);
+  detailPreviewCard = c;
+  renderDetailIdentity(c, c.finish);
 
   detailSelectedPrinting = null;
   writeDetailForm({ form: detailForm, collection: state.collection, card: c });
@@ -233,6 +257,7 @@ export function openDetail(index) {
 
 function closeDetail() {
   state.detailIndex = -1;
+  detailPreviewCard = null;
   detailPrintingPicker?.hide();
   detailDrawer.classList.remove('visible');
   drawerBackdrop.classList.remove('visible');
@@ -385,10 +410,12 @@ export function initDetail() {
       const isCurrentPrinting = !!card?.id && card.id === currentId;
       if (meta.userSelected) detailSelectedPrinting = card;
       if (meta.userSelected || isCurrentPrinting) {
-        renderDetailIdentity(card);
+        detailPreviewCard = card;
+        renderDetailIdentity(card, selectedFinish);
         renderDetailPrice(card, selectedFinish);
       }
     },
   });
   detailPrintingPicker.bind();
+  document.getElementById('detailFinish')?.addEventListener('change', updateDetailFinishPreview);
 }
