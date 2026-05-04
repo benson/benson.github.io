@@ -67,7 +67,7 @@ const AUTOADD_KEY = 'mtgcollection_voice_autoadd_v1';
 
 let addDetailsEl, addModeNameEl, addModeCnEl, addModeImportEl;
 let addNameInput, addNameList;
-let addPreviewEl, addPreviewImg, addPreviewName, addPreviewMeta;
+let addPreviewEl, addEditorEl, addPreviewImg, addPreviewName, addPreviewMeta;
 let addQtyInput, addLocationNameInput;
 let addOptionControls = null;
 let nameAutocomplete = null;
@@ -189,6 +189,7 @@ function showAddPreview(card, opts) {
   const prevTags = preserveFields ? addTagEditor?.getTags() : [];
   addPreviewCard = card;
   addPreviewEl.classList.add('active');
+  addEditorEl?.classList.add('active');
   const preview = buildAddPreviewCardModel(card);
   addPreviewImg.src = preview.imageUrl || '';
   addPreviewImg.alt = preview.name;
@@ -232,13 +233,22 @@ function showAddPreview(card, opts) {
     if (prevQty != null && prevQty !== '') addQtyInput.value = prevQty;
     locationPicker?.restore(prevLocationSnapshot);
   }
-  addBtn.focus();
+  const printingSearchEl = document.getElementById('addPrintingSearch');
+  try {
+    printingSearchEl?.focus({ preventScroll: true });
+  } catch (e) {
+    printingSearchEl?.focus();
+  }
+  if (typeof addPreviewEl.scrollIntoView === 'function') {
+    addPreviewEl.scrollIntoView({ block: 'start' });
+  }
   syncDeckAddOptions();
 }
 
 function hideAddPreview() {
   addPreviewCard = null;
   addPreviewEl.classList.remove('active');
+  addEditorEl?.classList.remove('active');
   addPrintingPicker?.hide();
 }
 
@@ -336,6 +346,7 @@ export function initAdd() {
   addNameInput  = document.getElementById('addNameInput');
   addNameList   = document.getElementById('addNameSuggestions');
   addPreviewEl  = document.getElementById('addPreview');
+  addEditorEl   = document.getElementById('addEditor');
   addPreviewImg = document.getElementById('addPreviewImg');
   addPreviewName = document.getElementById('addPreviewName');
   addPreviewMeta = document.getElementById('addPreviewMeta');
