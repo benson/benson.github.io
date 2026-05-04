@@ -3635,22 +3635,6 @@
     min-height: 0;
     padding: 10px;
   }
-  .mcp-chat-config {
-    display: grid;
-    grid-template-columns: minmax(96px, 0.55fr) minmax(120px, 1fr);
-    gap: 8px;
-  }
-  .mcp-chat-key-row {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 8px;
-  }
-  .mcp-chat-key-toggle {
-    min-height: 34px;
-    white-space: nowrap;
-  }
-  .mcp-chat select,
-  .mcp-chat input,
   .mcp-chat textarea {
     width: 100%;
     border: 1px solid #ccc;
@@ -3660,9 +3644,7 @@
     font: inherit;
     min-width: 0;
   }
-  .mcp-chat input,
   .mcp-chat textarea { padding: 8px; }
-  .mcp-chat select { padding: 7px 8px; }
   .mcp-chat-log {
     min-height: 180px;
     max-height: min(42vh, 360px);

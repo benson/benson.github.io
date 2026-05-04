@@ -407,18 +407,6 @@
       <button class="mcp-chat-close" type="button" id="mcpChatClose" aria-label="close chat">x</button>
     </header>
     <div class="mcp-chat">
-      <div class="mcp-chat-config">
-        <select id="mcpChatProvider" aria-label="chat provider">
-          <option value="groq">Groq</option>
-          <option value="openai">OpenAI</option>
-          <option value="anthropic">Anthropic</option>
-        </select>
-        <input id="mcpChatModel" type="text" placeholder="llama-3.1-8b-instant" autocomplete="off" spellcheck="false" aria-label="model">
-      </div>
-      <div class="mcp-chat-key-row">
-        <button class="btn mcp-chat-key-toggle" type="button" id="mcpChatKeyToggle" aria-controls="mcpChatKey" aria-expanded="false">own key</button>
-        <input id="mcpChatKey" type="password" autocomplete="off" spellcheck="false" placeholder="API key for this session" hidden>
-      </div>
       <div class="mcp-chat-log" id="mcpChatLog" aria-live="polite"></div>
       <form class="mcp-chat-form" id="mcpChatForm">
         <textarea id="mcpChatInput" rows="3" placeholder="ask about your collection or preview an edit"></textarea>

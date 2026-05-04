@@ -8,10 +8,6 @@ function setup() {
   win.document.body.innerHTML = `
     <section id="mcpChatDetails" aria-hidden="true">
       <button id="mcpChatClose" type="button"></button>
-      <select id="mcpChatProvider"><option value="groq">Groq</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option></select>
-      <input id="mcpChatModel">
-      <button id="mcpChatKeyToggle" type="button" aria-expanded="false"></button>
-      <input id="mcpChatKey" hidden>
       <div id="mcpChatLog"></div>
       <form id="mcpChatForm"><textarea id="mcpChatInput"></textarea><button id="mcpChatSend"></button></form>
     </section>
@@ -53,16 +49,24 @@ test('initMcpChat: escape closes the floating widget', () => {
   assert.equal(document.body.classList.contains('mcp-chat-open'), false);
 });
 
-test('initMcpChat: API key field stays tucked behind the own-key toggle', () => {
+test('initMcpChat: Enter submits and Shift+Enter keeps editing in the prompt', () => {
   const { win, document } = setup();
   initMcpChat({ documentObj: document });
 
-  const key = document.getElementById('mcpChatKey');
-  const toggle = document.getElementById('mcpChatKeyToggle');
-  assert.equal(key.hidden, true);
-  assert.equal(toggle.getAttribute('aria-expanded'), 'false');
+  const form = document.getElementById('mcpChatForm');
+  const input = document.getElementById('mcpChatInput');
+  let submitted = 0;
+  form.requestSubmit = () => {
+    submitted += 1;
+  };
 
-  click(win, toggle);
-  assert.equal(key.hidden, false);
-  assert.equal(toggle.getAttribute('aria-expanded'), 'true');
+  const enter = new win.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
+  input.dispatchEvent(enter);
+  assert.equal(submitted, 1);
+  assert.equal(enter.defaultPrevented, true);
+
+  const shifted = new win.KeyboardEvent('keydown', { key: 'Enter', shiftKey: true, bubbles: true, cancelable: true });
+  input.dispatchEvent(shifted);
+  assert.equal(submitted, 1);
+  assert.equal(shifted.defaultPrevented, false);
 });

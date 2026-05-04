@@ -7,14 +7,12 @@ const SYSTEM_PROMPT = [
   'Use the MTG Collection MCP tools to read the collection and preview safe changes.',
   'Do not apply changes yourself. When a preview returns a changeToken, summarize it so the app can show an apply button.',
 ].join(' ');
+const HOSTED_PROVIDER = 'groq';
+const HOSTED_MODEL = 'llama-3.1-8b-instant';
 
 let root = null;
 let logEl = null;
 let formEl = null;
-let providerEl = null;
-let modelEl = null;
-let keyEl = null;
-let keyToggleEl = null;
 let inputEl = null;
 let sendBtn = null;
 let closeBtn = null;
@@ -42,6 +40,23 @@ function setChatOpen(open, { focus = false } = {}) {
 function toggleChat() {
   const open = !documentRef?.body.classList.contains('mcp-chat-open');
   setChatOpen(open, { focus: open });
+}
+
+function submitChatForm() {
+  if (!formEl) return;
+  if (typeof formEl.requestSubmit === 'function') {
+    formEl.requestSubmit();
+    return;
+  }
+  const EventCtor = documentRef?.defaultView?.Event || Event;
+  formEl.dispatchEvent(new EventCtor('submit', { bubbles: true, cancelable: true }));
+}
+
+function handleInputKeydown(event) {
+  if (event.key !== 'Enter' || event.shiftKey || event.isComposing) return;
+  event.preventDefault();
+  if (sendBtn?.disabled) return;
+  submitChatForm();
 }
 
 function changeTokensFromText(text) {
@@ -97,32 +112,14 @@ function renderTranscript() {
   logEl.scrollTop = logEl.scrollHeight;
 }
 
-function providerModelDefault(provider) {
-  if (provider === 'groq') return 'llama-3.1-8b-instant';
-  return provider === 'anthropic' ? 'claude-sonnet-4-5' : 'gpt-5-nano';
-}
-
-function syncModelPlaceholder() {
-  if (!providerEl || !modelEl) return;
-  modelEl.placeholder = providerModelDefault(providerEl.value);
-}
-
-function setKeyFieldVisible(visible) {
-  if (!keyEl || !keyToggleEl) return;
-  keyEl.hidden = !visible;
-  keyToggleEl.setAttribute('aria-expanded', visible ? 'true' : 'false');
-  if (visible) keyEl.focus();
-}
-
 async function sendChat() {
   const prompt = inputEl.value.trim();
-  const apiKey = keyEl.value.trim();
+  if (!prompt) return;
   const user = getSyncUser();
   if (!user) {
     showFeedback('sign in before using collection chat', 'error');
     return;
   }
-  if (!prompt) return;
 
   appendMessage('user', prompt);
   inputEl.value = '';
@@ -134,8 +131,6 @@ async function sendChat() {
   try {
     const token = await getSyncAuthToken();
     if (!token) throw new Error('chat needs Clerk auth. For local testing, open /mtgcollection/?auth=clerk&sync=remote');
-    const provider = providerEl.value;
-    const model = modelEl.value.trim() || providerModelDefault(provider);
     const messages = [
       { role: 'system', content: SYSTEM_PROMPT },
       ...transcript
@@ -144,11 +139,10 @@ async function sendChat() {
         .map(message => ({ role: message.role === 'assistant' ? 'assistant' : 'user', content: message.content })),
     ];
     const payload = {
-      provider,
-      model,
+      provider: HOSTED_PROVIDER,
+      model: HOSTED_MODEL,
       messages,
     };
-    if (apiKey) payload.apiKey = apiKey;
     const res = await fetch(SYNC_API_URL + '/mcp/chat', {
       method: 'POST',
       headers: {
@@ -200,28 +194,22 @@ export function initMcpChat({ documentObj = document } = {}) {
   if (!root) return;
   logEl = documentObj.getElementById('mcpChatLog');
   formEl = documentObj.getElementById('mcpChatForm');
-  providerEl = documentObj.getElementById('mcpChatProvider');
-  modelEl = documentObj.getElementById('mcpChatModel');
-  keyEl = documentObj.getElementById('mcpChatKey');
-  keyToggleEl = documentObj.getElementById('mcpChatKeyToggle');
   inputEl = documentObj.getElementById('mcpChatInput');
   sendBtn = documentObj.getElementById('mcpChatSend');
   closeBtn = documentObj.getElementById('mcpChatClose');
   toggleButtons = Array.from(documentObj.querySelectorAll('[data-mcp-chat-toggle]'));
-  syncModelPlaceholder();
   renderTranscript();
 
   toggleButtons.forEach(button => {
     button.addEventListener('click', toggleChat);
   });
   closeBtn?.addEventListener('click', () => setChatOpen(false));
-  keyToggleEl?.addEventListener('click', () => setKeyFieldVisible(!!keyEl?.hidden));
   documentObj.addEventListener('keydown', event => {
     if (event.key === 'Escape' && documentObj.body.classList.contains('mcp-chat-open')) {
       setChatOpen(false);
     }
   });
-  providerEl?.addEventListener('change', syncModelPlaceholder);
+  inputEl?.addEventListener('keydown', handleInputKeydown);
   formEl?.addEventListener('submit', event => {
     event.preventDefault();
     sendChat();
