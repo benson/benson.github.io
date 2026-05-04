@@ -64,6 +64,18 @@ function currentReturnUrl() {
   return window.location.href;
 }
 
+function collectionReturnUrl() {
+  if (typeof window === 'undefined') return '/mtgcollection/';
+  const origin = window.location?.origin || '';
+  const pathname = window.location?.pathname || '/mtgcollection/';
+  const marker = '/mtgcollection/';
+  const lowerPathname = pathname.toLowerCase();
+  const markerIndex = lowerPathname.indexOf(marker);
+  if (markerIndex !== -1) return origin + pathname.slice(0, markerIndex) + marker;
+  if (lowerPathname.endsWith('/mtgcollection')) return origin + pathname + '/';
+  return origin + marker;
+}
+
 function signInRedirectOptions() {
   const url = currentReturnUrl();
   return {
@@ -151,7 +163,7 @@ export async function initSyncAuth({ onChange = () => {} } = {}) {
       throw new Error('Clerk sign-in is unavailable');
     },
     async signOut() {
-      if (clerk?.signOut) return clerk.signOut();
+      if (clerk?.signOut) return clerk.signOut({ redirectUrl: collectionReturnUrl() });
     },
     async openAccount() {
       if (clerk?.openUserProfile) return clerk.openUserProfile();
