@@ -275,7 +275,7 @@
   .fab-cluster {
     position: fixed;
     right: 16px;
-    bottom: 56px;
+    bottom: 88px;
     display: flex;
     flex-direction: column;
     align-items: stretch;
@@ -3863,6 +3863,7 @@
       grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
     }
     .app-right-backdrop, body.view-list.right-drawer-open .app-right-backdrop { display: none; }
+    .fab-cluster { bottom: 56px; }
     .app-footer {
       flex-wrap: wrap;
       padding: 8px 14px;
