@@ -458,7 +458,7 @@ export async function backfillMissingPrices() {
   }
 }
 
-// ---- Init: wire buttons + drop zone, return exportCsv for the backup-nag handler ----
+// ---- Init: wire import controls ----
 export function initImport() {
   progressEl = document.getElementById('progress');
   setImportProgressElement(progressEl);
@@ -487,14 +487,7 @@ export function initImport() {
   if (testDataBtn) testDataBtn.addEventListener('click', () => loadTestData());
   document.getElementById('loadSampleBtn').addEventListener('click', loadSample);
   document.getElementById('deleteAllBtn').addEventListener('click', clearCollection);
-  const exportBtn = document.getElementById('exportCsvBtn');
-  if (exportBtn) exportBtn.addEventListener('click', () => exportCsv('canonical'));
-  const exportNowBtn = document.getElementById('exportNowBtn');
-  const exportFormatSel = document.getElementById('exportFormat');
-  if (exportNowBtn && exportFormatSel) {
-    exportNowBtn.addEventListener('click', () => exportCsv(exportFormatSel.value));
-  }
 }
 
-// Exposed so app.js can wire it into the backup-nag click handler
+// Exposed for the account export flow.
 export { exportCsv };

@@ -17,6 +17,12 @@ import { refreshSetIcons } from './setIcons.js';
 import { initChangelog } from './changelog.js';
 import { initShareViewer, initShare, schedulePushForDeck } from './share.js';
 import { bindAppControls, loadChromePreferences } from './appControls.js';
+import {
+  initSyncEngine,
+  loadLocalSyncSnapshotIntoState,
+  primeSyncBaseline,
+} from './syncEngine.js';
+import { initSyncUi } from './syncUi.js';
 
 function mirrorSharedDecks() {
   if (state.shareSnapshot) return;
@@ -60,6 +66,7 @@ async function boot() {
     navigateToLocationImpl: navigateToLocation,
   });
   initShare();
+  initSyncUi();
 
   // App-level DOM controls; format selector syncs after loadFromStorage().
   const appControls = bindAppControls();
@@ -85,12 +92,15 @@ async function boot() {
     return;
   }
 
-  const hasSavedCollection = loadFromStorage();
+  const hasLocalSyncSnapshot = await loadLocalSyncSnapshotIntoState();
+  const hasSavedCollection = hasLocalSyncSnapshot || loadFromStorage();
   appControls.syncFormatSelect();
   if (hasSavedCollection) {
     migrateSavedCollection();
     await backfillMissingPrices();
   }
+  await primeSyncBaseline();
+  initSyncEngine({ render, populateFilters });
   populateFilters();
   render();
   if (state.collection.length === 0) {

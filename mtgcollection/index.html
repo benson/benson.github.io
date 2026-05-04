@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>mtg collection</title>
 <meta name="description" content="browse an mtg collection from any csv export">
+<meta name="mtgcollection-clerk-publishable-key" content="pk_live_Y2xlcmsuYmVuc29ucGVycnkuY29tJA">
 <link rel="stylesheet" href="../shared/common.css">
 <link rel="stylesheet" href="./styles.css">
 </head>
@@ -20,6 +21,7 @@
       <button class="toggle-view" id="decksViewBtn" data-view="decks"><svg class="view-icon view-icon-svg" aria-hidden="true" viewBox="0 0 14 14"><rect x="2.5" y="3.5" width="6.5" height="8.5" rx="0.5" fill="none" stroke="currentColor" stroke-width="1"/><rect x="5" y="1.5" width="6.5" height="8.5" rx="0.5" fill="none" stroke="currentColor" stroke-width="1"/></svg>decks</button>
       <button class="toggle-view" id="storageViewBtn" data-view="storage"><svg class="view-icon view-icon-svg" aria-hidden="true" viewBox="0 0 14 14"><path d="M2 7 L7 2 L12 7 L12 12 L2 12 Z" fill="none" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/></svg>storage</button>
     </div>
+    <div class="sync-account-slot" id="syncAccountSlot"></div>
   </header>
 
   <aside class="app-left">
@@ -294,16 +296,6 @@
             <button class="btn" id="importPastedBtn">import pasted</button>
             <button class="btn btn-secondary" id="loadSampleBtn">load sample</button>
           </div>
-          <div class="export-actions">
-            <span class="export-label">export as:</span>
-            <select id="exportFormat" class="export-format-select">
-              <option value="canonical">canonical csv</option>
-              <option value="moxfield">moxfield csv</option>
-              <option value="manabox">manabox csv</option>
-              <option value="deckbox">deckbox csv</option>
-            </select>
-            <button class="btn" type="button" id="exportNowBtn">download</button>
-          </div>
           <div class="format-note">
             csv format auto-detected from headers (moxfield, manabox, deckbox, canonical). moxfield plaintext like <code>1 Sol Ring (SLD) 1011 *F*</code> works too.
           </div>
@@ -410,7 +402,6 @@
   <div class="app-right-backdrop" id="appRightBackdrop"></div>
   <div class="fab-cluster" id="fabCluster">
     <button class="fab-btn" type="button" data-fab-target="addDetails" aria-label="add cards"><span class="fab-glyph">+</span><span class="fab-label">add</span></button>
-    <button class="fab-btn" type="button" data-fab-action="export" aria-label="export csv"><span class="fab-glyph">↓</span><span class="fab-label">export csv</span></button>
   </div>
 </div>
 <div id="cardPreview"><img src="" alt=""></div>

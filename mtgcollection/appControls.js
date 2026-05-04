@@ -3,7 +3,6 @@ import { save } from './persistence.js';
 import { clearAllFilters } from './search.js';
 import { render } from './view.js';
 import { renderDetailLegality } from './detail.js';
-import { exportCsv } from './import.js';
 import { setTopLevelViewMode } from './routeState.js';
 
 export const TEXT_CASE_KEY = 'mtgcollection_text_case_v1';
@@ -40,7 +39,6 @@ export function bindAppControls({
   saveImpl = save,
   renderImpl = render,
   renderDetailLegalityImpl = renderDetailLegality,
-  exportCsvImpl = exportCsv,
   clearAllFiltersImpl = clearAllFilters,
   setTopLevelViewModeImpl = setTopLevelViewMode,
   historyObj = globalThis.history,
@@ -72,15 +70,6 @@ export function bindAppControls({
     cleanups.push(() => formatSelectEl.removeEventListener('change', onFormatChange));
   }
   updateFooter();
-
-  const fabClusterEl = documentObj?.getElementById('fabCluster');
-  if (fabClusterEl) {
-    const onFabClick = event => {
-      if (event.target.closest('[data-fab-action="export"]')) exportCsvImpl();
-    };
-    fabClusterEl.addEventListener('click', onFabClick);
-    cleanups.push(() => fabClusterEl.removeEventListener('click', onFabClick));
-  }
 
   const focusLocationCreator = () => {
     documentObj?.getElementById('locationsCreateName')?.focus();

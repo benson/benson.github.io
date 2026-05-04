@@ -2,9 +2,26 @@ name = "mtgcollection-share"
 main = "worker.js"
 compatibility_date = "2024-12-01"
 
+[vars]
+CLERK_ISSUER = "https://clerk.bensonperry.com"
+CLERK_AUTHORIZED_PARTIES = "https://bensonperry.com"
+
 # Run `wrangler kv:namespace create SHARES` to create this namespace, then
 # paste the returned id here. Same for the preview namespace if you want
 # `wrangler dev` to use a separate KV store.
 [[kv_namespaces]]
 binding = "SHARES"
 id = "95781565fce640bdbb92d6866919d8b4"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "mtgcollection-sync"
+database_id = "059bb66c-e043-4afa-acf1-7e9e6cd9e88d"
+
+[[durable_objects.bindings]]
+name = "COLLECTION_SYNC"
+class_name = "CollectionSyncObject"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["CollectionSyncObject"]

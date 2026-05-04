@@ -1,5 +1,6 @@
 import { SCRYFALL_API } from './state.js';
 import { esc } from './feedback.js';
+import { isBrowserOffline } from './networkStatus.js';
 
 export function buildAutocompleteUrl({ apiBase = SCRYFALL_API, query }) {
   return apiBase + '/cards/autocomplete?q=' + encodeURIComponent(query);
@@ -12,6 +13,7 @@ export async function fetchAutocompleteSuggestions({
   fetchImpl = fetch,
   maxItems = 12,
 } = {}) {
+  if (isBrowserOffline()) throw new Error('offline');
   const resp = await fetchImpl(buildAutocompleteUrl({ apiBase, query }), { signal });
   if (!resp.ok) return [];
   const data = await resp.json();
@@ -23,6 +25,7 @@ export function createNameAutocomplete({
   listEl,
   onPick,
   onEmptyQuery = () => {},
+  onError = () => {},
   fetchSuggestions = (query, signal) => fetchAutocompleteSuggestions({ query, signal }),
   debounceMs = 180,
   setTimeoutImpl = setTimeout,
@@ -61,14 +64,19 @@ export function createNameAutocomplete({
   }
 
   async function load(query) {
+    let signal = null;
     try {
       if (abort) abort.abort();
       abort = new AbortController();
-      const signal = abort.signal;
+      signal = abort.signal;
       items = await fetchSuggestions(query, signal);
       if (signal.aborted) return;
       render();
-    } catch (e) {}
+    } catch (e) {
+      if (signal?.aborted) return;
+      hide();
+      onError(e, query);
+    }
   }
 
   function scheduleLoad(query) {

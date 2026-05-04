@@ -1,4 +1,5 @@
 import { state } from './state.js';
+import { runSyncChangeHooks } from './syncRuntime.js';
 import {
   collectionKey,
   deleteEmptyContainer,
@@ -26,6 +27,7 @@ export function configureChangelogActions({ commitCollectionChangeImpl, navigate
 function persist() {
   try {
     localStorage.setItem(CHANGELOG_KEY, JSON.stringify(log));
+    runSyncChangeHooks({ reason: 'history-save', history: getLog() });
   } catch (e) {}
 }
 
@@ -253,6 +255,19 @@ export function clearLog() {
 export function getLog({ activeOnly = false } = {}) {
   if (activeOnly) return log.filter(e => !e.dismissed && !e.undone);
   return [...log];
+}
+
+export function replaceLog(nextLog = []) {
+  log = Array.isArray(nextLog)
+    ? nextLog.filter(e => e && typeof e === 'object').map(e => JSON.parse(JSON.stringify(e)))
+    : [];
+  if (log.length > CAP) log.length = CAP;
+  persist();
+  renderHistoryList();
+}
+
+export function serializeHistory() {
+  return getLog();
 }
 
 function pad(n) { return n < 10 ? '0' + n : '' + n; }

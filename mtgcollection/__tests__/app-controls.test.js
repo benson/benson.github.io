@@ -17,7 +17,6 @@ function setupDocument() {
       <option value="commander"></option>
       <option value="modern"></option>
     </select>
-    <div id="fabCluster"><button type="button" data-fab-action="export"></button></div>
     <div id="emptyState">
       <button type="button" data-empty-action="new-deck"></button>
       <button type="button" data-empty-action="new-container"></button>
@@ -105,10 +104,10 @@ test('bindAppControls: empty-state actions route or trigger their target control
   assert.equal(calls.testClicks, 1);
 });
 
-test('bindAppControls: reset, export, and chrome toggles stay behind one boundary', () => {
+test('bindAppControls: reset and chrome toggles stay behind one boundary', () => {
   const documentObj = setupDocument();
   const storage = createFakeStorage();
-  const calls = { clears: 0, modes: [], saves: 0, renders: 0, exports: 0, paths: [] };
+  const calls = { clears: 0, modes: [], saves: 0, renders: 0, paths: [] };
   state.detailIndex = 5;
   bindAppControls({
     documentObj,
@@ -117,17 +116,14 @@ test('bindAppControls: reset, export, and chrome toggles stay behind one boundar
     setTopLevelViewModeImpl: mode => calls.modes.push(mode),
     saveImpl: () => calls.saves++,
     renderImpl: () => calls.renders++,
-    exportCsvImpl: () => calls.exports++,
     historyObj: { replaceState: (stateArg, titleArg, path) => calls.paths.push(path) },
     locationObj: { pathname: '/mtgcollection/' },
   });
 
-  documentObj.querySelector('[data-fab-action="export"]').click();
   documentObj.getElementById('resetAppBtn').click();
   documentObj.getElementById('caseToggleBtn').click();
   documentObj.getElementById('chromeToggleBtn').click();
 
-  assert.equal(calls.exports, 1);
   assert.equal(calls.clears, 1);
   assert.deepEqual(calls.modes, ['collection']);
   assert.equal(state.detailIndex, -1);

@@ -136,6 +136,33 @@ test('loadCardPrintings: returns fallback-error when search fails but fuzzy look
   assert.deepEqual(result.printings, [{ id: 'fallback' }]);
 });
 
+test('loadCardPrintings: reports offline before touching Scryfall', async () => {
+  const previousNavigator = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  Object.defineProperty(globalThis, 'navigator', {
+    value: { onLine: false },
+    configurable: true,
+  });
+  let called = false;
+
+  try {
+    const result = await loadCardPrintings({
+      name: 'Sol Ring',
+      fetchImpl: async () => {
+        called = true;
+        return response();
+      },
+    });
+
+    assert.equal(result.status, 'error-empty');
+    assert.equal(result.error.message, 'offline');
+    assert.deepEqual(result.printings, []);
+    assert.equal(called, false);
+  } finally {
+    if (previousNavigator) Object.defineProperty(globalThis, 'navigator', previousNavigator);
+    else delete globalThis.navigator;
+  }
+});
+
 test('loadCardPrintings: returns aborted without touching the network if already aborted', async () => {
   const controller = new AbortController();
   controller.abort();

@@ -31,6 +31,7 @@ import {
 import { buildDeckOwnershipReadout } from './addDeckOwnership.js';
 import { buildAddPreviewCardModel, buildExistingPreviewText } from './addPreviewModel.js';
 import { createAddSpeechRecognition } from './addSpeechRecognition.js';
+import { isBrowserOffline, scryfallNetworkMessage } from './networkStatus.js';
 import {
   buildDeckListEntryFromCard,
   buildInventoryAddEvent,
@@ -123,6 +124,13 @@ function setAddMode(mode) {
 
 async function doVoiceLookup(userSet, userCn, variant = 'regular') {
   const target = resolveVoiceLookupTarget(userSet, userCn, variant);
+  if (isBrowserOffline()) {
+    showFeedback(scryfallNetworkMessage(new Error('offline')), 'error');
+    voiceQtyOverride = null;
+    voiceLocationOverride = null;
+    voiceFoilFlag = false;
+    return;
+  }
   showFeedback('<span class="loading-spinner"></span> looking up ' + esc(target.set) + ' #' + esc(target.cn) + '...', 'info');
   const result = await lookupVoiceCard({ userSet, userCn, variant });
   if (!result.card) {
@@ -373,6 +381,10 @@ export function initAdd() {
     listEl: addNameList,
     onPick: (name) => addPrintingPicker.load(name),
     onEmptyQuery: () => addPrintingPicker.hide(),
+    onError: (error) => {
+      const message = scryfallNetworkMessage(error);
+      if (message) showFeedback(message, 'error');
+    },
   });
   locationPicker = createAddLocationPicker({
     getNameInput: () => addLocationNameInput,

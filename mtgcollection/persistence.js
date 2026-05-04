@@ -4,6 +4,7 @@ import { normalizeLocation, ensureContainersForCollection } from './collection.j
 import { applyLoadedState } from './state.js';
 import { normalizeStoredAppData, serializeAppState } from './storageSchema.js';
 import { showFeedback } from './feedback.js';
+import { runSyncChangeHooks } from './syncRuntime.js';
 
 // ---- Persistence ----
 export function save() {
@@ -12,7 +13,9 @@ export function save() {
   // so we never corrupt the user's actual collection on disk.
   if (state.shareSnapshot) return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeAppState(state)));
+    const serialized = serializeAppState(state);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(serialized));
+    runSyncChangeHooks({ reason: 'app-save', app: serialized });
   } catch (e) {
     showFeedback('collection too large for localstorage - ' + e.message, 'error');
   }
@@ -55,30 +58,4 @@ export function migrateSavedCollection() {
     state.collection.forEach(c => { c.location = { type: 'deck', name: 'breya' }; });
     save();
   }
-}
-
-// ---- Backup nag ----
-const BACKUP_LOAD_KEY = 'mtgcollection_loads_since_backup';
-const BACKUP_NAG_THRESHOLD = 15;
-
-export function bumpBackupCounter() {
-  const prev = parseInt(localStorage.getItem(BACKUP_LOAD_KEY) || '0', 10) || 0;
-  const next = prev + 1;
-  try { localStorage.setItem(BACKUP_LOAD_KEY, String(next)); } catch (e) {}
-  return next;
-}
-
-export function resetBackupCounter() {
-  try { localStorage.setItem(BACKUP_LOAD_KEY, '0'); } catch (e) {}
-}
-
-export function maybeShowBackupNag(loadCount) {
-  if (loadCount < BACKUP_NAG_THRESHOLD) return;
-  if (state.collection.length <= 1) return;
-  showFeedback(
-    'localstorage-only - back up your collection. ' +
-    '<button class="backup-btn" type="button" data-backup-action="export">export csv</button>' +
-    '<button class="backup-btn" type="button" data-backup-action="dismiss">remind later</button>',
-    'info'
-  );
 }

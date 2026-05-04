@@ -2,6 +2,7 @@ import { esc, hideFeedback, showFeedback } from './feedback.js';
 import { buildExistingPreviewSummary } from './addPreviewModel.js';
 import { loadCardPrintings } from './addPrintingSearch.js';
 import { renderPrintingList as renderPrintingListView } from './addPrintingView.js';
+import { scryfallNetworkMessage } from './networkStatus.js';
 
 export function createAddPrintingPicker({
   pickerEl,
@@ -96,7 +97,8 @@ export function createAddPrintingPicker({
     }
 
     if (result.error) {
-      showFeedbackImpl("couldn't load printings: " + esc(result.error.message || String(result.error)), 'error');
+      const networkMessage = scryfallNetworkMessage(result.error);
+      showFeedbackImpl(networkMessage || "couldn't load printings: " + esc(result.error.message || String(result.error)), 'error');
     } else {
       hideFeedbackImpl();
     }

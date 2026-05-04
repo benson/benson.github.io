@@ -57,6 +57,17 @@ test('history UI does not expose CSV export controls', () => {
   assert.doesNotMatch(changelog, /exportLogCsv|downloadCsv/);
 });
 
+test('account menu keeps import/export IA consolidated', () => {
+  const syncUi = fs.readFileSync(path.join(projectRoot, 'mtgcollection', 'syncUi.js'), 'utf8');
+  const syncEngine = fs.readFileSync(path.join(projectRoot, 'mtgcollection', 'syncEngine.js'), 'utf8');
+  const persistence = fs.readFileSync(path.join(projectRoot, 'mtgcollection', 'persistence.js'), 'utf8');
+
+  assert.match(syncUi, /export data/);
+  assert.doesNotMatch(syncUi, /import local|export json|import json|sync now/i);
+  assert.doesNotMatch(syncEngine, /cloud collection loaded/i);
+  assert.doesNotMatch(persistence, /backup nag|data-backup-action|loads_since_backup/i);
+});
+
 test('shared ESM files declare their module package boundary', () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(projectRoot, 'shared', 'package.json'), 'utf8'));
 

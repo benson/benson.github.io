@@ -76,6 +76,23 @@ test('createNameAutocomplete: loads and renders escaped suggestions', async () =
   assert.deepEqual(ac.getItems(), ['Sol Ring', '<Bad Card>']);
 });
 
+test('createNameAutocomplete: reports Scryfall lookup errors', async () => {
+  const { inputEl, listEl } = installDom();
+  const errors = [];
+  const ac = createNameAutocomplete({
+    inputEl,
+    listEl,
+    onPick: () => {},
+    onError: (error, query) => errors.push({ message: error.message, query }),
+    fetchSuggestions: async () => { throw new TypeError('Failed to fetch'); },
+  });
+
+  await ac.load('so');
+
+  assert.equal(listEl.classList.contains('active'), false);
+  assert.deepEqual(errors, [{ message: 'Failed to fetch', query: 'so' }]);
+});
+
 test('createNameAutocomplete: keyboard navigation picks the highlighted suggestion', async () => {
   const { doc, inputEl, listEl } = installDom();
   const picked = [];

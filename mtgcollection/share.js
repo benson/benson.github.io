@@ -21,15 +21,32 @@ import { showFeedback } from './feedback.js';
 import { setActiveContainerRoute } from './routeState.js';
 import { normalizeDeckBoard } from './collection.js';
 
+function defaultShareApiUrl() {
+  if (typeof window !== 'undefined') {
+    if (window.MTGCOLLECTION_SHARE_API_URL) return window.MTGCOLLECTION_SHARE_API_URL;
+    const host = window.location?.hostname || '';
+    if (host === 'localhost' || host === '127.0.0.1') return 'http://127.0.0.1:8787';
+  }
+  return 'https://mtgcollection-share.bensonperry.workers.dev';
+}
+
 // Override via window.MTGCOLLECTION_SHARE_API_URL during dev to point at
-// `wrangler dev` (e.g. http://127.0.0.1:8787). Production URL is whatever
-// the worker is deployed to.
-export const SHARE_API_URL = (typeof window !== 'undefined' && window.MTGCOLLECTION_SHARE_API_URL)
-  || 'https://mtgcollection-share.bensonperry.workers.dev';
+// another `wrangler dev` URL. Localhost defaults to http://127.0.0.1:8787.
+export const SHARE_API_URL = defaultShareApiUrl();
 
 const PUSH_DEBOUNCE_MS = 1500;
 let pushTimer = null;
 let pushInFlight = null;
+let shareAuthTokenProvider = async () => null;
+
+export function setShareAuthTokenProvider(provider) {
+  shareAuthTokenProvider = typeof provider === 'function' ? provider : async () => null;
+}
+
+async function shareHeaders(extra = {}) {
+  const token = await shareAuthTokenProvider();
+  return token ? { ...extra, Authorization: 'Bearer ' + token } : extra;
+}
 
 // ---- Pure payload pickers (testable) ----
 //
@@ -172,7 +189,7 @@ export function synthesizeInventoryFromSnapshot(snapshot) {
 export async function createShare(payload) {
   const res = await fetch(SHARE_API_URL + '/share', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await shareHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(payload),
   });
   if (!res.ok) throw new Error('create share failed: ' + res.status + ' ' + (await res.text()));
@@ -182,7 +199,7 @@ export async function createShare(payload) {
 export async function updateShare(id, payload) {
   const res = await fetch(SHARE_API_URL + '/share/' + encodeURIComponent(id), {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await shareHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(payload),
   });
   if (!res.ok) throw new Error('update share failed: ' + res.status);
@@ -192,6 +209,7 @@ export async function updateShare(id, payload) {
 export async function deleteShare(id) {
   const res = await fetch(SHARE_API_URL + '/share/' + encodeURIComponent(id), {
     method: 'DELETE',
+    headers: await shareHeaders(),
   });
   if (!res.ok) throw new Error('delete share failed: ' + res.status);
   return res.json();

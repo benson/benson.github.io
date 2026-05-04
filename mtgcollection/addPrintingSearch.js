@@ -1,5 +1,6 @@
 import { fetchCardByName } from '../shared/mtg.js';
 import { SCRYFALL_API } from './state.js';
+import { isBrowserOffline } from './networkStatus.js';
 
 export const PRINTINGS_MAX_PAGES = 3;
 export const PRINTINGS_HARD_CAP = 150;
@@ -72,6 +73,9 @@ export async function loadCardPrintings({
   hardCap = PRINTINGS_HARD_CAP,
 } = {}) {
   if (signal?.aborted) return { status: 'aborted' };
+  if (isBrowserOffline()) {
+    return { status: 'error-empty', error: new Error('offline'), printings: [], totalCount: 0, truncated: false };
+  }
   try {
     const exact = await fetchExactPrintings({
       name,

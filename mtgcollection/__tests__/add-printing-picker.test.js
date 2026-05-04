@@ -205,6 +205,30 @@ test('createAddPrintingPicker: reports load errors but still selects fallback pr
   assert.deepEqual(selected, ['fallback']);
 });
 
+test('createAddPrintingPicker: uses offline-friendly copy for network errors', async () => {
+  const dom = installDom();
+  const feedback = [];
+  const picker = createAddPrintingPicker({
+    ...dom,
+    onSelect: () => {},
+    loadPrintingsImpl: async () => ({
+      status: 'error-empty',
+      error: new TypeError('Failed to fetch'),
+      printings: [],
+      totalCount: 0,
+      truncated: false,
+    }),
+    showFeedbackImpl: (html, type) => feedback.push({ html, type }),
+  });
+
+  await picker.load('Sol Ring');
+
+  assert.deepEqual(feedback, [{
+    html: 'scryfall lookup needs a network connection. collection edits you can make without lookup will still sync later.',
+    type: 'error',
+  }]);
+});
+
 test('createAddPrintingPicker: hide clears UI and aborts in-flight lookup', () => {
   const dom = installDom();
   let signal = null;
