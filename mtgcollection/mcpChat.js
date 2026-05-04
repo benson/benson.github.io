@@ -288,7 +288,7 @@ async function sendChat() {
         previews.push({ changeToken: token, summary: 'Previewed collection change' });
       }
     }
-    if (addPendingPreviews(previews).length) showFeedback('preview ready to review', 'success');
+    addPendingPreviews(previews);
     if (warnings.length) showFeedback(warnings[0], 'error');
     delete pending.meta.pending;
   } catch (e) {
