@@ -1,7 +1,7 @@
 import { esc } from './feedback.js';
 import { getSetIconUrl } from './setIcons.js';
 
-export function renderPrintingRows(printings) {
+export function renderPrintingRows(printings, { ownershipLookup = null } = {}) {
   return printings.map((c, i) => {
     const setCode = (c.set || '').toLowerCase();
     const iconUrl = setCode ? getSetIconUrl(setCode) : '';
@@ -14,6 +14,12 @@ export function renderPrintingRows(printings) {
       finishBadges.push('<span class="printing-finish-badge">foil only</span>');
     }
     if (finishes.includes('etched')) finishBadges.push('<span class="printing-finish-badge">etched</span>');
+    const ownedQty = typeof ownershipLookup === 'function'
+      ? Math.max(0, parseInt(ownershipLookup(c), 10) || 0)
+      : 0;
+    const ownedBadge = ownedQty > 0
+      ? `<span class="printing-owned-badge" title="this exact printing is in your collection">owned &times;${ownedQty}</span>`
+      : '';
     const year = (c.released_at || '').slice(0, 4);
     return `<li class="printing-row" role="option" data-index="${i}">
       ${icon}
@@ -21,6 +27,7 @@ export function renderPrintingRows(printings) {
       <span class="printing-set-name">${esc(c.set_name || '')}</span>
       <span class="printing-cn">#${esc(c.collector_number || '')}</span>
       <span class="printing-finishes">${finishBadges.join('')}</span>
+      ${ownedBadge}
       <span class="printing-year">${esc(year)}</span>
     </li>`;
   }).join('');
@@ -34,6 +41,7 @@ export function renderPrintingList({
   truncated,
   loadedCount = printings.length,
   filterQuery = '',
+  ownershipLookup = null,
 }) {
   if (!printings.length) {
     listEl.innerHTML = '';
@@ -49,5 +57,5 @@ export function renderPrintingList({
     captionParts.push('<span class="truncate-hint">More available - narrow by typing the set code</span>');
   }
   captionEl.innerHTML = captionParts.join(' - ');
-  listEl.innerHTML = renderPrintingRows(printings);
+  listEl.innerHTML = renderPrintingRows(printings, { ownershipLookup });
 }

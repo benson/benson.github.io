@@ -1,4 +1,5 @@
 import { esc, hideFeedback, showFeedback } from './feedback.js';
+import { buildExistingPreviewSummary } from './addPreviewModel.js';
 import { loadCardPrintings } from './addPrintingSearch.js';
 import { renderPrintingList as renderPrintingListView } from './addPrintingView.js';
 
@@ -10,6 +11,7 @@ export function createAddPrintingPicker({
   onSelect,
   shouldPreserveFields = () => false,
   getPreferredScryfallId = () => '',
+  getCollection = () => [],
   loadPrintingsImpl = loadCardPrintings,
   showFeedbackImpl = showFeedback,
   hideFeedbackImpl = hideFeedback,
@@ -41,6 +43,7 @@ export function createAddPrintingPicker({
       truncated,
       loadedCount: printings.length,
       filterQuery,
+      ownershipLookup: card => buildExistingPreviewSummary(getCollection(), card).exactQty,
     });
     syncSelectedRow();
   }

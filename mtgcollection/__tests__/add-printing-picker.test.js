@@ -134,6 +134,35 @@ test('createAddPrintingPicker: filters loaded printings by set code or name', as
   assert.deepEqual(selected, ['cmm', 'sld']);
 });
 
+test('createAddPrintingPicker: marks owned exact printings in the printing list', async () => {
+  const dom = installDom();
+  const picker = createAddPrintingPicker({
+    ...dom,
+    getCollection: () => [
+      { scryfallId: 'owned-id', name: 'Island', qty: 2 },
+      { name: 'Island', setCode: 'm21', cn: '264', qty: 20 },
+    ],
+    onSelect: () => {},
+    loadPrintingsImpl: async () => ({
+      status: 'ok',
+      printings: [
+        printing({ id: 'owned-id', name: 'Island', set: 'stx', collector_number: '369' }),
+        printing({ id: 'other-id', name: 'Island', set: 'm21', collector_number: '264' }),
+      ],
+      totalCount: 2,
+      truncated: false,
+    }),
+    hideFeedbackImpl: () => {},
+  });
+
+  await picker.load('Island');
+
+  const badges = dom.listEl.querySelectorAll('.printing-owned-badge');
+  assert.equal(badges.length, 2);
+  assert.equal(badges[0].textContent, 'owned \u00d72');
+  assert.equal(badges[1].textContent, 'owned \u00d720');
+});
+
 test('createAddPrintingPicker: shows empty state and feedback when no card is found', async () => {
   const dom = installDom();
   const feedback = [];

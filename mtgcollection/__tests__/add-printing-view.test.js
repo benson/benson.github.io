@@ -31,6 +31,20 @@ test('renderPrintingRows: renders set metadata, year, and only special finish ba
   assert.equal(rows[1].querySelectorAll('.printing-finish-badge').length, 2);
 });
 
+test('renderPrintingRows: can show exact-printing ownership badges', () => {
+  const win = new Window();
+  const wrap = win.document.createElement('ol');
+  wrap.innerHTML = renderPrintingRows([
+    printing({ id: 'owned' }),
+    printing({ id: 'missing', collector_number: '2' }),
+  ], {
+    ownershipLookup: card => card.id === 'owned' ? 3 : 0,
+  });
+
+  assert.equal(wrap.querySelector('.printing-owned-badge').textContent, 'owned \u00d73');
+  assert.equal(wrap.querySelectorAll('.printing-owned-badge').length, 1);
+});
+
 test('renderPrintingList: renders empty and truncated captions', () => {
   const win = new Window();
   const listEl = win.document.createElement('ol');

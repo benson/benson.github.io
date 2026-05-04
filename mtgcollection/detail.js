@@ -328,6 +328,7 @@ export function initDetail() {
     captionEl: document.getElementById('detailPrintingCaption'),
     searchEl: document.getElementById('detailPrintingSearch'),
     getPreferredScryfallId: () => state.collection[state.detailIndex]?.scryfallId || '',
+    getCollection: () => state.collection,
     shouldPreserveFields: () => true,
     onSelect: (card) => {
       const currentFinish = readDetailForm({ form: detailForm, location: detailLocationPicker?.readLocation() }).finish;

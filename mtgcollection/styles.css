@@ -3643,6 +3643,16 @@
     color: #888;
     text-transform: none;
   }
+  .printing-owned-badge {
+    font-size: 0.65rem;
+    padding: 1px 5px;
+    border-radius: 2px;
+    background: #fff8d9;
+    color: #7a5f00;
+    border: 1px solid #e3cf84;
+    white-space: nowrap;
+    text-transform: none;
+  }
   .printing-year { color: #999; min-width: 36px; text-align: right; }
   .field-hint {
     margin-top: 4px;

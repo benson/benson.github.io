@@ -355,6 +355,7 @@ export function initAdd() {
     searchEl: addPrintingSearchEl,
     onSelect: showAddPreview,
     shouldPreserveFields: () => addPreviewCard != null,
+    getCollection: () => state.collection,
   });
   nameAutocomplete = createNameAutocomplete({
     inputEl: addNameInput,

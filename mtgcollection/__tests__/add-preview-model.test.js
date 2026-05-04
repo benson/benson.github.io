@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   buildAddPreviewCardModel,
+  buildExistingPreviewSummary,
   buildExistingPreviewText,
   findExistingPreviewEntries,
 } from '../addPreviewModel.js';
@@ -52,6 +53,29 @@ test('buildExistingPreviewText: sums quantities or returns null with no match', 
   assert.equal(buildExistingPreviewText([], card), null);
   assert.equal(
     buildExistingPreviewText([{ scryfallId: 'abc', qty: '2' }, { name: 'Sol Ring', qty: 3 }], card),
-    'already in collection (\u00d75)'
+    'this printing owned (\u00d72) - other printings (\u00d73)'
+  );
+});
+
+test('buildExistingPreviewSummary: distinguishes exact printing from same-name printings', () => {
+  const card = { id: 'island-stx-369', name: 'Island', set: 'stx', collector_number: '369' };
+
+  assert.deepEqual(
+    buildExistingPreviewSummary([
+      { scryfallId: 'island-stx-369', qty: 1, name: 'Island' },
+      { name: 'Island', setCode: 'stx', cn: '369', qty: 2 },
+      { name: 'Island', setCode: 'm21', cn: '264', qty: 20 },
+    ], card),
+    {
+      exactQty: 3,
+      otherQty: 20,
+      totalQty: 23,
+      text: 'this printing owned (\u00d73) - other printings (\u00d720)',
+    }
+  );
+
+  assert.equal(
+    buildExistingPreviewText([{ name: 'Island', setCode: 'm21', cn: '264', qty: 20 }], card),
+    'other printings owned (\u00d720)'
   );
 });
