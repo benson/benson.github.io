@@ -129,6 +129,19 @@ async function rpc(env, accessToken, method, params = {}) {
   return res.json();
 }
 
+async function rpcWithAuthorization(env, authorization, method, params = {}) {
+  const res = await worker.fetch(new Request('https://example.com/mcp', {
+    method: 'POST',
+    headers: {
+      Authorization: authorization,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+  }), env);
+  assert.equal(res.status, 200);
+  return res.json();
+}
+
 async function callTool(env, accessToken, name, args = {}) {
   return rpc(env, accessToken, 'tools/call', {
     name,
@@ -172,6 +185,13 @@ test('mcp: OAuth debug flow issues a token that can list tools', async () => {
   const listed = await rpc(env, token.access_token, 'tools/list');
   assert.ok(listed.result.tools.some(tool => tool.name === 'preview_create_container'));
   assert.ok(listed.result.tools.some(tool => tool.name === 'apply_collection_change'));
+});
+
+test('mcp: raw MCP access tokens are accepted for hosted remote MCP adapters', async () => {
+  const { env } = fakeSyncEnv();
+  const token = await issueMcpToken(env);
+  const initialized = await rpcWithAuthorization(env, token.access_token, 'initialize');
+  assert.equal(initialized.result.serverInfo.name, 'MTG Collection');
 });
 
 test('mcp: read-only tokens cannot apply changes', async () => {
@@ -361,6 +381,46 @@ test('mcp chat: hosted OpenAI key is used when no BYOK key is supplied', async (
     assert.equal(authHeader, 'Bearer sk-hosted-secret');
     assert.equal(requestBody.max_output_tokens, 1000);
     assert.equal([...env.OAUTH_KV.values.values()].some(value => String(value).includes('sk-hosted-secret')), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp chat: hosted xAI key is used by default with preview-only remote MCP tools', async () => {
+  const { env } = fakeSyncEnv();
+  env.MTGCOLLECTION_CHAT_XAI_API_KEY = 'xai-hosted-secret';
+  const originalFetch = globalThis.fetch;
+  let authHeader = '';
+  let requestBody = null;
+  globalThis.fetch = async (url, init = {}) => {
+    assert.equal(url, 'https://api.x.ai/v1/responses');
+    authHeader = init.headers.Authorization;
+    requestBody = JSON.parse(init.body);
+    return Response.json({ output_text: 'xai ok' });
+  };
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'is this working?' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.provider, 'xai');
+    assert.equal(data.mode, 'hosted');
+    assert.equal(data.model, 'grok-4-fast-non-reasoning');
+    assert.equal(authHeader, 'Bearer xai-hosted-secret');
+    assert.equal(requestBody.store, false);
+    const mcpTool = requestBody.tools.find(tool => tool.type === 'mcp');
+    assert.ok(mcpTool.authorization.startsWith('mcp_at_'));
+    assert.ok(mcpTool.allowed_tools.includes('preview_create_container'));
+    assert.equal(mcpTool.allowed_tools.includes('apply_collection_change'), false);
+    assert.equal([...env.OAUTH_KV.values.values()].some(value => String(value).includes('xai-hosted-secret')), false);
   } finally {
     globalThis.fetch = originalFetch;
   }
