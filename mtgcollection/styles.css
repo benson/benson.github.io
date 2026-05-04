@@ -1505,31 +1505,15 @@
   body.deck-ownership-decklist .deck-text-row-placeholder { opacity: 1; }
   body.deck-ownership-decklist .deck-row-loc { display: none; }
   .deck-mode-btn:focus-visible,
-  .deck-board-filter-btn:focus-visible,
-  .deck-view-settings summary:focus-visible {
+  .deck-board-filter-btn:focus-visible {
     outline: 2px solid #000;
     outline-offset: 2px;
-  }
-  .deck-view-settings {
-    margin-left: auto;
-    position: relative;
-  }
-  .deck-view-settings summary {
-    cursor: pointer;
-    border: 1px solid #bbb;
-    background: #fff;
-    color: #000;
-    list-style: none;
-    padding: 6px 10px;
-    font-size: 0.75rem;
-  }
-  .deck-view-settings summary::-webkit-details-marker {
-    display: none;
   }
   /* Inline group-by bar that lives at the top of the visual deck mode. */
   .deck-visual-controls {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 12px;
     margin-bottom: 8px;
     color: #666;
@@ -1548,20 +1532,6 @@
     font-size: 0.78rem;
     padding: 2px 6px;
   }
-  .deck-settings-grid {
-    position: absolute;
-    right: 0;
-    top: calc(100% + 4px);
-    z-index: 30;
-    min-width: 210px;
-    display: grid;
-    gap: 9px;
-    border: 1px solid #111;
-    background: #fff;
-    padding: 10px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.16);
-  }
-  .deck-settings-grid label,
   .deck-export-form label {
     display: flex;
     flex-direction: column;
@@ -1570,7 +1540,6 @@
     font-size: 0.68rem;
     text-transform: lowercase;
   }
-  .deck-settings-grid select,
   .deck-export-form select {
     border: 1px solid #ccc;
     background: #fff;
@@ -1580,13 +1549,15 @@
     padding: 7px 8px;
     text-transform: none;
   }
-  .deck-settings-check {
-    flex-direction: row !important;
+  .deck-visual-price-toggle {
+    display: inline-flex;
     align-items: center;
-    color: #000 !important;
-    font-size: 0.75rem !important;
+    gap: 5px;
+    color: #000;
+    font-size: 0.75rem;
+    text-transform: lowercase;
   }
-  .deck-settings-check input {
+  .deck-visual-price-toggle input {
     margin: 0;
   }
   .deck-details-editor {
@@ -1666,7 +1637,12 @@
     font-size: 0.68rem;
     text-transform: lowercase;
   }
-  .deck-settings-label {
+  .deck-visual-card-size {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+  }
+  .deck-control-label {
     color: inherit;
   }
   .deck-card-size-segmented {
@@ -3833,18 +3809,6 @@
     .deck-mode-btn,
     .deck-board-filter-btn {
       flex: 1 1 0;
-    }
-    .deck-view-settings {
-      margin-left: 0;
-      width: 100%;
-    }
-    .deck-view-settings summary {
-      text-align: center;
-    }
-    .deck-settings-grid {
-      position: static;
-      margin-top: 6px;
-      box-shadow: none;
     }
     .deck-hero-side {
       min-width: 0;

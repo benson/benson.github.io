@@ -2,7 +2,7 @@ import { state } from '../state.js';
 import { esc } from '../feedback.js';
 import { groupDeck } from '../stats.js';
 import { getSetIconUrl } from '../setIcons.js';
-import { CONDITION_ABBR, RARITY_ABBR, VALID_DECK_GROUPS } from '../deckUi.js';
+import { CONDITION_ABBR, RARITY_ABBR, VALID_DECK_CARD_SIZES, VALID_DECK_GROUPS } from '../deckUi.js';
 import { formatPrice } from '../ui/priceUi.js';
 import { renderDeckCard } from './deckCardView.js';
 
@@ -83,6 +83,19 @@ function filterDeckBoards(boards, filter) {
   return [['main', boards.main], ['sideboard', boards.sideboard], ['maybe', boards.maybe]];
 }
 
+function renderVisualCardSizeControl() {
+  const labels = { small: 'sm', medium: 'md', large: 'lg' };
+  return `<div class="deck-card-size-row deck-visual-card-size">
+    <span class="deck-control-label">card size</span>
+    <div class="deck-card-size-segmented" role="group" aria-label="card size">
+      ${VALID_DECK_CARD_SIZES.map(v => {
+        const active = state.deckCardSize === v;
+        return `<button type="button" class="deck-card-size-btn${active ? ' active' : ''}" data-deck-card-size="${v}" aria-pressed="${active ? 'true' : 'false'}">${labels[v]}</button>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
 export function renderDeckTextMode(boards) {
   const sections = filterDeckBoards(boards, state.deckBoardFilter);
   const cards = sections.flatMap(([, c]) => c);
@@ -140,6 +153,8 @@ export function renderDeckVisualMode(boards) {
         ${VALID_DECK_GROUPS.map(v => `<option value="${v}"${state.deckGroupBy === v ? ' selected' : ''}>${v}</option>`).join('')}
       </select>
     </label>
+    ${renderVisualCardSizeControl()}
+    <label class="deck-visual-price-toggle"><input type="checkbox" data-deck-show-prices${state.deckShowPrices ? ' checked' : ''}> show prices</label>
   </div>`;
   if (state.deckBoardFilter === 'all') {
     return `${visualGroupByBar}<div class="deck-content-grid${visualSideSections ? '' : ' deck-content-grid-single'}">

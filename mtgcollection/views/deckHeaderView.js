@@ -1,7 +1,6 @@
 import { state } from '../state.js';
 import { esc } from '../feedback.js';
 import { defaultDeckExportOptions } from '../deckExport.js';
-import { VALID_DECK_CARD_SIZES } from '../deckUi.js';
 
 export const FORMAT_PRESETS = ['standard', 'pioneer', 'modern', 'legacy', 'vintage', 'pauper', 'commander', 'brawl'];
 
@@ -194,22 +193,6 @@ export function renderDeckWorkspaceControls() {
       <button type="button" class="deck-ownership-btn${state.deckOwnershipView === 'decklist' ? ' active' : ''}" data-deck-ownership="decklist" aria-pressed="${state.deckOwnershipView === 'decklist' ? 'true' : 'false'}">decklist</button>
       <button type="button" class="deck-ownership-btn${state.deckOwnershipView === 'building' ? ' active' : ''}" data-deck-ownership="building" aria-pressed="${state.deckOwnershipView === 'building' ? 'true' : 'false'}">building</button>
     </div>
-    <details class="deck-view-settings">
-      <summary>view settings</summary>
-      <div class="deck-settings-grid">
-        <div class="deck-card-size-row">
-          <span class="deck-settings-label">card size</span>
-          <div class="deck-card-size-segmented" role="group" aria-label="card size">
-            ${VALID_DECK_CARD_SIZES.map(v => {
-              const labels = { small: 'sm', medium: 'md', large: 'lg' };
-              const active = state.deckCardSize === v;
-              return `<button type="button" class="deck-card-size-btn${active ? ' active' : ''}" data-deck-card-size="${v}" aria-pressed="${active ? 'true' : 'false'}">${labels[v]}</button>`;
-            }).join('')}
-          </div>
-        </div>
-        <label class="deck-settings-check"><input type="checkbox" data-deck-show-prices${state.deckShowPrices ? ' checked' : ''}> show prices</label>
-      </div>
-    </details>
   </div>`;
 }
 
