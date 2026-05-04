@@ -1462,7 +1462,7 @@ export async function handleByokChatRequest(request, env, deps) {
             server_label: 'mtgcollection',
             server_description: 'Read and preview safe changes to an MTG Collection account.',
             server_url: mcpUrl,
-            authorization: 'Bearer ' + mcpToken,
+            authorization: mcpToken,
             require_approval: 'never',
           }],
         }),

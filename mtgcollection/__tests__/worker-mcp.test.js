@@ -297,3 +297,35 @@ test('mcp chat: provider API key is not persisted or echoed in errors', async ()
     globalThis.fetch = originalFetch;
   }
 });
+
+test('mcp chat: OpenAI remote MCP receives the raw MCP token', async () => {
+  const { env } = fakeSyncEnv();
+  const originalFetch = globalThis.fetch;
+  let requestBody = null;
+  globalThis.fetch = async (url, init = {}) => {
+    assert.equal(url, 'https://api.openai.com/v1/responses');
+    requestBody = JSON.parse(init.body);
+    return Response.json({ output_text: 'ok' });
+  };
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        provider: 'openai',
+        apiKey: 'sk-test-secret',
+        messages: [{ role: 'user', content: 'is this working?' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    assert.ok(requestBody);
+    const mcpTool = requestBody.tools.find(tool => tool.type === 'mcp');
+    assert.ok(mcpTool.authorization.startsWith('mcp_at_'));
+    assert.doesNotMatch(mcpTool.authorization, /^Bearer\s+/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
