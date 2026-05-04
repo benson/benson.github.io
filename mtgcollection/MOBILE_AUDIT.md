@@ -112,6 +112,13 @@ Re-checked with Playwright:
 - `390x844`: binder page surface measured `366px` wide with the skeuomorphic page wrapping the cards.
 - `768x1024`: collection, storage, decks home, and binder page all reported no horizontal overflow.
 
+## Pass 4 Implementation Status
+
+Implemented a lightweight automated guardrail:
+
+- Added a static CSS test that preserves the core mobile shell/sheet rules, stacked mobile list rows, binder-list checkbox hiding, and sticky deck controls.
+- This is intentionally not a full browser layout test yet; it catches accidental deletion of the mobile contract without adding Playwright as a project dependency.
+
 ## Proposed Implementation Sequence
 
 ### Pass 1: Mobile Shell Foundation
