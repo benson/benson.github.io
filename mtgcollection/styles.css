@@ -2349,8 +2349,14 @@
   thead th[data-sort]:hover { color: #000; }
   thead th.sort-active { color: #000; }
   thead th .sort-indicator { display: none; }
-  thead th.sort-active .sort-indicator { display: inline-block; vertical-align: middle; }
-  thead th .sort-arrow { font-size: 0.85em; }
+  thead th.sort-active .sort-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  thead th .sort-arrow { font-size: 0.85em; line-height: 1; }
   thead th .sort-clear-btn {
     background: none;
     border: none;
@@ -2361,7 +2367,6 @@
     font-family: inherit;
     font-size: 0.85em;
     line-height: 1;
-    vertical-align: baseline;
   }
   thead th .sort-clear-btn:hover { color: #000; }
   tbody tr { border-bottom: 1px solid #eee; }
