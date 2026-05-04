@@ -24,6 +24,20 @@ export function setActiveLocation(loc) {
   return state.activeLocation;
 }
 
+export function resetDeckWorkspaceLandingState() {
+  state.deckMode = 'visual';
+  state.deckBoardFilter = 'all';
+  state.deckSampleHand = null;
+}
+
+function maybeResetDeckWorkspaceLandingState(previous, next) {
+  if (next?.type !== 'deck') return;
+  const previousKey = previous ? locationKey(previous) : '';
+  const nextKey = next ? locationKey(next) : '';
+  if (previousKey === nextKey) return;
+  resetDeckWorkspaceLandingState();
+}
+
 export function clearActiveLocation() {
   state.activeLocation = null;
 }
@@ -34,7 +48,10 @@ export function readActiveLocationFromFilter(el = locationFilterEl()) {
 }
 
 export function syncActiveLocationFromFilter(el = locationFilterEl()) {
-  return setActiveLocation(readActiveLocationFromFilter(el));
+  const previous = getActiveLocation();
+  const next = setActiveLocation(readActiveLocationFromFilter(el));
+  maybeResetDeckWorkspaceLandingState(previous, next);
+  return next;
 }
 
 export function syncLocationFilterFromActiveLocation(el = locationFilterEl()) {
@@ -59,10 +76,12 @@ export function setTopLevelViewMode(mode, { syncFilter = true } = {}) {
 }
 
 export function setActiveContainerRoute(loc, { syncFilter = true } = {}) {
+  const previous = getActiveLocation();
   const active = setActiveLocation(loc);
   state.viewMode = viewModeForLocation(active);
   state.viewAsList = false;
   state.binderPage = 0;
+  maybeResetDeckWorkspaceLandingState(previous, active);
   if (syncFilter) syncLocationFilterFromActiveLocation();
   return active;
 }

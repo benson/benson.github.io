@@ -12,12 +12,19 @@ import { resetStateAfterEach } from './testUtils.js';
 resetStateAfterEach();
 
 test('setActiveContainerRoute: deck containers enter the deck workspace', () => {
+  state.deckMode = 'hands';
+  state.deckBoardFilter = 'main';
+  state.deckSampleHand = { hand: [] };
+
   const loc = setActiveContainerRoute({ type: 'deck', name: 'breya' }, { syncFilter: false });
 
   assert.deepEqual(loc, { type: 'deck', name: 'breya' });
   assert.equal(state.viewMode, 'decks');
   assert.deepEqual(state.activeLocation, { type: 'deck', name: 'breya' });
   assert.equal(getEffectiveShape(), 'deck');
+  assert.equal(state.deckMode, 'visual');
+  assert.equal(state.deckBoardFilter, 'all');
+  assert.equal(state.deckSampleHand, null);
 });
 
 test('getEffectiveShape: storage containers distinguish binder and box routes', () => {

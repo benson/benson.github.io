@@ -1,9 +1,7 @@
 import { state, DECK_GROUP_KEY, DECK_VIEW_PREFS_KEY } from './state.js';
 import {
-  VALID_DECK_BOARD_FILTERS,
   VALID_DECK_CARD_SIZES,
   VALID_DECK_GROUPS,
-  VALID_DECK_MODES,
   VALID_DECK_OWNERSHIP_VIEWS,
 } from './deckUi.js';
 import { defaultDeckExportOptions } from './deckExport.js';
@@ -24,8 +22,6 @@ export function loadDeckPrefs(storage = localStorage) {
     const raw = storage.getItem(DECK_VIEW_PREFS_KEY);
     if (!raw) return;
     const prefs = JSON.parse(raw);
-    if (VALID_DECK_MODES.includes(prefs.mode)) state.deckMode = prefs.mode;
-    if (VALID_DECK_BOARD_FILTERS.includes(prefs.boardFilter)) state.deckBoardFilter = prefs.boardFilter;
     if (VALID_DECK_CARD_SIZES.includes(prefs.cardSize)) state.deckCardSize = prefs.cardSize;
     if (typeof prefs.showPrices === 'boolean') state.deckShowPrices = prefs.showPrices;
     if (VALID_DECK_OWNERSHIP_VIEWS.includes(prefs.ownershipView)) state.deckOwnershipView = prefs.ownershipView;
@@ -34,8 +30,6 @@ export function loadDeckPrefs(storage = localStorage) {
 
 export function currentDeckPrefs() {
   return {
-    mode: state.deckMode,
-    boardFilter: state.deckBoardFilter,
     cardSize: state.deckCardSize,
     showPrices: state.deckShowPrices,
     ownershipView: state.deckOwnershipView,

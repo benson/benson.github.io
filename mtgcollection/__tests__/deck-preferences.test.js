@@ -48,16 +48,20 @@ test('deck preferences load, expose current prefs, and save as one payload', () 
 
   loadDeckPrefs(storage);
   assert.deepEqual(currentDeckPrefs(), {
-    mode: 'text',
-    boardFilter: 'main',
     cardSize: 'large',
     showPrices: false,
     ownershipView: 'decklist',
   });
+  assert.equal(state.deckMode, 'visual');
+  assert.equal(state.deckBoardFilter, 'all');
 
   state.deckMode = 'stats';
   saveDeckPrefs(storage);
-  assert.equal(JSON.parse(storage.values.get(DECK_VIEW_PREFS_KEY)).mode, 'stats');
+  assert.deepEqual(JSON.parse(storage.values.get(DECK_VIEW_PREFS_KEY)), {
+    cardSize: 'large',
+    showPrices: false,
+    ownershipView: 'decklist',
+  });
 });
 
 test('saveDeckGroup writes the current group key', () => {
