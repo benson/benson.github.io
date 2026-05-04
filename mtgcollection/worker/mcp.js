@@ -649,6 +649,18 @@ function normalizeMcpCondition(raw) {
   return value;
 }
 
+function coerceMcpBoolean(raw) {
+  if (raw === true || raw === false) return raw;
+  const value = String(raw ?? '').trim().toLowerCase();
+  if (['true', 'yes', 'y', '1'].includes(value)) return true;
+  if (['false', 'no', 'n', '0', ''].includes(value)) return false;
+  return Boolean(raw);
+}
+
+function readCreateContainerFlag(args = {}) {
+  return coerceMcpBoolean(args.createContainer ?? args.createcontainer ?? args.create_container);
+}
+
 function getScryfallImageUrl(card) {
   if (!card) return '';
   if (card.image_uris) return card.image_uris.normal || card.image_uris.small || '';
@@ -1054,7 +1066,7 @@ async function toolPreviewMoveInventoryItem(env, deps, auth, args = {}) {
   if (!toLocation) return { status: 'invalid', error: 'toLocation is required' };
   const toKey = locationKey(toLocation);
   const existingContainer = containerFromSnapshot(cloud.snapshot, toLocation);
-  if (!existingContainer && args.createContainer !== true) {
+  if (!existingContainer && !readCreateContainerFlag(args)) {
     return {
       status: 'missing_container',
       missingContainer: toLocation,
@@ -1105,7 +1117,7 @@ async function toolPreviewAddInventoryItem(env, deps, auth, args = {}) {
   const locKey = locationKey(location);
   const ops = [];
   if (location && !containerFromSnapshot(cloud.snapshot, location)) {
-    if (args.createContainer !== true) {
+    if (!readCreateContainerFlag(args)) {
       return { status: 'missing_container', missingContainer: location, message: 'Set createContainer=true to create ' + locKey + '.' };
     }
     ops.push(makeSyncOp('container.upsert', { key: locKey, container: makeContainer(location) }));
@@ -1400,6 +1412,9 @@ async function toolUndoLastMcpChange(env, deps, auth) {
   return { status: 'undone', revision: pushed.revision, summary: undoEvent.summary };
 }
 
+const NUMBERISH_SCHEMA = { oneOf: [{ type: 'number' }, { type: 'string' }] };
+const BOOLEANISH_SCHEMA = { oneOf: [{ type: 'boolean' }, { type: 'string' }] };
+
 const TOOL_DEFINITIONS = [
   ['get_collection_summary', 'Summarize the signed-in MTG collection.', {}],
   ['search_inventory', 'Search physical inventory entries.', {
@@ -1409,7 +1424,7 @@ const TOOL_DEFINITIONS = [
       itemKey: { type: 'string' },
       scryfallId: { type: 'string' },
       location: { oneOf: [{ type: 'string' }, { type: 'object' }] },
-      limit: { type: 'number' },
+      limit: NUMBERISH_SCHEMA,
     },
   }],
   ['list_containers', 'List decks, binders, and boxes.', {
@@ -1418,7 +1433,7 @@ const TOOL_DEFINITIONS = [
   }],
   ['get_container', 'Get a binder, box, or deck container and its cards.', {
     type: 'object',
-    properties: { type: { type: 'string' }, name: { type: 'string' }, location: { oneOf: [{ type: 'string' }, { type: 'object' }] }, limit: { type: 'number' } },
+    properties: { type: { type: 'string' }, name: { type: 'string' }, location: { oneOf: [{ type: 'string' }, { type: 'object' }] }, limit: NUMBERISH_SCHEMA },
   }],
   ['get_deck', 'Get deck metadata, decklist, and physical inventory in that deck.', {
     type: 'object',
@@ -1426,7 +1441,7 @@ const TOOL_DEFINITIONS = [
   }],
   ['get_recent_changes', 'List recent collection changelog entries.', {
     type: 'object',
-    properties: { limit: { type: 'number' } },
+    properties: { limit: NUMBERISH_SCHEMA },
   }],
   ['preview_move_inventory_item', 'Preview moving physical inventory to another location.', {
     type: 'object',
@@ -1434,8 +1449,10 @@ const TOOL_DEFINITIONS = [
       query: { type: 'string' },
       itemKey: { type: 'string' },
       toLocation: { oneOf: [{ type: 'string' }, { type: 'object' }] },
-      qty: { type: 'number' },
-      createContainer: { type: 'boolean' },
+      qty: NUMBERISH_SCHEMA,
+      createContainer: BOOLEANISH_SCHEMA,
+      createcontainer: BOOLEANISH_SCHEMA,
+      create_container: BOOLEANISH_SCHEMA,
     },
     required: ['toLocation'],
   }],
@@ -1451,9 +1468,11 @@ const TOOL_DEFINITIONS = [
       finish: { type: 'string', enum: ['normal', 'nonfoil', 'non-foil', 'foil', 'etched', 'etched foil'] },
       condition: { type: 'string' },
       language: { type: 'string' },
-      qty: { type: 'number' },
+      qty: NUMBERISH_SCHEMA,
       location: { oneOf: [{ type: 'string' }, { type: 'object' }] },
-      createContainer: { type: 'boolean' },
+      createContainer: BOOLEANISH_SCHEMA,
+      createcontainer: BOOLEANISH_SCHEMA,
+      create_container: BOOLEANISH_SCHEMA,
       tags: { type: 'array', items: { type: 'string' } },
     },
   }],

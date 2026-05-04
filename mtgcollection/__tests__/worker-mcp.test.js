@@ -319,6 +319,60 @@ test('mcp: preview add inventory resolves a named card through Scryfall', async 
   }
 });
 
+test('mcp: preview add inventory tolerates chat-coerced string args', async () => {
+  const { env, state } = fakeSyncEnv(emptySnapshot());
+  const token = await issueMcpToken(env);
+  const listed = await rpc(env, token.access_token, 'tools/list');
+  const addTool = listed.result.tools.find(tool => tool.name === 'preview_add_inventory_item');
+  assert.ok(addTool.inputSchema.properties.qty.oneOf.some(schema => schema.type === 'string'));
+  assert.ok(addTool.inputSchema.properties.createcontainer.oneOf.some(schema => schema.type === 'string'));
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async url => {
+    assert.equal(String(url), 'https://api.scryfall.com/cards/named?exact=prismari%20charm');
+    return Response.json({
+      id: 'prismari-charm-id',
+      name: 'Prismari Charm',
+      set: 'stx',
+      set_name: 'Strixhaven: School of Mages',
+      collector_number: '211',
+      lang: 'en',
+      rarity: 'uncommon',
+      cmc: 3,
+      colors: ['U', 'R'],
+      color_identity: ['U', 'R'],
+      type_line: 'Instant',
+      oracle_text: 'Choose one...',
+      legalities: { commander: 'legal' },
+      finishes: ['nonfoil', 'foil'],
+      image_uris: { normal: 'https://img.test/prismari.jpg' },
+      prices: { usd: '0.10', usd_foil: '0.30' },
+      scryfall_uri: 'https://scryfall.test/card/stx/211/prismari-charm',
+    });
+  };
+  try {
+    const preview = await callTool(env, token.access_token, 'preview_add_inventory_item', {
+      name: 'prismari charm',
+      qty: '2',
+      finish: 'foil',
+      location: 'box spells',
+      createcontainer: 'true',
+    });
+    const data = preview.result.structuredContent;
+    assert.equal(data.status, 'preview');
+    assert.match(data.summary, /Added 2 Prismari Charm to \{loc:box:spells\}/);
+    const applied = await callTool(env, token.access_token, 'apply_collection_change', {
+      changeToken: data.changeToken,
+    });
+    assert.equal(applied.result.structuredContent.status, 'applied');
+    assert.equal(state.snapshot.app.containers['box:spells'].type, 'box');
+    assert.equal(state.snapshot.app.collection[0].qty, 2);
+    assert.equal(state.snapshot.app.collection[0].finish, 'foil');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('mcp: stale preview tokens are rejected on apply', async () => {
   const entry = card();
   const { env, state } = fakeSyncEnv(emptySnapshot({
