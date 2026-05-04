@@ -8,12 +8,6 @@ export function renderPrintingRows(printings, { ownershipLookup = null } = {}) {
     const icon = iconUrl
       ? `<img class="set-icon" src="${esc(iconUrl)}" alt="" onerror="this.style.display='none'">`
       : '';
-    const finishes = Array.isArray(c.finishes) ? c.finishes : [];
-    const finishBadges = [];
-    if (!finishes.includes('nonfoil') && finishes.includes('foil')) {
-      finishBadges.push('<span class="printing-finish-badge">foil only</span>');
-    }
-    if (finishes.includes('etched')) finishBadges.push('<span class="printing-finish-badge">etched</span>');
     const ownedQty = typeof ownershipLookup === 'function'
       ? Math.max(0, parseInt(ownershipLookup(c), 10) || 0)
       : 0;
@@ -26,7 +20,6 @@ export function renderPrintingRows(printings, { ownershipLookup = null } = {}) {
       <span class="printing-set-code">${esc((c.set || '').toUpperCase())}</span>
       <span class="printing-set-name">${esc(c.set_name || '')}</span>
       <span class="printing-cn">#${esc(c.collector_number || '')}</span>
-      <span class="printing-finishes">${finishBadges.join('')}</span>
       ${ownedBadge}
       <span class="printing-year">${esc(year)}</span>
     </li>`;

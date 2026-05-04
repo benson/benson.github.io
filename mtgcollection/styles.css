@@ -436,7 +436,6 @@
   body.proper-case .filter-select,
   body.proper-case .stat-label,
   body.proper-case .printing-set-name,
-  body.proper-case .printing-finish-badge,
   body.proper-case .title-reset-btn { text-transform: capitalize; }
 
   /* Sentence-style strings — show source as-is in proper-case mode (source is
@@ -3686,19 +3685,6 @@
     text-transform: none;
   }
   .printing-cn { color: #999; min-width: 38px; text-align: right; }
-  .printing-finishes {
-    display: flex;
-    gap: 4px;
-    flex-shrink: 0;
-  }
-  .printing-finish-badge {
-    font-size: 0.65rem;
-    padding: 1px 5px;
-    border-radius: 2px;
-    background: #f0eee8;
-    color: #888;
-    text-transform: none;
-  }
   .printing-owned-badge {
     font-size: 0.65rem;
     padding: 1px 5px;

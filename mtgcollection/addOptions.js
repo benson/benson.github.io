@@ -69,9 +69,8 @@ export function renderFinishRadios({
     return `<label><input type="radio" name="${esc(name)}" value="${esc(value)}"${value === selectedValue ? ' checked' : ''}><span>${esc(label)}</span></label>`;
   }).join('');
   if (hintEl) {
-    const fellBack = !!selected && selected !== selectedValue;
-    hintEl.textContent = fellBack ? selected + ' is not available for this printing; using ' + selectedValue + '.' : '';
-    hintEl.classList.toggle('hidden', !fellBack);
+    hintEl.textContent = '';
+    hintEl.classList.add('hidden');
   }
   return selectedValue;
 }

@@ -14,7 +14,7 @@ function printing(extra = {}) {
   };
 }
 
-test('renderPrintingRows: renders set metadata, year, and only special finish badges', () => {
+test('renderPrintingRows: renders set metadata and year without finish badges', () => {
   const win = new Window();
   const wrap = win.document.createElement('ol');
   wrap.innerHTML = renderPrintingRows([
@@ -27,8 +27,8 @@ test('renderPrintingRows: renders set metadata, year, and only special finish ba
   assert.equal(rows[0].querySelector('.printing-set-code').textContent, 'SLD');
   assert.equal(rows[0].querySelector('.printing-cn').textContent, '#1011');
   assert.equal(rows[0].querySelector('.printing-year').textContent, '2024');
-  assert.equal(rows[0].querySelector('.printing-finish-badge'), null);
-  assert.equal(rows[1].querySelectorAll('.printing-finish-badge').length, 2);
+  assert.equal(wrap.querySelector('.printing-finish-badge'), null);
+  assert.equal(wrap.querySelector('.printing-finishes'), null);
 });
 
 test('renderPrintingRows: can show exact-printing ownership badges', () => {

@@ -31,7 +31,7 @@ test('createTagChipEditor normalizes chips and suggestion list', () => {
   assert.equal(doc.getElementById('suggestions').querySelectorAll('option').length, 0);
 });
 
-test('renderFinishRadios falls back when selected finish is unavailable', () => {
+test('renderFinishRadios silently falls back when selected finish is unavailable', () => {
   const win = new Window();
   const doc = win.document;
   doc.body.innerHTML = '<div id="finish"></div><div id="hint" class="hidden"></div>';
@@ -47,8 +47,8 @@ test('renderFinishRadios falls back when selected finish is unavailable', () => 
 
   assert.equal(selected, 'normal');
   assert.equal(doc.querySelector('input[name="detailFinish"]:checked').value, 'normal');
-  assert.match(doc.getElementById('hint').textContent, /foil is not available/);
-  assert.equal(doc.getElementById('hint').classList.contains('hidden'), false);
+  assert.equal(doc.getElementById('hint').textContent, '');
+  assert.equal(doc.getElementById('hint').classList.contains('hidden'), true);
 });
 
 test('applyPrintingToEntry copies resolved printing fields and reprices', () => {
