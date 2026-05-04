@@ -55,6 +55,7 @@ test('applyPrintingToEntry copies resolved printing fields and reprices', () => 
   const entry = {
     name: 'Old Sol Ring',
     finish: 'foil',
+    rarity: 'common',
     price: 1,
     priceFallback: false,
   };
@@ -83,6 +84,7 @@ test('applyPrintingToEntry copies resolved printing fields and reprices', () => 
   assert.equal(entry.setCode, 'sld');
   assert.equal(entry.setName, 'Secret Lair Drop');
   assert.equal(entry.cn, '1011');
+  assert.equal(entry.rarity, 'rare');
   assert.equal(entry.price, 5.5);
   assert.deepEqual(entry.finishes, ['nonfoil', 'foil']);
 });

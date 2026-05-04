@@ -1,5 +1,7 @@
 import {
-  applyScryfallCardResolution,
+  getCardBackImageUrl,
+  getCardImageUrl,
+  getUsdPrice,
   normalizeTag,
 } from './collection.js';
 import { esc } from './feedback.js';
@@ -97,6 +99,24 @@ export function createTagChipEditor({
 export function applyPrintingToEntry(entry, card) {
   if (!entry || !card) return entry;
   entry.name = card.name || entry.name || '';
-  applyScryfallCardResolution(entry, card, { priceMode: 'replace' });
+  entry.scryfallId = card.id || '';
+  entry.resolvedName = card.name || entry.resolvedName || entry.name || '';
+  entry.setCode = card.set || '';
+  entry.setName = card.set_name || '';
+  entry.cn = card.collector_number || '';
+  entry.scryfallUri = card.scryfall_uri || '';
+  entry.imageUrl = getCardImageUrl(card);
+  entry.backImageUrl = getCardBackImageUrl(card);
+  entry.rarity = String(card.rarity || '').toLowerCase();
+  entry.cmc = card.cmc ?? null;
+  entry.colors = card.colors || (card.card_faces?.[0]?.colors) || [];
+  entry.colorIdentity = card.color_identity || [];
+  entry.typeLine = card.type_line || (card.card_faces?.map(f => f.type_line).filter(Boolean).join(' // ') || '');
+  entry.oracleText = card.oracle_text || (card.card_faces?.map(f => f.oracle_text).filter(Boolean).join(' // ') || '');
+  entry.legalities = card.legalities || {};
+  entry.finishes = Array.isArray(card.finishes) ? [...card.finishes] : [];
+  const priced = getUsdPrice(card, entry.finish);
+  entry.price = priced.price;
+  entry.priceFallback = priced.fallback;
   return entry;
 }

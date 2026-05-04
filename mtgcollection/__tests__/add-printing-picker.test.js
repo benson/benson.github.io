@@ -56,7 +56,7 @@ test('createAddPrintingPicker: loads, renders, and selects the first printing', 
   assert.equal(dom.listEl.children[0].classList.contains('selected'), true);
   assert.equal(selected.length, 1);
   assert.equal(selected[0].card.collector_number, '1');
-  assert.deepEqual(selected[0].opts, { preserveFields: true });
+  assert.deepEqual(selected[0].opts, { preserveFields: true, userSelected: false });
   assert.equal(hiddenFeedback, 1);
 });
 
@@ -65,7 +65,7 @@ test('createAddPrintingPicker: binds row clicks to selection', async () => {
   const selected = [];
   const picker = createAddPrintingPicker({
     ...dom,
-    onSelect: (card) => selected.push(card.collector_number),
+    onSelect: (card, opts) => selected.push({ cn: card.collector_number, userSelected: opts.userSelected }),
     loadPrintingsImpl: async () => ({
       status: 'ok',
       printings: [printing(), printing({ collector_number: '2' })],
@@ -79,7 +79,10 @@ test('createAddPrintingPicker: binds row clicks to selection', async () => {
   await picker.load('Sol Ring');
   dom.listEl.children[1].click();
 
-  assert.deepEqual(selected, ['1', '2']);
+  assert.deepEqual(selected, [
+    { cn: '1', userSelected: false },
+    { cn: '2', userSelected: true },
+  ]);
   assert.equal(dom.listEl.children[1].classList.contains('selected'), true);
 });
 

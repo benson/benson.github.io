@@ -3599,7 +3599,10 @@
   }
   .printing-row:last-child { border-bottom: none; }
   .printing-row:hover { background: #f4f4f0; }
-  .printing-row.selected { background: #fff8e6; }
+  .printing-row.selected {
+    background: #fff8e6;
+    box-shadow: inset 3px 0 0 #000;
+  }
   .printing-row .set-icon { flex-shrink: 0; margin-right: 0; }
   .printing-set-code {
     font-weight: 500;

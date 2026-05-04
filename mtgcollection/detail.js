@@ -6,6 +6,9 @@ import {
   allContainers,
   LOCATION_TYPES,
   collectionKey,
+  getCardBackImageUrl,
+  getCardImageUrl,
+  getUsdPrice,
 } from './collection.js';
 import { commitCollectionChange } from './commit.js';
 import { captureBefore, recordEvent, locationDiffSummary, qtyDiffSummary } from './changelog.js';
@@ -119,15 +122,88 @@ const LEGALITY_LABELS = {
   restricted: 'restricted',
 };
 
-export function renderDetailLegality() {
-  const c = state.collection[state.detailIndex];
+function detailDisplayName(card) {
+  return card?.resolvedName || card?.name || '(unknown)';
+}
+
+function detailSetCode(card) {
+  return card?.setCode || card?.set || '';
+}
+
+function detailCollectorNumber(card) {
+  return card?.cn || card?.collector_number || '';
+}
+
+function detailImageUrl(card) {
+  return card?.imageUrl || getCardImageUrl(card) || '';
+}
+
+function detailBackImageUrl(card) {
+  return card?.backImageUrl || getCardBackImageUrl(card) || '';
+}
+
+function detailScryfallUri(card) {
+  return card?.scryfallUri || card?.scryfall_uri || '';
+}
+
+function renderDetailIdentity(card) {
+  const name = detailDisplayName(card);
+  const setCode = detailSetCode(card);
+  const cn = detailCollectorNumber(card);
+  document.getElementById('detailTitle').textContent = name;
+  document.getElementById('detailSubtitle').textContent =
+    [setCode ? setCode.toUpperCase() : '', cn ? '#' + cn : '', card?.rarity || ''].filter(Boolean).join(' - ');
+
+  const frontUrl = detailImageUrl(card);
+  const backUrl = detailBackImageUrl(card);
+  const imageWrap = document.getElementById('detailImageWrap');
+  const flipRow = backUrl
+    ? `<div class="drawer-flip-row"><button type="button" class="flip-btn" id="drawerFlipBtn">flip card</button></div>`
+    : '';
+  imageWrap.innerHTML = frontUrl
+    ? `<img class="drawer-image" src="${esc(frontUrl)}" alt="${esc(name)}" data-front="${esc(frontUrl)}"${backUrl ? ` data-back="${esc(backUrl)}"` : ''} style="cursor:zoom-in;">${flipRow}`
+    : `<div class="drawer-placeholder">${esc(name)}</div>`;
+  const drawerImg = imageWrap.querySelector('.drawer-image');
+  if (drawerImg) {
+    drawerImg.addEventListener('click', () => {
+      const cur = drawerImg.dataset.current === 'back' ? backUrl : frontUrl;
+      showImageLightbox(cur || frontUrl, backUrl || null);
+    });
+  }
+  const drawerFlip = document.getElementById('drawerFlipBtn');
+  if (drawerFlip && drawerImg) {
+    drawerFlip.addEventListener('click', () => {
+      const showingBack = drawerImg.dataset.current === 'back';
+      drawerImg.dataset.current = showingBack ? 'front' : 'back';
+      drawerImg.src = showingBack ? frontUrl : backUrl;
+    });
+  }
+  renderDetailLegality(card);
+}
+
+function renderDetailPrice(card, finish) {
+  const priced = card?.prices
+    ? getUsdPrice(card, finish)
+    : { price: card?.price || null, fallback: Boolean(card?.priceFallback) };
+  document.getElementById('detailPriceText').textContent = priced.price ? '$' + priced.price.toFixed(2) : 'no price';
+  const priceMark = document.getElementById('detailPriceMark');
+  priceMark.textContent = priced.fallback ? '*' : '';
+  if (priced.fallback) priceMark.title = 'regular usd shown when exact finish price is unavailable';
+  else priceMark.removeAttribute('title');
+  const priceLink = document.getElementById('detailPriceLink');
+  const uri = detailScryfallUri(card);
+  priceLink.href = uri || '#';
+  priceLink.classList.toggle('hidden', !uri);
+}
+
+export function renderDetailLegality(card = state.collection[state.detailIndex]) {
   const chip = document.getElementById('detailLegality');
-  if (!state.selectedFormat || !c || !c.legalities || !c.legalities[state.selectedFormat]) {
+  if (!state.selectedFormat || !card || !card.legalities || !card.legalities[state.selectedFormat]) {
     chip.className = 'legality-chip hidden';
     chip.textContent = '';
     return;
   }
-  const status = c.legalities[state.selectedFormat];
+  const status = card.legalities[state.selectedFormat];
   const label = LEGALITY_LABELS[status] || status.replace(/_/g, ' ');
   chip.textContent = state.selectedFormat + ': ' + label;
   chip.className = 'legality-chip ' + status;
@@ -140,48 +216,14 @@ export function openDetail(index) {
   state.detailIndex = index;
   hideCardPreview();
 
-  const name = c.resolvedName || c.name || '(unknown)';
-  document.getElementById('detailTitle').textContent = name;
-  document.getElementById('detailSubtitle').textContent =
-    [c.setCode ? c.setCode.toUpperCase() : '', c.cn ? '#' + c.cn : '', c.rarity || ''].filter(Boolean).join(' · ');
-  renderDetailLegality();
-
-  const imageWrap = document.getElementById('detailImageWrap');
-  const flipRow = c.backImageUrl
-    ? `<div class="drawer-flip-row"><button type="button" class="flip-btn" id="drawerFlipBtn">flip card</button></div>`
-    : '';
-  imageWrap.innerHTML = c.imageUrl
-    ? `<img class="drawer-image" src="${esc(c.imageUrl)}" alt="${esc(name)}" data-front="${esc(c.imageUrl)}"${c.backImageUrl ? ` data-back="${esc(c.backImageUrl)}"` : ''} style="cursor:zoom-in;">${flipRow}`
-    : `<div class="drawer-placeholder">${esc(name)}</div>`;
-  const drawerImg = imageWrap.querySelector('.drawer-image');
-  if (drawerImg) {
-    drawerImg.addEventListener('click', () => {
-      const cur = drawerImg.dataset.current === 'back' ? c.backImageUrl : c.imageUrl;
-      showImageLightbox(cur || c.imageUrl, c.backImageUrl || null);
-    });
-  }
-  const drawerFlip = document.getElementById('drawerFlipBtn');
-  if (drawerFlip && drawerImg) {
-    drawerFlip.addEventListener('click', () => {
-      const showingBack = drawerImg.dataset.current === 'back';
-      drawerImg.dataset.current = showingBack ? 'front' : 'back';
-      drawerImg.src = showingBack ? c.imageUrl : c.backImageUrl;
-    });
-  }
+  renderDetailIdentity(c);
 
   detailSelectedPrinting = null;
   writeDetailForm({ form: detailForm, collection: state.collection, card: c });
   detailTagEditor?.setTags(Array.isArray(c.tags) ? c.tags : []);
   detailLocationPicker?.seed(c.location || currentFilterLocation());
   detailPrintingPicker?.load(c.resolvedName || c.name || '');
-  document.getElementById('detailPriceText').textContent = c.price ? '$' + c.price.toFixed(2) : 'no price';
-  const priceMark = document.getElementById('detailPriceMark');
-  priceMark.textContent = c.priceFallback ? '*' : '';
-  if (c.priceFallback) priceMark.title = 'regular usd shown when exact finish price is unavailable';
-  else priceMark.removeAttribute('title');
-  const priceLink = document.getElementById('detailPriceLink');
-  priceLink.href = c.scryfallUri || '#';
-  priceLink.classList.toggle('hidden', !c.scryfallUri);
+  renderDetailPrice(c, c.finish);
 
   drawerBackdrop.classList.add('visible');
   detailDrawer.classList.add('visible');
@@ -330,16 +372,23 @@ export function initDetail() {
     getPreferredScryfallId: () => state.collection[state.detailIndex]?.scryfallId || '',
     getCollection: () => state.collection,
     shouldPreserveFields: () => true,
-    onSelect: (card) => {
+    onSelect: (card, meta = {}) => {
       const currentFinish = readDetailForm({ form: detailForm, location: detailLocationPicker?.readLocation() }).finish;
-      detailSelectedPrinting = card;
-      renderFinishRadios({
+      const selectedFinish = renderFinishRadios({
         card,
         targetId: 'detailFinish',
         name: 'detailFinish',
         selected: currentFinish,
         hintEl: document.getElementById('detailFinishHint'),
       });
+      const currentId = state.collection[state.detailIndex]?.scryfallId || '';
+      const isCurrentPrinting = !!card?.id && card.id === currentId;
+      if (meta.userSelected) detailSelectedPrinting = card;
+      if (meta.userSelected || isCurrentPrinting) {
+        renderDetailIdentity(card);
+        renderDetailPrice(card, selectedFinish);
+      }
     },
   });
+  detailPrintingPicker.bind();
 }

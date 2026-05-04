@@ -116,21 +116,26 @@ export function createAddPrintingPicker({
     select(preferredIndex >= 0 ? preferredIndex : 0);
   }
 
-  function select(index) {
+  function select(index, options = {}) {
     const visible = filteredPrintings();
     if (!visible.length) return null;
     const selectedIndex = Math.max(0, Math.min(visible.length - 1, index));
     const card = visible[selectedIndex];
     selectedId = card.id || '';
     syncSelectedRow();
-    onSelect(card, { preserveFields: shouldPreserveFields() });
+    onSelect(card, {
+      preserveFields: shouldPreserveFields(),
+      userSelected: !!options.userSelected,
+    });
     return card;
   }
 
   function syncSelectedRow() {
     Array.from(listEl?.children || []).forEach((li, idx) => {
       const card = filteredPrintings()[idx];
-      li.classList.toggle('selected', !!card && !!selectedId && card.id === selectedId);
+      const selected = !!card && !!selectedId && card.id === selectedId;
+      li.classList.toggle('selected', selected);
+      li.setAttribute('aria-selected', selected ? 'true' : 'false');
     });
   }
 
@@ -141,7 +146,7 @@ export function createAddPrintingPicker({
       if (!row) return;
       const index = parseInt(row.dataset.index, 10);
       if (Number.isNaN(index)) return;
-      select(index);
+      select(index, { userSelected: true });
     });
     if (searchEl && searchEl.dataset.bound !== '1') {
       searchEl.dataset.bound = '1';
