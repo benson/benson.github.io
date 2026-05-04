@@ -1,6 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { deckMatchesHomeFilters, renderDecksHomeHtml } from '../views/locationHomeViews.js';
+import {
+  deckMatchesHomeFilters,
+  renderDecksHomeHtml,
+  renderStorageHomeHtml,
+  storageMatchesHomeFilters,
+} from '../views/locationHomeViews.js';
 
 const deck = (name, format = '') => ({
   type: 'deck',
@@ -28,5 +33,27 @@ test('renderDecksHomeHtml: renders only matching decks and distinguishes empty r
   assert.match(
     renderDecksHomeHtml([deck('Modern Burn', 'modern')], { query: 'breya' }),
     /no decks match/
+  );
+});
+
+test('storageMatchesHomeFilters: filters binder and box containers by name and type', () => {
+  assert.equal(storageMatchesHomeFilters({ type: 'binder', name: 'Trade Binder' }, { query: 'trade' }), true);
+  assert.equal(storageMatchesHomeFilters({ type: 'box', name: 'Bulk Box' }, { query: 'trade' }), false);
+  assert.equal(storageMatchesHomeFilters({ type: 'binder', name: 'Trade Binder' }, { types: ['binder'] }), true);
+  assert.equal(storageMatchesHomeFilters({ type: 'box', name: 'Bulk Box' }, { types: ['binder'] }), false);
+  assert.equal(storageMatchesHomeFilters(deck('Breya'), {}), false);
+});
+
+test('renderStorageHomeHtml: renders filtered storage containers and empty match states', () => {
+  const html = renderStorageHomeHtml([
+    { type: 'binder', name: 'trade binder' },
+    { type: 'box', name: 'bulk box' },
+  ], { query: 'trade', types: ['binder'] });
+
+  assert.match(html, /trade binder/);
+  assert.doesNotMatch(html, /bulk box/);
+  assert.match(
+    renderStorageHomeHtml([{ type: 'box', name: 'bulk box' }], { query: 'trade' }),
+    /no boxes match/
   );
 });

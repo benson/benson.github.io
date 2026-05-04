@@ -89,6 +89,30 @@ test('bindLocationHomeInteractions: creates locations and refreshes the shell', 
   assert.equal(locationsEl.querySelector('#locationsCreateName').value, '');
 });
 
+test('bindLocationHomeInteractions: records storage container creates', () => {
+  const { win, locationsEl } = setup(`
+    <form id="locationsCreateForm">
+      <input type="hidden" name="locationsCreateType" value="binder">
+      <input id="locationsCreateName" value="trade">
+    </form>
+  `);
+  const calls = [];
+  bindLocationHomeInteractions({
+    locationsEl,
+    ensureContainerImpl: loc => ({ type: loc.type, name: loc.name }),
+    recordEventImpl: event => calls.push(event),
+    containerExistsImpl: () => false,
+    documentObj: win.document,
+  });
+
+  locationsEl.querySelector('form').dispatchEvent(new win.Event('submit', { bubbles: true, cancelable: true }));
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].type, 'storage-create');
+  assert.deepEqual(calls[0].containerAfter, { type: 'binder', name: 'trade' });
+});
+
+
 test('bindLocationHomeInteractions: handles menus, renames, and navigation', () => {
   const { win, locationsEl } = setup(`
     <article class="location-card" data-loc-type="box" data-loc-name="bulk" tabindex="0">

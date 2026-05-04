@@ -6,7 +6,15 @@ import { LOC_ICONS, containerEditRowHtml } from '../ui/locationUi.js';
 const STORAGE_TYPES = ['binder', 'box'];
 const STORAGE_TYPE_LABELS = { binder: 'binders', box: 'boxes' };
 
-export function renderStorageHomeHtml(containers) {
+export function storageMatchesHomeFilters(container, { query = '', types = [] } = {}) {
+  const q = String(query || '').trim().toLowerCase();
+  if (!STORAGE_TYPES.includes(container?.type)) return false;
+  if (q && !String(container?.name || '').toLowerCase().includes(q)) return false;
+  if (types.length && !types.includes(container.type)) return false;
+  return true;
+}
+
+export function renderStorageHomeHtml(containers, filters = {}) {
   const createHtml = `<form class="locations-create" id="locationsCreateForm">
     <span class="locations-create-label">new container</span>
     <div class="locations-create-types" role="radiogroup" aria-label="container type">
@@ -20,7 +28,8 @@ export function renderStorageHomeHtml(containers) {
   </form>`;
 
   const groups = STORAGE_TYPES.map(type => {
-    const ofType = containers.filter(c => c.type === type);
+    const allOfType = containers.filter(c => c.type === type);
+    const ofType = allOfType.filter(c => storageMatchesHomeFilters(c, filters));
     const cards = ofType.map(c => {
       const stats = containerStats(c);
       const value = stats.value > 0 ? ' &middot; $' + stats.value.toFixed(2) : '';
@@ -37,7 +46,7 @@ export function renderStorageHomeHtml(containers) {
         <div class="location-card-stats">${stats.unique} unique &middot; ${stats.total} total${value}</div>
         ${containerEditRowHtml(c, STORAGE_TYPES)}
       </article>`;
-    }).join('') || '<div class="deck-empty-prompt">no ' + esc(STORAGE_TYPE_LABELS[type]) + ' yet</div>';
+    }).join('') || '<div class="deck-empty-prompt">no ' + esc(STORAGE_TYPE_LABELS[type]) + (allOfType.length ? ' match' : ' yet') + '</div>';
     return `<section class="locations-group">
       <div class="locations-group-title">${esc(STORAGE_TYPE_LABELS[type])}</div>
       <div class="locations-list">${cards}</div>

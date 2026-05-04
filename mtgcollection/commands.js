@@ -3,14 +3,16 @@ import {
   deleteContainerAndUnlocateCards,
   deleteEmptyContainer,
   defaultDeckMetadata,
+  collectionKey,
   moveDeckListEntryBoard,
+  locationKey,
   normalizeLocation,
   normalizeDeckBoard,
   removeFromDeckList,
   renameContainer,
 } from './collection.js';
 import { commitCollectionChange } from './commit.js';
-import { recordEvent } from './changelog.js';
+import { captureBefore, recordEvent } from './changelog.js';
 
 function defaultCommit(options = {}) {
   commitCollectionChange(options);
@@ -30,6 +32,18 @@ function deckCardEventPayload(entry) {
 
 function cloneDeckMetadata(deck) {
   return JSON.parse(JSON.stringify(deck || defaultDeckMetadata('deck')));
+}
+
+function isStorageLocation(loc) {
+  return loc?.type === 'binder' || loc?.type === 'box';
+}
+
+function cardEventPayload(c) {
+  return {
+    name: c?.resolvedName || c?.name || 'card',
+    imageUrl: c?.imageUrl || '',
+    backImageUrl: c?.backImageUrl || '',
+  };
 }
 
 export function moveDeckCardToBoardCommand(deck, scryfallId, fromBoard, rawBoard, options = {}) {
@@ -104,6 +118,13 @@ export function renameContainerCommand(beforeRaw, afterRaw, options = {}) {
       deckBefore: cloneDeckMetadata(beforeDeck),
       deckAfter: cloneDeckMetadata(state.containers?.['deck:' + (after?.name || '')]?.deck),
     });
+  } else if (isStorageLocation(before) || isStorageLocation(after)) {
+    record({
+      type: 'storage-rename',
+      summary: 'Renamed ' + (before?.type || 'container') + ' ' + (before?.name || '') + ' to {loc:' + (after?.type || before?.type || 'box') + ':' + (after?.name || '') + '}',
+      containerBefore: before,
+      containerAfter: after,
+    });
   }
   commit({ coalesce: true });
   return { ok: true };
@@ -111,7 +132,17 @@ export function renameContainerCommand(beforeRaw, afterRaw, options = {}) {
 
 export function deleteEmptyContainerCommand(raw, options = {}) {
   const commit = options.commit || defaultCommit;
+  const record = options.record || recordEvent;
+  const loc = normalizeLocation(raw);
   if (!deleteEmptyContainer(raw)) return { ok: false };
+
+  if (isStorageLocation(loc)) {
+    record({
+      type: 'storage-delete',
+      summary: 'Deleted {loc:' + loc.type + ':' + loc.name + '}',
+      containerBefore: loc,
+    });
+  }
 
   commit();
   return { ok: true };
@@ -119,8 +150,27 @@ export function deleteEmptyContainerCommand(raw, options = {}) {
 
 export function deleteContainerAndUnlocateCardsCommand(raw, options = {}) {
   const commit = options.commit || defaultCommit;
+  const record = options.record || recordEvent;
+  const loc = normalizeLocation(raw);
+  const locKey = locationKey(loc);
+  const affectedKeys = state.collection
+    .filter(c => locationKey(c.location) === locKey)
+    .map(c => collectionKey(c));
+  const before = captureBefore(affectedKeys);
+  const cards = before.map(b => cardEventPayload(b.card)).filter(Boolean);
   const cleared = deleteContainerAndUnlocateCards(raw);
   if (cleared <= 0) return { ok: false, cleared };
+
+  if (isStorageLocation(loc)) {
+    record({
+      type: 'storage-delete',
+      summary: 'Deleted {loc:' + loc.type + ':' + loc.name + '} and cleared ' + cleared + ' card' + (cleared === 1 ? '' : 's'),
+      before,
+      affectedKeys,
+      cards,
+      containerBefore: loc,
+    });
+  }
 
   commit();
   return { ok: true, cleared };

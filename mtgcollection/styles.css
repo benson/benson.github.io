@@ -1432,14 +1432,17 @@
   }
   .deck-hero {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(220px, auto);
-    gap: 18px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 14px;
     align-items: start;
     border-bottom: 1px solid #ddd;
-    padding-bottom: 14px;
+    padding-bottom: 10px;
   }
   .deck-hero-main {
     min-width: 0;
+  }
+  .deck-hero.is-editing .deck-hero-read {
+    display: none;
   }
   .deck-kicker {
     font-size: 0.7rem;
@@ -1454,7 +1457,7 @@
     letter-spacing: 0;
   }
   .deck-description {
-    margin: 8px 0 0;
+    margin: 5px 0 0;
     color: #555;
     text-transform: none;
     max-width: 760px;
@@ -1463,79 +1466,19 @@
   .deck-description.is-empty {
     color: #999;
   }
-  .deck-commander-widget {
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
-    flex-wrap: wrap;
-    margin-top: 14px;
-  }
-  .deck-commander-card {
-    appearance: none;
-    background: transparent;
-    border: 0;
-    color: inherit;
-    cursor: pointer;
-    display: grid;
-    gap: 6px;
-    justify-items: start;
-    padding: 0;
-    text-align: left;
-    width: min(150px, 45vw);
-  }
-  .deck-commander-card:hover .deck-commander-frame,
-  .deck-commander-card:focus-visible .deck-commander-frame {
-    border-color: #000;
-  }
-  .deck-commander-frame {
-    aspect-ratio: 63 / 88;
-    background: #f4f4f4;
-    border: 1px solid #ddd;
-    display: block;
-    overflow: hidden;
-    width: 100%;
-  }
-  .deck-commander-frame img {
-    display: block;
-    height: 100%;
-    object-fit: cover;
-    width: 100%;
-  }
-  .deck-commander-placeholder {
-    align-items: center;
-    color: #999;
-    display: flex;
-    font-size: 2rem;
-    height: 100%;
-    justify-content: center;
-    text-transform: uppercase;
-  }
-  .deck-commander-role {
-    color: #777;
-    font-size: 0.68rem;
-    line-height: 1;
-    text-transform: lowercase;
-  }
-  .deck-commander-card strong {
-    font-size: 0.82rem;
-    font-weight: 500;
-    line-height: 1.2;
-    overflow-wrap: anywhere;
-    text-transform: none;
-  }
   .deck-meta-strip {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(110px, 1fr));
-    gap: 8px;
-    margin: 14px 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px 16px;
+    margin: 8px 0 0;
   }
   .deck-meta-strip div {
-    border-top: 1px solid #eee;
-    padding-top: 7px;
+    display: flex;
+    gap: 4px;
     min-width: 0;
   }
   .deck-meta-strip dt {
-    margin: 0 0 2px;
+    margin: 0;
     color: #888;
     font-size: 0.68rem;
     text-transform: lowercase;
@@ -1548,6 +1491,23 @@
     text-transform: none;
     overflow-wrap: anywhere;
   }
+  .deck-meta-card-link {
+    background: none;
+    border: 0;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    padding: 0;
+    text-align: left;
+    text-decoration: underline;
+    text-decoration-color: #d9d4ca;
+    text-underline-offset: 2px;
+  }
+  .deck-meta-card-link:hover,
+  .deck-meta-card-link:focus-visible {
+    color: #000;
+    text-decoration-color: #000;
+  }
   .deck-meta-strip .is-empty {
     color: #999;
   }
@@ -1556,7 +1516,7 @@
     flex-direction: column;
     gap: 10px;
     align-items: stretch;
-    min-width: 220px;
+    min-width: 0;
   }
   .deck-hero-actions {
     display: flex;
@@ -1693,6 +1653,7 @@
   .deck-details-editor {
     border: 1px solid #ddd;
     background: #fafafa;
+    margin-top: 0;
     padding: 12px;
   }
   .deck-metadata-form {
@@ -2065,19 +2026,16 @@
   }
   .binder-summary { font-size: 0.75rem; color: #666; margin-left: auto; }
   .binder-pages {
-    background: #f1ede4;
-    border: 1px solid #d8d2c4;
-    border-radius: 6px;
-    padding: 18px;
-    box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+    display: flex;
+    justify-content: center;
+    min-width: 0;
   }
   body.view-binder .binder-pages {
     align-items: center;
     display: flex;
-    flex: 1 1 0;
     justify-content: center;
     min-height: 0;
-    overflow: hidden;
+    overflow: visible;
   }
   .binder-pages-list {
     background: transparent;
@@ -2099,20 +2057,40 @@
   .binder-list-table .col-check {
     display: none;
   }
+  .binder-surface {
+    background: #f1ede4;
+    border: 1px solid #d8d2c4;
+    border-radius: 6px;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+    box-sizing: border-box;
+    max-width: 100%;
+    padding: 18px;
+    width: fit-content;
+  }
   .binder-page {
     display: grid;
     gap: 14px;
+    width: min(var(--binder-page-width, 760px), calc(100vw - 64px));
   }
   body.view-binder .binder-page {
-    height: 100%;
-    max-height: 100%;
+    height: auto;
+    max-height: none;
     max-width: 100%;
     min-height: 0;
     min-width: 0;
   }
-  body.view-binder .binder-page-4x3 { aspect-ratio: 1952 / 2040; }
-  body.view-binder .binder-page-3x3 { aspect-ratio: 1464 / 2040; }
-  body.view-binder .binder-page-2x2 { aspect-ratio: 976 / 1360; }
+  .binder-page-4x3 {
+    --binder-page-width: 760px;
+    aspect-ratio: 1952 / 2040;
+  }
+  .binder-page-3x3 {
+    --binder-page-width: 570px;
+    aspect-ratio: 1464 / 2040;
+  }
+  .binder-page-2x2 {
+    --binder-page-width: 420px;
+    aspect-ratio: 976 / 1360;
+  }
   .binder-slot {
     position: relative;
     aspect-ratio: 488 / 680;
@@ -2463,10 +2441,6 @@
   /* Hide FAB cluster on home shapes — primary action is "new deck/container" */
   body.view-decks-home .fab-cluster,
   body.view-storage-home .fab-cluster { display: none; }
-  /* Hide collection filters on Decks home — they aren't meaningful for decklists */
-  body.view-decks-home .sidebar-filters,
-  body.view-decks-home .sidebar-section:has(#binderSizeControl) { display: none; }
-
   #binderSizeControl.hidden { display: none; }
 
   /* Table view (compact) */

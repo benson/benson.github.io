@@ -1,7 +1,7 @@
 import test, { afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { Window } from 'happy-dom';
-import { ensureContainer } from '../collection.js';
+import { collectionKey, ensureContainer } from '../collection.js';
 import {
   clearLog,
   configureChangelogActions,
@@ -99,4 +99,80 @@ test('deck history scope shows deck-related events while collection scope shows 
   assert.match(win.document.querySelector('.history-list').textContent, /Created/);
   assert.match(win.document.querySelector('.history-list').textContent, /Added Island/);
   assert.equal(getLog().length, 2);
+});
+
+test('storage changelog events undo create, rename, and delete', () => {
+  resetState();
+  const commits = [];
+  configureChangelogActions({ commitCollectionChangeImpl: () => commits.push('commit') });
+
+  ensureContainer({ type: 'binder', name: 'trade' });
+  const create = recordEvent({
+    type: 'storage-create',
+    summary: 'Created {loc:binder:trade}',
+    containerAfter: { type: 'binder', name: 'trade' },
+  });
+  undoEvent(create.id);
+  assert.equal(state.containers['binder:trade'], undefined);
+
+  ensureContainer({ type: 'box', name: 'bulk' });
+  state.containers['box:archive'] = state.containers['box:bulk'];
+  state.containers['box:archive'].name = 'archive';
+  delete state.containers['box:bulk'];
+  const rename = recordEvent({
+    type: 'storage-rename',
+    summary: 'Renamed box bulk to {loc:box:archive}',
+    containerBefore: { type: 'box', name: 'bulk' },
+    containerAfter: { type: 'box', name: 'archive' },
+  });
+  undoEvent(rename.id);
+  assert.ok(state.containers['box:bulk']);
+  assert.equal(state.containers['box:archive'], undefined);
+
+  const deleted = recordEvent({
+    type: 'storage-delete',
+    summary: 'Deleted {loc:box:bulk}',
+    containerBefore: { type: 'box', name: 'bulk' },
+  });
+  delete state.containers['box:bulk'];
+  undoEvent(deleted.id);
+  assert.ok(state.containers['box:bulk']);
+  assert.equal(commits.length, 3);
+});
+
+test('storage history scope shows container events and card changes touching binders or boxes', () => {
+  const win = new Window();
+  globalThis.document = win.document;
+  globalThis.localStorage = win.localStorage;
+  win.document.body.innerHTML = `
+    <details class="history-details" open>
+      <summary>collection history</summary>
+      <ol class="history-list"></ol>
+    </details>
+  `;
+  initChangelog();
+  const binderCard = { name: 'Island', scryfallId: 'island', finish: 'normal', condition: 'near_mint', language: 'en', location: { type: 'binder', name: 'trade' } };
+  state.collection = [binderCard];
+  recordEvent({ type: 'add', summary: 'Added Lightning Bolt', scope: 'collection' });
+  recordEvent({
+    type: 'add',
+    summary: 'Added Island',
+    affectedKeys: [collectionKey(binderCard)],
+    cards: [{ name: 'Island' }],
+  });
+  recordEvent({
+    type: 'storage-create',
+    summary: 'Created {loc:box:bulk}',
+    containerAfter: { type: 'box', name: 'bulk' },
+  });
+
+  setHistoryScope({ kind: 'storage' });
+  const text = win.document.querySelector('.history-list').textContent;
+  assert.match(text, /Created/);
+  assert.match(text, /Added Island/);
+  assert.doesNotMatch(text, /Lightning Bolt/);
+
+  setHistoryScope({ type: 'binder', name: 'trade' });
+  assert.match(win.document.querySelector('.history-list').textContent, /Added Island/);
+  assert.doesNotMatch(win.document.querySelector('.history-list').textContent, /Created/);
 });

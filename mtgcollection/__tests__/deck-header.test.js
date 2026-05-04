@@ -13,10 +13,12 @@ test('deckDetailsViewModel: builds read-first deck header data', () => {
       commanderScryfallId: 'cmd-1',
       commanderScryfallUri: 'https://scryfall.test/card/cmd-1',
       commanderImageUrl: 'breya.jpg',
+      commanderFinish: 'foil',
       partner: 'Silas Renn, Seeker Adept',
       partnerScryfallId: 'partner-1',
       partnerScryfallUri: 'https://scryfall.test/card/partner-1',
       partnerImageUrl: 'silas.jpg',
+      partnerFinish: 'etched',
     },
     { total: 100, main: 98, sideboard: 1, maybe: 1, value: 123.456 },
     ''
@@ -27,8 +29,10 @@ test('deckDetailsViewModel: builds read-first deck header data', () => {
   assert.equal(model.format, 'commander');
   assert.equal(model.commander, 'Breya, Etherium Shaper');
   assert.equal(model.commanderScryfallUri, 'https://scryfall.test/card/cmd-1');
+  assert.equal(model.commanderFinish, 'foil');
   assert.equal(model.partner, 'Silas Renn, Seeker Adept');
   assert.equal(model.partnerScryfallUri, 'https://scryfall.test/card/partner-1');
+  assert.equal(model.partnerFinish, 'etched');
   assert.equal(model.total, 100);
   assert.equal(model.main, 98);
   assert.equal(model.sideboard, 1);
@@ -62,6 +66,7 @@ test('renderDeckDetailsHeaderHtml: keeps metadata editor hidden until requested'
       commanderScryfallId: 'cmd-1',
       commanderScryfallUri: 'https://scryfall.test/card/cmd-1',
       commanderImageUrl: 'breya.jpg',
+      commanderFinish: 'foil',
       partner: '',
     },
     { total: 100, main: 98, sideboard: 0, maybe: 2, value: 42 },
@@ -75,9 +80,8 @@ test('renderDeckDetailsHeaderHtml: keeps metadata editor hidden until requested'
   assert.match(html, /class="deck-details-editor hidden"/);
   assert.doesNotMatch(html, /deck-hero-stats/);
   assert.match(html, /Breya, Etherium Shaper/);
-  assert.match(html, /class="deck-commander-widget"/);
-  assert.match(html, /data-deck-commander-card/);
-  assert.match(html, /data-scryfall-uri="https:\/\/scryfall\.test\/card\/cmd-1"/);
+  assert.match(html, /<dt>commander<\/dt><dd class="deck-meta-value">\s*<button class="deck-meta-card-link"[^>]+data-scryfall-id="cmd-1"[^>]+>Breya, Etherium Shaper<\/button>/);
+  assert.doesNotMatch(html, /class="deck-commander-widget"/);
   assert.doesNotMatch(html, /<dt>format<\/dt>/);
 });
 
@@ -94,7 +98,7 @@ test('renderDeckDetailsHeaderHtml: keeps commander format prompt until commander
   assert.match(html, /<dt>format<\/dt><dd class="deck-meta-value">commander<\/dd>/);
 });
 
-test('renderDeckDetailsHeaderHtml: renders commander and partner as persistent cards', () => {
+test('renderDeckDetailsHeaderHtml: renders commander and partner as compact metadata', () => {
   const model = deckDetailsViewModel(
     { name: 'partners' },
     {
@@ -102,18 +106,20 @@ test('renderDeckDetailsHeaderHtml: renders commander and partner as persistent c
       commander: 'Tymna the Weaver',
       commanderScryfallId: 'tymna',
       commanderImageUrl: 'tymna.jpg',
+      commanderFinish: 'foil',
       partner: 'Thrasios, Triton Hero',
       partnerScryfallId: 'thrasios',
       partnerImageUrl: 'thrasios.jpg',
+      partnerFinish: 'etched',
     },
     {},
     ''
   );
   const html = renderDeckDetailsHeaderHtml(model);
 
-  assert.match(html, /deck-commander-role">commander/);
-  assert.match(html, /deck-commander-role">partner/);
-  assert.match(html, /src="tymna\.jpg"/);
-  assert.match(html, /src="thrasios\.jpg"/);
+  assert.match(html, /<dt>commander<\/dt><dd class="deck-meta-value">\s*<button class="deck-meta-card-link"[^>]+data-scryfall-id="tymna"[^>]+>Tymna the Weaver<\/button>/);
+  assert.match(html, /<dt>partner<\/dt><dd class="deck-meta-value">\s*<button class="deck-meta-card-link"[^>]+data-scryfall-id="thrasios"[^>]+>Thrasios, Triton Hero<\/button>/);
+  assert.doesNotMatch(html, /src="tymna\.jpg"/);
+  assert.doesNotMatch(html, /src="thrasios\.jpg"/);
 });
 

@@ -102,6 +102,7 @@ export function createDeckPreviewPanel({
     const name = metaLink.dataset.cardName || '';
     const imageUrl = metaLink.dataset.imageUrl || '';
     const backImageUrl = metaLink.dataset.backImageUrl || '';
+    const finish = metaLink.dataset.cardFinish || 'normal';
     if (name || imageUrl) {
       setCard({
         name,
@@ -109,7 +110,7 @@ export function createDeckPreviewPanel({
         imageUrl,
         backImageUrl,
         qty: 1,
-        finish: 'normal',
+        finish,
         price: 0,
       });
     }

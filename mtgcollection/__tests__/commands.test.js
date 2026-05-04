@@ -94,6 +94,10 @@ test('renameContainerCommand: updates registry and inventory locations via a sin
   assert.ok(state.containers['box:long box']);
   assert.equal(fx.calls.commits.length, 1);
   assert.deepEqual(fx.calls.commits[0], { coalesce: true });
+  assert.equal(fx.calls.records.length, 1);
+  assert.equal(fx.calls.records[0].type, 'storage-rename');
+  assert.deepEqual(fx.calls.records[0].containerBefore, { type: 'box', name: 'bulk' });
+  assert.deepEqual(fx.calls.records[0].containerAfter, { type: 'box', name: 'long box' });
 });
 
 test('renameContainerCommand: records deck rename snapshots', () => {
@@ -129,4 +133,6 @@ test('delete container commands cover empty and occupied physical storage', () =
   assert.equal(state.containers['binder:trade binder'], undefined);
   assert.equal(state.containers['box:bulk'], undefined);
   assert.equal(fx.calls.commits.length, 2);
+  assert.deepEqual(fx.calls.records.map(ev => ev.type), ['storage-delete', 'storage-delete']);
+  assert.equal(fx.calls.records[1].before.length, 1);
 });

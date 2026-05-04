@@ -256,6 +256,8 @@ export function hasActiveFilter() {
   }
   const deckFormatEl = document.getElementById('filterDeckFormat');
   if (deckFormatEl && !deckFormatEl.classList.contains('hidden') && getMultiselectValue(deckFormatEl).length > 0) return true;
+  const storageTypeEl = document.getElementById('filterStorageType');
+  if (storageTypeEl && !storageTypeEl.classList.contains('hidden') && getMultiselectValue(storageTypeEl).length > 0) return true;
   const formatEl = document.getElementById('formatSelect');
   if (state.selectedFormat && (!formatEl || !formatEl.classList.contains('hidden'))) return true;
   return false;
@@ -267,7 +269,9 @@ export function clearAllFilters() {
     setMultiselectValue(document.getElementById(id), []);
   });
   setMultiselectValue(document.getElementById('filterDeckFormat'), []);
+  setMultiselectValue(document.getElementById('filterStorageType'), []);
   syncDeckFormatUrl([]);
+  syncStorageTypeUrl([]);
   clearActiveLocation();
   // Also clear the format dropdown
   state.selectedFormat = '';
@@ -304,6 +308,13 @@ function syncDeckFormatUrl(values = getMultiselectValue(document.getElementById(
   history.replaceState(null, '', url.pathname + (url.search ? url.search : '') + url.hash);
 }
 
+function syncStorageTypeUrl(values = getMultiselectValue(document.getElementById('filterStorageType'))) {
+  const url = new URL(window.location.href);
+  if (values.length) url.searchParams.set('st', values.join(','));
+  else url.searchParams.delete('st');
+  history.replaceState(null, '', url.pathname + (url.search ? url.search : '') + url.hash);
+}
+
 export function applyUrlStateOnLoad() {
   const params = new URL(window.location.href).searchParams;
   const q = params.get('q');
@@ -312,8 +323,10 @@ export function applyUrlStateOnLoad() {
   }
   const deckFormats = (params.get('df') || '').split(',').map(v => v.trim()).filter(Boolean);
   if (deckFormats.length) setMultiselectValue(document.getElementById('filterDeckFormat'), deckFormats);
+  const storageTypes = (params.get('st') || '').split(',').map(v => v.trim()).filter(Boolean);
+  if (storageTypes.length) setMultiselectValue(document.getElementById('filterStorageType'), storageTypes);
   syncSearchClearBtn();
-  if (q || deckFormats.length) renderCurrentView();
+  if (q || deckFormats.length || storageTypes.length) renderCurrentView();
 }
 
 export function syncClearFiltersBtn() {
@@ -364,7 +377,7 @@ export function initSearch(options = {}) {
   });
 
   // Initialize multiselect filter controls (build the trigger + popover DOM)
-  ['filterSet', 'filterRarity', 'filterFoil', 'filterLocation', 'filterTag', 'filterDeckFormat'].forEach(id => {
+  ['filterSet', 'filterRarity', 'filterFoil', 'filterLocation', 'filterTag', 'filterDeckFormat', 'filterStorageType'].forEach(id => {
     initMultiselect(document.getElementById(id), {
       onChange: values => {
         if (id === 'filterLocation') {
@@ -376,6 +389,7 @@ export function initSearch(options = {}) {
           save();
         }
         if (id === 'filterDeckFormat') syncDeckFormatUrl(values);
+        if (id === 'filterStorageType') syncStorageTypeUrl(values);
         renderCurrentView();
       },
     });

@@ -89,7 +89,9 @@ export function renderBinderView(list, {
   const conf = BINDER_SIZES[state.binderSize] || BINDER_SIZES['4x3'];
   const currentPage = pages[state.binderPage] || [];
   const slotsHtml = currentPage.map(c => renderBinderSlot(c)).join('');
-  pagesEl.innerHTML = `<div class="binder-page binder-page-${esc(state.binderSize)}" style="grid-template-columns: repeat(${conf.cols}, 1fr); grid-template-rows: repeat(${conf.rows}, minmax(0, 1fr));">${slotsHtml}</div>`;
+  pagesEl.innerHTML = `<div class="binder-surface binder-surface-${esc(state.binderSize)}">
+    <div class="binder-page binder-page-${esc(state.binderSize)}" style="grid-template-columns: repeat(${conf.cols}, 1fr); grid-template-rows: repeat(${conf.rows}, minmax(0, 1fr));">${slotsHtml}</div>
+  </div>`;
 
   navEl.classList.remove('hidden');
   const prevBtn = document.getElementById('binderPrev');

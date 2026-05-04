@@ -16,11 +16,13 @@ export function deckDetailsViewModel(deck, meta = {}, stats = {}, selectedFormat
   const commanderScryfallUri = String(safeMeta.commanderScryfallUri || '').trim();
   const commanderImageUrl = String(safeMeta.commanderImageUrl || '').trim();
   const commanderBackImageUrl = String(safeMeta.commanderBackImageUrl || '').trim();
+  const commanderFinish = String(safeMeta.commanderFinish || 'normal').trim() || 'normal';
   const partner = String(safeMeta.partner || '').trim();
   const partnerScryfallId = String(safeMeta.partnerScryfallId || '').trim();
   const partnerScryfallUri = String(safeMeta.partnerScryfallUri || '').trim();
   const partnerImageUrl = String(safeMeta.partnerImageUrl || '').trim();
   const partnerBackImageUrl = String(safeMeta.partnerBackImageUrl || '').trim();
+  const partnerFinish = String(safeMeta.partnerFinish || 'normal').trim() || 'normal';
   const companion = String(safeMeta.companion || '').trim();
   const value = Number(safeStats.value) || 0;
   const count = key => parseInt(safeStats[key], 10) || 0;
@@ -37,11 +39,13 @@ export function deckDetailsViewModel(deck, meta = {}, stats = {}, selectedFormat
     commanderScryfallUri,
     commanderImageUrl,
     commanderBackImageUrl,
+    commanderFinish,
     partner,
     partnerScryfallId,
     partnerScryfallUri,
     partnerImageUrl,
     partnerBackImageUrl,
+    partnerFinish,
     companion,
     total: count('total'),
     main: count('main'),
@@ -57,60 +61,65 @@ function deckMetaItem(label, value, emptyText) {
   return `<div><dt>${esc(label)}</dt><dd class="${cls}">${esc(hasValue ? value : emptyText)}</dd></div>`;
 }
 
-function commanderWidgetCard({ role, name, imageUrl, backImageUrl, scryfallId, scryfallUri }) {
+function deckMetaCardItem(label, model, prefix) {
+  const name = model[prefix] || '';
   if (!name) return '';
-  const img = imageUrl
-    ? `<img src="${esc(imageUrl)}" alt="${esc(name)}">`
-    : `<div class="deck-commander-placeholder" aria-hidden="true">${esc(name.slice(0, 1) || '?')}</div>`;
-  const dataAttrs = ' data-deck-commander-card'
-    + ' data-scryfall-id="' + esc(scryfallId || '') + '"'
-    + ' data-scryfall-uri="' + esc(scryfallUri || '') + '"'
-    + ' data-card-name="' + esc(name) + '"'
-    + ' data-image-url="' + esc(imageUrl || '') + '"'
-    + ' data-back-image-url="' + esc(backImageUrl || '') + '"';
-  return `<button class="deck-commander-card deck-meta-preview-link" type="button"${dataAttrs} aria-label="open ${esc(name)}">
-      <span class="deck-commander-frame">${img}</span>
-      <span class="deck-commander-role">${esc(role)}</span>
-      <strong>${esc(name)}</strong>
-    </button>`;
+  return `<div><dt>${esc(label)}</dt><dd class="deck-meta-value">
+    <button class="deck-meta-card-link" type="button" data-deck-commander-card data-scryfall-id="${esc(model[prefix + 'ScryfallId'] || '')}" data-card-name="${esc(name)}" data-scryfall-uri="${esc(model[prefix + 'ScryfallUri'] || '')}">${esc(name)}</button>
+  </dd></div>`;
 }
 
-function renderCommanderWidget(model) {
-  if (model.formatInput !== 'commander' || (!model.commander && !model.partner)) return '';
-  const commander = commanderWidgetCard({
-    role: 'commander',
-    name: model.commander,
-    imageUrl: model.commanderImageUrl,
-    backImageUrl: model.commanderBackImageUrl,
-    scryfallId: model.commanderScryfallId,
-    scryfallUri: model.commanderScryfallUri,
-  });
-  const partner = commanderWidgetCard({
-    role: 'partner',
-    name: model.partner,
-    imageUrl: model.partnerImageUrl,
-    backImageUrl: model.partnerBackImageUrl,
-    scryfallId: model.partnerScryfallId,
-    scryfallUri: model.partnerScryfallUri,
-  });
-  return `<div class="deck-commander-widget" aria-label="commander identity">
-    ${commander}${partner}
-  </div>`;
+function deckIdentityMetaItems(model) {
+  const hideCommanderFormat = model.formatInput === 'commander' && !!model.commander;
+  return [
+    deckMetaCardItem('commander', model, 'commander'),
+    deckMetaCardItem('partner', model, 'partner'),
+    hideCommanderFormat ? '' : deckMetaItem('format', model.formatInput, 'unspecified format'),
+    model.companion ? deckMetaItem('companion', model.companion, '') : '',
+  ].filter(Boolean).join('');
 }
 
 export function renderDeckDetailsHeaderHtml(model) {
   const descClass = 'deck-description' + (model.description ? '' : ' is-empty');
-  const hideCommanderFormat = model.formatInput === 'commander' && !!model.commander;
   return `<section class="deck-hero">
       <div class="deck-hero-main">
-        <div class="deck-kicker">deck</div>
-        <h2>${esc(model.displayTitle)}</h2>
-        <p class="${descClass}">${esc(model.descriptionText)}</p>
-        ${renderCommanderWidget(model)}
-        <dl class="deck-meta-strip" aria-label="deck details">
-          ${hideCommanderFormat ? '' : deckMetaItem('format', model.formatInput, 'unspecified format')}
-          ${model.companion ? deckMetaItem('companion', model.companion, '') : ''}
-        </dl>
+        <div class="deck-hero-read">
+          <div class="deck-kicker">deck</div>
+          <h2>${esc(model.displayTitle)}</h2>
+          <p class="${descClass}">${esc(model.descriptionText)}</p>
+          <dl class="deck-meta-strip" aria-label="deck details">
+            ${deckIdentityMetaItems(model)}
+          </dl>
+        </div>
+        <section class="deck-details-editor hidden" id="deckDetailsEditor" aria-label="edit deck details">
+          <form class="deck-metadata-form" id="deckMetadataForm" data-format="${esc(model.formatInput)}">
+            <label class="deck-metadata-field"><span>title</span><input name="title" value="${esc(model.title)}" placeholder="deck title" autocomplete="off"></label>
+            <label class="deck-metadata-field"><span>format</span>${renderDeckFormatPicker(model.formatInput)}</label>
+            <label class="deck-metadata-field deck-metadata-commander"><span>commander</span>
+              <span class="deck-meta-ac-wrap">
+                <input name="commander" value="${esc(model.commander)}" placeholder="search commander" autocomplete="off" data-meta-ac="commander" data-meta-ac-scryfall-id="${esc(model.commanderScryfallId)}" data-meta-ac-scryfall-uri="${esc(model.commanderScryfallUri)}" data-meta-ac-image="${esc(model.commanderImageUrl)}" data-meta-ac-back-image="${esc(model.commanderBackImageUrl)}">
+                <ul class="autocomplete-list deck-meta-ac-list" role="listbox"></ul>
+              </span>
+            </label>
+            <label class="deck-metadata-field deck-metadata-partner"><span>partner</span>
+              <span class="deck-meta-ac-wrap">
+                <input name="partner" value="${esc(model.partner)}" placeholder="search partner" autocomplete="off" data-meta-ac="partner" data-meta-ac-scryfall-id="${esc(model.partnerScryfallId)}" data-meta-ac-scryfall-uri="${esc(model.partnerScryfallUri)}" data-meta-ac-image="${esc(model.partnerImageUrl)}" data-meta-ac-back-image="${esc(model.partnerBackImageUrl)}">
+                <ul class="autocomplete-list deck-meta-ac-list" role="listbox"></ul>
+              </span>
+            </label>
+            <div class="deck-metadata-field deck-metadata-companion">
+              <span>companion</span>
+              ${model.companion
+                ? `<input name="companion" value="${esc(model.companion)}" placeholder="companion" autocomplete="off">`
+                : `<button type="button" class="deck-companion-add" data-add-companion>+ add companion</button><input name="companion" value="" placeholder="companion" autocomplete="off" hidden>`}
+            </div>
+            <label class="deck-metadata-field deck-metadata-description"><span>description</span><textarea name="description" rows="3" placeholder="description">${esc(model.description)}</textarea></label>
+            <div class="deck-metadata-actions">
+              <button class="btn btn-secondary" type="button" data-cancel-deck-details>cancel</button>
+              <button class="btn" type="submit">save deck</button>
+            </div>
+          </form>
+        </section>
       </div>
       <div class="deck-hero-side">
         <div class="deck-hero-actions">
@@ -120,38 +129,9 @@ export function renderDeckDetailsHeaderHtml(model) {
           </div>
           <button class="btn btn-secondary deck-share-btn" type="button" data-deck-action="share">${model.shareId ? 'sharing' : 'share'}</button>
           <button class="btn" type="button" data-sample-hand="draw">sample hand</button>
-          <button class="btn btn-secondary" type="button" data-edit-deck-details aria-controls="deckDetailsEditor" aria-expanded="false">edit details</button>
+          <button class="btn btn-secondary" type="button" data-edit-deck-details aria-controls="deckDetailsEditor" aria-expanded="false">edit</button>
         </div>
       </div>
-    </section>
-    <section class="deck-details-editor hidden" id="deckDetailsEditor" aria-label="edit deck details">
-      <form class="deck-metadata-form" id="deckMetadataForm" data-format="${esc(model.formatInput)}">
-        <label class="deck-metadata-field"><span>title</span><input name="title" value="${esc(model.title)}" placeholder="deck title" autocomplete="off"></label>
-        <label class="deck-metadata-field"><span>format</span>${renderDeckFormatPicker(model.formatInput)}</label>
-        <label class="deck-metadata-field deck-metadata-commander"><span>commander</span>
-          <span class="deck-meta-ac-wrap">
-            <input name="commander" value="${esc(model.commander)}" placeholder="commander" autocomplete="off" data-meta-ac="commander" data-meta-ac-scryfall-id="${esc(model.commanderScryfallId)}" data-meta-ac-scryfall-uri="${esc(model.commanderScryfallUri)}" data-meta-ac-image="${esc(model.commanderImageUrl)}" data-meta-ac-back-image="${esc(model.commanderBackImageUrl)}">
-            <ul class="autocomplete-list deck-meta-ac-list" role="listbox"></ul>
-          </span>
-        </label>
-        <label class="deck-metadata-field deck-metadata-partner"><span>partner</span>
-          <span class="deck-meta-ac-wrap">
-            <input name="partner" value="${esc(model.partner)}" placeholder="partner" autocomplete="off" data-meta-ac="partner" data-meta-ac-scryfall-id="${esc(model.partnerScryfallId)}" data-meta-ac-scryfall-uri="${esc(model.partnerScryfallUri)}" data-meta-ac-image="${esc(model.partnerImageUrl)}" data-meta-ac-back-image="${esc(model.partnerBackImageUrl)}">
-            <ul class="autocomplete-list deck-meta-ac-list" role="listbox"></ul>
-          </span>
-        </label>
-        <div class="deck-metadata-field deck-metadata-companion">
-          <span>companion</span>
-          ${model.companion
-            ? `<input name="companion" value="${esc(model.companion)}" placeholder="companion" autocomplete="off">`
-            : `<button type="button" class="deck-companion-add" data-add-companion>+ add companion</button><input name="companion" value="" placeholder="companion" autocomplete="off" hidden>`}
-        </div>
-        <label class="deck-metadata-field deck-metadata-description"><span>description</span><textarea name="description" rows="3" placeholder="description">${esc(model.description)}</textarea></label>
-        <div class="deck-metadata-actions">
-          <button class="btn btn-secondary" type="button" data-cancel-deck-details>cancel</button>
-          <button class="btn" type="submit">save deck</button>
-        </div>
-      </form>
     </section>`;
 }
 

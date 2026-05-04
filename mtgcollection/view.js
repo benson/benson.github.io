@@ -40,6 +40,7 @@ import {
   deckMatchesHomeFilters,
   deckOwnership,
   renderDecksHomeHtml,
+  storageMatchesHomeFilters,
   renderStorageHomeHtml,
 } from './views/locationHomeViews.js';
 import {
@@ -128,21 +129,33 @@ const SIDEBAR_CONFIG = {
   decks: {
     searchPlaceholder: 'search decks',
     searchHelp: false,
-    collectionFilters: false,
+    collectionFilterIds: [],
     deckFormatFilter: true,
+    storageTypeFilter: false,
     historyLabel: 'deck history',
+  },
+  storage: {
+    searchPlaceholder: 'search storage',
+    searchHelp: false,
+    collectionFilterIds: [],
+    deckFormatFilter: false,
+    storageTypeFilter: true,
+    historyLabel: 'storage history',
   },
   default: {
     searchPlaceholder: 'search collection',
     searchHelp: true,
-    collectionFilters: true,
+    collectionFilterIds: ['filterSet', 'filterRarity', 'filterFoil', 'filterLocation', 'filterTag', 'formatSelect'],
     deckFormatFilter: false,
+    storageTypeFilter: false,
     historyLabel: 'collection history',
   },
 };
 
 function syncSidebarChrome(shape) {
-  const config = shape === 'decks-home' ? SIDEBAR_CONFIG.decks : SIDEBAR_CONFIG.default;
+  const config = shape === 'decks-home'
+    ? SIDEBAR_CONFIG.decks
+    : shape === 'storage-home' ? SIDEBAR_CONFIG.storage : SIDEBAR_CONFIG.default;
   const searchInput = document.getElementById('searchInput');
   if (searchInput) searchInput.placeholder = config.searchPlaceholder;
   const searchHelpBtn = document.getElementById('searchHelpBtn');
@@ -150,9 +163,10 @@ function syncSidebarChrome(shape) {
   searchHelpBtn?.classList.toggle('hidden', !config.searchHelp);
   if (!config.searchHelp) searchHelpPopover?.classList.remove('visible');
   ['filterSet', 'filterRarity', 'filterFoil', 'filterLocation', 'filterTag', 'formatSelect'].forEach(id => {
-    document.getElementById(id)?.classList.toggle('hidden', !config.collectionFilters);
+    document.getElementById(id)?.classList.toggle('hidden', !config.collectionFilterIds.includes(id));
   });
   document.getElementById('filterDeckFormat')?.classList.toggle('hidden', !config.deckFormatFilter);
+  document.getElementById('filterStorageType')?.classList.toggle('hidden', !config.storageTypeFilter);
   const summary = document.querySelector('#historyDetails > summary');
   if (summary) summary.textContent = config.historyLabel;
 }
@@ -171,6 +185,17 @@ function deckHomeFilters() {
 
 function hasDeckHomeFilter(filters) {
   return Boolean(String(filters.query || '').trim() || (filters.formats || []).length);
+}
+
+function storageHomeFilters() {
+  return {
+    query: document.getElementById('searchInput')?.value || '',
+    types: getMultiselectValue(document.getElementById('filterStorageType')),
+  };
+}
+
+function hasStorageHomeFilter(filters) {
+  return Boolean(String(filters.query || '').trim() || (filters.types || []).length);
 }
 
 function deckValue(decks) {
@@ -199,12 +224,17 @@ function setDecksHomeTotals(containers, filters) {
   }));
 }
 
-function setStorageHomeTotals(containers) {
+function setStorageHomeTotals(containers, filters) {
   const storage = containers.filter(c => c.type === 'binder' || c.type === 'box');
+  const filteredStorage = storage.filter(c => storageMatchesHomeFilters(c, filters));
+  const filteredActive = hasStorageHomeFilter(filters);
   setTotalsStrip(renderCountValueTotals({
     label: 'containers',
-    count: storage.length,
-    value: containerValue(storage),
+    count: filteredStorage.length,
+    totalCount: storage.length,
+    value: containerValue(filteredStorage),
+    totalValue: containerValue(storage),
+    filteredActive,
   }));
 }
 
@@ -246,7 +276,11 @@ export function render() {
   syncSidebarChrome(shape);
   syncClearFiltersBtn();
   syncViewAsListToggles();
-  setHistoryScope(shape === 'deck' ? currentDeckScope() : shape === 'decks-home' ? { kind: 'decks' } : null);
+  setHistoryScope(shape === 'deck'
+    ? currentDeckScope()
+    : shape === 'decks-home' ? { kind: 'decks' }
+      : shape === 'storage-home' ? { kind: 'storage' }
+        : (shape === 'binder' || shape === 'box') ? getActiveLocation() : null);
   const containers = allContainers();
   // Decks-home and storage-home render even on an empty collection so the
   // user can create a container before adding cards.
@@ -288,8 +322,9 @@ export function render() {
     setDecksHomeTotals(containers, filters);
   } else if (shape === 'storage-home') {
     locationsContainer.classList.add('active');
-    locationsEl.innerHTML = renderStorageHomeHtml(containers);
-    setStorageHomeTotals(containers);
+    const filters = storageHomeFilters();
+    locationsEl.innerHTML = renderStorageHomeHtml(containers, filters);
+    setStorageHomeTotals(containers, filters);
   } else if (shape === 'deck') {
     deckContainer.classList.add('active');
     renderDeckView(list);
@@ -388,6 +423,22 @@ function currentDeckMetadata() {
   return deck?.deck || defaultDeckMetadata(deck?.name || 'deck');
 }
 
+function applyDeckIdentityEntries(model, deckCards = []) {
+  const apply = (prefix) => {
+    const id = model[prefix + 'ScryfallId'];
+    if (!id) return;
+    const entry = deckCards.find(c => c.scryfallId === id && c.inventoryIndex >= 0);
+    if (!entry) return;
+    model[prefix] = entry.resolvedName || entry.name || model[prefix];
+    model[prefix + 'ImageUrl'] = entry.imageUrl || model[prefix + 'ImageUrl'];
+    model[prefix + 'BackImageUrl'] = entry.backImageUrl || model[prefix + 'BackImageUrl'];
+    model[prefix + 'Finish'] = entry.finish || 'normal';
+  };
+  apply('commander');
+  apply('partner');
+  return model;
+}
+
 function renderSampleHandPanel() {
   renderDeckSampleHandPanel({
     handEl: document.getElementById('deckHandCards'),
@@ -426,7 +477,10 @@ function renderDeckView(list) {
   setTotalsStrip(renderDeckTotals(stats));
   const statHtml = renderDeckStatsHtml(boards.main);
   const format = meta.format || state.selectedFormat || 'unspecified format';
-  const headerModel = deckDetailsViewModel(deck, meta, stats, state.selectedFormat);
+  const headerModel = applyDeckIdentityEntries(
+    deckDetailsViewModel(deck, meta, stats, state.selectedFormat),
+    list
+  );
   const modeBody = state.deckMode === 'stats'
     ? renderDeckStatsDashboard(stats, statHtml, format)
     : state.deckMode === 'hands'
@@ -453,7 +507,7 @@ function renderDeckView(list) {
         imageUrl: headerModel.commanderImageUrl,
         backImageUrl: headerModel.commanderBackImageUrl || '',
         qty: 1,
-        finish: 'normal',
+        finish: headerModel.commanderFinish || 'normal',
         price: 0,
       }
     : null;

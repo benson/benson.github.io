@@ -139,19 +139,25 @@ let currentScope = null;
 export function setHistoryScope(scope) {
   const next = scope?.kind === 'decks'
     ? { kind: 'decks' }
+    : scope?.kind === 'storage' ? { kind: 'storage' }
     : scope && scope.type && scope.name ? { type: scope.type, name: scope.name } : null;
   const same = (!next && !currentScope) ||
     (next?.kind === 'decks' && currentScope?.kind === 'decks') ||
+    (next?.kind === 'storage' && currentScope?.kind === 'storage') ||
     (next && currentScope && next.type === currentScope.type && next.name === currentScope.name);
   if (same) return;
   currentScope = next;
   renderHistoryList();
 }
 
-function eventTouchesDeck(ev, type, name) {
+function eventTouchesLocation(ev, type, name) {
   const key = type + ':' + name;
   if (locationKey(ev.containerBefore) === key || locationKey(ev.containerAfter) === key) return true;
   if (ev.deckLocation === key) return true;
+  if (Array.isArray(ev.affectedKeys) && ev.affectedKeys.length) {
+    const keys = new Set(ev.affectedKeys);
+    if (state.collection.some(c => keys.has(collectionKey(c)) && locationKey(c.location) === key)) return true;
+  }
   if (Array.isArray(ev.before)) {
     for (const b of ev.before) {
       const loc = normalizeLocation(b.card?.location);
@@ -161,10 +167,10 @@ function eventTouchesDeck(ev, type, name) {
   return false;
 }
 
-function affectedKeysTouchDeck(ev) {
+function affectedKeysTouchTypes(ev, types) {
   if (!Array.isArray(ev.affectedKeys) || ev.affectedKeys.length === 0) return false;
   const keys = new Set(ev.affectedKeys);
-  return state.collection.some(c => keys.has(collectionKey(c)) && normalizeLocation(c.location)?.type === 'deck');
+  return state.collection.some(c => keys.has(collectionKey(c)) && types.includes(normalizeLocation(c.location)?.type));
 }
 
 function eventIsDeckRelated(ev) {
@@ -172,23 +178,40 @@ function eventIsDeckRelated(ev) {
   if (['deck-create', 'deck-rename', 'deck-update'].includes(ev.type)) return true;
   if (ev.scope === 'deck' || ev.deckLocation) return true;
   if (normalizeLocation(ev.containerBefore)?.type === 'deck' || normalizeLocation(ev.containerAfter)?.type === 'deck') return true;
-  return affectedKeysTouchDeck(ev);
+  return affectedKeysTouchTypes(ev, ['deck']);
+}
+
+function eventIsStorageRelated(ev) {
+  if (!ev) return false;
+  const storageTypes = ['binder', 'box'];
+  if (['storage-create', 'storage-rename', 'storage-delete'].includes(ev.type)) return true;
+  if (storageTypes.includes(normalizeLocation(ev.containerBefore)?.type)) return true;
+  if (storageTypes.includes(normalizeLocation(ev.containerAfter)?.type)) return true;
+  if (Array.isArray(ev.before)) {
+    for (const b of ev.before) {
+      if (storageTypes.includes(normalizeLocation(b.card?.location)?.type)) return true;
+    }
+  }
+  return affectedKeysTouchTypes(ev, storageTypes);
 }
 
 function eventVisibleInScope(ev) {
   if (currentScope?.kind === 'decks') return eventIsDeckRelated(ev);
+  if (currentScope?.kind === 'storage') return eventIsStorageRelated(ev);
   if (!currentScope) return true;
-  return eventTouchesDeck(ev, currentScope.type, currentScope.name);
+  return eventTouchesLocation(ev, currentScope.type, currentScope.name);
 }
 
 export function undoEvent(id) {
   const ev = log.find(e => e.id === id);
   if (!ev || ev.undone) return;
 
-  if (ev.type === 'deck-create' && ev.containerAfter) {
+  if ((ev.type === 'deck-create' || ev.type === 'storage-create') && ev.containerAfter) {
     deleteEmptyContainer(ev.containerAfter);
-  } else if (ev.type === 'deck-rename' && ev.containerBefore && ev.containerAfter) {
+  } else if ((ev.type === 'deck-rename' || ev.type === 'storage-rename') && ev.containerBefore && ev.containerAfter) {
     renameContainer(ev.containerAfter, ev.containerBefore);
+  } else if (ev.type === 'storage-delete' && ev.containerBefore) {
+    ensureContainer(ev.containerBefore);
   } else if (ev.type === 'deck-update' && ev.containerAfter && ev.deckBefore) {
     const deck = ensureContainer(ev.containerAfter);
     if (deck && deck.type === 'deck') deck.deck = clonePlain(ev.deckBefore);
@@ -363,7 +386,9 @@ function renderHistoryList() {
   if (visible.length === 0) {
     const msg = currentScope?.kind === 'decks'
       ? 'No deck changes yet'
-      : currentScope ? 'No changes for this deck yet' : 'No changes yet';
+      : currentScope?.kind === 'storage'
+        ? 'No storage changes yet'
+        : currentScope ? 'No changes for this container yet' : 'No changes yet';
     html = '<li class="history-empty">' + msg + '</li>';
   } else {
     html = visible.map(ev => {

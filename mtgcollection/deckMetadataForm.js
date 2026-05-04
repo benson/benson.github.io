@@ -17,28 +17,32 @@ export function readDeckMetadataForm(form, deckName = 'deck') {
   const commanderScryfallUri = String(cmdInput?.dataset.metaAcScryfallUri || '');
   const partnerScryfallId = String(partnerInput?.dataset.metaAcScryfallId || '');
   const partnerScryfallUri = String(partnerInput?.dataset.metaAcScryfallUri || '');
+  const commanderName = String(fd.get('commander') || '').trim();
+  const partnerName = String(fd.get('partner') || '').trim();
+  const hasCommanderPick = isCommander && commanderName && commanderScryfallId;
+  const hasPartnerPick = isCommander && partnerName && partnerScryfallId;
 
   return {
     metadata: {
       ...defaultDeckMetadata(deckName),
       title: String(fd.get('title') || '').trim() || deckName,
       format,
-      commander: isCommander ? String(fd.get('commander') || '').trim() : '',
-      commanderScryfallId: isCommander ? commanderScryfallId : '',
-      commanderScryfallUri: isCommander ? commanderScryfallUri : '',
-      commanderImageUrl: isCommander ? String(cmdInput?.dataset.metaAcImage || '') : '',
-      commanderBackImageUrl: isCommander ? String(cmdInput?.dataset.metaAcBackImage || '') : '',
-      partner: isCommander ? String(fd.get('partner') || '').trim() : '',
-      partnerScryfallId: isCommander ? partnerScryfallId : '',
-      partnerScryfallUri: isCommander ? partnerScryfallUri : '',
-      partnerImageUrl: isCommander ? String(partnerInput?.dataset.metaAcImage || '') : '',
-      partnerBackImageUrl: isCommander ? String(partnerInput?.dataset.metaAcBackImage || '') : '',
+      commander: hasCommanderPick ? commanderName : '',
+      commanderScryfallId: hasCommanderPick ? commanderScryfallId : '',
+      commanderScryfallUri: hasCommanderPick ? commanderScryfallUri : '',
+      commanderImageUrl: hasCommanderPick ? String(cmdInput?.dataset.metaAcImage || '') : '',
+      commanderBackImageUrl: hasCommanderPick ? String(cmdInput?.dataset.metaAcBackImage || '') : '',
+      partner: hasPartnerPick ? partnerName : '',
+      partnerScryfallId: hasPartnerPick ? partnerScryfallId : '',
+      partnerScryfallUri: hasPartnerPick ? partnerScryfallUri : '',
+      partnerImageUrl: hasPartnerPick ? String(partnerInput?.dataset.metaAcImage || '') : '',
+      partnerBackImageUrl: hasPartnerPick ? String(partnerInput?.dataset.metaAcBackImage || '') : '',
       companion: String(fd.get('companion') || '').trim(),
       description: String(fd.get('description') || '').trim(),
     },
     isCommander,
-    commanderScryfallId,
-    partnerScryfallId,
+    commanderScryfallId: hasCommanderPick ? commanderScryfallId : '',
+    partnerScryfallId: hasPartnerPick ? partnerScryfallId : '',
   };
 }
 

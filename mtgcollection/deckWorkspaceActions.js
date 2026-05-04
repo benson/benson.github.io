@@ -276,8 +276,10 @@ export function bindDeckWorkspaceInteractions({
     if (editButton) {
       const editor = deckColumnsEl.querySelector('#deckDetailsEditor');
       if (!editor) return;
+      editor.closest('.deck-hero')?.classList.add('is-editing');
       editor.classList.remove('hidden');
       editButton.setAttribute('aria-expanded', 'true');
+      editButton.classList.add('hidden');
       const firstInput = editor.querySelector('input[name="title"]');
       if (firstInput) firstInput.focus();
       return;
@@ -286,9 +288,15 @@ export function bindDeckWorkspaceInteractions({
     const cancelButton = event.target.closest('[data-cancel-deck-details]');
     if (cancelButton) {
       const editor = deckColumnsEl.querySelector('#deckDetailsEditor');
-      if (editor) editor.classList.add('hidden');
+      if (editor) {
+        editor.classList.add('hidden');
+        editor.closest('.deck-hero')?.classList.remove('is-editing');
+      }
       const toggle = deckColumnsEl.querySelector('[data-edit-deck-details]');
-      if (toggle) toggle.setAttribute('aria-expanded', 'false');
+      if (toggle) {
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.classList.remove('hidden');
+      }
       return;
     }
 

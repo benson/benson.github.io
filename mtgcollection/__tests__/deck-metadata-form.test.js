@@ -77,6 +77,25 @@ test('readDeckMetadataForm: clears commander fields outside commander format', (
   assert.equal(result.metadata.partnerScryfallUri, '');
 });
 
+test('readDeckMetadataForm: ignores unpicked commander and partner text', () => {
+  const form = formFromHtml(`
+    <input name="title" value="breya">
+    <input name="formatPreset" value="commander">
+    <input name="commander" value="Breya typed by hand" data-meta-ac="commander" data-meta-ac-scryfall-id="" data-meta-ac-scryfall-uri="" data-meta-ac-image="front.jpg">
+    <input name="partner" value="Silas typed by hand" data-meta-ac="partner" data-meta-ac-scryfall-id="" data-meta-ac-scryfall-uri="" data-meta-ac-image="partner.jpg">
+  `);
+
+  const result = readDeckMetadataForm(form, 'breya');
+
+  assert.equal(result.metadata.commander, '');
+  assert.equal(result.metadata.commanderScryfallId, '');
+  assert.equal(result.metadata.commanderImageUrl, '');
+  assert.equal(result.metadata.partner, '');
+  assert.equal(result.metadata.partnerScryfallId, '');
+  assert.equal(result.commanderScryfallId, '');
+  assert.equal(result.partnerScryfallId, '');
+});
+
 test('ensureCommanderEntryInDeck: adds one commander placeholder and records the event', () => {
   const deck = { type: 'deck', name: 'breya', deckList: [] };
   const events = [];

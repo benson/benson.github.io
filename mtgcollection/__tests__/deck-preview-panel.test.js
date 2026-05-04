@@ -109,6 +109,23 @@ test('createDeckPreviewPanel: metadata preview links resolve within the current 
 
   assert.equal(dom.panelEl.querySelector('.deck-preview-name').textContent, 'Breya Copy');
   assert.equal(dom.panelEl.dataset.index, '1');
+  assert.equal(dom.panelEl.querySelector('.deck-preview-frame').classList.contains('is-foil'), true);
+});
+
+test('createDeckPreviewPanel: metadata preview fallback keeps declared finish treatment', () => {
+  const dom = installDom(`
+    <dd class="deck-meta-preview-link" data-scryfall-id="sid-2" data-card-name="Commander" data-image-url="https://img/meta" data-card-finish="etched"></dd>
+  `);
+  const panel = createDeckPreviewPanel({
+    panelEl: dom.panelEl,
+    getCollection: () => [],
+    getDeckScope: () => ({ type: 'deck', name: 'breya' }),
+  });
+
+  panel.showFromTarget(dom.win.document.querySelector('.deck-meta-preview-link'));
+
+  assert.equal(dom.panelEl.querySelector('.deck-preview-name').textContent, 'Commander');
+  assert.equal(dom.panelEl.querySelector('.deck-preview-frame').classList.contains('is-etched'), true);
 });
 
 test('createDeckPreviewPanel: bound preview panel opens details and flips inventory cards', () => {

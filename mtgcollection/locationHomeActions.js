@@ -77,6 +77,12 @@ export function bindLocationHomeInteractions({
         containerAfter: { type: 'deck', name: created.name },
         deckAfter: created.deck || null,
       });
+    } else if (!existed && (created.type === 'binder' || created.type === 'box')) {
+      recordEventImpl({
+        type: 'storage-create',
+        summary: 'Created {loc:' + created.type + ':' + created.name + '}',
+        containerAfter: { type: created.type, name: created.name },
+      });
     }
     if (nameInput) nameInput.value = '';
     saveImpl();

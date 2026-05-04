@@ -110,6 +110,12 @@ export function populateFilters() {
   populateMultiselect(document.getElementById('filterDeckFormat'),
     [...FORMAT_PRESETS, { value: 'unspecified', label: 'unspecified' }],
     { defaultLabel: 'All deck formats', noun: 'formats' });
+  populateMultiselect(document.getElementById('filterStorageType'),
+    [
+      { value: 'binder', label: 'binders' },
+      { value: 'box', label: 'boxes' },
+    ],
+    { defaultLabel: 'All container types', noun: 'types' });
   document.getElementById('rowTagOptions').innerHTML =
     tags.map(t => '<option value="' + esc(t) + '"></option>').join('');
 }
@@ -304,7 +310,7 @@ function saveDetail() {
     } else if (diffs.length === 1 && locationChanged) {
       summary = locationDiffSummary(before.location, after.location);
     } else {
-      summary = 'Edited (' + diffs.join(', ') + ') · {card}';
+      summary = 'Edited (' + diffs.join(', ') + ') - {card}';
     }
     recordEvent({
       type: 'edit',

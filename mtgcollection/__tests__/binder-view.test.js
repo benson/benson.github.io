@@ -104,6 +104,7 @@ test('renderBinderView: paginates sorted cards and updates binder chrome', () =>
   assert.equal(state.binderPage, 0);
   assert.equal(doc.querySelectorAll('.binder-slot.detail-trigger').length, 4);
   assert.equal(doc.getElementById('binderPages').classList.contains('binder-pages-2x2'), true);
+  assert.equal(doc.querySelector('.binder-surface').classList.contains('binder-surface-2x2'), true);
   assert.match(doc.querySelector('.binder-page').getAttribute('style'), /grid-template-rows: repeat\(2, minmax\(0, 1fr\)\)/);
   assert.equal(doc.querySelector('.binder-slot').getAttribute('aria-label'), 'Alpha');
   assert.equal(doc.getElementById('binderNav').classList.contains('hidden'), false);
@@ -111,6 +112,17 @@ test('renderBinderView: paginates sorted cards and updates binder chrome', () =>
   assert.equal(doc.getElementById('binderNext').disabled, false);
   assert.equal(doc.getElementById('binderPageIndicator').textContent, 'page 1 of 2');
   assert.equal(doc.getElementById('binderSummary').textContent, '5 cards - 5 unique');
+});
+
+test('renderBinderView: preserves empty pockets on sparse binder pages', () => {
+  const doc = installDom();
+  state.binderSize = '4x3';
+  state.collection = ['Beta', 'Alpha'].map(name => card(name));
+
+  renderBinderView(state.collection, { hasActiveFilter: () => true });
+
+  assert.equal(doc.querySelectorAll('.binder-slot').length, 12);
+  assert.equal(doc.querySelectorAll('.binder-slot-empty').length, 10);
 });
 
 test('renderBinderView: list layout reuses row renderer without pagination chrome', () => {
@@ -124,6 +136,8 @@ test('renderBinderView: list layout reuses row renderer without pagination chrom
   assert.equal(state.binderPage, 0);
   assert.equal(doc.getElementById('binderNav').classList.contains('hidden'), true);
   assert.equal(doc.getElementById('binderPages').classList.contains('binder-pages-list'), true);
+  assert.equal(doc.querySelector('.binder-surface'), null);
+  assert.equal(doc.querySelector('.binder-page'), null);
   assert.equal(doc.querySelectorAll('.binder-list-table tbody tr').length, 2);
   assert.equal(doc.querySelector('.binder-list-table tbody tr .card-name-button').textContent, 'Alpha');
 });
