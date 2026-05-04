@@ -193,8 +193,16 @@ async function getOAuthClient(env, clientId) {
   return storeGet(env, MCP_CLIENT_PREFIX + clientId);
 }
 
+function enabledFlag(value, fallback = false) {
+  if (value == null || value === '') return fallback;
+  return ['1', 'true', 'yes', 'on'].includes(String(value).trim().toLowerCase());
+}
+
 async function registerOAuthClient(request, env, deps) {
   if (request.method !== 'POST') return oauthError('invalid_request', 'registration requires POST', 405, request, deps);
+  if (env.SYNC_AUTH_DISABLED !== '1' && !enabledFlag(env.MCP_ALLOW_DYNAMIC_CLIENT_REGISTRATION)) {
+    return oauthError('registration_not_allowed', 'dynamic MCP client registration is disabled', 403, request, deps);
+  }
   const body = await request.json().catch(() => ({}));
   const redirectUris = Array.isArray(body.redirect_uris)
     ? body.redirect_uris.map(String).filter(Boolean)
@@ -1780,6 +1788,9 @@ export async function handleMcpApplyRequest(request, env, deps) {
 
 export async function handleByokChatRequest(request, env, deps) {
   if (request.method !== 'POST') return deps.json({ error: 'POST required' }, 405, request);
+  if (!enabledFlag(env.MTGCOLLECTION_CHAT_ENABLED, true)) {
+    return deps.json({ error: 'hosted chat is disabled' }, 503, request);
+  }
   let clerkAuth = null;
   try {
     clerkAuth = await deps.authenticate(request, env);

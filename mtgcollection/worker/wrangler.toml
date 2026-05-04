@@ -2,6 +2,9 @@ name = "mtgcollection-share"
 main = "worker.js"
 compatibility_date = "2024-12-01"
 
+[limits]
+cpu_ms = 500
+
 [vars]
 CLERK_ISSUER = "https://clerk.bensonperry.com"
 CLERK_AUTHORIZED_PARTIES = "https://bensonperry.com,http://127.0.0.1:8087,http://localhost:8087"
@@ -9,6 +12,9 @@ MCP_PUBLIC_ORIGIN = "https://mtgcollection-share.bensonperry.workers.dev"
 # Configure after creating a Clerk OAuth application for MCP:
 CLERK_FRONTEND_API_URL = "https://clerk.bensonperry.com"
 CLERK_OAUTH_CLIENT_ID = "HNx2PbSrTQUcrsfd"
+MCP_ALLOW_DYNAMIC_CLIENT_REGISTRATION = "0"
+MTGCOLLECTION_ALLOW_ANON_SHARE_WRITES = "0"
+MTGCOLLECTION_CHAT_ENABLED = "1"
 MTGCOLLECTION_CHAT_PROVIDER = "groq"
 MTGCOLLECTION_CHAT_GROQ_MODEL = "llama-3.1-8b-instant"
 MTGCOLLECTION_CHAT_OPENAI_MODEL = "gpt-5-nano"

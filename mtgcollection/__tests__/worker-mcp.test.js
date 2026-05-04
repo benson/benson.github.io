@@ -31,6 +31,7 @@ function fakeSyncEnv(snapshot = emptySnapshot(), revision = 1) {
   const state = { snapshot, revision };
   const env = {
     SYNC_AUTH_DISABLED: '1',
+    MCP_ALLOW_DYNAMIC_CLIENT_REGISTRATION: '1',
     MCP_CHANGE_TOKEN_SECRET: 'test-secret',
     SHARES: fakeKv(),
     OAUTH_KV: fakeKv(),
@@ -128,6 +129,23 @@ async function rpc(env, accessToken, method, params = {}) {
   assert.equal(res.status, 200);
   return res.json();
 }
+
+test('mcp: dynamic client registration is disabled unless explicitly enabled', async () => {
+  const { env } = fakeSyncEnv();
+  delete env.SYNC_AUTH_DISABLED;
+  env.MCP_ALLOW_DYNAMIC_CLIENT_REGISTRATION = '0';
+  const register = await worker.fetch(new Request('https://example.com/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      client_name: 'Test Client',
+      redirect_uris: ['https://client.example/callback'],
+    }),
+  }), env);
+  assert.equal(register.status, 403);
+  const data = await register.json();
+  assert.equal(data.error, 'registration_not_allowed');
+});
 
 async function rpcWithAuthorization(env, authorization, method, params = {}) {
   const res = await worker.fetch(new Request('https://example.com/mcp', {
@@ -402,6 +420,37 @@ test('mcp chat: provider API key is not persisted or echoed in errors', async ()
     assert.doesNotMatch(data.error, /sk-test-secret/);
     assert.equal(env.OAUTH_KV.values.size > 0, true);
     assert.equal([...env.OAUTH_KV.values.values()].some(value => String(value).includes('sk-test-secret')), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp chat: hosted chat can be disabled before auth or provider calls', async () => {
+  const { env } = fakeSyncEnv();
+  env.MTGCOLLECTION_CHAT_ENABLED = '0';
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls += 1;
+    return Response.json({ output_text: 'unexpected' });
+  };
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        provider: 'openai',
+        apiKey: 'sk-test-secret',
+        messages: [{ role: 'user', content: 'ping' }],
+      }),
+    }), env);
+    assert.equal(res.status, 503);
+    const data = await res.json();
+    assert.match(data.error, /disabled/);
+    assert.equal(calls, 0);
   } finally {
     globalThis.fetch = originalFetch;
   }

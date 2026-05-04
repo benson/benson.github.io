@@ -10,6 +10,38 @@ Before sharing the app beyond a tiny test group, upgrade the Cloudflare account
 to Workers Paid. The main benefit is not performance; it changes quota failures
 from hard daily stops into normal usage billing.
 
+## Cost Guardrails
+
+Cloudflare paid plans do not provide a hard account-wide spending cap. Treat
+dashboard budget alerts as smoke alarms, and keep code-level brakes in place so
+public traffic cannot create unlimited writes or hosted AI calls.
+
+Recommended dashboard setup:
+
+- Cloudflare Billing > Billable Usage > Budget alerts: create low alerts such
+  as `$5`, `$10`, and `$20`.
+- Cloudflare Notifications: add usage notifications for Workers/D1 if available
+  in the account.
+- AI provider dashboards: add the smallest practical monthly budget or usage
+  cap for any hosted chat key.
+- Cloudflare WAF rate limiting: once the Worker is on a custom `bensonperry.com`
+  subdomain, add a small rate limit for write-heavy paths such as `/sync/*`,
+  `/share`, `/mcp/chat`, and OAuth registration.
+
+Runtime brakes currently configured in `wrangler.toml`:
+
+- `[limits].cpu_ms = 500` caps Worker CPU per request.
+- `MTGCOLLECTION_ALLOW_ANON_SHARE_WRITES = "0"` keeps legacy public share reads
+  working, but blocks anonymous share creates/updates/deletes.
+- `MCP_ALLOW_DYNAMIC_CLIENT_REGISTRATION = "0"` blocks arbitrary remote MCP
+  clients from registering themselves.
+- `MTGCOLLECTION_CHAT_DAILY_LIMIT = "25"` caps hosted chat calls per signed-in
+  user per day.
+- `MTGCOLLECTION_CHAT_MAX_OUTPUT_TOKENS = "1000"` caps hosted chat response
+  size.
+- `MTGCOLLECTION_CHAT_ENABLED = "1"` can be flipped to `"0"` as an emergency
+  hosted chat kill switch.
+
 Relevant free-tier limits to watch:
 
 - Workers Free: 100,000 requests per day.

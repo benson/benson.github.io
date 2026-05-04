@@ -25,6 +25,14 @@ function sharePutOptions(auth) {
   return auth ? undefined : { expirationTtl: TTL_SECONDS };
 }
 
+function truthy(value) {
+  return ['1', 'true', 'yes', 'on'].includes(String(value || '').trim().toLowerCase());
+}
+
+function allowAnonymousShareWrites(env) {
+  return env.SYNC_AUTH_DISABLED === '1' || truthy(env.MTGCOLLECTION_ALLOW_ANON_SHARE_WRITES);
+}
+
 function corsHeaders(request) {
   const origin = request?.headers?.get('Origin') || '';
   const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
@@ -481,6 +489,9 @@ export default {
     if (path === '/share' && request.method === 'POST') {
       try {
         const auth = await optionalAuth(request, env).catch(e => { throw e; });
+        if (!auth && !allowAnonymousShareWrites(env)) {
+          return text('sign in to create share links', 401, request);
+        }
         const body = await readBody(request);
         const id = generateId();
         await env.SHARES.put(SHARE_KEY_PREFIX + id, body, sharePutOptions(auth));
@@ -510,6 +521,9 @@ export default {
       if (request.method === 'PUT') {
         try {
           const auth = await optionalAuth(request, env);
+          if (!auth && !allowAnonymousShareWrites(env)) {
+            return text('sign in to update share links', 401, request);
+          }
           if (!(await canWriteShare(request, env, id, auth))) return text('unauthorized', 401, request);
           const body = await readBody(request);
           await env.SHARES.put(key, body, sharePutOptions(auth));
@@ -522,6 +536,9 @@ export default {
 
       if (request.method === 'DELETE') {
         const auth = await optionalAuth(request, env);
+        if (!auth && !allowAnonymousShareWrites(env)) {
+          return text('sign in to delete share links', 401, request);
+        }
         if (!(await canWriteShare(request, env, id, auth))) return text('unauthorized', 401, request);
         await env.SHARES.delete(key);
         if (env.DB && auth) {

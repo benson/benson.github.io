@@ -94,9 +94,34 @@ test('worker: sync routes require authentication before touching bindings', asyn
   assert.match(await res.text(), /missing token|auth/i);
 });
 
-test('worker: public legacy share create and read still work without auth', async () => {
+test('worker: public legacy share reads still work without auth', async () => {
   const shares = fakeKv();
   const env = { SHARES: shares };
+  shares.values.set('share:legacy1', JSON.stringify({ kind: 'deck', version: 1, container: { type: 'deck', name: 'breya' } }));
+
+  const read = await worker.fetch(new Request('https://example.com/share/legacy1'), env);
+  assert.equal(read.status, 200);
+  const body = await read.json();
+  assert.equal(body.container.name, 'breya');
+});
+
+test('worker: anonymous share writes are disabled by default', async () => {
+  const shares = fakeKv();
+  const env = { SHARES: shares };
+  const create = await worker.fetch(new Request('https://example.com/share', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ kind: 'deck', version: 1, container: { type: 'deck', name: 'breya' } }),
+  }), env);
+
+  assert.equal(create.status, 401);
+  assert.match(await create.text(), /sign in/i);
+  assert.equal(shares.values.size, 0);
+});
+
+test('worker: anonymous legacy share writes can be explicitly enabled', async () => {
+  const shares = fakeKv();
+  const env = { SHARES: shares, MTGCOLLECTION_ALLOW_ANON_SHARE_WRITES: '1' };
   const create = await worker.fetch(new Request('https://example.com/share', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
