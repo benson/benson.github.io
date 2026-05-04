@@ -10,7 +10,7 @@ const SYSTEM_PROMPT = [
   'For a simple single-card add request without an explicit quantity, preview exactly one copy with one tool call.',
 ].join(' ');
 const HOSTED_PROVIDER = 'groq';
-const HOSTED_MODEL = 'llama-3.1-8b-instant';
+const HOSTED_MODEL = 'openai/gpt-oss-120b';
 
 let root = null;
 let logEl = null;

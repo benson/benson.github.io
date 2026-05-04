@@ -630,7 +630,7 @@ test('mcp chat: hosted Groq key is used by default with preview-only remote MCP 
     const data = await res.json();
     assert.equal(data.provider, 'groq');
     assert.equal(data.mode, 'hosted');
-    assert.equal(data.model, 'llama-3.1-8b-instant');
+    assert.equal(data.model, 'openai/gpt-oss-120b');
     assert.equal(authHeader, 'Bearer gsk-hosted-secret');
     const mcpTool = requestBody.tools.find(tool => tool.type === 'mcp');
     assert.equal(mcpTool.headers.Authorization.startsWith('Bearer mcp_at_'), true);

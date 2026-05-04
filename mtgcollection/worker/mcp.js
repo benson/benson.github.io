@@ -1896,7 +1896,7 @@ function chatProviderApiKey(env, provider) {
 function chatModel(env, provider, body) {
   const requested = String(body.model || '').trim();
   if (requested) return requested;
-  if (provider === 'groq') return String(env.MTGCOLLECTION_CHAT_GROQ_MODEL || 'llama-3.1-8b-instant').trim();
+  if (provider === 'groq') return String(env.MTGCOLLECTION_CHAT_GROQ_MODEL || 'openai/gpt-oss-120b').trim();
   if (provider === 'anthropic') return String(env.MTGCOLLECTION_CHAT_ANTHROPIC_MODEL || 'claude-sonnet-4-5').trim();
   return String(env.MTGCOLLECTION_CHAT_OPENAI_MODEL || 'gpt-5-nano').trim();
 }
