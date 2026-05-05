@@ -12,6 +12,7 @@ import {
 
 afterEach(() => {
   state.collection = [];
+  state.containers = {};
 });
 
 function sideEffects() {
@@ -65,6 +66,30 @@ test('commitRowLocationFromPicker: writes a normalized location and records one 
     imageUrl: 'front.jpg',
     backImageUrl: 'back.jpg',
   });
+});
+
+test('commitRowLocationFromPicker: can commit an existing container select value', () => {
+  state.collection = [card()];
+  const fx = sideEffects();
+  const { input } = rowInput(`
+    <span class="loc-picker">
+      <select class="loc-picker-target" data-index="0">
+        <option value="">+ loc</option>
+        <option value="binder:trade binder" selected>trade binder</option>
+        <option value="__new__">+ new container</option>
+      </select>
+      <span class="loc-picker-new hidden">
+        <select class="loc-picker-type"><option value="box" selected>box</option></select>
+        <input class="loc-picker-name" data-index="0" value="">
+      </span>
+    </span>
+  `, '.loc-picker-target');
+
+  const result = commitRowLocationFromPicker(input, fx);
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(state.collection[0].location, { type: 'binder', name: 'trade binder' });
+  assert.deepEqual(fx.calls.commits, [{ coalesce: true }]);
 });
 
 test('commitRowLocationFromPicker: clears invalid empty locations without committing', () => {
@@ -131,6 +156,19 @@ test('bindListRowInteractions: delegates clicks, key commits, and change commits
         <td><button class="card-name-button" data-index="3">Sol Ring</button></td>
         <td><input class="row-tag-input" data-index="4" value="artifact"></td>
         <td><input class="loc-picker-name" data-index="5" value="bulk"></td>
+        <td>
+          <span class="loc-picker">
+            <select class="loc-picker-target" data-index="6">
+              <option value="">+ loc</option>
+              <option value="binder:trade binder">trade binder</option>
+              <option value="__new__">+ new container</option>
+            </select>
+            <span class="loc-picker-new hidden">
+              <select class="loc-picker-type" data-index="6"><option value="box" selected>box</option></select>
+              <input class="loc-picker-name" data-index="6" value="">
+            </span>
+          </span>
+        </td>
         <td><input class="row-check"></td>
       </tr>
     </tbody></table>
@@ -154,6 +192,11 @@ test('bindListRowInteractions: delegates clicks, key commits, and change commits
   rows.querySelector('.loc-picker-name').dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
   rows.querySelector('.row-tag-input').dispatchEvent(new win.Event('change', { bubbles: true }));
   rows.querySelector('.loc-picker-name').dispatchEvent(new win.Event('change', { bubbles: true }));
+  const locSelect = rows.querySelector('.loc-picker-target');
+  locSelect.value = 'binder:trade binder';
+  locSelect.dispatchEvent(new win.Event('change', { bubbles: true }));
+  locSelect.value = '__new__';
+  locSelect.dispatchEvent(new win.Event('change', { bubbles: true }));
   rows.querySelector('.row-check').dispatchEvent(new win.Event('change', { bubbles: true }));
 
   assert.deepEqual(calls, [
@@ -165,5 +208,7 @@ test('bindListRowInteractions: delegates clicks, key commits, and change commits
     ['loc', '5', 'bulk'],
     ['tag', '4', 'artifact'],
     ['loc', '5', 'bulk'],
+    ['loc', '6', 'binder:trade binder'],
   ]);
+  assert.equal(rows.querySelector('.loc-picker-new').classList.contains('hidden'), false);
 });

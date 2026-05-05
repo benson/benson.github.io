@@ -1,15 +1,55 @@
 import { state } from '../state.js';
 import {
+  allCollectionLocations,
+  allContainers,
   collectionKey,
-  normalizeLocation,
+  locationKey,
   LOCATION_TYPES,
   DEFAULT_LOCATION_TYPE,
+  normalizeLocation,
 } from '../collection.js';
 import { esc } from '../feedback.js';
 import { getSetIconUrl } from '../setIcons.js';
 import { CONDITION_ABBR, RARITY_ABBR } from '../deckUi.js';
 import { locationPillHtml } from '../ui/locationUi.js';
 import { formatPrice } from '../ui/priceUi.js';
+
+const TYPE_HEADERS = {
+  deck: 'decks',
+  binder: 'binders',
+  box: 'boxes',
+};
+
+function rowLocationChoices(collection = state.collection) {
+  const byKey = new Map();
+  for (const loc of [
+    ...allContainers().map(c => ({ type: c.type, name: c.name })),
+    ...allCollectionLocations(collection),
+  ]) {
+    const key = locationKey(loc);
+    if (key && !byKey.has(key)) byKey.set(key, normalizeLocation(loc));
+  }
+  return Array.from(byKey.values()).sort((a, b) => {
+    const typeSort = LOCATION_TYPES.indexOf(a.type) - LOCATION_TYPES.indexOf(b.type);
+    return typeSort || a.name.localeCompare(b.name);
+  });
+}
+
+function rowLocationOptionsHtml(collection = state.collection) {
+  const locations = rowLocationChoices(collection);
+  const html = ['<option value="" selected>+ loc</option>'];
+  for (const type of LOCATION_TYPES) {
+    const ofType = locations.filter(loc => loc.type === type);
+    if (ofType.length === 0) continue;
+    html.push('<optgroup label="' + esc(TYPE_HEADERS[type] || type) + '">');
+    for (const loc of ofType) {
+      html.push('<option value="' + esc(locationKey(loc)) + '">' + esc(loc.name) + '</option>');
+    }
+    html.push('</optgroup>');
+  }
+  html.push('<option value="__new__">+ new container</option>');
+  return html.join('');
+}
 
 export function locationCellHtml(c, index) {
   const loc = normalizeLocation(c.location);
@@ -21,8 +61,11 @@ export function locationCellHtml(c, index) {
     '<option value="' + t + '"' + (t === DEFAULT_LOCATION_TYPE ? ' selected' : '') + '>' + t + '</option>'
   ).join('');
   return '<span class="loc-picker" data-index="' + index + '">' +
-    '<select class="loc-picker-type" data-index="' + index + '" aria-label="location type">' + typeOptions + '</select>' +
-    '<input class="loc-picker-name" data-index="' + index + '" type="text" list="locationOptions" placeholder="+ loc" autocomplete="off">' +
+    '<select class="loc-picker-target" data-index="' + index + '" aria-label="location">' + rowLocationOptionsHtml() + '</select>' +
+    '<span class="loc-picker-new hidden">' +
+      '<select class="loc-picker-type" data-index="' + index + '" aria-label="new container type">' + typeOptions + '</select>' +
+      '<input class="loc-picker-name" data-index="' + index + '" type="text" list="locationOptions" placeholder="new name" autocomplete="off">' +
+    '</span>' +
   '</span>';
 }
 

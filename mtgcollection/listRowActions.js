@@ -17,6 +17,43 @@ function rowCardEventPayload(card) {
   };
 }
 
+function rowLocationPickerRoot(control) {
+  return control?.closest?.('.loc-picker') || control?.closest?.('tr');
+}
+
+function revealNewLocationPicker(control) {
+  const root = rowLocationPickerRoot(control);
+  if (!root) return;
+  root.classList.add('is-new');
+  root.querySelector('.loc-picker-new')?.classList.remove('hidden');
+  root.querySelector('.loc-picker-name')?.focus();
+}
+
+function resetNewLocationPicker(control) {
+  const root = rowLocationPickerRoot(control);
+  if (!root) return;
+  root.classList.remove('is-new');
+  root.querySelector('.loc-picker-new')?.classList.add('hidden');
+  const target = root.querySelector('.loc-picker-target');
+  if (target) target.value = '';
+  const input = root.querySelector('.loc-picker-name');
+  if (input) input.value = '';
+}
+
+function readRowLocationPicker(control, normalizeLocationImpl) {
+  const root = rowLocationPickerRoot(control);
+  const target = root?.querySelector?.('.loc-picker-target');
+  if (target && target.value && target.value !== '__new__') {
+    return normalizeLocationImpl(target.value);
+  }
+
+  const typeSelect = root?.querySelector?.('.loc-picker-type');
+  const nameInput = root?.querySelector?.('.loc-picker-name');
+  const type = typeSelect ? typeSelect.value : DEFAULT_LOCATION_TYPE;
+  const name = nameInput ? nameInput.value : control?.value;
+  return normalizeLocationImpl({ type, name });
+}
+
 function actionDeps(overrides = {}) {
   return {
     collection: overrides.collection || state.collection,
@@ -37,12 +74,9 @@ export function commitRowLocationFromPicker(input, overrides = {}) {
   const card = deps.collection[index];
   if (!card) return { ok: false, reason: 'missing-card' };
 
-  const row = input.closest('tr');
-  const typeSelect = row && row.querySelector('.loc-picker-type');
-  const type = typeSelect ? typeSelect.value : DEFAULT_LOCATION_TYPE;
-  const location = deps.normalizeLocationImpl({ type, name: input.value });
+  const location = readRowLocationPicker(input, deps.normalizeLocationImpl);
   if (!location) {
-    input.value = '';
+    if (input.classList.contains('loc-picker-name')) input.value = '';
     return { ok: false, reason: 'invalid-location' };
   }
 
@@ -193,8 +227,7 @@ export function bindListRowInteractions({
         event.preventDefault();
         commitRowLocationFromPickerImpl(event.target);
       } else if (event.key === 'Escape') {
-        event.target.value = '';
-        event.target.blur();
+        resetNewLocationPicker(event.target);
       }
     }
   };
@@ -203,6 +236,14 @@ export function bindListRowInteractions({
     if (event.target.classList.contains('row-check')) return;
     if (event.target.classList.contains('row-tag-input')) {
       if (event.target.value.trim()) commitRowTagImpl(event.target);
+      return;
+    }
+    if (event.target.classList.contains('loc-picker-target')) {
+      if (event.target.value === '__new__') {
+        revealNewLocationPicker(event.target);
+      } else if (event.target.value) {
+        commitRowLocationFromPickerImpl(event.target);
+      }
       return;
     }
     if (event.target.classList.contains('loc-picker-name') && event.target.value.trim()) {

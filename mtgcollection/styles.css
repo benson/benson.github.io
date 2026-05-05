@@ -2639,6 +2639,26 @@
     gap: 3px;
     align-items: center;
   }
+  .loc-picker-target {
+    min-width: 70px;
+    max-width: 150px;
+    border: none;
+    background: transparent;
+    font: inherit;
+    font-size: 0.7rem;
+    color: #999;
+    text-transform: lowercase;
+    padding: 1px 0;
+    cursor: pointer;
+  }
+  .loc-picker-target:focus { outline: none; color: #000; }
+  .loc-picker.is-new .loc-picker-target { max-width: 86px; }
+  .loc-picker-new {
+    display: inline-flex;
+    gap: 3px;
+    align-items: center;
+  }
+  .loc-picker-new.hidden { display: none; }
   .loc-picker-type {
     border: none;
     background: transparent;

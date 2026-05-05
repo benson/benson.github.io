@@ -7,6 +7,7 @@ import { locationCellHtml, renderRow } from '../views/listRowView.js';
 
 afterEach(() => {
   state.collection = [];
+  state.containers = {};
   state.selectedKeys = new Set();
 });
 
@@ -32,11 +33,24 @@ test('locationCellHtml: renders a typed location pill when a card has a location
 test('locationCellHtml: renders an inline picker for unlocated cards', () => {
   const win = new Window();
   const wrap = win.document.createElement('div');
+  state.collection = [
+    { location: { type: 'binder', name: 'trade binder' } },
+    { location: { type: 'box', name: 'bulk rares' } },
+  ];
+  state.containers = {
+    'deck:breya': { type: 'deck', name: 'breya' },
+  };
   wrap.innerHTML = locationCellHtml({ location: null }, 2);
 
   assert.equal(wrap.querySelector('.loc-picker').dataset.index, '2');
-  assert.equal(wrap.querySelector('.loc-picker-type').value, 'binder');
-  assert.equal(wrap.querySelector('.loc-picker-name').getAttribute('placeholder'), '+ loc');
+  assert.equal(wrap.querySelector('.loc-picker-target').value, '');
+  assert.deepEqual(
+    [...wrap.querySelectorAll('.loc-picker-target option')].map(option => option.value),
+    ['', 'deck:breya', 'binder:trade binder', 'box:bulk rares', '__new__']
+  );
+  assert.equal(wrap.querySelector('.loc-picker-new').classList.contains('hidden'), true);
+  assert.equal(wrap.querySelector('.loc-picker-type option[value="box"]').hasAttribute('selected'), true);
+  assert.equal(wrap.querySelector('.loc-picker-name').getAttribute('placeholder'), 'new name');
 });
 
 test('renderRow: renders selection, preview, tags, location, and price cells', () => {
