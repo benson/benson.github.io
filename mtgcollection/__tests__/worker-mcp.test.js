@@ -394,7 +394,9 @@ test('mcp: search card printings returns exact Scryfall add arguments', async ()
   const { env } = fakeSyncEnv(emptySnapshot());
   const token = await issueMcpToken(env);
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = async url => {
+  let userAgent = '';
+  globalThis.fetch = async (url, init = {}) => {
+    userAgent = init.headers?.['User-Agent'] || '';
     assert.match(String(url), /\/cards\/search\?/);
     return Response.json({
       total_cards: 1,
@@ -428,6 +430,50 @@ test('mcp: search card printings returns exact Scryfall add arguments', async ()
     assert.equal(data.candidates[0].previewAddArgs.scryfallId, 'hamlet-tdm-1');
     assert.equal(data.candidates[0].previewAddArgs.finish, 'normal');
     assert.equal(data.candidates[0].previewAddArgs.qty, 2);
+    assert.match(userAgent, /MTGCollection/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp: search card printings falls back when Scryfall search errors', async () => {
+  const { env } = fakeSyncEnv(emptySnapshot());
+  const token = await issueMcpToken(env);
+  const originalFetch = globalThis.fetch;
+  const urls = [];
+  globalThis.fetch = async url => {
+    urls.push(String(url));
+    if (String(url).includes('/cards/search?')) {
+      return Response.json({ details: 'temporary failure' }, { status: 500 });
+    }
+    assert.equal(String(url), 'https://api.scryfall.com/cards/named?exact=petrified%20hamlet');
+    return Response.json({
+      id: 'hamlet-tdm-1',
+      name: 'Petrified Hamlet',
+      set: 'sos',
+      set_name: 'Secrets of Strixhaven',
+      collector_number: '259',
+      released_at: '2026-04-24',
+      rarity: 'rare',
+      type_line: 'Land',
+      finishes: ['nonfoil', 'foil'],
+      image_uris: { normal: 'https://img.test/hamlet.jpg' },
+      scryfall_uri: 'https://scryfall.test/card/sos/259/petrified-hamlet',
+    });
+  };
+  try {
+    const lookup = await callTool(env, token.access_token, 'search_card_printings', {
+      name: 'petrified hamlet',
+      limit: 5,
+    });
+    const data = lookup.result.structuredContent;
+    assert.equal(data.status, 'ok');
+    assert.equal(data.candidates.length, 1);
+    assert.equal(data.candidates[0].setCode, 'sos');
+    assert.deepEqual(urls, [
+      'https://api.scryfall.com/cards/search?q=!' + encodeURIComponent('"petrified hamlet"') + '&unique=prints&order=released&dir=desc&include_extras=true&include_variations=true',
+      'https://api.scryfall.com/cards/named?exact=petrified%20hamlet',
+    ]);
   } finally {
     globalThis.fetch = originalFetch;
   }

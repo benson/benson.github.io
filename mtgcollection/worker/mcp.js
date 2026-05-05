@@ -14,6 +14,7 @@ const MCP_PENDING_PREFIX = 'mcp:pending:';
 const MCP_CHAT_CLIENT_ID = 'mtgcollection-chat';
 const CHAT_USAGE_PREFIX = 'mcp:chat-usage:';
 const SCRYFALL_API = 'https://api.scryfall.com';
+const SCRYFALL_USER_AGENT = 'MTGCollection/0.1 (https://bensonperry.com/mtgcollection)';
 const SCRYFALL_PRINTINGS_MAX_PAGES = 3;
 const SCRYFALL_PRINTINGS_HARD_CAP = 150;
 
@@ -691,13 +692,19 @@ function getScryfallUsdPrice(card, finish) {
 }
 
 async function fetchScryfallJson(url) {
-  const res = await fetch(url, {
-    headers: {
-      Accept: 'application/json',
-    },
-  });
-  const data = await res.json().catch(() => ({}));
-  return { ok: res.ok, status: res.status, data };
+  try {
+    const res = await fetch(url, {
+      headers: {
+        Accept: 'application/json',
+        'User-Agent': SCRYFALL_USER_AGENT,
+        'X-User-Agent': SCRYFALL_USER_AGENT,
+      },
+    });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, status: res.status, data };
+  } catch (e) {
+    return { ok: false, status: 0, data: { error: e.message || String(e) } };
+  }
 }
 
 function normalizeExactCardName(value) {
@@ -719,19 +726,23 @@ function preferExactScryfallPrintings(cards, name) {
   return exact.length ? exact : cards;
 }
 
-async function fetchScryfallPrintingsByName(name, { maxPages = SCRYFALL_PRINTINGS_MAX_PAGES, hardCap = SCRYFALL_PRINTINGS_HARD_CAP, allowFuzzy = true } = {}) {
-  let url = buildScryfallPrintingsSearchUrl(name);
+function emptyScryfallPrintingsResult(extra = {}) {
+  return { cards: [], totalCount: 0, truncated: false, fuzzyName: '', lookupError: '', ...extra };
+}
+
+async function fetchScryfallPrintingsFromUrl(url, { maxPages = SCRYFALL_PRINTINGS_MAX_PAGES, hardCap = SCRYFALL_PRINTINGS_HARD_CAP } = {}) {
   const collected = [];
   let pages = 0;
   let totalCards = 0;
+  let lookupError = '';
   while (url && pages < maxPages) {
     const fetched = await fetchScryfallJson(url);
     if (!fetched.ok) {
       if (fetched.status === 404) break;
-      const err = new Error('Scryfall printings lookup failed');
-      err.status = fetched.status;
-      err.data = fetched.data;
-      throw err;
+      lookupError = 'Scryfall printings lookup failed'
+        + (fetched.status ? ' (HTTP ' + fetched.status + ')' : '')
+        + (fetched.data?.details ? ': ' + fetched.data.details : '');
+      break;
     }
     pages++;
     if (typeof fetched.data.total_cards === 'number') totalCards = fetched.data.total_cards;
@@ -744,6 +755,26 @@ async function fetchScryfallPrintingsByName(name, { maxPages = SCRYFALL_PRINTING
     if (collected.length >= hardCap) break;
     url = fetched.data.has_more ? fetched.data.next_page : null;
   }
+  return {
+    cards: collected,
+    totalCount: Math.max(totalCards, collected.length),
+    truncated: collected.length < Math.max(totalCards, collected.length),
+    lookupError,
+  };
+}
+
+async function fetchScryfallNamedCard(name) {
+  const exact = await fetchScryfallJson(SCRYFALL_API + '/cards/named?exact=' + encodeURIComponent(name));
+  if (exact.ok && exact.data?.name) return { card: exact.data, fuzzyName: '' };
+  const fuzzy = await fetchScryfallJson(SCRYFALL_API + '/cards/named?fuzzy=' + encodeURIComponent(name));
+  if (fuzzy.ok && fuzzy.data?.name) return { card: fuzzy.data, fuzzyName: String(fuzzy.data.name || '') };
+  return { card: null, fuzzyName: '' };
+}
+
+async function fetchScryfallPrintingsByName(name, { maxPages = SCRYFALL_PRINTINGS_MAX_PAGES, hardCap = SCRYFALL_PRINTINGS_HARD_CAP, allowFuzzy = true } = {}) {
+  const searched = await fetchScryfallPrintingsFromUrl(buildScryfallPrintingsSearchUrl(name), { maxPages, hardCap });
+  const collected = searched.cards;
+  const totalCards = searched.totalCount;
 
   const exactPrintings = preferExactScryfallPrintings(collected, name);
   if (exactPrintings.length) {
@@ -753,22 +784,36 @@ async function fetchScryfallPrintingsByName(name, { maxPages = SCRYFALL_PRINTING
       totalCount: filteredToExact ? exactPrintings.length : Math.max(totalCards, collected.length),
       truncated: filteredToExact ? false : collected.length < Math.max(totalCards, collected.length),
       fuzzyName: '',
+      lookupError: searched.lookupError,
     };
   }
 
   if (allowFuzzy) {
-    const fuzzy = await fetchScryfallJson(SCRYFALL_API + '/cards/named?fuzzy=' + encodeURIComponent(name));
-    if (fuzzy.ok && fuzzy.data?.name) {
-      const fuzzyName = String(fuzzy.data.name || '');
+    const named = await fetchScryfallNamedCard(name);
+    if (named.card) {
+      const fuzzyName = named.fuzzyName || '';
       if (normalizeExactCardName(fuzzyName) && normalizeExactCardName(fuzzyName) !== normalizeExactCardName(name)) {
         const lookup = await fetchScryfallPrintingsByName(fuzzyName, { maxPages, hardCap, allowFuzzy: false });
         return { ...lookup, fuzzyName };
       }
-      return { cards: [fuzzy.data], totalCount: 1, truncated: false, fuzzyName };
+      if (named.card.prints_search_uri) {
+        const prints = await fetchScryfallPrintingsFromUrl(named.card.prints_search_uri, { maxPages, hardCap });
+        const cards = preferExactScryfallPrintings(prints.cards, named.card.name);
+        if (cards.length) {
+          return {
+            cards,
+            totalCount: cards.length !== prints.cards.length ? cards.length : prints.totalCount,
+            truncated: cards.length !== prints.cards.length ? false : prints.truncated,
+            fuzzyName,
+            lookupError: prints.lookupError || searched.lookupError,
+          };
+        }
+      }
+      return { cards: [named.card], totalCount: 1, truncated: false, fuzzyName, lookupError: searched.lookupError };
     }
   }
 
-  return { cards: [], totalCount: 0, truncated: false, fuzzyName: '' };
+  return emptyScryfallPrintingsResult({ lookupError: searched.lookupError });
 }
 
 function requestedScryfallFinish(raw) {
