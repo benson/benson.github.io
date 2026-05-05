@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHmac } from 'node:crypto';
 import worker from '../worker/worker.js';
 import { applySyncOps } from '../syncReducer.js';
 import { collectionKey } from '../collection.js';
@@ -167,6 +168,12 @@ async function callTool(env, accessToken, name, args = {}) {
   });
 }
 
+function signTestChangeToken(payload, secret = 'test-secret') {
+  const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const sig = createHmac('sha256', secret).update(encoded).digest('base64url');
+  return encoded + '.' + sig;
+}
+
 function card(overrides = {}) {
   return {
     name: 'Sol Ring',
@@ -266,12 +273,12 @@ test('mcp: preview/apply inventory move updates snapshot, revision, and history'
   assert.match(state.snapshot.history[0].summary, /Moved 1 Sol Ring/);
 });
 
-test('mcp: preview add inventory resolves a named card through Scryfall', async () => {
+test('mcp: preview add inventory resolves an exact printing through Scryfall', async () => {
   const { env, state } = fakeSyncEnv(emptySnapshot());
   const token = await issueMcpToken(env);
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async url => {
-    assert.equal(String(url), 'https://api.scryfall.com/cards/named?exact=maelstrom%20artisan');
+    assert.equal(String(url), 'https://api.scryfall.com/cards/znr/220');
     return Response.json({
       id: 'maelstrom-artisan-id',
       name: 'Maelstrom Artisan',
@@ -295,6 +302,8 @@ test('mcp: preview add inventory resolves a named card through Scryfall', async 
   try {
     const preview = await callTool(env, token.access_token, 'preview_add_inventory_item', {
       name: 'maelstrom artisan',
+      setCode: 'znr',
+      cn: '220',
       finish: 'nonfoil',
       condition: 'lp',
     });
@@ -321,6 +330,67 @@ test('mcp: preview add inventory resolves a named card through Scryfall', async 
   }
 });
 
+test('mcp: preview add inventory asks for an exact printing when only a name is provided', async () => {
+  const { env } = fakeSyncEnv(emptySnapshot());
+  const token = await issueMcpToken(env);
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    throw new Error('name-only add should not call Scryfall');
+  };
+  try {
+    const preview = await callTool(env, token.access_token, 'preview_add_inventory_item', {
+      name: 'dreamroot cascade',
+      condition: 'nm',
+    });
+    const data = preview.result.structuredContent;
+    assert.equal(data.status, 'needs_clarification');
+    assert.equal(data.changeToken, undefined);
+    assert.ok(data.missingFields.includes('setCode'));
+    assert.ok(data.missingFields.includes('collectorNumber'));
+    assert.match(data.message, /exact Scryfall printing/i);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp: preview add inventory rejects incomplete Scryfall metadata', async () => {
+  const { env, state } = fakeSyncEnv(emptySnapshot());
+  const token = await issueMcpToken(env);
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async url => {
+    assert.equal(String(url), 'https://api.scryfall.com/cards/vow/262');
+    return Response.json({
+      id: 'dreamroot-id',
+      name: 'Dreamroot Cascade',
+      set: 'vow',
+      set_name: 'Innistrad: Crimson Vow',
+      collector_number: '262',
+      lang: 'en',
+      cmc: 0,
+      colors: [],
+      color_identity: ['G', 'U'],
+      type_line: 'Land',
+      finishes: ['nonfoil', 'foil'],
+      prices: { usd: '3.00' },
+    });
+  };
+  try {
+    const preview = await callTool(env, token.access_token, 'preview_add_inventory_item', {
+      setCode: 'vow',
+      cn: '262',
+      condition: 'nm',
+    });
+    const data = preview.result.structuredContent;
+    assert.equal(data.status, 'needs_clarification');
+    assert.equal(data.changeToken, undefined);
+    assert.ok(data.missingFields.includes('rarity'));
+    assert.ok(data.missingFields.includes('imageUrl'));
+    assert.equal(state.snapshot.app.collection.length, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('mcp: preview add inventory tolerates chat-coerced string args', async () => {
   const { env, state } = fakeSyncEnv(emptySnapshot());
   const token = await issueMcpToken(env);
@@ -331,7 +401,7 @@ test('mcp: preview add inventory tolerates chat-coerced string args', async () =
 
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async url => {
-    assert.equal(String(url), 'https://api.scryfall.com/cards/named?exact=prismari%20charm');
+    assert.equal(String(url), 'https://api.scryfall.com/cards/stx/211');
     return Response.json({
       id: 'prismari-charm-id',
       name: 'Prismari Charm',
@@ -355,6 +425,8 @@ test('mcp: preview add inventory tolerates chat-coerced string args', async () =
   try {
     const preview = await callTool(env, token.access_token, 'preview_add_inventory_item', {
       name: 'prismari charm',
+      setCode: 'stx',
+      collectorNumber: '211',
       qty: '2',
       finish: 'foil',
       location: 'box spells',
@@ -377,7 +449,7 @@ test('mcp: preview add inventory tolerates chat-coerced string args', async () =
   }
 });
 
-test('mcp: preview add falls back to card name when model-supplied printing misses', async () => {
+test('mcp: preview add rejects a guessed printing instead of falling back to card name', async () => {
   const { env, state } = fakeSyncEnv(emptySnapshot());
   const token = await issueMcpToken(env);
   const originalFetch = globalThis.fetch;
@@ -387,26 +459,7 @@ test('mcp: preview add falls back to card name when model-supplied printing miss
     if (String(url) === 'https://api.scryfall.com/cards/ddu/179') {
       return Response.json({ error: 'not found' }, { status: 404 });
     }
-    assert.equal(String(url), 'https://api.scryfall.com/cards/named?exact=dreamroot%20cascade');
-    return Response.json({
-      id: 'dreamroot-id',
-      name: 'Dreamroot Cascade',
-      set: 'vow',
-      set_name: 'Innistrad: Crimson Vow',
-      collector_number: '262',
-      lang: 'en',
-      rarity: 'rare',
-      cmc: 0,
-      colors: [],
-      color_identity: ['G', 'U'],
-      type_line: 'Land',
-      oracle_text: 'Dreamroot Cascade enters tapped...',
-      legalities: { commander: 'legal' },
-      finishes: ['nonfoil', 'foil'],
-      image_uris: { normal: 'https://img.test/dreamroot.jpg' },
-      prices: { usd: '3.00' },
-      scryfall_uri: 'https://scryfall.test/card/vow/262/dreamroot-cascade',
-    });
+    throw new Error('should not resolve guessed printings by name');
   };
   try {
     const preview = await callTool(env, token.access_token, 'preview_add_inventory_item', {
@@ -416,23 +469,11 @@ test('mcp: preview add falls back to card name when model-supplied printing miss
       condition: 'nm',
     });
     const data = preview.result.structuredContent;
-    assert.equal(data.status, 'preview');
-    assert.equal(data.card.name, 'Dreamroot Cascade');
-    assert.equal(data.card.setCode, 'vow');
-    assert.deepEqual(urls, [
-      'https://api.scryfall.com/cards/ddu/179',
-      'https://api.scryfall.com/cards/named?exact=dreamroot%20cascade',
-    ]);
-
-    const applied = await callTool(env, token.access_token, 'apply_collection_change', {
-      changeToken: data.changeToken,
-    });
-    assert.equal(applied.result.structuredContent.status, 'applied');
-    const added = state.snapshot.app.collection[0];
-    assert.equal(added.scryfallId, 'dreamroot-id');
-    assert.equal(added.setCode, 'vow');
-    assert.equal(added.cn, '262');
-    assert.equal(added.imageUrl, 'https://img.test/dreamroot.jpg');
+    assert.equal(data.status, 'needs_clarification');
+    assert.equal(data.changeToken, undefined);
+    assert.match(data.message, /not found/i);
+    assert.deepEqual(urls, ['https://api.scryfall.com/cards/ddu/179']);
+    assert.equal(state.snapshot.app.collection.length, 0);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -458,6 +499,59 @@ test('mcp: stale preview tokens are rejected on apply', async () => {
   assert.match(applied.error.message, /changed since preview/);
   assert.equal(applied.error.data.expectedRevision, 1);
   assert.equal(applied.error.data.actualRevision, 2);
+});
+
+test('mcp: apply rejects older add tokens with incomplete card metadata', async () => {
+  const { env, state } = fakeSyncEnv(emptySnapshot(), 1);
+  const token = await issueMcpToken(env);
+  const partialEntry = {
+    name: 'Dreamroot Cascade',
+    resolvedName: 'Dreamroot Cascade',
+    setCode: 'ddu',
+    cn: '179',
+    finish: 'normal',
+    condition: 'near_mint',
+    language: 'en',
+    qty: 1,
+    location: null,
+  };
+  const ops = [
+    {
+      id: 'old-add-op',
+      type: 'collection.qtyDelta',
+      createdAt: Date.now(),
+      payload: { key: 'ddu:179:Dreamroot Cascade:normal:near_mint:en:', delta: 1, entry: partialEntry },
+    },
+    {
+      id: 'old-history-op',
+      type: 'history.append',
+      createdAt: Date.now(),
+      payload: {
+        event: {
+          id: 'old-event',
+          type: 'add',
+          summary: 'Added 1 Dreamroot Cascade',
+          source: 'mcp',
+          mcp: { changeId: 'old-change' },
+        },
+      },
+    },
+  ];
+  const changeToken = signTestChangeToken({
+    userId: 'user_1',
+    scopes: ['collection.read', 'collection.write'],
+    expectedRevision: 1,
+    changeId: 'old-change',
+    summary: 'Added 1 Dreamroot Cascade',
+    ops,
+    expiresAt: Date.now() + 60_000,
+  });
+
+  const applied = await callTool(env, token.access_token, 'apply_collection_change', { changeToken });
+  assert.equal(applied.error.code, -32000);
+  assert.match(applied.error.message, /incomplete card metadata/);
+  assert.deepEqual(applied.error.data.missingFields.sort(), ['finishes', 'imageUrl', 'rarity', 'scryfallId', 'setName', 'typeLine'].sort());
+  assert.equal(state.snapshot.app.collection.length, 0);
 });
 
 test('mcp: apply endpoint can commit multiple preview tokens in one sync push', async () => {

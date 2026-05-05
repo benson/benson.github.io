@@ -700,12 +700,14 @@ async function resolveScryfallCardForAdd(raw) {
   if (scryfallId) {
     const fetched = await fetchScryfallJson(SCRYFALL_API + '/cards/' + encodeURIComponent(scryfallId));
     if (fetched.ok) return fetched.data;
+    return null;
   }
   const setCode = String(raw.setCode || raw.set || '').trim().toLowerCase();
   const cn = String(raw.cn || raw.collectorNumber || '').trim();
   if (setCode && cn) {
     const fetched = await fetchScryfallJson(SCRYFALL_API + '/cards/' + encodeURIComponent(setCode) + '/' + encodeURIComponent(cn));
     if (fetched.ok) return fetched.data;
+    return null;
   }
   const name = String(raw.name || raw.resolvedName || raw.query || '').trim();
   if (!name) return null;
@@ -745,6 +747,59 @@ function mergeScryfallCardIntoInventoryEntry(raw, card, location) {
     price: priced.price,
     priceFallback: priced.priceFallback,
   };
+}
+
+function hasExactScryfallPrintingTarget(raw = {}) {
+  if (String(raw.scryfallId || '').trim()) return true;
+  const setCode = String(raw.setCode || raw.set || '').trim();
+  const cn = String(raw.cn || raw.collectorNumber || '').trim();
+  return !!(setCode && cn);
+}
+
+const REQUIRED_MCP_ADD_CARD_FIELDS = [
+  ['scryfallId', 'scryfallId'],
+  ['resolvedName', 'resolvedName'],
+  ['setCode', 'setCode'],
+  ['setName', 'setName'],
+  ['cn', 'collectorNumber'],
+  ['rarity', 'rarity'],
+  ['typeLine', 'typeLine'],
+  ['imageUrl', 'imageUrl'],
+];
+
+function missingMcpAddCardFields(entry = {}) {
+  const missing = [];
+  for (const [key, label] of REQUIRED_MCP_ADD_CARD_FIELDS) {
+    if (!String(entry[key] ?? '').trim()) missing.push(label);
+  }
+  if (!Array.isArray(entry.finishes) || !entry.finishes.length) missing.push('finishes');
+  return missing;
+}
+
+function mcpAddNeedsClarification({ missingFields = [], message = '' } = {}) {
+  const fields = [...new Set(missingFields.map(String).filter(Boolean))];
+  return {
+    status: 'needs_clarification',
+    error: message || 'A card add preview requires a complete real Scryfall printing before it can create a change token.',
+    missingFields: fields,
+    message: message || 'Ask the user for a Scryfall card id, Scryfall URL, or exact set code and collector number, then retry the preview.',
+  };
+}
+
+function addPreviewOpsMissingCardFields(ops = []) {
+  const isAddEvent = ops.some(op => op?.type === 'history.append' && op.payload?.event?.type === 'add');
+  if (!isAddEvent) return [];
+  const missing = [];
+  for (const op of ops) {
+    const payload = op?.payload || {};
+    const entry = payload.entry;
+    if (op?.type === 'collection.qtyDelta' && (parseInt(payload.delta, 10) || 0) > 0 && entry) {
+      missing.push(...missingMcpAddCardFields(entry));
+    } else if ((op?.type === 'collection.upsert' || op?.type === 'collection.replace') && entry) {
+      missing.push(...missingMcpAddCardFields(entry));
+    }
+  }
+  return [...new Set(missing)];
 }
 
 function applyOne(snapshot, op) {
@@ -921,6 +976,13 @@ async function previewFromOps(env, auth, cloud, { summary, ops, event }) {
     },
   };
   const allOps = [...ops, makeSyncOp('history.append', { event: eventWithMcp })];
+  const missingAddFields = addPreviewOpsMissingCardFields(allOps);
+  if (missingAddFields.length) {
+    return mcpAddNeedsClarification({
+      missingFields: missingAddFields,
+      message: 'The add preview resolved to incomplete card metadata, so no change token was created.',
+    });
+  }
   const afterSnapshot = applyOps(beforeSnapshot, allOps);
   const token = await signChangeToken(env, {
     userId: auth.userId,
@@ -1097,23 +1159,28 @@ async function toolPreviewAddInventoryItem(env, deps, auth, args = {}) {
   requireWritePreviewArgs(auth);
   const cloud = await currentCloud(env, deps, auth.userId);
   const raw = args.entry && typeof args.entry === 'object' ? args.entry : args;
+  if (!hasExactScryfallPrintingTarget(raw)) {
+    return mcpAddNeedsClarification({
+      missingFields: ['scryfallId', 'setCode', 'collectorNumber'],
+      message: 'Inventory adds need an exact Scryfall printing. Ask the user for the set code and collector number, or a Scryfall card URL/id.',
+    });
+  }
   const location = normalizeLocation(raw.location);
   const resolvedCard = await resolveScryfallCardForAdd(raw);
-  const entry = resolvedCard ? mergeScryfallCardIntoInventoryEntry(raw, resolvedCard, location) : {
-    name: String(raw.name || raw.resolvedName || '').trim(),
-    resolvedName: String(raw.resolvedName || raw.name || '').trim(),
-    scryfallId: String(raw.scryfallId || '').trim(),
-    setCode: String(raw.setCode || raw.set || '').toLowerCase(),
-    cn: String(raw.cn || raw.collectorNumber || '').trim(),
-    finish: normalizeMcpFinish(raw.finish),
-    condition: normalizeMcpCondition(raw.condition),
-    language: String(raw.language || 'en').toLowerCase(),
-    qty: Math.max(1, parseInt(raw.qty, 10) || 1),
-    location,
-    tags: Array.isArray(raw.tags) ? raw.tags.map(String) : [],
-  };
-  if (!entry.name && !entry.scryfallId) return { status: 'invalid', error: 'entry.name or entry.scryfallId is required' };
-  if (!entry.scryfallId && (!entry.setCode || !entry.cn)) return { status: 'invalid', error: 'entry.scryfallId or setCode+cn is required' };
+  if (!resolvedCard) {
+    return mcpAddNeedsClarification({
+      missingFields: ['scryfallId', 'setCode', 'collectorNumber'],
+      message: 'That Scryfall printing was not found. Ask the user to confirm the set code and collector number, or provide a Scryfall card URL/id.',
+    });
+  }
+  const entry = mergeScryfallCardIntoInventoryEntry(raw, resolvedCard, location);
+  const missingFields = missingMcpAddCardFields(entry);
+  if (missingFields.length) {
+    return mcpAddNeedsClarification({
+      missingFields,
+      message: 'Scryfall returned incomplete metadata for that printing, so no add preview was created.',
+    });
+  }
   const locKey = locationKey(location);
   const ops = [];
   if (location && !containerFromSnapshot(cloud.snapshot, location)) {
@@ -1358,6 +1425,17 @@ async function toolApplyCollectionChange(env, deps, auth, args = {}) {
     if (!Array.isArray(payload.scopes) || !payload.scopes.includes(MCP_WRITE_SCOPE)) {
       throw new Error('change token does not include collection.write');
     }
+    const missingAddFields = addPreviewOpsMissingCardFields(payload.ops);
+    if (missingAddFields.length) {
+      const err = new Error('change token contains incomplete card metadata');
+      err.status = 400;
+      err.data = {
+        status: 'needs_clarification',
+        missingFields: missingAddFields,
+        message: 'Ask the user for an exact Scryfall printing, then create a fresh preview.',
+      };
+      throw err;
+    }
     payloads.push(payload);
   }
   const cloud = await currentCloud(env, deps, auth.userId);
@@ -1468,7 +1546,7 @@ const TOOL_DEFINITIONS = [
     },
     required: ['toLocation'],
   }],
-  ['preview_add_inventory_item', 'Preview adding a physical inventory entry. A card name is enough; the server resolves it through Scryfall.', {
+  ['preview_add_inventory_item', 'Preview adding a physical inventory entry. Requires an exact real Scryfall printing: provide scryfallId, or setCode/set plus cn/collectorNumber. Do not guess printings; name-only adds return needs_clarification.', {
     type: 'object',
     properties: {
       name: { type: 'string' },
