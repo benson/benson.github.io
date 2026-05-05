@@ -104,6 +104,15 @@ export function bindLocationHomeInteractions({
   };
 
   const onClick = event => {
+    if (event.target.closest('[data-location-create-focus]')) {
+      const input = locationsEl.querySelector('#locationsCreateName');
+      if (input) {
+        input.focus();
+        input.select?.();
+      }
+      return;
+    }
+
     const card = event.target.closest('.location-card');
     if (!card) return;
     const loc = { type: card.dataset.locType, name: card.dataset.locName };

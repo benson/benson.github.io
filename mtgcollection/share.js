@@ -119,6 +119,11 @@ function pickDeckMetadata(meta = {}) {
     partnerScryfallUri: cleanText(meta.partnerScryfallUri),
     partnerImageUrl: cleanText(meta.partnerImageUrl),
     partnerBackImageUrl: cleanText(meta.partnerBackImageUrl),
+    coverName: cleanText(meta.coverName),
+    coverScryfallId: cleanText(meta.coverScryfallId),
+    coverImageUrl: cleanText(meta.coverImageUrl),
+    coverBackImageUrl: cleanText(meta.coverBackImageUrl),
+    coverFinish: cleanText(meta.coverFinish),
     companion: cleanText(meta.companion),
   };
 }

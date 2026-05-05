@@ -89,6 +89,24 @@ test('bindLocationHomeInteractions: creates locations and refreshes the shell', 
   assert.equal(locationsEl.querySelector('#locationsCreateName').value, '');
 });
 
+test('bindLocationHomeInteractions: ghost create tile focuses the deck name field', () => {
+  const { win, locationsEl } = setup(`
+    <form id="locationsCreateForm">
+      <input type="hidden" name="locationsCreateType" value="deck">
+      <input id="locationsCreateName" value="breya">
+    </form>
+    <button type="button" data-location-create-focus>add deck</button>
+  `);
+  bindLocationHomeInteractions({
+    locationsEl,
+    documentObj: win.document,
+  });
+
+  click(win, locationsEl.querySelector('[data-location-create-focus]'));
+
+  assert.equal(win.document.activeElement, locationsEl.querySelector('#locationsCreateName'));
+});
+
 test('bindLocationHomeInteractions: records storage container creates', () => {
   const { win, locationsEl } = setup(`
     <form id="locationsCreateForm">

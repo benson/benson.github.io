@@ -80,6 +80,11 @@ export function defaultDeckMetadata(name = '') {
     partnerScryfallUri: '',
     partnerImageUrl: '',
     partnerBackImageUrl: '',
+    coverName: '',
+    coverScryfallId: '',
+    coverImageUrl: '',
+    coverBackImageUrl: '',
+    coverFinish: '',
     companion: '',
   };
 }
@@ -229,6 +234,11 @@ export function makeContainer(raw, now = Date.now()) {
     out.deck.partnerScryfallUri = String(out.deck.partnerScryfallUri || '');
     out.deck.partnerImageUrl = String(out.deck.partnerImageUrl || '');
     out.deck.partnerBackImageUrl = String(out.deck.partnerBackImageUrl || '');
+    out.deck.coverName = String(out.deck.coverName || '');
+    out.deck.coverScryfallId = String(out.deck.coverScryfallId || '');
+    out.deck.coverImageUrl = String(out.deck.coverImageUrl || '');
+    out.deck.coverBackImageUrl = String(out.deck.coverBackImageUrl || '');
+    out.deck.coverFinish = String(out.deck.coverFinish || '');
     out.deck.companion = String(out.deck.companion || '');
   }
   return out;
@@ -292,6 +302,11 @@ export function normalizeContainers(rawContainers = {}) {
       c.deck.partnerScryfallUri = String(c.deck.partnerScryfallUri || '');
       c.deck.partnerImageUrl = String(c.deck.partnerImageUrl || '');
       c.deck.partnerBackImageUrl = String(c.deck.partnerBackImageUrl || '');
+      c.deck.coverName = String(c.deck.coverName || '');
+      c.deck.coverScryfallId = String(c.deck.coverScryfallId || '');
+      c.deck.coverImageUrl = String(c.deck.coverImageUrl || '');
+      c.deck.coverBackImageUrl = String(c.deck.coverBackImageUrl || '');
+      c.deck.coverFinish = String(c.deck.coverFinish || '');
       c.deck.companion = String(c.deck.companion || '');
       c.deckList = normalizeDeckList(c.deckList);
     }

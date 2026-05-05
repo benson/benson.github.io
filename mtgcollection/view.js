@@ -106,6 +106,46 @@ export function containerIdentityHtml(loc) {
     <span class="loc-pill loc-pill-${esc(loc.type)} container-identity-type">${icon}<span>${esc(loc.type)}</span></span>`;
 }
 
+function containerIdentityEditHtml(loc) {
+  return `<form class="container-identity-edit" data-container-rename-form data-loc-type="${esc(loc.type)}" data-loc-name="${esc(loc.name)}">
+    <input class="container-identity-input" name="containerName" type="text" value="${esc(loc.name)}" aria-label="rename ${esc(loc.type)}">
+    <button class="btn container-identity-save" type="submit">save</button>
+    <button class="btn btn-secondary container-identity-cancel" type="button" data-container-rename-cancel>cancel</button>
+    <span class="loc-pill loc-pill-${esc(loc.type)} container-identity-type">${LOC_ICONS[loc.type] || ''}<span>${esc(loc.type)}</span></span>
+  </form>`;
+}
+
+function startContainerIdentityEdit(strip, loc) {
+  strip.innerHTML = containerIdentityEditHtml(loc);
+  const input = strip.querySelector('.container-identity-input');
+  input?.focus();
+  input?.select();
+}
+
+function cancelContainerIdentityEdit(strip, loc) {
+  strip.innerHTML = containerIdentityHtml(loc);
+}
+
+function saveContainerIdentityEdit(form) {
+  const loc = { type: form.dataset.locType, name: form.dataset.locName };
+  const input = form.querySelector('.container-identity-input');
+  const nextName = (input?.value || '').trim();
+  if (!nextName || nextName === loc.name) {
+    cancelContainerIdentityEdit(form.parentElement, loc);
+    return;
+  }
+  const next = { type: loc.type, name: nextName };
+  const result = renameContainerCommand(loc, next);
+  if (!result.ok) {
+    input?.focus();
+    input?.select();
+    return;
+  }
+  setActiveContainerRoute(next);
+  save();
+  render();
+}
+
 function syncContainerIdentityStrip(containers = []) {
   const strip = document.getElementById('containerIdentityStrip');
   if (!strip) return;
@@ -439,6 +479,36 @@ function applyDeckIdentityEntries(model, deckCards = []) {
   return model;
 }
 
+function deckCoverChoices(deckCards = []) {
+  const seen = new Set();
+  const choices = [];
+  for (const card of deckCards) {
+    const scryfallId = String(card?.scryfallId || '').trim();
+    const imageUrl = String(card?.imageUrl || '').trim();
+    if (!scryfallId || !imageUrl || seen.has(scryfallId)) continue;
+    seen.add(scryfallId);
+    choices.push({
+      scryfallId,
+      name: card.resolvedName || card.name || scryfallId,
+      imageUrl,
+      backImageUrl: card.backImageUrl || '',
+      finish: card.finish || 'normal',
+    });
+  }
+  return choices;
+}
+
+function applyDeckCoverEntry(model, deckCards = []) {
+  if (!model.coverScryfallId) return model;
+  const entry = deckCards.find(c => c.scryfallId === model.coverScryfallId && c.imageUrl);
+  if (!entry) return model;
+  model.coverName = entry.resolvedName || entry.name || model.coverName;
+  model.coverImageUrl = entry.imageUrl || model.coverImageUrl;
+  model.coverBackImageUrl = entry.backImageUrl || model.coverBackImageUrl;
+  model.coverFinish = entry.finish || 'normal';
+  return model;
+}
+
 function renderSampleHandPanel() {
   renderDeckSampleHandPanel({
     handEl: document.getElementById('deckHandCards'),
@@ -477,8 +547,11 @@ function renderDeckView(list) {
   setTotalsStrip(renderDeckTotals(stats));
   const statHtml = renderDeckStatsHtml(boards.main);
   const format = meta.format || state.selectedFormat || 'unspecified format';
-  const headerModel = applyDeckIdentityEntries(
-    deckDetailsViewModel(deck, meta, stats, state.selectedFormat),
+  const headerModel = applyDeckCoverEntry(
+    applyDeckIdentityEntries(
+      deckDetailsViewModel(deck, { ...meta, coverChoices: deckCoverChoices(list) }, stats, state.selectedFormat),
+      list
+    ),
     list
   );
   const modeBody = state.deckMode === 'stats'
@@ -498,8 +571,8 @@ function renderDeckView(list) {
   </div>`;
 
   const cols = groupDeck(boards.main, state.deckGroupBy);
-  // Default preview: commander art if the deck has one, otherwise the first
-  // card in the visual grid (today's behavior).
+  // Default preview: commander art if the deck has one; non-commander decks
+  // can pin a cover card; otherwise use the first card in the visual grid.
   const commanderPreview = headerModel.commanderImageUrl
     ? {
         name: headerModel.commander || '',
@@ -511,7 +584,18 @@ function renderDeckView(list) {
         price: 0,
       }
     : null;
-  deckPreviewPanel?.setCard(commanderPreview || firstCardForPanel(cols) || list[0] || null);
+  const coverPreview = !commanderPreview && headerModel.coverImageUrl
+    ? {
+        name: headerModel.coverName || '',
+        resolvedName: headerModel.coverName || '',
+        imageUrl: headerModel.coverImageUrl,
+        backImageUrl: headerModel.coverBackImageUrl || '',
+        qty: 1,
+        finish: headerModel.coverFinish || 'normal',
+        price: 0,
+      }
+    : null;
+  deckPreviewPanel?.setCard(commanderPreview || coverPreview || firstCardForPanel(cols) || list[0] || null);
   renderSampleHandPanel();
   const summary = document.getElementById('deckSummary');
   summary.textContent = stats.total + ' cards - ' + format;
@@ -553,16 +637,29 @@ export function initView() {
   const identityStrip = document.getElementById('containerIdentityStrip');
   identityStrip?.addEventListener('click', event => {
     const button = event.target.closest('[data-container-rename]');
+    const cancel = event.target.closest('[data-container-rename-cancel]');
+    if (cancel) {
+      const form = cancel.closest('[data-container-rename-form]');
+      if (!form) return;
+      cancelContainerIdentityEdit(identityStrip, { type: form.dataset.locType, name: form.dataset.locName });
+      return;
+    }
     if (!button) return;
     const loc = { type: button.dataset.locType, name: button.dataset.locName };
-    const nextName = globalThis.prompt?.('rename ' + loc.type, loc.name);
-    if (nextName == null) return;
-    const next = { type: loc.type, name: nextName };
-    const result = renameContainerCommand(loc, next);
-    if (!result.ok) return;
-    setActiveContainerRoute(next);
-    save();
-    render();
+    startContainerIdentityEdit(identityStrip, loc);
+  });
+  identityStrip?.addEventListener('submit', event => {
+    const form = event.target.closest('[data-container-rename-form]');
+    if (!form) return;
+    event.preventDefault();
+    saveContainerIdentityEdit(form);
+  });
+  identityStrip?.addEventListener('keydown', event => {
+    if (event.key !== 'Escape') return;
+    const form = event.target.closest('[data-container-rename-form]');
+    if (!form) return;
+    event.preventDefault();
+    cancelContainerIdentityEdit(identityStrip, { type: form.dataset.locType, name: form.dataset.locName });
   });
 
   bindAppShellActions({

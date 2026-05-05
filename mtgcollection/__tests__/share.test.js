@@ -26,6 +26,11 @@ const sampleDeck = () => ({
     partnerScryfallId: '',
     partnerImageUrl: '',
     partnerBackImageUrl: '',
+    coverName: 'Sol Ring',
+    coverScryfallId: 'sol-ring-id',
+    coverImageUrl: 'https://img/sol',
+    coverBackImageUrl: '',
+    coverFinish: 'normal',
     companion: '',
   },
   deckList: [
@@ -60,6 +65,8 @@ test('pickDeckSharePayload: includes deck metadata + decklist', () => {
   assert.equal(out.container.name, 'breya');
   assert.equal(out.container.deck.commander, 'Breya, Etherium Shaper');
   assert.equal(out.container.deck.commanderImageUrl, 'https://img/breya-front');
+  assert.equal(out.container.deck.coverName, 'Sol Ring');
+  assert.equal(out.container.deck.coverImageUrl, 'https://img/sol');
   assert.equal(out.container.deckList.length, 1);
   assert.equal(out.container.deckList[0].name, 'Sol Ring');
 });

@@ -36,6 +36,23 @@ test('renderDecksHomeHtml: renders only matching decks and distinguishes empty r
   );
 });
 
+test('renderDecksHomeHtml: shows a ghost add deck tile for the empty decks page', () => {
+  const html = renderDecksHomeHtml([]);
+
+  assert.match(html, /class="deck-home-add-card"/);
+  assert.match(html, /data-location-create-focus/);
+  assert.match(html, />add deck</);
+  assert.doesNotMatch(html, /no decks yet/);
+});
+
+test('renderDecksHomeHtml: uses non-commander cover art when commander art is absent', () => {
+  const html = renderDecksHomeHtml([
+    { ...deck('Modern Burn', 'modern'), deck: { title: 'Modern Burn', format: 'modern', coverImageUrl: 'https://img/cover' } },
+  ]);
+
+  assert.match(html, /<img src="https:\/\/img\/cover"/);
+});
+
 test('storageMatchesHomeFilters: filters binder and box containers by name and type', () => {
   assert.equal(storageMatchesHomeFilters({ type: 'binder', name: 'Trade Binder' }, { query: 'trade' }), true);
   assert.equal(storageMatchesHomeFilters({ type: 'box', name: 'Bulk Box' }, { query: 'trade' }), false);

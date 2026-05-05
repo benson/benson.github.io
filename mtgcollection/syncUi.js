@@ -62,32 +62,96 @@ function openExportModal() {
   exportModal.querySelector('[data-export-choice="collection-csv"]')?.focus();
 }
 
+function createSyncActionButton(documentObj, action, label) {
+  const button = documentObj.createElement('button');
+  button.type = 'button';
+  button.dataset.syncAction = action;
+  button.textContent = label;
+  return button;
+}
+
+function ensureStatusDom(documentObj = document) {
+  if (!root || root.querySelector('.sync-chip')) return;
+
+  const chip = documentObj.createElement('button');
+  chip.className = 'sync-chip sync-chip-local';
+  chip.type = 'button';
+  chip.dataset.syncAction = 'toggle';
+  chip.setAttribute('aria-expanded', 'false');
+
+  const dot = documentObj.createElement('span');
+  dot.className = 'sync-dot';
+  dot.setAttribute('aria-hidden', 'true');
+  const label = documentObj.createElement('span');
+  label.className = 'sync-label';
+  chip.append(dot, label);
+
+  const menu = documentObj.createElement('div');
+  menu.className = 'sync-menu';
+  menu.hidden = true;
+
+  const meta = documentObj.createElement('div');
+  meta.className = 'sync-menu-meta';
+  const owner = documentObj.createElement('strong');
+  const detail = documentObj.createElement('span');
+  detail.className = 'sync-menu-detail';
+  meta.append(owner, detail);
+
+  const actions = documentObj.createElement('div');
+  actions.className = 'sync-menu-actions';
+  const exportButton = createSyncActionButton(documentObj, 'export', 'export data');
+
+  menu.append(meta, actions, exportButton);
+  root.append(chip, menu);
+}
+
+function syncAccountActions(menu, { signedIn, showManualSync }) {
+  const actions = menu.querySelector('.sync-menu-actions');
+  if (!actions) return;
+  const key = `${signedIn ? 'in' : 'out'}:${showManualSync ? 'manual' : 'auto'}`;
+  if (actions.dataset.actionsKey === key) return;
+  actions.dataset.actionsKey = key;
+  actions.replaceChildren();
+
+  const documentObj = menu.ownerDocument;
+  if (signedIn) {
+    actions.append(createSyncActionButton(documentObj, 'account', 'account'));
+    if (showManualSync) actions.append(createSyncActionButton(documentObj, 'sync', 'retry sync'));
+    actions.append(createSyncActionButton(documentObj, 'sign-out', 'sign out'));
+  } else {
+    actions.append(createSyncActionButton(documentObj, 'sign-in', 'sign in'));
+  }
+}
+
 function renderStatus(status) {
   if (!root) return;
+  ensureStatusDom(root.ownerDocument || document);
   const signedIn = !!status.user;
   const showManualSync = signedIn && (status.pending || status.mode === 'queued' || status.mode === 'error');
-  const accountActions = signedIn
-    ? '<button type="button" data-sync-action="account">account</button>'
-      + (showManualSync ? '<button type="button" data-sync-action="sync">retry sync</button>' : '')
-      + '<button type="button" data-sync-action="sign-out">sign out</button>'
-    : '<button type="button" data-sync-action="sign-in">sign in</button>';
-  const pendingText = status.pending ? ' · ' + status.pending + ' queued' : '';
+  const pendingText = status.pending ? ' - ' + status.pending + ' queued' : '';
   const detailText = (status.mode === 'synced' && !status.pending) ? '' : (status.detail || '');
-  const detailHtml = detailText || pendingText ? `<span>${detailText}${pendingText}</span>` : '';
-  root.innerHTML = `
-    <button class="sync-chip sync-chip-${status.mode}" type="button" data-sync-action="toggle" aria-expanded="false">
-      <span class="sync-dot" aria-hidden="true"></span>
-      <span class="sync-label">${status.label || 'local'}</span>
-    </button>
-    <div class="sync-menu" hidden>
-      <div class="sync-menu-meta">
-        <strong>${signedIn ? status.user.label : 'local collection'}</strong>
-        ${detailHtml}
-      </div>
-      ${accountActions}
-      <button type="button" data-sync-action="export">export data</button>
-    </div>
-  `;
+  const chip = root.querySelector('.sync-chip');
+  const menu = root.querySelector('.sync-menu');
+  const mode = status.mode || 'local';
+  chip.className = `sync-chip sync-chip-${mode}`;
+  chip.querySelector('.sync-label').textContent = status.label || 'local';
+  chip.setAttribute('aria-expanded', String(!menu.hidden));
+
+  menu.querySelector('strong').textContent = signedIn ? status.user.label : 'local collection';
+  const detailEl = menu.querySelector('.sync-menu-detail');
+  detailEl.textContent = detailText + pendingText;
+  detailEl.hidden = !(detailText || pendingText);
+  syncAccountActions(menu, { signedIn, showManualSync });
+}
+
+export function renderSyncStatusForTest(status, rootEl) {
+  const previousRoot = root;
+  root = rootEl;
+  try {
+    renderStatus(status);
+  } finally {
+    root = previousRoot;
+  }
 }
 
 export function initSyncUi({ documentObj = document } = {}) {

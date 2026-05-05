@@ -69,6 +69,10 @@ export function deckOwnership(deck) {
   return { total, owned, value };
 }
 
+function deckHomeImageUrl(meta = {}) {
+  return String(meta.commanderImageUrl || meta.coverImageUrl || '').trim();
+}
+
 export function deckMatchesHomeFilters(deck, { query = '', formats = [] } = {}) {
   const q = String(query || '').trim().toLowerCase();
   const deckFormat = deck?.deck?.format || '';
@@ -89,19 +93,30 @@ export function renderDecksHomeHtml(containers, filters = {}) {
     <input id="locationsCreateName" type="text" placeholder="deck name" autocomplete="off">
     <button class="btn" type="submit">create deck</button>
   </form>`;
+  const emptyDeckTile = `<button class="deck-home-add-card" type="button" data-location-create-focus aria-label="add deck">
+    <span class="deck-home-add-art" aria-hidden="true">
+      ${LOC_ICONS.deck}
+      <span class="deck-home-add-plus">+</span>
+    </span>
+    <span class="deck-home-add-body">
+      <span class="deck-home-add-title">add deck</span>
+      <span class="deck-home-add-stats">empty deck</span>
+    </span>
+  </button>`;
   const tiles = decks.map(c => {
     const meta = c.deck || defaultDeckMetadata(c.name);
     const own = deckOwnership(c);
     const formatBadge = meta.format
       ? `<span class="deck-home-badge deck-home-format">${esc(meta.format)}</span>`
       : '';
-    const commanderArt = meta.commanderImageUrl
-      ? `<div class="deck-home-art"><img src="${esc(meta.commanderImageUrl)}" alt="" loading="lazy"></div>`
+    const coverImageUrl = deckHomeImageUrl(meta);
+    const deckArt = coverImageUrl
+      ? `<div class="deck-home-art"><img src="${esc(coverImageUrl)}" alt="" loading="lazy"></div>`
       : `<div class="deck-home-art deck-home-art-empty">${LOC_ICONS.deck}</div>`;
     const valueStr = own.value > 0 ? ' &middot; $' + own.value.toFixed(2) : '';
     const ownedStr = own.total > 0 ? `${own.owned}/${own.total} owned` : 'empty deck';
     return `<article class="location-card deck-home-card" data-loc-type="deck" data-loc-name="${esc(c.name)}" tabindex="0" role="button" aria-label="open ${esc(c.name)}">
-      ${commanderArt}
+      ${deckArt}
       <div class="location-card-name">
         ${LOC_ICONS.deck}
         <span class="location-card-name-text">${esc(c.name)}</span>
@@ -115,7 +130,7 @@ export function renderDecksHomeHtml(containers, filters = {}) {
       <div class="location-card-stats">${esc(ownedStr)}${valueStr}</div>
       ${containerEditRowHtml(c, ['deck'])}
     </article>`;
-  }).join('') || `<div class="deck-empty-prompt">${allDecks.length ? 'no decks match' : 'no decks yet'}</div>`;
+  }).join('') || (allDecks.length ? `<div class="deck-empty-prompt">no decks match</div>` : emptyDeckTile);
   return createHtml + `<section class="locations-group">
     <div class="locations-list">${tiles}</div>
   </section>`;

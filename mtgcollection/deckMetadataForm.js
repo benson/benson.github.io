@@ -17,10 +17,14 @@ export function readDeckMetadataForm(form, deckName = 'deck') {
   const commanderScryfallUri = String(cmdInput?.dataset.metaAcScryfallUri || '');
   const partnerScryfallId = String(partnerInput?.dataset.metaAcScryfallId || '');
   const partnerScryfallUri = String(partnerInput?.dataset.metaAcScryfallUri || '');
+  const coverSelect = form.querySelector('[data-deck-cover-picker]');
+  const coverOption = coverSelect?.selectedOptions?.[0] || null;
+  const coverScryfallId = String(coverOption?.value || '').trim();
   const commanderName = String(fd.get('commander') || '').trim();
   const partnerName = String(fd.get('partner') || '').trim();
   const hasCommanderPick = isCommander && commanderName && commanderScryfallId;
   const hasPartnerPick = isCommander && partnerName && partnerScryfallId;
+  const hasCoverPick = !isCommander && coverScryfallId && String(coverOption?.dataset.imageUrl || '').trim();
 
   return {
     metadata: {
@@ -37,6 +41,11 @@ export function readDeckMetadataForm(form, deckName = 'deck') {
       partnerScryfallUri: hasPartnerPick ? partnerScryfallUri : '',
       partnerImageUrl: hasPartnerPick ? String(partnerInput?.dataset.metaAcImage || '') : '',
       partnerBackImageUrl: hasPartnerPick ? String(partnerInput?.dataset.metaAcBackImage || '') : '',
+      coverName: hasCoverPick ? String(coverOption?.dataset.cardName || '').trim() : '',
+      coverScryfallId: hasCoverPick ? coverScryfallId : '',
+      coverImageUrl: hasCoverPick ? String(coverOption?.dataset.imageUrl || '').trim() : '',
+      coverBackImageUrl: hasCoverPick ? String(coverOption?.dataset.backImageUrl || '').trim() : '',
+      coverFinish: hasCoverPick ? String(coverOption?.dataset.cardFinish || 'normal').trim() || 'normal' : '',
       companion: String(fd.get('companion') || '').trim(),
       description: String(fd.get('description') || '').trim(),
     },

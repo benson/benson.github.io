@@ -77,6 +77,44 @@ test('readDeckMetadataForm: clears commander fields outside commander format', (
   assert.equal(result.metadata.partnerScryfallUri, '');
 });
 
+test('readDeckMetadataForm: saves selected cover card for non-commander decks', () => {
+  const form = formFromHtml(`
+    <input name="title" value="burn">
+    <input name="formatPreset" value="modern">
+    <select name="coverScryfallId" data-deck-cover-picker>
+      <option value="">-</option>
+      <option value="bolt-1" selected data-card-name="Lightning Bolt" data-image-url="bolt-front.jpg" data-back-image-url="bolt-back.jpg" data-card-finish="foil">Lightning Bolt</option>
+    </select>
+  `);
+
+  const result = readDeckMetadataForm(form, 'burn');
+
+  assert.equal(result.isCommander, false);
+  assert.equal(result.metadata.coverName, 'Lightning Bolt');
+  assert.equal(result.metadata.coverScryfallId, 'bolt-1');
+  assert.equal(result.metadata.coverImageUrl, 'bolt-front.jpg');
+  assert.equal(result.metadata.coverBackImageUrl, 'bolt-back.jpg');
+  assert.equal(result.metadata.coverFinish, 'foil');
+});
+
+test('readDeckMetadataForm: commander decks clear non-commander cover picks', () => {
+  const form = formFromHtml(`
+    <input name="title" value="breya">
+    <input name="formatPreset" value="commander">
+    <input name="commander" value="" data-meta-ac="commander" data-meta-ac-scryfall-id="">
+    <select name="coverScryfallId" data-deck-cover-picker>
+      <option value="sol-1" selected data-card-name="Sol Ring" data-image-url="sol.jpg">Sol Ring</option>
+    </select>
+  `);
+
+  const result = readDeckMetadataForm(form, 'breya');
+
+  assert.equal(result.isCommander, true);
+  assert.equal(result.metadata.coverName, '');
+  assert.equal(result.metadata.coverScryfallId, '');
+  assert.equal(result.metadata.coverImageUrl, '');
+});
+
 test('readDeckMetadataForm: ignores unpicked commander and partner text', () => {
   const form = formFromHtml(`
     <input name="title" value="breya">

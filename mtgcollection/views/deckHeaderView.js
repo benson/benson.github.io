@@ -23,6 +23,11 @@ export function deckDetailsViewModel(deck, meta = {}, stats = {}, selectedFormat
   const partnerImageUrl = String(safeMeta.partnerImageUrl || '').trim();
   const partnerBackImageUrl = String(safeMeta.partnerBackImageUrl || '').trim();
   const partnerFinish = String(safeMeta.partnerFinish || 'normal').trim() || 'normal';
+  const coverName = String(safeMeta.coverName || '').trim();
+  const coverScryfallId = String(safeMeta.coverScryfallId || '').trim();
+  const coverImageUrl = String(safeMeta.coverImageUrl || '').trim();
+  const coverBackImageUrl = String(safeMeta.coverBackImageUrl || '').trim();
+  const coverFinish = String(safeMeta.coverFinish || 'normal').trim() || 'normal';
   const companion = String(safeMeta.companion || '').trim();
   const value = Number(safeStats.value) || 0;
   const count = key => parseInt(safeStats[key], 10) || 0;
@@ -46,6 +51,12 @@ export function deckDetailsViewModel(deck, meta = {}, stats = {}, selectedFormat
     partnerImageUrl,
     partnerBackImageUrl,
     partnerFinish,
+    coverName,
+    coverScryfallId,
+    coverImageUrl,
+    coverBackImageUrl,
+    coverFinish,
+    coverChoices: Array.isArray(safeMeta.coverChoices) ? safeMeta.coverChoices : [],
     companion,
     total: count('total'),
     main: count('main'),
@@ -65,7 +76,7 @@ function deckMetaCardItem(label, model, prefix) {
   const name = model[prefix] || '';
   if (!name) return '';
   return `<div><dt>${esc(label)}</dt><dd class="deck-meta-value">
-    <button class="deck-meta-card-link" type="button" data-deck-commander-card data-scryfall-id="${esc(model[prefix + 'ScryfallId'] || '')}" data-card-name="${esc(name)}" data-scryfall-uri="${esc(model[prefix + 'ScryfallUri'] || '')}">${esc(name)}</button>
+    <button class="deck-meta-card-link deck-meta-preview-link" type="button" data-deck-commander-card data-scryfall-id="${esc(model[prefix + 'ScryfallId'] || '')}" data-card-name="${esc(name)}" data-scryfall-uri="${esc(model[prefix + 'ScryfallUri'] || '')}" data-image-url="${esc(model[prefix + 'ImageUrl'] || '')}" data-back-image-url="${esc(model[prefix + 'BackImageUrl'] || '')}" data-card-finish="${esc(model[prefix + 'Finish'] || 'normal')}">${esc(name)}</button>
   </dd></div>`;
 }
 
@@ -113,6 +124,7 @@ export function renderDeckDetailsHeaderHtml(model) {
                 ? `<input name="companion" value="${esc(model.companion)}" placeholder="companion" autocomplete="off">`
                 : `<button type="button" class="deck-companion-add" data-add-companion>+ add companion</button><input name="companion" value="" placeholder="companion" autocomplete="off" hidden>`}
             </div>
+            <label class="deck-metadata-field deck-metadata-cover"><span>cover image</span>${renderDeckCoverPicker(model)}</label>
             <label class="deck-metadata-field deck-metadata-description"><span>description</span><textarea name="description" rows="3" placeholder="description">${esc(model.description)}</textarea></label>
             <div class="deck-metadata-actions">
               <button class="btn btn-secondary" type="button" data-cancel-deck-details>cancel</button>
@@ -133,6 +145,30 @@ export function renderDeckDetailsHeaderHtml(model) {
         </div>
       </div>
     </section>`;
+}
+
+function renderDeckCoverPicker(model) {
+  const selectedId = String(model.coverScryfallId || '');
+  const choices = Array.isArray(model.coverChoices) ? model.coverChoices : [];
+  const seen = new Set();
+  const selectedFallback = selectedId && !choices.some(choice => String(choice?.scryfallId || '') === selectedId)
+    ? [{
+        scryfallId: selectedId,
+        name: model.coverName || 'current cover',
+        imageUrl: model.coverImageUrl || '',
+        backImageUrl: model.coverBackImageUrl || '',
+        finish: model.coverFinish || 'normal',
+      }]
+    : [];
+  const opts = ['<option value="">-</option>'];
+  for (const choice of [...selectedFallback, ...choices]) {
+    const id = String(choice?.scryfallId || '').trim();
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    const name = String(choice?.name || '').trim() || id;
+    opts.push(`<option value="${esc(id)}"${id === selectedId ? ' selected' : ''} data-card-name="${esc(name)}" data-image-url="${esc(choice?.imageUrl || '')}" data-back-image-url="${esc(choice?.backImageUrl || '')}" data-card-finish="${esc(choice?.finish || 'normal')}">${esc(name)}</option>`);
+  }
+  return `<select name="coverScryfallId" data-deck-cover-picker>${opts.join('')}</select>`;
 }
 
 function renderDeckFormatPicker(formatInput) {

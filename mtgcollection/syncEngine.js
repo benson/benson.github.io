@@ -123,11 +123,14 @@ async function setBaseline(snapshot, revision = status.revision) {
 async function applyRemoteSnapshot(snapshot, revision) {
   applyingRemote = true;
   try {
-    applySyncSnapshotToState(snapshot, { replaceHistoryImpl: replaceLog });
+    const needsRender = !sameSnapshot(currentSnapshot(), snapshot);
+    if (needsRender) applySyncSnapshotToState(snapshot, { replaceHistoryImpl: replaceLog });
     await setBaseline(snapshot, revision);
-    applyRouteStateImpl();
-    populateFiltersImpl();
-    renderImpl();
+    if (needsRender) {
+      applyRouteStateImpl();
+      populateFiltersImpl();
+      renderImpl();
+    }
   } finally {
     applyingRemote = false;
   }
