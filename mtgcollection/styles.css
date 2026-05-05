@@ -3626,6 +3626,16 @@
     overflow: hidden;
     transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
   }
+  .mcp-chat-widget.is-positioned {
+    left: var(--mcp-chat-left);
+    top: var(--mcp-chat-top);
+    right: auto;
+    bottom: auto;
+  }
+  .mcp-chat-widget.is-dragging {
+    transition: none;
+    user-select: none;
+  }
   body.mcp-chat-open .mcp-chat-widget {
     opacity: 1;
     pointer-events: auto;
@@ -3641,7 +3651,9 @@
     justify-content: space-between;
     min-height: 42px;
     padding: 8px 10px 8px 12px;
+    touch-action: none;
   }
+  .mcp-chat-head[data-mcp-chat-drag-handle] { cursor: move; }
   .mcp-chat-head h2 {
     font-size: 0.86rem;
     font-weight: 600;
@@ -4552,6 +4564,12 @@
       max-height: calc(100dvh - 132px - env(safe-area-inset-bottom, 0px));
       right: 12px;
       width: calc(100vw - 24px);
+    }
+    .mcp-chat-widget.is-positioned {
+      left: var(--mcp-chat-left);
+      top: var(--mcp-chat-top);
+      right: auto;
+      bottom: auto;
     }
     .mcp-chat-form {
       grid-template-columns: 1fr;

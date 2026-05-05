@@ -12,6 +12,8 @@ const SYSTEM_PROMPT = [
 ].join(' ');
 const HOSTED_PROVIDER = 'groq';
 const HOSTED_MODEL = 'openai/gpt-oss-120b';
+const CHAT_POSITION_KEY = 'mtgcollection_mcp_chat_position_v1';
+const CHAT_EDGE_MARGIN = 12;
 
 let root = null;
 let logEl = null;
@@ -21,8 +23,10 @@ let formEl = null;
 let inputEl = null;
 let sendBtn = null;
 let closeBtn = null;
+let dragHandleEl = null;
 let documentRef = null;
 let toggleButtons = [];
+let dragState = null;
 const transcript = [];
 const pendingDrafts = [];
 const pendingPreviews = [];
@@ -35,6 +39,145 @@ const CONDITION_OPTIONS = [
   ['damaged', 'dmg'],
 ];
 
+export function clampChatPosition(position, viewport, size, margin = CHAT_EDGE_MARGIN) {
+  const viewportWidth = Math.max(0, Number(viewport?.width) || 0);
+  const viewportHeight = Math.max(0, Number(viewport?.height) || 0);
+  const width = Math.max(1, Number(size?.width) || 1);
+  const height = Math.max(1, Number(size?.height) || 1);
+  const minLeft = margin;
+  const minTop = margin;
+  const maxLeft = Math.max(minLeft, viewportWidth - width - margin);
+  const maxTop = Math.max(minTop, viewportHeight - height - margin);
+  const rawLeft = Number(position?.left);
+  const rawTop = Number(position?.top);
+  return {
+    left: Math.min(Math.max(Number.isFinite(rawLeft) ? rawLeft : minLeft, minLeft), maxLeft),
+    top: Math.min(Math.max(Number.isFinite(rawTop) ? rawTop : minTop, minTop), maxTop),
+  };
+}
+
+function storage() {
+  try {
+    return documentRef?.defaultView?.localStorage || globalThis.localStorage || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function readStoredChatPosition() {
+  try {
+    const raw = storage()?.getItem(CHAT_POSITION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!Number.isFinite(Number(parsed?.left)) || !Number.isFinite(Number(parsed?.top))) return null;
+    return { left: Number(parsed.left), top: Number(parsed.top) };
+  } catch (e) {
+    return null;
+  }
+}
+
+function writeStoredChatPosition(position) {
+  try {
+    storage()?.setItem(CHAT_POSITION_KEY, JSON.stringify({
+      left: Math.round(position.left),
+      top: Math.round(position.top),
+    }));
+  } catch (e) {}
+}
+
+function chatViewport() {
+  const win = documentRef?.defaultView || globalThis;
+  const docEl = documentRef?.documentElement;
+  return {
+    width: win?.innerWidth || docEl?.clientWidth || 1024,
+    height: win?.innerHeight || docEl?.clientHeight || 768,
+  };
+}
+
+function chatSize() {
+  const rect = root?.getBoundingClientRect?.();
+  return {
+    width: rect?.width || root?.offsetWidth || 430,
+    height: rect?.height || root?.offsetHeight || 360,
+  };
+}
+
+function currentChatPosition() {
+  const left = parseFloat(root?.style.getPropertyValue('--mcp-chat-left') || '');
+  const top = parseFloat(root?.style.getPropertyValue('--mcp-chat-top') || '');
+  if (Number.isFinite(left) && Number.isFinite(top)) return { left, top };
+  const rect = root?.getBoundingClientRect?.();
+  if (rect && (rect.width || rect.height)) return { left: rect.left, top: rect.top };
+  return null;
+}
+
+function setChatPosition(position, { persist = false } = {}) {
+  if (!root) return null;
+  const next = clampChatPosition(position, chatViewport(), chatSize());
+  root.style.setProperty('--mcp-chat-left', Math.round(next.left) + 'px');
+  root.style.setProperty('--mcp-chat-top', Math.round(next.top) + 'px');
+  root.classList.add('is-positioned');
+  if (persist) writeStoredChatPosition(next);
+  return next;
+}
+
+function applyStoredChatPosition() {
+  const stored = readStoredChatPosition();
+  if (stored) setChatPosition(stored);
+}
+
+function clampCurrentChatPosition({ persist = false } = {}) {
+  const current = currentChatPosition();
+  if (current && root?.classList.contains('is-positioned')) setChatPosition(current, { persist });
+}
+
+function shouldIgnoreDragTarget(target) {
+  return Boolean(target?.closest?.('button, input, textarea, select, a'));
+}
+
+function startChatDrag(event) {
+  if (!root || shouldIgnoreDragTarget(event.target)) return;
+  if (event.button !== undefined && event.button !== 0) return;
+  const start = setChatPosition(currentChatPosition() || readStoredChatPosition() || { left: CHAT_EDGE_MARGIN, top: CHAT_EDGE_MARGIN });
+  if (!start) return;
+  dragState = {
+    pointerId: event.pointerId,
+    startX: event.clientX,
+    startY: event.clientY,
+    startLeft: start.left,
+    startTop: start.top,
+  };
+  root.classList.add('is-dragging');
+  if (event.pointerId !== undefined && typeof dragHandleEl?.setPointerCapture === 'function') {
+    dragHandleEl.setPointerCapture(event.pointerId);
+  }
+  event.preventDefault();
+}
+
+function moveChatDrag(event) {
+  if (!dragState) return;
+  setChatPosition({
+    left: dragState.startLeft + event.clientX - dragState.startX,
+    top: dragState.startTop + event.clientY - dragState.startY,
+  });
+}
+
+function endChatDrag(event) {
+  if (!dragState) return;
+  if (
+    event?.pointerId !== undefined
+    && dragState.pointerId !== undefined
+    && event.pointerId !== dragState.pointerId
+  ) return;
+  dragState = null;
+  root?.classList.remove('is-dragging');
+  const current = currentChatPosition();
+  if (current) setChatPosition(current, { persist: true });
+  if (event?.pointerId !== undefined && typeof dragHandleEl?.releasePointerCapture === 'function') {
+    dragHandleEl.releasePointerCapture(event.pointerId);
+  }
+}
+
 function appendMessage(role, content, meta = {}) {
   transcript.push({ role, content, meta });
   renderTranscript();
@@ -45,6 +188,7 @@ function setChatOpen(open, { focus = false } = {}) {
   documentRef.body.classList.toggle('mcp-chat-open', open);
   root.setAttribute('aria-hidden', open ? 'false' : 'true');
   toggleButtons.forEach(button => button.setAttribute('aria-expanded', open ? 'true' : 'false'));
+  if (open) clampCurrentChatPosition();
   if (open && focus) {
     globalThis.setTimeout(() => {
       inputEl?.focus();
@@ -676,7 +820,9 @@ export function initMcpChat({ documentObj = document } = {}) {
   inputEl = documentObj.getElementById('mcpChatInput');
   sendBtn = documentObj.getElementById('mcpChatSend');
   closeBtn = documentObj.getElementById('mcpChatClose');
+  dragHandleEl = documentObj.getElementById('mcpChatDragHandle') || documentObj.querySelector('[data-mcp-chat-drag-handle]');
   toggleButtons = Array.from(documentObj.querySelectorAll('[data-mcp-chat-toggle]'));
+  applyStoredChatPosition();
   renderTranscript();
   renderPendingDrafts();
   renderPendingPreviews();
@@ -685,6 +831,11 @@ export function initMcpChat({ documentObj = document } = {}) {
     button.addEventListener('click', toggleChat);
   });
   closeBtn?.addEventListener('click', () => setChatOpen(false));
+  dragHandleEl?.addEventListener('pointerdown', startChatDrag);
+  documentObj.addEventListener('pointermove', moveChatDrag);
+  documentObj.addEventListener('pointerup', endChatDrag);
+  documentObj.addEventListener('pointercancel', endChatDrag);
+  documentObj.defaultView?.addEventListener('resize', () => clampCurrentChatPosition({ persist: true }));
   documentObj.addEventListener('keydown', event => {
     if (event.key === 'Escape' && documentObj.body.classList.contains('mcp-chat-open')) {
       setChatOpen(false);

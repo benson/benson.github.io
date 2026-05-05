@@ -1,13 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Window } from 'happy-dom';
-import { initMcpChat } from '../mcpChat.js';
+import { clampChatPosition, initMcpChat } from '../mcpChat.js';
 
 function setup() {
   const win = new Window();
   win.document.body.innerHTML = `
     <section id="mcpChatDetails" aria-hidden="true">
-      <button id="mcpChatClose" type="button"></button>
+      <header id="mcpChatDragHandle" data-mcp-chat-drag-handle>
+        <button id="mcpChatClose" type="button"></button>
+      </header>
       <div id="mcpChatLog"></div>
       <section id="mcpChatDraftPanel" hidden></section>
       <section id="mcpChatPreviewPanel" hidden></section>
@@ -21,6 +23,24 @@ function setup() {
 function click(win, el) {
   el.dispatchEvent(new win.MouseEvent('click', { bubbles: true, cancelable: true }));
 }
+
+function pointer(win, type, props = {}) {
+  const event = new win.Event(type, { bubbles: true, cancelable: true });
+  Object.defineProperties(event, {
+    button: { value: props.button ?? 0 },
+    clientX: { value: props.clientX ?? 0 },
+    clientY: { value: props.clientY ?? 0 },
+    pointerId: { value: props.pointerId ?? 1 },
+  });
+  return event;
+}
+
+test('clampChatPosition: keeps the floating chat inside the viewport', () => {
+  assert.deepEqual(
+    clampChatPosition({ left: -200, top: 900 }, { width: 1000, height: 800 }, { width: 430, height: 300 }),
+    { left: 12, top: 488 }
+  );
+});
 
 test('initMcpChat: chat FAB toggles the floating widget without using the right drawer', () => {
   const { win, document } = setup();
@@ -49,6 +69,26 @@ test('initMcpChat: escape closes the floating widget', () => {
   document.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
 
   assert.equal(document.body.classList.contains('mcp-chat-open'), false);
+});
+
+test('initMcpChat: header drag repositions the floating widget', () => {
+  const { win, document } = setup();
+  Object.defineProperties(win, {
+    innerWidth: { value: 1200, configurable: true },
+    innerHeight: { value: 900, configurable: true },
+  });
+  const panel = document.getElementById('mcpChatDetails');
+  panel.getBoundingClientRect = () => ({ left: 760, top: 420, width: 430, height: 300, right: 1190, bottom: 720 });
+  initMcpChat({ documentObj: document });
+
+  const handle = document.getElementById('mcpChatDragHandle');
+  handle.dispatchEvent(pointer(win, 'pointerdown', { clientX: 1000, clientY: 500 }));
+  document.dispatchEvent(pointer(win, 'pointermove', { clientX: 900, clientY: 450 }));
+  document.dispatchEvent(pointer(win, 'pointerup', { clientX: 900, clientY: 450 }));
+
+  assert.equal(panel.classList.contains('is-positioned'), true);
+  assert.equal(panel.style.getPropertyValue('--mcp-chat-left'), '658px');
+  assert.equal(panel.style.getPropertyValue('--mcp-chat-top'), '370px');
 });
 
 test('initMcpChat: Enter submits and Shift+Enter keeps editing in the prompt', () => {
