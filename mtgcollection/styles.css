@@ -2994,6 +2994,13 @@
   body.app-booting #appTotalsStrip {
     display: none !important;
   }
+  body.app-booting .app-shell {
+    grid-template-columns: 200px 1fr 0;
+  }
+  body.app-booting .app-right,
+  body.app-booting .app-right-backdrop {
+    display: none !important;
+  }
   .boot-state {
     display: none;
   }
