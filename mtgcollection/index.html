@@ -6,10 +6,29 @@
 <title>mtg collection</title>
 <meta name="description" content="browse an mtg collection from any csv export">
 <meta name="mtgcollection-clerk-publishable-key" content="pk_live_Y2xlcmsuYmVuc29ucGVycnkuY29tJA">
+<style id="appBootCurtainStyle">
+body.app-booting { background: #fff; overflow: hidden; }
+body.app-booting > :not(.app-boot-curtain) { visibility: hidden !important; }
+.app-boot-curtain { display: none; }
+body.app-booting .app-boot-curtain {
+  align-items: center;
+  background: #fff;
+  color: #777;
+  display: flex;
+  font: 0.9rem "Times New Roman", Times, Georgia, serif;
+  inset: 0;
+  justify-content: center;
+  position: fixed;
+  text-transform: lowercase;
+  z-index: 2147483647;
+}
+</style>
 <link rel="stylesheet" href="../shared/common.css">
 <link rel="stylesheet" href="./styles.css">
 </head>
 <body class="no-shared-footer app-booting">
+
+<div class="app-boot-curtain" id="appBootCurtain" role="status" aria-live="polite">loading collection</div>
 
 <div class="share-banner hidden" id="shareBanner" role="status"></div>
 
@@ -254,7 +273,6 @@
         <button class="btn btn-secondary" type="button" data-empty-action="load-test">load breya</button>
       </div>
     </div>
-    <div class="boot-state" id="bootState" role="status" aria-live="polite">loading collection</div>
   </main>
 
   <aside class="app-right">

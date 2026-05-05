@@ -3098,29 +3098,6 @@
 
   .empty-state { text-align: center; padding: 40px 20px; color: #999; font-size: 0.85rem; }
   .empty-state-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 16px; }
-  body.app-booting #collectionSection,
-  body.app-booting #emptyState,
-  body.app-booting #appTotalsStrip {
-    display: none !important;
-  }
-  body.app-booting .app-shell {
-    grid-template-columns: 200px 1fr 0;
-  }
-  body.app-booting .app-right,
-  body.app-booting .app-right-backdrop {
-    display: none !important;
-  }
-  .boot-state {
-    display: none;
-  }
-  body.app-booting .boot-state {
-    align-items: center;
-    color: #777;
-    display: flex;
-    font-size: 0.9rem;
-    justify-content: center;
-    min-height: 160px;
-  }
 
   /* Share/read-only mode */
   /* ---- Share: viewer banner ---- */

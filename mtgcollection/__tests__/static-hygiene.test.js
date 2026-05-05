@@ -40,11 +40,14 @@ test('static files do not contain common UTF-8 mojibake sequences', () => {
 
 test('mtgcollection document declares UTF-8 before app content', () => {
   const html = fs.readFileSync(path.join(projectRoot, 'mtgcollection', 'index.html'), 'utf8');
-  const headStart = html.slice(0, 500).toLowerCase();
+  const headStart = html.slice(0, 1500).toLowerCase();
+  const htmlWithoutBootCurtainStyle = html.replace(/<style id="appBootCurtainStyle">[\s\S]*?<\/style>/, '');
 
   assert.match(headStart, /<meta\s+charset="utf-8">/);
+  assert.match(headStart, /<style\s+id="appbootcurtainstyle">/);
   assert.match(headStart, /<link\s+rel="stylesheet"\s+href="\.\/styles\.css">/);
-  assert.doesNotMatch(html, /<style>/);
+  assert.match(html, /<div class="app-boot-curtain" id="appBootCurtain"/);
+  assert.doesNotMatch(htmlWithoutBootCurtainStyle, /<style\b/);
   assert.match(html, /<script\s+type="module"\s+src="\.\/app\.js"><\/script>/);
 });
 
