@@ -611,7 +611,7 @@ async function applyPreview(changeToken, { confirmFirst = true } = {}) {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'apply failed');
     removePendingPreview(changeToken);
-    appendMessage('assistant', 'Applied: ' + (data.summary || 'collection change') + ' (revision ' + data.revision + ')');
+    appendMessage('assistant', 'Applied: ' + (data.summary || 'collection change'));
     await syncNow();
     showFeedback('applied preview', 'success');
     return true;
@@ -654,7 +654,7 @@ async function applyAllPreviews() {
       if (applied.has(pendingPreviews[i].changeToken)) pendingPreviews.splice(i, 1);
     }
     renderPendingPreviews();
-    appendMessage('assistant', 'Applied: ' + (data.summary || 'collection changes') + ' (revision ' + data.revision + ')');
+    appendMessage('assistant', 'Applied: ' + (data.summary || 'collection changes'));
     await syncNow();
     showFeedback('applied pending changes', 'success');
   } catch (e) {
