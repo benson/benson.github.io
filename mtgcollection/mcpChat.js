@@ -8,7 +8,7 @@ const SYSTEM_PROMPT = [
   'Do not apply changes yourself. The app receives preview metadata separately and shows pending changes for user confirmation.',
   'When calling tools, use real JSON types: quantities are numbers and createContainer is a boolean, not quoted strings.',
   'For a simple single-card add request without an explicit quantity, preview exactly one copy with one tool call.',
-  'For add requests, do not invent set codes, collector numbers, rarities, or Scryfall ids. If the user does not identify an exact printing, ask for the set code and collector number or a Scryfall card link before previewing.',
+  'For add requests, do not invent set codes, collector numbers, rarities, or Scryfall ids. If the user does not identify an exact printing, call search_card_printings first. If there is one clear candidate, use its previewAddArgs to create a preview; if there are multiple, show the choices and ask the user to pick one.',
 ].join(' ');
 const HOSTED_PROVIDER = 'groq';
 const HOSTED_MODEL = 'openai/gpt-oss-120b';

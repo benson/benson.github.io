@@ -330,24 +330,150 @@ test('mcp: preview add inventory resolves an exact printing through Scryfall', a
   }
 });
 
-test('mcp: preview add inventory asks for an exact printing when only a name is provided', async () => {
+test('mcp: preview add inventory returns candidate printings when only a name is provided', async () => {
   const { env } = fakeSyncEnv(emptySnapshot());
   const token = await issueMcpToken(env);
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => {
-    throw new Error('name-only add should not call Scryfall');
+  globalThis.fetch = async url => {
+    assert.match(String(url), /\/cards\/search\?/);
+    return Response.json({
+      total_cards: 2,
+      has_more: false,
+      data: [
+        {
+          id: 'hamlet-tdm-1',
+          name: 'Petrified Hamlet',
+          set: 'tdm',
+          set_name: 'Tarkir: Dragonstorm',
+          collector_number: '276',
+          released_at: '2025-04-11',
+          rarity: 'rare',
+          type_line: 'Land',
+          finishes: ['nonfoil', 'foil'],
+          image_uris: { normal: 'https://img.test/hamlet-tdm.jpg' },
+          scryfall_uri: 'https://scryfall.test/card/tdm/276/petrified-hamlet',
+        },
+        {
+          id: 'hamlet-ptdm-1',
+          name: 'Petrified Hamlet',
+          set: 'ptdm',
+          set_name: 'Tarkir: Dragonstorm Promos',
+          collector_number: '276s',
+          released_at: '2025-04-11',
+          rarity: 'rare',
+          type_line: 'Land',
+          finishes: ['foil'],
+          image_uris: { normal: 'https://img.test/hamlet-promo.jpg' },
+          scryfall_uri: 'https://scryfall.test/card/ptdm/276s/petrified-hamlet',
+        },
+      ],
+    });
   };
   try {
     const preview = await callTool(env, token.access_token, 'preview_add_inventory_item', {
-      name: 'dreamroot cascade',
+      name: 'petrified hamlet',
       condition: 'nm',
     });
     const data = preview.result.structuredContent;
-    assert.equal(data.status, 'needs_clarification');
+    assert.equal(data.status, 'needs_selection');
     assert.equal(data.changeToken, undefined);
-    assert.ok(data.missingFields.includes('setCode'));
-    assert.ok(data.missingFields.includes('collectorNumber'));
-    assert.match(data.message, /exact Scryfall printing/i);
+    assert.equal(data.candidates.length, 2);
+    assert.equal(data.candidates[0].setCode, 'tdm');
+    assert.equal(data.candidates[0].previewAddArgs.scryfallId, 'hamlet-tdm-1');
+    assert.equal(data.candidates[0].previewAddArgs.condition, 'near_mint');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp: search card printings returns exact Scryfall add arguments', async () => {
+  const { env } = fakeSyncEnv(emptySnapshot());
+  const token = await issueMcpToken(env);
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async url => {
+    assert.match(String(url), /\/cards\/search\?/);
+    return Response.json({
+      total_cards: 1,
+      has_more: false,
+      data: [{
+        id: 'hamlet-tdm-1',
+        name: 'Petrified Hamlet',
+        set: 'tdm',
+        set_name: 'Tarkir: Dragonstorm',
+        collector_number: '276',
+        released_at: '2025-04-11',
+        rarity: 'rare',
+        type_line: 'Land',
+        finishes: ['nonfoil', 'foil'],
+        image_uris: { normal: 'https://img.test/hamlet-tdm.jpg' },
+        scryfall_uri: 'https://scryfall.test/card/tdm/276/petrified-hamlet',
+      }],
+    });
+  };
+  try {
+    const lookup = await callTool(env, token.access_token, 'search_card_printings', {
+      name: 'petrified hamlet',
+      finish: 'nonfoil',
+      qty: 2,
+      limit: 5,
+    });
+    const data = lookup.result.structuredContent;
+    assert.equal(data.status, 'ok');
+    assert.equal(data.requestedFinish, 'nonfoil');
+    assert.equal(data.candidates.length, 1);
+    assert.equal(data.candidates[0].previewAddArgs.scryfallId, 'hamlet-tdm-1');
+    assert.equal(data.candidates[0].previewAddArgs.finish, 'normal');
+    assert.equal(data.candidates[0].previewAddArgs.qty, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp: preview add inventory can auto-preview a unique name lookup', async () => {
+  const { env, state } = fakeSyncEnv(emptySnapshot());
+  const token = await issueMcpToken(env);
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async url => {
+    assert.match(String(url), /\/cards\/search\?/);
+    return Response.json({
+      total_cards: 1,
+      has_more: false,
+      data: [{
+        id: 'hamlet-tdm-1',
+        name: 'Petrified Hamlet',
+        set: 'tdm',
+        set_name: 'Tarkir: Dragonstorm',
+        collector_number: '276',
+        lang: 'en',
+        released_at: '2025-04-11',
+        rarity: 'rare',
+        cmc: 0,
+        colors: [],
+        color_identity: ['G'],
+        type_line: 'Land',
+        oracle_text: 'Petrified Hamlet enters tapped...',
+        legalities: { commander: 'legal' },
+        finishes: ['nonfoil', 'foil'],
+        image_uris: { normal: 'https://img.test/hamlet-tdm.jpg' },
+        prices: { usd: '0.50' },
+        scryfall_uri: 'https://scryfall.test/card/tdm/276/petrified-hamlet',
+      }],
+    });
+  };
+  try {
+    const preview = await callTool(env, token.access_token, 'preview_add_inventory_item', {
+      name: 'petrified hamlet',
+      finish: 'nonfoil',
+    });
+    const data = preview.result.structuredContent;
+    assert.equal(data.status, 'preview');
+    assert.equal(data.card.name, 'Petrified Hamlet');
+    const applied = await callTool(env, token.access_token, 'apply_collection_change', {
+      changeToken: data.changeToken,
+    });
+    assert.equal(applied.result.structuredContent.status, 'applied');
+    assert.equal(state.snapshot.app.collection[0].scryfallId, 'hamlet-tdm-1');
+    assert.equal(state.snapshot.app.collection[0].rarity, 'rare');
   } finally {
     globalThis.fetch = originalFetch;
   }

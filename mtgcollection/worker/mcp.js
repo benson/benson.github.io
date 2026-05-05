@@ -14,6 +14,8 @@ const MCP_PENDING_PREFIX = 'mcp:pending:';
 const MCP_CHAT_CLIENT_ID = 'mtgcollection-chat';
 const CHAT_USAGE_PREFIX = 'mcp:chat-usage:';
 const SCRYFALL_API = 'https://api.scryfall.com';
+const SCRYFALL_PRINTINGS_MAX_PAGES = 3;
+const SCRYFALL_PRINTINGS_HARD_CAP = 150;
 
 const memoryStore = new Map();
 
@@ -695,6 +697,159 @@ async function fetchScryfallJson(url) {
   return { ok: res.ok, status: res.status, data };
 }
 
+function normalizeExactCardName(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function buildScryfallPrintingsSearchUrl(name) {
+  const escaped = String(name || '').replace(/"/g, '\\"');
+  const query = '!"' + escaped + '"';
+  return SCRYFALL_API
+    + '/cards/search?q=' + encodeURIComponent(query)
+    + '&unique=prints&order=released&dir=desc&include_extras=true&include_variations=true';
+}
+
+function preferExactScryfallPrintings(cards, name) {
+  const target = normalizeExactCardName(name);
+  if (!target) return cards;
+  const exact = cards.filter(card => normalizeExactCardName(card?.name) === target);
+  return exact.length ? exact : cards;
+}
+
+async function fetchScryfallPrintingsByName(name, { maxPages = SCRYFALL_PRINTINGS_MAX_PAGES, hardCap = SCRYFALL_PRINTINGS_HARD_CAP, allowFuzzy = true } = {}) {
+  let url = buildScryfallPrintingsSearchUrl(name);
+  const collected = [];
+  let pages = 0;
+  let totalCards = 0;
+  while (url && pages < maxPages) {
+    const fetched = await fetchScryfallJson(url);
+    if (!fetched.ok) {
+      if (fetched.status === 404) break;
+      const err = new Error('Scryfall printings lookup failed');
+      err.status = fetched.status;
+      err.data = fetched.data;
+      throw err;
+    }
+    pages++;
+    if (typeof fetched.data.total_cards === 'number') totalCards = fetched.data.total_cards;
+    if (Array.isArray(fetched.data.data)) {
+      for (const card of fetched.data.data) {
+        collected.push(card);
+        if (collected.length >= hardCap) break;
+      }
+    }
+    if (collected.length >= hardCap) break;
+    url = fetched.data.has_more ? fetched.data.next_page : null;
+  }
+
+  const exactPrintings = preferExactScryfallPrintings(collected, name);
+  if (exactPrintings.length) {
+    const filteredToExact = exactPrintings.length !== collected.length;
+    return {
+      cards: exactPrintings,
+      totalCount: filteredToExact ? exactPrintings.length : Math.max(totalCards, collected.length),
+      truncated: filteredToExact ? false : collected.length < Math.max(totalCards, collected.length),
+      fuzzyName: '',
+    };
+  }
+
+  if (allowFuzzy) {
+    const fuzzy = await fetchScryfallJson(SCRYFALL_API + '/cards/named?fuzzy=' + encodeURIComponent(name));
+    if (fuzzy.ok && fuzzy.data?.name) {
+      const fuzzyName = String(fuzzy.data.name || '');
+      if (normalizeExactCardName(fuzzyName) && normalizeExactCardName(fuzzyName) !== normalizeExactCardName(name)) {
+        const lookup = await fetchScryfallPrintingsByName(fuzzyName, { maxPages, hardCap, allowFuzzy: false });
+        return { ...lookup, fuzzyName };
+      }
+      return { cards: [fuzzy.data], totalCount: 1, truncated: false, fuzzyName };
+    }
+  }
+
+  return { cards: [], totalCount: 0, truncated: false, fuzzyName: '' };
+}
+
+function requestedScryfallFinish(raw) {
+  const normalized = normalizeMcpFinish(raw);
+  if (!raw) return '';
+  return normalized === 'normal' ? 'nonfoil' : normalized;
+}
+
+function candidateMatchesRequestedFinish(card, rawFinish) {
+  const requested = requestedScryfallFinish(rawFinish);
+  if (!requested) return true;
+  const finishes = Array.isArray(card?.finishes) ? card.finishes.map(String) : [];
+  return !finishes.length || finishes.includes(requested);
+}
+
+function formatScryfallPrintingCandidate(card, args = {}) {
+  const finish = normalizeMcpFinish(args.finish, card);
+  const qty = Math.max(1, parseInt(args.qty, 10) || 1);
+  const previewAddArgs = {
+    scryfallId: String(card?.id || ''),
+    name: String(card?.name || ''),
+    setCode: String(card?.set || '').toLowerCase(),
+    cn: String(card?.collector_number || ''),
+    finish,
+    condition: normalizeMcpCondition(args.condition),
+    language: String(args.language || args.lang || card?.lang || 'en').toLowerCase(),
+    qty,
+  };
+  const location = normalizeLocation(args.location);
+  if (location) previewAddArgs.location = location;
+  if (Array.isArray(args.tags)) previewAddArgs.tags = args.tags.map(String);
+  if (args.createContainer !== undefined) previewAddArgs.createContainer = coerceMcpBoolean(args.createContainer);
+  return {
+    name: String(card?.name || ''),
+    scryfallId: String(card?.id || ''),
+    setCode: String(card?.set || '').toLowerCase(),
+    setName: String(card?.set_name || ''),
+    collectorNumber: String(card?.collector_number || ''),
+    rarity: String(card?.rarity || '').toLowerCase(),
+    releasedAt: String(card?.released_at || ''),
+    finishes: Array.isArray(card?.finishes) ? [...card.finishes] : [],
+    requestedFinish: finish,
+    typeLine: String(card?.type_line || card?.card_faces?.[0]?.type_line || ''),
+    imageUrl: getScryfallImageUrl(card),
+    scryfallUri: String(card?.scryfall_uri || ''),
+    previewAddArgs,
+  };
+}
+
+async function lookupScryfallPrintingCards(args = {}) {
+  const name = String(args.name || args.query || '').trim();
+  if (!name) return { status: 'invalid', error: 'name or query is required', cards: [], candidates: [] };
+  const requestedLimit = parseInt(args.limit, 10);
+  const limit = Math.max(1, Math.min(Number.isFinite(requestedLimit) ? requestedLimit : 12, 50));
+  const lookup = await fetchScryfallPrintingsByName(name, {
+    hardCap: Math.max(limit, Math.min(SCRYFALL_PRINTINGS_HARD_CAP, 150)),
+  });
+  const finishFiltered = args.finish
+    ? lookup.cards.filter(card => candidateMatchesRequestedFinish(card, args.finish))
+    : lookup.cards;
+  const candidates = finishFiltered.slice(0, limit).map(card => formatScryfallPrintingCandidate(card, args));
+  const requestedFinish = requestedScryfallFinish(args.finish);
+  return {
+    status: candidates.length ? 'ok' : 'not_found',
+    query: name,
+    resolvedName: lookup.fuzzyName || name,
+    fuzzyName: lookup.fuzzyName,
+    requestedFinish,
+    totalCount: args.finish ? finishFiltered.length : lookup.totalCount,
+    truncated: lookup.truncated || finishFiltered.length > candidates.length,
+    cards: finishFiltered,
+    candidates,
+    message: candidates.length
+      ? 'Choose one of these exact Scryfall printings, then call preview_add_inventory_item with that candidate previewAddArgs.'
+      : 'No matching Scryfall printings were found.',
+  };
+}
+
+async function searchScryfallPrintingCandidates(args = {}) {
+  const lookup = await lookupScryfallPrintingCards(args);
+  const { cards, ...result } = lookup;
+  return result;
+}
+
 async function resolveScryfallCardForAdd(raw) {
   const scryfallId = String(raw.scryfallId || '').trim();
   if (scryfallId) {
@@ -1044,6 +1199,10 @@ async function toolSearchInventory(env, deps, auth, args) {
   };
 }
 
+async function toolSearchCardPrintings(env, deps, auth, args = {}) {
+  return searchScryfallPrintingCandidates(args);
+}
+
 async function toolListContainers(env, deps, auth, args = {}) {
   const cloud = await currentCloud(env, deps, auth.userId);
   const type = args.type && ['deck', 'binder', 'box'].includes(args.type) ? args.type : '';
@@ -1159,14 +1318,31 @@ async function toolPreviewAddInventoryItem(env, deps, auth, args = {}) {
   requireWritePreviewArgs(auth);
   const cloud = await currentCloud(env, deps, auth.userId);
   const raw = args.entry && typeof args.entry === 'object' ? args.entry : args;
+  let resolvedCard = null;
   if (!hasExactScryfallPrintingTarget(raw)) {
-    return mcpAddNeedsClarification({
-      missingFields: ['scryfallId', 'setCode', 'collectorNumber'],
-      message: 'Inventory adds need an exact Scryfall printing. Ask the user for the set code and collector number, or a Scryfall card URL/id.',
-    });
+    const lookup = await lookupScryfallPrintingCards({ ...raw, limit: raw.limit || 12 });
+    if (lookup.cards.length === 1) {
+      resolvedCard = lookup.cards[0];
+    } else if (lookup.candidates.length) {
+      return {
+        status: 'needs_selection',
+        message: 'Choose one exact Scryfall printing, then retry preview_add_inventory_item with that candidate previewAddArgs.',
+        query: lookup.query,
+        resolvedName: lookup.resolvedName,
+        requestedFinish: lookup.requestedFinish,
+        totalCount: lookup.totalCount,
+        truncated: lookup.truncated,
+        candidates: lookup.candidates,
+      };
+    } else {
+      return mcpAddNeedsClarification({
+        missingFields: ['scryfallId', 'setCode', 'collectorNumber'],
+        message: 'No matching Scryfall printing was found. Ask the user for the set code and collector number, or a Scryfall card URL/id.',
+      });
+    }
   }
   const location = normalizeLocation(raw.location);
-  const resolvedCard = await resolveScryfallCardForAdd(raw);
+  resolvedCard = resolvedCard || await resolveScryfallCardForAdd(raw);
   if (!resolvedCard) {
     return mcpAddNeedsClarification({
       missingFields: ['scryfallId', 'setCode', 'collectorNumber'],
@@ -1517,6 +1693,21 @@ const TOOL_DEFINITIONS = [
       limit: NUMBERISH_SCHEMA,
     },
   }],
+  ['search_card_printings', 'Look up exact Scryfall printings for a card name before previewing an add. Use this when a user asks to add a card but has not given setCode+collectorNumber or scryfallId.', {
+    type: 'object',
+    properties: {
+      query: { type: 'string' },
+      name: { type: 'string' },
+      finish: { type: 'string', enum: ['normal', 'nonfoil', 'non-foil', 'foil', 'etched', 'etched foil'] },
+      condition: { type: 'string' },
+      language: { type: 'string' },
+      qty: NUMBERISH_SCHEMA,
+      location: { oneOf: [{ type: 'string' }, { type: 'object' }] },
+      createContainer: BOOLEANISH_SCHEMA,
+      tags: { type: 'array', items: { type: 'string' } },
+      limit: NUMBERISH_SCHEMA,
+    },
+  }],
   ['list_containers', 'List decks, binders, and boxes.', {
     type: 'object',
     properties: { type: { type: 'string', enum: ['deck', 'binder', 'box'] } },
@@ -1601,6 +1792,7 @@ async function executeTool(name, args, env, deps, auth) {
   switch (name) {
     case 'get_collection_summary': return toolGetCollectionSummary(env, deps, auth, args);
     case 'search_inventory': return toolSearchInventory(env, deps, auth, args);
+    case 'search_card_printings': return toolSearchCardPrintings(env, deps, auth, args);
     case 'list_containers': return toolListContainers(env, deps, auth, args);
     case 'get_container': return toolGetContainer(env, deps, auth, args);
     case 'get_deck': return toolGetDeck(env, deps, auth, args);
