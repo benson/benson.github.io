@@ -613,7 +613,6 @@ async function applyPreview(changeToken, { confirmFirst = true } = {}) {
     removePendingPreview(changeToken);
     appendMessage('assistant', 'Applied: ' + (data.summary || 'collection change'));
     await syncNow();
-    showFeedback('applied preview', 'success');
     return true;
   } catch (e) {
     if (preview) {
@@ -656,7 +655,6 @@ async function applyAllPreviews() {
     renderPendingPreviews();
     appendMessage('assistant', 'Applied: ' + (data.summary || 'collection changes'));
     await syncNow();
-    showFeedback('applied pending changes', 'success');
   } catch (e) {
     for (const preview of previews) {
       preview.applying = false;
