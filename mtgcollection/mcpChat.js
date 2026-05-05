@@ -372,7 +372,7 @@ function renderPendingDrafts() {
 
     const rowActions = documentRef.createElement('div');
     rowActions.className = 'mcp-chat-preview-row-actions';
-    const preview = makePreviewButton('previewDraft', draft.previewing ? 'previewing' : 'preview');
+    const preview = makePreviewButton('previewDraft', draft.previewing ? 'adding' : 'add to pending');
     preview.dataset.draftId = draft.id;
     preview.disabled = draft.previewing;
     const dismiss = makePreviewButton('dismissDraft', 'dismiss');
