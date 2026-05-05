@@ -3695,7 +3695,8 @@
     border-left: 2px solid #777;
     padding-left: 8px;
   }
-  .mcp-chat-preview-panel {
+  .mcp-chat-preview-panel,
+  .mcp-chat-draft-panel {
     border: 1px solid #111;
     background: #fffefb;
     display: grid;
@@ -3705,7 +3706,8 @@
     overflow: auto;
     padding: 8px;
   }
-  .mcp-chat-preview-panel[hidden] {
+  .mcp-chat-preview-panel[hidden],
+  .mcp-chat-draft-panel[hidden] {
     display: none;
   }
   .mcp-chat-preview-head,
@@ -3730,6 +3732,51 @@
   }
   .mcp-chat-preview-row.has-error .mcp-chat-preview-meta {
     color: #9f0000;
+  }
+  .mcp-chat-draft-row {
+    border-top: 1px solid #e2ded6;
+    display: grid;
+    gap: 8px;
+    padding-top: 8px;
+  }
+  .mcp-chat-draft-row.has-error .mcp-chat-preview-meta {
+    color: #9f0000;
+  }
+  .mcp-chat-draft-controls {
+    display: grid;
+    gap: 7px;
+    grid-template-columns: 64px minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .mcp-chat-draft-field {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+  }
+  .mcp-chat-draft-field-wide,
+  .mcp-chat-draft-printing {
+    grid-column: 1 / -1;
+  }
+  .mcp-chat-draft-field span {
+    color: #666;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+  }
+  .mcp-chat-draft-field input,
+  .mcp-chat-draft-field select {
+    min-width: 0;
+    width: 100%;
+    border: 1px solid #ccc;
+    background: #fff;
+    border-radius: 2px;
+    color: #111;
+    font: inherit;
+    min-height: 30px;
+    padding: 4px 6px;
+  }
+  .mcp-chat-draft-printing {
+    color: #333;
+    font-size: 0.82rem;
+    line-height: 1.25;
   }
   .mcp-chat-preview-summary {
     font-size: 0.88rem;

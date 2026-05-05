@@ -628,6 +628,9 @@ function normalizeMcpFinish(raw, card = null) {
     : value === 'etched' || value === 'etched_foil' ? 'etched'
     : 'normal';
   const finishes = Array.isArray(card?.finishes) ? card.finishes.map(String) : [];
+  if (requested === 'normal' && finishes.length && !finishes.includes('nonfoil')) {
+    return finishes.includes('foil') ? 'foil' : finishes.includes('etched') ? 'etched' : 'normal';
+  }
   if (requested === 'foil' && finishes.length && !finishes.includes('foil')) {
     return finishes.includes('nonfoil') ? 'normal' : finishes.includes('etched') ? 'etched' : 'normal';
   }
@@ -939,6 +942,34 @@ function mcpAddNeedsClarification({ missingFields = [], message = '' } = {}) {
     missingFields: fields,
     message: message || 'Ask the user for a Scryfall card id, Scryfall URL, or exact set code and collector number, then retry the preview.',
   };
+}
+
+function mcpAddNeedsInput({ candidates = [], missingFields = [], query = '', resolvedName = '', requestedFinish = '', totalCount = 0, truncated = false, message = '' } = {}) {
+  const fields = [...new Set(missingFields.map(String).filter(Boolean))];
+  return {
+    status: 'needs_input',
+    previewType: 'inventory.add',
+    message: message || 'Choose the missing add details below, then create a preview.',
+    missingFields: fields,
+    query,
+    resolvedName,
+    requestedFinish,
+    totalCount,
+    truncated,
+    candidates,
+  };
+}
+
+function hasOwnNonEmpty(value) {
+  return value !== undefined && value !== null && String(value).trim() !== '';
+}
+
+function missingMcpAddOptionFields(raw = {}) {
+  const missing = [];
+  if (!hasOwnNonEmpty(raw.qty) || !(parseInt(raw.qty, 10) > 0)) missing.push('qty');
+  if (!hasOwnNonEmpty(raw.finish)) missing.push('finish');
+  if (!hasOwnNonEmpty(raw.condition)) missing.push('condition');
+  return missing;
 }
 
 function addPreviewOpsMissingCardFields(ops = []) {
@@ -1318,22 +1349,23 @@ async function toolPreviewAddInventoryItem(env, deps, auth, args = {}) {
   requireWritePreviewArgs(auth);
   const cloud = await currentCloud(env, deps, auth.userId);
   const raw = args.entry && typeof args.entry === 'object' ? args.entry : args;
+  const missingOptionFields = missingMcpAddOptionFields(raw);
   let resolvedCard = null;
   if (!hasExactScryfallPrintingTarget(raw)) {
     const lookup = await lookupScryfallPrintingCards({ ...raw, limit: raw.limit || 12 });
-    if (lookup.cards.length === 1) {
+    if (lookup.cards.length === 1 && !missingOptionFields.length) {
       resolvedCard = lookup.cards[0];
     } else if (lookup.candidates.length) {
-      return {
-        status: 'needs_selection',
-        message: 'Choose one exact Scryfall printing, then retry preview_add_inventory_item with that candidate previewAddArgs.',
+      return mcpAddNeedsInput({
+        message: 'Choose the exact printing and missing copy details, then create a preview.',
+        missingFields: [...(lookup.cards.length === 1 ? [] : ['printing']), ...missingOptionFields],
         query: lookup.query,
         resolvedName: lookup.resolvedName,
         requestedFinish: lookup.requestedFinish,
         totalCount: lookup.totalCount,
         truncated: lookup.truncated,
         candidates: lookup.candidates,
-      };
+      });
     } else {
       return mcpAddNeedsClarification({
         missingFields: ['scryfallId', 'setCode', 'collectorNumber'],
@@ -1347,6 +1379,18 @@ async function toolPreviewAddInventoryItem(env, deps, auth, args = {}) {
     return mcpAddNeedsClarification({
       missingFields: ['scryfallId', 'setCode', 'collectorNumber'],
       message: 'That Scryfall printing was not found. Ask the user to confirm the set code and collector number, or provide a Scryfall card URL/id.',
+    });
+  }
+  if (missingOptionFields.length) {
+    const candidate = formatScryfallPrintingCandidate(resolvedCard, raw);
+    return mcpAddNeedsInput({
+      message: 'Choose the missing copy details, then create a preview.',
+      missingFields: missingOptionFields,
+      query: raw.name || raw.query || '',
+      resolvedName: candidate.name,
+      requestedFinish: requestedScryfallFinish(raw.finish),
+      totalCount: 1,
+      candidates: [candidate],
     });
   }
   const entry = mergeScryfallCardIntoInventoryEntry(raw, resolvedCard, location);
@@ -1737,7 +1781,7 @@ const TOOL_DEFINITIONS = [
     },
     required: ['toLocation'],
   }],
-  ['preview_add_inventory_item', 'Preview adding a physical inventory entry. Requires an exact real Scryfall printing: provide scryfallId, or setCode/set plus cn/collectorNumber. Do not guess printings; name-only adds return needs_clarification.', {
+  ['preview_add_inventory_item', 'Preview adding a physical inventory entry. Requires a real Scryfall printing plus explicit qty, finish, and condition. Do not guess physical-copy options; missing details return needs_input with candidates for the app to render.', {
     type: 'object',
     properties: {
       name: { type: 'string' },
@@ -1914,6 +1958,42 @@ function normalizeMcpPreview(value) {
   return out;
 }
 
+function normalizeMcpDraft(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const candidates = Array.isArray(value.candidates)
+    ? value.candidates.filter(candidate => candidate?.previewAddArgs && typeof candidate.previewAddArgs === 'object')
+    : [];
+  if (!candidates.length) return null;
+  const status = String(value.status || '').toLowerCase();
+  if (!['ok', 'needs_input', 'needs_selection'].includes(status)) return null;
+  return {
+    status,
+    previewType: String(value.previewType || 'inventory.add'),
+    message: String(value.message || 'Choose the missing add details below, then create a preview.'),
+    missingFields: Array.isArray(value.missingFields) ? value.missingFields.map(String) : [],
+    query: String(value.query || ''),
+    resolvedName: String(value.resolvedName || ''),
+    requestedFinish: String(value.requestedFinish || ''),
+    totalCount: value.totalCount ?? candidates.length,
+    truncated: !!value.truncated,
+    candidates: candidates.slice(0, 20).map(candidate => ({
+      name: String(candidate.name || ''),
+      scryfallId: String(candidate.scryfallId || ''),
+      setCode: String(candidate.setCode || ''),
+      setName: String(candidate.setName || ''),
+      collectorNumber: String(candidate.collectorNumber || ''),
+      rarity: String(candidate.rarity || ''),
+      releasedAt: String(candidate.releasedAt || ''),
+      finishes: Array.isArray(candidate.finishes) ? candidate.finishes.map(String) : [],
+      requestedFinish: String(candidate.requestedFinish || ''),
+      typeLine: String(candidate.typeLine || ''),
+      imageUrl: String(candidate.imageUrl || ''),
+      scryfallUri: String(candidate.scryfallUri || ''),
+      previewAddArgs: cloneJson(candidate.previewAddArgs, {}),
+    })),
+  };
+}
+
 function jsonValuesFromString(text) {
   const trimmed = String(text || '').trim();
   if (!trimmed || trimmed.length > 30000) return [];
@@ -1961,6 +2041,39 @@ function collectMcpPreviews(value, out, seenObjects, seenTokens, depth = 0) {
 function extractMcpPreviews(data) {
   const out = [];
   collectMcpPreviews(data, out, new WeakSet(), new Set());
+  return out;
+}
+
+function collectMcpDrafts(value, out, seenObjects, seenKeys, depth = 0) {
+  if (depth > 10 || value == null) return;
+  if (typeof value === 'string') {
+    for (const parsed of jsonValuesFromString(value)) collectMcpDrafts(parsed, out, seenObjects, seenKeys, depth + 1);
+    return;
+  }
+  if (typeof value !== 'object') return;
+  if (seenObjects.has(value)) return;
+  seenObjects.add(value);
+
+  const draft = normalizeMcpDraft(value);
+  if (draft) {
+    const key = draft.candidates.map(candidate => candidate.scryfallId || candidate.setCode + ':' + candidate.collectorNumber).join('|')
+      + ':' + draft.missingFields.join(',');
+    if (!seenKeys.has(key)) {
+      seenKeys.add(key);
+      out.push(draft);
+    }
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) collectMcpDrafts(item, out, seenObjects, seenKeys, depth + 1);
+    return;
+  }
+  for (const child of Object.values(value)) collectMcpDrafts(child, out, seenObjects, seenKeys, depth + 1);
+}
+
+function extractMcpDrafts(data) {
+  const out = [];
+  collectMcpDrafts(data, out, new WeakSet(), new Set());
   return out;
 }
 
@@ -2141,7 +2254,10 @@ function extractAnthropicText(data) {
 function chatSuccessResponse(deps, request, { provider, model, hosted, usage, data, text, messages = [] }) {
   const lastUserText = [...messages].reverse().find(message => message.role === 'user')?.content || '';
   const filtered = filterChatPreviews(extractMcpPreviews(data), lastUserText);
-  const responseText = filtered.previewWarnings.length && !filtered.previews.length
+  const drafts = extractMcpDrafts(data);
+  const responseText = drafts.length && !filtered.previews.length
+    ? 'Choose options below.'
+    : filtered.previewWarnings.length && !filtered.previews.length
     ? filtered.previewWarnings.join('\n')
     : text;
   return deps.json({
@@ -2151,6 +2267,7 @@ function chatSuccessResponse(deps, request, { provider, model, hosted, usage, da
     usage,
     text: responseText,
     previews: filtered.previews,
+    drafts,
     previewWarnings: filtered.previewWarnings,
     raw: data,
   }, 200, request);
@@ -2247,6 +2364,28 @@ export async function handleMcpApplyRequest(request, env, deps) {
     return deps.json(await toolApplyCollectionChange(env, deps, auth, body), 200, request);
   } catch (e) {
     return deps.json({ error: e.message || 'apply failed', data: e.data || null }, e.status || 400, request);
+  }
+}
+
+export async function handleMcpPreviewRequest(request, env, deps) {
+  if (request.method !== 'POST') return deps.json({ error: 'POST required' }, 405, request);
+  let clerkAuth = null;
+  try {
+    clerkAuth = await deps.authenticate(request, env);
+  } catch (e) {
+    return deps.json({ error: e.message || 'unauthorized' }, 401, request);
+  }
+  const body = await request.json().catch(() => ({}));
+  const toolName = String(body.toolName || body.name || 'preview_add_inventory_item');
+  if (!toolName.startsWith('preview_')) {
+    return deps.json({ error: 'only preview tools are allowed' }, 400, request);
+  }
+  const auth = { userId: clerkAuth.userId, scopes: [...MCP_SCOPES] };
+  try {
+    const args = body.arguments && typeof body.arguments === 'object' ? body.arguments : (body.args || {});
+    return deps.json(await executeTool(toolName, args, env, deps, auth), 200, request);
+  } catch (e) {
+    return deps.json({ error: e.message || 'preview failed', data: e.data || null }, e.status || 400, request);
   }
 }
 

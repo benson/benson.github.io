@@ -7,14 +7,15 @@ const SYSTEM_PROMPT = [
   'Use the MTG Collection MCP tools to read the collection and preview safe changes.',
   'Do not apply changes yourself. The app receives preview metadata separately and shows pending changes for user confirmation.',
   'When calling tools, use real JSON types: quantities are numbers and createContainer is a boolean, not quoted strings.',
-  'For a simple single-card add request without an explicit quantity, preview exactly one copy with one tool call.',
-  'For add requests, do not invent set codes, collector numbers, rarities, or Scryfall ids. If the user does not identify an exact printing, call search_card_printings first. If there is one clear candidate, use its previewAddArgs to create a preview; if there are multiple, show the choices and ask the user to pick one.',
+  'For add requests, do not invent set codes, collector numbers, rarities, Scryfall ids, quantities, finishes, or conditions.',
+  'If the user does not provide every add detail, use search_card_printings or preview_add_inventory_item to return candidates/input needs; the app will render quick controls.',
 ].join(' ');
 const HOSTED_PROVIDER = 'groq';
 const HOSTED_MODEL = 'openai/gpt-oss-120b';
 
 let root = null;
 let logEl = null;
+let draftPanelEl = null;
 let previewPanelEl = null;
 let formEl = null;
 let inputEl = null;
@@ -23,7 +24,16 @@ let closeBtn = null;
 let documentRef = null;
 let toggleButtons = [];
 const transcript = [];
+const pendingDrafts = [];
 const pendingPreviews = [];
+
+const CONDITION_OPTIONS = [
+  ['near_mint', 'nm'],
+  ['lightly_played', 'lp'],
+  ['moderately_played', 'mp'],
+  ['heavily_played', 'hp'],
+  ['damaged', 'dmg'],
+];
 
 function appendMessage(role, content, meta = {}) {
   transcript.push({ role, content, meta });
@@ -81,6 +91,105 @@ function changeTokensFromText(text) {
     }
   }
   return out;
+}
+
+function randomDraftId() {
+  if (globalThis.crypto?.randomUUID) return 'draft_' + globalThis.crypto.randomUUID().replace(/-/g, '');
+  return 'draft_' + Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
+function normalizeFinish(value) {
+  const raw = String(value || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  if (raw === 'foil') return 'foil';
+  if (raw === 'etched' || raw === 'etched_foil') return 'etched';
+  return 'normal';
+}
+
+function finishLabel(value) {
+  const finish = normalizeFinish(value);
+  if (finish === 'foil') return 'foil';
+  if (finish === 'etched') return 'etched';
+  return 'nonfoil';
+}
+
+function finishOptionsForCandidate(candidate, selectedFinish) {
+  const finishes = Array.isArray(candidate?.finishes) ? candidate.finishes.map(normalizeFinish) : [];
+  const values = [];
+  for (const finish of finishes) {
+    if (!values.includes(finish)) values.push(finish);
+  }
+  const selected = normalizeFinish(selectedFinish);
+  if (!values.length && !values.includes(selected)) values.unshift(selected);
+  if (!values.length) values.push('normal');
+  return values;
+}
+
+function candidateLabel(candidate) {
+  const bits = [
+    candidate.name || 'card',
+    [candidate.setCode, candidate.collectorNumber].filter(Boolean).join(' #'),
+    candidate.setName,
+    candidate.rarity,
+  ].filter(Boolean);
+  return bits.join(' · ');
+}
+
+function normalizePendingDraft(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const candidates = Array.isArray(raw.candidates)
+    ? raw.candidates.filter(candidate => candidate?.previewAddArgs && typeof candidate.previewAddArgs === 'object')
+    : [];
+  if (!candidates.length) return null;
+  const firstArgs = candidates[0].previewAddArgs || {};
+  return {
+    id: randomDraftId(),
+    type: raw.previewType || 'inventory.add',
+    message: String(raw.message || 'Choose add details, then create a preview.'),
+    missingFields: Array.isArray(raw.missingFields) ? raw.missingFields.map(String) : [],
+    query: String(raw.query || ''),
+    resolvedName: String(raw.resolvedName || candidates[0].name || ''),
+    candidates,
+    selectedIndex: 0,
+    qty: Math.max(1, parseInt(firstArgs.qty, 10) || 1),
+    finish: normalizeFinish(firstArgs.finish || raw.requestedFinish || candidates[0].requestedFinish || 'normal'),
+    condition: String(firstArgs.condition || 'near_mint'),
+    error: '',
+    previewing: false,
+  };
+}
+
+function addPendingDrafts(drafts) {
+  let added = 0;
+  for (const raw of Array.isArray(drafts) ? drafts : []) {
+    const draft = normalizePendingDraft(raw);
+    if (!draft) continue;
+    pendingDrafts.push(draft);
+    added += 1;
+  }
+  renderPendingDrafts();
+  return added;
+}
+
+function selectedDraftCandidate(draft) {
+  return draft.candidates[Math.max(0, Math.min(draft.selectedIndex, draft.candidates.length - 1))] || draft.candidates[0];
+}
+
+function draftPreviewArgs(draft) {
+  const candidate = selectedDraftCandidate(draft);
+  const finishOptions = finishOptionsForCandidate(candidate, draft.finish);
+  const finish = finishOptions.includes(normalizeFinish(draft.finish)) ? normalizeFinish(draft.finish) : finishOptions[0] || 'normal';
+  return {
+    ...(candidate?.previewAddArgs || {}),
+    qty: Math.max(1, parseInt(draft.qty, 10) || 1),
+    finish,
+    condition: draft.condition || 'near_mint',
+  };
+}
+
+function removePendingDraft(draftId) {
+  const index = pendingDrafts.findIndex(draft => draft.id === draftId);
+  if (index !== -1) pendingDrafts.splice(index, 1);
+  renderPendingDrafts();
 }
 
 function normalizePendingPreview(preview) {
@@ -149,6 +258,132 @@ function makePreviewButton(action, text, changeToken = '') {
   if (changeToken) button.dataset.changeToken = changeToken;
   button.textContent = text;
   return button;
+}
+
+function makeOption(value, label, selectedValue) {
+  const option = documentRef.createElement('option');
+  option.value = String(value);
+  option.textContent = label;
+  option.selected = String(value) === String(selectedValue);
+  return option;
+}
+
+function renderPendingDrafts() {
+  if (!draftPanelEl || !documentRef) return;
+  draftPanelEl.innerHTML = '';
+  if (!pendingDrafts.length) {
+    draftPanelEl.hidden = true;
+    return;
+  }
+  draftPanelEl.hidden = false;
+
+  const head = documentRef.createElement('div');
+  head.className = 'mcp-chat-preview-head';
+  const title = documentRef.createElement('div');
+  title.className = 'mcp-chat-preview-title';
+  title.textContent = 'complete add';
+  const actions = documentRef.createElement('div');
+  actions.className = 'mcp-chat-preview-actions';
+  const clear = makePreviewButton('clearDrafts', 'clear');
+  actions.appendChild(clear);
+  head.append(title, actions);
+  draftPanelEl.appendChild(head);
+
+  const list = documentRef.createElement('div');
+  list.className = 'mcp-chat-preview-list';
+  for (const draft of pendingDrafts) {
+    const row = documentRef.createElement('article');
+    row.className = 'mcp-chat-draft-row' + (draft.error ? ' has-error' : '');
+    row.dataset.draftId = draft.id;
+
+    const copy = documentRef.createElement('div');
+    copy.className = 'mcp-chat-preview-copy';
+    const summary = documentRef.createElement('div');
+    summary.className = 'mcp-chat-preview-summary';
+    summary.textContent = draft.resolvedName || draft.query || 'card add';
+    const meta = documentRef.createElement('div');
+    meta.className = 'mcp-chat-preview-meta';
+    const missing = draft.missingFields.length ? 'needs ' + draft.missingFields.join(', ') : 'choose details';
+    meta.textContent = draft.error || missing;
+    copy.append(summary, meta);
+
+    const controls = documentRef.createElement('div');
+    controls.className = 'mcp-chat-draft-controls';
+
+    if (draft.candidates.length > 1) {
+      const label = documentRef.createElement('label');
+      label.className = 'mcp-chat-draft-field mcp-chat-draft-field-wide';
+      const span = documentRef.createElement('span');
+      span.textContent = 'printing';
+      const select = documentRef.createElement('select');
+      select.dataset.draftField = 'selectedIndex';
+      draft.candidates.forEach((candidate, index) => {
+        select.appendChild(makeOption(index, candidateLabel(candidate), String(draft.selectedIndex)));
+      });
+      label.append(span, select);
+      controls.appendChild(label);
+    } else {
+      const candidate = selectedDraftCandidate(draft);
+      const printing = documentRef.createElement('div');
+      printing.className = 'mcp-chat-draft-printing';
+      printing.textContent = candidateLabel(candidate);
+      controls.appendChild(printing);
+    }
+
+    const candidate = selectedDraftCandidate(draft);
+    const qtyLabel = documentRef.createElement('label');
+    qtyLabel.className = 'mcp-chat-draft-field';
+    const qtyText = documentRef.createElement('span');
+    qtyText.textContent = 'qty';
+    const qty = documentRef.createElement('input');
+    qty.type = 'number';
+    qty.min = '1';
+    qty.max = '99';
+    qty.step = '1';
+    qty.value = String(draft.qty || 1);
+    qty.dataset.draftField = 'qty';
+    qtyLabel.append(qtyText, qty);
+
+    const finishLabelEl = documentRef.createElement('label');
+    finishLabelEl.className = 'mcp-chat-draft-field';
+    const finishText = documentRef.createElement('span');
+    finishText.textContent = 'finish';
+    const finish = documentRef.createElement('select');
+    finish.dataset.draftField = 'finish';
+    const finishOptions = finishOptionsForCandidate(candidate, draft.finish);
+    const selectedFinish = finishOptions.includes(normalizeFinish(draft.finish)) ? normalizeFinish(draft.finish) : finishOptions[0];
+    for (const value of finishOptions) {
+      finish.appendChild(makeOption(value, finishLabel(value), selectedFinish));
+    }
+    finishLabelEl.append(finishText, finish);
+
+    const conditionLabel = documentRef.createElement('label');
+    conditionLabel.className = 'mcp-chat-draft-field';
+    const conditionText = documentRef.createElement('span');
+    conditionText.textContent = 'condition';
+    const condition = documentRef.createElement('select');
+    condition.dataset.draftField = 'condition';
+    for (const [value, label] of CONDITION_OPTIONS) {
+      condition.appendChild(makeOption(value, label, draft.condition));
+    }
+    conditionLabel.append(conditionText, condition);
+
+    controls.append(qtyLabel, finishLabelEl, conditionLabel);
+
+    const rowActions = documentRef.createElement('div');
+    rowActions.className = 'mcp-chat-preview-row-actions';
+    const preview = makePreviewButton('previewDraft', draft.previewing ? 'previewing' : 'preview');
+    preview.dataset.draftId = draft.id;
+    preview.disabled = draft.previewing;
+    const dismiss = makePreviewButton('dismissDraft', 'dismiss');
+    dismiss.dataset.draftId = draft.id;
+    dismiss.disabled = draft.previewing;
+    rowActions.append(preview, dismiss);
+
+    row.append(copy, controls, rowActions);
+    list.appendChild(row);
+  }
+  draftPanelEl.appendChild(list);
 }
 
 function renderPendingPreviews() {
@@ -278,9 +513,12 @@ async function sendChat() {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'chat request failed');
     const previews = Array.isArray(data.previews) ? [...data.previews] : [];
+    const drafts = Array.isArray(data.drafts) ? [...data.drafts] : [];
     const warnings = Array.isArray(data.previewWarnings) ? data.previewWarnings.map(String).filter(Boolean) : [];
     const serverText = data.text || (previews.length ? 'Preview ready below.' : '(no text response)');
-    const responseText = previews.length
+    const responseText = drafts.length
+      ? 'Choose options below.'
+      : previews.length
       ? (previews.length === 1 ? 'Preview ready below.' : previews.length + ' previews ready below.')
       : warnings.length ? warnings.join('\n') : serverText;
     pending.content = responseText;
@@ -289,6 +527,7 @@ async function sendChat() {
         previews.push({ changeToken: token, summary: 'Previewed collection change' });
       }
     }
+    addPendingDrafts(drafts);
     addPendingPreviews(previews);
     if (warnings.length) showFeedback(warnings[0], 'error');
     delete pending.meta.pending;
@@ -299,6 +538,52 @@ async function sendChat() {
   } finally {
     sendBtn.disabled = false;
     renderTranscript();
+  }
+}
+
+async function previewDraft(draftId) {
+  const draft = pendingDrafts.find(item => item.id === draftId);
+  if (!draft || draft.previewing) return false;
+  draft.previewing = true;
+  draft.error = '';
+  renderPendingDrafts();
+  try {
+    const token = await getSyncAuthToken();
+    if (!token) throw new Error('chat needs Clerk auth. For local testing, open /mtgcollection/?auth=clerk&sync=remote');
+    const res = await fetch(SYNC_API_URL + '/mcp/preview', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + token,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        toolName: 'preview_add_inventory_item',
+        arguments: draftPreviewArgs(draft),
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'preview failed');
+    if (data.status === 'preview' && data.changeToken) {
+      removePendingDraft(draftId);
+      addPendingPreviews([data]);
+      appendMessage('assistant', 'Preview ready below.');
+      return true;
+    }
+    if (Array.isArray(data.candidates) && data.candidates.length) {
+      const replacement = normalizePendingDraft(data);
+      if (replacement) {
+        Object.assign(draft, replacement, { id: draft.id, previewing: false });
+        renderPendingDrafts();
+        return false;
+      }
+    }
+    throw new Error(data.message || data.error || 'preview needs more information');
+  } catch (e) {
+    draft.previewing = false;
+    draft.error = e.message || String(e);
+    renderPendingDrafts();
+    showFeedback(draft.error, 'error');
+    return false;
   }
 }
 
@@ -387,6 +672,7 @@ export function initMcpChat({ documentObj = document } = {}) {
   root = documentObj.getElementById('mcpChatDetails');
   if (!root) return;
   logEl = documentObj.getElementById('mcpChatLog');
+  draftPanelEl = documentObj.getElementById('mcpChatDraftPanel');
   previewPanelEl = documentObj.getElementById('mcpChatPreviewPanel');
   formEl = documentObj.getElementById('mcpChatForm');
   inputEl = documentObj.getElementById('mcpChatInput');
@@ -394,6 +680,7 @@ export function initMcpChat({ documentObj = document } = {}) {
   closeBtn = documentObj.getElementById('mcpChatClose');
   toggleButtons = Array.from(documentObj.querySelectorAll('[data-mcp-chat-toggle]'));
   renderTranscript();
+  renderPendingDrafts();
   renderPendingPreviews();
 
   toggleButtons.forEach(button => {
@@ -413,6 +700,37 @@ export function initMcpChat({ documentObj = document } = {}) {
   logEl?.addEventListener('click', event => {
     const button = event.target.closest('[data-change-token]');
     if (button) applyPreview(button.dataset.changeToken);
+  });
+  draftPanelEl?.addEventListener('change', event => {
+    const field = event.target?.dataset?.draftField;
+    if (!field) return;
+    const row = event.target.closest('[data-draft-id]');
+    const draft = pendingDrafts.find(item => item.id === row?.dataset?.draftId);
+    if (!draft) return;
+    if (field === 'selectedIndex') {
+      draft.selectedIndex = parseInt(event.target.value, 10) || 0;
+      const candidate = selectedDraftCandidate(draft);
+      draft.finish = normalizeFinish(candidate?.previewAddArgs?.finish || candidate?.requestedFinish || draft.finish);
+    } else if (field === 'qty') {
+      draft.qty = Math.max(1, parseInt(event.target.value, 10) || 1);
+    } else if (field === 'finish') {
+      draft.finish = normalizeFinish(event.target.value);
+    } else if (field === 'condition') {
+      draft.condition = event.target.value || 'near_mint';
+    }
+    draft.error = '';
+    renderPendingDrafts();
+  });
+  draftPanelEl?.addEventListener('click', event => {
+    const button = event.target.closest('[data-preview-action]');
+    if (!button) return;
+    const action = button.dataset.previewAction;
+    if (action === 'previewDraft') previewDraft(button.dataset.draftId);
+    else if (action === 'dismissDraft') removePendingDraft(button.dataset.draftId);
+    else if (action === 'clearDrafts') {
+      pendingDrafts.splice(0, pendingDrafts.length);
+      renderPendingDrafts();
+    }
   });
   previewPanelEl?.addEventListener('click', event => {
     const button = event.target.closest('[data-preview-action]');

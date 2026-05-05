@@ -6,6 +6,7 @@ import {
   handleByokChatRequest,
   handleMcpApplyRequest,
   handleMcpOAuthRequest,
+  handleMcpPreviewRequest,
   handleMcpRequest,
   isMcpOAuthPath,
 } from './mcp.js';
@@ -35,7 +36,7 @@ function allowAnonymousShareWrites(env) {
 
 function rateLimitGroup(path, method) {
   if (path === '/mcp/chat') return 'chat';
-  if (path === '/mcp' || path === '/mcp/apply') return 'mcp';
+  if (path === '/mcp' || path === '/mcp/apply' || path === '/mcp/preview') return 'mcp';
   if (isMcpOAuthPath(path)) return 'mcp';
   if (path.startsWith('/sync/')) return 'sync';
   if (path === '/share' || path.startsWith('/share/')) return method === 'GET' ? 'share-read' : 'share-write';
@@ -505,6 +506,7 @@ export default {
     if (isMcpOAuthPath(path)) return handleMcpOAuthRequest(request, env, deps);
     if (path === '/mcp') return handleMcpRequest(request, env, deps);
     if (path === '/mcp/chat') return handleByokChatRequest(request, env, deps);
+    if (path === '/mcp/preview') return handleMcpPreviewRequest(request, env, deps);
     if (path === '/mcp/apply') return handleMcpApplyRequest(request, env, deps);
 
     if (path.startsWith('/sync/')) {

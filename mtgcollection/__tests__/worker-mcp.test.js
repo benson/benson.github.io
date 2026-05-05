@@ -304,6 +304,7 @@ test('mcp: preview add inventory resolves an exact printing through Scryfall', a
       name: 'maelstrom artisan',
       setCode: 'znr',
       cn: '220',
+      qty: 1,
       finish: 'nonfoil',
       condition: 'lp',
     });
@@ -375,8 +376,11 @@ test('mcp: preview add inventory returns candidate printings when only a name is
       condition: 'nm',
     });
     const data = preview.result.structuredContent;
-    assert.equal(data.status, 'needs_selection');
+    assert.equal(data.status, 'needs_input');
     assert.equal(data.changeToken, undefined);
+    assert.ok(data.missingFields.includes('qty'));
+    assert.ok(data.missingFields.includes('finish'));
+    assert.ok(data.missingFields.includes('printing'));
     assert.equal(data.candidates.length, 2);
     assert.equal(data.candidates[0].setCode, 'tdm');
     assert.equal(data.candidates[0].previewAddArgs.scryfallId, 'hamlet-tdm-1');
@@ -463,7 +467,9 @@ test('mcp: preview add inventory can auto-preview a unique name lookup', async (
   try {
     const preview = await callTool(env, token.access_token, 'preview_add_inventory_item', {
       name: 'petrified hamlet',
+      qty: 1,
       finish: 'nonfoil',
+      condition: 'nm',
     });
     const data = preview.result.structuredContent;
     assert.equal(data.status, 'preview');
@@ -504,6 +510,8 @@ test('mcp: preview add inventory rejects incomplete Scryfall metadata', async ()
     const preview = await callTool(env, token.access_token, 'preview_add_inventory_item', {
       setCode: 'vow',
       cn: '262',
+      qty: 1,
+      finish: 'nonfoil',
       condition: 'nm',
     });
     const data = preview.result.structuredContent;
@@ -555,6 +563,7 @@ test('mcp: preview add inventory tolerates chat-coerced string args', async () =
       collectorNumber: '211',
       qty: '2',
       finish: 'foil',
+      condition: 'nm',
       location: 'box spells',
       createcontainer: 'true',
     });
@@ -592,6 +601,8 @@ test('mcp: preview add rejects a guessed printing instead of falling back to car
       name: 'dreamroot cascade',
       setCode: 'ddu',
       cn: '179',
+      qty: 1,
+      finish: 'nonfoil',
       condition: 'nm',
     });
     const data = preview.result.structuredContent;
@@ -923,6 +934,64 @@ test('mcp chat: hosted Groq key is used by default with preview-only remote MCP 
     assert.equal(data.previews[0].summary, 'Added 1 Maelstrom Artisan');
     assert.equal(data.previews[0].expectedRevision, 3);
     assert.equal([...env.OAUTH_KV.values.values()].some(value => String(value).includes('gsk-hosted-secret')), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp chat: add input needs are returned as app-renderable drafts', async () => {
+  const { env } = fakeSyncEnv();
+  env.MTGCOLLECTION_CHAT_GROQ_API_KEY = 'gsk-hosted-secret';
+  const originalFetch = globalThis.fetch;
+  const draft = {
+    status: 'needs_input',
+    previewType: 'inventory.add',
+    message: 'Choose the exact printing and missing copy details, then create a preview.',
+    missingFields: ['printing', 'qty', 'finish', 'condition'],
+    query: 'petrified hamlet',
+    resolvedName: 'Petrified Hamlet',
+    candidates: [{
+      name: 'Petrified Hamlet',
+      scryfallId: 'hamlet-tdm-1',
+      setCode: 'tdm',
+      setName: 'Tarkir: Dragonstorm',
+      collectorNumber: '276',
+      rarity: 'rare',
+      finishes: ['nonfoil', 'foil'],
+      previewAddArgs: {
+        scryfallId: 'hamlet-tdm-1',
+        name: 'Petrified Hamlet',
+        setCode: 'tdm',
+        cn: '276',
+      },
+    }],
+  };
+  globalThis.fetch = async () => Response.json({
+    output_text: 'I need more info.',
+    output: [{
+      type: 'mcp_call',
+      name: 'preview_add_inventory_item',
+      result: { structuredContent: draft },
+    }],
+  });
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'add petrified hamlet' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.text, 'Choose options below.');
+    assert.equal(data.previews.length, 0);
+    assert.equal(data.drafts.length, 1);
+    assert.equal(data.drafts[0].missingFields.includes('condition'), true);
+    assert.equal(data.drafts[0].candidates[0].previewAddArgs.scryfallId, 'hamlet-tdm-1');
   } finally {
     globalThis.fetch = originalFetch;
   }
