@@ -564,6 +564,66 @@ test('mcp: preview add inventory returns candidate printings when only a name is
   }
 });
 
+test('mcp: preview add inventory includes and ranks older edition hints', async () => {
+  const { env } = fakeSyncEnv(emptySnapshot());
+  const token = await issueMcpToken(env);
+  const originalFetch = globalThis.fetch;
+  const recent = Array.from({ length: 13 }, (_, index) => ({
+    id: 'serra-recent-' + index,
+    name: 'Serra Angel',
+    set: index === 0 ? 'fdn' : 'sld',
+    set_name: index === 0 ? 'Foundations' : 'Secret Lair Drop',
+    collector_number: String(100 + index),
+    released_at: '2024-01-' + String(index + 1).padStart(2, '0'),
+    rarity: 'uncommon',
+    type_line: 'Creature - Angel',
+    finishes: ['foil'],
+    image_uris: { normal: 'https://img.test/serra-' + index + '.jpg' },
+    scryfall_uri: 'https://scryfall.test/card/recent/' + index,
+  }));
+  globalThis.fetch = async url => {
+    assert.match(String(url), /\/cards\/search\?/);
+    return Response.json({
+      total_cards: 14,
+      has_more: false,
+      data: [
+        ...recent,
+        {
+          id: 'serra-7ed-foil',
+          name: 'Serra Angel',
+          set: '7ed',
+          set_name: 'Seventh Edition',
+          collector_number: '42★',
+          released_at: '2001-04-11',
+          rarity: 'uncommon',
+          type_line: 'Creature - Angel',
+          finishes: ['foil'],
+          image_uris: { normal: 'https://img.test/serra-7ed.jpg' },
+          scryfall_uri: 'https://scryfall.test/card/7ed/42/star/serra-angel',
+        },
+      ],
+    });
+  };
+  try {
+    const preview = await callTool(env, token.access_token, 'preview_add_inventory_item', {
+      name: 'serra angel',
+      edition: '7th ed',
+      qty: 1,
+      finish: 'foil',
+      condition: 'nm',
+      location: 'trade binder',
+    });
+    const data = preview.result.structuredContent;
+    assert.equal(data.status, 'needs_input');
+    assert.deepEqual(data.missingFields, ['printing']);
+    assert.equal(data.candidates.length, 14);
+    assert.equal(data.candidates[0].setCode, '7ed');
+    assert.equal(data.candidates[0].setName, 'Seventh Edition');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('mcp: search card printings returns exact Scryfall add arguments', async () => {
   const { env } = fakeSyncEnv(emptySnapshot());
   const token = await issueMcpToken(env);
