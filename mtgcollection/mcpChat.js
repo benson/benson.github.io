@@ -693,22 +693,7 @@ function removePendingPreview(changeToken) {
 }
 
 function previewMetaText(preview) {
-  const parts = [];
-  if (preview.expectedRevision !== null && preview.expectedRevision !== undefined && preview.expectedRevision !== '') {
-    parts.push('preview rev ' + preview.expectedRevision);
-  }
-  if (preview.opCount !== null && preview.opCount !== undefined) {
-    const count = Number(preview.opCount) || 0;
-    parts.push(count + ' sync ' + (count === 1 ? 'op' : 'ops'));
-  }
-  if (preview.expiresAt) {
-    const expires = new Date(preview.expiresAt);
-    if (!Number.isNaN(expires.getTime())) {
-      parts.push('expires ' + expires.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
-    }
-  }
-  if (preview.error) parts.push(preview.error);
-  return parts.join(' / ');
+  return preview.error || '';
 }
 
 function makePreviewButton(action, text, changeToken = '') {

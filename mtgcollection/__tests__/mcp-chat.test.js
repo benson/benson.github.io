@@ -167,6 +167,26 @@ test('initMcpChat: new chat clears transcript prompt and pending previews', () =
   assert.equal(document.getElementById('mcpChatPreviewPanel').hidden, true);
 });
 
+test('initMcpChat: pending previews hide internal revision metadata', () => {
+  const { document } = setup();
+  initMcpChat({ documentObj: document });
+
+  addPendingPreviewsForTest([{
+    changeToken: 'preview.token',
+    summary: 'added 1 hangarback walker',
+    expectedRevision: 160,
+    opCount: 2,
+    expiresAt: '2026-05-06T21:12:00.000Z',
+  }]);
+
+  const panel = document.getElementById('mcpChatPreviewPanel');
+  assert.equal(panel.hidden, false);
+  assert.match(panel.textContent, /added 1 hangarback walker/);
+  assert.doesNotMatch(panel.textContent, /preview rev/i);
+  assert.doesNotMatch(panel.textContent, /sync ops/i);
+  assert.doesNotMatch(panel.textContent, /expires/i);
+});
+
 test('initMcpChat: add drafts use the shared add preview and printing rows', () => {
   const { win, document } = setup();
   initMcpChat({ documentObj: document });
