@@ -3798,8 +3798,31 @@
     gap: 8px;
   }
   .mcp-chat-empty {
-    color: #666;
+    align-self: stretch;
+    color: #555;
     font-size: 0.85rem;
+    line-height: 1.35;
+    margin: auto 0;
+    padding: 10px;
+  }
+  .mcp-chat-empty-title {
+    color: #111;
+    font-size: 0.92rem;
+    margin-bottom: 4px;
+  }
+  .mcp-chat-empty-copy {
+    color: #666;
+    margin-bottom: 10px;
+  }
+  .mcp-chat-empty-examples {
+    display: grid;
+    gap: 4px;
+    list-style: none;
+  }
+  .mcp-chat-empty-examples li {
+    border-left: 2px solid #cfc7b8;
+    color: #333;
+    padding-left: 8px;
   }
   .mcp-chat-message {
     display: grid;

@@ -585,6 +585,27 @@ function renderTranscript() {
   if (!logEl) return;
   logEl.innerHTML = '';
   if (!transcript.length) {
+    const empty = documentRef.createElement('div');
+    empty.className = 'mcp-chat-empty';
+    const title = documentRef.createElement('div');
+    title.className = 'mcp-chat-empty-title';
+    title.textContent = 'no chat yet';
+    const copy = documentRef.createElement('div');
+    copy.className = 'mcp-chat-empty-copy';
+    copy.textContent = 'ask about your collection, or stage a card/container change for review.';
+    const examples = documentRef.createElement('ul');
+    examples.className = 'mcp-chat-empty-examples';
+    for (const text of [
+      'do i have any cards in trade binder?',
+      'add a nm nonfoil petrified hamlet',
+      'move prismari charm to trade binder',
+    ]) {
+      const item = documentRef.createElement('li');
+      item.textContent = text;
+      examples.appendChild(item);
+    }
+    empty.append(title, copy, examples);
+    logEl.appendChild(empty);
     return;
   }
 

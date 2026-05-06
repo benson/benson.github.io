@@ -61,6 +61,16 @@ test('initMcpChat: chat FAB toggles the floating widget without using the right 
   assert.equal(toggle.getAttribute('aria-expanded'), 'false');
 });
 
+test('initMcpChat: empty transcript shows example prompts', () => {
+  const { document } = setup();
+  initMcpChat({ documentObj: document });
+
+  const empty = document.querySelector('.mcp-chat-empty');
+  assert.ok(empty);
+  assert.match(empty.textContent, /no chat yet/);
+  assert.match(empty.textContent, /petrified hamlet/);
+});
+
 test('initMcpChat: escape closes the floating widget', () => {
   const { win, document } = setup();
   initMcpChat({ documentObj: document });
