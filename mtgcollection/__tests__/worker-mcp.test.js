@@ -653,6 +653,42 @@ test('mcp: search card printings falls back when Scryfall search errors', async 
   }
 });
 
+test('mcp: search card printings suggests nearby names when no card matches', async () => {
+  const { env } = fakeSyncEnv(emptySnapshot());
+  const token = await issueMcpToken(env);
+  const originalFetch = globalThis.fetch;
+  const urls = [];
+  globalThis.fetch = async url => {
+    urls.push(String(url));
+    if (String(url).includes('/cards/search?')) {
+      return Response.json({ total_cards: 0, has_more: false, data: [] });
+    }
+    if (String(url).includes('/cards/named?')) {
+      return Response.json({ error: 'not found' }, { status: 404 });
+    }
+    if (String(url).includes('/cards/autocomplete?')) {
+      return Response.json({ data: ['Lorehold Apprentice', 'Lorehold Command', 'Lorehold Campus'] });
+    }
+    throw new Error('unexpected Scryfall URL: ' + url);
+  };
+  try {
+    const lookup = await callTool(env, token.access_token, 'search_card_printings', {
+      name: 'lorehold captain',
+      finish: 'foil',
+      limit: 5,
+    });
+    const data = lookup.result.structuredContent;
+    assert.equal(data.status, 'not_found');
+    assert.equal(data.query, 'lorehold captain');
+    assert.deepEqual(data.suggestions.slice(0, 2), ['Lorehold Apprentice', 'Lorehold Command']);
+    assert.match(data.message, /real Magic card matching "lorehold captain"/i);
+    assert.match(data.message, /Lorehold Apprentice/);
+    assert.ok(urls.some(url => url.includes('/cards/autocomplete?')));
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('mcp: preview add inventory can auto-preview a unique name lookup', async () => {
   const { env, state } = fakeSyncEnv(emptySnapshot());
   const token = await issueMcpToken(env);
@@ -1289,6 +1325,49 @@ test('mcp chat: add input needs are returned as app-renderable drafts', async ()
     assert.equal(data.drafts.length, 1);
     assert.equal(data.drafts[0].missingFields.includes('condition'), true);
     assert.equal(data.drafts[0].candidates[0].previewAddArgs.scryfallId, 'hamlet-tdm-1');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp chat: add lookup misses become useful assistant text', async () => {
+  const { env } = fakeSyncEnv();
+  env.MTGCOLLECTION_CHAT_GROQ_API_KEY = 'gsk-hosted-secret';
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => Response.json({
+    output_text: '',
+    output: [{
+      type: 'mcp_call',
+      name: 'preview_add_inventory_item',
+      result: {
+        structuredContent: {
+          status: 'needs_clarification',
+          query: 'lorehold captain',
+          message: 'I could not find a real Magic card matching "lorehold captain".',
+          missingFields: ['scryfallId', 'setCode', 'collectorNumber'],
+          suggestions: ['Lorehold Apprentice', 'Lorehold Command', 'Lorehold Campus'],
+        },
+      },
+    }],
+  });
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'add a foil lorehold captain to my trade binder' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.previews.length, 0);
+    assert.equal(data.drafts.length, 0);
+    assert.match(data.text, /real Magic card matching "lorehold captain"/i);
+    assert.match(data.text, /Lorehold Apprentice/);
+    assert.match(data.text, /Lorehold Command/);
   } finally {
     globalThis.fetch = originalFetch;
   }

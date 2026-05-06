@@ -719,6 +719,10 @@ function buildScryfallPrintingsSearchUrl(name) {
     + '&unique=prints&order=released&dir=desc&include_extras=true&include_variations=true';
 }
 
+function buildScryfallAutocompleteUrl(name) {
+  return SCRYFALL_API + '/cards/autocomplete?q=' + encodeURIComponent(String(name || '').trim());
+}
+
 function preferExactScryfallPrintings(cards, name) {
   const target = normalizeExactCardName(name);
   if (!target) return cards;
@@ -769,6 +773,24 @@ async function fetchScryfallNamedCard(name) {
   const fuzzy = await fetchScryfallJson(SCRYFALL_API + '/cards/named?fuzzy=' + encodeURIComponent(name));
   if (fuzzy.ok && fuzzy.data?.name) return { card: fuzzy.data, fuzzyName: String(fuzzy.data.name || '') };
   return { card: null, fuzzyName: '' };
+}
+
+async function fetchScryfallAutocomplete(name, limit = 8) {
+  const query = String(name || '').trim();
+  if (!query) return [];
+  const fetched = await fetchScryfallJson(buildScryfallAutocompleteUrl(query));
+  if (!fetched.ok || !Array.isArray(fetched.data?.data)) return [];
+  const out = [];
+  const seen = new Set();
+  for (const value of fetched.data.data) {
+    const suggestion = String(value || '').trim();
+    const key = suggestion.toLowerCase();
+    if (!suggestion || seen.has(key)) continue;
+    seen.add(key);
+    out.push(suggestion);
+    if (out.length >= limit) break;
+  }
+  return out;
 }
 
 async function fetchScryfallPrintingsByName(name, { maxPages = SCRYFALL_PRINTINGS_MAX_PAGES, hardCap = SCRYFALL_PRINTINGS_HARD_CAP, allowFuzzy = true } = {}) {
@@ -925,6 +947,12 @@ async function lookupScryfallPrintingCards(args = {}) {
     printingPreferenceTextFromArgs(args)
   ).slice(0, limit);
   const requestedFinish = requestedScryfallFinish(args.finish);
+  const suggestions = candidates.length ? [] : await fetchScryfallAutocomplete(name);
+  const noMatchMessage = lookup.cards.length && args.finish && !finishFiltered.length
+    ? 'I found "' + (lookup.fuzzyName || name) + '", but could not find a '
+      + (requestedFinish || String(args.finish || '').trim()) + ' printing for it.'
+    : 'I could not find a real Magic card matching "' + name + '".'
+      + (suggestions.length ? ' Nearby Scryfall matches: ' + suggestions.slice(0, 5).join(', ') + '.' : '');
   return {
     status: candidates.length ? 'ok' : 'not_found',
     query: name,
@@ -933,11 +961,13 @@ async function lookupScryfallPrintingCards(args = {}) {
     requestedFinish,
     totalCount: args.finish ? finishFiltered.length : lookup.totalCount,
     truncated: lookup.truncated || finishFiltered.length > candidates.length,
+    suggestions,
+    lookupError: lookup.lookupError,
     cards: finishFiltered,
     candidates,
     message: candidates.length
       ? 'Choose one of these exact Scryfall printings, then call preview_add_inventory_item with that candidate previewAddArgs.'
-      : 'No matching Scryfall printings were found.',
+      : noMatchMessage,
   };
 }
 
@@ -1028,14 +1058,17 @@ function missingMcpAddCardFields(entry = {}) {
   return missing;
 }
 
-function mcpAddNeedsClarification({ missingFields = [], message = '' } = {}) {
+function mcpAddNeedsClarification({ missingFields = [], message = '', query = '', suggestions = [] } = {}) {
   const fields = [...new Set(missingFields.map(String).filter(Boolean))];
-  return {
+  const out = {
     status: 'needs_clarification',
     error: message || 'A card add preview requires a complete real Scryfall printing before it can create a change token.',
     missingFields: fields,
     message: message || 'Ask the user for a Scryfall card id, Scryfall URL, or exact set code and collector number, then retry the preview.',
   };
+  if (String(query || '').trim()) out.query = String(query || '').trim();
+  if (Array.isArray(suggestions) && suggestions.length) out.suggestions = suggestions.map(String).filter(Boolean).slice(0, 8);
+  return out;
 }
 
 function mcpAddNeedsInput({ candidates = [], missingFields = [], query = '', resolvedName = '', requestedFinish = '', totalCount = 0, truncated = false, message = '' } = {}) {
@@ -1807,7 +1840,9 @@ async function toolPreviewAddInventoryItem(env, deps, auth, args = {}) {
     } else {
       return mcpAddNeedsClarification({
         missingFields: ['scryfallId', 'setCode', 'collectorNumber'],
-        message: 'No matching Scryfall printing was found. Ask the user for the set code and collector number, or a Scryfall card URL/id.',
+        query: lookup.query,
+        suggestions: lookup.suggestions,
+        message: lookup.message || 'No matching Scryfall printing was found. Ask the user for the set code and collector number, or a Scryfall card URL/id.',
       });
     }
   }
@@ -2562,6 +2597,60 @@ function extractMcpDrafts(data) {
   return out;
 }
 
+function normalizeMcpAddLookupMiss(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const status = String(value.status || '').toLowerCase();
+  if (!['not_found', 'needs_clarification'].includes(status)) return null;
+  const message = String(value.message || value.error || '').trim();
+  const query = String(value.query || value.name || '').trim();
+  const missingFields = Array.isArray(value.missingFields) ? value.missingFields.map(String) : [];
+  const isAddLookupMiss = status === 'not_found'
+    || missingFields.some(field => /scryfall|setcode|collector/i.test(field))
+    || /scryfall|printing|real magic card|matching .*card|not found/i.test(message);
+  if (!isAddLookupMiss) return null;
+  const suggestions = Array.isArray(value.suggestions)
+    ? value.suggestions.map(String).map(text => text.trim()).filter(Boolean).slice(0, 8)
+    : [];
+  return {
+    status,
+    query,
+    message,
+    suggestions,
+  };
+}
+
+function collectMcpAddLookupMisses(value, out, seenObjects, seenKeys, depth = 0) {
+  if (depth > 10 || value == null) return;
+  if (typeof value === 'string') {
+    for (const parsed of jsonValuesFromString(value)) collectMcpAddLookupMisses(parsed, out, seenObjects, seenKeys, depth + 1);
+    return;
+  }
+  if (typeof value !== 'object') return;
+  if (seenObjects.has(value)) return;
+  seenObjects.add(value);
+
+  const miss = normalizeMcpAddLookupMiss(value);
+  if (miss) {
+    const key = [miss.status, miss.query, miss.message, miss.suggestions.join('|')].join(':');
+    if (!seenKeys.has(key)) {
+      seenKeys.add(key);
+      out.push(miss);
+    }
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) collectMcpAddLookupMisses(item, out, seenObjects, seenKeys, depth + 1);
+    return;
+  }
+  for (const child of Object.values(value)) collectMcpAddLookupMisses(child, out, seenObjects, seenKeys, depth + 1);
+}
+
+function extractMcpAddLookupMisses(data) {
+  const out = [];
+  collectMcpAddLookupMisses(data, out, new WeakSet(), new Set());
+  return out;
+}
+
 function normalizeMcpInventoryCard(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const itemKey = String(value.itemKey || '').trim();
@@ -2816,6 +2905,25 @@ function inventoryCardsSummaryText(cards, userText) {
     + (count === 1 ? 'It is' : 'They are') + ' shown below.';
 }
 
+function addLookupMissSummaryText(misses, userText) {
+  const miss = Array.isArray(misses) ? misses.find(Boolean) : null;
+  if (!miss) return '';
+  const query = String(miss.query || '').trim();
+  const message = String(miss.message || '').trim();
+  const suggestions = Array.isArray(miss.suggestions) ? miss.suggestions.filter(Boolean).slice(0, 5) : [];
+  if (/could not find a .*printing|couldn't find a .*printing/i.test(message) && !suggestions.length) {
+    return message;
+  }
+  const base = query
+    ? 'I could not find a real Magic card matching "' + query + '".'
+    : 'I could not find a matching real Magic card for that add request.';
+  if (suggestions.length) {
+    return base + ' Did you mean one of these: ' + suggestions.join(', ') + '?';
+  }
+  if (message && !/ask the user/i.test(message)) return message;
+  return base + ' Check the spelling, or give me an exact set code and collector number or a Scryfall link.';
+}
+
 function orderInventoryCardsForUserRequest(cards, userText) {
   const direction = inventoryPriceSortDirection(userText);
   if (!direction) return cards;
@@ -3013,6 +3121,7 @@ function chatSuccessResponse(deps, request, { provider, model, hosted, usage, da
   const lastUserText = [...messages].reverse().find(message => message.role === 'user')?.content || '';
   const filtered = filterChatPreviews(extractMcpPreviews(data), lastUserText);
   const drafts = preferDraftsForUserRequest(extractMcpDrafts(data), lastUserText);
+  const addLookupMissText = addLookupMissSummaryText(extractMcpAddLookupMisses(data), lastUserText);
   const cards = orderInventoryCardsForUserRequest(
     filterInventoryCardsForUserRequest(extractMcpInventoryCards(data), lastUserText),
     lastUserText
@@ -3027,6 +3136,8 @@ function chatSuccessResponse(deps, request, { provider, model, hosted, usage, da
     ? containerSummary
     : responseCards.length
     ? inventoryCardsSummaryText(responseCards, lastUserText)
+    : addLookupMissText
+    ? addLookupMissText
     : text;
   return deps.json({
     provider,
