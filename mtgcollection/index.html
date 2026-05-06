@@ -481,7 +481,10 @@ body.app-booting .app-boot-curtain {
   <section class="mcp-chat-widget" id="mcpChatDetails" aria-label="collection chat" aria-hidden="true">
     <header class="mcp-chat-head" id="mcpChatDragHandle" data-mcp-chat-drag-handle title="drag chat">
       <h2>collection chat</h2>
-      <button class="mcp-chat-close" type="button" id="mcpChatClose" aria-label="close chat">x</button>
+      <div class="mcp-chat-head-actions">
+        <button class="mcp-chat-clear" type="button" id="mcpChatClear" aria-label="start new chat">new chat</button>
+        <button class="mcp-chat-close" type="button" id="mcpChatClose" aria-label="close chat">x</button>
+      </div>
     </header>
     <div class="mcp-chat">
       <div class="mcp-chat-log" id="mcpChatLog" aria-live="polite"></div>

@@ -41,12 +41,14 @@ let formEl = null;
 let inputEl = null;
 let sendBtn = null;
 let closeBtn = null;
+let clearBtn = null;
 let dragHandleEl = null;
 let documentRef = null;
 let toggleButtons = [];
 let dragState = null;
 let resizeDragState = null;
 let resizeObserver = null;
+let chatEpoch = 0;
 const transcript = [];
 const pendingDrafts = [];
 const pendingPreviews = [];
@@ -417,6 +419,28 @@ function observeChatResize() {
 function appendMessage(role, content, meta = {}) {
   transcript.push({ role, content, meta });
   renderTranscript();
+}
+
+function confirmClearChat() {
+  if (!pendingDrafts.length && !pendingPreviews.length) return true;
+  const confirmFn = documentRef?.defaultView?.confirm || globalThis.confirm;
+  if (typeof confirmFn !== 'function') return true;
+  return confirmFn('Clear this chat and discard pending chat changes?') !== false;
+}
+
+function clearChat({ confirmFirst = true } = {}) {
+  if (confirmFirst && !confirmClearChat()) return false;
+  chatEpoch += 1;
+  transcript.splice(0, transcript.length);
+  pendingDrafts.splice(0, pendingDrafts.length);
+  pendingPreviews.splice(0, pendingPreviews.length);
+  if (inputEl) inputEl.value = '';
+  if (sendBtn) sendBtn.disabled = false;
+  renderTranscript();
+  renderPendingDrafts();
+  renderPendingPreviews();
+  inputEl?.focus();
+  return true;
 }
 
 function setChatOpen(open, { focus = false } = {}) {
@@ -1178,6 +1202,7 @@ async function sendChat() {
   appendMessage('user', prompt);
   inputEl.value = '';
   sendBtn.disabled = true;
+  const requestEpoch = chatEpoch;
   const pending = { role: 'assistant', content: 'thinking...', meta: { pending: true } };
   transcript.push(pending);
   renderTranscript();
@@ -1207,6 +1232,7 @@ async function sendChat() {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'chat request failed');
+    if (requestEpoch !== chatEpoch) return;
     const previews = Array.isArray(data.previews) ? [...data.previews] : [];
     const drafts = Array.isArray(data.drafts) ? [...data.drafts] : [];
     const cards = Array.isArray(data.cards) ? data.cards.map(normalizeChatCard).filter(Boolean) : [];
@@ -1229,12 +1255,13 @@ async function sendChat() {
     if (warnings.length) showFeedback(warnings[0], 'error');
     delete pending.meta.pending;
   } catch (e) {
+    if (requestEpoch !== chatEpoch) return;
     pending.content = e.message || String(e);
     pending.meta.error = true;
     showFeedback(pending.content, 'error');
   } finally {
-    sendBtn.disabled = false;
-    renderTranscript();
+    if (sendBtn) sendBtn.disabled = false;
+    if (requestEpoch === chatEpoch) renderTranscript();
   }
 }
 
@@ -1452,6 +1479,7 @@ export function initMcpChat({ documentObj = document } = {}) {
   inputEl = documentObj.getElementById('mcpChatInput');
   sendBtn = documentObj.getElementById('mcpChatSend');
   closeBtn = documentObj.getElementById('mcpChatClose');
+  clearBtn = documentObj.getElementById('mcpChatClear');
   dragHandleEl = documentObj.getElementById('mcpChatDragHandle') || documentObj.querySelector('[data-mcp-chat-drag-handle]');
   toggleButtons = Array.from(documentObj.querySelectorAll('[data-mcp-chat-toggle]'));
   resizeObserver?.disconnect?.();
@@ -1469,6 +1497,7 @@ export function initMcpChat({ documentObj = document } = {}) {
     button.addEventListener('click', toggleChat);
   });
   closeBtn?.addEventListener('click', () => setChatOpen(false));
+  clearBtn?.addEventListener('click', () => clearChat());
   dragHandleEl?.addEventListener('pointerdown', startChatDrag);
   documentObj.addEventListener('pointermove', moveChatDrag);
   documentObj.addEventListener('pointermove', moveChatResize);
@@ -1559,4 +1588,12 @@ export function initMcpChat({ documentObj = document } = {}) {
       renderPendingPreviews();
     }
   });
+}
+
+export function appendMcpChatMessageForTest(role, content, meta = {}) {
+  appendMessage(role, content, meta);
+}
+
+export function addPendingPreviewsForTest(previews) {
+  return addPendingPreviews(previews);
 }

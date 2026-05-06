@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Window } from 'happy-dom';
 import {
+  addPendingPreviewsForTest,
+  appendMcpChatMessageForTest,
   calculateChatResize,
   clampChatPosition,
   clampChatSize,
@@ -16,6 +18,7 @@ function setup() {
   win.document.body.innerHTML = `
     <section id="mcpChatDetails" aria-hidden="true">
       <header id="mcpChatDragHandle" data-mcp-chat-drag-handle>
+        <button id="mcpChatClear" type="button"></button>
         <button id="mcpChatClose" type="button"></button>
       </header>
       <div id="mcpChatLog"></div>
@@ -137,6 +140,26 @@ test('initMcpChat: empty transcript shows example prompts', () => {
   assert.ok(empty);
   assert.match(empty.textContent, /no chat yet/);
   assert.match(empty.textContent, /petrified hamlet/);
+});
+
+test('initMcpChat: new chat clears transcript prompt and pending previews', () => {
+  const { win, document } = setup();
+  initMcpChat({ documentObj: document });
+
+  document.getElementById('mcpChatInput').value = 'what foils do i have?';
+  appendMcpChatMessageForTest('user', 'what foils do i have?');
+  appendMcpChatMessageForTest('assistant', 'I found 3 foil cards.');
+  addPendingPreviewsForTest([{ changeToken: 'preview.token', summary: 'added 1 island' }]);
+
+  assert.equal(document.querySelectorAll('.mcp-chat-message').length, 2);
+  assert.equal(document.getElementById('mcpChatPreviewPanel').hidden, false);
+
+  click(win, document.getElementById('mcpChatClear'));
+
+  assert.equal(document.getElementById('mcpChatInput').value, '');
+  assert.equal(document.querySelectorAll('.mcp-chat-message').length, 0);
+  assert.ok(document.querySelector('.mcp-chat-empty'));
+  assert.equal(document.getElementById('mcpChatPreviewPanel').hidden, true);
 });
 
 test('renderChatCardResultsForTest: inventory cards are hoverable and movable', () => {
