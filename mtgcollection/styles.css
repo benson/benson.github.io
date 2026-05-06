@@ -3725,11 +3725,8 @@
   .history-list {
     list-style: none;
     /* Negative right margin breaks out of the sidebar's 14px right padding so
-       the scrollbar gutter sits flush with the sidebar's right border. The
-       22px right padding then keeps row content at the same x-position as
-       the rest of the sidebar (14px sidebar pad worth of clear space + 8px
-       breathing room from the scrollbar). */
-    padding: 0 22px 0 0;
+       the scrollbar gutter sits flush with the sidebar's right border. */
+    padding: 0 8px 0 0;
     margin: 0 -14px 8px 0;
     max-height: 240px;
     overflow-y: auto;
@@ -3737,15 +3734,18 @@
     font-size: 0.75rem;
   }
   .history-list li {
-    padding: 4px 0;
+    background: rgba(255,255,255,0.48);
+    box-shadow: inset 2px 0 0 #d8d0c4, inset 0 -1px 0 rgba(0,0,0,0.06);
     color: #444;
-    border-bottom: 1px dashed #eee;
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    gap: 2px;
+    padding: 5px 7px 6px 9px;
+    position: relative;
     word-break: break-word;
   }
-  .history-list li:last-child { border-bottom: none; }
+  .history-list li + li { margin-top: 4px; }
+  .history-list li:last-child { box-shadow: inset 2px 0 0 #d8d0c4; }
   .history-list .history-row-meta {
     display: flex;
     align-items: baseline;
@@ -3773,7 +3773,13 @@
     color: #999;
   }
   .history-list li.history-dismissed { color: #aaa; }
-  .history-list .history-empty { color: #999; border-bottom: none; font-style: italic; }
+  .history-list .history-empty {
+    background: transparent;
+    box-shadow: none;
+    color: #999;
+    font-style: italic;
+    padding-left: 0;
+  }
   .history-actions { display: flex; gap: 4px; flex-wrap: wrap; }
   .history-actions .btn { font-size: 0.7rem; padding: 4px 8px; }
   .sidebar-history { margin-top: 8px; }
