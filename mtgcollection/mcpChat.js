@@ -424,15 +424,7 @@ function appendMessage(role, content, meta = {}) {
   renderTranscript();
 }
 
-function confirmClearChat() {
-  if (!pendingDrafts.length && !pendingPreviews.length) return true;
-  const confirmFn = documentRef?.defaultView?.confirm || globalThis.confirm;
-  if (typeof confirmFn !== 'function') return true;
-  return confirmFn('Clear this chat and discard pending chat changes?') !== false;
-}
-
-function clearChat({ confirmFirst = true } = {}) {
-  if (confirmFirst && !confirmClearChat()) return false;
+function clearChat() {
   chatEpoch += 1;
   transcript.splice(0, transcript.length);
   pendingDrafts.splice(0, pendingDrafts.length);

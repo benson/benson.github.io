@@ -154,6 +154,9 @@ test('initMcpChat: new chat clears transcript prompt and pending previews', () =
 
   assert.equal(document.querySelectorAll('.mcp-chat-message').length, 2);
   assert.equal(document.getElementById('mcpChatPreviewPanel').hidden, false);
+  win.confirm = () => {
+    throw new Error('new chat should not open a browser confirm');
+  };
 
   click(win, document.getElementById('mcpChatClear'));
 
