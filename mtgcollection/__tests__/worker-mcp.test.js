@@ -349,6 +349,23 @@ test('mcp: search_inventory can infer broad filters from natural query text', as
   assert.equal(results[0].price, 12);
 });
 
+test('mcp: search_inventory matches punctuation-insensitive plural card names', async () => {
+  const snapshot = emptySnapshot({
+    collection: [
+      card({ name: 'Glint-Nest Crane', resolvedName: 'Glint-Nest Crane', scryfallId: 'crane-1', price: 0.14 }),
+      card({ name: 'Gilded Goose', resolvedName: 'Gilded Goose', scryfallId: 'goose-1', price: 1.5 }),
+    ],
+  });
+  const { env } = fakeSyncEnv(snapshot);
+  const token = await issueMcpToken(env);
+  const searched = await callTool(env, token.access_token, 'search_inventory', {
+    query: 'do i have any glint nest cranes?',
+  });
+  const results = searched.result.structuredContent.results;
+  assert.equal(results.length, 1);
+  assert.equal(results[0].name, 'Glint-Nest Crane');
+});
+
 test('mcp: search_inventory resolves bare location names to existing containers', async () => {
   const snapshot = emptySnapshot({
     collection: [

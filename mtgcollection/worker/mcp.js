@@ -1352,6 +1352,39 @@ function inventoryTagsFilter(args = {}) {
   return raw.map(tag => String(tag || '').trim().toLowerCase()).filter(Boolean);
 }
 
+function inventorySearchToken(raw) {
+  const token = String(raw || '').trim().toLowerCase();
+  if (token.length <= 3) return token;
+  if (token.endsWith('ies') && token.length > 4) return token.slice(0, -3) + 'y';
+  if (token.endsWith('es') && token.length > 4 && /(ches|shes|xes|zes|ses)$/.test(token)) return token.slice(0, -2);
+  if (token.endsWith('s') && !/(ss|us|is)$/.test(token)) return token.slice(0, -1);
+  return token;
+}
+
+function inventorySearchTokens(raw) {
+  return String(raw || '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .split(/\s+/)
+    .map(inventorySearchToken)
+    .filter(Boolean);
+}
+
+function inventoryNameMatchesQuery(name, query) {
+  const nameText = String(name || '');
+  const queryText = String(query || '');
+  if (!queryText) return true;
+  if (nameText.toLowerCase().includes(queryText.toLowerCase())) return true;
+  const nameTokens = inventorySearchTokens(nameText);
+  const queryTokens = inventorySearchTokens(queryText);
+  if (!queryTokens.length) return true;
+  return queryTokens.every(queryToken => nameTokens.some(nameToken => (
+    nameToken === queryToken
+      || nameToken.startsWith(queryToken)
+      || queryToken.startsWith(nameToken)
+  )));
+}
+
 function matchesInventory(entry, args = {}) {
   if (args.itemKey && collectionKey(entry) !== args.itemKey) return false;
   if (args.scryfallId && entry.scryfallId !== args.scryfallId) return false;
@@ -1387,7 +1420,7 @@ function matchesInventory(entry, args = {}) {
   const q = String(rawQuery || '').trim().toLowerCase();
   if (q) {
     const name = String(entry.resolvedName || entry.name || '').toLowerCase();
-    if (!name.includes(q)) return false;
+    if (!inventoryNameMatchesQuery(name, q)) return false;
   }
   return true;
 }
