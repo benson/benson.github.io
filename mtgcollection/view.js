@@ -49,6 +49,7 @@ import {
   renderDeckTotals,
 } from './views/totalsView.js';
 import { renderRow } from './views/listRowView.js';
+import { renderCollectionVisualGrid } from './views/collectionVisualView.js';
 import {
   renderDeckNotesMode,
   renderDeckSampleHandSection,
@@ -161,6 +162,8 @@ function syncContainerIdentityStrip(containers = []) {
 }
 
 let locationsEl, listBodyEl, collectionSection, emptyState;
+let collectionDisplayControlsEl = null;
+let collectionVisualEl = null;
 let deckMetaAutocomplete = null;
 let deckPreviewPanel = null;
 let rightDrawer = null;
@@ -377,8 +380,16 @@ export function render() {
     // 'collection' or 'box' — both render as flat list. 'box' is just a
     // collection view filtered to a single box container.
     listContainer.classList.add('active');
-    listBodyEl.innerHTML = list.map(c => renderRow(c)).join('');
-    syncSortIndicator();
+    const mode = state.collectionDisplayMode === 'visual' ? 'visual' : 'table';
+    syncCollectionDisplayChrome(listContainer, mode);
+    if (mode === 'visual') {
+      listBodyEl.innerHTML = '';
+      collectionVisualEl.innerHTML = renderCollectionVisualGrid(list, state.collection);
+    } else {
+      listBodyEl.innerHTML = list.map(c => renderRow(c)).join('');
+      if (collectionVisualEl) collectionVisualEl.innerHTML = '';
+      syncSortIndicator();
+    }
     setCollectionTotals(list);
   }
   updateBulkBar();
@@ -461,6 +472,41 @@ function currentDeckContainer() {
 function currentDeckMetadata() {
   const deck = currentDeckContainer();
   return deck?.deck || defaultDeckMetadata(deck?.name || 'deck');
+}
+
+function ensureCollectionDisplayChrome(listContainer) {
+  if (!listContainer) return;
+  if (!collectionDisplayControlsEl) {
+    collectionDisplayControlsEl = document.createElement('div');
+    collectionDisplayControlsEl.className = 'collection-display-controls segmented';
+    collectionDisplayControlsEl.setAttribute('aria-label', 'collection display');
+    collectionDisplayControlsEl.innerHTML = `
+      <button class="segment-btn" type="button" data-collection-display-mode="table">table</button>
+      <button class="segment-btn" type="button" data-collection-display-mode="visual">visual</button>
+    `;
+    const bulkBar = listContainer.querySelector('#bulkBar');
+    bulkBar?.insertAdjacentElement('afterend', collectionDisplayControlsEl);
+  }
+  if (!collectionVisualEl) {
+    collectionVisualEl = document.createElement('div');
+    collectionVisualEl.className = 'collection-visual-view';
+    collectionVisualEl.id = 'collectionVisualView';
+    listContainer.appendChild(collectionVisualEl);
+  }
+}
+
+function syncCollectionDisplayChrome(listContainer, mode) {
+  ensureCollectionDisplayChrome(listContainer);
+  collectionDisplayControlsEl?.querySelectorAll('[data-collection-display-mode]').forEach(btn => {
+    const active = btn.dataset.collectionDisplayMode === mode;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
+  listContainer?.classList.toggle('collection-display-table', mode === 'table');
+  listContainer?.classList.toggle('collection-display-visual', mode === 'visual');
+  const table = listContainer?.querySelector('table');
+  if (table) table.hidden = mode !== 'table';
+  if (collectionVisualEl) collectionVisualEl.hidden = mode !== 'visual';
 }
 
 function applyDeckIdentityEntries(model, deckCards = []) {
@@ -660,6 +706,22 @@ export function initView() {
     if (!form) return;
     event.preventDefault();
     cancelContainerIdentityEdit(identityStrip, { type: form.dataset.locType, name: form.dataset.locName });
+  });
+
+  collectionSection?.addEventListener('click', event => {
+    const modeButton = event.target.closest('[data-collection-display-mode]');
+    if (modeButton) {
+      state.collectionDisplayMode = modeButton.dataset.collectionDisplayMode === 'visual' ? 'visual' : 'table';
+      save();
+      render();
+      return;
+    }
+
+    const visualTrigger = event.target.closest('[data-collection-visual-detail], [data-collection-visual-card]');
+    if (!visualTrigger || !collectionSection.contains(visualTrigger)) return;
+    if (event.target.closest('[data-collection-display-mode]')) return;
+    if (event.target.closest('.loc-pill')) return;
+    openDetail(parseInt(visualTrigger.dataset.index, 10));
   });
 
   bindAppShellActions({

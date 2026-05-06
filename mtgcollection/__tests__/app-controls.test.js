@@ -5,6 +5,7 @@ import {
   CHROME_KEY,
   loadChromePreferences,
   TEXT_CASE_KEY,
+  TEXT_SIZE_KEY,
 } from '../appControls.js';
 import { state } from '../state.js';
 import { createFakeStorage, createTestDocument, resetStateAfterEach } from './testUtils.js';
@@ -30,8 +31,16 @@ function setupDocument() {
     <button type="button" id="loadSampleBtn"></button>
     <button type="button" id="loadTestDataBtn"></button>
     <button type="button" id="resetAppBtn"></button>
-    <button type="button" id="caseToggleBtn"></button>
-    <button type="button" id="chromeToggleBtn"></button>
+    <button type="button" id="settingsToggleBtn" aria-expanded="false" aria-controls="settingsPopover"></button>
+    <div id="settingsPopover" hidden>
+      <button type="button" data-settings-key="text-case" data-settings-value="lower" aria-pressed="false"></button>
+      <button type="button" data-settings-key="text-case" data-settings-value="proper" aria-pressed="false"></button>
+      <button type="button" data-settings-key="chrome" data-settings-value="soft" aria-pressed="false"></button>
+      <button type="button" data-settings-key="chrome" data-settings-value="classic" aria-pressed="false"></button>
+      <button type="button" data-settings-key="text-size" data-settings-value="compact" aria-pressed="false"></button>
+      <button type="button" data-settings-key="text-size" data-settings-value="default" aria-pressed="false"></button>
+      <button type="button" data-settings-key="text-size" data-settings-value="large" aria-pressed="false"></button>
+    </div>
   `);
 }
 
@@ -44,11 +53,14 @@ test('loadChromePreferences: applies stored body classes', () => {
     storage: createFakeStorage([
       [TEXT_CASE_KEY, 'proper'],
       [CHROME_KEY, 'classic'],
+      [TEXT_SIZE_KEY, 'large'],
     ]),
   });
 
   assert.equal(documentObj.body.classList.contains('proper-case'), true);
   assert.equal(documentObj.body.classList.contains('chrome-classic'), true);
+  assert.equal(documentObj.body.classList.contains('text-size-large'), true);
+  assert.equal(documentObj.body.classList.contains('text-size-compact'), false);
 });
 
 test('bindAppControls: format selector persists state and syncs loaded values', () => {
@@ -104,7 +116,7 @@ test('bindAppControls: empty-state actions route or trigger their target control
   assert.equal(calls.testClicks, 1);
 });
 
-test('bindAppControls: reset and chrome toggles stay behind one boundary', () => {
+test('bindAppControls: reset and settings preferences stay behind one boundary', () => {
   const documentObj = setupDocument();
   const storage = createFakeStorage();
   const calls = { clears: 0, modes: [], saves: 0, renders: 0, paths: [] };
@@ -121,8 +133,32 @@ test('bindAppControls: reset and chrome toggles stay behind one boundary', () =>
   });
 
   documentObj.getElementById('resetAppBtn').click();
-  documentObj.getElementById('caseToggleBtn').click();
-  documentObj.getElementById('chromeToggleBtn').click();
+  const settingsToggle = documentObj.getElementById('settingsToggleBtn');
+  const settingsPopover = documentObj.getElementById('settingsPopover');
+  const settingButton = (key, value) => documentObj.querySelector(`[data-settings-key="${key}"][data-settings-value="${value}"]`);
+
+  assert.equal(settingButton('text-case', 'lower').getAttribute('aria-pressed'), 'true');
+  assert.equal(settingButton('chrome', 'soft').getAttribute('aria-pressed'), 'true');
+  assert.equal(settingButton('text-size', 'default').getAttribute('aria-pressed'), 'true');
+
+  settingsToggle.click();
+  assert.equal(settingsPopover.hidden, false);
+  assert.equal(settingsToggle.getAttribute('aria-expanded'), 'true');
+
+  settingButton('text-case', 'proper').click();
+  settingButton('chrome', 'classic').click();
+  settingButton('text-size', 'large').click();
+  settingButton('text-size', 'compact').click();
+  settingButton('text-size', 'default').click();
+
+  documentObj.body.click();
+  assert.equal(settingsPopover.hidden, true);
+  assert.equal(settingsToggle.getAttribute('aria-expanded'), 'false');
+
+  settingsToggle.click();
+  documentObj.dispatchEvent(new documentObj.defaultView.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  assert.equal(settingsPopover.hidden, true);
+  assert.equal(settingsToggle.getAttribute('aria-expanded'), 'false');
 
   assert.equal(calls.clears, 1);
   assert.deepEqual(calls.modes, ['collection']);
@@ -132,6 +168,12 @@ test('bindAppControls: reset and chrome toggles stay behind one boundary', () =>
   assert.deepEqual(calls.paths, ['/mtgcollection/']);
   assert.equal(storage.values.get(TEXT_CASE_KEY), 'proper');
   assert.equal(storage.values.get(CHROME_KEY), 'classic');
+  assert.equal(storage.values.get(TEXT_SIZE_KEY), 'default');
   assert.equal(documentObj.body.classList.contains('proper-case'), true);
   assert.equal(documentObj.body.classList.contains('chrome-classic'), true);
+  assert.equal(documentObj.body.classList.contains('text-size-large'), false);
+  assert.equal(documentObj.body.classList.contains('text-size-compact'), false);
+  assert.equal(settingButton('text-case', 'proper').getAttribute('aria-pressed'), 'true');
+  assert.equal(settingButton('chrome', 'classic').getAttribute('aria-pressed'), 'true');
+  assert.equal(settingButton('text-size', 'default').getAttribute('aria-pressed'), 'true');
 });

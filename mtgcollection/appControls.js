@@ -7,6 +7,7 @@ import { setTopLevelViewMode } from './routeState.js';
 
 export const TEXT_CASE_KEY = 'mtgcollection_text_case_v1';
 export const CHROME_KEY = 'mtgcollection_chrome_v1';
+export const TEXT_SIZE_KEY = 'mtgcollection_text_size_v1';
 
 export function applyTextCase(mode, bodyEl = globalThis.document?.body) {
   bodyEl?.classList.toggle('proper-case', mode === 'proper');
@@ -14,6 +15,14 @@ export function applyTextCase(mode, bodyEl = globalThis.document?.body) {
 
 export function applyChrome(mode, bodyEl = globalThis.document?.body) {
   bodyEl?.classList.toggle('chrome-classic', mode === 'classic');
+}
+
+export function applyTextSize(mode, bodyEl = globalThis.document?.body) {
+  bodyEl?.classList.toggle('text-size-compact', mode === 'compact');
+  bodyEl?.classList.toggle('text-size-large', mode === 'large');
+  const rootEl = bodyEl?.ownerDocument?.documentElement;
+  rootEl?.classList.toggle('text-size-compact', mode === 'compact');
+  rootEl?.classList.toggle('text-size-large', mode === 'large');
 }
 
 function safeGet(storage, key) {
@@ -30,6 +39,7 @@ export function loadChromePreferences({
 } = {}) {
   applyTextCase(safeGet(storage, TEXT_CASE_KEY), documentObj?.body);
   applyChrome(safeGet(storage, CHROME_KEY), documentObj?.body);
+  applyTextSize(safeGet(storage, TEXT_SIZE_KEY), documentObj?.body);
 }
 
 export function bindAppControls({
@@ -48,6 +58,8 @@ export function bindAppControls({
   const bodyEl = documentObj?.body;
   const formatSelectEl = documentObj?.getElementById('formatSelect');
   const footerEl = documentObj?.querySelector('.app-footer');
+  const settingsToggleBtn = documentObj?.getElementById('settingsToggleBtn');
+  const settingsPopoverEl = documentObj?.getElementById('settingsPopover');
 
   const updateFooter = () => {
     footerEl?.classList.toggle('format-active', !!stateRef.selectedFormat);
@@ -114,26 +126,75 @@ export function bindAppControls({
     cleanups.push(() => resetAppBtn.removeEventListener('click', onReset));
   }
 
-  const caseToggleBtn = documentObj?.getElementById('caseToggleBtn');
-  if (caseToggleBtn) {
-    const onCaseToggle = () => {
-      const next = bodyEl?.classList.contains('proper-case') ? 'lower' : 'proper';
-      safeSet(storage, TEXT_CASE_KEY, next);
-      applyTextCase(next, bodyEl);
+  if (settingsPopoverEl) {
+    const settingButtons = Array.from(settingsPopoverEl.querySelectorAll('[data-settings-key][data-settings-value]'));
+    const getCurrentSetting = key => {
+      if (key === 'text-case') return bodyEl?.classList.contains('proper-case') ? 'proper' : 'lower';
+      if (key === 'chrome') return bodyEl?.classList.contains('chrome-classic') ? 'classic' : 'soft';
+      if (key === 'text-size') {
+        if (bodyEl?.classList.contains('text-size-compact')) return 'compact';
+        if (bodyEl?.classList.contains('text-size-large')) return 'large';
+        return 'default';
+      }
+      return '';
     };
-    caseToggleBtn.addEventListener('click', onCaseToggle);
-    cleanups.push(() => caseToggleBtn.removeEventListener('click', onCaseToggle));
-  }
+    const syncSettingsButtons = () => {
+      settingButtons.forEach(btn => {
+        const active = getCurrentSetting(btn.dataset.settingsKey) === btn.dataset.settingsValue;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+    };
+    const setSettingsOpen = isOpen => {
+      settingsPopoverEl.hidden = !isOpen;
+      settingsToggleBtn?.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    };
+    const closeSettings = () => setSettingsOpen(false);
 
-  const chromeToggleBtn = documentObj?.getElementById('chromeToggleBtn');
-  if (chromeToggleBtn) {
-    const onChromeToggle = () => {
-      const next = bodyEl?.classList.contains('chrome-classic') ? 'soft' : 'classic';
-      safeSet(storage, CHROME_KEY, next);
-      applyChrome(next, bodyEl);
+    const onSettingsOptionClick = event => {
+      const btn = event.target?.closest?.('[data-settings-key][data-settings-value]');
+      if (!btn || !settingsPopoverEl.contains(btn)) return;
+      const { settingsKey, settingsValue } = btn.dataset;
+      if (settingsKey === 'text-case') {
+        safeSet(storage, TEXT_CASE_KEY, settingsValue);
+        applyTextCase(settingsValue, bodyEl);
+      } else if (settingsKey === 'chrome') {
+        safeSet(storage, CHROME_KEY, settingsValue);
+        applyChrome(settingsValue, bodyEl);
+      } else if (settingsKey === 'text-size') {
+        safeSet(storage, TEXT_SIZE_KEY, settingsValue);
+        applyTextSize(settingsValue, bodyEl);
+      }
+      syncSettingsButtons();
     };
-    chromeToggleBtn.addEventListener('click', onChromeToggle);
-    cleanups.push(() => chromeToggleBtn.removeEventListener('click', onChromeToggle));
+    settingsPopoverEl.addEventListener('click', onSettingsOptionClick);
+    cleanups.push(() => settingsPopoverEl.removeEventListener('click', onSettingsOptionClick));
+
+    if (settingsToggleBtn) {
+      const onSettingsToggle = () => {
+        setSettingsOpen(settingsPopoverEl.hidden);
+      };
+      settingsToggleBtn.addEventListener('click', onSettingsToggle);
+      cleanups.push(() => settingsToggleBtn.removeEventListener('click', onSettingsToggle));
+    }
+
+    const onDocumentClick = event => {
+      if (settingsPopoverEl.hidden) return;
+      const target = event.target;
+      if (settingsPopoverEl.contains(target) || settingsToggleBtn?.contains(target)) return;
+      closeSettings();
+    };
+    const onDocumentKeydown = event => {
+      if (event.key !== 'Escape' || settingsPopoverEl.hidden) return;
+      closeSettings();
+      settingsToggleBtn?.focus?.();
+    };
+    documentObj?.addEventListener('click', onDocumentClick);
+    documentObj?.addEventListener('keydown', onDocumentKeydown);
+    cleanups.push(() => documentObj?.removeEventListener('click', onDocumentClick));
+    cleanups.push(() => documentObj?.removeEventListener('keydown', onDocumentKeydown));
+
+    syncSettingsButtons();
   }
 
   return {

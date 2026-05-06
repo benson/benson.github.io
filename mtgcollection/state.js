@@ -19,6 +19,7 @@ export function createInitialState(overrides = {}) {
     activeLocation: null,
     // Binder-shape escape hatch only. Collection/decks/storage don't use this.
     viewAsList: false,
+    collectionDisplayMode: 'table',
     selectedFormat: '',
     selectedKeys: new Set(),
     detailIndex: -1,
@@ -64,6 +65,7 @@ export function applyLoadedState(loaded = {}) {
   state.viewMode = typeof loaded.viewMode === 'string' ? loaded.viewMode : defaults.viewMode;
   state.activeLocation = loaded.activeLocation ?? defaults.activeLocation;
   state.viewAsList = Boolean(loaded.viewAsList);
+  state.collectionDisplayMode = loaded.collectionDisplayMode === 'visual' ? 'visual' : defaults.collectionDisplayMode;
   state.selectedFormat = typeof loaded.selectedFormat === 'string' ? loaded.selectedFormat : defaults.selectedFormat;
   state.sortField = typeof loaded.sortField === 'string' && loaded.sortField ? loaded.sortField : defaults.sortField;
   state.sortDir = loaded.sortDir === 'desc' ? 'desc' : defaults.sortDir;

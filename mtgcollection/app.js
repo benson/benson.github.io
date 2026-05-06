@@ -25,6 +25,7 @@ import {
 import { initSyncUi } from './syncUi.js';
 import { initMcpChat } from './mcpChat.js';
 import { applyRouteStateFromUrl } from './routeState.js';
+import { bindSidebarToggle, loadSidebarPreference } from './sidebarPreferences.js';
 
 function mirrorSharedDecks() {
   if (state.shareSnapshot) return;
@@ -54,6 +55,7 @@ function showBootFailure(error) {
 
 async function boot() {
   loadChromePreferences();
+  loadSidebarPreference();
 
   // Detect viewer mode early — if `?share=ID` is present, we'll skip the
   // user's own localStorage entirely and render the snapshot read-only.
@@ -86,6 +88,7 @@ async function boot() {
 
   // App-level DOM controls; format selector syncs after loadFromStorage().
   const appControls = bindAppControls();
+  bindSidebarToggle();
 
   // Boot the collection — viewer mode short-circuits the localStorage path
   // entirely so the user's own data is never touched.

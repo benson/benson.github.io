@@ -34,6 +34,7 @@ export function loadFromStorage() {
       viewMode: data.ui.viewMode,
       activeLocation: null,
       viewAsList: data.ui.viewAsList,
+      collectionDisplayMode: data.ui.collectionDisplayMode,
       selectedFormat: data.ui.selectedFormat,
       sortField: data.ui.sortField,
       sortDir: data.ui.sortDir,

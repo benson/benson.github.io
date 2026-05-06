@@ -19,6 +19,7 @@ test('save: writes versioned app data', () => {
   state.containers = { 'deck:breya': { type: 'deck', name: 'breya' } };
   state.viewMode = 'decks';
   state.viewAsList = true;
+  state.collectionDisplayMode = 'visual';
   state.selectedFormat = 'commander';
   state.sortField = 'price';
   state.sortDir = 'desc';
@@ -31,6 +32,7 @@ test('save: writes versioned app data', () => {
   assert.deepEqual(payload.ui, {
     viewMode: 'decks',
     viewAsList: true,
+    collectionDisplayMode: 'visual',
     selectedFormat: 'commander',
     sortField: 'price',
     sortDir: 'desc',
@@ -50,6 +52,7 @@ test('loadFromStorage: reads legacy payloads through the schema normalizer', () 
       containers: {},
       viewMode: 'locations',
       viewAsList: true,
+      collectionDisplayMode: 'visual',
       selectedFormat: 'vintage',
       sortField: 'name',
       sortDir: 'desc',
@@ -62,6 +65,7 @@ test('loadFromStorage: reads legacy payloads through the schema normalizer', () 
   assert.equal(state.viewMode, 'storage');
   assert.equal(state.activeLocation, null);
   assert.equal(state.viewAsList, true);
+  assert.equal(state.collectionDisplayMode, 'visual');
   assert.equal(state.selectedFormat, 'vintage');
   assert.equal(state.sortField, 'name');
   assert.equal(state.sortDir, 'desc');

@@ -5,6 +5,7 @@ import {
 
 export const APP_STORAGE_SCHEMA_VERSION = 1;
 const VALID_STORED_VIEW_MODES = ['collection', 'decks', 'storage'];
+const VALID_COLLECTION_DISPLAY_MODES = ['table', 'visual'];
 
 function isPlainObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value);
@@ -16,11 +17,16 @@ export function normalizeStoredViewMode(raw) {
   return 'collection';
 }
 
+export function normalizeStoredCollectionDisplayMode(raw) {
+  return VALID_COLLECTION_DISPLAY_MODES.includes(raw) ? raw : 'table';
+}
+
 export function normalizeStoredUi(raw = {}) {
   const source = isPlainObject(raw) ? raw : {};
   return {
     viewMode: normalizeStoredViewMode(source.viewMode),
     viewAsList: Boolean(source.viewAsList),
+    collectionDisplayMode: normalizeStoredCollectionDisplayMode(source.collectionDisplayMode),
     selectedFormat: typeof source.selectedFormat === 'string' ? source.selectedFormat : '',
     sortField: typeof source.sortField === 'string' && source.sortField ? source.sortField : null,
     sortDir: source.sortDir === 'desc' ? 'desc' : 'asc',

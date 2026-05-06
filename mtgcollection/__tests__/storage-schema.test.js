@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   APP_STORAGE_SCHEMA_VERSION,
   normalizeStoredAppData,
+  normalizeStoredCollectionDisplayMode,
   normalizeStoredCollectionEntry,
   normalizeStoredViewMode,
   serializeAppState,
@@ -14,6 +15,7 @@ test('serializeAppState: writes versioned payload with ui envelope', () => {
     containers: { 'deck:breya': { type: 'deck', name: 'breya' } },
     viewMode: 'decks',
     viewAsList: true,
+    collectionDisplayMode: 'visual',
     selectedFormat: 'commander',
     sortField: 'price',
     sortDir: 'desc',
@@ -23,6 +25,7 @@ test('serializeAppState: writes versioned payload with ui envelope', () => {
   assert.deepEqual(payload.ui, {
     viewMode: 'decks',
     viewAsList: true,
+    collectionDisplayMode: 'visual',
     selectedFormat: 'commander',
     sortField: 'price',
     sortDir: 'desc',
@@ -55,6 +58,7 @@ test('normalizeStoredAppData: accepts legacy payloads and normalizes card fields
     },
     viewMode: 'locations',
     viewAsList: 1,
+    collectionDisplayMode: 'visual',
     selectedFormat: 'modern',
     sortField: 'price',
     sortDir: 'desc',
@@ -64,6 +68,7 @@ test('normalizeStoredAppData: accepts legacy payloads and normalizes card fields
   assert.deepEqual(data.ui, {
     viewMode: 'storage',
     viewAsList: true,
+    collectionDisplayMode: 'visual',
     selectedFormat: 'modern',
     sortField: 'price',
     sortDir: 'desc',
@@ -90,6 +95,7 @@ test('normalizeStoredAppData: accepts versioned ui envelopes', () => {
     ui: {
       viewMode: 'decks',
       viewAsList: true,
+      collectionDisplayMode: 'visual',
       selectedFormat: 'commander',
       sortField: 'name',
       sortDir: 'desc',
@@ -99,6 +105,7 @@ test('normalizeStoredAppData: accepts versioned ui envelopes', () => {
   assert.deepEqual(data.ui, {
     viewMode: 'decks',
     viewAsList: true,
+    collectionDisplayMode: 'visual',
     selectedFormat: 'commander',
     sortField: 'name',
     sortDir: 'desc',
@@ -139,4 +146,11 @@ test('normalizeStoredViewMode: maps retired routes to current routes', () => {
   assert.equal(normalizeStoredViewMode('locations'), 'storage');
   assert.equal(normalizeStoredViewMode('list'), 'collection');
   assert.equal(normalizeStoredViewMode('deck'), 'collection');
+});
+
+test('normalizeStoredCollectionDisplayMode: accepts visual and defaults to table', () => {
+  assert.equal(normalizeStoredCollectionDisplayMode('visual'), 'visual');
+  assert.equal(normalizeStoredCollectionDisplayMode('table'), 'table');
+  assert.equal(normalizeStoredCollectionDisplayMode('grid'), 'table');
+  assert.equal(normalizeStoredCollectionDisplayMode(null), 'table');
 });

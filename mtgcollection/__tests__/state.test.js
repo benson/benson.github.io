@@ -51,6 +51,7 @@ test('applyLoadedState: applies persisted shell fields without clobbering view p
     containers: { 'box:bulk': { type: 'box', name: 'bulk' } },
     viewMode: 'storage',
     viewAsList: true,
+    collectionDisplayMode: 'visual',
     selectedFormat: 'commander',
     sortField: 'name',
     sortDir: 'desc',
@@ -60,6 +61,7 @@ test('applyLoadedState: applies persisted shell fields without clobbering view p
   assert.deepEqual(state.containers, { 'box:bulk': { type: 'box', name: 'bulk' } });
   assert.equal(state.viewMode, 'storage');
   assert.equal(state.viewAsList, true);
+  assert.equal(state.collectionDisplayMode, 'visual');
   assert.equal(state.selectedFormat, 'commander');
   assert.equal(state.sortField, 'name');
   assert.equal(state.sortDir, 'desc');

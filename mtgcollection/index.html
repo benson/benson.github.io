@@ -34,7 +34,10 @@ body.app-booting .app-boot-curtain {
 
 <div class="app-shell">
   <header class="app-header">
-    <h1><button type="button" id="resetAppBtn" class="title-reset-btn">MTG Collection</button></h1>
+    <div class="app-title-row">
+      <button class="sidebar-toggle-btn" type="button" id="sidebarToggleBtn" aria-controls="appLeft" aria-expanded="true">filters</button>
+      <h1><button type="button" id="resetAppBtn" class="title-reset-btn">MTG Collection</button></h1>
+    </div>
     <div class="app-header-views">
       <button class="toggle-view" id="collectionViewBtn" data-view="collection"><span class="view-icon" aria-hidden="true">≡</span>collection</button>
       <button class="toggle-view" id="decksViewBtn" data-view="decks"><svg class="view-icon view-icon-svg" aria-hidden="true" viewBox="0 0 14 14"><rect x="2.5" y="3.5" width="6.5" height="8.5" rx="0.5" fill="none" stroke="currentColor" stroke-width="1"/><rect x="5" y="1.5" width="6.5" height="8.5" rx="0.5" fill="none" stroke="currentColor" stroke-width="1"/></svg>decks</button>
@@ -43,7 +46,7 @@ body.app-booting .app-boot-curtain {
     <div class="sync-account-slot" id="syncAccountSlot"></div>
   </header>
 
-  <aside class="app-left">
+  <aside class="app-left" id="appLeft">
     <div class="sidebar-section">
       <div class="sidebar-label">search</div>
       <div class="search-wrap">
@@ -281,9 +284,9 @@ body.app-booting .app-boot-curtain {
       <summary>add cards</summary>
       <div class="details-body">
         <div class="add-tabs" role="tablist">
-          <button class="add-tab active" type="button" data-add-mode="name">lookup card</button>
-          <button class="add-tab" type="button" data-add-mode="cn">voice input</button>
-          <button class="add-tab" type="button" data-add-mode="import">import csv</button>
+          <button class="add-tab active" type="button" data-add-mode="name"><span class="add-tab-icon" aria-hidden="true"><svg class="add-tab-icon-svg" viewBox="0 0 16 16" width="14" height="14" focusable="false"><circle cx="7" cy="7" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10 10 L14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span> <span>lookup card</span></button>
+          <button class="add-tab" type="button" data-add-mode="cn"><span class="add-tab-icon" aria-hidden="true"><svg class="add-tab-icon-svg" viewBox="0 0 16 16" width="14" height="14" focusable="false"><path d="M8 2.5 C6.9 2.5 6 3.4 6 4.5 L6 8 C6 9.1 6.9 10 8 10 C9.1 10 10 9.1 10 8 L10 4.5 C10 3.4 9.1 2.5 8 2.5 Z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4 7.5 C4 10 5.8 12 8 12 C10.2 12 12 10 12 7.5 M8 12 L8 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span> <span>voice input</span></button>
+          <button class="add-tab" type="button" data-add-mode="import"><span class="add-tab-icon" aria-hidden="true"><svg class="add-tab-icon-svg" viewBox="0 0 16 16" width="14" height="14" focusable="false"><path d="M3 3.5 L9.5 3.5 L13 7 L13 12.5 L3 12.5 Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M9.5 3.5 L9.5 7 L13 7 M5.5 9 L10.5 9 M5.5 11 L9 11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span> <span>import csv</span></button>
         </div>
 
         <div class="add-mode active" id="addModeName">
@@ -410,16 +413,41 @@ body.app-booting .app-boot-curtain {
   <footer class="app-footer">
     <div class="app-totals-strip" id="appTotalsStrip" aria-live="polite"></div>
     <div class="app-footer-row">
-    <div class="app-footer-left">
-      <button class="footer-test-reset" type="button" id="loadTestDataBtn" title="reset to a representative test state">reset test data</button>
-      <span class="footer-test-status" id="testDataStatus" aria-live="polite"></span>
-    </div>
-    <div class="app-footer-right">
-      <span class="footer-sync-status" id="footerSyncStatus" aria-live="polite" hidden></span>
-      <button class="footer-case-toggle" type="button" id="caseToggleBtn" title="toggle text case">Aa</button>
-      <button class="footer-chrome-toggle" type="button" id="chromeToggleBtn" title="toggle border style">▢</button>
-      <a href="/">bensonperry.com</a>
-    </div>
+      <div class="app-footer-left">
+        <button class="footer-test-reset" type="button" id="loadTestDataBtn" title="reset to a representative test state">reset test data</button>
+        <span class="footer-test-status" id="testDataStatus" aria-live="polite"></span>
+      </div>
+      <div class="app-footer-right">
+        <span class="footer-sync-status" id="footerSyncStatus" aria-live="polite" hidden></span>
+        <div class="footer-settings" id="footerSettings">
+          <button class="footer-settings-toggle" type="button" id="settingsToggleBtn" title="settings" aria-haspopup="dialog" aria-expanded="false" aria-controls="settingsPopover">settings</button>
+          <div class="footer-settings-popover" id="settingsPopover" role="dialog" aria-label="settings" hidden>
+            <div class="settings-group">
+              <div class="settings-label" id="settingsTextCaseLabel">text case</div>
+              <div class="settings-options" role="group" aria-labelledby="settingsTextCaseLabel">
+                <button class="settings-option" type="button" data-settings-key="text-case" data-settings-value="lower" aria-pressed="false">lower</button>
+                <button class="settings-option" type="button" data-settings-key="text-case" data-settings-value="proper" aria-pressed="false">proper</button>
+              </div>
+            </div>
+            <div class="settings-group">
+              <div class="settings-label" id="settingsChromeLabel">chrome</div>
+              <div class="settings-options" role="group" aria-labelledby="settingsChromeLabel">
+                <button class="settings-option" type="button" data-settings-key="chrome" data-settings-value="soft" aria-pressed="false">soft</button>
+                <button class="settings-option" type="button" data-settings-key="chrome" data-settings-value="classic" aria-pressed="false">classic</button>
+              </div>
+            </div>
+            <div class="settings-group">
+              <div class="settings-label" id="settingsTextSizeLabel">text size</div>
+              <div class="settings-options" role="group" aria-labelledby="settingsTextSizeLabel">
+                <button class="settings-option" type="button" data-settings-key="text-size" data-settings-value="compact" aria-pressed="false">compact</button>
+                <button class="settings-option" type="button" data-settings-key="text-size" data-settings-value="default" aria-pressed="false">default</button>
+                <button class="settings-option" type="button" data-settings-key="text-size" data-settings-value="large" aria-pressed="false">large</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <a href="/">bensonperry.com</a>
+      </div>
     </div>
   </footer>
   <div class="app-right-backdrop" id="appRightBackdrop"></div>
