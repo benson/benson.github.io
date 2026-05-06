@@ -176,3 +176,25 @@ test('storage history scope shows container events and card changes touching bin
   assert.match(win.document.querySelector('.history-list').textContent, /Added Island/);
   assert.doesNotMatch(win.document.querySelector('.history-list').textContent, /Created/);
 });
+
+test('history summary does not append a card name that is already in the event text', () => {
+  const win = new Window();
+  globalThis.document = win.document;
+  globalThis.localStorage = win.localStorage;
+  win.document.body.innerHTML = `
+    <details class="history-details" open>
+      <summary>collection history</summary>
+      <ol class="history-list"></ol>
+    </details>
+  `;
+  initChangelog();
+  setHistoryScope(null);
+  recordEvent({
+    type: 'edit',
+    summary: 'Moved 1 Lotho, Corrupt Shirriff to {loc:box:bulk}',
+    cards: [{ name: 'Lotho, Corrupt Shirriff' }],
+  });
+
+  const text = win.document.querySelector('.history-list').textContent;
+  assert.equal(text.match(/Lotho, Corrupt Shirriff/g)?.length, 1);
+});

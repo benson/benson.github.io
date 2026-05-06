@@ -328,12 +328,27 @@ function substituteLocTokens(html) {
   return html.replace(/\{loc:(deck|binder|box):([^}]+)\}/g, (_, type, name) => locLinkHtml(type, name));
 }
 
+function normalizeSummaryText(value) {
+  return String(value || '')
+    .normalize('NFKD')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function summaryIncludesCard(summary, card) {
+  const name = normalizeSummaryText(card?.name || '');
+  if (!name) return false;
+  return normalizeSummaryText(summary).includes(name);
+}
+
 // Compose a summary line: substitutes `{card}` with the first card's clickable
 // span when present; otherwise appends the card list after the summary text
 // (legacy behavior, used by older events and multi-card events).
 // Also substitutes `{loc:type:name}` tokens with clickable view-switch buttons.
 function composeSummary(summary, cards, className) {
   const safeCards = Array.isArray(cards) ? cards : [];
+  const missingCards = safeCards.filter(card => !summaryIncludesCard(summary, card));
   const escapedSummary = esc(summary || '');
 
   let html;
@@ -345,11 +360,11 @@ function composeSummary(summary, cards, className) {
       const remaining = safeCards.length - 1 - rest.length;
       html += ' (' + restHtml + (remaining > 0 ? ', +' + remaining + ' more' : '') + ')';
     }
-  } else if (safeCards.length === 0) {
+  } else if (missingCards.length === 0) {
     html = escapedSummary;
   } else {
-    const shown = safeCards.slice(0, CARDS_PREVIEW_LIMIT);
-    const remaining = safeCards.length - shown.length;
+    const shown = missingCards.slice(0, CARDS_PREVIEW_LIMIT);
+    const remaining = missingCards.length - shown.length;
     html = escapedSummary + ' ' + shown.map(c => cardSpanHtml(c, className)).join(', ');
     if (remaining > 0) {
       html += '<span class="changelog-more-muted"> · +' + remaining + ' more</span>';
