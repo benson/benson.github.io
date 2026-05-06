@@ -1,12 +1,18 @@
 import { showFeedback } from './feedback.js';
 import { SYNC_API_URL } from './syncClient.js';
 import { getSyncAuthToken, getSyncUser, syncNow } from './syncEngine.js';
+import { state } from './state.js';
 import { buildAddPreviewCardModel } from './addPreviewModel.js';
 import { createAddPreviewElement } from './addPreviewView.js';
 import { renderPrintingRows } from './addPrintingView.js';
+import { commitRowTag, removeRowTag } from './listRowActions.js';
+import { CONDITION_ABBR, RARITY_ABBR } from './deckUi.js';
+import { getSetIconUrl } from './setIcons.js';
+import { locationPillHtml } from './ui/locationUi.js';
 import {
   allCollectionLocations,
   allContainers,
+  collectionKey,
   DEFAULT_LOCATION_TYPE,
   formatLocationLabel,
   LOCATION_TYPES,
@@ -874,6 +880,102 @@ function formatUsd(value) {
   return amount ? '$' + amount.toFixed(2) : '';
 }
 
+function collectionIndexForChatCard(card) {
+  const key = String(card?.itemKey || '');
+  if (!key) return -1;
+  return state.collection.findIndex(entry => collectionKey(entry) === key);
+}
+
+function currentChatCardSnapshot(card) {
+  const index = collectionIndexForChatCard(card);
+  const current = index >= 0 ? state.collection[index] : null;
+  return {
+    index,
+    card: current ? normalizeChatCard({
+      ...card,
+      ...current,
+      itemKey: card.itemKey,
+      name: current.resolvedName || current.name || card.name,
+      cn: current.cn || card.cn,
+      setCode: current.setCode || card.setCode,
+    }) : card,
+  };
+}
+
+function makeChatCell(className, text = '') {
+  const cell = documentRef.createElement('div');
+  cell.className = className;
+  cell.textContent = text;
+  return cell;
+}
+
+function setIconElement(setCode) {
+  const code = String(setCode || '').trim().toLowerCase();
+  if (!code) return null;
+  const iconUrl = getSetIconUrl(code);
+  if (!iconUrl) return null;
+  const img = documentRef.createElement('img');
+  img.className = 'set-icon';
+  img.src = iconUrl;
+  img.alt = '';
+  img.addEventListener('error', () => { img.style.display = 'none'; });
+  return img;
+}
+
+function makeChatLocationCell(card) {
+  const cell = documentRef.createElement('div');
+  cell.className = 'location-cell';
+  if (card.location) cell.innerHTML = locationPillHtml(card.location, { withRemove: false });
+  else cell.textContent = 'no location';
+  return cell;
+}
+
+function makeChatTagsCell(card, index) {
+  const cell = documentRef.createElement('div');
+  cell.className = 'tags-cell';
+  for (const tag of card.tags || []) {
+    const chip = documentRef.createElement('span');
+    chip.className = 'row-tag';
+    chip.append(documentRef.createTextNode(tag));
+    if (index >= 0) {
+      const remove = documentRef.createElement('button');
+      remove.className = 'row-tag-remove';
+      remove.type = 'button';
+      remove.dataset.index = String(index);
+      remove.dataset.tag = tag;
+      remove.setAttribute('aria-label', 'remove ' + tag);
+      remove.textContent = 'x';
+      chip.appendChild(remove);
+    }
+    cell.appendChild(chip);
+  }
+  if (index >= 0) {
+    const input = documentRef.createElement('input');
+    input.className = 'row-tag-input mcp-chat-row-tag-input';
+    input.dataset.index = String(index);
+    input.setAttribute('list', 'rowTagOptions');
+    input.placeholder = '+ tag';
+    input.autocomplete = 'off';
+    cell.appendChild(input);
+  }
+  return cell;
+}
+
+function commitChatRowTag(input) {
+  if (!input) return false;
+  const result = commitRowTag(input);
+  if (result?.ok) renderTranscript();
+  return !!result?.ok;
+}
+
+function removeChatRowTag(button) {
+  const index = parseInt(button?.dataset?.index, 10);
+  const tag = button?.dataset?.tag || '';
+  const result = removeRowTag(index, tag);
+  if (result?.ok) renderTranscript();
+  return !!result?.ok;
+}
+
 function makeChatCardMoveControls(card) {
   const move = documentRef.createElement('div');
   move.className = 'mcp-chat-card-move';
@@ -929,46 +1031,55 @@ function makeChatCardMoveControls(card) {
 function makeChatCardResult(raw) {
   const card = normalizeChatCard(raw);
   if (!card) return null;
+  const current = currentChatCardSnapshot(card);
+  const displayCard = current.card || card;
+  const index = current.index;
   const row = documentRef.createElement('article');
-  row.className = 'mcp-chat-card-row';
-  row.dataset.itemKey = card.itemKey;
+  row.className = 'mcp-chat-card-row mcp-chat-reference-row';
+  row.dataset.itemKey = displayCard.itemKey;
+  if (index >= 0) row.dataset.index = String(index);
 
-  const copy = documentRef.createElement('div');
-  copy.className = 'mcp-chat-card-copy';
+  const nameCell = documentRef.createElement('div');
+  nameCell.className = 'card-name-cell';
   const name = documentRef.createElement('button');
   name.type = 'button';
-  name.className = 'mcp-chat-card-name card-preview-link';
-  name.textContent = card.name;
-  appendCardPreviewDataset(name, card);
+  name.className = 'card-name-button card-preview-link';
+  name.textContent = displayCard.name;
+  appendCardPreviewDataset(name, displayCard);
+  nameCell.appendChild(name);
 
-  const meta = documentRef.createElement('div');
-  meta.className = 'mcp-chat-card-meta';
-  const printing = [card.setCode ? card.setCode.toUpperCase() : '', card.cn ? '#' + card.cn : ''].filter(Boolean).join(' ');
-  const price = formatUsd(card.price);
-  const totalValue = card.qty > 1 ? formatUsd(card.totalValue || (card.price * card.qty)) : '';
-  const priceDetail = price && totalValue ? price + ' each / ' + totalValue + ' total' : price;
-  const details = [
-    printing,
-    card.qty ? card.qty + 'x' : '',
-    card.location ? formatLocationLabel(card.location) : 'no location',
-    conditionShortLabel(card.condition),
-    finishLabel(card.finish),
-    card.language && card.language !== 'en' ? card.language : '',
-    priceDetail,
-  ].filter(Boolean);
-  meta.textContent = details.join(' / ');
-  copy.append(name, meta);
+  const setCell = makeChatCell('muted set-cell');
+  const setIcon = setIconElement(displayCard.setCode);
+  if (setIcon) setCell.appendChild(setIcon);
+  setCell.appendChild(documentRef.createTextNode(displayCard.setCode ? displayCard.setCode.toUpperCase() : ''));
 
-  const actions = documentRef.createElement('div');
-  actions.className = 'mcp-chat-card-actions';
-  const moveButton = documentRef.createElement('button');
-  moveButton.type = 'button';
-  moveButton.className = 'btn mcp-chat-card-action';
-  moveButton.dataset.chatCardAction = 'toggleMove';
-  moveButton.textContent = 'move';
-  actions.appendChild(moveButton);
+  const rarity = RARITY_ABBR[displayCard.rarity] || displayCard.rarity || '';
+  const condition = CONDITION_ABBR[displayCard.condition] || conditionShortLabel(displayCard.condition);
+  const finish = displayCard.finish || 'normal';
 
-  row.append(copy, actions, makeChatCardMoveControls(card));
+  const editCell = documentRef.createElement('div');
+  editCell.className = 'mcp-chat-card-edit-cell';
+  const editButton = documentRef.createElement('button');
+  editButton.type = 'button';
+  editButton.className = 'mcp-chat-card-edit';
+  editButton.dataset.chatCardAction = 'toggleMove';
+  editButton.textContent = 'edit';
+  editCell.appendChild(editButton);
+
+  row.append(
+    nameCell,
+    setCell,
+    makeChatCell('muted cn-cell', displayCard.cn || ''),
+    makeChatCell('muted finish-cell', finish),
+    makeChatCell('muted rarity-cell', rarity),
+    makeChatCell('muted condition-cell', condition),
+    makeChatLocationCell(displayCard),
+    makeChatTagsCell(displayCard, index),
+    makeChatCell('qty-cell', displayCard.qty ? String(displayCard.qty) : ''),
+    makeChatCell('muted price-cell', formatUsd(displayCard.price)),
+    editCell,
+    makeChatCardMoveControls(displayCard)
+  );
   return row;
 }
 
@@ -980,10 +1091,10 @@ function renderChatCardResults(cards) {
   const head = documentRef.createElement('div');
   head.className = 'mcp-chat-card-results-head';
   const count = documentRef.createElement('span');
-  count.textContent = normalized.length === 1 ? '1 card from your collection' : normalized.length + ' cards from your collection';
+  count.textContent = normalized.length === 1 ? 'card referenced' : 'cards referenced';
   const copy = documentRef.createElement('button');
   copy.type = 'button';
-  copy.className = 'btn mcp-chat-card-results-copy';
+  copy.className = 'mcp-chat-card-results-copy';
   copy.textContent = 'copy';
   copy.title = 'copy results as tab-separated text';
   copy.setAttribute('aria-label', 'copy card results');
@@ -1555,6 +1666,11 @@ export function initMcpChat({ documentObj = document } = {}) {
     sendChat();
   });
   logEl?.addEventListener('click', event => {
+    const tagRemove = event.target.closest('.mcp-chat-card-row .row-tag-remove');
+    if (tagRemove) {
+      removeChatRowTag(tagRemove);
+      return;
+    }
     const chatCardAction = event.target.closest('[data-chat-card-action]');
     if (chatCardAction) {
       const row = chatCardAction.closest('.mcp-chat-card-row');
@@ -1576,9 +1692,18 @@ export function initMcpChat({ documentObj = document } = {}) {
     if (button) applyPreview(button.dataset.changeToken);
   });
   logEl?.addEventListener('change', event => {
+    if (event.target?.matches?.('.mcp-chat-row-tag-input')) {
+      commitChatRowTag(event.target);
+      return;
+    }
     if (event.target?.matches?.('[data-chat-move-target]')) {
       syncChatCardMoveNewFields(event.target.closest('.mcp-chat-card-row'));
     }
+  });
+  logEl?.addEventListener('keydown', event => {
+    if (event.key !== 'Enter' || !event.target?.matches?.('.mcp-chat-row-tag-input')) return;
+    event.preventDefault();
+    commitChatRowTag(event.target);
   });
   draftPanelEl?.addEventListener('change', event => {
     const field = event.target?.dataset?.draftField;

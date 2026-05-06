@@ -2685,9 +2685,33 @@ function inventoryFinishSummaryLabel(finish) {
   return '';
 }
 
+function singleCardValueQuestion(userText) {
+  const text = String(userText || '').toLowerCase();
+  if (inventoryPriceSortDirection(text)) return false;
+  if (minPriceFromText(text) != null || maxPriceFromText(text) != null) return false;
+  return /\bhow\s+much\b/.test(text) || /\b(?:worth|value|price|priced|cost|costs)\b/.test(text);
+}
+
+function singleCardValueSummaryText(card) {
+  const qty = Math.max(1, parseInt(card?.qty, 10) || 1);
+  const unitPrice = Number(card?.price) || 0;
+  const totalValue = Number(card?.totalValue) || (unitPrice * qty);
+  if (!unitPrice && !totalValue) {
+    return 'I found ' + card.name + ', but it does not have a saved price. It is shown below.';
+  }
+  if (qty > 1 && totalValue && Math.abs(totalValue - unitPrice) > 0.001) {
+    return 'Your ' + qty + ' copies of ' + card.name + ' are worth $' + totalValue.toFixed(2)
+      + ' total ($' + unitPrice.toFixed(2) + ' each). They are shown below.';
+  }
+  return 'Your ' + card.name + ' is worth $' + (unitPrice || totalValue).toFixed(2) + '. It is shown below.';
+}
+
 function inventoryCardsSummaryText(cards, userText) {
   const count = Array.isArray(cards) ? cards.length : 0;
   if (!count) return '';
+  if (count === 1 && singleCardValueQuestion(userText)) {
+    return singleCardValueSummaryText(cards[0]);
+  }
   const priceDirection = inventoryPriceSortDirection(userText);
   if (priceDirection) {
     const card = cards[0];

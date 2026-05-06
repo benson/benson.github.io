@@ -1510,6 +1510,56 @@ test('mcp chat: price ranking questions use returned card prices', async () => {
   }
 });
 
+test('mcp chat: single-card value questions answer directly from returned price', async () => {
+  const { env } = fakeSyncEnv();
+  env.MTGCOLLECTION_CHAT_GROQ_API_KEY = 'gsk-hosted-secret';
+  const originalFetch = globalThis.fetch;
+  const inventory = {
+    revision: 12,
+    results: [{
+      itemKey: 'ancient-tomb',
+      name: 'Ancient Tomb',
+      scryfallId: 'tpr-315',
+      setCode: 'tmp',
+      cn: '315',
+      finish: 'normal',
+      condition: 'near_mint',
+      language: 'en',
+      qty: 1,
+      location: { type: 'binder', name: 'trade binder' },
+      price: 129.85,
+      totalValue: 129.85,
+    }],
+  };
+  globalThis.fetch = async () => Response.json({
+    output_text: 'I found 1 card.',
+    output: [{
+      type: 'mcp_call',
+      name: 'search_inventory',
+      result: { structuredContent: inventory },
+    }],
+  });
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'how much is my ancient tomb worth?' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.text, 'Your Ancient Tomb is worth $129.85. It is shown below.');
+    assert.equal(data.cards.length, 1);
+    assert.equal(data.cards[0].name, 'Ancient Tomb');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('mcp chat: container count questions use returned container stats', async () => {
   const { env } = fakeSyncEnv();
   env.MTGCOLLECTION_CHAT_GROQ_API_KEY = 'gsk-hosted-secret';

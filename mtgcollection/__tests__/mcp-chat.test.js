@@ -13,6 +13,7 @@ import {
   renderChatCardResultsForTest,
 } from '../mcpChat.js';
 import { state } from '../state.js';
+import { collectionKey } from '../collection.js';
 
 function setup() {
   const win = new Window();
@@ -219,7 +220,20 @@ test('renderChatCardResultsForTest: inventory cards are hoverable and movable', 
   const { document } = setup();
   const previousCollection = state.collection;
   const previousContainers = state.containers;
-  state.collection = [];
+  const card = {
+    name: 'Maelstrom Artisan // Rocket Volley',
+    scryfallId: 'sos-122',
+    setCode: 'sos',
+    cn: '122',
+    finish: 'normal',
+    condition: 'near_mint',
+    language: 'en',
+    qty: 1,
+    location: { type: 'binder', name: 'trade binder' },
+    tags: ['spells'],
+    price: 0.26,
+  };
+  state.collection = [card];
   state.containers = {
     'binder:trade binder': { type: 'binder', name: 'trade binder' },
     'deck:breya': { type: 'deck', name: 'breya' },
@@ -227,27 +241,24 @@ test('renderChatCardResultsForTest: inventory cards are hoverable and movable', 
 
   try {
     const section = renderChatCardResultsForTest([{
-      itemKey: 'card-1',
-      name: 'Maelstrom Artisan // Rocket Volley',
-      scryfallId: 'sos-122',
-      setCode: 'sos',
-      cn: '122',
-      finish: 'normal',
-      condition: 'near_mint',
-      qty: 1,
-      location: { type: 'binder', name: 'trade binder' },
-      price: 0.26,
+      ...card,
+      itemKey: collectionKey(card),
     }], document);
     document.body.appendChild(section);
 
-    const cardLink = document.querySelector('.mcp-chat-card-name.card-preview-link');
+    assert.equal(document.querySelector('.mcp-chat-card-results-head span').textContent, 'card referenced');
+    const cardLink = document.querySelector('.card-name-button.card-preview-link');
     assert.ok(cardLink);
     assert.equal(cardLink.dataset.previewId, 'sos-122');
     assert.equal(cardLink.dataset.previewSet, 'sos');
     assert.equal(cardLink.dataset.previewCn, '122');
-    assert.match(document.querySelector('.mcp-chat-card-meta').textContent, /binder:trade binder/);
-    assert.match(document.querySelector('.mcp-chat-card-meta').textContent, /\$0\.26/);
-    assert.equal(document.querySelector('[data-chat-card-action="toggleMove"]').textContent, 'move');
+    assert.equal(document.querySelector('.set-cell').textContent.trim(), 'SOS');
+    assert.equal(document.querySelector('.condition-cell').textContent, 'nm');
+    assert.equal(document.querySelector('.loc-pill').dataset.locName, 'trade binder');
+    assert.equal(document.querySelector('.row-tag').textContent.includes('spells'), true);
+    assert.equal(document.querySelector('.row-tag-input').dataset.index, '0');
+    assert.equal(document.querySelector('.price-cell').textContent, '$0.26');
+    assert.equal(document.querySelector('[data-chat-card-action="toggleMove"]').textContent, 'edit');
     assert.equal(document.querySelector('[data-chat-move-target] option[value="deck:breya"]').textContent, 'breya');
     assert.equal(document.querySelector('.mcp-chat-card-results-copy').textContent, 'copy');
   } finally {
