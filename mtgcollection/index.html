@@ -35,7 +35,6 @@ body.app-booting .app-boot-curtain {
 <div class="app-shell">
   <header class="app-header">
     <div class="app-title-row">
-      <button class="sidebar-toggle-btn" type="button" id="sidebarToggleBtn" aria-controls="appLeft" aria-expanded="true">filters</button>
       <h1><button type="button" id="resetAppBtn" class="title-reset-btn">MTG Collection</button></h1>
     </div>
     <div class="app-header-views">
@@ -97,6 +96,14 @@ body.app-booting .app-boot-curtain {
       </div>
     </div>
 
+    <div class="sidebar-section sidebar-view-settings">
+      <div class="sidebar-label">view settings</div>
+      <div class="collection-display-controls segmented" id="collectionDisplayControls" aria-label="collection display">
+        <button class="segment-btn" type="button" data-collection-display-mode="table" aria-pressed="true">table</button>
+        <button class="segment-btn" type="button" data-collection-display-mode="visual" aria-pressed="false">visual</button>
+      </div>
+    </div>
+
     <div class="sidebar-section sidebar-sizes">
       <span class="progress" id="progress"></span>
     </div>
@@ -111,6 +118,8 @@ body.app-booting .app-boot-curtain {
       </div>
     </details>
   </aside>
+
+  <button class="sidebar-edge-toggle" type="button" id="sidebarEdgeToggleBtn" data-sidebar-edge-toggle aria-controls="appLeft" aria-expanded="true" aria-label="hide filters" title="hide filters">&lt;</button>
 
   <main class="app-center">
     <div class="feedback" id="feedback" role="status" aria-live="polite"></div>

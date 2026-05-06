@@ -29,6 +29,7 @@ test('renderCollectionVisualGrid: renders card art, name, qty, finish, location,
 
   assert.ok(wrap.querySelector('[data-collection-visual-grid]'));
   assert.equal(tile.dataset.index, '0');
+  assert.equal(tile.classList.contains('is-foil'), true);
   assert.equal(wrap.querySelector('.collection-visual-card-image').getAttribute('src'), 'https://img.test/sol.jpg');
   assert.equal(wrap.querySelector('.collection-visual-card-name').textContent, 'Sol Ring');
   assert.equal(wrap.querySelector('.collection-visual-card-qty').textContent, 'x2');
@@ -57,4 +58,20 @@ test('renderCollectionVisualGrid: escapes text and shows fallback art/location b
   assert.ok(wrap.querySelector('.collection-visual-card-image-missing'));
   assert.equal(wrap.querySelector('.collection-visual-card-location').textContent, 'unlocated');
   assert.equal(wrap.querySelector('.collection-visual-card-price').textContent, 'no price');
+});
+
+test('renderCollectionVisualGrid: marks etched cards for shared foil treatment', () => {
+  const card = {
+    name: 'Etched Card',
+    finish: 'etched',
+    condition: 'near_mint',
+    language: 'en',
+    qty: 1,
+    price: 1,
+    imageUrl: 'https://img.test/etched.jpg',
+  };
+
+  const wrap = parse(renderCollectionVisualGrid([card], [card]));
+
+  assert.equal(wrap.querySelector('.collection-visual-card').classList.contains('is-etched'), true);
 });

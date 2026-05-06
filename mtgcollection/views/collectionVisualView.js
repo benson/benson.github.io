@@ -25,7 +25,8 @@ export function renderCollectionVisualCard(card, collection = []) {
   const key = collectionKey(card);
   const price = formatPrice(card);
   const finish = card.finish || 'normal';
-  return `<article class="collection-visual-card detail-trigger" data-collection-visual-card data-index="${index}" data-key="${esc(key)}">
+  const finishClass = finish === 'foil' ? ' is-foil' : finish === 'etched' ? ' is-etched' : '';
+  return `<article class="collection-visual-card detail-trigger${finishClass}" data-collection-visual-card data-index="${index}" data-key="${esc(key)}">
     <button class="collection-visual-card-art" type="button" data-collection-visual-detail data-index="${index}" aria-label="open ${esc(name)} details">
       ${visualCardImageHtml(card, name)}
     </button>

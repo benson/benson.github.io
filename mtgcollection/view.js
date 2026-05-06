@@ -477,8 +477,12 @@ function currentDeckMetadata() {
 function ensureCollectionDisplayChrome(listContainer) {
   if (!listContainer) return;
   if (!collectionDisplayControlsEl) {
+    collectionDisplayControlsEl = document.getElementById('collectionDisplayControls');
+  }
+  if (!collectionDisplayControlsEl) {
     collectionDisplayControlsEl = document.createElement('div');
     collectionDisplayControlsEl.className = 'collection-display-controls segmented';
+    collectionDisplayControlsEl.id = 'collectionDisplayControls';
     collectionDisplayControlsEl.setAttribute('aria-label', 'collection display');
     collectionDisplayControlsEl.innerHTML = `
       <button class="segment-btn" type="button" data-collection-display-mode="table">table</button>
@@ -708,15 +712,15 @@ export function initView() {
     cancelContainerIdentityEdit(identityStrip, { type: form.dataset.locType, name: form.dataset.locName });
   });
 
-  collectionSection?.addEventListener('click', event => {
+  document.addEventListener('click', event => {
     const modeButton = event.target.closest('[data-collection-display-mode]');
-    if (modeButton) {
-      state.collectionDisplayMode = modeButton.dataset.collectionDisplayMode === 'visual' ? 'visual' : 'table';
-      save();
-      render();
-      return;
-    }
+    if (!modeButton) return;
+    state.collectionDisplayMode = modeButton.dataset.collectionDisplayMode === 'visual' ? 'visual' : 'table';
+    save();
+    render();
+  });
 
+  collectionSection?.addEventListener('click', event => {
     const visualTrigger = event.target.closest('[data-collection-visual-detail], [data-collection-visual-card]');
     if (!visualTrigger || !collectionSection.contains(visualTrigger)) return;
     if (event.target.closest('[data-collection-display-mode]')) return;
