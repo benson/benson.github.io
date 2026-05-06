@@ -1305,9 +1305,11 @@ async function toolGetCollectionSummary(env, deps, auth) {
 
 async function toolSearchInventory(env, deps, auth, args) {
   const cloud = await currentCloud(env, deps, auth.userId);
+  const limit = Math.min(parseInt(args.limit, 10) || 100, 200);
   return {
     revision: cloud.revision,
-    results: findInventory(cloud.snapshot, args, Math.min(parseInt(args.limit, 10) || 20, 100)),
+    results: findInventory(cloud.snapshot, args, limit),
+    limit,
   };
 }
 
@@ -2213,13 +2215,28 @@ function collectMcpInventoryCards(value, out, seenObjects, seenKeys, depth = 0) 
 function extractMcpInventoryCards(data) {
   const out = [];
   collectMcpInventoryCards(data, out, new WeakSet(), new Set());
-  return out.slice(0, 50);
+  return out.slice(0, 100);
 }
 
 function filterInventoryCardsForUserRequest(cards, userText) {
   const finish = finishFromInventoryText(userText);
   if (!finish) return cards;
   return cards.filter(card => (normalizeInventoryFinish(card.finish) || 'normal') === finish);
+}
+
+function inventoryFinishSummaryLabel(finish) {
+  if (finish === 'foil') return 'foil';
+  if (finish === 'etched') return 'etched foil';
+  if (finish === 'normal') return 'nonfoil';
+  return '';
+}
+
+function inventoryCardsSummaryText(cards, userText) {
+  const count = Array.isArray(cards) ? cards.length : 0;
+  if (!count) return '';
+  const finish = inventoryFinishSummaryLabel(finishFromInventoryText(userText));
+  const noun = count === 1 ? 'card' : 'cards';
+  return 'I found ' + count + ' ' + (finish ? finish + ' ' : '') + noun + ' from your collection. They are shown below.';
 }
 
 const PREVIEW_MATCH_STOPWORDS = new Set([
@@ -2405,6 +2422,8 @@ function chatSuccessResponse(deps, request, { provider, model, hosted, usage, da
     ? 'Choose options below.'
     : filtered.previewWarnings.length && !filtered.previews.length
     ? filtered.previewWarnings.join('\n')
+    : cards.length
+    ? inventoryCardsSummaryText(cards, lastUserText)
     : text;
   return deps.json({
     provider,
