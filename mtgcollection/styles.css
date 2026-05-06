@@ -4704,7 +4704,7 @@
   }
   .mcp-chat-form textarea {
     min-height: 70px;
-    resize: vertical;
+    resize: none;
   }
   .mcp-chat-form .btn {
     min-height: 38px;
