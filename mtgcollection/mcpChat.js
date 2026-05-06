@@ -1,6 +1,15 @@
 import { showFeedback } from './feedback.js';
 import { SYNC_API_URL } from './syncClient.js';
 import { getSyncAuthToken, getSyncUser, syncNow } from './syncEngine.js';
+import {
+  allCollectionLocations,
+  allContainers,
+  DEFAULT_LOCATION_TYPE,
+  formatLocationLabel,
+  LOCATION_TYPES,
+  locationKey,
+  normalizeLocation,
+} from './collection.js';
 
 const SYSTEM_PROMPT = [
   'You are the in-app MTG Collection assistant.',
@@ -9,6 +18,7 @@ const SYSTEM_PROMPT = [
   'When calling tools, use real JSON types: quantities are numbers and createContainer is a boolean, not quoted strings.',
   'For add requests, do not invent set codes, collector numbers, rarities, Scryfall ids, quantities, finishes, or conditions.',
   'If the user does not provide every add detail, use search_card_printings or preview_add_inventory_item to return candidates/input needs; the app will render quick controls.',
+  'When showing inventory cards from search_inventory, get_container, or get_deck, keep the prose short and do not write markdown tables; the app renders the card results separately.',
 ].join(' ');
 const HOSTED_PROVIDER = 'groq';
 const HOSTED_MODEL = 'openai/gpt-oss-120b';
@@ -412,6 +422,197 @@ function makeOption(value, label, selectedValue) {
   return option;
 }
 
+function conditionShortLabel(value) {
+  const raw = String(value || '').trim().toLowerCase();
+  if (raw === 'near_mint') return 'nm';
+  if (raw === 'lightly_played') return 'lp';
+  if (raw === 'moderately_played') return 'mp';
+  if (raw === 'heavily_played') return 'hp';
+  if (raw === 'damaged') return 'dmg';
+  return raw.replace(/_/g, ' ') || 'condition unknown';
+}
+
+function normalizeChatCard(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const itemKey = String(raw.itemKey || '').trim();
+  if (!itemKey) return null;
+  const name = String(raw.name || raw.resolvedName || 'card').trim() || 'card';
+  return {
+    itemKey,
+    name,
+    scryfallId: String(raw.scryfallId || '').trim(),
+    setCode: String(raw.setCode || raw.set || '').trim().toLowerCase(),
+    cn: String(raw.cn || raw.collectorNumber || '').trim(),
+    finish: normalizeFinish(raw.finish || 'normal'),
+    condition: String(raw.condition || 'near_mint').trim().toLowerCase(),
+    language: String(raw.language || raw.lang || 'en').trim().toLowerCase(),
+    qty: Math.max(0, parseInt(raw.qty, 10) || 0),
+    location: normalizeLocation(raw.location),
+    deckBoard: String(raw.deckBoard || '').trim(),
+    tags: Array.isArray(raw.tags) ? raw.tags.map(String).filter(Boolean) : [],
+    price: Number(raw.price) || 0,
+    imageUrl: String(raw.imageUrl || '').trim(),
+    backImageUrl: String(raw.backImageUrl || '').trim(),
+    scryfallUri: String(raw.scryfallUri || '').trim(),
+  };
+}
+
+function locationFromKey(key) {
+  const raw = String(key || '');
+  const index = raw.indexOf(':');
+  if (index === -1) return null;
+  return normalizeLocation({ type: raw.slice(0, index), name: raw.slice(index + 1) });
+}
+
+function chatLocationChoices() {
+  const byKey = new Map();
+  for (const loc of [
+    ...allContainers().map(container => ({ type: container.type, name: container.name })),
+    ...allCollectionLocations(),
+  ]) {
+    const normalized = normalizeLocation(loc);
+    const key = locationKey(normalized);
+    if (key && !byKey.has(key)) byKey.set(key, normalized);
+  }
+  return Array.from(byKey.values()).sort((a, b) => {
+    const typeSort = LOCATION_TYPES.indexOf(a.type) - LOCATION_TYPES.indexOf(b.type);
+    return typeSort || a.name.localeCompare(b.name);
+  });
+}
+
+function appendCardPreviewDataset(el, card) {
+  if (card.imageUrl) el.dataset.previewUrl = card.imageUrl;
+  if (card.scryfallId) el.dataset.previewId = card.scryfallId;
+  if (card.setCode) el.dataset.previewSet = card.setCode;
+  if (card.cn) el.dataset.previewCn = card.cn;
+  if (card.name) el.dataset.previewName = card.name;
+  el.dataset.previewFinish = card.finish || 'normal';
+}
+
+function makeChatCardMoveControls(card) {
+  const move = documentRef.createElement('div');
+  move.className = 'mcp-chat-card-move';
+  move.hidden = true;
+
+  const label = documentRef.createElement('label');
+  label.className = 'mcp-chat-card-move-field';
+  const labelText = documentRef.createElement('span');
+  labelText.textContent = 'move to';
+  const select = documentRef.createElement('select');
+  select.dataset.chatMoveTarget = '1';
+  select.appendChild(makeOption('', 'choose destination', ''));
+  const currentKey = locationKey(card.location);
+  const choices = chatLocationChoices();
+  for (const type of LOCATION_TYPES) {
+    const locations = choices.filter(loc => loc.type === type && locationKey(loc) !== currentKey);
+    if (!locations.length) continue;
+    const group = documentRef.createElement('optgroup');
+    group.label = type + 's';
+    for (const loc of locations) {
+      group.appendChild(makeOption(locationKey(loc), loc.name, ''));
+    }
+    select.appendChild(group);
+  }
+  select.appendChild(makeOption('__new__', '+ new container', ''));
+  label.append(labelText, select);
+
+  const newFields = documentRef.createElement('div');
+  newFields.className = 'mcp-chat-card-move-new';
+  newFields.hidden = true;
+  const type = documentRef.createElement('select');
+  type.dataset.chatMoveNewType = '1';
+  for (const value of LOCATION_TYPES) type.appendChild(makeOption(value, value, DEFAULT_LOCATION_TYPE));
+  const name = documentRef.createElement('input');
+  name.type = 'text';
+  name.dataset.chatMoveNewName = '1';
+  name.placeholder = 'new container name';
+  newFields.append(type, name);
+
+  const actions = documentRef.createElement('div');
+  actions.className = 'mcp-chat-card-move-actions';
+  const error = documentRef.createElement('span');
+  error.className = 'mcp-chat-card-move-error';
+  const stage = makePreviewButton('cardMove', 'stage move');
+  stage.dataset.chatCardAction = 'stageMove';
+  stage.dataset.itemKey = card.itemKey;
+  actions.append(error, stage);
+
+  move.append(label, newFields, actions);
+  return move;
+}
+
+function makeChatCardResult(raw) {
+  const card = normalizeChatCard(raw);
+  if (!card) return null;
+  const row = documentRef.createElement('article');
+  row.className = 'mcp-chat-card-row';
+  row.dataset.itemKey = card.itemKey;
+
+  const copy = documentRef.createElement('div');
+  copy.className = 'mcp-chat-card-copy';
+  const name = documentRef.createElement('button');
+  name.type = 'button';
+  name.className = 'mcp-chat-card-name card-preview-link';
+  name.textContent = card.name;
+  appendCardPreviewDataset(name, card);
+
+  const meta = documentRef.createElement('div');
+  meta.className = 'mcp-chat-card-meta';
+  const printing = [card.setCode ? card.setCode.toUpperCase() : '', card.cn ? '#' + card.cn : ''].filter(Boolean).join(' ');
+  const details = [
+    printing,
+    card.qty ? card.qty + 'x' : '',
+    card.location ? formatLocationLabel(card.location) : 'no location',
+    conditionShortLabel(card.condition),
+    finishLabel(card.finish),
+    card.language && card.language !== 'en' ? card.language : '',
+  ].filter(Boolean);
+  meta.textContent = details.join(' / ');
+  copy.append(name, meta);
+
+  const actions = documentRef.createElement('div');
+  actions.className = 'mcp-chat-card-actions';
+  const moveButton = documentRef.createElement('button');
+  moveButton.type = 'button';
+  moveButton.className = 'btn mcp-chat-card-action';
+  moveButton.dataset.chatCardAction = 'toggleMove';
+  moveButton.textContent = 'move';
+  actions.appendChild(moveButton);
+
+  row.append(copy, actions, makeChatCardMoveControls(card));
+  return row;
+}
+
+function renderChatCardResults(cards) {
+  const normalized = (Array.isArray(cards) ? cards : []).map(normalizeChatCard).filter(Boolean);
+  if (!normalized.length) return null;
+  const section = documentRef.createElement('section');
+  section.className = 'mcp-chat-card-results';
+  const head = documentRef.createElement('div');
+  head.className = 'mcp-chat-card-results-head';
+  head.textContent = normalized.length === 1 ? '1 card from your collection' : normalized.length + ' cards from your collection';
+  section.appendChild(head);
+
+  const list = documentRef.createElement('div');
+  list.className = 'mcp-chat-card-list';
+  for (const card of normalized) {
+    const row = makeChatCardResult(card);
+    if (row) list.appendChild(row);
+  }
+  section.appendChild(list);
+  return section;
+}
+
+export function renderChatCardResultsForTest(cards, documentObj = document) {
+  const previousDocument = documentRef;
+  documentRef = documentObj;
+  try {
+    return renderChatCardResults(cards);
+  } finally {
+    documentRef = previousDocument;
+  }
+}
+
 function renderPendingDrafts() {
   if (!draftPanelEl || !documentRef) return;
   draftPanelEl.innerHTML = '';
@@ -621,6 +822,8 @@ function renderTranscript() {
     row.append(label, body);
 
     if (message.role === 'assistant') {
+      const cards = renderChatCardResults(message.meta?.cards);
+      if (cards) row.appendChild(cards);
       const tokens = changeTokensFromText(message.content);
       for (const token of tokens) {
         const apply = documentRef.createElement('button');
@@ -679,6 +882,7 @@ async function sendChat() {
     if (!res.ok) throw new Error(data.error || 'chat request failed');
     const previews = Array.isArray(data.previews) ? [...data.previews] : [];
     const drafts = Array.isArray(data.drafts) ? [...data.drafts] : [];
+    const cards = Array.isArray(data.cards) ? data.cards.map(normalizeChatCard).filter(Boolean) : [];
     const warnings = Array.isArray(data.previewWarnings) ? data.previewWarnings.map(String).filter(Boolean) : [];
     const serverText = data.text || (previews.length ? 'Preview ready below.' : '(no text response)');
     const responseText = drafts.length
@@ -687,6 +891,7 @@ async function sendChat() {
       ? (previews.length === 1 ? 'Preview ready below.' : previews.length + ' previews ready below.')
       : warnings.length ? warnings.join('\n') : serverText;
     pending.content = responseText;
+    if (cards.length) pending.meta.cards = cards;
     if (!previews.length && !warnings.length) for (const token of changeTokensFromText(serverText)) {
       if (!previews.some(preview => preview?.changeToken === token)) {
         previews.push({ changeToken: token, summary: 'Previewed collection change' });
@@ -830,6 +1035,85 @@ async function applyAllPreviews() {
   }
 }
 
+function setChatCardMoveError(row, message = '') {
+  const error = row?.querySelector('.mcp-chat-card-move-error');
+  if (error) error.textContent = message;
+}
+
+function syncChatCardMoveNewFields(row) {
+  const select = row?.querySelector('[data-chat-move-target]');
+  const newFields = row?.querySelector('.mcp-chat-card-move-new');
+  if (newFields) newFields.hidden = select?.value !== '__new__';
+}
+
+function readChatCardMoveDestination(row) {
+  const select = row?.querySelector('[data-chat-move-target]');
+  const value = select?.value || '';
+  if (value === '__new__') {
+    const type = row.querySelector('[data-chat-move-new-type]')?.value || DEFAULT_LOCATION_TYPE;
+    const name = row.querySelector('[data-chat-move-new-name]')?.value || '';
+    const loc = normalizeLocation({ type, name });
+    if (!loc) throw new Error('choose a name for the new container');
+    return { toLocation: loc, createContainer: true };
+  }
+  const loc = locationFromKey(value);
+  if (!loc) throw new Error('choose a destination');
+  return { toLocation: loc };
+}
+
+async function stageChatCardMove(button) {
+  const row = button?.closest?.('.mcp-chat-card-row');
+  if (!row || button.disabled) return false;
+  setChatCardMoveError(row, '');
+  let destination = null;
+  try {
+    destination = readChatCardMoveDestination(row);
+  } catch (e) {
+    setChatCardMoveError(row, e.message || String(e));
+    return false;
+  }
+
+  const originalText = button.textContent;
+  button.disabled = true;
+  button.textContent = 'staging';
+  try {
+    const token = await getSyncAuthToken();
+    if (!token) throw new Error('chat needs Clerk auth. For local testing, open /mtgcollection/?auth=clerk&sync=remote');
+    const res = await fetch(SYNC_API_URL + '/mcp/preview', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + token,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        toolName: 'preview_move_inventory_item',
+        arguments: {
+          itemKey: row.dataset.itemKey,
+          ...destination,
+        },
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'move preview failed');
+    if (data.status === 'preview' && data.changeToken) {
+      addPendingPreviews([data]);
+      const move = row.querySelector('.mcp-chat-card-move');
+      if (move) move.hidden = true;
+      appendMessage('assistant', 'Move preview ready below.');
+      return true;
+    }
+    throw new Error(data.message || data.error || 'move preview needs more information');
+  } catch (e) {
+    const message = e.message || String(e);
+    setChatCardMoveError(row, message);
+    showFeedback(message, 'error');
+    return false;
+  } finally {
+    button.disabled = false;
+    button.textContent = originalText;
+  }
+}
+
 export function initMcpChat({ documentObj = document } = {}) {
   documentRef = documentObj;
   root = documentObj.getElementById('mcpChatDetails');
@@ -868,8 +1152,30 @@ export function initMcpChat({ documentObj = document } = {}) {
     sendChat();
   });
   logEl?.addEventListener('click', event => {
+    const chatCardAction = event.target.closest('[data-chat-card-action]');
+    if (chatCardAction) {
+      const row = chatCardAction.closest('.mcp-chat-card-row');
+      const action = chatCardAction.dataset.chatCardAction;
+      if (action === 'toggleMove') {
+        const move = row?.querySelector('.mcp-chat-card-move');
+        if (move) {
+          move.hidden = !move.hidden;
+          syncChatCardMoveNewFields(row);
+        }
+        return;
+      }
+      if (action === 'stageMove') {
+        stageChatCardMove(chatCardAction);
+        return;
+      }
+    }
     const button = event.target.closest('[data-change-token]');
     if (button) applyPreview(button.dataset.changeToken);
+  });
+  logEl?.addEventListener('change', event => {
+    if (event.target?.matches?.('[data-chat-move-target]')) {
+      syncChatCardMoveNewFields(event.target.closest('.mcp-chat-card-row'));
+    }
   });
   draftPanelEl?.addEventListener('change', event => {
     const field = event.target?.dataset?.draftField;

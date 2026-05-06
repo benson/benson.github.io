@@ -2122,6 +2122,60 @@ function extractMcpDrafts(data) {
   return out;
 }
 
+function normalizeMcpInventoryCard(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const itemKey = String(value.itemKey || '').trim();
+  if (!itemKey) return null;
+  const name = String(value.name || value.resolvedName || '').trim();
+  return {
+    itemKey,
+    name,
+    scryfallId: String(value.scryfallId || '').trim(),
+    setCode: String(value.setCode || value.set || '').trim().toLowerCase(),
+    cn: String(value.cn || value.collectorNumber || '').trim(),
+    finish: String(value.finish || 'normal').trim().toLowerCase(),
+    condition: String(value.condition || 'near_mint').trim().toLowerCase(),
+    language: String(value.language || value.lang || 'en').trim().toLowerCase(),
+    qty: Math.max(0, parseInt(value.qty, 10) || 0),
+    location: normalizeLocation(value.location),
+    deckBoard: String(value.deckBoard || '').trim(),
+    tags: Array.isArray(value.tags) ? value.tags.map(String).filter(Boolean).slice(0, 12) : [],
+    price: Number(value.price) || 0,
+    imageUrl: String(value.imageUrl || '').trim(),
+    backImageUrl: String(value.backImageUrl || '').trim(),
+    scryfallUri: String(value.scryfallUri || '').trim(),
+  };
+}
+
+function collectMcpInventoryCards(value, out, seenObjects, seenKeys, depth = 0) {
+  if (depth > 10 || value == null) return;
+  if (typeof value === 'string') {
+    for (const parsed of jsonValuesFromString(value)) collectMcpInventoryCards(parsed, out, seenObjects, seenKeys, depth + 1);
+    return;
+  }
+  if (typeof value !== 'object') return;
+  if (seenObjects.has(value)) return;
+  seenObjects.add(value);
+
+  const card = normalizeMcpInventoryCard(value);
+  if (card && !seenKeys.has(card.itemKey)) {
+    seenKeys.add(card.itemKey);
+    out.push(card);
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) collectMcpInventoryCards(item, out, seenObjects, seenKeys, depth + 1);
+    return;
+  }
+  for (const child of Object.values(value)) collectMcpInventoryCards(child, out, seenObjects, seenKeys, depth + 1);
+}
+
+function extractMcpInventoryCards(data) {
+  const out = [];
+  collectMcpInventoryCards(data, out, new WeakSet(), new Set());
+  return out.slice(0, 50);
+}
+
 const PREVIEW_MATCH_STOPWORDS = new Set([
   'a', 'add', 'an', 'and', 'another', 'binder', 'box', 'card', 'cards', 'collection', 'create', 'deck', 'foil', 'foils', 'from', 'in', 'into',
   'make', 'move', 'my', 'nonfoil', 'normal', 'of', 'one', 'please', 'put', 'the', 'to', 'two', 'three', 'four',
@@ -2300,6 +2354,7 @@ function chatSuccessResponse(deps, request, { provider, model, hosted, usage, da
   const lastUserText = [...messages].reverse().find(message => message.role === 'user')?.content || '';
   const filtered = filterChatPreviews(extractMcpPreviews(data), lastUserText);
   const drafts = extractMcpDrafts(data);
+  const cards = extractMcpInventoryCards(data);
   const responseText = drafts.length && !filtered.previews.length
     ? 'Choose options below.'
     : filtered.previewWarnings.length && !filtered.previews.length
@@ -2313,6 +2368,7 @@ function chatSuccessResponse(deps, request, { provider, model, hosted, usage, da
     text: responseText,
     previews: filtered.previews,
     drafts,
+    cards,
     previewWarnings: filtered.previewWarnings,
     raw: data,
   }, 200, request);

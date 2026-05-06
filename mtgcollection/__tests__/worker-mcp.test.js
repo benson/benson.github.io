@@ -1043,6 +1043,57 @@ test('mcp chat: add input needs are returned as app-renderable drafts', async ()
   }
 });
 
+test('mcp chat: inventory read results are returned as app-renderable cards', async () => {
+  const { env } = fakeSyncEnv();
+  env.MTGCOLLECTION_CHAT_GROQ_API_KEY = 'gsk-hosted-secret';
+  const originalFetch = globalThis.fetch;
+  const inventory = {
+    revision: 12,
+    results: [{
+      itemKey: 'card-1',
+      name: 'Maelstrom Artisan // Rocket Volley',
+      scryfallId: 'sos-122',
+      setCode: 'sos',
+      cn: '122',
+      finish: 'normal',
+      condition: 'near_mint',
+      language: 'en',
+      qty: 1,
+      location: { type: 'binder', name: 'trade binder' },
+      tags: ['spells'],
+      price: 0.26,
+    }],
+  };
+  globalThis.fetch = async () => Response.json({
+    output_text: 'Here is what I found.',
+    output: [{
+      type: 'mcp_call',
+      name: 'search_inventory',
+      result: { structuredContent: inventory },
+    }],
+  });
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'what instants do i have?' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.cards.length, 1);
+    assert.equal(data.cards[0].itemKey, 'card-1');
+    assert.equal(data.cards[0].name, 'Maelstrom Artisan // Rocket Volley');
+    assert.deepEqual(data.cards[0].location, { type: 'binder', name: 'trade binder' });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('mcp chat: mismatched add previews are not offered for approval', async () => {
   const { env } = fakeSyncEnv();
   env.MTGCOLLECTION_CHAT_GROQ_API_KEY = 'gsk-hosted-secret';

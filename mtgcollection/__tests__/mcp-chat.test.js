@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Window } from 'happy-dom';
-import { clampChatPosition, initMcpChat } from '../mcpChat.js';
+import { clampChatPosition, initMcpChat, renderChatCardResultsForTest } from '../mcpChat.js';
+import { state } from '../state.js';
 
 function setup() {
   const win = new Window();
@@ -69,6 +70,44 @@ test('initMcpChat: empty transcript shows example prompts', () => {
   assert.ok(empty);
   assert.match(empty.textContent, /no chat yet/);
   assert.match(empty.textContent, /petrified hamlet/);
+});
+
+test('renderChatCardResultsForTest: inventory cards are hoverable and movable', () => {
+  const { document } = setup();
+  const previousCollection = state.collection;
+  const previousContainers = state.containers;
+  state.collection = [];
+  state.containers = {
+    'binder:trade binder': { type: 'binder', name: 'trade binder' },
+    'deck:breya': { type: 'deck', name: 'breya' },
+  };
+
+  try {
+    const section = renderChatCardResultsForTest([{
+      itemKey: 'card-1',
+      name: 'Maelstrom Artisan // Rocket Volley',
+      scryfallId: 'sos-122',
+      setCode: 'sos',
+      cn: '122',
+      finish: 'normal',
+      condition: 'near_mint',
+      qty: 1,
+      location: { type: 'binder', name: 'trade binder' },
+    }], document);
+    document.body.appendChild(section);
+
+    const cardLink = document.querySelector('.mcp-chat-card-name.card-preview-link');
+    assert.ok(cardLink);
+    assert.equal(cardLink.dataset.previewId, 'sos-122');
+    assert.equal(cardLink.dataset.previewSet, 'sos');
+    assert.equal(cardLink.dataset.previewCn, '122');
+    assert.match(document.querySelector('.mcp-chat-card-meta').textContent, /binder:trade binder/);
+    assert.equal(document.querySelector('[data-chat-card-action="toggleMove"]').textContent, 'move');
+    assert.equal(document.querySelector('[data-chat-move-target] option[value="deck:breya"]').textContent, 'breya');
+  } finally {
+    state.collection = previousCollection;
+    state.containers = previousContainers;
+  }
 });
 
 test('initMcpChat: escape closes the floating widget', () => {
