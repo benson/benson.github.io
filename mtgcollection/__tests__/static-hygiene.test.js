@@ -71,10 +71,33 @@ test('account menu keeps import/export IA consolidated', () => {
   assert.doesNotMatch(persistence, /backup nag|data-backup-action|loads_since_backup/i);
 });
 
+test('collection empty state sends import to the real import flow', () => {
+  const html = fs.readFileSync(path.join(projectRoot, 'mtgcollection', 'index.html'), 'utf8');
+  const appControls = fs.readFileSync(path.join(projectRoot, 'mtgcollection', 'appControls.js'), 'utf8');
+
+  assert.match(html, /data-empty-action="open-import"/);
+  assert.doesNotMatch(html, /data-empty-action="load-sample"/);
+  assert.match(appControls, /openRightDrawerImpl\?\.\(\['addDetails'\]\)/);
+  assert.match(appControls, /data-add-mode="import"/);
+});
+
+test('settings live in the header with test data reset inside the popover', () => {
+  const html = fs.readFileSync(path.join(projectRoot, 'mtgcollection', 'index.html'), 'utf8');
+  const headerMatch = html.match(/<header class="app-header">[\s\S]*?<\/header>/);
+  const footerMatch = html.match(/<footer class="app-footer">[\s\S]*?<\/footer>/);
+
+  assert.ok(headerMatch);
+  assert.match(headerMatch[0], /id="settingsToggleBtn"/);
+  assert.match(headerMatch[0], /id="loadTestDataBtn"/);
+  assert.doesNotMatch(footerMatch?.[0] || '', /settingsToggleBtn|loadTestDataBtn|footer-settings|footer-test-reset/);
+});
+
 test('mobile css keeps sheet and browsing guardrails in place', () => {
   const css = fs.readFileSync(path.join(projectRoot, 'mtgcollection', 'styles.css'), 'utf8');
 
   assert.match(css, /@media \(max-width: 900px\)[\s\S]*\.app-shell[\s\S]*grid-template-columns: minmax\(0, 1fr\)/);
+  assert.match(css, /@media \(max-width: 900px\)[\s\S]*\.app-header\s*\{[\s\S]*grid-template-columns: minmax\(0, 1fr\) auto auto/);
+  assert.match(css, /@media \(max-width: 520px\)[\s\S]*\.app-header-views \.toggle-view\s*\{[\s\S]*font-size: 0/);
   assert.match(css, /body\.view-list\.right-drawer-open \.app-right[\s\S]*height: 100dvh/);
   assert.match(css, /body\.view-list \.list-view\.active tbody tr,[\s\S]*body\.view-binder \.binder-list-table tbody tr[\s\S]*display: flex/);
   assert.match(css, /body\.view-binder \.binder-list-table \.col-check[\s\S]*display: none/);

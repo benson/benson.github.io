@@ -53,6 +53,7 @@
     font-size: 1.3rem;
     font-weight: 400;
     letter-spacing: -0.02em;
+    white-space: nowrap;
   }
   .app-title-row {
     align-items: center;
@@ -175,6 +176,7 @@
     position: relative;
     display: inline-flex;
     align-items: center;
+    gap: 8px;
     justify-content: flex-end;
     justify-self: end;
     min-width: 84px;
@@ -630,7 +632,7 @@
     align-items: center;
     display: flex;
     gap: 12px;
-    justify-content: space-between;
+    justify-content: flex-end;
     min-height: 40px;
     padding: 0 20px;
   }
@@ -640,7 +642,6 @@
     border-bottom: 1px solid #ddd;
   }
   .app-footer a:hover { color: #000; border-bottom-color: #000; }
-  .app-footer-left { display: flex; align-items: center; gap: 10px; }
   .app-footer-right { display: flex; align-items: center; gap: 12px; }
   .app-footer-right .btn { padding: 5px 12px; font-size: 0.75rem; }
   .footer-sync-status {
@@ -682,33 +683,36 @@
     cursor: pointer;
   }
   .add-placeholder-toggle input { margin: 0; }
-  .footer-test-reset {
+  .settings-reset-action {
     border: 1px dashed #ccc;
     background: transparent;
     color: #888;
     cursor: pointer;
     font: inherit;
-    font-size: 0.7rem;
-    padding: 3px 8px;
+    font-size: 0.72rem;
+    min-height: 30px;
+    padding: 6px 8px;
     text-transform: lowercase;
+    width: 100%;
   }
-  .footer-test-reset:hover {
+  .settings-reset-action:hover,
+  .settings-reset-action:focus-visible {
     border-color: #000;
     color: #000;
+    outline: none;
   }
-  .footer-test-status {
+  .settings-test-status {
     font-size: 0.7rem;
     color: #888;
-    margin-left: 8px;
     opacity: 0;
     transition: opacity 0.2s;
   }
-  .footer-test-status.visible { opacity: 1; }
-  .footer-settings {
+  .settings-test-status.visible { opacity: 1; }
+  .header-settings {
     display: inline-flex;
     position: relative;
   }
-  .footer-settings-toggle {
+  .settings-toggle {
     background: none;
     border: 1px solid #ddd;
     border-radius: 2px;
@@ -720,17 +724,16 @@
     padding: 2px 7px;
     text-transform: lowercase;
   }
-  .footer-settings-toggle:hover,
-  .footer-settings-toggle:focus-visible,
-  .footer-settings-toggle[aria-expanded="true"] {
+  .settings-toggle:hover,
+  .settings-toggle:focus-visible,
+  .settings-toggle[aria-expanded="true"] {
     border-color: #000;
     color: #000;
     outline: none;
   }
-  .footer-settings-popover {
+  .settings-popover {
     background: #fffefa;
     border: 1px solid #000;
-    bottom: calc(100% + 8px);
     box-shadow: 0 10px 24px rgba(0,0,0,0.16);
     color: #000;
     display: grid;
@@ -738,10 +741,11 @@
     padding: 12px;
     position: absolute;
     right: 0;
+    top: calc(100% + 8px);
     width: 264px;
     z-index: 90;
   }
-  .footer-settings-popover[hidden] { display: none; }
+  .settings-popover[hidden] { display: none; }
   .settings-group {
     display: grid;
     gap: 5px;
@@ -782,6 +786,10 @@
   }
   .settings-option.active + .settings-option {
     border-left-color: #000;
+  }
+  .settings-utility-group {
+    border-top: 1px solid #e3ded4;
+    padding-top: 10px;
   }
 
   /* Classic chrome — opt-in via toggle, restores the hard 1px #000 frame */
@@ -3687,7 +3695,7 @@
   body.share-mode [data-edit-deck-details],
   body.share-mode [data-card-action="remove-from-deck"],
   body.share-mode .deck-details-editor,
-  body.share-mode .footer-test-reset,
+  body.share-mode .settings-utility-group,
   body.share-mode .bulk-bar,
   body.share-mode .add-details,
   body.share-mode .changelog-banners,
@@ -5009,10 +5017,11 @@
         "footer";
     }
     .app-header {
-      grid-template-columns: 1fr;
-      gap: 4px;
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      gap: 10px;
       padding: 8px 14px;
       height: auto;
+      min-height: 50px;
     }
     .app-header h1 { font-size: 1.05rem; }
     .sidebar-edge-toggle {
@@ -5030,9 +5039,9 @@
     body.left-drawer-open.sidebar-tab-simple .sidebar-edge-toggle {
       left: min(340px, calc(100vw - var(--sidebar-tab-size)));
     }
-    .app-header-views { justify-self: start; }
-    .sync-account-slot { justify-content: flex-start; justify-self: start; }
-    .sync-menu { left: 0; right: auto; }
+    .app-header-views { justify-self: end; }
+    .sync-account-slot { justify-content: flex-end; justify-self: end; }
+    .sync-menu { left: auto; right: 0; }
     .app-left {
       border-bottom: 0;
       border-right: 1px solid #000;
@@ -5460,16 +5469,27 @@
       flex-wrap: wrap;
       justify-content: flex-start;
     }
-    .footer-settings-popover {
-      left: 0;
-      right: auto;
+    .settings-popover {
+      left: auto;
+      right: 0;
       width: min(280px, calc(100vw - 28px));
     }
   }
 
   @media (max-width: 600px) {
-    .app-header { padding: 8px 12px; }
+    .app-header {
+      gap: 6px;
+      padding: 8px 10px;
+    }
     .app-header h1 { font-size: 1rem; }
+    .app-header-views .toggle-view {
+      padding-left: 8px;
+      padding-right: 8px;
+    }
+    .sync-chip {
+      padding-left: 8px;
+      padding-right: 8px;
+    }
     .app-center { padding: 10px 12px 24px; }
     .app-left, .app-right { padding: 10px 12px; }
     .grid, .grid.grid-small, .grid.grid-medium { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 6px; }
@@ -5613,6 +5633,44 @@
       min-width: 82px;
     }
     .deck-columns { --deck-card-w: 150px; --deck-name-bar: 26px; gap: 16px 8px; }
+  }
+
+  @media (max-width: 520px) {
+    .app-header {
+      grid-template-columns: max-content auto max-content;
+      gap: 5px;
+      padding-left: 8px;
+      padding-right: 8px;
+    }
+    .app-header h1 {
+      font-size: 0.95rem;
+    }
+    .app-header-views .toggle-view {
+      font-size: 0;
+      min-width: 32px;
+      padding: 5px 7px;
+    }
+    .app-header-views .view-icon {
+      font-size: 0.95rem;
+      margin-right: 0;
+    }
+    .sync-account-slot {
+      min-width: 0;
+    }
+    .sync-chip {
+      gap: 0;
+      justify-content: center;
+      min-width: 32px;
+      padding-left: 7px;
+      padding-right: 7px;
+    }
+    .sync-chip .sync-label {
+      display: none;
+    }
+    .settings-toggle {
+      padding-left: 7px;
+      padding-right: 7px;
+    }
   }
 
   @media (hover: none) {

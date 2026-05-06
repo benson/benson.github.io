@@ -103,7 +103,10 @@ function ensureStatusDom(documentObj = document) {
   const exportButton = createSyncActionButton(documentObj, 'export', 'export data');
 
   menu.append(meta, actions, exportButton);
-  root.append(chip, menu);
+  const settingsEl = root.querySelector('.header-settings');
+  if (settingsEl) root.insertBefore(chip, settingsEl);
+  else root.append(chip);
+  root.append(menu);
 }
 
 function syncAccountActions(menu, { signedIn, showManualSync }) {
@@ -205,6 +208,12 @@ export function initSyncUi({ documentObj = document } = {}) {
       const hidden = !menu.hidden;
       menu.hidden = hidden;
       actionEl.setAttribute('aria-expanded', String(!hidden));
+      const settingsPopover = root.querySelector('#settingsPopover');
+      const settingsToggle = root.querySelector('#settingsToggleBtn');
+      if (!hidden && settingsPopover) {
+        settingsPopover.hidden = true;
+        settingsToggle?.setAttribute('aria-expanded', 'false');
+      }
       return;
     }
     if (action === 'sign-in') signIn().catch(e => showFeedback(e.message, 'error'));

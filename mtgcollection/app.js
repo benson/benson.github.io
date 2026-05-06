@@ -4,7 +4,7 @@ import { onCollectionCommit, resetCollectionCommitHooks } from './appRuntime.js'
 import { commitCollectionChange } from './commit.js';
 import { loadFromStorage, migrateSavedCollection } from './persistence.js';
 import { initSearch, applyUrlStateOnLoad } from './search.js';
-import { render, initView, navigateToLocation } from './view.js?bulk-location-picker-4';
+import { render, initView, navigateToLocation, openRightDrawer } from './view.js?bulk-location-picker-4';
 import { initBulk } from './bulk.js?bulk-location-picker-4';
 import { initAdd } from './add.js';
 import { initDetail, populateFilters } from './detail.js';
@@ -16,13 +16,13 @@ import {
 import { refreshSetIcons } from './setIcons.js';
 import { initChangelog } from './changelog.js';
 import { initShareViewer, initShare, schedulePushForDeck } from './share.js';
-import { bindAppControls, loadChromePreferences } from './appControls.js?drawer-default-simple-1';
+import { bindAppControls, loadChromePreferences } from './appControls.js?empty-import-1';
 import {
   initSyncEngine,
   loadLocalSyncSnapshotIntoState,
   primeSyncBaseline,
 } from './syncEngine.js';
-import { initSyncUi } from './syncUi.js';
+import { initSyncUi } from './syncUi.js?settings-header-1';
 import { initMcpChat } from './mcpChat.js';
 import { applyRouteStateFromUrl } from './routeState.js';
 import { bindSidebarToggle, loadSidebarPreference } from './sidebarPreferences.js?drawer-peek-1';
@@ -87,7 +87,7 @@ async function boot() {
   initMcpChat();
 
   // App-level DOM controls; format selector syncs after loadFromStorage().
-  const appControls = bindAppControls();
+  const appControls = bindAppControls({ openRightDrawerImpl: openRightDrawer });
   bindSidebarToggle();
 
   // Boot the collection — viewer mode short-circuits the localStorage path

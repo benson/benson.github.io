@@ -61,6 +61,7 @@ export function bindAppControls({
   setTopLevelViewModeImpl = setTopLevelViewMode,
   historyObj = globalThis.history,
   locationObj = globalThis.location,
+  openRightDrawerImpl = null,
 } = {}) {
   const cleanups = [];
   const bodyEl = documentObj?.body;
@@ -107,11 +108,16 @@ export function bindAppControls({
         renderImpl();
         focusLocationCreator();
       } else if (action === 'open-import') {
+        openRightDrawerImpl?.(['addDetails']);
         const det = documentObj?.getElementById('addDetails');
         if (det) det.open = true;
         documentObj?.querySelector('[data-add-mode="import"]')?.click();
-      } else if (action === 'load-sample') {
-        documentObj?.getElementById('loadSampleBtn')?.click();
+        const pasteArea = documentObj?.getElementById('pasteArea');
+        try {
+          pasteArea?.focus?.({ preventScroll: true });
+        } catch (e) {
+          pasteArea?.focus?.();
+        }
       } else if (action === 'load-test') {
         documentObj?.getElementById('loadTestDataBtn')?.click();
       }
@@ -185,7 +191,14 @@ export function bindAppControls({
 
     if (settingsToggleBtn) {
       const onSettingsToggle = () => {
-        setSettingsOpen(settingsPopoverEl.hidden);
+        const willOpen = settingsPopoverEl.hidden;
+        if (willOpen) {
+          const syncMenu = documentObj?.querySelector('#syncAccountSlot .sync-menu');
+          const syncChip = documentObj?.querySelector('#syncAccountSlot .sync-chip');
+          if (syncMenu) syncMenu.hidden = true;
+          syncChip?.setAttribute('aria-expanded', 'false');
+        }
+        setSettingsOpen(willOpen);
       };
       settingsToggleBtn.addEventListener('click', onSettingsToggle);
       cleanups.push(() => settingsToggleBtn.removeEventListener('click', onSettingsToggle));

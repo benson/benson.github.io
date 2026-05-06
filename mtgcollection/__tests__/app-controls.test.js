@@ -23,14 +23,13 @@ function setupDocument() {
       <button type="button" data-empty-action="new-deck"></button>
       <button type="button" data-empty-action="new-container"></button>
       <button type="button" data-empty-action="open-import"></button>
-      <button type="button" data-empty-action="load-sample"></button>
       <button type="button" data-empty-action="load-test"></button>
     </div>
     <input id="locationsCreateName">
     <details id="addDetails"></details>
     <button type="button" data-add-mode="import"></button>
+    <textarea id="pasteArea"></textarea>
     <button type="button" id="loadSampleBtn"></button>
-    <button type="button" id="loadTestDataBtn"></button>
     <button type="button" id="resetAppBtn"></button>
     <button type="button" id="settingsToggleBtn" aria-expanded="false" aria-controls="settingsPopover"></button>
     <div id="settingsPopover" hidden>
@@ -43,6 +42,7 @@ function setupDocument() {
       <button type="button" data-settings-key="text-size" data-settings-value="compact" aria-pressed="false"></button>
       <button type="button" data-settings-key="text-size" data-settings-value="default" aria-pressed="false"></button>
       <button type="button" data-settings-key="text-size" data-settings-value="large" aria-pressed="false"></button>
+      <button type="button" id="loadTestDataBtn"></button>
     </div>
   `);
 }
@@ -113,29 +113,29 @@ test('bindAppControls: format selector persists state and syncs loaded values', 
 
 test('bindAppControls: empty-state actions route or trigger their target controls', () => {
   const documentObj = setupDocument();
-  const calls = { modes: [], saves: 0, renders: 0, importClicks: 0, sampleClicks: 0, testClicks: 0 };
+  const calls = { modes: [], saves: 0, renders: 0, importClicks: 0, drawerTargets: [], testClicks: 0 };
   documentObj.querySelector('[data-add-mode="import"]').addEventListener('click', () => calls.importClicks++);
-  documentObj.getElementById('loadSampleBtn').addEventListener('click', () => calls.sampleClicks++);
   documentObj.getElementById('loadTestDataBtn').addEventListener('click', () => calls.testClicks++);
   bindAppControls({
     documentObj,
     saveImpl: () => calls.saves++,
     renderImpl: () => calls.renders++,
     setTopLevelViewModeImpl: mode => calls.modes.push(mode),
+    openRightDrawerImpl: targets => calls.drawerTargets.push(targets),
   });
 
   documentObj.querySelector('[data-empty-action="new-deck"]').click();
   documentObj.querySelector('[data-empty-action="new-container"]').click();
   documentObj.querySelector('[data-empty-action="open-import"]').click();
-  documentObj.querySelector('[data-empty-action="load-sample"]').click();
   documentObj.querySelector('[data-empty-action="load-test"]').click();
 
   assert.deepEqual(calls.modes, ['decks', 'storage']);
   assert.equal(calls.saves, 2);
   assert.equal(calls.renders, 2);
+  assert.deepEqual(calls.drawerTargets, [['addDetails']]);
   assert.equal(documentObj.getElementById('addDetails').open, true);
   assert.equal(calls.importClicks, 1);
-  assert.equal(calls.sampleClicks, 1);
+  assert.equal(documentObj.activeElement, documentObj.getElementById('pasteArea'));
   assert.equal(calls.testClicks, 1);
 });
 

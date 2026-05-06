@@ -42,7 +42,47 @@ body.app-booting .app-boot-curtain {
       <button class="toggle-view" id="decksViewBtn" data-view="decks"><svg class="view-icon view-icon-svg" aria-hidden="true" viewBox="0 0 14 14"><rect x="2.5" y="3.5" width="6.5" height="8.5" rx="0.5" fill="none" stroke="currentColor" stroke-width="1"/><rect x="5" y="1.5" width="6.5" height="8.5" rx="0.5" fill="none" stroke="currentColor" stroke-width="1"/></svg>decks</button>
       <button class="toggle-view" id="storageViewBtn" data-view="storage"><svg class="view-icon view-icon-svg" aria-hidden="true" viewBox="0 0 14 14"><path d="M2 7 L7 2 L12 7 L12 12 L2 12 Z" fill="none" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/></svg>storage</button>
     </div>
-    <div class="sync-account-slot" id="syncAccountSlot"></div>
+    <div class="sync-account-slot" id="syncAccountSlot">
+      <div class="header-settings" id="headerSettings">
+        <button class="settings-toggle" type="button" id="settingsToggleBtn" title="settings" aria-haspopup="dialog" aria-expanded="false" aria-controls="settingsPopover">settings</button>
+        <div class="settings-popover" id="settingsPopover" role="dialog" aria-label="settings" hidden>
+          <div class="settings-group">
+            <div class="settings-label" id="settingsTextCaseLabel">text case</div>
+            <div class="settings-options" role="group" aria-labelledby="settingsTextCaseLabel">
+              <button class="settings-option" type="button" data-settings-key="text-case" data-settings-value="lower" aria-pressed="false">lower</button>
+              <button class="settings-option" type="button" data-settings-key="text-case" data-settings-value="proper" aria-pressed="false">proper</button>
+            </div>
+          </div>
+          <div class="settings-group">
+            <div class="settings-label" id="settingsChromeLabel">chrome</div>
+            <div class="settings-options" role="group" aria-labelledby="settingsChromeLabel">
+              <button class="settings-option" type="button" data-settings-key="chrome" data-settings-value="soft" aria-pressed="false">soft</button>
+              <button class="settings-option" type="button" data-settings-key="chrome" data-settings-value="classic" aria-pressed="false">classic</button>
+            </div>
+          </div>
+          <div class="settings-group">
+            <div class="settings-label" id="settingsDrawerTabLabel">drawer tab</div>
+            <div class="settings-options" role="group" aria-labelledby="settingsDrawerTabLabel">
+              <button class="settings-option" type="button" data-settings-key="drawer-tab" data-settings-value="simple" aria-pressed="false">simple</button>
+              <button class="settings-option" type="button" data-settings-key="drawer-tab" data-settings-value="flowing" aria-pressed="false">flowing</button>
+            </div>
+          </div>
+          <div class="settings-group">
+            <div class="settings-label" id="settingsTextSizeLabel">text size</div>
+            <div class="settings-options" role="group" aria-labelledby="settingsTextSizeLabel">
+              <button class="settings-option" type="button" data-settings-key="text-size" data-settings-value="compact" aria-pressed="false">compact</button>
+              <button class="settings-option" type="button" data-settings-key="text-size" data-settings-value="default" aria-pressed="false">default</button>
+              <button class="settings-option" type="button" data-settings-key="text-size" data-settings-value="large" aria-pressed="false">large</button>
+            </div>
+          </div>
+          <div class="settings-group settings-utility-group">
+            <div class="settings-label" id="settingsUtilityLabel">utilities</div>
+            <button class="settings-reset-action" type="button" id="loadTestDataBtn" title="reset to a representative test state">reset test data</button>
+            <span class="settings-test-status" id="testDataStatus" aria-live="polite"></span>
+          </div>
+        </div>
+      </div>
+    </div>
   </header>
 
   <aside class="app-left" id="appLeft">
@@ -291,7 +331,6 @@ body.app-booting .app-boot-curtain {
         <button class="btn" type="button" data-empty-action="new-deck">new deck</button>
         <button class="btn" type="button" data-empty-action="new-container">new container</button>
         <button class="btn btn-secondary" type="button" data-empty-action="open-import">import collection</button>
-        <button class="btn btn-secondary" type="button" data-empty-action="load-sample">load sample</button>
         <button class="btn btn-secondary" type="button" data-empty-action="load-test">load breya</button>
       </div>
     </div>
@@ -432,46 +471,8 @@ body.app-booting .app-boot-curtain {
   <footer class="app-footer">
     <div class="app-totals-strip" id="appTotalsStrip" aria-live="polite"></div>
     <div class="app-footer-row">
-      <div class="app-footer-left">
-        <button class="footer-test-reset" type="button" id="loadTestDataBtn" title="reset to a representative test state">reset test data</button>
-        <span class="footer-test-status" id="testDataStatus" aria-live="polite"></span>
-      </div>
       <div class="app-footer-right">
         <span class="footer-sync-status" id="footerSyncStatus" aria-live="polite" hidden></span>
-        <div class="footer-settings" id="footerSettings">
-          <button class="footer-settings-toggle" type="button" id="settingsToggleBtn" title="settings" aria-haspopup="dialog" aria-expanded="false" aria-controls="settingsPopover">settings</button>
-          <div class="footer-settings-popover" id="settingsPopover" role="dialog" aria-label="settings" hidden>
-            <div class="settings-group">
-              <div class="settings-label" id="settingsTextCaseLabel">text case</div>
-              <div class="settings-options" role="group" aria-labelledby="settingsTextCaseLabel">
-                <button class="settings-option" type="button" data-settings-key="text-case" data-settings-value="lower" aria-pressed="false">lower</button>
-                <button class="settings-option" type="button" data-settings-key="text-case" data-settings-value="proper" aria-pressed="false">proper</button>
-              </div>
-            </div>
-            <div class="settings-group">
-              <div class="settings-label" id="settingsChromeLabel">chrome</div>
-              <div class="settings-options" role="group" aria-labelledby="settingsChromeLabel">
-                <button class="settings-option" type="button" data-settings-key="chrome" data-settings-value="soft" aria-pressed="false">soft</button>
-                <button class="settings-option" type="button" data-settings-key="chrome" data-settings-value="classic" aria-pressed="false">classic</button>
-              </div>
-            </div>
-            <div class="settings-group">
-              <div class="settings-label" id="settingsDrawerTabLabel">drawer tab</div>
-              <div class="settings-options" role="group" aria-labelledby="settingsDrawerTabLabel">
-                <button class="settings-option" type="button" data-settings-key="drawer-tab" data-settings-value="simple" aria-pressed="false">simple</button>
-                <button class="settings-option" type="button" data-settings-key="drawer-tab" data-settings-value="flowing" aria-pressed="false">flowing</button>
-              </div>
-            </div>
-            <div class="settings-group">
-              <div class="settings-label" id="settingsTextSizeLabel">text size</div>
-              <div class="settings-options" role="group" aria-labelledby="settingsTextSizeLabel">
-                <button class="settings-option" type="button" data-settings-key="text-size" data-settings-value="compact" aria-pressed="false">compact</button>
-                <button class="settings-option" type="button" data-settings-key="text-size" data-settings-value="default" aria-pressed="false">default</button>
-                <button class="settings-option" type="button" data-settings-key="text-size" data-settings-value="large" aria-pressed="false">large</button>
-              </div>
-            </div>
-          </div>
-        </div>
         <a href="/">bensonperry.com</a>
       </div>
     </div>
@@ -592,6 +593,6 @@ body.app-booting .app-boot-curtain {
   </div>
 </div>
 
-<script type="module" src="./app.js?bulk-location-picker-4"></script>
+<script type="module" src="./app.js?settings-header-1"></script>
 </body>
 </html>
