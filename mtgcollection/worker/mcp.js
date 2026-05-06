@@ -2306,6 +2306,124 @@ function extractMcpInventoryCards(data) {
   return out.slice(0, 100);
 }
 
+function locationFromKeyString(key) {
+  const raw = String(key || '').trim();
+  const index = raw.indexOf(':');
+  if (index === -1) return null;
+  return normalizeLocation({ type: raw.slice(0, index), name: raw.slice(index + 1) });
+}
+
+function normalizeMcpContainerStats(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const stats = value.stats && typeof value.stats === 'object' ? value.stats : null;
+  const rawContainer = value.container && typeof value.container === 'object' ? value.container : value;
+  if (!stats) return null;
+  const keyedLocation = locationFromKeyString(rawContainer.key);
+  const loc = normalizeLocation(rawContainer) || keyedLocation;
+  if (!loc) return null;
+  const total = Math.max(0, parseInt(stats.total, 10) || 0);
+  const unique = Math.max(0, parseInt(stats.unique, 10) || 0);
+  return {
+    key: locationKey(loc),
+    type: loc.type,
+    name: loc.name,
+    stats: {
+      unique,
+      total,
+      value: roundCurrency(Number(stats.value) || 0),
+    },
+  };
+}
+
+function collectMcpContainerStats(value, out, seenObjects, seenKeys, depth = 0) {
+  if (depth > 10 || value == null) return;
+  if (typeof value === 'string') {
+    for (const parsed of jsonValuesFromString(value)) collectMcpContainerStats(parsed, out, seenObjects, seenKeys, depth + 1);
+    return;
+  }
+  if (typeof value !== 'object') return;
+  if (seenObjects.has(value)) return;
+  seenObjects.add(value);
+
+  const container = normalizeMcpContainerStats(value);
+  if (container && !seenKeys.has(container.key)) {
+    seenKeys.add(container.key);
+    out.push(container);
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) collectMcpContainerStats(item, out, seenObjects, seenKeys, depth + 1);
+    return;
+  }
+  for (const child of Object.values(value)) collectMcpContainerStats(child, out, seenObjects, seenKeys, depth + 1);
+}
+
+function extractMcpContainerStats(data) {
+  const out = [];
+  collectMcpContainerStats(data, out, new WeakSet(), new Set());
+  return out.slice(0, 100);
+}
+
+function containerStatsQuestion(userText) {
+  const text = String(userText || '').toLowerCase();
+  const asksCount = /\bhow\s+many\b|\bcount\b|\btotal\b|\bcards?\b/.test(text);
+  const mentionsContainer = /\b(?:binder|box|deck|container)\b|\bin\s+(?:my\s+)?[a-z0-9\s-]+$/.test(text);
+  const asksValue = /\b(?:value|valued|worth)\b/.test(text) && mentionsContainer;
+  return (asksCount && mentionsContainer) || asksValue;
+}
+
+function containerMatchScore(container, userText) {
+  const text = String(userText || '').toLowerCase();
+  const name = String(container?.name || '').toLowerCase();
+  const type = String(container?.type || '').toLowerCase();
+  const key = String(container?.key || '').toLowerCase();
+  const userTokens = new Set(normalizedMatchTokens(text));
+  let score = 0;
+  if (key && text.includes(key)) score += 8;
+  if (name && text.includes(name)) score += 5;
+  if (type && userTokens.has(type)) score += 2;
+  for (const token of normalizedMatchTokens(name)) {
+    if (userTokens.has(token)) score += 1;
+  }
+  return score;
+}
+
+function chooseContainerStats(containers, userText) {
+  const normalized = Array.isArray(containers) ? containers.filter(Boolean) : [];
+  if (!normalized.length) return null;
+  if (normalized.length === 1) return normalized[0];
+  const ranked = normalized
+    .map(container => ({ container, score: containerMatchScore(container, userText) }))
+    .sort((a, b) => b.score - a.score || a.container.key.localeCompare(b.container.key));
+  return ranked[0]?.score > 0 ? ranked[0].container : null;
+}
+
+function plural(count, singular, pluralWord = singular + 's') {
+  return Number(count) === 1 ? singular : pluralWord;
+}
+
+function capitalizedSentenceStart(text) {
+  const raw = String(text || '').trim();
+  return raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : 'That container';
+}
+
+function containerStatsSummaryText(containers, userText) {
+  if (!containerStatsQuestion(userText)) return '';
+  const container = chooseContainerStats(containers, userText);
+  if (!container) return '';
+  const total = Math.max(0, parseInt(container.stats?.total, 10) || 0);
+  const unique = Math.max(0, parseInt(container.stats?.unique, 10) || 0);
+  const value = Number(container.stats?.value) || 0;
+  const label = capitalizedSentenceStart(container.name || container.type || 'that container');
+  if (/\b(?:value|valued|worth)\b/i.test(userText)) {
+    return label + ' is valued at $' + value.toFixed(2) + ' across '
+      + total + ' total ' + plural(total, 'card') + ' and '
+      + unique + ' unique ' + plural(unique, 'card') + '.';
+  }
+  return label + ' has ' + total + ' total ' + plural(total, 'card') + ' across '
+    + unique + ' unique ' + plural(unique, 'card') + '.';
+}
+
 function filterInventoryCardsForUserRequest(cards, userText) {
   const finish = finishFromInventoryText(userText);
   if (!finish) return cards;
@@ -2527,12 +2645,16 @@ function chatSuccessResponse(deps, request, { provider, model, hosted, usage, da
     filterInventoryCardsForUserRequest(extractMcpInventoryCards(data), lastUserText),
     lastUserText
   );
+  const containerSummary = containerStatsSummaryText(extractMcpContainerStats(data), lastUserText);
+  const responseCards = containerSummary ? [] : cards;
   const responseText = drafts.length && !filtered.previews.length
     ? 'Choose options below.'
     : filtered.previewWarnings.length && !filtered.previews.length
     ? filtered.previewWarnings.join('\n')
-    : cards.length
-    ? inventoryCardsSummaryText(cards, lastUserText)
+    : containerSummary
+    ? containerSummary
+    : responseCards.length
+    ? inventoryCardsSummaryText(responseCards, lastUserText)
     : text;
   return deps.json({
     provider,
@@ -2542,7 +2664,7 @@ function chatSuccessResponse(deps, request, { provider, model, hosted, usage, da
     text: responseText,
     previews: filtered.previews,
     drafts,
-    cards,
+    cards: responseCards,
     previewWarnings: filtered.previewWarnings,
     raw: data,
   }, 200, request);

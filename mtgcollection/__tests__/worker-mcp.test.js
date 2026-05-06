@@ -1355,6 +1355,52 @@ test('mcp chat: price ranking questions use returned card prices', async () => {
   }
 });
 
+test('mcp chat: container count questions use returned container stats', async () => {
+  const { env } = fakeSyncEnv();
+  env.MTGCOLLECTION_CHAT_GROQ_API_KEY = 'gsk-hosted-secret';
+  const originalFetch = globalThis.fetch;
+  const containers = {
+    revision: 12,
+    containers: [{
+      key: 'box:bulk',
+      type: 'box',
+      name: 'bulk',
+      stats: { unique: 2, total: 3, value: 1.25 },
+    }, {
+      key: 'binder:trade binder',
+      type: 'binder',
+      name: 'trade binder',
+      stats: { unique: 17, total: 23, value: 456.78 },
+    }],
+  };
+  globalThis.fetch = async () => Response.json({
+    output_text: '',
+    output: [{
+      type: 'mcp_call',
+      name: 'list_containers',
+      result: { structuredContent: containers },
+    }],
+  });
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'how many cards in my trade binder' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.text, 'Trade binder has 23 total cards across 17 unique cards.');
+    assert.deepEqual(data.cards, []);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('mcp chat: mismatched add previews are not offered for approval', async () => {
   const { env } = fakeSyncEnv();
   env.MTGCOLLECTION_CHAT_GROQ_API_KEY = 'gsk-hosted-secret';
