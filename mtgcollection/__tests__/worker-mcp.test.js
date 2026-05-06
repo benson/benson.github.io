@@ -349,6 +349,40 @@ test('mcp: search_inventory can infer broad filters from natural query text', as
   assert.equal(results[0].price, 12);
 });
 
+test('mcp: search_inventory resolves bare location names to existing containers', async () => {
+  const snapshot = emptySnapshot({
+    collection: [
+      card({ name: 'Breya, Etherium Shaper', resolvedName: 'Breya, Etherium Shaper', scryfallId: 'breya-1', price: 12, location: { type: 'box', name: 'bulk' } }),
+      card({ name: 'Mana Crypt', resolvedName: 'Mana Crypt', scryfallId: 'crypt-1', price: 180, location: { type: 'deck', name: 'breya artifacts' } }),
+      card({ name: 'Dockside Extortionist', resolvedName: 'Dockside Extortionist', scryfallId: 'dockside-1', price: 65, location: { type: 'deck', name: 'breya artifacts' } }),
+    ],
+    containers: {
+      'box:bulk': { type: 'box', name: 'bulk' },
+      'deck:breya artifacts': { type: 'deck', name: 'breya artifacts' },
+    },
+  });
+  const { env } = fakeSyncEnv(snapshot);
+  const token = await issueMcpToken(env);
+  const searched = await callTool(env, token.access_token, 'search_inventory', {
+    location: 'breya artifacts',
+    sortBy: 'price',
+    sortDirection: 'desc',
+    limit: 1,
+  });
+  const results = searched.result.structuredContent.results;
+  assert.equal(results.length, 1);
+  assert.equal(results[0].name, 'Mana Crypt');
+  assert.deepEqual(results[0].location, { type: 'deck', name: 'breya artifacts' });
+
+  const fuzzy = await callTool(env, token.access_token, 'search_inventory', {
+    location: 'bulk',
+    sortBy: 'price',
+    sortDirection: 'desc',
+    limit: 1,
+  });
+  assert.equal(fuzzy.result.structuredContent.results[0].name, 'Breya, Etherium Shaper');
+});
+
 test('mcp: collection summary includes price rollups when available', async () => {
   const snapshot = emptySnapshot({
     collection: [

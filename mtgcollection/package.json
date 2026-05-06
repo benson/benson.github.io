@@ -4,6 +4,7 @@
     "test": "node --test __tests__/*.test.js",
     "eval:chat": "node scripts/mcp-chat-eval.mjs",
     "eval:chat:list": "node scripts/mcp-chat-eval.mjs --list --all",
-    "eval:chat:all": "node scripts/mcp-chat-eval.mjs --all"
+    "eval:chat:all": "node scripts/mcp-chat-eval.mjs --all",
+    "eval:chat:full-surface": "node scripts/mcp-chat-eval.mjs --tool-mode=full --no-final --max-output=350"
   }
 }

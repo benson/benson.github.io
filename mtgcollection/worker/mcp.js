@@ -1098,6 +1098,25 @@ function allContainers(snapshot) {
     .sort((a, b) => a.type.localeCompare(b.type) || a.name.localeCompare(b.name));
 }
 
+function resolveLocationForSnapshot(snapshot, raw) {
+  const normalized = normalizeLocation(raw);
+  if (!normalized) return null;
+  const exact = containerFromSnapshot(snapshot, normalized);
+  if (exact) return { type: exact.type || normalized.type, name: exact.name || normalized.name };
+  if (typeof raw === 'string') {
+    const wanted = raw.trim().toLowerCase().replace(/\s+/g, ' ');
+    const containers = allContainers(snapshot);
+    const exactNameMatches = containers.filter(container => String(container.name || '').toLowerCase() === wanted);
+    if (exactNameMatches.length === 1) return { type: exactNameMatches[0].type, name: exactNameMatches[0].name };
+    const fuzzyNameMatches = containers.filter(container => {
+      const name = String(container.name || '').toLowerCase();
+      return name.includes(wanted) || wanted.includes(name);
+    });
+    if (fuzzyNameMatches.length === 1) return { type: fuzzyNameMatches[0].type, name: fuzzyNameMatches[0].name };
+  }
+  return normalized;
+}
+
 function containerStats(snapshot, loc) {
   const key = locationKey(loc);
   const cards = (snapshot?.app?.collection || []).filter(entry => locationKey(entry.location) === key);
@@ -1557,10 +1576,12 @@ async function toolGetCollectionSummary(env, deps, auth) {
 
 async function toolSearchInventory(env, deps, auth, args) {
   const cloud = await currentCloud(env, deps, auth.userId);
+  const searchArgs = { ...args };
+  if (searchArgs.location) searchArgs.location = resolveLocationForSnapshot(cloud.snapshot, searchArgs.location);
   const limit = Math.min(parseInt(args.limit, 10) || 100, 200);
   return {
     revision: cloud.revision,
-    results: findInventory(cloud.snapshot, args, limit),
+    results: findInventory(cloud.snapshot, searchArgs, limit),
     limit,
   };
 }
@@ -1588,7 +1609,7 @@ async function toolListContainers(env, deps, auth, args = {}) {
 
 async function toolGetContainer(env, deps, auth, args = {}) {
   const cloud = await currentCloud(env, deps, auth.userId);
-  const loc = normalizeLocation(args.location || { type: args.type, name: args.name });
+  const loc = resolveLocationForSnapshot(cloud.snapshot, args.location || { type: args.type, name: args.name });
   const container = containerFromSnapshot(cloud.snapshot, loc);
   if (!container) return { revision: cloud.revision, found: false, location: loc };
   const cards = findInventory(cloud.snapshot, { location: loc }, Math.min(parseInt(args.limit, 10) || 50, 200));
@@ -1603,7 +1624,7 @@ async function toolGetContainer(env, deps, auth, args = {}) {
 
 async function toolGetDeck(env, deps, auth, args = {}) {
   const cloud = await currentCloud(env, deps, auth.userId);
-  const loc = normalizeLocation(args.location || { type: 'deck', name: args.name });
+  const loc = resolveLocationForSnapshot(cloud.snapshot, args.location || { type: 'deck', name: args.name });
   if (loc?.type !== 'deck') return { revision: cloud.revision, found: false, error: 'location is not a deck' };
   const deck = containerFromSnapshot(cloud.snapshot, loc);
   if (!deck || deck.type !== 'deck') return { revision: cloud.revision, found: false, location: loc };
@@ -1649,7 +1670,7 @@ async function toolPreviewMoveInventoryItem(env, deps, auth, args = {}) {
   }
   const entry = matches[0];
   const qty = Math.min(Math.max(1, parseInt(args.qty, 10) || (parseInt(entry.qty, 10) || 1)), parseInt(entry.qty, 10) || 1);
-  const toLocation = normalizeLocation(args.toLocation || args.locationTo || args.destination);
+  const toLocation = resolveLocationForSnapshot(cloud.snapshot, args.toLocation || args.locationTo || args.destination);
   if (!toLocation) return { status: 'invalid', error: 'toLocation is required' };
   const toKey = locationKey(toLocation);
   const existingContainer = containerFromSnapshot(cloud.snapshot, toLocation);
@@ -1708,7 +1729,7 @@ async function toolPreviewAddInventoryItem(env, deps, auth, args = {}) {
       });
     }
   }
-  const location = normalizeLocation(raw.location);
+  const location = resolveLocationForSnapshot(cloud.snapshot, raw.location);
   resolvedCard = resolvedCard || await resolveScryfallCardForAdd(raw);
   if (!resolvedCard) {
     return mcpAddNeedsClarification({
@@ -2164,8 +2185,32 @@ const TOOL_DEFINITIONS = [
 ].map(([name, description, inputSchema]) => ({
   name,
   description,
-  inputSchema: inputSchema.type ? inputSchema : { type: 'object', properties: {} },
+  inputSchema: nullableOptionalProperties(inputSchema.type ? inputSchema : { type: 'object', properties: {} }),
 }));
+
+function schemaAllowsNull(schema) {
+  if (!schema || typeof schema !== 'object') return false;
+  if (schema.type === 'null') return true;
+  if (Array.isArray(schema.type) && schema.type.includes('null')) return true;
+  return Array.isArray(schema.oneOf) && schema.oneOf.some(schemaAllowsNull);
+}
+
+function nullableSchema(schema) {
+  if (!schema || typeof schema !== 'object' || schemaAllowsNull(schema)) return schema;
+  if (Array.isArray(schema.oneOf)) return { ...schema, oneOf: [...schema.oneOf, { type: 'null' }] };
+  if (Array.isArray(schema.type)) return { ...schema, type: [...schema.type, 'null'] };
+  return { oneOf: [schema, { type: 'null' }] };
+}
+
+function nullableOptionalProperties(schema) {
+  if (!schema || typeof schema !== 'object' || schema.type !== 'object' || !schema.properties) return schema;
+  const required = new Set(Array.isArray(schema.required) ? schema.required : []);
+  const properties = {};
+  for (const [name, propSchema] of Object.entries(schema.properties)) {
+    properties[name] = required.has(name) ? propSchema : nullableSchema(propSchema);
+  }
+  return { ...schema, properties };
+}
 
 function toolNeedsWrite(name) {
   return name === 'apply_collection_change'

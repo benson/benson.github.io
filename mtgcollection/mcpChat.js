@@ -22,6 +22,8 @@ export const SYSTEM_PROMPT = [
   'For broad inventory filters, call search_inventory with structured filters instead of putting the whole user question into query. Use minPrice/maxPrice, minQty/maxQty, cardType, condition, rarity, tags, location, sortBy, and sortDirection when relevant.',
   'When the user asks about prices, value, cheapest, most expensive, cards over/under a price, or cards with many copies, use collection price/quantity fields from get_collection_summary or search_inventory; do not say price data is unavailable when the tools return price.',
   'For cheapest or most expensive card questions inside a binder, box, or deck, call search_inventory with the matching location plus sortBy=price and sortDirection=asc or desc; use list_containers only for container counts or metadata.',
+  'Treat "bulk" as the box named "bulk" when it appears as a location. Treat "card stack" or "stack value" as one inventory row sorted by totalValue, not as a container total.',
+  'If a phrase could be a container name, such as "breya artifacts" or "trade binder", do not split it into a card-name query; pass it as location.',
   'When showing inventory cards from search_inventory, get_container, or get_deck, keep the prose short and do not write markdown tables; the app renders the card results separately.',
 ].join(' ');
 const HOSTED_PROVIDER = 'groq';

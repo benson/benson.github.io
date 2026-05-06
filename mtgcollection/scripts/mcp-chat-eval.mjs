@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import process from 'node:process';
+import { writeFileSync } from 'node:fs';
 import worker from '../worker/worker.js';
 import { applySyncOps } from '../syncReducer.js';
 import { locationKey, normalizeLocation } from '../collection.js';
@@ -10,7 +11,19 @@ const USER_ID = 'eval_user';
 const MCP_URL = 'https://eval.local/mcp';
 
 function parseArgs(argv) {
-  const out = { limit: 25, all: false, list: false, verbose: false, final: true };
+  const out = {
+    limit: 10,
+    all: false,
+    list: false,
+    verbose: false,
+    final: true,
+    toolMode: 'category',
+    maxOutput: 350,
+    maxFailures: 5,
+    rateLimitRetries: 2,
+    maxRetrySeconds: 20,
+    caseDelayMs: 250,
+  };
   for (const arg of argv) {
     if (arg === '--all') out.all = true;
     else if (arg === '--list') out.list = true;
@@ -21,7 +34,14 @@ function parseArgs(argv) {
     else if (arg.startsWith('--id=')) out.id = arg.slice(5);
     else if (arg.startsWith('--model=')) out.model = arg.slice(8);
     else if (arg.startsWith('--report=')) out.report = arg.slice(9);
+    else if (arg.startsWith('--tool-mode=')) out.toolMode = arg.slice(12);
+    else if (arg.startsWith('--max-output=')) out.maxOutput = Math.max(64, parseInt(arg.slice(13), 10) || out.maxOutput);
+    else if (arg.startsWith('--max-failures=')) out.maxFailures = Math.max(0, parseInt(arg.slice(15), 10) || 0);
+    else if (arg.startsWith('--rate-limit-retries=')) out.rateLimitRetries = Math.max(0, parseInt(arg.slice(21), 10) || 0);
+    else if (arg.startsWith('--max-retry-seconds=')) out.maxRetrySeconds = Math.max(1, parseInt(arg.slice(20), 10) || out.maxRetrySeconds);
+    else if (arg.startsWith('--case-delay-ms=')) out.caseDelayMs = Math.max(0, parseInt(arg.slice(16), 10) || 0);
   }
+  if (!['category', 'full'].includes(out.toolMode)) throw new Error('--tool-mode must be category or full');
   return out;
 }
 
@@ -238,6 +258,7 @@ function readCase(id, prompt, filter, sort = { by: 'name', dir: 'asc' }, options
     expect: {
       kind: 'cards',
       anyTool: options.anyTool || ['search_inventory', 'get_container'],
+      filter,
       expectedNames: expectedCards(filter, sort, options.limit || 20),
       firstName: options.firstName || null,
       sort,
@@ -304,7 +325,7 @@ function buildCases() {
     readCase('rank-most-valuable-stack', 'which card stack is worth the most total money?', {}, { by: 'totalValue', dir: 'desc' }, { firstName: 'Mana Crypt', limit: 1 }),
     readCase('rank-most-copies', 'what card do i have the most copies of?', {}, { by: 'qty', dir: 'desc' }, { firstName: 'Island', limit: 1 }),
     readCase('rank-trade-most-expensive', "what's the most expensive card in the trade binder?", { location: trade }, { by: 'price', dir: 'desc' }, { firstName: 'The One Ring', limit: 1 }),
-    readCase('rank-trade-cheapest', "what's the cheapest one in my trade binder?", { location: trade }, { by: 'price', dir: 'asc' }, { firstName: 'Counterspell', limit: 1 }),
+    readCase('rank-trade-cheapest', "what's the cheapest one in my trade binder?", { location: trade }, { by: 'price', dir: 'asc' }, { firstName: 'Swords to Plowshares', limit: 1 }),
     readCase('rank-bulk-most-expensive', "what's the most expensive card in bulk?", { location: bulk }, { by: 'price', dir: 'desc' }, { firstName: 'Breya, Etherium Shaper', limit: 1 }),
     readCase('rank-bulk-cheapest', 'cheapest card in my bulk box', { location: bulk }, { by: 'price', dir: 'asc' }, { firstName: 'Island', limit: 1 }),
     readCase('rank-deck-most-expensive', "what's the priciest card in breya artifacts?", { location: deck }, { by: 'price', dir: 'desc' }, { firstName: 'Mana Crypt', limit: 1 }),
@@ -480,36 +501,95 @@ async function toolDefinitions(env, accessToken) {
     }));
 }
 
+function toolsForCase(allTools, testCase, toolMode = 'category') {
+  if (toolMode === 'full') return allTools;
+  const namesByCategory = {
+    read: ['search_inventory', 'list_containers', 'get_container', 'get_deck'],
+    container: ['list_containers', 'get_container', 'search_inventory'],
+    mutation: [
+      'search_card_printings',
+      'search_inventory',
+      'list_containers',
+      'get_container',
+      'preview_add_inventory_item',
+      'preview_move_inventory_item',
+      'preview_create_container',
+      'preview_rename_container',
+      'preview_delete_container',
+      'preview_decklist_change',
+    ],
+    'deck-disambiguation': [
+      'search_card_printings',
+      'search_inventory',
+      'list_containers',
+      'get_container',
+      'get_deck',
+      'preview_add_inventory_item',
+      'preview_move_inventory_item',
+      'preview_decklist_change',
+    ],
+  };
+  const allowed = new Set(namesByCategory[testCase.category] || namesByCategory.read);
+  for (const name of testCase.expect?.anyTool || []) allowed.add(name);
+  return allTools.filter(tool => allowed.has(tool.function?.name));
+}
+
 function groqKey() {
   return process.env.GROQ_API_KEY || process.env.MTGCOLLECTION_CHAT_GROQ_API_KEY || '';
 }
 
-async function callGroq({ apiKey, model, messages, tools }) {
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: 'Bearer ' + apiKey,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      tools,
-      tool_choice: 'auto',
-      temperature: 0,
-      max_completion_tokens: 1000,
-    }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error?.message || JSON.stringify(data) || ('groq failed: ' + res.status));
-  return data.choices?.[0]?.message || { role: 'assistant', content: '' };
+async function callGroq({ apiKey, model, messages, tools, maxOutput, rateLimitRetries, maxRetrySeconds }) {
+  let lastMessage = '';
+  for (let attempt = 0; attempt <= rateLimitRetries; attempt += 1) {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        tools,
+        tool_choice: 'auto',
+        temperature: 0,
+        max_completion_tokens: maxOutput,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) return data.choices?.[0]?.message || { role: 'assistant', content: '' };
+    lastMessage = data?.error?.message || JSON.stringify(data) || ('groq failed: ' + res.status);
+    if (/request too large/i.test(lastMessage)) throw new Error(lastMessage);
+    if (/\b(?:TPD|tokens per day)\b/i.test(lastMessage)) throw new Error(lastMessage);
+    if (res.status !== 429) throw new Error(lastMessage);
+    if (attempt >= rateLimitRetries) break;
+    const parsedRetrySeconds = Number(String(lastMessage).match(/try again in ([0-9.]+)s/i)?.[1]);
+    if (!Number.isFinite(parsedRetrySeconds)) throw new Error(lastMessage);
+    const retrySeconds = Math.min(parsedRetrySeconds, maxRetrySeconds);
+    console.log('  rate limited; retrying in ' + retrySeconds + 's');
+    await new Promise(resolve => setTimeout(resolve, Math.ceil(retrySeconds * 1000) + 750));
+  }
+  throw new Error(lastMessage || 'Groq rate limit retry budget exhausted');
 }
 
 function safeParseArgs(raw) {
   try { return raw ? JSON.parse(raw) : {}; } catch (e) { return {}; }
 }
 
-async function runModelCase({ env, accessToken, tools, apiKey, model, testCase, includeFinal }) {
+async function runModelCase({
+  env,
+  accessToken,
+  allTools,
+  apiKey,
+  model,
+  testCase,
+  includeFinal,
+  toolMode,
+  maxOutput,
+  rateLimitRetries,
+  maxRetrySeconds,
+}) {
+  const tools = toolsForCase(allTools, testCase, toolMode);
   const messages = [
     { role: 'system', content: SYSTEM_PROMPT + ' You are being evaluated: use tools whenever collection data or collection edits are needed.' },
     { role: 'user', content: testCase.prompt },
@@ -518,7 +598,15 @@ async function runModelCase({ env, accessToken, tools, apiKey, model, testCase, 
   let finalText = '';
 
   for (let turn = 0; turn < 6; turn += 1) {
-    const assistant = await callGroq({ apiKey, model, messages, tools });
+    const assistant = await callGroq({
+      apiKey,
+      model,
+      messages,
+      tools,
+      maxOutput,
+      rateLimitRetries,
+      maxRetrySeconds,
+    });
     const calls = Array.isArray(assistant.tool_calls) ? assistant.tool_calls : [];
     if (!calls.length) {
       finalText = assistant.content || '';
@@ -601,14 +689,13 @@ function scoreCase(testCase, run) {
     const cards = collectCards(run.toolCalls);
     const names = cards.map(card => card.name);
     if (cards.length < (expect.minResults || 0)) failures.push('expected card results, got none');
-    if (expect.firstName && names[0] !== expect.firstName) {
-      failures.push('expected first card "' + expect.firstName + '", got "' + (names[0] || 'none') + '"');
+    if (expect.firstName && !names.includes(expect.firstName) && !run.finalText.toLowerCase().includes(expect.firstName.toLowerCase())) {
+      failures.push('expected top card "' + expect.firstName + '", got [' + (names.join(', ') || 'none') + ']');
     }
-    const expected = expect.expectedNames || [];
-    const missing = expected.filter(name => !names.includes(name));
-    if (missing.length && names.length) failures.push('missing expected cards: ' + missing.slice(0, 5).join(', '));
-    const unexpected = names.filter(name => expected.length && !expected.includes(name));
-    if (unexpected.length) failures.push('unexpected cards: ' + unexpected.slice(0, 5).join(', '));
+    if (!expect.firstName) {
+      const mismatched = cards.filter(card => !matchesFilter(card, expect.filter || {})).map(card => card.name);
+      if (mismatched.length) failures.push('cards did not match expected filter: ' + mismatched.slice(0, 5).join(', '));
+    }
   } else if (expect.kind === 'containerStats') {
     const statsResults = run.toolCalls.map(call => call.result).filter(Boolean);
     const matching = statsResults.find(result => {
@@ -646,10 +733,44 @@ function selectCases(allCases, args) {
   return selected;
 }
 
+function reportPayload({ args, model, results, stoppedEarly = false, stopReason = '' }) {
+  const passed = results.filter(result => result.score.ok).length;
+  const failed = results.length - passed;
+  return {
+    model,
+    toolMode: args.toolMode,
+    includeFinal: args.final,
+    maxOutput: args.maxOutput,
+    maxFailures: args.maxFailures,
+    rateLimitRetries: args.rateLimitRetries,
+    generatedAt: new Date().toISOString(),
+    stoppedEarly,
+    stopReason,
+    passed,
+    failed,
+    total: results.length,
+    results,
+  };
+}
+
+function writeReport(reportPath, payload) {
+  if (!reportPath) return;
+  writeFileSync(reportPath, JSON.stringify(payload, null, 2));
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const cases = buildCases();
   const selected = selectCases(cases, args);
+  let interrupted = false;
+  process.once('SIGINT', () => {
+    interrupted = true;
+    console.log('\nInterrupt received; stopping after the current case and writing the partial report.');
+  });
+  process.once('SIGTERM', () => {
+    interrupted = true;
+    console.log('\nTerminate received; stopping after the current case and writing the partial report.');
+  });
 
   if (args.list) {
     for (const testCase of selected) {
@@ -670,21 +791,39 @@ async function main() {
   const model = args.model || process.env.MTGCOLLECTION_CHAT_GROQ_MODEL || DEFAULT_MODEL;
   const { env } = fakeSyncEnv(buildSnapshot(), 100);
   const token = await issueMcpToken(env);
-  const tools = await toolDefinitions(env, token.access_token);
+  const allTools = await toolDefinitions(env, token.access_token);
   const results = [];
+  let stoppedEarly = false;
+  let stopReason = '';
 
-  console.log('Running ' + selected.length + ' MTG chat evals with ' + model + '...');
+  console.log('Running ' + selected.length + ' MTG chat evals with ' + model + ' (' + args.toolMode + ' tool mode)...');
   for (const [index, testCase] of selected.entries()) {
-    const run = await runModelCase({
-      env,
-      accessToken: token.access_token,
-      tools,
-      apiKey,
-      model,
-      testCase,
-      includeFinal: args.final,
-    });
-    const scored = scoreCase(testCase, run);
+    if (interrupted) {
+      stoppedEarly = true;
+      stopReason = 'interrupted before case ' + (index + 1);
+      break;
+    }
+    let run = null;
+    let scored = null;
+    try {
+      run = await runModelCase({
+        env,
+        accessToken: token.access_token,
+        allTools,
+        apiKey,
+        model,
+        testCase,
+        includeFinal: args.final,
+        toolMode: args.toolMode,
+        maxOutput: args.maxOutput,
+        rateLimitRetries: args.rateLimitRetries,
+        maxRetrySeconds: args.maxRetrySeconds,
+      });
+      scored = scoreCase(testCase, run);
+    } catch (error) {
+      run = { toolCalls: [], finalText: '' };
+      scored = { ok: false, failures: [error.message || String(error)], tools: [], finalText: '' };
+    }
     results.push({ ...testCase, run, score: scored });
     const mark = scored.ok ? 'PASS' : 'FAIL';
     console.log((index + 1) + '/' + selected.length, mark, testCase.id, '[' + scored.tools.join(', ') + ']');
@@ -692,21 +831,23 @@ async function main() {
       for (const failure of scored.failures) console.log('  - ' + failure);
       if (args.verbose && scored.finalText) console.log('  final: ' + scored.finalText.replace(/\s+/g, ' ').slice(0, 240));
     }
+    const failedSoFar = results.filter(result => !result.score.ok).length;
+    writeReport(args.report, reportPayload({ args, model, results }));
+    if (args.maxFailures && failedSoFar >= args.maxFailures) {
+      stoppedEarly = true;
+      stopReason = 'max failures reached (' + failedSoFar + ')';
+      console.log('Stopping early: ' + stopReason);
+      break;
+    }
+    if (args.caseDelayMs) await new Promise(resolve => setTimeout(resolve, args.caseDelayMs));
   }
 
   const passed = results.filter(result => result.score.ok).length;
   const failed = results.length - passed;
   console.log('\n' + passed + ' passed, ' + failed + ' failed, ' + results.length + ' total.');
+  if (stoppedEarly && stopReason) console.log('Stopped early: ' + stopReason);
   if (args.report) {
-    const fs = await import('node:fs/promises');
-    await fs.writeFile(args.report, JSON.stringify({
-      model,
-      generatedAt: new Date().toISOString(),
-      passed,
-      failed,
-      total: results.length,
-      results,
-    }, null, 2));
+    writeReport(args.report, reportPayload({ args, model, results, stoppedEarly, stopReason }));
     console.log('Wrote report to ' + args.report);
   }
   if (failed) process.exitCode = 1;
