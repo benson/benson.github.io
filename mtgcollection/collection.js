@@ -123,6 +123,14 @@ export function normalizeDeckList(raw) {
   return raw.map(normalizeDeckListEntry).filter(Boolean);
 }
 
+function normalizeBinderOrder(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw.map(value => {
+    if (value == null || value === '') return null;
+    return String(value);
+  });
+}
+
 // Stable identity for a decklist entry. We keep separate rows for different
 // boards (so "Sol Ring main" and "Sol Ring sideboard" are independent), but
 // the same (scryfallId, board) tuple coalesces qty.
@@ -240,6 +248,8 @@ export function makeContainer(raw, now = Date.now()) {
     out.deck.coverBackImageUrl = String(out.deck.coverBackImageUrl || '');
     out.deck.coverFinish = String(out.deck.coverFinish || '');
     out.deck.companion = String(out.deck.companion || '');
+  } else if (loc.type === 'binder') {
+    out.binderOrder = normalizeBinderOrder(raw && raw.binderOrder);
   }
   return out;
 }
@@ -249,10 +259,10 @@ export function ensureContainer(raw, now = Date.now()) {
   if (!container) return null;
   const key = containerKey(container);
   const existing = state.containers && state.containers[key];
-  if (existing) {
+    if (existing) {
     existing.type = container.type;
     existing.name = container.name;
-    if (container.type === 'deck') {
+      if (container.type === 'deck') {
       existing.deck = {
         ...defaultDeckMetadata(container.name),
         ...(existing.deck && typeof existing.deck === 'object' ? existing.deck : {}),
@@ -263,6 +273,8 @@ export function ensureContainer(raw, now = Date.now()) {
       // calls without a shareId don't clobber an active share.
       if (container.shareId && !existing.shareId) existing.shareId = container.shareId;
       if (container.shareIncludeTags) existing.shareIncludeTags = true;
+    } else if (container.type === 'binder') {
+      if (!Array.isArray(existing.binderOrder)) existing.binderOrder = normalizeBinderOrder(container.binderOrder);
     }
     if (!existing.createdAt) existing.createdAt = container.createdAt;
     if (!existing.updatedAt) existing.updatedAt = container.updatedAt;
@@ -309,6 +321,8 @@ export function normalizeContainers(rawContainers = {}) {
       c.deck.coverFinish = String(c.deck.coverFinish || '');
       c.deck.companion = String(c.deck.companion || '');
       c.deckList = normalizeDeckList(c.deckList);
+    } else if (c.type === 'binder') {
+      c.binderOrder = normalizeBinderOrder(raw.binderOrder);
     }
     out[containerKey(c)] = c;
   }
@@ -512,6 +526,8 @@ export function renameContainer(beforeRaw, afterRaw) {
       target.deckList = normalizeDeckList(existing.deckList);
       if (existing.shareId && !target.shareId) target.shareId = existing.shareId;
       if (existing.shareIncludeTags) target.shareIncludeTags = true;
+    } else if (before.type === 'binder' && after.type === 'binder') {
+      target.binderOrder = normalizeBinderOrder(existing.binderOrder);
     }
   }
   if (state.containers) delete state.containers[beforeKey];

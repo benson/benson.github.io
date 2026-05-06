@@ -132,6 +132,16 @@ test('allContainers: derives missing containers from collection locations', () =
   state.containers = {};
 });
 
+test('ensureContainer: preserves binder pocket order metadata', () => {
+  state.collection = [];
+  state.containers = {};
+  const c = ensureContainer({ type: 'binder', name: 'Trade', binderOrder: ['a', null, 'b'] }, 123);
+  assert.deepEqual(c.binderOrder, ['a', null, 'b']);
+  assert.deepEqual(state.containers['binder:trade'].binderOrder, ['a', null, 'b']);
+  state.collection = [];
+  state.containers = {};
+});
+
 test('containerStats: counts unique, total, and value for a container', () => {
   state.collection = [
     { location: 'box bulk', qty: 2, price: 1.5 },
@@ -154,6 +164,19 @@ test('renameContainer: updates registry and card locations', () => {
   assert.equal(state.containers['deck:esper'].deck.title, 'esper');
   assert.equal(state.containers['deck:esper'].deck.description, 'artifact pile');
   assert.deepEqual(state.containers['deck:esper'].deckList, [{ scryfallId: 'cmd-1', qty: 1, board: 'main', name: '', setCode: '', cn: '', imageUrl: '', backImageUrl: '', rarity: '', cmc: null, typeLine: '', colors: [], colorIdentity: [] }]);
+  state.collection = [];
+  state.containers = {};
+});
+
+test('renameContainer: preserves binder pocket order metadata', () => {
+  state.collection = [{ location: { type: 'binder', name: 'trade' }, qty: 1 }];
+  state.containers = {};
+  ensureContainer({ type: 'binder', name: 'trade', binderOrder: ['slot-a', null, 'slot-b'] }, 123);
+
+  assert.equal(renameContainer({ type: 'binder', name: 'trade' }, { type: 'binder', name: 'sale' }), true);
+
+  assert.deepEqual(Object.keys(state.containers), ['binder:sale']);
+  assert.deepEqual(state.containers['binder:sale'].binderOrder, ['slot-a', null, 'slot-b']);
   state.collection = [];
   state.containers = {};
 });

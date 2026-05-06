@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Window } from 'happy-dom';
 import { bindBinderControls } from '../binderActions.js';
+import { collectionKey } from '../collection.js';
 
 function setup() {
   const win = new Window();
@@ -13,6 +14,18 @@ function setup() {
       <button data-binder-size="bogus"></button>
     </div>
     <input type="checkbox" id="binderPriceToggle" checked>
+    <div id="binderModeControl">
+      <button data-binder-mode="view"></button>
+      <button data-binder-mode="organize"></button>
+    </div>
+    <select id="binderSortSelect">
+      <option value="binder"></option>
+      <option value="price-desc"></option>
+    </select>
+    <input id="binderSearchInput">
+    <select id="binderColorFilter"><option value=""></option><option value="g"></option></select>
+    <select id="binderTypeFilter"><option value=""></option><option value="creature"></option></select>
+    <button id="binderLensReset"></button>
     <button id="binderPrev"></button>
     <button id="binderNext"></button>
     <div id="binderPages">
@@ -31,7 +44,17 @@ function setup() {
   return {
     win,
     document: win.document,
-    stateRef: { binderPage: 1, binderSize: '4x3', binderShowPrices: true },
+    stateRef: {
+      binderPage: 1,
+      binderSize: '4x3',
+      binderShowPrices: true,
+      binderMode: 'view',
+      binderSort: 'binder',
+      binderSearch: '',
+      binderColorFilter: '',
+      binderTypeFilter: '',
+      collection: [],
+    },
   };
 }
 
@@ -87,6 +110,50 @@ test('bindBinderControls: price toggle persists and rerenders', () => {
   assert.deepEqual(calls, ['savePrices', 'applyPrices', 'render']);
 });
 
+test('bindBinderControls: mode, sort, and explore filters persist and rerender', () => {
+  const { win, document, stateRef } = setup();
+  const calls = [];
+
+  bindBinderControls({
+    documentObj: document,
+    stateRef,
+    renderImpl: () => calls.push('render'),
+    saveBinderViewPrefsImpl: () => calls.push('savePrefs'),
+    applyBinderExploreControlsImpl: () => calls.push('applyExplore'),
+  });
+
+  click(win, document.querySelector('[data-binder-mode="organize"]'));
+  assert.equal(stateRef.binderMode, 'organize');
+
+  const sort = document.getElementById('binderSortSelect');
+  sort.value = 'price-desc';
+  sort.dispatchEvent(new win.Event('change', { bubbles: true }));
+  assert.equal(stateRef.binderSort, 'price-desc');
+
+  const search = document.getElementById('binderSearchInput');
+  search.value = 'tomb';
+  search.dispatchEvent(new win.Event('input', { bubbles: true }));
+  assert.equal(stateRef.binderSearch, 'tomb');
+
+  const color = document.getElementById('binderColorFilter');
+  color.value = 'g';
+  color.dispatchEvent(new win.Event('change', { bubbles: true }));
+  assert.equal(stateRef.binderColorFilter, 'g');
+
+  click(win, document.getElementById('binderLensReset'));
+  assert.equal(stateRef.binderSort, 'binder');
+  assert.equal(stateRef.binderSearch, '');
+  assert.equal(stateRef.binderColorFilter, '');
+  assert.equal(stateRef.binderPage, 0);
+  assert.deepEqual(calls, [
+    'savePrefs', 'applyExplore', 'render',
+    'savePrefs', 'applyExplore', 'render',
+    'savePrefs', 'applyExplore', 'render',
+    'savePrefs', 'applyExplore', 'render',
+    'savePrefs', 'applyExplore', 'render',
+  ]);
+});
+
 test('bindBinderControls: binder page slots open detail and chips navigate', () => {
   const { win, document, stateRef } = setup();
   const calls = [];
@@ -137,6 +204,63 @@ test('bindBinderControls: arrow keys page only in binder shape and ignore inputs
   assert.equal(stateRef.binderPage, 1);
 
   assert.deepEqual(calls, ['render', 'render']);
+});
+
+test('bindBinderControls: organize drag/drop swaps canonical binder slots', () => {
+  const { win, document, stateRef } = setup();
+  const calls = [];
+  const alpha = {
+    name: 'Alpha',
+    scryfallId: 'a',
+    finish: 'normal',
+    condition: 'near_mint',
+    language: 'en',
+    location: { type: 'binder', name: 'trade' },
+  };
+  const beta = {
+    name: 'Beta',
+    scryfallId: 'b',
+    finish: 'normal',
+    condition: 'near_mint',
+    language: 'en',
+    location: { type: 'binder', name: 'trade' },
+  };
+  const container = {
+    type: 'binder',
+    name: 'trade',
+    binderOrder: [collectionKey(alpha), collectionKey(beta), null, null],
+  };
+  stateRef.collection = [alpha, beta];
+  stateRef.binderMode = 'organize';
+  stateRef.binderSize = '2x2';
+  document.getElementById('binderPages').innerHTML = `
+    <div class="binder-slot" data-binder-draggable="true" data-binder-slot="0"></div>
+    <div class="binder-slot" data-binder-draggable="true" data-binder-slot="1"></div>
+    <div class="binder-slot binder-slot-empty" data-binder-slot="2"></div>
+    <div class="binder-slot binder-slot-empty" data-binder-slot="3"></div>
+  `;
+
+  bindBinderControls({
+    documentObj: document,
+    stateRef,
+    getEffectiveShapeImpl: () => 'binder',
+    getActiveBinderContainerImpl: () => container,
+    saveImpl: () => calls.push('save'),
+    renderImpl: () => calls.push('render'),
+  });
+
+  const data = new Map();
+  const dataTransfer = {
+    setData: (type, value) => data.set(type, value),
+    getData: type => data.get(type) || '',
+  };
+  const first = document.querySelector('[data-binder-slot="0"]');
+  const empty = document.querySelector('[data-binder-slot="2"]');
+  first.dispatchEvent(new win.Event('dragstart', { bubbles: true, cancelable: true, dataTransfer }));
+  empty.dispatchEvent(new win.Event('drop', { bubbles: true, cancelable: true, dataTransfer }));
+
+  assert.deepEqual(container.binderOrder.slice(0, 4), [null, collectionKey(beta), collectionKey(alpha), null]);
+  assert.deepEqual(calls, ['save', 'render']);
 });
 
 test('bindBinderControls: search and filter changes reset the current page', () => {
