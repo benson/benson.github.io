@@ -24,6 +24,7 @@ const SYSTEM_PROMPT = [
 const HOSTED_PROVIDER = 'groq';
 const HOSTED_MODEL = 'openai/gpt-oss-120b';
 const CHAT_POSITION_KEY = 'mtgcollection_mcp_chat_position_v1';
+const CHAT_SIZE_KEY = 'mtgcollection_mcp_chat_size_v1';
 const CHAT_EDGE_MARGIN = 12;
 
 let root = null;
@@ -38,6 +39,7 @@ let dragHandleEl = null;
 let documentRef = null;
 let toggleButtons = [];
 let dragState = null;
+let resizeObserver = null;
 const transcript = [];
 const pendingDrafts = [];
 const pendingPreviews = [];
@@ -96,6 +98,42 @@ function writeStoredChatPosition(position) {
   } catch (e) {}
 }
 
+export function clampChatSize(size, viewport, margin = CHAT_EDGE_MARGIN) {
+  const viewportWidth = Math.max(0, Number(viewport?.width) || 0);
+  const viewportHeight = Math.max(0, Number(viewport?.height) || 0);
+  const maxWidth = Math.max(320, viewportWidth - (margin * 2));
+  const maxHeight = Math.max(320, viewportHeight - (margin * 2));
+  const minWidth = Math.min(340, maxWidth);
+  const minHeight = Math.min(320, maxHeight);
+  const rawWidth = Number(size?.width);
+  const rawHeight = Number(size?.height);
+  return {
+    width: Math.min(Math.max(Number.isFinite(rawWidth) ? rawWidth : 430, minWidth), maxWidth),
+    height: Math.min(Math.max(Number.isFinite(rawHeight) ? rawHeight : 430, minHeight), maxHeight),
+  };
+}
+
+function readStoredChatSize() {
+  try {
+    const raw = storage()?.getItem(CHAT_SIZE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!Number.isFinite(Number(parsed?.width)) || !Number.isFinite(Number(parsed?.height))) return null;
+    return { width: Number(parsed.width), height: Number(parsed.height) };
+  } catch (e) {
+    return null;
+  }
+}
+
+function writeStoredChatSize(size) {
+  try {
+    storage()?.setItem(CHAT_SIZE_KEY, JSON.stringify({
+      width: Math.round(size.width),
+      height: Math.round(size.height),
+    }));
+  } catch (e) {}
+}
+
 function chatViewport() {
   const win = documentRef?.defaultView || globalThis;
   const docEl = documentRef?.documentElement;
@@ -111,6 +149,20 @@ function chatSize() {
     width: rect?.width || root?.offsetWidth || 430,
     height: rect?.height || root?.offsetHeight || 360,
   };
+}
+
+function setChatSize(size, { persist = false } = {}) {
+  if (!root) return null;
+  const next = clampChatSize(size, chatViewport());
+  root.style.setProperty('--mcp-chat-width', Math.round(next.width) + 'px');
+  root.style.setProperty('--mcp-chat-height', Math.round(next.height) + 'px');
+  if (persist) writeStoredChatSize(next);
+  return next;
+}
+
+function applyStoredChatSize() {
+  const stored = readStoredChatSize();
+  if (stored) setChatSize(stored);
 }
 
 function currentChatPosition() {
@@ -135,6 +187,11 @@ function setChatPosition(position, { persist = false } = {}) {
 function applyStoredChatPosition() {
   const stored = readStoredChatPosition();
   if (stored) setChatPosition(stored);
+}
+
+function ensureChatPositioned() {
+  const current = currentChatPosition();
+  if (current) setChatPosition(current);
 }
 
 function clampCurrentChatPosition({ persist = false } = {}) {
@@ -189,6 +246,22 @@ function endChatDrag(event) {
   }
 }
 
+function observeChatResize() {
+  resizeObserver?.disconnect?.();
+  const ResizeObserverCtor = documentRef?.defaultView?.ResizeObserver || globalThis.ResizeObserver;
+  if (!root || typeof ResizeObserverCtor !== 'function') return;
+  resizeObserver = new ResizeObserverCtor(entries => {
+    const entry = entries?.[0];
+    const box = Array.isArray(entry?.borderBoxSize) ? entry.borderBoxSize[0] : entry?.borderBoxSize;
+    const width = box?.inlineSize || entry?.contentRect?.width || root?.getBoundingClientRect?.().width || 0;
+    const height = box?.blockSize || entry?.contentRect?.height || root?.getBoundingClientRect?.().height || 0;
+    if (!width || !height || root.getAttribute('aria-hidden') === 'true') return;
+    writeStoredChatSize(clampChatSize({ width, height }, chatViewport()));
+    clampCurrentChatPosition({ persist: true });
+  });
+  resizeObserver.observe(root);
+}
+
 function appendMessage(role, content, meta = {}) {
   transcript.push({ role, content, meta });
   renderTranscript();
@@ -199,7 +272,11 @@ function setChatOpen(open, { focus = false } = {}) {
   documentRef.body.classList.toggle('mcp-chat-open', open);
   root.setAttribute('aria-hidden', open ? 'false' : 'true');
   toggleButtons.forEach(button => button.setAttribute('aria-expanded', open ? 'true' : 'false'));
-  if (open) clampCurrentChatPosition();
+  if (open) {
+    applyStoredChatSize();
+    ensureChatPositioned();
+    clampCurrentChatPosition();
+  }
   if (open && focus) {
     globalThis.setTimeout(() => {
       inputEl?.focus();
@@ -459,6 +536,82 @@ function normalizeChatCard(raw) {
   };
 }
 
+function tsvCell(value) {
+  return String(value == null ? '' : value).replace(/\t/g, ' ').replace(/\r?\n/g, ' ').trim();
+}
+
+export function formatChatCardResultsForCopy(cards) {
+  const normalized = (Array.isArray(cards) ? cards : []).map(normalizeChatCard).filter(Boolean);
+  if (!normalized.length) return '';
+  const rows = [[
+    'name',
+    'set',
+    'collector_number',
+    'qty',
+    'location',
+    'condition',
+    'finish',
+    'language',
+    'price',
+  ]];
+  for (const card of normalized) {
+    rows.push([
+      card.name,
+      card.setCode.toUpperCase(),
+      card.cn,
+      card.qty || '',
+      card.location ? formatLocationLabel(card.location) : '',
+      conditionShortLabel(card.condition),
+      finishLabel(card.finish),
+      card.language || '',
+      card.price || '',
+    ]);
+  }
+  return rows.map(row => row.map(tsvCell).join('\t')).join('\n');
+}
+
+async function copyTextToClipboard(text) {
+  const nav = documentRef?.defaultView?.navigator || globalThis.navigator;
+  if (nav?.clipboard?.writeText) {
+    await nav.clipboard.writeText(text);
+    return true;
+  }
+  const doc = documentRef || globalThis.document;
+  if (!doc?.createElement) return false;
+  const textarea = doc.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.left = '-9999px';
+  doc.body?.appendChild(textarea);
+  textarea.select?.();
+  let copied = false;
+  try {
+    copied = !!doc.execCommand?.('copy');
+  } finally {
+    textarea.remove?.();
+  }
+  return copied;
+}
+
+async function copyChatCardResults(cards, button) {
+  const text = formatChatCardResultsForCopy(cards);
+  if (!text || !button || button.disabled) return;
+  const original = button.textContent;
+  button.disabled = true;
+  try {
+    const copied = await copyTextToClipboard(text);
+    button.textContent = copied ? 'copied' : 'copy failed';
+  } catch (e) {
+    button.textContent = 'copy failed';
+  } finally {
+    globalThis.setTimeout(() => {
+      button.disabled = false;
+      button.textContent = original;
+    }, 1200);
+  }
+}
+
 function locationFromKey(key) {
   const raw = String(key || '');
   const index = raw.indexOf(':');
@@ -592,7 +745,16 @@ function renderChatCardResults(cards) {
   section.className = 'mcp-chat-card-results';
   const head = documentRef.createElement('div');
   head.className = 'mcp-chat-card-results-head';
-  head.textContent = normalized.length === 1 ? '1 card from your collection' : normalized.length + ' cards from your collection';
+  const count = documentRef.createElement('span');
+  count.textContent = normalized.length === 1 ? '1 card from your collection' : normalized.length + ' cards from your collection';
+  const copy = documentRef.createElement('button');
+  copy.type = 'button';
+  copy.className = 'btn mcp-chat-card-results-copy';
+  copy.textContent = 'copy';
+  copy.title = 'copy results as tab-separated text';
+  copy.setAttribute('aria-label', 'copy card results');
+  copy.addEventListener('click', () => copyChatCardResults(normalized, copy));
+  head.append(count, copy);
   section.appendChild(head);
 
   const list = documentRef.createElement('div');
@@ -1129,7 +1291,11 @@ export function initMcpChat({ documentObj = document } = {}) {
   closeBtn = documentObj.getElementById('mcpChatClose');
   dragHandleEl = documentObj.getElementById('mcpChatDragHandle') || documentObj.querySelector('[data-mcp-chat-drag-handle]');
   toggleButtons = Array.from(documentObj.querySelectorAll('[data-mcp-chat-toggle]'));
+  resizeObserver?.disconnect?.();
+  resizeObserver = null;
+  applyStoredChatSize();
   applyStoredChatPosition();
+  observeChatResize();
   renderTranscript();
   renderPendingDrafts();
   renderPendingPreviews();
@@ -1142,7 +1308,10 @@ export function initMcpChat({ documentObj = document } = {}) {
   documentObj.addEventListener('pointermove', moveChatDrag);
   documentObj.addEventListener('pointerup', endChatDrag);
   documentObj.addEventListener('pointercancel', endChatDrag);
-  documentObj.defaultView?.addEventListener('resize', () => clampCurrentChatPosition({ persist: true }));
+  documentObj.defaultView?.addEventListener('resize', () => {
+    setChatSize(chatSize(), { persist: true });
+    clampCurrentChatPosition({ persist: true });
+  });
   documentObj.addEventListener('keydown', event => {
     if (event.key === 'Escape' && documentObj.body.classList.contains('mcp-chat-open')) {
       setChatOpen(false);

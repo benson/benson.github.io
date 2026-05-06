@@ -1,7 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Window } from 'happy-dom';
-import { clampChatPosition, initMcpChat, renderChatCardResultsForTest } from '../mcpChat.js';
+import {
+  clampChatPosition,
+  clampChatSize,
+  formatChatCardResultsForCopy,
+  initMcpChat,
+  renderChatCardResultsForTest,
+} from '../mcpChat.js';
 import { state } from '../state.js';
 
 function setup() {
@@ -40,6 +46,13 @@ test('clampChatPosition: keeps the floating chat inside the viewport', () => {
   assert.deepEqual(
     clampChatPosition({ left: -200, top: 900 }, { width: 1000, height: 800 }, { width: 430, height: 300 }),
     { left: 12, top: 488 }
+  );
+});
+
+test('clampChatSize: keeps resized chat dimensions usable inside the viewport', () => {
+  assert.deepEqual(
+    clampChatSize({ width: 2000, height: 120 }, { width: 1000, height: 800 }),
+    { width: 976, height: 320 }
   );
 });
 
@@ -104,10 +117,32 @@ test('renderChatCardResultsForTest: inventory cards are hoverable and movable', 
     assert.match(document.querySelector('.mcp-chat-card-meta').textContent, /binder:trade binder/);
     assert.equal(document.querySelector('[data-chat-card-action="toggleMove"]').textContent, 'move');
     assert.equal(document.querySelector('[data-chat-move-target] option[value="deck:breya"]').textContent, 'breya');
+    assert.equal(document.querySelector('.mcp-chat-card-results-copy').textContent, 'copy');
   } finally {
     state.collection = previousCollection;
     state.containers = previousContainers;
   }
+});
+
+test('formatChatCardResultsForCopy: returns spreadsheet-friendly card rows', () => {
+  const text = formatChatCardResultsForCopy([{
+    itemKey: 'card-1',
+    name: 'Breya, Etherium Shaper',
+    scryfallId: 'c16-29',
+    setCode: 'c16',
+    cn: '29',
+    finish: 'foil',
+    condition: 'near_mint',
+    language: 'en',
+    qty: 1,
+    location: { type: 'box', name: 'bulk' },
+    price: 12.5,
+  }]);
+  assert.equal(
+    text,
+    'name\tset\tcollector_number\tqty\tlocation\tcondition\tfinish\tlanguage\tprice\n'
+      + 'Breya, Etherium Shaper\tC16\t29\t1\tbox:bulk\tnm\tfoil\ten\t12.5'
+  );
 });
 
 test('initMcpChat: escape closes the floating widget', () => {

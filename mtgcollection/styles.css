@@ -4018,7 +4018,11 @@
     z-index: 75;
     display: flex;
     flex-direction: column;
-    width: min(430px, calc(100vw - 32px));
+    width: min(var(--mcp-chat-width, 430px), calc(100vw - 32px));
+    height: min(var(--mcp-chat-height, 430px), calc(100dvh - 180px));
+    min-width: min(340px, calc(100vw - 32px));
+    min-height: min(320px, calc(100dvh - 180px));
+    max-width: calc(100vw - 32px);
     max-height: min(680px, calc(100dvh - 180px));
     background: #fff;
     border: 1px solid #111;
@@ -4029,6 +4033,7 @@
     transform: translateY(8px);
     visibility: hidden;
     overflow: hidden;
+    resize: both;
     transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
   }
   .mcp-chat-widget.is-positioned {
@@ -4085,7 +4090,9 @@
     outline: none;
   }
   .mcp-chat-widget .mcp-chat {
+    flex: 1 1 auto;
     min-height: 0;
+    overflow: hidden;
     padding: 10px;
   }
   .mcp-chat textarea {
@@ -4099,8 +4106,9 @@
   }
   .mcp-chat textarea { padding: 8px; }
   .mcp-chat-log {
-    min-height: 180px;
-    max-height: min(36vh, 320px);
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
     overflow: auto;
     border: 1px solid #e2ded6;
     background: #fbfaf7;
@@ -4164,9 +4172,19 @@
     padding: 8px;
   }
   .mcp-chat-card-results-head {
+    align-items: center;
     color: #666;
+    display: flex;
     font-size: 0.72rem;
+    gap: 8px;
+    justify-content: space-between;
     text-transform: uppercase;
+  }
+  .mcp-chat-card-results-copy {
+    font-size: 0.72rem;
+    min-height: 26px;
+    padding: 4px 8px;
+    text-transform: none;
   }
   .mcp-chat-card-list {
     display: grid;
@@ -5123,8 +5141,11 @@
     }
     .mcp-chat-widget {
       bottom: calc(106px + env(safe-area-inset-bottom, 0px));
+      height: min(var(--mcp-chat-height, 430px), calc(100dvh - 132px - env(safe-area-inset-bottom, 0px)));
       max-height: calc(100dvh - 132px - env(safe-area-inset-bottom, 0px));
+      min-width: calc(100vw - 24px);
       right: 12px;
+      resize: none;
       width: calc(100vw - 24px);
     }
     .mcp-chat-widget.is-positioned {
