@@ -10,6 +10,7 @@ export const TEXT_CASE_KEY = 'mtgcollection_text_case_v1';
 export const CHROME_KEY = 'mtgcollection_chrome_v1';
 export const TEXT_SIZE_KEY = 'mtgcollection_text_size_v1';
 export const DRAWER_TAB_KEY = 'mtgcollection_drawer_tab_v1';
+export const DEFAULT_DRAWER_TAB = 'simple';
 
 export function applyTextCase(mode, bodyEl = globalThis.document?.body) {
   bodyEl?.classList.toggle('proper-case', mode === 'proper');
@@ -46,7 +47,7 @@ export function loadChromePreferences({
   applyTextCase(safeGet(storage, TEXT_CASE_KEY), documentObj?.body);
   applyChrome(safeGet(storage, CHROME_KEY), documentObj?.body);
   applyTextSize(safeGet(storage, TEXT_SIZE_KEY), documentObj?.body);
-  applyDrawerTab(safeGet(storage, DRAWER_TAB_KEY), documentObj?.body);
+  applyDrawerTab(safeGet(storage, DRAWER_TAB_KEY) || DEFAULT_DRAWER_TAB, documentObj?.body);
 }
 
 export function bindAppControls({

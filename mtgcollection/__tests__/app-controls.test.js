@@ -68,6 +68,24 @@ test('loadChromePreferences: applies stored body classes', () => {
   assert.equal(documentObj.body.classList.contains('sidebar-tab-simple'), true);
 });
 
+test('loadChromePreferences: defaults drawer tab to simple', () => {
+  const documentObj = setupDocument();
+
+  loadChromePreferences({
+    documentObj,
+    storage: createFakeStorage(),
+  });
+
+  assert.equal(documentObj.body.classList.contains('sidebar-tab-simple'), true);
+
+  loadChromePreferences({
+    documentObj,
+    storage: createFakeStorage([[DRAWER_TAB_KEY, 'flowing']]),
+  });
+
+  assert.equal(documentObj.body.classList.contains('sidebar-tab-simple'), false);
+});
+
 test('bindAppControls: format selector persists state and syncs loaded values', () => {
   const documentObj = setupDocument();
   const calls = { saves: 0, renders: 0, legality: 0 };
@@ -126,6 +144,7 @@ test('bindAppControls: reset and settings preferences stay behind one boundary',
   const storage = createFakeStorage();
   const calls = { clears: 0, modes: [], saves: 0, renders: 0, paths: [] };
   state.detailIndex = 5;
+  loadChromePreferences({ documentObj, storage });
   bindAppControls({
     documentObj,
     storage,
@@ -144,7 +163,7 @@ test('bindAppControls: reset and settings preferences stay behind one boundary',
 
   assert.equal(settingButton('text-case', 'lower').getAttribute('aria-pressed'), 'true');
   assert.equal(settingButton('chrome', 'soft').getAttribute('aria-pressed'), 'true');
-  assert.equal(settingButton('drawer-tab', 'flowing').getAttribute('aria-pressed'), 'true');
+  assert.equal(settingButton('drawer-tab', 'simple').getAttribute('aria-pressed'), 'true');
   assert.equal(settingButton('text-size', 'default').getAttribute('aria-pressed'), 'true');
 
   settingsToggle.click();

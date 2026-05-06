@@ -16,7 +16,7 @@ import {
 import { refreshSetIcons } from './setIcons.js';
 import { initChangelog } from './changelog.js';
 import { initShareViewer, initShare, schedulePushForDeck } from './share.js';
-import { bindAppControls, loadChromePreferences } from './appControls.js';
+import { bindAppControls, loadChromePreferences } from './appControls.js?drawer-default-simple-1';
 import {
   initSyncEngine,
   loadLocalSyncSnapshotIntoState,
