@@ -4,7 +4,7 @@ import { onCollectionCommit, resetCollectionCommitHooks } from './appRuntime.js'
 import { commitCollectionChange } from './commit.js';
 import { loadFromStorage, migrateSavedCollection } from './persistence.js';
 import { initSearch, applyUrlStateOnLoad } from './search.js';
-import { render, initView, navigateToLocation, openRightDrawer } from './view.js?binder-playlist-5';
+import { render, initView, navigateToLocation, openRightDrawer } from './view.js?binder-playlist-6';
 import { initBulk } from './bulk.js?bulk-location-picker-4';
 import { initAdd } from './add.js';
 import { initDetail, populateFilters } from './detail.js';

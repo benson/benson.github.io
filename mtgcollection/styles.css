@@ -2302,33 +2302,59 @@
   }
   .binder-actions {
     display: flex;
-    gap: 12px;
-    margin-bottom: 14px;
+    gap: 8px;
+    margin-bottom: 10px;
     align-items: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    justify-content: space-between;
     min-height: 18px;
+    position: relative;
+    z-index: 5;
   }
-  .binder-actions-primary,
-  .binder-explore-controls {
+  .binder-actions-primary {
     align-items: center;
     display: inline-flex;
     flex-wrap: wrap;
     gap: 8px;
+    min-width: 0;
   }
   .binder-explore-controls {
+    align-items: stretch;
     color: #555;
+    display: flex;
+    flex-direction: column;
     font-size: 0.75rem;
+    gap: 8px;
+    min-width: 185px;
   }
   .binder-actions .segmented {
     display: inline-flex;
   }
   .binder-mode-control {
-    margin-right: 2px;
+    margin-left: 2px;
+  }
+  .binder-mode-control.hidden {
+    display: none;
+  }
+  .container-identity-strip .binder-mode-control {
+    margin-left: 4px;
+  }
+  .container-identity-strip .binder-mode-control .segment-btn {
+    font-size: 0.68rem;
+    min-height: 24px;
+    padding: 3px 7px;
+  }
+  .binder-mode-control .segment-btn {
+    padding-left: 8px;
+    padding-right: 8px;
   }
   .binder-control-field {
     align-items: center;
     display: inline-flex;
     gap: 5px;
+  }
+  .binder-control-label {
+    color: #666;
   }
   .binder-control-field select,
   .binder-search-input {
@@ -2350,6 +2376,62 @@
     width: 16vw;
     max-width: 190px;
   }
+  .binder-filter-menu {
+    position: relative;
+  }
+  .binder-filter-menu > summary {
+    list-style: none;
+  }
+  .binder-filter-menu > summary::-webkit-details-marker {
+    display: none;
+  }
+  .binder-filter-trigger {
+    align-items: center;
+    background: #fff;
+    border: 1px solid #d4d0c8;
+    color: #333;
+    cursor: pointer;
+    display: inline-flex;
+    font-size: 0.75rem;
+    height: 28px;
+    padding: 4px 9px;
+    text-transform: lowercase;
+  }
+  .binder-filter-trigger:hover,
+  .binder-filter-trigger:focus-visible,
+  .binder-filter-menu[open] .binder-filter-trigger {
+    border-color: #000;
+    color: #000;
+    outline: none;
+  }
+  .binder-filter-menu.has-active-filters .binder-filter-trigger::after {
+    background: #000;
+    border-radius: 999px;
+    content: "";
+    height: 5px;
+    margin-left: 6px;
+    width: 5px;
+  }
+  .binder-filter-menu[open] .binder-explore-controls {
+    background: #fff;
+    border: 1px solid #cfc8ba;
+    box-shadow: 0 8px 18px rgba(0,0,0,0.12);
+    padding: 10px;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+  }
+  .binder-filter-menu:not([open]) .binder-explore-controls {
+    display: none;
+  }
+  .binder-filter-menu .binder-control-field {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .binder-filter-menu .binder-control-field select {
+    min-width: 160px;
+  }
   .binder-lens-reset {
     height: 28px;
     padding-bottom: 3px;
@@ -2363,7 +2445,13 @@
     gap: 5px;
     text-transform: lowercase;
   }
-  .binder-summary { font-size: 0.75rem; color: #666; margin-left: auto; }
+  .binder-summary {
+    color: #666;
+    font-size: 0.75rem;
+    margin-left: auto;
+    text-align: right;
+    white-space: nowrap;
+  }
   .binder-pages {
     display: flex;
     justify-content: center;
@@ -2376,7 +2464,7 @@
     justify-content: center;
     min-height: 0;
     overflow: visible;
-    padding-top: 14px;
+    padding-top: 8px;
   }
   .binder-pages-list {
     background: transparent;
@@ -2568,25 +2656,34 @@
     margin: 0 0 14px;
     padding: 0 0 10px;
   }
+  body.view-binder .container-identity-strip {
+    gap: 7px;
+    margin-bottom: 8px;
+  }
   .container-identity-strip.hidden {
     display: none;
   }
-  .container-identity-name {
+  .container-identity-name,
+  .container-identity-name-static {
     appearance: none;
     background: transparent;
     border: 0;
-    border-bottom: 1px dotted #aaa;
     color: #000;
-    cursor: text;
     font: inherit;
     font-size: 1.02rem;
     padding: 0 0 1px;
     text-align: left;
     text-transform: lowercase;
   }
-  .container-identity-name::after {
+  .container-identity-name {
+    border-bottom: 1px dotted #aaa;
+    cursor: text;
+  }
+  .container-identity-name-static {
+    border-bottom: 1px solid transparent;
+  }
+  .container-identity-edit-cue {
     color: #999;
-    content: "edit";
     font-size: 0.62rem;
     margin-left: 7px;
     opacity: 0.7;
@@ -2597,10 +2694,14 @@
     outline: none;
     text-decoration: none;
   }
-  .container-identity-name:hover::after,
-  .container-identity-name:focus-visible::after {
+  .container-identity-name:hover .container-identity-edit-cue,
+  .container-identity-name:focus-visible .container-identity-edit-cue {
     color: #000;
     opacity: 1;
+  }
+  .container-identity-spacer {
+    flex: 1 1 auto;
+    min-width: 16px;
   }
   .container-identity-edit {
     align-items: center;
@@ -5555,14 +5656,24 @@
     }
     .binder-actions {
       align-items: stretch;
+      flex-direction: column;
       gap: 8px;
     }
-    .binder-actions .segmented {
+    .binder-actions-primary {
+      width: 100%;
+    }
+    .binder-actions #binderSizeControl {
       flex: 1 1 220px;
+    }
+    .binder-actions .binder-mode-control {
+      flex: 0 0 auto;
     }
     .binder-actions .segment-btn {
       flex: 1 1 0;
       min-height: 38px;
+    }
+    .binder-mode-control .segment-btn {
+      min-height: 32px;
     }
     .binder-price-toggle {
       min-height: 38px;
@@ -5571,6 +5682,11 @@
       flex: 1 1 100%;
       margin-left: 0;
       text-align: right;
+    }
+    .binder-filter-menu[open] .binder-explore-controls {
+      left: 0;
+      right: auto;
+      width: min(220px, calc(100vw - 44px));
     }
     .binder-surface {
       padding: 12px;
@@ -5803,6 +5919,16 @@
     }
     .binder-surface {
       padding: 10px;
+    }
+    .container-identity-strip {
+      flex-wrap: wrap;
+    }
+    .container-identity-spacer {
+      display: none;
+    }
+    .container-identity-strip .binder-summary {
+      flex: 1 1 100%;
+      text-align: left;
     }
     .binder-page {
       gap: 8px;

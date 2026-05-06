@@ -64,6 +64,9 @@ export function binderLensActive(stateRef = state) {
 }
 
 export function applyBinderExploreControls(doc = document) {
+  const owner = !state.shareSnapshot;
+  const modeControl = doc.getElementById('binderModeControl');
+  if (modeControl) modeControl.classList.toggle('hidden', !owner);
   doc.querySelectorAll('[data-binder-mode]').forEach(btn => {
     const active = btn.dataset.binderMode === state.binderMode;
     btn.classList.toggle('active', active);
@@ -82,6 +85,8 @@ export function applyBinderExploreControls(doc = document) {
   if (type) type.value = cleanBinderType(state.binderTypeFilter);
   const reset = doc.getElementById('binderLensReset');
   if (reset) reset.classList.toggle('hidden', !binderLensActive());
+  const filterMenu = doc.getElementById('binderFilterMenu');
+  if (filterMenu) filterMenu.classList.toggle('has-active-filters', binderLensActive());
 }
 
 export function renderBinderSlot(c, collection = state.collection, {
@@ -127,6 +132,7 @@ export function renderBinderView(list, {
   }
 
   const slotsPerPage = binderSlotCount(state.binderSize);
+  if (state.shareSnapshot && state.binderMode === 'organize') state.binderMode = 'view';
   const organize = state.binderMode === 'organize';
   const lensActive = binderLensActive();
   const scoped = organize ? list : filterForBinderLens(list, state);

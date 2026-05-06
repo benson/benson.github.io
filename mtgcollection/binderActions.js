@@ -12,7 +12,7 @@ import {
   VALID_BINDER_MODES,
   VALID_BINDER_SORTS,
   VALID_BINDER_SIZES,
-} from './views/binderView.js?binder-playlist-4';
+} from './views/binderView.js?binder-playlist-5';
 
 function isEditableTarget(target) {
   return !!target && (
@@ -31,7 +31,6 @@ export function bindBinderControls({
   binderNextEl = documentObj?.getElementById('binderNext'),
   binderPagesEl = documentObj?.getElementById('binderPages'),
   binderPriceToggleEl = documentObj?.getElementById('binderPriceToggle'),
-  binderModeControlEl = documentObj?.getElementById('binderModeControl'),
   binderSortSelectEl = documentObj?.getElementById('binderSortSelect'),
   binderSearchInputEl = documentObj?.getElementById('binderSearchInput'),
   binderColorFilterEl = documentObj?.getElementById('binderColorFilter'),
@@ -92,18 +91,16 @@ export function bindBinderControls({
     cleanups.push(() => binderPriceToggleEl.removeEventListener('change', onPriceToggle));
   }
 
-  if (binderModeControlEl) {
-    const onModeClick = event => {
-      const button = event.target.closest('[data-binder-mode]');
-      if (!button) return;
-      if (!VALID_BINDER_MODES.includes(button.dataset.binderMode)) return;
-      updateBinderLens(() => {
-        stateRef.binderMode = button.dataset.binderMode;
-      });
-    };
-    binderModeControlEl.addEventListener('click', onModeClick);
-    cleanups.push(() => binderModeControlEl.removeEventListener('click', onModeClick));
-  }
+  const onModeClick = event => {
+    const button = event.target.closest('[data-binder-mode]');
+    if (!button || !button.closest('#binderModeControl')) return;
+    if (!VALID_BINDER_MODES.includes(button.dataset.binderMode)) return;
+    updateBinderLens(() => {
+      stateRef.binderMode = button.dataset.binderMode;
+    });
+  };
+  documentObj?.addEventListener('click', onModeClick);
+  cleanups.push(() => documentObj?.removeEventListener('click', onModeClick));
 
   if (binderSortSelectEl) {
     const onSortChange = () => {
