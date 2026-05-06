@@ -37,6 +37,23 @@ test('buildAddPreviewCardModel: supports double-faced card images', () => {
   assert.equal(model.backUrl, 'back.jpg');
 });
 
+test('buildAddPreviewCardModel: accepts resolved candidate image fields', () => {
+  const model = buildAddPreviewCardModel({
+    name: 'Nissa, Worldwaker',
+    setName: 'San Diego Comic-Con 2014',
+    typeLine: 'Legendary Planeswalker - Nissa',
+    rarity: 'mythic',
+    imageUrl: 'candidate-front.jpg',
+  });
+
+  assert.deepEqual(model, {
+    name: 'Nissa, Worldwaker',
+    imageUrl: 'candidate-front.jpg',
+    backUrl: null,
+    meta: 'San Diego Comic-Con 2014 \u2014 Legendary Planeswalker - Nissa \u2014 mythic',
+  });
+});
+
 test('findExistingPreviewEntries: matches exact Scryfall id before falling back to name', () => {
   const matches = findExistingPreviewEntries([
     { scryfallId: 'abc', qty: 1, name: 'Different' },

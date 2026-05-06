@@ -30,6 +30,7 @@ import {
 } from './addVoice.js';
 import { buildDeckOwnershipReadout } from './addDeckOwnership.js';
 import { buildAddPreviewCardModel, buildExistingPreviewText } from './addPreviewModel.js';
+import { writeAddPreviewElements } from './addPreviewView.js';
 import { createAddSpeechRecognition } from './addSpeechRecognition.js';
 import { isBrowserOffline, scryfallNetworkMessage } from './networkStatus.js';
 import {
@@ -199,26 +200,16 @@ function showAddPreview(card, opts) {
   addPreviewEl.classList.add('active');
   addEditorEl?.classList.add('active');
   const preview = buildAddPreviewCardModel(card);
-  addPreviewImg.src = preview.imageUrl || '';
-  addPreviewImg.alt = preview.name;
-  addPreviewImg.style.cursor = preview.imageUrl ? 'zoom-in' : '';
-  addPreviewImg.dataset.front = preview.imageUrl || '';
-  addPreviewImg.dataset.back = preview.backUrl || '';
-  addPreviewImg.dataset.current = 'front';
-  addPreviewName.textContent = preview.name;
-  addPreviewMeta.textContent = preview.meta;
-
-  const flipBtn = document.getElementById('addFlipBtn');
-  flipBtn.classList.toggle('hidden', !preview.backUrl);
-
-  const existingEl = document.getElementById('addPreviewExisting');
   const existingText = buildExistingPreviewText(state.collection, card);
-  if (existingText) {
-    existingEl.textContent = existingText;
-    existingEl.classList.remove('hidden');
-  } else {
-    existingEl.classList.add('hidden');
-  }
+  writeAddPreviewElements({
+    model: preview,
+    imgEl: addPreviewImg,
+    nameEl: addPreviewName,
+    metaEl: addPreviewMeta,
+    existingEl: document.getElementById('addPreviewExisting'),
+    flipBtn: document.getElementById('addFlipBtn'),
+    existingText,
+  });
 
   addOptionControls.renderFinishRadios(card, prevFinish || '');
   addOptionControls.renderLanguageRadios('en');

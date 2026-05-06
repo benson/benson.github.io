@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Window } from 'happy-dom';
 import {
+  addPendingDraftsForTest,
   addPendingPreviewsForTest,
   appendMcpChatMessageForTest,
   calculateChatResize,
@@ -160,6 +161,55 @@ test('initMcpChat: new chat clears transcript prompt and pending previews', () =
   assert.equal(document.querySelectorAll('.mcp-chat-message').length, 0);
   assert.ok(document.querySelector('.mcp-chat-empty'));
   assert.equal(document.getElementById('mcpChatPreviewPanel').hidden, true);
+});
+
+test('initMcpChat: add drafts use the shared add preview and printing rows', () => {
+  const { win, document } = setup();
+  initMcpChat({ documentObj: document });
+
+  addPendingDraftsForTest([{
+    status: 'needs_selection',
+    resolvedName: 'nissa, worldwaker',
+    totalCount: 2,
+    candidates: [
+      {
+        name: 'Nissa, Worldwaker',
+        scryfallId: 'nissa-ps14-187',
+        setCode: 'ps14',
+        setName: 'San Diego Comic-Con 2014',
+        collectorNumber: '187',
+        rarity: 'mythic',
+        typeLine: 'Legendary Planeswalker - Nissa',
+        releasedAt: '2014-07-24',
+        imageUrl: 'https://img.test/nissa.jpg',
+        finishes: ['foil'],
+        previewAddArgs: { scryfallId: 'nissa-ps14-187', name: 'Nissa, Worldwaker', setCode: 'ps14', cn: '187', finish: 'foil' },
+      },
+      {
+        name: 'Nissa, Who Shakes the World',
+        scryfallId: 'nissa-war-169',
+        setCode: 'war',
+        setName: 'War of the Spark',
+        collectorNumber: '169',
+        rarity: 'rare',
+        typeLine: 'Legendary Planeswalker - Nissa',
+        releasedAt: '2019-05-03',
+        imageUrl: 'https://img.test/nissa-war.jpg',
+        finishes: ['normal', 'foil'],
+        previewAddArgs: { scryfallId: 'nissa-war-169', name: 'Nissa, Who Shakes the World', setCode: 'war', cn: '169', finish: 'foil' },
+      },
+    ],
+  }]);
+
+  assert.equal(document.querySelector('.mcp-chat-draft-add-preview.add-preview.active .add-preview-name').textContent, 'Nissa, Worldwaker');
+  assert.match(document.querySelector('.mcp-chat-draft-add-preview .add-preview-meta').textContent, /San Diego Comic-Con 2014/);
+  assert.equal(document.querySelectorAll('.mcp-chat-draft-printing-picker .printing-row').length, 2);
+  assert.equal(document.querySelector('.mcp-chat-draft-printing-picker .printing-row.selected .printing-set-code').textContent, 'PS14');
+
+  click(win, document.querySelectorAll('.mcp-chat-draft-printing-picker .printing-row')[1]);
+
+  assert.equal(document.querySelector('.mcp-chat-draft-add-preview .add-preview-name').textContent, 'Nissa, Who Shakes the World');
+  assert.equal(document.querySelector('.mcp-chat-draft-printing-picker .printing-row.selected .printing-set-code').textContent, 'WAR');
 });
 
 test('renderChatCardResultsForTest: inventory cards are hoverable and movable', () => {

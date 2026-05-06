@@ -4577,6 +4577,9 @@
   .mcp-chat-draft-panel[hidden] {
     display: none;
   }
+  .mcp-chat-draft-panel {
+    max-height: min(46vh, 420px);
+  }
   .mcp-chat-preview-head,
   .mcp-chat-preview-row {
     display: grid;
@@ -4613,6 +4616,26 @@
     display: grid;
     gap: 7px;
     grid-template-columns: 64px minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .mcp-chat-draft-add-preview,
+  .mcp-chat-draft-printing-picker {
+    grid-column: 1 / -1;
+  }
+  .mcp-chat-draft-add-preview {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+  }
+  .mcp-chat-draft-add-preview .add-preview-img {
+    width: min(160px, 42vw);
+  }
+  .mcp-chat-draft-printing-picker {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+  }
+  .mcp-chat-draft-printing-picker .printing-list {
+    max-height: 170px;
   }
   .mcp-chat-draft-field {
     display: grid;

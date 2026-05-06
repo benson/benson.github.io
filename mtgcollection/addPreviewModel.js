@@ -39,13 +39,17 @@ export function isSamePreviewPrinting(entry, card) {
 }
 
 export function buildAddPreviewCardModel(card) {
-  const imageUrl = getCardImageUrl(card);
-  const backUrl = getCardBackImageUrl(card);
+  const imageUrl = getCardImageUrl(card) || card?.imageUrl || null;
+  const backUrl = getCardBackImageUrl(card) || card?.backImageUrl || null;
   return {
     name: card.name,
     imageUrl,
     backUrl,
-    meta: [card.set_name, card.type_line, card.rarity].filter(Boolean).join(' \u2014 '),
+    meta: [
+      card.set_name || card.setName,
+      card.type_line || card.typeLine,
+      card.rarity,
+    ].filter(Boolean).join(' \u2014 '),
   };
 }
 

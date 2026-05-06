@@ -1,6 +1,9 @@
 import { showFeedback } from './feedback.js';
 import { SYNC_API_URL } from './syncClient.js';
 import { getSyncAuthToken, getSyncUser, syncNow } from './syncEngine.js';
+import { buildAddPreviewCardModel } from './addPreviewModel.js';
+import { createAddPreviewElement } from './addPreviewView.js';
+import { renderPrintingRows } from './addPrintingView.js';
 import {
   allCollectionLocations,
   allContainers,
@@ -556,6 +559,8 @@ function normalizePendingDraft(raw) {
     missingFields: Array.isArray(raw.missingFields) ? raw.missingFields.map(String) : [],
     query: String(raw.query || ''),
     resolvedName: String(raw.resolvedName || candidates[0].name || ''),
+    totalCount: Math.max(candidates.length, parseInt(raw.totalCount, 10) || 0),
+    truncated: Boolean(raw.truncated),
     candidates,
     selectedIndex: 0,
     qty: Math.max(1, parseInt(firstArgs.qty, 10) || 1),
@@ -580,6 +585,56 @@ function addPendingDrafts(drafts) {
 
 function selectedDraftCandidate(draft) {
   return draft.candidates[Math.max(0, Math.min(draft.selectedIndex, draft.candidates.length - 1))] || draft.candidates[0];
+}
+
+function candidatePreviewCard(candidate = {}) {
+  return {
+    id: candidate.scryfallId || candidate.previewAddArgs?.scryfallId || '',
+    name: candidate.name || candidate.previewAddArgs?.name || 'card',
+    set: candidate.setCode || candidate.previewAddArgs?.setCode || '',
+    collector_number: candidate.collectorNumber || candidate.previewAddArgs?.cn || '',
+    setName: candidate.setName || '',
+    typeLine: candidate.typeLine || '',
+    rarity: candidate.rarity || '',
+    imageUrl: candidate.imageUrl || '',
+    backImageUrl: candidate.backImageUrl || '',
+  };
+}
+
+function candidatePrintingCard(candidate = {}) {
+  return {
+    set: candidate.setCode || candidate.previewAddArgs?.setCode || '',
+    set_name: candidate.setName || '',
+    collector_number: candidate.collectorNumber || candidate.previewAddArgs?.cn || '',
+    released_at: candidate.releasedAt || '',
+  };
+}
+
+function renderDraftPrintingPicker(draft) {
+  if (!draft?.candidates?.length) return null;
+  const picker = documentRef.createElement('div');
+  picker.className = 'printing-picker active mcp-chat-draft-printing-picker';
+
+  const caption = documentRef.createElement('div');
+  caption.className = 'printing-list-caption';
+  const shown = draft.candidates.length;
+  const total = Math.max(shown, parseInt(draft.totalCount, 10) || shown);
+  caption.textContent = shown === total
+    ? 'showing ' + shown + ' printing' + (shown === 1 ? '' : 's')
+    : 'showing ' + shown + ' of ' + total;
+  if (draft.truncated) caption.textContent += ' - narrow in the main add flow for more printings';
+
+  const list = documentRef.createElement('ul');
+  list.className = 'printing-list';
+  list.setAttribute('role', 'listbox');
+  list.innerHTML = renderPrintingRows(draft.candidates.map(candidatePrintingCard));
+  Array.from(list.querySelectorAll('.printing-row')).forEach((row, index) => {
+    row.classList.toggle('selected', index === draft.selectedIndex);
+    row.setAttribute('aria-selected', index === draft.selectedIndex ? 'true' : 'false');
+  });
+
+  picker.append(caption, list);
+  return picker;
 }
 
 function draftPreviewArgs(draft) {
@@ -1006,27 +1061,15 @@ function renderPendingDrafts() {
     const controls = documentRef.createElement('div');
     controls.className = 'mcp-chat-draft-controls';
 
-    if (draft.candidates.length > 1) {
-      const label = documentRef.createElement('label');
-      label.className = 'mcp-chat-draft-field mcp-chat-draft-field-wide';
-      const span = documentRef.createElement('span');
-      span.textContent = 'printing';
-      const select = documentRef.createElement('select');
-      select.dataset.draftField = 'selectedIndex';
-      draft.candidates.forEach((candidate, index) => {
-        select.appendChild(makeOption(index, candidateLabel(candidate), String(draft.selectedIndex)));
-      });
-      label.append(span, select);
-      controls.appendChild(label);
-    } else {
-      const candidate = selectedDraftCandidate(draft);
-      const printing = documentRef.createElement('div');
-      printing.className = 'mcp-chat-draft-printing';
-      printing.textContent = candidateLabel(candidate);
-      controls.appendChild(printing);
-    }
-
     const candidate = selectedDraftCandidate(draft);
+    controls.appendChild(createAddPreviewElement({
+      documentObj: documentRef,
+      model: buildAddPreviewCardModel(candidatePreviewCard(candidate)),
+      extraClass: 'mcp-chat-draft-add-preview',
+    }));
+    const printingPicker = draft.candidates.length > 1 ? renderDraftPrintingPicker(draft) : null;
+    if (printingPicker) controls.appendChild(printingPicker);
+
     const qtyLabel = documentRef.createElement('label');
     qtyLabel.className = 'mcp-chat-draft-field';
     const qtyText = documentRef.createElement('span');
@@ -1566,6 +1609,19 @@ export function initMcpChat({ documentObj = document } = {}) {
     renderPendingDrafts();
   });
   draftPanelEl?.addEventListener('click', event => {
+    const printingRow = event.target.closest('.printing-row[data-index]');
+    if (printingRow) {
+      const row = printingRow.closest('[data-draft-id]');
+      const draft = pendingDrafts.find(item => item.id === row?.dataset?.draftId);
+      if (draft) {
+        draft.selectedIndex = Math.max(0, parseInt(printingRow.dataset.index, 10) || 0);
+        const candidate = selectedDraftCandidate(draft);
+        draft.finish = normalizeFinish(candidate?.previewAddArgs?.finish || candidate?.requestedFinish || draft.finish);
+        draft.error = '';
+        renderPendingDrafts();
+      }
+      return;
+    }
     const button = event.target.closest('[data-preview-action]');
     if (!button) return;
     const action = button.dataset.previewAction;
@@ -1596,4 +1652,8 @@ export function appendMcpChatMessageForTest(role, content, meta = {}) {
 
 export function addPendingPreviewsForTest(previews) {
   return addPendingPreviews(previews);
+}
+
+export function addPendingDraftsForTest(drafts) {
+  return addPendingDrafts(drafts);
 }
