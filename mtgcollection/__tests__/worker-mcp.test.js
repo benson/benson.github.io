@@ -245,6 +245,35 @@ test('mcp: ambiguous inventory move returns candidates instead of a change token
   assert.equal(preview.result.structuredContent.candidates.length, 2);
 });
 
+test('mcp: move preview without a destination returns the matched card', async () => {
+  const entry = card({
+    name: 'Force of Will',
+    resolvedName: 'Force of Will',
+    scryfallId: 'force-1',
+    setCode: '2xm',
+    cn: '51',
+    location: { type: 'binder', name: 'trade binder' },
+    price: 75.04,
+  });
+  const snapshot = emptySnapshot({
+    collection: [entry],
+    containers: { 'binder:trade binder': { type: 'binder', name: 'trade binder' } },
+  });
+  const { env } = fakeSyncEnv(snapshot);
+  const token = await issueMcpToken(env);
+  const preview = await callTool(env, token.access_token, 'preview_move_inventory_item', {
+    query: 'force of will',
+    location: 'trade binder',
+  });
+  const data = preview.result.structuredContent;
+  assert.equal(data.status, 'invalid');
+  assert.match(data.error, /toLocation/);
+  assert.equal(data.card.itemKey, collectionKey(entry));
+  assert.equal(data.card.name, 'Force of Will');
+  assert.deepEqual(data.card.location, { type: 'binder', name: 'trade binder' });
+  assert.equal(data.candidates[0].itemKey, collectionKey(entry));
+});
+
 test('mcp: search_inventory filters finish requests', async () => {
   const snapshot = emptySnapshot({
     collection: [
@@ -1663,6 +1692,57 @@ test('mcp chat: inventory card results replace provider prose with a short summa
     const data = await res.json();
     assert.equal(data.text, 'I found 2 foil cards from your collection. They are shown below.');
     assert.equal(data.cards.length, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp chat: move follow-ups keep the question while returning referenced cards', async () => {
+  const { env } = fakeSyncEnv();
+  env.MTGCOLLECTION_CHAT_GROQ_API_KEY = 'gsk-hosted-secret';
+  const originalFetch = globalThis.fetch;
+  const moveNeedsDestination = {
+    status: 'invalid',
+    error: 'toLocation is required',
+    card: {
+      itemKey: 'force-key',
+      name: 'Force of Will',
+      scryfallId: 'force-1',
+      setCode: '2xm',
+      cn: '51',
+      finish: 'normal',
+      condition: 'near_mint',
+      language: 'en',
+      qty: 1,
+      location: { type: 'binder', name: 'trade binder' },
+      price: 75.04,
+    },
+  };
+  globalThis.fetch = async () => Response.json({
+    output_text: 'I can help move **Force of Will** out of your trade binder. Where should it go?',
+    output: [{
+      type: 'mcp_call',
+      name: 'preview_move_inventory_item',
+      result: { structuredContent: moveNeedsDestination },
+    }],
+  });
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'take my force of will out of my trade binder' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.text, 'I can help move **Force of Will** out of your trade binder. Where should it go?');
+    assert.equal(data.cards.length, 1);
+    assert.equal(data.cards[0].name, 'Force of Will');
+    assert.deepEqual(data.cards[0].location, { type: 'binder', name: 'trade binder' });
   } finally {
     globalThis.fetch = originalFetch;
   }

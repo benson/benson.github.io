@@ -34,6 +34,7 @@ export const SYSTEM_PROMPT = [
   'For cheapest or most expensive card questions inside a binder, box, or deck, call search_inventory with the matching location plus sortBy=price and sortDirection=asc or desc; use list_containers only for container counts or metadata.',
   'Treat "bulk" as the box named "bulk" when it appears as a location. Treat "card stack" or "stack value" as one inventory row sorted by totalValue, not as a container total.',
   'If a phrase could be a container name, such as "breya artifacts" or "trade binder", do not split it into a card-name query; pass it as location.',
+  'For move or remove requests that identify the card/source but omit the destination, still call preview_move_inventory_item with the known card/source so the app can render the referenced card, then ask where it should go.',
   'When showing inventory cards from search_inventory, get_container, or get_deck, keep the prose short and do not write markdown tables; the app renders the card results separately.',
 ].join(' ');
 const HOSTED_PROVIDER = 'cloudflare';
@@ -714,25 +715,91 @@ function previewMetaText(preview) {
   return preview.error || '';
 }
 
+function escapeRegExp(value) {
+  return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function referenceWords(value) {
+  return String(value || '')
+    .toLowerCase()
+    .match(/[a-z0-9]+/g) || [];
+}
+
+function locationMentionPattern(label) {
+  const words = referenceWords(label);
+  if (!words.length) return null;
+  const text = words.join(' ');
+  if (['binder', 'box', 'deck', 'container', 'collection'].includes(text)) return null;
+  return words.map(escapeRegExp).join('[\\s:_-]+');
+}
+
+function knownChatLocations() {
+  const byKey = new Map();
+  for (const loc of [
+    ...allContainers().map(container => ({ type: container.type, name: container.name })),
+    ...allCollectionLocations(),
+  ]) {
+    const normalized = normalizeLocation(loc);
+    const key = locationKey(normalized);
+    if (key && !byKey.has(key)) byKey.set(key, normalized);
+  }
+  return Array.from(byKey.values()).sort((a, b) => {
+    const labelDelta = b.name.length - a.name.length;
+    return labelDelta || a.type.localeCompare(b.type) || a.name.localeCompare(b.name);
+  });
+}
+
+function collectLocationTextRanges(raw) {
+  const ranges = [];
+  const taken = [];
+  const addRange = (start, end, loc, priority = 0) => {
+    if (!loc || start < 0 || end <= start) return;
+    if (taken.some(range => start < range.end && end > range.start)) return;
+    taken.push({ start, end });
+    ranges.push({ start, end, loc, priority });
+  };
+
+  const tokenPattern = /\{loc:([^}]+)\}/g;
+  let match = null;
+  while ((match = tokenPattern.exec(raw))) {
+    addRange(match.index, tokenPattern.lastIndex, normalizeLocation(match[1]), 100);
+  }
+
+  for (const loc of knownChatLocations()) {
+    const labels = [loc.name, formatLocationLabel(loc)];
+    for (const label of labels) {
+      const pattern = locationMentionPattern(label);
+      if (!pattern) continue;
+      const re = new RegExp('(^|[^A-Za-z0-9])(' + pattern + ')(?=$|[^A-Za-z0-9])', 'gi');
+      while ((match = re.exec(raw))) {
+        const start = match.index + match[1].length;
+        const end = start + match[2].length;
+        addRange(start, end, loc, pattern.length);
+      }
+    }
+  }
+
+  return ranges.sort((a, b) => a.start - b.start || b.priority - a.priority);
+}
+
 function appendTextWithLocationTokens(parent, text) {
   const raw = String(text || '');
-  const pattern = /\{loc:([^}]+)\}/g;
   let lastIndex = 0;
-  let match = null;
-  while ((match = pattern.exec(raw))) {
-    if (match.index > lastIndex) {
-      parent.appendChild(documentRef.createTextNode(raw.slice(lastIndex, match.index)));
+  for (const range of collectLocationTextRanges(raw)) {
+    if (range.start < lastIndex) continue;
+    if (range.start > lastIndex) {
+      parent.appendChild(documentRef.createTextNode(raw.slice(lastIndex, range.start)));
     }
-    const loc = normalizeLocation(match[1]);
+    const loc = normalizeLocation(range.loc);
     if (loc) {
       const wrap = documentRef.createElement('span');
       wrap.className = 'mcp-chat-inline-location';
       wrap.innerHTML = locationPillHtml(loc, { withRemove: false });
       parent.appendChild(wrap);
     } else {
-      parent.appendChild(documentRef.createTextNode(match[0]));
+      parent.appendChild(documentRef.createTextNode(raw.slice(range.start, range.end)));
     }
-    lastIndex = pattern.lastIndex;
+    lastIndex = range.end;
   }
   if (lastIndex < raw.length) {
     parent.appendChild(documentRef.createTextNode(raw.slice(lastIndex)));
@@ -798,6 +865,42 @@ function normalizeChatCard(raw) {
     backImageUrl: String(raw.backImageUrl || '').trim(),
     scryfallUri: String(raw.scryfallUri || '').trim(),
   };
+}
+
+function normalizedReferenceText(value) {
+  return referenceWords(value).join(' ');
+}
+
+function textMentionsCardName(text, name) {
+  const normalizedText = ' ' + normalizedReferenceText(text) + ' ';
+  const words = referenceWords(name);
+  if (!words.length) return false;
+  const phrase = words.join(' ');
+  if (normalizedText.includes(' ' + phrase + ' ')) return true;
+  const pluralizedLast = words.length ? [...words.slice(0, -1), words[words.length - 1] + 's'].join(' ') : '';
+  return !!pluralizedLast && normalizedText.includes(' ' + pluralizedLast + ' ');
+}
+
+function referencedChatCardsFromText(text, limit = 5) {
+  const seen = new Set();
+  const matches = [];
+  for (const entry of state.collection || []) {
+    const itemKey = collectionKey(entry);
+    if (!itemKey || seen.has(itemKey)) continue;
+    const name = String(entry.resolvedName || entry.name || '').trim();
+    if (!name || !textMentionsCardName(text, name)) continue;
+    const card = normalizeChatCard({ ...entry, itemKey, name });
+    if (!card) continue;
+    seen.add(itemKey);
+    matches.push({
+      card,
+      score: referenceWords(name).length * 100 + name.length,
+    });
+  }
+  return matches
+    .sort((a, b) => b.score - a.score || a.card.name.localeCompare(b.card.name))
+    .slice(0, limit)
+    .map(match => match.card);
 }
 
 function tsvCell(value) {
@@ -1333,6 +1436,7 @@ function renderTranscript() {
     return;
   }
 
+  let previousUserText = '';
   for (const message of transcript) {
     const row = documentRef.createElement('article');
     row.className = 'mcp-chat-message mcp-chat-' + message.role;
@@ -1345,7 +1449,11 @@ function renderTranscript() {
     row.append(label, body);
 
     if (message.role === 'assistant') {
-      const cards = renderChatCardResults(message.meta?.cards);
+      const explicitCards = Array.isArray(message.meta?.cards) ? message.meta.cards : [];
+      const referencedCards = explicitCards.length
+        ? explicitCards
+        : referencedChatCardsFromText([previousUserText, message.content].filter(Boolean).join('\n'));
+      const cards = renderChatCardResults(referencedCards);
       if (cards) row.appendChild(cards);
       const tokens = changeTokensFromText(message.content);
       for (const token of tokens) {
@@ -1357,6 +1465,7 @@ function renderTranscript() {
         row.appendChild(apply);
       }
     }
+    if (message.role === 'user') previousUserText = message.content;
     logEl.appendChild(row);
   }
   logEl.scrollTop = logEl.scrollHeight;
