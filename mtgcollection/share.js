@@ -27,11 +27,11 @@ function defaultShareApiUrl() {
     const params = new URLSearchParams(window.location?.search || '');
     const remoteSync = params.get('sync') === 'remote'
       || window.localStorage?.getItem('MTGCOLLECTION_LOCAL_SYNC') === 'remote';
-    if (remoteSync) return 'https://mtgcollection-share.bensonperry.workers.dev';
+    if (remoteSync) return 'https://api.bensonperry.com';
     const host = window.location?.hostname || '';
     if (host === 'localhost' || host === '127.0.0.1') return 'http://127.0.0.1:8787';
   }
-  return 'https://mtgcollection-share.bensonperry.workers.dev';
+  return 'https://api.bensonperry.com';
 }
 
 // Override via window.MTGCOLLECTION_SHARE_API_URL during dev to point at

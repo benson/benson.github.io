@@ -4,6 +4,10 @@ compatibility_date = "2024-12-01"
 workers_dev = true
 preview_urls = false
 
+[[routes]]
+pattern = "api.bensonperry.com"
+custom_domain = true
+
 [limits]
 cpu_ms = 500
 
@@ -50,7 +54,7 @@ namespace_id = "2005"
 [vars]
 CLERK_ISSUER = "https://clerk.bensonperry.com"
 CLERK_AUTHORIZED_PARTIES = "https://bensonperry.com,http://127.0.0.1:8087,http://localhost:8087"
-MCP_PUBLIC_ORIGIN = "https://mtgcollection-share.bensonperry.workers.dev"
+MCP_PUBLIC_ORIGIN = "https://api.bensonperry.com"
 # Configure after creating a Clerk OAuth application for MCP:
 CLERK_FRONTEND_API_URL = "https://clerk.bensonperry.com"
 CLERK_OAUTH_CLIENT_ID = "HNx2PbSrTQUcrsfd"
