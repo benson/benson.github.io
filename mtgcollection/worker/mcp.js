@@ -909,17 +909,63 @@ function candidateSetName(candidate) {
   return String(candidate?.setName || candidate?.set_name || candidate?.previewAddArgs?.setName || '').trim().toLowerCase();
 }
 
+function normalizePrintingPreferenceText(text) {
+  return String(text || '')
+    .normalize('NFKD')
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+const CORE_EDITION_ALIASES = [
+  ['4', '4th', 'fourth', '4ed', 'fourth edition'],
+  ['5', '5th', 'fifth', '5ed', 'fifth edition'],
+  ['6', '6th', 'sixth', '6ed', 'sixth edition'],
+  ['7', '7th', 'seventh', '7ed', 'seventh edition'],
+  ['8', '8th', 'eighth', '8ed', 'eighth edition'],
+  ['9', '9th', 'ninth', '9ed', 'ninth edition'],
+  ['10', '10th', 'tenth', '10e', 'tenth edition'],
+];
+
+function printingPreferenceAliases(text) {
+  const normalized = normalizePrintingPreferenceText(text);
+  const aliases = new Set();
+  if (normalized) aliases.add(normalized);
+  for (const [number, ordinal, word, code, setName] of CORE_EDITION_ALIASES) {
+    const patterns = [
+      new RegExp('\\b' + number + '(?:st|nd|rd|th)?\\s*(?:ed|edition)\\b'),
+      new RegExp('\\b' + ordinal + '\\s*(?:ed|edition)?\\b'),
+      new RegExp('\\b' + word + '\\s*(?:ed|edition)?\\b'),
+      new RegExp('\\b' + code + '\\b'),
+    ];
+    if (patterns.some(pattern => pattern.test(normalized))) {
+      aliases.add(code);
+      aliases.add(setName);
+    }
+  }
+  return [...aliases].filter(Boolean);
+}
+
 function printingPreferenceScore(candidate, text) {
-  if (!requestsSecretLairPrinting(text)) return 0;
   const setCode = candidateSetCode(candidate);
-  const setName = candidateSetName(candidate);
-  if (setCode === 'sld') return 100;
-  if (setName.includes('secret lair')) return 90;
-  return 0;
+  const setName = normalizePrintingPreferenceText(candidateSetName(candidate));
+  const aliases = printingPreferenceAliases(text);
+  let score = 0;
+  for (const alias of aliases) {
+    const normalizedAlias = normalizePrintingPreferenceText(alias);
+    if (!normalizedAlias) continue;
+    if (setCode && normalizedAlias === setCode) score = Math.max(score, 80);
+    if (setName && setName.includes(normalizedAlias)) score = Math.max(score, 70);
+  }
+  if (!requestsSecretLairPrinting(text)) return score;
+  if (setCode === 'sld') score = Math.max(score, 100);
+  if (setName.includes('secret lair')) score = Math.max(score, 90);
+  return score;
 }
 
 function preferPrintingCandidatesForRequest(candidates, text) {
-  if (!requestsSecretLairPrinting(text)) return candidates;
   const scored = candidates.map((candidate, index) => ({
     candidate,
     index,
@@ -1823,7 +1869,7 @@ async function toolPreviewAddInventoryItem(env, deps, auth, args = {}) {
   const missingOptionFields = missingMcpAddOptionFields(raw);
   let resolvedCard = null;
   if (!hasExactScryfallPrintingTarget(raw)) {
-    const lookup = await lookupScryfallPrintingCards({ ...raw, limit: raw.limit || 12 });
+    const lookup = await lookupScryfallPrintingCards({ ...raw, limit: raw.limit || 50 });
     if (lookup.cards.length === 1 && !missingOptionFields.length) {
       resolvedCard = lookup.cards[0];
     } else if (lookup.candidates.length) {
@@ -2230,6 +2276,8 @@ const TOOL_DEFINITIONS = [
     properties: {
       query: { type: 'string' },
       name: { type: 'string' },
+      edition: { type: 'string' },
+      printing: { type: 'string' },
       finish: { type: 'string', enum: ['normal', 'nonfoil', 'non-foil', 'foil', 'etched', 'etched foil'] },
       condition: { type: 'string' },
       language: { type: 'string' },
@@ -2278,6 +2326,8 @@ const TOOL_DEFINITIONS = [
       set: { type: 'string' },
       cn: { type: 'string' },
       collectorNumber: { type: 'string' },
+      edition: { type: 'string' },
+      printing: { type: 'string' },
       finish: { type: 'string', enum: ['normal', 'nonfoil', 'non-foil', 'foil', 'etched', 'etched foil'] },
       condition: { type: 'string' },
       language: { type: 'string' },
