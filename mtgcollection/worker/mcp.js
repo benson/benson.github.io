@@ -2366,7 +2366,8 @@ function extractMcpContainerStats(data) {
 
 function containerStatsQuestion(userText) {
   const text = String(userText || '').toLowerCase();
-  const asksCount = /\bhow\s+many\b|\bcount\b|\btotal\b|\bcards?\b/.test(text);
+  if (inventoryPriceSortDirection(text)) return false;
+  const asksCount = /\bhow\s+many\b|\bcount\b|\btotal\b|\bnumber\s+of\b/.test(text);
   const mentionsContainer = /\b(?:binder|box|deck|container)\b|\bin\s+(?:my\s+)?[a-z0-9\s-]+$/.test(text);
   const asksValue = /\b(?:value|valued|worth)\b/.test(text) && mentionsContainer;
   return (asksCount && mentionsContainer) || asksValue;

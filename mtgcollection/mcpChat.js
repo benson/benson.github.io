@@ -20,6 +20,7 @@ const SYSTEM_PROMPT = [
   'If the user does not provide every add detail, use search_card_printings or preview_add_inventory_item to return candidates/input needs; the app will render quick controls.',
   'When the user asks for foils, nonfoils, normal cards, or etched foils in their collection, pass the matching finish to search_inventory.',
   'When the user asks about prices, value, cheapest, or most expensive cards, use collection price fields from get_collection_summary or search_inventory; do not say price data is unavailable when the tools return price.',
+  'For cheapest or most expensive card questions inside a binder, box, or deck, call search_inventory with the matching location plus sortBy=price and sortDirection=asc or desc; use list_containers only for container counts or metadata.',
   'When showing inventory cards from search_inventory, get_container, or get_deck, keep the prose short and do not write markdown tables; the app renders the card results separately.',
 ].join(' ');
 const HOSTED_PROVIDER = 'groq';

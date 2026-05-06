@@ -1401,6 +1401,74 @@ test('mcp chat: container count questions use returned container stats', async (
   }
 });
 
+test('mcp chat: container price ranking questions use returned card prices', async () => {
+  const { env } = fakeSyncEnv();
+  env.MTGCOLLECTION_CHAT_GROQ_API_KEY = 'gsk-hosted-secret';
+  const originalFetch = globalThis.fetch;
+  const container = {
+    revision: 12,
+    found: true,
+    container: {
+      key: 'binder:trade binder',
+      type: 'binder',
+      name: 'trade binder',
+    },
+    stats: { unique: 28, total: 28, value: 205.25 },
+    cards: [{
+      itemKey: 'binder-cheap',
+      name: 'Binder Cheap Card',
+      scryfallId: 'cheap-1',
+      setCode: 'abc',
+      cn: '1',
+      finish: 'normal',
+      condition: 'near_mint',
+      language: 'en',
+      qty: 1,
+      location: { type: 'binder', name: 'trade binder' },
+      price: 0.25,
+    }, {
+      itemKey: 'binder-chase',
+      name: 'Binder Chase Card',
+      scryfallId: 'chase-1',
+      setCode: 'abc',
+      cn: '2',
+      finish: 'foil',
+      condition: 'near_mint',
+      language: 'en',
+      qty: 1,
+      location: { type: 'binder', name: 'trade binder' },
+      price: 99.5,
+    }],
+  };
+  globalThis.fetch = async () => Response.json({
+    output_text: '',
+    output: [{
+      type: 'mcp_call',
+      name: 'get_container',
+      result: { structuredContent: container },
+    }],
+  });
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: "what's the most expensive card in the trade binder" }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.text, 'The most expensive card I found is Binder Chase Card at $99.50. It is shown below.');
+    assert.equal(data.cards[0].name, 'Binder Chase Card');
+    assert.equal(data.cards[0].price, 99.5);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('mcp chat: mismatched add previews are not offered for approval', async () => {
   const { env } = fakeSyncEnv();
   env.MTGCOLLECTION_CHAT_GROQ_API_KEY = 'gsk-hosted-secret';
