@@ -1294,6 +1294,69 @@ test('mcp chat: add input needs are returned as app-renderable drafts', async ()
   }
 });
 
+test('mcp chat: secret lair add requests preselect Secret Lair printings', async () => {
+  const { env } = fakeSyncEnv();
+  env.MTGCOLLECTION_CHAT_GROQ_API_KEY = 'gsk-hosted-secret';
+  const originalFetch = globalThis.fetch;
+  const candidate = (setCode, setName, cn) => ({
+    name: 'Path to Exile',
+    scryfallId: 'path-' + setCode,
+    setCode,
+    setName,
+    collectorNumber: cn,
+    rarity: 'uncommon',
+    finishes: ['nonfoil', 'foil'],
+    previewAddArgs: {
+      scryfallId: 'path-' + setCode,
+      name: 'Path to Exile',
+      setCode,
+      cn,
+    },
+  });
+  globalThis.fetch = async () => Response.json({
+    output_text: 'I need more info.',
+    output: [{
+      type: 'mcp_call',
+      name: 'preview_add_inventory_item',
+      result: {
+        structuredContent: {
+          status: 'needs_input',
+          previewType: 'inventory.add',
+          message: 'Choose the exact printing and missing copy details, then create a preview.',
+          missingFields: ['printing', 'qty', 'finish', 'condition'],
+          query: 'Path to Exile',
+          resolvedName: 'Path to Exile',
+          candidates: [
+            candidate('soc', 'Secrets of Strixhaven Commander', '150'),
+            candidate('pza', 'Teenage Mutant Ninja Turtles Source Material', '1'),
+            candidate('sld', 'Secret Lair Drop', '2227'),
+          ],
+        },
+      },
+    }],
+  });
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'add a secret lair path to exile to my bulk' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.text, 'Choose options below.');
+    assert.equal(data.drafts.length, 1);
+    assert.equal(data.drafts[0].candidates[0].setCode, 'sld');
+    assert.equal(data.drafts[0].candidates[0].setName, 'Secret Lair Drop');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('mcp chat: inventory read results are returned as app-renderable cards', async () => {
   const { env } = fakeSyncEnv();
   env.MTGCOLLECTION_CHAT_GROQ_API_KEY = 'gsk-hosted-secret';

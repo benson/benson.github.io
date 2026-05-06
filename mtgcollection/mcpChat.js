@@ -26,6 +26,7 @@ export const SYSTEM_PROMPT = [
   'Do not apply changes yourself. The app receives preview metadata separately and shows pending changes for user confirmation.',
   'When calling tools, use real JSON types: quantities are numbers and createContainer is a boolean, not quoted strings.',
   'For add requests, do not invent set codes, collector numbers, rarities, Scryfall ids, quantities, finishes, or conditions.',
+  'Preserve printing or edition hints in add requests; for Secret Lair printings, pass setCode "sld" or keep "secret lair" in the lookup query.',
   'If the user does not provide every add detail, use search_card_printings or preview_add_inventory_item to return candidates/input needs; the app will render quick controls.',
   'When the user asks for foils, nonfoils, normal cards, or etched foils in their collection, pass the matching finish to search_inventory.',
   'For broad inventory filters, call search_inventory with structured filters instead of putting the whole user question into query. Use minPrice/maxPrice, minQty/maxQty, cardType, condition, rarity, tags, location, sortBy, and sortDirection when relevant.',

@@ -863,6 +863,52 @@ function formatScryfallPrintingCandidate(card, args = {}) {
   };
 }
 
+function printingPreferenceTextFromArgs(args = {}) {
+  return [
+    args.query,
+    args.name,
+    args.setCode,
+    args.set,
+    args.setName,
+    args.edition,
+    args.printing,
+  ].map(value => String(value || '')).join(' ');
+}
+
+function requestsSecretLairPrinting(text) {
+  return /\bsecret[\s_-]+lair\b|\bsld\b/i.test(String(text || ''));
+}
+
+function candidateSetCode(candidate) {
+  return String(candidate?.setCode || candidate?.set || candidate?.previewAddArgs?.setCode || '').trim().toLowerCase();
+}
+
+function candidateSetName(candidate) {
+  return String(candidate?.setName || candidate?.set_name || candidate?.previewAddArgs?.setName || '').trim().toLowerCase();
+}
+
+function printingPreferenceScore(candidate, text) {
+  if (!requestsSecretLairPrinting(text)) return 0;
+  const setCode = candidateSetCode(candidate);
+  const setName = candidateSetName(candidate);
+  if (setCode === 'sld') return 100;
+  if (setName.includes('secret lair')) return 90;
+  return 0;
+}
+
+function preferPrintingCandidatesForRequest(candidates, text) {
+  if (!requestsSecretLairPrinting(text)) return candidates;
+  const scored = candidates.map((candidate, index) => ({
+    candidate,
+    index,
+    score: printingPreferenceScore(candidate, text),
+  }));
+  if (!scored.some(item => item.score > 0)) return candidates;
+  return scored
+    .sort((a, b) => (b.score - a.score) || (a.index - b.index))
+    .map(item => item.candidate);
+}
+
 async function lookupScryfallPrintingCards(args = {}) {
   const name = String(args.name || args.query || '').trim();
   if (!name) return { status: 'invalid', error: 'name or query is required', cards: [], candidates: [] };
@@ -874,7 +920,10 @@ async function lookupScryfallPrintingCards(args = {}) {
   const finishFiltered = args.finish
     ? lookup.cards.filter(card => candidateMatchesRequestedFinish(card, args.finish))
     : lookup.cards;
-  const candidates = finishFiltered.slice(0, limit).map(card => formatScryfallPrintingCandidate(card, args));
+  const candidates = preferPrintingCandidatesForRequest(
+    finishFiltered.map(card => formatScryfallPrintingCandidate(card, args)),
+    printingPreferenceTextFromArgs(args)
+  ).slice(0, limit);
   const requestedFinish = requestedScryfallFinish(args.finish);
   return {
     status: candidates.length ? 'ok' : 'not_found',
@@ -2422,6 +2471,14 @@ function normalizeMcpDraft(value) {
   };
 }
 
+function preferDraftsForUserRequest(drafts, userText) {
+  if (!Array.isArray(drafts) || !drafts.length) return [];
+  return drafts.map(draft => ({
+    ...draft,
+    candidates: preferPrintingCandidatesForRequest(draft.candidates, userText),
+  }));
+}
+
 function jsonValuesFromString(text) {
   const trimmed = String(text || '').trim();
   if (!trimmed || trimmed.length > 30000) return [];
@@ -2955,7 +3012,7 @@ function extractCloudflareText(data) {
 function chatSuccessResponse(deps, request, { provider, model, hosted, usage, data, text, messages = [] }) {
   const lastUserText = [...messages].reverse().find(message => message.role === 'user')?.content || '';
   const filtered = filterChatPreviews(extractMcpPreviews(data), lastUserText);
-  const drafts = extractMcpDrafts(data);
+  const drafts = preferDraftsForUserRequest(extractMcpDrafts(data), lastUserText);
   const cards = orderInventoryCardsForUserRequest(
     filterInventoryCardsForUserRequest(extractMcpInventoryCards(data), lastUserText),
     lastUserText
