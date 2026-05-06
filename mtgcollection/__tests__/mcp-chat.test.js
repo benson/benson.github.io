@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Window } from 'happy-dom';
 import {
+  calculateChatResize,
   clampChatPosition,
   clampChatSize,
   formatChatCardResultsForCopy,
@@ -56,6 +57,49 @@ test('clampChatSize: keeps resized chat dimensions usable inside the viewport', 
   );
 });
 
+test('calculateChatResize: left handle preserves the right edge while resizing', () => {
+  assert.deepEqual(
+    calculateChatResize({
+      edge: 'left',
+      startRect: { left: 100, top: 120, width: 430, height: 360 },
+      delta: { x: -70, y: 0 },
+      viewport: { width: 1000, height: 800 },
+    }),
+    {
+      position: { left: 30, top: 120 },
+      size: { width: 500, height: 360 },
+    }
+  );
+
+  assert.deepEqual(
+    calculateChatResize({
+      edge: 'left',
+      startRect: { left: 100, top: 120, width: 430, height: 360 },
+      delta: { x: 200, y: 0 },
+      viewport: { width: 1000, height: 800 },
+    }),
+    {
+      position: { left: 190, top: 120 },
+      size: { width: 340, height: 360 },
+    }
+  );
+});
+
+test('calculateChatResize: bottom-right handle grows to the viewport edge', () => {
+  assert.deepEqual(
+    calculateChatResize({
+      edge: 'bottom-right',
+      startRect: { left: 500, top: 300, width: 430, height: 360 },
+      delta: { x: 300, y: 300 },
+      viewport: { width: 1000, height: 800 },
+    }),
+    {
+      position: { left: 500, top: 300 },
+      size: { width: 488, height: 488 },
+    }
+  );
+});
+
 test('initMcpChat: chat FAB toggles the floating widget without using the right drawer', () => {
   const { win, document } = setup();
   initMcpChat({ documentObj: document });
@@ -73,6 +117,16 @@ test('initMcpChat: chat FAB toggles the floating widget without using the right 
   assert.equal(document.body.classList.contains('mcp-chat-open'), false);
   assert.equal(panel.getAttribute('aria-hidden'), 'true');
   assert.equal(toggle.getAttribute('aria-expanded'), 'false');
+});
+
+test('initMcpChat: adds resize handles for sides and bottom corners', () => {
+  const { document } = setup();
+  initMcpChat({ documentObj: document });
+
+  assert.deepEqual(
+    Array.from(document.querySelectorAll('[data-mcp-chat-resize-handle]')).map(el => el.dataset.mcpChatResizeHandle),
+    ['left', 'right', 'bottom', 'bottom-left', 'bottom-right']
+  );
 });
 
 test('initMcpChat: empty transcript shows example prompts', () => {

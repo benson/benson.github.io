@@ -26,6 +26,7 @@ const HOSTED_MODEL = 'openai/gpt-oss-120b';
 const CHAT_POSITION_KEY = 'mtgcollection_mcp_chat_position_v1';
 const CHAT_SIZE_KEY = 'mtgcollection_mcp_chat_size_v1';
 const CHAT_EDGE_MARGIN = 12;
+const CHAT_RESIZE_HANDLES = ['left', 'right', 'bottom', 'bottom-left', 'bottom-right'];
 
 let root = null;
 let logEl = null;
@@ -39,6 +40,7 @@ let dragHandleEl = null;
 let documentRef = null;
 let toggleButtons = [];
 let dragState = null;
+let resizeDragState = null;
 let resizeObserver = null;
 const transcript = [];
 const pendingDrafts = [];
@@ -98,18 +100,69 @@ function writeStoredChatPosition(position) {
   } catch (e) {}
 }
 
-export function clampChatSize(size, viewport, margin = CHAT_EDGE_MARGIN) {
+function chatResizeBounds(viewport, margin = CHAT_EDGE_MARGIN) {
   const viewportWidth = Math.max(0, Number(viewport?.width) || 0);
   const viewportHeight = Math.max(0, Number(viewport?.height) || 0);
   const maxWidth = Math.max(320, viewportWidth - (margin * 2));
   const maxHeight = Math.max(320, viewportHeight - (margin * 2));
-  const minWidth = Math.min(340, maxWidth);
-  const minHeight = Math.min(320, maxHeight);
-  const rawWidth = Number(size?.width);
-  const rawHeight = Number(size?.height);
   return {
-    width: Math.min(Math.max(Number.isFinite(rawWidth) ? rawWidth : 430, minWidth), maxWidth),
-    height: Math.min(Math.max(Number.isFinite(rawHeight) ? rawHeight : 430, minHeight), maxHeight),
+    maxWidth,
+    maxHeight,
+    minWidth: Math.min(340, maxWidth),
+    minHeight: Math.min(320, maxHeight),
+    viewportWidth,
+    viewportHeight,
+  };
+}
+
+function clampNumber(value, min, max, fallback) {
+  const raw = Number(value);
+  const next = Number.isFinite(raw) ? raw : fallback;
+  return Math.min(Math.max(next, min), max);
+}
+
+export function clampChatSize(size, viewport, margin = CHAT_EDGE_MARGIN) {
+  const { minWidth, minHeight, maxWidth, maxHeight } = chatResizeBounds(viewport, margin);
+  return {
+    width: clampNumber(size?.width, minWidth, maxWidth, 430),
+    height: clampNumber(size?.height, minHeight, maxHeight, 430),
+  };
+}
+
+export function calculateChatResize({ edge, startRect, delta, viewport, margin = CHAT_EDGE_MARGIN } = {}) {
+  const bounds = chatResizeBounds(viewport, margin);
+  const startLeft = clampNumber(startRect?.left, margin, Math.max(margin, bounds.viewportWidth - margin), margin);
+  const startTop = clampNumber(startRect?.top, margin, Math.max(margin, bounds.viewportHeight - margin), margin);
+  const startWidth = clampNumber(startRect?.width, bounds.minWidth, bounds.maxWidth, 430);
+  const startHeight = clampNumber(startRect?.height, bounds.minHeight, bounds.maxHeight, 430);
+  const dx = Number(delta?.x);
+  const dy = Number(delta?.y);
+  const moveX = Number.isFinite(dx) ? dx : 0;
+  const moveY = Number.isFinite(dy) ? dy : 0;
+  const name = String(edge || '');
+  let left = startLeft;
+  let top = startTop;
+  let width = startWidth;
+  let height = startHeight;
+
+  if (name === 'left' || name === 'bottom-left') {
+    const fixedRight = clampNumber(startLeft + startWidth, margin + bounds.minWidth, bounds.viewportWidth - margin, startLeft + startWidth);
+    const maxWidth = Math.max(bounds.minWidth, Math.min(bounds.maxWidth, fixedRight - margin));
+    width = clampNumber(startWidth - moveX, bounds.minWidth, maxWidth, startWidth);
+    left = fixedRight - width;
+  } else if (name === 'right' || name === 'bottom-right') {
+    const maxWidth = Math.max(bounds.minWidth, Math.min(bounds.maxWidth, bounds.viewportWidth - margin - startLeft));
+    width = clampNumber(startWidth + moveX, bounds.minWidth, maxWidth, startWidth);
+  }
+
+  if (name === 'bottom' || name === 'bottom-left' || name === 'bottom-right') {
+    const maxHeight = Math.max(bounds.minHeight, Math.min(bounds.maxHeight, bounds.viewportHeight - margin - startTop));
+    height = clampNumber(startHeight + moveY, bounds.minHeight, maxHeight, startHeight);
+  }
+
+  return {
+    position: { left: Math.round(left), top: Math.round(top) },
+    size: { width: Math.round(width), height: Math.round(height) },
   };
 }
 
@@ -174,9 +227,9 @@ function currentChatPosition() {
   return null;
 }
 
-function setChatPosition(position, { persist = false } = {}) {
+function setChatPosition(position, { persist = false, size = null } = {}) {
   if (!root) return null;
-  const next = clampChatPosition(position, chatViewport(), chatSize());
+  const next = clampChatPosition(position, chatViewport(), size || chatSize());
   root.style.setProperty('--mcp-chat-left', Math.round(next.left) + 'px');
   root.style.setProperty('--mcp-chat-top', Math.round(next.top) + 'px');
   root.classList.add('is-positioned');
@@ -200,7 +253,7 @@ function clampCurrentChatPosition({ persist = false } = {}) {
 }
 
 function shouldIgnoreDragTarget(target) {
-  return Boolean(target?.closest?.('button, input, textarea, select, a'));
+  return Boolean(target?.closest?.('button, input, textarea, select, a, [data-mcp-chat-resize-handle]'));
 }
 
 function startChatDrag(event) {
@@ -243,6 +296,100 @@ function endChatDrag(event) {
   if (current) setChatPosition(current, { persist: true });
   if (event?.pointerId !== undefined && typeof dragHandleEl?.releasePointerCapture === 'function') {
     dragHandleEl.releasePointerCapture(event.pointerId);
+  }
+}
+
+function ensureChatResizeHandles() {
+  if (!root || !documentRef) return;
+  CHAT_RESIZE_HANDLES.forEach(edge => {
+    let handle = root.querySelector(`[data-mcp-chat-resize-handle="${edge}"]`);
+    if (!handle) {
+      handle = documentRef.createElement('div');
+      handle.className = `mcp-chat-resize-handle mcp-chat-resize-${edge}`;
+      handle.dataset.mcpChatResizeHandle = edge;
+      handle.setAttribute('aria-hidden', 'true');
+      root.appendChild(handle);
+    }
+    if (!handle.dataset.mcpChatResizeBound) {
+      handle.dataset.mcpChatResizeBound = '1';
+      handle.addEventListener('pointerdown', startChatResize);
+    }
+  });
+}
+
+function startChatResize(event) {
+  if (!root) return;
+  if (event.button !== undefined && event.button !== 0) return;
+  const handle = event.currentTarget?.dataset?.mcpChatResizeHandle
+    ? event.currentTarget
+    : event.target?.closest?.('[data-mcp-chat-resize-handle]');
+  const edge = handle?.dataset?.mcpChatResizeHandle;
+  if (!edge) return;
+  const currentSize = setChatSize(chatSize()) || chatSize();
+  const currentPosition = setChatPosition(currentChatPosition() || readStoredChatPosition() || { left: CHAT_EDGE_MARGIN, top: CHAT_EDGE_MARGIN }, { size: currentSize });
+  if (!currentPosition) return;
+  resizeDragState = {
+    pointerId: event.pointerId,
+    edge,
+    handle,
+    startX: event.clientX,
+    startY: event.clientY,
+    startRect: {
+      left: currentPosition.left,
+      top: currentPosition.top,
+      width: currentSize.width,
+      height: currentSize.height,
+    },
+    next: null,
+  };
+  root.classList.add('is-resizing');
+  if (event.pointerId !== undefined && typeof handle.setPointerCapture === 'function') {
+    handle.setPointerCapture(event.pointerId);
+  }
+  event.preventDefault();
+}
+
+function moveChatResize(event) {
+  if (!resizeDragState) return;
+  if (
+    event?.pointerId !== undefined
+    && resizeDragState.pointerId !== undefined
+    && event.pointerId !== resizeDragState.pointerId
+  ) return;
+  const next = calculateChatResize({
+    edge: resizeDragState.edge,
+    startRect: resizeDragState.startRect,
+    delta: {
+      x: event.clientX - resizeDragState.startX,
+      y: event.clientY - resizeDragState.startY,
+    },
+    viewport: chatViewport(),
+  });
+  resizeDragState.next = next;
+  setChatSize(next.size);
+  setChatPosition(next.position, { size: next.size });
+  event.preventDefault();
+}
+
+function endChatResize(event) {
+  if (!resizeDragState) return;
+  if (
+    event?.pointerId !== undefined
+    && resizeDragState.pointerId !== undefined
+    && event.pointerId !== resizeDragState.pointerId
+  ) return;
+  const state = resizeDragState;
+  resizeDragState = null;
+  root?.classList.remove('is-resizing');
+  if (state.next) {
+    setChatSize(state.next.size, { persist: true });
+    setChatPosition(state.next.position, { persist: true, size: state.next.size });
+  } else {
+    setChatSize(chatSize(), { persist: true });
+    clampCurrentChatPosition({ persist: true });
+  }
+  if (event?.pointerId !== undefined && typeof state.handle?.releasePointerCapture === 'function') {
+    state.handle.releasePointerCapture(event.pointerId);
   }
 }
 
@@ -1293,8 +1440,10 @@ export function initMcpChat({ documentObj = document } = {}) {
   toggleButtons = Array.from(documentObj.querySelectorAll('[data-mcp-chat-toggle]'));
   resizeObserver?.disconnect?.();
   resizeObserver = null;
+  resizeDragState = null;
   applyStoredChatSize();
   applyStoredChatPosition();
+  ensureChatResizeHandles();
   observeChatResize();
   renderTranscript();
   renderPendingDrafts();
@@ -1306,8 +1455,11 @@ export function initMcpChat({ documentObj = document } = {}) {
   closeBtn?.addEventListener('click', () => setChatOpen(false));
   dragHandleEl?.addEventListener('pointerdown', startChatDrag);
   documentObj.addEventListener('pointermove', moveChatDrag);
+  documentObj.addEventListener('pointermove', moveChatResize);
   documentObj.addEventListener('pointerup', endChatDrag);
+  documentObj.addEventListener('pointerup', endChatResize);
   documentObj.addEventListener('pointercancel', endChatDrag);
+  documentObj.addEventListener('pointercancel', endChatResize);
   documentObj.defaultView?.addEventListener('resize', () => {
     setChatSize(chatSize(), { persist: true });
     clampCurrentChatPosition({ persist: true });

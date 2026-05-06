@@ -4018,12 +4018,12 @@
     z-index: 75;
     display: flex;
     flex-direction: column;
-    width: min(var(--mcp-chat-width, 430px), calc(100vw - 32px));
-    height: min(var(--mcp-chat-height, 430px), calc(100dvh - 180px));
-    min-width: min(340px, calc(100vw - 32px));
-    min-height: min(320px, calc(100dvh - 180px));
-    max-width: calc(100vw - 32px);
-    max-height: min(680px, calc(100dvh - 180px));
+    width: min(var(--mcp-chat-width, 430px), calc(100vw - 24px));
+    height: min(var(--mcp-chat-height, 430px), calc(100dvh - 24px));
+    min-width: min(340px, calc(100vw - 24px));
+    min-height: min(320px, calc(100dvh - 24px));
+    max-width: calc(100vw - 24px);
+    max-height: calc(100dvh - 24px);
     background: #fff;
     border: 1px solid #111;
     border-radius: 6px;
@@ -4033,7 +4033,7 @@
     transform: translateY(8px);
     visibility: hidden;
     overflow: hidden;
-    resize: both;
+    resize: none;
     transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
   }
   .mcp-chat-widget.is-positioned {
@@ -4042,9 +4042,50 @@
     right: auto;
     bottom: auto;
   }
-  .mcp-chat-widget.is-dragging {
+  .mcp-chat-widget.is-dragging,
+  .mcp-chat-widget.is-resizing {
     transition: none;
     user-select: none;
+  }
+  .mcp-chat-resize-handle {
+    position: absolute;
+    z-index: 3;
+    touch-action: none;
+  }
+  .mcp-chat-resize-left {
+    bottom: 12px;
+    cursor: ew-resize;
+    left: 0;
+    top: 42px;
+    width: 8px;
+  }
+  .mcp-chat-resize-right {
+    bottom: 12px;
+    cursor: ew-resize;
+    right: 0;
+    top: 42px;
+    width: 8px;
+  }
+  .mcp-chat-resize-bottom {
+    bottom: 0;
+    cursor: ns-resize;
+    height: 8px;
+    left: 12px;
+    right: 12px;
+  }
+  .mcp-chat-resize-bottom-left {
+    bottom: 0;
+    cursor: nesw-resize;
+    height: 16px;
+    left: 0;
+    width: 16px;
+  }
+  .mcp-chat-resize-bottom-right {
+    bottom: 0;
+    cursor: nwse-resize;
+    height: 16px;
+    right: 0;
+    width: 16px;
   }
   body.mcp-chat-open .mcp-chat-widget {
     opacity: 1;
@@ -5147,6 +5188,9 @@
       right: 12px;
       resize: none;
       width: calc(100vw - 24px);
+    }
+    .mcp-chat-resize-handle {
+      display: none;
     }
     .mcp-chat-widget.is-positioned {
       left: var(--mcp-chat-left);
