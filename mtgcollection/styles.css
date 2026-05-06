@@ -4585,7 +4585,7 @@
     display: none;
   }
   .mcp-chat-draft-panel {
-    max-height: min(46vh, 420px);
+    max-height: min(38vh, 340px);
   }
   .mcp-chat-preview-head,
   .mcp-chat-preview-row {
@@ -4613,28 +4613,40 @@
   .mcp-chat-draft-row {
     border-top: 1px solid #e2ded6;
     display: grid;
-    gap: 8px;
-    padding-top: 8px;
+    gap: 6px;
+    padding-top: 6px;
   }
   .mcp-chat-draft-row.has-error .mcp-chat-preview-meta {
     color: #9f0000;
   }
   .mcp-chat-draft-controls {
     display: grid;
-    gap: 7px;
-    grid-template-columns: 64px minmax(0, 1fr) minmax(0, 1fr);
-  }
-  .mcp-chat-draft-add-preview,
-  .mcp-chat-draft-printing-picker {
-    grid-column: 1 / -1;
+    gap: 6px;
   }
   .mcp-chat-draft-add-preview {
+    align-items: center;
+    flex-direction: row;
+    gap: 10px;
     margin-top: 0;
+    min-height: 0;
     padding-top: 0;
     border-top: 0;
   }
+  .mcp-chat-draft-add-preview .add-preview-img-wrap {
+    gap: 0;
+  }
   .mcp-chat-draft-add-preview .add-preview-img {
-    width: min(160px, 42vw);
+    width: 74px;
+  }
+  .mcp-chat-draft-add-preview .add-preview-name {
+    font-size: 0.95rem;
+    line-height: 1.1;
+    margin-bottom: 1px;
+  }
+  .mcp-chat-draft-add-preview .add-preview-meta {
+    font-size: 0.7rem;
+    line-height: 1.25;
+    margin-bottom: 0;
   }
   .mcp-chat-draft-printing-picker {
     margin-top: 0;
@@ -4642,7 +4654,16 @@
     border-top: 0;
   }
   .mcp-chat-draft-printing-picker .printing-list {
-    max-height: 170px;
+    max-height: 112px;
+  }
+  .mcp-chat-draft-printing-picker .printing-row {
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+  .mcp-chat-draft-option-bar {
+    display: grid;
+    gap: 7px;
+    grid-template-columns: 64px minmax(0, 1fr) minmax(0, 1fr);
   }
   .mcp-chat-draft-field {
     display: grid;

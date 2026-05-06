@@ -1136,17 +1136,6 @@ function renderPendingDrafts() {
     row.className = 'mcp-chat-draft-row' + (draft.error ? ' has-error' : '');
     row.dataset.draftId = draft.id;
 
-    const copy = documentRef.createElement('div');
-    copy.className = 'mcp-chat-preview-copy';
-    const summary = documentRef.createElement('div');
-    summary.className = 'mcp-chat-preview-summary';
-    summary.textContent = draft.resolvedName || draft.query || 'card add';
-    const meta = documentRef.createElement('div');
-    meta.className = 'mcp-chat-preview-meta';
-    const missing = draft.missingFields.length ? 'needs ' + draft.missingFields.join(', ') : 'choose details';
-    meta.textContent = draft.error || missing;
-    copy.append(summary, meta);
-
     const controls = documentRef.createElement('div');
     controls.className = 'mcp-chat-draft-controls';
 
@@ -1158,6 +1147,9 @@ function renderPendingDrafts() {
     }));
     const printingPicker = draft.candidates.length > 1 ? renderDraftPrintingPicker(draft) : null;
     if (printingPicker) controls.appendChild(printingPicker);
+
+    const optionBar = documentRef.createElement('div');
+    optionBar.className = 'mcp-chat-draft-option-bar';
 
     const qtyLabel = documentRef.createElement('label');
     qtyLabel.className = 'mcp-chat-draft-field';
@@ -1196,7 +1188,8 @@ function renderPendingDrafts() {
     }
     conditionLabel.append(conditionText, condition);
 
-    controls.append(qtyLabel, finishLabelEl, conditionLabel);
+    optionBar.append(qtyLabel, finishLabelEl, conditionLabel);
+    controls.appendChild(optionBar);
 
     const rowActions = documentRef.createElement('div');
     rowActions.className = 'mcp-chat-preview-row-actions';
@@ -1208,7 +1201,7 @@ function renderPendingDrafts() {
     dismiss.disabled = draft.previewing;
     rowActions.append(preview, dismiss);
 
-    row.append(copy, controls, rowActions);
+    row.append(controls, rowActions);
     list.appendChild(row);
   }
   draftPanelEl.appendChild(list);

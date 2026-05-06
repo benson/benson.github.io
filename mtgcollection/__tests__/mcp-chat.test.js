@@ -227,6 +227,8 @@ test('initMcpChat: add drafts use the shared add preview and printing rows', () 
 
   assert.equal(document.querySelector('.mcp-chat-draft-add-preview.add-preview.active .add-preview-name').textContent, 'Nissa, Worldwaker');
   assert.match(document.querySelector('.mcp-chat-draft-add-preview .add-preview-meta').textContent, /San Diego Comic-Con 2014/);
+  assert.equal(document.querySelector('.mcp-chat-draft-row > .mcp-chat-preview-copy'), null);
+  assert.doesNotMatch(document.querySelector('.mcp-chat-draft-row').textContent, /choose details/i);
   assert.equal(document.querySelectorAll('.mcp-chat-draft-printing-picker .printing-row').length, 2);
   assert.equal(document.querySelector('.mcp-chat-draft-printing-picker .printing-row.selected .printing-set-code').textContent, 'PS14');
 
