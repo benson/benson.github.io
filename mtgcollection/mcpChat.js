@@ -19,6 +19,7 @@ const SYSTEM_PROMPT = [
   'For add requests, do not invent set codes, collector numbers, rarities, Scryfall ids, quantities, finishes, or conditions.',
   'If the user does not provide every add detail, use search_card_printings or preview_add_inventory_item to return candidates/input needs; the app will render quick controls.',
   'When the user asks for foils, nonfoils, normal cards, or etched foils in their collection, pass the matching finish to search_inventory.',
+  'When the user asks about prices, value, cheapest, or most expensive cards, use collection price fields from get_collection_summary or search_inventory; do not say price data is unavailable when the tools return price.',
   'When showing inventory cards from search_inventory, get_container, or get_deck, keep the prose short and do not write markdown tables; the app renders the card results separately.',
 ].join(' ');
 const HOSTED_PROVIDER = 'groq';
@@ -677,6 +678,8 @@ function normalizeChatCard(raw) {
     deckBoard: String(raw.deckBoard || '').trim(),
     tags: Array.isArray(raw.tags) ? raw.tags.map(String).filter(Boolean) : [],
     price: Number(raw.price) || 0,
+    priceFallback: Boolean(raw.priceFallback),
+    totalValue: Number(raw.totalValue) || 0,
     imageUrl: String(raw.imageUrl || '').trim(),
     backImageUrl: String(raw.backImageUrl || '').trim(),
     scryfallUri: String(raw.scryfallUri || '').trim(),
@@ -791,6 +794,11 @@ function appendCardPreviewDataset(el, card) {
   el.dataset.previewFinish = card.finish || 'normal';
 }
 
+function formatUsd(value) {
+  const amount = Number(value) || 0;
+  return amount ? '$' + amount.toFixed(2) : '';
+}
+
 function makeChatCardMoveControls(card) {
   const move = documentRef.createElement('div');
   move.className = 'mcp-chat-card-move';
@@ -861,6 +869,9 @@ function makeChatCardResult(raw) {
   const meta = documentRef.createElement('div');
   meta.className = 'mcp-chat-card-meta';
   const printing = [card.setCode ? card.setCode.toUpperCase() : '', card.cn ? '#' + card.cn : ''].filter(Boolean).join(' ');
+  const price = formatUsd(card.price);
+  const totalValue = card.qty > 1 ? formatUsd(card.totalValue || (card.price * card.qty)) : '';
+  const priceDetail = price && totalValue ? price + ' each / ' + totalValue + ' total' : price;
   const details = [
     printing,
     card.qty ? card.qty + 'x' : '',
@@ -868,6 +879,7 @@ function makeChatCardResult(raw) {
     conditionShortLabel(card.condition),
     finishLabel(card.finish),
     card.language && card.language !== 'en' ? card.language : '',
+    priceDetail,
   ].filter(Boolean);
   meta.textContent = details.join(' / ');
   copy.append(name, meta);

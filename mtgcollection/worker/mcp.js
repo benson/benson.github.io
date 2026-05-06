@@ -1108,7 +1108,37 @@ function containerStats(snapshot, loc) {
   };
 }
 
+function entryQty(entry) {
+  return parseInt(entry?.qty, 10) || 0;
+}
+
+function entryPrice(entry) {
+  return Number(entry?.price) || 0;
+}
+
+function entryTotalValue(entry) {
+  return entryPrice(entry) * entryQty(entry);
+}
+
+function roundCurrency(value) {
+  const n = Number(value) || 0;
+  return Math.round(n * 100) / 100;
+}
+
+function highestPricedEntry(collection, metric = 'price') {
+  return (collection || [])
+    .filter(entry => entryPrice(entry) > 0)
+    .sort((a, b) => {
+      const aValue = metric === 'totalValue' ? entryTotalValue(a) : entryPrice(a);
+      const bValue = metric === 'totalValue' ? entryTotalValue(b) : entryPrice(b);
+      return bValue - aValue
+        || String(a.resolvedName || a.name || '').localeCompare(String(b.resolvedName || b.name || ''));
+    })[0] || null;
+}
+
 function summarizeEntry(entry) {
+  const qty = entryQty(entry);
+  const price = entryPrice(entry);
   return {
     itemKey: collectionKey(entry),
     name: entry.resolvedName || entry.name || '',
@@ -1118,11 +1148,13 @@ function summarizeEntry(entry) {
     finish: entry.finish || 'normal',
     condition: entry.condition || 'near_mint',
     language: entry.language || 'en',
-    qty: parseInt(entry.qty, 10) || 0,
+    qty,
     location: normalizeLocation(entry.location),
     deckBoard: entry.deckBoard || '',
     tags: Array.isArray(entry.tags) ? entry.tags : [],
-    price: Number(entry.price) || 0,
+    price,
+    priceFallback: Boolean(entry.priceFallback),
+    totalValue: roundCurrency(price * qty),
   };
 }
 
@@ -1148,7 +1180,8 @@ function stripInventoryFinishQuery(raw) {
     .replace(/\bnon[\s_-]?foils?\b/gi, ' ')
     .replace(/\betched(?:[\s_-]?foils?)?\b/gi, ' ')
     .replace(/\bfoils?\b|\bfoiled\b/gi, ' ')
-    .replace(/\b(?:any|are|card|cards|collection|copies|copy|do|have|i|list|my|of|own|owned|show|the|what|which)\b/gi, ' ')
+    .replace(/\b(?:any|are|card|cards|cheapest|collection|copies|copy|cost|costs|do|expensive|have|highest|i|in|least|list|lowest|most|my|of|own|owned|price|priced|prices|priciest|show|the|top|valuable|value|values|what|which|worth|s)\b/gi, ' ')
+    .replace(/[^\w\s/]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -1176,9 +1209,51 @@ function matchesInventory(entry, args = {}) {
   return true;
 }
 
+function inventoryPriceSortDirection(raw) {
+  const text = String(raw || '').toLowerCase();
+  if (/\b(?:cheapest|least\s+expensive|lowest\s+(?:price|value)|least\s+valuable)\b/.test(text)) return 'asc';
+  if (/\b(?:most\s+expensive|most\s+valuable|highest\s+(?:price|value)|priciest|top\s+(?:price|priced|value|valuable)|worth\s+the\s+most)\b/.test(text)) return 'desc';
+  return '';
+}
+
+function normalizeInventorySortBy(args = {}) {
+  const raw = String(args.sortBy || args.sort || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  if (raw === 'price' || raw === 'prices' || raw === 'unit_price') return 'price';
+  if (raw === 'value' || raw === 'total' || raw === 'total_value') return 'totalValue';
+  if (raw === 'name') return 'name';
+  if (inventoryPriceSortDirection(args.query)) return 'price';
+  return '';
+}
+
+function normalizeInventorySortDirection(args = {}) {
+  const explicit = String(args.sortDirection || args.direction || '').trim().toLowerCase();
+  if (explicit === 'asc' || explicit === 'ascending') return 'asc';
+  if (explicit === 'desc' || explicit === 'descending') return 'desc';
+  const queryDirection = inventoryPriceSortDirection(args.query);
+  if (queryDirection) return queryDirection;
+  const sortBy = normalizeInventorySortBy({ ...args, query: '' });
+  if (sortBy === 'price' || sortBy === 'totalValue') return 'desc';
+  return 'asc';
+}
+
+function sortInventoryEntries(entries, args = {}) {
+  const sortBy = normalizeInventorySortBy(args);
+  if (!sortBy) return entries;
+  const direction = normalizeInventorySortDirection(args);
+  const multiplier = direction === 'desc' ? -1 : 1;
+  return [...entries].sort((a, b) => {
+    if (sortBy === 'name') return multiplier * String(a.resolvedName || a.name || '').localeCompare(String(b.resolvedName || b.name || ''));
+    const aValue = sortBy === 'totalValue' ? entryTotalValue(a) : entryPrice(a);
+    const bValue = sortBy === 'totalValue' ? entryTotalValue(b) : entryPrice(b);
+    return multiplier * (aValue - bValue)
+      || String(a.resolvedName || a.name || '').localeCompare(String(b.resolvedName || b.name || ''));
+  });
+}
+
 function findInventory(snapshot, args = {}, limit = 25) {
-  return (snapshot?.app?.collection || [])
-    .filter(entry => matchesInventory(entry, args))
+  const filtered = (snapshot?.app?.collection || [])
+    .filter(entry => matchesInventory(entry, args));
+  return sortInventoryEntries(filtered, args)
     .slice(0, limit)
     .map(summarizeEntry);
 }
@@ -1283,10 +1358,19 @@ async function toolGetCollectionSummary(env, deps, auth) {
   const cloud = await currentCloud(env, deps, auth.userId);
   const collection = cloud.snapshot.app.collection || [];
   const containers = allContainers(cloud.snapshot);
+  const totalValue = roundCurrency(collection.reduce((sum, entry) => sum + entryTotalValue(entry), 0));
+  const pricedEntries = collection.filter(entry => entryPrice(entry) > 0).length;
+  const mostExpensiveCard = highestPricedEntry(collection, 'price');
+  const mostValuableStack = highestPricedEntry(collection, 'totalValue');
   return {
     revision: cloud.revision,
     uniqueCards: collection.length,
     totalCards: collection.reduce((sum, entry) => sum + (parseInt(entry.qty, 10) || 0), 0),
+    totalValue,
+    pricedEntries,
+    unpricedEntries: Math.max(0, collection.length - pricedEntries),
+    mostExpensiveCard: mostExpensiveCard ? summarizeEntry(mostExpensiveCard) : null,
+    mostValuableStack: mostValuableStack ? summarizeEntry(mostValuableStack) : null,
     containers: {
       total: containers.length,
       decks: containers.filter(c => c.type === 'deck').length,
@@ -1809,8 +1893,8 @@ const NUMBERISH_SCHEMA = { oneOf: [{ type: 'number' }, { type: 'string' }] };
 const BOOLEANISH_SCHEMA = { oneOf: [{ type: 'boolean' }, { type: 'string' }] };
 
 const TOOL_DEFINITIONS = [
-  ['get_collection_summary', 'Summarize the signed-in MTG collection.', {}],
-  ['search_inventory', 'Search physical inventory entries.', {
+  ['get_collection_summary', 'Summarize the signed-in MTG collection, including total priced value and the highest-priced cards when price data exists.', {}],
+  ['search_inventory', 'Search physical inventory entries. Results include per-copy USD price and totalValue when pricing exists; use sortBy=price and sortDirection=desc for most-expensive-card questions.', {
     type: 'object',
     properties: {
       query: { type: 'string' },
@@ -1818,6 +1902,8 @@ const TOOL_DEFINITIONS = [
       scryfallId: { type: 'string' },
       finish: { type: 'string', enum: ['normal', 'nonfoil', 'non-foil', 'foil', 'foils', 'etched', 'etched foil'] },
       location: { oneOf: [{ type: 'string' }, { type: 'object' }] },
+      sortBy: { type: 'string', enum: ['name', 'price', 'value', 'totalValue'] },
+      sortDirection: { type: 'string', enum: ['asc', 'ascending', 'desc', 'descending'] },
       limit: NUMBERISH_SCHEMA,
     },
   }],
@@ -2183,6 +2269,8 @@ function normalizeMcpInventoryCard(value) {
     deckBoard: String(value.deckBoard || '').trim(),
     tags: Array.isArray(value.tags) ? value.tags.map(String).filter(Boolean).slice(0, 12) : [],
     price: Number(value.price) || 0,
+    priceFallback: Boolean(value.priceFallback),
+    totalValue: Number(value.totalValue) || 0,
     imageUrl: String(value.imageUrl || '').trim(),
     backImageUrl: String(value.backImageUrl || '').trim(),
     scryfallUri: String(value.scryfallUri || '').trim(),
@@ -2234,9 +2322,27 @@ function inventoryFinishSummaryLabel(finish) {
 function inventoryCardsSummaryText(cards, userText) {
   const count = Array.isArray(cards) ? cards.length : 0;
   if (!count) return '';
+  const priceDirection = inventoryPriceSortDirection(userText);
+  if (priceDirection) {
+    const card = cards[0];
+    const price = Number(card?.price) || 0;
+    const priceText = price ? ' at $' + price.toFixed(2) : '';
+    const label = priceDirection === 'asc' ? 'cheapest priced card' : 'most expensive card';
+    return 'The ' + label + ' I found is ' + card.name + priceText + '. It is shown below.';
+  }
   const finish = inventoryFinishSummaryLabel(finishFromInventoryText(userText));
   const noun = count === 1 ? 'card' : 'cards';
   return 'I found ' + count + ' ' + (finish ? finish + ' ' : '') + noun + ' from your collection. They are shown below.';
+}
+
+function orderInventoryCardsForUserRequest(cards, userText) {
+  const direction = inventoryPriceSortDirection(userText);
+  if (!direction) return cards;
+  const multiplier = direction === 'desc' ? -1 : 1;
+  return [...cards].sort((a, b) => {
+    const priceDelta = (Number(a.price) || 0) - (Number(b.price) || 0);
+    return multiplier * priceDelta || a.name.localeCompare(b.name);
+  });
 }
 
 const PREVIEW_MATCH_STOPWORDS = new Set([
@@ -2417,7 +2523,10 @@ function chatSuccessResponse(deps, request, { provider, model, hosted, usage, da
   const lastUserText = [...messages].reverse().find(message => message.role === 'user')?.content || '';
   const filtered = filterChatPreviews(extractMcpPreviews(data), lastUserText);
   const drafts = extractMcpDrafts(data);
-  const cards = filterInventoryCardsForUserRequest(extractMcpInventoryCards(data), lastUserText);
+  const cards = orderInventoryCardsForUserRequest(
+    filterInventoryCardsForUserRequest(extractMcpInventoryCards(data), lastUserText),
+    lastUserText
+  );
   const responseText = drafts.length && !filtered.previews.length
     ? 'Choose options below.'
     : filtered.previewWarnings.length && !filtered.previews.length

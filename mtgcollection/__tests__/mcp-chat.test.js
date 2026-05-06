@@ -160,6 +160,7 @@ test('renderChatCardResultsForTest: inventory cards are hoverable and movable', 
       condition: 'near_mint',
       qty: 1,
       location: { type: 'binder', name: 'trade binder' },
+      price: 0.26,
     }], document);
     document.body.appendChild(section);
 
@@ -169,6 +170,7 @@ test('renderChatCardResultsForTest: inventory cards are hoverable and movable', 
     assert.equal(cardLink.dataset.previewSet, 'sos');
     assert.equal(cardLink.dataset.previewCn, '122');
     assert.match(document.querySelector('.mcp-chat-card-meta').textContent, /binder:trade binder/);
+    assert.match(document.querySelector('.mcp-chat-card-meta').textContent, /\$0\.26/);
     assert.equal(document.querySelector('[data-chat-card-action="toggleMove"]').textContent, 'move');
     assert.equal(document.querySelector('[data-chat-move-target] option[value="deck:breya"]').textContent, 'breya');
     assert.equal(document.querySelector('.mcp-chat-card-results-copy').textContent, 'copy');

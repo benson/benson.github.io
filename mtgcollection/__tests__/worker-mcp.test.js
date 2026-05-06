@@ -284,6 +284,46 @@ test('mcp: search_inventory broad reads default above twenty cards', async () =>
   assert.equal(data.results.every(result => result.finish === 'foil'), true);
 });
 
+test('mcp: search_inventory supports most-expensive price questions', async () => {
+  const snapshot = emptySnapshot({
+    collection: [
+      card({ name: 'Budget Card', resolvedName: 'Budget Card', scryfallId: 'budget-1', price: 0.5 }),
+      card({ name: 'Chase Card', resolvedName: 'Chase Card', scryfallId: 'chase-1', price: 42.25, qty: 2 }),
+      card({ name: 'Middle Card', resolvedName: 'Middle Card', scryfallId: 'middle-1', price: 5 }),
+    ],
+  });
+  const { env } = fakeSyncEnv(snapshot);
+  const token = await issueMcpToken(env);
+  const searched = await callTool(env, token.access_token, 'search_inventory', {
+    query: "what's the most expensive card in my collection?",
+    limit: 1,
+  });
+  const results = searched.result.structuredContent.results;
+  assert.equal(results.length, 1);
+  assert.equal(results[0].name, 'Chase Card');
+  assert.equal(results[0].price, 42.25);
+  assert.equal(results[0].totalValue, 84.5);
+});
+
+test('mcp: collection summary includes price rollups when available', async () => {
+  const snapshot = emptySnapshot({
+    collection: [
+      card({ name: 'Cheap Card', resolvedName: 'Cheap Card', scryfallId: 'cheap-1', price: 1, qty: 3 }),
+      card({ name: 'Expensive Card', resolvedName: 'Expensive Card', scryfallId: 'expensive-1', price: 10, qty: 1 }),
+      card({ name: 'Unpriced Card', resolvedName: 'Unpriced Card', scryfallId: 'unpriced-1', price: null }),
+    ],
+  });
+  const { env } = fakeSyncEnv(snapshot);
+  const token = await issueMcpToken(env);
+  const summary = await callTool(env, token.access_token, 'get_collection_summary');
+  const data = summary.result.structuredContent;
+  assert.equal(data.totalValue, 13);
+  assert.equal(data.pricedEntries, 2);
+  assert.equal(data.unpricedEntries, 1);
+  assert.equal(data.mostExpensiveCard.name, 'Expensive Card');
+  assert.equal(data.mostValuableStack.name, 'Expensive Card');
+});
+
 test('mcp: preview/apply inventory move updates snapshot, revision, and history', async () => {
   const entry = card({ qty: 2 });
   const snapshot = emptySnapshot({
@@ -1249,6 +1289,67 @@ test('mcp chat: inventory card results replace provider prose with a short summa
     const data = await res.json();
     assert.equal(data.text, 'I found 2 foil cards from your collection. They are shown below.');
     assert.equal(data.cards.length, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp chat: price ranking questions use returned card prices', async () => {
+  const { env } = fakeSyncEnv();
+  env.MTGCOLLECTION_CHAT_GROQ_API_KEY = 'gsk-hosted-secret';
+  const originalFetch = globalThis.fetch;
+  const inventory = {
+    revision: 12,
+    results: [{
+      itemKey: 'cheap-card',
+      name: 'Cheap Card',
+      scryfallId: 'cheap-1',
+      setCode: 'abc',
+      cn: '1',
+      finish: 'normal',
+      condition: 'near_mint',
+      language: 'en',
+      qty: 1,
+      location: { type: 'box', name: 'bulk' },
+      price: 1,
+    }, {
+      itemKey: 'chase-card',
+      name: 'Chase Card',
+      scryfallId: 'chase-1',
+      setCode: 'abc',
+      cn: '2',
+      finish: 'normal',
+      condition: 'near_mint',
+      language: 'en',
+      qty: 1,
+      location: { type: 'binder', name: 'trade binder' },
+      price: 42.25,
+    }],
+  };
+  globalThis.fetch = async () => Response.json({
+    output_text: 'I do not have price data.',
+    output: [{
+      type: 'mcp_call',
+      name: 'search_inventory',
+      result: { structuredContent: inventory },
+    }],
+  });
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: "what's the most expensive card in my collection?" }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.text, 'The most expensive card I found is Chase Card at $42.25. It is shown below.');
+    assert.equal(data.cards[0].name, 'Chase Card');
+    assert.equal(data.cards[0].price, 42.25);
   } finally {
     globalThis.fetch = originalFetch;
   }
