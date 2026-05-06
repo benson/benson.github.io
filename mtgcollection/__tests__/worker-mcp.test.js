@@ -305,6 +305,50 @@ test('mcp: search_inventory supports most-expensive price questions', async () =
   assert.equal(results[0].totalValue, 84.5);
 });
 
+test('mcp: search_inventory supports price, quantity, and type filters', async () => {
+  const snapshot = emptySnapshot({
+    collection: [
+      card({ name: 'Sol Ring', resolvedName: 'Sol Ring', scryfallId: 'sol-ring-1', price: 2.5, qty: 7, typeLine: 'Artifact' }),
+      card({ name: 'Counterspell', resolvedName: 'Counterspell', scryfallId: 'counterspell-1', price: 3, qty: 4, typeLine: 'Instant' }),
+      card({ name: 'Island', resolvedName: 'Island', scryfallId: 'island-1', price: 0.05, qty: 30, typeLine: 'Basic Land - Island' }),
+      card({ name: 'Arcane Signet', resolvedName: 'Arcane Signet', scryfallId: 'signet-1', price: 1.25, qty: 12, typeLine: 'Artifact' }),
+    ],
+  });
+  const { env } = fakeSyncEnv(snapshot);
+  const token = await issueMcpToken(env);
+  const searched = await callTool(env, token.access_token, 'search_inventory', {
+    minPrice: 2,
+    minQty: 4,
+    cardType: 'artifact',
+    sortBy: 'qty',
+    sortDirection: 'desc',
+  });
+  const results = searched.result.structuredContent.results;
+  assert.deepEqual(results.map(result => result.name), ['Sol Ring']);
+  assert.equal(results[0].typeLine, 'Artifact');
+  assert.equal(results[0].qty, 7);
+});
+
+test('mcp: search_inventory can infer broad filters from natural query text', async () => {
+  const snapshot = emptySnapshot({
+    collection: [
+      card({ name: 'Breya, Etherium Shaper', resolvedName: 'Breya, Etherium Shaper', scryfallId: 'breya-1', price: 12, finish: 'foil', condition: 'near_mint', typeLine: 'Legendary Artifact Creature' }),
+      card({ name: 'Ancient Tomb', resolvedName: 'Ancient Tomb', scryfallId: 'tomb-1', price: 80, finish: 'normal', condition: 'near_mint', typeLine: 'Land' }),
+      card({ name: 'Damaged Foil Island', resolvedName: 'Damaged Foil Island', scryfallId: 'island-foil-1', price: 0.5, finish: 'foil', condition: 'damaged', typeLine: 'Basic Land' }),
+    ],
+  });
+  const { env } = fakeSyncEnv(snapshot);
+  const token = await issueMcpToken(env);
+  const searched = await callTool(env, token.access_token, 'search_inventory', {
+    query: 'show me near mint foil artifacts worth more than $2',
+  });
+  const results = searched.result.structuredContent.results;
+  assert.deepEqual(results.map(result => result.name), ['Breya, Etherium Shaper']);
+  assert.equal(results[0].finish, 'foil');
+  assert.equal(results[0].condition, 'near_mint');
+  assert.equal(results[0].price, 12);
+});
+
 test('mcp: collection summary includes price rollups when available', async () => {
   const snapshot = emptySnapshot({
     collection: [

@@ -1152,6 +1152,10 @@ function summarizeEntry(entry) {
     location: normalizeLocation(entry.location),
     deckBoard: entry.deckBoard || '',
     tags: Array.isArray(entry.tags) ? entry.tags : [],
+    rarity: entry.rarity || '',
+    typeLine: entry.typeLine || entry.type_line || '',
+    setName: entry.setName || '',
+    colors: Array.isArray(entry.colors) ? entry.colors : [],
     price,
     priceFallback: Boolean(entry.priceFallback),
     totalValue: roundCurrency(price * qty),
@@ -1180,7 +1184,15 @@ function stripInventoryFinishQuery(raw) {
     .replace(/\bnon[\s_-]?foils?\b/gi, ' ')
     .replace(/\betched(?:[\s_-]?foils?)?\b/gi, ' ')
     .replace(/\bfoils?\b|\bfoiled\b/gi, ' ')
-    .replace(/\b(?:any|are|card|cards|cheapest|collection|copies|copy|cost|costs|do|expensive|have|highest|i|in|least|list|lowest|most|my|of|own|owned|price|priced|prices|priciest|show|the|top|valuable|value|values|what|which|worth|s)\b/gi, ' ')
+    .replace(/\b(?:near[\s_-]?mint|lightly[\s_-]?played|moderately[\s_-]?played|heavily[\s_-]?played|damaged|nm|lp|mp|hp|dmg)\b/gi, ' ')
+    .replace(/\b(?:commons?|uncommons?|rares?|mythics?|mythic\s+rares?)\b/gi, ' ')
+    .replace(/\b(?:artifacts?|battles?|creatures?|enchantments?|instants?|lands?|planeswalkers?|sorceries)\b/gi, ' ')
+    .replace(/\b(?:worth|price|priced|value|valued|costs?)\s+(?:at\s+)?(?:more\s+than|over|above|greater\s+than|at\s+least|less\s+than|under|below|at\s+most|>=?|<=?)\s+\$?\d+(?:\.\d+)?/gi, ' ')
+    .replace(/\b(?:more\s+than|over|above|greater\s+than|at\s+least|less\s+than|under|below|at\s+most|>=?|<=?)\s+\$?\d+(?:\.\d+)?\b/gi, ' ')
+    .replace(/\$\s?\d+(?:\.\d+)?\s*(?:\+|or\s+more|and\s+up)?/gi, ' ')
+    .replace(/\b(?:at\s+least|more\s+than|over|less\s+than|under|below|at\s+most|>=?|<=?)\s+\d+\s+(?:copies|copy|cards?)\b/gi, ' ')
+    .replace(/\b\d+\s*(?:\+|or\s+more)\s+(?:copies|copy|cards?)\b/gi, ' ')
+    .replace(/\b(?:any|are|card|cards|cheapest|collection|copies|copy|cost|costs|do|expensive|have|highest|i|in|least|list|lowest|many|me|most|my|of|own|owned|price|priced|prices|priciest|quantity|qty|show|the|top|valuable|value|values|what|which|worth|s)\b/gi, ' ')
     .replace(/[^\w\s/]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -1192,6 +1204,135 @@ function inventoryFinishFilter(args = {}) {
     || '';
 }
 
+function normalizeInventoryCondition(raw) {
+  const value = String(raw || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  if (!value) return '';
+  if (value === 'nm' || value === 'near_mint' || value === 'nearmint') return 'near_mint';
+  if (value === 'lp' || value === 'lightly_played') return 'lightly_played';
+  if (value === 'mp' || value === 'moderately_played') return 'moderately_played';
+  if (value === 'hp' || value === 'heavily_played') return 'heavily_played';
+  if (value === 'dmg' || value === 'damaged') return 'damaged';
+  return '';
+}
+
+function conditionFromInventoryText(raw) {
+  const text = String(raw || '').toLowerCase();
+  if (/\b(?:near[\s_-]?mint|nm)\b/.test(text)) return 'near_mint';
+  if (/\b(?:lightly[\s_-]?played|lp)\b/.test(text)) return 'lightly_played';
+  if (/\b(?:moderately[\s_-]?played|mp)\b/.test(text)) return 'moderately_played';
+  if (/\b(?:heavily[\s_-]?played|hp)\b/.test(text)) return 'heavily_played';
+  if (/\b(?:damaged|dmg)\b/.test(text)) return 'damaged';
+  return '';
+}
+
+function normalizeRarity(raw) {
+  const value = String(raw || '').trim().toLowerCase();
+  if (['common', 'uncommon', 'rare', 'mythic', 'mythic rare', 'special', 'bonus'].includes(value)) {
+    return value === 'mythic rare' ? 'mythic' : value;
+  }
+  if (value === 'c') return 'common';
+  if (value === 'u') return 'uncommon';
+  if (value === 'r') return 'rare';
+  if (value === 'm') return 'mythic';
+  return '';
+}
+
+function rarityFromInventoryText(raw) {
+  const text = String(raw || '').toLowerCase();
+  if (/\bmythic(?:\s+rare)?s?\b/.test(text)) return 'mythic';
+  if (/\brares?\b/.test(text)) return 'rare';
+  if (/\buncommons?\b/.test(text)) return 'uncommon';
+  if (/\bcommons?\b/.test(text)) return 'common';
+  return '';
+}
+
+function inventoryTypeFromText(raw) {
+  const text = String(raw || '').toLowerCase();
+  const types = ['artifact', 'battle', 'creature', 'enchantment', 'instant', 'land', 'planeswalker', 'sorcery'];
+  for (const type of types) {
+    const plural = type === 'sorcery' ? 'sorceries' : type + 's';
+    if (new RegExp('\\b' + type + '\\b|\\b' + plural + '\\b').test(text)) return type;
+  }
+  return '';
+}
+
+function normalizeInventoryType(raw) {
+  const value = String(raw || '').trim().toLowerCase();
+  return inventoryTypeFromText(value) || value;
+}
+
+function numericArg(args, names, fallback = null) {
+  for (const name of names) {
+    if (args[name] === undefined || args[name] === null || args[name] === '') continue;
+    const value = Number(String(args[name]).replace(/[$,]/g, ''));
+    if (Number.isFinite(value)) return value;
+  }
+  return fallback;
+}
+
+function numericTextBound(raw, patterns) {
+  const text = String(raw || '').toLowerCase().replace(/,/g, '');
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (!match) continue;
+    const value = Number(match[1]);
+    if (Number.isFinite(value)) return value;
+  }
+  return null;
+}
+
+function minPriceFromText(raw) {
+  return numericTextBound(raw, [
+    /\b(?:worth|price|priced|value|valued|costs?)\s+(?:at\s+)?(?:more\s+than|over|above|greater\s+than|at\s+least|>=?)\s+\$?(\d+(?:\.\d+)?)/,
+    /\b(?:more\s+than|over|above|greater\s+than|at\s+least|>=?)\s+\$?(\d+(?:\.\d+)?)\b/,
+    /\$\s?(\d+(?:\.\d+)?)\s*(?:\+|or\s+more|and\s+up)/,
+  ]);
+}
+
+function maxPriceFromText(raw) {
+  return numericTextBound(raw, [
+    /\b(?:worth|price|priced|value|valued|costs?)\s+(?:at\s+)?(?:less\s+than|under|below|at\s+most|<=?)\s+\$?(\d+(?:\.\d+)?)/,
+    /\b(?:less\s+than|under|below|at\s+most|<=?)\s+\$?(\d+(?:\.\d+)?)\b/,
+  ]);
+}
+
+function minQtyFromText(raw) {
+  return numericTextBound(raw, [
+    /\b(?:at\s+least|more\s+than|over|>=?)\s+(\d+)\s+(?:copies|copy|cards?)\b/,
+    /\b(\d+)\s*(?:\+|or\s+more)\s+(?:copies|copy|cards?)\b/,
+    /\b(?:many|lots\s+of|a\s+lot\s+of|multiple)\s+copies\b/,
+  ]) || (/\b(?:many|lots\s+of|a\s+lot\s+of|multiple)\s+copies\b/i.test(String(raw || '')) ? 2 : null);
+}
+
+function maxQtyFromText(raw) {
+  return numericTextBound(raw, [
+    /\b(?:less\s+than|under|below|at\s+most|<=?)\s+(\d+)\s+(?:copies|copy|cards?)\b/,
+  ]);
+}
+
+function inventoryConditionFilter(args = {}) {
+  return normalizeInventoryCondition(args.condition)
+    || conditionFromInventoryText(args.query)
+    || '';
+}
+
+function inventoryRarityFilter(args = {}) {
+  return normalizeRarity(args.rarity)
+    || rarityFromInventoryText(args.query)
+    || '';
+}
+
+function inventoryTypeFilter(args = {}) {
+  return normalizeInventoryType(args.cardType || args.typeLine || args.type)
+    || inventoryTypeFromText(args.query)
+    || '';
+}
+
+function inventoryTagsFilter(args = {}) {
+  const raw = Array.isArray(args.tags) ? args.tags : (args.tag ? [args.tag] : []);
+  return raw.map(tag => String(tag || '').trim().toLowerCase()).filter(Boolean);
+}
+
 function matchesInventory(entry, args = {}) {
   if (args.itemKey && collectionKey(entry) !== args.itemKey) return false;
   if (args.scryfallId && entry.scryfallId !== args.scryfallId) return false;
@@ -1200,6 +1341,29 @@ function matchesInventory(entry, args = {}) {
   if (args.location && locationKey(entry.location) !== locationKey(args.location)) return false;
   const finish = inventoryFinishFilter(args);
   if (finish && (normalizeInventoryFinish(entry.finish) || 'normal') !== finish) return false;
+  const condition = inventoryConditionFilter(args);
+  if (condition && (normalizeInventoryCondition(entry.condition) || 'near_mint') !== condition) return false;
+  const rarity = inventoryRarityFilter(args);
+  if (rarity && normalizeRarity(entry.rarity) !== rarity) return false;
+  const cardType = inventoryTypeFilter(args);
+  if (cardType && !String(entry.typeLine || entry.type_line || '').toLowerCase().includes(cardType)) return false;
+  const tags = inventoryTagsFilter(args);
+  if (tags.length) {
+    const entryTags = new Set((Array.isArray(entry.tags) ? entry.tags : []).map(tag => String(tag || '').trim().toLowerCase()).filter(Boolean));
+    if (!tags.every(tag => entryTags.has(tag))) return false;
+  }
+  const minPrice = numericArg(args, ['minPrice', 'priceMin'], minPriceFromText(args.query));
+  if (minPrice != null && entryPrice(entry) < minPrice) return false;
+  const maxPrice = numericArg(args, ['maxPrice', 'priceMax'], maxPriceFromText(args.query));
+  if (maxPrice != null && entryPrice(entry) > maxPrice) return false;
+  const minTotalValue = numericArg(args, ['minTotalValue', 'totalValueMin'], null);
+  if (minTotalValue != null && entryTotalValue(entry) < minTotalValue) return false;
+  const maxTotalValue = numericArg(args, ['maxTotalValue', 'totalValueMax'], null);
+  if (maxTotalValue != null && entryTotalValue(entry) > maxTotalValue) return false;
+  const minQty = numericArg(args, ['minQty', 'qtyMin'], minQtyFromText(args.query));
+  if (minQty != null && entryQty(entry) < minQty) return false;
+  const maxQty = numericArg(args, ['maxQty', 'qtyMax'], maxQtyFromText(args.query));
+  if (maxQty != null && entryQty(entry) > maxQty) return false;
   const rawQuery = args.query != null ? stripInventoryFinishQuery(args.query) : args.name;
   const q = String(rawQuery || '').trim().toLowerCase();
   if (q) {
@@ -1220,7 +1384,9 @@ function normalizeInventorySortBy(args = {}) {
   const raw = String(args.sortBy || args.sort || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
   if (raw === 'price' || raw === 'prices' || raw === 'unit_price') return 'price';
   if (raw === 'value' || raw === 'total' || raw === 'total_value') return 'totalValue';
+  if (raw === 'qty' || raw === 'quantity' || raw === 'copies' || raw === 'copy_count') return 'qty';
   if (raw === 'name') return 'name';
+  if (/\b(?:most|fewest|least|highest|lowest)\s+(?:copies|copy|quantity|qty)\b/i.test(String(args.query || ''))) return 'qty';
   if (inventoryPriceSortDirection(args.query)) return 'price';
   return '';
 }
@@ -1232,7 +1398,7 @@ function normalizeInventorySortDirection(args = {}) {
   const queryDirection = inventoryPriceSortDirection(args.query);
   if (queryDirection) return queryDirection;
   const sortBy = normalizeInventorySortBy({ ...args, query: '' });
-  if (sortBy === 'price' || sortBy === 'totalValue') return 'desc';
+  if (sortBy === 'price' || sortBy === 'totalValue' || sortBy === 'qty') return 'desc';
   return 'asc';
 }
 
@@ -1243,6 +1409,8 @@ function sortInventoryEntries(entries, args = {}) {
   const multiplier = direction === 'desc' ? -1 : 1;
   return [...entries].sort((a, b) => {
     if (sortBy === 'name') return multiplier * String(a.resolvedName || a.name || '').localeCompare(String(b.resolvedName || b.name || ''));
+    if (sortBy === 'qty') return multiplier * (entryQty(a) - entryQty(b))
+      || String(a.resolvedName || a.name || '').localeCompare(String(b.resolvedName || b.name || ''));
     const aValue = sortBy === 'totalValue' ? entryTotalValue(a) : entryPrice(a);
     const bValue = sortBy === 'totalValue' ? entryTotalValue(b) : entryPrice(b);
     return multiplier * (aValue - bValue)
@@ -1894,15 +2062,27 @@ const BOOLEANISH_SCHEMA = { oneOf: [{ type: 'boolean' }, { type: 'string' }] };
 
 const TOOL_DEFINITIONS = [
   ['get_collection_summary', 'Summarize the signed-in MTG collection, including total priced value and the highest-priced cards when price data exists.', {}],
-  ['search_inventory', 'Search physical inventory entries. Results include per-copy USD price and totalValue when pricing exists; use sortBy=price and sortDirection=desc for most-expensive-card questions.', {
+  ['search_inventory', 'Search physical inventory entries. Results include per-copy USD price, quantity, totalValue, card type, rarity, tags, and location. For broad filter questions leave query empty and use filters like finish, location, minPrice, minQty, cardType, condition, rarity, tags, sortBy, and sortDirection. Use sortBy=price and sortDirection=desc for most-expensive-card questions.', {
     type: 'object',
     properties: {
-      query: { type: 'string' },
+      query: { type: 'string', description: 'Card name text only. Leave empty for broad collection filters like foils, instants, expensive cards, container contents, or quantity thresholds.' },
       itemKey: { type: 'string' },
       scryfallId: { type: 'string' },
+      setCode: { type: 'string' },
+      cn: { type: 'string' },
       finish: { type: 'string', enum: ['normal', 'nonfoil', 'non-foil', 'foil', 'foils', 'etched', 'etched foil'] },
+      condition: { type: 'string', enum: ['near_mint', 'lightly_played', 'moderately_played', 'heavily_played', 'damaged', 'nm', 'lp', 'mp', 'hp', 'dmg'] },
+      rarity: { type: 'string', enum: ['common', 'uncommon', 'rare', 'mythic', 'c', 'u', 'r', 'm'] },
+      cardType: { type: 'string', description: 'A Magic card type such as artifact, creature, instant, sorcery, enchantment, land, planeswalker, or battle.' },
+      tags: { type: 'array', items: { type: 'string' } },
       location: { oneOf: [{ type: 'string' }, { type: 'object' }] },
-      sortBy: { type: 'string', enum: ['name', 'price', 'value', 'totalValue'] },
+      minPrice: NUMBERISH_SCHEMA,
+      maxPrice: NUMBERISH_SCHEMA,
+      minTotalValue: NUMBERISH_SCHEMA,
+      maxTotalValue: NUMBERISH_SCHEMA,
+      minQty: NUMBERISH_SCHEMA,
+      maxQty: NUMBERISH_SCHEMA,
+      sortBy: { type: 'string', enum: ['name', 'price', 'value', 'totalValue', 'qty', 'quantity'] },
       sortDirection: { type: 'string', enum: ['asc', 'ascending', 'desc', 'descending'] },
       limit: NUMBERISH_SCHEMA,
     },
@@ -2268,6 +2448,10 @@ function normalizeMcpInventoryCard(value) {
     location: normalizeLocation(value.location),
     deckBoard: String(value.deckBoard || '').trim(),
     tags: Array.isArray(value.tags) ? value.tags.map(String).filter(Boolean).slice(0, 12) : [],
+    rarity: String(value.rarity || '').trim().toLowerCase(),
+    typeLine: String(value.typeLine || value.type_line || '').trim(),
+    setName: String(value.setName || '').trim(),
+    colors: Array.isArray(value.colors) ? value.colors.map(String).filter(Boolean).slice(0, 6) : [],
     price: Number(value.price) || 0,
     priceFallback: Boolean(value.priceFallback),
     totalValue: Number(value.totalValue) || 0,
@@ -2427,8 +2611,26 @@ function containerStatsSummaryText(containers, userText) {
 
 function filterInventoryCardsForUserRequest(cards, userText) {
   const finish = finishFromInventoryText(userText);
-  if (!finish) return cards;
-  return cards.filter(card => (normalizeInventoryFinish(card.finish) || 'normal') === finish);
+  const minPrice = minPriceFromText(userText);
+  const maxPrice = maxPriceFromText(userText);
+  const minQty = minQtyFromText(userText);
+  const maxQty = maxQtyFromText(userText);
+  const type = inventoryTypeFromText(userText);
+  const condition = conditionFromInventoryText(userText);
+  const rarity = rarityFromInventoryText(userText);
+  const canFilterType = !type || cards.some(card => String(card.typeLine || '').trim());
+  const canFilterRarity = !rarity || cards.some(card => String(card.rarity || '').trim());
+  return cards.filter(card => {
+    if (finish && (normalizeInventoryFinish(card.finish) || 'normal') !== finish) return false;
+    if (condition && (normalizeInventoryCondition(card.condition) || 'near_mint') !== condition) return false;
+    if (canFilterRarity && rarity && normalizeRarity(card.rarity) !== rarity) return false;
+    if (canFilterType && type && !String(card.typeLine || '').toLowerCase().includes(type)) return false;
+    if (minPrice != null && (Number(card.price) || 0) < minPrice) return false;
+    if (maxPrice != null && (Number(card.price) || 0) > maxPrice) return false;
+    if (minQty != null && (parseInt(card.qty, 10) || 0) < minQty) return false;
+    if (maxQty != null && (parseInt(card.qty, 10) || 0) > maxQty) return false;
+    return true;
+  });
 }
 
 function inventoryFinishSummaryLabel(finish) {
