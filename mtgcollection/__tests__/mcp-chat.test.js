@@ -10,6 +10,7 @@ import {
   clampChatSize,
   formatChatCardResultsForCopy,
   initMcpChat,
+  replaceLatestDraftGuidanceForTest,
   renderChatCardResultsForTest,
 } from '../mcpChat.js';
 import { state } from '../state.js';
@@ -185,6 +186,24 @@ test('initMcpChat: pending previews hide internal revision metadata', () => {
   assert.doesNotMatch(panel.textContent, /preview rev/i);
   assert.doesNotMatch(panel.textContent, /sync ops/i);
   assert.doesNotMatch(panel.textContent, /expires/i);
+});
+
+test('initMcpChat: staged add drafts reuse the assistant guidance message', () => {
+  const { win, document } = setup();
+  initMcpChat({ documentObj: document });
+
+  appendMcpChatMessageForTest('user', 'add a foil swords to plowshares');
+  appendMcpChatMessageForTest('assistant', 'Choose options below.', { draftGuidance: true });
+
+  assert.equal(document.querySelectorAll('.mcp-chat-message').length, 2);
+  assert.equal(replaceLatestDraftGuidanceForTest(), true);
+
+  const messages = Array.from(document.querySelectorAll('.mcp-chat-message'));
+  assert.equal(messages.length, 2);
+  assert.equal(messages[1].querySelector('.mcp-chat-body').textContent, 'Preview ready below.');
+  assert.equal(document.querySelectorAll('.mcp-chat-role').length, 2);
+
+  click(win, document.getElementById('mcpChatClear'));
 });
 
 test('initMcpChat: add drafts use the shared add preview and printing rows', () => {

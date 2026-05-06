@@ -42,6 +42,8 @@ const CHAT_POSITION_KEY = 'mtgcollection_mcp_chat_position_v1';
 const CHAT_SIZE_KEY = 'mtgcollection_mcp_chat_size_v1';
 const CHAT_EDGE_MARGIN = 12;
 const CHAT_RESIZE_HANDLES = ['left', 'right', 'bottom', 'bottom-left', 'bottom-right'];
+const DRAFT_GUIDANCE_TEXT = 'Choose options below.';
+const PREVIEW_GUIDANCE_TEXT = 'Preview ready below.';
 
 let root = null;
 let logEl = null;
@@ -429,6 +431,21 @@ function observeChatResize() {
 function appendMessage(role, content, meta = {}) {
   transcript.push({ role, content, meta });
   renderTranscript();
+}
+
+function replaceLatestDraftGuidance(content = PREVIEW_GUIDANCE_TEXT) {
+  for (let index = transcript.length - 1; index >= 0; index -= 1) {
+    const message = transcript[index];
+    if (message?.meta?.pending) continue;
+    if (message?.role !== 'assistant') return false;
+    const isDraftGuidance = message.meta?.draftGuidance || String(message.content || '').trim() === DRAFT_GUIDANCE_TEXT;
+    if (!isDraftGuidance) return false;
+    message.content = content;
+    message.meta = { ...message.meta, draftGuidance: false, previewGuidance: true };
+    renderTranscript();
+    return true;
+  }
+  return false;
 }
 
 function clearChat() {
@@ -1364,11 +1381,12 @@ async function sendChat() {
     const warnings = Array.isArray(data.previewWarnings) ? data.previewWarnings.map(String).filter(Boolean) : [];
     const serverText = data.text || (previews.length ? 'Preview ready below.' : '(no text response)');
     const responseText = drafts.length
-      ? 'Choose options below.'
+      ? DRAFT_GUIDANCE_TEXT
       : previews.length
-      ? (previews.length === 1 ? 'Preview ready below.' : previews.length + ' previews ready below.')
+      ? (previews.length === 1 ? PREVIEW_GUIDANCE_TEXT : previews.length + ' previews ready below.')
       : warnings.length ? warnings.join('\n') : serverText;
     pending.content = responseText;
+    pending.meta.draftGuidance = Boolean(drafts.length);
     if (cards.length) pending.meta.cards = cards;
     if (!previews.length && !warnings.length) for (const token of changeTokensFromText(serverText)) {
       if (!previews.some(preview => preview?.changeToken === token)) {
@@ -1415,7 +1433,7 @@ async function previewDraft(draftId) {
     if (data.status === 'preview' && data.changeToken) {
       removePendingDraft(draftId);
       addPendingPreviews([data]);
-      appendMessage('assistant', 'Preview ready below.');
+      if (!replaceLatestDraftGuidance(PREVIEW_GUIDANCE_TEXT)) appendMessage('assistant', PREVIEW_GUIDANCE_TEXT);
       return true;
     }
     if (Array.isArray(data.candidates) && data.candidates.length) {
@@ -1744,6 +1762,10 @@ export function initMcpChat({ documentObj = document } = {}) {
 
 export function appendMcpChatMessageForTest(role, content, meta = {}) {
   appendMessage(role, content, meta);
+}
+
+export function replaceLatestDraftGuidanceForTest(content) {
+  return replaceLatestDraftGuidance(content);
 }
 
 export function addPendingPreviewsForTest(previews) {
