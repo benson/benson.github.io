@@ -2889,6 +2889,9 @@ function extractAnthropicText(data) {
 function extractCloudflareText(data) {
   if (typeof data.output_text === 'string') return data.output_text;
   if (typeof data.response === 'string') return data.response;
+  const result = data?.result && typeof data.result === 'object' ? data.result : data;
+  const message = result?.choices?.[0]?.message;
+  if (typeof message?.content === 'string') return message.content;
   return extractOpenAiText(data);
 }
 
@@ -3002,11 +3005,45 @@ function providerErrorMessage(provider, data) {
   return 'OpenAI request failed';
 }
 
+function cloudflareCompatibleSchema(schema) {
+  if (!schema || typeof schema !== 'object') return { type: 'string' };
+  const variants = Array.isArray(schema.oneOf)
+    ? schema.oneOf
+    : Array.isArray(schema.anyOf)
+    ? schema.anyOf
+    : null;
+  if (variants) {
+    const nonNull = variants.filter(variant => variant?.type !== 'null');
+    const preferred = nonNull.find(variant => variant?.type === 'boolean')
+      || nonNull.find(variant => variant?.type === 'number' || variant?.type === 'integer')
+      || nonNull.find(variant => variant?.type === 'string')
+      || nonNull.find(variant => variant?.type === 'object')
+      || nonNull[0];
+    return cloudflareCompatibleSchema(preferred || { type: 'string' });
+  }
+  const out = { ...schema };
+  if (Array.isArray(out.type)) out.type = out.type.filter(type => type !== 'null')[0] || 'string';
+  delete out.oneOf;
+  delete out.anyOf;
+  if (out.type === 'object') {
+    const properties = {};
+    for (const [name, propSchema] of Object.entries(out.properties || {})) {
+      properties[name] = cloudflareCompatibleSchema(propSchema);
+    }
+    out.properties = properties;
+  }
+  if (out.type === 'array') out.items = cloudflareCompatibleSchema(out.items || { type: 'string' });
+  return out;
+}
+
 function cloudflareToolDefinition(tool) {
   return {
-    name: tool.name,
-    description: tool.description,
-    parameters: tool.inputSchema || { type: 'object', properties: {} },
+    type: 'function',
+    function: {
+      name: tool.name,
+      description: tool.description,
+      parameters: cloudflareCompatibleSchema(tool.inputSchema || { type: 'object', properties: {} }),
+    },
   };
 }
 
@@ -3026,15 +3063,30 @@ function normalizeCloudflareToolCall(call, index = 0) {
   const fn = call.function && typeof call.function === 'object' ? call.function : null;
   const name = String(call.name || fn?.name || '').trim();
   if (!name) return null;
+  const id = String(call.id || 'cf_tool_' + index);
+  const args = parseCloudflareToolArguments(call.arguments ?? fn?.arguments);
   return {
-    id: String(call.id || 'cf_tool_' + index),
+    id,
     name,
-    arguments: parseCloudflareToolArguments(call.arguments ?? fn?.arguments),
+    arguments: args,
+    providerCall: {
+      id,
+      type: 'function',
+      function: {
+        name,
+        arguments: JSON.stringify(args),
+      },
+    },
   };
 }
 
 function cloudflareToolCalls(response) {
-  const direct = Array.isArray(response?.tool_calls) ? response.tool_calls : [];
+  const result = response?.result && typeof response.result === 'object' ? response.result : response;
+  const direct = Array.isArray(result?.choices?.[0]?.message?.tool_calls)
+    ? result.choices[0].message.tool_calls
+    : Array.isArray(result?.tool_calls)
+    ? result.tool_calls
+    : [];
   return direct.map(normalizeCloudflareToolCall).filter(Boolean);
 }
 
@@ -3061,7 +3113,8 @@ async function runCloudflareChat({ env, deps, auth, model, messages, chatTools, 
     if (!calls.length) break;
     workingMessages.push({
       role: 'assistant',
-      content: JSON.stringify(calls.map(call => ({ name: call.name, arguments: call.arguments }))),
+      content: '',
+      tool_calls: calls.map(call => call.providerCall),
     });
     for (const call of calls) {
       const data = await executeTool(call.name, call.arguments, env, deps, auth);
@@ -3074,7 +3127,7 @@ async function runCloudflareChat({ env, deps, auth, model, messages, chatTools, 
         },
       };
       output.push(toolOutput);
-      workingMessages.push({ role: 'tool', content: JSON.stringify(data, null, 2) });
+      workingMessages.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify(data, null, 2) });
     }
   }
 

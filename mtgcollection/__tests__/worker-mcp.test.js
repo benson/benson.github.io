@@ -1208,8 +1208,8 @@ test('mcp chat: hosted Cloudflare Workers AI uses the local preview tool loop', 
     assert.equal(data.mode, 'hosted');
     assert.equal(data.model, '@cf/openai/gpt-oss-120b');
     assert.equal(calls, 2);
-    assert.ok(firstPayload.tools.some(tool => tool.name === 'search_inventory'));
-    assert.equal(firstPayload.tools.some(tool => tool.name === 'apply_collection_change'), false);
+    assert.ok(firstPayload.tools.some(tool => tool.function?.name === 'search_inventory'));
+    assert.equal(firstPayload.tools.some(tool => tool.function?.name === 'apply_collection_change'), false);
     assert.ok(secondPayload.messages.some(message => message.role === 'tool' && /Ragavan/.test(message.content)));
     assert.equal(data.text, 'I found 1 foil card from your collection. It is shown below.');
     assert.equal(data.cards.length, 1);

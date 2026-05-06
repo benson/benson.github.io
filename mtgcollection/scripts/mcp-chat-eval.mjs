@@ -583,12 +583,46 @@ async function callGroq({ apiKey, model, messages, tools, maxOutput, rateLimitRe
   throw new Error(lastMessage || 'Groq rate limit retry budget exhausted');
 }
 
+function cloudflareCompatibleSchema(schema) {
+  if (!schema || typeof schema !== 'object') return { type: 'string' };
+  const variants = Array.isArray(schema.oneOf)
+    ? schema.oneOf
+    : Array.isArray(schema.anyOf)
+    ? schema.anyOf
+    : null;
+  if (variants) {
+    const nonNull = variants.filter(variant => variant?.type !== 'null');
+    const preferred = nonNull.find(variant => variant?.type === 'boolean')
+      || nonNull.find(variant => variant?.type === 'number' || variant?.type === 'integer')
+      || nonNull.find(variant => variant?.type === 'string')
+      || nonNull.find(variant => variant?.type === 'object')
+      || nonNull[0];
+    return cloudflareCompatibleSchema(preferred || { type: 'string' });
+  }
+  const out = { ...schema };
+  if (Array.isArray(out.type)) out.type = out.type.filter(type => type !== 'null')[0] || 'string';
+  delete out.oneOf;
+  delete out.anyOf;
+  if (out.type === 'object') {
+    const properties = {};
+    for (const [name, propSchema] of Object.entries(out.properties || {})) {
+      properties[name] = cloudflareCompatibleSchema(propSchema);
+    }
+    out.properties = properties;
+  }
+  if (out.type === 'array') out.items = cloudflareCompatibleSchema(out.items || { type: 'string' });
+  return out;
+}
+
 function cloudflareTools(tools) {
   return tools.map(tool => ({
-    name: tool.function?.name,
-    description: tool.function?.description || '',
-    parameters: tool.function?.parameters || { type: 'object', properties: {} },
-  })).filter(tool => tool.name);
+    type: 'function',
+    function: {
+      name: tool.function?.name,
+      description: tool.function?.description || '',
+      parameters: cloudflareCompatibleSchema(tool.function?.parameters || { type: 'object', properties: {} }),
+    },
+  })).filter(tool => tool.function.name);
 }
 
 function cloudflareRunUrl(accountId, model) {
@@ -600,11 +634,16 @@ function cloudflareRunUrl(accountId, model) {
 
 function normalizeCloudflareAssistant(data) {
   const result = data?.result && typeof data.result === 'object' ? data.result : data;
-  const calls = Array.isArray(result?.tool_calls) ? result.tool_calls : [];
+  const message = result?.choices?.[0]?.message || result;
+  const calls = Array.isArray(message?.tool_calls)
+    ? message.tool_calls
+    : Array.isArray(result?.tool_calls)
+    ? result.tool_calls
+    : [];
   return {
     role: 'assistant',
-    content: result?.response || result?.output_text || '',
-    usage: result?.usage || null,
+    content: message?.content || result?.response || result?.output_text || '',
+    usage: result?.usage || message?.usage || null,
     tool_calls: calls.map((call, index) => ({
       id: String(call.id || 'cf_tool_' + index),
       type: 'function',
@@ -705,10 +744,8 @@ async function runModelCase({
     if (provider === 'cloudflare') {
       messages.push({
         role: 'assistant',
-        content: JSON.stringify(calls.map(call => ({
-          name: call.function?.name || '',
-          arguments: safeParseArgs(call.function?.arguments),
-        }))),
+        content: '',
+        tool_calls: calls,
       });
     } else {
       messages.push({
@@ -730,7 +767,7 @@ async function runModelCase({
       toolCalls.push({ name, args, result: result?.structuredContent || null, error });
       const content = JSON.stringify(error ? { error } : result?.structuredContent || {}, null, 2);
       messages.push(provider === 'cloudflare'
-        ? { role: 'tool', content }
+        ? { role: 'tool', tool_call_id: call.id, content }
         : { role: 'tool', tool_call_id: call.id, name, content });
     }
     if (!includeFinal) break;
