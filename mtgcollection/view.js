@@ -17,7 +17,7 @@ import { openDetail, populateFilters } from './detail.js';
 import { setSelectedLocation } from './add.js';
 import { filteredSorted, syncClearFiltersBtn, hasActiveFilter } from './search.js';
 import { groupDeck, firstCardForPanel, splitDeckBoards, deckStats, renderDeckStatsHtml } from './stats.js';
-import { updateBulkBar } from './bulk.js';
+import { updateBulkBar } from './bulk.js?bulk-location-picker-4';
 import { setHistoryScope } from './changelog.js';
 import {
   loadDeckGroup,
@@ -77,6 +77,7 @@ import { bindLocationHomeInteractions } from './locationHomeActions.js';
 import { bindListRowInteractions } from './listRowActions.js';
 import { renameContainerCommand } from './commands.js';
 import { getMultiselectValue } from './multiselect.js';
+import { initSidebarTabFlow, syncSidebarTabFlow } from './sidebarTabFlow.js';
 
 export function navigateToLocation(type, name) {
   setActiveContainerRoute({ type, name });
@@ -390,6 +391,7 @@ export function render() {
       if (collectionVisualEl) collectionVisualEl.innerHTML = '';
       syncSortIndicator();
     }
+    syncSidebarTabFlow({ rescan: true });
     setCollectionTotals(list);
   }
   updateBulkBar();
@@ -669,6 +671,7 @@ export function initView() {
   collectionSection = document.getElementById('collectionSection');
   emptyState = document.getElementById('emptyState');
   initCardPreview();
+  initSidebarTabFlow();
   deckMetaAutocomplete = createDeckMetaAutocomplete({
     rootEl: document.getElementById('deckColumns'),
   });

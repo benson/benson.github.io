@@ -32,6 +32,14 @@ function sidebarToggleButtons(documentObj) {
   return Array.from(documentObj?.querySelectorAll?.('[data-sidebar-edge-toggle]') || []);
 }
 
+function setSidebarPeek(documentObj, peeking) {
+  const body = documentObj?.body;
+  const shouldPeek = !!peeking
+    && body?.classList.contains('left-sidebar-collapsed')
+    && !body.classList.contains('left-drawer-open');
+  body?.classList.toggle('left-sidebar-peeking', shouldPeek);
+}
+
 function syncSidebarToggles(documentObj, collapsed) {
   const mobileOpen = documentObj?.body?.classList.contains('left-drawer-open');
   const narrowLayout = isNarrowLayout(documentObj);
@@ -62,6 +70,7 @@ export function bindSidebarToggle({
   if (!buttons.length) return () => {};
 
   const onClick = event => {
+    setSidebarPeek(documentObj, false);
     if (event.currentTarget?.matches?.('[data-sidebar-edge-toggle]') && isNarrowLayout(documentObj)) {
       documentObj.body.classList.toggle('left-drawer-open');
       syncSidebarToggles(documentObj, documentObj.body.classList.contains('left-sidebar-collapsed'));
@@ -72,7 +81,21 @@ export function bindSidebarToggle({
     safeSet(storage, SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0');
     applySidebarCollapsed(collapsed, { documentObj });
   };
-  buttons.forEach(button => button.addEventListener('click', onClick));
+  const onPeekStart = () => setSidebarPeek(documentObj, true);
+  const onPeekEnd = () => setSidebarPeek(documentObj, false);
+  buttons.forEach(button => {
+    button.addEventListener('click', onClick);
+    button.addEventListener('pointerenter', onPeekStart);
+    button.addEventListener('pointerleave', onPeekEnd);
+    button.addEventListener('focus', onPeekStart);
+    button.addEventListener('blur', onPeekEnd);
+  });
   syncSidebarToggles(documentObj, documentObj.body.classList.contains('left-sidebar-collapsed'));
-  return () => buttons.forEach(button => button.removeEventListener('click', onClick));
+  return () => buttons.forEach(button => {
+    button.removeEventListener('click', onClick);
+    button.removeEventListener('pointerenter', onPeekStart);
+    button.removeEventListener('pointerleave', onPeekEnd);
+    button.removeEventListener('focus', onPeekStart);
+    button.removeEventListener('blur', onPeekEnd);
+  });
 }

@@ -184,17 +184,25 @@ body.app-booting .app-boot-curtain {
       <div class="list-view" id="listView">
         <div class="bulk-bar" id="bulkBar" aria-live="polite">
           <span class="bulk-count" id="bulkCount">0 selected</span>
-          <div class="field">
-            <label for="bulkLocationName">location</label>
-            <div class="loc-field">
-              <select class="loc-type-select" id="bulkLocationType">
-                <option value="deck">deck</option>
-                <option value="binder">binder</option>
-                <option value="box" selected>box</option>
-              </select>
-              <input id="bulkLocationName" class="loc-name-input" type="text" list="locationOptions" placeholder="set...">
-            </div>
-          </div>
+          <details class="bulk-edit-menu" id="bulkEditMenu">
+            <summary class="btn btn-secondary bulk-edit-trigger">edit</summary>
+            <div class="bulk-edit-panel">
+              <div class="field bulk-location-field">
+                <label for="bulkLocationName">location</label>
+                <div class="location-picker bulk-location-picker" id="bulkLocationPicker">
+                  <div class="location-pills" id="bulkLocationPills" role="radiogroup" aria-label="location"></div>
+                  <div class="location-new hidden" id="bulkLocationNewBox">
+                    <div class="loc-field loc-field-typed bulk-loc-field">
+                      <div class="loc-type-radios" id="bulkLocationTypeRadios" role="radiogroup" aria-label="location type"></div>
+                      <input id="bulkLocationName" class="loc-name-input" type="text" list="locationOptions" placeholder="name">
+                    </div>
+                  </div>
+                  <div class="bulk-location-meta">
+                    <span id="bulkLocationStatus">select a location</span>
+                    <button class="danger-link" type="button" id="bulkLocationClear">clear location</button>
+                  </div>
+                </div>
+              </div>
           <div class="field">
             <label for="bulkCondition">condition</label>
             <select id="bulkCondition">
@@ -249,10 +257,12 @@ body.app-booting .app-boot-curtain {
               <button class="btn btn-secondary bulk-tag-btn" type="button" id="bulkTagRemoveBtn">remove</button>
             </div>
           </div>
+              <div class="bulk-pending" id="bulkPending"></div>
+            </div>
+          </details>
           <span class="bulk-spacer"></span>
           <button class="btn btn-danger" type="button" id="bulkDelete">delete</button>
           <button class="btn btn-secondary" type="button" id="bulkClear">clear</button>
-          <div class="bulk-pending" id="bulkPending"></div>
         </div>
         <table>
           <thead>
@@ -446,6 +456,13 @@ body.app-booting .app-boot-curtain {
               </div>
             </div>
             <div class="settings-group">
+              <div class="settings-label" id="settingsDrawerTabLabel">drawer tab</div>
+              <div class="settings-options" role="group" aria-labelledby="settingsDrawerTabLabel">
+                <button class="settings-option" type="button" data-settings-key="drawer-tab" data-settings-value="simple" aria-pressed="false">simple</button>
+                <button class="settings-option" type="button" data-settings-key="drawer-tab" data-settings-value="flowing" aria-pressed="false">flowing</button>
+              </div>
+            </div>
+            <div class="settings-group">
               <div class="settings-label" id="settingsTextSizeLabel">text size</div>
               <div class="settings-options" role="group" aria-labelledby="settingsTextSizeLabel">
                 <button class="settings-option" type="button" data-settings-key="text-size" data-settings-value="compact" aria-pressed="false">compact</button>
@@ -575,6 +592,6 @@ body.app-booting .app-boot-curtain {
   </div>
 </div>
 
-<script type="module" src="./app.js"></script>
+<script type="module" src="./app.js?bulk-location-picker-4"></script>
 </body>
 </html>

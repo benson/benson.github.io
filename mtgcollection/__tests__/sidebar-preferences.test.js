@@ -54,6 +54,25 @@ test('loadSidebarPreference and bindSidebarToggle persist collapsed state', () =
   assert.equal(storage.getItem(SIDEBAR_COLLAPSED_KEY), '1');
 });
 
+test('edge toggle hover peeks collapsed sidebar', () => {
+  const { win, document } = setup();
+  const storage = createFakeStorage([[SIDEBAR_COLLAPSED_KEY, '1']]);
+  const button = document.getElementById('sidebarEdgeToggleBtn');
+
+  loadSidebarPreference({ documentObj: document, storage });
+  bindSidebarToggle({ documentObj: document, storage });
+
+  button.dispatchEvent(new win.Event('pointerenter', { bubbles: true }));
+  assert.equal(document.body.classList.contains('left-sidebar-peeking'), true);
+
+  button.dispatchEvent(new win.Event('pointerleave', { bubbles: true }));
+  assert.equal(document.body.classList.contains('left-sidebar-peeking'), false);
+
+  document.body.classList.add('left-drawer-open');
+  button.dispatchEvent(new win.Event('pointerenter', { bubbles: true }));
+  assert.equal(document.body.classList.contains('left-sidebar-peeking'), false);
+});
+
 test('edge toggle opens mobile drawer without changing collapsed preference', () => {
   const { win, document } = setup();
   win.matchMedia = () => ({ matches: true });

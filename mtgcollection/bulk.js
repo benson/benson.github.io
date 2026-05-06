@@ -9,21 +9,29 @@ import {
   normalizeTag,
   allCollectionTags,
   formatLocationLabel,
+  locationKey,
 } from './collection.js';
 import { commitCollectionChange } from './commit.js';
 import { filteredSorted } from './search.js';
 import { captureBefore, recordEvent } from './changelog.js';
+import { createAddLocationPicker } from './addLocationPicker.js';
 
 let bulkBar, listBodyEl;
 let renderCurrentView = () => {};
+let bulkLocationPicker = null;
 
 export function updateBulkBar() {
   const n = state.selectedKeys.size;
   document.getElementById('bulkCount').textContent = n + ' selected';
-  bulkBar.classList.toggle('active', n > 0);
+  if (n > 0) bulkBar.classList.add('active');
+  else bulkBar.classList.remove('active');
   syncHeaderCheckbox();
   populateBulkTagDropdowns();
-  if (n === 0 && pendingChangeCount() > 0) clearPendingBulk();
+  if (n === 0) {
+    document.getElementById('bulkEditMenu')?.removeAttribute('open');
+    if (pendingChangeCount() > 0) clearPendingBulk();
+  }
+  syncBulkLocationPicker();
   renderPendingRow();
 }
 
@@ -72,7 +80,7 @@ function syncHeaderCheckbox() {
 
 // ---- Staged (pending) bulk changes ----
 const pendingBulk = {
-  location: null,
+  location: undefined,
   condition: null,
   finish: null,
   language: null,
@@ -88,7 +96,7 @@ const LANGUAGE_LABELS = {
 
 function pendingChangeCount() {
   let n = 0;
-  if (pendingBulk.location !== null) n++;
+  if (pendingBulk.location !== undefined) n++;
   if (pendingBulk.condition !== null) n++;
   if (pendingBulk.finish !== null) n++;
   if (pendingBulk.language !== null) n++;
@@ -98,7 +106,7 @@ function pendingChangeCount() {
 }
 
 function clearPendingBulk() {
-  pendingBulk.location = null;
+  pendingBulk.location = undefined;
   pendingBulk.condition = null;
   pendingBulk.finish = null;
   pendingBulk.language = null;
@@ -106,10 +114,66 @@ function clearPendingBulk() {
   pendingBulk.removeTags.length = 0;
 }
 
+function selectedLocationState() {
+  let seen = false;
+  let firstKey = '';
+  let firstLoc = null;
+  for (const c of state.collection) {
+    if (!state.selectedKeys.has(collectionKey(c))) continue;
+    const loc = normalizeLocation(c.location);
+    const key = locationKey(loc);
+    if (!seen) {
+      seen = true;
+      firstKey = key;
+      firstLoc = loc;
+    } else if (key !== firstKey) {
+      return { kind: 'mixed' };
+    }
+  }
+  if (!seen) return { kind: 'none' };
+  return firstLoc ? { kind: 'single', location: firstLoc } : { kind: 'empty' };
+}
+
+function syncBulkLocationPicker() {
+  if (!bulkLocationPicker) return;
+  const statusEl = document.getElementById('bulkLocationStatus');
+  if (pendingBulk.location !== undefined) {
+    bulkLocationPicker.seed(pendingBulk.location);
+    if (statusEl) {
+      statusEl.textContent = pendingBulk.location
+        ? 'will move all selected'
+        : 'will clear location';
+    }
+    return;
+  }
+
+  const selected = selectedLocationState();
+  if (selected.kind === 'single') {
+    bulkLocationPicker.setSelectedLocation(selected.location);
+    if (statusEl) statusEl.textContent = 'all selected here now';
+  } else {
+    bulkLocationPicker.seed(null);
+    if (statusEl) statusEl.textContent = selected.kind === 'mixed' ? 'mixed locations' : 'select a location';
+  }
+}
+
 function stageField(field, raw, normalizer) {
   if (!state.selectedKeys.size) return;
   pendingBulk[field] = normalizer ? normalizer(raw) : raw;
   renderPendingRow();
+}
+
+function stageLocation(loc) {
+  if (!state.selectedKeys.size) return;
+  pendingBulk.location = loc;
+  syncBulkLocationPicker();
+  renderPendingRow();
+}
+
+function stageBulkPickerLocation() {
+  const loc = bulkLocationPicker?.readLocation();
+  if (!loc) return;
+  stageLocation(loc);
 }
 
 function stageTagAdd(rawTag) {
@@ -135,9 +199,12 @@ function unstage(kind, value) {
     pendingBulk.addTags = pendingBulk.addTags.filter(t => t !== value);
   } else if (kind === 'removeTag') {
     pendingBulk.removeTags = pendingBulk.removeTags.filter(t => t !== value);
+  } else if (kind === 'location') {
+    pendingBulk.location = undefined;
   } else if (kind in pendingBulk) {
     pendingBulk[kind] = null;
   }
+  if (kind === 'location') syncBulkLocationPicker();
   renderPendingRow();
 }
 
@@ -158,8 +225,8 @@ function renderPendingRow() {
     return;
   }
   const pills = [];
-  if (pendingBulk.location !== null) {
-    const label = formatLocationLabel(pendingBulk.location) || '(empty)';
+  if (pendingBulk.location !== undefined) {
+    const label = pendingBulk.location ? formatLocationLabel(pendingBulk.location) : 'clear';
     pills.push(pillHTML('location', '', '→ location: ' + label));
   }
   if (pendingBulk.condition !== null) {
@@ -205,7 +272,7 @@ function commitPending() {
   const changeCount = pendingChangeCount();
   for (const c of state.collection) {
     if (!state.selectedKeys.has(collectionKey(c))) continue;
-    if (pendingBulk.location !== null) c.location = pendingBulk.location;
+    if (pendingBulk.location !== undefined) c.location = pendingBulk.location;
     if (pendingBulk.condition !== null) c.condition = pendingBulk.condition;
     if (pendingBulk.finish !== null) c.finish = pendingBulk.finish;
     if (pendingBulk.language !== null) c.language = pendingBulk.language;
@@ -238,7 +305,10 @@ function commitPending() {
 
 function cancelPending() {
   clearPendingBulk();
-  ['bulkLocation', 'bulkCondition', 'bulkFinish', 'bulkLanguage', 'bulkTagAdd', 'bulkTagRemove'].forEach(id => {
+  const locName = document.getElementById('bulkLocationName');
+  if (locName) locName.value = '';
+  syncBulkLocationPicker();
+  ['bulkCondition', 'bulkFinish', 'bulkLanguage', 'bulkTagAdd', 'bulkTagRemove'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -249,6 +319,17 @@ export function initBulk({ renderImpl = () => {} } = {}) {
   renderCurrentView = renderImpl;
   bulkBar = document.getElementById('bulkBar');
   listBodyEl = document.getElementById('listBody');
+  bulkLocationPicker = createAddLocationPicker({
+    getNameInput: () => document.getElementById('bulkLocationName'),
+    pillsId: 'bulkLocationPills',
+    newBoxId: 'bulkLocationNewBox',
+    newBtnId: 'bulkLocationNewBtn',
+    typeRadiosId: 'bulkLocationTypeRadios',
+    typeRadioName: 'bulkLocationType',
+  });
+  bulkLocationPicker.buildTypeRadios();
+  bulkLocationPicker.bindPills();
+  bulkLocationPicker.render();
 
   document.getElementById('headerCheck').addEventListener('change', e => {
     const visible = filteredSorted();
@@ -259,15 +340,26 @@ export function initBulk({ renderImpl = () => {} } = {}) {
 
   document.getElementById('bulkClear').addEventListener('click', () => {
     state.selectedKeys.clear();
+    clearPendingBulk();
     renderCurrentView();
+    updateBulkBar();
   });
 
-  const bulkLocType = document.getElementById('bulkLocationType');
   const bulkLocName = document.getElementById('bulkLocationName');
-  bulkLocName.addEventListener('change', () => {
-    const loc = normalizeLocation({ type: bulkLocType.value, name: bulkLocName.value });
-    if (loc) stageField('location', loc);
-    bulkLocName.value = '';
+  document.getElementById('bulkLocationPills').addEventListener('click', e => {
+    if (e.target.closest('#bulkLocationNewBtn')) return;
+    if (!e.target.closest('.location-pill-btn')) return;
+    stageBulkPickerLocation();
+  });
+  document.getElementById('bulkLocationClear').addEventListener('click', () => {
+    stageLocation(null);
+  });
+  bulkLocName.addEventListener('change', stageBulkPickerLocation);
+  bulkLocName.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      stageBulkPickerLocation();
+    }
   });
   document.getElementById('bulkCondition').addEventListener('change', e => {
     if (!e.target.value) return;

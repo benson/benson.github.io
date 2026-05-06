@@ -1,13 +1,15 @@
 import { state } from './state.js';
 import { save } from './persistence.js';
 import { clearAllFilters } from './search.js';
-import { render } from './view.js';
+import { render } from './view.js?bulk-location-picker-4';
 import { renderDetailLegality } from './detail.js';
 import { setTopLevelViewMode } from './routeState.js';
+import { syncSidebarTabFlow } from './sidebarTabFlow.js';
 
 export const TEXT_CASE_KEY = 'mtgcollection_text_case_v1';
 export const CHROME_KEY = 'mtgcollection_chrome_v1';
 export const TEXT_SIZE_KEY = 'mtgcollection_text_size_v1';
+export const DRAWER_TAB_KEY = 'mtgcollection_drawer_tab_v1';
 
 export function applyTextCase(mode, bodyEl = globalThis.document?.body) {
   bodyEl?.classList.toggle('proper-case', mode === 'proper');
@@ -25,6 +27,10 @@ export function applyTextSize(mode, bodyEl = globalThis.document?.body) {
   rootEl?.classList.toggle('text-size-large', mode === 'large');
 }
 
+export function applyDrawerTab(mode, bodyEl = globalThis.document?.body) {
+  bodyEl?.classList.toggle('sidebar-tab-simple', mode === 'simple');
+}
+
 function safeGet(storage, key) {
   try { return storage?.getItem(key) || ''; } catch (e) { return ''; }
 }
@@ -40,6 +46,7 @@ export function loadChromePreferences({
   applyTextCase(safeGet(storage, TEXT_CASE_KEY), documentObj?.body);
   applyChrome(safeGet(storage, CHROME_KEY), documentObj?.body);
   applyTextSize(safeGet(storage, TEXT_SIZE_KEY), documentObj?.body);
+  applyDrawerTab(safeGet(storage, DRAWER_TAB_KEY), documentObj?.body);
 }
 
 export function bindAppControls({
@@ -131,6 +138,7 @@ export function bindAppControls({
     const getCurrentSetting = key => {
       if (key === 'text-case') return bodyEl?.classList.contains('proper-case') ? 'proper' : 'lower';
       if (key === 'chrome') return bodyEl?.classList.contains('chrome-classic') ? 'classic' : 'soft';
+      if (key === 'drawer-tab') return bodyEl?.classList.contains('sidebar-tab-simple') ? 'simple' : 'flowing';
       if (key === 'text-size') {
         if (bodyEl?.classList.contains('text-size-compact')) return 'compact';
         if (bodyEl?.classList.contains('text-size-large')) return 'large';
@@ -161,6 +169,10 @@ export function bindAppControls({
       } else if (settingsKey === 'chrome') {
         safeSet(storage, CHROME_KEY, settingsValue);
         applyChrome(settingsValue, bodyEl);
+      } else if (settingsKey === 'drawer-tab') {
+        safeSet(storage, DRAWER_TAB_KEY, settingsValue);
+        applyDrawerTab(settingsValue, bodyEl);
+        syncSidebarTabFlow({ rescan: true });
       } else if (settingsKey === 'text-size') {
         safeSet(storage, TEXT_SIZE_KEY, settingsValue);
         applyTextSize(settingsValue, bodyEl);

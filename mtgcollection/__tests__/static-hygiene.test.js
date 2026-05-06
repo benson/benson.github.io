@@ -48,7 +48,7 @@ test('mtgcollection document declares UTF-8 before app content', () => {
   assert.match(headStart, /<link\s+rel="stylesheet"\s+href="\.\/styles\.css">/);
   assert.match(html, /<div class="app-boot-curtain" id="appBootCurtain"/);
   assert.doesNotMatch(htmlWithoutBootCurtainStyle, /<style\b/);
-  assert.match(html, /<script\s+type="module"\s+src="\.\/app\.js"><\/script>/);
+  assert.match(html, /<script\s+type="module"\s+src="\.\/app\.js(?:\?[^"]+)?"><\/script>/);
 });
 
 test('history UI does not expose CSV export controls', () => {
@@ -110,7 +110,8 @@ function mtgImportGraph() {
     const deps = [];
     let match;
     while ((match = importPattern.exec(text))) {
-      let target = path.normalize(path.join(path.dirname(file), match[1]));
+      const importPath = match[1].split(/[?#]/)[0];
+      let target = path.normalize(path.join(path.dirname(file), importPath));
       if (!target.endsWith('.js')) target += '.js';
       if (target.startsWith(mtgRoot) && fs.existsSync(target)) deps.push(relativeMtgPath(target));
     }

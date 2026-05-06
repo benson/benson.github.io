@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   bindAppControls,
   CHROME_KEY,
+  DRAWER_TAB_KEY,
   loadChromePreferences,
   TEXT_CASE_KEY,
   TEXT_SIZE_KEY,
@@ -37,6 +38,8 @@ function setupDocument() {
       <button type="button" data-settings-key="text-case" data-settings-value="proper" aria-pressed="false"></button>
       <button type="button" data-settings-key="chrome" data-settings-value="soft" aria-pressed="false"></button>
       <button type="button" data-settings-key="chrome" data-settings-value="classic" aria-pressed="false"></button>
+      <button type="button" data-settings-key="drawer-tab" data-settings-value="simple" aria-pressed="false"></button>
+      <button type="button" data-settings-key="drawer-tab" data-settings-value="flowing" aria-pressed="false"></button>
       <button type="button" data-settings-key="text-size" data-settings-value="compact" aria-pressed="false"></button>
       <button type="button" data-settings-key="text-size" data-settings-value="default" aria-pressed="false"></button>
       <button type="button" data-settings-key="text-size" data-settings-value="large" aria-pressed="false"></button>
@@ -54,6 +57,7 @@ test('loadChromePreferences: applies stored body classes', () => {
       [TEXT_CASE_KEY, 'proper'],
       [CHROME_KEY, 'classic'],
       [TEXT_SIZE_KEY, 'large'],
+      [DRAWER_TAB_KEY, 'simple'],
     ]),
   });
 
@@ -61,6 +65,7 @@ test('loadChromePreferences: applies stored body classes', () => {
   assert.equal(documentObj.body.classList.contains('chrome-classic'), true);
   assert.equal(documentObj.body.classList.contains('text-size-large'), true);
   assert.equal(documentObj.body.classList.contains('text-size-compact'), false);
+  assert.equal(documentObj.body.classList.contains('sidebar-tab-simple'), true);
 });
 
 test('bindAppControls: format selector persists state and syncs loaded values', () => {
@@ -139,6 +144,7 @@ test('bindAppControls: reset and settings preferences stay behind one boundary',
 
   assert.equal(settingButton('text-case', 'lower').getAttribute('aria-pressed'), 'true');
   assert.equal(settingButton('chrome', 'soft').getAttribute('aria-pressed'), 'true');
+  assert.equal(settingButton('drawer-tab', 'flowing').getAttribute('aria-pressed'), 'true');
   assert.equal(settingButton('text-size', 'default').getAttribute('aria-pressed'), 'true');
 
   settingsToggle.click();
@@ -147,6 +153,8 @@ test('bindAppControls: reset and settings preferences stay behind one boundary',
 
   settingButton('text-case', 'proper').click();
   settingButton('chrome', 'classic').click();
+  settingButton('drawer-tab', 'simple').click();
+  settingButton('drawer-tab', 'flowing').click();
   settingButton('text-size', 'large').click();
   settingButton('text-size', 'compact').click();
   settingButton('text-size', 'default').click();
@@ -168,12 +176,15 @@ test('bindAppControls: reset and settings preferences stay behind one boundary',
   assert.deepEqual(calls.paths, ['/mtgcollection/']);
   assert.equal(storage.values.get(TEXT_CASE_KEY), 'proper');
   assert.equal(storage.values.get(CHROME_KEY), 'classic');
+  assert.equal(storage.values.get(DRAWER_TAB_KEY), 'flowing');
   assert.equal(storage.values.get(TEXT_SIZE_KEY), 'default');
   assert.equal(documentObj.body.classList.contains('proper-case'), true);
   assert.equal(documentObj.body.classList.contains('chrome-classic'), true);
+  assert.equal(documentObj.body.classList.contains('sidebar-tab-simple'), false);
   assert.equal(documentObj.body.classList.contains('text-size-large'), false);
   assert.equal(documentObj.body.classList.contains('text-size-compact'), false);
   assert.equal(settingButton('text-case', 'proper').getAttribute('aria-pressed'), 'true');
   assert.equal(settingButton('chrome', 'classic').getAttribute('aria-pressed'), 'true');
+  assert.equal(settingButton('drawer-tab', 'flowing').getAttribute('aria-pressed'), 'true');
   assert.equal(settingButton('text-size', 'default').getAttribute('aria-pressed'), 'true');
 });

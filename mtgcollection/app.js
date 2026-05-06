@@ -4,8 +4,8 @@ import { onCollectionCommit, resetCollectionCommitHooks } from './appRuntime.js'
 import { commitCollectionChange } from './commit.js';
 import { loadFromStorage, migrateSavedCollection } from './persistence.js';
 import { initSearch, applyUrlStateOnLoad } from './search.js';
-import { render, initView, navigateToLocation } from './view.js';
-import { initBulk } from './bulk.js';
+import { render, initView, navigateToLocation } from './view.js?bulk-location-picker-4';
+import { initBulk } from './bulk.js?bulk-location-picker-4';
 import { initAdd } from './add.js';
 import { initDetail, populateFilters } from './detail.js';
 import {
@@ -25,7 +25,7 @@ import {
 import { initSyncUi } from './syncUi.js';
 import { initMcpChat } from './mcpChat.js';
 import { applyRouteStateFromUrl } from './routeState.js';
-import { bindSidebarToggle, loadSidebarPreference } from './sidebarPreferences.js';
+import { bindSidebarToggle, loadSidebarPreference } from './sidebarPreferences.js?drawer-peek-1';
 
 function mirrorSharedDecks() {
   if (state.shareSnapshot) return;

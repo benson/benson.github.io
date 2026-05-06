@@ -212,3 +212,83 @@ test('bindListRowInteractions: delegates clicks, key commits, and change commits
   ]);
   assert.equal(rows.querySelector('.loc-picker-new').classList.contains('hidden'), false);
 });
+
+test('bindListRowInteractions: ctrl-clicking a row toggles its checkbox instead of opening detail', () => {
+  const win = new Window();
+  win.document.body.innerHTML = `
+    <table><tbody id="rows">
+      <tr class="detail-trigger" data-index="7">
+        <td class="text-cell">open row</td>
+        <td><button class="card-name-button" data-index="7">Sol Ring</button></td>
+        <td><input class="row-check" data-key="sol"></td>
+      </tr>
+    </tbody></table>
+  `;
+  const rows = win.document.getElementById('rows');
+  const calls = [];
+  const checkbox = rows.querySelector('.row-check');
+  checkbox.addEventListener('change', () => calls.push(['check', checkbox.checked]));
+
+  bindListRowInteractions({
+    listBodyEl: rows,
+    openDetailImpl: index => calls.push(['detail', index]),
+  });
+
+  rows.querySelector('.text-cell').dispatchEvent(new win.MouseEvent('click', {
+    bubbles: true,
+    cancelable: true,
+    ctrlKey: true,
+  }));
+  rows.querySelector('.card-name-button').dispatchEvent(new win.MouseEvent('click', {
+    bubbles: true,
+    cancelable: true,
+    ctrlKey: true,
+  }));
+  rows.querySelector('.text-cell').click();
+
+  assert.deepEqual(calls, [
+    ['check', true],
+    ['check', false],
+    ['detail', 7],
+  ]);
+});
+
+test('bindListRowInteractions: ctrl-mousedown toggles selection and suppresses the follow-up row click', () => {
+  const win = new Window();
+  win.document.body.innerHTML = `
+    <section id="rows">
+      <table><tbody>
+        <tr class="detail-trigger" data-index="7" data-key="sol">
+          <td class="text-cell">open row</td>
+          <td><button class="card-name-button" data-index="7">Sol Ring</button></td>
+          <td><input class="row-check" data-key="sol"></td>
+        </tr>
+      </tbody></table>
+    </section>
+  `;
+  const rows = win.document.getElementById('rows');
+  const calls = [];
+  const checkbox = rows.querySelector('.row-check');
+  checkbox.addEventListener('change', () => calls.push(['check', checkbox.checked]));
+
+  bindListRowInteractions({
+    listBodyEl: rows,
+    openDetailImpl: index => calls.push(['detail', index]),
+  });
+
+  rows.querySelector('.card-name-button').dispatchEvent(new win.MouseEvent('mousedown', {
+    bubbles: true,
+    cancelable: true,
+    button: 0,
+    ctrlKey: true,
+  }));
+  rows.querySelector('.card-name-button').dispatchEvent(new win.MouseEvent('click', {
+    bubbles: true,
+    cancelable: true,
+    button: 0,
+  }));
+
+  assert.deepEqual(calls, [
+    ['check', true],
+  ]);
+});

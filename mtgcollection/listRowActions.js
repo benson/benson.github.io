@@ -182,6 +182,64 @@ export function bindListRowInteractions({
     return listBodyEl.tagName === 'TBODY' || row.hasAttribute('data-key');
   };
 
+  const isInteractiveRowControl = target => {
+    if (target.closest('input, select, textarea, a, .loc-pill')) return true;
+    const button = target.closest('button');
+    return !!button && !button.classList.contains('card-name-button');
+  };
+
+  const isRowSelectionModifier = event => (
+    event.ctrlKey
+    || event.metaKey
+    || event.getModifierState?.('Control')
+    || event.getModifierState?.('Meta')
+  );
+
+  const toggleRowCheckbox = row => {
+    const checkbox = row?.querySelector?.('.row-check');
+    if (!checkbox || checkbox.disabled) return false;
+    checkbox.checked = !checkbox.checked;
+    const EventCtor = checkbox.ownerDocument?.defaultView?.Event || Event;
+    checkbox.dispatchEvent(new EventCtor('change', { bubbles: true }));
+    return true;
+  };
+
+  let suppressNextRowClick = null;
+
+  const stopRowSelectionEvent = event => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation?.();
+  };
+
+  const toggleRowFromEvent = event => {
+    if (isRowSelectionModifier(event) && !isInteractiveRowControl(event.target)) {
+      const trigger = event.target.closest('tr.detail-trigger');
+      if (isRowInScope(trigger) && toggleRowCheckbox(trigger)) {
+        stopRowSelectionEvent(event);
+        return trigger;
+      }
+    }
+    return null;
+  };
+
+  const onMouseDownCapture = event => {
+    if (event.button !== 0) return;
+    const trigger = toggleRowFromEvent(event);
+    if (trigger) suppressNextRowClick = trigger;
+  };
+
+  const onClickCapture = event => {
+    const trigger = event.target.closest('tr.detail-trigger');
+    if (suppressNextRowClick && trigger === suppressNextRowClick) {
+      suppressNextRowClick = null;
+      stopRowSelectionEvent(event);
+      return;
+    }
+    const toggledRow = toggleRowFromEvent(event);
+    if (toggledRow) suppressNextRowClick = null;
+  };
+
   const onClick = event => {
     const removeTagButton = event.target.closest('.row-tag-remove');
     if (removeTagButton) {
@@ -251,11 +309,15 @@ export function bindListRowInteractions({
     }
   };
 
+  listBodyEl.addEventListener('mousedown', onMouseDownCapture, true);
+  listBodyEl.addEventListener('click', onClickCapture, true);
   listBodyEl.addEventListener('click', onClick);
   listBodyEl.addEventListener('keydown', onKeydown);
   listBodyEl.addEventListener('change', onChange);
 
   return () => {
+    listBodyEl.removeEventListener('mousedown', onMouseDownCapture, true);
+    listBodyEl.removeEventListener('click', onClickCapture, true);
     listBodyEl.removeEventListener('click', onClick);
     listBodyEl.removeEventListener('keydown', onKeydown);
     listBodyEl.removeEventListener('change', onChange);
