@@ -62,8 +62,9 @@ import {
   applyBinderPriceToggle,
   loadBinderPrices,
   loadBinderSize,
+  loadBinderViewPrefs,
   renderBinderView,
-} from './views/binderView.js';
+} from './views/binderView.js?binder-playlist-4';
 import { initCardPreview } from './ui/cardPreview.js';
 import { createDeckMetaAutocomplete } from './deckMetaAutocomplete.js';
 import { buildDeckCardFromEntry } from './deckCardModel.js';
@@ -71,7 +72,7 @@ import { createDeckPreviewPanel } from './deckPreviewPanel.js';
 import { createRightDrawer } from './rightDrawer.js';
 import { renderDeckSampleHandPanel } from './deckSampleHand.js';
 import { bindAppShellActions } from './appShellActions.js';
-import { bindBinderControls } from './binderActions.js';
+import { bindBinderControls } from './binderActions.js?binder-playlist-4';
 import { bindDeckWorkspaceInteractions } from './deckWorkspaceActions.js';
 import { bindLocationHomeInteractions } from './locationHomeActions.js';
 import { bindListRowInteractions } from './listRowActions.js';
@@ -104,7 +105,7 @@ function currentDeckScope() {
 
 export function containerIdentityHtml(loc) {
   const icon = LOC_ICONS[loc.type] || '';
-  return `<button class="container-identity-name" type="button" data-container-rename data-loc-type="${esc(loc.type)}" data-loc-name="${esc(loc.name)}">${esc(loc.name)}</button>
+  return `<button class="container-identity-name" type="button" data-container-rename data-loc-type="${esc(loc.type)}" data-loc-name="${esc(loc.name)}" aria-label="edit ${esc(loc.type)} name: ${esc(loc.name)}" title="edit ${esc(loc.type)} name">${esc(loc.name)}</button>
     <span class="loc-pill loc-pill-${esc(loc.type)} container-identity-type">${icon}<span>${esc(loc.type)}</span></span>`;
 }
 
@@ -375,8 +376,12 @@ export function render() {
   } else if (shape === 'binder') {
     binderContainer.classList.add('active');
     binderSizeCtl.classList.remove('hidden');
-    renderBinderView(list, { hasActiveFilter, renderEmptyScopeState });
-    setCollectionTotals(list);
+    renderBinderView(list, {
+      container: currentBinderContainer(),
+      hasActiveFilter: () => !!getActiveLocationOfType('binder') || hasActiveFilter(),
+      renderEmptyScopeState,
+    });
+    setTotalsStrip('');
   } else {
     // 'collection' or 'box' — both render as flat list. 'box' is just a
     // collection view filtered to a single box container.
@@ -469,6 +474,11 @@ function currentDeckContainer() {
   const loc = getActiveLocationOfType('deck');
   if (!loc) return null;
   return ensureContainer(loc);
+}
+
+function currentBinderContainer() {
+  const loc = getActiveLocationOfType('binder');
+  return loc ? ensureContainer(loc) : null;
 }
 
 function currentDeckMetadata() {
@@ -745,11 +755,13 @@ export function initView() {
 
   loadBinderSize();
   loadBinderPrices();
+  loadBinderViewPrefs();
   applyBinderSizeButtons();
   applyBinderPriceToggle();
   bindBinderControls({
     stateRef: state,
     getEffectiveShapeImpl: getEffectiveShape,
+    getActiveBinderContainerImpl: currentBinderContainer,
     navigateToLocationImpl: navigateToLocation,
     openDetailImpl: openDetail,
     renderImpl: render,

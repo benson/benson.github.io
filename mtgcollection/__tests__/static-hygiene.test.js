@@ -89,7 +89,7 @@ test('settings live in the header with test data reset inside the popover', () =
   assert.ok(headerMatch);
   assert.match(headerMatch[0], /id="settingsToggleBtn"/);
   assert.match(headerMatch[0], /id="loadTestDataBtn"/);
-  assert.doesNotMatch(footerMatch?.[0] || '', /settingsToggleBtn|loadTestDataBtn|footer-settings|footer-test-reset/);
+  assert.doesNotMatch(footerMatch?.[0] || '', /settingsToggleBtn|loadTestDataBtn|footer-settings|footer-test-reset|footerSyncStatus|bensonperry\.com/);
 });
 
 test('mobile css keeps sheet and browsing guardrails in place', () => {

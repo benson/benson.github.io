@@ -205,13 +205,55 @@ body.app-booting .app-boot-curtain {
       </div>
       <div class="binder-view" id="binderView">
         <div class="binder-actions">
-          <div class="segmented" id="binderSizeControl" aria-label="binder layout">
-            <button class="segment-btn" type="button" data-binder-size="4x3" aria-pressed="true">4x3</button>
-            <button class="segment-btn" type="button" data-binder-size="3x3" aria-pressed="false">3x3</button>
-            <button class="segment-btn" type="button" data-binder-size="2x2" aria-pressed="false">2x2</button>
-            <button class="segment-btn" type="button" data-binder-size="list" aria-pressed="false">list</button>
+          <div class="binder-actions-primary">
+            <div class="segmented binder-mode-control" id="binderModeControl" aria-label="binder mode">
+              <button class="segment-btn active" type="button" data-binder-mode="view" aria-pressed="true">view</button>
+              <button class="segment-btn" type="button" data-binder-mode="organize" aria-pressed="false">organize</button>
+            </div>
+            <div class="segmented" id="binderSizeControl" aria-label="binder layout">
+              <button class="segment-btn" type="button" data-binder-size="4x3" aria-pressed="true">4x3</button>
+              <button class="segment-btn" type="button" data-binder-size="3x3" aria-pressed="false">3x3</button>
+              <button class="segment-btn" type="button" data-binder-size="2x2" aria-pressed="false">2x2</button>
+              <button class="segment-btn" type="button" data-binder-size="list" aria-pressed="false">list</button>
+            </div>
+            <label class="binder-price-toggle"><input type="checkbox" id="binderPriceToggle" checked> prices</label>
           </div>
-          <label class="binder-price-toggle"><input type="checkbox" id="binderPriceToggle" checked> prices</label>
+          <div class="binder-explore-controls" id="binderExploreControls" aria-label="binder view controls">
+            <label class="binder-control-field">order
+              <select id="binderSortSelect">
+                <option value="binder">binder order</option>
+                <option value="name">name</option>
+                <option value="price-desc">highest value</option>
+                <option value="price-asc">lowest value</option>
+                <option value="recent">recently added</option>
+              </select>
+            </label>
+            <input class="binder-search-input" id="binderSearchInput" type="search" placeholder="search binder" autocomplete="off">
+            <label class="binder-control-field">color
+              <select id="binderColorFilter">
+                <option value="">all colors</option>
+                <option value="w">white</option>
+                <option value="u">blue</option>
+                <option value="b">black</option>
+                <option value="r">red</option>
+                <option value="g">green</option>
+                <option value="multicolor">multicolor</option>
+                <option value="colorless">colorless</option>
+              </select>
+            </label>
+            <label class="binder-control-field">type
+              <select id="binderTypeFilter">
+                <option value="">all types</option>
+                <option value="creature">creatures</option>
+                <option value="land">lands</option>
+                <option value="artifact">artifacts</option>
+                <option value="enchantment">enchantments</option>
+                <option value="planeswalker">planeswalkers</option>
+                <option value="spell">instants/sorceries</option>
+              </select>
+            </label>
+            <button class="btn btn-secondary binder-lens-reset hidden" type="button" id="binderLensReset">restore binder order</button>
+          </div>
           <span class="binder-summary" id="binderSummary"></span>
         </div>
         <div class="binder-pages" id="binderPages"></div>
@@ -470,12 +512,6 @@ body.app-booting .app-boot-curtain {
 
   <footer class="app-footer">
     <div class="app-totals-strip" id="appTotalsStrip" aria-live="polite"></div>
-    <div class="app-footer-row">
-      <div class="app-footer-right">
-        <span class="footer-sync-status" id="footerSyncStatus" aria-live="polite" hidden></span>
-        <a href="/">bensonperry.com</a>
-      </div>
-    </div>
   </footer>
   <div class="app-right-backdrop" id="appRightBackdrop"></div>
   <section class="mcp-chat-widget" id="mcpChatDetails" aria-label="collection chat" aria-hidden="true">
@@ -596,6 +632,6 @@ body.app-booting .app-boot-curtain {
   </div>
 </div>
 
-<script type="module" src="./app.js?settings-header-1"></script>
+<script type="module" src="./app.js?binder-playlist-9"></script>
 </body>
 </html>

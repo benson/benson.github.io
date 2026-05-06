@@ -4,14 +4,18 @@ import { Window } from 'happy-dom';
 import { state } from '../state.js';
 import {
   applyBinderSizeButtons,
+  applyBinderExploreControls,
   applyBinderPriceToggle,
+  loadBinderViewPrefs,
   loadBinderPrices,
   loadBinderSize,
   renderBinderSlot,
   renderBinderView,
+  saveBinderViewPrefs,
   saveBinderPrices,
   saveBinderSize,
 } from '../views/binderView.js';
+import { binderCardKey } from '../binder.js';
 
 const previousWindow = globalThis.window;
 const previousDocument = globalThis.document;
@@ -21,6 +25,11 @@ afterEach(() => {
   state.binderSize = '4x3';
   state.binderPage = 0;
   state.binderShowPrices = true;
+  state.binderMode = 'view';
+  state.binderSort = 'binder';
+  state.binderSearch = '';
+  state.binderColorFilter = '';
+  state.binderTypeFilter = '';
   globalThis.window = previousWindow;
   globalThis.document = previousDocument;
 });
@@ -40,6 +49,24 @@ function installDom() {
     <button data-binder-size="4x3"></button>
     <button data-binder-size="3x3"></button>
     <button data-binder-size="list"></button>
+    <button data-binder-mode="view"></button>
+    <button data-binder-mode="organize"></button>
+    <select id="binderSortSelect">
+      <option value="binder"></option>
+      <option value="name"></option>
+      <option value="price-desc"></option>
+      <option value="recent"></option>
+    </select>
+    <input id="binderSearchInput">
+    <select id="binderColorFilter">
+      <option value=""></option>
+      <option value="g"></option>
+    </select>
+    <select id="binderTypeFilter">
+      <option value=""></option>
+      <option value="creature"></option>
+    </select>
+    <button id="binderLensReset" class="hidden"></button>
     <input type="checkbox" id="binderPriceToggle">
   `;
   return win.document;
@@ -97,7 +124,8 @@ test('renderBinderView: paginates sorted cards and updates binder chrome', () =>
   const doc = installDom();
   state.binderSize = '2x2';
   state.binderPage = 99;
-  state.collection = ['Echo', 'Delta', 'Charlie', 'Bravo', 'Alpha'].map(name => card(name));
+  state.binderSort = 'name';
+  state.collection = ['Echo', 'Delta', 'Charlie', 'Bravo', 'Alpha'].map((name, index) => card(name, { price: index + 1 }));
 
   renderBinderView(state.collection, { hasActiveFilter: () => true });
 
@@ -105,13 +133,13 @@ test('renderBinderView: paginates sorted cards and updates binder chrome', () =>
   assert.equal(doc.querySelectorAll('.binder-slot.detail-trigger').length, 4);
   assert.equal(doc.getElementById('binderPages').classList.contains('binder-pages-2x2'), true);
   assert.equal(doc.querySelector('.binder-surface').classList.contains('binder-surface-2x2'), true);
-  assert.match(doc.querySelector('.binder-page').getAttribute('style'), /grid-template-rows: repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.match(doc.querySelector('.binder-page').getAttribute('style'), /grid-template-rows: repeat\(2, auto\)/);
   assert.equal(doc.querySelector('.binder-slot').getAttribute('aria-label'), 'Alpha');
   assert.equal(doc.getElementById('binderNav').classList.contains('hidden'), false);
   assert.equal(doc.getElementById('binderPrev').disabled, true);
   assert.equal(doc.getElementById('binderNext').disabled, false);
   assert.equal(doc.getElementById('binderPageIndicator').textContent, 'page 1 of 2');
-  assert.equal(doc.getElementById('binderSummary').textContent, '5 cards - 5 unique');
+  assert.equal(doc.getElementById('binderSummary').textContent, '5 cards - 5 unique - $15.00 value');
 });
 
 test('renderBinderView: preserves empty pockets on sparse binder pages', () => {
@@ -123,6 +151,69 @@ test('renderBinderView: preserves empty pockets on sparse binder pages', () => {
 
   assert.equal(doc.querySelectorAll('.binder-slot').length, 12);
   assert.equal(doc.querySelectorAll('.binder-slot-empty').length, 10);
+});
+
+test('renderBinderView: uses canonical binder order including empty pockets', () => {
+  const doc = installDom();
+  state.binderSize = '2x2';
+  const alpha = card('Alpha');
+  const beta = card('Beta');
+  const gamma = card('Gamma');
+  state.collection = [alpha, beta, gamma];
+  const container = {
+    type: 'binder',
+    name: 'trade',
+    binderOrder: [binderCardKey(gamma), null, binderCardKey(alpha)],
+  };
+
+  renderBinderView(state.collection, { container, hasActiveFilter: () => true });
+
+  const slots = [...doc.querySelectorAll('.binder-slot')];
+  assert.equal(slots[0].getAttribute('aria-label'), 'Gamma');
+  assert.equal(slots[1].classList.contains('binder-slot-empty'), true);
+  assert.equal(slots[2].getAttribute('aria-label'), 'Alpha');
+  assert.equal(slots[3].getAttribute('aria-label'), 'Beta');
+});
+
+test('renderBinderView: explore lenses sort/filter without preserving empty pockets', () => {
+  const doc = installDom();
+  state.binderSize = '2x2';
+  state.binderSort = 'price-desc';
+  state.binderColorFilter = 'g';
+  const alpha = card('Alpha', { price: 2, colors: ['G'], typeLine: 'Creature' });
+  const beta = card('Beta', { price: 9, colors: ['U'], typeLine: 'Instant' });
+  const gamma = card('Gamma', { price: 5, colors: ['G'], typeLine: 'Sorcery' });
+  state.collection = [alpha, beta, gamma];
+  const container = {
+    type: 'binder',
+    name: 'trade',
+    binderOrder: [binderCardKey(alpha), null, binderCardKey(gamma), binderCardKey(beta)],
+  };
+
+  renderBinderView(state.collection, { container, hasActiveFilter: () => true });
+
+  const slots = [...doc.querySelectorAll('.binder-slot')];
+  assert.equal(slots[0].getAttribute('aria-label'), 'Gamma');
+  assert.equal(slots[1].getAttribute('aria-label'), 'Alpha');
+  assert.equal(slots[2].classList.contains('binder-slot-empty'), true);
+  assert.equal(doc.getElementById('binderSummary').textContent, '2 cards - 2 unique - $7.00 value');
+  assert.equal(doc.getElementById('binderLensReset').classList.contains('hidden'), false);
+});
+
+test('renderBinderView: organize mode marks cards draggable and ignores explore sort', () => {
+  const doc = installDom();
+  state.binderMode = 'organize';
+  state.binderSort = 'price-desc';
+  state.binderSize = '2x2';
+  const alpha = card('Alpha', { price: 1 });
+  const beta = card('Beta', { price: 9 });
+  state.collection = [alpha, beta];
+
+  renderBinderView(state.collection, { hasActiveFilter: () => true });
+
+  assert.equal(doc.querySelector('.binder-slot').getAttribute('aria-label'), 'Alpha');
+  assert.equal(doc.querySelector('.binder-slot').getAttribute('draggable'), 'true');
+  assert.equal(doc.getElementById('binderSortSelect').disabled, true);
 });
 
 test('renderBinderView: list layout reuses row renderer without pagination chrome', () => {
@@ -195,4 +286,38 @@ test('binder price preference defaults on and persists toggle state', () => {
   state.binderShowPrices = false;
   saveBinderPrices(storage);
   assert.equal(saved.get('mtgcollection_binder_prices_v1'), 'false');
+});
+
+test('binder explore preferences load, save, and update controls', () => {
+  const doc = installDom();
+  const saved = new Map([['mtgcollection_binder_view_prefs_v1', JSON.stringify({
+    mode: 'organize',
+    sort: 'price-desc',
+    search: 'tomb',
+    color: 'g',
+    type: 'creature',
+  })]]);
+  const storage = {
+    getItem: key => saved.get(key) || null,
+    setItem: (key, value) => saved.set(key, value),
+  };
+
+  loadBinderViewPrefs(storage);
+  assert.equal(state.binderMode, 'organize');
+  assert.equal(state.binderSort, 'price-desc');
+  assert.equal(state.binderSearch, 'tomb');
+  assert.equal(state.binderColorFilter, 'g');
+  assert.equal(state.binderTypeFilter, 'creature');
+
+  applyBinderExploreControls(doc);
+  assert.equal(doc.querySelector('[data-binder-mode="organize"]').classList.contains('active'), true);
+  assert.equal(doc.getElementById('binderSortSelect').disabled, true);
+  assert.equal(doc.getElementById('binderSearchInput').value, 'tomb');
+  assert.equal(doc.getElementById('binderColorFilter').value, 'g');
+  assert.equal(doc.getElementById('binderTypeFilter').value, 'creature');
+
+  state.binderMode = 'view';
+  state.binderSort = 'recent';
+  saveBinderViewPrefs(storage);
+  assert.match(saved.get('mtgcollection_binder_view_prefs_v1'), /"sort":"recent"/);
 });

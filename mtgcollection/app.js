@@ -4,7 +4,7 @@ import { onCollectionCommit, resetCollectionCommitHooks } from './appRuntime.js'
 import { commitCollectionChange } from './commit.js';
 import { loadFromStorage, migrateSavedCollection } from './persistence.js';
 import { initSearch, applyUrlStateOnLoad } from './search.js';
-import { render, initView, navigateToLocation, openRightDrawer } from './view.js?bulk-location-picker-4';
+import { render, initView, navigateToLocation, openRightDrawer } from './view.js?binder-playlist-5';
 import { initBulk } from './bulk.js?bulk-location-picker-4';
 import { initAdd } from './add.js';
 import { initDetail, populateFilters } from './detail.js';
@@ -44,6 +44,20 @@ function markBootReady() {
   document.body.classList.remove('app-booting');
 }
 
+const SYNC_BOOT_WAIT_MS = 2500;
+const LOCAL_SYNC_BOOT_WAIT_MS = 1000;
+
+function wait(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function withBootBudget(promise, fallback, ms) {
+  return Promise.race([
+    Promise.resolve(promise).catch(() => fallback),
+    wait(ms).then(() => fallback),
+  ]);
+}
+
 function showBootFailure(error) {
   markBootReady();
   const feedback = document.getElementById('feedback');
@@ -51,6 +65,25 @@ function showBootFailure(error) {
     feedback.textContent = error?.message || String(error || 'app failed to load');
     feedback.classList.add('error');
   }
+}
+
+function runPostBootBackfills() {
+  backfillMissingPrices()
+    .then(() => {
+      populateFilters();
+      render();
+    })
+    .catch(error => console.warn('[prices] backfill skipped after boot:', error.message || error));
+
+  lazyBackfillSearchFields()
+    .catch(error => console.warn('[search] lazy backfill skipped after boot:', error.message || error));
+
+  // Populate the set-icon cache from Scryfall in the background; re-render
+  // when it lands so cards with quirky set codes (pmkm, h2r, sld, etc.)
+  // get their proper icons.
+  refreshSetIcons()
+    .then(updated => { if (updated) render(); })
+    .catch(error => console.warn('[sets] icon refresh skipped after boot:', error.message || error));
 }
 
 async function boot() {
@@ -113,16 +146,32 @@ async function boot() {
     return;
   }
 
-  const hasLocalSyncSnapshot = await loadLocalSyncSnapshotIntoState();
+  const hasLocalSyncSnapshot = await withBootBudget(
+    loadLocalSyncSnapshotIntoState(),
+    false,
+    LOCAL_SYNC_BOOT_WAIT_MS
+  );
   const hasSavedCollection = hasLocalSyncSnapshot || loadFromStorage();
   appControls.syncFormatSelect();
   if (hasSavedCollection) {
     migrateSavedCollection();
-    await backfillMissingPrices();
   }
   applyRouteStateFromUrl();
-  await primeSyncBaseline();
-  await initSyncEngine({ render, populateFilters, applyRouteState: applyRouteStateFromUrl });
+  await withBootBudget(primeSyncBaseline(), null, LOCAL_SYNC_BOOT_WAIT_MS);
+  const syncInit = initSyncEngine({ render, populateFilters, applyRouteState: applyRouteStateFromUrl });
+  const syncReady = await Promise.race([
+    syncInit.then(() => true),
+    wait(SYNC_BOOT_WAIT_MS).then(() => false),
+  ]);
+  if (!syncReady) {
+    syncInit
+      .then(() => {
+        populateFilters();
+        applyRouteStateFromUrl();
+        render();
+      })
+      .catch(error => console.warn('[sync] startup continued after boot:', error.message || error));
+  }
   populateFilters();
   applyRouteStateFromUrl();
   applyUrlStateOnLoad();
@@ -131,13 +180,7 @@ async function boot() {
   if (state.collection.length === 0) {
     document.getElementById('addDetails').open = true;
   }
-  lazyBackfillSearchFields();
-
-  // Populate the set-icon cache from Scryfall in the background; re-render
-  // when it lands so cards with quirky set codes (pmkm, h2r, sld, etc.)
-  // get their proper icons.
-  refreshSetIcons().then(updated => { if (updated) render(); });
-
+  if (hasSavedCollection) runPostBootBackfills();
 }
 
 boot().catch(showBootFailure);

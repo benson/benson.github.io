@@ -3,7 +3,6 @@ import { exportCsv } from './import.js';
 import { showFeedback } from './feedback.js';
 
 let root = null;
-let footerStatusRoot = null;
 let exportModal = null;
 
 function closeExportModal() {
@@ -102,7 +101,22 @@ function ensureStatusDom(documentObj = document) {
   actions.className = 'sync-menu-actions';
   const exportButton = createSyncActionButton(documentObj, 'export', 'export data');
 
-  menu.append(meta, actions, exportButton);
+  const menuStatus = documentObj.createElement('div');
+  menuStatus.className = 'sync-menu-status';
+  menuStatus.setAttribute('aria-live', 'polite');
+  const statusDot = documentObj.createElement('span');
+  statusDot.className = 'sync-menu-status-dot';
+  statusDot.setAttribute('aria-hidden', 'true');
+  const statusText = documentObj.createElement('div');
+  statusText.className = 'sync-menu-status-text';
+  const statusLabel = documentObj.createElement('strong');
+  statusLabel.className = 'sync-menu-status-label';
+  const statusDetail = documentObj.createElement('span');
+  statusDetail.className = 'sync-menu-status-detail';
+  statusText.append(statusLabel, statusDetail);
+  menuStatus.append(statusDot, statusText);
+
+  menu.append(meta, actions, exportButton, menuStatus);
   const settingsEl = root.querySelector('.header-settings');
   if (settingsEl) root.insertBefore(chip, settingsEl);
   else root.append(chip);
@@ -127,45 +141,17 @@ function syncAccountActions(menu, { signedIn, showManualSync }) {
   }
 }
 
-function ensureFooterStatusDom(statusRoot) {
-  if (!statusRoot || statusRoot.querySelector('.footer-sync-dot')) return;
-  const documentObj = statusRoot.ownerDocument || document;
-  const dot = documentObj.createElement('span');
-  dot.className = 'footer-sync-dot';
-  dot.setAttribute('aria-hidden', 'true');
-  const label = documentObj.createElement('span');
-  label.className = 'footer-sync-label';
-  statusRoot.append(dot, label);
-}
-
-function renderFooterStatus(status) {
-  const statusRoot = footerStatusRoot
-    || root?.ownerDocument?.getElementById('footerSyncStatus')
-    || null;
-  if (!statusRoot) return;
-  const signedIn = !!status.user;
-  statusRoot.hidden = !signedIn;
-  if (!signedIn) return;
-  ensureFooterStatusDom(statusRoot);
-  const mode = status.mode || 'local';
-  const label = status.label || 'sync';
-  const pendingText = status.pending ? ' - ' + status.pending + ' queued' : '';
-  statusRoot.className = `footer-sync-status footer-sync-status-${mode}`;
-  statusRoot.querySelector('.footer-sync-label').textContent = label + pendingText;
-  statusRoot.title = status.detail || label;
-}
-
 function renderStatus(status) {
   if (!root) return;
   ensureStatusDom(root.ownerDocument || document);
   const signedIn = !!status.user;
   const showManualSync = signedIn && (status.pending || status.mode === 'queued' || status.mode === 'error');
   const pendingText = status.pending ? ' - ' + status.pending + ' queued' : '';
-  const detailText = (status.mode === 'synced' && !status.pending) ? '' : (status.detail || '');
   const chip = root.querySelector('.sync-chip');
   const menu = root.querySelector('.sync-menu');
   const mode = status.mode || 'local';
-  chip.className = `sync-chip sync-chip-${mode}${signedIn ? ' sync-chip-account' : ''}`;
+  const needsAttention = signedIn && (status.pending || mode === 'queued' || mode === 'error');
+  chip.className = `sync-chip sync-chip-${mode}${signedIn ? ' sync-chip-account' : ''}${needsAttention ? ' sync-chip-needs-attention' : ''}`;
   chip.querySelector('.sync-label').textContent = signedIn ? 'my account' : (status.label || 'local');
   chip.setAttribute('aria-label', signedIn
     ? 'my account - ' + (status.label || 'sync')
@@ -174,28 +160,32 @@ function renderStatus(status) {
 
   menu.querySelector('strong').textContent = signedIn ? status.user.label : 'local collection';
   const detailEl = menu.querySelector('.sync-menu-detail');
-  detailEl.textContent = detailText + pendingText;
-  detailEl.hidden = !(detailText || pendingText);
+  detailEl.textContent = '';
+  detailEl.hidden = true;
   syncAccountActions(menu, { signedIn, showManualSync });
-  renderFooterStatus(status);
+
+  const menuStatus = menu.querySelector('.sync-menu-status');
+  if (menuStatus) {
+    const statusDetail = status.detail || (signedIn ? 'up to date' : 'signed out local collection');
+    menuStatus.className = `sync-menu-status sync-menu-status-${mode}`;
+    menuStatus.querySelector('.sync-menu-status-label').textContent = status.label || (signedIn ? 'sync' : 'local');
+    menuStatus.querySelector('.sync-menu-status-detail').textContent = statusDetail + pendingText;
+  }
 }
 
 export function renderSyncStatusForTest(status, rootEl, footerStatusEl = null) {
   const previousRoot = root;
-  const previousFooterStatusRoot = footerStatusRoot;
   root = rootEl;
-  footerStatusRoot = footerStatusEl;
+  void footerStatusEl;
   try {
     renderStatus(status);
   } finally {
     root = previousRoot;
-    footerStatusRoot = previousFooterStatusRoot;
   }
 }
 
 export function initSyncUi({ documentObj = document } = {}) {
   root = documentObj.getElementById('syncAccountSlot');
-  footerStatusRoot = documentObj.getElementById('footerSyncStatus');
   if (!root) return;
   ensureExportModal(documentObj);
 
