@@ -206,10 +206,6 @@ body.app-booting .app-boot-curtain {
       <div class="binder-view" id="binderView">
         <div class="binder-actions">
           <div class="binder-actions-primary">
-            <div class="segmented binder-mode-control" id="binderModeControl" aria-label="binder mode">
-              <button class="segment-btn active" type="button" data-binder-mode="view" aria-pressed="true">view</button>
-              <button class="segment-btn" type="button" data-binder-mode="organize" aria-pressed="false">organize</button>
-            </div>
             <div class="segmented" id="binderSizeControl" aria-label="binder layout">
               <button class="segment-btn" type="button" data-binder-size="4x3" aria-pressed="true">4x3</button>
               <button class="segment-btn" type="button" data-binder-size="3x3" aria-pressed="false">3x3</button>
@@ -217,9 +213,7 @@ body.app-booting .app-boot-curtain {
               <button class="segment-btn" type="button" data-binder-size="list" aria-pressed="false">list</button>
             </div>
             <label class="binder-price-toggle"><input type="checkbox" id="binderPriceToggle" checked> prices</label>
-          </div>
-          <div class="binder-explore-controls" id="binderExploreControls" aria-label="binder view controls">
-            <label class="binder-control-field">order
+            <label class="binder-control-field binder-sort-field"><span class="binder-control-label">sort</span>
               <select id="binderSortSelect">
                 <option value="binder">binder order</option>
                 <option value="name">name</option>
@@ -229,32 +223,36 @@ body.app-booting .app-boot-curtain {
               </select>
             </label>
             <input class="binder-search-input" id="binderSearchInput" type="search" placeholder="search binder" autocomplete="off">
-            <label class="binder-control-field">color
-              <select id="binderColorFilter">
-                <option value="">all colors</option>
-                <option value="w">white</option>
-                <option value="u">blue</option>
-                <option value="b">black</option>
-                <option value="r">red</option>
-                <option value="g">green</option>
-                <option value="multicolor">multicolor</option>
-                <option value="colorless">colorless</option>
-              </select>
-            </label>
-            <label class="binder-control-field">type
-              <select id="binderTypeFilter">
-                <option value="">all types</option>
-                <option value="creature">creatures</option>
-                <option value="land">lands</option>
-                <option value="artifact">artifacts</option>
-                <option value="enchantment">enchantments</option>
-                <option value="planeswalker">planeswalkers</option>
-                <option value="spell">instants/sorceries</option>
-              </select>
-            </label>
-            <button class="btn btn-secondary binder-lens-reset hidden" type="button" id="binderLensReset">restore binder order</button>
+            <details class="binder-filter-menu" id="binderFilterMenu">
+              <summary class="binder-filter-trigger">filters</summary>
+              <div class="binder-explore-controls" id="binderExploreControls" aria-label="binder filters">
+                <label class="binder-control-field">color
+                  <select id="binderColorFilter">
+                    <option value="">all colors</option>
+                    <option value="w">white</option>
+                    <option value="u">blue</option>
+                    <option value="b">black</option>
+                    <option value="r">red</option>
+                    <option value="g">green</option>
+                    <option value="multicolor">multicolor</option>
+                    <option value="colorless">colorless</option>
+                  </select>
+                </label>
+                <label class="binder-control-field">type
+                  <select id="binderTypeFilter">
+                    <option value="">all types</option>
+                    <option value="creature">creatures</option>
+                    <option value="land">lands</option>
+                    <option value="artifact">artifacts</option>
+                    <option value="enchantment">enchantments</option>
+                    <option value="planeswalker">planeswalkers</option>
+                    <option value="spell">instants/sorceries</option>
+                  </select>
+                </label>
+                <button class="btn btn-secondary binder-lens-reset hidden" type="button" id="binderLensReset">restore binder order</button>
+              </div>
+            </details>
           </div>
-          <span class="binder-summary" id="binderSummary"></span>
         </div>
         <div class="binder-pages" id="binderPages"></div>
         <div class="binder-nav hidden" id="binderNav">
@@ -632,6 +630,6 @@ body.app-booting .app-boot-curtain {
   </div>
 </div>
 
-<script type="module" src="./app.js?binder-playlist-9"></script>
+<script type="module" src="./app.js?binder-playlist-10"></script>
 </body>
 </html>

@@ -64,7 +64,7 @@ import {
   loadBinderSize,
   loadBinderViewPrefs,
   renderBinderView,
-} from './views/binderView.js?binder-playlist-4';
+} from './views/binderView.js?binder-playlist-5';
 import { initCardPreview } from './ui/cardPreview.js';
 import { createDeckMetaAutocomplete } from './deckMetaAutocomplete.js';
 import { buildDeckCardFromEntry } from './deckCardModel.js';
@@ -72,7 +72,7 @@ import { createDeckPreviewPanel } from './deckPreviewPanel.js';
 import { createRightDrawer } from './rightDrawer.js';
 import { renderDeckSampleHandPanel } from './deckSampleHand.js';
 import { bindAppShellActions } from './appShellActions.js';
-import { bindBinderControls } from './binderActions.js?binder-playlist-4';
+import { bindBinderControls } from './binderActions.js?binder-playlist-5';
 import { bindDeckWorkspaceInteractions } from './deckWorkspaceActions.js';
 import { bindLocationHomeInteractions } from './locationHomeActions.js';
 import { bindListRowInteractions } from './listRowActions.js';
@@ -103,10 +103,28 @@ function currentDeckScope() {
   return getActiveLocationOfType('deck');
 }
 
+function binderModeControlHtml(loc) {
+  if (loc.type !== 'binder' || state.shareSnapshot) return '';
+  return `<div class="segmented binder-mode-control" id="binderModeControl" aria-label="binder mode">
+    <button class="segment-btn active" type="button" data-binder-mode="view" aria-pressed="true">view</button>
+    <button class="segment-btn" type="button" data-binder-mode="organize" aria-pressed="false">organize</button>
+  </div>`;
+}
+
+function binderSummaryHtml(loc) {
+  return loc.type === 'binder'
+    ? '<span class="container-identity-spacer"></span><span class="binder-summary" id="binderSummary"></span>'
+    : '';
+}
+
 export function containerIdentityHtml(loc) {
   const icon = LOC_ICONS[loc.type] || '';
-  return `<button class="container-identity-name" type="button" data-container-rename data-loc-type="${esc(loc.type)}" data-loc-name="${esc(loc.name)}" aria-label="edit ${esc(loc.type)} name: ${esc(loc.name)}" title="edit ${esc(loc.type)} name">${esc(loc.name)}</button>
-    <span class="loc-pill loc-pill-${esc(loc.type)} container-identity-type">${icon}<span>${esc(loc.type)}</span></span>`;
+  const editable = !state.shareSnapshot && (loc.type !== 'binder' || state.binderMode === 'organize');
+  const name = editable
+    ? `<button class="container-identity-name" type="button" data-container-rename data-loc-type="${esc(loc.type)}" data-loc-name="${esc(loc.name)}" aria-label="edit ${esc(loc.type)} name: ${esc(loc.name)}" title="edit ${esc(loc.type)} name">${esc(loc.name)}<span class="container-identity-edit-cue">edit</span></button>`
+    : `<span class="container-identity-name-static">${esc(loc.name)}</span>`;
+  return `${name}
+    <span class="loc-pill loc-pill-${esc(loc.type)} container-identity-type">${icon}<span>${esc(loc.type)}</span></span>${binderModeControlHtml(loc)}${binderSummaryHtml(loc)}`;
 }
 
 function containerIdentityEditHtml(loc) {
@@ -115,7 +133,7 @@ function containerIdentityEditHtml(loc) {
     <button class="btn container-identity-save" type="submit">save</button>
     <button class="btn btn-secondary container-identity-cancel" type="button" data-container-rename-cancel>cancel</button>
     <span class="loc-pill loc-pill-${esc(loc.type)} container-identity-type">${LOC_ICONS[loc.type] || ''}<span>${esc(loc.type)}</span></span>
-  </form>`;
+  </form>${binderModeControlHtml(loc)}${binderSummaryHtml(loc)}`;
 }
 
 function startContainerIdentityEdit(strip, loc) {
