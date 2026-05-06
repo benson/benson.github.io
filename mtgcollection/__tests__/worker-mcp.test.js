@@ -245,6 +245,26 @@ test('mcp: ambiguous inventory move returns candidates instead of a change token
   assert.equal(preview.result.structuredContent.candidates.length, 2);
 });
 
+test('mcp: search_inventory filters finish requests', async () => {
+  const snapshot = emptySnapshot({
+    collection: [
+      card({ name: 'Breya, Etherium Shaper', resolvedName: 'Breya, Etherium Shaper', scryfallId: 'breya-1', finish: 'foil' }),
+      card({ name: 'Ancient Tomb', resolvedName: 'Ancient Tomb', scryfallId: 'tomb-1', finish: 'normal' }),
+    ],
+    containers: { 'box:bulk': { type: 'box', name: 'bulk' } },
+  });
+  const { env } = fakeSyncEnv(snapshot);
+  const token = await issueMcpToken(env);
+  const searched = await callTool(env, token.access_token, 'search_inventory', {
+    query: 'foils',
+    limit: 50,
+  });
+  const results = searched.result.structuredContent.results;
+  assert.equal(results.length, 1);
+  assert.equal(results[0].name, 'Breya, Etherium Shaper');
+  assert.equal(results[0].finish, 'foil');
+});
+
 test('mcp: preview/apply inventory move updates snapshot, revision, and history', async () => {
   const entry = card({ qty: 2 });
   const snapshot = emptySnapshot({
@@ -1089,6 +1109,69 @@ test('mcp chat: inventory read results are returned as app-renderable cards', as
     assert.equal(data.cards[0].itemKey, 'card-1');
     assert.equal(data.cards[0].name, 'Maelstrom Artisan // Rocket Volley');
     assert.deepEqual(data.cards[0].location, { type: 'binder', name: 'trade binder' });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp chat: inventory cards drop placeholders and respect requested finish', async () => {
+  const { env } = fakeSyncEnv();
+  env.MTGCOLLECTION_CHAT_GROQ_API_KEY = 'gsk-hosted-secret';
+  const originalFetch = globalThis.fetch;
+  const inventory = {
+    revision: 12,
+    results: [{
+      itemKey: 'card-foil',
+      name: 'Breya, Etherium Shaper',
+      scryfallId: 'breya-1',
+      setCode: 'c16',
+      cn: '29',
+      finish: 'foil',
+      condition: 'near_mint',
+      language: 'en',
+      qty: 1,
+      location: { type: 'box', name: 'bulk' },
+    }, {
+      itemKey: 'card-normal',
+      name: 'Ancient Tomb',
+      scryfallId: 'tomb-1',
+      setCode: 'tmp',
+      cn: '315',
+      finish: 'normal',
+      condition: 'near_mint',
+      language: 'en',
+      qty: 1,
+      location: { type: 'binder', name: 'trade binder' },
+    }],
+  };
+  globalThis.fetch = async () => Response.json({
+    output_text: '',
+    output: [{
+      type: 'mcp_call',
+      name: 'search_inventory',
+      result: {
+        structuredContent: inventory,
+        debugEcho: { itemKey: 'not-a-card' },
+      },
+    }],
+  });
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'what foils do i have?' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.cards.length, 1);
+    assert.equal(data.cards[0].itemKey, 'card-foil');
+    assert.equal(data.cards[0].name, 'Breya, Etherium Shaper');
+    assert.equal(data.cards[0].finish, 'foil');
   } finally {
     globalThis.fetch = originalFetch;
   }

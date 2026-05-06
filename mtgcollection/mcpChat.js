@@ -18,6 +18,7 @@ const SYSTEM_PROMPT = [
   'When calling tools, use real JSON types: quantities are numbers and createContainer is a boolean, not quoted strings.',
   'For add requests, do not invent set codes, collector numbers, rarities, Scryfall ids, quantities, finishes, or conditions.',
   'If the user does not provide every add detail, use search_card_printings or preview_add_inventory_item to return candidates/input needs; the app will render quick controls.',
+  'When the user asks for foils, nonfoils, normal cards, or etched foils in their collection, pass the matching finish to search_inventory.',
   'When showing inventory cards from search_inventory, get_container, or get_deck, keep the prose short and do not write markdown tables; the app renders the card results separately.',
 ].join(' ');
 const HOSTED_PROVIDER = 'groq';
@@ -436,7 +437,8 @@ function normalizeChatCard(raw) {
   if (!raw || typeof raw !== 'object') return null;
   const itemKey = String(raw.itemKey || '').trim();
   if (!itemKey) return null;
-  const name = String(raw.name || raw.resolvedName || 'card').trim() || 'card';
+  const name = String(raw.name || raw.resolvedName || '').trim();
+  if (!name) return null;
   return {
     itemKey,
     name,

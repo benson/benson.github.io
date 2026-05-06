@@ -1126,13 +1126,49 @@ function summarizeEntry(entry) {
   };
 }
 
+function normalizeInventoryFinish(raw) {
+  const value = String(raw || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  if (!value) return '';
+  if (value === 'normal' || value === 'nonfoil' || value === 'nonfoils' || value === 'non_foil' || value === 'non_foils') return 'normal';
+  if (value === 'foil' || value === 'foils' || value === 'foiled') return 'foil';
+  if (value === 'etched' || value === 'etched_foil' || value === 'etched_foils') return 'etched';
+  return '';
+}
+
+function finishFromInventoryText(raw) {
+  const text = String(raw || '').toLowerCase();
+  if (/\bnon[\s_-]?foils?\b|\bnormal\b/.test(text)) return 'normal';
+  if (/\betched(?:[\s_-]?foils?)?\b/.test(text)) return 'etched';
+  if (/\bfoils?\b|\bfoiled\b/.test(text)) return 'foil';
+  return '';
+}
+
+function stripInventoryFinishQuery(raw) {
+  return String(raw || '')
+    .replace(/\bnon[\s_-]?foils?\b/gi, ' ')
+    .replace(/\betched(?:[\s_-]?foils?)?\b/gi, ' ')
+    .replace(/\bfoils?\b|\bfoiled\b/gi, ' ')
+    .replace(/\b(?:any|are|card|cards|collection|copies|copy|do|have|i|list|my|of|own|owned|show|the|what|which)\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function inventoryFinishFilter(args = {}) {
+  return normalizeInventoryFinish(args.finish)
+    || finishFromInventoryText(args.query)
+    || '';
+}
+
 function matchesInventory(entry, args = {}) {
   if (args.itemKey && collectionKey(entry) !== args.itemKey) return false;
   if (args.scryfallId && entry.scryfallId !== args.scryfallId) return false;
   if (args.setCode && String(entry.setCode || '').toLowerCase() !== String(args.setCode).toLowerCase()) return false;
   if (args.cn && String(entry.cn || '').toLowerCase() !== String(args.cn).toLowerCase()) return false;
   if (args.location && locationKey(entry.location) !== locationKey(args.location)) return false;
-  const q = String(args.query || args.name || '').trim().toLowerCase();
+  const finish = inventoryFinishFilter(args);
+  if (finish && (normalizeInventoryFinish(entry.finish) || 'normal') !== finish) return false;
+  const rawQuery = args.query != null ? stripInventoryFinishQuery(args.query) : args.name;
+  const q = String(rawQuery || '').trim().toLowerCase();
   if (q) {
     const name = String(entry.resolvedName || entry.name || '').toLowerCase();
     if (!name.includes(q)) return false;
@@ -1778,6 +1814,7 @@ const TOOL_DEFINITIONS = [
       query: { type: 'string' },
       itemKey: { type: 'string' },
       scryfallId: { type: 'string' },
+      finish: { type: 'string', enum: ['normal', 'nonfoil', 'non-foil', 'foil', 'foils', 'etched', 'etched foil'] },
       location: { oneOf: [{ type: 'string' }, { type: 'object' }] },
       limit: NUMBERISH_SCHEMA,
     },
@@ -2127,6 +2164,9 @@ function normalizeMcpInventoryCard(value) {
   const itemKey = String(value.itemKey || '').trim();
   if (!itemKey) return null;
   const name = String(value.name || value.resolvedName || '').trim();
+  if (!name) return null;
+  const qty = Math.max(0, parseInt(value.qty, 10) || 0);
+  if (!qty) return null;
   return {
     itemKey,
     name,
@@ -2136,7 +2176,7 @@ function normalizeMcpInventoryCard(value) {
     finish: String(value.finish || 'normal').trim().toLowerCase(),
     condition: String(value.condition || 'near_mint').trim().toLowerCase(),
     language: String(value.language || value.lang || 'en').trim().toLowerCase(),
-    qty: Math.max(0, parseInt(value.qty, 10) || 0),
+    qty,
     location: normalizeLocation(value.location),
     deckBoard: String(value.deckBoard || '').trim(),
     tags: Array.isArray(value.tags) ? value.tags.map(String).filter(Boolean).slice(0, 12) : [],
@@ -2174,6 +2214,12 @@ function extractMcpInventoryCards(data) {
   const out = [];
   collectMcpInventoryCards(data, out, new WeakSet(), new Set());
   return out.slice(0, 50);
+}
+
+function filterInventoryCardsForUserRequest(cards, userText) {
+  const finish = finishFromInventoryText(userText);
+  if (!finish) return cards;
+  return cards.filter(card => (normalizeInventoryFinish(card.finish) || 'normal') === finish);
 }
 
 const PREVIEW_MATCH_STOPWORDS = new Set([
@@ -2354,7 +2400,7 @@ function chatSuccessResponse(deps, request, { provider, model, hosted, usage, da
   const lastUserText = [...messages].reverse().find(message => message.role === 'user')?.content || '';
   const filtered = filterChatPreviews(extractMcpPreviews(data), lastUserText);
   const drafts = extractMcpDrafts(data);
-  const cards = extractMcpInventoryCards(data);
+  const cards = filterInventoryCardsForUserRequest(extractMcpInventoryCards(data), lastUserText);
   const responseText = drafts.length && !filtered.previews.length
     ? 'Choose options below.'
     : filtered.previewWarnings.length && !filtered.previews.length
