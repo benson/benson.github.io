@@ -209,6 +209,46 @@ test('initMcpChat: location summary tokens render as location pills', () => {
   click(win, document.getElementById('mcpChatClear'));
 });
 
+test('initMcpChat: assistant prose renders known card and container references richly', () => {
+  const { win, document } = setup();
+  const previousCollection = state.collection;
+  const previousContainers = state.containers;
+  const force = {
+    name: 'Force of Will',
+    resolvedName: 'Force of Will',
+    scryfallId: 'force-1',
+    setCode: '2xm',
+    cn: '51',
+    finish: 'normal',
+    condition: 'near_mint',
+    language: 'en',
+    qty: 1,
+    location: { type: 'binder', name: 'trade binder' },
+    price: 75.04,
+  };
+  state.collection = [force];
+  state.containers = {
+    'binder:trade binder': { type: 'binder', name: 'trade binder' },
+    'box:bulk': { type: 'box', name: 'bulk' },
+  };
+
+  try {
+    initMcpChat({ documentObj: document });
+    click(win, document.getElementById('mcpChatClear'));
+    appendMcpChatMessageForTest('user', 'take my force of will out of my trade binder');
+    appendMcpChatMessageForTest('assistant', 'I can help move **Force of Will** out of your trade binder. Where should it go?');
+
+    const assistant = document.querySelector('.mcp-chat-assistant');
+    assert.equal(assistant.querySelector('.loc-pill-binder')?.dataset.locName, 'trade binder');
+    assert.equal(assistant.querySelector('.card-name-button.card-preview-link')?.textContent, 'Force of Will');
+    assert.equal(assistant.querySelector('.price-cell')?.textContent, '$75.04');
+  } finally {
+    click(win, document.getElementById('mcpChatClear'));
+    state.collection = previousCollection;
+    state.containers = previousContainers;
+  }
+});
+
 test('initMcpChat: staged add drafts reuse the assistant guidance message', () => {
   const { win, document } = setup();
   initMcpChat({ documentObj: document });

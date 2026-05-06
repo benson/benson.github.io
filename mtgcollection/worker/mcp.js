@@ -1822,7 +1822,9 @@ async function toolGetRecentChanges(env, deps, auth, args = {}) {
 async function toolPreviewMoveInventoryItem(env, deps, auth, args = {}) {
   requireWritePreviewArgs(auth);
   const cloud = await currentCloud(env, deps, auth.userId);
-  const matches = (cloud.snapshot.app.collection || []).filter(entry => matchesInventory(entry, args));
+  const sourceLocation = resolveLocationForSnapshot(cloud.snapshot, args.fromLocation || args.locationFrom || args.location);
+  const matchArgs = sourceLocation ? { ...args, location: sourceLocation } : args;
+  const matches = (cloud.snapshot.app.collection || []).filter(entry => matchesInventory(entry, matchArgs));
   if (matches.length !== 1) {
     return {
       status: matches.length ? 'ambiguous' : 'not_found',
@@ -1830,15 +1832,18 @@ async function toolPreviewMoveInventoryItem(env, deps, auth, args = {}) {
     };
   }
   const entry = matches[0];
+  const card = summarizeEntry(entry);
   const qty = Math.min(Math.max(1, parseInt(args.qty, 10) || (parseInt(entry.qty, 10) || 1)), parseInt(entry.qty, 10) || 1);
   const toLocation = resolveLocationForSnapshot(cloud.snapshot, args.toLocation || args.locationTo || args.destination);
-  if (!toLocation) return { status: 'invalid', error: 'toLocation is required' };
+  if (!toLocation) return { status: 'invalid', error: 'toLocation is required', card, candidates: [card] };
   const toKey = locationKey(toLocation);
   const existingContainer = containerFromSnapshot(cloud.snapshot, toLocation);
   if (!existingContainer && !readCreateContainerFlag(args)) {
     return {
       status: 'missing_container',
       missingContainer: toLocation,
+      card,
+      candidates: [card],
       message: 'Set createContainer=true to create ' + toKey + ' as part of this move.',
     };
   }
@@ -2304,18 +2309,20 @@ const TOOL_DEFINITIONS = [
     type: 'object',
     properties: { limit: NUMBERISH_SCHEMA },
   }],
-  ['preview_move_inventory_item', 'Preview moving physical inventory to another location.', {
+  ['preview_move_inventory_item', 'Preview moving physical inventory to another location. If the user named the card/source but not the destination, call this anyway; it returns the matched card so the app can render it while you ask where it should go.', {
     type: 'object',
     properties: {
       query: { type: 'string' },
       itemKey: { type: 'string' },
+      location: { oneOf: [{ type: 'string' }, { type: 'object' }], description: 'Current/source location for the card, if known.' },
+      fromLocation: { oneOf: [{ type: 'string' }, { type: 'object' }] },
+      locationFrom: { oneOf: [{ type: 'string' }, { type: 'object' }] },
       toLocation: { oneOf: [{ type: 'string' }, { type: 'object' }] },
       qty: NUMBERISH_SCHEMA,
       createContainer: BOOLEANISH_SCHEMA,
       createcontainer: BOOLEANISH_SCHEMA,
       create_container: BOOLEANISH_SCHEMA,
     },
-    required: ['toLocation'],
   }],
   ['preview_add_inventory_item', 'Preview adding a physical inventory entry. Requires a real Scryfall printing plus explicit qty, finish, and condition. Do not guess physical-copy options; missing details return needs_input with candidates for the app to render.', {
     type: 'object',
@@ -2955,6 +2962,18 @@ function inventoryCardsSummaryText(cards, userText) {
     + (count === 1 ? 'It is' : 'They are') + ' shown below.';
 }
 
+function mutationRequestText(userText) {
+  return /\b(?:add|move|put|take|remove|delete|rename|create|stage)\b/i.test(String(userText || ''));
+}
+
+function shouldReplaceProviderTextWithCardSummary(cards, userText, providerText) {
+  if (!Array.isArray(cards) || !cards.length) return false;
+  const text = String(providerText || '').trim();
+  if (!text) return true;
+  if (singleCardValueQuestion(userText) || inventoryPriceSortDirection(userText)) return true;
+  return !mutationRequestText(userText);
+}
+
 function addLookupMissSummaryText(misses, userText) {
   const miss = Array.isArray(misses) ? misses.find(Boolean) : null;
   if (!miss) return '';
@@ -3184,7 +3203,7 @@ function chatSuccessResponse(deps, request, { provider, model, hosted, usage, da
     ? filtered.previewWarnings.join('\n')
     : containerSummary
     ? containerSummary
-    : responseCards.length
+    : shouldReplaceProviderTextWithCardSummary(responseCards, lastUserText, text)
     ? inventoryCardsSummaryText(responseCards, lastUserText)
     : addLookupMissText
     ? addLookupMissText
@@ -3228,7 +3247,7 @@ function chatMaxOutputTokens(env, body) {
 
 function chatDailyLimit(env) {
   const configured = parseInt(env.MTGCOLLECTION_CHAT_DAILY_LIMIT || env.CHAT_DAILY_LIMIT, 10);
-  if (!Number.isFinite(configured)) return 25;
+  if (!Number.isFinite(configured)) return 1000;
   return Math.max(0, configured);
 }
 

@@ -40,7 +40,7 @@ Runtime brakes currently configured in `wrangler.toml`:
   working, but blocks anonymous share creates/updates/deletes.
 - `MCP_ALLOW_DYNAMIC_CLIENT_REGISTRATION = "0"` blocks arbitrary remote MCP
   clients from registering themselves.
-- `MTGCOLLECTION_CHAT_DAILY_LIMIT = "25"` caps hosted chat calls per signed-in
+- `MTGCOLLECTION_CHAT_DAILY_LIMIT = "1000"` caps hosted chat calls per signed-in
   user per day.
 - `MTGCOLLECTION_CHAT_MAX_OUTPUT_TOKENS = "1000"` caps hosted chat response
   size.
