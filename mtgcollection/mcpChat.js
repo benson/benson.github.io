@@ -714,6 +714,36 @@ function previewMetaText(preview) {
   return preview.error || '';
 }
 
+function appendTextWithLocationTokens(parent, text) {
+  const raw = String(text || '');
+  const pattern = /\{loc:([^}]+)\}/g;
+  let lastIndex = 0;
+  let match = null;
+  while ((match = pattern.exec(raw))) {
+    if (match.index > lastIndex) {
+      parent.appendChild(documentRef.createTextNode(raw.slice(lastIndex, match.index)));
+    }
+    const loc = normalizeLocation(match[1]);
+    if (loc) {
+      const wrap = documentRef.createElement('span');
+      wrap.className = 'mcp-chat-inline-location';
+      wrap.innerHTML = locationPillHtml(loc, { withRemove: false });
+      parent.appendChild(wrap);
+    } else {
+      parent.appendChild(documentRef.createTextNode(match[0]));
+    }
+    lastIndex = pattern.lastIndex;
+  }
+  if (lastIndex < raw.length) {
+    parent.appendChild(documentRef.createTextNode(raw.slice(lastIndex)));
+  }
+}
+
+function setTextWithLocationTokens(parent, text) {
+  parent.textContent = '';
+  appendTextWithLocationTokens(parent, text);
+}
+
 function makePreviewButton(action, text, changeToken = '') {
   const button = documentRef.createElement('button');
   button.className = 'btn mcp-chat-preview-action';
@@ -1255,7 +1285,7 @@ function renderPendingPreviews() {
     text.className = 'mcp-chat-preview-copy';
     const summary = documentRef.createElement('div');
     summary.className = 'mcp-chat-preview-summary';
-    summary.textContent = preview.summary;
+    setTextWithLocationTokens(summary, preview.summary);
     const meta = documentRef.createElement('div');
     meta.className = 'mcp-chat-preview-meta';
     meta.textContent = previewMetaText(preview);
@@ -1311,7 +1341,7 @@ function renderTranscript() {
     label.textContent = message.role === 'assistant' ? 'assistant' : 'you';
     const body = documentRef.createElement('div');
     body.className = 'mcp-chat-body';
-    body.textContent = message.content;
+    setTextWithLocationTokens(body, message.content);
     row.append(label, body);
 
     if (message.role === 'assistant') {

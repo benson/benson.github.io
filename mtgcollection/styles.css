@@ -4442,6 +4442,15 @@
     font-size: 0.9rem;
     line-height: 1.35;
   }
+  .mcp-chat-inline-location {
+    display: inline-flex;
+    margin: 0 2px;
+    vertical-align: text-bottom;
+    white-space: nowrap;
+  }
+  .mcp-chat-inline-location .loc-pill {
+    cursor: default;
+  }
   .mcp-chat-assistant .mcp-chat-body {
     border-left: 2px solid #777;
     padding-left: 8px;
