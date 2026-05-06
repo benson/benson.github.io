@@ -265,7 +265,6 @@ export async function initSyncEngine({ render = () => {}, populateFilters = () =
       label: auth.user ? 'syncing' : 'local',
       detail: auth.configured ? 'sync ready' : 'configure Clerk to enable cloud sync',
     });
-    if (auth.user) await bootstrapCloud();
   } catch (e) {
     auth = null;
     emit({
@@ -276,6 +275,7 @@ export async function initSyncEngine({ render = () => {}, populateFilters = () =
       detail: 'cloud sign-in unavailable: ' + (e.message || String(e)),
     });
   }
+  if (auth?.user) await bootstrapCloud().catch(e => reportSyncFailure(e));
   await refreshPendingStatus();
 }
 
