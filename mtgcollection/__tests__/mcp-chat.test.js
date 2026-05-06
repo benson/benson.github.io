@@ -188,6 +188,27 @@ test('initMcpChat: pending previews hide internal revision metadata', () => {
   assert.doesNotMatch(panel.textContent, /expires/i);
 });
 
+test('initMcpChat: location summary tokens render as location pills', () => {
+  const { win, document } = setup();
+  initMcpChat({ documentObj: document });
+  click(win, document.getElementById('mcpChatClear'));
+
+  appendMcpChatMessageForTest('assistant', 'Applied: moved 1 Lotho to {loc:box:bulk}');
+  addPendingPreviewsForTest([{ changeToken: 'preview.loc', summary: 'Moved 1 Sol Ring to {loc:binder:trade binder}' }]);
+
+  const body = document.querySelector('.mcp-chat-body');
+  assert.match(body.textContent, /Applied: moved 1 Lotho to bulk/);
+  assert.doesNotMatch(body.textContent, /\{loc:/);
+  assert.equal(body.querySelector('.loc-pill-box')?.dataset.locName, 'bulk');
+
+  const summary = document.querySelector('.mcp-chat-preview-summary');
+  assert.match(summary.textContent, /Moved 1 Sol Ring to trade binder/);
+  assert.doesNotMatch(summary.textContent, /\{loc:/);
+  assert.equal(summary.querySelector('.loc-pill-binder')?.dataset.locName, 'trade binder');
+
+  click(win, document.getElementById('mcpChatClear'));
+});
+
 test('initMcpChat: staged add drafts reuse the assistant guidance message', () => {
   const { win, document } = setup();
   initMcpChat({ documentObj: document });
