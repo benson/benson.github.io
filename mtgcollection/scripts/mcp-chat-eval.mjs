@@ -6,7 +6,8 @@ import { applySyncOps } from '../syncReducer.js';
 import { locationKey, normalizeLocation } from '../collection.js';
 import { SYSTEM_PROMPT } from '../mcpChat.js';
 
-const DEFAULT_MODEL = 'openai/gpt-oss-120b';
+const DEFAULT_PROVIDER = 'cloudflare';
+const DEFAULT_MODEL = '@cf/openai/gpt-oss-120b';
 const USER_ID = 'eval_user';
 const MCP_URL = 'https://eval.local/mcp';
 
@@ -23,6 +24,7 @@ function parseArgs(argv) {
     rateLimitRetries: 2,
     maxRetrySeconds: 20,
     caseDelayMs: 250,
+    provider: DEFAULT_PROVIDER,
   };
   for (const arg of argv) {
     if (arg === '--all') out.all = true;
@@ -33,6 +35,7 @@ function parseArgs(argv) {
     else if (arg.startsWith('--category=')) out.category = arg.slice(11);
     else if (arg.startsWith('--id=')) out.id = arg.slice(5);
     else if (arg.startsWith('--model=')) out.model = arg.slice(8);
+    else if (arg.startsWith('--provider=')) out.provider = arg.slice(11).toLowerCase();
     else if (arg.startsWith('--report=')) out.report = arg.slice(9);
     else if (arg.startsWith('--tool-mode=')) out.toolMode = arg.slice(12);
     else if (arg.startsWith('--max-output=')) out.maxOutput = Math.max(64, parseInt(arg.slice(13), 10) || out.maxOutput);
@@ -42,6 +45,7 @@ function parseArgs(argv) {
     else if (arg.startsWith('--case-delay-ms=')) out.caseDelayMs = Math.max(0, parseInt(arg.slice(16), 10) || 0);
   }
   if (!['category', 'full'].includes(out.toolMode)) throw new Error('--tool-mode must be category or full');
+  if (!['cloudflare', 'groq'].includes(out.provider)) throw new Error('--provider must be cloudflare or groq');
   return out;
 }
 
@@ -538,6 +542,13 @@ function groqKey() {
   return process.env.GROQ_API_KEY || process.env.MTGCOLLECTION_CHAT_GROQ_API_KEY || '';
 }
 
+function cloudflareCredentials() {
+  return {
+    accountId: process.env.CLOUDFLARE_ACCOUNT_ID || process.env.CF_ACCOUNT_ID || '',
+    apiToken: process.env.CLOUDFLARE_API_TOKEN || process.env.CLOUDFLARE_AUTH_TOKEN || '',
+  };
+}
+
 async function callGroq({ apiKey, model, messages, tools, maxOutput, rateLimitRetries, maxRetrySeconds }) {
   let lastMessage = '';
   for (let attempt = 0; attempt <= rateLimitRetries; attempt += 1) {
@@ -557,7 +568,7 @@ async function callGroq({ apiKey, model, messages, tools, maxOutput, rateLimitRe
       }),
     });
     const data = await res.json().catch(() => ({}));
-    if (res.ok) return data.choices?.[0]?.message || { role: 'assistant', content: '' };
+    if (res.ok) return { ...(data.choices?.[0]?.message || { role: 'assistant', content: '' }), usage: data.usage || null };
     lastMessage = data?.error?.message || JSON.stringify(data) || ('groq failed: ' + res.status);
     if (/request too large/i.test(lastMessage)) throw new Error(lastMessage);
     if (/\b(?:TPD|tokens per day)\b/i.test(lastMessage)) throw new Error(lastMessage);
@@ -570,6 +581,70 @@ async function callGroq({ apiKey, model, messages, tools, maxOutput, rateLimitRe
     await new Promise(resolve => setTimeout(resolve, Math.ceil(retrySeconds * 1000) + 750));
   }
   throw new Error(lastMessage || 'Groq rate limit retry budget exhausted');
+}
+
+function cloudflareTools(tools) {
+  return tools.map(tool => ({
+    name: tool.function?.name,
+    description: tool.function?.description || '',
+    parameters: tool.function?.parameters || { type: 'object', properties: {} },
+  })).filter(tool => tool.name);
+}
+
+function cloudflareRunUrl(accountId, model) {
+  return 'https://api.cloudflare.com/client/v4/accounts/'
+    + encodeURIComponent(accountId)
+    + '/ai/run/'
+    + String(model || '').replace(/^\/+/, '');
+}
+
+function normalizeCloudflareAssistant(data) {
+  const result = data?.result && typeof data.result === 'object' ? data.result : data;
+  const calls = Array.isArray(result?.tool_calls) ? result.tool_calls : [];
+  return {
+    role: 'assistant',
+    content: result?.response || result?.output_text || '',
+    usage: result?.usage || null,
+    tool_calls: calls.map((call, index) => ({
+      id: String(call.id || 'cf_tool_' + index),
+      type: 'function',
+      function: {
+        name: String(call.name || call.function?.name || ''),
+        arguments: typeof call.arguments === 'string'
+          ? call.arguments
+          : JSON.stringify(call.arguments || call.function?.arguments || {}),
+      },
+    })).filter(call => call.function.name),
+  };
+}
+
+async function callCloudflare({ accountId, apiToken, model, messages, tools, maxOutput, rateLimitRetries, maxRetrySeconds }) {
+  let lastMessage = '';
+  for (let attempt = 0; attempt <= rateLimitRetries; attempt += 1) {
+    const res = await fetch(cloudflareRunUrl(accountId, model), {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + apiToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messages,
+        tools: cloudflareTools(tools),
+        temperature: 0,
+        max_tokens: maxOutput,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data?.success !== false) return normalizeCloudflareAssistant(data);
+    const error = data?.errors?.[0] || data?.error || data;
+    lastMessage = error?.message || JSON.stringify(data) || ('cloudflare failed: ' + res.status);
+    if (res.status !== 429) throw new Error(lastMessage);
+    if (attempt >= rateLimitRetries) break;
+    const retrySeconds = Math.min(maxRetrySeconds, 5 * (attempt + 1));
+    console.log('  rate limited; retrying in ' + retrySeconds + 's');
+    await new Promise(resolve => setTimeout(resolve, Math.ceil(retrySeconds * 1000) + 750));
+  }
+  throw new Error(lastMessage || 'Cloudflare rate limit retry budget exhausted');
 }
 
 function safeParseArgs(raw) {
@@ -588,6 +663,8 @@ async function runModelCase({
   maxOutput,
   rateLimitRetries,
   maxRetrySeconds,
+  provider,
+  cloudflare,
 }) {
   const tools = toolsForCase(allTools, testCase, toolMode);
   const messages = [
@@ -595,28 +672,51 @@ async function runModelCase({
     { role: 'user', content: testCase.prompt },
   ];
   const toolCalls = [];
+  const usage = [];
   let finalText = '';
 
   for (let turn = 0; turn < 6; turn += 1) {
-    const assistant = await callGroq({
-      apiKey,
-      model,
-      messages,
-      tools,
-      maxOutput,
-      rateLimitRetries,
-      maxRetrySeconds,
-    });
+    const assistant = provider === 'cloudflare'
+      ? await callCloudflare({
+        accountId: cloudflare.accountId,
+        apiToken: cloudflare.apiToken,
+        model,
+        messages,
+        tools,
+        maxOutput,
+        rateLimitRetries,
+        maxRetrySeconds,
+      })
+      : await callGroq({
+        apiKey,
+        model,
+        messages,
+        tools,
+        maxOutput,
+        rateLimitRetries,
+        maxRetrySeconds,
+      });
+    if (assistant.usage) usage.push(assistant.usage);
     const calls = Array.isArray(assistant.tool_calls) ? assistant.tool_calls : [];
     if (!calls.length) {
       finalText = assistant.content || '';
       break;
     }
-    messages.push({
-      role: 'assistant',
-      content: assistant.content || null,
-      tool_calls: calls,
-    });
+    if (provider === 'cloudflare') {
+      messages.push({
+        role: 'assistant',
+        content: JSON.stringify(calls.map(call => ({
+          name: call.function?.name || '',
+          arguments: safeParseArgs(call.function?.arguments),
+        }))),
+      });
+    } else {
+      messages.push({
+        role: 'assistant',
+        content: assistant.content || null,
+        tool_calls: calls,
+      });
+    }
     for (const call of calls) {
       const name = call.function?.name || '';
       const args = safeParseArgs(call.function?.arguments);
@@ -628,16 +728,14 @@ async function runModelCase({
         error = e.message || String(e);
       }
       toolCalls.push({ name, args, result: result?.structuredContent || null, error });
-      messages.push({
-        role: 'tool',
-        tool_call_id: call.id,
-        name,
-        content: JSON.stringify(error ? { error } : result?.structuredContent || {}, null, 2),
-      });
+      const content = JSON.stringify(error ? { error } : result?.structuredContent || {}, null, 2);
+      messages.push(provider === 'cloudflare'
+        ? { role: 'tool', content }
+        : { role: 'tool', tool_call_id: call.id, name, content });
     }
     if (!includeFinal) break;
   }
-  return { toolCalls, finalText };
+  return { toolCalls, finalText, usage };
 }
 
 function collectCardsFromValue(value, out = [], seen = new Set()) {
@@ -733,10 +831,11 @@ function selectCases(allCases, args) {
   return selected;
 }
 
-function reportPayload({ args, model, results, stoppedEarly = false, stopReason = '' }) {
+function reportPayload({ args, model, provider, results, stoppedEarly = false, stopReason = '' }) {
   const passed = results.filter(result => result.score.ok).length;
   const failed = results.length - passed;
   return {
+    provider,
     model,
     toolMode: args.toolMode,
     includeFinal: args.final,
@@ -781,14 +880,25 @@ async function main() {
   }
 
   const apiKey = groqKey();
-  if (!apiKey) {
-    console.error('Set GROQ_API_KEY or MTGCOLLECTION_CHAT_GROQ_API_KEY to run live model evals.');
+  const cloudflare = cloudflareCredentials();
+  if (args.provider === 'groq' && !apiKey) {
+    console.error('Set GROQ_API_KEY or MTGCOLLECTION_CHAT_GROQ_API_KEY to run Groq live model evals.');
+    console.error('Use --list to inspect the ' + cases.length + ' generated cases without calling the model.');
+    process.exitCode = 2;
+    return;
+  }
+  if (args.provider === 'cloudflare' && (!cloudflare.accountId || !cloudflare.apiToken)) {
+    console.error('Set CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN to run Cloudflare live model evals.');
     console.error('Use --list to inspect the ' + cases.length + ' generated cases without calling the model.');
     process.exitCode = 2;
     return;
   }
 
-  const model = args.model || process.env.MTGCOLLECTION_CHAT_GROQ_MODEL || DEFAULT_MODEL;
+  const model = args.model
+    || (args.provider === 'cloudflare'
+      ? process.env.MTGCOLLECTION_CHAT_CLOUDFLARE_MODEL
+      : process.env.MTGCOLLECTION_CHAT_GROQ_MODEL)
+    || DEFAULT_MODEL;
   const { env } = fakeSyncEnv(buildSnapshot(), 100);
   const token = await issueMcpToken(env);
   const allTools = await toolDefinitions(env, token.access_token);
@@ -796,7 +906,7 @@ async function main() {
   let stoppedEarly = false;
   let stopReason = '';
 
-  console.log('Running ' + selected.length + ' MTG chat evals with ' + model + ' (' + args.toolMode + ' tool mode)...');
+  console.log('Running ' + selected.length + ' MTG chat evals with ' + args.provider + ' ' + model + ' (' + args.toolMode + ' tool mode)...');
   for (const [index, testCase] of selected.entries()) {
     if (interrupted) {
       stoppedEarly = true;
@@ -818,10 +928,12 @@ async function main() {
         maxOutput: args.maxOutput,
         rateLimitRetries: args.rateLimitRetries,
         maxRetrySeconds: args.maxRetrySeconds,
+        provider: args.provider,
+        cloudflare,
       });
       scored = scoreCase(testCase, run);
     } catch (error) {
-      run = { toolCalls: [], finalText: '' };
+      run = { toolCalls: [], finalText: '', usage: [] };
       scored = { ok: false, failures: [error.message || String(error)], tools: [], finalText: '' };
     }
     results.push({ ...testCase, run, score: scored });
@@ -832,7 +944,7 @@ async function main() {
       if (args.verbose && scored.finalText) console.log('  final: ' + scored.finalText.replace(/\s+/g, ' ').slice(0, 240));
     }
     const failedSoFar = results.filter(result => !result.score.ok).length;
-    writeReport(args.report, reportPayload({ args, model, results }));
+    writeReport(args.report, reportPayload({ args, model, provider: args.provider, results }));
     if (args.maxFailures && failedSoFar >= args.maxFailures) {
       stoppedEarly = true;
       stopReason = 'max failures reached (' + failedSoFar + ')';
@@ -847,7 +959,7 @@ async function main() {
   console.log('\n' + passed + ' passed, ' + failed + ' failed, ' + results.length + ' total.');
   if (stoppedEarly && stopReason) console.log('Stopped early: ' + stopReason);
   if (args.report) {
-    writeReport(args.report, reportPayload({ args, model, results, stoppedEarly, stopReason }));
+    writeReport(args.report, reportPayload({ args, model, provider: args.provider, results, stoppedEarly, stopReason }));
     console.log('Wrote report to ' + args.report);
   }
   if (failed) process.exitCode = 1;

@@ -26,8 +26,8 @@ export const SYSTEM_PROMPT = [
   'If a phrase could be a container name, such as "breya artifacts" or "trade binder", do not split it into a card-name query; pass it as location.',
   'When showing inventory cards from search_inventory, get_container, or get_deck, keep the prose short and do not write markdown tables; the app renders the card results separately.',
 ].join(' ');
-const HOSTED_PROVIDER = 'groq';
-const HOSTED_MODEL = 'openai/gpt-oss-120b';
+const HOSTED_PROVIDER = 'cloudflare';
+const HOSTED_MODEL = '@cf/openai/gpt-oss-120b';
 const CHAT_POSITION_KEY = 'mtgcollection_mcp_chat_position_v1';
 const CHAT_SIZE_KEY = 'mtgcollection_mcp_chat_size_v1';
 const CHAT_EDGE_MARGIN = 12;

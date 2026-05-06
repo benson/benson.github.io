@@ -61,11 +61,15 @@ CLERK_OAUTH_CLIENT_ID = "HNx2PbSrTQUcrsfd"
 MCP_ALLOW_DYNAMIC_CLIENT_REGISTRATION = "0"
 MTGCOLLECTION_ALLOW_ANON_SHARE_WRITES = "0"
 MTGCOLLECTION_CHAT_ENABLED = "1"
-MTGCOLLECTION_CHAT_PROVIDER = "groq"
+MTGCOLLECTION_CHAT_PROVIDER = "cloudflare"
+MTGCOLLECTION_CHAT_CLOUDFLARE_MODEL = "@cf/openai/gpt-oss-120b"
 MTGCOLLECTION_CHAT_GROQ_MODEL = "openai/gpt-oss-120b"
 MTGCOLLECTION_CHAT_OPENAI_MODEL = "gpt-5-nano"
 MTGCOLLECTION_CHAT_DAILY_LIMIT = "25"
 MTGCOLLECTION_CHAT_MAX_OUTPUT_TOKENS = "1000"
+
+[ai]
+binding = "AI"
 
 # Run `wrangler kv:namespace create SHARES` to create this namespace, then
 # paste the returned id here. Same for the preview namespace if you want

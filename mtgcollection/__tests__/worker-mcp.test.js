@@ -1142,6 +1142,83 @@ test('mcp chat: hosted Groq key is used by default with preview-only remote MCP 
   }
 });
 
+test('mcp chat: hosted Cloudflare Workers AI uses the local preview tool loop', async () => {
+  const snapshot = emptySnapshot({
+    collection: [
+      card({
+        name: 'Ragavan, Nimble Pilferer',
+        resolvedName: 'Ragavan, Nimble Pilferer',
+        scryfallId: 'ragavan-1',
+        setCode: 'mul',
+        cn: '86',
+        finish: 'foil',
+        location: { type: 'binder', name: 'trade binder' },
+        price: 55,
+      }),
+    ],
+    containers: {
+      'binder:trade binder': { type: 'binder', name: 'trade binder' },
+    },
+  });
+  const { env } = fakeSyncEnv(snapshot);
+  env.MTGCOLLECTION_CHAT_PROVIDER = 'cloudflare';
+  let calls = 0;
+  let firstPayload = null;
+  let secondPayload = null;
+  env.AI = {
+    async run(model, payload) {
+      assert.equal(model, '@cf/openai/gpt-oss-120b');
+      calls += 1;
+      if (calls === 1) {
+        firstPayload = payload;
+        return {
+          tool_calls: [{
+            name: 'search_inventory',
+            arguments: { finish: 'foil', limit: 100 },
+          }],
+          usage: { prompt_tokens: 100, completion_tokens: 10 },
+        };
+      }
+      secondPayload = payload;
+      return {
+        response: 'Here are your foils.',
+        usage: { prompt_tokens: 140, completion_tokens: 8 },
+      };
+    },
+  };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    throw new Error('Cloudflare hosted chat should use env.AI, not external fetch');
+  };
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        provider: 'cloudflare',
+        messages: [{ role: 'user', content: 'what foils do i have?' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.provider, 'cloudflare');
+    assert.equal(data.mode, 'hosted');
+    assert.equal(data.model, '@cf/openai/gpt-oss-120b');
+    assert.equal(calls, 2);
+    assert.ok(firstPayload.tools.some(tool => tool.name === 'search_inventory'));
+    assert.equal(firstPayload.tools.some(tool => tool.name === 'apply_collection_change'), false);
+    assert.ok(secondPayload.messages.some(message => message.role === 'tool' && /Ragavan/.test(message.content)));
+    assert.equal(data.text, 'I found 1 foil card from your collection. It is shown below.');
+    assert.equal(data.cards.length, 1);
+    assert.equal(data.cards[0].name, 'Ragavan, Nimble Pilferer');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('mcp chat: add input needs are returned as app-renderable drafts', async () => {
   const { env } = fakeSyncEnv();
   env.MTGCOLLECTION_CHAT_GROQ_API_KEY = 'gsk-hosted-secret';

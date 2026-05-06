@@ -2698,7 +2698,8 @@ function inventoryCardsSummaryText(cards, userText) {
   }
   const finish = inventoryFinishSummaryLabel(finishFromInventoryText(userText));
   const noun = count === 1 ? 'card' : 'cards';
-  return 'I found ' + count + ' ' + (finish ? finish + ' ' : '') + noun + ' from your collection. They are shown below.';
+  return 'I found ' + count + ' ' + (finish ? finish + ' ' : '') + noun + ' from your collection. '
+    + (count === 1 ? 'It is' : 'They are') + ' shown below.';
 }
 
 function orderInventoryCardsForUserRequest(cards, userText) {
@@ -2885,6 +2886,12 @@ function extractAnthropicText(data) {
     .trim();
 }
 
+function extractCloudflareText(data) {
+  if (typeof data.output_text === 'string') return data.output_text;
+  if (typeof data.response === 'string') return data.response;
+  return extractOpenAiText(data);
+}
+
 function chatSuccessResponse(deps, request, { provider, model, hosted, usage, data, text, messages = [] }) {
   const lastUserText = [...messages].reverse().find(message => message.role === 'user')?.content || '';
   const filtered = filterChatPreviews(extractMcpPreviews(data), lastUserText);
@@ -2928,6 +2935,7 @@ function chatProviderApiKey(env, provider) {
 function chatModel(env, provider, body) {
   const requested = String(body.model || '').trim();
   if (requested) return requested;
+  if (provider === 'cloudflare') return String(env.MTGCOLLECTION_CHAT_CLOUDFLARE_MODEL || '@cf/openai/gpt-oss-120b').trim();
   if (provider === 'groq') return String(env.MTGCOLLECTION_CHAT_GROQ_MODEL || 'openai/gpt-oss-120b').trim();
   if (provider === 'anthropic') return String(env.MTGCOLLECTION_CHAT_ANTHROPIC_MODEL || 'claude-sonnet-4-5').trim();
   return String(env.MTGCOLLECTION_CHAT_OPENAI_MODEL || 'gpt-5-nano').trim();
@@ -2981,13 +2989,104 @@ function providerErrorMessage(provider, data) {
   if (provider === 'groq' && /credit|quota|billing|balance|spend|limit/i.test(message || '')) {
     return 'Groq quota or billing blocked this request for the selected API key/project.';
   }
+  if (provider === 'cloudflare' && /credit|quota|billing|balance|spend|limit/i.test(message || '')) {
+    return 'Cloudflare Workers AI quota or billing blocked this request.';
+  }
   if (provider === 'anthropic' && /credit|quota|billing|balance/i.test(message || '')) {
     return 'Anthropic quota or billing blocked this request for the selected API key/project.';
   }
   if (message) return message;
   if (provider === 'anthropic') return 'Anthropic request failed';
   if (provider === 'groq') return 'Groq request failed';
+  if (provider === 'cloudflare') return 'Cloudflare Workers AI request failed';
   return 'OpenAI request failed';
+}
+
+function cloudflareToolDefinition(tool) {
+  return {
+    name: tool.name,
+    description: tool.description,
+    parameters: tool.inputSchema || { type: 'object', properties: {} },
+  };
+}
+
+function parseCloudflareToolArguments(raw) {
+  if (!raw) return {};
+  if (typeof raw === 'object') return raw;
+  try {
+    const parsed = JSON.parse(String(raw));
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function normalizeCloudflareToolCall(call, index = 0) {
+  if (!call || typeof call !== 'object') return null;
+  const fn = call.function && typeof call.function === 'object' ? call.function : null;
+  const name = String(call.name || fn?.name || '').trim();
+  if (!name) return null;
+  return {
+    id: String(call.id || 'cf_tool_' + index),
+    name,
+    arguments: parseCloudflareToolArguments(call.arguments ?? fn?.arguments),
+  };
+}
+
+function cloudflareToolCalls(response) {
+  const direct = Array.isArray(response?.tool_calls) ? response.tool_calls : [];
+  return direct.map(normalizeCloudflareToolCall).filter(Boolean);
+}
+
+async function runCloudflareChat({ env, deps, auth, model, messages, chatTools, maxOutputTokens }) {
+  if (!env.AI || typeof env.AI.run !== 'function') {
+    const err = new Error('Cloudflare Workers AI binding is not configured');
+    err.status = 503;
+    throw err;
+  }
+  const tools = chatTools.map(cloudflareToolDefinition);
+  const workingMessages = messages.map(message => ({ role: message.role, content: message.content }));
+  const output = [];
+  let finalResponse = null;
+
+  for (let turn = 0; turn < 6; turn += 1) {
+    const response = await env.AI.run(model, {
+      messages: workingMessages,
+      tools,
+      temperature: 0,
+      max_tokens: maxOutputTokens,
+    });
+    finalResponse = response || {};
+    const calls = cloudflareToolCalls(finalResponse);
+    if (!calls.length) break;
+    workingMessages.push({
+      role: 'assistant',
+      content: JSON.stringify(calls.map(call => ({ name: call.name, arguments: call.arguments }))),
+    });
+    for (const call of calls) {
+      const data = await executeTool(call.name, call.arguments, env, deps, auth);
+      const toolOutput = {
+        type: 'mcp_call',
+        name: call.name,
+        result: {
+          content: [{ type: 'text', text: JSON.stringify(data, null, 2) }],
+          structuredContent: data,
+        },
+      };
+      output.push(toolOutput);
+      workingMessages.push({ role: 'tool', content: JSON.stringify(data, null, 2) });
+    }
+  }
+
+  return {
+    provider: 'cloudflare',
+    model,
+    response: extractCloudflareText(finalResponse),
+    output_text: extractCloudflareText(finalResponse),
+    output,
+    usage: finalResponse?.usage || null,
+    raw_response: finalResponse,
+  };
 }
 
 export async function mintInternalMcpToken(env, { userId, scopes = [MCP_READ_SCOPE] }) {
@@ -3050,21 +3149,44 @@ export async function handleByokChatRequest(request, env, deps) {
   const providedApiKey = String(body.apiKey || '').trim();
   const hostedApiKey = chatProviderApiKey(env, provider);
   const apiKey = providedApiKey || hostedApiKey;
-  const hosted = !providedApiKey;
+  const hosted = provider === 'cloudflare' || !providedApiKey;
   const messages = normalizeChatMessages(body.messages);
-  if (!['groq', 'openai', 'anthropic'].includes(provider)) return deps.json({ error: 'provider must be groq, openai, or anthropic' }, 400, request);
-  if (!apiKey) return deps.json({ error: 'chat provider key is not configured' }, 400, request);
+  if (!['cloudflare', 'groq', 'openai', 'anthropic'].includes(provider)) return deps.json({ error: 'provider must be cloudflare, groq, openai, or anthropic' }, 400, request);
+  if (provider !== 'cloudflare' && !apiKey) return deps.json({ error: 'chat provider key is not configured' }, 400, request);
   if (!messages.length) return deps.json({ error: 'messages are required' }, 400, request);
-  const mcpToken = await mintInternalMcpToken(env, { userId: clerkAuth.userId, scopes: [MCP_READ_SCOPE, MCP_WRITE_SCOPE] });
-  const mcpUrl = publicOrigin(request, env) + '/mcp';
   const chatTools = visibleToolsForAuth({ clientId: MCP_CHAT_CLIENT_ID, scopes: [MCP_READ_SCOPE, MCP_WRITE_SCOPE] });
   const allowedToolNames = chatTools.map(tool => tool.name);
+  const mcpToken = provider === 'cloudflare'
+    ? ''
+    : await mintInternalMcpToken(env, { userId: clerkAuth.userId, scopes: [MCP_READ_SCOPE, MCP_WRITE_SCOPE] });
+  const mcpUrl = provider === 'cloudflare' ? '' : publicOrigin(request, env) + '/mcp';
   let usage = null;
 
   try {
     if (hosted) usage = await assertHostedChatQuota(env, clerkAuth.userId);
     const model = chatModel(env, provider, body);
     const maxOutputTokens = chatMaxOutputTokens(env, body);
+
+    if (provider === 'cloudflare') {
+      const data = await runCloudflareChat({
+        env,
+        deps,
+        auth: { userId: clerkAuth.userId, scopes: [MCP_READ_SCOPE, MCP_WRITE_SCOPE], clientId: MCP_CHAT_CLIENT_ID },
+        model,
+        messages,
+        chatTools,
+        maxOutputTokens,
+      });
+      return chatSuccessResponse(deps, request, {
+        provider,
+        model,
+        hosted,
+        usage,
+        data,
+        messages,
+        text: extractCloudflareText(data),
+      });
+    }
 
     if (provider === 'openai') {
       const res = await fetch('https://api.openai.com/v1/responses', {
