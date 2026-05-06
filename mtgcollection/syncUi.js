@@ -3,6 +3,7 @@ import { exportCsv } from './import.js';
 import { showFeedback } from './feedback.js';
 
 let root = null;
+let footerStatusRoot = null;
 let exportModal = null;
 
 function closeExportModal() {
@@ -123,6 +124,34 @@ function syncAccountActions(menu, { signedIn, showManualSync }) {
   }
 }
 
+function ensureFooterStatusDom(statusRoot) {
+  if (!statusRoot || statusRoot.querySelector('.footer-sync-dot')) return;
+  const documentObj = statusRoot.ownerDocument || document;
+  const dot = documentObj.createElement('span');
+  dot.className = 'footer-sync-dot';
+  dot.setAttribute('aria-hidden', 'true');
+  const label = documentObj.createElement('span');
+  label.className = 'footer-sync-label';
+  statusRoot.append(dot, label);
+}
+
+function renderFooterStatus(status) {
+  const statusRoot = footerStatusRoot
+    || root?.ownerDocument?.getElementById('footerSyncStatus')
+    || null;
+  if (!statusRoot) return;
+  const signedIn = !!status.user;
+  statusRoot.hidden = !signedIn;
+  if (!signedIn) return;
+  ensureFooterStatusDom(statusRoot);
+  const mode = status.mode || 'local';
+  const label = status.label || 'sync';
+  const pendingText = status.pending ? ' - ' + status.pending + ' queued' : '';
+  statusRoot.className = `footer-sync-status footer-sync-status-${mode}`;
+  statusRoot.querySelector('.footer-sync-label').textContent = label + pendingText;
+  statusRoot.title = status.detail || label;
+}
+
 function renderStatus(status) {
   if (!root) return;
   ensureStatusDom(root.ownerDocument || document);
@@ -133,8 +162,11 @@ function renderStatus(status) {
   const chip = root.querySelector('.sync-chip');
   const menu = root.querySelector('.sync-menu');
   const mode = status.mode || 'local';
-  chip.className = `sync-chip sync-chip-${mode}`;
-  chip.querySelector('.sync-label').textContent = status.label || 'local';
+  chip.className = `sync-chip sync-chip-${mode}${signedIn ? ' sync-chip-account' : ''}`;
+  chip.querySelector('.sync-label').textContent = signedIn ? 'my account' : (status.label || 'local');
+  chip.setAttribute('aria-label', signedIn
+    ? 'my account - ' + (status.label || 'sync')
+    : status.label || 'local');
   chip.setAttribute('aria-expanded', String(!menu.hidden));
 
   menu.querySelector('strong').textContent = signedIn ? status.user.label : 'local collection';
@@ -142,20 +174,25 @@ function renderStatus(status) {
   detailEl.textContent = detailText + pendingText;
   detailEl.hidden = !(detailText || pendingText);
   syncAccountActions(menu, { signedIn, showManualSync });
+  renderFooterStatus(status);
 }
 
-export function renderSyncStatusForTest(status, rootEl) {
+export function renderSyncStatusForTest(status, rootEl, footerStatusEl = null) {
   const previousRoot = root;
+  const previousFooterStatusRoot = footerStatusRoot;
   root = rootEl;
+  footerStatusRoot = footerStatusEl;
   try {
     renderStatus(status);
   } finally {
     root = previousRoot;
+    footerStatusRoot = previousFooterStatusRoot;
   }
 }
 
 export function initSyncUi({ documentObj = document } = {}) {
   root = documentObj.getElementById('syncAccountSlot');
+  footerStatusRoot = documentObj.getElementById('footerSyncStatus');
   if (!root) return;
   ensureExportModal(documentObj);
 

@@ -131,6 +131,35 @@
   .sync-chip-signing-in .sync-dot { background: #9d6a00; }
   .sync-chip-queued .sync-dot { background: #8756a0; }
   .sync-chip-error .sync-dot { background: #a02020; }
+  .sync-chip-account .sync-dot {
+    position: relative;
+    width: 14px;
+    height: 14px;
+    border-radius: 0;
+    background: transparent;
+  }
+  .sync-chip-account .sync-dot::before,
+  .sync-chip-account .sync-dot::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    border: 1px solid currentColor;
+    transform: translateX(-50%);
+  }
+  .sync-chip-account .sync-dot::before {
+    top: 1px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: transparent;
+  }
+  .sync-chip-account .sync-dot::after {
+    bottom: 1px;
+    width: 10px;
+    height: 6px;
+    border-radius: 7px 7px 2px 2px;
+    border-bottom-width: 0;
+  }
   .sync-menu {
     position: absolute;
     top: calc(100% + 6px);
@@ -482,6 +511,27 @@
   .app-footer-left { display: flex; align-items: center; gap: 10px; }
   .app-footer-right { display: flex; align-items: center; gap: 12px; }
   .app-footer-right .btn { padding: 5px 12px; font-size: 0.75rem; }
+  .footer-sync-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #777;
+    font-size: 0.7rem;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .footer-sync-status[hidden] { display: none; }
+  .footer-sync-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #777;
+  }
+  .footer-sync-status-synced .footer-sync-dot { background: #19784c; }
+  .footer-sync-status-syncing .footer-sync-dot,
+  .footer-sync-status-signing-in .footer-sync-dot { background: #9d6a00; }
+  .footer-sync-status-queued .footer-sync-dot { background: #8756a0; }
+  .footer-sync-status-error .footer-sync-dot { background: #a02020; }
   .footer-storage-nag { color: #999; font-size: 0.7rem; letter-spacing: 0.02em; }
   .field-deck-only.hidden { display: none !important; }
   .add-ownership-readout {
