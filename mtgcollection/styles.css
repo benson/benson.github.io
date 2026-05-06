@@ -62,7 +62,8 @@
     min-width: 0;
   }
   .sidebar-edge-toggle {
-    --sidebar-tab-size: 32px;
+    --sidebar-tab-size: 38px;
+    --sidebar-tab-hit-inset: 5px;
     background: #fff;
     border: 1px solid #b9b4aa;
     border-radius: 999px;
@@ -71,7 +72,7 @@
     cursor: pointer;
     display: grid;
     font: inherit;
-    font-size: 0.9rem;
+    font-size: 1rem;
     height: var(--sidebar-tab-size);
     left: 200px;
     opacity: 1;
@@ -85,7 +86,11 @@
     z-index: 46;
   }
   .sidebar-edge-toggle::before {
-    content: none;
+    background: rgba(255,255,255,0.001);
+    border-radius: 999px;
+    content: "";
+    inset: calc(-1 * var(--sidebar-tab-hit-inset));
+    position: absolute;
   }
   .sidebar-edge-toggle:hover,
   .sidebar-edge-toggle:focus-visible {
@@ -97,7 +102,8 @@
     left: 0;
   }
   body.sidebar-tab-simple .sidebar-edge-toggle {
-    --sidebar-tab-size: 28px;
+    --sidebar-tab-size: 34px;
+    --sidebar-tab-hit-inset: 6px;
     border-radius: 999px;
     left: 200px;
     transform: translate(-50%, -50%);
@@ -123,7 +129,7 @@
     box-shadow: none;
   }
   body.chrome-classic .sidebar-edge-toggle::before {
-    background: #000;
+    background: rgba(255,255,255,0.001);
   }
   .title-reset-btn {
     background: transparent;
