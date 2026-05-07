@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Window } from 'happy-dom';
-import { renderSyncStatusForTest } from '../syncUi.js';
+import { initSyncUi, renderSyncStatusForTest } from '../syncUi.js';
 
 test('sync status updates preserve existing chip and menu nodes', () => {
   const win = new Window();
@@ -67,4 +67,27 @@ test('signed-out status stays in the header and account menu status', () => {
   assert.equal(chip.classList.contains('sync-chip-account'), false);
   assert.equal(root.querySelector('.sync-menu-status-label').textContent, 'local');
   assert.equal(root.querySelector('.sync-menu-status-detail').textContent, 'signed out local collection');
+});
+
+test('sync status learn more opens a closeable details window', () => {
+  const win = new Window();
+  const root = win.document.createElement('div');
+  root.id = 'syncAccountSlot';
+  win.document.body.append(root);
+
+  initSyncUi({ documentObj: win.document });
+  const learn = root.querySelector('[data-sync-action="learn-sync"]');
+  assert.ok(learn);
+  learn.click();
+
+  const panel = win.document.getElementById('syncDetailsWindow');
+  assert.ok(panel);
+  assert.equal(win.document.body.classList.contains('sync-details-open'), true);
+  assert.equal(panel.getAttribute('aria-hidden'), 'false');
+  assert.match(panel.textContent, /local first/i);
+  assert.equal(panel.querySelectorAll('[data-sync-details-resize-handle]').length, 5);
+
+  panel.querySelector('.sync-details-close').click();
+  assert.equal(win.document.body.classList.contains('sync-details-open'), false);
+  assert.equal(panel.getAttribute('aria-hidden'), 'true');
 });
