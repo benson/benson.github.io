@@ -479,6 +479,10 @@
     line-height: 1.42;
     margin: 0;
   }
+  .sync-details-intro {
+    color: #111;
+    font-size: 0.86rem;
+  }
   .sync-details-section {
     border-top: 1px solid #e2ded6;
     padding-top: 10px;
@@ -488,6 +492,37 @@
     font-weight: 600;
     margin: 0 0 4px;
     text-transform: lowercase;
+  }
+  .sync-details-list {
+    color: #333;
+    display: grid;
+    font-size: 0.8rem;
+    gap: 5px;
+    line-height: 1.35;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .sync-details-list li {
+    padding-left: 12px;
+    position: relative;
+  }
+  .sync-details-list li::before {
+    content: "";
+    background: #b9aa96;
+    height: 3px;
+    left: 0;
+    position: absolute;
+    top: 0.58em;
+    width: 3px;
+  }
+  .sync-details-faq {
+    display: grid;
+    gap: 9px;
+  }
+  .sync-details-body strong {
+    color: #111;
+    font-weight: 600;
   }
   .sync-details-resize-handle {
     position: absolute;

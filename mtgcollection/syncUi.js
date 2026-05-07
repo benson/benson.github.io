@@ -483,26 +483,38 @@ function ensureSyncDetailsWindow(documentObj = document) {
       <button class="sync-details-close" type="button" aria-label="close sync details">x</button>
     </header>
     <div class="sync-details-body">
-      <p>Your collection is local first. The app keeps a full snapshot in this browser, then syncs small changes to your account when you are signed in.</p>
+      <p class="sync-details-intro">You can use MTG Collection with no account. Your browser saves your collection on this device, and you can export your data whenever you want.</p>
       <section class="sync-details-section">
-        <h3>local state</h3>
-        <p>The browser stores the latest snapshot, account metadata, and any unsent changes in IndexedDB. You can keep editing while offline or while the cloud service is unavailable.</p>
+        <h3>why sign in?</h3>
+        <p>Sign in when you want the same collection on more than one device, or when you do not want to keep sending yourself CSV files. We store a copy for your account and keep your signed-in browsers in sync.</p>
       </section>
       <section class="sync-details-section">
-        <h3>change queue</h3>
-        <p>After each edit, the app compares the current collection to the last synced baseline and records small operations for cards, containers, format settings, and history entries.</p>
+        <h3>local first</h3>
+        <p>Even when you are signed in, edits save here first. Sync runs in the background after that. If the network or sync service is down, you can keep working and the app will try again later.</p>
       </section>
       <section class="sync-details-section">
-        <h3>cloud revisions</h3>
-        <p>Signed-in devices push queued operations with a client id and base revision. The cloud applies each operation once, advances the revision number, and returns the latest snapshot.</p>
+        <h3>what the statuses mean</h3>
+        <ul class="sync-details-list">
+          <li><strong>synced</strong>: this browser and your account are up to date.</li>
+          <li><strong>local</strong>: you are signed out; this browser is your source of truth.</li>
+          <li><strong>queued</strong>: your edit is saved here and waiting to upload.</li>
+          <li><strong>offline queued</strong>: same as queued, but the browser thinks the network is offline.</li>
+          <li><strong>syncing</strong>: the app is pushing or pulling account changes.</li>
+          <li><strong>sync error</strong>: your local copy is still safe; retry when the service or network is healthy.</li>
+        </ul>
       </section>
       <section class="sync-details-section">
-        <h3>other devices</h3>
-        <p>Open devices keep a lightweight live connection. When another device changes the collection, this app receives a revision notice, pulls the latest cloud state, and redraws from that snapshot.</p>
+        <h3>faq</h3>
+        <div class="sync-details-faq">
+          <p><strong>Can I stay account-free?</strong> Yes. You can use the local browser copy indefinitely. The main risk is normal browser storage risk: clearing site data, changing browsers, or losing the device can remove that local copy. Exporting gives you a portable backup.</p>
+          <p><strong>What if I edit on two devices?</strong> Signed-in devices send small changes to your account. Other open devices notice a new version, pull the latest copy, and redraw. If one device was offline, its saved changes upload when it reconnects.</p>
+          <p><strong>What if my local collection and account collection differ when I sign in?</strong> If your account already has data, the account copy loads. The local copy is kept available for import so you can choose what to do with it.</p>
+          <p><strong>Am I locked into the sync service?</strong> No. The app is still usable locally, and export data is always available from the account menu.</p>
+        </div>
       </section>
       <section class="sync-details-section">
-        <h3>first sign in</h3>
-        <p>If your account has no cloud collection yet, the current local collection becomes the account collection. If cloud data already exists, the app loads it and keeps the local snapshot available for import.</p>
+        <h3>under the hood</h3>
+        <p>The browser stores a full snapshot locally. When you are signed in, the app sends small card, container, settings, and history changes to your account. The account copy gets a new version number so other devices know when to update.</p>
       </section>
     </div>
   `;

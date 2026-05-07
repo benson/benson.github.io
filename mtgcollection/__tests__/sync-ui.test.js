@@ -84,7 +84,9 @@ test('sync status learn more opens a closeable details window', () => {
   assert.ok(panel);
   assert.equal(win.document.body.classList.contains('sync-details-open'), true);
   assert.equal(panel.getAttribute('aria-hidden'), 'false');
-  assert.match(panel.textContent, /local first/i);
+  assert.match(panel.textContent, /no account/i);
+  assert.match(panel.textContent, /what the statuses mean/i);
+  assert.match(panel.textContent, /Am I locked into the sync service/i);
   assert.equal(panel.querySelectorAll('[data-sync-details-resize-handle]').length, 5);
 
   panel.querySelector('.sync-details-close').click();
