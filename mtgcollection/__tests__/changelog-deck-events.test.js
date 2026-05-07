@@ -199,6 +199,10 @@ test('history summary does not append a card name that is already in the event t
   assert.equal(text.match(/Lotho, Corrupt Shirriff/g)?.length, 1);
   assert.equal(win.document.querySelectorAll('.history-card-name').length, 1);
   assert.equal(win.document.querySelector('.loc-link')?.textContent, 'bulk');
+  const undo = win.document.querySelector('.history-undo');
+  assert.equal(undo?.getAttribute('title'), 'undo this change');
+  assert.equal(undo?.getAttribute('aria-label'), 'undo this change');
+  assert.equal(undo?.textContent, '\u21b6');
 });
 
 test('history add summaries hide printing metadata and keep the card link', () => {

@@ -459,7 +459,7 @@ function renderHistoryList() {
       const cls = ev.undone ? 'history-undone' : (ev.dismissed ? 'history-dismissed' : '');
       const undoBtn = ev.undone
         ? ''
-        : '<button class="history-undo" type="button" data-action="undo" data-event-id="' + esc(ev.id) + '">undo</button>';
+        : '<button class="history-undo" type="button" data-action="undo" data-event-id="' + esc(ev.id) + '" title="undo this change" aria-label="undo this change"><span aria-hidden="true">&#8630;</span></button>';
       return '<li class="' + cls + '">' +
         '<div class="history-row-meta">' +
           '<time datetime="' + esc(formatTsIso(ev.ts)) + '">' + esc(formatTs(ev.ts)) + '</time>' +

@@ -3755,17 +3755,29 @@
   }
   .history-list time { color: #999; font-size: 0.65rem; }
   .history-list .history-undo {
+    align-items: center;
     background: none;
     border: none;
     cursor: pointer;
-    padding: 0;
+    display: inline-grid;
     font: inherit;
-    font-size: 0.7rem;
+    font-size: 0.95rem;
+    height: 16px;
+    line-height: 1;
+    margin-right: -2px;
+    padding: 0;
+    place-items: center;
+    width: 16px;
     color: #336;
-    text-decoration: underline;
+    text-decoration: none;
     text-transform: lowercase;
   }
-  .history-list .history-undo:hover { color: #000; }
+  .history-list .history-undo:hover,
+  .history-list .history-undo:focus-visible {
+    color: #000;
+    outline: 1px solid rgba(0,0,0,0.35);
+    outline-offset: 1px;
+  }
   .history-list .history-summary-text { word-break: break-word; }
   .history-list li.history-undone { text-decoration: line-through; color: #999; }
   .history-list li.history-undone .loc-link,
