@@ -1928,8 +1928,7 @@ test('mcp chat: hosted Cloudflare follow-up edit uses the previous card context'
     assert.equal(data.cards.length, 1);
     assert.equal(data.cards[0].name, 'Glint-Nest Crane');
     assert.deepEqual(data.cards[0].location, { type: 'binder', name: 'trade binder' });
-    assert.equal(data.previewWarnings.length, 1);
-    assert.match(data.previewWarnings[0], /Glint-Nest Crane/);
+    assert.deepEqual(data.previewWarnings, []);
     assert.deepEqual(data.raw.output.map(item => item.name), [
       'preview_edit_inventory_item',
       'preview_edit_inventory_item',
@@ -2534,8 +2533,7 @@ test('mcp chat: incomplete edit previews are replaced with a preview that covers
     assert.equal(data.previews[0].card.name, 'Glint-Nest Crane');
     assert.equal(data.previews[0].card.finish, 'foil');
     assert.deepEqual(data.previews[0].card.location, { type: 'binder', name: 'trade binder' });
-    assert.equal(data.previewWarnings.length, 1);
-    assert.match(data.previewWarnings[0], /Glint-Nest Crane/);
+    assert.deepEqual(data.previewWarnings, []);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -2633,7 +2631,7 @@ test('mcp chat: printing swap recovers from finish-only preview', async () => {
     assert.equal(data.previews[0].card.setCode, 'sld');
     assert.equal(data.previews[0].card.cn, '999');
     assert.equal(data.previews[0].card.finish, 'foil');
-    assert.equal(data.previewWarnings.length, 1);
+    assert.deepEqual(data.previewWarnings, []);
     assert.deepEqual(data.raw.output.map(item => item.name), ['preview_edit_inventory_item', 'preview_replace_inventory_printing']);
   } finally {
     globalThis.fetch = originalFetch;

@@ -4202,17 +4202,24 @@ function nameTokenOverlapEnough(nameTokens, requestedTokens) {
   return overlap === 1 && requestedTokens.length === 1;
 }
 
-function addPreviewLooksLikeUserRequest(preview, userText) {
-  const userTokens = new Set(normalizedMatchTokens(userText));
+function addPreviewReferenceText(userText, context = {}) {
+  if (!context.referenceText || !duplicateSameStackRequestText(userText)) return String(userText || '');
+  if (context.snapshot && mentionedInventoryEntry(context.snapshot, userText)) return String(userText || '');
+  return String(context.referenceText || '');
+}
+
+function addPreviewLooksLikeUserRequest(preview, userText, context = {}) {
+  const referenceText = addPreviewReferenceText(userText, context);
+  const userTokens = new Set(normalizedMatchTokens(referenceText));
   const name = cardNameFromPreview(preview);
   const nameTokens = significantMatchTokens(name);
-  const requestedNameTokens = requestedAddNameTokensForPreview(userText, preview);
+  const requestedNameTokens = requestedAddNameTokensForPreview(referenceText, preview);
   if (requestedNameTokens.length) return nameTokenOverlapEnough(nameTokens, requestedNameTokens);
 
   const cn = normalizedMatchTokens(preview?.card?.cn || '')[0] || '';
   const setCode = String(preview?.card?.setCode || '').trim().toLowerCase();
   if (cn && userTokens.has(cn) && (!setCode || userTokens.has(setCode))) return true;
-  const userSignificant = significantMatchTokens(userText);
+  const userSignificant = significantMatchTokens(referenceText);
   if (!userSignificant.length) return true;
   const overlappingNameTokens = nameTokens.filter(token => userTokens.has(token));
   if (overlappingNameTokens.length >= 2) return true;
@@ -4230,9 +4237,9 @@ function contextualEditFollowupText(userText) {
 }
 
 function shouldUseEditReferenceText(userText, context = {}) {
-  return Boolean(context.referenceText)
-    && contextualEditFollowupText(userText)
-    && !editRequestNameTokens(userText).length;
+  if (!context.referenceText || !contextualEditFollowupText(userText)) return false;
+  if (context.snapshot && mentionedInventoryEntry(context.snapshot, userText)) return false;
+  return true;
 }
 
 function editReferenceText(userText, context = {}) {
@@ -4305,7 +4312,7 @@ function editPreviewLooksLikeUserRequest(preview, userText, context = {}) {
 }
 
 function previewLooksLikeUserRequest(preview, userText, context = {}) {
-  if (preview?.previewType === 'inventory.add') return addPreviewLooksLikeUserRequest(preview, userText);
+  if (preview?.previewType === 'inventory.add') return addPreviewLooksLikeUserRequest(preview, userText, context);
   if (preview?.previewType === 'inventory.edit') return editPreviewLooksLikeUserRequest(preview, userText, context);
   return true;
 }
@@ -4453,9 +4460,10 @@ function filterChatPreviews(previews, lastUserText, context = {}) {
     else warnings.push(previewMismatchMessage(preview, lastUserText));
   }
   const deduped = dedupeAddPreviews(accepted, lastUserText);
+  const visibleMismatchWarnings = accepted.length ? [] : warnings;
   return {
     previews: dedupeEquivalentChangePreviews(deduped.previews),
-    previewWarnings: dedupePreviewWarnings([...warnings, ...deduped.previewWarnings]),
+    previewWarnings: dedupePreviewWarnings([...visibleMismatchWarnings, ...deduped.previewWarnings]),
   };
 }
 
@@ -5127,8 +5135,9 @@ async function recoverCloudflarePrintingSwapPreview({ env, deps, auth, messages,
   const userText = lastUserText(messages);
   if (!printingSwapRequestText(userText)) return null;
   const cloud = await currentCloud(env, deps, auth.userId);
-  if (existingPreviewMatches(output, userText, cloud.snapshot, preview => preview?.previewType === 'inventory.edit')) return null;
-  const entry = entryFromChatRecoveryContext(cloud.snapshot, userText, output);
+  const validationContext = { referenceText: previewValidationReferenceText(messages) };
+  if (existingPreviewMatches(output, userText, cloud.snapshot, preview => preview?.previewType === 'inventory.edit', validationContext)) return null;
+  const entry = entryFromChatRecoveryContext(cloud.snapshot, userText, output, validationContext);
   if (!entry) return null;
   const args = {
     itemKey: collectionKey(entry),
@@ -5144,8 +5153,9 @@ async function recoverCloudflareDeleteInventoryPreview({ env, deps, auth, messag
   const userText = lastUserText(messages);
   if (!deleteInventoryRequestText(userText)) return null;
   const cloud = await currentCloud(env, deps, auth.userId);
-  if (existingPreviewMatches(output, userText, cloud.snapshot, preview => preview?.previewType === 'inventory.delete')) return null;
-  const entry = entryFromChatRecoveryContext(cloud.snapshot, userText, output);
+  const validationContext = { referenceText: previewValidationReferenceText(messages) };
+  if (existingPreviewMatches(output, userText, cloud.snapshot, preview => preview?.previewType === 'inventory.delete', validationContext)) return null;
+  const entry = entryFromChatRecoveryContext(cloud.snapshot, userText, output, validationContext);
   if (!entry) return null;
   const data = await executeTool('preview_delete_inventory_item', { itemKey: collectionKey(entry) }, env, deps, auth);
   return data?.status === 'preview' ? outputToolResult('preview_delete_inventory_item', data) : null;
@@ -5155,8 +5165,9 @@ async function recoverCloudflareDuplicateInventoryPreview({ env, deps, auth, mes
   const userText = lastUserText(messages);
   if (!duplicateSameStackRequestText(userText)) return null;
   const cloud = await currentCloud(env, deps, auth.userId);
-  if (existingPreviewMatches(output, userText, cloud.snapshot, preview => preview?.previewType === 'inventory.add')) return null;
-  const entry = entryFromChatRecoveryContext(cloud.snapshot, userText, output);
+  const validationContext = { referenceText: previewValidationReferenceText(messages) };
+  if (existingPreviewMatches(output, userText, cloud.snapshot, preview => preview?.previewType === 'inventory.add', validationContext)) return null;
+  const entry = entryFromChatRecoveryContext(cloud.snapshot, userText, output, validationContext);
   if (!entry) return null;
   const args = { itemKey: collectionKey(entry) };
   const targetQty = targetTotalQuantityFromText(userText);

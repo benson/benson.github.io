@@ -339,6 +339,7 @@ function mutationCase(id, prompt, options = {}) {
     id,
     category: options.category || 'mutation',
     prompt,
+    messages: Array.isArray(options.messages) ? options.messages : null,
     expect: {
       kind: 'mutation',
       anyTool: options.anyTool || [
@@ -355,12 +356,33 @@ function mutationCase(id, prompt, options = {}) {
       requireStatus: !!options.requireStatus,
       requirePreview: !!options.requirePreview,
       requireDraft: !!options.requireDraft,
+      maxPreviews: options.maxPreviews ?? null,
+      minPreviews: options.minPreviews ?? null,
+      maxPreviewWarnings: options.maxPreviewWarnings ?? null,
       previews: options.previews || [],
       forbiddenText: [...DEFAULT_MUTATION_FORBIDDEN_TEXT, ...(options.forbiddenText || [])],
       requiredText: options.requiredText || [],
       noTools: ['apply_collection_change', 'undo_last_mcp_change'],
     },
   };
+}
+
+function conversationMutationCase(id, messages, options = {}) {
+  const lastUser = [...messages].reverse().find(message => message.role === 'user')?.content || '';
+  return mutationCase(id, lastUser, { category: 'conversation', ...options, messages });
+}
+
+function caseMessagesForModel(testCase) {
+  const messages = Array.isArray(testCase.messages) && testCase.messages.length
+    ? testCase.messages
+    : [{ role: 'user', content: testCase.prompt }];
+  return messages
+    .filter(message => message && typeof message === 'object')
+    .map(message => ({
+      role: ['system', 'user', 'assistant'].includes(message.role) ? message.role : 'user',
+      content: String(message.content || ''),
+    }))
+    .filter(message => message.content.trim());
 }
 
 function buildCases() {
@@ -619,6 +641,76 @@ function buildCases() {
       previews: [{ previewType: 'inventory.edit', name: 'Cyclonic Rift', setCode: 'sld', finish: 'foil' }],
       forbiddenText: existingEditFailureText,
     }),
+    conversationMutationCase('followup-move-then-make-foil', [
+      { role: 'user', content: 'move my glint nest crane to my trade binder' },
+      { role: 'assistant', content: 'Preview ready below.' },
+      { role: 'user', content: 'also make it foil' },
+    ], {
+      anyTool: ['preview_edit_inventory_item'],
+      statuses: ['preview'],
+      requireStatus: true,
+      requirePreview: true,
+      maxPreviews: 1,
+      maxPreviewWarnings: 0,
+      previews: [{ previewType: 'inventory.edit', name: 'Glint-Nest Crane', finish: 'foil', location: trade }],
+      forbiddenText: [...existingEditFailureText, /does not appear to match/i],
+    }),
+    conversationMutationCase('followup-card-then-move-it', [
+      { role: 'user', content: 'where is my glint nest crane?' },
+      { role: 'assistant', content: 'It is in bulk.' },
+      { role: 'user', content: 'move it to trade binder' },
+    ], {
+      anyTool: ['preview_move_inventory_item', 'preview_edit_inventory_item'],
+      statuses: ['preview'],
+      requireStatus: true,
+      requirePreview: true,
+      maxPreviews: 1,
+      maxPreviewWarnings: 0,
+      previews: [{ previewType: 'inventory.edit', name: 'Glint-Nest Crane', location: trade }],
+      forbiddenText: [/does not appear to match/i],
+    }),
+    conversationMutationCase('followup-card-then-delete-it', [
+      { role: 'user', content: 'show me my great furnace' },
+      { role: 'assistant', content: 'Great Furnace is in bulk.' },
+      { role: 'user', content: 'remove it from my collection entirely' },
+    ], {
+      anyTool: ['preview_delete_inventory_item'],
+      statuses: ['preview'],
+      requireStatus: true,
+      requirePreview: true,
+      maxPreviews: 1,
+      maxPreviewWarnings: 0,
+      previews: [{ previewType: 'inventory.delete', name: 'Great Furnace' }],
+      forbiddenText: [/destination container/i, /does not appear to match/i],
+    }),
+    conversationMutationCase('followup-card-then-same-style-copy', [
+      { role: 'user', content: 'show me force of will in the trade binder' },
+      { role: 'assistant', content: 'Force of Will is in your trade binder.' },
+      { role: 'user', content: 'add another one same style, i have 2 now' },
+    ], {
+      anyTool: ['preview_duplicate_inventory_item'],
+      statuses: ['preview'],
+      requireStatus: true,
+      requirePreview: true,
+      maxPreviews: 1,
+      maxPreviewWarnings: 0,
+      previews: [{ previewType: 'inventory.add', name: 'Force of Will', minQty: 1 }],
+      forbiddenText: [/does not appear to match/i],
+    }),
+    conversationMutationCase('followup-move-then-mark-lp', [
+      { role: 'user', content: 'move chandra torch of defiance to trade binder' },
+      { role: 'assistant', content: 'Preview ready below.' },
+      { role: 'user', content: 'also mark it lightly played' },
+    ], {
+      anyTool: ['preview_edit_inventory_item'],
+      statuses: ['preview'],
+      requireStatus: true,
+      requirePreview: true,
+      maxPreviews: 1,
+      maxPreviewWarnings: 0,
+      previews: [{ previewType: 'inventory.edit', name: 'Chandra, Torch of Defiance', condition: 'lightly_played', location: trade }],
+      forbiddenText: [...existingEditFailureText, /does not appear to match/i],
+    }),
     mutationCase('decklist-add-ambiguous', 'put counterspell in my breya deck', { category: 'deck-disambiguation', statuses: ['needs_input', 'preview', 'ambiguous'] }),
     mutationCase('decklist-add-specific', 'add counterspell to the breya artifacts decklist', { category: 'deck-disambiguation', anyTool: ['preview_decklist_change', 'search_card_printings'], statuses: ['preview', 'needs_input'] }),
     mutationCase('physical-move-to-deck', 'move my physical mana crypt into the breya artifacts deck box', { category: 'deck-disambiguation', anyTool: ['preview_move_inventory_item'], statuses: ['preview'] }),
@@ -804,6 +896,7 @@ function toolsForCase(allTools, testCase, toolMode = 'category') {
       'preview_decklist_change',
     ],
   };
+  namesByCategory.conversation = namesByCategory.mutation;
   const allowed = new Set(namesByCategory[testCase.category] || namesByCategory.read);
   for (const name of testCase.expect?.anyTool || []) allowed.add(name);
   return allTools.filter(tool => allowed.has(tool.function?.name));
@@ -1098,7 +1191,7 @@ async function runModelCase({
   const tools = toolsForCase(allTools, testCase, toolMode);
   const messages = [
     { role: 'system', content: SYSTEM_PROMPT + ' You are being evaluated: use tools whenever collection data or collection edits are needed.' },
-    { role: 'user', content: testCase.prompt },
+    ...caseMessagesForModel(testCase),
   ];
   const toolCalls = [];
   const usage = [];
@@ -1217,7 +1310,7 @@ async function runWorkerChatCase({
       model,
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: testCase.prompt },
+        ...caseMessagesForModel(testCase),
       ],
     }),
   }), env);
@@ -1424,6 +1517,18 @@ function scoreCase(testCase, run) {
     }
     if (expect.requirePreview && !previews.length) failures.push('expected at least one preview, got none');
     if (expect.requireDraft && !drafts.length) failures.push('expected an app-renderable draft, got none');
+    if (expect.minPreviews != null && previews.length < Number(expect.minPreviews)) {
+      failures.push('expected at least ' + expect.minPreviews + ' previews, got ' + previews.length);
+    }
+    if (expect.maxPreviews != null && previews.length > Number(expect.maxPreviews)) {
+      failures.push('expected at most ' + expect.maxPreviews + ' previews, got ' + previews.length);
+    }
+    if (expect.maxPreviewWarnings != null) {
+      const warningCount = Array.isArray(run.chatData?.previewWarnings) ? run.chatData.previewWarnings.length : 0;
+      if (warningCount > Number(expect.maxPreviewWarnings)) {
+        failures.push('expected at most ' + expect.maxPreviewWarnings + ' preview warnings, got ' + warningCount);
+      }
+    }
     for (const previewExpectation of expect.previews || []) {
       if (!previews.some(preview => previewMatchesExpectation(preview, previewExpectation))) {
         failures.push('missing expected preview ' + JSON.stringify(previewExpectation));
