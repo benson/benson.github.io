@@ -4158,8 +4158,8 @@ function orderInventoryCardsForUserRequest(cards, userText) {
 }
 
 const PREVIEW_MATCH_STOPWORDS = new Set([
-  'a', 'add', 'an', 'and', 'another', 'binder', 'box', 'card', 'cards', 'collection', 'create', 'deck', 'foil', 'foils', 'from', 'in', 'into',
-  'make', 'move', 'my', 'nonfoil', 'normal', 'of', 'one', 'please', 'put', 'the', 'to', 'two', 'three', 'four',
+  'a', 'add', 'also', 'an', 'and', 'another', 'binder', 'box', 'card', 'cards', 'collection', 'create', 'deck', 'foil', 'foils', 'from', 'in', 'into',
+  'it', 'its', 'make', 'move', 'my', 'nonfoil', 'normal', 'now', 'of', 'one', 'please', 'put', 'same', 'that', 'the', 'them', 'this', 'those', 'to', 'too', 'two', 'three', 'four',
   'five', 'six', 'seven', 'eight', 'nine', 'ten', 'with',
 ]);
 
@@ -4220,13 +4220,42 @@ function addPreviewLooksLikeUserRequest(preview, userText) {
   return false;
 }
 
-function editPreviewExpectedFields(preview, userText, snapshot) {
-  const entry = snapshot ? mentionedInventoryEntry(snapshot, userText) : null;
+function editRequestNameTokens(userText) {
+  return significantMatchTokens(stripInventoryFinishQuery(userText));
+}
+
+function contextualEditFollowupText(userText) {
+  const text = String(userText || '').toLowerCase();
+  return /\b(?:also|it|its|that|them|this|those|same|previous|last|too)\b/.test(text);
+}
+
+function shouldUseEditReferenceText(userText, context = {}) {
+  return Boolean(context.referenceText)
+    && contextualEditFollowupText(userText)
+    && !editRequestNameTokens(userText).length;
+}
+
+function editReferenceText(userText, context = {}) {
+  return shouldUseEditReferenceText(userText, context)
+    ? String(context.referenceText || '')
+    : String(userText || '');
+}
+
+function editPreviewExpectedFields(preview, userText, context = {}) {
+  const snapshot = context.snapshot || null;
+  const referenceText = editReferenceText(userText, context);
+  const entry = snapshot
+    ? (mentionedInventoryEntry(snapshot, userText) || (referenceText !== String(userText || '') ? mentionedInventoryEntry(snapshot, referenceText) : null))
+    : null;
   const sourceLocation = entry?.location || null;
+  const toLocation = snapshot
+    ? (mentionedDestinationLocation(snapshot, userText, sourceLocation)
+      || (referenceText !== String(userText || '') ? mentionedDestinationLocation(snapshot, referenceText, sourceLocation) : null))
+    : null;
   return {
     finish: finishFromInventoryText(userText),
     condition: conditionFromInventoryText(userText),
-    toLocation: snapshot ? mentionedDestinationLocation(snapshot, userText, sourceLocation) : null,
+    toLocation,
   };
 }
 
@@ -4255,18 +4284,19 @@ function previewCardMatchesPrintingHint(card, userText) {
   return true;
 }
 
-function editPreviewLooksLikeUserRequest(preview, userText, snapshot) {
+function editPreviewLooksLikeUserRequest(preview, userText, context = {}) {
   const card = preview?.card || {};
   const name = cardNameFromPreview(preview);
-  const requestedNameTokens = significantMatchTokens(stripInventoryFinishQuery(userText));
+  const requestedNameTokens = editRequestNameTokens(editReferenceText(userText, context));
   const nameTokens = significantMatchTokens(name);
   if (nameTokens.length && requestedNameTokens.length && !nameTokenOverlapEnough(nameTokens, requestedNameTokens)) return false;
 
-  const expected = editPreviewExpectedFields(preview, userText, snapshot);
+  const expected = editPreviewExpectedFields(preview, userText, context);
   if (expected.finish && normalizeInventoryFinish(card.finish) !== expected.finish) return false;
   if (expected.condition && normalizeInventoryCondition(card.condition) !== expected.condition) return false;
   if (expected.toLocation && locationKey(card.location) !== locationKey(expected.toLocation)) return false;
   if (printingSwapRequestText(userText)) {
+    const snapshot = context.snapshot || null;
     const entry = snapshot ? mentionedInventoryEntry(snapshot, userText) : null;
     if (entry && !previewCardPrintingChanged(card, entry)) return false;
     if (!previewCardMatchesPrintingHint(card, userText)) return false;
@@ -4276,7 +4306,7 @@ function editPreviewLooksLikeUserRequest(preview, userText, snapshot) {
 
 function previewLooksLikeUserRequest(preview, userText, context = {}) {
   if (preview?.previewType === 'inventory.add') return addPreviewLooksLikeUserRequest(preview, userText);
-  if (preview?.previewType === 'inventory.edit') return editPreviewLooksLikeUserRequest(preview, userText, context.snapshot || null);
+  if (preview?.previewType === 'inventory.edit') return editPreviewLooksLikeUserRequest(preview, userText, context);
   return true;
 }
 
@@ -4425,8 +4455,43 @@ function filterChatPreviews(previews, lastUserText, context = {}) {
   const deduped = dedupeAddPreviews(accepted, lastUserText);
   return {
     previews: dedupeEquivalentChangePreviews(deduped.previews),
-    previewWarnings: [...warnings, ...deduped.previewWarnings],
+    previewWarnings: dedupePreviewWarnings([...warnings, ...deduped.previewWarnings]),
   };
+}
+
+function dedupePreviewWarnings(warnings) {
+  const out = [];
+  const seen = new Set();
+  for (const warning of warnings) {
+    const text = String(warning || '').trim();
+    if (!text) continue;
+    const key = text.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(text);
+  }
+  return out;
+}
+
+function cardsFromAcceptedPreviews(previews) {
+  const out = [];
+  const seen = new Set();
+  for (const preview of previews || []) {
+    const card = normalizeMcpInventoryCard(preview?.card);
+    if (!card || seen.has(card.itemKey)) continue;
+    seen.add(card.itemKey);
+    out.push(card);
+  }
+  return out;
+}
+
+function previewValidationReferenceText(messages = []) {
+  return messages
+    .filter(message => message?.role === 'user')
+    .map(message => String(message.content || '').trim())
+    .filter(Boolean)
+    .slice(-2)
+    .join('\n');
 }
 
 function extractOpenAiText(data) {
@@ -4481,13 +4546,18 @@ function cloudflareProviderErrorText(response) {
 
 function chatSuccessResponse(deps, request, { provider, model, hosted, usage, data, text, messages = [], previewSnapshot = null }) {
   const lastUserText = [...messages].reverse().find(message => message.role === 'user')?.content || '';
-  const filtered = filterChatPreviews(extractMcpPreviews(data), lastUserText, { snapshot: previewSnapshot });
+  const filtered = filterChatPreviews(extractMcpPreviews(data), lastUserText, {
+    snapshot: previewSnapshot,
+    referenceText: previewValidationReferenceText(messages),
+  });
   const drafts = preferDraftsForUserRequest(extractMcpDrafts(data), lastUserText);
   const addLookupMissText = filtered.previews.length ? '' : addLookupMissSummaryText(extractMcpAddLookupMisses(data), lastUserText);
-  const cards = orderInventoryCardsForUserRequest(
-    filterInventoryCardsForUserRequest(extractMcpInventoryCards(data), lastUserText),
-    lastUserText
-  );
+  const cards = filtered.previews.length
+    ? cardsFromAcceptedPreviews(filtered.previews)
+    : orderInventoryCardsForUserRequest(
+      filterInventoryCardsForUserRequest(extractMcpInventoryCards(data), lastUserText),
+      lastUserText
+    );
   const collectionSummary = collectionStatsSummaryText(extractMcpCollectionSummaries(data), lastUserText);
   const containerSummary = containerStatsSummaryText(extractMcpContainerStats(data), lastUserText);
   const responseCards = collectionSummary || containerSummary ? [] : cards;
@@ -5036,19 +5106,20 @@ function targetTotalQuantityFromText(userText) {
   return null;
 }
 
-function entryFromChatRecoveryContext(snapshot, userText, output) {
+function entryFromChatRecoveryContext(snapshot, userText, output, context = {}) {
   const cards = extractMcpInventoryCards({ output });
   const card = cards.length === 1 ? cards[0] : null;
   if (card?.itemKey) {
     const entry = (snapshot?.app?.collection || []).find(candidate => collectionKey(candidate) === card.itemKey);
     if (entry) return entry;
   }
-  return mentionedInventoryEntry(snapshot, userText);
+  return mentionedInventoryEntry(snapshot, userText)
+    || (context.referenceText ? mentionedInventoryEntry(snapshot, context.referenceText) : null);
 }
 
-function existingPreviewMatches(output, userText, snapshot, predicate) {
+function existingPreviewMatches(output, userText, snapshot, predicate, context = {}) {
   return extractMcpPreviews({ output }).some(preview => (
-    predicate(preview) && previewLooksLikeUserRequest(preview, userText, { snapshot })
+    predicate(preview) && previewLooksLikeUserRequest(preview, userText, { snapshot, ...context })
   ));
 }
 
@@ -5102,16 +5173,26 @@ async function recoverCloudflareMutationPreview({ env, deps, auth, messages, out
   if (/\badd\b/i.test(userText) && !/\b(?:change|make|mark|move|put|set|take|turn|update)\b/i.test(userText)) return null;
   const cards = extractMcpInventoryCards({ output });
   const cloud = await currentCloud(env, deps, auth.userId);
+  const referenceText = previewValidationReferenceText(messages);
+  const validationContext = { referenceText };
   const existingPreviews = extractMcpPreviews({ output });
   if (existingPreviews.some(preview => (
     preview?.previewType === 'inventory.edit'
-      && previewLooksLikeUserRequest(preview, userText, { snapshot: cloud.snapshot })
+      && previewLooksLikeUserRequest(preview, userText, { snapshot: cloud.snapshot, ...validationContext })
   ))) return null;
   const card = cards.length === 1 ? cards[0] : null;
-  const entry = card?.itemKey ? null : mentionedInventoryEntry(cloud.snapshot, userText);
-  const itemKey = card?.itemKey || (entry ? collectionKey(entry) : '');
+  const cardEntry = card?.itemKey
+    ? (cloud.snapshot.app.collection || []).find(candidate => collectionKey(candidate) === card.itemKey)
+    : null;
+  const referenceTextForEdit = editReferenceText(userText, validationContext);
+  const entry = cardEntry
+    || mentionedInventoryEntry(cloud.snapshot, userText)
+    || (referenceTextForEdit !== String(userText || '') ? mentionedInventoryEntry(cloud.snapshot, referenceTextForEdit) : null);
+  const itemKey = entry ? collectionKey(entry) : '';
   if (!itemKey) return null;
-  const toLocation = mentionedDestinationLocation(cloud.snapshot, userText, card?.location || entry?.location);
+  const sourceLocation = entry?.location || card?.location || null;
+  const toLocation = mentionedDestinationLocation(cloud.snapshot, userText, sourceLocation)
+    || (referenceTextForEdit !== String(userText || '') ? mentionedDestinationLocation(cloud.snapshot, referenceTextForEdit, sourceLocation) : null);
   const finish = finishFromInventoryText(userText);
   const condition = conditionFromInventoryText(userText);
   if (!toLocation && !finish && !condition) return null;

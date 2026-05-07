@@ -1856,6 +1856,90 @@ test('mcp chat: hosted Cloudflare does not duplicate plain move previews', async
   }
 });
 
+test('mcp chat: hosted Cloudflare follow-up edit uses the previous card context', async () => {
+  const entry = card({
+    name: 'Glint-Nest Crane',
+    resolvedName: 'Glint-Nest Crane',
+    scryfallId: 'glint-nest-crane-1',
+    setCode: 'kld',
+    cn: '50',
+    finish: 'normal',
+    finishes: ['nonfoil', 'foil'],
+    location: { type: 'box', name: 'bulk' },
+  });
+  const snapshot = emptySnapshot({
+    collection: [entry],
+    containers: {
+      'box:bulk': { type: 'box', name: 'bulk' },
+      'binder:trade binder': { type: 'binder', name: 'trade binder' },
+    },
+  });
+  const { env } = fakeSyncEnv(snapshot);
+  env.MTGCOLLECTION_CHAT_PROVIDER = 'cloudflare';
+  let calls = 0;
+  env.AI = {
+    async run() {
+      calls += 1;
+      if (calls === 1) {
+        return {
+          tool_calls: [{
+            name: 'preview_edit_inventory_item',
+            arguments: { itemKey: collectionKey(entry), finish: 'foil' },
+          }, {
+            name: 'preview_edit_inventory_item',
+            arguments: { itemKey: collectionKey(entry), finish: 'foil' },
+          }],
+        };
+      }
+      return { response: 'Preview ready below.' };
+    },
+  };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    throw new Error('Cloudflare hosted chat should use env.AI, not external fetch');
+  };
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        provider: 'cloudflare',
+        messages: [
+          { role: 'user', content: 'move my glint nest crane to my trade binder' },
+          { role: 'assistant', content: 'Preview ready below.' },
+          { role: 'user', content: 'also make it foil' },
+        ],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(calls, 2);
+    assert.equal(data.text, 'Preview ready below.');
+    assert.equal(data.previews.length, 1);
+    assert.equal(data.previews[0].previewType, 'inventory.edit');
+    assert.match(data.previews[0].summary, /Glint-Nest Crane/);
+    assert.match(data.previews[0].summary, /\{loc:binder:trade binder\}/);
+    assert.match(data.previews[0].summary, /finish normal to foil/);
+    assert.deepEqual(data.previews[0].card.location, { type: 'binder', name: 'trade binder' });
+    assert.equal(data.previews[0].card.finish, 'foil');
+    assert.equal(data.cards.length, 1);
+    assert.equal(data.cards[0].name, 'Glint-Nest Crane');
+    assert.deepEqual(data.cards[0].location, { type: 'binder', name: 'trade binder' });
+    assert.equal(data.previewWarnings.length, 1);
+    assert.match(data.previewWarnings[0], /Glint-Nest Crane/);
+    assert.deepEqual(data.raw.output.map(item => item.name), [
+      'preview_edit_inventory_item',
+      'preview_edit_inventory_item',
+      'preview_edit_inventory_item',
+    ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('mcp chat: Cloudflare sends compact tool results back to the model', async () => {
   const entry = card({
     name: 'Glint-Nest Crane',
