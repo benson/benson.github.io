@@ -1849,6 +1849,7 @@ test('mcp chat: hosted Cloudflare does not duplicate plain move previews', async
       data.previews[0].card.itemKey,
       collectionKey({ ...snapshot.app.collection[0], location: { type: 'binder', name: 'trade binder' } })
     );
+    assert.equal(data.previews[0].card.sourceItemKey, collectionKey(snapshot.app.collection[0]));
     assert.deepEqual(data.previews[0].card.location, { type: 'binder', name: 'trade binder' });
     assert.deepEqual(data.raw.output.map(item => item.name), ['preview_move_inventory_item']);
   } finally {

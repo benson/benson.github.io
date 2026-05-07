@@ -138,6 +138,7 @@ function compactOperationCard(raw) {
   if (!card) return null;
   return {
     itemKey: card.itemKey,
+    sourceItemKey: card.sourceItemKey,
     name: card.name,
     setCode: card.setCode,
     cn: card.cn,
@@ -1044,13 +1045,14 @@ function collectChatTextRanges(raw, cards = []) {
 }
 
 function makeInlineCardMention(card, label) {
+  const displayCard = currentChatCardSnapshot(card).card || card;
   const button = documentRef.createElement('button');
   button.type = 'button';
   button.className = 'mcp-chat-inline-card card-name-button card-preview-link';
   button.textContent = label;
-  button.title = 'preview ' + card.name;
-  button.setAttribute('aria-label', 'preview ' + card.name);
-  appendCardPreviewDataset(button, card);
+  button.title = 'preview ' + displayCard.name;
+  button.setAttribute('aria-label', 'preview ' + displayCard.name);
+  appendCardPreviewDataset(button, displayCard);
   return button;
 }
 
@@ -1126,6 +1128,7 @@ function normalizeChatCard(raw) {
   if (!name) return null;
   return {
     itemKey,
+    sourceItemKey: String(raw.sourceItemKey || raw.beforeItemKey || raw.originalItemKey || '').trim(),
     name,
     scryfallId: String(raw.scryfallId || '').trim(),
     setCode: String(raw.setCode || raw.set || '').trim().toLowerCase(),
@@ -1288,6 +1291,17 @@ function appendCardPreviewDataset(el, card) {
   if (card.cn) el.dataset.previewCn = card.cn;
   if (card.name) el.dataset.previewName = card.name;
   el.dataset.previewFinish = card.finish || 'normal';
+  if (!card.itemKey) return;
+  el.dataset.previewEntryName = card.name || '';
+  el.dataset.previewEntrySet = card.setCode ? card.setCode.toUpperCase() : '';
+  el.dataset.previewEntryCn = card.cn || '';
+  el.dataset.previewEntryFinish = finishLabel(card.finish || 'normal');
+  el.dataset.previewEntryCondition = CONDITION_ABBR[card.condition] || conditionShortLabel(card.condition);
+  el.dataset.previewEntryLanguage = card.language || '';
+  el.dataset.previewEntryQty = card.qty ? String(card.qty) : '';
+  el.dataset.previewEntryLocation = card.location ? formatLocationLabel(card.location) : '';
+  el.dataset.previewEntryTags = Array.isArray(card.tags) ? card.tags.join(', ') : '';
+  el.dataset.previewEntryPrice = formatUsd(card.price);
 }
 
 function formatUsd(value) {
@@ -1296,20 +1310,54 @@ function formatUsd(value) {
 }
 
 function collectionIndexForChatCard(card) {
-  const key = String(card?.itemKey || '');
-  if (!key) return -1;
-  return state.collection.findIndex(entry => collectionKey(entry) === key);
+  const keys = [
+    String(card?.sourceItemKey || '').trim(),
+    String(card?.itemKey || '').trim(),
+  ].filter(Boolean);
+  for (const key of keys) {
+    const index = state.collection.findIndex(entry => collectionKey(entry) === key);
+    if (index >= 0) return index;
+  }
+  return card?.sourceItemKey ? fallbackCollectionIndexForChatCard(card) : -1;
+}
+
+function fallbackCollectionIndexForChatCard(card) {
+  if (!card) return -1;
+  const name = String(card.name || '').trim().toLowerCase();
+  const setCode = String(card.setCode || '').trim().toLowerCase();
+  const cn = String(card.cn || '').trim();
+  const scryfallId = String(card.scryfallId || '').trim();
+  let best = { index: -1, score: 0 };
+  for (let i = 0; i < state.collection.length; i += 1) {
+    const entry = state.collection[i];
+    const entryName = String(entry.resolvedName || entry.name || '').trim().toLowerCase();
+    const entrySet = String(entry.setCode || '').trim().toLowerCase();
+    const entryCn = String(entry.cn || '').trim();
+    const entryId = String(entry.scryfallId || '').trim();
+    let score = 0;
+    if (scryfallId && entryId === scryfallId) score += 100;
+    else if (setCode && cn && entrySet === setCode && entryCn === cn) score += 80;
+    else if (name && entryName === name) score += 40;
+    else continue;
+    if (normalizeFinish(entry.finish) === card.finish) score += 8;
+    if (String(entry.condition || '').trim().toLowerCase() === card.condition) score += 4;
+    if (String(entry.language || '').trim().toLowerCase() === card.language) score += 2;
+    if (score > best.score) best = { index: i, score };
+  }
+  return best.index;
 }
 
 function currentChatCardSnapshot(card) {
   const index = collectionIndexForChatCard(card);
   const current = index >= 0 ? state.collection[index] : null;
+  const currentKey = current ? collectionKey(current) : '';
   return {
     index,
     card: current ? normalizeChatCard({
       ...card,
       ...current,
-      itemKey: card.itemKey,
+      itemKey: currentKey,
+      sourceItemKey: currentKey,
       name: current.resolvedName || current.name || card.name,
       cn: current.cn || card.cn,
       setCode: current.setCode || card.setCode,
@@ -1545,18 +1593,6 @@ function makeChatCardTable(cards) {
   return list;
 }
 
-function compactChatCardMeta(card) {
-  const setNumber = [card.setCode ? card.setCode.toUpperCase() : '', card.cn ? '#' + card.cn : ''].filter(Boolean).join(' ');
-  const condition = CONDITION_ABBR[card.condition] || conditionShortLabel(card.condition);
-  return [
-    setNumber,
-    card.finish || 'normal',
-    condition,
-    card.qty ? 'qty ' + card.qty : '',
-    formatUsd(card.price),
-  ].filter(Boolean).join(' | ');
-}
-
 function makeChatCardSummaryItem(raw) {
   const card = normalizeChatCard(raw);
   if (!card) return null;
@@ -1571,20 +1607,6 @@ function makeChatCardSummaryItem(raw) {
   name.textContent = displayCard.name;
   appendCardPreviewDataset(name, displayCard);
   item.appendChild(name);
-
-  const metaText = compactChatCardMeta(displayCard);
-  if (metaText) {
-    const meta = documentRef.createElement('span');
-    meta.className = 'muted mcp-chat-card-summary-meta';
-    meta.textContent = metaText;
-    item.appendChild(meta);
-  }
-  if (displayCard.location) {
-    const loc = documentRef.createElement('span');
-    loc.className = 'mcp-chat-card-summary-location';
-    loc.innerHTML = locationPillHtml(displayCard.location, { withRemove: false });
-    item.appendChild(loc);
-  }
   return item;
 }
 
@@ -1646,13 +1668,6 @@ function renderChatCardResults(cards) {
       if (item) summary.appendChild(item);
     }
     section.appendChild(summary);
-
-    const details = documentRef.createElement('details');
-    details.className = 'mcp-chat-card-details';
-    const detailsSummary = documentRef.createElement('summary');
-    detailsSummary.textContent = 'fields';
-    details.append(detailsSummary, makeChatCardTable(normalized));
-    section.appendChild(details);
     return section;
   }
 

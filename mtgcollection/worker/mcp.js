@@ -2184,7 +2184,7 @@ async function previewInventoryEdit(env, auth, cloud, entry, args = {}, { toLoca
   return {
     ...preview,
     previewType: 'inventory.edit',
-    card: inventoryEditCardPreview(next),
+    card: { ...inventoryEditCardPreview(next), sourceItemKey: beforeKey },
   };
 }
 
@@ -2405,7 +2405,7 @@ async function toolPreviewDeleteInventoryItem(env, deps, auth, args = {}) {
   return {
     ...preview,
     previewType: 'inventory.delete',
-    card: { ...inventoryEditCardPreview(entry), qty },
+    card: { ...inventoryEditCardPreview(entry), sourceItemKey: beforeKey, qty },
   };
 }
 
@@ -2448,7 +2448,7 @@ async function toolPreviewDuplicateInventoryItem(env, deps, auth, args = {}) {
   return {
     ...preview,
     previewType: 'inventory.add',
-    card: { ...inventoryEditCardPreview(entry), qty: delta, totalQtyAfter: sourceQty + delta },
+    card: { ...inventoryEditCardPreview(entry), sourceItemKey: beforeKey, qty: delta, totalQtyAfter: sourceQty + delta },
   };
 }
 
@@ -2518,7 +2518,7 @@ async function toolPreviewReplaceInventoryPrinting(env, deps, auth, args = {}) {
   return {
     ...preview,
     previewType: 'inventory.edit',
-    card: inventoryEditCardPreview(next),
+    card: { ...inventoryEditCardPreview(next), sourceItemKey: beforeKey },
   };
 }
 
@@ -2693,7 +2693,7 @@ async function toolPreviewMoveInventoryItem(env, deps, auth, args = {}) {
   return {
     ...preview,
     previewType: 'inventory.edit',
-    card: inventoryEditCardPreview(moved),
+    card: { ...inventoryEditCardPreview(moved), sourceItemKey: beforeKey },
   };
 }
 
@@ -3598,6 +3598,7 @@ function compactChatCardContext(raw) {
   const location = compactChatLocationContext(normalized?.location || raw.location);
   return {
     itemKey,
+    sourceItemKey: String(normalized?.sourceItemKey || raw.sourceItemKey || raw.beforeItemKey || raw.originalItemKey || '').trim(),
     name,
     setCode: String(normalized?.setCode || raw.setCode || raw.set || '').trim().toLowerCase(),
     cn: String(normalized?.cn || raw.cn || raw.collectorNumber || '').trim(),
@@ -3948,6 +3949,7 @@ function normalizeMcpInventoryCard(value) {
   if (!qty) return null;
   return {
     itemKey,
+    sourceItemKey: String(value.sourceItemKey || value.beforeItemKey || value.originalItemKey || '').trim(),
     name,
     scryfallId: String(value.scryfallId || '').trim(),
     setCode: String(value.setCode || value.set || '').trim().toLowerCase(),

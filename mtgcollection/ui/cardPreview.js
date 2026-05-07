@@ -2,6 +2,7 @@ import { biggerImageUrl } from '../collection.js';
 
 let cardPreviewEl = null;
 let cardPreviewImg = null;
+let cardPreviewInfoEl = null;
 let lightboxEl = null;
 let lightboxImg = null;
 let lightboxFlipBtn = null;
@@ -32,7 +33,8 @@ export function showCardPreview(link) {
   const win = getWindowFor(link);
   const rect = link.getBoundingClientRect();
   const sleevedPreview = link.classList.contains('history-empty-card');
-  const previewWidth = sleevedPreview ? 340 : 300;
+  const hasEntryInfo = renderCardPreviewInfo(link);
+  const previewWidth = (sleevedPreview ? 340 : 300) + (hasEntryInfo ? 240 : 0);
   const previewHeight = sleevedPreview ? 496 : 418;
   const padding = 20;
   const linkCenterX = rect.left + rect.width / 2;
@@ -50,6 +52,7 @@ export function showCardPreview(link) {
   cardPreviewEl.style.top = top + 'px';
   cardPreviewEl.classList.add('visible');
   cardPreviewEl.classList.toggle('is-sleeved-preview', sleevedPreview);
+  cardPreviewEl.classList.toggle('has-entry-info', hasEntryInfo);
 
   const finish = link.dataset.previewFinish || 'normal';
   cardPreviewEl.classList.toggle('is-foil', finish === 'foil');
@@ -73,6 +76,7 @@ export function hideCardPreview() {
   if (!cardPreviewEl) return;
   cardPreviewEl.classList.remove('visible');
   cardPreviewEl.classList.remove('is-sleeved-preview');
+  cardPreviewEl.classList.remove('has-entry-info');
   pendingPreviewUrl = null;
 }
 
@@ -128,6 +132,63 @@ async function resolvePreviewUrl(link) {
   const url = await previewLookupCache.get(key);
   if (url) link.dataset.previewUrl = url;
   return url;
+}
+
+function previewInfoRows(link) {
+  const printing = [
+    link.dataset.previewEntrySet,
+    link.dataset.previewEntryCn ? '#' + link.dataset.previewEntryCn : '',
+  ].filter(Boolean).join(' ');
+  return [
+    ['printing', printing],
+    ['finish', link.dataset.previewEntryFinish],
+    ['condition', link.dataset.previewEntryCondition],
+    ['language', link.dataset.previewEntryLanguage],
+    ['location', link.dataset.previewEntryLocation],
+    ['quantity', link.dataset.previewEntryQty],
+    ['price', link.dataset.previewEntryPrice],
+    ['tags', link.dataset.previewEntryTags],
+  ].map(([label, value]) => [label, String(value || '').trim()]).filter(([, value]) => value);
+}
+
+function renderCardPreviewInfo(link) {
+  if (!cardPreviewInfoEl || !cardPreviewEl) return false;
+  const title = String(link.dataset.previewEntryName || '').trim();
+  const rows = previewInfoRows(link);
+  cardPreviewInfoEl.textContent = '';
+  if (!title && !rows.length) {
+    cardPreviewInfoEl.hidden = true;
+    return false;
+  }
+
+  const doc = cardPreviewInfoEl.ownerDocument;
+  const eyebrow = doc.createElement('div');
+  eyebrow.className = 'card-preview-info-eyebrow';
+  eyebrow.textContent = 'collection entry';
+  cardPreviewInfoEl.appendChild(eyebrow);
+
+  if (title) {
+    const name = doc.createElement('div');
+    name.className = 'card-preview-info-name';
+    name.textContent = title;
+    cardPreviewInfoEl.appendChild(name);
+  }
+
+  if (rows.length) {
+    const list = doc.createElement('dl');
+    list.className = 'card-preview-info-list';
+    for (const [label, value] of rows) {
+      const term = doc.createElement('dt');
+      term.textContent = label;
+      const desc = doc.createElement('dd');
+      desc.textContent = value;
+      list.append(term, desc);
+    }
+    cardPreviewInfoEl.appendChild(list);
+  }
+
+  cardPreviewInfoEl.hidden = false;
+  return true;
 }
 
 export function showImageLightbox(frontUrl, backUrl) {
@@ -198,6 +259,13 @@ function bindLightboxEvents() {
 export function initCardPreview(doc = document) {
   cardPreviewEl = doc.getElementById('cardPreview');
   cardPreviewImg = cardPreviewEl?.querySelector('img') || null;
+  cardPreviewInfoEl = cardPreviewEl?.querySelector('.card-preview-info') || null;
+  if (cardPreviewEl && !cardPreviewInfoEl) {
+    cardPreviewInfoEl = doc.createElement('div');
+    cardPreviewInfoEl.className = 'card-preview-info';
+    cardPreviewInfoEl.hidden = true;
+    cardPreviewEl.appendChild(cardPreviewInfoEl);
+  }
   lightboxEl = doc.getElementById('imageLightbox');
   lightboxImg = doc.getElementById('imageLightboxImg');
   lightboxFlipBtn = doc.getElementById('lightboxFlip');

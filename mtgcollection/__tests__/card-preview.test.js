@@ -130,6 +130,32 @@ test('card preview lazily resolves an image when row metadata has no cached URL'
   assert.equal(img.getAttribute('src'), 'https://img.test/dreamroot.jpg');
 });
 
+test('card preview renders collection entry details beside the image', () => {
+  const doc = installDom();
+  assert.equal(initCardPreview(doc), true);
+  const link = doc.getElementById('previewLink');
+  link.dataset.previewEntryName = 'Mana Confluence';
+  link.dataset.previewEntrySet = 'JOU';
+  link.dataset.previewEntryCn = '163';
+  link.dataset.previewEntryFinish = 'normal';
+  link.dataset.previewEntryCondition = 'nm';
+  link.dataset.previewEntryLanguage = 'en';
+  link.dataset.previewEntryQty = '1';
+  link.dataset.previewEntryLocation = 'box:bulk';
+  link.dataset.previewEntryPrice = '$32.08';
+
+  showCardPreview(link);
+
+  const preview = doc.getElementById('cardPreview');
+  const info = preview.querySelector('.card-preview-info');
+  assert.equal(preview.classList.contains('has-entry-info'), true);
+  assert.equal(info.hidden, false);
+  assert.match(info.textContent, /collection entry/);
+  assert.match(info.textContent, /Mana Confluence/);
+  assert.match(info.textContent, /JOU #163/);
+  assert.match(info.textContent, /box:bulk/);
+});
+
 test('initCardPreview: missing chrome fails softly', () => {
   const win = new Window();
   assert.equal(initCardPreview(win.document), false);

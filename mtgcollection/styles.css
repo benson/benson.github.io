@@ -4496,10 +4496,64 @@
     border-radius: 4%;
   }
   #cardPreview.visible { display: block; }
+  #cardPreview.has-entry-info.visible {
+    align-items: start;
+    background: #fffefb;
+    border: 1px solid #ddd6ca;
+    border-radius: 8px;
+    display: grid;
+    filter: drop-shadow(0 8px 18px rgba(0,0,0,0.28));
+    gap: 10px;
+    grid-template-columns: 300px 220px;
+    padding: 8px;
+    width: 538px;
+  }
   #cardPreview img {
     width: 100%;
     border-radius: 4%;
     display: block;
+  }
+  #cardPreview.has-entry-info img {
+    width: 300px;
+  }
+  #cardPreview.has-entry-info.is-foil::after,
+  #cardPreview.has-entry-info.is-etched::after {
+    display: none;
+  }
+  .card-preview-info {
+    color: #111;
+    display: grid;
+    font-size: 0.82rem;
+    gap: 8px;
+    line-height: 1.35;
+    min-width: 0;
+    padding: 2px 2px 0;
+  }
+  .card-preview-info[hidden] { display: none; }
+  .card-preview-info-eyebrow {
+    color: #777;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+  }
+  .card-preview-info-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+  .card-preview-info-list {
+    display: grid;
+    gap: 5px 10px;
+    grid-template-columns: minmax(62px, max-content) minmax(0, 1fr);
+    margin: 0;
+  }
+  .card-preview-info-list dt {
+    color: #777;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+  }
+  .card-preview-info-list dd {
+    margin: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
   #cardPreview.is-sleeved-preview {
     background:

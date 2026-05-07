@@ -300,10 +300,12 @@ test('initMcpChat: assistant prose renders known card and container references r
     assert.equal(inlineCard?.dataset.previewName, 'Force of Will');
     assert.doesNotMatch(body.textContent, /\*\*/);
     assert.equal(assistant.querySelector('.loc-pill-binder')?.dataset.locName, 'trade binder');
-    assert.equal(assistant.querySelector('.mcp-chat-card-summary .card-name-button.card-preview-link')?.textContent, 'Force of Will');
-    assert.equal(assistant.querySelector('.mcp-chat-card-details')?.open, false);
-    assert.equal(assistant.querySelector('.mcp-chat-card-results .card-name-button.card-preview-link')?.textContent, 'Force of Will');
-    assert.equal(assistant.querySelector('.price-cell')?.textContent, '$75.04');
+    const resultCard = assistant.querySelector('.mcp-chat-card-summary .card-name-button.card-preview-link');
+    assert.equal(resultCard?.textContent, 'Force of Will');
+    assert.equal(resultCard?.dataset.previewEntryLocation, 'binder:trade binder');
+    assert.equal(resultCard?.dataset.previewEntryPrice, '$75.04');
+    assert.equal(assistant.querySelector('.mcp-chat-card-details'), null);
+    assert.equal(assistant.querySelector('.price-cell'), null);
   } finally {
     click(win, document.getElementById('mcpChatClear'));
     state.collection = previousCollection;
@@ -358,7 +360,7 @@ test('initMcpChat: pending previews render card mentions canonically', () => {
   }
 });
 
-test('renderChatCardResultsForTest: single referenced cards are compact with expandable fields', () => {
+test('renderChatCardResultsForTest: single referenced cards are compact and expose fields on hover data', () => {
   const { win, document } = setup();
   const previousCollection = state.collection;
   const previousViewMode = state.viewMode;
@@ -384,13 +386,13 @@ test('renderChatCardResultsForTest: single referenced cards are compact with exp
     document.body.appendChild(section);
 
     assert.equal(section.classList.contains('mcp-chat-card-results-compact'), true);
-    assert.equal(section.querySelector('.mcp-chat-card-summary .card-name-button')?.textContent, 'Force of Will');
-    assert.match(section.querySelector('.mcp-chat-card-summary')?.textContent || '', /2XM #51/);
-    assert.equal(section.querySelector('.mcp-chat-card-details')?.open, false);
-    assert.deepEqual(
-      Array.from(section.querySelectorAll('.mcp-chat-card-header-cell')).map(cell => cell.textContent),
-      ['card', 'set', '#', 'finish', 'rarity', 'condition', 'location', 'tags', 'qty', 'price', 'edit']
-    );
+    const cardLink = section.querySelector('.mcp-chat-card-summary .card-name-button');
+    assert.equal(cardLink?.textContent, 'Force of Will');
+    assert.equal(cardLink?.dataset.previewEntrySet, '2XM');
+    assert.equal(cardLink?.dataset.previewEntryCn, '51');
+    assert.equal(cardLink?.dataset.previewEntryLocation, 'binder:trade binder');
+    assert.equal(section.querySelector('.mcp-chat-card-details'), null);
+    assert.equal(section.querySelector('.mcp-chat-card-list'), null);
 
     click(win, section.querySelector('.mcp-chat-card-results-copy[aria-label="filter collection to this card"]'));
     assert.equal(document.getElementById('searchInput').value, 'name:"Force of Will"');
@@ -398,6 +400,47 @@ test('renderChatCardResultsForTest: single referenced cards are compact with exp
   } finally {
     state.collection = previousCollection;
     state.viewMode = previousViewMode;
+  }
+});
+
+test('renderChatCardResultsForTest: preview cards render committed source entry before apply', () => {
+  const { document } = setup();
+  const previousCollection = state.collection;
+  const before = {
+    name: 'Mana Confluence',
+    resolvedName: 'Mana Confluence',
+    scryfallId: 'mana-1',
+    setCode: 'jou',
+    cn: '163',
+    finish: 'normal',
+    condition: 'near_mint',
+    language: 'en',
+    qty: 1,
+    location: { type: 'box', name: 'bulk' },
+    price: 32.08,
+  };
+  const beforeKey = collectionKey(before);
+  state.collection = [before];
+
+  try {
+    const section = renderChatCardResultsForTest([{
+      ...before,
+      itemKey: collectionKey({ ...before, location: { type: 'binder', name: 'trade binder' }, finish: 'foil', condition: 'lightly_played' }),
+      sourceItemKey: beforeKey,
+      location: { type: 'binder', name: 'trade binder' },
+      finish: 'foil',
+      condition: 'lightly_played',
+    }], document);
+    document.body.appendChild(section);
+
+    const cardLink = section.querySelector('.mcp-chat-card-summary .card-name-button');
+    assert.equal(cardLink?.textContent, 'Mana Confluence');
+    assert.equal(cardLink?.dataset.previewEntryLocation, 'box:bulk');
+    assert.equal(cardLink?.dataset.previewEntryFinish, 'nonfoil');
+    assert.equal(cardLink?.dataset.previewEntryCondition, 'nm');
+    assert.equal(section.textContent.includes('trade binder'), false);
+  } finally {
+    state.collection = previousCollection;
   }
 });
 
@@ -501,24 +544,17 @@ test('renderChatCardResultsForTest: inventory cards are hoverable and movable', 
     document.body.appendChild(section);
 
     assert.equal(document.querySelector('.mcp-chat-card-results-head span').textContent, 'card referenced');
-    assert.equal(document.querySelector('.mcp-chat-card-list')?.getAttribute('role'), 'table');
-    assert.deepEqual(
-      Array.from(document.querySelectorAll('.mcp-chat-card-header-cell')).map(cell => cell.textContent),
-      ['card', 'set', '#', 'finish', 'rarity', 'condition', 'location', 'tags', 'qty', 'price', 'edit']
-    );
     const cardLink = document.querySelector('.card-name-button.card-preview-link');
     assert.ok(cardLink);
     assert.equal(cardLink.dataset.previewId, 'sos-122');
     assert.equal(cardLink.dataset.previewSet, 'sos');
     assert.equal(cardLink.dataset.previewCn, '122');
-    assert.equal(document.querySelector('.set-cell').textContent.trim(), 'SOS');
-    assert.equal(document.querySelector('.condition-cell').textContent, 'nm');
-    assert.equal(document.querySelector('.loc-pill').dataset.locName, 'trade binder');
-    assert.equal(document.querySelector('.row-tag').textContent.includes('spells'), true);
-    assert.equal(document.querySelector('.row-tag-input').dataset.index, '0');
-    assert.equal(document.querySelector('.price-cell').textContent, '$0.26');
-    assert.equal(document.querySelector('[data-chat-card-action="toggleMove"]').textContent, 'edit');
-    assert.equal(document.querySelector('[data-chat-move-target] option[value="deck:breya"]').textContent, 'breya');
+    assert.equal(cardLink.dataset.previewEntrySet, 'SOS');
+    assert.equal(cardLink.dataset.previewEntryCondition, 'nm');
+    assert.equal(cardLink.dataset.previewEntryLocation, 'binder:trade binder');
+    assert.equal(cardLink.dataset.previewEntryTags, 'spells');
+    assert.equal(cardLink.dataset.previewEntryPrice, '$0.26');
+    assert.equal(document.querySelector('.mcp-chat-card-list'), null);
     assert.equal(document.querySelector('.mcp-chat-card-results-copy[aria-label="copy card results as tab-separated text"]').textContent, 'copy');
   } finally {
     state.collection = previousCollection;
