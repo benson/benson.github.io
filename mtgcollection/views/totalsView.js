@@ -25,8 +25,13 @@ function scopedText(current, total, filteredActive, formatter = numberText) {
   return currentText + ' of ' + formatter(total);
 }
 
+function totalKind(label) {
+  return String(label || 'item').toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'item';
+}
+
 function part(value, label) {
-  return `<span><strong>${value}</strong> ${label}</span>`;
+  const kind = totalKind(label);
+  return `<span class="total-part total-part-${kind}" data-total-kind="${kind}"><strong>${value}</strong> ${label}</span>`;
 }
 
 function joinParts(parts) {

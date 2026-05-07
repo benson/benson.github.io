@@ -42,7 +42,12 @@ function refreshAfterCollectionCommit() {
 }
 
 function markBootReady() {
+  document.body.classList.add('app-boot-settling');
   document.body.classList.remove('app-booting');
+  const raf = document.defaultView?.requestAnimationFrame?.bind(document.defaultView);
+  const clearSettling = () => document.body.classList.remove('app-boot-settling');
+  if (raf) raf(() => raf(clearSettling));
+  else setTimeout(clearSettling, 80);
 }
 
 const SYNC_BOOT_WAIT_MS = 2500;

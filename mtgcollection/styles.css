@@ -25,6 +25,28 @@
   html.text-size-large { font-size: 18px; }
   body.text-size-compact { --app-footer-h: 34px; }
   body.text-size-large { --app-footer-h: 44px; }
+  body.app-booting .app-shell,
+  body.app-boot-settling .app-shell,
+  body.app-booting .app-left,
+  body.app-boot-settling .app-left,
+  body.app-booting .app-right,
+  body.app-boot-settling .app-right,
+  body.app-booting .app-footer,
+  body.app-boot-settling .app-footer,
+  body.app-booting .app-totals-strip,
+  body.app-boot-settling .app-totals-strip,
+  body.app-booting .sidebar-edge-toggle,
+  body.app-boot-settling .sidebar-edge-toggle,
+  body.app-booting .history-drawer-header,
+  body.app-boot-settling .history-drawer-header,
+  body.app-booting .sidebar-history > .details-body,
+  body.app-boot-settling .sidebar-history > .details-body,
+  body.app-booting .fab-cluster,
+  body.app-boot-settling .fab-cluster,
+  body.app-booting .mcp-chat-widget,
+  body.app-boot-settling .mcp-chat-widget {
+    transition: none !important;
+  }
 
   /* A-shell border-frame layout */
   .app-shell {
@@ -765,6 +787,24 @@
     font-variant-numeric: tabular-nums;
   }
   .app-totals-strip .sep { color: #bbb; }
+  .app-totals-strip .total-part {
+    align-items: baseline;
+    display: inline-flex;
+    gap: 3px;
+    white-space: nowrap;
+  }
+  .app-totals-strip .total-part strong {
+    display: inline-block;
+    text-align: right;
+  }
+  .app-totals-strip .total-part-unique strong,
+  .app-totals-strip .total-part-qty strong,
+  .app-totals-strip .total-part-main strong,
+  .app-totals-strip .total-part-side strong,
+  .app-totals-strip .total-part-maybe strong,
+  .app-totals-strip .total-part-decks strong { min-width: 2.3ch; }
+  .app-totals-strip .total-part-value strong { min-width: 8.2ch; }
+  .app-totals-strip .total-part-containers strong { min-width: 2.7ch; }
 
   body.view-binder .app-center {
     display: flex;

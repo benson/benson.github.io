@@ -28,6 +28,7 @@ test('renderCollectionTotals shows global totals without filtered suffix', () =>
   assert.match(html, /<strong>2<\/strong> unique/);
   assert.match(html, /<strong>3<\/strong> qty/);
   assert.match(html, /<strong>\$6\.00<\/strong> value/);
+  assert.match(html, /class="total-part total-part-unique"/);
 });
 
 test('renderCollectionTotals shows filtered of global totals', () => {
