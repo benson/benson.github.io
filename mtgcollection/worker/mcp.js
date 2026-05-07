@@ -3558,6 +3558,180 @@ function normalizeChatMessages(messages) {
     .filter(message => message.content.trim());
 }
 
+const CHAT_CONTEXT_SYSTEM_CHARS = 9000;
+const CHAT_CONTEXT_CURRENT_USER_CHARS = 4000;
+const CHAT_CONTEXT_PRIOR_MESSAGE_CHARS = 1400;
+const CHAT_OPERATION_CONTEXT_CHARS = 7000;
+const CHAT_CONTEXT_TOTAL_CHARS = 24000;
+
+function truncateChatText(value, maxChars) {
+  const text = String(value || '').trim();
+  const max = Math.max(200, parseInt(maxChars, 10) || 200);
+  if (text.length <= max) return text;
+  const marker = '\n[truncated for operation-scoped chat context]\n';
+  const headLength = Math.max(80, Math.floor((max - marker.length) * 0.65));
+  const tailLength = Math.max(80, max - marker.length - headLength);
+  return text.slice(0, headLength).trimEnd() + marker + text.slice(-tailLength).trimStart();
+}
+
+function chatContextCharCount(messages) {
+  return messages.reduce((sum, message) => sum + String(message.content || '').length, 0);
+}
+
+function contextualChatFollowupText(userText) {
+  const text = String(userText || '').toLowerCase();
+  return /\b(?:also|again|actually|instead|it|its|same|that|them|these|this|those|previous|last|one more|same one|same card|same copy|same printing|same style|same version)\b/.test(text)
+    || /^\s*(?:no|nah|wait|actually|also)\b/.test(text);
+}
+
+function compactChatLocationContext(raw) {
+  const loc = normalizeLocation(raw);
+  return loc ? { type: loc.type, name: loc.name, key: locationKey(loc) } : null;
+}
+
+function compactChatCardContext(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const normalized = normalizeMcpInventoryCard(raw);
+  const name = String(normalized?.name || raw.name || raw.resolvedName || '').trim();
+  const itemKey = String(normalized?.itemKey || raw.itemKey || '').trim();
+  if (!name && !itemKey) return null;
+  const location = compactChatLocationContext(normalized?.location || raw.location);
+  return {
+    itemKey,
+    name,
+    setCode: String(normalized?.setCode || raw.setCode || raw.set || '').trim().toLowerCase(),
+    cn: String(normalized?.cn || raw.cn || raw.collectorNumber || '').trim(),
+    finish: String(normalized?.finish || raw.finish || '').trim().toLowerCase(),
+    condition: String(normalized?.condition || raw.condition || '').trim().toLowerCase(),
+    language: String(normalized?.language || raw.language || raw.lang || '').trim().toLowerCase(),
+    qty: Math.max(0, parseInt(normalized?.qty ?? raw.qty, 10) || 0),
+    location,
+    tags: Array.isArray(normalized?.tags || raw.tags) ? (normalized?.tags || raw.tags).map(String).filter(Boolean).slice(0, 8) : [],
+  };
+}
+
+function compactChatPreviewContext(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const summary = String(raw.summary || raw.message || '').trim();
+  const card = compactChatCardContext(raw.card);
+  const previewType = String(raw.previewType || raw.type || '').trim();
+  if (!summary && !card && !previewType) return null;
+  return {
+    previewType,
+    summary: truncateChatText(summary, 500),
+    card,
+  };
+}
+
+function normalizeChatOperationContext(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const referencedCards = Array.isArray(raw.referencedCards)
+    ? raw.referencedCards.map(compactChatCardContext).filter(Boolean).slice(0, 8)
+    : [];
+  const pendingPreviews = Array.isArray(raw.pendingPreviews)
+    ? raw.pendingPreviews.map(compactChatPreviewContext).filter(Boolean).slice(0, 8)
+    : [];
+  const referencedLocations = Array.isArray(raw.referencedLocations)
+    ? raw.referencedLocations.map(compactChatLocationContext).filter(Boolean).slice(0, 8)
+    : [];
+  return {
+    operationId: String(raw.operationId || raw.id || '').trim().slice(0, 80),
+    status: String(raw.status || '').trim().toLowerCase(),
+    lastUserRequest: truncateChatText(raw.lastUserRequest || raw.previousUserRequest || '', 1200),
+    referencedCards,
+    pendingPreviews,
+    referencedLocations,
+  };
+}
+
+function chatOperationContextHasData(context = {}) {
+  return Boolean(
+    context.lastUserRequest
+      || context.referencedCards?.length
+      || context.pendingPreviews?.length
+      || context.referencedLocations?.length
+  );
+}
+
+function chatOperationReferenceText(context = {}) {
+  const bits = [];
+  if (context.lastUserRequest) bits.push(context.lastUserRequest);
+  for (const preview of context.pendingPreviews || []) {
+    if (preview.summary) bits.push(preview.summary);
+    if (preview.card?.name) bits.push(preview.card.name);
+  }
+  for (const card of context.referencedCards || []) {
+    const loc = card.location ? ' in ' + card.location.name : '';
+    if (card.name) bits.push(card.name + loc);
+  }
+  return truncateChatText(bits.filter(Boolean).join('\n'), 2400);
+}
+
+function chatOperationContextSummary(context = {}) {
+  if (!chatOperationContextHasData(context)) return '';
+  const payload = {
+    lastUserRequest: context.lastUserRequest || '',
+    referencedCards: context.referencedCards || [],
+    referencedLocations: context.referencedLocations || [],
+    pendingPreviews: context.pendingPreviews || [],
+  };
+  return 'Active operation context from the app. Use this only to resolve pronouns, "also", "same style", or other follow-ups in the current request; ignore it for unrelated requests. The visible chat before this operation is display history only.\n'
+    + truncateChatText(JSON.stringify(payload), CHAT_OPERATION_CONTEXT_CHARS);
+}
+
+function priorOperationMessages(messages, currentUserIndex, includePrior) {
+  if (!includePrior || currentUserIndex <= 0) return [];
+  return messages
+    .slice(0, currentUserIndex)
+    .filter(message => message.role !== 'system')
+    .slice(-4)
+    .map(message => ({
+      role: message.role === 'assistant' ? 'assistant' : 'user',
+      content: truncateChatText(message.content, CHAT_CONTEXT_PRIOR_MESSAGE_CHARS),
+    }))
+    .filter(message => message.content);
+}
+
+function trimOperationScopedMessages(messages) {
+  const out = [...messages];
+  while (out.length > 2 && chatContextCharCount(out) > CHAT_CONTEXT_TOTAL_CHARS) {
+    const index = out.findIndex((message, i) => i > 0 && message.role !== 'user');
+    out.splice(index === -1 ? 1 : index, 1);
+  }
+  if (chatContextCharCount(out) <= CHAT_CONTEXT_TOTAL_CHARS) return out;
+  return out.map((message, index) => {
+    if (index === out.length - 1 && message.role === 'user') {
+      return { ...message, content: truncateChatText(message.content, CHAT_CONTEXT_CURRENT_USER_CHARS) };
+    }
+    if (message.role === 'system') return { ...message, content: truncateChatText(message.content, CHAT_CONTEXT_SYSTEM_CHARS) };
+    return { ...message, content: truncateChatText(message.content, CHAT_CONTEXT_PRIOR_MESSAGE_CHARS) };
+  });
+}
+
+function buildOperationScopedChatContext(messages, rawOperationContext = {}) {
+  const normalized = normalizeChatMessages(messages);
+  const operationContext = normalizeChatOperationContext(rawOperationContext);
+  const currentUserIndex = normalized.map(message => message.role).lastIndexOf('user');
+  if (currentUserIndex === -1) return { messages: trimOperationScopedMessages(normalized.slice(-2)), operationContext };
+
+  const currentUser = normalized[currentUserIndex];
+  const includePrior = contextualChatFollowupText(currentUser.content);
+  const systemContent = normalized
+    .filter(message => message.role === 'system')
+    .map(message => message.content)
+    .filter(Boolean)
+    .join('\n');
+  const scoped = [];
+  if (systemContent) scoped.push({ role: 'system', content: truncateChatText(systemContent, CHAT_CONTEXT_SYSTEM_CHARS) });
+  if (includePrior) {
+    const contextSummary = chatOperationContextSummary(operationContext);
+    if (contextSummary) scoped.push({ role: 'system', content: contextSummary });
+    scoped.push(...priorOperationMessages(normalized, currentUserIndex, true));
+  }
+  scoped.push({ role: 'user', content: truncateChatText(currentUser.content, CHAT_CONTEXT_CURRENT_USER_CHARS) });
+  return { messages: trimOperationScopedMessages(scoped), operationContext };
+}
+
 function normalizeMcpPreview(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const changeToken = typeof value.changeToken === 'string' ? value.changeToken.trim() : '';
@@ -4493,13 +4667,14 @@ function cardsFromAcceptedPreviews(previews) {
   return out;
 }
 
-function previewValidationReferenceText(messages = []) {
-  return messages
+function previewValidationReferenceText(messages = [], operationContext = {}) {
+  const messageText = messages
     .filter(message => message?.role === 'user')
     .map(message => String(message.content || '').trim())
     .filter(Boolean)
     .slice(-2)
     .join('\n');
+  return [chatOperationReferenceText(operationContext), messageText].filter(Boolean).join('\n');
 }
 
 function extractOpenAiText(data) {
@@ -4552,11 +4727,11 @@ function cloudflareProviderErrorText(response) {
   return '';
 }
 
-function chatSuccessResponse(deps, request, { provider, model, hosted, usage, data, text, messages = [], previewSnapshot = null }) {
+function chatSuccessResponse(deps, request, { provider, model, hosted, usage, data, text, messages = [], previewSnapshot = null, operationContext = {} }) {
   const lastUserText = [...messages].reverse().find(message => message.role === 'user')?.content || '';
   const filtered = filterChatPreviews(extractMcpPreviews(data), lastUserText, {
     snapshot: previewSnapshot,
-    referenceText: previewValidationReferenceText(messages),
+    referenceText: previewValidationReferenceText(messages, operationContext),
   });
   const drafts = preferDraftsForUserRequest(extractMcpDrafts(data), lastUserText);
   const addLookupMissText = filtered.previews.length ? '' : addLookupMissSummaryText(extractMcpAddLookupMisses(data), lastUserText);
@@ -5131,11 +5306,11 @@ function existingPreviewMatches(output, userText, snapshot, predicate, context =
   ));
 }
 
-async function recoverCloudflarePrintingSwapPreview({ env, deps, auth, messages, output }) {
+async function recoverCloudflarePrintingSwapPreview({ env, deps, auth, messages, output, operationContext = {} }) {
   const userText = lastUserText(messages);
   if (!printingSwapRequestText(userText)) return null;
   const cloud = await currentCloud(env, deps, auth.userId);
-  const validationContext = { referenceText: previewValidationReferenceText(messages) };
+  const validationContext = { referenceText: previewValidationReferenceText(messages, operationContext) };
   if (existingPreviewMatches(output, userText, cloud.snapshot, preview => preview?.previewType === 'inventory.edit', validationContext)) return null;
   const entry = entryFromChatRecoveryContext(cloud.snapshot, userText, output, validationContext);
   if (!entry) return null;
@@ -5149,11 +5324,11 @@ async function recoverCloudflarePrintingSwapPreview({ env, deps, auth, messages,
   return data?.status === 'preview' ? outputToolResult('preview_replace_inventory_printing', data) : null;
 }
 
-async function recoverCloudflareDeleteInventoryPreview({ env, deps, auth, messages, output }) {
+async function recoverCloudflareDeleteInventoryPreview({ env, deps, auth, messages, output, operationContext = {} }) {
   const userText = lastUserText(messages);
   if (!deleteInventoryRequestText(userText)) return null;
   const cloud = await currentCloud(env, deps, auth.userId);
-  const validationContext = { referenceText: previewValidationReferenceText(messages) };
+  const validationContext = { referenceText: previewValidationReferenceText(messages, operationContext) };
   if (existingPreviewMatches(output, userText, cloud.snapshot, preview => preview?.previewType === 'inventory.delete', validationContext)) return null;
   const entry = entryFromChatRecoveryContext(cloud.snapshot, userText, output, validationContext);
   if (!entry) return null;
@@ -5161,11 +5336,11 @@ async function recoverCloudflareDeleteInventoryPreview({ env, deps, auth, messag
   return data?.status === 'preview' ? outputToolResult('preview_delete_inventory_item', data) : null;
 }
 
-async function recoverCloudflareDuplicateInventoryPreview({ env, deps, auth, messages, output }) {
+async function recoverCloudflareDuplicateInventoryPreview({ env, deps, auth, messages, output, operationContext = {} }) {
   const userText = lastUserText(messages);
   if (!duplicateSameStackRequestText(userText)) return null;
   const cloud = await currentCloud(env, deps, auth.userId);
-  const validationContext = { referenceText: previewValidationReferenceText(messages) };
+  const validationContext = { referenceText: previewValidationReferenceText(messages, operationContext) };
   if (existingPreviewMatches(output, userText, cloud.snapshot, preview => preview?.previewType === 'inventory.add', validationContext)) return null;
   const entry = entryFromChatRecoveryContext(cloud.snapshot, userText, output, validationContext);
   if (!entry) return null;
@@ -5177,14 +5352,14 @@ async function recoverCloudflareDuplicateInventoryPreview({ env, deps, auth, mes
   return data?.status === 'preview' ? outputToolResult('preview_duplicate_inventory_item', data) : null;
 }
 
-async function recoverCloudflareMutationPreview({ env, deps, auth, messages, output }) {
+async function recoverCloudflareMutationPreview({ env, deps, auth, messages, output, operationContext = {} }) {
   const userText = lastUserText(messages);
   if (!mutationRequestText(userText)) return null;
   if (printingSwapRequestText(userText) || deleteInventoryRequestText(userText) || duplicateSameStackRequestText(userText)) return null;
   if (/\badd\b/i.test(userText) && !/\b(?:change|make|mark|move|put|set|take|turn|update)\b/i.test(userText)) return null;
   const cards = extractMcpInventoryCards({ output });
   const cloud = await currentCloud(env, deps, auth.userId);
-  const referenceText = previewValidationReferenceText(messages);
+  const referenceText = previewValidationReferenceText(messages, operationContext);
   const validationContext = { referenceText };
   const existingPreviews = extractMcpPreviews({ output });
   if (existingPreviews.some(preview => (
@@ -5341,7 +5516,7 @@ async function recoverCloudflareAddFromUserText({ env, deps, auth, messages, out
   return data?.status ? outputToolResult('preview_add_inventory_item', data) : null;
 }
 
-async function runCloudflareChat({ env, deps, auth, model, messages, chatTools, maxOutputTokens }) {
+async function runCloudflareChat({ env, deps, auth, model, messages, chatTools, maxOutputTokens, operationContext = {} }) {
   if (!env.AI || typeof env.AI.run !== 'function') {
     const err = new Error('Cloudflare Workers AI binding is not configured');
     err.status = 503;
@@ -5363,10 +5538,10 @@ async function runCloudflareChat({ env, deps, auth, model, messages, chatTools, 
     finalResponse = response || {};
     providerError = cloudflareProviderErrorText(finalResponse);
     if (providerError) {
-      const recovered = await recoverCloudflarePrintingSwapPreview({ env, deps, auth, messages, output })
-        || await recoverCloudflareDeleteInventoryPreview({ env, deps, auth, messages, output })
-        || await recoverCloudflareDuplicateInventoryPreview({ env, deps, auth, messages, output })
-        || await recoverCloudflareMutationPreview({ env, deps, auth, messages, output })
+      const recovered = await recoverCloudflarePrintingSwapPreview({ env, deps, auth, messages, output, operationContext })
+        || await recoverCloudflareDeleteInventoryPreview({ env, deps, auth, messages, output, operationContext })
+        || await recoverCloudflareDuplicateInventoryPreview({ env, deps, auth, messages, output, operationContext })
+        || await recoverCloudflareMutationPreview({ env, deps, auth, messages, output, operationContext })
         || await recoverCloudflareCreateContainerPreview({ env, deps, auth, messages, output })
         || await recoverCloudflareAddFromUserText({ env, deps, auth, messages, output });
       if (recovered) {
@@ -5409,10 +5584,10 @@ async function runCloudflareChat({ env, deps, auth, model, messages, chatTools, 
     }
   }
 
-  const recovered = await recoverCloudflarePrintingSwapPreview({ env, deps, auth, messages, output })
-    || await recoverCloudflareDeleteInventoryPreview({ env, deps, auth, messages, output })
-    || await recoverCloudflareDuplicateInventoryPreview({ env, deps, auth, messages, output })
-    || await recoverCloudflareMutationPreview({ env, deps, auth, messages, output })
+  const recovered = await recoverCloudflarePrintingSwapPreview({ env, deps, auth, messages, output, operationContext })
+    || await recoverCloudflareDeleteInventoryPreview({ env, deps, auth, messages, output, operationContext })
+    || await recoverCloudflareDuplicateInventoryPreview({ env, deps, auth, messages, output, operationContext })
+    || await recoverCloudflareMutationPreview({ env, deps, auth, messages, output, operationContext })
     || await recoverCloudflareCreateContainerPreview({ env, deps, auth, messages, output })
     || await recoverCloudflareAddPreview({ env, deps, auth, messages, output });
   if (recovered) {
@@ -5497,10 +5672,13 @@ export async function handleByokChatRequest(request, env, deps) {
   const hostedApiKey = chatProviderApiKey(env, provider);
   const apiKey = providedApiKey || hostedApiKey;
   const hosted = provider === 'cloudflare' || !providedApiKey;
-  const messages = normalizeChatMessages(body.messages);
+  const rawMessages = normalizeChatMessages(body.messages);
   if (!['cloudflare', 'groq', 'openai', 'anthropic'].includes(provider)) return deps.json({ error: 'provider must be cloudflare, groq, openai, or anthropic' }, 400, request);
   if (provider !== 'cloudflare' && !apiKey) return deps.json({ error: 'chat provider key is not configured' }, 400, request);
-  if (!messages.length) return deps.json({ error: 'messages are required' }, 400, request);
+  if (!rawMessages.length) return deps.json({ error: 'messages are required' }, 400, request);
+  const chatContext = buildOperationScopedChatContext(rawMessages, body.operationContext);
+  const messages = chatContext.messages;
+  const operationContext = chatContext.operationContext;
   const chatTools = visibleToolsForAuth({ clientId: MCP_CHAT_CLIENT_ID, scopes: [MCP_READ_SCOPE, MCP_WRITE_SCOPE] });
   const allowedToolNames = chatTools.map(tool => tool.name);
   const chatAuth = { userId: clerkAuth.userId, scopes: [MCP_READ_SCOPE, MCP_WRITE_SCOPE], clientId: MCP_CHAT_CLIENT_ID };
@@ -5524,6 +5702,7 @@ export async function handleByokChatRequest(request, env, deps) {
         messages,
         chatTools,
         maxOutputTokens,
+        operationContext,
       });
       const chatData = await augmentCollectionSummaryForChat({ env, deps, auth: chatAuth, messages, data });
       const previewSnapshot = await previewValidationSnapshotForChat(env, deps, chatAuth, messages, chatData);
@@ -5535,6 +5714,7 @@ export async function handleByokChatRequest(request, env, deps) {
         data: chatData,
         messages,
         previewSnapshot,
+        operationContext,
         text: extractCloudflareText(chatData),
       });
     }
@@ -5572,6 +5752,7 @@ export async function handleByokChatRequest(request, env, deps) {
         data: chatData,
         messages,
         previewSnapshot,
+        operationContext,
         text: extractOpenAiText(chatData),
       });
     }
@@ -5610,6 +5791,7 @@ export async function handleByokChatRequest(request, env, deps) {
         data: chatData,
         messages,
         previewSnapshot,
+        operationContext,
         text: extractOpenAiText(chatData),
       });
     }
@@ -5658,6 +5840,7 @@ export async function handleByokChatRequest(request, env, deps) {
         data: chatData,
         messages,
         previewSnapshot,
+        operationContext,
         text: extractAnthropicText(chatData),
       });
     }

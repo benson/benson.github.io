@@ -72,6 +72,161 @@ let chatEpoch = 0;
 const transcript = [];
 const pendingDrafts = [];
 const pendingPreviews = [];
+let operationContext = createOperationContext('closed');
+
+const OPERATION_CONTEXT_MESSAGE_LIMIT = 6;
+const OPERATION_CONTEXT_CARD_LIMIT = 8;
+const OPERATION_CONTEXT_PREVIEW_LIMIT = 8;
+
+function createOperationId() {
+  if (globalThis.crypto?.randomUUID) return 'op_' + globalThis.crypto.randomUUID().replace(/-/g, '');
+  return 'op_' + Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
+function createOperationContext(status = 'open') {
+  return {
+    operationId: createOperationId(),
+    status,
+    lastUserRequest: '',
+    messages: [],
+    referencedCards: [],
+    referencedLocations: [],
+    pendingPreviews: [],
+  };
+}
+
+function resetOperationContext(status = 'open') {
+  operationContext = createOperationContext(status);
+  return operationContext;
+}
+
+function operationFollowupText(text) {
+  const value = String(text || '').toLowerCase();
+  return /\b(?:also|again|actually|instead|it|its|same|that|them|these|this|those|previous|last|one more|same one|same card|same copy|same printing|same style|same version)\b/.test(value)
+    || /^\s*(?:no|nah|wait|actually|also)\b/.test(value);
+}
+
+function prepareOperationContextForPrompt(prompt) {
+  if (operationContext.status !== 'open' || !operationFollowupText(prompt)) resetOperationContext('open');
+  operationContext.status = 'open';
+}
+
+function trimOperationMessages() {
+  if (operationContext.messages.length > OPERATION_CONTEXT_MESSAGE_LIMIT) {
+    operationContext.messages.splice(0, operationContext.messages.length - OPERATION_CONTEXT_MESSAGE_LIMIT);
+  }
+}
+
+function recordOperationMessage(role, content) {
+  if (operationContext.status !== 'open') resetOperationContext('open');
+  const messageRole = role === 'assistant' ? 'assistant' : 'user';
+  const text = String(content || '').trim();
+  if (!text) return;
+  operationContext.messages.push({ role: messageRole, content: text.slice(0, 1400) });
+  if (messageRole === 'user') operationContext.lastUserRequest = text.slice(0, 1400);
+  trimOperationMessages();
+}
+
+function compactOperationLocation(raw) {
+  const loc = normalizeLocation(raw);
+  return loc ? { type: loc.type, name: loc.name, key: locationKey(loc) } : null;
+}
+
+function compactOperationCard(raw) {
+  const card = normalizeChatCard(raw);
+  if (!card) return null;
+  return {
+    itemKey: card.itemKey,
+    name: card.name,
+    setCode: card.setCode,
+    cn: card.cn,
+    finish: card.finish,
+    condition: card.condition,
+    language: card.language,
+    qty: card.qty,
+    location: compactOperationLocation(card.location),
+    tags: card.tags.slice(0, 8),
+  };
+}
+
+function rememberOperationCards(cards) {
+  if (!Array.isArray(cards) || !cards.length) return;
+  if (operationContext.status !== 'open') resetOperationContext('open');
+  const byKey = new Map(operationContext.referencedCards.map(card => [card.itemKey || card.name.toLowerCase(), card]));
+  for (const raw of cards) {
+    const card = compactOperationCard(raw);
+    if (!card) continue;
+    byKey.set(card.itemKey || card.name.toLowerCase(), card);
+  }
+  operationContext.referencedCards = Array.from(byKey.values()).slice(-OPERATION_CONTEXT_CARD_LIMIT);
+  const byLocation = new Map(operationContext.referencedLocations.map(loc => [loc.key || locationKey(loc), loc]));
+  for (const card of operationContext.referencedCards) {
+    if (card.location?.key) byLocation.set(card.location.key, card.location);
+  }
+  operationContext.referencedLocations = Array.from(byLocation.values()).slice(-OPERATION_CONTEXT_CARD_LIMIT);
+}
+
+function compactOperationPreview(preview) {
+  if (!preview || typeof preview !== 'object') return null;
+  const card = compactOperationCard(preview.card);
+  const summary = String(preview.summary || '').trim();
+  const previewType = String(preview.previewType || '').trim();
+  if (!summary && !card && !previewType) return null;
+  return {
+    previewType,
+    summary: summary.slice(0, 500),
+    card,
+  };
+}
+
+function syncOperationPreviewsFromPending() {
+  operationContext.pendingPreviews = pendingPreviews
+    .map(compactOperationPreview)
+    .filter(Boolean)
+    .slice(-OPERATION_CONTEXT_PREVIEW_LIMIT);
+  rememberOperationCards(pendingPreviews.map(preview => preview.card).filter(Boolean));
+}
+
+function closeOperationContext() {
+  resetOperationContext('closed');
+}
+
+function closeOperationIfNoPendingWork() {
+  if (!pendingPreviews.length && !pendingDrafts.length) closeOperationContext();
+}
+
+function operationContextPayload() {
+  syncOperationPreviewsFromPending();
+  return {
+    operationId: operationContext.operationId,
+    status: operationContext.status,
+    lastUserRequest: operationContext.lastUserRequest,
+    referencedCards: operationContext.referencedCards,
+    referencedLocations: operationContext.referencedLocations,
+    pendingPreviews: operationContext.pendingPreviews,
+  };
+}
+
+function operationScopedMessages(prompt) {
+  const messages = [{ role: 'system', content: SYSTEM_PROMPT }];
+  if (operationFollowupText(prompt)) {
+    messages.push(...operationContext.messages.slice(-4).map(message => ({
+      role: message.role === 'assistant' ? 'assistant' : 'user',
+      content: message.content,
+    })));
+  }
+  messages.push({ role: 'user', content: prompt });
+  return messages;
+}
+
+function buildChatRequestPayload(prompt) {
+  return {
+    provider: HOSTED_PROVIDER,
+    model: HOSTED_MODEL,
+    messages: operationScopedMessages(prompt),
+    operationContext: operationContextPayload(),
+  };
+}
 
 const CONDITION_OPTIONS = [
   ['near_mint', 'nm'],
@@ -461,6 +616,7 @@ function clearChat() {
   transcript.splice(0, transcript.length);
   pendingDrafts.splice(0, pendingDrafts.length);
   pendingPreviews.splice(0, pendingPreviews.length);
+  closeOperationContext();
   if (inputEl) inputEl.value = '';
   if (sendBtn) sendBtn.disabled = false;
   renderTranscript();
@@ -603,6 +759,7 @@ function addPendingDrafts(drafts) {
     pendingDrafts.push(draft);
     added += 1;
   }
+  if (added && operationContext.status !== 'open') resetOperationContext('open');
   renderPendingDrafts();
   return added;
 }
@@ -676,6 +833,7 @@ function draftPreviewArgs(draft) {
 function removePendingDraft(draftId) {
   const index = pendingDrafts.findIndex(draft => draft.id === draftId);
   if (index !== -1) pendingDrafts.splice(index, 1);
+  closeOperationIfNoPendingWork();
   renderPendingDrafts();
 }
 
@@ -689,6 +847,7 @@ function normalizePendingPreview(preview) {
     expectedRevision: preview.expectedRevision ?? null,
     expiresAt: preview.expiresAt || '',
     opCount: preview.opCount ?? null,
+    previewType: String(preview.previewType || ''),
     totalsAfter: preview.totalsAfter || null,
     applying: false,
     error: '',
@@ -713,6 +872,8 @@ function addPendingPreviews(previews) {
       added.push(preview);
     }
   }
+  if (added.length && operationContext.status !== 'open') resetOperationContext('open');
+  syncOperationPreviewsFromPending();
   renderPendingPreviews();
   return added;
 }
@@ -720,6 +881,8 @@ function addPendingPreviews(previews) {
 function removePendingPreview(changeToken) {
   const index = pendingPreviews.findIndex(preview => preview.changeToken === changeToken);
   if (index !== -1) pendingPreviews.splice(index, 1);
+  syncOperationPreviewsFromPending();
+  closeOperationIfNoPendingWork();
   renderPendingPreviews();
 }
 
@@ -1637,7 +1800,10 @@ async function sendChat() {
     return;
   }
 
+  prepareOperationContextForPrompt(prompt);
+  const payload = buildChatRequestPayload(prompt);
   appendMessage('user', prompt);
+  recordOperationMessage('user', prompt);
   inputEl.value = '';
   sendBtn.disabled = true;
   const requestEpoch = chatEpoch;
@@ -1648,18 +1814,6 @@ async function sendChat() {
   try {
     const token = await getSyncAuthToken();
     if (!token) throw new Error('chat needs Clerk auth. For local testing, open /mtgcollection/?auth=clerk&sync=remote');
-    const messages = [
-      { role: 'system', content: SYSTEM_PROMPT },
-      ...transcript
-        .filter(message => !message.meta?.pending)
-        .slice(-12)
-        .map(message => ({ role: message.role === 'assistant' ? 'assistant' : 'user', content: message.content })),
-    ];
-    const payload = {
-      provider: HOSTED_PROVIDER,
-      model: HOSTED_MODEL,
-      messages,
-    };
     const res = await fetch(SYNC_API_URL + '/mcp/chat', {
       method: 'POST',
       headers: {
@@ -1691,6 +1845,8 @@ async function sendChat() {
     }
     addPendingDrafts(drafts);
     addPendingPreviews(previews);
+    rememberOperationCards(cards);
+    recordOperationMessage('assistant', responseText);
     if (warnings.length) showFeedback(warnings[0], 'error');
     delete pending.meta.pending;
   } catch (e) {
@@ -1815,6 +1971,8 @@ async function applyAllPreviews() {
     for (let i = pendingPreviews.length - 1; i >= 0; i--) {
       if (applied.has(pendingPreviews[i].changeToken)) pendingPreviews.splice(i, 1);
     }
+    syncOperationPreviewsFromPending();
+    closeOperationIfNoPendingWork();
     renderPendingPreviews();
     appendMessage('assistant', 'Applied: ' + (data.summary || 'collection changes'));
     await syncNow();
@@ -2039,6 +2197,7 @@ export function initMcpChat({ documentObj = document } = {}) {
     else if (action === 'dismissDraft') removePendingDraft(button.dataset.draftId);
     else if (action === 'clearDrafts') {
       pendingDrafts.splice(0, pendingDrafts.length);
+      closeOperationIfNoPendingWork();
       renderPendingDrafts();
     }
   });
@@ -2051,6 +2210,8 @@ export function initMcpChat({ documentObj = document } = {}) {
     else if (action === 'applyAll') applyAllPreviews();
     else if (action === 'clear') {
       pendingPreviews.splice(0, pendingPreviews.length);
+      syncOperationPreviewsFromPending();
+      closeOperationIfNoPendingWork();
       renderPendingPreviews();
     }
   });
@@ -2070,4 +2231,9 @@ export function addPendingPreviewsForTest(previews) {
 
 export function addPendingDraftsForTest(drafts) {
   return addPendingDrafts(drafts);
+}
+
+export function buildChatRequestPayloadForTest(prompt) {
+  prepareOperationContextForPrompt(prompt);
+  return buildChatRequestPayload(prompt);
 }

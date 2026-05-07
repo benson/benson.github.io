@@ -1939,6 +1939,146 @@ test('mcp chat: hosted Cloudflare follow-up edit uses the previous card context'
   }
 });
 
+test('mcp chat: hosted Cloudflare prunes visible transcript history before provider calls', async () => {
+  const entry = card({
+    name: 'Glint-Nest Crane',
+    resolvedName: 'Glint-Nest Crane',
+    scryfallId: 'glint-nest-crane-1',
+    setCode: 'kld',
+    cn: '50',
+    finish: 'normal',
+    location: { type: 'box', name: 'bulk' },
+  });
+  const snapshot = emptySnapshot({
+    collection: [entry],
+    containers: {
+      'box:bulk': { type: 'box', name: 'bulk' },
+      'binder:trade binder': { type: 'binder', name: 'trade binder' },
+    },
+  });
+  const { env } = fakeSyncEnv(snapshot);
+  env.MTGCOLLECTION_CHAT_PROVIDER = 'cloudflare';
+  let firstPayload = null;
+  env.AI = {
+    async run(model, payload) {
+      assert.equal(model, '@cf/openai/gpt-oss-120b');
+      if (!firstPayload) firstPayload = payload;
+      return { response: 'Preview ready below.' };
+    },
+  };
+  const noisyMessages = [{ role: 'system', content: 'system prompt' }];
+  for (let i = 0; i < 30; i += 1) {
+    noisyMessages.push({ role: 'user', content: 'old visible user turn ' + i + ' ' + 'noise '.repeat(300) });
+    noisyMessages.push({ role: 'assistant', content: 'old visible assistant turn ' + i + ' ' + 'stale '.repeat(300) });
+  }
+  noisyMessages.push({ role: 'user', content: 'move my glint nest crane to trade binder' });
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    throw new Error('Cloudflare hosted chat should use env.AI, not external fetch');
+  };
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        provider: 'cloudflare',
+        messages: noisyMessages,
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    assert.ok(firstPayload);
+    assert.deepEqual(firstPayload.messages.map(message => message.role), ['system', 'user']);
+    assert.equal(firstPayload.messages.at(-1).content, 'move my glint nest crane to trade binder');
+    assert.ok(JSON.stringify(firstPayload.messages).length < 12000);
+    assert.doesNotMatch(JSON.stringify(firstPayload.messages), /old visible assistant turn|stale/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp chat: hosted Cloudflare uses structured operation context for follow-up previews', async () => {
+  const entry = card({
+    name: 'Glint-Nest Crane',
+    resolvedName: 'Glint-Nest Crane',
+    scryfallId: 'glint-nest-crane-1',
+    setCode: 'kld',
+    cn: '50',
+    finish: 'normal',
+    finishes: ['nonfoil', 'foil'],
+    location: { type: 'box', name: 'bulk' },
+  });
+  const snapshot = emptySnapshot({
+    collection: [entry],
+    containers: {
+      'box:bulk': { type: 'box', name: 'bulk' },
+      'binder:trade binder': { type: 'binder', name: 'trade binder' },
+    },
+  });
+  const { env } = fakeSyncEnv(snapshot);
+  env.MTGCOLLECTION_CHAT_PROVIDER = 'cloudflare';
+  let calls = 0;
+  let firstPayload = null;
+  env.AI = {
+    async run(model, payload) {
+      assert.equal(model, '@cf/openai/gpt-oss-120b');
+      calls += 1;
+      if (!firstPayload) firstPayload = payload;
+      if (calls === 1) {
+        return {
+          tool_calls: [{
+            name: 'preview_edit_inventory_item',
+            arguments: { itemKey: collectionKey(entry), finish: 'foil' },
+          }],
+        };
+      }
+      return { response: 'Preview ready below.' };
+    },
+  };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    throw new Error('Cloudflare hosted chat should use env.AI, not external fetch');
+  };
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        provider: 'cloudflare',
+        messages: [
+          { role: 'system', content: 'system prompt' },
+          { role: 'user', content: 'also make it foil' },
+        ],
+        operationContext: {
+          status: 'open',
+          lastUserRequest: 'move my glint nest crane to my trade binder',
+          pendingPreviews: [{
+            previewType: 'inventory.edit',
+            summary: 'Moved 1 Glint-Nest Crane to {loc:binder:trade binder}',
+            card: { ...entry, itemKey: collectionKey(entry), location: { type: 'binder', name: 'trade binder' } },
+          }],
+        },
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.ok(firstPayload.messages.some(message => /Active operation context/.test(message.content)));
+    assert.equal(data.previews.length, 1);
+    assert.equal(data.previews[0].previewType, 'inventory.edit');
+    assert.match(data.previews[0].summary, /\{loc:binder:trade binder\}/);
+    assert.match(data.previews[0].summary, /finish normal to foil/);
+    assert.deepEqual(data.previewWarnings, []);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('mcp chat: Cloudflare sends compact tool results back to the model', async () => {
   const entry = card({
     name: 'Glint-Nest Crane',

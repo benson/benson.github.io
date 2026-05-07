@@ -5,6 +5,7 @@ import {
   addPendingDraftsForTest,
   addPendingPreviewsForTest,
   appendMcpChatMessageForTest,
+  buildChatRequestPayloadForTest,
   calculateChatResize,
   clampChatPosition,
   clampChatSize,
@@ -166,6 +167,55 @@ test('initMcpChat: new chat clears transcript prompt and pending previews', () =
   assert.equal(document.querySelectorAll('.mcp-chat-message').length, 0);
   assert.ok(document.querySelector('.mcp-chat-empty'));
   assert.equal(document.getElementById('mcpChatPreviewPanel').hidden, true);
+});
+
+test('mcp chat payload: sends operation-scoped context instead of visible transcript history', () => {
+  const { win, document } = setup();
+  initMcpChat({ documentObj: document });
+  appendMcpChatMessageForTest('user', 'what is my cheapest card?');
+  appendMcpChatMessageForTest('assistant', 'A very long old answer '.repeat(200));
+  appendMcpChatMessageForTest('user', 'how many unique cards do i have?');
+  appendMcpChatMessageForTest('assistant', 'Another old answer '.repeat(200));
+
+  const payload = buildChatRequestPayloadForTest('move glint nest crane to trade binder');
+
+  assert.deepEqual(
+    payload.messages.map(message => message.role),
+    ['system', 'user']
+  );
+  assert.equal(payload.messages.at(-1).content, 'move glint nest crane to trade binder');
+  assert.doesNotMatch(JSON.stringify(payload.messages), /cheapest card|Another old answer/);
+  click(win, document.getElementById('mcpChatClear'));
+});
+
+test('mcp chat payload: carries pending preview context for short follow-ups', () => {
+  const { win, document } = setup();
+  initMcpChat({ documentObj: document });
+  addPendingPreviewsForTest([{
+    changeToken: 'preview.move',
+    previewType: 'inventory.edit',
+    summary: 'Moved 1 Glint-Nest Crane to {loc:binder:trade binder}',
+    card: {
+      itemKey: 'glint',
+      name: 'Glint-Nest Crane',
+      setCode: 'kld',
+      cn: '50',
+      finish: 'normal',
+      condition: 'near_mint',
+      language: 'en',
+      qty: 1,
+      location: { type: 'binder', name: 'trade binder' },
+    },
+  }]);
+
+  const payload = buildChatRequestPayloadForTest('also make it foil');
+
+  assert.equal(payload.messages.at(-1).content, 'also make it foil');
+  assert.equal(payload.operationContext.pendingPreviews.length, 1);
+  assert.equal(payload.operationContext.pendingPreviews[0].card.name, 'Glint-Nest Crane');
+  assert.equal(payload.operationContext.pendingPreviews[0].card.location.name, 'trade binder');
+  assert.equal(payload.operationContext.pendingPreviews[0].changeToken, undefined);
+  click(win, document.getElementById('mcpChatClear'));
 });
 
 test('initMcpChat: pending previews hide internal revision metadata', () => {

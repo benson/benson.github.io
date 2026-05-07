@@ -340,6 +340,7 @@ function mutationCase(id, prompt, options = {}) {
     category: options.category || 'mutation',
     prompt,
     messages: Array.isArray(options.messages) ? options.messages : null,
+    operationContext: options.operationContext || null,
     expect: {
       kind: 'mutation',
       anyTool: options.anyTool || [
@@ -383,6 +384,15 @@ function caseMessagesForModel(testCase) {
       content: String(message.content || ''),
     }))
     .filter(message => message.content.trim());
+}
+
+function operationContextMessagesForModel(testCase) {
+  if (!testCase.operationContext) return [];
+  return [{
+    role: 'system',
+    content: 'Active operation context from the app for resolving this follow-up only:\n'
+      + JSON.stringify(testCase.operationContext),
+  }];
 }
 
 function buildCases() {
@@ -710,6 +720,51 @@ function buildCases() {
       maxPreviewWarnings: 0,
       previews: [{ previewType: 'inventory.edit', name: 'Chandra, Torch of Defiance', condition: 'lightly_played', location: trade }],
       forbiddenText: [...existingEditFailureText, /does not appear to match/i],
+    }),
+    conversationMutationCase('followup-operation-context-make-foil', [
+      { role: 'user', content: 'also make it foil' },
+    ], {
+      operationContext: {
+        status: 'open',
+        lastUserRequest: 'move my glint nest crane to my trade binder',
+        pendingPreviews: [{
+          previewType: 'inventory.edit',
+          summary: 'Moved 1 Glint-Nest Crane to {loc:binder:trade binder}',
+          card: {
+            name: 'Glint-Nest Crane',
+            setCode: 'kld',
+            cn: '50',
+            finish: 'normal',
+            condition: 'near_mint',
+            qty: 1,
+            location: trade,
+          },
+        }],
+      },
+      anyTool: ['preview_edit_inventory_item'],
+      statuses: ['preview'],
+      requireStatus: true,
+      requirePreview: true,
+      maxPreviews: 1,
+      maxPreviewWarnings: 0,
+      previews: [{ previewType: 'inventory.edit', name: 'Glint-Nest Crane', finish: 'foil', location: trade }],
+      forbiddenText: [...existingEditFailureText, /does not appear to match/i],
+    }),
+    conversationMutationCase('long-visible-history-current-move', [
+      ...Array.from({ length: 12 }, (_, index) => ([
+        { role: 'user', content: 'old unrelated visible chat turn ' + index + ': what is my cheapest card?' },
+        { role: 'assistant', content: 'old unrelated answer ' + index + ': Island is shown below. ' + 'stale history '.repeat(40) },
+      ])).flat(),
+      { role: 'user', content: 'move my glint nest crane to trade binder' },
+    ], {
+      anyTool: ['preview_move_inventory_item', 'preview_edit_inventory_item'],
+      statuses: ['preview'],
+      requireStatus: true,
+      requirePreview: true,
+      maxPreviews: 1,
+      maxPreviewWarnings: 0,
+      previews: [{ previewType: 'inventory.edit', name: 'Glint-Nest Crane', location: trade }],
+      forbiddenText: [/does not appear to match/i, /context window/i, /5021/],
     }),
     mutationCase('decklist-add-ambiguous', 'put counterspell in my breya deck', { category: 'deck-disambiguation', statuses: ['needs_input', 'preview', 'ambiguous'] }),
     mutationCase('decklist-add-specific', 'add counterspell to the breya artifacts decklist', { category: 'deck-disambiguation', anyTool: ['preview_decklist_change', 'search_card_printings'], statuses: ['preview', 'needs_input'] }),
@@ -1191,6 +1246,7 @@ async function runModelCase({
   const tools = toolsForCase(allTools, testCase, toolMode);
   const messages = [
     { role: 'system', content: SYSTEM_PROMPT + ' You are being evaluated: use tools whenever collection data or collection edits are needed.' },
+    ...operationContextMessagesForModel(testCase),
     ...caseMessagesForModel(testCase),
   ];
   const toolCalls = [];
@@ -1312,6 +1368,7 @@ async function runWorkerChatCase({
         { role: 'system', content: SYSTEM_PROMPT },
         ...caseMessagesForModel(testCase),
       ],
+      ...(testCase.operationContext ? { operationContext: testCase.operationContext } : {}),
     }),
   }), env);
   const data = await res.json().catch(() => ({}));
