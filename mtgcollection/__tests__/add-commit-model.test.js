@@ -55,7 +55,7 @@ test('buildVoiceAddEvent: preserves undo arrays and affected key', () => {
   assert.deepEqual(event.cards, [{ name: 'Sol Ring', imageUrl: 'entry-front.jpg', backImageUrl: 'entry-back.jpg' }]);
 });
 
-test('buildInventoryAddEvent: summarizes set and collector number', () => {
+test('buildInventoryAddEvent: summarizes the added card without printing metadata', () => {
   const event = buildInventoryAddEvent({
     card,
     entry: { imageUrl: 'entry-front.jpg', backImageUrl: '' },
@@ -64,7 +64,7 @@ test('buildInventoryAddEvent: summarizes set and collector number', () => {
     created: ['key-1'],
   });
 
-  assert.equal(event.summary, 'Added (CMM #300)');
+  assert.equal(event.summary, 'Added {card}');
   assert.deepEqual(event.created, ['key-1']);
   assert.deepEqual(event.affectedKeys, ['key-1']);
 });

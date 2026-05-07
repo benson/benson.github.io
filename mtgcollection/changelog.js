@@ -328,18 +328,65 @@ function substituteLocTokens(html) {
   return html.replace(/\{loc:(deck|binder|box):([^}]+)\}/g, (_, type, name) => locLinkHtml(type, name));
 }
 
-function normalizeSummaryText(value) {
-  return String(value || '')
-    .normalize('NFKD')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim();
+function historySummaryText(summary, cards) {
+  const text = String(summary || '');
+  if (cards.length && /^\s*added\s+\([^)]*\)\s*$/i.test(text)) return 'Added {card}';
+  return text;
 }
 
-function summaryIncludesCard(summary, card) {
-  const name = normalizeSummaryText(card?.name || '');
-  if (!name) return false;
-  return normalizeSummaryText(summary).includes(name);
+function wordTokens(value) {
+  const tokens = [];
+  for (const match of String(value || '').matchAll(/[a-z0-9]+/gi)) {
+    tokens.push({
+      text: match[0].toLowerCase(),
+      start: match.index,
+      end: match.index + match[0].length,
+    });
+  }
+  return tokens;
+}
+
+function findCardNameRange(summary, card) {
+  const haystack = wordTokens(summary);
+  const needle = wordTokens(card?.name || '').map(token => token.text);
+  if (!haystack.length || !needle.length || needle.length > haystack.length) return null;
+  for (let i = 0; i <= haystack.length - needle.length; i += 1) {
+    if (needle.every((token, offset) => haystack[i + offset].text === token)) {
+      return {
+        start: haystack[i].start,
+        end: haystack[i + needle.length - 1].end,
+      };
+    }
+  }
+  return null;
+}
+
+function linkCardsInSummary(summary, cards, className) {
+  const ranges = [];
+  cards.forEach((card, index) => {
+    const range = findCardNameRange(summary, card);
+    if (range) ranges.push({ ...range, card, index });
+  });
+  ranges.sort((a, b) => (b.end - b.start) - (a.end - a.start));
+
+  const picked = [];
+  for (const range of ranges) {
+    if (picked.some(existing => range.start < existing.end && range.end > existing.start)) continue;
+    picked.push(range);
+  }
+  picked.sort((a, b) => a.start - b.start);
+
+  let cursor = 0;
+  let html = '';
+  const linkedIndexes = new Set();
+  for (const range of picked) {
+    html += esc(summary.slice(cursor, range.start));
+    html += cardSpanHtml(range.card, className);
+    cursor = range.end;
+    linkedIndexes.add(range.index);
+  }
+  html += esc(summary.slice(cursor));
+  return { html, linkedIndexes };
 }
 
 // Compose a summary line: substitutes `{card}` with the first card's clickable
@@ -348,8 +395,10 @@ function summaryIncludesCard(summary, card) {
 // Also substitutes `{loc:type:name}` tokens with clickable view-switch buttons.
 function composeSummary(summary, cards, className) {
   const safeCards = Array.isArray(cards) ? cards : [];
-  const missingCards = safeCards.filter(card => !summaryIncludesCard(summary, card));
-  const escapedSummary = esc(summary || '');
+  const displaySummary = historySummaryText(summary, safeCards);
+  const linkedSummary = linkCardsInSummary(displaySummary, safeCards, className);
+  const missingCards = safeCards.filter((_, index) => !linkedSummary.linkedIndexes.has(index));
+  const escapedSummary = linkedSummary.html || esc(displaySummary);
 
   let html;
   if (escapedSummary.includes('{card}') && safeCards.length > 0) {

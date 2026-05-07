@@ -191,10 +191,36 @@ test('history summary does not append a card name that is already in the event t
   setHistoryScope(null);
   recordEvent({
     type: 'edit',
-    summary: 'Moved 1 Lotho, Corrupt Shirriff to {loc:box:bulk}',
+    summary: 'moved 1 lotho, corrupt shirriff to {loc:box:bulk}',
     cards: [{ name: 'Lotho, Corrupt Shirriff' }],
   });
 
   const text = win.document.querySelector('.history-list').textContent;
   assert.equal(text.match(/Lotho, Corrupt Shirriff/g)?.length, 1);
+  assert.equal(win.document.querySelectorAll('.history-card-name').length, 1);
+  assert.equal(win.document.querySelector('.loc-link')?.textContent, 'bulk');
+});
+
+test('history add summaries hide printing metadata and keep the card link', () => {
+  const win = new Window();
+  globalThis.document = win.document;
+  globalThis.localStorage = win.localStorage;
+  win.document.body.innerHTML = `
+    <details class="history-details" open>
+      <summary>collection history</summary>
+      <ol class="history-list"></ol>
+    </details>
+  `;
+  initChangelog();
+  setHistoryScope(null);
+  recordEvent({
+    type: 'add',
+    summary: 'Added (FUT #39)',
+    cards: [{ name: 'Maelstrom Djinn' }],
+  });
+
+  const text = win.document.querySelector('.history-list').textContent;
+  assert.match(text, /Added Maelstrom Djinn/);
+  assert.doesNotMatch(text, /FUT|#39|\(/);
+  assert.equal(win.document.querySelector('.history-card-name')?.textContent, 'Maelstrom Djinn');
 });

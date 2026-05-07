@@ -45,7 +45,7 @@ export function buildVoiceAddEvent({ card, entry, opts, key, before = [], create
 export function buildInventoryAddEvent({ card, entry, key, before = [], created = [] }) {
   return {
     type: 'add',
-    summary: 'Added (' + (card.set || '').toUpperCase() + ' #' + card.collector_number + ')',
+    summary: 'Added {card}',
     before,
     created,
     affectedKeys: [key],
