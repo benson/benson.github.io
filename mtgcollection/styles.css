@@ -1604,6 +1604,7 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
+    gap: 8px;
     overflow: hidden;
   }
   .deck-side-history[open] {
@@ -3889,14 +3890,34 @@
 
   .history-list {
     list-style: none;
-    /* Negative right margin breaks out of the sidebar's 14px right padding so
-       the scrollbar gutter sits flush with the sidebar's right border. */
-    padding: 0 8px 0 0;
-    margin: 0 -14px 8px 0;
+    padding: 0 4px 0 0;
+    margin: 0;
     max-height: 240px;
     overflow-y: auto;
     scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
     font-size: 0.75rem;
+  }
+  .history-list:hover,
+  .history-list:focus-within {
+    scrollbar-color: rgba(0,0,0,0.28) transparent;
+  }
+  .history-list::-webkit-scrollbar {
+    width: 8px;
+  }
+  .history-list::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .history-list::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 999px;
+  }
+  .history-list:hover::-webkit-scrollbar-thumb,
+  .history-list:focus-within::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.28);
+    border: 2px solid transparent;
+    background-clip: content-box;
   }
   .history-list li {
     background: rgba(255,255,255,0.48);
@@ -3904,12 +3925,12 @@
     color: #444;
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    padding: 5px 7px 6px 9px;
+    gap: 3px;
+    padding: 7px 8px 8px 10px;
     position: relative;
     word-break: break-word;
   }
-  .history-list li + li { margin-top: 4px; }
+  .history-list li + li { margin-top: 5px; }
   .history-list li:last-child { box-shadow: inset 2px 0 0 #d8d0c4; }
   .history-list .history-row-meta {
     display: flex;
@@ -3959,8 +3980,22 @@
   }
   .history-actions { display: flex; gap: 4px; flex-wrap: wrap; }
   .history-actions .btn { font-size: 0.7rem; padding: 4px 8px; }
-  .sidebar-history { margin-top: 8px; }
-  .sidebar-history > summary { font-size: 0.75rem; color: #999; cursor: pointer; }
+  .sidebar-history {
+    border-top: 1px solid rgba(0,0,0,0.10);
+    margin-top: 12px;
+    padding-top: 10px;
+  }
+  .sidebar-history > summary {
+    color: #999;
+    cursor: pointer;
+    font-size: 0.75rem;
+    padding: 3px 0 8px;
+  }
+  .sidebar-history > .details-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
   .sidebar-history > summary:hover { color: #000; }
   .sidebar-history[open] > summary { color: #000; }
   .card-name-cell {
