@@ -13,11 +13,17 @@ import { esc } from './feedback.js';
 import { LOC_ICONS } from './ui/locationUi.js';
 
 const CHANGELOG_KEY = 'mtgcollection_changelog_v1';
+const EMPTY_HISTORY_CARD_KEY = 'mtgcollection_empty_history_card_v2';
+const EMPTY_HISTORY_CARD_TTL = 24 * 60 * 60 * 1000;
+const EMPTY_HISTORY_RANDOM_URL = 'https://api.scryfall.com/cards/random?q=' +
+  encodeURIComponent('game:paper lang:en -is:digital -is:extra -is:funny');
 const CAP = 200;
 let log = [];
 let historyTargets = [];
 let commitCollectionChangeHandler = () => {};
 let navigateToLocationHandler = () => {};
+let emptyHistoryCardCache = null;
+let emptyHistoryCardPromise = null;
 
 export function configureChangelogActions({ commitCollectionChangeImpl, navigateToLocationImpl } = {}) {
   if (typeof commitCollectionChangeImpl === 'function') commitCollectionChangeHandler = commitCollectionChangeImpl;
@@ -443,30 +449,96 @@ export function qtyDiffSummary(before, after) {
   return (delta > 0 ? '+' : '') + delta + ' {card}';
 }
 
+function validEmptyHistoryCard(card) {
+  return !!card
+    && typeof card === 'object'
+    && typeof card.name === 'string'
+    && typeof card.imageUrl === 'string'
+    && card.imageUrl
+    && Date.now() - Number(card.ts || 0) < EMPTY_HISTORY_CARD_TTL;
+}
+
+function scryfallImageUrl(card) {
+  if (!card) return '';
+  if (card.image_uris) return card.image_uris.normal || card.image_uris.large || card.image_uris.small || '';
+  const face = Array.isArray(card.card_faces) ? card.card_faces[0] : null;
+  return face?.image_uris?.normal || face?.image_uris?.large || face?.image_uris?.small || '';
+}
+
+function loadEmptyHistoryCard() {
+  if (validEmptyHistoryCard(emptyHistoryCardCache)) return emptyHistoryCardCache;
+  try {
+    const stored = JSON.parse(localStorage.getItem(EMPTY_HISTORY_CARD_KEY) || 'null');
+    if (validEmptyHistoryCard(stored)) {
+      emptyHistoryCardCache = stored;
+      return emptyHistoryCardCache;
+    }
+  } catch (e) {}
+  emptyHistoryCardCache = null;
+  return null;
+}
+
+function saveEmptyHistoryCard(card) {
+  emptyHistoryCardCache = card;
+  try { localStorage.setItem(EMPTY_HISTORY_CARD_KEY, JSON.stringify(card)); } catch (e) {}
+}
+
+function canFetchEmptyHistoryCard() {
+  const protocol = document?.location?.protocol || '';
+  return protocol === 'http:' || protocol === 'https:';
+}
+
+async function fetchEmptyHistoryCard() {
+  if (!canFetchEmptyHistoryCard()) return null;
+  const fetchFn = document?.defaultView?.fetch || globalThis.fetch;
+  if (typeof fetchFn !== 'function') return null;
+  const res = await fetchFn(EMPTY_HISTORY_RANDOM_URL, { headers: { Accept: 'application/json' } });
+  if (!res.ok) return null;
+  const card = await res.json().catch(() => null);
+  const imageUrl = scryfallImageUrl(card);
+  if (!imageUrl) return null;
+  const next = {
+    imageUrl,
+    name: String(card.name || 'mystery card'),
+    ts: Date.now(),
+    typeLine: String(card.type_line || card.card_faces?.[0]?.type_line || ''),
+  };
+  saveEmptyHistoryCard(next);
+  return next;
+}
+
+function ensureEmptyHistoryCard() {
+  if (loadEmptyHistoryCard() || emptyHistoryCardPromise) return;
+  emptyHistoryCardPromise = fetchEmptyHistoryCard()
+    .then(card => {
+      emptyHistoryCardPromise = null;
+      if (card) renderHistoryList();
+    })
+    .catch(() => { emptyHistoryCardPromise = null; });
+}
+
 function renderHistoryList() {
   if (!historyTargets.length) return;
   const visible = log.filter(eventVisibleInScope);
   const isEmpty = visible.length === 0;
   let html;
   if (isEmpty) {
-    const title = currentScope?.kind === 'decks'
-      ? 'deck slate is clean'
-      : currentScope?.kind === 'storage'
-        ? 'storage slate is clean'
-        : currentScope ? 'this spot is quiet' : 'the stack is clear';
+    const card = loadEmptyHistoryCard();
     const note = currentScope
       ? 'changes for this view will collect here.'
       : 'make a change and it will show up here.';
     html = '<li class="history-empty">' +
-      '<div class="history-empty-card" aria-hidden="true">' +
-        '<span class="history-empty-card-name">fresh start</span>' +
-        '<span class="history-empty-card-type">instant</span>' +
-      '</div>' +
       '<div class="history-empty-copy">' +
-        '<strong class="history-empty-title">' + esc(title) + '</strong>' +
+        '<strong class="history-empty-title">no changes yet</strong>' +
         '<span class="history-empty-note">' + esc(note) + '</span>' +
       '</div>' +
+      '<figure class="history-empty-card card-preview-link ' + (card ? 'has-card-image' : 'is-loading') + '" aria-label="' + esc(card?.name || 'loading a random magic card') + '"' + (card ? ' data-preview-url="' + esc(card.imageUrl) + '" data-preview-name="' + esc(card.name) + '"' : '') + '>' +
+        '<div class="history-empty-sleeve">' +
+          (card ? '<img class="history-empty-card-img" src="' + esc(card.imageUrl) + '" alt="' + esc(card.name) + '" loading="lazy" decoding="async">' : '<span class="history-empty-card-back" aria-hidden="true"></span>') +
+        '</div>' +
+      '</figure>' +
     '</li>';
+    if (!card) ensureEmptyHistoryCard();
   } else {
     html = visible.map(ev => {
       const cls = ev.undone ? 'history-undone' : (ev.dismissed ? 'history-dismissed' : '');

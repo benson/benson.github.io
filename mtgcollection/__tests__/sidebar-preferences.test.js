@@ -23,13 +23,12 @@ test('applySidebarCollapsed: toggles body class and button state', () => {
   applySidebarCollapsed(true, { documentObj: document });
 
   assert.equal(document.body.classList.contains('left-sidebar-collapsed'), true);
-  assert.equal(document.getElementById('sidebarEdgeToggleBtn').textContent, '>');
+  assert.ok(document.getElementById('sidebarEdgeToggleBtn').querySelector('.drawer-toggle-chevron'));
   assert.equal(document.getElementById('sidebarEdgeToggleBtn').getAttribute('aria-label'), 'show filters');
 
   applySidebarCollapsed(false, { documentObj: document });
 
   assert.equal(document.body.classList.contains('left-sidebar-collapsed'), false);
-  assert.equal(document.getElementById('sidebarEdgeToggleBtn').textContent, '<');
   assert.equal(document.getElementById('sidebarEdgeToggleBtn').getAttribute('aria-label'), 'hide filters');
 });
 
@@ -87,6 +86,5 @@ test('edge toggle opens mobile drawer without changing collapsed preference', ()
   assert.equal(document.body.classList.contains('left-drawer-open'), true);
   assert.equal(document.body.classList.contains('left-sidebar-collapsed'), true);
   assert.equal(storage.getItem(SIDEBAR_COLLAPSED_KEY), '1');
-  assert.equal(document.getElementById('sidebarEdgeToggleBtn').textContent, '<');
   assert.equal(document.getElementById('sidebarEdgeToggleBtn').getAttribute('aria-expanded'), 'true');
 });

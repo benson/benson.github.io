@@ -31,8 +31,9 @@ export function showCardPreview(link) {
 
   const win = getWindowFor(link);
   const rect = link.getBoundingClientRect();
-  const previewWidth = 300;
-  const previewHeight = 418;
+  const sleevedPreview = link.classList.contains('history-empty-card');
+  const previewWidth = sleevedPreview ? 340 : 300;
+  const previewHeight = sleevedPreview ? 496 : 418;
   const padding = 20;
   const linkCenterX = rect.left + rect.width / 2;
   const windowCenterX = win.innerWidth / 2;
@@ -48,6 +49,7 @@ export function showCardPreview(link) {
   cardPreviewEl.style.left = left + 'px';
   cardPreviewEl.style.top = top + 'px';
   cardPreviewEl.classList.add('visible');
+  cardPreviewEl.classList.toggle('is-sleeved-preview', sleevedPreview);
 
   const finish = link.dataset.previewFinish || 'normal';
   cardPreviewEl.classList.toggle('is-foil', finish === 'foil');
@@ -70,6 +72,7 @@ export function showCardPreview(link) {
 export function hideCardPreview() {
   if (!cardPreviewEl) return;
   cardPreviewEl.classList.remove('visible');
+  cardPreviewEl.classList.remove('is-sleeved-preview');
   pendingPreviewUrl = null;
 }
 

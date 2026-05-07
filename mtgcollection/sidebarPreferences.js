@@ -18,14 +18,20 @@ function syncSidebarToggle(button, collapsed, {
 } = {}) {
   if (!button) return;
   const isEdgeToggle = button.matches?.('[data-sidebar-edge-toggle]');
+  if (isEdgeToggle && !button.querySelector('.drawer-toggle-chevron')) {
+    button.textContent = '';
+    const chevron = button.ownerDocument?.createElement?.('span');
+    if (chevron) {
+      chevron.className = 'drawer-toggle-chevron sidebar-edge-chevron';
+      chevron.setAttribute('aria-hidden', 'true');
+      button.appendChild(chevron);
+    }
+  }
   const expanded = isEdgeToggle && narrowLayout ? mobileOpen : !collapsed;
   button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
   button.setAttribute('aria-pressed', collapsed ? 'true' : 'false');
   button.title = expanded ? 'hide filters' : 'show filters';
   button.setAttribute('aria-label', expanded ? 'hide filters' : 'show filters');
-  if (isEdgeToggle) {
-    button.textContent = expanded ? '<' : '>';
-  }
 }
 
 function sidebarToggleButtons(documentObj) {

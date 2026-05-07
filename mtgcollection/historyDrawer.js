@@ -1,4 +1,4 @@
-export const HISTORY_DRAWER_COLLAPSED_KEY = 'mtgcollection_history_drawer_collapsed_v1';
+export const HISTORY_DRAWER_COLLAPSED_KEY = 'mtgcollection_history_drawer_collapsed_v2';
 
 function safeGet(storage, key) {
   try { return storage?.getItem(key) || ''; } catch (e) { return ''; }
@@ -38,7 +38,7 @@ export function loadHistoryDrawerPreference({
   documentObj = globalThis.document,
   storage = globalThis.localStorage,
 } = {}) {
-  applyHistoryDrawerCollapsed(safeGet(storage, HISTORY_DRAWER_COLLAPSED_KEY) === '1', { documentObj });
+  applyHistoryDrawerCollapsed(safeGet(storage, HISTORY_DRAWER_COLLAPSED_KEY) !== '0', { documentObj });
 }
 
 export function bindHistoryDrawerToggle({

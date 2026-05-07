@@ -101,7 +101,7 @@ test('deck history scope shows deck-related events while collection scope shows 
   assert.equal(getLog().length, 2);
 });
 
-test('history empty state renders as a fresh start card and hides clear actions', () => {
+test('history empty state renders a tiny draw widget and hides clear actions', () => {
   const win = new Window();
   globalThis.document = win.document;
   globalThis.localStorage = win.localStorage;
@@ -118,8 +118,8 @@ test('history empty state renders as a fresh start card and hides clear actions'
   const empty = win.document.querySelector('.history-empty');
   assert.ok(empty);
   assert.equal(details.classList.contains('history-is-empty'), true);
-  assert.match(empty.textContent, /the stack is clear/i);
-  assert.match(empty.textContent, /fresh start/i);
+  assert.match(empty.textContent, /no changes yet/i);
+  assert.doesNotMatch(empty.textContent, /today's draw/i);
 
   recordEvent({ type: 'add', summary: 'Added Island', scope: 'collection' });
   assert.equal(details.classList.contains('history-is-empty'), false);

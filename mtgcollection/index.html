@@ -149,23 +149,23 @@ body.app-booting .app-boot-curtain {
       <span class="progress" id="progress"></span>
     </div>
 
-    <section class="history-details sidebar-history history-drawer history-drawer-open" id="historyDetails" data-history-drawer>
-      <button class="history-drawer-header" type="button" id="historyDrawerToggleBtn" data-history-drawer-toggle aria-controls="historyDrawerBody" aria-expanded="true" aria-label="hide history" title="hide history">
-        <span class="history-drawer-title">collection history</span>
-        <span class="history-drawer-toggle" aria-hidden="true">
-          <span class="history-drawer-chevron" aria-hidden="true"></span>
+    <section class="history-details sidebar-history history-drawer history-drawer-collapsed" id="historyDetails" data-history-drawer>
+      <div class="history-drawer-header">
+        <span class="history-drawer-heading">
+          <span class="history-drawer-title">collection history</span>
+          <button class="history-clear-btn history-clear-link" type="button" id="clearHistoryBtn" aria-label="clear history" title="clear history">[clear]</button>
         </span>
-      </button>
-      <div class="details-body history-drawer-body" id="historyDrawerBody" data-history-drawer-body aria-hidden="false">
+        <button class="history-drawer-toggle" type="button" id="historyDrawerToggleBtn" data-history-drawer-toggle aria-controls="historyDrawerBody" aria-expanded="false" aria-label="show history" title="show history">
+          <span class="drawer-toggle-chevron history-drawer-chevron" aria-hidden="true"></span>
+        </button>
+      </div>
+      <div class="details-body history-drawer-body" id="historyDrawerBody" data-history-drawer-body aria-hidden="true">
         <ol id="historyList" class="history-list"></ol>
-        <div class="history-actions">
-          <button class="btn btn-secondary" type="button" id="clearHistoryBtn">clear history</button>
-        </div>
       </div>
     </section>
   </aside>
 
-  <button class="sidebar-edge-toggle" type="button" id="sidebarEdgeToggleBtn" data-sidebar-edge-toggle aria-controls="appLeft" aria-expanded="true" aria-label="hide filters" title="hide filters">&lt;</button>
+  <button class="sidebar-edge-toggle" type="button" id="sidebarEdgeToggleBtn" data-sidebar-edge-toggle aria-controls="appLeft" aria-expanded="true" aria-label="hide filters" title="hide filters"><span class="drawer-toggle-chevron sidebar-edge-chevron" aria-hidden="true"></span></button>
 
   <main class="app-center">
     <div class="feedback" id="feedback" role="status" aria-live="polite"></div>
@@ -201,7 +201,7 @@ body.app-booting .app-boot-curtain {
               <div class="details-body">
                 <ol class="history-list" id="deckHistoryList"></ol>
                 <div class="history-actions">
-                  <button class="btn btn-secondary history-clear-btn" type="button">clear history</button>
+                  <button class="history-clear-btn history-clear-icon" type="button" aria-label="clear history" title="clear history"><svg class="history-clear-icon-svg" aria-hidden="true" viewBox="0 0 16 16" focusable="false"><path d="M5.5 4.5V3.2c0-.5.4-.9.9-.9h3.2c.5 0 .9.4.9.9v1.3" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M3.5 4.5h9M5 6.5l.5 6.2c0 .6.5 1 1.1 1h2.8c.6 0 1.1-.4 1.1-1l.5-6.2M7 7.1v4.5M9 7.1v4.5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
                 </div>
               </div>
             </details>
