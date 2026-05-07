@@ -13,6 +13,7 @@
   body {
     --app-footer-h: 38px;
     --sidebar-tab-peek: 6px;
+    --sidebar-tab-hover-peek: 14px;
     font-family: "Times New Roman", Times, Georgia, serif;
     background: #f8f7f4;
     color: #000;
@@ -99,7 +100,7 @@
     outline: none;
   }
   body.left-sidebar-collapsed .sidebar-edge-toggle {
-    left: 0;
+    left: var(--sidebar-tab-peek);
   }
   body.sidebar-tab-simple .sidebar-edge-toggle {
     --sidebar-tab-size: 34px;
@@ -110,7 +111,7 @@
     width: var(--sidebar-tab-size);
   }
   body.left-sidebar-collapsed.sidebar-tab-simple .sidebar-edge-toggle {
-    left: 0;
+    left: var(--sidebar-tab-peek);
     transform: translate(-50%, -50%);
   }
   body.left-sidebar-collapsed:not(.left-drawer-open) .sidebar-edge-toggle:hover,
@@ -118,7 +119,7 @@
   body.left-sidebar-collapsed:not(.left-drawer-open).left-sidebar-peeking .sidebar-edge-toggle,
   body.left-sidebar-collapsed:not(.left-drawer-open):has(.sidebar-edge-toggle:hover) .sidebar-edge-toggle,
   body.left-sidebar-collapsed:not(.left-drawer-open):has(.sidebar-edge-toggle:focus-visible) .sidebar-edge-toggle {
-    left: var(--sidebar-tab-peek);
+    left: var(--sidebar-tab-hover-peek);
   }
   body.view-deck .sidebar-edge-toggle,
   body.share-mode .sidebar-edge-toggle {
@@ -470,10 +471,10 @@
   body.view-list .app-center { padding: 0; scrollbar-width: none; }
   body.view-list .app-center::-webkit-scrollbar { display: none; }
   body.left-sidebar-collapsed .app-left {
-    box-shadow: none;
-    opacity: 0;
+    box-shadow: 4px 0 10px -6px rgba(0,0,0,0.18);
+    opacity: 1;
     pointer-events: none;
-    transform: translateX(calc(-100% - 18px));
+    transform: translateX(calc(-100% + var(--sidebar-tab-peek)));
     width: 200px;
   }
   body.left-sidebar-collapsed:not(.left-drawer-open).left-sidebar-peeking .app-left,
@@ -481,20 +482,20 @@
   body.left-sidebar-collapsed:not(.left-drawer-open):has(.sidebar-edge-toggle:focus-visible) .app-left {
     box-shadow: 4px 0 10px -6px rgba(0,0,0,0.18);
     opacity: 1;
-    transform: translateX(calc(-100% + var(--sidebar-tab-peek)));
+    transform: translateX(calc(-100% + var(--sidebar-tab-hover-peek)));
   }
   body.left-sidebar-collapsed .app-shell {
-    grid-template-columns: 0 minmax(0, 1fr) 360px;
+    grid-template-columns: var(--sidebar-tab-peek) minmax(0, 1fr) 360px;
   }
   body.left-sidebar-collapsed:not(.left-drawer-open).left-sidebar-peeking .app-shell,
   body.left-sidebar-collapsed:not(.left-drawer-open):has(.sidebar-edge-toggle:hover) .app-shell,
   body.left-sidebar-collapsed:not(.left-drawer-open):has(.sidebar-edge-toggle:focus-visible) .app-shell {
-    grid-template-columns: var(--sidebar-tab-peek) minmax(0, 1fr) 360px;
+    grid-template-columns: var(--sidebar-tab-hover-peek) minmax(0, 1fr) 360px;
   }
   body.left-sidebar-collapsed.view-list .app-shell,
   body.left-sidebar-collapsed.view-binder .app-shell,
   body.left-sidebar-collapsed.view-locations .app-shell {
-    grid-template-columns: 0 minmax(0, 1fr) 0;
+    grid-template-columns: var(--sidebar-tab-peek) minmax(0, 1fr) 0;
   }
   body.left-sidebar-collapsed:not(.left-drawer-open).left-sidebar-peeking.view-list .app-shell,
   body.left-sidebar-collapsed:not(.left-drawer-open).left-sidebar-peeking.view-binder .app-shell,
@@ -505,7 +506,7 @@
   body.left-sidebar-collapsed:not(.left-drawer-open):has(.sidebar-edge-toggle:focus-visible).view-list .app-shell,
   body.left-sidebar-collapsed:not(.left-drawer-open):has(.sidebar-edge-toggle:focus-visible).view-binder .app-shell,
   body.left-sidebar-collapsed:not(.left-drawer-open):has(.sidebar-edge-toggle:focus-visible).view-locations .app-shell {
-    grid-template-columns: var(--sidebar-tab-peek) minmax(0, 1fr) 0;
+    grid-template-columns: var(--sidebar-tab-hover-peek) minmax(0, 1fr) 0;
   }
   body.left-sidebar-collapsed.view-deck .app-shell {
     grid-template-columns: 0 minmax(0, 1fr) 0;
@@ -5333,6 +5334,10 @@
     body.sidebar-tab-simple .sidebar-edge-toggle {
       left: 0;
       transform: translate(-50%, -50%);
+    }
+    body.left-sidebar-collapsed .sidebar-edge-toggle,
+    body.left-sidebar-collapsed.sidebar-tab-simple .sidebar-edge-toggle {
+      left: 0;
     }
     body.left-drawer-open .sidebar-edge-toggle {
       left: min(340px, calc(100vw - var(--sidebar-tab-size)));
