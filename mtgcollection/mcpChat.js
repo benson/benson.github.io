@@ -2,6 +2,7 @@ import { showFeedback } from './feedback.js';
 import { SYNC_API_URL } from './syncClient.js';
 import { getSyncAuthToken, getSyncUser, syncNow } from './syncEngine.js';
 import { state } from './state.js';
+import { setTopLevelViewMode } from './routeState.js';
 import { buildAddPreviewCardModel } from './addPreviewModel.js';
 import { createAddPreviewElement } from './addPreviewView.js';
 import { renderPrintingRows } from './addPrintingView.js';
@@ -1531,35 +1532,131 @@ function makeChatCardHeaderRow() {
   return row;
 }
 
+function makeChatCardTable(cards) {
+  const list = documentRef.createElement('div');
+  list.className = 'mcp-chat-card-list';
+  list.setAttribute('role', 'table');
+  list.setAttribute('aria-label', cards.length === 1 ? 'Referenced card' : 'Referenced cards');
+  list.appendChild(makeChatCardHeaderRow());
+  for (const card of cards) {
+    const row = makeChatCardResult(card);
+    if (row) list.appendChild(row);
+  }
+  return list;
+}
+
+function compactChatCardMeta(card) {
+  const setNumber = [card.setCode ? card.setCode.toUpperCase() : '', card.cn ? '#' + card.cn : ''].filter(Boolean).join(' ');
+  const condition = CONDITION_ABBR[card.condition] || conditionShortLabel(card.condition);
+  return [
+    setNumber,
+    card.finish || 'normal',
+    condition,
+    card.qty ? 'qty ' + card.qty : '',
+    formatUsd(card.price),
+  ].filter(Boolean).join(' | ');
+}
+
+function makeChatCardSummaryItem(raw) {
+  const card = normalizeChatCard(raw);
+  if (!card) return null;
+  const current = currentChatCardSnapshot(card);
+  const displayCard = current.card || card;
+  const item = documentRef.createElement('div');
+  item.className = 'mcp-chat-card-summary-item';
+
+  const name = documentRef.createElement('button');
+  name.type = 'button';
+  name.className = 'card-name-button card-preview-link';
+  name.textContent = displayCard.name;
+  appendCardPreviewDataset(name, displayCard);
+  item.appendChild(name);
+
+  const metaText = compactChatCardMeta(displayCard);
+  if (metaText) {
+    const meta = documentRef.createElement('span');
+    meta.className = 'muted mcp-chat-card-summary-meta';
+    meta.textContent = metaText;
+    item.appendChild(meta);
+  }
+  if (displayCard.location) {
+    const loc = documentRef.createElement('span');
+    loc.className = 'mcp-chat-card-summary-location';
+    loc.innerHTML = locationPillHtml(displayCard.location, { withRemove: false });
+    item.appendChild(loc);
+  }
+  return item;
+}
+
+function quotedSearchValue(value) {
+  return '"' + String(value || '').replace(/"/g, '').trim() + '"';
+}
+
+function filterChatCardsInCollection(cards, documentObj = documentRef) {
+  const normalized = (Array.isArray(cards) ? cards : []).map(normalizeChatCard).filter(Boolean);
+  if (normalized.length !== 1) return false;
+  const input = documentObj?.getElementById?.('searchInput');
+  if (!input) return false;
+  setTopLevelViewMode('collection');
+  input.value = 'name:' + quotedSearchValue(normalized[0].name);
+  const EventCtor = documentObj?.defaultView?.Event || Event;
+  input.dispatchEvent(new EventCtor('input', { bubbles: true }));
+  input.dispatchEvent(new EventCtor('change', { bubbles: true }));
+  return true;
+}
+
+function makeChatCardResultsAction(label, title, onClick) {
+  const button = documentRef.createElement('button');
+  button.type = 'button';
+  button.className = 'mcp-chat-card-results-copy';
+  button.textContent = label;
+  button.title = title;
+  button.setAttribute('aria-label', title);
+  button.addEventListener('click', onClick);
+  return button;
+}
+
 function renderChatCardResults(cards) {
   const normalized = (Array.isArray(cards) ? cards : []).map(normalizeChatCard).filter(Boolean);
   if (!normalized.length) return null;
   const section = documentRef.createElement('section');
   section.className = 'mcp-chat-card-results';
+  const compact = normalized.length <= 2;
+  if (compact) section.classList.add('mcp-chat-card-results-compact');
   const head = documentRef.createElement('div');
   head.className = 'mcp-chat-card-results-head';
   const count = documentRef.createElement('span');
   count.textContent = normalized.length === 1 ? 'card referenced' : 'cards referenced';
-  const copy = documentRef.createElement('button');
-  copy.type = 'button';
-  copy.className = 'mcp-chat-card-results-copy';
-  copy.textContent = 'copy';
-  copy.title = 'copy results as tab-separated text';
-  copy.setAttribute('aria-label', 'copy card results');
-  copy.addEventListener('click', () => copyChatCardResults(normalized, copy));
-  head.append(count, copy);
+  const actions = documentRef.createElement('span');
+  actions.className = 'mcp-chat-card-results-actions';
+  const renderDocument = documentRef;
+  if (normalized.length === 1) {
+    actions.appendChild(makeChatCardResultsAction('filter', 'filter collection to this card', () => filterChatCardsInCollection(normalized, renderDocument)));
+  }
+  const copy = makeChatCardResultsAction('copy', 'copy card results as tab-separated text', () => copyChatCardResults(normalized, copy));
+  actions.appendChild(copy);
+  head.append(count, actions);
   section.appendChild(head);
 
-  const list = documentRef.createElement('div');
-  list.className = 'mcp-chat-card-list';
-  list.setAttribute('role', 'table');
-  list.setAttribute('aria-label', normalized.length === 1 ? 'Referenced card' : 'Referenced cards');
-  list.appendChild(makeChatCardHeaderRow());
-  for (const card of normalized) {
-    const row = makeChatCardResult(card);
-    if (row) list.appendChild(row);
+  if (compact) {
+    const summary = documentRef.createElement('div');
+    summary.className = 'mcp-chat-card-summary';
+    for (const card of normalized) {
+      const item = makeChatCardSummaryItem(card);
+      if (item) summary.appendChild(item);
+    }
+    section.appendChild(summary);
+
+    const details = documentRef.createElement('details');
+    details.className = 'mcp-chat-card-details';
+    const detailsSummary = documentRef.createElement('summary');
+    detailsSummary.textContent = 'fields';
+    details.append(detailsSummary, makeChatCardTable(normalized));
+    section.appendChild(details);
+    return section;
   }
-  section.appendChild(list);
+
+  section.appendChild(makeChatCardTable(normalized));
   return section;
 }
 

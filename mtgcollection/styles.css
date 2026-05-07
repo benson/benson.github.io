@@ -5263,6 +5263,11 @@
     justify-content: space-between;
     text-transform: uppercase;
   }
+  .mcp-chat-card-results-actions {
+    align-items: center;
+    display: inline-flex;
+    gap: 8px;
+  }
   .mcp-chat-card-results-copy {
     background: transparent;
     border: none;
@@ -5278,6 +5283,40 @@
   .mcp-chat-card-results-copy:focus-visible {
     color: #000;
     outline: none;
+  }
+  .mcp-chat-card-summary {
+    display: grid;
+    gap: 4px;
+  }
+  .mcp-chat-card-summary-item {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    min-width: 0;
+    padding: 2px 0;
+  }
+  .mcp-chat-card-summary-meta {
+    font-size: 0.82rem;
+  }
+  .mcp-chat-card-summary-location {
+    display: inline-flex;
+  }
+  .mcp-chat-card-details {
+    border-top: 1px solid #eee7dc;
+    margin-top: 2px;
+    padding-top: 4px;
+  }
+  .mcp-chat-card-details > summary {
+    color: #666;
+    cursor: pointer;
+    font-size: 0.72rem;
+    line-height: 1.2;
+    width: max-content;
+  }
+  .mcp-chat-card-details[open] {
+    display: grid;
+    gap: 4px;
   }
   .mcp-chat-card-list {
     display: grid;
