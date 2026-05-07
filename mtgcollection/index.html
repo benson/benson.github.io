@@ -150,12 +150,12 @@ body.app-booting .app-boot-curtain {
     </div>
 
     <section class="history-details sidebar-history history-drawer history-drawer-open" id="historyDetails" data-history-drawer>
-      <div class="history-drawer-header">
+      <button class="history-drawer-header" type="button" id="historyDrawerToggleBtn" data-history-drawer-toggle aria-controls="historyDrawerBody" aria-expanded="true" aria-label="hide history" title="hide history">
         <span class="history-drawer-title">collection history</span>
-        <button class="history-drawer-toggle" type="button" id="historyDrawerToggleBtn" data-history-drawer-toggle aria-controls="historyDrawerBody" aria-expanded="true" aria-label="hide history" title="hide history">
+        <span class="history-drawer-toggle" aria-hidden="true">
           <span class="history-drawer-chevron" aria-hidden="true"></span>
-        </button>
-      </div>
+        </span>
+      </button>
       <div class="details-body history-drawer-body" id="historyDrawerBody" data-history-drawer-body aria-hidden="false">
         <ol id="historyList" class="history-list"></ol>
         <div class="history-actions">

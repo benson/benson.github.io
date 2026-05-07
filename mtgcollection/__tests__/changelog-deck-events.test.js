@@ -101,6 +101,31 @@ test('deck history scope shows deck-related events while collection scope shows 
   assert.equal(getLog().length, 2);
 });
 
+test('history empty state renders as a fresh start card and hides clear actions', () => {
+  const win = new Window();
+  globalThis.document = win.document;
+  globalThis.localStorage = win.localStorage;
+  win.document.body.innerHTML = `
+    <section class="history-details sidebar-history">
+      <ol class="history-list"></ol>
+      <div class="history-actions"><button class="history-clear-btn" type="button">clear history</button></div>
+    </section>
+  `;
+
+  initChangelog();
+
+  const details = win.document.querySelector('.history-details');
+  const empty = win.document.querySelector('.history-empty');
+  assert.ok(empty);
+  assert.equal(details.classList.contains('history-is-empty'), true);
+  assert.match(empty.textContent, /the stack is clear/i);
+  assert.match(empty.textContent, /fresh start/i);
+
+  recordEvent({ type: 'add', summary: 'Added Island', scope: 'collection' });
+  assert.equal(details.classList.contains('history-is-empty'), false);
+  assert.equal(win.document.querySelector('.history-empty'), null);
+});
+
 test('storage changelog events undo create, rename, and delete', () => {
   resetState();
   const commits = [];

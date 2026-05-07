@@ -446,14 +446,27 @@ export function qtyDiffSummary(before, after) {
 function renderHistoryList() {
   if (!historyTargets.length) return;
   const visible = log.filter(eventVisibleInScope);
+  const isEmpty = visible.length === 0;
   let html;
-  if (visible.length === 0) {
-    const msg = currentScope?.kind === 'decks'
-      ? 'No deck changes yet'
+  if (isEmpty) {
+    const title = currentScope?.kind === 'decks'
+      ? 'deck slate is clean'
       : currentScope?.kind === 'storage'
-        ? 'No storage changes yet'
-        : currentScope ? 'No changes for this container yet' : 'No changes yet';
-    html = '<li class="history-empty">' + msg + '</li>';
+        ? 'storage slate is clean'
+        : currentScope ? 'this spot is quiet' : 'the stack is clear';
+    const note = currentScope
+      ? 'changes for this view will collect here.'
+      : 'make a change and it will show up here.';
+    html = '<li class="history-empty">' +
+      '<div class="history-empty-card" aria-hidden="true">' +
+        '<span class="history-empty-card-name">fresh start</span>' +
+        '<span class="history-empty-card-type">instant</span>' +
+      '</div>' +
+      '<div class="history-empty-copy">' +
+        '<strong class="history-empty-title">' + esc(title) + '</strong>' +
+        '<span class="history-empty-note">' + esc(note) + '</span>' +
+      '</div>' +
+    '</li>';
   } else {
     html = visible.map(ev => {
       const cls = ev.undone ? 'history-undone' : (ev.dismissed ? 'history-dismissed' : '');
@@ -469,7 +482,10 @@ function renderHistoryList() {
       '</li>';
     }).join('');
   }
-  for (const t of historyTargets) t.list.innerHTML = html;
+  for (const t of historyTargets) {
+    t.details?.classList?.toggle('history-is-empty', isEmpty);
+    t.list.innerHTML = html;
+  }
 }
 
 export function initChangelog(options = {}) {

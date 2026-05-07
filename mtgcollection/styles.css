@@ -4007,15 +4007,82 @@
     color: #999;
   }
   .history-list li.history-dismissed { color: #aaa; }
-  .history-list .history-empty {
-    background: transparent;
+  .history-list li.history-empty {
+    align-items: center;
+    background: rgba(255,255,255,0.36);
+    border: 1px solid rgba(185,170,150,0.38);
     box-shadow: none;
-    color: #999;
-    font-style: italic;
-    padding-left: 0;
+    color: #555;
+    display: grid;
+    font-style: normal;
+    gap: 8px;
+    justify-items: center;
+    justify-self: center;
+    max-width: 148px;
+    padding: 12px 8px;
+    text-align: center;
+    width: 100%;
+  }
+  .history-empty-card {
+    aspect-ratio: 5 / 7;
+    background: linear-gradient(180deg, #fffdf8 0%, #ede6da 100%);
+    border: 1px solid #b9aa96;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.10);
+    color: #5d5143;
+    display: grid;
+    font-size: 0.46rem;
+    grid-template-rows: auto 1fr auto;
+    line-height: 1;
+    padding: 6px 5px;
+    position: relative;
+    text-transform: lowercase;
+    width: 50px;
+  }
+  .history-empty-card::before {
+    border: 1px solid rgba(93,81,67,0.22);
+    content: "";
+    inset: 4px;
+    position: absolute;
+  }
+  .history-empty-card::after {
+    background: rgba(185,170,150,0.32);
+    content: "";
+    height: 1px;
+    left: 7px;
+    position: absolute;
+    right: 7px;
+    top: 18px;
+  }
+  .history-empty-card-name,
+  .history-empty-card-type {
+    position: relative;
+    z-index: 1;
+  }
+  .history-empty-card-name { font-weight: 600; }
+  .history-empty-card-type { align-self: end; }
+  .history-empty-copy {
+    display: grid;
+    gap: 3px;
+    justify-items: center;
+    line-height: 1.25;
+  }
+  .history-empty-title {
+    color: #222;
+    font-size: 0.74rem;
+    font-weight: 600;
+  }
+  .history-empty-note {
+    color: #777;
+    font-size: 0.66rem;
+    max-width: 130px;
   }
   .history-actions { display: flex; gap: 4px; flex-wrap: wrap; }
   .history-actions .btn { font-size: 0.7rem; padding: 4px 8px; }
+  .sidebar-history.history-is-empty .history-list {
+    align-content: center;
+    display: grid;
+  }
+  .sidebar-history.history-is-empty .history-actions { display: none; }
   .sidebar-history {
     background: #efede7;
     border-top: 1px solid rgba(0,0,0,0.14);
@@ -4028,15 +4095,23 @@
   }
   .history-drawer-header {
     align-items: center;
-    display: flex;
-    gap: 8px;
+    appearance: none;
+    background: transparent;
+    border: 0;
+    color: inherit;
+    cursor: pointer;
+    display: grid;
+    font: inherit;
     min-height: 40px;
-    padding: 12px 44px 6px 14px;
+    padding: 12px 44px 6px;
+    position: relative;
+    text-align: center;
+    width: 100%;
   }
   .history-drawer-title {
     color: #000;
-    flex: 1;
     font-size: 0.76rem;
+    justify-self: center;
     min-width: 0;
     text-transform: lowercase;
   }
@@ -4064,32 +4139,43 @@
     inset: -4px;
     position: absolute;
   }
-  .history-drawer-toggle:hover,
-  .history-drawer-toggle:focus-visible {
+  .history-drawer-header:hover .history-drawer-toggle,
+  .history-drawer-header:focus-visible .history-drawer-toggle {
     border-color: #777;
     box-shadow: 0 3px 10px rgba(0,0,0,0.18);
+  }
+  .history-drawer-header:focus-visible {
     outline: none;
   }
   .history-drawer-chevron {
     display: block;
-    height: 10px;
+    height: 12px;
     position: relative;
-    width: 10px;
+    width: 12px;
   }
-  .history-drawer-chevron::before {
-    border: solid currentColor;
-    border-width: 0 1.5px 1.5px 0;
+  .history-drawer-chevron::before,
+  .history-drawer-chevron::after {
+    background: currentColor;
+    border-radius: 999px;
     content: "";
-    height: 7px;
+    height: 1.5px;
     left: 50%;
     position: absolute;
     top: 50%;
-    transform: translate(-50%, -62%) rotate(45deg);
     transform-origin: center;
     width: 7px;
   }
+  .history-drawer-chevron::before {
+    transform: translate(calc(-100% + 1px), -50%) rotate(45deg);
+  }
+  .history-drawer-chevron::after {
+    transform: translate(-1px, -50%) rotate(-45deg);
+  }
   .history-drawer-collapsed .history-drawer-chevron::before {
-    transform: translate(-50%, -38%) rotate(225deg);
+    transform: translate(calc(-100% + 1px), -50%) rotate(-45deg);
+  }
+  .history-drawer-collapsed .history-drawer-chevron::after {
+    transform: translate(-1px, -50%) rotate(45deg);
   }
   .sidebar-history > .details-body {
     display: flex;

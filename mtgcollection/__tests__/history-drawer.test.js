@@ -13,10 +13,10 @@ function setup() {
   const win = new Window();
   win.document.body.innerHTML = `
     <section class="history-details sidebar-history history-drawer history-drawer-open" data-history-drawer>
-      <div class="history-drawer-header">
+      <button class="history-drawer-header" type="button" data-history-drawer-toggle aria-controls="historyDrawerBody" aria-expanded="true" aria-label="hide history">
         <span class="history-drawer-title">collection history</span>
-        <button data-history-drawer-toggle aria-controls="historyDrawerBody" aria-expanded="true" aria-label="hide history"></button>
-      </div>
+        <span class="history-drawer-toggle" aria-hidden="true"></span>
+      </button>
       <div id="historyDrawerBody" data-history-drawer-body aria-hidden="false"></div>
     </section>
   `;
@@ -46,21 +46,21 @@ test('applyHistoryDrawerCollapsed: syncs drawer classes and button state', () =>
   assert.equal(body.getAttribute('aria-hidden'), 'false');
 });
 
-test('loadHistoryDrawerPreference and bindHistoryDrawerToggle persist collapsed state', () => {
+test('loadHistoryDrawerPreference and bindHistoryDrawerToggle persist collapsed state from the whole header', () => {
   const { win, document } = setup();
   const storage = createFakeStorage([[HISTORY_DRAWER_COLLAPSED_KEY, '1']]);
-  const button = document.querySelector('[data-history-drawer-toggle]');
+  const header = document.querySelector('[data-history-drawer-toggle]');
 
   loadHistoryDrawerPreference({ documentObj: document, storage });
   assert.equal(document.querySelector('[data-history-drawer]').classList.contains('history-drawer-collapsed'), true);
 
   bindHistoryDrawerToggle({ documentObj: document, storage });
 
-  button.dispatchEvent(new win.MouseEvent('click', { bubbles: true, cancelable: true }));
+  header.dispatchEvent(new win.MouseEvent('click', { bubbles: true, cancelable: true }));
   assert.equal(document.querySelector('[data-history-drawer]').classList.contains('history-drawer-collapsed'), false);
   assert.equal(storage.getItem(HISTORY_DRAWER_COLLAPSED_KEY), '0');
 
-  button.dispatchEvent(new win.MouseEvent('click', { bubbles: true, cancelable: true }));
+  header.dispatchEvent(new win.MouseEvent('click', { bubbles: true, cancelable: true }));
   assert.equal(document.querySelector('[data-history-drawer]').classList.contains('history-drawer-collapsed'), true);
   assert.equal(storage.getItem(HISTORY_DRAWER_COLLAPSED_KEY), '1');
 });
