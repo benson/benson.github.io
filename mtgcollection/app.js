@@ -26,6 +26,7 @@ import { initSyncUi } from './syncUi.js?settings-header-1';
 import { initMcpChat } from './mcpChat.js';
 import { applyRouteStateFromUrl } from './routeState.js';
 import { bindSidebarToggle, loadSidebarPreference } from './sidebarPreferences.js?drawer-peek-1';
+import { bindHistoryDrawerToggle, loadHistoryDrawerPreference } from './historyDrawer.js?bottom-drawer-1';
 
 function mirrorSharedDecks() {
   if (state.shareSnapshot) return;
@@ -89,6 +90,7 @@ function runPostBootBackfills() {
 async function boot() {
   loadChromePreferences();
   loadSidebarPreference();
+  loadHistoryDrawerPreference();
 
   // Detect viewer mode early — if `?share=ID` is present, we'll skip the
   // user's own localStorage entirely and render the snapshot read-only.
@@ -122,6 +124,7 @@ async function boot() {
   // App-level DOM controls; format selector syncs after loadFromStorage().
   const appControls = bindAppControls({ openRightDrawerImpl: openRightDrawer });
   bindSidebarToggle();
+  bindHistoryDrawerToggle();
 
   // Boot the collection — viewer mode short-circuits the localStorage path
   // entirely so the user's own data is never touched.

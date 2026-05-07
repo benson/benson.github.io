@@ -149,15 +149,20 @@ body.app-booting .app-boot-curtain {
       <span class="progress" id="progress"></span>
     </div>
 
-    <details class="history-details sidebar-history" id="historyDetails" open>
-      <summary>collection history</summary>
-      <div class="details-body">
+    <section class="history-details sidebar-history history-drawer history-drawer-open" id="historyDetails" data-history-drawer>
+      <div class="history-drawer-header">
+        <span class="history-drawer-title">collection history</span>
+        <button class="history-drawer-toggle" type="button" id="historyDrawerToggleBtn" data-history-drawer-toggle aria-controls="historyDrawerBody" aria-expanded="true" aria-label="hide history" title="hide history">
+          <span class="history-drawer-chevron" aria-hidden="true"></span>
+        </button>
+      </div>
+      <div class="details-body history-drawer-body" id="historyDrawerBody" data-history-drawer-body aria-hidden="false">
         <ol id="historyList" class="history-list"></ol>
         <div class="history-actions">
           <button class="btn btn-secondary" type="button" id="clearHistoryBtn">clear history</button>
         </div>
       </div>
-    </details>
+    </section>
   </aside>
 
   <button class="sidebar-edge-toggle" type="button" id="sidebarEdgeToggleBtn" data-sidebar-edge-toggle aria-controls="appLeft" aria-expanded="true" aria-label="hide filters" title="hide filters">&lt;</button>

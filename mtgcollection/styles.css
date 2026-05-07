@@ -1033,6 +1033,7 @@
   body.proper-case .pending-label,
   body.proper-case .history-list .history-undo,
   body.proper-case .history-details summary,
+  body.proper-case .history-drawer-title,
   body.proper-case .ms-pill,
   body.proper-case .ms-option,
   body.proper-case .filter-select,
@@ -4016,23 +4017,105 @@
   .history-actions { display: flex; gap: 4px; flex-wrap: wrap; }
   .history-actions .btn { font-size: 0.7rem; padding: 4px 8px; }
   .sidebar-history {
-    border-top: 1px solid rgba(0,0,0,0.10);
-    margin-top: 12px;
-    padding-top: 10px;
+    background: #efede7;
+    border-top: 1px solid rgba(0,0,0,0.14);
+    box-shadow: 0 -10px 22px -22px rgba(0,0,0,0.65);
+    flex: 0 0 auto;
+    margin: auto -14px -16px;
+    overflow: visible;
+    padding: 0;
+    position: relative;
   }
-  .sidebar-history > summary {
-    color: #999;
+  .history-drawer-header {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    min-height: 40px;
+    padding: 12px 44px 6px 14px;
+  }
+  .history-drawer-title {
+    color: #000;
+    flex: 1;
+    font-size: 0.76rem;
+    min-width: 0;
+    text-transform: lowercase;
+  }
+  .history-drawer-toggle {
+    align-items: center;
+    background: #fff;
+    border: 1px solid #b9b4aa;
+    border-radius: 999px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.16);
+    color: #111;
     cursor: pointer;
-    font-size: 0.75rem;
-    padding: 3px 0 8px;
+    display: grid;
+    height: 28px;
+    padding: 0;
+    place-items: center;
+    position: absolute;
+    right: 8px;
+    top: 0;
+    transform: translateY(-50%);
+    width: 28px;
+    z-index: 1;
+  }
+  .history-drawer-toggle::before {
+    content: "";
+    inset: -4px;
+    position: absolute;
+  }
+  .history-drawer-toggle:hover,
+  .history-drawer-toggle:focus-visible {
+    border-color: #777;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.18);
+    outline: none;
+  }
+  .history-drawer-chevron {
+    display: block;
+    height: 10px;
+    position: relative;
+    width: 10px;
+  }
+  .history-drawer-chevron::before {
+    border: solid currentColor;
+    border-width: 0 1.5px 1.5px 0;
+    content: "";
+    height: 7px;
+    left: 50%;
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -62%) rotate(45deg);
+    transform-origin: center;
+    width: 7px;
+  }
+  .history-drawer-collapsed .history-drawer-chevron::before {
+    transform: translate(-50%, -38%) rotate(225deg);
   }
   .sidebar-history > .details-body {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    height: clamp(188px, 35vh, 340px);
+    max-height: clamp(188px, 35vh, 340px);
+    min-height: 0;
+    opacity: 1;
+    overflow: hidden;
+    padding: 2px 14px 12px;
+    transition: height 180ms ease, max-height 180ms ease, opacity 120ms ease, padding 180ms ease;
   }
-  .sidebar-history > summary:hover { color: #000; }
-  .sidebar-history[open] > summary { color: #000; }
+  .sidebar-history.history-drawer-collapsed > .details-body {
+    height: 0;
+    max-height: 0;
+    opacity: 0;
+    padding-bottom: 0;
+    padding-top: 0;
+    pointer-events: none;
+  }
+  .sidebar-history .history-list {
+    flex: 1 1 auto;
+    max-height: none;
+    min-height: 0;
+  }
   .card-name-cell {
     min-width: 128px;
     text-transform: none;
@@ -6269,7 +6352,8 @@
   @media (prefers-reduced-motion: reduce) {
     .app-shell,
     .app-left,
-    .sidebar-edge-toggle {
+    .sidebar-edge-toggle,
+    .sidebar-history > .details-body {
       transition: none;
     }
   }

@@ -230,8 +230,8 @@ function syncSidebarChrome(shape) {
   });
   document.getElementById('filterDeckFormat')?.classList.toggle('hidden', !config.deckFormatFilter);
   document.getElementById('filterStorageType')?.classList.toggle('hidden', !config.storageTypeFilter);
-  const summary = document.querySelector('#historyDetails > summary');
-  if (summary) summary.textContent = config.historyLabel;
+  const historyTitle = document.querySelector('#historyDetails .history-drawer-title, #historyDetails > summary');
+  if (historyTitle) historyTitle.textContent = config.historyLabel;
 }
 
 function setTotalsStrip(html) {
