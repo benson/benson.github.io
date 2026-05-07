@@ -27,13 +27,20 @@ export const SYSTEM_PROMPT = [
   'When calling tools, use real JSON types: quantities are numbers and createContainer is a boolean, not quoted strings.',
   'For add requests, do not invent set codes, collector numbers, rarities, Scryfall ids, quantities, finishes, or conditions.',
   'Preserve printing or edition hints in add requests; for Secret Lair printings, pass setCode "sld" or keep "secret lair" in the lookup query.',
+  'Treat "regular printing", "base printing", "normal version", and similar phrases as printing-treatment hints, not part of the card name; prefer non-promo, non-showcase, non-borderless main-set printings when available.',
   'If the user does not provide every add detail, use search_card_printings or preview_add_inventory_item to return candidates/input needs; the app will render quick controls.',
   'When the user asks for foils, nonfoils, normal cards, or etched foils in their collection, pass the matching finish to search_inventory.',
   'For broad inventory filters, call search_inventory with structured filters instead of putting the whole user question into query. Use minPrice/maxPrice, minQty/maxQty, cardType, condition, rarity, tags, location, sortBy, and sortDirection when relevant.',
   'When the user asks about prices, value, cheapest, most expensive, cards over/under a price, or cards with many copies, use collection price/quantity fields from get_collection_summary or search_inventory; do not say price data is unavailable when the tools return price.',
+  'For whole-collection totals such as how many unique cards, total cards, or total collection value, call get_collection_summary; do not answer those by searching for an individual card.',
   'For cheapest or most expensive card questions inside a binder, box, or deck, call search_inventory with the matching location plus sortBy=price and sortDirection=asc or desc; use list_containers only for container counts or metadata.',
   'Treat "bulk" as the box named "bulk" when it appears as a location. Treat "card stack" or "stack value" as one inventory row sorted by totalValue, not as a container total.',
   'If a phrase could be a container name, such as "breya artifacts" or "trade binder", do not split it into a card-name query; pass it as location.',
+  'When the user combines actions on an existing inventory card, such as moving it and making it foil, changing condition, language, or tags, call preview_edit_inventory_item once with all requested fields.',
+  'When the user says they swapped, replaced, or changed the printing/version/edition/art of an owned card, call preview_replace_inventory_printing; changing finish alone is not enough.',
+  'When the user asks to add another copy of an owned card in the same style/printing, call preview_duplicate_inventory_item instead of starting a new Scryfall add.',
+  'When the user asks to remove or delete a card from their collection entirely, call preview_delete_inventory_item; do not ask for a destination container.',
+  'Treat finish, condition, language, and tag changes as inventory edits, not adds, unless the user explicitly asks to add another copy.',
   'For move or remove requests that identify the card/source but omit the destination, still call preview_move_inventory_item with the known card/source so the app can render the referenced card, then ask where it should go.',
   'When showing inventory cards from search_inventory, get_container, or get_deck, keep the prose short and do not write markdown tables; the app renders the card results separately.',
 ].join(' ');
@@ -676,7 +683,7 @@ function normalizePendingPreview(preview) {
   if (!preview || typeof preview !== 'object') return null;
   const changeToken = String(preview.changeToken || '').trim();
   if (!changeToken) return null;
-  return {
+  const normalized = {
     changeToken,
     summary: String(preview.summary || 'Previewed collection change'),
     expectedRevision: preview.expectedRevision ?? null,
@@ -686,6 +693,11 @@ function normalizePendingPreview(preview) {
     applying: false,
     error: '',
   };
+  if (preview.card && typeof preview.card === 'object') {
+    const card = normalizeChatCard(preview.card);
+    if (card) normalized.card = card;
+  }
+  return normalized;
 }
 
 function addPendingPreviews(previews) {
@@ -782,20 +794,123 @@ function collectLocationTextRanges(raw) {
   return ranges.sort((a, b) => a.start - b.start || b.priority - a.priority);
 }
 
-function appendTextWithLocationTokens(parent, text) {
-  const raw = String(text || '');
+function chatDisplayText(text) {
+  return String(text || '').replace(/\*\*([^*\n]+)\*\*/g, '$1');
+}
+
+function cardMentionPattern(name) {
+  const words = referenceWords(name);
+  if (!words.length) return null;
+  return words.map(escapeRegExp).join('[^A-Za-z0-9]+');
+}
+
+function collectCardTextRanges(raw, cards) {
+  const ranges = [];
+  const seen = new Set();
+  const normalized = [];
+  for (const rawCard of Array.isArray(cards) ? cards : []) {
+    const card = normalizeChatCard(rawCard);
+    const key = card?.itemKey || card?.name;
+    if (!card || seen.has(key)) continue;
+    seen.add(key);
+    normalized.push(card);
+  }
+  normalized.sort((a, b) => {
+    const wordDelta = referenceWords(b.name).length - referenceWords(a.name).length;
+    return wordDelta || b.name.length - a.name.length || a.name.localeCompare(b.name);
+  });
+
+  for (const card of normalized) {
+    const pattern = cardMentionPattern(card.name);
+    if (!pattern) continue;
+    const re = new RegExp('(^|[^A-Za-z0-9])(' + pattern + ')(?=$|[^A-Za-z0-9])', 'gi');
+    let match = null;
+    while ((match = re.exec(raw))) {
+      const start = match.index + match[1].length;
+      const end = start + match[2].length;
+      ranges.push({
+        start,
+        end,
+        card,
+        priority: referenceWords(card.name).length * 100 + card.name.length,
+      });
+    }
+  }
+
+  return ranges;
+}
+
+function chatCardsForText(text, extraCards = []) {
+  const byKey = new Map();
+  const addCard = rawCard => {
+    const card = normalizeChatCard(rawCard);
+    if (!card) return;
+    const key = card.itemKey || card.name.toLowerCase();
+    if (!byKey.has(key)) byKey.set(key, card);
+  };
+  for (const card of Array.isArray(extraCards) ? extraCards : []) addCard(card);
+  for (const card of referencedChatCardsFromText(text, 12)) addCard(card);
+  return Array.from(byKey.values());
+}
+
+function collectChatTextRanges(raw, cards = []) {
+  const candidates = [
+    ...collectLocationTextRanges(raw).map(range => ({
+      ...range,
+      type: 'location',
+      priority: 10000 + range.priority,
+    })),
+    ...collectCardTextRanges(raw, cards).map(range => ({
+      ...range,
+      type: 'card',
+      priority: 5000 + range.priority,
+    })),
+  ].sort((a, b) => {
+    const priorityDelta = b.priority - a.priority;
+    const lengthDelta = (b.end - b.start) - (a.end - a.start);
+    return priorityDelta || lengthDelta || a.start - b.start;
+  });
+
+  const selected = [];
+  for (const range of candidates) {
+    if (selected.some(existing => range.start < existing.end && range.end > existing.start)) continue;
+    selected.push(range);
+  }
+  return selected.sort((a, b) => a.start - b.start || b.priority - a.priority);
+}
+
+function makeInlineCardMention(card, label) {
+  const button = documentRef.createElement('button');
+  button.type = 'button';
+  button.className = 'mcp-chat-inline-card card-name-button card-preview-link';
+  button.textContent = label;
+  button.title = 'preview ' + card.name;
+  button.setAttribute('aria-label', 'preview ' + card.name);
+  appendCardPreviewDataset(button, card);
+  return button;
+}
+
+function appendTextWithLocationTokens(parent, text, options = {}) {
+  const raw = chatDisplayText(text);
   let lastIndex = 0;
-  for (const range of collectLocationTextRanges(raw)) {
+  for (const range of collectChatTextRanges(raw, options.cards)) {
     if (range.start < lastIndex) continue;
     if (range.start > lastIndex) {
       parent.appendChild(documentRef.createTextNode(raw.slice(lastIndex, range.start)));
     }
-    const loc = normalizeLocation(range.loc);
-    if (loc) {
-      const wrap = documentRef.createElement('span');
-      wrap.className = 'mcp-chat-inline-location';
-      wrap.innerHTML = locationPillHtml(loc, { withRemove: false });
-      parent.appendChild(wrap);
+    if (range.type === 'location') {
+      const loc = normalizeLocation(range.loc);
+      if (loc) {
+        const wrap = documentRef.createElement('span');
+        wrap.className = 'mcp-chat-inline-location';
+        wrap.innerHTML = locationPillHtml(loc, { withRemove: false });
+        parent.appendChild(wrap);
+      } else {
+        parent.appendChild(documentRef.createTextNode(raw.slice(range.start, range.end)));
+      }
+    } else if (range.type === 'card' && range.card) {
+      const label = options.canonicalizeCards === false ? raw.slice(range.start, range.end) : range.card.name;
+      parent.appendChild(makeInlineCardMention(range.card, label));
     } else {
       parent.appendChild(documentRef.createTextNode(raw.slice(range.start, range.end)));
     }
@@ -806,9 +921,9 @@ function appendTextWithLocationTokens(parent, text) {
   }
 }
 
-function setTextWithLocationTokens(parent, text) {
+function setTextWithLocationTokens(parent, text, options = {}) {
   parent.textContent = '';
-  appendTextWithLocationTokens(parent, text);
+  appendTextWithLocationTokens(parent, text, options);
 }
 
 function makePreviewButton(action, text, changeToken = '') {
@@ -1041,6 +1156,7 @@ function currentChatCardSnapshot(card) {
 function makeChatCell(className, text = '') {
   const cell = documentRef.createElement('div');
   cell.className = className;
+  cell.setAttribute('role', 'cell');
   cell.textContent = text;
   return cell;
 }
@@ -1061,6 +1177,7 @@ function setIconElement(setCode) {
 function makeChatLocationCell(card) {
   const cell = documentRef.createElement('div');
   cell.className = 'location-cell';
+  cell.setAttribute('role', 'cell');
   if (card.location) cell.innerHTML = locationPillHtml(card.location, { withRemove: false });
   else cell.textContent = 'no location';
   return cell;
@@ -1069,6 +1186,7 @@ function makeChatLocationCell(card) {
 function makeChatTagsCell(card, index) {
   const cell = documentRef.createElement('div');
   cell.className = 'tags-cell';
+  cell.setAttribute('role', 'cell');
   for (const tag of card.tags || []) {
     const chip = documentRef.createElement('span');
     chip.className = 'row-tag';
@@ -1172,11 +1290,13 @@ function makeChatCardResult(raw) {
   const index = current.index;
   const row = documentRef.createElement('article');
   row.className = 'mcp-chat-card-row mcp-chat-reference-row';
+  row.setAttribute('role', 'row');
   row.dataset.itemKey = displayCard.itemKey;
   if (index >= 0) row.dataset.index = String(index);
 
   const nameCell = documentRef.createElement('div');
   nameCell.className = 'card-name-cell';
+  nameCell.setAttribute('role', 'cell');
   const name = documentRef.createElement('button');
   name.type = 'button';
   name.className = 'card-name-button card-preview-link';
@@ -1195,6 +1315,7 @@ function makeChatCardResult(raw) {
 
   const editCell = documentRef.createElement('div');
   editCell.className = 'mcp-chat-card-edit-cell';
+  editCell.setAttribute('role', 'cell');
   const editButton = documentRef.createElement('button');
   editButton.type = 'button';
   editButton.className = 'mcp-chat-card-edit';
@@ -1219,6 +1340,34 @@ function makeChatCardResult(raw) {
   return row;
 }
 
+const CHAT_CARD_TABLE_HEADERS = [
+  'card',
+  'set',
+  '#',
+  'finish',
+  'rarity',
+  'condition',
+  'location',
+  'tags',
+  'qty',
+  'price',
+  'edit',
+];
+
+function makeChatCardHeaderRow() {
+  const row = documentRef.createElement('div');
+  row.className = 'mcp-chat-card-row mcp-chat-card-header';
+  row.setAttribute('role', 'row');
+  for (const label of CHAT_CARD_TABLE_HEADERS) {
+    const cell = documentRef.createElement('div');
+    cell.className = 'mcp-chat-card-header-cell';
+    cell.setAttribute('role', 'columnheader');
+    cell.textContent = label;
+    row.appendChild(cell);
+  }
+  return row;
+}
+
 function renderChatCardResults(cards) {
   const normalized = (Array.isArray(cards) ? cards : []).map(normalizeChatCard).filter(Boolean);
   if (!normalized.length) return null;
@@ -1240,6 +1389,9 @@ function renderChatCardResults(cards) {
 
   const list = documentRef.createElement('div');
   list.className = 'mcp-chat-card-list';
+  list.setAttribute('role', 'table');
+  list.setAttribute('aria-label', normalized.length === 1 ? 'Referenced card' : 'Referenced cards');
+  list.appendChild(makeChatCardHeaderRow());
   for (const card of normalized) {
     const row = makeChatCardResult(card);
     if (row) list.appendChild(row);
@@ -1388,7 +1540,7 @@ function renderPendingPreviews() {
     text.className = 'mcp-chat-preview-copy';
     const summary = documentRef.createElement('div');
     summary.className = 'mcp-chat-preview-summary';
-    setTextWithLocationTokens(summary, preview.summary);
+    setTextWithLocationTokens(summary, preview.summary, { cards: chatCardsForText(preview.summary, preview.card ? [preview.card] : []) });
     const meta = documentRef.createElement('div');
     meta.className = 'mcp-chat-preview-meta';
     meta.textContent = previewMetaText(preview);
@@ -1443,16 +1595,21 @@ function renderTranscript() {
     const label = documentRef.createElement('div');
     label.className = 'mcp-chat-role';
     label.textContent = message.role === 'assistant' ? 'assistant' : 'you';
+    let referencedCards = [];
+    if (message.role === 'assistant') {
+      const explicitCards = Array.isArray(message.meta?.cards) ? message.meta.cards : [];
+      referencedCards = explicitCards.length
+        ? explicitCards
+        : referencedChatCardsFromText([previousUserText, message.content].filter(Boolean).join('\n'));
+    } else {
+      referencedCards = chatCardsForText(message.content);
+    }
     const body = documentRef.createElement('div');
     body.className = 'mcp-chat-body';
-    setTextWithLocationTokens(body, message.content);
+    setTextWithLocationTokens(body, message.content, { cards: referencedCards });
     row.append(label, body);
 
     if (message.role === 'assistant') {
-      const explicitCards = Array.isArray(message.meta?.cards) ? message.meta.cards : [];
-      const referencedCards = explicitCards.length
-        ? explicitCards
-        : referencedChatCardsFromText([previousUserText, message.content].filter(Boolean).join('\n'));
       const cards = renderChatCardResults(referencedCards);
       if (cards) row.appendChild(cards);
       const tokens = changeTokensFromText(message.content);

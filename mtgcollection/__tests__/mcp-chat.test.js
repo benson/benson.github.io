@@ -238,10 +238,66 @@ test('initMcpChat: assistant prose renders known card and container references r
     appendMcpChatMessageForTest('user', 'take my force of will out of my trade binder');
     appendMcpChatMessageForTest('assistant', 'I can help move **Force of Will** out of your trade binder. Where should it go?');
 
+    const user = document.querySelector('.mcp-chat-user');
+    const userCard = user.querySelector('.mcp-chat-inline-card.card-preview-link');
+    assert.equal(userCard?.textContent, 'Force of Will');
+    assert.equal(userCard?.dataset.previewName, 'Force of Will');
     const assistant = document.querySelector('.mcp-chat-assistant');
+    const body = assistant.querySelector('.mcp-chat-body');
+    const inlineCard = body.querySelector('.mcp-chat-inline-card.card-preview-link');
+    assert.equal(inlineCard?.textContent, 'Force of Will');
+    assert.equal(inlineCard?.dataset.previewName, 'Force of Will');
+    assert.doesNotMatch(body.textContent, /\*\*/);
     assert.equal(assistant.querySelector('.loc-pill-binder')?.dataset.locName, 'trade binder');
-    assert.equal(assistant.querySelector('.card-name-button.card-preview-link')?.textContent, 'Force of Will');
+    assert.equal(assistant.querySelector('.mcp-chat-card-results .card-name-button.card-preview-link')?.textContent, 'Force of Will');
     assert.equal(assistant.querySelector('.price-cell')?.textContent, '$75.04');
+  } finally {
+    click(win, document.getElementById('mcpChatClear'));
+    state.collection = previousCollection;
+    state.containers = previousContainers;
+  }
+});
+
+test('initMcpChat: pending previews render card mentions canonically', () => {
+  const { win, document } = setup();
+  const previousCollection = state.collection;
+  const previousContainers = state.containers;
+  const glint = {
+    name: 'Glint-Nest Crane',
+    resolvedName: 'Glint-Nest Crane',
+    scryfallId: 'glint-1',
+    setCode: 'kld',
+    cn: '50',
+    finish: 'normal',
+    condition: 'near_mint',
+    language: 'en',
+    qty: 1,
+    location: { type: 'box', name: 'bulk' },
+  };
+  state.collection = [glint];
+  state.containers = {
+    'box:bulk': { type: 'box', name: 'bulk' },
+    'binder:trade binder': { type: 'binder', name: 'trade binder' },
+  };
+
+  try {
+    initMcpChat({ documentObj: document });
+    click(win, document.getElementById('mcpChatClear'));
+    addPendingPreviewsForTest([{
+      changeToken: 'preview.glint',
+      summary: 'moved 1 glint-nest crane to {loc:binder:trade binder}',
+      card: {
+        ...glint,
+        itemKey: collectionKey({ ...glint, location: { type: 'binder', name: 'trade binder' } }),
+        location: { type: 'binder', name: 'trade binder' },
+      },
+    }]);
+
+    const summary = document.querySelector('.mcp-chat-preview-summary');
+    const cardLink = summary.querySelector('.mcp-chat-inline-card.card-preview-link');
+    assert.equal(cardLink?.textContent, 'Glint-Nest Crane');
+    assert.equal(cardLink?.dataset.previewName, 'Glint-Nest Crane');
+    assert.equal(summary.querySelector('.loc-pill-binder')?.dataset.locName, 'trade binder');
   } finally {
     click(win, document.getElementById('mcpChatClear'));
     state.collection = previousCollection;
@@ -349,6 +405,11 @@ test('renderChatCardResultsForTest: inventory cards are hoverable and movable', 
     document.body.appendChild(section);
 
     assert.equal(document.querySelector('.mcp-chat-card-results-head span').textContent, 'card referenced');
+    assert.equal(document.querySelector('.mcp-chat-card-list')?.getAttribute('role'), 'table');
+    assert.deepEqual(
+      Array.from(document.querySelectorAll('.mcp-chat-card-header-cell')).map(cell => cell.textContent),
+      ['card', 'set', '#', 'finish', 'rarity', 'condition', 'location', 'tags', 'qty', 'price', 'edit']
+    );
     const cardLink = document.querySelector('.card-name-button.card-preview-link');
     assert.ok(cardLink);
     assert.equal(cardLink.dataset.previewId, 'sos-122');

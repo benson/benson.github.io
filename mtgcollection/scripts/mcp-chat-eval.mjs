@@ -10,6 +10,10 @@ const DEFAULT_PROVIDER = 'cloudflare';
 const DEFAULT_MODEL = '@cf/openai/gpt-oss-120b';
 const USER_ID = 'eval_user';
 const MCP_URL = 'https://eval.local/mcp';
+const DEFAULT_MUTATION_FORBIDDEN_TEXT = [
+  /\b3030\s*:\s*internal server error\b/i,
+  /\binternal server error\b/i,
+];
 
 function parseArgs(argv) {
   const out = {
@@ -25,6 +29,7 @@ function parseArgs(argv) {
     maxRetrySeconds: 20,
     caseDelayMs: 250,
     provider: DEFAULT_PROVIDER,
+    surface: '',
   };
   for (const arg of argv) {
     if (arg === '--all') out.all = true;
@@ -36,6 +41,7 @@ function parseArgs(argv) {
     else if (arg.startsWith('--id=')) out.id = arg.slice(5);
     else if (arg.startsWith('--model=')) out.model = arg.slice(8);
     else if (arg.startsWith('--provider=')) out.provider = arg.slice(11).toLowerCase();
+    else if (arg.startsWith('--surface=')) out.surface = arg.slice(10).toLowerCase();
     else if (arg.startsWith('--report=')) out.report = arg.slice(9);
     else if (arg.startsWith('--tool-mode=')) out.toolMode = arg.slice(12);
     else if (arg.startsWith('--max-output=')) out.maxOutput = Math.max(64, parseInt(arg.slice(13), 10) || out.maxOutput);
@@ -44,8 +50,13 @@ function parseArgs(argv) {
     else if (arg.startsWith('--max-retry-seconds=')) out.maxRetrySeconds = Math.max(1, parseInt(arg.slice(20), 10) || out.maxRetrySeconds);
     else if (arg.startsWith('--case-delay-ms=')) out.caseDelayMs = Math.max(0, parseInt(arg.slice(16), 10) || 0);
   }
-  if (!['category', 'full'].includes(out.toolMode)) throw new Error('--tool-mode must be category or full');
   if (!['cloudflare', 'groq'].includes(out.provider)) throw new Error('--provider must be cloudflare or groq');
+  if (!out.surface) out.surface = out.provider === 'cloudflare' ? 'worker-chat' : 'tool-loop';
+  if (!['category', 'full'].includes(out.toolMode)) throw new Error('--tool-mode must be category or full');
+  if (!['worker-chat', 'tool-loop'].includes(out.surface)) throw new Error('--surface must be worker-chat or tool-loop');
+  if (out.provider !== 'cloudflare' && out.surface === 'worker-chat') {
+    throw new Error('--surface=worker-chat currently supports --provider=cloudflare only');
+  }
   return out;
 }
 
@@ -156,6 +167,7 @@ function evalCollection() {
     seedCard({ name: 'Dockside Extortionist', setCode: 'c19', cn: '24', price: 65, rarity: 'rare', typeLine: 'Creature - Goblin Pirate', location: loc('deck', 'breya artifacts'), tags: ['cedh'] }),
     seedCard({ name: 'Demonic Tutor', setCode: 'uma', cn: '93', price: 50, rarity: 'mythic', typeLine: 'Sorcery', location: loc('binder', 'trade binder'), tags: ['staple'] }),
     seedCard({ name: 'Fierce Guardianship', setCode: 'c20', cn: '35', price: 45, rarity: 'rare', typeLine: 'Instant', location: loc('binder', 'trade binder'), tags: ['staple'] }),
+    seedCard({ name: 'Force of Will', setCode: '2xm', cn: '51', price: 42, rarity: 'mythic', typeLine: 'Instant', location: loc('binder', 'trade binder'), tags: ['staple'] }),
     seedCard({ name: "Urza's Saga", setCode: 'mh2', cn: '259', price: 45, rarity: 'rare', typeLine: 'Enchantment Land - Urza', location: loc('binder', 'trade binder'), tags: ['staple'] }),
     seedCard({ name: 'Rhystic Study', setCode: 'wot', cn: '25', price: 40, rarity: 'rare', typeLine: 'Enchantment', location: loc('binder', 'trade binder'), tags: ['staple'] }),
     seedCard({ name: 'Ragavan, Nimble Pilferer', setCode: 'mul', cn: '86', price: 38, rarity: 'mythic', typeLine: 'Legendary Creature - Monkey Pirate', finish: 'foil', location: loc('binder', 'trade binder'), tags: ['trade'] }),
@@ -177,7 +189,7 @@ function evalCollection() {
     seedCard({ name: 'Talisman of Dominance', setCode: 'mrd', cn: '255', price: 3.1, qty: 4, rarity: 'uncommon', typeLine: 'Artifact', location: loc('box', 'bulk'), tags: ['mana'] }),
     seedCard({ name: 'Counterspell', setCode: '2xm', cn: '47', price: 3, qty: 4, rarity: 'common', typeLine: 'Instant', location: loc('binder', 'trade binder'), tags: ['staple'] }),
     seedCard({ name: 'Talisman of Progress', setCode: 'mrd', cn: '256', price: 2.75, qty: 3, rarity: 'uncommon', typeLine: 'Artifact', location: loc('box', 'bulk'), tags: ['mana'] }),
-    seedCard({ name: 'Sol Ring', setCode: 'cmm', cn: '400', price: 2.5, qty: 7, rarity: 'uncommon', typeLine: 'Artifact', location: loc('box', 'bulk'), tags: ['mana', 'staple'] }),
+    seedCard({ name: 'Sol Ring', setCode: 'cmm', cn: '703', price: 2.5, qty: 7, rarity: 'uncommon', typeLine: 'Artifact', location: loc('box', 'bulk'), tags: ['mana', 'staple'] }),
     seedCard({ name: 'Swords to Plowshares', setCode: 'sta', cn: '10', price: 2.5, qty: 5, rarity: 'uncommon', typeLine: 'Instant', location: loc('binder', 'trade binder'), tags: ['staple'] }),
     seedCard({ name: 'Lightning Bolt', setCode: 'clu', cn: '141', price: 2.25, qty: 6, rarity: 'common', typeLine: 'Instant', location: loc('box', 'red box'), tags: ['burn'] }),
     seedCard({ name: 'Path to Exile', setCode: '2xm', cn: '25', price: 1.75, qty: 3, rarity: 'uncommon', typeLine: 'Instant', location: loc('box', 'bulk'), tags: ['staple'] }),
@@ -271,6 +283,24 @@ function readCase(id, prompt, filter, sort = { by: 'name', dir: 'asc' }, options
   };
 }
 
+function collectionStatsCase(id, prompt, options = {}) {
+  const collection = evalCollection();
+  return {
+    id,
+    category: options.category || 'read',
+    prompt,
+    expect: {
+      kind: 'collectionStats',
+      anyTool: options.anyTool || ['get_collection_summary'],
+      uniqueCards: collection.length,
+      totalCards: collection.reduce((sum, card) => sum + (parseInt(card.qty, 10) || 0), 0),
+      totalValue: Math.round(collection.reduce((sum, card) => sum + Number(card.price || 0) * Number(card.qty || 0), 0) * 100) / 100,
+      noCards: options.noCards ?? true,
+      requiredText: options.requiredText || [],
+    },
+  };
+}
+
 function countCase(id, prompt, location) {
   const key = locationKey(location);
   const cards = evalCollection().filter(card => locationKey(card.location) === key);
@@ -311,8 +341,23 @@ function mutationCase(id, prompt, options = {}) {
     prompt,
     expect: {
       kind: 'mutation',
-      anyTool: options.anyTool || ['search_card_printings', 'preview_add_inventory_item', 'preview_move_inventory_item', 'preview_decklist_change'],
+      anyTool: options.anyTool || [
+        'search_card_printings',
+        'preview_add_inventory_item',
+        'preview_move_inventory_item',
+        'preview_edit_inventory_item',
+        'preview_delete_inventory_item',
+        'preview_duplicate_inventory_item',
+        'preview_replace_inventory_printing',
+        'preview_decklist_change',
+      ],
       statuses: options.statuses || [],
+      requireStatus: !!options.requireStatus,
+      requirePreview: !!options.requirePreview,
+      requireDraft: !!options.requireDraft,
+      previews: options.previews || [],
+      forbiddenText: [...DEFAULT_MUTATION_FORBIDDEN_TEXT, ...(options.forbiddenText || [])],
+      requiredText: options.requiredText || [],
       noTools: ['apply_collection_change', 'undo_last_mcp_change'],
     },
   };
@@ -323,10 +368,24 @@ function buildCases() {
   const bulk = loc('box', 'bulk');
   const red = loc('box', 'red box');
   const deck = loc('deck', 'breya artifacts');
+  const existingEditFailureText = [
+    /matching real magic card.*add request/i,
+    /finish.*(?:can't|cannot|can not).*changed in-place/i,
+    /do you have a foil version/i,
+  ];
   const cases = [
-    readCase('rank-most-expensive', "what's the most expensive card in my collection?", {}, { by: 'price', dir: 'desc' }, { firstName: 'Mana Crypt', limit: 1 }),
+    collectionStatsCase('count-collection-unique', 'how many unique cards in my collection', {
+      requiredText: [/unique/i],
+    }),
+    collectionStatsCase('count-collection-total', 'how many total cards do i own?', {
+      requiredText: [/total/i],
+    }),
+    collectionStatsCase('value-collection', 'what is my collection worth?', {
+      requiredText: [/\$/],
+    }),
+    readCase('rank-most-expensive', "what's the most expensive card in my collection?", {}, { by: 'price', dir: 'desc' }, { anyTool: ['search_inventory', 'get_container', 'get_collection_summary'], firstName: 'Mana Crypt', limit: 1 }),
     readCase('rank-cheapest', "what's my cheapest card?", {}, { by: 'price', dir: 'asc' }, { firstName: 'Island', limit: 1 }),
-    readCase('rank-most-valuable-stack', 'which card stack is worth the most total money?', {}, { by: 'totalValue', dir: 'desc' }, { firstName: 'Mana Crypt', limit: 1 }),
+    readCase('rank-most-valuable-stack', 'which card stack is worth the most total money?', {}, { by: 'totalValue', dir: 'desc' }, { anyTool: ['search_inventory', 'get_container', 'get_collection_summary'], firstName: 'Mana Crypt', limit: 1 }),
     readCase('rank-most-copies', 'what card do i have the most copies of?', {}, { by: 'qty', dir: 'desc' }, { firstName: 'Island', limit: 1 }),
     readCase('rank-trade-most-expensive', "what's the most expensive card in the trade binder?", { location: trade }, { by: 'price', dir: 'desc' }, { firstName: 'The One Ring', limit: 1 }),
     readCase('rank-trade-cheapest', "what's the cheapest one in my trade binder?", { location: trade }, { by: 'price', dir: 'asc' }, { firstName: 'Swords to Plowshares', limit: 1 }),
@@ -384,24 +443,228 @@ function buildCases() {
     mutationCase('add-misspelled-rhystic', 'add a nm nonfoil rhystc study to my trade binder', { statuses: ['needs_input', 'preview'] }),
     mutationCase('add-misspelled-ragavan', 'add a foill ragavvan to trade binder', { statuses: ['needs_input', 'preview'] }),
     mutationCase('add-missing-details', 'add petrified hamlet to my collection', { statuses: ['needs_input'] }),
-    mutationCase('add-exact-existing-container', 'add a nm nonfoil sol ring cmm 400 to bulk', { statuses: ['preview'] }),
+    mutationCase('add-exact-existing-container', 'add a nm nonfoil sol ring cmm 703 to bulk', { statuses: ['preview'] }),
     mutationCase('add-foil-existing-container', 'add a foil enlightened tutor dmr 6 to trade binder', { statuses: ['preview', 'needs_input'] }),
-    mutationCase('add-missing-binder-no-create', 'add a nm nonfoil sol ring cmm 400 to staples binder', { statuses: ['missing_container', 'needs_input'] }),
-    mutationCase('add-new-binder-explicit', 'create a new binder called staples and add a nm nonfoil sol ring cmm 400 there', { statuses: ['preview'] }),
+    mutationCase('add-missing-binder-no-create', 'add a nm nonfoil sol ring cmm 703 to staples binder', { statuses: ['missing_container', 'needs_input'] }),
+    mutationCase('add-new-binder-explicit', 'create a new binder called staples and add a nm nonfoil sol ring cmm 703 there', { statuses: ['preview'] }),
     mutationCase('add-three-to-missing-binder', 'add sol ring, counterspell, and ponder to a new binder called testing binder', { statuses: ['preview', 'needs_input'] }),
     mutationCase('add-three-to-existing-binder', 'add one sol ring, one counterspell, and one ponder to trade binder', { statuses: ['preview', 'needs_input'] }),
     mutationCase('add-ambiguous-printing', 'add a foil lightning bolt to my red box', { statuses: ['needs_input', 'preview'] }),
+    mutationCase('add-regular-printing-style', 'add a nm emeritus of conflict, the regular printing', {
+      statuses: ['needs_input', 'preview'],
+      requireStatus: true,
+    }),
+    mutationCase('add-two-exact-existing-container', 'add two near mint nonfoil sol ring cmm 703 to bulk', {
+      anyTool: ['preview_add_inventory_item'],
+      statuses: ['preview'],
+      requireStatus: true,
+      requirePreview: true,
+      previews: [{ previewType: 'inventory.add', name: 'Sol Ring', finish: 'normal', location: bulk, minQty: 2 }],
+    }),
+    mutationCase('add-two-foil-exact-existing-container', 'add 2 nm foil enlightened tutor dmr 6 to trade binder', {
+      anyTool: ['preview_add_inventory_item'],
+      statuses: ['preview', 'needs_input'],
+      requireStatus: true,
+    }),
+    mutationCase('add-misspelled-exact-printing', 'add a near mint nonfoil glint nest crain kld 50 to trade binder', {
+      anyTool: ['search_card_printings', 'preview_add_inventory_item'],
+      statuses: ['preview', 'needs_input'],
+      requireStatus: true,
+    }),
+    mutationCase('add-multiple-specific-existing-container', 'add a sol ring cmm 703, a counterspell 2xm 47, and a ponder lrw 79 to trade binder', {
+      anyTool: ['preview_add_inventory_item'],
+      statuses: ['preview', 'needs_input'],
+      requireStatus: true,
+      requirePreview: true,
+    }),
+    mutationCase('add-multiple-specific-new-container', 'make a new box called event kit and add a sol ring cmm 703 and a ponder lrw 79 there', {
+      anyTool: ['preview_add_inventory_item', 'preview_create_container'],
+      statuses: ['preview', 'needs_input'],
+      requireStatus: true,
+      requirePreview: true,
+    }),
+    mutationCase('add-multiple-slightly-off-names', 'add a sol rong cmm 703 and counterspel 2xm 47 to trade binder', {
+      anyTool: ['search_card_printings', 'preview_add_inventory_item'],
+      statuses: ['preview', 'needs_input'],
+      requireStatus: true,
+    }),
     mutationCase('move-ragavan-to-bulk', 'move ragavan from trade binder to bulk', { anyTool: ['preview_move_inventory_item'], statuses: ['preview'] }),
     mutationCase('move-sol-ring-to-trade', 'move a sol ring to trade binder', { anyTool: ['preview_move_inventory_item'], statuses: ['preview', 'ambiguous'] }),
     mutationCase('move-missing-container', 'move ancient tomb to premium trades binder', { anyTool: ['preview_move_inventory_item'], statuses: ['missing_container'] }),
     mutationCase('move-create-container-explicit', 'move ancient tomb to a new binder called premium trades', { anyTool: ['preview_move_inventory_item'], statuses: ['preview'] }),
     mutationCase('move-many-copies', 'move four lightning bolts to trade binder', { anyTool: ['preview_move_inventory_item'], statuses: ['preview'] }),
+    mutationCase('move-source-natural-language', 'take ragavan out of the trade binder and put it in bulk', {
+      anyTool: ['preview_move_inventory_item', 'preview_edit_inventory_item'],
+      statuses: ['preview'],
+      requireStatus: true,
+      requirePreview: true,
+    }),
+    mutationCase('move-source-destination-known-container', 'move glint nest crane from bulk to trade binder', {
+      anyTool: ['preview_move_inventory_item', 'preview_edit_inventory_item'],
+      statuses: ['preview'],
+      requireStatus: true,
+      requirePreview: true,
+    }),
+    mutationCase('move-without-destination-followup', 'take glint nest crane out of bulk', {
+      anyTool: ['preview_move_inventory_item'],
+      statuses: ['invalid', 'needs_input'],
+      requireStatus: true,
+      forbiddenText: [/preview ready/i],
+    }),
+    mutationCase('move-stack-quantity-natural', 'move three of my lightning bolts from red box to trade binder', {
+      anyTool: ['preview_move_inventory_item', 'preview_edit_inventory_item'],
+      statuses: ['preview'],
+      requireStatus: true,
+      requirePreview: true,
+    }),
+    mutationCase('edit-move-finish-glint', 'move my glint nest crane into my trade binder and update it to be foil', {
+      anyTool: ['preview_edit_inventory_item'],
+      statuses: ['preview'],
+      requireStatus: true,
+      requirePreview: true,
+      previews: [{ previewType: 'inventory.edit', name: 'Glint-Nest Crane', finish: 'foil', location: trade }],
+      forbiddenText: existingEditFailureText,
+    }),
+    mutationCase('edit-move-finish-natural', 'move glint nest crane to trade binder and make it foil', {
+      anyTool: ['preview_edit_inventory_item'],
+      statuses: ['preview'],
+      requireStatus: true,
+      requirePreview: true,
+      previews: [{ previewType: 'inventory.edit', name: 'Glint-Nest Crane', finish: 'foil', location: trade }],
+      forbiddenText: existingEditFailureText,
+    }),
+    mutationCase('edit-finish-only-existing-card', 'make my glint nest crane foil', {
+      anyTool: ['preview_edit_inventory_item'],
+      statuses: ['preview'],
+      requireStatus: true,
+      requirePreview: true,
+      previews: [{ previewType: 'inventory.edit', name: 'Glint-Nest Crane', finish: 'foil' }],
+      forbiddenText: existingEditFailureText,
+    }),
+    mutationCase('edit-source-finish-and-location', 'move the nonfoil glint nest crane from bulk to trade binder and make it foil', {
+      anyTool: ['preview_edit_inventory_item'],
+      statuses: ['preview'],
+      requireStatus: true,
+      requirePreview: true,
+      previews: [{ previewType: 'inventory.edit', name: 'Glint-Nest Crane', finish: 'foil', location: trade }],
+      forbiddenText: existingEditFailureText,
+    }),
+    mutationCase('edit-condition-and-move', 'move chandra torch of defiance to trade binder and mark it lightly played', {
+      anyTool: ['preview_edit_inventory_item'],
+      statuses: ['preview'],
+      requireStatus: true,
+      requirePreview: true,
+      previews: [{ previewType: 'inventory.edit', name: 'Chandra, Torch of Defiance', condition: 'lightly_played', location: trade }],
+      forbiddenText: existingEditFailureText,
+    }),
+    mutationCase('edit-condition-only', 'mark my fabricate as moderately played', {
+      anyTool: ['preview_edit_inventory_item'],
+      statuses: ['preview'],
+      requireStatus: true,
+      requirePreview: true,
+      previews: [{ previewType: 'inventory.edit', name: 'Fabricate', condition: 'moderately_played' }],
+      forbiddenText: existingEditFailureText,
+    }),
+    mutationCase('edit-language-and-condition', 'set my bulk fabricate to japanese and lightly played', {
+      anyTool: ['preview_edit_inventory_item'],
+      statuses: ['preview'],
+      requireStatus: true,
+      requirePreview: true,
+      previews: [{ previewType: 'inventory.edit', name: 'Fabricate', condition: 'lightly_played', language: 'ja' }],
+      forbiddenText: existingEditFailureText,
+    }),
+    mutationCase('edit-tag-and-move', 'move chandra to trade binder and tag it planeswalker trade', {
+      anyTool: ['preview_edit_inventory_item'],
+      statuses: ['preview'],
+      requireStatus: true,
+      requirePreview: true,
+      previews: [{ previewType: 'inventory.edit', name: 'Chandra, Torch of Defiance', location: trade }],
+      forbiddenText: existingEditFailureText,
+    }),
+    mutationCase('edit-quantity-split-condition', 'mark two talisman of dominance from bulk as lightly played', {
+      anyTool: ['preview_edit_inventory_item'],
+      statuses: ['preview'],
+      requireStatus: true,
+      requirePreview: true,
+      previews: [{ previewType: 'inventory.edit', name: 'Talisman of Dominance', condition: 'lightly_played', minQty: 2 }],
+      forbiddenText: existingEditFailureText,
+    }),
+    mutationCase('edit-multiple-fields-no-move', 'make my prismari charm nonfoil, japanese, and lightly played', {
+      anyTool: ['preview_edit_inventory_item'],
+      statuses: ['preview'],
+      requireStatus: true,
+      requirePreview: true,
+      previews: [{ previewType: 'inventory.edit', name: 'Prismari Charm', finish: 'normal', condition: 'lightly_played', language: 'ja' }],
+      forbiddenText: existingEditFailureText,
+    }),
+    mutationCase('delete-card-entirely', 'remove the great furnace from my collection entirely', {
+      anyTool: ['preview_delete_inventory_item'],
+      statuses: ['preview'],
+      requireStatus: true,
+      requirePreview: true,
+      previews: [{ previewType: 'inventory.delete', name: 'Great Furnace' }],
+    }),
+    mutationCase('add-another-same-style', 'add another force of will same style to my collection i have 2 of them now', {
+      anyTool: ['preview_duplicate_inventory_item'],
+      statuses: ['preview'],
+      requireStatus: true,
+      requirePreview: true,
+      previews: [{ previewType: 'inventory.add', name: 'Force of Will', minQty: 1 }],
+    }),
+    mutationCase('swap-printing-secret-lair', 'change the printing on my cyclonic rift, i swapped it to a secret lair foil one', {
+      anyTool: ['preview_replace_inventory_printing'],
+      statuses: ['preview', 'needs_input'],
+      requireStatus: true,
+      requirePreview: true,
+      previews: [{ previewType: 'inventory.edit', name: 'Cyclonic Rift', setCode: 'sld', finish: 'foil' }],
+      forbiddenText: existingEditFailureText,
+    }),
     mutationCase('decklist-add-ambiguous', 'put counterspell in my breya deck', { category: 'deck-disambiguation', statuses: ['needs_input', 'preview', 'ambiguous'] }),
     mutationCase('decklist-add-specific', 'add counterspell to the breya artifacts decklist', { category: 'deck-disambiguation', anyTool: ['preview_decklist_change', 'search_card_printings'], statuses: ['preview', 'needs_input'] }),
     mutationCase('physical-move-to-deck', 'move my physical mana crypt into the breya artifacts deck box', { category: 'deck-disambiguation', anyTool: ['preview_move_inventory_item'], statuses: ['preview'] }),
+    mutationCase('decklist-vs-physical-natural', 'put my trade binder counterspell into the breya deck box, not just the decklist', {
+      category: 'deck-disambiguation',
+      anyTool: ['preview_move_inventory_item', 'preview_edit_inventory_item'],
+      statuses: ['preview'],
+      requireStatus: true,
+      requirePreview: true,
+    }),
+    mutationCase('decklist-explicit-card-add', 'add counterspell to the breya artifacts decklist but do not move my physical copy', {
+      category: 'deck-disambiguation',
+      anyTool: ['preview_decklist_change', 'search_card_printings'],
+      statuses: ['preview', 'needs_input'],
+      requireStatus: true,
+    }),
     mutationCase('rename-container', 'rename my red box to burn box', { category: 'mutation', anyTool: ['preview_rename_container'], statuses: ['preview'] }),
     mutationCase('delete-nonempty-box', 'delete my red box', { category: 'mutation', anyTool: ['preview_delete_container'], statuses: ['preview', 'needs_confirmation'] }),
     mutationCase('create-container', 'make a binder called maybe trades', { category: 'mutation', anyTool: ['preview_create_container'], statuses: ['preview'] }),
+    mutationCase('create-box-natural-language', 'make me a box called prize support', {
+      category: 'mutation',
+      anyTool: ['preview_create_container'],
+      statuses: ['preview'],
+      requireStatus: true,
+      requirePreview: true,
+    }),
+    mutationCase('create-deck-container-natural-language', 'create a commander deck box called atraxa poison', {
+      category: 'mutation',
+      anyTool: ['preview_create_container'],
+      statuses: ['preview'],
+      requireStatus: true,
+      requirePreview: true,
+    }),
+    mutationCase('rename-binder-natural-language', 'change the foils binder name to shiny trades', {
+      category: 'mutation',
+      anyTool: ['preview_rename_container'],
+      statuses: ['preview'],
+      requireStatus: true,
+      requirePreview: true,
+    }),
+    mutationCase('delete-empty-binder-natural-language', 'remove the foils binder container', {
+      category: 'mutation',
+      anyTool: ['preview_delete_container'],
+      statuses: ['preview', 'needs_confirmation'],
+      requireStatus: true,
+    }),
   ];
 
   const variations = [
@@ -517,6 +780,10 @@ function toolsForCase(allTools, testCase, toolMode = 'category') {
       'get_container',
       'preview_add_inventory_item',
       'preview_move_inventory_item',
+      'preview_edit_inventory_item',
+      'preview_delete_inventory_item',
+      'preview_duplicate_inventory_item',
+      'preview_replace_inventory_printing',
       'preview_create_container',
       'preview_rename_container',
       'preview_delete_container',
@@ -530,6 +797,10 @@ function toolsForCase(allTools, testCase, toolMode = 'category') {
       'get_deck',
       'preview_add_inventory_item',
       'preview_move_inventory_item',
+      'preview_edit_inventory_item',
+      'preview_delete_inventory_item',
+      'preview_duplicate_inventory_item',
+      'preview_replace_inventory_printing',
       'preview_decklist_change',
     ],
   };
@@ -657,7 +928,7 @@ function normalizeCloudflareAssistant(data) {
   };
 }
 
-async function callCloudflare({ accountId, apiToken, model, messages, tools, maxOutput, rateLimitRetries, maxRetrySeconds }) {
+async function callCloudflareRaw({ accountId, apiToken, model, messages, tools, maxOutput, rateLimitRetries, maxRetrySeconds }) {
   let lastMessage = '';
   for (let attempt = 0; attempt <= rateLimitRetries; attempt += 1) {
     const res = await fetch(cloudflareRunUrl(accountId, model), {
@@ -668,13 +939,13 @@ async function callCloudflare({ accountId, apiToken, model, messages, tools, max
       },
       body: JSON.stringify({
         messages,
-        tools: cloudflareTools(tools),
+        tools,
         temperature: 0,
         max_tokens: maxOutput,
       }),
     });
     const data = await res.json().catch(() => ({}));
-    if (res.ok && data?.success !== false) return normalizeCloudflareAssistant(data);
+    if (res.ok && data?.success !== false) return data;
     const error = data?.errors?.[0] || data?.error || data;
     lastMessage = error?.message || JSON.stringify(data) || ('cloudflare failed: ' + res.status);
     if (res.status !== 429) throw new Error(lastMessage);
@@ -686,8 +957,127 @@ async function callCloudflare({ accountId, apiToken, model, messages, tools, max
   throw new Error(lastMessage || 'Cloudflare rate limit retry budget exhausted');
 }
 
+async function callCloudflare({ accountId, apiToken, model, messages, tools, maxOutput, rateLimitRetries, maxRetrySeconds }) {
+  const data = await callCloudflareRaw({
+    accountId,
+    apiToken,
+    model,
+    messages,
+    tools: cloudflareTools(tools),
+    maxOutput,
+    rateLimitRetries,
+    maxRetrySeconds,
+  });
+  return normalizeCloudflareAssistant(data);
+}
+
 function safeParseArgs(raw) {
   try { return raw ? JSON.parse(raw) : {}; } catch (e) { return {}; }
+}
+
+function compactEvalLocation(loc) {
+  const normalized = normalizeLocation(loc);
+  return normalized ? { type: normalized.type, name: normalized.name } : null;
+}
+
+function compactEvalCard(card) {
+  if (!card || typeof card !== 'object') return null;
+  return {
+    itemKey: String(card.itemKey || '').trim(),
+    name: String(card.name || card.resolvedName || '').trim(),
+    scryfallId: String(card.scryfallId || '').trim(),
+    setCode: String(card.setCode || '').trim().toLowerCase(),
+    setName: String(card.setName || '').trim(),
+    cn: String(card.cn || card.collectorNumber || '').trim(),
+    finish: String(card.finish || 'normal').trim(),
+    condition: String(card.condition || 'near_mint').trim(),
+    language: String(card.language || card.lang || 'en').trim(),
+    qty: parseInt(card.qty, 10) || 0,
+    location: compactEvalLocation(card.location),
+    rarity: String(card.rarity || '').trim(),
+    typeLine: String(card.typeLine || '').trim(),
+    price: Number(card.price) || 0,
+    totalValue: Number(card.totalValue) || 0,
+  };
+}
+
+function compactEvalCandidate(candidate) {
+  if (!candidate || typeof candidate !== 'object') return null;
+  const args = candidate.previewAddArgs || {};
+  return {
+    itemKey: String(candidate.itemKey || '').trim(),
+    name: String(candidate.name || '').trim(),
+    scryfallId: String(candidate.scryfallId || args.scryfallId || '').trim(),
+    setCode: String(candidate.setCode || args.setCode || '').trim().toLowerCase(),
+    setName: String(candidate.setName || '').trim(),
+    collectorNumber: String(candidate.collectorNumber || candidate.cn || args.cn || '').trim(),
+    finishes: Array.isArray(candidate.finishes) ? candidate.finishes.map(String).slice(0, 4) : [],
+    requestedFinish: String(candidate.requestedFinish || args.finish || '').trim(),
+    qty: parseInt(candidate.qty || args.qty, 10) || undefined,
+    location: compactEvalLocation(candidate.location || args.location),
+    previewAddArgs: candidate.previewAddArgs ? {
+      scryfallId: String(args.scryfallId || candidate.scryfallId || '').trim(),
+      name: String(args.name || candidate.name || '').trim(),
+      setCode: String(args.setCode || candidate.setCode || '').trim().toLowerCase(),
+      cn: String(args.cn || candidate.collectorNumber || '').trim(),
+      finish: String(args.finish || candidate.requestedFinish || '').trim(),
+      condition: String(args.condition || '').trim(),
+      language: String(args.language || args.lang || '').trim(),
+      qty: parseInt(args.qty, 10) || undefined,
+      location: compactEvalLocation(args.location),
+    } : undefined,
+  };
+}
+
+function compactEvalToolResult(name, data) {
+  if (!data || typeof data !== 'object') return data || {};
+  if (String(name || '').startsWith('preview_')) {
+    return {
+      status: data.status,
+      previewType: data.previewType,
+      summary: data.summary || data.message || data.error || '',
+      missingFields: Array.isArray(data.missingFields) ? data.missingFields.map(String) : undefined,
+      card: compactEvalCard(data.card),
+      candidates: Array.isArray(data.candidates) ? data.candidates.slice(0, 8).map(compactEvalCandidate).filter(Boolean) : undefined,
+      missingContainer: compactEvalLocation(data.missingContainer),
+      totalsAfter: data.totalsAfter || undefined,
+    };
+  }
+  if (name === 'search_inventory') {
+    const results = Array.isArray(data.results) ? data.results : [];
+    return { revision: data.revision, count: results.length, limit: data.limit, results: results.slice(0, 20).map(compactEvalCard).filter(Boolean), truncatedForModel: results.length > 20 };
+  }
+  if (name === 'search_card_printings') {
+    return {
+      status: data.status,
+      query: data.query,
+      resolvedName: data.resolvedName,
+      requestedFinish: data.requestedFinish,
+      totalCount: data.totalCount,
+      truncated: data.truncated,
+      candidates: Array.isArray(data.candidates) ? data.candidates.slice(0, 12).map(compactEvalCandidate).filter(Boolean) : [],
+      suggestions: Array.isArray(data.suggestions) ? data.suggestions.map(String).slice(0, 8) : [],
+      message: data.message || '',
+    };
+  }
+  if (name === 'get_collection_summary') {
+    return {
+      revision: data.revision,
+      uniqueCards: data.uniqueCards,
+      totalCards: data.totalCards,
+      totalValue: data.totalValue,
+      pricedEntries: data.pricedEntries,
+      unpricedEntries: data.unpricedEntries,
+      containers: data.containers || null,
+    };
+  }
+  return data;
+}
+
+function evalToolMessageContent(name, result, error) {
+  const content = error ? { error } : compactEvalToolResult(name, result || {});
+  const text = JSON.stringify(content, null, 2);
+  return text.length <= 12000 ? text : JSON.stringify({ status: result?.status || 'ok', summary: result?.summary || '', truncatedForModel: true });
 }
 
 async function runModelCase({
@@ -765,7 +1155,7 @@ async function runModelCase({
         error = e.message || String(e);
       }
       toolCalls.push({ name, args, result: result?.structuredContent || null, error });
-      const content = JSON.stringify(error ? { error } : result?.structuredContent || {}, null, 2);
+      const content = evalToolMessageContent(name, result?.structuredContent || {}, error);
       messages.push(provider === 'cloudflare'
         ? { role: 'tool', tool_call_id: call.id, content }
         : { role: 'tool', tool_call_id: call.id, name, content });
@@ -773,6 +1163,72 @@ async function runModelCase({
     if (!includeFinal) break;
   }
   return { toolCalls, finalText, usage };
+}
+
+function cloudflareAiBinding({ cloudflare, maxOutput, rateLimitRetries, maxRetrySeconds }) {
+  return {
+    async run(model, payload = {}) {
+      return callCloudflareRaw({
+        accountId: cloudflare.accountId,
+        apiToken: cloudflare.apiToken,
+        model,
+        messages: Array.isArray(payload.messages) ? payload.messages : [],
+        tools: Array.isArray(payload.tools) ? payload.tools : [],
+        maxOutput: payload.max_tokens || maxOutput,
+        rateLimitRetries,
+        maxRetrySeconds,
+      });
+    },
+  };
+}
+
+function toolCallsFromWorkerChatData(data) {
+  const output = Array.isArray(data?.raw?.output) ? data.raw.output : [];
+  return output
+    .filter(item => item?.type === 'mcp_call' && item.name)
+    .map(item => ({
+      name: String(item.name || ''),
+      args: {},
+      result: item.result?.structuredContent || null,
+      error: item.result?.isError ? item.result?.content?.[0]?.text || 'tool error' : null,
+    }));
+}
+
+async function runWorkerChatCase({
+  env,
+  cloudflare,
+  model,
+  testCase,
+  maxOutput,
+  rateLimitRetries,
+  maxRetrySeconds,
+}) {
+  env.AI = cloudflareAiBinding({ cloudflare, maxOutput, rateLimitRetries, maxRetrySeconds });
+  env.MTGCOLLECTION_CHAT_PROVIDER = 'cloudflare';
+  env.MTGCOLLECTION_CHAT_DAILY_LIMIT = env.MTGCOLLECTION_CHAT_DAILY_LIMIT || '100000';
+  const res = await worker.fetch(new Request('https://eval.local/mcp/chat?debugUser=' + encodeURIComponent(USER_ID), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Debug-User': USER_ID,
+    },
+    body: JSON.stringify({
+      provider: 'cloudflare',
+      model,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: testCase.prompt },
+      ],
+    }),
+  }), env);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || ('worker chat failed: ' + res.status));
+  return {
+    toolCalls: toolCallsFromWorkerChatData(data),
+    finalText: String(data.text || ''),
+    usage: data.usage ? [data.usage] : [],
+    chatData: data,
+  };
 }
 
 function collectCardsFromValue(value, out = [], seen = new Set()) {
@@ -788,9 +1244,10 @@ function collectCardsFromValue(value, out = [], seen = new Set()) {
   return out;
 }
 
-function collectCards(toolCalls) {
+function collectCards(toolCalls, run = {}) {
   const out = [];
   for (const call of toolCalls) collectCardsFromValue(call.result, out);
+  for (const card of run.chatData?.cards || []) collectCardsFromValue(card, out);
   const seen = new Set();
   return out.filter(card => {
     const key = card.itemKey || card.name + ':' + card.setCode + ':' + card.cn;
@@ -800,16 +1257,105 @@ function collectCards(toolCalls) {
   });
 }
 
+function collectCollectionSummaries(toolCalls) {
+  return toolCalls
+    .map(call => call.result)
+    .filter(result => result && typeof result === 'object' && (result.uniqueCards != null || result.totalCards != null || result.totalValue != null));
+}
+
 function collectStatuses(toolCalls) {
   return toolCalls
     .map(call => call.result?.status)
     .filter(Boolean);
 }
 
+function collectPreviewsFromValue(value, out = [], seen = new Set()) {
+  if (!value || typeof value !== 'object') return out;
+  if (seen.has(value)) return out;
+  seen.add(value);
+  if (Array.isArray(value)) {
+    for (const item of value) collectPreviewsFromValue(item, out, seen);
+    return out;
+  }
+  if (value.status === 'preview' && value.changeToken) out.push(value);
+  for (const child of Object.values(value)) collectPreviewsFromValue(child, out, seen);
+  return out;
+}
+
+function collectPreviews(run) {
+  const out = [];
+  for (const call of run.toolCalls || []) collectPreviewsFromValue(call.result, out);
+  for (const preview of run.chatData?.previews || []) collectPreviewsFromValue(preview, out);
+  const seen = new Set();
+  return out.filter(preview => {
+    const key = preview.changeToken || preview.summary || JSON.stringify(preview.card || preview);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function collectDraftsFromValue(value, out = [], seen = new Set()) {
+  if (!value || typeof value !== 'object') return out;
+  if (seen.has(value)) return out;
+  seen.add(value);
+  if (Array.isArray(value)) {
+    for (const item of value) collectDraftsFromValue(item, out, seen);
+    return out;
+  }
+  const status = String(value.status || '').toLowerCase();
+  if (['needs_input', 'needs_selection'].includes(status) && Array.isArray(value.candidates) && value.candidates.length) out.push(value);
+  for (const child of Object.values(value)) collectDraftsFromValue(child, out, seen);
+  return out;
+}
+
+function collectDrafts(run) {
+  const out = [];
+  for (const call of run.toolCalls || []) collectDraftsFromValue(call.result, out);
+  for (const draft of run.chatData?.drafts || []) collectDraftsFromValue(draft, out);
+  return out;
+}
+
+function expectationRegex(pattern) {
+  return pattern instanceof RegExp ? pattern : new RegExp(String(pattern), 'i');
+}
+
+function normalizedScalar(value) {
+  return String(value || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+}
+
+function normalizeLanguageForEval(value) {
+  const raw = normalizedScalar(value);
+  if (['japanese', 'jp', 'jpn'].includes(raw)) return 'ja';
+  if (['english', 'eng'].includes(raw)) return 'en';
+  return raw;
+}
+
+function previewLocationKey(preview) {
+  return locationKey(preview?.card?.location || preview?.location || null);
+}
+
+function previewName(preview) {
+  return String(preview?.card?.name || preview?.name || '').trim();
+}
+
+function previewMatchesExpectation(preview, expected = {}) {
+  if (expected.previewType && preview.previewType !== expected.previewType) return false;
+  if (expected.name && normalizedScalar(previewName(preview)) !== normalizedScalar(expected.name)) return false;
+  if (expected.setCode && normalizedScalar(preview?.card?.setCode || preview?.setCode) !== normalizedScalar(expected.setCode)) return false;
+  if (expected.finish && normalizeFinish(preview?.card?.finish || preview?.finish) !== normalizeFinish(expected.finish)) return false;
+  if (expected.condition && normalizedScalar(preview?.card?.condition || preview?.condition) !== normalizedScalar(expected.condition)) return false;
+  if (expected.language && normalizeLanguageForEval(preview?.card?.language || preview?.language) !== normalizeLanguageForEval(expected.language)) return false;
+  if (expected.location && previewLocationKey(preview) !== locationKey(expected.location)) return false;
+  if (expected.minQty != null && Number(preview?.card?.qty || preview?.qty || 0) < Number(expected.minQty)) return false;
+  return true;
+}
+
 function scoreCase(testCase, run) {
   const failures = [];
   const tools = run.toolCalls.map(call => call.name);
   const expect = testCase.expect || {};
+  const finalText = String(run.finalText || '');
   if (expect.anyTool?.length && !tools.some(name => expect.anyTool.includes(name))) {
     failures.push('expected one of tools [' + expect.anyTool.join(', ') + '], got [' + tools.join(', ') + ']');
   }
@@ -821,7 +1367,7 @@ function scoreCase(testCase, run) {
   }
 
   if (expect.kind === 'cards') {
-    const cards = collectCards(run.toolCalls);
+    const cards = collectCards(run.toolCalls, run);
     const names = cards.map(card => card.name);
     if (cards.length < (expect.minResults || 0)) failures.push('expected card results, got none');
     if (expect.firstName && !names.includes(expect.firstName) && !run.finalText.toLowerCase().includes(expect.firstName.toLowerCase())) {
@@ -830,6 +1376,27 @@ function scoreCase(testCase, run) {
     if (!expect.firstName) {
       const mismatched = cards.filter(card => !matchesFilter(card, expect.filter || {})).map(card => card.name);
       if (mismatched.length) failures.push('cards did not match expected filter: ' + mismatched.slice(0, 5).join(', '));
+    }
+  } else if (expect.kind === 'collectionStats') {
+    const summary = collectCollectionSummaries(run.toolCalls)[0] || null;
+    if (!summary) {
+      failures.push('did not return collection summary');
+    } else {
+      if (expect.uniqueCards != null && Number(summary.uniqueCards) !== expect.uniqueCards) {
+        failures.push('expected uniqueCards ' + expect.uniqueCards + ', got ' + summary.uniqueCards);
+      }
+      if (expect.totalCards != null && Number(summary.totalCards) !== expect.totalCards) {
+        failures.push('expected totalCards ' + expect.totalCards + ', got ' + summary.totalCards);
+      }
+      if (expect.totalValue != null && Math.abs(Number(summary.totalValue) - expect.totalValue) > 0.01) {
+        failures.push('expected totalValue ' + expect.totalValue + ', got ' + summary.totalValue);
+      }
+    }
+    if (expect.noCards && run.chatData?.cards?.length) {
+      failures.push('expected no rendered card rows, got ' + run.chatData.cards.length);
+    }
+    for (const pattern of expect.requiredText || []) {
+      if (!expectationRegex(pattern).test(finalText)) failures.push('final text did not include ' + expectationRegex(pattern));
     }
   } else if (expect.kind === 'containerStats') {
     const statsResults = run.toolCalls.map(call => call.result).filter(Boolean);
@@ -847,8 +1414,26 @@ function scoreCase(testCase, run) {
     if (stats && expect.value != null && Math.abs(Number(stats.value) - expect.value) > 0.01) failures.push('expected value ' + expect.value + ', got ' + stats.value);
   } else if (expect.kind === 'mutation') {
     const statuses = collectStatuses(run.toolCalls);
+    const previews = collectPreviews(run);
+    const drafts = collectDrafts(run);
+    if (expect.statuses?.length && expect.requireStatus && !statuses.length) {
+      failures.push('expected one of statuses [' + expect.statuses.join(', ') + '], got none');
+    }
     if (expect.statuses?.length && statuses.length && !statuses.some(status => expect.statuses.includes(status))) {
       failures.push('expected one of statuses [' + expect.statuses.join(', ') + '], got [' + statuses.join(', ') + ']');
+    }
+    if (expect.requirePreview && !previews.length) failures.push('expected at least one preview, got none');
+    if (expect.requireDraft && !drafts.length) failures.push('expected an app-renderable draft, got none');
+    for (const previewExpectation of expect.previews || []) {
+      if (!previews.some(preview => previewMatchesExpectation(preview, previewExpectation))) {
+        failures.push('missing expected preview ' + JSON.stringify(previewExpectation));
+      }
+    }
+    for (const pattern of expect.requiredText || []) {
+      if (!expectationRegex(pattern).test(finalText)) failures.push('final text did not include ' + expectationRegex(pattern));
+    }
+    for (const pattern of expect.forbiddenText || []) {
+      if (expectationRegex(pattern).test(finalText)) failures.push('final text included forbidden text ' + expectationRegex(pattern));
     }
   }
 
@@ -856,7 +1441,7 @@ function scoreCase(testCase, run) {
     ok: failures.length === 0,
     failures,
     tools,
-    finalText: run.finalText,
+    finalText,
   };
 }
 
@@ -874,6 +1459,7 @@ function reportPayload({ args, model, provider, results, stoppedEarly = false, s
   return {
     provider,
     model,
+    surface: args.surface,
     toolMode: args.toolMode,
     includeFinal: args.final,
     maxOutput: args.maxOutput,
@@ -937,13 +1523,13 @@ async function main() {
       : process.env.MTGCOLLECTION_CHAT_GROQ_MODEL)
     || DEFAULT_MODEL;
   const { env } = fakeSyncEnv(buildSnapshot(), 100);
-  const token = await issueMcpToken(env);
-  const allTools = await toolDefinitions(env, token.access_token);
+  const token = args.surface === 'tool-loop' ? await issueMcpToken(env) : null;
+  const allTools = token ? await toolDefinitions(env, token.access_token) : [];
   const results = [];
   let stoppedEarly = false;
   let stopReason = '';
 
-  console.log('Running ' + selected.length + ' MTG chat evals with ' + args.provider + ' ' + model + ' (' + args.toolMode + ' tool mode)...');
+  console.log('Running ' + selected.length + ' MTG chat evals with ' + args.provider + ' ' + model + ' (' + args.surface + ', ' + args.toolMode + ' tool mode)...');
   for (const [index, testCase] of selected.entries()) {
     if (interrupted) {
       stoppedEarly = true;
@@ -953,21 +1539,31 @@ async function main() {
     let run = null;
     let scored = null;
     try {
-      run = await runModelCase({
-        env,
-        accessToken: token.access_token,
-        allTools,
-        apiKey,
-        model,
-        testCase,
-        includeFinal: args.final,
-        toolMode: args.toolMode,
-        maxOutput: args.maxOutput,
-        rateLimitRetries: args.rateLimitRetries,
-        maxRetrySeconds: args.maxRetrySeconds,
-        provider: args.provider,
-        cloudflare,
-      });
+      run = args.surface === 'worker-chat'
+        ? await runWorkerChatCase({
+          env,
+          cloudflare,
+          model,
+          testCase,
+          maxOutput: args.maxOutput,
+          rateLimitRetries: args.rateLimitRetries,
+          maxRetrySeconds: args.maxRetrySeconds,
+        })
+        : await runModelCase({
+          env,
+          accessToken: token.access_token,
+          allTools,
+          apiKey,
+          model,
+          testCase,
+          includeFinal: args.final,
+          toolMode: args.toolMode,
+          maxOutput: args.maxOutput,
+          rateLimitRetries: args.rateLimitRetries,
+          maxRetrySeconds: args.maxRetrySeconds,
+          provider: args.provider,
+          cloudflare,
+        });
       scored = scoreCase(testCase, run);
     } catch (error) {
       run = { toolCalls: [], finalText: '', usage: [] };

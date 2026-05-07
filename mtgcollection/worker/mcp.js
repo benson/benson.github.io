@@ -17,6 +17,63 @@ const SCRYFALL_API = 'https://api.scryfall.com';
 const SCRYFALL_USER_AGENT = 'MTGCollection/0.1 (https://bensonperry.com/mtgcollection)';
 const SCRYFALL_PRINTINGS_MAX_PAGES = 3;
 const SCRYFALL_PRINTINGS_HARD_CAP = 150;
+const MCP_AGENT_GUIDE_URI = 'mtgcollection://agent-guide';
+const MCP_AGENT_GUIDE_PROMPT = 'mtg_collection_agent_guide';
+
+const MCP_AGENT_GUIDE_TEXT = [
+  '# MTG Collection Agent Guide',
+  '',
+  'Use this guide when calling MTG Collection MCP tools. The server is preview-first: never apply changes unless the user explicitly confirms through the app.',
+  '',
+  'Core collection concepts:',
+  '- unique cards means inventory rows or distinct saved card entries; total cards means summed quantity.',
+  '- A stack is one inventory row: same printing, finish, condition, language, location, and deck board.',
+  '- binder, box, bulk, and deck box are physical locations. A decklist is not the same thing as a physical deck box.',
+  '- Move physical copies with preview_move_inventory_item or preview_edit_inventory_item. Add/remove decklist entries with preview_decklist_change.',
+  '',
+  'Add requests:',
+  '- Do not invent Scryfall ids, set codes, collector numbers, rarities, images, or prices.',
+  '- If the user gives exact set code plus collector number, call preview_add_inventory_item with those values.',
+  '- If printing details are missing, call search_card_printings or preview_add_inventory_item and let the app render candidates/input controls.',
+  '- Quantity, finish, and condition are physical-copy details. Ask or return needs_input when they are missing.',
+  '- If the user asks to add another copy of an owned card using the same style/printing, call preview_duplicate_inventory_item instead of doing a new Scryfall add lookup.',
+  '',
+  'Printing language:',
+  '- regular printing, base printing, normal version, standard printing, and ordinary printing describe card treatment/style, not a card name.',
+  '- For regular/base printing requests, prefer non-promo, non-showcase, non-borderless, non-extended-art, booster printings from the main set when available.',
+  '- nonfoil/normal describes finish. foil and etched are finishes. Do not confuse finish with art treatment.',
+  '- Secret Lair, promo, prerelease, showcase, borderless, extended art, serialized, and etched should be preserved as printing/treatment hints.',
+  '',
+  'Existing inventory edits:',
+  '- If the user combines actions on one existing inventory card, call preview_edit_inventory_item once with all changed fields.',
+  '- If the user swaps/replaces the printing/version/art/edition of an owned card, call preview_replace_inventory_printing. Changing finish alone is not a printing swap.',
+  '- Changing finish, condition, language, tags, or location is an inventory edit, not an add, unless the user explicitly asks for another copy.',
+  '- If the user asks to remove/delete a card from their collection entirely, call preview_delete_inventory_item. Do not ask for a destination container.',
+  '- If the user identifies the source card but omits the destination, call preview_move_inventory_item anyway so the app can render the matched card while you ask where it should go.',
+  '',
+  'Read questions:',
+  '- Whole-collection totals such as unique cards, total cards, and collection value use get_collection_summary.',
+  '- Filtered lists such as foils, rares, instants, cards over a price, or cards with many copies use search_inventory with structured filters.',
+  '- Container counts/value use list_containers or get_container. Price rankings inside a container use search_inventory with location and sort fields.',
+].join('\n');
+
+function mcpAgentGuide() {
+  return {
+    title: 'MTG Collection Agent Guide',
+    version: '0.1.0',
+    uri: MCP_AGENT_GUIDE_URI,
+    text: MCP_AGENT_GUIDE_TEXT,
+    glossary: {
+      uniqueCards: 'Distinct inventory rows or saved card entries.',
+      totalCards: 'Summed physical quantity across inventory rows.',
+      stack: 'One inventory row with matching printing, finish, condition, language, location, and deck board.',
+      regularPrinting: 'A non-special printing treatment; prefer non-promo, non-showcase, non-borderless, non-extended-art main-set printings.',
+      finish: 'Physical finish such as normal/nonfoil, foil, or etched.',
+      deckBox: 'Physical location for cards assigned to a deck container.',
+      decklist: 'The deck recipe/list, distinct from physical card location.',
+    },
+  };
+}
 
 const memoryStore = new Map();
 
@@ -711,6 +768,33 @@ function normalizeExactCardName(value) {
   return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
 }
 
+function requestsRegularPrinting(text) {
+  return /\b(?:regular|base|default|ordinary|standard|normal)\s+(?:printing|print|version|art|artwork)\b|\bnon[\s-]?(?:promo|showcase|borderless)\b/i.test(String(text || ''));
+}
+
+function stripScryfallLookupStylePhrases(raw) {
+  return String(raw || '')
+    .replace(/\b(?:the\s+)?(?:regular|base|default|ordinary|standard|normal)\s+(?:printing|print|version|art|artwork)\b/gi, ' ')
+    .replace(/\bnon[\s-]?(?:promo|showcase|borderless|extended(?:\s+art)?)\b/gi, ' ')
+    .replace(/\bnot\s+(?:a\s+)?(?:promo|showcase|borderless|extended(?:\s+art)?)\b/gi, ' ')
+    .replace(/\b(?:promo|promotional|prerelease|pre-release|showcase|borderless|extended(?:\s+art)?|secret\s+lair|serialized)\s+(?:printing|print|version|art|artwork)\b/gi, ' ')
+    .replace(/\s*,\s*/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function cleanScryfallLookupName(raw) {
+  let text = String(raw || '').trim();
+  text = text.replace(/^\s*(?:please\s+)?(?:add|stage|put)\s+/i, ' ');
+  text = text.replace(/^\s*(?:a|an|one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+(?:copies?\s+of\s+|copy\s+of\s+)?/i, ' ');
+  text = text
+    .replace(/\b(?:near[\s_-]?mint|lightly[\s_-]?played|moderately[\s_-]?played|heavily[\s_-]?played|damaged|nm|lp|mp|hp|dmg)\b/gi, ' ')
+    .replace(/\b(?:non[\s_-]?foil|nonfoil|foil|etched(?:[\s_-]?foil)?)\b/gi, ' ');
+  text = stripScryfallLookupStylePhrases(text);
+  text = text.replace(/\s+\b(?:to|into|in)\s+(?:my\s+)?(?:collection|bulk|(?:[a-z0-9 -]+\s+)?(?:binder|box|deck))\s*$/i, ' ');
+  return text.replace(/\b(?:card|copy|copies)\b/gi, ' ').replace(/\s+/g, ' ').trim();
+}
+
 function buildScryfallPrintingsSearchUrl(name) {
   const escaped = String(name || '').replace(/"/g, '\\"');
   const query = '!"' + escaped + '"';
@@ -726,8 +810,41 @@ function buildScryfallAutocompleteUrl(name) {
 function preferExactScryfallPrintings(cards, name) {
   const target = normalizeExactCardName(name);
   if (!target) return cards;
-  const exact = cards.filter(card => normalizeExactCardName(card?.name) === target);
+  const exact = cards.filter(card => {
+    const cardName = normalizeExactCardName(card?.name);
+    if (cardName === target) return true;
+    const faceNames = Array.isArray(card?.card_faces)
+      ? card.card_faces.map(face => normalizeExactCardName(face?.name)).filter(Boolean)
+      : String(card?.name || '').split('//').map(normalizeExactCardName).filter(Boolean);
+    return faceNames.includes(target);
+  });
   return exact.length ? exact : cards;
+}
+
+function scryfallCardNameCandidates(card) {
+  const names = [card?.name];
+  if (Array.isArray(card?.card_faces)) {
+    for (const face of card.card_faces) names.push(face?.name);
+  }
+  for (const name of String(card?.name || '').split('//')) names.push(name);
+  return [...new Set(names.map(normalizeExactCardName).filter(Boolean))];
+}
+
+function requestedAddCardName(raw = {}) {
+  return cleanScryfallLookupName(raw.name || raw.resolvedName || raw.query || '');
+}
+
+function scryfallCardNameMatchesRequest(card, requestedName) {
+  const target = normalizeExactCardName(cleanScryfallLookupName(requestedName) || requestedName);
+  if (!target) return true;
+  const candidates = scryfallCardNameCandidates(card);
+  if (candidates.includes(target)) return true;
+
+  const targetTokens = significantMatchTokens(target);
+  if (!targetTokens.length) return true;
+  const candidateTokens = new Set(significantMatchTokens(candidates.join(' ')));
+  const overlap = targetTokens.filter(token => candidateTokens.has(token)).length;
+  return overlap >= Math.min(2, targetTokens.length) && overlap / targetTokens.length >= 0.6;
 }
 
 function emptyScryfallPrintingsResult(extra = {}) {
@@ -879,6 +996,12 @@ function formatScryfallPrintingCandidate(card, args = {}) {
     finishes: Array.isArray(card?.finishes) ? [...card.finishes] : [],
     requestedFinish: finish,
     typeLine: String(card?.type_line || card?.card_faces?.[0]?.type_line || ''),
+    promo: Boolean(card?.promo),
+    booster: Boolean(card?.booster),
+    fullArt: Boolean(card?.full_art),
+    textless: Boolean(card?.textless),
+    frameEffects: Array.isArray(card?.frame_effects) ? card.frame_effects.map(String) : [],
+    setType: String(card?.set_type || ''),
     imageUrl: getScryfallImageUrl(card),
     scryfallUri: String(card?.scryfall_uri || ''),
     previewAddArgs,
@@ -965,11 +1088,38 @@ function printingPreferenceScore(candidate, text) {
   return score;
 }
 
+function regularPrintingScore(candidate, text) {
+  if (!requestsRegularPrinting(text)) return 0;
+  const setCode = candidateSetCode(candidate);
+  const setName = normalizePrintingPreferenceText(candidateSetName(candidate));
+  const setType = String(candidate?.setType || '').toLowerCase();
+  const collectorNumber = String(candidate?.collectorNumber || '').toLowerCase();
+  const frameEffects = Array.isArray(candidate?.frameEffects) ? candidate.frameEffects.map(value => String(value).toLowerCase()) : [];
+  const specialFrame = frameEffects.some(effect => /showcase|extendedart|borderless|inverted|etched|compassland|originpwdfc|mooneldrazidfc/.test(effect));
+  let score = 0;
+  if (candidate.booster) score += 30;
+  if (!candidate.promo) score += 25;
+  if (!candidate.fullArt) score += 15;
+  if (!candidate.textless) score += 8;
+  if (!specialFrame) score += 25;
+  if (/^\d+[a-z]?$/.test(collectorNumber)) score += 8;
+  if (!/^p[a-z0-9]/.test(setCode)) score += 8;
+  if (!/promo|promos|prerelease|pre release|secret lair|showcase|masterpiece|memorabilia/.test(setName + ' ' + setType)) score += 20;
+  if (candidate.promo) score -= 80;
+  if (candidate.fullArt || specialFrame) score -= 30;
+  if (/promo|promos|prerelease|pre release|secret lair/.test(setName + ' ' + setType)) score -= 60;
+  return score;
+}
+
+function printingCandidateRequestScore(candidate, text) {
+  return printingPreferenceScore(candidate, text) + regularPrintingScore(candidate, text);
+}
+
 function preferPrintingCandidatesForRequest(candidates, text) {
   const scored = candidates.map((candidate, index) => ({
     candidate,
     index,
-    score: printingPreferenceScore(candidate, text),
+    score: printingCandidateRequestScore(candidate, text),
   }));
   if (!scored.some(item => item.score > 0)) return candidates;
   return scored
@@ -978,7 +1128,8 @@ function preferPrintingCandidatesForRequest(candidates, text) {
 }
 
 async function lookupScryfallPrintingCards(args = {}) {
-  const name = String(args.name || args.query || '').trim();
+  const rawName = String(args.name || args.query || '').trim();
+  const name = cleanScryfallLookupName(rawName);
   if (!name) return { status: 'invalid', error: 'name or query is required', cards: [], candidates: [] };
   const requestedLimit = parseInt(args.limit, 10);
   const limit = Math.max(1, Math.min(Number.isFinite(requestedLimit) ? requestedLimit : 12, 50));
@@ -990,7 +1141,7 @@ async function lookupScryfallPrintingCards(args = {}) {
     : lookup.cards;
   const candidates = preferPrintingCandidatesForRequest(
     finishFiltered.map(card => formatScryfallPrintingCandidate(card, args)),
-    printingPreferenceTextFromArgs(args)
+    [printingPreferenceTextFromArgs(args), rawName].filter(Boolean).join(' ')
   ).slice(0, limit);
   const requestedFinish = requestedScryfallFinish(args.finish);
   const suggestions = candidates.length ? [] : await fetchScryfallAutocomplete(name);
@@ -1001,7 +1152,7 @@ async function lookupScryfallPrintingCards(args = {}) {
       + (suggestions.length ? ' Nearby Scryfall matches: ' + suggestions.slice(0, 5).join(', ') + '.' : '');
   return {
     status: candidates.length ? 'ok' : 'not_found',
-    query: name,
+    query: rawName || name,
     resolvedName: lookup.fuzzyName || name,
     fuzzyName: lookup.fuzzyName,
     requestedFinish,
@@ -1226,6 +1377,23 @@ function allContainers(snapshot) {
     .sort((a, b) => a.type.localeCompare(b.type) || a.name.localeCompare(b.name));
 }
 
+const LOCATION_ALIAS_STOPWORDS = new Set(['binder', 'box', 'card', 'cards', 'container', 'deck', 'folder', 'pile', 'the']);
+
+function locationAliasTokens(value) {
+  return (String(value || '')
+    .toLowerCase()
+    .match(/[a-z0-9]+/g) || [])
+    .filter(token => token.length >= 3 && !LOCATION_ALIAS_STOPWORDS.has(token));
+}
+
+function containerAliasText(container) {
+  return [
+    container?.name,
+    container?.deck?.title,
+    container?.deck?.commander,
+  ].filter(Boolean).join(' ');
+}
+
 function resolveLocationForSnapshot(snapshot, raw) {
   const normalized = normalizeLocation(raw);
   if (!normalized) return null;
@@ -1241,6 +1409,25 @@ function resolveLocationForSnapshot(snapshot, raw) {
       return name.includes(wanted) || wanted.includes(name);
     });
     if (fuzzyNameMatches.length === 1) return { type: fuzzyNameMatches[0].type, name: fuzzyNameMatches[0].name };
+    const wantedTokens = locationAliasTokens(wanted);
+    if (wantedTokens.length) {
+      const preferredType = /\bdeck\b/i.test(wanted) ? 'deck'
+        : /\bbinder\b/i.test(wanted) ? 'binder'
+        : /\bbox\b/i.test(wanted) ? 'box'
+        : '';
+      const tokenMatches = containers
+        .map(container => {
+          const aliasTokens = new Set(locationAliasTokens(containerAliasText(container)));
+          const overlap = wantedTokens.filter(token => aliasTokens.has(token)).length;
+          const typeBonus = preferredType && container.type === preferredType ? 0.5 : 0;
+          return { container, score: overlap + typeBonus, overlap };
+        })
+        .filter(match => match.overlap > 0)
+        .sort((a, b) => b.score - a.score || locationKey(a.container).localeCompare(locationKey(b.container)));
+      if (tokenMatches.length && (!tokenMatches[1] || tokenMatches[0].score > tokenMatches[1].score)) {
+        return { type: tokenMatches[0].container.type, name: tokenMatches[0].container.name };
+      }
+    }
   }
   return normalized;
 }
@@ -1702,6 +1889,639 @@ function requireWritePreviewArgs(auth) {
   if (!hasScope(auth, MCP_WRITE_SCOPE)) throw new Error('insufficient_scope');
 }
 
+function hasOwnArg(args = {}, name) {
+  return Object.prototype.hasOwnProperty.call(args, name) && args[name] !== undefined && args[name] !== null;
+}
+
+function hasNonEmptyArg(args = {}, name) {
+  if (!hasOwnArg(args, name)) return false;
+  const value = args[name];
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === 'object') return true;
+  return String(value).trim() !== '';
+}
+
+function firstPresentArg(args = {}, names = []) {
+  for (const name of names) {
+    if (hasNonEmptyArg(args, name)) return { present: true, value: args[name] };
+  }
+  return { present: false, value: null };
+}
+
+function normalizeMcpLanguage(raw) {
+  return String(raw || 'en').trim().toLowerCase() || 'en';
+}
+
+function normalizeMcpTag(raw) {
+  return String(raw || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function normalizeMcpTagList(raw) {
+  const list = Array.isArray(raw)
+    ? raw
+    : String(raw || '').split(',');
+  const out = [];
+  const seen = new Set();
+  for (const value of list) {
+    const tag = normalizeMcpTag(value);
+    if (!tag || seen.has(tag)) continue;
+    seen.add(tag);
+    out.push(tag);
+  }
+  return out;
+}
+
+function inventoryEditMatchArgs(args = {}, sourceLocation = null) {
+  const matchArgs = { ...args };
+  for (const name of [
+    'finish',
+    'condition',
+    'language',
+    'lang',
+    'tags',
+    'tag',
+    'addTags',
+    'addTag',
+    'removeTags',
+    'removeTag',
+    'toLocation',
+    'locationTo',
+    'destination',
+    'createContainer',
+    'createcontainer',
+    'create_container',
+    'deckBoard',
+  ]) {
+    delete matchArgs[name];
+  }
+  if (hasNonEmptyArg(args, 'fromFinish')) matchArgs.finish = args.fromFinish;
+  if (hasNonEmptyArg(args, 'currentFinish')) matchArgs.finish = args.currentFinish;
+  if (hasNonEmptyArg(args, 'fromCondition')) matchArgs.condition = args.fromCondition;
+  if (hasNonEmptyArg(args, 'currentCondition')) matchArgs.condition = args.currentCondition;
+  if (sourceLocation) matchArgs.location = sourceLocation;
+  return matchArgs;
+}
+
+function inventorySourceMatchArgs(args = {}, sourceLocation = null) {
+  const matchArgs = { ...args };
+  for (const name of [
+    'qty',
+    'targetQty',
+    'totalQty',
+    'desiredQty',
+    'qtyNow',
+    'toLocation',
+    'locationTo',
+    'destination',
+    'createContainer',
+    'createcontainer',
+    'create_container',
+    'deckBoard',
+    'printing',
+    'targetPrinting',
+    'newPrinting',
+    'edition',
+    'targetEdition',
+    'newEdition',
+    'targetScryfallId',
+    'newScryfallId',
+    'targetSetCode',
+    'newSetCode',
+    'targetSet',
+    'newSet',
+    'targetCn',
+    'newCn',
+    'targetCollectorNumber',
+    'newCollectorNumber',
+    'targetFinish',
+    'newFinish',
+  ]) {
+    delete matchArgs[name];
+  }
+  if (hasNonEmptyArg(args, 'fromFinish')) matchArgs.finish = args.fromFinish;
+  if (hasNonEmptyArg(args, 'currentFinish')) matchArgs.finish = args.currentFinish;
+  if (hasNonEmptyArg(args, 'fromCondition')) matchArgs.condition = args.fromCondition;
+  if (hasNonEmptyArg(args, 'currentCondition')) matchArgs.condition = args.currentCondition;
+  if (sourceLocation) matchArgs.location = sourceLocation;
+  return matchArgs;
+}
+
+function hasInventoryEditFieldArg(args = {}) {
+  return [
+    'finish',
+    'condition',
+    'language',
+    'lang',
+    'tags',
+    'addTags',
+    'addTag',
+    'removeTags',
+    'removeTag',
+  ].some(name => hasNonEmptyArg(args, name));
+}
+
+function inventoryFinishSupported(entry, finish) {
+  const finishes = Array.isArray(entry?.finishes)
+    ? entry.finishes.map(value => String(value || '').trim().toLowerCase()).filter(Boolean)
+    : [];
+  if (!finishes.length) return true;
+  if (finish === 'normal') return finishes.includes('normal') || finishes.includes('nonfoil') || finishes.includes('non-foil');
+  if (finish === 'foil') return finishes.includes('foil');
+  if (finish === 'etched') return finishes.includes('etched') || finishes.includes('etched foil');
+  return true;
+}
+
+function displayFieldValue(value) {
+  return String(value || '').replace(/_/g, ' ');
+}
+
+function inventoryEditCardPreview(entry) {
+  return {
+    itemKey: collectionKey(entry),
+    name: entry.resolvedName || entry.name || '',
+    scryfallId: entry.scryfallId || '',
+    scryfallUri: entry.scryfallUri || '',
+    setCode: entry.setCode || '',
+    setName: entry.setName || '',
+    cn: entry.cn || '',
+    finish: entry.finish || 'normal',
+    condition: entry.condition || 'near_mint',
+    language: entry.language || 'en',
+    qty: entryQty(entry),
+    location: normalizeLocation(entry.location),
+    imageUrl: entry.imageUrl || '',
+    backImageUrl: entry.backImageUrl || '',
+    price: entryPrice(entry),
+  };
+}
+
+function describeInventoryEditChange(change) {
+  if (change.field === 'location') return 'moved to {loc:' + locationKey(change.after) + '}';
+  if (change.field === 'printing') return 'printing ' + displayFieldValue(change.before) + ' to ' + displayFieldValue(change.after);
+  if (change.field === 'tags') return 'tags updated';
+  return change.field + ' ' + displayFieldValue(change.before) + ' to ' + displayFieldValue(change.after);
+}
+
+function inventoryEditSummary(entry, nextEntry, qty, changes) {
+  const name = entry.resolvedName || entry.name || 'card';
+  if (changes.length === 1 && changes[0].field === 'location') {
+    return 'Moved ' + qty + ' ' + name + ' to {loc:' + locationKey(nextEntry.location) + '}';
+  }
+  return 'Updated ' + qty + ' ' + name + ': ' + changes.map(describeInventoryEditChange).join('; ');
+}
+
+async function previewInventoryEdit(env, auth, cloud, entry, args = {}, { toLocation = null, hasToLocation = false } = {}) {
+  const sourceQty = Math.max(1, entryQty(entry));
+  const requestedQty = Math.min(Math.max(1, parseInt(args.qty, 10) || sourceQty), sourceQty);
+  const beforeKey = collectionKey(entry);
+  const next = { ...cloneJson(entry, entry), qty: requestedQty };
+  const changes = [];
+  let existingContainer = null;
+
+  if (hasToLocation) {
+    const toKey = locationKey(toLocation);
+    if (!toKey) return { status: 'invalid', error: 'toLocation is required', card: summarizeEntry(entry), candidates: [summarizeEntry(entry)] };
+    existingContainer = containerFromSnapshot(cloud.snapshot, toLocation);
+    if (!existingContainer && !readCreateContainerFlag(args)) {
+      return {
+        status: 'missing_container',
+        missingContainer: toLocation,
+        card: summarizeEntry(entry),
+        candidates: [summarizeEntry(entry)],
+        message: 'Set createContainer=true to create ' + toKey + ' as part of this edit.',
+      };
+    }
+    const beforeLocationKey = locationKey(entry.location);
+    const targetDeckBoard = toLocation.type === 'deck'
+      ? (hasNonEmptyArg(args, 'deckBoard') ? normalizeDeckBoard(args.deckBoard) : normalizeDeckBoard(entry.deckBoard || next.deckBoard))
+      : '';
+    if (beforeLocationKey !== toKey || (toLocation.type === 'deck' && normalizeDeckBoard(entry.deckBoard) !== targetDeckBoard)) {
+      next.location = toLocation;
+      if (toLocation.type === 'deck') next.deckBoard = targetDeckBoard;
+      else delete next.deckBoard;
+      changes.push({ field: 'location', before: normalizeLocation(entry.location), after: toLocation });
+    }
+  }
+
+  if (hasNonEmptyArg(args, 'finish')) {
+    const finish = normalizeMcpFinish(args.finish);
+    if (!inventoryFinishSupported(entry, finish)) {
+      return {
+        status: 'invalid',
+        error: 'That saved printing does not list a ' + (finish === 'normal' ? 'nonfoil' : finish) + ' finish.',
+        supportedFinishes: Array.isArray(entry.finishes) ? entry.finishes : [],
+        card: summarizeEntry(entry),
+        candidates: [summarizeEntry(entry)],
+      };
+    }
+    const before = normalizeMcpFinish(entry.finish);
+    next.finish = finish;
+    if (before !== finish) changes.push({ field: 'finish', before, after: finish });
+  }
+
+  if (hasNonEmptyArg(args, 'condition')) {
+    const condition = normalizeMcpCondition(args.condition);
+    const before = normalizeMcpCondition(entry.condition);
+    next.condition = condition;
+    if (before !== condition) changes.push({ field: 'condition', before, after: condition });
+  }
+
+  if (hasNonEmptyArg(args, 'language') || hasNonEmptyArg(args, 'lang')) {
+    const language = normalizeMcpLanguage(hasNonEmptyArg(args, 'language') ? args.language : args.lang);
+    const before = normalizeMcpLanguage(entry.language);
+    next.language = language;
+    if (before !== language) changes.push({ field: 'language', before, after: language });
+  }
+
+  const replaceTags = hasNonEmptyArg(args, 'tags') ? normalizeMcpTagList(args.tags) : null;
+  const addTags = [
+    ...normalizeMcpTagList(args.addTags),
+    ...normalizeMcpTagList(args.addTag),
+  ];
+  const removeTags = new Set([
+    ...normalizeMcpTagList(args.removeTags),
+    ...normalizeMcpTagList(args.removeTag),
+  ]);
+  if (replaceTags || addTags.length || removeTags.size) {
+    const beforeTags = normalizeMcpTagList(entry.tags || []);
+    let tags = replaceTags ? [...replaceTags] : beforeTags.filter(tag => !removeTags.has(tag));
+    const seen = new Set(tags);
+    for (const tag of addTags) {
+      if (!seen.has(tag)) {
+        seen.add(tag);
+        tags.push(tag);
+      }
+    }
+    next.tags = tags;
+    if (beforeTags.join('\n') !== tags.join('\n')) changes.push({ field: 'tags', before: beforeTags, after: tags });
+  }
+
+  if (!changes.length) return { status: 'no_op', message: 'No inventory changes were needed.', card: summarizeEntry(entry), candidates: [summarizeEntry(entry)] };
+
+  const afterKey = collectionKey(next);
+  const wholeStack = requestedQty >= sourceQty || beforeKey === afterKey;
+  const appliedQty = wholeStack ? sourceQty : requestedQty;
+  next.qty = appliedQty;
+  const ops = [];
+  if (hasToLocation && toLocation && !existingContainer) {
+    ops.push(makeSyncOp('container.upsert', { key: locationKey(toLocation), container: makeContainer(toLocation) }));
+  }
+  if (wholeStack) {
+    ops.push(makeSyncOp('collection.replace', { beforeKey, afterKey: collectionKey(next), entry: next }));
+  } else {
+    ops.push(makeSyncOp('collection.qtyDelta', { key: beforeKey, delta: -appliedQty, entry }));
+    ops.push(makeSyncOp('collection.qtyDelta', { key: collectionKey(next), delta: appliedQty, entry: next }));
+  }
+  const summary = inventoryEditSummary(entry, next, appliedQty, changes);
+  const event = eventBase({
+    type: 'edit',
+    summary,
+    before: [{ key: beforeKey, card: cloneJson(entry, entry) }],
+    affectedKeys: [beforeKey],
+    containerAfter: hasToLocation && toLocation && !existingContainer ? toLocation : null,
+  });
+  const preview = await previewFromOps(env, auth, cloud, { summary, ops, event });
+  return {
+    ...preview,
+    previewType: 'inventory.edit',
+    card: inventoryEditCardPreview(next),
+  };
+}
+
+function requestedInventoryQuantity(args = {}, sourceQty = 1) {
+  return Math.min(Math.max(1, parseInt(args.qty, 10) || sourceQty), Math.max(1, sourceQty));
+}
+
+function inventoryPrintingLabel(entry) {
+  return [
+    String(entry?.setCode || '').trim().toUpperCase(),
+    String(entry?.cn || '').trim(),
+  ].filter(Boolean).join(' #') || String(entry?.scryfallId || '').trim() || 'unknown';
+}
+
+function targetPrintingTextFromArgs(args = {}) {
+  return [
+    args.printing,
+    args.targetPrinting,
+    args.newPrinting,
+    args.edition,
+    args.targetEdition,
+    args.newEdition,
+    args.query,
+  ].map(value => String(value || '').trim()).filter(Boolean).join(' ');
+}
+
+function sourceInventoryNameFromPrintingArgs(args = {}) {
+  const explicit = String(args.cardName || args.sourceName || '').trim();
+  if (explicit) return explicit;
+  const name = String(args.name || '').trim();
+  if (name) return name;
+  const query = String(args.query || '').trim();
+  if (!query) return '';
+  const patterns = [
+    /\b(?:on|for|of)\s+(?:my\s+|the\s+)?(.+?)(?:,|\s+i\s+swapped|\s+i\s+changed|\s+to\s+(?:a\s+|an\s+|the\s+)?(?:secret|regular|base|foil|nonfoil|sld)|$)/i,
+    /\b(?:change|swap|replace|update|set)\s+(?:the\s+)?(?:printing|print|version|edition|style|art)\s+(?:on|for|of)\s+(?:my\s+|the\s+)?(.+?)(?:,|\s+to\s+|$)/i,
+  ];
+  for (const pattern of patterns) {
+    const match = query.match(pattern);
+    const value = match ? String(match[1] || '').trim() : '';
+    if (significantMatchTokens(value).length) return value;
+  }
+  return '';
+}
+
+function sourceInventoryNameFromMutationArgs(args = {}) {
+  const explicit = String(args.cardName || args.sourceName || args.name || '').trim();
+  if (explicit) return explicit;
+  let query = String(args.query || '').trim();
+  if (!query) return '';
+  query = query
+    .replace(/\b(?:please\s+)?(?:delete|remove|trash|purge)\b/gi, ' ')
+    .replace(/\b(?:from|out\s+of)\s+(?:my\s+)?(?:collection|inventory)\b.*$/gi, ' ')
+    .replace(/\b(?:entirely|completely|altogether|for good)\b/gi, ' ')
+    .replace(/\b(?:add|added)\s+(?:another|one\s+more)\b/gi, ' ')
+    .replace(/\b(?:same\s+(?:style|printing|version|one|card|copy))\b.*$/gi, ' ')
+    .replace(/\bi\s+have\s+\d{1,2}\s+of\s+(?:them|it|those)\s+now\b/gi, ' ')
+    .replace(/\b(?:to|into)\s+(?:my\s+)?collection\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return significantMatchTokens(query).length ? query : '';
+}
+
+function targetFinishFromArgs(args = {}) {
+  const raw = firstPresentArg(args, ['targetFinish', 'newFinish', 'finish']);
+  return raw.present ? normalizeMcpFinish(raw.value) : '';
+}
+
+async function fetchScryfallCardByIdOrPrinting(args = {}) {
+  const scryfallId = String(args.targetScryfallId || args.newScryfallId || (args.itemKey ? args.scryfallId : '') || '').trim();
+  if (scryfallId) {
+    const fetched = await fetchScryfallJson(SCRYFALL_API + '/cards/' + encodeURIComponent(scryfallId));
+    return fetched.ok ? fetched.data : null;
+  }
+  const setCode = String(args.targetSetCode || args.newSetCode || args.targetSet || args.newSet || (args.itemKey ? args.setCode : '') || '').trim().toLowerCase();
+  const cn = String(args.targetCn || args.newCn || args.targetCollectorNumber || args.newCollectorNumber || (args.itemKey ? args.cn || args.collectorNumber : '') || '').trim();
+  if (setCode && cn) {
+    const fetched = await fetchScryfallJson(SCRYFALL_API + '/cards/' + encodeURIComponent(setCode) + '/' + encodeURIComponent(cn));
+    return fetched.ok ? fetched.data : null;
+  }
+  return null;
+}
+
+async function resolveReplacementPrinting(entry, args = {}) {
+  const exact = await fetchScryfallCardByIdOrPrinting(args);
+  const requestedName = entry.resolvedName || entry.name || '';
+  if (exact) {
+    if (!scryfallCardNameMatchesRequest(exact, requestedName)) {
+      return {
+        status: 'needs_clarification',
+        missingFields: ['scryfallId', 'setCode', 'collectorNumber'],
+        message: 'The requested replacement printing resolves to "' + String(exact.name || 'a different card') + '", not "' + requestedName + '". I did not create a printing-swap preview.',
+      };
+    }
+    return { status: 'ok', card: exact };
+  }
+
+  const finish = targetFinishFromArgs(args);
+  const preferenceText = targetPrintingTextFromArgs(args);
+  const lookup = await lookupScryfallPrintingCards({
+    name: requestedName,
+    printing: preferenceText,
+    edition: preferenceText,
+    finish,
+    limit: args.limit || 50,
+  });
+  if (!lookup.candidates.length) {
+    return {
+      status: lookup.status || 'not_found',
+      missingFields: ['printing'],
+      query: requestedName,
+      message: lookup.message || 'I could not find a matching replacement printing.',
+      suggestions: lookup.suggestions || [],
+    };
+  }
+
+  const ranked = preferPrintingCandidatesForRequest(lookup.candidates, preferenceText);
+  const [first, second] = ranked;
+  const firstScore = first ? printingCandidateRequestScore(first, preferenceText) : 0;
+  const secondScore = second ? printingCandidateRequestScore(second, preferenceText) : -Infinity;
+  const chosen = lookup.cards.length === 1
+    ? first
+    : first && firstScore > 0 && firstScore > secondScore
+    ? first
+    : null;
+  if (!chosen?.scryfallId) {
+    return {
+      status: 'needs_input',
+      previewType: 'inventory.replace_printing',
+      message: 'Choose the exact replacement printing, then create a preview.',
+      missingFields: ['printing'],
+      query: requestedName,
+      resolvedName: lookup.resolvedName,
+      requestedFinish: lookup.requestedFinish,
+      totalCount: lookup.totalCount,
+      truncated: lookup.truncated,
+      candidates: lookup.candidates,
+    };
+  }
+  const card = lookup.cards.find(candidate => String(candidate?.id || '') === String(chosen.scryfallId || ''))
+    || await resolveScryfallCardForAdd(chosen.previewAddArgs || chosen);
+  if (!card) {
+    return {
+      status: 'needs_clarification',
+      missingFields: ['scryfallId', 'setCode', 'collectorNumber'],
+      message: 'That replacement printing could not be loaded from Scryfall.',
+    };
+  }
+  if (!scryfallCardNameMatchesRequest(card, requestedName)) {
+    return {
+      status: 'needs_clarification',
+      missingFields: ['scryfallId', 'setCode', 'collectorNumber'],
+      message: 'The requested replacement printing resolves to "' + String(card.name || 'a different card') + '", not "' + requestedName + '". I did not create a printing-swap preview.',
+    };
+  }
+  return { status: 'ok', card };
+}
+
+function replacementEntryFromScryfall(entry, card, args = {}) {
+  const targetFinish = targetFinishFromArgs(args);
+  const raw = {
+    name: entry.resolvedName || entry.name || card?.name || '',
+    finish: targetFinish || entry.finish || '',
+    condition: entry.condition,
+    language: entry.language,
+    qty: entryQty(entry) || 1,
+    tags: Array.isArray(entry.tags) ? entry.tags : [],
+  };
+  const merged = mergeScryfallCardIntoInventoryEntry(raw, card, normalizeLocation(entry.location));
+  const next = {
+    ...cloneJson(entry, entry),
+    ...merged,
+    name: entry.name || merged.name,
+    resolvedName: merged.resolvedName || entry.resolvedName || entry.name || '',
+    condition: normalizeMcpCondition(entry.condition),
+    language: normalizeMcpLanguage(entry.language),
+    qty: entryQty(entry) || 1,
+    location: normalizeLocation(entry.location),
+    tags: Array.isArray(entry.tags) ? cloneJson(entry.tags, []) : [],
+  };
+  if (entry.deckBoard) next.deckBoard = entry.deckBoard;
+  else delete next.deckBoard;
+  return next;
+}
+
+async function toolPreviewDeleteInventoryItem(env, deps, auth, args = {}) {
+  requireWritePreviewArgs(auth);
+  const cloud = await currentCloud(env, deps, auth.userId);
+  const sourceLocation = resolveLocationForSnapshot(cloud.snapshot, args.fromLocation || args.locationFrom || args.location);
+  const matchArgs = inventorySourceMatchArgs(args, sourceLocation);
+  if (!args.itemKey) {
+    const sourceName = sourceInventoryNameFromMutationArgs(args);
+    if (sourceName) matchArgs.query = sourceName;
+  }
+  const matches = (cloud.snapshot.app.collection || []).filter(entry => matchesInventory(entry, matchArgs));
+  if (matches.length !== 1) {
+    return {
+      status: matches.length ? 'ambiguous' : 'not_found',
+      candidates: matches.slice(0, 20).map(summarizeEntry),
+    };
+  }
+  const entry = matches[0];
+  const sourceQty = Math.max(1, entryQty(entry));
+  const qty = requestedInventoryQuantity(args, sourceQty);
+  const beforeKey = collectionKey(entry);
+  const ops = [];
+  if (qty >= sourceQty) ops.push(makeSyncOp('collection.remove', { key: beforeKey }));
+  else ops.push(makeSyncOp('collection.qtyDelta', { key: beforeKey, delta: -qty, entry }));
+  const name = entry.resolvedName || entry.name || 'card';
+  const summary = 'Deleted ' + qty + ' ' + name + ' from your collection';
+  const event = eventBase({
+    type: 'delete',
+    summary,
+    before: [{ key: beforeKey, card: cloneJson(entry, entry) }],
+    affectedKeys: [beforeKey],
+  });
+  const preview = await previewFromOps(env, auth, cloud, { summary, ops, event });
+  return {
+    ...preview,
+    previewType: 'inventory.delete',
+    card: { ...inventoryEditCardPreview(entry), qty },
+  };
+}
+
+async function toolPreviewDuplicateInventoryItem(env, deps, auth, args = {}) {
+  requireWritePreviewArgs(auth);
+  const cloud = await currentCloud(env, deps, auth.userId);
+  const sourceLocation = resolveLocationForSnapshot(cloud.snapshot, args.fromLocation || args.locationFrom || args.location);
+  const matchArgs = inventorySourceMatchArgs(args, sourceLocation);
+  if (!args.itemKey) {
+    const sourceName = sourceInventoryNameFromMutationArgs(args);
+    if (sourceName) matchArgs.query = sourceName;
+  }
+  const matches = (cloud.snapshot.app.collection || []).filter(entry => matchesInventory(entry, matchArgs));
+  if (matches.length !== 1) {
+    return {
+      status: matches.length ? 'ambiguous' : 'not_found',
+      candidates: matches.slice(0, 20).map(summarizeEntry),
+    };
+  }
+  const entry = matches[0];
+  const sourceQty = Math.max(1, entryQty(entry));
+  const target = firstPresentArg(args, ['targetQty', 'totalQty', 'desiredQty', 'qtyNow']);
+  const targetQty = target.present ? Math.max(0, parseInt(target.value, 10) || 0) : 0;
+  const delta = target.present ? targetQty - sourceQty : Math.max(1, parseInt(args.qty, 10) || 1);
+  if (delta <= 0) {
+    return { status: 'no_op', message: 'That stack already has ' + sourceQty + ' copies.', card: summarizeEntry(entry), candidates: [summarizeEntry(entry)] };
+  }
+  const beforeKey = collectionKey(entry);
+  const ops = [makeSyncOp('collection.qtyDelta', { key: beforeKey, delta })];
+  const locKey = locationKey(entry.location);
+  const name = entry.resolvedName || entry.name || 'card';
+  const summary = 'Added ' + delta + ' ' + name + (locKey ? ' to {loc:' + locKey + '}' : '') + ' using the same printing';
+  const event = eventBase({
+    type: 'add',
+    summary,
+    before: [{ key: beforeKey, card: cloneJson(entry, entry) }],
+    affectedKeys: [beforeKey],
+  });
+  const preview = await previewFromOps(env, auth, cloud, { summary, ops, event });
+  return {
+    ...preview,
+    previewType: 'inventory.add',
+    card: { ...inventoryEditCardPreview(entry), qty: delta, totalQtyAfter: sourceQty + delta },
+  };
+}
+
+async function toolPreviewReplaceInventoryPrinting(env, deps, auth, args = {}) {
+  requireWritePreviewArgs(auth);
+  const cloud = await currentCloud(env, deps, auth.userId);
+  const sourceLocation = resolveLocationForSnapshot(cloud.snapshot, args.fromLocation || args.locationFrom || args.location);
+  const matchArgs = inventoryEditMatchArgs(args, sourceLocation);
+  if (args.itemKey) {
+    delete matchArgs.query;
+    delete matchArgs.name;
+    delete matchArgs.scryfallId;
+    delete matchArgs.setCode;
+    delete matchArgs.cn;
+  } else {
+    const sourceName = sourceInventoryNameFromPrintingArgs(args);
+    if (sourceName) {
+      matchArgs.query = sourceName;
+      delete matchArgs.name;
+    }
+  }
+  const matches = (cloud.snapshot.app.collection || []).filter(entry => matchesInventory(entry, matchArgs));
+  if (matches.length !== 1) {
+    return {
+      status: matches.length ? 'ambiguous' : 'not_found',
+      candidates: matches.slice(0, 20).map(summarizeEntry),
+    };
+  }
+  const entry = matches[0];
+  const resolved = await resolveReplacementPrinting(entry, args);
+  if (resolved.status !== 'ok') return resolved;
+
+  const sourceQty = Math.max(1, entryQty(entry));
+  const requestedQty = requestedInventoryQuantity(args, sourceQty);
+  const beforeKey = collectionKey(entry);
+  const next = replacementEntryFromScryfall(entry, resolved.card, args);
+  const changes = [];
+  if (
+    String(entry.scryfallId || '') !== String(next.scryfallId || '')
+    || String(entry.setCode || '').toLowerCase() !== String(next.setCode || '').toLowerCase()
+    || String(entry.cn || '') !== String(next.cn || '')
+  ) {
+    changes.push({ field: 'printing', before: inventoryPrintingLabel(entry), after: inventoryPrintingLabel(next) });
+  }
+  const beforeFinish = normalizeMcpFinish(entry.finish);
+  const afterFinish = normalizeMcpFinish(next.finish);
+  if (beforeFinish !== afterFinish) changes.push({ field: 'finish', before: beforeFinish, after: afterFinish });
+  if (!changes.length) return { status: 'no_op', message: 'No printing changes were needed.', card: summarizeEntry(entry), candidates: [summarizeEntry(entry)] };
+
+  const appliedQty = requestedQty >= sourceQty ? sourceQty : requestedQty;
+  next.qty = appliedQty;
+  const ops = [];
+  if (appliedQty >= sourceQty) {
+    ops.push(makeSyncOp('collection.replace', { beforeKey, afterKey: collectionKey(next), entry: next }));
+  } else {
+    ops.push(makeSyncOp('collection.qtyDelta', { key: beforeKey, delta: -appliedQty, entry }));
+    ops.push(makeSyncOp('collection.qtyDelta', { key: collectionKey(next), delta: appliedQty, entry: next }));
+  }
+  const summary = inventoryEditSummary(entry, next, appliedQty, changes);
+  const event = eventBase({
+    type: 'edit',
+    summary,
+    before: [{ key: beforeKey, card: cloneJson(entry, entry) }],
+    affectedKeys: [beforeKey],
+  });
+  const preview = await previewFromOps(env, auth, cloud, { summary, ops, event });
+  return {
+    ...preview,
+    previewType: 'inventory.edit',
+    card: inventoryEditCardPreview(next),
+  };
+}
+
 async function toolGetCollectionSummary(env, deps, auth) {
   const cloud = await currentCloud(env, deps, auth.userId);
   const collection = cloud.snapshot.app.collection || [];
@@ -1823,7 +2643,9 @@ async function toolPreviewMoveInventoryItem(env, deps, auth, args = {}) {
   requireWritePreviewArgs(auth);
   const cloud = await currentCloud(env, deps, auth.userId);
   const sourceLocation = resolveLocationForSnapshot(cloud.snapshot, args.fromLocation || args.locationFrom || args.location);
-  const matchArgs = sourceLocation ? { ...args, location: sourceLocation } : args;
+  const matchArgs = hasInventoryEditFieldArg(args)
+    ? inventoryEditMatchArgs(args, sourceLocation)
+    : (sourceLocation ? { ...args, location: sourceLocation } : args);
   const matches = (cloud.snapshot.app.collection || []).filter(entry => matchesInventory(entry, matchArgs));
   if (matches.length !== 1) {
     return {
@@ -1836,6 +2658,9 @@ async function toolPreviewMoveInventoryItem(env, deps, auth, args = {}) {
   const qty = Math.min(Math.max(1, parseInt(args.qty, 10) || (parseInt(entry.qty, 10) || 1)), parseInt(entry.qty, 10) || 1);
   const toLocation = resolveLocationForSnapshot(cloud.snapshot, args.toLocation || args.locationTo || args.destination);
   if (!toLocation) return { status: 'invalid', error: 'toLocation is required', card, candidates: [card] };
+  if (hasInventoryEditFieldArg(args)) {
+    return previewInventoryEdit(env, auth, cloud, entry, args, { toLocation, hasToLocation: true });
+  }
   const toKey = locationKey(toLocation);
   const existingContainer = containerFromSnapshot(cloud.snapshot, toLocation);
   if (!existingContainer && !readCreateContainerFlag(args)) {
@@ -1864,7 +2689,37 @@ async function toolPreviewMoveInventoryItem(env, deps, auth, args = {}) {
     affectedKeys: [beforeKey],
     containerAfter: !existingContainer ? toLocation : null,
   });
-  return previewFromOps(env, auth, cloud, { summary, ops, event });
+  const preview = await previewFromOps(env, auth, cloud, { summary, ops, event });
+  return {
+    ...preview,
+    previewType: 'inventory.edit',
+    card: inventoryEditCardPreview(moved),
+  };
+}
+
+async function toolPreviewEditInventoryItem(env, deps, auth, args = {}) {
+  requireWritePreviewArgs(auth);
+  const cloud = await currentCloud(env, deps, auth.userId);
+  const sourceLocation = resolveLocationForSnapshot(cloud.snapshot, args.fromLocation || args.locationFrom || args.location);
+  const matchArgs = inventoryEditMatchArgs(args, sourceLocation);
+  const matches = (cloud.snapshot.app.collection || []).filter(entry => matchesInventory(entry, matchArgs));
+  if (matches.length !== 1) {
+    return {
+      status: matches.length ? 'ambiguous' : 'not_found',
+      candidates: matches.slice(0, 20).map(summarizeEntry),
+    };
+  }
+  const destination = firstPresentArg(args, ['toLocation', 'locationTo', 'destination']);
+  const toLocation = destination.present ? resolveLocationForSnapshot(cloud.snapshot, destination.value) : null;
+  if (destination.present && !toLocation) {
+    const card = summarizeEntry(matches[0]);
+    return { status: 'invalid', error: 'toLocation is required', card, candidates: [card] };
+  }
+  if (!destination.present && !hasInventoryEditFieldArg(args)) {
+    const card = summarizeEntry(matches[0]);
+    return { status: 'invalid', error: 'At least one edit field or toLocation is required', card, candidates: [card] };
+  }
+  return previewInventoryEdit(env, auth, cloud, matches[0], args, { toLocation, hasToLocation: destination.present });
 }
 
 async function toolPreviewAddInventoryItem(env, deps, auth, args = {}) {
@@ -1903,6 +2758,17 @@ async function toolPreviewAddInventoryItem(env, deps, auth, args = {}) {
     return mcpAddNeedsClarification({
       missingFields: ['scryfallId', 'setCode', 'collectorNumber'],
       message: 'That Scryfall printing was not found. Ask the user to confirm the set code and collector number, or provide a Scryfall card URL/id.',
+    });
+  }
+  const requestedName = requestedAddCardName(raw);
+  if (requestedName && !scryfallCardNameMatchesRequest(resolvedCard, requestedName)) {
+    const exactLabel = [raw.setCode || raw.set, raw.cn || raw.collectorNumber].filter(Boolean).join(' ');
+    return mcpAddNeedsClarification({
+      missingFields: ['scryfallId', 'setCode', 'collectorNumber'],
+      query: requestedName,
+      message: 'The requested printing'
+        + (exactLabel ? ' (' + exactLabel + ')' : '')
+        + ' resolves to "' + String(resolvedCard.name || 'a different card') + '", not "' + requestedName + '". I did not create an add preview. Ask the user to confirm the card name and exact set code/collector number.',
     });
   }
   if (missingOptionFields.length) {
@@ -2250,7 +3116,8 @@ const NUMBERISH_SCHEMA = { oneOf: [{ type: 'number' }, { type: 'string' }] };
 const BOOLEANISH_SCHEMA = { oneOf: [{ type: 'boolean' }, { type: 'string' }] };
 
 const TOOL_DEFINITIONS = [
-  ['get_collection_summary', 'Summarize the signed-in MTG collection, including total priced value and the highest-priced cards when price data exists.', {}],
+  ['get_agent_guide', 'Return the MTG Collection agent guide: domain vocabulary, printing-language rules, and safe tool-use patterns for this MCP server.', {}],
+  ['get_collection_summary', 'Summarize the signed-in MTG collection, including unique card count, total card count, total priced value, and the highest-priced cards. Use this for whole-collection count/value questions.', {}],
   ['search_inventory', 'Search physical inventory entries. Results include per-copy USD price, quantity, totalValue, card type, rarity, tags, and location. For broad filter questions leave query empty and use filters like finish, location, minPrice, minQty, cardType, condition, rarity, tags, sortBy, and sortDirection. Use sortBy=price and sortDirection=desc for most-expensive-card questions.', {
     type: 'object',
     properties: {
@@ -2309,7 +3176,117 @@ const TOOL_DEFINITIONS = [
     type: 'object',
     properties: { limit: NUMBERISH_SCHEMA },
   }],
-  ['preview_move_inventory_item', 'Preview moving physical inventory to another location. If the user named the card/source but not the destination, call this anyway; it returns the matched card so the app can render it while you ask where it should go.', {
+  ['preview_edit_inventory_item', 'Preview editing an existing physical inventory row. Use this for combined requests like "move X to trade binder and make it foil"; it can change location, finish, condition, language, and tags in one preview token. Use fromFinish/fromCondition for source qualifiers; finish/condition are the requested new values.', {
+    type: 'object',
+    properties: {
+      query: { type: 'string' },
+      itemKey: { type: 'string' },
+      scryfallId: { type: 'string' },
+      setCode: { type: 'string' },
+      cn: { type: 'string' },
+      location: { oneOf: [{ type: 'string' }, { type: 'object' }], description: 'Current/source location for the card, if known. Use toLocation for the destination.' },
+      fromLocation: { oneOf: [{ type: 'string' }, { type: 'object' }] },
+      locationFrom: { oneOf: [{ type: 'string' }, { type: 'object' }] },
+      toLocation: { oneOf: [{ type: 'string' }, { type: 'object' }] },
+      locationTo: { oneOf: [{ type: 'string' }, { type: 'object' }] },
+      destination: { oneOf: [{ type: 'string' }, { type: 'object' }] },
+      qty: NUMBERISH_SCHEMA,
+      finish: { type: 'string', enum: ['normal', 'nonfoil', 'non-foil', 'foil', 'etched', 'etched foil'] },
+      fromFinish: { type: 'string', enum: ['normal', 'nonfoil', 'non-foil', 'foil', 'etched', 'etched foil'] },
+      currentFinish: { type: 'string', enum: ['normal', 'nonfoil', 'non-foil', 'foil', 'etched', 'etched foil'] },
+      condition: { type: 'string', enum: ['near_mint', 'lightly_played', 'moderately_played', 'heavily_played', 'damaged', 'nm', 'lp', 'mp', 'hp', 'dmg'] },
+      fromCondition: { type: 'string', enum: ['near_mint', 'lightly_played', 'moderately_played', 'heavily_played', 'damaged', 'nm', 'lp', 'mp', 'hp', 'dmg'] },
+      currentCondition: { type: 'string', enum: ['near_mint', 'lightly_played', 'moderately_played', 'heavily_played', 'damaged', 'nm', 'lp', 'mp', 'hp', 'dmg'] },
+      language: { type: 'string' },
+      lang: { type: 'string' },
+      tags: { type: 'array', items: { type: 'string' } },
+      addTags: { type: 'array', items: { type: 'string' } },
+      addTag: { type: 'string' },
+      removeTags: { type: 'array', items: { type: 'string' } },
+      removeTag: { type: 'string' },
+      deckBoard: { type: 'string', enum: ['main', 'sideboard', 'maybe'] },
+      createContainer: BOOLEANISH_SCHEMA,
+      createcontainer: BOOLEANISH_SCHEMA,
+      create_container: BOOLEANISH_SCHEMA,
+    },
+  }],
+  ['preview_delete_inventory_item', 'Preview deleting/removing an existing physical inventory row from the collection entirely. Use this when the user says delete/remove from collection entirely; it does not need a destination container. qty deletes that many copies, otherwise the whole matched stack is removed.', {
+    type: 'object',
+    properties: {
+      query: { type: 'string' },
+      itemKey: { type: 'string' },
+      scryfallId: { type: 'string' },
+      setCode: { type: 'string' },
+      cn: { type: 'string' },
+      location: { oneOf: [{ type: 'string' }, { type: 'object' }], description: 'Current/source location for the card, if known.' },
+      fromLocation: { oneOf: [{ type: 'string' }, { type: 'object' }] },
+      locationFrom: { oneOf: [{ type: 'string' }, { type: 'object' }] },
+      qty: NUMBERISH_SCHEMA,
+      finish: { type: 'string', enum: ['normal', 'nonfoil', 'non-foil', 'foil', 'foils', 'etched', 'etched foil'] },
+      condition: { type: 'string', enum: ['near_mint', 'lightly_played', 'moderately_played', 'heavily_played', 'damaged', 'nm', 'lp', 'mp', 'hp', 'dmg'] },
+    },
+  }],
+  ['preview_duplicate_inventory_item', 'Preview adding more copies to an existing physical inventory stack using the exact same printing, finish, condition, language, tags, and location. Use this for "add another", "one more", "same style", or "I have N now" requests.', {
+    type: 'object',
+    properties: {
+      query: { type: 'string' },
+      itemKey: { type: 'string' },
+      scryfallId: { type: 'string' },
+      setCode: { type: 'string' },
+      cn: { type: 'string' },
+      location: { oneOf: [{ type: 'string' }, { type: 'object' }], description: 'Current/source location for the stack, if known.' },
+      fromLocation: { oneOf: [{ type: 'string' }, { type: 'object' }] },
+      locationFrom: { oneOf: [{ type: 'string' }, { type: 'object' }] },
+      qty: NUMBERISH_SCHEMA,
+      targetQty: NUMBERISH_SCHEMA,
+      totalQty: NUMBERISH_SCHEMA,
+      desiredQty: NUMBERISH_SCHEMA,
+      qtyNow: NUMBERISH_SCHEMA,
+      finish: { type: 'string', enum: ['normal', 'nonfoil', 'non-foil', 'foil', 'foils', 'etched', 'etched foil'] },
+      condition: { type: 'string', enum: ['near_mint', 'lightly_played', 'moderately_played', 'heavily_played', 'damaged', 'nm', 'lp', 'mp', 'hp', 'dmg'] },
+    },
+  }],
+  ['preview_replace_inventory_printing', 'Preview replacing/swapping the printing, version, edition, style, or art of an existing physical inventory row. Use this for "changed the printing", "swapped it to Secret Lair", "regular printing", or set/collector replacement requests. Preserves quantity, location, condition, language, and tags unless qty is provided to split part of a stack.', {
+    type: 'object',
+    properties: {
+      query: { type: 'string' },
+      name: { type: 'string' },
+      cardName: { type: 'string' },
+      sourceName: { type: 'string' },
+      itemKey: { type: 'string' },
+      scryfallId: { type: 'string' },
+      setCode: { type: 'string' },
+      cn: { type: 'string' },
+      location: { oneOf: [{ type: 'string' }, { type: 'object' }], description: 'Current/source location for the card, if known.' },
+      fromLocation: { oneOf: [{ type: 'string' }, { type: 'object' }] },
+      locationFrom: { oneOf: [{ type: 'string' }, { type: 'object' }] },
+      fromFinish: { type: 'string', enum: ['normal', 'nonfoil', 'non-foil', 'foil', 'etched', 'etched foil'] },
+      currentFinish: { type: 'string', enum: ['normal', 'nonfoil', 'non-foil', 'foil', 'etched', 'etched foil'] },
+      fromCondition: { type: 'string', enum: ['near_mint', 'lightly_played', 'moderately_played', 'heavily_played', 'damaged', 'nm', 'lp', 'mp', 'hp', 'dmg'] },
+      currentCondition: { type: 'string', enum: ['near_mint', 'lightly_played', 'moderately_played', 'heavily_played', 'damaged', 'nm', 'lp', 'mp', 'hp', 'dmg'] },
+      printing: { type: 'string' },
+      targetPrinting: { type: 'string' },
+      newPrinting: { type: 'string' },
+      edition: { type: 'string' },
+      targetEdition: { type: 'string' },
+      newEdition: { type: 'string' },
+      targetScryfallId: { type: 'string' },
+      newScryfallId: { type: 'string' },
+      targetSetCode: { type: 'string' },
+      newSetCode: { type: 'string' },
+      targetSet: { type: 'string' },
+      newSet: { type: 'string' },
+      targetCn: { type: 'string' },
+      newCn: { type: 'string' },
+      targetCollectorNumber: { type: 'string' },
+      newCollectorNumber: { type: 'string' },
+      finish: { type: 'string', enum: ['normal', 'nonfoil', 'non-foil', 'foil', 'etched', 'etched foil'] },
+      targetFinish: { type: 'string', enum: ['normal', 'nonfoil', 'non-foil', 'foil', 'etched', 'etched foil'] },
+      newFinish: { type: 'string', enum: ['normal', 'nonfoil', 'non-foil', 'foil', 'etched', 'etched foil'] },
+      qty: NUMBERISH_SCHEMA,
+    },
+  }],
+  ['preview_move_inventory_item', 'Preview moving physical inventory to another location. For combined move plus finish/condition/language/tag edits, call preview_edit_inventory_item instead. If the user named the card/source but not the destination, call this anyway; it returns the matched card so the app can render it while you ask where it should go.', {
     type: 'object',
     properties: {
       query: { type: 'string' },
@@ -2322,6 +3299,10 @@ const TOOL_DEFINITIONS = [
       createContainer: BOOLEANISH_SCHEMA,
       createcontainer: BOOLEANISH_SCHEMA,
       create_container: BOOLEANISH_SCHEMA,
+      finish: { type: 'string', enum: ['normal', 'nonfoil', 'non-foil', 'foil', 'etched', 'etched foil'], description: 'Requested new finish when combining a move with a finish edit. Prefer preview_edit_inventory_item for combined edits.' },
+      condition: { type: 'string', enum: ['near_mint', 'lightly_played', 'moderately_played', 'heavily_played', 'damaged', 'nm', 'lp', 'mp', 'hp', 'dmg'] },
+      language: { type: 'string' },
+      lang: { type: 'string' },
     },
   }],
   ['preview_add_inventory_item', 'Preview adding a physical inventory entry. Requires a real Scryfall printing plus explicit qty, finish, and condition. Do not guess physical-copy options; missing details return needs_input with candidates for the app to render.', {
@@ -2403,6 +3384,7 @@ function visibleToolsForAuth(auth) {
 
 async function executeTool(name, args, env, deps, auth) {
   switch (name) {
+    case 'get_agent_guide': return mcpAgentGuide();
     case 'get_collection_summary': return toolGetCollectionSummary(env, deps, auth, args);
     case 'search_inventory': return toolSearchInventory(env, deps, auth, args);
     case 'search_card_printings': return toolSearchCardPrintings(env, deps, auth, args);
@@ -2410,6 +3392,10 @@ async function executeTool(name, args, env, deps, auth) {
     case 'get_container': return toolGetContainer(env, deps, auth, args);
     case 'get_deck': return toolGetDeck(env, deps, auth, args);
     case 'get_recent_changes': return toolGetRecentChanges(env, deps, auth, args);
+    case 'preview_edit_inventory_item': return toolPreviewEditInventoryItem(env, deps, auth, args);
+    case 'preview_delete_inventory_item': return toolPreviewDeleteInventoryItem(env, deps, auth, args);
+    case 'preview_duplicate_inventory_item': return toolPreviewDuplicateInventoryItem(env, deps, auth, args);
+    case 'preview_replace_inventory_printing': return toolPreviewReplaceInventoryPrinting(env, deps, auth, args);
     case 'preview_move_inventory_item': return toolPreviewMoveInventoryItem(env, deps, auth, args);
     case 'preview_add_inventory_item': return toolPreviewAddInventoryItem(env, deps, auth, args);
     case 'preview_decklist_change': return toolPreviewDecklistChange(env, deps, auth, args);
@@ -2432,6 +3418,62 @@ function jsonRpcError(id, code, message, data = undefined) {
   return { jsonrpc: '2.0', id, error };
 }
 
+function mcpResourcesListResult() {
+  return {
+    resources: [{
+      uri: MCP_AGENT_GUIDE_URI,
+      name: 'MTG Collection Agent Guide',
+      title: 'MTG Collection Agent Guide',
+      description: 'Domain vocabulary and safe tool-use guidance for agents using the MTG Collection MCP server.',
+      mimeType: 'text/markdown',
+    }],
+  };
+}
+
+function mcpResourceReadResult(uri) {
+  if (String(uri || '') !== MCP_AGENT_GUIDE_URI) {
+    const err = new Error('unknown resource: ' + String(uri || ''));
+    err.code = -32002;
+    throw err;
+  }
+  return {
+    contents: [{
+      uri: MCP_AGENT_GUIDE_URI,
+      mimeType: 'text/markdown',
+      text: MCP_AGENT_GUIDE_TEXT,
+    }],
+  };
+}
+
+function mcpPromptsListResult() {
+  return {
+    prompts: [{
+      name: MCP_AGENT_GUIDE_PROMPT,
+      title: 'MTG Collection Agent Guide',
+      description: 'Load MTG Collection domain vocabulary and tool-use rules before working with a collection.',
+      arguments: [],
+    }],
+  };
+}
+
+function mcpPromptGetResult(name) {
+  if (String(name || '') !== MCP_AGENT_GUIDE_PROMPT) {
+    const err = new Error('unknown prompt: ' + String(name || ''));
+    err.code = -32002;
+    throw err;
+  }
+  return {
+    description: 'MTG Collection domain vocabulary and MCP tool-use rules.',
+    messages: [{
+      role: 'user',
+      content: {
+        type: 'text',
+        text: MCP_AGENT_GUIDE_TEXT,
+      },
+    }],
+  };
+}
+
 async function handleJsonRpc(message, env, deps, auth) {
   if (!message || typeof message !== 'object') return jsonRpcError(null, -32600, 'Invalid Request');
   const { id = null, method, params = {} } = message;
@@ -2439,13 +3481,21 @@ async function handleJsonRpc(message, env, deps, auth) {
     if (method === 'initialize') {
       return jsonRpcResult(id, {
         protocolVersion: MCP_PROTOCOL_VERSION,
-        capabilities: { tools: { listChanged: false } },
+        capabilities: {
+          tools: { listChanged: false },
+          resources: { subscribe: false, listChanged: false },
+          prompts: { listChanged: false },
+        },
         serverInfo: { name: 'MTG Collection', version: '0.1.0' },
       });
     }
     if (method === 'notifications/initialized' || method === 'initialized') return null;
     if (method === 'ping') return jsonRpcResult(id, {});
     if (method === 'tools/list') return jsonRpcResult(id, { tools: visibleToolsForAuth(auth) });
+    if (method === 'resources/list') return jsonRpcResult(id, mcpResourcesListResult());
+    if (method === 'resources/read') return jsonRpcResult(id, mcpResourceReadResult(params.uri));
+    if (method === 'prompts/list') return jsonRpcResult(id, mcpPromptsListResult());
+    if (method === 'prompts/get') return jsonRpcResult(id, mcpPromptGetResult(params.name));
     if (method === 'tools/call') {
       const name = params.name;
       if (isChatClient(auth) && (name === 'apply_collection_change' || name === 'undo_last_mcp_change')) {
@@ -2464,7 +3514,7 @@ async function handleJsonRpc(message, env, deps, auth) {
     return jsonRpcError(id, -32601, 'Method not found');
   } catch (e) {
     const status = e.status || (/scope/.test(e.message) ? 403 : 400);
-    return jsonRpcError(id, status === 403 ? -32003 : -32000, e.message || 'tool failed', e.data);
+    return jsonRpcError(id, e.code || (status === 403 ? -32003 : -32000), e.message || 'tool failed', e.data);
   }
 }
 
@@ -2556,6 +3606,12 @@ function normalizeMcpDraft(value) {
       finishes: Array.isArray(candidate.finishes) ? candidate.finishes.map(String) : [],
       requestedFinish: String(candidate.requestedFinish || ''),
       typeLine: String(candidate.typeLine || ''),
+      promo: Boolean(candidate.promo),
+      booster: Boolean(candidate.booster),
+      fullArt: Boolean(candidate.fullArt),
+      textless: Boolean(candidate.textless),
+      frameEffects: Array.isArray(candidate.frameEffects) ? candidate.frameEffects.map(String) : [],
+      setType: String(candidate.setType || ''),
       imageUrl: String(candidate.imageUrl || ''),
       scryfallUri: String(candidate.scryfallUri || ''),
       previewAddArgs: cloneJson(candidate.previewAddArgs, {}),
@@ -2829,6 +3885,104 @@ function extractMcpContainerStats(data) {
   return out.slice(0, 100);
 }
 
+function normalizeMcpCollectionSummary(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  if (value.uniqueCards == null || value.totalCards == null) return null;
+  const uniqueCards = Math.max(0, parseInt(value.uniqueCards, 10) || 0);
+  const totalCards = Math.max(0, parseInt(value.totalCards, 10) || 0);
+  const totalValue = roundCurrency(Number(value.totalValue) || 0);
+  return {
+    uniqueCards,
+    totalCards,
+    totalValue,
+    pricedEntries: Math.max(0, parseInt(value.pricedEntries, 10) || 0),
+    unpricedEntries: Math.max(0, parseInt(value.unpricedEntries, 10) || 0),
+    containers: value.containers && typeof value.containers === 'object'
+      ? {
+          total: Math.max(0, parseInt(value.containers.total, 10) || 0),
+          decks: Math.max(0, parseInt(value.containers.decks, 10) || 0),
+          binders: Math.max(0, parseInt(value.containers.binders, 10) || 0),
+          boxes: Math.max(0, parseInt(value.containers.boxes, 10) || 0),
+        }
+      : null,
+  };
+}
+
+function collectMcpCollectionSummaries(value, out, seenObjects, seenKeys, depth = 0) {
+  if (depth > 10 || value == null) return;
+  if (typeof value === 'string') {
+    for (const parsed of jsonValuesFromString(value)) collectMcpCollectionSummaries(parsed, out, seenObjects, seenKeys, depth + 1);
+    return;
+  }
+  if (typeof value !== 'object') return;
+  if (seenObjects.has(value)) return;
+  seenObjects.add(value);
+
+  const summary = normalizeMcpCollectionSummary(value);
+  if (summary) {
+    const key = [summary.uniqueCards, summary.totalCards, summary.totalValue].join(':');
+    if (!seenKeys.has(key)) {
+      seenKeys.add(key);
+      out.push(summary);
+    }
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) collectMcpCollectionSummaries(item, out, seenObjects, seenKeys, depth + 1);
+    return;
+  }
+  for (const child of Object.values(value)) collectMcpCollectionSummaries(child, out, seenObjects, seenKeys, depth + 1);
+}
+
+function extractMcpCollectionSummaries(data) {
+  const out = [];
+  collectMcpCollectionSummaries(data, out, new WeakSet(), new Set());
+  return out.slice(0, 5);
+}
+
+function collectionStatsQuestion(userText) {
+  const text = String(userText || '').toLowerCase();
+  if (mutationRequestText(text)) return false;
+  if (inventoryPriceSortDirection(text)) return false;
+  const hasInventoryFilter = finishFromInventoryText(text)
+    || conditionFromInventoryText(text)
+    || rarityFromInventoryText(text)
+    || inventoryTypeFromText(text)
+    || minPriceFromText(text) != null
+    || maxPriceFromText(text) != null
+    || minQtyFromText(text) != null
+    || maxQtyFromText(text) != null
+    || /\btagged\b|\btags?\b/.test(text);
+  if (hasInventoryFilter) return false;
+  const asksCount = /\bhow\s+many\b|\bcount\b|\btotal\b|\bnumber\s+of\b|\bsize\s+of\b/.test(text);
+  const asksValue = /\b(?:value|valued|worth)\b/.test(text);
+  const mentionsWholeCollection = /\b(?:collection|own|owned|overall|all\s+(?:my\s+)?cards)\b/.test(text);
+  const asksCollectionCardCount = /\b(?:unique|total)\s+cards?\b/.test(text) && mentionsWholeCollection;
+  return mentionsWholeCollection && (asksCount || asksValue || asksCollectionCardCount);
+}
+
+function collectionStatsSummaryText(summaries, userText) {
+  if (!collectionStatsQuestion(userText)) return '';
+  const summary = Array.isArray(summaries) ? summaries.find(Boolean) : null;
+  if (!summary) return '';
+  const unique = Math.max(0, parseInt(summary.uniqueCards, 10) || 0);
+  const total = Math.max(0, parseInt(summary.totalCards, 10) || 0);
+  const value = Number(summary.totalValue) || 0;
+  if (/\b(?:value|valued|worth)\b/i.test(userText)) {
+    return 'Your collection is valued at $' + value.toFixed(2) + ' across '
+      + total + ' total ' + plural(total, 'card') + ' and '
+      + unique + ' unique ' + plural(unique, 'card') + '.';
+  }
+  if (/\bunique\b/i.test(userText) && !/\btotal\b/i.test(userText)) {
+    return 'You have ' + unique + ' unique ' + plural(unique, 'card') + ' in your collection.';
+  }
+  if (/\btotal\b/i.test(userText) && !/\bunique\b/i.test(userText)) {
+    return 'You have ' + total + ' total ' + plural(total, 'card') + ' in your collection.';
+  }
+  return 'You have ' + unique + ' unique ' + plural(unique, 'card') + ' and '
+    + total + ' total ' + plural(total, 'card') + ' in your collection.';
+}
+
 function containerStatsQuestion(userText) {
   const text = String(userText || '').toLowerCase();
   if (inventoryPriceSortDirection(text)) return false;
@@ -2963,7 +4117,7 @@ function inventoryCardsSummaryText(cards, userText) {
 }
 
 function mutationRequestText(userText) {
-  return /\b(?:add|move|put|take|remove|delete|rename|create|stage)\b/i.test(String(userText || ''));
+  return /\b(?:add|change|make|mark|move|put|remove|rename|set|stage|take|turn|update|delete|create)\b/i.test(String(userText || ''));
 }
 
 function shouldReplaceProviderTextWithCardSummary(cards, userText, providerText) {
@@ -3029,22 +4183,101 @@ function cardNameFromPreview(preview) {
   return match ? match[1].trim() : '';
 }
 
-function previewLooksLikeUserRequest(preview, userText) {
-  if (preview?.previewType !== 'inventory.add') return true;
-  const userTokens = new Set(normalizedMatchTokens(userText));
-  const userSignificant = significantMatchTokens(userText);
-  if (!userSignificant.length) return true;
+function requestedAddNameTokensForPreview(userText, preview) {
+  const requestedName = addLookupNameFromUserText(userText);
+  if (!requestedName) return [];
+  const ignored = new Set([
+    String(preview?.card?.setCode || '').trim().toLowerCase(),
+    ...normalizedMatchTokens(preview?.card?.cn || ''),
+  ].filter(Boolean));
+  return significantMatchTokens(requestedName).filter(token => !ignored.has(token));
+}
 
+function nameTokenOverlapEnough(nameTokens, requestedTokens) {
+  if (!requestedTokens.length) return true;
+  const names = new Set(nameTokens);
+  const overlap = requestedTokens.filter(token => names.has(token)).length;
+  if (overlap >= 2) return true;
+  if (overlap === 1 && nameTokens.length === 1) return true;
+  return overlap === 1 && requestedTokens.length === 1;
+}
+
+function addPreviewLooksLikeUserRequest(preview, userText) {
+  const userTokens = new Set(normalizedMatchTokens(userText));
   const name = cardNameFromPreview(preview);
   const nameTokens = significantMatchTokens(name);
-  const overlappingNameTokens = nameTokens.filter(token => userTokens.has(token));
-  if (overlappingNameTokens.length >= 2) return true;
-  if (overlappingNameTokens.length === 1 && userSignificant.length === 1) return true;
+  const requestedNameTokens = requestedAddNameTokensForPreview(userText, preview);
+  if (requestedNameTokens.length) return nameTokenOverlapEnough(nameTokens, requestedNameTokens);
 
   const cn = normalizedMatchTokens(preview?.card?.cn || '')[0] || '';
   const setCode = String(preview?.card?.setCode || '').trim().toLowerCase();
   if (cn && userTokens.has(cn) && (!setCode || userTokens.has(setCode))) return true;
+  const userSignificant = significantMatchTokens(userText);
+  if (!userSignificant.length) return true;
+  const overlappingNameTokens = nameTokens.filter(token => userTokens.has(token));
+  if (overlappingNameTokens.length >= 2) return true;
+  if (overlappingNameTokens.length === 1 && userSignificant.length === 1) return true;
   return false;
+}
+
+function editPreviewExpectedFields(preview, userText, snapshot) {
+  const entry = snapshot ? mentionedInventoryEntry(snapshot, userText) : null;
+  const sourceLocation = entry?.location || null;
+  return {
+    finish: finishFromInventoryText(userText),
+    condition: conditionFromInventoryText(userText),
+    toLocation: snapshot ? mentionedDestinationLocation(snapshot, userText, sourceLocation) : null,
+  };
+}
+
+function printingSwapRequestText(userText) {
+  const text = String(userText || '').toLowerCase();
+  const action = /\b(?:change|changed|swap|swapped|replace|replaced|update|updated|set)\b/.test(text);
+  const printing = /\b(?:printing|print|version|edition|style|art|artwork)\b/.test(text);
+  if (action && printing) return true;
+  return action && /\b(?:secret[\s_-]+lair|sld|regular\s+printing|base\s+printing)\b/.test(text);
+}
+
+function previewCardPrintingChanged(card, entry) {
+  if (!entry) return true;
+  if (card.scryfallId && String(card.scryfallId || '') !== String(entry.scryfallId || '')) return true;
+  if (card.setCode && String(card.setCode || '').toLowerCase() !== String(entry.setCode || '').toLowerCase()) return true;
+  if (card.cn && String(card.cn || '') !== String(entry.cn || '')) return true;
+  return false;
+}
+
+function previewCardMatchesPrintingHint(card, userText) {
+  if (requestsSecretLairPrinting(userText)) {
+    const setCode = String(card?.setCode || '').trim().toLowerCase();
+    const setName = String(card?.setName || '').trim().toLowerCase();
+    return setCode === 'sld' || setName.includes('secret lair');
+  }
+  return true;
+}
+
+function editPreviewLooksLikeUserRequest(preview, userText, snapshot) {
+  const card = preview?.card || {};
+  const name = cardNameFromPreview(preview);
+  const requestedNameTokens = significantMatchTokens(stripInventoryFinishQuery(userText));
+  const nameTokens = significantMatchTokens(name);
+  if (nameTokens.length && requestedNameTokens.length && !nameTokenOverlapEnough(nameTokens, requestedNameTokens)) return false;
+
+  const expected = editPreviewExpectedFields(preview, userText, snapshot);
+  if (expected.finish && normalizeInventoryFinish(card.finish) !== expected.finish) return false;
+  if (expected.condition && normalizeInventoryCondition(card.condition) !== expected.condition) return false;
+  if (expected.toLocation && locationKey(card.location) !== locationKey(expected.toLocation)) return false;
+  if (printingSwapRequestText(userText)) {
+    const entry = snapshot ? mentionedInventoryEntry(snapshot, userText) : null;
+    if (entry && !previewCardPrintingChanged(card, entry)) return false;
+    if (!previewCardMatchesPrintingHint(card, userText)) return false;
+  }
+  return true;
+}
+
+function previewLooksLikeUserRequest(preview, userText, context = {}) {
+  if (preview?.previewType === 'inventory.add') return addPreviewLooksLikeUserRequest(preview, userText);
+  if (preview?.previewType === 'inventory.edit') return editPreviewLooksLikeUserRequest(preview, userText, context.snapshot || null);
+  return true;
 }
 
 function previewMismatchMessage(preview, userText) {
@@ -3147,15 +4380,53 @@ function dedupeAddPreviews(previews, userText) {
   return { previews: out, previewWarnings: warnings };
 }
 
-function filterChatPreviews(previews, lastUserText) {
+function previewChangeIdentity(preview) {
+  if (!preview || preview.previewType === 'inventory.add') return '';
+  const card = preview.card && typeof preview.card === 'object' ? preview.card : {};
+  const cardId = String(card.itemKey || '').trim()
+    || [
+      significantMatchTokens(cardNameFromPreview(preview)).join(' '),
+      String(card.setCode || '').trim().toLowerCase(),
+      String(card.cn || '').trim().toLowerCase(),
+    ].join(':');
+  const summary = String(preview.summary || '').toLowerCase().replace(/\s+/g, ' ').trim();
+  if (!cardId && !summary) return '';
+  return [
+    String(preview.previewType || '').trim(),
+    summary,
+    cardId,
+    locationKey(normalizeLocation(card.location)),
+    String(card.finish || '').trim().toLowerCase(),
+    String(card.condition || '').trim().toLowerCase(),
+    String(card.language || '').trim().toLowerCase(),
+    parseSmallQuantity(card.qty) || '',
+  ].join('|');
+}
+
+function dedupeEquivalentChangePreviews(previews) {
+  const out = [];
+  const seen = new Set();
+  for (const preview of previews) {
+    const identity = previewChangeIdentity(preview);
+    if (identity && seen.has(identity)) continue;
+    if (identity) seen.add(identity);
+    out.push(preview);
+  }
+  return out;
+}
+
+function filterChatPreviews(previews, lastUserText, context = {}) {
   const accepted = [];
   const warnings = [];
   for (const preview of previews) {
-    if (previewLooksLikeUserRequest(preview, lastUserText)) accepted.push(preview);
+    if (previewLooksLikeUserRequest(preview, lastUserText, context)) accepted.push(preview);
     else warnings.push(previewMismatchMessage(preview, lastUserText));
   }
   const deduped = dedupeAddPreviews(accepted, lastUserText);
-  return { previews: deduped.previews, previewWarnings: [...warnings, ...deduped.previewWarnings] };
+  return {
+    previews: dedupeEquivalentChangePreviews(deduped.previews),
+    previewWarnings: [...warnings, ...deduped.previewWarnings],
+  };
 }
 
 function extractOpenAiText(data) {
@@ -3186,21 +4457,48 @@ function extractCloudflareText(data) {
   return extractOpenAiText(data);
 }
 
-function chatSuccessResponse(deps, request, { provider, model, hosted, usage, data, text, messages = [] }) {
+function cloudflareProviderErrorText(response) {
+  const result = response?.result && typeof response.result === 'object' ? response.result : response;
+  const error = Array.isArray(result?.errors) && result.errors.length
+    ? result.errors[0]
+    : result?.error;
+  const code = error && typeof error === 'object' ? String(error.code || '').trim() : '';
+  const message = typeof error === 'string'
+    ? error
+    : error && typeof error === 'object'
+    ? String(error.message || error.error || '').trim()
+    : '';
+  if (result?.success === false || error) {
+    const labeled = [code, message].filter(Boolean).join(': ');
+    return labeled || 'Cloudflare Workers AI request failed';
+  }
+  const text = extractCloudflareText(response);
+  if (/^\s*\d{3,5}\s*:\s*(?:internal\s+server\s+error|service\s+unavailable|gateway\s+timeout)\s*$/i.test(text)) {
+    return text.trim();
+  }
+  return '';
+}
+
+function chatSuccessResponse(deps, request, { provider, model, hosted, usage, data, text, messages = [], previewSnapshot = null }) {
   const lastUserText = [...messages].reverse().find(message => message.role === 'user')?.content || '';
-  const filtered = filterChatPreviews(extractMcpPreviews(data), lastUserText);
+  const filtered = filterChatPreviews(extractMcpPreviews(data), lastUserText, { snapshot: previewSnapshot });
   const drafts = preferDraftsForUserRequest(extractMcpDrafts(data), lastUserText);
-  const addLookupMissText = addLookupMissSummaryText(extractMcpAddLookupMisses(data), lastUserText);
+  const addLookupMissText = filtered.previews.length ? '' : addLookupMissSummaryText(extractMcpAddLookupMisses(data), lastUserText);
   const cards = orderInventoryCardsForUserRequest(
     filterInventoryCardsForUserRequest(extractMcpInventoryCards(data), lastUserText),
     lastUserText
   );
+  const collectionSummary = collectionStatsSummaryText(extractMcpCollectionSummaries(data), lastUserText);
   const containerSummary = containerStatsSummaryText(extractMcpContainerStats(data), lastUserText);
-  const responseCards = containerSummary ? [] : cards;
+  const responseCards = collectionSummary || containerSummary ? [] : cards;
   const responseText = drafts.length && !filtered.previews.length
     ? 'Choose options below.'
     : filtered.previewWarnings.length && !filtered.previews.length
     ? filtered.previewWarnings.join('\n')
+    : filtered.previews.length
+    ? 'Preview ready below.'
+    : collectionSummary
+    ? collectionSummary
     : containerSummary
     ? containerSummary
     : shouldReplaceProviderTextWithCardSummary(responseCards, lastUserText, text)
@@ -3220,6 +4518,17 @@ function chatSuccessResponse(deps, request, { provider, model, hosted, usage, da
     previewWarnings: filtered.previewWarnings,
     raw: data,
   }, 200, request);
+}
+
+async function previewValidationSnapshotForChat(env, deps, auth, messages, data) {
+  if (!mutationRequestText(lastUserText(messages))) return null;
+  const previews = extractMcpPreviews(data);
+  if (!previews.some(preview => preview?.previewType === 'inventory.edit')) return null;
+  try {
+    return (await currentCloud(env, deps, auth.userId)).snapshot;
+  } catch (e) {
+    return null;
+  }
 }
 
 function chatProviderApiKey(env, provider) {
@@ -3384,6 +4693,562 @@ function cloudflareToolCalls(response) {
   return direct.map(normalizeCloudflareToolCall).filter(Boolean);
 }
 
+function lastUserText(messages = []) {
+  return [...messages].reverse().find(message => message?.role === 'user')?.content || '';
+}
+
+function normalizeContainerMentionText(text) {
+  return String(text || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9:]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function containerMentionAliases(container) {
+  const loc = normalizeLocation(container);
+  if (!loc) return [];
+  return [
+    loc.type + ':' + loc.name,
+    loc.type + ' ' + loc.name,
+    loc.name,
+  ].map(normalizeContainerMentionText).filter(Boolean);
+}
+
+function mentionedDestinationLocation(snapshot, userText, sourceLocation) {
+  const text = normalizeContainerMentionText(userText);
+  if (!text) return null;
+  const sourceKey = locationKey(sourceLocation);
+  const matches = [];
+  for (const container of allContainers(snapshot)) {
+    const loc = normalizeLocation(container);
+    if (!loc || locationKey(loc) === sourceKey) continue;
+    let bestIndex = -1;
+    let bestLength = 0;
+    for (const alias of containerMentionAliases(loc)) {
+      const index = text.lastIndexOf(alias);
+      if (index === -1) continue;
+      if (index > bestIndex || (index === bestIndex && alias.length > bestLength)) {
+        bestIndex = index;
+        bestLength = alias.length;
+      }
+    }
+    if (bestIndex !== -1) matches.push({ loc, index: bestIndex, length: bestLength });
+  }
+  if (!matches.length) return null;
+  matches.sort((a, b) => b.index - a.index || b.length - a.length || locationKey(a.loc).localeCompare(locationKey(b.loc)));
+  const [best, next] = matches;
+  if (next && next.index === best.index && next.length === best.length) return null;
+  return best.loc;
+}
+
+function mentionedInventoryEntry(snapshot, userText) {
+  const userTokens = new Set(significantMatchTokens(userText));
+  if (!userTokens.size) return null;
+  const matches = [];
+  for (const entry of snapshot?.app?.collection || []) {
+    const name = entry.resolvedName || entry.name || '';
+    const nameTokens = significantMatchTokens(name);
+    if (!nameTokens.length) continue;
+    const overlap = nameTokens.filter(token => userTokens.has(token)).length;
+    if (!overlap) continue;
+    const score = overlap / nameTokens.length;
+    if (score >= 0.75 || overlap >= Math.min(2, nameTokens.length)) matches.push({ entry, score, overlap });
+  }
+  matches.sort((a, b) => b.score - a.score || b.overlap - a.overlap || collectionKey(a.entry).localeCompare(collectionKey(b.entry)));
+  const [best, next] = matches;
+  if (!best) return null;
+  if (next && best.score === next.score && best.overlap === next.overlap) return null;
+  return best.entry;
+}
+
+function cleanCreatedContainerName(raw) {
+  return String(raw || '')
+    .replace(/\s+(?:and|then)\s+.*$/i, ' ')
+    .replace(/\s+(?:please|there|for\s+me)$/i, ' ')
+    .replace(/[.?!]+$/g, ' ')
+    .replace(/^["']+|["']+$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function createdContainerLocationFromUserText(userText) {
+  const text = String(userText || '').trim();
+  if (!/\b(?:create|make|new|set\s+up|setup)\b/i.test(text)) return null;
+  const patterns = [
+    /\b(?:create|make|add|set\s+up|setup)\s+(?:me\s+)?(?:a\s+|an\s+|new\s+)?(binder|box|deck)\s+(?:called|named)\s+(.+)$/i,
+    /\b(?:create|make|add|set\s+up|setup)\s+(?:me\s+)?(?:a\s+|an\s+|new\s+)?(.+?)\s+(binder|box|deck)\b/i,
+    /\b(?:new\s+)?(binder|box|deck)\s+(?:called|named)\s+(.+)$/i,
+  ];
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (!match) continue;
+    const typeFirst = ['binder', 'box', 'deck'].includes(String(match[1] || '').toLowerCase());
+    const type = String(typeFirst ? match[1] : match[2]).toLowerCase();
+    const name = cleanCreatedContainerName(typeFirst ? match[2] : match[1]);
+    const loc = normalizeLocation({ type, name });
+    if (loc) return loc;
+  }
+  return null;
+}
+
+function compactLocationForModel(loc) {
+  const normalized = normalizeLocation(loc);
+  return normalized ? { type: normalized.type, name: normalized.name } : null;
+}
+
+function compactCardForModel(card) {
+  if (!card || typeof card !== 'object') return null;
+  return {
+    itemKey: String(card.itemKey || '').trim(),
+    name: String(card.name || card.resolvedName || '').trim(),
+    scryfallId: String(card.scryfallId || '').trim(),
+    setCode: String(card.setCode || card.set || '').trim().toLowerCase(),
+    setName: String(card.setName || '').trim(),
+    cn: String(card.cn || card.collectorNumber || '').trim(),
+    finish: String(card.finish || 'normal').trim(),
+    condition: String(card.condition || 'near_mint').trim(),
+    language: String(card.language || card.lang || 'en').trim(),
+    qty: Math.max(0, parseInt(card.qty, 10) || 0),
+    location: compactLocationForModel(card.location),
+    tags: Array.isArray(card.tags) ? card.tags.map(String).slice(0, 8) : [],
+    rarity: String(card.rarity || '').trim(),
+    typeLine: String(card.typeLine || card.type_line || '').trim(),
+    price: Number(card.price) || 0,
+    totalValue: Number(card.totalValue) || 0,
+  };
+}
+
+function compactCandidateForModel(candidate) {
+  if (!candidate || typeof candidate !== 'object') return null;
+  const args = candidate.previewAddArgs && typeof candidate.previewAddArgs === 'object' ? candidate.previewAddArgs : {};
+  const out = {
+    itemKey: String(candidate.itemKey || '').trim(),
+    name: String(candidate.name || '').trim(),
+    scryfallId: String(candidate.scryfallId || args.scryfallId || '').trim(),
+    setCode: String(candidate.setCode || args.setCode || '').trim().toLowerCase(),
+    setName: String(candidate.setName || '').trim(),
+    collectorNumber: String(candidate.collectorNumber || candidate.cn || args.cn || '').trim(),
+    finishes: Array.isArray(candidate.finishes) ? candidate.finishes.map(String).slice(0, 4) : [],
+    requestedFinish: String(candidate.requestedFinish || args.finish || '').trim(),
+    rarity: String(candidate.rarity || '').trim(),
+    releasedAt: String(candidate.releasedAt || '').trim(),
+    typeLine: String(candidate.typeLine || '').trim(),
+    qty: parseInt(candidate.qty, 10) || undefined,
+    location: compactLocationForModel(candidate.location),
+  };
+  if (candidate.previewAddArgs) {
+    out.previewAddArgs = {
+      scryfallId: out.scryfallId,
+      name: String(args.name || candidate.name || '').trim(),
+      setCode: out.setCode,
+      cn: out.collectorNumber,
+      finish: String(args.finish || candidate.requestedFinish || '').trim(),
+      condition: String(args.condition || '').trim(),
+      language: String(args.language || args.lang || '').trim(),
+      qty: parseInt(args.qty, 10) || undefined,
+      location: compactLocationForModel(args.location),
+    };
+  }
+  return out;
+}
+
+function compactToolDataForModel(name, data) {
+  if (!data || typeof data !== 'object') return data;
+  const status = data.status ? String(data.status) : undefined;
+  if (String(name || '').startsWith('preview_')) {
+    const out = {
+      status,
+      previewType: data.previewType,
+      summary: data.summary || data.message || data.error || '',
+      missingFields: Array.isArray(data.missingFields) ? data.missingFields.map(String) : undefined,
+      card: compactCardForModel(data.card),
+      candidates: Array.isArray(data.candidates) ? data.candidates.slice(0, 8).map(compactCandidateForModel).filter(Boolean) : undefined,
+      missingContainer: compactLocationForModel(data.missingContainer),
+      totalsAfter: data.totalsAfter || undefined,
+    };
+    return Object.fromEntries(Object.entries(out).filter(([, value]) => value !== undefined && value !== null && value !== ''));
+  }
+  if (name === 'search_inventory') {
+    const results = Array.isArray(data.results) ? data.results : [];
+    return {
+      revision: data.revision,
+      count: results.length,
+      limit: data.limit,
+      results: results.slice(0, 20).map(compactCardForModel).filter(Boolean),
+      truncatedForModel: results.length > 20,
+    };
+  }
+  if (name === 'get_collection_summary') {
+    return {
+      revision: data.revision,
+      uniqueCards: data.uniqueCards,
+      totalCards: data.totalCards,
+      totalValue: data.totalValue,
+      pricedEntries: data.pricedEntries,
+      unpricedEntries: data.unpricedEntries,
+      mostExpensiveCard: compactCardForModel(data.mostExpensiveCard),
+      mostValuableStack: compactCardForModel(data.mostValuableStack),
+      containers: data.containers || null,
+    };
+  }
+  if (name === 'search_card_printings') {
+    return {
+      status,
+      query: data.query,
+      resolvedName: data.resolvedName,
+      requestedFinish: data.requestedFinish,
+      totalCount: data.totalCount,
+      truncated: data.truncated,
+      candidates: Array.isArray(data.candidates) ? data.candidates.slice(0, 12).map(compactCandidateForModel).filter(Boolean) : [],
+      suggestions: Array.isArray(data.suggestions) ? data.suggestions.map(String).slice(0, 8) : [],
+      message: data.message || '',
+    };
+  }
+  if (name === 'list_containers') {
+    return {
+      revision: data.revision,
+      containers: Array.isArray(data.containers) ? data.containers.slice(0, 50).map(container => ({
+        key: String(container.key || locationKey(container) || ''),
+        type: String(container.type || ''),
+        name: String(container.name || ''),
+        stats: container.stats || null,
+        deckListCount: container.deckListCount || 0,
+      })) : [],
+    };
+  }
+  if (name === 'get_container') {
+    return {
+      revision: data.revision,
+      found: Boolean(data.found),
+      container: data.container ? { key: data.container.key || locationKey(data.container), type: data.container.type, name: data.container.name } : null,
+      stats: data.stats || null,
+      cards: Array.isArray(data.cards) ? data.cards.slice(0, 20).map(compactCardForModel).filter(Boolean) : [],
+      truncatedForModel: Array.isArray(data.cards) && data.cards.length > 20,
+    };
+  }
+  if (name === 'get_deck') {
+    return {
+      revision: data.revision,
+      found: Boolean(data.found),
+      deck: data.deck ? {
+        key: data.deck.key,
+        name: data.deck.name,
+        deckListTotal: data.deck.deckListTotal,
+        deckList: Array.isArray(data.deck.deckList) ? data.deck.deckList.slice(0, 30) : [],
+      } : null,
+      physicalInventory: Array.isArray(data.physicalInventory) ? data.physicalInventory.slice(0, 20).map(compactCardForModel).filter(Boolean) : [],
+    };
+  }
+  if (name === 'get_recent_changes') {
+    return {
+      revision: data.revision,
+      changes: Array.isArray(data.changes) ? data.changes.slice(0, 20).map(change => ({
+        id: change.id,
+        ts: change.ts,
+        type: change.type,
+        summary: change.summary,
+        undone: Boolean(change.undone),
+      })) : [],
+    };
+  }
+  if (name === 'get_agent_guide') {
+    return { title: data.title, version: data.version, uri: data.uri, text: data.text };
+  }
+  return data;
+}
+
+function compactToolResultForModel(name, data) {
+  const text = JSON.stringify(compactToolDataForModel(name, data));
+  if (text.length <= 12000) return text;
+  return JSON.stringify({
+    status: data?.status || 'ok',
+    summary: data?.summary || data?.message || '',
+    truncatedForModel: true,
+  });
+}
+
+function outputToolResult(name, data) {
+  return {
+    type: 'mcp_call',
+    name,
+    result: {
+      content: [{ type: 'text', text: JSON.stringify(data, null, 2) }],
+      structuredContent: data,
+    },
+  };
+}
+
+async function augmentCollectionSummaryForChat({ env, deps, auth, messages, data }) {
+  if (!collectionStatsQuestion(lastUserText(messages))) return data;
+  if (extractMcpCollectionSummaries(data).length) return data;
+  const summary = await executeTool('get_collection_summary', {}, env, deps, auth);
+  const localOutput = outputToolResult('get_collection_summary', summary);
+  if (data && typeof data === 'object' && !Array.isArray(data)) {
+    return {
+      ...data,
+      output: Array.isArray(data.output) ? [...data.output, localOutput] : [localOutput],
+    };
+  }
+  return { output_text: String(data || ''), output: [localOutput] };
+}
+
+function cloudflarePartialFailureText(output, userText, providerError) {
+  if (extractMcpPreviews({ output }).length) return 'Preview ready below.';
+  if (extractMcpDrafts({ output }).length) return 'Choose options below.';
+  const cards = extractMcpInventoryCards({ output });
+  if (cards.length && mutationRequestText(userText)) {
+    return 'I found the matching card, but the hosted model hit a temporary error before it could finish the edit preview. Please try that request again.';
+  }
+  if (cards.length) {
+    return inventoryCardsSummaryText(orderInventoryCardsForUserRequest(cards, userText), userText)
+      || 'I found matching cards from your collection. They are shown below.';
+  }
+  return 'The hosted model hit a temporary error after using collection tools: ' + providerError;
+}
+
+function deleteInventoryRequestText(userText) {
+  const text = String(userText || '').toLowerCase();
+  if (!/\b(?:delete|remove|trash|purge)\b/.test(text)) return false;
+  if (/\b(?:container|binder|box|deck)\b/.test(text) && !/\b(?:collection|inventory|entirely|completely|altogether|for good)\b/.test(text)) return false;
+  return /\b(?:collection|inventory|entirely|completely|altogether|for good)\b/.test(text);
+}
+
+function duplicateSameStackRequestText(userText) {
+  const text = String(userText || '').toLowerCase();
+  if (!/\b(?:add|added|have|got)\b/.test(text)) return false;
+  return /\b(?:another|one more|same style|same printing|same version|same one|same card|same copy)\b/.test(text)
+    || /\bi\s+have\s+\d{1,2}\s+of\s+(?:them|it|those)\s+now\b/.test(text);
+}
+
+function targetTotalQuantityFromText(userText) {
+  const text = String(userText || '').toLowerCase();
+  const patterns = [
+    /\bi\s+have\s+(\d{1,2})\s+of\s+(?:them|it|those)\s+now\b/,
+    /\b(?:make|set|update)\s+(?:it|them|qty|quantity|total)\s+(?:to\s+)?(\d{1,2})\b/,
+    /\b(?:total|now)\s+(?:is\s+)?(\d{1,2})\b/,
+  ];
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    const qty = match ? parseSmallQuantity(match[1]) : null;
+    if (qty) return qty;
+  }
+  return null;
+}
+
+function entryFromChatRecoveryContext(snapshot, userText, output) {
+  const cards = extractMcpInventoryCards({ output });
+  const card = cards.length === 1 ? cards[0] : null;
+  if (card?.itemKey) {
+    const entry = (snapshot?.app?.collection || []).find(candidate => collectionKey(candidate) === card.itemKey);
+    if (entry) return entry;
+  }
+  return mentionedInventoryEntry(snapshot, userText);
+}
+
+function existingPreviewMatches(output, userText, snapshot, predicate) {
+  return extractMcpPreviews({ output }).some(preview => (
+    predicate(preview) && previewLooksLikeUserRequest(preview, userText, { snapshot })
+  ));
+}
+
+async function recoverCloudflarePrintingSwapPreview({ env, deps, auth, messages, output }) {
+  const userText = lastUserText(messages);
+  if (!printingSwapRequestText(userText)) return null;
+  const cloud = await currentCloud(env, deps, auth.userId);
+  if (existingPreviewMatches(output, userText, cloud.snapshot, preview => preview?.previewType === 'inventory.edit')) return null;
+  const entry = entryFromChatRecoveryContext(cloud.snapshot, userText, output);
+  if (!entry) return null;
+  const args = {
+    itemKey: collectionKey(entry),
+    printing: userText,
+  };
+  const finish = finishFromInventoryText(userText);
+  if (finish) args.finish = finish;
+  const data = await executeTool('preview_replace_inventory_printing', args, env, deps, auth);
+  return data?.status === 'preview' ? outputToolResult('preview_replace_inventory_printing', data) : null;
+}
+
+async function recoverCloudflareDeleteInventoryPreview({ env, deps, auth, messages, output }) {
+  const userText = lastUserText(messages);
+  if (!deleteInventoryRequestText(userText)) return null;
+  const cloud = await currentCloud(env, deps, auth.userId);
+  if (existingPreviewMatches(output, userText, cloud.snapshot, preview => preview?.previewType === 'inventory.delete')) return null;
+  const entry = entryFromChatRecoveryContext(cloud.snapshot, userText, output);
+  if (!entry) return null;
+  const data = await executeTool('preview_delete_inventory_item', { itemKey: collectionKey(entry) }, env, deps, auth);
+  return data?.status === 'preview' ? outputToolResult('preview_delete_inventory_item', data) : null;
+}
+
+async function recoverCloudflareDuplicateInventoryPreview({ env, deps, auth, messages, output }) {
+  const userText = lastUserText(messages);
+  if (!duplicateSameStackRequestText(userText)) return null;
+  const cloud = await currentCloud(env, deps, auth.userId);
+  if (existingPreviewMatches(output, userText, cloud.snapshot, preview => preview?.previewType === 'inventory.add')) return null;
+  const entry = entryFromChatRecoveryContext(cloud.snapshot, userText, output);
+  if (!entry) return null;
+  const args = { itemKey: collectionKey(entry) };
+  const targetQty = targetTotalQuantityFromText(userText);
+  if (targetQty) args.targetQty = targetQty;
+  else args.qty = requestedAddQuantity(userText) || 1;
+  const data = await executeTool('preview_duplicate_inventory_item', args, env, deps, auth);
+  return data?.status === 'preview' ? outputToolResult('preview_duplicate_inventory_item', data) : null;
+}
+
+async function recoverCloudflareMutationPreview({ env, deps, auth, messages, output }) {
+  const userText = lastUserText(messages);
+  if (!mutationRequestText(userText)) return null;
+  if (printingSwapRequestText(userText) || deleteInventoryRequestText(userText) || duplicateSameStackRequestText(userText)) return null;
+  if (/\badd\b/i.test(userText) && !/\b(?:change|make|mark|move|put|set|take|turn|update)\b/i.test(userText)) return null;
+  const cards = extractMcpInventoryCards({ output });
+  const cloud = await currentCloud(env, deps, auth.userId);
+  const existingPreviews = extractMcpPreviews({ output });
+  if (existingPreviews.some(preview => (
+    preview?.previewType === 'inventory.edit'
+      && previewLooksLikeUserRequest(preview, userText, { snapshot: cloud.snapshot })
+  ))) return null;
+  const card = cards.length === 1 ? cards[0] : null;
+  const entry = card?.itemKey ? null : mentionedInventoryEntry(cloud.snapshot, userText);
+  const itemKey = card?.itemKey || (entry ? collectionKey(entry) : '');
+  if (!itemKey) return null;
+  const toLocation = mentionedDestinationLocation(cloud.snapshot, userText, card?.location || entry?.location);
+  const finish = finishFromInventoryText(userText);
+  const condition = conditionFromInventoryText(userText);
+  if (!toLocation && !finish && !condition) return null;
+  if (!toLocation && (finish || condition) && !/\b(?:change|make|mark|set|turn|update)\b/i.test(userText)) return null;
+  const args = { itemKey };
+  if (toLocation) args.toLocation = toLocation;
+  if (finish) args.finish = finish;
+  if (condition) args.condition = condition;
+  const data = await executeTool('preview_edit_inventory_item', args, env, deps, auth);
+  return data?.status === 'preview' ? outputToolResult('preview_edit_inventory_item', data) : null;
+}
+
+async function recoverCloudflareCreateContainerPreview({ env, deps, auth, messages, output }) {
+  const userText = lastUserText(messages);
+  const location = createdContainerLocationFromUserText(userText);
+  if (!location) return null;
+  const existingPreviews = extractMcpPreviews({ output });
+  if (existingPreviews.some(preview => (
+    /Created\s+\{loc:/i.test(String(preview?.summary || ''))
+      && String(preview.summary || '').includes('{loc:' + locationKey(location) + '}')
+  ))) return null;
+  const data = await executeTool('preview_create_container', { location }, env, deps, auth);
+  return data?.status === 'preview' ? outputToolResult('preview_create_container', data) : null;
+}
+
+function candidatePrintingMentionedInText(candidate, userText) {
+  const args = candidate?.previewAddArgs || {};
+  const setCode = String(candidate?.setCode || args.setCode || '').trim().toLowerCase();
+  const cn = String(candidate?.collectorNumber || candidate?.cn || args.cn || '').trim().toLowerCase();
+  if (!setCode || !cn) return false;
+  const tokens = new Set(normalizedMatchTokens(userText));
+  return tokens.has(setCode) && tokens.has(cn);
+}
+
+function exactAddArgsFromUserText(userText, snapshot) {
+  const cleaned = cleanScryfallLookupName(userText);
+  const matches = [...cleaned.matchAll(/\b([a-z0-9]{2,6})\s+#?([a-z]?\d+[a-z]?)\b/gi)];
+  if (!matches.length) return null;
+  const match = matches[matches.length - 1];
+  const name = cleaned.slice(0, match.index).replace(/[,;]+$/g, '').trim();
+  if (!significantMatchTokens(name).length) return null;
+  const args = {
+    name,
+    setCode: String(match[1] || '').toLowerCase(),
+    cn: String(match[2] || ''),
+  };
+  const qty = requestedAddQuantity(userText);
+  const finish = finishFromInventoryText(userText);
+  const condition = conditionFromInventoryText(userText);
+  const location = snapshot ? mentionedDestinationLocation(snapshot, userText, null) : null;
+  if (qty) args.qty = qty;
+  if (finish) args.finish = finish;
+  if (condition) args.condition = condition;
+  if (location) args.location = location;
+  return args;
+}
+
+function preferredRegularAddCandidate(candidates, userText) {
+  if (!requestsRegularPrinting(userText)) return null;
+  const ranked = preferPrintingCandidatesForRequest(candidates, userText);
+  const [first, second] = ranked;
+  if (!first) return null;
+  const firstScore = regularPrintingScore(first, userText);
+  const secondScore = second ? regularPrintingScore(second, userText) : -Infinity;
+  return firstScore > 0 && firstScore > secondScore ? first : null;
+}
+
+async function recoverCloudflareAddPreview({ env, deps, auth, messages, output }) {
+  const userText = lastUserText(messages);
+  if (!/\badd\b/i.test(userText)) return null;
+  if (duplicateSameStackRequestText(userText)) return null;
+  const existingPreviews = extractMcpPreviews({ output });
+  if (existingPreviews.some(preview => (
+    preview?.previewType === 'inventory.add'
+      && previewLooksLikeUserRequest(preview, userText)
+  ))) return null;
+  const cloud = await currentCloud(env, deps, auth.userId);
+  const exactArgs = exactAddArgsFromUserText(userText, cloud.snapshot);
+  if (exactArgs) {
+    const exactData = await executeTool('preview_add_inventory_item', exactArgs, env, deps, auth);
+    if (exactData?.status === 'preview') return outputToolResult('preview_add_inventory_item', exactData);
+  }
+  const drafts = extractMcpDrafts({ output });
+  const candidates = drafts.flatMap(draft => Array.isArray(draft.candidates) ? draft.candidates : []);
+  if (!candidates.length) return null;
+  const exactCandidates = candidates.filter(candidate => candidatePrintingMentionedInText(candidate, userText));
+  const regularCandidate = preferredRegularAddCandidate(candidates, userText);
+  const candidate = exactCandidates.length === 1
+    ? exactCandidates[0]
+    : regularCandidate
+    ? regularCandidate
+    : candidates.length === 1
+    ? candidates[0]
+    : null;
+  if (!candidate?.previewAddArgs) return null;
+
+  const location = mentionedDestinationLocation(cloud.snapshot, userText, null) || normalizeLocation(candidate.previewAddArgs.location);
+  const args = { ...candidate.previewAddArgs };
+  if (location) args.location = location;
+  const qty = requestedAddQuantity(userText);
+  const finish = finishFromInventoryText(userText);
+  const condition = conditionFromInventoryText(userText);
+  if (qty) args.qty = qty;
+  if (finish) args.finish = finish;
+  if (condition) args.condition = condition;
+  const data = await executeTool('preview_add_inventory_item', args, env, deps, auth);
+  return data?.status === 'preview' ? outputToolResult('preview_add_inventory_item', data) : null;
+}
+
+function addLookupNameFromUserText(userText) {
+  const text = cleanScryfallLookupName(userText);
+  if (!text) return '';
+  const tokens = significantMatchTokens(text);
+  return tokens.length ? text : '';
+}
+
+async function recoverCloudflareAddFromUserText({ env, deps, auth, messages, output }) {
+  const userText = lastUserText(messages);
+  if (!/\badd\b/i.test(userText)) return null;
+  if (duplicateSameStackRequestText(userText)) return null;
+  if (extractMcpPreviews({ output }).some(preview => preview?.previewType === 'inventory.add') || extractMcpDrafts({ output }).length) return null;
+  const cloud = await currentCloud(env, deps, auth.userId);
+  const name = addLookupNameFromUserText(userText);
+  if (!name) return null;
+  const args = { name };
+  const qty = requestedAddQuantity(userText);
+  const finish = finishFromInventoryText(userText);
+  const condition = conditionFromInventoryText(userText);
+  const location = mentionedDestinationLocation(cloud.snapshot, userText, null);
+  if (qty) args.qty = qty;
+  if (finish) args.finish = finish;
+  if (condition) args.condition = condition;
+  if (location) args.location = location;
+  const data = await executeTool('preview_add_inventory_item', args, env, deps, auth);
+  return data?.status ? outputToolResult('preview_add_inventory_item', data) : null;
+}
+
 async function runCloudflareChat({ env, deps, auth, model, messages, chatTools, maxOutputTokens }) {
   if (!env.AI || typeof env.AI.run !== 'function') {
     const err = new Error('Cloudflare Workers AI binding is not configured');
@@ -3394,6 +5259,7 @@ async function runCloudflareChat({ env, deps, auth, model, messages, chatTools, 
   const workingMessages = messages.map(message => ({ role: message.role, content: message.content }));
   const output = [];
   let finalResponse = null;
+  let providerError = '';
 
   for (let turn = 0; turn < 6; turn += 1) {
     const response = await env.AI.run(model, {
@@ -3403,6 +5269,39 @@ async function runCloudflareChat({ env, deps, auth, model, messages, chatTools, 
       max_tokens: maxOutputTokens,
     });
     finalResponse = response || {};
+    providerError = cloudflareProviderErrorText(finalResponse);
+    if (providerError) {
+      const recovered = await recoverCloudflarePrintingSwapPreview({ env, deps, auth, messages, output })
+        || await recoverCloudflareDeleteInventoryPreview({ env, deps, auth, messages, output })
+        || await recoverCloudflareDuplicateInventoryPreview({ env, deps, auth, messages, output })
+        || await recoverCloudflareMutationPreview({ env, deps, auth, messages, output })
+        || await recoverCloudflareCreateContainerPreview({ env, deps, auth, messages, output })
+        || await recoverCloudflareAddFromUserText({ env, deps, auth, messages, output });
+      if (recovered) {
+        output.push(recovered);
+        const recoveredData = { output: [recovered] };
+        finalResponse = {
+          response: extractMcpDrafts(recoveredData).length && !extractMcpPreviews(recoveredData).length
+            ? 'Choose options below.'
+            : 'Preview ready below.',
+          usage: finalResponse?.usage || null,
+          provider_error: providerError,
+          raw_error: finalResponse,
+        };
+      } else if (output.length) {
+        finalResponse = {
+          response: cloudflarePartialFailureText(output, lastUserText(messages), providerError),
+          usage: finalResponse?.usage || null,
+          provider_error: providerError,
+          raw_error: finalResponse,
+        };
+      } else {
+        const err = new Error(providerError);
+        err.status = 502;
+        throw err;
+      }
+      break;
+    }
     const calls = cloudflareToolCalls(finalResponse);
     if (!calls.length) break;
     workingMessages.push({
@@ -3412,17 +5311,25 @@ async function runCloudflareChat({ env, deps, auth, model, messages, chatTools, 
     });
     for (const call of calls) {
       const data = await executeTool(call.name, call.arguments, env, deps, auth);
-      const toolOutput = {
-        type: 'mcp_call',
-        name: call.name,
-        result: {
-          content: [{ type: 'text', text: JSON.stringify(data, null, 2) }],
-          structuredContent: data,
-        },
-      };
+      const toolOutput = outputToolResult(call.name, data);
       output.push(toolOutput);
-      workingMessages.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify(data, null, 2) });
+      workingMessages.push({ role: 'tool', tool_call_id: call.id, content: compactToolResultForModel(call.name, data) });
     }
+  }
+
+  const recovered = await recoverCloudflarePrintingSwapPreview({ env, deps, auth, messages, output })
+    || await recoverCloudflareDeleteInventoryPreview({ env, deps, auth, messages, output })
+    || await recoverCloudflareDuplicateInventoryPreview({ env, deps, auth, messages, output })
+    || await recoverCloudflareMutationPreview({ env, deps, auth, messages, output })
+    || await recoverCloudflareCreateContainerPreview({ env, deps, auth, messages, output })
+    || await recoverCloudflareAddPreview({ env, deps, auth, messages, output });
+  if (recovered) {
+    output.push(recovered);
+    finalResponse = {
+      ...(finalResponse || {}),
+      response: 'Preview ready below.',
+      recovery_reason: 'mutation_preview_from_inventory_result',
+    };
   }
 
   return {
@@ -3433,6 +5340,7 @@ async function runCloudflareChat({ env, deps, auth, model, messages, chatTools, 
     output,
     usage: finalResponse?.usage || null,
     raw_response: finalResponse,
+    provider_error: providerError,
   };
 }
 
@@ -3503,6 +5411,7 @@ export async function handleByokChatRequest(request, env, deps) {
   if (!messages.length) return deps.json({ error: 'messages are required' }, 400, request);
   const chatTools = visibleToolsForAuth({ clientId: MCP_CHAT_CLIENT_ID, scopes: [MCP_READ_SCOPE, MCP_WRITE_SCOPE] });
   const allowedToolNames = chatTools.map(tool => tool.name);
+  const chatAuth = { userId: clerkAuth.userId, scopes: [MCP_READ_SCOPE, MCP_WRITE_SCOPE], clientId: MCP_CHAT_CLIENT_ID };
   const mcpToken = provider === 'cloudflare'
     ? ''
     : await mintInternalMcpToken(env, { userId: clerkAuth.userId, scopes: [MCP_READ_SCOPE, MCP_WRITE_SCOPE] });
@@ -3518,20 +5427,23 @@ export async function handleByokChatRequest(request, env, deps) {
       const data = await runCloudflareChat({
         env,
         deps,
-        auth: { userId: clerkAuth.userId, scopes: [MCP_READ_SCOPE, MCP_WRITE_SCOPE], clientId: MCP_CHAT_CLIENT_ID },
+        auth: chatAuth,
         model,
         messages,
         chatTools,
         maxOutputTokens,
       });
+      const chatData = await augmentCollectionSummaryForChat({ env, deps, auth: chatAuth, messages, data });
+      const previewSnapshot = await previewValidationSnapshotForChat(env, deps, chatAuth, messages, chatData);
       return chatSuccessResponse(deps, request, {
         provider,
         model,
         hosted,
         usage,
-        data,
+        data: chatData,
         messages,
-        text: extractCloudflareText(data),
+        previewSnapshot,
+        text: extractCloudflareText(chatData),
       });
     }
 
@@ -3558,14 +5470,17 @@ export async function handleByokChatRequest(request, env, deps) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(providerErrorMessage(provider, data));
+      const chatData = await augmentCollectionSummaryForChat({ env, deps, auth: chatAuth, messages, data });
+      const previewSnapshot = await previewValidationSnapshotForChat(env, deps, chatAuth, messages, chatData);
       return chatSuccessResponse(deps, request, {
         provider,
         model,
         hosted,
         usage,
-        data,
+        data: chatData,
         messages,
-        text: extractOpenAiText(data),
+        previewSnapshot,
+        text: extractOpenAiText(chatData),
       });
     }
 
@@ -3593,14 +5508,17 @@ export async function handleByokChatRequest(request, env, deps) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(providerErrorMessage(provider, data));
+      const chatData = await augmentCollectionSummaryForChat({ env, deps, auth: chatAuth, messages, data });
+      const previewSnapshot = await previewValidationSnapshotForChat(env, deps, chatAuth, messages, chatData);
       return chatSuccessResponse(deps, request, {
         provider,
         model,
         hosted,
         usage,
-        data,
+        data: chatData,
         messages,
-        text: extractOpenAiText(data),
+        previewSnapshot,
+        text: extractOpenAiText(chatData),
       });
     }
 
@@ -3638,14 +5556,17 @@ export async function handleByokChatRequest(request, env, deps) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(providerErrorMessage(provider, data));
+      const chatData = await augmentCollectionSummaryForChat({ env, deps, auth: chatAuth, messages, data });
+      const previewSnapshot = await previewValidationSnapshotForChat(env, deps, chatAuth, messages, chatData);
       return chatSuccessResponse(deps, request, {
         provider,
         model,
         hosted,
         usage,
-        data,
+        data: chatData,
         messages,
-        text: extractAnthropicText(data),
+        previewSnapshot,
+        text: extractAnthropicText(chatData),
       });
     }
   } catch (e) {

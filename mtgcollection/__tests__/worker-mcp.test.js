@@ -208,8 +208,32 @@ test('mcp: OAuth debug flow issues a token that can list tools', async () => {
   assert.match(token.access_token, /^mcp_at_/);
 
   const listed = await rpc(env, token.access_token, 'tools/list');
+  assert.ok(listed.result.tools.some(tool => tool.name === 'get_agent_guide'));
   assert.ok(listed.result.tools.some(tool => tool.name === 'preview_create_container'));
   assert.ok(listed.result.tools.some(tool => tool.name === 'apply_collection_change'));
+});
+
+test('mcp: agent guide is exposed as tool, resource, and prompt', async () => {
+  const { env } = fakeSyncEnv();
+  const token = await issueMcpToken(env);
+
+  const initialized = await rpc(env, token.access_token, 'initialize');
+  assert.ok(initialized.result.capabilities.resources);
+  assert.ok(initialized.result.capabilities.prompts);
+
+  const tool = await callTool(env, token.access_token, 'get_agent_guide');
+  assert.match(tool.result.structuredContent.text, /regular printing/);
+  assert.match(tool.result.structuredContent.text, /decklist/);
+
+  const resources = await rpc(env, token.access_token, 'resources/list');
+  assert.equal(resources.result.resources[0].uri, 'mtgcollection://agent-guide');
+  const resource = await rpc(env, token.access_token, 'resources/read', { uri: 'mtgcollection://agent-guide' });
+  assert.match(resource.result.contents[0].text, /unique cards/);
+
+  const prompts = await rpc(env, token.access_token, 'prompts/list');
+  assert.equal(prompts.result.prompts[0].name, 'mtg_collection_agent_guide');
+  const prompt = await rpc(env, token.access_token, 'prompts/get', { name: 'mtg_collection_agent_guide' });
+  assert.match(prompt.result.messages[0].content.text, /preview_edit_inventory_item/);
 });
 
 test('mcp: raw MCP access tokens are accepted for hosted remote MCP adapters', async () => {
@@ -476,6 +500,222 @@ test('mcp: preview/apply inventory move updates snapshot, revision, and history'
   assert.match(state.snapshot.history[0].summary, /Moved 1 Sol Ring/);
 });
 
+test('mcp: preview edit inventory can combine move and finish changes', async () => {
+  const entry = card({
+    name: 'Glint-Nest Crane',
+    resolvedName: 'Glint-Nest Crane',
+    scryfallId: 'glint-nest-crane-1',
+    setCode: 'kld',
+    cn: '50',
+    finish: 'normal',
+    finishes: ['nonfoil', 'foil'],
+    location: { type: 'box', name: 'bulk' },
+  });
+  const snapshot = emptySnapshot({
+    collection: [entry],
+    containers: {
+      'box:bulk': { type: 'box', name: 'bulk' },
+      'binder:trade binder': { type: 'binder', name: 'trade binder' },
+    },
+  });
+  const { env, state } = fakeSyncEnv(snapshot, 9);
+  const token = await issueMcpToken(env);
+  const preview = await callTool(env, token.access_token, 'preview_edit_inventory_item', {
+    query: 'glint nest crane',
+    toLocation: 'trade binder',
+    finish: 'foil',
+  });
+  const data = preview.result.structuredContent;
+  assert.equal(data.status, 'preview');
+  assert.equal(data.previewType, 'inventory.edit');
+  assert.match(data.summary, /Updated 1 Glint-Nest Crane/);
+  assert.match(data.summary, /\{loc:binder:trade binder\}/);
+  assert.match(data.summary, /finish normal to foil/);
+  assert.equal(data.card.finish, 'foil');
+  assert.deepEqual(data.card.location, { type: 'binder', name: 'trade binder' });
+
+  const applied = await callTool(env, token.access_token, 'apply_collection_change', {
+    changeToken: data.changeToken,
+  });
+  assert.equal(applied.result.structuredContent.status, 'applied');
+  assert.equal(state.snapshot.app.collection.length, 1);
+  assert.equal(state.snapshot.app.collection[0].finish, 'foil');
+  assert.deepEqual(state.snapshot.app.collection[0].location, { type: 'binder', name: 'trade binder' });
+});
+
+test('mcp: destination aliases resolve existing deck boxes', async () => {
+  const entry = card({
+    name: 'Counterspell',
+    resolvedName: 'Counterspell',
+    scryfallId: 'counterspell-1',
+    setCode: '2xm',
+    cn: '47',
+    qty: 2,
+    location: { type: 'binder', name: 'trade binder' },
+  });
+  const snapshot = emptySnapshot({
+    collection: [entry],
+    containers: {
+      'binder:trade binder': { type: 'binder', name: 'trade binder' },
+      'deck:breya artifacts': {
+        type: 'deck',
+        name: 'breya artifacts',
+        deck: { title: 'Breya Artifacts', format: 'commander' },
+        deckList: [],
+      },
+    },
+  });
+  const { env, state } = fakeSyncEnv(snapshot, 9);
+  const token = await issueMcpToken(env);
+  const preview = await callTool(env, token.access_token, 'preview_move_inventory_item', {
+    query: 'counterspell',
+    fromLocation: 'trade binder',
+    toLocation: 'breya deck box',
+  });
+  const data = preview.result.structuredContent;
+  assert.equal(data.status, 'preview');
+  assert.match(data.summary, /\{loc:deck:breya artifacts\}/);
+
+  const applied = await callTool(env, token.access_token, 'apply_collection_change', {
+    changeToken: data.changeToken,
+  });
+  assert.equal(applied.result.structuredContent.status, 'applied');
+  assert.deepEqual(state.snapshot.app.collection[0].location, { type: 'deck', name: 'breya artifacts' });
+});
+
+test('mcp: preview delete inventory item removes a physical card', async () => {
+  const entry = card({
+    name: 'Great Furnace',
+    resolvedName: 'Great Furnace',
+    scryfallId: 'great-furnace-1',
+    setCode: 'sld',
+    cn: '303',
+    finish: 'foil',
+  });
+  const { env, state } = fakeSyncEnv(emptySnapshot({
+    collection: [entry],
+    containers: { 'box:bulk': { type: 'box', name: 'bulk' } },
+  }));
+  const token = await issueMcpToken(env);
+  const preview = await callTool(env, token.access_token, 'preview_delete_inventory_item', {
+    query: 'great furnace',
+  });
+  const data = preview.result.structuredContent;
+  assert.equal(data.status, 'preview');
+  assert.equal(data.previewType, 'inventory.delete');
+  assert.equal(data.card.name, 'Great Furnace');
+  assert.match(data.summary, /Deleted 1 Great Furnace/);
+
+  const applied = await callTool(env, token.access_token, 'apply_collection_change', {
+    changeToken: data.changeToken,
+  });
+  assert.equal(applied.result.structuredContent.status, 'applied');
+  assert.equal(state.snapshot.app.collection.length, 0);
+});
+
+test('mcp: preview duplicate inventory item adds another same-stack copy', async () => {
+  const entry = card({
+    name: 'Force of Will',
+    resolvedName: 'Force of Will',
+    scryfallId: 'force-of-will-1',
+    setCode: '2xm',
+    cn: '51',
+    location: { type: 'binder', name: 'trade binder' },
+  });
+  const { env, state } = fakeSyncEnv(emptySnapshot({
+    collection: [entry],
+    containers: { 'binder:trade binder': { type: 'binder', name: 'trade binder' } },
+  }));
+  const token = await issueMcpToken(env);
+  const preview = await callTool(env, token.access_token, 'preview_duplicate_inventory_item', {
+    query: 'force of will',
+    targetQty: 2,
+  });
+  const data = preview.result.structuredContent;
+  assert.equal(data.status, 'preview');
+  assert.equal(data.previewType, 'inventory.add');
+  assert.equal(data.card.name, 'Force of Will');
+  assert.equal(data.card.qty, 1);
+  assert.equal(data.card.totalQtyAfter, 2);
+
+  const applied = await callTool(env, token.access_token, 'apply_collection_change', {
+    changeToken: data.changeToken,
+  });
+  assert.equal(applied.result.structuredContent.status, 'applied');
+  assert.equal(state.snapshot.app.collection.length, 1);
+  assert.equal(state.snapshot.app.collection[0].qty, 2);
+});
+
+test('mcp: preview replace inventory printing swaps Scryfall metadata', async () => {
+  const entry = card({
+    name: 'Cyclonic Rift',
+    resolvedName: 'Cyclonic Rift',
+    scryfallId: 'cyclonic-rift-rtr',
+    setCode: 'rtr',
+    setName: 'Return to Ravnica',
+    cn: '35',
+    finish: 'normal',
+    location: { type: 'box', name: 'bulk' },
+  });
+  const { env, state } = fakeSyncEnv(emptySnapshot({
+    collection: [entry],
+    containers: { 'box:bulk': { type: 'box', name: 'bulk' } },
+  }));
+  const token = await issueMcpToken(env);
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async url => {
+    assert.equal(String(url), 'https://api.scryfall.com/cards/sld/999');
+    return Response.json({
+      id: 'cyclonic-rift-sld',
+      name: 'Cyclonic Rift',
+      set: 'sld',
+      set_name: 'Secret Lair Drop',
+      collector_number: '999',
+      lang: 'en',
+      rarity: 'rare',
+      cmc: 2,
+      colors: ['U'],
+      color_identity: ['U'],
+      type_line: 'Instant',
+      oracle_text: 'Return target nonland permanent...',
+      legalities: { commander: 'legal' },
+      finishes: ['foil'],
+      image_uris: { normal: 'https://img.test/rift-sld.jpg' },
+      prices: { usd_foil: '42.00' },
+      scryfall_uri: 'https://scryfall.test/card/sld/999/cyclonic-rift',
+    });
+  };
+  try {
+    const preview = await callTool(env, token.access_token, 'preview_replace_inventory_printing', {
+      itemKey: collectionKey(entry),
+      targetSetCode: 'sld',
+      targetCn: '999',
+      finish: 'foil',
+    });
+    const data = preview.result.structuredContent;
+    assert.equal(data.status, 'preview');
+    assert.equal(data.previewType, 'inventory.edit');
+    assert.equal(data.card.name, 'Cyclonic Rift');
+    assert.equal(data.card.setCode, 'sld');
+    assert.equal(data.card.cn, '999');
+    assert.equal(data.card.finish, 'foil');
+    assert.match(data.summary, /printing RTR #35 to SLD #999/i);
+
+    const applied = await callTool(env, token.access_token, 'apply_collection_change', {
+      changeToken: data.changeToken,
+    });
+    assert.equal(applied.result.structuredContent.status, 'applied');
+    assert.equal(state.snapshot.app.collection[0].scryfallId, 'cyclonic-rift-sld');
+    assert.equal(state.snapshot.app.collection[0].setCode, 'sld');
+    assert.equal(state.snapshot.app.collection[0].cn, '999');
+    assert.equal(state.snapshot.app.collection[0].finish, 'foil');
+    assert.equal(state.snapshot.app.collection[0].condition, 'near_mint');
+    assert.deepEqual(state.snapshot.app.collection[0].location, { type: 'box', name: 'bulk' });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('mcp: preview add inventory resolves an exact printing through Scryfall', async () => {
   const { env, state } = fakeSyncEnv(emptySnapshot());
   const token = await issueMcpToken(env);
@@ -588,6 +828,118 @@ test('mcp: preview add inventory returns candidate printings when only a name is
     assert.equal(data.candidates[0].setCode, 'tdm');
     assert.equal(data.candidates[0].previewAddArgs.scryfallId, 'hamlet-tdm-1');
     assert.equal(data.candidates[0].previewAddArgs.condition, 'near_mint');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp: preview add treats regular printing as a style hint, not card name text', async () => {
+  const { env } = fakeSyncEnv(emptySnapshot());
+  const token = await issueMcpToken(env);
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async url => {
+    const text = String(url);
+    assert.match(text, /\/cards\/search\?/);
+    assert.match(decodeURIComponent(text), /!"Serra Angel"/);
+    assert.doesNotMatch(decodeURIComponent(text), /regular printing/i);
+    return Response.json({
+      total_cards: 2,
+      has_more: false,
+      data: [
+        {
+          id: 'serra-promo',
+          name: 'Serra Angel',
+          set: 'p30a',
+          set_name: '30th Anniversary Promos',
+          set_type: 'promo',
+          collector_number: '1s',
+          released_at: '2022-01-01',
+          rarity: 'rare',
+          type_line: 'Creature - Angel',
+          finishes: ['foil'],
+          promo: true,
+          booster: false,
+          full_art: true,
+          frame_effects: ['showcase'],
+          image_uris: { normal: 'https://img.test/serra-promo.jpg' },
+          scryfall_uri: 'https://scryfall.test/card/promo/serra',
+        },
+        {
+          id: 'serra-base',
+          name: 'Serra Angel',
+          set: 'fdn',
+          set_name: 'Foundations',
+          set_type: 'core',
+          collector_number: '144',
+          released_at: '2024-11-15',
+          rarity: 'uncommon',
+          type_line: 'Creature - Angel',
+          finishes: ['nonfoil', 'foil'],
+          promo: false,
+          booster: true,
+          full_art: false,
+          frame_effects: [],
+          image_uris: { normal: 'https://img.test/serra-base.jpg' },
+          scryfall_uri: 'https://scryfall.test/card/fdn/144/serra-angel',
+        },
+      ],
+    });
+  };
+  try {
+    const preview = await callTool(env, token.access_token, 'preview_add_inventory_item', {
+      name: 'Serra Angel, the regular printing',
+      qty: 1,
+      condition: 'nm',
+    });
+    const data = preview.result.structuredContent;
+    assert.equal(data.status, 'needs_input');
+    assert.ok(data.missingFields.includes('finish'));
+    assert.ok(data.missingFields.includes('printing'));
+    assert.equal(data.candidates[0].setCode, 'fdn');
+    assert.equal(data.candidates[0].scryfallId, 'serra-base');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp: preview add rejects exact printing arguments that resolve to a different card name', async () => {
+  const snapshot = emptySnapshot({
+    containers: { 'box:bulk': { type: 'box', name: 'bulk' } },
+  });
+  const { env } = fakeSyncEnv(snapshot);
+  const token = await issueMcpToken(env);
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async url => {
+    assert.match(String(url), /\/cards\/cmm\/400$/);
+    return Response.json({
+      id: 'myr-sire-cmm-400',
+      name: 'Myr Sire',
+      set: 'cmm',
+      set_name: 'Commander Masters',
+      collector_number: '400',
+      lang: 'en',
+      rarity: 'common',
+      type_line: 'Artifact Creature - Phyrexian Myr',
+      finishes: ['nonfoil', 'foil'],
+      image_uris: { normal: 'https://img.test/myr-sire.jpg' },
+      prices: { usd: '0.17' },
+      scryfall_uri: 'https://scryfall.test/card/cmm/400/myr-sire',
+    });
+  };
+  try {
+    const preview = await callTool(env, token.access_token, 'preview_add_inventory_item', {
+      name: 'Sol Ring',
+      setCode: 'cmm',
+      cn: '400',
+      finish: 'normal',
+      condition: 'near_mint',
+      qty: 2,
+      location: { type: 'box', name: 'bulk' },
+    });
+    const data = preview.result.structuredContent;
+    assert.equal(data.status, 'needs_clarification');
+    assert.equal(data.changeToken, undefined);
+    assert.match(data.message, /resolves to "Myr Sire", not "Sol Ring"/);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -1361,6 +1713,1002 @@ test('mcp chat: hosted Cloudflare Workers AI uses the local preview tool loop', 
   }
 });
 
+test('mcp chat: hosted Cloudflare can preview combined inventory edits', async () => {
+  const snapshot = emptySnapshot({
+    collection: [
+      card({
+        name: 'Glint-Nest Crane',
+        resolvedName: 'Glint-Nest Crane',
+        scryfallId: 'glint-nest-crane-1',
+        setCode: 'kld',
+        cn: '50',
+        finish: 'normal',
+        finishes: ['nonfoil', 'foil'],
+        location: { type: 'box', name: 'bulk' },
+      }),
+    ],
+    containers: {
+      'box:bulk': { type: 'box', name: 'bulk' },
+      'binder:trade binder': { type: 'binder', name: 'trade binder' },
+    },
+  });
+  const { env } = fakeSyncEnv(snapshot);
+  env.MTGCOLLECTION_CHAT_PROVIDER = 'cloudflare';
+  let calls = 0;
+  let firstPayload = null;
+  env.AI = {
+    async run(model, payload) {
+      assert.equal(model, '@cf/openai/gpt-oss-120b');
+      calls += 1;
+      if (calls === 1) {
+        firstPayload = payload;
+        return {
+          tool_calls: [{
+            name: 'preview_edit_inventory_item',
+            arguments: {
+              query: 'glint nest crane',
+              toLocation: 'trade binder',
+              finish: 'foil',
+            },
+          }],
+        };
+      }
+      return { response: 'Preview ready below.' };
+    },
+  };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    throw new Error('Cloudflare hosted chat should use env.AI, not external fetch');
+  };
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        provider: 'cloudflare',
+        messages: [{ role: 'user', content: 'move my glint nest crane to my trade binder and make it foil' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(calls, 2);
+    assert.ok(firstPayload.tools.some(tool => tool.function?.name === 'preview_edit_inventory_item'));
+    assert.equal(data.previews.length, 1);
+    assert.equal(data.previews[0].previewType, 'inventory.edit');
+    assert.match(data.previews[0].summary, /finish normal to foil/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp chat: hosted Cloudflare does not duplicate plain move previews', async () => {
+  const snapshot = emptySnapshot({
+    collection: [
+      card({
+        name: 'Glint-Nest Crane',
+        resolvedName: 'Glint-Nest Crane',
+        scryfallId: 'glint-nest-crane-1',
+        setCode: 'kld',
+        cn: '50',
+        finish: 'normal',
+        location: { type: 'box', name: 'bulk' },
+      }),
+    ],
+    containers: {
+      'box:bulk': { type: 'box', name: 'bulk' },
+      'binder:trade binder': { type: 'binder', name: 'trade binder' },
+    },
+  });
+  const { env } = fakeSyncEnv(snapshot);
+  env.MTGCOLLECTION_CHAT_PROVIDER = 'cloudflare';
+  let calls = 0;
+  env.AI = {
+    async run() {
+      calls += 1;
+      if (calls === 1) {
+        return {
+          tool_calls: [{
+            name: 'preview_move_inventory_item',
+            arguments: {
+              query: 'glint nest crane',
+              toLocation: 'trade binder',
+            },
+          }],
+        };
+      }
+      return { response: 'Preview ready below.' };
+    },
+  };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    throw new Error('Cloudflare hosted chat should use env.AI, not external fetch');
+  };
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        provider: 'cloudflare',
+        messages: [{ role: 'user', content: 'move my glint nest crane to my trade binder' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(calls, 2);
+    assert.equal(data.text, 'Preview ready below.');
+    assert.equal(data.previews.length, 1);
+    assert.equal(data.previews[0].previewType, 'inventory.edit');
+    assert.match(data.previews[0].summary, /Moved 1 Glint-Nest Crane to \{loc:binder:trade binder\}/);
+    assert.equal(
+      data.previews[0].card.itemKey,
+      collectionKey({ ...snapshot.app.collection[0], location: { type: 'binder', name: 'trade binder' } })
+    );
+    assert.deepEqual(data.previews[0].card.location, { type: 'binder', name: 'trade binder' });
+    assert.deepEqual(data.raw.output.map(item => item.name), ['preview_move_inventory_item']);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp chat: Cloudflare sends compact tool results back to the model', async () => {
+  const entry = card({
+    name: 'Glint-Nest Crane',
+    resolvedName: 'Glint-Nest Crane',
+    scryfallId: 'glint-nest-crane-1',
+    setCode: 'kld',
+    cn: '50',
+    finish: 'normal',
+    location: { type: 'box', name: 'bulk' },
+  });
+  const snapshot = emptySnapshot({
+    collection: [entry],
+    containers: {
+      'box:bulk': { type: 'box', name: 'bulk' },
+      'binder:trade binder': { type: 'binder', name: 'trade binder' },
+    },
+  });
+  const { env } = fakeSyncEnv(snapshot);
+  env.MTGCOLLECTION_CHAT_PROVIDER = 'cloudflare';
+  let calls = 0;
+  let secondPayload = null;
+  env.AI = {
+    async run(model, payload) {
+      assert.equal(model, '@cf/openai/gpt-oss-120b');
+      calls += 1;
+      if (calls === 1) {
+        return {
+          tool_calls: [{
+            id: 'edit_call',
+            name: 'preview_edit_inventory_item',
+            arguments: {
+              itemKey: collectionKey(entry),
+              toLocation: 'trade binder',
+            },
+          }],
+        };
+      }
+      secondPayload = payload;
+      return { response: 'Preview ready below.' };
+    },
+  };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    throw new Error('Cloudflare hosted chat should use env.AI, not external fetch');
+  };
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        provider: 'cloudflare',
+        messages: [{ role: 'user', content: 'move glint nest crane to trade binder' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.previews.length, 1);
+    const toolMessage = secondPayload.messages.find(message => message.role === 'tool');
+    assert.ok(toolMessage);
+    assert.match(toolMessage.content, /Glint-Nest Crane/);
+    assert.doesNotMatch(toolMessage.content, /changeToken/);
+    assert.doesNotMatch(toolMessage.content, /beforeSnapshot/);
+    assert.ok(toolMessage.content.length < 4000);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp chat: Cloudflare 3030 after finding a card recovers a combined edit preview', async () => {
+  const snapshot = emptySnapshot({
+    collection: [
+      card({
+        name: 'Glint-Nest Crane',
+        resolvedName: 'Glint-Nest Crane',
+        scryfallId: 'glint-nest-crane-1',
+        setCode: 'kld',
+        cn: '50',
+        finish: 'normal',
+        finishes: ['nonfoil', 'foil'],
+        location: { type: 'box', name: 'bulk' },
+      }),
+    ],
+    containers: {
+      'box:bulk': { type: 'box', name: 'bulk' },
+      'binder:trade binder': { type: 'binder', name: 'trade binder' },
+    },
+  });
+  const { env } = fakeSyncEnv(snapshot);
+  env.MTGCOLLECTION_CHAT_PROVIDER = 'cloudflare';
+  let calls = 0;
+  env.AI = {
+    async run(model) {
+      assert.equal(model, '@cf/openai/gpt-oss-120b');
+      calls += 1;
+      if (calls === 1) {
+        return {
+          tool_calls: [{
+            name: 'search_inventory',
+            arguments: { query: 'glint nest crane', limit: 10 },
+          }],
+        };
+      }
+      return { response: '3030: internal server error' };
+    },
+  };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    throw new Error('Cloudflare hosted chat should use env.AI, not external fetch');
+  };
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        provider: 'cloudflare',
+        messages: [{ role: 'user', content: 'move my glint nest crane into my trade binder and update it to be foil' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(calls, 2);
+    assert.doesNotMatch(data.text, /3030/);
+    assert.equal(data.text, 'Preview ready below.');
+    assert.equal(data.previews.length, 1);
+    assert.equal(data.previews[0].previewType, 'inventory.edit');
+    assert.match(data.previews[0].summary, /Updated 1 Glint-Nest Crane/);
+    assert.match(data.previews[0].summary, /\{loc:binder:trade binder\}/);
+    assert.match(data.previews[0].summary, /finish normal to foil/);
+    assert.equal(data.raw.provider_error, '3030: internal server error');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp chat: Cloudflare 3030 on regular-printing add recovers input draft', async () => {
+  const { env } = fakeSyncEnv(emptySnapshot());
+  env.MTGCOLLECTION_CHAT_PROVIDER = 'cloudflare';
+  let aiCalls = 0;
+  env.AI = {
+    async run() {
+      aiCalls += 1;
+      return { response: '3030: internal server error' };
+    },
+  };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async url => {
+    assert.match(decodeURIComponent(String(url)), /!"emeritus of conflict"/i);
+    assert.doesNotMatch(decodeURIComponent(String(url)), /regular printing/i);
+    return Response.json({
+      total_cards: 1,
+      has_more: false,
+      data: [{
+        id: 'emeritus-base',
+        name: 'Emeritus of Conflict // Lightning Bolt',
+        set: 'fin',
+        set_name: 'Final Fantasy',
+        set_type: 'expansion',
+        collector_number: '133',
+        released_at: '2025-06-13',
+        rarity: 'rare',
+        type_line: 'Creature // Instant',
+        finishes: ['nonfoil', 'foil'],
+        promo: false,
+        booster: true,
+        full_art: false,
+        frame_effects: [],
+        image_uris: { normal: 'https://img.test/emeritus.jpg' },
+        scryfall_uri: 'https://scryfall.test/card/fin/133/emeritus-of-conflict',
+      }],
+    });
+  };
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        provider: 'cloudflare',
+        messages: [{ role: 'user', content: 'add a nm emeritus of conflict, the regular printing' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(aiCalls, 1);
+    assert.equal(data.text, 'Choose options below.');
+    assert.equal(data.drafts.length, 1);
+    assert.equal(data.drafts[0].candidates[0].setCode, 'fin');
+    assert.deepEqual(data.raw.output.map(item => item.name), ['preview_add_inventory_item']);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp chat: delete from collection recovers from destination-style confusion', async () => {
+  const entry = card({
+    name: 'Great Furnace',
+    resolvedName: 'Great Furnace',
+    scryfallId: 'great-furnace-1',
+    setCode: 'sld',
+    cn: '303',
+    finish: 'foil',
+    location: { type: 'box', name: 'bulk' },
+  });
+  const snapshot = emptySnapshot({
+    collection: [entry],
+    containers: { 'box:bulk': { type: 'box', name: 'bulk' } },
+  });
+  const { env } = fakeSyncEnv(snapshot);
+  env.MTGCOLLECTION_CHAT_PROVIDER = 'cloudflare';
+  let calls = 0;
+  env.AI = {
+    async run() {
+      calls += 1;
+      if (calls === 1) {
+        return {
+          tool_calls: [{
+            name: 'search_inventory',
+            arguments: { query: 'great furnace', limit: 5 },
+          }],
+        };
+      }
+      return { response: 'I need a destination container to move the card out of inventory.' };
+    },
+  };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    throw new Error('Cloudflare hosted chat should use env.AI, not external fetch');
+  };
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        provider: 'cloudflare',
+        messages: [{ role: 'user', content: 'remove the great furnace from my collection entirely' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(calls, 2);
+    assert.equal(data.text, 'Preview ready below.');
+    assert.equal(data.previews.length, 1);
+    assert.equal(data.previews[0].previewType, 'inventory.delete');
+    assert.equal(data.previews[0].card.name, 'Great Furnace');
+    assert.deepEqual(data.raw.output.map(item => item.name), ['search_inventory', 'preview_delete_inventory_item']);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp chat: another same style recovers to same-stack add preview', async () => {
+  const entry = card({
+    name: 'Force of Will',
+    resolvedName: 'Force of Will',
+    scryfallId: 'force-of-will-1',
+    setCode: '2xm',
+    cn: '51',
+    location: { type: 'binder', name: 'trade binder' },
+  });
+  const snapshot = emptySnapshot({
+    collection: [entry],
+    containers: { 'binder:trade binder': { type: 'binder', name: 'trade binder' } },
+  });
+  const { env } = fakeSyncEnv(snapshot);
+  env.MTGCOLLECTION_CHAT_PROVIDER = 'cloudflare';
+  let calls = 0;
+  env.AI = {
+    async run() {
+      calls += 1;
+      if (calls === 1) {
+        return {
+          tool_calls: [{
+            name: 'search_inventory',
+            arguments: { query: 'force of will', limit: 5 },
+          }],
+        };
+      }
+      return { response: '3030: internal server error' };
+    },
+  };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    throw new Error('Cloudflare hosted chat should use env.AI, not external fetch');
+  };
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        provider: 'cloudflare',
+        messages: [{ role: 'user', content: 'add another force of will same style to my collection i have 2 of them now' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(calls, 2);
+    assert.equal(data.text, 'Preview ready below.');
+    assert.equal(data.previews.length, 1);
+    assert.equal(data.previews[0].previewType, 'inventory.add');
+    assert.equal(data.previews[0].card.name, 'Force of Will');
+    assert.equal(data.previews[0].card.qty, 1);
+    assert.equal(data.previews[0].card.totalQtyAfter, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp chat: Cloudflare wrong add-miss prose after finding a card recovers edit preview', async () => {
+  const snapshot = emptySnapshot({
+    collection: [
+      card({
+        name: 'Glint-Nest Crane',
+        resolvedName: 'Glint-Nest Crane',
+        scryfallId: 'glint-nest-crane-1',
+        setCode: 'kld',
+        cn: '50',
+        finish: 'normal',
+        finishes: ['nonfoil', 'foil'],
+        location: { type: 'box', name: 'bulk' },
+      }),
+    ],
+    containers: {
+      'box:bulk': { type: 'box', name: 'bulk' },
+      'binder:trade binder': { type: 'binder', name: 'trade binder' },
+    },
+  });
+  const { env } = fakeSyncEnv(snapshot);
+  env.MTGCOLLECTION_CHAT_PROVIDER = 'cloudflare';
+  let calls = 0;
+  env.AI = {
+    async run(model) {
+      assert.equal(model, '@cf/openai/gpt-oss-120b');
+      calls += 1;
+      if (calls === 1) {
+        return {
+          tool_calls: [{
+            name: 'search_inventory',
+            arguments: { query: 'glint nest crane', limit: 10 },
+          }],
+        };
+      }
+      return {
+        response: 'I could not find a matching real Magic card for that add request. Check the spelling, or give me an exact set code and collector number or a Scryfall link.',
+      };
+    },
+  };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    throw new Error('Cloudflare hosted chat should use env.AI, not external fetch');
+  };
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        provider: 'cloudflare',
+        messages: [{ role: 'user', content: 'move my glint nest crane into my trade binder and update it to be foil' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(calls, 2);
+    assert.equal(data.text, 'Preview ready below.');
+    assert.equal(data.previews.length, 1);
+    assert.equal(data.previews[0].previewType, 'inventory.edit');
+    assert.match(data.previews[0].summary, /Updated 1 Glint-Nest Crane/);
+    assert.match(data.previews[0].summary, /\{loc:binder:trade binder\}/);
+    assert.match(data.previews[0].summary, /finish normal to foil/);
+    assert.equal(data.raw.raw_response.recovery_reason, 'mutation_preview_from_inventory_result');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp chat: preview results override contradictory provider failure prose', async () => {
+  const snapshot = emptySnapshot({
+    collection: [
+      card({
+        name: 'Chandra, Torch of Defiance',
+        resolvedName: 'Chandra, Torch of Defiance',
+        scryfallId: 'chandra-1',
+        setCode: 'kld',
+        cn: '110',
+        finish: 'normal',
+        location: { type: 'box', name: 'bulk' },
+      }),
+    ],
+    containers: {
+      'box:bulk': { type: 'box', name: 'bulk' },
+      'binder:trade binder': { type: 'binder', name: 'trade binder' },
+    },
+  });
+  const { env } = fakeSyncEnv(snapshot);
+  env.MTGCOLLECTION_CHAT_PROVIDER = 'cloudflare';
+  let calls = 0;
+  env.AI = {
+    async run() {
+      calls += 1;
+      if (calls === 1) {
+        return {
+          tool_calls: [{
+            name: 'preview_edit_inventory_item',
+            arguments: {
+              query: 'chandra torch of defiance',
+              toLocation: 'trade binder',
+              condition: 'lightly_played',
+            },
+          }],
+        };
+      }
+      return {
+        response: 'I could not find a matching real Magic card for that add request. Check the spelling, or give me an exact set code and collector number or a Scryfall link.',
+      };
+    },
+  };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    throw new Error('Cloudflare hosted chat should use env.AI, not external fetch');
+  };
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        provider: 'cloudflare',
+        messages: [{ role: 'user', content: 'move chandra torch of defiance to trade binder and mark it lightly played' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.text, 'Preview ready below.');
+    assert.equal(data.previews.length, 1);
+    assert.equal(data.previews[0].previewType, 'inventory.edit');
+    assert.match(data.previews[0].summary, /condition near mint to lightly played/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp chat: Cloudflare recovers edit previews from user text after bad tool arguments', async () => {
+  const snapshot = emptySnapshot({
+    collection: [
+      card({
+        name: 'Chandra, Torch of Defiance',
+        resolvedName: 'Chandra, Torch of Defiance',
+        scryfallId: 'chandra-1',
+        setCode: 'kld',
+        cn: '110',
+        finish: 'normal',
+        location: { type: 'box', name: 'bulk' },
+      }),
+    ],
+    containers: {
+      'box:bulk': { type: 'box', name: 'bulk' },
+      'binder:trade binder': { type: 'binder', name: 'trade binder' },
+    },
+  });
+  const { env } = fakeSyncEnv(snapshot);
+  env.MTGCOLLECTION_CHAT_PROVIDER = 'cloudflare';
+  let calls = 0;
+  env.AI = {
+    async run() {
+      calls += 1;
+      if (calls === 1) {
+        return {
+          tool_calls: [{
+            name: 'preview_edit_inventory_item',
+            arguments: {
+              query: 'chandra',
+              toLocation: 'trade binder',
+              condition: 'lp',
+              fromCondition: 'damaged',
+            },
+          }],
+        };
+      }
+      return {
+        response: 'I could not find a matching real Magic card for that add request. Check the spelling, or give me an exact set code and collector number or a Scryfall link.',
+      };
+    },
+  };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    throw new Error('Cloudflare hosted chat should use env.AI, not external fetch');
+  };
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        provider: 'cloudflare',
+        messages: [{ role: 'user', content: 'move chandra torch of defiance to trade binder and mark it lightly played' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.text, 'Preview ready below.');
+    assert.equal(data.previews.length, 1);
+    assert.equal(data.previews[0].previewType, 'inventory.edit');
+    assert.equal(data.previews[0].card.name, 'Chandra, Torch of Defiance');
+    assert.equal(data.previews[0].card.condition, 'lightly_played');
+    assert.deepEqual(data.previews[0].card.location, { type: 'binder', name: 'trade binder' });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp chat: incomplete edit previews are replaced with a preview that covers every requested edit', async () => {
+  const entry = card({
+    name: 'Glint-Nest Crane',
+    resolvedName: 'Glint-Nest Crane',
+    scryfallId: 'glint-nest-crane-1',
+    setCode: 'kld',
+    cn: '50',
+    finish: 'normal',
+    finishes: ['nonfoil', 'foil'],
+    location: { type: 'box', name: 'bulk' },
+  });
+  const snapshot = emptySnapshot({
+    collection: [entry],
+    containers: {
+      'box:bulk': { type: 'box', name: 'bulk' },
+      'binder:trade binder': { type: 'binder', name: 'trade binder' },
+    },
+  });
+  const { env } = fakeSyncEnv(snapshot);
+  env.MTGCOLLECTION_CHAT_PROVIDER = 'cloudflare';
+  let calls = 0;
+  env.AI = {
+    async run() {
+      calls += 1;
+      if (calls === 1) {
+        return {
+          tool_calls: [{
+            name: 'search_inventory',
+            arguments: { query: 'glint nest crane', limit: 5 },
+          }, {
+            name: 'preview_edit_inventory_item',
+            arguments: { itemKey: collectionKey(entry), finish: 'foil' },
+          }],
+        };
+      }
+      return {
+        response: 'I prepared a preview to move Glint-Nest Crane to the trade binder and make it foil.',
+      };
+    },
+  };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    throw new Error('Cloudflare hosted chat should use env.AI, not external fetch');
+  };
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        provider: 'cloudflare',
+        messages: [{ role: 'user', content: 'move my glint nest crane into my trade binder and update it to be foil' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.text, 'Preview ready below.');
+    assert.equal(data.previews.length, 1);
+    assert.equal(data.previews[0].previewType, 'inventory.edit');
+    assert.equal(data.previews[0].card.name, 'Glint-Nest Crane');
+    assert.equal(data.previews[0].card.finish, 'foil');
+    assert.deepEqual(data.previews[0].card.location, { type: 'binder', name: 'trade binder' });
+    assert.equal(data.previewWarnings.length, 1);
+    assert.match(data.previewWarnings[0], /Glint-Nest Crane/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp chat: printing swap recovers from finish-only preview', async () => {
+  const entry = card({
+    name: 'Cyclonic Rift',
+    resolvedName: 'Cyclonic Rift',
+    scryfallId: 'cyclonic-rift-rtr',
+    setCode: 'rtr',
+    setName: 'Return to Ravnica',
+    cn: '35',
+    finish: 'normal',
+    location: { type: 'box', name: 'bulk' },
+  });
+  const snapshot = emptySnapshot({
+    collection: [entry],
+    containers: { 'box:bulk': { type: 'box', name: 'bulk' } },
+  });
+  const { env } = fakeSyncEnv(snapshot);
+  env.MTGCOLLECTION_CHAT_PROVIDER = 'cloudflare';
+  let calls = 0;
+  env.AI = {
+    async run() {
+      calls += 1;
+      if (calls === 1) {
+        return {
+          tool_calls: [{
+            name: 'preview_edit_inventory_item',
+            arguments: { itemKey: collectionKey(entry), finish: 'foil' },
+          }],
+        };
+      }
+      return { response: 'Preview ready below.' };
+    },
+  };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async url => {
+    const href = String(url);
+    assert.match(href, /\/cards\/search\?/);
+    return Response.json({
+      total_cards: 2,
+      has_more: false,
+      data: [{
+        id: 'cyclonic-rift-rtr',
+        name: 'Cyclonic Rift',
+        set: 'rtr',
+        set_name: 'Return to Ravnica',
+        set_type: 'expansion',
+        collector_number: '35',
+        released_at: '2012-10-05',
+        rarity: 'rare',
+        type_line: 'Instant',
+        finishes: ['nonfoil', 'foil'],
+        image_uris: { normal: 'https://img.test/rift-rtr.jpg' },
+        prices: { usd: '33.00', usd_foil: '90.00' },
+        scryfall_uri: 'https://scryfall.test/card/rtr/35/cyclonic-rift',
+      }, {
+        id: 'cyclonic-rift-sld',
+        name: 'Cyclonic Rift',
+        set: 'sld',
+        set_name: 'Secret Lair Drop',
+        set_type: 'promo',
+        collector_number: '999',
+        released_at: '2025-01-01',
+        rarity: 'rare',
+        type_line: 'Instant',
+        finishes: ['foil'],
+        image_uris: { normal: 'https://img.test/rift-sld.jpg' },
+        prices: { usd_foil: '42.00' },
+        scryfall_uri: 'https://scryfall.test/card/sld/999/cyclonic-rift',
+      }],
+    });
+  };
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        provider: 'cloudflare',
+        messages: [{ role: 'user', content: 'change the printing on my cyclonic rift, i swapped it to a secret lair foil one' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(calls, 2);
+    assert.equal(data.text, 'Preview ready below.');
+    assert.equal(data.previews.length, 1);
+    assert.equal(data.previews[0].previewType, 'inventory.edit');
+    assert.equal(data.previews[0].card.name, 'Cyclonic Rift');
+    assert.equal(data.previews[0].card.setCode, 'sld');
+    assert.equal(data.previews[0].card.cn, '999');
+    assert.equal(data.previews[0].card.finish, 'foil');
+    assert.equal(data.previewWarnings.length, 1);
+    assert.deepEqual(data.raw.output.map(item => item.name), ['preview_edit_inventory_item', 'preview_replace_inventory_printing']);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp chat: exact add requests can recover from search-only Cloudflare tool use', async () => {
+  const snapshot = emptySnapshot({
+    containers: {
+      'box:bulk': { type: 'box', name: 'bulk' },
+    },
+  });
+  const { env } = fakeSyncEnv(snapshot);
+  env.MTGCOLLECTION_CHAT_PROVIDER = 'cloudflare';
+  let calls = 0;
+  env.AI = {
+    async run() {
+      calls += 1;
+      if (calls === 1) {
+        return {
+          tool_calls: [{
+            name: 'search_card_printings',
+            arguments: { name: 'Sol Ring' },
+          }],
+        };
+      }
+      return { response: 'Choose options below.' };
+    },
+  };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async url => {
+    const href = String(url);
+    if (/\/cards\/search\?/.test(href)) {
+      return Response.json({
+        total_cards: 2,
+        has_more: false,
+        data: [
+          {
+            id: 'sol-ring-sld',
+            name: 'Sol Ring',
+            set: 'sld',
+            set_name: 'Secret Lair Drop',
+            collector_number: '2417',
+            released_at: '2024-01-01',
+            rarity: 'rare',
+            type_line: 'Artifact',
+            finishes: ['foil'],
+            image_uris: { normal: 'https://img.test/sol-sld.jpg' },
+            prices: { usd_foil: '5.00' },
+            scryfall_uri: 'https://scryfall.test/card/sld/2417/sol-ring',
+          },
+          {
+            id: 'sol-ring-cmm-400',
+            name: 'Sol Ring',
+            set: 'cmm',
+            set_name: 'Commander Masters',
+            collector_number: '400',
+            released_at: '2023-08-04',
+            rarity: 'uncommon',
+            type_line: 'Artifact',
+            finishes: ['nonfoil', 'foil'],
+            image_uris: { normal: 'https://img.test/sol-cmm.jpg' },
+            prices: { usd: '2.50', usd_foil: '4.00' },
+            scryfall_uri: 'https://scryfall.test/card/cmm/400/sol-ring',
+          },
+        ],
+      });
+    }
+    if (/\/cards\/sol-ring-cmm-400$/.test(href)) {
+      return Response.json({
+        id: 'sol-ring-cmm-400',
+        name: 'Sol Ring',
+        set: 'cmm',
+        set_name: 'Commander Masters',
+        collector_number: '400',
+        lang: 'en',
+        rarity: 'uncommon',
+        type_line: 'Artifact',
+        finishes: ['nonfoil', 'foil'],
+        image_uris: { normal: 'https://img.test/sol-cmm.jpg' },
+        prices: { usd: '2.50', usd_foil: '4.00' },
+        scryfall_uri: 'https://scryfall.test/card/cmm/400/sol-ring',
+      });
+    }
+    throw new Error('unexpected Scryfall URL: ' + href);
+  };
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        provider: 'cloudflare',
+        messages: [{ role: 'user', content: 'add two near mint nonfoil sol ring cmm 400 to bulk' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.text, 'Preview ready below.');
+    assert.equal(data.previews.length, 1);
+    assert.equal(data.previews[0].previewType, 'inventory.add');
+    assert.equal(data.previews[0].card.name, 'Sol Ring');
+    assert.equal(data.previews[0].card.setCode, 'cmm');
+    assert.equal(data.previews[0].card.cn, '400');
+    assert.equal(data.previews[0].card.qty, 2);
+    assert.equal(data.previews[0].card.finish, 'normal');
+    assert.deepEqual(data.previews[0].card.location, { type: 'box', name: 'bulk' });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp chat: Cloudflare recovers natural-language create container requests from empty tool args', async () => {
+  const { env } = fakeSyncEnv(emptySnapshot());
+  env.MTGCOLLECTION_CHAT_PROVIDER = 'cloudflare';
+  let calls = 0;
+  env.AI = {
+    async run() {
+      calls += 1;
+      if (calls === 1) {
+        return {
+          tool_calls: [{
+            name: 'preview_create_container',
+            arguments: {},
+          }],
+        };
+      }
+      return { response: 'Where should I place that box?' };
+    },
+  };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    throw new Error('Cloudflare hosted chat should use env.AI, not external fetch');
+  };
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        provider: 'cloudflare',
+        messages: [{ role: 'user', content: 'make me a box called prize support' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.text, 'Preview ready below.');
+    assert.equal(data.previews.length, 1);
+    assert.match(data.previews[0].summary, /\{loc:box:prize support\}/);
+    assert.equal(data.raw.output.filter(item => item.name === 'preview_create_container').length, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('mcp chat: add input needs are returned as app-renderable drafts', async () => {
   const { env } = fakeSyncEnv();
   env.MTGCOLLECTION_CHAT_GROQ_API_KEY = 'gsk-hosted-secret';
@@ -1692,6 +3040,73 @@ test('mcp chat: inventory card results replace provider prose with a short summa
     const data = await res.json();
     assert.equal(data.text, 'I found 2 foil cards from your collection. They are shown below.');
     assert.equal(data.cards.length, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('mcp chat: collection unique count questions recover from mistaken card searches', async () => {
+  const snapshot = emptySnapshot({
+    collection: [
+      card({
+        itemKey: 'mox-key',
+        name: 'Mox Opal',
+        resolvedName: 'Mox Opal',
+        scryfallId: 'mox-opal-1',
+        setCode: 'sld',
+        cn: '1072',
+        finish: 'etched',
+        qty: 1,
+      }),
+      card({
+        itemKey: 'sol-ring-key',
+        name: 'Sol Ring',
+        resolvedName: 'Sol Ring',
+        scryfallId: 'sol-ring-1',
+        setCode: 'cmm',
+        cn: '400',
+        qty: 3,
+      }),
+    ],
+  });
+  const { env } = fakeSyncEnv(snapshot);
+  env.MTGCOLLECTION_CHAT_PROVIDER = 'cloudflare';
+  let calls = 0;
+  env.AI = {
+    async run() {
+      calls += 1;
+      if (calls === 1) {
+        return {
+          tool_calls: [{
+            name: 'search_inventory',
+            arguments: { query: 'Mox Opal', limit: 1 },
+          }],
+        };
+      }
+      return { response: 'I found 1 card from your collection. It is shown below.' };
+    },
+  };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    throw new Error('Cloudflare hosted chat should use env.AI, not external fetch');
+  };
+  try {
+    const res = await worker.fetch(new Request('https://example.com/mcp/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-User': 'user_1',
+      },
+      body: JSON.stringify({
+        provider: 'cloudflare',
+        messages: [{ role: 'user', content: 'how many unique cards in my collection' }],
+      }),
+    }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.text, 'You have 2 unique cards in your collection.');
+    assert.equal(data.cards.length, 0);
+    assert.deepEqual(data.raw.output.map(item => item.name), ['search_inventory', 'get_collection_summary']);
   } finally {
     globalThis.fetch = originalFetch;
   }

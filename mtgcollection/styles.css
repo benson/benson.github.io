@@ -5072,6 +5072,17 @@
     font-size: 0.9rem;
     line-height: 1.35;
   }
+  .mcp-chat-inline-card.card-name-button {
+    display: inline;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 2px;
+    width: auto;
+  }
+  .mcp-chat-inline-card.card-name-button:hover,
+  .mcp-chat-inline-card.card-name-button:focus-visible {
+    text-decoration-style: solid;
+  }
   .mcp-chat-inline-location {
     display: inline-flex;
     margin: 0 2px;
@@ -5126,8 +5137,23 @@
   .mcp-chat-card-row {
     border-top: 1px solid #eee7dc;
     display: grid;
-    grid-template-columns: minmax(170px, 1.6fr) 62px 42px 58px 38px 48px minmax(128px, 1fr) minmax(120px, 1fr) 36px 64px 36px;
-    min-width: 820px;
+    grid-template-columns: minmax(180px, 1.6fr) 64px 48px 72px 58px 76px minmax(140px, 1fr) minmax(130px, 1fr) 44px 72px 44px;
+    min-width: 970px;
+  }
+  .mcp-chat-card-header {
+    background: #f7f3eb;
+    border-top: 0;
+    color: #666;
+    font-size: 0.68rem;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+  .mcp-chat-card-header-cell {
+    align-items: center;
+    display: flex;
+    min-width: 0;
+    padding: 4px 8px;
+    white-space: nowrap;
   }
   .mcp-chat-reference-row > *:not(.mcp-chat-card-move) {
     align-items: center;
