@@ -35,7 +35,7 @@
     grid-template-areas:
       "header header header"
       "left   main   right"
-      "footer footer footer";
+      "left   footer right";
     transition: grid-template-columns 180ms ease;
   }
 
