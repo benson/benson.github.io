@@ -95,9 +95,10 @@ export const SETS_WITH_RETRO_IN_BOOSTERS = new Set(['mh3']);
 
 // Promo types that are collector booster exclusives
 export const COLLECTOR_EXCLUSIVE_PROMOS = [
-  'fracturefoil', 'texturedfoil', 'ripplefoil',
+  'fracturefoil', 'texturedfoil', 'textured', 'ripplefoil',
   'halofoil', 'confettifoil', 'galaxyfoil', 'surgefoil',
-  'raisedfoil', 'headliner'
+  'raisedfoil', 'serialized', 'manafoil', 'invisibleink', 'neonink',
+  'headliner'
 ];
 
 // Frame effects that are collector booster exclusives
@@ -780,7 +781,12 @@ export async function fetchSetConfigs() {
 
 // Check if a collector number is within a range string like "262-281" or "342"
 function isInRange(cn, rangeStr) {
-  const cnNum = parseInt(cn, 10);
+  const cnText = String(cn ?? '').trim();
+  // Scryfall uses a "z" suffix for serialized variants of existing collector
+  // numbers (e.g. MKM 321z). Numeric booster ranges should not match those.
+  if (/^\d+z$/i.test(cnText)) return false;
+
+  const cnNum = parseInt(cnText, 10);
   if (isNaN(cnNum)) return false;
 
   if (rangeStr.includes('-')) {
@@ -793,6 +799,9 @@ function isInRange(cn, rangeStr) {
 // Check if a card is in the play booster based on set config
 export function isInPlayBooster(card, setConfig) {
   if (!setConfig?.playBooster?.includeCollectorNumbers) return null; // no config, use default logic
+
+  const promos = card.promo_types || [];
+  if (promos.some(p => COLLECTOR_EXCLUSIVE_PROMOS.includes(p))) return false;
 
   const cn = card.collector_number;
   const ranges = setConfig.playBooster.includeCollectorNumbers;
