@@ -1,852 +1,3157 @@
 [
   {
-    "code": "msh",
-    "name": "Marvel Super Heroes",
-    "released": "2026-06-26"
-  },
-  {
     "code": "sos",
     "name": "Secrets of Strixhaven",
-    "released": "2026-04-24"
+    "released": "2026-04-24",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "play",
+    "limitedLabel": "play",
+    "mtgjsonBoosterTypes": [
+      "collector",
+      "play"
+    ],
+    "extraSheetLabel": "the list / special guests"
   },
   {
     "code": "tmt",
     "name": "Teenage Mutant Ninja Turtles",
-    "released": "2026-03-06"
+    "released": "2026-03-06",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "play",
+    "limitedLabel": "play",
+    "mtgjsonBoosterTypes": [
+      "collector",
+      "play"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "ecl",
     "name": "Lorwyn Eclipsed",
-    "released": "2026-01-23"
+    "released": "2026-01-23",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "play",
+    "limitedLabel": "play",
+    "mtgjsonBoosterTypes": [
+      "collector",
+      "play"
+    ],
+    "extraSheetLabel": "the list / special guests"
+  },
+  {
+    "code": "tle",
+    "name": "Avatar: The Last Airbender Eternal",
+    "released": "2025-11-21",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "jumpstart",
+    "limitedLabel": "jumpstart",
+    "mtgjsonBoosterTypes": [
+      "jumpstart"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "tla",
     "name": "Avatar: The Last Airbender",
-    "released": "2025-11-21"
+    "released": "2025-11-21",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "play",
+    "limitedLabel": "play",
+    "mtgjsonBoosterTypes": [
+      "collector",
+      "play",
+      "prerelease"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "spm",
     "name": "Marvel's Spider-Man",
-    "released": "2025-09-26"
+    "released": "2025-09-26",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "play",
+    "limitedLabel": "play",
+    "mtgjsonBoosterTypes": [
+      "collector",
+      "play",
+      "prerelease"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "eoe",
     "name": "Edge of Eternities",
-    "released": "2025-08-01"
+    "released": "2025-08-01",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "play",
+    "limitedLabel": "play",
+    "mtgjsonBoosterTypes": [
+      "collector",
+      "play",
+      "prerelease"
+    ],
+    "extraSheetLabel": "the list / special guests"
   },
   {
     "code": "fin",
     "name": "Final Fantasy",
-    "released": "2025-06-13"
+    "released": "2025-06-13",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "play",
+    "limitedLabel": "play",
+    "mtgjsonBoosterTypes": [
+      "bundle-promo",
+      "chocobo-bundle",
+      "chocobo-bundle-scene",
+      "collector",
+      "collector-sample",
+      "play",
+      "prerelease"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "tdm",
     "name": "Tarkir: Dragonstorm",
-    "released": "2025-04-11"
+    "released": "2025-04-11",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "play",
+    "limitedLabel": "play",
+    "mtgjsonBoosterTypes": [
+      "collector",
+      "play",
+      "prerelease"
+    ],
+    "extraSheetLabel": "the list / special guests"
   },
   {
     "code": "dft",
     "name": "Aetherdrift",
-    "released": "2025-02-14"
+    "released": "2025-02-14",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "play",
+    "limitedLabel": "play",
+    "mtgjsonBoosterTypes": [
+      "box-topper",
+      "collector",
+      "play",
+      "prerelease"
+    ],
+    "extraSheetLabel": "the list / special guests"
   },
   {
     "code": "inr",
     "name": "Innistrad Remastered",
-    "released": "2025-01-24"
-  },
-  {
-    "code": "j25",
-    "name": "Foundations Jumpstart",
-    "released": "2024-11-15"
+    "released": "2025-01-24",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "play",
+    "limitedLabel": "play",
+    "mtgjsonBoosterTypes": [
+      "collector",
+      "play"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "fdn",
     "name": "Foundations",
-    "released": "2024-11-15"
+    "released": "2024-11-15",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "play",
+    "limitedLabel": "play",
+    "mtgjsonBoosterTypes": [
+      "beginner",
+      "collector",
+      "play",
+      "prerelease"
+    ],
+    "extraSheetLabel": "the list / special guests"
+  },
+  {
+    "code": "j25",
+    "name": "Foundations Jumpstart",
+    "released": "2024-11-15",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "jumpstart",
+    "limitedLabel": "jumpstart",
+    "mtgjsonBoosterTypes": [
+      "jumpstart"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "dsk",
     "name": "Duskmourn: House of Horror",
-    "released": "2024-09-27"
-  },
-  {
-    "code": "mb2",
-    "name": "Mystery Booster 2",
-    "released": "2024-08-02"
+    "released": "2024-09-27",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "play",
+    "limitedLabel": "play",
+    "mtgjsonBoosterTypes": [
+      "collector",
+      "collector-sample",
+      "play",
+      "prerelease"
+    ],
+    "extraSheetLabel": "the list / special guests"
   },
   {
     "code": "blb",
     "name": "Bloomburrow",
-    "released": "2024-08-02"
+    "released": "2024-08-02",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "play",
+    "limitedLabel": "play",
+    "mtgjsonBoosterTypes": [
+      "collector",
+      "collector-sample",
+      "play",
+      "prerelease"
+    ],
+    "extraSheetLabel": "the list / special guests"
+  },
+  {
+    "code": "mb2",
+    "name": "Mystery Booster 2",
+    "released": "2024-08-02",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "acr",
     "name": "Assassin's Creed",
-    "released": "2024-07-05"
+    "released": "2024-07-05",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "collector",
+      "default"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "mh3",
     "name": "Modern Horizons 3",
-    "released": "2024-06-14"
+    "released": "2024-06-14",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "play",
+    "limitedLabel": "play",
+    "mtgjsonBoosterTypes": [
+      "collector",
+      "collector-sample",
+      "play",
+      "prerelease"
+    ],
+    "extraSheetLabel": "the list / special guests"
   },
   {
     "code": "otj",
     "name": "Outlaws of Thunder Junction",
-    "released": "2024-04-19"
+    "released": "2024-04-19",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "play",
+    "limitedLabel": "play",
+    "mtgjsonBoosterTypes": [
+      "collector",
+      "collector-sample",
+      "play",
+      "prerelease"
+    ],
+    "extraSheetLabel": "the big score / special guests"
+  },
+  {
+    "code": "pip",
+    "name": "Fallout",
+    "released": "2024-03-08",
+    "boosterTypes": [
+      "collector"
+    ],
+    "defaultBoosterType": "collector",
+    "limitedBoosterType": null,
+    "limitedLabel": "play",
+    "mtgjsonBoosterTypes": [
+      "collector",
+      "collector-sample"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "clu",
     "name": "Ravnica: Clue Edition",
-    "released": "2024-02-23"
+    "released": "2024-02-23",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "box-topper",
+      "default"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "mkm",
     "name": "Murders at Karlov Manor",
-    "released": "2024-02-09"
+    "released": "2024-02-09",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "play",
+    "limitedLabel": "play",
+    "mtgjsonBoosterTypes": [
+      "collector",
+      "collector-sample",
+      "play",
+      "play-arena",
+      "prerelease"
+    ],
+    "extraSheetLabel": "the list / special guests"
   },
   {
     "code": "rvr",
     "name": "Ravnica Remastered",
-    "released": "2024-01-12"
+    "released": "2024-01-12",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "collector",
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "lci",
     "name": "The Lost Caverns of Ixalan",
-    "released": "2023-11-17"
+    "released": "2023-11-17",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "arena",
+      "box-topper",
+      "box-topper-foil",
+      "bundle-promo",
+      "collector",
+      "collector-sample",
+      "draft",
+      "gift-bundle-promo",
+      "prerelease",
+      "set"
+    ],
+    "extraSheetLabel": "the list / special guests"
+  },
+  {
+    "code": "who",
+    "name": "Doctor Who",
+    "released": "2023-10-13",
+    "boosterTypes": [
+      "collector"
+    ],
+    "defaultBoosterType": "collector",
+    "limitedBoosterType": null,
+    "limitedLabel": "play",
+    "mtgjsonBoosterTypes": [
+      "collector",
+      "collector-sample"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "woe",
     "name": "Wilds of Eldraine",
-    "released": "2023-09-08"
+    "released": "2023-09-08",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "arena",
+      "collector",
+      "collector-sample",
+      "draft",
+      "prerelease",
+      "set"
+    ],
+    "extraSheetLabel": "the list"
   },
   {
     "code": "cmm",
     "name": "Commander Masters",
-    "released": "2023-08-04"
+    "released": "2023-08-04",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "collector",
+      "collector-sample",
+      "draft",
+      "set"
+    ],
+    "extraSheetLabel": "the list"
   },
   {
     "code": "ltr",
     "name": "The Lord of the Rings: Tales of Middle-earth",
-    "released": "2023-06-23"
+    "released": "2023-06-23",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "arena",
+      "box-topper",
+      "collector",
+      "collector-sample",
+      "collector-special",
+      "draft",
+      "jumpstart",
+      "jumpstart-v2",
+      "prerelease",
+      "set"
+    ],
+    "extraSheetLabel": "the list"
   },
   {
     "code": "mat",
     "name": "March of the Machine: The Aftermath",
-    "released": "2023-05-12"
+    "released": "2023-05-12",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "arena",
+      "collector",
+      "default"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "mom",
     "name": "March of the Machine",
-    "released": "2023-04-21"
+    "released": "2023-04-21",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "arena",
+      "collector",
+      "collector-sample",
+      "draft",
+      "jumpstart",
+      "prerelease",
+      "set"
+    ],
+    "extraSheetLabel": "the list"
   },
   {
     "code": "one",
     "name": "Phyrexia: All Will Be One",
-    "released": "2023-02-10"
+    "released": "2023-02-10",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "arena",
+      "collector",
+      "collector-sample",
+      "compleat",
+      "draft",
+      "jumpstart",
+      "prerelease",
+      "set"
+    ],
+    "extraSheetLabel": "the list"
   },
   {
     "code": "dmr",
     "name": "Dominaria Remastered",
-    "released": "2023-01-13"
+    "released": "2023-01-13",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "collector",
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "j22",
     "name": "Jumpstart 2022",
-    "released": "2022-12-02"
+    "released": "2022-12-02",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "jumpstart",
+    "limitedLabel": "jumpstart",
+    "mtgjsonBoosterTypes": [
+      "jumpstart"
+    ],
+    "extraSheetLabel": null
+  },
+  {
+    "code": "30a",
+    "name": "30th Anniversary Edition",
+    "released": "2022-11-28",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "bro",
     "name": "The Brothers' War",
-    "released": "2022-11-18"
+    "released": "2022-11-18",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "arena",
+      "collector",
+      "collector-sample",
+      "draft",
+      "jumpstart",
+      "prerelease",
+      "set"
+    ],
+    "extraSheetLabel": "the list"
   },
   {
     "code": "unf",
     "name": "Unfinity",
-    "released": "2022-10-07"
+    "released": "2022-10-07",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "box-topper",
+      "collector",
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "dmu",
     "name": "Dominaria United",
-    "released": "2022-09-09"
+    "released": "2022-09-09",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "arena",
+      "box-topper",
+      "collector",
+      "collector-sample",
+      "draft",
+      "jumpstart",
+      "prerelease",
+      "set"
+    ],
+    "extraSheetLabel": "the list"
   },
   {
     "code": "2x2",
     "name": "Double Masters 2022",
-    "released": "2022-07-08"
+    "released": "2022-07-08",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "collector",
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "clb",
     "name": "Commander Legends: Battle for Baldur's Gate",
-    "released": "2022-06-10"
+    "released": "2022-06-10",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "collector",
+      "collector-sample",
+      "draft",
+      "prerelease",
+      "set"
+    ],
+    "extraSheetLabel": "the list"
   },
   {
     "code": "snc",
     "name": "Streets of New Capenna",
-    "released": "2022-04-29"
+    "released": "2022-04-29",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "arena",
+      "collector",
+      "collector-sample",
+      "draft",
+      "prerelease-brokers",
+      "prerelease-cabaretti",
+      "prerelease-maestros",
+      "prerelease-obscura",
+      "prerelease-riveteers",
+      "set",
+      "theme-brokers",
+      "theme-cabaretti",
+      "theme-maestros",
+      "theme-obscura",
+      "theme-riveteers"
+    ],
+    "extraSheetLabel": "the list"
   },
   {
     "code": "neo",
     "name": "Kamigawa: Neon Dynasty",
-    "released": "2022-02-18"
+    "released": "2022-02-18",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "arena",
+      "collector",
+      "draft",
+      "prerelease",
+      "set",
+      "theme-b",
+      "theme-g",
+      "theme-ninjas",
+      "theme-r",
+      "theme-u",
+      "theme-w"
+    ],
+    "extraSheetLabel": "the list"
   },
   {
     "code": "dbl",
     "name": "Innistrad: Double Feature",
-    "released": "2022-01-28"
+    "released": "2022-01-28",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "vow",
     "name": "Innistrad: Crimson Vow",
-    "released": "2021-11-19"
+    "released": "2021-11-19",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "arena",
+      "box-topper",
+      "collector",
+      "draft",
+      "prerelease",
+      "set",
+      "theme-b",
+      "theme-g",
+      "theme-r",
+      "theme-u",
+      "theme-vampires",
+      "theme-w"
+    ],
+    "extraSheetLabel": "the list"
   },
   {
     "code": "mid",
     "name": "Innistrad: Midnight Hunt",
-    "released": "2021-09-24"
+    "released": "2021-09-24",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "arena",
+      "collector",
+      "draft",
+      "prerelease",
+      "set",
+      "theme-b",
+      "theme-g",
+      "theme-r",
+      "theme-u",
+      "theme-w",
+      "theme-werewolves"
+    ],
+    "extraSheetLabel": "the list"
   },
   {
     "code": "afr",
     "name": "Adventures in the Forgotten Realms",
-    "released": "2021-07-23"
+    "released": "2021-07-23",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "arena",
+      "collector",
+      "draft",
+      "prerelease",
+      "set",
+      "theme-b",
+      "theme-dungeons",
+      "theme-g",
+      "theme-r",
+      "theme-u",
+      "theme-w"
+    ],
+    "extraSheetLabel": "the list"
   },
   {
     "code": "mh2",
     "name": "Modern Horizons 2",
-    "released": "2021-06-18"
+    "released": "2021-06-18",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "collector",
+      "draft",
+      "prerelease",
+      "set"
+    ],
+    "extraSheetLabel": "the list"
   },
   {
     "code": "stx",
     "name": "Strixhaven: School of Mages",
-    "released": "2021-04-23"
+    "released": "2021-04-23",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "arena",
+      "collector",
+      "draft",
+      "jp",
+      "prerelease",
+      "set",
+      "set-jp",
+      "theme-lorehold",
+      "theme-prismari",
+      "theme-quandrix",
+      "theme-silverquill",
+      "theme-witherbloom"
+    ],
+    "extraSheetLabel": "the list"
   },
   {
     "code": "tsr",
     "name": "Time Spiral Remastered",
-    "released": "2021-03-19"
+    "released": "2021-03-19",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "khm",
     "name": "Kaldheim",
-    "released": "2021-02-05"
+    "released": "2021-02-05",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "arena",
+      "collector",
+      "draft",
+      "prerelease",
+      "set",
+      "theme-b",
+      "theme-g",
+      "theme-r",
+      "theme-u",
+      "theme-vikings",
+      "theme-w"
+    ],
+    "extraSheetLabel": "the list"
   },
   {
     "code": "cmr",
     "name": "Commander Legends",
-    "released": "2020-11-20"
+    "released": "2020-11-20",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "collector",
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "znr",
     "name": "Zendikar Rising",
-    "released": "2020-09-25"
+    "released": "2020-09-25",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "arena",
+      "collector",
+      "draft",
+      "prerelease",
+      "set",
+      "theme-b",
+      "theme-g",
+      "theme-party",
+      "theme-r",
+      "theme-u",
+      "theme-w"
+    ],
+    "extraSheetLabel": "the list"
   },
   {
     "code": "2xm",
     "name": "Double Masters",
-    "released": "2020-08-07"
+    "released": "2020-08-07",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "box-topper",
+      "draft",
+      "vip"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "jmp",
     "name": "Jumpstart",
-    "released": "2020-07-17"
+    "released": "2020-07-17",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "jumpstart",
+    "limitedLabel": "jumpstart",
+    "mtgjsonBoosterTypes": [
+      "jumpstart"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "m21",
     "name": "Core Set 2021",
-    "released": "2020-07-03"
+    "released": "2020-07-03",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "arena",
+      "collector",
+      "draft",
+      "prerelease"
+    ],
+    "extraSheetLabel": null
+  },
+  {
+    "code": "ss3",
+    "name": "Signature Spellbook: Chandra",
+    "released": "2020-06-26",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "default"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "iko",
     "name": "Ikoria: Lair of Behemoths",
-    "released": "2020-04-24"
+    "released": "2020-04-24",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "arena",
+      "box-topper",
+      "collector",
+      "collector-jp",
+      "draft",
+      "jp",
+      "prerelease",
+      "theme-b",
+      "theme-g",
+      "theme-monsters",
+      "theme-r",
+      "theme-u",
+      "theme-w"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "thb",
     "name": "Theros Beyond Death",
-    "released": "2020-01-24"
+    "released": "2020-01-24",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "arena",
+      "collector",
+      "draft",
+      "prerelease",
+      "theme-b",
+      "theme-g",
+      "theme-r",
+      "theme-u",
+      "theme-w"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "eld",
     "name": "Throne of Eldraine",
-    "released": "2019-10-04"
+    "released": "2019-10-04",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "arena",
+      "collector",
+      "draft",
+      "prerelease",
+      "theme-b",
+      "theme-g",
+      "theme-r",
+      "theme-u",
+      "theme-w"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "m20",
     "name": "Core Set 2020",
-    "released": "2019-07-12"
+    "released": "2019-07-12",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "arena",
+      "draft",
+      "prerelease",
+      "theme-b",
+      "theme-g",
+      "theme-r",
+      "theme-u",
+      "theme-w"
+    ],
+    "extraSheetLabel": null
+  },
+  {
+    "code": "ss2",
+    "name": "Signature Spellbook: Gideon",
+    "released": "2019-06-28",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "default"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "mh1",
     "name": "Modern Horizons",
-    "released": "2019-06-14"
+    "released": "2019-06-14",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "war",
     "name": "War of the Spark",
-    "released": "2019-05-03"
+    "released": "2019-05-03",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "arena",
+      "draft",
+      "jp",
+      "prerelease",
+      "theme-b",
+      "theme-g",
+      "theme-r",
+      "theme-u",
+      "theme-w"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "rna",
     "name": "Ravnica Allegiance",
-    "released": "2019-01-25"
+    "released": "2019-01-25",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "arena",
+      "draft",
+      "prerelease",
+      "theme-azorius",
+      "theme-gruul",
+      "theme-orzhov",
+      "theme-rakdos",
+      "theme-simic"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "uma",
     "name": "Ultimate Masters",
-    "released": "2018-12-07"
+    "released": "2018-12-07",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "box-topper",
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "grn",
     "name": "Guilds of Ravnica",
-    "released": "2018-10-05"
+    "released": "2018-10-05",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "arena",
+      "draft",
+      "prerelease",
+      "theme-boros",
+      "theme-dimir",
+      "theme-golgari",
+      "theme-izzet",
+      "theme-selesnya"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "m19",
     "name": "Core Set 2019",
-    "released": "2018-07-13"
+    "released": "2018-07-13",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "arena",
+      "draft",
+      "prerelease"
+    ],
+    "extraSheetLabel": null
+  },
+  {
+    "code": "ss1",
+    "name": "Signature Spellbook: Jace",
+    "released": "2018-06-15",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "default"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "bbd",
     "name": "Battlebond",
-    "released": "2018-06-08"
+    "released": "2018-06-08",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "prerelease"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "dom",
     "name": "Dominaria",
-    "released": "2018-04-27"
+    "released": "2018-04-27",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "arena",
+      "draft",
+      "prerelease",
+      "theme-b",
+      "theme-g",
+      "theme-r",
+      "theme-u",
+      "theme-w"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "a25",
     "name": "Masters 25",
-    "released": "2018-03-16"
+    "released": "2018-03-16",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "rix",
     "name": "Rivals of Ixalan",
-    "released": "2018-01-19"
+    "released": "2018-01-19",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "arena",
+      "draft",
+      "prerelease"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "ust",
     "name": "Unstable",
-    "released": "2017-12-08"
+    "released": "2017-12-08",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "ima",
     "name": "Iconic Masters",
-    "released": "2017-11-17"
+    "released": "2017-11-17",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "xln",
     "name": "Ixalan",
-    "released": "2017-09-29"
+    "released": "2017-09-29",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "arena",
+      "draft",
+      "prerelease",
+      "treasure-chest"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "hou",
     "name": "Hour of Devastation",
-    "released": "2017-07-14"
+    "released": "2017-07-14",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "prerelease"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "akh",
     "name": "Amonkhet",
-    "released": "2017-04-28"
+    "released": "2017-04-28",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "prerelease"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "mm3",
     "name": "Modern Masters 2017",
-    "released": "2017-03-17"
+    "released": "2017-03-17",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "aer",
     "name": "Aether Revolt",
-    "released": "2017-01-20"
+    "released": "2017-01-20",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "prerelease"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "kld",
     "name": "Kaladesh",
-    "released": "2016-09-30"
+    "released": "2016-09-30",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "prerelease"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "cn2",
     "name": "Conspiracy: Take the Crown",
-    "released": "2016-08-26"
+    "released": "2016-08-26",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "emn",
     "name": "Eldritch Moon",
-    "released": "2016-07-22"
+    "released": "2016-07-22",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "prerelease"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "ema",
     "name": "Eternal Masters",
-    "released": "2016-06-10"
+    "released": "2016-06-10",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "soi",
     "name": "Shadows over Innistrad",
-    "released": "2016-04-08"
+    "released": "2016-04-08",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "prerelease"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "ogw",
     "name": "Oath of the Gatewatch",
-    "released": "2016-01-22"
+    "released": "2016-01-22",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "prerelease"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "bfz",
     "name": "Battle for Zendikar",
-    "released": "2015-10-02"
+    "released": "2015-10-02",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "prerelease"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "ori",
     "name": "Magic Origins",
-    "released": "2015-07-17"
+    "released": "2015-07-17",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "prerelease"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "mm2",
     "name": "Modern Masters 2015",
-    "released": "2015-05-22"
+    "released": "2015-05-22",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "dtk",
     "name": "Dragons of Tarkir",
-    "released": "2015-03-27"
+    "released": "2015-03-27",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "fat-pack",
+      "prerelease-atarka",
+      "prerelease-dromoka",
+      "prerelease-kolaghan",
+      "prerelease-ojutai",
+      "prerelease-silumgar"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "frf",
     "name": "Fate Reforged",
-    "released": "2015-01-23"
+    "released": "2015-01-23",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "prerelease"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "ktk",
     "name": "Khans of Tarkir",
-    "released": "2014-09-26"
+    "released": "2014-09-26",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "arena",
+      "draft",
+      "prerelease"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "m15",
     "name": "Magic 2015",
-    "released": "2014-07-18"
+    "released": "2014-07-18",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "duelspromo"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "cns",
     "name": "Conspiracy",
-    "released": "2014-06-06"
+    "released": "2014-06-06",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "jou",
     "name": "Journey into Nyx",
-    "released": "2014-05-02"
+    "released": "2014-05-02",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "bng",
     "name": "Born of the Gods",
-    "released": "2014-02-07"
+    "released": "2014-02-07",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "ths",
     "name": "Theros",
-    "released": "2013-09-27"
+    "released": "2013-09-27",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "m14",
     "name": "Magic 2014",
-    "released": "2013-07-19"
+    "released": "2013-07-19",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "duelspromo",
+      "six"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "mma",
     "name": "Modern Masters",
-    "released": "2013-06-07"
+    "released": "2013-06-07",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "dgm",
     "name": "Dragon's Maze",
-    "released": "2013-05-03"
+    "released": "2013-05-03",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "six"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "gtc",
     "name": "Gatecrash",
-    "released": "2013-02-01"
+    "released": "2013-02-01",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "prerelease-boros",
+      "prerelease-dimir",
+      "prerelease-gruul",
+      "prerelease-orzhov",
+      "prerelease-simic",
+      "six"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "rtr",
     "name": "Return to Ravnica",
-    "released": "2012-10-05"
+    "released": "2012-10-05",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "prerelease-azorius",
+      "prerelease-golgari",
+      "prerelease-izzet",
+      "prerelease-rakdos",
+      "prerelease-selesnya",
+      "six"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "m13",
     "name": "Magic 2013",
-    "released": "2012-07-13"
+    "released": "2012-07-13",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "six"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "avr",
     "name": "Avacyn Restored",
-    "released": "2012-05-04"
+    "released": "2012-05-04",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "six"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "dka",
     "name": "Dark Ascension",
-    "released": "2012-02-03"
+    "released": "2012-02-03",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "six"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "isd",
     "name": "Innistrad",
-    "released": "2011-09-30"
+    "released": "2011-09-30",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "six"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "m12",
     "name": "Magic 2012",
-    "released": "2011-07-15"
+    "released": "2011-07-15",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "six"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "nph",
     "name": "New Phyrexia",
-    "released": "2011-05-13"
+    "released": "2011-05-13",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "six"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "mbs",
     "name": "Mirrodin Besieged",
-    "released": "2011-02-04"
+    "released": "2011-02-04",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "six"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "som",
     "name": "Scars of Mirrodin",
-    "released": "2010-10-01"
+    "released": "2010-10-01",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "six"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "m11",
     "name": "Magic 2011",
-    "released": "2010-07-16"
+    "released": "2010-07-16",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "six"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "roe",
     "name": "Rise of the Eldrazi",
-    "released": "2010-04-23"
+    "released": "2010-04-23",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "six"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "wwk",
     "name": "Worldwake",
-    "released": "2010-02-05"
+    "released": "2010-02-05",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "six"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "zen",
     "name": "Zendikar",
-    "released": "2009-10-02"
+    "released": "2009-10-02",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "six"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "m10",
     "name": "Magic 2010",
-    "released": "2009-07-17"
+    "released": "2009-07-17",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "six"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "arb",
     "name": "Alara Reborn",
-    "released": "2009-04-30"
+    "released": "2009-04-30",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "six"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "con",
     "name": "Conflux",
-    "released": "2009-02-06"
+    "released": "2009-02-06",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "six"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "ala",
     "name": "Shards of Alara",
-    "released": "2008-10-03"
+    "released": "2008-10-03",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "premium",
+      "tournament"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "eve",
     "name": "Eventide",
-    "released": "2008-07-25"
+    "released": "2008-07-25",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "shm",
     "name": "Shadowmoor",
-    "released": "2008-05-02"
+    "released": "2008-05-02",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "tournament"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "mor",
     "name": "Morningtide",
-    "released": "2008-02-01"
+    "released": "2008-02-01",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "lrw",
     "name": "Lorwyn",
-    "released": "2007-10-12"
+    "released": "2007-10-12",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "tournament"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "10e",
     "name": "Tenth Edition",
-    "released": "2007-07-13"
+    "released": "2007-07-13",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "fut",
     "name": "Future Sight",
-    "released": "2007-05-04"
+    "released": "2007-05-04",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "plc",
     "name": "Planar Chaos",
-    "released": "2007-02-02"
+    "released": "2007-02-02",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "tsp",
     "name": "Time Spiral",
-    "released": "2006-10-06"
+    "released": "2006-10-06",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "csp",
     "name": "Coldsnap",
-    "released": "2006-07-21"
+    "released": "2006-07-21",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "dis",
     "name": "Dissension",
-    "released": "2006-05-05"
+    "released": "2006-05-05",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "gpt",
     "name": "Guildpact",
-    "released": "2006-02-03"
+    "released": "2006-02-03",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "rav",
     "name": "Ravnica: City of Guilds",
-    "released": "2005-10-07"
+    "released": "2005-10-07",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "tournament"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "9ed",
     "name": "Ninth Edition",
-    "released": "2005-07-29"
+    "released": "2005-07-29",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "sok",
     "name": "Saviors of Kamigawa",
-    "released": "2005-06-03"
+    "released": "2005-06-03",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "fat-pack"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "bok",
     "name": "Betrayers of Kamigawa",
-    "released": "2005-02-04"
+    "released": "2005-02-04",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "fat-pack"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "unh",
     "name": "Unhinged",
-    "released": "2004-11-19"
+    "released": "2004-11-19",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "chk",
     "name": "Champions of Kamigawa",
-    "released": "2004-10-01"
+    "released": "2004-10-01",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "fat-pack",
+      "tournament"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "5dn",
     "name": "Fifth Dawn",
-    "released": "2004-06-04"
+    "released": "2004-06-04",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "fat-pack"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "dst",
     "name": "Darksteel",
-    "released": "2004-02-06"
+    "released": "2004-02-06",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "fat-pack"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "mrd",
     "name": "Mirrodin",
-    "released": "2003-10-02"
+    "released": "2003-10-02",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "fat-pack",
+      "tournament"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "8ed",
     "name": "Eighth Edition",
-    "released": "2003-07-28"
+    "released": "2003-07-28",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "scg",
     "name": "Scourge",
-    "released": "2003-05-26"
+    "released": "2003-05-26",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "fat-pack"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "lgn",
     "name": "Legions",
-    "released": "2003-02-03"
+    "released": "2003-02-03",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "fat-pack"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "ons",
     "name": "Onslaught",
-    "released": "2002-10-07"
+    "released": "2002-10-07",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "fat-pack",
+      "tournament"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "jud",
     "name": "Judgment",
-    "released": "2002-05-27"
+    "released": "2002-05-27",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "fat-pack"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "tor",
     "name": "Torment",
-    "released": "2002-02-04"
+    "released": "2002-02-04",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "fat-pack",
+      "tournament"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "ody",
     "name": "Odyssey",
-    "released": "2001-10-01"
+    "released": "2001-10-01",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "fat-pack",
+      "tournament"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "apc",
     "name": "Apocalypse",
-    "released": "2001-06-04"
+    "released": "2001-06-04",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "fat-pack"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "7ed",
     "name": "Seventh Edition",
-    "released": "2001-04-11"
+    "released": "2001-04-11",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "pls",
     "name": "Planeshift",
-    "released": "2001-02-05"
+    "released": "2001-02-05",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "fat-pack"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "inv",
     "name": "Invasion",
-    "released": "2000-10-02"
+    "released": "2000-10-02",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "fat-pack",
+      "tournament"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "pcy",
     "name": "Prophecy",
-    "released": "2000-06-05"
+    "released": "2000-06-05",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "fat-pack"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "nem",
     "name": "Nemesis",
-    "released": "2000-02-14"
+    "released": "2000-02-14",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "fat-pack"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "mmq",
     "name": "Mercadian Masques",
-    "released": "1999-10-04"
+    "released": "1999-10-04",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "fat-pack",
+      "tournament"
+    ],
+    "extraSheetLabel": null
+  },
+  {
+    "code": "s99",
+    "name": "Starter 1999",
+    "released": "1999-07-01",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "default"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "uds",
     "name": "Urza's Destiny",
-    "released": "1999-06-07"
+    "released": "1999-06-07",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
+  },
+  {
+    "code": "ptk",
+    "name": "Portal Three Kingdoms",
+    "released": "1999-05-01",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "default"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "6ed",
     "name": "Classic Sixth Edition",
-    "released": "1999-04-21"
+    "released": "1999-04-21",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "tournament"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "ulg",
     "name": "Urza's Legacy",
-    "released": "1999-02-15"
+    "released": "1999-02-15",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "usg",
     "name": "Urza's Saga",
-    "released": "1998-10-12"
+    "released": "1998-10-12",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "tournament"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "ugl",
     "name": "Unglued",
-    "released": "1998-08-11"
+    "released": "1998-08-11",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
+  },
+  {
+    "code": "p02",
+    "name": "Portal Second Age",
+    "released": "1998-06-24",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "default"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "exo",
     "name": "Exodus",
-    "released": "1998-06-15"
+    "released": "1998-06-15",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "sth",
     "name": "Stronghold",
-    "released": "1998-03-02"
+    "released": "1998-03-02",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "tmp",
     "name": "Tempest",
-    "released": "1997-10-14"
+    "released": "1997-10-14",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "starter"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "wth",
     "name": "Weatherlight",
-    "released": "1997-06-09"
+    "released": "1997-06-09",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
+  },
+  {
+    "code": "por",
+    "name": "Portal",
+    "released": "1997-05-01",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "default"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "5ed",
     "name": "Fifth Edition",
-    "released": "1997-03-24"
+    "released": "1997-03-24",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "starter"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "vis",
     "name": "Visions",
-    "released": "1997-02-03"
+    "released": "1997-02-03",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "mir",
     "name": "Mirage",
-    "released": "1996-10-08"
+    "released": "1996-10-08",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft",
+      "starter"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "all",
     "name": "Alliances",
-    "released": "1996-06-10"
+    "released": "1996-06-10",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "default"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "hml",
     "name": "Homelands",
-    "released": "1995-10-01"
+    "released": "1995-10-01",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "default"
+    ],
+    "extraSheetLabel": null
+  },
+  {
+    "code": "rin",
+    "name": "Rinascimento",
+    "released": "1995-08-01",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "default"
+    ],
+    "extraSheetLabel": null
+  },
+  {
+    "code": "ren",
+    "name": "Renaissance",
+    "released": "1995-08-01",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "default"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "chr",
     "name": "Chronicles",
-    "released": "1995-07-01"
+    "released": "1995-07-01",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "default"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "ice",
     "name": "Ice Age",
-    "released": "1995-06-03"
+    "released": "1995-06-03",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "default",
+      "starter"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "4ed",
     "name": "Fourth Edition",
-    "released": "1995-04-01"
+    "released": "1995-04-01",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "default",
+      "starter"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "fem",
     "name": "Fallen Empires",
-    "released": "1994-11-01"
+    "released": "1994-11-01",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "default"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "drk",
     "name": "The Dark",
-    "released": "1994-08-01"
+    "released": "1994-08-01",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "default"
+    ],
+    "extraSheetLabel": null
+  },
+  {
+    "code": "sum",
+    "name": "Summer Magic / Edgar",
+    "released": "1994-06-21",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "default"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "leg",
     "name": "Legends",
-    "released": "1994-06-01"
+    "released": "1994-06-01",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "default"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "3ed",
     "name": "Revised Edition",
-    "released": "1994-04-11"
+    "released": "1994-04-11",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "default",
+      "starter"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "atq",
     "name": "Antiquities",
-    "released": "1994-03-04"
+    "released": "1994-03-04",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "default"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "arn",
     "name": "Arabian Nights",
-    "released": "1993-12-17"
+    "released": "1993-12-17",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "default"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "2ed",
     "name": "Unlimited Edition",
-    "released": "1993-12-01"
+    "released": "1993-12-01",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "default",
+      "starter"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "leb",
     "name": "Limited Edition Beta",
-    "released": "1993-10-04"
+    "released": "1993-10-04",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "default",
+      "starter"
+    ],
+    "extraSheetLabel": null
   },
   {
     "code": "lea",
     "name": "Limited Edition Alpha",
-    "released": "1993-08-05"
+    "released": "1993-08-05",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "default",
+      "starter"
+    ],
+    "extraSheetLabel": null
   }
 ]
