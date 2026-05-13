@@ -13,7 +13,7 @@ const WINDOWS_RESERVED_FILENAMES = new Set([
 
 function boosterArtifactFileName(setCode) {
   const code = normalizeCode(setCode);
-  return (WINDOWS_RESERVED_FILENAMES.has(code) ? `_${code}` : code) + '.json';
+  return (WINDOWS_RESERVED_FILENAMES.has(code) ? `${code}_` : code) + '.json';
 }
 const CONCURRENCY = Number(process.env.MTGJSON_CONCURRENCY || 8);
 

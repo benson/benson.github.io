@@ -34,7 +34,7 @@ export const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 function boosterArtifactFileName(setCode) {
   const code = String(setCode || '').toLowerCase();
-  return (WINDOWS_RESERVED_FILENAMES.has(code) ? `_${code}` : code) + '.json';
+  return (WINDOWS_RESERVED_FILENAMES.has(code) ? `${code}_` : code) + '.json';
 }
 
 function getRetryDelayMs(response, attempt) {
