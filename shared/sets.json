@@ -1121,6 +1121,23 @@
     "extraSheetLabel": null
   },
   {
+    "code": "mb1",
+    "name": "Mystery Booster",
+    "released": "2019-11-07",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "convention",
+      "convention-2021",
+      "draft"
+    ],
+    "extraSheetLabel": null
+  },
+  {
     "code": "eld",
     "name": "Throne of Eldraine",
     "released": "2019-10-04",
@@ -2924,8 +2941,8 @@
     "extraSheetLabel": null
   },
   {
-    "code": "ren",
-    "name": "Renaissance",
+    "code": "rin",
+    "name": "Rinascimento",
     "released": "1995-08-01",
     "boosterTypes": [
       "play"
@@ -2939,8 +2956,8 @@
     "extraSheetLabel": null
   },
   {
-    "code": "rin",
-    "name": "Rinascimento",
+    "code": "ren",
+    "name": "Renaissance",
     "released": "1995-08-01",
     "boosterTypes": [
       "play"
