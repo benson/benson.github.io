@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TCG Handoff</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./styles.css?v=2" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="header">
+        <div>
+          <p class="eyebrow">TCGplayer handoff</p>
+          <h1>Card Mail</h1>
+        </div>
+        <div class="actions">
+          <label class="button primary" for="pdfInput">Import PDF</label>
+          <input id="pdfInput" type="file" accept="application/pdf,.pdf" hidden />
+          <button id="copyLinkButton" class="button" type="button" disabled>Copy Link</button>
+          <button id="clearButton" class="button subtle" type="button" disabled>Clear</button>
+        </div>
+      </header>
+
+      <section id="dropZone" class="drop-zone" aria-label="Import packing slip PDF">
+        <strong>Drop packing-slip PDF</strong>
+      </section>
+
+      <section id="summary" class="summary" hidden></section>
+      <main id="orders" class="orders" aria-label="Orders"></main>
+
+      <section id="emptyState" class="empty-state">
+        <h2>No orders yet</h2>
+        <p>Import the TCGplayer packing-slip PDF.</p>
+      </section>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="./app.js?v=2"></script>
+  </body>
+</html>
