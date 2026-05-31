@@ -375,6 +375,27 @@ h3 {
   padding: 0;
 }
 
+.shared-view .card-copy {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 4px;
+}
+
+.shared-view .qty {
+  margin-bottom: 0;
+}
+
+.shared-view .card-name,
+.shared-view .price {
+  grid-column: 2;
+}
+
+.shared-view .price {
+  margin-top: 0;
+}
+
 .empty-state {
   display: grid;
   place-items: center;
@@ -458,7 +479,84 @@ h3 {
   }
 
   .shared-view .page {
-    width: min(100vw - 12px, 460px);
-    padding-top: 6px;
+    width: 100%;
+    padding: 0 6px 14px;
+  }
+
+  .shared-view .orders {
+    gap: 8px;
+  }
+
+  .shared-view .order-card {
+    border-radius: 0 0 6px 6px;
+  }
+
+  .shared-view .order-top {
+    align-items: center;
+    flex-direction: row;
+    gap: 8px;
+    padding: 7px 8px;
+  }
+
+  .shared-view .order-kicker {
+    font-size: 12px;
+    line-height: 1.1;
+  }
+
+  .shared-view h2 {
+    font-size: 17px;
+    line-height: 1.1;
+  }
+
+  .shared-view .order-number {
+    display: none;
+  }
+
+  .shared-view .pill {
+    min-height: 23px;
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+
+  .shared-view .order-body {
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .shared-view .card-line {
+    grid-template-columns: 86px minmax(0, 1fr);
+    gap: 9px;
+    align-items: center;
+  }
+
+  .shared-view .card-art {
+    border-radius: 6px;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.14);
+  }
+
+  .shared-view .qty {
+    min-width: 30px;
+    height: 24px;
+    border-radius: 6px;
+    font-size: 12px;
+  }
+
+  .shared-view .card-name {
+    font-size: 17px;
+    line-height: 1.18;
+  }
+
+  .shared-view .price {
+    font-size: 12px;
+  }
+
+  .shared-view .block + .block {
+    border-top: 1px solid var(--line);
+    padding-top: 8px;
+  }
+
+  .shared-view .address {
+    font-size: 18px;
+    line-height: 1.22;
   }
 }
