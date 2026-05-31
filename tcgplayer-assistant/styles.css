@@ -12,7 +12,7 @@
   --green-soft: #e7f6ef;
   --amber: #8a5a00;
   --amber-soft: #fff2cc;
-  --shadow: 0 16px 44px rgba(15, 23, 42, 0.08);
+  --shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
 }
 
 * {
@@ -37,9 +37,9 @@ input {
 }
 
 .page {
-  width: min(1180px, calc(100vw - 32px));
+  width: min(1060px, calc(100vw - 24px));
   margin: 0 auto;
-  padding: 22px 0 44px;
+  padding: 16px 0 28px;
 }
 
 .header {
@@ -124,8 +124,8 @@ h3 {
 .drop-zone {
   display: grid;
   place-items: center;
-  min-height: 76px;
-  margin-bottom: 14px;
+  min-height: 58px;
+  margin-bottom: 10px;
   border: 1px dashed var(--line-strong);
   border-radius: 8px;
   background: var(--surface);
@@ -146,11 +146,11 @@ h3 {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface);
-  padding: 13px 16px;
+  padding: 10px 12px;
   box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
 }
 
@@ -166,7 +166,7 @@ h3 {
 
 .orders {
   display: grid;
-  gap: 14px;
+  gap: 10px;
 }
 
 .order-card {
@@ -184,7 +184,7 @@ h3 {
   gap: 14px;
   border-bottom: 1px solid var(--line);
   background: #fbfcfe;
-  padding: 16px;
+  padding: 11px 12px;
 }
 
 .order-kicker {
@@ -217,39 +217,39 @@ h3 {
 .order-body {
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(270px, 0.75fr);
-  gap: 14px;
-  padding: 16px;
+  gap: 10px;
+  padding: 10px 12px 12px;
 }
 
 .block {
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 14px;
+  padding: 10px;
 }
 
 .cards {
   display: grid;
-  gap: 10px;
-  margin-top: 12px;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 .card-line {
   display: grid;
-  grid-template-columns: minmax(112px, 156px) minmax(0, 1fr);
-  gap: 14px;
+  grid-template-columns: minmax(96px, 132px) minmax(0, 1fr);
+  gap: 10px;
   align-items: start;
   border-radius: 8px;
   background: #f8fafc;
-  padding: 12px;
+  padding: 9px;
 }
 
 .card-art {
   overflow: hidden;
   width: 100%;
   aspect-ratio: 488 / 680;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #111827;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 5px 14px rgba(15, 23, 42, 0.14);
 }
 
 .card-art img {
@@ -279,7 +279,7 @@ h3 {
   place-items: center;
   min-width: 34px;
   height: 28px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   border-radius: 7px;
   background: #111827;
   color: #ffffff;
@@ -288,39 +288,22 @@ h3 {
 }
 
 .card-name {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 850;
   line-height: 1.32;
   overflow-wrap: anywhere;
 }
 
-.tcg-line {
-  margin-top: 7px;
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-}
-
-.card-meta {
-  margin-top: 7px;
-  color: var(--green);
-  font-size: 13px;
-  font-weight: 800;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-}
-
 .price {
   display: block;
-  margin-top: 4px;
+  margin-top: 6px;
   color: var(--muted);
   font-size: 13px;
 }
 
 .address {
-  margin-top: 12px;
-  font-size: 20px;
+  margin-top: 8px;
+  font-size: 19px;
   font-style: normal;
   font-weight: 850;
   line-height: 1.32;
@@ -329,14 +312,67 @@ h3 {
 
 .order-meta {
   display: grid;
-  gap: 7px;
-  margin-top: 14px;
+  gap: 5px;
+  margin-top: 10px;
   color: var(--muted);
   font-size: 13px;
 }
 
 .copy-address {
-  margin-top: 14px;
+  margin-top: 10px;
+}
+
+.shared-view {
+  background: #ffffff;
+}
+
+.shared-view .page {
+  width: min(980px, calc(100vw - 16px));
+  padding: 8px 0 18px;
+}
+
+.shared-view .header,
+.shared-view .drop-zone,
+.shared-view .summary,
+.shared-view .copy-address,
+.shared-view .order-meta,
+.shared-view .toast {
+  display: none !important;
+}
+
+.shared-view .order-card {
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+.shared-view .order-top {
+  background: #ffffff;
+  padding: 9px 10px;
+}
+
+.shared-view .order-body {
+  gap: 8px;
+  padding: 8px 10px 10px;
+}
+
+.shared-view .block {
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+}
+
+.shared-view h3 {
+  display: none;
+}
+
+.shared-view .cards,
+.shared-view .address {
+  margin-top: 0;
+}
+
+.shared-view .card-line {
+  background: transparent;
+  padding: 0;
 }
 
 .empty-state {
@@ -379,7 +415,7 @@ h3 {
 @media (max-width: 760px) {
   .page {
     width: min(100vw - 24px, 460px);
-    padding-top: 14px;
+    padding-top: 12px;
   }
 
   .header {
@@ -414,10 +450,15 @@ h3 {
 
   .card-name,
   .address {
-    font-size: 17px;
+    font-size: 16px;
   }
 
   .card-line {
-    grid-template-columns: 112px minmax(0, 1fr);
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+
+  .shared-view .page {
+    width: min(100vw - 12px, 460px);
+    padding-top: 6px;
   }
 }

@@ -11,6 +11,7 @@ const state = {
   orders: [],
   batchName: "",
   shareUrl: "",
+  sharedMode: false,
 };
 
 const els = {
@@ -63,6 +64,7 @@ els.clearButton.addEventListener("click", () => {
   state.orders = [];
   state.batchName = "";
   state.shareUrl = "";
+  state.sharedMode = false;
   history.replaceState(null, "", cleanUrl());
   render();
 });
@@ -102,6 +104,7 @@ async function importPdf(file) {
 
     state.orders = mergeOrderPages(parsed);
     state.batchName = file.name;
+    state.sharedMode = false;
     render();
     const matchedImages = await resolveMissingCardImages();
     await updateShareUrl();
@@ -310,6 +313,7 @@ function render() {
   const hasOrders = state.orders.length > 0;
   const cardCount = state.orders.reduce((sum, order) => sum + order.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0);
 
+  document.body.classList.toggle("shared-view", state.sharedMode && hasOrders);
   els.emptyState.hidden = hasOrders;
   els.summary.hidden = !hasOrders;
   els.copyLinkButton.disabled = !hasOrders;
@@ -369,14 +373,6 @@ function cardLineHtml(item) {
   const imageUrl = card?.imageUrl || "";
   const imageAlt = card ? `${card.name} ${card.setName} #${card.collectorNumber}` : item.description;
   const displayName = card?.name || item.parsedProduct?.displayName || item.description;
-  const sourceLine = card?.name ? item.description : "";
-  const meta = card
-    ? [card.setName, card.collectorNumber ? `#${card.collectorNumber}` : "", card.finish, card.imageStatus]
-        .filter(Boolean)
-        .join(" - ")
-    : item.parsedProduct?.collectorNumber
-      ? `Looking for #${item.parsedProduct.collectorNumber}`
-      : "Image not matched";
 
   return `
     <div class="card-line">
@@ -392,8 +388,6 @@ function cardLineHtml(item) {
       <div class="card-copy">
         <span class="qty">x${item.quantity}</span>
         <div class="card-name">${escapeHtml(displayName)}</div>
-        ${sourceLine ? `<div class="tcg-line">${escapeHtml(sourceLine)}</div>` : ""}
-        <div class="card-meta">${escapeHtml(meta)}</div>
         ${item.totalPrice ? `<span class="price">${escapeHtml(item.totalPrice)}</span>` : ""}
       </div>
     </div>
@@ -551,6 +545,7 @@ async function loadFromHash() {
     state.orders = payload.orders;
     state.batchName = payload.batchName || "Shared handoff";
     state.shareUrl = window.location.href;
+    state.sharedMode = true;
   } catch (error) {
     console.error(error);
     showToast("Could not read the shared link.");
