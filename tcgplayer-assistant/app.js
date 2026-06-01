@@ -54,7 +54,7 @@ els.copyLinkButton.addEventListener("click", async () => {
   if (!state.shareUrl) await updateShareUrl();
   try {
     await navigator.clipboard.writeText(state.shareUrl);
-    showToast("Link copied.");
+    showToast("Short link copied.");
   } catch {
     showToast("Clipboard was blocked.");
   }
@@ -341,7 +341,7 @@ function render() {
             <div>
               <div class="order-kicker">Order ${index + 1}</div>
               <h2>${escapeHtml(order.buyerName || order.shipToLines[0] || "Unknown buyer")}</h2>
-              <div class="order-number">${escapeHtml(order.orderNumber)}</div>
+              ${order.orderNumber ? `<div class="order-number">${escapeHtml(order.orderNumber)}</div>` : ""}
             </div>
             <span class="pill">${order.items.reduce((sum, item) => sum + item.quantity, 0)} card${order.items.length === 1 && order.items[0]?.quantity === 1 ? "" : "s"}</span>
           </div>
@@ -371,7 +371,7 @@ function render() {
 function cardLineHtml(item) {
   const card = item.card || null;
   const imageUrl = card?.imageUrl || "";
-  const imageAlt = card ? `${card.name} ${card.setName} #${card.collectorNumber}` : item.description;
+  const imageAlt = card ? [card.name, card.setName, card.collectorNumber ? `#${card.collectorNumber}` : ""].filter(Boolean).join(" ") : item.description;
   const displayName = card?.name || item.parsedProduct?.displayName || item.description;
 
   return `
@@ -534,18 +534,21 @@ async function loadFromHash() {
 
   try {
     const params = new URLSearchParams(hash);
-    const encoded = params.get("gz");
+    const encoded = hash.includes("=") ? params.get("gz") : hash;
     const plain = params.get("data");
     if (!encoded && !plain) return;
 
     const json = encoded ? await gunzipBase64Url(encoded) : bytesToText(base64UrlToBytes(plain));
     const payload = JSON.parse(json);
-    if (!payload?.orders?.length) return;
+    const shared = expandSharedPayload(payload);
+    if (!shared.orders.length) return;
 
-    state.orders = payload.orders;
-    state.batchName = payload.batchName || "Shared handoff";
+    state.orders = shared.orders;
+    state.batchName = shared.batchName || "Shared handoff";
     state.shareUrl = window.location.href;
     state.sharedMode = true;
+
+    if (shared.shouldCompact) await updateShareUrl();
   } catch (error) {
     console.error(error);
     showToast("Could not read the shared link.");
@@ -553,17 +556,100 @@ async function loadFromHash() {
 }
 
 async function updateShareUrl() {
-  const payload = {
-    v: 1,
-    batchName: state.batchName,
-    orders: state.orders,
-  };
+  const payload = compactSharedPayload();
   const json = JSON.stringify(payload);
   const encoded = await gzipBase64Url(json);
   const url = cleanUrl();
-  url.hash = `gz=${encoded}`;
+  url.hash = encoded;
   state.shareUrl = url.toString();
   history.replaceState(null, "", state.shareUrl);
+}
+
+function compactSharedPayload() {
+  return {
+    v: 2,
+    o: state.orders.map((order) => {
+      const shipToLines = order.shipToLines || [];
+      const buyerName = order.buyerName && order.buyerName !== shipToLines[0] ? order.buyerName : "";
+
+      return [
+        buyerName,
+        shipToLines,
+        (order.items || []).map((item) => {
+          const card = item.card || {};
+          const scryfallId = card.id || scryfallIdFromImageUrl(card.imageUrl);
+          return trimTrailingEmptyValues([
+            item.quantity || 1,
+            card.name || item.parsedProduct?.displayName || item.description || "",
+            item.totalPrice || "",
+            scryfallId || "",
+            scryfallId ? "" : card.imageUrl || "",
+            scryfallId || card.imageUrl ? "" : item.description || "",
+          ]);
+        }),
+      ];
+    }),
+  };
+}
+
+function expandSharedPayload(payload) {
+  if (payload?.v === 2 && Array.isArray(payload.o)) {
+    return {
+      batchName: "Shared handoff",
+      orders: payload.o.map(expandCompactOrder),
+      shouldCompact: false,
+    };
+  }
+
+  return {
+    batchName: payload?.batchName || "Shared handoff",
+    orders: Array.isArray(payload?.orders) ? payload.orders : [],
+    shouldCompact: true,
+  };
+}
+
+function expandCompactOrder(order, index) {
+  const [buyerName = "", shipToLines = [], items = []] = Array.isArray(order) ? order : [];
+
+  return {
+    orderNumber: "",
+    buyerName: buyerName || shipToLines[0] || "",
+    shipToLines,
+    items: items.map((item) => expandCompactItem(item, index)),
+  };
+}
+
+function trimTrailingEmptyValues(values) {
+  while (values.length && values[values.length - 1] === "") values.pop();
+  return values;
+}
+
+function expandCompactItem(item) {
+  const [quantity = 1, name = "", totalPrice = "", scryfallId = "", imageUrl = "", description = ""] = Array.isArray(item) ? item : [];
+  const resolvedImageUrl = scryfallImageUrlFromId(scryfallId) || imageUrl;
+
+  return {
+    quantity,
+    description,
+    totalPrice,
+    card: resolvedImageUrl
+      ? {
+          id: scryfallId,
+          name,
+          imageUrl: resolvedImageUrl,
+        }
+      : null,
+    parsedProduct: name ? { displayName: name } : null,
+  };
+}
+
+function scryfallIdFromImageUrl(value) {
+  return String(value || "").match(/\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.(?:jpg|png|webp)/i)?.[1] || "";
+}
+
+function scryfallImageUrlFromId(id) {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id || "")) return "";
+  return `https://cards.scryfall.io/normal/front/${id[0]}/${id[1]}/${id}.jpg`;
 }
 
 function cleanUrl() {
