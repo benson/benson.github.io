@@ -5,6 +5,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
 
 const SCRYFALL_API = "https://api.scryfall.com";
 const SCRYFALL_DELAY_MS = 80;
+const CHECK_STORAGE_PREFIX = "tcg-handoff-checks:";
 const scryfallCache = new Map();
 
 const state = {
@@ -12,6 +13,7 @@ const state = {
   batchName: "",
   shareUrl: "",
   sharedMode: false,
+  checkedOrders: new Set(),
 };
 
 const els = {
@@ -65,11 +67,18 @@ els.clearButton.addEventListener("click", () => {
   state.batchName = "";
   state.shareUrl = "";
   state.sharedMode = false;
+  state.checkedOrders = new Set();
   history.replaceState(null, "", cleanUrl());
   render();
 });
 
 document.addEventListener("click", async (event) => {
+  const checkButton = event.target.closest("[data-toggle-order]");
+  if (checkButton) {
+    toggleOrderChecked(checkButton.dataset.toggleOrder);
+    return;
+  }
+
   const button = event.target.closest("[data-copy-address]");
   if (!button) return;
   const order = state.orders.find((candidate) => candidate.orderNumber === button.dataset.copyAddress);
@@ -105,6 +114,7 @@ async function importPdf(file) {
     state.orders = mergeOrderPages(parsed);
     state.batchName = file.name;
     state.sharedMode = false;
+    state.checkedOrders = new Set();
     render();
     const matchedImages = await resolveMissingCardImages();
     await updateShareUrl();
@@ -335,15 +345,33 @@ function render() {
 
   els.orders.innerHTML = state.orders
     .map(
-      (order, index) => `
-        <article class="order-card">
+      (order, index) => {
+        const key = orderCheckKey(order, index);
+        const checked = state.checkedOrders.has(key);
+        const buyer = order.buyerName || order.shipToLines[0] || "Unknown buyer";
+        const itemCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
+
+        return `
+        <article class="order-card${checked ? " is-checked" : ""}">
           <div class="order-top">
-            <div>
-              <div class="order-kicker">Order ${index + 1}</div>
-              <h2>${escapeHtml(order.buyerName || order.shipToLines[0] || "Unknown buyer")}</h2>
-              ${order.orderNumber ? `<div class="order-number">${escapeHtml(order.orderNumber)}</div>` : ""}
+            <div class="order-heading">
+              <button
+                class="check-toggle"
+                type="button"
+                data-toggle-order="${escapeAttr(key)}"
+                aria-pressed="${checked ? "true" : "false"}"
+                aria-label="${escapeAttr(`${checked ? "Reopen" : "Check off"} order ${index + 1}`)}"
+              >
+                <span class="check-box" aria-hidden="true">${checked ? "&#10003;" : ""}</span>
+                <span class="check-text">${checked ? "Done" : "Open"}</span>
+              </button>
+              <div>
+                <div class="order-kicker">Order ${index + 1}</div>
+                <h2>${escapeHtml(buyer)}</h2>
+                ${order.orderNumber ? `<div class="order-number">${escapeHtml(order.orderNumber)}</div>` : ""}
+              </div>
             </div>
-            <span class="pill">${order.items.reduce((sum, item) => sum + item.quantity, 0)} card${order.items.length === 1 && order.items[0]?.quantity === 1 ? "" : "s"}</span>
+            <span class="pill">${itemCount} card${itemCount === 1 ? "" : "s"}</span>
           </div>
           <div class="order-body">
             <section class="block">
@@ -363,7 +391,8 @@ function render() {
             </section>
           </div>
         </article>
-      `,
+      `;
+      },
     )
     .join("");
 }
@@ -392,6 +421,58 @@ function cardLineHtml(item) {
       </div>
     </div>
   `;
+}
+
+function toggleOrderChecked(key) {
+  if (!state.sharedMode || !key) return;
+
+  if (state.checkedOrders.has(key)) {
+    state.checkedOrders.delete(key);
+  } else {
+    state.checkedOrders.add(key);
+  }
+
+  saveLocalChecks();
+  render();
+}
+
+function loadLocalChecks() {
+  state.checkedOrders = new Set();
+  if (!state.sharedMode || !state.orders.length) return;
+
+  try {
+    const saved = JSON.parse(localStorage.getItem(checksStorageKey()) || "[]");
+    if (Array.isArray(saved)) state.checkedOrders = new Set(saved.filter(Boolean));
+  } catch (error) {
+    console.warn("Could not load order checks", error);
+  }
+}
+
+function saveLocalChecks() {
+  if (!state.sharedMode || !state.orders.length) return;
+
+  try {
+    localStorage.setItem(checksStorageKey(), JSON.stringify([...state.checkedOrders]));
+  } catch (error) {
+    console.warn("Could not save order checks", error);
+  }
+}
+
+function checksStorageKey() {
+  const source = state.orders.map(orderCheckSource).join("~");
+  return `${CHECK_STORAGE_PREFIX}${hashString(source)}`;
+}
+
+function orderCheckKey(order, index) {
+  return `${index}-${hashString(orderCheckSource(order))}`;
+}
+
+function orderCheckSource(order) {
+  return [
+    order.buyerName || order.shipToLines?.[0] || "",
+    ...(order.shipToLines || []),
+    ...(order.items || []).map((item) => [item.quantity, item.card?.name || item.parsedProduct?.displayName || item.description || "", item.totalPrice || ""].join(":")),
+  ].join("|");
 }
 
 async function resolveMissingImagesFromSharedLink() {
@@ -549,6 +630,7 @@ async function loadFromHash() {
     state.sharedMode = true;
 
     if (shared.shouldCompact) await updateShareUrl();
+    loadLocalChecks();
   } catch (error) {
     console.error(error);
     showToast("Could not read the shared link.");
@@ -785,6 +867,16 @@ function normalizeCollectorNumber(value) {
     .toLowerCase()
     .replace(/^0+/, "")
     .trim();
+}
+
+function hashString(value) {
+  let hash = 2166136261;
+  const input = String(value || "");
+  for (let index = 0; index < input.length; index += 1) {
+    hash ^= input.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
 }
 
 function sleep(ms) {

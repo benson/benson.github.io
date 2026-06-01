@@ -187,6 +187,17 @@ h3 {
   padding: 11px 12px;
 }
 
+.order-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.order-heading > div {
+  min-width: 0;
+}
+
 .order-kicker {
   color: var(--blue);
   font-size: 13px;
@@ -322,6 +333,10 @@ h3 {
   margin-top: 10px;
 }
 
+.check-toggle {
+  display: none;
+}
+
 .shared-view {
   background: #ffffff;
 }
@@ -345,9 +360,59 @@ h3 {
   box-shadow: none;
 }
 
+.shared-view .order-card.is-checked {
+  border-color: #b5dfc4;
+  background: #fbfefc;
+}
+
+.shared-view .order-card.is-checked .order-body {
+  opacity: 0.46;
+}
+
+.shared-view .order-card.is-checked .card-art img {
+  filter: grayscale(0.55);
+}
+
 .shared-view .order-top {
   background: #ffffff;
   padding: 9px 10px;
+}
+
+.shared-view .order-card.is-checked .order-top {
+  background: #f0fbf5;
+}
+
+.shared-view .check-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  min-height: 30px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--muted);
+  padding: 4px 8px 4px 5px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.shared-view .check-toggle[aria-pressed="true"] {
+  border-color: var(--green);
+  background: var(--green);
+  color: #ffffff;
+}
+
+.shared-view .check-box {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 2px solid currentColor;
+  border-radius: 999px;
+  font-size: 14px;
+  line-height: 1;
 }
 
 .shared-view .order-body {
@@ -496,6 +561,26 @@ h3 {
     flex-direction: row;
     gap: 8px;
     padding: 7px 8px;
+  }
+
+  .shared-view .order-heading {
+    align-items: center;
+    gap: 7px;
+  }
+
+  .shared-view .check-toggle {
+    min-width: 34px;
+    min-height: 32px;
+    padding: 4px;
+  }
+
+  .shared-view .check-text {
+    display: none;
+  }
+
+  .shared-view .check-box {
+    width: 22px;
+    height: 22px;
   }
 
   .shared-view .order-kicker {
