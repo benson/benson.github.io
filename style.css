@@ -85,6 +85,10 @@ li a:hover {
   font-size: 0.85rem;
 }
 
+.thoughts-section {
+  text-transform: none;
+}
+
 .wip {
   display: inline-block;
   font-size: 0.7rem;
