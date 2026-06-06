@@ -11,27 +11,27 @@ import {
 const mount = document.getElementById('designSystemMount');
 
 const COLOR_TOKENS = [
-  '--color-bg',
-  '--color-surface',
-  '--color-surface-sunken',
-  '--color-surface-raised',
-  '--color-text',
-  '--color-text-muted',
-  '--color-accent',
-  '--color-accent-soft',
-  '--color-danger',
-  '--color-warn',
+  '--vui-color-bg',
+  '--vui-color-surface',
+  '--vui-color-surface-sunken',
+  '--vui-color-surface-raised',
+  '--vui-color-text',
+  '--vui-color-text-muted',
+  '--vui-color-accent',
+  '--vui-color-accent-soft',
+  '--vui-color-danger',
+  '--vui-color-warn',
 ];
 
 const SIZE_TOKENS = [
-  '--border-width',
-  '--radius-sharp',
-  '--radius-soft',
-  '--shadow-firm',
-  '--shadow-hard',
-  '--font-size-sm',
-  '--font-size-md',
-  '--font-size-jumbo',
+  '--vui-border-width',
+  '--vui-radius-sharp',
+  '--vui-radius-soft',
+  '--vui-shadow-firm',
+  '--vui-shadow-hard',
+  '--vui-font-size-sm',
+  '--vui-font-size-md',
+  '--vui-font-size-jumbo',
 ];
 
 renderDesignSystem(mount);
@@ -64,13 +64,13 @@ function pageHeader() {
   return el(
     'header',
     { className: 'ds-page-head' },
-    el('h1', { className: 'ds-page-title', text: 'Benson UI' }),
+    el('h1', { className: 'ds-page-title', text: 'Vellum UI' }),
     el('p', {
       className: 'ds-page-sub',
       text:
-        'Shared tokens, hard-shadow primitives, and small browser-native helpers for Biblioplex, Pool Builder, and future apps.',
+        'Shared tokens, hard-shadow primitives, and small browser-native helpers for Biblioplex, PoolBuilder, and future apps.',
     }),
-    el('a', { className: 'ds-page-back', href: './design-system.html', text: 'home' }),
+    el('a', { className: 'ds-page-back', href: '/vellum-ui/design-system/', text: 'home' }),
   );
 }
 
