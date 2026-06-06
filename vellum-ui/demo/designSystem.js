@@ -70,7 +70,12 @@ function pageHeader() {
       text:
         'Shared tokens, hard-shadow primitives, and small browser-native helpers for Biblioplex, PoolBuilder, and future apps.',
     }),
-    el('a', { className: 'ds-page-back', href: '/vellum-ui/design-system/', text: 'home' }),
+    el(
+      'nav',
+      { className: 'ds-page-actions', ariaLabel: 'Vellum UI pages' },
+      el('a', { className: 'ds-page-back', href: '/vellum-ui/design-system/', text: 'home' }),
+      el('a', { className: 'ds-page-back', href: '/vellum-ui/labs/modal/', text: 'modal lab' }),
+    ),
   );
 }
 
@@ -333,7 +338,7 @@ function overlaysGroup() {
   return group(
     'overlays',
     'Overlays',
-    entry('Modal frame', ['.ui-modal-card', '.ui-modal-head', '.ui-modal-body', '.rune-close'], 'Canonical modal card with floating rune close button.', () =>
+    entry('Modal frame', ['.ui-modal-card', '.ui-modal-head', '.ui-modal-body', '.rune-close'], 'Canonical modal card with floating rune close button. Use the modal lab to compare new treatments.', () =>
       el(
         'section',
         { className: 'ui-modal-card', style: { width: 'min(520px, 100%)' } },
