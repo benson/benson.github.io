@@ -170,7 +170,7 @@ function tokensGroup() {
     'Tokens',
     entry(
       'Token playground',
-      [':root', '--color-*', '--radius-*', '--shadow-*'],
+      [':root', '--vui-color-*', '--vui-radius-*', '--vui-shadow-*'],
       'Tune core CSS variables live. This page updates immediately; copy the generated override back into src/css/tokens.css when a direction feels right.',
       tokenPlayground,
     ),
