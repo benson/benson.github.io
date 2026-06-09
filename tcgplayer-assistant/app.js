@@ -7,8 +7,8 @@ const SCRYFALL_API = "https://api.scryfall.com";
 const TCG_HANDOFF_API = defaultHandoffApiUrl();
 const SCRYFALL_DELAY_MS = 80;
 const CHECK_STORAGE_PREFIX = "tcg-handoff-checks:";
-const PREVIEW_IMAGE_WIDTH = 1200;
-const PREVIEW_IMAGE_HEIGHT = 630;
+const PREVIEW_IMAGE_WIDTH = 900;
+const PREVIEW_IMAGE_HEIGHT = 1200;
 const PREVIEW_IMAGE_MAX_BYTES = 180 * 1024;
 const PREVIEW_IMAGE_MAX_CARDS = 24;
 const PREVIEW_PANEL_MARGIN = 32;
@@ -1032,8 +1032,8 @@ function drawPreviewCanvas(context, cards, overflow, counts) {
   const panelY = margin;
   const panelWidth = width - margin * 2;
   const panelHeight = height - margin * 2;
-  const headerHeight = 54;
-  const gap = cards.length <= 4 ? 26 : 16;
+  const headerHeight = 78;
+  const gap = cards.length <= 4 ? 22 : 18;
   const cardAspect = 488 / 680;
 
   context.fillStyle = "#f5f7fa";
@@ -1044,10 +1044,10 @@ function drawPreviewCanvas(context, cards, overflow, counts) {
 
   drawPreviewHeader(context, counts, panelX, panelY, panelWidth, headerHeight);
 
-  const gridX = panelX + 28;
-  const gridY = panelY + headerHeight + 4;
-  const gridWidthMax = panelWidth - 56;
-  const gridHeightMax = panelHeight - headerHeight - 26;
+  const gridX = panelX + 34;
+  const gridY = panelY + headerHeight + 8;
+  const gridWidthMax = panelWidth - 68;
+  const gridHeightMax = panelHeight - headerHeight - 34;
   const layout = bestPreviewGrid(cards.length, gridWidthMax, gridHeightMax, gap, cardAspect);
   const gridWidth = layout.columns * layout.cardWidth + (layout.columns - 1) * gap;
   const gridHeight = layout.rows * layout.cardHeight + (layout.rows - 1) * gap;
@@ -1055,8 +1055,8 @@ function drawPreviewCanvas(context, cards, overflow, counts) {
   const startY = gridY + (gridHeightMax - gridHeight) / 2;
 
   cards.forEach((card, index) => {
-    const column = index % layout.columns;
-    const row = Math.floor(index / layout.columns);
+    const column = Math.floor(index / layout.rows);
+    const row = index % layout.rows;
     const x = startX + column * (layout.cardWidth + gap);
     const y = startY + row * (layout.cardHeight + gap);
 
@@ -1071,7 +1071,7 @@ function drawPreviewCanvas(context, cards, overflow, counts) {
     }
   });
 
-  if (overflow > 0) drawPreviewPill(context, `+${overflow}`, width - 108, height - 78, 56, 30);
+  if (overflow > 0) drawPreviewPill(context, `+${overflow}`, width - 96, height - 76, 56, 30);
 }
 
 function drawPreviewHeader(context, counts, x, y, width, height) {
@@ -1080,10 +1080,10 @@ function drawPreviewHeader(context, counts, x, y, width, height) {
   const text = `${orderCount} order${orderCount === 1 ? "" : "s"} - ${cardCount} card${cardCount === 1 ? "" : "s"}`;
 
   context.fillStyle = "#111827";
-  context.font = "800 30px system-ui, sans-serif";
+  context.font = "800 38px system-ui, sans-serif";
   context.textAlign = "left";
   context.textBaseline = "middle";
-  context.fillText(text, x + 32, y + height / 2 + 2);
+  context.fillText(text, x + 34, y + height / 2 + 4);
 }
 
 function drawPreviewPlaceholderCard(context, label, x, y, width, height) {
@@ -1104,18 +1104,20 @@ function drawPreviewPlaceholderCard(context, label, x, y, width, height) {
 }
 
 function bestPreviewGrid(count, maxWidth, maxHeight, gap, aspect) {
-  let best = null;
-  for (let rows = 1; rows <= count; rows += 1) {
-    const columns = Math.ceil(count / rows);
-    const cellWidth = (maxWidth - (columns - 1) * gap) / columns;
-    const cellHeight = (maxHeight - (rows - 1) * gap) / rows;
-    const cardWidth = Math.min(cellWidth, cellHeight * aspect);
-    const cardHeight = cardWidth / aspect;
-    const area = cardWidth * cardHeight;
-    if (!best || area > best.area) best = { rows, columns, cardWidth, cardHeight, area };
-  }
+  const columns = previewGridColumns(count);
+  const rows = Math.ceil(count / columns);
+  const cellWidth = (maxWidth - (columns - 1) * gap) / columns;
+  const cellHeight = (maxHeight - (rows - 1) * gap) / rows;
+  const cardWidth = Math.min(cellWidth, cellHeight * aspect);
+  const cardHeight = cardWidth / aspect;
+  return { rows, columns, cardWidth, cardHeight, area: cardWidth * cardHeight };
+}
 
-  return best;
+function previewGridColumns(count) {
+  if (count <= 1) return 1;
+  if (count <= 8) return 2;
+  if (count <= 18) return 3;
+  return 4;
 }
 
 function drawPreviewPill(context, text, x, y, width, height) {
