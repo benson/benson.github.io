@@ -697,13 +697,15 @@ async function createShortShareUrl() {
   if (!window.crypto?.subtle) throw new Error("Web Crypto is unavailable.");
 
   const encrypted = await encryptSharedPayload(JSON.stringify(compactSharedPayload()));
+  const previewId = firstPreviewScryfallId();
+  const body = previewId ? { ...encrypted.body, preview: { scryfallId: previewId } } : encrypted.body;
   const response = await fetch(`${TCG_HANDOFF_API}/tcg-handoffs`, {
     method: "POST",
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(encrypted.body),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) throw new Error(`Short link service returned ${response.status}.`);
@@ -830,6 +832,23 @@ function expandCompactItem(item) {
       : null,
     parsedProduct: name ? { displayName: name } : null,
   };
+}
+
+function firstPreviewScryfallId() {
+  for (const order of state.orders) {
+    for (const item of order.items || []) {
+      const card = item.card || {};
+      const id = validScryfallId(card.id) || validScryfallId(scryfallIdFromImageUrl(card.imageUrl));
+      if (id) return id;
+    }
+  }
+
+  return "";
+}
+
+function validScryfallId(value) {
+  const id = String(value || "").toLowerCase();
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id) ? id : "";
 }
 
 function scryfallIdFromImageUrl(value) {

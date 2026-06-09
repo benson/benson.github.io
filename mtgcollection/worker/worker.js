@@ -24,6 +24,10 @@ const TCG_HANDOFF_MAX_PAYLOAD_BYTES = 64 * 1024;
 const SHARE_KEY_PREFIX = 'share:';
 const TCG_HANDOFF_KEY_PREFIX = 'tcg:';
 const ID_PATTERN = /^[a-zA-Z0-9_-]{6,48}$/;
+const TCG_HANDOFF_ID_PATTERN = /^[a-zA-Z0-9_-]{3,48}$/;
+const TCG_HANDOFF_ID_LENGTH = 3;
+const TCG_HANDOFF_ID_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+const TCG_HANDOFF_ID_RETRIES = 24;
 const TCG_HANDOFF_ALLOWED_ORIGINS = new Set(['https://bensonperry.com']);
 const TCG_ASSISTANT_URL = 'https://bensonperry.com/tcgplayer-assistant/';
 const TCG_PREVIEW_IMAGE_URL = TCG_ASSISTANT_URL + 'preview.png';
@@ -31,6 +35,7 @@ const TCG_FAVICON_URL = TCG_ASSISTANT_URL + 'favicon.svg';
 const TCG_APPLE_ICON_URL = TCG_ASSISTANT_URL + 'icon-192.png';
 const TCG_PREVIEW_TITLE = 'Card Mail';
 const TCG_PREVIEW_DESCRIPTION = 'A private TCGplayer packing handoff with cards and shipping addresses in one phone-friendly view.';
+const SCRYFALL_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function sharePutOptions(auth) {
   return auth ? undefined : { expirationTtl: TTL_SECONDS };
@@ -103,6 +108,24 @@ function generateId(prefix = '') {
   return prefix + crypto.randomUUID().replace(/-/g, '').slice(0, 16);
 }
 
+function randomTcgHandoffId() {
+  const bytes = new Uint8Array(TCG_HANDOFF_ID_LENGTH);
+  crypto.getRandomValues(bytes);
+  let id = '';
+  for (const byte of bytes) id += TCG_HANDOFF_ID_ALPHABET[byte % TCG_HANDOFF_ID_ALPHABET.length];
+  return id;
+}
+
+async function generateTcgHandoffId(env) {
+  for (let attempt = 0; attempt < TCG_HANDOFF_ID_RETRIES; attempt += 1) {
+    const id = randomTcgHandoffId();
+    const existing = await env.TCG_HANDOFFS.get(TCG_HANDOFF_KEY_PREFIX + id);
+    if (existing === null) return id;
+  }
+
+  throw errorWithStatus('could not allocate handoff id', 503);
+}
+
 async function readBody(request) {
   const body = await request.text();
   if (body.length > MAX_PAYLOAD_BYTES) throw new Error('payload too large (max ' + MAX_PAYLOAD_BYTES + ' bytes)');
@@ -128,6 +151,11 @@ function isBase64Url(value, { min = 1, max = 65536 } = {}) {
     && /^[A-Za-z0-9_-]+$/.test(value);
 }
 
+function normalizeScryfallId(value) {
+  const id = String(value || '').toLowerCase();
+  return SCRYFALL_ID_PATTERN.test(id) ? id : '';
+}
+
 async function readTcgHandoffBody(request) {
   const body = await request.text();
   if (new TextEncoder().encode(body).byteLength > TCG_HANDOFF_MAX_PAYLOAD_BYTES) {
@@ -151,15 +179,59 @@ async function readTcgHandoffBody(request) {
     throw errorWithStatus('invalid encrypted handoff payload', 400);
   }
 
-  return JSON.stringify({
+  const normalized = {
     v: 1,
     alg: 'A256GCM',
+    iv: payload.iv,
+    data: payload.data,
+  };
+  const previewId = normalizeScryfallId(payload.preview?.scryfallId || payload.previewScryfallId);
+  if (previewId) normalized.preview = { scryfallId: previewId };
+
+  return JSON.stringify(normalized);
+}
+
+function encryptedTcgHandoffJson(value) {
+  const payload = JSON.parse(value);
+  return JSON.stringify({
+    v: payload.v,
+    alg: payload.alg,
     iv: payload.iv,
     data: payload.data,
   });
 }
 
-function tcgRedirectHtml(id) {
+function tcgHandoffPreviewId(value) {
+  try {
+    return normalizeScryfallId(JSON.parse(value)?.preview?.scryfallId);
+  } catch (e) {
+    return '';
+  }
+}
+
+function tcgPreviewImage(previewId) {
+  const id = normalizeScryfallId(previewId);
+  if (id) {
+    return {
+      url: `https://cards.scryfall.io/large/front/${id[0]}/${id[1]}/${id}.jpg`,
+      type: 'image/jpeg',
+      width: 672,
+      height: 936,
+      alt: 'First card in this Card Mail handoff',
+    };
+  }
+
+  return {
+    url: TCG_PREVIEW_IMAGE_URL,
+    type: 'image/png',
+    width: 1200,
+    height: 630,
+    alt: 'Card Mail TCGplayer handoff preview',
+  };
+}
+
+function tcgRedirectHtml(id, previewId = '') {
+  const preview = tcgPreviewImage(previewId);
   const target = TCG_ASSISTANT_URL + '?s=' + encodeURIComponent(id);
   const shareUrl = 'https://api.bensonperry.com/t/' + encodeURIComponent(id);
   return `<!doctype html>
@@ -176,16 +248,16 @@ function tcgRedirectHtml(id) {
   <meta property="og:title" content="${TCG_PREVIEW_TITLE}">
   <meta property="og:description" content="${TCG_PREVIEW_DESCRIPTION}">
   <meta property="og:url" content="${shareUrl}">
-  <meta property="og:image" content="${TCG_PREVIEW_IMAGE_URL}">
-  <meta property="og:image:secure_url" content="${TCG_PREVIEW_IMAGE_URL}">
-  <meta property="og:image:type" content="image/png">
-  <meta property="og:image:width" content="1200">
-  <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="Card Mail TCGplayer handoff preview">
+  <meta property="og:image" content="${preview.url}">
+  <meta property="og:image:secure_url" content="${preview.url}">
+  <meta property="og:image:type" content="${preview.type}">
+  <meta property="og:image:width" content="${preview.width}">
+  <meta property="og:image:height" content="${preview.height}">
+  <meta property="og:image:alt" content="${preview.alt}">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${TCG_PREVIEW_TITLE}">
   <meta name="twitter:description" content="${TCG_PREVIEW_DESCRIPTION}">
-  <meta name="twitter:image" content="${TCG_PREVIEW_IMAGE_URL}">
+  <meta name="twitter:image" content="${preview.url}">
   <link rel="icon" href="${TCG_FAVICON_URL}" type="image/svg+xml">
   <link rel="apple-touch-icon" href="${TCG_APPLE_ICON_URL}">
 </head>
@@ -632,7 +704,7 @@ export default {
         requireTcgHandoffOrigin(request);
         if (!env.TCG_HANDOFFS) return json({ error: 'TCG_HANDOFFS binding is not configured' }, 500, request);
         const body = await readTcgHandoffBody(request);
-        const id = generateId();
+        const id = await generateTcgHandoffId(env);
         await env.TCG_HANDOFFS.put(TCG_HANDOFF_KEY_PREFIX + id, body, { expirationTtl: TCG_HANDOFF_TTL_SECONDS });
         return json({ id, expiresAt: Date.now() + TCG_HANDOFF_TTL_SECONDS * 1000 }, 200, request);
       } catch (e) {
@@ -643,11 +715,11 @@ export default {
     const tcgHandoff = path.match(/^\/tcg-handoffs\/([^/]+)$/);
     if (tcgHandoff && request.method === 'GET') {
       const id = tcgHandoff[1];
-      if (!ID_PATTERN.test(id)) return text('invalid id', 400, request);
+      if (!TCG_HANDOFF_ID_PATTERN.test(id)) return text('invalid id', 400, request);
       if (!env.TCG_HANDOFFS) return json({ error: 'TCG_HANDOFFS binding is not configured' }, 500, request);
       const value = await env.TCG_HANDOFFS.get(TCG_HANDOFF_KEY_PREFIX + id);
       if (value === null) return text('handoff not found', 404, request);
-      return new Response(value, {
+      return new Response(encryptedTcgHandoffJson(value), {
         status: 200,
         headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
       });
@@ -656,8 +728,13 @@ export default {
     const tcgRedirect = path.match(/^\/t\/([^/]+)$/);
     if (tcgRedirect && request.method === 'GET') {
       const id = tcgRedirect[1];
-      if (!ID_PATTERN.test(id)) return text('invalid id', 400, request);
-      return new Response(tcgRedirectHtml(id), {
+      if (!TCG_HANDOFF_ID_PATTERN.test(id)) return text('invalid id', 400, request);
+      let previewId = normalizeScryfallId(url.searchParams.get('p'));
+      if (!previewId && env.TCG_HANDOFFS) {
+        const value = await env.TCG_HANDOFFS.get(TCG_HANDOFF_KEY_PREFIX + id);
+        if (value !== null) previewId = tcgHandoffPreviewId(value);
+      }
+      return new Response(tcgRedirectHtml(id, previewId), {
         status: 200,
         headers: { 'Content-Type': 'text/html; charset=utf-8' },
       });
