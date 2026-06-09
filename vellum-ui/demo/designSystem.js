@@ -5,6 +5,7 @@ import {
   combobox,
   el,
   fieldRowHtml,
+  floatingMenu,
   renderStatusState,
   statusStateHtml,
   toast,
@@ -617,18 +618,36 @@ function overlaysGroup() {
         el('footer', { className: 'ui-modal-actions' }, el('button', { className: 'btn', type: 'button', text: 'done' })),
       ),
     ),
-    entry('Popover frame', ['.ui-popover', '.floating-menu'], 'Anchored floating surface and menu item vocabulary.', () =>
-      el(
-        'div',
-        { className: 'ds-static-popover' },
-        el(
-          'div',
-          { className: 'ds-static-popover-body floating-menu' },
-          el('button', { className: 'floating-menu-item', type: 'button', text: 'move to deck' }),
-          el('button', { className: 'floating-menu-item is-active', type: 'button', text: 'compare build' }),
-          el('button', { className: 'floating-menu-item', type: 'button', text: 'remove' }),
-        ),
-      ),
+    entry(
+      'Popover frame',
+      ['.ui-popover', '.floating-menu', '.floating-menu-item'],
+      'Anchored floating surface and menu item vocabulary. Live: the trigger opens a real floatingMenu() — arrows navigate, enter picks, escape closes.',
+      () => {
+        const wrap = el('div', { className: 'ds-floating-demo', style: { position: 'relative' } });
+        const trigger = el('button', { className: 'btn', type: 'button', text: 'open menu' });
+        const menu = el('div', { className: 'ui-popover floating-menu', role: 'menu' });
+        menu.hidden = true;
+        let controller = null;
+        for (const label of ['move to deck', 'compare build', 'remove']) {
+          const item = el('button', {
+            className: 'floating-menu-item',
+            type: 'button',
+            text: label,
+            role: 'menuitem',
+          });
+          item.addEventListener('click', () => {
+            toast(`picked: ${label}`);
+            controller?.close();
+          });
+          menu.append(item);
+        }
+        wrap.append(trigger, menu);
+        controller = floatingMenu(trigger, menu, { keyboard: true });
+        trigger.addEventListener('click', () =>
+          controller.isOpen() ? controller.close() : controller.open({ focusFirst: true }),
+        );
+        return wrap;
+      },
     ),
   );
 }
