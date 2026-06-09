@@ -797,8 +797,8 @@ function parseTcgplayerProduct(description) {
   const condition = collectorIndex >= 0 ? parts.slice(collectorIndex + 2).join(" - ") : parts.slice(1).join(" - ");
   const finish = /etched/i.test(condition) ? "etched" : /foil/i.test(condition) ? "foil" : "nonfoil";
   const splitAt = title.lastIndexOf(": ");
-  const setName = splitAt >= 0 ? cleanupLine(title.slice(0, splitAt)) : "";
-  const displayName = splitAt >= 0 ? cleanupLine(title.slice(splitAt + 2)) : title;
+  const setName = splitAt >= 0 ? cleanupLine(title.slice(0, splitAt)) : collectorIndex > 1 ? parts[0] : "";
+  const displayName = splitAt >= 0 ? cleanupLine(title.slice(splitAt + 2)) : collectorIndex > 1 ? parts.slice(1, collectorIndex).join(" - ") : title;
   const styleTags = extractStyleTags(displayName, condition);
   const lookupName = stripStyleParentheticals(displayName);
 
@@ -820,6 +820,7 @@ function extractStyleTags(displayName, condition) {
     text.includes("anime") ? "anime" : "",
     text.includes("borderless") ? "borderless" : "",
     text.includes("white border") ? "white border" : "",
+    text.includes("stained glass") ? "stained glass" : "",
     text.includes("showcase") ? "showcase" : "",
     text.includes("extended art") ? "extended art" : "",
     text.includes("retro") ? "retro" : "",
@@ -830,11 +831,11 @@ function stripStyleParentheticals(name) {
   return cleanupLine(
     String(name || "")
       .replace(
-        /\((anime borderless|anime|borderless|white border|showcase|extended art|retro frame|retro|alternate art|foil etched|etched foil|textured foil|surge foil|galaxy foil|confetti foil|mana foil|oil slick raised foil)[^)]+\)/gi,
+        /\((anime borderless|anime|borderless|white border|stained glass|showcase|extended art|retro frame|retro|alternate art|foil etched|etched foil|textured foil|surge foil|galaxy foil|confetti foil|mana foil|oil slick raised foil)[^)]+\)/gi,
         "",
       )
       .replace(
-        /\((anime borderless|anime|borderless|white border|showcase|extended art|retro frame|retro|alternate art|foil etched|etched foil|textured foil|surge foil|galaxy foil|confetti foil|mana foil|oil slick raised foil)\)/gi,
+        /\((anime borderless|anime|borderless|white border|stained glass|showcase|extended art|retro frame|retro|alternate art|foil etched|etched foil|textured foil|surge foil|galaxy foil|confetti foil|mana foil|oil slick raised foil)\)/gi,
         "",
       ),
   );
