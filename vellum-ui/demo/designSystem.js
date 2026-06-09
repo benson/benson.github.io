@@ -6,6 +6,7 @@ import {
   el,
   fieldRowHtml,
   floatingMenu,
+  mountFeedbackCapture,
   renderStatusState,
   statusStateHtml,
   toast,
@@ -97,6 +98,15 @@ const tokenDefaults = readTokenDefaults();
 applyOverrides(readOverrides());
 
 renderDesignSystem(mount);
+
+// Owner feedback: file design-system feedback straight to the vellum-ui Linear
+// project. Mounts only on machines holding the owner key (adopt it once via
+// ?feedback-key=<key>); routed through the biblioplex worker's /feedback.
+mountFeedbackCapture({
+  requireOwnerKey: true,
+  project: 'vellum-ui',
+  apiUrl: 'https://biblioplex-api.bensonperry.com',
+});
 
 function readTokenDefaults() {
   const computed = getComputedStyle(document.documentElement);
