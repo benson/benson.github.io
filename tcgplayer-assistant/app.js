@@ -12,6 +12,7 @@ const PREVIEW_IMAGE_HEIGHT = 1200;
 const PREVIEW_IMAGE_MAX_BYTES = 180 * 1024;
 const PREVIEW_IMAGE_MAX_CARDS = 24;
 const PREVIEW_PANEL_MARGIN = 32;
+const PREVIEW_CARD_STACK_STEP_RATIO = 0.3;
 const PREVIEW_IMAGE_LOAD_TIMEOUT_MS = 4500;
 const PREVIEW_IMAGE_LOAD_ATTEMPTS = 2;
 const scryfallCache = new Map();
@@ -1050,15 +1051,16 @@ function drawPreviewCanvas(context, cards, overflow, counts) {
   const gridHeightMax = panelHeight - headerHeight - 34;
   const layout = bestPreviewGrid(cards.length, gridWidthMax, gridHeightMax, gap, cardAspect);
   const gridWidth = layout.columns * layout.cardWidth + (layout.columns - 1) * gap;
-  const gridHeight = layout.rows * layout.cardHeight + (layout.rows - 1) * gap;
+  const gridHeight = layout.stackHeight;
   const startX = gridX + (gridWidthMax - gridWidth) / 2;
-  const startY = gridY + (gridHeightMax - gridHeight) / 2;
+  const topSlack = Math.max(0, (gridHeightMax - gridHeight) / 2);
+  const startY = gridY + (cards.length <= 2 ? topSlack : Math.min(44, topSlack));
 
   cards.forEach((card, index) => {
     const column = Math.floor(index / layout.rows);
     const row = index % layout.rows;
     const x = startX + column * (layout.cardWidth + gap);
-    const y = startY + row * (layout.cardHeight + gap);
+    const y = startY + row * layout.cardStep;
 
     if (card.image) {
       context.save();
@@ -1107,10 +1109,13 @@ function bestPreviewGrid(count, maxWidth, maxHeight, gap, aspect) {
   const columns = previewGridColumns(count);
   const rows = Math.ceil(count / columns);
   const cellWidth = (maxWidth - (columns - 1) * gap) / columns;
-  const cellHeight = (maxHeight - (rows - 1) * gap) / rows;
-  const cardWidth = Math.min(cellWidth, cellHeight * aspect);
+  const stackFactor = 1 + Math.max(0, rows - 1) * PREVIEW_CARD_STACK_STEP_RATIO;
+  const maxCardHeight = maxHeight / stackFactor;
+  const cardWidth = Math.min(cellWidth, maxCardHeight * aspect);
   const cardHeight = cardWidth / aspect;
-  return { rows, columns, cardWidth, cardHeight, area: cardWidth * cardHeight };
+  const cardStep = cardHeight * PREVIEW_CARD_STACK_STEP_RATIO;
+  const stackHeight = cardHeight + Math.max(0, rows - 1) * cardStep;
+  return { rows, columns, cardWidth, cardHeight, cardStep, stackHeight, area: cardWidth * cardHeight };
 }
 
 function previewGridColumns(count) {
@@ -1172,7 +1177,7 @@ function roundedRect(context, x, y, width, height, radius) {
 }
 
 async function previewCanvasBytes(canvas) {
-  for (const quality of [0.82, 0.72, 0.62, 0.52, 0.44, 0.36]) {
+  for (const quality of [0.82, 0.72, 0.62, 0.52, 0.44, 0.36, 0.3, 0.24]) {
     const blob = await canvasToBlob(canvas, "image/jpeg", quality);
     if (!blob) continue;
     const bytes = new Uint8Array(await blob.arrayBuffer());
