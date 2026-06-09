@@ -152,7 +152,7 @@ test('worker: anonymous TCG handoff writes are origin-limited and expire', async
     alg: 'A256GCM',
     iv: 'abcdefghijklmnop',
     data: 'ciphertext_123',
-    preview: { scryfallId: previewId, image: previewImage },
+    preview: { scryfallId: previewId, image: previewImage, orderCount: 2, cardCount: 6 },
   };
   const encryptedPayload = { v: 1, alg: 'A256GCM', iv: 'abcdefghijklmnop', data: 'ciphertext_123' };
 
@@ -177,6 +177,7 @@ test('worker: anonymous TCG handoff writes are origin-limited and expire', async
   assert.equal(redirect.status, 200);
   const html = await redirect.text();
   assert.match(html, new RegExp(`https://api\\.bensonperry\\.com/t/${id}/preview\\.jpg`));
+  assert.match(html, /2 orders - 6 cards/);
   assert.doesNotMatch(html, new RegExp(`https://cards\\.scryfall\\.io/large/front/e/1/${previewId}\\.jpg`));
   assert.doesNotMatch(html, /preview\.png/);
 
@@ -257,6 +258,13 @@ test('worker: TCG handoff writes reject invalid origins and payloads', async () 
     body: JSON.stringify({ v: 1, alg: 'none', iv: 'abcdefghijklmnop', data: 'ciphertext_123' }),
   }), { TCG_HANDOFFS: fakeKv() });
   assert.equal(invalidFields.status, 400);
+
+  const invalidPreviewCount = await worker.fetch(new Request('https://example.com/tcg-handoffs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Origin: 'https://bensonperry.com' },
+    body: JSON.stringify({ ...validPayload, preview: { orderCount: 'six' } }),
+  }), { TCG_HANDOFFS: fakeKv() });
+  assert.equal(invalidPreviewCount.status, 400);
 
   const oversized = await worker.fetch(new Request('https://example.com/tcg-handoffs', {
     method: 'POST',

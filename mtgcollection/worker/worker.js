@@ -192,13 +192,26 @@ function normalizePreviewImage(value) {
   return { type, width, height, data };
 }
 
+function normalizePreviewCount(value, label) {
+  if (value === undefined || value === null || value === '') return 0;
+  const count = Number(value);
+  if (!Number.isInteger(count) || count < 0 || count > 999) {
+    throw errorWithStatus('invalid preview ' + label, 400);
+  }
+  return count;
+}
+
 function normalizeTcgPreview(value) {
   const preview = value || {};
   const normalized = {};
   const previewId = normalizeScryfallId(preview.scryfallId);
   const image = normalizePreviewImage(preview.image);
+  const orderCount = normalizePreviewCount(preview.orderCount, 'order count');
+  const cardCount = normalizePreviewCount(preview.cardCount, 'card count');
   if (previewId) normalized.scryfallId = previewId;
   if (image) normalized.image = image;
+  if (orderCount) normalized.orderCount = orderCount;
+  if (cardCount) normalized.cardCount = cardCount;
   return Object.keys(normalized).length ? normalized : null;
 }
 
@@ -264,10 +277,22 @@ function tcgHandoffPreview(value) {
         data: String(preview.image.data || ''),
       };
     }
+    const orderCount = Number(preview.orderCount);
+    const cardCount = Number(preview.cardCount);
+    if (Number.isInteger(orderCount) && orderCount > 0 && orderCount <= 999) normalized.orderCount = orderCount;
+    if (Number.isInteger(cardCount) && cardCount > 0 && cardCount <= 999) normalized.cardCount = cardCount;
     return normalized;
   } catch (e) {
     return {};
   }
+}
+
+function tcgPreviewDescription(storedPreview = {}) {
+  const orderCount = Number(storedPreview.orderCount) || 0;
+  const cardCount = Number(storedPreview.cardCount) || 0;
+  if (!orderCount || !cardCount) return TCG_PREVIEW_DESCRIPTION;
+
+  return `${orderCount} order${orderCount === 1 ? '' : 's'} - ${cardCount} card${cardCount === 1 ? '' : 's'}. ${TCG_PREVIEW_DESCRIPTION}`;
 }
 
 function tcgPreviewImage(id, storedPreview = {}) {
@@ -304,6 +329,7 @@ function tcgPreviewImage(id, storedPreview = {}) {
 
 function tcgRedirectHtml(id, storedPreview = {}) {
   const preview = tcgPreviewImage(id, storedPreview);
+  const description = tcgPreviewDescription(storedPreview);
   const target = TCG_ASSISTANT_URL + '?s=' + encodeURIComponent(id);
   const shareUrl = 'https://api.bensonperry.com/t/' + encodeURIComponent(id);
   return `<!doctype html>
@@ -312,13 +338,13 @@ function tcgRedirectHtml(id, storedPreview = {}) {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${TCG_PREVIEW_TITLE}</title>
-  <meta name="description" content="${TCG_PREVIEW_DESCRIPTION}">
+  <meta name="description" content="${description}">
   <meta name="theme-color" content="#2457d6">
   <meta name="robots" content="noindex,nofollow,noarchive">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="${TCG_PREVIEW_TITLE}">
   <meta property="og:title" content="${TCG_PREVIEW_TITLE}">
-  <meta property="og:description" content="${TCG_PREVIEW_DESCRIPTION}">
+  <meta property="og:description" content="${description}">
   <meta property="og:url" content="${shareUrl}">
   <meta property="og:image" content="${preview.url}">
   <meta property="og:image:secure_url" content="${preview.url}">
@@ -328,7 +354,7 @@ function tcgRedirectHtml(id, storedPreview = {}) {
   <meta property="og:image:alt" content="${preview.alt}">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${TCG_PREVIEW_TITLE}">
-  <meta name="twitter:description" content="${TCG_PREVIEW_DESCRIPTION}">
+  <meta name="twitter:description" content="${description}">
   <meta name="twitter:image" content="${preview.url}">
   <link rel="icon" href="${TCG_FAVICON_URL}" type="image/svg+xml">
   <link rel="apple-touch-icon" href="${TCG_APPLE_ICON_URL}">

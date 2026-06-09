@@ -11,6 +11,7 @@ const PREVIEW_IMAGE_WIDTH = 1200;
 const PREVIEW_IMAGE_HEIGHT = 630;
 const PREVIEW_IMAGE_MAX_BYTES = 180 * 1024;
 const PREVIEW_IMAGE_MAX_CARDS = 24;
+const PREVIEW_PANEL_MARGIN = 32;
 const scryfallCache = new Map();
 
 const state = {
@@ -337,7 +338,7 @@ function mergeOrderPages(pages) {
 
 function render() {
   const hasOrders = state.orders.length > 0;
-  const cardCount = state.orders.reduce((sum, order) => sum + order.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0);
+  const { cardCount } = sharePreviewCounts();
 
   document.body.classList.toggle("shared-view", state.sharedMode && hasOrders);
   els.emptyState.hidden = hasOrders;
@@ -411,6 +412,20 @@ function render() {
       },
     )
     .join("");
+}
+
+function sharePreviewCounts() {
+  return {
+    orderCount: state.orders.length,
+    cardCount: state.orders.reduce(
+      (sum, order) => sum + order.items.reduce((itemSum, item) => itemSum + cardQuantity(item), 0),
+      0,
+    ),
+  };
+}
+
+function cardQuantity(item) {
+  return Math.max(1, Number(item?.quantity) || 1);
 }
 
 function cardLineHtml(item) {
@@ -852,7 +867,9 @@ function firstPreviewScryfallId() {
 
 async function buildSharePreview() {
   const scryfallId = firstPreviewScryfallId();
-  const preview = scryfallId ? { scryfallId } : {};
+  const counts = sharePreviewCounts();
+  const preview = { ...counts };
+  if (scryfallId) preview.scryfallId = scryfallId;
 
   try {
     const image = await buildPreviewImage();
@@ -867,6 +884,7 @@ async function buildSharePreview() {
 async function buildPreviewImage() {
   const cards = previewCardLines();
   if (!cards.length || !document.createElement("canvas").getContext) return null;
+  const counts = sharePreviewCounts();
 
   const canvas = document.createElement("canvas");
   canvas.width = PREVIEW_IMAGE_WIDTH;
@@ -880,14 +898,14 @@ async function buildPreviewImage() {
     await Promise.all(
       visibleCards.map(async (card) => ({
         ...card,
-        image: await loadPreviewImage(card.imageUrl).catch(() => null),
+        image: card.imageUrl ? await loadPreviewImage(card.imageUrl).catch(() => null) : null,
       })),
     )
-  ).filter((card) => card.image);
+  );
 
   if (!loadedCards.length) return null;
 
-  drawPreviewCanvas(context, loadedCards, overflow);
+  drawPreviewCanvas(context, loadedCards, overflow, counts);
   const bytes = await previewCanvasBytes(canvas);
   if (!bytes) return null;
 
@@ -905,11 +923,14 @@ function previewCardLines() {
     for (const item of order.items || []) {
       const card = item.card || {};
       const imageUrl = card.imageUrl || scryfallImageUrlFromId(card.id);
-      if (!imageUrl) continue;
-      cards.push({
-        imageUrl,
-        quantity: item.quantity || 1,
-      });
+      const label = card.name || item.parsedProduct?.displayName || item.description || "Card";
+      const quantity = cardQuantity(item);
+      for (let copy = 0; copy < quantity; copy += 1) {
+        cards.push({
+          imageUrl,
+          label,
+        });
+      }
     }
   }
 
@@ -927,24 +948,35 @@ function loadPreviewImage(src) {
   });
 }
 
-function drawPreviewCanvas(context, cards, overflow) {
+function drawPreviewCanvas(context, cards, overflow, counts) {
   const width = PREVIEW_IMAGE_WIDTH;
   const height = PREVIEW_IMAGE_HEIGHT;
-  const margin = 42;
+  const margin = PREVIEW_PANEL_MARGIN;
+  const panelX = margin;
+  const panelY = margin;
+  const panelWidth = width - margin * 2;
+  const panelHeight = height - margin * 2;
+  const headerHeight = 54;
   const gap = cards.length <= 4 ? 26 : 16;
   const cardAspect = 488 / 680;
 
   context.fillStyle = "#f5f7fa";
   context.fillRect(0, 0, width, height);
-  roundedRect(context, 42, 42, width - 84, height - 84, 30);
+  roundedRect(context, panelX, panelY, panelWidth, panelHeight, 30);
   context.fillStyle = "#ffffff";
   context.fill();
 
-  const layout = bestPreviewGrid(cards.length, width - margin * 2, height - margin * 2, gap, cardAspect);
+  drawPreviewHeader(context, counts, panelX, panelY, panelWidth, headerHeight);
+
+  const gridX = panelX + 28;
+  const gridY = panelY + headerHeight + 4;
+  const gridWidthMax = panelWidth - 56;
+  const gridHeightMax = panelHeight - headerHeight - 26;
+  const layout = bestPreviewGrid(cards.length, gridWidthMax, gridHeightMax, gap, cardAspect);
   const gridWidth = layout.columns * layout.cardWidth + (layout.columns - 1) * gap;
   const gridHeight = layout.rows * layout.cardHeight + (layout.rows - 1) * gap;
-  const startX = (width - gridWidth) / 2;
-  const startY = (height - gridHeight) / 2;
+  const startX = gridX + (gridWidthMax - gridWidth) / 2;
+  const startY = gridY + (gridHeightMax - gridHeight) / 2;
 
   cards.forEach((card, index) => {
     const column = index % layout.columns;
@@ -952,16 +984,47 @@ function drawPreviewCanvas(context, cards, overflow) {
     const x = startX + column * (layout.cardWidth + gap);
     const y = startY + row * (layout.cardHeight + gap);
 
-    context.save();
-    roundedRect(context, x, y, layout.cardWidth, layout.cardHeight, Math.max(8, layout.cardWidth * 0.045));
-    context.clip();
-    context.drawImage(card.image, x, y, layout.cardWidth, layout.cardHeight);
-    context.restore();
-
-    if (card.quantity > 1) drawPreviewPill(context, `x${card.quantity}`, x + layout.cardWidth - 54, y + layout.cardHeight - 34, 44, 24);
+    if (card.image) {
+      context.save();
+      roundedRect(context, x, y, layout.cardWidth, layout.cardHeight, Math.max(8, layout.cardWidth * 0.045));
+      context.clip();
+      context.drawImage(card.image, x, y, layout.cardWidth, layout.cardHeight);
+      context.restore();
+    } else {
+      drawPreviewPlaceholderCard(context, card.label, x, y, layout.cardWidth, layout.cardHeight);
+    }
   });
 
-  if (overflow > 0) drawPreviewPill(context, `+${overflow}`, width - 112, height - 82, 56, 30);
+  if (overflow > 0) drawPreviewPill(context, `+${overflow}`, width - 108, height - 78, 56, 30);
+}
+
+function drawPreviewHeader(context, counts, x, y, width, height) {
+  const orderCount = counts?.orderCount || 0;
+  const cardCount = counts?.cardCount || 0;
+  const text = `${orderCount} order${orderCount === 1 ? "" : "s"} - ${cardCount} card${cardCount === 1 ? "" : "s"}`;
+
+  context.fillStyle = "#111827";
+  context.font = "800 30px system-ui, sans-serif";
+  context.textAlign = "left";
+  context.textBaseline = "middle";
+  context.fillText(text, x + 32, y + height / 2 + 2);
+}
+
+function drawPreviewPlaceholderCard(context, label, x, y, width, height) {
+  roundedRect(context, x, y, width, height, Math.max(8, width * 0.045));
+  context.fillStyle = "#eef2f7";
+  context.fill();
+  context.strokeStyle = "#cbd5e1";
+  context.lineWidth = Math.max(2, width * 0.018);
+  context.stroke();
+
+  const padding = Math.max(14, width * 0.12);
+  const fontSize = Math.max(15, Math.min(24, width * 0.12));
+  context.fillStyle = "#111827";
+  context.font = `800 ${fontSize}px system-ui, sans-serif`;
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  wrapPreviewText(context, label, x + width / 2, y + height / 2, width - padding * 2, fontSize * 1.16, 4);
 }
 
 function bestPreviewGrid(count, maxWidth, maxHeight, gap, aspect) {
@@ -990,6 +1053,31 @@ function drawPreviewPill(context, text, x, y, width, height) {
   context.fillText(text, x + width / 2, y + height / 2);
 }
 
+function wrapPreviewText(context, text, centerX, centerY, maxWidth, lineHeight, maxLines) {
+  const words = String(text || "Card").split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = "";
+
+  for (const word of words) {
+    const next = line ? `${line} ${word}` : word;
+    if (context.measureText(next).width <= maxWidth || !line) {
+      line = next;
+      continue;
+    }
+    lines.push(line);
+    line = word;
+    if (lines.length === maxLines - 1) break;
+  }
+
+  if (line && lines.length < maxLines) lines.push(line);
+  if (words.length && lines.join(" ").length < words.join(" ").length) {
+    lines[lines.length - 1] = `${lines[lines.length - 1].replace(/\.+$/, "")}...`;
+  }
+
+  const startY = centerY - ((lines.length - 1) * lineHeight) / 2;
+  lines.forEach((value, index) => context.fillText(value, centerX, startY + index * lineHeight, maxWidth));
+}
+
 function roundedRect(context, x, y, width, height, radius) {
   const safeRadius = Math.min(radius, width / 2, height / 2);
   context.beginPath();
@@ -1006,7 +1094,7 @@ function roundedRect(context, x, y, width, height, radius) {
 }
 
 async function previewCanvasBytes(canvas) {
-  for (const quality of [0.82, 0.72, 0.62, 0.52]) {
+  for (const quality of [0.82, 0.72, 0.62, 0.52, 0.44, 0.36]) {
     const blob = await canvasToBlob(canvas, "image/jpeg", quality);
     if (!blob) continue;
     const bytes = new Uint8Array(await blob.arrayBuffer());
