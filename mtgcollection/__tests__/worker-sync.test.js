@@ -207,6 +207,15 @@ test('worker: TCG handoff reads return 404 and redirect page preserves hash clie
   assert.match(html, /https:\/\/bensonperry\.com\/tcgplayer-assistant\/\?s=abc123/);
   assert.match(html, /window\.location\.hash/);
   assert.match(html, /window\.location\.replace/);
+  assert.match(html, /property="og:title" content="Card Mail"/);
+  assert.match(html, /property="og:image" content="https:\/\/bensonperry\.com\/tcgplayer-assistant\/preview\.png"/);
+  assert.match(html, /name="twitter:card" content="summary_large_image"/);
+  assert.match(html, /rel="icon" href="https:\/\/bensonperry\.com\/tcgplayer-assistant\/favicon\.svg"/);
+  assert.match(html, /noindex,nofollow,noarchive/);
+
+  const favicon = await worker.fetch(new Request('https://example.com/favicon.ico'), {});
+  assert.equal(favicon.status, 302);
+  assert.equal(favicon.headers.get('Location'), 'https://bensonperry.com/tcgplayer-assistant/favicon.svg');
 });
 
 test('worker: anonymous share writes are disabled by default', async () => {

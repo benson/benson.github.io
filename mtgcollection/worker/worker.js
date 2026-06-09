@@ -25,6 +25,12 @@ const SHARE_KEY_PREFIX = 'share:';
 const TCG_HANDOFF_KEY_PREFIX = 'tcg:';
 const ID_PATTERN = /^[a-zA-Z0-9_-]{6,48}$/;
 const TCG_HANDOFF_ALLOWED_ORIGINS = new Set(['https://bensonperry.com']);
+const TCG_ASSISTANT_URL = 'https://bensonperry.com/tcgplayer-assistant/';
+const TCG_PREVIEW_IMAGE_URL = TCG_ASSISTANT_URL + 'preview.png';
+const TCG_FAVICON_URL = TCG_ASSISTANT_URL + 'favicon.svg';
+const TCG_APPLE_ICON_URL = TCG_ASSISTANT_URL + 'icon-192.png';
+const TCG_PREVIEW_TITLE = 'Card Mail';
+const TCG_PREVIEW_DESCRIPTION = 'A private TCGplayer packing handoff with cards and shipping addresses in one phone-friendly view.';
 
 function sharePutOptions(auth) {
   return auth ? undefined : { expirationTtl: TTL_SECONDS };
@@ -154,13 +160,34 @@ async function readTcgHandoffBody(request) {
 }
 
 function tcgRedirectHtml(id) {
-  const target = 'https://bensonperry.com/tcgplayer-assistant/?s=' + encodeURIComponent(id);
+  const target = TCG_ASSISTANT_URL + '?s=' + encodeURIComponent(id);
+  const shareUrl = 'https://api.bensonperry.com/t/' + encodeURIComponent(id);
   return `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Opening TCG handoff</title>
+  <title>${TCG_PREVIEW_TITLE}</title>
+  <meta name="description" content="${TCG_PREVIEW_DESCRIPTION}">
+  <meta name="theme-color" content="#2457d6">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="${TCG_PREVIEW_TITLE}">
+  <meta property="og:title" content="${TCG_PREVIEW_TITLE}">
+  <meta property="og:description" content="${TCG_PREVIEW_DESCRIPTION}">
+  <meta property="og:url" content="${shareUrl}">
+  <meta property="og:image" content="${TCG_PREVIEW_IMAGE_URL}">
+  <meta property="og:image:secure_url" content="${TCG_PREVIEW_IMAGE_URL}">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Card Mail TCGplayer handoff preview">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${TCG_PREVIEW_TITLE}">
+  <meta name="twitter:description" content="${TCG_PREVIEW_DESCRIPTION}">
+  <meta name="twitter:image" content="${TCG_PREVIEW_IMAGE_URL}">
+  <link rel="icon" href="${TCG_FAVICON_URL}" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="${TCG_APPLE_ICON_URL}">
 </head>
 <body>
   <p>Opening TCG handoff...</p>
@@ -585,6 +612,10 @@ export default {
     if (path === '/mcp/chat') return handleByokChatRequest(request, env, deps);
     if (path === '/mcp/preview') return handleMcpPreviewRequest(request, env, deps);
     if (path === '/mcp/apply') return handleMcpApplyRequest(request, env, deps);
+
+    if (path === '/favicon.ico' && request.method === 'GET') {
+      return Response.redirect(TCG_FAVICON_URL, 302);
+    }
 
     if (path.startsWith('/sync/')) {
       try {

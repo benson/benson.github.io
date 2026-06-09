@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Card Mail">
+  <rect width="64" height="64" rx="14" fill="#2457d6"/>
+  <path d="M16 20h32a4 4 0 0 1 4 4v20a4 4 0 0 1-4 4H16a4 4 0 0 1-4-4V24a4 4 0 0 1 4-4Z" fill="#fff"/>
+  <path d="m14 24 18 13 18-13" fill="none" stroke="#2457d6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M23 13h18a4 4 0 0 1 4 4v6H19v-6a4 4 0 0 1 4-4Z" fill="#e7f6ef"/>
+  <path d="M25 19h14" fill="none" stroke="#157347" stroke-width="3" stroke-linecap="round"/>
+</svg>
