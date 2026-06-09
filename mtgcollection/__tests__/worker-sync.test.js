@@ -142,6 +142,73 @@ test('worker: public legacy share reads still work without auth', async () => {
   assert.equal(body.container.name, 'breya');
 });
 
+test('worker: anonymous TCG handoff writes are origin-limited and expire', async () => {
+  const handoffs = fakeKv();
+  const payload = { v: 1, alg: 'A256GCM', iv: 'abcdefghijklmnop', data: 'ciphertext_123' };
+
+  const create = await worker.fetch(new Request('https://example.com/tcg-handoffs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Origin: 'https://bensonperry.com' },
+    body: JSON.stringify(payload),
+  }), { TCG_HANDOFFS: handoffs });
+
+  assert.equal(create.status, 200);
+  const { id, expiresAt } = await create.json();
+  assert.match(id, /^[a-zA-Z0-9_-]{6,48}$/);
+  assert.ok(expiresAt > Date.now());
+  assert.deepEqual(JSON.parse(handoffs.values.get('tcg:' + id)), payload);
+  assert.deepEqual(handoffs.putOptions.get('tcg:' + id), { expirationTtl: 1209600 });
+
+  const read = await worker.fetch(new Request('https://example.com/tcg-handoffs/' + id), { TCG_HANDOFFS: handoffs });
+  assert.equal(read.status, 200);
+  assert.deepEqual(await read.json(), payload);
+});
+
+test('worker: TCG handoff writes reject invalid origins and payloads', async () => {
+  const validPayload = { v: 1, alg: 'A256GCM', iv: 'abcdefghijklmnop', data: 'ciphertext_123' };
+
+  const invalidOrigin = await worker.fetch(new Request('https://example.com/tcg-handoffs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Origin: 'https://evil.test' },
+    body: JSON.stringify(validPayload),
+  }), { TCG_HANDOFFS: fakeKv() });
+  assert.equal(invalidOrigin.status, 403);
+
+  const invalidJson = await worker.fetch(new Request('https://example.com/tcg-handoffs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Origin: 'https://bensonperry.com' },
+    body: '{bad json',
+  }), { TCG_HANDOFFS: fakeKv() });
+  assert.equal(invalidJson.status, 400);
+
+  const invalidFields = await worker.fetch(new Request('https://example.com/tcg-handoffs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Origin: 'https://bensonperry.com' },
+    body: JSON.stringify({ v: 1, alg: 'none', iv: 'abcdefghijklmnop', data: 'ciphertext_123' }),
+  }), { TCG_HANDOFFS: fakeKv() });
+  assert.equal(invalidFields.status, 400);
+
+  const oversized = await worker.fetch(new Request('https://example.com/tcg-handoffs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Origin: 'https://bensonperry.com' },
+    body: JSON.stringify({ v: 1, alg: 'A256GCM', iv: 'abcdefghijklmnop', data: 'a'.repeat(70 * 1024) }),
+  }), { TCG_HANDOFFS: fakeKv() });
+  assert.equal(oversized.status, 413);
+});
+
+test('worker: TCG handoff reads return 404 and redirect page preserves hash client-side', async () => {
+  const missing = await worker.fetch(new Request('https://example.com/tcg-handoffs/missing1'), { TCG_HANDOFFS: fakeKv() });
+  assert.equal(missing.status, 404);
+
+  const redirect = await worker.fetch(new Request('https://example.com/t/abc123'), {});
+  assert.equal(redirect.status, 200);
+  assert.match(redirect.headers.get('Content-Type'), /text\/html/);
+  const html = await redirect.text();
+  assert.match(html, /https:\/\/bensonperry\.com\/tcgplayer-assistant\/\?s=abc123/);
+  assert.match(html, /window\.location\.hash/);
+  assert.match(html, /window\.location\.replace/);
+});
+
 test('worker: anonymous share writes are disabled by default', async () => {
   const shares = fakeKv();
   const env = { SHARES: shares };

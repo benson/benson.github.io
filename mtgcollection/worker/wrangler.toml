@@ -84,6 +84,10 @@ id = "95781565fce640bdbb92d6866919d8b4"
 binding = "OAUTH_KV"
 id = "56b9488153ee482fa6a49a52a32dc0e8"
 
+[[kv_namespaces]]
+binding = "TCG_HANDOFFS"
+id = "dd2672daf4a84198b25bf1cf40ab7a96"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "mtgcollection-sync"

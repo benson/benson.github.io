@@ -4,6 +4,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
   "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
 
 const SCRYFALL_API = "https://api.scryfall.com";
+const TCG_HANDOFF_API = defaultHandoffApiUrl();
 const SCRYFALL_DELAY_MS = 80;
 const CHECK_STORAGE_PREFIX = "tcg-handoff-checks:";
 const scryfallCache = new Map();
@@ -12,6 +13,7 @@ const state = {
   orders: [],
   batchName: "",
   shareUrl: "",
+  shareUrlKind: "",
   sharedMode: false,
   checkedOrders: new Set(),
 };
@@ -53,10 +55,13 @@ els.dropZone.addEventListener("drop", (event) => {
 });
 
 els.copyLinkButton.addEventListener("click", async () => {
+  if (state.orders.length && state.shareUrlKind !== "short") {
+    await createShortShareUrl().catch((error) => console.warn("Short handoff link failed", error));
+  }
   if (!state.shareUrl) await updateShareUrl();
   try {
     await navigator.clipboard.writeText(state.shareUrl);
-    showToast("Short link copied.");
+    showToast(state.shareUrlKind === "short" ? "Short link copied." : "Long fallback link copied.");
   } catch {
     showToast("Clipboard was blocked.");
   }
@@ -66,6 +71,7 @@ els.clearButton.addEventListener("click", () => {
   state.orders = [];
   state.batchName = "";
   state.shareUrl = "";
+  state.shareUrlKind = "";
   state.sharedMode = false;
   state.checkedOrders = new Set();
   history.replaceState(null, "", cleanUrl());
@@ -92,7 +98,8 @@ document.addEventListener("click", async (event) => {
   }
 });
 
-await loadFromHash();
+const loadedShortLink = await loadFromShortLink();
+if (!loadedShortLink) await loadFromHash();
 render();
 resolveMissingImagesFromSharedLink();
 
@@ -118,6 +125,10 @@ async function importPdf(file) {
     render();
     const matchedImages = await resolveMissingCardImages();
     await updateShareUrl();
+    const shortReady = state.orders.length ? await createShortShareUrl().catch((error) => {
+      console.warn("Short handoff link failed", error);
+      return false;
+    }) : false;
     render();
 
     if (!state.orders.length) {
@@ -125,7 +136,8 @@ async function importPdf(file) {
     } else {
       const skipped = skippedPages ? ` ${skippedPages} non-order page skipped.` : "";
       const matched = matchedImages ? ` ${matchedImages} card image${matchedImages === 1 ? "" : "s"} matched.` : "";
-      showToast(`Loaded ${state.orders.length} orders.${skipped}${matched}`);
+      const link = shortReady ? " Short link ready." : " Long fallback ready.";
+      showToast(`Loaded ${state.orders.length} orders.${skipped}${matched}${link}`);
     }
   } catch (error) {
     console.error(error);
@@ -609,6 +621,37 @@ function scryfallImageUrl(card) {
   return face?.image_uris?.normal || face?.image_uris?.large || face?.image_uris?.png || face?.image_uris?.small || "";
 }
 
+async function loadFromShortLink() {
+  const url = new URL(window.location.href);
+  const id = url.searchParams.get("s");
+  if (!id) return false;
+
+  const key = window.location.hash.slice(1);
+  if (!key) {
+    showToast("That short link is missing its key. Copy the full link again.");
+    return true;
+  }
+
+  try {
+    const encrypted = await fetchEncryptedHandoff(id);
+    const json = await decryptSharedPayload(encrypted, key);
+    const shared = expandSharedPayload(JSON.parse(json));
+    if (!shared.orders.length) throw new Error("short link did not contain orders");
+
+    state.orders = shared.orders;
+    state.batchName = shared.batchName || "Shared handoff";
+    state.shareUrl = `${TCG_HANDOFF_API}/t/${encodeURIComponent(id)}#${key}`;
+    state.shareUrlKind = "short";
+    state.sharedMode = true;
+    loadLocalChecks();
+  } catch (error) {
+    console.error(error);
+    showToast(error.message || "Could not open that short link.");
+  }
+
+  return true;
+}
+
 async function loadFromHash() {
   const hash = window.location.hash.slice(1);
   if (!hash) return;
@@ -627,6 +670,7 @@ async function loadFromHash() {
     state.orders = shared.orders;
     state.batchName = shared.batchName || "Shared handoff";
     state.shareUrl = window.location.href;
+    state.shareUrlKind = "long";
     state.sharedMode = true;
 
     if (shared.shouldCompact) await updateShareUrl();
@@ -644,7 +688,70 @@ async function updateShareUrl() {
   const url = cleanUrl();
   url.hash = encoded;
   state.shareUrl = url.toString();
+  state.shareUrlKind = "long";
   history.replaceState(null, "", state.shareUrl);
+}
+
+async function createShortShareUrl() {
+  if (!state.orders.length) return false;
+  if (!window.crypto?.subtle) throw new Error("Web Crypto is unavailable.");
+
+  const encrypted = await encryptSharedPayload(JSON.stringify(compactSharedPayload()));
+  const response = await fetch(`${TCG_HANDOFF_API}/tcg-handoffs`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(encrypted.body),
+  });
+
+  if (!response.ok) throw new Error(`Short link service returned ${response.status}.`);
+  const data = await response.json();
+  if (!data?.id) throw new Error("Short link service did not return an id.");
+
+  state.shareUrl = `${TCG_HANDOFF_API}/t/${encodeURIComponent(data.id)}#${encrypted.key}`;
+  state.shareUrlKind = "short";
+  return true;
+}
+
+async function fetchEncryptedHandoff(id) {
+  const response = await fetch(`${TCG_HANDOFF_API}/tcg-handoffs/${encodeURIComponent(id)}`, {
+    headers: { Accept: "application/json" },
+  });
+
+  if (response.status === 404) throw new Error("That handoff link expired or was not found.");
+  if (!response.ok) throw new Error(`Could not load that handoff link (${response.status}).`);
+  return await response.json();
+}
+
+async function encryptSharedPayload(json) {
+  const keyBytes = window.crypto.getRandomValues(new Uint8Array(32));
+  const iv = window.crypto.getRandomValues(new Uint8Array(12));
+  const key = await window.crypto.subtle.importKey("raw", keyBytes, { name: "AES-GCM" }, false, ["encrypt"]);
+  const cipher = await window.crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, textToBytes(json));
+
+  return {
+    key: bytesToBase64Url(keyBytes),
+    body: {
+      v: 1,
+      alg: "A256GCM",
+      iv: bytesToBase64Url(iv),
+      data: bytesToBase64Url(new Uint8Array(cipher)),
+    },
+  };
+}
+
+async function decryptSharedPayload(encrypted, keyText) {
+  if (encrypted?.v !== 1 || encrypted?.alg !== "A256GCM") throw new Error("Unsupported handoff link format.");
+  const keyBytes = base64UrlToBytes(keyText);
+  if (keyBytes.length !== 32) throw new Error("That handoff link has an invalid key.");
+
+  const iv = base64UrlToBytes(encrypted.iv || "");
+  const data = base64UrlToBytes(encrypted.data || "");
+  const key = await window.crypto.subtle.importKey("raw", keyBytes, { name: "AES-GCM" }, false, ["decrypt"]);
+  const plain = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, data);
+  return bytesToText(new Uint8Array(plain));
 }
 
 function compactSharedPayload() {
@@ -732,6 +839,10 @@ function scryfallIdFromImageUrl(value) {
 function scryfallImageUrlFromId(id) {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id || "")) return "";
   return `https://cards.scryfall.io/normal/front/${id[0]}/${id[1]}/${id}.jpg`;
+}
+
+function defaultHandoffApiUrl() {
+  return window.TCG_HANDOFF_API_URL || "https://api.bensonperry.com";
 }
 
 function cleanUrl() {

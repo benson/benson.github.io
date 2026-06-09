@@ -18,9 +18,13 @@ const ALLOWED_ORIGINS = [
 ];
 
 const TTL_SECONDS = 30 * 24 * 60 * 60;
+const TCG_HANDOFF_TTL_SECONDS = 14 * 24 * 60 * 60;
 const MAX_PAYLOAD_BYTES = 5 * 1024 * 1024;
+const TCG_HANDOFF_MAX_PAYLOAD_BYTES = 64 * 1024;
 const SHARE_KEY_PREFIX = 'share:';
+const TCG_HANDOFF_KEY_PREFIX = 'tcg:';
 const ID_PATTERN = /^[a-zA-Z0-9_-]{6,48}$/;
+const TCG_HANDOFF_ALLOWED_ORIGINS = new Set(['https://bensonperry.com']);
 
 function sharePutOptions(auth) {
   return auth ? undefined : { expirationTtl: TTL_SECONDS };
@@ -39,6 +43,8 @@ function rateLimitGroup(path, method) {
   if (path === '/mcp' || path === '/mcp/apply' || path === '/mcp/preview') return 'mcp';
   if (isMcpOAuthPath(path)) return 'mcp';
   if (path.startsWith('/sync/')) return 'sync';
+  if (path === '/tcg-handoffs') return method === 'GET' ? 'share-read' : 'share-write';
+  if (path.startsWith('/tcg-handoffs/') || path.startsWith('/t/')) return method === 'GET' ? 'share-read' : 'share-write';
   if (path === '/share' || path.startsWith('/share/')) return method === 'GET' ? 'share-read' : 'share-write';
   return '';
 }
@@ -96,6 +102,77 @@ async function readBody(request) {
   if (body.length > MAX_PAYLOAD_BYTES) throw new Error('payload too large (max ' + MAX_PAYLOAD_BYTES + ' bytes)');
   JSON.parse(body);
   return body;
+}
+
+function errorWithStatus(message, status) {
+  const error = new Error(message);
+  error.status = status;
+  return error;
+}
+
+function requireTcgHandoffOrigin(request) {
+  const origin = request.headers.get('Origin') || '';
+  if (!TCG_HANDOFF_ALLOWED_ORIGINS.has(origin)) throw errorWithStatus('origin not allowed', 403);
+}
+
+function isBase64Url(value, { min = 1, max = 65536 } = {}) {
+  return typeof value === 'string'
+    && value.length >= min
+    && value.length <= max
+    && /^[A-Za-z0-9_-]+$/.test(value);
+}
+
+async function readTcgHandoffBody(request) {
+  const body = await request.text();
+  if (new TextEncoder().encode(body).byteLength > TCG_HANDOFF_MAX_PAYLOAD_BYTES) {
+    throw errorWithStatus('payload too large (max ' + TCG_HANDOFF_MAX_PAYLOAD_BYTES + ' bytes)', 413);
+  }
+
+  let payload;
+  try {
+    payload = JSON.parse(body);
+  } catch (e) {
+    throw errorWithStatus('invalid json', 400);
+  }
+
+  if (
+    !payload
+    || payload.v !== 1
+    || payload.alg !== 'A256GCM'
+    || !isBase64Url(payload.iv, { min: 12, max: 64 })
+    || !isBase64Url(payload.data, { min: 1, max: TCG_HANDOFF_MAX_PAYLOAD_BYTES })
+  ) {
+    throw errorWithStatus('invalid encrypted handoff payload', 400);
+  }
+
+  return JSON.stringify({
+    v: 1,
+    alg: 'A256GCM',
+    iv: payload.iv,
+    data: payload.data,
+  });
+}
+
+function tcgRedirectHtml(id) {
+  const target = 'https://bensonperry.com/tcgplayer-assistant/?s=' + encodeURIComponent(id);
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Opening TCG handoff</title>
+</head>
+<body>
+  <p>Opening TCG handoff...</p>
+  <p><a id="fallback" href="${target}">Open handoff</a></p>
+  <script>
+    const target = ${JSON.stringify(target)};
+    const next = target + window.location.hash;
+    document.getElementById('fallback').href = next;
+    window.location.replace(next);
+  </script>
+</body>
+</html>`;
 }
 
 function b64urlToBytes(input) {
@@ -517,6 +594,42 @@ export default {
         const status = /D1|binding|database|table|SQLITE|Durable Object/.test(e.message || '') ? 500 : 401;
         return json({ error: e.message || 'unauthorized' }, status, request);
       }
+    }
+
+    if (path === '/tcg-handoffs' && request.method === 'POST') {
+      try {
+        requireTcgHandoffOrigin(request);
+        if (!env.TCG_HANDOFFS) return json({ error: 'TCG_HANDOFFS binding is not configured' }, 500, request);
+        const body = await readTcgHandoffBody(request);
+        const id = generateId();
+        await env.TCG_HANDOFFS.put(TCG_HANDOFF_KEY_PREFIX + id, body, { expirationTtl: TCG_HANDOFF_TTL_SECONDS });
+        return json({ id, expiresAt: Date.now() + TCG_HANDOFF_TTL_SECONDS * 1000 }, 200, request);
+      } catch (e) {
+        return text('bad request: ' + (e.message || 'invalid handoff'), e.status || 400, request);
+      }
+    }
+
+    const tcgHandoff = path.match(/^\/tcg-handoffs\/([^/]+)$/);
+    if (tcgHandoff && request.method === 'GET') {
+      const id = tcgHandoff[1];
+      if (!ID_PATTERN.test(id)) return text('invalid id', 400, request);
+      if (!env.TCG_HANDOFFS) return json({ error: 'TCG_HANDOFFS binding is not configured' }, 500, request);
+      const value = await env.TCG_HANDOFFS.get(TCG_HANDOFF_KEY_PREFIX + id);
+      if (value === null) return text('handoff not found', 404, request);
+      return new Response(value, {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders(request) },
+      });
+    }
+
+    const tcgRedirect = path.match(/^\/t\/([^/]+)$/);
+    if (tcgRedirect && request.method === 'GET') {
+      const id = tcgRedirect[1];
+      if (!ID_PATTERN.test(id)) return text('invalid id', 400, request);
+      return new Response(tcgRedirectHtml(id), {
+        status: 200,
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      });
     }
 
     if (path === '/share' && request.method === 'POST') {
