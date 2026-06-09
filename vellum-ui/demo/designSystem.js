@@ -2,39 +2,172 @@ import {
   buttonHtml,
   chipNode,
   clearNode,
+  combobox,
   el,
   fieldRowHtml,
   renderStatusState,
   statusStateHtml,
+  toast,
 } from '../index.js';
 
 const mount = document.getElementById('designSystemMount');
 
-const COLOR_TOKENS = [
-  '--vui-color-bg',
-  '--vui-color-surface',
-  '--vui-color-surface-sunken',
-  '--vui-color-surface-raised',
-  '--vui-color-text',
-  '--vui-color-text-muted',
-  '--vui-color-accent',
-  '--vui-color-accent-soft',
-  '--vui-color-danger',
-  '--vui-color-warn',
+const PLAYGROUND_KEY = 'vellum_ds_token_overrides_v1';
+const THEME_KEY = 'vellum_ds_theme_v1';
+
+const PLAYGROUND_GROUPS = [
+  {
+    label: 'surfaces',
+    tokens: [
+      '--vui-color-bg',
+      '--vui-color-surface',
+      '--vui-color-surface-sunken',
+      '--vui-color-surface-raised',
+      '--vui-color-surface-hover',
+    ],
+  },
+  {
+    label: 'ink & lines',
+    tokens: [
+      '--vui-color-text',
+      '--vui-color-text-muted',
+      '--vui-color-text-strong',
+      '--vui-color-text-inverse',
+      '--vui-color-line',
+      '--vui-color-line-strong',
+    ],
+  },
+  {
+    label: 'accents & status',
+    tokens: [
+      '--vui-color-accent',
+      '--vui-color-accent-soft',
+      '--vui-color-accent-strong',
+      '--vui-color-success',
+      '--vui-color-warn',
+      '--vui-color-danger',
+      '--vui-color-info',
+    ],
+  },
+  {
+    label: 'shape & shadow',
+    tokens: [
+      '--vui-border-width',
+      '--vui-radius-sharp',
+      '--vui-radius-soft',
+      '--vui-radius-round',
+      '--vui-color-shadow',
+      '--vui-shadow-soft',
+      '--vui-shadow-firm',
+      '--vui-shadow-hard',
+      '--vui-shadow-overlay',
+    ],
+  },
+  {
+    label: 'type',
+    tokens: [
+      '--vui-font-body',
+      '--vui-font-heading',
+      '--vui-font-mono',
+      '--vui-font-size-sm',
+      '--vui-font-size-base',
+      '--vui-font-size-heading',
+      '--vui-font-weight-body',
+    ],
+  },
+  {
+    label: 'space & motion',
+    tokens: [
+      '--vui-space-2',
+      '--vui-space-3',
+      '--vui-space-4',
+      '--vui-control-height',
+      '--vui-motion-base',
+    ],
+  },
 ];
 
-const SIZE_TOKENS = [
-  '--vui-border-width',
-  '--vui-radius-sharp',
-  '--vui-radius-soft',
-  '--vui-shadow-firm',
-  '--vui-shadow-hard',
-  '--vui-font-size-sm',
-  '--vui-font-size-md',
-  '--vui-font-size-jumbo',
-];
+const PLAYGROUND_TOKENS = PLAYGROUND_GROUPS.flatMap((groupDef) => groupDef.tokens);
+
+// Theme first, then defaults, then stored overrides — defaults must reflect
+// the active theme but not the overrides.
+applyTheme(readTheme());
+const tokenDefaults = readTokenDefaults();
+applyOverrides(readOverrides());
 
 renderDesignSystem(mount);
+
+function readTokenDefaults() {
+  const computed = getComputedStyle(document.documentElement);
+  const defaults = {};
+  for (const token of PLAYGROUND_TOKENS) defaults[token] = computed.getPropertyValue(token).trim();
+  return defaults;
+}
+
+function overrideStyleEl() {
+  let styleEl = document.getElementById('ds-token-overrides');
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = 'ds-token-overrides';
+    document.head.append(styleEl);
+  }
+  return styleEl;
+}
+
+function readOverrides() {
+  try {
+    return JSON.parse(localStorage.getItem(PLAYGROUND_KEY) || '{}') || {};
+  } catch {
+    return {};
+  }
+}
+
+function writeOverrides(overrides) {
+  try {
+    localStorage.setItem(PLAYGROUND_KEY, JSON.stringify(overrides));
+  } catch {
+    /* ignore */
+  }
+}
+
+function overridesToCss(overrides) {
+  const entries = Object.entries(overrides);
+  if (!entries.length) return '';
+  return `:root {\n${entries.map(([token, value]) => `  ${token}: ${value};`).join('\n')}\n}`;
+}
+
+function applyOverrides(overrides) {
+  overrideStyleEl().textContent = overridesToCss(overrides);
+}
+
+function readTheme() {
+  try {
+    return localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light';
+  } catch {
+    return 'light';
+  }
+}
+
+function applyTheme(theme) {
+  if (theme === 'dark') document.documentElement.dataset.theme = 'dark';
+  else delete document.documentElement.dataset.theme;
+}
+
+function setTheme(theme) {
+  applyTheme(theme);
+  try {
+    localStorage.setItem(THEME_KEY, theme);
+  } catch {
+    /* ignore */
+  }
+  // Re-read defaults under the new theme with overrides lifted, so the
+  // playground diffs against the theme the user is actually looking at.
+  const styleEl = overrideStyleEl();
+  const overrideCss = styleEl.textContent;
+  styleEl.textContent = '';
+  Object.assign(tokenDefaults, readTokenDefaults());
+  styleEl.textContent = overrideCss;
+}
 
 export function renderDesignSystem(target) {
   if (!target) return;
@@ -45,6 +178,7 @@ export function renderDesignSystem(target) {
     buttonsGroup(),
     formsGroup(),
     statusGroup(),
+    dataGroup(),
     overlaysGroup(),
   ];
   for (const groupNode of groups) content.append(groupNode);
@@ -91,13 +225,33 @@ function toc(groups) {
         { className: 'ds-toc-state-row' },
         stateButton('rest', () => setDemoState('rest')),
         stateButton('hover', () => setDemoState('hover')),
+        stateButton('active', () => setDemoState('active')),
         stateButton('focus', () => setDemoState('focus')),
       ),
     ),
+    el('div', { className: 'ds-toc-title', text: 'theme' }),
+    themeToggle(),
     el('div', { className: 'ds-toc-title', text: 'catalog' }),
   );
   for (const group of groups) wrap.append(el('a', { className: 'ds-toc-link', href: `#${group.id}`, text: group.title }));
   return wrap;
+}
+
+function themeToggle() {
+  const input = el('input', {
+    className: 'switch-input',
+    type: 'checkbox',
+    dataset: { dsThemeToggle: '' },
+  });
+  input.checked = readTheme() === 'dark';
+  input.addEventListener('change', () => setTheme(input.checked ? 'dark' : 'light'));
+  return el(
+    'label',
+    { className: 'switch ds-theme-toggle' },
+    input,
+    el('span', { className: 'switch-track' }),
+    'dark mode',
+  );
 }
 
 function stateButton(label, onClick) {
@@ -107,6 +261,7 @@ function stateButton(label, onClick) {
 function setDemoState(state) {
   document.querySelectorAll('.ds-toc-state-btn').forEach((btn) => btn.classList.toggle('active', btn.textContent === state));
   document.body.classList.toggle('ds-force-hover', state === 'hover');
+  document.body.classList.toggle('ds-force-active', state === 'active');
   document.body.classList.toggle('ds-force-focus', state === 'focus');
 }
 
@@ -171,7 +326,7 @@ function tokensGroup() {
     entry(
       'Token playground',
       [':root', '--vui-color-*', '--vui-radius-*', '--vui-shadow-*'],
-      'Tune core CSS variables live. This page updates immediately; copy the generated override back into src/css/tokens.css when a direction feels right.',
+      'Tune core CSS variables live — the whole catalog re-tints instantly. The override panel shows only what changed; copy it straight into src/css/tokens.css. Saved to this browser until reset.',
       tokenPlayground,
     ),
   );
@@ -180,40 +335,70 @@ function tokensGroup() {
 function tokenPlayground() {
   const output = el('pre', { className: 'ds-token-output' });
   const playground = el('div', { className: 'ds-playground' });
-  const colorCol = tokenColumn('color', COLOR_TOKENS, 'color');
-  const sizeCol = tokenColumn('size', SIZE_TOKENS, 'text');
-  playground.append(colorCol, sizeCol, el('div', { className: 'ds-playground-col' }, el('div', { className: 'ds-playground-col-label', text: 'override' }), output));
 
   const updateOutput = () => {
-    const overrides = [...playground.querySelectorAll('[data-token]')]
-      .map((input) => `  ${input.dataset.token}: ${input.value};`)
-      .join('\n');
-    output.textContent = `:root {\n${overrides}\n}`;
+    const css = overridesToCss(readOverrides());
+    output.textContent = css || '/* no token changes */';
   };
-  playground.querySelectorAll('[data-token]').forEach((input) => {
-    input.addEventListener('input', () => {
-      document.documentElement.style.setProperty(input.dataset.token, input.value);
-      updateOutput();
-    });
+
+  const setToken = (token, value) => {
+    const overrides = readOverrides();
+    if (value.trim() === tokenDefaults[token]) delete overrides[token];
+    else overrides[token] = value;
+    writeOverrides(overrides);
+    applyOverrides(overrides);
+    updateOutput();
+  };
+
+  const storedOverrides = readOverrides();
+  for (const groupDef of PLAYGROUND_GROUPS) {
+    const col = el('div', { className: 'ds-playground-col' }, el('div', { className: 'ds-playground-col-label', text: groupDef.label }));
+    for (const token of groupDef.tokens) {
+      const value = storedOverrides[token] ?? tokenDefaults[token];
+      const useColor = token.includes('-color-') && !value.includes('(') && !value.includes(',');
+      const input = el('input', {
+        className: useColor ? '' : 'ds-playground-text',
+        type: useColor ? 'color' : 'text',
+        value: useColor ? normalizeColor(value) : value,
+        dataset: { token },
+      });
+      input.addEventListener('input', () => setToken(token, input.value));
+      col.append(el('label', { className: 'ds-playground-row' }, el('span', { className: 'ds-playground-token', text: token.replace('--vui-', '') }), input));
+    }
+    playground.append(col);
+  }
+
+  const copyBtn = el('button', { className: 'btn', type: 'button', text: 'copy css' });
+  copyBtn.addEventListener('click', async () => {
+    const css = overridesToCss(readOverrides()) || '/* no token changes */';
+    try {
+      await navigator.clipboard.writeText(css);
+      copyBtn.textContent = 'copied!';
+    } catch {
+      copyBtn.textContent = 'copy failed';
+    }
+    setTimeout(() => {
+      copyBtn.textContent = 'copy css';
+    }, 1200);
   });
+  const resetBtn = el('button', { className: 'btn btn-secondary', type: 'button', text: 'reset' });
+  resetBtn.addEventListener('click', () => {
+    writeOverrides({});
+    applyOverrides({});
+    location.reload();
+  });
+
+  playground.append(
+    el(
+      'div',
+      { className: 'ds-playground-col' },
+      el('div', { className: 'ds-playground-col-label', text: 'override' }),
+      output,
+      el('div', { className: 'ds-row' }, copyBtn, resetBtn),
+    ),
+  );
   updateOutput();
   return playground;
-}
-
-function tokenColumn(label, tokens, type) {
-  const col = el('div', { className: 'ds-playground-col' }, el('div', { className: 'ds-playground-col-label', text: label }));
-  const computed = getComputedStyle(document.documentElement);
-  for (const token of tokens) {
-    const value = computed.getPropertyValue(token).trim();
-    const input = el('input', {
-      className: type === 'text' ? 'ds-playground-text' : '',
-      type,
-      value: type === 'color' ? normalizeColor(value) : value,
-      dataset: { token },
-    });
-    col.append(el('label', { className: 'ds-playground-row' }, el('span', { className: 'ds-playground-token', text: token }), input));
-  }
-  return col;
 }
 
 function normalizeColor(value) {
@@ -294,7 +479,36 @@ function formsGroup() {
           }),
       ),
     ),
+    entry('Selection controls', ['input[type=checkbox]', 'input[type=radio]', '.switch', 'input[type=range]'], 'Checkbox, radio, switch, and range share the accent-fill checked treatment.', () =>
+      demoHtml(
+        '<label class="ds-inline-label"><input type="checkbox" checked /> foils only</label>' +
+          '<label class="ds-inline-label"><input type="checkbox" /> include lands</label>' +
+          '<label class="ds-inline-label"><input type="radio" name="ds-radio" checked /> sealed</label>' +
+          '<label class="ds-inline-label"><input type="radio" name="ds-radio" /> draft</label>' +
+          '<label class="switch"><input type="checkbox" class="switch-input" checked /><span class="switch-track"></span>dark mode</label>' +
+          '<input type="range" min="0" max="100" value="60" aria-label="sample range" />',
+      ),
+    ),
+    entry('Combobox', ['.combobox', '.combobox-list', '.combobox-option'], 'Keyboard-first autocomplete over any async item source. Arrows navigate, enter selects, escape closes.', comboboxDemo),
   );
+}
+
+function comboboxDemo() {
+  const SETS = [
+    { label: 'eternities beckon', hint: 'etb' },
+    { label: 'tarkir: dragonstorm', hint: 'tdm' },
+    { label: 'final fantasy', hint: 'fin' },
+    { label: 'edge of eternities', hint: 'eoe' },
+    { label: 'avatar: the last airbender', hint: 'tla' },
+    { label: 'lorwyn eclipsed', hint: 'ecl' },
+  ];
+  const input = el('input', { type: 'text', placeholder: 'search sets…', ariaLabel: 'search sets' });
+  const wrap = el('div', { className: 'combobox' }, input);
+  combobox(input, {
+    getItems: (query) => SETS.filter((set) => set.label.includes(query.toLowerCase()) || set.hint.includes(query.toLowerCase())),
+    toHint: (item) => item.hint,
+  });
+  return wrap;
 }
 
 function statusGroup() {
@@ -322,15 +536,66 @@ function statusGroup() {
       );
       return banner;
     }),
-    entry('Chips', ['.chip'], 'Small labeled objects for filters, tags, and state markers.', () => {
+    entry('Chips', ['.ui-chip', '.ui-chip-remove', '.ui-chip-emoji'], 'Shared chip primitive for tags, roles, statuses, and filters. Apps layer domain pills on this base.', () => {
       const row = el('div', { className: 'ds-row' });
+      const emoji = el('span', { className: 'ui-chip-emoji', text: '✨' });
       row.append(
-        chipNode({ label: 'Boros', icon: 'WR' }),
-        chipNode({ label: 'submitted', icon: '*' }),
-        chipNode({ label: 'splash', removeLabel: 'remove splash' }),
+        chipNode({ text: 'filter', variant: 'filter' }),
+        chipNode({ text: 'owner', variant: 'role' }),
+        chipNode({ text: 'synced', variant: 'status' }),
+        chipNode({ text: 'sparkles', variant: 'filter', prefixNode: emoji }),
+        chipNode({ text: 'splash', variant: 'filter', remove: { enabled: true, label: 'remove splash' } }),
       );
       return row;
     }),
+    entry('Toast', ['.toast-stack', '.toast', '.toast-success', '.toast-danger'], 'Bottom-center transient notices. Static frames below; fire a live one to see enter/auto-dismiss.', () => {
+      const row = demoHtml(
+        '<div class="toast"><span class="toast-message">deck saved</span></div>' +
+          '<div class="toast toast-success"><span class="toast-message">synced 312 cards</span></div>' +
+          '<div class="toast toast-warn"><span class="toast-message">2 cards unmatched</span></div>' +
+          '<div class="toast toast-danger"><span class="toast-message">save failed</span></div>',
+      );
+      const fire = el('button', { className: 'btn', type: 'button', text: 'fire toast', dataset: { dsFireToast: '' } });
+      fire.addEventListener('click', () => toast('toast fired from the catalog', { tone: 'success' }));
+      row.append(fire);
+      return row;
+    }),
+    entry('Tooltip', ['.tooltip-host', '[data-tooltip]', '.tooltip-term'], 'CSS-only tooltip on hover/focus. .tooltip-term adds the dotted-underline glossary treatment.', () =>
+      demoHtml(
+        '<button class="btn tooltip-host" type="button" data-tooltip="rebuilds the daily pool">regenerate</button>' +
+          '<span class="tooltip-host tooltip-term" tabindex="0" data-tooltip="wins under usual tournament structure">wubrg</span>',
+      ),
+    ),
+  );
+}
+
+function dataGroup() {
+  return group(
+    'data',
+    'Data',
+    entry('Table', ['.vui-table', '.vui-table-compact'], 'Mono lowercase headers over a strong rule; rows divide with hairlines and highlight on hover.', () =>
+      demoHtml(
+        '<table class="vui-table"><thead><tr><th>card</th><th>set</th><th>qty</th></tr></thead><tbody>' +
+          '<tr><td>lightning bolt</td><td>2x2</td><td>4</td></tr>' +
+          '<tr><td>counterspell</td><td>cmm</td><td>2</td></tr>' +
+          '<tr><td>llanowar elves</td><td>dom</td><td>3</td></tr>' +
+          '</tbody></table>',
+      ),
+    ),
+    entry('Skeleton', ['.skeleton', '.skeleton-line'], 'Pulsing placeholders while content loads. Honors prefers-reduced-motion.', () =>
+      demoHtml(
+        '<div style="width: 240px;">' +
+          '<div class="skeleton skeleton-line" style="width: 80%;"></div>' +
+          '<div class="skeleton skeleton-line" style="width: 100%;"></div>' +
+          '<div class="skeleton skeleton-line" style="width: 60%;"></div>' +
+          '</div>',
+      ),
+    ),
+    entry('Empty state', ['.empty-state', '.empty-state-glyph'], 'Dashed-border placeholder for zero-result views.', () =>
+      demoHtml(
+        '<div class="empty-state" style="width: 280px;"><span class="empty-state-glyph">🃏</span><span>no cards match these filters</span></div>',
+      ),
+    ),
   );
 }
 
