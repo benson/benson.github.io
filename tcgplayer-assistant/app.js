@@ -7,6 +7,10 @@ const SCRYFALL_API = "https://api.scryfall.com";
 const TCG_HANDOFF_API = defaultHandoffApiUrl();
 const SCRYFALL_DELAY_MS = 80;
 const CHECK_STORAGE_PREFIX = "tcg-handoff-checks:";
+const PREVIEW_IMAGE_WIDTH = 1200;
+const PREVIEW_IMAGE_HEIGHT = 630;
+const PREVIEW_IMAGE_MAX_BYTES = 180 * 1024;
+const PREVIEW_IMAGE_MAX_CARDS = 24;
 const scryfallCache = new Map();
 
 const state = {
@@ -697,8 +701,8 @@ async function createShortShareUrl() {
   if (!window.crypto?.subtle) throw new Error("Web Crypto is unavailable.");
 
   const encrypted = await encryptSharedPayload(JSON.stringify(compactSharedPayload()));
-  const previewId = firstPreviewScryfallId();
-  const body = previewId ? { ...encrypted.body, preview: { scryfallId: previewId } } : encrypted.body;
+  const preview = await buildSharePreview();
+  const body = preview ? { ...encrypted.body, preview } : encrypted.body;
   const response = await fetch(`${TCG_HANDOFF_API}/tcg-handoffs`, {
     method: "POST",
     headers: {
@@ -844,6 +848,176 @@ function firstPreviewScryfallId() {
   }
 
   return "";
+}
+
+async function buildSharePreview() {
+  const scryfallId = firstPreviewScryfallId();
+  const preview = scryfallId ? { scryfallId } : {};
+
+  try {
+    const image = await buildPreviewImage();
+    if (image) preview.image = image;
+  } catch (error) {
+    console.warn("Could not build card preview image", error);
+  }
+
+  return Object.keys(preview).length ? preview : null;
+}
+
+async function buildPreviewImage() {
+  const cards = previewCardLines();
+  if (!cards.length || !document.createElement("canvas").getContext) return null;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = PREVIEW_IMAGE_WIDTH;
+  canvas.height = PREVIEW_IMAGE_HEIGHT;
+  const context = canvas.getContext("2d");
+  if (!context) return null;
+
+  const visibleCards = cards.slice(0, PREVIEW_IMAGE_MAX_CARDS);
+  const overflow = cards.length - visibleCards.length;
+  const loadedCards = (
+    await Promise.all(
+      visibleCards.map(async (card) => ({
+        ...card,
+        image: await loadPreviewImage(card.imageUrl).catch(() => null),
+      })),
+    )
+  ).filter((card) => card.image);
+
+  if (!loadedCards.length) return null;
+
+  drawPreviewCanvas(context, loadedCards, overflow);
+  const bytes = await previewCanvasBytes(canvas);
+  if (!bytes) return null;
+
+  return {
+    type: "image/jpeg",
+    width: PREVIEW_IMAGE_WIDTH,
+    height: PREVIEW_IMAGE_HEIGHT,
+    data: bytesToBase64Url(bytes),
+  };
+}
+
+function previewCardLines() {
+  const cards = [];
+  for (const order of state.orders) {
+    for (const item of order.items || []) {
+      const card = item.card || {};
+      const imageUrl = card.imageUrl || scryfallImageUrlFromId(card.id);
+      if (!imageUrl) continue;
+      cards.push({
+        imageUrl,
+        quantity: item.quantity || 1,
+      });
+    }
+  }
+
+  return cards;
+}
+
+function loadPreviewImage(src) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.decoding = "async";
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("preview image failed to load"));
+    image.src = src;
+  });
+}
+
+function drawPreviewCanvas(context, cards, overflow) {
+  const width = PREVIEW_IMAGE_WIDTH;
+  const height = PREVIEW_IMAGE_HEIGHT;
+  const margin = 42;
+  const gap = cards.length <= 4 ? 26 : 16;
+  const cardAspect = 488 / 680;
+
+  context.fillStyle = "#f5f7fa";
+  context.fillRect(0, 0, width, height);
+  roundedRect(context, 42, 42, width - 84, height - 84, 30);
+  context.fillStyle = "#ffffff";
+  context.fill();
+
+  const layout = bestPreviewGrid(cards.length, width - margin * 2, height - margin * 2, gap, cardAspect);
+  const gridWidth = layout.columns * layout.cardWidth + (layout.columns - 1) * gap;
+  const gridHeight = layout.rows * layout.cardHeight + (layout.rows - 1) * gap;
+  const startX = (width - gridWidth) / 2;
+  const startY = (height - gridHeight) / 2;
+
+  cards.forEach((card, index) => {
+    const column = index % layout.columns;
+    const row = Math.floor(index / layout.columns);
+    const x = startX + column * (layout.cardWidth + gap);
+    const y = startY + row * (layout.cardHeight + gap);
+
+    context.save();
+    roundedRect(context, x, y, layout.cardWidth, layout.cardHeight, Math.max(8, layout.cardWidth * 0.045));
+    context.clip();
+    context.drawImage(card.image, x, y, layout.cardWidth, layout.cardHeight);
+    context.restore();
+
+    if (card.quantity > 1) drawPreviewPill(context, `x${card.quantity}`, x + layout.cardWidth - 54, y + layout.cardHeight - 34, 44, 24);
+  });
+
+  if (overflow > 0) drawPreviewPill(context, `+${overflow}`, width - 112, height - 82, 56, 30);
+}
+
+function bestPreviewGrid(count, maxWidth, maxHeight, gap, aspect) {
+  let best = null;
+  for (let rows = 1; rows <= count; rows += 1) {
+    const columns = Math.ceil(count / rows);
+    const cellWidth = (maxWidth - (columns - 1) * gap) / columns;
+    const cellHeight = (maxHeight - (rows - 1) * gap) / rows;
+    const cardWidth = Math.min(cellWidth, cellHeight * aspect);
+    const cardHeight = cardWidth / aspect;
+    const area = cardWidth * cardHeight;
+    if (!best || area > best.area) best = { rows, columns, cardWidth, cardHeight, area };
+  }
+
+  return best;
+}
+
+function drawPreviewPill(context, text, x, y, width, height) {
+  roundedRect(context, x, y, width, height, height / 2);
+  context.fillStyle = "rgba(17, 24, 39, 0.84)";
+  context.fill();
+  context.fillStyle = "#ffffff";
+  context.font = "700 18px system-ui, sans-serif";
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillText(text, x + width / 2, y + height / 2);
+}
+
+function roundedRect(context, x, y, width, height, radius) {
+  const safeRadius = Math.min(radius, width / 2, height / 2);
+  context.beginPath();
+  context.moveTo(x + safeRadius, y);
+  context.lineTo(x + width - safeRadius, y);
+  context.quadraticCurveTo(x + width, y, x + width, y + safeRadius);
+  context.lineTo(x + width, y + height - safeRadius);
+  context.quadraticCurveTo(x + width, y + height, x + width - safeRadius, y + height);
+  context.lineTo(x + safeRadius, y + height);
+  context.quadraticCurveTo(x, y + height, x, y + height - safeRadius);
+  context.lineTo(x, y + safeRadius);
+  context.quadraticCurveTo(x, y, x + safeRadius, y);
+  context.closePath();
+}
+
+async function previewCanvasBytes(canvas) {
+  for (const quality of [0.82, 0.72, 0.62, 0.52]) {
+    const blob = await canvasToBlob(canvas, "image/jpeg", quality);
+    if (!blob) continue;
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    if (bytes.byteLength <= PREVIEW_IMAGE_MAX_BYTES) return bytes;
+  }
+
+  return null;
+}
+
+function canvasToBlob(canvas, type, quality) {
+  return new Promise((resolve) => canvas.toBlob(resolve, type, quality));
 }
 
 function validScryfallId(value) {

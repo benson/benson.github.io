@@ -21,6 +21,8 @@ const TTL_SECONDS = 30 * 24 * 60 * 60;
 const TCG_HANDOFF_TTL_SECONDS = 14 * 24 * 60 * 60;
 const MAX_PAYLOAD_BYTES = 5 * 1024 * 1024;
 const TCG_HANDOFF_MAX_PAYLOAD_BYTES = 64 * 1024;
+const TCG_HANDOFF_MAX_REQUEST_BYTES = 320 * 1024;
+const TCG_PREVIEW_IMAGE_MAX_BYTES = 180 * 1024;
 const SHARE_KEY_PREFIX = 'share:';
 const TCG_HANDOFF_KEY_PREFIX = 'tcg:';
 const ID_PATTERN = /^[a-zA-Z0-9_-]{6,48}$/;
@@ -156,10 +158,54 @@ function normalizeScryfallId(value) {
   return SCRYFALL_ID_PATTERN.test(id) ? id : '';
 }
 
+function base64UrlDecodedByteLength(value) {
+  const length = String(value || '').length;
+  if (!length) return 0;
+  const padding = (4 - length % 4) % 4;
+  const paddedLength = length + padding;
+  const lastChars = padding === 2 ? 1 : padding === 1 ? 2 : 3;
+  return ((paddedLength / 4 - 1) * 3) + lastChars;
+}
+
+function normalizePreviewImage(value) {
+  if (!value) return null;
+  const type = value.type === 'image/png' ? 'image/png' : value.type === 'image/jpeg' ? 'image/jpeg' : '';
+  const data = String(value.data || '');
+  const width = Number(value.width);
+  const height = Number(value.height);
+  const maxBase64Length = Math.ceil(TCG_PREVIEW_IMAGE_MAX_BYTES * 4 / 3) + 4;
+
+  if (
+    !type
+    || !isBase64Url(data, { min: 32, max: maxBase64Length })
+    || base64UrlDecodedByteLength(data) > TCG_PREVIEW_IMAGE_MAX_BYTES
+    || !Number.isInteger(width)
+    || !Number.isInteger(height)
+    || width < 200
+    || height < 200
+    || width > 1600
+    || height > 1600
+  ) {
+    throw errorWithStatus('invalid preview image', 400);
+  }
+
+  return { type, width, height, data };
+}
+
+function normalizeTcgPreview(value) {
+  const preview = value || {};
+  const normalized = {};
+  const previewId = normalizeScryfallId(preview.scryfallId);
+  const image = normalizePreviewImage(preview.image);
+  if (previewId) normalized.scryfallId = previewId;
+  if (image) normalized.image = image;
+  return Object.keys(normalized).length ? normalized : null;
+}
+
 async function readTcgHandoffBody(request) {
   const body = await request.text();
-  if (new TextEncoder().encode(body).byteLength > TCG_HANDOFF_MAX_PAYLOAD_BYTES) {
-    throw errorWithStatus('payload too large (max ' + TCG_HANDOFF_MAX_PAYLOAD_BYTES + ' bytes)', 413);
+  if (new TextEncoder().encode(body).byteLength > TCG_HANDOFF_MAX_REQUEST_BYTES) {
+    throw errorWithStatus('payload too large (max ' + TCG_HANDOFF_MAX_REQUEST_BYTES + ' bytes)', 413);
   }
 
   let payload;
@@ -185,8 +231,11 @@ async function readTcgHandoffBody(request) {
     iv: payload.iv,
     data: payload.data,
   };
-  const previewId = normalizeScryfallId(payload.preview?.scryfallId || payload.previewScryfallId);
-  if (previewId) normalized.preview = { scryfallId: previewId };
+  const preview = normalizeTcgPreview({
+    ...(payload.preview || {}),
+    scryfallId: payload.preview?.scryfallId || payload.previewScryfallId,
+  });
+  if (preview) normalized.preview = preview;
 
   return JSON.stringify(normalized);
 }
@@ -201,19 +250,42 @@ function encryptedTcgHandoffJson(value) {
   });
 }
 
-function tcgHandoffPreviewId(value) {
+function tcgHandoffPreview(value) {
   try {
-    return normalizeScryfallId(JSON.parse(value)?.preview?.scryfallId);
+    const preview = JSON.parse(value)?.preview || {};
+    const normalized = {};
+    const previewId = normalizeScryfallId(preview.scryfallId);
+    if (previewId) normalized.scryfallId = previewId;
+    if (preview.image?.data && preview.image?.type) {
+      normalized.image = {
+        type: preview.image.type === 'image/png' ? 'image/png' : 'image/jpeg',
+        width: Number(preview.image.width) || 1200,
+        height: Number(preview.image.height) || 630,
+        data: String(preview.image.data || ''),
+      };
+    }
+    return normalized;
   } catch (e) {
-    return '';
+    return {};
   }
 }
 
-function tcgPreviewImage(previewId) {
-  const id = normalizeScryfallId(previewId);
-  if (id) {
+function tcgPreviewImage(id, storedPreview = {}) {
+  if (storedPreview.image?.data) {
+    const extension = storedPreview.image.type === 'image/png' ? 'png' : 'jpg';
     return {
-      url: `https://cards.scryfall.io/large/front/${id[0]}/${id[1]}/${id}.jpg`,
+      url: `https://api.bensonperry.com/t/${encodeURIComponent(id)}/preview.${extension}`,
+      type: storedPreview.image.type,
+      width: storedPreview.image.width,
+      height: storedPreview.image.height,
+      alt: 'Cards in this Card Mail handoff',
+    };
+  }
+
+  const scryfallId = normalizeScryfallId(storedPreview.scryfallId);
+  if (scryfallId) {
+    return {
+      url: `https://cards.scryfall.io/large/front/${scryfallId[0]}/${scryfallId[1]}/${scryfallId}.jpg`,
       type: 'image/jpeg',
       width: 672,
       height: 936,
@@ -230,8 +302,8 @@ function tcgPreviewImage(previewId) {
   };
 }
 
-function tcgRedirectHtml(id, previewId = '') {
-  const preview = tcgPreviewImage(previewId);
+function tcgRedirectHtml(id, storedPreview = {}) {
+  const preview = tcgPreviewImage(id, storedPreview);
   const target = TCG_ASSISTANT_URL + '?s=' + encodeURIComponent(id);
   const shareUrl = 'https://api.bensonperry.com/t/' + encodeURIComponent(id);
   return `<!doctype html>
@@ -725,16 +797,45 @@ export default {
       });
     }
 
+    const tcgPreview = path.match(/^\/t\/([^/]+)\/preview\.(jpg|png)$/);
+    if (tcgPreview && request.method === 'GET') {
+      const id = tcgPreview[1];
+      if (!TCG_HANDOFF_ID_PATTERN.test(id)) return text('invalid id', 400, request);
+      if (!env.TCG_HANDOFFS) return Response.redirect(TCG_PREVIEW_IMAGE_URL, 302);
+      const value = await env.TCG_HANDOFFS.get(TCG_HANDOFF_KEY_PREFIX + id);
+      if (value === null) return Response.redirect(TCG_PREVIEW_IMAGE_URL, 302);
+
+      const preview = tcgHandoffPreview(value);
+      if (preview.image?.data) {
+        const expectedExtension = preview.image.type === 'image/png' ? 'png' : 'jpg';
+        if (tcgPreview[2] !== expectedExtension) {
+          const next = new URL(`/t/${encodeURIComponent(id)}/preview.${expectedExtension}`, request.url);
+          return Response.redirect(next.toString(), 302);
+        }
+        return new Response(b64urlToBytes(preview.image.data), {
+          status: 200,
+          headers: {
+            'Content-Type': preview.image.type,
+            'Cache-Control': 'public, max-age=1209600',
+          },
+        });
+      }
+
+      const fallback = tcgPreviewImage(id, preview);
+      return Response.redirect(fallback.url, 302);
+    }
+
     const tcgRedirect = path.match(/^\/t\/([^/]+)$/);
     if (tcgRedirect && request.method === 'GET') {
       const id = tcgRedirect[1];
       if (!TCG_HANDOFF_ID_PATTERN.test(id)) return text('invalid id', 400, request);
-      let previewId = normalizeScryfallId(url.searchParams.get('p'));
-      if (!previewId && env.TCG_HANDOFFS) {
+      let preview = {};
+      if (env.TCG_HANDOFFS) {
         const value = await env.TCG_HANDOFFS.get(TCG_HANDOFF_KEY_PREFIX + id);
-        if (value !== null) previewId = tcgHandoffPreviewId(value);
+        if (value !== null) preview = tcgHandoffPreview(value);
       }
-      return new Response(tcgRedirectHtml(id, previewId), {
+      if (!preview.scryfallId) preview.scryfallId = normalizeScryfallId(url.searchParams.get('p'));
+      return new Response(tcgRedirectHtml(id, preview), {
         status: 200,
         headers: { 'Content-Type': 'text/html; charset=utf-8' },
       });

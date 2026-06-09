@@ -145,7 +145,15 @@ test('worker: public legacy share reads still work without auth', async () => {
 test('worker: anonymous TCG handoff writes are origin-limited and expire', async () => {
   const handoffs = fakeKv();
   const previewId = 'e1dd057e-1f38-4a5f-819c-f3af9134fecf';
-  const payload = { v: 1, alg: 'A256GCM', iv: 'abcdefghijklmnop', data: 'ciphertext_123', preview: { scryfallId: previewId } };
+  const previewBytes = Buffer.from('fake jpeg preview image bytes'.repeat(4));
+  const previewImage = { type: 'image/jpeg', width: 1200, height: 630, data: b64url(previewBytes) };
+  const payload = {
+    v: 1,
+    alg: 'A256GCM',
+    iv: 'abcdefghijklmnop',
+    data: 'ciphertext_123',
+    preview: { scryfallId: previewId, image: previewImage },
+  };
   const encryptedPayload = { v: 1, alg: 'A256GCM', iv: 'abcdefghijklmnop', data: 'ciphertext_123' };
 
   const create = await worker.fetch(new Request('https://example.com/tcg-handoffs', {
@@ -168,8 +176,35 @@ test('worker: anonymous TCG handoff writes are origin-limited and expire', async
   const redirect = await worker.fetch(new Request('https://example.com/t/' + id), { TCG_HANDOFFS: handoffs });
   assert.equal(redirect.status, 200);
   const html = await redirect.text();
-  assert.match(html, new RegExp(`https://cards\\.scryfall\\.io/large/front/e/1/${previewId}\\.jpg`));
+  assert.match(html, new RegExp(`https://api\\.bensonperry\\.com/t/${id}/preview\\.jpg`));
+  assert.doesNotMatch(html, new RegExp(`https://cards\\.scryfall\\.io/large/front/e/1/${previewId}\\.jpg`));
   assert.doesNotMatch(html, /preview\.png/);
+
+  const image = await worker.fetch(new Request('https://example.com/t/' + id + '/preview.jpg'), { TCG_HANDOFFS: handoffs });
+  assert.equal(image.status, 200);
+  assert.equal(image.headers.get('Content-Type'), 'image/jpeg');
+  assert.deepEqual(new Uint8Array(await image.arrayBuffer()), new Uint8Array(previewBytes));
+});
+
+test('worker: TCG handoff previews fall back to the first Scryfall card image', async () => {
+  const handoffs = fakeKv();
+  const previewId = 'e1dd057e-1f38-4a5f-819c-f3af9134fecf';
+  handoffs.values.set('tcg:abc', JSON.stringify({
+    v: 1,
+    alg: 'A256GCM',
+    iv: 'abcdefghijklmnop',
+    data: 'ciphertext_123',
+    preview: { scryfallId: previewId },
+  }));
+
+  const redirect = await worker.fetch(new Request('https://example.com/t/abc'), { TCG_HANDOFFS: handoffs });
+  assert.equal(redirect.status, 200);
+  const html = await redirect.text();
+  assert.match(html, new RegExp(`https://cards\\.scryfall\\.io/large/front/e/1/${previewId}\\.jpg`));
+
+  const image = await worker.fetch(new Request('https://example.com/t/abc/preview.jpg'), { TCG_HANDOFFS: handoffs });
+  assert.equal(image.status, 302);
+  assert.equal(image.headers.get('Location'), `https://cards.scryfall.io/large/front/e/1/${previewId}.jpg`);
 });
 
 test('worker: TCG handoff ids are retried instead of overwriting active links', async () => {
@@ -226,7 +261,7 @@ test('worker: TCG handoff writes reject invalid origins and payloads', async () 
   const oversized = await worker.fetch(new Request('https://example.com/tcg-handoffs', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Origin: 'https://bensonperry.com' },
-    body: JSON.stringify({ v: 1, alg: 'A256GCM', iv: 'abcdefghijklmnop', data: 'a'.repeat(70 * 1024) }),
+    body: JSON.stringify({ v: 1, alg: 'A256GCM', iv: 'abcdefghijklmnop', data: 'a'.repeat(340 * 1024) }),
   }), { TCG_HANDOFFS: fakeKv() });
   assert.equal(oversized.status, 413);
 });
