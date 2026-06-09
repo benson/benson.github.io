@@ -12,6 +12,8 @@ const PREVIEW_IMAGE_HEIGHT = 630;
 const PREVIEW_IMAGE_MAX_BYTES = 180 * 1024;
 const PREVIEW_IMAGE_MAX_CARDS = 24;
 const PREVIEW_PANEL_MARGIN = 32;
+const PREVIEW_IMAGE_LOAD_TIMEOUT_MS = 4500;
+const PREVIEW_IMAGE_LOAD_ATTEMPTS = 2;
 const scryfallCache = new Map();
 
 const state = {
@@ -616,7 +618,8 @@ function scoreScryfallCard(card, parsed) {
 }
 
 function normalizeScryfallCard(card, parsed) {
-  const image = scryfallImageUrl(card);
+  const imageUrls = scryfallImageUrls(card);
+  const image = imageUrls[0] || "";
   if (!image) return null;
 
   return {
@@ -627,17 +630,24 @@ function normalizeScryfallCard(card, parsed) {
     collectorNumber: card.collector_number || parsed.collectorNumber || "",
     finish: parsed.finish || "",
     imageUrl: image,
+    imageUrls,
     scryfallUri: card.scryfall_uri || "",
     imageStatus: card.image_status || "",
   };
 }
 
 function scryfallImageUrl(card) {
-  if (card?.image_uris) {
-    return card.image_uris.normal || card.image_uris.large || card.image_uris.png || card.image_uris.small || "";
-  }
+  return scryfallImageUrls(card)[0] || "";
+}
+
+function scryfallImageUrls(card) {
+  if (card?.image_uris) return uniqueValues([card.image_uris.normal, card.image_uris.large, card.image_uris.png, card.image_uris.small]);
   const face = Array.isArray(card?.card_faces) ? card.card_faces[0] : null;
-  return face?.image_uris?.normal || face?.image_uris?.large || face?.image_uris?.png || face?.image_uris?.small || "";
+  return uniqueValues([face?.image_uris?.normal, face?.image_uris?.large, face?.image_uris?.png, face?.image_uris?.small]);
+}
+
+function uniqueValues(values) {
+  return [...new Set(values.map((value) => String(value || "").trim()).filter(Boolean))];
 }
 
 async function loadFromShortLink() {
@@ -898,7 +908,7 @@ async function buildPreviewImage() {
     await Promise.all(
       visibleCards.map(async (card) => ({
         ...card,
-        image: card.imageUrl ? await loadPreviewImage(card.imageUrl).catch(() => null) : null,
+        image: await loadPreviewCardImage(card),
       })),
     )
   );
@@ -923,11 +933,13 @@ function previewCardLines() {
     for (const item of order.items || []) {
       const card = item.card || {};
       const imageUrl = card.imageUrl || scryfallImageUrlFromId(card.id);
+      const imageUrls = previewImageCandidates(card);
       const label = card.name || item.parsedProduct?.displayName || item.description || "Card";
       const quantity = cardQuantity(item);
       for (let copy = 0; copy < quantity; copy += 1) {
         cards.push({
           imageUrl,
+          imageUrls,
           label,
         });
       }
@@ -937,15 +949,79 @@ function previewCardLines() {
   return cards;
 }
 
-function loadPreviewImage(src) {
+async function loadPreviewCardImage(card) {
+  const candidates = card.imageUrls?.length ? card.imageUrls : card.imageUrl ? [card.imageUrl] : [];
+  for (let attempt = 0; attempt < PREVIEW_IMAGE_LOAD_ATTEMPTS; attempt += 1) {
+    for (const src of candidates) {
+      const image = await loadPreviewImage(src).catch(() => null);
+      if (image) return image;
+    }
+    if (attempt < PREVIEW_IMAGE_LOAD_ATTEMPTS - 1) await sleep(140);
+  }
+
+  return null;
+}
+
+async function loadPreviewImage(src) {
+  return (await loadPreviewImageBlob(src).catch(() => null)) || (await loadPreviewImageElement(src).catch(() => null));
+}
+
+async function loadPreviewImageBlob(src) {
+  if (!window.createImageBitmap) throw new Error("createImageBitmap is unavailable");
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), PREVIEW_IMAGE_LOAD_TIMEOUT_MS);
+  try {
+    const response = await fetch(src, { mode: "cors", cache: "force-cache", signal: controller.signal });
+    if (!response.ok) throw new Error(`preview image fetch failed (${response.status})`);
+    return await createImageBitmap(await response.blob());
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function loadPreviewImageElement(src) {
   return new Promise((resolve, reject) => {
     const image = new Image();
+    const timeout = setTimeout(() => {
+      image.onload = null;
+      image.onerror = null;
+      reject(new Error("preview image timed out"));
+    }, PREVIEW_IMAGE_LOAD_TIMEOUT_MS);
     image.crossOrigin = "anonymous";
     image.decoding = "async";
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("preview image failed to load"));
+    image.onload = () => {
+      clearTimeout(timeout);
+      resolve(image);
+    };
+    image.onerror = () => {
+      clearTimeout(timeout);
+      reject(new Error("preview image failed to load"));
+    };
     image.src = src;
   });
+}
+
+function previewImageCandidates(card) {
+  return uniqueValues([
+    ...(Array.isArray(card.imageUrls) ? card.imageUrls : []),
+    card.imageUrl,
+    scryfallImageUrlFromId(card.id),
+    ...scryfallImageCandidatesFromUrl(card.imageUrl),
+  ]);
+}
+
+function scryfallImageCandidatesFromUrl(value) {
+  const id = scryfallIdFromImageUrl(value);
+  if (!id) return value ? [value] : [];
+  const base = `https://cards.scryfall.io`;
+  const path = `front/${id[0]}/${id[1]}/${id}`;
+  return [
+    value,
+    `${base}/normal/${path}.jpg`,
+    `${base}/large/${path}.jpg`,
+    `${base}/png/${path}.png`,
+    `${base}/small/${path}.jpg`,
+  ];
 }
 
 function drawPreviewCanvas(context, cards, overflow, counts) {
