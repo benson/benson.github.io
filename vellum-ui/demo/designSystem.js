@@ -6,9 +6,11 @@ import {
   el,
   fieldRowHtml,
   floatingMenu,
+  initTheme as applyStoredTheme,
   mountFeedbackCapture,
   renderStatusState,
   statusStateHtml,
+  themeToggle as bindThemeToggle,
   toast,
 } from '../index.js';
 
@@ -93,7 +95,7 @@ const PLAYGROUND_TOKENS = PLAYGROUND_GROUPS.flatMap((groupDef) => groupDef.token
 
 // Theme first, then defaults, then stored overrides — defaults must reflect
 // the active theme but not the overrides.
-applyTheme(readTheme());
+applyStoredTheme({ storageKey: THEME_KEY, fallbackToSystem: false });
 const tokenDefaults = readTokenDefaults();
 applyOverrides(readOverrides());
 
@@ -151,28 +153,9 @@ function applyOverrides(overrides) {
   overrideStyleEl().textContent = overridesToCss(overrides);
 }
 
-function readTheme() {
-  try {
-    return localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light';
-  } catch {
-    return 'light';
-  }
-}
-
-function applyTheme(theme) {
-  if (theme === 'dark') document.documentElement.dataset.theme = 'dark';
-  else delete document.documentElement.dataset.theme;
-}
-
-function setTheme(theme) {
-  applyTheme(theme);
-  try {
-    localStorage.setItem(THEME_KEY, theme);
-  } catch {
-    /* ignore */
-  }
-  // Re-read defaults under the new theme with overrides lifted, so the
-  // playground diffs against the theme the user is actually looking at.
+// Re-read defaults under the new theme with overrides lifted, so the
+// playground diffs against the theme the user is actually looking at.
+function refreshTokenDefaults() {
   const styleEl = overrideStyleEl();
   const overrideCss = styleEl.textContent;
   styleEl.textContent = '';
@@ -218,8 +201,8 @@ function pageHeader() {
     el(
       'nav',
       { className: 'ds-page-actions', ariaLabel: 'Vellum UI pages' },
-      el('a', { className: 'ds-page-back', href: '/vellum-ui/design-system/', text: 'home' }),
-      el('a', { className: 'ds-page-back', href: '/vellum-ui/labs/modal/', text: 'modal lab' }),
+      el('a', { className: 'btn', href: '/vellum-ui/design-system/', text: 'home' }),
+      el('a', { className: 'btn', href: '/vellum-ui/labs/modal/', text: 'modal lab' }),
     ),
   );
 }
@@ -233,7 +216,7 @@ function toc(groups) {
       { className: 'ds-toc-states' },
       el(
         'div',
-        { className: 'ds-toc-state-row' },
+        { className: 'segmented segmented-compact ds-toc-state-row', role: 'group' },
         stateButton('rest', () => setDemoState('rest')),
         stateButton('hover', () => setDemoState('hover')),
         stateButton('active', () => setDemoState('active')),
@@ -254,8 +237,7 @@ function themeToggle() {
     type: 'checkbox',
     dataset: { dsThemeToggle: '' },
   });
-  input.checked = readTheme() === 'dark';
-  input.addEventListener('change', () => setTheme(input.checked ? 'dark' : 'light'));
+  bindThemeToggle(input, { storageKey: THEME_KEY, onChange: refreshTokenDefaults });
   return el(
     'label',
     { className: 'switch ds-theme-toggle' },
@@ -266,11 +248,18 @@ function themeToggle() {
 }
 
 function stateButton(label, onClick) {
-  return el('button', { className: label === 'rest' ? 'ds-toc-state-btn active' : 'ds-toc-state-btn', type: 'button', text: label, onClick });
+  return el('button', {
+    className: label === 'rest' ? 'segment-btn active' : 'segment-btn',
+    type: 'button',
+    text: label,
+    onClick,
+  });
 }
 
 function setDemoState(state) {
-  document.querySelectorAll('.ds-toc-state-btn').forEach((btn) => btn.classList.toggle('active', btn.textContent === state));
+  document
+    .querySelectorAll('.ds-toc-state-row .segment-btn')
+    .forEach((btn) => btn.classList.toggle('active', btn.textContent === state));
   document.body.classList.toggle('ds-force-hover', state === 'hover');
   document.body.classList.toggle('ds-force-active', state === 'active');
   document.body.classList.toggle('ds-force-focus', state === 'focus');
@@ -314,15 +303,15 @@ function entry(name, selectors, description, demoFactory) {
 }
 
 function zoomBar(stage) {
-  const bar = el('div', { className: 'ds-zoom-bar' });
+  const bar = el('div', { className: 'segmented segmented-compact ds-zoom-bar', role: 'group' });
   for (const zoom of [1, 2, 3]) {
     const btn = el('button', {
-      className: zoom === 1 ? 'ds-zoom-btn active' : 'ds-zoom-btn',
+      className: zoom === 1 ? 'segment-btn active' : 'segment-btn',
       type: 'button',
       text: `${zoom}x`,
       onClick: () => {
         stage.style.zoom = zoom === 1 ? '' : String(zoom);
-        bar.querySelectorAll('.ds-zoom-btn').forEach((other) => other.classList.toggle('active', other === btn));
+        bar.querySelectorAll('.segment-btn').forEach((other) => other.classList.toggle('active', other === btn));
       },
     });
     bar.append(btn);
@@ -437,7 +426,12 @@ function buttonsGroup() {
           '<button class="btn-link" type="button">inline action</button>',
       ),
     ),
-    entry('Segmented control', ['.segmented', '.segment-btn'], 'Hard-shadow abutting segments. Active segments press into the canvas.', segmentedDemo),
+    entry(
+      'Segmented control',
+      ['.segmented', '.segment-btn', '.segmented-compact'],
+      'Hard-shadow abutting segments. Active segments press into the canvas. Add .segmented-compact for dense chrome (toolbars, page furniture).',
+      () => el('div', { className: 'ds-stack' }, segmentedDemo(), segmentedDemo({ compact: true })),
+    ),
     entry('Icon buttons', ['.icon-btn'], 'Bare glyph buttons for compact table/card actions.', () =>
       demoHtml(
         '<button class="icon-btn" type="button" aria-label="close">x</button>' +
@@ -445,11 +439,37 @@ function buttonsGroup() {
           '<button class="icon-btn" type="button" aria-label="refresh">r</button>',
       ),
     ),
+    entry(
+      'Floating actions',
+      ['.fab-cluster', '.fab-btn', '.fab-glyph', '.fab-shortcut'],
+      'Solid ink action pills. Apps stack them in a fixed .fab-cluster at the bottom-right (shown inline here); the feedback widget mounts one as its launcher.',
+      () =>
+        el(
+          'div',
+          { className: 'ds-row' },
+          fabDemo('+', 'add', 'a'),
+          fabDemo('?', 'help', 'h'),
+          fabDemo('!', 'feedback', 'f'),
+        ),
+    ),
   );
 }
 
-function segmentedDemo() {
-  const wrap = el('div', { className: 'segmented', role: 'group' });
+function fabDemo(glyph, label, shortcut) {
+  return el(
+    'button',
+    { className: 'fab-btn', type: 'button', ariaLabel: label },
+    el('span', { className: 'fab-glyph', text: glyph }),
+    el('span', { className: 'fab-label', text: label }),
+    el('span', { className: 'fab-shortcut', ariaHidden: 'true', text: shortcut }),
+  );
+}
+
+function segmentedDemo({ compact = false } = {}) {
+  const wrap = el('div', {
+    className: compact ? 'segmented segmented-compact' : 'segmented',
+    role: 'group',
+  });
   for (const [i, label] of ['daily', 'sealed', 'archive'].entries()) {
     wrap.append(
       el('button', {
