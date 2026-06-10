@@ -9,15 +9,20 @@
   <meta property="og:description" content="ideas both good and bad">
   <meta property="og:url" content="https://bensonperry.com">
   <meta property="og:type" content="website">
+  <meta property="og:image" content="https://bensonperry.com/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <!-- vellum tokens only — the page keeps its own minimal styling; component
        styles are class-gated so nothing applies without opting in -->
   <link rel="stylesheet" href="vellum-ui/vellum-ui.css">
-  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="style.css?v=11">
 </head>
 <body>
   <header>
     <h1>benson perry</h1>
+    <p class="tagline">ideas both good and bad</p>
     <nav>
       <a href="mailto:benson.perry@gmail.com">email</a>
       <a href="https://www.linkedin.com/in/bensonperry/">linkedin</a>
@@ -36,8 +41,8 @@
       <li><a href="/poolbuilder">pool builder</a> <span class="desc">— sealed pool simulator</span> <a href="https://github.com/benson/poolbuilder" class="github-link">[github]</a></li>
       <li><a href="/vellum-ui/design-system/">vellum ui</a> <span class="desc">&mdash; shared design system</span></li>
       <li><a href="/survivor">survivor draft</a> <span class="desc">— perry family survivor draft</span> <a href="https://github.com/benson/survivor" class="github-link">[github]</a></li>
-      <li><span class="wip">wip</span> <a href="/cardimport">card import</a> <span class="desc">— quick mtg entry, portable csv out</span></li>
-      <li><span class="wip">wip</span> <a href="https://biblioplex.bensonperry.com/">biblioplex</a> <span class="desc">&mdash; manage a magic collection</span></li>
+      <li><a href="/cardimport">card import</a> <span class="wip">wip</span> <span class="desc">— quick mtg entry, portable csv out</span></li>
+      <li><a href="https://biblioplex.bensonperry.com/">biblioplex</a> <span class="wip">wip</span> <span class="desc">&mdash; manage a magic collection</span></li>
     </ul>
   </section>
 
@@ -101,6 +106,8 @@
     </div>
     <!-- LEAGUE_END -->
   </section>
+
+  <footer>last updated june 2026</footer>
 
   <script>
     const el = document.getElementById('orbit-strip');
