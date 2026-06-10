@@ -92,8 +92,8 @@ li a:hover {
 .wip {
   display: inline-block;
   font-size: 0.7rem;
-  color: #999;
-  border: 1px solid #ccc;
+  color: var(--vui-color-neutral-350, #999);
+  border: 1px solid var(--vui-color-neutral-200, #ccc);
   padding: 0 4px;
   border-radius: 3px;
   text-transform: lowercase;
@@ -107,15 +107,15 @@ li a:hover {
 }
 
 .github-link {
-  color: #999;
+  color: var(--vui-color-neutral-350, #999);
   font-size: 0.85rem;
   text-decoration: none;
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid var(--vui-color-neutral-200, #ccc);
 }
 
 .github-link:hover {
-  color: #666;
-  border-bottom-color: #999;
+  color: var(--vui-color-neutral-500, #666);
+  border-bottom-color: var(--vui-color-neutral-350, #999);
 }
 
 #spotify-recent,
@@ -143,13 +143,13 @@ li a:hover {
   top: 48px;
   left: 50%;
   transform: translateX(-50%);
-  background: #fff;
-  border: 1px solid #ddd;
+  background: var(--vui-color-neutral-white, #fff);
+  border: 1px solid var(--vui-color-status-neutral-border, #ddd);
   border-radius: 4px;
   padding: 6px 10px;
   white-space: nowrap;
   font-size: 0.75rem;
-  color: #666;
+  color: var(--vui-color-neutral-500, #666);
   z-index: 10;
 }
 
@@ -159,7 +159,7 @@ li a:hover {
 }
 
 .tip-track {
-  color: #000;
+  color: var(--vui-color-neutral-black, #000);
 }
 
 .album-wrap:hover .album-tip {
@@ -208,13 +208,13 @@ li a:hover {
   top: 48px;
   left: 50%;
   transform: translateX(-50%);
-  background: #fff;
-  border: 1px solid #ddd;
+  background: var(--vui-color-neutral-white, #fff);
+  border: 1px solid var(--vui-color-status-neutral-border, #ddd);
   border-radius: 4px;
   padding: 6px 10px;
   white-space: nowrap;
   font-size: 0.75rem;
-  color: #666;
+  color: var(--vui-color-neutral-500, #666);
   gap: 6px;
   z-index: 10;
 }
