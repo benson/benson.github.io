@@ -3,6 +3,7 @@ import {
   chipNode,
   clearNode,
   combobox,
+  edgeResize,
   el,
   fieldRowHtml,
   floatingMenu,
@@ -174,6 +175,7 @@ export function renderDesignSystem(target) {
     statusGroup(),
     dataGroup(),
     overlaysGroup(),
+    layoutGroup(),
   ];
   for (const groupNode of groups) content.append(groupNode);
   target.append(
@@ -676,6 +678,60 @@ function overlaysGroup() {
         trigger.addEventListener('click', () =>
           controller.isOpen() ? controller.close() : controller.open({ focusFirst: true }),
         );
+        return wrap;
+      },
+    ),
+  );
+}
+
+function layoutGroup() {
+  return group(
+    'layout',
+    'Layout',
+    entry(
+      'Edge resize',
+      ['.vui-resize-divider', '.vui-resize-grip', 'edgeResize()'],
+      'Drag-only panel resizing with snap-to-collapsed. Drag the divider to resize; drag past the minimum to snap the pane closed; drag or click the collapsed grip edge to reopen. No toggle buttons.',
+      () => {
+        const MIN = 120;
+        const MAX = 280;
+        const wrap = el('div', { className: 'ds-edge-resize-demo' });
+        wrap.style.cssText =
+          'position:relative;display:flex;height:160px;width:min(420px,100%);border:var(--vui-border-width) solid var(--vui-color-line);';
+        const pane = el('div', { className: 'ds-edge-resize-pane', text: 'pane' });
+        pane.style.cssText =
+          'width:var(--ds-edge-pane-w, 180px);min-width:0;flex:none;display:flex;align-items:center;justify-content:center;background:var(--vui-color-surface-sunken);overflow:hidden;';
+        const rest = el('div', { text: 'content' });
+        rest.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;';
+        const handle = el('div', {
+          className: 'vui-resize-divider vui-resize-divider-x',
+          role: 'separator',
+          ariaLabel: 'resize pane',
+        });
+        handle.tabIndex = 0;
+        handle.style.left = 'calc(var(--ds-edge-pane-w, 180px) - 4px)';
+        const grip = el('span', { className: 'vui-resize-grip vui-resize-grip-x' });
+        grip.style.cssText =
+          'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;';
+        handle.append(grip);
+        wrap.append(pane, rest, handle);
+        const setCollapsed = (collapsed) => {
+          wrap.classList.toggle('ds-edge-resize-collapsed', collapsed);
+          pane.style.display = collapsed ? 'none' : '';
+          handle.style.left = collapsed ? '0' : 'calc(var(--ds-edge-pane-w, 180px) - 4px)';
+        };
+        edgeResize(handle, {
+          axis: 'x',
+          min: MIN,
+          max: MAX,
+          getSize: () => pane.getBoundingClientRect().width,
+          isCollapsed: () => wrap.classList.contains('ds-edge-resize-collapsed'),
+          setCollapsed,
+          applySize: (px) => {
+            wrap.style.setProperty('--ds-edge-pane-w', px + 'px');
+            handle.style.left = 'calc(' + px + 'px - 4px)';
+          },
+        });
         return wrap;
       },
     ),
