@@ -8,6 +8,7 @@ import {
   fieldRowHtml,
   floatingMenu,
   initTheme as applyStoredTheme,
+  modal,
   mountFeedbackCapture,
   renderStatusState,
   statusStateHtml,
@@ -162,6 +163,16 @@ function refreshTokenDefaults() {
   styleEl.textContent = '';
   Object.assign(tokenDefaults, readTokenDefaults());
   styleEl.textContent = overrideCss;
+  // BEN-554: swatches must show the theme being looked at; re-seed inputs
+  // from the fresh defaults (user overrides stay).
+  const overrides = readOverrides();
+  document.querySelectorAll('.ds-playground [data-token]').forEach((input) => {
+    const token = input.dataset.token;
+    if (overrides[token] != null) return;
+    const value = tokenDefaults[token];
+    if (value == null) return;
+    input.value = input.type === 'color' ? normalizeColor(value) : value;
+  });
 }
 
 export function renderDesignSystem(target) {
@@ -170,6 +181,7 @@ export function renderDesignSystem(target) {
   const content = el('div', { className: 'ds-page-body' });
   const groups = [
     tokensGroup(),
+    typeGroup(),
     buttonsGroup(),
     formsGroup(),
     statusGroup(),
@@ -203,8 +215,8 @@ function pageHeader() {
     el(
       'nav',
       { className: 'ds-page-actions', ariaLabel: 'Vellum UI pages' },
-      el('a', { className: 'btn', href: '/vellum-ui/design-system/', text: 'home' }),
-      el('a', { className: 'btn', href: '/vellum-ui/labs/modal/', text: 'modal lab' }),
+      el('a', { className: 'btn', href: 'https://bensonperry.com/', text: 'home' }),
+      el('a', { className: 'btn', href: '../labs/modal/', text: 'modal lab' }),
     ),
   );
 }
@@ -289,7 +301,7 @@ function entry(name, selectors, description, demoFactory) {
   const stage = el('div', { className: 'ds-zoom-stage' });
   const built = demoFactory();
   if (built) stage.append(built);
-  demo.append(zoomBar(stage), stage);
+  demo.append(zoomBar(stage, demo), stage);
   return el(
     'section',
     { className: 'ds-entry' },
@@ -304,7 +316,7 @@ function entry(name, selectors, description, demoFactory) {
   );
 }
 
-function zoomBar(stage) {
+function zoomBar(stage, demo) {
   const bar = el('div', { className: 'segmented segmented-compact ds-zoom-bar', role: 'group' });
   for (const zoom of [1, 2, 3]) {
     const btn = el('button', {
@@ -313,6 +325,9 @@ function zoomBar(stage) {
       text: `${zoom}x`,
       onClick: () => {
         stage.style.zoom = zoom === 1 ? '' : String(zoom);
+        // Zoomed content can outgrow the panel; clip only then so floating
+        // demos (combobox, tooltip, menu) stay unclipped at rest (BEN-553).
+        demo?.classList.toggle('ds-entry-demo-scroll', zoom > 1);
         bar.querySelectorAll('.segment-btn').forEach((other) => other.classList.toggle('active', other === btn));
       },
     });
@@ -413,6 +428,38 @@ function normalizeColor(value) {
   return '#' + rgb.map((part) => part.toString(16).padStart(2, '0')).join('');
 }
 
+function typeGroup() {
+  const sizes = ['xxxs', 'xxs', 'xs', 'xs-plus', 'sm', 'sm-plus', 'md', 'base', 'lg', 'xl', 'heading', 'display', 'jumbo'];
+  return group(
+    'type',
+    'Type',
+    entry('Faces', ['--vui-font-display', '--vui-font-heading', '--vui-font-body', '--vui-font-mono'], 'The four voices: Cormorant Unicase carries identity in display and headings; system body does the reading; mono does the data.', () => {
+      const col = el('div', { className: 'ds-type-faces' });
+      col.append(
+        el('div', { className: 'ds-type-face', style: { fontFamily: 'var(--vui-font-display)', fontSize: 'var(--vui-font-size-display)' }, text: 'arcane ledger — display' }),
+        el('div', { className: 'ds-type-face', style: { fontFamily: 'var(--vui-font-heading)', fontSize: 'var(--vui-font-size-heading)' }, text: 'collection history — heading' }),
+        el('div', { className: 'ds-type-face', style: { fontFamily: 'var(--vui-font-body)', fontSize: 'var(--vui-font-size-base)' }, text: 'body — the quick brown fox jumps over the lazy dog' }),
+        el('div', { className: 'ds-type-face', style: { fontFamily: 'var(--vui-font-mono)', fontSize: 'var(--vui-font-size-sm)' }, text: 'mono — darksteel citadel · $4.20 · nm' }),
+      );
+      return col;
+    }),
+    entry('Size ramp', ['--vui-font-size-*'], 'All thirteen size tokens rendered live. If a step never earns a use, it should die here first.', () => {
+      const col = el('div', { className: 'ds-type-ramp' });
+      for (const size of sizes) {
+        col.append(
+          el(
+            'div',
+            { className: 'ds-type-ramp-row' },
+            el('code', { className: 'ds-type-ramp-token', text: size }),
+            el('span', { className: 'ds-type-ramp-sample', style: { fontSize: `var(--vui-font-size-${size})` }, text: 'sealed pool generator' }),
+          ),
+        );
+      }
+      return col;
+    }),
+  );
+}
+
 function buttonsGroup() {
   return group(
     'buttons',
@@ -425,7 +472,8 @@ function buttonsGroup() {
           buttonHtml({ label: 'delete', variant: 'danger' }) +
           buttonHtml({ label: 'generate', variant: 'ink' }) +
           buttonHtml({ label: 'disabled', attrs: { disabled: true } }) +
-          '<button class="btn-link" type="button">inline action</button>',
+          '<button class="btn-link" type="button">inline action</button>' +
+          '<button class="btn-link btn-link-danger" type="button">destructive inline</button>',
       ),
     ),
     entry(
@@ -434,11 +482,14 @@ function buttonsGroup() {
       'Hard-shadow abutting segments. Active segments press into the canvas. Add .segmented-compact for dense chrome (toolbars, page furniture).',
       () => el('div', { className: 'ds-stack' }, segmentedDemo(), segmentedDemo({ compact: true })),
     ),
-    entry('Icon buttons', ['.icon-btn'], 'Bare glyph buttons for compact table/card actions.', () =>
+    entry('Icon buttons', ['.icon-btn'], 'Bare glyph buttons for compact table/card actions, shown in row context. Deliberately neutral grey — they read through proximity, not color.', () =>
       demoHtml(
-        '<button class="icon-btn" type="button" aria-label="close">x</button>' +
-          '<button class="icon-btn" type="button" aria-label="more">...</button>' +
-          '<button class="icon-btn" type="button" aria-label="refresh">r</button>',
+        '<div class="ds-icon-btn-context">' +
+          '<span class="ds-icon-btn-context-label">darksteel citadel · foil · $4.20</span>' +
+          '<button class="icon-btn" type="button" aria-label="edit">✎</button>' +
+          '<button class="icon-btn" type="button" aria-label="more">…</button>' +
+          '<button class="icon-btn" type="button" aria-label="remove">✕</button>' +
+          '</div>',
       ),
     ),
     entry(
@@ -560,6 +611,18 @@ function statusGroup() {
       row.append(mount);
       return row;
     }),
+    entry('Status matrix', ['.status-state-loading', '.status-state-retryable-error', '.status-state-blocking-error', '.status-state-detail', '.status-state-retry'], 'The full loading/error vocabulary apps lean on: loading with spinner, retryable error with action, blocking error with detail.', () =>
+      demoHtml(
+        '<span class="status-state status-state-loading"><span class="loading-spinner" aria-hidden="true"></span><span class="status-state-message">syncing collection…</span></span>' +
+          '<span class="status-state status-state-retryable-error"><span class="status-state-message">sync failed</span><button class="btn-link status-state-retry" type="button">retry</button></span>' +
+          '<span class="status-state status-state-blocking-error"><span class="status-state-message">backup unavailable</span><span class="status-state-detail">worker unreachable</span></span>',
+      ),
+    ),
+    entry('Loading spinner', ['.loading-spinner'], 'Inline spinner sized to the surrounding text; inherits currentColor.', () =>
+      demoHtml(
+        '<span class="loading-spinner" aria-hidden="true"></span> <span class="loading-spinner" style="font-size: 1.5em;" aria-hidden="true"></span> <span class="loading-spinner" style="font-size: 2.2em;" aria-hidden="true"></span>',
+      ),
+    ),
     entry('Banner', ['.banner', '.banner-message', '.banner-actions', '.banner-dismiss'], 'Full-width inline banner with a message, CTA, and right-aligned dismiss control.', () => {
       const banner = el('div', { className: 'banner', role: 'status' });
       banner.append(
@@ -650,6 +713,30 @@ function overlaysGroup() {
         el('footer', { className: 'ui-modal-actions' }, el('button', { className: 'btn', type: 'button', text: 'done' })),
       ),
     ),
+    entry('Modal, live', ['modal()', '.ui-modal'], 'The real helper with backdrop, escape, and rune-close behavior — mirrors the toast pattern of static frame + live trigger.', () => {
+      const wrap = el('div');
+      const modalEl = el(
+        'div',
+        { className: 'ui-modal', hidden: true, ariaHidden: 'true' },
+        el(
+          'section',
+          { className: 'ui-modal-card' },
+          el(
+            'header',
+            { className: 'ui-modal-head' },
+            el('h3', { className: 'ui-modal-title', text: 'live modal' }),
+            el('button', { className: 'rune-close', type: 'button', ariaLabel: 'close', dataset: { modalClose: '' }, text: 'x' }),
+          ),
+          el('div', { className: 'ui-modal-body', text: 'Escape, backdrop click, and the rune close all work here.' }),
+          el('footer', { className: 'ui-modal-actions' }, el('button', { className: 'btn btn-secondary', type: 'button', text: 'close', dataset: { modalClose: '' } })),
+        ),
+      );
+      const api = modal(modalEl);
+      const trigger = el('button', { className: 'btn', type: 'button', text: 'open modal', onClick: () => api.open() });
+      trigger.dataset.dsOpenModal = '';
+      wrap.append(trigger, modalEl);
+      return wrap;
+    }),
     entry(
       'Popover frame',
       ['.ui-popover', '.floating-menu', '.floating-menu-item'],
