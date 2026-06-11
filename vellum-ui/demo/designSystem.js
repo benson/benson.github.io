@@ -10,6 +10,7 @@ import {
   initTheme as applyStoredTheme,
   modal,
   mountFeedbackCapture,
+  paginationRange,
   renderStatusState,
   statusStateHtml,
   themeToggle as bindThemeToggle,
@@ -464,7 +465,7 @@ function buttonsGroup() {
   return group(
     'buttons',
     'Buttons',
-    entry('Buttons', ['.btn', '.btn-secondary', '.btn-danger', '.btn-ink', '.btn-link'], 'Primary gold, secondary blue, danger red, ink, disabled, and bare text actions.', () =>
+    entry('Buttons', ['.btn', '.btn-secondary', '.btn-danger', '.btn-ink', '.btn-link', '.btn-shortcut'], 'Primary gold, secondary blue, danger red, ink, disabled, and bare text actions. Append a .btn-shortcut chip for an optional keyboard hint — same treatment the fab pills use.', () =>
       demoHtml(
         buttonHtml({ label: 'reload' }) +
           buttonHtml({ label: 'save' }) +
@@ -472,9 +473,16 @@ function buttonsGroup() {
           buttonHtml({ label: 'delete', variant: 'danger' }) +
           buttonHtml({ label: 'generate', variant: 'ink' }) +
           buttonHtml({ label: 'disabled', attrs: { disabled: true } }) +
+          '<button class="btn" type="button">save<span class="btn-shortcut" aria-hidden="true">s</span></button>' +
           '<button class="btn-link" type="button">inline action</button>' +
           '<button class="btn-link btn-link-danger" type="button">destructive inline</button>',
       ),
+    ),
+    entry(
+      'Tabs',
+      ['.tab-row', '.tab-btn'],
+      'Underline-active row for switching panes within a surface — segmented picks options, tabs pick views. Wire aria-selected in the app.',
+      () => tabsDemo(),
     ),
     entry(
       'Segmented control',
@@ -516,6 +524,73 @@ function fabDemo(glyph, label, shortcut) {
     el('span', { className: 'fab-label', text: label }),
     el('span', { className: 'fab-shortcut', ariaHidden: 'true', text: shortcut }),
   );
+}
+
+function pagerDemo() {
+  const state = { page: 7, pageCount: 20 };
+  const pager = el('nav', { className: 'pager', ariaLabel: 'pagination' });
+  const render = () => {
+    clearNode(pager);
+    pager.append(
+      el('button', {
+        className: 'pager-btn',
+        type: 'button',
+        text: '‹',
+        ariaLabel: 'previous page',
+        disabled: state.page <= 1,
+        onClick: () => { state.page -= 1; render(); },
+      }),
+    );
+    for (const item of paginationRange(state)) {
+      if (item === 'gap') {
+        pager.append(el('span', { className: 'pager-gap', ariaHidden: 'true', text: '…' }));
+        continue;
+      }
+      const btn = el('button', {
+        className: 'pager-btn',
+        type: 'button',
+        text: String(item),
+        onClick: () => { state.page = item; render(); },
+      });
+      if (item === state.page) btn.setAttribute('aria-current', 'page');
+      pager.append(btn);
+    }
+    pager.append(
+      el('button', {
+        className: 'pager-btn',
+        type: 'button',
+        text: '›',
+        ariaLabel: 'next page',
+        disabled: state.page >= state.pageCount,
+        onClick: () => { state.page += 1; render(); },
+      }),
+    );
+  };
+  render();
+  return pager;
+}
+
+function tabsDemo() {
+  const row = el('div', { className: 'tab-row', role: 'tablist' });
+  for (const [i, label] of ['lookup', 'voice', 'import'].entries()) {
+    row.append(
+      el('button', {
+        className: i === 0 ? 'tab-btn active' : 'tab-btn',
+        type: 'button',
+        role: 'tab',
+        text: label,
+        ariaSelected: i === 0 ? 'true' : 'false',
+        onClick: () => {
+          row.querySelectorAll('.tab-btn').forEach((btn) => {
+            const active = btn.textContent === label;
+            btn.classList.toggle('active', active);
+            btn.setAttribute('aria-selected', String(active));
+          });
+        },
+      }),
+    );
+  }
+  return row;
 }
 
 function segmentedDemo({ compact = false } = {}) {
@@ -562,6 +637,20 @@ function formsGroup() {
             controlHtml: '<textarea rows="3" placeholder="notes"></textarea>',
           }),
       ),
+    ),
+    entry(
+      'Field validation',
+      ['[aria-invalid]', '.field-invalid', '.field-error'],
+      'Mark the control aria-invalid="true" and follow it with a .field-error line — danger border plus a quiet mono error message.',
+      () =>
+        demoHtml(
+          fieldRowHtml({
+            label: 'deck name',
+            controlHtml:
+              '<input type="text" value="9 swamps" aria-invalid="true" aria-describedby="ds-field-error" />' +
+              '<span class="field-error" id="ds-field-error">a deck needs at least one nonland card</span>',
+          }),
+        ),
     ),
     entry('Selection controls', ['input[type=checkbox]', 'input[type=radio]', '.switch', 'input[type=range]'], 'Checkbox, radio, switch, and range share the accent-fill checked treatment.', () =>
       demoHtml(
@@ -632,7 +721,7 @@ function statusGroup() {
       );
       return banner;
     }),
-    entry('Chips', ['.ui-chip', '.ui-chip-remove', '.ui-chip-emoji'], 'Shared chip primitive for tags, roles, statuses, and filters. Apps layer domain pills on this base.', () => {
+    entry('Chips', ['.ui-chip', '.ui-chip-remove', '.ui-chip-emoji'], 'Shared chip primitive for tags, roles, statuses, and filters — variant geometry matches the production sticker chips in collection tables. Apps layer domain pills on this base.', () => {
       const row = el('div', { className: 'ds-row' });
       const emoji = el('span', { className: 'ui-chip-emoji', text: '✨' });
       row.append(
@@ -687,6 +776,15 @@ function dataGroup() {
           '</div>',
       ),
     ),
+    entry('Pagination', ['.pager', '.pager-btn', '.pager-gap', 'paginationRange()'], 'Quiet page stepper in the segmented voice — ink-filled current page, gap markers from paginationRange().', () => pagerDemo()),
+    entry('Card sleeve', ['.card-sleeve', '.card-sleeve-slot'], 'Placeholder card in a sleeve for binder/deck grids. Size with --card-sleeve-width.', () =>
+      el(
+        'div',
+        { className: 'ds-row' },
+        el('div', { className: 'card-sleeve' }, el('div', { className: 'card-sleeve-slot', text: 'empty slot' })),
+        el('div', { className: 'card-sleeve', style: { '--card-sleeve-width': '88px' } }, el('div', { className: 'card-sleeve-slot', text: '+' })),
+      ),
+    ),
     entry('Empty state', ['.empty-state', '.empty-state-glyph'], 'Dashed-border placeholder for zero-result views.', () =>
       demoHtml(
         '<div class="empty-state" style="width: 280px;"><span class="empty-state-glyph">🃏</span><span>no cards match these filters</span></div>',
@@ -728,7 +826,7 @@ function overlaysGroup() {
         ),
       ),
     ),
-    entry('Modal, live', ['modal()', '.ui-modal'], 'The real helper with backdrop, escape, and close behavior — mirrors the toast pattern of static frame + live trigger.', () => {
+    entry('Modal, live', ['modal()', '.ui-modal'], 'The real helper, fully interactive: open from the trigger, drag by the head, resize from the edges, close via ×/escape/backdrop.', () => {
       const wrap = el('div');
       const modalEl = el(
         'div',
@@ -746,7 +844,7 @@ function overlaysGroup() {
           el('footer', { className: 'ui-modal-actions' }, el('button', { className: 'btn btn-secondary', type: 'button', text: 'close', dataset: { modalClose: '' } })),
         ),
       );
-      const api = modal(modalEl);
+      const api = modal(modalEl, { interactive: true });
       const trigger = el('button', { className: 'btn', type: 'button', text: 'open modal', onClick: () => api.open() });
       trigger.dataset.dsOpenModal = '';
       wrap.append(trigger, modalEl);

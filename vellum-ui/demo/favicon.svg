@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- vellum page with a gold dog-ear and an ink v -->
+  <rect x="6" y="4" width="52" height="56" rx="7" fill="#faf8fd" stroke="#15100d" stroke-width="5"/>
+  <path d="M40 4 L58 4 L58 22 Z" fill="#f2c452" stroke="#15100d" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M19 24 L32 49 L45 24" fill="none" stroke="#15100d" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
