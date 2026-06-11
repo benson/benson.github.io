@@ -108,7 +108,7 @@ li a:hover {
   font-size: 0.85rem;
 }
 
-.thoughts-section {
+.thoughts-section a {
   text-transform: none;
 }
 
@@ -246,7 +246,6 @@ li a:hover {
   white-space: nowrap;
   font-size: 0.75rem;
   color: var(--vui-color-neutral-500, #666);
-  gap: 6px;
   z-index: 10;
 }
 
@@ -258,7 +257,8 @@ li a:hover {
 .tip-win { color: var(--tip-win-ink); }
 .tip-loss { color: var(--tip-loss-ink); }
 
-.champ-wrap:hover .champ-tip {
+.champ-wrap:hover .champ-tip,
+.champ-wrap:focus-visible .champ-tip {
   opacity: 1;
   visibility: visible;
 }

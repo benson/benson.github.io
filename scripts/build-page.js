@@ -138,7 +138,7 @@ async function buildLeague() {
     const tipClass = g.win ? 'tip-win' : 'tip-loss';
     const tipText = g.win ? 'win' : 'loss';
 
-    html += `      <div class="champ-wrap">`;
+    html += `      <div class="champ-wrap" tabindex="0">`;
     html += `<img class="champ-icon${winClass}" src="${art}" alt="${g.champion}">`;
     html += `<div class="champ-tip"><span class="${tipClass}">${tipText}</span><span>${g.kills}/${g.deaths}/${g.assists}</span><span>${dpm} dpm</span></div>`;
     html += `</div>\n`;
