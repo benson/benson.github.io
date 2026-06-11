@@ -797,33 +797,18 @@ function overlaysGroup() {
   return group(
     'overlays',
     'Overlays',
-    entry('Modal frame', ['.ui-modal-card', '.ui-modal-head', '.ui-modal-head-drag', '.ui-modal-body', '.rune-close'], 'Canonical modal card with the quiet × close. Centered modals wear the parchment head; draggable floating panels add .ui-modal-head-drag for the ink drag band.', () =>
+    entry('Modal frame', ['.ui-modal-card', '.ui-modal-head', '.ui-modal-body', '.rune-close'], 'Canonical modal card: ONE head fleet-wide — the ink band with inverse title and the quiet × — whether the panel is centered or floating.', () =>
       el(
-        'div',
-        { className: 'ds-stack' },
+        'section',
+        { className: 'ui-modal-card', style: { width: 'min(520px, 100%)' } },
         el(
-          'section',
-          { className: 'ui-modal-card', style: { width: 'min(520px, 100%)' } },
-          el(
-            'header',
-            { className: 'ui-modal-head' },
-            el('h3', { className: 'ui-modal-title', text: 'reference build' }),
-            el('button', { className: 'rune-close', type: 'button', ariaLabel: 'close', text: 'x' }),
-          ),
-          el('div', { className: 'ui-modal-body', text: 'A framed modal body for app-specific content.' }),
-          el('footer', { className: 'ui-modal-actions' }, el('button', { className: 'btn', type: 'button', text: 'done' })),
+          'header',
+          { className: 'ui-modal-head' },
+          el('h3', { className: 'ui-modal-title', text: 'reference build' }),
+          el('button', { className: 'rune-close', type: 'button', ariaLabel: 'close', text: 'x' }),
         ),
-        el(
-          'section',
-          { className: 'ui-modal-card', style: { width: 'min(520px, 100%)' } },
-          el(
-            'header',
-            { className: 'ui-modal-head ui-modal-head-drag' },
-            el('h3', { className: 'ui-modal-title', text: 'draggable panel' }),
-            el('button', { className: 'rune-close', type: 'button', ariaLabel: 'close', text: 'x' }),
-          ),
-          el('div', { className: 'ui-modal-body', text: 'Floating panels (settings, feedback, chat) wear the drag band.' }),
-        ),
+        el('div', { className: 'ui-modal-body', text: 'A framed modal body for app-specific content.' }),
+        el('footer', { className: 'ui-modal-actions' }, el('button', { className: 'btn', type: 'button', text: 'done' })),
       ),
     ),
     entry('Modal, live', ['modal()', '.ui-modal'], 'The real helper, fully interactive: open from the trigger, drag by the head, resize from the edges, close via ×/escape/backdrop.', () => {
