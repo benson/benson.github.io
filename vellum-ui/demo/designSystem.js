@@ -479,7 +479,7 @@ function buttonsGroup() {
     entry(
       'Segmented control',
       ['.segmented', '.segment-btn', '.segmented-compact'],
-      'Hard-shadow abutting segments. Active segments press into the canvas. Add .segmented-compact for dense chrome (toolbars, page furniture).',
+      'Quiet abutting segments: transparent canvas, grey labels, ink-filled active. Add .segmented-compact for dense chrome (toolbars, page furniture).',
       () => el('div', { className: 'ds-stack' }, segmentedDemo(), segmentedDemo({ compact: true })),
     ),
     entry('Icon buttons', ['.icon-btn'], 'Bare glyph buttons for compact table/card actions, shown in row context. Deliberately neutral grey — they read through proximity, not color.', () =>
@@ -656,7 +656,7 @@ function statusGroup() {
       row.append(fire);
       return row;
     }),
-    entry('Tooltip', ['.tooltip-host', '[data-tooltip]', '.tooltip-term'], 'CSS-only tooltip on hover/focus. .tooltip-term adds the dotted-underline glossary treatment.', () =>
+    entry('Tooltip', ['.tooltip-host', '[data-tooltip]', '.tooltip-term'], 'CSS-only tooltip on hover/focus — night-blue bubble with hard shadow. .tooltip-term adds the dotted-underline glossary treatment.', () =>
       demoHtml(
         '<button class="btn tooltip-host" type="button" data-tooltip="rebuilds the daily pool">regenerate</button>' +
           '<span class="tooltip-host tooltip-term" tabindex="0" data-tooltip="wins under usual tournament structure">wubrg</span>',
@@ -699,21 +699,36 @@ function overlaysGroup() {
   return group(
     'overlays',
     'Overlays',
-    entry('Modal frame', ['.ui-modal-card', '.ui-modal-head', '.ui-modal-body', '.rune-close'], 'Canonical modal card with floating rune close button. Use the modal lab to compare new treatments.', () =>
+    entry('Modal frame', ['.ui-modal-card', '.ui-modal-head', '.ui-modal-head-drag', '.ui-modal-body', '.rune-close'], 'Canonical modal card with the quiet × close. Centered modals wear the parchment head; draggable floating panels add .ui-modal-head-drag for the ink drag band.', () =>
       el(
-        'section',
-        { className: 'ui-modal-card', style: { width: 'min(520px, 100%)' } },
+        'div',
+        { className: 'ds-stack' },
         el(
-          'header',
-          { className: 'ui-modal-head' },
-          el('h3', { className: 'ui-modal-title', text: 'reference build' }),
-          el('button', { className: 'rune-close', type: 'button', ariaLabel: 'close', text: 'x' }),
+          'section',
+          { className: 'ui-modal-card', style: { width: 'min(520px, 100%)' } },
+          el(
+            'header',
+            { className: 'ui-modal-head' },
+            el('h3', { className: 'ui-modal-title', text: 'reference build' }),
+            el('button', { className: 'rune-close', type: 'button', ariaLabel: 'close', text: 'x' }),
+          ),
+          el('div', { className: 'ui-modal-body', text: 'A framed modal body for app-specific content.' }),
+          el('footer', { className: 'ui-modal-actions' }, el('button', { className: 'btn', type: 'button', text: 'done' })),
         ),
-        el('div', { className: 'ui-modal-body', text: 'A framed modal body for app-specific content.' }),
-        el('footer', { className: 'ui-modal-actions' }, el('button', { className: 'btn', type: 'button', text: 'done' })),
+        el(
+          'section',
+          { className: 'ui-modal-card', style: { width: 'min(520px, 100%)' } },
+          el(
+            'header',
+            { className: 'ui-modal-head ui-modal-head-drag' },
+            el('h3', { className: 'ui-modal-title', text: 'draggable panel' }),
+            el('button', { className: 'rune-close', type: 'button', ariaLabel: 'close', text: 'x' }),
+          ),
+          el('div', { className: 'ui-modal-body', text: 'Floating panels (settings, feedback, chat) wear the drag band.' }),
+        ),
       ),
     ),
-    entry('Modal, live', ['modal()', '.ui-modal'], 'The real helper with backdrop, escape, and rune-close behavior — mirrors the toast pattern of static frame + live trigger.', () => {
+    entry('Modal, live', ['modal()', '.ui-modal'], 'The real helper with backdrop, escape, and close behavior — mirrors the toast pattern of static frame + live trigger.', () => {
       const wrap = el('div');
       const modalEl = el(
         'div',
@@ -727,7 +742,7 @@ function overlaysGroup() {
             el('h3', { className: 'ui-modal-title', text: 'live modal' }),
             el('button', { className: 'rune-close', type: 'button', ariaLabel: 'close', dataset: { modalClose: '' }, text: 'x' }),
           ),
-          el('div', { className: 'ui-modal-body', text: 'Escape, backdrop click, and the rune close all work here.' }),
+          el('div', { className: 'ui-modal-body', text: 'Escape, backdrop click, and the quiet × all work here.' }),
           el('footer', { className: 'ui-modal-actions' }, el('button', { className: 'btn btn-secondary', type: 'button', text: 'close', dataset: { modalClose: '' } })),
         ),
       );
