@@ -434,7 +434,7 @@ function typeGroup() {
   return group(
     'type',
     'Type',
-    entry('Faces', ['--vui-font-display', '--vui-font-heading', '--vui-font-body', '--vui-font-mono'], 'The four voices: Cormorant Unicase carries identity in display and headings; system body does the reading; mono does the data.', () => {
+    entry('Faces', ['--vui-font-display', '--vui-font-heading', '--vui-font-body', '--vui-font-mono'], 'The four voices: a quiet Palatino-family serif carries display and headings (BEN-623); system body does the reading; mono does the data.', () => {
       const col = el('div', { className: 'ds-type-faces' });
       col.append(
         el('div', { className: 'ds-type-face', style: { fontFamily: 'var(--vui-font-display)', fontSize: 'var(--vui-font-size-display)' }, text: 'arcane ledger — display' }),
@@ -747,9 +747,9 @@ function statusGroup() {
       row.append(fire);
       return row;
     }),
-    entry('Tooltip', ['.tooltip-host', '[data-tooltip]', '.tooltip-term'], 'CSS-only tooltip on hover/focus — night-blue bubble with hard shadow. .tooltip-term adds the dotted-underline glossary treatment.', () =>
+    entry('Tooltip', ['.tooltip-host', '[data-tooltip]', '.tooltip-term'], 'CSS-only tooltip on hover/focus — night-blue bubble with hard shadow. Hosts are unlabeled icon buttons and inline glossary terms (.tooltip-term, dotted underline); labeled buttons explain themselves and carry a .btn-shortcut chip for hints instead (BEN-636).', () =>
       demoHtml(
-        '<button class="btn tooltip-host" type="button" data-tooltip="rebuilds the daily pool">regenerate</button>' +
+        '<button class="icon-btn tooltip-host" type="button" aria-label="edit" data-tooltip="edit this entry">✎</button>' +
           '<span class="tooltip-host tooltip-term" tabindex="0" data-tooltip="wins under usual tournament structure">wubrg</span>',
       ),
     ),
