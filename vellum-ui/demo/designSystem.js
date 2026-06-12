@@ -777,12 +777,23 @@ function dataGroup() {
       ),
     ),
     entry('Pagination', ['.pager', '.pager-btn', '.pager-gap', 'paginationRange()'], 'Quiet page stepper in the segmented voice — ink-filled current page, gap markers from paginationRange().', () => pagerDemo()),
-    entry('Card sleeve', ['.card-sleeve', '.card-sleeve-slot'], 'Placeholder card in a sleeve for binder/deck grids. Size with --card-sleeve-width.', () =>
+    entry('Card sleeve', ['.card-sleeve', '.card-sleeve-slot', '.card-sleeve-price', '.card-sleeve-tilt'], 'Card in a plastic sleeve: toploader shell ring, tape across the opening, optional price sticker. Add .card-sleeve-tilt for the picked-up empty-state look. Size with --card-sleeve-width.', () =>
       el(
         'div',
-        { className: 'ds-row' },
+        { className: 'ds-row', style: { gap: '24px', padding: '12px 8px' } },
         el('div', { className: 'card-sleeve' }, el('div', { className: 'card-sleeve-slot', text: 'empty slot' })),
-        el('div', { className: 'card-sleeve', style: { '--card-sleeve-width': '88px' } }, el('div', { className: 'card-sleeve-slot', text: '+' })),
+        el(
+          'div',
+          { className: 'card-sleeve' },
+          el('div', { className: 'card-sleeve-slot', text: 'for trade' }),
+          el('span', { className: 'card-sleeve-price', text: '$4.20' }),
+        ),
+        el(
+          'div',
+          { className: 'card-sleeve card-sleeve-tilt', style: { '--card-sleeve-width': '88px' } },
+          el('div', { className: 'card-sleeve-slot', text: '+' }),
+          el('span', { className: 'card-sleeve-price', text: '$0.25' }),
+        ),
       ),
     ),
     entry('Empty state', ['.empty-state', '.empty-state-glyph'], 'Dashed-border placeholder for zero-result views.', () =>
