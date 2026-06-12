@@ -35,6 +35,7 @@ body.app-booting .app-boot-curtain {
 }
 </style>
 <link rel="stylesheet" href="../shared/common.css">
+<link rel="stylesheet" href="./vendor/vellum-tokens.css">
 <link rel="stylesheet" href="./styles.css">
 </head>
 <body class="no-shared-footer app-booting">
@@ -641,7 +642,10 @@ body.app-booting .app-boot-curtain {
 
 <div class="share-modal" id="shareModal" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle" aria-hidden="true">
   <div class="share-modal-card">
-    <h3 class="share-modal-title" id="shareModalTitle">share</h3>
+    <div class="share-modal-head">
+      <h3 class="share-modal-title" id="shareModalTitle">share</h3>
+      <button class="share-modal-close" type="button" data-share-action="close" aria-label="close">&times;</button>
+    </div>
     <div class="share-modal-body"></div>
   </div>
 </div>

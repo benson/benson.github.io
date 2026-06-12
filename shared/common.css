@@ -1,24 +1,26 @@
 /* shared styles for bensonperry.com projects */
 /* add class="no-shared-footer" to body to disable footer styles */
+/* vellum-aware: on pages that load vellum tokens the footer follows the
+   palette (and dark mode); elsewhere the fallbacks reproduce the old look. */
 
 body:not(.no-shared-footer) footer {
   position: fixed;
   bottom: 20px;
   right: 30px;
   font-size: 0.75rem;
-  color: #999;
-  background: rgba(248, 247, 244, 0.85);
+  color: var(--vui-color-neutral-350, #999);
+  background: var(--vui-color-input-bg, rgba(248, 247, 244, 0.85));
   padding: 6px 10px;
-  border-radius: 4px;
+  border-radius: var(--vui-radius-sharp, 4px);
 }
 
 body:not(.no-shared-footer) footer a {
-  color: #999;
+  color: var(--vui-color-neutral-350, #999);
   text-decoration: none;
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid var(--vui-color-neutral-200, #ccc);
 }
 
 body:not(.no-shared-footer) footer a:hover {
-  color: #000;
-  border-bottom-color: #000;
+  color: var(--vui-color-neutral-black, #000);
+  border-bottom-color: var(--vui-color-neutral-black, #000);
 }

@@ -1,0 +1,253 @@
+:root {
+  /* Vellum canonical tokens */
+  --vui-edge-margin: 12px;
+  /* The z ladder, lowest to highest: flyout 50 < modal 110 < fab 120 <
+     feedback canvas 125 < feedback widget 130 < toast 160. New overlays
+     pick a rung here, never a raw number. */
+  --vui-z-flyout: 50;
+  --vui-z-modal: 110;
+  --vui-z-fab: 120;
+  --vui-z-feedback-canvas: 125;
+  --vui-z-feedback: 130;
+  --vui-control-height-compact: 28px;
+  --vui-control-pad-y: 5px;
+  --vui-control-pad-x: 10px;
+  --vui-focus-ring: 2px solid var(--vui-color-text-strong);
+  --vui-focus-ring-offset: 2px;
+  --vui-font-body: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  /* BEN-623: quieter bookish serif — no unicase theatrics, no webfont. */
+  --vui-font-heading: 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+  --vui-font-display: 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+  --vui-font-mono: 'Courier New', Courier, monospace;
+  --vui-font-size-xxxs: 0.55rem;
+  --vui-font-size-xxs: 0.68rem;
+  --vui-font-size-xs: 0.72rem;
+  --vui-font-size-sm: 0.78rem;
+  --vui-font-size-md: 0.85rem;
+  --vui-font-size-base: 0.9rem;
+  --vui-font-size-lg: 0.95rem;
+  --vui-font-size-xl: 1.02rem;
+  --vui-font-size-heading: 1.3rem;
+  --vui-font-size-display: 1.7rem;
+  --vui-font-size-jumbo: 2rem;
+  --vui-font-weight-body: 900;
+  --vui-font-weight-title: 900;
+  --vui-line-height-body: 1.4;
+  --vui-letter-spacing-ui: 0;
+  --vui-text-case: none;
+  --vui-title-size: clamp(36px, 5.6vw, 68px);
+  --vui-title-tracking: -0.06em;
+  --vui-title-transform: none;
+  --vui-title-shadow: 3px 3px 0 var(--vui-color-text-strong);
+  --vui-label-tracking: 0.06em;
+  --vui-label-transform: uppercase;
+  --vui-color-bg: #f1eef6;
+  --vui-color-surface: #e7e2ee;
+  --vui-color-surface-sunken: #cec4dd;
+  --vui-color-surface-raised: #faf8fd;
+  --vui-color-surface-hover: #ece7f3;
+  --vui-color-surface-placeholder: #e8d8ad;
+  --vui-color-text: #15100d;
+  --vui-color-text-muted: #5b3b25;
+  --vui-color-text-strong: #15100d;
+  --vui-color-text-inverse: #fff5d2;
+  /* For content sitting on ink-colored surfaces (fab pills, dark bands). */
+  --vui-color-on-dark-line: rgba(255, 255, 255, 0.4);
+  --vui-color-on-dark-text-soft: rgba(255, 255, 255, 0.82);
+  --vui-color-line: rgba(21, 16, 13, 0.4);
+  --vui-color-line-strong: #15100d;
+  --vui-color-line-focus: var(--vui-color-accent);
+  --vui-color-line-faint: #eee;
+  --vui-color-accent: #6c3aa4;
+  --vui-color-accent-soft: #e7d8f5;
+  --vui-color-accent-strong: #202842;
+  --vui-color-success: #7f9461;
+  --vui-color-warn: #f2c452;
+  --vui-color-danger: #a73528;
+  /* Alias: never diverged from danger, and as an alias it theme-flips free. */
+  --vui-color-danger-strong: var(--vui-color-danger);
+  --vui-color-danger-hover: #7a2820;
+  --vui-color-info: #4aa6c8;
+  --vui-color-success-soft: rgba(127, 148, 97, 0.18);
+  --vui-color-warn-soft: #ead07a;
+  --vui-color-warn-soft-pale: #fff8e0;
+  --vui-color-danger-soft: rgba(167, 53, 40, 0.14);
+  --vui-color-info-soft: #d7edf3;
+  --vui-color-success-line: #7f9461;
+  --vui-color-warn-line: #d4a830;
+  --vui-color-danger-line: #a73528;
+  --vui-color-info-line: #4aa6c8;
+  --vui-color-btn-primary-hover: #5b3b25;
+  --vui-color-shadow: #3d2b22;
+  --vui-color-input-bg: rgba(255, 255, 255, 0.36);
+  --vui-color-input-bg-focus: rgba(255, 255, 255, 0.52);
+  --vui-color-overlay-strong: rgba(0, 0, 0, 0.8);
+  --vui-color-overlay-soft: rgba(0, 0, 0, 0.4);
+  --vui-modal-backdrop: var(--vui-color-overlay-soft);
+  --vui-modal-card-bg: var(--vui-color-surface);
+  --vui-modal-card-border: 3px solid var(--vui-color-text-strong);
+  --vui-modal-card-radius: 6px;
+  --vui-modal-card-shadow: 7px 7px 0 var(--vui-color-shadow);
+  --vui-modal-card-max-height: calc(100vh - 32px);
+  --vui-modal-card-min-width: 220px;
+  --vui-modal-card-min-height: 140px;
+  /* The head is the ink band (one head fleet-wide); the parchment texture
+     tokens retired with the two-head split. */
+  --vui-modal-head-padding: 9px 14px;
+  --vui-modal-body-padding: 14px 16px;
+  --vui-modal-actions-padding: 12px 16px;
+  --vui-modal-actions-gap: 8px;
+  /* Close geometry only — the quiet × carries no decoration (BEN-604). */
+  --vui-modal-close-size: 28px;
+  --vui-modal-close-offset: 11px;
+  --vui-modal-resize-edge-size: 8px;
+  --vui-modal-resize-corner-size: 28px;
+  /* Status surfaces (badge-style bg/border/text trios). --vui-status-* is the
+     ONE name; the parallel --vui-color-<tone>-bg family it once aliased is gone. */
+  --vui-status-success-bg: #effaef;
+  --vui-status-success-border: #c4e5c4;
+  --vui-status-success-text: #2c6b2c;
+  --vui-status-warn-bg: #fff5dc;
+  --vui-status-warn-border: #e8d49a;
+  --vui-status-warn-text: #7a5a10;
+  --vui-status-danger-bg: #fbecec;
+  --vui-status-danger-border: #e6bebe;
+  --vui-status-danger-text: #8a2828;
+  --vui-status-neutral-bg: #f4f4f4;
+  --vui-status-neutral-border: #ddd;
+  --vui-status-neutral-text: #777;
+  --vui-color-neutral-black: #000;
+  --vui-color-neutral-white: #fff;
+  --vui-color-neutral-900: #111;
+  --vui-color-neutral-700: #333;
+  --vui-color-neutral-600: #444;
+  --vui-color-neutral-550: #555;
+  --vui-color-neutral-500: #666;
+  --vui-color-neutral-400: #888;
+  --vui-color-neutral-350: #999;
+  --vui-color-neutral-250: #bbb;
+  --vui-color-neutral-200: #ccc;
+  --vui-color-neutral-surface-warm: #fffefb;
+  --vui-color-neutral-surface-faint: #fafafa;
+  --vui-color-neutral-border-warm: #ddd6ca;
+  --vui-radius-sharp: 4px;
+  --vui-radius-soft: 7px;
+  --vui-radius-square: 0px;
+  --vui-radius-pill: 999px;
+  --vui-radius-card: 4%;
+  --vui-radius-tight: 2px;
+  --vui-radius-round: 10px;
+  --vui-border-width: 3px;
+  --vui-shadow-subtle: 0 0 0 var(--vui-color-shadow);
+  --vui-shadow-soft: 3px 3px 0 var(--vui-color-shadow);
+  --vui-shadow-firm: 4px 4px 0 var(--vui-color-shadow);
+  --vui-shadow-lift: 0 3px 0 var(--vui-color-shadow);
+  --vui-shadow-popover: 4px 4px 0 var(--vui-color-shadow);
+  --vui-shadow-overlay: 8px 8px 0 var(--vui-color-shadow);
+  --vui-shadow-hard: 6px 6px 0 var(--vui-color-shadow);
+  --vui-shadow-hard-sm: 3px 3px 0 var(--vui-color-text-strong);
+  /* The sanctioned soft shadow: floating depth cues over content (lightbox,
+     drawer edges, slide-in panels). Everything else stays hard-offset. */
+  --vui-shadow-float: 0 8px 24px rgba(0, 0, 0, 0.18);
+  /* Press feedback: controls shift down-right and their shadow collapses to
+     the remainder. One pair of values fleet-wide (BEN-624 follow-up). */
+  --vui-press-shift: 2px;
+  --vui-press-shadow: 2px 2px 0 var(--vui-color-shadow);
+  /* Inset bevel that makes inputs read carved-in; theme-tuned below. */
+  --vui-input-bevel:
+    inset 3px 3px 0 rgba(0, 0, 0, 0.18),
+    inset -2px -2px 0 rgba(255, 255, 255, 0.32);
+  /* snap drives press/hover feedback on controls (BEN-624) */
+  --vui-motion-snap: 70ms;
+  --vui-motion-fast: 120ms;
+  --vui-motion-base: 180ms;
+  --vui-motion-slow: 260ms;
+  --vui-space-1: 4px;
+  --vui-space-2: 8px;
+  --vui-space-3: 12px;
+  --vui-space-4: 16px;
+  --vui-space-5: 20px;
+
+  /* Ink for text on warn/gold surfaces — fixed in BOTH themes so gold
+     buttons stay legible in dark (BEN-560). */
+  --vui-color-on-warn: #15100d;
+
+  /* Vellum convenience aliases */
+  --vui-control-height: 34px;
+  --vui-space-6: 24px;
+  --vui-z-toast: 160;
+}
+
+/* Dark vellum. Set data-theme="dark" on <html> — consumers that re-alias
+   --vui-* tokens on their own :root (biblioplex) need the attribute there for
+   their aliases to follow the theme. Only color-family tokens flip;
+   shape, type, space, and motion are theme-invariant. */
+[data-theme='dark'] {
+  --vui-color-bg: #1c1722;
+  --vui-color-surface: #241e2c;
+  --vui-color-surface-sunken: #161219;
+  --vui-color-surface-raised: #2e2738;
+  --vui-color-surface-hover: #2a2333;
+  --vui-color-surface-placeholder: #4a3f28;
+  --vui-color-text: #e9e2f2;
+  --vui-color-text-muted: #b8a18d;
+  --vui-color-text-strong: #f3eefa;
+  --vui-color-text-inverse: #1c1722;
+  /* "Ink" surfaces are light in dark mode, so on-dark content flips dark. */
+  --vui-color-on-dark-line: rgba(28, 23, 34, 0.4);
+  --vui-color-on-dark-text-soft: rgba(28, 23, 34, 0.82);
+  --vui-color-line: rgba(233, 226, 242, 0.35);
+  --vui-color-line-strong: #e9e2f2;
+  --vui-color-line-faint: #332c3d;
+  --vui-color-accent: #a878e0;
+  --vui-color-accent-soft: #3a2d52;
+  --vui-color-accent-strong: #d8c8f0;
+  --vui-color-success: #93ab72;
+  --vui-color-danger: #d05546;
+  --vui-color-danger-hover: #b03c2e;
+  --vui-color-info: #62b8d8;
+  --vui-color-success-soft: rgba(147, 171, 114, 0.22);
+  --vui-color-warn-soft: #5a4a20;
+  --vui-color-warn-soft-pale: #2e2614;
+  --vui-color-danger-soft: rgba(208, 85, 70, 0.2);
+  --vui-color-info-soft: #1e3640;
+  --vui-color-success-line: #93ab72;
+  --vui-color-warn-line: #d4a830;
+  --vui-color-danger-line: #d05546;
+  --vui-color-info-line: #62b8d8;
+  --vui-color-btn-primary-hover: #c4a484;
+  --vui-color-shadow: #0a0710;
+  --vui-color-input-bg: rgba(0, 0, 0, 0.25);
+  --vui-color-input-bg-focus: rgba(0, 0, 0, 0.4);
+  --vui-status-success-bg: #1e2a1e;
+  --vui-status-success-border: #3c5a3c;
+  --vui-status-success-text: #a8d8a8;
+  --vui-status-warn-bg: #2e2614;
+  --vui-status-warn-border: #6a5a28;
+  --vui-status-warn-text: #e8cc7a;
+  --vui-status-danger-bg: #2e1818;
+  --vui-status-danger-border: #6a3434;
+  --vui-status-danger-text: #e89898;
+  --vui-status-neutral-bg: #242028;
+  --vui-status-neutral-border: #46404f;
+  --vui-status-neutral-text: #a298ad;
+  --vui-shadow-float: 0 8px 24px rgba(0, 0, 0, 0.55);
+  /* Darker carve, fainter glint — the light-theme bevel reads embossed on
+     dark surfaces. */
+  --vui-input-bevel:
+    inset 3px 3px 0 rgba(0, 0, 0, 0.5),
+    inset -2px -2px 0 rgba(255, 255, 255, 0.06);
+  --vui-color-neutral-black: #f3eefa;
+  --vui-color-neutral-900: #e9e2f2;
+  --vui-color-neutral-700: #cfc6da;
+  --vui-color-neutral-600: #b8aec5;
+  --vui-color-neutral-550: #a298ad;
+  --vui-color-neutral-500: #8d8398;
+  --vui-color-neutral-400: #776e82;
+  --vui-color-neutral-350: #8d8398;
+  --vui-color-neutral-250: #564e62;
+  --vui-color-neutral-200: #46404f;
+  --vui-color-neutral-surface-warm: #262030;
+  --vui-color-neutral-surface-faint: #211b29;
+  --vui-color-neutral-border-warm: #443a52;
+}

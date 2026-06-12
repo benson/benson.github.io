@@ -4426,7 +4426,7 @@
   .share-banner.hidden { display: none; }
   .share-banner strong { color: #000; }
 
-  /* ---- Share: modal ---- */
+  /* ---- Share: modal (vellum-ui modal look, tokens from vendor/vellum-tokens.css) ---- */
   .share-modal {
     position: fixed;
     inset: 0;
@@ -4438,20 +4438,49 @@
   }
   .share-modal.visible { display: flex; }
   .share-modal-card {
-    background: #fff;
-    border: 1px solid #ddd;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-    padding: 20px;
+    background: var(--vui-color-surface, #e7e2ee);
+    border: 3px solid var(--vui-color-text-strong, #15100d);
+    border-radius: var(--vui-modal-card-radius, 6px);
+    box-shadow: var(--vui-modal-card-shadow, 7px 7px 0 #3d2b22);
     width: min(440px, calc(100vw - 32px));
     max-height: calc(100vh - 32px);
     overflow-y: auto;
   }
-  .share-modal-title { margin: 0 0 12px; font-size: 1rem; }
-  .share-modal-body { display: flex; flex-direction: column; gap: 12px; }
+  .share-modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    background: var(--vui-color-text-strong, #15100d);
+    color: var(--vui-color-text-inverse, #fff5d2);
+    padding: var(--vui-modal-head-padding, 9px 14px);
+    font-family: var(--vui-font-heading, Palatino, Georgia, serif);
+  }
+  .share-modal-title { margin: 0; font-size: 1rem; font-family: inherit; color: inherit; }
+  .share-modal-close {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    margin: -5px -8px -5px 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .share-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: var(--vui-modal-body-padding, 14px 16px);
+  }
   .share-modal-row { display: flex; gap: 8px; align-items: center; }
-  .share-modal-checkbox { font-size: 0.85rem; color: #555; cursor: pointer; }
+  .share-modal-checkbox { font-size: 0.85rem; color: var(--vui-color-text-muted, #5b3b25); cursor: pointer; }
   .share-modal-checkbox input { margin: 0; }
-  .share-modal-label { font-size: 0.8rem; color: #555; min-width: 64px; }
+  .share-modal-label { font-size: 0.8rem; color: var(--vui-color-text-muted, #5b3b25); min-width: 64px; }
   .share-modal-url {
     flex: 1;
     border: 1px solid #ccc;
@@ -4461,8 +4490,15 @@
     background: #fafafa;
     min-width: 0;
   }
-  .share-modal-meta { font-size: 0.75rem; color: #777; line-height: 1.4; }
-  .share-modal-actions { display: flex; gap: 6px; justify-content: flex-end; margin-top: 4px; flex-wrap: wrap; }
+  .share-modal-meta { font-size: 0.75rem; color: var(--vui-color-text-muted, #5b3b25); line-height: 1.4; }
+  .share-modal-actions {
+    display: flex;
+    gap: var(--vui-modal-actions-gap, 8px);
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    margin: 0 -16px -14px;
+    padding: var(--vui-modal-actions-padding, 12px 16px);
+  }
 
   /* ---- Share: viewer mode hides write affordances ---- */
   body.share-mode .fab-cluster,
