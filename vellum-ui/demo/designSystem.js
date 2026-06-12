@@ -721,15 +721,17 @@ function statusGroup() {
       );
       return banner;
     }),
-    entry('Chips', ['.ui-chip', '.ui-chip-remove', '.ui-chip-emoji'], 'Shared chip primitive for tags, roles, statuses, and filters — variant geometry matches the production sticker chips in collection tables. Apps layer domain pills on this base.', () => {
+    entry('Chips', ['.ui-chip', '.ui-chip-remove', '.ui-chip-emoji'], 'One chip family — tags, statuses, filters, and location pills all wear the same sticker. Apps tint per-domain through the --ui-chip-bg/--ui-chip-border/--ui-chip-ink hooks instead of forking variants.', () => {
       const row = el('div', { className: 'ds-row' });
       const emoji = el('span', { className: 'ui-chip-emoji', text: '✨' });
+      const colored = chipNode({ text: 'tinted' });
+      colored.style.setProperty('--ui-chip-bg', '#2a7f6222');
+      colored.style.setProperty('--ui-chip-border', '#2a7f6299');
       row.append(
-        chipNode({ text: 'filter', variant: 'filter' }),
-        chipNode({ text: 'owner', variant: 'role' }),
-        chipNode({ text: 'synced', variant: 'status' }),
-        chipNode({ text: 'sparkles', variant: 'filter', prefixNode: emoji }),
-        chipNode({ text: 'splash', variant: 'filter', remove: { enabled: true, label: 'remove splash' } }),
+        chipNode({ text: 'aggro' }),
+        chipNode({ text: 'sparkles', prefixNode: emoji }),
+        colored,
+        chipNode({ text: 'splash', remove: { enabled: true, label: 'remove splash' } }),
       );
       return row;
     }),
