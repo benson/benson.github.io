@@ -3900,11 +3900,11 @@
     grid-template-columns: repeat(auto-fill, minmax(148px, 178px));
     justify-content: start;
   }
+  /* cards sit flat on the page — border change only on hover, no elevation */
   .collection-visual-card {
     background: #fff;
     border: 1px solid #d7d0c5;
     border-radius: 2px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
     display: grid;
     grid-template-rows: auto minmax(0, auto);
     min-width: 0;
@@ -3912,7 +3912,6 @@
   }
   .collection-visual-card:hover {
     border-color: #aaa093;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.12);
   }
   .collection-visual-card-art {
     appearance: none;
@@ -4105,18 +4104,18 @@
       linear-gradient(112deg, rgba(255,255,255,0.42) 0 18%, rgba(255,255,255,0.12) 19% 40%, transparent 41%),
       linear-gradient(180deg, rgba(222,214,198,0.52), rgba(172,158,136,0.42));
     border: 1px solid rgba(113,99,79,0.38);
-    box-shadow: 0 10px 12px -7px rgba(0,0,0,0.24), inset 0 0 0 3px rgba(255,255,255,0.30);
+    /* flat on the page: inset shell ring only, no drop shadow or hover lift */
+    box-shadow: inset 0 0 0 3px rgba(255,255,255,0.30);
     overflow: hidden;
     padding: 5px;
     position: relative;
     transform: rotate(-5deg);
-    transition: box-shadow 140ms ease, transform 140ms ease;
+    transition: transform 140ms ease;
     width: 154px;
   }
   .history-empty-card.has-card-image:hover .history-empty-sleeve,
   .history-empty-card.has-card-image:focus-visible .history-empty-sleeve {
-    box-shadow: 0 13px 14px -7px rgba(0,0,0,0.26), inset 0 0 0 3px rgba(255,255,255,0.34);
-    transform: rotate(-3deg) translateY(-2px) scale(1.03);
+    transform: rotate(-3deg);
   }
   .history-empty-sleeve::before,
   .history-empty-sleeve::after {
