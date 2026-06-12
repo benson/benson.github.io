@@ -68,6 +68,7 @@ const PLAYGROUND_GROUPS = [
       '--vui-shadow-firm',
       '--vui-shadow-hard',
       '--vui-shadow-overlay',
+      '--vui-shadow-float',
     ],
   },
   {
@@ -430,7 +431,7 @@ function normalizeColor(value) {
 }
 
 function typeGroup() {
-  const sizes = ['xxxs', 'xxs', 'xs', 'xs-plus', 'sm', 'sm-plus', 'md', 'base', 'lg', 'xl', 'heading', 'display', 'jumbo'];
+  const sizes = ['xxxs', 'xxs', 'xs', 'sm', 'md', 'base', 'lg', 'xl', 'heading', 'display', 'jumbo'];
   return group(
     'type',
     'Type',
@@ -444,7 +445,7 @@ function typeGroup() {
       );
       return col;
     }),
-    entry('Size ramp', ['--vui-font-size-*'], 'All thirteen size tokens rendered live. If a step never earns a use, it should die here first.', () => {
+    entry('Size ramp', ['--vui-font-size-*'], 'All eleven size tokens rendered live. If a step never earns a use, it should die here first (the -plus half-steps already did).', () => {
       const col = el('div', { className: 'ds-type-ramp' });
       for (const size of sizes) {
         col.append(
@@ -458,6 +459,11 @@ function typeGroup() {
       }
       return col;
     }),
+    entry('Links', ['.vui-app a:not([class])', '.vui-link'], 'Prose links: strong ink with a quiet underline that warms to accent on hover. Classless anchors get it for free inside a .vui-app; .vui-link opts one in anywhere.', () =>
+      demoHtml(
+        '<p style="max-width: 420px; margin: 0;">the <a href="#type">collection history</a> tracks every card in and out; see the <span class="vui-link" tabindex="0">pricing notes</span> for how values settle.</p>',
+      ),
+    ),
   );
 }
 
@@ -747,6 +753,14 @@ function statusGroup() {
       row.append(fire);
       return row;
     }),
+    entry('Badge', ['.badge', '.badge-quiet', '.badge-accent'], 'Tiny counters for tabs, buttons, and nav items — a chip names a thing, a badge counts things. Ink by default, quiet for resting counts, accent when the number is the point.', () =>
+      demoHtml(
+        '<span class="badge">3</span>' +
+          '<span class="badge badge-quiet">12</span>' +
+          '<span class="badge badge-accent">99+</span>' +
+          '<div class="tab-row" style="display: inline-flex;"><button class="tab-btn active" type="button">decks <span class="badge badge-quiet">4</span></button><button class="tab-btn" type="button">trades <span class="badge">2</span></button></div>',
+      ),
+    ),
     entry('Tooltip', ['.tooltip-host', '[data-tooltip]', '.tooltip-term'], 'CSS-only tooltip on hover/focus — night-blue bubble with hard shadow. Hosts are unlabeled icon buttons and inline glossary terms (.tooltip-term, dotted underline); labeled buttons explain themselves and carry a .btn-shortcut chip for hints instead (BEN-636).', () =>
       demoHtml(
         '<button class="icon-btn tooltip-host" type="button" aria-label="edit" data-tooltip="edit this entry">✎</button>' +
@@ -801,6 +815,15 @@ function dataGroup() {
     entry('Empty state', ['.empty-state', '.empty-state-glyph'], 'Dashed-border placeholder for zero-result views.', () =>
       demoHtml(
         '<div class="empty-state" style="width: 280px;"><span class="empty-state-glyph">🃏</span><span>no cards match these filters</span></div>',
+      ),
+    ),
+    entry('Progress', ['.progress', '.progress-fill', '--progress'], 'A thin inked bar with a hatched fill — set completion, pack openings, sync runs. Drive it with the --progress custom property; wire role="progressbar" in the app.', () =>
+      demoHtml(
+        '<div style="display: flex; flex-direction: column; gap: 10px; width: 260px;">' +
+          '<div class="progress" role="progressbar" aria-valuenow="62" aria-valuemin="0" aria-valuemax="100" style="--progress: 62%"><span class="progress-fill"></span></div>' +
+          '<div class="progress" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="--progress: 100%"><span class="progress-fill"></span></div>' +
+          '<div class="progress" role="progressbar" aria-valuenow="8" aria-valuemin="0" aria-valuemax="100" style="--progress: 8%"><span class="progress-fill"></span></div>' +
+          '</div>',
       ),
     ),
   );
@@ -886,6 +909,32 @@ function layoutGroup() {
   return group(
     'layout',
     'Layout',
+    entry('Breadcrumb', ['.breadcrumb', '.breadcrumb-sep', '[aria-current=page]'], 'The navigation trail — binder to page to slot. Mono, lowercase, quiet links; the current leaf carries the strong ink.', () => {
+      const nav = el('nav', { className: 'breadcrumb', ariaLabel: 'breadcrumb' });
+      nav.append(
+        el('a', { href: '#layout', text: 'collection' }),
+        el('span', { className: 'breadcrumb-sep', ariaHidden: 'true', text: '›' }),
+        el('a', { href: '#layout', text: 'trade binder' }),
+        el('span', { className: 'breadcrumb-sep', ariaHidden: 'true', text: '›' }),
+        el('span', { text: 'page 4' , ariaCurrent: 'page' }),
+      );
+      return nav;
+    }),
+    entry('Accordion', ['.accordion', '.accordion-item', '.accordion-body'], 'Styled <details> stack for filter panels and card detail sections — native disclosure semantics, mono +/− marker, shared borders.', () => {
+      const make = (label, body, open) => {
+        const item = el('details', { className: 'accordion-item' });
+        if (open) item.open = true;
+        item.append(el('summary', { text: label }), el('div', { className: 'accordion-body', text: body }));
+        return item;
+      };
+      return el(
+        'div',
+        { className: 'accordion', style: { width: 'min(360px, 100%)' } },
+        make('printing details', 'commander masters · #392 · nonfoil · nm', true),
+        make('price history', 'last 30 days: $4.20 → $3.85', false),
+        make('notes', 'pulled from the deck box during the spring rebuild.', false),
+      );
+    }),
     entry(
       'Edge resize',
       ['.vui-resize-divider', '.vui-resize-grip', 'edgeResize()'],
