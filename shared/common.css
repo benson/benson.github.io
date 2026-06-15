@@ -2,8 +2,11 @@
 /* add class="no-shared-footer" to body to disable footer styles */
 /* vellum-aware: on pages that load vellum tokens the footer follows the
    palette (and dark mode); elsewhere the fallbacks reproduce the old look. */
+/* scoped to the page's own site footer (a direct child of body) so the
+   fixed-pill treatment never leaks onto nested component footers, e.g. the
+   feedback widget's <footer> submit bar (BEN-640). */
 
-body:not(.no-shared-footer) footer {
+body:not(.no-shared-footer) > footer {
   position: fixed;
   bottom: 20px;
   right: 30px;
@@ -14,13 +17,13 @@ body:not(.no-shared-footer) footer {
   border-radius: var(--vui-radius-sharp, 4px);
 }
 
-body:not(.no-shared-footer) footer a {
+body:not(.no-shared-footer) > footer a {
   color: var(--vui-color-neutral-350, #999);
   text-decoration: none;
   border-bottom: 1px solid var(--vui-color-neutral-200, #ccc);
 }
 
-body:not(.no-shared-footer) footer a:hover {
+body:not(.no-shared-footer) > footer a:hover {
   color: var(--vui-color-neutral-black, #000);
   border-bottom-color: var(--vui-color-neutral-black, #000);
 }
