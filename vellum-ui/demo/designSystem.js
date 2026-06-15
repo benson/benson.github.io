@@ -11,6 +11,7 @@ import {
   modal,
   mountFeedbackCapture,
   paginationRange,
+  priceStickerNode,
   renderStatusState,
   statusStateHtml,
   themeToggle as bindThemeToggle,
@@ -793,22 +794,39 @@ function dataGroup() {
       ),
     ),
     entry('Pagination', ['.pager', '.pager-btn', '.pager-gap', 'paginationRange()'], 'Quiet page stepper in the segmented voice — ink-filled current page, gap markers from paginationRange().', () => pagerDemo()),
-    entry('Card sleeve', ['.card-sleeve', '.card-sleeve-slot', '.card-sleeve-price', '.card-sleeve-tilt'], 'Card in a plastic sleeve: toploader shell ring, tape across the opening, optional price sticker. Add .card-sleeve-tilt for the picked-up empty-state look. Size with --card-sleeve-width.', () =>
+    entry('Card sleeve', ['.card-sleeve', '.card-sleeve-slot', '.card-sleeve-price', '.card-sleeve-tilt', 'priceStickerNode()'], 'Card in a plastic sleeve: toploader shell ring, tape across the opening, optional price-gun sticker. Build the sticker with priceStickerNode({ amount, jitter }) — seed the jitter per card so a binder of them looks hand-applied, not rubber-stamped. Add .card-sleeve-tilt for the picked-up empty-state look. Size with --card-sleeve-width.', () =>
       el(
         'div',
-        { className: 'ds-row', style: { gap: '24px', padding: '12px 8px' } },
-        el('div', { className: 'card-sleeve' }, el('div', { className: 'card-sleeve-slot', text: 'empty slot' })),
+        { style: { display: 'flex', flexDirection: 'column', gap: '22px', padding: '12px 8px' } },
         el(
           'div',
-          { className: 'card-sleeve' },
-          el('div', { className: 'card-sleeve-slot', text: 'for trade' }),
-          el('span', { className: 'card-sleeve-price', text: '$4.20' }),
+          { className: 'ds-row', style: { gap: '24px' } },
+          el('div', { className: 'card-sleeve' }, el('div', { className: 'card-sleeve-slot', text: 'empty slot' })),
+          el(
+            'div',
+            { className: 'card-sleeve' },
+            el('div', { className: 'card-sleeve-slot', text: 'for trade' }),
+            priceStickerNode({ amount: 4.2, jitter: 'demo-trade' }),
+          ),
+          el(
+            'div',
+            { className: 'card-sleeve card-sleeve-tilt', style: { '--card-sleeve-width': '88px' } },
+            el('div', { className: 'card-sleeve-slot', text: '+' }),
+            priceStickerNode({ amount: 0.25, jitter: 'demo-plus' }),
+          ),
         ),
+        // 3x3 binder — same $1.00, seeded jitter, so each sits a touch differently
         el(
           'div',
-          { className: 'card-sleeve card-sleeve-tilt', style: { '--card-sleeve-width': '88px' } },
-          el('div', { className: 'card-sleeve-slot', text: '+' }),
-          el('span', { className: 'card-sleeve-price', text: '$0.25' }),
+          { style: { display: 'grid', gridTemplateColumns: 'repeat(3, 84px)', gap: '12px' } },
+          ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'].map((seed) =>
+            el(
+              'div',
+              { className: 'card-sleeve', style: { '--card-sleeve-width': '84px' } },
+              el('div', { className: 'card-sleeve-slot', text: '' }),
+              priceStickerNode({ amount: 1.0, jitter: `binder-${seed}` }),
+            ),
+          ),
         ),
       ),
     ),
