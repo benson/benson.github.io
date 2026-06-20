@@ -1,6 +1,16 @@
 {
-  "blurb": "no games this week",
-  "recent": [],
+  "blurb": "played 1 other game in the last week, went 1-0",
+  "recent": [
+    {
+      "champion": "Ziggs",
+      "win": true,
+      "kills": 17,
+      "deaths": 10,
+      "assists": 23,
+      "damage": 106604,
+      "minutes": 28
+    }
+  ],
   "ddragonVersion": "16.12.1",
-  "date": "2026-06-19"
+  "date": "2026-06-20"
 }
