@@ -1,14 +1,50 @@
 {
-  "blurb": "played 1 other game in the last week, went 1-0",
+  "blurb": "played 6 other games in the last week, went 3-3",
   "recent": [
     {
-      "champion": "Ziggs",
+      "champion": "Heimerdinger",
+      "win": false,
+      "kills": 3,
+      "deaths": 6,
+      "assists": 9,
+      "damage": 19388,
+      "minutes": 21
+    },
+    {
+      "champion": "Warwick",
       "win": true,
-      "kills": 17,
-      "deaths": 10,
-      "assists": 23,
-      "damage": 106604,
-      "minutes": 28
+      "kills": 12,
+      "deaths": 11,
+      "assists": 9,
+      "damage": 39740,
+      "minutes": 24
+    },
+    {
+      "champion": "Rakan",
+      "win": false,
+      "kills": 2,
+      "deaths": 8,
+      "assists": 3,
+      "damage": 3674,
+      "minutes": 25
+    },
+    {
+      "champion": "Talon",
+      "win": false,
+      "kills": 7,
+      "deaths": 7,
+      "assists": 0,
+      "damage": 19800,
+      "minutes": 27
+    },
+    {
+      "champion": "Sejuani",
+      "win": true,
+      "kills": 4,
+      "deaths": 6,
+      "assists": 12,
+      "damage": 25649,
+      "minutes": 23
     }
   ],
   "ddragonVersion": "16.12.1",
