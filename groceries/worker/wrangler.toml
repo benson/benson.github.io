@@ -1,0 +1,7 @@
+name = "groceries-api"
+main = "worker.js"
+compatibility_date = "2024-09-01"
+
+[[kv_namespaces]]
+binding = "LIST"
+id = "366990f8d97c43249dcbc9b80f5f6532"

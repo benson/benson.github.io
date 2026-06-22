@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>groceries</title>
+  <meta name="description" content="shopping list" />
+
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#fafaf8" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="groceries" />
+  <link rel="apple-touch-icon" href="icon-180.png" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+
+  <link rel="stylesheet" href="style.css?v=1" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <h1>groceries</h1>
+      <span id="count" class="count"></span>
+    </header>
+
+    <form id="add-form" class="add-bar" autocomplete="off">
+      <input id="add-input" type="text" placeholder="add an item…" enterkeyhint="done"
+             aria-label="add an item" />
+      <button type="submit" class="add-btn" aria-label="add">+</button>
+    </form>
+
+    <div class="controls">
+      <div class="seg" role="tablist" aria-label="view">
+        <button id="view-section" class="seg-btn is-active" type="button">by aisle</button>
+        <button id="view-added" class="seg-btn" type="button">by order</button>
+      </div>
+      <button id="arrange-btn" class="ghost-btn" type="button" hidden>arrange</button>
+    </div>
+
+    <div id="status" class="status" hidden></div>
+
+    <main id="list" class="list" aria-live="polite"></main>
+
+    <div id="empty" class="empty" hidden>
+      <p>nothing on the list.</p>
+      <p class="empty-sub">add something above — or just tell claude.</p>
+    </div>
+
+    <footer class="footer">
+      <button id="done-btn" class="done-btn" type="button" hidden>done shopping — clear list</button>
+    </footer>
+  </div>
+
+  <script src="app.js?v=1" type="module"></script>
+</body>
+</html>
