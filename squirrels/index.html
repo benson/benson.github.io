@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>squirrel watch</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Times New Roman", Times, Georgia, serif;
+      background: #0a0a0c;
+      color: #c8c4bc;
+      min-height: 100vh;
+      padding: 24px 20px 48px;
+      text-transform: lowercase;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    header { margin-bottom: 24px; }
+    header a {
+      color: #665e54;
+      text-decoration: none;
+      font-size: 0.85rem;
+      border-bottom: 1px solid #333;
+    }
+
+    h1 { font-size: 1.6rem; font-weight: normal; margin: 14px 0 4px; }
+    .sub { color: #665e54; font-size: 0.9rem; margin-bottom: 24px; }
+
+    .wrap { max-width: 520px; margin: 0 auto; }
+
+    button {
+      font-family: inherit;
+      text-transform: lowercase;
+      background: #16161a;
+      color: #c8c4bc;
+      border: 1px solid #333;
+      padding: 12px 18px;
+      font-size: 1rem;
+      cursor: pointer;
+      border-radius: 2px;
+    }
+    button:active { background: #222; }
+    button.primary { border-color: #5a5247; color: #e8e2d8; }
+    button:disabled { opacity: 0.4; }
+
+    #start { width: 100%; padding: 22px; font-size: 1.2rem; margin-bottom: 16px; }
+
+    .stage { position: relative; border: 1px solid #222; border-radius: 3px; overflow: hidden; background: #000; }
+    video { width: 100%; display: block; }
+    .stage.hidden, .hidden { display: none; }
+
+    .badge {
+      position: absolute; top: 10px; left: 10px;
+      padding: 6px 12px; font-size: 0.95rem;
+      background: rgba(10,10,12,0.78); border: 1px solid #333; border-radius: 2px;
+    }
+    .badge.alert { background: rgba(150,30,20,0.9); border-color: #d65; color: #fff; }
+
+    .meter { height: 5px; background: #1a1a1e; margin-top: 12px; border-radius: 3px; overflow: hidden; }
+    .meter > div { height: 100%; width: 0%; background: #6a8f5a; transition: width 0.18s linear; }
+    .meter.hot > div { background: #d65; }
+
+    .row { display: flex; gap: 10px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+    .row label { color: #665e54; font-size: 0.85rem; }
+    input[type=range] { flex: 1; accent-color: #6a8f5a; }
+
+    .guess { color: #847b6e; font-size: 0.85rem; margin-top: 10px; min-height: 1.2em; }
+    .log { margin-top: 18px; font-size: 0.85rem; color: #847b6e; }
+    .log div { padding: 3px 0; border-bottom: 1px solid #161616; }
+    .note { color: #5a5247; font-size: 0.8rem; margin-top: 22px; line-height: 1.5; }
+    code { color: #847b6e; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header><a href="/">← bensonperry.com</a></header>
+    <h1>squirrel watch</h1>
+    <div class="sub">point the camera at the feeder. it screeches when a squirrel shows up.</div>
+
+    <button id="start" class="primary">start watching</button>
+
+    <div id="stage" class="stage hidden">
+      <video id="video" playsinline autoplay muted></video>
+      <div id="badge" class="badge">starting…</div>
+    </div>
+
+    <div id="meter" class="meter hidden"><div id="meterFill"></div></div>
+    <div id="guess" class="guess"></div>
+
+    <div id="controls" class="row hidden">
+      <label>sensitivity</label>
+      <input type="range" id="thresh" min="0.3" max="0.95" step="0.05" value="0.5">
+      <span id="threshVal" style="color:#665e54;font-size:0.85rem">0.50</span>
+      <button id="test">test sound</button>
+      <button id="stop">stop</button>
+    </div>
+
+    <div id="log" class="log"></div>
+
+    <div class="note">
+      keep this tab in front with the screen on — safari pauses the camera if you switch away or it locks.
+      set <code>auto-lock → never</code> in settings, plug it in, and turn the volume up (the alarm plays even on silent).
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js"></script>
+  <script>
+  const el = id => document.getElementById(id);
+  const video = el('video');
+  const badge = el('badge');
+  const meter = el('meter'), meterFill = el('meterFill');
+  const guess = el('guess'), logEl = el('log');
+
+  const SAMPLE_MS = 300;      // run the model ~3x/sec
+  const NEED_HITS = 2;        // consecutive hits before firing (kills single-frame flukes)
+  const COOLDOWN_MS = 6000;   // min gap between alarms
+
+  let detector = null, audioEl = null, stream = null, wakeLock = null;
+  let running = false, hitStreak = 0, lastFire = 0, threshold = 0.5;
+
+  // ---------- alarm: synthesized WAV played through an <audio> element ----------
+  // (html audio plays on the media channel, so it ignores the mute switch; we
+  //  re-roll the sound each time so squirrels don't habituate as fast.)
+  function wavDataUri(samples, rate) {
+    const n = samples.length, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+    const ws = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+    ws(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); ws(8, 'WAVE'); ws(12, 'fmt ');
+    v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true);
+    v.setUint16(32, 2, true); v.setUint16(34, 16, true); ws(36, 'data'); v.setUint32(40, n * 2, true);
+    for (let i = 0; i < n; i++) { let s = Math.max(-1, Math.min(1, samples[i])); v.setInt16(44 + i * 2, s * 32767, true); }
+    let bin = ''; const bytes = new Uint8Array(buf);
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return 'data:audio/wav;base64,' + btoa(bin);
+  }
+
+  // a grab-bag of weird alarms: synthesized effects (played via the <audio>
+  // element so they ignore the mute switch) + browser text-to-speech yelling.
+  // one is picked at random each fire so the squirrel can't habituate.
+  const SYNTHS = ['screech', 'wail', 'yelp', 'twotone', 'airhorn', 'klaxon',
+                  'laser', 'whistle', 'buzzer', 'ufo', 'redalert', 'noise'];
+  const PHRASES = ['hey!!!', 'hey! get out of here!', 'no no no no!', 'scram!',
+                   'shoo! shoo!', 'go away, squirrel!', 'this is not for you!',
+                   'i can see you!', 'bad squirrel!', 'nice try, rodent!',
+                   'git! git outta here!', 'not today!', 'beat it!', 'hey hey hey!'];
+
+  function makeSynth(kind) {
+    const rate = 22050, dur = 1.6, n = Math.floor(rate * dur), s = new Float32Array(n);
+    const det = 1 + (Math.random() - 0.5) * 0.25;             // slight random detune
+    const env = t => Math.min(1, t * 20) * Math.min(1, (dur - t) * 5);
+    const sine = (f, t) => Math.sin(2 * Math.PI * f * t);
+    const sq = (f, t) => Math.sign(sine(f, t));
+    const saw = (f, t) => 2 * ((f * t) % 1) - 1;
+    const noise = () => Math.random() * 2 - 1;
+    for (let i = 0; i < n; i++) {
+      const t = i / rate; let x = 0;
+      switch (kind) {
+        case 'screech': { const f = 1600 * (1.3 - 0.5 * t) * det + 260 * sine(7, t); x = sine(f, t) * 0.7 + noise() * 0.3; break; }
+        case 'wail':    { const f = 700 * det + 500 * sine(0.8, t); x = saw(f, t); break; }
+        case 'yelp':    { const f = 900 * det + 500 * sine(8, t); x = sq(f, t); break; }
+        case 'twotone': { const f = (sine(2, t) > 0 ? 740 : 560) * det; x = sine(f, t); break; }
+        case 'airhorn': { x = (saw(330 * det, t) + saw(332 * det, t) + saw(220 * det, t)) / 3; break; }
+        case 'klaxon':  { const f = (((t * 1.5) % 1) < 0.5 ? 500 : 300) * det; x = saw(f, t) * 0.8; break; }
+        case 'laser':   { const f = 1900 * Math.pow(0.22, t) * det; x = sq(f, t) * 0.6 + sine(f * 2, t) * 0.4; break; }
+        case 'whistle': { const f = 1600 * Math.pow(0.18, t) * det; x = sine(f, t); break; }
+        case 'buzzer':  { const f = 150 * det; x = sq(f, t) * (((t * 12) % 1) < 0.6 ? 1 : 0); break; }
+        case 'ufo':     { const f = (600 + 400 * sine(12, t) + 200 * sine(3, t)) * det; x = sine(f, t) * 0.7 + sine(f * 1.5, t) * 0.3; break; }
+        case 'redalert':{ const f = (520 + 320 * Math.min(1, (t % 0.45) / 0.45)) * det; x = saw(f, t); break; }
+        default:        { const gate = sine(9, t) > 0 ? 1 : 0.15; x = noise() * gate; }
+      }
+      s[i] = Math.max(-1, Math.min(1, x)) * env(t) * 0.9;
+    }
+    return s;
+  }
+
+  function speak(text) {
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 0.8 + Math.random() * 0.9;     // 0.8 - 1.7
+      u.pitch = 0.3 + Math.random() * 1.6;    // 0.3 - 1.9 (silly voices)
+      u.volume = 1;
+      speechSynthesis.speak(u);
+    } catch (e) {}
+  }
+
+  let lastSound = '';
+  function fireAlarm() {
+    // ~45% of the time yell a phrase (where TTS is available), else a synth effect
+    if ('speechSynthesis' in window && Math.random() < 0.45) {
+      speak(PHRASES[Math.floor(Math.random() * PHRASES.length)]);
+      return;
+    }
+    if (!audioEl) return;
+    let k; do { k = SYNTHS[Math.floor(Math.random() * SYNTHS.length)]; } while (k === lastSound);
+    lastSound = k;
+    audioEl.src = wavDataUri(makeSynth(k), 22050);
+    audioEl.play().catch(() => {});
+  }
+
+  // ---------- model ----------
+  async function loadDetector() {
+    // use a custom-trained 3-class model if it's been dropped into ./model, else stock mobilenet
+    try {
+      const labels = await (await fetch('model/labels.json', { cache: 'no-store' })).json();
+      const model = await tf.loadLayersModel('model/model.json');
+      const sqIdx = labels.indexOf('squirrel');
+      return {
+        name: 'custom',
+        async detect(v) {
+          return tf.tidy(() => {
+            const img = tf.browser.fromPixels(v).resizeBilinear([224, 224]).toFloat()
+              .div(127.5).sub(1).expandDims(0);
+            const p = model.predict(img).dataSync();
+            let top = 0; for (let i = 1; i < p.length; i++) if (p[i] > p[top]) top = i;
+            return { squirrel: sqIdx >= 0 ? p[sqIdx] : 0, topLabel: labels[top], topProb: p[top] };
+          });
+        }
+      };
+    } catch (e) {
+      const net = await mobilenet.load({ version: 2, alpha: 0.5 });
+      const SQ = /squirrel|marmot|chipmunk|mongoose|weasel/i;
+      return {
+        name: 'stock',
+        async detect(v) {
+          const preds = await net.classify(v, 5);
+          let sq = 0; for (const p of preds) if (SQ.test(p.className)) sq = Math.max(sq, p.probability);
+          return { squirrel: sq, topLabel: preds[0].className.split(',')[0], topProb: preds[0].probability };
+        }
+      };
+    }
+  }
+
+  // ---------- loop ----------
+  async function tick() {
+    if (!running) return;
+    let r;
+    try { r = await detector.detect(video); } catch (e) { setTimeout(tick, SAMPLE_MS); return; }
+    const pct = Math.round(r.squirrel * 100);
+    meterFill.style.width = pct + '%';
+    const hot = r.squirrel >= threshold;
+    meter.classList.toggle('hot', hot);
+    guess.textContent = `sees: ${r.topLabel} (${Math.round(r.topProb * 100)}%) · squirrel ${pct}%`;
+
+    if (hot) hitStreak++; else hitStreak = 0;
+    const now = Date.now();
+    if (hitStreak >= NEED_HITS && now - lastFire > COOLDOWN_MS) {
+      lastFire = now; hitStreak = 0;
+      badge.textContent = '🚨 squirrel!'; badge.classList.add('alert');
+      fireAlarm(); addLog('squirrel — alarm fired');
+      setTimeout(() => { badge.textContent = 'watching'; badge.classList.remove('alert'); }, 4000);
+    } else if (!badge.classList.contains('alert')) {
+      badge.textContent = 'watching';
+    }
+    setTimeout(tick, SAMPLE_MS);
+  }
+
+  function addLog(msg) {
+    const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const d = document.createElement('div'); d.textContent = `${t} · ${msg}`;
+    logEl.prepend(d);
+    while (logEl.children.length > 30) logEl.lastChild.remove();
+  }
+
+  // ---------- start / stop ----------
+  async function requestWakeLock() {
+    try { wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+  }
+  document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState === 'visible') {
+      if (running) requestWakeLock();
+    } else if (running) {
+      badge.textContent = 'paused — bring this tab back in front';
+    }
+  });
+
+  async function start() {
+    el('start').classList.add('hidden');
+    el('stage').classList.remove('hidden');
+    meter.classList.remove('hidden');
+    el('controls').classList.remove('hidden');
+
+    // prime audio inside the user gesture so it can fire later on its own
+    audioEl = new Audio();
+    audioEl.src = wavDataUri(new Float32Array(512), 22050); // ~silent
+    audioEl.play().catch(() => {});
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+    // prime speech synthesis too (ios needs a gesture-triggered first utterance)
+    try { if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); } } catch (e) {}
+
+    requestWakeLock();
+
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 640 } }, audio: false
+      });
+      video.srcObject = stream;
+      await video.play();
+    } catch (e) {
+      badge.textContent = 'camera blocked — allow access and reload';
+      return;
+    }
+
+    badge.textContent = 'loading model…';
+    detector = await loadDetector();
+    addLog(`model ready (${detector.name})`);
+    running = true;
+    badge.textContent = 'watching';
+    tick();
+  }
+
+  function stop() {
+    running = false;
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+    el('stage').classList.add('hidden');
+    meter.classList.add('hidden');
+    el('controls').classList.add('hidden');
+    el('start').classList.remove('hidden');
+    guess.textContent = '';
+  }
+
+  el('start').onclick = start;
+  el('stop').onclick = stop;
+  el('test').onclick = fireAlarm;
+  el('thresh').oninput = e => { threshold = +e.target.value; el('threshVal').textContent = threshold.toFixed(2); };
+  </script>
+</body>
+</html>

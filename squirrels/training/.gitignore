@@ -1,0 +1,12 @@
+# training data & environment — never publish these (the deployed model lives
+# in ../model/ and IS committed; everything here is intermediate)
+.venv/
+__pycache__/
+*.pyc
+frames/
+dataset/
+ds2/
+final_dataset/
+pool/
+_model.h5
+_saved_model/
