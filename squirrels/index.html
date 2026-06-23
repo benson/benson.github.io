@@ -119,8 +119,15 @@
   const NEED_HITS = 2;        // consecutive hits before firing (kills single-frame flukes)
   const COOLDOWN_MS = 6000;   // min gap between alarms
 
+  // active learning: upload detection frames for retraining. dormant until
+  // CAPTURE_URL is set (after deploying worker/). see worker/README.md.
+  const CAPTURE_URL = 'https://squirrel-cam.bensonperry.workers.dev/capture';
+  const CAPTURE_TOKEN = 'sq-54a4eccc6aec507c';
+  const UNCERTAIN = [0.30, 0.65];   // also grab borderline near-misses in this band
+
   let detector = null, audioEl = null, stream = null, wakeLock = null;
-  let running = false, hitStreak = 0, lastFire = 0, threshold = 0.5;
+  let running = false, hitStreak = 0, lastFire = 0, lastUncertainCap = 0, threshold = 0.5;
+  const capCanvas = document.createElement('canvas');
 
   // ---------- alarm: synthesized WAV played through an <audio> element ----------
   // (html audio plays on the media channel, so it ignores the mute switch; we
@@ -235,6 +242,22 @@
     }
   }
 
+  // grab the current frame (~640px jpeg) and upload it to the capture worker
+  let capCount = 0;
+  function captureFrame(reason, scorePct) {
+    if (!CAPTURE_URL || !video.videoWidth || capCount >= 500) return;  // session cap
+    capCount++;
+    try {
+      const w = 640, h = Math.round(video.videoHeight * 640 / video.videoWidth);
+      capCanvas.width = w; capCanvas.height = h;
+      capCanvas.getContext('2d').drawImage(video, 0, 0, w, h);
+      capCanvas.toBlob(b => {
+        if (b) fetch(`${CAPTURE_URL}?reason=${reason}&score=${scorePct}&t=${encodeURIComponent(CAPTURE_TOKEN)}`,
+          { method: 'POST', headers: { 'Content-Type': 'image/jpeg' }, body: b }).catch(() => {});
+      }, 'image/jpeg', 0.8);
+    } catch (e) {}
+  }
+
   // ---------- loop ----------
   async function tick() {
     if (!running) return;
@@ -251,10 +274,14 @@
     if (hitStreak >= NEED_HITS && now - lastFire > COOLDOWN_MS) {
       lastFire = now; hitStreak = 0;
       badge.textContent = '🚨 squirrel!'; badge.classList.add('alert');
-      fireAlarm(); addLog('squirrel — alarm fired');
+      fireAlarm(); addLog('squirrel — alarm fired'); captureFrame('fired', pct);
       setTimeout(() => { badge.textContent = 'watching'; badge.classList.remove('alert'); }, 4000);
     } else if (!badge.classList.contains('alert')) {
       badge.textContent = 'watching';
+    }
+    // also bank borderline near-misses (the most useful frames for retraining)
+    if (CAPTURE_URL && !hot && r.squirrel >= UNCERTAIN[0] && now - lastUncertainCap > 15000) {
+      lastUncertainCap = now; captureFrame('uncertain', pct);
     }
     setTimeout(tick, SAMPLE_MS);
   }

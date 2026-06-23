@@ -1,0 +1,14 @@
+name = "squirrel-cam"
+main = "worker.js"
+compatibility_date = "2024-09-01"
+
+# CAPTURE_TOKEN is sent by the (public) client, so it's not really secret —
+# it just deters drive-by posts. ADMIN_SECRET (for pulling frames back) is a
+# real secret, set with: wrangler secret put ADMIN_SECRET
+[vars]
+CAPTURE_TOKEN = "sq-54a4eccc6aec507c"
+
+# created with: wrangler kv namespace create FRAMES  (paste the printed id here)
+[[kv_namespaces]]
+binding = "FRAMES"
+id = "4eb81915d8a948ed84dcff66bfdeb1cc"
