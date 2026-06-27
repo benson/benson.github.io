@@ -1,5 +1,22 @@
 [
   {
+    "code": "msh",
+    "name": "Marvel Super Heroes",
+    "released": "2026-06-26",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "play",
+    "limitedLabel": "play",
+    "mtgjsonBoosterTypes": [
+      "collector",
+      "play"
+    ],
+    "extraSheetLabel": null
+  },
+  {
     "code": "sos",
     "name": "Secrets of Strixhaven",
     "released": "2026-04-24",
