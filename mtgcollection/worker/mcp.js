@@ -12,6 +12,20 @@ const MCP_TOKEN_PREFIX = 'mcp:access:';
 const MCP_REFRESH_PREFIX = 'mcp:refresh:';
 const MCP_PENDING_PREFIX = 'mcp:pending:';
 const MCP_CHAT_CLIENT_ID = 'mtgcollection-chat';
+const MCP_CLI_CLIENT_ID = 'biblioplex-cli';
+const KNOWN_PUBLIC_CLIENTS = {
+  [MCP_CLI_CLIENT_ID]: {
+    client_id: MCP_CLI_CLIENT_ID,
+    client_name: 'Biblioplex CLI',
+    redirect_uris: [],
+    grant_types: ['authorization_code', 'refresh_token'],
+    response_types: ['code'],
+    token_endpoint_auth_method: 'none',
+    scope: MCP_SCOPES.join(' '),
+    loopback_only: true,
+    require_pkce_s256: true,
+  },
+};
 const CHAT_USAGE_PREFIX = 'mcp:chat-usage:';
 const SCRYFALL_API = 'https://api.scryfall.com';
 const SCRYFALL_USER_AGENT = 'MTGCollection/0.1 (https://bensonperry.com/mtgcollection)';
@@ -248,8 +262,18 @@ async function readRequestBody(request) {
   return out;
 }
 
+function isLoopbackRedirectUri(redirectUri) {
+  let url;
+  try { url = new URL(String(redirectUri || '')); } catch (e) { return false; }
+  if (url.protocol !== 'http:') return false;
+  if (url.username || url.password) return false;
+  const host = url.hostname;
+  return host === '127.0.0.1' || host === '[::1]' || host === '::1' || host === 'localhost';
+}
+
 async function getOAuthClient(env, clientId) {
   if (!clientId) return null;
+  if (Object.prototype.hasOwnProperty.call(KNOWN_PUBLIC_CLIENTS, clientId)) return KNOWN_PUBLIC_CLIENTS[clientId];
   return storeGet(env, MCP_CLIENT_PREFIX + clientId);
 }
 
@@ -338,8 +362,18 @@ async function handleAuthorize(request, env, deps) {
   const scope = parseScopes(url.searchParams.get('scope'), [MCP_READ_SCOPE, MCP_WRITE_SCOPE]);
   if (responseType !== 'code') return oauthError('unsupported_response_type', 'only response_type=code is supported', 400, request, deps);
   const client = await getOAuthClient(env, clientId);
-  if (!client || !client.redirect_uris.includes(redirectUri)) {
+  const redirectAllowed = client && (client.loopback_only
+    ? isLoopbackRedirectUri(redirectUri)
+    : client.redirect_uris.includes(redirectUri));
+  if (!redirectAllowed) {
     return oauthError('invalid_client', 'unknown client or redirect_uri', 400, request, deps);
+  }
+  if (client.require_pkce_s256) {
+    const challenge = url.searchParams.get('code_challenge') || '';
+    const method = url.searchParams.get('code_challenge_method') || 'plain';
+    if (!challenge || method !== 'S256') {
+      return oauthError('invalid_request', 'this client requires PKCE with code_challenge_method=S256', 400, request, deps);
+    }
   }
 
   const debugUser = url.searchParams.get('debugUser') || request.headers.get('X-Debug-User');
@@ -471,10 +505,26 @@ async function handleToken(request, env, deps) {
     const refreshToken = String(body.refresh_token || '');
     const record = await storeGet(env, MCP_REFRESH_PREFIX + refreshToken);
     if (!record || record.clientId !== clientId) return oauthError('invalid_grant', 'refresh token is invalid', 400, request, deps);
+    await storeDelete(env, MCP_REFRESH_PREFIX + refreshToken);
     return oauthJson(await issueMcpTokens(env, record), 200, request, deps, { 'Cache-Control': 'no-store' });
   }
 
   return oauthError('unsupported_grant_type', 'unsupported grant_type', 400, request, deps);
+}
+
+async function handleRevoke(request, env, deps) {
+  if (request.method !== 'POST') return oauthError('invalid_request', 'revoke requires POST', 405, request, deps);
+  const body = await readRequestBody(request);
+  const token = String(body.token || '');
+  if (token.startsWith('mcp_at_')) {
+    await storeDelete(env, MCP_TOKEN_PREFIX + token);
+  } else if (token.startsWith('mcp_rt_')) {
+    await storeDelete(env, MCP_REFRESH_PREFIX + token);
+  } else if (token) {
+    await storeDelete(env, MCP_TOKEN_PREFIX + token);
+    await storeDelete(env, MCP_REFRESH_PREFIX + token);
+  }
+  return oauthJson({ ok: true }, 200, request, deps, { 'Cache-Control': 'no-store' });
 }
 
 function oauthServerMetadata(request, env) {
@@ -484,6 +534,7 @@ function oauthServerMetadata(request, env) {
     authorization_endpoint: origin + '/authorize',
     token_endpoint: origin + '/token',
     registration_endpoint: origin + '/register',
+    revocation_endpoint: origin + '/revoke',
     response_types_supported: ['code'],
     grant_types_supported: ['authorization_code', 'refresh_token'],
     token_endpoint_auth_methods_supported: ['none', 'client_secret_basic'],
@@ -507,6 +558,7 @@ export function isMcpOAuthPath(path) {
   return path === '/authorize'
     || path === '/token'
     || path === '/register'
+    || path === '/revoke'
     || path === '/oauth/clerk/callback'
     || path === '/.well-known/oauth-authorization-server'
     || path === '/.well-known/oauth-protected-resource';
@@ -517,13 +569,14 @@ export async function handleMcpOAuthRequest(request, env, deps) {
   if (path === '/.well-known/oauth-authorization-server') return deps.json(oauthServerMetadata(request, env), 200, request);
   if (path === '/.well-known/oauth-protected-resource') return deps.json(protectedResourceMetadata(request, env), 200, request);
   if (path === '/register') return registerOAuthClient(request, env, deps);
+  if (path === '/revoke') return handleRevoke(request, env, deps);
   if (path === '/authorize') return handleAuthorize(request, env, deps);
   if (path === '/oauth/clerk/callback') return handleClerkCallback(request, env, deps);
   if (path === '/token') return handleToken(request, env, deps);
   return deps.text('not found', 404, request);
 }
 
-async function authenticateMcp(request, env, deps, requiredScope = MCP_READ_SCOPE) {
+export async function authenticateMcp(request, env, deps, requiredScope = MCP_READ_SCOPE) {
   const header = request.headers.get('Authorization') || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : (header.startsWith('mcp_at_') ? header : '');
   if (token) {

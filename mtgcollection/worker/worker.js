@@ -3,6 +3,7 @@
 // Hosts legacy public deck snapshots in KV and authenticated collection sync
 // in D1/Durable Objects. Public GET /share/:id remains capability-link based.
 import {
+  authenticateMcp,
   handleByokChatRequest,
   handleMcpApplyRequest,
   handleMcpOAuthRequest,
@@ -464,6 +465,32 @@ async function optionalAuth(request, env) {
   return authenticate(request, env);
 }
 
+const SYNC_READ_SCOPE = 'collection.read';
+const SYNC_WRITE_SCOPE = 'collection.write';
+
+// Mutating sync endpoints require write scope; reads require read scope.
+function syncRequiredScope(path) {
+  return (path === '/sync/push' || path === '/sync/claim') ? SYNC_WRITE_SCOPE : SYNC_READ_SCOPE;
+}
+
+// Resolve a /sync request to a user. First-party Clerk JWTs (web app) get full
+// scopes; OAuth mcp_at_ tokens (the CLI) get exactly their granted scopes and
+// must satisfy requiredScope. The shared authenticate()/optionalAuth used by
+// share endpoints is intentionally left Clerk-only.
+async function authenticateSync(request, env, requiredScope) {
+  const rawAuth = request.headers.get('Authorization') || '';
+  const bearer = rawAuth.startsWith('Bearer ') ? rawAuth.slice(7) : (rawAuth.startsWith('mcp_at_') ? rawAuth : '');
+  if (bearer.startsWith('mcp_at_')) {
+    const record = await authenticateMcp(request, env, null, requiredScope);
+    return { userId: record.userId, scopes: record.scopes || [], kind: 'oauth' };
+  }
+  const url = new URL(request.url);
+  const token = bearer || url.searchParams.get('token');
+  if (!token && env.SYNC_AUTH_DISABLED !== '1') throw new Error('missing token');
+  const auth = await verifyClerkJwt(token || '', env, request);
+  return { userId: auth.userId, scopes: [SYNC_READ_SCOPE, SYNC_WRITE_SCOPE], kind: 'clerk', claims: auth.claims };
+}
+
 function collectionIdForUser(userId) {
   const bytes = new TextEncoder().encode(userId);
   let binary = '';
@@ -531,6 +558,17 @@ function upsertEntry(collection, entry) {
   out.push(cloneJson(entry, entry));
   return out;
 }
+
+// Op types a CLI (OAuth mcp_at_) token may push. Excludes snapshot.replace,
+// ui.patch, and history.* so a CLI token can never wipe/replace whole-state.
+const CLI_ALLOWED_OPS = new Set([
+  'collection.upsert',
+  'collection.remove',
+  'collection.replace',
+  'collection.qtyDelta',
+  'container.upsert',
+  'container.remove',
+]);
 
 function applyOp(snapshot, op) {
   const next = cloneJson(snapshot, makeEmptySnapshot()) || makeEmptySnapshot();
@@ -620,6 +658,9 @@ export class CollectionSyncObject {
   }
 
   async claim(request, userId) {
+    if ((request.headers.get('X-Sync-Auth-Kind') || 'clerk') === 'oauth') {
+      return json({ error: 'claim is not allowed for cli tokens; use push' }, 403, request);
+    }
     const existing = await this.rowForUser(userId);
     if (existing) {
       return json({
@@ -665,6 +706,12 @@ export class CollectionSyncObject {
     const body = await request.json();
     const clientId = String(body.clientId || 'unknown');
     const ops = Array.isArray(body.ops) ? body.ops : [];
+    if ((request.headers.get('X-Sync-Auth-Kind') || 'clerk') === 'oauth') {
+      const blocked = ops.find(op => op?.id && !CLI_ALLOWED_OPS.has(op?.type));
+      if (blocked) {
+        return json({ error: 'operation type not allowed for cli token', opType: blocked.type || null }, 403, request);
+      }
+    }
     let row = await this.rowForUser(userId);
     if (!row) {
       const id = collectionIdForUser(userId);
@@ -741,6 +788,7 @@ async function routeSync(request, env, auth) {
   const stub = env.COLLECTION_SYNC.get(id);
   const next = new Request(request);
   next.headers.set('X-Sync-User-Id', auth.userId);
+  next.headers.set('X-Sync-Auth-Kind', auth.kind || 'clerk');
   return stub.fetch(next);
 }
 
@@ -789,11 +837,14 @@ export default {
 
     if (path.startsWith('/sync/')) {
       try {
-        const auth = await authenticate(request, env);
+        const auth = await authenticateSync(request, env, syncRequiredScope(path));
         return await routeSync(request, env, auth);
       } catch (e) {
-        const status = /D1|binding|database|table|SQLITE|Durable Object/.test(e.message || '') ? 500 : 401;
-        return json({ error: e.message || 'unauthorized' }, status, request);
+        const msg = e.message || 'unauthorized';
+        let status = 401;
+        if (/D1|binding|database|table|SQLITE|Durable Object/.test(msg)) status = 500;
+        else if (msg === 'insufficient_scope') status = 403;
+        return json({ error: msg }, status, request);
       }
     }
 
