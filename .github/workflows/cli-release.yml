@@ -1,0 +1,90 @@
+name: biblioplex CLI release
+
+# Publishes the biblioplex CLI to npm (with provenance) and bumps the Homebrew
+# tap formula. Triggered only by a tag like `cli-v0.1.0`. Inert until then.
+#
+# Required repo secrets:
+#   NPM_TOKEN          - npm automation token with publish rights
+#   HOMEBREW_TAP_TOKEN - PAT with write access to the tap repo (optional; the
+#                        brew job is skipped if absent)
+# And update the `TAP_REPO` env below to your tap (e.g. owner/homebrew-tap).
+
+on:
+  push:
+    tags:
+      - 'cli-v*'
+  workflow_dispatch:
+
+env:
+  TAP_REPO: benson/homebrew-tap
+
+jobs:
+  publish-npm:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write   # for npm provenance
+    defaults:
+      run:
+        working-directory: mtgcollection/cli
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Verify vendored modules are in sync
+        run: |
+          node scripts/sync-vendor.mjs
+          if ! git diff --quiet -- vendor; then
+            echo "::error::vendor/ is out of date — run 'npm run sync-vendor' and commit"; exit 1
+          fi
+      - name: Test
+        run: node --test __tests__/*.test.js
+      - name: Check tag matches package version
+        run: |
+          PKG=$(node -p "require('./package.json').version")
+          TAG="${GITHUB_REF_NAME#cli-v}"
+          [ "$PKG" = "$TAG" ] || { echo "::error::tag $TAG != package.json $PKG"; exit 1; }
+      - name: Publish
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  update-homebrew-tap:
+    needs: publish-npm
+    runs-on: ubuntu-latest
+    if: ${{ vars.ENABLE_HOMEBREW == 'true' }}
+    steps:
+      - name: Compute version + tarball sha256
+        id: meta
+        run: |
+          VERSION="${GITHUB_REF_NAME#cli-v}"
+          # wait for the npm registry to serve the new version, then hash the tarball
+          for i in $(seq 1 10); do
+            URL="https://registry.npmjs.org/biblioplex/-/biblioplex-${VERSION}.tgz"
+            if curl -fsSL "$URL" -o pkg.tgz; then break; fi
+            sleep 10
+          done
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "sha256=$(sha256sum pkg.tgz | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          echo "url=https://registry.npmjs.org/biblioplex/-/biblioplex-${VERSION}.tgz" >> "$GITHUB_OUTPUT"
+      - name: Check out tap
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.TAP_REPO }}
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: tap
+      - name: Update formula
+        run: |
+          F=tap/Formula/biblioplex.rb
+          sed -i -E "s|url \".*\"|url \"${{ steps.meta.outputs.url }}\"|" "$F"
+          sed -i -E "s|sha256 \".*\"|sha256 \"${{ steps.meta.outputs.sha256 }}\"|" "$F"
+      - name: Commit + push
+        run: |
+          cd tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/biblioplex.rb
+          git commit -m "biblioplex ${{ steps.meta.outputs.version }}" || exit 0
+          git push
