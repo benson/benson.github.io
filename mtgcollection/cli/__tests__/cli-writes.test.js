@@ -51,6 +51,21 @@ test('move changes location and creates the deck container', async () => {
   assert.ok(containersOf(snap)['deck:elves'], 'deck container auto-created');
 });
 
+test('move into an existing identical stack sums qty (no copy loss)', async () => {
+  const session = await loginSession(makeEnv());
+  await applyMutation(session, (draft) => {
+    draft.app.collection.push(entry({ name: 'Sol Ring', setCode: 'c21', cn: '263', scryfallId: 'sol', qty: 3, location: { type: 'deck', name: 'breya' }, deckBoard: 'main' }));
+    draft.app.collection.push(entry({ name: 'Sol Ring', setCode: 'c21', cn: '263', scryfallId: 'sol', qty: 2, location: { type: 'box', name: 'bulk' } }));
+    draft.app.containers['deck:breya'] = { type: 'deck', name: 'breya' };
+  });
+  await runCmd(move, { args: ['Sol Ring'], flags: { to: 'deck:breya', board: 'main', location: 'box:bulk' }, session });
+  const c = await cards(session);
+  const inDeck = c.filter(x => x.location?.name === 'breya');
+  assert.equal(inDeck.length, 1, 'one coalesced stack in the deck');
+  assert.equal(inDeck[0].qty, 5, 'quantities summed, no copies lost');
+  assert.equal(c.filter(x => x.location?.name === 'bulk').length, 0, 'box copy moved out');
+});
+
 test('edit updates qty', async () => {
   const session = await loginSession(makeEnv());
   await seed(session);

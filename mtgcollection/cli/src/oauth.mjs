@@ -81,16 +81,18 @@ export async function login({
       if (url.pathname !== '/callback') { res.writeHead(404); res.end('not found'); return; }
 
       const params = url.searchParams;
-      if (params.get('error')) {
-        res.writeHead(400, { 'Content-Type': 'text/plain' });
-        res.end('authorization failed: ' + params.get('error'));
-        cleanup(); reject(new CliError('authorization denied: ' + params.get('error'), 3));
-        return;
-      }
+      // Validate CSRF state first — including on error responses — so a stray
+      // local request can't abort or influence the in-flight login.
       if (params.get('state') !== state) {
         res.writeHead(400, { 'Content-Type': 'text/plain' });
         res.end('state mismatch');
         cleanup(); reject(new CliError('login aborted: OAuth state mismatch (possible CSRF)', 3));
+        return;
+      }
+      if (params.get('error')) {
+        res.writeHead(400, { 'Content-Type': 'text/plain' });
+        res.end('authorization failed: ' + params.get('error'));
+        cleanup(); reject(new CliError('authorization denied: ' + params.get('error'), 3));
         return;
       }
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });

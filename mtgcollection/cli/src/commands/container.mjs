@@ -45,7 +45,12 @@ export default {
         const { key, container } = resolveContainer(draft, ref);
         const newKey = container.type + ':' + newName;
         if (draft.app.containers[newKey]) throw new CliError(`a ${container.type} named "${newName}" already exists`);
-        draft.app.containers[newKey] = { ...container, name: newName };
+        const renamed = { ...container, name: newName };
+        // Keep the deck's display title in sync if it tracked the old name.
+        if (renamed.deck && (!renamed.deck.title || renamed.deck.title === container.name)) {
+          renamed.deck = { ...renamed.deck, title: newName };
+        }
+        draft.app.containers[newKey] = renamed;
         delete draft.app.containers[key];
         for (const e of draft.app.collection) if (locationKey(e.location) === key) e.location = { type: container.type, name: newName };
         return { renamed: key, to: newKey };

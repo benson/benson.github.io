@@ -90,7 +90,12 @@ export class Session {
     });
     if (!res.ok) throw new CliError('mcp request failed (' + res.status + ')');
     const data = await res.json().catch(() => ({}));
-    if (data.error) throw new CliError(data.error.message || 'mcp error', 1, data.error);
+    if (data.error) {
+      if (data.error.code === -32003 || /insufficient_scope/.test(data.error.message || '')) {
+        throw new CliError('this session lacks write access — run `bp login --write`', 1, data.error);
+      }
+      throw new CliError(data.error.message || 'mcp error', 1, data.error);
+    }
     return data.result;
   }
 

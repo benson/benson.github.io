@@ -32,11 +32,11 @@
   "license": "MIT",
   "homepage": "https://biblioplex.bensonperry.com",
   "bugs": {
-    "url": "https://github.com/REPLACE_ME/benson.github.io/issues"
+    "url": "https://github.com/benson/benson.github.io/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/REPLACE_ME/benson.github.io.git",
+    "url": "git+https://github.com/benson/benson.github.io.git",
     "directory": "mtgcollection/cli"
   }
 }

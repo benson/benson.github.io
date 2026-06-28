@@ -3,6 +3,7 @@
 // worker's 60/60s MCP limit; we apply our own polite delay instead. Scryfall is
 // already the product's card-data source.
 import { VERSION } from './constants.mjs';
+import { getUsdPrice } from '../vendor/collection.js';
 import { CliError } from './errors.mjs';
 
 const SCRYFALL = 'https://api.scryfall.com';
@@ -50,9 +51,12 @@ export function cardToFields(card, finish = 'normal') {
   const front = faces[0] || {};
   const back = faces[1];
   const colors = card.colors ?? (faces.length ? [...new Set(faces.flatMap(f => f.colors || []))] : []);
-  const oracleText = card.oracle_text ?? (faces.length ? faces.map(f => f.oracle_text || '').join('\n//\n') : '');
-  const prices = card.prices || {};
-  const rawPrice = finish === 'foil' ? prices.usd_foil : finish === 'etched' ? prices.usd_etched : prices.usd;
+  // Match the web app's resolution: join faces with " // " and use getUsdPrice
+  // (which falls back to the non-foil price for foil/etched when the exact-finish
+  // price is missing, setting priceFallback).
+  const oracleText = card.oracle_text ?? (faces.length ? faces.map(f => f.oracle_text || '').join(' // ') : '');
+  const typeLine = card.type_line || (faces.length ? faces.map(f => f.type_line || '').filter(Boolean).join(' // ') : '') || '';
+  const { price, fallback } = getUsdPrice(card, finish);
   return {
     scryfallId: card.id,
     setCode: card.set,
@@ -63,7 +67,7 @@ export function cardToFields(card, finish = 'normal') {
     cmc: card.cmc,
     colors,
     colorIdentity: card.color_identity || [],
-    typeLine: card.type_line || front.type_line || '',
+    typeLine,
     oracleText,
     legalities: card.legalities || {},
     finishes: card.finishes || [],
@@ -71,7 +75,7 @@ export function cardToFields(card, finish = 'normal') {
     backImageUrl: back?.image_uris?.normal || null,
     resolvedName: card.name,
     scryfallUri: card.scryfall_uri || null,
-    price: rawPrice != null ? Number(rawPrice) : null,
-    priceFallback: false,
+    price,
+    priceFallback: fallback,
   };
 }

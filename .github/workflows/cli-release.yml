@@ -16,7 +16,7 @@ on:
   workflow_dispatch:
 
 env:
-  TAP_REPO: REPLACE_ME/homebrew-tap
+  TAP_REPO: benson/homebrew-tap
 
 jobs:
   publish-npm:

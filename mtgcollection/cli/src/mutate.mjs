@@ -6,6 +6,7 @@
 // so it stays within what a CLI OAuth token is allowed to push.
 import { diffSyncSnapshots } from '../vendor/syncOps.js';
 import { collectionKey } from '../vendor/collection.js';
+import { mergeIntoCollection } from '../vendor/importMerge.js';
 import { emptySnapshot } from './snapshot.mjs';
 import { CliError } from './errors.mjs';
 
@@ -53,6 +54,12 @@ export async function applyMutation(session, mutate, { attempts = 4, dryRun = fa
     const before = clone(snapshot);
     const draft = clone(snapshot);
     const meta = mutate(draft) || {};
+    // Coalesce any stacks the mutation made collide on the same collectionKey
+    // (e.g. moving a copy into a container that already holds it, or editing
+    // finish/condition to match another stack). Without this, diffSyncSnapshots
+    // keys before/after by collectionKey and would silently drop the colliding
+    // entry, losing quantity. mergeIntoCollection sums qty and unions tags.
+    draft.app.collection = mergeIntoCollection([], draft.app.collection || []);
     const ops = diffSyncSnapshots(before, draft);
     if (!ops.length) return { ops: [], revision, snapshot: draft, noop: true, meta };
     const undo = captureUndo(before, ops);

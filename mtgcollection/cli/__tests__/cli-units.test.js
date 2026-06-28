@@ -19,6 +19,20 @@ test('parseArgs: a boolean flag does not swallow the next token', () => {
   assert.deepEqual(positionals, ['rm', 'Sol Ring']);
 });
 
+test('parseArgs: value-less flags before a positional do not swallow it', () => {
+  const search = parseArgs(['search', '--desc', 't:creature']);
+  assert.equal(search.flags.desc, true);
+  assert.deepEqual(search.positionals, ['search', 't:creature']);
+
+  const imp = parseArgs(['import', '--no-resolve', 'file.csv']);
+  assert.equal(imp.flags['no-resolve'], true);
+  assert.deepEqual(imp.positionals, ['import', 'file.csv']);
+
+  const exp = parseArgs(['export', '--archive', 'f:foil']);
+  assert.equal(exp.flags.archive, true);
+  assert.deepEqual(exp.positionals, ['export', 'f:foil']);
+});
+
 test('flag coercion helpers', () => {
   const flags = { set: 'c21', n: '3', yes: true };
   assert.equal(strFlag(flags, 'set', 's'), 'c21');

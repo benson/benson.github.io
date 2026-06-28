@@ -11,7 +11,7 @@ export default {
     const data = {
       apiBase,
       scope: creds.scope,
-      canWrite: (creds.scope || '').includes('collection.write'),
+      canWrite: (creds.scope || '').split(/\s+/).includes('collection.write'),
       loggedInAt: creds.loggedInAt || null,
       accessExpiresAt: creds.accessExpiresAt ? new Date(creds.accessExpiresAt).toISOString() : null,
     };

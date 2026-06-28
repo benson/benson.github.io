@@ -6,6 +6,7 @@
 const BOOLEAN_FLAGS = new Set([
   'json', 'yes', 'y', 'help', 'h', 'version', 'v',
   'csv', 'table', 'dry-run', 'no-browser', 'no-color', 'all', 'force', 'verbose',
+  'desc', 'no-resolve', 'archive', 'write',
 ]);
 
 const SHORT_ALIASES = { y: 'yes', h: 'help', v: 'version' };
