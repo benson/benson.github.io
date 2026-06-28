@@ -8,9 +8,12 @@
 <meta name="mtgcollection-clerk-publishable-key" content="pk_live_Y2xlcmsuYmVuc29ucGVycnkuY29tJA">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="canonical" href="https://biblioplex.bensonperry.com/">
-<meta http-equiv="refresh" content="0; url=https://biblioplex.bensonperry.com/">
 <script>
 (() => {
+  // Bounce the legacy bensonperry.com/mtgcollection/ path to the canonical
+  // domain — but NEVER when already on it, since biblioplex.bensonperry.com
+  // serves this same file and an unconditional redirect loops forever.
+  if (location.hostname === 'biblioplex.bensonperry.com') return;
   const target = new URL('https://biblioplex.bensonperry.com/');
   target.search = location.search;
   target.hash = location.hash;
