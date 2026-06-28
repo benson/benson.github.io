@@ -12,6 +12,7 @@
     "limitedLabel": "play",
     "mtgjsonBoosterTypes": [
       "collector",
+      "jumpstart",
       "play"
     ],
     "extraSheetLabel": null
