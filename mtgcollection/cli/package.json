@@ -1,6 +1,6 @@
 {
   "name": "biblioplex",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Command-line tool to manage your biblioplex Magic: The Gathering collection.",
   "type": "module",
   "bin": {
