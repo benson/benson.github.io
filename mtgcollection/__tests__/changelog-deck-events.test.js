@@ -131,41 +131,41 @@ test('storage changelog events undo create, rename, and delete', () => {
   const commits = [];
   configureChangelogActions({ commitCollectionChangeImpl: () => commits.push('commit') });
 
-  ensureContainer({ type: 'binder', name: 'trade' });
+  ensureContainer({ type: 'container', name: 'trade' });
   const create = recordEvent({
     type: 'storage-create',
-    summary: 'Created {loc:binder:trade}',
-    containerAfter: { type: 'binder', name: 'trade' },
+    summary: 'Created {loc:container:trade}',
+    containerAfter: { type: 'container', name: 'trade' },
   });
   undoEvent(create.id);
-  assert.equal(state.containers['binder:trade'], undefined);
+  assert.equal(state.containers['container:trade'], undefined);
 
-  ensureContainer({ type: 'box', name: 'bulk' });
-  state.containers['box:archive'] = state.containers['box:bulk'];
-  state.containers['box:archive'].name = 'archive';
-  delete state.containers['box:bulk'];
+  ensureContainer({ type: 'container', name: 'bulk' });
+  state.containers['container:archive'] = state.containers['container:bulk'];
+  state.containers['container:archive'].name = 'archive';
+  delete state.containers['container:bulk'];
   const rename = recordEvent({
     type: 'storage-rename',
-    summary: 'Renamed box bulk to {loc:box:archive}',
-    containerBefore: { type: 'box', name: 'bulk' },
-    containerAfter: { type: 'box', name: 'archive' },
+    summary: 'Renamed container bulk to {loc:container:archive}',
+    containerBefore: { type: 'container', name: 'bulk' },
+    containerAfter: { type: 'container', name: 'archive' },
   });
   undoEvent(rename.id);
-  assert.ok(state.containers['box:bulk']);
-  assert.equal(state.containers['box:archive'], undefined);
+  assert.ok(state.containers['container:bulk']);
+  assert.equal(state.containers['container:archive'], undefined);
 
   const deleted = recordEvent({
     type: 'storage-delete',
-    summary: 'Deleted {loc:box:bulk}',
-    containerBefore: { type: 'box', name: 'bulk' },
+    summary: 'Deleted {loc:container:bulk}',
+    containerBefore: { type: 'container', name: 'bulk' },
   });
-  delete state.containers['box:bulk'];
+  delete state.containers['container:bulk'];
   undoEvent(deleted.id);
-  assert.ok(state.containers['box:bulk']);
+  assert.ok(state.containers['container:bulk']);
   assert.equal(commits.length, 3);
 });
 
-test('storage history scope shows container events and card changes touching binders or boxes', () => {
+test('storage history scope shows container events and card changes touching containers', () => {
   const win = new Window();
   globalThis.document = win.document;
   globalThis.localStorage = win.localStorage;
@@ -176,7 +176,7 @@ test('storage history scope shows container events and card changes touching bin
     </details>
   `;
   initChangelog();
-  const binderCard = { name: 'Island', scryfallId: 'island', finish: 'normal', condition: 'near_mint', language: 'en', location: { type: 'binder', name: 'trade' } };
+  const binderCard = { name: 'Island', scryfallId: 'island', finish: 'normal', condition: 'near_mint', language: 'en', location: { type: 'container', name: 'trade' } };
   state.collection = [binderCard];
   recordEvent({ type: 'add', summary: 'Added Lightning Bolt', scope: 'collection' });
   recordEvent({
@@ -187,8 +187,8 @@ test('storage history scope shows container events and card changes touching bin
   });
   recordEvent({
     type: 'storage-create',
-    summary: 'Created {loc:box:bulk}',
-    containerAfter: { type: 'box', name: 'bulk' },
+    summary: 'Created {loc:container:bulk}',
+    containerAfter: { type: 'container', name: 'bulk' },
   });
 
   setHistoryScope({ kind: 'storage' });
@@ -197,7 +197,7 @@ test('storage history scope shows container events and card changes touching bin
   assert.match(text, /Added Island/);
   assert.doesNotMatch(text, /Lightning Bolt/);
 
-  setHistoryScope({ type: 'binder', name: 'trade' });
+  setHistoryScope({ type: 'container', name: 'trade' });
   assert.match(win.document.querySelector('.history-list').textContent, /Added Island/);
   assert.doesNotMatch(win.document.querySelector('.history-list').textContent, /Created/);
 });
@@ -216,7 +216,7 @@ test('history summary does not append a card name that is already in the event t
   setHistoryScope(null);
   recordEvent({
     type: 'edit',
-    summary: 'moved 1 lotho, corrupt shirriff to {loc:box:bulk}',
+    summary: 'moved 1 lotho, corrupt shirriff to {loc:container:bulk}',
     cards: [{ name: 'Lotho, Corrupt Shirriff' }],
   });
 

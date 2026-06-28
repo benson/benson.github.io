@@ -54,7 +54,7 @@ const sampleDeck = () => ({
 });
 
 test('pickDeckSharePayload: returns null for non-deck container', () => {
-  assert.equal(pickDeckSharePayload({ type: 'box', name: 'bulk' }), null);
+  assert.equal(pickDeckSharePayload({ type: 'container', name: 'bulk' }), null);
   assert.equal(pickDeckSharePayload(null), null);
 });
 

@@ -17,7 +17,7 @@ const HELP_SECTIONS = [
       },
       {
         term: 'Containers',
-        text: 'Named places your cards live in real life: decks, binders, and boxes. Biblioplex mirrors those containers so the app can match your shelves, bags, and binders.',
+        text: 'Named places your cards live in real life. A container can open visually or as a list, so the app can match how you actually store and browse those cards.',
       },
       {
         term: 'Decklists',
@@ -27,7 +27,7 @@ const HELP_SECTIONS = [
     diagram: [
       ['collection', 'the Magic cards you physically own'],
       ['decks', 'deck-first plans plus optional physical cards'],
-      ['storage', 'binders and boxes that mirror real storage'],
+      ['storage', 'containers that mirror real storage'],
       ['history', 'scoped change log with undo'],
       ['sync', 'local-first data with optional cloud sync'],
     ],
@@ -38,8 +38,8 @@ const HELP_SECTIONS = [
     title: 'Inventory',
     kicker: 'what you own',
     body: [
-      'An inventory row represents a real stack of matching cards.',
-      'Rows merge when the card identity, finish, condition, language, location, and deck board all match.',
+      'An inventory entry represents a real stack of matching cards.',
+      'Entries merge when the card identity, finish, condition, language, location, and deck board all match.',
     ],
     workflows: [
       'Use collection view for broad scanning, filtering, sorting, and bulk edits.',
@@ -49,8 +49,8 @@ const HELP_SECTIONS = [
     reference: [
       ['finish', 'normal, foil, or etched'],
       ['condition', 'near mint, lightly played, moderately played, heavily played, or damaged'],
-      ['location', 'deck:name, binder:name, or box:name'],
-      ['tags', 'freeform labels shared by filters, rows, and add/edit flows'],
+      ['location', 'deck:name or container:name'],
+      ['tags', 'freeform labels shared by filters, entries, and add/edit flows'],
     ],
   },
   {
@@ -65,7 +65,7 @@ const HELP_SECTIONS = [
     concepts: [
       {
         term: 'Fulfilled',
-        text: 'The decklist card matches one or more owned inventory rows by Scryfall id.',
+        text: 'The decklist card matches one or more owned inventory entries by Scryfall id.',
       },
       {
         term: 'Needed',
@@ -73,7 +73,7 @@ const HELP_SECTIONS = [
       },
       {
         term: 'Placeholder',
-        text: 'A card was added to the decklist without adding an owned inventory row.',
+        text: 'A card was added to the decklist without adding an owned inventory entry.',
       },
     ],
     workflows: [
@@ -89,14 +89,14 @@ const HELP_SECTIONS = [
     title: 'Storage',
     kicker: 'where cards live',
     body: [
-      'Storage is the physical organization layer: binders and boxes.',
-      'A box opens as a scoped inventory list. A binder opens as pages with optional organize mode.',
+      'Storage is the physical organization layer: containers.',
+      'A container is a named place your cards live. Each container can default to visual view or list view, and you can switch views while browsing.',
     ],
     workflows: [
-      'Create binders and boxes from storage home.',
-      'Open a binder to browse pages, search inside it, sort by value, or restore binder order.',
-      'Switch a binder into organize mode before renaming or changing page order.',
-      'Use box views for bulk inventory that does not need page layout.',
+      'Create containers from storage home and choose their default view.',
+      'Use visual view for page-like browsing, quick image scanning, and organizing card order.',
+      'Use list view for dense inventory, sorting, filtering, and bulk edits.',
+      'Rename or delete a container from its card menu; deleting a non-empty container clears the cards location but keeps the cards in your collection.',
     ],
   },
   {
@@ -129,37 +129,39 @@ const HELP_SECTIONS = [
     title: 'Import And Add',
     kicker: 'getting cards in',
     body: [
-      'Biblioplex can add one card at a time or resolve many rows through Scryfall.',
-      'Imported rows become inventory; decklist imports into a deck also populate that deck container.',
+      'Biblioplex has a few paths for getting cards into your collection.',
+      'Cards you add become inventory entries. Decklist imports can also populate the decklist for a deck-first workflow.',
     ],
     workflows: [
-      'Name lookup is best when you want to choose the exact printing visually.',
-      'Voice or collector-number input is best for fast entry from physical cards.',
-      'CSV import auto-detects supported headers and keeps source fields for matching exports.',
-      'Plain decklist paste accepts lines like "1 Sol Ring (SLD) 1011 *F*".',
+      'Use add in the app when you want to choose the exact printing visually.',
+      'Use voice or collector-number input for fast entry from physical cards.',
+      'Use CSV import for collection exports from tools like Moxfield, ManaBox, Deckbox, or the canonical Biblioplex format.',
+      'Paste a plain decklist for lines like "1 Sol Ring (SLD) 1011 *F*".',
+      'Use collection chat to ask the in-app assistant to add, move, or edit cards after you review its preview.',
+      'Use the MCP agent when you want an external assistant to read your account collection and stage confirmed changes.',
     ],
   },
   {
     id: 'sync',
     label: 'sync',
-    title: 'Sync, Sharing, And History',
-    kicker: 'moving data safely',
+    title: 'Accounts And Sync',
+    kicker: 'your collection, safely',
     body: [
-      'The app is local-first. Your browser state is saved locally, then optional cloud sync keeps devices aligned.',
-      'History records recent changes and scopes itself to collection, deck, storage, or a specific container.',
+      'You can use Biblioplex locally without an account. Sign in when you want your collection available across devices, share links tied to you, or assistant/MCP access to your account collection.',
+      'Sign in uses Clerk. Production sign-in supports Google, GitHub, Discord, and email code.',
     ],
     concepts: [
       {
-        term: 'Cloud sync',
-        text: 'Diffs local changes into operations, queues them offline, and reconciles against the cloud revision.',
+        term: 'Local copy',
+        text: 'Your browser keeps a local copy so the app stays usable on this device. Export is always available as a portable backup.',
       },
       {
-        term: 'Deck sharing',
-        text: 'Creates a read-only snapshot link for one deck and mirrors later deck changes to the same share id.',
+        term: 'Account copy',
+        text: 'When you are signed in, Biblioplex stores collection data for your account and keeps signed-in browsers aligned.',
       },
       {
-        term: 'Portable archive',
-        text: 'A JSON package containing app data, history, and share records for backup or transfer.',
+        term: 'Safety',
+        text: 'Account requests use your signed-in session. Assistant and MCP writes are previewed first and require confirmation before your collection changes.',
       },
     ],
   },
@@ -170,7 +172,7 @@ const HELP_SECTIONS = [
     kicker: 'a second interface',
     body: [
       'Collection chat is an app-aware assistant. It can read the collection and stage changes for review.',
-      'It should preview changes first; applying changes remains a user-confirmed action.',
+      'The assistant asks for your confirmation before updating your collection.',
     ],
     workflows: [
       'Ask for summaries, counts, expensive cards, or cards in a named container.',

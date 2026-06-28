@@ -20,7 +20,7 @@ const sol = {
   condition: 'near_mint',
   language: 'en',
   qty: 1,
-  location: { type: 'box', name: 'bulk' },
+  location: { type: 'container', name: 'bulk' },
 };
 
 test('diffSyncSnapshots: quantity changes become qtyDelta operations', () => {

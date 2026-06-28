@@ -1,5 +1,11 @@
 import { state } from './state.js';
-import { containerKey, containerStats, ensureContainer, normalizeLocation } from './collection.js';
+import {
+  containerKey,
+  containerStats,
+  ensureContainer,
+  normalizeContainerDisplayMode,
+  normalizeLocation,
+} from './collection.js';
 import { recordEvent } from './changelog.js';
 import {
   deleteContainerAndUnlocateCardsCommand,
@@ -16,14 +22,19 @@ export function syncLocationTypeLabels(root, selector = '.locations-create-type'
 }
 
 export function readLocationCreateType(form) {
-  if (!form) return 'box';
+  if (!form) return 'container';
   const checked = form.querySelector('input[name="locationsCreateType"]:checked');
   const hidden = form.querySelector('input[type="hidden"][name="locationsCreateType"]');
-  return checked ? checked.value : (hidden ? hidden.value : 'box');
+  return checked ? checked.value : (hidden ? hidden.value : 'container');
+}
+
+export function readLocationCreateDisplayMode(form) {
+  const checked = form?.querySelector('input[name="locationsCreateDisplayMode"]:checked');
+  return normalizeContainerDisplayMode(checked?.value);
 }
 
 export function locationDeleteMessage(loc, stats) {
-  const type = loc?.type || 'location';
+  const type = loc?.type === 'deck' ? 'deck' : 'container';
   const name = loc?.name || '';
   if (stats?.total > 0) {
     return 'delete ' + type + ' "' + name + '"?\n\nthis will clear the location from '
@@ -52,7 +63,7 @@ export function bindLocationHomeInteractions({
   if (!locationsEl) return () => {};
 
   const onCreateTypeChange = event => {
-    if (event.target.name !== 'locationsCreateType') return;
+    if (event.target.name !== 'locationsCreateType' && event.target.name !== 'locationsCreateDisplayMode') return;
     syncLocationTypeLabels(locationsEl);
   };
 
@@ -77,11 +88,12 @@ export function bindLocationHomeInteractions({
         containerAfter: { type: 'deck', name: created.name },
         deckAfter: created.deck || null,
       });
-    } else if (!existed && (created.type === 'binder' || created.type === 'box')) {
+    } else if (!existed && created.type === 'container') {
+      created.displayMode = readLocationCreateDisplayMode(form);
       recordEventImpl({
         type: 'storage-create',
-        summary: 'Created {loc:' + created.type + ':' + created.name + '}',
-        containerAfter: { type: created.type, name: created.name },
+        summary: 'Created {loc:container:' + created.name + '}',
+        containerAfter: { type: 'container', name: created.name },
       });
     }
     if (nameInput) nameInput.value = '';

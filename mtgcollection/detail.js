@@ -82,8 +82,8 @@ export function populateFilters() {
   }
   locations.sort((a, b) => a.type.localeCompare(b.type) || a.name.localeCompare(b.name));
   // Group dropdown options by type with a section header — flat list gets
-  // unwieldy fast as more decks/binders/boxes pile up.
-  const TYPE_HEADERS = { deck: 'decks', binder: 'binders', box: 'boxes' };
+  // unwieldy fast as more decks/containers pile up.
+  const TYPE_HEADERS = { deck: 'decks', container: 'containers' };
   const groupedLocOptions = [];
   for (const type of LOCATION_TYPES) {
     const ofType = locations.filter(l => l.type === type);
@@ -112,10 +112,10 @@ export function populateFilters() {
     { defaultLabel: 'All deck formats', noun: 'formats' });
   populateMultiselect(document.getElementById('filterStorageType'),
     [
-      { value: 'binder', label: 'binders' },
-      { value: 'box', label: 'boxes' },
+      { value: 'visual', label: 'visual view' },
+      { value: 'list', label: 'list view' },
     ],
-    { defaultLabel: 'All container types', noun: 'types' });
+    { defaultLabel: 'All default views', noun: 'views' });
   document.getElementById('rowTagOptions').innerHTML =
     tags.map(t => '<option value="' + esc(t) + '"></option>').join('');
 }
@@ -329,7 +329,7 @@ function saveDetail() {
 function deleteDetail() {
   const c = state.collection[state.detailIndex];
   if (!c) return;
-  const name = c.resolvedName || c.name || 'this row';
+  const name = c.resolvedName || c.name || 'this entry';
   const beforeKey = collectionKey(c);
   const beforeSnap = captureBefore([beforeKey]);
   const cardSnapshot = {

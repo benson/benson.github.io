@@ -195,7 +195,7 @@ test('mcp chat payload: carries pending preview context for short follow-ups', (
   addPendingPreviewsForTest([{
     changeToken: 'preview.move',
     previewType: 'inventory.edit',
-    summary: 'Moved 1 Glint-Nest Crane to {loc:binder:trade binder}',
+    summary: 'Moved 1 Glint-Nest Crane to {loc:container:trade binder}',
     card: {
       itemKey: 'glint',
       name: 'Glint-Nest Crane',
@@ -205,7 +205,7 @@ test('mcp chat payload: carries pending preview context for short follow-ups', (
       condition: 'near_mint',
       language: 'en',
       qty: 1,
-      location: { type: 'binder', name: 'trade binder' },
+      location: { type: 'container', name: 'trade binder' },
     },
   }]);
 
@@ -244,18 +244,18 @@ test('initMcpChat: location summary tokens render as location pills', () => {
   initMcpChat({ documentObj: document });
   click(win, document.getElementById('mcpChatClear'));
 
-  appendMcpChatMessageForTest('assistant', 'Applied: moved 1 Lotho to {loc:box:bulk}');
-  addPendingPreviewsForTest([{ changeToken: 'preview.loc', summary: 'Moved 1 Sol Ring to {loc:binder:trade binder}' }]);
+  appendMcpChatMessageForTest('assistant', 'Applied: moved 1 Lotho to {loc:container:bulk}');
+  addPendingPreviewsForTest([{ changeToken: 'preview.loc', summary: 'Moved 1 Sol Ring to {loc:container:trade binder}' }]);
 
   const body = document.querySelector('.mcp-chat-body');
   assert.match(body.textContent, /Applied: moved 1 Lotho to bulk/);
   assert.doesNotMatch(body.textContent, /\{loc:/);
-  assert.equal(body.querySelector('.loc-pill-box')?.dataset.locName, 'bulk');
+  assert.equal(body.querySelector('.loc-pill-container')?.dataset.locName, 'bulk');
 
   const summary = document.querySelector('.mcp-chat-preview-summary');
   assert.match(summary.textContent, /Moved 1 Sol Ring to trade binder/);
   assert.doesNotMatch(summary.textContent, /\{loc:/);
-  assert.equal(summary.querySelector('.loc-pill-binder')?.dataset.locName, 'trade binder');
+  assert.equal(summary.querySelector('.loc-pill-container')?.dataset.locName, 'trade binder');
 
   click(win, document.getElementById('mcpChatClear'));
 });
@@ -274,13 +274,13 @@ test('initMcpChat: assistant prose renders known card and container references r
     condition: 'near_mint',
     language: 'en',
     qty: 1,
-    location: { type: 'binder', name: 'trade binder' },
+    location: { type: 'container', name: 'trade binder' },
     price: 75.04,
   };
   state.collection = [force];
   state.containers = {
-    'binder:trade binder': { type: 'binder', name: 'trade binder' },
-    'box:bulk': { type: 'box', name: 'bulk' },
+    'container:trade binder': { type: 'container', name: 'trade binder' },
+    'container:bulk': { type: 'container', name: 'bulk' },
   };
 
   try {
@@ -299,10 +299,10 @@ test('initMcpChat: assistant prose renders known card and container references r
     assert.equal(inlineCard?.textContent, 'Force of Will');
     assert.equal(inlineCard?.dataset.previewName, 'Force of Will');
     assert.doesNotMatch(body.textContent, /\*\*/);
-    assert.equal(assistant.querySelector('.loc-pill-binder')?.dataset.locName, 'trade binder');
+    assert.equal(assistant.querySelector('.loc-pill-container')?.dataset.locName, 'trade binder');
     const resultCard = assistant.querySelector('.mcp-chat-card-summary .card-name-button.card-preview-link');
     assert.equal(resultCard?.textContent, 'Force of Will');
-    assert.equal(resultCard?.dataset.previewEntryLocation, 'binder:trade binder');
+    assert.equal(resultCard?.dataset.previewEntryLocation, 'container:trade binder');
     assert.equal(resultCard?.dataset.previewEntryPrice, '$75.04');
     assert.equal(assistant.querySelector('.mcp-chat-card-details'), null);
     assert.equal(assistant.querySelector('.price-cell'), null);
@@ -327,12 +327,12 @@ test('initMcpChat: pending previews render card mentions canonically', () => {
     condition: 'near_mint',
     language: 'en',
     qty: 1,
-    location: { type: 'box', name: 'bulk' },
+    location: { type: 'container', name: 'bulk' },
   };
   state.collection = [glint];
   state.containers = {
-    'box:bulk': { type: 'box', name: 'bulk' },
-    'binder:trade binder': { type: 'binder', name: 'trade binder' },
+    'container:bulk': { type: 'container', name: 'bulk' },
+    'container:trade binder': { type: 'container', name: 'trade binder' },
   };
 
   try {
@@ -340,11 +340,11 @@ test('initMcpChat: pending previews render card mentions canonically', () => {
     click(win, document.getElementById('mcpChatClear'));
     addPendingPreviewsForTest([{
       changeToken: 'preview.glint',
-      summary: 'moved 1 glint-nest crane to {loc:binder:trade binder}',
+      summary: 'moved 1 glint-nest crane to {loc:container:trade binder}',
       card: {
         ...glint,
-        itemKey: collectionKey({ ...glint, location: { type: 'binder', name: 'trade binder' } }),
-        location: { type: 'binder', name: 'trade binder' },
+        itemKey: collectionKey({ ...glint, location: { type: 'container', name: 'trade binder' } }),
+        location: { type: 'container', name: 'trade binder' },
       },
     }]);
 
@@ -352,7 +352,7 @@ test('initMcpChat: pending previews render card mentions canonically', () => {
     const cardLink = summary.querySelector('.mcp-chat-inline-card.card-preview-link');
     assert.equal(cardLink?.textContent, 'Glint-Nest Crane');
     assert.equal(cardLink?.dataset.previewName, 'Glint-Nest Crane');
-    assert.equal(summary.querySelector('.loc-pill-binder')?.dataset.locName, 'trade binder');
+    assert.equal(summary.querySelector('.loc-pill-container')?.dataset.locName, 'trade binder');
   } finally {
     click(win, document.getElementById('mcpChatClear'));
     state.collection = previousCollection;
@@ -375,7 +375,7 @@ test('renderChatCardResultsForTest: single referenced cards are compact and expo
     condition: 'near_mint',
     language: 'en',
     qty: 1,
-    location: { type: 'binder', name: 'trade binder' },
+    location: { type: 'container', name: 'trade binder' },
     price: 75.04,
   };
   state.collection = [card];
@@ -390,7 +390,7 @@ test('renderChatCardResultsForTest: single referenced cards are compact and expo
     assert.equal(cardLink?.textContent, 'Force of Will');
     assert.equal(cardLink?.dataset.previewEntrySet, '2XM');
     assert.equal(cardLink?.dataset.previewEntryCn, '51');
-    assert.equal(cardLink?.dataset.previewEntryLocation, 'binder:trade binder');
+    assert.equal(cardLink?.dataset.previewEntryLocation, 'container:trade binder');
     assert.equal(section.querySelector('.mcp-chat-card-details'), null);
     assert.equal(section.querySelector('.mcp-chat-card-list'), null);
 
@@ -416,7 +416,7 @@ test('renderChatCardResultsForTest: preview cards render committed source entry 
     condition: 'near_mint',
     language: 'en',
     qty: 1,
-    location: { type: 'box', name: 'bulk' },
+    location: { type: 'container', name: 'bulk' },
     price: 32.08,
   };
   const beforeKey = collectionKey(before);
@@ -425,9 +425,9 @@ test('renderChatCardResultsForTest: preview cards render committed source entry 
   try {
     const section = renderChatCardResultsForTest([{
       ...before,
-      itemKey: collectionKey({ ...before, location: { type: 'binder', name: 'trade binder' }, finish: 'foil', condition: 'lightly_played' }),
+      itemKey: collectionKey({ ...before, location: { type: 'container', name: 'trade binder' }, finish: 'foil', condition: 'lightly_played' }),
       sourceItemKey: beforeKey,
-      location: { type: 'binder', name: 'trade binder' },
+      location: { type: 'container', name: 'trade binder' },
       finish: 'foil',
       condition: 'lightly_played',
     }], document);
@@ -435,7 +435,7 @@ test('renderChatCardResultsForTest: preview cards render committed source entry 
 
     const cardLink = section.querySelector('.mcp-chat-card-summary .card-name-button');
     assert.equal(cardLink?.textContent, 'Mana Confluence');
-    assert.equal(cardLink?.dataset.previewEntryLocation, 'box:bulk');
+    assert.equal(cardLink?.dataset.previewEntryLocation, 'container:bulk');
     assert.equal(cardLink?.dataset.previewEntryFinish, 'nonfoil');
     assert.equal(cardLink?.dataset.previewEntryCondition, 'nm');
     assert.equal(section.textContent.includes('trade binder'), false);
@@ -526,13 +526,13 @@ test('renderChatCardResultsForTest: inventory cards are hoverable and movable', 
     condition: 'near_mint',
     language: 'en',
     qty: 1,
-    location: { type: 'binder', name: 'trade binder' },
+    location: { type: 'container', name: 'trade binder' },
     tags: ['spells'],
     price: 0.26,
   };
   state.collection = [card];
   state.containers = {
-    'binder:trade binder': { type: 'binder', name: 'trade binder' },
+    'container:trade binder': { type: 'container', name: 'trade binder' },
     'deck:breya': { type: 'deck', name: 'breya' },
   };
 
@@ -551,7 +551,7 @@ test('renderChatCardResultsForTest: inventory cards are hoverable and movable', 
     assert.equal(cardLink.dataset.previewCn, '122');
     assert.equal(cardLink.dataset.previewEntrySet, 'SOS');
     assert.equal(cardLink.dataset.previewEntryCondition, 'nm');
-    assert.equal(cardLink.dataset.previewEntryLocation, 'binder:trade binder');
+    assert.equal(cardLink.dataset.previewEntryLocation, 'container:trade binder');
     assert.equal(cardLink.dataset.previewEntryTags, 'spells');
     assert.equal(cardLink.dataset.previewEntryPrice, '$0.26');
     assert.equal(document.querySelector('.mcp-chat-card-list'), null);
@@ -573,13 +573,13 @@ test('formatChatCardResultsForCopy: returns spreadsheet-friendly card rows', () 
     condition: 'near_mint',
     language: 'en',
     qty: 1,
-    location: { type: 'box', name: 'bulk' },
+    location: { type: 'container', name: 'bulk' },
     price: 12.5,
   }]);
   assert.equal(
     text,
     'name\tset\tcollector_number\tqty\tlocation\tcondition\tfinish\tlanguage\tprice\n'
-      + 'Breya, Etherium Shaper\tC16\t29\t1\tbox:bulk\tnm\tfoil\ten\t12.5'
+      + 'Breya, Etherium Shaper\tC16\t29\t1\tcontainer:bulk\tnm\tfoil\ten\t12.5'
   );
 });
 

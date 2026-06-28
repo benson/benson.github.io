@@ -33,7 +33,7 @@ test('buildCollectionEntryFromCard: maps Scryfall fields and chosen add options'
     qty: 2,
     condition: 'near_mint',
     language: 'en',
-    location: { type: 'binder', name: 'trade binder' },
+    location: { type: 'container', name: 'trade binder' },
     tags: ['edh', 'sale'],
   });
 
@@ -41,7 +41,7 @@ test('buildCollectionEntryFromCard: maps Scryfall fields and chosen add options'
   assert.equal(entry.resolvedName, 'Sol Ring');
   assert.equal(entry.setCode, 'sld');
   assert.equal(entry.qty, 2);
-  assert.deepEqual(entry.location, { type: 'binder', name: 'trade binder' });
+  assert.deepEqual(entry.location, { type: 'container', name: 'trade binder' });
   assert.equal(entry.typeLine, 'Artifact');
   assert.equal(entry.oracleText, 'Tap: Add CC.');
   assert.equal(entry.imageUrl, 'https://img.test/normal/sol.jpg');

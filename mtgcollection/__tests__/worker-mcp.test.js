@@ -185,7 +185,7 @@ function card(overrides = {}) {
     condition: 'near_mint',
     language: 'en',
     qty: 1,
-    location: { type: 'box', name: 'bulk' },
+    location: { type: 'container', name: 'bulk' },
     price: 1,
     ...overrides,
   };
@@ -257,7 +257,7 @@ test('mcp: ambiguous inventory move returns candidates instead of a change token
       card({ scryfallId: 'sol-ring-a', cn: '1' }),
       card({ scryfallId: 'sol-ring-b', cn: '2', finish: 'foil' }),
     ],
-    containers: { 'box:bulk': { type: 'box', name: 'bulk' } },
+    containers: { 'container:bulk': { type: 'container', name: 'bulk' } },
   });
   const { env } = fakeSyncEnv(snapshot);
   const token = await issueMcpToken(env);
@@ -276,12 +276,12 @@ test('mcp: move preview without a destination returns the matched card', async (
     scryfallId: 'force-1',
     setCode: '2xm',
     cn: '51',
-    location: { type: 'binder', name: 'trade binder' },
+    location: { type: 'container', name: 'trade binder' },
     price: 75.04,
   });
   const snapshot = emptySnapshot({
     collection: [entry],
-    containers: { 'binder:trade binder': { type: 'binder', name: 'trade binder' } },
+    containers: { 'container:trade binder': { type: 'container', name: 'trade binder' } },
   });
   const { env } = fakeSyncEnv(snapshot);
   const token = await issueMcpToken(env);
@@ -294,7 +294,7 @@ test('mcp: move preview without a destination returns the matched card', async (
   assert.match(data.error, /toLocation/);
   assert.equal(data.card.itemKey, collectionKey(entry));
   assert.equal(data.card.name, 'Force of Will');
-  assert.deepEqual(data.card.location, { type: 'binder', name: 'trade binder' });
+  assert.deepEqual(data.card.location, { type: 'container', name: 'trade binder' });
   assert.equal(data.candidates[0].itemKey, collectionKey(entry));
 });
 
@@ -304,7 +304,7 @@ test('mcp: search_inventory filters finish requests', async () => {
       card({ name: 'Breya, Etherium Shaper', resolvedName: 'Breya, Etherium Shaper', scryfallId: 'breya-1', finish: 'foil' }),
       card({ name: 'Ancient Tomb', resolvedName: 'Ancient Tomb', scryfallId: 'tomb-1', finish: 'normal' }),
     ],
-    containers: { 'box:bulk': { type: 'box', name: 'bulk' } },
+    containers: { 'container:bulk': { type: 'container', name: 'bulk' } },
   });
   const { env } = fakeSyncEnv(snapshot);
   const token = await issueMcpToken(env);
@@ -422,12 +422,12 @@ test('mcp: search_inventory matches punctuation-insensitive plural card names', 
 test('mcp: search_inventory resolves bare location names to existing containers', async () => {
   const snapshot = emptySnapshot({
     collection: [
-      card({ name: 'Breya, Etherium Shaper', resolvedName: 'Breya, Etherium Shaper', scryfallId: 'breya-1', price: 12, location: { type: 'box', name: 'bulk' } }),
+      card({ name: 'Breya, Etherium Shaper', resolvedName: 'Breya, Etherium Shaper', scryfallId: 'breya-1', price: 12, location: { type: 'container', name: 'bulk' } }),
       card({ name: 'Mana Crypt', resolvedName: 'Mana Crypt', scryfallId: 'crypt-1', price: 180, location: { type: 'deck', name: 'breya artifacts' } }),
       card({ name: 'Dockside Extortionist', resolvedName: 'Dockside Extortionist', scryfallId: 'dockside-1', price: 65, location: { type: 'deck', name: 'breya artifacts' } }),
     ],
     containers: {
-      'box:bulk': { type: 'box', name: 'bulk' },
+      'container:bulk': { type: 'container', name: 'bulk' },
       'deck:breya artifacts': { type: 'deck', name: 'breya artifacts' },
     },
   });
@@ -476,7 +476,7 @@ test('mcp: preview/apply inventory move updates snapshot, revision, and history'
   const entry = card({ qty: 2 });
   const snapshot = emptySnapshot({
     collection: [entry],
-    containers: { 'box:bulk': { type: 'box', name: 'bulk' } },
+    containers: { 'container:bulk': { type: 'container', name: 'bulk' } },
   });
   const { env, state } = fakeSyncEnv(snapshot, 3);
   const token = await issueMcpToken(env);
@@ -494,8 +494,8 @@ test('mcp: preview/apply inventory move updates snapshot, revision, and history'
     changeToken: data.changeToken,
   });
   assert.equal(applied.result.structuredContent.status, 'applied');
-  assert.ok(state.snapshot.app.collection.some(c => c.qty === 1 && c.location?.type === 'binder' && c.location?.name === 'staples'));
-  assert.ok(state.snapshot.app.collection.some(c => c.qty === 1 && c.location?.type === 'box' && c.location?.name === 'bulk'));
+  assert.ok(state.snapshot.app.collection.some(c => c.qty === 1 && c.location?.type === 'container' && c.location?.name === 'staples'));
+  assert.ok(state.snapshot.app.collection.some(c => c.qty === 1 && c.location?.type === 'container' && c.location?.name === 'bulk'));
   assert.equal(state.snapshot.history[0].source, 'mcp');
   assert.match(state.snapshot.history[0].summary, /Moved 1 Sol Ring/);
 });
@@ -509,13 +509,13 @@ test('mcp: preview edit inventory can combine move and finish changes', async ()
     cn: '50',
     finish: 'normal',
     finishes: ['nonfoil', 'foil'],
-    location: { type: 'box', name: 'bulk' },
+    location: { type: 'container', name: 'bulk' },
   });
   const snapshot = emptySnapshot({
     collection: [entry],
     containers: {
-      'box:bulk': { type: 'box', name: 'bulk' },
-      'binder:trade binder': { type: 'binder', name: 'trade binder' },
+      'container:bulk': { type: 'container', name: 'bulk' },
+      'container:trade binder': { type: 'container', name: 'trade binder' },
     },
   });
   const { env, state } = fakeSyncEnv(snapshot, 9);
@@ -529,10 +529,10 @@ test('mcp: preview edit inventory can combine move and finish changes', async ()
   assert.equal(data.status, 'preview');
   assert.equal(data.previewType, 'inventory.edit');
   assert.match(data.summary, /Updated 1 Glint-Nest Crane/);
-  assert.match(data.summary, /\{loc:binder:trade binder\}/);
+  assert.match(data.summary, /\{loc:container:trade binder\}/);
   assert.match(data.summary, /finish normal to foil/);
   assert.equal(data.card.finish, 'foil');
-  assert.deepEqual(data.card.location, { type: 'binder', name: 'trade binder' });
+  assert.deepEqual(data.card.location, { type: 'container', name: 'trade binder' });
 
   const applied = await callTool(env, token.access_token, 'apply_collection_change', {
     changeToken: data.changeToken,
@@ -540,7 +540,7 @@ test('mcp: preview edit inventory can combine move and finish changes', async ()
   assert.equal(applied.result.structuredContent.status, 'applied');
   assert.equal(state.snapshot.app.collection.length, 1);
   assert.equal(state.snapshot.app.collection[0].finish, 'foil');
-  assert.deepEqual(state.snapshot.app.collection[0].location, { type: 'binder', name: 'trade binder' });
+  assert.deepEqual(state.snapshot.app.collection[0].location, { type: 'container', name: 'trade binder' });
 });
 
 test('mcp: destination aliases resolve existing deck boxes', async () => {
@@ -551,12 +551,12 @@ test('mcp: destination aliases resolve existing deck boxes', async () => {
     setCode: '2xm',
     cn: '47',
     qty: 2,
-    location: { type: 'binder', name: 'trade binder' },
+    location: { type: 'container', name: 'trade binder' },
   });
   const snapshot = emptySnapshot({
     collection: [entry],
     containers: {
-      'binder:trade binder': { type: 'binder', name: 'trade binder' },
+      'container:trade binder': { type: 'container', name: 'trade binder' },
       'deck:breya artifacts': {
         type: 'deck',
         name: 'breya artifacts',
@@ -594,7 +594,7 @@ test('mcp: preview delete inventory item removes a physical card', async () => {
   });
   const { env, state } = fakeSyncEnv(emptySnapshot({
     collection: [entry],
-    containers: { 'box:bulk': { type: 'box', name: 'bulk' } },
+    containers: { 'container:bulk': { type: 'container', name: 'bulk' } },
   }));
   const token = await issueMcpToken(env);
   const preview = await callTool(env, token.access_token, 'preview_delete_inventory_item', {
@@ -620,11 +620,11 @@ test('mcp: preview duplicate inventory item adds another same-stack copy', async
     scryfallId: 'force-of-will-1',
     setCode: '2xm',
     cn: '51',
-    location: { type: 'binder', name: 'trade binder' },
+    location: { type: 'container', name: 'trade binder' },
   });
   const { env, state } = fakeSyncEnv(emptySnapshot({
     collection: [entry],
-    containers: { 'binder:trade binder': { type: 'binder', name: 'trade binder' } },
+    containers: { 'container:trade binder': { type: 'container', name: 'trade binder' } },
   }));
   const token = await issueMcpToken(env);
   const preview = await callTool(env, token.access_token, 'preview_duplicate_inventory_item', {
@@ -655,11 +655,11 @@ test('mcp: preview replace inventory printing swaps Scryfall metadata', async ()
     setName: 'Return to Ravnica',
     cn: '35',
     finish: 'normal',
-    location: { type: 'box', name: 'bulk' },
+    location: { type: 'container', name: 'bulk' },
   });
   const { env, state } = fakeSyncEnv(emptySnapshot({
     collection: [entry],
-    containers: { 'box:bulk': { type: 'box', name: 'bulk' } },
+    containers: { 'container:bulk': { type: 'container', name: 'bulk' } },
   }));
   const token = await issueMcpToken(env);
   const originalFetch = globalThis.fetch;
@@ -710,7 +710,7 @@ test('mcp: preview replace inventory printing swaps Scryfall metadata', async ()
     assert.equal(state.snapshot.app.collection[0].cn, '999');
     assert.equal(state.snapshot.app.collection[0].finish, 'foil');
     assert.equal(state.snapshot.app.collection[0].condition, 'near_mint');
-    assert.deepEqual(state.snapshot.app.collection[0].location, { type: 'box', name: 'bulk' });
+    assert.deepEqual(state.snapshot.app.collection[0].location, { type: 'container', name: 'bulk' });
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -904,7 +904,7 @@ test('mcp: preview add treats regular printing as a style hint, not card name te
 
 test('mcp: preview add rejects exact printing arguments that resolve to a different card name', async () => {
   const snapshot = emptySnapshot({
-    containers: { 'box:bulk': { type: 'box', name: 'bulk' } },
+    containers: { 'container:bulk': { type: 'container', name: 'bulk' } },
   });
   const { env } = fakeSyncEnv(snapshot);
   const token = await issueMcpToken(env);
@@ -934,7 +934,7 @@ test('mcp: preview add rejects exact printing arguments that resolve to a differ
       finish: 'normal',
       condition: 'near_mint',
       qty: 2,
-      location: { type: 'box', name: 'bulk' },
+      location: { type: 'container', name: 'bulk' },
     });
     const data = preview.result.structuredContent;
     assert.equal(data.status, 'needs_clarification');
@@ -1268,12 +1268,12 @@ test('mcp: preview add inventory tolerates chat-coerced string args', async () =
     assert.equal(data.status, 'preview');
     assert.equal(data.previewType, 'inventory.add');
     assert.equal(data.card.name, 'Prismari Charm');
-    assert.match(data.summary, /Added 2 Prismari Charm to \{loc:box:spells\}/);
+    assert.match(data.summary, /Added 2 Prismari Charm to \{loc:container:spells\}/);
     const applied = await callTool(env, token.access_token, 'apply_collection_change', {
       changeToken: data.changeToken,
     });
     assert.equal(applied.result.structuredContent.status, 'applied');
-    assert.equal(state.snapshot.app.containers['box:spells'].type, 'box');
+    assert.equal(state.snapshot.app.containers['container:spells'].type, 'container');
     assert.equal(state.snapshot.app.collection[0].qty, 2);
     assert.equal(state.snapshot.app.collection[0].finish, 'foil');
   } finally {
@@ -1317,7 +1317,7 @@ test('mcp: stale preview tokens are rejected on apply', async () => {
   const entry = card();
   const { env, state } = fakeSyncEnv(emptySnapshot({
     collection: [entry],
-    containers: { 'box:bulk': { type: 'box', name: 'bulk' } },
+    containers: { 'container:bulk': { type: 'container', name: 'bulk' } },
   }), 1);
   const token = await issueMcpToken(env);
   const preview = await callTool(env, token.access_token, 'preview_move_inventory_item', {
@@ -1392,11 +1392,11 @@ test('mcp: apply endpoint can commit multiple preview tokens in one sync push', 
   const { env, state } = fakeSyncEnv(emptySnapshot(), 7);
   const token = await issueMcpToken(env);
   const box = await callTool(env, token.access_token, 'preview_create_container', {
-    type: 'box',
+    type: 'container',
     name: 'bulk',
   });
   const binder = await callTool(env, token.access_token, 'preview_create_container', {
-    type: 'binder',
+    type: 'container',
     name: 'trades',
   });
 
@@ -1417,18 +1417,18 @@ test('mcp: apply endpoint can commit multiple preview tokens in one sync push', 
   const data = await res.json();
   assert.equal(data.status, 'applied');
   assert.equal(data.summary, 'Applied 2 previewed collection changes');
-  assert.equal(state.snapshot.app.containers['box:bulk'].type, 'box');
-  assert.equal(state.snapshot.app.containers['binder:trades'].type, 'binder');
+  assert.equal(state.snapshot.app.containers['container:bulk'].type, 'container');
+  assert.equal(state.snapshot.app.containers['container:trades'].type, 'container');
   assert.equal(state.snapshot.history.length, 2);
-  assert.ok(state.snapshot.history[0].mcp.beforeSnapshot.app.containers['box:bulk']);
-  assert.equal(state.snapshot.history[1].mcp.beforeSnapshot.app.containers['box:bulk'], undefined);
+  assert.ok(state.snapshot.history[0].mcp.beforeSnapshot.app.containers['container:bulk']);
+  assert.equal(state.snapshot.history[1].mcp.beforeSnapshot.app.containers['container:bulk'], undefined);
 });
 
 test('mcp: deleting a non-empty storage container clears locations without deleting cards', async () => {
-  const entry = card({ location: { type: 'binder', name: 'trade' } });
+  const entry = card({ location: { type: 'container', name: 'trade' } });
   const snapshot = emptySnapshot({
     collection: [entry],
-    containers: { 'binder:trade': { type: 'binder', name: 'trade' } },
+    containers: { 'binder:trade': { type: 'container', name: 'trade' } },
   });
   const { env, state } = fakeSyncEnv(snapshot);
   const token = await issueMcpToken(env);
@@ -1442,7 +1442,7 @@ test('mcp: deleting a non-empty storage container clears locations without delet
   assert.equal(applied.result.structuredContent.status, 'applied');
   assert.equal(state.snapshot.app.collection.length, 1);
   assert.equal(state.snapshot.app.collection[0].location, null);
-  assert.equal(state.snapshot.app.containers['binder:trade'], undefined);
+  assert.equal(state.snapshot.app.containers['container:trade'], undefined);
 });
 
 test('mcp chat: provider API key is not persisted or echoed in errors', async () => {
@@ -1646,12 +1646,12 @@ test('mcp chat: hosted Cloudflare Workers AI uses the local preview tool loop', 
         setCode: 'mul',
         cn: '86',
         finish: 'foil',
-        location: { type: 'binder', name: 'trade binder' },
+        location: { type: 'container', name: 'trade binder' },
         price: 55,
       }),
     ],
     containers: {
-      'binder:trade binder': { type: 'binder', name: 'trade binder' },
+      'container:trade binder': { type: 'container', name: 'trade binder' },
     },
   });
   const { env } = fakeSyncEnv(snapshot);
@@ -1724,12 +1724,12 @@ test('mcp chat: hosted Cloudflare can preview combined inventory edits', async (
         cn: '50',
         finish: 'normal',
         finishes: ['nonfoil', 'foil'],
-        location: { type: 'box', name: 'bulk' },
+        location: { type: 'container', name: 'bulk' },
       }),
     ],
     containers: {
-      'box:bulk': { type: 'box', name: 'bulk' },
-      'binder:trade binder': { type: 'binder', name: 'trade binder' },
+      'container:bulk': { type: 'container', name: 'bulk' },
+      'container:trade binder': { type: 'container', name: 'trade binder' },
     },
   });
   const { env } = fakeSyncEnv(snapshot);
@@ -1794,12 +1794,12 @@ test('mcp chat: hosted Cloudflare does not duplicate plain move previews', async
         setCode: 'kld',
         cn: '50',
         finish: 'normal',
-        location: { type: 'box', name: 'bulk' },
+        location: { type: 'container', name: 'bulk' },
       }),
     ],
     containers: {
-      'box:bulk': { type: 'box', name: 'bulk' },
-      'binder:trade binder': { type: 'binder', name: 'trade binder' },
+      'container:bulk': { type: 'container', name: 'bulk' },
+      'container:trade binder': { type: 'container', name: 'trade binder' },
     },
   });
   const { env } = fakeSyncEnv(snapshot);
@@ -1844,13 +1844,13 @@ test('mcp chat: hosted Cloudflare does not duplicate plain move previews', async
     assert.equal(data.text, 'Preview ready below.');
     assert.equal(data.previews.length, 1);
     assert.equal(data.previews[0].previewType, 'inventory.edit');
-    assert.match(data.previews[0].summary, /Moved 1 Glint-Nest Crane to \{loc:binder:trade binder\}/);
+    assert.match(data.previews[0].summary, /Moved 1 Glint-Nest Crane to \{loc:container:trade binder\}/);
     assert.equal(
       data.previews[0].card.itemKey,
-      collectionKey({ ...snapshot.app.collection[0], location: { type: 'binder', name: 'trade binder' } })
+      collectionKey({ ...snapshot.app.collection[0], location: { type: 'container', name: 'trade binder' } })
     );
     assert.equal(data.previews[0].card.sourceItemKey, collectionKey(snapshot.app.collection[0]));
-    assert.deepEqual(data.previews[0].card.location, { type: 'binder', name: 'trade binder' });
+    assert.deepEqual(data.previews[0].card.location, { type: 'container', name: 'trade binder' });
     assert.deepEqual(data.raw.output.map(item => item.name), ['preview_move_inventory_item']);
   } finally {
     globalThis.fetch = originalFetch;
@@ -1866,13 +1866,13 @@ test('mcp chat: hosted Cloudflare follow-up edit uses the previous card context'
     cn: '50',
     finish: 'normal',
     finishes: ['nonfoil', 'foil'],
-    location: { type: 'box', name: 'bulk' },
+    location: { type: 'container', name: 'bulk' },
   });
   const snapshot = emptySnapshot({
     collection: [entry],
     containers: {
-      'box:bulk': { type: 'box', name: 'bulk' },
-      'binder:trade binder': { type: 'binder', name: 'trade binder' },
+      'container:bulk': { type: 'container', name: 'bulk' },
+      'container:trade binder': { type: 'container', name: 'trade binder' },
     },
   });
   const { env } = fakeSyncEnv(snapshot);
@@ -1922,13 +1922,13 @@ test('mcp chat: hosted Cloudflare follow-up edit uses the previous card context'
     assert.equal(data.previews.length, 1);
     assert.equal(data.previews[0].previewType, 'inventory.edit');
     assert.match(data.previews[0].summary, /Glint-Nest Crane/);
-    assert.match(data.previews[0].summary, /\{loc:binder:trade binder\}/);
+    assert.match(data.previews[0].summary, /\{loc:container:trade binder\}/);
     assert.match(data.previews[0].summary, /finish normal to foil/);
-    assert.deepEqual(data.previews[0].card.location, { type: 'binder', name: 'trade binder' });
+    assert.deepEqual(data.previews[0].card.location, { type: 'container', name: 'trade binder' });
     assert.equal(data.previews[0].card.finish, 'foil');
     assert.equal(data.cards.length, 1);
     assert.equal(data.cards[0].name, 'Glint-Nest Crane');
-    assert.deepEqual(data.cards[0].location, { type: 'binder', name: 'trade binder' });
+    assert.deepEqual(data.cards[0].location, { type: 'container', name: 'trade binder' });
     assert.deepEqual(data.previewWarnings, []);
     assert.deepEqual(data.raw.output.map(item => item.name), [
       'preview_edit_inventory_item',
@@ -1948,13 +1948,13 @@ test('mcp chat: hosted Cloudflare prunes visible transcript history before provi
     setCode: 'kld',
     cn: '50',
     finish: 'normal',
-    location: { type: 'box', name: 'bulk' },
+    location: { type: 'container', name: 'bulk' },
   });
   const snapshot = emptySnapshot({
     collection: [entry],
     containers: {
-      'box:bulk': { type: 'box', name: 'bulk' },
-      'binder:trade binder': { type: 'binder', name: 'trade binder' },
+      'container:bulk': { type: 'container', name: 'bulk' },
+      'container:trade binder': { type: 'container', name: 'trade binder' },
     },
   });
   const { env } = fakeSyncEnv(snapshot);
@@ -2010,13 +2010,13 @@ test('mcp chat: hosted Cloudflare uses structured operation context for follow-u
     cn: '50',
     finish: 'normal',
     finishes: ['nonfoil', 'foil'],
-    location: { type: 'box', name: 'bulk' },
+    location: { type: 'container', name: 'bulk' },
   });
   const snapshot = emptySnapshot({
     collection: [entry],
     containers: {
-      'box:bulk': { type: 'box', name: 'bulk' },
-      'binder:trade binder': { type: 'binder', name: 'trade binder' },
+      'container:bulk': { type: 'container', name: 'bulk' },
+      'container:trade binder': { type: 'container', name: 'trade binder' },
     },
   });
   const { env } = fakeSyncEnv(snapshot);
@@ -2061,8 +2061,8 @@ test('mcp chat: hosted Cloudflare uses structured operation context for follow-u
           lastUserRequest: 'move my glint nest crane to my trade binder',
           pendingPreviews: [{
             previewType: 'inventory.edit',
-            summary: 'Moved 1 Glint-Nest Crane to {loc:binder:trade binder}',
-            card: { ...entry, itemKey: collectionKey(entry), location: { type: 'binder', name: 'trade binder' } },
+            summary: 'Moved 1 Glint-Nest Crane to {loc:container:trade binder}',
+            card: { ...entry, itemKey: collectionKey(entry), location: { type: 'container', name: 'trade binder' } },
           }],
         },
       }),
@@ -2072,7 +2072,7 @@ test('mcp chat: hosted Cloudflare uses structured operation context for follow-u
     assert.ok(firstPayload.messages.some(message => /Active operation context/.test(message.content)));
     assert.equal(data.previews.length, 1);
     assert.equal(data.previews[0].previewType, 'inventory.edit');
-    assert.match(data.previews[0].summary, /\{loc:binder:trade binder\}/);
+    assert.match(data.previews[0].summary, /\{loc:container:trade binder\}/);
     assert.match(data.previews[0].summary, /finish normal to foil/);
     assert.deepEqual(data.previewWarnings, []);
   } finally {
@@ -2088,13 +2088,13 @@ test('mcp chat: Cloudflare sends compact tool results back to the model', async 
     setCode: 'kld',
     cn: '50',
     finish: 'normal',
-    location: { type: 'box', name: 'bulk' },
+    location: { type: 'container', name: 'bulk' },
   });
   const snapshot = emptySnapshot({
     collection: [entry],
     containers: {
-      'box:bulk': { type: 'box', name: 'bulk' },
-      'binder:trade binder': { type: 'binder', name: 'trade binder' },
+      'container:bulk': { type: 'container', name: 'bulk' },
+      'container:trade binder': { type: 'container', name: 'trade binder' },
     },
   });
   const { env } = fakeSyncEnv(snapshot);
@@ -2162,12 +2162,12 @@ test('mcp chat: Cloudflare 3030 after finding a card recovers a combined edit pr
         cn: '50',
         finish: 'normal',
         finishes: ['nonfoil', 'foil'],
-        location: { type: 'box', name: 'bulk' },
+        location: { type: 'container', name: 'bulk' },
       }),
     ],
     containers: {
-      'box:bulk': { type: 'box', name: 'bulk' },
-      'binder:trade binder': { type: 'binder', name: 'trade binder' },
+      'container:bulk': { type: 'container', name: 'bulk' },
+      'container:trade binder': { type: 'container', name: 'trade binder' },
     },
   });
   const { env } = fakeSyncEnv(snapshot);
@@ -2212,7 +2212,7 @@ test('mcp chat: Cloudflare 3030 after finding a card recovers a combined edit pr
     assert.equal(data.previews.length, 1);
     assert.equal(data.previews[0].previewType, 'inventory.edit');
     assert.match(data.previews[0].summary, /Updated 1 Glint-Nest Crane/);
-    assert.match(data.previews[0].summary, /\{loc:binder:trade binder\}/);
+    assert.match(data.previews[0].summary, /\{loc:container:trade binder\}/);
     assert.match(data.previews[0].summary, /finish normal to foil/);
     assert.equal(data.raw.provider_error, '3030: internal server error');
   } finally {
@@ -2289,11 +2289,11 @@ test('mcp chat: delete from collection recovers from destination-style confusion
     setCode: 'sld',
     cn: '303',
     finish: 'foil',
-    location: { type: 'box', name: 'bulk' },
+    location: { type: 'container', name: 'bulk' },
   });
   const snapshot = emptySnapshot({
     collection: [entry],
-    containers: { 'box:bulk': { type: 'box', name: 'bulk' } },
+    containers: { 'container:bulk': { type: 'container', name: 'bulk' } },
   });
   const { env } = fakeSyncEnv(snapshot);
   env.MTGCOLLECTION_CHAT_PROVIDER = 'cloudflare';
@@ -2348,11 +2348,11 @@ test('mcp chat: another same style recovers to same-stack add preview', async ()
     scryfallId: 'force-of-will-1',
     setCode: '2xm',
     cn: '51',
-    location: { type: 'binder', name: 'trade binder' },
+    location: { type: 'container', name: 'trade binder' },
   });
   const snapshot = emptySnapshot({
     collection: [entry],
-    containers: { 'binder:trade binder': { type: 'binder', name: 'trade binder' } },
+    containers: { 'container:trade binder': { type: 'container', name: 'trade binder' } },
   });
   const { env } = fakeSyncEnv(snapshot);
   env.MTGCOLLECTION_CHAT_PROVIDER = 'cloudflare';
@@ -2412,12 +2412,12 @@ test('mcp chat: Cloudflare wrong add-miss prose after finding a card recovers ed
         cn: '50',
         finish: 'normal',
         finishes: ['nonfoil', 'foil'],
-        location: { type: 'box', name: 'bulk' },
+        location: { type: 'container', name: 'bulk' },
       }),
     ],
     containers: {
-      'box:bulk': { type: 'box', name: 'bulk' },
-      'binder:trade binder': { type: 'binder', name: 'trade binder' },
+      'container:bulk': { type: 'container', name: 'bulk' },
+      'container:trade binder': { type: 'container', name: 'trade binder' },
     },
   });
   const { env } = fakeSyncEnv(snapshot);
@@ -2463,7 +2463,7 @@ test('mcp chat: Cloudflare wrong add-miss prose after finding a card recovers ed
     assert.equal(data.previews.length, 1);
     assert.equal(data.previews[0].previewType, 'inventory.edit');
     assert.match(data.previews[0].summary, /Updated 1 Glint-Nest Crane/);
-    assert.match(data.previews[0].summary, /\{loc:binder:trade binder\}/);
+    assert.match(data.previews[0].summary, /\{loc:container:trade binder\}/);
     assert.match(data.previews[0].summary, /finish normal to foil/);
     assert.equal(data.raw.raw_response.recovery_reason, 'mutation_preview_from_inventory_result');
   } finally {
@@ -2481,12 +2481,12 @@ test('mcp chat: preview results override contradictory provider failure prose', 
         setCode: 'kld',
         cn: '110',
         finish: 'normal',
-        location: { type: 'box', name: 'bulk' },
+        location: { type: 'container', name: 'bulk' },
       }),
     ],
     containers: {
-      'box:bulk': { type: 'box', name: 'bulk' },
-      'binder:trade binder': { type: 'binder', name: 'trade binder' },
+      'container:bulk': { type: 'container', name: 'bulk' },
+      'container:trade binder': { type: 'container', name: 'trade binder' },
     },
   });
   const { env } = fakeSyncEnv(snapshot);
@@ -2549,12 +2549,12 @@ test('mcp chat: Cloudflare recovers edit previews from user text after bad tool 
         setCode: 'kld',
         cn: '110',
         finish: 'normal',
-        location: { type: 'box', name: 'bulk' },
+        location: { type: 'container', name: 'bulk' },
       }),
     ],
     containers: {
-      'box:bulk': { type: 'box', name: 'bulk' },
-      'binder:trade binder': { type: 'binder', name: 'trade binder' },
+      'container:bulk': { type: 'container', name: 'bulk' },
+      'container:trade binder': { type: 'container', name: 'trade binder' },
     },
   });
   const { env } = fakeSyncEnv(snapshot);
@@ -2604,7 +2604,7 @@ test('mcp chat: Cloudflare recovers edit previews from user text after bad tool 
     assert.equal(data.previews[0].previewType, 'inventory.edit');
     assert.equal(data.previews[0].card.name, 'Chandra, Torch of Defiance');
     assert.equal(data.previews[0].card.condition, 'lightly_played');
-    assert.deepEqual(data.previews[0].card.location, { type: 'binder', name: 'trade binder' });
+    assert.deepEqual(data.previews[0].card.location, { type: 'container', name: 'trade binder' });
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -2619,13 +2619,13 @@ test('mcp chat: incomplete edit previews are replaced with a preview that covers
     cn: '50',
     finish: 'normal',
     finishes: ['nonfoil', 'foil'],
-    location: { type: 'box', name: 'bulk' },
+    location: { type: 'container', name: 'bulk' },
   });
   const snapshot = emptySnapshot({
     collection: [entry],
     containers: {
-      'box:bulk': { type: 'box', name: 'bulk' },
-      'binder:trade binder': { type: 'binder', name: 'trade binder' },
+      'container:bulk': { type: 'container', name: 'bulk' },
+      'container:trade binder': { type: 'container', name: 'trade binder' },
     },
   });
   const { env } = fakeSyncEnv(snapshot);
@@ -2673,7 +2673,7 @@ test('mcp chat: incomplete edit previews are replaced with a preview that covers
     assert.equal(data.previews[0].previewType, 'inventory.edit');
     assert.equal(data.previews[0].card.name, 'Glint-Nest Crane');
     assert.equal(data.previews[0].card.finish, 'foil');
-    assert.deepEqual(data.previews[0].card.location, { type: 'binder', name: 'trade binder' });
+    assert.deepEqual(data.previews[0].card.location, { type: 'container', name: 'trade binder' });
     assert.deepEqual(data.previewWarnings, []);
   } finally {
     globalThis.fetch = originalFetch;
@@ -2689,11 +2689,11 @@ test('mcp chat: printing swap recovers from finish-only preview', async () => {
     setName: 'Return to Ravnica',
     cn: '35',
     finish: 'normal',
-    location: { type: 'box', name: 'bulk' },
+    location: { type: 'container', name: 'bulk' },
   });
   const snapshot = emptySnapshot({
     collection: [entry],
-    containers: { 'box:bulk': { type: 'box', name: 'bulk' } },
+    containers: { 'container:bulk': { type: 'container', name: 'bulk' } },
   });
   const { env } = fakeSyncEnv(snapshot);
   env.MTGCOLLECTION_CHAT_PROVIDER = 'cloudflare';
@@ -2782,7 +2782,7 @@ test('mcp chat: printing swap recovers from finish-only preview', async () => {
 test('mcp chat: exact add requests can recover from search-only Cloudflare tool use', async () => {
   const snapshot = emptySnapshot({
     containers: {
-      'box:bulk': { type: 'box', name: 'bulk' },
+      'container:bulk': { type: 'container', name: 'bulk' },
     },
   });
   const { env } = fakeSyncEnv(snapshot);
@@ -2881,7 +2881,7 @@ test('mcp chat: exact add requests can recover from search-only Cloudflare tool 
     assert.equal(data.previews[0].card.cn, '400');
     assert.equal(data.previews[0].card.qty, 2);
     assert.equal(data.previews[0].card.finish, 'normal');
-    assert.deepEqual(data.previews[0].card.location, { type: 'box', name: 'bulk' });
+    assert.deepEqual(data.previews[0].card.location, { type: 'container', name: 'bulk' });
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -2925,7 +2925,7 @@ test('mcp chat: Cloudflare recovers natural-language create container requests f
     const data = await res.json();
     assert.equal(data.text, 'Preview ready below.');
     assert.equal(data.previews.length, 1);
-    assert.match(data.previews[0].summary, /\{loc:box:prize support\}/);
+    assert.match(data.previews[0].summary, /\{loc:container:prize support\}/);
     assert.equal(data.raw.output.filter(item => item.name === 'preview_create_container').length, 2);
   } finally {
     globalThis.fetch = originalFetch;
@@ -3112,7 +3112,7 @@ test('mcp chat: inventory read results are returned as app-renderable cards', as
       condition: 'near_mint',
       language: 'en',
       qty: 1,
-      location: { type: 'binder', name: 'trade binder' },
+      location: { type: 'container', name: 'trade binder' },
       tags: ['spells'],
       price: 0.26,
     }],
@@ -3141,7 +3141,7 @@ test('mcp chat: inventory read results are returned as app-renderable cards', as
     assert.equal(data.cards.length, 1);
     assert.equal(data.cards[0].itemKey, 'card-1');
     assert.equal(data.cards[0].name, 'Maelstrom Artisan // Rocket Volley');
-    assert.deepEqual(data.cards[0].location, { type: 'binder', name: 'trade binder' });
+    assert.deepEqual(data.cards[0].location, { type: 'container', name: 'trade binder' });
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -3163,7 +3163,7 @@ test('mcp chat: inventory cards drop placeholders and respect requested finish',
       condition: 'near_mint',
       language: 'en',
       qty: 1,
-      location: { type: 'box', name: 'bulk' },
+      location: { type: 'container', name: 'bulk' },
     }, {
       itemKey: 'card-normal',
       name: 'Ancient Tomb',
@@ -3174,7 +3174,7 @@ test('mcp chat: inventory cards drop placeholders and respect requested finish',
       condition: 'near_mint',
       language: 'en',
       qty: 1,
-      location: { type: 'binder', name: 'trade binder' },
+      location: { type: 'container', name: 'trade binder' },
     }],
   };
   globalThis.fetch = async () => Response.json({
@@ -3226,7 +3226,7 @@ test('mcp chat: inventory card results replace provider prose with a short summa
       condition: 'near_mint',
       language: 'en',
       qty: 1,
-      location: { type: 'box', name: 'bulk' },
+      location: { type: 'container', name: 'bulk' },
     }, {
       itemKey: 'card-foil-2',
       name: 'Ragavan, Nimble Pilferer',
@@ -3237,7 +3237,7 @@ test('mcp chat: inventory card results replace provider prose with a short summa
       condition: 'near_mint',
       language: 'en',
       qty: 1,
-      location: { type: 'binder', name: 'trade binder' },
+      location: { type: 'container', name: 'trade binder' },
     }],
   };
   globalThis.fetch = async () => Response.json({
@@ -3352,7 +3352,7 @@ test('mcp chat: move follow-ups keep the question while returning referenced car
       condition: 'near_mint',
       language: 'en',
       qty: 1,
-      location: { type: 'binder', name: 'trade binder' },
+      location: { type: 'container', name: 'trade binder' },
       price: 75.04,
     },
   };
@@ -3380,7 +3380,7 @@ test('mcp chat: move follow-ups keep the question while returning referenced car
     assert.equal(data.text, 'I can help move **Force of Will** out of your trade binder. Where should it go?');
     assert.equal(data.cards.length, 1);
     assert.equal(data.cards[0].name, 'Force of Will');
-    assert.deepEqual(data.cards[0].location, { type: 'binder', name: 'trade binder' });
+    assert.deepEqual(data.cards[0].location, { type: 'container', name: 'trade binder' });
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -3402,7 +3402,7 @@ test('mcp chat: price ranking questions use returned card prices', async () => {
       condition: 'near_mint',
       language: 'en',
       qty: 1,
-      location: { type: 'box', name: 'bulk' },
+      location: { type: 'container', name: 'bulk' },
       price: 1,
     }, {
       itemKey: 'chase-card',
@@ -3414,7 +3414,7 @@ test('mcp chat: price ranking questions use returned card prices', async () => {
       condition: 'near_mint',
       language: 'en',
       qty: 1,
-      location: { type: 'binder', name: 'trade binder' },
+      location: { type: 'container', name: 'trade binder' },
       price: 42.25,
     }],
   };
@@ -3463,7 +3463,7 @@ test('mcp chat: single-card value questions answer directly from returned price'
       condition: 'near_mint',
       language: 'en',
       qty: 1,
-      location: { type: 'binder', name: 'trade binder' },
+      location: { type: 'container', name: 'trade binder' },
       price: 129.85,
       totalValue: 129.85,
     }],
@@ -3504,13 +3504,13 @@ test('mcp chat: container count questions use returned container stats', async (
   const containers = {
     revision: 12,
     containers: [{
-      key: 'box:bulk',
-      type: 'box',
+      key: 'container:bulk',
+      type: 'container',
       name: 'bulk',
       stats: { unique: 2, total: 3, value: 1.25 },
     }, {
-      key: 'binder:trade binder',
-      type: 'binder',
+      key: 'container:trade binder',
+      type: 'container',
       name: 'trade binder',
       stats: { unique: 17, total: 23, value: 456.78 },
     }],
@@ -3551,8 +3551,8 @@ test('mcp chat: container price ranking questions use returned card prices', asy
     revision: 12,
     found: true,
     container: {
-      key: 'binder:trade binder',
-      type: 'binder',
+      key: 'container:trade binder',
+      type: 'container',
       name: 'trade binder',
     },
     stats: { unique: 28, total: 28, value: 205.25 },
@@ -3566,7 +3566,7 @@ test('mcp chat: container price ranking questions use returned card prices', asy
       condition: 'near_mint',
       language: 'en',
       qty: 1,
-      location: { type: 'binder', name: 'trade binder' },
+      location: { type: 'container', name: 'trade binder' },
       price: 0.25,
     }, {
       itemKey: 'binder-chase',
@@ -3578,7 +3578,7 @@ test('mcp chat: container price ranking questions use returned card prices', asy
       condition: 'near_mint',
       language: 'en',
       qty: 1,
-      location: { type: 'binder', name: 'trade binder' },
+      location: { type: 'container', name: 'trade binder' },
       price: 99.5,
     }],
   };
@@ -3796,7 +3796,7 @@ test('mcp chat: chat MCP token can preview but cannot apply', async () => {
     assert.equal(names.includes('apply_collection_change'), false);
     assert.equal(names.includes('undo_last_mcp_change'), false);
 
-    const preview = await callTool(env, mcpToken, 'preview_create_container', { type: 'box', name: 'demo' });
+    const preview = await callTool(env, mcpToken, 'preview_create_container', { type: 'container', name: 'demo' });
     assert.equal(preview.result.structuredContent.status, 'preview');
     const applied = await callTool(env, mcpToken, 'apply_collection_change', {
       changeToken: preview.result.structuredContent.changeToken,

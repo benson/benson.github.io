@@ -104,22 +104,22 @@ function currentDeckScope() {
 }
 
 function binderModeControlHtml(loc) {
-  if (loc.type !== 'binder' || state.shareSnapshot) return '';
-  return `<div class="segmented binder-mode-control" id="binderModeControl" aria-label="binder mode">
+  if (loc.type !== 'container' || state.shareSnapshot) return '';
+  return `<div class="segmented binder-mode-control" id="binderModeControl" aria-label="visual container mode">
     <button class="segment-btn active" type="button" data-binder-mode="view" aria-pressed="true">view</button>
     <button class="segment-btn" type="button" data-binder-mode="organize" aria-pressed="false">organize</button>
   </div>`;
 }
 
 function binderSummaryHtml(loc) {
-  return loc.type === 'binder'
+  return loc.type === 'container'
     ? '<span class="container-identity-spacer"></span><span class="binder-summary" id="binderSummary"></span>'
     : '';
 }
 
 export function containerIdentityHtml(loc) {
   const icon = LOC_ICONS[loc.type] || '';
-  const editable = !state.shareSnapshot && (loc.type !== 'binder' || state.binderMode === 'organize');
+  const editable = !state.shareSnapshot && (loc.type !== 'container' || state.binderMode === 'organize');
   const name = editable
     ? `<button class="container-identity-name" type="button" data-container-rename data-loc-type="${esc(loc.type)}" data-loc-name="${esc(loc.name)}" aria-label="edit ${esc(loc.type)} name: ${esc(loc.name)}" title="edit ${esc(loc.type)} name">${esc(loc.name)}<span class="container-identity-edit-cue">edit</span></button>`
     : `<span class="container-identity-name-static">${esc(loc.name)}</span>`;
@@ -172,7 +172,7 @@ function syncContainerIdentityStrip(containers = []) {
   if (!strip) return;
   const loc = getActiveLocation();
   const exists = loc && containers.some(c => c.type === loc.type && c.name === loc.name);
-  if (!exists || (loc.type !== 'binder' && loc.type !== 'box')) {
+  if (!exists || loc.type !== 'container') {
     strip.classList.add('hidden');
     strip.innerHTML = '';
     return;
@@ -288,7 +288,7 @@ function setDecksHomeTotals(containers, filters) {
 }
 
 function setStorageHomeTotals(containers, filters) {
-  const storage = containers.filter(c => c.type === 'binder' || c.type === 'box');
+  const storage = containers.filter(c => c.type === 'container');
   const filteredStorage = storage.filter(c => storageMatchesHomeFilters(c, filters));
   const filteredActive = hasStorageHomeFilter(filters);
   setTotalsStrip(renderCountValueTotals({
@@ -396,13 +396,12 @@ export function render() {
     binderSizeCtl.classList.remove('hidden');
     renderBinderView(list, {
       container: currentBinderContainer(),
-      hasActiveFilter: () => !!getActiveLocationOfType('binder') || hasActiveFilter(),
+      hasActiveFilter: () => !!getActiveLocationOfType('container') || hasActiveFilter(),
       renderEmptyScopeState,
     });
     setTotalsStrip('');
   } else {
-    // 'collection' or 'box' — both render as flat list. 'box' is just a
-    // collection view filtered to a single box container.
+    // 'collection' or list-shaped container — both render as flat inventory.
     listContainer.classList.add('active');
     const mode = state.collectionDisplayMode === 'visual' ? 'visual' : 'table';
     syncCollectionDisplayChrome(listContainer, mode);
@@ -420,13 +419,12 @@ export function render() {
   updateBulkBar();
 }
 
-// Shape bar: shows the auto-shape and a toggle to override to list.
-// Now binder-only — the only shape with a meaningful "view as list" escape.
+// Shape bar: shows visual containers and a toggle to override to list.
 function syncViewAsListToggles() {
   const autoType = (() => {
     if (state.viewMode !== 'storage') return null;
     const loc = getActiveLocation();
-    return loc?.type === 'binder' ? loc.type : null;
+    return loc?.type === 'container' ? loc.type : null;
   })();
   const bar = document.getElementById('shapeBar');
   if (!bar) return;
@@ -436,9 +434,9 @@ function syncViewAsListToggles() {
   const btn = bar.querySelector('[data-view-as-list]');
   if (state.viewAsList) {
     label.textContent = 'showing as list';
-    btn.textContent = 'back to ' + autoType + ' view';
+    btn.textContent = 'back to visual view';
   } else {
-    label.textContent = 'showing as ' + autoType;
+    label.textContent = 'showing as visual';
     btn.textContent = 'view as list';
   }
   btn.setAttribute('aria-pressed', state.viewAsList ? 'true' : 'false');
@@ -456,7 +454,7 @@ function syncSortIndicator() {
 }
 
 function renderEmptyScopeState(targetEl, mode) {
-  const label = mode === 'binder' ? 'binder view' : 'deck view';
+  const label = mode === 'binder' ? 'visual container view' : 'deck view';
   const locations = allCollectionLocations();
   if (locations.length === 0) {
     targetEl.innerHTML = `<div class="deck-empty-state">
@@ -464,7 +462,7 @@ function renderEmptyScopeState(targetEl, mode) {
     </div>`;
     return;
   }
-  const TYPE_HEADERS = { deck: 'decks', binder: 'binders', box: 'boxes' };
+  const TYPE_HEADERS = { deck: 'decks', container: 'containers' };
   const groups = LOCATION_TYPES.map(type => {
     const ofType = locations.filter(l => l.type === type);
     if (ofType.length === 0) return '';
@@ -495,7 +493,7 @@ function currentDeckContainer() {
 }
 
 function currentBinderContainer() {
-  const loc = getActiveLocationOfType('binder');
+  const loc = getActiveLocationOfType('container');
   return loc ? ensureContainer(loc) : null;
 }
 

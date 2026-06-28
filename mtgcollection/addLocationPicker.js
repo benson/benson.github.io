@@ -7,8 +7,8 @@ import {
 import { esc } from './feedback.js';
 import { LOC_ICONS } from './ui/locationUi.js';
 
-export const ADD_LOCATION_TYPES = ['deck', 'binder', 'box'];
-export const ADD_LOCATION_DEFAULT = 'box';
+export const ADD_LOCATION_TYPES = ['deck', 'container'];
+export const ADD_LOCATION_DEFAULT = 'container';
 
 function locationTypeValue(doc, radioName = 'addLocationType') {
   const r = doc.querySelector(`input[name="${radioName}"]:checked`);
@@ -63,7 +63,7 @@ export function createAddLocationPicker({
       onChange();
       return;
     }
-    const TYPE_HEADERS = { deck: 'decks', binder: 'binders', box: 'boxes' };
+    const TYPE_HEADERS = { deck: 'decks', container: 'containers' };
     const locations = allKnownLocations();
     const html = [];
     for (const type of ADD_LOCATION_TYPES) {
@@ -74,7 +74,7 @@ export function createAddLocationPicker({
         const isSelected = !locationNewMode && selectedLocation
           && locationKey(selectedLocation) === locationKey(loc);
         html.push(`<button class="location-pill-btn${isSelected ? ' is-selected' : ''}" type="button" data-loc-type="${esc(loc.type)}" data-loc-name="${esc(loc.name)}">
-          <span class="loc-pill loc-pill-${esc(loc.type)}">${LOC_ICONS[loc.type]}<span>${esc(loc.name)}</span></span>
+          <span class="loc-pill loc-pill-${esc(loc.type)}">${LOC_ICONS[loc.type] || LOC_ICONS.container}<span>${esc(loc.name)}</span></span>
         </button>`);
       }
     }

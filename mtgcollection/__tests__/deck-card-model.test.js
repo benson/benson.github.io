@@ -42,7 +42,7 @@ const inventoryCard = (extra = {}) => ({
 
 test('buildDeckCardFromEntry: combines decklist identity with primary inventory details', () => {
   const collection = [
-    inventoryCard({ location: { type: 'box', name: 'bulk' }, finish: 'normal' }),
+    inventoryCard({ location: { type: 'container', name: 'bulk' }, finish: 'normal' }),
     inventoryCard(),
   ];
 

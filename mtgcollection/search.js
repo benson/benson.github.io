@@ -126,9 +126,9 @@ function matchToken(c, token) {
     case 'loc': {
       const loc = normalizeLocation(c.location);
       if (!loc) { result = false; break; }
-      const want = v.toLowerCase();
+      const want = v.toLowerCase().replace(/^(binder|box):/, 'container:');
       // Match against the joined "type:name" label so substrings of either
-      // field, AND the full typed label like "binder:rares", all match.
+      // field, AND the full typed label like "container:rares", all match.
       const label = loc.type + ':' + loc.name;
       result = label.includes(want);
       break;

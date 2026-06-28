@@ -279,8 +279,8 @@ test('app smoke: seed data, navigate routes, tweak deck, and draw a hand', async
 
   click(window, '[data-view="storage"]');
   await waitFor(() => window.document.body.classList.contains('view-storage-home'), 'storage home');
-  assert.ok(window.document.querySelector('.location-card[data-loc-type="box"][data-loc-name="bulk"]'));
-  assert.ok(window.document.querySelector('.location-card[data-loc-type="binder"][data-loc-name="trade binder"]'));
+  assert.ok(window.document.querySelector('.location-card[data-loc-type="container"][data-loc-name="bulk"]'));
+  assert.ok(window.document.querySelector('.location-card[data-loc-type="container"][data-loc-name="trade binder"]'));
 
   const visibleText = window.document.body.textContent;
   assert.doesNotMatch(visibleText, /\u00c2|\u00c3|\u00e2|\ufffd/);

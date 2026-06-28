@@ -75,7 +75,7 @@ test('buildLastAddInputFromCard: stores repeatable collector-number add context'
     finish: 'foil',
     condition: 'near_mint',
     qty: 2,
-    location: { type: 'box', name: 'bulk' },
+    location: { type: 'container', name: 'bulk' },
   }), {
     set: 'cmm',
     cn: '300',
@@ -83,6 +83,6 @@ test('buildLastAddInputFromCard: stores repeatable collector-number add context'
     foil: true,
     condition: 'near_mint',
     qty: 2,
-    location: { type: 'box', name: 'bulk' },
+    location: { type: 'container', name: 'bulk' },
   });
 });

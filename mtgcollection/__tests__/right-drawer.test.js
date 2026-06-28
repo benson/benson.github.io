@@ -21,12 +21,12 @@ test('createRightDrawer: card-browsing shapes open allowed panels in the overlay
     setSelectedLocation: loc => seeded.push(loc),
   });
 
-  drawer.open(['addDetails', 'otherPanel'], { seedLocation: { type: 'binder', name: 'trade binder' } });
+  drawer.open(['addDetails', 'otherPanel'], { seedLocation: { type: 'container', name: 'trade binder' } });
 
   assert.equal(documentRef.body.classList.contains('right-drawer-open'), true);
   assert.equal(documentRef.getElementById('addDetails').open, true);
   assert.equal(documentRef.getElementById('otherPanel').open, false);
-  assert.deepEqual(seeded, [{ type: 'binder', name: 'trade binder' }]);
+  assert.deepEqual(seeded, [{ type: 'container', name: 'trade binder' }]);
   assert.equal(drawer.isOpen(), true);
 });
 

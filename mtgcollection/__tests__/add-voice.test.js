@@ -76,7 +76,7 @@ test('buildVoiceAddOptions: normalizes add options, quantity, and location overr
     wantsFoil: true,
     qtyOverride: 3,
     locationOverride: 'deck breya',
-    lastUsedLocation: { type: 'box', name: 'bulk' },
+    lastUsedLocation: { type: 'container', name: 'bulk' },
     condition: 'LP',
     language: 'JA',
   });

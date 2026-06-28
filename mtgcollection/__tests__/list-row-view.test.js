@@ -34,8 +34,8 @@ test('locationCellHtml: renders an inline picker for unlocated cards', () => {
   const win = new Window();
   const wrap = win.document.createElement('div');
   state.collection = [
-    { location: { type: 'binder', name: 'trade binder' } },
-    { location: { type: 'box', name: 'bulk rares' } },
+    { location: { type: 'container', name: 'trade binder' } },
+    { location: { type: 'container', name: 'bulk rares' } },
   ];
   state.containers = {
     'deck:breya': { type: 'deck', name: 'breya' },
@@ -46,10 +46,10 @@ test('locationCellHtml: renders an inline picker for unlocated cards', () => {
   assert.equal(wrap.querySelector('.loc-picker-target').value, '');
   assert.deepEqual(
     [...wrap.querySelectorAll('.loc-picker-target option')].map(option => option.value),
-    ['', 'deck:breya', 'binder:trade binder', 'box:bulk rares', '__new__']
+    ['', 'deck:breya', 'container:bulk rares', 'container:trade binder', '__new__']
   );
   assert.equal(wrap.querySelector('.loc-picker-new').classList.contains('hidden'), true);
-  assert.equal(wrap.querySelector('.loc-picker-type option[value="box"]').hasAttribute('selected'), true);
+  assert.equal(wrap.querySelector('.loc-picker-type option[value="container"]').hasAttribute('selected'), true);
   assert.equal(wrap.querySelector('.loc-picker-name').getAttribute('placeholder'), 'new name');
 });
 
@@ -66,7 +66,7 @@ test('renderRow: renders selection, preview, tags, location, and price cells', (
     qty: 2,
     price: 3.5,
     imageUrl: 'https://img.test/sol.jpg',
-    location: { type: 'binder', name: 'trade binder' },
+    location: { type: 'container', name: 'trade binder' },
     tags: ['edh staple'],
   };
   state.collection = [c];
@@ -98,7 +98,7 @@ test('renderRow: exposes lookup metadata for rows missing a cached image', () =>
     qty: 1,
     price: null,
     imageUrl: '',
-    location: { type: 'box', name: '' },
+    location: { type: 'container', name: '' },
     tags: [],
   };
   state.collection = [c];

@@ -130,7 +130,7 @@ body.app-booting .app-boot-curtain {
         <div id="filterFoil" data-default-label="All finishes" data-noun="finishes"></div>
         <div id="filterLocation" data-default-label="All locations" data-noun="locations"></div>
         <div id="filterDeckFormat" class="deck-sidebar-filter hidden" data-default-label="All deck formats" data-noun="formats"></div>
-        <div id="filterStorageType" class="storage-sidebar-filter hidden" data-default-label="All container types" data-noun="types"></div>
+        <div id="filterStorageType" class="storage-sidebar-filter hidden" data-default-label="All default views" data-noun="views"></div>
         <datalist id="locationOptions"></datalist>
         <datalist id="rowTagOptions"></datalist>
         <div id="filterTag" data-default-label="Filter by tag" data-noun="tags"></div>
@@ -223,7 +223,7 @@ body.app-booting .app-boot-curtain {
       <div class="binder-view" id="binderView">
         <div class="binder-actions">
           <div class="binder-actions-primary">
-            <div class="segmented" id="binderSizeControl" aria-label="binder layout">
+            <div class="segmented" id="binderSizeControl" aria-label="visual container layout">
               <button class="segment-btn" type="button" data-binder-size="4x3" aria-pressed="true">4x3</button>
               <button class="segment-btn" type="button" data-binder-size="3x3" aria-pressed="false">3x3</button>
               <button class="segment-btn" type="button" data-binder-size="2x2" aria-pressed="false">2x2</button>
@@ -232,17 +232,17 @@ body.app-booting .app-boot-curtain {
             <label class="binder-price-toggle"><input type="checkbox" id="binderPriceToggle" checked> prices</label>
             <label class="binder-control-field binder-sort-field"><span class="binder-control-label">sort</span>
               <select id="binderSortSelect">
-                <option value="binder">binder order</option>
+                <option value="binder">container order</option>
                 <option value="name">name</option>
                 <option value="price-desc">highest value</option>
                 <option value="price-asc">lowest value</option>
                 <option value="recent">recently added</option>
               </select>
             </label>
-            <input class="binder-search-input" id="binderSearchInput" type="search" placeholder="search binder" autocomplete="off">
+            <input class="binder-search-input" id="binderSearchInput" type="search" placeholder="search container" autocomplete="off">
             <details class="binder-filter-menu" id="binderFilterMenu">
               <summary class="binder-filter-trigger">filters</summary>
-              <div class="binder-explore-controls" id="binderExploreControls" aria-label="binder filters">
+              <div class="binder-explore-controls" id="binderExploreControls" aria-label="container filters">
                 <label class="binder-control-field">color
                   <select id="binderColorFilter">
                     <option value="">all colors</option>
@@ -266,7 +266,7 @@ body.app-booting .app-boot-curtain {
                     <option value="spell">instants/sorceries</option>
                   </select>
                 </label>
-                <button class="btn btn-secondary binder-lens-reset hidden" type="button" id="binderLensReset">restore binder order</button>
+                <button class="btn btn-secondary binder-lens-reset hidden" type="button" id="binderLensReset">restore container order</button>
               </div>
             </details>
           </div>

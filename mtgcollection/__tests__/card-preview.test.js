@@ -141,7 +141,7 @@ test('card preview renders collection entry details beside the image', () => {
   link.dataset.previewEntryCondition = 'nm';
   link.dataset.previewEntryLanguage = 'en';
   link.dataset.previewEntryQty = '1';
-  link.dataset.previewEntryLocation = 'box:bulk';
+  link.dataset.previewEntryLocation = 'container:bulk';
   link.dataset.previewEntryPrice = '$32.08';
 
   showCardPreview(link);
@@ -153,7 +153,7 @@ test('card preview renders collection entry details beside the image', () => {
   assert.match(info.textContent, /collection entry/);
   assert.match(info.textContent, /Mana Confluence/);
   assert.match(info.textContent, /JOU #163/);
-  assert.match(info.textContent, /box:bulk/);
+  assert.match(info.textContent, /container:bulk/);
 });
 
 test('initCardPreview: missing chrome fails softly', () => {

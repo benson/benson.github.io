@@ -21,7 +21,7 @@ test('renderCollectionVisualGrid: renders card art, name, qty, finish, location,
     qty: 2,
     price: 3.5,
     imageUrl: 'https://img.test/sol.jpg',
-    location: { type: 'box', name: 'bulk rares' },
+    location: { type: 'container', name: 'bulk rares' },
   };
 
   const wrap = parse(renderCollectionVisualGrid([card], [card]));
@@ -34,7 +34,7 @@ test('renderCollectionVisualGrid: renders card art, name, qty, finish, location,
   assert.equal(wrap.querySelector('.collection-visual-card-name').textContent, 'Sol Ring');
   assert.equal(wrap.querySelector('.collection-visual-card-qty').textContent, 'x2');
   assert.equal(wrap.querySelector('.collection-visual-card-finish').textContent, 'foil');
-  assert.equal(wrap.querySelector('.loc-pill').dataset.locType, 'box');
+  assert.equal(wrap.querySelector('.loc-pill').dataset.locType, 'container');
   assert.equal(wrap.querySelector('.loc-pill').dataset.locName, 'bulk rares');
   assert.equal(wrap.querySelector('.collection-visual-card-price').textContent, '$3.50');
 });

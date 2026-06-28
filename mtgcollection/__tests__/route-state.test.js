@@ -30,15 +30,20 @@ test('setActiveContainerRoute: deck containers enter the deck workspace', () => 
   assert.equal(state.deckSampleHand, null);
 });
 
-test('getEffectiveShape: storage containers distinguish binder and box routes', () => {
-  setActiveContainerRoute({ type: 'binder', name: 'trade binder' }, { syncFilter: false });
+test('getEffectiveShape: storage container display mode controls visual or list route', () => {
+  state.containers = {
+    'container:trade binder': { type: 'container', name: 'trade binder', displayMode: 'visual' },
+    'container:bulk': { type: 'container', name: 'bulk', displayMode: 'list' },
+  };
+
+  setActiveContainerRoute({ type: 'container', name: 'trade binder' }, { syncFilter: false });
   assert.equal(state.viewMode, 'storage');
   assert.equal(getEffectiveShape(), 'binder');
 
   state.viewAsList = true;
-  assert.equal(getEffectiveShape(), 'binder');
+  assert.equal(getEffectiveShape(), 'box');
 
-  setActiveContainerRoute({ type: 'box', name: 'bulk' }, { syncFilter: false });
+  setActiveContainerRoute({ type: 'container', name: 'bulk' }, { syncFilter: false });
   assert.equal(getEffectiveShape(), 'box');
 });
 
@@ -56,8 +61,8 @@ test('setTopLevelViewMode: clears active container and returns to home shapes', 
 
 test('readActiveLocationFromFilter: only a single selected location becomes route state', () => {
   assert.deepEqual(
-    readActiveLocationFromFilter({ dataset: { selected: JSON.stringify(['binder:trade binder']) } }),
-    { type: 'binder', name: 'trade binder' }
+    readActiveLocationFromFilter({ dataset: { selected: JSON.stringify(['container:trade binder']) } }),
+    { type: 'container', name: 'trade binder' }
   );
   assert.equal(
     readActiveLocationFromFilter({ dataset: { selected: JSON.stringify(['binder:a', 'box:b']) } }),
