@@ -2,7 +2,10 @@
 // bearer secret, so the file is 0600 inside a 0700 directory on POSIX. (Windows
 // relies on per-user ACLs; chmod is skipped there.)
 import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync, chmodSync } from 'node:fs';
+import { join } from 'node:path';
 import { credentialsPath, configPath, configDir } from './constants.mjs';
+
+const undoPath = () => join(configDir(), 'undo.json');
 
 const POSIX = process.platform !== 'win32';
 
@@ -39,3 +42,12 @@ export function saveConfig(config) {
   ensureDir();
   writeFileSync(configPath(), JSON.stringify(config, null, 2) + '\n', { mode: 0o600 });
 }
+
+export function saveUndo(record) {
+  ensureDir();
+  writeFileSync(undoPath(), JSON.stringify(record, null, 2) + '\n', { mode: 0o600 });
+}
+
+export function loadUndo() { return readJson(undoPath()); }
+
+export function clearUndo() { if (existsSync(undoPath())) rmSync(undoPath()); }
