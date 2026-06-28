@@ -7,27 +7,27 @@ const HELP_SECTIONS = [
     title: 'Start Here',
     kicker: 'the map',
     body: [
-      'Biblioplex tracks a Magic collection as physical inventory plus named containers.',
-      'Most of the app makes more sense once those two layers are separate in your head.',
+      'Biblioplex is built around three things you already use when managing Magic cards: inventory, containers, and decklists.',
+      'Inventory is the cards you physically own. Containers mirror the places those cards live. Decklists sit in the middle: they are plans for decks, because players often think deck-first even when the actual cards are stored somewhere else.',
     ],
     concepts: [
       {
         term: 'Inventory',
-        text: 'The physical card rows you own: printing, finish, condition, language, quantity, tags, price, and location.',
+        text: 'The Magic cards you physically own, grouped by exact printing, finish, condition, language, quantity, tags, price, and location.',
       },
       {
         term: 'Containers',
-        text: 'Named places cards can live: decks, binders, and boxes. Containers can exist before they hold inventory.',
+        text: 'Named places your cards live in real life: decks, binders, and boxes. Biblioplex mirrors those containers so the app can match your shelves, bags, and binders.',
       },
       {
         term: 'Decklists',
-        text: 'A deck container also has a logical list of cards. Inventory can fulfill that list, sit somewhere else, or be missing.',
+        text: 'Deck-first planning for the cards a deck wants. Owned cards can fulfill that plan, stay stored somewhere else, or still be missing.',
       },
     ],
     diagram: [
-      ['collection', 'all physical inventory rows'],
-      ['decks', 'deck containers with metadata and decklists'],
-      ['storage', 'binders and boxes for physical organization'],
+      ['collection', 'the Magic cards you physically own'],
+      ['decks', 'deck-first plans plus optional physical cards'],
+      ['storage', 'binders and boxes that mirror real storage'],
       ['history', 'scoped change log with undo'],
       ['sync', 'local-first data with optional cloud sync'],
     ],
