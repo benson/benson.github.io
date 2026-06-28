@@ -29,8 +29,11 @@ export function runQuery(collection, query = '', { sort = 'name', dir = 'asc', f
 // Parse a container reference like "deck:breya", "breya", or "binder:rares".
 // Returns { type, name } where type may be null if unqualified.
 export function parseContainerRef(ref) {
-  const m = String(ref || '').trim().match(/^(deck|binder|box)\s*[:]\s*(.+)$/i);
-  if (m) return { type: m[1].toLowerCase(), name: m[2].trim().toLowerCase() };
+  const m = String(ref || '').trim().match(/^(deck|container|binder|box)\s*[:]\s*(.+)$/i);
+  if (m) {
+    const t = m[1].toLowerCase();
+    return { type: t === 'deck' ? 'deck' : 'container', name: m[2].trim().toLowerCase() };
+  }
   return { type: null, name: String(ref || '').trim().toLowerCase() };
 }
 

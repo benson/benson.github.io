@@ -33,16 +33,16 @@ test('buildLocationTypeRadios: renders typed physical destination choices', () =
 
   assert.deepEqual(
     [...doc.querySelectorAll('input[name="addLocationType"]')].map(input => input.value),
-    ['deck', 'binder', 'box']
+    ['deck', 'container']
   );
-  assert.equal(doc.querySelector('input[name="addLocationType"]:checked').value, 'box');
+  assert.equal(doc.querySelector('input[name="addLocationType"]:checked').value, 'container');
 });
 
 test('add location picker: selects existing locations and reads them back', () => {
   const doc = installDom();
   state.collection = [
     { location: { type: 'deck', name: 'breya' } },
-    { location: { type: 'binder', name: 'trade binder' } },
+    { location: { type: 'container', name: 'trade binder' } },
   ];
   let changed = 0;
   const picker = createAddLocationPicker({ doc, onChange: () => { changed++; } });
@@ -63,12 +63,12 @@ test('add location picker: seeds unknown locations into new-location mode', () =
   const picker = createAddLocationPicker({ doc });
   picker.buildTypeRadios();
 
-  picker.seed({ type: 'box', name: 'bulk rares' });
+  picker.seed({ type: 'container', name: 'bulk rares' });
 
   assert.equal(doc.getElementById('addLocationNewBox').classList.contains('hidden'), false);
-  assert.equal(doc.querySelector('input[name="addLocationType"]:checked').value, 'box');
+  assert.equal(doc.querySelector('input[name="addLocationType"]:checked').value, 'container');
   assert.equal(doc.getElementById('addLocationName').value, 'bulk rares');
-  assert.deepEqual(picker.readLocation(), { type: 'box', name: 'bulk rares' });
+  assert.deepEqual(picker.readLocation(), { type: 'container', name: 'bulk rares' });
 });
 
 test('add location picker: snapshots and restores new-location state', () => {
@@ -77,12 +77,12 @@ test('add location picker: snapshots and restores new-location state', () => {
   const picker = createAddLocationPicker({ doc });
   picker.buildTypeRadios();
 
-  picker.seed({ type: 'binder', name: 'new binder' });
+  picker.seed({ type: 'container', name: 'new binder' });
   const snap = picker.snapshot();
   picker.setSelectedLocation({ type: 'deck', name: 'breya' });
   picker.restore(snap);
 
-  assert.equal(doc.querySelector('input[name="addLocationType"]:checked').value, 'binder');
+  assert.equal(doc.querySelector('input[name="addLocationType"]:checked').value, 'container');
   assert.equal(doc.getElementById('addLocationName').value, 'new binder');
-  assert.deepEqual(picker.readLocation(), { type: 'binder', name: 'new binder' });
+  assert.deepEqual(picker.readLocation(), { type: 'container', name: 'new binder' });
 });

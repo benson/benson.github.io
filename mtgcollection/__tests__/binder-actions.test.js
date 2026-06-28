@@ -215,7 +215,7 @@ test('bindBinderControls: organize drag/drop swaps canonical binder slots', () =
     finish: 'normal',
     condition: 'near_mint',
     language: 'en',
-    location: { type: 'binder', name: 'trade' },
+    location: { type: 'container', name: 'trade' },
   };
   const beta = {
     name: 'Beta',
@@ -223,10 +223,10 @@ test('bindBinderControls: organize drag/drop swaps canonical binder slots', () =
     finish: 'normal',
     condition: 'near_mint',
     language: 'en',
-    location: { type: 'binder', name: 'trade' },
+    location: { type: 'container', name: 'trade' },
   };
   const container = {
-    type: 'binder',
+    type: 'container',
     name: 'trade',
     binderOrder: [collectionKey(alpha), collectionKey(beta), null, null],
   };

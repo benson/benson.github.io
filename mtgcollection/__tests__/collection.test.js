@@ -79,21 +79,22 @@ test('normalizeCondition: whitespace handling and snake_case preservation', () =
 
 // ---- normalizeLocation ----
 
-test('normalizeLocation: bare name defaults to box type', () => {
-  assert.deepEqual(normalizeLocation('  Breya  '), { type: 'box', name: 'breya' });
-  assert.deepEqual(normalizeLocation('BINDER stuff'), { type: 'binder', name: 'stuff' });
+test('normalizeLocation: bare name defaults to container type', () => {
+  assert.deepEqual(normalizeLocation('  Breya  '), { type: 'container', name: 'breya' });
+  assert.deepEqual(normalizeLocation('BINDER stuff'), { type: 'container', name: 'stuff' });
 });
 
-test('normalizeLocation: typed prefix syntax (deck/binder/box)', () => {
+test('normalizeLocation: typed prefix syntax accepts deck/container and legacy storage aliases', () => {
   assert.deepEqual(normalizeLocation('deck breya'), { type: 'deck', name: 'breya' });
   assert.deepEqual(normalizeLocation('deck:breya'), { type: 'deck', name: 'breya' });
-  assert.deepEqual(normalizeLocation('binder rares'), { type: 'binder', name: 'rares' });
-  assert.deepEqual(normalizeLocation('box bulk'), { type: 'box', name: 'bulk' });
+  assert.deepEqual(normalizeLocation('container rares'), { type: 'container', name: 'rares' });
+  assert.deepEqual(normalizeLocation('binder rares'), { type: 'container', name: 'rares' });
+  assert.deepEqual(normalizeLocation('box bulk'), { type: 'container', name: 'bulk' });
 });
 
 test('normalizeLocation: object input is validated', () => {
   assert.deepEqual(normalizeLocation({ type: 'deck', name: 'Breya' }), { type: 'deck', name: 'breya' });
-  assert.deepEqual(normalizeLocation({ type: 'invalid', name: 'foo' }), { type: 'box', name: 'foo' });
+  assert.deepEqual(normalizeLocation({ type: 'invalid', name: 'foo' }), { type: 'container', name: 'foo' });
 });
 
 test('normalizeLocation: null/undefined/empty become null', () => {
@@ -123,21 +124,39 @@ test('ensureContainer: creates a persisted flat container keyed by typed locatio
 
 test('allContainers: derives missing containers from collection locations', () => {
   state.collection = [
-    { location: { type: 'binder', name: 'rares' }, qty: 2 },
+    { location: { type: 'container', name: 'rares' }, qty: 2 },
     { location: 'deck breya', qty: 1 },
   ];
   state.containers = {};
-  assert.deepEqual(allContainers().map(c => c.type + ':' + c.name), ['binder:rares', 'deck:breya']);
+  assert.deepEqual(allContainers().map(c => c.type + ':' + c.name), ['container:rares', 'deck:breya']);
   state.collection = [];
   state.containers = {};
 });
 
-test('ensureContainer: preserves binder pocket order metadata', () => {
+test('ensureContainer: preserves visual container order metadata', () => {
   state.collection = [];
   state.containers = {};
-  const c = ensureContainer({ type: 'binder', name: 'Trade', binderOrder: ['a', null, 'b'] }, 123);
+  const c = ensureContainer({ type: 'container', name: 'Trade', binderOrder: ['a', null, 'b'] }, 123);
   assert.deepEqual(c.binderOrder, ['a', null, 'b']);
-  assert.deepEqual(state.containers['binder:trade'].binderOrder, ['a', null, 'b']);
+  assert.equal(c.displayMode, 'visual');
+  assert.deepEqual(state.containers['container:trade'].binderOrder, ['a', null, 'b']);
+  state.collection = [];
+  state.containers = {};
+});
+
+test('ensureContainer: legacy boxes become list containers', () => {
+  state.collection = [];
+  state.containers = {};
+  const c = ensureContainer({ type: 'box', name: 'Bulk' }, 123);
+  assert.deepEqual(c, {
+    type: 'container',
+    name: 'bulk',
+    createdAt: 123,
+    updatedAt: 123,
+    displayMode: 'list',
+    binderOrder: [],
+  });
+  assert.deepEqual(Object.keys(state.containers), ['container:bulk']);
   state.collection = [];
   state.containers = {};
 });
@@ -148,7 +167,7 @@ test('containerStats: counts unique, total, and value for a container', () => {
     { location: 'box bulk', qty: 3, price: 2 },
     { location: 'box other', qty: 1, price: 100 },
   ];
-  assert.deepEqual(containerStats({ type: 'box', name: 'bulk' }), { unique: 2, total: 5, value: 9 });
+  assert.deepEqual(containerStats({ type: 'container', name: 'bulk' }), { unique: 2, total: 5, value: 9 });
   state.collection = [];
 });
 
@@ -168,27 +187,28 @@ test('renameContainer: updates registry and card locations', () => {
   state.containers = {};
 });
 
-test('renameContainer: preserves binder pocket order metadata', () => {
-  state.collection = [{ location: { type: 'binder', name: 'trade' }, qty: 1 }];
+test('renameContainer: preserves visual container order metadata', () => {
+  state.collection = [{ location: { type: 'container', name: 'trade' }, qty: 1 }];
   state.containers = {};
-  ensureContainer({ type: 'binder', name: 'trade', binderOrder: ['slot-a', null, 'slot-b'] }, 123);
+  ensureContainer({ type: 'container', name: 'trade', binderOrder: ['slot-a', null, 'slot-b'] }, 123);
 
-  assert.equal(renameContainer({ type: 'binder', name: 'trade' }, { type: 'binder', name: 'sale' }), true);
+  assert.equal(renameContainer({ type: 'container', name: 'trade' }, { type: 'container', name: 'sale' }), true);
 
-  assert.deepEqual(Object.keys(state.containers), ['binder:sale']);
-  assert.deepEqual(state.containers['binder:sale'].binderOrder, ['slot-a', null, 'slot-b']);
+  assert.deepEqual(Object.keys(state.containers), ['container:sale']);
+  assert.deepEqual(state.containers['container:sale'].binderOrder, ['slot-a', null, 'slot-b']);
+  assert.equal(state.containers['container:sale'].displayMode, 'visual');
   state.collection = [];
   state.containers = {};
 });
 
 test('deleteEmptyContainer: only deletes containers with no cards', () => {
-  state.collection = [{ location: { type: 'box', name: 'bulk' }, qty: 1 }];
+  state.collection = [{ location: { type: 'container', name: 'bulk' }, qty: 1 }];
   state.containers = {};
-  ensureContainer({ type: 'box', name: 'bulk' });
-  ensureContainer({ type: 'box', name: 'empty' });
-  assert.equal(deleteEmptyContainer({ type: 'box', name: 'bulk' }), false);
-  assert.equal(deleteEmptyContainer({ type: 'box', name: 'empty' }), true);
-  assert.deepEqual(Object.keys(state.containers), ['box:bulk']);
+  ensureContainer({ type: 'container', name: 'bulk' });
+  ensureContainer({ type: 'container', name: 'empty' });
+  assert.equal(deleteEmptyContainer({ type: 'container', name: 'bulk' }), false);
+  assert.equal(deleteEmptyContainer({ type: 'container', name: 'empty' }), true);
+  assert.deepEqual(Object.keys(state.containers), ['container:bulk']);
   state.collection = [];
   state.containers = {};
 });

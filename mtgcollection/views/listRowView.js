@@ -16,8 +16,7 @@ import { formatPrice } from '../ui/priceUi.js';
 
 const TYPE_HEADERS = {
   deck: 'decks',
-  binder: 'binders',
-  box: 'boxes',
+  container: 'containers',
 };
 
 function rowLocationChoices(collection = state.collection) {
@@ -63,7 +62,7 @@ export function locationCellHtml(c, index) {
   return '<span class="loc-picker" data-index="' + index + '">' +
     '<select class="loc-picker-target" data-index="' + index + '" aria-label="location">' + rowLocationOptionsHtml() + '</select>' +
     '<span class="loc-picker-new hidden">' +
-      '<select class="loc-picker-type" data-index="' + index + '" aria-label="new container type">' + typeOptions + '</select>' +
+      '<select class="loc-picker-type" data-index="' + index + '" aria-label="new location type">' + typeOptions + '</select>' +
       '<input class="loc-picker-name" data-index="' + index + '" type="text" list="locationOptions" placeholder="new name" autocomplete="off">' +
     '</span>' +
   '</span>';

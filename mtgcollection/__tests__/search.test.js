@@ -384,12 +384,12 @@ test('multiselect: combining rarities and finishes is AND across fields', () => 
 });
 
 test('multiselect: location filter uses normalized exact match', () => {
-  // FIXTURES.solRing.location 'Breya Deck' → box:breya deck after normalization;
-  // breya fixture is already 'breya deck' string → box:breya deck.
-  const args = { locations: ['box:breya deck'] };
+  // FIXTURES.solRing.location 'Breya Deck' -> container:breya deck after normalization;
+  // breya fixture is already 'breya deck' string -> container:breya deck.
+  const args = { locations: ['container:breya deck'] };
   assert.equal(passesMultiselectFilters(FIXTURES.solRing, args), true);
   assert.equal(passesMultiselectFilters(FIXTURES.breya, args), true);
-  assert.equal(passesMultiselectFilters(FIXTURES.bolt, args), false); // 'binder' → box:binder
+  assert.equal(passesMultiselectFilters(FIXTURES.bolt, args), false);
 });
 
 test('multiselect: tags filter is OR — card passes if any of its tags is selected', () => {

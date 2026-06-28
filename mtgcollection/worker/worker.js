@@ -498,19 +498,30 @@ function collectionIdForUser(userId) {
   return 'user_' + btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 }
 
+// Location model must match the app's collection.js: types are 'deck' and
+// 'container'; legacy 'binder'/'box' normalize to 'container'. Keeping this in
+// sync is required so the server keys op payloads (collectionKey) identically to
+// the client — otherwise collection.replace/remove/qtyDelta can't match stored
+// entries and changes duplicate or are lost.
+function normalizeLocationType(raw) {
+  return String(raw || '').trim().toLowerCase() === 'deck' ? 'deck' : 'container';
+}
+
 function normalizeLocation(raw) {
   if (!raw) return null;
   if (typeof raw === 'string') {
     const s = raw.trim().toLowerCase().replace(/\s+/g, ' ');
-    const m = s.match(/^(deck|binder|box)[\s:]+(.+)$/);
-    if (m) return { type: m[1], name: m[2].trim() };
-    return s ? { type: 'box', name: s } : null;
+    if (!s) return null;
+    if (s === 'deck' || s === 'container') return { type: s, name: s };
+    if (s === 'binder' || s === 'box') return { type: 'container', name: s };
+    const m = s.match(/^(deck|container|binder|box)[\s:]+(.+)$/);
+    if (m) return { type: normalizeLocationType(m[1]), name: m[2].trim() };
+    return { type: 'container', name: s };
   }
   if (typeof raw === 'object') {
     const name = String(raw.name || '').trim().toLowerCase().replace(/\s+/g, ' ');
     if (!name) return null;
-    const type = ['deck', 'binder', 'box'].includes(raw.type) ? raw.type : 'box';
-    return { type, name };
+    return { type: normalizeLocationType(raw.type), name };
   }
   return null;
 }

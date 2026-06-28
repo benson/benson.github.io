@@ -4,6 +4,7 @@ import { Window } from 'happy-dom';
 import {
   bindLocationHomeInteractions,
   locationDeleteMessage,
+  readLocationCreateDisplayMode,
   readLocationCreateType,
   syncLocationTypeLabels,
 } from '../locationHomeActions.js';
@@ -21,15 +22,15 @@ function click(win, el) {
   el.dispatchEvent(new win.MouseEvent('click', { bubbles: true, cancelable: true }));
 }
 
-test('readLocationCreateType: prefers checked radio and falls back to hidden or box', () => {
+test('readLocationCreateType: prefers checked radio and falls back to hidden or container', () => {
   let { locationsEl } = setup(`
     <form id="locationsCreateForm">
       <input type="hidden" name="locationsCreateType" value="deck">
-      <label class="locations-create-type"><input type="radio" name="locationsCreateType" value="box"></label>
-      <label class="locations-create-type"><input type="radio" name="locationsCreateType" value="binder" checked></label>
+      <label class="locations-create-type"><input type="radio" name="locationsCreateType" value="deck"></label>
+      <label class="locations-create-type"><input type="radio" name="locationsCreateType" value="container" checked></label>
     </form>
   `);
-  assert.equal(readLocationCreateType(locationsEl.querySelector('form')), 'binder');
+  assert.equal(readLocationCreateType(locationsEl.querySelector('form')), 'container');
 
   ({ locationsEl } = setup(`
     <form id="locationsCreateForm">
@@ -39,13 +40,23 @@ test('readLocationCreateType: prefers checked radio and falls back to hidden or 
   assert.equal(readLocationCreateType(locationsEl.querySelector('form')), 'deck');
 
   ({ locationsEl } = setup(`<form id="locationsCreateForm"></form>`));
-  assert.equal(readLocationCreateType(locationsEl.querySelector('form')), 'box');
+  assert.equal(readLocationCreateType(locationsEl.querySelector('form')), 'container');
+});
+
+test('readLocationCreateDisplayMode: reads default view radios', () => {
+  const { locationsEl } = setup(`
+    <form id="locationsCreateForm">
+      <label><input type="radio" name="locationsCreateDisplayMode" value="visual"></label>
+      <label><input type="radio" name="locationsCreateDisplayMode" value="list" checked></label>
+    </form>
+  `);
+  assert.equal(readLocationCreateDisplayMode(locationsEl.querySelector('form')), 'list');
 });
 
 test('syncLocationTypeLabels: mirrors checked state to selected classes', () => {
   const { locationsEl } = setup(`
-    <label class="locations-create-type is-selected"><input type="radio" name="locationsCreateType" value="box"></label>
-    <label class="locations-create-type"><input type="radio" name="locationsCreateType" value="binder" checked></label>
+    <label class="locations-create-type is-selected"><input type="radio" name="locationsCreateType" value="deck"></label>
+    <label class="locations-create-type"><input type="radio" name="locationsCreateType" value="container" checked></label>
   `);
 
   syncLocationTypeLabels(locationsEl);
@@ -110,7 +121,8 @@ test('bindLocationHomeInteractions: ghost create tile focuses the deck name fiel
 test('bindLocationHomeInteractions: records storage container creates', () => {
   const { win, locationsEl } = setup(`
     <form id="locationsCreateForm">
-      <input type="hidden" name="locationsCreateType" value="binder">
+      <input type="hidden" name="locationsCreateType" value="container">
+      <label><input type="radio" name="locationsCreateDisplayMode" value="visual" checked></label>
       <input id="locationsCreateName" value="trade">
     </form>
   `);
@@ -127,21 +139,20 @@ test('bindLocationHomeInteractions: records storage container creates', () => {
 
   assert.equal(calls.length, 1);
   assert.equal(calls[0].type, 'storage-create');
-  assert.deepEqual(calls[0].containerAfter, { type: 'binder', name: 'trade' });
+  assert.deepEqual(calls[0].containerAfter, { type: 'container', name: 'trade' });
 });
 
 
 test('bindLocationHomeInteractions: handles menus, renames, and navigation', () => {
   const { win, locationsEl } = setup(`
-    <article class="location-card" data-loc-type="box" data-loc-name="bulk" tabindex="0">
+    <article class="location-card" data-loc-type="container" data-loc-name="bulk" tabindex="0">
       <button class="location-card-menu-btn" type="button">menu</button>
       <div class="location-card-menu"><button class="location-delete" type="button">delete</button></div>
       <button class="location-card-edit-btn" type="button">edit</button>
       <span class="location-card-name-text">bulk</span>
       <div class="location-card-edit-row">
         <input class="location-rename-input" value="bulk 2">
-        <label class="loc-type-radio"><input type="radio" name="editLocType_0" value="box"></label>
-        <label class="loc-type-radio"><input type="radio" name="editLocType_0" value="binder" checked></label>
+        <label class="loc-type-radio"><input type="radio" name="editLocType_0" value="container" checked></label>
         <button class="location-rename-save" type="button">save</button>
         <button class="location-rename-cancel" type="button">cancel</button>
       </div>
@@ -168,8 +179,8 @@ test('bindLocationHomeInteractions: handles menus, renames, and navigation', () 
 
   click(win, locationsEl.querySelector('.location-rename-save'));
   assert.deepEqual(renames, [{
-    from: { type: 'box', name: 'bulk' },
-    to: { type: 'binder', name: 'bulk 2' },
+    from: { type: 'container', name: 'bulk' },
+    to: { type: 'container', name: 'bulk 2' },
   }]);
 
   click(win, locationsEl.querySelector('.location-rename-cancel'));
@@ -177,14 +188,14 @@ test('bindLocationHomeInteractions: handles menus, renames, and navigation', () 
   card.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
 
   assert.deepEqual(navigations, [
-    { type: 'box', name: 'bulk' },
-    { type: 'box', name: 'bulk' },
+    { type: 'container', name: 'bulk' },
+    { type: 'container', name: 'bulk' },
   ]);
 });
 
 test('bindLocationHomeInteractions: confirms filled and empty deletes', () => {
   const { win, locationsEl } = setup(`
-    <article class="location-card" data-loc-type="box" data-loc-name="bulk">
+    <article class="location-card" data-loc-type="container" data-loc-name="bulk">
       <button class="location-delete" type="button">delete</button>
     </article>
   `);
@@ -209,14 +220,14 @@ test('bindLocationHomeInteractions: confirms filled and empty deletes', () => {
   click(win, locationsEl.querySelector('.location-delete'));
 
   assert.match(confirms[0], /this will clear the location from 2 cards/);
-  assert.equal(confirms[1], 'delete box "bulk"?');
-  assert.deepEqual(filledDeletes, [{ type: 'box', name: 'bulk' }]);
-  assert.deepEqual(emptyDeletes, [{ type: 'box', name: 'bulk' }]);
+  assert.equal(confirms[1], 'delete container "bulk"?');
+  assert.deepEqual(filledDeletes, [{ type: 'container', name: 'bulk' }]);
+  assert.deepEqual(emptyDeletes, [{ type: 'container', name: 'bulk' }]);
 });
 
 test('locationDeleteMessage: singular card grammar stays tidy', () => {
   assert.match(
-    locationDeleteMessage({ type: 'binder', name: 'trade' }, { total: 1, unique: 1 }),
+    locationDeleteMessage({ type: 'container', name: 'trade' }, { total: 1, unique: 1 }),
     /from 1 card \(1 unique\)/
   );
 });

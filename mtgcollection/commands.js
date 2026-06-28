@@ -35,7 +35,7 @@ function cloneDeckMetadata(deck) {
 }
 
 function isStorageLocation(loc) {
-  return loc?.type === 'binder' || loc?.type === 'box';
+  return loc?.type === 'container';
 }
 
 function cardEventPayload(c) {
@@ -121,7 +121,7 @@ export function renameContainerCommand(beforeRaw, afterRaw, options = {}) {
   } else if (isStorageLocation(before) || isStorageLocation(after)) {
     record({
       type: 'storage-rename',
-      summary: 'Renamed ' + (before?.type || 'container') + ' ' + (before?.name || '') + ' to {loc:' + (after?.type || before?.type || 'box') + ':' + (after?.name || '') + '}',
+      summary: 'Renamed container ' + (before?.name || '') + ' to {loc:container:' + (after?.name || '') + '}',
       containerBefore: before,
       containerAfter: after,
     });

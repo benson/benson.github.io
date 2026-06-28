@@ -69,7 +69,7 @@ test('moveDeckCardToBoardCommand: no-ops when the target board is unchanged', ()
 test('removeDeckCardFromDeckCommand: removes from decklist without touching inventory', () => {
   resetState();
   const deck = deckWithList();
-  state.collection = [{ name: 'Sol Ring', scryfallId: 'sol-ring', location: { type: 'box', name: 'bulk' } }];
+  state.collection = [{ name: 'Sol Ring', scryfallId: 'sol-ring', location: { type: 'container', name: 'bulk' } }];
   const fx = sideEffects();
 
   const result = removeDeckCardFromDeckCommand(deck, 'sol-ring', 'main', fx);
@@ -83,21 +83,21 @@ test('removeDeckCardFromDeckCommand: removes from decklist without touching inve
 
 test('renameContainerCommand: updates registry and inventory locations via a single command', () => {
   resetState();
-  ensureContainer({ type: 'box', name: 'bulk' });
-  state.collection = [{ name: 'Island', location: { type: 'box', name: 'bulk' } }];
+  ensureContainer({ type: 'container', name: 'bulk' });
+  state.collection = [{ name: 'Island', location: { type: 'container', name: 'bulk' } }];
   const fx = sideEffects();
 
-  const result = renameContainerCommand({ type: 'box', name: 'bulk' }, { type: 'box', name: 'long box' }, fx);
+  const result = renameContainerCommand({ type: 'container', name: 'bulk' }, { type: 'container', name: 'long box' }, fx);
 
   assert.equal(result.ok, true);
   assert.equal(state.collection[0].location.name, 'long box');
-  assert.ok(state.containers['box:long box']);
+  assert.ok(state.containers['container:long box']);
   assert.equal(fx.calls.commits.length, 1);
   assert.deepEqual(fx.calls.commits[0], { coalesce: true });
   assert.equal(fx.calls.records.length, 1);
   assert.equal(fx.calls.records[0].type, 'storage-rename');
-  assert.deepEqual(fx.calls.records[0].containerBefore, { type: 'box', name: 'bulk' });
-  assert.deepEqual(fx.calls.records[0].containerAfter, { type: 'box', name: 'long box' });
+  assert.deepEqual(fx.calls.records[0].containerBefore, { type: 'container', name: 'bulk' });
+  assert.deepEqual(fx.calls.records[0].containerAfter, { type: 'container', name: 'long box' });
 });
 
 test('renameContainerCommand: records deck rename snapshots', () => {
@@ -118,20 +118,20 @@ test('renameContainerCommand: records deck rename snapshots', () => {
 
 test('delete container commands cover empty and occupied physical storage', () => {
   resetState();
-  ensureContainer({ type: 'binder', name: 'trade binder' });
-  ensureContainer({ type: 'box', name: 'bulk' });
-  state.collection = [{ name: 'Island', location: { type: 'box', name: 'bulk' } }];
+  ensureContainer({ type: 'container', name: 'trade binder' });
+  ensureContainer({ type: 'container', name: 'bulk' });
+  state.collection = [{ name: 'Island', location: { type: 'container', name: 'bulk' } }];
   const fx = sideEffects();
 
-  const empty = deleteEmptyContainerCommand({ type: 'binder', name: 'trade binder' }, fx);
-  const occupied = deleteContainerAndUnlocateCardsCommand({ type: 'box', name: 'bulk' }, fx);
+  const empty = deleteEmptyContainerCommand({ type: 'container', name: 'trade binder' }, fx);
+  const occupied = deleteContainerAndUnlocateCardsCommand({ type: 'container', name: 'bulk' }, fx);
 
   assert.equal(empty.ok, true);
   assert.equal(occupied.ok, true);
   assert.equal(occupied.cleared, 1);
   assert.equal(state.collection[0].location, null);
-  assert.equal(state.containers['binder:trade binder'], undefined);
-  assert.equal(state.containers['box:bulk'], undefined);
+  assert.equal(state.containers['container:trade binder'], undefined);
+  assert.equal(state.containers['container:bulk'], undefined);
   assert.equal(fx.calls.commits.length, 2);
   assert.deepEqual(fx.calls.records.map(ev => ev.type), ['storage-delete', 'storage-delete']);
   assert.equal(fx.calls.records[1].before.length, 1);

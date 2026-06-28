@@ -161,7 +161,7 @@ test('renderBinderView: uses canonical binder order including empty pockets', ()
   const gamma = card('Gamma');
   state.collection = [alpha, beta, gamma];
   const container = {
-    type: 'binder',
+    type: 'container',
     name: 'trade',
     binderOrder: [binderCardKey(gamma), null, binderCardKey(alpha)],
   };
@@ -185,7 +185,7 @@ test('renderBinderView: explore lenses sort/filter without preserving empty pock
   const gamma = card('Gamma', { price: 5, colors: ['G'], typeLine: 'Sorcery' });
   state.collection = [alpha, beta, gamma];
   const container = {
-    type: 'binder',
+    type: 'container',
     name: 'trade',
     binderOrder: [binderCardKey(alpha), null, binderCardKey(gamma), binderCardKey(beta)],
   };

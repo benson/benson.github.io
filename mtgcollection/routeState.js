@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { locationKey, normalizeLocation } from './collection.js';
+import { locationKey, normalizeContainerDisplayMode, normalizeLocation } from './collection.js';
 import { getMultiselectValue, setMultiselectValue } from './multiselect.js';
 
 export const VALID_VIEW_MODES = ['collection', 'decks', 'storage'];
@@ -122,8 +122,14 @@ export function syncLocationFilterFromActiveLocation(el = locationFilterEl()) {
 
 function viewModeForLocation(loc) {
   if (loc?.type === 'deck') return 'decks';
-  if (loc?.type === 'binder' || loc?.type === 'box') return 'storage';
+  if (loc?.type === 'container') return 'storage';
   return 'collection';
+}
+
+function activeContainerDisplayMode(loc) {
+  const key = locationKey(loc);
+  const container = key ? state.containers?.[key] : null;
+  return normalizeContainerDisplayMode(container?.displayMode);
 }
 
 export function setTopLevelViewMode(mode, { syncFilter = true, updateUrl = true } = {}) {
@@ -156,8 +162,10 @@ export function getEffectiveShape() {
     return loc?.type === 'deck' ? 'deck' : 'decks-home';
   }
   if (state.viewMode === 'storage') {
-    if (loc?.type === 'binder') return 'binder';
-    if (loc?.type === 'box') return 'box';
+    if (loc?.type === 'container') {
+      if (state.viewAsList) return 'box';
+      return activeContainerDisplayMode(loc) === 'list' ? 'box' : 'binder';
+    }
     return 'storage-home';
   }
   return 'collection';

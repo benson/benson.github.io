@@ -21,22 +21,45 @@ export function normalizeCondition(raw) {
   return v;
 }
 
-export const LOCATION_TYPES = ['deck', 'binder', 'box'];
-export const DEFAULT_LOCATION_TYPE = 'box';
+export const LOCATION_TYPES = ['deck', 'container'];
+export const STORAGE_LOCATION_TYPES = ['container'];
+export const LEGACY_STORAGE_LOCATION_TYPES = ['binder', 'box'];
+export const DEFAULT_LOCATION_TYPE = 'container';
+export const CONTAINER_DISPLAY_MODES = ['visual', 'list'];
+export const DEFAULT_CONTAINER_DISPLAY_MODE = 'visual';
 export const DECK_BOARDS = ['main', 'sideboard', 'maybe'];
 export const DEFAULT_DECK_BOARD = 'main';
 
+export function normalizeContainerDisplayMode(raw, fallback = DEFAULT_CONTAINER_DISPLAY_MODE) {
+  return CONTAINER_DISPLAY_MODES.includes(raw) ? raw : fallback;
+}
+
+function locationTypeFromRaw(raw) {
+  const type = String(raw || '').trim().toLowerCase();
+  if (type === 'deck') return 'deck';
+  if (type === 'container' || LEGACY_STORAGE_LOCATION_TYPES.includes(type)) return 'container';
+  return DEFAULT_LOCATION_TYPE;
+}
+
+function displayModeFromLegacyType(type, rawMode) {
+  if (CONTAINER_DISPLAY_MODES.includes(rawMode)) return rawMode;
+  if (type === 'box') return 'list';
+  return DEFAULT_CONTAINER_DISPLAY_MODE;
+}
+
 // Parses a freeform string like "deck breya", "deck:breya", or "breya" into
-// a typed location. The type prefix is optional — bare names default to box.
+// a typed location. Legacy "binder:" and "box:" prefixes now normalize to
+// storage containers.
 export function parseLocationString(raw) {
   const s = String(raw || '').trim().toLowerCase().replace(/\s+/g, ' ');
   if (!s) return null;
-  // Bare type word like "binder" or "deck" — treat as that type with same name.
+  // Bare type word like "container" or "deck" — treat as that type with same name.
   if (LOCATION_TYPES.includes(s)) return { type: s, name: s };
-  const m = s.match(/^(deck|binder|box)[\s:]+(.+)$/);
+  if (LEGACY_STORAGE_LOCATION_TYPES.includes(s)) return { type: 'container', name: s };
+  const m = s.match(/^(deck|container|binder|box)[\s:]+(.+)$/);
   if (m) {
     const name = m[2].trim();
-    return name ? { type: m[1], name } : null;
+    return name ? { type: locationTypeFromRaw(m[1]), name } : null;
   }
   return { type: DEFAULT_LOCATION_TYPE, name: s };
 }
@@ -49,7 +72,7 @@ export function normalizeLocation(raw) {
   if (typeof raw === 'object') {
     const name = String(raw.name || '').trim().toLowerCase().replace(/\s+/g, ' ');
     if (!name) return null;
-    const type = LOCATION_TYPES.includes(raw.type) ? raw.type : DEFAULT_LOCATION_TYPE;
+    const type = locationTypeFromRaw(raw.type);
     return { type, name };
   }
   return null;
@@ -131,7 +154,7 @@ function normalizeBinderOrder(raw) {
   });
 }
 
-// Stable identity for a decklist entry. We keep separate rows for different
+// Stable identity for a decklist entry. We keep separate entries for different
 // boards (so "Sol Ring main" and "Sol Ring sideboard" are independent), but
 // the same (scryfallId, board) tuple coalesces qty.
 export function deckListEntryKey(entry) {
@@ -212,6 +235,7 @@ export function resolveDeckListEntry(entry, collection) {
 export function makeContainer(raw, now = Date.now()) {
   const loc = normalizeLocation(raw);
   if (!loc) return null;
+  const rawType = String(raw?.type || loc.type || '').trim().toLowerCase();
   const out = {
     type: loc.type,
     name: loc.name,
@@ -248,7 +272,8 @@ export function makeContainer(raw, now = Date.now()) {
     out.deck.coverBackImageUrl = String(out.deck.coverBackImageUrl || '');
     out.deck.coverFinish = String(out.deck.coverFinish || '');
     out.deck.companion = String(out.deck.companion || '');
-  } else if (loc.type === 'binder') {
+  } else if (loc.type === 'container') {
+    out.displayMode = displayModeFromLegacyType(rawType, raw?.displayMode);
     out.binderOrder = normalizeBinderOrder(raw && raw.binderOrder);
   }
   return out;
@@ -273,7 +298,8 @@ export function ensureContainer(raw, now = Date.now()) {
       // calls without a shareId don't clobber an active share.
       if (container.shareId && !existing.shareId) existing.shareId = container.shareId;
       if (container.shareIncludeTags) existing.shareIncludeTags = true;
-    } else if (container.type === 'binder') {
+    } else if (container.type === 'container') {
+      existing.displayMode = normalizeContainerDisplayMode(existing.displayMode, container.displayMode);
       if (!Array.isArray(existing.binderOrder)) existing.binderOrder = normalizeBinderOrder(container.binderOrder);
     }
     if (!existing.createdAt) existing.createdAt = container.createdAt;
@@ -321,7 +347,8 @@ export function normalizeContainers(rawContainers = {}) {
       c.deck.coverFinish = String(c.deck.coverFinish || '');
       c.deck.companion = String(c.deck.companion || '');
       c.deckList = normalizeDeckList(c.deckList);
-    } else if (c.type === 'binder') {
+    } else if (c.type === 'container') {
+      c.displayMode = normalizeContainerDisplayMode(raw.displayMode, c.displayMode);
       c.binderOrder = normalizeBinderOrder(raw.binderOrder);
     }
     out[containerKey(c)] = c;
@@ -526,7 +553,8 @@ export function renameContainer(beforeRaw, afterRaw) {
       target.deckList = normalizeDeckList(existing.deckList);
       if (existing.shareId && !target.shareId) target.shareId = existing.shareId;
       if (existing.shareIncludeTags) target.shareIncludeTags = true;
-    } else if (before.type === 'binder' && after.type === 'binder') {
+    } else if (before.type === 'container' && after.type === 'container') {
+      target.displayMode = normalizeContainerDisplayMode(existing.displayMode);
       target.binderOrder = normalizeBinderOrder(existing.binderOrder);
     }
   }

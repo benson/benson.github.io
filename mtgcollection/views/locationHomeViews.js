@@ -1,42 +1,50 @@
 import { state } from '../state.js';
-import { containerStats, defaultDeckMetadata, resolveDeckListEntry } from '../collection.js';
+import {
+  CONTAINER_DISPLAY_MODES,
+  containerStats,
+  defaultDeckMetadata,
+  normalizeContainerDisplayMode,
+  resolveDeckListEntry,
+} from '../collection.js';
 import { esc } from '../feedback.js';
 import { LOC_ICONS, containerEditRowHtml } from '../ui/locationUi.js';
 
-const STORAGE_TYPES = ['binder', 'box'];
-const STORAGE_TYPE_LABELS = { binder: 'binders', box: 'boxes' };
+export const STORAGE_DISPLAY_MODE_LABELS = { visual: 'visual', list: 'list' };
 
 export function storageMatchesHomeFilters(container, { query = '', types = [] } = {}) {
   const q = String(query || '').trim().toLowerCase();
-  if (!STORAGE_TYPES.includes(container?.type)) return false;
+  if (container?.type !== 'container') return false;
   if (q && !String(container?.name || '').toLowerCase().includes(q)) return false;
-  if (types.length && !types.includes(container.type)) return false;
+  const mode = normalizeContainerDisplayMode(container.displayMode);
+  if (types.length && !types.includes(mode)) return false;
   return true;
 }
 
 export function renderStorageHomeHtml(containers, filters = {}) {
   const createHtml = `<form class="locations-create" id="locationsCreateForm">
     <span class="locations-create-label">new container</span>
-    <div class="locations-create-types" role="radiogroup" aria-label="container type">
-      ${STORAGE_TYPES.map((t, i) => `<label class="locations-create-type${i === 0 ? ' is-selected' : ''}">
-        <input type="radio" name="locationsCreateType" value="${esc(t)}"${i === 0 ? ' checked' : ''}>
-        <span class="loc-pill loc-pill-${esc(t)}">${LOC_ICONS[t]}<span>${esc(t)}</span></span>
+    <input type="hidden" name="locationsCreateType" value="container">
+    <div class="locations-create-types" role="radiogroup" aria-label="default view">
+      ${CONTAINER_DISPLAY_MODES.map((mode, i) => `<label class="locations-create-type${i === 0 ? ' is-selected' : ''}">
+        <input type="radio" name="locationsCreateDisplayMode" value="${esc(mode)}"${i === 0 ? ' checked' : ''}>
+        <span class="loc-pill loc-pill-container">${LOC_ICONS.container}<span>${esc(STORAGE_DISPLAY_MODE_LABELS[mode])}</span></span>
       </label>`).join('')}
     </div>
     <input id="locationsCreateName" type="text" placeholder="name" autocomplete="off">
     <button class="btn" type="submit">create</button>
   </form>`;
 
-  const groups = STORAGE_TYPES.map(type => {
-    const allOfType = containers.filter(c => c.type === type);
-    const ofType = allOfType.filter(c => storageMatchesHomeFilters(c, filters));
-    const cards = ofType.map(c => {
+  const allStorage = containers.filter(c => c.type === 'container');
+  const storage = allStorage.filter(c => storageMatchesHomeFilters(c, filters));
+  const cards = storage.map(c => {
       const stats = containerStats(c);
       const value = stats.value > 0 ? ' &middot; $' + stats.value.toFixed(2) : '';
+      const mode = normalizeContainerDisplayMode(c.displayMode);
       return `<article class="location-card" data-loc-type="${esc(c.type)}" data-loc-name="${esc(c.name)}" tabindex="0" role="button" aria-label="open ${esc(c.name)}">
         <div class="location-card-name">
-          ${LOC_ICONS[c.type] || LOC_ICONS.box}
+          ${LOC_ICONS.container}
           <span class="location-card-name-text">${esc(c.name)}</span>
+          <span class="location-card-view-mode">${esc(STORAGE_DISPLAY_MODE_LABELS[mode])}</span>
           <button class="location-card-edit-btn" type="button" aria-label="edit">&#9998;</button>
           <button class="location-card-menu-btn" type="button" aria-label="more options" aria-haspopup="menu">&hellip;</button>
         </div>
@@ -44,16 +52,14 @@ export function renderStorageHomeHtml(containers, filters = {}) {
           <button class="location-card-menu-item location-delete" type="button" role="menuitem">delete</button>
         </div>
         <div class="location-card-stats">${stats.unique} unique &middot; ${stats.total} total${value}</div>
-        ${containerEditRowHtml(c, STORAGE_TYPES)}
+        ${containerEditRowHtml(c, ['container'])}
       </article>`;
-    }).join('') || '<div class="deck-empty-prompt">no ' + esc(STORAGE_TYPE_LABELS[type]) + (allOfType.length ? ' match' : ' yet') + '</div>';
-    return `<section class="locations-group">
-      <div class="locations-group-title">${esc(STORAGE_TYPE_LABELS[type])}</div>
+  }).join('') || '<div class="deck-empty-prompt">no containers ' + (allStorage.length ? 'match' : 'yet') + '</div>';
+
+  return createHtml + `<section class="locations-group">
+      <div class="locations-group-title">containers</div>
       <div class="locations-list">${cards}</div>
     </section>`;
-  }).join('');
-
-  return createHtml + groups;
 }
 
 export function deckOwnership(deck) {

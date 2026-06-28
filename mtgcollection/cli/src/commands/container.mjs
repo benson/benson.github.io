@@ -19,9 +19,11 @@ function resolveContainer(draft, ref) {
 export default {
   summary: 'create / rename / delete a container',
   help: [
-    'usage: bp container create <type:name>            (type = deck|binder|box)',
+    'usage: bp container create <type:name>            (type = deck|container)',
     '       bp container rename <type:name> <new-name>',
     '       bp container delete <type:name> [--force]   (--force unfiles its cards)',
+    '',
+    'legacy "binder:"/"box:" prefixes are accepted and treated as containers.',
   ].join('\n'),
   async run(ctx) {
     const { out, flags, args } = ctx;

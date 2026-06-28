@@ -21,13 +21,13 @@ const sol = {
   condition: 'near_mint',
   language: 'en',
   qty: 1,
-  location: { type: 'box', name: 'bulk' },
+  location: { type: 'container', name: 'bulk' },
 };
 
 test('applySyncOps: applies queued quantity deltas deterministically', () => {
   const next = applySyncOps(snapshot([sol]), [
-    makeSyncOp('collection.qtyDelta', { key: 'sol:normal:near_mint:en:box:bulk', delta: 2, entry: sol }, { id: 'op_1' }),
-    makeSyncOp('collection.qtyDelta', { key: 'sol:normal:near_mint:en:box:bulk', delta: -1, entry: sol }, { id: 'op_2' }),
+    makeSyncOp('collection.qtyDelta', { key: 'sol:normal:near_mint:en:container:bulk', delta: 2, entry: sol }, { id: 'op_1' }),
+    makeSyncOp('collection.qtyDelta', { key: 'sol:normal:near_mint:en:container:bulk', delta: -1, entry: sol }, { id: 'op_2' }),
   ]);
 
   assert.equal(next.app.collection[0].qty, 2);

@@ -75,11 +75,11 @@ test('commitRowLocationFromPicker: can commit an existing container select value
     <span class="loc-picker">
       <select class="loc-picker-target" data-index="0">
         <option value="">+ loc</option>
-        <option value="binder:trade binder" selected>trade binder</option>
+        <option value="container:trade binder" selected>trade binder</option>
         <option value="__new__">+ new container</option>
       </select>
       <span class="loc-picker-new hidden">
-        <select class="loc-picker-type"><option value="box" selected>box</option></select>
+        <select class="loc-picker-type"><option value="container" selected>container</option></select>
         <input class="loc-picker-name" data-index="0" value="">
       </span>
     </span>
@@ -88,7 +88,7 @@ test('commitRowLocationFromPicker: can commit an existing container select value
   const result = commitRowLocationFromPicker(input, fx);
 
   assert.equal(result.ok, true);
-  assert.deepEqual(state.collection[0].location, { type: 'binder', name: 'trade binder' });
+  assert.deepEqual(state.collection[0].location, { type: 'container', name: 'trade binder' });
   assert.deepEqual(fx.calls.commits, [{ coalesce: true }]);
 });
 
@@ -96,7 +96,7 @@ test('commitRowLocationFromPicker: clears invalid empty locations without commit
   state.collection = [card()];
   const fx = sideEffects();
   const { input } = rowInput(`
-    <select class="loc-picker-type"><option value="box" selected>box</option></select>
+    <select class="loc-picker-type"><option value="container" selected>container</option></select>
     <input class="loc-picker-name" data-index="0" value=" ">
   `, '.loc-picker-name');
 
@@ -110,7 +110,7 @@ test('commitRowLocationFromPicker: clears invalid empty locations without commit
 });
 
 test('clearRowLocation: clears existing location and records the previous value', () => {
-  state.collection = [card({ location: { type: 'box', name: 'bulk' } })];
+  state.collection = [card({ location: { type: 'container', name: 'bulk' } })];
   const fx = sideEffects();
 
   const result = clearRowLocation(0, fx);
@@ -118,7 +118,7 @@ test('clearRowLocation: clears existing location and records the previous value'
   assert.equal(result.ok, true);
   assert.equal(state.collection[0].location, null);
   assert.deepEqual(fx.calls.commits, [{ coalesce: true }]);
-  assert.equal(fx.calls.records[0].summary, '{card} removed from {loc:box:bulk}');
+  assert.equal(fx.calls.records[0].summary, '{card} removed from {loc:container:bulk}');
 });
 
 test('commitRowTag and removeRowTag: mutate tags with duplicate feedback', () => {
@@ -160,11 +160,11 @@ test('bindListRowInteractions: delegates clicks, key commits, and change commits
           <span class="loc-picker">
             <select class="loc-picker-target" data-index="6">
               <option value="">+ loc</option>
-              <option value="binder:trade binder">trade binder</option>
+              <option value="container:trade binder">trade binder</option>
               <option value="__new__">+ new container</option>
             </select>
             <span class="loc-picker-new hidden">
-              <select class="loc-picker-type" data-index="6"><option value="box" selected>box</option></select>
+              <select class="loc-picker-type" data-index="6"><option value="container" selected>container</option></select>
               <input class="loc-picker-name" data-index="6" value="">
             </span>
           </span>
@@ -193,7 +193,7 @@ test('bindListRowInteractions: delegates clicks, key commits, and change commits
   rows.querySelector('.row-tag-input').dispatchEvent(new win.Event('change', { bubbles: true }));
   rows.querySelector('.loc-picker-name').dispatchEvent(new win.Event('change', { bubbles: true }));
   const locSelect = rows.querySelector('.loc-picker-target');
-  locSelect.value = 'binder:trade binder';
+  locSelect.value = 'container:trade binder';
   locSelect.dispatchEvent(new win.Event('change', { bubbles: true }));
   locSelect.value = '__new__';
   locSelect.dispatchEvent(new win.Event('change', { bubbles: true }));
@@ -208,7 +208,7 @@ test('bindListRowInteractions: delegates clicks, key commits, and change commits
     ['loc', '5', 'bulk'],
     ['tag', '4', 'artifact'],
     ['loc', '5', 'bulk'],
-    ['loc', '6', 'binder:trade binder'],
+    ['loc', '6', 'container:trade binder'],
   ]);
   assert.equal(rows.querySelector('.loc-picker-new').classList.contains('hidden'), false);
 });

@@ -40,9 +40,9 @@ const MCP_AGENT_GUIDE_TEXT = [
   'Use this guide when calling MTG Collection MCP tools. The server is preview-first: never apply changes unless the user explicitly confirms through the app.',
   '',
   'Core collection concepts:',
-  '- unique cards means inventory rows or distinct saved card entries; total cards means summed quantity.',
-  '- A stack is one inventory row: same printing, finish, condition, language, location, and deck board.',
-  '- binder, box, bulk, and deck box are physical locations. A decklist is not the same thing as a physical deck box.',
+  '- unique cards means inventory entries or distinct saved card entries; total cards means summed quantity.',
+  '- A stack is one inventory entry: same printing, finish, condition, language, location, and deck board.',
+  '- Containers are named places physical cards live. A decklist is not the same thing as a physical deck container.',
   '- Move physical copies with preview_move_inventory_item or preview_edit_inventory_item. Add/remove decklist entries with preview_decklist_change.',
   '',
   'Add requests:',
@@ -78,12 +78,12 @@ function mcpAgentGuide() {
     uri: MCP_AGENT_GUIDE_URI,
     text: MCP_AGENT_GUIDE_TEXT,
     glossary: {
-      uniqueCards: 'Distinct inventory rows or saved card entries.',
-      totalCards: 'Summed physical quantity across inventory rows.',
-      stack: 'One inventory row with matching printing, finish, condition, language, location, and deck board.',
+      uniqueCards: 'Distinct inventory entries or saved card entries.',
+      totalCards: 'Summed physical quantity across inventory entries.',
+      stack: 'One inventory entry with matching printing, finish, condition, language, location, and deck board.',
       regularPrinting: 'A non-special printing treatment; prefer non-promo, non-showcase, non-borderless, non-extended-art main-set printings.',
       finish: 'Physical finish such as normal/nonfoil, foil, or etched.',
-      deckBox: 'Physical location for cards assigned to a deck container.',
+      deckContainer: 'Physical location for cards assigned to a deck container.',
       decklist: 'The deck recipe/list, distinct from physical card location.',
     },
   };
@@ -670,6 +670,7 @@ async function pushOps(env, deps, userId, { ops, snapshot, baseRevision, require
 function makeContainer(loc) {
   const normalized = normalizeLocation(loc);
   if (!normalized) return null;
+  const rawType = String(loc?.type || normalized.type || '').trim().toLowerCase();
   const now = Date.now();
   const container = {
     type: normalized.type,
@@ -695,6 +696,9 @@ function makeContainer(loc) {
       companion: '',
     };
     container.deckList = [];
+  } else if (container.type === 'container') {
+    container.displayMode = loc?.displayMode === 'list' || rawType === 'box' ? 'list' : 'visual';
+    container.binderOrder = Array.isArray(loc?.binderOrder) ? [...loc.binderOrder] : [];
   }
   return container;
 }
@@ -704,14 +708,17 @@ function normalizeLocation(raw) {
   if (typeof raw === 'string') {
     const s = raw.trim().toLowerCase().replace(/\s+/g, ' ');
     if (!s) return null;
-    const m = s.match(/^(deck|binder|box)[\s:]+(.+)$/);
-    if (m) return { type: m[1], name: m[2].trim() };
-    return ['deck', 'binder', 'box'].includes(s) ? { type: s, name: s } : { type: 'box', name: s };
+    const m = s.match(/^(deck|container|binder|box)[\s:]+(.+)$/);
+    if (m) return { type: m[1] === 'deck' ? 'deck' : 'container', name: m[2].trim() };
+    if (s === 'deck') return { type: 'deck', name: s };
+    if (s === 'container' || s === 'binder' || s === 'box') return { type: 'container', name: s };
+    return { type: 'container', name: s };
   }
   if (typeof raw === 'object') {
     const name = String(raw.name || '').trim().toLowerCase().replace(/\s+/g, ' ');
     if (!name) return null;
-    const type = ['deck', 'binder', 'box'].includes(raw.type) ? raw.type : 'box';
+    const rawType = String(raw.type || '').trim().toLowerCase();
+    const type = rawType === 'deck' ? 'deck' : 'container';
     return { type, name };
   }
   return null;
@@ -720,6 +727,22 @@ function normalizeLocation(raw) {
 function locationKey(loc) {
   const normalized = normalizeLocation(loc);
   return normalized ? normalized.type + ':' + normalized.name : '';
+}
+
+function normalizeContainerRecord(raw) {
+  const loc = normalizeLocation(raw);
+  if (!loc) return null;
+  const rawType = String(raw?.type || loc.type || '').trim().toLowerCase();
+  const out = {
+    ...(raw && typeof raw === 'object' ? cloneJson(raw, {}) : {}),
+    type: loc.type,
+    name: loc.name,
+  };
+  if (out.type === 'container') {
+    out.displayMode = out.displayMode === 'list' || rawType === 'box' ? 'list' : 'visual';
+    out.binderOrder = Array.isArray(raw?.binderOrder) ? [...raw.binderOrder] : [];
+  }
+  return out;
 }
 
 function collectionKey(entry) {
@@ -1413,15 +1436,22 @@ function applyOps(snapshot, ops) {
 function containerFromSnapshot(snapshot, loc) {
   const key = locationKey(loc);
   if (!key) return null;
-  const fromRegistry = snapshot?.app?.containers?.[key];
-  if (fromRegistry) return fromRegistry;
+  for (const raw of Object.values(snapshot?.app?.containers || {})) {
+    const normalized = normalizeContainerRecord(raw);
+    if (normalized && locationKey(normalized) === key) return normalized;
+  }
   const normalized = normalizeLocation(loc);
   if ((snapshot?.app?.collection || []).some(entry => locationKey(entry.location) === key)) return makeContainer(normalized);
   return null;
 }
 
 function allContainers(snapshot) {
-  const byKey = new Map(Object.entries(snapshot?.app?.containers || {}));
+  const byKey = new Map();
+  for (const raw of Object.values(snapshot?.app?.containers || {})) {
+    const normalized = normalizeContainerRecord(raw);
+    const key = locationKey(normalized);
+    if (key && !byKey.has(key)) byKey.set(key, normalized);
+  }
   for (const entry of snapshot?.app?.collection || []) {
     const loc = normalizeLocation(entry.location);
     if (loc && !byKey.has(locationKey(loc))) byKey.set(locationKey(loc), makeContainer(loc));
@@ -1465,8 +1495,7 @@ function resolveLocationForSnapshot(snapshot, raw) {
     const wantedTokens = locationAliasTokens(wanted);
     if (wantedTokens.length) {
       const preferredType = /\bdeck\b/i.test(wanted) ? 'deck'
-        : /\bbinder\b/i.test(wanted) ? 'binder'
-        : /\bbox\b/i.test(wanted) ? 'box'
+        : /\b(?:binder|box|container)\b/i.test(wanted) ? 'container'
         : '';
       const tokenMatches = containers
         .map(container => {
@@ -2595,8 +2624,9 @@ async function toolGetCollectionSummary(env, deps, auth) {
     containers: {
       total: containers.length,
       decks: containers.filter(c => c.type === 'deck').length,
-      binders: containers.filter(c => c.type === 'binder').length,
-      boxes: containers.filter(c => c.type === 'box').length,
+      containers: containers.filter(c => c.type === 'container').length,
+      visual: containers.filter(c => c.type === 'container' && c.displayMode !== 'list').length,
+      list: containers.filter(c => c.type === 'container' && c.displayMode === 'list').length,
     },
     recentChanges: (cloud.snapshot.history || []).slice(0, 5).map(ev => ({
       id: ev.id,
@@ -2626,7 +2656,10 @@ async function toolSearchCardPrintings(env, deps, auth, args = {}) {
 
 async function toolListContainers(env, deps, auth, args = {}) {
   const cloud = await currentCloud(env, deps, auth.userId);
-  const type = args.type && ['deck', 'binder', 'box'].includes(args.type) ? args.type : '';
+  const rawType = String(args.type || '').trim().toLowerCase();
+  const type = rawType === 'deck' ? 'deck'
+    : rawType === 'container' || rawType === 'binder' || rawType === 'box' ? 'container'
+    : '';
   const containers = allContainers(cloud.snapshot)
     .filter(container => !type || container.type === type)
     .map(container => ({
@@ -3213,11 +3246,11 @@ const TOOL_DEFINITIONS = [
       limit: NUMBERISH_SCHEMA,
     },
   }],
-  ['list_containers', 'List decks, binders, and boxes.', {
+  ['list_containers', 'List decks and storage containers.', {
     type: 'object',
-    properties: { type: { type: 'string', enum: ['deck', 'binder', 'box'] } },
+    properties: { type: { type: 'string', enum: ['deck', 'container'] } },
   }],
-  ['get_container', 'Get a binder, box, or deck container and its cards.', {
+  ['get_container', 'Get a deck or storage container and its cards.', {
     type: 'object',
     properties: { type: { type: 'string' }, name: { type: 'string' }, location: { oneOf: [{ type: 'string' }, { type: 'object' }] }, limit: NUMBERISH_SCHEMA },
   }],
@@ -3229,7 +3262,7 @@ const TOOL_DEFINITIONS = [
     type: 'object',
     properties: { limit: NUMBERISH_SCHEMA },
   }],
-  ['preview_edit_inventory_item', 'Preview editing an existing physical inventory row. Use this for combined requests like "move X to trade binder and make it foil"; it can change location, finish, condition, language, and tags in one preview token. Use fromFinish/fromCondition for source qualifiers; finish/condition are the requested new values.', {
+  ['preview_edit_inventory_item', 'Preview editing an existing physical inventory entry. Use this for combined requests like "move X to my trade container and make it foil"; it can change location, finish, condition, language, and tags in one preview token. Use fromFinish/fromCondition for source qualifiers; finish/condition are the requested new values.', {
     type: 'object',
     properties: {
       query: { type: 'string' },
@@ -3263,7 +3296,7 @@ const TOOL_DEFINITIONS = [
       create_container: BOOLEANISH_SCHEMA,
     },
   }],
-  ['preview_delete_inventory_item', 'Preview deleting/removing an existing physical inventory row from the collection entirely. Use this when the user says delete/remove from collection entirely; it does not need a destination container. qty deletes that many copies, otherwise the whole matched stack is removed.', {
+  ['preview_delete_inventory_item', 'Preview deleting/removing an existing physical inventory entry from the collection entirely. Use this when the user says delete/remove from collection entirely; it does not need a destination container. qty deletes that many copies, otherwise the whole matched stack is removed.', {
     type: 'object',
     properties: {
       query: { type: 'string' },
@@ -3299,7 +3332,7 @@ const TOOL_DEFINITIONS = [
       condition: { type: 'string', enum: ['near_mint', 'lightly_played', 'moderately_played', 'heavily_played', 'damaged', 'nm', 'lp', 'mp', 'hp', 'dmg'] },
     },
   }],
-  ['preview_replace_inventory_printing', 'Preview replacing/swapping the printing, version, edition, style, or art of an existing physical inventory row. Use this for "changed the printing", "swapped it to Secret Lair", "regular printing", or set/collector replacement requests. Preserves quantity, location, condition, language, and tags unless qty is provided to split part of a stack.', {
+  ['preview_replace_inventory_printing', 'Preview replacing/swapping the printing, version, edition, style, or art of an existing physical inventory entry. Use this for "changed the printing", "swapped it to Secret Lair", "regular printing", or set/collector replacement requests. Preserves quantity, location, condition, language, and tags unless qty is provided to split part of a stack.', {
     type: 'object',
     properties: {
       query: { type: 'string' },
@@ -3381,8 +3414,8 @@ const TOOL_DEFINITIONS = [
     },
   }],
   ['preview_decklist_change', 'Preview add/remove/move-board changes to a decklist.', { type: 'object' }],
-  ['preview_create_container', 'Preview creating a deck, binder, or box.', { type: 'object' }],
-  ['preview_rename_container', 'Preview renaming or converting a binder/box container.', { type: 'object' }],
+  ['preview_create_container', 'Preview creating a deck or storage container.', { type: 'object' }],
+  ['preview_rename_container', 'Preview renaming a deck or storage container.', { type: 'object' }],
   ['preview_delete_container', 'Preview deleting a container. Non-empty storage containers clear locations, not cards.', { type: 'object' }],
   ['apply_collection_change', 'Apply a signed previewed collection change.', {
     type: 'object',
@@ -4120,18 +4153,22 @@ function normalizeMcpCollectionSummary(value) {
   const uniqueCards = Math.max(0, parseInt(value.uniqueCards, 10) || 0);
   const totalCards = Math.max(0, parseInt(value.totalCards, 10) || 0);
   const totalValue = roundCurrency(Number(value.totalValue) || 0);
+  const containerStats = value.containers && typeof value.containers === 'object' ? value.containers : null;
+  const legacyVisual = Math.max(0, parseInt(containerStats?.binders, 10) || 0);
+  const legacyList = Math.max(0, parseInt(containerStats?.boxes, 10) || 0);
   return {
     uniqueCards,
     totalCards,
     totalValue,
     pricedEntries: Math.max(0, parseInt(value.pricedEntries, 10) || 0),
     unpricedEntries: Math.max(0, parseInt(value.unpricedEntries, 10) || 0),
-    containers: value.containers && typeof value.containers === 'object'
+    containers: containerStats
       ? {
-          total: Math.max(0, parseInt(value.containers.total, 10) || 0),
-          decks: Math.max(0, parseInt(value.containers.decks, 10) || 0),
-          binders: Math.max(0, parseInt(value.containers.binders, 10) || 0),
-          boxes: Math.max(0, parseInt(value.containers.boxes, 10) || 0),
+          total: Math.max(0, parseInt(containerStats.total, 10) || 0),
+          decks: Math.max(0, parseInt(containerStats.decks, 10) || 0),
+          containers: Math.max(0, parseInt(containerStats.containers, 10) || 0) || legacyVisual + legacyList,
+          visual: Math.max(0, parseInt(containerStats.visual, 10) || 0) || legacyVisual,
+          list: Math.max(0, parseInt(containerStats.list, 10) || 0) || legacyList,
         }
       : null,
   };
@@ -5084,14 +5121,14 @@ function createdContainerLocationFromUserText(userText) {
   const text = String(userText || '').trim();
   if (!/\b(?:create|make|new|set\s+up|setup)\b/i.test(text)) return null;
   const patterns = [
-    /\b(?:create|make|add|set\s+up|setup)\s+(?:me\s+)?(?:a\s+|an\s+|new\s+)?(binder|box|deck)\s+(?:called|named)\s+(.+)$/i,
-    /\b(?:create|make|add|set\s+up|setup)\s+(?:me\s+)?(?:a\s+|an\s+|new\s+)?(.+?)\s+(binder|box|deck)\b/i,
-    /\b(?:new\s+)?(binder|box|deck)\s+(?:called|named)\s+(.+)$/i,
+    /\b(?:create|make|add|set\s+up|setup)\s+(?:me\s+)?(?:a\s+|an\s+|new\s+)?(container|binder|box|deck)\s+(?:called|named)\s+(.+)$/i,
+    /\b(?:create|make|add|set\s+up|setup)\s+(?:me\s+)?(?:a\s+|an\s+|new\s+)?(.+?)\s+(container|binder|box|deck)\b/i,
+    /\b(?:new\s+)?(container|binder|box|deck)\s+(?:called|named)\s+(.+)$/i,
   ];
   for (const pattern of patterns) {
     const match = text.match(pattern);
     if (!match) continue;
-    const typeFirst = ['binder', 'box', 'deck'].includes(String(match[1] || '').toLowerCase());
+    const typeFirst = ['container', 'binder', 'box', 'deck'].includes(String(match[1] || '').toLowerCase());
     const type = String(typeFirst ? match[1] : match[2]).toLowerCase();
     const name = cleanCreatedContainerName(typeFirst ? match[2] : match[1]);
     const loc = normalizeLocation({ type, name });

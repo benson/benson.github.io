@@ -26,8 +26,7 @@ function installDom() {
       <input id="detailTagInput">
       <select id="detailLocationType">
         <option value="deck">deck</option>
-        <option value="binder">binder</option>
-        <option value="box">box</option>
+        <option value="container">container</option>
       </select>
       <input id="detailLocationName">
     </form>
@@ -54,7 +53,7 @@ test('writeDetailForm renders normalized drawer fields from a card', () => {
       finish: 'foil',
       condition: 'lightly_played',
       language: 'ja',
-      location: { type: 'binder', name: 'Trade Binder' },
+      location: { type: 'container', name: 'Trade Binder' },
       finishes: ['nonfoil', 'foil'],
     },
   });
@@ -64,7 +63,7 @@ test('writeDetailForm renders normalized drawer fields from a card', () => {
   assert.equal(form.querySelector('input[name="detailCondition"]:checked').value, 'lightly_played');
   assert.equal(form.querySelector('input[name="detailLanguage"]:checked').value, 'ja');
   assert.equal(doc.getElementById('detailTagInput').value, '');
-  assert.equal(doc.getElementById('detailLocationType').value, 'binder');
+  assert.equal(doc.getElementById('detailLocationType').value, 'container');
   assert.equal(doc.getElementById('detailLocationName').value, 'trade binder');
 });
 
@@ -95,7 +94,7 @@ test('snapshots, applies values, and reports detail diffs without mutating snaps
     finish: 'normal',
     condition: 'near_mint',
     language: 'en',
-    location: { type: 'box', name: 'bulk' },
+    location: { type: 'container', name: 'bulk' },
     tags: ['rare'],
   };
   const before = snapshotDetailFields(card);
@@ -105,7 +104,7 @@ test('snapshots, applies values, and reports detail diffs without mutating snaps
     finish: 'foil',
     condition: 'lightly_played',
     language: 'ja',
-    location: { type: 'binder', name: 'trade' },
+    location: { type: 'container', name: 'trade' },
     tags: ['rare', 'sale'],
   });
 
@@ -114,7 +113,7 @@ test('snapshots, applies values, and reports detail diffs without mutating snaps
     finish: 'normal',
     condition: 'near_mint',
     language: 'en',
-    location: { type: 'box', name: 'bulk' },
+    location: { type: 'container', name: 'bulk' },
     tags: ['rare'],
   });
   assert.deepEqual(card.tags, ['rare', 'sale']);
@@ -124,7 +123,7 @@ test('snapshots, applies values, and reports detail diffs without mutating snaps
       'normal → foil',
       'near mint → lightly played',
       'en → ja',
-      'location: box:bulk → binder:trade',
+      'location: container:bulk → container:trade',
       'tags: [rare] → [rare, sale]',
     ],
     locationChanged: true,

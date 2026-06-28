@@ -9,8 +9,8 @@ export default {
   help: [
     'usage: bp move <name> --to "deck:breya" [--board sideboard] [--set --cn --finish ...] [--all] [--dry-run]',
     '',
-    'changes a stack\'s location. --to accepts "deck:x", "binder:x", "box:x", or a bare',
-    'name (treated as a box). --board sets the deck board (main/sideboard/maybe).',
+    'changes a stack\'s location. --to accepts "deck:x", "container:x", or a bare name',
+    '(treated as a container). --board sets the deck board (main/sideboard/maybe).',
   ].join('\n'),
   async run(ctx) {
     const { out, flags, args } = ctx;

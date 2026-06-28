@@ -189,7 +189,7 @@ function eventIsDeckRelated(ev) {
 
 function eventIsStorageRelated(ev) {
   if (!ev) return false;
-  const storageTypes = ['binder', 'box'];
+  const storageTypes = ['container'];
   if (['storage-create', 'storage-rename', 'storage-delete'].includes(ev.type)) return true;
   if (storageTypes.includes(normalizeLocation(ev.containerBefore)?.type)) return true;
   if (storageTypes.includes(normalizeLocation(ev.containerAfter)?.type)) return true;
@@ -322,7 +322,7 @@ function cardSpanHtml(c, className) {
 }
 
 function locLinkHtml(type, name) {
-  const icon = LOC_ICONS[type] || LOC_ICONS.box;
+  const icon = LOC_ICONS[type] || LOC_ICONS.container;
   return '<button type="button" class="loc-link loc-link-' + esc(type) + '"' +
     ' data-loc-type="' + esc(type) + '" data-loc-name="' + esc(name) + '"' +
     ' title="' + esc(type) + ':' + esc(name) + '">' +
@@ -331,7 +331,10 @@ function locLinkHtml(type, name) {
 }
 
 function substituteLocTokens(html) {
-  return html.replace(/\{loc:(deck|binder|box):([^}]+)\}/g, (_, type, name) => locLinkHtml(type, name));
+  return html.replace(/\{loc:(deck|container|binder|box):([^}]+)\}/g, (_, type, name) => {
+    const normalizedType = type === 'binder' || type === 'box' ? 'container' : type;
+    return locLinkHtml(normalizedType, name);
+  });
 }
 
 function historySummaryText(summary, cards) {

@@ -100,7 +100,7 @@ test('canonical.parse: handles legacy CSVs (location, tags pipe-separated)', () 
   const rows = parseCsv(csv);
   const [entry] = canonicalAdapter.parse(rows);
   assert.equal(entry.qty, 2);
-  assert.equal(entry.location.type, 'box');
+  assert.equal(entry.location.type, 'container');
   assert.equal(entry.location.name, 'bulk');
   assert.deepEqual(entry.tags, ['edh', 'trade']);
 });

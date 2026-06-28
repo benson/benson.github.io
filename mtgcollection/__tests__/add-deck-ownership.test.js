@@ -33,7 +33,7 @@ test('buildDeckOwnershipReadout: summarizes owned copies and current deck copies
 
   assert.equal(
     readout.text,
-    'you own 3 of this printing (2 in deck:breya, 1 in binder:trades) - 2 already in this deck'
+    'you own 3 of this printing (2 in deck:breya, 1 in container:trades) - 2 already in this deck'
   );
   assert.equal(readout.placeholderState, false);
   assert.equal(readout.placeholderChecked, false);

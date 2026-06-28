@@ -22,8 +22,8 @@ function setup() {
     <button data-close-right-drawer></button>
     <div id="appRightBackdrop"></div>
     <div id="detailDrawer"></div>
-    <span class="loc-pill" data-loc-type="box" data-loc-name="bulk"></span>
-    <button class="loc-pill-remove"><span class="loc-pill" data-loc-type="box" data-loc-name="bulk"></span></button>
+    <span class="loc-pill" data-loc-type="container" data-loc-name="bulk"></span>
+    <button class="loc-pill-remove"><span class="loc-pill" data-loc-type="container" data-loc-name="bulk"></span></button>
     <button class="deck-empty-chip"><span class="loc-pill" data-loc-type="deck" data-loc-name="breya"></span></button>
   `;
   return {
@@ -187,14 +187,14 @@ test('bindAppShellActions: binder add drawer seeds the active binder location', 
     documentObj: document,
     stateRef,
     getEffectiveShapeImpl: () => 'binder',
-    getActiveLocationImpl: () => ({ type: 'binder', name: 'trade binder' }),
+    getActiveLocationImpl: () => ({ type: 'container', name: 'trade binder' }),
     openRightDrawerImpl: (targets, options) => calls.push(['open', targets, options]),
   });
 
   click(win, document.querySelector('[data-fab-target]'));
 
   assert.deepEqual(calls, [
-    ['open', ['filters', 'add'], { seedLocation: { type: 'binder', name: 'trade binder' } }],
+    ['open', ['filters', 'add'], { seedLocation: { type: 'container', name: 'trade binder' } }],
   ]);
 });
 
@@ -234,5 +234,5 @@ test('bindAppShellActions: location pills navigate except remove and empty-chip 
   click(win, document.querySelector('.loc-pill-remove .loc-pill'));
   click(win, document.querySelector('.deck-empty-chip .loc-pill'));
 
-  assert.deepEqual(calls, [['box', 'bulk']]);
+  assert.deepEqual(calls, [['container', 'bulk']]);
 });

@@ -90,13 +90,13 @@ test('tag add then undo restores', async () => {
 test('container create / rename / delete', async () => {
   const session = await loginSession(makeEnv());
   await seed(session);
-  await runCmd(container, { args: ['create', 'binder:rares'], session });
-  assert.ok(containersOf((await loadSnapshot(session)).snapshot)['binder:rares']);
-  const ren = await runCmd(container, { args: ['rename', 'binder:rares', 'mythics'], session });
+  await runCmd(container, { args: ['create', 'container:rares'], session });
+  assert.ok(containersOf((await loadSnapshot(session)).snapshot)['container:rares']);
+  const ren = await runCmd(container, { args: ['rename', 'container:rares', 'mythics'], session });
   assert.equal(ren.json.ok, true);
   const after = containersOf((await loadSnapshot(session)).snapshot);
-  assert.ok(after['binder:mythics']);
-  assert.ok(!after['binder:rares']);
+  assert.ok(after['container:mythics']);
+  assert.ok(!after['container:rares']);
 });
 
 test('import (no-resolve) then export json', async () => {
