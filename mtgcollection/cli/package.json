@@ -1,0 +1,42 @@
+{
+  "name": "biblioplex",
+  "version": "0.1.0",
+  "description": "Command-line tool to manage your biblioplex Magic: The Gathering collection.",
+  "type": "module",
+  "bin": {
+    "biblioplex": "bin/biblioplex.mjs",
+    "bp": "bin/biblioplex.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "vendor/",
+    "README.md"
+  ],
+  "scripts": {
+    "sync-vendor": "node scripts/sync-vendor.mjs",
+    "test": "node --test __tests__/*.test.js",
+    "prepublishOnly": "node scripts/sync-vendor.mjs && node --test __tests__/*.test.js"
+  },
+  "keywords": [
+    "mtg",
+    "magic-the-gathering",
+    "collection",
+    "cli",
+    "biblioplex",
+    "scryfall"
+  ],
+  "license": "MIT",
+  "homepage": "https://biblioplex.bensonperry.com",
+  "bugs": {
+    "url": "https://github.com/REPLACE_ME/benson.github.io/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/REPLACE_ME/benson.github.io.git",
+    "directory": "mtgcollection/cli"
+  }
+}
