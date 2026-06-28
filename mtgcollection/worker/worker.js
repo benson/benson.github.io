@@ -14,6 +14,7 @@ import {
 
 const ALLOWED_ORIGINS = [
   'https://bensonperry.com',
+  'https://biblioplex.bensonperry.com',
   'http://localhost:8765',
   'http://127.0.0.1:8765',
 ];
