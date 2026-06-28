@@ -239,8 +239,9 @@ export function initHelp({
   const panel = documentObj?.getElementById('helpPanel');
   const body = documentObj?.getElementById('helpBody');
   const openButtons = Array.from(documentObj?.querySelectorAll('[data-help-open]') || []);
+  const legacyOpenLinks = Array.from(documentObj?.querySelectorAll('.help-fab[href], a[href$="help.html"]') || []);
   const closeButtons = Array.from(documentObj?.querySelectorAll('[data-help-close]') || []);
-  if (!panel || !body || openButtons.length === 0) return;
+  if (!panel || !body || (openButtons.length === 0 && legacyOpenLinks.length === 0)) return;
 
   body.innerHTML = helpHtml();
 
@@ -262,6 +263,7 @@ export function initHelp({
     panel.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
     documentObj.body?.classList.toggle('help-open', isOpen);
     openButtons.forEach(button => button.setAttribute('aria-expanded', isOpen ? 'true' : 'false'));
+    legacyOpenLinks.forEach(link => link.setAttribute('aria-expanded', isOpen ? 'true' : 'false'));
     if (isOpen) {
       activate(sectionId || panel.dataset.activeHelpSection || HELP_SECTIONS[0].id);
       panel.querySelector('.help-close')?.focus?.();
@@ -282,12 +284,24 @@ export function initHelp({
     }
   };
 
+  const openHelp = sectionId => {
+    const target = sectionId || HELP_SECTIONS[0].id;
+    panel.dataset.activeHelpSection = target;
+    setOpen(true, target);
+    updateHash(target);
+  };
+
   openButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      const sectionId = button.dataset.helpOpen || '';
-      panel.dataset.activeHelpSection = sectionId || HELP_SECTIONS[0].id;
-      setOpen(true, sectionId);
-      updateHash(sectionId);
+    button.addEventListener('click', () => openHelp(button.dataset.helpOpen || ''));
+  });
+
+  legacyOpenLinks.forEach(link => {
+    link.setAttribute('aria-haspopup', 'dialog');
+    link.setAttribute('aria-controls', panel.id || 'helpPanel');
+    link.setAttribute('aria-expanded', 'false');
+    link.addEventListener('click', event => {
+      event.preventDefault();
+      openHelp(link.dataset.helpOpen || HELP_SECTIONS[0].id);
     });
   });
 
