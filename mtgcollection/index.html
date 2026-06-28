@@ -55,6 +55,7 @@ body.app-booting .app-boot-curtain {
       <button class="toggle-view" id="storageViewBtn" data-view="storage"><svg class="view-icon view-icon-svg" aria-hidden="true" viewBox="0 0 14 14"><path d="M2 7 L7 2 L12 7 L12 12 L2 12 Z" fill="none" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/></svg>storage</button>
     </div>
     <div class="sync-account-slot" id="syncAccountSlot">
+      <button class="help-toggle" type="button" data-help-open="start" aria-haspopup="dialog" aria-expanded="false" aria-controls="helpPanel">help</button>
       <div class="header-settings" id="headerSettings">
         <button class="settings-toggle" type="button" id="settingsToggleBtn" title="settings" aria-haspopup="dialog" aria-expanded="false" aria-controls="settingsPopover">settings</button>
         <div class="settings-popover" id="settingsPopover" role="dialog" aria-label="settings" hidden>
@@ -529,6 +530,18 @@ body.app-booting .app-boot-curtain {
     <div class="app-totals-strip" id="appTotalsStrip" aria-live="polite"></div>
   </footer>
   <div class="app-right-backdrop" id="appRightBackdrop"></div>
+  <section class="help-panel" id="helpPanel" role="dialog" aria-modal="true" aria-labelledby="helpPanelTitle" aria-hidden="true">
+    <div class="help-panel-card">
+      <header class="help-head">
+        <div>
+          <div class="help-eyebrow">biblioplex docs</div>
+          <h2 id="helpPanelTitle">Help</h2>
+        </div>
+        <button class="help-close" type="button" data-help-close aria-label="close help">x</button>
+      </header>
+      <div class="help-body" id="helpBody"></div>
+    </div>
+  </section>
   <section class="mcp-chat-widget" id="mcpChatDetails" aria-label="collection chat" aria-hidden="true">
     <header class="mcp-chat-head" id="mcpChatDragHandle" data-mcp-chat-drag-handle title="drag chat">
       <h2>collection chat</h2>

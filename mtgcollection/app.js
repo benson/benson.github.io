@@ -24,6 +24,7 @@ import {
 } from './syncEngine.js';
 import { initSyncUi } from './syncUi.js?settings-header-1';
 import { initMcpChat } from './mcpChat.js';
+import { initHelp } from './help.js';
 import { applyRouteStateFromUrl } from './routeState.js';
 import { bindSidebarToggle, loadSidebarPreference } from './sidebarPreferences.js?drawer-peek-1';
 import { bindHistoryDrawerToggle, loadHistoryDrawerPreference } from './historyDrawer.js?bottom-drawer-1';
@@ -125,6 +126,7 @@ async function boot() {
   initShare();
   initSyncUi();
   initMcpChat();
+  initHelp();
 
   // App-level DOM controls; format selector syncs after loadFromStorage().
   const appControls = bindAppControls({ openRightDrawerImpl: openRightDrawer });
