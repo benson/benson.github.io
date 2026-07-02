@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>corner grip variations</title>
+  <link rel="stylesheet" href="/vellum-ui/vellum-ui.css">
+  <style>
+    body.vui-app {
+      background: var(--vui-color-bg);
+      color: var(--vui-color-text);
+      font-family: var(--vui-font-body);
+      margin: 0;
+      padding: 32px 24px 64px;
+    }
+    .page-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      max-width: 960px;
+      margin: 0 auto 8px;
+    }
+    h1 { font-size: 1.1rem; font-weight: 600; margin: 0; }
+    .page-head button {
+      appearance: none; background: transparent; border: none; cursor: pointer;
+      color: var(--vui-color-text-muted); font: inherit; font-size: 0.8rem;
+      text-transform: lowercase;
+    }
+    .intro { max-width: 960px; margin: 0 auto 28px; color: var(--vui-color-text-muted); font-size: 0.85rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 28px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    .demo { text-align: center; }
+    .demo-label { font-size: 0.8rem; color: var(--vui-color-text-muted); margin-top: 10px; }
+    .demo-label b { color: var(--vui-color-text); font-weight: 600; }
+
+    /* mini modal card */
+    .mini-modal {
+      position: relative;
+      background: var(--vui-color-surface, var(--vui-color-bg));
+      border: var(--vui-border-width, 1px) solid var(--vui-color-line-strong);
+      border-radius: 6px;
+      height: 190px;
+      text-align: left;
+      overflow: hidden;
+    }
+    .mini-head {
+      background: var(--vui-color-text);
+      color: var(--vui-color-text-inverse);
+      cursor: move;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      font-size: 0.8rem;
+    }
+    .mini-head span:last-child { opacity: 0.7; }
+    .mini-body { padding: 12px; }
+    .mini-line { height: 8px; border-radius: 2px; background: var(--vui-color-line-soft, rgba(128,128,128,.25)); margin-bottom: 8px; }
+    .mini-line.short { width: 60%; }
+    .mini-note {
+      height: 52px; border: 1px solid var(--vui-color-line-soft, rgba(128,128,128,.35));
+      border-radius: 4px; margin-top: 10px;
+    }
+    .corner {
+      position: absolute; left: 0; bottom: 0;
+      width: 22px; height: 22px;
+      cursor: nesw-resize;
+    }
+
+    /* shared grip ink + hover invitation (matches .vui-resize-grip behavior) */
+    .grip { --ink: var(--vui-color-line-strong); opacity: 0.5; transition: opacity 120ms ease; }
+    .mini-modal:hover .grip { --ink: var(--vui-color-line-focus); opacity: 0.9; }
+
+    /* 0 — current: 45deg slash + L bracket */
+    .g0::before, .g0::after { content: ''; position: absolute; pointer-events: none; opacity: inherit; }
+    .g0::before {
+      background: var(--ink); height: 2px; width: 28px;
+      left: 4px; top: -2px; transform: rotate(45deg); transform-origin: left center;
+    }
+    .g0::after {
+      border-bottom: 2px solid var(--ink); border-left: 2px solid var(--ink);
+      bottom: 2px; left: 2px; height: 20px; width: 20px;
+    }
+
+    /* 1 — dotted triangle: corner filled with the .vui-resize-grip stripe texture */
+    .g1 {
+      position: absolute; inset: auto auto 3px 3px; width: 16px; height: 16px;
+      clip-path: polygon(0 0, 0 100%, 100% 100%);
+      background: repeating-linear-gradient(45deg, var(--ink) 0 1.5px, transparent 1.5px 4px);
+    }
+
+    /* 2 — braille dots: dot grid masked to the corner triangle */
+    .g2 {
+      position: absolute; inset: auto auto 3px 3px; width: 18px; height: 18px;
+      clip-path: polygon(0 0, 0 100%, 100% 100%);
+      background-image: radial-gradient(circle, var(--ink) 1px, transparent 1.3px);
+      background-size: 5px 5px;
+      background-position: 1px 1px;
+    }
+
+    /* 3 — classic hairlines: three thin solid diagonals, no bracket */
+    .g3 {
+      position: absolute; inset: auto auto 3px 3px; width: 15px; height: 15px;
+      clip-path: polygon(0 0, 0 100%, 100% 100%);
+      background: repeating-linear-gradient(45deg, var(--ink) 0 1px, transparent 1px 5px);
+    }
+
+    /* 4 — single notch: one short dotted bar at 45deg, tucked in the corner */
+    .g4 {
+      position: absolute; left: 1px; bottom: 7px; width: 5px; height: 18px;
+      transform: rotate(45deg); transform-origin: center;
+      background: repeating-linear-gradient(0deg, var(--ink) 0 1.5px, transparent 1.5px 4px);
+    }
+
+    /* 5 — corner patch: small square of grip texture, inset from the corner */
+    .g5 {
+      position: absolute; left: 4px; bottom: 4px; width: 9px; height: 9px;
+      background-image: radial-gradient(circle, var(--ink) 1px, transparent 1.2px);
+      background-size: 4px 4px;
+    }
+  </style>
+</head>
+<body class="vui-app no-shared-footer">
+  <div class="page-head">
+    <h1>corner grip variations</h1>
+    <button id="theme">dark</button>
+  </div>
+  <p class="intro">bottom-left resize affordance for modals + the feedback widget. hover a card — the grip lights up (the drag invitation). 0 is the current treatment.</p>
+  <div class="grid" id="grid"></div>
+
+  <script>
+    const variants = [
+      ['0', 'current — slash + bracket', 'g0'],
+      ['1', 'dotted triangle', 'g1'],
+      ['2', 'braille dots', 'g2'],
+      ['3', 'classic hairlines', 'g3'],
+      ['4', 'single dotted notch', 'g4'],
+      ['5', 'corner patch', 'g5'],
+    ];
+    document.getElementById('grid').innerHTML = variants.map(([n, label, cls]) => `
+      <div class="demo">
+        <div class="mini-modal">
+          <div class="mini-head"><span>feedback</span><span>&times;</span></div>
+          <div class="mini-body">
+            <div class="mini-line"></div>
+            <div class="mini-line short"></div>
+            <div class="mini-note"></div>
+          </div>
+          <div class="corner"><div class="grip ${cls}"></div></div>
+        </div>
+        <div class="demo-label"><b>${n}</b> — ${label}</div>
+      </div>`).join('');
+
+    const btn = document.getElementById('theme');
+    btn.addEventListener('click', () => {
+      const dark = document.documentElement.getAttribute('data-theme') !== 'dark';
+      if (dark) document.documentElement.setAttribute('data-theme', 'dark');
+      else document.documentElement.removeAttribute('data-theme');
+      btn.textContent = dark ? 'light' : 'dark';
+    });
+  </script>
+</body>
+</html>
