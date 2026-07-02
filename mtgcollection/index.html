@@ -92,7 +92,10 @@ body.app-booting .app-boot-curtain {
           </div>
           <div class="settings-group settings-utility-group">
             <div class="settings-label" id="settingsUtilityLabel">utilities</div>
-            <button class="settings-reset-action" type="button" id="loadTestDataBtn" title="reset to a representative test state">reset test data</button>
+            <div class="settings-utility-actions">
+              <button class="settings-reset-action" type="button" id="loadTestDataBtn" title="reset to a representative test state">reset test data</button>
+              <button class="settings-reset-action settings-danger-action" type="button" id="deleteEverythingBtn" title="delete collection, decks, storage, and history">delete everything</button>
+            </div>
             <span class="settings-test-status" id="testDataStatus" aria-live="polite"></span>
           </div>
         </div>
@@ -167,8 +170,8 @@ body.app-booting .app-boot-curtain {
       <div class="history-drawer-header">
         <span class="history-drawer-heading">
           <span class="history-drawer-title">collection history</span>
-          <button class="history-clear-btn history-clear-link" type="button" id="clearHistoryBtn" aria-label="clear history" title="clear history">[clear]</button>
         </span>
+        <button class="history-clear-btn history-clear-icon history-clear-header" type="button" id="clearHistoryBtn" aria-label="clear history" title="clear history"><svg class="history-clear-icon-svg" aria-hidden="true" viewBox="0 0 16 16" focusable="false"><path d="M5.5 4.5V3.2c0-.5.4-.9.9-.9h3.2c.5 0 .9.4.9.9v1.3" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M3.5 4.5h9M5 6.5l.5 6.2c0 .6.5 1 1.1 1h2.8c.6 0 1.1-.4 1.1-1l.5-6.2M7 7.1v4.5M9 7.1v4.5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <button class="history-drawer-toggle" type="button" id="historyDrawerToggleBtn" data-history-drawer-toggle aria-controls="historyDrawerBody" aria-expanded="false" aria-label="show history" title="show history">
           <span class="drawer-toggle-chevron history-drawer-chevron" aria-hidden="true"></span>
         </button>
@@ -441,7 +444,7 @@ body.app-booting .app-boot-curtain {
             csv format auto-detected from headers (moxfield, manabox, deckbox, canonical). moxfield plaintext like <code>1 Sol Ring (SLD) 1011 *F*</code> works too.
           </div>
           <div class="danger-zone">
-            <button class="danger-link" type="button" id="deleteAllBtn">delete entire collection</button>
+            <button class="danger-link" type="button" id="deleteAllBtn">delete everything</button>
           </div>
         </div>
 
@@ -647,12 +650,12 @@ body.app-booting .app-boot-curtain {
         <span id="detailPriceText"></span><span id="detailPriceMark"></span>
         <a id="detailPriceLink" href="#" target="_blank" rel="noopener">(scryfall)</a>
       </div>
-      <div class="drawer-actions">
-        <button class="btn" type="submit">save</button>
-        <button class="btn btn-secondary" id="detailCancel" type="button">cancel</button>
-        <button class="btn btn-danger" id="detailDelete" type="button">delete card</button>
-      </div>
     </form>
+  </div>
+  <div class="drawer-actions" aria-label="card actions">
+    <button class="btn" type="submit" form="detailForm">save</button>
+    <button class="btn btn-secondary" id="detailCancel" type="button">cancel</button>
+    <button class="btn btn-danger" id="detailDelete" type="button">delete card</button>
   </div>
 </aside>
 

@@ -282,6 +282,15 @@ test('app smoke: seed data, navigate routes, tweak deck, and draw a hand', async
   assert.ok(window.document.querySelector('.location-card[data-loc-type="container"][data-loc-name="bulk"]'));
   assert.ok(window.document.querySelector('.location-card[data-loc-type="container"][data-loc-name="trade binder"]'));
 
+  click(window, '#deleteEverythingBtn');
+  await waitFor(
+    () => state.collection.length === 0
+      && Object.keys(state.containers || {}).length === 0
+      && window.document.body.classList.contains('view-collection'),
+    'delete everything reset'
+  );
+  assert.equal(window.document.querySelector('#emptyState').classList.contains('hidden'), false);
+
   const visibleText = window.document.body.textContent;
   assert.doesNotMatch(visibleText, /\u00c2|\u00c3|\u00e2|\ufffd/);
 

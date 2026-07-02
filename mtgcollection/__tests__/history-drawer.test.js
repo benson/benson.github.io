@@ -16,8 +16,8 @@ function setup() {
       <div class="history-drawer-header">
         <span class="history-drawer-heading">
           <span class="history-drawer-title">collection history</span>
-          <button class="history-clear-btn history-clear-link" type="button">[clear]</button>
         </span>
+        <button class="history-clear-btn history-clear-icon history-clear-header" type="button" aria-label="clear history" title="clear history"></button>
         <button class="history-drawer-toggle" type="button" data-history-drawer-toggle aria-controls="historyDrawerBody" aria-expanded="true" aria-label="hide history">
           <span class="drawer-toggle-chevron history-drawer-chevron" aria-hidden="true"></span>
         </button>

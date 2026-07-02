@@ -8,6 +8,8 @@ import {
   getLog,
   initChangelog,
   recordEvent,
+  redoEvent,
+  replaceLog,
   setHistoryScope,
   undoEvent,
 } from '../changelog.js';
@@ -228,6 +230,105 @@ test('history summary does not append a card name that is already in the event t
   assert.equal(undo?.getAttribute('title'), 'undo this change');
   assert.equal(undo?.getAttribute('aria-label'), 'undo this change');
   assert.equal(undo?.textContent, '\u21b6');
+});
+
+test('history undone entries expose redo and reapply the change', () => {
+  const win = new Window();
+  globalThis.document = win.document;
+  globalThis.localStorage = win.localStorage;
+  win.document.body.innerHTML = `
+    <details class="history-details" open>
+      <summary>collection history</summary>
+      <ol class="history-list"></ol>
+    </details>
+  `;
+  const commits = [];
+  configureChangelogActions({ commitCollectionChangeImpl: () => commits.push('commit') });
+  initChangelog();
+  setHistoryScope(null);
+
+  const card = {
+    name: 'Force of Will',
+    scryfallId: 'force',
+    setCode: '2xm',
+    cn: '51',
+    finish: 'normal',
+    condition: 'near_mint',
+    language: 'en',
+    qty: 1,
+    location: { type: 'binder', name: 'trade binder' },
+  };
+  state.collection = [card];
+  const beforeKey = collectionKey(card);
+  const before = [{ key: beforeKey, card: { ...card, location: { ...card.location } } }];
+  card.location = null;
+  const ev = recordEvent({
+    type: 'edit',
+    summary: '{card} removed from {loc:binder:trade binder}',
+    before,
+    affectedKeys: [beforeKey],
+    cards: [{ name: 'Force of Will' }],
+  });
+
+  undoEvent(ev.id);
+  assert.deepEqual(state.collection[0].location, { type: 'binder', name: 'trade binder' });
+  const redo = win.document.querySelector('.history-redo');
+  assert.equal(redo?.getAttribute('title'), 'redo this change');
+  assert.equal(redo?.getAttribute('aria-label'), 'redo this change');
+  assert.equal(redo?.textContent, '\u21b7');
+
+  redoEvent(ev.id);
+  assert.equal(state.collection[0].location, null);
+  assert.equal(getLog()[0].undone, false);
+  assert.equal(win.document.querySelector('.history-redo'), null);
+  assert.ok(win.document.querySelector('.history-undo'));
+  assert.equal(commits.length, 2);
+});
+
+test('redo can infer older undone location-removal entries without after snapshots', () => {
+  resetState();
+  const win = new Window();
+  globalThis.document = win.document;
+  globalThis.localStorage = win.localStorage;
+  win.document.body.innerHTML = `
+    <details class="history-details" open>
+      <summary>collection history</summary>
+      <ol class="history-list"></ol>
+    </details>
+  `;
+  initChangelog();
+  setHistoryScope(null);
+
+  const card = {
+    name: 'Force of Will',
+    scryfallId: 'force',
+    setCode: '2xm',
+    cn: '51',
+    finish: 'normal',
+    condition: 'near_mint',
+    language: 'en',
+    qty: 1,
+    location: { type: 'binder', name: 'trade binder' },
+  };
+  const key = collectionKey(card);
+  state.collection = [{ ...card, location: { ...card.location } }];
+  replaceLog([{
+    id: 'legacy-undone',
+    ts: Date.now(),
+    type: 'edit',
+    summary: '{card} removed from {loc:binder:trade binder}',
+    before: [{ key, card }],
+    created: [],
+    affectedKeys: [key],
+    cards: [{ name: 'Force of Will' }],
+    scope: 'collection',
+    undone: true,
+  }]);
+
+  assert.ok(win.document.querySelector('.history-redo'));
+  redoEvent('legacy-undone');
+  assert.equal(state.collection[0].location, null);
+  assert.equal(getLog()[0].undone, false);
 });
 
 test('history add summaries hide printing metadata and keep the card link', () => {

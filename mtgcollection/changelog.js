@@ -55,6 +55,7 @@ function cloneEntry(c) {
   if (!c) return null;
   const copy = { ...c };
   if (Array.isArray(c.tags)) copy.tags = [...c.tags];
+  if (c.location) copy.location = { ...c.location };
   return copy;
 }
 
@@ -87,6 +88,74 @@ function softIdentity(c) {
   return (c.scryfallId || '') + '|' + (c.setCode || '') + '|' + (c.cn || '') + '|' + (c.name || '');
 }
 
+function captureCurrentSnapshots({ before = [], affectedKeys = [], created = [] } = {}) {
+  const wantedKeys = new Set([...affectedKeys, ...created].filter(Boolean));
+  const snapshots = [];
+  const used = new Set();
+
+  function addSnapshot(index) {
+    if (index < 0 || used.has(index)) return false;
+    const card = state.collection[index];
+    if (!card) return false;
+    used.add(index);
+    snapshots.push({ key: collectionKey(card), card: cloneEntry(card) });
+    return true;
+  }
+
+  for (let i = 0; i < state.collection.length; i += 1) {
+    if (wantedKeys.has(collectionKey(state.collection[i]))) addSnapshot(i);
+  }
+
+  for (const b of before) {
+    if (!b?.card) continue;
+    const sid = softIdentity(b.card);
+    for (let i = 0; i < state.collection.length; i += 1) {
+      if (used.has(i)) continue;
+      if (softIdentity(state.collection[i]) === sid) {
+        addSnapshot(i);
+        break;
+      }
+    }
+  }
+
+  return snapshots;
+}
+
+function normalizeSnapshots(snapshots = []) {
+  return Array.isArray(snapshots)
+    ? snapshots
+      .filter(s => s && s.card)
+      .map(s => ({ key: s.key || collectionKey(s.card), card: cloneEntry(s.card) }))
+    : [];
+}
+
+function findLiveSnapshotIndex(snapshot, skip = new Set()) {
+  if (!snapshot?.card) return -1;
+  const key = snapshot.key || collectionKey(snapshot.card);
+  const sid = softIdentity(snapshot.card);
+
+  for (let i = 0; i < state.collection.length; i += 1) {
+    if (skip.has(i)) continue;
+    if (collectionKey(state.collection[i]) === key) return i;
+  }
+
+  for (let i = 0; i < state.collection.length; i += 1) {
+    if (skip.has(i)) continue;
+    if (softIdentity(state.collection[i]) === sid) return i;
+  }
+
+  return -1;
+}
+
+function removeLiveSnapshots(snapshots = []) {
+  const remove = new Set();
+  for (const snapshot of snapshots) {
+    const idx = findLiveSnapshotIndex(snapshot, remove);
+    if (idx !== -1) remove.add(idx);
+  }
+  if (remove.size) state.collection = state.collection.filter((_, i) => !remove.has(i));
+}
+
 const CARDS_PREVIEW_LIMIT = 5;
 
 function normalizeCards(cards) {
@@ -113,14 +182,22 @@ export function recordEvent({
   containerAfter = null,
   deckBefore = null,
   deckAfter = null,
+  after = null,
 }) {
   const normCards = normalizeCards(cards);
+  const beforeSnapshots = normalizeSnapshots(before);
+  const afterSnapshots = normalizeSnapshots(after || captureCurrentSnapshots({
+    before: beforeSnapshots,
+    affectedKeys,
+    created,
+  }));
   const ev = {
     id: genId(),
     ts: Date.now(),
     type,
     summary: summary || '',
-    before: before.map(b => ({ key: b.key, card: cloneEntry(b.card) })),
+    before: beforeSnapshots,
+    after: afterSnapshots,
     created: [...created],
     affectedKeys: [...affectedKeys],
     cards: normCards,
@@ -211,6 +288,13 @@ function eventVisibleInScope(ev) {
 export function undoEvent(id) {
   const ev = log.find(e => e.id === id);
   if (!ev || ev.undone) return;
+  if (!Array.isArray(ev.after)) {
+    ev.after = captureCurrentSnapshots({
+      before: ev.before,
+      affectedKeys: ev.affectedKeys,
+      created: ev.created,
+    });
+  }
 
   if ((ev.type === 'deck-create' || ev.type === 'storage-create') && ev.containerAfter) {
     deleteEmptyContainer(ev.containerAfter);
@@ -236,32 +320,92 @@ export function undoEvent(id) {
   // cn + name). Drops at most one live entry per before-entry to avoid
   // collateral damage when multiple entries share the same printing.
   if (ev.before && ev.before.length) {
-    const remove = new Set();
-    for (const b of ev.before) {
-      if (!b.card) continue;
-      const sid = softIdentity(b.card);
-      const beforeKey = b.key;
-      let matchIdx = -1;
-      // Prefer an exact key match (untouched entry); fall back to soft id.
-      for (let i = 0; i < state.collection.length; i++) {
-        if (remove.has(i)) continue;
-        if (collectionKey(state.collection[i]) === beforeKey) { matchIdx = i; break; }
-      }
-      if (matchIdx === -1) {
-        for (let i = 0; i < state.collection.length; i++) {
-          if (remove.has(i)) continue;
-          if (softIdentity(state.collection[i]) === sid) { matchIdx = i; break; }
-        }
-      }
-      if (matchIdx !== -1) remove.add(matchIdx);
-    }
-    state.collection = state.collection.filter((_, i) => !remove.has(i));
+    removeLiveSnapshots(ev.before);
     for (const b of ev.before) {
       if (b.card) state.collection.push(cloneEntry(b.card));
     }
   }
 
   ev.undone = true;
+  persist();
+  commitCollectionChangeHandler();
+  renderHistoryList();
+}
+
+function inferRedoAfterSnapshots(ev) {
+  const before = normalizeSnapshots(ev?.before);
+  if (!before.length) return [];
+  const summary = String(ev.summary || '');
+  let nextLocation;
+  let locationInferred = false;
+
+  if (/removed from\s+\{loc:/i.test(summary)) {
+    nextLocation = null;
+    locationInferred = true;
+  } else {
+    const locMatches = [...summary.matchAll(/\{loc:(deck|binder|box):([^}]+)\}/g)];
+    if (/\bmoved\b/i.test(summary) && locMatches.length) {
+      const match = locMatches[locMatches.length - 1];
+      nextLocation = { type: match[1], name: match[2] };
+      locationInferred = true;
+    }
+  }
+
+  const qtyMatch = summary.match(/^\s*([+-]\d+)\s+\{card\}/i);
+  const qtyDelta = qtyMatch ? parseInt(qtyMatch[1], 10) : null;
+
+  if (!locationInferred && !Number.isFinite(qtyDelta)) return [];
+
+  return before.map(snapshot => {
+    const card = cloneEntry(snapshot.card);
+    if (locationInferred) card.location = nextLocation ? { ...nextLocation } : null;
+    if (Number.isFinite(qtyDelta)) card.qty = Math.max(1, (parseInt(card.qty, 10) || 1) + qtyDelta);
+    return { key: collectionKey(card), card };
+  });
+}
+
+function redoAfterSnapshots(ev) {
+  return Array.isArray(ev?.after) ? normalizeSnapshots(ev.after) : inferRedoAfterSnapshots(ev);
+}
+
+function canRedoEvent(ev) {
+  if (!ev?.undone) return false;
+  if (['deck-create', 'storage-create'].includes(ev.type)) return !!ev.containerAfter;
+  if (['deck-rename', 'storage-rename'].includes(ev.type)) return !!(ev.containerBefore && ev.containerAfter);
+  if (ev.type === 'storage-delete') return !!ev.containerBefore;
+  if (ev.type === 'deck-update') return !!(ev.containerAfter && ev.deckAfter);
+  if (redoAfterSnapshots(ev).length) return true;
+  return Array.isArray(ev.before) && ev.before.length > 0 && ['delete', 'bulk-delete'].includes(ev.type);
+}
+
+export function redoEvent(id) {
+  const ev = log.find(e => e.id === id);
+  if (!canRedoEvent(ev)) return;
+
+  const after = redoAfterSnapshots(ev);
+  if ((ev.type === 'deck-create' || ev.type === 'storage-create') && ev.containerAfter) {
+    const container = ensureContainer(ev.containerAfter);
+    if (container && container.type === 'deck' && ev.deckAfter) container.deck = clonePlain(ev.deckAfter);
+  } else if ((ev.type === 'deck-rename' || ev.type === 'storage-rename') && ev.containerBefore && ev.containerAfter) {
+    renameContainer(ev.containerBefore, ev.containerAfter);
+  } else if (ev.type === 'deck-update' && ev.containerAfter && ev.deckAfter) {
+    const deck = ensureContainer(ev.containerAfter);
+    if (deck && deck.type === 'deck') deck.deck = clonePlain(ev.deckAfter);
+  }
+
+  if ((ev.before && ev.before.length) || after.length) {
+    removeLiveSnapshots(ev.before);
+    removeLiveSnapshots(after);
+    for (const snapshot of after) {
+      if (snapshot.card) state.collection.push(cloneEntry(snapshot.card));
+    }
+  }
+
+  if (ev.type === 'storage-delete' && ev.containerBefore) {
+    deleteEmptyContainer(ev.containerBefore);
+  }
+
+  ev.undone = false;
   persist();
   commitCollectionChangeHandler();
   renderHistoryList();
@@ -545,13 +689,15 @@ function renderHistoryList() {
   } else {
     html = visible.map(ev => {
       const cls = ev.undone ? 'history-undone' : (ev.dismissed ? 'history-dismissed' : '');
-      const undoBtn = ev.undone
-        ? ''
+      const actionBtn = ev.undone
+        ? (canRedoEvent(ev)
+          ? '<button class="history-redo" type="button" data-action="redo" data-event-id="' + esc(ev.id) + '" title="redo this change" aria-label="redo this change"><span aria-hidden="true">&#8631;</span></button>'
+          : '')
         : '<button class="history-undo" type="button" data-action="undo" data-event-id="' + esc(ev.id) + '" title="undo this change" aria-label="undo this change"><span aria-hidden="true">&#8630;</span></button>';
       return '<li class="' + cls + '">' +
         '<div class="history-row-meta">' +
           '<time datetime="' + esc(formatTsIso(ev.ts)) + '">' + esc(formatTs(ev.ts)) + '</time>' +
-          undoBtn +
+          actionBtn +
         '</div>' +
         '<span class="history-summary-text">' + composeSummary(ev.summary, ev.cards, 'history-card-name') + '</span>' +
       '</li>';
@@ -578,6 +724,12 @@ export function initChangelog(options = {}) {
       if (undoBtn) {
         const id = undoBtn.dataset.eventId;
         if (id) undoEvent(id);
+        return;
+      }
+      const redoBtn = e.target.closest('button.history-redo');
+      if (redoBtn) {
+        const id = redoBtn.dataset.eventId;
+        if (id) redoEvent(id);
         return;
       }
       const locBtn = e.target.closest('button.loc-link');

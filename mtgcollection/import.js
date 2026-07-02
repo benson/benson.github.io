@@ -10,8 +10,9 @@ import {
 } from './collection.js';
 import { commitCollectionChange } from './commit.js';
 import { save } from './persistence.js';
-import { filteredSorted } from './search.js';
-import { recordEvent } from './changelog.js';
+import { clearAllFilters, filteredSorted } from './search.js';
+import { clearLog, recordEvent } from './changelog.js';
+import { setTopLevelViewMode } from './routeState.js';
 import { detectAdapter, getAdapter } from './adapters.js';
 import { ALIASES, mapHeaders, parseCsv, parseDecklist, parseTagsCell, serializeTagsCell } from './importParsing.js';
 import { mergeIntoCollection } from './importMerge.js';
@@ -294,7 +295,7 @@ export async function loadTestData(options = {}) {
   state.collection = [];
   state.containers = {};
   // Wipe the changelog so reset truly is a clean slate.
-  try { localStorage.removeItem('mtgcollection_changelog_v1'); } catch (e) {}
+  clearLog();
   // Immediate inline feedback next to the reset button so the user knows
   // the click registered. Same pill that holds the "loaded..." success
   // message — we just rewrite its contents when done.
@@ -411,11 +412,32 @@ export async function loadTestData(options = {}) {
 // Backward-compat alias for any UI still calling the old name.
 export const loadBreyaDeck = loadTestData;
 
-function clearCollection() {
-  if (!confirm('clear ' + state.collection.length + ' entries?')) return;
+function setUtilityStatus(message) {
+  const statusEl = document.getElementById('testDataStatus');
+  if (!statusEl) return;
+  statusEl.textContent = message;
+  statusEl.classList.add('visible');
+  setTimeout(() => statusEl.classList.remove('visible'), 3000);
+}
+
+function clearEverything() {
+  const entryCount = state.collection.length;
+  const containerCount = Object.keys(state.containers || {}).length;
+  const summary = entryCount + ' collection ' + (entryCount === 1 ? 'entry' : 'entries')
+    + ' and ' + containerCount + ' ' + (containerCount === 1 ? 'container' : 'containers');
+  if (!confirm('delete everything? this clears ' + summary + ', plus history.')) return;
   state.collection = [];
+  state.containers = {};
+  state.selectedKeys = new Set();
+  state.detailIndex = -1;
+  state.deckSampleHand = null;
+  state.binderPage = 0;
+  clearAllFilters();
+  clearLog();
+  setTopLevelViewMode('collection');
   commitCollectionChange();
   hideFeedback();
+  setUtilityStatus('deleted everything');
 }
 
 // Export the current filtered list as CSV in the chosen format. Defaults to
@@ -486,7 +508,8 @@ export function initImport() {
   const testDataBtn = document.getElementById('loadTestDataBtn');
   if (testDataBtn) testDataBtn.addEventListener('click', () => loadTestData());
   document.getElementById('loadSampleBtn').addEventListener('click', loadSample);
-  document.getElementById('deleteAllBtn').addEventListener('click', clearCollection);
+  document.getElementById('deleteAllBtn')?.addEventListener('click', clearEverything);
+  document.getElementById('deleteEverythingBtn')?.addEventListener('click', clearEverything);
 }
 
 // Exposed for the account export flow.
