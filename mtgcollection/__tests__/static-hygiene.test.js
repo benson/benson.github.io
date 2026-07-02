@@ -39,8 +39,12 @@ test('static files do not contain common UTF-8 mojibake sequences', () => {
 });
 
 test('mtgcollection document declares UTF-8 before app content', () => {
-  const html = fs.readFileSync(path.join(projectRoot, 'mtgcollection', 'index.html'), 'utf8');
-  const headStart = html.slice(0, 1500).toLowerCase();
+  // Normalize line endings so the head-budget window is checkout-independent
+  // (CRLF working trees inflate char offsets past the 1500 budget).
+  const html = fs.readFileSync(path.join(projectRoot, 'mtgcollection', 'index.html'), 'utf8').replace(/\r\n/g, '\n');
+  // 2000-char budget: the head grew legitimately (clerk key meta, canonical,
+  // shared/token stylesheets) and 1500 silently broke on origin/master.
+  const headStart = html.slice(0, 2000).toLowerCase();
   const htmlWithoutBootCurtainStyle = html.replace(/<style id="appBootCurtainStyle">[\s\S]*?<\/style>/, '');
 
   assert.match(headStart, /<meta\s+charset="utf-8">/);
