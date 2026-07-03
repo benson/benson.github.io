@@ -883,7 +883,7 @@ function overlaysGroup() {
           el('footer', { className: 'ui-modal-actions' }, el('button', { className: 'btn btn-secondary', type: 'button', text: 'close', dataset: { modalClose: '' } })),
         ),
       );
-      const api = modal(modalEl, { interactive: true });
+      const api = modal(modalEl);
       const trigger = el('button', { className: 'btn', type: 'button', text: 'open modal', onClick: () => api.open() });
       trigger.dataset.dsOpenModal = '';
       wrap.append(trigger, modalEl);
