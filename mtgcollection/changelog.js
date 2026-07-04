@@ -182,6 +182,8 @@ export function recordEvent({
   containerAfter = null,
   deckBefore = null,
   deckAfter = null,
+  deckListBefore = null,
+  deckListAfter = null,
   after = null,
 }) {
   const normCards = normalizeCards(cards);
@@ -207,6 +209,8 @@ export function recordEvent({
     containerAfter: clonePlain(containerAfter),
     deckBefore: clonePlain(deckBefore),
     deckAfter: clonePlain(deckAfter),
+    deckListBefore: clonePlain(deckListBefore),
+    deckListAfter: clonePlain(deckListAfter),
     dismissed: false,
     undone: false,
   };
@@ -285,9 +289,27 @@ function eventVisibleInScope(ev) {
   return eventTouchesLocation(ev, currentScope.type, currentScope.name);
 }
 
+// An event is only offered (and honored) for undo when undoEvent can actually
+// restore something. Mirrors undoEvent's restore paths exactly — an event with
+// none of these would just grey out as "undone" while changing nothing (BEN-696,
+// the deck-removal silent-undo bug; also covers legacy persisted deck events
+// recorded before deckListBefore existed).
+export function eventHasUndoableState(ev) {
+  if (!ev) return false;
+  if ((ev.type === 'deck-create' || ev.type === 'storage-create') && ev.containerAfter) return true;
+  if ((ev.type === 'deck-rename' || ev.type === 'storage-rename') && ev.containerBefore && ev.containerAfter) return true;
+  if (ev.type === 'storage-delete' && ev.containerBefore) return true;
+  if (ev.type === 'deck-update' && ev.containerAfter && ev.deckBefore) return true;
+  if (ev.containerAfter && Array.isArray(ev.deckListBefore)) return true;
+  if (Array.isArray(ev.created) && ev.created.length) return true;
+  if (Array.isArray(ev.before) && ev.before.length) return true;
+  return false;
+}
+
 export function undoEvent(id) {
   const ev = log.find(e => e.id === id);
   if (!ev || ev.undone) return;
+  if (!eventHasUndoableState(ev)) return;
   if (!Array.isArray(ev.after)) {
     ev.after = captureCurrentSnapshots({
       before: ev.before,
@@ -305,6 +327,12 @@ export function undoEvent(id) {
   } else if (ev.type === 'deck-update' && ev.containerAfter && ev.deckBefore) {
     const deck = ensureContainer(ev.containerAfter);
     if (deck && deck.type === 'deck') deck.deck = clonePlain(ev.deckBefore);
+  } else if (ev.containerAfter && Array.isArray(ev.deckListBefore)) {
+    // Deck membership events (remove-from-deck, board move): restore the whole
+    // pre-mutation deckList — a board move can have merged entries, which a
+    // per-entry delta can't reverse.
+    const deck = ensureContainer(ev.containerAfter);
+    if (deck && deck.type === 'deck') deck.deckList = clonePlain(ev.deckListBefore);
   }
 
   // Remove created cards (these still match by collectionKey since they
@@ -374,6 +402,7 @@ function canRedoEvent(ev) {
   if (['deck-rename', 'storage-rename'].includes(ev.type)) return !!(ev.containerBefore && ev.containerAfter);
   if (ev.type === 'storage-delete') return !!ev.containerBefore;
   if (ev.type === 'deck-update') return !!(ev.containerAfter && ev.deckAfter);
+  if (ev.containerAfter && Array.isArray(ev.deckListAfter)) return true;
   if (redoAfterSnapshots(ev).length) return true;
   return Array.isArray(ev.before) && ev.before.length > 0 && ['delete', 'bulk-delete'].includes(ev.type);
 }
@@ -391,6 +420,9 @@ export function redoEvent(id) {
   } else if (ev.type === 'deck-update' && ev.containerAfter && ev.deckAfter) {
     const deck = ensureContainer(ev.containerAfter);
     if (deck && deck.type === 'deck') deck.deck = clonePlain(ev.deckAfter);
+  } else if (ev.containerAfter && Array.isArray(ev.deckListAfter)) {
+    const deck = ensureContainer(ev.containerAfter);
+    if (deck && deck.type === 'deck') deck.deckList = clonePlain(ev.deckListAfter);
   }
 
   if ((ev.before && ev.before.length) || after.length) {
@@ -693,7 +725,9 @@ function renderHistoryList() {
         ? (canRedoEvent(ev)
           ? '<button class="history-redo" type="button" data-action="redo" data-event-id="' + esc(ev.id) + '" title="redo this change" aria-label="redo this change"><span aria-hidden="true">&#8631;</span></button>'
           : '')
-        : '<button class="history-undo" type="button" data-action="undo" data-event-id="' + esc(ev.id) + '" title="undo this change" aria-label="undo this change"><span aria-hidden="true">&#8630;</span></button>';
+        : (eventHasUndoableState(ev)
+          ? '<button class="history-undo" type="button" data-action="undo" data-event-id="' + esc(ev.id) + '" title="undo this change" aria-label="undo this change"><span aria-hidden="true">&#8630;</span></button>'
+          : '');
       return '<li class="' + cls + '">' +
         '<div class="history-row-meta">' +
           '<time datetime="' + esc(formatTsIso(ev.ts)) + '">' + esc(formatTs(ev.ts)) + '</time>' +

@@ -34,6 +34,10 @@ function cloneDeckMetadata(deck) {
   return JSON.parse(JSON.stringify(deck || defaultDeckMetadata('deck')));
 }
 
+function cloneDeckList(deck) {
+  return JSON.parse(JSON.stringify(Array.isArray(deck?.deckList) ? deck.deckList : []));
+}
+
 function isStorageLocation(loc) {
   return loc?.type === 'container';
 }
@@ -58,6 +62,9 @@ export function moveDeckCardToBoardCommand(deck, scryfallId, fromBoard, rawBoard
   const entry = (deck.deckList || []).find(e => e.scryfallId === scryfallId && e.board === currentBoard);
   if (!entry) return { ok: false, reason: 'not-found' };
   const payload = deckCardEventPayload(entry);
+  // Snapshot the whole list, not a delta: a board move can MERGE into an
+  // existing entry on the target board, which a delta can't cleanly reverse.
+  const deckListBefore = cloneDeckList(deck);
   if (!moveDeckListEntryBoard(deck, scryfallId, currentBoard, targetBoard)) {
     return { ok: false, reason: 'move-failed' };
   }
@@ -69,6 +76,9 @@ export function moveDeckCardToBoardCommand(deck, scryfallId, fromBoard, rawBoard
     cards: [payload],
     scope: 'deck',
     deckLocation: deckLocationKey(deck),
+    containerAfter: { type: deck.type, name: deck.name },
+    deckListBefore,
+    deckListAfter: cloneDeckList(deck),
   });
   commit();
 
@@ -84,6 +94,7 @@ export function removeDeckCardFromDeckCommand(deck, scryfallId, board, options =
   const entry = (deck.deckList || []).find(e => e.scryfallId === scryfallId && e.board === norm);
   if (!entry) return { ok: false, reason: 'not-found' };
   const payload = deckCardEventPayload(entry);
+  const deckListBefore = cloneDeckList(deck);
   if (!removeFromDeckList(deck, scryfallId, norm)) return { ok: false, reason: 'remove-failed' };
 
   state.deckSampleHand = null;
@@ -93,6 +104,9 @@ export function removeDeckCardFromDeckCommand(deck, scryfallId, board, options =
     cards: [payload],
     scope: 'deck',
     deckLocation: deckLocationKey(deck),
+    containerAfter: { type: deck.type, name: deck.name },
+    deckListBefore,
+    deckListAfter: cloneDeckList(deck),
   });
   commit();
 
