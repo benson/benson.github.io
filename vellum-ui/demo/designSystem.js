@@ -659,6 +659,15 @@ function formsGroup() {
           }),
         ),
     ),
+    entry(
+      'Field chrome on non-fields',
+      ['.field-chrome'],
+      'The field visual (border, bevel, mono, raised surface, focus/hover border) for elements that are not real form controls - e.g. a button that opens a picker and should read as a field. Chrome only; the consumer owns layout, cursor, and any arrow affordance.',
+      () =>
+        demoHtml(
+          '<button type="button" class="field-chrome" style="cursor: pointer; text-align: left; min-width: 220px;">any color identity</button>',
+        ),
+    ),
     entry('Selection controls', ['input[type=checkbox]', 'input[type=radio]', '.switch', 'input[type=range]'], 'Checkbox, radio, switch, and range share the accent-fill checked treatment.', () =>
       demoHtml(
         '<label class="ds-inline-label"><input type="checkbox" checked /> foils only</label>' +
