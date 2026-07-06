@@ -900,15 +900,16 @@ function overlaysGroup() {
     }),
     entry(
       'Popover frame',
-      ['.ui-popover', '.floating-menu', '.floating-menu-item'],
-      'Anchored floating surface and menu item vocabulary. Live: the trigger opens a real floatingMenu() — arrows navigate, enter picks, escape closes.',
+      ['.ui-popover', '.floating-menu', '.floating-menu-item', '[aria-haspopup]', '.is-submenu-open'],
+      'Anchored floating surface and menu item vocabulary. Live: the trigger opens a real floatingMenu() — arrows navigate, enter picks, escape closes. The "move to ▸" item opens a fly-out submenu with safe-triangle hover-intent: move diagonally toward it and it stays open even if you clip the corner.',
       () => {
         const wrap = el('div', { className: 'ds-floating-demo', style: { position: 'relative' } });
         const trigger = el('button', { className: 'btn', type: 'button', text: 'open menu' });
         const menu = el('div', { className: 'ui-popover floating-menu', role: 'menu' });
         menu.hidden = true;
         let controller = null;
-        for (const label of ['move to deck', 'compare build', 'remove']) {
+
+        const simpleItem = (label) => {
           const item = el('button', {
             className: 'floating-menu-item',
             type: 'button',
@@ -919,10 +920,33 @@ function overlaysGroup() {
             toast(`picked: ${label}`);
             controller?.close();
           });
-          menu.append(item);
+          return item;
+        };
+
+        // A fly-out submenu wrapper: an [aria-haspopup] trigger + a sibling
+        // [role="menu"]. floatingMenu's hoverIntent finds this pair by ARIA and
+        // manages it with the safe-triangle heuristic, toggling .is-submenu-open.
+        const submenuWrap = el('div', {
+          className: 'floating-submenu-wrap',
+          style: { position: 'relative', display: 'grid' },
+        });
+        const submenuTrigger = el('button', {
+          className: 'floating-menu-item',
+          type: 'button',
+          text: 'move to ▸',
+          role: 'menuitem',
+        });
+        submenuTrigger.setAttribute('aria-haspopup', 'true');
+        const submenu = el('div', { className: 'ui-popover floating-menu floating-submenu', role: 'menu' });
+        for (const label of ['top deck', 'sideboard', 'binder']) {
+          const sub = simpleItem(label);
+          submenu.append(sub);
         }
+        submenuWrap.append(submenuTrigger, submenu);
+
+        menu.append(simpleItem('compare build'), submenuWrap, simpleItem('remove'));
         wrap.append(trigger, menu);
-        controller = floatingMenu(trigger, menu, { keyboard: true });
+        controller = floatingMenu(trigger, menu, { keyboard: true, hoverIntent: true });
         trigger.addEventListener('click', () =>
           controller.isOpen() ? controller.close() : controller.open({ focusFirst: true }),
         );
