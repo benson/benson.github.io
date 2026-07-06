@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>store studio | benson perry</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/store/">store</a>
+    <nav aria-label="studio links">
+      <a href="/">home</a>
+      <a href="mailto:benson.perry@gmail.com">contact</a>
+    </nav>
+  </header>
+
+  <main class="studio-shell">
+    <section class="studio-panel" aria-labelledby="studio-title">
+      <div class="studio-heading">
+        <div>
+          <p class="kicker">idea bench</p>
+          <h1 id="studio-title">studio</h1>
+        </div>
+      </div>
+
+      <form class="studio-form" id="studio-form">
+        <label>
+          title
+          <input id="field-title" name="title" value="priority pass hat" autocomplete="off">
+        </label>
+
+        <div class="field-grid">
+          <label>
+            type
+            <select id="field-type" name="type">
+              <option value="t-shirt">t-shirt</option>
+              <option value="playmat">playmat</option>
+              <option value="hat" selected>hat</option>
+              <option value="sticker">sticker</option>
+              <option value="other">other</option>
+            </select>
+          </label>
+          <label>
+            category
+            <select id="field-category" name="category">
+              <option value="apparel">apparel</option>
+              <option value="tabletop">tabletop</option>
+              <option value="accessories" selected>accessories</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="field-grid">
+          <label>
+            price
+            <input id="field-price" name="price" value="28" inputmode="decimal">
+          </label>
+          <label>
+            status
+            <select id="field-status" name="status">
+              <option value="draft">draft</option>
+              <option value="sample" selected>sample</option>
+              <option value="live">live</option>
+              <option value="sold-out">sold out</option>
+            </select>
+          </label>
+        </div>
+
+        <label>
+          summary
+          <textarea id="field-summary" name="summary">an embroidered cap for keeping the sun out of your eyes while you make eye contact and pass.</textarea>
+        </label>
+
+        <label>
+          details
+          <input id="field-details" name="details" value="forest green cotton, front embroidery, adjustable strap" autocomplete="off">
+        </label>
+
+        <label>
+          image path
+          <input id="field-image" name="image" value="assets/sample-hat.png" autocomplete="off">
+        </label>
+
+        <label>
+          checkout url
+          <input id="field-checkout" name="checkoutUrl" value="" autocomplete="off">
+        </label>
+
+        <label>
+          local mockup
+          <input id="field-file" name="mockup" type="file" accept="image/*">
+        </label>
+
+        <div class="studio-actions">
+          <button class="studio-button primary" type="submit">save draft</button>
+          <button class="studio-button" id="copy-product" type="button">copy product</button>
+          <button class="studio-button" id="copy-catalog" type="button">copy catalog</button>
+          <button class="studio-button" id="download-catalog" type="button">download catalog</button>
+        </div>
+
+        <label>
+          json
+          <textarea class="studio-output" id="studio-output" readonly></textarea>
+        </label>
+      </form>
+    </section>
+
+    <aside class="studio-preview" aria-label="preview">
+      <article class="product-card">
+        <a class="product-image-link" id="preview-image-link" href="assets/sample-hat.png">
+          <img class="product-image" id="preview-image" src="assets/sample-hat.png" alt="">
+        </a>
+        <div class="product-body">
+          <div class="product-meta">
+            <span id="preview-type">hat</span>
+            <span id="preview-price">$28</span>
+          </div>
+          <h2 class="product-title" id="preview-title">priority pass hat</h2>
+          <p class="product-summary" id="preview-summary"></p>
+          <ul class="product-details" id="preview-details"></ul>
+          <a class="buy-link is-disabled" id="preview-buy" aria-disabled="true">sample</a>
+        </div>
+      </article>
+    </aside>
+
+    <section class="draft-panel" aria-labelledby="draft-title">
+      <div class="studio-heading">
+        <h2 id="draft-title">drafts</h2>
+        <button class="studio-button" id="clear-drafts" type="button">clear</button>
+      </div>
+      <ul class="draft-list" id="draft-list"></ul>
+    </section>
+  </main>
+
+  <script src="studio.js" type="module"></script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>store | benson perry</title>
+  <meta name="description" content="small-batch shirts, playmats, hats, and other cardboard-adjacent objects by benson perry">
+  <meta property="og:title" content="store | benson perry">
+  <meta property="og:description" content="small-batch shirts, playmats, hats, and other cardboard-adjacent objects">
+  <meta property="og:url" content="https://bensonperry.com/store/">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://bensonperry.com/store/assets/sample-shirt.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">benson perry</a>
+    <nav aria-label="store links">
+      <a href="mailto:benson.perry@gmail.com">contact</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="store-hero" aria-labelledby="store-title">
+      <div>
+        <p class="kicker">cardboard-adjacent objects</p>
+        <h1 id="store-title">store</h1>
+      </div>
+      <p class="hero-copy">shirts, playmats, hats, and the occasional small joke that wanted to become a real object.</p>
+    </section>
+
+    <section class="catalog-bar" aria-label="product filters">
+      <button class="filter-button is-active" type="button" data-filter="all" aria-pressed="true">all</button>
+      <button class="filter-button" type="button" data-filter="apparel" aria-pressed="false">apparel</button>
+      <button class="filter-button" type="button" data-filter="tabletop" aria-pressed="false">tabletop</button>
+      <button class="filter-button" type="button" data-filter="accessories" aria-pressed="false">accessories</button>
+    </section>
+
+    <section id="product-grid" class="product-grid" aria-live="polite"></section>
+  </main>
+
+  <template id="product-template">
+    <article class="product-card">
+      <a class="product-image-link" href="#">
+        <img class="product-image" src="" alt="" loading="lazy">
+      </a>
+      <div class="product-body">
+        <div class="product-meta">
+          <span class="product-type"></span>
+          <span class="product-price"></span>
+        </div>
+        <h2 class="product-title"></h2>
+        <p class="product-summary"></p>
+        <ul class="product-details"></ul>
+        <a class="buy-link" href="#" target="_blank" rel="noopener">buy</a>
+      </div>
+    </article>
+  </template>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>

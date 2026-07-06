@@ -1,0 +1,67 @@
+{
+  "updated": "2026-07-06",
+  "provider": {
+    "recommended": "fourthwall",
+    "mode": "direct-checkout-links",
+    "notes": "Create the physical product in Fourthwall, then paste the product or direct checkout URL into checkoutUrl."
+  },
+  "products": [
+    {
+      "id": "table-night-tee",
+      "title": "table night tee",
+      "type": "t-shirt",
+      "category": "apparel",
+      "price": 3200,
+      "currency": "USD",
+      "status": "sample",
+      "image": "assets/sample-shirt.png",
+      "alt": "black t-shirt sample mockup with small front art and larger back art",
+      "summary": "a soft black tee for people who announce triggers and then immediately forget them.",
+      "details": [
+        "garment-dyed black",
+        "front pocket-scale mark",
+        "large back print"
+      ],
+      "checkoutUrl": "",
+      "fulfillment": "fourthwall"
+    },
+    {
+      "id": "stack-geometry-playmat",
+      "title": "stack geometry playmat",
+      "type": "playmat",
+      "category": "tabletop",
+      "price": 4200,
+      "currency": "USD",
+      "status": "sample",
+      "image": "assets/sample-playmat.png",
+      "alt": "stitched playmat sample mockup with blue and purple celestial line art",
+      "summary": "a desk-size spell diagram for complicated board states and dramatic pauses.",
+      "details": [
+        "stitched edge",
+        "rubber-backed mat",
+        "wide full-surface print"
+      ],
+      "checkoutUrl": "",
+      "fulfillment": "fourthwall"
+    },
+    {
+      "id": "priority-pass-hat",
+      "title": "priority pass hat",
+      "type": "hat",
+      "category": "accessories",
+      "price": 2800,
+      "currency": "USD",
+      "status": "sample",
+      "image": "assets/sample-hat.png",
+      "alt": "green dad hat sample mockup with small embroidered abstract emblem",
+      "summary": "an embroidered cap for keeping the sun out of your eyes while you make eye contact and pass.",
+      "details": [
+        "forest green cotton",
+        "front embroidery",
+        "adjustable strap"
+      ],
+      "checkoutUrl": "",
+      "fulfillment": "fourthwall"
+    }
+  ]
+}
