@@ -90,6 +90,7 @@ function productFromForm() {
 function statusText(product) {
   if (product.checkoutUrl && product.status === "live") return "buy";
   if (product.status === "sold-out") return "sold out";
+  if (product.status === "ready") return "print ready";
   if (product.status === "sample") return "sample";
   return "draft";
 }

@@ -25,6 +25,16 @@ test("store catalog has valid product records", () => {
     assert.ok(product.image);
     assert.ok(fs.existsSync(path.join(root, "store", product.image)), `missing image: ${product.image}`);
 
+    if (product.production) {
+      for (const key of ["frontArtwork", "backArtwork", "fallbackBackArtwork", "frontSource", "fallbackBackSource"]) {
+        if (!product.production[key]) continue;
+        assert.ok(
+          fs.existsSync(path.join(root, "store", product.production[key])),
+          `missing production asset: ${product.production[key]}`
+        );
+      }
+    }
+
     if (product.status === "live") {
       assert.ok(product.checkoutUrl, `${product.id} is live without checkoutUrl`);
     }

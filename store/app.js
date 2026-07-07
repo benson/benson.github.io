@@ -15,6 +15,7 @@ const money = (cents, currency = "USD") =>
 const normalStatus = (product) => {
   if (product.status === "sold-out") return "sold out";
   if (product.checkoutUrl && product.status === "live") return "buy";
+  if (product.status === "ready") return "print ready";
   if (product.status === "sample") return "sample";
   return "coming soon";
 };

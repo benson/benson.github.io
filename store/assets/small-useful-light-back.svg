@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="4500" height="5400" viewBox="0 0 4500 5400" role="img" aria-labelledby="title desc">
+  <title id="title">Small Useful Light back print</title>
+  <desc id="desc">A small desk lamp turns a tangled line into a clear path.</desc>
+  <defs>
+    <style>
+      .cream-fill { fill: #f1e6cc; }
+      .cream-stroke { stroke: #f1e6cc; }
+      .gold-fill { fill: #c99a45; }
+      .gold-stroke { stroke: #c99a45; }
+      .blue-fill { fill: #6f8fa7; }
+      .blue-stroke { stroke: #6f8fa7; }
+      .ink-fill { fill: #161719; }
+      .ink-stroke { stroke: #161719; }
+      .line { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .bold { stroke-width: 54; }
+      .mid { stroke-width: 34; }
+      .thin { stroke-width: 22; }
+      .dash { stroke-dasharray: 32 46; }
+    </style>
+    <g id="star">
+      <path class="cream-fill" d="M0 -92 L17 -17 L92 0 L17 17 L0 92 L-17 17 L-92 0 L-17 -17 Z"/>
+    </g>
+    <g id="dot-row">
+      <circle class="gold-fill" cx="-108" cy="0" r="13"/>
+      <circle class="cream-fill" cx="-54" cy="0" r="9"/>
+      <circle class="blue-fill" cx="0" cy="0" r="12"/>
+      <circle class="cream-fill" cx="54" cy="0" r="9"/>
+      <circle class="gold-fill" cx="108" cy="0" r="13"/>
+    </g>
+  </defs>
+
+  <g transform="translate(2250 2700)">
+    <path class="line gold-stroke thin dash" d="M-1440 -1210 C-740 -1770 730 -1740 1440 -1160"/>
+    <path class="line blue-stroke thin dash" d="M-1260 1180 C-420 1670 730 1570 1390 1010"/>
+
+    <g transform="translate(-780 -610)">
+      <path class="line cream-stroke bold" d="M-980 530 C-1250 338 -1120 -78 -790 36 C-490 140 -812 488 -1060 260 C-1260 76 -1032 -306 -690 -210 C-254 -88 -488 446 -115 462 C202 476 148 20 -155 80 C-402 128 -352 424 -70 358 C212 292 256 -68 20 -226"/>
+      <path class="line gold-stroke thin" d="M-980 530 C-1250 338 -1120 -78 -790 36 C-490 140 -812 488 -1060 260 C-1260 76 -1032 -306 -690 -210 C-254 -88 -488 446 -115 462 C202 476 148 20 -155 80 C-402 128 -352 424 -70 358 C212 292 256 -68 20 -226"/>
+      <circle class="blue-fill" cx="-1020" cy="512" r="34"/>
+      <circle class="gold-fill" cx="-218" cy="-140" r="28"/>
+    </g>
+
+    <path class="line cream-stroke bold" d="M-560 -220 C-260 -126 32 -120 310 -226 C650 -356 940 -338 1220 -118 C1460 70 1605 368 1720 744"/>
+    <path class="line gold-stroke thin" d="M-560 -220 C-260 -126 32 -120 310 -226 C650 -356 940 -338 1220 -118 C1460 70 1605 368 1720 744"/>
+    <path class="line blue-stroke mid" d="M350 -42 C672 -144 1004 -66 1248 146"/>
+    <path class="line blue-stroke mid" d="M692 242 C972 320 1204 524 1340 816"/>
+
+    <g transform="translate(-900 1010)">
+      <path class="line gold-stroke mid" d="M0 0 L330 -530"/>
+      <circle class="gold-fill" cx="0" cy="0" r="92"/>
+      <rect class="cream-fill" x="-265" y="-70" width="560" height="140" rx="70" transform="rotate(-18)"/>
+      <path class="ink-fill" d="M-180 -55 L260 -55 L176 58 L-230 58 Z" transform="rotate(-18)"/>
+      <path class="cream-fill" d="M-240 -92 L280 -92 L188 92 L-330 92 Z" transform="translate(282 -570) rotate(-18)"/>
+      <path class="line gold-stroke thin" d="M-72 92 L262 92" transform="translate(282 -570) rotate(-18)"/>
+      <circle class="blue-fill" cx="318" cy="-564" r="38"/>
+      <path class="line cream-stroke thin" d="M318 -564 L830 -950 M318 -564 L1030 -430 M318 -564 L540 -1420"/>
+      <path class="line gold-stroke thin dash" d="M720 -988 C1040 -878 1242 -682 1360 -400"/>
+    </g>
+
+    <g transform="translate(910 1180) rotate(18)">
+      <rect class="line cream-stroke mid" x="-78" y="-78" width="156" height="156" rx="22"/>
+      <path class="line gold-stroke thin" d="M-22 -6 L0 -28 L22 -6 L0 18 Z"/>
+    </g>
+    <g transform="translate(1300 420)">
+      <circle class="line cream-stroke thin" cx="0" cy="0" r="132"/>
+      <path class="line gold-stroke thin" d="M-82 0 H82 M0 -82 V82"/>
+    </g>
+
+    <g transform="translate(0 -1430)"><use href="#star" transform="scale(1.32)"/></g>
+    <g transform="translate(1270 -960)"><use href="#star" transform="scale(.7)"/></g>
+    <g transform="translate(-1480 820)"><use href="#star" transform="scale(.56)"/></g>
+    <g transform="translate(1480 1160)"><use href="#star" transform="scale(.48)"/></g>
+    <g transform="translate(0 1510)"><use href="#dot-row"/></g>
+
+    <circle class="cream-fill" cx="-1520" cy="-980" r="22"/>
+    <circle class="gold-fill" cx="-1340" cy="-1320" r="18"/>
+    <circle class="blue-fill" cx="-1080" cy="1320" r="24"/>
+    <circle class="cream-fill" cx="-280" cy="-1200" r="18"/>
+    <circle class="gold-fill" cx="460" cy="-1360" r="22"/>
+    <circle class="blue-fill" cx="920" cy="-1080" r="20"/>
+    <circle class="gold-fill" cx="1610" cy="-160" r="18"/>
+    <circle class="cream-fill" cx="1720" cy="880" r="24"/>
+  </g>
+</svg>

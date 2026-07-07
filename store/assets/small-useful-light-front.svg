@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1800" viewBox="0 0 1800 1800" role="img" aria-labelledby="title desc">
+  <title id="title">Small Useful Light front mark</title>
+  <desc id="desc">A small desk lamp and one clarified line.</desc>
+  <defs>
+    <style>
+      .cream-fill { fill: #f1e6cc; }
+      .cream-stroke { stroke: #f1e6cc; }
+      .gold-fill { fill: #c99a45; }
+      .gold-stroke { stroke: #c99a45; }
+      .blue-fill { fill: #6f8fa7; }
+      .line { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .mid { stroke-width: 34; }
+      .thin { stroke-width: 20; }
+    </style>
+  </defs>
+  <g transform="translate(900 900)">
+    <path class="line cream-stroke mid" d="M-390 210 C-236 84 -98 104 38 14 C196 -92 356 -20 450 116"/>
+    <path class="line gold-stroke thin" d="M-390 210 C-236 84 -98 104 38 14 C196 -92 356 -20 450 116"/>
+    <path class="line gold-stroke mid" d="M-250 330 L-68 -18"/>
+    <circle class="gold-fill" cx="-250" cy="330" r="70"/>
+    <path class="cream-fill" d="M-226 -126 L248 -126 L156 78 L-318 78 Z" transform="rotate(-14)"/>
+    <path class="line gold-stroke thin" d="M-180 92 L164 92" transform="rotate(-14)"/>
+    <circle class="blue-fill" cx="-22" cy="-50" r="32"/>
+    <path class="line cream-stroke thin" d="M-22 -50 L336 -270 M-22 -50 L420 32 M-22 -50 L136 -394"/>
+    <path class="cream-fill" d="M0 -68 L13 -13 L68 0 L13 13 L0 68 L-13 13 L-68 0 L-13 -13 Z" transform="translate(404 -294) scale(.8)"/>
+    <circle class="cream-fill" cx="518" cy="142" r="18"/>
+    <circle class="gold-fill" cx="294" cy="-418" r="18"/>
+  </g>
+</svg>
