@@ -131,6 +131,7 @@ export async function runCheckoutSmoke({ productId = DEFAULT_PRODUCT_ID, variant
       env: {
         ...process.env,
         PRINTFUL_API_KEY: "smoke",
+        PRINTFUL_STORE_ID: "smoke-store",
         STRIPE_WEBHOOK_SECRET: SMOKE_WEBHOOK_SECRET,
         STORE_PUBLIC_URL: "https://bensonperry.com"
       },

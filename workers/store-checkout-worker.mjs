@@ -212,8 +212,13 @@ function ensureFulfillmentReady(lines, env) {
     );
   }
 
-  const missingCredentials = [...new Set(lines.map((line) => line.fulfillmentProvider))]
-    .filter((provider) => provider === "printful" && !env.PRINTFUL_API_KEY);
+  const missingCredentials = [...new Set(lines.map((line) => line.fulfillmentProvider))].flatMap((provider) => {
+    if (provider !== "printful") return [];
+    return [
+      !env.PRINTFUL_API_KEY ? "printful-api-key" : null,
+      !env.PRINTFUL_STORE_ID ? "printful-store-id" : null
+    ].filter(Boolean);
+  });
   if (missingCredentials.length) {
     throw new StoreCheckoutError(
       "Embedded checkout is not ready for live orders because fulfillment credentials are missing.",
@@ -270,7 +275,7 @@ function checkoutShippingOptions(lines) {
 
 function checkoutConfig(env) {
   const stripeConfigured = Boolean(env.STRIPE_PUBLISHABLE_KEY && env.STRIPE_SECRET_KEY);
-  const fulfillmentReady = Boolean(env.PRINTFUL_API_KEY || env.STORE_ALLOW_UNFULFILLED_CHECKOUT === "true");
+  const fulfillmentReady = Boolean((env.PRINTFUL_API_KEY && env.PRINTFUL_STORE_ID) || env.STORE_ALLOW_UNFULFILLED_CHECKOUT === "true");
   const walletDomainReady = env.STRIPE_WALLET_DOMAIN_READY === "true";
   const paymentMethodsReady = env.STRIPE_PAYMENT_METHODS_READY === "true";
 
@@ -280,7 +285,7 @@ function checkoutConfig(env) {
     fulfillmentReady,
     fulfillment: {
       provider: "printful",
-      status: fulfillmentReady ? "configured" : "needs-printful-api-key"
+      status: fulfillmentReady ? "configured" : !env.PRINTFUL_API_KEY ? "needs-printful-api-key" : "needs-printful-store-id"
     },
     stripePublishableKey: env.STRIPE_PUBLISHABLE_KEY || null,
     payments: {

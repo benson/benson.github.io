@@ -17,7 +17,7 @@ test("checkout smoke helper simulates paid webhook through order status", async 
   assert.equal(result.providerOrderId, "pf_smoke_order");
   assert.equal(result.printfulCalls, 1);
   assert.equal(result.catalogVariantId, 44077);
-  assert.equal(result.placementCount, 2);
+  assert.equal(result.placementCount, 1);
 });
 
 test("checkout smoke args parse product, variant, and quantity", async () => {

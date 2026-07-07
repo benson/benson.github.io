@@ -18,6 +18,7 @@ test("worker checkout params use catalog checkout allowed countries", async () =
     ],
     {
       PRINTFUL_API_KEY: "test",
+      PRINTFUL_STORE_ID: "123",
       STORE_PUBLIC_URL: "https://bensonperry.com"
     }
   );
@@ -37,6 +38,7 @@ test("worker checkout params include the product shipping-included policy", asyn
     ],
     {
       PRINTFUL_API_KEY: "test",
+      PRINTFUL_STORE_ID: "123",
       STORE_PUBLIC_URL: "https://bensonperry.com"
     }
   );
@@ -53,7 +55,8 @@ test("worker checkout config matches wallet readiness markers", async () => {
     STRIPE_SECRET_KEY: "sk_test_123",
     STRIPE_WALLET_DOMAIN_READY: "true",
     STRIPE_PAYMENT_METHODS_READY: "true",
-    PRINTFUL_API_KEY: "pf_test_123"
+    PRINTFUL_API_KEY: "pf_test_123",
+    PRINTFUL_STORE_ID: "123"
   });
 
   assert.equal(config.fulfillmentReady, true);

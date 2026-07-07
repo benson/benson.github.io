@@ -11,16 +11,16 @@
       "title": "small useful light",
       "type": "t-shirt",
       "category": "apparel",
-      "price": 3995,
+      "price": 1925,
       "currency": "USD",
       "status": "live",
-      "image": "assets/small-useful-light-generated-mockup.png",
-      "alt": "black t-shirt mockup with a lamp illustration turning a tangled line into a glowing clear path",
+      "image": "assets/small-useful-light-back-only-mockup.png",
+      "alt": "black t-shirt back mockup with a lamp illustration turning a tangled line into a glowing clear path",
       "summary": "a black tee with a little lamp doing the thing i like best: turning a knot into a path.",
       "details": [
-        "large back print",
-        "small front mark",
-        "generated dtg file ready"
+        "single large back print",
+        "generated dtg file ready",
+        "US standard shipping included"
       ],
       "variants": [
         {
@@ -31,7 +31,7 @@
             "Color": "Black",
             "Size": "S"
           },
-          "price": 3995,
+          "price": 1925,
           "available": true
         },
         {
@@ -42,7 +42,7 @@
             "Color": "Black",
             "Size": "M"
           },
-          "price": 3995,
+          "price": 1925,
           "available": true
         },
         {
@@ -53,7 +53,7 @@
             "Color": "Black",
             "Size": "L"
           },
-          "price": 3995,
+          "price": 1925,
           "available": true
         },
         {
@@ -64,7 +64,7 @@
             "Color": "Black",
             "Size": "XL"
           },
-          "price": 3995,
+          "price": 1925,
           "available": true
         },
         {
@@ -75,7 +75,7 @@
             "Color": "Black",
             "Size": "2XL"
           },
-          "price": 3995,
+          "price": 1925,
           "available": true
         }
       ],
@@ -97,31 +97,31 @@
         "status": "ready",
         "catalogProductId": 1421,
         "catalogProduct": "Unisex Fine Jersey Tee | LAT Apparel 6901",
-        "notes": "Printful catalog mapping is ready. Do not accept live Stripe payments until PRINTFUL_API_KEY is configured and the webhook fulfillment path has been tested against the account.",
+        "notes": "Printful catalog mapping is ready. Do not accept live Stripe payments until PRINTFUL_API_KEY and PRINTFUL_STORE_ID are configured and the webhook fulfillment path has been tested against the account.",
         "variants": {
           "small-useful-light-black-s": {
             "catalogVariantId": 44067,
-            "frontPlacement": "front",
+            "frontPlacement": false,
             "backPlacement": "back"
           },
           "small-useful-light-black-m": {
             "catalogVariantId": 44077,
-            "frontPlacement": "front",
+            "frontPlacement": false,
             "backPlacement": "back"
           },
           "small-useful-light-black-l": {
             "catalogVariantId": 44087,
-            "frontPlacement": "front",
+            "frontPlacement": false,
             "backPlacement": "back"
           },
           "small-useful-light-black-xl": {
             "catalogVariantId": 44097,
-            "frontPlacement": "front",
+            "frontPlacement": false,
             "backPlacement": "back"
           },
           "small-useful-light-black-2xl": {
             "catalogVariantId": 44107,
-            "frontPlacement": "front",
+            "frontPlacement": false,
             "backPlacement": "back"
           }
         }
@@ -161,7 +161,7 @@
         "fallbackBackArtwork": "assets/small-useful-light-back.png",
         "frontSource": "assets/small-useful-light-front.svg",
         "fallbackBackSource": "assets/small-useful-light-back.svg",
-        "notes": "Use the generated transparent PNG as the primary back print. Use the small SVG-derived front mark for the left chest, or crop the lamp from the generated art inside the provider editor if it supports that workflow."
+        "notes": "Use the generated transparent PNG as the single back print. The front artwork is retained as a source asset only and is not part of the current Printful fulfillment mapping."
       },
       "providerProduct": {
         "provider": "fourthwall",

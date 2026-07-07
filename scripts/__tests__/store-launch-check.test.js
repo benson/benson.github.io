@@ -44,6 +44,7 @@ test("launch check credential gate accepts required Stripe and Printful readines
       STRIPE_SECRET_KEY: "sk_test_123",
       STRIPE_WEBHOOK_SECRET: "whsec_123",
       PRINTFUL_API_KEY: "printful_123",
+      PRINTFUL_STORE_ID: "123",
       STRIPE_WALLET_DOMAIN_READY: "true",
       STRIPE_PAYMENT_METHODS_READY: "true"
     },
@@ -62,6 +63,7 @@ test("launch check live Stripe gate rejects sandbox keys when required", async (
       STRIPE_SECRET_KEY: "sk_test_123",
       STRIPE_WEBHOOK_SECRET: "whsec_123",
       PRINTFUL_API_KEY: "printful_123",
+      PRINTFUL_STORE_ID: "123",
       STRIPE_WALLET_DOMAIN_READY: "true",
       STRIPE_PAYMENT_METHODS_READY: "true"
     },
@@ -81,6 +83,7 @@ test("launch check live Stripe gate accepts live keys when required", async () =
       STRIPE_SECRET_KEY: "sk_live_123",
       STRIPE_WEBHOOK_SECRET: "whsec_123",
       PRINTFUL_API_KEY: "printful_123",
+      PRINTFUL_STORE_ID: "123",
       STRIPE_WALLET_DOMAIN_READY: "true",
       STRIPE_PAYMENT_METHODS_READY: "true"
     },
@@ -125,6 +128,64 @@ test("launch check validates configured Printful API auth during network checks"
   assert.equal(summarizeChecks(checks).ok, true);
   assert.equal(checks[0].label, "Printful API auth");
   assert.equal(checks[0].detail, "1 scope(s): orders:write");
+});
+
+test("launch check validates Printful order context during network checks", async () => {
+  const { printfulApiChecks, summarizeChecks } = await launchModule();
+  const calls = [];
+  const checks = await printfulApiChecks({
+    catalog,
+    productId: "small-useful-light-tee",
+    env: {
+      PRINTFUL_API_KEY: "pf_test_secret",
+      PRINTFUL_STORE_ID: "123"
+    },
+    fetchImpl: async (url, options) => {
+      calls.push(url);
+      if (url === "https://api.printful.com/v2/oauth-scopes") {
+        return new Response(JSON.stringify({ data: [{ value: "orders:write" }] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+      assert.equal(url, "https://api.printful.com/v2/shipping-rates");
+      assert.equal(options.headers["X-PF-Store-Id"], "123");
+      return new Response(JSON.stringify({ data: [{ shipping: "STANDARD", rate: "4.75", currency: "USD" }] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+  });
+
+  assert.deepEqual(calls, ["https://api.printful.com/v2/oauth-scopes", "https://api.printful.com/v2/shipping-rates"]);
+  assert.equal(summarizeChecks(checks).ok, true);
+  assert.ok(checks.some((item) => item.label === "Printful order context" && item.detail.includes("shipping rate")));
+});
+
+test("launch check reports missing Printful store context during network checks", async () => {
+  const { printfulApiChecks, summarizeChecks } = await launchModule();
+  const checks = await printfulApiChecks({
+    catalog,
+    productId: "small-useful-light-tee",
+    env: {
+      PRINTFUL_API_KEY: "pf_test_secret"
+    },
+    fetchImpl: async (url) => {
+      if (url === "https://api.printful.com/v2/oauth-scopes") {
+        return new Response(JSON.stringify({ data: [{ value: "orders:write" }] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+      return new Response(JSON.stringify({ error: { message: "This endpoint requires `store_id`!" } }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+  });
+
+  assert.equal(summarizeChecks(checks).ok, false);
+  assert.ok(checks.some((item) => item.label === "Printful order context" && item.detail.includes("store_id")));
 });
 
 test("launch check reports bad Printful API auth without leaking the token", async () => {
