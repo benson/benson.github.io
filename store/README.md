@@ -18,6 +18,12 @@ The embedded checkout target is Stripe plus Printful. Fourthwall remains a tempo
 
 When the Cloudflare token has route-edit permission for `bensonperry.com`, rerun the launch check with `--same-origin` to verify `https://bensonperry.com/api/store/*`. Until then the storefront tries same-origin first and falls back to the workers.dev checkout API.
 
+The route can be attached with:
+
+```powershell
+npm run store:route:setup -- --deploy
+```
+
 For fallback Fourthwall publishing:
 
 ```powershell

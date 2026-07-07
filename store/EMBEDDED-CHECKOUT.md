@@ -249,4 +249,12 @@ It exits non-zero until the store can safely accept real embedded checkout order
 
 The current Cloudflare token can upload Workers, but it failed to attach the route `bensonperry.com/api/store/*` with Cloudflare API error `Authentication error [code: 10000]`.
 
-To make the API same-origin, the token needs route-edit permission for the `bensonperry.com` zone, then uncomment the `routes` section in `wrangler.store-checkout.jsonc` and redeploy.
+To check or attach the preferred same-origin route:
+
+```powershell
+npm run store:route:setup
+npm run store:route:setup -- --dry-run
+npm run store:route:setup -- --deploy
+```
+
+The deploy command uses Wrangler's `--route bensonperry.com/api/store/*` flag, then rechecks `https://bensonperry.com/api/store/config`. It currently fails with a clear permission hint because the Cloudflare token still needs Workers Routes edit permission for the `bensonperry.com` zone.
