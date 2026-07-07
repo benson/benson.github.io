@@ -13,8 +13,15 @@ npm run store:product:scaffold -- --title "<product title>" --type t-shirt
 ```
 
 2. Make the design/art file.
-3. Add the scaffolded product plus production fields, storefront variants, checkout settings, and fulfillment mapping to `store/products.json`.
-4. Save the product mockup under `store/assets/`.
+3. Save the product mockup and production artwork under `store/assets/`.
+4. Apply the listing after the referenced asset files exist:
+
+```powershell
+npm run store:product:scaffold -- --title "<product title>" --type t-shirt --apply
+```
+
+Use `--replace` to update an existing draft with the same product ID.
+
 5. Run `npm run store:printful:map -- --product <product-id> --catalog-product <printful-catalog-product-id> --apply`.
 6. Run `npm run store:fulfillment:doctor -- --network`.
 7. Run `npm run store:launch:check -- --network`.

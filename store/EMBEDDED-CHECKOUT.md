@@ -63,7 +63,7 @@ Each sellable product should expose:
 
 - `variants`: store-owned variant IDs, labels, option names, price, SKU, and availability.
 - `checkout`: checkout strategy and shipping policy.
-- `fulfillmentMapping`: provider-specific product/variant/template mapping.
+- `embeddedFulfillment`: provider-specific product, variant, and placement mapping.
 
 The frontend only sends store-owned product IDs and variant IDs. The backend is responsible for prices and fulfillment mappings so buyers cannot manipulate checkout amounts.
 

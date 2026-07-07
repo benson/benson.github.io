@@ -5,7 +5,7 @@ This store should support a fast loop:
 1. Benson gives Codex a product idea and taste constraints.
 2. Codex chooses the product route, blank, production method, and file requirements.
 3. Codex creates or prepares production artwork and storefront mockups.
-4. Codex scaffolds the listing with `npm run store:product:scaffold`, then adds the approved product to `store/products.json`.
+4. Codex scaffolds the listing with `npm run store:product:scaffold`, then applies it with `--apply` after the generated assets exist.
 5. Benson thumbs-up/thumbs-downs the product.
 6. Codex runs the provider publisher, then flips the listing live.
 
@@ -30,7 +30,7 @@ The user should not have to think about file format, DPI, embroidery constraints
 - Pick the lowest-friction fulfillment path that still preserves the idea.
 - Avoid IP-infringing, offensive, or overly fragile artwork.
 - Produce production assets separately from storefront mockups.
-- Use `npm run store:product:scaffold` as the starting point for new product JSON.
+- Use `npm run store:product:scaffold -- --apply` to write product JSON instead of hand-editing catalog entries.
 - Validate dimensions, transparency, obvious broken assets, and store rendering.
 - Run `npm run store:launch:check -- --network --live` before treating embedded checkout as buyable.
 - Run `npm run store:publish` only for temporary Fourthwall fallback publishing.
