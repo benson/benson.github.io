@@ -44,6 +44,6 @@ npm run store:publish -- --id <product-id> --dry-run
 npm run store:publish -- --id <product-id> --apply --publish
 ```
 
-`store/studio.html` can draft product entries and export JSON, but it does not write to the repository by itself.
+`store/studio.html` can draft embedded-checkout product entries and export JSON, but it does not write to the repository by itself.
 
 See `store/EMBEDDED-CHECKOUT.md` for the embedded checkout architecture and setup details. See `store/FOURTHWALL-AUTOMATION.md` for fallback Fourthwall publishing.
