@@ -1,3 +1,5 @@
+import { buildEmbeddedProductDraft, defaultsForType } from "./product-model.mjs";
+
 const storageKey = "benson-store-drafts";
 const form = document.querySelector("#studio-form");
 const output = document.querySelector("#studio-output");
@@ -14,9 +16,13 @@ const fields = {
   category: document.querySelector("#field-category"),
   price: document.querySelector("#field-price"),
   status: document.querySelector("#field-status"),
+  color: document.querySelector("#field-color"),
+  sizes: document.querySelector("#field-sizes"),
   summary: document.querySelector("#field-summary"),
   details: document.querySelector("#field-details"),
   image: document.querySelector("#field-image"),
+  frontArtwork: document.querySelector("#field-front-artwork"),
+  backArtwork: document.querySelector("#field-back-artwork"),
   checkoutUrl: document.querySelector("#field-checkout")
 };
 
@@ -34,16 +40,6 @@ const preview = {
 let baseCatalog = { updated: new Date().toISOString().slice(0, 10), products: [] };
 let drafts = loadDrafts();
 let localImageUrl = "";
-
-const slug = (value) =>
-  value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80) || "untitled-product";
-
-const cents = (value) => Math.round((Number.parseFloat(value) || 0) * 100);
 
 const money = (value) =>
   new Intl.NumberFormat("en-US", {
@@ -65,30 +61,31 @@ function saveDrafts() {
 }
 
 function productFromForm() {
-  const details = fields.details.value
-    .split(",")
-    .map((detail) => detail.trim())
-    .filter(Boolean);
-
-  return {
-    id: slug(fields.title.value),
-    title: fields.title.value.trim() || "untitled product",
-    type: fields.type.value,
+  const product = buildEmbeddedProductDraft({
+    backArtwork: fields.backArtwork.value.trim(),
     category: fields.category.value,
-    price: cents(fields.price.value),
-    currency: "USD",
+    color: fields.color.value.trim(),
+    details: fields.details.value,
+    frontArtwork: fields.frontArtwork.value.trim(),
+    image: fields.image.value.trim(),
+    price: fields.price.value,
+    sizes: fields.sizes.value,
     status: fields.status.value,
-    image: fields.image.value.trim() || "assets/sample-shirt.png",
-    alt: `${fields.type.value} product mockup`,
     summary: fields.summary.value.trim(),
-    details,
-    checkoutUrl: fields.checkoutUrl.value.trim(),
-    fulfillment: "fourthwall"
-  };
+    title: fields.title.value,
+    type: fields.type.value
+  });
+  const fallbackUrl = fields.checkoutUrl.value.trim();
+  if (fallbackUrl) {
+    product.checkout.fallbackUrl = fallbackUrl;
+    product.checkoutUrl = fallbackUrl;
+  }
+  return product;
 }
 
 function statusText(product) {
-  if (product.checkoutUrl && product.status === "live") return "buy";
+  if (product.checkoutUrl && product.status === "live") return "fallback checkout";
+  if (product.status === "live" && product.checkout?.mode === "embedded-stripe") return "embedded checkout";
   if (product.status === "sold-out") return "sold out";
   if (product.status === "ready") return "print ready";
   if (product.status === "sample") return "sample";
@@ -117,8 +114,8 @@ function renderPreview() {
 
   const text = statusText(product);
   preview.buy.textContent = text;
-  preview.buy.classList.toggle("is-disabled", text !== "buy");
-  if (text === "buy") {
+  preview.buy.classList.toggle("is-disabled", text !== "fallback checkout");
+  if (text === "fallback checkout") {
     preview.buy.href = product.checkoutUrl;
     preview.buy.removeAttribute("aria-disabled");
   } else {
@@ -159,18 +156,40 @@ function renderDrafts() {
   }
 }
 
+function draftColor(draft) {
+  return draft.variants?.[0]?.options?.Color || defaultsForType(draft.type).variants.color;
+}
+
+function draftSizes(draft) {
+  const sizes = (draft.variants || []).map((variant) => variant.options?.Size).filter(Boolean);
+  return sizes.length ? sizes.join(",") : defaultsForType(draft.type).variants.sizes.join(",");
+}
+
 function loadDraft(draft) {
   fields.title.value = draft.title || "";
   fields.type.value = draft.type || "t-shirt";
-  fields.category.value = draft.category || "apparel";
+  fields.category.value = draft.category || defaultsForType(fields.type.value).category;
   fields.price.value = ((draft.price || 0) / 100).toString();
   fields.status.value = draft.status || "draft";
+  fields.color.value = draftColor(draft);
+  fields.sizes.value = draftSizes(draft);
   fields.summary.value = draft.summary || "";
   fields.details.value = (draft.details || []).join(", ");
   fields.image.value = draft.image || "";
-  fields.checkoutUrl.value = draft.checkoutUrl || "";
+  fields.frontArtwork.value = draft.production?.frontArtwork || "";
+  fields.backArtwork.value = draft.production?.backArtwork || "";
+  fields.checkoutUrl.value = draft.checkoutUrl || draft.checkout?.fallbackUrl || "";
   localImageUrl = "";
   fileField.value = "";
+  renderPreview();
+}
+
+function applyTypeDefaults() {
+  const defaults = defaultsForType(fields.type.value);
+  fields.category.value = defaults.category;
+  fields.price.value = (defaults.price / 100).toString();
+  fields.color.value = defaults.variants.color;
+  fields.sizes.value = defaults.variants.sizes.join(",");
   renderPreview();
 }
 
@@ -209,6 +228,7 @@ async function loadBaseCatalog() {
 }
 
 form.addEventListener("input", renderPreview);
+fields.type.addEventListener("change", applyTypeDefaults);
 form.addEventListener("submit", (event) => {
   event.preventDefault();
   const product = productFromForm();

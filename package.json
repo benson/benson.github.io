@@ -3,7 +3,15 @@
     "test": "node --test scripts/__tests__/*.test.js mtgcollection/__tests__/*.test.js mtgcollection/cli/__tests__/*.test.js",
     "check": "npm test",
     "store:fourthwall": "node scripts/store/fourthwall.mjs",
-    "store:publish": "node scripts/store/fourthwall.mjs publish"
+    "store:publish": "node scripts/store/fourthwall.mjs publish",
+    "store:checkout:serve": "node scripts/store/checkout-server.mjs",
+    "store:checkout:smoke": "node scripts/store/checkout-smoke.mjs",
+    "store:checkout:setup": "node scripts/store/checkout-setup.mjs",
+    "store:fulfillment:doctor": "node scripts/store/fulfillment-doctor.mjs",
+    "store:launch:check": "node scripts/store/launch-check.mjs",
+    "store:product:scaffold": "node scripts/store/product-scaffold.mjs",
+    "store:printful:map": "node scripts/store/printful-map.mjs",
+    "store:route:setup": "node scripts/store/route-setup.mjs"
   },
   "devDependencies": {
     "happy-dom": "^20.9.0",

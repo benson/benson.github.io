@@ -36,7 +36,32 @@ test("store catalog has valid product records", () => {
     }
 
     if (product.status === "live") {
-      assert.ok(product.checkoutUrl, `${product.id} is live without checkoutUrl`);
+      assert.ok(product.checkoutUrl || product.checkout?.mode, `${product.id} is live without a checkout path`);
+    }
+
+    if (product.checkout?.mode === "embedded-stripe") {
+      assert.ok(Array.isArray(product.variants), `${product.id} embedded checkout requires variants`);
+      assert.ok(product.variants.length > 0, `${product.id} embedded checkout requires at least one variant`);
+      const variantIds = new Set();
+      for (const variant of product.variants) {
+        assert.match(variant.id, /^[a-z0-9-]+$/);
+        assert.ok(!variantIds.has(variant.id), `duplicate variant id: ${variant.id}`);
+        variantIds.add(variant.id);
+        assert.ok(variant.sku);
+        assert.ok(variant.label);
+        assert.ok(Number.isInteger(variant.price));
+        assert.ok(variant.price >= 0);
+      }
+
+      if (product.embeddedFulfillment?.variants) {
+        for (const variantId of variantIds) {
+          const mapping = product.embeddedFulfillment.variants[variantId];
+          assert.ok(mapping, `${product.id} missing fulfillment map for ${variantId}`);
+          if (product.embeddedFulfillment.status === "ready") {
+            assert.ok(Number.isInteger(mapping.catalogVariantId), `${product.id} ${variantId} needs a catalog variant id`);
+          }
+        }
+      }
     }
   }
 });

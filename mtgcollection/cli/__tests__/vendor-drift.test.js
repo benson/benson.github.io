@@ -5,7 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const VENDOR = join(here, '..', 'vendor');
@@ -24,5 +24,5 @@ test('vendor: files are byte-identical to app source', () => {
 });
 
 test('vendor: every module imports in bare node (no DOM/localStorage)', async () => {
-  for (const f of files) await import(join(VENDOR, f));
+  for (const f of files) await import(pathToFileURL(join(VENDOR, f)).href);
 });

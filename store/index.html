@@ -18,6 +18,7 @@
   <header class="site-header">
     <a class="brand" href="/">benson perry</a>
     <nav aria-label="store links">
+      <button id="cart-toggle" class="nav-button" type="button">cart <span id="cart-count">0</span></button>
       <a href="mailto:benson.perry@gmail.com">contact</a>
     </nav>
   </header>
@@ -54,11 +55,44 @@
         <h2 class="product-title"></h2>
         <p class="product-summary"></p>
         <ul class="product-details"></ul>
-        <a class="buy-link" href="#" target="_blank" rel="noopener">buy</a>
+        <label class="variant-field">
+          size
+          <select class="variant-select"></select>
+        </label>
+        <button class="buy-link product-action" type="button">add to cart</button>
       </div>
     </article>
   </template>
 
+  <aside id="checkout-panel" class="checkout-panel" aria-labelledby="checkout-title" aria-hidden="true">
+    <div class="checkout-backdrop" data-close-checkout></div>
+    <section class="checkout-sheet">
+      <div class="checkout-heading">
+        <div>
+          <p class="kicker">on-site checkout</p>
+          <h2 id="checkout-title">cart</h2>
+        </div>
+        <button class="icon-button" type="button" aria-label="close cart" data-close-checkout>x</button>
+      </div>
+      <div id="cart-lines" class="cart-lines"></div>
+      <div class="cart-total">
+        <span>subtotal</span>
+        <strong id="cart-subtotal">$0</strong>
+      </div>
+      <div id="checkout-availability" class="checkout-availability" aria-live="polite"></div>
+      <p id="checkout-note" class="checkout-note"></p>
+      <button id="checkout-button" class="checkout-button" type="button">checkout here</button>
+      <div id="embedded-checkout" class="embedded-checkout" hidden></div>
+    </section>
+  </aside>
+
+  <script>
+    const storeLoopbackHosts = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
+    window.STORE_API_BASE = "";
+    window.STORE_API_FALLBACK_BASE = storeLoopbackHosts.has(window.location.hostname)
+      ? ""
+      : "https://benson-store-checkout-api.bensonperry.workers.dev";
+  </script>
   <script src="app.js" type="module"></script>
 </body>
 </html>
