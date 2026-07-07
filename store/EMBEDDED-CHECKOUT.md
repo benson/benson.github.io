@@ -11,8 +11,9 @@ flowchart LR
   C --> D["Stripe Checkout Session"]
   D --> E["embedded Stripe checkout on bensonperry.com/store"]
   E --> F["Stripe webhook: checkout.session.completed"]
-  F --> G["fulfillment adapter"]
-  G --> H["Printful or Gelato order"]
+  F --> G["Cloudflare KV order record"]
+  G --> H["fulfillment adapter"]
+  H --> I["Printful order"]
 ```
 
 ## API surface
@@ -28,6 +29,7 @@ flowchart LR
 - `POST /api/store/webhook/stripe`
   - Verifies the Stripe webhook signature.
   - On successful payment, decodes the cart metadata and hands the order to the Printful fulfillment adapter.
+  - Uses the `STORE_ORDERS` Cloudflare KV namespace to avoid duplicate Printful orders on repeated Stripe webhook delivery.
 
 ## Current backend deployment
 
@@ -40,6 +42,12 @@ The preferred production route is:
 - `https://bensonperry.com/api/store/*`
 
 Attaching that route currently needs a Cloudflare API token with Workers Routes edit permission for the `bensonperry.com` zone. Until then, the frontend can call the workers.dev API host while the customer remains on `bensonperry.com/store`.
+
+The Worker has a `STORE_ORDERS` KV namespace bound for fulfillment idempotency:
+
+- `b3fa6b8d6c1b457d80fd53ad5324d18c`
+
+Each paid Stripe checkout session writes `stripe:{session_id}:fulfillment` before calling Printful and updates it after provider order creation. Duplicate `checkout.session.completed` webhook deliveries return the stored record instead of creating another provider order.
 
 ## Product manifest additions
 

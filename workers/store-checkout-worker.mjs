@@ -106,6 +106,17 @@ function decodeCartMetadata(value) {
 }
 
 async function fulfillCheckoutSession(session, env) {
+  const key = `stripe:${session?.id}:fulfillment`;
+  const existing = env.STORE_ORDERS ? await env.STORE_ORDERS.get(key, { type: "json" }) : null;
+  if (existing?.status === "succeeded" || existing?.status === "processing") {
+    return {
+      idempotent: true,
+      provider: existing.provider,
+      key,
+      record: existing
+    };
+  }
+
   const items = decodeCartMetadata(session?.metadata?.cart);
   const lines = resolveCart(items);
   const providers = new Set(lines.map((line) => line.fulfillmentProvider));
@@ -114,7 +125,54 @@ async function fulfillCheckoutSession(session, env) {
       providers: [...providers]
     });
   }
-  return fulfillStripeSessionWithPrintful({ catalog, cartLines: lines, session, env, fetchImpl: fetch });
+
+  if (env.STORE_ORDERS) {
+    await env.STORE_ORDERS.put(
+      key,
+      JSON.stringify({
+        status: "processing",
+        stripeSessionId: session?.id,
+        provider: "printful",
+        updatedAt: new Date().toISOString()
+      })
+    );
+  }
+
+  try {
+    const result = await fulfillStripeSessionWithPrintful({ catalog, cartLines: lines, session, env, fetchImpl: fetch });
+    const record = {
+      status: "succeeded",
+      stripeSessionId: session?.id,
+      provider: result.provider,
+      providerExternalId: result.externalId,
+      providerOrderId: result.created?.id || result.created?.result?.id || null,
+      updatedAt: new Date().toISOString()
+    };
+    if (env.STORE_ORDERS) await env.STORE_ORDERS.put(key, JSON.stringify(record));
+    return {
+      idempotent: false,
+      provider: result.provider,
+      externalId: result.externalId,
+      created: result.created,
+      key,
+      record,
+      result
+    };
+  } catch (error) {
+    if (env.STORE_ORDERS) {
+      await env.STORE_ORDERS.put(
+        key,
+        JSON.stringify({
+          status: "failed",
+          stripeSessionId: session?.id,
+          provider: "printful",
+          message: error.message,
+          updatedAt: new Date().toISOString()
+        })
+      );
+    }
+    throw error;
+  }
 }
 
 function ensureFulfillmentReady(lines, env) {

@@ -107,6 +107,19 @@ export function ensureFulfillmentReady(lines, env = process.env) {
   }
 }
 
+async function getFulfillmentRecord(store, key) {
+  if (!store?.get) return null;
+  const value = await store.get(key);
+  if (!value) return null;
+  if (typeof value === "string") return JSON.parse(value);
+  return value;
+}
+
+async function putFulfillmentRecord(store, key, value) {
+  if (!store?.put) return;
+  await store.put(key, JSON.stringify(value));
+}
+
 export function buildStripeCheckoutSessionParams({ catalog, items, env = process.env }) {
   const publicUrl = env.STORE_PUBLIC_URL || "https://bensonperry.com";
   const lines = resolveCart(catalog, items);
@@ -245,7 +258,18 @@ function errorResponse(error) {
   );
 }
 
-export async function fulfillStripeCheckoutSession({ catalog, session, env = process.env, fetchImpl = fetch }) {
+export async function fulfillStripeCheckoutSession({ catalog, session, env = process.env, fetchImpl = fetch, orderStore = null }) {
+  const key = `stripe:${session?.id}:fulfillment`;
+  const existing = await getFulfillmentRecord(orderStore, key);
+  if (existing?.status === "succeeded" || existing?.status === "processing") {
+    return {
+      idempotent: true,
+      provider: existing.provider,
+      key,
+      record: existing
+    };
+  }
+
   const items = decodeCartMetadata(session?.metadata?.cart);
   const lines = resolveCart(catalog, items);
   const providers = new Set(lines.map((line) => line.fulfillmentProvider));
@@ -254,7 +278,44 @@ export async function fulfillStripeCheckoutSession({ catalog, session, env = pro
       providers: [...providers]
     });
   }
-  return fulfillStripeSessionWithPrintful({ catalog, cartLines: lines, session, env, fetchImpl });
+
+  await putFulfillmentRecord(orderStore, key, {
+    status: "processing",
+    stripeSessionId: session?.id,
+    provider: "printful",
+    updatedAt: new Date().toISOString()
+  });
+
+  try {
+    const result = await fulfillStripeSessionWithPrintful({ catalog, cartLines: lines, session, env, fetchImpl });
+    const record = {
+      status: "succeeded",
+      stripeSessionId: session?.id,
+      provider: result.provider,
+      providerExternalId: result.externalId,
+      providerOrderId: result.created?.id || result.created?.result?.id || null,
+      updatedAt: new Date().toISOString()
+    };
+    await putFulfillmentRecord(orderStore, key, record);
+    return {
+      idempotent: false,
+      provider: result.provider,
+      externalId: result.externalId,
+      created: result.created,
+      key,
+      record,
+      result
+    };
+  } catch (error) {
+    await putFulfillmentRecord(orderStore, key, {
+      status: "failed",
+      stripeSessionId: session?.id,
+      provider: "printful",
+      message: error.message,
+      updatedAt: new Date().toISOString()
+    });
+    throw error;
+  }
 }
 
 export async function handleStoreApiRequest(request, { env = process.env, catalogFile = catalogPath } = {}) {

@@ -64,6 +64,19 @@ function paidStripeSession(cartMetadata) {
   };
 }
 
+function memoryStore() {
+  const values = new Map();
+  return {
+    values,
+    async get(key) {
+      return values.get(key) || null;
+    },
+    async put(key, value) {
+      values.set(key, value);
+    }
+  };
+}
+
 test("checkout resolves cart prices from the server catalog", async () => {
   const { resolveCart } = await checkoutModule();
   const lines = resolveCart(catalog, [
@@ -189,6 +202,57 @@ test("fulfillment builds a Printful order from a paid Stripe session", async () 
 
   assert.equal(result.provider, "printful");
   assert.equal(result.created.id, "pf_order_123");
+});
+
+test("fulfillment is idempotent for repeated Stripe webhook deliveries", async () => {
+  const { encodeCartMetadata, fulfillStripeCheckoutSession } = await checkoutModule();
+  const store = memoryStore();
+  const session = paidStripeSession(
+    encodeCartMetadata([
+      {
+        productId: "small-useful-light-tee",
+        variantId: "small-useful-light-black-m",
+        sku: "small-useful-light-black-m",
+        quantity: 1
+      }
+    ])
+  );
+  let printfulCalls = 0;
+
+  const first = await fulfillStripeCheckoutSession({
+    catalog: readyPrintfulCatalog(),
+    session,
+    orderStore: store,
+    env: {
+      PRINTFUL_API_KEY: "test",
+      STORE_PUBLIC_URL: "https://bensonperry.com"
+    },
+    fetchImpl: async () => {
+      printfulCalls += 1;
+      return {
+        ok: true,
+        json: async () => ({ id: "pf_order_123", status: "draft" })
+      };
+    }
+  });
+  const second = await fulfillStripeCheckoutSession({
+    catalog: readyPrintfulCatalog(),
+    session,
+    orderStore: store,
+    env: {
+      PRINTFUL_API_KEY: "test",
+      STORE_PUBLIC_URL: "https://bensonperry.com"
+    },
+    fetchImpl: async () => {
+      printfulCalls += 1;
+      throw new Error("duplicate fulfillment should not call provider");
+    }
+  });
+
+  assert.equal(printfulCalls, 1);
+  assert.equal(first.idempotent, false);
+  assert.equal(second.idempotent, true);
+  assert.equal(second.record.providerOrderId, "pf_order_123");
 });
 
 test("fulfillment refuses Printful orders without provider mapping", async () => {

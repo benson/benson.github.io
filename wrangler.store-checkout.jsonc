@@ -4,6 +4,12 @@
   "main": "workers/store-checkout-worker.mjs",
   "compatibility_date": "2025-12-01",
   "workers_dev": true,
+  "kv_namespaces": [
+    {
+      "binding": "STORE_ORDERS",
+      "id": "b3fa6b8d6c1b457d80fd53ad5324d18c"
+    }
+  ],
   // Preferred production route once the Cloudflare token has Workers Routes edit permission:
   // "routes": [
   //   {
