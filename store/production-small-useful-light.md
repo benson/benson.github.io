@@ -19,17 +19,23 @@ A small lamp turning a tangled line into a clear path. No text, no brand marks, 
 
 - Generated back PNG: 4500x3000, transparent RGBA, 300 DPI metadata
 - Front PNG: 1800x1800, transparent RGBA, 300 DPI
-- Mockup PNG: 1536x1536, opaque storefront image
+- Mockup PNG: 1254x1254, opaque storefront image
 - Fallback back PNG: 4500x5400, transparent RGBA, 300 DPI
 
 ## Recommended Product Setup
 
 - Provider: Fourthwall
 - Product type: printed t-shirt, DTG
-- Blank: black heavyweight or garment-dyed unisex tee
+- Blank: LAT Unisex Fine Jersey Tee, black
 - Front placement: left chest, using `small-useful-light-front.png`
 - Back placement: full back print, using `small-useful-light-generated-print-4500.png`
 - Listing title: small useful light
 - Listing price: $34
 
-After creating the Fourthwall product, paste its product or checkout URL into `checkoutUrl` for `small-useful-light-tee` in `store/products.json` and change `status` from `ready` to `live`.
+Run this after the Fourthwall account/API credential exists:
+
+```powershell
+npm run store:publish -- --id small-useful-light-tee --apply --publish
+```
+
+The publisher uploads the artwork, creates or finds the hosted Fourthwall product, writes the product URL into `checkoutUrl`, and changes `status` from `ready` to `live`.

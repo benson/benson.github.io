@@ -1,5 +1,7 @@
 **/.wrangler/
 .claude/
+.env
+.env.*
 scripts/spotify-auth.js
 node_modules/
 .mtgcollection-backups/
