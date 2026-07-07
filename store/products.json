@@ -2,8 +2,8 @@
   "updated": "2026-07-07",
   "provider": {
     "recommended": "fourthwall",
-    "mode": "direct-checkout-links",
-    "notes": "Create the physical product in Fourthwall, then paste the product or direct checkout URL into checkoutUrl."
+    "mode": "api-published-hosted-product-links",
+    "notes": "Run npm run store:publish to upload artwork, create the Fourthwall product, and write checkoutUrl."
   },
   "products": [
     {
@@ -24,6 +24,32 @@
       ],
       "checkoutUrl": "",
       "fulfillment": "fourthwall",
+      "publishing": {
+        "fourthwall": {
+          "colors": [
+            "Black"
+          ],
+          "sizes": [
+            "S",
+            "M",
+            "L",
+            "XL",
+            "2XL"
+          ],
+          "regions": [
+            {
+              "region": "front",
+              "artwork": "production.frontArtwork",
+              "placementStrategy": "AUTO"
+            },
+            {
+              "region": "back",
+              "artwork": "production.backArtwork",
+              "placementStrategy": "AUTO"
+            }
+          ]
+        }
+      },
       "production": {
         "method": "dtg",
         "blank": "black heavyweight or garment-dyed unisex tee",

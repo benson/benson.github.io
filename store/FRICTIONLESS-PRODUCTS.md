@@ -7,7 +7,7 @@ This store should support a fast loop:
 3. Codex creates or prepares production artwork and storefront mockups.
 4. Codex adds the listing to `store/products.json`.
 5. Benson thumbs-up/thumbs-downs the product.
-6. Codex walks the final hosted checkout step, then flips the listing live.
+6. Codex runs the provider publisher, then flips the listing live.
 
 The user should not have to think about file format, DPI, embroidery constraints, product JSON, storefront implementation, or deployment unless they explicitly want to.
 
@@ -31,10 +31,11 @@ The user should not have to think about file format, DPI, embroidery constraints
 - Avoid IP-infringing, offensive, or overly fragile artwork.
 - Produce production assets separately from storefront mockups.
 - Validate dimensions, transparency, obvious broken assets, and store rendering.
+- Run `npm run store:publish` once provider credentials exist.
 - Keep the public listing honest until real checkout exists.
 
 ## Benson Responsibilities
 
 - Give a taste read.
-- Create or approve the hosted product account/product when credentials, payment, or identity details are required.
+- Own the one-time provider account, API key, payment, payout, tax, or identity details when those are required.
 - Buy/order a sample when the product matters enough to verify physically.
