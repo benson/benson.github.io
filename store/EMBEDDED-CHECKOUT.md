@@ -251,7 +251,7 @@ It exits non-zero until the store can safely accept real embedded checkout order
 
 ## Cloudflare route blocker
 
-The current Cloudflare token can upload Workers, but it failed to attach the route `bensonperry.com/api/store/*` with Cloudflare API error `Authentication error [code: 10000]`.
+The current Cloudflare token can upload Workers, but it failed to attach the route `bensonperry.com/api/store/*` with a Cloudflare `403 Forbidden` response from `/zones/.../workers/routes`. Wrangler also reported that the token does not have `All Zones` permissions before falling back to the zone route endpoint.
 
 To check or attach the preferred same-origin route:
 
@@ -262,3 +262,10 @@ npm run store:route:setup -- --deploy
 ```
 
 The deploy command uses Wrangler's `--route bensonperry.com/api/store/*` flag, then rechecks `https://bensonperry.com/api/store/config`. It currently fails with a clear permission hint because the Cloudflare token still needs Workers Routes edit permission for the `bensonperry.com` zone.
+
+Dashboard fallback:
+
+1. Open Cloudflare.
+2. Go to Workers & Pages > `benson-store-checkout-api` > Settings > Triggers.
+3. Add route `bensonperry.com/api/store/*` in zone `bensonperry.com`.
+4. Rerun `npm run store:launch:check -- --network --live --same-origin`.

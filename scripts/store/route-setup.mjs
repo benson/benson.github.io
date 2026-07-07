@@ -81,10 +81,25 @@ export function wranglerRouteDeployArgs({ route = DEFAULT_ROUTE, dryRun = false 
 
 export function routePermissionHint(output) {
   const text = String(output || "");
-  if (/Authentication error|code:\s*10000|permission|not authorized|unauthorized/i.test(text)) {
+  if (/Authentication error|code:\s*10000|permission|not authorized|unauthorized|Forbidden\s+403|All Zones|workers\/routes/i.test(text)) {
     return "Cloudflare token needs Workers Routes edit permission for the bensonperry.com zone.";
   }
   return "";
+}
+
+function routeZoneName(route = DEFAULT_ROUTE) {
+  const host = String(route || DEFAULT_ROUTE).split("/")[0].replace(/^\*\./, "");
+  return host || "bensonperry.com";
+}
+
+export function manualRouteInstructions({ route = DEFAULT_ROUTE, workerName = "benson-store-checkout-api" } = {}) {
+  const zone = routeZoneName(route);
+  return [
+    `Cloudflare dashboard: Workers & Pages > ${workerName} > Settings > Triggers > Add route.`,
+    `Route: ${route}`,
+    `Zone: ${zone}`,
+    "After saving, run: npm run store:launch:check -- --network --live --same-origin"
+  ];
 }
 
 export async function runWranglerRouteDeploy({ route = DEFAULT_ROUTE, dryRun = false, spawnImpl = spawn } = {}) {
@@ -113,6 +128,14 @@ export async function runWranglerRouteDeploy({ route = DEFAULT_ROUTE, dryRun = f
 
 function printStatus(label, status, detail = "") {
   console.log(`${status.padEnd(8)} ${label}${detail ? ` - ${detail}` : ""}`);
+}
+
+function printManualRouteInstructions(route) {
+  console.log("");
+  console.log("Manual Cloudflare fallback:");
+  for (const line of manualRouteInstructions({ route })) {
+    console.log(`  ${line}`);
+  }
 }
 
 function usage() {
@@ -175,6 +198,7 @@ async function main(argv = process.argv.slice(2)) {
   if (!args.deploy && !args.dryRun) {
     console.log("");
     console.log("Route deployment skipped. Pass --deploy after the Cloudflare token has Workers Routes edit permission.");
+    if (!result.before.ok) printManualRouteInstructions(result.route);
     if (!result.before.ok) process.exitCode = 1;
     return;
   }
@@ -185,6 +209,7 @@ async function main(argv = process.argv.slice(2)) {
   }
 
   if (!result.deploy.ok || result.after?.ok === false) {
+    if (result.deploy.hint) printManualRouteInstructions(result.route);
     process.exitCode = 1;
   }
 }

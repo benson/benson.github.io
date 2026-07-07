@@ -81,7 +81,19 @@ test("route setup recognizes Cloudflare route permission errors", async () => {
   const { routePermissionHint } = await routeModule();
 
   assert.match(routePermissionHint("Authentication error [code: 10000]"), /Workers Routes edit permission/);
+  assert.match(routePermissionHint("Forbidden 403 when calling /zones/123/workers/routes"), /Workers Routes edit permission/);
+  assert.match(routePermissionHint("The current authentication token does not have 'All Zones' permissions."), /Workers Routes edit permission/);
   assert.equal(routePermissionHint("some other wrangler failure"), "");
+});
+
+test("route setup prints manual Cloudflare dashboard fallback instructions", async () => {
+  const { manualRouteInstructions } = await routeModule();
+  const instructions = manualRouteInstructions({ route: "bensonperry.com/api/store/*" });
+
+  assert.ok(instructions.some((line) => line.includes("Workers & Pages")));
+  assert.ok(instructions.some((line) => line === "Route: bensonperry.com/api/store/*"));
+  assert.ok(instructions.some((line) => line === "Zone: bensonperry.com"));
+  assert.ok(instructions.some((line) => line.includes("--same-origin")));
 });
 
 test("route setup can run a mocked Wrangler route deploy", async () => {
