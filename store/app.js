@@ -1,5 +1,6 @@
 import { fetchStoreApiFromBases, storeApiBases } from "./api-client.mjs";
 import { checkoutReadiness, checkoutReadinessFromError } from "./checkout-readiness.mjs";
+import { orderReturnMessage, shouldPollFulfillmentStatus } from "./order-return.mjs";
 
 const grid = document.querySelector("#product-grid");
 const template = document.querySelector("#product-template");
@@ -24,6 +25,7 @@ let products = [];
 let catalog = null;
 let cart = [];
 let checkoutState = checkoutReadiness();
+let checkoutNotice = "";
 let stripePromise = null;
 
 async function fetchStoreApi(path, options = {}) {
@@ -99,6 +101,11 @@ function renderCheckoutAvailability() {
   }
 }
 
+function setCheckoutNotice(message = "") {
+  checkoutNotice = message;
+  checkoutNote.textContent = checkoutNotice;
+}
+
 function checkoutBlocked() {
   return checkoutState.status === "pending" || checkoutState.status === "unavailable";
 }
@@ -115,7 +122,7 @@ function renderCart() {
     cartLines.append(empty);
     checkoutButton.disabled = true;
     cartSubtotal.textContent = money(0);
-    checkoutNote.textContent = "";
+    checkoutNote.textContent = checkoutNotice;
     embeddedCheckout.hidden = true;
     embeddedCheckout.innerHTML = "";
     return;
@@ -180,7 +187,7 @@ function addToCart(product, variantId) {
     cart.push(next);
   }
 
-  checkoutNote.textContent = "";
+  setCheckoutNotice("");
   renderCart();
   openCheckout();
 }
@@ -295,12 +302,12 @@ async function loadStripe() {
 async function beginEmbeddedCheckout() {
   if (!cart.length) return;
   if (checkoutBlocked()) {
-    checkoutNote.textContent = checkoutState.message;
+    setCheckoutNotice(checkoutState.message);
     return;
   }
 
   checkoutButton.disabled = true;
-  checkoutNote.textContent = "opening secure checkout...";
+  setCheckoutNotice("opening secure checkout...");
   embeddedCheckout.hidden = true;
   embeddedCheckout.innerHTML = "";
 
@@ -337,9 +344,9 @@ async function beginEmbeddedCheckout() {
 
     embeddedCheckout.hidden = false;
     checkout.mount("#embedded-checkout");
-    checkoutNote.textContent = "";
+    setCheckoutNotice("");
   } catch (error) {
-    checkoutNote.textContent = error.message;
+    setCheckoutNotice(error.message);
     checkoutButton.disabled = false;
   }
 }
@@ -353,12 +360,20 @@ async function loadFulfillmentStatus(sessionId) {
   return data;
 }
 
-function orderReturnMessage(orderStatus) {
-  if (orderStatus.status === "succeeded") return "order received. fulfillment is queued.";
-  if (orderStatus.status === "processing") return "order received. fulfillment is processing.";
-  if (orderStatus.status === "failed") return "order received. fulfillment needs attention.";
-  if (orderStatus.status === "unavailable") return "order received. fulfillment status is unavailable.";
-  return "order received. fulfillment record is pending.";
+function sleep(ms) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
+async function waitForFulfillmentStatus(sessionId, { attempts = 6, intervalMs = 1500 } = {}) {
+  let orderStatus = await loadFulfillmentStatus(sessionId);
+  for (let attempt = 1; attempt < attempts && shouldPollFulfillmentStatus(orderStatus); attempt += 1) {
+    setCheckoutNotice(orderReturnMessage(orderStatus));
+    await sleep(intervalMs);
+    orderStatus = await loadFulfillmentStatus(sessionId);
+  }
+  return orderStatus;
 }
 
 async function handleCheckoutReturn() {
@@ -367,7 +382,7 @@ async function handleCheckoutReturn() {
 
   openCheckout();
   checkoutButton.disabled = true;
-  checkoutNote.textContent = "checking checkout status...";
+  setCheckoutNotice("checking checkout status...");
   embeddedCheckout.hidden = true;
   embeddedCheckout.innerHTML = "";
 
@@ -380,18 +395,18 @@ async function handleCheckoutReturn() {
     if (!response.ok) throw new Error(data.error || "checkout status is unavailable.");
 
     if (data.paymentStatus === "paid" || data.status === "complete") {
-      const orderStatus = await loadFulfillmentStatus(sessionId);
       cart = [];
       renderCart();
       checkoutButton.disabled = true;
-      checkoutNote.textContent = orderReturnMessage(orderStatus);
+      const orderStatus = await waitForFulfillmentStatus(sessionId);
+      setCheckoutNotice(orderReturnMessage(orderStatus));
     } else {
       checkoutButton.disabled = false;
-      checkoutNote.textContent = "checkout was not completed.";
+      setCheckoutNotice("checkout was not completed.");
     }
   } catch (error) {
     checkoutButton.disabled = false;
-    checkoutNote.textContent = error.message;
+    setCheckoutNotice(error.message);
   } finally {
     const cleanUrl = `${window.location.pathname}${window.location.hash}`;
     window.history.replaceState({}, "", cleanUrl);
