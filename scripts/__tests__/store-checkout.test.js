@@ -178,6 +178,55 @@ test("checkout can build an embedded Stripe session in explicit unfulfilled test
   assert.equal(lines[0].variantId, "small-useful-light-black-xl");
 });
 
+test("checkout allowed countries come from products in the cart", async () => {
+  const { buildStripeCheckoutSessionParams } = await checkoutModule();
+  const multiCountryCatalog = readyPrintfulCatalog();
+  multiCountryCatalog.products.push({
+    ...multiCountryCatalog.products[0],
+    id: "global-test-tee",
+    status: "live",
+    variants: [
+      {
+        ...multiCountryCatalog.products[0].variants[0],
+        id: "global-test-tee-black-s",
+        sku: "global-test-tee-black-s"
+      }
+    ],
+    checkout: {
+      mode: "embedded-stripe",
+      allowedCountries: ["US", "CA"]
+    },
+    embeddedFulfillment: {
+      ...multiCountryCatalog.products[0].embeddedFulfillment,
+      variants: {
+        "global-test-tee-black-s": {
+          catalogVariantId: 999,
+          frontPlacement: "front",
+          backPlacement: "back"
+        }
+      }
+    }
+  });
+
+  const { params } = buildStripeCheckoutSessionParams({
+    catalog: multiCountryCatalog,
+    items: [
+      {
+        productId: "global-test-tee",
+        variantId: "global-test-tee-black-s",
+        quantity: 1
+      }
+    ],
+    env: {
+      PRINTFUL_API_KEY: "test",
+      STORE_PUBLIC_URL: "https://bensonperry.com"
+    }
+  });
+
+  assert.equal(params.get("shipping_address_collection[allowed_countries][0]"), "US");
+  assert.equal(params.get("shipping_address_collection[allowed_countries][1]"), "CA");
+});
+
 test("checkout config reports card, wallet, and Shop Pay readiness", async () => {
   const { checkoutConfig } = await checkoutModule();
   const config = checkoutConfig({

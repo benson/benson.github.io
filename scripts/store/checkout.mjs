@@ -118,6 +118,17 @@ export function ensureFulfillmentReady(lines, env = process.env) {
   }
 }
 
+export function checkoutAllowedCountries(catalog, lines) {
+  const productIds = new Set(lines.map((line) => line.productId));
+  const allowedCountries = (catalog.products || [])
+    .filter((product) => productIds.has(product.id))
+    .flatMap((product) => product.checkout?.allowedCountries || [])
+    .filter(Boolean)
+    .map((country) => String(country).toUpperCase());
+
+  return [...new Set(allowedCountries.length ? allowedCountries : ["US"])];
+}
+
 export function checkoutConfig(env = process.env) {
   const stripeConfigured = Boolean(env.STRIPE_PUBLISHABLE_KEY && env.STRIPE_SECRET_KEY);
   const walletDomainReady = env.STRIPE_WALLET_DOMAIN_READY === "true";
@@ -218,11 +229,7 @@ export function buildStripeCheckoutSessionParams({ catalog, items, env = process
     params.set("automatic_tax[enabled]", "true");
   }
 
-  const allowedCountries = catalog.products
-    ?.flatMap((product) => product.checkout?.allowedCountries || [])
-    ?.filter(Boolean);
-  const countries = [...new Set(allowedCountries?.length ? allowedCountries : ["US"])];
-  countries.forEach((country, index) => {
+  checkoutAllowedCountries(catalog, lines).forEach((country, index) => {
     params.set(`shipping_address_collection[allowed_countries][${index}]`, country);
   });
 
