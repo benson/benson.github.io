@@ -10,8 +10,9 @@ The embedded checkout target is Stripe plus Printful. Fourthwall remains a tempo
 2. Add production fields, storefront variants, checkout settings, and fulfillment mapping to `store/products.json`.
 3. Save the product mockup under `store/assets/`.
 4. Run `npm run store:fulfillment:doctor -- --network`.
-5. Run `npm run store:checkout:setup`.
-6. Deploy the homepage and Worker once the doctor and setup command are clean.
+5. Run `npm run store:checkout:smoke`.
+6. Run `npm run store:checkout:setup`.
+7. Deploy the homepage and Worker once the doctor and setup command are clean.
 
 For fallback Fourthwall publishing:
 

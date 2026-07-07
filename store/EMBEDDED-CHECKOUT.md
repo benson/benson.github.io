@@ -192,6 +192,18 @@ npm run store:fulfillment:doctor -- --network
 
 It checks local environment presence, print assets, every embedded-checkout product's fulfillment mapping, and optionally the live Printful catalog. It intentionally exits non-zero until Stripe secrets, the Printful API key, and all provider variant IDs are configured.
 
+## Local checkout smoke
+
+Run:
+
+```powershell
+npm run store:checkout:smoke
+```
+
+This simulates a paid `checkout.session.completed` Stripe webhook against the local API handler, mocks the Printful order API, and then reads `/api/store/order-status`. It proves the signed webhook, cart metadata, Printful order payload, idempotency store, and order-status path work together without creating a real payment or provider order.
+
+Use it after product manifest changes and before deploying credentials. It does not replace a real Stripe/Printful test order once account credentials exist.
+
 ## Cloudflare route blocker
 
 The current Cloudflare token can upload Workers, but it failed to attach the route `bensonperry.com/api/store/*` with Cloudflare API error `Authentication error [code: 10000]`.

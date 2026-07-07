@@ -395,7 +395,7 @@ export async function fulfillStripeCheckoutSession({ catalog, session, env = pro
   }
 }
 
-export async function handleStoreApiRequest(request, { env = process.env, catalogFile = catalogPath, orderStore = null } = {}) {
+export async function handleStoreApiRequest(request, { env = process.env, catalogFile = catalogPath, orderStore = null, fetchImpl = fetch } = {}) {
   try {
     const url = new URL(request.url);
     const pathname = url.pathname.replace(/\/+$/, "");
@@ -443,7 +443,7 @@ export async function handleStoreApiRequest(request, { env = process.env, catalo
       let fulfillment = "ignored";
       if (event.type === "checkout.session.completed") {
         const catalog = await loadCatalog(catalogFile);
-        fulfillment = await fulfillStripeCheckoutSession({ catalog, session: event.data?.object, env, orderStore });
+        fulfillment = await fulfillStripeCheckoutSession({ catalog, session: event.data?.object, env, orderStore, fetchImpl });
       }
       return jsonResponse({
         received: true,

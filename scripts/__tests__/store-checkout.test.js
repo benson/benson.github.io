@@ -232,6 +232,65 @@ test("checkout verifies Stripe webhook signatures", async () => {
   assert.throws(() => verifyStripeWebhookSignature(payload, `t=${timestamp},v1=bad`, secret));
 });
 
+test("checkout webhook route records fulfillment and exposes order status", async () => {
+  const { encodeCartMetadata, fulfillmentRecordKey, handleStoreApiRequest } = await checkoutModule();
+  const secret = "whsec_test";
+  const store = memoryStore();
+  const session = paidStripeSession(
+    encodeCartMetadata([
+      {
+        productId: "small-useful-light-tee",
+        variantId: "small-useful-light-black-m",
+        sku: "small-useful-light-black-m",
+        quantity: 1
+      }
+    ])
+  );
+  const payload = JSON.stringify({
+    id: "evt_test",
+    type: "checkout.session.completed",
+    data: {
+      object: session
+    }
+  });
+  const timestamp = Math.floor(Date.now() / 1000);
+  const signature = crypto.createHmac("sha256", secret).update(`${timestamp}.${payload}`).digest("hex");
+
+  const webhook = await handleStoreApiRequest(
+    new Request("https://example.com/api/store/webhook/stripe", {
+      method: "POST",
+      headers: {
+        "Stripe-Signature": `t=${timestamp},v1=${signature}`
+      },
+      body: payload
+    }),
+    {
+      orderStore: store,
+      env: {
+        PRINTFUL_API_KEY: "test",
+        STRIPE_WEBHOOK_SECRET: secret,
+        STORE_PUBLIC_URL: "https://bensonperry.com"
+      },
+      fetchImpl: async () => ({
+        ok: true,
+        json: async () => ({ id: "pf_order_route_123", status: "draft" })
+      })
+    }
+  );
+  const webhookBody = await webhook.json();
+  assert.equal(webhook.status, 200);
+  assert.equal(webhookBody.fulfillment.record.providerOrderId, "pf_order_route_123");
+
+  const status = await handleStoreApiRequest(
+    new Request("https://example.com/api/store/order-status?session_id=cs_test_123"),
+    { orderStore: store }
+  );
+  const statusBody = await status.json();
+  assert.equal(statusBody.status, "succeeded");
+  assert.equal(statusBody.key, fulfillmentRecordKey("cs_test_123"));
+  assert.equal(statusBody.fulfillment.providerOrderId, "pf_order_route_123");
+});
+
 test("fulfillment builds a Printful order from a paid Stripe session", async () => {
   const { encodeCartMetadata, fulfillStripeCheckoutSession } = await checkoutModule();
   const session = paidStripeSession(

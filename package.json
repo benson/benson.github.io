@@ -5,6 +5,7 @@
     "store:fourthwall": "node scripts/store/fourthwall.mjs",
     "store:publish": "node scripts/store/fourthwall.mjs publish",
     "store:checkout:serve": "node scripts/store/checkout-server.mjs",
+    "store:checkout:smoke": "node scripts/store/checkout-smoke.mjs",
     "store:checkout:setup": "node scripts/store/checkout-setup.mjs",
     "store:fulfillment:doctor": "node scripts/store/fulfillment-doctor.mjs"
   },
