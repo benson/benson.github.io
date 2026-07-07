@@ -267,7 +267,7 @@ Checks local checkout credentials by default. Side effects only happen with flag
 
 Usage:
   npm run store:checkout:setup
-  npm run store:checkout:setup -- --create-webhook --write-local
+  npm run store:checkout:setup -- --create-webhook --register-payment-domain --write-local
   npm run store:checkout:setup -- --deploy
 
 Options:

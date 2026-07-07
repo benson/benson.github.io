@@ -16,7 +16,7 @@ The user should not have to think about file format, DPI, embroidery constraints
 - `draft`: idea exists, not ready for public display.
 - `ready`: production files and listing are ready, but hosted checkout does not exist yet.
 - `sample`: placeholder/sample item, useful for visual testing.
-- `live`: `checkoutUrl` exists and customers can buy it.
+- `live`: customers can buy it through embedded checkout, or a temporary `checkoutUrl` fallback is explicitly present.
 - `sold-out`: leave listed, but disable purchase.
 
 ## Default Routes
@@ -31,7 +31,8 @@ The user should not have to think about file format, DPI, embroidery constraints
 - Avoid IP-infringing, offensive, or overly fragile artwork.
 - Produce production assets separately from storefront mockups.
 - Validate dimensions, transparency, obvious broken assets, and store rendering.
-- Run `npm run store:publish` once provider credentials exist.
+- Run `npm run store:launch:check -- --network --live` before treating embedded checkout as buyable.
+- Run `npm run store:publish` only for temporary Fourthwall fallback publishing.
 - Keep the public listing honest until real checkout exists.
 
 ## Benson Responsibilities

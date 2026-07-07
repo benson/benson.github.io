@@ -8,6 +8,7 @@
     "store:checkout:smoke": "node scripts/store/checkout-smoke.mjs",
     "store:checkout:setup": "node scripts/store/checkout-setup.mjs",
     "store:fulfillment:doctor": "node scripts/store/fulfillment-doctor.mjs",
+    "store:launch:check": "node scripts/store/launch-check.mjs",
     "store:printful:map": "node scripts/store/printful-map.mjs"
   },
   "devDependencies": {

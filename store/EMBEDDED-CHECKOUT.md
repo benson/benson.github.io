@@ -219,6 +219,24 @@ This simulates a paid `checkout.session.completed` Stripe webhook against the lo
 
 Use it after product manifest changes and before deploying credentials. It does not replace a real Stripe/Printful test order once account credentials exist.
 
+## Launch readiness gate
+
+Run:
+
+```powershell
+npm run store:launch:check -- --network --live
+```
+
+This is the one-command launch gate for embedded checkout. It checks:
+
+- local Stripe, Printful, webhook, and wallet-domain readiness;
+- local checkout config for card, Apple Pay, Google Pay, and Link eligibility markers;
+- product artwork, Printful mapping, variant cart validation, and optional live Printful catalog readiness;
+- the local signed Stripe webhook path with a mocked Printful order;
+- the deployed Worker public config when `--live` is set.
+
+It exits non-zero until the store can safely accept real embedded checkout orders. Today it is expected to fail only on missing account credentials/domain readiness while the product and mocked fulfillment smoke pass.
+
 ## Cloudflare route blocker
 
 The current Cloudflare token can upload Workers, but it failed to attach the route `bensonperry.com/api/store/*` with Cloudflare API error `Authentication error [code: 10000]`.
