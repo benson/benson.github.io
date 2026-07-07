@@ -67,6 +67,44 @@ test("launch check credential gate reports claimable Stripe sandboxes as blocked
   assert.ok(checks.some((item) => item.label === "Stripe sandbox" && item.status === "blocked"));
 });
 
+test("launch check validates configured Printful API auth during network checks", async () => {
+  const { printfulApiChecks, summarizeChecks } = await launchModule();
+  const checks = await printfulApiChecks({
+    env: {
+      PRINTFUL_API_KEY: "pf_test_secret"
+    },
+    fetchImpl: async (url, options) => {
+      assert.equal(url, "https://api.printful.com/v2/oauth-scopes");
+      assert.equal(options.headers.Authorization, "Bearer pf_test_secret");
+      return new Response(JSON.stringify({ data: [{ value: "orders:write" }] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+  });
+
+  assert.equal(summarizeChecks(checks).ok, true);
+  assert.equal(checks[0].label, "Printful API auth");
+  assert.equal(checks[0].detail, "1 scope(s): orders:write");
+});
+
+test("launch check reports bad Printful API auth without leaking the token", async () => {
+  const { printfulApiChecks, summarizeChecks } = await launchModule();
+  const checks = await printfulApiChecks({
+    env: {
+      PRINTFUL_API_KEY: "pf_test_secret"
+    },
+    fetchImpl: async () =>
+      new Response(JSON.stringify({ error: { message: "invalid pf_test_secret" } }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" }
+      })
+  });
+
+  assert.equal(summarizeChecks(checks).ok, false);
+  assert.equal(checks[0].detail, "invalid [redacted]");
+});
+
 test("launch check product readiness accepts the current shirt locally", async () => {
   const { productReadinessChecks, summarizeChecks } = await launchModule();
   const checks = await productReadinessChecks({

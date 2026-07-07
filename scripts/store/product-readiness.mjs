@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { root } from "./env.mjs";
 
+const PRINTFUL_API = "https://api.printful.com";
 const PNG_SIGNATURE = "89504e470d0a1a0a";
 const PRINT_PLACEMENT_REQUIREMENTS = {
   front: {
@@ -163,12 +164,37 @@ export function localProductReadinessIssues(product, catalog) {
 }
 
 export async function fetchPrintfulCatalogProduct(catalogProductId, fetchImpl = fetch) {
-  const response = await fetchImpl(`https://api.printful.com/products/${encodeURIComponent(catalogProductId)}`);
+  const response = await fetchImpl(`${PRINTFUL_API}/products/${encodeURIComponent(catalogProductId)}`);
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     throw new Error(data.error?.message || data.result || `Printful catalog request failed: ${response.status}`);
   }
   return data.result || {};
+}
+
+function redactSecret(text, secret) {
+  return String(text || "").split(String(secret || "")).join("[redacted]");
+}
+
+export async function verifyPrintfulApiToken({ apiKey, fetchImpl = fetch } = {}) {
+  if (!apiKey) throw new Error("PRINTFUL_API_KEY is missing.");
+
+  const response = await fetchImpl(`${PRINTFUL_API}/v2/oauth-scopes`, {
+    headers: {
+      Authorization: `Bearer ${apiKey}`
+    }
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const detail = data.error?.message || data.result || data.data || `Printful auth request failed: ${response.status}`;
+    throw new Error(redactSecret(detail, apiKey));
+  }
+
+  const scopes = Array.isArray(data.data) ? data.data : [];
+  return {
+    scopes,
+    scopeValues: scopes.map((scope) => scope.value).filter(Boolean)
+  };
 }
 
 export function printfulCatalogIssues(product, printfulProduct) {

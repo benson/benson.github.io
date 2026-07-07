@@ -1,7 +1,12 @@
 import { pathToFileURL } from "node:url";
 import { checkoutConfig, loadCatalog, resolveCart } from "./checkout.mjs";
 import { loadLocalEnv, readStripeCliProfile } from "./env.mjs";
-import { fetchPrintfulCatalogProduct, localProductReadinessIssues, printfulCatalogIssues } from "./product-readiness.mjs";
+import {
+  fetchPrintfulCatalogProduct,
+  localProductReadinessIssues,
+  printfulCatalogIssues,
+  verifyPrintfulApiToken
+} from "./product-readiness.mjs";
 import { runCheckoutSmoke } from "./checkout-smoke.mjs";
 import { stripeSecretKind } from "./checkout-setup.mjs";
 
@@ -79,6 +84,18 @@ export function credentialChecks({ env = process.env, stripeProfile = readStripe
   }
 
   return checks;
+}
+
+export async function printfulApiChecks({ env = process.env, fetchImpl = fetch } = {}) {
+  if (!env.PRINTFUL_API_KEY) return [];
+
+  try {
+    const result = await verifyPrintfulApiToken({ apiKey: env.PRINTFUL_API_KEY, fetchImpl });
+    const detail = result.scopeValues.length ? `${result.scopeValues.length} scope(s): ${result.scopeValues.join(", ")}` : "authenticated";
+    return [check("Printful API auth", true, detail)];
+  } catch (error) {
+    return [check("Printful API auth", false, error.message)];
+  }
 }
 
 function embeddedProducts(catalog, productId = null) {
@@ -210,6 +227,7 @@ export async function runLaunchCheck({
   const catalog = await loadCatalog();
   const checks = [
     ...credentialChecks({ env, stripeProfile }),
+    ...(network ? await printfulApiChecks({ env, fetchImpl }) : []),
     ...configChecks(checkoutConfig(env), "local config"),
     ...(await productReadinessChecks({ catalog, productId, network, fetchImpl }))
   ];
@@ -246,7 +264,7 @@ Usage:
 Options:
   --api-base <url>  Checkout API base for --live checks. Defaults to the workers.dev API.
   --live            Check the deployed checkout API public config.
-  --network         Check the live Printful public catalog for mapped products.
+  --network         Check the live Printful public catalog and validate Printful API auth when configured.
   --product <id>    Check one embedded checkout product.
   --public-url <url>
                    Public site URL for --same-origin checks. Defaults to https://bensonperry.com.

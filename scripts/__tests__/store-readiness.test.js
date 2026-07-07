@@ -59,6 +59,44 @@ test("Printful catalog readiness accepts matching variants and placements", asyn
   assert.deepEqual(printfulCatalogIssues(product, matchingPrintfulProduct()), []);
 });
 
+test("Printful API token verifier reads OAuth scopes without exposing the token", async () => {
+  const { verifyPrintfulApiToken } = await readinessModule();
+  const result = await verifyPrintfulApiToken({
+    apiKey: "pf_test_secret",
+    fetchImpl: async (url, options) => {
+      assert.equal(url, "https://api.printful.com/v2/oauth-scopes");
+      assert.equal(options.headers.Authorization, "Bearer pf_test_secret");
+      return new Response(
+        JSON.stringify({
+          data: [
+            { value: "orders:write" },
+            { value: "catalog:read" }
+          ]
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }
+  });
+
+  assert.deepEqual(result.scopeValues, ["orders:write", "catalog:read"]);
+});
+
+test("Printful API token verifier redacts invalid token errors", async () => {
+  const { verifyPrintfulApiToken } = await readinessModule();
+  await assert.rejects(
+    () =>
+      verifyPrintfulApiToken({
+        apiKey: "pf_test_secret",
+        fetchImpl: async () =>
+          new Response(JSON.stringify({ error: { message: "bad token pf_test_secret" } }), {
+            status: 401,
+            headers: { "Content-Type": "application/json" }
+          })
+      }),
+    (error) => error.message === "bad token [redacted]"
+  );
+});
+
 test("Printful catalog readiness catches variant and availability drift", async () => {
   const { printfulCatalogIssues } = await readinessModule();
   const remote = matchingPrintfulProduct();

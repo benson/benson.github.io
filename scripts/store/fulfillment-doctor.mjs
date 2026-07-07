@@ -1,6 +1,11 @@
 import { loadCatalog, resolveCart } from "./checkout.mjs";
 import { loadLocalEnv } from "./env.mjs";
-import { fetchPrintfulCatalogProduct, localProductReadinessIssues, printfulCatalogIssues } from "./product-readiness.mjs";
+import {
+  fetchPrintfulCatalogProduct,
+  localProductReadinessIssues,
+  printfulCatalogIssues,
+  verifyPrintfulApiToken
+} from "./product-readiness.mjs";
 
 function hasSecret(name) {
   return Boolean(process.env[name]);
@@ -27,7 +32,7 @@ Usage:
   npm run store:fulfillment:doctor -- --network
 
 Options:
-  --network  Also validate mapped Printful catalog products, variants, placements, and availability.
+  --network  Also validate Printful API auth, catalog products, variants, placements, and availability.
 `);
 }
 
@@ -57,6 +62,17 @@ async function main(argv = process.argv.slice(2)) {
   printStatus("STRIPE_WALLET_DOMAIN_READY", process.env.STRIPE_WALLET_DOMAIN_READY === "true", "Apple Pay domain readiness marker");
   printStatus("STRIPE_PAYMENT_METHODS_READY", process.env.STRIPE_PAYMENT_METHODS_READY === "true", "Google Pay/Link domain readiness marker");
   printStatus("SHOP_PAY_CLIENT_ID", hasSecret("SHOP_PAY_CLIENT_ID"), "optional Shopify Wallet lane");
+
+  if (args.network && process.env.PRINTFUL_API_KEY) {
+    try {
+      const result = await verifyPrintfulApiToken({ apiKey: process.env.PRINTFUL_API_KEY });
+      const detail = result.scopeValues.length ? `${result.scopeValues.length} scope(s): ${result.scopeValues.join(", ")}` : "authenticated";
+      printStatus("Printful API auth", true, detail);
+    } catch (error) {
+      failureCount += 1;
+      printStatus("Printful API auth", false, error.message);
+    }
+  }
   console.log("");
 
   for (const product of catalog.products || []) {

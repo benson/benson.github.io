@@ -82,7 +82,7 @@ The local part checks:
 - print PNG dimensions are large enough for the mapped placement;
 - garment print files include alpha transparency.
 
-The `--network` part also calls Printful's public catalog endpoint and verifies:
+The `--network` part also validates the configured Printful token against Printful's v2 OAuth scopes endpoint when `PRINTFUL_API_KEY` exists, then calls Printful's public catalog endpoint and verifies:
 
 - the mapped catalog product exists;
 - mapped Printful variants still exist;
@@ -207,7 +207,7 @@ npm run store:fulfillment:doctor
 npm run store:fulfillment:doctor -- --network
 ```
 
-It checks local environment presence, print assets, every embedded-checkout product's fulfillment mapping, and optionally the live Printful catalog. It intentionally exits non-zero until Stripe secrets, the Printful API key, and all provider variant IDs are configured.
+It checks local environment presence, Printful API authentication when a token exists, print assets, every embedded-checkout product's fulfillment mapping, and optionally the live Printful catalog. It intentionally exits non-zero until Stripe secrets, the Printful API key, and all provider variant IDs are configured.
 
 ## Local checkout smoke
 
@@ -232,6 +232,7 @@ npm run store:launch:check -- --network --live
 This is the one-command launch gate for embedded checkout. It checks:
 
 - local Stripe, Printful, webhook, and wallet-domain readiness;
+- Printful API authentication during `--network` checks when a token exists;
 - local checkout config for card, Apple Pay, Google Pay, and Link eligibility markers;
 - product artwork, Printful mapping, variant cart validation, and optional live Printful catalog readiness;
 - the local signed Stripe webhook path with a mocked Printful order;
