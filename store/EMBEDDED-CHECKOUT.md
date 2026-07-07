@@ -1,0 +1,106 @@
+# Embedded checkout plan
+
+This is the implementation plan for replacing Fourthwall-hosted checkout links with an on-page checkout at `bensonperry.com/store`.
+
+## Target architecture
+
+```mermaid
+flowchart LR
+  A["buyer on bensonperry.com/store"] --> B["custom cart UI"]
+  B --> C["store checkout API"]
+  C --> D["Stripe Checkout Session"]
+  D --> E["embedded Stripe checkout on bensonperry.com/store"]
+  E --> F["Stripe webhook: checkout.session.completed"]
+  F --> G["fulfillment adapter"]
+  G --> H["Printful or Gelato order"]
+```
+
+## API surface
+
+- `GET /api/store/config`
+  - Returns public checkout configuration, including the Stripe publishable key when configured.
+- `POST /api/store/checkout-session`
+  - Validates product IDs, variant IDs, quantities, and prices against `store/products.json`.
+  - Creates a Stripe Embedded Checkout Session.
+  - Returns the session client secret for Stripe.js.
+- `GET /api/store/session-status?session_id=...`
+  - Lets the return page show whether checkout completed.
+- `POST /api/store/webhook/stripe`
+  - Verifies the Stripe webhook signature.
+  - On successful payment, creates or queues a fulfillment order.
+
+## Current backend deployment
+
+The checkout API Worker is deployed at:
+
+- `https://benson-store-checkout-api.bensonperry.workers.dev/api/store/config`
+
+The preferred production route is:
+
+- `https://bensonperry.com/api/store/*`
+
+Attaching that route currently needs a Cloudflare API token with Workers Routes edit permission for the `bensonperry.com` zone. Until then, the frontend can call the workers.dev API host while the customer remains on `bensonperry.com/store`.
+
+## Product manifest additions
+
+Each sellable product should expose:
+
+- `variants`: store-owned variant IDs, labels, option names, price, SKU, and availability.
+- `checkout`: checkout strategy and shipping policy.
+- `fulfillmentMapping`: provider-specific product/variant/template mapping.
+
+The frontend only sends store-owned product IDs and variant IDs. The backend is responsible for prices and fulfillment mappings so buyers cannot manipulate checkout amounts.
+
+## MVP choice
+
+Start with Stripe Embedded Checkout and US-only shipping. Prefer "shipping included" pricing for the first product because it keeps the first checkout flow simple and avoids building live shipping-rate recalculation before the provider is finalized.
+
+When fulfillment credentials exist, the webhook should create a provider draft order first and only confirm it after the Stripe payment is complete.
+
+## Why not deploy this over the current buy path yet?
+
+The current Fourthwall path is live and buyable. The embedded checkout path should not replace it in production until Stripe and fulfillment credentials are configured and a real provider order can be created after payment.
+
+## Required Worker secrets
+
+The Worker is deployed, but payment is intentionally disabled until these secrets exist:
+
+```powershell
+npx wrangler secret put STRIPE_PUBLISHABLE_KEY --config wrangler.store-checkout.jsonc
+npx wrangler secret put STRIPE_SECRET_KEY --config wrangler.store-checkout.jsonc
+npx wrangler secret put STRIPE_WEBHOOK_SECRET --config wrangler.store-checkout.jsonc
+```
+
+Fulfillment requires one provider:
+
+```powershell
+npx wrangler secret put PRINTFUL_API_KEY --config wrangler.store-checkout.jsonc
+```
+
+or:
+
+```powershell
+npx wrangler secret put GELATO_API_KEY --config wrangler.store-checkout.jsonc
+```
+
+Optional Shop Pay Wallet integration would require:
+
+```powershell
+npx wrangler secret put SHOP_PAY_CLIENT_ID --config wrangler.store-checkout.jsonc
+npx wrangler secret put SHOPIFY_STOREFRONT_ACCESS_TOKEN --config wrangler.store-checkout.jsonc
+npx wrangler secret put SHOPIFY_ADMIN_API_ACCESS_TOKEN --config wrangler.store-checkout.jsonc
+```
+
+Only for Stripe test-mode smoke tests before fulfillment mapping exists, set:
+
+```powershell
+npx wrangler secret put STORE_ALLOW_UNFULFILLED_CHECKOUT --config wrangler.store-checkout.jsonc
+```
+
+That value should not be `true` in production.
+
+## Cloudflare route blocker
+
+The current Cloudflare token can upload Workers, but it failed to attach the route `bensonperry.com/api/store/*` with Cloudflare API error `Authentication error [code: 10000]`.
+
+To make the API same-origin, the token needs route-edit permission for the `bensonperry.com` zone, then uncomment the `routes` section in `wrangler.store-checkout.jsonc` and redeploy.

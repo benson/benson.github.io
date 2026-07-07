@@ -1,0 +1,309 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const root = path.resolve(here, "..", "..");
+const catalogPath = path.join(root, "store", "products.json");
+
+const STRIPE_API = "https://api.stripe.com/v1";
+const MAX_QUANTITY = 10;
+
+export class StoreCheckoutError extends Error {
+  constructor(message, status = 400, details = {}) {
+    super(message);
+    this.name = "StoreCheckoutError";
+    this.status = status;
+    this.details = details;
+  }
+}
+
+export async function loadCatalog(filePath = catalogPath) {
+  return JSON.parse(await fs.readFile(filePath, "utf8"));
+}
+
+export function encodeCartMetadata(lines) {
+  return Buffer.from(JSON.stringify(lines), "utf8").toString("base64url");
+}
+
+export function decodeCartMetadata(value) {
+  if (!value) return [];
+  return JSON.parse(Buffer.from(value, "base64url").toString("utf8"));
+}
+
+function assertPlainObject(value, message) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new StoreCheckoutError(message);
+  }
+}
+
+function productUrl(publicUrl, product) {
+  const base = String(publicUrl || "https://bensonperry.com").replace(/\/+$/, "");
+  const image = String(product.image || "").replace(/^\/+/, "");
+  return `${base}/store/${image}`;
+}
+
+function lineTitle(product, variant) {
+  return variant?.label ? `${product.title} - ${variant.label}` : product.title;
+}
+
+export function resolveCart(catalog, rawItems) {
+  if (!Array.isArray(rawItems) || rawItems.length === 0) {
+    throw new StoreCheckoutError("Cart is empty.");
+  }
+
+  const products = new Map((catalog.products || []).map((product) => [product.id, product]));
+  const lines = [];
+
+  for (const item of rawItems) {
+    assertPlainObject(item, "Cart item must be an object.");
+    const product = products.get(item.productId);
+    if (!product) throw new StoreCheckoutError(`Unknown product: ${item.productId}`);
+    if (product.status !== "live") throw new StoreCheckoutError(`${product.title} is not live.`);
+
+    const quantity = Number(item.quantity || 1);
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_QUANTITY) {
+      throw new StoreCheckoutError(`${product.title} quantity must be between 1 and ${MAX_QUANTITY}.`);
+    }
+
+    const variants = Array.isArray(product.variants) ? product.variants : [];
+    const variant = variants.find((candidate) => candidate.id === item.variantId) || null;
+    if (variants.length && !variant) throw new StoreCheckoutError(`${product.title} requires a valid variant.`);
+    if (variant && variant.available === false) throw new StoreCheckoutError(`${variant.label} is unavailable.`);
+
+    const price = Number(variant?.price ?? product.price);
+    if (!Number.isInteger(price) || price < 0) throw new StoreCheckoutError(`${product.title} has an invalid price.`);
+
+    lines.push({
+      productId: product.id,
+      variantId: variant?.id || null,
+      sku: variant?.sku || product.id,
+      title: lineTitle(product, variant),
+      productTitle: product.title,
+      variantLabel: variant?.label || "",
+      quantity,
+      unitAmount: price,
+      currency: String(product.currency || "USD").toLowerCase(),
+      image: product.image || "",
+      fulfillmentReady: product.embeddedFulfillment?.status === "ready",
+      fulfillmentProvider: product.embeddedFulfillment?.recommended || null
+    });
+  }
+
+  return lines;
+}
+
+export function ensureFulfillmentReady(lines, env = process.env) {
+  if (env.STORE_ALLOW_UNFULFILLED_CHECKOUT === "true") return;
+  const missing = lines.filter((line) => !line.fulfillmentReady);
+  if (missing.length) {
+    throw new StoreCheckoutError(
+      "Embedded checkout is not ready for live orders because fulfillment mapping is missing.",
+      409,
+      { products: missing.map((line) => line.productId) }
+    );
+  }
+}
+
+export function buildStripeCheckoutSessionParams({ catalog, items, env = process.env }) {
+  const publicUrl = env.STORE_PUBLIC_URL || "https://bensonperry.com";
+  const lines = resolveCart(catalog, items);
+  ensureFulfillmentReady(lines, env);
+
+  const params = new URLSearchParams();
+  params.set("ui_mode", "embedded");
+  params.set("mode", "payment");
+  params.set("submit_type", "pay");
+  params.set("return_url", `${publicUrl.replace(/\/+$/, "")}/store/?checkout=return&session_id={CHECKOUT_SESSION_ID}`);
+  params.set("customer_creation", "always");
+  params.set("metadata[cart]", encodeCartMetadata(lines.map((line) => ({
+    productId: line.productId,
+    variantId: line.variantId,
+    sku: line.sku,
+    quantity: line.quantity
+  }))));
+
+  if (env.STRIPE_AUTOMATIC_TAX === "true") {
+    params.set("automatic_tax[enabled]", "true");
+  }
+
+  const allowedCountries = catalog.products
+    ?.flatMap((product) => product.checkout?.allowedCountries || [])
+    ?.filter(Boolean);
+  const countries = [...new Set(allowedCountries?.length ? allowedCountries : ["US"])];
+  countries.forEach((country, index) => {
+    params.set(`shipping_address_collection[allowed_countries][${index}]`, country);
+  });
+
+  lines.forEach((line, index) => {
+    params.set(`line_items[${index}][price_data][currency]`, line.currency);
+    params.set(`line_items[${index}][price_data][unit_amount]`, String(line.unitAmount));
+    params.set(`line_items[${index}][price_data][product_data][name]`, line.title);
+    if (line.image) {
+      params.set(`line_items[${index}][price_data][product_data][images][0]`, productUrl(publicUrl, line));
+    }
+    params.set(`line_items[${index}][quantity]`, String(line.quantity));
+  });
+
+  return { params, lines };
+}
+
+async function stripeRequest(pathname, { secretKey, method = "GET", body } = {}) {
+  if (!secretKey) throw new StoreCheckoutError("Stripe secret key is not configured.", 503);
+
+  const response = await fetch(`${STRIPE_API}${pathname}`, {
+    method,
+    headers: {
+      Authorization: `Bearer ${secretKey}`,
+      ...(body ? { "Content-Type": "application/x-www-form-urlencoded" } : {})
+    },
+    body
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new StoreCheckoutError(data.error?.message || "Stripe request failed.", response.status, data);
+  }
+
+  return data;
+}
+
+export async function createStripeCheckoutSession({ catalog, items, env = process.env }) {
+  const { params, lines } = buildStripeCheckoutSessionParams({ catalog, items, env });
+  const session = await stripeRequest("/checkout/sessions", {
+    secretKey: env.STRIPE_SECRET_KEY,
+    method: "POST",
+    body: params
+  });
+
+  return {
+    id: session.id,
+    clientSecret: session.client_secret,
+    lines
+  };
+}
+
+export async function retrieveStripeSession(sessionId, env = process.env) {
+  if (!/^cs_(test|live)_[A-Za-z0-9_]+$/.test(String(sessionId || ""))) {
+    throw new StoreCheckoutError("Invalid session ID.");
+  }
+  return stripeRequest(`/checkout/sessions/${encodeURIComponent(sessionId)}`, {
+    secretKey: env.STRIPE_SECRET_KEY
+  });
+}
+
+export function verifyStripeWebhookSignature(payload, signatureHeader, secret, toleranceSeconds = 300) {
+  if (!secret) throw new StoreCheckoutError("Stripe webhook secret is not configured.", 503);
+  if (!signatureHeader) throw new StoreCheckoutError("Missing Stripe signature.", 400);
+
+  const parts = Object.fromEntries(
+    signatureHeader.split(",").map((part) => {
+      const [key, value] = part.split("=");
+      return [key, value];
+    })
+  );
+  const timestamp = Number(parts.t);
+  const expected = parts.v1;
+  if (!timestamp || !expected) throw new StoreCheckoutError("Invalid Stripe signature.", 400);
+
+  const age = Math.abs(Math.floor(Date.now() / 1000) - timestamp);
+  if (age > toleranceSeconds) throw new StoreCheckoutError("Stale Stripe signature.", 400);
+
+  const signedPayload = `${timestamp}.${payload}`;
+  const actual = createHmac("sha256", secret).update(signedPayload, "utf8").digest("hex");
+  const actualBuffer = Buffer.from(actual, "hex");
+  const expectedBuffer = Buffer.from(expected, "hex");
+
+  if (actualBuffer.length !== expectedBuffer.length || !timingSafeEqual(actualBuffer, expectedBuffer)) {
+    throw new StoreCheckoutError("Invalid Stripe signature.", 400);
+  }
+
+  return true;
+}
+
+function jsonResponse(data, status = 200, headers = {}) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": "no-store",
+      ...headers
+    }
+  });
+}
+
+function errorResponse(error) {
+  const status = error instanceof StoreCheckoutError ? error.status : 500;
+  return jsonResponse(
+    {
+      error: error.message || "Unexpected checkout error.",
+      details: error.details || {}
+    },
+    status
+  );
+}
+
+export async function handleStoreApiRequest(request, { env = process.env, catalogFile = catalogPath } = {}) {
+  try {
+    const url = new URL(request.url);
+    const pathname = url.pathname.replace(/\/+$/, "");
+
+    if (request.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          "Access-Control-Allow-Origin": env.STORE_CORS_ORIGIN || "https://bensonperry.com",
+          "Access-Control-Allow-Headers": "Content-Type, Stripe-Signature",
+          "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
+        }
+      });
+    }
+
+    if (request.method === "GET" && pathname.endsWith("/api/store/config")) {
+      return jsonResponse({
+        mode: "stripe-embedded",
+        configured: Boolean(env.STRIPE_PUBLISHABLE_KEY && env.STRIPE_SECRET_KEY),
+        fulfillmentReady: env.STORE_ALLOW_UNFULFILLED_CHECKOUT === "true",
+        stripePublishableKey: env.STRIPE_PUBLISHABLE_KEY || null,
+        shopPay: {
+          configured: Boolean(env.SHOP_PAY_CLIENT_ID),
+          status: env.SHOP_PAY_CLIENT_ID ? "optional-ready-to-integrate" : "needs-shopify-wallet-setup"
+        }
+      });
+    }
+
+    if (request.method === "POST" && pathname.endsWith("/api/store/checkout-session")) {
+      const body = await request.json().catch(() => null);
+      assertPlainObject(body, "Checkout request must be JSON.");
+      const catalog = await loadCatalog(catalogFile);
+      const session = await createStripeCheckoutSession({ catalog, items: body.items, env });
+      return jsonResponse({ id: session.id, clientSecret: session.clientSecret });
+    }
+
+    if (request.method === "GET" && pathname.endsWith("/api/store/session-status")) {
+      const session = await retrieveStripeSession(url.searchParams.get("session_id"), env);
+      return jsonResponse({
+        status: session.status,
+        paymentStatus: session.payment_status,
+        customerEmail: session.customer_details?.email || null
+      });
+    }
+
+    if (request.method === "POST" && pathname.endsWith("/api/store/webhook/stripe")) {
+      const payload = await request.text();
+      verifyStripeWebhookSignature(payload, request.headers.get("stripe-signature"), env.STRIPE_WEBHOOK_SECRET);
+      const event = JSON.parse(payload);
+      return jsonResponse({
+        received: true,
+        event: event.type,
+        fulfillment: event.type === "checkout.session.completed" ? "blocked-until-provider-mapping-exists" : "ignored"
+      });
+    }
+
+    return jsonResponse({ error: "Not found." }, 404);
+  } catch (error) {
+    return errorResponse(error);
+  }
+}
+

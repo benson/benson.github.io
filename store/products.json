@@ -1,9 +1,9 @@
 {
   "updated": "2026-07-07",
   "provider": {
-    "recommended": "fourthwall",
-    "mode": "api-published-hosted-product-links",
-    "notes": "Use npm run store:publish to upload artwork, create the Fourthwall product, and write checkoutUrl."
+    "recommended": "stripe-plus-printful",
+    "mode": "embedded-checkout-planned-fourthwall-fallback-live",
+    "notes": "Use the embedded checkout API for the next production path. Fourthwall product links remain a temporary live fallback until Stripe and fulfillment credentials are configured."
   },
   "products": [
     {
@@ -22,8 +22,81 @@
         "small front mark",
         "generated dtg file ready"
       ],
+      "variants": [
+        {
+          "id": "small-useful-light-black-s",
+          "sku": "small-useful-light-black-s",
+          "label": "Black / S",
+          "options": {
+            "Color": "Black",
+            "Size": "S"
+          },
+          "price": 3995,
+          "available": true
+        },
+        {
+          "id": "small-useful-light-black-m",
+          "sku": "small-useful-light-black-m",
+          "label": "Black / M",
+          "options": {
+            "Color": "Black",
+            "Size": "M"
+          },
+          "price": 3995,
+          "available": true
+        },
+        {
+          "id": "small-useful-light-black-l",
+          "sku": "small-useful-light-black-l",
+          "label": "Black / L",
+          "options": {
+            "Color": "Black",
+            "Size": "L"
+          },
+          "price": 3995,
+          "available": true
+        },
+        {
+          "id": "small-useful-light-black-xl",
+          "sku": "small-useful-light-black-xl",
+          "label": "Black / XL",
+          "options": {
+            "Color": "Black",
+            "Size": "XL"
+          },
+          "price": 3995,
+          "available": true
+        },
+        {
+          "id": "small-useful-light-black-2xl",
+          "sku": "small-useful-light-black-2xl",
+          "label": "Black / 2XL",
+          "options": {
+            "Color": "Black",
+            "Size": "2XL"
+          },
+          "price": 3995,
+          "available": true
+        }
+      ],
+      "checkout": {
+        "mode": "embedded-stripe",
+        "fallbackUrl": "https://bensonperry-com-store-shop.fourthwall.com/products/small-useful-light",
+        "shipping": {
+          "strategy": "included-us-standard",
+          "label": "US standard shipping included"
+        },
+        "allowedCountries": [
+          "US"
+        ]
+      },
       "checkoutUrl": "https://bensonperry-com-store-shop.fourthwall.com/products/small-useful-light",
       "fulfillment": "fourthwall",
+      "embeddedFulfillment": {
+        "recommended": "printful",
+        "status": "needs-provider-account-and-variant-mapping",
+        "notes": "Do not accept live Stripe payments until this product has provider variant IDs and a tested webhook fulfillment path."
+      },
       "publishing": {
         "fourthwall": {
           "templateId": "pro_rkWo0swHRROhNgJEeNQR_A",
