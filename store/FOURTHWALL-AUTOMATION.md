@@ -27,6 +27,19 @@ or:
 $env:FOURTHWALL_API_TOKEN = "your_oauth_or_api_token"
 ```
 
+For a one-time setup, put the same values in an ignored `.env.local` file at the repo root:
+
+```ini
+FOURTHWALL_API_USERNAME=your_api_username
+FOURTHWALL_API_PASSWORD=your_api_password
+```
+
+or:
+
+```ini
+FOURTHWALL_API_TOKEN=your_oauth_or_api_token
+```
+
 The script supports both Basic Auth and Bearer token auth because Fourthwall documents API keys, OAuth, and Basic Auth examples for the Platform API.
 
 ## Commands
@@ -41,6 +54,12 @@ Dry-run provider selection without creating anything:
 
 ```powershell
 npm run store:publish -- --id small-useful-light-tee --dry-run
+```
+
+Run the same no-mutation credential/template check with friendlier naming:
+
+```powershell
+npm run store:fourthwall -- doctor --id small-useful-light-tee
 ```
 
 Create/publish the Fourthwall product and update the store catalog:

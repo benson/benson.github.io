@@ -10,6 +10,10 @@ export const ROOT_DIR = path.resolve(__dirname, "..", "..");
 export const STORE_DIR = path.join(ROOT_DIR, "store");
 export const CATALOG_PATH = path.join(STORE_DIR, "products.json");
 export const DEFAULT_API_BASE = "https://api.fourthwall.com";
+export const LOCAL_ENV_FILES = [
+  path.join(ROOT_DIR, ".env.local"),
+  path.join(ROOT_DIR, ".env")
+];
 
 const DEFAULT_SIZES = ["S", "M", "L", "XL", "2XL"];
 const DEFAULT_COLORS = ["Black"];
@@ -94,6 +98,41 @@ function splitCsv(value) {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+export async function loadLocalEnvFiles({ files = LOCAL_ENV_FILES, env = process.env } = {}) {
+  const loaded = [];
+  for (const file of files) {
+    let raw = "";
+    try {
+      raw = await fs.readFile(file, "utf8");
+    } catch (error) {
+      if (error.code === "ENOENT") continue;
+      throw error;
+    }
+
+    for (const line of raw.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const match = trimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+      if (!match) continue;
+      const [, key, rawValue] = match;
+      if (env[key] !== undefined) continue;
+      env[key] = unquoteEnvValue(rawValue.trim());
+    }
+    loaded.push(file);
+  }
+  return loaded;
+}
+
+function unquoteEnvValue(value) {
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    return value.slice(1, -1);
+  }
+  return value;
 }
 
 export function getAuthFromEnv(env = process.env) {
@@ -612,16 +651,17 @@ export function applyProviderResultToCatalogProduct(product, result) {
   }
 }
 
-export async function publishProduct(options) {
-  const catalog = await readCatalog();
+export async function publishProduct(options, deps = {}) {
+  const catalog = await readCatalog(deps.catalogPath);
   const product = findProduct(catalog, options.id);
   const validation = await validateProductAssets(product);
   if (!validation.ok) {
     throw new Error(validation.errors.join("\n"));
   }
 
-  const auth = getAuthFromEnv();
-  const client = createFourthwallClient({ apiBase: options.apiBase, auth });
+  const env = deps.env || process.env;
+  const auth = getAuthFromEnv(env);
+  const client = createFourthwallClient({ apiBase: options.apiBase, auth, fetchImpl: deps.fetchImpl || fetch });
 
   if (!client) {
     if (options.apply) {
@@ -722,15 +762,16 @@ export async function publishProduct(options) {
       mode: "api-published-hosted-product-links",
       notes: "Use npm run store:publish to upload artwork, create the Fourthwall product, and write checkoutUrl."
     };
-    await writeCatalog(catalog);
+    await writeCatalog(catalog, deps.catalogPath);
   }
 
   return result;
 }
 
-export async function discoverTemplates(options) {
-  const auth = getAuthFromEnv();
-  const client = createFourthwallClient({ apiBase: options.apiBase, auth });
+export async function discoverTemplates(options, deps = {}) {
+  const env = deps.env || process.env;
+  const auth = getAuthFromEnv(env);
+  const client = createFourthwallClient({ apiBase: options.apiBase, auth, fetchImpl: deps.fetchImpl || fetch });
   if (!client) {
     throw new UserBlockedError(
       "Fourthwall credentials are not configured. Discovery needs FOURTHWALL_API_USERNAME/FOURTHWALL_API_PASSWORD or FOURTHWALL_API_TOKEN.",
@@ -764,6 +805,7 @@ export function printResult(result) {
     console.log("");
     console.log("Blocked before live publishing: Fourthwall credentials are not configured.");
     console.log("Set FOURTHWALL_API_USERNAME and FOURTHWALL_API_PASSWORD, or FOURTHWALL_API_TOKEN, then rerun with --apply --publish.");
+    console.log("You can put those values in an ignored .env.local file so this is a one-time setup.");
     return;
   }
 
@@ -793,16 +835,19 @@ export function printResult(result) {
 }
 
 export async function main(argv = process.argv.slice(2)) {
+  await loadLocalEnvFiles();
   const options = parseArgs(argv);
 
   if (options.command === "help") {
     console.log(`Usage:
   npm run store:publish -- --id small-useful-light-tee --dry-run
   npm run store:publish -- --id small-useful-light-tee --apply --publish
+  npm run store:fourthwall -- doctor --id small-useful-light-tee
   npm run store:fourthwall -- discover --query shirt
 
 Credentials:
   FOURTHWALL_API_USERNAME and FOURTHWALL_API_PASSWORD, or FOURTHWALL_API_TOKEN
+  Optional: save them in .env.local for reuse
 `);
     return;
   }
@@ -819,6 +864,18 @@ Credentials:
       for (const asset of validation.assets) console.log(`${asset.region}: ${asset.relativePath} (${asset.width}x${asset.height})`);
     }
     if (!validation.ok) process.exitCode = 1;
+    return;
+  }
+
+  if (options.command === "doctor" || options.command === "verify") {
+    const result = await publishProduct({
+      ...options,
+      apply: false,
+      dryRun: true,
+      publish: false
+    });
+    if (options.json) console.log(JSON.stringify(result, null, 2));
+    else printResult(result);
     return;
   }
 
