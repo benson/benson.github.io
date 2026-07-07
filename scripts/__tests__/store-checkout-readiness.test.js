@@ -19,6 +19,7 @@ test("checkout readiness reports card and wallet eligibility", async () => {
   const { checkoutReadiness } = await readinessModule();
   const state = checkoutReadiness({
     configured: true,
+    fulfillmentReady: true,
     payments: {
       card: { status: "configured" },
       wallets: {
@@ -48,6 +49,7 @@ test("checkout readiness only lists Shop Pay when the checkout lane is ready", a
   const { checkoutReadiness } = await readinessModule();
   const state = checkoutReadiness({
     configured: true,
+    fulfillmentReady: true,
     payments: {
       card: { status: "configured" },
       wallets: {
@@ -64,10 +66,34 @@ test("checkout readiness only lists Shop Pay when the checkout lane is ready", a
   assert.equal(state.methods.at(-1).ready, true);
 });
 
+test("checkout readiness stays pending when fulfillment credentials are missing", async () => {
+  const { checkoutReadiness } = await readinessModule();
+  const state = checkoutReadiness({
+    configured: true,
+    fulfillmentReady: false,
+    fulfillment: { provider: "printful", status: "needs-printful-api-key" },
+    payments: {
+      card: { status: "configured" },
+      wallets: {
+        applePay: { status: "eligible" },
+        googlePay: { status: "eligible" },
+        link: { status: "eligible" }
+      },
+      shopPay: { configured: false, status: "needs-shopify-wallet-setup" }
+    }
+  });
+
+  assert.equal(state.ready, false);
+  assert.equal(state.status, "pending");
+  assert.equal(state.message, "fulfillment setup pending");
+  assert.equal(state.methods.find((method) => method.id === "card").ready, true);
+});
+
 test("checkout readiness keeps checkout pending when Stripe keys are missing", async () => {
   const { checkoutReadiness } = await readinessModule();
   const state = checkoutReadiness({
     configured: false,
+    fulfillmentReady: true,
     payments: {
       card: { status: "needs-stripe-keys" },
       wallets: {

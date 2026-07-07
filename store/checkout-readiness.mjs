@@ -44,11 +44,19 @@ export function checkoutReadiness(config = null) {
     });
   }
 
-  const ready = Boolean(config.configured && methods.some((method) => method.id === "card" && method.ready));
+  const paymentReady = Boolean(config.configured && methods.some((method) => method.id === "card" && method.ready));
+  const fulfillmentReady = config.fulfillmentReady === true || config.fulfillment?.status === "configured";
+  const ready = Boolean(paymentReady && fulfillmentReady);
+  const message = ready
+    ? "checkout ready"
+    : paymentReady && !fulfillmentReady
+      ? "fulfillment setup pending"
+      : "checkout setup pending";
+
   return {
     ready,
     status: ready ? "ready" : "pending",
-    message: ready ? "checkout ready" : "checkout setup pending",
+    message,
     methods
   };
 }

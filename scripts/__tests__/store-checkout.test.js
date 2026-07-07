@@ -234,10 +234,13 @@ test("checkout config reports card, wallet, and Shop Pay readiness", async () =>
     STRIPE_SECRET_KEY: "sk_test_123",
     STRIPE_WALLET_DOMAIN_READY: "true",
     STRIPE_PAYMENT_METHODS_READY: "true",
+    PRINTFUL_API_KEY: "pf_test_123",
     SHOP_PAY_CLIENT_ID: "shop_pay_client"
   });
 
   assert.equal(config.configured, true);
+  assert.equal(config.fulfillmentReady, true);
+  assert.equal(config.fulfillment.status, "configured");
   assert.equal(config.payments.card.status, "configured");
   assert.equal(config.payments.wallets.applePay.status, "eligible");
   assert.equal(config.payments.wallets.googlePay.status, "eligible");
@@ -252,6 +255,8 @@ test("checkout config keeps Stripe wallets pending until payment domain is ready
     STRIPE_SECRET_KEY: "sk_test_123"
   });
 
+  assert.equal(config.fulfillmentReady, false);
+  assert.equal(config.fulfillment.status, "needs-printful-api-key");
   assert.equal(config.payments.wallets.applePay.status, "needs-stripe-keys-or-domain-registration");
   assert.equal(config.payments.wallets.googlePay.status, "needs-stripe-keys-or-payment-method-domain");
   assert.equal(config.payments.wallets.link.status, "needs-stripe-keys-or-payment-method-domain");

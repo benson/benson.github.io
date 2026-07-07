@@ -31,9 +31,12 @@ test("worker checkout config matches wallet readiness markers", async () => {
     STRIPE_PUBLISHABLE_KEY: "pk_test_123",
     STRIPE_SECRET_KEY: "sk_test_123",
     STRIPE_WALLET_DOMAIN_READY: "true",
-    STRIPE_PAYMENT_METHODS_READY: "true"
+    STRIPE_PAYMENT_METHODS_READY: "true",
+    PRINTFUL_API_KEY: "pf_test_123"
   });
 
+  assert.equal(config.fulfillmentReady, true);
+  assert.equal(config.fulfillment.status, "configured");
   assert.equal(config.payments.card.status, "configured");
   assert.equal(config.payments.wallets.applePay.status, "eligible");
   assert.equal(config.payments.wallets.googlePay.status, "eligible");

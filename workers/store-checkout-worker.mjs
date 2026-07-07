@@ -233,13 +233,18 @@ function checkoutAllowedCountries(lines) {
 
 function checkoutConfig(env) {
   const stripeConfigured = Boolean(env.STRIPE_PUBLISHABLE_KEY && env.STRIPE_SECRET_KEY);
+  const fulfillmentReady = Boolean(env.PRINTFUL_API_KEY || env.STORE_ALLOW_UNFULFILLED_CHECKOUT === "true");
   const walletDomainReady = env.STRIPE_WALLET_DOMAIN_READY === "true";
   const paymentMethodsReady = env.STRIPE_PAYMENT_METHODS_READY === "true";
 
   return {
     mode: "stripe-embedded",
     configured: stripeConfigured,
-    fulfillmentReady: env.STORE_ALLOW_UNFULFILLED_CHECKOUT === "true",
+    fulfillmentReady,
+    fulfillment: {
+      provider: "printful",
+      status: fulfillmentReady ? "configured" : "needs-printful-api-key"
+    },
     stripePublishableKey: env.STRIPE_PUBLISHABLE_KEY || null,
     payments: {
       card: {

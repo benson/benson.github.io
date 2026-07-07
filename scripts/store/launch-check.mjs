@@ -155,6 +155,7 @@ export async function smokeChecks({ catalog, productId = null } = {}) {
 function configChecks(config, prefix = "local config") {
   return [
     check(`${prefix}: card`, config.payments?.card?.status === "configured", config.payments?.card?.status || "missing"),
+    check(`${prefix}: fulfillment`, config.fulfillmentReady === true, config.fulfillment?.status || "missing"),
     check(
       `${prefix}: Apple Pay`,
       config.payments?.wallets?.applePay?.status === "eligible",

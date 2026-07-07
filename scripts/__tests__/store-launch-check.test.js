@@ -85,6 +85,8 @@ test("launch check live API gate reads deployed config readiness", async () => {
       assert.equal(url, "https://checkout.example.test/api/store/config");
       return new Response(
         JSON.stringify({
+          fulfillmentReady: true,
+          fulfillment: { provider: "printful", status: "configured" },
           payments: {
             card: { status: "configured" },
             wallets: {
@@ -100,6 +102,32 @@ test("launch check live API gate reads deployed config readiness", async () => {
   });
 
   assert.equal(summarizeChecks(checks).ok, true);
+});
+
+test("launch check config gate reports missing fulfillment readiness", async () => {
+  const { liveApiChecks, summarizeChecks } = await launchModule();
+  const checks = await liveApiChecks({
+    apiBase: "https://checkout.example.test",
+    fetchImpl: async () =>
+      new Response(
+        JSON.stringify({
+          fulfillmentReady: false,
+          fulfillment: { provider: "printful", status: "needs-printful-api-key" },
+          payments: {
+            card: { status: "configured" },
+            wallets: {
+              applePay: { status: "eligible" },
+              googlePay: { status: "eligible" },
+              link: { status: "eligible" }
+            }
+          }
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+  });
+
+  assert.equal(summarizeChecks(checks).ok, false);
+  assert.ok(checks.some((item) => item.label === "live config: fulfillment" && item.detail === "needs-printful-api-key"));
 });
 
 test("launch check same-origin gate can use a custom label", async () => {
