@@ -6,6 +6,7 @@ const DEFAULT_WEBHOOK_URL = "https://benson-store-checkout-api.bensonperry.worke
 const STRIPE_API = "https://api.stripe.com/v1";
 const STRIPE_API_VERSION = "2026-03-25.dahlia";
 const WRANGLER_CONFIG = "wrangler.store-checkout.jsonc";
+const DEFAULT_STORE_PUBLIC_URL = "https://bensonperry.com";
 
 const REQUIRED_WORKER_SECRETS = [
   "STRIPE_PUBLISHABLE_KEY",
@@ -27,6 +28,8 @@ export function parseArgs(argv) {
     createWebhook: false,
     deploy: false,
     forceWebhook: false,
+    paymentDomain: null,
+    registerPaymentDomain: false,
     writeLocal: false,
     webhookUrl: null
   };
@@ -36,6 +39,9 @@ export function parseArgs(argv) {
     if (arg === "--create-webhook") args.createWebhook = true;
     else if (arg === "--deploy") args.deploy = true;
     else if (arg === "--force-webhook") args.forceWebhook = true;
+    else if (arg === "--payment-domain") args.paymentDomain = argv[(index += 1)] || null;
+    else if (arg.startsWith("--payment-domain=")) args.paymentDomain = arg.slice("--payment-domain=".length);
+    else if (arg === "--register-payment-domain") args.registerPaymentDomain = true;
     else if (arg === "--write-local") args.writeLocal = true;
     else if (arg === "--webhook-url") args.webhookUrl = argv[(index += 1)] || null;
     else if (arg.startsWith("--webhook-url=")) args.webhookUrl = arg.slice("--webhook-url=".length);
@@ -63,6 +69,29 @@ function secretPresent(value) {
   return Boolean(value);
 }
 
+function readinessStatus(value) {
+  if (value === "true") return "ok";
+  if (value === "false") return "pending";
+  return "missing";
+}
+
+export function normalizePaymentMethodDomain(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+
+  if (/^https?:\/\//i.test(raw)) {
+    const parsed = new URL(raw);
+    return parsed.hostname.toLowerCase();
+  }
+
+  const withoutProtocol = raw.replace(/^[a-z]+:\/\//i, "");
+  return withoutProtocol.split("/")[0].split(":")[0].toLowerCase() || null;
+}
+
+export function paymentDomainFromPublicUrl(publicUrl = DEFAULT_STORE_PUBLIC_URL) {
+  return normalizePaymentMethodDomain(publicUrl || DEFAULT_STORE_PUBLIC_URL);
+}
+
 function resolvedConfig() {
   loadLocalEnv();
   const stripeProfile = readStripeCliProfile();
@@ -88,8 +117,8 @@ function resolvedConfig() {
   };
 }
 
-async function stripeRequest(secretKey, pathname, { method = "GET", body = null } = {}) {
-  const response = await fetch(`${STRIPE_API}${pathname}`, {
+async function stripeRequest(secretKey, pathname, { method = "GET", body = null, fetchImpl = fetch } = {}) {
+  const response = await fetchImpl(`${STRIPE_API}${pathname}`, {
     method,
     headers: {
       Authorization: `Bearer ${secretKey}`,
@@ -108,9 +137,8 @@ async function stripeRequest(secretKey, pathname, { method = "GET", body = null 
   return data;
 }
 
-async function createStripeWebhook({ secretKey, webhookUrl, force = false }) {
-  const encodedUrl = encodeURIComponent(webhookUrl);
-  const existing = await stripeRequest(secretKey, `/webhook_endpoints?limit=100`);
+async function createStripeWebhook({ secretKey, webhookUrl, force = false, fetchImpl = fetch }) {
+  const existing = await stripeRequest(secretKey, `/webhook_endpoints?limit=100`, { fetchImpl });
   const match = (existing.data || []).find((endpoint) => endpoint.url === webhookUrl && endpoint.status !== "disabled");
   if (match && !force) {
     return {
@@ -128,13 +156,75 @@ async function createStripeWebhook({ secretKey, webhookUrl, force = false }) {
 
   const created = await stripeRequest(secretKey, "/webhook_endpoints", {
     method: "POST",
-    body: params
+    body: params,
+    fetchImpl
   });
 
   return {
     status: "created",
     id: created.id,
     secret: created.secret || null
+  };
+}
+
+export function paymentMethodDomainReadiness(domain) {
+  const enabled = domain?.enabled === true;
+  const applePay = enabled && domain?.apple_pay?.status === "active";
+  const googlePay = enabled && domain?.google_pay?.status === "active";
+  const link = enabled && domain?.link?.status === "active";
+
+  return {
+    enabled,
+    applePay,
+    googlePay,
+    link,
+    walletDomainReady: applePay,
+    paymentMethodsReady: googlePay && link
+  };
+}
+
+export async function ensureStripePaymentMethodDomain({
+  secretKey,
+  domainName,
+  fetchImpl = fetch
+}) {
+  const normalized = normalizePaymentMethodDomain(domainName);
+  if (!normalized) throw new Error("Payment method domain is required.");
+
+  const query = new URLSearchParams({ domain_name: normalized, limit: "100" });
+  const existing = await stripeRequest(secretKey, `/payment_method_domains?${query}`, { fetchImpl });
+  const match = (existing.data || []).find((domain) => domain.domain_name === normalized);
+
+  let status = "exists";
+  let domain = match;
+
+  if (!domain) {
+    const params = new URLSearchParams();
+    params.set("domain_name", normalized);
+    params.set("enabled", "true");
+    domain = await stripeRequest(secretKey, "/payment_method_domains", {
+      method: "POST",
+      body: params,
+      fetchImpl
+    });
+    status = "created";
+  }
+
+  let readiness = paymentMethodDomainReadiness(domain);
+  if (!readiness.walletDomainReady || !readiness.paymentMethodsReady) {
+    domain = await stripeRequest(secretKey, `/payment_method_domains/${encodeURIComponent(domain.id)}/validate`, {
+      method: "POST",
+      fetchImpl
+    });
+    readiness = paymentMethodDomainReadiness(domain);
+    status = status === "created" ? "created-and-validated" : "validated";
+  }
+
+  return {
+    status,
+    domainName: normalized,
+    domain,
+    readiness
   };
 }
 
@@ -183,6 +273,10 @@ Usage:
 Options:
   --create-webhook       Create a Stripe webhook endpoint when a usable Stripe secret key is available.
   --force-webhook        Create a new webhook endpoint even if the same URL already exists.
+  --register-payment-domain
+                         Register or validate the Stripe payment-method domain for embedded wallets.
+  --payment-domain <host>
+                         Override the Stripe payment-method domain. Defaults to STORE_PUBLIC_URL host.
   --write-local          Write resolved/generated secrets to ignored .env.local.
   --deploy               Deploy required Worker secrets through wrangler.
   --webhook-url <url>    Override the Stripe webhook URL. Defaults to the workers.dev checkout API.
@@ -199,6 +293,10 @@ async function main(argv = process.argv.slice(2)) {
   const config = resolvedConfig();
   const values = { ...config.values };
   const webhookUrl = args.webhookUrl || process.env.STORE_STRIPE_WEBHOOK_URL || DEFAULT_WEBHOOK_URL;
+  const paymentDomain =
+    args.paymentDomain ||
+    process.env.STORE_PAYMENT_METHOD_DOMAIN ||
+    paymentDomainFromPublicUrl(process.env.STORE_PUBLIC_URL || DEFAULT_STORE_PUBLIC_URL);
 
   console.log("Store checkout setup");
   console.log("");
@@ -208,7 +306,8 @@ async function main(argv = process.argv.slice(2)) {
   }
 
   for (const name of OPTIONAL_WORKER_SECRETS) {
-    printStatus(name, secretPresent(values[name]) ? "ok" : "missing", "optional");
+    const isReadinessMarker = name === "STRIPE_WALLET_DOMAIN_READY" || name === "STRIPE_PAYMENT_METHODS_READY";
+    printStatus(name, isReadinessMarker ? readinessStatus(values[name]) : secretPresent(values[name]) ? "ok" : "missing", "optional");
   }
 
   if (config.profileSecretKind === "claimable-sandbox") {
@@ -239,9 +338,32 @@ async function main(argv = process.argv.slice(2)) {
     }
   }
 
+  if (args.registerPaymentDomain) {
+    console.log("");
+    if (!values.STRIPE_SECRET_KEY || !["standard", "restricted"].includes(stripeSecretKind(values.STRIPE_SECRET_KEY))) {
+      printStatus("Stripe payment domain", "missing", "needs a usable STRIPE_SECRET_KEY");
+    } else {
+      const registration = await ensureStripePaymentMethodDomain({
+        secretKey: values.STRIPE_SECRET_KEY,
+        domainName: paymentDomain
+      });
+
+      values.STRIPE_WALLET_DOMAIN_READY = registration.readiness.walletDomainReady ? "true" : "false";
+      values.STRIPE_PAYMENT_METHODS_READY = registration.readiness.paymentMethodsReady ? "true" : "false";
+
+      printStatus("Stripe payment domain", registration.status, registration.domainName);
+      printStatus("Apple Pay domain", registration.readiness.applePay ? "ok" : "warning", registration.domain?.apple_pay?.status || "unknown");
+      printStatus("Google Pay domain", registration.readiness.googlePay ? "ok" : "warning", registration.domain?.google_pay?.status || "unknown");
+      printStatus("Link domain", registration.readiness.link ? "ok" : "warning", registration.domain?.link?.status || "unknown");
+    }
+  }
+
   if (args.writeLocal) {
     const toWrite = {};
     for (const name of REQUIRED_WORKER_SECRETS) {
+      if (values[name]) toWrite[name] = values[name];
+    }
+    for (const name of ["STRIPE_WALLET_DOMAIN_READY", "STRIPE_PAYMENT_METHODS_READY"]) {
       if (values[name]) toWrite[name] = values[name];
     }
     if (Object.keys(toWrite).length) {

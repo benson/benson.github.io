@@ -121,8 +121,8 @@ The Stripe Checkout Session explicitly enables `card`, which is the base require
 
 - `payments.card`: card checkout through Stripe.
 - `payments.wallets.applePay`: Apple Pay eligibility marker. Production still requires Stripe/domain wallet readiness and a supported browser/device.
-- `payments.wallets.googlePay`: Google Pay eligibility marker. Production still requires Stripe payment-method readiness and a supported browser/device.
-- `payments.wallets.link`: Stripe Link eligibility marker.
+- `payments.wallets.googlePay`: Google Pay eligibility marker. Production still requires Stripe payment-method domain readiness and a supported browser/device.
+- `payments.wallets.link`: Stripe Link eligibility marker. Production still requires Stripe payment-method domain readiness and supported account/payment-method settings.
 - `payments.shopPay`: optional Shopify Shop Pay Wallet lane. This is separate from Stripe and still requires Shopify setup.
 
 The buyer remains on `bensonperry.com/store`; Stripe's secure embedded checkout frame handles payment data.
@@ -142,7 +142,7 @@ npm run store:checkout:setup
 That command checks ignored local env files and the Stripe CLI profile without printing secret values. Once Stripe and Printful credentials exist locally, it can create the Stripe webhook endpoint, write the generated webhook secret to `.env.local`, and deploy Worker secrets:
 
 ```powershell
-npm run store:checkout:setup -- --create-webhook --write-local --deploy
+npm run store:checkout:setup -- --create-webhook --register-payment-domain --write-local --deploy
 ```
 
 If a Stripe CLI claimable sandbox exists, the setup command prints the claim URL. Claim the sandbox or log into Stripe, add `PRINTFUL_API_KEY` to `.env.local`, then rerun the setup command.
@@ -156,6 +156,12 @@ npx wrangler secret put STRIPE_WEBHOOK_SECRET --config wrangler.store-checkout.j
 ```
 
 Wallet readiness markers after the Stripe dashboard/domain setup is complete:
+
+```powershell
+npm run store:checkout:setup -- --register-payment-domain --write-local --deploy
+```
+
+Manual fallback:
 
 ```powershell
 npx wrangler secret put STRIPE_WALLET_DOMAIN_READY --config wrangler.store-checkout.jsonc

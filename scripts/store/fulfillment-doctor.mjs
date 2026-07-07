@@ -55,7 +55,7 @@ async function main(argv = process.argv.slice(2)) {
     if (!printStatus(label, ok)) failureCount += 1;
   }
   printStatus("STRIPE_WALLET_DOMAIN_READY", process.env.STRIPE_WALLET_DOMAIN_READY === "true", "Apple Pay domain readiness marker");
-  printStatus("STRIPE_PAYMENT_METHODS_READY", process.env.STRIPE_PAYMENT_METHODS_READY === "true", "Google Pay/payment method readiness marker");
+  printStatus("STRIPE_PAYMENT_METHODS_READY", process.env.STRIPE_PAYMENT_METHODS_READY === "true", "Google Pay/Link domain readiness marker");
   printStatus("SHOP_PAY_CLIENT_ID", hasSecret("SHOP_PAY_CLIENT_ID"), "optional Shopify Wallet lane");
   console.log("");
 

@@ -196,6 +196,18 @@ test("checkout config reports card, wallet, and Shop Pay readiness", async () =>
   assert.equal(config.payments.shopPay.configured, true);
 });
 
+test("checkout config keeps Stripe wallets pending until payment domain is ready", async () => {
+  const { checkoutConfig } = await checkoutModule();
+  const config = checkoutConfig({
+    STRIPE_PUBLISHABLE_KEY: "pk_test_123",
+    STRIPE_SECRET_KEY: "sk_test_123"
+  });
+
+  assert.equal(config.payments.wallets.applePay.status, "needs-stripe-keys-or-domain-registration");
+  assert.equal(config.payments.wallets.googlePay.status, "needs-stripe-keys-or-payment-method-domain");
+  assert.equal(config.payments.wallets.link.status, "needs-stripe-keys-or-payment-method-domain");
+});
+
 test("checkout API exposes fulfillment status records by Stripe session", async () => {
   const { fulfillmentRecordKey, handleStoreApiRequest } = await checkoutModule();
   const store = memoryStore();

@@ -140,11 +140,11 @@ export function checkoutConfig(env = process.env) {
         },
         googlePay: {
           provider: "stripe",
-          status: stripeConfigured && paymentMethodsReady ? "eligible" : "needs-stripe-keys-or-payment-method-activation"
+          status: stripeConfigured && paymentMethodsReady ? "eligible" : "needs-stripe-keys-or-payment-method-domain"
         },
         link: {
           provider: "stripe",
-          status: stripeConfigured ? "eligible" : "needs-stripe-keys"
+          status: stripeConfigured && paymentMethodsReady ? "eligible" : "needs-stripe-keys-or-payment-method-domain"
         }
       },
       shopPay: {

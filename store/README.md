@@ -12,7 +12,7 @@ The embedded checkout target is Stripe plus Printful. Fourthwall remains a tempo
 4. Run `npm run store:printful:map -- --product <product-id> --catalog-product <printful-catalog-product-id> --apply`.
 5. Run `npm run store:fulfillment:doctor -- --network`.
 6. Run `npm run store:checkout:smoke`.
-7. Run `npm run store:checkout:setup`.
+7. Run `npm run store:checkout:setup -- --create-webhook --register-payment-domain --write-local --deploy` once Stripe and Printful credentials exist.
 8. Deploy the homepage and Worker once the doctor and setup command are clean.
 
 For fallback Fourthwall publishing:

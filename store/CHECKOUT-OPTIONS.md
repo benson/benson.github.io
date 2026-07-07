@@ -1,6 +1,6 @@
 # Checkout platform options
 
-Researched against official docs on 2026-07-07.
+Researched against official docs on 2026-07-07. Rechecked the payment/platform fork after the hard requirement that buyers should complete checkout on `bensonperry.com/store`.
 
 Goal: a buyer should be able to start and finish a purchase at `https://bensonperry.com/store`, while future product launches stay close to "give Codex an idea, approve the result, and sell it."
 
@@ -24,6 +24,8 @@ The best fit is still:
 5. Optional Shop Pay Wallet later, only if the extra Shopify account/reconciliation work is worth it.
 
 The reason is simple: strict same-site checkout rules out most "easy merch store" platforms, and strict product automation rules out most embed-a-store widgets. Stripe plus a POD API is more infrastructure than a hosted shop, but it is the only path in this set that keeps the checkout on Benson's site and keeps the product factory programmable.
+
+The deeper pass did not change that recommendation. Shopify is the best route if native Shop Pay is the most important requirement; Stripe is the best route if same-site checkout plus a Codex-managed product factory is the most important requirement. Since the current goal is "checkout here, fulfillment elsewhere, product launch friction near zero," the MVP should stay Stripe Embedded Checkout + Printful, with a clean option to add Shopify Shop Pay Wallet later as a separate payment lane.
 
 ## Option matrix
 
@@ -94,7 +96,7 @@ Verdict: add only after Stripe checkout and fulfillment work end to end. It is n
 
 Stripe is the cleanest same-site payment layer. The backend creates a Checkout Session or PaymentIntent; the page renders Stripe's secure payment UI; the buyer stays on `bensonperry.com/store`. Stripe's current embedded Checkout docs use `ui_mode=embedded_page` and `stripe.createEmbeddedCheckoutPage(...)`; older examples used `embedded` / `initEmbeddedCheckout`, so our implementation supports the new path and falls back to the old JS method if necessary.
 
-Embedded Checkout is quickest. Payment Element is more work but gives more direct control if we outgrow the Checkout frame. Stripe can support cards, Link, Apple Pay, and Google Pay where the Stripe account, domain, browser, device, and payment-method settings are eligible. Stripe does not give us Shop Pay.
+Embedded Checkout is quickest. Payment Element is more work but gives more direct control if we outgrow the Checkout frame. Stripe can support cards, Link, Apple Pay, and Google Pay where the Stripe account, registered payment-method domain, browser, device, and payment-method settings are eligible. Stripe does not give us Shop Pay.
 
 Useful sources:
 
@@ -104,7 +106,7 @@ Useful sources:
 - https://docs.stripe.com/payments/payment-methods/integration-options
 - https://docs.stripe.com/payments/payment-methods/pmd-registration
 
-Verdict: best checkout fit. Requires Stripe account credentials, webhook setup, domain wallet setup, and a tax/shipping strategy.
+Verdict: best checkout fit. Requires Stripe account credentials, webhook setup, payment-method domain setup, and a tax/shipping strategy. The setup script now automates the Stripe webhook and payment-method domain checks once a usable Stripe key is available.
 
 ### BigCommerce Embedded Checkout
 
