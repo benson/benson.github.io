@@ -65,6 +65,16 @@ Each sellable product should expose:
 
 The frontend only sends store-owned product IDs and variant IDs. The backend is responsible for prices and fulfillment mappings so buyers cannot manipulate checkout amounts.
 
+The current `small-useful-light-tee` is mapped to Printful catalog product `1421`, `Unisex Fine Jersey Tee | LAT Apparel 6901`, with black size variants:
+
+| Store variant | Printful catalog variant |
+| --- | --- |
+| `small-useful-light-black-s` | `44067` |
+| `small-useful-light-black-m` | `44077` |
+| `small-useful-light-black-l` | `44087` |
+| `small-useful-light-black-xl` | `44097` |
+| `small-useful-light-black-2xl` | `44107` |
+
 ## MVP choice
 
 Start with Stripe Embedded Checkout and US-only shipping. Prefer "shipping included" pricing for the first product because it keeps the first checkout flow simple and avoids building live shipping-rate recalculation before the provider is finalized.

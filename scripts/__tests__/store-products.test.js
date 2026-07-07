@@ -55,7 +55,11 @@ test("store catalog has valid product records", () => {
 
       if (product.embeddedFulfillment?.variants) {
         for (const variantId of variantIds) {
-          assert.ok(product.embeddedFulfillment.variants[variantId], `${product.id} missing fulfillment map for ${variantId}`);
+          const mapping = product.embeddedFulfillment.variants[variantId];
+          assert.ok(mapping, `${product.id} missing fulfillment map for ${variantId}`);
+          if (product.embeddedFulfillment.status === "ready") {
+            assert.ok(Number.isInteger(mapping.catalogVariantId), `${product.id} ${variantId} needs a catalog variant id`);
+          }
         }
       }
     }

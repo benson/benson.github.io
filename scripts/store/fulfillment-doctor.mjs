@@ -60,6 +60,7 @@ function productIssues(product) {
 function printStatus(label, ok, detail = "") {
   const marker = ok ? "ok" : "missing";
   console.log(`${marker.padEnd(7)} ${label}${detail ? ` - ${detail}` : ""}`);
+  return ok;
 }
 
 async function main() {
@@ -68,16 +69,22 @@ async function main() {
   console.log("Store fulfillment doctor");
   console.log("");
 
-  printStatus("STRIPE_PUBLISHABLE_KEY", hasSecret("STRIPE_PUBLISHABLE_KEY"));
-  printStatus("STRIPE_SECRET_KEY", hasSecret("STRIPE_SECRET_KEY"));
-  printStatus("STRIPE_WEBHOOK_SECRET", hasSecret("STRIPE_WEBHOOK_SECRET"));
+  let failureCount = 0;
+  const requiredSetup = [
+    ["STRIPE_PUBLISHABLE_KEY", hasSecret("STRIPE_PUBLISHABLE_KEY")],
+    ["STRIPE_SECRET_KEY", hasSecret("STRIPE_SECRET_KEY")],
+    ["STRIPE_WEBHOOK_SECRET", hasSecret("STRIPE_WEBHOOK_SECRET")],
+    ["PRINTFUL_API_KEY", hasSecret("PRINTFUL_API_KEY")]
+  ];
+
+  for (const [label, ok] of requiredSetup) {
+    if (!printStatus(label, ok)) failureCount += 1;
+  }
   printStatus("STRIPE_WALLET_DOMAIN_READY", process.env.STRIPE_WALLET_DOMAIN_READY === "true", "Apple Pay domain readiness marker");
   printStatus("STRIPE_PAYMENT_METHODS_READY", process.env.STRIPE_PAYMENT_METHODS_READY === "true", "Google Pay/payment method readiness marker");
-  printStatus("PRINTFUL_API_KEY", hasSecret("PRINTFUL_API_KEY"));
   printStatus("SHOP_PAY_CLIENT_ID", hasSecret("SHOP_PAY_CLIENT_ID"), "optional Shopify Wallet lane");
   console.log("");
 
-  let failureCount = 0;
   for (const product of catalog.products || []) {
     if (product.checkout?.mode !== "embedded-stripe") continue;
     const issues = productIssues(product);

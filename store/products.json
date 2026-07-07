@@ -94,31 +94,33 @@
       "fulfillment": "fourthwall",
       "embeddedFulfillment": {
         "recommended": "printful",
-        "status": "needs-provider-account-and-variant-mapping",
-        "notes": "Do not accept live Stripe payments until this product has provider variant IDs and a tested webhook fulfillment path.",
+        "status": "ready",
+        "catalogProductId": 1421,
+        "catalogProduct": "Unisex Fine Jersey Tee | LAT Apparel 6901",
+        "notes": "Printful catalog mapping is ready. Do not accept live Stripe payments until PRINTFUL_API_KEY is configured and the webhook fulfillment path has been tested against the account.",
         "variants": {
           "small-useful-light-black-s": {
-            "catalogVariantId": null,
+            "catalogVariantId": 44067,
             "frontPlacement": "front",
             "backPlacement": "back"
           },
           "small-useful-light-black-m": {
-            "catalogVariantId": null,
+            "catalogVariantId": 44077,
             "frontPlacement": "front",
             "backPlacement": "back"
           },
           "small-useful-light-black-l": {
-            "catalogVariantId": null,
+            "catalogVariantId": 44087,
             "frontPlacement": "front",
             "backPlacement": "back"
           },
           "small-useful-light-black-xl": {
-            "catalogVariantId": null,
+            "catalogVariantId": 44097,
             "frontPlacement": "front",
             "backPlacement": "back"
           },
           "small-useful-light-black-2xl": {
-            "catalogVariantId": null,
+            "catalogVariantId": 44107,
             "frontPlacement": "front",
             "backPlacement": "back"
           }

@@ -224,7 +224,7 @@ The implementation should keep escape hatches:
 - Stripe domain/payment-method setup for Apple Pay, Google Pay, and Link eligibility.
 - Stripe Tax activation or a deliberate tax strategy.
 - Printful API credentials.
-- Product-to-Printful variant mapping for each sellable variant.
+- Confirmed Printful account access for the mapped LAT Apparel 6901 variants.
 - A policy decision on shipping: included in product price for maximum simplicity, or live shipping rates from the provider.
 - Cloudflare route permission for `bensonperry.com/api/store/*`, unless we accept the temporary workers.dev API host.
 - Optional Shop Pay Wallet setup: Shopify store, Shopify Payments, Shop sales channel, allowed origins, Shop Pay client ID, Storefront API token, Admin API token, order reconciliation, fulfillment updates, refunds, and disputes.

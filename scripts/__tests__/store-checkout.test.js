@@ -109,7 +109,7 @@ test("checkout rejects unknown variants", async () => {
   );
 });
 
-test("checkout blocks live payment sessions until fulfillment is mapped", async () => {
+test("checkout blocks live payment sessions until fulfillment credentials are configured", async () => {
   const { buildStripeCheckoutSessionParams, StoreCheckoutError } = await checkoutModule();
   assert.throws(
     () =>
@@ -124,7 +124,32 @@ test("checkout blocks live payment sessions until fulfillment is mapped", async 
         ],
         env: { STORE_PUBLIC_URL: "https://bensonperry.com" }
       }),
-    StoreCheckoutError
+    (error) => error instanceof StoreCheckoutError && error.status === 503 && error.details.providers.includes("printful")
+  );
+});
+
+test("checkout blocks live payment sessions until fulfillment mapping is ready", async () => {
+  const { buildStripeCheckoutSessionParams, StoreCheckoutError } = await checkoutModule();
+  const unmappedCatalog = readyPrintfulCatalog();
+  unmappedCatalog.products[0].embeddedFulfillment.status = "needs-provider-account-and-variant-mapping";
+
+  assert.throws(
+    () =>
+      buildStripeCheckoutSessionParams({
+        catalog: unmappedCatalog,
+        items: [
+          {
+            productId: "small-useful-light-tee",
+            variantId: "small-useful-light-black-s",
+            quantity: 1
+          }
+        ],
+        env: {
+          PRINTFUL_API_KEY: "test",
+          STORE_PUBLIC_URL: "https://bensonperry.com"
+        }
+      }),
+    (error) => error instanceof StoreCheckoutError && error.status === 409 && error.details.products.includes("small-useful-light-tee")
   );
 });
 
@@ -301,10 +326,13 @@ test("fulfillment is idempotent for repeated Stripe webhook deliveries", async (
 
 test("fulfillment refuses Printful orders without provider mapping", async () => {
   const { buildPrintfulOrder, FulfillmentError } = await fulfillmentModule();
+  const unmappedCatalog = readyPrintfulCatalog();
+  delete unmappedCatalog.products[0].embeddedFulfillment.variants["small-useful-light-black-m"];
+
   assert.throws(
     () =>
       buildPrintfulOrder({
-        catalog,
+        catalog: unmappedCatalog,
         cartLines: [
           {
             productId: "small-useful-light-tee",

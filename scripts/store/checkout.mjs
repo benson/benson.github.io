@@ -106,6 +106,16 @@ export function ensureFulfillmentReady(lines, env = process.env) {
       { products: missing.map((line) => line.productId) }
     );
   }
+
+  const missingCredentials = [...new Set(lines.map((line) => line.fulfillmentProvider))]
+    .filter((provider) => provider === "printful" && !env.PRINTFUL_API_KEY);
+  if (missingCredentials.length) {
+    throw new StoreCheckoutError(
+      "Embedded checkout is not ready for live orders because fulfillment credentials are missing.",
+      503,
+      { providers: missingCredentials }
+    );
+  }
 }
 
 export function checkoutConfig(env = process.env) {
