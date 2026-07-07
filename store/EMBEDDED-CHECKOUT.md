@@ -248,7 +248,13 @@ After the Cloudflare route permission is fixed, add `--same-origin`:
 npm run store:launch:check -- --network --live --same-origin
 ```
 
-It exits non-zero until the store can safely accept real embedded checkout orders. Today it is expected to fail only on missing account credentials/domain readiness while the product and mocked fulfillment smoke pass.
+It exits non-zero until the store can safely accept embedded checkout orders in the currently configured Stripe mode. For real-money production, require live Stripe credentials explicitly:
+
+```powershell
+npm run store:launch:check -- --network --live --same-origin --require-live-stripe
+```
+
+Use the stricter command before sending customers to checkout. The non-strict gate is useful for sandbox/test checkout verification.
 
 ## Cloudflare route blocker
 
