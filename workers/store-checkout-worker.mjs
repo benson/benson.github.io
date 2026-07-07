@@ -221,14 +221,27 @@ function ensureFulfillmentReady(lines, env) {
 }
 
 function checkoutAllowedCountries(lines) {
-  const productIds = new Set(lines.map((line) => line.productId));
-  const allowedCountries = (catalog.products || [])
-    .filter((product) => productIds.has(product.id))
-    .flatMap((product) => product.checkout?.allowedCountries || [])
-    .filter(Boolean)
-    .map((country) => String(country).toUpperCase());
+  const productIds = [...new Set(lines.map((line) => line.productId))];
+  const products = productIds
+    .map((productId) => (catalog.products || []).find((product) => product.id === productId))
+    .filter(Boolean);
+  const countrySets = products.map((product) => {
+    const countries = (product.checkout?.allowedCountries || [])
+      .filter(Boolean)
+      .map((country) => String(country).toUpperCase());
+    return new Set(countries.length ? countries : ["US"]);
+  });
 
-  return [...new Set(allowedCountries.length ? allowedCountries : ["US"])];
+  if (!countrySets.length) return ["US"];
+
+  const shared = [...countrySets[0]].filter((country) => countrySets.every((set) => set.has(country)));
+  if (!shared.length) {
+    throw new StoreCheckoutError("Cart products do not share a supported shipping country.", 409, {
+      products: productIds
+    });
+  }
+
+  return shared;
 }
 
 function checkoutShippingOptions(lines) {

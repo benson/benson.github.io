@@ -227,6 +227,115 @@ test("checkout allowed countries come from products in the cart", async () => {
   assert.equal(params.get("shipping_address_collection[allowed_countries][1]"), "CA");
 });
 
+test("checkout allowed countries are shared across mixed carts", async () => {
+  const { buildStripeCheckoutSessionParams } = await checkoutModule();
+  const multiCountryCatalog = readyPrintfulCatalog();
+  multiCountryCatalog.products.push({
+    ...multiCountryCatalog.products[0],
+    id: "north-america-test-tee",
+    status: "live",
+    variants: [
+      {
+        ...multiCountryCatalog.products[0].variants[0],
+        id: "north-america-test-tee-black-s",
+        sku: "north-america-test-tee-black-s"
+      }
+    ],
+    checkout: {
+      ...multiCountryCatalog.products[0].checkout,
+      allowedCountries: ["US", "CA"]
+    },
+    embeddedFulfillment: {
+      ...multiCountryCatalog.products[0].embeddedFulfillment,
+      variants: {
+        "north-america-test-tee-black-s": {
+          catalogVariantId: 999,
+          frontPlacement: "front",
+          backPlacement: "back"
+        }
+      }
+    }
+  });
+
+  const { params } = buildStripeCheckoutSessionParams({
+    catalog: multiCountryCatalog,
+    items: [
+      {
+        productId: "small-useful-light-tee",
+        variantId: "small-useful-light-black-s",
+        quantity: 1
+      },
+      {
+        productId: "north-america-test-tee",
+        variantId: "north-america-test-tee-black-s",
+        quantity: 1
+      }
+    ],
+    env: {
+      PRINTFUL_API_KEY: "test",
+      STORE_PUBLIC_URL: "https://bensonperry.com"
+    }
+  });
+
+  assert.equal(params.get("shipping_address_collection[allowed_countries][0]"), "US");
+  assert.equal(params.get("shipping_address_collection[allowed_countries][1]"), null);
+});
+
+test("checkout rejects mixed carts with no shared shipping country", async () => {
+  const { buildStripeCheckoutSessionParams, StoreCheckoutError } = await checkoutModule();
+  const multiCountryCatalog = readyPrintfulCatalog();
+  multiCountryCatalog.products.push({
+    ...multiCountryCatalog.products[0],
+    id: "canada-only-test-tee",
+    status: "live",
+    variants: [
+      {
+        ...multiCountryCatalog.products[0].variants[0],
+        id: "canada-only-test-tee-black-s",
+        sku: "canada-only-test-tee-black-s"
+      }
+    ],
+    checkout: {
+      ...multiCountryCatalog.products[0].checkout,
+      allowedCountries: ["CA"]
+    },
+    embeddedFulfillment: {
+      ...multiCountryCatalog.products[0].embeddedFulfillment,
+      variants: {
+        "canada-only-test-tee-black-s": {
+          catalogVariantId: 999,
+          frontPlacement: "front",
+          backPlacement: "back"
+        }
+      }
+    }
+  });
+
+  assert.throws(
+    () =>
+      buildStripeCheckoutSessionParams({
+        catalog: multiCountryCatalog,
+        items: [
+          {
+            productId: "small-useful-light-tee",
+            variantId: "small-useful-light-black-s",
+            quantity: 1
+          },
+          {
+            productId: "canada-only-test-tee",
+            variantId: "canada-only-test-tee-black-s",
+            quantity: 1
+          }
+        ],
+        env: {
+          PRINTFUL_API_KEY: "test",
+          STORE_PUBLIC_URL: "https://bensonperry.com"
+        }
+      }),
+    (error) => error instanceof StoreCheckoutError && error.status === 409 && error.details.products.includes("canada-only-test-tee")
+  );
+});
+
 test("checkout adds an included standard shipping option from product policy", async () => {
   const { buildStripeCheckoutSessionParams } = await checkoutModule();
   const { params } = buildStripeCheckoutSessionParams({

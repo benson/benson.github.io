@@ -25,6 +25,7 @@ flowchart LR
   - Validates product IDs, variant IDs, quantities, and prices against `store/products.json`.
   - Creates a Stripe Embedded Checkout Session.
   - Adds the catalog's supported included-shipping policy as a zero-dollar Stripe shipping option.
+  - Restricts shipping address collection to countries shared by every product in the cart.
   - Returns the session client secret for Stripe.js.
 - `GET /api/store/session-status?session_id=...`
   - Lets the return page show whether checkout completed.
