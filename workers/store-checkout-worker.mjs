@@ -1,4 +1,5 @@
 import catalog from "../store/products.json";
+import { FulfillmentError, fulfillStripeSessionWithPrintful } from "../scripts/store/fulfillment.mjs";
 
 const STRIPE_API = "https://api.stripe.com/v1";
 const MAX_QUANTITY = 10;
@@ -83,6 +84,7 @@ function resolveCart(rawItems) {
       variantId: variant?.id || null,
       sku: variant?.sku || product.id,
       title: variant?.label ? `${product.title} - ${variant.label}` : product.title,
+      fulfillmentProvider: product.embeddedFulfillment?.recommended || null,
       quantity,
       unitAmount: price,
       currency: String(product.currency || "USD").toLowerCase(),
@@ -92,6 +94,27 @@ function resolveCart(rawItems) {
   }
 
   return lines;
+}
+
+function decodeCartMetadata(value) {
+  if (!value) return [];
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = `${normalized}${"=".repeat((4 - (normalized.length % 4)) % 4)}`;
+  const binary = atob(padded);
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+
+async function fulfillCheckoutSession(session, env) {
+  const items = decodeCartMetadata(session?.metadata?.cart);
+  const lines = resolveCart(items);
+  const providers = new Set(lines.map((line) => line.fulfillmentProvider));
+  if (providers.size !== 1 || !providers.has("printful")) {
+    throw new FulfillmentError("Checkout session does not map cleanly to Printful fulfillment.", 409, {
+      providers: [...providers]
+    });
+  }
+  return fulfillStripeSessionWithPrintful({ catalog, cartLines: lines, session, env, fetchImpl: fetch });
 }
 
 function ensureFulfillmentReady(lines, env) {
@@ -224,10 +247,14 @@ async function handle(request, env) {
     const payload = await request.text();
     await verifyWebhook(payload, request.headers.get("stripe-signature"), env.STRIPE_WEBHOOK_SECRET);
     const event = JSON.parse(payload);
+    let fulfillment = "ignored";
+    if (event.type === "checkout.session.completed") {
+      fulfillment = await fulfillCheckoutSession(event.data?.object, env);
+    }
     return json({
       received: true,
       event: event.type,
-      fulfillment: event.type === "checkout.session.completed" ? "blocked-until-provider-mapping-exists" : "ignored"
+      fulfillment
     });
   }
 
@@ -247,7 +274,7 @@ export default {
           error: error.message || "Unexpected checkout error.",
           details: error.details || {}
         },
-        error.status || 500,
+        error instanceof StoreCheckoutError || error instanceof FulfillmentError ? error.status : 500,
         cors(env)
       );
     }

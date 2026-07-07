@@ -27,7 +27,7 @@ flowchart LR
   - Lets the return page show whether checkout completed.
 - `POST /api/store/webhook/stripe`
   - Verifies the Stripe webhook signature.
-  - On successful payment, creates or queues a fulfillment order.
+  - On successful payment, decodes the cart metadata and hands the order to the Printful fulfillment adapter.
 
 ## Current backend deployment
 
@@ -98,6 +98,16 @@ npx wrangler secret put STORE_ALLOW_UNFULFILLED_CHECKOUT --config wrangler.store
 ```
 
 That value should not be `true` in production.
+
+## Fulfillment doctor
+
+Run:
+
+```powershell
+npm run store:fulfillment:doctor
+```
+
+It checks local environment presence and every embedded-checkout product's fulfillment mapping. It intentionally exits non-zero until Stripe secrets, the Printful API key, and all provider variant IDs are configured.
 
 ## Cloudflare route blocker
 

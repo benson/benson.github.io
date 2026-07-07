@@ -95,7 +95,34 @@
       "embeddedFulfillment": {
         "recommended": "printful",
         "status": "needs-provider-account-and-variant-mapping",
-        "notes": "Do not accept live Stripe payments until this product has provider variant IDs and a tested webhook fulfillment path."
+        "notes": "Do not accept live Stripe payments until this product has provider variant IDs and a tested webhook fulfillment path.",
+        "variants": {
+          "small-useful-light-black-s": {
+            "catalogVariantId": null,
+            "frontPlacement": "front",
+            "backPlacement": "back"
+          },
+          "small-useful-light-black-m": {
+            "catalogVariantId": null,
+            "frontPlacement": "front",
+            "backPlacement": "back"
+          },
+          "small-useful-light-black-l": {
+            "catalogVariantId": null,
+            "frontPlacement": "front",
+            "backPlacement": "back"
+          },
+          "small-useful-light-black-xl": {
+            "catalogVariantId": null,
+            "frontPlacement": "front",
+            "backPlacement": "back"
+          },
+          "small-useful-light-black-2xl": {
+            "catalogVariantId": null,
+            "frontPlacement": "front",
+            "backPlacement": "back"
+          }
+        }
       },
       "publishing": {
         "fourthwall": {

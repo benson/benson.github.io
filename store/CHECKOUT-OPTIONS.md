@@ -16,12 +16,13 @@ Goal: let a customer buy from `https://bensonperry.com/store` without being sent
 
 Fourthwall is excellent for creator-merch fulfillment and product creation, and the current API automation already proves that. It is not a fit for this checkout goal.
 
-Fourthwall's Storefront API docs say its checkout path redirects customers to Fourthwall's hosted checkout page, and the help docs explicitly say you cannot build a custom checkout flow with that API.
+Fourthwall's Storefront API docs say its checkout path redirects customers to Fourthwall's hosted checkout page, and the help docs explicitly say you cannot build a custom checkout flow with that API. Fourthwall's Open API fulfillment endpoint is for adding fulfillment/tracking to an existing Fourthwall order, not for creating a print-on-demand order from an external Stripe payment.
 
 Useful source:
 
 - https://docs.fourthwall.com/storefront/overview
 - https://docs.fourthwall.com/storefront/checkout
+- https://docs.fourthwall.com/api-reference/platform/fulfillment/create-fulfillment
 - https://help.fourthwall.com/manage-my-shop/apps-features-and-integrations/storefront-api-for-custom-storefronts
 
 Verdict: keep as the temporary fallback and a useful reference implementation, but do not build the final checkout on it.

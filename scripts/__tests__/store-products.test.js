@@ -52,6 +52,12 @@ test("store catalog has valid product records", () => {
         assert.ok(Number.isInteger(variant.price));
         assert.ok(variant.price >= 0);
       }
+
+      if (product.embeddedFulfillment?.variants) {
+        for (const variantId of variantIds) {
+          assert.ok(product.embeddedFulfillment.variants[variantId], `${product.id} missing fulfillment map for ${variantId}`);
+        }
+      }
     }
   }
 });

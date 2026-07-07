@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { FulfillmentError, fulfillStripeSessionWithPrintful } from "./fulfillment.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..", "..");
@@ -234,7 +235,7 @@ function jsonResponse(data, status = 200, headers = {}) {
 }
 
 function errorResponse(error) {
-  const status = error instanceof StoreCheckoutError ? error.status : 500;
+  const status = error instanceof StoreCheckoutError || error instanceof FulfillmentError ? error.status : 500;
   return jsonResponse(
     {
       error: error.message || "Unexpected checkout error.",
@@ -242,6 +243,18 @@ function errorResponse(error) {
     },
     status
   );
+}
+
+export async function fulfillStripeCheckoutSession({ catalog, session, env = process.env, fetchImpl = fetch }) {
+  const items = decodeCartMetadata(session?.metadata?.cart);
+  const lines = resolveCart(catalog, items);
+  const providers = new Set(lines.map((line) => line.fulfillmentProvider));
+  if (providers.size !== 1 || !providers.has("printful")) {
+    throw new FulfillmentError("Checkout session does not map cleanly to Printful fulfillment.", 409, {
+      providers: [...providers]
+    });
+  }
+  return fulfillStripeSessionWithPrintful({ catalog, cartLines: lines, session, env, fetchImpl });
 }
 
 export async function handleStoreApiRequest(request, { env = process.env, catalogFile = catalogPath } = {}) {
@@ -294,10 +307,15 @@ export async function handleStoreApiRequest(request, { env = process.env, catalo
       const payload = await request.text();
       verifyStripeWebhookSignature(payload, request.headers.get("stripe-signature"), env.STRIPE_WEBHOOK_SECRET);
       const event = JSON.parse(payload);
+      let fulfillment = "ignored";
+      if (event.type === "checkout.session.completed") {
+        const catalog = await loadCatalog(catalogFile);
+        fulfillment = await fulfillStripeCheckoutSession({ catalog, session: event.data?.object, env });
+      }
       return jsonResponse({
         received: true,
         event: event.type,
-        fulfillment: event.type === "checkout.session.completed" ? "blocked-until-provider-mapping-exists" : "ignored"
+        fulfillment
       });
     }
 
@@ -306,4 +324,3 @@ export async function handleStoreApiRequest(request, { env = process.env, catalo
     return errorResponse(error);
   }
 }
-
