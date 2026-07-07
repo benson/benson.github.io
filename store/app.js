@@ -1,3 +1,5 @@
+import { fetchStoreApiFromBases, storeApiBases } from "./api-client.mjs";
+
 const grid = document.querySelector("#product-grid");
 const template = document.querySelector("#product-template");
 const filterButtons = [...document.querySelectorAll("[data-filter]")];
@@ -10,14 +12,20 @@ const checkoutButton = document.querySelector("#checkout-button");
 const checkoutNote = document.querySelector("#checkout-note");
 const embeddedCheckout = document.querySelector("#embedded-checkout");
 
-const apiBase = (window.STORE_API_BASE || "").replace(/\/+$/, "");
-const apiUrl = (path) => `${apiBase}${path}`;
+const apiBases = storeApiBases({
+  primary: window.STORE_API_BASE || "",
+  fallback: window.STORE_API_FALLBACK_BASE || ""
+});
 
 let activeFilter = "all";
 let products = [];
 let catalog = null;
 let cart = [];
 let stripePromise = null;
+
+async function fetchStoreApi(path, options = {}) {
+  return fetchStoreApiFromBases(path, options, { bases: apiBases });
+}
 
 const money = (cents, currency = "USD") => {
   const amount = (Number(cents) || 0) / 100;
@@ -263,7 +271,7 @@ async function beginEmbeddedCheckout() {
   embeddedCheckout.innerHTML = "";
 
   try {
-    const configResponse = await fetch(apiUrl("/api/store/config"), { cache: "no-store" });
+    const configResponse = await fetchStoreApi("/api/store/config", { cache: "no-store" });
     if (!configResponse.ok) throw new Error("checkout backend is not deployed yet.");
     const config = await configResponse.json();
     if (!config.configured || !config.stripePublishableKey) {
@@ -278,7 +286,7 @@ async function beginEmbeddedCheckout() {
     }
     const checkout = await createEmbeddedCheckout.call(stripe, {
       fetchClientSecret: async () => {
-        const response = await fetch(apiUrl("/api/store/checkout-session"), {
+        const response = await fetchStoreApi("/api/store/checkout-session", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -305,7 +313,7 @@ async function beginEmbeddedCheckout() {
 }
 
 async function loadFulfillmentStatus(sessionId) {
-  const response = await fetch(apiUrl(`/api/store/order-status?session_id=${encodeURIComponent(sessionId)}`), {
+  const response = await fetchStoreApi(`/api/store/order-status?session_id=${encodeURIComponent(sessionId)}`, {
     cache: "no-store"
   });
   const data = await response.json();
@@ -333,7 +341,7 @@ async function handleCheckoutReturn() {
 
   try {
     const sessionId = params.get("session_id") || "";
-    const response = await fetch(apiUrl(`/api/store/session-status?session_id=${encodeURIComponent(sessionId)}`), {
+    const response = await fetchStoreApi(`/api/store/session-status?session_id=${encodeURIComponent(sessionId)}`, {
       cache: "no-store"
     });
     const data = await response.json();

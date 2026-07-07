@@ -6,6 +6,7 @@ import { runCheckoutSmoke } from "./checkout-smoke.mjs";
 import { stripeSecretKind } from "./checkout-setup.mjs";
 
 const DEFAULT_API_BASE = "https://benson-store-checkout-api.bensonperry.workers.dev";
+const DEFAULT_PUBLIC_URL = "https://bensonperry.com";
 
 export function parseArgs(argv) {
   const args = {
@@ -14,6 +15,8 @@ export function parseArgs(argv) {
     live: false,
     network: false,
     productId: null,
+    publicUrl: DEFAULT_PUBLIC_URL,
+    sameOrigin: false,
     smoke: true
   };
 
@@ -26,6 +29,9 @@ export function parseArgs(argv) {
     else if (arg === "--network") args.network = true;
     else if (arg === "--product") args.productId = argv[(index += 1)] || "";
     else if (arg.startsWith("--product=")) args.productId = arg.slice("--product=".length);
+    else if (arg === "--public-url") args.publicUrl = argv[(index += 1)] || "";
+    else if (arg.startsWith("--public-url=")) args.publicUrl = arg.slice("--public-url=".length);
+    else if (arg === "--same-origin") args.sameOrigin = true;
     else if (arg === "--skip-smoke") args.smoke = false;
     else throw new Error(`Unknown option: ${arg}`);
   }
@@ -163,15 +169,19 @@ function configChecks(config, prefix = "local config") {
   ];
 }
 
-export async function liveApiChecks({ apiBase = DEFAULT_API_BASE, fetchImpl = fetch } = {}) {
+export async function liveApiChecks({ apiBase = DEFAULT_API_BASE, fetchImpl = fetch, label = "live checkout API", prefix = "live config" } = {}) {
   const base = String(apiBase || DEFAULT_API_BASE).replace(/\/+$/, "");
   try {
     const response = await fetchImpl(`${base}/api/store/config`, { cache: "no-store" });
+    const contentType = response.headers.get("content-type") || "";
+    if (response.ok && contentType && !contentType.includes("application/json")) {
+      return [check(label, false, `unexpected content type: ${contentType}`)];
+    }
     const data = await response.json().catch(() => ({}));
-    if (!response.ok) return [check("live checkout API", false, data.error || `HTTP ${response.status}`)];
-    return [check("live checkout API", true, base), ...configChecks(data, "live config")];
+    if (!response.ok) return [check(label, false, data.error || `HTTP ${response.status}`)];
+    return [check(label, true, base), ...configChecks(data, prefix)];
   } catch (error) {
-    return [check("live checkout API", false, error.message)];
+    return [check(label, false, error.message)];
   }
 }
 
@@ -191,6 +201,8 @@ export async function runLaunchCheck({
   live = false,
   network = false,
   productId = null,
+  publicUrl = DEFAULT_PUBLIC_URL,
+  sameOrigin = false,
   smoke = true,
   stripeProfile = readStripeCliProfile()
 } = {}) {
@@ -203,6 +215,16 @@ export async function runLaunchCheck({
 
   if (smoke) checks.push(...(await smokeChecks({ catalog, productId })));
   if (live) checks.push(...(await liveApiChecks({ apiBase, fetchImpl })));
+  if (sameOrigin) {
+    checks.push(
+      ...(await liveApiChecks({
+        apiBase: publicUrl,
+        fetchImpl,
+        label: "same-origin checkout API",
+        prefix: "same-origin config"
+      }))
+    );
+  }
 
   return {
     checks,
@@ -225,6 +247,9 @@ Options:
   --live            Check the deployed checkout API public config.
   --network         Check the live Printful public catalog for mapped products.
   --product <id>    Check one embedded checkout product.
+  --public-url <url>
+                   Public site URL for --same-origin checks. Defaults to https://bensonperry.com.
+  --same-origin     Check the preferred bensonperry.com/api/store/* route.
   --skip-smoke      Skip the local signed-webhook/Printful mock smoke test.
 `);
 }

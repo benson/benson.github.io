@@ -16,6 +16,8 @@ The embedded checkout target is Stripe plus Printful. Fourthwall remains a tempo
 8. Run `npm run store:launch:check -- --network --live`.
 9. Deploy the homepage and Worker once the launch check is clean.
 
+When the Cloudflare token has route-edit permission for `bensonperry.com`, rerun the launch check with `--same-origin` to verify `https://bensonperry.com/api/store/*`. Until then the storefront tries same-origin first and falls back to the workers.dev checkout API.
+
 For fallback Fourthwall publishing:
 
 ```powershell

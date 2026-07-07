@@ -47,6 +47,8 @@ The preferred production route is:
 
 Attaching that route currently needs a Cloudflare API token with Workers Routes edit permission for the `bensonperry.com` zone. Until then, the frontend can call the workers.dev API host while the customer remains on `bensonperry.com/store`.
 
+The storefront is wired to prefer same-origin API calls first. If `/api/store/*` is not routed yet, it falls back to the workers.dev checkout API for missing-route responses. Once the Cloudflare route can be attached, the page should start using `https://bensonperry.com/api/store/*` without another frontend change.
+
 The Worker has a `STORE_ORDERS` KV namespace bound for fulfillment idempotency:
 
 - `b3fa6b8d6c1b457d80fd53ad5324d18c`
@@ -234,6 +236,12 @@ This is the one-command launch gate for embedded checkout. It checks:
 - product artwork, Printful mapping, variant cart validation, and optional live Printful catalog readiness;
 - the local signed Stripe webhook path with a mocked Printful order;
 - the deployed Worker public config when `--live` is set.
+
+After the Cloudflare route permission is fixed, add `--same-origin`:
+
+```powershell
+npm run store:launch:check -- --network --live --same-origin
+```
 
 It exits non-zero until the store can safely accept real embedded checkout orders. Today it is expected to fail only on missing account credentials/domain readiness while the product and mocked fulfillment smoke pass.
 

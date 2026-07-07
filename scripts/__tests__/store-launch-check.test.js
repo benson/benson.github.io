@@ -19,6 +19,9 @@ test("launch check parses product, network, live, api, and smoke flags", async (
     "https://checkout.example.test",
     "--product",
     "small-useful-light-tee",
+    "--public-url",
+    "https://bensonperry.com",
+    "--same-origin",
     "--skip-smoke"
   ]);
 
@@ -26,6 +29,8 @@ test("launch check parses product, network, live, api, and smoke flags", async (
   assert.equal(args.live, true);
   assert.equal(args.apiBase, "https://checkout.example.test");
   assert.equal(args.productId, "small-useful-light-tee");
+  assert.equal(args.publicUrl, "https://bensonperry.com");
+  assert.equal(args.sameOrigin, true);
   assert.equal(args.smoke, false);
 });
 
@@ -95,4 +100,23 @@ test("launch check live API gate reads deployed config readiness", async () => {
   });
 
   assert.equal(summarizeChecks(checks).ok, true);
+});
+
+test("launch check same-origin gate can use a custom label", async () => {
+  const { liveApiChecks } = await launchModule();
+  const checks = await liveApiChecks({
+    apiBase: "https://bensonperry.com",
+    label: "same-origin checkout API",
+    prefix: "same-origin config",
+    fetchImpl: async (url) => {
+      assert.equal(url, "https://bensonperry.com/api/store/config");
+      return new Response(JSON.stringify({ error: "not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+  });
+
+  assert.equal(checks[0].label, "same-origin checkout API");
+  assert.equal(checks[0].ok, false);
 });
