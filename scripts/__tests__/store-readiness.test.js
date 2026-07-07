@@ -54,6 +54,16 @@ test("current shirt passes local product readiness checks", async () => {
   assert.deepEqual(localProductReadinessIssues(product, catalog), []);
 });
 
+test("product readiness requires a supported embedded checkout shipping policy", async () => {
+  const { localProductReadinessIssues } = await readinessModule();
+  const draft = JSON.parse(JSON.stringify(product));
+  draft.checkout.shipping = { strategy: "manual-later" };
+
+  const issues = localProductReadinessIssues(draft, catalog);
+  assert.ok(issues.some((issue) => issue.includes("checkout shipping strategy")));
+  assert.ok(issues.some((issue) => issue.includes("checkout shipping label")));
+});
+
 test("Printful catalog readiness accepts matching variants and placements", async () => {
   const { printfulCatalogIssues } = await readinessModule();
   assert.deepEqual(printfulCatalogIssues(product, matchingPrintfulProduct()), []);

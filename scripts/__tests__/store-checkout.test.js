@@ -227,6 +227,30 @@ test("checkout allowed countries come from products in the cart", async () => {
   assert.equal(params.get("shipping_address_collection[allowed_countries][1]"), "CA");
 });
 
+test("checkout adds an included standard shipping option from product policy", async () => {
+  const { buildStripeCheckoutSessionParams } = await checkoutModule();
+  const { params } = buildStripeCheckoutSessionParams({
+    catalog: readyPrintfulCatalog(),
+    items: [
+      {
+        productId: "small-useful-light-tee",
+        variantId: "small-useful-light-black-m",
+        quantity: 1
+      }
+    ],
+    env: {
+      PRINTFUL_API_KEY: "test",
+      STORE_PUBLIC_URL: "https://bensonperry.com"
+    }
+  });
+
+  assert.equal(params.get("shipping_options[0][shipping_rate_data][display_name]"), "US standard shipping included");
+  assert.equal(params.get("shipping_options[0][shipping_rate_data][type]"), "fixed_amount");
+  assert.equal(params.get("shipping_options[0][shipping_rate_data][fixed_amount][amount]"), "0");
+  assert.equal(params.get("shipping_options[0][shipping_rate_data][fixed_amount][currency]"), "usd");
+  assert.equal(params.get("shipping_options[0][shipping_rate_data][metadata][strategy]"), "included-us-standard");
+});
+
 test("checkout config reports card, wallet, and Shop Pay readiness", async () => {
   const { checkoutConfig } = await checkoutModule();
   const config = checkoutConfig({

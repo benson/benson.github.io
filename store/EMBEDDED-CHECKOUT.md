@@ -24,6 +24,7 @@ flowchart LR
 - `POST /api/store/checkout-session`
   - Validates product IDs, variant IDs, quantities, and prices against `store/products.json`.
   - Creates a Stripe Embedded Checkout Session.
+  - Adds the catalog's supported included-shipping policy as a zero-dollar Stripe shipping option.
   - Returns the session client secret for Stripe.js.
 - `GET /api/store/session-status?session_id=...`
   - Lets the return page show whether checkout completed.
@@ -81,6 +82,7 @@ The local part checks:
 - storefront/mockup and print artwork files exist;
 - print PNG dimensions are large enough for the mapped placement;
 - garment print files include alpha transparency.
+- every embedded product declares the supported `included-us-standard` shipping policy and buyer-facing label.
 
 The `--network` part also validates the configured Printful token against Printful's v2 OAuth scopes endpoint when `PRINTFUL_API_KEY` exists, then calls Printful's public catalog endpoint and verifies:
 

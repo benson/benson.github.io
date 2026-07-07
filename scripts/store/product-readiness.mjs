@@ -136,6 +136,14 @@ export function localProductReadinessIssues(product, catalog) {
     issues.push("missing Printful catalogProductId");
   }
 
+  const shipping = product.checkout?.shipping || {};
+  if (shipping.strategy !== "included-us-standard") {
+    issues.push(`checkout shipping strategy is ${shipping.strategy || "missing"}, expected included-us-standard`);
+  }
+  if (!shipping.label) {
+    issues.push("checkout shipping label is missing");
+  }
+
   const mapped = fulfillment.variants || {};
   for (const variant of product.variants || []) {
     const providerVariant = mapped[variant.id];

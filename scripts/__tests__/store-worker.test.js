@@ -25,6 +25,27 @@ test("worker checkout params use catalog checkout allowed countries", async () =
   assert.equal(params.get("shipping_address_collection[allowed_countries][0]"), "US");
 });
 
+test("worker checkout params include the product shipping-included policy", async () => {
+  const { buildCheckoutParams } = await workerModule();
+  const params = buildCheckoutParams(
+    [
+      {
+        productId: "small-useful-light-tee",
+        variantId: "small-useful-light-black-m",
+        quantity: 1
+      }
+    ],
+    {
+      PRINTFUL_API_KEY: "test",
+      STORE_PUBLIC_URL: "https://bensonperry.com"
+    }
+  );
+
+  assert.equal(params.get("shipping_options[0][shipping_rate_data][display_name]"), "US standard shipping included");
+  assert.equal(params.get("shipping_options[0][shipping_rate_data][fixed_amount][amount]"), "0");
+  assert.equal(params.get("shipping_options[0][shipping_rate_data][fixed_amount][currency]"), "usd");
+});
+
 test("worker checkout config matches wallet readiness markers", async () => {
   const { checkoutConfig } = await workerModule();
   const config = checkoutConfig({

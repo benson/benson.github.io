@@ -23,7 +23,7 @@ npm run store:product:scaffold -- --title "<product title>" --type t-shirt --app
 Use `--replace` to update an existing draft with the same product ID.
 
 5. Run `npm run store:printful:map -- --product <product-id> --catalog-product <printful-catalog-product-id> --apply`.
-6. Run `npm run store:fulfillment:doctor -- --network` to validate assets, Printful mapping, and Printful API auth when credentials exist.
+6. Run `npm run store:fulfillment:doctor -- --network` to validate assets, Printful mapping, included-shipping policy, and Printful API auth when credentials exist.
 7. Run `npm run store:launch:check -- --network`.
 8. Run `npm run store:checkout:setup -- --create-webhook --register-payment-domain --write-local --deploy` once Stripe and Printful credentials exist.
 9. Run `npm run store:launch:check -- --network --live`.

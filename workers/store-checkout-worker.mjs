@@ -231,6 +231,27 @@ function checkoutAllowedCountries(lines) {
   return [...new Set(allowedCountries.length ? allowedCountries : ["US"])];
 }
 
+function checkoutShippingOptions(lines) {
+  const productIds = new Set(lines.map((line) => line.productId));
+  const currency = lines[0]?.currency || "usd";
+  const products = (catalog.products || []).filter((product) => productIds.has(product.id));
+  const hasIncludedStandard = products.some((product) => product.checkout?.shipping?.strategy === "included-us-standard");
+  if (!hasIncludedStandard) return [];
+
+  const label =
+    products.find((product) => product.checkout?.shipping?.strategy === "included-us-standard")?.checkout?.shipping?.label ||
+    "US standard shipping included";
+
+  return [
+    {
+      strategy: "included-us-standard",
+      label,
+      amount: 0,
+      currency
+    }
+  ];
+}
+
 function checkoutConfig(env) {
   const stripeConfigured = Boolean(env.STRIPE_PUBLISHABLE_KEY && env.STRIPE_SECRET_KEY);
   const fulfillmentReady = Boolean(env.PRINTFUL_API_KEY || env.STORE_ALLOW_UNFULFILLED_CHECKOUT === "true");
@@ -303,6 +324,14 @@ function buildCheckoutParams(items, env) {
 
   checkoutAllowedCountries(lines).forEach((country, index) => {
     params.set(`shipping_address_collection[allowed_countries][${index}]`, country);
+  });
+
+  checkoutShippingOptions(lines).forEach((option, index) => {
+    params.set(`shipping_options[${index}][shipping_rate_data][display_name]`, option.label);
+    params.set(`shipping_options[${index}][shipping_rate_data][type]`, "fixed_amount");
+    params.set(`shipping_options[${index}][shipping_rate_data][fixed_amount][amount]`, String(option.amount));
+    params.set(`shipping_options[${index}][shipping_rate_data][fixed_amount][currency]`, option.currency);
+    params.set(`shipping_options[${index}][shipping_rate_data][metadata][strategy]`, option.strategy);
   });
 
   lines.forEach((line, index) => {
@@ -440,4 +469,4 @@ export default {
   }
 };
 
-export { buildCheckoutParams, checkoutAllowedCountries, checkoutConfig, resolveCart, verifyWebhook };
+export { buildCheckoutParams, checkoutAllowedCountries, checkoutConfig, checkoutShippingOptions, resolveCart, verifyWebhook };

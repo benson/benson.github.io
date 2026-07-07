@@ -129,6 +129,27 @@ export function checkoutAllowedCountries(catalog, lines) {
   return [...new Set(allowedCountries.length ? allowedCountries : ["US"])];
 }
 
+export function checkoutShippingOptions(catalog, lines) {
+  const productIds = new Set(lines.map((line) => line.productId));
+  const currency = lines[0]?.currency || "usd";
+  const products = (catalog.products || []).filter((product) => productIds.has(product.id));
+  const hasIncludedStandard = products.some((product) => product.checkout?.shipping?.strategy === "included-us-standard");
+  if (!hasIncludedStandard) return [];
+
+  const label =
+    products.find((product) => product.checkout?.shipping?.strategy === "included-us-standard")?.checkout?.shipping?.label ||
+    "US standard shipping included";
+
+  return [
+    {
+      strategy: "included-us-standard",
+      label,
+      amount: 0,
+      currency
+    }
+  ];
+}
+
 export function checkoutConfig(env = process.env) {
   const stripeConfigured = Boolean(env.STRIPE_PUBLISHABLE_KEY && env.STRIPE_SECRET_KEY);
   const fulfillmentReady = Boolean(env.PRINTFUL_API_KEY || env.STORE_ALLOW_UNFULFILLED_CHECKOUT === "true");
@@ -236,6 +257,14 @@ export function buildStripeCheckoutSessionParams({ catalog, items, env = process
 
   checkoutAllowedCountries(catalog, lines).forEach((country, index) => {
     params.set(`shipping_address_collection[allowed_countries][${index}]`, country);
+  });
+
+  checkoutShippingOptions(catalog, lines).forEach((option, index) => {
+    params.set(`shipping_options[${index}][shipping_rate_data][display_name]`, option.label);
+    params.set(`shipping_options[${index}][shipping_rate_data][type]`, "fixed_amount");
+    params.set(`shipping_options[${index}][shipping_rate_data][fixed_amount][amount]`, String(option.amount));
+    params.set(`shipping_options[${index}][shipping_rate_data][fixed_amount][currency]`, option.currency);
+    params.set(`shipping_options[${index}][shipping_rate_data][metadata][strategy]`, option.strategy);
   });
 
   lines.forEach((line, index) => {
