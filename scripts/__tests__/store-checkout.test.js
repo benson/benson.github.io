@@ -146,10 +146,29 @@ test("checkout can build an embedded Stripe session in explicit unfulfilled test
   });
 
   assert.equal(params.get("ui_mode"), "embedded");
+  assert.equal(params.get("payment_method_types[0]"), "card");
   assert.equal(params.get("line_items[0][price_data][unit_amount]"), "3995");
   assert.equal(params.get("line_items[0][quantity]"), "1");
   assert.match(params.get("return_url"), /^https:\/\/bensonperry\.com\/store\//);
   assert.equal(lines[0].variantId, "small-useful-light-black-xl");
+});
+
+test("checkout config reports card, wallet, and Shop Pay readiness", async () => {
+  const { checkoutConfig } = await checkoutModule();
+  const config = checkoutConfig({
+    STRIPE_PUBLISHABLE_KEY: "pk_test_123",
+    STRIPE_SECRET_KEY: "sk_test_123",
+    STRIPE_WALLET_DOMAIN_READY: "true",
+    STRIPE_PAYMENT_METHODS_READY: "true",
+    SHOP_PAY_CLIENT_ID: "shop_pay_client"
+  });
+
+  assert.equal(config.configured, true);
+  assert.equal(config.payments.card.status, "configured");
+  assert.equal(config.payments.wallets.applePay.status, "eligible");
+  assert.equal(config.payments.wallets.googlePay.status, "eligible");
+  assert.equal(config.payments.wallets.link.status, "eligible");
+  assert.equal(config.payments.shopPay.configured, true);
 });
 
 test("checkout verifies Stripe webhook signatures", async () => {

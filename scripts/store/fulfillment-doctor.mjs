@@ -71,7 +71,10 @@ async function main() {
   printStatus("STRIPE_PUBLISHABLE_KEY", hasSecret("STRIPE_PUBLISHABLE_KEY"));
   printStatus("STRIPE_SECRET_KEY", hasSecret("STRIPE_SECRET_KEY"));
   printStatus("STRIPE_WEBHOOK_SECRET", hasSecret("STRIPE_WEBHOOK_SECRET"));
+  printStatus("STRIPE_WALLET_DOMAIN_READY", process.env.STRIPE_WALLET_DOMAIN_READY === "true", "Apple Pay domain readiness marker");
+  printStatus("STRIPE_PAYMENT_METHODS_READY", process.env.STRIPE_PAYMENT_METHODS_READY === "true", "Google Pay/payment method readiness marker");
   printStatus("PRINTFUL_API_KEY", hasSecret("PRINTFUL_API_KEY"));
+  printStatus("SHOP_PAY_CLIENT_ID", hasSecret("SHOP_PAY_CLIENT_ID"), "optional Shopify Wallet lane");
   console.log("");
 
   let failureCount = 0;

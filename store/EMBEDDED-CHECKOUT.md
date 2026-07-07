@@ -20,6 +20,7 @@ flowchart LR
 
 - `GET /api/store/config`
   - Returns public checkout configuration, including the Stripe publishable key when configured.
+  - Reports card, Stripe wallet, Link, and optional Shop Pay readiness.
 - `POST /api/store/checkout-session`
   - Validates product IDs, variant IDs, quantities, and prices against `store/products.json`.
   - Creates a Stripe Embedded Checkout Session.
@@ -65,6 +66,18 @@ Start with Stripe Embedded Checkout and US-only shipping. Prefer "shipping inclu
 
 When fulfillment credentials exist, the webhook should create a provider draft order first and only confirm it after the Stripe payment is complete.
 
+## Wallet support
+
+The Stripe Checkout Session explicitly enables `card`, which is the base requirement for card entry and card-backed wallets in Stripe Checkout. The config endpoint reports:
+
+- `payments.card`: card checkout through Stripe.
+- `payments.wallets.applePay`: Apple Pay eligibility marker. Production still requires Stripe/domain wallet readiness and a supported browser/device.
+- `payments.wallets.googlePay`: Google Pay eligibility marker. Production still requires Stripe payment-method readiness and a supported browser/device.
+- `payments.wallets.link`: Stripe Link eligibility marker.
+- `payments.shopPay`: optional Shopify Shop Pay Wallet lane. This is separate from Stripe and still requires Shopify setup.
+
+The buyer remains on `bensonperry.com/store`; Stripe's secure embedded checkout frame handles payment data.
+
 ## Why not deploy this over the current buy path yet?
 
 The current Fourthwall path is live and buyable. The embedded checkout path should not replace it in production until Stripe and fulfillment credentials are configured and a real provider order can be created after payment.
@@ -77,6 +90,13 @@ The Worker is deployed, but payment is intentionally disabled until these secret
 npx wrangler secret put STRIPE_PUBLISHABLE_KEY --config wrangler.store-checkout.jsonc
 npx wrangler secret put STRIPE_SECRET_KEY --config wrangler.store-checkout.jsonc
 npx wrangler secret put STRIPE_WEBHOOK_SECRET --config wrangler.store-checkout.jsonc
+```
+
+Wallet readiness markers after the Stripe dashboard/domain setup is complete:
+
+```powershell
+npx wrangler secret put STRIPE_WALLET_DOMAIN_READY --config wrangler.store-checkout.jsonc
+npx wrangler secret put STRIPE_PAYMENT_METHODS_READY --config wrangler.store-checkout.jsonc
 ```
 
 Fulfillment requires one provider:

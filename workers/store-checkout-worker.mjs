@@ -187,6 +187,48 @@ function ensureFulfillmentReady(lines, env) {
   }
 }
 
+function checkoutConfig(env) {
+  const stripeConfigured = Boolean(env.STRIPE_PUBLISHABLE_KEY && env.STRIPE_SECRET_KEY);
+  const walletDomainReady = env.STRIPE_WALLET_DOMAIN_READY === "true";
+  const paymentMethodsReady = env.STRIPE_PAYMENT_METHODS_READY === "true";
+
+  return {
+    mode: "stripe-embedded",
+    configured: stripeConfigured,
+    fulfillmentReady: env.STORE_ALLOW_UNFULFILLED_CHECKOUT === "true",
+    stripePublishableKey: env.STRIPE_PUBLISHABLE_KEY || null,
+    payments: {
+      card: {
+        provider: "stripe",
+        status: stripeConfigured ? "configured" : "needs-stripe-keys"
+      },
+      wallets: {
+        applePay: {
+          provider: "stripe",
+          status: stripeConfigured && walletDomainReady ? "eligible" : "needs-stripe-keys-or-domain-registration"
+        },
+        googlePay: {
+          provider: "stripe",
+          status: stripeConfigured && paymentMethodsReady ? "eligible" : "needs-stripe-keys-or-payment-method-activation"
+        },
+        link: {
+          provider: "stripe",
+          status: stripeConfigured ? "eligible" : "needs-stripe-keys"
+        }
+      },
+      shopPay: {
+        provider: "shopify",
+        configured: Boolean(env.SHOP_PAY_CLIENT_ID),
+        status: env.SHOP_PAY_CLIENT_ID ? "optional-ready-to-integrate" : "needs-shopify-wallet-setup"
+      }
+    },
+    shopPay: {
+      configured: Boolean(env.SHOP_PAY_CLIENT_ID),
+      status: env.SHOP_PAY_CLIENT_ID ? "optional-ready-to-integrate" : "needs-shopify-wallet-setup"
+    }
+  };
+}
+
 function buildCheckoutParams(items, env) {
   const publicUrl = env.STORE_PUBLIC_URL || "https://bensonperry.com";
   const lines = resolveCart(items);
@@ -196,6 +238,7 @@ function buildCheckoutParams(items, env) {
   params.set("ui_mode", "embedded");
   params.set("mode", "payment");
   params.set("submit_type", "pay");
+  params.set("payment_method_types[0]", "card");
   params.set("return_url", `${publicUrl.replace(/\/+$/, "")}/store/?checkout=return&session_id={CHECKOUT_SESSION_ID}`);
   params.set("customer_creation", "always");
   params.set("metadata[cart]", encodeCartMetadata(lines.map((line) => ({
@@ -270,16 +313,7 @@ async function handle(request, env) {
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(env) });
 
   if (request.method === "GET" && pathname.endsWith("/api/store/config")) {
-    return json({
-      mode: "stripe-embedded",
-      configured: Boolean(env.STRIPE_PUBLISHABLE_KEY && env.STRIPE_SECRET_KEY),
-      fulfillmentReady: env.STORE_ALLOW_UNFULFILLED_CHECKOUT === "true",
-      stripePublishableKey: env.STRIPE_PUBLISHABLE_KEY || null,
-      shopPay: {
-        configured: Boolean(env.SHOP_PAY_CLIENT_ID),
-        status: env.SHOP_PAY_CLIENT_ID ? "optional-ready-to-integrate" : "needs-shopify-wallet-setup"
-      }
-    });
+    return json(checkoutConfig(env));
   }
 
   if (request.method === "POST" && pathname.endsWith("/api/store/checkout-session")) {

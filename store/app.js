@@ -300,6 +300,42 @@ async function beginEmbeddedCheckout() {
   }
 }
 
+async function handleCheckoutReturn() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("checkout") !== "return") return;
+
+  openCheckout();
+  checkoutButton.disabled = true;
+  checkoutNote.textContent = "checking checkout status...";
+  embeddedCheckout.hidden = true;
+  embeddedCheckout.innerHTML = "";
+
+  try {
+    const sessionId = params.get("session_id") || "";
+    const response = await fetch(apiUrl(`/api/store/session-status?session_id=${encodeURIComponent(sessionId)}`), {
+      cache: "no-store"
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "checkout status is unavailable.");
+
+    if (data.paymentStatus === "paid" || data.status === "complete") {
+      cart = [];
+      renderCart();
+      checkoutButton.disabled = true;
+      checkoutNote.textContent = "order received.";
+    } else {
+      checkoutButton.disabled = false;
+      checkoutNote.textContent = "checkout was not completed.";
+    }
+  } catch (error) {
+    checkoutButton.disabled = false;
+    checkoutNote.textContent = error.message;
+  } finally {
+    const cleanUrl = `${window.location.pathname}${window.location.hash}`;
+    window.history.replaceState({}, "", cleanUrl);
+  }
+}
+
 async function loadProducts() {
   try {
     const response = await fetch("products.json", { cache: "no-store" });
@@ -308,6 +344,7 @@ async function loadProducts() {
     products = catalog.products || [];
     renderProducts();
     renderCart();
+    await handleCheckoutReturn();
   } catch (error) {
     grid.innerHTML = "";
     const empty = document.createElement("p");
