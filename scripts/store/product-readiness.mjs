@@ -205,6 +205,51 @@ export async function verifyPrintfulApiToken({ apiKey, fetchImpl = fetch } = {})
   };
 }
 
+function printfulHeaders({ apiKey, storeId, hasBody = false } = {}) {
+  return {
+    Authorization: `Bearer ${apiKey}`,
+    ...(hasBody ? { "Content-Type": "application/json" } : {}),
+    ...(storeId ? { "X-PF-Store-Id": String(storeId) } : {})
+  };
+}
+
+export async function verifyPrintfulOrderContext({ apiKey, storeId, catalogVariantId, fetchImpl = fetch } = {}) {
+  if (!apiKey) throw new Error("PRINTFUL_API_KEY is missing.");
+  if (!catalogVariantId) throw new Error("Printful catalog variant id is required for order-context checks.");
+
+  const response = await fetchImpl(`${PRINTFUL_API}/v2/shipping-rates`, {
+    method: "POST",
+    headers: printfulHeaders({ apiKey, storeId, hasBody: true }),
+    body: JSON.stringify({
+      recipient: {
+        country_code: "US",
+        state_code: "CA"
+      },
+      order_items: [
+        {
+          source: "catalog",
+          catalog_variant_id: catalogVariantId,
+          quantity: 1
+        }
+      ],
+      currency: "USD"
+    })
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const detail = data.error?.message || data.result || data.data || `Printful order-context request failed: ${response.status}`;
+    throw new Error(redactSecret(detail, apiKey));
+  }
+
+  const rates = Array.isArray(data.data) ? data.data : [];
+  return {
+    storeId: storeId || null,
+    catalogVariantId,
+    rateCount: rates.length,
+    standardRate: rates.find((rate) => rate.shipping === "STANDARD") || rates[0] || null
+  };
+}
+
 export function printfulCatalogIssues(product, printfulProduct) {
   const issues = [];
   const catalogProductId = product.embeddedFulfillment?.catalogProductId;

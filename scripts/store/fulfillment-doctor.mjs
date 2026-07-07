@@ -4,7 +4,8 @@ import {
   fetchPrintfulCatalogProduct,
   localProductReadinessIssues,
   printfulCatalogIssues,
-  verifyPrintfulApiToken
+  verifyPrintfulApiToken,
+  verifyPrintfulOrderContext
 } from "./product-readiness.mjs";
 
 function hasSecret(name) {
@@ -15,6 +16,12 @@ function printStatus(label, ok, detail = "") {
   const marker = ok ? "ok" : "missing";
   console.log(`${marker.padEnd(7)} ${label}${detail ? ` - ${detail}` : ""}`);
   return ok;
+}
+
+function firstPrintfulCatalogVariantId(catalog) {
+  const product = (catalog.products || []).find((candidate) => candidate.embeddedFulfillment?.recommended === "printful");
+  const mapping = Object.values(product?.embeddedFulfillment?.variants || {}).find((variant) => Number.isInteger(variant.catalogVariantId));
+  return mapping?.catalogVariantId || null;
 }
 
 function parseArgs(argv) {
@@ -53,7 +60,8 @@ async function main(argv = process.argv.slice(2)) {
     ["STRIPE_PUBLISHABLE_KEY", hasSecret("STRIPE_PUBLISHABLE_KEY")],
     ["STRIPE_SECRET_KEY", hasSecret("STRIPE_SECRET_KEY")],
     ["STRIPE_WEBHOOK_SECRET", hasSecret("STRIPE_WEBHOOK_SECRET")],
-    ["PRINTFUL_API_KEY", hasSecret("PRINTFUL_API_KEY")]
+    ["PRINTFUL_API_KEY", hasSecret("PRINTFUL_API_KEY")],
+    ["PRINTFUL_STORE_ID", hasSecret("PRINTFUL_STORE_ID")]
   ];
 
   for (const [label, ok] of requiredSetup) {
@@ -71,6 +79,18 @@ async function main(argv = process.argv.slice(2)) {
     } catch (error) {
       failureCount += 1;
       printStatus("Printful API auth", false, error.message);
+    }
+
+    try {
+      const result = await verifyPrintfulOrderContext({
+        apiKey: process.env.PRINTFUL_API_KEY,
+        storeId: process.env.PRINTFUL_STORE_ID,
+        catalogVariantId: firstPrintfulCatalogVariantId(catalog)
+      });
+      printStatus("Printful order context", true, `catalog variant ${result.catalogVariantId}; ${result.rateCount} shipping rate(s)`);
+    } catch (error) {
+      failureCount += 1;
+      printStatus("Printful order context", false, error.message);
     }
   }
   console.log("");

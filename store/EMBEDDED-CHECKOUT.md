@@ -86,7 +86,7 @@ The local part checks:
 - garment print files include alpha transparency.
 - every embedded product declares the supported `included-us-standard` shipping policy and buyer-facing label.
 
-The `--network` part also validates the configured Printful token against Printful's v2 OAuth scopes endpoint when `PRINTFUL_API_KEY` exists, then calls Printful's public catalog endpoint and verifies:
+The `--network` part also validates the configured Printful token against Printful's v2 OAuth scopes endpoint when `PRINTFUL_API_KEY` exists, verifies that `PRINTFUL_STORE_ID` gives the token a usable order/shipping context, then calls Printful's public catalog endpoint and verifies:
 
 - the mapped catalog product exists;
 - mapped Printful variants still exist;
@@ -151,7 +151,7 @@ That command checks ignored local env files and the Stripe CLI profile without p
 npm run store:checkout:setup -- --create-webhook --register-payment-domain --write-local --deploy
 ```
 
-If a Stripe CLI claimable sandbox exists, the setup command prints the claim URL. Claim the sandbox or log into Stripe, add `PRINTFUL_API_KEY` to `.env.local`, then rerun the setup command.
+If a Stripe CLI claimable sandbox exists, the setup command prints the claim URL. Claim the sandbox or log into Stripe, add `PRINTFUL_API_KEY` and `PRINTFUL_STORE_ID` to `.env.local`, then rerun the setup command.
 
 Manual fallback:
 
@@ -174,10 +174,11 @@ npx wrangler secret put STRIPE_WALLET_DOMAIN_READY --config wrangler.store-check
 npx wrangler secret put STRIPE_PAYMENT_METHODS_READY --config wrangler.store-checkout.jsonc
 ```
 
-Fulfillment requires one provider:
+Fulfillment requires one provider. For Printful, use a Manual order / API store created in the Printful Dashboard, then store both the API key and the numeric store id:
 
 ```powershell
 npx wrangler secret put PRINTFUL_API_KEY --config wrangler.store-checkout.jsonc
+npx wrangler secret put PRINTFUL_STORE_ID --config wrangler.store-checkout.jsonc
 ```
 
 or:

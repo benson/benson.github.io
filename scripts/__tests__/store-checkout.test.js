@@ -91,7 +91,7 @@ test("checkout resolves cart prices from the server catalog", async () => {
   ]);
 
   assert.equal(lines.length, 1);
-  assert.equal(lines[0].unitAmount, 3995);
+  assert.equal(lines[0].unitAmount, 1925);
   assert.equal(lines[0].quantity, 2);
   assert.equal(lines[0].sku, "small-useful-light-black-m");
 });
@@ -110,7 +110,6 @@ test("checkout rejects unknown variants", async () => {
     StoreCheckoutError
   );
 });
-
 test("checkout blocks live payment sessions until fulfillment credentials are configured", async () => {
   const { buildStripeCheckoutSessionParams, StoreCheckoutError } = await checkoutModule();
   assert.throws(
@@ -126,7 +125,7 @@ test("checkout blocks live payment sessions until fulfillment credentials are co
         ],
         env: { STORE_PUBLIC_URL: "https://bensonperry.com" }
       }),
-    (error) => error instanceof StoreCheckoutError && error.status === 503 && error.details.providers.includes("printful")
+    (error) => error instanceof StoreCheckoutError && error.status === 503 && error.details.providers.includes("printful-api-key")
   );
 });
 
@@ -148,6 +147,7 @@ test("checkout blocks live payment sessions until fulfillment mapping is ready",
         ],
         env: {
           PRINTFUL_API_KEY: "test",
+          PRINTFUL_STORE_ID: "123",
           STORE_PUBLIC_URL: "https://bensonperry.com"
         }
       }),
@@ -174,7 +174,7 @@ test("checkout can build an embedded Stripe session in explicit unfulfilled test
 
   assert.equal(params.get("ui_mode"), "embedded_page");
   assert.equal(params.get("payment_method_types[0]"), "card");
-  assert.equal(params.get("line_items[0][price_data][unit_amount]"), "3995");
+  assert.equal(params.get("line_items[0][price_data][unit_amount]"), "1925");
   assert.equal(params.get("line_items[0][quantity]"), "1");
   assert.match(params.get("return_url"), /^https:\/\/bensonperry\.com\/store\//);
   assert.equal(lines[0].variantId, "small-useful-light-black-xl");
@@ -221,6 +221,7 @@ test("checkout allowed countries come from products in the cart", async () => {
     ],
     env: {
       PRINTFUL_API_KEY: "test",
+      PRINTFUL_STORE_ID: "123",
       STORE_PUBLIC_URL: "https://bensonperry.com"
     }
   });
@@ -275,6 +276,7 @@ test("checkout allowed countries are shared across mixed carts", async () => {
     ],
     env: {
       PRINTFUL_API_KEY: "test",
+      PRINTFUL_STORE_ID: "123",
       STORE_PUBLIC_URL: "https://bensonperry.com"
     }
   });
@@ -331,6 +333,7 @@ test("checkout rejects mixed carts with no shared shipping country", async () =>
         ],
         env: {
           PRINTFUL_API_KEY: "test",
+          PRINTFUL_STORE_ID: "123",
           STORE_PUBLIC_URL: "https://bensonperry.com"
         }
       }),
@@ -351,6 +354,7 @@ test("checkout adds an included standard shipping option from product policy", a
     ],
     env: {
       PRINTFUL_API_KEY: "test",
+      PRINTFUL_STORE_ID: "123",
       STORE_PUBLIC_URL: "https://bensonperry.com"
     }
   });
@@ -370,6 +374,7 @@ test("checkout config reports card, wallet, and Shop Pay readiness", async () =>
     STRIPE_WALLET_DOMAIN_READY: "true",
     STRIPE_PAYMENT_METHODS_READY: "true",
     PRINTFUL_API_KEY: "pf_test_123",
+    PRINTFUL_STORE_ID: "123",
     SHOP_PAY_CLIENT_ID: "shop_pay_client"
   });
 
@@ -477,6 +482,7 @@ test("checkout webhook route records fulfillment and exposes order status", asyn
       orderStore: store,
       env: {
         PRINTFUL_API_KEY: "test",
+        PRINTFUL_STORE_ID: "123",
         STRIPE_WEBHOOK_SECRET: secret,
         STORE_PUBLIC_URL: "https://bensonperry.com"
       },
@@ -519,6 +525,7 @@ test("fulfillment builds a Printful order from a paid Stripe session", async () 
     session,
     env: {
       PRINTFUL_API_KEY: "test",
+      PRINTFUL_STORE_ID: "123",
       STORE_PUBLIC_URL: "https://bensonperry.com"
     },
     fetchImpl: async (url, options) => {
@@ -567,6 +574,7 @@ test("fulfillment confirms Printful orders for live Stripe sessions", async () =
     session,
     env: {
       PRINTFUL_API_KEY: "test",
+      PRINTFUL_STORE_ID: "123",
       STORE_PUBLIC_URL: "https://bensonperry.com"
     },
     fetchImpl: async (url, options) => {
@@ -616,6 +624,7 @@ test("fulfillment is idempotent for repeated Stripe webhook deliveries", async (
     orderStore: store,
     env: {
       PRINTFUL_API_KEY: "test",
+      PRINTFUL_STORE_ID: "123",
       STORE_PUBLIC_URL: "https://bensonperry.com"
     },
     fetchImpl: async () => {
@@ -632,6 +641,7 @@ test("fulfillment is idempotent for repeated Stripe webhook deliveries", async (
     orderStore: store,
     env: {
       PRINTFUL_API_KEY: "test",
+      PRINTFUL_STORE_ID: "123",
       STORE_PUBLIC_URL: "https://bensonperry.com"
     },
     fetchImpl: async () => {

@@ -107,6 +107,48 @@ test("Printful API token verifier redacts invalid token errors", async () => {
   );
 });
 
+test("Printful order-context verifier sends store id for shipping-rate checks", async () => {
+  const { verifyPrintfulOrderContext } = await readinessModule();
+  const result = await verifyPrintfulOrderContext({
+    apiKey: "pf_test_secret",
+    storeId: "123",
+    catalogVariantId: 44067,
+    fetchImpl: async (url, options) => {
+      assert.equal(url, "https://api.printful.com/v2/shipping-rates");
+      assert.equal(options.method, "POST");
+      assert.equal(options.headers.Authorization, "Bearer pf_test_secret");
+      assert.equal(options.headers["X-PF-Store-Id"], "123");
+      const body = JSON.parse(options.body);
+      assert.equal(body.order_items[0].catalog_variant_id, 44067);
+      return new Response(JSON.stringify({ data: [{ shipping: "STANDARD", rate: "4.75", currency: "USD" }] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+  });
+
+  assert.equal(result.catalogVariantId, 44067);
+  assert.equal(result.rateCount, 1);
+  assert.equal(result.standardRate.rate, "4.75");
+});
+
+test("Printful order-context verifier reports missing store context without leaking the token", async () => {
+  const { verifyPrintfulOrderContext } = await readinessModule();
+  await assert.rejects(
+    () =>
+      verifyPrintfulOrderContext({
+        apiKey: "pf_test_secret",
+        catalogVariantId: 44067,
+        fetchImpl: async () =>
+          new Response(JSON.stringify({ error: { message: "This endpoint requires `store_id`! pf_test_secret" } }), {
+            status: 400,
+            headers: { "Content-Type": "application/json" }
+          })
+      }),
+    (error) => error.message === "This endpoint requires `store_id`! [redacted]"
+  );
+});
+
 test("Printful catalog readiness catches variant and availability drift", async () => {
   const { printfulCatalogIssues } = await readinessModule();
   const remote = matchingPrintfulProduct();

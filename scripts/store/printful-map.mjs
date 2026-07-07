@@ -111,7 +111,7 @@ export function buildPrintfulMapping(product, printfulProduct, { frontPlacement 
       catalogProduct: remoteProduct.title,
       notes: issues.length
         ? "Printful catalog mapping needs attention before embedded checkout can accept payment."
-        : "Printful catalog mapping is ready. Do not accept live Stripe payments until PRINTFUL_API_KEY is configured and the webhook fulfillment path has been tested against the account.",
+        : "Printful catalog mapping is ready. Do not accept live Stripe payments until PRINTFUL_API_KEY and PRINTFUL_STORE_ID are configured and the webhook fulfillment path has been tested against the account.",
       variants: mapping
     }
   };

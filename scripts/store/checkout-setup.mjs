@@ -12,7 +12,8 @@ const REQUIRED_WORKER_SECRETS = [
   "STRIPE_PUBLISHABLE_KEY",
   "STRIPE_SECRET_KEY",
   "STRIPE_WEBHOOK_SECRET",
-  "PRINTFUL_API_KEY"
+  "PRINTFUL_API_KEY",
+  "PRINTFUL_STORE_ID"
 ];
 
 const OPTIONAL_WORKER_SECRETS = [
@@ -107,6 +108,7 @@ function resolvedConfig() {
       STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || (profileSecretUsable ? stripeProfile.secretKey : null),
       STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || null,
       PRINTFUL_API_KEY: process.env.PRINTFUL_API_KEY || null,
+      PRINTFUL_STORE_ID: process.env.PRINTFUL_STORE_ID || null,
       STRIPE_WALLET_DOMAIN_READY: process.env.STRIPE_WALLET_DOMAIN_READY || null,
       STRIPE_PAYMENT_METHODS_READY: process.env.STRIPE_PAYMENT_METHODS_READY || null,
       SHOP_PAY_CLIENT_ID: process.env.SHOP_PAY_CLIENT_ID || null,

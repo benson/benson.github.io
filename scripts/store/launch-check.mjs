@@ -5,7 +5,8 @@ import {
   fetchPrintfulCatalogProduct,
   localProductReadinessIssues,
   printfulCatalogIssues,
-  verifyPrintfulApiToken
+  verifyPrintfulApiToken,
+  verifyPrintfulOrderContext
 } from "./product-readiness.mjs";
 import { runCheckoutSmoke } from "./checkout-smoke.mjs";
 import { stripeSecretKind } from "./checkout-setup.mjs";
@@ -81,6 +82,7 @@ export function credentialChecks({ env = process.env, requireLiveStripe = false,
     check("STRIPE_SECRET_KEY", usableStripeSecret(secretKey), secretKind === "missing" ? "" : secretKind),
     check("STRIPE_WEBHOOK_SECRET", Boolean(env.STRIPE_WEBHOOK_SECRET)),
     check("PRINTFUL_API_KEY", Boolean(env.PRINTFUL_API_KEY)),
+    check("PRINTFUL_STORE_ID", Boolean(env.PRINTFUL_STORE_ID)),
     check("STRIPE_WALLET_DOMAIN_READY", env.STRIPE_WALLET_DOMAIN_READY === "true", "Apple Pay domain readiness"),
     check("STRIPE_PAYMENT_METHODS_READY", env.STRIPE_PAYMENT_METHODS_READY === "true", "Google Pay/Link domain readiness"),
     check("SHOP_PAY_CLIENT_ID", Boolean(env.SHOP_PAY_CLIENT_ID), "optional Shopify Wallet lane", { required: false })
@@ -108,16 +110,42 @@ export function credentialChecks({ env = process.env, requireLiveStripe = false,
   return checks;
 }
 
-export async function printfulApiChecks({ env = process.env, fetchImpl = fetch } = {}) {
+function firstPrintfulCatalogVariantId(catalog, productId = null) {
+  const product = embeddedProducts(catalog, productId).find((candidate) => candidate.embeddedFulfillment?.recommended === "printful");
+  if (!product) return null;
+  const mapping = Object.values(product.embeddedFulfillment?.variants || {}).find((variant) => Number.isInteger(variant.catalogVariantId));
+  return mapping?.catalogVariantId || null;
+}
+
+export async function printfulApiChecks({ catalog = null, env = process.env, fetchImpl = fetch, productId = null } = {}) {
   if (!env.PRINTFUL_API_KEY) return [];
 
+  const checks = [];
   try {
     const result = await verifyPrintfulApiToken({ apiKey: env.PRINTFUL_API_KEY, fetchImpl });
     const detail = result.scopeValues.length ? `${result.scopeValues.length} scope(s): ${result.scopeValues.join(", ")}` : "authenticated";
-    return [check("Printful API auth", true, detail)];
+    checks.push(check("Printful API auth", true, detail));
   } catch (error) {
     return [check("Printful API auth", false, error.message)];
   }
+
+  if (catalog) {
+    const catalogVariantId = firstPrintfulCatalogVariantId(catalog, productId);
+    try {
+      const result = await verifyPrintfulOrderContext({
+        apiKey: env.PRINTFUL_API_KEY,
+        storeId: env.PRINTFUL_STORE_ID,
+        catalogVariantId,
+        fetchImpl
+      });
+      const detail = `catalog variant ${result.catalogVariantId}; ${result.rateCount} shipping rate(s)`;
+      checks.push(check("Printful order context", true, detail));
+    } catch (error) {
+      checks.push(check("Printful order context", false, error.message));
+    }
+  }
+
+  return checks;
 }
 
 function embeddedProducts(catalog, productId = null) {
@@ -250,7 +278,7 @@ export async function runLaunchCheck({
   const catalog = await loadCatalog();
   const checks = [
     ...credentialChecks({ env, requireLiveStripe, stripeProfile }),
-    ...(network ? await printfulApiChecks({ env, fetchImpl }) : []),
+    ...(network ? await printfulApiChecks({ catalog, env, fetchImpl, productId }) : []),
     ...configChecks(checkoutConfig(env), "local config"),
     ...(await productReadinessChecks({ catalog, productId, network, fetchImpl }))
   ];
