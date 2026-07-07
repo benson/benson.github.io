@@ -1,27 +1,5 @@
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { loadCatalog, resolveCart } from "./checkout.mjs";
-
-const here = path.dirname(fileURLToPath(import.meta.url));
-const root = path.resolve(here, "..", "..");
-
-function loadLocalEnv() {
-  for (const file of [".env.local", ".env"]) {
-    const envPath = path.join(root, file);
-    if (!fs.existsSync(envPath)) continue;
-    const lines = fs.readFileSync(envPath, "utf8").split(/\r?\n/);
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith("#")) continue;
-      const match = trimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
-      if (!match) continue;
-      const [, key, raw] = match;
-      if (process.env[key] !== undefined) continue;
-      process.env[key] = raw.replace(/^['"]|['"]$/g, "");
-    }
-  }
-}
+import { loadLocalEnv } from "./env.mjs";
 
 function hasSecret(name) {
   return Boolean(process.env[name]);

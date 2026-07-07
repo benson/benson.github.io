@@ -104,6 +104,20 @@ The current Fourthwall path is live and buyable. The embedded checkout path shou
 The Worker is deployed, but payment is intentionally disabled until these secrets exist:
 
 ```powershell
+npm run store:checkout:setup
+```
+
+That command checks ignored local env files and the Stripe CLI profile without printing secret values. Once Stripe and Printful credentials exist locally, it can create the Stripe webhook endpoint, write the generated webhook secret to `.env.local`, and deploy Worker secrets:
+
+```powershell
+npm run store:checkout:setup -- --create-webhook --write-local --deploy
+```
+
+If a Stripe CLI claimable sandbox exists, the setup command prints the claim URL. Claim the sandbox or log into Stripe, add `PRINTFUL_API_KEY` to `.env.local`, then rerun the setup command.
+
+Manual fallback:
+
+```powershell
 npx wrangler secret put STRIPE_PUBLISHABLE_KEY --config wrangler.store-checkout.jsonc
 npx wrangler secret put STRIPE_SECRET_KEY --config wrangler.store-checkout.jsonc
 npx wrangler secret put STRIPE_WEBHOOK_SECRET --config wrangler.store-checkout.jsonc

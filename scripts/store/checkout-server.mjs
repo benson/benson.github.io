@@ -3,9 +3,12 @@ import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { handleStoreApiRequest } from "./checkout.mjs";
+import { loadLocalEnv } from "./env.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..", "..");
+loadLocalEnv();
+
 const port = Number(process.env.PORT || 8787);
 const orderValues = new Map();
 
