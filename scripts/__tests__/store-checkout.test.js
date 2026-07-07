@@ -509,6 +509,7 @@ test("checkout webhook route records fulfillment and exposes order status", asyn
 
 test("fulfillment builds a Printful order from a paid Stripe session", async () => {
   const { encodeCartMetadata, fulfillStripeCheckoutSession } = await checkoutModule();
+  const { printfulExternalId } = await fulfillmentModule();
   const session = paidStripeSession(
     encodeCartMetadata([
       {
@@ -533,7 +534,9 @@ test("fulfillment builds a Printful order from a paid Stripe session", async () 
       assert.equal(options.method, "POST");
       assert.match(options.headers.Authorization, /^Bearer /);
       const body = JSON.parse(options.body);
-      assert.equal(body.external_id, "cs_test_123");
+      assert.equal(body.external_id, printfulExternalId(session.id));
+      assert.notEqual(body.external_id, session.id);
+      assert.ok(body.external_id.length <= 32);
       assert.equal(body.recipient.email, "buyer@example.com");
       assert.equal(body.order_items[0].catalog_variant_id, 7001);
       assert.equal(body.order_items[0].placements.length, 2);
@@ -546,9 +549,21 @@ test("fulfillment builds a Printful order from a paid Stripe session", async () 
   });
 
   assert.equal(result.provider, "printful");
+  assert.equal(result.externalId, printfulExternalId(session.id));
   assert.equal(result.created.id, "pf_order_123");
   assert.equal(result.confirmed, null);
   assert.equal(result.confirmationStatus, "skipped-test-mode");
+});
+
+test("Printful external ids fit provider limits for live Stripe sessions", async () => {
+  const { printfulExternalId } = await fulfillmentModule();
+  const stripeSessionId = "cs_live_a1XmaCJf5wHfQ6AnmzwZ5WVb2fT5Ptm3GoR9cxYmwYxdj2klgRkK0zt4JG";
+  const externalId = printfulExternalId(stripeSessionId);
+
+  assert.ok(externalId.startsWith("bp_l_"));
+  assert.ok(externalId.length <= 32);
+  assert.equal(externalId, printfulExternalId(stripeSessionId));
+  assert.notEqual(externalId, stripeSessionId);
 });
 
 test("fulfillment confirms Printful orders for live Stripe sessions", async () => {
@@ -601,6 +616,41 @@ test("fulfillment confirms Printful orders for live Stripe sessions", async () =
   assert.equal(result.created.data.id, "pf_order_456");
   assert.equal(result.confirmed.data.status, "confirmed");
   assert.equal(result.confirmationStatus, "confirmed");
+});
+
+test("fulfillment retries Printful confirmation while costs calculate", async () => {
+  const { confirmPrintfulOrderWhenReady } = await fulfillmentModule();
+  const calls = [];
+
+  const result = await confirmPrintfulOrderWhenReady({
+    orderId: "pf_order_456",
+    delaysMs: [0],
+    env: {
+      PRINTFUL_API_KEY: "test",
+      PRINTFUL_STORE_ID: "123"
+    },
+    fetchImpl: async (url, options) => {
+      calls.push({ url, method: options.method });
+      if (calls.length === 1) {
+        return {
+          ok: false,
+          status: 400,
+          json: async () => ({
+            error: {
+              message: "Order cannot be confirmed. Cost calculations still running, try again after costs have been calculated."
+            }
+          })
+        };
+      }
+      return {
+        ok: true,
+        json: async () => ({ data: { id: "pf_order_456", status: "confirmed" } })
+      };
+    }
+  });
+
+  assert.equal(calls.length, 2);
+  assert.equal(result.data.status, "confirmed");
 });
 
 test("fulfillment is idempotent for repeated Stripe webhook deliveries", async () => {

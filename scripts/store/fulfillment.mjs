@@ -43,6 +43,29 @@ export function printfulTechnique(method) {
   return "dtg";
 }
 
+function stableShortHash(value) {
+  let high = 0xdeadbeef;
+  let low = 0x41c6ce57;
+  const text = String(value || "");
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text.charCodeAt(index);
+    high = Math.imul(high ^ char, 2654435761);
+    low = Math.imul(low ^ char, 1597334677);
+  }
+  high = Math.imul(high ^ (high >>> 16), 2246822507) ^ Math.imul(low ^ (low >>> 13), 3266489909);
+  low = Math.imul(low ^ (low >>> 16), 2246822507) ^ Math.imul(high ^ (high >>> 13), 3266489909);
+  return (4294967296 * (2097151 & high) + (low >>> 0)).toString(36);
+}
+
+export function printfulExternalId(sessionId) {
+  const value = String(sessionId || "");
+  if (!value) throw new FulfillmentError("Stripe session id is required for Printful fulfillment.", 422);
+
+  const mode = value.startsWith("cs_live_") ? "l" : value.startsWith("cs_test_") ? "t" : "x";
+  const tail = value.replace(/[^A-Za-z0-9]/g, "").slice(-12) || "session";
+  return `bp_${mode}_${stableShortHash(value)}_${tail}`.slice(0, 32);
+}
+
 export function buildPrintfulOrder({ catalog, cartLines, session, env = process.env }) {
   const publicUrl = env.STORE_PUBLIC_URL || "https://bensonperry.com";
   const address = extractStripeAddress(session);
@@ -111,7 +134,7 @@ export function buildPrintfulOrder({ catalog, cartLines, session, env = process.
   });
 
   return {
-    external_id: session.id,
+    external_id: printfulExternalId(session.id),
     shipping: env.PRINTFUL_SHIPPING || "STANDARD",
     recipient: {
       name: address.name,
@@ -176,6 +199,31 @@ export async function confirmPrintfulOrder({ orderId, env = process.env, fetchIm
   return data;
 }
 
+function isPrintfulCostCalculationPending(error) {
+  const text = `${error?.message || ""} ${JSON.stringify(error?.details || {})}`;
+  return /cost calculations? still running|costs? (are )?still calculating|calculation_status/i.test(text);
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+export async function confirmPrintfulOrderWhenReady({ orderId, env = process.env, fetchImpl = fetch, delaysMs = [1500, 3000, 6000] }) {
+  let lastError = null;
+  for (let attempt = 0; attempt <= delaysMs.length; attempt += 1) {
+    try {
+      return await confirmPrintfulOrder({ orderId, env, fetchImpl });
+    } catch (error) {
+      lastError = error;
+      if (!isPrintfulCostCalculationPending(error) || attempt === delaysMs.length) throw error;
+      await sleep(delaysMs[attempt]);
+    }
+  }
+  throw lastError;
+}
+
 export async function fulfillStripeSessionWithPrintful({ catalog, cartLines, session, env = process.env, fetchImpl = fetch }) {
   const order = buildPrintfulOrder({ catalog, cartLines, session, env });
   const created = await createPrintfulOrder({ order, env, fetchImpl });
@@ -184,7 +232,7 @@ export async function fulfillStripeSessionWithPrintful({ catalog, cartLines, ses
   if (shouldConfirm && !orderId) {
     throw new FulfillmentError("Printful order creation did not return an order id for confirmation.", 502);
   }
-  const confirmed = shouldConfirm ? await confirmPrintfulOrder({ orderId, env, fetchImpl }) : null;
+  const confirmed = shouldConfirm ? await confirmPrintfulOrderWhenReady({ orderId, env, fetchImpl }) : null;
   const confirmationStatus = confirmed ? "confirmed" : session?.livemode === true ? "skipped-by-config" : "skipped-test-mode";
   return {
     provider: "printful",
