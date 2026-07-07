@@ -1,5 +1,5 @@
 import catalog from "../store/products.json" with { type: "json" };
-import { FulfillmentError, fulfillStripeSessionWithPrintful } from "../scripts/store/fulfillment.mjs";
+import { FulfillmentError, fulfillStripeSessionWithPrintful, printfulOrderId } from "../scripts/store/fulfillment.mjs";
 
 const STRIPE_API = "https://api.stripe.com/v1";
 const STRIPE_API_VERSION = "2026-03-25.dahlia";
@@ -168,7 +168,8 @@ async function fulfillCheckoutSession(session, env) {
       stripeSessionId: session?.id,
       provider: result.provider,
       providerExternalId: result.externalId,
-      providerOrderId: result.created?.id || result.created?.result?.id || null,
+      providerOrderId: printfulOrderId(result.created),
+      providerConfirmationStatus: result.confirmationStatus,
       updatedAt: new Date().toISOString()
     };
     if (env.STORE_ORDERS) await env.STORE_ORDERS.put(key, JSON.stringify(record));
@@ -177,6 +178,8 @@ async function fulfillCheckoutSession(session, env) {
       provider: result.provider,
       externalId: result.externalId,
       created: result.created,
+      confirmed: result.confirmed,
+      confirmationStatus: result.confirmationStatus,
       key,
       record,
       result

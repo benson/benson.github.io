@@ -128,15 +128,30 @@ export function buildPrintfulOrder({ catalog, cartLines, session, env = process.
   };
 }
 
+function printfulHeaders(env, hasBody = false) {
+  return {
+    Authorization: `Bearer ${env.PRINTFUL_API_KEY}`,
+    ...(hasBody ? { "Content-Type": "application/json" } : {}),
+    ...(env.PRINTFUL_STORE_ID ? { "X-PF-Store-Id": env.PRINTFUL_STORE_ID } : {})
+  };
+}
+
+export function printfulOrderId(response) {
+  return response?.id || response?.data?.id || response?.result?.id || null;
+}
+
+export function shouldConfirmPrintfulOrder({ session, env = process.env } = {}) {
+  if (env.PRINTFUL_CONFIRM_ORDERS === "true") return true;
+  if (env.PRINTFUL_CONFIRM_ORDERS === "false") return false;
+  return session?.livemode === true;
+}
+
 export async function createPrintfulOrder({ order, env = process.env, fetchImpl = fetch }) {
   if (!env.PRINTFUL_API_KEY) throw new FulfillmentError("Printful API key is not configured.", 503);
 
   const response = await fetchImpl("https://api.printful.com/v2/orders", {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${env.PRINTFUL_API_KEY}`,
-      "Content-Type": "application/json"
-    },
+    headers: printfulHeaders(env, true),
     body: JSON.stringify(order)
   });
   const data = await response.json().catch(() => ({}));
@@ -146,13 +161,37 @@ export async function createPrintfulOrder({ order, env = process.env, fetchImpl 
   return data;
 }
 
+export async function confirmPrintfulOrder({ orderId, env = process.env, fetchImpl = fetch }) {
+  if (!env.PRINTFUL_API_KEY) throw new FulfillmentError("Printful API key is not configured.", 503);
+  if (!orderId) throw new FulfillmentError("Printful order id is required before confirmation.", 502);
+
+  const response = await fetchImpl(`https://api.printful.com/v2/orders/${encodeURIComponent(orderId)}/confirmation`, {
+    method: "POST",
+    headers: printfulHeaders(env)
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new FulfillmentError(data.error?.message || data.message || "Printful order confirmation failed.", response.status, data);
+  }
+  return data;
+}
+
 export async function fulfillStripeSessionWithPrintful({ catalog, cartLines, session, env = process.env, fetchImpl = fetch }) {
   const order = buildPrintfulOrder({ catalog, cartLines, session, env });
   const created = await createPrintfulOrder({ order, env, fetchImpl });
+  const orderId = printfulOrderId(created);
+  const shouldConfirm = shouldConfirmPrintfulOrder({ session, env });
+  if (shouldConfirm && !orderId) {
+    throw new FulfillmentError("Printful order creation did not return an order id for confirmation.", 502);
+  }
+  const confirmed = shouldConfirm ? await confirmPrintfulOrder({ orderId, env, fetchImpl }) : null;
+  const confirmationStatus = confirmed ? "confirmed" : session?.livemode === true ? "skipped-by-config" : "skipped-test-mode";
   return {
     provider: "printful",
     externalId: order.external_id,
     order,
-    created
+    created,
+    confirmed,
+    confirmationStatus
   };
 }

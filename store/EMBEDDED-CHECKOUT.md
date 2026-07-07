@@ -34,7 +34,8 @@ flowchart LR
   - Lets the return page distinguish queued, processing, failed, and missing provider handoff states.
 - `POST /api/store/webhook/stripe`
   - Verifies the Stripe webhook signature.
-  - On successful payment, decodes the cart metadata and hands the order to the Printful fulfillment adapter.
+- On successful payment, decodes the cart metadata and hands the order to the Printful fulfillment adapter.
+- Creates a Printful draft order, then confirms it for live Stripe sessions so the provider can fulfill it.
   - Uses the `STORE_ORDERS` Cloudflare KV namespace to avoid duplicate Printful orders on repeated Stripe webhook delivery.
 
 ## Current backend deployment
@@ -118,7 +119,7 @@ Start with Stripe Embedded Checkout and US-only shipping. Prefer "shipping inclu
 
 Stripe's current embedded Checkout docs use `ui_mode=embedded_page` and `stripe.createEmbeddedCheckoutPage(...)`. The frontend calls `createEmbeddedCheckoutPage` when available and falls back to `initEmbeddedCheckout` for older Stripe.js behavior.
 
-When fulfillment credentials exist, the webhook should create a provider draft order first and only confirm it after the Stripe payment is complete.
+When fulfillment credentials exist, the webhook creates a provider draft order first. Test-mode Stripe sessions leave that Printful draft unconfirmed so trial checkouts cannot accidentally ship real products. Live Stripe sessions confirm the Printful order after payment; set `PRINTFUL_CONFIRM_ORDERS=false` only if you intentionally want a manual review hold.
 
 ## Wallet support
 

@@ -43,9 +43,10 @@ function readyPrintfulCatalog() {
   );
 }
 
-function paidStripeSession(cartMetadata) {
+function paidStripeSession(cartMetadata, overrides = {}) {
   return {
     id: "cs_test_123",
+    livemode: false,
     metadata: {
       cart: cartMetadata
     },
@@ -60,7 +61,8 @@ function paidStripeSession(cartMetadata) {
         country: "US",
         postal_code: "11201"
       }
-    }
+    },
+    ...overrides
   };
 }
 
@@ -480,13 +482,14 @@ test("checkout webhook route records fulfillment and exposes order status", asyn
       },
       fetchImpl: async () => ({
         ok: true,
-        json: async () => ({ id: "pf_order_route_123", status: "draft" })
+        json: async () => ({ data: { id: "pf_order_route_123", status: "draft" } })
       })
     }
   );
   const webhookBody = await webhook.json();
   assert.equal(webhook.status, 200);
   assert.equal(webhookBody.fulfillment.record.providerOrderId, "pf_order_route_123");
+  assert.equal(webhookBody.fulfillment.record.providerConfirmationStatus, "skipped-test-mode");
 
   const status = await handleStoreApiRequest(
     new Request("https://example.com/api/store/order-status?session_id=cs_test_123"),
@@ -537,6 +540,59 @@ test("fulfillment builds a Printful order from a paid Stripe session", async () 
 
   assert.equal(result.provider, "printful");
   assert.equal(result.created.id, "pf_order_123");
+  assert.equal(result.confirmed, null);
+  assert.equal(result.confirmationStatus, "skipped-test-mode");
+});
+
+test("fulfillment confirms Printful orders for live Stripe sessions", async () => {
+  const { encodeCartMetadata, fulfillStripeCheckoutSession } = await checkoutModule();
+  const session = paidStripeSession(
+    encodeCartMetadata([
+      {
+        productId: "small-useful-light-tee",
+        variantId: "small-useful-light-black-m",
+        sku: "small-useful-light-black-m",
+        quantity: 1
+      }
+    ]),
+    {
+      id: "cs_live_123",
+      livemode: true
+    }
+  );
+  const calls = [];
+
+  const result = await fulfillStripeCheckoutSession({
+    catalog: readyPrintfulCatalog(),
+    session,
+    env: {
+      PRINTFUL_API_KEY: "test",
+      STORE_PUBLIC_URL: "https://bensonperry.com"
+    },
+    fetchImpl: async (url, options) => {
+      calls.push({ url, method: options.method });
+      if (url === "https://api.printful.com/v2/orders") {
+        return {
+          ok: true,
+          json: async () => ({ data: { id: "pf_order_456", status: "draft" } })
+        };
+      }
+      assert.equal(url, "https://api.printful.com/v2/orders/pf_order_456/confirmation");
+      return {
+        ok: true,
+        json: async () => ({ data: { id: "pf_order_456", status: "confirmed" } })
+      };
+    }
+  });
+
+  assert.deepEqual(calls, [
+    { url: "https://api.printful.com/v2/orders", method: "POST" },
+    { url: "https://api.printful.com/v2/orders/pf_order_456/confirmation", method: "POST" }
+  ]);
+  assert.equal(result.provider, "printful");
+  assert.equal(result.created.data.id, "pf_order_456");
+  assert.equal(result.confirmed.data.status, "confirmed");
+  assert.equal(result.confirmationStatus, "confirmed");
 });
 
 test("fulfillment is idempotent for repeated Stripe webhook deliveries", async () => {

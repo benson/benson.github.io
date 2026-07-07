@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { FulfillmentError, fulfillStripeSessionWithPrintful } from "./fulfillment.mjs";
+import { FulfillmentError, fulfillStripeSessionWithPrintful, printfulOrderId } from "./fulfillment.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..", "..");
@@ -424,7 +424,8 @@ export async function fulfillStripeCheckoutSession({ catalog, session, env = pro
       stripeSessionId: session?.id,
       provider: result.provider,
       providerExternalId: result.externalId,
-      providerOrderId: result.created?.id || result.created?.result?.id || null,
+      providerOrderId: printfulOrderId(result.created),
+      providerConfirmationStatus: result.confirmationStatus,
       updatedAt: new Date().toISOString()
     };
     await putFulfillmentRecord(orderStore, key, record);
@@ -433,6 +434,8 @@ export async function fulfillStripeCheckoutSession({ catalog, session, env = pro
       provider: result.provider,
       externalId: result.externalId,
       created: result.created,
+      confirmed: result.confirmed,
+      confirmationStatus: result.confirmationStatus,
       key,
       record,
       result
