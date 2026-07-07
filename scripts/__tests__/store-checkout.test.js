@@ -291,6 +291,14 @@ test("checkout verifies Stripe webhook signatures", async () => {
 
   assert.equal(verifyStripeWebhookSignature(payload, `t=${timestamp},v1=${signature}`, secret), true);
   assert.throws(() => verifyStripeWebhookSignature(payload, `t=${timestamp},v1=bad`, secret));
+  assert.throws(
+    () => {
+      const staleTimestamp = timestamp - 600;
+      const staleSignature = crypto.createHmac("sha256", secret).update(`${staleTimestamp}.${payload}`).digest("hex");
+      verifyStripeWebhookSignature(payload, `t=${staleTimestamp},v1=${staleSignature}`, secret);
+    },
+    /Stale Stripe signature/
+  );
 });
 
 test("checkout webhook route records fulfillment and exposes order status", async () => {

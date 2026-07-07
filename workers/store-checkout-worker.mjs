@@ -332,7 +332,16 @@ async function stripeRequest(path, env, options = {}) {
   return data;
 }
 
-async function verifyWebhook(payload, signatureHeader, secret) {
+function safeEqualHex(actual, expected) {
+  if (actual.length !== expected.length) return false;
+  let diff = 0;
+  for (let index = 0; index < actual.length; index += 1) {
+    diff |= actual.charCodeAt(index) ^ expected.charCodeAt(index);
+  }
+  return diff === 0;
+}
+
+async function verifyWebhook(payload, signatureHeader, secret, toleranceSeconds = 300) {
   if (!secret) throw new StoreCheckoutError("Stripe webhook secret is not configured.", 503);
   if (!signatureHeader) throw new StoreCheckoutError("Missing Stripe signature.", 400);
 
@@ -340,6 +349,9 @@ async function verifyWebhook(payload, signatureHeader, secret) {
   const timestamp = Number(parts.t);
   const expected = parts.v1;
   if (!timestamp || !expected) throw new StoreCheckoutError("Invalid Stripe signature.", 400);
+
+  const age = Math.abs(Math.floor(Date.now() / 1000) - timestamp);
+  if (age > toleranceSeconds) throw new StoreCheckoutError("Stale Stripe signature.", 400);
 
   const key = await crypto.subtle.importKey(
     "raw",
@@ -350,7 +362,7 @@ async function verifyWebhook(payload, signatureHeader, secret) {
   );
   const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${timestamp}.${payload}`));
   const actual = [...new Uint8Array(signature)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-  if (actual !== expected) throw new StoreCheckoutError("Invalid Stripe signature.", 400);
+  if (!safeEqualHex(actual, expected)) throw new StoreCheckoutError("Invalid Stripe signature.", 400);
 }
 
 async function handle(request, env) {
@@ -423,4 +435,4 @@ export default {
   }
 };
 
-export { buildCheckoutParams, checkoutAllowedCountries, checkoutConfig, resolveCart };
+export { buildCheckoutParams, checkoutAllowedCountries, checkoutConfig, resolveCart, verifyWebhook };

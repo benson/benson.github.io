@@ -1,4 +1,5 @@
 const assert = require("node:assert/strict");
+const crypto = require("node:crypto");
 const test = require("node:test");
 
 async function workerModule() {
@@ -37,4 +38,31 @@ test("worker checkout config matches wallet readiness markers", async () => {
   assert.equal(config.payments.wallets.applePay.status, "eligible");
   assert.equal(config.payments.wallets.googlePay.status, "eligible");
   assert.equal(config.payments.wallets.link.status, "eligible");
+});
+
+function signPayload(payload, secret, timestamp) {
+  return crypto.createHmac("sha256", secret).update(`${timestamp}.${payload}`).digest("hex");
+}
+
+test("worker webhook verification accepts fresh Stripe signatures", async () => {
+  const { verifyWebhook } = await workerModule();
+  const secret = "whsec_worker_test";
+  const payload = JSON.stringify({ id: "evt_worker_test" });
+  const timestamp = Math.floor(Date.now() / 1000);
+  const signature = signPayload(payload, secret, timestamp);
+
+  await assert.doesNotReject(() => verifyWebhook(payload, `t=${timestamp},v1=${signature}`, secret));
+});
+
+test("worker webhook verification rejects stale Stripe signatures", async () => {
+  const { verifyWebhook } = await workerModule();
+  const secret = "whsec_worker_test";
+  const payload = JSON.stringify({ id: "evt_worker_test" });
+  const timestamp = Math.floor(Date.now() / 1000) - 600;
+  const signature = signPayload(payload, secret, timestamp);
+
+  await assert.rejects(
+    () => verifyWebhook(payload, `t=${timestamp},v1=${signature}`, secret),
+    /Stale Stripe signature/
+  );
 });
