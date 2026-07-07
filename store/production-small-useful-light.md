@@ -30,7 +30,7 @@ A small lamp turning a tangled line into a clear path. No text, no brand marks, 
 - Front placement: left chest, using `small-useful-light-front.png`
 - Back placement: full back print, using `small-useful-light-generated-print-4500.png`
 - Listing title: small useful light
-- Listing price: $34
+- Listing price: $39.95
 
 Run this after the Fourthwall account/API credential exists:
 
