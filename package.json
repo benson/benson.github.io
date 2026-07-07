@@ -9,6 +9,7 @@
     "store:checkout:setup": "node scripts/store/checkout-setup.mjs",
     "store:fulfillment:doctor": "node scripts/store/fulfillment-doctor.mjs",
     "store:launch:check": "node scripts/store/launch-check.mjs",
+    "store:product:scaffold": "node scripts/store/product-scaffold.mjs",
     "store:printful:map": "node scripts/store/printful-map.mjs",
     "store:route:setup": "node scripts/store/route-setup.mjs"
   },

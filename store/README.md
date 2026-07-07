@@ -6,15 +6,21 @@ The embedded checkout target is Stripe plus Printful. Fourthwall remains a tempo
 
 ## Product Workflow
 
-1. Make the design/art file.
-2. Add production fields, storefront variants, checkout settings, and fulfillment mapping to `store/products.json`.
-3. Save the product mockup under `store/assets/`.
-4. Run `npm run store:printful:map -- --product <product-id> --catalog-product <printful-catalog-product-id> --apply`.
-5. Run `npm run store:fulfillment:doctor -- --network`.
-6. Run `npm run store:launch:check -- --network`.
-7. Run `npm run store:checkout:setup -- --create-webhook --register-payment-domain --write-local --deploy` once Stripe and Printful credentials exist.
-8. Run `npm run store:launch:check -- --network --live`.
-9. Deploy the homepage and Worker once the launch check is clean.
+1. Scaffold the listing:
+
+```powershell
+npm run store:product:scaffold -- --title "<product title>" --type t-shirt
+```
+
+2. Make the design/art file.
+3. Add the scaffolded product plus production fields, storefront variants, checkout settings, and fulfillment mapping to `store/products.json`.
+4. Save the product mockup under `store/assets/`.
+5. Run `npm run store:printful:map -- --product <product-id> --catalog-product <printful-catalog-product-id> --apply`.
+6. Run `npm run store:fulfillment:doctor -- --network`.
+7. Run `npm run store:launch:check -- --network`.
+8. Run `npm run store:checkout:setup -- --create-webhook --register-payment-domain --write-local --deploy` once Stripe and Printful credentials exist.
+9. Run `npm run store:launch:check -- --network --live`.
+10. Deploy the homepage and Worker once the launch check is clean.
 
 When the Cloudflare token has route-edit permission for `bensonperry.com`, rerun the launch check with `--same-origin` to verify `https://bensonperry.com/api/store/*`. Until then the storefront tries same-origin first and falls back to the workers.dev checkout API.
 
