@@ -55,6 +55,69 @@ test("Fourthwall template ranking prefers DTG black shirt templates with require
   assert.deepEqual(fourthwall.chooseSizes(template, ["Black"], ["S", "M", "XL"]), ["S", "M"]);
 });
 
+test("Fourthwall template ranking rejects youth sweatshirts that contain shirt text", async () => {
+  const fourthwall = await loadModule();
+  const ranking = fourthwall.rankTemplate({
+    name: "Gildan Youth Crew Neck Sweatshirt",
+    slug: "gildan-youth-crew-neck-sweatshirt",
+    category: "Apparel/Kids Clothing",
+    brand: "Gildan",
+    productionMethod: "DTG",
+    supportsBackendRendering: true,
+    colorVariants: [
+      {
+        color: { name: "Black", hex: "#000000" },
+        available: true,
+        sizeVariants: [{ size: "S", available: true }]
+      }
+    ],
+    customizableAreas: [
+      { regionId: "front", name: "Front", available: true, supportsBackendRendering: true },
+      { regionId: "back", name: "Back", available: true, supportsBackendRendering: true }
+    ]
+  }, { production: { method: "dtg" } }, ["front", "back"]);
+
+  assert.equal(ranking.score, -Infinity);
+  assert.deepEqual(ranking.reasons, ["not an adult t-shirt blank"]);
+});
+
+test("Fourthwall template listing follows paged results when the first response is partial", async () => {
+  const fourthwall = await loadModule();
+  const routes = [];
+  const client = {
+    async get(route) {
+      routes.push(route);
+      if (route === "/open-api/v1.0/product-templates") {
+        return {
+          results: [{ productId: "page-zero" }],
+          total: 3
+        };
+      }
+      if (route === "/open-api/v1.0/product-templates/page/1") {
+        return {
+          results: [{ productId: "page-one-a" }, { productId: "page-one-b" }],
+          total: 3
+        };
+      }
+      if (route === "/open-api/v1.0/product-templates/page/2") {
+        return {
+          results: [{ productId: "page-two" }],
+          total: 3
+        };
+      }
+      throw new Error(`unexpected route ${route}`);
+    }
+  };
+
+  const templates = await fourthwall.listProductTemplates(client);
+  assert.deepEqual(templates.map((template) => template.productId), ["page-one-a", "page-one-b", "page-two"]);
+  assert.deepEqual(routes, [
+    "/open-api/v1.0/product-templates",
+    "/open-api/v1.0/product-templates/page/1",
+    "/open-api/v1.0/product-templates/page/2"
+  ]);
+});
+
 test("Fourthwall product request uses registered media image ids", async () => {
   const fourthwall = await loadModule();
   const request = fourthwall.createDesignProductRequest({
@@ -127,9 +190,9 @@ test("Fourthwall publisher can run the full create and publish flow against mock
   const calls = [];
 
   const productTemplateSummary = {
-    productId: "pro_test",
-    name: "Premium T-Shirt",
-    slug: "premium-t-shirt",
+    productId: "pro_rkWo0swHRROhNgJEeNQR_A",
+    name: "LAT Unisex Fine Jersey Tee",
+    slug: "lat-unisex-fine-jersey-tee",
     category: "apparel/t-shirts",
     brand: "Comfort Colors",
     basePrice: { amount: 21.5, currency: "USD" },
@@ -187,7 +250,7 @@ test("Fourthwall publisher can run the full create and publish flow against mock
     if (method === "GET" && parsed.pathname === "/open-api/v1.0/product-templates/page/1") {
       return json({ results: [productTemplateSummary], total: 1 });
     }
-    if (method === "GET" && parsed.pathname === "/open-api/v1.0/product-templates/pro_test") {
+    if (method === "GET" && parsed.pathname === "/open-api/v1.0/product-templates/pro_rkWo0swHRROhNgJEeNQR_A") {
       return json(productTemplate);
     }
     if (method === "POST" && parsed.pathname === "/open-api/v1.0/media/upload-url") {
@@ -263,7 +326,7 @@ test("Fourthwall publisher can run the full create and publish flow against mock
 
   const createCall = calls.find((call) => call.method === "POST" && call.path === "/open-api/v1.0/products");
   assert.equal(createCall.body.type, "design");
-  assert.equal(createCall.body.productTemplateId, "pro_test");
+  assert.equal(createCall.body.productTemplateId, "pro_rkWo0swHRROhNgJEeNQR_A");
   assert.equal(createCall.body.publishOnCreate, true);
   assert.deepEqual(createCall.body.regions, [
     { region: "front", imageId: "img_front", placementStrategy: "AUTO" },

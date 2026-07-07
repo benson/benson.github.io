@@ -26,7 +26,7 @@ A small lamp turning a tangled line into a clear path. No text, no brand marks, 
 
 - Provider: Fourthwall
 - Product type: printed t-shirt, DTG
-- Blank: black heavyweight or garment-dyed unisex tee
+- Blank: LAT Unisex Fine Jersey Tee, black
 - Front placement: left chest, using `small-useful-light-front.png`
 - Back placement: full back print, using `small-useful-light-generated-print-4500.png`
 - Listing title: small useful light

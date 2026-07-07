@@ -3,7 +3,7 @@
   "provider": {
     "recommended": "fourthwall",
     "mode": "api-published-hosted-product-links",
-    "notes": "Run npm run store:publish to upload artwork, create the Fourthwall product, and write checkoutUrl."
+    "notes": "Use npm run store:publish to upload artwork, create the Fourthwall product, and write checkoutUrl."
   },
   "products": [
     {
@@ -13,7 +13,7 @@
       "category": "apparel",
       "price": 3400,
       "currency": "USD",
-      "status": "ready",
+      "status": "live",
       "image": "assets/small-useful-light-generated-mockup.png",
       "alt": "black t-shirt mockup with a lamp illustration turning a tangled line into a glowing clear path",
       "summary": "a black tee with a little lamp doing the thing i like best: turning a knot into a path.",
@@ -22,10 +22,11 @@
         "small front mark",
         "generated dtg file ready"
       ],
-      "checkoutUrl": "",
+      "checkoutUrl": "https://bensonperry-com-store-shop.fourthwall.com/products/small-useful-light",
       "fulfillment": "fourthwall",
       "publishing": {
         "fourthwall": {
+          "templateId": "pro_rkWo0swHRROhNgJEeNQR_A",
           "colors": [
             "Black"
           ],
@@ -52,13 +53,42 @@
       },
       "production": {
         "method": "dtg",
-        "blank": "black heavyweight or garment-dyed unisex tee",
+        "blank": "LAT Unisex Fine Jersey Tee, black",
         "backArtwork": "assets/small-useful-light-generated-print-4500.png",
         "frontArtwork": "assets/small-useful-light-front.png",
         "fallbackBackArtwork": "assets/small-useful-light-back.png",
         "frontSource": "assets/small-useful-light-front.svg",
         "fallbackBackSource": "assets/small-useful-light-back.svg",
         "notes": "Use the generated transparent PNG as the primary back print. Use the small SVG-derived front mark for the left chest, or crop the lamp from the generated art inside the provider editor if it supports that workflow."
+      },
+      "providerProduct": {
+        "provider": "fourthwall",
+        "productId": "9c525961-2cd9-4b06-8a66-a069ffd377f0",
+        "customizationId": "cud_8GGOHHz-QG6f3Y8p5S9UFA",
+        "productTemplateId": "pro_rkWo0swHRROhNgJEeNQR_A",
+        "productUrl": "https://bensonperry-com-store-shop.fourthwall.com/products/small-useful-light",
+        "shopDomain": "bensonperry-com-store-shop.fourthwall.com",
+        "colors": [
+          "Black"
+        ],
+        "sizes": [
+          "S",
+          "M",
+          "L",
+          "XL",
+          "2XL"
+        ],
+        "regions": [
+          {
+            "region": "front",
+            "artwork": "assets/small-useful-light-front.png"
+          },
+          {
+            "region": "back",
+            "artwork": "assets/small-useful-light-generated-print-4500.png"
+          }
+        ],
+        "updatedAt": "2026-07-07T01:24:55.111Z"
       }
     }
   ]

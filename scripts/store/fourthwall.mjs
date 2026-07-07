@@ -337,7 +337,9 @@ export async function listProductTemplates(client) {
   try {
     const unpaged = await client.get("/open-api/v1.0/product-templates");
     if (Array.isArray(unpaged)) return unpaged;
-    if (Array.isArray(unpaged?.results)) return unpaged.results;
+    if (Array.isArray(unpaged?.results) && unpaged.results.length >= Number(unpaged.total || 0)) {
+      return unpaged.results;
+    }
   } catch (error) {
     if (!(error instanceof FourthwallApiError) || error.status !== 404) throw error;
   }
@@ -389,8 +391,34 @@ function templateBaseAmount(template) {
 }
 
 function areaMatches(area, region) {
-  const expected = normalize(region);
-  return normalize(area.regionId) === expected || normalize(area.name).includes(expected);
+  const expected = regionKey(region);
+  return regionKey(area.regionId) === expected || regionKey(area.name) === expected;
+}
+
+function regionKey(value) {
+  return normalize(value).replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+
+function incompatibleTemplateText(template) {
+  const text = templateText(template);
+  const category = normalize(template.category);
+  return (
+    text.includes("sweatshirt") ||
+    text.includes("hoodie") ||
+    text.includes("polo") ||
+    text.includes("tank") ||
+    text.includes("jersey") ||
+    text.includes("rash guard") ||
+    text.includes("bodysuit") ||
+    text.includes("baby") ||
+    text.includes("youth") ||
+    text.includes("kids") ||
+    category.includes("kids clothing") ||
+    category.includes("hoodies") ||
+    category.includes("sweatshirts") ||
+    category.includes("polo") ||
+    category.includes("tank")
+  );
 }
 
 function hasAvailableRegion(template, region) {
@@ -404,6 +432,7 @@ export function rankTemplate(template, product, requiredRegions = []) {
   let score = 0;
   const reasons = [];
 
+  if (incompatibleTemplateText(template)) return { score: -Infinity, reasons: ["not an adult t-shirt blank"] };
   if (template.supportsBackendRendering === false) return { score: -Infinity, reasons: ["does not support backend rendering"] };
   score += 20;
 
@@ -418,6 +447,9 @@ export function rankTemplate(template, product, requiredRegions = []) {
   }
 
   if (text.includes("apparel")) score += 5;
+  if (normalize(template.category).includes("apparel/t-shirts")) score += 25;
+  if (text.includes("unisex")) score += 12;
+  if (text.includes("supersoft")) score += 10;
 
   const blackVariant = availableColorVariants(template).find((variant) =>
     normalize(colorName(variant)) === "black" || normalize(variant.color?.hex) === "#000000"
@@ -513,13 +545,20 @@ function roundMoney(value) {
 }
 
 export async function selectTemplate(client, product, options = {}) {
+  const requiredRegions = defaultRegionMappings(product).map((mapping) => mapping.region);
+
   if (options.templateId || product.publishing?.fourthwall?.templateId) {
     const templateId = options.templateId || product.publishing.fourthwall.templateId;
     const template = await getProductTemplate(client, templateId);
+    const missingRegions = requiredRegions.filter((region) => !hasAvailableRegion(template, region));
+    if (missingRegions.length > 0) {
+      throw new Error(
+        `${template.name} does not expose required Fourthwall region(s): ${missingRegions.join(", ")}`
+      );
+    }
     return { template, considered: [{ template, score: 999, reasons: ["explicit template id"] }] };
   }
 
-  const requiredRegions = defaultRegionMappings(product).map((mapping) => mapping.region);
   const summaries = await listProductTemplates(client);
   const likely = summaries
     .filter((summary) => {
@@ -527,13 +566,12 @@ export async function selectTemplate(client, product, options = {}) {
       return (
         text.includes("t-shirt") ||
         text.includes("tee") ||
-        text.includes("shirt") ||
-        text.includes("apparel")
+        normalize(summary.category).includes("apparel/t-shirts")
       );
     })
     .filter((summary) => normalize(summary.productionMethod) === "dtg" || normalize(product.production?.method) !== "dtg")
     .filter((summary) => summary.supportsBackendRendering !== false)
-    .slice(0, 24);
+    .filter((summary) => !incompatibleTemplateText(summary));
 
   const detailed = [];
   for (const summary of likely) {
