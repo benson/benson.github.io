@@ -1,69 +1,102 @@
 # Checkout platform options
 
-Goal: let a customer buy from `https://bensonperry.com/store` without being sent to a separate storefront, while keeping product launches low-friction for future ideas.
+Researched against official docs on 2026-07-07.
 
-## Requirements
+Goal: a buyer should be able to start and finish a purchase at `https://bensonperry.com/store`, while future product launches stay close to "give Codex an idea, approve the result, and sell it."
 
-- Custom storefront and checkout entry live on `bensonperry.com/store`.
-- Buyer can pay by credit card plus accelerated wallets where the platform supports them.
-- Product creation stays programmable from artwork and a short product brief.
-- Fulfillment is print-on-demand, so Benson does not pack or ship items manually.
-- Avoid a full ecommerce admin surface unless it removes more friction than it adds.
+## Decision criteria
 
-## What the docs imply
+- Same-site buyer experience: cart, shipping details, and payment happen from `bensonperry.com/store`.
+- Custom storefront UI: the visible store remains a file we can design and iterate on directly.
+- Programmatic product pipeline: artwork, mockups, product metadata, variants, and fulfillment mapping can be generated or checked by scripts.
+- Print-on-demand fulfillment: Benson should not pack, ship, or manually create provider orders.
+- Low operating surface: avoid WordPress/plugin/server maintenance unless it removes more work than it adds.
+- Wallet support: card is required; Apple Pay, Google Pay, and Link are strong fits; Shop Pay is desirable but must not force the whole architecture into a bad shape.
+
+## Short version
+
+The best fit is still:
+
+1. Custom static storefront at `bensonperry.com/store`.
+2. Small Cloudflare Worker checkout API.
+3. Stripe Embedded Checkout or Stripe Payment Element for same-site card, Apple Pay, Google Pay, and Link.
+4. Printful first for fulfillment automation, with Gelato kept as the strongest alternate provider.
+5. Optional Shop Pay Wallet later, only if the extra Shopify account/reconciliation work is worth it.
+
+The reason is simple: strict same-site checkout rules out most "easy merch store" platforms, and strict product automation rules out most embed-a-store widgets. Stripe plus a POD API is more infrastructure than a hosted shop, but it is the only path in this set that keeps the checkout on Benson's site and keeps the product factory programmable.
+
+## Option matrix
+
+| Option | Same-site checkout | Custom UI | Product automation | Fulfillment automation | Wallets | Fit |
+| --- | --- | --- | --- | --- | --- | --- |
+| Fourthwall hosted/storefront API | No | Medium | Good | Excellent | Platform-owned | Fallback only |
+| Shopify Storefront API / Hydrogen | No for checkout | Good | Good | Good via apps | Best Shop Pay | Not for strict same-site checkout |
+| Shopify Shop Pay button | No, checkout link | Limited | Medium | Shopify-centered | Shop Pay | Shortcut only |
+| Shop Pay Wallet API | Mostly popup-based | Good | Complex | We own reconciliation | Shop Pay | Later add-on |
+| Stripe Embedded Checkout + Printful | Yes | Excellent | Excellent | Good | Card, Link, Apple Pay, Google Pay where eligible | Best MVP |
+| Stripe Payment Element + Printful | Yes | Excellent | Excellent | Good | Most flexible Stripe wallets | Next evolution if Embedded Checkout is too boxed-in |
+| BigCommerce Embedded Checkout | Mostly yes | Medium | Good | Needs integration choices | Depends on payment setup | Credible but heavier |
+| WooCommerce + Stripe + Printful | Yes | Medium | Good | Good via plugin | Card, Apple Pay, Google Pay, Link | Capable but too much maintenance |
+| Snipcart + POD webhook | Yes-ish embedded overlay | Medium | Medium | Custom webhook needed | Stripe-dependent | Useful, but not enough control |
+| Ecwid embed | Yes-ish embedded store | Low/medium | Medium | Apps/API | Depends on plan/gateway | Easy admin, weaker Codex pipeline |
+| Medusa / Saleor / Commerce Layer / Swell | Yes | Excellent | Excellent | Custom integration | Gateway-dependent | Too much platform surface for this store |
+
+## Platform notes
 
 ### Fourthwall
 
-Fourthwall is excellent for creator-merch fulfillment and product creation, and the current API automation already proves that. It is not a fit for this checkout goal.
+Fourthwall is still the easiest creator-merch backend. It is good at products, mockups, fulfillment, customer support flows, and the current automation already proves it can support quick product launches.
 
-Fourthwall's Storefront API docs say its checkout path redirects customers to Fourthwall's hosted checkout page, and the help docs explicitly say you cannot build a custom checkout flow with that API. Fourthwall's Open API fulfillment endpoint is for adding fulfillment/tracking to an existing Fourthwall order, not for creating a print-on-demand order from an external Stripe payment.
+It fails the new checkout constraint. Fourthwall's custom storefront path leads to Fourthwall checkout, and the available fulfillment API is for adding fulfillment/tracking information to existing Fourthwall orders rather than creating a new POD order from an external Stripe payment.
 
-Useful source:
+Useful sources:
 
 - https://docs.fourthwall.com/storefront/overview
 - https://docs.fourthwall.com/storefront/checkout
-- https://docs.fourthwall.com/api-reference/platform/fulfillment/create-fulfillment
 - https://help.fourthwall.com/manage-my-shop/apps-features-and-integrations/storefront-api-for-custom-storefronts
+- https://docs.fourthwall.com/api-reference/platform/fulfillment/create-fulfillment
 
-Verdict: keep as the temporary fallback and a useful reference implementation, but do not build the final checkout on it.
+Verdict: keep as live fallback while the embedded checkout matures. Do not use it as the final same-site checkout backend.
 
 ### Shopify Storefront API and Hydrogen
 
-Shopify gives the best native Shop Pay story, but normal headless Shopify checkout still sends the buyer to Shopify's web checkout. Shopify's Storefront API cart docs describe `checkoutUrl` as the field used to direct or redirect buyers to Shopify web checkout. Hydrogen docs also say customers are directed back to Shopify-hosted checkout.
+Shopify is the strongest all-in commerce backend and gives the best native Shop Pay story. The problem is the checkout handoff: headless Shopify flows use a checkout URL / web checkout handoff, so the buyer leaves our page for Shopify checkout.
 
-Useful source:
+Useful sources:
 
 - https://shopify.dev/docs/api/storefront/latest/objects/Cart
 - https://shopify.dev/docs/storefronts/headless/hydrogen/migrate
 
-Verdict: strong commerce backend, weak fit for the "start to finish on bensonperry.com/store" requirement unless we accept Shopify-hosted checkout.
+Verdict: excellent if we relax "checkout starts and finishes on `bensonperry.com/store`." Poor fit if we keep that requirement.
 
-### Shopify Shop Pay button / Storefront Web Components
+### Shopify Shop Pay button and Web Components
 
-Shopify's simple Shop Pay button can be embedded on any site, but it uses Checkout Links and directs the buyer to an accelerated buy-it-now checkout. That is useful, but it is still not a full custom checkout on our page.
+Shopify's web components and Shop Pay button can add a fast buy path, but they are checkout-link based. This is convenient, not a custom checkout.
 
-Useful source:
+Useful sources:
 
 - https://shopify.dev/docs/storefronts/headless/additional-sdks/web-components
 - https://shopify.dev/docs/api/storefront-web-components
 
-Verdict: useful if we want a fast Shop Pay shortcut, not enough for the whole checkout.
+Verdict: possible shortcut later. Not the primary checkout.
 
 ### Shop Pay Wallet API
 
-This is the only Shopify path that looks like it can add Shop Pay to an existing checkout. It is real, but not lightweight. Shopify says it requires a new Shopify store, Shopify Payments in test mode for development, allowed origins, Storefront API credentials, GraphQL Admin API credentials, event handling, order reconciliation, fulfillment tracking, refunds, disputes, and monitoring. Most Shop Pay interactions happen in a Shopify-hosted popup.
+This is the real route for adding Shop Pay to a checkout that is not simply Shopify web checkout. It also comes with a lot of machinery: Shopify store setup, Shopify Payments, allowed origins, Storefront API credentials, Admin API credentials, Shop Pay event handling, order reconciliation, fulfillment tracking, refunds, disputes, and monitoring.
 
 Useful source:
 
 - https://shopify.dev/docs/api/commerce-components/pay
 
-Verdict: possible later, but too heavy to make the core MVP depend on it. Add it as a second payment lane after Stripe checkout and fulfillment are working.
+Verdict: add only after Stripe checkout and fulfillment work end to end. It is not the right dependency for the MVP.
 
 ### Stripe Embedded Checkout / Payment Element
 
-Stripe has the best fit for "checkout on my page." Embedded Checkout renders a secure checkout form on our website, created by a backend Checkout Session. Stripe says Checkout Sessions must be created server-side because they need a secret key. Stripe's embedded Checkout can collect shipping and billing addresses, use Stripe Tax, and supports Link by default. Stripe's Express Checkout Element supports Apple Pay, Google Pay, Link, PayPal, Klarna, and Amazon Pay where enabled, supported, and available.
+Stripe is the cleanest same-site payment layer. The backend creates a Checkout Session or PaymentIntent; the page renders Stripe's secure payment UI; the buyer stays on `bensonperry.com/store`. Stripe's current embedded Checkout docs use `ui_mode=embedded_page` and `stripe.createEmbeddedCheckoutPage(...)`; older examples used `embedded` / `initEmbeddedCheckout`, so our implementation supports the new path and falls back to the old JS method if necessary.
 
-Useful source:
+Embedded Checkout is quickest. Payment Element is more work but gives more direct control if we outgrow the Checkout frame. Stripe can support cards, Link, Apple Pay, and Google Pay where the Stripe account, domain, browser, device, and payment-method settings are eligible. Stripe does not give us Shop Pay.
+
+Useful sources:
 
 - https://docs.stripe.com/checkout/embedded/quickstart
 - https://docs.stripe.com/payments/payment-element
@@ -71,66 +104,127 @@ Useful source:
 - https://docs.stripe.com/payments/payment-methods/integration-options
 - https://docs.stripe.com/payments/payment-methods/pmd-registration
 
-Verdict: best core checkout fit. Needs a backend and Stripe account credentials. Does not provide Shop Pay.
+Verdict: best checkout fit. Requires Stripe account credentials, webhook setup, domain wallet setup, and a tax/shipping strategy.
 
 ### BigCommerce Embedded Checkout
 
-BigCommerce can iframe its PCI-compliant checkout into a headless storefront. This keeps the buyer in context, but the checkout UI is BigCommerce's optimized one-page checkout, and BigCommerce docs note limited payment options in embedded checkout for headless storefronts. It also does not solve Shop Pay.
+BigCommerce can provide a PCI-compliant embedded checkout for headless storefronts. This is a real same-context checkout option, and BigCommerce supplies more commerce admin surface than Stripe alone.
 
-Useful source:
+The tradeoff is weight: we inherit a larger ecommerce backend, its checkout UI assumptions, and payment/checkout constraints that are less tailored to the "small programmable object factory" we want.
+
+Useful sources:
 
 - https://docs.bigcommerce.com/developer/docs/admin/checkout-and-cart/embedded-checkout/overview
 - https://docs.bigcommerce.com/developer/docs/storefront/headless/cart-and-checkout/checkout
 - https://docs.bigcommerce.com/developer/docs/admin/checkout-and-cart/payments/overview
 
-Verdict: credible if we wanted a hosted ecommerce backend, but heavier than Stripe and less aligned with the lightweight product workbench.
+Verdict: credible backup if Stripe-plus-POD becomes too custom. Not the lightest first move.
 
 ### WooCommerce
 
-WooCommerce can provide same-site checkout, the official Stripe extension supports onsite cards and wallets like Apple Pay / Google Pay / Link, and Printful's WooCommerce integration can auto-import paid orders for fulfillment.
+WooCommerce plus the official Stripe extension can keep checkout on-site and support express wallets. Printful also has a WooCommerce integration that can automate fulfillment for paid orders.
 
-Useful source:
+It solves many ecommerce basics but adds WordPress hosting, plugin updates, backups, security surface, and a larger admin mental model. That works for a store-first business; it is less attractive for a tiny experimental storefront managed through Codex.
+
+Useful sources:
 
 - https://woocommerce.com/document/stripe/
 - https://woocommerce.com/document/stripe/setup-and-configuration/express-checkouts/
 - https://woocommerce.com/document/printful/
 - https://developer.woocommerce.com/docs/apis/rest-api/
 
-Verdict: very capable and off-the-shelf, but it adds WordPress hosting, plugin maintenance, backups, and a larger admin surface. It is less pleasant for the "tell Codex an idea and ship it" workflow unless we intentionally want WooCommerce to become the store backend.
+Verdict: very capable, but higher maintenance than this project deserves.
 
-### Printful, Printify, and Gelato fulfillment
+### Snipcart
 
-For a Stripe-owned checkout, we need a separate print-on-demand fulfillment backend. Printful has catalog APIs, order creation, order confirmation, shipping rates, mockup generation, and webhooks. Printify has product publishing, image upload, order submission, and webhook-style automation, but provider selection and mockup behavior can be more marketplace-like. Gelato has templates, order APIs, product-from-template APIs, webhooks, and broad global production.
+Snipcart can make a static site sell products with an embedded cart/checkout and webhooks. It is a tempting middle ground because it avoids building a checkout API from scratch.
+
+The drawbacks are control and automation. We would still need custom webhook code to bridge paid Snipcart orders into a POD provider, and the product pipeline would be split between static product markup/config and Snipcart's order system. It also does not improve the Shop Pay story.
+
+Useful sources:
+
+- https://docs.snipcart.com/v3/
+- https://docs.snipcart.com/v3/webhooks/introduction
+- https://docs.snipcart.com/v3/api-reference/orders
+
+Verdict: good for quick static-site commerce. Less good for a Codex-owned product factory.
+
+### Ecwid
+
+Ecwid is an easy embedded-store option with payments, product admin, and app integrations. It is one of the lowest-effort ways to put an ecommerce widget on an existing site.
+
+The tradeoff is UI/control and product workflow. The store becomes an embedded Ecwid surface rather than a page we fully own, and future product automation has to fit Ecwid's product/admin model. It is probably easy for a human shop owner; it is less ideal for "tell Codex the idea and let scripts handle the rest."
+
+Useful sources:
+
+- https://docs.ecwid.com/
+- https://docs.ecwid.com/api-reference/storefront-widget-js-api
+- https://docs.ecwid.com/api-reference/rest-api
+
+Verdict: easy backup if we decide custom checkout is not worth it. Not the best fit for the target workflow.
+
+### Headless commerce frameworks
+
+Medusa, Saleor, Commerce Layer, Swell, and similar platforms can provide proper commerce APIs while keeping the storefront custom. They are real options if the store grows into inventory, promotions, multi-product collections, customer accounts, returns, and richer order management.
+
+For this project they are too much platform. We would still need Stripe, wallet configuration, POD fulfillment integration, hosting, migrations, and operational ownership.
+
+Verdict: revisit only if the store becomes a meaningful product line.
+
+## Fulfillment providers
+
+### Printful
+
+Printful remains the best first fulfillment target because it exposes the practical pieces we need: catalog data, product/variant information, order creation, order confirmation, shipping/rates concepts, files/placements, mockups, and webhooks. It also has a mature merchant dashboard, which matters when something goes wrong.
 
 Useful source:
 
 - https://developers.printful.com/docs/v2-beta/
-- https://developers.printify.com/
+
+Verdict: first provider to wire up.
+
+### Gelato
+
+Gelato has strong global/local production and template-based APIs. It may be better if worldwide fulfillment becomes important or if its template flow makes repeatable product creation smoother than Printful for certain items.
+
+Useful sources:
+
 - https://dashboard.gelato.com/docs/
 - https://dashboard.gelato.com/docs/ecommerce/products/create-from-template/
 - https://dashboard.gelato.com/docs/webhooks/
 
-Verdict: use Printful or Gelato as the first fulfillment API. Printful is the best initial fit because the API exposes catalog specs, mockups, shipping rates, order drafts, confirmation, and webhooks in one place. Gelato is a strong second candidate if we care more about global/local production.
+Verdict: best alternate provider.
+
+### Printify
+
+Printify has APIs for images, products, publishing, and orders, but its marketplace/provider model means product setup can involve more choices about print provider, variant availability, and print areas. That can be powerful, but it is slightly less clean as the first automation target.
+
+Useful source:
+
+- https://developers.printify.com/
+
+Verdict: viable, but not first.
 
 ## Recommendation
 
-Build the next version around:
+Keep building the embedded Stripe + Printful path.
 
-1. Static custom storefront at `bensonperry.com/store`.
-2. Small backend API for checkout session creation, Stripe webhook handling, and fulfillment order creation.
-3. Stripe Embedded Checkout as the core payment path.
-4. Printful as the first fulfillment target, with Gelato kept as the likely alternate if Printful's catalog/product constraints are annoying.
-5. Shop Pay Wallet as an optional later integration, gated behind Shopify account setup, because it requires a new Shopify store and more reconciliation work.
+This is not because it is the least code. It is because it is the least compromise against the real goal: a cute custom store that stays on Benson's site and a product workflow where the infrastructure disappears behind scripts.
 
-This gives the best tradeoff: the buyer stays on the site, the UI stays ours, card / Apple Pay / Google Pay can be supported through Stripe, and future product launches can still be driven by a product manifest plus artwork.
+The implementation should keep escape hatches:
+
+- Fulfillment adapter interface: Printful first, Gelato next if needed.
+- Payment abstraction: Stripe Embedded Checkout first, Stripe Payment Element if we need more UI control.
+- Shop Pay as separate optional lane, not a foundation dependency.
+- Fourthwall buy links remain a temporary fallback until Stripe/fulfillment credentials are production-ready.
 
 ## Known blockers before production money can be accepted
 
-- Stripe account, publishable key, secret key, webhook signing secret.
-- Domain registration for wallet payment methods in Stripe for `bensonperry.com`.
-- A deployed backend URL for the checkout API.
+- Stripe account, publishable key, secret key, and webhook signing secret.
+- Stripe domain/payment-method setup for Apple Pay, Google Pay, and Link eligibility.
 - Stripe Tax activation or a deliberate tax strategy.
-- Printful or Gelato API credentials.
-- Product-to-fulfillment mapping for each sellable variant.
-- A policy decision on shipping: shipping included in product price for maximum checkout simplicity, or live shipping rates from the fulfillment provider.
-- Optional Shop Pay Wallet setup: new Shopify store, Shopify Payments, Shop sales channel, allowed origins, Shop Pay client ID, Storefront API token, Admin API credentials.
+- Printful API credentials.
+- Product-to-Printful variant mapping for each sellable variant.
+- A policy decision on shipping: included in product price for maximum simplicity, or live shipping rates from the provider.
+- Cloudflare route permission for `bensonperry.com/api/store/*`, unless we accept the temporary workers.dev API host.
+- Optional Shop Pay Wallet setup: Shopify store, Shopify Payments, Shop sales channel, allowed origins, Shop Pay client ID, Storefront API token, Admin API token, order reconciliation, fulfillment updates, refunds, and disputes.

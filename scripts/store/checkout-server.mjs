@@ -7,6 +7,7 @@ import { handleStoreApiRequest } from "./checkout.mjs";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..", "..");
 const port = Number(process.env.PORT || 8787);
+const orderValues = new Map();
 
 const contentTypes = {
   ".css": "text/css; charset=utf-8",
@@ -70,7 +71,19 @@ const server = http.createServer(async (req, res) => {
       headers: req.headers,
       body: ["GET", "HEAD"].includes(req.method || "GET") ? undefined : body
     });
-    await sendResponse(res, await handleStoreApiRequest(request));
+    await sendResponse(
+      res,
+      await handleStoreApiRequest(request, {
+        orderStore: {
+          async get(key) {
+            return orderValues.get(key) || null;
+          },
+          async put(key, value) {
+            orderValues.set(key, value);
+          }
+        }
+      })
+    );
     return;
   }
 

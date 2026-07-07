@@ -272,7 +272,11 @@ async function beginEmbeddedCheckout() {
 
     const Stripe = await loadStripe();
     const stripe = Stripe(config.stripePublishableKey);
-    const checkout = await stripe.initEmbeddedCheckout({
+    const createEmbeddedCheckout = stripe.createEmbeddedCheckoutPage || stripe.initEmbeddedCheckout;
+    if (typeof createEmbeddedCheckout !== "function") {
+      throw new Error("embedded checkout is unavailable in this browser.");
+    }
+    const checkout = await createEmbeddedCheckout.call(stripe, {
       fetchClientSecret: async () => {
         const response = await fetch(apiUrl("/api/store/checkout-session"), {
           method: "POST",
@@ -300,6 +304,23 @@ async function beginEmbeddedCheckout() {
   }
 }
 
+async function loadFulfillmentStatus(sessionId) {
+  const response = await fetch(apiUrl(`/api/store/order-status?session_id=${encodeURIComponent(sessionId)}`), {
+    cache: "no-store"
+  });
+  const data = await response.json();
+  if (!response.ok) return { status: "unavailable", error: data.error || "fulfillment status is unavailable." };
+  return data;
+}
+
+function orderReturnMessage(orderStatus) {
+  if (orderStatus.status === "succeeded") return "order received. fulfillment is queued.";
+  if (orderStatus.status === "processing") return "order received. fulfillment is processing.";
+  if (orderStatus.status === "failed") return "order received. fulfillment needs attention.";
+  if (orderStatus.status === "unavailable") return "order received. fulfillment status is unavailable.";
+  return "order received. fulfillment record is pending.";
+}
+
 async function handleCheckoutReturn() {
   const params = new URLSearchParams(window.location.search);
   if (params.get("checkout") !== "return") return;
@@ -319,10 +340,11 @@ async function handleCheckoutReturn() {
     if (!response.ok) throw new Error(data.error || "checkout status is unavailable.");
 
     if (data.paymentStatus === "paid" || data.status === "complete") {
+      const orderStatus = await loadFulfillmentStatus(sessionId);
       cart = [];
       renderCart();
       checkoutButton.disabled = true;
-      checkoutNote.textContent = "order received.";
+      checkoutNote.textContent = orderReturnMessage(orderStatus);
     } else {
       checkoutButton.disabled = false;
       checkoutNote.textContent = "checkout was not completed.";

@@ -9,6 +9,7 @@ const root = path.resolve(here, "..", "..");
 const catalogPath = path.join(root, "store", "products.json");
 
 const STRIPE_API = "https://api.stripe.com/v1";
+const STRIPE_API_VERSION = "2026-03-25.dahlia";
 const MAX_QUANTITY = 10;
 
 export class StoreCheckoutError extends Error {
@@ -162,13 +163,35 @@ async function putFulfillmentRecord(store, key, value) {
   await store.put(key, JSON.stringify(value));
 }
 
+export function assertStripeSessionId(sessionId) {
+  const value = String(sessionId || "");
+  if (!/^cs_(test|live)_[A-Za-z0-9_]+$/.test(value)) {
+    throw new StoreCheckoutError("Invalid session ID.");
+  }
+  return value;
+}
+
+export function fulfillmentRecordKey(sessionId) {
+  return `stripe:${assertStripeSessionId(sessionId)}:fulfillment`;
+}
+
+export async function fulfillmentStatus(sessionId, orderStore = null) {
+  const key = fulfillmentRecordKey(sessionId);
+  const record = await getFulfillmentRecord(orderStore, key);
+  return {
+    status: record?.status || "missing",
+    key,
+    fulfillment: record || null
+  };
+}
+
 export function buildStripeCheckoutSessionParams({ catalog, items, env = process.env }) {
   const publicUrl = env.STORE_PUBLIC_URL || "https://bensonperry.com";
   const lines = resolveCart(catalog, items);
   ensureFulfillmentReady(lines, env);
 
   const params = new URLSearchParams();
-  params.set("ui_mode", "embedded");
+  params.set("ui_mode", "embedded_page");
   params.set("mode", "payment");
   params.set("submit_type", "pay");
   params.set("payment_method_types[0]", "card");
@@ -206,13 +229,14 @@ export function buildStripeCheckoutSessionParams({ catalog, items, env = process
   return { params, lines };
 }
 
-async function stripeRequest(pathname, { secretKey, method = "GET", body } = {}) {
+async function stripeRequest(pathname, { secretKey, method = "GET", body, apiVersion = STRIPE_API_VERSION } = {}) {
   if (!secretKey) throw new StoreCheckoutError("Stripe secret key is not configured.", 503);
 
   const response = await fetch(`${STRIPE_API}${pathname}`, {
     method,
     headers: {
       Authorization: `Bearer ${secretKey}`,
+      "Stripe-Version": apiVersion,
       ...(body ? { "Content-Type": "application/x-www-form-urlencoded" } : {})
     },
     body
@@ -231,7 +255,8 @@ export async function createStripeCheckoutSession({ catalog, items, env = proces
   const session = await stripeRequest("/checkout/sessions", {
     secretKey: env.STRIPE_SECRET_KEY,
     method: "POST",
-    body: params
+    body: params,
+    apiVersion: env.STRIPE_API_VERSION || STRIPE_API_VERSION
   });
 
   return {
@@ -242,11 +267,10 @@ export async function createStripeCheckoutSession({ catalog, items, env = proces
 }
 
 export async function retrieveStripeSession(sessionId, env = process.env) {
-  if (!/^cs_(test|live)_[A-Za-z0-9_]+$/.test(String(sessionId || ""))) {
-    throw new StoreCheckoutError("Invalid session ID.");
-  }
-  return stripeRequest(`/checkout/sessions/${encodeURIComponent(sessionId)}`, {
-    secretKey: env.STRIPE_SECRET_KEY
+  const value = assertStripeSessionId(sessionId);
+  return stripeRequest(`/checkout/sessions/${encodeURIComponent(value)}`, {
+    secretKey: env.STRIPE_SECRET_KEY,
+    apiVersion: env.STRIPE_API_VERSION || STRIPE_API_VERSION
   });
 }
 
@@ -302,7 +326,7 @@ function errorResponse(error) {
 }
 
 export async function fulfillStripeCheckoutSession({ catalog, session, env = process.env, fetchImpl = fetch, orderStore = null }) {
-  const key = `stripe:${session?.id}:fulfillment`;
+  const key = fulfillmentRecordKey(session?.id);
   const existing = await getFulfillmentRecord(orderStore, key);
   if (existing?.status === "succeeded" || existing?.status === "processing") {
     return {
@@ -361,7 +385,7 @@ export async function fulfillStripeCheckoutSession({ catalog, session, env = pro
   }
 }
 
-export async function handleStoreApiRequest(request, { env = process.env, catalogFile = catalogPath } = {}) {
+export async function handleStoreApiRequest(request, { env = process.env, catalogFile = catalogPath, orderStore = null } = {}) {
   try {
     const url = new URL(request.url);
     const pathname = url.pathname.replace(/\/+$/, "");
@@ -398,6 +422,10 @@ export async function handleStoreApiRequest(request, { env = process.env, catalo
       });
     }
 
+    if (request.method === "GET" && pathname.endsWith("/api/store/order-status")) {
+      return jsonResponse(await fulfillmentStatus(url.searchParams.get("session_id"), orderStore));
+    }
+
     if (request.method === "POST" && pathname.endsWith("/api/store/webhook/stripe")) {
       const payload = await request.text();
       verifyStripeWebhookSignature(payload, request.headers.get("stripe-signature"), env.STRIPE_WEBHOOK_SECRET);
@@ -405,7 +433,7 @@ export async function handleStoreApiRequest(request, { env = process.env, catalo
       let fulfillment = "ignored";
       if (event.type === "checkout.session.completed") {
         const catalog = await loadCatalog(catalogFile);
-        fulfillment = await fulfillStripeCheckoutSession({ catalog, session: event.data?.object, env });
+        fulfillment = await fulfillStripeCheckoutSession({ catalog, session: event.data?.object, env, orderStore });
       }
       return jsonResponse({
         received: true,

@@ -27,6 +27,9 @@ flowchart LR
   - Returns the session client secret for Stripe.js.
 - `GET /api/store/session-status?session_id=...`
   - Lets the return page show whether checkout completed.
+- `GET /api/store/order-status?session_id=...`
+  - Reads the fulfillment idempotency record for a paid Stripe session.
+  - Lets the return page distinguish queued, processing, failed, and missing provider handoff states.
 - `POST /api/store/webhook/stripe`
   - Verifies the Stripe webhook signature.
   - On successful payment, decodes the cart metadata and hands the order to the Printful fulfillment adapter.
@@ -50,6 +53,8 @@ The Worker has a `STORE_ORDERS` KV namespace bound for fulfillment idempotency:
 
 Each paid Stripe checkout session writes `stripe:{session_id}:fulfillment` before calling Printful and updates it after provider order creation. Duplicate `checkout.session.completed` webhook deliveries return the stored record instead of creating another provider order.
 
+The storefront return flow also reads that record through `/api/store/order-status`. If Stripe says payment succeeded but the provider handoff has not appeared yet, the buyer still sees a received/pending message instead of a false fulfillment success.
+
 ## Product manifest additions
 
 Each sellable product should expose:
@@ -63,6 +68,8 @@ The frontend only sends store-owned product IDs and variant IDs. The backend is 
 ## MVP choice
 
 Start with Stripe Embedded Checkout and US-only shipping. Prefer "shipping included" pricing for the first product because it keeps the first checkout flow simple and avoids building live shipping-rate recalculation before the provider is finalized.
+
+Stripe's current embedded Checkout docs use `ui_mode=embedded_page` and `stripe.createEmbeddedCheckoutPage(...)`. The frontend calls `createEmbeddedCheckoutPage` when available and falls back to `initEmbeddedCheckout` for older Stripe.js behavior.
 
 When fulfillment credentials exist, the webhook should create a provider draft order first and only confirm it after the Stripe payment is complete.
 

@@ -145,7 +145,7 @@ test("checkout can build an embedded Stripe session in explicit unfulfilled test
     }
   });
 
-  assert.equal(params.get("ui_mode"), "embedded");
+  assert.equal(params.get("ui_mode"), "embedded_page");
   assert.equal(params.get("payment_method_types[0]"), "card");
   assert.equal(params.get("line_items[0][price_data][unit_amount]"), "3995");
   assert.equal(params.get("line_items[0][quantity]"), "1");
@@ -169,6 +169,31 @@ test("checkout config reports card, wallet, and Shop Pay readiness", async () =>
   assert.equal(config.payments.wallets.googlePay.status, "eligible");
   assert.equal(config.payments.wallets.link.status, "eligible");
   assert.equal(config.payments.shopPay.configured, true);
+});
+
+test("checkout API exposes fulfillment status records by Stripe session", async () => {
+  const { fulfillmentRecordKey, handleStoreApiRequest } = await checkoutModule();
+  const store = memoryStore();
+  await store.put(
+    fulfillmentRecordKey("cs_test_123"),
+    JSON.stringify({
+      status: "succeeded",
+      stripeSessionId: "cs_test_123",
+      provider: "printful",
+      providerOrderId: "pf_order_123"
+    })
+  );
+
+  const response = await handleStoreApiRequest(
+    new Request("https://example.com/api/store/order-status?session_id=cs_test_123"),
+    { orderStore: store }
+  );
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.status, "succeeded");
+  assert.equal(body.fulfillment.provider, "printful");
+  assert.equal(body.fulfillment.providerOrderId, "pf_order_123");
 });
 
 test("checkout verifies Stripe webhook signatures", async () => {

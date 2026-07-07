@@ -2,6 +2,7 @@ import catalog from "../store/products.json";
 import { FulfillmentError, fulfillStripeSessionWithPrintful } from "../scripts/store/fulfillment.mjs";
 
 const STRIPE_API = "https://api.stripe.com/v1";
+const STRIPE_API_VERSION = "2026-03-25.dahlia";
 const MAX_QUANTITY = 10;
 
 class StoreCheckoutError extends Error {
@@ -105,8 +106,30 @@ function decodeCartMetadata(value) {
   return JSON.parse(new TextDecoder().decode(bytes));
 }
 
+function assertStripeSessionId(sessionId) {
+  const value = String(sessionId || "");
+  if (!/^cs_(test|live)_[A-Za-z0-9_]+$/.test(value)) {
+    throw new StoreCheckoutError("Invalid session ID.");
+  }
+  return value;
+}
+
+function fulfillmentRecordKey(sessionId) {
+  return `stripe:${assertStripeSessionId(sessionId)}:fulfillment`;
+}
+
+async function fulfillmentStatus(sessionId, env) {
+  const key = fulfillmentRecordKey(sessionId);
+  const record = env.STORE_ORDERS ? await env.STORE_ORDERS.get(key, { type: "json" }) : null;
+  return {
+    status: record?.status || "missing",
+    key,
+    fulfillment: record || null
+  };
+}
+
 async function fulfillCheckoutSession(session, env) {
-  const key = `stripe:${session?.id}:fulfillment`;
+  const key = fulfillmentRecordKey(session?.id);
   const existing = env.STORE_ORDERS ? await env.STORE_ORDERS.get(key, { type: "json" }) : null;
   if (existing?.status === "succeeded" || existing?.status === "processing") {
     return {
@@ -235,7 +258,7 @@ function buildCheckoutParams(items, env) {
   ensureFulfillmentReady(lines, env);
 
   const params = new URLSearchParams();
-  params.set("ui_mode", "embedded");
+  params.set("ui_mode", "embedded_page");
   params.set("mode", "payment");
   params.set("submit_type", "pay");
   params.set("payment_method_types[0]", "card");
@@ -274,6 +297,7 @@ async function stripeRequest(path, env, options = {}) {
     method: options.method || "GET",
     headers: {
       Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`,
+      "Stripe-Version": env.STRIPE_API_VERSION || STRIPE_API_VERSION,
       ...(options.body ? { "Content-Type": "application/x-www-form-urlencoded" } : {})
     },
     body: options.body
@@ -325,14 +349,17 @@ async function handle(request, env) {
   }
 
   if (request.method === "GET" && pathname.endsWith("/api/store/session-status")) {
-    const sessionId = url.searchParams.get("session_id") || "";
-    if (!/^cs_(test|live)_[A-Za-z0-9_]+$/.test(sessionId)) throw new StoreCheckoutError("Invalid session ID.");
+    const sessionId = assertStripeSessionId(url.searchParams.get("session_id"));
     const session = await stripeRequest(`/checkout/sessions/${encodeURIComponent(sessionId)}`, env);
     return json({
       status: session.status,
       paymentStatus: session.payment_status,
       customerEmail: session.customer_details?.email || null
     });
+  }
+
+  if (request.method === "GET" && pathname.endsWith("/api/store/order-status")) {
+    return json(await fulfillmentStatus(url.searchParams.get("session_id"), env));
   }
 
   if (request.method === "POST" && pathname.endsWith("/api/store/webhook/stripe")) {
