@@ -88,6 +88,15 @@ The `--network` part also calls Printful's public catalog endpoint and verifies:
 - mapped placements are supported by the Printful product;
 - mapped variants are available for the configured checkout countries.
 
+Printful variant mapping can be generated from the public catalog:
+
+```powershell
+npm run store:printful:map -- --product <product-id> --catalog-product <printful-catalog-product-id>
+npm run store:printful:map -- --product <product-id> --catalog-product <printful-catalog-product-id> --apply
+```
+
+The mapper matches store variants to Printful catalog variants by `Color` and `Size`, verifies the selected front/back placements, and refuses to write if any variant is missing or ambiguous. The first command is a dry run; add `--apply` only after reviewing the mapping.
+
 The current `small-useful-light-tee` is mapped to Printful catalog product `1421`, `Unisex Fine Jersey Tee | LAT Apparel 6901`, with black size variants:
 
 | Store variant | Printful catalog variant |

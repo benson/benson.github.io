@@ -7,7 +7,8 @@
     "store:checkout:serve": "node scripts/store/checkout-server.mjs",
     "store:checkout:smoke": "node scripts/store/checkout-smoke.mjs",
     "store:checkout:setup": "node scripts/store/checkout-setup.mjs",
-    "store:fulfillment:doctor": "node scripts/store/fulfillment-doctor.mjs"
+    "store:fulfillment:doctor": "node scripts/store/fulfillment-doctor.mjs",
+    "store:printful:map": "node scripts/store/printful-map.mjs"
   },
   "devDependencies": {
     "happy-dom": "^20.9.0",
