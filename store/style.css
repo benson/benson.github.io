@@ -352,6 +352,7 @@ h1 {
 
 .cart-line span,
 .checkout-note,
+.checkout-availability,
 .empty-cart {
   color: var(--muted);
   font-size: 0.86rem;
@@ -380,6 +381,42 @@ h1 {
   gap: 14px;
   border-top: 2px solid var(--line);
   padding-top: 14px;
+}
+
+.checkout-availability {
+  display: grid;
+  gap: 8px;
+}
+
+.checkout-availability-message {
+  color: var(--ink);
+}
+
+.checkout-availability[data-status="pending"] .checkout-availability-message,
+.checkout-availability[data-status="unavailable"] .checkout-availability-message {
+  color: var(--clay);
+}
+
+.payment-method-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+}
+
+.payment-method-list li {
+  border: 1px solid rgba(23, 20, 17, 0.22);
+  border-radius: 999px;
+  padding: 4px 8px;
+}
+
+.payment-method-list .is-ready {
+  border-color: rgba(55, 86, 65, 0.55);
+  color: var(--moss);
+}
+
+.payment-method-list .is-pending {
+  color: var(--muted);
 }
 
 .checkout-button {

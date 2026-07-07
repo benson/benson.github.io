@@ -79,6 +79,7 @@
         <span>subtotal</span>
         <strong id="cart-subtotal">$0</strong>
       </div>
+      <div id="checkout-availability" class="checkout-availability" aria-live="polite"></div>
       <p id="checkout-note" class="checkout-note"></p>
       <button id="checkout-button" class="checkout-button" type="button">checkout here</button>
       <div id="embedded-checkout" class="embedded-checkout" hidden></div>
@@ -86,8 +87,9 @@
   </aside>
 
   <script>
+    const storeLoopbackHosts = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
     window.STORE_API_BASE = "";
-    window.STORE_API_FALLBACK_BASE = window.location.hostname === "localhost"
+    window.STORE_API_FALLBACK_BASE = storeLoopbackHosts.has(window.location.hostname)
       ? ""
       : "https://benson-store-checkout-api.bensonperry.workers.dev";
   </script>

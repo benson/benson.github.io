@@ -1,4 +1,5 @@
 import { fetchStoreApiFromBases, storeApiBases } from "./api-client.mjs";
+import { checkoutReadiness, checkoutReadinessFromError } from "./checkout-readiness.mjs";
 
 const grid = document.querySelector("#product-grid");
 const template = document.querySelector("#product-template");
@@ -8,6 +9,7 @@ const cartCount = document.querySelector("#cart-count");
 const checkoutPanel = document.querySelector("#checkout-panel");
 const cartLines = document.querySelector("#cart-lines");
 const cartSubtotal = document.querySelector("#cart-subtotal");
+const checkoutAvailability = document.querySelector("#checkout-availability");
 const checkoutButton = document.querySelector("#checkout-button");
 const checkoutNote = document.querySelector("#checkout-note");
 const embeddedCheckout = document.querySelector("#embedded-checkout");
@@ -21,6 +23,7 @@ let activeFilter = "all";
 let products = [];
 let catalog = null;
 let cart = [];
+let checkoutState = checkoutReadiness();
 let stripePromise = null;
 
 async function fetchStoreApi(path, options = {}) {
@@ -74,9 +77,36 @@ function updateCartCount() {
   cartCount.textContent = String(cart.reduce((sum, line) => sum + line.quantity, 0));
 }
 
+function renderCheckoutAvailability() {
+  checkoutAvailability.innerHTML = "";
+  checkoutAvailability.dataset.status = checkoutState.status;
+
+  const message = document.createElement("span");
+  message.className = "checkout-availability-message";
+  message.textContent = checkoutState.message;
+  checkoutAvailability.append(message);
+
+  if (checkoutState.methods.length) {
+    const list = document.createElement("ul");
+    list.className = "payment-method-list";
+    for (const method of checkoutState.methods) {
+      const item = document.createElement("li");
+      item.className = method.ready ? "is-ready" : "is-pending";
+      item.textContent = method.label;
+      list.append(item);
+    }
+    checkoutAvailability.append(list);
+  }
+}
+
+function checkoutBlocked() {
+  return checkoutState.status === "pending" || checkoutState.status === "unavailable";
+}
+
 function renderCart() {
   cartLines.innerHTML = "";
   updateCartCount();
+  renderCheckoutAvailability();
 
   if (!cart.length) {
     const empty = document.createElement("p");
@@ -126,7 +156,7 @@ function renderCart() {
   }
 
   cartSubtotal.textContent = money(cartTotal(), cart[0]?.currency);
-  checkoutButton.disabled = false;
+  checkoutButton.disabled = checkoutBlocked();
 }
 
 function addToCart(product, variantId) {
@@ -264,6 +294,10 @@ async function loadStripe() {
 
 async function beginEmbeddedCheckout() {
   if (!cart.length) return;
+  if (checkoutBlocked()) {
+    checkoutNote.textContent = checkoutState.message;
+    return;
+  }
 
   checkoutButton.disabled = true;
   checkoutNote.textContent = "opening secure checkout...";
@@ -271,10 +305,8 @@ async function beginEmbeddedCheckout() {
   embeddedCheckout.innerHTML = "";
 
   try {
-    const configResponse = await fetchStoreApi("/api/store/config", { cache: "no-store" });
-    if (!configResponse.ok) throw new Error("checkout backend is not deployed yet.");
-    const config = await configResponse.json();
-    if (!config.configured || !config.stripePublishableKey) {
+    const config = await loadCheckoutConfig();
+    if (!checkoutState.ready || !config.stripePublishableKey) {
       throw new Error("checkout backend needs Stripe credentials before it can accept payment.");
     }
 
@@ -385,6 +417,24 @@ async function loadProducts() {
   }
 }
 
+async function loadCheckoutConfig() {
+  const configResponse = await fetchStoreApi("/api/store/config", { cache: "no-store" });
+  if (!configResponse.ok) throw new Error("checkout backend is not deployed yet.");
+  const config = await configResponse.json();
+  checkoutState = checkoutReadiness(config);
+  renderCart();
+  return config;
+}
+
+async function loadCheckoutReadiness() {
+  try {
+    await loadCheckoutConfig();
+  } catch (error) {
+    checkoutState = checkoutReadinessFromError(error);
+    renderCart();
+  }
+}
+
 for (const button of filterButtons) {
   button.addEventListener("click", () => setFilter(button.dataset.filter));
 }
@@ -400,3 +450,4 @@ document.addEventListener("keydown", (event) => {
 });
 
 loadProducts();
+loadCheckoutReadiness();
