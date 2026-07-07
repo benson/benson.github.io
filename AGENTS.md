@@ -50,6 +50,40 @@ npm test
 - If deploying a Cloudflare Worker, record the deployed Worker version in the
   final handoff.
 
+## Store Product Requests
+
+When Benson asks to add, price, design, publish, or make a new product for
+`bensonperry.com/store`, treat it as a frictionless product pipeline task. The
+user should be able to give a loose product idea and taste constraints while the
+agent handles product mechanics.
+
+Start by reading:
+
+- `store/FRICTIONLESS-PRODUCTS.md`
+- `store/README.md`
+- `store/EMBEDDED-CHECKOUT.md`
+
+Default to the Stripe plus Printful embedded checkout path. Fourthwall is only a
+fallback or historical reference unless Benson explicitly asks for it. For a new
+product, choose the product route, blank, production method, artwork dimensions,
+mockup, catalog entry, Printful mapping, pricing, and deployment steps. Ask
+Benson for taste approval when the product concept or visual direction matters,
+but do not ask them to handle file formats, DPI, product JSON, provider
+constraints, or checkout wiring.
+
+Use the store scripts instead of hand-editing product entries when possible:
+
+```powershell
+npm run store:product:scaffold -- --title "<title>" --type <t-shirt|hat|playmat> --price <dollars>
+npm run store:printful:map -- --product <product-id> --catalog-product <printful-catalog-product-id> --apply
+npm run store:fulfillment:doctor -- --network
+npm run store:launch:check -- --network --live --same-origin --require-live-stripe
+```
+
+Before treating a product as buyable, verify that the public store can create a
+live embedded Stripe checkout session from `https://bensonperry.com/store/`.
+Do not submit a real payment on Benson's behalf.
+
 ## Publishing
 
 Push task branches instead of pushing directly to `master`:
