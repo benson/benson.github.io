@@ -2,17 +2,24 @@
 
 The public store is a static storefront that reads `store/products.json`.
 
-Fulfillment and checkout are intentionally external. The current target is Fourthwall because it supports print-on-demand products, hosted checkout, and direct product links without this site handling payment or shipping state.
+The embedded checkout target is Stripe plus Printful. Fourthwall remains a temporary fallback while Stripe and Printful account credentials are being configured.
 
 ## Product Workflow
 
 1. Make the design/art file.
-2. Add production fields and Fourthwall publishing preferences to `store/products.json`.
+2. Add production fields, storefront variants, checkout settings, and fulfillment mapping to `store/products.json`.
 3. Save the product mockup under `store/assets/`.
-4. Run `npm run store:publish -- --id <product-id> --dry-run`.
-5. Run `npm run store:publish -- --id <product-id> --apply --publish`.
-6. Deploy the homepage.
+4. Run `npm run store:fulfillment:doctor -- --network`.
+5. Run `npm run store:checkout:setup`.
+6. Deploy the homepage and Worker once the doctor and setup command are clean.
+
+For fallback Fourthwall publishing:
+
+```powershell
+npm run store:publish -- --id <product-id> --dry-run
+npm run store:publish -- --id <product-id> --apply --publish
+```
 
 `store/studio.html` can draft product entries and export JSON, but it does not write to the repository by itself.
 
-See `store/FOURTHWALL-AUTOMATION.md` for the one-time credential setup and command details.
+See `store/EMBEDDED-CHECKOUT.md` for the embedded checkout architecture and setup details. See `store/FOURTHWALL-AUTOMATION.md` for fallback Fourthwall publishing.

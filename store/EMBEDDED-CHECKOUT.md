@@ -65,6 +65,29 @@ Each sellable product should expose:
 
 The frontend only sends store-owned product IDs and variant IDs. The backend is responsible for prices and fulfillment mappings so buyers cannot manipulate checkout amounts.
 
+Product preflight is automated through:
+
+```powershell
+npm run store:fulfillment:doctor -- --network
+```
+
+The local part checks:
+
+- every embedded checkout product has a ready Printful mapping;
+- every storefront variant has a Printful catalog variant ID;
+- front/back placements only use supported placement names;
+- storefront/mockup and print artwork files exist;
+- print PNG dimensions are large enough for the mapped placement;
+- garment print files include alpha transparency.
+
+The `--network` part also calls Printful's public catalog endpoint and verifies:
+
+- the mapped catalog product exists;
+- mapped Printful variants still exist;
+- store size/color options match the provider variants;
+- mapped placements are supported by the Printful product;
+- mapped variants are available for the configured checkout countries.
+
 The current `small-useful-light-tee` is mapped to Printful catalog product `1421`, `Unisex Fine Jersey Tee | LAT Apparel 6901`, with black size variants:
 
 | Store variant | Printful catalog variant |
@@ -164,9 +187,10 @@ Run:
 
 ```powershell
 npm run store:fulfillment:doctor
+npm run store:fulfillment:doctor -- --network
 ```
 
-It checks local environment presence and every embedded-checkout product's fulfillment mapping. It intentionally exits non-zero until Stripe secrets, the Printful API key, and all provider variant IDs are configured.
+It checks local environment presence, print assets, every embedded-checkout product's fulfillment mapping, and optionally the live Printful catalog. It intentionally exits non-zero until Stripe secrets, the Printful API key, and all provider variant IDs are configured.
 
 ## Cloudflare route blocker
 

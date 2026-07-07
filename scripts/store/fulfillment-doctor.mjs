@@ -1,38 +1,9 @@
 import { loadCatalog, resolveCart } from "./checkout.mjs";
 import { loadLocalEnv } from "./env.mjs";
+import { fetchPrintfulCatalogProduct, localProductReadinessIssues, printfulCatalogIssues } from "./product-readiness.mjs";
 
 function hasSecret(name) {
   return Boolean(process.env[name]);
-}
-
-function productIssues(product) {
-  const issues = [];
-  const fulfillment = product.embeddedFulfillment;
-  if (!fulfillment) {
-    issues.push("missing embeddedFulfillment block");
-    return issues;
-  }
-
-  if (fulfillment.recommended !== "printful") {
-    issues.push(`provider is ${fulfillment.recommended || "missing"}, expected printful`);
-  }
-  if (fulfillment.status !== "ready") {
-    issues.push(`status is ${fulfillment.status || "missing"}, expected ready`);
-  }
-
-  const mapped = fulfillment.variants || {};
-  for (const variant of product.variants || []) {
-    const providerVariant = mapped[variant.id];
-    if (!providerVariant) {
-      issues.push(`${variant.id} missing provider mapping`);
-      continue;
-    }
-    if (!providerVariant.catalogVariantId) {
-      issues.push(`${variant.id} missing Printful catalogVariantId`);
-    }
-  }
-
-  return issues;
 }
 
 function printStatus(label, ok, detail = "") {
@@ -41,7 +12,32 @@ function printStatus(label, ok, detail = "") {
   return ok;
 }
 
-async function main() {
+function parseArgs(argv) {
+  return {
+    help: argv.includes("--help") || argv.includes("-h"),
+    network: argv.includes("--network")
+  };
+}
+
+function usage() {
+  console.log(`Store fulfillment doctor
+
+Usage:
+  npm run store:fulfillment:doctor
+  npm run store:fulfillment:doctor -- --network
+
+Options:
+  --network  Also validate mapped Printful catalog products, variants, placements, and availability.
+`);
+}
+
+async function main(argv = process.argv.slice(2)) {
+  const args = parseArgs(argv);
+  if (args.help) {
+    usage();
+    return;
+  }
+
   loadLocalEnv();
   const catalog = await loadCatalog();
   console.log("Store fulfillment doctor");
@@ -65,7 +61,7 @@ async function main() {
 
   for (const product of catalog.products || []) {
     if (product.checkout?.mode !== "embedded-stripe") continue;
-    const issues = productIssues(product);
+    const issues = localProductReadinessIssues(product, catalog);
     const variants = (product.variants || []).map((variant) => ({
       productId: product.id,
       variantId: variant.id,
@@ -80,12 +76,21 @@ async function main() {
       }
     }
 
+    if (args.network && product.embeddedFulfillment?.recommended === "printful" && product.embeddedFulfillment.catalogProductId) {
+      try {
+        const printfulProduct = await fetchPrintfulCatalogProduct(product.embeddedFulfillment.catalogProductId);
+        issues.push(...printfulCatalogIssues(product, printfulProduct));
+      } catch (error) {
+        issues.push(`Printful catalog validation failed: ${error.message}`);
+      }
+    }
+
     if (issues.length) {
       failureCount += issues.length;
       printStatus(product.id, false, `${issues.length} issue(s)`);
       for (const issue of issues) console.log(`  - ${issue}`);
     } else {
-      printStatus(product.id, true, `${variants.length} variant(s) mapped`);
+      printStatus(product.id, true, `${variants.length} variant(s) mapped${args.network ? " and catalog-checked" : ""}`);
     }
   }
 
