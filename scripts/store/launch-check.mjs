@@ -21,6 +21,7 @@ export function parseArgs(argv) {
     network: false,
     productId: null,
     publicUrl: DEFAULT_PUBLIC_URL,
+    requireLiveStripe: false,
     sameOrigin: false,
     smoke: true
   };
@@ -36,6 +37,7 @@ export function parseArgs(argv) {
     else if (arg.startsWith("--product=")) args.productId = arg.slice("--product=".length);
     else if (arg === "--public-url") args.publicUrl = argv[(index += 1)] || "";
     else if (arg.startsWith("--public-url=")) args.publicUrl = arg.slice("--public-url=".length);
+    else if (arg === "--require-live-stripe") args.requireLiveStripe = true;
     else if (arg === "--same-origin") args.sameOrigin = true;
     else if (arg === "--skip-smoke") args.smoke = false;
     else throw new Error(`Unknown option: ${arg}`);
@@ -58,12 +60,22 @@ function usableStripeSecret(secret) {
   return ["standard", "restricted"].includes(stripeSecretKind(secret));
 }
 
-export function credentialChecks({ env = process.env, stripeProfile = readStripeCliProfile() } = {}) {
+function stripeKeyMode(value) {
+  const key = String(value || "");
+  if (/^[pr]k_live_/.test(key) || /^sk_live_/.test(key)) return "live";
+  if (/^[pr]k_test_/.test(key) || /^sk_test_/.test(key)) return "test";
+  if (key.startsWith("rkcs_")) return "claimable-sandbox";
+  return key ? "unknown" : "missing";
+}
+
+export function credentialChecks({ env = process.env, requireLiveStripe = false, stripeProfile = readStripeCliProfile() } = {}) {
   const profileSecretUsable = usableStripeSecret(stripeProfile.secretKey);
   const publishableKey = env.STRIPE_PUBLISHABLE_KEY || stripeProfile.publishableKey || null;
   const secretKey = env.STRIPE_SECRET_KEY || (profileSecretUsable ? stripeProfile.secretKey : null);
   const profileSecretKind = stripeSecretKind(stripeProfile.secretKey);
   const secretKind = stripeSecretKind(secretKey || env.STRIPE_SECRET_KEY);
+  const publishableMode = stripeKeyMode(publishableKey);
+  const secretMode = stripeKeyMode(secretKey);
   const checks = [
     check("STRIPE_PUBLISHABLE_KEY", Boolean(publishableKey)),
     check("STRIPE_SECRET_KEY", usableStripeSecret(secretKey), secretKind === "missing" ? "" : secretKind),
@@ -80,6 +92,16 @@ export function credentialChecks({ env = process.env, stripeProfile = readStripe
         required: true,
         status: "blocked"
       })
+    );
+  }
+
+  if (requireLiveStripe) {
+    checks.push(
+      check(
+        "Stripe live mode",
+        publishableMode === "live" && secretMode === "live",
+        `publishable=${publishableMode}, secret=${secretMode}`
+      )
     );
   }
 
@@ -220,13 +242,14 @@ export async function runLaunchCheck({
   network = false,
   productId = null,
   publicUrl = DEFAULT_PUBLIC_URL,
+  requireLiveStripe = false,
   sameOrigin = false,
   smoke = true,
   stripeProfile = readStripeCliProfile()
 } = {}) {
   const catalog = await loadCatalog();
   const checks = [
-    ...credentialChecks({ env, stripeProfile }),
+    ...credentialChecks({ env, requireLiveStripe, stripeProfile }),
     ...(network ? await printfulApiChecks({ env, fetchImpl }) : []),
     ...configChecks(checkoutConfig(env), "local config"),
     ...(await productReadinessChecks({ catalog, productId, network, fetchImpl }))
@@ -268,6 +291,8 @@ Options:
   --product <id>    Check one embedded checkout product.
   --public-url <url>
                    Public site URL for --same-origin checks. Defaults to https://bensonperry.com.
+  --require-live-stripe
+                   Require live-mode Stripe publishable and secret keys. Use before accepting real purchases.
   --same-origin     Check the preferred bensonperry.com/api/store/* route.
   --skip-smoke      Skip the local signed-webhook/Printful mock smoke test.
 `);

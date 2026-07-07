@@ -21,6 +21,7 @@ test("launch check parses product, network, live, api, and smoke flags", async (
     "small-useful-light-tee",
     "--public-url",
     "https://bensonperry.com",
+    "--require-live-stripe",
     "--same-origin",
     "--skip-smoke"
   ]);
@@ -30,6 +31,7 @@ test("launch check parses product, network, live, api, and smoke flags", async (
   assert.equal(args.apiBase, "https://checkout.example.test");
   assert.equal(args.productId, "small-useful-light-tee");
   assert.equal(args.publicUrl, "https://bensonperry.com");
+  assert.equal(args.requireLiveStripe, true);
   assert.equal(args.sameOrigin, true);
   assert.equal(args.smoke, false);
 });
@@ -40,6 +42,43 @@ test("launch check credential gate accepts required Stripe and Printful readines
     env: {
       STRIPE_PUBLISHABLE_KEY: "pk_test_123",
       STRIPE_SECRET_KEY: "sk_test_123",
+      STRIPE_WEBHOOK_SECRET: "whsec_123",
+      PRINTFUL_API_KEY: "printful_123",
+      STRIPE_WALLET_DOMAIN_READY: "true",
+      STRIPE_PAYMENT_METHODS_READY: "true"
+    },
+    stripeProfile: {}
+  });
+
+  assert.equal(summarizeChecks(checks).ok, true);
+});
+
+test("launch check live Stripe gate rejects sandbox keys when required", async () => {
+  const { credentialChecks, summarizeChecks } = await launchModule();
+  const checks = credentialChecks({
+    requireLiveStripe: true,
+    env: {
+      STRIPE_PUBLISHABLE_KEY: "pk_test_123",
+      STRIPE_SECRET_KEY: "sk_test_123",
+      STRIPE_WEBHOOK_SECRET: "whsec_123",
+      PRINTFUL_API_KEY: "printful_123",
+      STRIPE_WALLET_DOMAIN_READY: "true",
+      STRIPE_PAYMENT_METHODS_READY: "true"
+    },
+    stripeProfile: {}
+  });
+
+  assert.equal(summarizeChecks(checks).ok, false);
+  assert.ok(checks.some((item) => item.label === "Stripe live mode" && item.detail === "publishable=test, secret=test"));
+});
+
+test("launch check live Stripe gate accepts live keys when required", async () => {
+  const { credentialChecks, summarizeChecks } = await launchModule();
+  const checks = credentialChecks({
+    requireLiveStripe: true,
+    env: {
+      STRIPE_PUBLISHABLE_KEY: "pk_live_123",
+      STRIPE_SECRET_KEY: "sk_live_123",
       STRIPE_WEBHOOK_SECRET: "whsec_123",
       PRINTFUL_API_KEY: "printful_123",
       STRIPE_WALLET_DOMAIN_READY: "true",
