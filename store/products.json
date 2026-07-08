@@ -210,8 +210,8 @@
       "category": "apparel",
       "price": 3600,
       "currency": "USD",
-      "status": "draft",
-      "image": "assets/redbullfinch-embroidery-full.png",
+      "status": "live",
+      "image": "assets/redbullfinch-pepper-tee-printful-mockup.png",
       "alt": "pepper Comfort Colors t-shirt with Lilly's redbullfinch embroidered on the left chest",
       "summary": "a garment-dyed heavyweight tee with Lilly's redbullfinch embroidered on the left chest.",
       "details": [
@@ -343,6 +343,16 @@
           "#FFCC00"
         ],
         "notes": "Six-thread embroidery asset derived from Lilly's original redbullfinch SVG. Mapped to Printful embroidery_chest_left on Comfort Colors 1717."
+      },
+      "visualProof": {
+        "source": "printful-mockup-generator",
+        "mockup": "assets/redbullfinch-pepper-tee-printful-mockup.png",
+        "productionArtwork": "assets/redbullfinch-embroidery-full.png",
+        "catalogProductId": 586,
+        "catalogVariantId": 17694,
+        "placement": "embroidery_chest_left",
+        "mockupStyleId": 2288,
+        "generatedAt": "2026-07-08T18:42:34.613Z"
       }
     },
     {
@@ -352,8 +362,8 @@
       "category": "apparel",
       "price": 3600,
       "currency": "USD",
-      "status": "draft",
-      "image": "assets/redbullfinch-embroidery-full.png",
+      "status": "live",
+      "image": "assets/redbullfinch-crimson-tee-printful-mockup.png",
       "alt": "crimson Comfort Colors t-shirt with Lilly's redbullfinch embroidered on the left chest",
       "summary": "a crimson garment-dyed heavyweight tee with Lilly's redbullfinch embroidered on the left chest.",
       "details": [
@@ -485,6 +495,16 @@
           "#FFCC00"
         ],
         "notes": "Six-thread embroidery asset derived from Lilly's original redbullfinch SVG. Mapped to Printful embroidery_chest_left on Comfort Colors 1717."
+      },
+      "visualProof": {
+        "source": "printful-mockup-generator",
+        "mockup": "assets/redbullfinch-crimson-tee-printful-mockup.png",
+        "productionArtwork": "assets/redbullfinch-embroidery-full.png",
+        "catalogProductId": 586,
+        "catalogVariantId": 16548,
+        "placement": "embroidery_chest_left",
+        "mockupStyleId": 2288,
+        "generatedAt": "2026-07-08T18:42:34.613Z"
       }
     },
     {
@@ -494,10 +514,10 @@
       "category": "accessories",
       "price": 3200,
       "currency": "USD",
-      "status": "draft",
-      "image": "assets/redbullfinch-embroidery-head.png",
-      "alt": "black dad hat with a small embroidered redbullfinch mark on the front",
-      "summary": "a black dad hat with a small embroidered redbullfinch mark on the front.",
+      "status": "live",
+      "image": "assets/redbullfinch-dad-hat-printful-mockup.png",
+      "alt": "stone dad hat with a small embroidered redbullfinch mark on the front",
+      "summary": "a stone dad hat with a small embroidered redbullfinch mark on the front.",
       "details": [
         "Yupoong classic dad hat",
         "front embroidery",
@@ -506,11 +526,11 @@
       ],
       "variants": [
         {
-          "id": "redbullfinch-dad-hat-black-one-size",
-          "sku": "redbullfinch-dad-hat-black-one-size",
-          "label": "Black / One size",
+          "id": "redbullfinch-dad-hat-stone-one-size",
+          "sku": "redbullfinch-dad-hat-stone-one-size",
+          "label": "Stone / One size",
           "options": {
-            "Color": "Black",
+            "Color": "Stone",
             "Size": "One size"
           },
           "price": 3200,
@@ -533,8 +553,8 @@
         "status": "ready",
         "notes": "Printful catalog mapping is ready. Do not accept live Stripe payments until PRINTFUL_API_KEY and PRINTFUL_STORE_ID are configured and the webhook fulfillment path has been tested against the account.",
         "variants": {
-          "redbullfinch-dad-hat-black-one-size": {
-            "catalogVariantId": 7854,
+          "redbullfinch-dad-hat-stone-one-size": {
+            "catalogVariantId": 7859,
             "frontPlacement": "embroidery_front",
             "backPlacement": false
           }
@@ -544,7 +564,7 @@
       },
       "production": {
         "method": "embroidery",
-        "blank": "Yupoong 6245CM classic dad hat, Black",
+        "blank": "Yupoong 6245CM classic dad hat, Stone",
         "frontArtwork": "assets/redbullfinch-embroidery-head.png",
         "backArtwork": "",
         "frontSource": "assets/redbullfinch-embroidery-head.svg",
@@ -563,7 +583,17 @@
           "#FF6A00",
           "#FFCC00"
         ],
-        "notes": "Six-thread cropped embroidery asset derived from Lilly's original redbullfinch SVG. Mapped to Printful embroidery_front on Yupoong 6245CM."
+        "notes": "Six-thread cropped embroidery asset derived from Lilly's original redbullfinch SVG. Mapped to Printful embroidery_front on Stone Yupoong 6245CM."
+      },
+      "visualProof": {
+        "source": "printful-mockup-generator",
+        "mockup": "assets/redbullfinch-dad-hat-printful-mockup.png",
+        "productionArtwork": "assets/redbullfinch-embroidery-head.png",
+        "catalogProductId": 206,
+        "catalogVariantId": 7859,
+        "placement": "embroidery_front",
+        "mockupStyleId": 15086,
+        "generatedAt": "2026-07-08T18:42:34.613Z"
       }
     }
   ]
