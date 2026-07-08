@@ -1,5 +1,5 @@
 {
-  "updated": "2026-07-07",
+  "updated": "2026-07-08",
   "provider": {
     "recommended": "stripe-plus-printful",
     "mode": "embedded-checkout-planned-fourthwall-fallback-live",
@@ -201,6 +201,369 @@
           }
         ],
         "updatedAt": "2026-07-07T01:24:55.111Z"
+      }
+    },
+    {
+      "id": "redbullfinch-pepper-tee",
+      "title": "redbullfinch pepper tee",
+      "type": "t-shirt",
+      "category": "apparel",
+      "price": 3600,
+      "currency": "USD",
+      "status": "draft",
+      "image": "assets/redbullfinch-embroidery-full.png",
+      "alt": "pepper Comfort Colors t-shirt with Lilly's redbullfinch embroidered on the left chest",
+      "summary": "a garment-dyed heavyweight tee with Lilly's redbullfinch embroidered on the left chest.",
+      "details": [
+        "Comfort Colors 1717",
+        "left chest embroidery",
+        "US standard shipping included"
+      ],
+      "variants": [
+        {
+          "id": "redbullfinch-pepper-tee-pepper-s",
+          "sku": "redbullfinch-pepper-tee-pepper-s",
+          "label": "Pepper / S",
+          "options": {
+            "Color": "Pepper",
+            "Size": "S"
+          },
+          "price": 3600,
+          "available": true
+        },
+        {
+          "id": "redbullfinch-pepper-tee-pepper-m",
+          "sku": "redbullfinch-pepper-tee-pepper-m",
+          "label": "Pepper / M",
+          "options": {
+            "Color": "Pepper",
+            "Size": "M"
+          },
+          "price": 3600,
+          "available": true
+        },
+        {
+          "id": "redbullfinch-pepper-tee-pepper-l",
+          "sku": "redbullfinch-pepper-tee-pepper-l",
+          "label": "Pepper / L",
+          "options": {
+            "Color": "Pepper",
+            "Size": "L"
+          },
+          "price": 3600,
+          "available": true
+        },
+        {
+          "id": "redbullfinch-pepper-tee-pepper-xl",
+          "sku": "redbullfinch-pepper-tee-pepper-xl",
+          "label": "Pepper / XL",
+          "options": {
+            "Color": "Pepper",
+            "Size": "XL"
+          },
+          "price": 3600,
+          "available": true
+        },
+        {
+          "id": "redbullfinch-pepper-tee-pepper-2xl",
+          "sku": "redbullfinch-pepper-tee-pepper-2xl",
+          "label": "Pepper / 2XL",
+          "options": {
+            "Color": "Pepper",
+            "Size": "2XL"
+          },
+          "price": 3600,
+          "available": true
+        }
+      ],
+      "checkout": {
+        "mode": "embedded-stripe",
+        "shipping": {
+          "strategy": "included-us-standard",
+          "label": "US standard shipping included"
+        },
+        "allowedCountries": [
+          "US"
+        ]
+      },
+      "fulfillment": "embedded",
+      "embeddedFulfillment": {
+        "recommended": "printful",
+        "status": "ready",
+        "notes": "Printful catalog mapping is ready. Do not accept live Stripe payments until PRINTFUL_API_KEY and PRINTFUL_STORE_ID are configured and the webhook fulfillment path has been tested against the account.",
+        "variants": {
+          "redbullfinch-pepper-tee-pepper-s": {
+            "catalogVariantId": 17693,
+            "frontPlacement": "embroidery_chest_left",
+            "backPlacement": false
+          },
+          "redbullfinch-pepper-tee-pepper-m": {
+            "catalogVariantId": 17694,
+            "frontPlacement": "embroidery_chest_left",
+            "backPlacement": false
+          },
+          "redbullfinch-pepper-tee-pepper-l": {
+            "catalogVariantId": 17695,
+            "frontPlacement": "embroidery_chest_left",
+            "backPlacement": false
+          },
+          "redbullfinch-pepper-tee-pepper-xl": {
+            "catalogVariantId": 17696,
+            "frontPlacement": "embroidery_chest_left",
+            "backPlacement": false
+          },
+          "redbullfinch-pepper-tee-pepper-2xl": {
+            "catalogVariantId": 17697,
+            "frontPlacement": "embroidery_chest_left",
+            "backPlacement": false
+          }
+        },
+        "catalogProductId": 586,
+        "catalogProduct": "Unisex Garment-Dyed Heavyweight T-Shirt | Comfort Colors 1717"
+      },
+      "production": {
+        "method": "embroidery",
+        "blank": "Comfort Colors 1717 garment-dyed heavyweight t-shirt, Pepper",
+        "frontArtwork": "assets/redbullfinch-embroidery-full.png",
+        "backArtwork": "",
+        "frontSource": "assets/redbullfinch-embroidery-full.svg",
+        "sourceArtwork": "assets/redbullfinch-lilly-source.svg",
+        "frontPosition": {
+          "width": 2.8,
+          "height": 2.8,
+          "top": 0.6,
+          "left": 0.6
+        },
+        "threadColors": [
+          "#000000",
+          "#FFFFFF",
+          "#8A8A8A",
+          "#D22630",
+          "#FF6A00",
+          "#FFCC00"
+        ],
+        "notes": "Six-thread embroidery asset derived from Lilly's original redbullfinch SVG. Mapped to Printful embroidery_chest_left on Comfort Colors 1717."
+      }
+    },
+    {
+      "id": "redbullfinch-crimson-tee",
+      "title": "redbullfinch crimson tee",
+      "type": "t-shirt",
+      "category": "apparel",
+      "price": 3600,
+      "currency": "USD",
+      "status": "draft",
+      "image": "assets/redbullfinch-embroidery-full.png",
+      "alt": "crimson Comfort Colors t-shirt with Lilly's redbullfinch embroidered on the left chest",
+      "summary": "a crimson garment-dyed heavyweight tee with Lilly's redbullfinch embroidered on the left chest.",
+      "details": [
+        "Comfort Colors 1717",
+        "left chest embroidery",
+        "US standard shipping included"
+      ],
+      "variants": [
+        {
+          "id": "redbullfinch-crimson-tee-crimson-s",
+          "sku": "redbullfinch-crimson-tee-crimson-s",
+          "label": "Crimson / S",
+          "options": {
+            "Color": "Crimson",
+            "Size": "S"
+          },
+          "price": 3600,
+          "available": true
+        },
+        {
+          "id": "redbullfinch-crimson-tee-crimson-m",
+          "sku": "redbullfinch-crimson-tee-crimson-m",
+          "label": "Crimson / M",
+          "options": {
+            "Color": "Crimson",
+            "Size": "M"
+          },
+          "price": 3600,
+          "available": true
+        },
+        {
+          "id": "redbullfinch-crimson-tee-crimson-l",
+          "sku": "redbullfinch-crimson-tee-crimson-l",
+          "label": "Crimson / L",
+          "options": {
+            "Color": "Crimson",
+            "Size": "L"
+          },
+          "price": 3600,
+          "available": true
+        },
+        {
+          "id": "redbullfinch-crimson-tee-crimson-xl",
+          "sku": "redbullfinch-crimson-tee-crimson-xl",
+          "label": "Crimson / XL",
+          "options": {
+            "Color": "Crimson",
+            "Size": "XL"
+          },
+          "price": 3600,
+          "available": true
+        },
+        {
+          "id": "redbullfinch-crimson-tee-crimson-2xl",
+          "sku": "redbullfinch-crimson-tee-crimson-2xl",
+          "label": "Crimson / 2XL",
+          "options": {
+            "Color": "Crimson",
+            "Size": "2XL"
+          },
+          "price": 3600,
+          "available": true
+        }
+      ],
+      "checkout": {
+        "mode": "embedded-stripe",
+        "shipping": {
+          "strategy": "included-us-standard",
+          "label": "US standard shipping included"
+        },
+        "allowedCountries": [
+          "US"
+        ]
+      },
+      "fulfillment": "embedded",
+      "embeddedFulfillment": {
+        "recommended": "printful",
+        "status": "ready",
+        "notes": "Printful catalog mapping is ready. Do not accept live Stripe payments until PRINTFUL_API_KEY and PRINTFUL_STORE_ID are configured and the webhook fulfillment path has been tested against the account.",
+        "variants": {
+          "redbullfinch-crimson-tee-crimson-s": {
+            "catalogVariantId": 16547,
+            "frontPlacement": "embroidery_chest_left",
+            "backPlacement": false
+          },
+          "redbullfinch-crimson-tee-crimson-m": {
+            "catalogVariantId": 16548,
+            "frontPlacement": "embroidery_chest_left",
+            "backPlacement": false
+          },
+          "redbullfinch-crimson-tee-crimson-l": {
+            "catalogVariantId": 16549,
+            "frontPlacement": "embroidery_chest_left",
+            "backPlacement": false
+          },
+          "redbullfinch-crimson-tee-crimson-xl": {
+            "catalogVariantId": 16550,
+            "frontPlacement": "embroidery_chest_left",
+            "backPlacement": false
+          },
+          "redbullfinch-crimson-tee-crimson-2xl": {
+            "catalogVariantId": 16551,
+            "frontPlacement": "embroidery_chest_left",
+            "backPlacement": false
+          }
+        },
+        "catalogProductId": 586,
+        "catalogProduct": "Unisex Garment-Dyed Heavyweight T-Shirt | Comfort Colors 1717"
+      },
+      "production": {
+        "method": "embroidery",
+        "blank": "Comfort Colors 1717 garment-dyed heavyweight t-shirt, Crimson",
+        "frontArtwork": "assets/redbullfinch-embroidery-full.png",
+        "backArtwork": "",
+        "frontSource": "assets/redbullfinch-embroidery-full.svg",
+        "sourceArtwork": "assets/redbullfinch-lilly-source.svg",
+        "frontPosition": {
+          "width": 2.8,
+          "height": 2.8,
+          "top": 0.6,
+          "left": 0.6
+        },
+        "threadColors": [
+          "#000000",
+          "#FFFFFF",
+          "#8A8A8A",
+          "#D22630",
+          "#FF6A00",
+          "#FFCC00"
+        ],
+        "notes": "Six-thread embroidery asset derived from Lilly's original redbullfinch SVG. Mapped to Printful embroidery_chest_left on Comfort Colors 1717."
+      }
+    },
+    {
+      "id": "redbullfinch-dad-hat",
+      "title": "redbullfinch dad hat",
+      "type": "hat",
+      "category": "accessories",
+      "price": 3200,
+      "currency": "USD",
+      "status": "draft",
+      "image": "assets/redbullfinch-embroidery-head.png",
+      "alt": "black dad hat with a small embroidered redbullfinch mark on the front",
+      "summary": "a black dad hat with a small embroidered redbullfinch mark on the front.",
+      "details": [
+        "Yupoong classic dad hat",
+        "front embroidery",
+        "adjustable strap",
+        "US standard shipping included"
+      ],
+      "variants": [
+        {
+          "id": "redbullfinch-dad-hat-black-one-size",
+          "sku": "redbullfinch-dad-hat-black-one-size",
+          "label": "Black / One size",
+          "options": {
+            "Color": "Black",
+            "Size": "One size"
+          },
+          "price": 3200,
+          "available": true
+        }
+      ],
+      "checkout": {
+        "mode": "embedded-stripe",
+        "shipping": {
+          "strategy": "included-us-standard",
+          "label": "US standard shipping included"
+        },
+        "allowedCountries": [
+          "US"
+        ]
+      },
+      "fulfillment": "embedded",
+      "embeddedFulfillment": {
+        "recommended": "printful",
+        "status": "ready",
+        "notes": "Printful catalog mapping is ready. Do not accept live Stripe payments until PRINTFUL_API_KEY and PRINTFUL_STORE_ID are configured and the webhook fulfillment path has been tested against the account.",
+        "variants": {
+          "redbullfinch-dad-hat-black-one-size": {
+            "catalogVariantId": 7854,
+            "frontPlacement": "embroidery_front",
+            "backPlacement": false
+          }
+        },
+        "catalogProductId": 206,
+        "catalogProduct": "Classic Dad Hat | Yupoong 6245CM"
+      },
+      "production": {
+        "method": "embroidery",
+        "blank": "Yupoong 6245CM classic dad hat, Black",
+        "frontArtwork": "assets/redbullfinch-embroidery-head.png",
+        "backArtwork": "",
+        "frontSource": "assets/redbullfinch-embroidery-head.svg",
+        "sourceArtwork": "assets/redbullfinch-lilly-source.svg",
+        "frontPosition": {
+          "width": 2.35,
+          "height": 1.35,
+          "top": 0.2,
+          "left": 0.825
+        },
+        "threadColors": [
+          "#000000",
+          "#FFFFFF",
+          "#8A8A8A",
+          "#D22630",
+          "#FF6A00",
+          "#FFCC00"
+        ],
+        "notes": "Six-thread cropped embroidery asset derived from Lilly's original redbullfinch SVG. Mapped to Printful embroidery_front on Yupoong 6245CM."
       }
     }
   ]

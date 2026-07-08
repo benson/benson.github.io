@@ -72,10 +72,20 @@ function imageIssues({ assetPath, label, requirements = {}, projectRoot = root }
   return issues;
 }
 
+function mappedPlacementEntries(product) {
+  return Object.values(product.embeddedFulfillment?.variants || {})
+    .flatMap((variant) => [
+      { role: "front", placement: variant.frontPlacement },
+      { role: "back", placement: variant.backPlacement }
+    ])
+    .filter((entry) => entry.placement !== false && entry.placement);
+}
+
 function placementArtwork(product, placement) {
   const production = product.production || {};
-  if (placement === "front") return production.frontArtwork || "";
-  if (placement === "back") return production.backArtwork || "";
+  const entry = mappedPlacementEntries(product).find((candidate) => candidate.placement === placement);
+  if (entry?.role === "front") return production.frontArtwork || "";
+  if (entry?.role === "back") return production.backArtwork || "";
   return "";
 }
 
@@ -124,11 +134,9 @@ function productVisualProofIssues(product, { projectRoot = root } = {}) {
     issues.push(`${product.id} visualProof catalogVariantId is not one of the mapped Printful variants`);
   }
 
-  const placements = mappedVariants
-    .flatMap((variant) => [variant.frontPlacement, variant.backPlacement])
-    .filter((placement) => placement !== false && placement);
-  if (!["front", "back"].includes(proof.placement)) {
-    issues.push(`${product.id} visualProof placement is ${proof.placement || "missing"}, expected front or back`);
+  const placements = mappedPlacementEntries(product).map((entry) => entry.placement);
+  if (!proof.placement) {
+    issues.push(`${product.id} visualProof placement is missing`);
   } else if (!placements.includes(proof.placement)) {
     issues.push(`${product.id} visualProof placement is not used by embeddedFulfillment`);
   }
@@ -137,7 +145,7 @@ function productVisualProofIssues(product, { projectRoot = root } = {}) {
   if (!proof.productionArtwork) {
     issues.push(`${product.id} visualProof productionArtwork is missing`);
   } else if (expectedArtwork && proof.productionArtwork !== expectedArtwork) {
-    issues.push(`${product.id} visualProof productionArtwork does not match production.${proof.placement}Artwork`);
+    issues.push(`${product.id} visualProof productionArtwork does not match the mapped artwork for ${proof.placement}`);
   }
 
   if (!Number.isInteger(proof.mockupStyleId)) {
@@ -162,11 +170,9 @@ export function productAssetIssues(product, { projectRoot = root } = {}) {
 
   const production = product.production || {};
   const fulfillment = product.embeddedFulfillment || {};
-  const placements = Object.values(fulfillment.variants || {})
-    .flatMap((variant) => [variant.frontPlacement, variant.backPlacement])
-    .filter((placement) => placement !== false && placement);
-  const needsFront = placements.includes("front");
-  const needsBack = placements.includes("back");
+  const placementEntries = mappedPlacementEntries(product);
+  const needsFront = placementEntries.some((entry) => entry.role === "front");
+  const needsBack = placementEntries.some((entry) => entry.role === "back");
 
   if (needsFront) {
     issues.push(
@@ -230,12 +236,6 @@ export function localProductReadinessIssues(product, catalog) {
     }
     if (!Number.isInteger(providerVariant.catalogVariantId)) {
       issues.push(`${variant.id} missing Printful catalogVariantId`);
-    }
-    for (const key of ["frontPlacement", "backPlacement"]) {
-      const placement = providerVariant[key];
-      if (placement !== undefined && placement !== false && !["front", "back"].includes(placement)) {
-        issues.push(`${variant.id} uses unsupported ${key}: ${placement}`);
-      }
     }
   }
 

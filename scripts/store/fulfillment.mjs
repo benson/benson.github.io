@@ -43,6 +43,28 @@ export function printfulTechnique(method) {
   return "dtg";
 }
 
+function printfulLayerOptions(production) {
+  const options = [];
+  if (printfulTechnique(production.method) === "embroidery" && Array.isArray(production.threadColors) && production.threadColors.length) {
+    options.push({
+      name: "thread_colors",
+      value: production.threadColors
+    });
+  }
+  return options;
+}
+
+function printfulArtworkLayer({ production, publicUrl, artworkPath, position }) {
+  const layer = {
+    type: "file",
+    url: productPublicAssetUrl(publicUrl, artworkPath)
+  };
+  const layerOptions = printfulLayerOptions(production);
+  if (layerOptions.length) layer.layer_options = layerOptions;
+  if (position) layer.position = position;
+  return layer;
+}
+
 function stableShortHash(value) {
   let high = 0xdeadbeef;
   let low = 0x41c6ce57;
@@ -98,10 +120,12 @@ export function buildPrintfulOrder({ catalog, cartLines, session, env = process.
         placement: variant.frontPlacement || "front",
         technique: printfulTechnique(production.method),
         layers: [
-          {
-            type: "file",
-            url: productPublicAssetUrl(publicUrl, production.frontArtwork)
-          }
+          printfulArtworkLayer({
+            production,
+            publicUrl,
+            artworkPath: production.frontArtwork,
+            position: production.frontPosition
+          })
         ]
       });
     }
@@ -110,10 +134,12 @@ export function buildPrintfulOrder({ catalog, cartLines, session, env = process.
         placement: variant.backPlacement || "back",
         technique: printfulTechnique(production.method),
         layers: [
-          {
-            type: "file",
-            url: productPublicAssetUrl(publicUrl, production.backArtwork)
-          }
+          printfulArtworkLayer({
+            production,
+            publicUrl,
+            artworkPath: production.backArtwork,
+            position: production.backPosition
+          })
         ]
       });
     }

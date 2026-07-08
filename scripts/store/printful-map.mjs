@@ -7,6 +7,13 @@ import { fetchPrintfulCatalogProduct, printfulCatalogIssues } from "./product-re
 
 const catalogPath = path.join(root, "store", "products.json");
 
+function parsePlacement(value, fallback) {
+  const normalized = String(value ?? "").trim();
+  if (!normalized) return fallback;
+  if (/^(false|none|off|no)$/i.test(normalized)) return false;
+  return normalized;
+}
+
 export function parseArgs(argv) {
   const args = {
     apply: false,
@@ -25,10 +32,10 @@ export function parseArgs(argv) {
     else if (arg.startsWith("--product=")) args.productId = arg.slice("--product=".length);
     else if (arg === "--catalog-product") args.catalogProductId = Number(argv[(index += 1)] || 0) || null;
     else if (arg.startsWith("--catalog-product=")) args.catalogProductId = Number(arg.slice("--catalog-product=".length)) || null;
-    else if (arg === "--front-placement") args.frontPlacement = argv[(index += 1)] || "front";
-    else if (arg.startsWith("--front-placement=")) args.frontPlacement = arg.slice("--front-placement=".length);
-    else if (arg === "--back-placement") args.backPlacement = argv[(index += 1)] || "back";
-    else if (arg.startsWith("--back-placement=")) args.backPlacement = arg.slice("--back-placement=".length);
+    else if (arg === "--front-placement") args.frontPlacement = parsePlacement(argv[(index += 1)], "front");
+    else if (arg.startsWith("--front-placement=")) args.frontPlacement = parsePlacement(arg.slice("--front-placement=".length), "front");
+    else if (arg === "--back-placement") args.backPlacement = parsePlacement(argv[(index += 1)], "back");
+    else if (arg.startsWith("--back-placement=")) args.backPlacement = parsePlacement(arg.slice("--back-placement=".length), "back");
     else throw new Error(`Unknown option: ${arg}`);
   }
 
@@ -48,7 +55,9 @@ Options:
   --product <id>           Store product ID from store/products.json.
   --catalog-product <id>   Printful catalog product ID.
   --front-placement <id>   Printful placement for front artwork. Default: front.
+                            Use false/none to omit.
   --back-placement <id>    Printful placement for back artwork. Default: back.
+                            Use false/none to omit.
   --apply                  Write the mapping to store/products.json. Dry-run by default.
 `);
 }
