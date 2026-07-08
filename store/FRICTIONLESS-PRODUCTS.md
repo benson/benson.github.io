@@ -30,6 +30,11 @@ The user should not have to think about file format, DPI, embroidery constraints
 - Pick the lowest-friction fulfillment path that still preserves the idea.
 - Avoid IP-infringing, offensive, or overly fragile artwork.
 - Produce production assets separately from storefront mockups.
+- Keep the public mockup honest: for live Printful products, generate the hero
+  image from Printful's mockup generator using the same catalog product, variant,
+  placement, and production artwork that fulfillment uses. Do not use AI/editorial
+  mockups as the primary sales image unless they are clearly secondary lifestyle
+  images.
 - Use `npm run store:product:scaffold -- --apply` to write product JSON instead of hand-editing catalog entries.
 - Validate dimensions, transparency, obvious broken assets, and store rendering.
 - Run `npm run store:launch:check -- --network --live` before treating embedded checkout as buyable.

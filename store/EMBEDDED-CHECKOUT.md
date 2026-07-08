@@ -84,6 +84,9 @@ The local part checks:
 - storefront/mockup and print artwork files exist;
 - print PNG dimensions are large enough for the mapped placement;
 - garment print files include alpha transparency.
+- live Printful products declare `visualProof`, and the public storefront image
+  matches the Printful-generated proof mockup for the exact production artwork,
+  catalog product, variant, and placement.
 - every embedded product declares the supported `included-us-standard` shipping policy and buyer-facing label.
 
 The `--network` part also validates the configured Printful token against Printful's v2 OAuth scopes endpoint when `PRINTFUL_API_KEY` exists, verifies that `PRINTFUL_STORE_ID` gives the token a usable order/shipping context, then calls Printful's public catalog endpoint and verifies:
