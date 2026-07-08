@@ -43,6 +43,27 @@ const money = (cents, currency = "USD") => {
   }).format(amount);
 };
 
+function storeAssetFallbackUrl(assetPath) {
+  if (window.location.hostname !== "bensonperry.com") return "";
+  if (!String(assetPath || "").startsWith("assets/")) return "";
+  return new URL(assetPath, "https://benson.github.io/store/").href;
+}
+
+function bindProductImageFallback(image, imageLink, product) {
+  image.addEventListener(
+    "error",
+    () => {
+      if (image.dataset.fallbackTried === "true") return;
+      const fallbackUrl = storeAssetFallbackUrl(product.image);
+      if (!fallbackUrl) return;
+      image.dataset.fallbackTried = "true";
+      image.src = fallbackUrl;
+      imageLink.href = fallbackUrl;
+    },
+    { once: true }
+  );
+}
+
 const firstAvailableVariant = (product) =>
   (product.variants || []).find((variant) => variant.available !== false) || null;
 
@@ -253,6 +274,7 @@ function renderProducts() {
     const action = node.querySelector(".product-action");
 
     card.dataset.category = product.category;
+    bindProductImageFallback(image, imageLink, product);
     image.src = product.image;
     image.alt = product.alt || product.title;
     imageLink.href = product.image;
