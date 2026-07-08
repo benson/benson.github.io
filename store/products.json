@@ -11,7 +11,7 @@
       "title": "small useful light",
       "type": "t-shirt",
       "category": "apparel",
-      "price": 1925,
+      "price": 1838,
       "currency": "USD",
       "status": "live",
       "image": "assets/small-useful-light-printful-back-mockup.png",
@@ -31,7 +31,7 @@
             "Color": "Black",
             "Size": "S"
           },
-          "price": 1925,
+          "price": 1838,
           "available": true
         },
         {
@@ -42,7 +42,7 @@
             "Color": "Black",
             "Size": "M"
           },
-          "price": 1925,
+          "price": 1838,
           "available": true
         },
         {
@@ -53,7 +53,7 @@
             "Color": "Black",
             "Size": "L"
           },
-          "price": 1925,
+          "price": 1838,
           "available": true
         },
         {
@@ -64,7 +64,7 @@
             "Color": "Black",
             "Size": "XL"
           },
-          "price": 1925,
+          "price": 1838,
           "available": true
         },
         {
@@ -75,7 +75,7 @@
             "Color": "Black",
             "Size": "2XL"
           },
-          "price": 1925,
+          "price": 2060,
           "available": true
         }
       ],
@@ -208,7 +208,7 @@
       "title": "redbullfinch pepper tee",
       "type": "t-shirt",
       "category": "apparel",
-      "price": 3600,
+      "price": 3434,
       "currency": "USD",
       "status": "live",
       "image": "assets/redbullfinch-pepper-tee-printful-mockup.png",
@@ -228,7 +228,7 @@
             "Color": "Pepper",
             "Size": "S"
           },
-          "price": 3600,
+          "price": 3434,
           "available": true
         },
         {
@@ -239,7 +239,7 @@
             "Color": "Pepper",
             "Size": "M"
           },
-          "price": 3600,
+          "price": 3434,
           "available": true
         },
         {
@@ -250,7 +250,7 @@
             "Color": "Pepper",
             "Size": "L"
           },
-          "price": 3600,
+          "price": 3434,
           "available": true
         },
         {
@@ -261,7 +261,7 @@
             "Color": "Pepper",
             "Size": "XL"
           },
-          "price": 3600,
+          "price": 3434,
           "available": true
         },
         {
@@ -272,7 +272,7 @@
             "Color": "Pepper",
             "Size": "2XL"
           },
-          "price": 3600,
+          "price": 3648,
           "available": true
         }
       ],
@@ -359,7 +359,7 @@
         "catalogVariantId": 17694,
         "placement": "embroidery_chest_left",
         "mockupStyleId": 2288,
-        "generatedAt": "2026-07-08T18:42:34.613Z"
+        "generatedAt": "2026-07-08T19:18:18.889Z"
       }
     },
     {
@@ -367,7 +367,7 @@
       "title": "redbullfinch crimson tee",
       "type": "t-shirt",
       "category": "apparel",
-      "price": 3600,
+      "price": 3434,
       "currency": "USD",
       "status": "live",
       "image": "assets/redbullfinch-crimson-tee-printful-mockup.png",
@@ -387,7 +387,7 @@
             "Color": "Crimson",
             "Size": "S"
           },
-          "price": 3600,
+          "price": 3434,
           "available": true
         },
         {
@@ -398,7 +398,7 @@
             "Color": "Crimson",
             "Size": "M"
           },
-          "price": 3600,
+          "price": 3434,
           "available": true
         },
         {
@@ -409,7 +409,7 @@
             "Color": "Crimson",
             "Size": "L"
           },
-          "price": 3600,
+          "price": 3434,
           "available": true
         },
         {
@@ -420,7 +420,7 @@
             "Color": "Crimson",
             "Size": "XL"
           },
-          "price": 3600,
+          "price": 3434,
           "available": true
         },
         {
@@ -431,7 +431,7 @@
             "Color": "Crimson",
             "Size": "2XL"
           },
-          "price": 3600,
+          "price": 3648,
           "available": true
         }
       ],
@@ -518,7 +518,7 @@
         "catalogVariantId": 16548,
         "placement": "embroidery_chest_left",
         "mockupStyleId": 2288,
-        "generatedAt": "2026-07-08T18:42:34.613Z"
+        "generatedAt": "2026-07-08T19:18:18.889Z"
       }
     },
     {
@@ -526,7 +526,7 @@
       "title": "redbullfinch dad hat",
       "type": "hat",
       "category": "accessories",
-      "price": 3200,
+      "price": 3198,
       "currency": "USD",
       "status": "live",
       "image": "assets/redbullfinch-dad-hat-printful-mockup.png",
@@ -547,7 +547,7 @@
             "Color": "Stone",
             "Size": "One size"
           },
-          "price": 3200,
+          "price": 3198,
           "available": true
         }
       ],
@@ -614,7 +614,7 @@
         "catalogVariantId": 7859,
         "placement": "embroidery_front",
         "mockupStyleId": 15086,
-        "generatedAt": "2026-07-08T18:42:34.613Z"
+        "generatedAt": "2026-07-08T19:18:18.889Z"
       }
     }
   ]

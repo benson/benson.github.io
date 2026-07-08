@@ -46,6 +46,32 @@ const money = (cents, currency = "USD") => {
 const firstAvailableVariant = (product) =>
   (product.variants || []).find((variant) => variant.available !== false) || null;
 
+function availableVariantPrices(product) {
+  return (product.variants || [])
+    .filter((variant) => variant.available !== false)
+    .map((variant) => Number(variant.price ?? product.price))
+    .filter((price) => Number.isInteger(price));
+}
+
+function productPriceLabel(product) {
+  const prices = availableVariantPrices(product);
+  if (!prices.length) return money(product.price, product.currency);
+
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  return min === max ? money(min, product.currency) : `from ${money(min, product.currency)}`;
+}
+
+function variantOptionLabel(product, variant) {
+  const label = variant.options?.Size || variant.label;
+  const prices = availableVariantPrices(product);
+  const uniquePrices = new Set(prices);
+  const price = Number(variant.price ?? product.price);
+
+  if (uniquePrices.size <= 1 || !Number.isInteger(price)) return label;
+  return `${label} / ${money(price, product.currency)}`;
+}
+
 const itemKey = (item) => `${item.productId}:${item.variantId || ""}`;
 
 function normalStatus(product) {
@@ -231,7 +257,7 @@ function renderProducts() {
     image.alt = product.alt || product.title;
     imageLink.href = product.image;
     type.textContent = product.type || product.category;
-    price.textContent = money(product.price, product.currency);
+    price.textContent = productPriceLabel(product);
     title.textContent = product.title;
     summary.textContent = product.summary;
 
@@ -246,7 +272,7 @@ function renderProducts() {
       for (const variant of variants) {
         const option = document.createElement("option");
         option.value = variant.id;
-        option.textContent = variant.options?.Size || variant.label;
+        option.textContent = variantOptionLabel(product, variant);
         option.disabled = variant.available === false;
         variantSelect.append(option);
       }

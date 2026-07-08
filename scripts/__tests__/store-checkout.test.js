@@ -91,7 +91,7 @@ test("checkout resolves cart prices from the server catalog", async () => {
   ]);
 
   assert.equal(lines.length, 1);
-  assert.equal(lines[0].unitAmount, 1925);
+  assert.equal(lines[0].unitAmount, 1838);
   assert.equal(lines[0].quantity, 2);
   assert.equal(lines[0].sku, "small-useful-light-black-m");
 });
@@ -174,7 +174,7 @@ test("checkout can build an embedded Stripe session in explicit unfulfilled test
 
   assert.equal(params.get("ui_mode"), "embedded_page");
   assert.equal(params.get("payment_method_types[0]"), "card");
-  assert.equal(params.get("line_items[0][price_data][unit_amount]"), "1925");
+  assert.equal(params.get("line_items[0][price_data][unit_amount]"), "1838");
   assert.equal(params.get("line_items[0][quantity]"), "1");
   assert.match(params.get("return_url"), /^https:\/\/bensonperry\.com\/store\//);
   assert.equal(lines[0].variantId, "small-useful-light-black-xl");
