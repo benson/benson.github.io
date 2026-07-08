@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>blank picker | benson perry</title>
+  <meta name="description" content="visual sourcing board for bensonperry.com/store shirt and hat blanks">
+  <meta property="og:title" content="blank picker | benson perry">
+  <meta property="og:description" content="shirt and hat blank options for future store products">
+  <meta property="og:url" content="https://bensonperry.com/store/blanks/">
+  <meta property="og:type" content="website">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body class="blank-page">
+  <header class="site-header">
+    <a class="brand" href="/">benson perry</a>
+    <nav aria-label="blank picker links">
+      <a href="/store/">store</a>
+      <a href="mailto:benson.perry@gmail.com">contact</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="blank-hero" aria-labelledby="blank-title">
+      <div>
+        <p class="kicker">store sourcing board</p>
+        <h1 id="blank-title">blank picker</h1>
+      </div>
+      <div class="blank-hero-copy">
+        <p>shirt and hat bases that are usable through the current Printful-backed store path.</p>
+      </div>
+    </section>
+
+    <section class="decision-grid" aria-label="quick picks">
+      <article class="decision-card">
+        <span class="decision-label">premium default</span>
+        <strong>comfort colors 1717</strong>
+        <p>the safest nice-feeling tee when the idea deserves a better blank.</p>
+      </article>
+      <article class="decision-card">
+        <span class="decision-label">cheap default</span>
+        <strong>gildan 5000</strong>
+        <p>use when price matters more than the blank feeling special.</p>
+      </article>
+      <article class="decision-card">
+        <span class="decision-label">hat default</span>
+        <strong>yupoong 6245cm</strong>
+        <p>easy dad-hat shape with embroidery or small front dtf.</p>
+      </article>
+      <article class="decision-card">
+        <span class="decision-label">shaka option</span>
+        <strong>shaka tie-dye</strong>
+        <p>usable through Printful, but not the plain max-heavy blank.</p>
+      </article>
+    </section>
+
+    <section class="blank-toolbar" aria-label="blank filters">
+      <div class="blank-filters" role="group" aria-label="filter blank options">
+        <button class="filter-button is-active" type="button" data-blank-filter="all" aria-pressed="true">all</button>
+        <button class="filter-button" type="button" data-blank-filter="tee" aria-pressed="false">tees</button>
+        <button class="filter-button" type="button" data-blank-filter="premium" aria-pressed="false">premium</button>
+        <button class="filter-button" type="button" data-blank-filter="hat" aria-pressed="false">hats</button>
+      </div>
+      <p id="blank-count" class="blank-count" aria-live="polite"></p>
+    </section>
+
+    <section id="blank-grid" class="blank-grid" aria-live="polite"></section>
+  </main>
+
+  <template id="blank-template">
+    <article class="blank-card">
+      <a class="blank-media-link" href="#" target="_blank" rel="noopener">
+        <img class="blank-image" src="" alt="" loading="lazy">
+      </a>
+      <div class="blank-body">
+        <div class="blank-card-topline">
+          <span class="provider-mark"></span>
+          <span class="blank-cost"></span>
+        </div>
+        <h2 class="blank-name"></h2>
+        <p class="blank-subtitle"></p>
+        <dl class="blank-stats">
+          <div>
+            <dt>sizes</dt>
+            <dd class="blank-sizes"></dd>
+          </div>
+          <div>
+            <dt>colors</dt>
+            <dd class="blank-color-count"></dd>
+          </div>
+          <div>
+            <dt>method</dt>
+            <dd class="blank-techniques"></dd>
+          </div>
+        </dl>
+        <div class="color-strip" aria-label="sample colors"></div>
+        <p class="blank-best"></p>
+        <p class="blank-watch"></p>
+        <ul class="blank-tags"></ul>
+        <a class="blank-source" href="#" target="_blank" rel="noopener"></a>
+      </div>
+    </article>
+  </template>
+
+  <script src="../blanks.js" type="module"></script>
+</body>
+</html>
