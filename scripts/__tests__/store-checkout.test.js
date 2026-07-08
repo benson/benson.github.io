@@ -555,6 +555,52 @@ test("fulfillment builds a Printful order from a paid Stripe session", async () 
   assert.equal(result.confirmationStatus, "skipped-test-mode");
 });
 
+test("fulfillment requests unlimited-color embroidery without thread overrides", async () => {
+  const { buildPrintfulOrder } = await fulfillmentModule();
+  const embroideryCatalog = readyPrintfulCatalog();
+  const product = embroideryCatalog.products.find((candidate) => candidate.id === "small-useful-light-tee");
+  product.production = {
+    ...product.production,
+    method: "embroidery",
+    frontArtwork: product.production.backArtwork,
+    backArtwork: "",
+    frontPosition: {
+      width: 2.8,
+      height: 2.8,
+      top: 0.6,
+      left: 0.6
+    },
+    embroideryColorMode: "unlimited-color",
+    unlimitedColorEmbroidery: true,
+    threadColors: ["#000000", "#FFFFFF"]
+  };
+  product.embeddedFulfillment.variants["small-useful-light-black-m"] = {
+    catalogVariantId: 7001,
+    frontPlacement: "embroidery_chest_left",
+    backPlacement: false
+  };
+
+  const order = buildPrintfulOrder({
+    catalog: embroideryCatalog,
+    cartLines: [
+      {
+        productId: "small-useful-light-tee",
+        variantId: "small-useful-light-black-m",
+        sku: "small-useful-light-black-m",
+        quantity: 1,
+        unitAmount: 3995,
+        title: "Small Useful Light"
+      }
+    ],
+    session: paidStripeSession("ignored"),
+    env: { STORE_PUBLIC_URL: "https://bensonperry.com" }
+  });
+  const placement = order.order_items[0].placements[0];
+
+  assert.deepEqual(placement.placement_options, [{ name: "unlimited_color", value: true }]);
+  assert.equal(placement.layers[0].layer_options, undefined);
+});
+
 test("Printful external ids fit provider limits for live Stripe sessions", async () => {
   const { printfulExternalId } = await fulfillmentModule();
   const stripeSessionId = "cs_live_a1XmaCJf5wHfQ6AnmzwZ5WVb2fT5Ptm3GoR9cxYmwYxdj2klgRkK0zt4JG";

@@ -87,6 +87,32 @@ test("Printful catalog readiness accepts matching variants and placements", asyn
   assert.deepEqual(printfulCatalogIssues(product, matchingPrintfulProduct()), []);
 });
 
+test("Printful catalog readiness validates unlimited-color embroidery support", async () => {
+  const { printfulCatalogIssues } = await readinessModule();
+  const draft = JSON.parse(JSON.stringify(product));
+  draft.production.method = "embroidery";
+  draft.production.embroideryColorMode = "unlimited-color";
+  draft.production.unlimitedColorEmbroidery = true;
+  draft.production.backArtwork = "";
+  for (const mapping of Object.values(draft.embeddedFulfillment.variants)) {
+    mapping.frontPlacement = "embroidery_chest_left";
+    mapping.backPlacement = false;
+  }
+
+  const remote = matchingPrintfulProduct();
+  remote.product.files = [
+    {
+      type: "embroidery_chest_left",
+      options: [{ id: "full_color", title: "Unlimited color" }]
+    }
+  ];
+  assert.deepEqual(printfulCatalogIssues(draft, remote), []);
+
+  remote.product.files[0].options = [];
+  const issues = printfulCatalogIssues(draft, remote);
+  assert.ok(issues.some((issue) => issue.includes("unlimited color embroidery")));
+});
+
 test("Printful API token verifier reads OAuth scopes without exposing the token", async () => {
   const { verifyPrintfulApiToken } = await readinessModule();
   const result = await verifyPrintfulApiToken({

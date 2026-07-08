@@ -216,7 +216,7 @@
       "summary": "a garment-dyed heavyweight tee with Lilly's redbullfinch embroidered on the left chest.",
       "details": [
         "Comfort Colors 1717",
-        "left chest embroidery",
+        "unlimited color left chest embroidery",
         "US standard shipping included"
       ],
       "variants": [
@@ -334,15 +334,22 @@
           "top": 0.6,
           "left": 0.6
         },
-        "threadColors": [
-          "#000000",
-          "#FFFFFF",
-          "#8A8A8A",
-          "#D22630",
-          "#FF6A00",
-          "#FFCC00"
+        "embroideryColorMode": "unlimited-color",
+        "unlimitedColorEmbroidery": true,
+        "palette": [
+          "#241F1C",
+          "#F9F8F6",
+          "#454A68",
+          "#C83737",
+          "#AC9393",
+          "#AC9D93",
+          "#6C5353",
+          "#FFD42A",
+          "#FF6600",
+          "#484537",
+          "#B3B3B3"
         ],
-        "notes": "Six-thread embroidery asset derived from Lilly's original redbullfinch SVG. Mapped to Printful embroidery_chest_left on Comfort Colors 1717."
+        "notes": "Unlimited-color embroidery asset derived from Lilly's original redbullfinch SVG. Mapped to Printful embroidery_chest_left on Comfort Colors 1717."
       },
       "visualProof": {
         "source": "printful-mockup-generator",
@@ -368,7 +375,7 @@
       "summary": "a crimson garment-dyed heavyweight tee with Lilly's redbullfinch embroidered on the left chest.",
       "details": [
         "Comfort Colors 1717",
-        "left chest embroidery",
+        "unlimited color left chest embroidery",
         "US standard shipping included"
       ],
       "variants": [
@@ -486,15 +493,22 @@
           "top": 0.6,
           "left": 0.6
         },
-        "threadColors": [
-          "#000000",
-          "#FFFFFF",
-          "#8A8A8A",
-          "#D22630",
-          "#FF6A00",
-          "#FFCC00"
+        "embroideryColorMode": "unlimited-color",
+        "unlimitedColorEmbroidery": true,
+        "palette": [
+          "#241F1C",
+          "#F9F8F6",
+          "#454A68",
+          "#C83737",
+          "#AC9393",
+          "#AC9D93",
+          "#6C5353",
+          "#FFD42A",
+          "#FF6600",
+          "#484537",
+          "#B3B3B3"
         ],
-        "notes": "Six-thread embroidery asset derived from Lilly's original redbullfinch SVG. Mapped to Printful embroidery_chest_left on Comfort Colors 1717."
+        "notes": "Unlimited-color embroidery asset derived from Lilly's original redbullfinch SVG. Mapped to Printful embroidery_chest_left on Comfort Colors 1717."
       },
       "visualProof": {
         "source": "printful-mockup-generator",
@@ -520,7 +534,7 @@
       "summary": "a stone dad hat with a small embroidered redbullfinch mark on the front.",
       "details": [
         "Yupoong classic dad hat",
-        "front embroidery",
+        "unlimited color front embroidery",
         "adjustable strap",
         "US standard shipping included"
       ],
@@ -575,15 +589,22 @@
           "top": 0.2,
           "left": 0.825
         },
-        "threadColors": [
-          "#000000",
-          "#FFFFFF",
-          "#8A8A8A",
-          "#D22630",
-          "#FF6A00",
-          "#FFCC00"
+        "embroideryColorMode": "unlimited-color",
+        "unlimitedColorEmbroidery": true,
+        "palette": [
+          "#241F1C",
+          "#F9F8F6",
+          "#454A68",
+          "#C83737",
+          "#AC9393",
+          "#AC9D93",
+          "#6C5353",
+          "#FFD42A",
+          "#FF6600",
+          "#484537",
+          "#B3B3B3"
         ],
-        "notes": "Six-thread cropped embroidery asset derived from Lilly's original redbullfinch SVG. Mapped to Printful embroidery_front on Stone Yupoong 6245CM."
+        "notes": "Unlimited-color cropped embroidery asset derived from Lilly's original redbullfinch SVG. Mapped to Printful embroidery_front on Stone Yupoong 6245CM."
       },
       "visualProof": {
         "source": "printful-mockup-generator",

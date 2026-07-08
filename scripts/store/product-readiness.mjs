@@ -81,6 +81,30 @@ function mappedPlacementEntries(product) {
     .filter((entry) => entry.placement !== false && entry.placement);
 }
 
+function usesUnlimitedColorEmbroidery(product) {
+  const production = product.production || {};
+  return (
+    String(production.method || "").toLowerCase() === "embroidery" &&
+    (production.unlimitedColorEmbroidery === true || production.embroideryColorMode === "unlimited-color")
+  );
+}
+
+function printfulPlacementFileByName(files = []) {
+  const byName = new Map();
+  for (const file of files) {
+    for (const name of [file.type, file.id].filter(Boolean)) {
+      byName.set(name, file);
+    }
+  }
+  return byName;
+}
+
+function printfulFileSupportsUnlimitedColor(file) {
+  return (file?.options || []).some((option) =>
+    ["full_color", "unlimited_color"].includes(String(option.id || option.name || "").toLowerCase())
+  );
+}
+
 function placementArtwork(product, placement) {
   const production = product.production || {};
   const entry = mappedPlacementEntries(product).find((candidate) => candidate.placement === placement);
@@ -333,8 +357,10 @@ export function printfulCatalogIssues(product, printfulProduct) {
   const remoteProduct = printfulProduct.product || {};
   const remoteVariants = printfulProduct.variants || [];
   const remoteVariantById = new Map(remoteVariants.map((variant) => [variant.id, variant]));
-  const fileTypes = new Set((remoteProduct.files || []).map((file) => file.type || file.id).filter(Boolean));
+  const placementFileByName = printfulPlacementFileByName(remoteProduct.files || []);
+  const fileTypes = new Set(placementFileByName.keys());
   const allowedCountries = new Set(product.checkout?.allowedCountries || []);
+  const requiresUnlimitedColor = usesUnlimitedColorEmbroidery(product);
 
   if (remoteProduct.id !== catalogProductId) {
     issues.push(`Printful product id mismatch: expected ${catalogProductId}, got ${remoteProduct.id || "missing"}`);
@@ -373,6 +399,13 @@ export function printfulCatalogIssues(product, printfulProduct) {
     for (const placement of [mapping.frontPlacement, mapping.backPlacement]) {
       if (placement !== false && placement && !fileTypes.has(placement)) {
         issues.push(`${storeVariantId} placement ${placement} is not supported by Printful product ${catalogProductId}`);
+      } else if (
+        requiresUnlimitedColor &&
+        placement !== false &&
+        placement &&
+        !printfulFileSupportsUnlimitedColor(placementFileByName.get(placement))
+      ) {
+        issues.push(`${storeVariantId} placement ${placement} does not support unlimited color embroidery on Printful product ${catalogProductId}`);
       }
     }
   }

@@ -43,15 +43,37 @@ export function printfulTechnique(method) {
   return "dtg";
 }
 
+function usesUnlimitedColorEmbroidery(production = {}) {
+  return (
+    printfulTechnique(production.method) === "embroidery" &&
+    (production.unlimitedColorEmbroidery === true || production.embroideryColorMode === "unlimited-color")
+  );
+}
+
 function printfulLayerOptions(production) {
   const options = [];
-  if (printfulTechnique(production.method) === "embroidery" && Array.isArray(production.threadColors) && production.threadColors.length) {
+  if (
+    printfulTechnique(production.method) === "embroidery" &&
+    !usesUnlimitedColorEmbroidery(production) &&
+    Array.isArray(production.threadColors) &&
+    production.threadColors.length
+  ) {
     options.push({
       name: "thread_colors",
       value: production.threadColors
     });
   }
   return options;
+}
+
+function printfulPlacementOptions(production) {
+  if (!usesUnlimitedColorEmbroidery(production)) return [];
+  return [
+    {
+      name: "unlimited_color",
+      value: true
+    }
+  ];
 }
 
 function printfulArtworkLayer({ production, publicUrl, artworkPath, position }) {
@@ -63,6 +85,24 @@ function printfulArtworkLayer({ production, publicUrl, artworkPath, position }) 
   if (layerOptions.length) layer.layer_options = layerOptions;
   if (position) layer.position = position;
   return layer;
+}
+
+function printfulArtworkPlacement({ placement, production, publicUrl, artworkPath, position }) {
+  const printfulPlacement = {
+    placement,
+    technique: printfulTechnique(production.method),
+    layers: [
+      printfulArtworkLayer({
+        production,
+        publicUrl,
+        artworkPath,
+        position
+      })
+    ]
+  };
+  const placementOptions = printfulPlacementOptions(production);
+  if (placementOptions.length) printfulPlacement.placement_options = placementOptions;
+  return printfulPlacement;
 }
 
 function stableShortHash(value) {
@@ -116,32 +156,26 @@ export function buildPrintfulOrder({ catalog, cartLines, session, env = process.
     const production = product.production || {};
     const placements = [];
     if (variant.frontPlacement !== false && production.frontArtwork) {
-      placements.push({
-        placement: variant.frontPlacement || "front",
-        technique: printfulTechnique(production.method),
-        layers: [
-          printfulArtworkLayer({
-            production,
-            publicUrl,
-            artworkPath: production.frontArtwork,
-            position: production.frontPosition
-          })
-        ]
-      });
+      placements.push(
+        printfulArtworkPlacement({
+          placement: variant.frontPlacement || "front",
+          production,
+          publicUrl,
+          artworkPath: production.frontArtwork,
+          position: production.frontPosition
+        })
+      );
     }
     if (variant.backPlacement !== false && production.backArtwork) {
-      placements.push({
-        placement: variant.backPlacement || "back",
-        technique: printfulTechnique(production.method),
-        layers: [
-          printfulArtworkLayer({
-            production,
-            publicUrl,
-            artworkPath: production.backArtwork,
-            position: production.backPosition
-          })
-        ]
-      });
+      placements.push(
+        printfulArtworkPlacement({
+          placement: variant.backPlacement || "back",
+          production,
+          publicUrl,
+          artworkPath: production.backArtwork,
+          position: production.backPosition
+        })
+      );
     }
 
     if (!placements.length) {
