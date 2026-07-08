@@ -14,6 +14,9 @@ npm run store:product:scaffold -- --title "<product title>" --type t-shirt
 
 2. Make the design/art file.
 3. Save the product mockup and production artwork under `store/assets/`.
+   For Printful products, the primary `image` should be a Printful-generated
+   mockup made from the exact production artwork and placement used for
+   fulfillment. Record that relationship in the product's `visualProof` block.
 4. Apply the listing after the referenced asset files exist:
 
 ```powershell

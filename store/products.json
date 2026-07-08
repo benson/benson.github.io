@@ -14,7 +14,7 @@
       "price": 1925,
       "currency": "USD",
       "status": "live",
-      "image": "assets/small-useful-light-back-only-mockup.png",
+      "image": "assets/small-useful-light-printful-back-mockup.png",
       "alt": "black t-shirt back mockup with a lamp illustration turning a tangled line into a glowing clear path",
       "summary": "a black tee with a little lamp doing the thing i like best: turning a knot into a path.",
       "details": [
@@ -125,6 +125,16 @@
             "backPlacement": "back"
           }
         }
+      },
+      "visualProof": {
+        "source": "printful-mockup-generator",
+        "mockup": "assets/small-useful-light-printful-back-mockup.png",
+        "productionArtwork": "assets/small-useful-light-generated-print-4500.png",
+        "catalogProductId": 1421,
+        "catalogVariantId": 44087,
+        "placement": "back",
+        "mockupStyleId": 28951,
+        "generatedAt": "2026-07-08T01:45:00Z"
       },
       "publishing": {
         "fourthwall": {

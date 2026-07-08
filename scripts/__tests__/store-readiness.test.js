@@ -64,6 +64,24 @@ test("product readiness requires a supported embedded checkout shipping policy",
   assert.ok(issues.some((issue) => issue.includes("checkout shipping label")));
 });
 
+test("product readiness requires storefront imagery to match provider visual proof", async () => {
+  const { localProductReadinessIssues } = await readinessModule();
+  const draft = JSON.parse(JSON.stringify(product));
+  draft.image = "assets/small-useful-light-back-only-mockup.png";
+
+  const issues = localProductReadinessIssues(draft, catalog);
+  assert.ok(issues.some((issue) => issue.includes("storefront image must match visualProof mockup")));
+});
+
+test("product readiness requires live Printful products to declare visual proof", async () => {
+  const { localProductReadinessIssues } = await readinessModule();
+  const draft = JSON.parse(JSON.stringify(product));
+  delete draft.visualProof;
+
+  const issues = localProductReadinessIssues(draft, catalog);
+  assert.ok(issues.some((issue) => issue.includes("missing visualProof")));
+});
+
 test("Printful catalog readiness accepts matching variants and placements", async () => {
   const { printfulCatalogIssues } = await readinessModule();
   assert.deepEqual(printfulCatalogIssues(product, matchingPrintfulProduct()), []);

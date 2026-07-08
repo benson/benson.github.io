@@ -72,6 +72,81 @@ function imageIssues({ assetPath, label, requirements = {}, projectRoot = root }
   return issues;
 }
 
+function placementArtwork(product, placement) {
+  const production = product.production || {};
+  if (placement === "front") return production.frontArtwork || "";
+  if (placement === "back") return production.backArtwork || "";
+  return "";
+}
+
+function productVisualProofIssues(product, { projectRoot = root } = {}) {
+  const issues = [];
+  const fulfillment = product.embeddedFulfillment || {};
+  if (product.status !== "live" || product.checkout?.mode !== "embedded-stripe" || fulfillment.recommended !== "printful") {
+    return issues;
+  }
+
+  const proof = product.visualProof;
+  if (!proof) {
+    issues.push(`${product.id} is live on Printful but missing visualProof`);
+    return issues;
+  }
+
+  if (proof.source !== "printful-mockup-generator") {
+    issues.push(`${product.id} visualProof source is ${proof.source || "missing"}, expected printful-mockup-generator`);
+  }
+
+  if (!proof.mockup) {
+    issues.push(`${product.id} visualProof mockup is missing`);
+  } else {
+    issues.push(
+      ...imageIssues({
+        assetPath: proof.mockup,
+        label: `${product.id} Printful proof mockup`,
+        requirements: { minWidth: 800, minHeight: 800 },
+        projectRoot
+      })
+    );
+  }
+
+  if (product.image !== proof.mockup) {
+    issues.push(`${product.id} storefront image must match visualProof mockup`);
+  }
+
+  if (proof.catalogProductId !== fulfillment.catalogProductId) {
+    issues.push(`${product.id} visualProof catalogProductId does not match embeddedFulfillment`);
+  }
+
+  const mappedVariants = Object.values(fulfillment.variants || {});
+  if (!Number.isInteger(proof.catalogVariantId)) {
+    issues.push(`${product.id} visualProof catalogVariantId is missing`);
+  } else if (!mappedVariants.some((variant) => variant.catalogVariantId === proof.catalogVariantId)) {
+    issues.push(`${product.id} visualProof catalogVariantId is not one of the mapped Printful variants`);
+  }
+
+  const placements = mappedVariants
+    .flatMap((variant) => [variant.frontPlacement, variant.backPlacement])
+    .filter((placement) => placement !== false && placement);
+  if (!["front", "back"].includes(proof.placement)) {
+    issues.push(`${product.id} visualProof placement is ${proof.placement || "missing"}, expected front or back`);
+  } else if (!placements.includes(proof.placement)) {
+    issues.push(`${product.id} visualProof placement is not used by embeddedFulfillment`);
+  }
+
+  const expectedArtwork = placementArtwork(product, proof.placement);
+  if (!proof.productionArtwork) {
+    issues.push(`${product.id} visualProof productionArtwork is missing`);
+  } else if (expectedArtwork && proof.productionArtwork !== expectedArtwork) {
+    issues.push(`${product.id} visualProof productionArtwork does not match production.${proof.placement}Artwork`);
+  }
+
+  if (!Number.isInteger(proof.mockupStyleId)) {
+    issues.push(`${product.id} visualProof mockupStyleId is missing`);
+  }
+
+  return issues;
+}
+
 export function productAssetIssues(product, { projectRoot = root } = {}) {
   const issues = [];
   if (product.image) {
@@ -114,6 +189,8 @@ export function productAssetIssues(product, { projectRoot = root } = {}) {
       })
     );
   }
+
+  issues.push(...productVisualProofIssues(product, { projectRoot }));
 
   return issues;
 }
