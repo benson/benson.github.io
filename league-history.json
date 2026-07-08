@@ -1,6 +1,25 @@
 {
-  "blurb": "no games this week",
-  "recent": [],
+  "blurb": "played 2 other games in the last week, went 2-0",
+  "recent": [
+    {
+      "champion": "Fizz",
+      "win": true,
+      "kills": 7,
+      "deaths": 6,
+      "assists": 20,
+      "damage": 51430,
+      "minutes": 25
+    },
+    {
+      "champion": "Pantheon",
+      "win": true,
+      "kills": 8,
+      "deaths": 3,
+      "assists": 17,
+      "damage": 28005,
+      "minutes": 22
+    }
+  ],
   "ddragonVersion": "16.13.1",
   "date": "2026-07-08"
 }
