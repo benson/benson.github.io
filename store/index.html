@@ -86,6 +86,27 @@
     </section>
   </aside>
 
+  <aside id="image-lightbox" class="image-lightbox" role="dialog" aria-modal="true" aria-labelledby="image-lightbox-title" aria-hidden="true">
+    <div class="image-lightbox-backdrop" data-close-lightbox></div>
+    <section class="image-lightbox-shell">
+      <div class="image-lightbox-heading">
+        <div>
+          <p class="kicker">closer look</p>
+          <h2 id="image-lightbox-title"></h2>
+        </div>
+        <div class="image-lightbox-controls" aria-label="image zoom controls">
+          <button class="icon-button" type="button" aria-label="zoom out" data-lightbox-zoom="out">-</button>
+          <button class="icon-button zoom-reset-button" type="button" aria-label="reset zoom" data-lightbox-zoom="reset">1x</button>
+          <button class="icon-button" type="button" aria-label="zoom in" data-lightbox-zoom="in">+</button>
+          <button class="icon-button" type="button" aria-label="close image" data-close-lightbox>x</button>
+        </div>
+      </div>
+      <div id="image-lightbox-stage" class="image-lightbox-stage">
+        <img id="image-lightbox-image" class="image-lightbox-image" src="" alt="" draggable="false">
+      </div>
+    </section>
+  </aside>
+
   <script>
     const storeLoopbackHosts = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
     window.STORE_API_BASE = "";
