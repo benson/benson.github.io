@@ -211,9 +211,9 @@
       "price": 3434,
       "currency": "USD",
       "status": "live",
-      "image": "assets/redbullfinch-pepper-tee-logo-cleanup-printful-mockup.png",
-      "alt": "pepper Comfort Colors t-shirt with Lilly's redbullfinch embroidered on the left chest",
-      "summary": "a garment-dyed heavyweight tee with Lilly's redbullfinch embroidered on the left chest.",
+      "image": "assets/redbullfinch-pepper-tee-attached-source-printful-mockup.png",
+      "alt": "pepper Comfort Colors t-shirt with the redbullfinch embroidered on the left chest",
+      "summary": "a garment-dyed heavyweight tee with the redbullfinch embroidered on the left chest.",
       "details": [
         "Comfort Colors 1717",
         "unlimited color left chest embroidery",
@@ -327,13 +327,7 @@
         "frontArtwork": "assets/redbullfinch-embroidery-full.png",
         "backArtwork": "",
         "frontSource": "assets/redbullfinch-embroidery-full.svg",
-        "sourceArtwork": "assets/redbullfinch-lilly-source.svg",
-        "frontPosition": {
-          "width": 2.8,
-          "height": 2.8,
-          "top": 0.6,
-          "left": 0.6
-        },
+        "sourceArtwork": "assets/redbullfinch-embroidery-full.svg",
         "embroideryColorMode": "unlimited-color",
         "unlimitedColorEmbroidery": true,
         "palette": [
@@ -349,17 +343,17 @@
           "#484537",
           "#B3B3B3"
         ],
-        "notes": "Unlimited-color embroidery asset derived from Lilly's original redbullfinch SVG. Mapped to Printful embroidery_chest_left on Comfort Colors 1717."
+        "notes": "Exact user-provided transparent PNG preserved as the production embroidery artwork and embedded unchanged in the SVG source wrapper. Mapped to Printful embroidery_chest_left on Comfort Colors 1717."
       },
       "visualProof": {
         "source": "printful-mockup-generator",
-        "mockup": "assets/redbullfinch-pepper-tee-logo-cleanup-printful-mockup.png",
+        "mockup": "assets/redbullfinch-pepper-tee-attached-source-printful-mockup.png",
         "productionArtwork": "assets/redbullfinch-embroidery-full.png",
         "catalogProductId": 586,
         "catalogVariantId": 17694,
         "placement": "embroidery_chest_left",
         "mockupStyleId": 2288,
-        "generatedAt": "2026-07-08T20:04:37.762Z"
+        "generatedAt": "2026-07-08T21:10:00.000Z"
       }
     },
     {
@@ -370,9 +364,9 @@
       "price": 3434,
       "currency": "USD",
       "status": "live",
-      "image": "assets/redbullfinch-crimson-tee-logo-cleanup-printful-mockup.png",
-      "alt": "crimson Comfort Colors t-shirt with Lilly's redbullfinch embroidered on the left chest",
-      "summary": "a crimson garment-dyed heavyweight tee with Lilly's redbullfinch embroidered on the left chest.",
+      "image": "assets/redbullfinch-crimson-tee-attached-source-printful-mockup.png",
+      "alt": "crimson Comfort Colors t-shirt with the redbullfinch embroidered on the left chest",
+      "summary": "a crimson garment-dyed heavyweight tee with the redbullfinch embroidered on the left chest.",
       "details": [
         "Comfort Colors 1717",
         "unlimited color left chest embroidery",
@@ -486,13 +480,7 @@
         "frontArtwork": "assets/redbullfinch-embroidery-full.png",
         "backArtwork": "",
         "frontSource": "assets/redbullfinch-embroidery-full.svg",
-        "sourceArtwork": "assets/redbullfinch-lilly-source.svg",
-        "frontPosition": {
-          "width": 2.8,
-          "height": 2.8,
-          "top": 0.6,
-          "left": 0.6
-        },
+        "sourceArtwork": "assets/redbullfinch-embroidery-full.svg",
         "embroideryColorMode": "unlimited-color",
         "unlimitedColorEmbroidery": true,
         "palette": [
@@ -508,17 +496,17 @@
           "#484537",
           "#B3B3B3"
         ],
-        "notes": "Unlimited-color embroidery asset derived from Lilly's original redbullfinch SVG. Mapped to Printful embroidery_chest_left on Comfort Colors 1717."
+        "notes": "Exact user-provided transparent PNG preserved as the production embroidery artwork and embedded unchanged in the SVG source wrapper. Mapped to Printful embroidery_chest_left on Comfort Colors 1717."
       },
       "visualProof": {
         "source": "printful-mockup-generator",
-        "mockup": "assets/redbullfinch-crimson-tee-logo-cleanup-printful-mockup.png",
+        "mockup": "assets/redbullfinch-crimson-tee-attached-source-printful-mockup.png",
         "productionArtwork": "assets/redbullfinch-embroidery-full.png",
         "catalogProductId": 586,
         "catalogVariantId": 16548,
         "placement": "embroidery_chest_left",
         "mockupStyleId": 2288,
-        "generatedAt": "2026-07-08T20:04:37.762Z"
+        "generatedAt": "2026-07-08T21:10:00.000Z"
       }
     },
     {
@@ -529,9 +517,9 @@
       "price": 3198,
       "currency": "USD",
       "status": "live",
-      "image": "assets/redbullfinch-dad-hat-printful-mockup.png",
-      "alt": "stone dad hat with a small embroidered redbullfinch mark on the front",
-      "summary": "a stone dad hat with a small embroidered redbullfinch mark on the front.",
+      "image": "assets/redbullfinch-dad-hat-attached-source-printful-mockup.png",
+      "alt": "stone dad hat with the redbullfinch embroidered on the front",
+      "summary": "a stone dad hat with the full redbullfinch embroidered on the front.",
       "details": [
         "Yupoong classic dad hat",
         "unlimited color front embroidery",
@@ -579,16 +567,10 @@
       "production": {
         "method": "embroidery",
         "blank": "Yupoong 6245CM classic dad hat, Stone",
-        "frontArtwork": "assets/redbullfinch-embroidery-head.png",
+        "frontArtwork": "assets/redbullfinch-embroidery-full.png",
         "backArtwork": "",
-        "frontSource": "assets/redbullfinch-embroidery-head.svg",
-        "sourceArtwork": "assets/redbullfinch-lilly-source.svg",
-        "frontPosition": {
-          "width": 2.35,
-          "height": 1.35,
-          "top": 0.2,
-          "left": 0.825
-        },
+        "frontSource": "assets/redbullfinch-embroidery-full.svg",
+        "sourceArtwork": "assets/redbullfinch-embroidery-full.svg",
         "embroideryColorMode": "unlimited-color",
         "unlimitedColorEmbroidery": true,
         "palette": [
@@ -604,17 +586,17 @@
           "#484537",
           "#B3B3B3"
         ],
-        "notes": "Unlimited-color cropped embroidery asset derived from Lilly's original redbullfinch SVG. Mapped to Printful embroidery_front on Stone Yupoong 6245CM."
+        "notes": "Exact user-provided transparent PNG preserved as the production embroidery artwork and embedded unchanged in the SVG source wrapper. Mapped to Printful embroidery_front on Stone Yupoong 6245CM."
       },
       "visualProof": {
         "source": "printful-mockup-generator",
-        "mockup": "assets/redbullfinch-dad-hat-printful-mockup.png",
-        "productionArtwork": "assets/redbullfinch-embroidery-head.png",
+        "mockup": "assets/redbullfinch-dad-hat-attached-source-printful-mockup.png",
+        "productionArtwork": "assets/redbullfinch-embroidery-full.png",
         "catalogProductId": 206,
         "catalogVariantId": 7859,
         "placement": "embroidery_front",
         "mockupStyleId": 15086,
-        "generatedAt": "2026-07-08T19:18:18.889Z"
+        "generatedAt": "2026-07-08T21:10:00.000Z"
       }
     }
   ]
