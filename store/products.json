@@ -211,7 +211,7 @@
       "price": 3434,
       "currency": "USD",
       "status": "live",
-      "image": "assets/redbullfinch-pepper-tee-printful-mockup.png",
+      "image": "assets/redbullfinch-pepper-tee-full-color-printful-mockup.png",
       "alt": "pepper Comfort Colors t-shirt with Lilly's redbullfinch embroidered on the left chest",
       "summary": "a garment-dyed heavyweight tee with Lilly's redbullfinch embroidered on the left chest.",
       "details": [
@@ -353,7 +353,7 @@
       },
       "visualProof": {
         "source": "printful-mockup-generator",
-        "mockup": "assets/redbullfinch-pepper-tee-printful-mockup.png",
+        "mockup": "assets/redbullfinch-pepper-tee-full-color-printful-mockup.png",
         "productionArtwork": "assets/redbullfinch-embroidery-full.png",
         "catalogProductId": 586,
         "catalogVariantId": 17694,
@@ -370,7 +370,7 @@
       "price": 3434,
       "currency": "USD",
       "status": "live",
-      "image": "assets/redbullfinch-crimson-tee-printful-mockup.png",
+      "image": "assets/redbullfinch-crimson-tee-full-color-printful-mockup.png",
       "alt": "crimson Comfort Colors t-shirt with Lilly's redbullfinch embroidered on the left chest",
       "summary": "a crimson garment-dyed heavyweight tee with Lilly's redbullfinch embroidered on the left chest.",
       "details": [
@@ -512,7 +512,7 @@
       },
       "visualProof": {
         "source": "printful-mockup-generator",
-        "mockup": "assets/redbullfinch-crimson-tee-printful-mockup.png",
+        "mockup": "assets/redbullfinch-crimson-tee-full-color-printful-mockup.png",
         "productionArtwork": "assets/redbullfinch-embroidery-full.png",
         "catalogProductId": 586,
         "catalogVariantId": 16548,
