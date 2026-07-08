@@ -16,10 +16,8 @@ const checkoutNote = document.querySelector("#checkout-note");
 const embeddedCheckout = document.querySelector("#embedded-checkout");
 const imageLightbox = document.querySelector("#image-lightbox");
 const imageLightboxTitle = document.querySelector("#image-lightbox-title");
-const imageLightboxStage = document.querySelector("#image-lightbox-stage");
 const imageLightboxImage = document.querySelector("#image-lightbox-image");
-const imageLightboxZoomButtons = [...document.querySelectorAll("[data-lightbox-zoom]")];
-const imageLightboxCloseButton = document.querySelector(".image-lightbox-controls [data-close-lightbox]");
+const imageLightboxCloseButton = document.querySelector("#image-lightbox [data-close-lightbox]");
 
 const apiBases = storeApiBases({
   primary: window.STORE_API_BASE || "",
@@ -33,20 +31,7 @@ let cart = [];
 let checkoutState = checkoutReadiness();
 let checkoutNotice = "";
 let stripePromise = null;
-const imageLightboxState = {
-  zoom: 1,
-  panX: 0,
-  panY: 0,
-  drag: null,
-  previousFocus: null
-};
-
-const imageLightboxZoom = {
-  min: 1,
-  max: 4,
-  step: 0.5,
-  wheelStep: 0.25
-};
+let imageLightboxPreviousFocus = null;
 
 async function fetchStoreApi(path, options = {}) {
   return fetchStoreApiFromBases(path, options, { bases: apiBases });
@@ -84,75 +69,14 @@ function bindProductImageFallback(image, imageLink, product) {
   );
 }
 
-function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, value));
-}
-
 function isImageLightboxOpen() {
   return imageLightbox?.classList.contains("is-open");
-}
-
-function clampImageLightboxPan() {
-  if (!imageLightboxStage || !imageLightboxImage || imageLightboxState.zoom <= imageLightboxZoom.min) {
-    imageLightboxState.panX = 0;
-    imageLightboxState.panY = 0;
-    return;
-  }
-
-  const stageRect = imageLightboxStage.getBoundingClientRect();
-  const imageWidth = imageLightboxImage.offsetWidth || stageRect.width;
-  const imageHeight = imageLightboxImage.offsetHeight || stageRect.height;
-  const maxX = Math.max(0, (imageWidth * imageLightboxState.zoom - stageRect.width) / 2 + 40);
-  const maxY = Math.max(0, (imageHeight * imageLightboxState.zoom - stageRect.height) / 2 + 40);
-
-  imageLightboxState.panX = clamp(imageLightboxState.panX, -maxX, maxX);
-  imageLightboxState.panY = clamp(imageLightboxState.panY, -maxY, maxY);
-}
-
-function imageLightboxZoomLabel() {
-  return `${Number.isInteger(imageLightboxState.zoom) ? imageLightboxState.zoom : imageLightboxState.zoom.toFixed(1)}x`;
-}
-
-function updateImageLightboxTransform() {
-  if (!imageLightboxStage) return;
-
-  imageLightboxStage.style.setProperty("--lightbox-zoom", String(imageLightboxState.zoom));
-  imageLightboxStage.style.setProperty("--lightbox-pan-x", `${imageLightboxState.panX}px`);
-  imageLightboxStage.style.setProperty("--lightbox-pan-y", `${imageLightboxState.panY}px`);
-  imageLightboxStage.classList.toggle("is-zoomed", imageLightboxState.zoom > imageLightboxZoom.min);
-
-  for (const button of imageLightboxZoomButtons) {
-    const action = button.dataset.lightboxZoom;
-    if (action === "out") button.disabled = imageLightboxState.zoom <= imageLightboxZoom.min;
-    if (action === "in") button.disabled = imageLightboxState.zoom >= imageLightboxZoom.max;
-    if (action === "reset") button.textContent = imageLightboxZoomLabel();
-  }
-}
-
-function setImageLightboxZoom(nextZoom, { resetPan = false } = {}) {
-  imageLightboxState.zoom = clamp(Number(nextZoom) || 1, imageLightboxZoom.min, imageLightboxZoom.max);
-  if (resetPan || imageLightboxState.zoom <= imageLightboxZoom.min) {
-    imageLightboxState.panX = 0;
-    imageLightboxState.panY = 0;
-  }
-  clampImageLightboxPan();
-  updateImageLightboxTransform();
-}
-
-function resetImageLightboxView() {
-  imageLightboxState.zoom = 1;
-  imageLightboxState.panX = 0;
-  imageLightboxState.panY = 0;
-  imageLightboxState.drag = null;
-  imageLightboxStage?.classList.remove("is-dragging");
-  updateImageLightboxTransform();
 }
 
 function openImageLightbox(product, imageUrl) {
   if (!imageLightbox || !imageLightboxImage || !imageLightboxTitle || !imageUrl) return;
 
-  imageLightboxState.previousFocus = document.activeElement;
-  resetImageLightboxView();
+  imageLightboxPreviousFocus = document.activeElement;
   imageLightboxTitle.textContent = product.title || "product image";
   imageLightboxImage.src = imageUrl;
   imageLightboxImage.alt = product.alt || product.title || "";
@@ -168,47 +92,9 @@ function closeImageLightbox() {
   imageLightbox.classList.remove("is-open");
   imageLightbox.setAttribute("aria-hidden", "true");
   document.body.classList.remove("is-lightbox-open");
-  resetImageLightboxView();
   imageLightboxImage.removeAttribute("src");
-  imageLightboxState.previousFocus?.focus?.();
-  imageLightboxState.previousFocus = null;
-}
-
-function updateImageLightboxZoom(action) {
-  if (action === "in") setImageLightboxZoom(imageLightboxState.zoom + imageLightboxZoom.step);
-  if (action === "out") setImageLightboxZoom(imageLightboxState.zoom - imageLightboxZoom.step);
-  if (action === "reset") setImageLightboxZoom(1, { resetPan: true });
-}
-
-function beginImageLightboxDrag(event) {
-  if (!imageLightboxStage || imageLightboxState.zoom <= imageLightboxZoom.min) return;
-  event.preventDefault();
-  imageLightboxState.drag = {
-    pointerId: event.pointerId,
-    startX: event.clientX,
-    startY: event.clientY,
-    startPanX: imageLightboxState.panX,
-    startPanY: imageLightboxState.panY
-  };
-  imageLightboxStage.classList.add("is-dragging");
-  imageLightboxStage.setPointerCapture(event.pointerId);
-}
-
-function moveImageLightboxDrag(event) {
-  const drag = imageLightboxState.drag;
-  if (!drag || drag.pointerId !== event.pointerId) return;
-  imageLightboxState.panX = drag.startPanX + event.clientX - drag.startX;
-  imageLightboxState.panY = drag.startPanY + event.clientY - drag.startY;
-  clampImageLightboxPan();
-  updateImageLightboxTransform();
-}
-
-function endImageLightboxDrag(event) {
-  const drag = imageLightboxState.drag;
-  if (!drag || drag.pointerId !== event.pointerId) return;
-  imageLightboxState.drag = null;
-  imageLightboxStage?.classList.remove("is-dragging");
-  imageLightboxStage?.releasePointerCapture?.(event.pointerId);
+  imageLightboxPreviousFocus?.focus?.();
+  imageLightboxPreviousFocus = null;
 }
 
 const firstAvailableVariant = (product) =>
@@ -663,33 +549,9 @@ document.querySelectorAll("[data-close-lightbox]").forEach((button) => {
   button.addEventListener("click", closeImageLightbox);
 });
 
-for (const button of imageLightboxZoomButtons) {
-  button.addEventListener("click", () => updateImageLightboxZoom(button.dataset.lightboxZoom));
-}
-
-imageLightboxImage?.addEventListener("load", () => {
-  clampImageLightboxPan();
-  updateImageLightboxTransform();
-});
-
-imageLightboxStage?.addEventListener("wheel", (event) => {
-  if (!isImageLightboxOpen()) return;
-  event.preventDefault();
-  const direction = event.deltaY < 0 ? 1 : -1;
-  setImageLightboxZoom(imageLightboxState.zoom + direction * imageLightboxZoom.wheelStep);
-});
-
-imageLightboxStage?.addEventListener("pointerdown", beginImageLightboxDrag);
-imageLightboxStage?.addEventListener("pointermove", moveImageLightboxDrag);
-imageLightboxStage?.addEventListener("pointerup", endImageLightboxDrag);
-imageLightboxStage?.addEventListener("pointercancel", endImageLightboxDrag);
-
 document.addEventListener("keydown", (event) => {
   if (isImageLightboxOpen()) {
     if (event.key === "Escape") closeImageLightbox();
-    if (event.key === "+" || event.key === "=") updateImageLightboxZoom("in");
-    if (event.key === "-") updateImageLightboxZoom("out");
-    if (event.key === "0") updateImageLightboxZoom("reset");
     return;
   }
   if (event.key === "Escape") closeCheckout();
