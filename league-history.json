@@ -1,6 +1,24 @@
 {
-  "blurb": "played 2 other games in the last week, went 2-0",
+  "blurb": "played 4 other games in the last week, went 3-1",
   "recent": [
+    {
+      "champion": "Kayn",
+      "win": true,
+      "kills": 6,
+      "deaths": 8,
+      "assists": 12,
+      "damage": 17763,
+      "minutes": 24
+    },
+    {
+      "champion": "Seraphine",
+      "win": false,
+      "kills": 1,
+      "deaths": 6,
+      "assists": 5,
+      "damage": 13711,
+      "minutes": 24
+    },
     {
       "champion": "Fizz",
       "win": true,
