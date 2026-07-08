@@ -211,7 +211,7 @@
       "price": 3434,
       "currency": "USD",
       "status": "live",
-      "image": "assets/redbullfinch-pepper-tee-full-color-printful-mockup.png",
+      "image": "assets/redbullfinch-pepper-tee-logo-cleanup-printful-mockup.png",
       "alt": "pepper Comfort Colors t-shirt with Lilly's redbullfinch embroidered on the left chest",
       "summary": "a garment-dyed heavyweight tee with Lilly's redbullfinch embroidered on the left chest.",
       "details": [
@@ -353,13 +353,13 @@
       },
       "visualProof": {
         "source": "printful-mockup-generator",
-        "mockup": "assets/redbullfinch-pepper-tee-full-color-printful-mockup.png",
+        "mockup": "assets/redbullfinch-pepper-tee-logo-cleanup-printful-mockup.png",
         "productionArtwork": "assets/redbullfinch-embroidery-full.png",
         "catalogProductId": 586,
         "catalogVariantId": 17694,
         "placement": "embroidery_chest_left",
         "mockupStyleId": 2288,
-        "generatedAt": "2026-07-08T19:18:18.889Z"
+        "generatedAt": "2026-07-08T20:04:37.762Z"
       }
     },
     {
@@ -370,7 +370,7 @@
       "price": 3434,
       "currency": "USD",
       "status": "live",
-      "image": "assets/redbullfinch-crimson-tee-full-color-printful-mockup.png",
+      "image": "assets/redbullfinch-crimson-tee-logo-cleanup-printful-mockup.png",
       "alt": "crimson Comfort Colors t-shirt with Lilly's redbullfinch embroidered on the left chest",
       "summary": "a crimson garment-dyed heavyweight tee with Lilly's redbullfinch embroidered on the left chest.",
       "details": [
@@ -512,13 +512,13 @@
       },
       "visualProof": {
         "source": "printful-mockup-generator",
-        "mockup": "assets/redbullfinch-crimson-tee-full-color-printful-mockup.png",
+        "mockup": "assets/redbullfinch-crimson-tee-logo-cleanup-printful-mockup.png",
         "productionArtwork": "assets/redbullfinch-embroidery-full.png",
         "catalogProductId": 586,
         "catalogVariantId": 16548,
         "placement": "embroidery_chest_left",
         "mockupStyleId": 2288,
-        "generatedAt": "2026-07-08T19:18:18.889Z"
+        "generatedAt": "2026-07-08T20:04:37.762Z"
       }
     },
     {
