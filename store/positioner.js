@@ -20,11 +20,11 @@ const area = {
 
 const shirts = {
   pepper: {
-    src: "assets/redbullfinch-positioner-pepper-blank.jpg",
+    src: "assets/redbullfinch-positioner-pepper-blank.jpg?v=redbullfinch-positioner-1",
     alt: "pepper Comfort Colors shirt"
   },
   crimson: {
-    src: "assets/redbullfinch-positioner-crimson-blank.jpg",
+    src: "assets/redbullfinch-positioner-crimson-blank.jpg?v=redbullfinch-positioner-1",
     alt: "crimson Comfort Colors shirt"
   }
 };
