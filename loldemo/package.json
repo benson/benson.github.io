@@ -1,0 +1,9 @@
+{
+  "name": "lastlight-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "check": "node --check data.js && node --check engine.js && node --check render.js && node --check game.js"
+  }
+}
