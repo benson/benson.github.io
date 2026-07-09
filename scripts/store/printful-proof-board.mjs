@@ -10,8 +10,8 @@ const DEFAULT_PRODUCTS = ["redbullfinch-pepper-tee", "redbullfinch-crimson-tee"]
 const DEFAULT_PUBLIC_URL = "https://bensonperry.com";
 const DEFAULT_MOCKUP_WIDTH = 1400;
 const AREA = {
-  area_width: 1800,
-  area_height: 2400
+  area_width: 4,
+  area_height: 4
 };
 
 const CANDIDATES = [
@@ -24,30 +24,30 @@ const CANDIDATES = [
   {
     id: "higher",
     label: "Higher",
-    note: "First real proof from the higher widget preset.",
+    note: "A centered 2.2 inch mark, moved upward in the 4 inch chest embroidery area.",
     artwork: "normal",
-    position: { left: 970, top: 500, width: 255 }
+    position: { left: 0.9, top: 0.45, width: 2.2 }
   },
   {
     id: "inboard",
     label: "Inboard",
-    note: "A little closer to the shirt center.",
+    note: "Same size, shifted slightly inward within the chest embroidery area.",
     artwork: "normal",
-    position: { left: 870, top: 590, width: 255 }
+    position: { left: 0.6, top: 0.7, width: 2.2 }
   },
   {
     id: "lower",
     label: "Lower",
-    note: "A lower chest placement check.",
+    note: "Same size, moved lower in the chest embroidery area.",
     artwork: "normal",
-    position: { left: 960, top: 730, width: 270 }
+    position: { left: 0.9, top: 1.05, width: 2.2 }
   },
   {
     id: "smaller-higher",
     label: "Smaller higher",
     note: "A smaller mark, moved upward.",
     artwork: "normal",
-    position: { left: 980, top: 520, width: 220 }
+    position: { left: 1.0, top: 0.55, width: 1.9 }
   },
   {
     id: "mirrored-default",
@@ -60,7 +60,7 @@ const CANDIDATES = [
     label: "Mirrored higher",
     note: "Mirrored artwork with the higher preset.",
     artwork: "mirrored",
-    position: { left: 970, top: 500, width: 255 }
+    position: { left: 0.9, top: 0.45, width: 2.2 }
   }
 ];
 
@@ -147,15 +147,19 @@ function artworkRatio(artworkPath) {
 
 function normalizedPosition(candidate, ratio) {
   if (!candidate.position) return null;
-  const width = Math.round(candidate.position.width);
-  const height = Math.round(candidate.position.height || width * ratio);
+  const width = roundPosition(candidate.position.width);
+  const height = roundPosition(candidate.position.height || width * ratio);
   return {
     ...AREA,
     width,
     height,
-    top: Math.round(candidate.position.top),
-    left: Math.round(candidate.position.left)
+    top: roundPosition(candidate.position.top),
+    left: roundPosition(candidate.position.left)
   };
+}
+
+function roundPosition(value) {
+  return Math.round(Number(value) * 1000) / 1000;
 }
 
 function usesUnlimitedColorEmbroidery(product) {
@@ -369,7 +373,6 @@ function renderProofBoard(results, generatedAt) {
   <header class="site-header">
     <a class="brand" href="/store/">store</a>
     <nav aria-label="proof links">
-      <a href="/store/positioner.html">positioner</a>
       <a href="/store/">catalog</a>
     </nav>
   </header>
