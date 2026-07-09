@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#070d18">
+  <meta name="description" content="Lastlight is a free multiplayer browser bullet-heaven prototype.">
+  <meta property="og:title" content="Lastlight — multiplayer bullet heaven">
+  <meta property="og:description" content="Create a squad, share the room code, and survive the breach together.">
+  <meta property="og:image" content="https://lastlight-demo.pages.dev/assets/og.png">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://lastlight-demo.pages.dev/">
+  <meta name="twitter:card" content="summary_large_image">
+  <title>Lastlight</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main id="app">
+    <section id="home-screen" class="screen home-screen">
+      <div class="ambient-grid" aria-hidden="true"></div>
+      <nav class="topbar">
+        <a class="wordmark" href="/" aria-label="Back to bensonperry.com">
+          <span class="wordmark-mark">L</span>
+          <span>LASTLIGHT</span>
+        </a>
+        <div class="topbar-actions">
+          <button id="how-button" class="text-button" type="button">Field manual</button>
+          <button id="audio-button" class="icon-button" type="button" aria-label="Toggle sound" aria-pressed="false">Sound on</button>
+        </div>
+      </nav>
+
+      <div class="home-content">
+        <header class="hero-copy">
+          <p class="eyebrow"><span class="status-dot"></span> Final City breach // live</p>
+          <h1>OUTRUN<br><em>THE END.</em></h1>
+          <p class="hero-deck">A 1–4 player browser bullet heaven. Pick a specialist, build impossible weapons, and hold the line until the apex arrives.</p>
+        </header>
+
+        <div class="setup-panel" aria-label="Game setup">
+          <div class="mode-tabs" role="tablist" aria-label="Party type">
+            <button class="mode-tab active" type="button" data-party-mode="solo" role="tab" aria-selected="true">Solo run</button>
+            <button class="mode-tab" type="button" data-party-mode="host" role="tab" aria-selected="false">Create squad</button>
+            <button class="mode-tab" type="button" data-party-mode="join" role="tab" aria-selected="false">Join code</button>
+          </div>
+
+          <div class="setup-body">
+            <label class="input-label" for="callsign-input">Callsign</label>
+            <input id="callsign-input" class="callsign-input" maxlength="16" autocomplete="nickname" value="Rookie" aria-label="Callsign">
+
+            <div id="join-fields" class="join-fields hidden">
+              <label class="input-label" for="room-input">Squad code</label>
+              <input id="room-input" class="room-input" maxlength="6" autocomplete="off" spellcheck="false" placeholder="ENTER CODE" aria-label="Squad code">
+            </div>
+
+            <div id="host-options" class="host-options">
+              <label class="select-field">
+                <span class="input-label">Operation</span>
+                <select id="map-select">
+                  <option value="warehouse">Iron District</option>
+                  <option value="outskirts">Ash Outskirts</option>
+                  <option value="lab">Subzero Lab</option>
+                  <option value="beachhead">The Beachhead</option>
+                </select>
+              </label>
+              <label class="select-field">
+                <span class="input-label">Threat</span>
+                <select id="difficulty-select">
+                  <option value="story">Story · 1×</option>
+                  <option value="hard">Hard · 3× health</option>
+                  <option value="extreme">Extreme · 7× health</option>
+                </select>
+              </label>
+              <label class="select-field full-span">
+                <span class="input-label">Pacing</span>
+                <select id="duration-select">
+                  <option value="240">Field test · 4 minutes</option>
+                  <option value="900">Original pacing · 15 minutes</option>
+                </select>
+              </label>
+            </div>
+
+            <button id="deploy-button" class="deploy-button" type="button">
+              <span>Deploy solo</span>
+              <span class="deploy-arrow">↗</span>
+            </button>
+            <p id="connection-note" class="connection-note">No sign-in. Desktop keyboard recommended; touch controls included.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="roster-strip" aria-label="Specialist roster">
+        <div class="roster-label"><span>09</span> Specialists</div>
+        <div id="home-roster" class="home-roster"></div>
+      </div>
+    </section>
+
+    <section id="lobby-screen" class="screen lobby-screen hidden">
+      <div class="lobby-shell">
+        <header class="lobby-header">
+          <button id="lobby-back" class="text-button" type="button">← Leave squad</button>
+          <div class="mission-chip"><span class="status-dot"></span><span id="lobby-mission">Iron District · Story</span></div>
+          <button id="lobby-audio" class="icon-button" type="button">Sound on</button>
+        </header>
+
+        <div class="lobby-title-row">
+          <div>
+            <p class="eyebrow">Select your specialist</p>
+            <h2>ASSEMBLE THE LINE</h2>
+          </div>
+          <div id="room-card" class="room-card hidden">
+            <span>Squad code</span>
+            <strong id="room-code">—</strong>
+            <button id="copy-link" type="button">Copy invite link</button>
+          </div>
+        </div>
+
+        <div class="lobby-grid">
+          <div id="specialist-grid" class="specialist-grid" role="listbox" aria-label="Choose a specialist"></div>
+          <aside class="specialist-detail">
+            <div class="detail-art-wrap">
+              <div id="detail-number" class="detail-number">01</div>
+              <img id="detail-art" alt="" src="assets/sprites/zuri.png">
+            </div>
+            <p id="detail-role" class="detail-role">Gunner · ramping damage</p>
+            <h3 id="detail-name">ZURI</h3>
+            <p id="detail-tagline" class="detail-tagline">Faster is a kind of safer.</p>
+            <dl class="stat-line">
+              <div><dt>Health</dt><dd id="detail-health">1000</dd></div>
+              <div><dt>Armor</dt><dd id="detail-armor">0</dd></div>
+              <div><dt>Range</dt><dd id="detail-range">Long</dd></div>
+            </dl>
+            <div class="kit-list">
+              <div><kbd>I</kbd><p><strong id="passive-name">Hot Streak</strong><span id="passive-copy">Kills trigger a stacking burst of speed and haste.</span></p></div>
+              <div><kbd>E</kbd><p><strong id="active-name">Rocket Bloom</strong><span id="active-copy">Fire nine explosive rockets in a wide cone.</span></p></div>
+              <div><kbd>R</kbd><p><strong id="ultimate-name">Curtain Call</strong><span id="ultimate-copy">Launch a massive execution rocket.</span></p></div>
+            </div>
+          </aside>
+        </div>
+
+        <footer class="lobby-footer">
+          <div id="party-list" class="party-list"></div>
+          <button id="ready-button" class="deploy-button ready-button" type="button"><span>Ready</span><span>01 / 04</span></button>
+        </footer>
+      </div>
+    </section>
+
+    <section id="game-screen" class="screen game-screen hidden">
+      <canvas id="game-canvas" tabindex="0" aria-label="Lastlight game arena"></canvas>
+      <div class="scanlines" aria-hidden="true"></div>
+      <header class="game-topbar">
+        <div class="squad-hud" id="squad-hud"></div>
+        <div class="timer-hud">
+          <span id="wave-label">Wave 01 · Contact</span>
+          <strong id="game-timer">04:00</strong>
+          <div class="timer-track"><i id="timer-progress"></i></div>
+        </div>
+        <div class="game-stats"><span><b id="kill-count">0</b> KOs</span><span><b id="gold-count">0</b> gold</span><button id="pause-button" type="button">Pause</button></div>
+      </header>
+
+      <div id="objective-banner" class="objective-banner hidden"><span>NEW DIRECTIVE</span><strong>Capture the uplink</strong></div>
+      <div id="boss-hud" class="boss-hud hidden"><span id="boss-name">APEX</span><div><i id="boss-health"></i></div></div>
+
+      <aside class="loadout-hud">
+        <div class="ability-slot"><kbd>E</kbd><span id="e-icon">E</span><i id="e-cooldown"></i><small id="e-name">Rocket Bloom</small></div>
+        <div class="ability-slot ultimate"><kbd>R</kbd><span id="r-icon">R</span><i id="r-cooldown"></i><small id="r-name">Curtain Call</small></div>
+      </aside>
+
+      <div class="weapon-hud" id="weapon-hud"></div>
+      <div class="xp-wrap"><span id="level-label">LV 1</span><div class="xp-track"><i id="xp-progress"></i></div></div>
+
+      <div id="upgrade-overlay" class="overlay upgrade-overlay hidden">
+        <div class="upgrade-panel">
+          <p class="eyebrow">Combat data acquired</p>
+          <h2>CHOOSE AN UPGRADE</h2>
+          <div id="upgrade-cards" class="upgrade-cards"></div>
+          <p id="upgrade-wait" class="upgrade-wait">Time resumes when the squad has chosen.</p>
+        </div>
+      </div>
+
+      <div id="pause-overlay" class="overlay pause-overlay hidden">
+        <div class="pause-card">
+          <p class="eyebrow">Operation suspended</p>
+          <h2>PAUSED</h2>
+          <button id="resume-button" class="deploy-button" type="button"><span>Resume</span><span>Esc</span></button>
+          <button id="abandon-button" class="text-button danger" type="button">Abandon run</button>
+        </div>
+      </div>
+
+      <div class="touch-controls" aria-hidden="true">
+        <div id="move-stick" class="touch-stick"><i></i></div>
+        <button id="touch-e" type="button">E</button>
+        <button id="touch-r" type="button">R</button>
+      </div>
+    </section>
+
+    <section id="result-screen" class="screen result-screen hidden">
+      <div class="result-card">
+        <p id="result-eyebrow" class="eyebrow">Operation complete</p>
+        <h2 id="result-title">APEX NEUTRALIZED</h2>
+        <p id="result-copy">The line held. Final City gets another sunrise.</p>
+        <div class="result-stats">
+          <div><span>Time</span><strong id="result-time">04:32</strong></div>
+          <div><span>Squad KOs</span><strong id="result-kills">1,284</strong></div>
+          <div><span>Level</span><strong id="result-level">18</strong></div>
+          <div><span>Gold</span><strong id="result-gold">240</strong></div>
+        </div>
+        <div class="result-actions">
+          <button id="again-button" class="deploy-button" type="button"><span>Run it again</span><span>↻</span></button>
+          <button id="result-home" class="text-button" type="button">Return to command</button>
+        </div>
+      </div>
+    </section>
+
+    <dialog id="manual-dialog" class="manual-dialog">
+      <div class="manual-header">
+        <div><p class="eyebrow">Field manual // 01</p><h2>HOW TO SURVIVE</h2></div>
+        <button id="manual-close" class="icon-button" type="button" aria-label="Close field manual">Close</button>
+      </div>
+      <div class="manual-grid">
+        <section><span class="manual-number">01</span><h3>Move, aim, cast</h3><p>Move with WASD or arrow keys. Your signature weapon fires automatically toward the cursor. Tap C to toggle auto-aim. E and R are active abilities.</p></section>
+        <section><span class="manual-number">02</span><h3>Build the machine</h3><p>Collect cyan data motes to level up. Pick weapons and passive stats. A level-five weapon plus its matching passive can evolve when an elite drops an access key.</p></section>
+        <section><span class="manual-number">03</span><h3>Hold for the apex</h3><p>Enemy tiers and wave density rise throughout the operation. Survive the timer, then defeat the map's apex before its five-minute enrage.</p></section>
+        <section><span class="manual-number">04</span><h3>Revive the squad</h3><p>In co-op, stand inside a downed ally's ring for ten seconds to revive them. If every specialist is down at once, the operation is lost.</p></section>
+      </div>
+      <div class="manual-controls"><span><kbd>WASD</kbd> Move</span><span><kbd>Mouse</kbd> Aim</span><span><kbd>C</kbd> Auto-aim</span><span><kbd>E</kbd> Ability</span><span><kbd>R</kbd> Ultimate</span><span><kbd>Esc</kbd> Pause</span></div>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </main>
+
+  <footer class="legal-footer">Lastlight is an original, free prototype. No affiliation with or endorsement by Riot Games.</footer>
+  <script type="module" src="game.js"></script>
+</body>
+</html>
