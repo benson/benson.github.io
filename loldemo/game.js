@@ -1,6 +1,6 @@
-import { SPECIALISTS, SPECIALIST_ORDER, WEAPONS, MAPS, DIFFICULTIES, WAVE_NAMES, formatTime, clamp } from "./data.js";
-import { Simulation } from "./engine.js";
-import { Renderer } from "./render.js";
+import { SPECIALISTS, SPECIALIST_ORDER, WEAPONS, MAPS, DIFFICULTIES, WAVE_NAMES, formatTime, clamp } from "./data.js?v=20260709.3";
+import { Simulation } from "./engine.js?v=20260709.3";
+import { Renderer } from "./render.js?v=20260709.3";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -397,7 +397,7 @@ function bindEvents() {
   });
   window.addEventListener("keyup", (event) => state.input.keys.delete(event.key.toLowerCase())); window.addEventListener("blur", () => state.input.keys.clear());
   $("game-canvas").addEventListener("pointermove", (event) => { const rect=$("game-canvas").getBoundingClientRect();state.input.aim=Math.atan2(event.clientY-rect.top-rect.height/2,event.clientX-rect.left-rect.width/2); });
-  $("game-canvas").addEventListener("contextmenu", (event) => event.preventDefault());
+  $("app").addEventListener("contextmenu", (event) => event.preventDefault());
   setupTouch();
 }
 

@@ -1,5 +1,5 @@
-import { SPECIALISTS, MAPS, ENEMY_TYPES, clamp } from "./data.js";
-import { WORLD } from "./engine.js";
+import { SPECIALISTS, MAPS, ENEMY_TYPES, clamp } from "./data.js?v=20260709.3";
+import { WORLD } from "./engine.js?v=20260709.3";
 
 const TAU = Math.PI * 2;
 
