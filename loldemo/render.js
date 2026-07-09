@@ -12,6 +12,8 @@ export class Renderer {
     this.height = 0;
     this.camera = { x: 0, y: 0 };
     this.sprites = {};
+    this.environments = {};
+    this.playerVisuals = new Map();
     this.prevMaps = {};
     this.loadSprites();
     this.resize();
@@ -23,6 +25,10 @@ export class Renderer {
   loadSprites() {
     for (const spec of Object.values(SPECIALISTS)) {
       const image = new Image(); image.src = spec.sprite; this.sprites[spec.id] = image;
+    }
+    for (const map of Object.values(MAPS)) {
+      if (!map.texture) continue;
+      const image = new Image(); image.src = map.texture; this.environments[map.id] = image;
     }
   }
 
@@ -79,10 +85,31 @@ export class Renderer {
   }
 
   drawFloor(map, time) {
-    const ctx = this.ctx, spacing = 120;
+    const ctx = this.ctx, spacing = 120, texture = this.environments[map.id];
+    if (texture?.complete && texture.naturalWidth) {
+      // Mirror alternating tiles. Adjacent edges then use the exact same pixels,
+      // hiding seams even when generated source art is only approximately tileable.
+      const tile = 1024;
+      const originX = this.width / 2 - this.camera.x;
+      const originY = this.height / 2 - this.camera.y;
+      const minCol = Math.floor((-originX) / tile) - 1;
+      const maxCol = Math.ceil((this.width - originX) / tile) + 1;
+      const minRow = Math.floor((-originY) / tile) - 1;
+      const maxRow = Math.ceil((this.height - originY) / tile) + 1;
+      ctx.save(); ctx.globalAlpha = .72;
+      for (let row = minRow; row <= maxRow; row++) {
+        for (let col = minCol; col <= maxCol; col++) {
+          const flipX = Math.abs(col) % 2 === 1, flipY = Math.abs(row) % 2 === 1;
+          const x = originX + col * tile, y = originY + row * tile;
+          ctx.save(); ctx.translate(x + (flipX ? tile : 0), y + (flipY ? tile : 0));
+          ctx.scale(flipX ? -1 : 1, flipY ? -1 : 1); ctx.drawImage(texture, 0, 0, tile, tile); ctx.restore();
+        }
+      }
+      ctx.globalAlpha = .34; ctx.fillStyle = map.floor; ctx.fillRect(0, 0, this.width, this.height); ctx.restore();
+    }
     const ox = ((-this.camera.x + this.width / 2) % spacing + spacing) % spacing;
     const oy = ((-this.camera.y + this.height / 2) % spacing + spacing) % spacing;
-    ctx.strokeStyle = map.grid; ctx.globalAlpha = .45; ctx.lineWidth = 1;
+    ctx.strokeStyle = map.grid; ctx.globalAlpha = texture?.complete ? .2 : .45; ctx.lineWidth = 1;
     ctx.beginPath();
     for (let x = ox; x < this.width; x += spacing) { ctx.moveTo(x, 0); ctx.lineTo(x, this.height); }
     for (let y = oy; y < this.height; y += spacing) { ctx.moveTo(0, y); ctx.lineTo(this.width, y); }
@@ -233,7 +260,28 @@ export class Renderer {
       ctx.fillStyle="rgba(0,0,0,.3)";ctx.beginPath();ctx.ellipse(0,24,35,16,0,0,TAU);ctx.fill();
       if(p.id===localPlayerId){ctx.strokeStyle=spec.color;ctx.globalAlpha=.65;ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,39,0,TAU);ctx.stroke();ctx.globalAlpha=1;}
       if(p.invuln>0||p.shield>0){ctx.strokeStyle=p.invuln>0?"#fff":spec.color;ctx.globalAlpha=.55;ctx.lineWidth=5;ctx.beginPath();ctx.arc(0,0,43+Math.sin(performance.now()*.008)*2,0,TAU);ctx.stroke();ctx.globalAlpha=1;}
-      const image=this.sprites[p.specialist];if(image?.complete){const size=p.specialist==="sola"?118:104;ctx.drawImage(image,-size/2,-size*.62,size,size);}
+      const before=previous?.players?.find((item)=>item.id===raw.id);
+      const dx=before?raw.x-before.x:0,dy=before?raw.y-before.y:0;
+      const inferredMoving=Math.hypot(dx,dy)>.15;
+      const targetFacing=Number.isFinite(raw.facing)?raw.facing:(inferredMoving?Math.atan2(dy,dx):0);
+      const now=performance.now();
+      const visual=this.playerVisuals.get(p.id)||{facing:targetFacing,turn:Math.cos(targetFacing)>=0?1:-1,stride:0,updatedAt:now};
+      const facingDelta=Math.atan2(Math.sin(targetFacing-visual.facing),Math.cos(targetFacing-visual.facing));
+      visual.facing+=facingDelta*.22;
+      const targetTurn=Math.cos(visual.facing)>=0?1:-1;
+      visual.turn+=(targetTurn-visual.turn)*.2;
+      const moving=raw.moving??inferredMoving;
+      const frameTime=Math.min(.05,Math.max(0,(now-visual.updatedAt)/1000));
+      visual.stride+=moving?frameTime*10:0;visual.updatedAt=now;
+      this.playerVisuals.set(p.id,visual);
+      const step=Math.sin(visual.stride),bob=moving?Math.abs(Math.sin(visual.stride))*-3:Math.sin(performance.now()*.002+p.x)*.7;
+      if(moving){ctx.save();ctx.globalAlpha=.14+.08*Math.abs(step);ctx.fillStyle=spec.color;ctx.beginPath();ctx.ellipse(-Math.cos(visual.facing)*15,25-Math.sin(visual.facing)*8,18,7,visual.facing,0,TAU);ctx.fill();ctx.restore();}
+      const image=this.sprites[p.specialist];if(image?.complete){
+        const size=p.specialist==="sola"?118:104;
+        ctx.save();ctx.translate(0,bob);ctx.rotate(moving?Math.cos(visual.stride)*.025:0);
+        ctx.transform(visual.turn,0,-Math.sin(visual.facing)*.045,1,0,0);
+        ctx.drawImage(image,-size/2,-size*.62,size,size);ctx.restore();
+      }
       else{ctx.fillStyle=spec.color;ctx.beginPath();ctx.arc(0,0,28,0,TAU);ctx.fill();}
       const barW=74;ctx.fillStyle="rgba(2,7,13,.82)";ctx.fillRect(-barW/2,-58,barW,7);ctx.fillStyle=p.hp/p.maxHp<.3?"#ff4b68":"#62ebae";ctx.fillRect(-barW/2,-58,barW*clamp(p.hp/p.maxHp,0,1),7);if(p.shield>0){ctx.fillStyle="#72d8ff";ctx.fillRect(-barW/2,-61,barW*clamp(p.shield/p.maxHp,0,1),2);}
       ctx.fillStyle="#fff";ctx.font="700 9px Inter";ctx.textAlign="center";ctx.shadowColor="#000";ctx.shadowBlur=3;ctx.fillText(p.name,0,-65);ctx.restore();
