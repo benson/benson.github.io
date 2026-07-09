@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>redbullfinch positioner | benson perry</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" type="image/svg+xml" href="/store/favicon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="positioner-page">
+  <header class="site-header">
+    <a class="brand" href="/store/">store</a>
+    <nav aria-label="positioner links">
+      <a href="/store/">catalog</a>
+      <a href="mailto:benson.perry@gmail.com">contact</a>
+    </nav>
+  </header>
+
+  <main class="positioner-shell">
+    <section class="positioner-panel" aria-labelledby="positioner-title">
+      <div class="positioner-heading">
+        <div>
+          <p class="kicker">redbullfinch</p>
+          <h1 id="positioner-title">positioner</h1>
+        </div>
+        <div class="positioner-actions">
+          <button class="studio-button" type="button" data-position-preset="current">current-ish</button>
+          <button class="studio-button" type="button" data-position-preset="higher">higher</button>
+          <button class="studio-button" type="button" data-position-preset="inboard">inboard</button>
+          <button class="studio-button" type="button" data-position-preset="lower">lower</button>
+        </div>
+      </div>
+
+      <div class="positioner-workbench">
+        <div class="positioner-stage" id="positioner-stage">
+          <img id="shirt-image" class="positioner-shirt" src="assets/redbullfinch-positioner-pepper-blank.jpg" alt="pepper Comfort Colors shirt">
+          <div class="positioner-print-area" aria-hidden="true"></div>
+          <button id="logo-handle" class="positioner-logo-handle" type="button" aria-label="redbullfinch placement">
+            <img src="assets/redbullfinch-embroidery-full.png" alt="">
+          </button>
+        </div>
+
+        <aside class="positioner-controls" aria-label="placement controls">
+          <label>
+            shirt
+            <select id="position-shirt">
+              <option value="pepper">pepper</option>
+              <option value="crimson">crimson</option>
+            </select>
+          </label>
+
+          <div class="positioner-control-grid">
+            <label>
+              x
+              <input id="position-left" type="range" min="0" max="1800" step="1">
+            </label>
+            <label>
+              y
+              <input id="position-top" type="range" min="0" max="2400" step="1">
+            </label>
+            <label>
+              width
+              <input id="position-width" type="range" min="140" max="720" step="1">
+            </label>
+          </div>
+
+          <div class="positioner-readout">
+            <dl>
+              <div>
+                <dt>left</dt>
+                <dd id="readout-left"></dd>
+              </div>
+              <div>
+                <dt>top</dt>
+                <dd id="readout-top"></dd>
+              </div>
+              <div>
+                <dt>size</dt>
+                <dd id="readout-size"></dd>
+              </div>
+            </dl>
+          </div>
+
+          <label>
+            front position
+            <textarea id="position-output" class="studio-output" readonly></textarea>
+          </label>
+
+          <button id="copy-position" class="studio-button primary" type="button">copy position</button>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <script src="positioner.js" type="module"></script>
+</body>
+</html>
