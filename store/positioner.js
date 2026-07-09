@@ -3,6 +3,7 @@ const shirtImage = document.querySelector("#shirt-image");
 const logoHandle = document.querySelector("#logo-handle");
 const logoImage = logoHandle?.querySelector("img");
 const shirtSelect = document.querySelector("#position-shirt");
+const flipInput = document.querySelector("#position-flip");
 const leftInput = document.querySelector("#position-left");
 const topInput = document.querySelector("#position-top");
 const widthInput = document.querySelector("#position-width");
@@ -39,6 +40,7 @@ const presets = {
 const saved = JSON.parse(window.localStorage.getItem("redbullfinch-positioner") || "null");
 const position = {
   shirt: saved?.shirt && shirts[saved.shirt] ? saved.shirt : "pepper",
+  flipHorizontal: saved?.flipHorizontal === true,
   left: Number.isFinite(saved?.left) ? saved.left : presets.current.left,
   top: Number.isFinite(saved?.top) ? saved.top : presets.current.top,
   width: Number.isFinite(saved?.width) ? saved.width : presets.current.width
@@ -85,6 +87,16 @@ function positionPayload() {
   };
 }
 
+function handoffPayload() {
+  return {
+    position: positionPayload(),
+    artwork: {
+      source: "assets/redbullfinch-embroidery-full.png",
+      flipHorizontal: position.flipHorizontal
+    }
+  };
+}
+
 function savePosition() {
   window.localStorage.setItem("redbullfinch-positioner", JSON.stringify(position));
 }
@@ -94,6 +106,7 @@ function updateControls() {
   topInput.value = String(position.top);
   widthInput.value = String(position.width);
   shirtSelect.value = position.shirt;
+  flipInput.checked = position.flipHorizontal;
 }
 
 function updateStage() {
@@ -101,12 +114,13 @@ function updateStage() {
   stage.style.setProperty("--logo-left", `${(payload.left / area.width) * 100}%`);
   stage.style.setProperty("--logo-top", `${(payload.top / area.height) * 100}%`);
   stage.style.setProperty("--logo-width", `${(payload.width / area.width) * 100}%`);
+  stage.dataset.flipped = position.flipHorizontal ? "true" : "false";
   shirtImage.src = shirts[position.shirt].src;
   shirtImage.alt = shirts[position.shirt].alt;
   readoutLeft.textContent = String(payload.left);
   readoutTop.textContent = String(payload.top);
   readoutSize.textContent = `${payload.width} x ${payload.height}`;
-  output.value = JSON.stringify(payload, null, 2);
+  output.value = JSON.stringify(handoffPayload(), null, 2);
 }
 
 function render() {
@@ -164,6 +178,11 @@ function moveWithKeyboard(event) {
 
 shirtSelect.addEventListener("change", () => {
   position.shirt = shirtSelect.value;
+  render();
+});
+
+flipInput.addEventListener("change", () => {
+  position.flipHorizontal = flipInput.checked;
   render();
 });
 

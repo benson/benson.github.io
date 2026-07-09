@@ -971,6 +971,10 @@ textarea {
   user-select: none;
 }
 
+.positioner-stage[data-flipped="true"] .positioner-logo-handle img {
+  transform: scaleX(-1);
+}
+
 .positioner-controls {
   display: grid;
   flex: 0 0 min(360px, 100%);
@@ -992,6 +996,19 @@ textarea {
 .positioner-controls select,
 .positioner-controls textarea {
   width: 100%;
+}
+
+.positioner-controls .positioner-check {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--ink);
+}
+
+.positioner-controls .positioner-check input {
+  accent-color: var(--ink);
+  height: 18px;
+  width: 18px;
 }
 
 .positioner-control-grid {
