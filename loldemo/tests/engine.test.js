@@ -20,6 +20,23 @@ test("level-up choices pause and resume the whole simulation", () => {
   assert.equal(sim.level, 2);
 });
 
+test("upgrade rounds expose each locked choice until the squad finishes", () => {
+  const sim = new Simulation({ players: [
+    { id: "p1", name: "One", specialist: "zuri" },
+    { id: "p2", name: "Two", specialist: "echo" },
+  ] });
+  sim.beginUpgradeChoice();
+  const oneChoice = sim.pendingChoices.p1[0].id;
+  sim.choose("p1", oneChoice);
+  assert.equal(sim.selectedChoices.p1, oneChoice);
+  assert.equal(sim.choiceReady.p1, true);
+  assert.ok(sim.pendingChoices.p1);
+  assert.equal(sim.paused, true);
+  sim.choose("p2", sim.pendingChoices.p2[0].id);
+  assert.equal(sim.pendingChoices, null);
+  assert.equal(sim.paused, false);
+});
+
 test("access cards evolve a level-five weapon with its passive", () => {
   const sim = new Simulation({ players: [{ id: "p1", name: "One", specialist: "gale" }] });
   const player = sim.players[0];

@@ -228,11 +228,31 @@ function updateUpgrade(game) {
   if (!pending) { $("upgrade-overlay").classList.add("hidden"); state.lastUpgradeKey = ""; return; }
   $("upgrade-overlay").classList.remove("hidden");
   const ready = Boolean(game.choiceReady?.[state.clientId]);
-  const key = `${game.level}:${ready}:${pending.map((c) => c.id).join(",")}`;
+  const selectedId = game.selectedChoices?.[state.clientId] || "";
+  const key = `${game.level}:${JSON.stringify(game.choiceReady)}:${JSON.stringify(game.selectedChoices)}:${Object.entries(game.pendingChoices || {}).map(([id, choices]) => `${id}:${choices.map((choice) => choice.id).join(",")}`).join("|")}`;
   if (key === state.lastUpgradeKey) return; state.lastUpgradeKey = key;
-  if (ready) { $("upgrade-cards").innerHTML = `<div class="upgrade-card" style="grid-column:1/-1;min-height:150px;text-align:center"><span class="card-type">Loadout locked</span><div class="card-icon" style="margin:24px auto 12px">✓</div><h3>Waiting for squad</h3></div>`; return; }
-  $("upgrade-cards").innerHTML = pending.map((choice) => `<button class="upgrade-card" type="button" data-choice="${choice.id}"><span class="card-type">${choice.kind}</span><div class="card-icon">${choice.glyph}</div><h3>${choice.name}</h3><p>${choice.copy}</p><div class="level-pips">${Array.from({ length: choice.max }, (_, i) => `<i class="${i < choice.level ? "on" : ""}"></i>`).join("")}</div></button>`).join("");
-  $("upgrade-cards").querySelectorAll("button").forEach((button) => button.addEventListener("click", () => chooseUpgrade(button.dataset.choice)));
+  const localPlayer = game.players.find((player) => player.id === state.clientId);
+  $("upgrade-local-name").textContent = localPlayer?.name || callsign();
+  $("upgrade-local-status").textContent = ready ? "Locked" : "Choosing";
+  $("upgrade-cards").innerHTML = pending.map((choice) => {
+    const selected = selectedId === choice.id, passed = ready && !selected;
+    return `<button class="upgrade-card ${selected ? "selected" : ""} ${passed ? "passed" : ""}" type="button" data-choice="${choice.id}" ${ready ? "disabled" : ""}><span class="card-type">${selected ? "Locked choice" : choice.kind}</span><div class="card-icon">${choice.glyph}</div><h3>${choice.name}</h3><p>${choice.copy}</p><div class="level-pips">${Array.from({ length: choice.max }, (_, i) => `<i class="${i < choice.level ? "on" : ""}"></i>`).join("")}</div></button>`;
+  }).join("");
+  if (!ready) $("upgrade-cards").querySelectorAll("button").forEach((button) => button.addEventListener("click", () => chooseUpgrade(button.dataset.choice)));
+
+  const teammates = game.players.filter((player) => player.id !== state.clientId);
+  $("teammate-upgrades").classList.toggle("hidden", teammates.length === 0);
+  $("teammate-upgrades").parentElement.classList.toggle("solo", teammates.length === 0);
+  $("teammate-upgrades").innerHTML = teammates.map((player) => {
+    const choices = game.pendingChoices?.[player.id] || [];
+    const teammateReady = Boolean(game.choiceReady?.[player.id]);
+    const teammateSelection = game.selectedChoices?.[player.id] || "";
+    return `<section class="teammate-draft ${teammateReady ? "ready" : ""}"><header><img src="${SPECIALISTS[player.specialist].sprite}" alt=""><div><strong>${escapeHTML(player.name)}</strong><span>${teammateReady ? "Choice locked" : "Choosing…"}</span></div></header><div class="teammate-choice-grid">${choices.map((choice) => `<div class="teammate-choice ${choice.id === teammateSelection ? "selected" : ""} ${teammateReady && choice.id !== teammateSelection ? "passed" : ""}" title="${choice.copy}"><i>${choice.glyph}</i><b>${choice.name}</b><small>${choice.kind} · ${choice.level}/${choice.max}</small></div>`).join("")}</div></section>`;
+  }).join("");
+
+  const waiting = game.players.filter((player) => !game.choiceReady?.[player.id]).map((player) => player.id === state.clientId ? "you" : player.name);
+  const picked = pending.find((choice) => choice.id === selectedId);
+  $("upgrade-wait").textContent = ready ? `${picked?.name || "Upgrade"} locked. Waiting on ${waiting.join(", ") || "the squad"}.` : "Your choices are primary; teammate options stay visible so the squad can coordinate.";
 }
 
 function chooseUpgrade(choiceId) {
@@ -366,7 +386,10 @@ function bindEvents() {
   $("how-button").addEventListener("click", () => $("manual-dialog").showModal()); $("manual-close").addEventListener("click", () => $("manual-dialog").close());
   $("manual-dialog").addEventListener("click", (event) => { if (event.target === $("manual-dialog")) $("manual-dialog").close(); });
   window.addEventListener("keydown", (event) => {
-    const key = event.key.toLowerCase(); if (["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright","e","r","c","escape"].includes(key) && state.screen === "game") event.preventDefault();
+    const target = event.target;
+    const isTyping = target instanceof Element && Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
+    if (isTyping || state.screen !== "game") return;
+    const key = event.key.toLowerCase(); if (["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright","e","r","c","escape"].includes(key)) event.preventDefault();
     if (key === "e" && !event.repeat) cast("e"); else if (key === "r" && !event.repeat) cast("r");
     else if (key === "c" && !event.repeat) { state.input.autoAim = !state.input.autoAim; toast(state.input.autoAim ? "Auto-aim on" : "Manual aim on"); }
     else if (key === "escape" && !event.repeat && state.screen === "game") togglePause();
@@ -374,6 +397,7 @@ function bindEvents() {
   });
   window.addEventListener("keyup", (event) => state.input.keys.delete(event.key.toLowerCase())); window.addEventListener("blur", () => state.input.keys.clear());
   $("game-canvas").addEventListener("pointermove", (event) => { const rect=$("game-canvas").getBoundingClientRect();state.input.aim=Math.atan2(event.clientY-rect.top-rect.height/2,event.clientX-rect.left-rect.width/2); });
+  $("game-canvas").addEventListener("contextmenu", (event) => event.preventDefault());
   setupTouch();
 }
 

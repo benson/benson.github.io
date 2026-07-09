@@ -43,6 +43,7 @@ export class Simulation {
     this.objectiveIndex = 0;
     this.pendingChoices = null;
     this.choiceReady = {};
+    this.selectedChoices = {};
     this.events = [];
     this.players = [];
     this.enemies = [];
@@ -75,6 +76,7 @@ export class Simulation {
       x: Math.cos(angle) * 75, y: Math.sin(angle) * 75, radius: 31,
       hp: spec.health, maxHp: spec.health, armor: spec.armor, baseSpeed: spec.speed,
       input: { x: 0, y: 0, aim: 0, autoAim: true },
+      facing: 0, moving: false,
       eCd: 0, rCd: 0, shield: 0, invuln: 2, hitGrace: 0, frenzy: 0, hasteBuff: 0, speedBuff: 0,
       dead: false, downed: false, downTimer: 0, respawnTimer: 0, reviveProgress: 0, deaths: 0,
       weaponTimers: {}, weapons: { signature: { level: 1, evolved: false } }, passives: {},
@@ -91,6 +93,7 @@ export class Simulation {
     if (this.pendingChoices) {
       delete this.pendingChoices[playerId];
       delete this.choiceReady[playerId];
+      delete this.selectedChoices[playerId];
       this.maybeResumeFromChoices();
     }
   }
@@ -178,6 +181,10 @@ export class Simulation {
       p.x = clamp(p.x + ix * speed * dt, -WORLD.width / 2 + 40, WORLD.width / 2 - 40);
       p.y = clamp(p.y + iy * speed * dt, -WORLD.height / 2 + 40, WORLD.height / 2 - 40);
       const moved = Math.hypot(p.x - ox, p.y - oy);
+      p.moving = moved > .05;
+      if (p.moving) {
+        p.facing = Math.atan2(p.y - oy, p.x - ox);
+      }
       p.traveled += moved;
       p.charge += moved;
 
@@ -924,7 +931,7 @@ export class Simulation {
   }
 
   beginUpgradeChoice() {
-    this.paused = true; this.pauseReason = "upgrade"; this.pendingChoices = {}; this.choiceReady = {};
+    this.paused = true; this.pauseReason = "upgrade"; this.pendingChoices = {}; this.choiceReady = {}; this.selectedChoices = {};
     for (const p of this.players) {
       this.pendingChoices[p.id] = this.generateChoices(p);
       this.choiceReady[p.id] = false;
@@ -958,6 +965,7 @@ export class Simulation {
     const p = this.players.find((player) => player.id === playerId);
     if (!choice || !p) return;
     this.applyUpgrade(p, choice);
+    this.selectedChoices[playerId] = choiceId;
     this.choiceReady[playerId] = true;
     this.maybeResumeFromChoices();
   }
@@ -978,7 +986,7 @@ export class Simulation {
 
   maybeResumeFromChoices() {
     if (!this.pendingChoices || !Object.keys(this.pendingChoices).every((playerId) => this.choiceReady[playerId])) return;
-    this.pendingChoices = null; this.choiceReady = {}; this.paused = false; this.pauseReason = "";
+    this.pendingChoices = null; this.choiceReady = {}; this.selectedChoices = {}; this.paused = false; this.pauseReason = "";
   }
 
   useAccessCard() {
@@ -1047,7 +1055,7 @@ export class Simulation {
       players: clean(this.players, ["input", "weaponTimers"]), enemies: clean(this.enemies), projectiles: clean(this.projectiles, ["hit"]),
       hostile: clean(this.hostile), effects: clean(this.effects, ["hit"]), orbs: clean(this.orbs), drops: clean(this.drops),
       pods: clean(this.pods), objectives: clean(this.objectives), feathers: clean(this.feathers),
-      pendingChoices: this.pendingChoices, choiceReady: this.choiceReady, events: this.events.slice(-5),
+      pendingChoices: this.pendingChoices, choiceReady: this.choiceReady, selectedChoices: this.selectedChoices, events: this.events.slice(-5),
     };
   }
 }

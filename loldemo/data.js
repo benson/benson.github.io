@@ -118,18 +118,22 @@ export const MAPS = {
   warehouse: {
     id: "warehouse", name: "Iron District", original: "Warehouse District", boss: "TUNNELMAW", mechanic: "Healing relay", 
     floor: "#101f2c", grid: "#183342", accent: "#50d9d1", edge: "#07121c", deco: "#173848",
+    texture: "assets/environments/warehouse.webp",
   },
   outskirts: {
     id: "outskirts", name: "Ash Outskirts", original: "The Outskirts", boss: "RED HUNGER", mechanic: "Ion cannon",
     floor: "#27251f", grid: "#3c382b", accent: "#ffc56a", edge: "#14130f", deco: "#4e4938",
+    texture: "assets/environments/outskirts.webp",
   },
   lab: {
     id: "lab", name: "Subzero Lab", original: "Subterranean Lab", boss: "VOID EMPRESS", mechanic: "Freeze cores",
     floor: "#101b2c", grid: "#192f49", accent: "#8ccfff", edge: "#070e19", deco: "#1e4160",
+    texture: "assets/environments/lab.webp",
   },
   beachhead: {
     id: "beachhead", name: "The Beachhead", original: "The Beachhead", boss: "ABYSS BLADE", mechanic: "Rising ocean",
     floor: "#27202d", grid: "#443047", accent: "#f66a77", edge: "#130d17", deco: "#57334c",
+    texture: "assets/environments/beachhead.webp",
   },
 };
 

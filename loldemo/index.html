@@ -7,11 +7,12 @@
   <meta name="description" content="Lastlight is a free multiplayer browser bullet-heaven prototype.">
   <meta property="og:title" content="Lastlight — multiplayer bullet heaven">
   <meta property="og:description" content="Create a squad, share the room code, and survive the breach together.">
-  <meta property="og:image" content="https://lastlight-demo.pages.dev/assets/og.png">
+  <meta property="og:image" content="https://bensonperry.com/loldemo/assets/og.png">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://lastlight-demo.pages.dev/">
+  <meta property="og:url" content="https://bensonperry.com/loldemo/">
   <meta name="twitter:card" content="summary_large_image">
   <title>Lastlight</title>
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -31,6 +32,16 @@
           <button id="audio-button" class="icon-button" type="button" aria-label="Toggle sound" aria-pressed="false">Sound on</button>
         </div>
       </nav>
+
+      <div class="control-ribbon" aria-label="Keyboard controls">
+        <strong>Controls</strong>
+        <span><kbd>WASD</kbd> Move</span>
+        <span><kbd>Mouse</kbd> Aim</span>
+        <span><kbd>C</kbd> Auto-aim</span>
+        <span><kbd>E</kbd> Ability</span>
+        <span><kbd>R</kbd> Ultimate</span>
+        <span><kbd>Esc</kbd> Pause</span>
+      </div>
 
       <div class="home-content">
         <header class="hero-copy">
@@ -105,6 +116,16 @@
           <button id="lobby-audio" class="icon-button" type="button">Sound on</button>
         </header>
 
+        <div class="control-ribbon lobby-controls" aria-label="Keyboard controls">
+          <strong>Controls</strong>
+          <span><kbd>WASD</kbd> Move</span>
+          <span><kbd>Mouse</kbd> Aim</span>
+          <span><kbd>C</kbd> Auto-aim</span>
+          <span><kbd>E</kbd> Ability</span>
+          <span><kbd>R</kbd> Ultimate</span>
+          <span><kbd>Esc</kbd> Pause</span>
+        </div>
+
         <div class="lobby-title-row">
           <div>
             <p class="eyebrow">Select your specialist</p>
@@ -170,12 +191,19 @@
 
       <div class="weapon-hud" id="weapon-hud"></div>
       <div class="xp-wrap"><span id="level-label">LV 1</span><div class="xp-track"><i id="xp-progress"></i></div></div>
+      <div class="game-controls-hint" aria-label="Keyboard controls"><span><kbd>WASD</kbd> Move</span><span><kbd>C</kbd> Auto-aim</span><span><kbd>Mouse</kbd> Aim</span></div>
 
       <div id="upgrade-overlay" class="overlay upgrade-overlay hidden">
         <div class="upgrade-panel">
           <p class="eyebrow">Combat data acquired</p>
           <h2>CHOOSE AN UPGRADE</h2>
-          <div id="upgrade-cards" class="upgrade-cards"></div>
+          <div class="upgrade-draft">
+            <section class="upgrade-local">
+              <div class="upgrade-player-heading"><span>You</span><strong id="upgrade-local-name">Rookie</strong><i id="upgrade-local-status">Choosing</i></div>
+              <div id="upgrade-cards" class="upgrade-cards"></div>
+            </section>
+            <aside id="teammate-upgrades" class="teammate-upgrades" aria-label="Teammate upgrade choices"></aside>
+          </div>
           <p id="upgrade-wait" class="upgrade-wait">Time resumes when the squad has chosen.</p>
         </div>
       </div>
