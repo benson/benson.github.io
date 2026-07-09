@@ -16,6 +16,8 @@ export class Renderer {
     this.loadSprites();
     this.resize();
     window.addEventListener("resize", () => this.resize());
+    this.resizeObserver = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => this.resize());
+    this.resizeObserver?.observe(this.canvas);
   }
 
   loadSprites() {
@@ -34,6 +36,10 @@ export class Renderer {
 
   draw(state, localPlayerId, previous = null, interpolation = 1) {
     if (!state?.players) return;
+    // The renderer is constructed while the game screen is display:none. Some
+    // browsers therefore report a 0x0 canvas until the first run begins. Never
+    // let that 1x1 fallback be stretched across the viewport.
+    if (Math.abs(this.canvas.clientWidth - this.width) > 1 || Math.abs(this.canvas.clientHeight - this.height) > 1) this.resize();
     const ctx = this.ctx;
     const map = typeof state.map === "string" ? MAPS[state.map] : state.map;
     const current = state.players.find((p) => p.id === localPlayerId) || state.players[0] || { x: 0, y: 0 };

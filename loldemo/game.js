@@ -154,7 +154,7 @@ function startRemoteGame(message) {
 }
 
 function enterGame() {
-  setScreen("game"); state.endShown = false; state.lastEventSeq = 0; state.lastUpgradeKey = ""; state.lastFrame = performance.now();
+  setScreen("game"); renderer.resize(); state.endShown = false; state.lastEventSeq = 0; state.lastUpgradeKey = ""; state.lastFrame = performance.now();
   state.lastSend = 0; state.lastBroadcast = 0; renderer.camera.x = 0; renderer.camera.y = 0; $("game-canvas").focus();
   if (!state.animation) state.animation = requestAnimationFrame(gameLoop);
 }
