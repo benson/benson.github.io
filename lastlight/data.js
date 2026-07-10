@@ -5,7 +5,7 @@ export const SPECIALISTS = {
     passive: ["Hot Streak", "Seventy takedowns or one elite triggers a burst of weapon haste and stacking speed."],
     active: ["Rocket Bloom", "Fire nine explosive rockets in a wide cone."],
     ultimate: ["Curtain Call", "Launch a massive execution rocket that deals more damage to wounded targets."],
-    signature: { name: "Pulse Carbine", evolve: "Overdrive Barrage", passive: "haste", glyph: "PC" },
+    signature: { name: "Pulse Carbine", evolve: "Overdrive Barrage", passive: "haste", glyph: "PC", icon: "assets/weapons/signature-zuri.webp" },
     cooldownE: 8, cooldownR: 50,
   },
   echo: {
@@ -14,7 +14,7 @@ export const SPECIALISTS = {
     passive: ["Resonance", "Every weapon projectile has a 25% chance to repeat after a short delay."],
     active: ["Surround Sound", "Shield nearby allies and double their movement speed while it holds."],
     ultimate: ["Perfect Frequency", "Make the squad invulnerable and lock every enemy in place."],
-    signature: { name: "Sound Wave", evolve: "Anima Echo", passive: "projectiles", glyph: "SW" },
+    signature: { name: "Sound Wave", evolve: "Anima Echo", passive: "projectiles", glyph: "SW", icon: "assets/weapons/signature-echo.webp" },
     cooldownE: 16, cooldownR: 90,
   },
   sola: {
@@ -23,7 +23,7 @@ export const SPECIALISTS = {
     passive: ["Daybreak", "Armor, maximum health, and regeneration increase every attack's area."],
     active: ["Eclipse Guard", "Double your armor and gain a shield that detonates twice."],
     ultimate: ["Solar Lance", "Call down a huge flare that damages and stuns enemies."],
-    signature: { name: "Shield Beam", evolve: "Lion's Light", passive: "armor", glyph: "SB" },
+    signature: { name: "Shield Beam", evolve: "Lion's Light", passive: "armor", glyph: "SB", icon: "assets/weapons/signature-sola.webp" },
     cooldownE: 17, cooldownR: 80,
   },
   bront: {
@@ -32,7 +32,7 @@ export const SPECIALISTS = {
     passive: ["Deep Current", "Allies regenerate health faster near each of Bront's mechanical totems."],
     active: ["Totem Crash", "Slam forward, knock enemies up, and plant a healing totem."],
     ultimate: ["Groundswell", "Leap and create a shockwave, then massively accelerate every weapon."],
-    signature: { name: "Tidal Hammer", evolve: "Grizzly Surge", passive: "duration", glyph: "TH" },
+    signature: { name: "Tidal Hammer", evolve: "Grizzly Surge", passive: "duration", glyph: "TH", icon: "assets/weapons/signature-bront.webp" },
     cooldownE: 12, cooldownR: 90,
   },
   fang: {
@@ -41,7 +41,7 @@ export const SPECIALISTS = {
     passive: ["Survival Drive", "Missing health grants up to 60% damage and 100% movement speed."],
     active: ["Break Restraint", "Dash into a six-second frenzy, auto-chasing targets and healing on every swipe."],
     ultimate: ["Redline", "Dive to the cursor with invulnerability and detonate on arrival."],
-    signature: { name: "Rending Swipe", evolve: "Savage Slice", passive: "maxHealth", glyph: "RS" },
+    signature: { name: "Rending Swipe", evolve: "Savage Slice", passive: "maxHealth", glyph: "RS", icon: "assets/weapons/signature-fang.webp" },
     cooldownE: 17, cooldownR: 120,
   },
   gale: {
@@ -50,7 +50,7 @@ export const SPECIALISTS = {
     passive: ["Wanderer's Edge", "Permanently gain 15% critical chance."],
     active: ["Slipstream", "Gain a shield, dash to the cursor, and cut through everything in the path."],
     ultimate: ["Windwall", "Raise a moving wall that destroys hostile shots and knocks enemies away."],
-    signature: { name: "Steel Current", evolve: "Wandering Storms", passive: "crit", glyph: "SC" },
+    signature: { name: "Steel Current", evolve: "Wandering Storms", passive: "crit", glyph: "SC", icon: "assets/weapons/signature-gale.webp" },
     cooldownE: 10, cooldownR: 25,
   },
   rift: {
@@ -59,7 +59,7 @@ export const SPECIALISTS = {
     passive: ["Kinetic Edge", "Close-range damage is stronger; a portion of all damage becomes a short-lived shield."],
     active: ["Vector Dash", "Dash forward, blast the landing zone, and stun enemies."],
     ultimate: ["Break Limit", "Double movement speed, reset Vector Dash, and empower the signature weapon."],
-    signature: { name: "Kinetic Crash", evolve: "Golden Overrun", passive: "move", glyph: "KC" },
+    signature: { name: "Kinetic Crash", evolve: "Golden Overrun", passive: "move", glyph: "KC", icon: "assets/weapons/signature-rift.webp" },
     cooldownE: 8, cooldownR: 100,
   },
   nova: {
@@ -68,7 +68,7 @@ export const SPECIALISTS = {
     passive: ["Spirit Wake", "Every seven levels summons a trailing wisp that damages and hexes enemies."],
     active: ["Veilstep", "Dash with invulnerability and detonate every hexed enemy."],
     ultimate: ["Between Spaces", "Leap forward and unleash an expanding pulse that strikes every enemy."],
-    signature: { name: "Guiding Hex", evolve: "Hopped-Up Hex", passive: "xp", glyph: "GH" },
+    signature: { name: "Guiding Hex", evolve: "Hopped-Up Hex", passive: "xp", glyph: "GH", icon: "assets/weapons/signature-nova.webp" },
     cooldownE: 15, cooldownR: 90,
   },
   vesper: {
@@ -77,7 +77,7 @@ export const SPECIALISTS = {
     passive: ["Magnetic Talons", "Massively increased pickup range; collected data motes damage enemies in flight."],
     active: ["Blade Recall", "Recall every dagger on the field through enemies."],
     ultimate: ["Bladestorm", "Become untargetable, accelerate, then release a radial storm of daggers."],
-    signature: { name: "Winged Dagger", evolve: "Lover's Ricochet", passive: "pickup", glyph: "WD" },
+    signature: { name: "Winged Dagger", evolve: "Lover's Ricochet", passive: "pickup", glyph: "WD", icon: "assets/weapons/signature-vesper.webp" },
     cooldownE: 13, cooldownR: 90,
   },
 };
@@ -100,18 +100,18 @@ export const PASSIVES = {
 };
 
 export const WEAPONS = {
-  uwu: { id: "uwu", name: "Needle Blaster", evolve: "Twin Needle Array", passive: "haste", glyph: "NB", max: 5, copy: "Rapidly fires laser needles at the nearest target." },
-  slicers: { id: "slicers", name: "Cyclonic Slicers", evolve: "Unceasing Cyclone", passive: "regen", glyph: "CS", max: 5, copy: "Orbiting razors damage and knock enemies back." },
-  aura: { id: "aura", name: "Radiant Field", evolve: "Explosive Embrace", passive: "maxHealth", glyph: "RF", max: 5, copy: "A solar field continuously damages nearby enemies." },
-  mines: { id: "mines", name: "Arc Mines", evolve: "Tri-Mine Grid", passive: "area", glyph: "AM", max: 5, copy: "Deploy timed explosives in a ring." },
-  crossbow: { id: "crossbow", name: "Scatter Bow", evolve: "Prime Ballista", passive: "crit", glyph: "SB", max: 5, copy: "Fires a fan of piercing bolts in a random direction." },
-  boomerang: { id: "boomerang", name: "Blade-o-rang", evolve: "Quad-o-rang", passive: "move", glyph: "BR", max: 5, copy: "Returning blades seek the nearest threat." },
-  rail: { id: "rail", name: "Lioness Rails", evolve: "Enveloping Light", passive: "haste", glyph: "LR", max: 5, copy: "Fires paired horizontal crescents through the horde." },
-  glove: { id: "glove", name: "Vortex Glove", evolve: "Tempest Gauntlet", passive: "regen", glyph: "VG", max: 5, copy: "A rotating stream of orbs cuts across the arena." },
-  transit: { id: "transit", name: "Final City Transit", evolve: "Limited Express", passive: "damage", glyph: "FC", max: 5, copy: "Calls a high-speed train through the battlefield." },
-  ice: { id: "ice", name: "Iceblast Armor", evolve: "Deep Freeze", passive: "armor", glyph: "IA", max: 5, copy: "Blocks one hit, then freezes nearby enemies." },
-  annihilator: { id: "annihilator", name: "Annihilator", evolve: "Animapocalypse", passive: "xp", glyph: "AX", max: 5, copy: "Periodically clears a vast area." },
-  drone: { id: "drone", name: "Yuum.AI Drone", evolve: "Yuum.AI Final", passive: "pickup", glyph: "AI", max: 5, copy: "A roaming drone attacks, gathers data, and drops repairs." },
+  uwu: { id: "uwu", name: "Needle Blaster", evolve: "Twin Needle Array", passive: "haste", glyph: "NB", icon: "assets/weapons/uwu.webp", max: 5, copy: "Rapidly fires laser needles at the nearest target." },
+  slicers: { id: "slicers", name: "Cyclonic Slicers", evolve: "Unceasing Cyclone", passive: "regen", glyph: "CS", icon: "assets/weapons/slicers.webp", max: 5, copy: "Orbiting razors damage and knock enemies back." },
+  aura: { id: "aura", name: "Radiant Field", evolve: "Explosive Embrace", passive: "maxHealth", glyph: "RF", icon: "assets/weapons/aura.webp", max: 5, copy: "A solar field continuously damages nearby enemies." },
+  mines: { id: "mines", name: "Arc Mines", evolve: "Tri-Mine Grid", passive: "area", glyph: "AM", icon: "assets/weapons/mines.webp", max: 5, copy: "Deploy timed explosives in a ring." },
+  crossbow: { id: "crossbow", name: "Scatter Bow", evolve: "Prime Ballista", passive: "crit", glyph: "SB", icon: "assets/weapons/crossbow.webp", max: 5, copy: "Fires a fan of piercing bolts in a random direction." },
+  boomerang: { id: "boomerang", name: "Blade-o-rang", evolve: "Quad-o-rang", passive: "move", glyph: "BR", icon: "assets/weapons/boomerang.webp", max: 5, copy: "Returning blades seek the nearest threat." },
+  rail: { id: "rail", name: "Lioness Rails", evolve: "Enveloping Light", passive: "haste", glyph: "LR", icon: "assets/weapons/rail.webp", max: 5, copy: "Fires paired horizontal crescents through the horde." },
+  glove: { id: "glove", name: "Vortex Glove", evolve: "Tempest Gauntlet", passive: "regen", glyph: "VG", icon: "assets/weapons/glove.webp", max: 5, copy: "A rotating stream of orbs cuts across the arena." },
+  transit: { id: "transit", name: "Final City Transit", evolve: "Limited Express", passive: "damage", glyph: "FC", icon: "assets/weapons/transit.webp", max: 5, copy: "Calls a high-speed train through the battlefield." },
+  ice: { id: "ice", name: "Iceblast Armor", evolve: "Deep Freeze", passive: "armor", glyph: "IA", icon: "assets/weapons/ice.webp", max: 5, copy: "Blocks one hit, then freezes nearby enemies." },
+  annihilator: { id: "annihilator", name: "Annihilator", evolve: "Animapocalypse", passive: "xp", glyph: "AX", icon: "assets/weapons/annihilator.webp", max: 5, copy: "Periodically clears a vast area." },
+  drone: { id: "drone", name: "Yuum.AI Drone", evolve: "Yuum.AI Final", passive: "pickup", glyph: "AI", icon: "assets/weapons/drone.webp", max: 5, copy: "A roaming drone attacks, gathers data, and drops repairs." },
 };
 
 export const MAPS = {
@@ -138,9 +138,9 @@ export const MAPS = {
 };
 
 export const DIFFICULTIES = {
-  story: { id: "story", name: "Story", health: 1, attack: 1, spell: 1, gold: 1, spawn: 1 },
-  hard: { id: "hard", name: "Hard", health: 3, attack: 2, spell: 1.5, gold: 1.5, spawn: 1.28 },
-  extreme: { id: "extreme", name: "Extreme", health: 7, attack: 3, spell: 2, gold: 2.25, spawn: 1.55 },
+  story: { id: "story", name: "Story", health: 1.2, attack: 1.15, spell: 1.1, gold: 1, spawn: 1.12 },
+  hard: { id: "hard", name: "Hard", health: 3, attack: 2, spell: 1.5, gold: 1.5, spawn: 1.35 },
+  extreme: { id: "extreme", name: "Extreme", health: 7, attack: 3, spell: 2, gold: 2.25, spawn: 1.68 },
 };
 
 export const ENEMY_TYPES = {

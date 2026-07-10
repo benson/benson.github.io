@@ -1,5 +1,5 @@
-import { SPECIALISTS, MAPS, ENEMY_TYPES, clamp } from "./data.js?v=20260709.3";
-import { WORLD } from "./engine.js?v=20260709.3";
+import { SPECIALISTS, MAPS, ENEMY_TYPES, clamp } from "./data.js?v=20260709.6";
+import { WORLD } from "./engine.js?v=20260709.6";
 
 const TAU = Math.PI * 2;
 
@@ -15,6 +15,7 @@ export class Renderer {
     this.environments = {};
     this.playerVisuals = new Map();
     this.prevMaps = {};
+    this.reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false;
     this.loadSprites();
     this.resize();
     window.addEventListener("resize", () => this.resize());
@@ -52,16 +53,19 @@ export class Renderer {
     const pos = this.position(current, previous?.players, interpolation);
     this.camera.x += (pos.x - this.camera.x) * .14;
     this.camera.y += (pos.y - this.camera.y) * .14;
+    const hurt = this.reducedMotion ? 0 : clamp((current.hurtFlash || 0) / .24, 0, 1);
+    const shakeX = Math.sin(performance.now() * .09) * hurt * 7, shakeY = Math.cos(performance.now() * .073) * hurt * 5;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.fillStyle = map.floor; ctx.fillRect(0, 0, this.width, this.height);
     this.drawFloor(map, state.time || 0);
 
     ctx.save();
-    ctx.translate(this.width / 2 - this.camera.x, this.height / 2 - this.camera.y);
+    ctx.translate(this.width / 2 - this.camera.x + shakeX, this.height / 2 - this.camera.y + shakeY);
     this.drawWorldBorder(map);
     this.drawMapDecor(map);
     this.drawMachine(state, map);
     this.drawPods(state.pods || []);
+    this.drawRelayBalls(state.relayBalls || [], map);
     this.drawObjectives(state.objectives || [], map);
     this.drawDrops(state.drops || []);
     this.drawOrbs(state.orbs || []);
@@ -159,9 +163,10 @@ export class Renderer {
   drawPods(pods) {
     const ctx = this.ctx;
     for (const pod of pods) {
-      ctx.save(); ctx.translate(pod.x, pod.y); ctx.rotate(Math.PI / 4);
+      const pulse = .75 + Math.sin(performance.now() * .004 + pod.x) * .25;
+      ctx.save(); ctx.translate(pod.x, pod.y + Math.sin(performance.now() * .002 + pod.y) * 2); ctx.rotate(Math.PI / 4 + (this.reducedMotion ? 0 : performance.now() * .00018));
       ctx.fillStyle = "#1a3541"; ctx.strokeStyle = "#6cc4ce"; ctx.lineWidth = 2; ctx.fillRect(-18,-18,36,36); ctx.strokeRect(-18,-18,36,36);
-      ctx.fillStyle = "#89f5e5"; ctx.fillRect(-4,-4,8,8); ctx.restore();
+      ctx.shadowColor = "#89f5e5"; ctx.shadowBlur = 10 * pulse; ctx.fillStyle = "#89f5e5"; ctx.fillRect(-4,-4,8,8); ctx.restore();
     }
   }
 
@@ -169,18 +174,35 @@ export class Renderer {
     const ctx = this.ctx;
     for (const objective of objectives) {
       ctx.save(); ctx.translate(objective.x, objective.y);
-      ctx.setLineDash([9, 7]); ctx.lineWidth = 3; ctx.strokeStyle = objective.kind === "trial" ? "#ff5f70" : map.accent;
-      ctx.beginPath(); ctx.arc(0,0,objective.radius,0,TAU); ctx.stroke(); ctx.setLineDash([]);
+      ctx.setLineDash([9, 7]); ctx.lineDashOffset = this.reducedMotion ? 0 : -performance.now() * .025; ctx.lineWidth = 3; ctx.strokeStyle = objective.kind === "trial" ? "#ff5f70" : map.accent;
+      ctx.beginPath(); ctx.arc(0,0,objective.radius + Math.sin(performance.now() * .004) * 3,0,TAU); ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0;
       ctx.globalAlpha = .18; ctx.fillStyle = ctx.strokeStyle; ctx.beginPath(); ctx.arc(0,0,objective.radius * clamp(objective.progress,0,1),0,TAU); ctx.fill();
       ctx.globalAlpha = 1; ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.font = "800 10px Inter"; ctx.fillText(objective.kind === "trial" ? "TRIAL" : "UPLINK",0,4); ctx.restore();
+    }
+  }
+
+  drawRelayBalls(balls, map) {
+    const ctx = this.ctx;
+    for (const ball of balls) {
+      ctx.save();
+      ctx.translate(ball.targetX, ball.targetY); ctx.setLineDash([10, 8]); ctx.lineDashOffset = this.reducedMotion ? 0 : -performance.now() * .03; ctx.lineWidth = 4; ctx.strokeStyle = "#f7d76a"; ctx.globalAlpha = .75;
+      ctx.beginPath(); ctx.arc(0, 0, 82 + Math.sin(performance.now() * .005) * 4, 0, TAU); ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0;
+      ctx.globalAlpha = .12; ctx.fillStyle = "#f7d76a"; ctx.beginPath(); ctx.arc(0, 0, 78, 0, TAU); ctx.fill();
+      ctx.globalAlpha = 1; ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.font = "800 9px Inter"; ctx.fillText("RELAY GOAL", 0, 4); ctx.restore();
+      ctx.save(); ctx.strokeStyle = "rgba(247,215,106,.22)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(ball.x, ball.y); ctx.lineTo(ball.targetX, ball.targetY); ctx.stroke();
+      ctx.translate(ball.x, ball.y); ctx.shadowColor = "#f7d76a"; ctx.shadowBlur = 22;
+      const glow = ctx.createRadialGradient(-12, -14, 3, 0, 0, ball.radius); glow.addColorStop(0, "#fff6bd"); glow.addColorStop(.35, "#f7d76a"); glow.addColorStop(1, "#8d5b20");
+      ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(0, 0, ball.radius, 0, TAU); ctx.fill(); ctx.shadowBlur = 0;
+      ctx.strokeStyle = map.accent; ctx.lineWidth = 3; ctx.rotate(this.reducedMotion ? 0 : performance.now() * .0015); ctx.beginPath(); ctx.arc(0, 0, ball.radius * .62, .2, TAU * .72); ctx.stroke(); ctx.rotate(this.reducedMotion ? 0 : -performance.now() * .0015);
+      ctx.fillStyle = "#fff"; ctx.font = "800 9px Inter"; ctx.textAlign = "center"; ctx.fillText(`${Math.max(0, Math.ceil(ball.life))}s`, 0, 4); ctx.restore();
     }
   }
 
   drawDrops(drops) {
     const ctx = this.ctx;
     for (const drop of drops) {
-      ctx.save(); ctx.translate(drop.x, drop.y); const pulse = 1 + Math.sin(performance.now()*.007 + drop.x)*.1; ctx.scale(pulse,pulse);
-      if (drop.type === "card") { ctx.rotate(Math.PI/4); ctx.fillStyle="#f8d85c"; ctx.shadowColor="#f8d85c"; ctx.shadowBlur=16; ctx.fillRect(-11,-11,22,22); ctx.fillStyle="#301f12";ctx.fillRect(-4,-4,8,8); }
+      ctx.save(); ctx.translate(drop.x, drop.y + (this.reducedMotion ? 0 : Math.sin(performance.now()*.004 + drop.x)*3)); const pulse = 1 + Math.sin(performance.now()*.007 + drop.x)*.1; ctx.scale(pulse,pulse);
+      if (drop.type === "card") { ctx.rotate(Math.PI/4 + (this.reducedMotion ? 0 : performance.now() * .001)); ctx.fillStyle="#f8d85c"; ctx.shadowColor="#f8d85c"; ctx.shadowBlur=16; ctx.fillRect(-11,-11,22,22); ctx.fillStyle="#301f12";ctx.fillRect(-4,-4,8,8); }
       else { ctx.fillStyle = drop.type === "heal" ? "#6dff9e" : drop.type === "vacuum" ? "#71eaff" : drop.type === "mine" ? "#ff744f" : "#ffd662"; ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=12;ctx.beginPath();ctx.arc(0,0,drop.radius,0,TAU);ctx.fill(); }
       ctx.restore();
     }
@@ -188,7 +210,7 @@ export class Renderer {
 
   drawOrbs(orbs) {
     const ctx = this.ctx;
-    for (const orb of orbs) { ctx.fillStyle=orb.color;ctx.shadowColor=orb.color;ctx.shadowBlur=9;ctx.beginPath();ctx.arc(orb.x,orb.y,orb.radius,0,TAU);ctx.fill(); }
+    for (const orb of orbs) { const pulse=1+Math.sin(performance.now()*.009+orb.x*.03)*.18;ctx.save();ctx.translate(orb.x,orb.y+(this.reducedMotion?0:Math.sin(performance.now()*.004+orb.y)*1.8));ctx.fillStyle=orb.color;ctx.shadowColor=orb.color;ctx.shadowBlur=9*pulse;ctx.beginPath();ctx.arc(0,0,orb.radius*pulse,0,TAU);ctx.fill();ctx.globalAlpha=.3;ctx.strokeStyle="#fff";ctx.beginPath();ctx.arc(0,0,orb.radius*(1.5+pulse*.3),0,TAU);ctx.stroke();ctx.restore(); }
     ctx.shadowBlur=0;
   }
 
@@ -215,6 +237,23 @@ export class Renderer {
       if (e.kind === "totem") {
         ctx.strokeStyle=e.color;ctx.lineWidth=2;ctx.globalAlpha=.35;ctx.beginPath();ctx.arc(0,0,260,0,TAU);ctx.stroke();ctx.fillStyle=e.color;ctx.globalAlpha=.8;ctx.fillRect(-9,-25,18,50);ctx.beginPath();ctx.arc(0,-25,19,0,TAU);ctx.fill();ctx.restore();continue;
       }
+      if (e.kind === "hurt") {
+        ctx.rotate(e.angle || 0); ctx.strokeStyle=e.color; ctx.lineWidth=5; ctx.globalAlpha=.9*(1-progress);
+        ctx.beginPath();ctx.arc(0,0,e.radius*(.35+progress*.65),-.85,.85);ctx.stroke();
+        for(let i=-2;i<=2;i++){const a=i*.28,len=e.radius*(.65+progress*.75);ctx.beginPath();ctx.moveTo(Math.cos(a)*12,Math.sin(a)*12);ctx.lineTo(Math.cos(a)*len,Math.sin(a)*len);ctx.stroke();}
+        ctx.restore();continue;
+      }
+      if (e.kind === "pickup") {
+        ctx.strokeStyle=e.color;ctx.fillStyle=e.color;ctx.lineWidth=3;ctx.globalAlpha=1-progress;
+        ctx.beginPath();ctx.arc(0,0,e.radius*(.25+progress*.75),0,TAU);ctx.stroke();
+        for(let i=0;i<6;i++){const a=i*TAU/6+progress;const r=e.radius*(.25+progress*.8);ctx.beginPath();ctx.arc(Math.cos(a)*r,Math.sin(a)*r,2.5*(1-progress)+1,0,TAU);ctx.fill();}
+        ctx.restore();continue;
+      }
+      if (e.kind === "pop") {
+        ctx.fillStyle=e.color;ctx.strokeStyle=e.color;ctx.globalAlpha=1-progress;
+        for(let i=0;i<9;i++){const a=i*TAU/9+(e.x+e.y)*.01,r=e.radius*progress;ctx.save();ctx.rotate(a);ctx.translate(r,0);ctx.rotate(progress*2);ctx.fillRect(-4,-2,8+progress*10,4);ctx.restore();}
+        ctx.globalAlpha=.45*(1-progress);ctx.beginPath();ctx.arc(0,0,e.radius*progress,0,TAU);ctx.fill();ctx.restore();continue;
+      }
       const delayed = e.delayed && e.life > 0;
       ctx.globalAlpha = delayed ? .16 + progress*.22 : .48 * (1-progress);
       ctx.fillStyle=e.color;ctx.beginPath();ctx.arc(0,0,e.radius*(delayed ? .45+progress*.55 : progress),0,TAU);ctx.fill();
@@ -229,6 +268,7 @@ export class Renderer {
     const ctx=this.ctx;
     for(const b of projectiles){
       ctx.save();ctx.translate(b.x,b.y);ctx.fillStyle=b.color || (hostile?"#ff5575":"#fff");ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=hostile?12:8;
+      const speed=Math.hypot(b.vx||0,b.vy||0);if(speed>20&&!b.wave&&!b.tornado){ctx.strokeStyle=ctx.fillStyle;ctx.globalAlpha=.25;ctx.lineWidth=Math.max(2,b.radius*.75);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(-(b.vx||0)/speed*(hostile?22:15),-(b.vy||0)/speed*(hostile?22:15));ctx.stroke();ctx.globalAlpha=1;}
       if(b.dagger){ctx.rotate(Math.atan2(b.vy,b.vx));ctx.fillRect(-10,-2,20,4);}
       else if(b.wave){ctx.rotate(Math.atan2(b.vy,b.vx));ctx.strokeStyle=ctx.fillStyle;ctx.lineWidth=4;ctx.beginPath();ctx.arc(0,0,b.radius*2,-1,1);ctx.stroke();}
       else if(b.tornado){ctx.strokeStyle=ctx.fillStyle;ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,b.radius,0,TAU*1.5);ctx.stroke();}
@@ -240,13 +280,18 @@ export class Renderer {
   drawEnemies(enemies, previous, t, map) {
     const ctx=this.ctx;
     for(const raw of enemies){
-      const e=this.position(raw,previous?.enemies,t);ctx.save();ctx.translate(e.x,e.y);
+      const e=this.position(raw,previous?.enemies,t),now=performance.now();ctx.save();ctx.translate(e.x,e.y);
+      const spawn=clamp((e.spawnLife||0)/.24,0,1),attack=clamp((e.attackFlash||0)/.2,0,1),wobble=this.reducedMotion?0:Math.sin(now*.006+e.x*.02+e.y*.01)*.035;
+      ctx.rotate(wobble*(e.stun>0?.35:1));ctx.scale((1-spawn*.42)*(1+attack*.16),(1-spawn*.42)*(1-attack*.08));ctx.globalAlpha=1-spawn*.55;
       ctx.fillStyle="rgba(0,0,0,.28)";ctx.beginPath();ctx.ellipse(4,e.radius*.7,e.radius*.9,e.radius*.45,0,0,TAU);ctx.fill();
       if(e.elite||e.boss){ctx.strokeStyle=e.boss?map.accent:"#ffe073";ctx.globalAlpha=.45;ctx.lineWidth=e.boss?8:4;ctx.beginPath();ctx.arc(0,0,e.radius+10+Math.sin(performance.now()*.005)*3,0,TAU);ctx.stroke();ctx.globalAlpha=1;}
-      ctx.fillStyle=e.hitFlash>0?"#fff":e.color;ctx.shadowColor=e.color;ctx.shadowBlur=e.boss?28:e.elite?18:5;
+      ctx.fillStyle=e.hitFlash>0?"#fff":e.attackFlash>0?"#fff0c4":e.color;ctx.shadowColor=e.attackFlash>0?"#ff5a43":e.color;ctx.shadowBlur=e.attackFlash>0?30:e.boss?28:e.elite?18:5;
       const sides=e.boss?7:(ENEMY_TYPES[e.type]?.shape||5);ctx.beginPath();
       for(let i=0;i<sides;i++){const a=i*TAU/sides-.5*Math.PI;const r=e.radius*(i%2? .82:1);const x=Math.cos(a)*r,y=Math.sin(a)*r;i?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.closePath();ctx.fill();
       ctx.fillStyle="#07111b";ctx.beginPath();ctx.arc(-e.radius*.23,-e.radius*.1,Math.max(2,e.radius*.11),0,TAU);ctx.arc(e.radius*.23,-e.radius*.1,Math.max(2,e.radius*.11),0,TAU);ctx.fill();
+      if(e.hitFlash>0){ctx.rotate(e.hitAngle||0);ctx.strokeStyle="#fff";ctx.globalAlpha=clamp(e.hitFlash/.1,0,1);ctx.lineWidth=3;for(let i=-1;i<=1;i++){ctx.beginPath();ctx.moveTo(e.radius*.25,i*7);ctx.lineTo(e.radius*1.25,i*12);ctx.stroke();}ctx.rotate(-(e.hitAngle||0));ctx.globalAlpha=1;}
+      if(e.attackFlash>0){ctx.strokeStyle="#ff5a43";ctx.globalAlpha=attack;ctx.lineWidth=4;ctx.beginPath();ctx.arc(0,0,e.radius+8+attack*10,-.65,.65);ctx.stroke();ctx.globalAlpha=1;}
+      if(e.eventType==="treasure"){ctx.fillStyle="#fff2a8";ctx.font="900 15px Inter";ctx.textAlign="center";ctx.fillText("$",0,5);ctx.fillStyle="#f7d76a";ctx.font="800 9px Inter";ctx.fillText(`TREASURE · ${Math.max(0,Math.ceil(e.life))}s`,0,-e.radius-30);}
       if(e.elite||e.miniboss||e.boss){const w=e.boss?180:Math.max(56,e.radius*2);ctx.fillStyle="rgba(2,7,13,.8)";ctx.fillRect(-w/2,-e.radius-20,w,6);ctx.fillStyle=e.boss?map.accent:"#ffcf64";ctx.fillRect(-w/2,-e.radius-20,w*clamp(e.hp/e.maxHp,0,1),6);}
       ctx.restore();
     }ctx.shadowBlur=0;
@@ -260,6 +305,8 @@ export class Renderer {
       ctx.fillStyle="rgba(0,0,0,.3)";ctx.beginPath();ctx.ellipse(0,24,35,16,0,0,TAU);ctx.fill();
       if(p.id===localPlayerId){ctx.strokeStyle=spec.color;ctx.globalAlpha=.65;ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,39,0,TAU);ctx.stroke();ctx.globalAlpha=1;}
       if(p.invuln>0||p.shield>0){ctx.strokeStyle=p.invuln>0?"#fff":spec.color;ctx.globalAlpha=.55;ctx.lineWidth=5;ctx.beginPath();ctx.arc(0,0,43+Math.sin(performance.now()*.008)*2,0,TAU);ctx.stroke();ctx.globalAlpha=1;}
+      const hurt=clamp((p.hurtFlash||0)/.24,0,1);
+      if(hurt>0){ctx.save();ctx.rotate(p.hurtAngle||0);ctx.strokeStyle="#ff5870";ctx.lineWidth=4;ctx.globalAlpha=hurt;ctx.beginPath();ctx.arc(0,0,45+hurt*9,-.9,.9);ctx.stroke();ctx.restore();}
       const before=previous?.players?.find((item)=>item.id===raw.id);
       const dx=before?raw.x-before.x:0,dy=before?raw.y-before.y:0;
       const inferredMoving=Math.hypot(dx,dy)>.15;
@@ -278,8 +325,9 @@ export class Renderer {
       if(moving){ctx.save();ctx.globalAlpha=.14+.08*Math.abs(step);ctx.fillStyle=spec.color;ctx.beginPath();ctx.ellipse(-Math.cos(visual.facing)*15,25-Math.sin(visual.facing)*8,18,7,visual.facing,0,TAU);ctx.fill();ctx.restore();}
       const image=this.sprites[p.specialist];if(image?.complete){
         const size=p.specialist==="sola"?118:104;
-        ctx.save();ctx.translate(0,bob);ctx.rotate(moving?Math.cos(visual.stride)*.025:0);
+        ctx.save();ctx.translate((this.reducedMotion?0:Math.sin(performance.now()*.08)*hurt*3),bob-hurt*2);ctx.rotate((moving?Math.cos(visual.stride)*.025:0)+Math.sin(p.hurtAngle||0)*hurt*.09);
         ctx.transform(visual.turn,0,-Math.sin(visual.facing)*.045,1,0,0);
+        if(hurt>0)ctx.filter=`brightness(${1+hurt*2.4}) saturate(${1-hurt*.55}) sepia(${hurt*.45})`;
         ctx.drawImage(image,-size/2,-size*.62,size,size);ctx.restore();
       }
       else{ctx.fillStyle=spec.color;ctx.beginPath();ctx.arc(0,0,28,0,TAU);ctx.fill();}
@@ -292,10 +340,11 @@ export class Renderer {
     const ctx=this.ctx;const hp=current.maxHp?current.hp/current.maxHp:1;
     const vignette=ctx.createRadialGradient(this.width/2,this.height/2,Math.min(this.width,this.height)*.28,this.width/2,this.height/2,Math.max(this.width,this.height)*.72);
     vignette.addColorStop(0,"transparent");vignette.addColorStop(1,hp<.3?`rgba(120,0,15,${.52-hp})`:"rgba(0,3,8,.42)");ctx.fillStyle=vignette;ctx.fillRect(0,0,this.width,this.height);
+    const hurt=clamp((current.hurtFlash||0)/.24,0,1);if(hurt>0){ctx.fillStyle=`rgba(255,45,72,${hurt*.13})`;ctx.fillRect(0,0,this.width,this.height);ctx.strokeStyle=`rgba(255,95,115,${hurt*.65})`;ctx.lineWidth=8+hurt*8;ctx.strokeRect(0,0,this.width,this.height);}
   }
 
   drawOffscreenMarkers(state,map,localPlayerId){
-    const targets=[...(state.objectives||[]).map(o=>({...o,label:o.kind==="trial"?"TRIAL":"UPLINK",color:o.kind==="trial"?"#ff6274":map.accent})),...(state.enemies||[]).filter(e=>e.boss).map(e=>({...e,label:"APEX",color:map.accent}))];
+    const targets=[...(state.objectives||[]).map(o=>({...o,label:o.kind==="trial"?"TRIAL":"UPLINK",color:o.kind==="trial"?"#ff6274":map.accent})),...(state.relayBalls||[]).map(ball=>({x:ball.targetX,y:ball.targetY,label:"RELAY",color:"#f7d76a"})),...(state.enemies||[]).filter(e=>e.boss||e.eventType==="treasure").map(e=>({...e,label:e.boss?"APEX":"LOOT",color:e.boss?map.accent:"#f7d76a"}))];
     const p=state.players.find(x=>x.id===localPlayerId)||state.players[0];if(!p)return;const ctx=this.ctx;
     for(const target of targets){const sx=target.x-this.camera.x+this.width/2,sy=target.y-this.camera.y+this.height/2;if(sx>45&&sx<this.width-45&&sy>80&&sy<this.height-55)continue;const a=Math.atan2(target.y-p.y,target.x-p.x);const margin=65,x=clamp(this.width/2+Math.cos(a)*this.width*.42,margin,this.width-margin),y=clamp(this.height/2+Math.sin(a)*this.height*.38,95,this.height-margin);ctx.save();ctx.translate(x,y);ctx.rotate(a);ctx.fillStyle=target.color;ctx.beginPath();ctx.moveTo(15,0);ctx.lineTo(-7,-7);ctx.lineTo(-7,7);ctx.closePath();ctx.fill();ctx.rotate(-a);ctx.fillStyle="#fff";ctx.font="800 8px Inter";ctx.textAlign="center";ctx.fillText(target.label,0,22);ctx.restore();}
   }
