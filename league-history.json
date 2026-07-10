@@ -1,6 +1,24 @@
 {
-  "blurb": "played 11 other games in the last week, went 7-4",
+  "blurb": "played 13 other games in the last week, went 8-5",
   "recent": [
+    {
+      "champion": "Kalista",
+      "win": true,
+      "kills": 26,
+      "deaths": 1,
+      "assists": 6,
+      "damage": 74856,
+      "minutes": 21
+    },
+    {
+      "champion": "Talon",
+      "win": false,
+      "kills": 4,
+      "deaths": 9,
+      "assists": 7,
+      "damage": 23251,
+      "minutes": 28
+    },
     {
       "champion": "JarvanIV",
       "win": true,
@@ -27,24 +45,6 @@
       "assists": 10,
       "damage": 47906,
       "minutes": 28
-    },
-    {
-      "champion": "Yorick",
-      "win": false,
-      "kills": 5,
-      "deaths": 9,
-      "assists": 10,
-      "damage": 26213,
-      "minutes": 24
-    },
-    {
-      "champion": "Nasus",
-      "win": true,
-      "kills": 6,
-      "deaths": 5,
-      "assists": 28,
-      "damage": 46591,
-      "minutes": 25
     }
   ],
   "ddragonVersion": "16.13.1",
