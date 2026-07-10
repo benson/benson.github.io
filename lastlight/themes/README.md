@@ -3,7 +3,8 @@
 `lastlight.js` is the stable asset contract between game data and art. It gives
 every swappable image a logical key, so a future rebrand can replace the full
 look without renaming specialists, weapons, maps, gameplay effects, or archive
-entries throughout the game.
+entries throughout the game. The same contract now covers every guide icon, so
+passives, enemies, pickups, and field devices move with the rest of a rebrand.
 
 ## Make a new visual theme
 
@@ -25,8 +26,11 @@ import { LASTLIGHT_THEME, getThemeAsset } from "./themes/lastlight.js";
 const theme = LASTLIGHT_THEME;
 const zuriPortrait = getThemeAsset("specialists.zuri", theme);
 const glassCannonIcon = getThemeAsset("archive.augments.glassCannon", theme);
+const multishotIcon = getThemeAsset("guide.passives.projectiles", theme);
 ```
 
-The archive contract contains 24 images: three events, six squad boons, and 15
-augments. `validateTheme(theme)` returns `{ valid, errors, assetCount }` for
-editor tooling and tests.
+The complete contract contains 85 unique images. That includes 24 archive
+images (three events, six squad boons, and 15 augments) plus 24 complete-guide
+images (12 passives, six enemies, and six field categories).
+`validateTheme(theme)` returns `{ valid, errors, assetCount }` for editor tooling
+and tests.
