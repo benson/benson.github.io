@@ -1,6 +1,33 @@
 {
-  "blurb": "played 16 other games in the last week, went 10-6",
+  "blurb": "played 19 other games in the last week, went 11-8",
   "recent": [
+    {
+      "champion": "MissFortune",
+      "win": true,
+      "kills": 6,
+      "deaths": 9,
+      "assists": 9,
+      "damage": 37465,
+      "minutes": 19
+    },
+    {
+      "champion": "Nautilus",
+      "win": false,
+      "kills": 0,
+      "deaths": 8,
+      "assists": 2,
+      "damage": 13056,
+      "minutes": 24
+    },
+    {
+      "champion": "Kled",
+      "win": false,
+      "kills": 1,
+      "deaths": 8,
+      "assists": 5,
+      "damage": 17468,
+      "minutes": 32
+    },
     {
       "champion": "Urgot",
       "win": true,
@@ -17,33 +44,6 @@
       "deaths": 7,
       "assists": 20,
       "damage": 55224,
-      "minutes": 28
-    },
-    {
-      "champion": "DrMundo",
-      "win": false,
-      "kills": 3,
-      "deaths": 6,
-      "assists": 3,
-      "damage": 11804,
-      "minutes": 24
-    },
-    {
-      "champion": "Kalista",
-      "win": true,
-      "kills": 26,
-      "deaths": 1,
-      "assists": 6,
-      "damage": 74856,
-      "minutes": 21
-    },
-    {
-      "champion": "Talon",
-      "win": false,
-      "kills": 4,
-      "deaths": 9,
-      "assists": 7,
-      "damage": 23251,
       "minutes": 28
     }
   ],
