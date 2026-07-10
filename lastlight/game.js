@@ -39,7 +39,7 @@ const state = {
   audio: true, audioContext: null, toastTimer: null, lastVoiceAt: 0,
   soundState: { projectiles: 0, kills: 0, level: 1, damageTaken: 0, lastShot: 0 },
   recentErrors: [], reportSubmitting: false, resumeAfterReport: false, telemetrySent: false,
-  showEnemyHealthBars: loadEnemyHealthBars(), inspectPointer: null,
+  showEnemyHealthBars: loadEnemyHealthBars(), inspectPointer: null, inspectActive: false,
   performanceMetrics: null,
 };
 
@@ -47,7 +47,7 @@ function setScreen(name) {
   state.screen = name;
   for (const [key, screen] of Object.entries(screens)) screen.classList.toggle("hidden", key !== name);
   document.body.style.overflow = name === "game" ? "hidden" : "auto";
-  if (name !== "game") hideInspectPanel();
+  if (name !== "game") { state.inspectActive = false; hideInspectPanel(); }
 }
 
 function callsign() {
@@ -276,6 +276,7 @@ function gameLoop(now) {
     const interpolation = state.isHost ? 1 : clamp((now - state.snapshotAt) / state.snapshotInterval, 0, 1);
     const renderStarted = performance.now(); renderer.draw(current, state.clientId, state.isHost ? null : state.previousSnapshot, interpolation); const renderMs = performance.now() - renderStarted;
     const hudStarted = performance.now(); updateHUD(current); updateUpgrade(current); processEvents(current.events || []); const hudMs = performance.now() - hudStarted;
+    if (state.inspectActive && state.inspectPointer) inspectCanvasAt({ ...state.inspectPointer, shiftKey: true });
     trackPerformance(current, dt * 1000, performance.now() - frameStarted, simulationMs, renderMs, hudMs);
     if ((current.stage === "won" || current.stage === "lost") && !state.endShown) scheduleResult(current);
   }
@@ -359,7 +360,7 @@ function weaponTelemetry(weaponId, weapon, player) {
     transit: [135 + level * 55, 14 - level * .8, 1, "Full-lane train strike"],
     ice: [0, evolved ? 9 : 13 - level * .6, 1, "Blocks one hit, then freezes"],
     annihilator: [450 + level * 175, evolved ? 21 : 30 - level * 1.4, 1, "Massive delayed blast"],
-    drone: [40 + level * 15, 1.6 - level * .1, 1, "Autonomous target seeker"],
+    drone: [40 + level * 15, 1.6 - level * .1, 1 + Math.floor((level - 1) / 2), "Autonomous target seeker"],
   }[weaponId];
   if (!table) return { damage: "—", interval: "—", projectiles: "—", note: "" };
   return { damage: table[0] ? `${rounded(table[0])} / hit` : "Utility", interval: `${cd(table[1]).toFixed(2)}s`, projectiles: String(table[2]), note: table[3] };
@@ -432,7 +433,7 @@ function updateHUD(game) {
   $("kill-count").textContent = Number(game.kills || 0).toLocaleString(); $("gold-count").textContent = Math.round(game.gold || 0).toLocaleString();
   $("level-label").textContent = `LV ${game.level}`; $("xp-progress").style.width = `${clamp(game.teamXP / game.xpNeed * 100, 0, 100)}%`;
   $("e-name").textContent = game.level < 3 ? "Unlocks Lv 3" : spec.active[0]; $("r-name").textContent = game.level < 6 ? "Unlocks Lv 6" : spec.ultimate[0];
-  updateCooldownSlot("e", player.eCd, spec.cooldownE, game.level >= 3, 3); updateCooldownSlot("r", player.rCd, spec.cooldownR, game.level >= 6, 6);
+  updateCooldownSlot("e", player.eCd, player.eCdMax || spec.cooldownE, game.level >= 3, 3); updateCooldownSlot("r", player.rCd, player.rCdMax || spec.cooldownR, game.level >= 6, 6);
   $("pause-overlay").classList.toggle("hidden", !(game.paused && game.pauseReason === "manual"));
   const boss = game.enemies?.find((enemy) => enemy.boss);
   $("boss-hud").classList.toggle("hidden", !boss); if (boss) { $("boss-name").textContent = (typeof game.map === "string" ? MAPS[game.map] : game.map).boss; $("boss-health").style.width = `${clamp(boss.hp / boss.maxHp * 100, 0, 100)}%`; }
@@ -871,7 +872,7 @@ function bindEvents() {
     const isTyping = target instanceof Element && Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
     if (isTyping || state.screen !== "game") return;
     const key = event.key.toLowerCase();
-    if (key === "shift") { inspectCanvasAt(state.inspectPointer ? { ...state.inspectPointer, shiftKey: true } : null); return; }
+    if (key === "shift") { state.inspectActive = true; inspectCanvasAt(state.inspectPointer ? { ...state.inspectPointer, shiftKey: true } : null); return; }
     const upgradeChoice = ["1", "2", "3"].includes(key) && !$("upgrade-overlay").classList.contains("hidden");
     if (upgradeChoice) {
       event.preventDefault();
@@ -890,15 +891,16 @@ function bindEvents() {
     else if (key === "escape" && !event.repeat && state.screen === "game") togglePause();
     state.input.keys.add(key);
   });
-  window.addEventListener("keyup", (event) => { const key = event.key.toLowerCase(); state.input.keys.delete(key); if (key === "shift") hideInspectPanel(); });
-  window.addEventListener("blur", () => { state.input.keys.clear(); hideInspectPanel(); });
+  window.addEventListener("keyup", (event) => { const key = event.key.toLowerCase(); state.input.keys.delete(key); if (key === "shift") { state.inspectActive = false; hideInspectPanel(); } });
+  window.addEventListener("blur", () => { state.input.keys.clear(); state.inspectActive = false; hideInspectPanel(); });
   $("game-canvas").addEventListener("pointermove", (event) => {
     const rect = $("game-canvas").getBoundingClientRect();
     state.input.aim = Math.atan2(event.clientY - rect.top - rect.height / 2, event.clientX - rect.left - rect.width / 2);
     state.inspectPointer = { clientX: event.clientX, clientY: event.clientY };
+    state.inspectActive = event.shiftKey;
     inspectCanvasAt({ ...state.inspectPointer, shiftKey: event.shiftKey });
   });
-  $("game-canvas").addEventListener("pointerleave", hideInspectPanel);
+  $("game-canvas").addEventListener("pointerleave", () => { state.inspectPointer = null; state.inspectActive = false; hideInspectPanel(); });
   document.addEventListener("contextmenu", (event) => event.preventDefault());
   setupTouch();
 }

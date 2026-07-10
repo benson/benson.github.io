@@ -81,7 +81,7 @@ export class Simulation {
       hp: spec.health, maxHp: spec.health, armor: spec.armor, baseSpeed: spec.speed,
       input: { x: 0, y: 0, aim: 0, autoAim: true },
       facing: 0, moving: false,
-      eCd: 0, rCd: 0, shield: 0, invuln: 2, hitGrace: 0, hurtFlash: 0, hurtAngle: 0, knockVx: 0, knockVy: 0, frenzy: 0, hasteBuff: 0, speedBuff: 0,
+      eCd: 0, eCdMax: 0, rCd: 0, rCdMax: 0, shield: 0, invuln: 2, hitGrace: 0, hurtFlash: 0, hurtAngle: 0, knockVx: 0, knockVy: 0, frenzy: 0, hasteBuff: 0, speedBuff: 0,
       dead: false, downed: false, downTimer: 0, respawnTimer: 0, reviveProgress: 0, deaths: 0,
       weaponTimers: {}, weapons: { signature: { level: 1, evolved: false } }, passives: {},
       flow: 0, charge: 0, spirits: 0, hotKills: 0, hotStacks: 0, hotTime: 0,
@@ -716,13 +716,13 @@ export class Simulation {
     const spec = SPECIALISTS[p.specialist];
     if (slot === "e") {
       if (this.level < 3 || p.eCd > 0) return false;
-      p.eCd = this.cooldown(p, spec.cooldownE);
+      p.eCd = p.eCdMax = this.cooldown(p, spec.cooldownE);
       this.castE(p);
       return true;
     }
     if (slot === "r") {
       if (this.level < 6 || p.rCd > 0) return false;
-      p.rCd = this.cooldown(p, spec.cooldownR);
+      p.rCd = p.rCdMax = this.cooldown(p, spec.cooldownR);
       this.castR(p);
       return true;
     }
@@ -1219,7 +1219,7 @@ export class Simulation {
     if (this.effects.length > 260) {
       let overflow = this.effects.length - 260;
       this.effects = this.effects.filter((effect) => {
-        const cosmetic = !effect.damage && !effect.delayed && ["number", "pickup", "pop", "hurt"].includes(effect.kind);
+        const cosmetic = !effect.delayed && (effect.kind === "number" || (!effect.damage && ["pickup", "pop", "hurt"].includes(effect.kind)));
         if (cosmetic && overflow > 0) { overflow--; return false; }
         return true;
       });

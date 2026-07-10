@@ -148,6 +148,7 @@ test("cursor-directed mobility ignores weapon auto-aim", () => {
   const startX = player.x, startY = player.y;
 
   assert.equal(sim.cast(player.id, "e"), true);
+  assert.equal(player.eCdMax, player.eCd);
   assert.ok(player.x > startX + 450, "dash should move right toward the cursor, not left toward the auto-aim target");
   assert.ok(Math.abs(player.y - startY) < .001);
 });
@@ -214,4 +215,8 @@ test("cosmetic combat effects are bounded without dropping active fields", () =>
   sim.cleanup();
   assert.ok(sim.effects.includes(field));
   assert.ok(sim.effects.length <= 260);
+
+  sim.effects = Array.from({ length: 300 }, (_, index) => ({ id: `number-${index}`, x: 0, y: 0, radius: 0, life: 1, maxLife: 1, damage: index + 1, kind: "number" }));
+  sim.cleanup();
+  assert.equal(sim.effects.length, 260, "damage-number labels should obey the cosmetic effect budget");
 });
