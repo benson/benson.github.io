@@ -136,3 +136,82 @@ test("difficulty tiers materially increase pressure and enemy lethality", () => 
   assert.ok(hard.difficulty.spawn > story.difficulty.spawn);
   assert.ok(extreme.difficulty.spawn > hard.difficulty.spawn);
 });
+
+test("cursor-directed mobility ignores weapon auto-aim", () => {
+  const sim = new Simulation({ players: [{ id: "p1", name: "One", specialist: "gale" }] });
+  const player = sim.players[0];
+  sim.level = 3;
+  const enemy = sim.spawnEnemy("hound");
+  enemy.x = player.x - 300;
+  enemy.y = player.y;
+  sim.setInput(player.id, { x: 0, y: 0, aim: 0, autoAim: true });
+  const startX = player.x, startY = player.y;
+
+  assert.equal(sim.cast(player.id, "e"), true);
+  assert.ok(player.x > startX + 450, "dash should move right toward the cursor, not left toward the auto-aim target");
+  assert.ok(Math.abs(player.y - startY) < .001);
+});
+
+test("Yuum.AI is a persistent, scaling combat and collection companion", () => {
+  const sim = new Simulation({ players: [{ id: "p1", name: "One", specialist: "zuri" }] });
+  const player = sim.players[0];
+  player.weapons.drone = { level: 3, evolved: false };
+  sim.updateDrones(.016);
+  const drone = sim.drones[0];
+  assert.ok(drone);
+  assert.equal(drone.owner, player.id);
+  assert.equal(drone.level, 3);
+
+  const enemy = sim.spawnEnemy("hound");
+  enemy.x = drone.x + 240;
+  enemy.y = drone.y;
+  sim.projectiles = [];
+  const levelThreeCooldown = sim.fireCommonWeapon(player, "drone", player.weapons.drone);
+  assert.equal(sim.projectiles.length, 2, "rank three adds a second autonomous pulse");
+  assert.ok(sim.projectiles.every((projectile) => projectile.droneBolt));
+  assert.ok(sim.projectiles.every((projectile) => Math.hypot(projectile.x - drone.x, projectile.y - drone.y) < 40));
+  assert.ok(drone.fireFlash > 0);
+
+  sim.orbs.push({ id: "drone-data", x: drone.x, y: drone.y, radius: 5, value: 3, color: "#fff", dead: false });
+  sim.updatePickups(.016);
+  assert.equal(player.xpCollected, 3);
+  assert.ok(drone.collectFlash > 0);
+
+  drone.repairClock = 0;
+  sim.updateDrones(.016);
+  assert.ok(sim.drops.some((drop) => drop.type === "heal" && drop.source === "drone"));
+  assert.ok(drone.repairFlash > 0);
+
+  player.weapons.drone.level = 5;
+  sim.updateDrones(.016);
+  sim.projectiles = [];
+  const levelFiveCooldown = sim.fireCommonWeapon(player, "drone", player.weapons.drone);
+  assert.equal(sim.projectiles.length, 3, "rank five adds a third autonomous pulse");
+  assert.ok(levelFiveCooldown < levelThreeCooldown);
+  assert.equal(sim.snapshot().drones[0].level, 5);
+});
+
+test("weapon upgrade choices carry their generated artwork", () => {
+  const sim = new Simulation({ players: [{ id: "p1", name: "One", specialist: "zuri" }] });
+  const random = Math.random;
+  let choices;
+  try {
+    Math.random = () => 0;
+    choices = sim.generateChoices(sim.players[0]);
+  } finally {
+    Math.random = random;
+  }
+  const weaponChoices = choices.filter((choice) => choice.kind === "weapon");
+  assert.ok(weaponChoices.length > 0);
+  for (const choice of weaponChoices) assert.match(choice.icon, /^assets\/weapons\/.+\.webp$/);
+});
+
+test("cosmetic combat effects are bounded without dropping active fields", () => {
+  const sim = new Simulation({ players: [{ id: "p1", name: "One", specialist: "echo" }] });
+  const field = { id: "field", x: 0, y: 0, radius: 50, life: 5, maxLife: 5, damage: 20, owner: "p1", color: "#fff", kind: "totem", hit: new Set() };
+  sim.effects.push(field);
+  for (let i = 0; i < 300; i++) sim.effects.push({ id: `cosmetic-${i}`, x: 0, y: 0, radius: 10, life: 1, maxLife: 1, damage: 0, kind: "pop" });
+  sim.cleanup();
+  assert.ok(sim.effects.includes(field));
+  assert.ok(sim.effects.length <= 260);
+});

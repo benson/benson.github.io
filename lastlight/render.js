@@ -1,8 +1,13 @@
-import { SPECIALISTS, MAPS, ENEMY_TYPES, clamp } from "./data.js?v=20260710.1";
-import { WORLD } from "./engine.js?v=20260710.1";
-import { getThemeAsset } from "./themes/lastlight.js?v=20260710.1";
+import { SPECIALISTS, MAPS, ENEMY_TYPES, clamp } from "./data.js?v=20260710.2";
+import { WORLD } from "./engine.js?v=20260710.2";
+import { getThemeAsset } from "./themes/lastlight.js?v=20260710.2";
 
 const TAU = Math.PI * 2;
+const MAP_DECOR_BLOCKS = [
+  [-1450,-840,360,140],[-1040,-1040,170,260],[-540,-920,310,90],[620,-1050,420,150],[1250,-760,220,330],
+  [-1570,650,300,220],[-950,880,430,105],[-220,1030,280,110],[580,850,180,260],[1130,790,390,130],
+  [-1640,-170,180,300],[1480,-130,150,360],[-640,280,220,80],[720,-300,260,86],
+];
 
 export class Renderer {
   constructor(canvas) {
@@ -16,6 +21,10 @@ export class Renderer {
     this.environments = {};
     this.effectSprites = {};
     this.playerVisuals = new Map();
+    this.previousIndexes = new WeakMap();
+    this.enemyHealthBarMode = "important";
+    this.hoveredEntity = null;
+    this.lastInspection = { at: -Infinity, state: null, result: null };
     this.prevMaps = {};
     this.reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false;
     this.loadSprites();
@@ -37,6 +46,7 @@ export class Renderer {
       xpShard: getThemeAsset("effects.xpShard"),
       hostileBolt: getThemeAsset("effects.hostileBolt"),
       barricade: getThemeAsset("effects.barricade"),
+      drone: getThemeAsset("weapons.universal.drone"),
     })) {
       const image = new Image(); image.src = src; this.effectSprites[name] = image;
     }
@@ -48,6 +58,104 @@ export class Renderer {
     this.width = Math.max(1, rect.width); this.height = Math.max(1, rect.height);
     this.canvas.width = Math.round(this.width * this.dpr); this.canvas.height = Math.round(this.height * this.dpr);
     this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+  }
+
+  // UI integration: renderer.setEnemyHealthBarsVisible(preferences.enemyHealthBars)
+  setEnemyHealthBarsVisible(visible) {
+    this.enemyHealthBarMode = visible ? "all" : "off";
+  }
+
+  setEnemyHealthBarMode(mode = "important") {
+    this.enemyHealthBarMode = ["off", "important", "all"].includes(mode) ? mode : "important";
+  }
+
+  clearInspection() {
+    this.hoveredEntity = null;
+    this.lastInspection = { at: -Infinity, state: null, result: null };
+  }
+
+  previousEntity(list, entityId) {
+    if (!list) return null;
+    let index = this.previousIndexes.get(list);
+    if (!index) {
+      index = new Map(list.map((entry) => [entry.id, entry]));
+      this.previousIndexes.set(list, index);
+    }
+    return index.get(entityId) || null;
+  }
+
+  isWorldVisible(entity, padding = 100) {
+    const radius = entity.radius || 0;
+    return entity.x + radius >= this.camera.x - this.width / 2 - padding
+      && entity.x - radius <= this.camera.x + this.width / 2 + padding
+      && entity.y + radius >= this.camera.y - this.height / 2 - padding
+      && entity.y - radius <= this.camera.y + this.height / 2 + padding;
+  }
+
+  // UI integration: call with PointerEvent.clientX/clientY and the current
+  // Simulation/snapshot; render the returned name/description/stats as desired.
+  inspectAt(clientX, clientY, state) {
+    if (!state) { this.clearInspection(); return null; }
+    const inspectionNow = performance.now();
+    // Pointermove can fire faster than paint. Coalesce inspection work to one
+    // pass per frame even if the UI binds this method directly.
+    if (this.lastInspection.state === state && inspectionNow - this.lastInspection.at < 15) return this.lastInspection.result;
+    const rect = this.canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) { this.clearInspection(); return null; }
+    const worldX = (clientX - rect.left) * (this.width / rect.width) + this.camera.x - this.width / 2;
+    const worldY = (clientY - rect.top) * (this.height / rect.height) + this.camera.y - this.height / 2;
+    const map = typeof state.map === "string" ? MAPS[state.map] : state.map;
+    let best = null, bestScore = Infinity;
+    const consider = (entity, radius, info, priority = 0) => {
+      const dx = worldX - entity.x, dy = worldY - entity.y, hitRadius = Math.max(12, radius);
+      if (Math.abs(dx) > hitRadius || Math.abs(dy) > hitRadius) return;
+      const score = Math.hypot(dx, dy) / hitRadius - priority;
+      if (score > 1 || score >= bestScore) return;
+      bestScore = score;
+      best = { id: entity.id, ...info, world: { x: entity.x, y: entity.y } };
+    };
+
+    for (const enemy of state.enemies || []) {
+      const data = ENEMY_TYPES[enemy.type] || {};
+      const name = enemy.boss ? (map?.boss || "Apex") : enemy.eventType === "treasure" ? "Treasure Runner" : `${enemy.elite ? "Elite " : ""}${data.name || "Enemy"}`;
+      consider(enemy, enemy.radius + 12, {
+        type: "enemy", name,
+        description: enemy.eventType === "treasure" ? "Chase it down before its timer expires to recover bonus loot." : enemy.boss ? "The operation's apex target." : data.ranged ? "A ranged enemy that fires hostile bolts." : "A hostile contact that attacks at close range.",
+        stats: { Health: `${Math.max(0, Math.ceil(enemy.hp))} / ${Math.ceil(enemy.maxHp)}`, Damage: Math.round(enemy.damage || 0), Speed: Math.round(enemy.speed || 0) },
+      }, .24);
+    }
+    const pickupNames = {
+      card: ["Elite Access Card", "Evolves an eligible level-five weapon or upgrades the squad."],
+      heal: ["Repair Kit", "Restores health to the whole squad."], vacuum: ["Data Vacuum", "Collects every loose data mote."],
+      mine: ["Sea Mine", "Damages every non-apex enemy."], gold: ["Gold Cache", "Adds bonus operation gold."],
+    };
+    for (const drop of state.drops || []) {
+      const [name, description] = pickupNames[drop.type] || ["Pickup", "Collect for an immediate squad benefit."];
+      consider(drop, drop.radius + 10, { type: "pickup", name, description, stats: { Effect: drop.type, Source: drop.source === "drone" ? "Yuum.AI Drone" : "Field drop" } }, .2);
+    }
+    for (const orb of state.orbs || []) consider(orb, orb.radius + 12, { type: "pickup", name: "Combat Data", description: "Collect this mote to advance the squad's next upgrade.", stats: { Data: Math.round(orb.value || 0) } }, .2);
+    for (const pod of state.pods || []) consider(pod, pod.radius + 10, { type: "cache", name: "Breakable Supply Cache", description: "Shoot it open to reveal a random pickup. It does not block movement.", stats: { Integrity: `${Math.max(0, Math.ceil(pod.hp))} / 100` } }, .16);
+    for (const objective of state.objectives || []) consider(objective, objective.radius, { type: "objective", name: objective.kind === "trial" ? "Breach Trial" : "Uplink", description: objective.kind === "trial" ? "Hold the marked zone while the breach intensifies." : "Stand inside the ring to capture the uplink.", stats: { Progress: `${Math.round((objective.progress || 0) * 100)}%`, Time: `${Math.max(0, Math.ceil(objective.life || 0))}s` } }, .08);
+    for (const ball of state.relayBalls || []) consider(ball, ball.radius + 10, { type: "objective", name: "Relay Ball", description: "Make contact to push the core into its marked destination ring.", stats: { Time: `${Math.max(0, Math.ceil(ball.life || 0))}s`, Goal: `${Math.round(Math.hypot(ball.x - ball.targetX, ball.y - ball.targetY))}m` } }, .12);
+    for (const drone of state.drones || []) consider(drone, drone.radius + 12, { type: "ally", name: drone.evolved ? "Yuum.AI Final" : "Yuum.AI Drone", description: "An autonomous wingmate that attacks, gathers data, and periodically drops repairs.", stats: { Level: drone.level, Repair: `${Math.max(0, Math.ceil(drone.repairClock || 0))}s` } }, .18);
+    for (const projectile of state.projectiles || []) consider(projectile, projectile.radius + 9, { type: "projectile", name: projectile.droneBolt ? "Drone Pulse" : "Friendly Projectile", description: projectile.droneBolt ? "An autonomous Yuum.AI shot." : "A specialist weapon projectile.", stats: { Damage: Math.round(projectile.damage || 0), Speed: Math.round(Math.hypot(projectile.vx || 0, projectile.vy || 0)), Pierce: Math.max(0, projectile.pierce || 0) } }, .3);
+    for (const projectile of state.hostile || []) consider(projectile, projectile.radius + 10, { type: "projectile", name: "Hostile Projectile", description: "Enemy fire. Evade it or use a defensive ability.", stats: { Damage: Math.round(projectile.damage || 0), Speed: Math.round(Math.hypot(projectile.vx || 0, projectile.vy || 0)), Time: `${Math.max(0, Number(projectile.life || 0)).toFixed(1)}s` } }, .32);
+    for (const effect of state.effects || []) {
+      if (!(effect.owner === "enemy" || effect.kind === "danger" || effect.kind === "bossCast")) continue;
+      consider(effect, effect.radius, { type: "hazard", name: "Enemy Telegraph", description: "A hostile attack is about to resolve inside this marked area.", stats: { Radius: Math.round(effect.radius || 0), Time: `${Math.max(0, Number(effect.life || 0)).toFixed(1)}s` } }, .02);
+    }
+    for (let index = 0; index < MAP_DECOR_BLOCKS.length; index++) {
+      const [x,y,w,h] = MAP_DECOR_BLOCKS[index];
+      if (worldX < x || worldX > x + w || worldY < y || worldY > y + h) continue;
+      const obstacle = { id: `obstacle-${index}`, x: x + w / 2, y: y + h / 2 };
+      consider(obstacle, Math.max(w, h), { type: "obstacle", name: "Raised Cover", description: "An environmental landmark. It is visual cover and does not block movement.", stats: { Width: Math.round(w), Height: Math.round(h) } }, -.2);
+    }
+    const machine = { id: "machine", x: 0, y: 0, radius: 77 };
+    consider(machine, 77, { type: "objective", name: map?.mechanic || "Field Device", description: "Stand nearby to charge this operation-specific field device.", stats: { Charge: `${Math.round(((state.machine?.charge || 0) / 2.4) * 100)}%`, Cooldown: `${Math.max(0, Math.ceil(state.machine?.cooldown || 0))}s` } }, .04);
+
+    this.hoveredEntity = best ? { id: best.id, type: best.type } : null;
+    this.lastInspection = { at: inspectionNow, state, result: best };
+    return best;
   }
 
   draw(state, localPlayerId, previous = null, interpolation = 1) {
@@ -78,13 +186,15 @@ export class Renderer {
     this.drawObjectives(state.objectives || [], map);
     this.drawDrops(state.drops || []);
     this.drawOrbs(state.orbs || []);
-    this.drawEffects((state.effects || []).filter((e) => e.kind !== "number"), map, previous, interpolation);
+    this.drawEffects(state.effects || [], map, previous, interpolation, false);
     this.drawFeathers(state.feathers || []);
     this.drawProjectiles(state.projectiles || [], false);
     this.drawProjectiles(state.hostile || [], true);
     this.drawEnemies(state.enemies || [], previous, interpolation, map);
+    this.drawDrones(state.drones || [], state.players, previous, interpolation);
     this.drawPlayers(state.players, previous, interpolation, localPlayerId);
-    this.drawEffects((state.effects || []).filter((e) => e.kind === "number"), map, previous, interpolation);
+    this.drawEffects(state.effects || [], map, previous, interpolation, true);
+    this.drawHovered(state, map);
     ctx.restore();
     this.drawVignette(state, current);
     this.drawOffscreenMarkers(state, map, localPlayerId);
@@ -92,7 +202,7 @@ export class Renderer {
 
   position(entity, previousList, t) {
     if (!previousList || t >= 1) return entity;
-    const before = previousList.find((item) => item.id === entity.id);
+    const before = this.previousEntity(previousList, entity.id);
     if (!before) return entity;
     return { ...entity, x: before.x + (entity.x - before.x) * t, y: before.y + (entity.y - before.y) * t };
   }
@@ -146,12 +256,7 @@ export class Renderer {
 
   drawMapDecor(map) {
     const ctx = this.ctx, texture = this.effectSprites.barricade;
-    const blocks = [
-      [-1450,-840,360,140],[-1040,-1040,170,260],[-540,-920,310,90],[620,-1050,420,150],[1250,-760,220,330],
-      [-1570,650,300,220],[-950,880,430,105],[-220,1030,280,110],[580,850,180,260],[1130,790,390,130],
-      [-1640,-170,180,300],[1480,-130,150,360],[-640,280,220,80],[720,-300,260,86],
-    ];
-    for (const [x,y,w,h] of blocks) {
+    for (const [x,y,w,h] of MAP_DECOR_BLOCKS) {
       ctx.save();
       // The offset foot and bright top edge make these read as raised cover,
       // not as another flat damage telegraph painted on the floor.
@@ -186,18 +291,54 @@ export class Renderer {
   }
 
   drawPods(pods) {
-    const ctx = this.ctx;
+    const ctx = this.ctx, texture = this.effectSprites.barricade;
     for (const pod of pods) {
-      const pulse = .75 + Math.sin(performance.now() * .004 + pod.x) * .25;
-      ctx.save(); ctx.translate(pod.x, pod.y + Math.sin(performance.now() * .002 + pod.y) * 2); ctx.rotate(Math.PI / 4 + (this.reducedMotion ? 0 : performance.now() * .00018));
-      ctx.fillStyle = "#1a3541"; ctx.strokeStyle = "#6cc4ce"; ctx.lineWidth = 2; ctx.fillRect(-18,-18,36,36); ctx.strokeRect(-18,-18,36,36);
-      ctx.shadowColor = "#89f5e5"; ctx.shadowBlur = 10 * pulse; ctx.fillStyle = "#89f5e5"; ctx.fillRect(-4,-4,8,8); ctx.restore();
+      if (!this.isWorldVisible(pod, 45)) continue;
+      const health = clamp((pod.hp ?? 100) / 100, 0, 1), damage = 1 - health;
+      ctx.save(); ctx.translate(pod.x, pod.y);
+
+      // These are shoot-to-open supply caches, not pickups or collision props.
+      // Keep them low, still, and tightly matched to their projectile hit radius.
+      ctx.fillStyle = "rgba(0,0,0,.46)"; ctx.beginPath(); ctx.ellipse(3, 18, 27, 8, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = "#071019"; ctx.fillRect(-25, -17, 50, 34);
+      ctx.fillStyle = "#152936"; ctx.fillRect(-22, -14, 44, 24);
+      if (texture?.complete && texture.naturalWidth) {
+        ctx.save(); ctx.beginPath(); ctx.rect(-22, -14, 44, 24); ctx.clip();
+        ctx.globalAlpha = .42; ctx.drawImage(texture, 55, 55, 400, 260, -22, -14, 44, 28); ctx.restore();
+      }
+      ctx.fillStyle = "rgba(2,8,13,.6)"; ctx.fillRect(-22, -14, 44, 24);
+      ctx.strokeStyle = "rgba(255,255,255,.19)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-20, -12); ctx.lineTo(20, -12); ctx.stroke();
+
+      // Safety-orange framing and an explicit verb communicate destructibility
+      // without the glow, bob, or spin language used by collectible objects.
+      const warning = health < .35 ? "#ff4f45" : "#ff7955";
+      ctx.strokeStyle = warning; ctx.lineWidth = 2; ctx.strokeRect(-24, -16, 48, 32);
+      ctx.fillStyle = warning;
+      for (const side of [-1, 1]) {
+        ctx.save(); ctx.translate(side * 18, 10); ctx.rotate(side * -.32);
+        ctx.fillRect(-5, -2, 3, 4); ctx.fillRect(1, -2, 3, 4); ctx.restore();
+      }
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillStyle = "rgba(2,8,13,.88)"; ctx.fillRect(-19, -7, 38, 14);
+      ctx.fillStyle = "#f7f4e8"; ctx.font = "900 8px Inter"; ctx.fillText("BREAK", 0, 0);
+
+      // Persistent armor rail plus progressively revealed cracks gives immediate
+      // and continuous feedback that shots are damaging the cache.
+      ctx.fillStyle = "rgba(0,0,0,.78)"; ctx.fillRect(-22, 12, 44, 4);
+      ctx.fillStyle = warning; ctx.fillRect(-21, 13, 42 * health, 2);
+      if (damage > .01) {
+        ctx.strokeStyle = `rgba(255,225,203,${.32 + damage * .58})`; ctx.lineWidth = 1.25;
+        ctx.beginPath(); ctx.moveTo(6, -14); ctx.lineTo(2, -8); ctx.lineTo(7, -3); ctx.lineTo(1, 3); ctx.stroke();
+        if (damage > .48) { ctx.beginPath(); ctx.moveTo(-16, -14); ctx.lineTo(-10, -9); ctx.lineTo(-14, -4); ctx.lineTo(-7, 1); ctx.stroke(); }
+      }
+      ctx.restore();
     }
   }
 
   drawObjectives(objectives, map) {
     const ctx = this.ctx, now = performance.now();
     for (const objective of objectives) {
+      if (!this.isWorldVisible(objective, 90)) continue;
       const trial = objective.kind === "trial", color = trial ? "#ff4f66" : map.accent;
       ctx.save(); ctx.translate(objective.x, objective.y);
       ctx.fillStyle = "rgba(0,0,0,.28)"; ctx.beginPath(); ctx.ellipse(7, 12, objective.radius * 1.05, objective.radius * .54, 0, 0, TAU); ctx.fill();
@@ -228,6 +369,7 @@ export class Renderer {
   drawRelayBalls(balls, map) {
     const ctx = this.ctx;
     for (const ball of balls) {
+      if (!this.isWorldVisible(ball, 130) && !this.isWorldVisible({ x: ball.targetX, y: ball.targetY, radius: 82 }, 90)) continue;
       ctx.save();
       ctx.translate(ball.targetX, ball.targetY); ctx.setLineDash([10, 8]); ctx.lineDashOffset = this.reducedMotion ? 0 : -performance.now() * .03; ctx.lineWidth = 4; ctx.strokeStyle = "#f7d76a"; ctx.globalAlpha = .75;
       ctx.beginPath(); ctx.arc(0, 0, 82 + Math.sin(performance.now() * .005) * 4, 0, TAU); ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0;
@@ -245,6 +387,7 @@ export class Renderer {
   drawDrops(drops) {
     const ctx = this.ctx, now = performance.now();
     for (const drop of drops) {
+      if (!this.isWorldVisible(drop, 45)) continue;
       const bob = this.reducedMotion ? 0 : Math.sin(now * .004 + drop.x) * 3, pulse = 1 + Math.sin(now * .007 + drop.x) * .07;
       ctx.save(); ctx.translate(drop.x, drop.y + bob);
       ctx.fillStyle = "rgba(0,0,0,.42)"; ctx.beginPath(); ctx.ellipse(3, drop.radius * .78, drop.radius * .95, drop.radius * .4, 0, 0, TAU); ctx.fill();
@@ -275,6 +418,7 @@ export class Renderer {
   drawOrbs(orbs) {
     const ctx = this.ctx, now = performance.now(), image = this.effectSprites.xpShard;
     for (const orb of orbs) {
+      if (!this.isWorldVisible(orb, 35)) continue;
       const pulse = 1 + Math.sin(now * .009 + orb.x * .03) * .1, size = Math.max(16, orb.radius * 3.25) * pulse;
       ctx.save(); ctx.translate(orb.x, orb.y + (this.reducedMotion ? 0 : Math.sin(now * .004 + orb.y) * 1.8));
       ctx.fillStyle = "rgba(0,0,0,.38)"; ctx.beginPath(); ctx.ellipse(2, orb.radius * .8, size * .32, size * .14, 0, 0, TAU); ctx.fill();
@@ -292,13 +436,14 @@ export class Renderer {
 
   drawFeathers(feathers) {
     const ctx=this.ctx;
-    for(const f of feathers){ctx.save();ctx.translate(f.x,f.y);ctx.rotate(.7);ctx.fillStyle=f.color;ctx.globalAlpha=clamp(f.life/2,0,1);ctx.beginPath();ctx.moveTo(-9,0);ctx.lineTo(7,-4);ctx.lineTo(12,0);ctx.lineTo(7,4);ctx.closePath();ctx.fill();ctx.restore();}
+    for(const f of feathers){if(!this.isWorldVisible(f,30))continue;ctx.save();ctx.translate(f.x,f.y);ctx.rotate(.7);ctx.fillStyle=f.color;ctx.globalAlpha=clamp(f.life/2,0,1);ctx.beginPath();ctx.moveTo(-9,0);ctx.lineTo(7,-4);ctx.lineTo(12,0);ctx.lineTo(7,4);ctx.closePath();ctx.fill();ctx.restore();}
     ctx.globalAlpha=1;
   }
 
-  drawEffects(effects, map, previous, t) {
+  drawEffects(effects, map, previous, t, numbersOnly = false) {
     const ctx = this.ctx;
     for (const raw of effects) {
+      if ((raw.kind === "number") !== numbersOnly || !this.isWorldVisible(raw, Math.max(40, raw.radius || 0))) continue;
       const e = this.position(raw, previous?.effects, t), progress = 1 - clamp(e.life / (e.maxLife || 1), 0, 1);
       ctx.save(); ctx.translate(e.x,e.y);
       if (e.kind === "number") {
@@ -358,6 +503,7 @@ export class Renderer {
   drawProjectiles(projectiles, hostile) {
     const ctx=this.ctx, hostileImage=this.effectSprites.hostileBolt;
     for(const b of projectiles){
+      if(!this.isWorldVisible(b,60))continue;
       const speed=Math.hypot(b.vx||0,b.vy||0), angle=Math.atan2(b.vy||0,b.vx||0), color=b.color||"#8cefff";
       ctx.save();ctx.translate(b.x,b.y);ctx.rotate(angle);ctx.lineJoin="round";ctx.lineCap="round";
       if(hostile){
@@ -377,7 +523,11 @@ export class Renderer {
       // family keeps its own silhouette instead of becoming another glow dot.
       if(speed>20&&!b.wave&&!b.tornado){ctx.strokeStyle="rgba(1,6,12,.55)";ctx.lineWidth=Math.max(5,b.radius*.8);ctx.beginPath();ctx.moveTo(-b.radius*.3,0);ctx.lineTo(-20-b.radius,0);ctx.stroke();ctx.strokeStyle=color;ctx.globalAlpha=.5;ctx.lineWidth=Math.max(2,b.radius*.36);ctx.beginPath();ctx.moveTo(-b.radius*.2,0);ctx.lineTo(-18-b.radius,0);ctx.stroke();ctx.globalAlpha=1;}
       ctx.shadowColor=color;ctx.shadowBlur=7;ctx.strokeStyle=color;ctx.fillStyle="#f8feff";
-      if(b.dagger){
+      if(b.droneBolt){
+        ctx.strokeStyle="#06111b";ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(-10,0);ctx.lineTo(10,0);ctx.stroke();ctx.strokeStyle="#77efcf";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-12,0);ctx.lineTo(10,0);ctx.stroke();
+        ctx.fillStyle="#effff9";ctx.strokeStyle="#77efcf";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(13,0);ctx.lineTo(1,-7);ctx.lineTo(-3,0);ctx.lineTo(1,7);ctx.closePath();ctx.fill();ctx.stroke();
+        ctx.globalAlpha=.7;ctx.beginPath();ctx.arc(-7,0,5,0,TAU);ctx.stroke();ctx.globalAlpha=1;
+      } else if(b.dagger){
         ctx.strokeStyle="#06111b";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-11,0);ctx.lineTo(11,0);ctx.stroke();ctx.strokeStyle=color;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-11,0);ctx.lineTo(11,0);ctx.stroke();ctx.fillStyle="#fff";ctx.beginPath();ctx.moveTo(13,0);ctx.lineTo(5,-3);ctx.lineTo(5,3);ctx.closePath();ctx.fill();
       } else if(b.wave){
         ctx.lineWidth=7;ctx.strokeStyle="rgba(2,8,15,.8)";ctx.beginPath();ctx.arc(0,0,b.radius*2,-1,1);ctx.stroke();ctx.lineWidth=4;ctx.strokeStyle=color;ctx.beginPath();ctx.arc(0,0,b.radius*2,-1,1);ctx.stroke();ctx.lineWidth=1.5;ctx.strokeStyle="#fff";ctx.beginPath();ctx.arc(0,0,b.radius*1.65,-.85,.85);ctx.stroke();
@@ -398,6 +548,7 @@ export class Renderer {
   drawEnemies(enemies, previous, t, map) {
     const ctx=this.ctx;
     for(const raw of enemies){
+      if(!this.isWorldVisible(raw,90))continue;
       const e=this.position(raw,previous?.enemies,t),now=performance.now();ctx.save();ctx.translate(e.x,e.y);
       const spawn=clamp((e.spawnLife||0)/.24,0,1),attack=clamp((e.attackFlash||0)/.2,0,1),wobble=this.reducedMotion?0:Math.sin(now*.006+e.x*.02+e.y*.01)*.035;
       ctx.rotate(wobble*(e.stun>0?.35:1));ctx.scale((1-spawn*.42)*(1+attack*.16),(1-spawn*.42)*(1-attack*.08));ctx.globalAlpha=1-spawn*.55;
@@ -410,9 +561,77 @@ export class Renderer {
       if(e.hitFlash>0){ctx.rotate(e.hitAngle||0);ctx.strokeStyle="#fff";ctx.globalAlpha=clamp(e.hitFlash/.1,0,1);ctx.lineWidth=3;for(let i=-1;i<=1;i++){ctx.beginPath();ctx.moveTo(e.radius*.25,i*7);ctx.lineTo(e.radius*1.25,i*12);ctx.stroke();}ctx.rotate(-(e.hitAngle||0));ctx.globalAlpha=1;}
       if(e.attackFlash>0){ctx.strokeStyle="#ff5a43";ctx.globalAlpha=attack;ctx.lineWidth=4;ctx.beginPath();ctx.arc(0,0,e.radius+8+attack*10,-.65,.65);ctx.stroke();ctx.globalAlpha=1;}
       if(e.eventType==="treasure"){ctx.fillStyle="#fff2a8";ctx.font="900 15px Inter";ctx.textAlign="center";ctx.fillText("$",0,5);ctx.fillStyle="#f7d76a";ctx.font="800 9px Inter";ctx.fillText(`TREASURE · ${Math.max(0,Math.ceil(e.life))}s`,0,-e.radius-30);}
-      if(e.elite||e.miniboss||e.boss){const w=e.boss?180:Math.max(56,e.radius*2);ctx.fillStyle="rgba(2,7,13,.8)";ctx.fillRect(-w/2,-e.radius-20,w,6);ctx.fillStyle=e.boss?map.accent:"#ffcf64";ctx.fillRect(-w/2,-e.radius-20,w*clamp(e.hp/e.maxHp,0,1),6);}
+      const important=e.elite||e.miniboss||e.boss;
+      if(this.enemyHealthBarMode==="all"||(this.enemyHealthBarMode==="important"&&important)){const w=e.boss?180:important?Math.max(56,e.radius*2):Math.max(34,e.radius*1.65);ctx.fillStyle="rgba(2,7,13,.8)";ctx.fillRect(-w/2,-e.radius-20,w,6);ctx.fillStyle=e.boss?map.accent:important?"#ffcf64":"#ff6759";ctx.fillRect(-w/2,-e.radius-20,w*clamp(e.hp/e.maxHp,0,1),6);}
       ctx.restore();
     }ctx.shadowBlur=0;
+  }
+
+  drawDrones(drones, players, previous, t) {
+    const ctx = this.ctx, image = this.effectSprites.drone, now = performance.now();
+    for (const raw of drones) {
+      if (!this.isWorldVisible(raw, 70)) continue;
+      const drone = this.position(raw, previous?.drones, t);
+      const owner = players.find((player) => player.id === drone.owner);
+      ctx.save();
+      if (owner) {
+        ctx.strokeStyle = "rgba(119,239,207,.18)"; ctx.lineWidth = 1; ctx.setLineDash([3,6]);
+        ctx.beginPath(); ctx.moveTo(owner.x, owner.y); ctx.lineTo(drone.x, drone.y); ctx.stroke(); ctx.setLineDash([]);
+      }
+      ctx.translate(drone.x, drone.y);
+      const bob = this.reducedMotion ? 0 : Math.sin(now * .007 + drone.orbitAngle) * 3;
+      ctx.fillStyle = "rgba(0,0,0,.42)"; ctx.beginPath(); ctx.ellipse(3, 22, 22, 8, 0, 0, TAU); ctx.fill();
+      ctx.translate(0, bob); ctx.rotate(drone.facing || 0);
+      if (drone.fireFlash > 0) {
+        const flash = clamp(drone.fireFlash / .18, 0, 1);
+        ctx.strokeStyle = `rgba(217,255,244,${flash})`; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(16,0); ctx.lineTo(35 + flash * 15,0); ctx.stroke();
+        ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.moveTo(35 + flash * 15,0); ctx.lineTo(27,-5); ctx.lineTo(27,5); ctx.closePath(); ctx.fill();
+      }
+      ctx.rotate(-(drone.facing || 0));
+      ctx.shadowColor = drone.evolved ? "#fff4a8" : "#77efcf"; ctx.shadowBlur = drone.evolved ? 18 : 10;
+      ctx.fillStyle = "#06131b"; ctx.strokeStyle = drone.evolved ? "#ffe77a" : "#77efcf"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(0,-21); ctx.lineTo(22,-5); ctx.lineTo(17,18); ctx.lineTo(-17,18); ctx.lineTo(-22,-5); ctx.closePath(); ctx.fill(); ctx.stroke();
+      if (image?.complete && image.naturalWidth) {
+        ctx.save(); ctx.beginPath(); ctx.arc(0,-1,15,0,TAU); ctx.clip(); ctx.drawImage(image,-18,-19,36,36); ctx.restore();
+      } else {
+        ctx.fillStyle = "#77efcf"; ctx.font = "900 11px Inter"; ctx.textAlign = "center"; ctx.fillText("AI",0,3);
+      }
+      ctx.shadowBlur = 0;
+      if (drone.collectFlash > 0) {
+        const pulse = 1 - clamp(drone.collectFlash / .24, 0, 1);
+        ctx.strokeStyle = "#7bfbff"; ctx.globalAlpha = 1 - pulse; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0,0,24 + pulse * 25,0,TAU); ctx.stroke(); ctx.globalAlpha = 1;
+      }
+      if (drone.repairFlash > 0) {
+        const pulse = clamp(drone.repairFlash / .7, 0, 1);
+        ctx.strokeStyle = "#75efa2"; ctx.lineWidth = 4; ctx.globalAlpha = pulse;
+        ctx.beginPath(); ctx.moveTo(-8,-30); ctx.lineTo(8,-30); ctx.moveTo(0,-38); ctx.lineTo(0,-22); ctx.stroke(); ctx.globalAlpha = 1;
+      }
+      ctx.fillStyle = "rgba(2,8,13,.86)"; ctx.fillRect(-25,23,50,12);
+      ctx.fillStyle = "#dffdf5"; ctx.font = "900 7px Inter"; ctx.textAlign = "center"; ctx.fillText("YUUM.AI",0,31);
+      for (let i = 0; i < 5; i++) { ctx.fillStyle = i < drone.level ? "#77efcf" : "#243a42"; ctx.fillRect(-13 + i * 6,38,4,2); }
+      ctx.restore();
+    }
+  }
+
+  drawHovered(state, map) {
+    if (!this.hoveredEntity) return;
+    const ctx = this.ctx, hoveredId = this.hoveredEntity.id;
+    if (hoveredId.startsWith("obstacle-")) {
+      const block = MAP_DECOR_BLOCKS[Number(hoveredId.split("-")[1])];
+      if (!block) return;
+      const [x,y,w,h] = block; ctx.save(); ctx.strokeStyle = "#fff"; ctx.lineWidth = 4; ctx.strokeRect(x-5,y-5,w+10,h+10); ctx.strokeStyle = map.accent; ctx.lineWidth = 2; ctx.setLineDash([8,6]); ctx.strokeRect(x-9,y-9,w+18,h+18); ctx.restore(); return;
+    }
+    let entity = null;
+    if (hoveredId === "machine") entity = { x: 0, y: 0, radius: 77 };
+    for (const list of [state.enemies, state.drops, state.orbs, state.pods, state.objectives, state.relayBalls, state.drones, state.projectiles, state.hostile, state.effects]) {
+      entity ||= list?.find((entry) => entry.id === hoveredId);
+    }
+    if (!entity) return;
+    const radius = Math.max(15, entity.radius || 15) + 8;
+    ctx.save(); ctx.translate(entity.x, entity.y); ctx.fillStyle = "rgba(255,255,255,.055)"; ctx.beginPath(); ctx.arc(0,0,radius,0,TAU); ctx.fill();
+    ctx.strokeStyle = "rgba(2,8,13,.92)"; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(0,0,radius,0,TAU); ctx.stroke();
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.setLineDash([7,5]); ctx.lineDashOffset = this.reducedMotion ? 0 : -performance.now() * .025; ctx.beginPath(); ctx.arc(0,0,radius,0,TAU); ctx.stroke();
+    ctx.setLineDash([]); ctx.lineDashOffset = 0; ctx.restore();
   }
 
   drawPlayers(players, previous, t, localPlayerId) {
@@ -425,7 +644,7 @@ export class Renderer {
       if(p.invuln>0||p.shield>0){ctx.strokeStyle=p.invuln>0?"#fff":spec.color;ctx.globalAlpha=.55;ctx.lineWidth=5;ctx.beginPath();ctx.arc(0,0,43+Math.sin(performance.now()*.008)*2,0,TAU);ctx.stroke();ctx.globalAlpha=1;}
       const hurt=clamp((p.hurtFlash||0)/.24,0,1);
       if(hurt>0){ctx.save();ctx.rotate(p.hurtAngle||0);ctx.strokeStyle="#ff5870";ctx.lineWidth=4;ctx.globalAlpha=hurt;ctx.beginPath();ctx.arc(0,0,45+hurt*9,-.9,.9);ctx.stroke();ctx.restore();}
-      const before=previous?.players?.find((item)=>item.id===raw.id);
+      const before=this.previousEntity(previous?.players,raw.id);
       const dx=before?raw.x-before.x:0,dy=before?raw.y-before.y:0;
       const inferredMoving=Math.hypot(dx,dy)>.15;
       const targetFacing=Number.isFinite(raw.facing)?raw.facing:(inferredMoving?Math.atan2(dy,dx):0);
