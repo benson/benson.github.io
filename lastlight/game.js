@@ -1,9 +1,9 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, WAVE_NAMES, BOONS, AUGMENTS, formatTime, clamp } from "./data.js?v=20260710.1";
-import { Simulation } from "./engine.js?v=20260710.1";
-import { Renderer } from "./render.js?v=20260710.1";
-import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260710.1";
-import { getThemeAsset } from "./themes/lastlight.js?v=20260710.1";
-import { submitRunTelemetry } from "./telemetry.js?v=20260710.1";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, formatTime, clamp } from "./data.js?v=20260710.2";
+import { Simulation } from "./engine.js?v=20260710.2";
+import { Renderer } from "./render.js?v=20260710.2";
+import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260710.2";
+import { getThemeAsset } from "./themes/lastlight.js?v=20260710.2";
+import { submitRunTelemetry } from "./telemetry.js?v=20260710.2";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -11,14 +11,20 @@ const query = new URLSearchParams(location.search);
 const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.10.1";
+const BUILD = "2026.07.10.2";
 const renderer = new Renderer($("game-canvas"));
 const PROGRESS_KEY = "lastlight:campaign:v1";
+const ENEMY_HEALTH_BARS_KEY = "lastlight:enemy-health-bars:v1";
 const DIFFICULTY_COPY = { story: "Story · Sharp hits · Lighter opening", hard: "Hard · 3× health · 2× damage", extreme: "Extreme · 7× health · 3× damage" };
 
 function loadProgress() {
   try { return normalizeProgress(JSON.parse(localStorage.getItem(PROGRESS_KEY) || "null")); }
   catch { return emptyProgress(); }
+}
+
+function loadEnemyHealthBars() {
+  try { return localStorage.getItem(ENEMY_HEALTH_BARS_KEY) !== "false"; }
+  catch { return true; }
 }
 
 const state = {
@@ -28,17 +34,20 @@ const state = {
   previousSnapshot: null, snapshot: null, snapshotAt: 0, snapshotInterval: 90,
   input: { keys: new Set(), aim: 0, autoAim: true, touchX: 0, touchY: 0 },
   animation: 0, lastFrame: 0, lastSend: 0, lastBroadcast: 0, lastLobbyBroadcast: 0,
-  lastUpgradeKey: "", lastWeaponHUDKey: "", lastSquadHUDKey: "", lastEventSeq: 0, endShown: false, resultTimer: null,
+  lastUpgradeKey: "", lastWeaponHUDKey: "", lastPassiveHUDKey: "", lastSquadHUDKey: "", lastEventSeq: 0, endShown: false, resultTimer: null,
   progress: loadProgress(), resultGame: null,
   audio: true, audioContext: null, toastTimer: null, lastVoiceAt: 0,
   soundState: { projectiles: 0, kills: 0, level: 1, damageTaken: 0, lastShot: 0 },
   recentErrors: [], reportSubmitting: false, resumeAfterReport: false, telemetrySent: false,
+  showEnemyHealthBars: loadEnemyHealthBars(), inspectPointer: null, inspectActive: false,
+  performanceMetrics: null,
 };
 
 function setScreen(name) {
   state.screen = name;
   for (const [key, screen] of Object.entries(screens)) screen.classList.toggle("hidden", key !== name);
   document.body.style.overflow = name === "game" ? "hidden" : "auto";
+  if (name !== "game") { state.inspectActive = false; hideInspectPanel(); }
 }
 
 function callsign() {
@@ -107,6 +116,14 @@ function renderGuide() {
   }).join("");
   const weapons = Object.values(WEAPONS).map((weapon) => guideCard(weapon.glyph, weapon.name, `Evolves to ${weapon.evolve}`, `${weapon.copy} Evolution requires level 5 + ${PASSIVES[weapon.passive]?.name || weapon.passive}.`, "", weapon.icon)).join("");
   const passives = Object.values(PASSIVES).map((passive) => guideCard(passive.glyph, passive.name, `${passive.amount} · max ${passive.max}`, "Passive stats also unlock matching weapon evolutions.")).join("");
+  const fieldObjects = [
+    ...Object.values(ENEMY_TYPES).map((enemy) => guideCard("EN", enemy.name, `${enemy.ranged ? "Ranged" : "Contact"} · ${enemy.health} base health · ${enemy.damage} base damage`, enemy.ranged ? "Keeps its distance and fires orange hostile projectiles." : "Closes distance and deals contact damage.")),
+    guideCard("XP", "Combat data", "Cyan crystal pickup", "Collect data motes to advance the squad's next upgrade choice."),
+    guideCard("BREAK", "Supply cache", "Destructible field object", "Shoot the orange BREAK cache open for a random pickup. It never blocks movement."),
+    guideCard("!", "Hostile projectile", "Orange-red enemy fire", "Evade hostile bolts or destroy them with a defensive ability."),
+    guideCard("+", "Repair kit", "Green squad pickup", "Restores health to every surviving specialist."),
+    guideCard("ORB", "Relay ball", "Push objective", "Make contact to drive the relay core into its destination ring."),
+  ].join("");
   const rare = [
     guideCard("KEY", "Elite access card", "Rare evolution drop", "Elites and minibosses drop access cards. A card evolves one eligible level-five weapon whose matching passive is owned.", "", getThemeAsset("archive.events.eliteAccessCard")),
     guideCard("$", "Treasure runner", "Timed chase event", "Catch the fleeing gold target before it escapes to earn bonus gold, data, and access cards.", "", getThemeAsset("archive.events.treasureRunner")),
@@ -114,15 +131,7 @@ function renderGuide() {
     ...BOONS.map((boon) => guideCard("★", boon.name, "Rare squad boon", boon.copy, "", boon.icon)),
     ...AUGMENTS.map((augment) => guideCard("AUG", augment.name, "Rare augment", augment.copy, "", augment.icon)),
   ].join("");
-  $("guide-content").innerHTML = `<section id="guide-campaign" class="guide-section"><h3>Campaign route</h3><p>Clear threat tiers to unlock harder operations. Progress is saved in this browser.</p><div class="campaign-route">${campaign}</div></section><section id="guide-signatures" class="guide-section"><h3>Signature evolutions</h3><div class="guide-grid">${signatures}</div></section><section id="guide-weapons" class="guide-section"><h3>Universal weapons</h3><div class="guide-grid">${weapons}</div></section><section id="guide-passives" class="guide-section"><h3>Passive upgrades</h3><div class="guide-grid">${passives}</div></section><section id="guide-rare" class="guide-section"><h3>Rare finds & events</h3><div class="guide-grid">${rare}</div></section>`;
-}
-
-function renderHomeRoster() {
-  $("home-roster").innerHTML = SPECIALIST_ORDER.map((id) => {
-    const spec = SPECIALISTS[id];
-    return `<button class="roster-mini" type="button" role="option" data-specialist="${id}" aria-selected="${id === state.selected}" aria-label="Choose ${spec.name}"><img src="${spec.sprite}" alt=""><span>${spec.number} ${spec.name.toUpperCase()}</span></button>`;
-  }).join("");
-  $("home-roster").querySelectorAll("button").forEach((button) => button.addEventListener("click", () => selectSpecialist(button.dataset.specialist)));
+  $("guide-content").innerHTML = `<section id="guide-campaign" class="guide-section"><h3>Campaign route</h3><p>Clear threat tiers to unlock harder operations. Progress is saved in this browser.</p><div class="campaign-route">${campaign}</div></section><section id="guide-field" class="guide-section"><h3>Field objects</h3><p>Hold Shift and point at a live field object for its current stats.</p><div class="guide-grid">${fieldObjects}</div></section><section id="guide-signatures" class="guide-section"><h3>Signature evolutions</h3><div class="guide-grid">${signatures}</div></section><section id="guide-weapons" class="guide-section"><h3>Universal weapons</h3><div class="guide-grid">${weapons}</div></section><section id="guide-passives" class="guide-section"><h3>Passive upgrades</h3><div class="guide-grid">${passives}</div></section><section id="guide-rare" class="guide-section"><h3>Rare finds & events</h3><div class="guide-grid">${rare}</div></section>`;
 }
 
 function renderSpecialistGrid() {
@@ -137,7 +146,6 @@ function selectSpecialist(id) {
   if (!SPECIALISTS[id]) return;
   state.selected = id;
   const spec = SPECIALISTS[id];
-  $("home-roster").querySelectorAll("button").forEach((button) => button.setAttribute("aria-selected", button.dataset.specialist === id));
   $("specialist-grid").querySelectorAll("button").forEach((button) => button.setAttribute("aria-selected", button.dataset.specialist === id));
   $("detail-number").textContent = spec.number; $("detail-art").src = spec.sprite; $("detail-art").alt = spec.name;
   $("detail-role").textContent = spec.role; $("detail-name").textContent = spec.name.toUpperCase(); $("detail-tagline").textContent = spec.tagline;
@@ -245,7 +253,8 @@ function startRemoteGame(message) {
 }
 
 function enterGame() {
-  setScreen("game"); renderer.resize(); state.endShown = false; state.telemetrySent = false; state.lastEventSeq = 0; state.lastUpgradeKey = ""; state.lastWeaponHUDKey = ""; state.lastSquadHUDKey = ""; state.lastFrame = performance.now();
+  setScreen("game"); renderer.resize(); state.endShown = false; state.telemetrySent = false; state.lastEventSeq = 0; state.lastUpgradeKey = ""; state.lastWeaponHUDKey = ""; state.lastPassiveHUDKey = ""; state.lastSquadHUDKey = ""; state.lastFrame = performance.now();
+  state.performanceMetrics = { samples: [], frames: 0, longFrames: 0, maxEntities: {} };
   state.soundState = { projectiles: 0, kills: 0, level: 1, damageTaken: 0, lastShot: 0 };
   state.lastSend = 0; state.lastBroadcast = 0; renderer.camera.x = 0; renderer.camera.y = 0; $("game-canvas").focus();
   if (!state.animation) state.animation = requestAnimationFrame(gameLoop);
@@ -254,9 +263,10 @@ function enterGame() {
 function gameLoop(now) {
   if (state.screen !== "game") { state.animation = 0; return; }
   const dt = Math.min(.05, Math.max(0, (now - state.lastFrame) / 1000)); state.lastFrame = now;
+  const frameStarted = performance.now(); let simulationMs = 0;
   const input = currentInput();
   if (state.isHost && state.sim) {
-    state.sim.setInput(state.clientId, input); state.sim.update(dt);
+    const simulationStarted = performance.now(); state.sim.setInput(state.clientId, input); state.sim.update(dt); simulationMs = performance.now() - simulationStarted;
     if (state.ws?.readyState === WebSocket.OPEN && now - state.lastBroadcast > 83) { state.lastBroadcast = now; send({ type: "snapshot", state: state.sim.snapshot() }); }
   } else if (state.ws?.readyState === WebSocket.OPEN && now - state.lastSend > 35) {
     state.lastSend = now; send({ type: "input", input });
@@ -264,11 +274,40 @@ function gameLoop(now) {
   const current = state.isHost ? state.sim : state.snapshot;
   if (current) {
     const interpolation = state.isHost ? 1 : clamp((now - state.snapshotAt) / state.snapshotInterval, 0, 1);
-    renderer.draw(current, state.clientId, state.isHost ? null : state.previousSnapshot, interpolation);
-    updateHUD(current); updateUpgrade(current); processEvents(current.events || []);
+    const renderStarted = performance.now(); renderer.draw(current, state.clientId, state.isHost ? null : state.previousSnapshot, interpolation); const renderMs = performance.now() - renderStarted;
+    const hudStarted = performance.now(); updateHUD(current); updateUpgrade(current); processEvents(current.events || []); const hudMs = performance.now() - hudStarted;
+    if (state.inspectActive && state.inspectPointer) inspectCanvasAt({ ...state.inspectPointer, shiftKey: true });
+    trackPerformance(current, dt * 1000, performance.now() - frameStarted, simulationMs, renderMs, hudMs);
     if ((current.stage === "won" || current.stage === "lost") && !state.endShown) scheduleResult(current);
   }
   state.animation = requestAnimationFrame(gameLoop);
+}
+
+function trackPerformance(game, frameGapMs, workMs, simulationMs, renderMs, hudMs) {
+  const metrics = state.performanceMetrics; if (!metrics) return;
+  metrics.frames++; if (frameGapMs > 33.34) metrics.longFrames++;
+  metrics.samples.push({ frameGapMs, workMs, simulationMs, renderMs, hudMs });
+  if (metrics.samples.length > 600) metrics.samples.splice(0, 60);
+  const counts = {
+    enemies: game.enemies?.length || 0, friendlyProjectiles: game.projectiles?.length || 0,
+    hostileProjectiles: game.hostile?.length || 0, dataMotes: game.orbs?.length || 0,
+    effects: game.effects?.length || 0, feathers: game.feathers?.length || 0,
+  };
+  for (const [key, value] of Object.entries(counts)) metrics.maxEntities[key] = Math.max(metrics.maxEntities[key] || 0, value);
+}
+
+function performanceSummary() {
+  const metrics = state.performanceMetrics; if (!metrics?.samples.length) return null;
+  const percentile = (field, amount) => {
+    const values = metrics.samples.map((sample) => sample[field]).sort((a, b) => a - b);
+    return Math.round(values[Math.min(values.length - 1, Math.floor(values.length * amount))] * 10) / 10;
+  };
+  return {
+    rollingFrames: metrics.samples.length, totalFrames: metrics.frames,
+    longFrameRate: Math.round(metrics.longFrames / Math.max(1, metrics.frames) * 1000) / 10,
+    p95Ms: { frameGap: percentile("frameGapMs", .95), work: percentile("workMs", .95), simulation: percentile("simulationMs", .95), render: percentile("renderMs", .95), hud: percentile("hudMs", .95) },
+    maxEntities: metrics.maxEntities,
+  };
 }
 
 function currentInput() {
@@ -321,7 +360,7 @@ function weaponTelemetry(weaponId, weapon, player) {
     transit: [135 + level * 55, 14 - level * .8, 1, "Full-lane train strike"],
     ice: [0, evolved ? 9 : 13 - level * .6, 1, "Blocks one hit, then freezes"],
     annihilator: [450 + level * 175, evolved ? 21 : 30 - level * 1.4, 1, "Massive delayed blast"],
-    drone: [40 + level * 15, 1.6 - level * .1, 1, "Autonomous target seeker"],
+    drone: [40 + level * 15, 1.6 - level * .1, 1 + Math.floor((level - 1) / 2), "Autonomous target seeker"],
   }[weaponId];
   if (!table) return { damage: "—", interval: "—", projectiles: "—", note: "" };
   return { damage: table[0] ? `${rounded(table[0])} / hit` : "Utility", interval: `${cd(table[1]).toFixed(2)}s`, projectiles: String(table[2]), note: table[3] };
@@ -331,7 +370,33 @@ function weaponSlotMarkup(weaponId, weapon, player, spec) {
   const data = weaponId === "signature" ? spec.signature : WEAPONS[weaponId], telemetry = weaponTelemetry(weaponId, weapon, player);
   const icon = data.icon;
   const passive = weaponId === "signature" ? spec.signature.passive : data.passive;
-  return `<div class="weapon-slot ${weapon.evolved ? "evolved" : ""}" tabindex="0" aria-label="${escapeHTML(weapon.evolved ? data.evolve : data.name)} weapon details"><img src="${icon}" alt=""><small>${weapon.evolved ? "E" : weapon.level}</small><div class="weapon-tooltip"><span>${weapon.evolved ? "Evolved weapon" : `Level ${weapon.level}`}</span><strong>${escapeHTML(weapon.evolved ? data.evolve : data.name)}</strong><p>${escapeHTML(data.copy || spec.tagline)}</p><dl><div><dt>Damage</dt><dd>${telemetry.damage}</dd></div><div><dt>Interval</dt><dd>${telemetry.interval}</dd></div><div><dt>Projectiles</dt><dd>${telemetry.projectiles}</dd></div></dl><em>${escapeHTML(telemetry.note)}</em><small>Evolution: level 5 + ${escapeHTML(PASSIVES[passive]?.name || passive)}</small></div></div>`;
+  return `<div class="weapon-slot ${weapon.evolved ? "evolved" : ""}" tabindex="0" aria-label="${escapeHTML(weapon.evolved ? data.evolve : data.name)} weapon details"><img src="${icon}" alt=""><small>${weapon.evolved ? "E" : weapon.level}</small><div class="weapon-tooltip"><span>${weapon.evolved ? "Evolved weapon" : `Level ${weapon.level}`}</span><strong>${escapeHTML(weapon.evolved ? data.evolve : data.name)}</strong><p>${escapeHTML(data.copy || spec.tagline)}</p><dl><div><dt>Damage</dt><dd>${telemetry.damage}</dd></div><div><dt>Cooldown</dt><dd>${telemetry.interval}</dd></div><div><dt>Projectiles</dt><dd>${telemetry.projectiles}</dd></div></dl><em>${escapeHTML(telemetry.note)}</em><small>Evolution: level 5 + ${escapeHTML(PASSIVES[passive]?.name || passive)}</small></div></div>`;
+}
+
+function passiveSlotMarkup(passiveId, rank) {
+  const passive = PASSIVES[passiveId];
+  if (!passive) return "";
+  const level = Math.max(1, Math.floor(Number(rank) || 1));
+  return `<div class="passive-slot" style="--passive-color:${escapeHTML(passive.color)}" tabindex="0" aria-label="${escapeHTML(passive.name)}, passive rank ${level} of ${passive.max}"><span>${escapeHTML(passive.glyph)}</span><small>${level}</small><div class="weapon-tooltip"><span>Passive upgrade</span><strong>${escapeHTML(passive.name)}</strong><p>${escapeHTML(passive.amount)} per rank. This modifier applies to every compatible system in your loadout.</p><dl><div><dt>Current rank</dt><dd>${level} / ${passive.max}</dd></div><div><dt>Each rank</dt><dd>${escapeHTML(passive.amount)}</dd></div></dl><em>Persistent for the rest of this operation.</em></div></div>`;
+}
+
+function updateCooldownSlot(slot, remaining, maximum, unlocked, unlockLevel) {
+  const node = $(`${slot}-slot`), sweep = $(`${slot}-cooldown`), seconds = $(`${slot}-cooldown-seconds`);
+  const cooldown = Math.max(0, Number(remaining) || 0);
+  node.classList.toggle("locked", !unlocked);
+  sweep.style.setProperty("--cooldown-sweep", `${unlocked ? clamp(cooldown / Math.max(.01, maximum) * 100, 0, 100) : 100}%`);
+  seconds.textContent = unlocked && cooldown > .04 ? `${cooldown < 10 ? cooldown.toFixed(1) : Math.ceil(cooldown)}s` : "";
+  node.setAttribute("aria-label", !unlocked ? `Unlocks at level ${unlockLevel}` : cooldown > .04 ? `${cooldown.toFixed(1)} seconds remaining` : "Ready");
+}
+
+function setEnemyHealthBars(visible, persist = true) {
+  state.showEnemyHealthBars = Boolean(visible);
+  renderer.setEnemyHealthBarsVisible(state.showEnemyHealthBars);
+  $("game-canvas").dataset.enemyHealthBars = state.showEnemyHealthBars ? "visible" : "hidden";
+  $("enemy-health-bars-toggle").checked = state.showEnemyHealthBars;
+  if (persist) {
+    try { localStorage.setItem(ENEMY_HEALTH_BARS_KEY, String(state.showEnemyHealthBars)); } catch { /* Storage is optional. */ }
+  }
 }
 
 function updateSoundState(game) {
@@ -368,7 +433,7 @@ function updateHUD(game) {
   $("kill-count").textContent = Number(game.kills || 0).toLocaleString(); $("gold-count").textContent = Math.round(game.gold || 0).toLocaleString();
   $("level-label").textContent = `LV ${game.level}`; $("xp-progress").style.width = `${clamp(game.teamXP / game.xpNeed * 100, 0, 100)}%`;
   $("e-name").textContent = game.level < 3 ? "Unlocks Lv 3" : spec.active[0]; $("r-name").textContent = game.level < 6 ? "Unlocks Lv 6" : spec.ultimate[0];
-  $("e-cooldown").style.height = `${clamp(player.eCd / spec.cooldownE * 100, 0, 100)}%`; $("r-cooldown").style.height = `${clamp(player.rCd / spec.cooldownR * 100, 0, 100)}%`;
+  updateCooldownSlot("e", player.eCd, player.eCdMax || spec.cooldownE, game.level >= 3, 3); updateCooldownSlot("r", player.rCd, player.rCdMax || spec.cooldownR, game.level >= 6, 6);
   $("pause-overlay").classList.toggle("hidden", !(game.paused && game.pauseReason === "manual"));
   const boss = game.enemies?.find((enemy) => enemy.boss);
   $("boss-hud").classList.toggle("hidden", !boss); if (boss) { $("boss-name").textContent = (typeof game.map === "string" ? MAPS[game.map] : game.map).boss; $("boss-health").style.width = `${clamp(boss.hp / boss.maxHp * 100, 0, 100)}%`; }
@@ -384,6 +449,16 @@ function updateHUD(game) {
     state.lastWeaponHUDKey = weaponHUDKey;
     $("weapon-hud").innerHTML = weaponEntries.map(([weaponId, weapon]) => weaponSlotMarkup(weaponId, weapon, player, spec)).join("");
   }
+  const passiveHUDKey = JSON.stringify(player.passives || {});
+  if (passiveHUDKey !== state.lastPassiveHUDKey) {
+    state.lastPassiveHUDKey = passiveHUDKey;
+    $("passive-hud").innerHTML = Object.entries(player.passives || {}).filter(([, rank]) => Number(rank) > 0).map(([passiveId, rank]) => passiveSlotMarkup(passiveId, rank)).join("");
+  }
+}
+
+function upgradeChoiceVisual(choice) {
+  const icon = typeof choice.icon === "string" && choice.icon.trim() ? choice.icon : "";
+  return { className: icon ? "has-image" : "", markup: icon ? `<img src="${escapeHTML(icon)}" alt="">` : escapeHTML(choice.glyph || "?") };
 }
 
 function updateUpgrade(game) {
@@ -399,7 +474,8 @@ function updateUpgrade(game) {
   $("upgrade-local-status").textContent = ready ? "Locked" : "Choosing";
   $("upgrade-cards").innerHTML = pending.map((choice, index) => {
     const selected = selectedId === choice.id, passed = ready && !selected;
-    return `<button class="upgrade-card ${selected ? "selected" : ""} ${passed ? "passed" : ""}" type="button" data-choice="${choice.id}" ${ready ? "disabled" : ""}><span class="card-type">${selected ? "Locked choice" : choice.kind}</span><kbd class="choice-key">${index + 1}</kbd><div class="card-icon">${choice.glyph}</div><h3>${choice.name}</h3><p>${choice.copy}</p><div class="level-pips">${Array.from({ length: choice.max }, (_, i) => `<i class="${i < choice.level ? "on" : ""}"></i>`).join("")}</div></button>`;
+    const visual = upgradeChoiceVisual(choice);
+    return `<button class="upgrade-card ${selected ? "selected" : ""} ${passed ? "passed" : ""}" type="button" data-choice="${escapeHTML(choice.id)}" ${ready ? "disabled" : ""}><span class="card-type">${selected ? "Locked choice" : escapeHTML(choice.kind)}</span><kbd class="choice-key">${index + 1}</kbd><div class="card-icon ${visual.className}">${visual.markup}</div><h3>${escapeHTML(choice.name)}</h3><p>${escapeHTML(choice.copy)}</p><div class="level-pips">${Array.from({ length: choice.max }, (_, i) => `<i class="${i < choice.level ? "on" : ""}"></i>`).join("")}</div></button>`;
   }).join("");
   if (!ready) $("upgrade-cards").querySelectorAll("button").forEach((button) => button.addEventListener("click", () => chooseUpgrade(button.dataset.choice)));
 
@@ -410,13 +486,41 @@ function updateUpgrade(game) {
     const choices = game.pendingChoices?.[player.id] || [];
     const teammateReady = Boolean(game.choiceReady?.[player.id]);
     const teammateSelection = game.selectedChoices?.[player.id] || "";
-    return `<section class="teammate-draft ${teammateReady ? "ready" : ""}"><header><img src="${SPECIALISTS[player.specialist].sprite}" alt=""><div><strong>${escapeHTML(player.name)}</strong><span>${teammateReady ? "Choice locked" : "Choosing…"}</span></div></header><div class="teammate-choice-grid">${choices.map((choice) => `<div class="teammate-choice ${choice.id === teammateSelection ? "selected" : ""} ${teammateReady && choice.id !== teammateSelection ? "passed" : ""}" title="${choice.copy}"><i>${choice.glyph}</i><b>${choice.name}</b><small>${choice.kind} · ${choice.level}/${choice.max}</small></div>`).join("")}</div></section>`;
+    return `<section class="teammate-draft ${teammateReady ? "ready" : ""}"><header><img src="${SPECIALISTS[player.specialist].sprite}" alt=""><div><strong>${escapeHTML(player.name)}</strong><span>${teammateReady ? "Choice locked" : "Choosing…"}</span></div></header><div class="teammate-choice-grid">${choices.map((choice) => { const visual = upgradeChoiceVisual(choice); return `<div class="teammate-choice ${choice.id === teammateSelection ? "selected" : ""} ${teammateReady && choice.id !== teammateSelection ? "passed" : ""}" title="${escapeHTML(choice.copy)}"><i class="${visual.className}">${visual.markup}</i><b>${escapeHTML(choice.name)}</b><small>${escapeHTML(choice.kind)} · ${choice.level}/${choice.max}</small></div>`; }).join("")}</div></section>`;
   }).join("");
 
   const waiting = game.players.filter((player) => !game.choiceReady?.[player.id]).map((player) => player.id === state.clientId ? "you" : player.name);
   const picked = pending.find((choice) => choice.id === selectedId);
   $("upgrade-wait").textContent = ready ? `${picked?.name || "Upgrade"} locked. Waiting on ${waiting.join(", ") || "the squad"}.` : "Press 1, 2, or 3 to pick. Teammate options stay visible so the squad can coordinate.";
 }
+
+function showInspectPanel(detail = {}) {
+  const title = detail.title || detail.name, details = detail.details || Object.entries(detail.stats || {});
+  if (state.screen !== "game" || !title) return;
+  $("inspect-kind").textContent = detail.kind || detail.type || "Field object";
+  $("inspect-title").textContent = title;
+  $("inspect-copy").textContent = detail.copy || detail.description || "";
+  $("inspect-details").innerHTML = details.slice(0, 4).map(([label, value]) => `<div><dt>${escapeHTML(label)}</dt><dd>${escapeHTML(value)}</dd></div>`).join("");
+  const panel = $("inspect-panel"); panel.classList.remove("hidden");
+  const width = panel.offsetWidth || 260, height = panel.offsetHeight || 150;
+  let left = Number(detail.x) + 18, top = Number(detail.y) + 18;
+  if (left + width > innerWidth - 10) left = Number(detail.x) - width - 18;
+  if (top + height > innerHeight - 18) top = Number(detail.y) - height - 18;
+  panel.style.left = `${clamp(left, 10, Math.max(10, innerWidth - width - 10))}px`;
+  panel.style.top = `${clamp(top, 10, Math.max(10, innerHeight - height - 18))}px`;
+}
+
+function hideInspectPanel() { renderer.clearInspection(); $("inspect-panel").classList.add("hidden"); }
+
+function inspectCanvasAt(pointer) {
+  if (state.screen !== "game" || !pointer?.shiftKey) { hideInspectPanel(); return; }
+  const game = state.isHost ? state.sim : state.snapshot; if (!game) { hideInspectPanel(); return; }
+  const detail = renderer.inspectAt(pointer.clientX, pointer.clientY, game);
+  if (!detail) { hideInspectPanel(); return; }
+  showInspectPanel({ ...detail, x: pointer.clientX, y: pointer.clientY });
+}
+
+window.LastlightInspect = Object.freeze({ show: showInspectPanel, hide: hideInspectPanel });
 
 function chooseUpgrade(choiceId) {
   sfx("select");
@@ -595,6 +699,13 @@ function gameDiagnostics() {
     level: Number(game?.level || 0),
     teamSize: Number(game?.players?.length || state.lobby.size || 1),
     multiplayerRole: state.partyMode === "solo" ? "solo" : state.isHost ? "host" : "guest",
+    enemyHealthBars: state.showEnemyHealthBars,
+    entities: game ? {
+      enemies: game.enemies?.length || 0, friendlyProjectiles: game.projectiles?.length || 0,
+      hostileProjectiles: game.hostile?.length || 0, dataMotes: game.orbs?.length || 0,
+      effects: game.effects?.length || 0, feathers: game.feathers?.length || 0,
+    } : null,
+    performance: state.screen === "game" ? performanceSummary() : null,
   };
 }
 
@@ -617,8 +728,11 @@ function captureClientError(type, value) {
   if (state.recentErrors.length === 1) toast("Something went wrong · report details are ready");
 }
 
+function clearReportNote() { $("report-note").value = ""; }
+
 function openReport() {
   const game = gameDiagnostics();
+  clearReportNote();
   state.resumeAfterReport = false;
   if (state.screen === "game" && state.isHost && state.sim && !state.sim.paused) { togglePause(true); state.resumeAfterReport = true; }
   $("report-context").textContent = `BUILD ${BUILD} · ${game.screen.toUpperCase()} · ${game.map || "NO MAP"} / ${game.difficulty || "NO TIER"} · ${game.multiplayerRole.toUpperCase()} · ${state.recentErrors.length} RECENT ERROR${state.recentErrors.length === 1 ? "" : "S"}`;
@@ -629,6 +743,7 @@ function openReport() {
 }
 
 function handleReportClosed() {
+  clearReportNote();
   if (state.resumeAfterReport && state.screen === "game" && state.isHost && state.sim?.paused && state.sim.pauseReason === "manual") togglePause(false);
   state.resumeAfterReport = false;
 }
@@ -666,7 +781,7 @@ async function submitReport(event) {
     const result = await response.json().catch(() => ({}));
     if (!response.ok || !result.ok) throw new Error(result.error || `Report service returned ${response.status}`);
     $("report-status").textContent = `Report sent${result.issue?.identifier ? ` as ${result.issue.identifier}` : ""}. Thank you.`;
-    $("report-status").className = "report-status success"; $("report-alert").classList.add("hidden"); sfx("reward");
+    $("report-status").className = "report-status success"; $("report-alert").classList.add("hidden"); clearReportNote(); sfx("reward");
   } catch (error) {
     console.error(error); $("report-status").textContent = "Could not send automatically. Use “Copy diagnostic details” and share them directly.";
     $("report-status").className = "report-status error"; sfx("danger");
@@ -736,17 +851,20 @@ function bindEvents() {
   $("room-input").addEventListener("input", (event) => { event.target.value = event.target.value.toUpperCase().replace(/[^A-Z2-9]/g, ""); });
   $("lobby-back").addEventListener("click", leaveToHome); $("ready-button").addEventListener("click", handleReady); $("copy-link").addEventListener("click", copyInvite);
   $("pause-button").addEventListener("click", () => togglePause()); $("resume-button").addEventListener("click", () => togglePause(false)); $("abandon-button").addEventListener("click", abandon);
+  $("enemy-health-bars-toggle").addEventListener("change", (event) => setEnemyHealthBars(event.target.checked));
   $("again-button").addEventListener("click", returnToLobby); $("result-home").addEventListener("click", leaveToHome);
   for (const id of ["audio-button", "lobby-audio"]) $(id).addEventListener("click", toggleAudio);
   $("how-button").addEventListener("click", () => $("manual-dialog").showModal()); $("manual-close").addEventListener("click", () => $("manual-dialog").close());
   $("manual-dialog").addEventListener("click", (event) => { if (event.target === $("manual-dialog")) $("manual-dialog").close(); });
-  for (const id of ["guide-button", "lobby-guide"]) $(id).addEventListener("click", () => { renderGuide(); $("guide-dialog").showModal(); });
+  for (const id of ["guide-button", "lobby-guide", "upgrade-guide-button", "pause-guide-button"]) $(id).addEventListener("click", () => { renderGuide(); $("guide-dialog").showModal(); });
   $("guide-close").addEventListener("click", () => $("guide-dialog").close());
   $("guide-dialog").addEventListener("click", (event) => { if (event.target === $("guide-dialog")) $("guide-dialog").close(); });
   $("report-button").addEventListener("click", openReport); $("report-close").addEventListener("click", () => $("report-dialog").close());
   $("report-dialog").addEventListener("click", (event) => { if (event.target === $("report-dialog")) $("report-dialog").close(); });
   $("report-dialog").addEventListener("close", handleReportClosed);
   $("report-form").addEventListener("submit", submitReport); $("report-copy").addEventListener("click", copyDiagnostics);
+  window.addEventListener("lastlight:inspect", (event) => showInspectPanel(event.detail || {}));
+  window.addEventListener("lastlight:inspect-clear", hideInspectPanel);
   window.addEventListener("error", (event) => captureClientError("error", event.error || event.message));
   window.addEventListener("unhandledrejection", (event) => captureClientError("unhandled promise", event.reason));
   window.addEventListener("keydown", (event) => {
@@ -754,6 +872,7 @@ function bindEvents() {
     const isTyping = target instanceof Element && Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
     if (isTyping || state.screen !== "game") return;
     const key = event.key.toLowerCase();
+    if (key === "shift") { state.inspectActive = true; inspectCanvasAt(state.inspectPointer ? { ...state.inspectPointer, shiftKey: true } : null); return; }
     const upgradeChoice = ["1", "2", "3"].includes(key) && !$("upgrade-overlay").classList.contains("hidden");
     if (upgradeChoice) {
       event.preventDefault();
@@ -772,11 +891,19 @@ function bindEvents() {
     else if (key === "escape" && !event.repeat && state.screen === "game") togglePause();
     state.input.keys.add(key);
   });
-  window.addEventListener("keyup", (event) => state.input.keys.delete(event.key.toLowerCase())); window.addEventListener("blur", () => state.input.keys.clear());
-  $("game-canvas").addEventListener("pointermove", (event) => { const rect=$("game-canvas").getBoundingClientRect();state.input.aim=Math.atan2(event.clientY-rect.top-rect.height/2,event.clientX-rect.left-rect.width/2); });
+  window.addEventListener("keyup", (event) => { const key = event.key.toLowerCase(); state.input.keys.delete(key); if (key === "shift") { state.inspectActive = false; hideInspectPanel(); } });
+  window.addEventListener("blur", () => { state.input.keys.clear(); state.inspectActive = false; hideInspectPanel(); });
+  $("game-canvas").addEventListener("pointermove", (event) => {
+    const rect = $("game-canvas").getBoundingClientRect();
+    state.input.aim = Math.atan2(event.clientY - rect.top - rect.height / 2, event.clientX - rect.left - rect.width / 2);
+    state.inspectPointer = { clientX: event.clientX, clientY: event.clientY };
+    state.inspectActive = event.shiftKey;
+    inspectCanvasAt({ ...state.inspectPointer, shiftKey: event.shiftKey });
+  });
+  $("game-canvas").addEventListener("pointerleave", () => { state.inspectPointer = null; state.inspectActive = false; hideInspectPanel(); });
   document.addEventListener("contextmenu", (event) => event.preventDefault());
   setupTouch();
 }
 
-renderHomeRoster(); renderSpecialistGrid(); selectSpecialist("zuri"); bindEvents(); updateProgressionUI(); setPartyMode("solo");
+renderSpecialistGrid(); selectSpecialist("zuri"); bindEvents(); setEnemyHealthBars(state.showEnemyHealthBars, false); updateProgressionUI(); setPartyMode("solo");
 if (query.get("room")) { setPartyMode("join"); $("room-input").value = query.get("room").toUpperCase().slice(0,6); setTimeout(() => $("callsign-input").focus(), 50); }

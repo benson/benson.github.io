@@ -1,4 +1,4 @@
-import { getThemeAsset } from "./themes/lastlight.js?v=20260710.1";
+import { getThemeAsset } from "./themes/lastlight.js?v=20260710.2";
 
 export const SPECIALISTS = {
   zuri: {

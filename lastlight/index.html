@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260710.1">
+  <link rel="stylesheet" href="styles.css?v=20260710.2">
 </head>
 <body>
   <main id="app">
@@ -71,13 +71,11 @@
           <section class="identity-panel" aria-labelledby="identity-title">
             <header class="setup-step-header">
               <span>01 / Identity</span>
-              <strong id="identity-title">Choose your specialist</strong>
+              <strong id="identity-title">Set your callsign</strong>
             </header>
             <div class="identity-body">
               <label class="input-label" for="callsign-input">Callsign</label>
               <input id="callsign-input" class="callsign-input" maxlength="16" autocomplete="nickname" value="Rookie" aria-label="Callsign">
-              <div class="identity-roster-heading"><span>Specialist</span><small>Your selection carries into any squad type</small></div>
-              <div id="home-roster" class="home-roster" role="listbox" aria-label="Choose a specialist"></div>
             </div>
           </section>
 
@@ -216,13 +214,20 @@
       <div id="boss-hud" class="boss-hud hidden"><span id="boss-name">APEX</span><div><i id="boss-health"></i></div></div>
 
       <aside class="loadout-hud">
-        <div class="ability-slot"><kbd>E</kbd><span id="e-icon">E</span><i id="e-cooldown"></i><small id="e-name">Rocket Bloom</small></div>
-        <div class="ability-slot ultimate"><kbd>R</kbd><span id="r-icon">R</span><i id="r-cooldown"></i><small id="r-name">Curtain Call</small></div>
+        <div id="e-slot" class="ability-slot"><kbd>E</kbd><span id="e-icon">E</span><i id="e-cooldown" class="cooldown-sweep" aria-hidden="true"></i><b id="e-cooldown-seconds" class="cooldown-seconds" aria-hidden="true"></b><small id="e-name">Rocket Bloom</small></div>
+        <div id="r-slot" class="ability-slot ultimate"><kbd>R</kbd><span id="r-icon">R</span><i id="r-cooldown" class="cooldown-sweep" aria-hidden="true"></i><b id="r-cooldown-seconds" class="cooldown-seconds" aria-hidden="true"></b><small id="r-name">Curtain Call</small></div>
       </aside>
 
       <div class="weapon-hud" id="weapon-hud"></div>
+      <div class="passive-hud" id="passive-hud" aria-label="Equipped passive upgrades"></div>
       <div class="xp-wrap"><span id="level-label">LV 1</span><div class="xp-track"><i id="xp-progress"></i></div></div>
-      <div class="game-controls-hint" aria-label="Keyboard controls"><span><kbd>WASD</kbd> Move</span><span><kbd>C</kbd> Auto-aim</span><span><kbd>Mouse</kbd> Aim</span><span><kbd>` / ~</kbd> Report</span></div>
+      <div class="game-controls-hint" aria-label="Keyboard controls"><span><kbd>WASD</kbd> Move</span><span><kbd>C</kbd> Auto-aim</span><span><kbd>Mouse</kbd> Aim</span><span><kbd>Shift</kbd> Inspect</span><span><kbd>` / ~</kbd> Report</span></div>
+      <aside id="inspect-panel" class="inspect-panel hidden" role="tooltip" aria-live="polite">
+        <span id="inspect-kind">Field object</span>
+        <strong id="inspect-title">Supply cache</strong>
+        <p id="inspect-copy"></p>
+        <dl id="inspect-details"></dl>
+      </aside>
 
       <div id="upgrade-overlay" class="overlay upgrade-overlay hidden">
         <div class="upgrade-panel">
@@ -236,6 +241,12 @@
             <aside id="teammate-upgrades" class="teammate-upgrades" aria-label="Teammate upgrade choices"></aside>
           </div>
           <p id="upgrade-wait" class="upgrade-wait">Time resumes when the squad has chosen.</p>
+          <div class="upgrade-reference" aria-label="Upgrade reference">
+            <span><b>Weapon</b> Adds or ranks an automatic attack.</span>
+            <span><b>Passive</b> Improves every compatible system.</span>
+            <span><b>Evolution</b> Level 5 weapon + matching passive + elite access card.</span>
+            <button id="upgrade-guide-button" type="button">Open field guide</button>
+          </div>
         </div>
       </div>
 
@@ -243,6 +254,21 @@
         <div class="pause-card">
           <p class="eyebrow">Operation suspended</p>
           <h2>PAUSED</h2>
+          <div class="pause-reference">
+            <strong>Quick field reference</strong>
+            <ul>
+              <li><i class="reference-swatch xp"></i><span><b>Cyan shards</b> are experience.</span></li>
+              <li><i class="reference-swatch hostile"></i><span><b>Orange bolts</b> are hostile fire.</span></li>
+              <li><i class="reference-swatch cache"></i><span><b>BREAK caches</b> open when shot.</span></li>
+              <li><kbd>Shift</kbd><span>Point at a field object to inspect it.</span></li>
+            </ul>
+            <button id="pause-guide-button" type="button">Open full field guide</button>
+          </div>
+          <label class="pause-setting" for="enemy-health-bars-toggle">
+            <input id="enemy-health-bars-toggle" type="checkbox" checked>
+            <span><strong>Enemy health bars</strong><small>Show remaining health above damaged targets.</small></span>
+            <i aria-hidden="true"></i>
+          </label>
           <button id="resume-button" class="deploy-button" type="button"><span>Resume</span><span>Esc</span></button>
           <button id="abandon-button" class="text-button danger" type="button">Abandon run</button>
         </div>
@@ -300,7 +326,7 @@
         <button id="guide-close" class="icon-button" type="button" aria-label="Close upgrade archive">Close</button>
       </div>
       <nav class="guide-tabs" aria-label="Upgrade archive sections">
-        <a href="#guide-campaign">Campaign</a><a href="#guide-signatures">Signatures</a><a href="#guide-weapons">Weapons</a><a href="#guide-passives">Passives</a><a href="#guide-rare">Rare finds</a>
+        <a href="#guide-campaign">Campaign</a><a href="#guide-field">Field objects</a><a href="#guide-signatures">Signatures</a><a href="#guide-weapons">Weapons</a><a href="#guide-passives">Passives</a><a href="#guide-rare">Rare finds</a>
       </nav>
       <div id="guide-content" class="guide-content"></div>
     </dialog>
@@ -337,8 +363,21 @@
       <div class="build-history-body">
         <article class="build-release current-build">
           <header>
-            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.10.1</h3></div>
-            <time class="build-shipped-at" data-build-shipped-at="2026-07-10T12:35:00-04:00">Shipped Jul 10, 2026, 12:35 PM EDT</time>
+            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.10.2</h3></div>
+            <time class="build-shipped-at" data-build-shipped-at="2026-07-10T14:19:00-04:00">Shipped Jul 10, 2026, 2:19 PM EDT</time>
+          </header>
+          <ul>
+            <li>Moved specialist selection entirely into the squad lobby and kept callsign/deployment panels anchored while switching modes.</li>
+            <li>Added real weapon art to upgrade choices, persistent passive loadouts, radial cooldown timers, and a richer in-run field guide.</li>
+            <li>Made Yuum.AI a visible flying companion that attacks, gathers data, and drops repairs; cursor-directed dashes now stay predictable with auto-aim.</li>
+            <li>Added Shift inspection for enemies and field objects, a health-bar preference, and clean-slate problem reports with performance context.</li>
+            <li>Redesigned supply caches as unmistakable shoot-to-open props and substantially reduced busy-wave render work through culling and effect budgets.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.10.1</h3></div>
+            <time data-build-shipped-at="2026-07-10T12:35:00-04:00">Shipped Jul 10, 2026, 12:35 PM EDT</time>
           </header>
           <ul>
             <li>Illustrated every rare find, event, squad boon, and augment in the Upgrade Archive.</li>
@@ -366,8 +405,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.10.1. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.10.1</strong></button>
-  <script src="build-history.js?v=20260710.1"></script>
-  <script type="module" src="game.js?v=20260710.1"></script>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.10.2. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.10.2</strong></button>
+  <script src="build-history.js?v=20260710.2"></script>
+  <script type="module" src="game.js?v=20260710.2"></script>
 </body>
 </html>

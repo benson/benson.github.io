@@ -1,7 +1,7 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, clamp, distance,
-} from "./data.js?v=20260710.1";
+} from "./data.js?v=20260710.2";
 
 const TAU = Math.PI * 2;
 const WORLD = { width: 3600, height: 2400 };
@@ -48,6 +48,7 @@ export class Simulation {
     this.selectedChoices = {};
     this.events = [];
     this.players = [];
+    this.drones = [];
     this.enemies = [];
     this.projectiles = [];
     this.hostile = [];
@@ -80,7 +81,7 @@ export class Simulation {
       hp: spec.health, maxHp: spec.health, armor: spec.armor, baseSpeed: spec.speed,
       input: { x: 0, y: 0, aim: 0, autoAim: true },
       facing: 0, moving: false,
-      eCd: 0, rCd: 0, shield: 0, invuln: 2, hitGrace: 0, hurtFlash: 0, hurtAngle: 0, knockVx: 0, knockVy: 0, frenzy: 0, hasteBuff: 0, speedBuff: 0,
+      eCd: 0, eCdMax: 0, rCd: 0, rCdMax: 0, shield: 0, invuln: 2, hitGrace: 0, hurtFlash: 0, hurtAngle: 0, knockVx: 0, knockVy: 0, frenzy: 0, hasteBuff: 0, speedBuff: 0,
       dead: false, downed: false, downTimer: 0, respawnTimer: 0, reviveProgress: 0, deaths: 0,
       weaponTimers: {}, weapons: { signature: { level: 1, evolved: false } }, passives: {},
       flow: 0, charge: 0, spirits: 0, hotKills: 0, hotStacks: 0, hotTime: 0,
@@ -94,6 +95,7 @@ export class Simulation {
 
   removePlayer(playerId) {
     this.players = this.players.filter((p) => p.id !== playerId);
+    this.drones = this.drones.filter((drone) => drone.owner !== playerId);
     if (this.pendingChoices) {
       delete this.pendingChoices[playerId];
       delete this.choiceReady[playerId];
@@ -119,6 +121,7 @@ export class Simulation {
     this.updateMachine(dt);
     this.updateObjectives(dt);
     this.updateRelayBalls(dt);
+    this.updateDrones(dt);
     this.updateWeapons(dt);
     this.updateProjectiles(dt);
     this.updateEffects(dt);
@@ -454,6 +457,59 @@ export class Simulation {
     return p.input.aim || 0;
   }
 
+  mobilityAimForPlayer(p) {
+    // Auto-aim is useful for weapons, but movement abilities authored as
+    // "to the cursor" must always respect the player's latest pointer angle.
+    return Number.isFinite(p.input?.aim) ? p.input.aim : (p.facing || 0);
+  }
+
+  ensureDrone(p, weapon = p.weapons.drone) {
+    if (!weapon) return null;
+    let drone = this.drones.find((entry) => entry.owner === p.id);
+    if (!drone) {
+      const orbitAngle = this.players.indexOf(p) * (TAU / Math.max(1, this.players.length));
+      drone = {
+        id: id("drone"), owner: p.id, x: p.x, y: p.y, radius: 19,
+        level: weapon.level || 1, evolved: Boolean(weapon.evolved), orbitAngle,
+        facing: p.facing || 0, fireFlash: 0, collectFlash: 0,
+        repairFlash: 0, repairClock: Math.max(10, 25 - (weapon.level || 1) * 2.5),
+      };
+      this.drones.push(drone);
+    }
+    drone.level = weapon.level || 1;
+    drone.evolved = Boolean(weapon.evolved);
+    return drone;
+  }
+
+  updateDrones(dt) {
+    const liveOwners = new Set();
+    for (const p of this.players) {
+      const weapon = p.weapons.drone;
+      if (!weapon || p.dead || p.downed) continue;
+      liveOwners.add(p.id);
+      const drone = this.ensureDrone(p, weapon);
+      drone.orbitAngle += dt * (1.15 + drone.level * .09);
+      const orbitRadius = 86 + drone.level * 6;
+      const targetX = p.x + Math.cos(drone.orbitAngle) * orbitRadius;
+      const targetY = p.y + Math.sin(drone.orbitAngle) * orbitRadius * .68;
+      const follow = 1 - Math.pow(.0008, dt);
+      const oldX = drone.x, oldY = drone.y;
+      drone.x += (targetX - drone.x) * follow;
+      drone.y += (targetY - drone.y) * follow;
+      if (Math.hypot(drone.x - oldX, drone.y - oldY) > .01) drone.facing = Math.atan2(drone.y - oldY, drone.x - oldX);
+      drone.fireFlash = Math.max(0, drone.fireFlash - dt);
+      drone.collectFlash = Math.max(0, drone.collectFlash - dt);
+      drone.repairFlash = Math.max(0, drone.repairFlash - dt);
+      drone.repairClock -= dt;
+      if (drone.repairClock <= 0) {
+        this.drops.push({ id: id("d"), type: "heal", x: drone.x, y: drone.y, radius: 15, source: "drone" });
+        drone.repairFlash = .7;
+        drone.repairClock = Math.max(9, 25 - drone.level * 2.5) * (drone.evolved ? .72 : 1);
+      }
+    }
+    this.drones = this.drones.filter((drone) => liveOwners.has(drone.owner));
+  }
+
   nearestEnemy(point, limit = Infinity) {
     let best = null, bestD = limit * limit;
     for (const enemy of this.enemies) {
@@ -618,8 +674,18 @@ export class Simulation {
       return this.cooldown(p, evolved ? 21 : 30 - level * 1.4);
     }
     if (weaponId === "drone") {
-      const enemy = this.nearestEnemy(p, 1100);
-      if (enemy) this.shoot(p, angleTo(p, enemy), 590, 40 + level * 15, { radius: 8, color: "#77efcf", pierce: evolved ? 3 : 1 });
+      const drone = this.ensureDrone(p, weapon);
+      const enemy = drone && this.nearestEnemy(drone, 1100 + level * 45);
+      if (enemy) {
+        const aim = angleTo(drone, enemy), count = 1 + Math.floor((level - 1) / 2);
+        for (let i = 0; i < count; i++) {
+          this.shoot(p, aim + (i - (count - 1) / 2) * .11, 590 + level * 12, 40 + level * 15, {
+            radius: 7, color: "#77efcf", pierce: evolved ? 3 : 1,
+            spawnX: drone.x, spawnY: drone.y, sourceRadius: drone.radius, droneBolt: true,
+          });
+        }
+        drone.facing = aim; drone.fireFlash = .18;
+      }
       return this.cooldown(p, 1.6 - level * .1);
     }
     return 1;
@@ -629,12 +695,15 @@ export class Simulation {
     const velocity = fromAngle(angle, speed);
     const crit = Math.random() < this.playerStat(p, "crit");
     const projectile = {
-      id: id("b"), owner: p.id, x: p.x + Math.cos(angle) * (p.radius + 5), y: p.y + Math.sin(angle) * (p.radius + 5),
+      id: id("b"), owner: p.id,
+      x: (options.spawnX ?? p.x) + Math.cos(angle) * ((options.sourceRadius ?? p.radius) + 5),
+      y: (options.spawnY ?? p.y) + Math.sin(angle) * ((options.sourceRadius ?? p.radius) + 5),
       radius: options.radius || 6, vx: velocity.x, vy: velocity.y,
       damage: damage * this.playerStat(p, "damage") * (crit ? 1.75 : 1), life: options.life || 2,
       pierce: options.pierce || 0, color: options.color || "#fff", crit, dead: false,
       explosion: options.explosion || 0, wave: options.wave, tornado: options.tornado, hex: options.hex,
       dagger: options.dagger, leaveFeather: options.leaveFeather, boomerang: options.boomerang,
+      droneBolt: options.droneBolt,
       originX: options.originX, originY: options.originY, age: 0, hit: new Set(),
     };
     this.projectiles.push(projectile);
@@ -647,13 +716,13 @@ export class Simulation {
     const spec = SPECIALISTS[p.specialist];
     if (slot === "e") {
       if (this.level < 3 || p.eCd > 0) return false;
-      p.eCd = this.cooldown(p, spec.cooldownE);
+      p.eCd = p.eCdMax = this.cooldown(p, spec.cooldownE);
       this.castE(p);
       return true;
     }
     if (slot === "r") {
       if (this.level < 6 || p.rCd > 0) return false;
-      p.rCd = this.cooldown(p, spec.cooldownR);
+      p.rCd = p.rCdMax = this.cooldown(p, spec.cooldownR);
       this.castR(p);
       return true;
     }
@@ -661,7 +730,7 @@ export class Simulation {
   }
 
   castE(p) {
-    const spec = SPECIALISTS[p.specialist], aim = this.aimForPlayer(p), area = this.playerStat(p, "area");
+    const spec = SPECIALISTS[p.specialist], aim = this.aimForPlayer(p), mobilityAim = this.mobilityAimForPlayer(p), area = this.playerStat(p, "area");
     if (p.specialist === "zuri") {
       for (let i = 0; i < 9 + this.playerStat(p, "projectiles"); i++) this.shoot(p, aim + (i - 4) * .13, 560, 49 + this.level * 6, { radius: 9, color: spec.color, explosion: 95 * area, life: 2.4 });
     } else if (p.specialist === "echo") {
@@ -676,14 +745,14 @@ export class Simulation {
       this.blast(tx, ty, 150 * area, 100 + this.level * 5, p.id, spec.color, true, "knockup");
       this.effects.push({ id: id("fx"), x: tx, y: ty, radius: 70, life: 16 * this.playerStat(p, "duration"), maxLife: 16, damage: 24, owner: p.id, color: spec.color, kind: "totem", tick: .7, hit: new Set() });
     } else if (p.specialist === "fang") {
-      this.dashPlayer(p, aim, 150); p.frenzy = 6 * this.playerStat(p, "duration");
+      this.dashPlayer(p, mobilityAim, 150); p.frenzy = 6 * this.playerStat(p, "duration");
     } else if (p.specialist === "gale") {
-      p.shield += 150 + p.maxHp * .1; p.invuln = .22; this.dashPlayer(p, aim, 475);
+      p.shield += 150 + p.maxHp * .1; p.invuln = .22; this.dashPlayer(p, mobilityAim, 475);
       this.blast(p.x, p.y, 170, 90 + this.level * 7, p.id, spec.color, true, "slash"); p.flow = 100;
     } else if (p.specialist === "rift") {
-      this.dashPlayer(p, aim, 250); p.shield += 80; this.blast(p.x, p.y, 250 * area, 135 + this.level * 15, p.id, spec.color, true, "stun");
+      this.dashPlayer(p, mobilityAim, 250); p.shield += 80; this.blast(p.x, p.y, 250 * area, 135 + this.level * 15, p.id, spec.color, true, "stun");
     } else if (p.specialist === "nova") {
-      this.dashPlayer(p, aim, 250); p.invuln = 2.5; p.speedBuff = 2.5;
+      this.dashPlayer(p, mobilityAim, 250); p.invuln = 2.5; p.speedBuff = 2.5;
       for (const enemy of this.enemies.filter((e) => e.hexed)) { this.blast(enemy.x, enemy.y, 95 * area, 65 + this.level * 8, p.id, spec.color, true); enemy.hexed = 0; }
     } else if (p.specialist === "vesper") {
       for (const feather of this.feathers.filter((f) => f.owner === p.id)) {
@@ -696,7 +765,7 @@ export class Simulation {
   }
 
   castR(p) {
-    const spec = SPECIALISTS[p.specialist], aim = this.aimForPlayer(p), area = this.playerStat(p, "area");
+    const spec = SPECIALISTS[p.specialist], aim = this.aimForPlayer(p), mobilityAim = this.mobilityAimForPlayer(p), area = this.playerStat(p, "area");
     if (p.specialist === "zuri") this.shoot(p, aim, 900, 450 + this.level * 50, { radius: 24, color: "#ffb050", explosion: 600 * area, life: 2.5, pierce: 0 });
     else if (p.specialist === "echo") {
       for (const ally of this.players) ally.invuln = 3;
@@ -706,16 +775,16 @@ export class Simulation {
       const target = { x: p.x + Math.cos(aim) * 470, y: p.y + Math.sin(aim) * 470 };
       this.effects.push({ id: id("fx"), ...target, radius: 430 * area, life: .7, maxLife: .7, damage: 180 + this.level * 20, owner: p.id, color: spec.color, kind: "solar", delayed: true, stun: 3, hit: new Set() });
     } else if (p.specialist === "bront") {
-      this.dashPlayer(p, aim, 160); this.blast(p.x, p.y, 500 * area, 490 + this.level * 10, p.id, spec.color, true, "shockwave"); p.hasteBuff = 8 * this.playerStat(p, "duration");
+      this.dashPlayer(p, mobilityAim, 160); this.blast(p.x, p.y, 500 * area, 490 + this.level * 10, p.id, spec.color, true, "shockwave"); p.hasteBuff = 8 * this.playerStat(p, "duration");
     } else if (p.specialist === "fang") {
-      p.invuln = .9; this.dashPlayer(p, aim, 700); this.blast(p.x, p.y, 430 * area, 240 + this.level * 16, p.id, spec.color, true, "bomb");
+      p.invuln = .9; this.dashPlayer(p, mobilityAim, 700); this.blast(p.x, p.y, 430 * area, 240 + this.level * 16, p.id, spec.color, true, "bomb");
     } else if (p.specialist === "gale") {
       const v = fromAngle(aim, 260);
       this.effects.push({ id: id("fx"), x: p.x, y: p.y, radius: 90, life: 5, maxLife: 5, damage: 28 + this.level * 4, owner: p.id, color: spec.color, kind: "windwall", vx: v.x, vy: v.y, tick: .25, hit: new Set() });
     } else if (p.specialist === "rift") {
       p.speedBuff = 15 * this.playerStat(p, "duration"); p.hasteBuff = 15; p.eCd = 0;
     } else if (p.specialist === "nova") {
-      this.dashPlayer(p, aim, 320); p.invuln = 1; this.blast(p.x, p.y, 620 * area, 135 + this.level * 15, p.id, spec.color, true, "spirit");
+      this.dashPlayer(p, mobilityAim, 320); p.invuln = 1; this.blast(p.x, p.y, 620 * area, 135 + this.level * 15, p.id, spec.color, true, "spirit");
     } else if (p.specialist === "vesper") {
       p.invuln = 2; p.speedBuff = 2;
       const count = 12 + this.playerStat(p, "projectiles") * 3;
@@ -990,19 +1059,27 @@ export class Simulation {
 
   updatePickups(dt) {
     for (const orb of this.orbs) {
-      let target = null, best = Infinity;
+      let collector = null, target = null, best = Infinity;
       for (const p of this.players) {
         if (p.dead || p.downed) continue;
         const d = distance(orb, p), range = this.playerStat(p, "pickup") + (p.specialist === "vesper" ? 180 : 0);
-        if (d < range && d < best) { target = p; best = d; }
+        if (d < range && d < best) { collector = p; target = p; best = d; }
       }
-      if (target) {
-        const a = angleTo(orb, target), speed = 240 + (this.playerStat(target, "pickup") - 85) * 1.4;
+      for (const drone of this.drones) {
+        const owner = this.players.find((p) => p.id === drone.owner && !p.dead && !p.downed);
+        if (!owner) continue;
+        const d = distance(orb, drone), range = 115 + drone.level * 38 + (drone.evolved ? 95 : 0);
+        if (d < range && d < best) { collector = drone; target = owner; best = d; }
+      }
+      if (target && collector) {
+        const a = angleTo(orb, collector), droneBonus = collector.owner ? 55 + collector.level * 15 : 0;
+        const speed = 240 + (this.playerStat(target, "pickup") - 85) * 1.4 + droneBonus;
         orb.x += Math.cos(a) * speed * dt; orb.y += Math.sin(a) * speed * dt;
         if (target.specialist === "vesper" && Math.random() < dt * 8) this.blast(orb.x, orb.y, 30, 9 + this.level * 1.3, target.id, SPECIALISTS.vesper.color, false, "pickup");
-        if (circleHit(orb, target, 4)) {
+        if (circleHit(orb, collector, 4)) {
           const gained = orb.value * (1 + Number(target.passives.xp || 0) * .1);
           orb.dead = true; target.xpCollected += gained; this.teamXP += gained;
+          if (collector.owner) collector.collectFlash = .24;
           if (Math.random() < .35) this.effects.push({ id: id("fx"), x: target.x, y: target.y, radius: 24, life: .18, maxLife: .18, damage: 0, owner: target.id, color: orb.color, kind: "pickup" });
         }
       }
@@ -1039,12 +1116,15 @@ export class Simulation {
   generateChoices(p) {
     const candidates = [];
     const sig = p.weapons.signature;
-    if (sig.level < 5) candidates.push({ id: "weapon:signature", kind: "weapon", name: SPECIALISTS[p.specialist].signature.name, copy: "Upgrade your specialist's signature weapon.", glyph: SPECIALISTS[p.specialist].signature.glyph, level: sig.level + 1, max: 5 });
+    if (sig.level < 5) {
+      const signature = SPECIALISTS[p.specialist].signature;
+      candidates.push({ id: "weapon:signature", kind: "weapon", name: signature.name, copy: "Upgrade your specialist's signature weapon.", glyph: signature.glyph, icon: signature.icon, level: sig.level + 1, max: 5 });
+    }
     const weaponSlots = Object.keys(p.weapons).length;
     for (const weapon of Object.values(WEAPONS)) {
       const current = p.weapons[weapon.id];
-      if (current && current.level < 5) candidates.push({ id: `weapon:${weapon.id}`, kind: "weapon", name: weapon.name, copy: weapon.copy, glyph: weapon.glyph, level: current.level + 1, max: 5 });
-      else if (!current && weaponSlots < 5) candidates.push({ id: `weapon:${weapon.id}`, kind: "weapon", name: weapon.name, copy: weapon.copy, glyph: weapon.glyph, level: 1, max: 5 });
+      if (current && current.level < 5) candidates.push({ id: `weapon:${weapon.id}`, kind: "weapon", name: weapon.name, copy: weapon.copy, glyph: weapon.glyph, icon: weapon.icon, level: current.level + 1, max: 5 });
+      else if (!current && weaponSlots < 5) candidates.push({ id: `weapon:${weapon.id}`, kind: "weapon", name: weapon.name, copy: weapon.copy, glyph: weapon.glyph, icon: weapon.icon, level: 1, max: 5 });
     }
     const passiveSlots = Object.keys(p.passives).filter((key) => p.passives[key] >= 1).length;
     for (const passive of Object.values(PASSIVES)) {
@@ -1134,6 +1214,16 @@ export class Simulation {
     this.objectives = this.objectives.filter((e) => !e.done);
     this.relayBalls = this.relayBalls.filter((e) => !e.done);
     this.feathers = this.feathers.filter((e) => !e.dead && e.life > 0);
+    // Preserve damage fields and telegraphs while bounding disposable combat
+    // flashes during late-wave projectile storms.
+    if (this.effects.length > 260) {
+      let overflow = this.effects.length - 260;
+      this.effects = this.effects.filter((effect) => {
+        const cosmetic = !effect.delayed && (effect.kind === "number" || (!effect.damage && ["pickup", "pop", "hurt"].includes(effect.kind)));
+        if (cosmetic && overflow > 0) { overflow--; return false; }
+        return true;
+      });
+    }
   }
 
   snapshot() {
@@ -1151,7 +1241,7 @@ export class Simulation {
       wave: this.wave, waveName: WAVE_NAMES[this.stage === "boss" ? 7 : this.wave], teamXP: Math.round(this.teamXP),
       level: this.level, xpNeed: this.xpNeed, kills: this.kills, gold: this.gold, bossElapsed: this.bossElapsed,
       bossPhase: this.bossPhase, enraged: this.enraged, machine: compactPoint(this.machine),
-      players: clean(this.players, ["input", "weaponTimers"]), enemies: clean(this.enemies), projectiles: clean(this.projectiles, ["hit"]),
+      players: clean(this.players, ["input", "weaponTimers"]), drones: clean(this.drones), enemies: clean(this.enemies), projectiles: clean(this.projectiles, ["hit"]),
       hostile: clean(this.hostile), effects: clean(this.effects, ["hit"]), orbs: clean(this.orbs), drops: clean(this.drops),
       pods: clean(this.pods), objectives: clean(this.objectives), relayBalls: clean(this.relayBalls), feathers: clean(this.feathers),
       pendingChoices: this.pendingChoices, choiceReady: this.choiceReady, selectedChoices: this.selectedChoices, events: this.events.slice(-5),
