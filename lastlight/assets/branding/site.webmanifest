@@ -1,0 +1,18 @@
+{
+  "name": "Lastlight",
+  "short_name": "Lastlight",
+  "description": "A multiplayer browser bullet heaven for squads of up to four specialists.",
+  "start_url": "/lastlight/",
+  "scope": "/lastlight/",
+  "display": "standalone",
+  "background_color": "#070d18",
+  "theme_color": "#070d18",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

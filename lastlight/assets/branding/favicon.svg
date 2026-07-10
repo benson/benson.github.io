@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Lastlight</title>
+  <path fill="#ff5c35" d="M6 5h52v41L45 59H6z"/>
+  <path fill="#ff8b57" d="M6 5h52v6H6z" opacity=".9"/>
+  <path fill="#edf7f4" d="M18 16h12v25h17v10H18z"/>
+  <path fill="#63f2df" d="M45 59V46h13z"/>
+</svg>

@@ -131,7 +131,8 @@ test("difficulty tiers materially increase pressure and enemy lethality", () => 
   assert.ok(extremeEnemy.hp > hardEnemy.hp * 2);
   assert.ok(hardEnemy.damage > storyEnemy.damage);
   assert.ok(extremeEnemy.damage > hardEnemy.damage);
-  assert.ok(story.difficulty.spawn > 1);
+  assert.ok(storyEnemy.damage > 11 * 1.25, "Story enemies should punish contact more heavily");
+  assert.ok(story.difficulty.spawn < 1, "Story should trade a slightly smaller opening horde for more dangerous hits");
   assert.ok(hard.difficulty.spawn > story.difficulty.spawn);
   assert.ok(extreme.difficulty.spawn > hard.difficulty.spawn);
 });
