@@ -69,8 +69,9 @@ test("per-player combat, pickup, and damage stats are credited", () => {
   const enemy = sim.spawnEnemy("hound");
   enemy.hp = 25;
   enemy.maxHp = 25;
-  sim.damageEnemy(enemy, 40, player.id);
+  sim.damageEnemy(enemy, 40, player.id, false, "uwu");
   assert.equal(player.damage, 25);
+  assert.equal(player.damageBySource.uwu, 25);
   assert.equal(player.kills, 1);
 
   sim.orbs.push({ id: "test-orb", x: player.x, y: player.y, radius: 5, value: 7, color: "#fff", dead: false });
@@ -88,6 +89,55 @@ test("per-player combat, pickup, and damage stats are credited", () => {
   assert.ok(player.hurtFlash > 0);
   assert.ok(player.knockVx > 0);
   assert.ok(attacker.attackFlash > 0);
+});
+
+test("area attacks damage supply caches", () => {
+  const sim = new Simulation({ players: [{ id: "p1", name: "One", specialist: "fang" }] });
+  const player = sim.players[0];
+  sim.pods = [{ id: "cache", x: 75, y: 0, radius: 25, hp: 100, dead: false }];
+  sim.blast(0, 0, 90, 120, player.id, "#fff", true, "slash", "signature");
+  assert.equal(sim.pods[0].dead, true);
+  assert.equal(sim.drops.length, 1);
+});
+
+test("raised cover blocks movement and long dashes", () => {
+  const sim = new Simulation({ players: [{ id: "p1", name: "One", specialist: "gale" }] });
+  const player = sim.players[0];
+  player.x = -720; player.y = 320;
+  sim.movePlayer(player, 180, 0);
+  assert.ok(player.x <= -670, `player stopped at ${player.x}`);
+  const before = player.x;
+  sim.dashPlayer(player, 0, 475);
+  assert.ok(player.x <= -670);
+  assert.ok(player.x >= before);
+});
+
+test("data vacuum visibly attracts motes before collecting them", () => {
+  const sim = new Simulation({ players: [{ id: "p1", name: "One", specialist: "zuri" }] });
+  const player = sim.players[0];
+  sim.orbs = [{ id: "far-data", x: 500, y: 0, radius: 5, value: 10, color: "#fff", dead: false }];
+  sim.drops = [{ id: "vacuum", type: "vacuum", x: player.x, y: player.y, radius: 15 }];
+  sim.updatePickups(.016);
+  assert.equal(sim.orbs[0].dead, false);
+  assert.equal(sim.orbs[0].vacuumTarget, player.id);
+  assert.equal(player.xpCollected, 0);
+  for (let i = 0; i < 100 && !sim.orbs[0].dead; i++) sim.updatePickups(.016);
+  assert.equal(sim.orbs[0].dead, true);
+  assert.equal(player.xpCollected, 10);
+});
+
+test("apex arrows remove at least one third of maximum health", () => {
+  const sim = new Simulation({ difficulty: "story", players: [{ id: "p1", name: "One", specialist: "zuri" }] });
+  const player = sim.players[0];
+  player.invuln = 0; player.hitGrace = 0;
+  sim.spawnBoss();
+  const boss = sim.enemies.find((enemy) => enemy.boss);
+  boss.shotCd = 0;
+  sim.updateBoss(boss, .016, [player]);
+  const arrow = sim.hostile.find((projectile) => projectile.bossShot);
+  assert.ok(arrow);
+  sim.takeDamage(player, arrow.damage, arrow);
+  assert.ok(player.hp <= player.maxHp * .64, `remaining health was ${player.hp}`);
 });
 
 test("treasure runners pay out bonus cards, gold, and data when caught", () => {
@@ -205,6 +255,8 @@ test("weapon upgrade choices carry their generated artwork", () => {
   const weaponChoices = choices.filter((choice) => choice.kind === "weapon");
   assert.ok(weaponChoices.length > 0);
   for (const choice of weaponChoices) assert.match(choice.icon, /^assets\/weapons\/.+\.webp$/);
+  const passiveChoices = choices.filter((choice) => choice.kind === "passive");
+  for (const choice of passiveChoices) assert.match(choice.icon, /^assets\/guide\/passives\/.+\.webp$/);
 });
 
 test("cosmetic combat effects are bounded without dropping active fields", () => {

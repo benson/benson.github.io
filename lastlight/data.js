@@ -1,10 +1,10 @@
-import { getThemeAsset } from "./themes/lastlight.js?v=20260710.2";
+import { getThemeAsset } from "./themes/lastlight.js?v=20260710.3";
 
 export const SPECIALISTS = {
   zuri: {
     id: "zuri", number: "01", name: "Zuri", role: "Gunner · ramping damage", tagline: "Faster is a kind of safer.",
     health: 1000, armor: 0, speed: 285, range: "Long", color: "#ff5c8a", sprite: getThemeAsset("specialists.zuri"),
-    passive: ["Hot Streak", "Seventy takedowns or one elite triggers a burst of weapon haste and stacking speed."],
+    passive: ["Hot Streak", "Seventy kills or one elite triggers a burst of weapon haste and stacking speed."],
     active: ["Rocket Bloom", "Fire nine explosive rockets in a wide cone."],
     ultimate: ["Curtain Call", "Launch a massive execution rocket that deals more damage to wounded targets."],
     signature: { name: "Pulse Carbine", evolve: "Overdrive Barrage", passive: "haste", glyph: "PC", icon: getThemeAsset("weapons.signatures.zuri") },
@@ -87,18 +87,18 @@ export const SPECIALISTS = {
 export const SPECIALIST_ORDER = Object.keys(SPECIALISTS);
 
 export const PASSIVES = {
-  damage: { id: "damage", name: "Output", glyph: "DMG", amount: "+10% damage", max: 5, color: "#ff6d56" },
-  haste: { id: "haste", name: "Cycle Rate", glyph: "AH", amount: "+10 ability haste", max: 5, color: "#63f2df" },
-  maxHealth: { id: "maxHealth", name: "Hull", glyph: "HP", amount: "+150 max health", max: 5, color: "#ff6684" },
-  armor: { id: "armor", name: "Plating", glyph: "AR", amount: "+8 armor", max: 5, color: "#f7d76a" },
-  move: { id: "move", name: "Thrusters", glyph: "MS", amount: "+9% movement speed", max: 5, color: "#7be5ff" },
-  area: { id: "area", name: "Field Size", glyph: "AOE", amount: "+11% area size", max: 5, color: "#b68cff" },
-  crit: { id: "crit", name: "Critical Link", glyph: "CR", amount: "+8% critical chance", max: 5, color: "#ffd265" },
-  duration: { id: "duration", name: "Persistence", glyph: "DUR", amount: "+12% duration", max: 5, color: "#66d5ff" },
-  projectiles: { id: "projectiles", name: "Multishot", glyph: "+1", amount: "+1 projectile", max: 5, color: "#e899ff" },
-  xp: { id: "xp", name: "Data Gain", glyph: "XP", amount: "+10% experience", max: 5, color: "#63f2df" },
-  pickup: { id: "pickup", name: "Magnetics", glyph: "MAG", amount: "+35% pickup radius", max: 5, color: "#9bdcff" },
-  regen: { id: "regen", name: "Repair", glyph: "REG", amount: "+4 health per second", max: 5, color: "#75efa2" },
+  damage: { id: "damage", name: "Output", glyph: "DMG", amount: "+10% damage", max: 5, color: "#ff6d56", icon: getThemeAsset("guide.passives.damage") },
+  haste: { id: "haste", name: "Cycle Rate", glyph: "AH", amount: "+10 ability haste", max: 5, color: "#63f2df", icon: getThemeAsset("guide.passives.haste") },
+  maxHealth: { id: "maxHealth", name: "Hull", glyph: "HP", amount: "+150 max health", max: 5, color: "#ff6684", icon: getThemeAsset("guide.passives.maxHealth") },
+  armor: { id: "armor", name: "Plating", glyph: "AR", amount: "+8 armor", max: 5, color: "#f7d76a", icon: getThemeAsset("guide.passives.armor") },
+  move: { id: "move", name: "Thrusters", glyph: "MS", amount: "+9% movement speed", max: 5, color: "#7be5ff", icon: getThemeAsset("guide.passives.move") },
+  area: { id: "area", name: "Field Size", glyph: "AOE", amount: "+11% area size", max: 5, color: "#b68cff", icon: getThemeAsset("guide.passives.area") },
+  crit: { id: "crit", name: "Critical Link", glyph: "CR", amount: "+8% critical chance", max: 5, color: "#ffd265", icon: getThemeAsset("guide.passives.crit") },
+  duration: { id: "duration", name: "Persistence", glyph: "DUR", amount: "+12% duration", max: 5, color: "#66d5ff", icon: getThemeAsset("guide.passives.duration") },
+  projectiles: { id: "projectiles", name: "Multishot", glyph: "+1", amount: "+1 projectile", max: 5, color: "#e899ff", icon: getThemeAsset("guide.passives.projectiles") },
+  xp: { id: "xp", name: "Data Gain", glyph: "XP", amount: "+10% experience", max: 5, color: "#63f2df", icon: getThemeAsset("guide.passives.xp") },
+  pickup: { id: "pickup", name: "Magnetics", glyph: "MAG", amount: "+35% pickup radius", max: 5, color: "#9bdcff", icon: getThemeAsset("guide.passives.pickup") },
+  regen: { id: "regen", name: "Repair", glyph: "REG", amount: "+4 health per second", max: 5, color: "#75efa2", icon: getThemeAsset("guide.passives.regen") },
 };
 
 export const WEAPONS = {
@@ -146,13 +146,19 @@ export const DIFFICULTIES = {
 };
 
 export const ENEMY_TYPES = {
-  mite: { id: "mite", name: "Skitter", radius: 19, health: 42, speed: 92, damage: 11, xp: 6, color: "#ff7658", shape: 3 },
-  hound: { id: "hound", name: "Rusher", radius: 24, health: 88, speed: 132, damage: 18, xp: 9, color: "#ffad53", shape: 4 },
-  spitter: { id: "spitter", name: "Spitter", radius: 25, health: 120, speed: 62, damage: 16, xp: 12, color: "#c36cff", shape: 6, ranged: true },
-  brute: { id: "brute", name: "Brute", radius: 36, health: 390, speed: 47, damage: 32, xp: 26, color: "#e84a67", shape: 6 },
-  bomber: { id: "bomber", name: "Bomber", radius: 28, health: 170, speed: 76, damage: 65, xp: 18, color: "#ffd45d", shape: 5, bomber: true },
-  shark: { id: "shark", name: "Siegebreaker", radius: 55, health: 1800, speed: 42, damage: 50, xp: 100, color: "#ff5575", shape: 5, miniboss: true },
+  mite: { id: "mite", name: "Skitter", radius: 19, health: 42, speed: 92, damage: 11, xp: 6, color: "#ff7658", shape: 3, icon: getThemeAsset("guide.enemies.mite") },
+  hound: { id: "hound", name: "Rusher", radius: 24, health: 88, speed: 132, damage: 18, xp: 9, color: "#ffad53", shape: 4, icon: getThemeAsset("guide.enemies.hound") },
+  spitter: { id: "spitter", name: "Spitter", radius: 25, health: 120, speed: 62, damage: 16, xp: 12, color: "#c36cff", shape: 6, ranged: true, icon: getThemeAsset("guide.enemies.spitter") },
+  brute: { id: "brute", name: "Brute", radius: 36, health: 390, speed: 47, damage: 32, xp: 26, color: "#e84a67", shape: 6, icon: getThemeAsset("guide.enemies.brute") },
+  bomber: { id: "bomber", name: "Bomber", radius: 28, health: 170, speed: 76, damage: 65, xp: 18, color: "#ffd45d", shape: 5, bomber: true, icon: getThemeAsset("guide.enemies.bomber") },
+  shark: { id: "shark", name: "Siegebreaker", radius: 55, health: 1800, speed: 42, damage: 50, xp: 100, color: "#ff5575", shape: 5, miniboss: true, icon: getThemeAsset("guide.enemies.shark") },
 };
+
+export const MAP_OBSTACLES = [
+  [-1450,-840,360,140],[-1040,-1040,170,260],[-540,-920,310,90],[620,-1050,420,150],[1250,-760,220,330],
+  [-1570,650,300,220],[-950,880,430,105],[-220,1030,280,110],[580,850,180,260],[1130,790,390,130],
+  [-1640,-170,180,300],[1480,-130,150,360],[-640,280,220,80],[720,-300,260,86],
+];
 
 export const WAVE_NAMES = [
   "Contact", "Pressure", "Pincer", "Heavy signal", "Breach", "Black tide", "Last stand", "Apex",
@@ -161,7 +167,7 @@ export const WAVE_NAMES = [
 export const BOONS = [
   { name: "Cruise Control", copy: "Massive movement speed for 15 seconds.", icon: getThemeAsset("archive.boons.cruiseControl") },
   { name: "Fired Up", copy: "Strong fireballs hunt the nearest enemy.", icon: getThemeAsset("archive.boons.firedUp") },
-  { name: "Healthback", copy: "Every takedown restores a little health.", icon: getThemeAsset("archive.boons.healthback") },
+  { name: "Healthback", copy: "Every kill restores a little health.", icon: getThemeAsset("archive.boons.healthback") },
   { name: "Squad Shield", copy: "The whole squad gains a massive shield.", icon: getThemeAsset("archive.boons.squadShield") },
   { name: "Stopwaves", copy: "Periodic shockwaves freeze nearby enemies.", icon: getThemeAsset("archive.boons.stopwaves") },
   { name: "Ultra Rapid Fire-r", copy: "Massively increased weapon and ability haste.", icon: getThemeAsset("archive.boons.ultraRapidFire") },
@@ -173,7 +179,7 @@ export const AUGMENTS = [
   { id: "collector", name: "Card Collector", copy: "Each access key grants +5% damage.", icon: getThemeAsset("archive.augments.cardCollector") },
   { id: "celebration", name: "Celebration!", copy: "Level-ups trigger eight seconds of extreme stats.", icon: getThemeAsset("archive.augments.celebration") },
   { id: "crosscountry", name: "Cross Country", copy: "Distance traveled permanently raises damage, health, and area.", icon: getThemeAsset("archive.augments.crossCountry") },
-  { id: "deathTax", name: "Death & Taxes", copy: "Takedowns can explode and drop bonus gold.", icon: getThemeAsset("archive.augments.deathAndTaxes") },
+  { id: "deathTax", name: "Death & Taxes", copy: "Kills can explode and drop bonus gold.", icon: getThemeAsset("archive.augments.deathAndTaxes") },
   { id: "elite", name: "Elite Bomber", copy: "+30% elite damage; slain elites leave a massive bomb.", icon: getThemeAsset("archive.augments.eliteBomber") },
   { id: "experienced", name: "Experienced Fighter", copy: "+10% data gain; pickups grant brief damage and speed.", icon: getThemeAsset("archive.augments.experiencedFighter") },
   { id: "larger", name: "Larger Than Life", copy: "+30% size, repair, and health; −15% movement speed.", icon: getThemeAsset("archive.augments.largerThanLife") },

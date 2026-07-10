@@ -1,14 +1,8 @@
-import { SPECIALISTS, MAPS, ENEMY_TYPES, clamp } from "./data.js?v=20260710.2";
-import { WORLD } from "./engine.js?v=20260710.2";
-import { getThemeAsset } from "./themes/lastlight.js?v=20260710.2";
+import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260710.3";
+import { WORLD } from "./engine.js?v=20260710.3";
+import { getThemeAsset } from "./themes/lastlight.js?v=20260710.3";
 
 const TAU = Math.PI * 2;
-const MAP_DECOR_BLOCKS = [
-  [-1450,-840,360,140],[-1040,-1040,170,260],[-540,-920,310,90],[620,-1050,420,150],[1250,-760,220,330],
-  [-1570,650,300,220],[-950,880,430,105],[-220,1030,280,110],[580,850,180,260],[1130,790,390,130],
-  [-1640,-170,180,300],[1480,-130,150,360],[-640,280,220,80],[720,-300,260,86],
-];
-
 export class Renderer {
   constructor(canvas) {
     this.canvas = canvas;
@@ -139,16 +133,16 @@ export class Renderer {
     for (const ball of state.relayBalls || []) consider(ball, ball.radius + 10, { type: "objective", name: "Relay Ball", description: "Make contact to push the core into its marked destination ring.", stats: { Time: `${Math.max(0, Math.ceil(ball.life || 0))}s`, Goal: `${Math.round(Math.hypot(ball.x - ball.targetX, ball.y - ball.targetY))}m` } }, .12);
     for (const drone of state.drones || []) consider(drone, drone.radius + 12, { type: "ally", name: drone.evolved ? "Yuum.AI Final" : "Yuum.AI Drone", description: "An autonomous wingmate that attacks, gathers data, and periodically drops repairs.", stats: { Level: drone.level, Repair: `${Math.max(0, Math.ceil(drone.repairClock || 0))}s` } }, .18);
     for (const projectile of state.projectiles || []) consider(projectile, projectile.radius + 9, { type: "projectile", name: projectile.droneBolt ? "Drone Pulse" : "Friendly Projectile", description: projectile.droneBolt ? "An autonomous Yuum.AI shot." : "A specialist weapon projectile.", stats: { Damage: Math.round(projectile.damage || 0), Speed: Math.round(Math.hypot(projectile.vx || 0, projectile.vy || 0)), Pierce: Math.max(0, projectile.pierce || 0) } }, .3);
-    for (const projectile of state.hostile || []) consider(projectile, projectile.radius + 10, { type: "projectile", name: "Hostile Projectile", description: "Enemy fire. Evade it or use a defensive ability.", stats: { Damage: Math.round(projectile.damage || 0), Speed: Math.round(Math.hypot(projectile.vx || 0, projectile.vy || 0)), Time: `${Math.max(0, Number(projectile.life || 0)).toFixed(1)}s` } }, .32);
+    for (const projectile of state.hostile || []) consider(projectile, projectile.radius + 10, { type: "projectile", name: projectile.bossShot ? "Apex Projectile" : "Hostile Projectile", description: projectile.bossShot ? "A lethal apex arrow. A clean hit removes at least one third of base health before shields." : "Enemy fire. Evade it or use a defensive ability.", stats: { Damage: projectile.bossShot ? "36%+ max HP" : Math.round(projectile.damage || 0), Speed: Math.round(Math.hypot(projectile.vx || 0, projectile.vy || 0)), Time: `${Math.max(0, Number(projectile.life || 0)).toFixed(1)}s` } }, .32);
     for (const effect of state.effects || []) {
       if (!(effect.owner === "enemy" || effect.kind === "danger" || effect.kind === "bossCast")) continue;
       consider(effect, effect.radius, { type: "hazard", name: "Enemy Telegraph", description: "A hostile attack is about to resolve inside this marked area.", stats: { Radius: Math.round(effect.radius || 0), Time: `${Math.max(0, Number(effect.life || 0)).toFixed(1)}s` } }, .02);
     }
-    for (let index = 0; index < MAP_DECOR_BLOCKS.length; index++) {
-      const [x,y,w,h] = MAP_DECOR_BLOCKS[index];
+    for (let index = 0; index < MAP_OBSTACLES.length; index++) {
+      const [x,y,w,h] = MAP_OBSTACLES[index];
       if (worldX < x || worldX > x + w || worldY < y || worldY > y + h) continue;
       const obstacle = { id: `obstacle-${index}`, x: x + w / 2, y: y + h / 2 };
-      consider(obstacle, Math.max(w, h), { type: "obstacle", name: "Raised Cover", description: "An environmental landmark. It is visual cover and does not block movement.", stats: { Width: Math.round(w), Height: Math.round(h) } }, -.2);
+      consider(obstacle, Math.max(w, h), { type: "obstacle", name: "Raised Cover", description: "Solid environmental cover. Specialists cannot move or dash through it.", stats: { Width: Math.round(w), Height: Math.round(h), Collision: "Solid" } }, -.2);
     }
     const machine = { id: "machine", x: 0, y: 0, radius: 77 };
     consider(machine, 77, { type: "objective", name: map?.mechanic || "Field Device", description: "Stand nearby to charge this operation-specific field device.", stats: { Charge: `${Math.round(((state.machine?.charge || 0) / 2.4) * 100)}%`, Cooldown: `${Math.max(0, Math.ceil(state.machine?.cooldown || 0))}s` } }, .04);
@@ -256,7 +250,7 @@ export class Renderer {
 
   drawMapDecor(map) {
     const ctx = this.ctx, texture = this.effectSprites.barricade;
-    for (const [x,y,w,h] of MAP_DECOR_BLOCKS) {
+    for (const [x,y,w,h] of MAP_OBSTACLES) {
       ctx.save();
       // The offset foot and bright top edge make these read as raised cover,
       // not as another flat damage telegraph painted on the floor.
@@ -617,7 +611,7 @@ export class Renderer {
     if (!this.hoveredEntity) return;
     const ctx = this.ctx, hoveredId = this.hoveredEntity.id;
     if (hoveredId.startsWith("obstacle-")) {
-      const block = MAP_DECOR_BLOCKS[Number(hoveredId.split("-")[1])];
+      const block = MAP_OBSTACLES[Number(hoveredId.split("-")[1])];
       if (!block) return;
       const [x,y,w,h] = block; ctx.save(); ctx.strokeStyle = "#fff"; ctx.lineWidth = 4; ctx.strokeRect(x-5,y-5,w+10,h+10); ctx.strokeStyle = map.accent; ctx.lineWidth = 2; ctx.setLineDash([8,6]); ctx.strokeRect(x-9,y-9,w+18,h+18); ctx.restore(); return;
     }

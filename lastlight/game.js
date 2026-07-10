@@ -1,9 +1,9 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, formatTime, clamp } from "./data.js?v=20260710.2";
-import { Simulation } from "./engine.js?v=20260710.2";
-import { Renderer } from "./render.js?v=20260710.2";
-import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260710.2";
-import { getThemeAsset } from "./themes/lastlight.js?v=20260710.2";
-import { submitRunTelemetry } from "./telemetry.js?v=20260710.2";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, formatTime, clamp } from "./data.js?v=20260710.3";
+import { Simulation } from "./engine.js?v=20260710.3";
+import { Renderer } from "./render.js?v=20260710.3";
+import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260710.3";
+import { getThemeAsset } from "./themes/lastlight.js?v=20260710.3";
+import { submitRunTelemetry } from "./telemetry.js?v=20260710.3";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -11,10 +11,11 @@ const query = new URLSearchParams(location.search);
 const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.10.2";
+const BUILD = "2026.07.10.3";
 const renderer = new Renderer($("game-canvas"));
 const PROGRESS_KEY = "lastlight:campaign:v1";
 const ENEMY_HEALTH_BARS_KEY = "lastlight:enemy-health-bars:v1";
+const RUN_HISTORY_KEY = "lastlight:runs:v1";
 const DIFFICULTY_COPY = { story: "Story · Sharp hits · Lighter opening", hard: "Hard · 3× health · 2× damage", extreme: "Extreme · 7× health · 3× damage" };
 
 function loadProgress() {
@@ -27,6 +28,13 @@ function loadEnemyHealthBars() {
   catch { return true; }
 }
 
+function loadRunHistory() {
+  try {
+    const runs = JSON.parse(localStorage.getItem(RUN_HISTORY_KEY) || "[]");
+    return Array.isArray(runs) ? runs.slice(0, 24) : [];
+  } catch { return []; }
+}
+
 const state = {
   screen: "home", partyMode: "solo", selected: "zuri", clientId: "solo", isHost: true, room: "",
   lobby: new Map(), ws: null, connecting: false, connectResolve: null, connectReject: null,
@@ -35,12 +43,12 @@ const state = {
   input: { keys: new Set(), aim: 0, autoAim: true, touchX: 0, touchY: 0 },
   animation: 0, lastFrame: 0, lastSend: 0, lastBroadcast: 0, lastLobbyBroadcast: 0,
   lastUpgradeKey: "", lastWeaponHUDKey: "", lastPassiveHUDKey: "", lastSquadHUDKey: "", lastEventSeq: 0, endShown: false, resultTimer: null,
-  progress: loadProgress(), resultGame: null,
+  progress: loadProgress(), runHistory: loadRunHistory(), resultGame: null, resultSavedKey: "",
   audio: true, audioContext: null, toastTimer: null, lastVoiceAt: 0,
-  soundState: { projectiles: 0, kills: 0, level: 1, damageTaken: 0, lastShot: 0 },
+  soundState: { projectiles: 0, kills: 0, level: 1, damageTaken: 0, xpCollected: 0, lastShot: 0, lastXP: 0 },
   recentErrors: [], reportSubmitting: false, resumeAfterReport: false, telemetrySent: false,
   showEnemyHealthBars: loadEnemyHealthBars(), inspectPointer: null, inspectActive: false,
-  performanceMetrics: null,
+  performanceMetrics: null, lastActiveBuffKey: "", lastDamageLedgerKey: "",
 };
 
 function setScreen(name) {
@@ -98,9 +106,21 @@ function recordVictory(map, difficulty) {
     : `${MAPS[unlock.map].name} · ${DIFFICULTIES[unlock.difficulty].name} unlocked`);
 }
 
-function guideCard(glyph, name, meta, copy, extraClass = "", image = "") {
+function guideCard(glyph, name, meta, copy, extraClass = "", image = "", details = {}) {
   const visual = image ? `<img src="${escapeHTML(image)}" alt="">` : escapeHTML(glyph);
-  return `<article class="guide-card ${extraClass} ${image ? "has-art" : ""}"><header><span class="guide-glyph">${visual}</span><div><strong>${escapeHTML(name)}</strong><small>${escapeHTML(meta)}</small></div></header><p>${escapeHTML(copy)}</p></article>`;
+  const detailRows = Object.entries(details).filter(([, value]) => value !== undefined && value !== null && value !== "");
+  const detailMarkup = detailRows.length ? `<dl class="guide-details">${detailRows.map(([label, value]) => `<div><dt>${escapeHTML(label)}</dt><dd>${escapeHTML(value)}</dd></div>`).join("")}</dl>` : "";
+  return `<article class="guide-card ${extraClass} ${image ? "has-art" : ""}"><header><span class="guide-glyph">${visual}</span><div><strong>${escapeHTML(name)}</strong><small>${escapeHTML(meta)}</small></div></header><p>${escapeHTML(copy)}</p>${detailMarkup}</article>`;
+}
+
+function guidePlayer(specialist = "zuri") {
+  const spec = SPECIALISTS[specialist] || SPECIALISTS.zuri;
+  return { specialist: spec.id, hp: spec.health, maxHp: spec.health, armor: spec.armor, passives: {}, weapons: { signature: { level: 1, evolved: false } }, hotTime: 0, hasteBuff: 0, frenzy: 0 };
+}
+
+function guideWeaponDetails(weaponId, specialist = "zuri") {
+  const player = guidePlayer(specialist), telemetry = weaponTelemetry(weaponId, { level: 1, evolved: false }, player);
+  return { Damage: telemetry.damage, Cooldown: telemetry.interval, Projectiles: telemetry.projectiles, Range: weaponId === "signature" ? SPECIALISTS[specialist].range : telemetry.note };
 }
 
 function renderGuide() {
@@ -108,21 +128,22 @@ function renderGuide() {
     const unlocked = isMapUnlocked(state.progress, map);
     const cleared = DIFFICULTY_ORDER.filter((difficulty) => hasCompleted(state.progress, map, difficulty)).map((difficulty) => DIFFICULTIES[difficulty].name);
     const requirement = MAP_REQUIREMENTS[map];
-    return `<article class="campaign-node ${unlocked ? "unlocked" : "locked"}"><b>${String(index + 1).padStart(2, "0")}</b><span>${MAPS[map].name}</span><small>${unlocked ? `${cleared.length}/3 cleared${cleared.length ? ` · ${cleared.join(", ")}` : ""}` : `Locked · clear ${requirementCopy(requirement)}`}</small></article>`;
+    return `<article class="campaign-node ${unlocked ? "unlocked" : "locked"}"><img src="${MAPS[map].texture}" alt=""><div><b>${String(index + 1).padStart(2, "0")}</b><span>${MAPS[map].name}</span><small>${unlocked ? `${cleared.length}/3 cleared${cleared.length ? ` · ${cleared.join(", ")}` : ""}` : `Locked · clear ${requirementCopy(requirement)}`}</small></div></article>`;
   }).join("");
   const signatures = SPECIALIST_ORDER.map((id) => {
     const spec = SPECIALISTS[id], passive = PASSIVES[spec.signature.passive];
-    return guideCard(spec.signature.glyph, `${spec.name} · ${spec.signature.name}`, `Evolves to ${spec.signature.evolve}`, `Reach weapon level 5 and own ${passive?.name || spec.signature.passive}, then collect an elite access card.`, "", spec.signature.icon);
+    return guideCard(spec.signature.glyph, `${spec.name} · ${spec.signature.name}`, `Evolves to ${spec.signature.evolve}`, `Reach weapon level 5 and own ${passive?.name || spec.signature.passive}, then collect an elite access card.`, "", spec.signature.icon, guideWeaponDetails("signature", id));
   }).join("");
-  const weapons = Object.values(WEAPONS).map((weapon) => guideCard(weapon.glyph, weapon.name, `Evolves to ${weapon.evolve}`, `${weapon.copy} Evolution requires level 5 + ${PASSIVES[weapon.passive]?.name || weapon.passive}.`, "", weapon.icon)).join("");
-  const passives = Object.values(PASSIVES).map((passive) => guideCard(passive.glyph, passive.name, `${passive.amount} · max ${passive.max}`, "Passive stats also unlock matching weapon evolutions.")).join("");
+  const weapons = Object.values(WEAPONS).map((weapon) => guideCard(weapon.glyph, weapon.name, `Evolves to ${weapon.evolve}`, `${weapon.copy} Evolution requires level 5 + ${PASSIVES[weapon.passive]?.name || weapon.passive}.`, "", weapon.icon, guideWeaponDetails(weapon.id))).join("");
+  const passives = Object.values(PASSIVES).map((passive) => guideCard(passive.glyph, passive.name, `${passive.amount} · max ${passive.max}`, passive.id === "projectiles" ? "Adds a projectile to compatible attacks; single-instance fields and utility effects do not multiply." : "Passive stats also unlock matching weapon evolutions.", "", passive.icon, { "Each rank": passive.amount, "Maximum": `${passive.max} ranks` })).join("");
   const fieldObjects = [
-    ...Object.values(ENEMY_TYPES).map((enemy) => guideCard("EN", enemy.name, `${enemy.ranged ? "Ranged" : "Contact"} · ${enemy.health} base health · ${enemy.damage} base damage`, enemy.ranged ? "Keeps its distance and fires orange hostile projectiles." : "Closes distance and deals contact damage.")),
-    guideCard("XP", "Combat data", "Cyan crystal pickup", "Collect data motes to advance the squad's next upgrade choice."),
-    guideCard("BREAK", "Supply cache", "Destructible field object", "Shoot the orange BREAK cache open for a random pickup. It never blocks movement."),
-    guideCard("!", "Hostile projectile", "Orange-red enemy fire", "Evade hostile bolts or destroy them with a defensive ability."),
-    guideCard("+", "Repair kit", "Green squad pickup", "Restores health to every surviving specialist."),
-    guideCard("ORB", "Relay ball", "Push objective", "Make contact to drive the relay core into its destination ring."),
+    ...Object.values(ENEMY_TYPES).map((enemy) => guideCard("EN", enemy.name, enemy.ranged ? "Ranged threat" : enemy.miniboss ? "Miniboss" : enemy.bomber ? "Explosive contact" : "Contact threat", enemy.ranged ? "Keeps its distance and fires orange hostile projectiles." : "Closes distance and deals contact damage.", "", enemy.icon, { Health: enemy.health, Damage: enemy.damage, Speed: enemy.speed, XP: enemy.xp })),
+    guideCard("XP", "Combat data", "Cyan crystal pickup", "Collect data motes to advance the squad's next upgrade choice.", "", getThemeAsset("guide.field.combatData"), { Effect: "Squad XP", Attraction: "Pickup radius" }),
+    guideCard("BREAK", "Supply cache", "Destructible field object", "Damage the orange cache with projectiles or area attacks to reveal a random pickup.", "", getThemeAsset("guide.field.supplyCache"), { Integrity: 100, Collision: "None", Drops: "Repair / vacuum / mine / gold" }),
+    guideCard("!", "Hostile projectile", "Orange-red enemy fire", "Evade hostile bolts. Apex arrows remove at least 36% of maximum health before shields.", "", getThemeAsset("guide.field.hostileProjectile"), { Threat: "Damage", Apex: "36%+ max HP" }),
+    guideCard("+", "Repair kit", "Green squad pickup", "Restores 20% health to every surviving specialist.", "", getThemeAsset("guide.field.repairKit"), { Healing: "20% max HP", Target: "Whole squad" }),
+    guideCard("ORB", "Relay ball", "Push objective", "Make contact to drive the relay core into its destination ring.", "", getThemeAsset("guide.field.relayBall"), { Time: "62 seconds", Reward: "Gold + data + access card" }),
+    guideCard("FIELD", "Operation device", "Map-specific objective", "Stand close to charge the central device. Its effect changes with the operation.", "", getThemeAsset("guide.field.fieldDevice"), { Charge: "2.4 seconds", Effect: "Map-specific" }),
   ].join("");
   const rare = [
     guideCard("KEY", "Elite access card", "Rare evolution drop", "Elites and minibosses drop access cards. A card evolves one eligible level-five weapon whose matching passive is owned.", "", getThemeAsset("archive.events.eliteAccessCard")),
@@ -253,9 +274,10 @@ function startRemoteGame(message) {
 }
 
 function enterGame() {
-  setScreen("game"); renderer.resize(); state.endShown = false; state.telemetrySent = false; state.lastEventSeq = 0; state.lastUpgradeKey = ""; state.lastWeaponHUDKey = ""; state.lastPassiveHUDKey = ""; state.lastSquadHUDKey = ""; state.lastFrame = performance.now();
+  setScreen("game"); renderer.resize(); state.endShown = false; state.telemetrySent = false; state.resultSavedKey = ""; state.lastEventSeq = 0; state.lastUpgradeKey = ""; state.lastWeaponHUDKey = ""; state.lastPassiveHUDKey = ""; state.lastSquadHUDKey = ""; state.lastFrame = performance.now();
   state.performanceMetrics = { samples: [], frames: 0, longFrames: 0, maxEntities: {} };
-  state.soundState = { projectiles: 0, kills: 0, level: 1, damageTaken: 0, lastShot: 0 };
+  state.soundState = { projectiles: 0, kills: 0, level: 1, damageTaken: 0, xpCollected: 0, lastShot: 0, lastXP: 0 };
+  state.lastActiveBuffKey = ""; state.lastDamageLedgerKey = "";
   state.lastSend = 0; state.lastBroadcast = 0; renderer.camera.x = 0; renderer.camera.y = 0; $("game-canvas").focus();
   if (!state.animation) state.animation = requestAnimationFrame(gameLoop);
 }
@@ -346,7 +368,7 @@ function weaponTelemetry(weaponId, weapon, player) {
     if (evolved) interval *= player.specialist === "zuri" ? .5 : player.specialist === "sola" ? 1.5 / interval : .68;
     const damage = { zuri: 31 + level * 11, echo: 48 + level * 14, sola: 26 + level * 11 + player.armor * 1.2, bront: 70 + level * 24, fang: 36 + level * 19 + player.maxHp * .015, gale: 65 + level * 21, rift: 30 + level * 13, nova: 53 + level * 14, vesper: 51 + level * 14 }[player.specialist];
     const projectiles = { zuri: 2 + level + extra, echo: Math.min(6, level + extra), sola: 3 + Math.floor(level / 2) + extra, bront: 1, fang: 1, gale: Math.min(7, 1 + Math.floor(level / 2) + extra), rift: 1, nova: Math.min(8, 1 + Math.ceil(level / 2) + extra), vesper: 1 + Math.floor(level / 3) + extra }[player.specialist];
-    return { damage: `${rounded(damage)} / hit`, interval: `${cd(interval).toFixed(2)}s`, projectiles: String(projectiles), note: SPECIALISTS[player.specialist].signature.evolve };
+    return { damage: `${rounded(damage)} / hit`, interval: `${cd(interval).toFixed(2)}s`, cooldownSeconds: cd(interval), projectiles: String(projectiles), note: SPECIALISTS[player.specialist].signature.evolve };
   }
   const table = {
     uwu: [28 + level * 10, evolved ? .35 : .75 - level * .07, 1 + Math.floor(level / 3) + extra, "Nearest-target needles"],
@@ -362,22 +384,32 @@ function weaponTelemetry(weaponId, weapon, player) {
     annihilator: [450 + level * 175, evolved ? 21 : 30 - level * 1.4, 1, "Massive delayed blast"],
     drone: [40 + level * 15, 1.6 - level * .1, 1 + Math.floor((level - 1) / 2), "Autonomous target seeker"],
   }[weaponId];
-  if (!table) return { damage: "—", interval: "—", projectiles: "—", note: "" };
-  return { damage: table[0] ? `${rounded(table[0])} / hit` : "Utility", interval: `${cd(table[1]).toFixed(2)}s`, projectiles: String(table[2]), note: table[3] };
+  if (!table) return { damage: "—", interval: "—", cooldownSeconds: 0, projectiles: "—", note: "" };
+  return { damage: table[0] ? `${rounded(table[0])} / hit` : "Utility", interval: `${cd(table[1]).toFixed(2)}s`, cooldownSeconds: cd(table[1]), projectiles: String(table[2]), note: table[3] };
 }
 
-function weaponSlotMarkup(weaponId, weapon, player, spec) {
+function elapsedRunSeconds(game) { return Math.max(1, Number(game?.time || 0) + Number(game?.bossElapsed || 0)); }
+
+function sourceName(sourceId, player) {
+  if (sourceId === "signature") return SPECIALISTS[player.specialist]?.signature.name || "Signature weapon";
+  if (WEAPONS[sourceId]) return WEAPONS[sourceId].name;
+  const names = { "ability:e": "Active ability", "ability:r": "Ultimate", "boon:firedUp": "Fired Up", pickup: "Magnetic Talons", seaMine: "Sea Mine", environment: "Field device", blast: "Kinetic effects", other: "Other damage" };
+  return names[sourceId] || String(sourceId || "Other damage").replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase());
+}
+
+function weaponSlotMarkup(weaponId, weapon, player, spec, game) {
   const data = weaponId === "signature" ? spec.signature : WEAPONS[weaponId], telemetry = weaponTelemetry(weaponId, weapon, player);
   const icon = data.icon;
   const passive = weaponId === "signature" ? spec.signature.passive : data.passive;
-  return `<div class="weapon-slot ${weapon.evolved ? "evolved" : ""}" tabindex="0" aria-label="${escapeHTML(weapon.evolved ? data.evolve : data.name)} weapon details"><img src="${icon}" alt=""><small>${weapon.evolved ? "E" : weapon.level}</small><div class="weapon-tooltip"><span>${weapon.evolved ? "Evolved weapon" : `Level ${weapon.level}`}</span><strong>${escapeHTML(weapon.evolved ? data.evolve : data.name)}</strong><p>${escapeHTML(data.copy || spec.tagline)}</p><dl><div><dt>Damage</dt><dd>${telemetry.damage}</dd></div><div><dt>Cooldown</dt><dd>${telemetry.interval}</dd></div><div><dt>Projectiles</dt><dd>${telemetry.projectiles}</dd></div></dl><em>${escapeHTML(telemetry.note)}</em><small>Evolution: level 5 + ${escapeHTML(PASSIVES[passive]?.name || passive)}</small></div></div>`;
+  const damage = Number(player.damageBySource?.[weaponId] || 0), dps = damage / elapsedRunSeconds(game);
+  return `<div class="weapon-slot ${weapon.evolved ? "evolved" : ""}" data-weapon-id="${weaponId}" data-cooldown-max="${telemetry.cooldownSeconds}" tabindex="0" aria-label="${escapeHTML(weapon.evolved ? data.evolve : data.name)} weapon details"><img src="${icon}" alt=""><i class="weapon-cooldown-sweep" aria-hidden="true"></i><b class="weapon-cooldown-seconds" aria-hidden="true"></b><small>${weapon.evolved ? "E" : weapon.level}</small><div class="weapon-tooltip"><span>${weapon.evolved ? "Evolved weapon" : `Level ${weapon.level}`}</span><strong>${escapeHTML(weapon.evolved ? data.evolve : data.name)}</strong><p>${escapeHTML(data.copy || spec.tagline)}</p><dl><div><dt>Damage</dt><dd>${telemetry.damage}</dd></div><div><dt>Cooldown</dt><dd>${telemetry.interval}</dd></div><div><dt>Projectiles</dt><dd>${telemetry.projectiles}</dd></div><div><dt>Run damage</dt><dd>${statNumber(damage)}</dd></div><div><dt>DPS</dt><dd>${dps.toFixed(1)}</dd></div></dl><em>${escapeHTML(telemetry.note)}</em><small>Evolution: level 5 + ${escapeHTML(PASSIVES[passive]?.name || passive)}</small></div></div>`;
 }
 
 function passiveSlotMarkup(passiveId, rank) {
   const passive = PASSIVES[passiveId];
   if (!passive) return "";
   const level = Math.max(1, Math.floor(Number(rank) || 1));
-  return `<div class="passive-slot" style="--passive-color:${escapeHTML(passive.color)}" tabindex="0" aria-label="${escapeHTML(passive.name)}, passive rank ${level} of ${passive.max}"><span>${escapeHTML(passive.glyph)}</span><small>${level}</small><div class="weapon-tooltip"><span>Passive upgrade</span><strong>${escapeHTML(passive.name)}</strong><p>${escapeHTML(passive.amount)} per rank. This modifier applies to every compatible system in your loadout.</p><dl><div><dt>Current rank</dt><dd>${level} / ${passive.max}</dd></div><div><dt>Each rank</dt><dd>${escapeHTML(passive.amount)}</dd></div></dl><em>Persistent for the rest of this operation.</em></div></div>`;
+  return `<div class="passive-slot" style="--passive-color:${escapeHTML(passive.color)}" tabindex="0" aria-label="${escapeHTML(passive.name)}, passive rank ${level} of ${passive.max}"><span><img src="${passive.icon}" alt=""></span><small>${level}</small><div class="weapon-tooltip"><span>Passive upgrade</span><strong>${escapeHTML(passive.name)}</strong><p>${escapeHTML(passive.amount)} per rank. ${passive.id === "projectiles" ? "Applies to compatible multi-projectile attacks; utility and single-field effects are unchanged." : "This modifier applies to every compatible system in your loadout."}</p><dl><div><dt>Current rank</dt><dd>${level} / ${passive.max}</dd></div><div><dt>Each rank</dt><dd>${escapeHTML(passive.amount)}</dd></div></dl><em>Persistent for the rest of this operation.</em></div></div>`;
 }
 
 function updateCooldownSlot(slot, remaining, maximum, unlocked, unlockLevel) {
@@ -408,10 +440,57 @@ function updateSoundState(game) {
   if (game.kills > state.soundState.kills) sfx("kill");
   if (game.level > state.soundState.level) sfx("level");
   if ((local?.damageTaken || 0) > state.soundState.damageTaken) sfx("hurt");
+  if ((local?.xpCollected || 0) > state.soundState.xpCollected && now - state.soundState.lastXP > 42) { state.soundState.lastXP = now; sfx("xp"); }
   state.soundState.projectiles = projectiles;
   state.soundState.kills = game.kills || 0;
   state.soundState.level = game.level || 1;
   state.soundState.damageTaken = local?.damageTaken || 0;
+  state.soundState.xpCollected = local?.xpCollected || 0;
+}
+
+function updateWeaponCooldowns(player) {
+  for (const slot of $("weapon-hud").querySelectorAll(".weapon-slot")) {
+    const weaponId = slot.dataset.weaponId, remaining = Math.max(0, Number(player.weaponTimers?.[weaponId] || 0));
+    const maximum = Math.max(.01, Number(slot.dataset.cooldownMax || 0));
+    slot.querySelector(".weapon-cooldown-sweep")?.style.setProperty("--weapon-cooldown", `${clamp(remaining / maximum * 100, 0, 100)}%`);
+    const seconds = slot.querySelector(".weapon-cooldown-seconds");
+    if (seconds) seconds.textContent = remaining > .08 ? `${remaining < 10 ? remaining.toFixed(1) : Math.ceil(remaining)}s` : "";
+  }
+}
+
+function updateAbilityDetails(player, spec, game) {
+  const haste = Number(player.passives?.haste || 0) * 10 + (player.hasteBuff > 0 ? 150 : 0) + (player.frenzy > 0 ? 250 : 0);
+  const effective = (base) => base * 100 / (100 + haste);
+  const set = (slot, ability, base, unlock) => {
+    $(`${slot}-detail-copy`).textContent = ability[1];
+    $(`${slot}-detail-cooldown`).textContent = game.level >= unlock ? `${effective(base).toFixed(1)}s` : `Unlocks Lv ${unlock}`;
+    $(`${slot}-detail-status`).textContent = game.level < unlock ? "Locked" : Number(player[`${slot}Cd`] || 0) > .04 ? `${Number(player[`${slot}Cd`]).toFixed(1)}s remaining` : "Ready";
+  };
+  set("e", spec.active, spec.cooldownE, 3); set("r", spec.ultimate, spec.cooldownR, 6);
+}
+
+function updateActiveBuffs(player) {
+  const definitions = [
+    ["speedBuff", "Speed surge", getThemeAsset("archive.boons.cruiseControl"), 15],
+    ["hasteBuff", "Rapid fire", getThemeAsset("archive.boons.ultraRapidFire"), 15],
+    ["firedUpBuff", "Fired Up", getThemeAsset("archive.boons.firedUp"), 15],
+    ["healthbackBuff", "Healthback", getThemeAsset("archive.boons.healthback"), 15],
+    ["stopwavesBuff", "Stopwaves", getThemeAsset("archive.boons.stopwaves"), 15],
+    ["frenzy", "Frenzy", SPECIALISTS.fang.signature.icon, 6],
+    ["hotTime", "Hot streak", SPECIALISTS.zuri.signature.icon, 8],
+  ];
+  const active = definitions.map(([field, name, icon, max]) => ({ field, name, icon, max, remaining: Number(player[field] || 0) })).filter((buff) => buff.remaining > .04);
+  const key = JSON.stringify(active.map((buff) => [buff.field, Math.ceil(buff.remaining * 10)]));
+  if (key === state.lastActiveBuffKey) return; state.lastActiveBuffKey = key;
+  $("active-buffs-hud").innerHTML = active.map((buff) => `<div class="active-buff" title="${escapeHTML(buff.name)} · ${buff.remaining.toFixed(1)}s"><img src="${buff.icon}" alt=""><i style="--buff-progress:${clamp(buff.remaining / buff.max * 100, 0, 100)}%"></i><b>${buff.remaining < 10 ? buff.remaining.toFixed(1) : Math.ceil(buff.remaining)}</b><span>${escapeHTML(buff.name)}</span></div>`).join("");
+}
+
+function updateDamageLedger(player, game) {
+  const sources = Object.entries(player.damageBySource || {}).filter(([, damage]) => damage > 0).sort((a, b) => b[1] - a[1]).slice(0, 3);
+  const key = JSON.stringify(sources.map(([id, damage]) => [id, Math.round(damage)]));
+  if (key === state.lastDamageLedgerKey) return; state.lastDamageLedgerKey = key;
+  const seconds = elapsedRunSeconds(game);
+  $("damage-ledger").innerHTML = sources.length ? `<strong>Damage sources</strong>${sources.map(([id, damage], index) => `<div class="${index === 0 ? "leader" : ""}"><span>${escapeHTML(sourceName(id, player))}</span><b>${statNumber(damage)}</b><small>${(damage / seconds).toFixed(1)} DPS</small></div>`).join("")}` : "";
 }
 
 function togglePause(force) {
@@ -434,6 +513,7 @@ function updateHUD(game) {
   $("level-label").textContent = `LV ${game.level}`; $("xp-progress").style.width = `${clamp(game.teamXP / game.xpNeed * 100, 0, 100)}%`;
   $("e-name").textContent = game.level < 3 ? "Unlocks Lv 3" : spec.active[0]; $("r-name").textContent = game.level < 6 ? "Unlocks Lv 6" : spec.ultimate[0];
   updateCooldownSlot("e", player.eCd, player.eCdMax || spec.cooldownE, game.level >= 3, 3); updateCooldownSlot("r", player.rCd, player.rCdMax || spec.cooldownR, game.level >= 6, 6);
+  updateAbilityDetails(player, spec, game);
   $("pause-overlay").classList.toggle("hidden", !(game.paused && game.pauseReason === "manual"));
   const boss = game.enemies?.find((enemy) => enemy.boss);
   $("boss-hud").classList.toggle("hidden", !boss); if (boss) { $("boss-name").textContent = (typeof game.map === "string" ? MAPS[game.map] : game.map).boss; $("boss-health").style.width = `${clamp(boss.hp / boss.maxHp * 100, 0, 100)}%`; }
@@ -444,21 +524,53 @@ function updateHUD(game) {
   }
   [...$("squad-hud").children].forEach((pill, index) => { const p = game.players[index]; pill.querySelector("i").style.width = `${clamp(p.hp / p.maxHp * 100, 0, 100)}%`; });
   const weaponEntries = Object.entries(player.weapons || {});
-  const weaponHUDKey = JSON.stringify({ weapons: player.weapons, passives: player.passives, maxHp: Math.round(player.maxHp), armor: Math.round(player.armor), specialist: player.specialist });
+  const weaponHUDKey = JSON.stringify({ weapons: player.weapons, passives: player.passives, maxHp: Math.round(player.maxHp), armor: Math.round(player.armor), specialist: player.specialist, damage: Object.fromEntries(Object.entries(player.damageBySource || {}).map(([id, value]) => [id, Math.floor(value / 25)])) });
   if (weaponHUDKey !== state.lastWeaponHUDKey) {
     state.lastWeaponHUDKey = weaponHUDKey;
-    $("weapon-hud").innerHTML = weaponEntries.map(([weaponId, weapon]) => weaponSlotMarkup(weaponId, weapon, player, spec)).join("");
+    $("weapon-hud").innerHTML = weaponEntries.map(([weaponId, weapon]) => weaponSlotMarkup(weaponId, weapon, player, spec, game)).join("");
   }
+  updateWeaponCooldowns(player);
   const passiveHUDKey = JSON.stringify(player.passives || {});
   if (passiveHUDKey !== state.lastPassiveHUDKey) {
     state.lastPassiveHUDKey = passiveHUDKey;
     $("passive-hud").innerHTML = Object.entries(player.passives || {}).filter(([, rank]) => Number(rank) > 0).map(([passiveId, rank]) => passiveSlotMarkup(passiveId, rank)).join("");
   }
+  updateActiveBuffs(player); updateDamageLedger(player, game);
 }
 
 function upgradeChoiceVisual(choice) {
   const icon = typeof choice.icon === "string" && choice.icon.trim() ? choice.icon : "";
   return { className: icon ? "has-image" : "", markup: icon ? `<img src="${escapeHTML(icon)}" alt="">` : escapeHTML(choice.glyph || "?") };
+}
+
+function upgradeChoiceDetails(choice, player) {
+  const [kind, target] = String(choice.id).split(":");
+  if (kind === "weapon") {
+    const weaponId = target === "signature" ? "signature" : target;
+    const telemetry = weaponTelemetry(weaponId, { level: choice.level, evolved: false }, player);
+    return { Damage: telemetry.damage, Cooldown: telemetry.interval, Projectiles: telemetry.projectiles };
+  }
+  if (kind === "passive") {
+    const passive = PASSIVES[target], current = Math.max(0, Number(player.passives?.[target] || 0));
+    return { Current: current ? `Rank ${Math.floor(current)}` : "Not owned", After: `Rank ${choice.level}`, "Per rank": passive?.amount || choice.copy };
+  }
+  return { Healing: "25% max HP", Timing: "Immediate" };
+}
+
+function renderUpgradeStats(player) {
+  const damage = (1 + Number(player.passives?.damage || 0) * .1) * (player.specialist === "rift" ? 1.1 : 1);
+  const stats = [
+    ["Damage", `+${Math.round((damage - 1) * 100)}%`],
+    ["Ability haste", `${Math.round(Number(player.passives?.haste || 0) * 10 + (player.hasteBuff > 0 ? 150 : 0))}`],
+    ["Extra projectiles", `+${Math.floor(Number(player.passives?.projectiles || 0))}`],
+    ["Critical chance", `${Math.round((Number(player.passives?.crit || 0) * .08 + (player.specialist === "gale" ? .15 : 0)) * 100)}%`],
+    ["Area size", `+${Math.round(Number(player.passives?.area || 0) * 11)}%`],
+    ["Move speed", `${Math.round(player.baseSpeed * (1 + Number(player.passives?.move || 0) * .09))}`],
+    ["Armor", `${Math.round(player.armor || 0)}`],
+    ["Pickup radius", `${Math.round(85 * (1 + Number(player.passives?.pickup || 0) * .35))}`],
+    ["Repair / sec", `${Math.round(Number(player.passives?.regen || 0) * 4)}`],
+  ];
+  $("upgrade-current-stats").innerHTML = `<strong>Current build</strong>${stats.map(([label, value]) => `<div><span>${label}</span><b>${value}</b></div>`).join("")}<p>Extra projectiles apply only to compatible attacks; utility effects and single persistent fields do not multiply.</p>`;
 }
 
 function updateUpgrade(game) {
@@ -470,12 +582,14 @@ function updateUpgrade(game) {
   const key = `${game.level}:${JSON.stringify(game.choiceReady)}:${JSON.stringify(game.selectedChoices)}:${Object.entries(game.pendingChoices || {}).map(([id, choices]) => `${id}:${choices.map((choice) => choice.id).join(",")}`).join("|")}`;
   if (key === state.lastUpgradeKey) return; state.lastUpgradeKey = key;
   const localPlayer = game.players.find((player) => player.id === state.clientId);
+  renderUpgradeStats(localPlayer);
   $("upgrade-local-name").textContent = localPlayer?.name || callsign();
   $("upgrade-local-status").textContent = ready ? "Locked" : "Choosing";
   $("upgrade-cards").innerHTML = pending.map((choice, index) => {
     const selected = selectedId === choice.id, passed = ready && !selected;
     const visual = upgradeChoiceVisual(choice);
-    return `<button class="upgrade-card ${selected ? "selected" : ""} ${passed ? "passed" : ""}" type="button" data-choice="${escapeHTML(choice.id)}" ${ready ? "disabled" : ""}><span class="card-type">${selected ? "Locked choice" : escapeHTML(choice.kind)}</span><kbd class="choice-key">${index + 1}</kbd><div class="card-icon ${visual.className}">${visual.markup}</div><h3>${escapeHTML(choice.name)}</h3><p>${escapeHTML(choice.copy)}</p><div class="level-pips">${Array.from({ length: choice.max }, (_, i) => `<i class="${i < choice.level ? "on" : ""}"></i>`).join("")}</div></button>`;
+    const details = upgradeChoiceDetails(choice, localPlayer);
+    return `<button class="upgrade-card ${selected ? "selected" : ""} ${passed ? "passed" : ""}" type="button" data-choice="${escapeHTML(choice.id)}" ${ready ? "disabled" : ""}><span class="card-type">${selected ? "Locked choice" : escapeHTML(choice.kind)}</span><kbd class="choice-key">${index + 1}</kbd><div class="card-icon ${visual.className}">${visual.markup}</div><h3>${escapeHTML(choice.name)}</h3><p>${escapeHTML(choice.copy)}</p><dl class="card-stats">${Object.entries(details).map(([label, value]) => `<div><dt>${escapeHTML(label)}</dt><dd>${escapeHTML(value)}</dd></div>`).join("")}</dl><div class="level-pips">${Array.from({ length: choice.max }, (_, i) => `<i class="${i < choice.level ? "on" : ""}"></i>`).join("")}</div></button>`;
   }).join("");
   if (!ready) $("upgrade-cards").querySelectorAll("button").forEach((button) => button.addEventListener("click", () => chooseUpgrade(button.dataset.choice)));
 
@@ -553,12 +667,41 @@ function scheduleResult(game) {
 function statNumber(value) { return Math.round(Number(value) || 0).toLocaleString(); }
 
 function renderScoreboard(game) {
+  const seconds = elapsedRunSeconds(game);
   $("result-scoreboard-body").innerHTML = game.players.map((player) => {
     const spec = SPECIALISTS[player.specialist] || SPECIALISTS.zuri;
-    return `<tr><td><div class="result-scoreboard-player"><img src="${spec.sprite}" alt=""><div><strong>${escapeHTML(player.name)}</strong><small>${spec.name}</small></div></div></td><td>${statNumber(player.damage)}</td><td>${statNumber(player.kills)}</td><td>${statNumber(player.xpCollected)}</td><td>${statNumber(player.damageTaken)}</td><td>${statNumber(player.revives)}</td><td>${statNumber(player.traveled)}</td><td><button class="copy-scorecard" type="button" data-player-id="${player.id}">Copy card</button></td></tr>`;
+    return `<tr><td><div class="result-scoreboard-player"><img src="${spec.sprite}" alt=""><div><strong>${escapeHTML(player.name)}</strong><small>${spec.name}</small></div></div></td><td>${statNumber(player.damage)}</td><td>${(Number(player.damage || 0) / seconds).toFixed(1)}</td><td>${statNumber(player.kills)}</td><td>${statNumber(player.xpCollected)}</td><td>${statNumber(player.damageTaken)}</td><td>${statNumber(player.revives)}</td><td>${statNumber(player.traveled)}</td><td><button class="copy-scorecard" type="button" data-player-id="${player.id}">Copy card</button></td></tr>`;
   }).join("");
   $("result-scoreboard-body").querySelectorAll(".copy-scorecard").forEach((button) => button.addEventListener("click", () => copyPlayerScorecard(button.dataset.playerId)));
+  $("result-damage-breakdown").innerHTML = game.players.map((player) => {
+    const sources = Object.entries(player.damageBySource || {}).filter(([, damage]) => damage > 0).sort((a, b) => b[1] - a[1]);
+    const total = Math.max(1, Number(player.damage || 0));
+    return `<article><header><strong>${escapeHTML(player.name)} · damage by source</strong><span>${statNumber(player.damage)} total</span></header>${sources.length ? sources.map(([id, damage], index) => `<div class="${index === 0 ? "leader" : ""}"><span>${escapeHTML(sourceName(id, player))}</span><i><b style="width:${clamp(damage / total * 100, 0, 100)}%"></b></i><em>${statNumber(damage)} · ${(damage / seconds).toFixed(1)} DPS · ${Math.round(damage / total * 100)}%</em></div>`).join("") : `<p>No source data recorded.</p>`}</article>`;
+  }).join("");
 }
+
+function saveCompletedRun(game) {
+  const key = `${game.stage}:${Math.round(Number(game.time || 0) * 10)}:${game.players.map((player) => player.id).join(",")}`;
+  if (state.resultSavedKey === key) return;
+  state.resultSavedKey = key;
+  const run = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, finishedAt: new Date().toISOString(), won: game.stage === "won",
+    map: typeof game.map === "string" ? game.map : game.map.id, difficulty: typeof game.difficulty === "string" ? game.difficulty : game.difficulty.id,
+    elapsed: elapsedRunSeconds(game), level: Number(game.level || 0), kills: Number(game.kills || 0), gold: Number(game.gold || 0),
+    players: game.players.map((player) => ({ name: player.name, specialist: player.specialist, damage: player.damage, kills: player.kills, xpCollected: player.xpCollected, damageTaken: player.damageTaken, revives: player.revives, traveled: player.traveled, damageBySource: player.damageBySource || {} })),
+  };
+  state.runHistory = [run, ...state.runHistory].slice(0, 24);
+  try { localStorage.setItem(RUN_HISTORY_KEY, JSON.stringify(state.runHistory)); } catch { /* Run history is optional. */ }
+}
+
+function renderRunHistory() {
+  $("run-history-list").innerHTML = state.runHistory.length ? state.runHistory.map((run) => {
+    const totalDamage = (run.players || []).reduce((sum, player) => sum + Number(player.damage || 0), 0);
+    return `<article class="run-history-entry ${run.won ? "won" : "lost"}"><header><div><span>${run.won ? "Victory" : "Defeat"}</span><strong>${escapeHTML(MAPS[run.map]?.name || run.map)} · ${escapeHTML(DIFFICULTIES[run.difficulty]?.name || run.difficulty)}</strong></div><time datetime="${escapeHTML(run.finishedAt)}">${new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(run.finishedAt))}</time></header><dl><div><dt>Time</dt><dd>${formatTime(run.elapsed)}</dd></div><div><dt>Level</dt><dd>${run.level}</dd></div><div><dt>Kills</dt><dd>${statNumber(run.kills)}</dd></div><div><dt>Damage</dt><dd>${statNumber(totalDamage)}</dd></div><div><dt>DPS</dt><dd>${(totalDamage / Math.max(1, run.elapsed)).toFixed(1)}</dd></div></dl><p>${(run.players || []).map((player) => `${escapeHTML(player.name)} / ${escapeHTML(SPECIALISTS[player.specialist]?.name || player.specialist)}`).join(" · ")}</p></article>`;
+  }).join("") : `<div class="run-history-empty"><strong>No operations recorded yet.</strong><p>Completed and failed runs will be saved in this browser.</p></div>`;
+}
+
+function openRunHistory() { renderRunHistory(); $("run-history-dialog").showModal(); }
 
 async function scorecardBlob(player, game) {
   const canvas = document.createElement("canvas"); canvas.width = 1200; canvas.height = 630;
@@ -573,14 +716,16 @@ async function scorecardBlob(player, game) {
   ctx.fillStyle = "#63f2df"; ctx.font = "700 18px Inter"; ctx.fillText("LASTLIGHT // OPERATION REPORT", 58, 58);
   ctx.fillStyle = "#eff5f2"; ctx.font = "800 72px 'Barlow Condensed'"; ctx.fillText(player.name.toUpperCase(), 58, 142);
   ctx.fillStyle = spec.color; ctx.font = "800 28px 'Barlow Condensed'"; ctx.fillText(`${spec.name.toUpperCase()} · ${MAPS[mapId].name.toUpperCase()} · ${DIFFICULTIES[difficultyId].name.toUpperCase()}`, 60, 182);
-  const stats = [["DAMAGE", player.damage], ["ENEMIES", player.kills], ["XP PICKED", player.xpCollected], ["DAMAGE TAKEN", player.damageTaken], ["REVIVES", player.revives], ["DISTANCE", player.traveled]];
+  const stats = [["DAMAGE", player.damage], ["DPS", Number(player.damage || 0) / elapsedRunSeconds(game)], ["KILLS", player.kills], ["XP PICKED", player.xpCollected], ["DAMAGE TAKEN", player.damageTaken], ["REVIVES", player.revives], ["DISTANCE", player.traveled]];
   stats.forEach(([label, value], index) => {
-    const col = index % 3, row = Math.floor(index / 3), x = 60 + col * 210, y = 272 + row * 132;
+    const col = index % 4, row = Math.floor(index / 4), x = 60 + col * 170, y = 272 + row * 132;
     ctx.fillStyle = "#78909a"; ctx.font = "700 14px Inter"; ctx.fillText(label, x, y);
     ctx.fillStyle = "#eff5f2"; ctx.font = "800 42px 'Barlow Condensed'"; ctx.fillText(statNumber(value), x, y + 46);
   });
   const image = new Image(); image.src = spec.sprite;
   try { await image.decode(); ctx.drawImage(image, 760, 70, 390, 390); } catch { /* Stats remain shareable without art. */ }
+  const topSource = Object.entries(player.damageBySource || {}).sort((a, b) => b[1] - a[1])[0];
+  if (topSource) { ctx.fillStyle = "#63f2df"; ctx.font = "700 15px Inter"; ctx.fillText(`TOP SOURCE · ${sourceName(topSource[0], player).toUpperCase()} · ${statNumber(topSource[1])} DAMAGE`, 60, 528); }
   ctx.fillStyle = "rgba(239,245,242,.55)"; ctx.font = "600 14px Inter"; ctx.fillText(`BUILD ${BUILD} · ${game.stage === "won" ? "APEX NEUTRALIZED" : "THE LINE BROKE"}`, 60, 592);
   return new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("Unable to render scorecard")), "image/png"));
 }
@@ -606,6 +751,7 @@ function showResult(game) {
   $("result-unlock").classList.toggle("hidden", !unlocks.length);
   $("result-unlock").textContent = unlocks.length ? `Campaign updated · ${unlocks.join(" · ")}` : "";
   state.resultGame = game; renderScoreboard(game);
+  saveCompletedRun(game);
   setScreen("result");
   if (state.isHost && !state.telemetrySent) {
     state.telemetrySent = true;
@@ -816,6 +962,7 @@ function sfx(name) {
   else if (name === "objective") { note(320, 0, .09, "triangle", .018, 420); note(510, .08, .12, "sine", .018, 620); }
   else if (name === "reward") { note(440, 0, .12, "triangle", .022, 520); note(660, .09, .14, "triangle", .021, 760); note(920, .19, .2, "sine", .018, 1040); }
   else if (name === "level") { note(392, 0, .1, "triangle", .018, 440); note(587, .07, .12, "triangle", .02, 660); note(880, .16, .18, "sine", .018, 980); }
+  else if (name === "xp") { note(980, 0, .045, "sine", .006, 1320); note(1480, .018, .035, "triangle", .004, 1120); }
   else if (name === "victory") { [392, 523, 659, 784, 1046].forEach((frequency, index) => note(frequency, index * .09, .28, "triangle", .022, frequency * 1.05)); }
   else note(440, 0, .08, "sine", .018, 560);
 }
@@ -853,6 +1000,9 @@ function bindEvents() {
   $("pause-button").addEventListener("click", () => togglePause()); $("resume-button").addEventListener("click", () => togglePause(false)); $("abandon-button").addEventListener("click", abandon);
   $("enemy-health-bars-toggle").addEventListener("change", (event) => setEnemyHealthBars(event.target.checked));
   $("again-button").addEventListener("click", returnToLobby); $("result-home").addEventListener("click", leaveToHome);
+  for (const id of ["run-history-button", "lobby-run-history", "result-run-history"]) $(id).addEventListener("click", openRunHistory);
+  $("run-history-close").addEventListener("click", () => $("run-history-dialog").close());
+  $("run-history-dialog").addEventListener("click", (event) => { if (event.target === $("run-history-dialog")) $("run-history-dialog").close(); });
   for (const id of ["audio-button", "lobby-audio"]) $(id).addEventListener("click", toggleAudio);
   $("how-button").addEventListener("click", () => $("manual-dialog").showModal()); $("manual-close").addEventListener("click", () => $("manual-dialog").close());
   $("manual-dialog").addEventListener("click", (event) => { if (event.target === $("manual-dialog")) $("manual-dialog").close(); });
