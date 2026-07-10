@@ -29,6 +29,7 @@
     "limitedBoosterType": "play",
     "limitedLabel": "play",
     "mtgjsonBoosterTypes": [
+      "codex-bundle",
       "collector",
       "play"
     ],
@@ -172,6 +173,7 @@
     "limitedLabel": "play",
     "mtgjsonBoosterTypes": [
       "collector",
+      "collector-sample",
       "play",
       "prerelease"
     ],
@@ -191,6 +193,7 @@
     "mtgjsonBoosterTypes": [
       "box-topper",
       "collector",
+      "collector-sample",
       "play",
       "prerelease"
     ],
@@ -261,6 +264,7 @@
     "mtgjsonBoosterTypes": [
       "collector",
       "collector-sample",
+      "nightmare",
       "play",
       "prerelease"
     ],
@@ -439,11 +443,9 @@
       "arena",
       "box-topper",
       "box-topper-foil",
-      "bundle-promo",
       "collector",
       "collector-sample",
       "draft",
-      "gift-bundle-promo",
       "prerelease",
       "set"
     ],
@@ -1259,13 +1261,15 @@
     "name": "Ravnica Allegiance",
     "released": "2019-01-25",
     "boosterTypes": [
-      "play"
+      "play",
+      "collector"
     ],
     "defaultBoosterType": "play",
     "limitedBoosterType": "draft",
     "limitedLabel": "draft booster",
     "mtgjsonBoosterTypes": [
       "arena",
+      "collector",
       "draft",
       "prerelease",
       "theme-azorius",
@@ -2263,7 +2267,8 @@
     "limitedBoosterType": "draft",
     "limitedLabel": "draft booster",
     "mtgjsonBoosterTypes": [
-      "draft"
+      "draft",
+      "tournament"
     ],
     "extraSheetLabel": null
   },
@@ -2548,8 +2553,7 @@
     "limitedLabel": "draft booster",
     "mtgjsonBoosterTypes": [
       "draft",
-      "fat-pack",
-      "tournament"
+      "fat-pack"
     ],
     "extraSheetLabel": null
   },
