@@ -7,16 +7,16 @@
   <meta name="description" content="Lastlight is a free multiplayer browser bullet-heaven prototype.">
   <meta property="og:title" content="Lastlight — multiplayer bullet heaven">
   <meta property="og:description" content="Create a squad, share the room code, and survive the breach together.">
-  <meta property="og:image" content="https://bensonperry.com/loldemo/assets/og.png">
+  <meta property="og:image" content="https://bensonperry.com/lastlight/assets/og.png">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://bensonperry.com/loldemo/">
+  <meta property="og:url" content="https://bensonperry.com/lastlight/">
   <meta name="twitter:card" content="summary_large_image">
   <title>Lastlight</title>
   <link rel="icon" href="../favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260709.3">
+  <link rel="stylesheet" href="styles.css?v=20260709.6">
 </head>
 <body>
   <main id="app">
@@ -28,6 +28,7 @@
           <span>LASTLIGHT</span>
         </a>
         <div class="topbar-actions">
+          <button id="guide-button" class="text-button" type="button">Upgrade archive</button>
           <button id="how-button" class="text-button" type="button">Field manual</button>
           <button id="audio-button" class="icon-button" type="button" aria-label="Toggle sound" aria-pressed="false">Sound on</button>
         </div>
@@ -40,6 +41,7 @@
         <span><kbd>C</kbd> Auto-aim</span>
         <span><kbd>E</kbd> Ability</span>
         <span><kbd>R</kbd> Ultimate</span>
+        <span><kbd>1–3</kbd> Upgrade</span>
         <span><kbd>Esc</kbd> Pause</span>
       </div>
 
@@ -79,9 +81,9 @@
               <label class="select-field">
                 <span class="input-label">Threat</span>
                 <select id="difficulty-select">
-                  <option value="story">Story · 1×</option>
-                  <option value="hard">Hard · 3× health</option>
-                  <option value="extreme">Extreme · 7× health</option>
+                  <option value="story">Story · Pressured</option>
+                  <option value="hard">Hard · 3× health · 2× damage</option>
+                  <option value="extreme">Extreme · 7× health · 3× damage</option>
                 </select>
               </label>
               <label class="select-field full-span">
@@ -92,6 +94,7 @@
                 </select>
               </label>
             </div>
+            <p id="progression-note" class="progression-note"></p>
 
             <button id="deploy-button" class="deploy-button" type="button">
               <span>Deploy solo</span>
@@ -113,7 +116,7 @@
         <header class="lobby-header">
           <button id="lobby-back" class="text-button" type="button">← Leave squad</button>
           <div class="mission-chip"><span class="status-dot"></span><span id="lobby-mission">Iron District · Story</span></div>
-          <button id="lobby-audio" class="icon-button" type="button">Sound on</button>
+          <div class="lobby-header-actions"><button id="lobby-guide" class="text-button" type="button">Upgrade archive</button><button id="lobby-audio" class="icon-button" type="button">Sound on</button></div>
         </header>
 
         <div class="control-ribbon lobby-controls" aria-label="Keyboard controls">
@@ -123,6 +126,7 @@
           <span><kbd>C</kbd> Auto-aim</span>
           <span><kbd>E</kbd> Ability</span>
           <span><kbd>R</kbd> Ultimate</span>
+          <span><kbd>1–3</kbd> Upgrade</span>
           <span><kbd>Esc</kbd> Pause</span>
         </div>
 
@@ -229,11 +233,18 @@
         <p id="result-eyebrow" class="eyebrow">Operation complete</p>
         <h2 id="result-title">APEX NEUTRALIZED</h2>
         <p id="result-copy">The line held. Final City gets another sunrise.</p>
+        <div id="result-unlock" class="result-unlock hidden"></div>
         <div class="result-stats">
           <div><span>Time</span><strong id="result-time">04:32</strong></div>
           <div><span>Squad KOs</span><strong id="result-kills">1,284</strong></div>
           <div><span>Level</span><strong id="result-level">18</strong></div>
           <div><span>Gold</span><strong id="result-gold">240</strong></div>
+        </div>
+        <div class="scoreboard-wrap">
+          <table class="result-scoreboard">
+            <thead><tr><th>Specialist</th><th>Damage</th><th>KOs</th><th>XP picked up</th><th>Damage taken</th><th>Revives</th><th>Distance</th><th>Share</th></tr></thead>
+            <tbody id="result-scoreboard-body"></tbody>
+          </table>
         </div>
         <div class="result-actions">
           <button id="again-button" class="deploy-button" type="button"><span>Run it again</span><span>↻</span></button>
@@ -253,14 +264,47 @@
         <section><span class="manual-number">03</span><h3>Hold for the apex</h3><p>Enemy tiers and wave density rise throughout the operation. Survive the timer, then defeat the map's apex before its five-minute enrage.</p></section>
         <section><span class="manual-number">04</span><h3>Revive the squad</h3><p>In co-op, stand inside a downed ally's ring for ten seconds to revive them. If every specialist is down at once, the operation is lost.</p></section>
       </div>
-      <div class="manual-controls"><span><kbd>WASD</kbd> Move</span><span><kbd>Mouse</kbd> Aim</span><span><kbd>C</kbd> Auto-aim</span><span><kbd>E</kbd> Ability</span><span><kbd>R</kbd> Ultimate</span><span><kbd>Esc</kbd> Pause</span></div>
+      <div class="manual-controls"><span><kbd>WASD</kbd> Move</span><span><kbd>Mouse</kbd> Aim</span><span><kbd>C</kbd> Auto-aim</span><span><kbd>E</kbd> Ability</span><span><kbd>R</kbd> Ultimate</span><span><kbd>1–3</kbd> Upgrade</span><span><kbd>Esc</kbd> Pause</span></div>
+    </dialog>
+
+    <dialog id="guide-dialog" class="guide-dialog">
+      <div class="manual-header">
+        <div><p class="eyebrow">Command archive // live</p><h2>UPGRADES & RARE FINDS</h2></div>
+        <button id="guide-close" class="icon-button" type="button" aria-label="Close upgrade archive">Close</button>
+      </div>
+      <nav class="guide-tabs" aria-label="Upgrade archive sections">
+        <a href="#guide-campaign">Campaign</a><a href="#guide-signatures">Signatures</a><a href="#guide-weapons">Weapons</a><a href="#guide-passives">Passives</a><a href="#guide-rare">Rare finds</a>
+      </nav>
+      <div id="guide-content" class="guide-content"></div>
+    </dialog>
+
+    <dialog id="report-dialog" class="report-dialog">
+      <form id="report-form">
+        <div class="manual-header">
+          <div><p class="eyebrow">Direct to command // diagnostics attached</p><h2>REPORT A PROBLEM</h2></div>
+          <button id="report-close" class="icon-button" type="button" aria-label="Close problem report">Close</button>
+        </div>
+        <div class="report-body">
+          <p>Tell us what happened. Your build, browser, current screen, run settings, and recent errors will be included automatically.</p>
+          <div class="report-fields">
+            <label class="select-field"><span class="input-label">Report type</span><select id="report-category"><option value="bug">Something broke</option><option value="balance">Balance / difficulty</option><option value="multiplayer">Multiplayer</option><option value="feedback">Idea or feedback</option></select></label>
+            <label class="callsign-field"><span class="input-label">Contact (optional)</span><input id="report-contact" type="text" maxlength="120" autocomplete="email" placeholder="Email or handle"></label>
+            <label class="report-note"><span class="input-label">What happened?</span><textarea id="report-note" minlength="8" maxlength="4000" required placeholder="What were you doing, what did you expect, and what happened instead?"></textarea></label>
+          </div>
+          <label class="report-screenshot"><input id="report-screenshot" type="checkbox" checked><span>Include a screenshot of the game canvas when available</span></label>
+          <div id="report-context" class="report-context"></div>
+          <div id="report-status" class="report-status" role="status" aria-live="polite"></div>
+          <div class="report-actions"><button id="report-submit" class="deploy-button" type="submit"><span>Send report</span><span>↗</span></button><button id="report-copy" class="text-button" type="button">Copy diagnostic details</button></div>
+        </div>
+      </form>
     </dialog>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <div class="build-badge" aria-label="Lastlight build 2026.07.09.3"><span></span> BUILD <strong>2026.07.09.3</strong></div>
-  <footer class="legal-footer">Lastlight is an original, free prototype. No affiliation with or endorsement by Riot Games.</footer>
-  <script type="module" src="game.js?v=20260709.3"></script>
+  <div class="build-badge" aria-label="Lastlight build 2026.07.09.6"><span></span> BUILD <strong>2026.07.09.6</strong></div>
+  <footer class="legal-footer">Lastlight is an original, free browser prototype.</footer>
+  <script type="module" src="game.js?v=20260709.6"></script>
 </body>
 </html>
