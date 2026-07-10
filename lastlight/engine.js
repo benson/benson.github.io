@@ -1,7 +1,7 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, clamp, distance,
-} from "./data.js?v=20260709.6";
+} from "./data.js?v=20260710.1";
 
 const TAU = Math.PI * 2;
 const WORLD = { width: 3600, height: 2400 };

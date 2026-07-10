@@ -4,19 +4,33 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#070d18">
-  <meta name="description" content="Lastlight is a free multiplayer browser bullet-heaven prototype.">
-  <meta property="og:title" content="Lastlight — multiplayer bullet heaven">
-  <meta property="og:description" content="Create a squad, share the room code, and survive the breach together.">
+  <meta name="description" content="Form a squad of up to four specialists, forge impossible weapons, and survive the breach in Lastlight — a multiplayer browser bullet heaven.">
+  <meta name="application-name" content="Lastlight">
+  <meta name="apple-mobile-web-app-title" content="Lastlight">
+  <link rel="canonical" href="https://bensonperry.com/lastlight/">
+  <meta property="og:title" content="Lastlight — Multiplayer Bullet Heaven">
+  <meta property="og:description" content="Form a squad of up to four specialists, forge impossible weapons, and hold the line together — instantly in your browser.">
   <meta property="og:image" content="https://bensonperry.com/lastlight/assets/og.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="628">
+  <meta property="og:image:alt" content="Lastlight's nine specialists assembled beneath the title Outrun the End">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://bensonperry.com/lastlight/">
+  <meta property="og:site_name" content="Lastlight">
   <meta name="twitter:card" content="summary_large_image">
-  <title>Lastlight</title>
-  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <meta name="twitter:title" content="Lastlight — Multiplayer Bullet Heaven">
+  <meta name="twitter:description" content="Squad up, build impossible weapons, and survive the breach together — instantly in your browser.">
+  <meta name="twitter:image" content="https://bensonperry.com/lastlight/assets/og.png">
+  <meta name="twitter:image:alt" content="Lastlight's nine specialists assembled beneath the title Outrun the End">
+  <title>Lastlight — Multiplayer Bullet Heaven</title>
+  <link rel="icon" href="assets/branding/favicon.svg" type="image/svg+xml">
+  <link rel="mask-icon" href="assets/branding/favicon.svg" color="#ff5c35">
+  <link rel="manifest" href="assets/branding/site.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260709.6">
+  <link rel="stylesheet" href="styles.css?v=20260710.1">
 </head>
 <body>
   <main id="app">
@@ -43,6 +57,7 @@
         <span><kbd>R</kbd> Ultimate</span>
         <span><kbd>1–3</kbd> Upgrade</span>
         <span><kbd>Esc</kbd> Pause</span>
+        <span><kbd>` / ~</kbd> Report</span>
       </div>
 
       <div class="home-content">
@@ -52,62 +67,73 @@
           <p class="hero-deck">A 1–4 player browser bullet heaven. Pick a specialist, build impossible weapons, and hold the line until the apex arrives.</p>
         </header>
 
-        <div class="setup-panel" aria-label="Game setup">
-          <div class="mode-tabs" role="tablist" aria-label="Party type">
-            <button class="mode-tab active" type="button" data-party-mode="solo" role="tab" aria-selected="true">Solo run</button>
-            <button class="mode-tab" type="button" data-party-mode="host" role="tab" aria-selected="false">Create squad</button>
-            <button class="mode-tab" type="button" data-party-mode="join" role="tab" aria-selected="false">Join code</button>
-          </div>
+        <div class="setup-flow">
+          <section class="identity-panel" aria-labelledby="identity-title">
+            <header class="setup-step-header">
+              <span>01 / Identity</span>
+              <strong id="identity-title">Choose your specialist</strong>
+            </header>
+            <div class="identity-body">
+              <label class="input-label" for="callsign-input">Callsign</label>
+              <input id="callsign-input" class="callsign-input" maxlength="16" autocomplete="nickname" value="Rookie" aria-label="Callsign">
+              <div class="identity-roster-heading"><span>Specialist</span><small>Your selection carries into any squad type</small></div>
+              <div id="home-roster" class="home-roster" role="listbox" aria-label="Choose a specialist"></div>
+            </div>
+          </section>
 
-          <div class="setup-body">
-            <label class="input-label" for="callsign-input">Callsign</label>
-            <input id="callsign-input" class="callsign-input" maxlength="16" autocomplete="nickname" value="Rookie" aria-label="Callsign">
-
-            <div id="join-fields" class="join-fields hidden">
-              <label class="input-label" for="room-input">Squad code</label>
-              <input id="room-input" class="room-input" maxlength="6" autocomplete="off" spellcheck="false" placeholder="ENTER CODE" aria-label="Squad code">
+          <section class="setup-panel" aria-labelledby="deployment-title">
+            <header class="setup-step-header deployment-heading">
+              <span>02 / Deployment</span>
+              <strong id="deployment-title">Choose how to play</strong>
+            </header>
+            <div class="mode-tabs" role="tablist" aria-label="Party type">
+              <button class="mode-tab active" type="button" data-party-mode="solo" role="tab" aria-selected="true">Solo run</button>
+              <button class="mode-tab" type="button" data-party-mode="host" role="tab" aria-selected="false">Create squad</button>
+              <button class="mode-tab" type="button" data-party-mode="join" role="tab" aria-selected="false">Join code</button>
             </div>
 
-            <div id="host-options" class="host-options">
-              <label class="select-field">
-                <span class="input-label">Operation</span>
-                <select id="map-select">
-                  <option value="warehouse">Iron District</option>
-                  <option value="outskirts">Ash Outskirts</option>
-                  <option value="lab">Subzero Lab</option>
-                  <option value="beachhead">The Beachhead</option>
-                </select>
-              </label>
-              <label class="select-field">
-                <span class="input-label">Threat</span>
-                <select id="difficulty-select">
-                  <option value="story">Story · Pressured</option>
-                  <option value="hard">Hard · 3× health · 2× damage</option>
-                  <option value="extreme">Extreme · 7× health · 3× damage</option>
-                </select>
-              </label>
-              <label class="select-field full-span">
-                <span class="input-label">Pacing</span>
-                <select id="duration-select">
-                  <option value="240">Field test · 4 minutes</option>
-                  <option value="900">Original pacing · 15 minutes</option>
-                </select>
-              </label>
-            </div>
-            <p id="progression-note" class="progression-note"></p>
+            <div class="setup-body">
+              <div id="join-fields" class="join-fields hidden">
+                <label class="input-label" for="room-input">Squad code</label>
+                <input id="room-input" class="room-input" maxlength="6" autocomplete="off" spellcheck="false" placeholder="ENTER CODE" aria-label="Squad code">
+              </div>
 
-            <button id="deploy-button" class="deploy-button" type="button">
-              <span>Deploy solo</span>
-              <span class="deploy-arrow">↗</span>
-            </button>
-            <p id="connection-note" class="connection-note">No sign-in. Desktop keyboard recommended; touch controls included.</p>
-          </div>
+              <div id="host-options" class="host-options">
+                <label class="select-field">
+                  <span class="input-label">Operation</span>
+                  <select id="map-select">
+                    <option value="warehouse">Iron District</option>
+                    <option value="outskirts">Ash Outskirts</option>
+                    <option value="lab">Subzero Lab</option>
+                    <option value="beachhead">The Beachhead</option>
+                  </select>
+                </label>
+                <label class="select-field">
+                  <span class="input-label">Threat</span>
+                  <select id="difficulty-select">
+                    <option value="story">Story · Sharp hits · Lighter opening</option>
+                    <option value="hard">Hard · 3× health · 2× damage</option>
+                    <option value="extreme">Extreme · 7× health · 3× damage</option>
+                  </select>
+                </label>
+                <label class="select-field full-span">
+                  <span class="input-label">Pacing</span>
+                  <select id="duration-select">
+                    <option value="240">Field test · 4 minutes</option>
+                    <option value="900">Original pacing · 15 minutes</option>
+                  </select>
+                </label>
+              </div>
+              <p id="progression-note" class="progression-note"></p>
+
+              <button id="deploy-button" class="deploy-button" type="button">
+                <span>Deploy solo</span>
+                <span class="deploy-arrow">↗</span>
+              </button>
+              <p id="connection-note" class="connection-note">No sign-in. Desktop keyboard recommended; touch controls included.</p>
+            </div>
+          </section>
         </div>
-      </div>
-
-      <div class="roster-strip" aria-label="Specialist roster">
-        <div class="roster-label"><span>09</span> Specialists</div>
-        <div id="home-roster" class="home-roster"></div>
       </div>
     </section>
 
@@ -128,6 +154,7 @@
           <span><kbd>R</kbd> Ultimate</span>
           <span><kbd>1–3</kbd> Upgrade</span>
           <span><kbd>Esc</kbd> Pause</span>
+          <span><kbd>` / ~</kbd> Report</span>
         </div>
 
         <div class="lobby-title-row">
@@ -195,7 +222,7 @@
 
       <div class="weapon-hud" id="weapon-hud"></div>
       <div class="xp-wrap"><span id="level-label">LV 1</span><div class="xp-track"><i id="xp-progress"></i></div></div>
-      <div class="game-controls-hint" aria-label="Keyboard controls"><span><kbd>WASD</kbd> Move</span><span><kbd>C</kbd> Auto-aim</span><span><kbd>Mouse</kbd> Aim</span></div>
+      <div class="game-controls-hint" aria-label="Keyboard controls"><span><kbd>WASD</kbd> Move</span><span><kbd>C</kbd> Auto-aim</span><span><kbd>Mouse</kbd> Aim</span><span><kbd>` / ~</kbd> Report</span></div>
 
       <div id="upgrade-overlay" class="overlay upgrade-overlay hidden">
         <div class="upgrade-panel">
@@ -264,7 +291,7 @@
         <section><span class="manual-number">03</span><h3>Hold for the apex</h3><p>Enemy tiers and wave density rise throughout the operation. Survive the timer, then defeat the map's apex before its five-minute enrage.</p></section>
         <section><span class="manual-number">04</span><h3>Revive the squad</h3><p>In co-op, stand inside a downed ally's ring for ten seconds to revive them. If every specialist is down at once, the operation is lost.</p></section>
       </div>
-      <div class="manual-controls"><span><kbd>WASD</kbd> Move</span><span><kbd>Mouse</kbd> Aim</span><span><kbd>C</kbd> Auto-aim</span><span><kbd>E</kbd> Ability</span><span><kbd>R</kbd> Ultimate</span><span><kbd>1–3</kbd> Upgrade</span><span><kbd>Esc</kbd> Pause</span></div>
+      <div class="manual-controls"><span><kbd>WASD</kbd> Move</span><span><kbd>Mouse</kbd> Aim</span><span><kbd>C</kbd> Auto-aim</span><span><kbd>E</kbd> Ability</span><span><kbd>R</kbd> Ultimate</span><span><kbd>1–3</kbd> Upgrade</span><span><kbd>Esc</kbd> Pause</span><span><kbd>` / ~</kbd> Report</span></div>
     </dialog>
 
     <dialog id="guide-dialog" class="guide-dialog">
@@ -299,12 +326,48 @@
       </form>
     </dialog>
 
+    <dialog id="build-history-dialog" class="build-history-dialog" aria-labelledby="build-history-title">
+      <div class="build-history-header">
+        <div>
+          <p class="eyebrow">Release archive // live</p>
+          <h2 id="build-history-title">BUILD HISTORY</h2>
+        </div>
+        <button id="build-history-close" class="icon-button" type="button" aria-label="Close build history">Close</button>
+      </div>
+      <div class="build-history-body">
+        <article class="build-release current-build">
+          <header>
+            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.10.1</h3></div>
+            <time class="build-shipped-at" data-build-shipped-at="2026-07-10T12:31:00-04:00">Shipped Jul 10, 2026, 12:31 PM EDT</time>
+          </header>
+          <ul>
+            <li>Illustrated every rare find, event, squad boon, and augment in the Upgrade Archive.</li>
+            <li>Made combat pickups, hostile fire, and battlefield obstacles easier to distinguish at a glance.</li>
+            <li>Separated callsign and specialist selection from solo and squad deployment choices.</li>
+            <li>Added the <kbd>` / ~</kbd> in-run report shortcut, with safe pausing while a report is open.</li>
+            <li>Tuned the opening threat curve and added privacy-conscious run telemetry for future balance decisions.</li>
+            <li>Improved specialist framing, interface selection behavior, share previews, branding assets, and theme-ready asset organization.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.09.6</h3></div>
+            <span class="build-time-unavailable">Ship time unavailable for this legacy build</span>
+          </header>
+          <ul>
+            <li>Expanded campaign progression, squad upgrade visibility, game events, combat feedback, and post-run statistics.</li>
+            <li>Added persistent build identification, weapon art and tooltips, audio, the Upgrade Archive, and problem reporting.</li>
+          </ul>
+        </article>
+      </div>
+    </dialog>
+
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <div class="build-badge" aria-label="Lastlight build 2026.07.09.6"><span></span> BUILD <strong>2026.07.09.6</strong></div>
-  <footer class="legal-footer">Lastlight is an original, free browser prototype.</footer>
-  <script type="module" src="game.js?v=20260709.6"></script>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.10.1. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.10.1</strong></button>
+  <script src="build-history.js?v=20260710.1"></script>
+  <script type="module" src="game.js?v=20260710.1"></script>
 </body>
 </html>

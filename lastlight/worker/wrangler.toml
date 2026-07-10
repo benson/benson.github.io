@@ -12,6 +12,10 @@ bindings = [
 tag = "v1"
 new_sqlite_classes = ["Room"]
 
+[[analytics_engine_datasets]]
+binding = "RUN_TELEMETRY"
+dataset = "lastlight_runs"
+
 [observability]
 enabled = true
 

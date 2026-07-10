@@ -1,7 +1,9 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, WAVE_NAMES, BOONS, AUGMENTS, formatTime, clamp } from "./data.js?v=20260709.6";
-import { Simulation } from "./engine.js?v=20260709.6";
-import { Renderer } from "./render.js?v=20260709.6";
-import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260709.6";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, WAVE_NAMES, BOONS, AUGMENTS, formatTime, clamp } from "./data.js?v=20260710.1";
+import { Simulation } from "./engine.js?v=20260710.1";
+import { Renderer } from "./render.js?v=20260710.1";
+import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260710.1";
+import { getThemeAsset } from "./themes/lastlight.js?v=20260710.1";
+import { submitRunTelemetry } from "./telemetry.js?v=20260710.1";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -9,10 +11,10 @@ const query = new URLSearchParams(location.search);
 const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.09.6";
+const BUILD = "2026.07.10.1";
 const renderer = new Renderer($("game-canvas"));
 const PROGRESS_KEY = "lastlight:campaign:v1";
-const DIFFICULTY_COPY = { story: "Story · Pressured", hard: "Hard · 3× health · 2× damage", extreme: "Extreme · 7× health · 3× damage" };
+const DIFFICULTY_COPY = { story: "Story · Sharp hits · Lighter opening", hard: "Hard · 3× health · 2× damage", extreme: "Extreme · 7× health · 3× damage" };
 
 function loadProgress() {
   try { return normalizeProgress(JSON.parse(localStorage.getItem(PROGRESS_KEY) || "null")); }
@@ -30,7 +32,7 @@ const state = {
   progress: loadProgress(), resultGame: null,
   audio: true, audioContext: null, toastTimer: null, lastVoiceAt: 0,
   soundState: { projectiles: 0, kills: 0, level: 1, damageTaken: 0, lastShot: 0 },
-  recentErrors: [], reportSubmitting: false, resumeAfterReport: false,
+  recentErrors: [], reportSubmitting: false, resumeAfterReport: false, telemetrySent: false,
 };
 
 function setScreen(name) {
@@ -89,7 +91,7 @@ function recordVictory(map, difficulty) {
 
 function guideCard(glyph, name, meta, copy, extraClass = "", image = "") {
   const visual = image ? `<img src="${escapeHTML(image)}" alt="">` : escapeHTML(glyph);
-  return `<article class="guide-card ${extraClass}"><header><span class="guide-glyph">${visual}</span><div><strong>${escapeHTML(name)}</strong><small>${escapeHTML(meta)}</small></div></header><p>${escapeHTML(copy)}</p></article>`;
+  return `<article class="guide-card ${extraClass} ${image ? "has-art" : ""}"><header><span class="guide-glyph">${visual}</span><div><strong>${escapeHTML(name)}</strong><small>${escapeHTML(meta)}</small></div></header><p>${escapeHTML(copy)}</p></article>`;
 }
 
 function renderGuide() {
@@ -106,11 +108,11 @@ function renderGuide() {
   const weapons = Object.values(WEAPONS).map((weapon) => guideCard(weapon.glyph, weapon.name, `Evolves to ${weapon.evolve}`, `${weapon.copy} Evolution requires level 5 + ${PASSIVES[weapon.passive]?.name || weapon.passive}.`, "", weapon.icon)).join("");
   const passives = Object.values(PASSIVES).map((passive) => guideCard(passive.glyph, passive.name, `${passive.amount} · max ${passive.max}`, "Passive stats also unlock matching weapon evolutions.")).join("");
   const rare = [
-    guideCard("KEY", "Elite access card", "Rare evolution drop", "Elites and minibosses drop access cards. A card evolves one eligible level-five weapon whose matching passive is owned."),
-    guideCard("$", "Treasure runner", "Timed chase event", "Catch the fleeing gold target before it escapes to earn bonus gold, data, and access cards."),
-    guideCard("ORB", "Relay ball", "Push objective", "Make contact to drive the relay ball into its marked destination ring for a squad reward."),
-    ...BOONS.map((boon) => guideCard("★", boon.name, "Rare squad boon", boon.copy)),
-    ...AUGMENTS.map((augment) => guideCard("AUG", augment.name, "Rare augment", augment.copy)),
+    guideCard("KEY", "Elite access card", "Rare evolution drop", "Elites and minibosses drop access cards. A card evolves one eligible level-five weapon whose matching passive is owned.", "", getThemeAsset("archive.events.eliteAccessCard")),
+    guideCard("$", "Treasure runner", "Timed chase event", "Catch the fleeing gold target before it escapes to earn bonus gold, data, and access cards.", "", getThemeAsset("archive.events.treasureRunner")),
+    guideCard("ORB", "Relay ball", "Push objective", "Make contact to drive the relay ball into its marked destination ring for a squad reward.", "", getThemeAsset("archive.events.relayBall")),
+    ...BOONS.map((boon) => guideCard("★", boon.name, "Rare squad boon", boon.copy, "", boon.icon)),
+    ...AUGMENTS.map((augment) => guideCard("AUG", augment.name, "Rare augment", augment.copy, "", augment.icon)),
   ].join("");
   $("guide-content").innerHTML = `<section id="guide-campaign" class="guide-section"><h3>Campaign route</h3><p>Clear threat tiers to unlock harder operations. Progress is saved in this browser.</p><div class="campaign-route">${campaign}</div></section><section id="guide-signatures" class="guide-section"><h3>Signature evolutions</h3><div class="guide-grid">${signatures}</div></section><section id="guide-weapons" class="guide-section"><h3>Universal weapons</h3><div class="guide-grid">${weapons}</div></section><section id="guide-passives" class="guide-section"><h3>Passive upgrades</h3><div class="guide-grid">${passives}</div></section><section id="guide-rare" class="guide-section"><h3>Rare finds & events</h3><div class="guide-grid">${rare}</div></section>`;
 }
@@ -118,11 +120,9 @@ function renderGuide() {
 function renderHomeRoster() {
   $("home-roster").innerHTML = SPECIALIST_ORDER.map((id) => {
     const spec = SPECIALISTS[id];
-    return `<button class="roster-mini" type="button" data-specialist="${id}" aria-label="Choose ${spec.name}"><img src="${spec.sprite}" alt=""><span>${spec.number} ${spec.name.toUpperCase()}</span></button>`;
+    return `<button class="roster-mini" type="button" role="option" data-specialist="${id}" aria-selected="${id === state.selected}" aria-label="Choose ${spec.name}"><img src="${spec.sprite}" alt=""><span>${spec.number} ${spec.name.toUpperCase()}</span></button>`;
   }).join("");
-  $("home-roster").querySelectorAll("button").forEach((button) => button.addEventListener("click", () => {
-    selectSpecialist(button.dataset.specialist); enterLobbySoloPreview();
-  }));
+  $("home-roster").querySelectorAll("button").forEach((button) => button.addEventListener("click", () => selectSpecialist(button.dataset.specialist)));
 }
 
 function renderSpecialistGrid() {
@@ -137,6 +137,7 @@ function selectSpecialist(id) {
   if (!SPECIALISTS[id]) return;
   state.selected = id;
   const spec = SPECIALISTS[id];
+  $("home-roster").querySelectorAll("button").forEach((button) => button.setAttribute("aria-selected", button.dataset.specialist === id));
   $("specialist-grid").querySelectorAll("button").forEach((button) => button.setAttribute("aria-selected", button.dataset.specialist === id));
   $("detail-number").textContent = spec.number; $("detail-art").src = spec.sprite; $("detail-art").alt = spec.name;
   $("detail-role").textContent = spec.role; $("detail-name").textContent = spec.name.toUpperCase(); $("detail-tagline").textContent = spec.tagline;
@@ -244,7 +245,7 @@ function startRemoteGame(message) {
 }
 
 function enterGame() {
-  setScreen("game"); renderer.resize(); state.endShown = false; state.lastEventSeq = 0; state.lastUpgradeKey = ""; state.lastWeaponHUDKey = ""; state.lastSquadHUDKey = ""; state.lastFrame = performance.now();
+  setScreen("game"); renderer.resize(); state.endShown = false; state.telemetrySent = false; state.lastEventSeq = 0; state.lastUpgradeKey = ""; state.lastWeaponHUDKey = ""; state.lastSquadHUDKey = ""; state.lastFrame = performance.now();
   state.soundState = { projectiles: 0, kills: 0, level: 1, damageTaken: 0, lastShot: 0 };
   state.lastSend = 0; state.lastBroadcast = 0; renderer.camera.x = 0; renderer.camera.y = 0; $("game-canvas").focus();
   if (!state.animation) state.animation = requestAnimationFrame(gameLoop);
@@ -502,6 +503,10 @@ function showResult(game) {
   $("result-unlock").textContent = unlocks.length ? `Campaign updated · ${unlocks.join(" · ")}` : "";
   state.resultGame = game; renderScoreboard(game);
   setScreen("result");
+  if (state.isHost && !state.telemetrySent) {
+    state.telemetrySent = true;
+    submitRunTelemetry(game, BUILD).catch((error) => console.warn("Run telemetry unavailable", error));
+  }
 }
 
 function returnToLobby() {
@@ -753,6 +758,12 @@ function bindEvents() {
     if (upgradeChoice) {
       event.preventDefault();
       if (!event.repeat) $("upgrade-cards").querySelectorAll("button")[Number(key) - 1]?.click();
+      return;
+    }
+    const reportKey = event.code === "Backquote" || key === "`" || key === "~";
+    if (reportKey) {
+      event.preventDefault();
+      if (!event.repeat) openReport();
       return;
     }
     if (["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright","e","r","c","escape"].includes(key)) event.preventDefault();
