@@ -1,6 +1,24 @@
 {
-  "blurb": "played 19 other games in the last week, went 11-8",
+  "blurb": "played 20 other games in the last week, went 10-10",
   "recent": [
+    {
+      "champion": "Leona",
+      "win": false,
+      "kills": 2,
+      "deaths": 11,
+      "assists": 5,
+      "damage": 15118,
+      "minutes": 30
+    },
+    {
+      "champion": "Darius",
+      "win": false,
+      "kills": 5,
+      "deaths": 7,
+      "assists": 8,
+      "damage": 15754,
+      "minutes": 24
+    },
     {
       "champion": "MissFortune",
       "win": true,
@@ -27,24 +45,6 @@
       "assists": 5,
       "damage": 17468,
       "minutes": 32
-    },
-    {
-      "champion": "Urgot",
-      "win": true,
-      "kills": 6,
-      "deaths": 14,
-      "assists": 19,
-      "damage": 65887,
-      "minutes": 30
-    },
-    {
-      "champion": "Vladimir",
-      "win": true,
-      "kills": 9,
-      "deaths": 7,
-      "assists": 20,
-      "damage": 55224,
-      "minutes": 28
     }
   ],
   "ddragonVersion": "16.13.1",
