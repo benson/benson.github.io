@@ -12,6 +12,7 @@ import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.4";
 import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260711.4";
 import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260711.4";
 import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260711.4";
+import { clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260711.5";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -96,10 +97,12 @@ const state = {
   hostPreviousMotion: null, inputMotionStartedAt: 0, inputMotionStart: null, inputWasActive: false,
   replayRecorder: null, lastReplayCheckpointTick: -1, lastReplay: loadLastReplay(), resultReplay: null,
   runtimeConfig: { config: DEFAULT_RUNTIME_CONFIG, source: "built-in", status: "initializing" },
+  recoveryOffer: null, lastRecoverySaveAt: 0,
 };
 
 const runtimeConfigReady = loadRuntimeConfig({ endpoint: RUNTIME_CONFIG_ENDPOINT }).then((result) => {
   state.runtimeConfig = result;
+  refreshRecoveryOffer();
   return result;
 });
 
@@ -140,6 +143,82 @@ function finalizeReplayCapture() {
   state.resultReplay = replay;
   try { sessionStorage.setItem(LAST_REPLAY_KEY, JSON.stringify(replay)); } catch { /* Replay export remains available in memory. */ }
   return replay;
+}
+
+function recoveryExpected() {
+  return { build: BUILD, runtime: runtimeRecoveryIdentity(state.runtimeConfig.config) };
+}
+
+function refreshRecoveryOffer() {
+  state.recoveryOffer = loadRunRecovery(localStorage, recoveryExpected());
+  const panel = $("recovery-offer");
+  if (!panel) return;
+  panel.classList.toggle("hidden", !state.recoveryOffer);
+  if (!state.recoveryOffer) return;
+  const recovery = state.recoveryOffer, header = recovery.simulation.header, progress = recovery.simulation.scalars;
+  $("recovery-title").textContent = `${MAPS[header.map]?.name || header.map} · ${DIFFICULTIES[header.difficulty]?.name || header.difficulty}`;
+  $("recovery-copy").textContent = `${recovery.source === "host" ? "Squad host" : "Solo"} · ${formatTime(progress.remaining)} remaining · saved ${new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(new Date(recovery.savedAt))}`;
+}
+
+function persistRecoveryCheckpoint(force = false) {
+  if (!state.isHost || !state.sim || state.screen !== "game" || !["running", "boss"].includes(state.sim.stage)) return;
+  const now = Date.now();
+  if (!force && now - state.lastRecoverySaveAt < 5_000) return;
+  const local = state.sim.players.find((player) => player.id === state.clientId) || state.sim.players[0];
+  if (!local || !Number.isInteger(local.replaySlot)) return;
+  try {
+    const checkpoint = createRunRecovery({
+      build: BUILD,
+      runtime: runtimeRecoveryIdentity(state.runtimeConfig.config),
+      source: state.partyMode === "solo" ? "solo" : "host",
+      localSlot: local.replaySlot,
+      simulation: state.sim.exportRecoveryState(),
+      replay: state.replayRecorder?.exportDraft(state.sim.tick) || null,
+      savedAt: now,
+    });
+    saveRunRecovery(localStorage, checkpoint);
+    state.recoveryOffer = checkpoint;
+    state.lastRecoverySaveAt = now;
+  } catch (error) {
+    captureClientError("recovery", error);
+  }
+}
+
+function discardRecovery({ notify = true } = {}) {
+  clearRunRecovery(localStorage);
+  state.recoveryOffer = null;
+  $("recovery-offer")?.classList.add("hidden");
+  if (notify) toast("Interrupted operation discarded");
+}
+
+function resumeRecovery() {
+  const checkpoint = loadRunRecovery(localStorage, recoveryExpected());
+  if (!checkpoint) { refreshRecoveryOffer(); toast("That recovery checkpoint is no longer compatible"); return; }
+  try {
+    closeSocket();
+    const sim = Simulation.fromRecoveryState(checkpoint.simulation);
+    const localId = `slot-${checkpoint.localSlot}`;
+    if (!sim.players.some((player) => player.id === localId)) throw new TypeError("Local recovery slot is missing");
+    state.clientId = localId; state.isHost = true; state.room = ""; state.partyMode = checkpoint.source;
+    state.config = {
+      map: checkpoint.simulation.header.map, difficulty: checkpoint.simulation.header.difficulty, duration: checkpoint.simulation.header.duration,
+      features: gameplayFeatureContract(state.runtimeConfig.config),
+    };
+    state.sim = sim;
+    state.lobby = new Map(sim.players.map((player) => [player.id, { id: player.id, name: player.name, specialist: player.specialist, ready: true }]));
+    state.replayRecorder = checkpoint.replay ? ReplayRecorder.fromDraft(checkpoint.replay, sim.players) : null;
+    state.lastReplayCheckpointTick = checkpoint.replay?.checkpoints?.at(-1)?.[0] ?? -1;
+    state.previousSnapshot = null; state.snapshot = null;
+    sim.paused = true; sim.pauseReason = "manual";
+    enterGame();
+    state.lastRecoverySaveAt = 0;
+    persistRecoveryCheckpoint(true);
+    toast("Operation restored · paused for review");
+  } catch (error) {
+    captureClientError("recovery restore", error);
+    discardRecovery({ notify: false });
+    toast("Recovery data was invalid and has been discarded");
+  }
 }
 
 function applyHostInput(playerId, input) {
@@ -418,9 +497,11 @@ function startHostedGame() {
   state.config = { ...state.config, features };
   state.sim = new Simulation({ ...state.config, players }, { seed, balanceVersion: BALANCE_VERSION, balanceHash: BALANCE_HASH, features });
   beginReplayCapture(players, seed);
+  discardRecovery({ notify: false });
   state.previousSnapshot = null; state.snapshot = null;
   if (state.ws?.readyState === WebSocket.OPEN) send({ type: "start", config: state.config, players: publicLobbyPlayers() });
   enterGame();
+  persistRecoveryCheckpoint(true);
 }
 
 function startRemoteGame(message) {
@@ -450,6 +531,7 @@ function gameLoop(now) {
       state.sim.update(stepSeconds);
       recordReplayCheckpoint();
     });
+    persistRecoveryCheckpoint();
     simulationMs = performance.now() - simulationStarted; interpolation = timing.alpha; renderPrevious = state.hostPreviousMotion;
     renderState = withLocalMovementPreview(state.sim, hostInput, fixedClock.accumulator);
     if (state.ws?.readyState === WebSocket.OPEN && now - state.lastBroadcast > 83) { state.lastBroadcast = now; send({ type: "snapshot", state: state.sim.snapshot() }); }
@@ -1175,6 +1257,7 @@ async function copyPlayerScorecard(playerId) {
 }
 
 function showResult(game) {
+  discardRecovery({ notify: false });
   const won = game.stage === "won"; $("result-eyebrow").textContent = won ? "Operation complete" : "Signal lost";
   $("result-title").textContent = won ? "APEX NEUTRALIZED" : "THE LINE BROKE"; $("result-title").style.color = won ? "var(--cyan)" : "var(--danger)";
   $("result-copy").textContent = won ? "The line held. Final City gets another sunrise." : "Recalibrate the loadout, regroup, and breach again.";
@@ -1202,6 +1285,7 @@ async function copyReplay() {
 }
 
 function returnToLobby() {
+  discardRecovery({ notify: false });
   state.sim = null; state.snapshot = null; state.previousSnapshot = null; state.replayRecorder = null; state.endShown = false; clearTimeout(state.resultTimer);
   for (const member of state.lobby.values()) member.ready = member.id === state.clientId && state.isHost;
   if (state.ws?.readyState === WebSocket.OPEN) send({ type: "return_lobby" });
@@ -1510,6 +1594,7 @@ function bindEvents() {
   document.querySelectorAll(".mode-tab").forEach((button) => button.addEventListener("click", () => setPartyMode(button.dataset.partyMode)));
   $("map-select").addEventListener("change", updateDifficultyOptions);
   $("deploy-button").addEventListener("click", deploy); $("room-input").addEventListener("keydown", (event) => { if (event.key === "Enter") deploy(); });
+  $("recovery-resume").addEventListener("click", resumeRecovery); $("recovery-discard").addEventListener("click", () => discardRecovery());
   $("room-input").addEventListener("input", (event) => { event.target.value = event.target.value.toUpperCase().replace(/[^A-Z2-9]/g, ""); });
   $("lobby-back").addEventListener("click", leaveToHome); $("ready-button").addEventListener("click", handleReady); $("copy-link").addEventListener("click", copyInvite);
   $("pause-button").addEventListener("click", () => togglePause()); $("resume-button").addEventListener("click", () => togglePause(false)); $("abandon-button").addEventListener("click", abandon);

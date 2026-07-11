@@ -28,6 +28,43 @@ function compactPoint(e) {
   return result;
 }
 
+const RECOVERY_STATE_VERSION = 1;
+const RECOVERY_SCALARS = [
+  "tick", "time", "remaining", "stage", "paused", "pauseReason", "wave", "teamXP", "level", "xpNeed", "kills", "gold",
+  "spawnClock", "nextElite", "nextMiniBoss", "nextTreasure", "nextRelayBall", "objectiveIndex", "bossElapsed", "bossPhase", "enraged",
+];
+const RECOVERY_LIST_LIMITS = Object.freeze({
+  drones: 32, enemies: 5_000, projectiles: 8_000, hostile: 8_000, effects: 4_000, orbs: 8_000, drops: 1_000,
+  pods: 256, objectives: 64, relayBalls: 32, tasks: 1_000, feathers: 4_000,
+});
+
+function serializeRecoveryValue(value, playerIds) {
+  if (value instanceof Set) return { $set: [...value].map((entry) => serializeRecoveryValue(entry, playerIds)) };
+  if (Array.isArray(value)) return value.map((entry) => serializeRecoveryValue(entry, playerIds));
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, serializeRecoveryValue(entry, playerIds)]));
+  }
+  if (typeof value === "string" && playerIds.has(value)) return playerIds.get(value);
+  if (typeof value === "number" && !Number.isFinite(value)) throw new TypeError("Recovery state contains a non-finite number");
+  return value;
+}
+
+function deserializeRecoveryValue(value) {
+  if (Array.isArray(value)) return value.map(deserializeRecoveryValue);
+  if (value && typeof value === "object") {
+    if (Object.keys(value).length === 1 && Array.isArray(value.$set)) return new Set(value.$set.map(deserializeRecoveryValue));
+    return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, deserializeRecoveryValue(entry)]));
+  }
+  return value;
+}
+
+function recoveryRecord(value, playerIds) {
+  if (value === null) return null;
+  const result = {};
+  for (const [key, entry] of Object.entries(value || {})) result[playerIds.get(key) || key] = serializeRecoveryValue(entry, playerIds);
+  return result;
+}
+
 export function collidesWithCover(x, y, radius) {
   for (const [left, top, width, height] of MAP_OBSTACLES) {
     const nearestX = clamp(x, left, left + width), nearestY = clamp(y, top, top + height);
@@ -1419,6 +1456,104 @@ export class Simulation {
       sequences: { gameplay: this.gameplaySequence, cosmetic: this.cosmeticSequence, event: this.eventSequence },
       tasks: this.tasks.map((task) => ({ id: task.id, dueTick: task.dueTick, kind: task.kind, payload: { ...task.payload } })),
     };
+  }
+
+  exportRecoveryState() {
+    if (this.stage !== "running" && this.stage !== "boss") throw new TypeError("Only an active run can be checkpointed");
+    const usedSlots = new Set();
+    const playerIds = new Map();
+    for (const [index, player] of this.players.entries()) {
+      const slot = replaySlot(player.replaySlot) ?? index;
+      if (slot > 3 || usedSlots.has(slot)) throw new TypeError("Recovery roster requires unique anonymous slots");
+      usedSlots.add(slot); playerIds.set(player.id, `slot-${slot}`);
+    }
+    const players = this.players.map((player, index) => {
+      const sanitized = {};
+      for (const [key, value] of Object.entries(player)) {
+        if (key === "name" || key === "reconnectKey") continue;
+        sanitized[key] = serializeRecoveryValue(value, playerIds);
+      }
+      sanitized.id = playerIds.get(player.id);
+      sanitized.replaySlot = replaySlot(player.replaySlot) ?? index;
+      return sanitized;
+    });
+    const scalars = Object.fromEntries(RECOVERY_SCALARS.map((key) => [key, this[key]]));
+    const lists = Object.fromEntries(Object.keys(RECOVERY_LIST_LIMITS).map((key) => [key, serializeRecoveryValue(this[key], playerIds)]));
+    return {
+      version: RECOVERY_STATE_VERSION,
+      header: {
+        seed: this.seed, balanceVersion: this.balanceVersion, balanceHash: this.balanceHash,
+        gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents,
+        map: this.map.id, difficulty: this.difficulty.id, duration: this.duration,
+      },
+      rng: { gameplay: this.gameplayRng.snapshot(), cosmetic: this.cosmeticRng.snapshot() },
+      sequences: { gameplay: this.gameplaySequence, cosmetic: this.cosmeticSequence, event: this.eventSequence },
+      scalars,
+      machine: serializeRecoveryValue(this.machine, playerIds),
+      players,
+      lists,
+      pendingChoices: recoveryRecord(this.pendingChoices, playerIds),
+      choiceReady: recoveryRecord(this.choiceReady, playerIds),
+      selectedChoices: recoveryRecord(this.selectedChoices, playerIds),
+    };
+  }
+
+  static fromRecoveryState(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value) || value.version !== RECOVERY_STATE_VERSION) throw new TypeError("Unsupported recovery state");
+    const expected = ["version", "header", "rng", "sequences", "scalars", "machine", "players", "lists", "pendingChoices", "choiceReady", "selectedChoices"];
+    const actual = Object.keys(value).sort();
+    if (actual.length !== expected.length || expected.sort().some((key, index) => key !== actual[index])) throw new TypeError("Recovery state has unexpected fields");
+    const header = value.header;
+    if (!header || !MAPS[header.map] || !DIFFICULTIES[header.difficulty] || !Number.isFinite(header.duration) || header.duration < 60 || header.duration > 3_600) throw new TypeError("Recovery header is invalid");
+    if (!Array.isArray(value.players) || value.players.length < 1 || value.players.length > 4) throw new TypeError("Recovery roster is invalid");
+    const slots = new Set();
+    const roster = value.players.map((stored, index) => {
+      const slot = replaySlot(stored?.replaySlot);
+      if (slot === undefined || slots.has(slot) || stored.id !== `slot-${slot}` || !SPECIALISTS[stored.specialist]) throw new TypeError(`Recovery player ${index} is invalid`);
+      slots.add(slot);
+      return { id: stored.id, name: `Specialist ${slot + 1}`, specialist: stored.specialist, replaySlot: slot };
+    });
+    if (!value.scalars || !RECOVERY_SCALARS.every((key) => Object.hasOwn(value.scalars, key))) throw new TypeError("Recovery scalars are incomplete");
+    if (!Number.isInteger(value.scalars.tick) || value.scalars.tick < 0 || !["running", "boss"].includes(value.scalars.stage)) throw new TypeError("Recovery progress is invalid");
+    for (const key of RECOVERY_SCALARS) {
+      const entry = value.scalars[key];
+      if (typeof entry === "number" && !Number.isFinite(entry)) throw new TypeError(`Recovery scalar ${key} is invalid`);
+    }
+    if (!value.lists || typeof value.lists !== "object") throw new TypeError("Recovery lists are invalid");
+    for (const [key, limit] of Object.entries(RECOVERY_LIST_LIMITS)) {
+      if (!Array.isArray(value.lists[key]) || value.lists[key].length > limit) throw new TypeError(`Recovery list ${key} exceeds bounds`);
+    }
+    const sim = new Simulation({
+      map: header.map, difficulty: header.difficulty, duration: header.duration, players: roster,
+      balanceVersion: header.balanceVersion, balanceHash: header.balanceHash,
+      features: { gameplayVersion: header.gameplayVersion, objectiveEvents: header.objectiveEvents },
+    }, {
+      seed: header.seed, balanceVersion: header.balanceVersion, balanceHash: header.balanceHash,
+      features: { gameplayVersion: header.gameplayVersion, objectiveEvents: header.objectiveEvents },
+    });
+    sim.gameplayRng = SeededRng.fromSnapshot(value.rng?.gameplay);
+    sim.cosmeticRng = SeededRng.fromSnapshot(value.rng?.cosmetic);
+    for (const key of RECOVERY_SCALARS) sim[key] = value.scalars[key];
+    for (const [key, stored] of Object.entries(value.sequences || {})) {
+      if (!Number.isInteger(stored) || stored < 1) throw new TypeError(`Recovery sequence ${key} is invalid`);
+    }
+    sim.gameplaySequence = value.sequences.gameplay;
+    sim.cosmeticSequence = value.sequences.cosmetic;
+    sim.eventSequence = value.sequences.event;
+    sim.machine = deserializeRecoveryValue(value.machine);
+    sim.players = value.players.map((stored) => {
+      const restored = deserializeRecoveryValue(stored);
+      restored.name = `Specialist ${restored.replaySlot + 1}`;
+      restored.reconnectKey = "";
+      return restored;
+    });
+    for (const key of Object.keys(RECOVERY_LIST_LIMITS)) sim[key] = deserializeRecoveryValue(value.lists[key]);
+    sim.pendingChoices = deserializeRecoveryValue(value.pendingChoices);
+    sim.choiceReady = deserializeRecoveryValue(value.choiceReady) || {};
+    sim.selectedChoices = deserializeRecoveryValue(value.selectedChoices) || {};
+    sim.events = [];
+    sim.disconnectedPlayers = new Map();
+    return sim;
   }
 
   snapshot() {

@@ -120,3 +120,13 @@ test("display and accessibility settings are persistent and reachable while wait
   assert.match(css, /@media \(hover: hover\) and \(pointer: fine\) \{ \.quality-shortcut:hover/);
   assert.doesNotMatch(css.match(/\.quality-shortcut \{[^}]+\}/s)?.[0] || "", /transition:\s*all/);
 });
+
+test("compatible local run recovery is explicit, privacy-safe, and resumes paused", () => {
+  for (const id of ["recovery-offer", "recovery-title", "recovery-copy", "recovery-resume", "recovery-discard"]) assert.match(html, new RegExp(`id="${id}"`));
+  assert.match(game, /Simulation\.fromRecoveryState\(checkpoint\.simulation\)/);
+  assert.match(game, /ReplayRecorder\.fromDraft\(checkpoint\.replay, sim\.players\)/);
+  assert.match(game, /sim\.paused = true; sim\.pauseReason = "manual"/);
+  assert.match(game, /persistRecoveryCheckpoint\(true\)/);
+  assert.match(game, /discardRecovery\(\{ notify: false \}\)/);
+  assert.match(css, /\.recovery-offer/);
+});

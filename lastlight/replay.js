@@ -7,6 +7,7 @@ export const MAX_REPLAY_TICK = 216_000;
 export const MAX_REPLAY_COMMANDS = 100_000;
 export const MAX_COMMANDS_PER_TICK = 32;
 export const MAX_REPLAY_CHECKPOINTS = 721;
+export const REPLAY_DRAFT_SCHEMA = "lastlight.replay-draft.v1";
 
 const MAPS = new Set(["warehouse", "outskirts", "lab", "beachhead"]);
 const DIFFICULTIES = new Set(["story", "hard", "extreme"]);
@@ -345,6 +346,77 @@ export class ReplayRecorder {
     integer(tick, 0, MAX_REPLAY_TICK, "checkpoint tick");
     safeString(hash, STATE_HASH, "checkpoint hash");
     this.checkpoints.push([tick, hash]);
+  }
+
+  exportDraft(currentTick) {
+    integer(currentTick, 0, MAX_REPLAY_TICK, "currentTick");
+    return {
+      schema: REPLAY_DRAFT_SCHEMA,
+      currentTick,
+      header: clone(this.header),
+      roster: [...this.roster.entries()].sort(([a], [b]) => a - b).map(([slot, specialist]) => ({ slot, specialist })),
+      knownSlots: [...this.knownSlots.entries()].sort(([a], [b]) => a - b).map(([slot, specialist]) => ({ slot, specialist })),
+      commands: clone(this.commands),
+      checkpoints: clone(this.checkpoints),
+      lastInputs: [...this.lastInputs.entries()].sort(([a], [b]) => a - b),
+      ordinal: this.ordinal,
+    };
+  }
+
+  static fromDraft(draft, players = []) {
+    assertExactKeys(draft, ["schema", "currentTick", "header", "roster", "knownSlots", "commands", "checkpoints", "lastInputs", "ordinal"], "replay draft");
+    if (draft.schema !== REPLAY_DRAFT_SCHEMA) throw new TypeError("Unsupported replay draft schema");
+    integer(draft.currentTick, 0, MAX_REPLAY_TICK, "replay draft currentTick");
+    assertExactKeys(draft.header, ["build", "balanceVersion", "balanceHash", "featureConfigVersion", "gameplayVersion", "objectiveEvents", "rng", "seed", "run"], "replay draft header");
+    const validationReplay = {
+      schema: REPLAY_SCHEMA,
+      build: draft.header.build,
+      balance: { version: draft.header.balanceVersion, hash: draft.header.balanceHash },
+      features: { configVersion: draft.header.featureConfigVersion, gameplayVersion: draft.header.gameplayVersion, objectiveEvents: draft.header.objectiveEvents },
+      engine: { stepHz: REPLAY_STEP_HZ, rng: draft.header.rng },
+      seed: draft.header.seed,
+      run: draft.header.run,
+      roster: draft.roster,
+      commands: draft.commands,
+      checkpoints: draft.checkpoints,
+      finalTick: draft.currentTick,
+      finalHash: "0000000000000000",
+    };
+    validateReplay(validationReplay);
+    if (new TextEncoder().encode(JSON.stringify(draft)).byteLength > MAX_REPLAY_BYTES) throw new TypeError("Replay draft exceeds size bounds");
+    if (!Array.isArray(draft.knownSlots) || draft.knownSlots.length < draft.roster.length || draft.knownSlots.length > 4) throw new TypeError("Replay draft knownSlots are invalid");
+    const knownSlots = new Map();
+    for (const [index, member] of draft.knownSlots.entries()) {
+      assertExactKeys(member, ["slot", "specialist"], `replay draft knownSlots.${index}`);
+      integer(member.slot, 0, 3, `replay draft knownSlots.${index}.slot`);
+      if (knownSlots.has(member.slot) || !SPECIALISTS.has(member.specialist)) throw new TypeError("Replay draft knownSlots are invalid");
+      knownSlots.set(member.slot, member.specialist);
+    }
+    if (!Array.isArray(draft.lastInputs) || draft.lastInputs.length > 4) throw new TypeError("Replay draft lastInputs are invalid");
+    const lastInputs = new Map();
+    for (const [index, entry] of draft.lastInputs.entries()) {
+      if (!Array.isArray(entry) || entry.length !== 2) throw new TypeError(`replay draft lastInputs.${index} is invalid`);
+      integer(entry[0], 0, 3, `replay draft lastInputs.${index}.slot`);
+      if (typeof entry[1] !== "string" || !/^-?\d+\/-?\d+\/\d+\/[01]$/.test(entry[1])) throw new TypeError(`replay draft lastInputs.${index}.value is invalid`);
+      lastInputs.set(entry[0], entry[1]);
+    }
+    integer(draft.ordinal, 0, MAX_REPLAY_COMMANDS, "replay draft ordinal");
+    const lastOrdinal = draft.commands.at(-1)?.[1] ?? -1;
+    if (draft.ordinal <= lastOrdinal) throw new TypeError("Replay draft ordinal must follow recorded commands");
+
+    const recorder = new ReplayRecorder(draft.header);
+    recorder.roster = new Map(draft.roster.map(({ slot, specialist }) => [slot, specialist]));
+    recorder.knownSlots = knownSlots;
+    recorder.commands = clone(draft.commands);
+    recorder.checkpoints = clone(draft.checkpoints);
+    recorder.lastInputs = lastInputs;
+    recorder.ordinal = draft.ordinal;
+    for (const player of players) {
+      integer(player.replaySlot, 0, 3, "recovery player replaySlot");
+      if (knownSlots.get(player.replaySlot) !== player.specialist) throw new TypeError("Recovery player does not match replay draft");
+      recorder.actualToSlot.set(player.id, player.replaySlot);
+    }
+    return recorder;
   }
 
   finalize(finalTick, finalHash) {
