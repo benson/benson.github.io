@@ -188,6 +188,26 @@ button:focus-visible, input:focus-visible, select:focus-visible, canvas:focus-vi
 .setup-step-header span { color: var(--orange); font: 800 9px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; }
 .setup-step-header strong { color: #aebfc3; font: 700 10px/1 var(--sans); letter-spacing: .08em; text-transform: uppercase; }
 .identity-body { padding: 16px; }
+.recovery-offer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 13px 15px;
+  border: 1px solid rgba(99,242,223,.34);
+  border-left: 3px solid var(--cyan);
+  background: linear-gradient(110deg, rgba(99,242,223,.1), rgba(8,17,29,.96) 58%);
+  box-shadow: 0 14px 36px rgba(0,0,0,.28);
+}
+.recovery-offer > div:first-child { min-width: 0; }
+.recovery-offer span, .recovery-offer strong, .recovery-offer small { display: block; }
+.recovery-offer span { color: var(--cyan); font: 800 8px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; }
+.recovery-offer strong { margin-top: 5px; color: var(--paper); font: 800 17px/1 var(--display); letter-spacing: .05em; text-transform: uppercase; }
+.recovery-offer small { margin-top: 5px; overflow: hidden; color: #8197a0; font-size: 9px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+.recovery-actions { display: flex; gap: 6px; }
+.recovery-actions button { border: 1px solid var(--line); background: rgba(3,9,16,.55); color: #aebfc3; padding: 9px 10px; cursor: pointer; font: 800 9px/1 var(--sans); letter-spacing: .07em; text-transform: uppercase; }
+.recovery-actions button:first-child { border-color: rgba(99,242,223,.5); color: var(--paper); }
+.recovery-actions button:active { transform: scale(.98); }
 .deployment-heading { border-bottom: 0; }
 .mode-tabs {
   display: grid;
@@ -968,6 +988,8 @@ html[data-reduced-motion="true"] .scanlines { animation: none; }
   .hero-copy h1 { font-size: 76px; }
   .hero-deck { margin-top: 25px; font-size: 14px; }
   .setup-body, .identity-body { padding: 18px; }
+  .recovery-offer { grid-template-columns: 1fr; gap: 10px; }
+  .recovery-actions button { flex: 1; }
   .setup-step-header { align-items: flex-start; flex-direction: column; gap: 5px; }
   .host-options { grid-template-columns: 1fr; }
   .full-span { grid-column: auto; }

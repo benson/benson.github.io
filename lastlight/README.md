@@ -30,6 +30,11 @@ The browser loads a strict, identity-free runtime config from the relay before
 deployment. Operator controls, emergency procedures, and the complete allowlist
 are documented in `worker/FEATURE-FLAGS.md`.
 
+## Multiplayer protocol
+
+Sequenced input, snapshot acknowledgements, rolling compatibility, and replay
+boundaries are documented in `MULTIPLAYER-PROTOCOL.md`.
+
 ## Checks
 
 - `npm run check` in `lastlight`

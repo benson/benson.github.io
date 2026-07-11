@@ -90,6 +90,17 @@ test("relay identity is sent after WebSocket upgrade instead of in the request U
   assert.match(game, /addEventListener\("open", \(\) => send\(\{ type: "hello", profile:/);
 });
 
+test("multiplayer input uses sequenced host application and snapshot acknowledgements", () => {
+  assert.match(game, /from "\.\/protocol\.js/);
+  assert.match(game, /guestInputSequences\.create\(input, now\)/);
+  assert.match(game, /hostInputSequences\.apply\(message\?\._from, message\)/);
+  assert.match(game, /createSnapshotMessage\(state\.sim\.snapshot\(\), hostInputSequences\.acknowledgements\(\)\)/);
+  assert.match(game, /guestInputSequences\.acknowledge\(snapshotMessage\.ack\[state\.clientId\], now\)/);
+  assert.match(game, /multiplayerInput: inputProtocolDiagnostics\(\)/);
+  assert.match(game, /hostInputSequences\.remove\(message\.id\)/);
+  assert.match(game, /function closeSocket\(\)[^\n]+resetInputProtocol\(\)/);
+});
+
 test("hosts capture anonymous deterministic replays and expose an explicit post-run copy action", () => {
   assert.match(html, /id="copy-replay"[^>]*>Copy deterministic replay</);
   assert.match(game, /new ReplayRecorder\(/);
@@ -119,4 +130,22 @@ test("display and accessibility settings are persistent and reachable while wait
   assert.match(css, /\.quality-shortcut:active \{ transform: scale\(\.98\); \}/);
   assert.match(css, /@media \(hover: hover\) and \(pointer: fine\) \{ \.quality-shortcut:hover/);
   assert.doesNotMatch(css.match(/\.quality-shortcut \{[^}]+\}/s)?.[0] || "", /transition:\s*all/);
+});
+
+test("compatible local run recovery is explicit, privacy-safe, and resumes paused", () => {
+  for (const id of ["recovery-offer", "recovery-title", "recovery-copy", "recovery-resume", "recovery-discard"]) assert.match(html, new RegExp(`id="${id}"`));
+  assert.match(game, /Simulation\.fromRecoveryState\(checkpoint\.simulation\)/);
+  assert.match(game, /ReplayRecorder\.fromDraft\(checkpoint\.replay, sim\.players\)/);
+  assert.match(game, /sim\.paused = true; sim\.pauseReason = "manual"/);
+  assert.match(game, /persistRecoveryCheckpoint\(true\)/);
+  assert.match(game, /discardRecovery\(\{ notify: false \}\)/);
+  assert.match(css, /\.recovery-offer/);
+});
+
+test("developer network simulation wraps transport boundaries and remains production-default-off", () => {
+  assert.match(game, /resolveNetworkLabActivation\(\{ url: location\.href \}\)/);
+  assert.match(game, /state\.networkLab\.upstream\(payload, deliver\)/);
+  assert.match(game, /state\.networkLab\.downstream\(event\.data/);
+  assert.match(game, /state\.networkLab\?\.teardown\(\)/);
+  assert.match(game, /const \{ seed, \.\.\.diagnostics \} = state\.networkLab\.diagnostics\(\)/);
 });

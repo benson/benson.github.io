@@ -25,15 +25,19 @@ jobs:
         run: npm --prefix lastlight test
       - name: Deterministic fixture gates
         run: npm --prefix lastlight run fixtures:verify -- --report=artifacts/fixture-report.json
+      - name: Four-player deterministic soak gate
+        run: npm --prefix lastlight run soak:ci -- --report artifacts/multiplayer-soak.json
       - name: Install relay test dependencies
         run: npm ci --prefix lastlight/worker
       - name: Relay tests
         run: npm test --prefix lastlight/worker
-      - name: Upload fixture report
+      - name: Upload deterministic reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: lastlight-fixture-report
-          path: lastlight/artifacts/fixture-report.json
+          name: lastlight-deterministic-reports
+          path: |
+            lastlight/artifacts/fixture-report.json
+            lastlight/artifacts/multiplayer-soak.json
           if-no-files-found: warn
           retention-days: 30

@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260711.4">
+  <link rel="stylesheet" href="styles.css?v=20260711.5">
 </head>
 <body>
   <main id="app">
@@ -78,6 +78,18 @@
             <div class="identity-body">
               <label class="input-label" for="callsign-input">Callsign</label>
               <input id="callsign-input" class="callsign-input" maxlength="16" autocomplete="nickname" value="Rookie" aria-label="Callsign">
+            </div>
+          </section>
+
+          <section id="recovery-offer" class="recovery-offer hidden" aria-labelledby="recovery-title">
+            <div>
+              <span>Interrupted operation</span>
+              <strong id="recovery-title">Recovery available</strong>
+              <small id="recovery-copy">A recent local checkpoint is ready.</small>
+            </div>
+            <div class="recovery-actions">
+              <button id="recovery-resume" type="button">Resume paused</button>
+              <button id="recovery-discard" type="button">Discard</button>
             </div>
           </section>
 
@@ -429,7 +441,20 @@
       <div class="build-history-body">
         <article class="build-release current-build">
           <header>
-            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.11.4</h3></div>
+            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.11.5</h3></div>
+            <span class="build-time-unavailable">Production verification pending</span>
+          </header>
+          <ul>
+            <li>Added bounded multiplayer input sequence numbers and per-player acknowledgements so stale, duplicate, delayed, and pending commands are observable and safely rejected.</li>
+            <li>Added a deterministic localhost-only adverse-network lab with latency, jitter, loss, duplication, reordering, and forced-reconnect profiles.</li>
+            <li>Added a four-replica multiplayer soak gate covering upgrades, objectives, disconnect/reconnect, apex completion, convergence hashes, and structural budgets.</li>
+            <li>Added privacy-safe local crash and refresh recovery with anonymous exact simulation state, replay continuation, compatibility checks, and an explicit Resume or Discard choice.</li>
+            <li>Made restored operations resume paused, clear recovery after results or abandonment, and keep callsigns, rooms, relay IDs, reconnect tokens, and report contact out of storage.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.11.4</h3></div>
             <time class="build-shipped-at" data-build-shipped-at="2026-07-11T12:45:00-04:00">Shipped Jul 11, 2026, 12:45 PM EDT</time>
           </header>
           <ul>
@@ -562,8 +587,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.11.4. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.11.4</strong></button>
-  <script src="build-history.js?v=20260711.4"></script>
-  <script type="module" src="game.js?v=20260711.4"></script>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.11.5. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.11.5</strong></button>
+  <script src="build-history.js?v=20260711.5"></script>
+  <script type="module" src="game.js?v=20260711.5"></script>
 </body>
 </html>

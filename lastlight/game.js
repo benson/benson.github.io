@@ -1,17 +1,20 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260711.4";
-import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260711.4";
-import { Renderer } from "./render.js?v=20260711.4";
-import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260711.4";
-import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.4";
-import { getThemeAsset } from "./themes/lastlight.js?v=20260711.4";
-import { submitRunTelemetry } from "./telemetry.js?v=20260711.4";
-import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.4";
-import { formatProjectileDisplay, getCombatMetadata, getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260711.4";
-import { BALANCE_HASH, BALANCE_VERSION } from "./balance-config.js?v=20260711.4";
-import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.4";
-import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260711.4";
-import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260711.4";
-import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260711.4";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260711.5";
+import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260711.5";
+import { Renderer } from "./render.js?v=20260711.5";
+import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260711.5";
+import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
+import { getThemeAsset } from "./themes/lastlight.js?v=20260711.5";
+import { submitRunTelemetry } from "./telemetry.js?v=20260711.5";
+import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
+import { formatProjectileDisplay, getCombatMetadata, getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260711.5";
+import { BALANCE_HASH, BALANCE_VERSION } from "./balance-config.js?v=20260711.5";
+import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
+import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260711.5";
+import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260711.5";
+import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260711.5";
+import { clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260711.5";
+import { GuestInputSequenceTracker, HostInputSequenceGate, createSnapshotMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260711.5";
+import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260711.5";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -20,7 +23,8 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.11.4";
+const BUILD = "2026.07.11.5";
+const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
 const systemReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false;
 const initialQualitySettings = (() => {
   const settings = loadQualitySettings(localStorage, systemReducedMotion);
@@ -35,6 +39,8 @@ const renderer = new Renderer($("game-canvas"));
 renderer.setQualitySettings(initialQualitySettings);
 const fixedClock = new FixedStepClock();
 const movementPredictor = new MovementPredictor();
+const hostInputSequences = new HostInputSequenceGate();
+const guestInputSequences = new GuestInputSequenceTracker();
 const PROGRESS_KEY = "lastlight:campaign:v1";
 const RUN_HISTORY_KEY = "lastlight:runs:v1";
 const CLIENT_TOKEN_KEY = "lastlight:client-token:v1";
@@ -96,10 +102,13 @@ const state = {
   hostPreviousMotion: null, inputMotionStartedAt: 0, inputMotionStart: null, inputWasActive: false,
   replayRecorder: null, lastReplayCheckpointTick: -1, lastReplay: loadLastReplay(), resultReplay: null,
   runtimeConfig: { config: DEFAULT_RUNTIME_CONFIG, source: "built-in", status: "initializing" },
+  recoveryOffer: null, lastRecoverySaveAt: 0,
+  networkLab: null,
 };
 
 const runtimeConfigReady = loadRuntimeConfig({ endpoint: RUNTIME_CONFIG_ENDPOINT }).then((result) => {
   state.runtimeConfig = result;
+  refreshRecoveryOffer();
   return result;
 });
 
@@ -142,12 +151,100 @@ function finalizeReplayCapture() {
   return replay;
 }
 
+function recoveryExpected() {
+  return { build: BUILD, runtime: runtimeRecoveryIdentity(state.runtimeConfig.config) };
+}
+
+function refreshRecoveryOffer() {
+  state.recoveryOffer = loadRunRecovery(localStorage, recoveryExpected());
+  const panel = $("recovery-offer");
+  if (!panel) return;
+  panel.classList.toggle("hidden", !state.recoveryOffer);
+  if (!state.recoveryOffer) return;
+  const recovery = state.recoveryOffer, header = recovery.simulation.header, progress = recovery.simulation.scalars;
+  $("recovery-title").textContent = `${MAPS[header.map]?.name || header.map} · ${DIFFICULTIES[header.difficulty]?.name || header.difficulty}`;
+  $("recovery-copy").textContent = `${recovery.source === "host" ? "Squad host" : "Solo"} · ${formatTime(progress.remaining)} remaining · saved ${new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(new Date(recovery.savedAt))}`;
+}
+
+function persistRecoveryCheckpoint(force = false) {
+  if (!state.isHost || !state.sim || state.screen !== "game" || !["running", "boss"].includes(state.sim.stage)) return;
+  const now = Date.now();
+  if (!force && now - state.lastRecoverySaveAt < 5_000) return;
+  const local = state.sim.players.find((player) => player.id === state.clientId) || state.sim.players[0];
+  if (!local || !Number.isInteger(local.replaySlot)) return;
+  try {
+    const checkpoint = createRunRecovery({
+      build: BUILD,
+      runtime: runtimeRecoveryIdentity(state.runtimeConfig.config),
+      source: state.partyMode === "solo" ? "solo" : "host",
+      localSlot: local.replaySlot,
+      simulation: state.sim.exportRecoveryState(),
+      replay: state.replayRecorder?.exportDraft(state.sim.tick) || null,
+      savedAt: now,
+    });
+    saveRunRecovery(localStorage, checkpoint);
+    state.recoveryOffer = checkpoint;
+    state.lastRecoverySaveAt = now;
+  } catch (error) {
+    captureClientError("recovery", error);
+  }
+}
+
+function discardRecovery({ notify = true } = {}) {
+  clearRunRecovery(localStorage);
+  state.recoveryOffer = null;
+  $("recovery-offer")?.classList.add("hidden");
+  if (notify) toast("Interrupted operation discarded");
+}
+
+function resumeRecovery() {
+  const checkpoint = loadRunRecovery(localStorage, recoveryExpected());
+  if (!checkpoint) { refreshRecoveryOffer(); toast("That recovery checkpoint is no longer compatible"); return; }
+  try {
+    closeSocket();
+    const sim = Simulation.fromRecoveryState(checkpoint.simulation);
+    const localId = `slot-${checkpoint.localSlot}`;
+    if (!sim.players.some((player) => player.id === localId)) throw new TypeError("Local recovery slot is missing");
+    state.clientId = localId; state.isHost = true; state.room = ""; state.partyMode = checkpoint.source;
+    state.config = {
+      map: checkpoint.simulation.header.map, difficulty: checkpoint.simulation.header.difficulty, duration: checkpoint.simulation.header.duration,
+      features: gameplayFeatureContract(state.runtimeConfig.config),
+    };
+    state.sim = sim;
+    state.lobby = new Map(sim.players.map((player) => [player.id, { id: player.id, name: player.name, specialist: player.specialist, ready: true }]));
+    state.replayRecorder = checkpoint.replay ? ReplayRecorder.fromDraft(checkpoint.replay, sim.players) : null;
+    state.lastReplayCheckpointTick = checkpoint.replay?.checkpoints?.at(-1)?.[0] ?? -1;
+    state.previousSnapshot = null; state.snapshot = null;
+    sim.paused = true; sim.pauseReason = "manual";
+    enterGame();
+    state.lastRecoverySaveAt = 0;
+    persistRecoveryCheckpoint(true);
+    toast("Operation restored · paused for review");
+  } catch (error) {
+    captureClientError("recovery restore", error);
+    discardRecovery({ notify: false });
+    toast("Recovery data was invalid and has been discarded");
+  }
+}
+
 function applyHostInput(playerId, input) {
   if (!state.sim) return input;
   const normalized = dequantizeReplayInput(quantizeReplayInput(input));
   state.replayRecorder?.recordInput(playerId, state.sim.tick, normalized);
   state.sim.setInput(playerId, normalized);
   return normalized;
+}
+
+function applyGuestNetworkInput(message) {
+  const accepted = hostInputSequences.apply(message?._from, message);
+  if (!accepted.accepted) return false;
+  applyHostInput(message._from, accepted.input);
+  return true;
+}
+
+function resetInputProtocol() {
+  hostInputSequences.reset();
+  guestInputSequences.reset();
 }
 
 function recordHostCast(playerId, slot) {
@@ -418,9 +515,11 @@ function startHostedGame() {
   state.config = { ...state.config, features };
   state.sim = new Simulation({ ...state.config, players }, { seed, balanceVersion: BALANCE_VERSION, balanceHash: BALANCE_HASH, features });
   beginReplayCapture(players, seed);
+  discardRecovery({ notify: false });
   state.previousSnapshot = null; state.snapshot = null;
   if (state.ws?.readyState === WebSocket.OPEN) send({ type: "start", config: state.config, players: publicLobbyPlayers() });
   enterGame();
+  persistRecoveryCheckpoint(true);
 }
 
 function startRemoteGame(message) {
@@ -433,7 +532,7 @@ function enterGame() {
   state.soundState = { projectiles: 0, kills: 0, level: 1, damageTaken: 0, xpCollected: 0, lastShot: 0, lastXP: 0 };
   state.lastActiveBuffKey = ""; state.lastDamageLedgerKey = "";
   state.lastSend = 0; state.lastBroadcast = 0; state.hostPreviousMotion = null; state.inputMotionStartedAt = 0; state.inputMotionStart = null; state.inputWasActive = false;
-  fixedClock.reset(); movementPredictor.reset(); renderer.resetCamera(); $("game-canvas").focus();
+  fixedClock.reset(); movementPredictor.reset(); resetInputProtocol(); renderer.resetCamera(); $("game-canvas").focus();
   if (!state.animation) state.animation = requestAnimationFrame(gameLoop);
 }
 
@@ -450,16 +549,23 @@ function gameLoop(now) {
       state.sim.update(stepSeconds);
       recordReplayCheckpoint();
     });
+    persistRecoveryCheckpoint();
     simulationMs = performance.now() - simulationStarted; interpolation = timing.alpha; renderPrevious = state.hostPreviousMotion;
     renderState = withLocalMovementPreview(state.sim, hostInput, fixedClock.accumulator);
-    if (state.ws?.readyState === WebSocket.OPEN && now - state.lastBroadcast > 83) { state.lastBroadcast = now; send({ type: "snapshot", state: state.sim.snapshot() }); }
+    if (state.ws?.readyState === WebSocket.OPEN && now - state.lastBroadcast > 83) {
+      state.lastBroadcast = now;
+      send(createSnapshotMessage(state.sim.snapshot(), hostInputSequences.acknowledgements()));
+    }
   } else {
     const authoritative = state.snapshot?.players?.find((player) => player.id === state.clientId);
     if (authoritative && !movementPredictor.player) movementPredictor.sync(authoritative);
     if (movementPredictor.player) movementPredictor.advance(input, dt, playerMovementSpeed(movementPredictor.player), moveEntityWithCover);
     renderState = withPredictedPlayer(state.snapshot, movementPredictor.player); renderPrevious = state.previousSnapshot;
     interpolation = clamp((now - state.snapshotAt) / state.snapshotInterval, 0, 1);
-    if (state.ws?.readyState === WebSocket.OPEN && now - state.lastSend > 35) { state.lastSend = now; send({ type: "input", input }); }
+    if (state.ws?.readyState === WebSocket.OPEN && now - state.lastSend > 35) {
+      state.lastSend = now;
+      send(guestInputSequences.create(input, now));
+    }
   }
   const current = state.isHost ? state.sim : state.snapshot;
   if (current) {
@@ -537,8 +643,13 @@ function performanceSummary() {
       correctionP95: percentileFrom(metrics.predictionCorrections, .95),
       maxCorrection: Math.max(0, ...metrics.predictionCorrections),
     },
+    multiplayerInput: inputProtocolDiagnostics(),
     maxEntities: metrics.maxEntities,
   };
+}
+
+function inputProtocolDiagnostics() {
+  return state.isHost ? hostInputSequences.diagnostics() : guestInputSequences.diagnostics(performance.now());
 }
 
 function percentileFrom(values = [], amount = .95) {
@@ -1175,6 +1286,7 @@ async function copyPlayerScorecard(playerId) {
 }
 
 function showResult(game) {
+  discardRecovery({ notify: false });
   const won = game.stage === "won"; $("result-eyebrow").textContent = won ? "Operation complete" : "Signal lost";
   $("result-title").textContent = won ? "APEX NEUTRALIZED" : "THE LINE BROKE"; $("result-title").style.color = won ? "var(--cyan)" : "var(--danger)";
   $("result-copy").textContent = won ? "The line held. Final City gets another sunrise." : "Recalibrate the loadout, regroup, and breach again.";
@@ -1202,6 +1314,8 @@ async function copyReplay() {
 }
 
 function returnToLobby() {
+  discardRecovery({ notify: false });
+  resetInputProtocol();
   state.sim = null; state.snapshot = null; state.previousSnapshot = null; state.replayRecorder = null; state.endShown = false; clearTimeout(state.resultTimer);
   for (const member of state.lobby.values()) member.ready = member.id === state.clientId && state.isHost;
   if (state.ws?.readyState === WebSocket.OPEN) send({ type: "return_lobby" });
@@ -1218,8 +1332,15 @@ function connectRoom(code) {
     state.connectReject = (error) => { clearTimeout(timeout); reject(error); };
     const url = new URL(`${RELAY_BASE}${encodeURIComponent(code)}`);
     const ws = new WebSocket(url); state.ws = ws;
+    state.networkLab = createActivatedNetworkLab(NETWORK_LAB_ACTIVATION, {
+      onForcedDisconnect: () => { if (state.ws === ws) ws.close(4100, "Network lab reconnect"); },
+      onError: (error) => captureClientError("network lab", error),
+    });
     ws.addEventListener("open", () => send({ type: "hello", profile: { name: callsign(), specialist: state.selected, resumeToken: state.resumeToken } }));
-    ws.addEventListener("message", (event) => handleNetworkMessage(event.data));
+    ws.addEventListener("message", (event) => {
+      if (state.networkLab) state.networkLab.downstream(event.data, (payload) => handleNetworkMessage(payload));
+      else handleNetworkMessage(event.data);
+    });
     ws.addEventListener("error", () => state.connectReject?.(new Error("Relay connection failed")));
     ws.addEventListener("close", () => { if (state.screen === "game" && !state.isHost) { toast("Squad connection lost"); captureClientError("network", "Squad relay connection closed during a run"); } });
   });
@@ -1240,7 +1361,7 @@ function handleNetworkMessage(raw) {
     if (state.isHost && state.sim && state.replayRecorder) {
       try { state.replayRecorder.recordLeave(message.id, state.sim.tick); } catch { /* A pre-run peer has no replay slot. */ }
     }
-    state.lobby.delete(message.id); state.sim?.removePlayer(message.id);
+    hostInputSequences.remove(message.id); state.lobby.delete(message.id); state.sim?.removePlayer(message.id);
     if (state.isHost && state.sim && state.screen === "game") state.sim.pushEvent("danger", `${departed?.name || "A specialist"} disconnected`, "Their callsign is reserved for three minutes");
     if (state.screen === "lobby") renderLobby(); if (state.isHost) broadcastLobby();
   } else if (message.type === "host_changed") {
@@ -1274,12 +1395,15 @@ function handleNetworkMessage(raw) {
     toast("Joined operation in progress");
   }
   else if (message.type === "return_lobby" && !state.isHost) returnToLobby();
-  else if (message.type === "input" && state.isHost) applyHostInput(message._from, message.input);
+  else if (message.type === "input" && state.isHost) applyGuestNetworkInput(message);
   else if (message.type === "cast" && state.isHost) recordHostCast(message._from, message.slot);
   else if (message.type === "choice" && state.isHost) recordHostChoice(message._from, message.choiceId);
   else if (message.type === "snapshot" && !state.isHost) {
+    let snapshotMessage; try { snapshotMessage = sanitizeSnapshotMessage(message, { transport: true }); } catch { return; }
     const now = performance.now(); if (state.snapshotAt) state.snapshotInterval = clamp(now - state.snapshotAt, 60, 180);
-    state.previousSnapshot = state.snapshot; state.snapshot = message.state; state.snapshotAt = now;
+    if (snapshotMessage.protocolVersion) guestInputSequences.acknowledge(snapshotMessage.ack[state.clientId], now);
+    else guestInputSequences.observeLegacySnapshot(now);
+    state.previousSnapshot = state.snapshot; state.snapshot = snapshotMessage.state; state.snapshotAt = now;
     const predicted = movementPredictor.sync(state.snapshot?.players?.find((player) => player.id === state.clientId));
     if (predicted && movementPredictor.lastCorrectionDistance > 0) {
       const corrections = state.performanceMetrics?.predictionCorrections;
@@ -1299,9 +1423,11 @@ function publicLobbyPlayers() {
 
 function send(message, targetId = "") {
   if (state.ws?.readyState !== WebSocket.OPEN) return;
-  state.ws.send(JSON.stringify(targetId ? { ...message, _to: targetId } : message));
+  const socket = state.ws, payload = JSON.stringify(targetId ? { ...message, _to: targetId } : message);
+  const deliver = (delayed) => { if (state.ws === socket && socket.readyState === WebSocket.OPEN) socket.send(delayed); };
+  if (state.networkLab) state.networkLab.upstream(payload, deliver); else deliver(payload);
 }
-function closeSocket() { if (state.ws) { state.ws.onclose = null; state.ws.close(); } state.ws = null; state.connectResolve = null; state.connectReject = null; }
+function closeSocket() { state.networkLab?.teardown(); state.networkLab = null; if (state.ws) { state.ws.onclose = null; state.ws.close(); } state.ws = null; state.connectResolve = null; state.connectReject = null; resetInputProtocol(); }
 function randomRoomCode() { const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; return Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join(""); }
 
 async function copyInvite() {
@@ -1328,6 +1454,8 @@ function gameDiagnostics() {
     level: Number(game?.level || 0),
     teamSize: Number(game?.players?.length || state.lobby.size || 1),
     multiplayerRole: state.partyMode === "solo" ? "solo" : state.isHost ? "host" : "guest",
+    multiplayerInput: inputProtocolDiagnostics(),
+    networkLab: state.networkLab ? (() => { const { seed, ...diagnostics } = state.networkLab.diagnostics(); return diagnostics; })() : { active: false, reason: NETWORK_LAB_ACTIVATION.reason },
     runtimeConfig: {
       version: state.runtimeConfig.config.configVersion,
       gameplayVersion: state.config?.features?.gameplayVersion || state.runtimeConfig.config.gameplayVersion,
@@ -1510,6 +1638,7 @@ function bindEvents() {
   document.querySelectorAll(".mode-tab").forEach((button) => button.addEventListener("click", () => setPartyMode(button.dataset.partyMode)));
   $("map-select").addEventListener("change", updateDifficultyOptions);
   $("deploy-button").addEventListener("click", deploy); $("room-input").addEventListener("keydown", (event) => { if (event.key === "Enter") deploy(); });
+  $("recovery-resume").addEventListener("click", resumeRecovery); $("recovery-discard").addEventListener("click", () => discardRecovery());
   $("room-input").addEventListener("input", (event) => { event.target.value = event.target.value.toUpperCase().replace(/[^A-Z2-9]/g, ""); });
   $("lobby-back").addEventListener("click", leaveToHome); $("ready-button").addEventListener("click", handleReady); $("copy-link").addEventListener("click", copyInvite);
   $("pause-button").addEventListener("click", () => togglePause()); $("resume-button").addEventListener("click", () => togglePause(false)); $("abandon-button").addEventListener("click", abandon);
