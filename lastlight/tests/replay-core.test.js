@@ -99,6 +99,18 @@ test("join and reconnect commands reuse an anonymous slot without changing the i
   assert.deepEqual(replay.commands.map((command) => command[2]), ["j", "l", "r"]);
 });
 
+test("a departed anonymous slot can be reused by a different specialist", () => {
+  const recorder = new ReplayRecorder({
+    build: "2026.07.11.3", balanceVersion: "2026.07.11-baseline.1", balanceHash: "fnv1a32:7e33be79",
+    rng: "xoshiro128ss-v1", seed: "0123456789abcdef0123456789abcdef",
+    run: { map: "warehouse", difficulty: "story", duration: 240 },
+  });
+  recorder.registerPlayer("host", "zuri", { slot: 0, initial: true });
+  recorder.registerPlayer("guest", "echo", { slot: 1, tick: 1 });
+  recorder.recordLeave("guest", 2);
+  assert.doesNotThrow(() => recorder.registerPlayer("replacement", "fang", { slot: 1, tick: 3 }));
+});
+
 test("generic driver applies same-tick commands in ordinal order and verifies hashes", () => {
   const replay = base();
   replay.commands = [[0, 0, "i", 0, 127, 0, 0, 1], [0, 1, "c", 0, "e"]];

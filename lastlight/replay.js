@@ -289,7 +289,8 @@ export class ReplayRecorder {
     if (!SPECIALISTS.has(specialist)) throw new TypeError("Unknown specialist");
     const assigned = slot === undefined ? [0, 1, 2, 3].find((candidate) => !this.knownSlots.has(candidate)) : slot;
     integer(assigned, 0, 3, "slot");
-    if (this.knownSlots.has(assigned) && (!reconnect || this.knownSlots.get(assigned) !== specialist)) throw new TypeError("Replay slot already belongs to another player");
+    const activeOwner = [...this.actualToSlot.entries()].find(([, activeSlot]) => activeSlot === assigned)?.[0];
+    if (activeOwner !== undefined && activeOwner !== actualId) throw new TypeError("Replay slot already belongs to an active player");
     this.actualToSlot.set(actualId, assigned);
     this.knownSlots.set(assigned, specialist);
     if (initial) this.roster.set(assigned, specialist);

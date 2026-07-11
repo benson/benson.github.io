@@ -145,10 +145,7 @@ function recordHostChoice(playerId, choiceId) {
 }
 
 function nextReplaySlot() {
-  const used = new Set([
-    ...(state.sim?.players || []).map((player) => player.replaySlot),
-    ...[...(state.sim?.disconnectedPlayers?.values?.() || [])].map((entry) => entry.player?.replaySlot),
-  ]);
+  const used = new Set((state.sim?.players || []).map((player) => player.replaySlot));
   return [0, 1, 2, 3].find((slot) => !used.has(slot));
 }
 
@@ -1194,8 +1191,10 @@ function handleNetworkMessage(raw) {
   } else if (message.type === "profile" && state.isHost) {
     state.lobby.set(message._from, { ...message.profile, id: message._from });
     if (state.sim && state.screen === "game") {
-      const player = state.sim.addPlayer({ ...message.profile, id: message._from, replaySlot: nextReplaySlot() });
+      const availableReplaySlot = nextReplaySlot();
+      const player = state.sim.addPlayer({ ...message.profile, id: message._from, replaySlot: availableReplaySlot });
       const resumed = Boolean(player?.reconnected); if (player) delete player.reconnected;
+      if (player && state.sim.players.some((entry) => entry !== player && entry.replaySlot === player.replaySlot)) player.replaySlot = availableReplaySlot;
       if (player && state.replayRecorder) state.replayRecorder.registerPlayer(message._from, player.specialist, { slot: player.replaySlot, tick: state.sim.tick, reconnect: resumed });
       if (player && !resumed) {
         const anchor = state.sim.players.find((entry) => entry.id !== player.id && !entry.dead && !entry.downed);
