@@ -73,3 +73,13 @@ test("upgrade draft typography is readable on desktop while mobile stays compact
   assert.match(css, /@media \(max-width: 650px\) \{[\s\S]+\.upgrade-panel h2 \{ font-size: 40px; \}/);
   assert.match(css, /\.teammate-choice:focus-visible \.teammate-choice-tooltip \{[^}]+transition: none;/s);
 });
+
+test("upgrade intelligence uses authoritative combat metadata", () => {
+  assert.match(game, /from "\.\/combat-metadata\.js/);
+  assert.match(game, /formatProjectileDisplay\(getCombatMetadata\("signature", player\.specialist\), projectiles\)/);
+  assert.match(game, /getPassiveAffectedSources\(passiveId/);
+  assert.match(game, /class="affected-loadout/);
+  assert.match(game, /getCurrentStatExplanation\(id, raw\)/);
+  assert.match(game, /class="upgrade-stat" tabindex="0" aria-describedby=/);
+  assert.match(css, /\.upgrade-stat-tooltip/);
+});

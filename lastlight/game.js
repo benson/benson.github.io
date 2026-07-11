@@ -6,6 +6,7 @@ import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgre
 import { getThemeAsset } from "./themes/lastlight.js?v=20260711.1";
 import { submitRunTelemetry } from "./telemetry.js?v=20260711.1";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.1";
+import { formatProjectileDisplay, getCombatMetadata, getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260711.1";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -491,7 +492,7 @@ function weaponTelemetry(weaponId, weapon, player) {
     if (evolved) interval *= player.specialist === "zuri" ? .5 : player.specialist === "sola" ? 1.5 / interval : .68;
     const damage = { zuri: 31 + level * 11, echo: 48 + level * 14, sola: 26 + level * 11 + player.armor * 1.2, bront: 70 + level * 24, fang: 36 + level * 19 + player.maxHp * 1.5, gale: 65 + level * 21, rift: 30 + level * 13, nova: 53 + level * 14, vesper: 51 + level * 14 }[player.specialist];
     const projectiles = { zuri: 2 + level + extra, echo: Math.min(6, level + extra), sola: 3 + Math.floor(level / 2) + extra, bront: 1, fang: 1, gale: Math.min(7, 1 + Math.floor(level / 2) + extra), rift: 1, nova: Math.min(8, 1 + Math.ceil(level / 2) + extra), vesper: 1 + Math.floor(level / 3) + extra }[player.specialist];
-    return { damage: `${rounded(damage)} / hit`, interval: `${cd(interval).toFixed(2)}s`, cooldownSeconds: cd(interval), projectiles: String(projectiles), note: SPECIALISTS[player.specialist].signature.evolve };
+    return { damage: `${rounded(damage)} / hit`, interval: `${cd(interval).toFixed(2)}s`, cooldownSeconds: cd(interval), projectiles: formatProjectileDisplay(getCombatMetadata("signature", player.specialist), projectiles), note: SPECIALISTS[player.specialist].signature.evolve };
   }
   const table = {
     uwu: [28 + level * 10, evolved ? .35 : .75 - level * .07, 1 + Math.floor(level / 3) + extra, "Nearest-target needles"],
@@ -508,7 +509,7 @@ function weaponTelemetry(weaponId, weapon, player) {
     drone: [40 + level * 15, 1.6 - level * .1, 1 + Math.floor((level - 1) / 2), "Autonomous target seeker"],
   }[weaponId];
   if (!table) return { damage: "—", interval: "—", cooldownSeconds: 0, projectiles: "—", note: "" };
-  return { damage: table[0] ? `${rounded(table[0])} / hit` : "Utility", interval: `${cd(table[1]).toFixed(2)}s`, cooldownSeconds: cd(table[1]), projectiles: String(table[2]), note: table[3] };
+  return { damage: table[0] ? `${rounded(table[0])} / hit` : "Utility", interval: `${cd(table[1]).toFixed(2)}s`, cooldownSeconds: cd(table[1]), projectiles: formatProjectileDisplay(getCombatMetadata(weaponId, player.specialist), table[2]), note: table[3] };
 }
 
 function elapsedRunSeconds(game) { return Math.max(1, Number(game?.time || 0) + Number(game?.bossElapsed || 0)); }
@@ -528,11 +529,21 @@ function weaponSlotMarkup(weaponId, weapon, player, spec, game) {
   return `<div class="weapon-slot ${weapon.evolved ? "evolved" : ""}" data-weapon-id="${weaponId}" data-cooldown-max="${telemetry.cooldownSeconds}" tabindex="0" aria-label="${escapeHTML(weapon.evolved ? data.evolve : data.name)} weapon details"><img src="${icon}" alt=""><i class="weapon-cooldown-sweep" aria-hidden="true"></i><b class="weapon-cooldown-seconds" aria-hidden="true"></b><small>${weapon.evolved ? "E" : weapon.level}</small><div class="weapon-tooltip"><span>${weapon.evolved ? "Evolved weapon" : `Level ${weapon.level}`}</span><strong>${escapeHTML(weapon.evolved ? data.evolve : data.name)}</strong><p>${escapeHTML(data.copy || spec.tagline)}</p><dl><div><dt>Damage</dt><dd>${telemetry.damage}</dd></div><div><dt>Cooldown</dt><dd>${telemetry.interval}</dd></div><div><dt>Projectiles</dt><dd>${telemetry.projectiles}</dd></div><div><dt>Run damage</dt><dd>${statNumber(damage)}</dd></div><div><dt>DPS</dt><dd>${dps.toFixed(1)}</dd></div></dl><em>${escapeHTML(telemetry.note)}</em><small>Evolution: level 5 + ${escapeHTML(PASSIVES[passive]?.name || passive)}</small></div></div>`;
 }
 
-function passiveSlotMarkup(passiveId, rank) {
+function currentAffectedSources(passiveId, player) {
+  return getPassiveAffectedSources(passiveId, { specialistId: player?.specialist, weapons: player?.weapons || {} }).filter((source) => {
+    if (source.id === "ability:e") return Number(player?.level || 0) >= 3;
+    if (source.id === "ability:r") return Number(player?.level || 0) >= 6;
+    return true;
+  });
+}
+
+function passiveSlotMarkup(passiveId, rank, player) {
   const passive = PASSIVES[passiveId];
   if (!passive) return "";
   const level = Math.max(1, Math.floor(Number(rank) || 1));
-  return `<div class="passive-slot" style="--passive-color:${escapeHTML(passive.color)}" tabindex="0" aria-label="${escapeHTML(passive.name)}, passive rank ${level} of ${passive.max}"><span><img src="${passive.icon}" alt=""></span><small>${level}</small><div class="weapon-tooltip"><span>Passive upgrade</span><strong>${escapeHTML(passive.name)}</strong><p>${escapeHTML(passive.amount)} per rank. ${passive.id === "projectiles" ? "Applies to compatible multi-projectile attacks; utility and single-field effects are unchanged." : "This modifier applies to every compatible system in your loadout."}</p><dl><div><dt>Current rank</dt><dd>${level} / ${passive.max}</dd></div><div><dt>Each rank</dt><dd>${escapeHTML(passive.amount)}</dd></div></dl><em>Persistent for the rest of this operation.</em></div></div>`;
+  const affected = currentAffectedSources(passiveId, player);
+  const impact = affected.length ? `Affects now: ${affected.map((source) => source.name).join(", ")}.` : passiveId === "projectiles" ? "No equipped attacks can gain another projectile yet." : "Improves a core specialist system rather than a specific attack.";
+  return `<div class="passive-slot" style="--passive-color:${escapeHTML(passive.color)}" tabindex="0" aria-label="${escapeHTML(passive.name)}, passive rank ${level} of ${passive.max}"><span><img src="${passive.icon}" alt=""></span><small>${level}</small><div class="weapon-tooltip"><span>Passive upgrade</span><strong>${escapeHTML(passive.name)}</strong><p>${escapeHTML(passive.amount)} per rank. ${passive.id === "projectiles" ? "Applies only to attacks marked as multishot-compatible." : "Compatibility comes from the authoritative combat model."}</p><dl><div><dt>Current rank</dt><dd>${level} / ${passive.max}</dd></div><div><dt>Each rank</dt><dd>${escapeHTML(passive.amount)}</dd></div></dl><em>${escapeHTML(impact)}</em></div></div>`;
 }
 
 function updateCooldownSlot(slot, remaining, maximum, unlocked, unlockLevel) {
@@ -761,7 +772,7 @@ function updateHUD(game) {
   const passiveHUDKey = JSON.stringify(player.passives || {});
   if (passiveHUDKey !== state.lastPassiveHUDKey) {
     state.lastPassiveHUDKey = passiveHUDKey;
-    $("passive-hud").innerHTML = Object.entries(player.passives || {}).filter(([, rank]) => Number(rank) > 0).map(([passiveId, rank]) => passiveSlotMarkup(passiveId, rank)).join("");
+    $("passive-hud").innerHTML = Object.entries(player.passives || {}).filter(([, rank]) => Number(rank) > 0).map(([passiveId, rank]) => passiveSlotMarkup(passiveId, rank, player)).join("");
   }
   updateActiveBuffs(player); updateDamageLedger(player, game);
 }
@@ -811,20 +822,43 @@ function evolutionPairMarkup(pair) {
   return pair ? `<div class="evolution-pair"><span>${escapeHTML(pair.label)}</span><b>${escapeHTML(pair.copy)}</b></div>` : "";
 }
 
+function affectedLoadoutMarkup(choice, player) {
+  const [kind, passiveId] = String(choice?.id || "").split(":");
+  if (kind !== "passive" || !player) return "";
+  const affected = currentAffectedSources(passiveId, player);
+  if (!affected.length) {
+    const message = passiveId === "projectiles" ? "No equipped attacks are multishot-compatible yet." : "Improves a core specialist system; no equipped attack uses it directly.";
+    return `<div class="affected-loadout empty"><span>Affects now</span><p>${escapeHTML(message)}</p></div>`;
+  }
+  return `<div class="affected-loadout"><span>Affects now</span><div>${affected.map((source) => `<b data-source-kind="${escapeHTML(source.kind)}">${escapeHTML(source.name)}</b>`).join("")}</div></div>`;
+}
+
 function renderUpgradeStats(player) {
   const damage = (1 + Number(player.passives?.damage || 0) * .1) * (player.specialist === "rift" ? 1.1 : 1);
+  const haste = Number(player.passives?.haste || 0) * 10 + (player.hasteBuff > 0 ? 150 : 0);
+  const projectiles = Math.floor(Number(player.passives?.projectiles || 0));
+  const crit = Number(player.passives?.crit || 0) * .08 + (player.specialist === "gale" ? .15 : 0);
+  const area = 1 + Number(player.passives?.area || 0) * .11;
+  const move = player.baseSpeed * (1 + Number(player.passives?.move || 0) * .09);
+  const armor = Number(player.armor || 0);
+  const pickup = 85 * (1 + Number(player.passives?.pickup || 0) * .35);
+  const regen = Number(player.passives?.regen || 0) * .04;
   const stats = [
-    ["Damage", `+${Math.round((damage - 1) * 100)}%`],
-    ["Ability haste", `${Math.round(Number(player.passives?.haste || 0) * 10 + (player.hasteBuff > 0 ? 150 : 0))}`],
-    ["Extra projectiles", `+${Math.floor(Number(player.passives?.projectiles || 0))}`],
-    ["Critical chance", `${Math.round((Number(player.passives?.crit || 0) * .08 + (player.specialist === "gale" ? .15 : 0)) * 100)}%`],
-    ["Area size", `+${Math.round(Number(player.passives?.area || 0) * 11)}%`],
-    ["Move speed", `${Math.round(player.baseSpeed * (1 + Number(player.passives?.move || 0) * .09))}`],
-    ["Armor", `${Math.round(player.armor || 0)}`],
-    ["Pickup radius", `${Math.round(85 * (1 + Number(player.passives?.pickup || 0) * .35))}`],
-    ["Repair / sec", `${(Number(player.passives?.regen || 0) * .04).toFixed(2)}`],
+    ["damage", "Damage", `+${Math.round((damage - 1) * 100)}%`, damage],
+    ["haste", "Ability haste", `${Math.round(haste)}`, haste],
+    ["projectiles", "Extra projectiles", `+${projectiles}`, projectiles],
+    ["crit", "Critical chance", `${Math.round(crit * 100)}%`, crit],
+    ["area", "Area size", `+${Math.round((area - 1) * 100)}%`, area],
+    ["move", "Move speed", `${Math.round(move)}`, move],
+    ["armor", "Armor", `${Math.round(armor)}`, armor],
+    ["pickup", "Pickup radius", `${Math.round(pickup)}`, pickup],
+    ["regen", "Repair / sec", `${regen.toFixed(2)}`, regen],
   ];
-  $("upgrade-current-stats").innerHTML = `<strong>Current build</strong>${stats.map(([label, value]) => `<div><span>${label}</span><b>${value}</b></div>`).join("")}<p>Extra projectiles apply only to compatible attacks; utility effects and single persistent fields do not multiply.</p>`;
+  $("upgrade-current-stats").innerHTML = `<strong>Current build</strong>${stats.map(([id, label, value, raw]) => {
+    const explanation = getCurrentStatExplanation(id, raw);
+    const tooltipId = `stat-help-${id}`;
+    return `<div class="upgrade-stat" tabindex="0" aria-describedby="${tooltipId}"><span>${escapeHTML(label)}</span><b>${escapeHTML(value)}</b><aside id="${tooltipId}" class="upgrade-stat-tooltip" role="tooltip"><strong>${escapeHTML(explanation?.name || label)}</strong><em>${escapeHTML(explanation?.value || value)}</em><p>${escapeHTML(explanation?.definition || "Current specialist statistic.")}</p></aside></div>`;
+  }).join("")}<p>Focus or point at a current stat for its formula. Upgrade cards list every equipped weapon or ability affected right now.</p>`;
 }
 
 function updateUpgrade(game) {
@@ -844,7 +878,7 @@ function updateUpgrade(game) {
     const visual = upgradeChoiceVisual(choice);
     const details = upgradeChoiceDetails(choice, localPlayer);
     const pair = evolutionPair(choice, localPlayer);
-    return `<button class="upgrade-card ${pair ? "evolution-ready" : ""} ${selected ? "selected" : ""} ${passed ? "passed" : ""}" type="button" data-choice="${escapeHTML(choice.id)}" ${ready ? "disabled" : ""}><span class="card-type">${selected ? "Locked choice" : escapeHTML(choice.kind)}</span><kbd class="choice-key">${index + 1}</kbd><div class="card-icon ${visual.className}">${visual.markup}</div><h3>${escapeHTML(choice.name)}</h3><p>${escapeHTML(choice.copy)}</p>${evolutionPairMarkup(pair)}<dl class="card-stats">${Object.entries(details).map(([label, value]) => `<div><dt>${escapeHTML(label)}</dt><dd>${escapeHTML(value)}</dd></div>`).join("")}</dl><div class="level-pips">${Array.from({ length: choice.max }, (_, i) => `<i class="${i < choice.level ? "on" : ""}"></i>`).join("")}</div></button>`;
+    return `<button class="upgrade-card ${pair ? "evolution-ready" : ""} ${selected ? "selected" : ""} ${passed ? "passed" : ""}" type="button" data-choice="${escapeHTML(choice.id)}" ${ready ? "disabled" : ""}><span class="card-type">${selected ? "Locked choice" : escapeHTML(choice.kind)}</span><kbd class="choice-key">${index + 1}</kbd><div class="card-icon ${visual.className}">${visual.markup}</div><h3>${escapeHTML(choice.name)}</h3><p>${escapeHTML(choice.copy)}</p>${evolutionPairMarkup(pair)}<dl class="card-stats">${Object.entries(details).map(([label, value]) => `<div><dt>${escapeHTML(label)}</dt><dd>${escapeHTML(value)}</dd></div>`).join("")}</dl>${affectedLoadoutMarkup(choice, localPlayer)}<div class="level-pips">${Array.from({ length: choice.max }, (_, i) => `<i class="${i < choice.level ? "on" : ""}"></i>`).join("")}</div></button>`;
   }).join("");
   if (!ready) $("upgrade-cards").querySelectorAll("button").forEach((button) => button.addEventListener("click", () => chooseUpgrade(button.dataset.choice)));
 
