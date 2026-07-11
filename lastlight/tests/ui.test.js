@@ -6,6 +6,14 @@ const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 const game = readFileSync(new URL("../game.js", import.meta.url), "utf8");
 
+test("guide exposes the six adaptive impact materials and their accessibility fallbacks", () => {
+  assert.match(html, /href="#guide-materials"/);
+  assert.match(game, /id="guide-materials"/);
+  assert.match(game, /MATERIAL_CLASSES\.map/);
+  assert.match(game, /material\.fallback\.label/);
+  assert.match(game, /renderer\.drainMaterialAudioCues/);
+});
+
 test("damage source telemetry updates a persistent interactive panel shell", () => {
   assert.match(html, /id="damage-ledger-handle"[^>]+tabindex="0"/);
   assert.match(html, /id="damage-ledger-collapse"[^>]+aria-expanded="true"/);

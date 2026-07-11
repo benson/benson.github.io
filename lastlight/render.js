@@ -8,6 +8,7 @@ import { AdaptiveQualityController, settingsForPreset } from "./quality-settings
 import { impactRenderPlan } from "./impact-grammar.js?v=20260711.8";
 import { movementVisualState } from "./movement.js?v=20260711.8";
 import { effectReadabilityCategory, partitionEffects, readabilityPlan } from "./readability.js?v=20260711.8";
+import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260711.8";
 
 const TAU = Math.PI * 2;
 export class Renderer {
@@ -27,6 +28,10 @@ export class Renderer {
     this.playerVisuals = new Map();
     this.enemyVisuals = new Map();
     this.groundParticles = [];
+    this.materialImpacts = [];
+    this.materialProjectileHistory = new Map();
+    this.materialEffectHistory = new Set();
+    this.materialAudioCues = [];
     this.visualFreeze = 0;
     this.lastLocalHurt = 0;
     this.previousIndexes = new WeakMap();
@@ -77,7 +82,7 @@ export class Renderer {
 
   resetCamera() {
     this.camera.x = 0; this.camera.y = 0; this.camera.vx = 0; this.camera.vy = 0;
-    this.playerVisuals.clear(); this.enemyVisuals.clear(); this.groundParticles = []; this.visualFreeze = 0; this.lastLocalHurt = 0;
+    this.playerVisuals.clear(); this.enemyVisuals.clear(); this.groundParticles = []; this.materialImpacts = []; this.materialProjectileHistory.clear(); this.materialEffectHistory.clear(); this.materialAudioCues = []; this.visualFreeze = 0; this.lastLocalHurt = 0;
   }
 
   resize() {
@@ -142,6 +147,121 @@ export class Renderer {
     let hash = 2166136261;
     for (let index = 0; index < value.length; index++) { hash ^= value.charCodeAt(index); hash = Math.imul(hash, 16777619); }
     return (hash >>> 0) / 4294967296 < density;
+  }
+
+  emitMaterialImpact(source, target, weaponPlan) {
+    if (!weaponPlan || (!weaponPlan.essential && !this.densityAllows(source))) return null;
+    const response = resolveMaterialImpact(weaponPlan, target.material, {
+      reducedMotion: this.reducedMotion,
+      effectsDensity: this.qualityProfile.effectsDensity,
+      flashIntensity: this.qualityProfile.flashIntensity,
+      soundIntensity: Math.max(.35, this.qualityProfile.effectsDensity),
+    });
+    const event = { id: `material:${source.id}:${target.targetId}`, x: source.x || 0, y: source.y || 0, ageMs: 0, response, essential: weaponPlan.essential };
+    const cap = Math.max(12, Math.min(96, Math.round(this.renderBudgets.effects * .4)));
+    if (this.materialImpacts.length >= cap) {
+      const ordinary = this.materialImpacts.findIndex((impact) => !impact.essential);
+      this.materialImpacts.splice(ordinary >= 0 ? ordinary : 0, 1);
+    }
+    this.materialImpacts.push(event);
+    if (response.sound.volume > 0) {
+      if (this.materialAudioCues.length >= 12) this.materialAudioCues.shift();
+      this.materialAudioCues.push({ family: response.sound.family, pitch: response.sound.pitch, volume: response.sound.volume, essential: event.essential });
+    }
+    return event;
+  }
+
+  updateMaterialImpacts(state, map, frameSeconds) {
+    const currentProjectiles = new Map((state.projectiles || []).map((projectile) => [projectile.id, projectile]));
+    for (const [id, prior] of this.materialProjectileHistory) {
+      if (!currentProjectiles.has(id)) this.emitMaterialImpact(prior.entity, prior.target, prior.weaponPlan);
+    }
+    const nextHistory = new Map();
+    for (const projectile of state.projectiles || []) {
+      const weaponPlan = impactRenderPlan(projectile, state, { reducedMotion: this.reducedMotion, density: this.qualityProfile.effectsDensity });
+      if (!weaponPlan) continue;
+      nextHistory.set(projectile.id, { entity: { id: projectile.id, x: projectile.x, y: projectile.y }, weaponPlan, target: materialAtPoint(projectile, state, MAP_OBSTACLES, Math.max(24, projectile.radius || 0) + 24) });
+    }
+    this.materialProjectileHistory = nextHistory;
+
+    const currentEffects = new Set();
+    for (const effect of state.effects || []) {
+      currentEffects.add(effect.id);
+      if (this.materialEffectHistory.has(effect.id) || !effect.sourceId) continue;
+      const weaponPlan = impactRenderPlan(effect, state, { reducedMotion: this.reducedMotion, density: this.qualityProfile.effectsDensity });
+      if (weaponPlan) this.emitMaterialImpact(effect, materialAtPoint(effect, state, MAP_OBSTACLES, Math.max(24, effect.radius || 0)), weaponPlan);
+    }
+    this.materialEffectHistory = currentEffects;
+    const elapsedMs = Math.max(0, Math.min(50, frameSeconds * 1000));
+    for (const impact of this.materialImpacts) impact.ageMs += elapsedMs;
+    this.materialImpacts = this.materialImpacts.filter((impact) => impact.ageMs <= Math.max(impact.response.lifetimeMs, impact.response.decal.lifetimeMs));
+  }
+
+  drainMaterialAudioCues(maximum = 1) {
+    const count = Math.max(0, Math.min(4, Math.floor(maximum)));
+    if (!count || !this.materialAudioCues.length) return [];
+    const prioritized = this.materialAudioCues.findIndex((cue) => cue.essential);
+    if (prioritized > 0) this.materialAudioCues.unshift(this.materialAudioCues.splice(prioritized, 1)[0]);
+    return this.materialAudioCues.splice(0, count);
+  }
+
+  materialImpactDiagnostics() {
+    return { active: this.materialImpacts.length, queuedAudio: this.materialAudioCues.length, trackedProjectiles: this.materialProjectileHistory.size, trackedEffects: this.materialEffectHistory.size };
+  }
+
+  drawMaterialImpacts() {
+    const ctx = this.ctx;
+    for (const event of this.materialImpacts) {
+      const response = event.response, progress = Math.min(1, event.ageMs / Math.max(1, response.lifetimeMs));
+      if (!this.isWorldVisible(event, response.decal.radius + 40)) continue;
+      ctx.save(); ctx.translate(event.x, event.y);
+      if (response.decal.visible && event.ageMs <= response.decal.lifetimeMs) this.drawMaterialDecal(response, Math.min(1, event.ageMs / Math.max(1, response.decal.lifetimeMs)));
+      if (response.flash.intensity > 0 && event.ageMs <= response.flash.durationMs) {
+        const flashProgress = event.ageMs / response.flash.durationMs;
+        ctx.globalAlpha = (1 - flashProgress) * response.flash.intensity * .45;
+        ctx.fillStyle = response.flash.color; ctx.beginPath(); ctx.arc(0, 0, 6 + flashProgress * 24, 0, TAU); ctx.fill();
+      }
+      this.drawMaterialParticles(event, progress);
+      this.drawMaterialFallback(response, progress);
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1; ctx.shadowBlur = 0; ctx.setLineDash([]);
+  }
+
+  drawMaterialParticles(event, progress) {
+    const ctx = this.ctx, particles = event.response.particles;
+    for (let index = 0; index < particles.count; index++) {
+      const unit = stableImpactUnit(`${event.id}:${index}`), angle = unit * TAU + index * 2.399963, distance = particles.speed * progress * .32;
+      const inward = particles.shape === "inward-motes", x = Math.cos(angle) * (inward ? distance * (1 - progress) + 12 : distance), y = Math.sin(angle) * (inward ? distance * (1 - progress) + 12 : distance);
+      ctx.save(); ctx.translate(x, y); ctx.rotate(angle); ctx.globalAlpha = (1 - progress) * (.62 + unit * .28); ctx.fillStyle = index % 2 ? particles.secondary : particles.color; ctx.strokeStyle = particles.secondary; ctx.lineWidth = 1;
+      const size = particles.size * (.75 + unit * .5);
+      if (particles.shape === "angular-sparks") { ctx.fillRect(-size * 2, -size * .45, size * 4, size * .9); }
+      else if (particles.shape === "square-chips") { ctx.fillRect(-size, -size, size * 2, size * 2); }
+      else if (particles.shape === "diamond-shards") { ctx.beginPath(); ctx.moveTo(size * 1.7,0); ctx.lineTo(0,-size); ctx.lineTo(-size * 1.7,0); ctx.lineTo(0,size); ctx.closePath(); ctx.fill(); }
+      else if (particles.shape === "short-arcs") { ctx.lineWidth = Math.max(1.5, size * .65); ctx.beginPath(); ctx.arc(0,0,size*2,-.8,.8); ctx.stroke(); }
+      else { ctx.beginPath(); ctx.ellipse(0,0,size*1.25,size*.8,0,0,TAU); ctx.fill(); }
+      ctx.restore();
+    }
+  }
+
+  drawMaterialDecal(response, progress) {
+    const ctx = this.ctx, decal = response.decal, radius = decal.radius, alpha = decal.alpha * (1 - progress);
+    ctx.save(); ctx.globalAlpha = alpha; ctx.strokeStyle = decal.color; ctx.fillStyle = decal.color; ctx.lineWidth = 1.5;
+    if (decal.shape === "ricochet-notch") { for (let index = -1; index <= 1; index++) { ctx.rotate(index * .12); ctx.beginPath(); ctx.moveTo(-radius*.2,index*3); ctx.lineTo(radius,index*3); ctx.stroke(); } }
+    else if (decal.shape === "fracture") { for (let index = 0; index < 5; index++) { const angle = index*TAU/5; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(angle)*radius*.45,Math.sin(angle)*radius*.45); ctx.lineTo(Math.cos(angle+.14)*radius,Math.sin(angle+.14)*radius); ctx.stroke(); } }
+    else if (decal.shape === "ripple") { for (let index = 1; index <= 2; index++) { ctx.beginPath(); ctx.ellipse(0,0,radius*index/2,radius*index/5,0,0,TAU); ctx.stroke(); } }
+    else if (decal.shape === "soft-burst") { for (let index = 0; index < 5; index++) { const angle=index*TAU/5;ctx.beginPath();ctx.arc(Math.cos(angle)*radius*.35,Math.sin(angle)*radius*.35,radius*.22,0,TAU);ctx.fill(); } }
+    else if (decal.shape === "hex-ring") { ctx.beginPath(); for (let index=0;index<6;index++){const angle=index*TAU/6-Math.PI/2;index?ctx.lineTo(Math.cos(angle)*radius,Math.sin(angle)*radius):ctx.moveTo(Math.cos(angle)*radius,Math.sin(angle)*radius);}ctx.closePath();ctx.stroke(); }
+    else { ctx.beginPath(); ctx.arc(0,0,radius,-.4,TAU*.75); ctx.stroke(); ctx.beginPath(); ctx.arc(0,0,radius*.52,Math.PI*.6,TAU*.94); ctx.stroke(); }
+    ctx.restore();
+  }
+
+  drawMaterialFallback(response, progress) {
+    const ctx=this.ctx, fallback=response.fallback, radius=8+progress*10;ctx.save();ctx.globalAlpha=(1-progress)*.72;ctx.strokeStyle=fallback.color;ctx.lineWidth=2;
+    if (/hex|diamond/.test(fallback.pattern)){const points=/hex/.test(fallback.pattern)?6:4;ctx.beginPath();for(let index=0;index<points;index++){const angle=index*TAU/points-Math.PI/2;index?ctx.lineTo(Math.cos(angle)*radius,Math.sin(angle)*radius):ctx.moveTo(Math.cos(angle)*radius,Math.sin(angle)*radius);}ctx.closePath();ctx.stroke();}
+    else if (/spiral|ripple/.test(fallback.pattern)){ctx.beginPath();ctx.arc(0,0,radius,.2,TAU*.85);ctx.stroke();}
+    else {const rays=/three/.test(fallback.pattern)?3:4;for(let index=0;index<rays;index++){const angle=index*TAU/rays;ctx.beginPath();ctx.moveTo(Math.cos(angle)*3,Math.sin(angle)*3);ctx.lineTo(Math.cos(angle)*radius,Math.sin(angle)*radius);ctx.stroke();}}
+    ctx.restore();
   }
 
   clearInspection() {
@@ -242,6 +362,7 @@ export class Renderer {
     if (Math.abs(this.canvas.clientWidth - this.width) > 1 || Math.abs(this.canvas.clientHeight - this.height) > 1) this.resize();
     const ctx = this.ctx;
     const map = typeof state.map === "string" ? MAPS[state.map] : state.map;
+    this.updateMaterialImpacts(state, map, frameSeconds);
     const current = state.players.find((p) => p.id === localPlayerId) || state.players[0] || { x: 0, y: 0 };
     const pos = this.position(current, previous?.players, interpolation);
     const lookAngle = Number.isFinite(current.aimFacing) ? current.aimFacing : current.facing || 0;
@@ -269,6 +390,7 @@ export class Renderer {
     this.drawObjectives(state.objectives || [], map, "ground");
     this.drawDrops(state.drops || []);
     this.drawOrbs(this.budget(state.orbs || [], this.renderBudgets.orbs));
+    this.drawMaterialImpacts();
     this.drawEffects(effectPasses.ground, map, previous, interpolation, "ground", state);
     this.drawFeathers(state.feathers || []);
     this.drawProjectiles(friendlyProjectiles, false, state);
