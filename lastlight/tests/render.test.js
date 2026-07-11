@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { settingsForPreset } from "../quality-settings.js";
 import { createImpactStressFixture } from "../fixtures/impact-stress.js";
 
@@ -15,6 +16,7 @@ globalThis.Image = class {
 };
 
 const { Renderer } = await import("../render.js?renderer-tests");
+const renderSource = readFileSync(new URL("../render.js", import.meta.url), "utf8");
 
 function createRenderer() {
   const context = { setTransform: () => {} };
@@ -48,6 +50,13 @@ test("renderer preloads theme-owned runtime art for every field-guide enemy", ()
   assert.equal(renderer.enemySprites.mite.currentSrc, "assets/enemies/skitter.webp");
   assert.equal(renderer.enemySprites.hound.currentSrc, "assets/enemies/rusher.webp");
   assert.equal(renderer.enemySprites.shark.currentSrc, "assets/enemies/siegebreaker.webp");
+});
+
+test("renderer loads only available validated motion atlases and leaves missing rigs on safe fallbacks", () => {
+  const renderer = createRenderer();
+  assert.deepEqual(Object.keys(renderer.animationAtlases), ["zuri"]);
+  assert.equal(renderer.animationAtlases.zuri.currentSrc, "assets/sprites/zuri-motion-atlas.png");
+  assert.deepEqual(Object.keys(renderer.enemyAnimationAtlases), []);
 });
 
 test("inspection returns structured combat details and controls hover state", () => {
@@ -122,4 +131,15 @@ test("renderer accepts the complete base/evolved impact stress grid at full and 
     assert.doesNotThrow(() => renderer.drawProjectiles(projectiles, false, state));
     assert.equal(projectiles.length, 42);
   }
+});
+
+test("motion playback keeps anchors stable, separates aim from locomotion, and caps retained deaths", () => {
+  assert.match(renderSource, /const locomotionTarget =/);
+  assert.match(renderSource, /const aimTarget =/);
+  assert.match(renderSource, /const drawFacing = usesAimFacing \? visual\.aimFacing : visual\.facing/);
+  assert.match(renderSource, /fixedSpriteTop/);
+  assert.match(renderSource, /deathBudget = Math\.min\(24/);
+  assert.match(renderSource, /type: "enemy-death"/);
+  assert.match(renderSource, /motionFrame\(animationConfig, animation, visual\.animationTime, \{ reducedMotion: this\.reducedMotion \}\)/);
+  assert.doesNotMatch(renderSource, /animationTime \+= frameTime \* \(this\.reducedMotion/);
 });

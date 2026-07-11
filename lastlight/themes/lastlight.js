@@ -1,3 +1,5 @@
+import { ENEMY_MOTION_STATES, MOTION_DIRECTIONS, MOTION_SCHEMA, SPECIALIST_MOTION_STATES, validateMotionRig } from "../motion.js?v=20260711.6";
+
 /**
  * The canonical asset contract for a Lastlight visual theme.
  *
@@ -161,50 +163,97 @@ const LASTLIGHT_ASSETS = {
   },
 };
 
+export const MOTION_BOSS_IDS = deepFreeze(["warehouse", "outskirts", "lab", "beachhead"]);
+
+const specialistSizes = {
+  zuri: [138, 110], echo: [112, 108], sola: [126, 118], bront: [120, 116], fang: [112, 106],
+  gale: [112, 110], rift: [114, 108], nova: [110, 108], vesper: [116, 112],
+};
+
+const enemyLayout = {
+  mite: { anchor: [.5, .78], drawSize: [72, 59], groundY: 10, shadow: [26, 9], contact: [30, 1] },
+  hound: { anchor: [.5, .77], drawSize: [96, 67], groundY: 13, shadow: [36, 12], contact: [42, 2] },
+  spitter: { anchor: [.5, .76], drawSize: [88, 82], groundY: 14, shadow: [32, 12], contact: [40, -8] },
+  brute: { anchor: [.5, .78], drawSize: [118, 108], groundY: 20, shadow: [45, 15], contact: [54, 1] },
+  bomber: { anchor: [.5, .77], drawSize: [98, 92], groundY: 16, shadow: [38, 13], contact: [44, 0] },
+  shark: { anchor: [.5, .78], drawSize: [168, 125], groundY: 28, shadow: [66, 21], contact: [78, 2] },
+};
+
+const frames = (rows, ms, authored = false) => ({
+  loop: false, authored,
+  frames: rows.map((row, index) => ({ row, ms: Array.isArray(ms) ? ms[index] : ms })),
+});
+
+function plannedSpecialistRig(id) {
+  return {
+    schema: MOTION_SCHEMA, kind: "specialist", status: "missing",
+    atlas: { src: `assets/motion/specialists/${id}.webp`, available: false, expectedSize: [1024, 1536] },
+    grid: { columns: 4, rows: 6 }, directions: [...MOTION_DIRECTIONS],
+    anchor: [.5, .875], drawSize: specialistSizes[id], collisionOffset: [0, 0], groundY: 18, shadow: [34, 12],
+    sockets: { muzzle: { distance: id === "sola" || id === "bront" ? 53 : 58, vertical: -8 } },
+    bindings: { dash: "mobility", castE: "cast", castR: "cast" },
+    states: {
+      idle: { ...frames([0, 1], [320, 320]), loop: true },
+      run: { ...frames([2, 3, 2, 3, 2, 3], 72), loop: true },
+      mobility: { loop: false, authored: false, frames: [{ row: 4, ms: 70, scaleX: 1.03, scaleY: .97 }, { row: 4, ms: 70 }, { row: 4, ms: 100, scaleX: .98 }] },
+      cast: { loop: false, authored: false, frames: [{ row: 1, ms: 80, scaleX: .98 }, { row: 1, ms: 80 }, { row: 4, ms: 70, scaleX: 1.03 }, { row: 0, ms: 130 }] },
+      hurt: frames([5, 5], [80, 150]),
+      down: { loop: false, authored: false, frames: [{ row: 5, ms: 90 }, { row: 5, ms: 110, rotation: -.06 }, { row: 5, ms: 140, rotation: -.11, offsetY: 4 }, { row: 5, ms: 420, rotation: -.13, offsetY: 6 }] },
+      revive: { loop: false, authored: false, frames: [{ row: 5, ms: 100, offsetY: 5 }, { row: 0, ms: 100, scaleY: .96 }, { row: 0, ms: 100 }, { row: 1, ms: 180 }] },
+      victory: { loop: true, authored: false, frames: [{ row: 0, ms: 150 }, { row: 1, ms: 150, offsetY: -2 }, { row: 0, ms: 180 }, { row: 1, ms: 220, offsetY: -1 }] },
+    },
+  };
+}
+
+function zuriPrototypeRig() {
+  const rig = plannedSpecialistRig("zuri");
+  return {
+    ...rig, status: "prototype", atlas: { src: "assets/sprites/zuri-motion-atlas.png", available: true, expectedSize: [1254, 1254] },
+    grid: { columns: 4, rows: 5 }, anchor: [.5, .82], drawSize: [138, 110],
+    states: {
+      idle: { ...frames([0, 0], [260, 260], true), loop: true },
+      run: { ...frames([1, 2, 1, 2, 1, 2], 72, true), loop: true },
+      mobility: frames([3, 3, 3], [60, 60, 100], true),
+      cast: frames([3, 3, 3, 0], [80, 80, 70, 130]),
+      hurt: frames([4, 4], [80, 150], true), down: frames([4, 4, 4, 4], [90, 110, 140, 420]),
+      revive: frames([0, 0, 0, 0], [100, 100, 100, 180]),
+      victory: { ...frames([0, 0, 0, 0], [150, 150, 180, 220]), loop: true },
+    },
+  };
+}
+
+function plannedEnemyRig(id, layout, boss = false) {
+  const source = boss ? `assets/motion/bosses/${id}.webp` : `assets/motion/enemies/${id}.webp`;
+  return {
+    schema: MOTION_SCHEMA, kind: "enemy", status: "missing",
+    atlas: { src: source, available: false, expectedSize: [1024, 1536] },
+    grid: { columns: 4, rows: 6 }, directions: [...MOTION_DIRECTIONS],
+    anchor: layout.anchor, drawSize: layout.drawSize, collisionOffset: [0, 0], groundY: layout.groundY, shadow: layout.shadow,
+    sockets: { contact: { distance: layout.contact[0], vertical: layout.contact[1] } }, bindings: {},
+    states: {
+      idle: { ...frames([0, 1], [300, 300]), loop: true },
+      locomotion: { ...frames([2, 3, 2, 3, 2, 3], boss ? 105 : 82), loop: true },
+      attackWindup: { loop: false, authored: false, frames: [{ row: 1, ms: 90, scaleX: .96 }, { row: 1, ms: 90, scaleX: .93, scaleY: 1.03 }] },
+      attackContact: frames([4], 70),
+      attackRecovery: { loop: false, authored: false, frames: [{ row: 4, ms: 90, scaleX: 1.03 }, { row: 0, ms: 130 }] },
+      hurt: frames([5, 5], [70, 110]),
+      death: { loop: false, authored: false, frames: [{ row: 5, ms: 80 }, { row: 5, ms: 100, rotation: -.05 }, { row: 5, ms: 130, rotation: -.11, offsetY: 5 }, { row: 5, ms: 220, rotation: -.14, offsetY: 8 }] },
+    },
+  };
+}
+
+const specialistMotions = Object.fromEntries(THEME_ASSET_KEYS.specialists.map((id) => [id, id === "zuri" ? zuriPrototypeRig() : plannedSpecialistRig(id)]));
+const enemyMotions = Object.fromEntries(THEME_ASSET_KEYS.enemies.map((id) => [id, plannedEnemyRig(id, enemyLayout[id])]));
+const bossMotions = Object.fromEntries(MOTION_BOSS_IDS.map((id) => [id, plannedEnemyRig(id, { anchor: [.5, .82], drawSize: [190, 160], groundY: 32, shadow: [76, 24], contact: [90, 2] }, true)]));
+
 export const LASTLIGHT_THEME = defineTheme({
   id: "lastlight",
   name: "Lastlight",
   assets: LASTLIGHT_ASSETS,
   animations: {
-    enemies: {
-      mite: { anchor: [.5, .78], drawSize: [72, 59], groundY: 10, shadow: [26, 9], stride: 1.5 },
-      hound: { anchor: [.5, .77], drawSize: [96, 67], groundY: 13, shadow: [36, 12], stride: 2.5 },
-      spitter: { anchor: [.5, .76], drawSize: [88, 82], groundY: 14, shadow: [32, 12], stride: 1.4 },
-      brute: { anchor: [.5, .78], drawSize: [118, 108], groundY: 20, shadow: [45, 15], stride: 1.7 },
-      bomber: { anchor: [.5, .77], drawSize: [98, 92], groundY: 16, shadow: [38, 13], stride: 2 },
-      shark: { anchor: [.5, .78], drawSize: [168, 125], groundY: 28, shadow: [66, 21], stride: 1.3 },
-    },
-    specialists: {
-      zuri: {
-        atlas: "assets/sprites/zuri-motion-atlas.png",
-        grid: { columns: 4, rows: 5 },
-        directions: ["south", "west", "north", "east"],
-        anchor: [.5, .82],
-        drawSize: [138, 110],
-        spriteBounds: [0, 0, 138, 110],
-        collisionOffset: [0, 0],
-        groundY: 18,
-        shadow: [34, 12],
-        muzzleDistance: 58,
-        sockets: { muzzle: { distance: 58, vertical: -8 } },
-        states: {
-          idle: { loop: true, frames: [{ row: 0, ms: 260 }, { row: 0, ms: 260, scaleY: .985, offsetY: 1 }] },
-          run: { loop: true, frames: [
-            { row: 1, ms: 58, offsetY: 0 }, { row: 1, ms: 58, scaleY: .98, offsetY: 1 },
-            { row: 2, ms: 58, offsetY: -1 }, { row: 2, ms: 58, scaleY: 1.01, offsetY: -2 },
-            { row: 1, ms: 58, offsetY: 0 }, { row: 1, ms: 58, scaleY: .98, offsetY: 1 },
-            { row: 2, ms: 58, offsetY: -1 }, { row: 2, ms: 58, scaleY: 1.01, offsetY: -2 },
-          ] },
-          dash: { loop: false, frames: [{ row: 3, ms: 180, scaleX: 1.04, scaleY: .96 }] },
-          castE: { loop: false, frames: [{ row: 3, ms: 90, scaleX: .97 }, { row: 0, ms: 150, offsetY: 1 }] },
-          castR: { loop: false, frames: [{ row: 3, ms: 130, scaleX: 1.06, scaleY: .94 }, { row: 0, ms: 220 }] },
-          hurt: { loop: false, frames: [{ row: 4, ms: 220, scaleX: .96, rotation: -.05 }] },
-          down: { loop: false, frames: [{ row: 4, ms: 500, rotation: -.12, offsetY: 5 }] },
-          revive: { loop: false, frames: [{ row: 0, ms: 400, scaleY: 1.03 }] },
-          victory: { loop: true, frames: [{ row: 0, ms: 300, scaleY: 1.03, offsetY: -1 }, { row: 0, ms: 300 }] },
-        },
-      },
-    },
+    specialists: specialistMotions,
+    enemies: enemyMotions,
+    bosses: bossMotions,
   },
 });
 
@@ -221,8 +270,16 @@ export function getThemeAnimation(specialistId, theme = LASTLIGHT_THEME) {
   return theme?.animations?.specialists?.[specialistId] || null;
 }
 
-export function getThemeEnemyAnimation(enemyType, theme = LASTLIGHT_THEME) {
-  return theme?.animations?.enemies?.[enemyType] || null;
+export function getThemeEnemyAnimation(enemyType, theme = LASTLIGHT_THEME, mapId = "") {
+  return enemyType === "boss" ? theme?.animations?.bosses?.[mapId] || null : theme?.animations?.enemies?.[enemyType] || null;
+}
+
+export function getMissingMotionAssets(theme = LASTLIGHT_THEME) {
+  const entries = [];
+  for (const [id, rig] of Object.entries(theme.animations?.specialists || {})) if (rig.status !== "ready") entries.push({ kind: "specialist", id, status: rig.status, src: rig.atlas.src, expectedSize: [...rig.atlas.expectedSize] });
+  for (const [id, rig] of Object.entries(theme.animations?.enemies || {})) if (rig.status !== "ready") entries.push({ kind: "enemy", id, status: rig.status, src: rig.atlas.src, expectedSize: [...rig.atlas.expectedSize] });
+  for (const [id, rig] of Object.entries(theme.animations?.bosses || {})) if (rig.status !== "ready") entries.push({ kind: "boss", id, status: rig.status, src: rig.atlas.src, expectedSize: [...rig.atlas.expectedSize] });
+  return entries;
 }
 
 /** Validate and freeze a replacement theme before it enters the registry. */
@@ -278,32 +335,19 @@ export function validateTheme(theme) {
     }
   }
 
-  for (const [specialistId, animation] of Object.entries(theme.animations?.specialists || {})) {
-    if (!THEME_ASSET_KEYS.specialists.includes(specialistId)) {
-      errors.push(`Unknown animated specialist: ${specialistId}.`); continue;
+  const validateRigGroup = (groupName, group, ids, kind) => {
+    if (!group || typeof group !== "object") { errors.push(`Missing motion group: animations.${groupName}.`); return; }
+    for (const id of ids) {
+      const rig = group[id];
+      if (!rig) { errors.push(`Missing motion rig: animations.${groupName}.${id}.`); continue; }
+      for (const error of validateMotionRig(rig, kind)) errors.push(`animations.${groupName}.${id}: ${error}`);
+      if (rig.atlas?.available) paths.push([`animations.${groupName}.${id}.atlas`, rig.atlas.src]);
     }
-    if (typeof animation?.atlas !== "string" || !/^assets\/[a-z0-9/_-]+\.(?:png|webp)$/.test(animation.atlas)) {
-      errors.push(`animations.specialists.${specialistId}.atlas must be a relative PNG or WebP asset path.`);
-    } else paths.push([`animations.specialists.${specialistId}.atlas`, animation.atlas]);
-    if (!Number.isInteger(animation?.grid?.columns) || !Number.isInteger(animation?.grid?.rows)) errors.push(`animations.specialists.${specialistId}.grid must define integer columns and rows.`);
-    if (!Array.isArray(animation?.anchor) || animation.anchor.length !== 2 || animation.anchor.some((value) => !Number.isFinite(value))) errors.push(`animations.specialists.${specialistId}.anchor must be [x, y].`);
-    if (!Array.isArray(animation?.spriteBounds) || animation.spriteBounds.length !== 4 || animation.spriteBounds.some((value) => !Number.isFinite(value))) errors.push(`animations.specialists.${specialistId}.spriteBounds must be [x, y, width, height].`);
-    if (!Array.isArray(animation?.collisionOffset) || animation.collisionOffset.length !== 2 || animation.collisionOffset.some((value) => !Number.isFinite(value))) errors.push(`animations.specialists.${specialistId}.collisionOffset must be [x, y].`);
-    if (!Number.isFinite(animation?.sockets?.muzzle?.distance) || !Number.isFinite(animation?.sockets?.muzzle?.vertical)) errors.push(`animations.specialists.${specialistId}.sockets.muzzle must define distance and vertical offsets.`);
-    if (!animation?.states?.idle?.frames?.length || !animation?.states?.run?.frames?.length || !animation?.states?.hurt?.frames?.length) errors.push(`animations.specialists.${specialistId} must define idle, run, and hurt clips.`);
-  }
-
-  for (const enemyType of THEME_ASSET_KEYS.enemies) {
-    const animation = theme.animations?.enemies?.[enemyType];
-    if (!animation || typeof animation !== "object") {
-      errors.push(`Missing enemy render metadata: animations.enemies.${enemyType}.`);
-      continue;
-    }
-    if (!Array.isArray(animation.anchor) || animation.anchor.length !== 2 || animation.anchor.some((value) => !Number.isFinite(value))) errors.push(`animations.enemies.${enemyType}.anchor must be [x, y].`);
-    if (!Array.isArray(animation.drawSize) || animation.drawSize.length !== 2 || animation.drawSize.some((value) => !Number.isFinite(value) || value <= 0)) errors.push(`animations.enemies.${enemyType}.drawSize must be [width, height].`);
-    if (!Array.isArray(animation.shadow) || animation.shadow.length !== 2 || animation.shadow.some((value) => !Number.isFinite(value) || value <= 0)) errors.push(`animations.enemies.${enemyType}.shadow must be [width, height].`);
-    if (!Number.isFinite(animation.groundY) || !Number.isFinite(animation.stride)) errors.push(`animations.enemies.${enemyType} must define finite groundY and stride values.`);
-  }
+    for (const id of Object.keys(group)) if (!ids.includes(id)) errors.push(`Unexpected motion rig: animations.${groupName}.${id}.`);
+  };
+  validateRigGroup("specialists", theme.animations?.specialists, THEME_ASSET_KEYS.specialists, "specialist");
+  validateRigGroup("enemies", theme.animations?.enemies, THEME_ASSET_KEYS.enemies, "enemy");
+  validateRigGroup("bosses", theme.animations?.bosses, MOTION_BOSS_IDS, "enemy");
 
   const ownersByPath = new Map();
   for (const [key, path] of paths) {

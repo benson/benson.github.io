@@ -34,3 +34,8 @@ images (three events, six squad boons, and 15 augments) plus 24 complete-guide
 images (12 passives, six enemies, and six field categories).
 `validateTheme(theme)` returns `{ valid, errors, assetCount }` for editor tooling
 and tests.
+
+Motion rigs are part of the theme contract but unavailable planned atlas paths
+are not counted as deployable assets or requested at runtime. See
+`../MOTION-ASSETS.md` for the compact 4 × 6 atlas layout, logical clip bindings,
+activation process, and the exact outstanding art matrix.

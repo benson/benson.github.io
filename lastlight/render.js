@@ -1,7 +1,8 @@
 import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260711.5";
 import { WORLD } from "./engine.js?v=20260711.5";
 import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation } from "./themes/lastlight.js?v=20260711.5";
-import { animationFrame, directionColumn, springCamera } from "./feel.js?v=20260711.5";
+import { springCamera } from "./feel.js?v=20260711.5";
+import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistMotionState } from "./motion.js?v=20260711.6";
 import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
 import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260711.5";
 import { impactRenderPlan } from "./impact-grammar.js?v=20260711.5";
@@ -20,6 +21,7 @@ export class Renderer {
     this.effectSprites = {};
     this.enemySprites = {};
     this.animationAtlases = {};
+    this.enemyAnimationAtlases = {};
     this.playerVisuals = new Map();
     this.enemyVisuals = new Map();
     this.groundParticles = [];
@@ -46,7 +48,7 @@ export class Renderer {
     for (const spec of Object.values(SPECIALISTS)) {
       const image = new Image(); image.src = spec.sprite; this.sprites[spec.id] = image;
       const animation = getThemeAnimation(spec.id);
-      if (animation?.atlas) { const atlas = new Image(); atlas.src = animation.atlas; this.animationAtlases[spec.id] = atlas; }
+      if (animation?.atlas?.available) { const atlas = new Image(); atlas.src = animation.atlas.src; this.animationAtlases[spec.id] = atlas; }
     }
     for (const map of Object.values(MAPS)) {
       if (!map.texture) continue;
@@ -54,6 +56,12 @@ export class Renderer {
     }
     for (const type of Object.keys(ENEMY_TYPES)) {
       const image = new Image(); image.src = getThemeAsset(`enemies.${type}`); this.enemySprites[type] = image;
+      const animation = getThemeEnemyAnimation(type);
+      if (animation?.atlas?.available) { const atlas = new Image(); atlas.src = animation.atlas.src; this.enemyAnimationAtlases[type] = atlas; }
+    }
+    for (const mapId of Object.keys(MAPS)) {
+      const animation = getThemeEnemyAnimation("boss", undefined, mapId);
+      if (animation?.atlas?.available) { const atlas = new Image(); atlas.src = animation.atlas.src; this.enemyAnimationAtlases[`boss:${mapId}`] = atlas; }
     }
     for (const [name, src] of Object.entries({
       xpShard: getThemeAsset("effects.xpShard"),
@@ -341,10 +349,18 @@ export class Renderer {
   }
 
   drawGroundedQueue(state, previous, t, map, localPlayerId, visualDt) {
-    const items = [];
-    if (this.enemyVisuals.size > (state.enemies?.length || 0) + 32) {
-      const livingEnemyIds = new Set((state.enemies || []).map((enemy) => enemy.id));
-      for (const enemyId of this.enemyVisuals.keys()) if (!livingEnemyIds.has(enemyId)) this.enemyVisuals.delete(enemyId);
+    const items = [], now = performance.now(), livingEnemyIds = new Set((state.enemies || []).map((enemy) => enemy.id));
+    let deathVisuals = 0, deathBudget = Math.min(24, Math.max(2, Math.round(this.renderBudgets.effects / 8)));
+    for (const [enemyId, visual] of this.enemyVisuals.entries()) {
+      if (livingEnemyIds.has(enemyId)) { visual.deathAt = 0; continue; }
+      if (!visual.lastEntity) { this.enemyVisuals.delete(enemyId); continue; }
+      visual.deathAt ||= now;
+      const elapsed = (now - visual.deathAt) / 1000;
+      const rig = getThemeEnemyAnimation(visual.lastEntity.boss ? "boss" : visual.lastEntity.type, undefined, map.id);
+      const duration = Math.max(.35, motionClipDuration(rig, "death"));
+      if (elapsed >= duration || deathVisuals >= deathBudget) { this.enemyVisuals.delete(enemyId); continue; }
+      const value = { ...visual.lastEntity, dead: true, _deathElapsed: elapsed, hitFlash: 0, attackFlash: 0 };
+      items.push({ type: "enemy-death", value, sortY: value.y + (value.radius || 0) * .45 }); deathVisuals++;
     }
     for (const block of MAP_OBSTACLES) items.push({ type: "cover", value: block, sortY: block[1] + block[3] });
     for (const pod of state.pods || []) items.push({ type: "pod", value: pod, sortY: pod.y + (pod.radius || 0) });
@@ -364,7 +380,7 @@ export class Renderer {
     for (const item of items) {
       if (item.type === "cover") this.drawCover(map, item.value);
       else if (item.type === "pod") this.drawPods([item.value]);
-      else if (item.type === "enemy") this.drawEnemies([item.value], previous, t, map);
+      else if (item.type === "enemy" || item.type === "enemy-death") this.drawEnemies([item.value], previous, t, map, state.players, visualDt);
       else if (item.type === "drone") this.drawDrones([item.value], state.players, previous, t);
       else this.drawPlayers([item.value], previous, t, localPlayerId, visualDt);
     }
@@ -737,46 +753,71 @@ export class Renderer {
     ctx.restore();
   }
 
-  drawEnemies(enemies, previous, t, map) {
+  drawEnemies(enemies, previous, t, map, players = [], visualDt = 1 / 60) {
     const ctx = this.ctx, now = performance.now();
     for (const raw of enemies) {
       if (!this.isWorldVisible(raw, 110)) continue;
       const e = this.position(raw, previous?.enemies, t);
       const before = this.previousEntity(previous?.enemies, raw.id);
       const dx = before ? raw.x - before.x : 0, dy = before ? raw.y - before.y : 0;
-      const speed = Math.hypot(dx, dy), animation = getThemeEnemyAnimation(e.type);
+      const speed = Math.hypot(dx, dy), moving = speed > .12 && !e.dead;
+      const animation = getThemeEnemyAnimation(e.boss ? "boss" : e.type, undefined, map.id);
       const image = this.enemySprites[e.type], spriteReady = image?.complete && image.naturalWidth;
       const phase = Array.from(String(e.id)).reduce((sum, character) => sum + character.charCodeAt(0), 0) % 628 / 100;
-      const visual = this.enemyVisuals.get(e.id) || { facing: dx < 0 ? -1 : 1, stride: phase };
-      if (Math.abs(dx) > .12) visual.facing = dx < 0 ? -1 : 1;
+      const target = players.filter((player) => !player.dead && !player.downed).reduce((best, player) => !best || Math.hypot(player.x - e.x, player.y - e.y) < Math.hypot(best.x - e.x, best.y - e.y) ? player : best, null);
+      const aimFacing = target ? Math.atan2(target.y - e.y, target.x - e.x) : Number.isFinite(e.attackAngle) ? e.attackAngle : Math.atan2(dy, dx);
+      const locomotionFacing = moving ? Math.atan2(dy, dx) : aimFacing, targetDistance = target ? Math.hypot(target.x - e.x, target.y - e.y) : Infinity;
+      const nearTarget = targetDistance <= (ENEMY_TYPES[e.type]?.ranged || e.boss ? 520 : (e.radius || 20) + (target?.radius || 18) + 45);
+      const visual = this.enemyVisuals.get(e.id) || { facing: locomotionFacing, aimFacing, stride: phase, animation: "idle", animationTime: 0, lastAttackFlash: 0, lastHitFlash: 0, lastShotCd: e.shotCd, rangedAttackFlash: 0, updatedAt: now };
+      const frameTime = Math.min(.05, Math.max(0, visualDt || (now - visual.updatedAt) / 1000));
+      if (moving) visual.facing += Math.atan2(Math.sin(locomotionFacing - visual.facing), Math.cos(locomotionFacing - visual.facing)) * (1 - Math.exp(-16 * frameTime));
+      visual.aimFacing += Math.atan2(Math.sin(aimFacing - visual.aimFacing), Math.cos(aimFacing - visual.aimFacing)) * (1 - Math.exp(-22 * frameTime));
       visual.stride += speed > .12 ? .16 : .035;
+      const firedRangedShot = (ENEMY_TYPES[e.type]?.ranged || e.boss) && Number.isFinite(e.shotCd) && Number.isFinite(visual.lastShotCd) && e.shotCd > visual.lastShotCd + .3;
+      visual.rangedAttackFlash = firedRangedShot ? .2 : Math.max(0, visual.rangedAttackFlash - frameTime);
+      const authoritativeAttackFlash = Math.max(e.attackFlash || 0, visual.rangedAttackFlash);
+      const motionState = enemyMotionState(authoritativeAttackFlash === (e.attackFlash || 0) ? e : { ...e, attackFlash: authoritativeAttackFlash }, moving, nearTarget);
+      const retriggered = authoritativeAttackFlash > visual.lastAttackFlash + .03 || (e.hitFlash || 0) > visual.lastHitFlash + .02;
+      if (visual.animation !== motionState || retriggered) { visual.animation = motionState; visual.animationTime = 0; }
+      else visual.animationTime += frameTime;
+      const motion = motionFrame(animation, motionState, visual.animationTime, { reducedMotion: this.reducedMotion });
+      const drawFacing = motionState.startsWith("attack") ? visual.aimFacing : visual.facing;
+      visual.lastAttackFlash = authoritativeAttackFlash; visual.lastHitFlash = e.hitFlash || 0; visual.lastShotCd = e.shotCd; visual.lastEntity = { ...raw, x: e.x, y: e.y }; visual.updatedAt = now;
       this.enemyVisuals.set(e.id, visual);
 
       const spawn = clamp((e.spawnLife || 0) / .24, 0, 1);
-      const attack = clamp((e.attackFlash || 0) / .2, 0, 1) * this.qualityProfile.hitFlashes;
+      const attack = clamp(authoritativeAttackFlash / .2, 0, 1) * this.qualityProfile.hitFlashes;
       const hitFlash = (e.hitFlash || 0) * this.qualityProfile.hitFlashes;
       const groundY = animation?.groundY ?? e.radius * .7;
       const shadow = animation?.shadow || [e.radius * .9, e.radius * .45];
+      const deathProgress = e.dead ? clamp((e._deathElapsed || 0) / Math.max(.35, motionClipDuration(animation, "death")), 0, 1) : 0;
       const wobble = this.reducedMotion ? 0 : Math.sin(now * .006 + e.x * .02 + e.y * .01) * .026;
-      const step = this.reducedMotion ? 0 : Math.sin(visual.stride) * (animation?.stride || 1.5) * clamp(speed * .75, .18, 1);
+      const step = (motion?.offsetY || 0) + (this.reducedMotion ? 0 : Math.sin(visual.stride) * 1.5 * clamp(speed * .75, .18, 1));
 
       ctx.save(); ctx.translate(e.x, e.y);
-      ctx.globalAlpha = 1 - spawn * .55;
-      ctx.fillStyle = "rgba(0,0,0,.34)"; ctx.beginPath(); ctx.ellipse(4, groundY, shadow[0], shadow[1], 0, 0, TAU); ctx.fill();
-      if (e.elite || e.boss) {
+      ctx.globalAlpha = (1 - spawn * .55) * (1 - deathProgress * .72);
+      ctx.fillStyle = e.dead ? "rgba(0,0,0,.18)" : "rgba(0,0,0,.34)"; ctx.beginPath(); ctx.ellipse(4, groundY, shadow[0], shadow[1], 0, 0, TAU); ctx.fill();
+      if (!e.dead && (e.elite || e.boss)) {
         ctx.strokeStyle = e.boss ? map.accent : "#ffe073"; ctx.globalAlpha = .45; ctx.lineWidth = e.boss ? 8 : 4;
         ctx.beginPath(); ctx.arc(0, 0, e.radius + 10 + Math.sin(now * .005) * 3, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1 - spawn * .55;
       }
 
       ctx.save();
       ctx.translate(0, step);
-      ctx.rotate(wobble * (e.stun > 0 ? .35 : 1));
-      ctx.scale((1 - spawn * .42) * (1 + attack * .16), (1 - spawn * .42) * (1 - attack * .08));
+      ctx.translate(motion?.offsetX || 0, 0); ctx.rotate((motion?.rotation || 0) + wobble * (e.stun > 0 ? .35 : 1));
+      const spawnScale = this.reducedMotion ? 1 : 1 - spawn * .42;
+      ctx.scale(spawnScale * (motion?.scaleX || 1), spawnScale * (motion?.scaleY || 1));
       ctx.shadowColor = attack > 0 ? "#ff5a43" : e.color;
       ctx.shadowBlur = (attack > 0 ? 30 : e.boss ? 28 : e.elite ? 18 : 5) * this.qualityProfile.flashIntensity;
-      if (spriteReady && animation) {
+      const motionAtlas = this.enemyAnimationAtlases[e.boss ? `boss:${map.id}` : e.type];
+      if (motion && motionAtlasReady(motionAtlas, animation)) {
+        const cellWidth = motionAtlas.naturalWidth / animation.grid.columns, cellHeight = motionAtlas.naturalHeight / animation.grid.rows;
+        const [width, height] = animation.drawSize, anchor = animation.anchor || [.5, .875];
+        if (hitFlash > 0) ctx.filter = `brightness(${1 + clamp(hitFlash / .12, 0, 1) * 2.2 * this.qualityProfile.flashIntensity}) saturate(.45)`;
+        ctx.drawImage(motionAtlas, directionColumn(drawFacing) * cellWidth, motion.row * cellHeight, cellWidth, cellHeight, -width * anchor[0], groundY - height * anchor[1], width, height);
+      } else if (spriteReady && animation) {
         const [width, height] = animation.drawSize, anchor = animation.anchor || [.5, .78];
-        ctx.scale(visual.facing, 1);
+        ctx.scale(Math.cos(drawFacing) >= 0 ? 1 : -1, 1);
         if (hitFlash > 0) ctx.filter = `brightness(${1 + clamp(hitFlash / .12, 0, 1) * 2.2 * this.qualityProfile.flashIntensity}) saturate(.45)`;
         else if (attack > 0) ctx.filter = `brightness(${1 + attack * .75 * this.qualityProfile.flashIntensity}) saturate(${1 + attack * .3})`;
         ctx.drawImage(image, -width * anchor[0], groundY - height * anchor[1], width, height);
@@ -794,23 +835,23 @@ export class Renderer {
       }
       ctx.restore();
 
-      if (hitFlash > 0) {
+      if (!e.dead && hitFlash > 0) {
         ctx.save(); ctx.rotate(e.hitAngle || 0); ctx.strokeStyle = "#fff"; ctx.globalAlpha = clamp(e.hitFlash / .1, 0, 1); ctx.lineWidth = 3;
         for (let i = -1; i <= 1; i += 1) { ctx.beginPath(); ctx.moveTo(e.radius * .25, i * 7); ctx.lineTo(e.radius * 1.25, i * 12); ctx.stroke(); }
         ctx.restore();
       }
-      if (attack > 0) {
+      if (!e.dead && attack > 0) {
         ctx.strokeStyle = "#ff5a43"; ctx.globalAlpha = attack; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0, 0, e.radius + 8 + attack * 10, -.65, .65); ctx.stroke(); ctx.globalAlpha = 1;
       }
 
       const anchor = animation?.anchor || [.5, .5], spriteHeight = animation?.drawSize?.[1] || e.radius * 2;
       const barY = Math.min(-e.radius - 20, groundY - spriteHeight * anchor[1] - 11);
-      if (e.eventType === "treasure") {
+      if (!e.dead && e.eventType === "treasure") {
         ctx.fillStyle = "#fff2a8"; ctx.font = "900 15px Inter"; ctx.textAlign = "center"; ctx.fillText("$", 0, -2);
         ctx.fillStyle = "#f7d76a"; ctx.font = "800 9px Inter"; ctx.fillText(`TREASURE · ${Math.max(0, Math.ceil(e.life))}s`, 0, barY - 9);
       }
       const important = e.elite || e.miniboss || e.boss;
-      if (this.enemyHealthBarMode === "all" || (this.enemyHealthBarMode === "important" && important)) {
+      if (!e.dead && (this.enemyHealthBarMode === "all" || (this.enemyHealthBarMode === "important" && important))) {
         const width = e.boss ? 180 : important ? Math.max(56, e.radius * 2) : Math.max(34, e.radius * 1.65);
         this.drawSegmentedHealthBar({
           x: -width / 2, y: barY, width, height: e.boss ? 8 : 6,
@@ -900,29 +941,35 @@ export class Renderer {
       const before = this.previousEntity(previous?.players, raw.id);
       const dx = before ? raw.x - before.x : 0, dy = before ? raw.y - before.y : 0;
       const inferredMoving = Math.hypot(dx, dy) > .15, moving = Boolean(raw.moving ?? inferredMoving) && !p.dead && !p.downed;
-      const attackFacing = Number.isFinite(raw.aimFacing) && ((raw.animTime || 0) > 0 || (raw.weaponFlash || 0) > 0);
-      const targetFacing = attackFacing ? raw.aimFacing : Number.isFinite(raw.facing) ? raw.facing : inferredMoving ? Math.atan2(dy, dx) : 0;
+      const locomotionTarget = Number.isFinite(raw.facing) ? raw.facing : inferredMoving ? Math.atan2(dy, dx) : 0;
+      const aimTarget = Number.isFinite(raw.aimFacing) ? raw.aimFacing : locomotionTarget;
       const now = performance.now();
       const visual = this.playerVisuals.get(p.id) || {
-        facing: targetFacing, turn: Math.cos(targetFacing) >= 0 ? 1 : -1, stride: 0,
+        facing: locomotionTarget, aimFacing: aimTarget, turn: Math.cos(locomotionTarget) >= 0 ? 1 : -1, stride: 0,
         animation: "idle", animationTime: 0, displayHp: p.hp, trailHp: p.hp,
-        previousFootRow: null, wasSkidding: false, updatedAt: now,
+        previousFootRow: null, wasSkidding: false, lastAuthoritativeAnimTime: 0, updatedAt: now,
       };
       const frameTime = Math.min(.05, Math.max(0, visualDt || (now - visual.updatedAt) / 1000));
-      const facingDelta = Math.atan2(Math.sin(targetFacing - visual.facing), Math.cos(targetFacing - visual.facing));
+      const facingDelta = Math.atan2(Math.sin(locomotionTarget - visual.facing), Math.cos(locomotionTarget - visual.facing));
       visual.facing += facingDelta * (1 - Math.exp(-18 * Math.max(frameTime, 1 / 120)));
-      const targetTurn = Math.cos(visual.facing) >= 0 ? 1 : -1;
-      visual.turn += (targetTurn - visual.turn) * (1 - Math.exp(-16 * Math.max(frameTime, 1 / 120)));
+      const aimDelta = Math.atan2(Math.sin(aimTarget - visual.aimFacing), Math.cos(aimTarget - visual.aimFacing));
+      visual.aimFacing += aimDelta * (1 - Math.exp(-24 * Math.max(frameTime, 1 / 120)));
       visual.stride += moving ? frameTime * 10 : 0;
 
       const hurt = clamp((p.hurtFlash || 0) / .24, 0, 1) * this.qualityProfile.hitFlashes;
-      const animation = p.dead || p.downed ? "down" : hurt > .03 ? "hurt" : (raw.animTime || 0) > 0 ? (raw.animState || "idle") : moving ? "run" : "idle";
-      if (visual.animation !== animation) {
+      const animation = specialistMotionState(raw, moving, hurt);
+      const usesAimFacing = ["castE", "castR", "cast"].includes(animation) || (raw.weaponFlash || 0) > 0;
+      const drawFacing = usesAimFacing ? visual.aimFacing : visual.facing;
+      const targetTurn = Math.cos(drawFacing) >= 0 ? 1 : -1;
+      visual.turn += (targetTurn - visual.turn) * (1 - Math.exp(-16 * Math.max(frameTime, 1 / 120)));
+      const retriggered = (raw.animTime || 0) > (visual.lastAuthoritativeAnimTime || 0) + .025;
+      if (visual.animation !== animation || retriggered) {
         visual.animation = animation; visual.animationTime = 0; visual.previousFootRow = null;
-      } else visual.animationTime += frameTime * (this.reducedMotion ? .4 : 1);
+      } else visual.animationTime += frameTime;
+      visual.lastAuthoritativeAnimTime = raw.animTime || 0;
       const animationConfig = getThemeAnimation(p.specialist);
-      const atlasFrame = animationFrame(animationConfig, animation, visual.animationTime);
-      if (animation === "run" && atlasFrame && atlasFrame.row !== visual.previousFootRow && atlasFrame.row === 1) this.emitFootfall(p, visual, "#829296");
+      const atlasFrame = motionFrame(animationConfig, animation, visual.animationTime, { reducedMotion: this.reducedMotion });
+      if (animation === "run" && atlasFrame && atlasFrame.row !== visual.previousFootRow && [1, 2].includes(atlasFrame.row)) this.emitFootfall(p, visual, "#829296");
       visual.previousFootRow = atlasFrame?.row ?? visual.previousFootRow;
       if ((p.skidTime || 0) > .01 && !visual.wasSkidding) this.emitFootfall(p, visual, spec.color, true);
       visual.wasSkidding = (p.skidTime || 0) > .01;
@@ -943,7 +990,7 @@ export class Renderer {
       }
       if (p.invuln > 0 || p.shield > 0) {
         ctx.strokeStyle = p.invuln > 0 ? "#fff" : spec.color; ctx.globalAlpha = .55; ctx.lineWidth = 4;
-        ctx.beginPath(); ctx.ellipse(0, -4, 43 + Math.sin(now * .008) * 2, 49, 0, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1;
+        ctx.beginPath(); ctx.ellipse(0, -4, 43 + (this.reducedMotion ? 0 : Math.sin(now * .008) * 2), 49, 0, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1;
       }
       if (hurt > 0) {
         ctx.save(); ctx.rotate(p.hurtAngle || 0); ctx.strokeStyle = "#ff5870"; ctx.lineWidth = 4; ctx.globalAlpha = hurt;
@@ -951,13 +998,13 @@ export class Renderer {
       }
 
       const atlas = this.animationAtlases[p.specialist];
-      if (animationConfig && atlasFrame && atlas?.complete && atlas.naturalWidth) {
+      if (animationConfig && atlasFrame && motionAtlasReady(atlas, animationConfig)) {
         const cellWidth = atlas.naturalWidth / animationConfig.grid.columns, cellHeight = atlas.naturalHeight / animationConfig.grid.rows;
         const width = animationConfig.drawSize[0], height = animationConfig.drawSize[1], anchor = animationConfig.anchor || [.5, .82];
-        const column = directionColumn(visual.facing), row = atlasFrame.row;
+        const column = directionColumn(drawFacing), row = atlasFrame.row;
         ctx.save();
-        ctx.translate(this.reducedMotion ? 0 : Math.sin(now * .08) * hurt * 3, atlasFrame.offsetY || 0);
-        ctx.rotate((atlasFrame.rotation || 0) + Math.sin(p.hurtAngle || 0) * hurt * .06);
+        ctx.translate((animationConfig.collisionOffset?.[0] || 0) + (atlasFrame.offsetX || 0) + (this.reducedMotion ? 0 : Math.sin(now * .08) * hurt * 3), (animationConfig.collisionOffset?.[1] || 0) + (atlasFrame.offsetY || 0));
+        ctx.rotate((atlasFrame.rotation || 0) + (this.reducedMotion ? 0 : Math.sin(p.hurtAngle || 0) * hurt * .06));
         ctx.scale(atlasFrame.scaleX || 1, atlasFrame.scaleY || 1);
         if (hurt > 0) ctx.filter = `brightness(${1 + hurt * 2.2}) saturate(${1 - hurt * .5}) sepia(${hurt * .4})`;
         if (p.dead || p.downed) ctx.globalAlpha = .45;
@@ -967,10 +1014,10 @@ export class Renderer {
         const image = this.sprites[p.specialist];
         if (image?.complete) {
           const size = p.specialist === "sola" ? 118 : 104;
-          const step = Math.sin(visual.stride), bob = moving ? Math.abs(step) * -3 : Math.sin(now * .002 + p.x) * .7;
-          ctx.save(); ctx.translate(this.reducedMotion ? 0 : Math.sin(now * .08) * hurt * 3, bob - hurt * 2);
-          ctx.rotate((moving ? Math.cos(visual.stride) * .025 : 0) + Math.sin(p.hurtAngle || 0) * hurt * .09);
-          ctx.transform(visual.turn, 0, -Math.sin(visual.facing) * .045, 1, 0, 0);
+          const step = Math.sin(visual.stride), bob = this.reducedMotion ? 0 : moving ? Math.abs(step) * -3 : Math.sin(now * .002 + p.x) * .7;
+          ctx.save(); ctx.translate(this.reducedMotion ? 0 : Math.sin(now * .08) * hurt * 3, bob - (this.reducedMotion ? 0 : hurt * 2));
+          ctx.rotate(this.reducedMotion ? 0 : (moving ? Math.cos(visual.stride) * .025 : 0) + Math.sin(p.hurtAngle || 0) * hurt * .09);
+          ctx.transform(visual.turn, 0, -Math.sin(drawFacing) * .045, 1, 0, 0);
           if (hurt > 0) ctx.filter = `brightness(${1 + hurt * 2.4}) saturate(${1 - hurt * .55}) sepia(${hurt * .45})`;
           if (p.dead || p.downed) ctx.globalAlpha = .35;
           ctx.drawImage(image, -size / 2, groundY - size * .82, size, size); ctx.restore();
@@ -978,14 +1025,15 @@ export class Renderer {
       }
 
       if ((p.weaponFlash || 0) > 0 && !p.dead && !p.downed) {
-        const flash = clamp(p.weaponFlash / .09, 0, 1), angle = Number.isFinite(p.recoilAngle) ? p.recoilAngle : visual.facing;
+        const flash = clamp(p.weaponFlash / .09, 0, 1), angle = Number.isFinite(p.recoilAngle) ? p.recoilAngle : visual.aimFacing;
         const muzzle = animationConfig?.sockets?.muzzle;
         const distance = muzzle?.distance ?? animationConfig?.muzzleDistance ?? 47, x = Math.cos(angle) * distance, y = Math.sin(angle) * distance + (muzzle?.vertical ?? -8);
         ctx.save(); ctx.translate(x, y); ctx.rotate(angle); ctx.globalAlpha = flash * this.qualityProfile.flashIntensity; ctx.shadowColor = "#ff5c91"; ctx.shadowBlur = 16 * this.qualityProfile.flashIntensity;
         ctx.fillStyle = "#fff4c7"; ctx.beginPath(); ctx.moveTo(18, 0); ctx.lineTo(-6, -7); ctx.lineTo(-1, 0); ctx.lineTo(-6, 7); ctx.closePath(); ctx.fill(); ctx.restore();
       }
 
-      const barW = 74, maxHp = Math.max(1, p.maxHp || 1), barY = -64;
+      const fixedSpriteTop = groundY - (animationConfig?.drawSize?.[1] || 104) * (animationConfig?.anchor?.[1] || .82);
+      const barW = 74, maxHp = Math.max(1, p.maxHp || 1), barY = Math.min(-64, fixedSpriteTop - 11);
       this.drawSegmentedHealthBar({
         x: -barW / 2, y: barY, width: barW, height: 7,
         value: visual.displayHp, trail: visual.trailHp, shield: p.shield, maxValue: maxHp,

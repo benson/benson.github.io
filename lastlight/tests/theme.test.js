@@ -4,12 +4,15 @@ import { access } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import {
   LASTLIGHT_THEME,
+  MOTION_BOSS_IDS,
   THEME_ASSET_KEYS,
+  getMissingMotionAssets,
   getThemeAnimation,
   getThemeAsset,
   getThemeEnemyAnimation,
   validateTheme,
 } from "../themes/lastlight.js";
+import { ENEMY_MOTION_STATES, SPECIALIST_MOTION_STATES } from "../motion.js";
 
 test("default theme satisfies the complete asset contract", () => {
   const result = validateTheme(LASTLIGHT_THEME);
@@ -34,7 +37,12 @@ test("runtime enemy contract has unique deployable cutouts and render anchors", 
     assert.equal(animation.drawSize.length, 2);
     assert.ok(animation.drawSize.every((value) => value > 0));
     assert.equal(animation.shadow.length, 2);
+    assert.equal(animation.grid.columns, 4);
+    assert.equal(animation.grid.rows, 6);
+    assert.equal(animation.status, "missing");
+    assert.ok(ENEMY_MOTION_STATES.every((state) => animation.states[state].frames.length));
   }
+  for (const mapId of MOTION_BOSS_IDS) assert.ok(ENEMY_MOTION_STATES.every((state) => getThemeEnemyAnimation("boss", undefined, mapId).states[state].frames.length));
 });
 
 test("guide contract gives every passive, enemy, and field category unique art", () => {
@@ -76,17 +84,32 @@ test("logical asset lookup is predictable and rejects typos", () => {
   assert.throws(() => getThemeAsset("archive.augments.glassCanon"), /Unknown theme asset/);
 });
 
-test("authored specialist animation metadata is theme-swappable", async () => {
+test("specialist motion metadata is complete, strict, and theme-swappable", async () => {
   const animation = getThemeAnimation("zuri");
-  assert.equal(animation.atlas, "assets/sprites/zuri-motion-atlas.png");
+  assert.equal(animation.atlas.src, "assets/sprites/zuri-motion-atlas.png");
+  assert.equal(animation.atlas.available, true);
+  assert.equal(animation.status, "prototype");
   assert.deepEqual(animation.directions, ["south", "west", "north", "east"]);
   assert.deepEqual(animation.grid, { columns: 4, rows: 5 });
-  assert.ok(["idle", "run", "dash", "castE", "castR", "hurt", "down", "revive", "victory"].every((state) => animation.states[state]?.frames?.length));
-  assert.deepEqual(animation.spriteBounds, [0, 0, 138, 110]);
+  assert.ok(SPECIALIST_MOTION_STATES.every((state) => animation.states[state]?.frames?.length));
+  assert.deepEqual(animation.bindings, { dash: "mobility", castE: "cast", castR: "cast" });
   assert.deepEqual(animation.collisionOffset, [0, 0]);
   assert.deepEqual(animation.sockets.muzzle, { distance: 58, vertical: -8 });
+  for (const specialist of THEME_ASSET_KEYS.specialists) {
+    const rig = getThemeAnimation(specialist);
+    assert.ok(SPECIALIST_MOTION_STATES.every((state) => rig.states[state]?.frames?.length));
+    if (specialist !== "zuri") assert.deepEqual(rig.grid, { columns: 4, rows: 6 });
+  }
   const root = fileURLToPath(new URL("../", import.meta.url));
-  await access(`${root}${animation.atlas}`);
+  await access(`${root}${animation.atlas.src}`);
+});
+
+test("motion asset gaps are explicit and do not pretend missing atlases exist", () => {
+  const gaps = getMissingMotionAssets();
+  assert.equal(gaps.length, 19);
+  assert.deepEqual(gaps.map(({ kind }) => kind).reduce((counts, kind) => ({ ...counts, [kind]: (counts[kind] || 0) + 1 }), {}), { specialist: 9, enemy: 6, boss: 4 });
+  assert.equal(gaps.find(({ kind, id }) => kind === "specialist" && id === "zuri").status, "prototype");
+  assert.ok(gaps.filter(({ status }) => status === "missing").every(({ src, expectedSize }) => src.startsWith("assets/motion/") && expectedSize.join("x") === "1024x1536"));
 });
 
 test("every default-theme asset is present in the deployable game tree", async () => {
