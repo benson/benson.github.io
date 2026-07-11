@@ -917,6 +917,7 @@ kbd { display: inline-grid; min-width: 26px; height: 24px; place-items: center; 
 }
 
 @media (max-width: 650px) {
+  .upgrade-overlay { backdrop-filter: none; }
   .topbar { height: 62px; padding-inline: 16px; }
   .topbar-actions .text-button { display: none; }
   .home-content { width: calc(100% - 28px); padding-top: 36px; }
