@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260711.7">
+  <link rel="stylesheet" href="styles.css?v=20260711.8">
 </head>
 <body>
   <main id="app">
@@ -441,7 +441,19 @@
       <div class="build-history-body">
         <article class="build-release current-build">
           <header>
-            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.11.7</h3></div>
+            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.11.8</h3></div>
+            <time class="build-shipped-at" data-build-shipped-at="">Deployment verification pending</time>
+          </header>
+          <ul>
+            <li>Fixed repeatable specialist shields that could accumulate into dozens of health bars; every active shield now uses the ten-point vitality scale and is capped at half of maximum health.</li>
+            <li>Added deterministic role-specific acceleration, braking, turning, and dash recovery, plus independent movement and aim-facing policies for every specialist.</li>
+            <li>Added material-aware weapon contact across flesh, armor, terrain, shields, tech, and objectives with bounded particles, decals, flashes, sound, and reduced-motion fallbacks.</li>
+            <li>Formalized the battlefield readability hierarchy so hostile fire, lethal telegraphs, objectives, teammate emergencies, damage feedback, and inspection remain distinct under heavy load.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.11.7</h3></div>
             <time class="build-shipped-at" data-build-shipped-at="2026-07-11T18:10:00-04:00">Shipped Jul 11, 2026, 6:10 PM EDT</time>
           </header>
           <ul>
@@ -610,8 +622,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.11.7. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.11.7</strong></button>
-  <script src="build-history.js?v=20260711.7"></script>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.11.8. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.11.8</strong></button>
+  <script src="build-history.js?v=20260711.8"></script>
   <script type="module" src="game.js?v=20260711.8"></script>
 </body>
 </html>

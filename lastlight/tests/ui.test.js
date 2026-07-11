@@ -82,6 +82,15 @@ test("upgrade draft typography is readable on desktop while mobile stays compact
   assert.match(css, /\.teammate-choice:focus-visible \.teammate-choice-tooltip \{[^}]+transition: none;/s);
 });
 
+test("post-run results stay contained on phone-width viewports", () => {
+  assert.match(css, /\.result-card \{[^}]+min-width: 0;/s);
+  assert.match(css, /\.scoreboard-wrap \{[^}]+max-width: 100%;[^}]+overflow-x: auto;/s);
+  const mobile = css.match(/@media \(max-width: 650px\) \{([\s\S]+?)\n\}/)?.[1] || "";
+  assert.match(mobile, /\.result-screen \{ place-items: start center; padding: 12px; \}/);
+  assert.match(mobile, /\.result-damage-breakdown \{ grid-template-columns: minmax\(0, 1fr\); \}/);
+  assert.match(mobile, /\.result-damage-breakdown article > div \{ grid-template-columns: minmax\(72px, \.8fr\) minmax\(42px, 1fr\) minmax\(76px, auto\);/);
+});
+
 test("upgrade intelligence uses authoritative combat metadata", () => {
   assert.match(game, /from "\.\/combat-metadata\.js/);
   assert.match(game, /formatProjectileDisplay\(getCombatMetadata\("signature", player\.specialist\), projectiles\)/);
