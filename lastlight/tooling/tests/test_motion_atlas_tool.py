@@ -1,4 +1,5 @@
 import hashlib
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -55,6 +56,9 @@ def atlas_record(root, rows, touching=False):
         "output": {"path": "assets/output.webp", "pixelSha256": "0" * 64, "width": 1024, "height": rows * 256},
         "directions": list(tool.DIRECTIONS),
         "states": states,
+        "sourceSlots": [[0, 1, 2, 3] for _row in range(rows)],
+        "sourceRows": {},
+        "flipX": [],
         "anchor": [.5, .875],
     }
 
@@ -100,6 +104,55 @@ class MotionAtlasNormalizationTests(unittest.TestCase):
             atlas = atlas_record(root, 6, touching=True)
             with self.assertRaisesRegex(tool.MotionAtlasError, "touching"):
                 tool.build_atlas(root, atlas, NORMALIZATION)
+
+    def test_source_slot_overrides_reorder_semantics_without_moving_rows(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            atlas = atlas_record(root, 5)
+            atlas["sourceSlots"][2] = [0, 3, 2, 1]
+            output, frames, _segmentation = tool.build_atlas(root, atlas, NORMALIZATION)
+            west = output.crop((256, 2 * 256, 512, 3 * 256))
+            east = output.crop((3 * 256, 2 * 256, 4 * 256, 3 * 256))
+            source_west = (30 + 2 * 25, 40 + 1 * 40, 210 - 2 * 20)
+            source_east = (30 + 2 * 25, 40 + 3 * 40, 210 - 2 * 20)
+            self.assertIn(source_east, {pixel[:3] for pixel in west.get_flattened_data() if pixel[3] == 255})
+            self.assertIn(source_west, {pixel[:3] for pixel in east.get_flattened_data() if pixel[3] == 255})
+            self.assertEqual(frames[2 * 4 + 1]["sourceSlot"], 3)
+            self.assertEqual(frames[2 * 4 + 3]["sourceSlot"], 1)
+
+    def test_source_row_reuse_and_mirroring_are_explicit_and_deterministic(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            atlas = atlas_record(root, 5)
+            atlas["sourceRows"]["pose-1.north"] = 3
+            atlas["flipX"].append("pose-1.west")
+            output, frames, _segmentation = tool.build_atlas(root, atlas, NORMALIZATION)
+            north = output.crop((2 * 256, 1 * 256, 3 * 256, 2 * 256))
+            reused_color = (30 + 3 * 25, 40 + 2 * 40, 210 - 3 * 20)
+            self.assertIn(reused_color, {pixel[:3] for pixel in north.get_flattened_data() if pixel[3] == 255})
+            self.assertEqual(frames[1 * 4 + 2]["sourceRow"], 3)
+            self.assertEqual(frames[1 * 4 + 1]["flipX"], True)
+
+    def test_manifest_rejects_incomplete_or_duplicate_source_slot_maps(self):
+        manifest_path = Path(__file__).resolve().parents[1] / "motion-atlas-manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["atlases"][0]["sourceSlots"][0] = [0, 1, 1, 3]
+        with self.assertRaisesRegex(tool.MotionAtlasError, "permutation"):
+            tool.validate_manifest(manifest)
+
+    def test_production_direction_overrides_pin_echo_and_vesper_semantics(self):
+        manifest_path = Path(__file__).resolve().parents[1] / "motion-atlas-manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        atlases = {atlas["id"]: atlas for atlas in manifest["atlases"]}
+        echo = atlases["echo"]
+        self.assertEqual(echo["sourceSlots"][2], [0, 3, 2, 1])
+        self.assertEqual(echo["sourceRows"], {"run-a.north": 3})
+        self.assertEqual(echo["flipX"], ["run-a.west", "run-b.west", "action.west"])
+        vesper = atlases["vesper"]
+        self.assertEqual(vesper["sourceSlots"][0], [0, 3, 2, 1])
+        self.assertEqual(vesper["sourceSlots"][1], [0, 3, 2, 1])
+        self.assertEqual(vesper["sourceSlots"][3], [0, 3, 2, 1])
+        self.assertEqual(vesper["flipX"], ["run-a.west", "run-b.west", "action.west", "hurt-down.west"])
 
     def test_webp_encoding_is_repeatable_and_preserves_alpha_gutters(self):
         with tempfile.TemporaryDirectory() as directory:

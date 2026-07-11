@@ -94,7 +94,7 @@ def validate_manifest(manifest):
     ids, sources, outputs, runtime_keys = set(), set(), set(), set()
     for index, atlas in enumerate(atlases):
         label = f"manifest.atlases[{index}]"
-        exact(atlas, ["id", "kind", "source", "output", "rows", "directions", "states", "anchor"], label)
+        exact(atlas, ["id", "kind", "source", "output", "rows", "directions", "states", "sourceSlots", "sourceRows", "flipX", "anchor"], label)
         fail(isinstance(atlas["id"], str) and atlas["id"].replace("-", "").isalnum() and atlas["id"] == atlas["id"].lower(), f"{label}.id is invalid")
         fail(atlas["kind"] in ["specialist", "enemy", "boss"], f"{label}.kind is invalid")
         fail(isinstance(atlas["rows"], int) and atlas["rows"] in [5, 6], f"{label}.rows must be 5 or 6")
@@ -102,6 +102,16 @@ def validate_manifest(manifest):
         states = atlas["states"]
         fail(isinstance(states, list) and len(states) == atlas["rows"] and len(set(states)) == len(states), f"{label}.states must uniquely name every row")
         fail(all(isinstance(state, str) and state and state == state.lower() for state in states), f"{label}.states are invalid")
+        source_slots = atlas["sourceSlots"]
+        fail(isinstance(source_slots, list) and len(source_slots) == atlas["rows"], f"{label}.sourceSlots must map every physical row")
+        for row, slots in enumerate(source_slots):
+            fail(isinstance(slots, list) and sorted(slots) == [0, 1, 2, 3], f"{label}.sourceSlots[{row}] must be a permutation of source slots 0..3")
+        frame_ids = {f"{state}.{direction}" for state in states for direction in DIRECTIONS}
+        source_rows = atlas["sourceRows"]
+        fail(isinstance(source_rows, dict) and set(source_rows).issubset(frame_ids), f"{label}.sourceRows contains an unknown frame id")
+        fail(all(isinstance(row, int) and 0 <= row < atlas["rows"] for row in source_rows.values()), f"{label}.sourceRows values must name a physical source row")
+        flip_x = atlas["flipX"]
+        fail(isinstance(flip_x, list) and len(flip_x) == len(set(flip_x)) and set(flip_x).issubset(frame_ids), f"{label}.flipX must contain unique known frame ids")
         anchor = atlas["anchor"]
         fail(isinstance(anchor, list) and len(anchor) == 2 and all(isinstance(v, (int, float)) and 0 < v < 1 for v in anchor), f"{label}.anchor is invalid")
 
@@ -297,7 +307,7 @@ def validate_output(image, atlas, normalization):
     cell_size, bleed = normalization["cellSize"], normalization["bleed"]
     fail(image.mode == "RGBA" and image.size == (atlas["output"]["width"], atlas["output"]["height"]), f"{atlas['id']}: output dimensions/mode are invalid")
     frames = []
-    hashes = set()
+    hashes = {}
     for row, state in enumerate(atlas["states"]):
         for column, direction in enumerate(atlas["directions"]):
             cell = image.crop((column * cell_size, row * cell_size, (column + 1) * cell_size, (row + 1) * cell_size))
@@ -306,9 +316,12 @@ def validate_output(image, atlas, normalization):
             gutters = [bounds[0], bounds[1], cell_size - bounds[2], cell_size - bounds[3]]
             fail(min(gutters) >= bleed, f"{atlas['id']}: {state}.{direction} violates the {bleed}px transparent bleed: {gutters}")
             digest = pixel_sha256(cell)
-            fail(digest not in hashes, f"{atlas['id']}: duplicate normalized pose at {state}.{direction}")
-            hashes.add(digest)
-            frames.append({"id": f"{state}.{direction}", "cell": [column, row], "alphaBounds": list(bounds), "pixelSha256": digest})
+            frame_id = f"{state}.{direction}"
+            if digest in hashes:
+                prior = hashes[digest]
+                fail(frame_id in atlas["sourceRows"] or prior in atlas["sourceRows"], f"{atlas['id']}: duplicate normalized pose at {frame_id}")
+            hashes[digest] = frame_id
+            frames.append({"id": frame_id, "cell": [column, row], "alphaBounds": list(bounds), "pixelSha256": digest})
     return frames
 
 
@@ -328,11 +341,16 @@ def build_atlas(root, atlas, normalization):
     source_frames = []
     for row, state in enumerate(atlas["states"]):
         for column, direction in enumerate(atlas["directions"]):
-            cell_key = (column, row)
+            frame_id = f"{state}.{direction}"
+            source_column = atlas["sourceSlots"][row][column]
+            source_row = atlas["sourceRows"].get(frame_id, row)
+            cell_key = (source_column, source_row)
             pose, source_bbox = extract_pose(source, components, assignments[cell_key])
+            if frame_id in atlas["flipX"]:
+                pose = pose.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
             normalized = fit_pose(pose, cell_size, normalization["bleed"], atlas["anchor"])
             output.alpha_composite(normalized, (column * cell_size, row * cell_size))
-            source_frames.append({"id": f"{state}.{direction}", "sourceBounds": source_bbox, "componentCount": len(assignments[cell_key])})
+            source_frames.append({"id": frame_id, "sourceRow": source_row, "sourceSlot": source_column, "flipX": frame_id in atlas["flipX"], "sourceBounds": source_bbox, "componentCount": len(assignments[cell_key])})
     frames = validate_output(output, atlas, normalization)
     for frame, source_frame in zip(frames, source_frames):
         frame.update(source_frame)
@@ -378,9 +396,11 @@ def inspect(root, manifest, compare_outputs, check_theme=True):
         verify_theme(root, manifest)
     reports, built, runtime_bytes = [], [], 0
     for atlas in manifest["atlases"]:
-        image, frames, segmentation = build_atlas(root, atlas, manifest["normalization"])
+        image, source_frames, segmentation = build_atlas(root, atlas, manifest["normalization"])
         encoded, runtime_image = encode_runtime_webp(image, manifest["normalization"]["webp"])
         frames = validate_output(runtime_image, atlas, manifest["normalization"])
+        for frame, source_frame in zip(frames, source_frames):
+            frame.update({key: source_frame[key] for key in ["sourceRow", "sourceSlot", "flipX", "sourceBounds", "componentCount"]})
         digest = pixel_sha256(runtime_image)
         runtime_bytes += len(encoded)
         if compare_outputs:

@@ -197,6 +197,18 @@ and placed at the canonical foot anchor `(128, 224)`. Every side of every cell
 must retain at least eight fully transparent pixels. If two neighboring poses
 touch into one alpha component, the build fails instead of guessing.
 
+Generated source slots are not assumed to face the direction suggested by their
+position. Every physical row declares a `sourceSlots` permutation for output
+South/West/North/East. Narrow exceptions can use `sourceRows` to reuse a clear
+pose from another physical row and `flipX` when the source has no genuine
+opposite-facing side pose. These overrides are frame-id validated and included
+in the QA report. Echo borrows run-b's clear rear silhouette for run-a north;
+its missing west poses and Vesper's missing west pairs are mirrored explicitly.
+
+Fang's `action.south` pose is intentionally airborne. Its leap silhouette is
+accepted as authored action art and must not be "corrected" into a standing or
+idle pose during anchor QA.
+
 Five-row sources (Spitter, Bomber, and Beachhead) normalize to 1024 × 1280.
 Six-row sources normalize to 1024 × 1536. Runtime WebP uses quality 92 with
 exact alpha. Verification intentionally pins decoded RGBA rather than container
