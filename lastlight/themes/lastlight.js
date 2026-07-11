@@ -156,6 +156,39 @@ export const LASTLIGHT_THEME = defineTheme({
   id: "lastlight",
   name: "Lastlight",
   assets: LASTLIGHT_ASSETS,
+  animations: {
+    specialists: {
+      zuri: {
+        atlas: "assets/sprites/zuri-motion-atlas.png",
+        grid: { columns: 4, rows: 5 },
+        directions: ["south", "west", "north", "east"],
+        anchor: [.5, .82],
+        drawSize: [138, 110],
+        spriteBounds: [0, 0, 138, 110],
+        collisionOffset: [0, 0],
+        groundY: 18,
+        shadow: [34, 12],
+        muzzleDistance: 58,
+        sockets: { muzzle: { distance: 58, vertical: -8 } },
+        states: {
+          idle: { loop: true, frames: [{ row: 0, ms: 260 }, { row: 0, ms: 260, scaleY: .985, offsetY: 1 }] },
+          run: { loop: true, frames: [
+            { row: 1, ms: 58, offsetY: 0 }, { row: 1, ms: 58, scaleY: .98, offsetY: 1 },
+            { row: 2, ms: 58, offsetY: -1 }, { row: 2, ms: 58, scaleY: 1.01, offsetY: -2 },
+            { row: 1, ms: 58, offsetY: 0 }, { row: 1, ms: 58, scaleY: .98, offsetY: 1 },
+            { row: 2, ms: 58, offsetY: -1 }, { row: 2, ms: 58, scaleY: 1.01, offsetY: -2 },
+          ] },
+          dash: { loop: false, frames: [{ row: 3, ms: 180, scaleX: 1.04, scaleY: .96 }] },
+          castE: { loop: false, frames: [{ row: 3, ms: 90, scaleX: .97 }, { row: 0, ms: 150, offsetY: 1 }] },
+          castR: { loop: false, frames: [{ row: 3, ms: 130, scaleX: 1.06, scaleY: .94 }, { row: 0, ms: 220 }] },
+          hurt: { loop: false, frames: [{ row: 4, ms: 220, scaleX: .96, rotation: -.05 }] },
+          down: { loop: false, frames: [{ row: 4, ms: 500, rotation: -.12, offsetY: 5 }] },
+          revive: { loop: false, frames: [{ row: 0, ms: 400, scaleY: 1.03 }] },
+          victory: { loop: true, frames: [{ row: 0, ms: 300, scaleY: 1.03, offsetY: -1 }, { row: 0, ms: 300 }] },
+        },
+      },
+    },
+  },
 });
 
 /** Resolve a dotted logical key such as `archive.augments.glassCannon`. */
@@ -165,6 +198,10 @@ export function getThemeAsset(assetKey, theme = LASTLIGHT_THEME) {
   for (const part of parts) value = value?.[part];
   if (typeof value !== "string") throw new Error(`Unknown theme asset: ${assetKey}`);
   return value;
+}
+
+export function getThemeAnimation(specialistId, theme = LASTLIGHT_THEME) {
+  return theme?.animations?.specialists?.[specialistId] || null;
 }
 
 /** Validate and freeze a replacement theme before it enters the registry. */
@@ -217,6 +254,21 @@ export function validateTheme(theme) {
     for (const key of actualKeys) {
       if (!requiredKeys.includes(key)) errors.push(`Unexpected asset key: ${groupName}.${key}.`);
     }
+  }
+
+  for (const [specialistId, animation] of Object.entries(theme.animations?.specialists || {})) {
+    if (!THEME_ASSET_KEYS.specialists.includes(specialistId)) {
+      errors.push(`Unknown animated specialist: ${specialistId}.`); continue;
+    }
+    if (typeof animation?.atlas !== "string" || !/^assets\/[a-z0-9/_-]+\.(?:png|webp)$/.test(animation.atlas)) {
+      errors.push(`animations.specialists.${specialistId}.atlas must be a relative PNG or WebP asset path.`);
+    } else paths.push([`animations.specialists.${specialistId}.atlas`, animation.atlas]);
+    if (!Number.isInteger(animation?.grid?.columns) || !Number.isInteger(animation?.grid?.rows)) errors.push(`animations.specialists.${specialistId}.grid must define integer columns and rows.`);
+    if (!Array.isArray(animation?.anchor) || animation.anchor.length !== 2 || animation.anchor.some((value) => !Number.isFinite(value))) errors.push(`animations.specialists.${specialistId}.anchor must be [x, y].`);
+    if (!Array.isArray(animation?.spriteBounds) || animation.spriteBounds.length !== 4 || animation.spriteBounds.some((value) => !Number.isFinite(value))) errors.push(`animations.specialists.${specialistId}.spriteBounds must be [x, y, width, height].`);
+    if (!Array.isArray(animation?.collisionOffset) || animation.collisionOffset.length !== 2 || animation.collisionOffset.some((value) => !Number.isFinite(value))) errors.push(`animations.specialists.${specialistId}.collisionOffset must be [x, y].`);
+    if (!Number.isFinite(animation?.sockets?.muzzle?.distance) || !Number.isFinite(animation?.sockets?.muzzle?.vertical)) errors.push(`animations.specialists.${specialistId}.sockets.muzzle must define distance and vertical offsets.`);
+    if (!animation?.states?.idle?.frames?.length || !animation?.states?.run?.frames?.length || !animation?.states?.hurt?.frames?.length) errors.push(`animations.specialists.${specialistId} must define idle, run, and hurt clips.`);
   }
 
   const ownersByPath = new Map();

@@ -1,9 +1,10 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260710.4";
-import { Simulation } from "./engine.js?v=20260710.4";
-import { Renderer } from "./render.js?v=20260710.4";
-import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260710.4";
-import { getThemeAsset } from "./themes/lastlight.js?v=20260710.4";
-import { submitRunTelemetry } from "./telemetry.js?v=20260710.4";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260710.5";
+import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260710.5";
+import { Renderer } from "./render.js?v=20260710.5";
+import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260710.5";
+import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260710.5";
+import { getThemeAsset } from "./themes/lastlight.js?v=20260710.5";
+import { submitRunTelemetry } from "./telemetry.js?v=20260710.5";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -11,8 +12,10 @@ const query = new URLSearchParams(location.search);
 const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.10.4";
+const BUILD = "2026.07.10.5";
 const renderer = new Renderer($("game-canvas"));
+const fixedClock = new FixedStepClock();
+const movementPredictor = new MovementPredictor();
 const PROGRESS_KEY = "lastlight:campaign:v1";
 const ENEMY_HEALTH_BARS_KEY = "lastlight:enemy-health-bars:v1";
 const RUN_HISTORY_KEY = "lastlight:runs:v1";
@@ -60,6 +63,7 @@ const state = {
   showEnemyHealthBars: loadEnemyHealthBars(), inspectPointer: null, inspectActive: false,
   performanceMetrics: null, lastActiveBuffKey: "", lastDamageLedgerKey: "",
   resumeToken: loadClientToken(),
+  hostPreviousMotion: null, inputMotionStartedAt: 0, inputMotionStart: null, inputWasActive: false,
 };
 
 function setScreen(name) {
@@ -285,15 +289,16 @@ function startHostedGame() {
 }
 
 function startRemoteGame(message) {
-  state.config = message.config; state.sim = null; state.previousSnapshot = null; state.snapshot = null; enterGame();
+  state.config = message.config; state.sim = null; state.previousSnapshot = null; state.snapshot = null; movementPredictor.reset(); enterGame();
 }
 
 function enterGame() {
   setScreen("game"); renderer.resize(); state.endShown = false; state.telemetrySent = false; state.resultSavedKey = ""; state.lastEventSeq = 0; state.lastUpgradeKey = ""; state.lastWeaponHUDKey = ""; state.lastPassiveHUDKey = ""; state.lastSquadHUDKey = ""; state.lastFrame = performance.now();
-  state.performanceMetrics = { samples: [], frames: 0, longFrames: 0, maxEntities: {} };
+  state.performanceMetrics = { samples: [], frames: 0, longFrames: 0, maxEntities: {}, inputLatencies: [], predictionCorrections: [] };
   state.soundState = { projectiles: 0, kills: 0, level: 1, damageTaken: 0, xpCollected: 0, lastShot: 0, lastXP: 0 };
   state.lastActiveBuffKey = ""; state.lastDamageLedgerKey = "";
-  state.lastSend = 0; state.lastBroadcast = 0; renderer.camera.x = 0; renderer.camera.y = 0; $("game-canvas").focus();
+  state.lastSend = 0; state.lastBroadcast = 0; state.hostPreviousMotion = null; state.inputMotionStartedAt = 0; state.inputMotionStart = null; state.inputWasActive = false;
+  fixedClock.reset(); movementPredictor.reset(); renderer.resetCamera(); $("game-canvas").focus();
   if (!state.animation) state.animation = requestAnimationFrame(gameLoop);
 }
 
@@ -302,22 +307,69 @@ function gameLoop(now) {
   const dt = Math.min(.05, Math.max(0, (now - state.lastFrame) / 1000)); state.lastFrame = now;
   const frameStarted = performance.now(); let simulationMs = 0;
   const input = currentInput();
+  let interpolation = 1, renderPrevious = null, renderState = null;
   if (state.isHost && state.sim) {
-    const simulationStarted = performance.now(); state.sim.setInput(state.clientId, input); state.sim.update(dt); simulationMs = performance.now() - simulationStarted;
+    const simulationStarted = performance.now(); state.sim.setInput(state.clientId, input);
+    const timing = fixedClock.advance(dt, (stepSeconds) => {
+      state.hostPreviousMotion = captureMotionState(state.sim);
+      state.sim.update(stepSeconds);
+    });
+    simulationMs = performance.now() - simulationStarted; interpolation = timing.alpha; renderPrevious = state.hostPreviousMotion;
+    renderState = withLocalMovementPreview(state.sim, input, fixedClock.accumulator);
     if (state.ws?.readyState === WebSocket.OPEN && now - state.lastBroadcast > 83) { state.lastBroadcast = now; send({ type: "snapshot", state: state.sim.snapshot() }); }
-  } else if (state.ws?.readyState === WebSocket.OPEN && now - state.lastSend > 35) {
-    state.lastSend = now; send({ type: "input", input });
+  } else {
+    const authoritative = state.snapshot?.players?.find((player) => player.id === state.clientId);
+    if (authoritative && !movementPredictor.player) movementPredictor.sync(authoritative);
+    if (movementPredictor.player) movementPredictor.advance(input, dt, playerMovementSpeed(movementPredictor.player), moveEntityWithCover);
+    renderState = withPredictedPlayer(state.snapshot, movementPredictor.player); renderPrevious = state.previousSnapshot;
+    interpolation = clamp((now - state.snapshotAt) / state.snapshotInterval, 0, 1);
+    if (state.ws?.readyState === WebSocket.OPEN && now - state.lastSend > 35) { state.lastSend = now; send({ type: "input", input }); }
   }
   const current = state.isHost ? state.sim : state.snapshot;
   if (current) {
-    const interpolation = state.isHost ? 1 : clamp((now - state.snapshotAt) / state.snapshotInterval, 0, 1);
-    const renderStarted = performance.now(); renderer.draw(current, state.clientId, state.isHost ? null : state.previousSnapshot, interpolation); const renderMs = performance.now() - renderStarted;
+    const renderStarted = performance.now(); renderer.draw(renderState || current, state.clientId, renderPrevious, interpolation, dt); const renderMs = performance.now() - renderStarted;
     const hudStarted = performance.now(); updateHUD(current); updateUpgrade(current); processEvents(current.events || []); const hudMs = performance.now() - hudStarted;
     if (state.inspectActive && state.inspectPointer) inspectCanvasAt({ ...state.inspectPointer, shiftKey: true });
+    trackInputLatency(renderState || current, input, now);
     trackPerformance(current, dt * 1000, performance.now() - frameStarted, simulationMs, renderMs, hudMs);
     if ((current.stage === "won" || current.stage === "lost") && !state.endShown) scheduleResult(current);
   }
   state.animation = requestAnimationFrame(gameLoop);
+}
+
+function captureMotionState(game) {
+  const capture = (list) => (list || []).map(({ id, x, y }) => ({ id, x, y }));
+  return { players: capture(game.players), enemies: capture(game.enemies), drones: capture(game.drones), effects: capture(game.effects) };
+}
+
+function withLocalMovementPreview(game, input, remainingSeconds) {
+  const player = game?.players?.find((entry) => entry.id === state.clientId);
+  if (!player || remainingSeconds <= 0) return game;
+  const preview = { ...player, predicted: true };
+  let x = input.x, y = input.y; const inputLength = Math.hypot(x, y);
+  if (inputLength > 1) { x /= inputLength; y /= inputLength; }
+  moveEntityWithCover(preview, x * playerMovementSpeed(player) * remainingSeconds, y * playerMovementSpeed(player) * remainingSeconds);
+  if (inputLength > .01) { preview.facing = Math.atan2(y, x); preview.moving = true; }
+  return { ...game, players: game.players.map((entry) => entry.id === preview.id ? preview : entry) };
+}
+
+function withPredictedPlayer(game, predicted) {
+  if (!game || !predicted) return game;
+  return { ...game, players: game.players.map((entry) => entry.id === predicted.id ? { ...entry, ...predicted, predicted: true } : entry) };
+}
+
+function trackInputLatency(game, input, now) {
+  const player = game?.players?.find((entry) => entry.id === state.clientId); if (!player) return;
+  const active = Math.hypot(input.x, input.y) > .01;
+  if (active && !state.inputWasActive) {
+    state.inputMotionStartedAt = now; state.inputMotionStart = { x: player.x, y: player.y };
+  }
+  if (state.inputMotionStartedAt && Math.hypot(player.x - state.inputMotionStart.x, player.y - state.inputMotionStart.y) > .05) {
+    state.performanceMetrics?.inputLatencies.push(now - state.inputMotionStartedAt);
+    state.inputMotionStartedAt = 0; state.inputMotionStart = null;
+  }
+  if (!active && state.inputMotionStartedAt) { state.inputMotionStartedAt = 0; state.inputMotionStart = null; }
+  state.inputWasActive = active;
 }
 
 function trackPerformance(game, frameGapMs, workMs, simulationMs, renderMs, hudMs) {
@@ -343,8 +395,20 @@ function performanceSummary() {
     rollingFrames: metrics.samples.length, totalFrames: metrics.frames,
     longFrameRate: Math.round(metrics.longFrames / Math.max(1, metrics.frames) * 1000) / 10,
     p95Ms: { frameGap: percentile("frameGapMs", .95), work: percentile("workMs", .95), simulation: percentile("simulationMs", .95), render: percentile("renderMs", .95), hud: percentile("hudMs", .95) },
+    p99Ms: { frameGap: percentile("frameGapMs", .99), work: percentile("workMs", .99), simulation: percentile("simulationMs", .99), render: percentile("renderMs", .99), hud: percentile("hudMs", .99) },
+    feel: {
+      inputLatencyP95: percentileFrom(metrics.inputLatencies, .95),
+      correctionP95: percentileFrom(metrics.predictionCorrections, .95),
+      maxCorrection: Math.max(0, ...metrics.predictionCorrections),
+    },
     maxEntities: metrics.maxEntities,
   };
+}
+
+function percentileFrom(values = [], amount = .95) {
+  if (!values.length) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  return Math.round(sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * amount))] * 10) / 10;
 }
 
 function currentInput() {
@@ -362,7 +426,14 @@ function cast(slot) {
       sfx(slot === "r" ? "ultimate" : "ability");
       if (slot === "r") comicVoice("pew pew pew");
     }
-  } else { send({ type: "cast", slot }); sfx(slot === "r" ? "ultimate" : "ability"); }
+  } else {
+    if (movementPredictor.player) {
+      movementPredictor.player.animState = slot === "r" ? "castR" : "castE";
+      movementPredictor.player.animTime = slot === "r" ? .42 : .28;
+      movementPredictor.player.aimFacing = state.input.aim;
+    }
+    send({ type: "cast", slot }); sfx(slot === "r" ? "ultimate" : "ability");
+  }
 }
 
 function weaponTelemetry(weaponId, weapon, player) {
@@ -866,6 +937,7 @@ function handleNetworkMessage(raw) {
   else if (message.type === "sync_game" && !state.isHost) {
     state.lobby = new Map((message.players || []).map((player) => [player.id, player]));
     startRemoteGame(message); state.snapshot = message.state; state.snapshotAt = performance.now();
+    movementPredictor.sync(state.snapshot?.players?.find((player) => player.id === state.clientId));
     toast("Joined operation in progress");
   }
   else if (message.type === "return_lobby" && !state.isHost) returnToLobby();
@@ -875,6 +947,11 @@ function handleNetworkMessage(raw) {
   else if (message.type === "snapshot" && !state.isHost) {
     const now = performance.now(); if (state.snapshotAt) state.snapshotInterval = clamp(now - state.snapshotAt, 60, 180);
     state.previousSnapshot = state.snapshot; state.snapshot = message.state; state.snapshotAt = now;
+    const predicted = movementPredictor.sync(state.snapshot?.players?.find((player) => player.id === state.clientId));
+    if (predicted && movementPredictor.lastCorrectionDistance > 0) {
+      const corrections = state.performanceMetrics?.predictionCorrections;
+      if (corrections) { corrections.push(movementPredictor.lastCorrectionDistance); if (corrections.length > 600) corrections.splice(0, 60); }
+    }
   }
 }
 
