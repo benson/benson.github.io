@@ -366,10 +366,11 @@ kbd { display: inline-grid; min-width: 26px; height: 24px; place-items: center; 
 .game-stats { justify-self: end; display: flex; gap: 19px; align-items: center; color: #9db0b6; font-size: 11px; letter-spacing: .07em; text-transform: uppercase; }
 .game-stats b { color: var(--paper); font-size: 14px; }
 .game-stats button { pointer-events: auto; padding: 8px 10px; border: 1px solid rgba(255,255,255,.2); background: rgba(5,12,22,.78); color: var(--paper); cursor: pointer; font-size: 10px; text-transform: uppercase; }
-.objective-banner { position: absolute; left: 50%; top: 105px; transform: translateX(-50%); min-width: 320px; padding: 12px 20px; text-align: center; background: rgba(7,17,28,.9); border-inline: 2px solid var(--cyan); animation: banner-in .3s ease; }
+.objective-banner { position: absolute; left: 50%; top: 105px; min-width: 320px; padding: 12px 20px; transform: translate(-50%, -8px); text-align: center; background: rgba(7,17,28,.9); border-inline: 2px solid var(--cyan); opacity: 0; pointer-events: none; transition: opacity 220ms cubic-bezier(.23,1,.32,1), transform 220ms cubic-bezier(.23,1,.32,1); }
+.objective-banner.is-visible { transform: translate(-50%, 0); opacity: 1; }
+.objective-banner.is-exiting { transform: translate(-50%, -4px); opacity: 0; transition-duration: 180ms; }
 .objective-banner span { display: block; color: var(--cyan); font: 700 10px/1 var(--sans); letter-spacing: .15em; }
 .objective-banner strong { display: block; margin-top: 5px; font: 700 19px/1 var(--display); letter-spacing: .06em; text-transform: uppercase; }
-@keyframes banner-in { from { opacity: 0; transform: translate(-50%, -10px); } }
 .boss-hud { position: absolute; left: 50%; top: 102px; width: min(520px, 60vw); transform: translateX(-50%); text-align: center; }
 .boss-hud span { font: 800 18px/1 var(--display); letter-spacing: .1em; color: #ff7b62; text-shadow: 0 2px 6px #000; }
 .boss-hud > div { height: 9px; margin-top: 7px; padding: 2px; background: rgba(4,8,14,.9); border: 1px solid rgba(255,119,91,.55); }
@@ -432,14 +433,26 @@ kbd { display: inline-grid; min-width: 26px; height: 24px; place-items: center; 
 .active-buff i { position: absolute; inset: 0 0 10px; background: conic-gradient(from -90deg, transparent 0 var(--buff-progress), rgba(2,7,13,.72) var(--buff-progress) 100%); }
 .active-buff b { position: absolute; inset: 17px 0 auto; color: #fff; font: 800 10px/1 var(--display); text-align: center; text-shadow: 0 1px 5px #000; }
 .active-buff span { position: absolute; inset: auto 2px 2px; overflow: hidden; color: #b1c1c5; font: 700 7px/1 var(--sans); text-align: center; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
-.damage-ledger { position: absolute; z-index: 6; left: 22px; top: 112px; width: 250px; padding: 12px 13px; border: 1px solid rgba(255,255,255,.12); background: rgba(4,11,19,.8); pointer-events: none; }
-.damage-ledger:empty { display: none; }
-.damage-ledger > strong { display: block; margin-bottom: 8px; color: #91a6ad; font: 700 9px/1 var(--sans); letter-spacing: .12em; text-transform: uppercase; }
-.damage-ledger > div { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 2px 9px; padding: 4px 0; border-top: 1px solid rgba(255,255,255,.055); }
+.damage-ledger { position: absolute; z-index: 6; left: 22px; top: 112px; width: 250px; min-width: 210px; min-height: 110px; max-width: min(440px, calc(100vw - 16px)); max-height: calc(100vh - 32px); overflow: hidden; resize: both; border: 1px solid rgba(255,255,255,.12); background: rgba(4,11,19,.88); box-shadow: 0 12px 34px rgba(0,0,0,.24); }
+.damage-ledger.no-data { visibility: hidden; pointer-events: none; }
+.damage-ledger-handle { min-height: 34px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 9px 8px 13px; border-bottom: 1px solid rgba(255,255,255,.08); cursor: grab; touch-action: none; }
+.damage-ledger-handle.dragging { cursor: grabbing; }
+.damage-ledger-handle:focus-visible { outline: 2px solid var(--cyan); outline-offset: -2px; }
+.damage-ledger-handle > strong { color: #91a6ad; font: 700 9px/1 var(--sans); letter-spacing: .12em; text-transform: uppercase; }
+.damage-ledger-actions { display: flex; align-items: center; gap: 4px; }
+.damage-ledger-actions button { min-width: 24px; height: 22px; padding: 0 6px; border: 1px solid rgba(255,255,255,.13); background: rgba(255,255,255,.035); color: #8499a1; cursor: pointer; font: 700 8px/1 var(--sans); letter-spacing: .04em; text-transform: uppercase; transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease, transform 120ms cubic-bezier(.23,1,.32,1); }
+.damage-ledger-actions button:active { transform: scale(.97); }
+.damage-ledger-actions button:hover, .damage-ledger-actions button:focus-visible { border-color: rgba(99,242,223,.42); background: rgba(99,242,223,.08); color: var(--cyan); }
+.damage-ledger-actions button:last-child { width: 24px; padding: 0; font-size: 14px; }
+.damage-ledger-content { height: calc(100% - 34px); overflow: auto; padding: 3px 13px 10px; scrollbar-width: thin; }
+.damage-ledger-content > div { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 2px 9px; padding: 7px 0 5px; border-top: 1px solid rgba(255,255,255,.055); }
 .damage-ledger span { overflow: hidden; color: #bdc9cb; font: 700 11px/1 var(--display); text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
 .damage-ledger b { color: #e9f1ef; font: 800 11px/1 var(--display); }
 .damage-ledger small { grid-column: 1 / -1; color: #82979f; font-size: 8px; }
 .damage-ledger .leader span, .damage-ledger .leader b { color: var(--cyan); }
+.damage-ledger.collapsed { min-height: 0; height: auto; resize: none; }
+.damage-ledger.collapsed .damage-ledger-handle { border-bottom: 0; }
+.damage-ledger.collapsed .damage-ledger-content { display: none; }
 .xp-wrap { position: absolute; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: 62px 1fr; align-items: center; height: 16px; background: rgba(3,8,14,.95); }
 .xp-wrap span { color: var(--paper); font: 700 10px/1 var(--sans); text-align: center; }
 .xp-track { height: 100%; background: #142432; }
@@ -754,6 +767,34 @@ kbd { display: inline-grid; min-width: 26px; height: 24px; place-items: center; 
 @keyframes evolved-pulse { 50% { filter: saturate(1.3) brightness(1.18); } }
 @keyframes alert-pulse { 50% { transform: scale(1.18); box-shadow: 0 0 20px rgba(255,64,95,.9); } }
 
+/* Desktop readability pass: preserve the dense mobile HUD while lifting small labels and controls. */
+@media (min-width: 981px) {
+  .control-ribbon { font-size: 10px; }
+  .control-ribbon kbd, .specialist-card[aria-selected="true"]::before, .party-member small,
+  .ability-slot kbd, .ability-slot small, .weapon-slot > small, .passive-slot > small,
+  .active-buff span, .damage-ledger small, .game-controls-hint kbd,
+  .upgrade-player-heading span, .upgrade-player-heading i, .teammate-choice-tooltip > span,
+  .copy-scorecard, .guide-tabs a, .report-context, .build-release-status,
+  .build-release kbd { font-size: 9px; }
+  .specialist-card .specialist-weapon em, .starting-weapon-detail span,
+  .ability-tooltip dt, .weapon-tooltip dt, .inspect-panel dt, .upgrade-card.selected::after,
+  .evolution-pair span, .upgrade-current-stats > strong, .upgrade-current-stats p,
+  .teammate-draft header span, .teammate-choice > small, .upgrade-reference span,
+  .upgrade-reference b, .upgrade-reference button, .pause-reference button,
+  .pause-reference li, .pause-setting span small, .result-scoreboard th,
+  .result-scoreboard-player small, .result-damage-breakdown header span,
+  .result-damage-breakdown em, .run-history-entry header span, .run-history-entry time,
+  .run-history-entry > p, .run-history-empty p, .guide-card small, .campaign-node small,
+  .report-button, .build-badge { font-size: 9px; }
+  .ability-tooltip > span, .weapon-tooltip > span, .weapon-tooltip small,
+  .inspect-panel > span, .upgrade-reference button, .pause-reference button { font-size: 9px; }
+  .upgrade-current-stats span, .teammate-choice-tooltip dt, .guide-details dt,
+  .run-history-entry dt { font-size: 7px; }
+  .guide-card p, .guide-details dd, .report-screenshot, .build-shipped-at,
+  .build-time-unavailable { font-size: 10px; }
+  .damage-ledger-actions button { font-size: 9px; }
+}
+
 @media (max-width: 980px) {
   .home-content { grid-template-columns: 1fr; gap: 42px; padding-block: 54px; }
   .hero-copy { text-align: center; margin: auto; }
@@ -818,6 +859,10 @@ kbd { display: inline-grid; min-width: 26px; height: 24px; place-items: center; 
   .timer-hud strong { font-size: 25px; }
   .game-stats { gap: 8px; }
   .game-stats span { display: none; }
+  .damage-ledger { left: 12px !important; top: 74px !important; width: min(250px, calc(100vw - 24px)) !important; height: auto !important; min-height: 0; max-height: 42vh; resize: none; }
+  .damage-ledger-handle { cursor: default; touch-action: auto; }
+  .damage-ledger-actions button:first-child { display: none; }
+  .damage-ledger-content { max-height: calc(42vh - 34px); }
   .loadout-hud { left: auto; right: 16px; bottom: 94px; }
   .weapon-hud { bottom: 16px; }
   .passive-hud { left: 50%; right: auto; bottom: 68px; width: calc(100% - 250px); max-width: none; justify-content: flex-start; overflow-x: auto; transform: translateX(-50%); scrollbar-width: none; }

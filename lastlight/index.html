@@ -226,7 +226,16 @@
       <div class="weapon-hud" id="weapon-hud"></div>
       <div class="passive-hud" id="passive-hud" aria-label="Equipped passive upgrades"></div>
       <div class="active-buffs-hud" id="active-buffs-hud" aria-label="Active powerups"></div>
-      <aside class="damage-ledger" id="damage-ledger" aria-label="Leading damage sources"></aside>
+      <aside class="damage-ledger no-data" id="damage-ledger" aria-label="Leading damage sources">
+        <header id="damage-ledger-handle" class="damage-ledger-handle" tabindex="0" aria-label="Move Damage Sources panel with arrow keys. Hold Control and use arrow keys to resize.">
+          <strong>Damage sources</strong>
+          <span class="damage-ledger-actions">
+            <button id="damage-ledger-reset" type="button" title="Reset panel position and size" aria-label="Reset Damage Sources panel position and size">Reset</button>
+            <button id="damage-ledger-collapse" type="button" title="Collapse Damage Sources" aria-label="Collapse Damage Sources" aria-expanded="true"><span aria-hidden="true">&minus;</span></button>
+          </span>
+        </header>
+        <div id="damage-ledger-content" class="damage-ledger-content" aria-live="polite"></div>
+      </aside>
       <div class="xp-wrap"><span id="level-label">LV 1</span><div class="xp-track"><i id="xp-progress"></i></div></div>
       <div class="game-controls-hint" aria-label="Keyboard controls"><span><kbd>WASD</kbd> Move</span><span><kbd>C</kbd> Auto-aim</span><span><kbd>Mouse</kbd> Aim</span><span><kbd>Shift</kbd> Inspect</span><span><kbd>` / ~</kbd> Report</span></div>
       <aside id="inspect-panel" class="inspect-panel hidden" role="tooltip" aria-live="polite">
