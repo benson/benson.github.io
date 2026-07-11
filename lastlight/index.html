@@ -184,8 +184,18 @@
               <div><dt>Range</dt><dd id="detail-range">Long</dd></div>
             </dl>
             <div class="starting-weapon-detail">
-              <img id="detail-weapon-icon" src="assets/weapons/signature-zuri.webp" alt="">
-              <div><span>Starting weapon</span><strong id="detail-weapon-name">Pulse Carbine</strong></div>
+              <button id="starting-weapon-trigger" class="starting-weapon-trigger" type="button" aria-expanded="false" aria-controls="starting-weapon-tooltip" aria-describedby="starting-weapon-tooltip" aria-label="Inspect Pulse Carbine starting weapon">
+                <img id="detail-weapon-icon" src="assets/weapons/signature-zuri.webp" alt="">
+                <span class="starting-weapon-label"><span>Starting weapon</span><strong id="detail-weapon-name">Pulse Carbine</strong></span>
+                <span class="starting-weapon-hint" aria-hidden="true">Details</span>
+              </button>
+              <div id="starting-weapon-tooltip" class="starting-weapon-tooltip" role="tooltip">
+                <span>Signature weapon · level 1</span>
+                <strong id="detail-weapon-tooltip-name">Pulse Carbine</strong>
+                <p id="detail-weapon-behavior">Fires a sustained burst of long-range rounds toward the nearest threat.</p>
+                <dl id="detail-weapon-stats"></dl>
+                <em id="detail-weapon-evolution">Evolves with Cycle Rate + an elite access card.</em>
+              </div>
             </div>
             <div class="kit-list">
               <div><kbd>I</kbd><p><strong id="passive-name">Hot Streak</strong><span id="passive-copy">Kills trigger a stacking burst of speed and haste.</span></p></div>

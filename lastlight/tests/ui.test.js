@@ -44,3 +44,32 @@ test("squad and boss HUD bars share the segmented health contract", () => {
   assert.match(css, /\.health-divider\.major/);
   assert.match(css, /\.mini-shield-fill/);
 });
+
+test("specialist select exposes an accessible authored starting-weapon detail surface", () => {
+  assert.match(html, /id="starting-weapon-trigger"[^>]+aria-controls="starting-weapon-tooltip"[^>]+aria-describedby="starting-weapon-tooltip"/);
+  assert.match(html, /id="starting-weapon-tooltip"[^>]+role="tooltip"/);
+  assert.match(html, /id="detail-weapon-behavior"/);
+  assert.match(html, /id="detail-weapon-stats"/);
+  assert.match(game, /const SIGNATURE_BEHAVIORS = \{/);
+  assert.match(game, /weaponTelemetry\("signature", \{ level: 1, evolved: false \}, player\)/);
+  assert.match(game, /Evolves into \$\{spec\.signature\.evolve\}/);
+  assert.match(game, /setStartingWeaponDetailsOpen/);
+  assert.match(game, /event\.key !== "Escape"/);
+  assert.match(css, /\.starting-weapon-detail:not\(\.is-suppressed\):focus-within \.starting-weapon-tooltip/);
+  assert.match(css, /@media \(hover: hover\) and \(pointer: fine\)[\s\S]+\.starting-weapon-detail:hover \.starting-weapon-tooltip/);
+  assert.doesNotMatch(html.match(/<button id="starting-weapon-trigger"[^>]+>/)?.[0] || "", /title=/);
+});
+
+test("upgrade draft typography is readable on desktop while mobile stays compact", () => {
+  const desktop = css.match(/@media \(min-width: 981px\) \{([\s\S]+?)\n\}/)?.[1] || "";
+  for (const rule of [
+    /\.upgrade-card p \{ font-size: 14px/,
+    /\.upgrade-card \.card-stats dt \{ font-size: 9px/,
+    /\.upgrade-current-stats span \{ font-size: 9px/,
+    /\.teammate-choice > b \{ font-size: 12px/,
+    /\.teammate-choice-tooltip > p \{ font-size: 12px/,
+    /\.upgrade-reference span \{ font-size: 11px/,
+  ]) assert.match(desktop, rule);
+  assert.match(css, /@media \(max-width: 650px\) \{[\s\S]+\.upgrade-panel h2 \{ font-size: 40px; \}/);
+  assert.match(css, /\.teammate-choice:focus-visible \.teammate-choice-tooltip \{[^}]+transition: none;/s);
+});

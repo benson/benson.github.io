@@ -150,6 +150,30 @@ function guideWeaponDetails(weaponId, specialist = "zuri") {
   return { Damage: telemetry.damage, Cooldown: telemetry.interval, Projectiles: telemetry.projectiles, Range: weaponId === "signature" ? SPECIALISTS[specialist].range : telemetry.note };
 }
 
+const SIGNATURE_BEHAVIORS = {
+  zuri: "Fires a sustained burst of long-range rounds toward the nearest threat.",
+  echo: "Launches resonant waves that spread across multiple nearby threats.",
+  sola: "Projects a forward shield beam whose damage grows with Sola's armor.",
+  bront: "Crashes a heavy tidal hammer into the closest threat for a wide impact.",
+  fang: "Rends targets at close range; the strike grows stronger with Fang's maximum health.",
+  gale: "Cuts rapidly through targets in a flowing mid-range current.",
+  rift: "Slams a kinetic shock into nearby threats while fighting at close range.",
+  nova: "Sends guiding hexes toward distant threats, building toward spirit detonations.",
+  vesper: "Throws winged daggers that fan outward and return through the fight.",
+};
+
+function renderStartingWeaponDetails(spec) {
+  const player = guidePlayer(spec.id);
+  const telemetry = weaponTelemetry("signature", { level: 1, evolved: false }, player);
+  const passive = PASSIVES[spec.signature.passive];
+  $("detail-weapon-tooltip-name").textContent = spec.signature.name;
+  $("detail-weapon-behavior").textContent = SIGNATURE_BEHAVIORS[spec.id] || "Automatically attacks nearby threats.";
+  $("detail-weapon-stats").innerHTML = Object.entries({ Damage: telemetry.damage, Cooldown: telemetry.interval, Projectiles: telemetry.projectiles, Range: spec.range })
+    .map(([label, value]) => `<div><dt>${escapeHTML(label)}</dt><dd>${escapeHTML(value)}</dd></div>`).join("");
+  $("detail-weapon-evolution").textContent = `Evolves into ${spec.signature.evolve} with ${passive?.name || spec.signature.passive} + an elite access card.`;
+  $("starting-weapon-trigger").setAttribute("aria-label", `Inspect ${spec.signature.name} starting weapon`);
+}
+
 function renderGuide() {
   const campaign = MAP_ORDER.map((map, index) => {
     const unlocked = isMapUnlocked(state.progress, map);
@@ -202,6 +226,7 @@ function selectSpecialist(id) {
   $("detail-role").textContent = spec.role; $("detail-name").textContent = spec.name.toUpperCase(); $("detail-tagline").textContent = spec.tagline;
   $("detail-health").textContent = spec.health; $("detail-armor").textContent = spec.armor; $("detail-range").textContent = spec.range;
   $("detail-weapon-icon").src = spec.signature.icon; $("detail-weapon-icon").alt = ""; $("detail-weapon-name").textContent = spec.signature.name;
+  renderStartingWeaponDetails(spec);
   $("passive-name").textContent = spec.passive[0]; $("passive-copy").textContent = spec.passive[1];
   $("active-name").textContent = spec.active[0]; $("active-copy").textContent = spec.active[1];
   $("ultimate-name").textContent = spec.ultimate[0]; $("ultimate-copy").textContent = spec.ultimate[1];
@@ -1256,6 +1281,14 @@ function toggleAudio() {
   if (state.audio) sfx("ui"); else window.speechSynthesis?.cancel();
 }
 
+function setStartingWeaponDetailsOpen(open, suppressFocus = false) {
+  const trigger = $("starting-weapon-trigger");
+  trigger.setAttribute("aria-expanded", String(open));
+  const detail = $("starting-weapon-tooltip").parentElement;
+  detail.classList.toggle("is-open", open);
+  detail.classList.toggle("is-suppressed", suppressFocus);
+}
+
 function setupTouch() {
   const stick = $("move-stick"), knob = stick.querySelector("i"); let pointer = null;
   const update = (event) => { const rect = stick.getBoundingClientRect(), x = event.clientX - (rect.left + rect.width/2), y = event.clientY - (rect.top + rect.height/2), length = Math.hypot(x,y) || 1, max = rect.width*.34, scale = Math.min(1,max/length); knob.style.transform=`translate(${x*scale}px,${y*scale}px)`; state.input.touchX=clamp(x/max,-1,1);state.input.touchY=clamp(y/max,-1,1); };
@@ -1268,6 +1301,21 @@ function setupTouch() {
 
 function bindEvents() {
   setupDamageLedger();
+  $("starting-weapon-trigger").addEventListener("click", () => {
+    const open = $("starting-weapon-trigger").getAttribute("aria-expanded") !== "true";
+    setStartingWeaponDetailsOpen(open, !open);
+  });
+  $("starting-weapon-trigger").addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    event.preventDefault();
+    setStartingWeaponDetailsOpen(false, true);
+  });
+  $("starting-weapon-tooltip").parentElement.addEventListener("focusout", (event) => {
+    if (!event.currentTarget.contains(event.relatedTarget)) setStartingWeaponDetailsOpen(false);
+  });
+  document.addEventListener("pointerdown", (event) => {
+    if (!event.target.closest?.(".starting-weapon-detail")) setStartingWeaponDetailsOpen(false);
+  });
   document.querySelectorAll(".mode-tab").forEach((button) => button.addEventListener("click", () => setPartyMode(button.dataset.partyMode)));
   $("map-select").addEventListener("change", updateDifficultyOptions);
   $("deploy-button").addEventListener("click", deploy); $("room-input").addEventListener("keydown", (event) => { if (event.key === "Enter") deploy(); });
