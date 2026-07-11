@@ -13,7 +13,8 @@
     "mtgjsonBoosterTypes": [
       "collector",
       "jumpstart",
-      "play"
+      "play",
+      "prerelease"
     ],
     "extraSheetLabel": null
   },
@@ -31,7 +32,12 @@
     "mtgjsonBoosterTypes": [
       "codex-bundle",
       "collector",
-      "play"
+      "play",
+      "prerelease-lorehold",
+      "prerelease-prismari",
+      "prerelease-quandrix",
+      "prerelease-silverquill",
+      "prerelease-witherbloom"
     ],
     "extraSheetLabel": "the list / special guests"
   },
@@ -48,7 +54,8 @@
     "limitedLabel": "play",
     "mtgjsonBoosterTypes": [
       "collector",
-      "play"
+      "play",
+      "prerelease"
     ],
     "extraSheetLabel": null
   },
@@ -65,7 +72,8 @@
     "limitedLabel": "play",
     "mtgjsonBoosterTypes": [
       "collector",
-      "play"
+      "play",
+      "prerelease"
     ],
     "extraSheetLabel": "the list / special guests"
   },
@@ -98,7 +106,12 @@
     "mtgjsonBoosterTypes": [
       "collector",
       "play",
-      "prerelease"
+      "prerelease",
+      "prerelease-aang",
+      "prerelease-azula",
+      "prerelease-katara",
+      "prerelease-toph",
+      "prerelease-zuko"
     ],
     "extraSheetLabel": null
   },
@@ -133,6 +146,7 @@
     "limitedLabel": "play",
     "mtgjsonBoosterTypes": [
       "collector",
+      "collector-sample",
       "play",
       "prerelease"
     ],
@@ -175,7 +189,12 @@
       "collector",
       "collector-sample",
       "play",
-      "prerelease"
+      "prerelease",
+      "prerelease-abzan",
+      "prerelease-jeskai",
+      "prerelease-mardu",
+      "prerelease-sultai",
+      "prerelease-temur"
     ],
     "extraSheetLabel": "the list / special guests"
   },
@@ -1653,7 +1672,11 @@
     "limitedLabel": "draft booster",
     "mtgjsonBoosterTypes": [
       "draft",
-      "prerelease"
+      "prerelease-chandra",
+      "prerelease-gideon",
+      "prerelease-jace",
+      "prerelease-liliana",
+      "prerelease-nissa"
     ],
     "extraSheetLabel": null
   },
@@ -1705,7 +1728,11 @@
     "limitedLabel": "draft booster",
     "mtgjsonBoosterTypes": [
       "draft",
-      "prerelease"
+      "prerelease-abzan",
+      "prerelease-jeskai",
+      "prerelease-mardu",
+      "prerelease-sultai",
+      "prerelease-temur"
     ],
     "extraSheetLabel": null
   },
@@ -1722,7 +1749,11 @@
     "mtgjsonBoosterTypes": [
       "arena",
       "draft",
-      "prerelease"
+      "prerelease-abzan",
+      "prerelease-jeskai",
+      "prerelease-mardu",
+      "prerelease-sultai",
+      "prerelease-temur"
     ],
     "extraSheetLabel": null
   },
@@ -1768,7 +1799,12 @@
     "limitedBoosterType": "draft",
     "limitedLabel": "draft booster",
     "mtgjsonBoosterTypes": [
-      "draft"
+      "draft",
+      "prerelease-glory",
+      "prerelease-intellect",
+      "prerelease-pursuit",
+      "prerelease-tyranny",
+      "prerelease-war"
     ],
     "extraSheetLabel": null
   },
@@ -1783,7 +1819,12 @@
     "limitedBoosterType": "draft",
     "limitedLabel": "draft booster",
     "mtgjsonBoosterTypes": [
-      "draft"
+      "draft",
+      "prerelease-conquer",
+      "prerelease-dominate",
+      "prerelease-lead",
+      "prerelease-outwit",
+      "prerelease-thrive"
     ],
     "extraSheetLabel": null
   },
@@ -1798,7 +1839,12 @@
     "limitedBoosterType": "draft",
     "limitedLabel": "draft booster",
     "mtgjsonBoosterTypes": [
-      "draft"
+      "draft",
+      "prerelease-ambition",
+      "prerelease-battle",
+      "prerelease-honor",
+      "prerelease-might",
+      "prerelease-wisdom"
     ],
     "extraSheetLabel": null
   },
