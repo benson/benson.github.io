@@ -11,6 +11,7 @@ const base = () => ({
   schema: REPLAY_SCHEMA,
   build: "2026.07.11.3",
   balance: { version: "2026.07.11-baseline.1", hash: "fnv1a32:7e33be79" },
+  features: { configVersion: "release-2026.07.11.4", gameplayVersion: "events-v1", objectiveEvents: true },
   engine: { stepHz: REPLAY_STEP_HZ, rng: "xoshiro128ss-v1" },
   seed: "0123456789abcdef0123456789abcdef",
   run: { map: "warehouse", difficulty: "story", duration: 240 },
@@ -54,6 +55,7 @@ test("validator rejects unknown fields, identity, nonfinite input, and stale con
   assert.throws(() => validateReplay(bad), /integer/);
   assert.throws(() => validateReplay(base(), { balanceHash: "fnv1a32:deadbeef" }), /mismatch/);
   assert.throws(() => validateReplay(base(), { rng: "different-v1" }), /mismatch/);
+  assert.throws(() => validateReplay(base(), { gameplayVersion: "events-off-v1" }), /gameplay feature version mismatch/);
 });
 
 test("validator enforces tuple length, command order, and per-tick bounds", () => {
@@ -81,6 +83,15 @@ test("recorder keeps transient identities out of replay JSON and deduplicates in
   assert.doesNotMatch(text, /relay-secret|callsign|resume|room/i);
   assert.equal(replay.commands.length, 2);
   assert.deepEqual(replay.roster, [{ slot: 0, specialist: "zuri" }]);
+  assert.deepEqual(replay.features, { configVersion: "release-2026.07.11.4", gameplayVersion: "events-v1", objectiveEvents: true });
+});
+
+test("legacy v1 replay manifests remain readable with the original gameplay identity", () => {
+  const legacy = base();
+  legacy.schema = "lastlight.replay.v1";
+  delete legacy.features;
+  assert.doesNotThrow(() => validateReplay(legacy, { gameplayVersion: "events-v1" }));
+  assert.throws(() => validateReplay(legacy, { gameplayVersion: "events-off-v1" }), /gameplay feature version mismatch/);
 });
 
 test("join and reconnect commands reuse an anonymous slot without changing the initial roster", () => {
@@ -136,6 +147,16 @@ test("driver reports the first divergent checkpoint", () => {
   assert.throws(() => driver.run(), /diverged at tick 0/);
 });
 
+test("driver rejects a simulation created with different gameplay flags before stepping", () => {
+  const replay = base();
+  replay.features = { configVersion: "rollback-42", gameplayVersion: "events-off-v1", objectiveEvents: false };
+  const driver = new ReplayDriver(replay, {
+    createSimulation: () => ({ gameplayVersion: "events-v1", objectiveEvents: true }),
+    applyCommand() {}, stepSimulation() {}, hashState: () => replay.finalHash,
+  });
+  assert.throws(() => driver.run(), /gameplay feature version mismatch/);
+});
+
 test("simulation hashes normalize transient identity but include input, hit sets, and pending tasks", () => {
   const config = { map: "warehouse", difficulty: "story", duration: 240 };
   const seed = "0123456789abcdef0123456789abcdef";
@@ -174,7 +195,10 @@ test("a recorded deterministic Simulation replays to the same final hash", () =>
     createSimulation: (manifest) => new Simulation({
       ...manifest.run,
       players: manifest.roster.map(({ slot, specialist }) => ({ id: `p${slot}`, name: `P${slot}`, specialist, replaySlot: slot })),
-    }, { seed: manifest.seed, balanceVersion: manifest.balance.version, balanceHash: manifest.balance.hash }),
+    }, {
+      seed: manifest.seed, balanceVersion: manifest.balance.version, balanceHash: manifest.balance.hash,
+      features: { gameplayVersion: manifest.features.gameplayVersion, objectiveEvents: manifest.features.objectiveEvents },
+    }),
     applyCommand: (sim, command) => {
       const player = sim.players.find((entry) => entry.replaySlot === command.slot);
       if (command.kind === "input") sim.setInput(player.id, command.input);

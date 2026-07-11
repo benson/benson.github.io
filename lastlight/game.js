@@ -10,12 +10,14 @@ import { formatProjectileDisplay, getCombatMetadata, getCurrentStatExplanation, 
 import { BALANCE_HASH, BALANCE_VERSION } from "./balance-config.js?v=20260711.3";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.3";
 import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260711.3";
+import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260711.4";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
 const query = new URLSearchParams(location.search);
 const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
+const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
 const BUILD = "2026.07.11.3";
 const renderer = new Renderer($("game-canvas"));
@@ -87,15 +89,27 @@ const state = {
   resumeToken: loadClientToken(),
   hostPreviousMotion: null, inputMotionStartedAt: 0, inputMotionStart: null, inputWasActive: false,
   replayRecorder: null, lastReplayCheckpointTick: -1, lastReplay: loadLastReplay(), resultReplay: null,
+  runtimeConfig: { config: DEFAULT_RUNTIME_CONFIG, source: "built-in", status: "initializing" },
 };
+
+const runtimeConfigReady = loadRuntimeConfig({ endpoint: RUNTIME_CONFIG_ENDPOINT }).then((result) => {
+  state.runtimeConfig = result;
+  return result;
+});
 
 function replayRunConfig() {
   return { map: state.config.map, difficulty: state.config.difficulty, duration: Number(state.config.duration) };
 }
 
 function beginReplayCapture(players, seed) {
+  if (!state.runtimeConfig.config.flags.deterministicReplay) {
+    state.replayRecorder = null; state.resultReplay = null; return;
+  }
   state.replayRecorder = new ReplayRecorder({
     build: BUILD, balanceVersion: BALANCE_VERSION, balanceHash: BALANCE_HASH,
+    featureConfigVersion: state.runtimeConfig.config.configVersion,
+    gameplayVersion: state.runtimeConfig.config.gameplayVersion,
+    objectiveEvents: state.runtimeConfig.config.flags.objectiveEvents,
     rng: RNG_ALGORITHM, seed, run: replayRunConfig(),
   });
   for (const player of players) state.replayRecorder.registerPlayer(player.id, player.specialist, { slot: player.replaySlot, initial: true });
@@ -317,6 +331,9 @@ function setPartyMode(mode) {
 
 async function deploy() {
   if (state.connecting) return;
+  state.connecting = true; $("deploy-button").disabled = true;
+  await runtimeConfigReady;
+  state.connecting = false; $("deploy-button").disabled = false;
   state.config = { map: $("map-select").value, difficulty: $("difficulty-select").value, duration: Number($("duration-select").value) };
   if (state.partyMode !== "join" && (!isMapUnlocked(state.progress, state.config.map) || !isDifficultyUnlocked(state.progress, state.config.map, state.config.difficulty))) {
     toast("Complete the previous campaign requirement first"); updateProgressionUI(); return;
@@ -391,7 +408,9 @@ function startHostedGame() {
   const players = [...state.lobby.values()].map((p, replaySlot) => ({ id: p.id, name: p.name, specialist: p.specialist, resumeToken: p.resumeToken || "", replaySlot }));
   if (!players.length) return;
   const seed = createRandomSeed();
-  state.sim = new Simulation({ ...state.config, players }, { seed, balanceVersion: BALANCE_VERSION, balanceHash: BALANCE_HASH });
+  const features = gameplayFeatureContract(state.runtimeConfig.config);
+  state.config = { ...state.config, features };
+  state.sim = new Simulation({ ...state.config, players }, { seed, balanceVersion: BALANCE_VERSION, balanceHash: BALANCE_HASH, features });
   beginReplayCapture(players, seed);
   state.previousSnapshot = null; state.snapshot = null;
   if (state.ws?.readyState === WebSocket.OPEN) send({ type: "start", config: state.config, players: publicLobbyPlayers() });
@@ -1131,7 +1150,7 @@ function showResult(game) {
   state.resultGame = game; renderScoreboard(game);
   saveCompletedRun(game);
   setScreen("result");
-  if (state.isHost && !state.telemetrySent) {
+  if (state.isHost && !state.telemetrySent && state.runtimeConfig.config.flags.runTelemetry) {
     state.telemetrySent = true;
     submitRunTelemetry(game, BUILD).catch((error) => console.warn("Run telemetry unavailable", error));
   }
@@ -1270,6 +1289,13 @@ function gameDiagnostics() {
     level: Number(game?.level || 0),
     teamSize: Number(game?.players?.length || state.lobby.size || 1),
     multiplayerRole: state.partyMode === "solo" ? "solo" : state.isHost ? "host" : "guest",
+    runtimeConfig: {
+      version: state.runtimeConfig.config.configVersion,
+      gameplayVersion: state.config?.features?.gameplayVersion || state.runtimeConfig.config.gameplayVersion,
+      source: state.runtimeConfig.source,
+      status: state.runtimeConfig.status,
+      flags: { ...state.runtimeConfig.config.flags },
+    },
     enemyHealthBars: state.showEnemyHealthBars,
     entities: game ? {
       enemies: game.enemies?.length || 0, friendlyProjectiles: game.projectiles?.length || 0,

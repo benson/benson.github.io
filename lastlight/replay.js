@@ -1,5 +1,6 @@
-export const REPLAY_SCHEMA = "lastlight.replay.v1";
-export const REPLAY_SCHEMA_VERSION = 1;
+export const REPLAY_SCHEMA = "lastlight.replay.v2";
+export const REPLAY_SCHEMA_VERSION = 2;
+export const LEGACY_REPLAY_SCHEMA = "lastlight.replay.v1";
 export const REPLAY_STEP_HZ = 60;
 export const MAX_REPLAY_BYTES = 2 * 1024 * 1024;
 export const MAX_REPLAY_TICK = 216_000;
@@ -15,6 +16,9 @@ const BALANCE_HASH = /^[a-z0-9]+:[0-9a-f]{8,64}$/;
 const STATE_HASH = /^[0-9a-f]{16}$/;
 const SEED = /^[0-9a-f]{32}$/;
 const CHOICE = /^[a-z][a-z0-9:_-]{0,39}$/;
+const FEATURE_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
+const LEGACY_FEATURES = Object.freeze({ configVersion: "builtin-2026.07.11.3", gameplayVersion: "events-v1", objectiveEvents: true });
+const CURRENT_FEATURES = Object.freeze({ configVersion: "release-2026.07.11.4", gameplayVersion: "events-v1", objectiveEvents: true });
 
 const ownKeys = (value) => value && typeof value === "object" && !Array.isArray(value) ? Object.keys(value) : [];
 
@@ -200,8 +204,10 @@ function validateCommand(tuple, index) {
 }
 
 export function validateReplay(value, expected = {}) {
-  assertExactKeys(value, ["schema", "build", "balance", "engine", "seed", "run", "roster", "commands", "checkpoints", "finalTick", "finalHash"], "replay");
-  if (value.schema !== REPLAY_SCHEMA) throw new TypeError("Unsupported replay schema");
+  const currentSchema = value?.schema === REPLAY_SCHEMA;
+  const legacySchema = value?.schema === LEGACY_REPLAY_SCHEMA;
+  if (!currentSchema && !legacySchema) throw new TypeError("Unsupported replay schema");
+  assertExactKeys(value, ["schema", "build", "balance", "engine", "seed", "run", ...(currentSchema ? ["features"] : []), "roster", "commands", "checkpoints", "finalTick", "finalHash"], "replay");
   safeString(value.build, SAFE_ID, "build");
   assertExactKeys(value.balance, ["version", "hash"], "balance");
   safeString(value.balance.version, SAFE_ID, "balance.version");
@@ -210,6 +216,13 @@ export function validateReplay(value, expected = {}) {
   if (value.engine.stepHz !== REPLAY_STEP_HZ) throw new TypeError("Unsupported replay step rate");
   safeString(value.engine.rng, SAFE_ID, "engine.rng");
   safeString(value.seed, SEED, "seed");
+  const features = currentSchema ? value.features : LEGACY_FEATURES;
+  if (currentSchema) {
+    assertExactKeys(features, ["configVersion", "gameplayVersion", "objectiveEvents"], "features");
+    safeString(features.configVersion, FEATURE_ID, "features.configVersion");
+    safeString(features.gameplayVersion, FEATURE_ID, "features.gameplayVersion");
+    if (typeof features.objectiveEvents !== "boolean") throw new TypeError("features.objectiveEvents must be boolean");
+  }
   assertExactKeys(value.run, ["map", "difficulty", "duration"], "run");
   if (!MAPS.has(value.run.map)) throw new TypeError("run.map is invalid");
   if (!DIFFICULTIES.has(value.run.difficulty)) throw new TypeError("run.difficulty is invalid");
@@ -254,6 +267,7 @@ export function validateReplay(value, expected = {}) {
   if (expected.balanceHash && value.balance.hash !== expected.balanceHash) throw new TypeError("Replay balance hash mismatch");
   if (expected.rng && value.engine.rng !== expected.rng) throw new TypeError("Replay RNG mismatch");
   if (expected.stepHz && value.engine.stepHz !== expected.stepHz) throw new TypeError("Replay step rate mismatch");
+  if (expected.gameplayVersion && features.gameplayVersion !== expected.gameplayVersion) throw new TypeError("Replay gameplay feature version mismatch");
 
   const serialized = JSON.stringify(value);
   if (new TextEncoder().encode(serialized).byteLength > MAX_REPLAY_BYTES) throw new TypeError("Replay exceeds 2 MB");
@@ -273,8 +287,11 @@ export function decodeReplayCommand(tuple) {
 }
 
 export class ReplayRecorder {
-  constructor({ build, balanceVersion, balanceHash, rng, seed, run }) {
-    this.header = { build, balanceVersion, balanceHash, rng, seed, run: clone(run) };
+  constructor({ build, balanceVersion, balanceHash, featureConfigVersion = CURRENT_FEATURES.configVersion, gameplayVersion = CURRENT_FEATURES.gameplayVersion, objectiveEvents = CURRENT_FEATURES.objectiveEvents, rng, seed, run }) {
+    safeString(featureConfigVersion, FEATURE_ID, "featureConfigVersion");
+    safeString(gameplayVersion, FEATURE_ID, "gameplayVersion");
+    if (typeof objectiveEvents !== "boolean") throw new TypeError("objectiveEvents must be boolean");
+    this.header = { build, balanceVersion, balanceHash, featureConfigVersion, gameplayVersion, objectiveEvents, rng, seed, run: clone(run) };
     this.actualToSlot = new Map();
     this.roster = new Map();
     this.knownSlots = new Map();
@@ -335,6 +352,7 @@ export class ReplayRecorder {
       schema: REPLAY_SCHEMA,
       build: this.header.build,
       balance: { version: this.header.balanceVersion, hash: this.header.balanceHash },
+      features: { configVersion: this.header.featureConfigVersion, gameplayVersion: this.header.gameplayVersion, objectiveEvents: this.header.objectiveEvents },
       engine: { stepHz: REPLAY_STEP_HZ, rng: this.header.rng },
       seed: this.header.seed,
       run: clone(this.header.run),
@@ -356,6 +374,13 @@ export class ReplayDriver {
 
   run() {
     const simulation = this.adapters.createSimulation(this.replay);
+    const features = this.replay.schema === REPLAY_SCHEMA ? this.replay.features : LEGACY_FEATURES;
+    if (Object.hasOwn(simulation, "gameplayVersion") && simulation.gameplayVersion !== features.gameplayVersion) {
+      throw new Error(`Replay gameplay feature version mismatch: expected ${features.gameplayVersion}, got ${simulation.gameplayVersion}`);
+    }
+    if (Object.hasOwn(simulation, "objectiveEvents") && simulation.objectiveEvents !== features.objectiveEvents) {
+      throw new Error("Replay objective-events flag mismatch");
+    }
     const checkpoints = new Map(this.replay.checkpoints);
     let commandIndex = 0;
     for (let tick = 0; tick <= this.replay.finalTick; tick++) {

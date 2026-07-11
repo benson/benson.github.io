@@ -98,3 +98,13 @@ test("hosts capture anonymous deterministic replays and expose an explicit post-
   assert.match(game, /navigator\.clipboard\.writeText\(JSON\.stringify\(state\.resultReplay\)\)/);
   assert.doesNotMatch(game, /submitRunTelemetry\([^)]*replay/i);
 });
+
+test("deployment applies the bounded runtime config to simulation, replay, telemetry, and diagnostics", () => {
+  assert.match(game, /loadRuntimeConfig\(\{ endpoint: RUNTIME_CONFIG_ENDPOINT \}\)/);
+  assert.match(game, /await runtimeConfigReady/);
+  assert.match(game, /gameplayFeatureContract\(state\.runtimeConfig\.config\)/);
+  assert.match(game, /featureConfigVersion: state\.runtimeConfig\.config\.configVersion/);
+  assert.match(game, /state\.runtimeConfig\.config\.flags\.deterministicReplay/);
+  assert.match(game, /state\.runtimeConfig\.config\.flags\.runTelemetry/);
+  assert.match(game, /runtimeConfig: \{/);
+});
