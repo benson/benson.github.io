@@ -1,10 +1,10 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
-} from "./data.js?v=20260711.4";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260711.4";
-import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.4";
-import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260711.4";
+} from "./data.js?v=20260711.5";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260711.5";
+import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.5";
+import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260711.5";
 
 const BALANCE = getBalanceConfig();
 
