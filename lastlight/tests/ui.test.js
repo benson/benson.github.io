@@ -141,3 +141,11 @@ test("compatible local run recovery is explicit, privacy-safe, and resumes pause
   assert.match(game, /discardRecovery\(\{ notify: false \}\)/);
   assert.match(css, /\.recovery-offer/);
 });
+
+test("developer network simulation wraps transport boundaries and remains production-default-off", () => {
+  assert.match(game, /resolveNetworkLabActivation\(\{ url: location\.href \}\)/);
+  assert.match(game, /state\.networkLab\.upstream\(payload, deliver\)/);
+  assert.match(game, /state\.networkLab\.downstream\(event\.data/);
+  assert.match(game, /state\.networkLab\?\.teardown\(\)/);
+  assert.match(game, /const \{ seed, \.\.\.diagnostics \} = state\.networkLab\.diagnostics\(\)/);
+});

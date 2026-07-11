@@ -14,6 +14,7 @@ import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, run
 import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260711.4";
 import { clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260711.5";
 import { GuestInputSequenceTracker, HostInputSequenceGate, createSnapshotMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260711.5";
+import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260711.5";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -23,6 +24,7 @@ const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
 const BUILD = "2026.07.11.4";
+const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
 const systemReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false;
 const initialQualitySettings = (() => {
   const settings = loadQualitySettings(localStorage, systemReducedMotion);
@@ -101,6 +103,7 @@ const state = {
   replayRecorder: null, lastReplayCheckpointTick: -1, lastReplay: loadLastReplay(), resultReplay: null,
   runtimeConfig: { config: DEFAULT_RUNTIME_CONFIG, source: "built-in", status: "initializing" },
   recoveryOffer: null, lastRecoverySaveAt: 0,
+  networkLab: null,
 };
 
 const runtimeConfigReady = loadRuntimeConfig({ endpoint: RUNTIME_CONFIG_ENDPOINT }).then((result) => {
@@ -1329,8 +1332,15 @@ function connectRoom(code) {
     state.connectReject = (error) => { clearTimeout(timeout); reject(error); };
     const url = new URL(`${RELAY_BASE}${encodeURIComponent(code)}`);
     const ws = new WebSocket(url); state.ws = ws;
+    state.networkLab = createActivatedNetworkLab(NETWORK_LAB_ACTIVATION, {
+      onForcedDisconnect: () => { if (state.ws === ws) ws.close(4100, "Network lab reconnect"); },
+      onError: (error) => captureClientError("network lab", error),
+    });
     ws.addEventListener("open", () => send({ type: "hello", profile: { name: callsign(), specialist: state.selected, resumeToken: state.resumeToken } }));
-    ws.addEventListener("message", (event) => handleNetworkMessage(event.data));
+    ws.addEventListener("message", (event) => {
+      if (state.networkLab) state.networkLab.downstream(event.data, (payload) => handleNetworkMessage(payload));
+      else handleNetworkMessage(event.data);
+    });
     ws.addEventListener("error", () => state.connectReject?.(new Error("Relay connection failed")));
     ws.addEventListener("close", () => { if (state.screen === "game" && !state.isHost) { toast("Squad connection lost"); captureClientError("network", "Squad relay connection closed during a run"); } });
   });
@@ -1413,9 +1423,11 @@ function publicLobbyPlayers() {
 
 function send(message, targetId = "") {
   if (state.ws?.readyState !== WebSocket.OPEN) return;
-  state.ws.send(JSON.stringify(targetId ? { ...message, _to: targetId } : message));
+  const socket = state.ws, payload = JSON.stringify(targetId ? { ...message, _to: targetId } : message);
+  const deliver = (delayed) => { if (state.ws === socket && socket.readyState === WebSocket.OPEN) socket.send(delayed); };
+  if (state.networkLab) state.networkLab.upstream(payload, deliver); else deliver(payload);
 }
-function closeSocket() { if (state.ws) { state.ws.onclose = null; state.ws.close(); } state.ws = null; state.connectResolve = null; state.connectReject = null; resetInputProtocol(); }
+function closeSocket() { state.networkLab?.teardown(); state.networkLab = null; if (state.ws) { state.ws.onclose = null; state.ws.close(); } state.ws = null; state.connectResolve = null; state.connectReject = null; resetInputProtocol(); }
 function randomRoomCode() { const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; return Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join(""); }
 
 async function copyInvite() {
@@ -1443,6 +1455,7 @@ function gameDiagnostics() {
     teamSize: Number(game?.players?.length || state.lobby.size || 1),
     multiplayerRole: state.partyMode === "solo" ? "solo" : state.isHost ? "host" : "guest",
     multiplayerInput: inputProtocolDiagnostics(),
+    networkLab: state.networkLab ? (() => { const { seed, ...diagnostics } = state.networkLab.diagnostics(); return diagnostics; })() : { active: false, reason: NETWORK_LAB_ACTIVATION.reason },
     runtimeConfig: {
       version: state.runtimeConfig.config.configVersion,
       gameplayVersion: state.config?.features?.gameplayVersion || state.runtimeConfig.config.gameplayVersion,
