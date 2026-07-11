@@ -11,8 +11,8 @@ import { Simulation } from "../engine.js";
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
 test("the canonical baseline has an explicit stable replay identity", () => {
-  assert.equal(BALANCE_VERSION, "2026.07.11-baseline.1");
-  assert.equal(BALANCE_HASH, "fnv1a32:7e33be79");
+  assert.equal(BALANCE_VERSION, "2026.07.11-baseline.2");
+  assert.equal(BALANCE_HASH, "fnv1a32:a172f8fe");
   assert.equal(balanceFingerprint(BALANCE_CONFIG), BALANCE_HASH);
   assert.deepEqual(getBalanceManifest(), { balanceVersion: BALANCE_VERSION, balanceHash: BALANCE_HASH });
   assert.match(canonicalBalanceData(), /^\{"core":/);
@@ -38,6 +38,7 @@ test("validation exhaustively covers every authored balance id", () => {
   assert.deepEqual(validateBalanceConfig(), []);
   assert.deepEqual(Object.keys(BALANCE_CONFIG.specialists), [...BALANCE_IDS.specialists]);
   assert.deepEqual(Object.keys(BALANCE_CONFIG.passives), [...BALANCE_IDS.passives]);
+  assert.deepEqual(Object.keys(BALANCE_CONFIG.shields), [...BALANCE_IDS.shieldAbilities]);
   assert.deepEqual(Object.keys(BALANCE_CONFIG.difficulties), [...BALANCE_IDS.difficulties]);
   assert.deepEqual(Object.keys(BALANCE_CONFIG.enemies), [...BALANCE_IDS.enemies]);
   assert.deepEqual(Object.keys(BALANCE_CONFIG.weapons.signatures), [...BALANCE_IDS.specialists]);
@@ -47,12 +48,14 @@ test("validation exhaustively covers every authored balance id", () => {
   delete invalid.enemies.mite;
   invalid.specialists.zuri.health = -1;
   invalid.difficulties.story.spawn = 0;
+  invalid.shields.echoE.capMaxHealth = 0;
   invalid.waves.spawn.composition[0].id = "unknown";
   invalid.weapons.universal.uwu.damageBase = Number.NaN;
   const errors = validateBalanceConfig(invalid);
   assert.ok(errors.some((error) => error.startsWith("enemies: expected")));
   assert.ok(errors.includes("specialists.zuri.health: must be > 0"));
   assert.ok(errors.includes("difficulties.story.spawn: must be > 0"));
+  assert.ok(errors.includes("shields.echoE.capMaxHealth: must be > 0"));
   assert.ok(errors.includes("waves.spawn.composition.0.id: unknown enemy unknown"));
   assert.ok(errors.includes("weapons.universal.uwu.damageBase: must be finite"));
 });
@@ -88,6 +91,12 @@ test("baseline pacing and combat scalars match the pre-contract production value
     { id: "brute", after: 0.34, rollBelow: 0.22 },
     { id: "hound", after: 0.13, rollBelow: 0.38 },
   ]);
+  assert.deepEqual(BALANCE_CONFIG.shields, {
+    echoE: { flatBase: 1.5, flatPerLevel: 0.25, maxHealth: 0, capMaxHealth: 0.5 },
+    solaE: { flatBase: 0, flatPerLevel: 0, maxHealth: 0.25, capMaxHealth: 0.5 },
+    galeE: { flatBase: 1.5, flatPerLevel: 0, maxHealth: 0.1, capMaxHealth: 0.5 },
+    riftE: { flatBase: 2.5, flatPerLevel: 0, maxHealth: 0, capMaxHealth: 0.5 },
+  });
   assert.deepEqual(
     Object.fromEntries(BALANCE_IDS.specialists.map((id) => [id, BALANCE_CONFIG.weapons.signatures[id].cycle])),
     { zuri: 2.5, echo: 3, sola: 2.75, bront: 4.8, fang: 2, gale: 0.25, rift: 0.3, nova: 3, vesper: 2.5 },

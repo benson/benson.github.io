@@ -1,12 +1,13 @@
 // Balance is a versioned simulation input. Replays and fixtures should record
 // this exact version so a future tuning pass never silently changes old runs.
-export const BALANCE_VERSION = "2026.07.11-baseline.1";
+export const BALANCE_VERSION = "2026.07.11-baseline.2";
 
 export const BALANCE_IDS = Object.freeze({
   specialists: Object.freeze(["zuri", "echo", "sola", "bront", "fang", "gale", "rift", "nova", "vesper"]),
   passives: Object.freeze(["damage", "haste", "maxHealth", "armor", "move", "area", "crit", "duration", "projectiles", "xp", "pickup", "regen"]),
   difficulties: Object.freeze(["story", "hard", "extreme"]),
   enemies: Object.freeze(["mite", "hound", "spitter", "brute", "bomber", "shark"]),
+  shieldAbilities: Object.freeze(["echoE", "solaE", "galeE", "riftE"]),
   universalWeapons: Object.freeze(["uwu", "slicers", "aura", "mines", "crossbow", "boomerang", "rail", "glove", "transit", "ice", "annihilator", "drone"]),
 });
 
@@ -45,6 +46,15 @@ const config = {
     xp: { amount: 0.10, max: 5 },
     pickup: { amount: 0.35, max: 5 },
     regen: { amount: 0.04, max: 5 },
+  },
+  shields: {
+    // Flat shield values use the same readable vitality units as player health.
+    // The cap prevents short-cooldown actives from accumulating into effective
+    // invulnerability while preserving larger one-off boons already in flight.
+    echoE: { flatBase: 1.5, flatPerLevel: 0.25, maxHealth: 0, capMaxHealth: 0.5 },
+    solaE: { flatBase: 0, flatPerLevel: 0, maxHealth: 0.25, capMaxHealth: 0.5 },
+    galeE: { flatBase: 1.5, flatPerLevel: 0, maxHealth: 0.1, capMaxHealth: 0.5 },
+    riftE: { flatBase: 2.5, flatPerLevel: 0, maxHealth: 0, capMaxHealth: 0.5 },
   },
   difficulties: {
     story: { health: 1.2, attack: 1.3, spell: 1.2, gold: 1, spawn: 0.98, passiveRegen: 0.015 },
@@ -168,7 +178,7 @@ export function validateBalanceConfig(candidate = BALANCE_CONFIG) {
   };
   if (!candidate || typeof candidate !== "object") return ["config: must be an object"];
   if (typeof candidate.version !== "string" || !candidate.version.trim()) errors.push("version: required");
-  for (const section of ["core", "specialists", "passives", "difficulties", "enemies", "waves", "weapons"]) {
+  for (const section of ["core", "specialists", "passives", "shields", "difficulties", "enemies", "waves", "weapons"]) {
     if (!candidate[section] || typeof candidate[section] !== "object") errors.push(`${section}: required`);
   }
   const requireExactIds = (path, value, ids) => {
@@ -178,6 +188,7 @@ export function validateBalanceConfig(candidate = BALANCE_CONFIG) {
   };
   requireExactIds("specialists", candidate.specialists, BALANCE_IDS.specialists);
   requireExactIds("passives", candidate.passives, BALANCE_IDS.passives);
+  requireExactIds("shields", candidate.shields, BALANCE_IDS.shieldAbilities);
   requireExactIds("difficulties", candidate.difficulties, BALANCE_IDS.difficulties);
   requireExactIds("enemies", candidate.enemies, BALANCE_IDS.enemies);
   requireExactIds("weapons.signatures", candidate.weapons?.signatures, BALANCE_IDS.specialists);
@@ -195,6 +206,10 @@ export function validateBalanceConfig(candidate = BALANCE_CONFIG) {
   for (const [id, passive] of Object.entries(candidate.passives || {})) {
     requireFinite(`passives.${id}.amount`, passive.amount, { min: 0, exclusiveMin: true });
     requireFinite(`passives.${id}.max`, passive.max, { min: 0, exclusiveMin: true });
+  }
+  for (const [id, shield] of Object.entries(candidate.shields || {})) {
+    for (const key of ["flatBase", "flatPerLevel", "maxHealth"]) requireFinite(`shields.${id}.${key}`, shield[key], { min: 0 });
+    requireFinite(`shields.${id}.capMaxHealth`, shield.capMaxHealth, { min: 0, exclusiveMin: true });
   }
   for (const [id, enemy] of Object.entries(candidate.enemies || {})) {
     for (const key of ["radius", "health", "speed", "damage", "xp"]) requireFinite(`enemies.${id}.${key}`, enemy[key], { min: 0, exclusiveMin: true });

@@ -93,6 +93,54 @@ test("per-player combat, pickup, and damage stats are credited", () => {
   assert.ok(player.animTime > 0);
 });
 
+test("level-five Echo shields stay on the ten-vitality scale under sustained Story contact", () => {
+  const sim = new Simulation(
+    { map: "warehouse", difficulty: "story", duration: 240, players: [{ id: "p1", name: "Rookie", specialist: "echo" }] },
+    { seed: "81700000000000000000000000000000" },
+  );
+  sim.level = 5;
+  const player = sim.players[0];
+  player.invuln = 0;
+  player.hitGrace = 0;
+  assert.equal(sim.cast(player.id, "e"), true);
+  assert.equal(player.shield, 2.5);
+
+  player.eCd = 0;
+  assert.equal(sim.cast(player.id, "e"), true);
+  assert.equal(player.shield, player.maxHp * 0.5, "repeat casts cap at half a health bar");
+  player.eCd = 0;
+  assert.equal(sim.cast(player.id, "e"), true);
+  assert.equal(player.shield, player.maxHp * 0.5, "the cap cannot be bypassed by rapid recasts");
+
+  const brute = sim.spawnEnemy("brute");
+  Object.assign(brute, { x: 0, y: 0, radius: 1_000, speed: 0, hp: 1e12, maxHp: 1e12, attackCd: 0, shotCd: 1e9 });
+  let contacts = 0;
+  for (let tick = 0; tick < 20 * 20 && sim.stage === "running"; tick++) {
+    if (player.eCd <= 0) sim.cast(player.id, "e");
+    sim.updatePlayers(0.05);
+    player.x = 0; player.y = 0; player.knockVx = 0; player.knockVy = 0;
+    brute.x = 0; brute.y = 0;
+    const previousCooldown = brute.attackCd;
+    sim.updateEnemies(0.05);
+    if (brute.attackCd > previousCooldown) contacts++;
+  }
+  assert.ok(contacts >= 4, `expected repeated contact, received ${contacts} hits`);
+  assert.equal(sim.stage, "lost", "a sustained overlapping brute must eventually down Echo");
+  assert.ok(player.damageTaken >= player.maxHp, `health damage was ${player.damageTaken}`);
+});
+
+test("all repeatable active shields share the bounded vitality-scale contract", () => {
+  for (const specialist of ["sola", "gale", "rift"]) {
+    const sim = new Simulation({ players: [{ id: "p", name: "P", specialist }] }, { seed: "81710000000000000000000000000000" });
+    sim.level = 5;
+    const player = sim.players[0];
+    assert.equal(sim.cast(player.id, "e"), true, specialist);
+    assert.ok(player.shield > 0 && player.shield <= player.maxHp * 0.5, `${specialist} shield was ${player.shield}`);
+    for (let cast = 0; cast < 5; cast++) { player.eCd = 0; sim.cast(player.id, "e"); }
+    assert.ok(player.shield <= player.maxHp * 0.5, `${specialist} repeat shield was ${player.shield}`);
+  }
+});
+
 test("combat actions expose concise authored animation state", () => {
   const sim = new Simulation({ players: [{ id: "p1", name: "One", specialist: "zuri" }] });
   const player = sim.players[0];

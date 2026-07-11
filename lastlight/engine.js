@@ -926,15 +926,23 @@ export class Simulation {
     return false;
   }
 
+  grantShield(p, tuning, level = this.level) {
+    const amount = valueAtLevel(tuning.flatBase, tuning.flatPerLevel, level) + p.maxHp * tuning.maxHealth;
+    const available = Math.max(0, p.maxHp * tuning.capMaxHealth - p.shield);
+    const granted = Math.min(amount, available);
+    p.shield += granted;
+    return granted;
+  }
+
   castE(p) {
     const spec = SPECIALISTS[p.specialist], aim = this.aimForPlayer(p), mobilityAim = this.mobilityAimForPlayer(p), area = this.playerStat(p, "area");
     if (p.specialist === "zuri") {
       for (let i = 0; i < 9 + this.playerStat(p, "projectiles"); i++) this.shoot(p, aim + (i - 4) * .13, 560, 49 + this.level * 6, { radius: 9, color: spec.color, explosion: 95 * area, life: 2.4, sourceId: "ability:e" });
     } else if (p.specialist === "echo") {
-      for (const ally of this.players) if (!ally.dead && distance(p, ally) < 800) { ally.shield += 345 + this.level * 5; ally.speedBuff = 3; }
+      for (const ally of this.players) if (!ally.dead && distance(p, ally) < 800) { this.grantShield(ally, BALANCE.shields.echoE); ally.speedBuff = 3; }
       this.effects.push({ id: this.nextCosmeticId("fx"), x: p.x, y: p.y, radius: 800, life: .6, maxLife: .6, damage: 0, owner: p.id, color: spec.color, kind: "shield" });
     } else if (p.specialist === "sola") {
-      p.armor += 25; p.shield += p.maxHp * .25;
+      p.armor += 25; this.grantShield(p, BALANCE.shields.solaE);
       this.scheduleTask("sola-detonate", 3, { ownerId: p.id, area, color: spec.color });
       this.scheduleTask("sola-aftershock", 5, { ownerId: p.id, area, color: spec.color });
     } else if (p.specialist === "bront") {
@@ -944,10 +952,10 @@ export class Simulation {
     } else if (p.specialist === "fang") {
       this.dashPlayer(p, mobilityAim, 150); p.frenzy = 6 * this.playerStat(p, "duration");
     } else if (p.specialist === "gale") {
-      p.shield += 1.5 + p.maxHp * .1; p.invuln = .22; this.dashPlayer(p, mobilityAim, 475);
+      this.grantShield(p, BALANCE.shields.galeE); p.invuln = .22; this.dashPlayer(p, mobilityAim, 475);
       this.blast(p.x, p.y, 170, 90 + this.level * 7, p.id, spec.color, true, "slash", "ability:e"); p.flow = 100;
     } else if (p.specialist === "rift") {
-      this.dashPlayer(p, mobilityAim, 250); p.shield += 80; this.blast(p.x, p.y, 250 * area, 135 + this.level * 15, p.id, spec.color, true, "stun", "ability:e");
+      this.dashPlayer(p, mobilityAim, 250); this.grantShield(p, BALANCE.shields.riftE); this.blast(p.x, p.y, 250 * area, 135 + this.level * 15, p.id, spec.color, true, "stun", "ability:e");
     } else if (p.specialist === "nova") {
       this.dashPlayer(p, mobilityAim, 250); p.invuln = 2.5; p.speedBuff = 2.5;
       for (const enemy of this.enemies.filter((e) => e.hexed)) { this.blast(enemy.x, enemy.y, 95 * area, 65 + this.level * 8, p.id, spec.color, true, "blast", "ability:e"); enemy.hexed = 0; }
