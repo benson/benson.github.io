@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260710.5">
+  <link rel="stylesheet" href="styles.css?v=20260711.1">
 </head>
 <body>
   <main id="app">
@@ -216,7 +216,7 @@
       </header>
 
       <div id="objective-banner" class="objective-banner hidden"><span>NEW DIRECTIVE</span><strong>Capture the uplink</strong></div>
-      <div id="boss-hud" class="boss-hud hidden"><span id="boss-name">APEX</span><div><i id="boss-health"></i></div></div>
+      <div id="boss-hud" class="boss-hud hidden"><span id="boss-name">APEX</span><div><i id="boss-health"></i><em id="boss-health-segments" class="health-dividers" aria-hidden="true"></em></div></div>
 
       <aside class="loadout-hud">
         <div id="e-slot" class="ability-slot" tabindex="0"><kbd>E</kbd><span id="e-icon">E</span><i id="e-cooldown" class="cooldown-sweep" aria-hidden="true"></i><b id="e-cooldown-seconds" class="cooldown-seconds" aria-hidden="true"></b><small id="e-name">Rocket Bloom</small><div class="ability-tooltip"><span>Active ability</span><strong id="e-detail-status">Locked</strong><p id="e-detail-copy">Fire nine explosive rockets in a wide cone.</p><dl><div><dt>Cooldown</dt><dd id="e-detail-cooldown">Unlocks Lv 3</dd></div><div><dt>Control</dt><dd>E</dd></div></dl></div></div>
@@ -226,7 +226,16 @@
       <div class="weapon-hud" id="weapon-hud"></div>
       <div class="passive-hud" id="passive-hud" aria-label="Equipped passive upgrades"></div>
       <div class="active-buffs-hud" id="active-buffs-hud" aria-label="Active powerups"></div>
-      <aside class="damage-ledger" id="damage-ledger" aria-label="Leading damage sources"></aside>
+      <aside class="damage-ledger no-data" id="damage-ledger" aria-label="Leading damage sources">
+        <header id="damage-ledger-handle" class="damage-ledger-handle" tabindex="0" aria-label="Move Damage Sources panel with arrow keys. Hold Control and use arrow keys to resize.">
+          <strong>Damage sources</strong>
+          <span class="damage-ledger-actions">
+            <button id="damage-ledger-reset" type="button" title="Reset panel position and size" aria-label="Reset Damage Sources panel position and size">Reset</button>
+            <button id="damage-ledger-collapse" type="button" title="Collapse Damage Sources" aria-label="Collapse Damage Sources" aria-expanded="true"><span aria-hidden="true">&minus;</span></button>
+          </span>
+        </header>
+        <div id="damage-ledger-content" class="damage-ledger-content" aria-live="polite"></div>
+      </aside>
       <div class="xp-wrap"><span id="level-label">LV 1</span><div class="xp-track"><i id="xp-progress"></i></div></div>
       <div class="game-controls-hint" aria-label="Keyboard controls"><span><kbd>WASD</kbd> Move</span><span><kbd>C</kbd> Auto-aim</span><span><kbd>Mouse</kbd> Aim</span><span><kbd>Shift</kbd> Inspect</span><span><kbd>` / ~</kbd> Report</span></div>
       <aside id="inspect-panel" class="inspect-panel hidden" role="tooltip" aria-live="polite">
@@ -381,7 +390,20 @@
       <div class="build-history-body">
         <article class="build-release current-build">
           <header>
-            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.10.5</h3></div>
+            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.11.1</h3></div>
+            <span class="build-time-unavailable">Production timestamp verifying</span>
+          </header>
+          <ul>
+            <li>Added authored runtime art for every field-guide enemy, with grounded shadows, directional facing, movement, hit, and attack response.</li>
+            <li>Segmented player, squad, enemy, and apex health bars using one shared vitality contract, including shield and delayed-loss layers.</li>
+            <li>Made the Damage Sources panel movable, resizable, collapsible, keyboard-accessible, and persistent between runs.</li>
+            <li>Raised compact desktop UI text while preserving the denser mobile layout.</li>
+            <li>Kept threat and objective notifications readable longer with crisp, reduced-motion-aware transitions.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.10.5</h3></div>
             <time class="build-shipped-at" data-build-shipped-at="2026-07-10T21:25:00-04:00">Shipped Jul 10, 2026, 9:25 PM EDT</time>
           </header>
           <ul>
@@ -462,8 +484,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.10.5. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.10.5</strong></button>
-  <script src="build-history.js?v=20260710.5"></script>
-  <script type="module" src="game.js?v=20260710.5"></script>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.11.1. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.11.1</strong></button>
+  <script src="build-history.js?v=20260711.1"></script>
+  <script type="module" src="game.js?v=20260711.1"></script>
 </body>
 </html>

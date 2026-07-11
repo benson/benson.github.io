@@ -11,6 +11,7 @@ export const THEME_ASSET_KEYS = deepFreeze({
   signatureWeapons: ["zuri", "echo", "sola", "bront", "fang", "gale", "rift", "nova", "vesper"],
   universalWeapons: ["uwu", "slicers", "aura", "mines", "crossbow", "boomerang", "rail", "glove", "transit", "ice", "annihilator", "drone"],
   environments: ["warehouse", "outskirts", "lab", "beachhead"],
+  enemies: ["mite", "hound", "spitter", "brute", "bomber", "shark"],
   effects: ["xpShard", "hostileBolt", "barricade"],
   guidePassives: ["damage", "haste", "maxHealth", "armor", "move", "area", "crit", "duration", "projectiles", "xp", "pickup", "regen"],
   guideEnemies: ["mite", "hound", "spitter", "brute", "bomber", "shark"],
@@ -80,6 +81,14 @@ const LASTLIGHT_ASSETS = {
     outskirts: "assets/environments/outskirts.webp",
     lab: "assets/environments/lab.webp",
     beachhead: "assets/environments/beachhead.webp",
+  },
+  enemies: {
+    mite: "assets/enemies/skitter.webp",
+    hound: "assets/enemies/rusher.webp",
+    spitter: "assets/enemies/spitter.webp",
+    brute: "assets/enemies/brute.webp",
+    bomber: "assets/enemies/bomber.webp",
+    shark: "assets/enemies/siegebreaker.webp",
   },
   effects: {
     xpShard: "assets/effects/xp-shard.webp",
@@ -157,6 +166,14 @@ export const LASTLIGHT_THEME = defineTheme({
   name: "Lastlight",
   assets: LASTLIGHT_ASSETS,
   animations: {
+    enemies: {
+      mite: { anchor: [.5, .78], drawSize: [72, 59], groundY: 10, shadow: [26, 9], stride: 1.5 },
+      hound: { anchor: [.5, .77], drawSize: [96, 67], groundY: 13, shadow: [36, 12], stride: 2.5 },
+      spitter: { anchor: [.5, .76], drawSize: [88, 82], groundY: 14, shadow: [32, 12], stride: 1.4 },
+      brute: { anchor: [.5, .78], drawSize: [118, 108], groundY: 20, shadow: [45, 15], stride: 1.7 },
+      bomber: { anchor: [.5, .77], drawSize: [98, 92], groundY: 16, shadow: [38, 13], stride: 2 },
+      shark: { anchor: [.5, .78], drawSize: [168, 125], groundY: 28, shadow: [66, 21], stride: 1.3 },
+    },
     specialists: {
       zuri: {
         atlas: "assets/sprites/zuri-motion-atlas.png",
@@ -204,6 +221,10 @@ export function getThemeAnimation(specialistId, theme = LASTLIGHT_THEME) {
   return theme?.animations?.specialists?.[specialistId] || null;
 }
 
+export function getThemeEnemyAnimation(enemyType, theme = LASTLIGHT_THEME) {
+  return theme?.animations?.enemies?.[enemyType] || null;
+}
+
 /** Validate and freeze a replacement theme before it enters the registry. */
 export function defineTheme(theme) {
   const result = validateTheme(theme);
@@ -226,6 +247,7 @@ export function validateTheme(theme) {
     ["weapons.signatures", theme.assets?.weapons?.signatures, THEME_ASSET_KEYS.signatureWeapons],
     ["weapons.universal", theme.assets?.weapons?.universal, THEME_ASSET_KEYS.universalWeapons],
     ["environments", theme.assets?.environments, THEME_ASSET_KEYS.environments],
+    ["enemies", theme.assets?.enemies, THEME_ASSET_KEYS.enemies],
     ["effects", theme.assets?.effects, THEME_ASSET_KEYS.effects],
     ["guide.passives", theme.assets?.guide?.passives, THEME_ASSET_KEYS.guidePassives],
     ["guide.enemies", theme.assets?.guide?.enemies, THEME_ASSET_KEYS.guideEnemies],
@@ -269,6 +291,18 @@ export function validateTheme(theme) {
     if (!Array.isArray(animation?.collisionOffset) || animation.collisionOffset.length !== 2 || animation.collisionOffset.some((value) => !Number.isFinite(value))) errors.push(`animations.specialists.${specialistId}.collisionOffset must be [x, y].`);
     if (!Number.isFinite(animation?.sockets?.muzzle?.distance) || !Number.isFinite(animation?.sockets?.muzzle?.vertical)) errors.push(`animations.specialists.${specialistId}.sockets.muzzle must define distance and vertical offsets.`);
     if (!animation?.states?.idle?.frames?.length || !animation?.states?.run?.frames?.length || !animation?.states?.hurt?.frames?.length) errors.push(`animations.specialists.${specialistId} must define idle, run, and hurt clips.`);
+  }
+
+  for (const enemyType of THEME_ASSET_KEYS.enemies) {
+    const animation = theme.animations?.enemies?.[enemyType];
+    if (!animation || typeof animation !== "object") {
+      errors.push(`Missing enemy render metadata: animations.enemies.${enemyType}.`);
+      continue;
+    }
+    if (!Array.isArray(animation.anchor) || animation.anchor.length !== 2 || animation.anchor.some((value) => !Number.isFinite(value))) errors.push(`animations.enemies.${enemyType}.anchor must be [x, y].`);
+    if (!Array.isArray(animation.drawSize) || animation.drawSize.length !== 2 || animation.drawSize.some((value) => !Number.isFinite(value) || value <= 0)) errors.push(`animations.enemies.${enemyType}.drawSize must be [width, height].`);
+    if (!Array.isArray(animation.shadow) || animation.shadow.length !== 2 || animation.shadow.some((value) => !Number.isFinite(value) || value <= 0)) errors.push(`animations.enemies.${enemyType}.shadow must be [width, height].`);
+    if (!Number.isFinite(animation.groundY) || !Number.isFinite(animation.stride)) errors.push(`animations.enemies.${enemyType} must define finite groundY and stride values.`);
   }
 
   const ownersByPath = new Map();

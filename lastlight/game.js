@@ -1,10 +1,11 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260710.5";
-import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260710.5";
-import { Renderer } from "./render.js?v=20260710.5";
-import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260710.5";
-import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260710.5";
-import { getThemeAsset } from "./themes/lastlight.js?v=20260710.5";
-import { submitRunTelemetry } from "./telemetry.js?v=20260710.5";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260711.1";
+import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260711.1";
+import { Renderer } from "./render.js?v=20260711.1";
+import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260711.1";
+import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.1";
+import { getThemeAsset } from "./themes/lastlight.js?v=20260711.1";
+import { submitRunTelemetry } from "./telemetry.js?v=20260711.1";
+import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.1";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -12,7 +13,7 @@ const query = new URLSearchParams(location.search);
 const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.10.5";
+const BUILD = "2026.07.11.1";
 const renderer = new Renderer($("game-canvas"));
 const fixedClock = new FixedStepClock();
 const movementPredictor = new MovementPredictor();
@@ -20,6 +21,8 @@ const PROGRESS_KEY = "lastlight:campaign:v1";
 const ENEMY_HEALTH_BARS_KEY = "lastlight:enemy-health-bars:v1";
 const RUN_HISTORY_KEY = "lastlight:runs:v1";
 const CLIENT_TOKEN_KEY = "lastlight:client-token:v1";
+const DAMAGE_LEDGER_LAYOUT_KEY = "lastlight:damage-ledger-layout:v1";
+const DAMAGE_LEDGER_DEFAULT = Object.freeze({ x: 22, y: 112, width: 250, height: 150, collapsed: false });
 const DIFFICULTY_COPY = { story: "Story · Sharp hits · Lighter opening", hard: "Hard · 3× health · 2× damage", extreme: "Extreme · 7× health · 3× damage" };
 
 function loadProgress() {
@@ -48,6 +51,13 @@ function loadClientToken() {
   } catch { return crypto.randomUUID().replace(/-/g, "").slice(0, 24); }
 }
 
+function loadDamageLedgerLayout() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(DAMAGE_LEDGER_LAYOUT_KEY) || "null");
+    return saved && typeof saved === "object" ? { ...DAMAGE_LEDGER_DEFAULT, ...saved } : { ...DAMAGE_LEDGER_DEFAULT };
+  } catch { return { ...DAMAGE_LEDGER_DEFAULT }; }
+}
+
 const state = {
   screen: "home", partyMode: "solo", selected: "zuri", clientId: "solo", isHost: true, room: "",
   lobby: new Map(), ws: null, connecting: false, connectResolve: null, connectReject: null,
@@ -55,13 +65,15 @@ const state = {
   previousSnapshot: null, snapshot: null, snapshotAt: 0, snapshotInterval: 90,
   input: { keys: new Set(), aim: 0, autoAim: true, touchX: 0, touchY: 0 },
   animation: 0, lastFrame: 0, lastSend: 0, lastBroadcast: 0, lastLobbyBroadcast: 0,
-  lastUpgradeKey: "", lastWeaponHUDKey: "", lastPassiveHUDKey: "", lastSquadHUDKey: "", lastEventSeq: 0, endShown: false, resultTimer: null,
+  lastUpgradeKey: "", lastWeaponHUDKey: "", lastPassiveHUDKey: "", lastSquadHUDKey: "", lastBossHUDKey: "", lastEventSeq: 0, endShown: false, resultTimer: null,
   progress: loadProgress(), runHistory: loadRunHistory(), resultGame: null, resultSavedKey: "",
   audio: true, audioContext: null, toastTimer: null, lastVoiceAt: 0,
   soundState: { projectiles: 0, kills: 0, level: 1, damageTaken: 0, xpCollected: 0, lastShot: 0, lastXP: 0 },
   recentErrors: [], reportSubmitting: false, resumeAfterReport: false, telemetrySent: false,
   showEnemyHealthBars: loadEnemyHealthBars(), inspectPointer: null, inspectActive: false,
   performanceMetrics: null, lastActiveBuffKey: "", lastDamageLedgerKey: "",
+  damageLedgerLayout: loadDamageLedgerLayout(), damageLedgerResizeObserver: null,
+  bannerTimer: null, bannerExitTimer: null,
   resumeToken: loadClientToken(),
   hostPreviousMotion: null, inputMotionStartedAt: 0, inputMotionStart: null, inputWasActive: false,
 };
@@ -575,8 +587,100 @@ function updateDamageLedger(player, game) {
   const sources = Object.entries(player.damageBySource || {}).filter(([, damage]) => damage > 0).sort((a, b) => b[1] - a[1]).slice(0, 3);
   const key = JSON.stringify(sources.map(([id, damage]) => [id, Math.round(damage)]));
   if (key === state.lastDamageLedgerKey) return; state.lastDamageLedgerKey = key;
-  const seconds = elapsedRunSeconds(game);
-  $("damage-ledger").innerHTML = sources.length ? `<strong>Damage sources</strong>${sources.map(([id, damage], index) => `<div class="${index === 0 ? "leader" : ""}"><span>${escapeHTML(sourceName(id, player))}</span><b>${statNumber(damage)}</b><small>${(damage / seconds).toFixed(1)} DPS</small></div>`).join("")}` : "";
+  const seconds = elapsedRunSeconds(game), panel = $("damage-ledger"), content = $("damage-ledger-content");
+  panel.classList.toggle("no-data", sources.length === 0);
+  content.innerHTML = sources.map(([id, damage], index) => `<div class="${index === 0 ? "leader" : ""}"><span>${escapeHTML(sourceName(id, player))}</span><b>${statNumber(damage)}</b><small>${(damage / seconds).toFixed(1)} DPS</small></div>`).join("");
+}
+
+function healthDividerMarkup(layout) {
+  return layout.dividers.map((divider) => `<i class="health-divider${divider.major ? " major" : ""}" style="left:${(divider.position * 100).toFixed(4)}%"></i>`).join("");
+}
+
+function saveDamageLedgerLayout() {
+  try { localStorage.setItem(DAMAGE_LEDGER_LAYOUT_KEY, JSON.stringify(state.damageLedgerLayout)); } catch { /* Storage is optional. */ }
+}
+
+function damageLedgerIsMobile() { return matchMedia("(max-width: 650px)").matches; }
+
+function clampDamageLedgerLayout() {
+  const panel = $("damage-ledger"), bounds = panel.parentElement.getBoundingClientRect(), layout = state.damageLedgerLayout;
+  const maxWidth = Math.max(210, Math.min(440, bounds.width - 16));
+  const maxHeight = Math.max(110, bounds.height - 96);
+  layout.width = clamp(Number(layout.width) || DAMAGE_LEDGER_DEFAULT.width, 210, maxWidth);
+  layout.height = clamp(Number(layout.height) || DAMAGE_LEDGER_DEFAULT.height, 110, maxHeight);
+  layout.x = clamp(Number(layout.x) || 0, 8, Math.max(8, bounds.width - layout.width - 8));
+  layout.y = clamp(Number(layout.y) || 0, 72, Math.max(72, bounds.height - (layout.collapsed ? 40 : layout.height) - 24));
+}
+
+function applyDamageLedgerLayout({ persist = false } = {}) {
+  const panel = $("damage-ledger"), layout = state.damageLedgerLayout, mobile = damageLedgerIsMobile();
+  panel.classList.toggle("mobile-pinned", mobile);
+  panel.classList.toggle("collapsed", Boolean(layout.collapsed));
+  const collapseButton = $("damage-ledger-collapse"), action = layout.collapsed ? "Expand" : "Collapse";
+  collapseButton.setAttribute("aria-expanded", String(!layout.collapsed));
+  collapseButton.setAttribute("aria-label", `${action} Damage Sources`); collapseButton.title = `${action} Damage Sources`;
+  collapseButton.querySelector("span").textContent = layout.collapsed ? "+" : "−";
+  if (mobile) {
+    panel.style.left = ""; panel.style.top = ""; panel.style.width = ""; panel.style.height = "";
+  } else {
+    clampDamageLedgerLayout();
+    panel.style.left = `${layout.x}px`; panel.style.top = `${layout.y}px`; panel.style.width = `${layout.width}px`;
+    panel.style.height = layout.collapsed ? "" : `${layout.height}px`;
+  }
+  if (persist) saveDamageLedgerLayout();
+}
+
+function setupDamageLedger() {
+  const panel = $("damage-ledger"), handle = $("damage-ledger-handle"), collapseButton = $("damage-ledger-collapse");
+  let drag = null, applying = false;
+  const finishDrag = (event) => {
+    if (!drag || (event.pointerId !== undefined && event.pointerId !== drag.pointerId)) return;
+    drag = null; handle.classList.remove("dragging"); saveDamageLedgerLayout();
+  };
+  handle.addEventListener("pointerdown", (event) => {
+    event.stopPropagation();
+    if (damageLedgerIsMobile() || event.button !== 0 || event.target.closest("button")) return;
+    drag = { pointerId: event.pointerId, clientX: event.clientX, clientY: event.clientY, x: state.damageLedgerLayout.x, y: state.damageLedgerLayout.y };
+    handle.setPointerCapture(event.pointerId); handle.classList.add("dragging"); event.preventDefault();
+  });
+  handle.addEventListener("pointermove", (event) => {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    state.damageLedgerLayout.x = drag.x + event.clientX - drag.clientX;
+    state.damageLedgerLayout.y = drag.y + event.clientY - drag.clientY;
+    applyDamageLedgerLayout();
+  });
+  handle.addEventListener("pointerup", finishDrag); handle.addEventListener("pointercancel", finishDrag);
+  handle.addEventListener("keydown", (event) => {
+    if (!event.key.startsWith("Arrow") || damageLedgerIsMobile()) return;
+    const amount = event.shiftKey ? 1 : 10, layout = state.damageLedgerLayout, resize = event.ctrlKey || event.metaKey;
+    if (resize) {
+      if (event.key === "ArrowLeft") layout.width -= amount;
+      if (event.key === "ArrowRight") layout.width += amount;
+      if (event.key === "ArrowUp") layout.height -= amount;
+      if (event.key === "ArrowDown") layout.height += amount;
+    } else {
+      if (event.key === "ArrowLeft") layout.x -= amount;
+      if (event.key === "ArrowRight") layout.x += amount;
+      if (event.key === "ArrowUp") layout.y -= amount;
+      if (event.key === "ArrowDown") layout.y += amount;
+    }
+    event.preventDefault(); event.stopPropagation(); applyDamageLedgerLayout({ persist: true });
+  });
+  panel.addEventListener("keydown", (event) => event.stopPropagation());
+  panel.addEventListener("keyup", (event) => event.stopPropagation());
+  panel.addEventListener("pointerdown", (event) => event.stopPropagation());
+  collapseButton.addEventListener("click", () => { state.damageLedgerLayout.collapsed = !state.damageLedgerLayout.collapsed; applyDamageLedgerLayout({ persist: true }); });
+  $("damage-ledger-reset").addEventListener("click", () => { state.damageLedgerLayout = { ...DAMAGE_LEDGER_DEFAULT, collapsed: state.damageLedgerLayout.collapsed }; applyDamageLedgerLayout({ persist: true }); handle.focus(); });
+  state.damageLedgerResizeObserver = new ResizeObserver(() => {
+    if (applying || damageLedgerIsMobile() || state.damageLedgerLayout.collapsed) return;
+    const rect = panel.getBoundingClientRect();
+    if (Math.abs(rect.width - state.damageLedgerLayout.width) < 1 && Math.abs(rect.height - state.damageLedgerLayout.height) < 1) return;
+    state.damageLedgerLayout.width = rect.width; state.damageLedgerLayout.height = rect.height;
+    applying = true; applyDamageLedgerLayout({ persist: true }); applying = false;
+  });
+  state.damageLedgerResizeObserver.observe(panel);
+  window.addEventListener("resize", () => applyDamageLedgerLayout({ persist: true }));
+  applyDamageLedgerLayout();
 }
 
 function togglePause(force) {
@@ -602,13 +706,26 @@ function updateHUD(game) {
   updateAbilityDetails(player, spec, game);
   $("pause-overlay").classList.toggle("hidden", !(game.paused && game.pauseReason === "manual"));
   const boss = game.enemies?.find((enemy) => enemy.boss);
-  $("boss-hud").classList.toggle("hidden", !boss); if (boss) { $("boss-name").textContent = (typeof game.map === "string" ? MAPS[game.map] : game.map).boss; $("boss-health").style.width = `${clamp(boss.hp / boss.maxHp * 100, 0, 100)}%`; }
-  const squadHUDKey = JSON.stringify(game.players.map((p) => [p.id, p.name, p.specialist]));
+  $("boss-hud").classList.toggle("hidden", !boss);
+  if (boss) {
+    $("boss-name").textContent = (typeof game.map === "string" ? MAPS[game.map] : game.map).boss;
+    $("boss-health").style.width = `${clamp(boss.hp / boss.maxHp * 100, 0, 100)}%`;
+    const bossHUDKey = `${boss.id}:${boss.maxHp}`;
+    if (bossHUDKey !== state.lastBossHUDKey) {
+      state.lastBossHUDKey = bossHUDKey;
+      $("boss-health-segments").innerHTML = healthDividerMarkup(bossHealthSegments(boss.maxHp));
+    }
+  } else state.lastBossHUDKey = "";
+  const squadHUDKey = JSON.stringify(game.players.map((p) => [p.id, p.name, p.specialist, p.maxHp]));
   if (squadHUDKey !== state.lastSquadHUDKey) {
     state.lastSquadHUDKey = squadHUDKey;
-    $("squad-hud").innerHTML = game.players.map((p) => `<div class="squad-pill"><img src="${SPECIALISTS[p.specialist].sprite}" alt=""><div><span>${escapeHTML(p.name)}</span><div class="mini-health"><i></i></div></div></div>`).join("");
+    $("squad-hud").innerHTML = game.players.map((p) => `<div class="squad-pill"><img src="${SPECIALISTS[p.specialist].sprite}" alt=""><div><span>${escapeHTML(p.name)}</span><div class="mini-health"><i class="mini-health-fill"></i><b class="mini-shield-fill"></b><em class="health-dividers" aria-hidden="true">${healthDividerMarkup(playerHealthSegments(p.maxHp))}</em></div></div></div>`).join("");
   }
-  [...$("squad-hud").children].forEach((pill, index) => { const p = game.players[index]; pill.querySelector("i").style.width = `${clamp(p.hp / p.maxHp * 100, 0, 100)}%`; });
+  [...$("squad-hud").children].forEach((pill, index) => {
+    const p = game.players[index], maximum = Math.max(1, p.maxHp || 1);
+    pill.querySelector(".mini-health-fill").style.width = `${clamp(p.hp / maximum * 100, 0, 100)}%`;
+    pill.querySelector(".mini-shield-fill").style.width = `${clamp((p.shield || 0) / maximum * 100, 0, 100)}%`;
+  });
   const weaponEntries = Object.entries(player.weapons || {});
   const weaponHUDKey = JSON.stringify({ weapons: player.weapons, passives: player.passives, maxHp: Math.round(player.maxHp), armor: Math.round(player.armor), specialist: player.specialist, damage: Object.fromEntries(Object.entries(player.damageBySource || {}).map(([id, value]) => [id, Math.floor(value / 25)])) });
   if (weaponHUDKey !== state.lastWeaponHUDKey) {
@@ -771,8 +888,16 @@ function processEvents(events) {
 
 function showBanner(title, copy, type) {
   const banner = $("objective-banner"); banner.querySelector("span").textContent = type === "danger" ? "THREAT DETECTED" : type === "boon" ? "SQUAD BOOST" : type === "upgrade" ? "SYSTEM UPGRADE" : "NEW DIRECTIVE";
-  banner.querySelector("strong").textContent = `${title}${copy ? ` · ${copy}` : ""}`; banner.classList.remove("hidden");
-  clearTimeout(banner._timer); banner._timer = setTimeout(() => banner.classList.add("hidden"), type === "danger" ? 3000 : 2400);
+  banner.querySelector("strong").textContent = `${title}${copy ? ` · ${copy}` : ""}`;
+  clearTimeout(state.bannerTimer); clearTimeout(state.bannerExitTimer);
+  banner.classList.remove("hidden", "is-visible", "is-exiting");
+  void banner.offsetWidth;
+  banner.classList.add("is-visible");
+  state.bannerTimer = setTimeout(() => {
+    banner.classList.remove("is-visible"); banner.classList.add("is-exiting");
+    const exitDuration = matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 180;
+    state.bannerExitTimer = setTimeout(() => { banner.classList.add("hidden"); banner.classList.remove("is-exiting"); }, exitDuration);
+  }, type === "danger" ? 4500 : 3800);
 }
 
 function scheduleResult(game) {
@@ -1142,6 +1267,7 @@ function setupTouch() {
 }
 
 function bindEvents() {
+  setupDamageLedger();
   document.querySelectorAll(".mode-tab").forEach((button) => button.addEventListener("click", () => setPartyMode(button.dataset.partyMode)));
   $("map-select").addEventListener("change", updateDifficultyOptions);
   $("deploy-button").addEventListener("click", deploy); $("room-input").addEventListener("keydown", (event) => { if (event.key === "Enter") deploy(); });
