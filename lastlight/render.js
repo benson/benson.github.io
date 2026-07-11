@@ -6,6 +6,7 @@ import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration
 import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
 import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260711.5";
 import { impactRenderPlan } from "./impact-grammar.js?v=20260711.5";
+import { effectReadabilityCategory, partitionEffects, readabilityPlan } from "./readability.js?v=20260711.8";
 
 const TAU = Math.PI * 2;
 export class Renderer {
@@ -105,6 +106,14 @@ export class Renderer {
   }
 
   getQualityStatus() { return { ...this.qualityController.status(), profile: { ...this.qualityProfile } }; }
+
+  readability(category) {
+    return readabilityPlan(category, {
+      reducedMotion: this.reducedMotion,
+      reducedFlash: this.qualityProfile.flashIntensity <= .25,
+      qualityTier: this.qualityProfile.tier,
+    });
+  }
 
   updateQuality(frameSeconds) {
     const previousTier = this.qualityProfile.tier;
@@ -252,17 +261,23 @@ export class Renderer {
     this.drawWorldBorder(map);
     this.drawMapGuides(map);
     this.drawMachine(state, map);
+    const effectPasses = partitionEffects(state.effects || []);
+    const friendlyProjectiles = this.budget(state.projectiles || [], this.renderBudgets.projectiles);
+    const hostileProjectiles = this.budget(state.hostile || [], this.renderBudgets.hostileProjectiles, (shot) => shot.bossShot);
     this.drawRelayBalls(state.relayBalls || [], map);
-    this.drawObjectives(state.objectives || [], map);
+    this.drawObjectives(state.objectives || [], map, "ground");
     this.drawDrops(state.drops || []);
     this.drawOrbs(this.budget(state.orbs || [], this.renderBudgets.orbs));
-    this.drawEffects(state.effects || [], map, previous, interpolation, false, state);
+    this.drawEffects(effectPasses.ground, map, previous, interpolation, "ground", state);
     this.drawFeathers(state.feathers || []);
-    this.drawProjectiles(this.budget(state.projectiles || [], this.renderBudgets.projectiles), false, state);
-    this.drawProjectiles(this.budget(state.hostile || [], this.renderBudgets.hostileProjectiles, (shot) => shot.bossShot), true, state);
+    this.drawProjectiles(friendlyProjectiles, false, state);
     this.drawGroundParticles(visualDt);
     this.drawGroundedQueue(state, previous, interpolation, map, localPlayerId, visualDt);
-    this.drawEffects(state.effects || [], map, previous, interpolation, true, state);
+    this.drawProjectiles(hostileProjectiles, true, state);
+    this.drawObjectives(state.objectives || [], map, "overlay");
+    this.drawEffects(effectPasses.threat, map, previous, interpolation, "threat", state);
+    this.drawCriticalOverlays(state, map, localPlayerId);
+    this.drawEffects(effectPasses.feedback, map, previous, interpolation, "feedback", state);
     this.drawHovered(state, map);
     ctx.restore();
     this.drawVignette(state, current);
@@ -471,23 +486,27 @@ export class Renderer {
     }
   }
 
-  drawObjectives(objectives, map) {
-    const ctx = this.ctx, now = performance.now();
+  drawObjectives(objectives, map, pass = "all") {
+    const ctx = this.ctx, now = performance.now(), objectiveRead = this.readability("objective"), dangerRead = this.readability("lethalTelegraph");
     for (const objective of objectives) {
       if (!this.isWorldVisible(objective, 90)) continue;
-      const trial = objective.kind === "trial", color = trial ? "#ff4f66" : map.accent;
+      const trial = objective.kind === "trial", color = trial ? dangerRead.palette.body : objectiveRead.palette.body;
       ctx.save(); ctx.translate(objective.x, objective.y);
-      ctx.fillStyle = "rgba(0,0,0,.28)"; ctx.beginPath(); ctx.ellipse(7, 12, objective.radius * 1.05, objective.radius * .54, 0, 0, TAU); ctx.fill();
-      ctx.globalAlpha = .12; ctx.fillStyle = color; ctx.beginPath(); ctx.arc(0, 0, objective.radius, 0, TAU); ctx.fill();
+      if (pass !== "overlay") {
+        ctx.fillStyle = "rgba(0,0,0,.28)"; ctx.beginPath(); ctx.ellipse(7, 12, objective.radius * 1.05, objective.radius * .54, 0, 0, TAU); ctx.fill();
+        ctx.globalAlpha = .12; ctx.fillStyle = color; ctx.beginPath(); ctx.arc(0, 0, objective.radius, 0, TAU); ctx.fill();
+      }
+      if (pass === "ground") { ctx.restore(); continue; }
       ctx.globalAlpha = 1; ctx.setLineDash(trial ? [3, 6] : [13, 8]); ctx.lineDashOffset = this.reducedMotion ? 0 : -now * (trial ? .038 : .02);
-      ctx.lineWidth = trial ? 5 : 3; ctx.strokeStyle = color; ctx.beginPath(); ctx.arc(0, 0, objective.radius + Math.sin(now * .004) * 3, 0, TAU); ctx.stroke();
+      ctx.lineWidth = trial ? 5 : 3; ctx.strokeStyle = objectiveRead.palette.keyline; ctx.beginPath(); ctx.arc(0, 0, objective.radius + (this.reducedMotion ? 0 : Math.sin(now * .004) * 3), 0, TAU); ctx.stroke();
+      ctx.lineWidth = trial ? 3 : 2; ctx.strokeStyle = color; ctx.beginPath(); ctx.arc(0, 0, objective.radius + (this.reducedMotion ? 0 : Math.sin(now * .004) * 3), 0, TAU); ctx.stroke();
       ctx.setLineDash([]); ctx.lineDashOffset = 0;
-      ctx.strokeStyle = "rgba(255,255,255,.75)"; ctx.lineWidth = 2;
+      ctx.strokeStyle = objectiveRead.palette.core; ctx.lineWidth = 2;
       if (trial) {
         // Four inward teeth are readable even when the red hue is not.
         for (let i = 0; i < 4; i++) {
           const a = i * Math.PI / 2 + Math.PI / 4; ctx.save(); ctx.rotate(a); ctx.translate(objective.radius - 10, 0);
-          ctx.fillStyle = "#ff4f66"; ctx.beginPath(); ctx.moveTo(-16, -9); ctx.lineTo(4, 0); ctx.lineTo(-16, 9); ctx.closePath(); ctx.fill(); ctx.restore();
+          ctx.fillStyle = dangerRead.palette.body; ctx.beginPath(); ctx.moveTo(-16, -9); ctx.lineTo(4, 0); ctx.lineTo(-16, 9); ctx.closePath(); ctx.fill(); ctx.restore();
         }
       } else {
         for (let i = 0; i < 4; i++) {
@@ -496,10 +515,54 @@ export class Renderer {
         }
       }
       const progress = clamp(objective.progress, 0, 1);
-      ctx.strokeStyle = "#fff"; ctx.globalAlpha = .88; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(0, 0, Math.max(18, objective.radius * .38), -.5 * Math.PI, -.5 * Math.PI + TAU * progress); ctx.stroke();
-      ctx.globalAlpha = 1; ctx.fillStyle = "rgba(2,7,13,.9)"; ctx.fillRect(-31, -10, 62, 20); ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.strokeRect(-31, -10, 62, 20);
-      ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.font = "800 10px Inter"; ctx.fillText(trial ? "TRIAL" : "UPLINK", 0, 4); ctx.restore();
+      ctx.strokeStyle = objectiveRead.palette.core; ctx.globalAlpha = .9; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(0, 0, Math.max(18, objective.radius * .38), -.5 * Math.PI, -.5 * Math.PI + TAU * progress); ctx.stroke();
+      ctx.globalAlpha = 1; ctx.fillStyle = "rgba(2,7,13,.92)"; ctx.fillRect(-31, -10, 62, 20); ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.strokeRect(-31, -10, 62, 20);
+      ctx.fillStyle = objectiveRead.palette.core; ctx.textAlign = "center"; ctx.font = "800 10px Inter"; ctx.fillText(trial ? "TRIAL" : "UPLINK", 0, 4); ctx.restore();
     }
+  }
+
+  drawCriticalOverlays(state, map, localPlayerId) {
+    const ctx = this.ctx, objectiveRead = this.readability("objective"), squadRead = this.readability("teammateCritical"), obstacleRead = this.readability("obstacle"), pickupRead = this.readability("pickup");
+    const corner = (x, y, radius, color) => {
+      ctx.save(); ctx.translate(x, y); ctx.strokeStyle = obstacleRead.palette.keyline; ctx.lineWidth = 5;
+      for (let index = 0; index < 4; index++) { ctx.save(); ctx.rotate(index * Math.PI / 2); ctx.beginPath(); ctx.moveTo(radius - 10, -radius); ctx.lineTo(radius, -radius); ctx.lineTo(radius, -radius + 10); ctx.stroke(); ctx.restore(); }
+      ctx.strokeStyle = color; ctx.lineWidth = 2;
+      for (let index = 0; index < 4; index++) { ctx.save(); ctx.rotate(index * Math.PI / 2); ctx.beginPath(); ctx.moveTo(radius - 10, -radius); ctx.lineTo(radius, -radius); ctx.lineTo(radius, -radius + 10); ctx.stroke(); ctx.restore(); }
+      ctx.restore();
+    };
+
+    for (const player of state.players || []) {
+      if (player.id === localPlayerId || (!player.downed && !player.dead) || !this.isWorldVisible(player, 100)) continue;
+      const radius = 47;
+      corner(player.x, player.y, radius, squadRead.palette.body);
+      ctx.save(); ctx.translate(player.x, player.y); ctx.fillStyle = "rgba(2,7,13,.9)"; ctx.fillRect(-43, 28, 86, 20);
+      ctx.strokeStyle = squadRead.palette.body; ctx.strokeRect(-43, 28, 86, 20);
+      ctx.fillStyle = squadRead.palette.core; ctx.font = "900 10px Inter"; ctx.textAlign = "center";
+      ctx.fillText(player.dead ? "RETURNING" : `REVIVE ${Math.max(0, Math.ceil(player.downTimer || 0))}s`, 0, 42); ctx.restore();
+    }
+
+    for (const pod of state.pods || []) {
+      if (!this.isWorldVisible(pod, 55)) continue;
+      corner(pod.x, pod.y, (pod.radius || 24) + 9, obstacleRead.palette.core);
+    }
+
+    for (const drop of state.drops || []) {
+      if (!this.isWorldVisible(drop, 45)) continue;
+      ctx.save(); ctx.translate(drop.x, drop.y); ctx.strokeStyle = pickupRead.palette.keyline; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0, 0, (drop.radius || 14) + 7, 0, TAU); ctx.stroke();
+      ctx.strokeStyle = drop.type === "card" || drop.type === "gold" ? objectiveRead.palette.body : pickupRead.palette.body; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(0, 0, (drop.radius || 14) + 7, 0, TAU); ctx.stroke(); ctx.restore();
+    }
+
+    for (const ball of state.relayBalls || []) {
+      if (!this.isWorldVisible({ x: ball.targetX, y: ball.targetY, radius: 90 }, 90)) continue;
+      ctx.save(); ctx.translate(ball.targetX, ball.targetY); ctx.setLineDash([11, 8]); ctx.lineDashOffset = this.reducedMotion ? 0 : -performance.now() * .03;
+      ctx.strokeStyle = objectiveRead.palette.keyline; ctx.lineWidth = 7; ctx.beginPath(); ctx.arc(0, 0, 82, 0, TAU); ctx.stroke();
+      ctx.strokeStyle = objectiveRead.palette.body; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, 82, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = "rgba(2,7,13,.9)"; ctx.fillRect(-35, -9, 70, 18); ctx.strokeStyle = objectiveRead.palette.body; ctx.strokeRect(-35, -9, 70, 18);
+      ctx.fillStyle = objectiveRead.palette.core; ctx.font = "800 9px Inter"; ctx.textAlign = "center"; ctx.fillText("RELAY GOAL", 0, 4); ctx.restore();
+    }
+
+    ctx.save(); ctx.strokeStyle = objectiveRead.palette.keyline; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(0, 0, 80, 0, TAU); ctx.stroke();
+    ctx.strokeStyle = map.accent; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, 80, 0, TAU); ctx.stroke(); ctx.restore();
   }
 
   drawRelayBalls(balls, map) {
@@ -576,13 +639,15 @@ export class Renderer {
     ctx.globalAlpha=1;
   }
 
-  drawEffects(effects, map, previous, t, numbersOnly = false, state = {}) {
+  drawEffects(effects, map, previous, t, pass = "ground", state = {}) {
     const ctx = this.ctx;
-    const relevant = effects.filter((raw) => (raw.kind === "number") === numbersOnly);
-    const rendered = this.budget(relevant, this.renderBudgets.effects, (effect) => effect.owner === "enemy" || effect.kind === "danger" || effect.kind === "bossCast" || effect.delayed);
+    const expected = pass === "threat" ? "lethalTelegraph" : pass === "feedback" ? "damageFeedback" : null;
+    const relevant = effects.filter((raw) => expected ? effectReadabilityCategory(raw) === expected : !["lethalTelegraph", "damageFeedback"].includes(effectReadabilityCategory(raw)));
+    const rendered = pass === "threat" ? relevant : this.budget(relevant, this.renderBudgets.effects, (effect) => this.readability(effectReadabilityCategory(effect)).essential);
     for (const raw of rendered) {
-      if ((raw.kind === "number") !== numbersOnly || !this.isWorldVisible(raw, Math.max(40, raw.radius || 0))) continue;
-      const essential = raw.owner === "enemy" || raw.kind === "danger" || raw.kind === "bossCast" || raw.delayed;
+      if (!this.isWorldVisible(raw, Math.max(40, raw.radius || 0))) continue;
+      const semantic = this.readability(effectReadabilityCategory(raw)), essential = semantic.essential;
+      if (!semantic.visible) continue;
       if (!essential && !this.densityAllows(raw)) continue;
       let e = this.position(raw, previous?.effects, t);
       const plan = impactRenderPlan(raw, state, { reducedMotion: this.reducedMotion, density: this.qualityProfile.effectsDensity });
@@ -624,12 +689,12 @@ export class Renderer {
         // Enemy ground damage owns a fixed red/black warning language: solid
         // perimeter, inward teeth, and a closing white timing ring.
         ctx.fillStyle = "rgba(93,4,18,.28)"; ctx.beginPath(); ctx.arc(0,0,e.radius,0,TAU); ctx.fill();
-        ctx.strokeStyle = "rgba(0,0,0,.84)"; ctx.lineWidth = 9; ctx.beginPath(); ctx.arc(0,0,e.radius,0,TAU); ctx.stroke();
-        ctx.strokeStyle = "#ff3857"; ctx.shadowColor = "#ff3857"; ctx.shadowBlur = 8; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0,0,e.radius,0,TAU); ctx.stroke(); ctx.shadowBlur = 0;
+        ctx.strokeStyle = semantic.palette.keyline; ctx.lineWidth = 9; ctx.beginPath(); ctx.arc(0,0,e.radius,0,TAU); ctx.stroke();
+        ctx.strokeStyle = semantic.palette.body; ctx.shadowColor = semantic.palette.body; ctx.shadowBlur = semantic.flash === "none" ? 0 : 8; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0,0,e.radius,0,TAU); ctx.stroke(); ctx.shadowBlur = 0;
         for (let i = 0; i < 6; i++) {
-          const a=i*TAU/6;ctx.save();ctx.rotate(a);ctx.translate(e.radius-7,0);ctx.fillStyle=i%2?"#ff3857":"#ff9a54";ctx.beginPath();ctx.moveTo(-18,-7);ctx.lineTo(1,0);ctx.lineTo(-18,7);ctx.closePath();ctx.fill();ctx.restore();
+          const a=i*TAU/6;ctx.save();ctx.rotate(a);ctx.translate(e.radius-7,0);ctx.fillStyle=i%2?semantic.palette.body:semantic.palette.core;ctx.beginPath();ctx.moveTo(-18,-7);ctx.lineTo(1,0);ctx.lineTo(-18,7);ctx.closePath();ctx.fill();ctx.restore();
         }
-        ctx.strokeStyle="#fff4e8";ctx.globalAlpha=.82;ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,e.radius*(.18+progress*.72),0,TAU);ctx.stroke();
+        ctx.strokeStyle=semantic.palette.core;ctx.globalAlpha=.82;ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,e.radius*(.18+progress*.72),0,TAU);ctx.stroke();
         ctx.globalAlpha=.26;ctx.strokeStyle="#ff9a54";ctx.lineWidth=2;for(let a=0;a<TAU;a+=Math.PI/3){ctx.beginPath();ctx.moveTo(Math.cos(a)*e.radius*.22,Math.sin(a)*e.radius*.22);ctx.lineTo(Math.cos(a)*e.radius*.72,Math.sin(a)*e.radius*.72);ctx.stroke();}
         ctx.restore();continue;
       }
@@ -676,7 +741,7 @@ export class Renderer {
   }
 
   drawProjectiles(projectiles, hostile, state = {}) {
-    const ctx=this.ctx, hostileImage=this.effectSprites.hostileBolt;
+    const ctx=this.ctx, hostileImage=this.effectSprites.hostileBolt, hostileRead=this.readability("hostileProjectile");
     for(const b of projectiles){
       if(!this.isWorldVisible(b,60))continue;
       const plan = hostile ? null : impactRenderPlan(b, state, { reducedMotion: this.reducedMotion, density: this.qualityProfile.effectsDensity });
@@ -685,13 +750,13 @@ export class Renderer {
       if(hostile){
         // Hostile shots are always winged arrowheads with a long hot tail. The
         // silhouette stays dangerous even when their source enemy is teal.
-        if(speed>20){ctx.strokeStyle="rgba(0,0,0,.72)";ctx.lineWidth=Math.max(7,b.radius*.8);ctx.beginPath();ctx.moveTo(-7,0);ctx.lineTo(-37,0);ctx.stroke();ctx.strokeStyle="#ff3857";ctx.lineWidth=Math.max(3,b.radius*.34);ctx.beginPath();ctx.moveTo(-6,0);ctx.lineTo(-38,0);ctx.stroke();ctx.strokeStyle="#ffcf7a";ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(-5,0);ctx.lineTo(-25,0);ctx.stroke();}
+        if(speed>20){ctx.strokeStyle=hostileRead.palette.keyline;ctx.lineWidth=Math.max(7,b.radius*.8);ctx.beginPath();ctx.moveTo(-7,0);ctx.lineTo(-37,0);ctx.stroke();ctx.strokeStyle=hostileRead.palette.body;ctx.lineWidth=Math.max(3,b.radius*.34);ctx.beginPath();ctx.moveTo(-6,0);ctx.lineTo(-38,0);ctx.stroke();ctx.strokeStyle=hostileRead.palette.core;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(-5,0);ctx.lineTo(-25,0);ctx.stroke();}
         const size=Math.max(31,b.radius*3.5);
         if(hostileImage?.complete&&hostileImage.naturalWidth){ctx.save();ctx.filter="brightness(1.7) saturate(2.1)";ctx.drawImage(hostileImage,-size/2,-size/2,size,size);ctx.restore();}
-        ctx.shadowColor="#ff3857";ctx.shadowBlur=10;ctx.strokeStyle="#ff4a5f";ctx.fillStyle="#fff6d7";ctx.lineWidth=2.5;
+        ctx.shadowColor=hostileRead.palette.body;ctx.shadowBlur=hostileRead.flash==="none"?0:10;ctx.strokeStyle=hostileRead.palette.body;ctx.fillStyle=hostileRead.palette.core;ctx.lineWidth=2.5;
         ctx.beginPath();ctx.moveTo(b.radius*1.25,0);ctx.lineTo(-b.radius*.55,-b.radius*.72);ctx.lineTo(-b.radius*.16,0);ctx.lineTo(-b.radius*.55,b.radius*.72);ctx.closePath();ctx.stroke();
         ctx.beginPath();ctx.moveTo(b.radius*.82,0);ctx.lineTo(-b.radius*.16,-b.radius*.25);ctx.lineTo(-b.radius*.02,0);ctx.lineTo(-b.radius*.16,b.radius*.25);ctx.closePath();ctx.fill();
-        if(b.radius>=12){ctx.shadowBlur=0;ctx.strokeStyle="#ff9a54";ctx.globalAlpha=.75;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,-b.radius*1.12);ctx.lineTo(b.radius*1.12,0);ctx.lineTo(0,b.radius*1.12);ctx.lineTo(-b.radius*1.12,0);ctx.closePath();ctx.stroke();}
+        if(b.radius>=12){ctx.shadowBlur=0;ctx.strokeStyle=hostileRead.palette.core;ctx.globalAlpha=.75;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,-b.radius*1.12);ctx.lineTo(b.radius*1.12,0);ctx.lineTo(0,b.radius*1.12);ctx.lineTo(-b.radius*1.12,0);ctx.closePath();ctx.stroke();}
         ctx.restore();continue;
       }
 
