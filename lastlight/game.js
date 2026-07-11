@@ -11,6 +11,7 @@ import { BALANCE_HASH, BALANCE_VERSION } from "./balance-config.js?v=20260711.3"
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.3";
 import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260711.3";
 import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260711.4";
+import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260711.3";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -20,11 +21,21 @@ const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
 const BUILD = "2026.07.11.3";
+const systemReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false;
+const initialQualitySettings = (() => {
+  const settings = loadQualitySettings(localStorage, systemReducedMotion);
+  try {
+    if (!localStorage.getItem(QUALITY_STORAGE_KEY) && localStorage.getItem("lastlight:enemy-health-bars:v1") === "false") {
+      return saveQualitySettings({ ...settings, preset: "custom", healthBars: "off" });
+    }
+  } catch { /* Storage is optional. */ }
+  return settings;
+})();
 const renderer = new Renderer($("game-canvas"));
+renderer.setQualitySettings(initialQualitySettings);
 const fixedClock = new FixedStepClock();
 const movementPredictor = new MovementPredictor();
 const PROGRESS_KEY = "lastlight:campaign:v1";
-const ENEMY_HEALTH_BARS_KEY = "lastlight:enemy-health-bars:v1";
 const RUN_HISTORY_KEY = "lastlight:runs:v1";
 const CLIENT_TOKEN_KEY = "lastlight:client-token:v1";
 const DAMAGE_LEDGER_LAYOUT_KEY = "lastlight:damage-ledger-layout:v1";
@@ -35,11 +46,6 @@ const DIFFICULTY_COPY = { story: "Story · Sharp hits · Lighter opening", hard:
 function loadProgress() {
   try { return normalizeProgress(JSON.parse(localStorage.getItem(PROGRESS_KEY) || "null")); }
   catch { return emptyProgress(); }
-}
-
-function loadEnemyHealthBars() {
-  try { return localStorage.getItem(ENEMY_HEALTH_BARS_KEY) !== "false"; }
-  catch { return true; }
 }
 
 function loadRunHistory() {
@@ -82,7 +88,7 @@ const state = {
   audio: true, audioContext: null, toastTimer: null, lastVoiceAt: 0,
   soundState: { projectiles: 0, kills: 0, level: 1, damageTaken: 0, xpCollected: 0, lastShot: 0, lastXP: 0 },
   recentErrors: [], reportSubmitting: false, resumeAfterReport: false, telemetrySent: false,
-  showEnemyHealthBars: loadEnemyHealthBars(), inspectPointer: null, inspectActive: false,
+  qualitySettings: initialQualitySettings, showEnemyHealthBars: initialQualitySettings.healthBars !== "off", inspectPointer: null, inspectActive: false,
   performanceMetrics: null, lastActiveBuffKey: "", lastDamageLedgerKey: "",
   damageLedgerLayout: loadDamageLedgerLayout(), damageLedgerResizeObserver: null,
   bannerTimer: null, bannerExitTimer: null,
@@ -649,12 +655,45 @@ function updateCooldownSlot(slot, remaining, maximum, unlocked, unlockLevel) {
 
 function setEnemyHealthBars(visible, persist = true) {
   state.showEnemyHealthBars = Boolean(visible);
-  renderer.setEnemyHealthBarsVisible(state.showEnemyHealthBars);
+  state.qualitySettings = { ...state.qualitySettings, preset: "custom", healthBars: state.showEnemyHealthBars ? "all" : "off" };
+  renderer.setQualitySettings(state.qualitySettings);
   $("game-canvas").dataset.enemyHealthBars = state.showEnemyHealthBars ? "visible" : "hidden";
   $("enemy-health-bars-toggle").checked = state.showEnemyHealthBars;
-  if (persist) {
-    try { localStorage.setItem(ENEMY_HEALTH_BARS_KEY, String(state.showEnemyHealthBars)); } catch { /* Storage is optional. */ }
-  }
+  if (persist) state.qualitySettings = saveQualitySettings(state.qualitySettings);
+  renderQualityControls();
+}
+
+const QUALITY_FIELDS = Object.freeze({
+  effectsDensity: "quality-effects", shake: "quality-shake", hitFlashes: "quality-hit-flashes",
+  healthBars: "quality-health-bars", flashIntensity: "quality-flash",
+});
+
+function renderQualityControls() {
+  if (!$("quality-preset")) return;
+  $("quality-preset").value = state.qualitySettings.preset;
+  for (const [key, id] of Object.entries(QUALITY_FIELDS)) $(id).value = state.qualitySettings[key];
+  $("quality-reduced-motion").checked = state.qualitySettings.reducedMotion;
+  const status = renderer.getQualityStatus();
+  $("quality-status").textContent = state.qualitySettings.preset === "auto"
+    ? `Auto is rendering at ${status.tier} · ${status.frameMilliseconds.toFixed(1)} ms frame average.`
+    : `${state.qualitySettings.preset === "custom" ? "Tuned" : state.qualitySettings.preset} profile · ${status.tier} renderer.`;
+  document.documentElement.dataset.quality = status.tier;
+  document.documentElement.dataset.reducedMotion = state.qualitySettings.reducedMotion ? "true" : "false";
+}
+
+function applyQualitySettings(settings, persist = true) {
+  state.qualitySettings = persist ? saveQualitySettings(settings) : settings;
+  renderer.setQualitySettings(state.qualitySettings);
+  state.showEnemyHealthBars = state.qualitySettings.healthBars !== "off";
+  $("enemy-health-bars-toggle").checked = state.showEnemyHealthBars;
+  $("game-canvas").dataset.enemyHealthBars = state.showEnemyHealthBars ? "visible" : "hidden";
+  renderQualityControls();
+}
+
+function openQualitySettings() {
+  renderQualityControls();
+  $("quality-dialog").showModal();
+  requestAnimationFrame(() => $("quality-preset").focus());
 }
 
 function updateSoundState(game) {
@@ -1297,6 +1336,7 @@ function gameDiagnostics() {
       flags: { ...state.runtimeConfig.config.flags },
     },
     enemyHealthBars: state.showEnemyHealthBars,
+    displayQuality: renderer.getQualityStatus(),
     entities: game ? {
       enemies: game.enemies?.length || 0, friendlyProjectiles: game.projectiles?.length || 0,
       hostileProjectiles: game.hostile?.length || 0, dataMotes: game.orbs?.length || 0,
@@ -1480,6 +1520,11 @@ function bindEvents() {
   $("run-history-close").addEventListener("click", () => $("run-history-dialog").close());
   $("run-history-dialog").addEventListener("click", (event) => { if (event.target === $("run-history-dialog")) $("run-history-dialog").close(); });
   for (const id of ["audio-button", "lobby-audio"]) $(id).addEventListener("click", toggleAudio);
+  for (const id of ["quality-button", "lobby-quality", "pause-quality"]) $(id).addEventListener("click", openQualitySettings);
+  $("quality-dialog").addEventListener("click", (event) => { if (event.target === $("quality-dialog")) $("quality-dialog").close(); });
+  $("quality-preset").addEventListener("change", (event) => applyQualitySettings(settingsForPreset(event.target.value, systemReducedMotion)));
+  for (const [key, id] of Object.entries(QUALITY_FIELDS)) $(id).addEventListener("change", (event) => applyQualitySettings({ ...state.qualitySettings, preset: "custom", [key]: event.target.value }));
+  $("quality-reduced-motion").addEventListener("change", (event) => applyQualitySettings({ ...state.qualitySettings, preset: "custom", reducedMotion: event.target.checked }));
   $("how-button").addEventListener("click", () => $("manual-dialog").showModal()); $("manual-close").addEventListener("click", () => $("manual-dialog").close());
   $("manual-dialog").addEventListener("click", (event) => { if (event.target === $("manual-dialog")) $("manual-dialog").close(); });
   for (const id of ["guide-button", "lobby-guide", "upgrade-guide-button", "pause-guide-button"]) $(id).addEventListener("click", () => { renderGuide(); $("guide-dialog").showModal(); });
@@ -1496,7 +1541,7 @@ function bindEvents() {
   window.addEventListener("keydown", (event) => {
     const target = event.target;
     const isTyping = target instanceof Element && Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
-    if (isTyping || state.screen !== "game") return;
+    if (isTyping || document.querySelector("dialog[open]") || state.screen !== "game") return;
     const key = event.key.toLowerCase();
     if (key === "shift") { state.inspectActive = true; inspectCanvasAt(state.inspectPointer ? { ...state.inspectPointer, shiftKey: true } : null); return; }
     const upgradeChoice = ["1", "2", "3"].includes(key) && !$("upgrade-overlay").classList.contains("hidden");
@@ -1531,5 +1576,5 @@ function bindEvents() {
   setupTouch();
 }
 
-renderSpecialistGrid(); selectSpecialist("zuri"); bindEvents(); setEnemyHealthBars(state.showEnemyHealthBars, false); updateProgressionUI(); setPartyMode("solo");
+renderSpecialistGrid(); selectSpecialist("zuri"); bindEvents(); applyQualitySettings(state.qualitySettings, false); updateProgressionUI(); setPartyMode("solo");
 if (query.get("room")) { setPartyMode("join"); $("room-input").value = query.get("room").toUpperCase().slice(0,6); setTimeout(() => $("callsign-input").focus(), 50); }

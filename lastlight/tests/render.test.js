@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { settingsForPreset } from "../quality-settings.js";
 
 globalThis.window = {
   devicePixelRatio: 1,
@@ -83,4 +84,24 @@ test("inspection identifies breakable caches without implying collision", () => 
   assert.equal(result.name, "Breakable Supply Cache");
   assert.match(result.description, /does not block movement/i);
   assert.equal(result.stats.Integrity, "65 / 100");
+});
+
+test("renderer applies quality profiles without mutating simulation lists", () => {
+  const renderer = createRenderer();
+  renderer.setQualitySettings(settingsForPreset("minimal"));
+  assert.equal(renderer.getQualityStatus().tier, "minimal");
+  assert.equal(renderer.reducedMotion, true);
+  assert.equal(renderer.enemyHealthBarMode, "important");
+  const enemies = Array.from({ length: 200 }, (_, index) => ({ id: `e${index}`, elite: index === 199 }));
+  const rendered = renderer.budget(enemies, 10, (enemy) => enemy.elite);
+  assert.equal(rendered.length, 10);
+  assert.ok(rendered.some((enemy) => enemy.elite), "priority targets survive visual entity budgets");
+  assert.equal(enemies.length, 200, "renderer budgets never truncate simulation-owned arrays");
+});
+
+test("cosmetic density selection is stable for the same entity", () => {
+  const renderer = createRenderer();
+  const effect = { id: "impact-42" };
+  const first = renderer.densityAllows(effect, .5);
+  for (let index = 0; index < 20; index++) assert.equal(renderer.densityAllows(effect, .5), first);
 });

@@ -3,6 +3,7 @@ import { WORLD } from "./engine.js?v=20260711.3";
 import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation } from "./themes/lastlight.js?v=20260711.3";
 import { animationFrame, directionColumn, springCamera } from "./feel.js?v=20260711.3";
 import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.3";
+import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260711.3";
 
 const TAU = Math.PI * 2;
 export class Renderer {
@@ -28,7 +29,11 @@ export class Renderer {
     this.hoveredEntity = null;
     this.lastInspection = { at: -Infinity, state: null, result: null };
     this.prevMaps = {};
-    this.reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false;
+    this.systemReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false;
+    this.qualityController = new AdaptiveQualityController(settingsForPreset("auto", this.systemReducedMotion));
+    this.qualityProfile = this.qualityController.profile();
+    this.renderBudgets = { ...this.qualityProfile };
+    this.reducedMotion = this.systemReducedMotion || this.qualityProfile.reducedMotion;
     this.loadSprites();
     this.resize();
     window.addEventListener("resize", () => this.resize());
@@ -66,7 +71,7 @@ export class Renderer {
 
   resize() {
     const rect = this.canvas.getBoundingClientRect();
-    this.dpr = Math.min(2, window.devicePixelRatio || 1);
+    this.dpr = Math.min(this.qualityProfile?.dpr || 2, window.devicePixelRatio || 1);
     this.width = Math.max(1, rect.width); this.height = Math.max(1, rect.height);
     this.canvas.width = Math.round(this.width * this.dpr); this.canvas.height = Math.round(this.height * this.dpr);
     this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
@@ -79,6 +84,45 @@ export class Renderer {
 
   setEnemyHealthBarMode(mode = "important") {
     this.enemyHealthBarMode = ["off", "important", "all"].includes(mode) ? mode : "important";
+  }
+
+  setQualitySettings(settings) {
+    const previousDpr = this.qualityProfile?.dpr;
+    this.qualityProfile = this.qualityController.setSettings(settings);
+    this.reducedMotion = this.systemReducedMotion || this.qualityProfile.reducedMotion;
+    this.setEnemyHealthBarMode(this.qualityProfile.healthBars);
+    if (previousDpr !== this.qualityProfile.dpr) this.resize();
+    return this.getQualityStatus();
+  }
+
+  getQualityStatus() { return { ...this.qualityController.status(), profile: { ...this.qualityProfile } }; }
+
+  updateQuality(frameSeconds) {
+    const previousTier = this.qualityProfile.tier;
+    this.qualityProfile = this.qualityController.sample(frameSeconds * 1000);
+    this.reducedMotion = this.systemReducedMotion || this.qualityProfile.reducedMotion;
+    if (previousTier !== this.qualityProfile.tier) this.resize();
+    // Adaptive changes are rare and move one tier at a time. Ease visual budgets
+    // toward the new target so an effect-heavy frame never visibly "pops" empty.
+    const blend = 1 - Math.exp(-Math.max(0, frameSeconds) * 2.2);
+    for (const key of ["enemies", "projectiles", "hostileProjectiles", "effects", "orbs", "particles"]) {
+      this.renderBudgets[key] += (this.qualityProfile[key] - this.renderBudgets[key]) * blend;
+    }
+  }
+
+  budget(list, maximum, priority = () => false) {
+    const cap = Math.max(0, Math.round(maximum));
+    if (!Array.isArray(list) || list.length <= cap) return list || [];
+    const important = list.filter(priority), ordinary = list.filter((entry) => !priority(entry));
+    return important.slice(0, cap).concat(ordinary.slice(0, Math.max(0, cap - important.length)));
+  }
+
+  densityAllows(entity, density = this.qualityProfile.effectsDensity) {
+    if (density >= 1) return true;
+    const value = String(entity?.id ?? `${entity?.x || 0}:${entity?.y || 0}:${entity?.kind || "effect"}`);
+    let hash = 2166136261;
+    for (let index = 0; index < value.length; index++) { hash ^= value.charCodeAt(index); hash = Math.imul(hash, 16777619); }
+    return (hash >>> 0) / 4294967296 < density;
   }
 
   clearInspection() {
@@ -172,6 +216,7 @@ export class Renderer {
 
   draw(state, localPlayerId, previous = null, interpolation = 1, frameSeconds = 1 / 60) {
     if (!state?.players) return;
+    this.updateQuality(frameSeconds);
     // The renderer is constructed while the game screen is display:none. Some
     // browsers therefore report a 0x0 canvas until the first run begins. Never
     // let that 1x1 fallback be stretched across the viewport.
@@ -183,12 +228,12 @@ export class Renderer {
     const lookAngle = Number.isFinite(current.aimFacing) ? current.aimFacing : current.facing || 0;
     const lookDistance = this.reducedMotion ? 0 : current.moving ? 44 : 25;
     springCamera(this.camera, { x: pos.x + Math.cos(lookAngle) * lookDistance, y: pos.y + Math.sin(lookAngle) * lookDistance }, frameSeconds);
-    const hurt = this.reducedMotion ? 0 : clamp((current.hurtFlash || 0) / .24, 0, 1);
+    const hurt = this.reducedMotion ? 0 : clamp((current.hurtFlash || 0) / .24, 0, 1) * this.qualityProfile.hitFlashes;
     if (hurt > this.lastLocalHurt + .35 && !this.reducedMotion) this.visualFreeze = Math.max(this.visualFreeze, .045);
     this.lastLocalHurt = hurt;
     const visualDt = this.visualFreeze > 0 ? 0 : frameSeconds;
     this.visualFreeze = Math.max(0, this.visualFreeze - frameSeconds);
-    const shakeX = Math.sin(performance.now() * .09) * hurt * 7, shakeY = Math.cos(performance.now() * .073) * hurt * 5;
+    const shakeX = Math.sin(performance.now() * .09) * hurt * 7 * this.qualityProfile.shake, shakeY = Math.cos(performance.now() * .073) * hurt * 5 * this.qualityProfile.shake;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.fillStyle = map.floor; ctx.fillRect(0, 0, this.width, this.height);
     this.drawFloor(map, state.time || 0);
@@ -201,11 +246,11 @@ export class Renderer {
     this.drawRelayBalls(state.relayBalls || [], map);
     this.drawObjectives(state.objectives || [], map);
     this.drawDrops(state.drops || []);
-    this.drawOrbs(state.orbs || []);
+    this.drawOrbs(this.budget(state.orbs || [], this.renderBudgets.orbs));
     this.drawEffects(state.effects || [], map, previous, interpolation, false);
     this.drawFeathers(state.feathers || []);
-    this.drawProjectiles(state.projectiles || [], false);
-    this.drawProjectiles(state.hostile || [], true);
+    this.drawProjectiles(this.budget(state.projectiles || [], this.renderBudgets.projectiles), false);
+    this.drawProjectiles(this.budget(state.hostile || [], this.renderBudgets.hostileProjectiles, (shot) => shot.bossShot), true);
     this.drawGroundParticles(visualDt);
     this.drawGroundedQueue(state, previous, interpolation, map, localPlayerId, visualDt);
     this.drawEffects(state.effects || [], map, previous, interpolation, true);
@@ -302,7 +347,7 @@ export class Renderer {
     }
     for (const block of MAP_OBSTACLES) items.push({ type: "cover", value: block, sortY: block[1] + block[3] });
     for (const pod of state.pods || []) items.push({ type: "pod", value: pod, sortY: pod.y + (pod.radius || 0) });
-    for (const enemy of state.enemies || []) {
+    for (const enemy of this.budget(state.enemies || [], this.renderBudgets.enemies, (entry) => entry.boss || entry.elite || entry.miniboss || entry.eventType)) {
       const position = this.position(enemy, previous?.enemies, t);
       items.push({ type: "enemy", value: enemy, sortY: position.y + (enemy.radius || 0) * .45 });
     }
@@ -338,9 +383,11 @@ export class Renderer {
   }
 
   emitFootfall(player, visual, color, skid = false) {
-    if (this.reducedMotion || this.groundParticles.length > 70) return;
+    const particleBudget = Math.round(this.renderBudgets.particles);
+    if (this.reducedMotion || !particleBudget || !this.densityAllows(player) || this.groundParticles.length >= particleBudget) return;
     const count = skid ? 5 : 2;
     for (let index = 0; index < count; index++) {
+      if (this.groundParticles.length >= particleBudget) break;
       const spread = (index - (count - 1) / 2) * .55;
       this.groundParticles.push({
         x: player.x - Math.cos(visual.facing) * 13, y: player.y + 19 - Math.sin(visual.facing) * 7,
@@ -514,8 +561,12 @@ export class Renderer {
 
   drawEffects(effects, map, previous, t, numbersOnly = false) {
     const ctx = this.ctx;
-    for (const raw of effects) {
+    const relevant = effects.filter((raw) => (raw.kind === "number") === numbersOnly);
+    const rendered = this.budget(relevant, this.renderBudgets.effects, (effect) => effect.owner === "enemy" || effect.kind === "danger" || effect.kind === "bossCast" || effect.delayed);
+    for (const raw of rendered) {
       if ((raw.kind === "number") !== numbersOnly || !this.isWorldVisible(raw, Math.max(40, raw.radius || 0))) continue;
+      const essential = raw.owner === "enemy" || raw.kind === "danger" || raw.kind === "bossCast" || raw.delayed;
+      if (!essential && !this.densityAllows(raw)) continue;
       const e = this.position(raw, previous?.effects, t), progress = 1 - clamp(e.life / (e.maxLife || 1), 0, 1);
       ctx.save(); ctx.translate(e.x,e.y);
       if (e.kind === "number") {
@@ -660,7 +711,8 @@ export class Renderer {
       this.enemyVisuals.set(e.id, visual);
 
       const spawn = clamp((e.spawnLife || 0) / .24, 0, 1);
-      const attack = clamp((e.attackFlash || 0) / .2, 0, 1);
+      const attack = clamp((e.attackFlash || 0) / .2, 0, 1) * this.qualityProfile.hitFlashes;
+      const hitFlash = (e.hitFlash || 0) * this.qualityProfile.hitFlashes;
       const groundY = animation?.groundY ?? e.radius * .7;
       const shadow = animation?.shadow || [e.radius * .9, e.radius * .45];
       const wobble = this.reducedMotion ? 0 : Math.sin(now * .006 + e.x * .02 + e.y * .01) * .026;
@@ -678,16 +730,16 @@ export class Renderer {
       ctx.translate(0, step);
       ctx.rotate(wobble * (e.stun > 0 ? .35 : 1));
       ctx.scale((1 - spawn * .42) * (1 + attack * .16), (1 - spawn * .42) * (1 - attack * .08));
-      ctx.shadowColor = e.attackFlash > 0 ? "#ff5a43" : e.color;
-      ctx.shadowBlur = e.attackFlash > 0 ? 30 : e.boss ? 28 : e.elite ? 18 : 5;
+      ctx.shadowColor = attack > 0 ? "#ff5a43" : e.color;
+      ctx.shadowBlur = (attack > 0 ? 30 : e.boss ? 28 : e.elite ? 18 : 5) * this.qualityProfile.flashIntensity;
       if (spriteReady && animation) {
         const [width, height] = animation.drawSize, anchor = animation.anchor || [.5, .78];
         ctx.scale(visual.facing, 1);
-        if (e.hitFlash > 0) ctx.filter = `brightness(${1 + clamp(e.hitFlash / .12, 0, 1) * 2.2}) saturate(.45)`;
-        else if (e.attackFlash > 0) ctx.filter = `brightness(${1 + attack * .75}) saturate(${1 + attack * .3})`;
+        if (hitFlash > 0) ctx.filter = `brightness(${1 + clamp(hitFlash / .12, 0, 1) * 2.2 * this.qualityProfile.flashIntensity}) saturate(.45)`;
+        else if (attack > 0) ctx.filter = `brightness(${1 + attack * .75 * this.qualityProfile.flashIntensity}) saturate(${1 + attack * .3})`;
         ctx.drawImage(image, -width * anchor[0], groundY - height * anchor[1], width, height);
       } else {
-        ctx.fillStyle = e.hitFlash > 0 ? "#fff" : e.attackFlash > 0 ? "#fff0c4" : e.color;
+        ctx.fillStyle = hitFlash > 0 ? "#fff" : attack > 0 ? "#fff0c4" : e.color;
         const sides = e.boss ? 7 : (ENEMY_TYPES[e.type]?.shape || 5); ctx.beginPath();
         for (let i = 0; i < sides; i += 1) {
           const angle = i * TAU / sides - .5 * Math.PI, radius = e.radius * (i % 2 ? .82 : 1);
@@ -700,12 +752,12 @@ export class Renderer {
       }
       ctx.restore();
 
-      if (e.hitFlash > 0) {
+      if (hitFlash > 0) {
         ctx.save(); ctx.rotate(e.hitAngle || 0); ctx.strokeStyle = "#fff"; ctx.globalAlpha = clamp(e.hitFlash / .1, 0, 1); ctx.lineWidth = 3;
         for (let i = -1; i <= 1; i += 1) { ctx.beginPath(); ctx.moveTo(e.radius * .25, i * 7); ctx.lineTo(e.radius * 1.25, i * 12); ctx.stroke(); }
         ctx.restore();
       }
-      if (e.attackFlash > 0) {
+      if (attack > 0) {
         ctx.strokeStyle = "#ff5a43"; ctx.globalAlpha = attack; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0, 0, e.radius + 8 + attack * 10, -.65, .65); ctx.stroke(); ctx.globalAlpha = 1;
       }
 
@@ -821,7 +873,7 @@ export class Renderer {
       visual.turn += (targetTurn - visual.turn) * (1 - Math.exp(-16 * Math.max(frameTime, 1 / 120)));
       visual.stride += moving ? frameTime * 10 : 0;
 
-      const hurt = clamp((p.hurtFlash || 0) / .24, 0, 1);
+      const hurt = clamp((p.hurtFlash || 0) / .24, 0, 1) * this.qualityProfile.hitFlashes;
       const animation = p.dead || p.downed ? "down" : hurt > .03 ? "hurt" : (raw.animTime || 0) > 0 ? (raw.animState || "idle") : moving ? "run" : "idle";
       if (visual.animation !== animation) {
         visual.animation = animation; visual.animationTime = 0; visual.previousFootRow = null;
@@ -887,7 +939,7 @@ export class Renderer {
         const flash = clamp(p.weaponFlash / .09, 0, 1), angle = Number.isFinite(p.recoilAngle) ? p.recoilAngle : visual.facing;
         const muzzle = animationConfig?.sockets?.muzzle;
         const distance = muzzle?.distance ?? animationConfig?.muzzleDistance ?? 47, x = Math.cos(angle) * distance, y = Math.sin(angle) * distance + (muzzle?.vertical ?? -8);
-        ctx.save(); ctx.translate(x, y); ctx.rotate(angle); ctx.globalAlpha = flash; ctx.shadowColor = "#ff5c91"; ctx.shadowBlur = 16;
+        ctx.save(); ctx.translate(x, y); ctx.rotate(angle); ctx.globalAlpha = flash * this.qualityProfile.flashIntensity; ctx.shadowColor = "#ff5c91"; ctx.shadowBlur = 16 * this.qualityProfile.flashIntensity;
         ctx.fillStyle = "#fff4c7"; ctx.beginPath(); ctx.moveTo(18, 0); ctx.lineTo(-6, -7); ctx.lineTo(-1, 0); ctx.lineTo(-6, 7); ctx.closePath(); ctx.fill(); ctx.restore();
       }
 
@@ -912,7 +964,7 @@ export class Renderer {
     const ctx=this.ctx;const hp=current.maxHp?current.hp/current.maxHp:1;
     const vignette=ctx.createRadialGradient(this.width/2,this.height/2,Math.min(this.width,this.height)*.28,this.width/2,this.height/2,Math.max(this.width,this.height)*.72);
     vignette.addColorStop(0,"transparent");vignette.addColorStop(1,hp<.3?`rgba(120,0,15,${.52-hp})`:"rgba(0,3,8,.42)");ctx.fillStyle=vignette;ctx.fillRect(0,0,this.width,this.height);
-    const hurt=clamp((current.hurtFlash||0)/.24,0,1);if(hurt>0){ctx.fillStyle=`rgba(255,45,72,${hurt*.13})`;ctx.fillRect(0,0,this.width,this.height);ctx.strokeStyle=`rgba(255,95,115,${hurt*.65})`;ctx.lineWidth=8+hurt*8;ctx.strokeRect(0,0,this.width,this.height);}
+    const hurt=clamp((current.hurtFlash||0)/.24,0,1)*this.qualityProfile.hitFlashes*this.qualityProfile.flashIntensity;if(hurt>0){ctx.fillStyle=`rgba(255,45,72,${hurt*.13})`;ctx.fillRect(0,0,this.width,this.height);ctx.strokeStyle=`rgba(255,95,115,${hurt*.65})`;ctx.lineWidth=8+hurt*8;ctx.strokeRect(0,0,this.width,this.height);}
   }
 
   drawOffscreenMarkers(state,map,localPlayerId){

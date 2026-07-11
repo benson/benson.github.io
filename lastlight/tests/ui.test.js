@@ -108,3 +108,15 @@ test("deployment applies the bounded runtime config to simulation, replay, telem
   assert.match(game, /state\.runtimeConfig\.config\.flags\.runTelemetry/);
   assert.match(game, /runtimeConfig: \{/);
 });
+
+test("display and accessibility settings are persistent and reachable while waiting or paused", () => {
+  for (const id of ["quality-button", "lobby-quality", "pause-quality", "quality-dialog"]) assert.match(html, new RegExp(`id="${id}"`));
+  for (const value of ["auto", "high", "reduced", "minimal"]) assert.match(html, new RegExp(`<option value="${value}"`));
+  for (const id of ["quality-effects", "quality-shake", "quality-hit-flashes", "quality-flash", "quality-health-bars", "quality-reduced-motion"]) assert.match(html, new RegExp(`id="${id}"`));
+  assert.match(game, /from "\.\/quality-settings\.js/);
+  assert.match(game, /saveQualitySettings\(/);
+  assert.match(game, /document\.querySelector\("dialog\[open\]"\)/);
+  assert.match(css, /\.quality-shortcut:active \{ transform: scale\(\.98\); \}/);
+  assert.match(css, /@media \(hover: hover\) and \(pointer: fine\) \{ \.quality-shortcut:hover/);
+  assert.doesNotMatch(css.match(/\.quality-shortcut \{[^}]+\}/s)?.[0] || "", /transition:\s*all/);
+});
