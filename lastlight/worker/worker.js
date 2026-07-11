@@ -1,4 +1,5 @@
 import { DEFAULT_RUNTIME_CONFIG, validateRuntimeConfig } from "../feature-config.js";
+import { sanitizeInputMessage, sanitizeSnapshotMessage } from "../protocol.js";
 
 const MAX_PLAYERS = 4;
 const MAX_MESSAGE_BYTES = 512_000;
@@ -223,13 +224,18 @@ export class Room {
       Object.assign(session, profile);
       message.profile = { id: session.id, ...profile };
     }
-    const allowed = new Set(["profile", "lobby_state", "start", "sync_game", "return_lobby", "input", "cast", "choice", "snapshot"]);
-    if (!allowed.has(message.type)) return;
     const targetId = typeof message._to === "string" ? message._to : "";
     delete message._to;
+    try {
+      if (message.type === "input") message = sanitizeInputMessage(message, { allowLegacy: true });
+      else if (message.type === "snapshot") message = sanitizeSnapshotMessage(message, { allowLegacy: true });
+    } catch { return; }
+    const allowed = new Set(["profile", "lobby_state", "start", "sync_game", "return_lobby", "input", "cast", "choice", "snapshot"]);
+    if (!allowed.has(message.type)) return;
+    const hostOnly = new Set(["lobby_state", "start", "sync_game", "return_lobby", "snapshot"]);
+    if (hostOnly.has(message.type) && session.id !== this.hostId) return;
     message._from = session.id;
     if (targetId) {
-      const hostOnly = new Set(["lobby_state", "start", "sync_game", "snapshot"]);
       if (session.id !== this.hostId || !hostOnly.has(message.type)) return;
       this.sendTo(targetId, message);
       return;

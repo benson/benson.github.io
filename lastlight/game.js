@@ -13,6 +13,7 @@ import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeRep
 import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260711.4";
 import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260711.4";
 import { clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260711.5";
+import { GuestInputSequenceTracker, HostInputSequenceGate, createSnapshotMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260711.5";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -36,6 +37,8 @@ const renderer = new Renderer($("game-canvas"));
 renderer.setQualitySettings(initialQualitySettings);
 const fixedClock = new FixedStepClock();
 const movementPredictor = new MovementPredictor();
+const hostInputSequences = new HostInputSequenceGate();
+const guestInputSequences = new GuestInputSequenceTracker();
 const PROGRESS_KEY = "lastlight:campaign:v1";
 const RUN_HISTORY_KEY = "lastlight:runs:v1";
 const CLIENT_TOKEN_KEY = "lastlight:client-token:v1";
@@ -227,6 +230,18 @@ function applyHostInput(playerId, input) {
   state.replayRecorder?.recordInput(playerId, state.sim.tick, normalized);
   state.sim.setInput(playerId, normalized);
   return normalized;
+}
+
+function applyGuestNetworkInput(message) {
+  const accepted = hostInputSequences.apply(message?._from, message);
+  if (!accepted.accepted) return false;
+  applyHostInput(message._from, accepted.input);
+  return true;
+}
+
+function resetInputProtocol() {
+  hostInputSequences.reset();
+  guestInputSequences.reset();
 }
 
 function recordHostCast(playerId, slot) {
@@ -514,7 +529,7 @@ function enterGame() {
   state.soundState = { projectiles: 0, kills: 0, level: 1, damageTaken: 0, xpCollected: 0, lastShot: 0, lastXP: 0 };
   state.lastActiveBuffKey = ""; state.lastDamageLedgerKey = "";
   state.lastSend = 0; state.lastBroadcast = 0; state.hostPreviousMotion = null; state.inputMotionStartedAt = 0; state.inputMotionStart = null; state.inputWasActive = false;
-  fixedClock.reset(); movementPredictor.reset(); renderer.resetCamera(); $("game-canvas").focus();
+  fixedClock.reset(); movementPredictor.reset(); resetInputProtocol(); renderer.resetCamera(); $("game-canvas").focus();
   if (!state.animation) state.animation = requestAnimationFrame(gameLoop);
 }
 
@@ -534,14 +549,20 @@ function gameLoop(now) {
     persistRecoveryCheckpoint();
     simulationMs = performance.now() - simulationStarted; interpolation = timing.alpha; renderPrevious = state.hostPreviousMotion;
     renderState = withLocalMovementPreview(state.sim, hostInput, fixedClock.accumulator);
-    if (state.ws?.readyState === WebSocket.OPEN && now - state.lastBroadcast > 83) { state.lastBroadcast = now; send({ type: "snapshot", state: state.sim.snapshot() }); }
+    if (state.ws?.readyState === WebSocket.OPEN && now - state.lastBroadcast > 83) {
+      state.lastBroadcast = now;
+      send(createSnapshotMessage(state.sim.snapshot(), hostInputSequences.acknowledgements()));
+    }
   } else {
     const authoritative = state.snapshot?.players?.find((player) => player.id === state.clientId);
     if (authoritative && !movementPredictor.player) movementPredictor.sync(authoritative);
     if (movementPredictor.player) movementPredictor.advance(input, dt, playerMovementSpeed(movementPredictor.player), moveEntityWithCover);
     renderState = withPredictedPlayer(state.snapshot, movementPredictor.player); renderPrevious = state.previousSnapshot;
     interpolation = clamp((now - state.snapshotAt) / state.snapshotInterval, 0, 1);
-    if (state.ws?.readyState === WebSocket.OPEN && now - state.lastSend > 35) { state.lastSend = now; send({ type: "input", input }); }
+    if (state.ws?.readyState === WebSocket.OPEN && now - state.lastSend > 35) {
+      state.lastSend = now;
+      send(guestInputSequences.create(input, now));
+    }
   }
   const current = state.isHost ? state.sim : state.snapshot;
   if (current) {
@@ -619,8 +640,13 @@ function performanceSummary() {
       correctionP95: percentileFrom(metrics.predictionCorrections, .95),
       maxCorrection: Math.max(0, ...metrics.predictionCorrections),
     },
+    multiplayerInput: inputProtocolDiagnostics(),
     maxEntities: metrics.maxEntities,
   };
+}
+
+function inputProtocolDiagnostics() {
+  return state.isHost ? hostInputSequences.diagnostics() : guestInputSequences.diagnostics(performance.now());
 }
 
 function percentileFrom(values = [], amount = .95) {
@@ -1286,6 +1312,7 @@ async function copyReplay() {
 
 function returnToLobby() {
   discardRecovery({ notify: false });
+  resetInputProtocol();
   state.sim = null; state.snapshot = null; state.previousSnapshot = null; state.replayRecorder = null; state.endShown = false; clearTimeout(state.resultTimer);
   for (const member of state.lobby.values()) member.ready = member.id === state.clientId && state.isHost;
   if (state.ws?.readyState === WebSocket.OPEN) send({ type: "return_lobby" });
@@ -1324,7 +1351,7 @@ function handleNetworkMessage(raw) {
     if (state.isHost && state.sim && state.replayRecorder) {
       try { state.replayRecorder.recordLeave(message.id, state.sim.tick); } catch { /* A pre-run peer has no replay slot. */ }
     }
-    state.lobby.delete(message.id); state.sim?.removePlayer(message.id);
+    hostInputSequences.remove(message.id); state.lobby.delete(message.id); state.sim?.removePlayer(message.id);
     if (state.isHost && state.sim && state.screen === "game") state.sim.pushEvent("danger", `${departed?.name || "A specialist"} disconnected`, "Their callsign is reserved for three minutes");
     if (state.screen === "lobby") renderLobby(); if (state.isHost) broadcastLobby();
   } else if (message.type === "host_changed") {
@@ -1358,12 +1385,15 @@ function handleNetworkMessage(raw) {
     toast("Joined operation in progress");
   }
   else if (message.type === "return_lobby" && !state.isHost) returnToLobby();
-  else if (message.type === "input" && state.isHost) applyHostInput(message._from, message.input);
+  else if (message.type === "input" && state.isHost) applyGuestNetworkInput(message);
   else if (message.type === "cast" && state.isHost) recordHostCast(message._from, message.slot);
   else if (message.type === "choice" && state.isHost) recordHostChoice(message._from, message.choiceId);
   else if (message.type === "snapshot" && !state.isHost) {
+    let snapshotMessage; try { snapshotMessage = sanitizeSnapshotMessage(message, { transport: true }); } catch { return; }
     const now = performance.now(); if (state.snapshotAt) state.snapshotInterval = clamp(now - state.snapshotAt, 60, 180);
-    state.previousSnapshot = state.snapshot; state.snapshot = message.state; state.snapshotAt = now;
+    if (snapshotMessage.protocolVersion) guestInputSequences.acknowledge(snapshotMessage.ack[state.clientId], now);
+    else guestInputSequences.observeLegacySnapshot(now);
+    state.previousSnapshot = state.snapshot; state.snapshot = snapshotMessage.state; state.snapshotAt = now;
     const predicted = movementPredictor.sync(state.snapshot?.players?.find((player) => player.id === state.clientId));
     if (predicted && movementPredictor.lastCorrectionDistance > 0) {
       const corrections = state.performanceMetrics?.predictionCorrections;
@@ -1385,7 +1415,7 @@ function send(message, targetId = "") {
   if (state.ws?.readyState !== WebSocket.OPEN) return;
   state.ws.send(JSON.stringify(targetId ? { ...message, _to: targetId } : message));
 }
-function closeSocket() { if (state.ws) { state.ws.onclose = null; state.ws.close(); } state.ws = null; state.connectResolve = null; state.connectReject = null; }
+function closeSocket() { if (state.ws) { state.ws.onclose = null; state.ws.close(); } state.ws = null; state.connectResolve = null; state.connectReject = null; resetInputProtocol(); }
 function randomRoomCode() { const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; return Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join(""); }
 
 async function copyInvite() {
@@ -1412,6 +1442,7 @@ function gameDiagnostics() {
     level: Number(game?.level || 0),
     teamSize: Number(game?.players?.length || state.lobby.size || 1),
     multiplayerRole: state.partyMode === "solo" ? "solo" : state.isHost ? "host" : "guest",
+    multiplayerInput: inputProtocolDiagnostics(),
     runtimeConfig: {
       version: state.runtimeConfig.config.configVersion,
       gameplayVersion: state.config?.features?.gameplayVersion || state.runtimeConfig.config.gameplayVersion,

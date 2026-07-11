@@ -90,6 +90,17 @@ test("relay identity is sent after WebSocket upgrade instead of in the request U
   assert.match(game, /addEventListener\("open", \(\) => send\(\{ type: "hello", profile:/);
 });
 
+test("multiplayer input uses sequenced host application and snapshot acknowledgements", () => {
+  assert.match(game, /from "\.\/protocol\.js/);
+  assert.match(game, /guestInputSequences\.create\(input, now\)/);
+  assert.match(game, /hostInputSequences\.apply\(message\?\._from, message\)/);
+  assert.match(game, /createSnapshotMessage\(state\.sim\.snapshot\(\), hostInputSequences\.acknowledgements\(\)\)/);
+  assert.match(game, /guestInputSequences\.acknowledge\(snapshotMessage\.ack\[state\.clientId\], now\)/);
+  assert.match(game, /multiplayerInput: inputProtocolDiagnostics\(\)/);
+  assert.match(game, /hostInputSequences\.remove\(message\.id\)/);
+  assert.match(game, /function closeSocket\(\)[^\n]+resetInputProtocol\(\)/);
+});
+
 test("hosts capture anonymous deterministic replays and expose an explicit post-run copy action", () => {
   assert.match(html, /id="copy-replay"[^>]*>Copy deterministic replay</);
   assert.match(game, /new ReplayRecorder\(/);

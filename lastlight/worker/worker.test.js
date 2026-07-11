@@ -147,6 +147,43 @@ test("only the host can route a live-game sync to one peer", () => {
   assert.equal(observer.sent.length, 0);
 });
 
+test("relay validates bounded sequenced input envelopes while preserving legacy rollout", () => {
+  const room = new Room({});
+  const socket = () => ({ sent: [], send(payload) { this.sent.push(JSON.parse(payload)); } });
+  const host = socket(), guest = socket();
+  room.hostId = "host";
+  room.sessions.set(host, { id: "host", initialized: true });
+  room.sessions.set(guest, { id: "guest", initialized: true });
+  const input = { x: 1, y: 0, aim: .5, autoAim: true };
+
+  room.onMessage(guest, JSON.stringify({ type: "input", protocolVersion: 2, seq: 7, input }));
+  assert.deepEqual(host.sent.pop(), { type: "input", protocolVersion: 2, seq: 7, input, _from: "guest" });
+  room.onMessage(guest, JSON.stringify({ type: "input", input }));
+  assert.deepEqual(host.sent.pop(), { type: "input", input, _from: "guest" });
+
+  room.onMessage(guest, JSON.stringify({ type: "input", protocolVersion: 2, seq: -1, input }));
+  room.onMessage(guest, JSON.stringify({ type: "input", protocolVersion: 2, seq: 8, input: { ...input, x: 9 } }));
+  room.onMessage(guest, JSON.stringify({ type: "input", protocolVersion: 2, seq: 9, input, surprise: true }));
+  assert.equal(host.sent.length, 0);
+});
+
+test("only the host can publish validated acknowledgement snapshots", () => {
+  const room = new Room({});
+  const socket = () => ({ sent: [], send(payload) { this.sent.push(JSON.parse(payload)); } });
+  const host = socket(), guest = socket(), observer = socket();
+  room.hostId = "host";
+  room.sessions.set(host, { id: "host", initialized: true });
+  room.sessions.set(guest, { id: "guest", initialized: true });
+  room.sessions.set(observer, { id: "observer", initialized: true });
+
+  room.onMessage(host, JSON.stringify({ type: "snapshot", protocolVersion: 2, ack: { guest: 12 }, state: { tick: 50 } }));
+  assert.deepEqual(guest.sent.pop(), { type: "snapshot", protocolVersion: 2, ack: { guest: 12 }, state: { tick: 50 }, _from: "host" });
+  room.onMessage(guest, JSON.stringify({ type: "snapshot", protocolVersion: 2, ack: {}, state: { tick: 999 } }));
+  assert.equal(observer.sent.length, 1);
+  room.onMessage(host, JSON.stringify({ type: "snapshot", protocolVersion: 2, ack: { "bad id": 1 }, state: {} }));
+  assert.equal(guest.sent.length, 0);
+});
+
 test("room identity is established by the first message instead of the request URL", () => {
   const room = new Room({});
   const socket = { sent: [], send(payload) { this.sent.push(JSON.parse(payload)); } };
