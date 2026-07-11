@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { settingsForPreset } from "../quality-settings.js";
+import { createImpactStressFixture } from "../fixtures/impact-stress.js";
 
 globalThis.window = {
   devicePixelRatio: 1,
@@ -14,6 +16,7 @@ globalThis.Image = class {
 };
 
 const { Renderer } = await import("../render.js?renderer-tests");
+const renderSource = readFileSync(new URL("../render.js", import.meta.url), "utf8");
 
 function createRenderer() {
   const context = { setTransform: () => {} };
@@ -47,6 +50,15 @@ test("renderer preloads theme-owned runtime art for every field-guide enemy", ()
   assert.equal(renderer.enemySprites.mite.currentSrc, "assets/enemies/skitter.webp");
   assert.equal(renderer.enemySprites.hound.currentSrc, "assets/enemies/rusher.webp");
   assert.equal(renderer.enemySprites.shark.currentSrc, "assets/enemies/siegebreaker.webp");
+});
+
+test("renderer loads every delivered specialist, field-enemy, and map-apex atlas", () => {
+  const renderer = createRenderer();
+  assert.deepEqual(Object.keys(renderer.animationAtlases), ["zuri", "echo", "sola", "bront", "fang", "gale", "rift", "nova", "vesper"]);
+  assert.equal(renderer.animationAtlases.zuri.currentSrc, "assets/sprites/zuri-motion-atlas.png");
+  assert.deepEqual(Object.keys(renderer.enemyAnimationAtlases), ["mite", "hound", "spitter", "brute", "bomber", "shark", "boss:warehouse", "boss:outskirts", "boss:lab", "boss:beachhead"]);
+  assert.equal(renderer.enemyAnimationAtlases.hound.currentSrc, "assets/motion/enemies/hound.webp");
+  assert.equal(renderer.enemyAnimationAtlases["boss:lab"].currentSrc, "assets/motion/bosses/lab.webp");
 });
 
 test("inspection returns structured combat details and controls hover state", () => {
@@ -104,4 +116,32 @@ test("cosmetic density selection is stable for the same entity", () => {
   const effect = { id: "impact-42" };
   const first = renderer.densityAllows(effect, .5);
   for (let index = 0; index < 20; index++) assert.equal(renderer.densityAllows(effect, .5), first);
+});
+
+test("renderer accepts the complete base/evolved impact stress grid at full and reduced quality", () => {
+  const drawContext = new Proxy({ setTransform: () => {}, measureText: () => ({ width: 0 }) }, {
+    get(target, key) { return key in target ? target[key] : () => {}; },
+    set(target, key, value) { target[key] = value; return true; },
+  });
+  const canvas = { clientWidth: 800, clientHeight: 600, width: 0, height: 0, getContext: () => drawContext, getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }) };
+  const renderer = new Renderer(canvas);
+  for (const preset of ["high", "minimal"]) {
+    renderer.setQualitySettings(settingsForPreset(preset));
+    const cases = createImpactStressFixture({ reducedMotion: preset === "minimal", density: renderer.qualityProfile.effectsDensity });
+    const state = { players: cases.map((entry) => entry.player) };
+    const projectiles = cases.map((entry) => ({ ...entry.entity, x: 0, y: 0, radius: 8, vx: 600, vy: 0, color: "#fff" }));
+    assert.doesNotThrow(() => renderer.drawProjectiles(projectiles, false, state));
+    assert.equal(projectiles.length, 42);
+  }
+});
+
+test("motion playback keeps anchors stable, separates aim from locomotion, and caps retained deaths", () => {
+  assert.match(renderSource, /const locomotionTarget =/);
+  assert.match(renderSource, /const aimTarget =/);
+  assert.match(renderSource, /const drawFacing = usesAimFacing \? visual\.aimFacing : visual\.facing/);
+  assert.match(renderSource, /fixedSpriteTop/);
+  assert.match(renderSource, /deathBudget = Math\.min\(24/);
+  assert.match(renderSource, /type: "enemy-death"/);
+  assert.match(renderSource, /motionFrame\(animationConfig, animation, visual\.animationTime, \{ reducedMotion: this\.reducedMotion \}\)/);
+  assert.doesNotMatch(renderSource, /animationTime \+= frameTime \* \(this\.reducedMotion/);
 });

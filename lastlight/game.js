@@ -15,6 +15,7 @@ import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settings
 import { clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260711.5";
 import { GuestInputSequenceTracker, HostInputSequenceGate, createSnapshotMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260711.5";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260711.5";
+import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260711.5";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -23,7 +24,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.11.5";
+const BUILD = "2026.07.11.6";
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
 const systemReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false;
 const initialQualitySettings = (() => {
@@ -335,7 +336,8 @@ function guidePlayer(specialist = "zuri") {
 
 function guideWeaponDetails(weaponId, specialist = "zuri") {
   const player = guidePlayer(specialist), telemetry = weaponTelemetry(weaponId, { level: 1, evolved: false }, player);
-  return { Damage: telemetry.damage, Cooldown: telemetry.interval, Projectiles: telemetry.projectiles, Range: weaponId === "signature" ? SPECIALISTS[specialist].range : telemetry.note };
+  const impact = getWeaponImpactGrammar(weaponId, { specialistId: specialist, evolved: false });
+  return { Damage: telemetry.damage, Cooldown: telemetry.interval, Projectiles: telemetry.projectiles, Range: weaponId === "signature" ? SPECIALISTS[specialist].range : telemetry.note, Impact: impact?.impact.replaceAll("-", " ") || "Authored effect", Audio: impact?.soundFamily.replaceAll("-", " ") || "Combat" };
 }
 
 const SIGNATURE_BEHAVIORS = {
@@ -358,7 +360,8 @@ function renderStartingWeaponDetails(spec) {
   $("detail-weapon-behavior").textContent = SIGNATURE_BEHAVIORS[spec.id] || "Automatically attacks nearby threats.";
   $("detail-weapon-stats").innerHTML = Object.entries({ Damage: telemetry.damage, Cooldown: telemetry.interval, Projectiles: telemetry.projectiles, Range: spec.range })
     .map(([label, value]) => `<div><dt>${escapeHTML(label)}</dt><dd>${escapeHTML(value)}</dd></div>`).join("");
-  $("detail-weapon-evolution").textContent = `Evolves into ${spec.signature.evolve} with ${passive?.name || spec.signature.passive} + an elite access card.`;
+  const impact = getWeaponImpactGrammar("signature", { specialistId: spec.id, evolved: false });
+  $("detail-weapon-evolution").textContent = `Evolves into ${spec.signature.evolve} with ${passive?.name || spec.signature.passive} + an elite access card. ${impact?.evolvedDifference || ""}`.trim();
   $("starting-weapon-trigger").setAttribute("aria-label", `Inspect ${spec.signature.name} starting weapon`);
 }
 
@@ -529,7 +532,7 @@ function startRemoteGame(message) {
 function enterGame() {
   setScreen("game"); renderer.resize(); state.endShown = false; state.telemetrySent = false; state.resultSavedKey = ""; state.lastEventSeq = 0; state.lastUpgradeKey = ""; state.lastWeaponHUDKey = ""; state.lastPassiveHUDKey = ""; state.lastSquadHUDKey = ""; state.lastFrame = performance.now();
   state.performanceMetrics = { samples: [], frames: 0, longFrames: 0, maxEntities: {}, inputLatencies: [], predictionCorrections: [] };
-  state.soundState = { projectiles: 0, kills: 0, level: 1, damageTaken: 0, xpCollected: 0, lastShot: 0, lastXP: 0 };
+  state.soundState = { projectiles: 0, effects: 0, kills: 0, level: 1, damageTaken: 0, xpCollected: 0, lastShot: 0, lastXP: 0 };
   state.lastActiveBuffKey = ""; state.lastDamageLedgerKey = "";
   state.lastSend = 0; state.lastBroadcast = 0; state.hostPreviousMotion = null; state.inputMotionStartedAt = 0; state.inputMotionStart = null; state.inputWasActive = false;
   fixedClock.reset(); movementPredictor.reset(); resetInputProtocol(); renderer.resetCamera(); $("game-canvas").focus();
@@ -732,10 +735,11 @@ function sourceName(sourceId, player) {
 
 function weaponSlotMarkup(weaponId, weapon, player, spec, game) {
   const data = weaponId === "signature" ? spec.signature : WEAPONS[weaponId], telemetry = weaponTelemetry(weaponId, weapon, player);
+  const impact = getWeaponImpactGrammar(weaponId, { specialistId: player.specialist, evolved: Boolean(weapon.evolved) });
   const icon = data.icon;
   const passive = weaponId === "signature" ? spec.signature.passive : data.passive;
   const damage = Number(player.damageBySource?.[weaponId] || 0), dps = damage / elapsedRunSeconds(game);
-  return `<div class="weapon-slot ${weapon.evolved ? "evolved" : ""}" data-weapon-id="${weaponId}" data-cooldown-max="${telemetry.cooldownSeconds}" tabindex="0" aria-label="${escapeHTML(weapon.evolved ? data.evolve : data.name)} weapon details"><img src="${icon}" alt=""><i class="weapon-cooldown-sweep" aria-hidden="true"></i><b class="weapon-cooldown-seconds" aria-hidden="true"></b><small>${weapon.evolved ? "E" : weapon.level}</small><div class="weapon-tooltip"><span>${weapon.evolved ? "Evolved weapon" : `Level ${weapon.level}`}</span><strong>${escapeHTML(weapon.evolved ? data.evolve : data.name)}</strong><p>${escapeHTML(data.copy || spec.tagline)}</p><dl><div><dt>Damage</dt><dd>${telemetry.damage}</dd></div><div><dt>Cooldown</dt><dd>${telemetry.interval}</dd></div><div><dt>Projectiles</dt><dd>${telemetry.projectiles}</dd></div><div><dt>Run damage</dt><dd>${statNumber(damage)}</dd></div><div><dt>DPS</dt><dd>${dps.toFixed(1)}</dd></div></dl><em>${escapeHTML(telemetry.note)}</em><small>Evolution: level 5 + ${escapeHTML(PASSIVES[passive]?.name || passive)}</small></div></div>`;
+  return `<div class="weapon-slot ${weapon.evolved ? "evolved" : ""}" data-weapon-id="${weaponId}" data-cooldown-max="${telemetry.cooldownSeconds}" tabindex="0" aria-label="${escapeHTML(weapon.evolved ? data.evolve : data.name)} weapon details"><img src="${icon}" alt=""><i class="weapon-cooldown-sweep" aria-hidden="true"></i><b class="weapon-cooldown-seconds" aria-hidden="true"></b><small>${weapon.evolved ? "E" : weapon.level}</small><div class="weapon-tooltip"><span>${weapon.evolved ? "Evolved weapon" : `Level ${weapon.level}`}</span><strong>${escapeHTML(weapon.evolved ? data.evolve : data.name)}</strong><p>${escapeHTML(data.copy || spec.tagline)}</p><dl><div><dt>Damage</dt><dd>${telemetry.damage}</dd></div><div><dt>Cooldown</dt><dd>${telemetry.interval}</dd></div><div><dt>Projectiles</dt><dd>${telemetry.projectiles}</dd></div><div><dt>Impact</dt><dd>${escapeHTML(impactSummary(impact))}</dd></div><div><dt>Run damage</dt><dd>${statNumber(damage)}</dd></div><div><dt>DPS</dt><dd>${dps.toFixed(1)}</dd></div></dl><em>${escapeHTML(weapon.evolved ? impact?.behavior || telemetry.note : impact?.evolvedDifference || telemetry.note)}</em><small>Evolution: level 5 + ${escapeHTML(PASSIVES[passive]?.name || passive)}</small></div></div>`;
 }
 
 function currentAffectedSources(passiveId, player) {
@@ -808,16 +812,22 @@ function openQualitySettings() {
 }
 
 function updateSoundState(game) {
-  const now = performance.now(), projectiles = game.projectiles?.length || 0;
+  const now = performance.now(), projectiles = game.projectiles?.length || 0, effects = game.effects?.length || 0;
   const local = game.players?.find((player) => player.id === state.clientId) || game.players?.[0];
   if (projectiles > state.soundState.projectiles && now - state.soundState.lastShot > 85) {
-    state.soundState.lastShot = now; sfx("shot");
+    const grammar = resolveEntityImpact(game.projectiles.at(-1), game);
+    state.soundState.lastShot = now; sfx(grammar ? `weapon:${grammar.soundFamily}` : "shot");
+  } else if (effects > state.soundState.effects && now - state.soundState.lastShot > 120) {
+    const effect = [...(game.effects || [])].reverse().find((candidate) => resolveEntityImpact(candidate, game));
+    const grammar = resolveEntityImpact(effect, game);
+    if (grammar) { state.soundState.lastShot = now; sfx(`weapon:${grammar.soundFamily}`); }
   }
   if (game.kills > state.soundState.kills) sfx("kill");
   if (game.level > state.soundState.level) sfx("level");
   if ((local?.damageTaken || 0) > state.soundState.damageTaken) sfx("hurt");
   if ((local?.xpCollected || 0) > state.soundState.xpCollected && now - state.soundState.lastXP > 42) { state.soundState.lastXP = now; sfx("xp"); }
   state.soundState.projectiles = projectiles;
+  state.soundState.effects = effects;
   state.soundState.kills = game.kills || 0;
   state.soundState.level = game.level || 1;
   state.soundState.damageTaken = local?.damageTaken || 0;
@@ -1570,7 +1580,18 @@ function sfx(name) {
   if (!state.audio) return;
   const audio = ensureAudio(); if (audio.state === "suspended") audio.resume();
   const note = (frequency, offset, duration, type, volume, end) => audioTone(audio, frequency, offset, duration, type, volume, end);
-  if (name === "shot") note(820, 0, .055, "square", .008, 210);
+  if (name.startsWith("weapon:")) {
+    const family = name.slice(7);
+    const profiles = {
+      pulse: [880, 240, "square", .007, .05], resonance: [520, 760, "sine", .009, .09], solar: [690, 390, "triangle", .01, .1],
+      heavy: [115, 58, "sawtooth", .018, .13], blade: [1250, 480, "triangle", .007, .045], wind: [760, 1180, "sine", .006, .11],
+      kinetic: [210, 620, "square", .012, .075], arcane: [470, 940, "sine", .009, .12], tech: [960, 420, "square", .006, .045],
+      ballistic: [640, 170, "square", .009, .055], industrial: [92, 42, "sawtooth", .018, .16], crystal: [1320, 760, "sine", .008, .13], void: [82, 260, "sawtooth", .014, .2],
+    };
+    const [frequency, end, type, volume, duration] = profiles[family] || profiles.pulse;
+    note(frequency, 0, duration, type, volume, end);
+  }
+  else if (name === "shot") note(820, 0, .055, "square", .008, 210);
   else if (name === "hurt") { note(145, 0, .11, "sawtooth", .024, 65); note(72, .025, .16, "square", .014, 48); }
   else if (name === "kill") { note(150, 0, .07, "triangle", .016, 80); note(440, .025, .06, "square", .008, 260); }
   else if (name === "select") { note(520, 0, .08, "triangle", .025, 650); note(780, .06, .1, "sine", .018, 900); }

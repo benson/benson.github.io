@@ -4,18 +4,21 @@ import { access } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import {
   LASTLIGHT_THEME,
+  MOTION_BOSS_IDS,
   THEME_ASSET_KEYS,
+  getMissingMotionAssets,
   getThemeAnimation,
   getThemeAsset,
   getThemeEnemyAnimation,
   validateTheme,
 } from "../themes/lastlight.js";
+import { ENEMY_MOTION_STATES, SPECIALIST_MOTION_STATES } from "../motion.js";
 
 test("default theme satisfies the complete asset contract", () => {
   const result = validateTheme(LASTLIGHT_THEME);
   assert.deepEqual(result.errors, []);
   assert.equal(result.valid, true);
-  assert.equal(result.assetCount, 92);
+  assert.equal(result.assetCount, 110);
   assert.equal(Object.isFrozen(LASTLIGHT_THEME), true);
   assert.equal(Object.isFrozen(LASTLIGHT_THEME.assets.archive.augments), true);
 });
@@ -34,6 +37,20 @@ test("runtime enemy contract has unique deployable cutouts and render anchors", 
     assert.equal(animation.drawSize.length, 2);
     assert.ok(animation.drawSize.every((value) => value > 0));
     assert.equal(animation.shadow.length, 2);
+    assert.equal(animation.grid.columns, 4);
+    assert.equal(animation.grid.rows, enemyType === "spitter" || enemyType === "bomber" ? 5 : 6);
+    assert.equal(animation.status, "ready");
+    assert.equal(animation.atlas.available, true);
+    await access(`${root}${animation.atlas.src}`);
+    assert.ok(ENEMY_MOTION_STATES.every((state) => animation.states[state].frames.length));
+  }
+  for (const mapId of MOTION_BOSS_IDS) {
+    const animation = getThemeEnemyAnimation("boss", undefined, mapId);
+    assert.ok(ENEMY_MOTION_STATES.every((state) => animation.states[state].frames.length));
+    assert.equal(animation.status, "ready");
+    assert.equal(animation.atlas.available, true);
+    assert.equal(animation.grid.rows, mapId === "beachhead" ? 5 : 6);
+    await access(`${root}${animation.atlas.src}`);
   }
 });
 
@@ -76,17 +93,37 @@ test("logical asset lookup is predictable and rejects typos", () => {
   assert.throws(() => getThemeAsset("archive.augments.glassCanon"), /Unknown theme asset/);
 });
 
-test("authored specialist animation metadata is theme-swappable", async () => {
+test("specialist motion metadata is complete, strict, and theme-swappable", async () => {
   const animation = getThemeAnimation("zuri");
-  assert.equal(animation.atlas, "assets/sprites/zuri-motion-atlas.png");
+  assert.equal(animation.atlas.src, "assets/sprites/zuri-motion-atlas.png");
+  assert.equal(animation.atlas.available, true);
+  assert.equal(animation.status, "prototype");
   assert.deepEqual(animation.directions, ["south", "west", "north", "east"]);
   assert.deepEqual(animation.grid, { columns: 4, rows: 5 });
-  assert.ok(["idle", "run", "dash", "castE", "castR", "hurt", "down", "revive", "victory"].every((state) => animation.states[state]?.frames?.length));
-  assert.deepEqual(animation.spriteBounds, [0, 0, 138, 110]);
+  assert.ok(SPECIALIST_MOTION_STATES.every((state) => animation.states[state]?.frames?.length));
+  assert.deepEqual(animation.bindings, { dash: "mobility", castE: "cast", castR: "cast" });
   assert.deepEqual(animation.collisionOffset, [0, 0]);
   assert.deepEqual(animation.sockets.muzzle, { distance: 58, vertical: -8 });
   const root = fileURLToPath(new URL("../", import.meta.url));
-  await access(`${root}${animation.atlas}`);
+  for (const specialist of THEME_ASSET_KEYS.specialists) {
+    const rig = getThemeAnimation(specialist);
+    assert.ok(SPECIALIST_MOTION_STATES.every((state) => rig.states[state]?.frames?.length));
+    if (specialist !== "zuri") {
+      assert.deepEqual(rig.grid, { columns: 4, rows: 6 });
+      assert.equal(rig.status, "ready");
+      assert.equal(rig.atlas.available, true);
+      await access(`${root}${rig.atlas.src}`);
+    }
+  }
+  await access(`${root}${animation.atlas.src}`);
+});
+
+test("motion asset gaps only report Zuri's legacy prototype grid", () => {
+  const gaps = getMissingMotionAssets();
+  assert.equal(gaps.length, 1);
+  assert.deepEqual(gaps.map(({ kind }) => kind).reduce((counts, kind) => ({ ...counts, [kind]: (counts[kind] || 0) + 1 }), {}), { specialist: 1 });
+  assert.equal(gaps.find(({ kind, id }) => kind === "specialist" && id === "zuri").status, "prototype");
+  assert.equal(gaps.some(({ status }) => status === "missing"), false);
 });
 
 test("every default-theme asset is present in the deployable game tree", async () => {

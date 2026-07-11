@@ -441,7 +441,20 @@
       <div class="build-history-body">
         <article class="build-release current-build">
           <header>
-            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.11.5</h3></div>
+            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.11.6</h3></div>
+            <time class="build-shipped-at" data-build-shipped-at="">Deployment verification pending</time>
+          </header>
+          <ul>
+            <li>Added authored four-direction motion atlases for Echo, Sola, Bront, Fang, Gale, Rift, Nova, and Vesper with distinct idle, run, action, hurt, and down poses.</li>
+            <li>Added in-field art and state-driven locomotion, attack-contact, hurt, and death motion for all six enemy archetypes and four map-specific apexes, with stable foot anchors and capped death playback.</li>
+            <li>Added a strict theme-swappable motion contract with independent aim and locomotion facing, dimension-checked fallbacks, quality culling, and reduced-motion-safe telegraphs.</li>
+            <li>Added deterministic sprite-atlas tooling with pinned source/output hashes, byte-stable builds, alpha and bleed validation, contact sheets, preview reports, and CI verification.</li>
+            <li>Added a complete data-driven impact grammar for all 42 base and evolved weapon variants, including silhouettes, trails, decals, feedback tiers, sound families, and accessible patterns.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.11.5</h3></div>
             <time class="build-shipped-at" data-build-shipped-at="2026-07-11T13:20:00-04:00">Shipped Jul 11, 2026, 1:20 PM EDT</time>
           </header>
           <ul>
@@ -587,7 +600,7 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.11.5. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.11.5</strong></button>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.11.6. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.11.6</strong></button>
   <script src="build-history.js?v=20260711.5"></script>
   <script type="module" src="game.js?v=20260711.5"></script>
 </body>
