@@ -1,9 +1,9 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, formatTime, clamp } from "./data.js?v=20260710.3";
-import { Simulation } from "./engine.js?v=20260710.3";
-import { Renderer } from "./render.js?v=20260710.3";
-import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260710.3";
-import { getThemeAsset } from "./themes/lastlight.js?v=20260710.3";
-import { submitRunTelemetry } from "./telemetry.js?v=20260710.3";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260710.4";
+import { Simulation } from "./engine.js?v=20260710.4";
+import { Renderer } from "./render.js?v=20260710.4";
+import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260710.4";
+import { getThemeAsset } from "./themes/lastlight.js?v=20260710.4";
+import { submitRunTelemetry } from "./telemetry.js?v=20260710.4";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -11,11 +11,12 @@ const query = new URLSearchParams(location.search);
 const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.10.3";
+const BUILD = "2026.07.10.4";
 const renderer = new Renderer($("game-canvas"));
 const PROGRESS_KEY = "lastlight:campaign:v1";
 const ENEMY_HEALTH_BARS_KEY = "lastlight:enemy-health-bars:v1";
 const RUN_HISTORY_KEY = "lastlight:runs:v1";
+const CLIENT_TOKEN_KEY = "lastlight:client-token:v1";
 const DIFFICULTY_COPY = { story: "Story · Sharp hits · Lighter opening", hard: "Hard · 3× health · 2× damage", extreme: "Extreme · 7× health · 3× damage" };
 
 function loadProgress() {
@@ -35,6 +36,15 @@ function loadRunHistory() {
   } catch { return []; }
 }
 
+function loadClientToken() {
+  try {
+    const stored = localStorage.getItem(CLIENT_TOKEN_KEY) || "";
+    if (/^[a-f0-9]{24,32}$/.test(stored)) return stored;
+    const token = crypto.randomUUID().replace(/-/g, "").slice(0, 24);
+    localStorage.setItem(CLIENT_TOKEN_KEY, token); return token;
+  } catch { return crypto.randomUUID().replace(/-/g, "").slice(0, 24); }
+}
+
 const state = {
   screen: "home", partyMode: "solo", selected: "zuri", clientId: "solo", isHost: true, room: "",
   lobby: new Map(), ws: null, connecting: false, connectResolve: null, connectReject: null,
@@ -49,6 +59,7 @@ const state = {
   recentErrors: [], reportSubmitting: false, resumeAfterReport: false, telemetrySent: false,
   showEnemyHealthBars: loadEnemyHealthBars(), inspectPointer: null, inspectActive: false,
   performanceMetrics: null, lastActiveBuffKey: "", lastDamageLedgerKey: "",
+  resumeToken: loadClientToken(),
 };
 
 function setScreen(name) {
@@ -137,7 +148,10 @@ function renderGuide() {
   const weapons = Object.values(WEAPONS).map((weapon) => guideCard(weapon.glyph, weapon.name, `Evolves to ${weapon.evolve}`, `${weapon.copy} Evolution requires level 5 + ${PASSIVES[weapon.passive]?.name || weapon.passive}.`, "", weapon.icon, guideWeaponDetails(weapon.id))).join("");
   const passives = Object.values(PASSIVES).map((passive) => guideCard(passive.glyph, passive.name, `${passive.amount} · max ${passive.max}`, passive.id === "projectiles" ? "Adds a projectile to compatible attacks; single-instance fields and utility effects do not multiply." : "Passive stats also unlock matching weapon evolutions.", "", passive.icon, { "Each rank": passive.amount, "Maximum": `${passive.max} ranks` })).join("");
   const fieldObjects = [
-    ...Object.values(ENEMY_TYPES).map((enemy) => guideCard("EN", enemy.name, enemy.ranged ? "Ranged threat" : enemy.miniboss ? "Miniboss" : enemy.bomber ? "Explosive contact" : "Contact threat", enemy.ranged ? "Keeps its distance and fires orange hostile projectiles." : "Closes distance and deals contact damage.", "", enemy.icon, { Health: enemy.health, Damage: enemy.damage, Speed: enemy.speed, XP: enemy.xp })),
+    ...Object.values(ENEMY_TYPES).map((enemy) => {
+      const storyDamage = enemy.damage * DIFFICULTIES.story.attack * (enemy.ranged ? DIFFICULTIES.story.spell : 1);
+      return guideCard("EN", enemy.name, enemy.ranged ? "Ranged threat" : enemy.miniboss ? "Miniboss" : enemy.bomber ? "Explosive contact" : "Contact threat", enemy.ranged ? "Keeps its distance and fires orange hostile projectiles." : "Closes distance and deals contact damage.", "", enemy.icon, { Health: enemy.health, "Story hit": `${storyDamage.toFixed(1)} HP`, "Hits vs 10 HP": Math.ceil(BASE_VITALITY / storyDamage), Speed: enemy.speed, XP: enemy.xp });
+    }),
     guideCard("XP", "Combat data", "Cyan crystal pickup", "Collect data motes to advance the squad's next upgrade choice.", "", getThemeAsset("guide.field.combatData"), { Effect: "Squad XP", Attraction: "Pickup radius" }),
     guideCard("BREAK", "Supply cache", "Destructible field object", "Damage the orange cache with projectiles or area attacks to reveal a random pickup.", "", getThemeAsset("guide.field.supplyCache"), { Integrity: 100, Collision: "None", Drops: "Repair / vacuum / mine / gold" }),
     guideCard("!", "Hostile projectile", "Orange-red enemy fire", "Evade hostile bolts. Apex arrows remove at least 36% of maximum health before shields.", "", getThemeAsset("guide.field.hostileProjectile"), { Threat: "Damage", Apex: "36%+ max HP" }),
@@ -158,7 +172,7 @@ function renderGuide() {
 function renderSpecialistGrid() {
   $("specialist-grid").innerHTML = SPECIALIST_ORDER.map((id) => {
     const spec = SPECIALISTS[id];
-    return `<button class="specialist-card" type="button" role="option" data-specialist="${id}" aria-selected="${id === state.selected}"><small>${spec.number}</small><img src="${spec.sprite}" alt=""><span>${spec.name.toUpperCase()}</span></button>`;
+    return `<button class="specialist-card" type="button" role="option" data-specialist="${id}" aria-selected="${id === state.selected}"><small>${spec.number}</small><img class="specialist-art" src="${spec.sprite}" alt=""><span class="specialist-name">${spec.name.toUpperCase()}</span><span class="specialist-weapon"><img src="${spec.signature.icon}" alt=""><em>${escapeHTML(spec.signature.name)}</em></span></button>`;
   }).join("");
   $("specialist-grid").querySelectorAll("button").forEach((button) => button.addEventListener("click", () => selectSpecialist(button.dataset.specialist)));
 }
@@ -171,6 +185,7 @@ function selectSpecialist(id) {
   $("detail-number").textContent = spec.number; $("detail-art").src = spec.sprite; $("detail-art").alt = spec.name;
   $("detail-role").textContent = spec.role; $("detail-name").textContent = spec.name.toUpperCase(); $("detail-tagline").textContent = spec.tagline;
   $("detail-health").textContent = spec.health; $("detail-armor").textContent = spec.armor; $("detail-range").textContent = spec.range;
+  $("detail-weapon-icon").src = spec.signature.icon; $("detail-weapon-icon").alt = ""; $("detail-weapon-name").textContent = spec.signature.name;
   $("passive-name").textContent = spec.passive[0]; $("passive-copy").textContent = spec.passive[1];
   $("active-name").textContent = spec.active[0]; $("active-copy").textContent = spec.active[1];
   $("ultimate-name").textContent = spec.ultimate[0]; $("ultimate-copy").textContent = spec.ultimate[1];
@@ -246,7 +261,7 @@ function renderParty() {
 
 function updateLocalProfile(patch = {}) {
   const current = state.lobby.get(state.clientId) || { id: state.clientId, name: callsign(), specialist: state.selected, ready: state.isHost };
-  const profile = { ...current, ...patch, id: state.clientId, name: callsign() };
+  const profile = { ...current, ...patch, id: state.clientId, name: callsign(), resumeToken: current.resumeToken || state.resumeToken };
   state.lobby.set(state.clientId, profile);
   if (state.ws?.readyState === WebSocket.OPEN) send({ type: "profile", profile });
   if (state.isHost) broadcastLobby();
@@ -261,11 +276,11 @@ function handleReady() {
 
 function startHostedGame() {
   if (!state.isHost) return;
-  const players = [...state.lobby.values()].map((p) => ({ id: p.id, name: p.name, specialist: p.specialist }));
+  const players = [...state.lobby.values()].map((p) => ({ id: p.id, name: p.name, specialist: p.specialist, resumeToken: p.resumeToken || "" }));
   if (!players.length) return;
   state.sim = new Simulation({ ...state.config, players });
   state.previousSnapshot = null; state.snapshot = null;
-  if (state.ws?.readyState === WebSocket.OPEN) send({ type: "start", config: state.config, players });
+  if (state.ws?.readyState === WebSocket.OPEN) send({ type: "start", config: state.config, players: publicLobbyPlayers() });
   enterGame();
 }
 
@@ -366,14 +381,14 @@ function weaponTelemetry(weaponId, weapon, player) {
     if (player.specialist === "fang") interval -= (level - 1) * .1;
     if (player.specialist === "vesper") interval -= (level - 1) * .125;
     if (evolved) interval *= player.specialist === "zuri" ? .5 : player.specialist === "sola" ? 1.5 / interval : .68;
-    const damage = { zuri: 31 + level * 11, echo: 48 + level * 14, sola: 26 + level * 11 + player.armor * 1.2, bront: 70 + level * 24, fang: 36 + level * 19 + player.maxHp * .015, gale: 65 + level * 21, rift: 30 + level * 13, nova: 53 + level * 14, vesper: 51 + level * 14 }[player.specialist];
+    const damage = { zuri: 31 + level * 11, echo: 48 + level * 14, sola: 26 + level * 11 + player.armor * 1.2, bront: 70 + level * 24, fang: 36 + level * 19 + player.maxHp * 1.5, gale: 65 + level * 21, rift: 30 + level * 13, nova: 53 + level * 14, vesper: 51 + level * 14 }[player.specialist];
     const projectiles = { zuri: 2 + level + extra, echo: Math.min(6, level + extra), sola: 3 + Math.floor(level / 2) + extra, bront: 1, fang: 1, gale: Math.min(7, 1 + Math.floor(level / 2) + extra), rift: 1, nova: Math.min(8, 1 + Math.ceil(level / 2) + extra), vesper: 1 + Math.floor(level / 3) + extra }[player.specialist];
     return { damage: `${rounded(damage)} / hit`, interval: `${cd(interval).toFixed(2)}s`, cooldownSeconds: cd(interval), projectiles: String(projectiles), note: SPECIALISTS[player.specialist].signature.evolve };
   }
   const table = {
     uwu: [28 + level * 10, evolved ? .35 : .75 - level * .07, 1 + Math.floor(level / 3) + extra, "Nearest-target needles"],
     slicers: [24 + level * 9, .24, 2 + level + extra, "Orbiting contact blades"],
-    aura: [16 + level * 8 + player.maxHp * .008, .34, 1, "Continuous radial field"],
+    aura: [16 + level * 8 + player.maxHp * .8, .34, 1, "Continuous radial field"],
     mines: [60 + level * 25, 6.8 - level * .45, 2 + level + extra, "Delayed area mines"],
     crossbow: [48 + level * 17, 4.2 - level * .25, 2 + level + extra, "Piercing random-direction fan"],
     boomerang: [65 + level * 21, 3.8 - level * .2, 1 + Math.floor(level / 2) + extra, "Returning seeking blades"],
@@ -557,6 +572,32 @@ function upgradeChoiceDetails(choice, player) {
   return { Healing: "25% max HP", Timing: "Immediate" };
 }
 
+function evolutionPair(choice, player) {
+  if (!choice || !player) return null;
+  const [kind, target] = String(choice.id).split(":");
+  if (kind === "weapon") {
+    const requirement = target === "signature" ? SPECIALISTS[player.specialist]?.signature.passive : WEAPONS[target]?.passive;
+    if (requirement && Number(player.passives?.[requirement] || 0) > 0) {
+      return { label: "Evolution pair", copy: `${PASSIVES[requirement]?.name || requirement} already owned` };
+    }
+  }
+  if (kind === "passive") {
+    const matchingWeapon = Object.keys(player.weapons || {}).find((weaponId) => {
+      const requirement = weaponId === "signature" ? SPECIALISTS[player.specialist]?.signature.passive : WEAPONS[weaponId]?.passive;
+      return requirement === target;
+    });
+    if (matchingWeapon) {
+      const name = matchingWeapon === "signature" ? SPECIALISTS[player.specialist].signature.name : WEAPONS[matchingWeapon]?.name;
+      return { label: "Evolution pair", copy: `${name || matchingWeapon} already owned` };
+    }
+  }
+  return null;
+}
+
+function evolutionPairMarkup(pair) {
+  return pair ? `<div class="evolution-pair"><span>${escapeHTML(pair.label)}</span><b>${escapeHTML(pair.copy)}</b></div>` : "";
+}
+
 function renderUpgradeStats(player) {
   const damage = (1 + Number(player.passives?.damage || 0) * .1) * (player.specialist === "rift" ? 1.1 : 1);
   const stats = [
@@ -568,7 +609,7 @@ function renderUpgradeStats(player) {
     ["Move speed", `${Math.round(player.baseSpeed * (1 + Number(player.passives?.move || 0) * .09))}`],
     ["Armor", `${Math.round(player.armor || 0)}`],
     ["Pickup radius", `${Math.round(85 * (1 + Number(player.passives?.pickup || 0) * .35))}`],
-    ["Repair / sec", `${Math.round(Number(player.passives?.regen || 0) * 4)}`],
+    ["Repair / sec", `${(Number(player.passives?.regen || 0) * .04).toFixed(2)}`],
   ];
   $("upgrade-current-stats").innerHTML = `<strong>Current build</strong>${stats.map(([label, value]) => `<div><span>${label}</span><b>${value}</b></div>`).join("")}<p>Extra projectiles apply only to compatible attacks; utility effects and single persistent fields do not multiply.</p>`;
 }
@@ -589,7 +630,8 @@ function updateUpgrade(game) {
     const selected = selectedId === choice.id, passed = ready && !selected;
     const visual = upgradeChoiceVisual(choice);
     const details = upgradeChoiceDetails(choice, localPlayer);
-    return `<button class="upgrade-card ${selected ? "selected" : ""} ${passed ? "passed" : ""}" type="button" data-choice="${escapeHTML(choice.id)}" ${ready ? "disabled" : ""}><span class="card-type">${selected ? "Locked choice" : escapeHTML(choice.kind)}</span><kbd class="choice-key">${index + 1}</kbd><div class="card-icon ${visual.className}">${visual.markup}</div><h3>${escapeHTML(choice.name)}</h3><p>${escapeHTML(choice.copy)}</p><dl class="card-stats">${Object.entries(details).map(([label, value]) => `<div><dt>${escapeHTML(label)}</dt><dd>${escapeHTML(value)}</dd></div>`).join("")}</dl><div class="level-pips">${Array.from({ length: choice.max }, (_, i) => `<i class="${i < choice.level ? "on" : ""}"></i>`).join("")}</div></button>`;
+    const pair = evolutionPair(choice, localPlayer);
+    return `<button class="upgrade-card ${pair ? "evolution-ready" : ""} ${selected ? "selected" : ""} ${passed ? "passed" : ""}" type="button" data-choice="${escapeHTML(choice.id)}" ${ready ? "disabled" : ""}><span class="card-type">${selected ? "Locked choice" : escapeHTML(choice.kind)}</span><kbd class="choice-key">${index + 1}</kbd><div class="card-icon ${visual.className}">${visual.markup}</div><h3>${escapeHTML(choice.name)}</h3><p>${escapeHTML(choice.copy)}</p>${evolutionPairMarkup(pair)}<dl class="card-stats">${Object.entries(details).map(([label, value]) => `<div><dt>${escapeHTML(label)}</dt><dd>${escapeHTML(value)}</dd></div>`).join("")}</dl><div class="level-pips">${Array.from({ length: choice.max }, (_, i) => `<i class="${i < choice.level ? "on" : ""}"></i>`).join("")}</div></button>`;
   }).join("");
   if (!ready) $("upgrade-cards").querySelectorAll("button").forEach((button) => button.addEventListener("click", () => chooseUpgrade(button.dataset.choice)));
 
@@ -600,7 +642,10 @@ function updateUpgrade(game) {
     const choices = game.pendingChoices?.[player.id] || [];
     const teammateReady = Boolean(game.choiceReady?.[player.id]);
     const teammateSelection = game.selectedChoices?.[player.id] || "";
-    return `<section class="teammate-draft ${teammateReady ? "ready" : ""}"><header><img src="${SPECIALISTS[player.specialist].sprite}" alt=""><div><strong>${escapeHTML(player.name)}</strong><span>${teammateReady ? "Choice locked" : "Choosing…"}</span></div></header><div class="teammate-choice-grid">${choices.map((choice) => { const visual = upgradeChoiceVisual(choice); return `<div class="teammate-choice ${choice.id === teammateSelection ? "selected" : ""} ${teammateReady && choice.id !== teammateSelection ? "passed" : ""}" title="${escapeHTML(choice.copy)}"><i class="${visual.className}">${visual.markup}</i><b>${escapeHTML(choice.name)}</b><small>${escapeHTML(choice.kind)} · ${choice.level}/${choice.max}</small></div>`; }).join("")}</div></section>`;
+    return `<section class="teammate-draft ${teammateReady ? "ready" : ""}"><header><img src="${SPECIALISTS[player.specialist].sprite}" alt=""><div><strong>${escapeHTML(player.name)}</strong><span>${teammateReady ? "Choice locked" : "Choosing…"}</span></div></header><div class="teammate-choice-grid">${choices.map((choice) => {
+      const visual = upgradeChoiceVisual(choice), details = upgradeChoiceDetails(choice, player), pair = evolutionPair(choice, player);
+      return `<div class="teammate-choice ${pair ? "evolution-ready" : ""} ${choice.id === teammateSelection ? "selected" : ""} ${teammateReady && choice.id !== teammateSelection ? "passed" : ""}" tabindex="0"><i class="${visual.className}">${visual.markup}</i><b>${escapeHTML(choice.name)}</b><small>${escapeHTML(choice.kind)} · ${choice.level}/${choice.max}</small><div class="teammate-choice-tooltip"><span>${escapeHTML(choice.kind)} · level ${choice.level}/${choice.max}</span><strong>${escapeHTML(choice.name)}</strong><p>${escapeHTML(choice.copy)}</p>${evolutionPairMarkup(pair)}<dl>${Object.entries(details).map(([label, value]) => `<div><dt>${escapeHTML(label)}</dt><dd>${escapeHTML(value)}</dd></div>`).join("")}</dl></div></div>`;
+    }).join("")}</div></section>`;
   }).join("");
 
   const waiting = game.players.filter((player) => !game.choiceReady?.[player.id]).map((player) => player.id === state.clientId ? "you" : player.name);
@@ -774,7 +819,7 @@ function connectRoom(code) {
     const timeout = setTimeout(() => { reject(new Error("Relay connection timed out")); closeSocket(); }, 7000);
     state.connectResolve = (message) => { clearTimeout(timeout); resolve(message); };
     state.connectReject = (error) => { clearTimeout(timeout); reject(error); };
-    const url = new URL(`${RELAY_BASE}${encodeURIComponent(code)}`); url.searchParams.set("name", callsign()); url.searchParams.set("specialist", state.selected);
+    const url = new URL(`${RELAY_BASE}${encodeURIComponent(code)}`); url.searchParams.set("name", callsign()); url.searchParams.set("specialist", state.selected); url.searchParams.set("resume", state.resumeToken);
     const ws = new WebSocket(url); state.ws = ws;
     ws.addEventListener("message", (event) => handleNetworkMessage(event.data));
     ws.addEventListener("error", () => state.connectReject?.(new Error("Relay connection failed")));
@@ -787,21 +832,42 @@ function handleNetworkMessage(raw) {
   if (message.type === "welcome") {
     state.clientId = message.id; state.isHost = message.role === "host"; state.lobby = new Map();
     for (const peer of message.peers || []) state.lobby.set(peer.id, { id: peer.id, name: peer.name || "Connecting…", specialist: peer.specialist || "zuri", ready: false });
-    state.lobby.set(state.clientId, { id: state.clientId, name: callsign(), specialist: state.selected, ready: state.isHost });
+    state.lobby.set(state.clientId, { id: state.clientId, name: callsign(), specialist: state.selected, ready: state.isHost, resumeToken: state.resumeToken });
     send({ type: "profile", profile: state.lobby.get(state.clientId) }); state.connectResolve?.(message); state.connectResolve = null; return;
   }
   if (message.type === "peer_joined") {
     if (state.isHost) { state.lobby.set(message.peer.id, { id: message.peer.id, name: message.peer.name || "Connecting…", specialist: message.peer.specialist || "zuri", ready: false }); broadcastLobby(); }
   } else if (message.type === "peer_left") {
-    state.lobby.delete(message.id); state.sim?.removePlayer(message.id); renderLobby(); if (state.isHost) broadcastLobby();
+    const departed = state.lobby.get(message.id);
+    state.lobby.delete(message.id); state.sim?.removePlayer(message.id);
+    if (state.isHost && state.sim && state.screen === "game") state.sim.pushEvent("danger", `${departed?.name || "A specialist"} disconnected`, "Their callsign is reserved for three minutes");
+    if (state.screen === "lobby") renderLobby(); if (state.isHost) broadcastLobby();
   } else if (message.type === "host_changed") {
     state.isHost = message.id === state.clientId; if (state.isHost && state.screen === "lobby") { const me = state.lobby.get(state.clientId); if (me) me.ready = true; broadcastLobby(); renderLobby(); }
     else if (state.isHost && state.screen === "game" && !state.sim) toast("The host left — this run cannot migrate yet");
   } else if (message.type === "profile" && state.isHost) {
-    state.lobby.set(message._from, { ...message.profile, id: message._from }); broadcastLobby(); renderLobby();
+    state.lobby.set(message._from, { ...message.profile, id: message._from });
+    if (state.sim && state.screen === "game") {
+      const player = state.sim.addPlayer({ ...message.profile, id: message._from });
+      const resumed = Boolean(player?.reconnected); if (player) delete player.reconnected;
+      if (player && !resumed) {
+        const anchor = state.sim.players.find((entry) => entry.id !== player.id && !entry.dead && !entry.downed);
+        if (anchor) { player.x = anchor.x + 45; player.y = anchor.y + 25; }
+        player.invuln = 5;
+      }
+      state.sim.pushEvent("boon", `${player?.name || message.profile.name} ${resumed ? "reconnected" : "joined the run"}`, resumed ? "Loadout and progress restored" : "Deployed at the squad position");
+      send({ type: "sync_game", config: state.config, players: publicLobbyPlayers(), state: state.sim.snapshot() }, message._from);
+      toast(`${player?.name || message.profile.name} ${resumed ? "reconnected" : "joined"}`);
+    }
+    broadcastLobby(); if (state.screen === "lobby") renderLobby();
   } else if (message.type === "lobby_state" && !state.isHost) {
     state.config = message.config; state.lobby = new Map(message.players.map((p) => [p.id, p])); if (state.screen === "lobby") renderLobby();
   } else if (message.type === "start" && !state.isHost) startRemoteGame(message);
+  else if (message.type === "sync_game" && !state.isHost) {
+    state.lobby = new Map((message.players || []).map((player) => [player.id, player]));
+    startRemoteGame(message); state.snapshot = message.state; state.snapshotAt = performance.now();
+    toast("Joined operation in progress");
+  }
   else if (message.type === "return_lobby" && !state.isHost) returnToLobby();
   else if (message.type === "input" && state.isHost) state.sim?.setInput(message._from, message.input);
   else if (message.type === "cast" && state.isHost) state.sim?.cast(message._from, message.slot);
@@ -814,10 +880,17 @@ function handleNetworkMessage(raw) {
 
 function broadcastLobby() {
   if (!state.isHost || state.ws?.readyState !== WebSocket.OPEN) return;
-  send({ type: "lobby_state", config: state.config, players: [...state.lobby.values()] });
+  send({ type: "lobby_state", config: state.config, players: publicLobbyPlayers() });
 }
 
-function send(message) { if (state.ws?.readyState === WebSocket.OPEN) state.ws.send(JSON.stringify(message)); }
+function publicLobbyPlayers() {
+  return [...state.lobby.values()].map(({ id, name, specialist, ready }) => ({ id, name, specialist, ready: Boolean(ready) }));
+}
+
+function send(message, targetId = "") {
+  if (state.ws?.readyState !== WebSocket.OPEN) return;
+  state.ws.send(JSON.stringify(targetId ? { ...message, _to: targetId } : message));
+}
 function closeSocket() { if (state.ws) { state.ws.onclose = null; state.ws.close(); } state.ws = null; state.connectResolve = null; state.connectReject = null; }
 function randomRoomCode() { const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; return Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join(""); }
 
