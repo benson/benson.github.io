@@ -23,7 +23,7 @@
       },
       "output": {
         "path": "assets/sprites/zuri-motion-atlas.png",
-        "sha256": "b84860c1e8e66cc19290ce14c79e212faf1c0ca075c6eae9ae9524075feeabd5",
+        "sha256": "fa8cd509d3209f18143653a10ac3ffce2b84bd5e32277eb975b1d5d8ae49f5ba",
         "width": 1256,
         "height": 1255,
         "mode": "RGBA"
@@ -93,7 +93,7 @@
         "chromaKey": { "color": [8, 247, 12], "softStart": 24, "softEnd": 140, "minGreen": 70 },
         "bleed": 2,
         "edgePolicy": "validate",
-        "png": { "compressLevel": 9, "optimize": false }
+        "png": { "compressLevel": 0, "optimize": false }
       }
     }
   ]

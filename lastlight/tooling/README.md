@@ -26,6 +26,9 @@ npm run sprites:report
 
 The tool requires Python 3.13 and Pillow 12.1.1. Pillow is pinned in CI because
 the committed PNG bytes, not just decoded pixels, are part of the contract.
+Committed PNGs also use uncompressed deterministic DEFLATE so identical pixels
+remain byte-identical across Windows and Linux instead of inheriting platform
+zlib compression drift.
 
 ## Manifest contract
 
