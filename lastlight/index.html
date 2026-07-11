@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260711.3">
+  <link rel="stylesheet" href="styles.css?v=20260711.4">
 </head>
 <body>
   <main id="app">
@@ -429,7 +429,20 @@
       <div class="build-history-body">
         <article class="build-release current-build">
           <header>
-            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.11.3</h3></div>
+            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.11.4</h3></div>
+            <span class="build-time-unavailable">Production verification pending</span>
+          </header>
+          <ul>
+            <li>Added versioned runtime rollback controls for deterministic replay, aggregate telemetry, and optional objective events, with safe defaults and an operator-only relay configuration.</li>
+            <li>Added persistent Auto, High, Reduced, Minimal, and tuned display profiles with granular effects, shake, flash, motion, and health-bar controls.</li>
+            <li>Added adaptive renderer budgets with stable cosmetic sampling, hysteresis, eased recovery, and no changes to authoritative gameplay or multiplayer synchronization.</li>
+            <li>Added a local-only, privacy-preserving playtest dashboard that reports aggregate cohorts of at least five runs and never exposes player or replay identity.</li>
+            <li>Completed the WebSocket privacy rollout by removing the temporary query-profile compatibility path; every connection now requires the bounded post-upgrade handshake.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.11.3</h3></div>
             <time class="build-shipped-at" data-build-shipped-at="2026-07-11T12:09:00-04:00">Shipped Jul 11, 2026, 12:09 PM EDT</time>
           </header>
           <ul>
@@ -549,8 +562,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.11.3. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.11.3</strong></button>
-  <script src="build-history.js?v=20260711.3"></script>
-  <script type="module" src="game.js?v=20260711.3"></script>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.11.4. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.11.4</strong></button>
+  <script src="build-history.js?v=20260711.4"></script>
+  <script type="module" src="game.js?v=20260711.4"></script>
 </body>
 </html>
