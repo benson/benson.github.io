@@ -77,6 +77,71 @@ export function hashCanonicalState(value) {
   return fnv1a64(canonicalStringify(value));
 }
 
+function anonymousPlayerMap(simulation) {
+  const map = new Map();
+  for (const player of simulation.players || []) {
+    if (!Number.isInteger(player.replaySlot) || player.replaySlot < 0 || player.replaySlot > 3) {
+      throw new TypeError("Every replayed player must have an anonymous replaySlot");
+    }
+    map.set(player.id, `p${player.replaySlot}`);
+  }
+  for (const entry of simulation.disconnectedPlayers?.values?.() || []) {
+    const player = entry?.player;
+    if (player && Number.isInteger(player.replaySlot)) map.set(player.id, `p${player.replaySlot}`);
+  }
+  return map;
+}
+
+function replayEntity(value, playerMap) {
+  if (value instanceof Set) return [...value].sort();
+  if (Array.isArray(value)) return value.map((entry) => replayEntity(entry, playerMap));
+  if (!value || typeof value !== "object") return playerMap.get(value) || value;
+  const result = {};
+  for (const [key, child] of Object.entries(value)) {
+    if (key === "name" || key === "reconnectKey" || child === undefined) continue;
+    if ((key === "id" && Object.hasOwn(value, "replaySlot")) || key === "owner" || key === "ownerId" || key === "playerId") {
+      result[key] = playerMap.get(child) || child;
+    } else result[key] = replayEntity(child, playerMap);
+  }
+  return result;
+}
+
+function replayKeyedObject(value, playerMap) {
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(Object.entries(value).map(([key, child]) => [playerMap.get(key) || key, replayEntity(child, playerMap)]));
+}
+
+/**
+ * Return every future-affecting simulation value while replacing transient
+ * relay identities with anonymous replay slots and excluding UI-only events.
+ */
+export function canonicalSimulationState(simulation) {
+  if (!simulation || typeof simulation.snapshot !== "function" || typeof simulation.deterministicState !== "function") {
+    throw new TypeError("A deterministic Lastlight Simulation is required");
+  }
+  const playerMap = anonymousPlayerMap(simulation);
+  const snapshot = simulation.snapshot();
+  delete snapshot.events;
+  snapshot.players = (simulation.players || [])
+    .map((player) => replayEntity(player, playerMap))
+    .sort((a, b) => a.replaySlot - b.replaySlot);
+  for (const key of ["drones", "enemies", "projectiles", "hostile", "effects", "orbs", "drops", "pods", "objectives", "relayBalls", "feathers"]) {
+    snapshot[key] = replayEntity(simulation[key] || [], playerMap);
+  }
+  snapshot.pendingChoices = replayKeyedObject(simulation.pendingChoices, playerMap);
+  snapshot.choiceReady = replayKeyedObject(simulation.choiceReady, playerMap);
+  snapshot.selectedChoices = replayKeyedObject(simulation.selectedChoices, playerMap);
+  snapshot.determinism = replayEntity(simulation.deterministicState(), playerMap);
+  snapshot.disconnectedPlayers = [...(simulation.disconnectedPlayers?.values?.() || [])]
+    .map((entry) => ({ leftTick: entry.leftTick, player: replayEntity(entry.player, playerMap) }))
+    .sort((a, b) => a.player.replaySlot - b.player.replaySlot);
+  return canonicalize(snapshot);
+}
+
+export function hashSimulationState(simulation) {
+  return hashCanonicalState(canonicalSimulationState(simulation));
+}
+
 export function quantizeReplayInput(input = {}) {
   let x = Number(input.x || 0), y = Number(input.y || 0);
   if (!Number.isFinite(x) || !Number.isFinite(y)) throw new TypeError("Input axes must be finite");
@@ -212,6 +277,7 @@ export class ReplayRecorder {
     this.header = { build, balanceVersion, balanceHash, rng, seed, run: clone(run) };
     this.actualToSlot = new Map();
     this.roster = new Map();
+    this.knownSlots = new Map();
     this.commands = [];
     this.checkpoints = [];
     this.lastInputs = new Map();
@@ -221,11 +287,12 @@ export class ReplayRecorder {
   registerPlayer(actualId, specialist, { slot, tick = 0, initial = false, reconnect = false } = {}) {
     if (actualId === null || actualId === undefined) throw new TypeError("A transient player id is required");
     if (!SPECIALISTS.has(specialist)) throw new TypeError("Unknown specialist");
-    const assigned = slot === undefined ? [0, 1, 2, 3].find((candidate) => !this.roster.has(candidate)) : slot;
+    const assigned = slot === undefined ? [0, 1, 2, 3].find((candidate) => !this.knownSlots.has(candidate)) : slot;
     integer(assigned, 0, 3, "slot");
-    if (this.roster.has(assigned) && this.actualToSlot.get(actualId) !== assigned) throw new TypeError("Replay slot already belongs to another player");
+    if (this.knownSlots.has(assigned) && (!reconnect || this.knownSlots.get(assigned) !== specialist)) throw new TypeError("Replay slot already belongs to another player");
     this.actualToSlot.set(actualId, assigned);
-    this.roster.set(assigned, specialist);
+    this.knownSlots.set(assigned, specialist);
+    if (initial) this.roster.set(assigned, specialist);
     if (!initial) this.push(tick, reconnect ? "r" : "j", assigned, specialist);
     return assigned;
   }
@@ -291,12 +358,12 @@ export class ReplayDriver {
     const checkpoints = new Map(this.replay.checkpoints);
     let commandIndex = 0;
     for (let tick = 0; tick <= this.replay.finalTick; tick++) {
-      while (this.replay.commands[commandIndex]?.[0] === tick) {
-        this.adapters.applyCommand(simulation, decodeReplayCommand(this.replay.commands[commandIndex++]));
-      }
       if (checkpoints.has(tick)) {
         const actual = this.adapters.hashState(simulation);
         if (actual !== checkpoints.get(tick)) throw new Error(`Replay diverged at tick ${tick}: expected ${checkpoints.get(tick)}, got ${actual}`);
+      }
+      while (this.replay.commands[commandIndex]?.[0] === tick) {
+        this.adapters.applyCommand(simulation, decodeReplayCommand(this.replay.commands[commandIndex++]));
       }
       if (tick < this.replay.finalTick) this.adapters.stepSimulation(simulation, 1 / REPLAY_STEP_HZ, tick);
     }

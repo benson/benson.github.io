@@ -7,6 +7,9 @@ import { getThemeAsset } from "./themes/lastlight.js?v=20260711.2";
 import { submitRunTelemetry } from "./telemetry.js?v=20260711.2";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.2";
 import { formatProjectileDisplay, getCombatMetadata, getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260711.2";
+import { BALANCE_HASH, BALANCE_VERSION } from "./balance-config.js?v=20260711.2";
+import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.2";
+import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260711.2";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -23,6 +26,7 @@ const ENEMY_HEALTH_BARS_KEY = "lastlight:enemy-health-bars:v1";
 const RUN_HISTORY_KEY = "lastlight:runs:v1";
 const CLIENT_TOKEN_KEY = "lastlight:client-token:v1";
 const DAMAGE_LEDGER_LAYOUT_KEY = "lastlight:damage-ledger-layout:v1";
+const LAST_REPLAY_KEY = "lastlight:last-replay:v1";
 const DAMAGE_LEDGER_DEFAULT = Object.freeze({ x: 22, y: 112, width: 250, height: 150, collapsed: false });
 const DIFFICULTY_COPY = { story: "Story · Sharp hits · Lighter opening", hard: "Hard · 3× health · 2× damage", extreme: "Extreme · 7× health · 3× damage" };
 
@@ -59,6 +63,11 @@ function loadDamageLedgerLayout() {
   } catch { return { ...DAMAGE_LEDGER_DEFAULT }; }
 }
 
+function loadLastReplay() {
+  try { return validateReplay(JSON.parse(sessionStorage.getItem(LAST_REPLAY_KEY) || "null")); }
+  catch { return null; }
+}
+
 const state = {
   screen: "home", partyMode: "solo", selected: "zuri", clientId: "solo", isHost: true, room: "",
   lobby: new Map(), ws: null, connecting: false, connectResolve: null, connectReject: null,
@@ -77,7 +86,71 @@ const state = {
   bannerTimer: null, bannerExitTimer: null,
   resumeToken: loadClientToken(),
   hostPreviousMotion: null, inputMotionStartedAt: 0, inputMotionStart: null, inputWasActive: false,
+  replayRecorder: null, lastReplayCheckpointTick: -1, lastReplay: loadLastReplay(), resultReplay: null,
 };
+
+function replayRunConfig() {
+  return { map: state.config.map, difficulty: state.config.difficulty, duration: Number(state.config.duration) };
+}
+
+function beginReplayCapture(players, seed) {
+  state.replayRecorder = new ReplayRecorder({
+    build: BUILD, balanceVersion: BALANCE_VERSION, balanceHash: BALANCE_HASH,
+    rng: RNG_ALGORITHM, seed, run: replayRunConfig(),
+  });
+  for (const player of players) state.replayRecorder.registerPlayer(player.id, player.specialist, { slot: player.replaySlot, initial: true });
+  state.lastReplayCheckpointTick = -1;
+  state.resultReplay = null;
+  recordReplayCheckpoint(true);
+}
+
+function recordReplayCheckpoint(force = false) {
+  if (!state.replayRecorder || !state.sim) return;
+  const tick = state.sim.tick;
+  if ((!force && tick % 300 !== 0) || tick === state.lastReplayCheckpointTick) return;
+  state.replayRecorder.addCheckpoint(tick, hashSimulationState(state.sim));
+  state.lastReplayCheckpointTick = tick;
+}
+
+function finalizeReplayCapture() {
+  if (!state.replayRecorder || !state.sim) return null;
+  const replay = state.replayRecorder.finalize(state.sim.tick, hashSimulationState(state.sim));
+  state.replayRecorder = null;
+  state.lastReplay = replay;
+  state.resultReplay = replay;
+  try { sessionStorage.setItem(LAST_REPLAY_KEY, JSON.stringify(replay)); } catch { /* Replay export remains available in memory. */ }
+  return replay;
+}
+
+function applyHostInput(playerId, input) {
+  if (!state.sim) return input;
+  const normalized = dequantizeReplayInput(quantizeReplayInput(input));
+  state.replayRecorder?.recordInput(playerId, state.sim.tick, normalized);
+  state.sim.setInput(playerId, normalized);
+  return normalized;
+}
+
+function recordHostCast(playerId, slot) {
+  if (!state.sim?.cast(playerId, slot)) return false;
+  state.replayRecorder?.recordCast(playerId, state.sim.tick, slot);
+  return true;
+}
+
+function recordHostChoice(playerId, choiceId) {
+  const accepted = Boolean(state.sim?.pendingChoices?.[playerId]?.some((choice) => choice.id === choiceId) && !state.sim.choiceReady?.[playerId]);
+  if (!accepted) return false;
+  state.sim.choose(playerId, choiceId);
+  state.replayRecorder?.recordUpgrade(playerId, state.sim.tick, choiceId);
+  return true;
+}
+
+function nextReplaySlot() {
+  const used = new Set([
+    ...(state.sim?.players || []).map((player) => player.replaySlot),
+    ...[...(state.sim?.disconnectedPlayers?.values?.() || [])].map((entry) => entry.player?.replaySlot),
+  ]);
+  return [0, 1, 2, 3].find((slot) => !used.has(slot));
+}
 
 function setScreen(name) {
   state.screen = name;
@@ -318,9 +391,11 @@ function handleReady() {
 
 function startHostedGame() {
   if (!state.isHost) return;
-  const players = [...state.lobby.values()].map((p) => ({ id: p.id, name: p.name, specialist: p.specialist, resumeToken: p.resumeToken || "" }));
+  const players = [...state.lobby.values()].map((p, replaySlot) => ({ id: p.id, name: p.name, specialist: p.specialist, resumeToken: p.resumeToken || "", replaySlot }));
   if (!players.length) return;
-  state.sim = new Simulation({ ...state.config, players });
+  const seed = createRandomSeed();
+  state.sim = new Simulation({ ...state.config, players }, { seed, balanceVersion: BALANCE_VERSION, balanceHash: BALANCE_HASH });
+  beginReplayCapture(players, seed);
   state.previousSnapshot = null; state.snapshot = null;
   if (state.ws?.readyState === WebSocket.OPEN) send({ type: "start", config: state.config, players: publicLobbyPlayers() });
   enterGame();
@@ -347,13 +422,14 @@ function gameLoop(now) {
   const input = currentInput();
   let interpolation = 1, renderPrevious = null, renderState = null;
   if (state.isHost && state.sim) {
-    const simulationStarted = performance.now(); state.sim.setInput(state.clientId, input);
+    const simulationStarted = performance.now(); const hostInput = applyHostInput(state.clientId, input);
     const timing = fixedClock.advance(dt, (stepSeconds) => {
       state.hostPreviousMotion = captureMotionState(state.sim);
       state.sim.update(stepSeconds);
+      recordReplayCheckpoint();
     });
     simulationMs = performance.now() - simulationStarted; interpolation = timing.alpha; renderPrevious = state.hostPreviousMotion;
-    renderState = withLocalMovementPreview(state.sim, input, fixedClock.accumulator);
+    renderState = withLocalMovementPreview(state.sim, hostInput, fixedClock.accumulator);
     if (state.ws?.readyState === WebSocket.OPEN && now - state.lastBroadcast > 83) { state.lastBroadcast = now; send({ type: "snapshot", state: state.sim.snapshot() }); }
   } else {
     const authoritative = state.snapshot?.players?.find((player) => player.id === state.clientId);
@@ -460,7 +536,7 @@ function currentInput() {
 function cast(slot) {
   if (state.screen !== "game") return;
   if (state.isHost) {
-    if (state.sim?.cast(state.clientId, slot)) {
+    if (recordHostCast(state.clientId, slot)) {
       sfx(slot === "r" ? "ultimate" : "ability");
       if (slot === "r") comicVoice("pew pew pew");
     }
@@ -726,7 +802,10 @@ function togglePause(force) {
   $("pause-overlay").classList.toggle("hidden", !next);
 }
 
-function abandon() { if (state.isHost && state.sim) state.sim.lose("The squad withdrew from the breach."); $("pause-overlay").classList.add("hidden"); }
+function abandon() {
+  if (state.isHost && state.sim) { state.replayRecorder?.recordAbandon(state.sim.tick); state.sim.lose("The squad withdrew from the breach."); }
+  $("pause-overlay").classList.add("hidden");
+}
 
 function updateHUD(game) {
   const player = game.players.find((p) => p.id === state.clientId) || game.players[0]; if (!player) return;
@@ -930,7 +1009,7 @@ window.LastlightInspect = Object.freeze({ show: showInspectPanel, hide: hideInsp
 
 function chooseUpgrade(choiceId) {
   sfx("select");
-  if (state.isHost) state.sim?.choose(state.clientId, choiceId); else send({ type: "choice", choiceId });
+  if (state.isHost) recordHostChoice(state.clientId, choiceId); else send({ type: "choice", choiceId });
 }
 
 function processEvents(events) {
@@ -1050,6 +1129,8 @@ function showResult(game) {
   const unlocks = won ? recordVictory(mapId, difficultyId) : [];
   $("result-unlock").classList.toggle("hidden", !unlocks.length);
   $("result-unlock").textContent = unlocks.length ? `Campaign updated · ${unlocks.join(" · ")}` : "";
+  if (state.isHost && game === state.sim) finalizeReplayCapture();
+  $("copy-replay").classList.toggle("hidden", !state.resultReplay);
   state.resultGame = game; renderScoreboard(game);
   saveCompletedRun(game);
   setScreen("result");
@@ -1059,14 +1140,20 @@ function showResult(game) {
   }
 }
 
+async function copyReplay() {
+  if (!state.resultReplay) return;
+  try { await navigator.clipboard.writeText(JSON.stringify(state.resultReplay)); toast("Deterministic replay copied"); }
+  catch (error) { captureClientError("replay", error); toast("Could not copy the replay"); }
+}
+
 function returnToLobby() {
-  state.sim = null; state.snapshot = null; state.previousSnapshot = null; state.endShown = false; clearTimeout(state.resultTimer);
+  state.sim = null; state.snapshot = null; state.previousSnapshot = null; state.replayRecorder = null; state.endShown = false; clearTimeout(state.resultTimer);
   for (const member of state.lobby.values()) member.ready = member.id === state.clientId && state.isHost;
   if (state.ws?.readyState === WebSocket.OPEN) send({ type: "return_lobby" });
   enterLobby(); if (state.isHost) broadcastLobby(); else updateLocalProfile({ ready: false });
 }
 
-function leaveToHome() { closeSocket(); state.sim = null; state.snapshot = null; state.resultGame = null; state.lobby.clear(); setScreen("home"); updateProgressionUI(); }
+function leaveToHome() { closeSocket(); state.sim = null; state.snapshot = null; state.replayRecorder = null; state.resultGame = null; state.lobby.clear(); setScreen("home"); updateProgressionUI(); }
 
 function connectRoom(code) {
   closeSocket(); state.room = code; state.connecting = true;
@@ -1095,6 +1182,9 @@ function handleNetworkMessage(raw) {
     if (state.isHost) { state.lobby.set(message.peer.id, { id: message.peer.id, name: message.peer.name || "Connecting…", specialist: message.peer.specialist || "zuri", ready: false }); broadcastLobby(); }
   } else if (message.type === "peer_left") {
     const departed = state.lobby.get(message.id);
+    if (state.isHost && state.sim && state.replayRecorder) {
+      try { state.replayRecorder.recordLeave(message.id, state.sim.tick); } catch { /* A pre-run peer has no replay slot. */ }
+    }
     state.lobby.delete(message.id); state.sim?.removePlayer(message.id);
     if (state.isHost && state.sim && state.screen === "game") state.sim.pushEvent("danger", `${departed?.name || "A specialist"} disconnected`, "Their callsign is reserved for three minutes");
     if (state.screen === "lobby") renderLobby(); if (state.isHost) broadcastLobby();
@@ -1104,8 +1194,9 @@ function handleNetworkMessage(raw) {
   } else if (message.type === "profile" && state.isHost) {
     state.lobby.set(message._from, { ...message.profile, id: message._from });
     if (state.sim && state.screen === "game") {
-      const player = state.sim.addPlayer({ ...message.profile, id: message._from });
+      const player = state.sim.addPlayer({ ...message.profile, id: message._from, replaySlot: nextReplaySlot() });
       const resumed = Boolean(player?.reconnected); if (player) delete player.reconnected;
+      if (player && state.replayRecorder) state.replayRecorder.registerPlayer(message._from, player.specialist, { slot: player.replaySlot, tick: state.sim.tick, reconnect: resumed });
       if (player && !resumed) {
         const anchor = state.sim.players.find((entry) => entry.id !== player.id && !entry.dead && !entry.downed);
         if (anchor) { player.x = anchor.x + 45; player.y = anchor.y + 25; }
@@ -1126,9 +1217,9 @@ function handleNetworkMessage(raw) {
     toast("Joined operation in progress");
   }
   else if (message.type === "return_lobby" && !state.isHost) returnToLobby();
-  else if (message.type === "input" && state.isHost) state.sim?.setInput(message._from, message.input);
-  else if (message.type === "cast" && state.isHost) state.sim?.cast(message._from, message.slot);
-  else if (message.type === "choice" && state.isHost) state.sim?.choose(message._from, message.choiceId);
+  else if (message.type === "input" && state.isHost) applyHostInput(message._from, message.input);
+  else if (message.type === "cast" && state.isHost) recordHostCast(message._from, message.slot);
+  else if (message.type === "choice" && state.isHost) recordHostChoice(message._from, message.choiceId);
   else if (message.type === "snapshot" && !state.isHost) {
     const now = performance.now(); if (state.snapshotAt) state.snapshotInterval = clamp(now - state.snapshotAt, 60, 180);
     state.previousSnapshot = state.snapshot; state.snapshot = message.state; state.snapshotAt = now;
@@ -1359,6 +1450,7 @@ function bindEvents() {
   $("pause-button").addEventListener("click", () => togglePause()); $("resume-button").addEventListener("click", () => togglePause(false)); $("abandon-button").addEventListener("click", abandon);
   $("enemy-health-bars-toggle").addEventListener("change", (event) => setEnemyHealthBars(event.target.checked));
   $("again-button").addEventListener("click", returnToLobby); $("result-home").addEventListener("click", leaveToHome);
+  $("copy-replay").addEventListener("click", copyReplay);
   for (const id of ["run-history-button", "lobby-run-history", "result-run-history"]) $(id).addEventListener("click", openRunHistory);
   $("run-history-close").addEventListener("click", () => $("run-history-dialog").close());
   $("run-history-dialog").addEventListener("click", (event) => { if (event.target === $("run-history-dialog")) $("run-history-dialog").close(); });

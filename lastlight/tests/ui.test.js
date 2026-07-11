@@ -89,3 +89,12 @@ test("relay identity is sent after WebSocket upgrade instead of in the request U
   assert.doesNotMatch(game, /url\.searchParams\.set\("(?:name|specialist|resume)"/);
   assert.match(game, /addEventListener\("open", \(\) => send\(\{ type: "hello", profile:/);
 });
+
+test("hosts capture anonymous deterministic replays and expose an explicit post-run copy action", () => {
+  assert.match(html, /id="copy-replay"[^>]*>Copy deterministic replay</);
+  assert.match(game, /new ReplayRecorder\(/);
+  assert.match(game, /createRandomSeed\(\)/);
+  assert.match(game, /recordReplayCheckpoint\(\)/);
+  assert.match(game, /navigator\.clipboard\.writeText\(JSON\.stringify\(state\.resultReplay\)\)/);
+  assert.doesNotMatch(game, /submitRunTelemetry\([^)]*replay/i);
+});

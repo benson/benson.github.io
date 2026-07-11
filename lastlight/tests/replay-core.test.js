@@ -2,8 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   REPLAY_SCHEMA, REPLAY_STEP_HZ, ReplayDriver, ReplayRecorder, canonicalStringify,
-  dequantizeReplayInput, fnv1a64, hashCanonicalState, quantizeReplayInput, validateReplay,
+  canonicalSimulationState, dequantizeReplayInput, fnv1a64, hashCanonicalState, hashSimulationState,
+  quantizeReplayInput, validateReplay,
 } from "../replay.js";
+import { Simulation } from "../engine.js";
 
 const base = () => ({
   schema: REPLAY_SCHEMA,
@@ -81,12 +83,28 @@ test("recorder keeps transient identities out of replay JSON and deduplicates in
   assert.deepEqual(replay.roster, [{ slot: 0, specialist: "zuri" }]);
 });
 
+test("join and reconnect commands reuse an anonymous slot without changing the initial roster", () => {
+  const recorder = new ReplayRecorder({
+    build: "2026.07.11.3", balanceVersion: "2026.07.11-baseline.1", balanceHash: "fnv1a32:7e33be79",
+    rng: "xoshiro128ss-v1", seed: "0123456789abcdef0123456789abcdef",
+    run: { map: "warehouse", difficulty: "story", duration: 240 },
+  });
+  recorder.registerPlayer("host", "zuri", { slot: 0, initial: true });
+  recorder.registerPlayer("guest-old", "echo", { slot: 1, tick: 10 });
+  recorder.recordLeave("guest-old", 20);
+  recorder.registerPlayer("guest-new", "echo", { slot: 1, tick: 25, reconnect: true });
+  recorder.addCheckpoint(0, "0000000000000000");
+  const replay = recorder.finalize(25, "1111111111111111");
+  assert.deepEqual(replay.roster, [{ slot: 0, specialist: "zuri" }]);
+  assert.deepEqual(replay.commands.map((command) => command[2]), ["j", "l", "r"]);
+});
+
 test("generic driver applies same-tick commands in ordinal order and verifies hashes", () => {
   const replay = base();
   replay.commands = [[0, 0, "i", 0, 127, 0, 0, 1], [0, 1, "c", 0, "e"]];
-  const stateAtZero = { total: 2, commands: ["input", "cast"] };
+  const stateAtZero = { total: 0, commands: [] };
   replay.checkpoints = [[0, hashCanonicalState(stateAtZero)]];
-  replay.finalHash = replay.checkpoints[0][1];
+  replay.finalHash = hashCanonicalState({ total: 2, commands: ["input", "cast"] });
   const driver = new ReplayDriver(replay, {
     createSimulation: () => ({ total: 0, commands: [] }),
     applyCommand: (sim, command) => { sim.total += 1; sim.commands.push(command.kind); },
@@ -104,6 +122,55 @@ test("driver reports the first divergent checkpoint", () => {
     createSimulation: () => ({}), applyCommand() {}, stepSimulation() {}, hashState: () => "ffffffffffffffff",
   });
   assert.throws(() => driver.run(), /diverged at tick 0/);
+});
+
+test("simulation hashes normalize transient identity but include input, hit sets, and pending tasks", () => {
+  const config = { map: "warehouse", difficulty: "story", duration: 240 };
+  const seed = "0123456789abcdef0123456789abcdef";
+  const first = new Simulation({ ...config, players: [{ id: "relay-a", name: "Secret A", specialist: "zuri", replaySlot: 0 }] }, { seed });
+  const second = new Simulation({ ...config, players: [{ id: "relay-b", name: "Secret B", specialist: "zuri", replaySlot: 0 }] }, { seed });
+  assert.equal(hashSimulationState(first), hashSimulationState(second));
+  assert.doesNotMatch(JSON.stringify(canonicalSimulationState(first)), /relay-a|Secret A/);
+
+  first.setInput("relay-a", { x: 1, y: 0, aim: 0, autoAim: true });
+  assert.notEqual(hashSimulationState(first), hashSimulationState(second));
+  second.setInput("relay-b", { x: 1, y: 0, aim: 0, autoAim: true });
+  assert.equal(hashSimulationState(first), hashSimulationState(second));
+
+  first.projectiles.push({ id: "b-test", owner: "relay-a", hit: new Set(["enemy-2"]) });
+  second.projectiles.push({ id: "b-test", owner: "relay-b", hit: new Set() });
+  assert.notEqual(hashSimulationState(first), hashSimulationState(second));
+});
+
+test("a recorded deterministic Simulation replays to the same final hash", () => {
+  const run = { map: "warehouse", difficulty: "story", duration: 240 };
+  const seed = "0123456789abcdef0123456789abcdef";
+  const source = new Simulation({ ...run, players: [{ id: "source-relay", name: "Source", specialist: "zuri", replaySlot: 0 }] }, { seed });
+  const recorder = new ReplayRecorder({
+    build: "2026.07.11.3", balanceVersion: source.balanceVersion, balanceHash: source.balanceHash,
+    rng: "xoshiro128ss-v1", seed, run,
+  });
+  recorder.registerPlayer("source-relay", "zuri", { slot: 0, initial: true });
+  recorder.addCheckpoint(0, hashSimulationState(source));
+  const input = dequantizeReplayInput(quantizeReplayInput({ x: 1, y: .25, aim: .7, autoAim: true }));
+  recorder.recordInput("source-relay", 0, input);
+  source.setInput("source-relay", input);
+  for (let tick = 0; tick < 120; tick++) source.update(1 / 60);
+  const replay = recorder.finalize(source.tick, hashSimulationState(source));
+
+  const driver = new ReplayDriver(replay, {
+    createSimulation: (manifest) => new Simulation({
+      ...manifest.run,
+      players: manifest.roster.map(({ slot, specialist }) => ({ id: `p${slot}`, name: `P${slot}`, specialist, replaySlot: slot })),
+    }, { seed: manifest.seed, balanceVersion: manifest.balance.version, balanceHash: manifest.balance.hash }),
+    applyCommand: (sim, command) => {
+      const player = sim.players.find((entry) => entry.replaySlot === command.slot);
+      if (command.kind === "input") sim.setInput(player.id, command.input);
+    },
+    stepSimulation: (sim, dt) => sim.update(dt),
+    hashState: hashSimulationState,
+  });
+  assert.equal(driver.run().finalHash, replay.finalHash);
 });
 
 test("oversized replays are rejected before playback", () => {
