@@ -40,6 +40,14 @@ test("enemy health bar preferences expose off, important, and all modes", () => 
   assert.equal(renderer.enemyHealthBarMode, "important");
 });
 
+test("renderer preloads theme-owned runtime art for every field-guide enemy", () => {
+  const renderer = createRenderer();
+  assert.deepEqual(Object.keys(renderer.enemySprites).sort(), ["bomber", "brute", "hound", "mite", "shark", "spitter"]);
+  assert.equal(renderer.enemySprites.mite.currentSrc, "assets/enemies/skitter.webp");
+  assert.equal(renderer.enemySprites.hound.currentSrc, "assets/enemies/rusher.webp");
+  assert.equal(renderer.enemySprites.shark.currentSrc, "assets/enemies/siegebreaker.webp");
+});
+
 test("inspection returns structured combat details and controls hover state", () => {
   const renderer = createRenderer();
   renderer.camera.x = 0;

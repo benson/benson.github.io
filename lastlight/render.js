@@ -1,7 +1,8 @@
 import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260710.5";
 import { WORLD } from "./engine.js?v=20260710.5";
-import { getThemeAnimation, getThemeAsset } from "./themes/lastlight.js?v=20260710.5";
+import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation } from "./themes/lastlight.js?v=20260710.5";
 import { animationFrame, directionColumn, springCamera } from "./feel.js?v=20260710.5";
+import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260710.5";
 
 const TAU = Math.PI * 2;
 export class Renderer {
@@ -15,8 +16,10 @@ export class Renderer {
     this.sprites = {};
     this.environments = {};
     this.effectSprites = {};
+    this.enemySprites = {};
     this.animationAtlases = {};
     this.playerVisuals = new Map();
+    this.enemyVisuals = new Map();
     this.groundParticles = [];
     this.visualFreeze = 0;
     this.lastLocalHurt = 0;
@@ -43,6 +46,9 @@ export class Renderer {
       if (!map.texture) continue;
       const image = new Image(); image.src = map.texture; this.environments[map.id] = image;
     }
+    for (const type of Object.keys(ENEMY_TYPES)) {
+      const image = new Image(); image.src = getThemeAsset(`enemies.${type}`); this.enemySprites[type] = image;
+    }
     for (const [name, src] of Object.entries({
       xpShard: getThemeAsset("effects.xpShard"),
       hostileBolt: getThemeAsset("effects.hostileBolt"),
@@ -55,7 +61,7 @@ export class Renderer {
 
   resetCamera() {
     this.camera.x = 0; this.camera.y = 0; this.camera.vx = 0; this.camera.vy = 0;
-    this.playerVisuals.clear(); this.groundParticles = []; this.visualFreeze = 0; this.lastLocalHurt = 0;
+    this.playerVisuals.clear(); this.enemyVisuals.clear(); this.groundParticles = []; this.visualFreeze = 0; this.lastLocalHurt = 0;
   }
 
   resize() {
@@ -290,6 +296,10 @@ export class Renderer {
 
   drawGroundedQueue(state, previous, t, map, localPlayerId, visualDt) {
     const items = [];
+    if (this.enemyVisuals.size > (state.enemies?.length || 0) + 32) {
+      const livingEnemyIds = new Set((state.enemies || []).map((enemy) => enemy.id));
+      for (const enemyId of this.enemyVisuals.keys()) if (!livingEnemyIds.has(enemyId)) this.enemyVisuals.delete(enemyId);
+    }
     for (const block of MAP_OBSTACLES) items.push({ type: "cover", value: block, sortY: block[1] + block[3] });
     for (const pod of state.pods || []) items.push({ type: "pod", value: pod, sortY: pod.y + (pod.radius || 0) });
     for (const enemy of state.enemies || []) {
@@ -607,26 +617,118 @@ export class Renderer {
     }ctx.shadowBlur=0;
   }
 
+  drawSegmentedHealthBar({
+    x, y, width, height, value, maxValue, trail = value, shield = 0, layout,
+    color = "#62ebae", trailColor = "#ff9a5b", shieldColor = "#72d8ff",
+  }) {
+    const ctx = this.ctx, maximum = Math.max(Number.EPSILON, maxValue || 1);
+    const valueRatio = clamp((value || 0) / maximum, 0, 1);
+    const trailRatio = clamp((trail || 0) / maximum, 0, 1);
+    const shieldRatio = clamp((shield || 0) / maximum, 0, 1);
+    ctx.save();
+    ctx.fillStyle = "rgba(2,7,13,.88)"; ctx.fillRect(x, y, width, height);
+    if (trailRatio > 0) { ctx.fillStyle = trailColor; ctx.fillRect(x, y, width * trailRatio, height); }
+    if (valueRatio > 0) { ctx.fillStyle = color; ctx.fillRect(x, y, width * valueRatio, height); }
+    if (shieldRatio > 0) {
+      ctx.fillStyle = "rgba(2,7,13,.88)"; ctx.fillRect(x, y - 3, width, 2);
+      ctx.fillStyle = shieldColor; ctx.fillRect(x, y - 3, width * shieldRatio, 2);
+    }
+    for (const divider of layout.dividers) {
+      const dividerWidth = divider.major ? 2 : 1;
+      const dividerX = x + width * divider.position - dividerWidth / 2;
+      ctx.fillStyle = divider.major ? "rgba(2,7,13,.88)" : "rgba(2,7,13,.62)";
+      ctx.fillRect(dividerX, y, dividerWidth, height);
+      if (shieldRatio > 0) ctx.fillRect(dividerX, y - 3, dividerWidth, 2);
+    }
+    ctx.strokeStyle = "rgba(235,255,250,.22)"; ctx.lineWidth = 1; ctx.strokeRect(x + .5, y + .5, width - 1, height - 1);
+    ctx.restore();
+  }
+
   drawEnemies(enemies, previous, t, map) {
-    const ctx=this.ctx;
-    for(const raw of enemies){
-      if(!this.isWorldVisible(raw,90))continue;
-      const e=this.position(raw,previous?.enemies,t),now=performance.now();ctx.save();ctx.translate(e.x,e.y);
-      const spawn=clamp((e.spawnLife||0)/.24,0,1),attack=clamp((e.attackFlash||0)/.2,0,1),wobble=this.reducedMotion?0:Math.sin(now*.006+e.x*.02+e.y*.01)*.035;
-      ctx.rotate(wobble*(e.stun>0?.35:1));ctx.scale((1-spawn*.42)*(1+attack*.16),(1-spawn*.42)*(1-attack*.08));ctx.globalAlpha=1-spawn*.55;
-      ctx.fillStyle="rgba(0,0,0,.28)";ctx.beginPath();ctx.ellipse(4,e.radius*.7,e.radius*.9,e.radius*.45,0,0,TAU);ctx.fill();
-      if(e.elite||e.boss){ctx.strokeStyle=e.boss?map.accent:"#ffe073";ctx.globalAlpha=.45;ctx.lineWidth=e.boss?8:4;ctx.beginPath();ctx.arc(0,0,e.radius+10+Math.sin(performance.now()*.005)*3,0,TAU);ctx.stroke();ctx.globalAlpha=1;}
-      ctx.fillStyle=e.hitFlash>0?"#fff":e.attackFlash>0?"#fff0c4":e.color;ctx.shadowColor=e.attackFlash>0?"#ff5a43":e.color;ctx.shadowBlur=e.attackFlash>0?30:e.boss?28:e.elite?18:5;
-      const sides=e.boss?7:(ENEMY_TYPES[e.type]?.shape||5);ctx.beginPath();
-      for(let i=0;i<sides;i++){const a=i*TAU/sides-.5*Math.PI;const r=e.radius*(i%2? .82:1);const x=Math.cos(a)*r,y=Math.sin(a)*r;i?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.closePath();ctx.fill();
-      ctx.fillStyle="#07111b";ctx.beginPath();ctx.arc(-e.radius*.23,-e.radius*.1,Math.max(2,e.radius*.11),0,TAU);ctx.arc(e.radius*.23,-e.radius*.1,Math.max(2,e.radius*.11),0,TAU);ctx.fill();
-      if(e.hitFlash>0){ctx.rotate(e.hitAngle||0);ctx.strokeStyle="#fff";ctx.globalAlpha=clamp(e.hitFlash/.1,0,1);ctx.lineWidth=3;for(let i=-1;i<=1;i++){ctx.beginPath();ctx.moveTo(e.radius*.25,i*7);ctx.lineTo(e.radius*1.25,i*12);ctx.stroke();}ctx.rotate(-(e.hitAngle||0));ctx.globalAlpha=1;}
-      if(e.attackFlash>0){ctx.strokeStyle="#ff5a43";ctx.globalAlpha=attack;ctx.lineWidth=4;ctx.beginPath();ctx.arc(0,0,e.radius+8+attack*10,-.65,.65);ctx.stroke();ctx.globalAlpha=1;}
-      if(e.eventType==="treasure"){ctx.fillStyle="#fff2a8";ctx.font="900 15px Inter";ctx.textAlign="center";ctx.fillText("$",0,5);ctx.fillStyle="#f7d76a";ctx.font="800 9px Inter";ctx.fillText(`TREASURE · ${Math.max(0,Math.ceil(e.life))}s`,0,-e.radius-30);}
-      const important=e.elite||e.miniboss||e.boss;
-      if(this.enemyHealthBarMode==="all"||(this.enemyHealthBarMode==="important"&&important)){const w=e.boss?180:important?Math.max(56,e.radius*2):Math.max(34,e.radius*1.65);ctx.fillStyle="rgba(2,7,13,.8)";ctx.fillRect(-w/2,-e.radius-20,w,6);ctx.fillStyle=e.boss?map.accent:important?"#ffcf64":"#ff6759";ctx.fillRect(-w/2,-e.radius-20,w*clamp(e.hp/e.maxHp,0,1),6);}
+    const ctx = this.ctx, now = performance.now();
+    for (const raw of enemies) {
+      if (!this.isWorldVisible(raw, 110)) continue;
+      const e = this.position(raw, previous?.enemies, t);
+      const before = this.previousEntity(previous?.enemies, raw.id);
+      const dx = before ? raw.x - before.x : 0, dy = before ? raw.y - before.y : 0;
+      const speed = Math.hypot(dx, dy), animation = getThemeEnemyAnimation(e.type);
+      const image = this.enemySprites[e.type], spriteReady = image?.complete && image.naturalWidth;
+      const phase = Array.from(String(e.id)).reduce((sum, character) => sum + character.charCodeAt(0), 0) % 628 / 100;
+      const visual = this.enemyVisuals.get(e.id) || { facing: dx < 0 ? -1 : 1, stride: phase };
+      if (Math.abs(dx) > .12) visual.facing = dx < 0 ? -1 : 1;
+      visual.stride += speed > .12 ? .16 : .035;
+      this.enemyVisuals.set(e.id, visual);
+
+      const spawn = clamp((e.spawnLife || 0) / .24, 0, 1);
+      const attack = clamp((e.attackFlash || 0) / .2, 0, 1);
+      const groundY = animation?.groundY ?? e.radius * .7;
+      const shadow = animation?.shadow || [e.radius * .9, e.radius * .45];
+      const wobble = this.reducedMotion ? 0 : Math.sin(now * .006 + e.x * .02 + e.y * .01) * .026;
+      const step = this.reducedMotion ? 0 : Math.sin(visual.stride) * (animation?.stride || 1.5) * clamp(speed * .75, .18, 1);
+
+      ctx.save(); ctx.translate(e.x, e.y);
+      ctx.globalAlpha = 1 - spawn * .55;
+      ctx.fillStyle = "rgba(0,0,0,.34)"; ctx.beginPath(); ctx.ellipse(4, groundY, shadow[0], shadow[1], 0, 0, TAU); ctx.fill();
+      if (e.elite || e.boss) {
+        ctx.strokeStyle = e.boss ? map.accent : "#ffe073"; ctx.globalAlpha = .45; ctx.lineWidth = e.boss ? 8 : 4;
+        ctx.beginPath(); ctx.arc(0, 0, e.radius + 10 + Math.sin(now * .005) * 3, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1 - spawn * .55;
+      }
+
+      ctx.save();
+      ctx.translate(0, step);
+      ctx.rotate(wobble * (e.stun > 0 ? .35 : 1));
+      ctx.scale((1 - spawn * .42) * (1 + attack * .16), (1 - spawn * .42) * (1 - attack * .08));
+      ctx.shadowColor = e.attackFlash > 0 ? "#ff5a43" : e.color;
+      ctx.shadowBlur = e.attackFlash > 0 ? 30 : e.boss ? 28 : e.elite ? 18 : 5;
+      if (spriteReady && animation) {
+        const [width, height] = animation.drawSize, anchor = animation.anchor || [.5, .78];
+        ctx.scale(visual.facing, 1);
+        if (e.hitFlash > 0) ctx.filter = `brightness(${1 + clamp(e.hitFlash / .12, 0, 1) * 2.2}) saturate(.45)`;
+        else if (e.attackFlash > 0) ctx.filter = `brightness(${1 + attack * .75}) saturate(${1 + attack * .3})`;
+        ctx.drawImage(image, -width * anchor[0], groundY - height * anchor[1], width, height);
+      } else {
+        ctx.fillStyle = e.hitFlash > 0 ? "#fff" : e.attackFlash > 0 ? "#fff0c4" : e.color;
+        const sides = e.boss ? 7 : (ENEMY_TYPES[e.type]?.shape || 5); ctx.beginPath();
+        for (let i = 0; i < sides; i += 1) {
+          const angle = i * TAU / sides - .5 * Math.PI, radius = e.radius * (i % 2 ? .82 : 1);
+          const x = Math.cos(angle) * radius, y = Math.sin(angle) * radius; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+        }
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "#07111b"; ctx.beginPath();
+        ctx.arc(-e.radius * .23, -e.radius * .1, Math.max(2, e.radius * .11), 0, TAU);
+        ctx.arc(e.radius * .23, -e.radius * .1, Math.max(2, e.radius * .11), 0, TAU); ctx.fill();
+      }
       ctx.restore();
-    }ctx.shadowBlur=0;
+
+      if (e.hitFlash > 0) {
+        ctx.save(); ctx.rotate(e.hitAngle || 0); ctx.strokeStyle = "#fff"; ctx.globalAlpha = clamp(e.hitFlash / .1, 0, 1); ctx.lineWidth = 3;
+        for (let i = -1; i <= 1; i += 1) { ctx.beginPath(); ctx.moveTo(e.radius * .25, i * 7); ctx.lineTo(e.radius * 1.25, i * 12); ctx.stroke(); }
+        ctx.restore();
+      }
+      if (e.attackFlash > 0) {
+        ctx.strokeStyle = "#ff5a43"; ctx.globalAlpha = attack; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0, 0, e.radius + 8 + attack * 10, -.65, .65); ctx.stroke(); ctx.globalAlpha = 1;
+      }
+
+      const anchor = animation?.anchor || [.5, .5], spriteHeight = animation?.drawSize?.[1] || e.radius * 2;
+      const barY = Math.min(-e.radius - 20, groundY - spriteHeight * anchor[1] - 11);
+      if (e.eventType === "treasure") {
+        ctx.fillStyle = "#fff2a8"; ctx.font = "900 15px Inter"; ctx.textAlign = "center"; ctx.fillText("$", 0, -2);
+        ctx.fillStyle = "#f7d76a"; ctx.font = "800 9px Inter"; ctx.fillText(`TREASURE · ${Math.max(0, Math.ceil(e.life))}s`, 0, barY - 9);
+      }
+      const important = e.elite || e.miniboss || e.boss;
+      if (this.enemyHealthBarMode === "all" || (this.enemyHealthBarMode === "important" && important)) {
+        const width = e.boss ? 180 : important ? Math.max(56, e.radius * 2) : Math.max(34, e.radius * 1.65);
+        this.drawSegmentedHealthBar({
+          x: -width / 2, y: barY, width, height: e.boss ? 8 : 6,
+          value: e.hp, maxValue: e.maxHp,
+          layout: e.boss ? bossHealthSegments(e.maxHp) : enemyHealthSegments(e.maxHp),
+          color: e.boss ? map.accent : important ? "#ffcf64" : "#ff6759",
+          trailColor: e.boss ? map.accent : important ? "#ffcf64" : "#ff6759",
+        });
+      }
+      ctx.restore();
+    }
+    ctx.shadowBlur = 0;
   }
 
   drawDrones(drones, players, previous, t) {
@@ -790,10 +892,12 @@ export class Renderer {
       }
 
       const barW = 74, maxHp = Math.max(1, p.maxHp || 1), barY = -64;
-      ctx.fillStyle = "rgba(2,7,13,.86)"; ctx.fillRect(-barW / 2, barY, barW, 7);
-      ctx.fillStyle = "#ff9a5b"; ctx.fillRect(-barW / 2, barY, barW * clamp(visual.trailHp / maxHp, 0, 1), 7);
-      ctx.fillStyle = p.hp / maxHp < .3 ? "#ff4b68" : "#62ebae"; ctx.fillRect(-barW / 2, barY, barW * clamp(visual.displayHp / maxHp, 0, 1), 7);
-      if (p.shield > 0) { ctx.fillStyle = "#72d8ff"; ctx.fillRect(-barW / 2, barY - 3, barW * clamp(p.shield / maxHp, 0, 1), 2); }
+      this.drawSegmentedHealthBar({
+        x: -barW / 2, y: barY, width: barW, height: 7,
+        value: visual.displayHp, trail: visual.trailHp, shield: p.shield, maxValue: maxHp,
+        layout: playerHealthSegments(maxHp),
+        color: p.hp / maxHp < .3 ? "#ff4b68" : "#62ebae",
+      });
       ctx.fillStyle = "#fff"; ctx.font = "700 9px Inter"; ctx.textAlign = "center"; ctx.shadowColor = "#000"; ctx.shadowBlur = 3; ctx.fillText(p.name, 0, barY - 7);
       if (p.dead || p.downed) {
         ctx.globalAlpha = 1; ctx.fillStyle = "rgba(2,7,13,.82)"; ctx.fillRect(-46, 11, 92, 22);

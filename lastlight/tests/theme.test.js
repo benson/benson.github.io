@@ -7,6 +7,7 @@ import {
   THEME_ASSET_KEYS,
   getThemeAnimation,
   getThemeAsset,
+  getThemeEnemyAnimation,
   validateTheme,
 } from "../themes/lastlight.js";
 
@@ -14,9 +15,26 @@ test("default theme satisfies the complete asset contract", () => {
   const result = validateTheme(LASTLIGHT_THEME);
   assert.deepEqual(result.errors, []);
   assert.equal(result.valid, true);
-  assert.equal(result.assetCount, 86);
+  assert.equal(result.assetCount, 92);
   assert.equal(Object.isFrozen(LASTLIGHT_THEME), true);
   assert.equal(Object.isFrozen(LASTLIGHT_THEME.assets.archive.augments), true);
+});
+
+test("runtime enemy contract has unique deployable cutouts and render anchors", async () => {
+  assert.equal(THEME_ASSET_KEYS.enemies.length, 6);
+  const paths = Object.values(LASTLIGHT_THEME.assets.enemies);
+  assert.equal(paths.length, 6);
+  assert.equal(new Set(paths).size, paths.length);
+  assert.ok(paths.every((path) => path.startsWith("assets/enemies/") && path.endsWith(".webp")));
+  const root = fileURLToPath(new URL("../", import.meta.url));
+  await Promise.all(paths.map((path) => access(`${root}${path}`)));
+  for (const enemyType of THEME_ASSET_KEYS.enemies) {
+    const animation = getThemeEnemyAnimation(enemyType);
+    assert.equal(animation.anchor.length, 2);
+    assert.equal(animation.drawSize.length, 2);
+    assert.ok(animation.drawSize.every((value) => value > 0));
+    assert.equal(animation.shadow.length, 2);
+  }
 });
 
 test("guide contract gives every passive, enemy, and field category unique art", () => {
@@ -52,6 +70,7 @@ test("logical asset lookup is predictable and rejects typos", () => {
   assert.equal(getThemeAsset("specialists.zuri"), "assets/sprites/zuri.png");
   assert.equal(getThemeAsset("weapons.signatures.gale"), "assets/weapons/signature-gale.webp");
   assert.equal(getThemeAsset("effects.xpShard"), "assets/effects/xp-shard.webp");
+  assert.equal(getThemeAsset("enemies.hound"), "assets/enemies/rusher.webp");
   assert.equal(getThemeAsset("guide.passives.projectiles"), "assets/guide/passives/multishot.webp");
   assert.equal(getThemeAsset("archive.augments.glassCannon"), "assets/archive/glass-cannon.webp");
   assert.throws(() => getThemeAsset("archive.augments.glassCanon"), /Unknown theme asset/);
