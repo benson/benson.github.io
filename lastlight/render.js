@@ -4,6 +4,7 @@ import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation } from "./them
 import { animationFrame, directionColumn, springCamera } from "./feel.js?v=20260711.5";
 import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
 import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260711.5";
+import { impactRenderPlan } from "./impact-grammar.js?v=20260711.5";
 
 const TAU = Math.PI * 2;
 export class Renderer {
@@ -247,13 +248,13 @@ export class Renderer {
     this.drawObjectives(state.objectives || [], map);
     this.drawDrops(state.drops || []);
     this.drawOrbs(this.budget(state.orbs || [], this.renderBudgets.orbs));
-    this.drawEffects(state.effects || [], map, previous, interpolation, false);
+    this.drawEffects(state.effects || [], map, previous, interpolation, false, state);
     this.drawFeathers(state.feathers || []);
-    this.drawProjectiles(this.budget(state.projectiles || [], this.renderBudgets.projectiles), false);
-    this.drawProjectiles(this.budget(state.hostile || [], this.renderBudgets.hostileProjectiles, (shot) => shot.bossShot), true);
+    this.drawProjectiles(this.budget(state.projectiles || [], this.renderBudgets.projectiles), false, state);
+    this.drawProjectiles(this.budget(state.hostile || [], this.renderBudgets.hostileProjectiles, (shot) => shot.bossShot), true, state);
     this.drawGroundParticles(visualDt);
     this.drawGroundedQueue(state, previous, interpolation, map, localPlayerId, visualDt);
-    this.drawEffects(state.effects || [], map, previous, interpolation, true);
+    this.drawEffects(state.effects || [], map, previous, interpolation, true, state);
     this.drawHovered(state, map);
     ctx.restore();
     this.drawVignette(state, current);
@@ -559,7 +560,7 @@ export class Renderer {
     ctx.globalAlpha=1;
   }
 
-  drawEffects(effects, map, previous, t, numbersOnly = false) {
+  drawEffects(effects, map, previous, t, numbersOnly = false, state = {}) {
     const ctx = this.ctx;
     const relevant = effects.filter((raw) => (raw.kind === "number") === numbersOnly);
     const rendered = this.budget(relevant, this.renderBudgets.effects, (effect) => effect.owner === "enemy" || effect.kind === "danger" || effect.kind === "bossCast" || effect.delayed);
@@ -567,7 +568,10 @@ export class Renderer {
       if ((raw.kind === "number") !== numbersOnly || !this.isWorldVisible(raw, Math.max(40, raw.radius || 0))) continue;
       const essential = raw.owner === "enemy" || raw.kind === "danger" || raw.kind === "bossCast" || raw.delayed;
       if (!essential && !this.densityAllows(raw)) continue;
-      const e = this.position(raw, previous?.effects, t), progress = 1 - clamp(e.life / (e.maxLife || 1), 0, 1);
+      let e = this.position(raw, previous?.effects, t);
+      const plan = impactRenderPlan(raw, state, { reducedMotion: this.reducedMotion, density: this.qualityProfile.effectsDensity });
+      if (plan) e = { ...e, color: plan.colors.body };
+      const progress = 1 - clamp(e.life / (e.maxLife || 1), 0, 1);
       ctx.save(); ctx.translate(e.x,e.y);
       if (e.kind === "number") {
         ctx.globalAlpha=clamp(e.life/.35,0,1);ctx.fillStyle=e.color;ctx.font=`800 ${e.critical?18:13}px ${e.critical?"Barlow Condensed":"Inter"}`;ctx.textAlign="center";ctx.fillText(`${e.critical?"✦ ":""}${e.damage}`,0,-progress*34);ctx.restore();continue;
@@ -614,6 +618,8 @@ export class Renderer {
         ctx.restore();continue;
       }
       const delayed = e.delayed && e.life > 0;
+      if (plan && plan.decal !== "none") this.drawImpactDecal(e, plan, progress);
+      if (plan) { ctx.shadowColor = plan.colors.body; ctx.shadowBlur = ({ none: 0, low: 3, medium: 7, high: 11 }[plan.flash] || 0) * this.qualityProfile.flashIntensity; }
       ctx.globalAlpha = delayed ? .16 + progress*.22 : .48 * (1-progress);
       ctx.fillStyle=e.color;ctx.beginPath();ctx.arc(0,0,e.radius*(delayed ? .45+progress*.55 : progress),0,TAU);ctx.fill();
       ctx.globalAlpha = delayed ? .75 : .6*(1-progress);ctx.strokeStyle=e.color;ctx.lineWidth=delayed?3:5;ctx.beginPath();ctx.arc(0,0,e.radius*(delayed?1:.35+progress*.65),0,TAU);ctx.stroke();
@@ -623,11 +629,42 @@ export class Renderer {
     ctx.globalAlpha=1;ctx.setLineDash([]);ctx.shadowBlur=0;
   }
 
-  drawProjectiles(projectiles, hostile) {
+  drawImpactDecal(effect, plan, progress) {
+    const ctx = this.ctx, radius = Math.max(12, effect.radius || 12), alpha = .16 * (1 - progress);
+    ctx.save(); ctx.globalAlpha = alpha; ctx.strokeStyle = plan.colors.core; ctx.lineWidth = 1.5;
+    if (/grid|track|lane|cuts|skid/.test(plan.decal)) {
+      const count = /tri|three/.test(plan.decal) ? 3 : 2;
+      for (let index = 0; index < count; index++) { const offset = (index - (count - 1) / 2) * radius * .28; ctx.beginPath(); ctx.moveTo(-radius, offset); ctx.lineTo(radius, offset); ctx.stroke(); }
+    } else if (/hex|diamond|reticle|snowflake|sun|ring|spiral|mark|scorch|glyph/.test(plan.decal)) {
+      const points = /hex/.test(plan.decal) ? 6 : /diamond/.test(plan.decal) ? 4 : 8;
+      ctx.beginPath();
+      for (let index = 0; index < points; index++) { const angle = index * TAU / points - Math.PI / 2, x = Math.cos(angle) * radius * .72, y = Math.sin(angle) * radius * .72; index ? ctx.lineTo(x,y) : ctx.moveTo(x,y); }
+      ctx.closePath(); ctx.stroke();
+      if (/reticle|sun|snowflake/.test(plan.decal)) for (let index = 0; index < 4; index++) { const angle = index * Math.PI / 2; ctx.beginPath(); ctx.moveTo(Math.cos(angle)*radius*.25,Math.sin(angle)*radius*.25); ctx.lineTo(Math.cos(angle)*radius,Math.sin(angle)*radius); ctx.stroke(); }
+    }
+    ctx.restore();
+  }
+
+  drawImpactTrail(projectile, plan) {
+    if (!plan || plan.trail.style === "none" || plan.trail.length <= 0) return;
+    const ctx = this.ctx, length = plan.trail.length, width = Math.max(1, plan.trail.width), style = plan.trail.style;
+    ctx.save(); ctx.lineCap = "round";
+    if (/motes|data|segmented|shards/.test(style)) {
+      for (let index = 1; index <= 3; index++) { ctx.globalAlpha = .62 / index; ctx.fillStyle = index % 2 ? plan.colors.body : plan.colors.core; ctx.beginPath(); ctx.arc(-length * index / 3, (index % 2 ? -1 : 1) * width, Math.max(1, width * .65), 0, TAU); ctx.fill(); }
+    } else {
+      ctx.strokeStyle = plan.colors.keyline; ctx.globalAlpha = .58; ctx.lineWidth = width + 3; ctx.beginPath(); ctx.moveTo(-3,0); ctx.lineTo(-length,0); ctx.stroke();
+      ctx.strokeStyle = plan.colors.body; ctx.globalAlpha = .72; ctx.lineWidth = width; ctx.beginPath(); ctx.moveTo(-2,0); ctx.lineTo(-length,0); ctx.stroke();
+      if (/double|ribbon|corkscrew|lane|wake|link|return|slash|radial/.test(style)) { ctx.strokeStyle = plan.colors.core; ctx.globalAlpha = .55; ctx.lineWidth = Math.max(1, width * .45); ctx.beginPath(); ctx.moveTo(-2,-width); ctx.lineTo(-length,width); ctx.stroke(); }
+    }
+    ctx.restore();
+  }
+
+  drawProjectiles(projectiles, hostile, state = {}) {
     const ctx=this.ctx, hostileImage=this.effectSprites.hostileBolt;
     for(const b of projectiles){
       if(!this.isWorldVisible(b,60))continue;
-      const speed=Math.hypot(b.vx||0,b.vy||0), angle=Math.atan2(b.vy||0,b.vx||0), color=b.color||"#8cefff";
+      const plan = hostile ? null : impactRenderPlan(b, state, { reducedMotion: this.reducedMotion, density: this.qualityProfile.effectsDensity });
+      const silhouette = plan?.silhouette || "", speed=Math.hypot(b.vx||0,b.vy||0), angle=Math.atan2(b.vy||0,b.vx||0), color=plan?.colors.body||b.color||"#8cefff";
       ctx.save();ctx.translate(b.x,b.y);ctx.rotate(angle);ctx.lineJoin="round";ctx.lineCap="round";
       if(hostile){
         // Hostile shots are always winged arrowheads with a long hot tail. The
@@ -644,24 +681,29 @@ export class Renderer {
 
       // Friendly fire uses a dark keyline plus white core, and each weapon
       // family keeps its own silhouette instead of becoming another glow dot.
-      if(speed>20&&!b.wave&&!b.tornado){ctx.strokeStyle="rgba(1,6,12,.55)";ctx.lineWidth=Math.max(5,b.radius*.8);ctx.beginPath();ctx.moveTo(-b.radius*.3,0);ctx.lineTo(-20-b.radius,0);ctx.stroke();ctx.strokeStyle=color;ctx.globalAlpha=.5;ctx.lineWidth=Math.max(2,b.radius*.36);ctx.beginPath();ctx.moveTo(-b.radius*.2,0);ctx.lineTo(-18-b.radius,0);ctx.stroke();ctx.globalAlpha=1;}
-      ctx.shadowColor=color;ctx.shadowBlur=7;ctx.strokeStyle=color;ctx.fillStyle="#f8feff";
-      if(b.droneBolt){
+      if(plan) this.drawImpactTrail(b, plan);
+      else if(speed>20&&!b.wave&&!b.tornado){ctx.strokeStyle="rgba(1,6,12,.55)";ctx.lineWidth=Math.max(5,b.radius*.8);ctx.beginPath();ctx.moveTo(-b.radius*.3,0);ctx.lineTo(-20-b.radius,0);ctx.stroke();ctx.strokeStyle=color;ctx.globalAlpha=.5;ctx.lineWidth=Math.max(2,b.radius*.36);ctx.beginPath();ctx.moveTo(-b.radius*.2,0);ctx.lineTo(-18-b.radius,0);ctx.stroke();ctx.globalAlpha=1;}
+      ctx.shadowColor=color;ctx.shadowBlur=plan ? ({ none: 0, low: 3, medium: 7, high: 11 }[plan.flash] || 0) * this.qualityProfile.flashIntensity : 7;ctx.strokeStyle=color;ctx.fillStyle=plan?.colors.core||"#f8feff";
+      if(b.droneBolt||silhouette.includes("drone-dart")){
         ctx.strokeStyle="#06111b";ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(-10,0);ctx.lineTo(10,0);ctx.stroke();ctx.strokeStyle="#77efcf";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-12,0);ctx.lineTo(10,0);ctx.stroke();
         ctx.fillStyle="#effff9";ctx.strokeStyle="#77efcf";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(13,0);ctx.lineTo(1,-7);ctx.lineTo(-3,0);ctx.lineTo(1,7);ctx.closePath();ctx.fill();ctx.stroke();
         ctx.globalAlpha=.7;ctx.beginPath();ctx.arc(-7,0,5,0,TAU);ctx.stroke();ctx.globalAlpha=1;
-      } else if(b.dagger){
+      } else if(b.dagger||silhouette.includes("dagger")){
         ctx.strokeStyle="#06111b";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-11,0);ctx.lineTo(11,0);ctx.stroke();ctx.strokeStyle=color;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-11,0);ctx.lineTo(11,0);ctx.stroke();ctx.fillStyle="#fff";ctx.beginPath();ctx.moveTo(13,0);ctx.lineTo(5,-3);ctx.lineTo(5,3);ctx.closePath();ctx.fill();
-      } else if(b.wave){
+      } else if(b.wave||["crescent","double-crescent"].includes(silhouette)){
         ctx.lineWidth=7;ctx.strokeStyle="rgba(2,8,15,.8)";ctx.beginPath();ctx.arc(0,0,b.radius*2,-1,1);ctx.stroke();ctx.lineWidth=4;ctx.strokeStyle=color;ctx.beginPath();ctx.arc(0,0,b.radius*2,-1,1);ctx.stroke();ctx.lineWidth=1.5;ctx.strokeStyle="#fff";ctx.beginPath();ctx.arc(0,0,b.radius*1.65,-.85,.85);ctx.stroke();
-      } else if(b.tornado){
+      } else if(b.tornado||silhouette.includes("spiral")){
         ctx.rotate(-angle);ctx.strokeStyle="rgba(2,8,15,.8)";ctx.lineWidth=6;ctx.beginPath();ctx.arc(0,0,b.radius,0,TAU*1.55);ctx.stroke();ctx.strokeStyle=color;ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,b.radius,0,TAU*1.55);ctx.stroke();ctx.strokeStyle="#fff";ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(0,0,b.radius*.52,.2,TAU*1.4);ctx.stroke();
-      } else if(b.hex){
+      } else if(b.hex||silhouette.includes("hex")){
         ctx.strokeStyle="#07111b";ctx.lineWidth=5;ctx.beginPath();for(let i=0;i<6;i++){const a=i*TAU/6,x=Math.cos(a)*b.radius,y=Math.sin(a)*b.radius;i?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.closePath();ctx.stroke();ctx.strokeStyle=color;ctx.lineWidth=2.5;ctx.stroke();ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(0,0,Math.max(2,b.radius*.28),0,TAU);ctx.fill();
-      } else if(b.boomerang){
+      } else if(b.boomerang||silhouette.includes("boomerang")){
         ctx.strokeStyle="#07111b";ctx.lineWidth=7;ctx.beginPath();ctx.arc(0,0,b.radius*1.2,-1.15,1.15);ctx.stroke();ctx.strokeStyle=color;ctx.lineWidth=4;ctx.beginPath();ctx.arc(0,0,b.radius*1.2,-1.15,1.15);ctx.stroke();ctx.fillStyle="#fff";ctx.beginPath();ctx.moveTo(b.radius*1.25,0);ctx.lineTo(b.radius*.55,-4);ctx.lineTo(b.radius*.55,4);ctx.closePath();ctx.fill();
+      } else if(silhouette.includes("orb")) {
+        const r=b.radius;ctx.strokeStyle=plan.colors.keyline;ctx.lineWidth=4;ctx.beginPath();ctx.arc(0,0,r,0,TAU);ctx.stroke();ctx.fillStyle=color;ctx.fill();ctx.fillStyle=plan.colors.core;ctx.beginPath();ctx.arc(r*.2,-r*.2,Math.max(1.5,r*.3),0,TAU);ctx.fill();
+      } else if(silhouette.includes("prism")) {
+        const r=b.radius;ctx.strokeStyle=plan.colors.keyline;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(r*1.2,0);ctx.lineTo(0,-r);ctx.lineTo(-r*1.2,0);ctx.lineTo(0,r);ctx.closePath();ctx.stroke();ctx.fillStyle=color;ctx.fill();ctx.fillStyle=plan.colors.core;ctx.beginPath();ctx.moveTo(r*.55,0);ctx.lineTo(0,-r*.34);ctx.lineTo(-r*.2,0);ctx.lineTo(0,r*.34);ctx.closePath();ctx.fill();
       } else {
-        const r=b.radius;ctx.strokeStyle="#06111b";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(r*1.4,0);ctx.lineTo(-r*.45,-r*.72);ctx.lineTo(-r*.85,0);ctx.lineTo(-r*.45,r*.72);ctx.closePath();ctx.stroke();ctx.fillStyle=color;ctx.fill();ctx.fillStyle="#fff";ctx.beginPath();ctx.moveTo(r*.9,0);ctx.lineTo(-r*.28,-Math.max(1.5,r*.22));ctx.lineTo(-r*.05,0);ctx.lineTo(-r*.28,Math.max(1.5,r*.22));ctx.closePath();ctx.fill();
+        const r=b.radius;ctx.strokeStyle=plan?.colors.keyline||"#06111b";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(r*1.4,0);ctx.lineTo(-r*.45,-r*.72);ctx.lineTo(-r*.85,0);ctx.lineTo(-r*.45,r*.72);ctx.closePath();ctx.stroke();ctx.fillStyle=color;ctx.fill();ctx.fillStyle=plan?.colors.core||"#fff";ctx.beginPath();ctx.moveTo(r*.9,0);ctx.lineTo(-r*.28,-Math.max(1.5,r*.22));ctx.lineTo(-r*.05,0);ctx.lineTo(-r*.28,Math.max(1.5,r*.22));ctx.closePath();ctx.fill();
         if(b.crit){ctx.shadowBlur=0;ctx.strokeStyle="#ffe67a";ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(0,-r*1.15);ctx.lineTo(r*1.15,0);ctx.lineTo(0,r*1.15);ctx.lineTo(-r*1.15,0);ctx.closePath();ctx.stroke();}
       }
       ctx.restore();

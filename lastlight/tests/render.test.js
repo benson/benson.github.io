@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { settingsForPreset } from "../quality-settings.js";
+import { createImpactStressFixture } from "../fixtures/impact-stress.js";
 
 globalThis.window = {
   devicePixelRatio: 1,
@@ -104,4 +105,21 @@ test("cosmetic density selection is stable for the same entity", () => {
   const effect = { id: "impact-42" };
   const first = renderer.densityAllows(effect, .5);
   for (let index = 0; index < 20; index++) assert.equal(renderer.densityAllows(effect, .5), first);
+});
+
+test("renderer accepts the complete base/evolved impact stress grid at full and reduced quality", () => {
+  const drawContext = new Proxy({ setTransform: () => {}, measureText: () => ({ width: 0 }) }, {
+    get(target, key) { return key in target ? target[key] : () => {}; },
+    set(target, key, value) { target[key] = value; return true; },
+  });
+  const canvas = { clientWidth: 800, clientHeight: 600, width: 0, height: 0, getContext: () => drawContext, getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }) };
+  const renderer = new Renderer(canvas);
+  for (const preset of ["high", "minimal"]) {
+    renderer.setQualitySettings(settingsForPreset(preset));
+    const cases = createImpactStressFixture({ reducedMotion: preset === "minimal", density: renderer.qualityProfile.effectsDensity });
+    const state = { players: cases.map((entry) => entry.player) };
+    const projectiles = cases.map((entry) => ({ ...entry.entity, x: 0, y: 0, radius: 8, vx: 600, vy: 0, color: "#fff" }));
+    assert.doesNotThrow(() => renderer.drawProjectiles(projectiles, false, state));
+    assert.equal(projectiles.length, 42);
+  }
 });
