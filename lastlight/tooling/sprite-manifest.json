@@ -75,20 +75,18 @@
         "sockets": { "muzzle": { "distance": 58, "vertical": -8 } }
       },
       "clips": {
-        "idle": { "loop": true, "frames": [{ "row": 0, "ms": 260 }, { "row": 0, "ms": 260, "scaleY": 0.985, "offsetY": 1 }] },
+        "idle": { "loop": true, "frames": [{ "row": 0, "ms": 260 }, { "row": 0, "ms": 260 }] },
         "run": { "loop": true, "frames": [
-          { "row": 1, "ms": 58, "offsetY": 0 }, { "row": 1, "ms": 58, "scaleY": 0.98, "offsetY": 1 },
-          { "row": 2, "ms": 58, "offsetY": -1 }, { "row": 2, "ms": 58, "scaleY": 1.01, "offsetY": -2 },
-          { "row": 1, "ms": 58, "offsetY": 0 }, { "row": 1, "ms": 58, "scaleY": 0.98, "offsetY": 1 },
-          { "row": 2, "ms": 58, "offsetY": -1 }, { "row": 2, "ms": 58, "scaleY": 1.01, "offsetY": -2 }
+          { "row": 1, "ms": 72 }, { "row": 2, "ms": 72 }, { "row": 1, "ms": 72 },
+          { "row": 2, "ms": 72 }, { "row": 1, "ms": 72 }, { "row": 2, "ms": 72 }
         ] },
-        "dash": { "loop": false, "frames": [{ "row": 3, "ms": 180, "scaleX": 1.04, "scaleY": 0.96 }] },
-        "castE": { "loop": false, "frames": [{ "row": 3, "ms": 90, "scaleX": 0.97 }, { "row": 0, "ms": 150, "offsetY": 1 }] },
-        "castR": { "loop": false, "frames": [{ "row": 3, "ms": 130, "scaleX": 1.06, "scaleY": 0.94 }, { "row": 0, "ms": 220 }] },
-        "hurt": { "loop": false, "frames": [{ "row": 4, "ms": 220, "scaleX": 0.96, "rotation": -0.05 }] },
-        "down": { "loop": false, "frames": [{ "row": 4, "ms": 500, "rotation": -0.12, "offsetY": 5 }] },
-        "revive": { "loop": false, "frames": [{ "row": 0, "ms": 400, "scaleY": 1.03 }] },
-        "victory": { "loop": true, "frames": [{ "row": 0, "ms": 300, "scaleY": 1.03, "offsetY": -1 }, { "row": 0, "ms": 300 }] }
+        "dash": { "loop": false, "frames": [{ "row": 3, "ms": 60 }, { "row": 3, "ms": 60 }, { "row": 3, "ms": 100 }] },
+        "castE": { "loop": false, "frames": [{ "row": 3, "ms": 80 }, { "row": 3, "ms": 80 }, { "row": 3, "ms": 70 }, { "row": 0, "ms": 130 }] },
+        "castR": { "loop": false, "frames": [{ "row": 3, "ms": 80 }, { "row": 3, "ms": 80 }, { "row": 3, "ms": 70 }, { "row": 0, "ms": 130 }] },
+        "hurt": { "loop": false, "frames": [{ "row": 4, "ms": 80 }, { "row": 4, "ms": 150 }] },
+        "down": { "loop": false, "frames": [{ "row": 4, "ms": 90 }, { "row": 4, "ms": 110 }, { "row": 4, "ms": 140 }, { "row": 4, "ms": 420 }] },
+        "revive": { "loop": false, "frames": [{ "row": 0, "ms": 100 }, { "row": 0, "ms": 100 }, { "row": 0, "ms": 100 }, { "row": 0, "ms": 180 }] },
+        "victory": { "loop": true, "frames": [{ "row": 0, "ms": 150 }, { "row": 0, "ms": 150 }, { "row": 0, "ms": 180 }, { "row": 0, "ms": 220 }] }
       },
       "processing": {
         "method": "chroma-key",

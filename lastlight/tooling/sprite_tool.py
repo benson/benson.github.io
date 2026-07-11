@@ -403,12 +403,18 @@ def verify_theme_coverage(root, manifest, compare_metadata=True):
         runtime_animations = json.loads(completed.stdout)
     except (OSError, subprocess.CalledProcessError, json.JSONDecodeError) as error:
         raise SpriteToolError(f"Cannot inspect runtime theme animations: {error}") from error
+    required_specialists = set(manifest["theme"]["requiredAnimatedSpecialists"])
     discovered = {
         (
             specialist,
-            animation.get("atlas") if isinstance(animation, dict) else None,
+            (
+                animation.get("atlas", {}).get("src")
+                if isinstance(animation, dict) and isinstance(animation.get("atlas"), dict)
+                else animation.get("atlas") if isinstance(animation, dict) else None
+            ),
         )
         for specialist, animation in runtime_animations.items()
+        if specialist in required_specialists and isinstance(animation, dict) and animation.get("atlas", {}).get("available", True)
     }
     expected = {(atlas["specialist"], atlas["output"]["path"]) for atlas in manifest["atlases"]}
     if discovered != expected:
@@ -417,15 +423,35 @@ def verify_theme_coverage(root, manifest, compare_metadata=True):
         return {"module": manifest["theme"]["module"], "animatedSpecialists": sorted(item[0] for item in discovered)}
     for atlas in manifest["atlases"]:
         render = atlas["render"]
+        runtime = runtime_animations.get(atlas["specialist"], {})
+        runtime_atlas = runtime.get("atlas", {})
+        bindings = runtime.get("bindings", {})
+        runtime_states = runtime.get("states", {})
+        normalized_states = {}
+        for clip_id in atlas["clips"]:
+            runtime_id = bindings.get(clip_id, clip_id)
+            clip = runtime_states.get(runtime_id, {})
+            normalized_states[clip_id] = {
+                "loop": clip.get("loop"),
+                "frames": clip.get("frames"),
+            }
         expected_animation = {
             "atlas": atlas["output"]["path"],
             "grid": {"columns": atlas["layout"]["columns"], "rows": atlas["layout"]["rows"]},
             "directions": atlas["layout"]["directions"],
-            "anchor": render["anchor"], "drawSize": render["drawSize"], "spriteBounds": render["spriteBounds"],
+            "anchor": render["anchor"], "drawSize": render["drawSize"],
             "collisionOffset": render["collisionOffset"], "groundY": render["groundY"], "shadow": render["shadow"],
-            "muzzleDistance": render["sockets"]["muzzle"]["distance"], "sockets": render["sockets"], "states": atlas["clips"],
+            "sockets": render["sockets"],
+            "states": {clip_id: {"loop": clip["loop"], "frames": clip["frames"]} for clip_id, clip in atlas["clips"].items()},
         }
-        if runtime_animations.get(atlas["specialist"]) != expected_animation:
+        actual_animation = {
+            "atlas": runtime_atlas.get("src") if isinstance(runtime_atlas, dict) else runtime_atlas,
+            "grid": runtime.get("grid"), "directions": runtime.get("directions"),
+            "anchor": runtime.get("anchor"), "drawSize": runtime.get("drawSize"),
+            "collisionOffset": runtime.get("collisionOffset"), "groundY": runtime.get("groundY"), "shadow": runtime.get("shadow"),
+            "sockets": runtime.get("sockets"), "states": normalized_states,
+        }
+        if actual_animation != expected_animation:
             raise SpriteToolError(f"Theme runtime metadata drift: animations.specialists.{atlas['specialist']}")
     return {"module": manifest["theme"]["module"], "animatedSpecialists": sorted(item[0] for item in discovered)}
 

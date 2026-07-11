@@ -186,19 +186,19 @@ const frames = (rows, ms, authored = false) => ({
 
 function plannedSpecialistRig(id) {
   return {
-    schema: MOTION_SCHEMA, kind: "specialist", status: "missing",
-    atlas: { src: `assets/motion/specialists/${id}.webp`, available: false, expectedSize: [1024, 1536] },
+    schema: MOTION_SCHEMA, kind: "specialist", status: "ready",
+    atlas: { src: `assets/motion/specialists/${id}.webp`, available: true, expectedSize: [1024, 1536] },
     grid: { columns: 4, rows: 6 }, directions: [...MOTION_DIRECTIONS],
     anchor: [.5, .875], drawSize: specialistSizes[id], collisionOffset: [0, 0], groundY: 18, shadow: [34, 12],
     sockets: { muzzle: { distance: id === "sola" || id === "bront" ? 53 : 58, vertical: -8 } },
     bindings: { dash: "mobility", castE: "cast", castR: "cast" },
     states: {
-      idle: { ...frames([0, 1], [320, 320]), loop: true },
-      run: { ...frames([2, 3, 2, 3, 2, 3], 72), loop: true },
-      mobility: { loop: false, authored: false, frames: [{ row: 4, ms: 70, scaleX: 1.03, scaleY: .97 }, { row: 4, ms: 70 }, { row: 4, ms: 100, scaleX: .98 }] },
-      cast: { loop: false, authored: false, frames: [{ row: 1, ms: 80, scaleX: .98 }, { row: 1, ms: 80 }, { row: 4, ms: 70, scaleX: 1.03 }, { row: 0, ms: 130 }] },
-      hurt: frames([5, 5], [80, 150]),
-      down: { loop: false, authored: false, frames: [{ row: 5, ms: 90 }, { row: 5, ms: 110, rotation: -.06 }, { row: 5, ms: 140, rotation: -.11, offsetY: 4 }, { row: 5, ms: 420, rotation: -.13, offsetY: 6 }] },
+      idle: { ...frames([0, 1], [320, 320], true), loop: true },
+      run: { ...frames([2, 3, 2, 3, 2, 3], 72, true), loop: true },
+      mobility: { loop: false, authored: true, frames: [{ row: 4, ms: 70, scaleX: 1.03, scaleY: .97 }, { row: 4, ms: 70 }, { row: 4, ms: 100, scaleX: .98 }] },
+      cast: { loop: false, authored: true, frames: [{ row: 1, ms: 80, scaleX: .98 }, { row: 1, ms: 80 }, { row: 4, ms: 70, scaleX: 1.03 }, { row: 0, ms: 130 }] },
+      hurt: frames([5, 5], [80, 150], true),
+      down: { loop: false, authored: true, frames: [{ row: 5, ms: 90 }, { row: 5, ms: 110, rotation: -.06 }, { row: 5, ms: 140, rotation: -.11, offsetY: 4 }, { row: 5, ms: 420, rotation: -.13, offsetY: 6 }] },
       revive: { loop: false, authored: false, frames: [{ row: 5, ms: 100, offsetY: 5 }, { row: 0, ms: 100, scaleY: .96 }, { row: 0, ms: 100 }, { row: 1, ms: 180 }] },
       victory: { loop: true, authored: false, frames: [{ row: 0, ms: 150 }, { row: 1, ms: 150, offsetY: -2 }, { row: 0, ms: 180 }, { row: 1, ms: 220, offsetY: -1 }] },
     },
@@ -208,7 +208,7 @@ function plannedSpecialistRig(id) {
 function zuriPrototypeRig() {
   const rig = plannedSpecialistRig("zuri");
   return {
-    ...rig, status: "prototype", atlas: { src: "assets/sprites/zuri-motion-atlas.png", available: true, expectedSize: [1254, 1254] },
+    ...rig, status: "prototype", atlas: { src: "assets/sprites/zuri-motion-atlas.png", available: true, expectedSize: [1256, 1255] },
     grid: { columns: 4, rows: 5 }, anchor: [.5, .82], drawSize: [138, 110],
     states: {
       idle: { ...frames([0, 0], [260, 260], true), loop: true },
@@ -224,20 +224,24 @@ function zuriPrototypeRig() {
 
 function plannedEnemyRig(id, layout, boss = false) {
   const source = boss ? `assets/motion/bosses/${id}.webp` : `assets/motion/enemies/${id}.webp`;
+  const compactFiveRows = id === "spitter" || id === "bomber" || (boss && id === "beachhead");
+  const locomotionRows = compactFiveRows ? [2, 2, 2, 2, 2, 2] : [2, 3, 2, 3, 2, 3];
+  const actionRow = compactFiveRows ? 3 : 4;
+  const hurtDeathRow = compactFiveRows ? 4 : 5;
   return {
-    schema: MOTION_SCHEMA, kind: "enemy", status: "missing",
-    atlas: { src: source, available: false, expectedSize: [1024, 1536] },
-    grid: { columns: 4, rows: 6 }, directions: [...MOTION_DIRECTIONS],
+    schema: MOTION_SCHEMA, kind: "enemy", status: "ready",
+    atlas: { src: source, available: true, expectedSize: [1024, 1536] },
+    grid: { columns: 4, rows: compactFiveRows ? 5 : 6 }, directions: [...MOTION_DIRECTIONS],
     anchor: layout.anchor, drawSize: layout.drawSize, collisionOffset: [0, 0], groundY: layout.groundY, shadow: layout.shadow,
     sockets: { contact: { distance: layout.contact[0], vertical: layout.contact[1] } }, bindings: {},
     states: {
-      idle: { ...frames([0, 1], [300, 300]), loop: true },
-      locomotion: { ...frames([2, 3, 2, 3, 2, 3], boss ? 105 : 82), loop: true },
+      idle: { ...frames([0, 1], [300, 300], true), loop: true },
+      locomotion: { ...frames(locomotionRows, boss ? 105 : 82, true), loop: true },
       attackWindup: { loop: false, authored: false, frames: [{ row: 1, ms: 90, scaleX: .96 }, { row: 1, ms: 90, scaleX: .93, scaleY: 1.03 }] },
-      attackContact: frames([4], 70),
-      attackRecovery: { loop: false, authored: false, frames: [{ row: 4, ms: 90, scaleX: 1.03 }, { row: 0, ms: 130 }] },
-      hurt: frames([5, 5], [70, 110]),
-      death: { loop: false, authored: false, frames: [{ row: 5, ms: 80 }, { row: 5, ms: 100, rotation: -.05 }, { row: 5, ms: 130, rotation: -.11, offsetY: 5 }, { row: 5, ms: 220, rotation: -.14, offsetY: 8 }] },
+      attackContact: frames([actionRow], 70, true),
+      attackRecovery: { loop: false, authored: true, frames: [{ row: actionRow, ms: 90, scaleX: 1.03 }, { row: 0, ms: 130 }] },
+      hurt: frames([hurtDeathRow, hurtDeathRow], [70, 110], true),
+      death: { loop: false, authored: true, frames: [{ row: hurtDeathRow, ms: 80 }, { row: hurtDeathRow, ms: 100, rotation: -.05 }, { row: hurtDeathRow, ms: 130, rotation: -.11, offsetY: 5 }, { row: hurtDeathRow, ms: 220, rotation: -.14, offsetY: 8 }] },
     },
   };
 }

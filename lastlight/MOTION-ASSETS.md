@@ -39,11 +39,11 @@ logical clip. Enemies and bosses expose `idle`, `locomotion`, `attackWindup`,
 Reduced-motion mode keeps the physical anticipation and contact poses and their
 timing, but removes metadata-driven offset, rotation, and squash/stretch.
 
-## Exact outstanding files
+## Delivered runtime files
 
 Specialists:
 
-- `assets/motion/specialists/zuri.webp`
+- `assets/sprites/zuri-motion-atlas.png` (prototype grid)
 - `assets/motion/specialists/echo.webp`
 - `assets/motion/specialists/sola.webp`
 - `assets/motion/specialists/bront.webp`
@@ -62,25 +62,34 @@ Enemy archetypes:
 - `assets/motion/enemies/bomber.webp`
 - `assets/motion/enemies/shark.webp`
 
-Map apexes:
+The specialist files above and all six enemy archetype files are live,
+dimension-checked runtime atlases. Spitter, Bomber, and the Beachhead apex use
+five physical rows because their authored locomotion uses one key pose; their
+logical clips reuse that row with timing and transforms. All other newly
+delivered atlases use six rows.
+
+## Delivered map apexes
 
 - `assets/motion/bosses/warehouse.webp`
 - `assets/motion/bosses/outskirts.webp`
 - `assets/motion/bosses/lab.webp`
 - `assets/motion/bosses/beachhead.webp`
 
-## Honest current state
+## Current state
 
-`assets/sprites/zuri-motion-atlas.png` is a 1254 × 1254, 4 × 5 prototype. It
+`assets/sprites/zuri-motion-atlas.png` is a 1256 × 1255, 4 × 5 prototype. It
 contains real directional idle, run, action, and hurt poses. Cast, down, revive,
 and victory currently reuse those physical rows and are therefore marked
-unauthored. The other eight specialists have one static cutout each.
-The six enemy archetypes have static cutouts. Map apexes currently use the safe
-procedural fallback and have no dedicated image.
+unauthored. The other eight specialists now have directional idle, run, action,
+hurt, and down art. All six field enemy archetypes have directional idle,
+locomotion, attack-contact, hurt, and death art. Logical recovery frames reuse
+those authored poses with bounded transforms. Tunnelmaw, Red Hunger, Void
+Empress, and Abyss Blade each have a dedicated directional apex atlas.
 
-`getMissingMotionAssets()` returns all 19 incomplete rigs. Missing atlases are
-not requested by the browser, so there are no intentional 404s. To activate a
-delivered atlas, place it at the exact path, set its manifest `available` to
-`true` and `status` to `ready`, confirm `expectedSize`, and mark only genuinely
-authored logical clips as `authored: true`. The renderer verifies dimensions at
-runtime and falls back to the existing cutout if they do not match.
+`getMissingMotionAssets()` returns only the Zuri prototype because it still uses
+the legacy 4 × 5 grid. Any future unavailable atlas is not requested by the
+browser, so there are no intentional 404s. To activate a delivered atlas, place
+it at the exact path, set its manifest `available` to `true` and `status` to
+`ready`, confirm `expectedSize`, and mark only genuinely authored logical clips
+as `authored: true`. The renderer verifies dimensions at runtime and falls back
+to the existing cutout if they do not match.

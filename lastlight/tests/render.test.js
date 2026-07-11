@@ -52,11 +52,13 @@ test("renderer preloads theme-owned runtime art for every field-guide enemy", ()
   assert.equal(renderer.enemySprites.shark.currentSrc, "assets/enemies/siegebreaker.webp");
 });
 
-test("renderer loads only available validated motion atlases and leaves missing rigs on safe fallbacks", () => {
+test("renderer loads every delivered specialist, field-enemy, and map-apex atlas", () => {
   const renderer = createRenderer();
-  assert.deepEqual(Object.keys(renderer.animationAtlases), ["zuri"]);
+  assert.deepEqual(Object.keys(renderer.animationAtlases), ["zuri", "echo", "sola", "bront", "fang", "gale", "rift", "nova", "vesper"]);
   assert.equal(renderer.animationAtlases.zuri.currentSrc, "assets/sprites/zuri-motion-atlas.png");
-  assert.deepEqual(Object.keys(renderer.enemyAnimationAtlases), []);
+  assert.deepEqual(Object.keys(renderer.enemyAnimationAtlases), ["mite", "hound", "spitter", "brute", "bomber", "shark", "boss:warehouse", "boss:outskirts", "boss:lab", "boss:beachhead"]);
+  assert.equal(renderer.enemyAnimationAtlases.hound.currentSrc, "assets/motion/enemies/hound.webp");
+  assert.equal(renderer.enemyAnimationAtlases["boss:lab"].currentSrc, "assets/motion/bosses/lab.webp");
 });
 
 test("inspection returns structured combat details and controls hover state", () => {
