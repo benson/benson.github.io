@@ -959,6 +959,11 @@ html[data-reduced-motion="true"] .scanlines { animation: none; }
   .upgrade-overlay { backdrop-filter: none; }
   .topbar { height: 62px; padding-inline: 16px; }
   .topbar-actions .text-button { display: none; }
+  .lobby-header { min-height: 62px; height: auto; padding: 10px 16px; gap: 8px; }
+  .lobby-header-actions { gap: 0; margin-left: auto; }
+  #lobby-run-history, #lobby-guide, #lobby-audio { display: none; }
+  #lobby-quality { padding-inline: 4px; }
+  .mission-chip { max-width: 92px; font-size: 10px; line-height: 1.05; }
   .home-content { width: calc(100% - 28px); padding-top: 36px; }
   .hero-copy h1 { font-size: 76px; }
   .hero-deck { margin-top: 25px; font-size: 14px; }
