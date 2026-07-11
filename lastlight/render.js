@@ -1,6 +1,7 @@
-import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260710.4";
-import { WORLD } from "./engine.js?v=20260710.4";
-import { getThemeAsset } from "./themes/lastlight.js?v=20260710.4";
+import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260710.5";
+import { WORLD } from "./engine.js?v=20260710.5";
+import { getThemeAnimation, getThemeAsset } from "./themes/lastlight.js?v=20260710.5";
+import { animationFrame, directionColumn, springCamera } from "./feel.js?v=20260710.5";
 
 const TAU = Math.PI * 2;
 export class Renderer {
@@ -10,11 +11,15 @@ export class Renderer {
     this.dpr = 1;
     this.width = 0;
     this.height = 0;
-    this.camera = { x: 0, y: 0 };
+    this.camera = { x: 0, y: 0, vx: 0, vy: 0 };
     this.sprites = {};
     this.environments = {};
     this.effectSprites = {};
+    this.animationAtlases = {};
     this.playerVisuals = new Map();
+    this.groundParticles = [];
+    this.visualFreeze = 0;
+    this.lastLocalHurt = 0;
     this.previousIndexes = new WeakMap();
     this.enemyHealthBarMode = "important";
     this.hoveredEntity = null;
@@ -31,6 +36,8 @@ export class Renderer {
   loadSprites() {
     for (const spec of Object.values(SPECIALISTS)) {
       const image = new Image(); image.src = spec.sprite; this.sprites[spec.id] = image;
+      const animation = getThemeAnimation(spec.id);
+      if (animation?.atlas) { const atlas = new Image(); atlas.src = animation.atlas; this.animationAtlases[spec.id] = atlas; }
     }
     for (const map of Object.values(MAPS)) {
       if (!map.texture) continue;
@@ -44,6 +51,11 @@ export class Renderer {
     })) {
       const image = new Image(); image.src = src; this.effectSprites[name] = image;
     }
+  }
+
+  resetCamera() {
+    this.camera.x = 0; this.camera.y = 0; this.camera.vx = 0; this.camera.vy = 0;
+    this.playerVisuals.clear(); this.groundParticles = []; this.visualFreeze = 0; this.lastLocalHurt = 0;
   }
 
   resize() {
@@ -152,7 +164,7 @@ export class Renderer {
     return best;
   }
 
-  draw(state, localPlayerId, previous = null, interpolation = 1) {
+  draw(state, localPlayerId, previous = null, interpolation = 1, frameSeconds = 1 / 60) {
     if (!state?.players) return;
     // The renderer is constructed while the game screen is display:none. Some
     // browsers therefore report a 0x0 canvas until the first run begins. Never
@@ -162,9 +174,14 @@ export class Renderer {
     const map = typeof state.map === "string" ? MAPS[state.map] : state.map;
     const current = state.players.find((p) => p.id === localPlayerId) || state.players[0] || { x: 0, y: 0 };
     const pos = this.position(current, previous?.players, interpolation);
-    this.camera.x += (pos.x - this.camera.x) * .14;
-    this.camera.y += (pos.y - this.camera.y) * .14;
+    const lookAngle = Number.isFinite(current.aimFacing) ? current.aimFacing : current.facing || 0;
+    const lookDistance = this.reducedMotion ? 0 : current.moving ? 44 : 25;
+    springCamera(this.camera, { x: pos.x + Math.cos(lookAngle) * lookDistance, y: pos.y + Math.sin(lookAngle) * lookDistance }, frameSeconds);
     const hurt = this.reducedMotion ? 0 : clamp((current.hurtFlash || 0) / .24, 0, 1);
+    if (hurt > this.lastLocalHurt + .35 && !this.reducedMotion) this.visualFreeze = Math.max(this.visualFreeze, .045);
+    this.lastLocalHurt = hurt;
+    const visualDt = this.visualFreeze > 0 ? 0 : frameSeconds;
+    this.visualFreeze = Math.max(0, this.visualFreeze - frameSeconds);
     const shakeX = Math.sin(performance.now() * .09) * hurt * 7, shakeY = Math.cos(performance.now() * .073) * hurt * 5;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.fillStyle = map.floor; ctx.fillRect(0, 0, this.width, this.height);
@@ -173,9 +190,8 @@ export class Renderer {
     ctx.save();
     ctx.translate(this.width / 2 - this.camera.x + shakeX, this.height / 2 - this.camera.y + shakeY);
     this.drawWorldBorder(map);
-    this.drawMapDecor(map);
+    this.drawMapGuides(map);
     this.drawMachine(state, map);
-    this.drawPods(state.pods || []);
     this.drawRelayBalls(state.relayBalls || [], map);
     this.drawObjectives(state.objectives || [], map);
     this.drawDrops(state.drops || []);
@@ -184,9 +200,8 @@ export class Renderer {
     this.drawFeathers(state.feathers || []);
     this.drawProjectiles(state.projectiles || [], false);
     this.drawProjectiles(state.hostile || [], true);
-    this.drawEnemies(state.enemies || [], previous, interpolation, map);
-    this.drawDrones(state.drones || [], state.players, previous, interpolation);
-    this.drawPlayers(state.players, previous, interpolation, localPlayerId);
+    this.drawGroundParticles(visualDt);
+    this.drawGroundedQueue(state, previous, interpolation, map, localPlayerId, visualDt);
     this.drawEffects(state.effects || [], map, previous, interpolation, true);
     this.drawHovered(state, map);
     ctx.restore();
@@ -195,7 +210,7 @@ export class Renderer {
   }
 
   position(entity, previousList, t) {
-    if (!previousList || t >= 1) return entity;
+    if (entity?.predicted || !previousList || t >= 1) return entity;
     const before = this.previousEntity(previousList, entity.id);
     if (!before) return entity;
     return { ...entity, x: before.x + (entity.x - before.x) * t, y: before.y + (entity.y - before.y) * t };
@@ -248,29 +263,82 @@ export class Renderer {
     ctx.strokeRect(-WORLD.width / 2, -WORLD.height / 2, WORLD.width, WORLD.height); ctx.globalAlpha = 1;
   }
 
-  drawMapDecor(map) {
-    const ctx = this.ctx, texture = this.effectSprites.barricade;
-    for (const [x,y,w,h] of MAP_OBSTACLES) {
-      ctx.save();
-      // The offset foot and bright top edge make these read as raised cover,
-      // not as another flat damage telegraph painted on the floor.
-      ctx.fillStyle = "rgba(0,0,0,.42)"; ctx.fillRect(x + 10, y + 12, w, h);
-      ctx.fillStyle = map.deco; ctx.globalAlpha = .74; ctx.fillRect(x, y, w, h);
-      if (texture?.complete && texture.naturalWidth) {
-        ctx.globalAlpha = .64; ctx.drawImage(texture, 0, 0, texture.naturalWidth, texture.naturalHeight, x, y, w, h);
-      }
-      ctx.globalAlpha = 1; ctx.strokeStyle = "rgba(1,5,10,.82)"; ctx.lineWidth = 6; ctx.strokeRect(x, y, w, h);
-      ctx.strokeStyle = `${map.accent}78`; ctx.lineWidth = 2; ctx.strokeRect(x + 3, y + 3, w - 6, h - 6);
-      ctx.strokeStyle = "rgba(255,255,255,.23)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x + 8, y + 8); ctx.lineTo(x + w - 8, y + 8); ctx.stroke();
-      const bandY = y + h - 15, segment = 17;
-      for (let sx = x + 12, i = 0; sx < x + Math.min(w - 12, 116); sx += segment, i++) {
-        ctx.fillStyle = i % 2 ? "#f3e4c0" : "#e35f32"; ctx.globalAlpha = .72;
-        ctx.beginPath(); ctx.moveTo(sx, bandY + 10); ctx.lineTo(sx + 8, bandY); ctx.lineTo(sx + 15, bandY); ctx.lineTo(sx + 7, bandY + 10); ctx.closePath(); ctx.fill();
-      }
-      ctx.restore();
-    }
+  drawMapGuides(map) {
+    const ctx = this.ctx;
     ctx.strokeStyle = `${map.accent}25`; ctx.lineWidth = 16;
     ctx.beginPath(); ctx.moveTo(-WORLD.width/2, -390); ctx.lineTo(WORLD.width/2, -390); ctx.moveTo(-WORLD.width/2, 420); ctx.lineTo(WORLD.width/2, 420); ctx.stroke();
+  }
+
+  drawCover(map, block) {
+    const ctx = this.ctx, texture = this.effectSprites.barricade, [x,y,w,h] = block;
+    ctx.save();
+    ctx.fillStyle = "rgba(0,0,0,.42)"; ctx.fillRect(x + 10, y + 12, w, h);
+    ctx.fillStyle = map.deco; ctx.globalAlpha = .74; ctx.fillRect(x, y, w, h);
+    if (texture?.complete && texture.naturalWidth) {
+      ctx.globalAlpha = .64; ctx.drawImage(texture, 0, 0, texture.naturalWidth, texture.naturalHeight, x, y, w, h);
+    }
+    ctx.globalAlpha = 1; ctx.strokeStyle = "rgba(1,5,10,.82)"; ctx.lineWidth = 6; ctx.strokeRect(x, y, w, h);
+    ctx.strokeStyle = `${map.accent}78`; ctx.lineWidth = 2; ctx.strokeRect(x + 3, y + 3, w - 6, h - 6);
+    ctx.strokeStyle = "rgba(255,255,255,.23)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x + 8, y + 8); ctx.lineTo(x + w - 8, y + 8); ctx.stroke();
+    const bandY = y + h - 15, segment = 17;
+    for (let sx = x + 12, i = 0; sx < x + Math.min(w - 12, 116); sx += segment, i++) {
+      ctx.fillStyle = i % 2 ? "#f3e4c0" : "#e35f32"; ctx.globalAlpha = .72;
+      ctx.beginPath(); ctx.moveTo(sx, bandY + 10); ctx.lineTo(sx + 8, bandY); ctx.lineTo(sx + 15, bandY); ctx.lineTo(sx + 7, bandY + 10); ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  drawGroundedQueue(state, previous, t, map, localPlayerId, visualDt) {
+    const items = [];
+    for (const block of MAP_OBSTACLES) items.push({ type: "cover", value: block, sortY: block[1] + block[3] });
+    for (const pod of state.pods || []) items.push({ type: "pod", value: pod, sortY: pod.y + (pod.radius || 0) });
+    for (const enemy of state.enemies || []) {
+      const position = this.position(enemy, previous?.enemies, t);
+      items.push({ type: "enemy", value: enemy, sortY: position.y + (enemy.radius || 0) * .45 });
+    }
+    for (const drone of state.drones || []) {
+      const position = this.position(drone, previous?.drones, t);
+      items.push({ type: "drone", value: drone, sortY: position.y + 10 });
+    }
+    for (const player of state.players || []) {
+      const position = this.position(player, previous?.players, t);
+      items.push({ type: "player", value: player, sortY: position.y + 18 });
+    }
+    items.sort((a, b) => a.sortY - b.sortY || a.type.localeCompare(b.type));
+    for (const item of items) {
+      if (item.type === "cover") this.drawCover(map, item.value);
+      else if (item.type === "pod") this.drawPods([item.value]);
+      else if (item.type === "enemy") this.drawEnemies([item.value], previous, t, map);
+      else if (item.type === "drone") this.drawDrones([item.value], state.players, previous, t);
+      else this.drawPlayers([item.value], previous, t, localPlayerId, visualDt);
+    }
+  }
+
+  drawGroundParticles(frameSeconds) {
+    const ctx = this.ctx, dt = Math.min(.05, Math.max(0, frameSeconds || 0));
+    for (const particle of this.groundParticles) particle.life -= dt;
+    this.groundParticles = this.groundParticles.filter((particle) => particle.life > 0);
+    for (const particle of this.groundParticles) {
+      const progress = 1 - particle.life / particle.maxLife;
+      ctx.save(); ctx.translate(particle.x + particle.vx * progress, particle.y + particle.vy * progress);
+      ctx.globalAlpha = (1 - progress) * particle.alpha; ctx.fillStyle = particle.color;
+      ctx.beginPath(); ctx.ellipse(0, 0, particle.size * (1 + progress * 1.7), particle.size * .45, particle.rotation, 0, TAU); ctx.fill(); ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  emitFootfall(player, visual, color, skid = false) {
+    if (this.reducedMotion || this.groundParticles.length > 70) return;
+    const count = skid ? 5 : 2;
+    for (let index = 0; index < count; index++) {
+      const spread = (index - (count - 1) / 2) * .55;
+      this.groundParticles.push({
+        x: player.x - Math.cos(visual.facing) * 13, y: player.y + 19 - Math.sin(visual.facing) * 7,
+        vx: -Math.cos(visual.facing + spread) * (skid ? 20 : 11), vy: -Math.sin(visual.facing + spread) * (skid ? 12 : 7),
+        life: skid ? .3 : .22, maxLife: skid ? .3 : .22, size: skid ? 7 : 4,
+        alpha: skid ? .2 : .13, color, rotation: visual.facing,
+      });
+    }
   }
 
   drawMachine(state, map) {
@@ -628,43 +696,112 @@ export class Renderer {
     ctx.setLineDash([]); ctx.lineDashOffset = 0; ctx.restore();
   }
 
-  drawPlayers(players, previous, t, localPlayerId) {
-    const ctx=this.ctx;
-    for(const raw of players){
-      const p=this.position(raw,previous?.players,t),spec=SPECIALISTS[p.specialist];ctx.save();ctx.translate(p.x,p.y);
-      if(p.dead||p.downed){ctx.globalAlpha=.32;ctx.strokeStyle="#ff5575";ctx.lineWidth=4;ctx.beginPath();ctx.arc(0,0,78,0,TAU);ctx.stroke();ctx.fillStyle="#fff";ctx.font="800 12px Inter";ctx.textAlign="center";ctx.fillText(p.dead?`${Math.ceil(p.respawnTimer)}s`:`REVIVE ${Math.ceil(p.downTimer)}s`,0,5);ctx.restore();continue;}
-      ctx.fillStyle="rgba(0,0,0,.3)";ctx.beginPath();ctx.ellipse(0,24,35,16,0,0,TAU);ctx.fill();
-      if(p.id===localPlayerId){ctx.strokeStyle=spec.color;ctx.globalAlpha=.65;ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,39,0,TAU);ctx.stroke();ctx.globalAlpha=1;}
-      if(p.invuln>0||p.shield>0){ctx.strokeStyle=p.invuln>0?"#fff":spec.color;ctx.globalAlpha=.55;ctx.lineWidth=5;ctx.beginPath();ctx.arc(0,0,43+Math.sin(performance.now()*.008)*2,0,TAU);ctx.stroke();ctx.globalAlpha=1;}
-      const hurt=clamp((p.hurtFlash||0)/.24,0,1);
-      if(hurt>0){ctx.save();ctx.rotate(p.hurtAngle||0);ctx.strokeStyle="#ff5870";ctx.lineWidth=4;ctx.globalAlpha=hurt;ctx.beginPath();ctx.arc(0,0,45+hurt*9,-.9,.9);ctx.stroke();ctx.restore();}
-      const before=this.previousEntity(previous?.players,raw.id);
-      const dx=before?raw.x-before.x:0,dy=before?raw.y-before.y:0;
-      const inferredMoving=Math.hypot(dx,dy)>.15;
-      const targetFacing=Number.isFinite(raw.facing)?raw.facing:(inferredMoving?Math.atan2(dy,dx):0);
-      const now=performance.now();
-      const visual=this.playerVisuals.get(p.id)||{facing:targetFacing,turn:Math.cos(targetFacing)>=0?1:-1,stride:0,updatedAt:now};
-      const facingDelta=Math.atan2(Math.sin(targetFacing-visual.facing),Math.cos(targetFacing-visual.facing));
-      visual.facing+=facingDelta*.22;
-      const targetTurn=Math.cos(visual.facing)>=0?1:-1;
-      visual.turn+=(targetTurn-visual.turn)*.2;
-      const moving=raw.moving??inferredMoving;
-      const frameTime=Math.min(.05,Math.max(0,(now-visual.updatedAt)/1000));
-      visual.stride+=moving?frameTime*10:0;visual.updatedAt=now;
-      this.playerVisuals.set(p.id,visual);
-      const step=Math.sin(visual.stride),bob=moving?Math.abs(Math.sin(visual.stride))*-3:Math.sin(performance.now()*.002+p.x)*.7;
-      if(moving){ctx.save();ctx.globalAlpha=.14+.08*Math.abs(step);ctx.fillStyle=spec.color;ctx.beginPath();ctx.ellipse(-Math.cos(visual.facing)*15,25-Math.sin(visual.facing)*8,18,7,visual.facing,0,TAU);ctx.fill();ctx.restore();}
-      const image=this.sprites[p.specialist];if(image?.complete){
-        const size=p.specialist==="sola"?118:104;
-        ctx.save();ctx.translate((this.reducedMotion?0:Math.sin(performance.now()*.08)*hurt*3),bob-hurt*2);ctx.rotate((moving?Math.cos(visual.stride)*.025:0)+Math.sin(p.hurtAngle||0)*hurt*.09);
-        ctx.transform(visual.turn,0,-Math.sin(visual.facing)*.045,1,0,0);
-        if(hurt>0)ctx.filter=`brightness(${1+hurt*2.4}) saturate(${1-hurt*.55}) sepia(${hurt*.45})`;
-        ctx.drawImage(image,-size/2,-size*.62,size,size);ctx.restore();
+  drawPlayers(players, previous, t, localPlayerId, visualDt = 1 / 60) {
+    const ctx = this.ctx;
+    for (const raw of players) {
+      const p = this.position(raw, previous?.players, t), spec = SPECIALISTS[p.specialist];
+      if (!spec || !this.isWorldVisible(p, 100)) continue;
+      const before = this.previousEntity(previous?.players, raw.id);
+      const dx = before ? raw.x - before.x : 0, dy = before ? raw.y - before.y : 0;
+      const inferredMoving = Math.hypot(dx, dy) > .15, moving = Boolean(raw.moving ?? inferredMoving) && !p.dead && !p.downed;
+      const attackFacing = Number.isFinite(raw.aimFacing) && ((raw.animTime || 0) > 0 || (raw.weaponFlash || 0) > 0);
+      const targetFacing = attackFacing ? raw.aimFacing : Number.isFinite(raw.facing) ? raw.facing : inferredMoving ? Math.atan2(dy, dx) : 0;
+      const now = performance.now();
+      const visual = this.playerVisuals.get(p.id) || {
+        facing: targetFacing, turn: Math.cos(targetFacing) >= 0 ? 1 : -1, stride: 0,
+        animation: "idle", animationTime: 0, displayHp: p.hp, trailHp: p.hp,
+        previousFootRow: null, wasSkidding: false, updatedAt: now,
+      };
+      const frameTime = Math.min(.05, Math.max(0, visualDt || (now - visual.updatedAt) / 1000));
+      const facingDelta = Math.atan2(Math.sin(targetFacing - visual.facing), Math.cos(targetFacing - visual.facing));
+      visual.facing += facingDelta * (1 - Math.exp(-18 * Math.max(frameTime, 1 / 120)));
+      const targetTurn = Math.cos(visual.facing) >= 0 ? 1 : -1;
+      visual.turn += (targetTurn - visual.turn) * (1 - Math.exp(-16 * Math.max(frameTime, 1 / 120)));
+      visual.stride += moving ? frameTime * 10 : 0;
+
+      const hurt = clamp((p.hurtFlash || 0) / .24, 0, 1);
+      const animation = p.dead || p.downed ? "down" : hurt > .03 ? "hurt" : (raw.animTime || 0) > 0 ? (raw.animState || "idle") : moving ? "run" : "idle";
+      if (visual.animation !== animation) {
+        visual.animation = animation; visual.animationTime = 0; visual.previousFootRow = null;
+      } else visual.animationTime += frameTime * (this.reducedMotion ? .4 : 1);
+      const animationConfig = getThemeAnimation(p.specialist);
+      const atlasFrame = animationFrame(animationConfig, animation, visual.animationTime);
+      if (animation === "run" && atlasFrame && atlasFrame.row !== visual.previousFootRow && atlasFrame.row === 1) this.emitFootfall(p, visual, "#829296");
+      visual.previousFootRow = atlasFrame?.row ?? visual.previousFootRow;
+      if ((p.skidTime || 0) > .01 && !visual.wasSkidding) this.emitFootfall(p, visual, spec.color, true);
+      visual.wasSkidding = (p.skidTime || 0) > .01;
+      if (p.hp >= visual.displayHp) { visual.displayHp += (p.hp - visual.displayHp) * (1 - Math.exp(-18 * frameTime)); visual.trailHp = Math.max(visual.trailHp, visual.displayHp); }
+      else visual.displayHp += (p.hp - visual.displayHp) * (1 - Math.exp(-28 * frameTime));
+      visual.trailHp += (visual.displayHp - visual.trailHp) * (1 - Math.exp(-4.5 * frameTime));
+      visual.updatedAt = now;
+      this.playerVisuals.set(p.id, visual);
+
+      const groundY = animationConfig?.groundY ?? 24;
+      ctx.save(); ctx.translate(p.x, p.y);
+      const shadow = animationConfig?.shadow || [35, 14];
+      ctx.fillStyle = p.dead || p.downed ? "rgba(0,0,0,.2)" : "rgba(0,0,0,.38)";
+      ctx.beginPath(); ctx.ellipse(2, groundY, shadow[0] * (moving ? 1.08 : 1), shadow[1] * (moving ? .9 : 1), 0, 0, TAU); ctx.fill();
+      if (p.id === localPlayerId) {
+        ctx.strokeStyle = spec.color; ctx.globalAlpha = .66; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.ellipse(0, groundY - 2, 39, 17, 0, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1;
       }
-      else{ctx.fillStyle=spec.color;ctx.beginPath();ctx.arc(0,0,28,0,TAU);ctx.fill();}
-      const barW=74;ctx.fillStyle="rgba(2,7,13,.82)";ctx.fillRect(-barW/2,-58,barW,7);ctx.fillStyle=p.hp/p.maxHp<.3?"#ff4b68":"#62ebae";ctx.fillRect(-barW/2,-58,barW*clamp(p.hp/p.maxHp,0,1),7);if(p.shield>0){ctx.fillStyle="#72d8ff";ctx.fillRect(-barW/2,-61,barW*clamp(p.shield/p.maxHp,0,1),2);}
-      ctx.fillStyle="#fff";ctx.font="700 9px Inter";ctx.textAlign="center";ctx.shadowColor="#000";ctx.shadowBlur=3;ctx.fillText(p.name,0,-65);ctx.restore();
-    }ctx.shadowBlur=0;
+      if (p.invuln > 0 || p.shield > 0) {
+        ctx.strokeStyle = p.invuln > 0 ? "#fff" : spec.color; ctx.globalAlpha = .55; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.ellipse(0, -4, 43 + Math.sin(now * .008) * 2, 49, 0, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1;
+      }
+      if (hurt > 0) {
+        ctx.save(); ctx.rotate(p.hurtAngle || 0); ctx.strokeStyle = "#ff5870"; ctx.lineWidth = 4; ctx.globalAlpha = hurt;
+        ctx.beginPath(); ctx.arc(0, 0, 45 + hurt * 9, -.9, .9); ctx.stroke(); ctx.restore();
+      }
+
+      const atlas = this.animationAtlases[p.specialist];
+      if (animationConfig && atlasFrame && atlas?.complete && atlas.naturalWidth) {
+        const cellWidth = atlas.naturalWidth / animationConfig.grid.columns, cellHeight = atlas.naturalHeight / animationConfig.grid.rows;
+        const width = animationConfig.drawSize[0], height = animationConfig.drawSize[1], anchor = animationConfig.anchor || [.5, .82];
+        const column = directionColumn(visual.facing), row = atlasFrame.row;
+        ctx.save();
+        ctx.translate(this.reducedMotion ? 0 : Math.sin(now * .08) * hurt * 3, atlasFrame.offsetY || 0);
+        ctx.rotate((atlasFrame.rotation || 0) + Math.sin(p.hurtAngle || 0) * hurt * .06);
+        ctx.scale(atlasFrame.scaleX || 1, atlasFrame.scaleY || 1);
+        if (hurt > 0) ctx.filter = `brightness(${1 + hurt * 2.2}) saturate(${1 - hurt * .5}) sepia(${hurt * .4})`;
+        if (p.dead || p.downed) ctx.globalAlpha = .45;
+        ctx.drawImage(atlas, column * cellWidth, row * cellHeight, cellWidth, cellHeight, -width * anchor[0], groundY - height * anchor[1], width, height);
+        ctx.restore();
+      } else {
+        const image = this.sprites[p.specialist];
+        if (image?.complete) {
+          const size = p.specialist === "sola" ? 118 : 104;
+          const step = Math.sin(visual.stride), bob = moving ? Math.abs(step) * -3 : Math.sin(now * .002 + p.x) * .7;
+          ctx.save(); ctx.translate(this.reducedMotion ? 0 : Math.sin(now * .08) * hurt * 3, bob - hurt * 2);
+          ctx.rotate((moving ? Math.cos(visual.stride) * .025 : 0) + Math.sin(p.hurtAngle || 0) * hurt * .09);
+          ctx.transform(visual.turn, 0, -Math.sin(visual.facing) * .045, 1, 0, 0);
+          if (hurt > 0) ctx.filter = `brightness(${1 + hurt * 2.4}) saturate(${1 - hurt * .55}) sepia(${hurt * .45})`;
+          if (p.dead || p.downed) ctx.globalAlpha = .35;
+          ctx.drawImage(image, -size / 2, groundY - size * .82, size, size); ctx.restore();
+        } else { ctx.fillStyle = spec.color; ctx.beginPath(); ctx.arc(0, 0, 28, 0, TAU); ctx.fill(); }
+      }
+
+      if ((p.weaponFlash || 0) > 0 && !p.dead && !p.downed) {
+        const flash = clamp(p.weaponFlash / .09, 0, 1), angle = Number.isFinite(p.recoilAngle) ? p.recoilAngle : visual.facing;
+        const muzzle = animationConfig?.sockets?.muzzle;
+        const distance = muzzle?.distance ?? animationConfig?.muzzleDistance ?? 47, x = Math.cos(angle) * distance, y = Math.sin(angle) * distance + (muzzle?.vertical ?? -8);
+        ctx.save(); ctx.translate(x, y); ctx.rotate(angle); ctx.globalAlpha = flash; ctx.shadowColor = "#ff5c91"; ctx.shadowBlur = 16;
+        ctx.fillStyle = "#fff4c7"; ctx.beginPath(); ctx.moveTo(18, 0); ctx.lineTo(-6, -7); ctx.lineTo(-1, 0); ctx.lineTo(-6, 7); ctx.closePath(); ctx.fill(); ctx.restore();
+      }
+
+      const barW = 74, maxHp = Math.max(1, p.maxHp || 1), barY = -64;
+      ctx.fillStyle = "rgba(2,7,13,.86)"; ctx.fillRect(-barW / 2, barY, barW, 7);
+      ctx.fillStyle = "#ff9a5b"; ctx.fillRect(-barW / 2, barY, barW * clamp(visual.trailHp / maxHp, 0, 1), 7);
+      ctx.fillStyle = p.hp / maxHp < .3 ? "#ff4b68" : "#62ebae"; ctx.fillRect(-barW / 2, barY, barW * clamp(visual.displayHp / maxHp, 0, 1), 7);
+      if (p.shield > 0) { ctx.fillStyle = "#72d8ff"; ctx.fillRect(-barW / 2, barY - 3, barW * clamp(p.shield / maxHp, 0, 1), 2); }
+      ctx.fillStyle = "#fff"; ctx.font = "700 9px Inter"; ctx.textAlign = "center"; ctx.shadowColor = "#000"; ctx.shadowBlur = 3; ctx.fillText(p.name, 0, barY - 7);
+      if (p.dead || p.downed) {
+        ctx.globalAlpha = 1; ctx.fillStyle = "rgba(2,7,13,.82)"; ctx.fillRect(-46, 11, 92, 22);
+        ctx.fillStyle = "#ff7184"; ctx.font = "800 11px Inter"; ctx.fillText(p.dead ? `${Math.ceil(p.respawnTimer)}s` : `REVIVE ${Math.ceil(p.downTimer)}s`, 0, 26);
+      }
+      ctx.restore();
+    }
+    ctx.shadowBlur = 0;
   }
 
   drawVignette(state, current) {

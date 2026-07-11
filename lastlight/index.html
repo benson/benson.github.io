@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260710.4">
+  <link rel="stylesheet" href="styles.css?v=20260710.5">
 </head>
 <body>
   <main id="app">
@@ -381,7 +381,20 @@
       <div class="build-history-body">
         <article class="build-release current-build">
           <header>
-            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.10.4</h3></div>
+            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.10.5</h3></div>
+            <span class="build-time-unavailable" data-build-shipped-at="pending">Ship time pending deployment</span>
+          </header>
+          <ul>
+            <li>Made movement deterministic at a fixed 60 Hz while preserving same-frame local input response.</li>
+            <li>Added guest prediction with soft reconciliation, a frame-rate-independent camera spring, and measured input/correction diagnostics.</li>
+            <li>Grounded actors and raised cover in one depth-sorted scene with formal foot anchors, contact shadows, movement dust, and skid response.</li>
+            <li>Gave Zuri authored directional idle, run, dash, cast, hurt, down, revive, and victory motion through the swappable theme contract.</li>
+            <li>Added muzzle sockets, recoil flash, visual hit-stop, and eased health loss; representative Canvas rendering remains below the migration gate.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.10.4</h3></div>
             <time class="build-shipped-at" data-build-shipped-at="2026-07-10T20:14:00-04:00">Shipped Jul 10, 2026, 8:14 PM EDT</time>
           </header>
           <ul>
@@ -449,8 +462,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.10.4. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.10.4</strong></button>
-  <script src="build-history.js?v=20260710.4"></script>
-  <script type="module" src="game.js?v=20260710.4"></script>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.10.5. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.10.5</strong></button>
+  <script src="build-history.js?v=20260710.5"></script>
+  <script type="module" src="game.js?v=20260710.5"></script>
 </body>
 </html>

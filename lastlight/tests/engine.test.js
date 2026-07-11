@@ -83,12 +83,28 @@ test("per-player combat, pickup, and damage stats are credited", () => {
   const attacker = sim.spawnEnemy("hound");
   attacker.x = player.x - 30;
   attacker.y = player.y;
-  sim.takeDamage(player, 20, attacker);
+  sim.takeDamage(player, 2, attacker);
   assert.ok(player.damageTaken > 0);
-  assert.ok(player.damageTaken <= 20);
+  assert.ok(player.damageTaken <= 2);
   assert.ok(player.hurtFlash > 0);
   assert.ok(player.knockVx > 0);
   assert.ok(attacker.attackFlash > 0);
+  assert.equal(player.animState, "hurt");
+  assert.ok(player.animTime > 0);
+});
+
+test("combat actions expose concise authored animation state", () => {
+  const sim = new Simulation({ players: [{ id: "p1", name: "One", specialist: "zuri" }] });
+  const player = sim.players[0];
+  sim.shoot(player, 0, 10);
+  assert.ok(player.weaponFlash > 0);
+  assert.equal(player.recoilAngle, 0);
+  sim.level = 3;
+  assert.equal(sim.cast(player.id, "e"), true);
+  assert.equal(player.animState, "castE");
+  assert.ok(player.animTime > 0);
+  sim.updatePlayers(.4);
+  assert.equal(player.animState, player.moving ? "run" : "idle");
 });
 
 test("area attacks damage supply caches", () => {

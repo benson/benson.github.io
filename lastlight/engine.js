@@ -1,7 +1,7 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
-} from "./data.js?v=20260710.4";
+} from "./data.js?v=20260710.5";
 
 const TAU = Math.PI * 2;
 const WORLD = { width: 3600, height: 2400 };
@@ -19,6 +19,33 @@ function compactPoint(e) {
     result[key] = typeof value === "number" ? Math.round(value * 10) / 10 : value;
   }
   return result;
+}
+
+export function collidesWithCover(x, y, radius) {
+  for (const [left, top, width, height] of MAP_OBSTACLES) {
+    const nearestX = clamp(x, left, left + width), nearestY = clamp(y, top, top + height);
+    if ((x - nearestX) ** 2 + (y - nearestY) ** 2 < radius ** 2) return true;
+  }
+  return false;
+}
+
+export function moveEntityWithCover(entity, dx, dy) {
+  const steps = Math.max(1, Math.ceil(Math.hypot(dx, dy) / 18));
+  for (let step = 0; step < steps; step++) {
+    const nextX = clamp(entity.x + dx / steps, -WORLD.width / 2 + 40, WORLD.width / 2 - 40);
+    if (!collidesWithCover(nextX, entity.y, entity.radius)) entity.x = nextX;
+    const nextY = clamp(entity.y + dy / steps, -WORLD.height / 2 + 40, WORLD.height / 2 - 40);
+    if (!collidesWithCover(entity.x, nextY, entity.radius)) entity.y = nextY;
+  }
+  return entity;
+}
+
+export function playerMovementSpeed(player) {
+  let value = player.baseSpeed * (1 + Number(player.passives?.move || 0) * .09);
+  if (player.specialist === "fang") value *= 1 + (1 - player.hp / player.maxHp);
+  if (player.specialist === "rift") value *= 1 + Number(player.weapons?.signature?.level || 1) * .05;
+  if (player.speedBuff > 0) value *= 2;
+  return value;
 }
 
 export class Simulation {
@@ -102,7 +129,8 @@ export class Simulation {
       x: Math.cos(angle) * 75, y: Math.sin(angle) * 75, radius: 31,
       hp: spec.health, maxHp: spec.health, armor: spec.armor, baseSpeed: spec.speed,
       input: { x: 0, y: 0, aim: 0, autoAim: true },
-      facing: 0, moving: false,
+      facing: 0, aimFacing: 0, moving: false,
+      animState: "idle", animTime: 0, weaponFlash: 0, recoilAngle: 0, skidTime: 0,
       eCd: 0, eCdMax: 0, rCd: 0, rCdMax: 0, shield: 0, invuln: 2, hitGrace: 0, hurtFlash: 0, hurtAngle: 0, knockVx: 0, knockVy: 0, frenzy: 0, hasteBuff: 0, speedBuff: 0,
       dead: false, downed: false, downTimer: 0, respawnTimer: 0, reviveProgress: 0, deaths: 0,
       weaponTimers: {}, weapons: { signature: { level: 1, evolved: false } }, passives: {},
@@ -200,6 +228,9 @@ export class Simulation {
       p.invuln = Math.max(0, p.invuln - dt);
       p.hitGrace = Math.max(0, p.hitGrace - dt);
       p.hurtFlash = Math.max(0, (p.hurtFlash || 0) - dt);
+      p.animTime = Math.max(0, (p.animTime || 0) - dt);
+      p.weaponFlash = Math.max(0, (p.weaponFlash || 0) - dt);
+      p.skidTime = Math.max(0, (p.skidTime || 0) - dt);
       p.frenzy = Math.max(0, p.frenzy - dt);
       p.hasteBuff = Math.max(0, p.hasteBuff - dt);
       p.speedBuff = Math.max(0, p.speedBuff - dt);
@@ -216,6 +247,7 @@ export class Simulation {
       if (p.hotTime <= 0) p.hotStacks = 0;
       p.shield = Math.max(0, p.shield - Math.max(.01, p.maxHp * .015) * dt);
 
+      p.aimFacing = Number.isFinite(p.input.aim) ? p.input.aim : p.aimFacing;
       let ix = p.input.x, iy = p.input.y;
       const length = Math.hypot(ix, iy) || 1;
       if (length > 1) { ix /= length; iy /= length; }
@@ -228,10 +260,12 @@ export class Simulation {
       this.movePlayer(p, (ix * speed + (p.knockVx || 0)) * dt, (iy * speed + (p.knockVy || 0)) * dt);
       const knockFriction = Math.pow(.018, dt); p.knockVx *= knockFriction; p.knockVy *= knockFriction;
       const moved = Math.hypot(p.x - ox, p.y - oy);
-      p.moving = moved > .05;
+      const wasMoving = p.moving; p.moving = moved > .05;
       if (p.moving) {
         p.facing = Math.atan2(p.y - oy, p.x - ox);
       }
+      if (wasMoving && !p.moving) p.skidTime = .16;
+      if (p.animTime <= 0) p.animState = p.moving ? "run" : "idle";
       p.traveled += moved;
       p.charge += moved;
 
@@ -274,13 +308,7 @@ export class Simulation {
       return value;
     }
     if (stat === "haste") return lvl("haste") * 10 + (p.hotTime > 0 ? 150 : 0) + (p.hasteBuff > 0 ? 150 : 0) + (p.frenzy > 0 ? 250 : 0);
-    if (stat === "speed") {
-      let value = p.baseSpeed * (1 + lvl("move") * .09);
-      if (p.specialist === "fang") value *= 1 + (1 - p.hp / p.maxHp);
-      if (p.specialist === "rift") value *= 1 + p.weapons.signature.level * .05;
-      if (p.speedBuff > 0) value *= 2;
-      return value;
-    }
+    if (stat === "speed") return playerMovementSpeed(p);
     if (stat === "area") {
       let value = 1 + lvl("area") * .11;
       if (p.specialist === "sola") value += p.armor * .003 + p.maxHp * .001 + lvl("regen") * .003;
@@ -295,21 +323,11 @@ export class Simulation {
   }
 
   collidesWithCover(x, y, radius) {
-    for (const [left, top, width, height] of MAP_OBSTACLES) {
-      const nearestX = clamp(x, left, left + width), nearestY = clamp(y, top, top + height);
-      if ((x - nearestX) ** 2 + (y - nearestY) ** 2 < radius ** 2) return true;
-    }
-    return false;
+    return collidesWithCover(x, y, radius);
   }
 
   movePlayer(p, dx, dy) {
-    const steps = Math.max(1, Math.ceil(Math.hypot(dx, dy) / 18));
-    for (let step = 0; step < steps; step++) {
-      const nextX = clamp(p.x + dx / steps, -WORLD.width / 2 + 40, WORLD.width / 2 - 40);
-      if (!this.collidesWithCover(nextX, p.y, p.radius)) p.x = nextX;
-      const nextY = clamp(p.y + dy / steps, -WORLD.height / 2 + 40, WORLD.height / 2 - 40);
-      if (!this.collidesWithCover(p.x, nextY, p.radius)) p.y = nextY;
-    }
+    moveEntityWithCover(p, dx, dy);
   }
 
   updateSpawns(dt) {
@@ -763,6 +781,9 @@ export class Simulation {
       originX: options.originX, originY: options.originY, age: 0, hit: new Set(),
     };
     this.projectiles.push(projectile);
+    if (options.spawnX === undefined && options.spawnY === undefined) {
+      p.weaponFlash = Math.max(p.weaponFlash || 0, .09); p.recoilAngle = angle; p.aimFacing = angle;
+    }
     return projectile;
   }
 
@@ -773,12 +794,14 @@ export class Simulation {
     if (slot === "e") {
       if (this.level < 3 || p.eCd > 0) return false;
       p.eCd = p.eCdMax = this.cooldown(p, spec.cooldownE);
+      p.animState = "castE"; p.animTime = .28;
       this.castE(p);
       return true;
     }
     if (slot === "r") {
       if (this.level < 6 || p.rCd > 0) return false;
       p.rCd = p.rCdMax = this.cooldown(p, spec.cooldownR);
+      p.animState = "castR"; p.animTime = .42;
       this.castR(p);
       return true;
     }
@@ -853,6 +876,7 @@ export class Simulation {
     const beforeX = p.x, beforeY = p.y;
     this.movePlayer(p, Math.cos(angle) * distanceAmount, Math.sin(angle) * distanceAmount);
     const moved = Math.hypot(p.x - beforeX, p.y - beforeY);
+    p.facing = angle; p.animState = "dash"; p.animTime = Math.max(p.animTime || 0, .18);
     p.traveled += moved; p.charge += moved;
   }
 
@@ -1051,6 +1075,7 @@ export class Simulation {
     p.knockVx = (p.knockVx || 0) + Math.cos(impactAngle) * knockback;
     p.knockVy = (p.knockVy || 0) + Math.sin(impactAngle) * knockback;
     p.hurtAngle = impactAngle; p.hurtFlash = .24;
+    p.animState = "hurt"; p.animTime = .24;
     const attacker = source?.ownerId ? this.enemies.find((enemy) => enemy.id === source.ownerId) : this.enemies.includes(source) ? source : null;
     if (attacker) { attacker.attackFlash = .2; attacker.attackAngle = impactAngle; }
     // Prevent stacked contact bodies from applying a whole pack's damage in a
@@ -1061,14 +1086,14 @@ export class Simulation {
   }
 
   downPlayer(p) {
-    p.hp = 0; p.deaths++;
+    p.hp = 0; p.deaths++; p.animState = "down"; p.animTime = 10;
     if (this.players.length === 1) { p.dead = true; this.lose(`${p.name} was overwhelmed.`); return; }
     p.downed = true; p.downTimer = 10; p.reviveProgress = 0;
     this.pushEvent("danger", `${p.name} is down`, "Stand in the ring to revive");
   }
 
   revive(p) {
-    p.dead = false; p.downed = false; p.hp = p.maxHp * .5; p.invuln = 4; p.reviveProgress = 0; p.respawnTimer = 0;
+    p.dead = false; p.downed = false; p.hp = p.maxHp * .5; p.invuln = 4; p.reviveProgress = 0; p.respawnTimer = 0; p.animState = "revive"; p.animTime = .4;
     this.pushEvent("boon", `${p.name} rejoined`, "Four seconds of invulnerability");
   }
 
@@ -1265,7 +1290,11 @@ export class Simulation {
     this.pushEvent("danger", `${this.map.boss} HAS ARRIVED`, "Defeat the apex before enrage");
   }
 
-  win() { this.stage = "won"; this.paused = false; this.pushEvent("victory", "Apex neutralized", "Final City gets another sunrise"); }
+  win() {
+    this.stage = "won"; this.paused = false;
+    for (const player of this.players) { player.animState = "victory"; player.animTime = 10; }
+    this.pushEvent("victory", "Apex neutralized", "Final City gets another sunrise");
+  }
   lose(copy) { if (this.stage === "won") return; this.stage = "lost"; this.paused = false; this.pushEvent("defeat", "Operation lost", copy); }
 
   pushEvent(type, title, copy = "") {

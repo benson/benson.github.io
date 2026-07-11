@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import {
   LASTLIGHT_THEME,
   THEME_ASSET_KEYS,
+  getThemeAnimation,
   getThemeAsset,
   validateTheme,
 } from "../themes/lastlight.js";
@@ -13,7 +14,7 @@ test("default theme satisfies the complete asset contract", () => {
   const result = validateTheme(LASTLIGHT_THEME);
   assert.deepEqual(result.errors, []);
   assert.equal(result.valid, true);
-  assert.equal(result.assetCount, 85);
+  assert.equal(result.assetCount, 86);
   assert.equal(Object.isFrozen(LASTLIGHT_THEME), true);
   assert.equal(Object.isFrozen(LASTLIGHT_THEME.assets.archive.augments), true);
 });
@@ -54,6 +55,19 @@ test("logical asset lookup is predictable and rejects typos", () => {
   assert.equal(getThemeAsset("guide.passives.projectiles"), "assets/guide/passives/multishot.webp");
   assert.equal(getThemeAsset("archive.augments.glassCannon"), "assets/archive/glass-cannon.webp");
   assert.throws(() => getThemeAsset("archive.augments.glassCanon"), /Unknown theme asset/);
+});
+
+test("authored specialist animation metadata is theme-swappable", async () => {
+  const animation = getThemeAnimation("zuri");
+  assert.equal(animation.atlas, "assets/sprites/zuri-motion-atlas.png");
+  assert.deepEqual(animation.directions, ["south", "west", "north", "east"]);
+  assert.deepEqual(animation.grid, { columns: 4, rows: 5 });
+  assert.ok(["idle", "run", "dash", "castE", "castR", "hurt", "down", "revive", "victory"].every((state) => animation.states[state]?.frames?.length));
+  assert.deepEqual(animation.spriteBounds, [0, 0, 138, 110]);
+  assert.deepEqual(animation.collisionOffset, [0, 0]);
+  assert.deepEqual(animation.sockets.muzzle, { distance: 58, vertical: -8 });
+  const root = fileURLToPath(new URL("../", import.meta.url));
+  await access(`${root}${animation.atlas}`);
 });
 
 test("every default-theme asset is present in the deployable game tree", async () => {
