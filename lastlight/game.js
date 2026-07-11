@@ -1,11 +1,11 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260710.5";
-import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260710.5";
-import { Renderer } from "./render.js?v=20260710.5";
-import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260710.5";
-import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260710.5";
-import { getThemeAsset } from "./themes/lastlight.js?v=20260710.5";
-import { submitRunTelemetry } from "./telemetry.js?v=20260710.5";
-import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260710.5";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260711.1";
+import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260711.1";
+import { Renderer } from "./render.js?v=20260711.1";
+import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260711.1";
+import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.1";
+import { getThemeAsset } from "./themes/lastlight.js?v=20260711.1";
+import { submitRunTelemetry } from "./telemetry.js?v=20260711.1";
+import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.1";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -13,7 +13,7 @@ const query = new URLSearchParams(location.search);
 const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.10.5";
+const BUILD = "2026.07.11.1";
 const renderer = new Renderer($("game-canvas"));
 const fixedClock = new FixedStepClock();
 const movementPredictor = new MovementPredictor();

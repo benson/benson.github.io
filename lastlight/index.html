@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260710.5">
+  <link rel="stylesheet" href="styles.css?v=20260711.1">
 </head>
 <body>
   <main id="app">
@@ -390,7 +390,20 @@
       <div class="build-history-body">
         <article class="build-release current-build">
           <header>
-            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.10.5</h3></div>
+            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.11.1</h3></div>
+            <span class="build-time-unavailable">Production timestamp verifying</span>
+          </header>
+          <ul>
+            <li>Added authored runtime art for every field-guide enemy, with grounded shadows, directional facing, movement, hit, and attack response.</li>
+            <li>Segmented player, squad, enemy, and apex health bars using one shared vitality contract, including shield and delayed-loss layers.</li>
+            <li>Made the Damage Sources panel movable, resizable, collapsible, keyboard-accessible, and persistent between runs.</li>
+            <li>Raised compact desktop UI text while preserving the denser mobile layout.</li>
+            <li>Kept threat and objective notifications readable longer with crisp, reduced-motion-aware transitions.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.10.5</h3></div>
             <time class="build-shipped-at" data-build-shipped-at="2026-07-10T21:25:00-04:00">Shipped Jul 10, 2026, 9:25 PM EDT</time>
           </header>
           <ul>
@@ -471,8 +484,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.10.5. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.10.5</strong></button>
-  <script src="build-history.js?v=20260710.5"></script>
-  <script type="module" src="game.js?v=20260710.5"></script>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.11.1. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.11.1</strong></button>
+  <script src="build-history.js?v=20260711.1"></script>
+  <script type="module" src="game.js?v=20260711.1"></script>
 </body>
 </html>
