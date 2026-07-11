@@ -1,0 +1,24 @@
+{
+  "schema": "lastlight.fixture.v1",
+  "id": "multiplayer-four-player",
+  "description": "Four-player authoritative snapshot with casts, movement, attribution, and a revive.",
+  "seed": "50000000000000000000000000000005",
+  "simulation": { "map": "outskirts", "difficulty": "hard", "duration": 240 },
+  "checkpoint": { "elapsedTicks": 8400, "level": 9, "objectiveIndex": 2 },
+  "players": [
+    { "id": "p1", "specialist": "zuri", "x": -80, "y": 0, "invulnerableSeconds": 30, "weapons": { "signature": 4, "uwu": 3 }, "passives": { "haste": 2 } },
+    { "id": "p2", "specialist": "echo", "x": 0, "y": 0, "invulnerableSeconds": 30, "weapons": { "signature": 4, "aura": 3 }, "passives": { "projectiles": 2 } },
+    { "id": "p3", "specialist": "sola", "x": 80, "y": 0, "invulnerableSeconds": 30, "weapons": { "signature": 4, "mines": 3 }, "passives": { "armor": 2 } },
+    { "id": "p4", "specialist": "bront", "x": 0, "y": 0, "invulnerableSeconds": 30, "weapons": { "signature": 4, "drone": 3 }, "passives": { "duration": 2 }, "downed": true }
+  ],
+  "population": { "enemies": [{ "type": "mite", "count": 55, "healthMultiplier": 6 }, { "type": "hound", "count": 36, "healthMultiplier": 6 }, { "type": "spitter", "count": 20, "healthMultiplier": 6 }, { "type": "brute", "count": 10, "healthMultiplier": 6 }] },
+  "actions": [
+    { "tick": 0, "kind": "input", "player": "p1", "x": -1, "y": 0, "aim": 3.14159, "autoAim": true },
+    { "tick": 0, "kind": "input", "player": "p3", "x": 1, "y": 0, "aim": 0, "autoAim": true },
+    { "tick": 20, "kind": "cast", "player": "p1", "slot": "e" },
+    { "tick": 40, "kind": "cast", "player": "p2", "slot": "e" },
+    { "tick": 60, "kind": "cast", "player": "p3", "slot": "e" }
+  ],
+  "run": { "ticks": 240, "captureEvery": 60 },
+  "expect": { "stage": "running", "playerCount": 4, "minDamage": 100, "minRevives": 1, "maxEffects": 260 }
+}

@@ -108,9 +108,9 @@ test("only the host can route a live-game sync to one peer", () => {
   const socket = () => ({ sent: [], send(payload) { this.sent.push(JSON.parse(payload)); } });
   const host = socket(), guest = socket(), observer = socket();
   room.hostId = "host";
-  room.sessions.set(host, { id: "host", name: "Host" });
-  room.sessions.set(guest, { id: "guest", name: "Guest" });
-  room.sessions.set(observer, { id: "observer", name: "Observer" });
+  room.sessions.set(host, { id: "host", name: "Host", initialized: true });
+  room.sessions.set(guest, { id: "guest", name: "Guest", initialized: true });
+  room.sessions.set(observer, { id: "observer", name: "Observer", initialized: true });
 
   room.onMessage(host, JSON.stringify({ type: "sync_game", _to: "guest", state: { level: 4 } }));
   assert.equal(host.sent.length, 0);
@@ -119,4 +119,36 @@ test("only the host can route a live-game sync to one peer", () => {
 
   room.onMessage(guest, JSON.stringify({ type: "sync_game", _to: "observer", state: { level: 99 } }));
   assert.equal(observer.sent.length, 0);
+});
+
+test("room identity is established by the first message instead of the request URL", () => {
+  const room = new Room({});
+  const socket = { sent: [], send(payload) { this.sent.push(JSON.parse(payload)); } };
+  room.sessions.set(socket, { id: "first", initialized: false, connectedAt: Date.now() });
+
+  room.onMessage(socket, JSON.stringify({ type: "input", input: { x: 1 } }));
+  assert.equal(socket.sent.length, 0);
+
+  room.onMessage(socket, JSON.stringify({
+    type: "hello",
+    profile: { name: "Private Pilot", specialist: "nova", resumeToken: "a".repeat(24) },
+  }));
+
+  assert.equal(room.hostId, "first");
+  assert.equal(room.sessions.get(socket).name, "Private Pilot");
+  assert.equal(room.sessions.get(socket).resumeToken, "a".repeat(24));
+  assert.deepEqual(socket.sent, [{ type: "welcome", id: "first", role: "host", peers: [] }]);
+});
+
+test("legacy query-profile initialization remains available during the rolling client upgrade", () => {
+  const room = new Room({});
+  const socket = { sent: [], send(payload) { this.sent.push(JSON.parse(payload)); } };
+  const session = { id: "legacy", initialized: false, connectedAt: Date.now() };
+  room.sessions.set(socket, session);
+
+  assert.equal(room.initializeSession(socket, session, { name: "Legacy", specialist: "echo" }), true);
+  assert.equal(room.initializeSession(socket, session, { name: "Ignored", specialist: "fang" }), false);
+  assert.equal(session.name, "Legacy");
+  assert.equal(session.specialist, "echo");
+  assert.deepEqual(socket.sent, [{ type: "welcome", id: "legacy", role: "host", peers: [] }]);
 });

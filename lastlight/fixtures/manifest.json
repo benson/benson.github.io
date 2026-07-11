@@ -1,0 +1,22 @@
+{
+  "schema": "lastlight.fixtures.v1",
+  "schemaVersion": 1,
+  "balance": {
+    "version": "2026.07.11-baseline.1",
+    "hash": "fnv1a32:7e33be79"
+  },
+  "replay": {
+    "schema": "lastlight.replay.v1",
+    "stepHz": 60,
+    "rng": "xoshiro128ss-v1"
+  },
+  "scenarios": [
+    "early-solo-contact.json",
+    "mid-solo-build.json",
+    "late-solo-storm.json",
+    "objective-coordination.json",
+    "multiplayer-four-player.json",
+    "apex-beachhead.json",
+    "stress-entity-ceiling.json"
+  ]
+}

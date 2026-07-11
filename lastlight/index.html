@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260711.2">
+  <link rel="stylesheet" href="styles.css?v=20260711.3">
 </head>
 <body>
   <main id="app">
@@ -329,6 +329,7 @@
         <div id="result-damage-breakdown" class="result-damage-breakdown"></div>
         <div class="result-actions">
           <button id="again-button" class="deploy-button" type="button"><span>Run it again</span><span>↻</span></button>
+          <button id="copy-replay" class="text-button hidden" type="button">Copy deterministic replay</button>
           <button id="result-run-history" class="text-button" type="button">View past runs</button>
           <button id="result-home" class="text-button" type="button">Return to command</button>
         </div>
@@ -400,7 +401,20 @@
       <div class="build-history-body">
         <article class="build-release current-build">
           <header>
-            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.11.2</h3></div>
+            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.11.3</h3></div>
+            <span class="build-time-unavailable">Production timestamp verifying</span>
+          </header>
+          <ul>
+            <li>Moved combat, wave, difficulty, specialist, weapon, passive, event, and apex tuning into a validated versioned balance contract with a canonical hash.</li>
+            <li>Made the authoritative 60 Hz simulation reproducible from a secure seed, including scoped IDs, tick-based events, isolated cosmetic randomness, and serializable delayed actions.</li>
+            <li>Added strict identity-free replay capture with anonymous squad slots, ordered commands, five-second checksums, session-local retention, and an explicit post-run copy action.</li>
+            <li>Added seven committed early, mid, late, objective, four-player, apex, and stress fixtures with deterministic correctness and structural performance gates in CI.</li>
+            <li>Moved callsigns and reconnect tokens out of WebSocket request URLs into a bounded post-upgrade handshake while preserving rolling compatibility.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.11.2</h3></div>
             <time class="build-shipped-at" data-build-shipped-at="2026-07-11T11:09:00-04:00">Shipped Jul 11, 2026, 11:09 AM EDT</time>
           </header>
           <ul>
@@ -507,8 +521,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.11.2. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.11.2</strong></button>
-  <script src="build-history.js?v=20260711.2"></script>
-  <script type="module" src="game.js?v=20260711.2"></script>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.11.3. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.11.3</strong></button>
+  <script src="build-history.js?v=20260711.3"></script>
+  <script type="module" src="game.js?v=20260711.3"></script>
 </body>
 </html>

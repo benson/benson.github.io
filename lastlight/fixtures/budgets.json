@@ -1,0 +1,13 @@
+{
+  "schema": "lastlight.fixture-budgets.v1",
+  "schemaVersion": 1,
+  "budgets": {
+    "early-solo-contact": { "maxSnapshotBytes": 16000, "maxTotalEntities": 65, "maxWorkUnitsPerTick": 220 },
+    "mid-solo-build": { "maxSnapshotBytes": 40000, "maxTotalEntities": 190, "maxWorkUnitsPerTick": 3500 },
+    "late-solo-storm": { "maxSnapshotBytes": 220000, "maxTotalEntities": 1450, "maxWorkUnitsPerTick": 50000 },
+    "objective-coordination": { "maxSnapshotBytes": 15000, "maxTotalEntities": 60, "maxWorkUnitsPerTick": 230 },
+    "multiplayer-four-player": { "maxSnapshotBytes": 85000, "maxTotalEntities": 400, "maxWorkUnitsPerTick": 22000 },
+    "apex-beachhead": { "maxSnapshotBytes": 14000, "maxTotalEntities": 65, "maxWorkUnitsPerTick": 320 },
+    "stress-entity-ceiling": { "maxSnapshotBytes": 450500, "maxTotalEntities": 3025, "maxWorkUnitsPerTick": 262000 }
+  }
+}

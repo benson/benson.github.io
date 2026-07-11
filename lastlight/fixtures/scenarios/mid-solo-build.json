@@ -1,0 +1,17 @@
+{
+  "schema": "lastlight.fixture.v1",
+  "id": "mid-solo-build",
+  "description": "Mid-run build with an evolved signature and complementary weapons.",
+  "seed": "20000000000000000000000000000002",
+  "simulation": { "map": "outskirts", "difficulty": "story", "duration": 240 },
+  "checkpoint": { "elapsedTicks": 6600, "level": 8, "objectiveIndex": 2 },
+  "players": [{ "id": "p1", "specialist": "echo", "x": 0, "y": 0, "invulnerableSeconds": 30, "weapons": { "signature": 5, "uwu": 4, "aura": 3, "drone": 2 }, "evolved": ["signature"], "passives": { "projectiles": 2, "haste": 2, "maxHealth": 1, "pickup": 1 } }],
+  "population": { "enemies": [{ "type": "mite", "count": 42, "healthMultiplier": 2 }, { "type": "hound", "count": 24, "healthMultiplier": 2 }, { "type": "spitter", "count": 12, "healthMultiplier": 2 }, { "type": "brute", "count": 6, "healthMultiplier": 2 }] },
+  "actions": [
+    { "tick": 0, "kind": "input", "player": "p1", "x": 0.7, "y": 0.7, "aim": 0.8, "autoAim": true },
+    { "tick": 30, "kind": "cast", "player": "p1", "slot": "e" },
+    { "tick": 150, "kind": "input", "player": "p1", "x": -0.7, "y": 0.7, "aim": 2.3, "autoAim": true }
+  ],
+  "run": { "ticks": 300, "captureEvery": 60 },
+  "expect": { "stage": "running", "playerCount": 1, "minDamage": 100, "maxEffects": 260 }
+}

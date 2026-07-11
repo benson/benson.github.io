@@ -1,0 +1,16 @@
+{
+  "schema": "lastlight.fixture.v1",
+  "id": "objective-coordination",
+  "description": "Two specialists capture an uplink and complete a relay-ball delivery.",
+  "seed": "40000000000000000000000000000004",
+  "simulation": { "map": "warehouse", "difficulty": "story", "duration": 240 },
+  "checkpoint": { "elapsedTicks": 4200, "level": 5, "objectiveIndex": 2 },
+  "players": [
+    { "id": "p1", "specialist": "sola", "x": -20, "y": 0, "invulnerableSeconds": 30, "weapons": { "signature": 3 }, "passives": { "armor": 2 } },
+    { "id": "p2", "specialist": "bront", "x": 20, "y": 0, "invulnerableSeconds": 30, "weapons": { "signature": 3 }, "passives": { "duration": 2 } }
+  ],
+  "population": { "enemies": [{ "type": "mite", "count": 18, "healthMultiplier": 3 }], "objective": "uplink", "completeRelayBall": true },
+  "actions": [],
+  "run": { "ticks": 210, "captureEvery": 30 },
+  "expect": { "stage": "running", "playerCount": 2, "minGold": 45, "maxObjectives": 0, "maxRelayBalls": 0, "maxEffects": 260 }
+}

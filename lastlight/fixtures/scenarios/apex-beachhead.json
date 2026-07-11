@@ -1,0 +1,20 @@
+{
+  "schema": "lastlight.fixture.v1",
+  "id": "apex-beachhead",
+  "description": "Beachhead apex crossing its deterministic phase-two threshold.",
+  "seed": "60000000000000000000000000000006",
+  "simulation": { "map": "beachhead", "difficulty": "story", "duration": 240 },
+  "checkpoint": { "elapsedTicks": 14400, "level": 16, "objectiveIndex": 2, "boss": true, "bossHealthRatio": 0.49 },
+  "players": [
+    { "id": "p1", "specialist": "rift", "x": 300, "y": 0, "invulnerableSeconds": 30, "weapons": { "signature": 5, "uwu": 5, "aura": 5 }, "evolved": ["signature"], "passives": { "move": 4, "damage": 4, "haste": 3 } },
+    { "id": "p2", "specialist": "nova", "x": 250, "y": 80, "invulnerableSeconds": 30, "weapons": { "signature": 5, "crossbow": 5, "drone": 5 }, "evolved": ["signature"], "passives": { "xp": 4, "crit": 3, "pickup": 2 } }
+  ],
+  "population": {},
+  "actions": [
+    { "tick": 0, "kind": "input", "player": "p1", "x": 0, "y": 0, "aim": 0, "autoAim": true },
+    { "tick": 0, "kind": "input", "player": "p2", "x": 0, "y": 0, "aim": 0, "autoAim": true },
+    { "tick": 30, "kind": "cast", "player": "p1", "slot": "e" }
+  ],
+  "run": { "ticks": 180, "captureEvery": 30 },
+  "expect": { "stage": "boss", "playerCount": 2, "bossPhase": 2, "minDamage": 1, "maxEffects": 260 }
+}
