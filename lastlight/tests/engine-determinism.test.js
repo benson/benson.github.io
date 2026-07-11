@@ -93,6 +93,28 @@ test("events and delayed tasks use tick-stamped serializable state", () => {
   assert.equal(sola.events.at(-1).at, 180);
 });
 
+test("versioned gameplay flags can safely suppress optional objective systems", () => {
+  const disabled = new Simulation({ players: [player()], features: { gameplayVersion: "events-off-v1", objectiveEvents: false } }, { seed: SEED });
+  disabled.time = disabled.duration;
+  disabled.nextTreasure = 0; disabled.nextRelayBall = 0; disabled.objectiveIndex = 0;
+  disabled.nextElite = Infinity; disabled.nextMiniBoss = Infinity;
+  disabled.updateScheduledEvents();
+  assert.equal(disabled.enemies.some((enemy) => enemy.eventType === "treasure"), false);
+  assert.equal(disabled.relayBalls.length, 0);
+  assert.equal(disabled.objectives.length, 0);
+  assert.deepEqual(disabled.snapshot().features, { gameplayVersion: "events-off-v1", objectiveEvents: false });
+
+  const enabled = new Simulation({ players: [player()], features: { gameplayVersion: "events-v1", objectiveEvents: true } }, { seed: SEED });
+  enabled.time = enabled.duration;
+  enabled.nextTreasure = 0; enabled.nextRelayBall = 0; enabled.objectiveIndex = 0;
+  enabled.nextElite = Infinity; enabled.nextMiniBoss = Infinity;
+  enabled.updateScheduledEvents();
+  assert.equal(enabled.enemies.some((enemy) => enemy.eventType === "treasure"), true);
+  assert.equal(enabled.relayBalls.length, 1);
+  assert.equal(enabled.objectives.length, 1);
+  assert.throws(() => new Simulation({ players: [player()], features: { gameplayVersion: "events-v1", objectiveEvents: true, unknown: true } }, { seed: SEED }), /unsupported/);
+});
+
 test("all authored delayed task kinds are descriptors with stable execution", () => {
   const echo = create("echo");
   echo.chance = () => true;

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import worker, { Room, normalizeCode, safeProfile, sanitizeRunTelemetry } from "./worker.js";
+import worker, { Room, normalizeCode, operatorRuntimeConfig, safeProfile, sanitizeRunTelemetry } from "./worker.js";
 
 const validTelemetry = {
   schemaVersion: 1,
@@ -103,6 +103,32 @@ test("telemetry endpoint enforces method, type, size, origin, and CORS", async (
   assert.match(preflight.headers.get("Access-Control-Allow-Methods"), /POST/);
 });
 
+test("runtime config endpoint is allowlisted, no-store, origin-aware, and read-only", async () => {
+  const config = {
+    schemaVersion: 1, configVersion: "rollback-42", gameplayVersion: "events-off-v1",
+    flags: { deterministicReplay: false, runTelemetry: false, objectiveEvents: false },
+  };
+  const env = { LASTLIGHT_RUNTIME_CONFIG: JSON.stringify(config) };
+  const response = await worker.fetch(new Request("https://relay.example/config", { headers: { Origin: "https://bensonperry.com" } }), env);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("Cache-Control"), "no-store");
+  assert.equal(response.headers.get("X-Content-Type-Options"), "nosniff");
+  assert.deepEqual(await response.json(), { config, source: "operator" });
+
+  const mutation = await worker.fetch(new Request("https://relay.example/config", { method: "POST", headers: { Origin: "https://bensonperry.com" } }), env);
+  assert.equal(mutation.status, 405);
+  assert.equal(mutation.headers.get("Allow"), "GET");
+  const foreign = await worker.fetch(new Request("https://relay.example/config", { headers: { Origin: "https://attacker.example" } }), env);
+  assert.equal(foreign.status, 403);
+});
+
+test("invalid operator config fails closed to immutable release defaults", () => {
+  const invalid = operatorRuntimeConfig({ LASTLIGHT_RUNTIME_CONFIG: JSON.stringify({ flags: { surprise: true } }) });
+  assert.equal(invalid.source, "built-in-invalid");
+  assert.deepEqual(invalid.config.flags, { deterministicReplay: true, runTelemetry: true, objectiveEvents: true });
+  assert.equal(operatorRuntimeConfig({}).source, "built-in");
+});
+
 test("only the host can route a live-game sync to one peer", () => {
   const room = new Room({});
   const socket = () => ({ sent: [], send(payload) { this.sent.push(JSON.parse(payload)); } });
@@ -140,15 +166,15 @@ test("room identity is established by the first message instead of the request U
   assert.deepEqual(socket.sent, [{ type: "welcome", id: "first", role: "host", peers: [] }]);
 });
 
-test("legacy query-profile initialization remains available during the rolling client upgrade", () => {
+test("a session can only be initialized once by the hello handshake", () => {
   const room = new Room({});
   const socket = { sent: [], send(payload) { this.sent.push(JSON.parse(payload)); } };
-  const session = { id: "legacy", initialized: false, connectedAt: Date.now() };
+  const session = { id: "handshake", initialized: false, connectedAt: Date.now() };
   room.sessions.set(socket, session);
 
-  assert.equal(room.initializeSession(socket, session, { name: "Legacy", specialist: "echo" }), true);
+  assert.equal(room.initializeSession(socket, session, { name: "First", specialist: "echo" }), true);
   assert.equal(room.initializeSession(socket, session, { name: "Ignored", specialist: "fang" }), false);
-  assert.equal(session.name, "Legacy");
+  assert.equal(session.name, "First");
   assert.equal(session.specialist, "echo");
-  assert.deepEqual(socket.sent, [{ type: "welcome", id: "legacy", role: "host", peers: [] }]);
+  assert.deepEqual(socket.sent, [{ type: "welcome", id: "handshake", role: "host", peers: [] }]);
 });

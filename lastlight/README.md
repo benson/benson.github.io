@@ -24,6 +24,12 @@ Simulation tuning lives in `balance-config.js`. Every contract revision must:
 The contract is recursively immutable and `getBalanceConfig(version)` rejects
 unknown versions rather than silently running them with current values.
 
+## Runtime rollback controls
+
+The browser loads a strict, identity-free runtime config from the relay before
+deployment. Operator controls, emergency procedures, and the complete allowlist
+are documented in `worker/FEATURE-FLAGS.md`.
+
 ## Checks
 
 - `npm run check` in `lastlight`

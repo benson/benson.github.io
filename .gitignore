@@ -5,4 +5,5 @@
 scripts/spotify-auth.js
 node_modules/
 lastlight/artifacts/
+.lastlight-dashboard/
 .mtgcollection-backups/

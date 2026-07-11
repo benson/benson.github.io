@@ -1,9 +1,10 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
-} from "./data.js?v=20260711.3";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260711.3";
-import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.3";
+} from "./data.js?v=20260711.4";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260711.4";
+import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.4";
+import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260711.4";
 
 const BALANCE = getBalanceConfig();
 
@@ -60,6 +61,7 @@ export class Simulation {
     const balanceHash = options.balanceHash ?? config.balanceHash ?? BALANCE_HASH;
     if (balanceVersion !== BALANCE_VERSION) throw new RangeError(`Unsupported balance version: ${balanceVersion}`);
     if (balanceHash !== BALANCE_HASH) throw new RangeError(`Unsupported balance hash: ${balanceHash}`);
+    const features = validateGameplayFeatureContract(options.features ?? config.features ?? gameplayFeatureContract());
     this.seed = options.seed ?? config.seed ?? createRandomSeed();
     const rootRng = SeededRng.fromHex(this.seed);
     this.gameplayRng = rootRng.fork("gameplay");
@@ -72,6 +74,8 @@ export class Simulation {
     this.difficulty = DIFFICULTIES[config.difficulty] || DIFFICULTIES.story;
     this.balanceVersion = BALANCE_VERSION;
     this.balanceHash = BALANCE_HASH;
+    this.gameplayVersion = features.gameplayVersion;
+    this.objectiveEvents = features.objectiveEvents;
     this.duration = Number(config.duration) || BALANCE.core.defaultDurationSeconds;
     this.time = 0;
     this.remaining = this.duration;
@@ -412,11 +416,11 @@ export class Simulation {
   }
 
   updateScheduledEvents() {
-    if (this.time >= this.nextTreasure) {
+    if (this.objectiveEvents && this.time >= this.nextTreasure) {
       this.spawnTreasureRunner();
       this.nextTreasure += Math.max(BALANCE.waves.events.treasureRepeatMin, this.duration * BALANCE.waves.events.treasureRepeat);
     }
-    if (this.time >= this.nextRelayBall) {
+    if (this.objectiveEvents && this.time >= this.nextRelayBall) {
       this.spawnRelayBall();
       this.nextRelayBall += Math.max(BALANCE.waves.events.relayRepeatMin, this.duration * BALANCE.waves.events.relayRepeat);
     }
@@ -432,7 +436,7 @@ export class Simulation {
       this.pushEvent("danger", "Siegebreaker inbound", "Heavy target marked");
     }
     const objectiveTimes = BALANCE.waves.events.objectivesAt.map((progress) => this.duration * progress);
-    if (this.objectiveIndex < objectiveTimes.length && this.time >= objectiveTimes[this.objectiveIndex]) {
+    if (this.objectiveEvents && this.objectiveIndex < objectiveTimes.length && this.time >= objectiveTimes[this.objectiveIndex]) {
       const a = this.random(0, TAU), r = this.random(420, 720);
       this.objectives.push({ id: this.nextGameplayId("o"), x: Math.cos(a) * r, y: Math.sin(a) * r, radius: 85, progress: 0, life: 38, kind: this.objectiveIndex ? "trial" : "uplink" });
       this.objectiveIndex++;
@@ -1409,6 +1413,7 @@ export class Simulation {
       seed: this.seed,
       balanceVersion: this.balanceVersion,
       balanceHash: this.balanceHash,
+      features: { gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents },
       tick: this.tick,
       rng: { gameplay: this.gameplayRng.snapshot(), cosmetic: this.cosmeticRng.snapshot() },
       sequences: { gameplay: this.gameplaySequence, cosmetic: this.cosmeticSequence, event: this.eventSequence },
@@ -1427,6 +1432,7 @@ export class Simulation {
     });
     return {
       balanceVersion: this.balanceVersion, balanceHash: this.balanceHash,
+      features: { gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents },
       tick: this.tick, determinism: this.deterministicState(),
       map: this.map.id, difficulty: this.difficulty.id, duration: this.duration, time: Math.round(this.time * 10) / 10,
       remaining: Math.round(this.remaining * 10) / 10, stage: this.stage, paused: this.paused, pauseReason: this.pauseReason,

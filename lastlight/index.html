@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260711.3">
+  <link rel="stylesheet" href="styles.css?v=20260711.4">
 </head>
 <body>
   <main id="app">
@@ -45,6 +45,7 @@
           <button id="run-history-button" class="text-button" type="button">Past runs</button>
           <button id="guide-button" class="text-button" type="button">Upgrade archive</button>
           <button id="how-button" class="text-button" type="button">Field manual</button>
+          <button id="quality-button" class="text-button" type="button">Display</button>
           <button id="audio-button" class="icon-button" type="button" aria-label="Toggle sound" aria-pressed="false">Sound on</button>
         </div>
       </nav>
@@ -141,7 +142,7 @@
         <header class="lobby-header">
           <button id="lobby-back" class="text-button" type="button">← Leave squad</button>
           <div class="mission-chip"><span class="status-dot"></span><span id="lobby-mission">Iron District · Story</span></div>
-          <div class="lobby-header-actions"><button id="lobby-run-history" class="text-button" type="button">Past runs</button><button id="lobby-guide" class="text-button" type="button">Upgrade archive</button><button id="lobby-audio" class="icon-button" type="button">Sound on</button></div>
+          <div class="lobby-header-actions"><button id="lobby-run-history" class="text-button" type="button">Past runs</button><button id="lobby-guide" class="text-button" type="button">Upgrade archive</button><button id="lobby-quality" class="text-button" type="button">Display</button><button id="lobby-audio" class="icon-button" type="button">Sound on</button></div>
         </header>
 
         <div class="control-ribbon lobby-controls" aria-label="Keyboard controls">
@@ -296,6 +297,7 @@
             <span><strong>Enemy health bars</strong><small>Show remaining health above damaged targets.</small></span>
             <i aria-hidden="true"></i>
           </label>
+          <button id="pause-quality" class="quality-shortcut" type="button"><span><strong>Display & accessibility</strong><small>Effects, motion, flashes, shake, and performance.</small></span><b>Open</b></button>
           <button id="resume-button" class="deploy-button" type="button"><span>Resume</span><span>Esc</span></button>
           <button id="abandon-button" class="text-button danger" type="button">Abandon run</button>
         </div>
@@ -369,6 +371,32 @@
       <div id="guide-content" class="guide-content"></div>
     </dialog>
 
+    <dialog id="quality-dialog" class="quality-dialog" aria-labelledby="quality-title">
+      <form method="dialog">
+        <div class="manual-header">
+          <div><p class="eyebrow">Local display profile</p><h2 id="quality-title">DISPLAY & ACCESSIBILITY</h2></div>
+          <button id="quality-close" class="icon-button" type="submit" aria-label="Close display settings">Close</button>
+        </div>
+        <div class="quality-body">
+          <label class="quality-preset" for="quality-preset">
+            <span><strong>Quality preset</strong><small id="quality-status">Auto adapts visual load without changing gameplay.</small></span>
+            <select id="quality-preset">
+              <option value="auto">Auto</option><option value="high">High</option><option value="reduced">Reduced</option><option value="minimal">Minimal</option><option value="custom" disabled>Tuned</option>
+            </select>
+          </label>
+          <div class="quality-grid">
+            <label><span><strong>Effects density</strong><small>Cosmetic impact and trail volume.</small></span><select id="quality-effects"><option value="full">Full</option><option value="balanced">Balanced</option><option value="low">Low</option><option value="off">Essential only</option></select></label>
+            <label><span><strong>Camera shake</strong><small>Movement when your specialist is hit.</small></span><select id="quality-shake"><option value="full">Full</option><option value="balanced">Reduced</option><option value="low">Low</option><option value="off">Off</option></select></label>
+            <label><span><strong>Hit flashes</strong><small>Combat reaction brightness and impact lines.</small></span><select id="quality-hit-flashes"><option value="full">Full</option><option value="balanced">Reduced</option><option value="low">Low</option><option value="off">Off</option></select></label>
+            <label><span><strong>Flash intensity</strong><small>Muzzle, damage, and screen-edge brightness.</small></span><select id="quality-flash"><option value="full">Full</option><option value="balanced">Reduced</option><option value="low">Low</option><option value="off">Off</option></select></label>
+            <label><span><strong>Enemy health bars</strong><small>Keep priority targets legible in busy waves.</small></span><select id="quality-health-bars"><option value="all">All enemies</option><option value="important">Elites & apex</option><option value="off">Off</option></select></label>
+            <label class="quality-toggle" for="quality-reduced-motion"><span><strong>Reduce motion</strong><small>Removes camera look-ahead, bob, and decorative movement.</small></span><input id="quality-reduced-motion" type="checkbox"><i aria-hidden="true"></i></label>
+          </div>
+          <p class="quality-note">Display settings are stored only on this device. They never alter damage, enemy behavior, simulation timing, replays, or squad synchronization.</p>
+        </div>
+      </form>
+    </dialog>
+
     <dialog id="report-dialog" class="report-dialog">
       <form id="report-form">
         <div class="manual-header">
@@ -401,7 +429,20 @@
       <div class="build-history-body">
         <article class="build-release current-build">
           <header>
-            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.11.3</h3></div>
+            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.11.4</h3></div>
+            <span class="build-time-unavailable">Production verification pending</span>
+          </header>
+          <ul>
+            <li>Added versioned runtime rollback controls for deterministic replay, aggregate telemetry, and optional objective events, with safe defaults and an operator-only relay configuration.</li>
+            <li>Added persistent Auto, High, Reduced, Minimal, and tuned display profiles with granular effects, shake, flash, motion, and health-bar controls.</li>
+            <li>Added adaptive renderer budgets with stable cosmetic sampling, hysteresis, eased recovery, and no changes to authoritative gameplay or multiplayer synchronization.</li>
+            <li>Added a local-only, privacy-preserving playtest dashboard that reports aggregate cohorts of at least five runs and never exposes player or replay identity.</li>
+            <li>Completed the WebSocket privacy rollout by removing the temporary query-profile compatibility path; every connection now requires the bounded post-upgrade handshake.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.11.3</h3></div>
             <time class="build-shipped-at" data-build-shipped-at="2026-07-11T12:09:00-04:00">Shipped Jul 11, 2026, 12:09 PM EDT</time>
           </header>
           <ul>
@@ -521,8 +562,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.11.3. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.11.3</strong></button>
-  <script src="build-history.js?v=20260711.3"></script>
-  <script type="module" src="game.js?v=20260711.3"></script>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.11.4. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.11.4</strong></button>
+  <script src="build-history.js?v=20260711.4"></script>
+  <script type="module" src="game.js?v=20260711.4"></script>
 </body>
 </html>

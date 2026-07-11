@@ -1,3 +1,5 @@
+import { DEFAULT_RUNTIME_CONFIG, validateRuntimeConfig } from "../feature-config.js";
+
 const MAX_PLAYERS = 4;
 const MAX_MESSAGE_BYTES = 512_000;
 const MAX_TELEMETRY_BYTES = 8_192;
@@ -120,6 +122,28 @@ async function handleTelemetry(request, env) {
   return Response.json({ ok: true }, { status: 202, headers: { ...corsHeaders(request), "Cache-Control": "no-store" } });
 }
 
+export function operatorRuntimeConfig(env = {}) {
+  const raw = env.LASTLIGHT_RUNTIME_CONFIG;
+  if (typeof raw !== "string" || !raw.trim()) return { config: DEFAULT_RUNTIME_CONFIG, source: "built-in" };
+  if (new TextEncoder().encode(raw).byteLength > 4_096) return { config: DEFAULT_RUNTIME_CONFIG, source: "built-in-invalid" };
+  try {
+    return { config: validateRuntimeConfig(JSON.parse(raw)), source: "operator" };
+  } catch {
+    // A malformed operator value must fail closed to the release defaults.
+    return { config: DEFAULT_RUNTIME_CONFIG, source: "built-in-invalid" };
+  }
+}
+
+function handleRuntimeConfig(request, env) {
+  if (request.method !== "GET") {
+    return Response.json({ error: "Method not allowed" }, { status: 405, headers: { ...corsHeaders(request), Allow: "GET" } });
+  }
+  if (!isAllowedOrigin(request)) return Response.json({ error: "Origin not allowed" }, { status: 403, headers: corsHeaders(request) });
+  return Response.json(operatorRuntimeConfig(env), {
+    headers: { ...corsHeaders(request), "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" },
+  });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -127,6 +151,7 @@ export default {
       return Response.json({ ok: true, service: "lastlight-relay", now: new Date().toISOString() }, { headers: corsHeaders(request) });
     }
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders(request) });
+    if (url.pathname === "/config" || url.pathname === "/config/") return handleRuntimeConfig(request, env);
     if (url.pathname === "/telemetry" || url.pathname === "/telemetry/") return handleTelemetry(request, env);
     const match = url.pathname.match(/^\/room\/([A-Za-z2-9]{4,6})\/?$/);
     if (!match) return Response.json({ error: "Not found" }, { status: 404, headers: corsHeaders(request) });
@@ -162,15 +187,6 @@ export class Room {
     server.addEventListener("message", (event) => this.onMessage(server, event.data));
     server.addEventListener("close", () => this.onClose(server));
     server.addEventListener("error", () => this.onClose(server));
-    const url = new URL(request.url);
-    const hasLegacyProfile = ["name", "specialist", "resume"].some((key) => url.searchParams.has(key));
-    if (hasLegacyProfile) {
-      this.initializeSession(server, session, {
-        name: url.searchParams.get("name"),
-        specialist: url.searchParams.get("specialist"),
-        resumeToken: url.searchParams.get("resume"),
-      });
-    }
     return new Response(null, { status: 101, webSocket: client });
   }
 

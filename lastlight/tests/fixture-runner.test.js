@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { BALANCE_HASH, BALANCE_VERSION } from "../balance-config.js";
+import { REPLAY_SCHEMA } from "../replay.js";
 import {
   compareGoldens, deterministicWorkUnits, fixturePaths, loadFixtureSuite,
   runFixtureSuite, runScenario, validateManifest, validateScenario,
@@ -11,7 +12,7 @@ test("fixture manifest strictly pins balance, replay, RNG, and seven scenarios",
   const suite = loadFixtureSuite();
   assert.equal(suite.manifest.balance.version, BALANCE_VERSION);
   assert.equal(suite.manifest.balance.hash, BALANCE_HASH);
-  assert.equal(suite.manifest.replay.schema, "lastlight.replay.v1");
+  assert.equal(suite.manifest.replay.schema, REPLAY_SCHEMA);
   assert.equal(suite.manifest.replay.rng, "xoshiro128ss-v1");
   assert.equal(suite.scenarios.length, 7);
   assert.deepEqual(suite.scenarios.map(({ id }) => id), [
