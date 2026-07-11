@@ -1,0 +1,17 @@
+{
+  "schema": "lastlight.fixture.v1",
+  "id": "early-solo-contact",
+  "description": "Opening Story contact with a level-one signature weapon.",
+  "seed": "10000000000000000000000000000001",
+  "simulation": { "map": "warehouse", "difficulty": "story", "duration": 240 },
+  "checkpoint": { "elapsedTicks": 720, "level": 1, "objectiveIndex": 0 },
+  "players": [{ "id": "p1", "specialist": "zuri", "x": 0, "y": 0, "invulnerableSeconds": 30, "weapons": { "signature": 1 }, "passives": {} }],
+  "population": { "enemies": [{ "type": "mite", "count": 24 }, { "type": "hound", "count": 6 }] },
+  "actions": [
+    { "tick": 0, "kind": "input", "player": "p1", "x": 1, "y": 0, "aim": 0, "autoAim": true },
+    { "tick": 60, "kind": "input", "player": "p1", "x": 0, "y": 1, "aim": 1.5708, "autoAim": true },
+    { "tick": 120, "kind": "input", "player": "p1", "x": -1, "y": 0, "aim": 3.14159, "autoAim": true }
+  ],
+  "run": { "ticks": 180, "captureEvery": 60 },
+  "expect": { "stage": "running", "playerCount": 1, "minDamage": 1, "maxEffects": 260 }
+}

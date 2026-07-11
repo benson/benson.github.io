@@ -44,4 +44,34 @@ Run a PixiJS spike only if the optimized Canvas renderer still exceeds 8 ms p95 
 
 Add spatial indexing before considering a broader engine migration if simulation exceeds 4 ms p95. Phaser is a strategic product choice only if the roadmap independently needs its scenes, tilemaps, physics, or editor workflow; it is not the first response to this report.
 
+## Deterministic fixture gates
+
+The committed fixture suite now covers early, mid, late, objective, four-player,
+apex, and stress checkpoints. Each fixture pins the balance version and hash,
+replay schema, fixed tick rate, RNG algorithm, and a 128-bit seed. The CI gate
+compares canonical FNV-1a replay hashes and semantic summaries against explicit
+goldens.
+
+Performance failures in ordinary CI use deterministic structural measurements:
+
+- serialized authoritative snapshot bytes;
+- peak entities by class and in total;
+- collision-candidate work units per tick.
+
+Work units approximate the hot simulation loops from entity counts: friendly
+projectiles against enemies and caches, hostile shots against living players,
+damaging effects against enemies and caches, motes against players and drones,
+and drops against players. They catch entity explosions and accidental
+quadratic growth without depending on the speed or contention of a hosted CI
+machine.
+
+Wall-clock update p50, p95, p99, and maximum are still recorded in the uploaded
+machine report, but are advisory. Enforce the 4 ms simulation and 8 ms renderer
+targets only on a pinned benchmark machine.
+
+Use `npm run fixtures:verify` for the release gate, `npm run fixtures:report`
+for a machine-readable local report, and `npm run fixtures:update` only when an
+intentional simulation or balance change requires reviewed golden updates. The
+verifier reports the first mismatching checkpoint tick.
+
 Current reference material: [PixiJS renderer guidance](https://pixijs.com/8.x/guides/components/renderers), [PixiJS culling](https://pixijs.com/8.x/guides/components/application/culler-plugin), and [Phaser 4 renderer architecture](https://phaser.io/news/2026/04/phaser-4-renderer-faster-cleaner-and-built-for-modern-games).

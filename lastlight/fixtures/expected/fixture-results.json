@@ -1,0 +1,561 @@
+{
+  "schema": "lastlight.fixture-goldens.v1",
+  "schemaVersion": 1,
+  "balance": {
+    "version": "2026.07.11-baseline.1",
+    "hash": "fnv1a32:7e33be79"
+  },
+  "replay": {
+    "schema": "lastlight.replay.v1",
+    "stepHz": 60,
+    "rng": "xoshiro128ss-v1"
+  },
+  "fixtures": [
+    {
+      "id": "early-solo-contact",
+      "seed": "10000000000000000000000000000001",
+      "hashes": [
+        {
+          "tick": 0,
+          "hash": "0e18ddbc560926a8"
+        },
+        {
+          "tick": 60,
+          "hash": "66bc27b4c21812d4"
+        },
+        {
+          "tick": 120,
+          "hash": "067592213130efe0"
+        },
+        {
+          "tick": 180,
+          "hash": "c96e7122735b57b6"
+        }
+      ],
+      "summary": {
+        "stage": "running",
+        "tick": 900,
+        "wave": 0,
+        "level": 1,
+        "kills": 0,
+        "gold": 0,
+        "teamXP": 0,
+        "bossPhase": 1,
+        "entities": {
+          "players": 1,
+          "drones": 0,
+          "enemies": 32,
+          "projectiles": 3,
+          "hostile": 0,
+          "effects": 0,
+          "orbs": 0,
+          "drops": 0,
+          "pods": 14,
+          "objectives": 0,
+          "relayBalls": 0,
+          "feathers": 0,
+          "tasks": 0
+        },
+        "players": [
+          {
+            "slot": 0,
+            "specialist": "zuri",
+            "hp": 10,
+            "damage": 84,
+            "kills": 0,
+            "revives": 0,
+            "downed": false,
+            "dead": false
+          }
+        ]
+      },
+      "baselineMetrics": {
+        "maxSnapshotBytes": 12659,
+        "maxTotalEntities": 50,
+        "maxWorkUnitsPerTick": 170
+      }
+    },
+    {
+      "id": "mid-solo-build",
+      "seed": "20000000000000000000000000000002",
+      "hashes": [
+        {
+          "tick": 0,
+          "hash": "e35126eb72245697"
+        },
+        {
+          "tick": 60,
+          "hash": "efd81464673826d4"
+        },
+        {
+          "tick": 120,
+          "hash": "8c6da6d227933555"
+        },
+        {
+          "tick": 180,
+          "hash": "cb8ed78577e6a8d2"
+        },
+        {
+          "tick": 240,
+          "hash": "71c14198fb923bb2"
+        },
+        {
+          "tick": 300,
+          "hash": "7b21f45674991019"
+        }
+      ],
+      "summary": {
+        "stage": "running",
+        "tick": 6900,
+        "wave": 3,
+        "level": 8,
+        "kills": 29,
+        "gold": 0,
+        "teamXP": 36,
+        "bossPhase": 1,
+        "entities": {
+          "players": 1,
+          "drones": 1,
+          "enemies": 62,
+          "projectiles": 23,
+          "hostile": 24,
+          "effects": 1,
+          "orbs": 24,
+          "drops": 6,
+          "pods": 10,
+          "objectives": 0,
+          "relayBalls": 0,
+          "feathers": 0,
+          "tasks": 0
+        },
+        "players": [
+          {
+            "slot": 0,
+            "specialist": "echo",
+            "hp": 10,
+            "damage": 11441,
+            "kills": 29,
+            "revives": 0,
+            "downed": false,
+            "dead": false
+          }
+        ]
+      },
+      "baselineMetrics": {
+        "maxSnapshotBytes": 32325,
+        "maxTotalEntities": 157,
+        "maxWorkUnitsPerTick": 2789
+      }
+    },
+    {
+      "id": "late-solo-storm",
+      "seed": "30000000000000000000000000000003",
+      "hashes": [
+        {
+          "tick": 0,
+          "hash": "460dad610f8a5172"
+        },
+        {
+          "tick": 30,
+          "hash": "b4c4b8812ba174d5"
+        },
+        {
+          "tick": 60,
+          "hash": "7708f59bf6513d6f"
+        },
+        {
+          "tick": 90,
+          "hash": "06a66dd23309faad"
+        },
+        {
+          "tick": 120,
+          "hash": "99828743cf1f1cff"
+        }
+      ],
+      "summary": {
+        "stage": "running",
+        "tick": 13020,
+        "wave": 6,
+        "level": 14,
+        "kills": 0,
+        "gold": 0,
+        "teamXP": 0,
+        "bossPhase": 1,
+        "entities": {
+          "players": 1,
+          "drones": 1,
+          "enemies": 170,
+          "projectiles": 202,
+          "hostile": 100,
+          "effects": 206,
+          "orbs": 500,
+          "drops": 1,
+          "pods": 13,
+          "objectives": 0,
+          "relayBalls": 0,
+          "feathers": 0,
+          "tasks": 0
+        },
+        "players": [
+          {
+            "slot": 0,
+            "specialist": "gale",
+            "hp": 9.5,
+            "damage": 20459.9,
+            "kills": 0,
+            "revives": 0,
+            "downed": false,
+            "dead": false
+          }
+        ]
+      },
+      "baselineMetrics": {
+        "maxSnapshotBytes": 178652,
+        "maxTotalEntities": 1205,
+        "maxWorkUnitsPerTick": 41348
+      }
+    },
+    {
+      "id": "objective-coordination",
+      "seed": "40000000000000000000000000000004",
+      "hashes": [
+        {
+          "tick": 0,
+          "hash": "92f7c26d1762e9f4"
+        },
+        {
+          "tick": 30,
+          "hash": "b55f6431b7c436b7"
+        },
+        {
+          "tick": 60,
+          "hash": "714de77efdfe827d"
+        },
+        {
+          "tick": 90,
+          "hash": "f6f713cff37b351c"
+        },
+        {
+          "tick": 120,
+          "hash": "02fdc9f254936286"
+        },
+        {
+          "tick": 150,
+          "hash": "4752457ff819def2"
+        },
+        {
+          "tick": 180,
+          "hash": "e9f2fe50847ad8ca"
+        },
+        {
+          "tick": 210,
+          "hash": "38fb92f570850fa7"
+        }
+      ],
+      "summary": {
+        "stage": "running",
+        "tick": 4410,
+        "wave": 2,
+        "level": 5,
+        "kills": 0,
+        "gold": 70,
+        "teamXP": 38.4,
+        "bossPhase": 1,
+        "entities": {
+          "players": 2,
+          "drones": 0,
+          "enemies": 24,
+          "projectiles": 0,
+          "hostile": 0,
+          "effects": 0,
+          "orbs": 0,
+          "drops": 1,
+          "pods": 14,
+          "objectives": 0,
+          "relayBalls": 0,
+          "feathers": 0,
+          "tasks": 0
+        },
+        "players": [
+          {
+            "slot": 0,
+            "specialist": "sola",
+            "hp": 11,
+            "damage": 356,
+            "kills": 0,
+            "revives": 0,
+            "downed": false,
+            "dead": false
+          },
+          {
+            "slot": 1,
+            "specialist": "bront",
+            "hp": 15,
+            "damage": 284,
+            "kills": 0,
+            "revives": 0,
+            "downed": false,
+            "dead": false
+          }
+        ]
+      },
+      "baselineMetrics": {
+        "maxSnapshotBytes": 11692,
+        "maxTotalEntities": 44,
+        "maxWorkUnitsPerTick": 173
+      }
+    },
+    {
+      "id": "multiplayer-four-player",
+      "seed": "50000000000000000000000000000005",
+      "hashes": [
+        {
+          "tick": 0,
+          "hash": "b59d49b43f086c2e"
+        },
+        {
+          "tick": 60,
+          "hash": "23752a9a3130e514"
+        },
+        {
+          "tick": 120,
+          "hash": "2212506d5d4714ee"
+        },
+        {
+          "tick": 180,
+          "hash": "51aaddd2cc85fb7c"
+        },
+        {
+          "tick": 240,
+          "hash": "5c29aedfc444349e"
+        }
+      ],
+      "summary": {
+        "stage": "running",
+        "tick": 8640,
+        "wave": 4,
+        "level": 9,
+        "kills": 17,
+        "gold": 0,
+        "teamXP": 42,
+        "bossPhase": 1,
+        "entities": {
+          "players": 4,
+          "drones": 1,
+          "enemies": 123,
+          "projectiles": 15,
+          "hostile": 20,
+          "effects": 135,
+          "orbs": 11,
+          "drops": 8,
+          "pods": 7,
+          "objectives": 0,
+          "relayBalls": 0,
+          "feathers": 0,
+          "tasks": 1
+        },
+        "players": [
+          {
+            "slot": 0,
+            "specialist": "zuri",
+            "hp": 10,
+            "damage": 53639,
+            "kills": 17,
+            "revives": 0,
+            "downed": false,
+            "dead": false
+          },
+          {
+            "slot": 1,
+            "specialist": "echo",
+            "hp": 10,
+            "damage": 13608,
+            "kills": 0,
+            "revives": 1,
+            "downed": false,
+            "dead": false
+          },
+          {
+            "slot": 2,
+            "specialist": "sola",
+            "hp": 11,
+            "damage": 3730,
+            "kills": 0,
+            "revives": 0,
+            "downed": false,
+            "dead": false
+          },
+          {
+            "slot": 3,
+            "specialist": "bront",
+            "hp": 7.5,
+            "damage": 3328,
+            "kills": 0,
+            "revives": 0,
+            "downed": false,
+            "dead": false
+          }
+        ]
+      },
+      "baselineMetrics": {
+        "maxSnapshotBytes": 70452,
+        "maxTotalEntities": 325,
+        "maxWorkUnitsPerTick": 18230
+      }
+    },
+    {
+      "id": "apex-beachhead",
+      "seed": "60000000000000000000000000000006",
+      "hashes": [
+        {
+          "tick": 0,
+          "hash": "7465887ce2fd07fd"
+        },
+        {
+          "tick": 30,
+          "hash": "3c3bb5d703e285d5"
+        },
+        {
+          "tick": 60,
+          "hash": "f363cd56eaf0a068"
+        },
+        {
+          "tick": 90,
+          "hash": "88ab0de6b4d2a883"
+        },
+        {
+          "tick": 120,
+          "hash": "85754f9165a7f4ca"
+        },
+        {
+          "tick": 150,
+          "hash": "29287f8f595a3223"
+        },
+        {
+          "tick": 180,
+          "hash": "2253ff196c7f4e6e"
+        }
+      ],
+      "summary": {
+        "stage": "boss",
+        "tick": 14580,
+        "wave": 6,
+        "level": 16,
+        "kills": 0,
+        "gold": 0,
+        "teamXP": 0,
+        "bossPhase": 2,
+        "entities": {
+          "players": 2,
+          "drones": 1,
+          "enemies": 1,
+          "projectiles": 19,
+          "hostile": 6,
+          "effects": 2,
+          "orbs": 0,
+          "drops": 4,
+          "pods": 10,
+          "objectives": 0,
+          "relayBalls": 0,
+          "feathers": 0,
+          "tasks": 0
+        },
+        "players": [
+          {
+            "slot": 0,
+            "specialist": "rift",
+            "hp": 10,
+            "damage": 4191.2,
+            "kills": 0,
+            "revives": 0,
+            "downed": false,
+            "dead": false
+          },
+          {
+            "slot": 1,
+            "specialist": "nova",
+            "hp": 9,
+            "damage": 1367.3,
+            "kills": 0,
+            "revives": 0,
+            "downed": false,
+            "dead": false
+          }
+        ]
+      },
+      "baselineMetrics": {
+        "maxSnapshotBytes": 10695,
+        "maxTotalEntities": 48,
+        "maxWorkUnitsPerTick": 251
+      }
+    },
+    {
+      "id": "stress-entity-ceiling",
+      "seed": "70000000000000000000000000000007",
+      "hashes": [
+        {
+          "tick": 0,
+          "hash": "58acd72f07b713e3"
+        },
+        {
+          "tick": 15,
+          "hash": "f8b01ee1f17e5e73"
+        },
+        {
+          "tick": 30,
+          "hash": "1ef44b00f005a1fa"
+        },
+        {
+          "tick": 45,
+          "hash": "68ce570e3caceca5"
+        },
+        {
+          "tick": 60,
+          "hash": "a1d25e8dfbcf633b"
+        }
+      ],
+      "summary": {
+        "stage": "running",
+        "tick": 13260,
+        "wave": 6,
+        "level": 18,
+        "kills": 0,
+        "gold": 0,
+        "teamXP": 0,
+        "bossPhase": 1,
+        "entities": {
+          "players": 1,
+          "drones": 1,
+          "enemies": 300,
+          "projectiles": 620,
+          "hostile": 300,
+          "effects": 260,
+          "orbs": 1000,
+          "drops": 1,
+          "pods": 13,
+          "objectives": 0,
+          "relayBalls": 0,
+          "feathers": 0,
+          "tasks": 0
+        },
+        "players": [
+          {
+            "slot": 0,
+            "specialist": "vesper",
+            "hp": 9.5,
+            "damage": 25957.2,
+            "kills": 0,
+            "revives": 0,
+            "downed": false,
+            "dead": false
+          }
+        ]
+      },
+      "baselineMetrics": {
+        "maxSnapshotBytes": 375219,
+        "maxTotalEntities": 2518,
+        "maxWorkUnitsPerTick": 218258
+      }
+    }
+  ]
+}

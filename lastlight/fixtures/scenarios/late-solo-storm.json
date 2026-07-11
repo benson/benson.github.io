@@ -1,0 +1,16 @@
+{
+  "schema": "lastlight.fixture.v1",
+  "id": "late-solo-storm",
+  "description": "Documented representative late-wave entity load.",
+  "seed": "30000000000000000000000000000003",
+  "simulation": { "map": "lab", "difficulty": "hard", "duration": 240 },
+  "checkpoint": { "elapsedTicks": 12900, "level": 14, "objectiveIndex": 2 },
+  "players": [{ "id": "p1", "specialist": "gale", "x": 0, "y": 0, "invulnerableSeconds": 30, "weapons": { "signature": 5, "uwu": 5, "aura": 5, "crossbow": 5, "drone": 5 }, "evolved": ["signature", "uwu"], "passives": { "crit": 4, "haste": 4, "maxHealth": 3, "pickup": 2, "damage": 3 } }],
+  "population": {
+    "enemies": [{ "type": "mite", "count": 80, "healthMultiplier": 12 }, { "type": "hound", "count": 40, "healthMultiplier": 12 }, { "type": "spitter", "count": 25, "healthMultiplier": 12 }, { "type": "brute", "count": 15, "healthMultiplier": 12 }, { "type": "bomber", "count": 10, "healthMultiplier": 12 }],
+    "friendlyProjectiles": 200, "hostileProjectiles": 100, "orbs": 500, "effects": 200
+  },
+  "actions": [{ "tick": 0, "kind": "input", "player": "p1", "x": 1, "y": 0, "aim": 0, "autoAim": true }],
+  "run": { "ticks": 120, "captureEvery": 30 },
+  "expect": { "stage": "running", "playerCount": 1, "minDamage": 1, "maxEffects": 260 }
+}

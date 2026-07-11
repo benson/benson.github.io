@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bensonperry.com/lastlight/fixtures/schema.v1.json",
+  "title": "Lastlight deterministic fixture v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "id", "description", "seed", "simulation", "checkpoint", "players", "population", "actions", "run", "expect"],
+  "properties": {
+    "schema": { "const": "lastlight.fixture.v1" },
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "description": { "type": "string", "minLength": 1 },
+    "seed": { "type": "string", "pattern": "^(?!0{32})[0-9a-f]{32}$" },
+    "simulation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["map", "difficulty", "duration"],
+      "properties": {
+        "map": { "enum": ["warehouse", "outskirts", "lab", "beachhead"] },
+        "difficulty": { "enum": ["story", "hard", "extreme"] },
+        "duration": { "type": "integer", "minimum": 60, "maximum": 3600 }
+      }
+    },
+    "checkpoint": {
+      "type": "object", "additionalProperties": false,
+      "required": ["elapsedTicks", "level", "objectiveIndex"],
+      "properties": {
+        "elapsedTicks": { "type": "integer", "minimum": 0, "maximum": 216000 },
+        "level": { "type": "integer", "minimum": 1, "maximum": 100 },
+        "objectiveIndex": { "type": "integer", "minimum": 0, "maximum": 2 },
+        "boss": { "type": "boolean" },
+        "bossHealthRatio": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
+      }
+    },
+    "players": {
+      "type": "array", "minItems": 1, "maxItems": 4,
+      "items": { "$ref": "#/$defs/player" }
+    },
+    "population": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "enemies": { "type": "array", "items": { "$ref": "#/$defs/enemyGroup" } },
+        "friendlyProjectiles": { "type": "integer", "minimum": 0, "maximum": 2000 },
+        "hostileProjectiles": { "type": "integer", "minimum": 0, "maximum": 2000 },
+        "orbs": { "type": "integer", "minimum": 0, "maximum": 5000 },
+        "effects": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "objective": { "enum": ["uplink", "trial"] },
+        "completeRelayBall": { "type": "boolean" }
+      }
+    },
+    "actions": { "type": "array", "items": { "$ref": "#/$defs/action" } },
+    "run": {
+      "type": "object", "additionalProperties": false,
+      "required": ["ticks", "captureEvery"],
+      "properties": {
+        "ticks": { "type": "integer", "minimum": 1, "maximum": 3600 },
+        "captureEvery": { "type": "integer", "minimum": 1, "maximum": 600 }
+      }
+    },
+    "expect": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "stage": { "enum": ["running", "boss", "won", "lost"] },
+        "playerCount": { "type": "integer", "minimum": 1, "maximum": 4 },
+        "bossPhase": { "type": "integer", "minimum": 1 },
+        "minDamage": { "type": "number", "minimum": 0 },
+        "minGold": { "type": "number", "minimum": 0 },
+        "minRevives": { "type": "integer", "minimum": 0 },
+        "maxObjectives": { "type": "integer", "minimum": 0 },
+        "maxRelayBalls": { "type": "integer", "minimum": 0 },
+        "maxEffects": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "$defs": {
+    "weapons": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "signature": { "$ref": "#/$defs/level" }, "uwu": { "$ref": "#/$defs/level" },
+        "slicers": { "$ref": "#/$defs/level" }, "aura": { "$ref": "#/$defs/level" },
+        "mines": { "$ref": "#/$defs/level" }, "crossbow": { "$ref": "#/$defs/level" },
+        "boomerang": { "$ref": "#/$defs/level" }, "rail": { "$ref": "#/$defs/level" },
+        "glove": { "$ref": "#/$defs/level" }, "transit": { "$ref": "#/$defs/level" },
+        "ice": { "$ref": "#/$defs/level" }, "annihilator": { "$ref": "#/$defs/level" },
+        "drone": { "$ref": "#/$defs/level" }
+      }
+    },
+    "passives": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "damage": { "$ref": "#/$defs/passiveLevel" }, "haste": { "$ref": "#/$defs/passiveLevel" },
+        "maxHealth": { "$ref": "#/$defs/passiveLevel" }, "armor": { "$ref": "#/$defs/passiveLevel" },
+        "move": { "$ref": "#/$defs/passiveLevel" }, "area": { "$ref": "#/$defs/passiveLevel" },
+        "crit": { "$ref": "#/$defs/passiveLevel" }, "duration": { "$ref": "#/$defs/passiveLevel" },
+        "projectiles": { "$ref": "#/$defs/passiveLevel" }, "xp": { "$ref": "#/$defs/passiveLevel" },
+        "pickup": { "$ref": "#/$defs/passiveLevel" }, "regen": { "$ref": "#/$defs/passiveLevel" }
+      }
+    },
+    "level": { "type": "integer", "minimum": 1, "maximum": 5 },
+    "passiveLevel": { "type": "integer", "minimum": 0, "maximum": 5 },
+    "player": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "specialist", "x", "y", "invulnerableSeconds", "weapons", "passives"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Za-z0-9._-]{1,32}$" },
+        "specialist": { "enum": ["zuri", "echo", "sola", "bront", "fang", "gale", "rift", "nova", "vesper"] },
+        "x": { "type": "number" }, "y": { "type": "number" },
+        "invulnerableSeconds": { "type": "number", "minimum": 0 },
+        "weapons": { "$ref": "#/$defs/weapons" },
+        "evolved": { "type": "array", "uniqueItems": true, "items": { "enum": ["signature", "uwu", "slicers", "aura", "mines", "crossbow", "boomerang", "rail", "glove", "transit", "ice", "annihilator", "drone"] } },
+        "passives": { "$ref": "#/$defs/passives" },
+        "downed": { "type": "boolean" }
+      }
+    },
+    "enemyGroup": {
+      "type": "object", "additionalProperties": false,
+      "required": ["type", "count"],
+      "properties": {
+        "type": { "enum": ["mite", "hound", "spitter", "brute", "bomber", "shark"] },
+        "count": { "type": "integer", "minimum": 0, "maximum": 500 },
+        "healthMultiplier": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "action": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["tick", "kind", "player", "x", "y", "aim", "autoAim"],
+          "properties": { "tick": { "type": "integer", "minimum": 0 }, "kind": { "const": "input" }, "player": { "type": "string" }, "x": { "type": "number" }, "y": { "type": "number" }, "aim": { "type": "number" }, "autoAim": { "type": "boolean" } }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["tick", "kind", "player", "slot"],
+          "properties": { "tick": { "type": "integer", "minimum": 0 }, "kind": { "const": "cast" }, "player": { "type": "string" }, "slot": { "enum": ["e", "r"] } }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["tick", "kind", "player", "choiceId"],
+          "properties": { "tick": { "type": "integer", "minimum": 0 }, "kind": { "const": "choose" }, "player": { "type": "string" }, "choiceId": { "type": "string", "minLength": 1 } }
+        }
+      ]
+    }
+  }
+}

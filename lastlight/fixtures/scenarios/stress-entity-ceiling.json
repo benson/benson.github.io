@@ -1,0 +1,16 @@
+{
+  "schema": "lastlight.fixture.v1",
+  "id": "stress-entity-ceiling",
+  "description": "Documented stress population for entity, snapshot, and work-budget regression gates.",
+  "seed": "70000000000000000000000000000007",
+  "simulation": { "map": "lab", "difficulty": "extreme", "duration": 240 },
+  "checkpoint": { "elapsedTicks": 13200, "level": 18, "objectiveIndex": 2 },
+  "players": [{ "id": "p1", "specialist": "vesper", "x": 0, "y": 0, "invulnerableSeconds": 30, "weapons": { "signature": 5, "uwu": 5, "aura": 5, "crossbow": 5, "drone": 5 }, "evolved": ["signature", "uwu", "aura"], "passives": { "pickup": 5, "damage": 5, "haste": 5, "crit": 5, "projectiles": 5 } }],
+  "population": {
+    "enemies": [{ "type": "mite", "count": 130, "healthMultiplier": 100 }, { "type": "hound", "count": 70, "healthMultiplier": 100 }, { "type": "spitter", "count": 45, "healthMultiplier": 100 }, { "type": "brute", "count": 30, "healthMultiplier": 100 }, { "type": "bomber", "count": 25, "healthMultiplier": 100 }],
+    "friendlyProjectiles": 600, "hostileProjectiles": 300, "orbs": 1000, "effects": 260
+  },
+  "actions": [{ "tick": 0, "kind": "input", "player": "p1", "x": 0.7, "y": -0.7, "aim": 5.5, "autoAim": true }],
+  "run": { "ticks": 60, "captureEvery": 15 },
+  "expect": { "stage": "running", "playerCount": 1, "minDamage": 1, "maxEffects": 260 }
+}
