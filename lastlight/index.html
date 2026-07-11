@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260710.3">
+  <link rel="stylesheet" href="styles.css?v=20260710.4">
 </head>
 <body>
   <main id="app">
@@ -183,6 +183,10 @@
               <div><dt>Armor</dt><dd id="detail-armor">0</dd></div>
               <div><dt>Range</dt><dd id="detail-range">Long</dd></div>
             </dl>
+            <div class="starting-weapon-detail">
+              <img id="detail-weapon-icon" src="assets/weapons/signature-zuri.webp" alt="">
+              <div><span>Starting weapon</span><strong id="detail-weapon-name">Pulse Carbine</strong></div>
+            </div>
             <div class="kit-list">
               <div><kbd>I</kbd><p><strong id="passive-name">Hot Streak</strong><span id="passive-copy">Kills trigger a stacking burst of speed and haste.</span></p></div>
               <div><kbd>E</kbd><p><strong id="active-name">Rocket Bloom</strong><span id="active-copy">Fire nine explosive rockets in a wide cone.</span></p></div>
@@ -377,7 +381,20 @@
       <div class="build-history-body">
         <article class="build-release current-build">
           <header>
-            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.10.3</h3></div>
+            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.10.4</h3></div>
+            <time class="build-shipped-at" data-build-shipped-at="2026-07-10T19:56:00-04:00">Shipped Jul 10, 2026, 7:56 PM EDT</time>
+          </header>
+          <ul>
+            <li>Rebased combat around a readable 10-point vitality scale with explicit hits-to-down targets in the field guide.</li>
+            <li>Added mid-operation squad joining and three-minute callsign reconnection with loadout and run-stat restoration.</li>
+            <li>Added starting-weapon context to specialist select and clear evolution-pair callouts during upgrade choices.</li>
+            <li>Made teammate upgrade cards fully inspectable and increased the legibility of the in-run HUD.</li>
+            <li>Moved problem reporting away from game and lobby content.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.10.3</h3></div>
             <time class="build-shipped-at" data-build-shipped-at="2026-07-10T19:30:00-04:00">Shipped Jul 10, 2026, 7:30 PM EDT</time>
           </header>
           <ul>
@@ -432,8 +449,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.10.3. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.10.3</strong></button>
-  <script src="build-history.js?v=20260710.3"></script>
-  <script type="module" src="game.js?v=20260710.3"></script>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.10.4. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.10.4</strong></button>
+  <script src="build-history.js?v=20260710.4"></script>
+  <script type="module" src="game.js?v=20260710.4"></script>
 </body>
 </html>

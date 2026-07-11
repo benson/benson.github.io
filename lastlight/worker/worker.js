@@ -21,6 +21,7 @@ export function safeProfile(value = {}) {
     name: String(value.name || "Rookie").replace(/[^\w .'-]/g, "").slice(0, 16) || "Rookie",
     specialist: /^[a-z]{3,8}$/.test(value.specialist) ? value.specialist : "zuri",
     ready: Boolean(value.ready),
+    resumeToken: /^[a-f0-9]{24,32}$/.test(String(value.resumeToken || "")) ? String(value.resumeToken) : "",
   };
 }
 
@@ -149,7 +150,7 @@ export class Room {
     const [client, server] = Object.values(pair);
     server.accept();
     const url = new URL(request.url);
-    const profile = safeProfile({ name: url.searchParams.get("name"), specialist: url.searchParams.get("specialist") });
+    const profile = safeProfile({ name: url.searchParams.get("name"), specialist: url.searchParams.get("specialist"), resumeToken: url.searchParams.get("resume") });
     const id = crypto.randomUUID().slice(0, 8);
     if (!this.hostId) this.hostId = id;
     this.sessions.set(server, { id, ...profile, connectedAt: Date.now() });
@@ -176,9 +177,17 @@ export class Room {
       Object.assign(session, profile);
       message.profile = { id: session.id, ...profile };
     }
-    const allowed = new Set(["profile", "lobby_state", "start", "return_lobby", "input", "cast", "choice", "snapshot"]);
+    const allowed = new Set(["profile", "lobby_state", "start", "sync_game", "return_lobby", "input", "cast", "choice", "snapshot"]);
     if (!allowed.has(message.type)) return;
+    const targetId = typeof message._to === "string" ? message._to : "";
+    delete message._to;
     message._from = session.id;
+    if (targetId) {
+      const hostOnly = new Set(["lobby_state", "start", "sync_game", "snapshot"]);
+      if (session.id !== this.hostId || !hostOnly.has(message.type)) return;
+      this.sendTo(targetId, message);
+      return;
+    }
     this.broadcast(message, socket);
   }
 
@@ -199,6 +208,13 @@ export class Room {
       if (socket === except) continue;
       try { socket.send(payload); } catch { this.onClose(socket); }
     }
+  }
+
+  sendTo(targetId, message) {
+    const entry = [...this.sessions.entries()].find(([, session]) => session.id === targetId);
+    if (!entry) return false;
+    try { entry[0].send(JSON.stringify(message)); return true; }
+    catch { this.onClose(entry[0]); return false; }
   }
 }
 

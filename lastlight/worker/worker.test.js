@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import worker, { normalizeCode, safeProfile, sanitizeRunTelemetry } from "./worker.js";
+import worker, { Room, normalizeCode, safeProfile, sanitizeRunTelemetry } from "./worker.js";
 
 const validTelemetry = {
   schemaVersion: 1,
@@ -39,9 +39,11 @@ test("room codes are normalized and bounded", () => {
 
 test("profiles discard markup and constrain specialist ids", () => {
   assert.deepEqual(safeProfile({ name: "<b>Nova</b>", specialist: "nova", ready: 1 }), {
-    name: "bNovab", specialist: "nova", ready: true,
+    name: "bNovab", specialist: "nova", ready: true, resumeToken: "",
   });
   assert.equal(safeProfile({ specialist: "../../bad" }).specialist, "zuri");
+  assert.equal(safeProfile({ resumeToken: "abc" }).resumeToken, "");
+  assert.equal(safeProfile({ resumeToken: "a".repeat(24) }).resumeToken, "a".repeat(24));
 });
 
 test("run telemetry is normalized into a fixed aggregate schema", () => {
@@ -99,4 +101,22 @@ test("telemetry endpoint enforces method, type, size, origin, and CORS", async (
   }), env);
   assert.equal(preflight.status, 204);
   assert.match(preflight.headers.get("Access-Control-Allow-Methods"), /POST/);
+});
+
+test("only the host can route a live-game sync to one peer", () => {
+  const room = new Room({});
+  const socket = () => ({ sent: [], send(payload) { this.sent.push(JSON.parse(payload)); } });
+  const host = socket(), guest = socket(), observer = socket();
+  room.hostId = "host";
+  room.sessions.set(host, { id: "host", name: "Host" });
+  room.sessions.set(guest, { id: "guest", name: "Guest" });
+  room.sessions.set(observer, { id: "observer", name: "Observer" });
+
+  room.onMessage(host, JSON.stringify({ type: "sync_game", _to: "guest", state: { level: 4 } }));
+  assert.equal(host.sent.length, 0);
+  assert.equal(observer.sent.length, 0);
+  assert.deepEqual(guest.sent, [{ type: "sync_game", state: { level: 4 }, _from: "host" }]);
+
+  room.onMessage(guest, JSON.stringify({ type: "sync_game", _to: "observer", state: { level: 99 } }));
+  assert.equal(observer.sent.length, 0);
 });

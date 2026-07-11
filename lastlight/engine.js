@@ -1,7 +1,7 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
-} from "./data.js?v=20260710.3";
+} from "./data.js?v=20260710.4";
 
 const TAU = Math.PI * 2;
 const WORLD = { width: 3600, height: 2400 };
@@ -48,6 +48,7 @@ export class Simulation {
     this.selectedChoices = {};
     this.events = [];
     this.players = [];
+    this.disconnectedPlayers = new Map();
     this.drones = [];
     this.enemies = [];
     this.projectiles = [];
@@ -72,11 +73,32 @@ export class Simulation {
   }
 
   addPlayer(info, index = this.players.length) {
-    if (this.players.some((player) => player.id === info.id)) return;
+    const existing = this.players.find((player) => player.id === info.id);
+    if (existing) return existing;
     const spec = SPECIALISTS[info.specialist] || SPECIALISTS.zuri;
+    const recoveryKey = /^[a-f0-9]{24,32}$/.test(String(info.resumeToken || "")) ? String(info.resumeToken) : "";
+    const recovery = recoveryKey ? this.disconnectedPlayers.get(recoveryKey) : null;
+    if (recovery && performance.now() - recovery.leftAt <= 180_000) {
+      const player = recovery.player, oldId = player.id;
+      player.id = info.id; player.name = String(info.name || player.name).slice(0, 16);
+      player.input = { x: 0, y: 0, aim: player.facing || 0, autoAim: true };
+      player.dead = false; player.downed = false; player.downTimer = 0; player.reviveProgress = 0;
+      player.hp = Math.max(player.hp, player.maxHp * .5); player.invuln = 3; player.reconnected = true;
+      for (const list of [this.projectiles, this.effects, this.feathers, this.drones]) {
+        for (const entity of list) if (entity.owner === oldId) entity.owner = player.id;
+      }
+      this.disconnectedPlayers.delete(recoveryKey);
+      this.players.push(player);
+      if (this.pendingChoices) {
+        this.pendingChoices[player.id] = this.generateChoices(player);
+        this.choiceReady[player.id] = false;
+      }
+      return player;
+    }
     const angle = (index / Math.max(1, 4)) * TAU;
     const player = {
       id: info.id, name: String(info.name || "Rookie").slice(0, 16), specialist: spec.id,
+      reconnectKey: recoveryKey,
       x: Math.cos(angle) * 75, y: Math.sin(angle) * 75, radius: 31,
       hp: spec.health, maxHp: spec.health, armor: spec.armor, baseSpeed: spec.speed,
       input: { x: 0, y: 0, aim: 0, autoAim: true },
@@ -92,9 +114,16 @@ export class Simulation {
     if (spec.id === "gale") player.passives.crit = 1.875;
     if (spec.id === "vesper") player.passives.pickup = 4;
     this.players.push(player);
+    if (this.pendingChoices) {
+      this.pendingChoices[player.id] = this.generateChoices(player);
+      this.choiceReady[player.id] = false;
+    }
+    return player;
   }
 
   removePlayer(playerId) {
+    const player = this.players.find((entry) => entry.id === playerId);
+    if (player?.reconnectKey) this.disconnectedPlayers.set(player.reconnectKey, { player, leftAt: performance.now() });
     this.players = this.players.filter((p) => p.id !== playerId);
     this.drones = this.drones.filter((drone) => drone.owner !== playerId);
     if (this.pendingChoices) {
@@ -185,7 +214,7 @@ export class Simulation {
       }
       p.hotTime = Math.max(0, p.hotTime - dt);
       if (p.hotTime <= 0) p.hotStacks = 0;
-      p.shield = Math.max(0, p.shield - Math.max(1, p.maxHp * .015) * dt);
+      p.shield = Math.max(0, p.shield - Math.max(.01, p.maxHp * .015) * dt);
 
       let ix = p.input.x, iy = p.input.y;
       const length = Math.hypot(ix, iy) || 1;
@@ -223,10 +252,10 @@ export class Simulation {
 
       // Story mode stands in for a few ranks of Swarm's permanent upgrade
       // economy so a fresh browser player is not entering with a zero-meta save.
-      const regen = this.playerStat(p, "regen") + (this.difficulty.id === "story" ? 1.5 : 0);
+      const regen = this.playerStat(p, "regen") + (this.difficulty.id === "story" ? .015 : 0);
       let bonusRegen = 0;
       for (const ally of this.players.filter((ally) => ally.specialist === "bront")) {
-        for (const effect of this.effects.filter((e) => e.kind === "totem" && e.owner === ally.id)) if (distance(p, effect) < 260) bonusRegen += 10;
+        for (const effect of this.effects.filter((e) => e.kind === "totem" && e.owner === ally.id)) if (distance(p, effect) < 260) bonusRegen += .1;
       }
       if (regen + bonusRegen > 0) p.hp = Math.min(p.maxHp, p.hp + (regen + bonusRegen) * dt);
     }
@@ -254,14 +283,14 @@ export class Simulation {
     }
     if (stat === "area") {
       let value = 1 + lvl("area") * .11;
-      if (p.specialist === "sola") value += p.armor * .003 + p.maxHp * .00001 + lvl("regen") * .003;
+      if (p.specialist === "sola") value += p.armor * .003 + p.maxHp * .001 + lvl("regen") * .003;
       return value;
     }
     if (stat === "crit") return lvl("crit") * .08 + (p.specialist === "gale" ? .15 : 0);
     if (stat === "duration") return 1 + lvl("duration") * .12;
     if (stat === "projectiles") return Math.floor(lvl("projectiles"));
     if (stat === "pickup") return 85 * (1 + lvl("pickup") * .35);
-    if (stat === "regen") return lvl("regen") * 4;
+    if (stat === "regen") return lvl("regen") * .04;
     return 1;
   }
 
@@ -609,8 +638,8 @@ export class Simulation {
       if (sig.evolved) this.tasks.push({ time: .35, run: () => this.blast(target.x, target.y, 155 * area, 110 + level * 24, p.id, spec.color, true, "blast", "signature") });
     } else if (p.specialist === "fang") {
       const tx = p.x + Math.cos(aim) * 86, ty = p.y + Math.sin(aim) * 86;
-      this.blast(tx, ty, (90 + level * 14) * area, 36 + level * 19 + p.maxHp * .015, p.id, spec.color, true, sig.evolved ? "bleed" : "slash", "signature");
-      if (p.frenzy > 0) p.hp = Math.min(p.maxHp, p.hp + 10 + (p.maxHp - p.hp) * .05);
+      this.blast(tx, ty, (90 + level * 14) * area, 36 + level * 19 + p.maxHp * 1.5, p.id, spec.color, true, sig.evolved ? "bleed" : "slash", "signature");
+      if (p.frenzy > 0) p.hp = Math.min(p.maxHp, p.hp + .1 + (p.maxHp - p.hp) * .05);
     } else if (p.specialist === "gale") {
       if (p.flow < 100) return false;
       p.flow = 0;
@@ -649,7 +678,7 @@ export class Simulation {
       return this.cooldown(p, .24);
     }
     if (weaponId === "aura") {
-      this.blast(p.x, p.y, (105 + level * 26) * area, 16 + level * 8 + p.maxHp * .008, p.id, "#ffd861", false, evolved ? "eruption" : "aura", weaponId);
+      this.blast(p.x, p.y, (105 + level * 26) * area, 16 + level * 8 + p.maxHp * .8, p.id, "#ffd861", false, evolved ? "eruption" : "aura", weaponId);
       return this.cooldown(p, .34);
     }
     if (weaponId === "mines") {
@@ -774,7 +803,7 @@ export class Simulation {
     } else if (p.specialist === "fang") {
       this.dashPlayer(p, mobilityAim, 150); p.frenzy = 6 * this.playerStat(p, "duration");
     } else if (p.specialist === "gale") {
-      p.shield += 150 + p.maxHp * .1; p.invuln = .22; this.dashPlayer(p, mobilityAim, 475);
+      p.shield += 1.5 + p.maxHp * .1; p.invuln = .22; this.dashPlayer(p, mobilityAim, 475);
       this.blast(p.x, p.y, 170, 90 + this.level * 7, p.id, spec.color, true, "slash", "ability:e"); p.flow = 100;
     } else if (p.specialist === "rift") {
       this.dashPlayer(p, mobilityAim, 250); p.shield += 80; this.blast(p.x, p.y, 250 * area, 135 + this.level * 15, p.id, spec.color, true, "stun", "ability:e");
@@ -996,7 +1025,7 @@ export class Simulation {
     }
     if (this.map.id === "beachhead" && this.bossPhase === 2) {
       const floodX = WORLD.width / 2 - clamp(this.bossElapsed * 24, 0, WORLD.width / 2);
-      for (const p of living) if (p.x > floodX) this.takeDamage(p, 50 * dt / .165);
+      for (const p of living) if (p.x > floodX) this.takeDamage(p, .5 * dt / .165);
     }
   }
 
@@ -1197,7 +1226,7 @@ export class Simulation {
       else p.weapons[target] = { level: 1, evolved: false };
     } else if (kind === "passive") {
       p.passives[target] = Math.floor(Number(p.passives[target] || 0)) + 1;
-      if (target === "maxHealth") { p.maxHp += 150; p.hp += 150; }
+      if (target === "maxHealth") { p.maxHp += 1.5; p.hp += 1.5; }
       if (target === "armor") p.armor += 8;
     } else if (choice.id === "heal") p.hp = Math.min(p.maxHp, p.hp + p.maxHp * .25);
     this.gold += 10;
@@ -1232,7 +1261,7 @@ export class Simulation {
   spawnBoss() {
     this.stage = "boss"; this.remaining = 0; this.enemies = this.enemies.filter((enemy) => enemy.elite || enemy.miniboss);
     const health = 14500 * this.difficulty.health * (1 + (this.players.length - 1) * .55);
-    this.enemies.push({ id: id("boss"), type: "boss", x: 720, y: 0, radius: 92, hp: health, maxHp: health, speed: 68, damage: 65 * this.difficulty.attack, color: this.map.accent, elite: false, miniboss: false, boss: true, attackCd: 1, shotCd: 1.5, stun: 0, hitFlash: 0, attackFlash: 0, spawnLife: .5, knockVx: 0, knockVy: 0, dead: false, xp: 0 });
+    this.enemies.push({ id: id("boss"), type: "boss", x: 720, y: 0, radius: 92, hp: health, maxHp: health, speed: 68, damage: 3.5 * this.difficulty.attack, color: this.map.accent, elite: false, miniboss: false, boss: true, attackCd: 1, shotCd: 1.5, stun: 0, hitFlash: 0, attackFlash: 0, spawnLife: .5, knockVx: 0, knockVy: 0, dead: false, xp: 0 });
     this.pushEvent("danger", `${this.map.boss} HAS ARRIVED`, "Defeat the apex before enrage");
   }
 
@@ -1282,7 +1311,7 @@ export class Simulation {
       wave: this.wave, waveName: WAVE_NAMES[this.stage === "boss" ? 7 : this.wave], teamXP: Math.round(this.teamXP),
       level: this.level, xpNeed: this.xpNeed, kills: this.kills, gold: this.gold, bossElapsed: this.bossElapsed,
       bossPhase: this.bossPhase, enraged: this.enraged, machine: compactPoint(this.machine),
-      players: clean(this.players, ["input"]), drones: clean(this.drones), enemies: clean(this.enemies), projectiles: clean(this.projectiles, ["hit"]),
+      players: clean(this.players, ["input", "reconnectKey"]), drones: clean(this.drones), enemies: clean(this.enemies), projectiles: clean(this.projectiles, ["hit"]),
       hostile: clean(this.hostile), effects: clean(this.effects, ["hit"]), orbs: clean(this.orbs), drops: clean(this.drops),
       pods: clean(this.pods), objectives: clean(this.objectives), relayBalls: clean(this.relayBalls), feathers: clean(this.feathers),
       pendingChoices: this.pendingChoices, choiceReady: this.choiceReady, selectedChoices: this.selectedChoices, events: this.events.slice(-5),

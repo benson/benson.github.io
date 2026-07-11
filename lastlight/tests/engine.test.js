@@ -181,7 +181,7 @@ test("difficulty tiers materially increase pressure and enemy lethality", () => 
   assert.ok(extremeEnemy.hp > hardEnemy.hp * 2);
   assert.ok(hardEnemy.damage > storyEnemy.damage);
   assert.ok(extremeEnemy.damage > hardEnemy.damage);
-  assert.ok(storyEnemy.damage > 11 * 1.25, "Story enemies should punish contact more heavily");
+  assert.ok(storyEnemy.damage >= .9, "Even the lightest Story contact should cost about one of ten vitality points");
   assert.ok(story.difficulty.spawn < 1, "Story should trade a slightly smaller opening horde for more dangerous hits");
   assert.ok(hard.difficulty.spawn > story.difficulty.spawn);
   assert.ok(extreme.difficulty.spawn > hard.difficulty.spawn);
@@ -257,6 +257,37 @@ test("weapon upgrade choices carry their generated artwork", () => {
   for (const choice of weaponChoices) assert.match(choice.icon, /^assets\/weapons\/.+\.webp$/);
   const passiveChoices = choices.filter((choice) => choice.kind === "passive");
   for (const choice of passiveChoices) assert.match(choice.icon, /^assets\/guide\/passives\/.+\.webp$/);
+});
+
+test("player vitality uses a readable ten-point baseline", () => {
+  const sim = new Simulation({ difficulty: "story", players: [{ id: "p1", name: "One", specialist: "zuri" }] });
+  const player = sim.players[0], bomber = sim.spawnEnemy("bomber");
+  assert.equal(player.maxHp, 10);
+  assert.ok(bomber.damage >= player.maxHp * .49 && bomber.damage <= player.maxHp * .51, `bomber dealt ${bomber.damage}`);
+});
+
+test("a persistent browser identity can reconnect with its run progress", () => {
+  const resumeToken = "a".repeat(24);
+  const sim = new Simulation({ players: [{ id: "old", name: "One", specialist: "echo", resumeToken }] });
+  const original = sim.players[0];
+  original.weapons.signature.level = 4; original.damage = 321; original.hp = 3;
+  sim.removePlayer("old");
+  const restored = sim.addPlayer({ id: "new", name: "Renamed", specialist: "zuri", resumeToken });
+  assert.equal(restored.id, "new");
+  assert.equal(restored.specialist, "echo");
+  assert.equal(restored.weapons.signature.level, 4);
+  assert.equal(restored.damage, 321);
+  assert.equal(restored.reconnected, true);
+  assert.ok(restored.hp >= restored.maxHp * .5);
+});
+
+test("duplicate callsigns do not steal another browser's reconnect slot", () => {
+  const sim = new Simulation({ players: [{ id: "old", name: "Rookie", specialist: "echo", resumeToken: "a".repeat(24) }] });
+  sim.players[0].damage = 321; sim.removePlayer("old");
+  const newcomer = sim.addPlayer({ id: "new", name: "Rookie", specialist: "zuri", resumeToken: "b".repeat(24) });
+  assert.equal(newcomer.specialist, "zuri");
+  assert.equal(newcomer.damage, 0);
+  assert.equal(newcomer.reconnected, undefined);
 });
 
 test("cosmetic combat effects are bounded without dropping active fields", () => {

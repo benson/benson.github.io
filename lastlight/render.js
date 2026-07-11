@@ -1,6 +1,6 @@
-import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260710.3";
-import { WORLD } from "./engine.js?v=20260710.3";
-import { getThemeAsset } from "./themes/lastlight.js?v=20260710.3";
+import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260710.4";
+import { WORLD } from "./engine.js?v=20260710.4";
+import { getThemeAsset } from "./themes/lastlight.js?v=20260710.4";
 
 const TAU = Math.PI * 2;
 export class Renderer {
