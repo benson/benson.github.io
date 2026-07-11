@@ -2,11 +2,11 @@
   "schema": "lastlight.fixture-goldens.v1",
   "schemaVersion": 1,
   "balance": {
-    "version": "2026.07.11-baseline.2",
-    "hash": "fnv1a32:a172f8fe"
+    "version": "2026.07.11-movement.2",
+    "hash": "fnv1a32:62597c66"
   },
   "replay": {
-    "schema": "lastlight.replay.v2",
+    "schema": "lastlight.replay.v3",
     "stepHz": 60,
     "rng": "xoshiro128ss-v1"
   },
@@ -17,19 +17,19 @@
       "hashes": [
         {
           "tick": 0,
-          "hash": "188a88474c53b538"
+          "hash": "42fed7ccebecdadd"
         },
         {
           "tick": 60,
-          "hash": "dfc2a058c7e5bb8c"
+          "hash": "5e7a94acb102bd1b"
         },
         {
           "tick": 120,
-          "hash": "aa02de684f77e3f8"
+          "hash": "b30473e72d891b21"
         },
         {
           "tick": 180,
-          "hash": "fa563795ba585e5e"
+          "hash": "79cf7efd6febdf51"
         }
       ],
       "summary": {
@@ -70,7 +70,7 @@
         ]
       },
       "baselineMetrics": {
-        "maxSnapshotBytes": 12791,
+        "maxSnapshotBytes": 12963,
         "maxTotalEntities": 50,
         "maxWorkUnitsPerTick": 170
       }
@@ -81,27 +81,27 @@
       "hashes": [
         {
           "tick": 0,
-          "hash": "fddd051baed5e267"
+          "hash": "aa47622802f51554"
         },
         {
           "tick": 60,
-          "hash": "857cb0cde76be4ef"
+          "hash": "bf4e1804aa52f709"
         },
         {
           "tick": 120,
-          "hash": "76d51162a0ac9d9f"
+          "hash": "35fb9ec7d1f7efe5"
         },
         {
           "tick": 180,
-          "hash": "1d7514e4ec0e55c4"
+          "hash": "e345dba1f0f8f8d9"
         },
         {
           "tick": 240,
-          "hash": "4d56cc9c9b88736d"
+          "hash": "e7d6cfa95b9f35d8"
         },
         {
           "tick": 300,
-          "hash": "c3d898d902c4931d"
+          "hash": "1881192f2cced85a"
         }
       ],
       "summary": {
@@ -109,20 +109,20 @@
         "tick": 6900,
         "wave": 3,
         "level": 8,
-        "kills": 29,
+        "kills": 34,
         "gold": 0,
-        "teamXP": 36,
+        "teamXP": 21,
         "bossPhase": 1,
         "entities": {
           "players": 1,
           "drones": 1,
-          "enemies": 62,
-          "projectiles": 23,
+          "enemies": 57,
+          "projectiles": 21,
           "hostile": 24,
-          "effects": 1,
-          "orbs": 24,
-          "drops": 6,
-          "pods": 10,
+          "effects": 2,
+          "orbs": 31,
+          "drops": 4,
+          "pods": 11,
           "objectives": 0,
           "relayBalls": 0,
           "feathers": 0,
@@ -133,8 +133,8 @@
             "slot": 0,
             "specialist": "echo",
             "hp": 10,
-            "damage": 11441,
-            "kills": 29,
+            "damage": 14352.2,
+            "kills": 34,
             "revives": 0,
             "downed": false,
             "dead": false
@@ -142,9 +142,9 @@
         ]
       },
       "baselineMetrics": {
-        "maxSnapshotBytes": 32455,
-        "maxTotalEntities": 157,
-        "maxWorkUnitsPerTick": 2789
+        "maxSnapshotBytes": 31667,
+        "maxTotalEntities": 161,
+        "maxWorkUnitsPerTick": 2962
       }
     },
     {
@@ -153,23 +153,23 @@
       "hashes": [
         {
           "tick": 0,
-          "hash": "f9c8cc157159f1d2"
+          "hash": "7624f52b145cba41"
         },
         {
           "tick": 30,
-          "hash": "c626ac49fabd23bd"
+          "hash": "6d21377f1468b946"
         },
         {
           "tick": 60,
-          "hash": "2fd68f879ca05a5f"
+          "hash": "7278da6b1d465bd5"
         },
         {
           "tick": 90,
-          "hash": "15528f14f4922c55"
+          "hash": "3072e375f543e8b3"
         },
         {
           "tick": 120,
-          "hash": "be3762d075839d6f"
+          "hash": "e2285bb6d92771d9"
         }
       ],
       "summary": {
@@ -187,10 +187,10 @@
           "enemies": 170,
           "projectiles": 202,
           "hostile": 100,
-          "effects": 206,
+          "effects": 204,
           "orbs": 500,
-          "drops": 1,
-          "pods": 13,
+          "drops": 2,
+          "pods": 12,
           "objectives": 0,
           "relayBalls": 0,
           "feathers": 0,
@@ -201,7 +201,7 @@
             "slot": 0,
             "specialist": "gale",
             "hp": 9.5,
-            "damage": 20459.9,
+            "damage": 19675.3,
             "kills": 0,
             "revives": 0,
             "downed": false,
@@ -210,9 +210,9 @@
         ]
       },
       "baselineMetrics": {
-        "maxSnapshotBytes": 178784,
-        "maxTotalEntities": 1205,
-        "maxWorkUnitsPerTick": 41348
+        "maxSnapshotBytes": 178952,
+        "maxTotalEntities": 1206,
+        "maxWorkUnitsPerTick": 41531
       }
     },
     {
@@ -221,35 +221,35 @@
       "hashes": [
         {
           "tick": 0,
-          "hash": "646c2dffb38bc334"
+          "hash": "e56a588b5455a790"
         },
         {
           "tick": 30,
-          "hash": "511073802492e6bf"
+          "hash": "61ef8e50fbe03d07"
         },
         {
           "tick": 60,
-          "hash": "52d5e3554daa08dd"
+          "hash": "3557dd60b5ea004d"
         },
         {
           "tick": 90,
-          "hash": "35f9bcbd74ea8d4c"
+          "hash": "68cc045fdec3ff8c"
         },
         {
           "tick": 120,
-          "hash": "021fc2b50dbd15ce"
+          "hash": "8251c0b4a7ba43a6"
         },
         {
           "tick": 150,
-          "hash": "c200b8cb85dfe1fa"
+          "hash": "b12e283e8f2bbb7c"
         },
         {
           "tick": 180,
-          "hash": "d2a32cffa0b7b8ea"
+          "hash": "53070dc79c87b068"
         },
         {
           "tick": 210,
-          "hash": "d358be3c60140f1f"
+          "hash": "3a08a354cd75f285"
         }
       ],
       "summary": {
@@ -300,7 +300,7 @@
         ]
       },
       "baselineMetrics": {
-        "maxSnapshotBytes": 11824,
+        "maxSnapshotBytes": 12112,
         "maxTotalEntities": 44,
         "maxWorkUnitsPerTick": 173
       }
@@ -311,44 +311,44 @@
       "hashes": [
         {
           "tick": 0,
-          "hash": "3f736fdb050be7fe"
+          "hash": "0fd7f9e0e827d7fa"
         },
         {
           "tick": 60,
-          "hash": "c7a214ab8b224ccc"
+          "hash": "c5f6ab43d603d63d"
         },
         {
           "tick": 120,
-          "hash": "8be857e9b65cf139"
+          "hash": "324111749408f8da"
         },
         {
           "tick": 180,
-          "hash": "5c938b9466cad34f"
+          "hash": "414066339e9555b6"
         },
         {
           "tick": 240,
-          "hash": "f8de794d64ea9ae0"
+          "hash": "aedd7b6ce4b64442"
         }
       ],
       "summary": {
         "stage": "running",
         "tick": 8640,
         "wave": 4,
-        "level": 9,
-        "kills": 17,
-        "gold": 0,
-        "teamXP": 42,
+        "level": 10,
+        "kills": 16,
+        "gold": 40,
+        "teamXP": 0,
         "bossPhase": 1,
         "entities": {
           "players": 4,
           "drones": 1,
-          "enemies": 123,
-          "projectiles": 15,
+          "enemies": 124,
+          "projectiles": 14,
           "hostile": 20,
-          "effects": 135,
-          "orbs": 11,
-          "drops": 8,
-          "pods": 7,
+          "effects": 108,
+          "orbs": 9,
+          "drops": 5,
+          "pods": 9,
           "objectives": 0,
           "relayBalls": 0,
           "feathers": 0,
@@ -359,8 +359,8 @@
             "slot": 0,
             "specialist": "zuri",
             "hp": 10,
-            "damage": 53639,
-            "kills": 17,
+            "damage": 54008.2,
+            "kills": 15,
             "revives": 0,
             "downed": false,
             "dead": false
@@ -368,9 +368,9 @@
           {
             "slot": 1,
             "specialist": "echo",
-            "hp": 10,
-            "damage": 13608,
-            "kills": 0,
+            "hp": 11.5,
+            "damage": 13752.9,
+            "kills": 1,
             "revives": 1,
             "downed": false,
             "dead": false
@@ -379,7 +379,7 @@
             "slot": 2,
             "specialist": "sola",
             "hp": 11,
-            "damage": 3730,
+            "damage": 3860,
             "kills": 0,
             "revives": 0,
             "downed": false,
@@ -389,7 +389,7 @@
             "slot": 3,
             "specialist": "bront",
             "hp": 7.5,
-            "damage": 3328,
+            "damage": 3162,
             "kills": 0,
             "revives": 0,
             "downed": false,
@@ -398,9 +398,9 @@
         ]
       },
       "baselineMetrics": {
-        "maxSnapshotBytes": 70574,
-        "maxTotalEntities": 325,
-        "maxWorkUnitsPerTick": 18230
+        "maxSnapshotBytes": 67056,
+        "maxTotalEntities": 296,
+        "maxWorkUnitsPerTick": 15165
       }
     },
     {
@@ -409,31 +409,31 @@
       "hashes": [
         {
           "tick": 0,
-          "hash": "e349f9ef61355cf5"
+          "hash": "2e4ba89747553497"
         },
         {
           "tick": 30,
-          "hash": "9b5aa6b80398da95"
+          "hash": "029b25b42278f3d9"
         },
         {
           "tick": 60,
-          "hash": "a0bbbbbae7a3212f"
+          "hash": "9754150ac6cbf78d"
         },
         {
           "tick": 90,
-          "hash": "63dc749278af090e"
+          "hash": "60312977f68ef5f0"
         },
         {
           "tick": 120,
-          "hash": "f7bcf3db815250c5"
+          "hash": "b3f87b5d2fa424cb"
         },
         {
           "tick": 150,
-          "hash": "33f407c8bd303e1e"
+          "hash": "3de15c9db3e45cf0"
         },
         {
           "tick": 180,
-          "hash": "72874160f4692123"
+          "hash": "6676f31896abbe45"
         }
       ],
       "summary": {
@@ -484,7 +484,7 @@
         ]
       },
       "baselineMetrics": {
-        "maxSnapshotBytes": 10826,
+        "maxSnapshotBytes": 11114,
         "maxTotalEntities": 48,
         "maxWorkUnitsPerTick": 251
       }
@@ -495,23 +495,23 @@
       "hashes": [
         {
           "tick": 0,
-          "hash": "f03a8a4c60cf1a7b"
+          "hash": "dee55a44d054234e"
         },
         {
           "tick": 15,
-          "hash": "ad839e5908f4d63b"
+          "hash": "031639956a65e3eb"
         },
         {
           "tick": 30,
-          "hash": "ca4bfb1f05542b6a"
+          "hash": "a8421ced21e23e21"
         },
         {
           "tick": 45,
-          "hash": "4fea26f1250e93d5"
+          "hash": "0feed3ce36d02f42"
         },
         {
           "tick": 60,
-          "hash": "32f4b189edaf0453"
+          "hash": "8ca68b7ebeac8c5c"
         }
       ],
       "summary": {
@@ -527,7 +527,7 @@
           "players": 1,
           "drones": 1,
           "enemies": 300,
-          "projectiles": 620,
+          "projectiles": 623,
           "hostile": 300,
           "effects": 260,
           "orbs": 1000,
@@ -543,7 +543,7 @@
             "slot": 0,
             "specialist": "vesper",
             "hp": 9.5,
-            "damage": 25957.2,
+            "damage": 24751.4,
             "kills": 0,
             "revives": 0,
             "downed": false,
@@ -552,8 +552,8 @@
         ]
       },
       "baselineMetrics": {
-        "maxSnapshotBytes": 375351,
-        "maxTotalEntities": 2518,
+        "maxSnapshotBytes": 375508,
+        "maxTotalEntities": 2519,
         "maxWorkUnitsPerTick": 218258
       }
     }

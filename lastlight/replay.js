@@ -1,5 +1,6 @@
-export const REPLAY_SCHEMA = "lastlight.replay.v2";
-export const REPLAY_SCHEMA_VERSION = 2;
+export const REPLAY_SCHEMA = "lastlight.replay.v3";
+export const REPLAY_SCHEMA_VERSION = 3;
+export const LEGACY_REPLAY_SCHEMA_V2 = "lastlight.replay.v2";
 export const LEGACY_REPLAY_SCHEMA = "lastlight.replay.v1";
 export const REPLAY_STEP_HZ = 60;
 export const MAX_REPLAY_BYTES = 2 * 1024 * 1024;
@@ -206,9 +207,11 @@ function validateCommand(tuple, index) {
 
 export function validateReplay(value, expected = {}) {
   const currentSchema = value?.schema === REPLAY_SCHEMA;
+  const legacyV2Schema = value?.schema === LEGACY_REPLAY_SCHEMA_V2;
   const legacySchema = value?.schema === LEGACY_REPLAY_SCHEMA;
-  if (!currentSchema && !legacySchema) throw new TypeError("Unsupported replay schema");
-  assertExactKeys(value, ["schema", "build", "balance", "engine", "seed", "run", ...(currentSchema ? ["features"] : []), "roster", "commands", "checkpoints", "finalTick", "finalHash"], "replay");
+  const hasFeatures = currentSchema || legacyV2Schema;
+  if (!currentSchema && !legacyV2Schema && !legacySchema) throw new TypeError("Unsupported replay schema");
+  assertExactKeys(value, ["schema", "build", "balance", "engine", "seed", "run", ...(hasFeatures ? ["features"] : []), "roster", "commands", "checkpoints", "finalTick", "finalHash"], "replay");
   safeString(value.build, SAFE_ID, "build");
   assertExactKeys(value.balance, ["version", "hash"], "balance");
   safeString(value.balance.version, SAFE_ID, "balance.version");
@@ -217,8 +220,8 @@ export function validateReplay(value, expected = {}) {
   if (value.engine.stepHz !== REPLAY_STEP_HZ) throw new TypeError("Unsupported replay step rate");
   safeString(value.engine.rng, SAFE_ID, "engine.rng");
   safeString(value.seed, SEED, "seed");
-  const features = currentSchema ? value.features : LEGACY_FEATURES;
-  if (currentSchema) {
+  const features = hasFeatures ? value.features : LEGACY_FEATURES;
+  if (hasFeatures) {
     assertExactKeys(features, ["configVersion", "gameplayVersion", "objectiveEvents"], "features");
     safeString(features.configVersion, FEATURE_ID, "features.configVersion");
     safeString(features.gameplayVersion, FEATURE_ID, "features.gameplayVersion");
@@ -446,7 +449,7 @@ export class ReplayDriver {
 
   run() {
     const simulation = this.adapters.createSimulation(this.replay);
-    const features = this.replay.schema === REPLAY_SCHEMA ? this.replay.features : LEGACY_FEATURES;
+    const features = this.replay.schema === LEGACY_REPLAY_SCHEMA ? LEGACY_FEATURES : this.replay.features;
     if (Object.hasOwn(simulation, "gameplayVersion") && simulation.gameplayVersion !== features.gameplayVersion) {
       throw new Error(`Replay gameplay feature version mismatch: expected ${features.gameplayVersion}, got ${simulation.gameplayVersion}`);
     }

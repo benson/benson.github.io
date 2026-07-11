@@ -27,20 +27,22 @@ test("fixed-step clock bounds catch-up work after a stalled frame", () => {
 
 test("guest prediction moves immediately and reconciles small errors without teleporting", () => {
   const predictor = new MovementPredictor();
-  predictor.sync({ id: "p1", x: 0, y: 0, facing: 0 });
-  predictor.advance({ x: 1, y: 0 }, 1 / 60, 240, (player, dx, dy) => { player.x += dx; player.y += dy; });
-  assert.equal(predictor.player.x, 4);
+  predictor.sync({ id: "p1", specialist: "zuri", baseSpeed: 240, x: 0, y: 0, facing: 0 });
+  predictor.advance({ x: 1, y: 0, aim: 0, autoAim: false }, 1 / 60, 240, (player, dx, dy) => { player.x += dx; player.y += dy; });
+  const immediateX = predictor.player.x;
+  assert.ok(immediateX > 1 && immediateX < 4, "the first frame responds immediately without teleporting to full speed");
   predictor.sync({ id: "p1", x: 1, y: 0, facing: 0 });
-  assert.ok(predictor.player.x < 4 && predictor.player.x > 1);
+  assert.ok(predictor.player.x < immediateX && predictor.player.x > 1);
   assert.equal(predictor.player.predicted, true);
-  assert.equal(predictor.lastCorrectionDistance, 3);
+  assert.ok(Math.abs(predictor.lastCorrectionDistance - (immediateX - 1)) < 1e-9);
 });
 
 test("prediction normalizes diagonal movement like the authoritative simulation", () => {
   const predictor = new MovementPredictor();
-  predictor.sync({ id: "p1", x: 0, y: 0 });
-  predictor.advance({ x: 1, y: 1 }, 1, 100, (player, dx, dy) => { player.x += dx; player.y += dy; });
-  assert.ok(Math.abs(Math.hypot(predictor.player.x, predictor.player.y) - 5) < 1e-9);
+  predictor.sync({ id: "p1", specialist: "zuri", baseSpeed: 100, x: 0, y: 0 });
+  predictor.advance({ x: 1, y: 1, aim: Math.PI / 4, autoAim: true }, 1 / 60, 100, (player, dx, dy) => { player.x += dx; player.y += dy; });
+  assert.ok(Math.abs(predictor.player.x - predictor.player.y) < 1e-9);
+  assert.ok(Math.hypot(predictor.player.x, predictor.player.y) < 100 / 60);
 });
 
 test("large prediction divergence snaps to authoritative position", () => {

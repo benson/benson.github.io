@@ -1,10 +1,11 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
-} from "./data.js?v=20260711.5";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260711.5";
+} from "./data.js?v=20260711.8";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260711.8";
 import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.5";
 import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260711.5";
+import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260711.8";
 
 const BALANCE = getBalanceConfig();
 
@@ -186,6 +187,7 @@ export class Simulation {
       player.id = info.id; player.name = String(info.name || player.name).slice(0, 16);
       if (player.replaySlot === undefined) player.replaySlot = replaySlot(info.replaySlot);
       player.input = { x: 0, y: 0, aim: player.facing || 0, autoAim: true };
+      resetPlayerMovement(player);
       player.dead = false; player.downed = false; player.downTimer = 0; player.reviveProgress = 0;
       player.hp = Math.max(player.hp, player.maxHp * .5); player.invuln = 3; player.reconnected = true;
       for (const list of [this.projectiles, this.effects, this.feathers, this.drones]) {
@@ -207,7 +209,8 @@ export class Simulation {
       x: Math.cos(angle) * 75, y: Math.sin(angle) * 75, radius: 31,
       hp: spec.health, maxHp: spec.health, armor: spec.armor, baseSpeed: spec.speed,
       input: { x: 0, y: 0, aim: 0, autoAim: true },
-      facing: 0, aimFacing: 0, moving: false,
+      facing: 0, aimFacing: 0, movementFacing: 0, dashFacing: 0, moving: false,
+      moveVx: 0, moveVy: 0, moveInputX: 0, moveInputY: 0, moveSpeedRatio: 0, movementMode: "idle", dashRecovery: 0,
       animState: "idle", animTime: 0, weaponFlash: 0, recoilAngle: 0, skidTime: 0,
       eCd: 0, eCdMax: 0, rCd: 0, rCdMax: 0, shield: 0, invuln: 2, hitGrace: 0, hurtFlash: 0, hurtAngle: 0, knockVx: 0, knockVy: 0, frenzy: 0, hasteBuff: 0, speedBuff: 0,
       dead: false, downed: false, downTimer: 0, respawnTimer: 0, reviveProgress: 0, deaths: 0,
@@ -289,6 +292,7 @@ export class Simulation {
     for (const p of this.players) {
       const spec = SPECIALISTS[p.specialist];
       if (p.downed) {
+        resetPlayerMovement(p);
         p.downTimer -= dt;
         const rescuers = this.players.filter((ally) => !ally.dead && !ally.downed && distance(p, ally) < 90);
         p.reviveProgress += rescuers.length * dt;
@@ -299,6 +303,7 @@ export class Simulation {
         continue;
       }
       if (p.dead) {
+        resetPlayerMovement(p);
         p.respawnTimer -= dt;
         if (p.respawnTimer <= 0) this.revive(p);
         continue;
@@ -328,27 +333,28 @@ export class Simulation {
       if (p.hotTime <= 0) p.hotStacks = 0;
       p.shield = Math.max(0, p.shield - Math.max(.01, p.maxHp * .015) * dt);
 
-      p.aimFacing = Number.isFinite(p.input.aim) ? p.input.aim : p.aimFacing;
-      let ix = p.input.x, iy = p.input.y;
-      const length = Math.hypot(ix, iy) || 1;
-      if (length > 1) { ix /= length; iy /= length; }
+      let movementInput = p.input;
       if (p.frenzy > 0) {
         const target = this.nearestEnemy(p);
-        if (target) { const a = angleTo(p, target); ix = Math.cos(a); iy = Math.sin(a); p.input.aim = a; }
+        if (target) {
+          const a = angleTo(p, target);
+          movementInput = { ...p.input, x: Math.cos(a), y: Math.sin(a), aim: a };
+          p.input.aim = a;
+        }
       }
       const speed = this.playerStat(p, "speed");
-      const ox = p.x, oy = p.y;
-      this.movePlayer(p, (ix * speed + (p.knockVx || 0)) * dt, (iy * speed + (p.knockVy || 0)) * dt);
+      const wasMoving = p.moving;
+      ensureMovementState(p);
+      const movement = advancePlayerMovement(p, movementInput, dt, speed, (entity, dx, dy) => this.movePlayer(entity, dx, dy));
+      const knockX = (p.knockVx || 0) * dt, knockY = (p.knockVy || 0) * dt;
+      const knockBeforeX = p.x, knockBeforeY = p.y;
+      this.movePlayer(p, knockX, knockY);
+      const knockDistance = Math.hypot(p.x - knockBeforeX, p.y - knockBeforeY);
       const knockFriction = Math.pow(.018, dt); p.knockVx *= knockFriction; p.knockVy *= knockFriction;
-      const moved = Math.hypot(p.x - ox, p.y - oy);
-      const wasMoving = p.moving; p.moving = moved > .05;
-      if (p.moving) {
-        p.facing = Math.atan2(p.y - oy, p.x - ox);
-      }
       if (wasMoving && !p.moving) p.skidTime = .16;
       if (p.animTime <= 0) p.animState = p.moving ? "run" : "idle";
-      p.traveled += moved;
-      p.charge += moved;
+      p.traveled += movement.distance + knockDistance;
+      p.charge += movement.distance;
 
       if (p.specialist === "rift" && p.charge >= 120) {
         p.charge %= 120;
@@ -1002,7 +1008,8 @@ export class Simulation {
     const beforeX = p.x, beforeY = p.y;
     this.movePlayer(p, Math.cos(angle) * distanceAmount, Math.sin(angle) * distanceAmount);
     const moved = Math.hypot(p.x - beforeX, p.y - beforeY);
-    p.facing = angle; p.animState = "dash"; p.animTime = Math.max(p.animTime || 0, .18);
+    p.facing = angle; p.movementFacing = angle; p.dashFacing = angle; p.animState = "dash"; p.animTime = Math.max(p.animTime || 0, .18);
+    beginDashRecovery(p);
     p.traveled += moved; p.charge += moved;
   }
 
@@ -1221,6 +1228,7 @@ export class Simulation {
 
   revive(p) {
     p.dead = false; p.downed = false; p.hp = p.maxHp * .5; p.invuln = 4; p.reviveProgress = 0; p.respawnTimer = 0; p.animState = "revive"; p.animTime = .4;
+    resetPlayerMovement(p);
     this.pushEvent("boon", `${p.name} rejoined`, "Four seconds of invulnerability");
   }
 

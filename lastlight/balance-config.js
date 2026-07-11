@@ -1,6 +1,6 @@
 // Balance is a versioned simulation input. Replays and fixtures should record
 // this exact version so a future tuning pass never silently changes old runs.
-export const BALANCE_VERSION = "2026.07.11-baseline.2";
+export const BALANCE_VERSION = "2026.07.11-movement.2";
 
 export const BALANCE_IDS = Object.freeze({
   specialists: Object.freeze(["zuri", "echo", "sola", "bront", "fang", "gale", "rift", "nova", "vesper"]),
@@ -32,6 +32,27 @@ const config = {
     rift: { health: 10, armor: 20, speed: 300, cooldownE: 8, cooldownR: 100 },
     nova: { health: 9, armor: 0, speed: 295, cooldownE: 15, cooldownR: 90 },
     vesper: { health: 9.5, armor: 0, speed: 275, cooldownE: 13, cooldownR: 90 },
+  },
+  movement: {
+    version: "lastlight.movement.v1",
+    profiles: {
+      skirmisher: { acceleration: 17, braking: 22, startImpulse: .34, turnImpulse: .22, settleSpeed: 8, dashRecovery: .20, dashControl: .58, strafeSpeed: .96, backpedalSpeed: .88, leanDegrees: 3.5 },
+      gunner: { acceleration: 14.5, braking: 20, startImpulse: .30, turnImpulse: .19, settleSpeed: 7, dashRecovery: .22, dashControl: .55, strafeSpeed: .92, backpedalSpeed: .80, leanDegrees: 3 },
+      vanguard: { acceleration: 11.5, braking: 17, startImpulse: .25, turnImpulse: .15, settleSpeed: 6, dashRecovery: .28, dashControl: .43, strafeSpeed: .88, backpedalSpeed: .72, leanDegrees: 2.2 },
+      brawler: { acceleration: 15, braking: 19, startImpulse: .32, turnImpulse: .20, settleSpeed: 7, dashRecovery: .24, dashControl: .50, strafeSpeed: .91, backpedalSpeed: .78, leanDegrees: 3.2 },
+      caster: { acceleration: 13, braking: 21, startImpulse: .28, turnImpulse: .18, settleSpeed: 7, dashRecovery: .24, dashControl: .50, strafeSpeed: .90, backpedalSpeed: .77, leanDegrees: 2.6 },
+    },
+    specialists: {
+      zuri: { profile: "skirmisher", facing: "aim" },
+      echo: { profile: "gunner", facing: "aim" },
+      sola: { profile: "vanguard", facing: "hybrid" },
+      bront: { profile: "vanguard", facing: "contact" },
+      fang: { profile: "brawler", facing: "contact" },
+      gale: { profile: "skirmisher", facing: "aim" },
+      rift: { profile: "brawler", facing: "contact" },
+      nova: { profile: "caster", facing: "aim" },
+      vesper: { profile: "gunner", facing: "hybrid" },
+    },
   },
   passives: {
     damage: { amount: 0.10, max: 5 },
@@ -178,7 +199,7 @@ export function validateBalanceConfig(candidate = BALANCE_CONFIG) {
   };
   if (!candidate || typeof candidate !== "object") return ["config: must be an object"];
   if (typeof candidate.version !== "string" || !candidate.version.trim()) errors.push("version: required");
-  for (const section of ["core", "specialists", "passives", "shields", "difficulties", "enemies", "waves", "weapons"]) {
+  for (const section of ["core", "specialists", "movement", "passives", "shields", "difficulties", "enemies", "waves", "weapons"]) {
     if (!candidate[section] || typeof candidate[section] !== "object") errors.push(`${section}: required`);
   }
   const requireExactIds = (path, value, ids) => {
@@ -187,6 +208,7 @@ export function validateBalanceConfig(candidate = BALANCE_CONFIG) {
     if (JSON.stringify(actual) !== JSON.stringify(expected)) errors.push(`${path}: expected ${expected.join(", ")}; got ${actual.join(", ")}`);
   };
   requireExactIds("specialists", candidate.specialists, BALANCE_IDS.specialists);
+  requireExactIds("movement.specialists", candidate.movement?.specialists, BALANCE_IDS.specialists);
   requireExactIds("passives", candidate.passives, BALANCE_IDS.passives);
   requireExactIds("shields", candidate.shields, BALANCE_IDS.shieldAbilities);
   requireExactIds("difficulties", candidate.difficulties, BALANCE_IDS.difficulties);
@@ -199,6 +221,19 @@ export function validateBalanceConfig(candidate = BALANCE_CONFIG) {
   for (const [id, specialist] of Object.entries(candidate.specialists || {})) {
     for (const key of ["health", "speed", "cooldownE", "cooldownR"]) requireFinite(`specialists.${id}.${key}`, specialist[key], { min: 0, exclusiveMin: true });
     requireFinite(`specialists.${id}.armor`, specialist.armor, { min: 0 });
+  }
+  const movementProfiles = candidate.movement?.profiles || {};
+  if (typeof candidate.movement?.version !== "string" || !candidate.movement.version.trim()) errors.push("movement.version: required");
+  for (const [id, profile] of Object.entries(movementProfiles)) {
+    for (const key of ["acceleration", "braking", "settleSpeed", "dashRecovery", "strafeSpeed", "backpedalSpeed", "leanDegrees"]) requireFinite(`movement.profiles.${id}.${key}`, profile[key], { min: 0, exclusiveMin: true });
+    for (const key of ["startImpulse", "turnImpulse", "dashControl"]) {
+      requireFinite(`movement.profiles.${id}.${key}`, profile[key], { min: 0 });
+      if (profile[key] > 1) errors.push(`movement.profiles.${id}.${key}: must be <= 1`);
+    }
+  }
+  for (const [id, policy] of Object.entries(candidate.movement?.specialists || {})) {
+    if (!movementProfiles[policy.profile]) errors.push(`movement.specialists.${id}.profile: unknown profile ${policy.profile}`);
+    if (!["aim", "hybrid", "contact"].includes(policy.facing)) errors.push(`movement.specialists.${id}.facing: unsupported policy ${policy.facing}`);
   }
   for (const [id, difficulty] of Object.entries(candidate.difficulties || {})) {
     for (const key of ["health", "attack", "spell", "gold", "spawn"]) requireFinite(`difficulties.${id}.${key}`, difficulty[key], { min: 0, exclusiveMin: true });

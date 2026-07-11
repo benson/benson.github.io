@@ -1,3 +1,5 @@
+import { advancePlayerMovement } from "./movement.js?v=20260711.8";
+
 export const FIXED_STEP_SECONDS = 1 / 60;
 
 export class FixedStepClock {
@@ -73,14 +75,7 @@ export class MovementPredictor {
   advance(input, frameSeconds, speed, move) {
     if (!this.player) return null;
     const dt = Math.min(.05, Math.max(0, Number(frameSeconds) || 0));
-    let ix = Number(input?.x) || 0, iy = Number(input?.y) || 0;
-    const inputLength = Math.hypot(ix, iy);
-    if (inputLength > 1) { ix /= inputLength; iy /= inputLength; }
-    if (Math.hypot(ix, iy) > .01) {
-      this.player.facing = Math.atan2(iy, ix);
-      this.player.moving = true;
-    } else this.player.moving = false;
-    move(this.player, ix * speed * dt, iy * speed * dt);
+    advancePlayerMovement(this.player, input, dt, speed, move);
     if (this.authoritative && !this.player.moving) {
       const blend = 1 - Math.exp(-7 * dt);
       this.player.x += (this.authoritative.x - this.player.x) * blend;

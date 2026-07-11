@@ -1,11 +1,12 @@
-import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260711.5";
-import { WORLD } from "./engine.js?v=20260711.5";
-import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation } from "./themes/lastlight.js?v=20260711.5";
-import { springCamera } from "./feel.js?v=20260711.5";
-import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistMotionState } from "./motion.js?v=20260711.6";
+import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260711.8";
+import { WORLD } from "./engine.js?v=20260711.8";
+import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation } from "./themes/lastlight.js?v=20260711.8";
+import { springCamera } from "./feel.js?v=20260711.8";
+import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistMotionState } from "./motion.js?v=20260711.8";
 import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
 import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260711.5";
-import { impactRenderPlan } from "./impact-grammar.js?v=20260711.5";
+import { impactRenderPlan } from "./impact-grammar.js?v=20260711.8";
+import { movementVisualState } from "./movement.js?v=20260711.8";
 import { effectReadabilityCategory, partitionEffects, readabilityPlan } from "./readability.js?v=20260711.8";
 
 const TAU = Math.PI * 2;
@@ -1006,11 +1007,14 @@ export class Renderer {
       const before = this.previousEntity(previous?.players, raw.id);
       const dx = before ? raw.x - before.x : 0, dy = before ? raw.y - before.y : 0;
       const inferredMoving = Math.hypot(dx, dy) > .15, moving = Boolean(raw.moving ?? inferredMoving) && !p.dead && !p.downed;
-      const locomotionTarget = Number.isFinite(raw.facing) ? raw.facing : inferredMoving ? Math.atan2(dy, dx) : 0;
+      const locomotionTarget = raw.animState === "dash" && Number.isFinite(raw.dashFacing)
+        ? raw.dashFacing
+        : Number.isFinite(raw.facing) ? raw.facing : inferredMoving ? Math.atan2(dy, dx) : 0;
       const aimTarget = Number.isFinite(raw.aimFacing) ? raw.aimFacing : locomotionTarget;
       const now = performance.now();
       const visual = this.playerVisuals.get(p.id) || {
-        facing: locomotionTarget, aimFacing: aimTarget, turn: Math.cos(locomotionTarget) >= 0 ? 1 : -1, stride: 0,
+        facing: locomotionTarget, aimFacing: aimTarget, turn: Math.cos(locomotionTarget) >= 0 ? 1 : -1,
+        movementLean: 0, groundOffset: 0, shadowX: 1, shadowY: 1,
         animation: "idle", animationTime: 0, displayHp: p.hp, trailHp: p.hp,
         previousFootRow: null, wasSkidding: false, lastAuthoritativeAnimTime: 0, updatedAt: now,
       };
@@ -1019,7 +1023,12 @@ export class Renderer {
       visual.facing += facingDelta * (1 - Math.exp(-18 * Math.max(frameTime, 1 / 120)));
       const aimDelta = Math.atan2(Math.sin(aimTarget - visual.aimFacing), Math.cos(aimTarget - visual.aimFacing));
       visual.aimFacing += aimDelta * (1 - Math.exp(-24 * Math.max(frameTime, 1 / 120)));
-      visual.stride += moving ? frameTime * 10 : 0;
+      const movementTarget = movementVisualState(raw, this.reducedMotion);
+      const movementBlend = this.reducedMotion ? 1 : 1 - Math.exp(-20 * Math.max(frameTime, 1 / 120));
+      visual.movementLean += (movementTarget.lean - visual.movementLean) * movementBlend;
+      visual.groundOffset += (movementTarget.groundOffset - visual.groundOffset) * movementBlend;
+      visual.shadowX += (movementTarget.shadowX - visual.shadowX) * movementBlend;
+      visual.shadowY += (movementTarget.shadowY - visual.shadowY) * movementBlend;
 
       const hurt = clamp((p.hurtFlash || 0) / .24, 0, 1) * this.qualityProfile.hitFlashes;
       const animation = specialistMotionState(raw, moving, hurt);
@@ -1045,10 +1054,11 @@ export class Renderer {
       this.playerVisuals.set(p.id, visual);
 
       const groundY = animationConfig?.groundY ?? 24;
+      const movementForm = { lean: visual.movementLean, groundOffset: visual.groundOffset, shadowX: visual.shadowX, shadowY: visual.shadowY };
       ctx.save(); ctx.translate(p.x, p.y);
       const shadow = animationConfig?.shadow || [35, 14];
       ctx.fillStyle = p.dead || p.downed ? "rgba(0,0,0,.2)" : "rgba(0,0,0,.38)";
-      ctx.beginPath(); ctx.ellipse(2, groundY, shadow[0] * (moving ? 1.08 : 1), shadow[1] * (moving ? .9 : 1), 0, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(2, groundY, shadow[0] * movementForm.shadowX, shadow[1] * movementForm.shadowY, 0, 0, TAU); ctx.fill();
       if (p.id === localPlayerId) {
         ctx.strokeStyle = spec.color; ctx.globalAlpha = .66; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.ellipse(0, groundY - 2, 39, 17, 0, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1;
@@ -1068,8 +1078,8 @@ export class Renderer {
         const width = animationConfig.drawSize[0], height = animationConfig.drawSize[1], anchor = animationConfig.anchor || [.5, .82];
         const column = directionColumn(drawFacing), row = atlasFrame.row;
         ctx.save();
-        ctx.translate((animationConfig.collisionOffset?.[0] || 0) + (atlasFrame.offsetX || 0) + (this.reducedMotion ? 0 : Math.sin(now * .08) * hurt * 3), (animationConfig.collisionOffset?.[1] || 0) + (atlasFrame.offsetY || 0));
-        ctx.rotate((atlasFrame.rotation || 0) + (this.reducedMotion ? 0 : Math.sin(p.hurtAngle || 0) * hurt * .06));
+        ctx.translate((animationConfig.collisionOffset?.[0] || 0) + (atlasFrame.offsetX || 0) + (this.reducedMotion ? 0 : Math.sin(now * .08) * hurt * 3), (animationConfig.collisionOffset?.[1] || 0) + (atlasFrame.offsetY || 0) + movementForm.groundOffset);
+        ctx.rotate((atlasFrame.rotation || 0) + movementForm.lean + (this.reducedMotion ? 0 : Math.sin(p.hurtAngle || 0) * hurt * .06));
         ctx.scale(atlasFrame.scaleX || 1, atlasFrame.scaleY || 1);
         if (hurt > 0) ctx.filter = `brightness(${1 + hurt * 2.2}) saturate(${1 - hurt * .5}) sepia(${hurt * .4})`;
         if (p.dead || p.downed) ctx.globalAlpha = .45;
@@ -1079,9 +1089,8 @@ export class Renderer {
         const image = this.sprites[p.specialist];
         if (image?.complete) {
           const size = p.specialist === "sola" ? 118 : 104;
-          const step = Math.sin(visual.stride), bob = this.reducedMotion ? 0 : moving ? Math.abs(step) * -3 : Math.sin(now * .002 + p.x) * .7;
-          ctx.save(); ctx.translate(this.reducedMotion ? 0 : Math.sin(now * .08) * hurt * 3, bob - (this.reducedMotion ? 0 : hurt * 2));
-          ctx.rotate(this.reducedMotion ? 0 : (moving ? Math.cos(visual.stride) * .025 : 0) + Math.sin(p.hurtAngle || 0) * hurt * .09);
+          ctx.save(); ctx.translate(this.reducedMotion ? 0 : Math.sin(now * .08) * hurt * 3, movementForm.groundOffset - (this.reducedMotion ? 0 : hurt * 2));
+          ctx.rotate(movementForm.lean + (this.reducedMotion ? 0 : Math.sin(p.hurtAngle || 0) * hurt * .09));
           ctx.transform(visual.turn, 0, -Math.sin(drawFacing) * .045, 1, 0, 0);
           if (hurt > 0) ctx.filter = `brightness(${1 + hurt * 2.4}) saturate(${1 - hurt * .55}) sepia(${hurt * .45})`;
           if (p.dead || p.downed) ctx.globalAlpha = .35;
