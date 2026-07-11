@@ -12,6 +12,18 @@ For multiplayer, run the Durable Object relay in `lastlight/worker` and open the
 http://localhost:4173/lastlight/?relay=ws://localhost:8787/room/
 ```
 
+## Balance contract
+
+Simulation tuning lives in `balance-config.js`. Every contract revision must:
+
+1. change `BALANCE_VERSION`;
+2. update the canonical `BALANCE_HASH` assertion in `tests/balance-config.test.js`;
+3. keep the catalog and runtime equivalence tests green; and
+4. record both values in replay or fixture headers.
+
+The contract is recursively immutable and `getBalanceConfig(version)` rejects
+unknown versions rather than silently running them with current values.
+
 ## Checks
 
 - `npm run check` in `lastlight`
