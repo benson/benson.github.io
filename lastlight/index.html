@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260711.1">
+  <link rel="stylesheet" href="styles.css?v=20260711.2">
 </head>
 <body>
   <main id="app">
@@ -184,8 +184,18 @@
               <div><dt>Range</dt><dd id="detail-range">Long</dd></div>
             </dl>
             <div class="starting-weapon-detail">
-              <img id="detail-weapon-icon" src="assets/weapons/signature-zuri.webp" alt="">
-              <div><span>Starting weapon</span><strong id="detail-weapon-name">Pulse Carbine</strong></div>
+              <button id="starting-weapon-trigger" class="starting-weapon-trigger" type="button" aria-expanded="false" aria-controls="starting-weapon-tooltip" aria-describedby="starting-weapon-tooltip" aria-label="Inspect Pulse Carbine starting weapon">
+                <img id="detail-weapon-icon" src="assets/weapons/signature-zuri.webp" alt="">
+                <span class="starting-weapon-label"><span>Starting weapon</span><strong id="detail-weapon-name">Pulse Carbine</strong></span>
+                <span class="starting-weapon-hint" aria-hidden="true">Details</span>
+              </button>
+              <div id="starting-weapon-tooltip" class="starting-weapon-tooltip" role="tooltip">
+                <span>Signature weapon · level 1</span>
+                <strong id="detail-weapon-tooltip-name">Pulse Carbine</strong>
+                <p id="detail-weapon-behavior">Fires a sustained burst of long-range rounds toward the nearest threat.</p>
+                <dl id="detail-weapon-stats"></dl>
+                <em id="detail-weapon-evolution">Evolves with Cycle Rate + an elite access card.</em>
+              </div>
             </div>
             <div class="kit-list">
               <div><kbd>I</kbd><p><strong id="passive-name">Hot Streak</strong><span id="passive-copy">Kills trigger a stacking burst of speed and haste.</span></p></div>
@@ -390,7 +400,20 @@
       <div class="build-history-body">
         <article class="build-release current-build">
           <header>
-            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.11.1</h3></div>
+            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.11.2</h3></div>
+            <span class="build-time-unavailable">Production timestamp verifying</span>
+          </header>
+          <ul>
+            <li>Added authoritative combat metadata for every specialist weapon, ability, ultimate, and universal weapon.</li>
+            <li>Made projectile counts distinguish counted projectiles from continuous fields, single effects, utility effects, and other not-applicable cases.</li>
+            <li>Showed exactly which equipped attacks each passive upgrade affects at the moment it is offered.</li>
+            <li>Added focusable current-stat explanations with real damage, armor, haste, area, duration, movement, crit, pickup, and projectile formulas.</li>
+            <li>Added accessible starting-weapon details to specialist select and increased upgrade-card legibility across desktop layouts.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.11.1</h3></div>
             <time class="build-shipped-at" data-build-shipped-at="2026-07-11T10:15:00-04:00">Shipped Jul 11, 2026, 10:15 AM EDT</time>
           </header>
           <ul>
@@ -484,8 +507,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.11.1. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.11.1</strong></button>
-  <script src="build-history.js?v=20260711.1"></script>
-  <script type="module" src="game.js?v=20260711.1"></script>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.11.2. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.11.2</strong></button>
+  <script src="build-history.js?v=20260711.2"></script>
+  <script type="module" src="game.js?v=20260711.2"></script>
 </body>
 </html>
