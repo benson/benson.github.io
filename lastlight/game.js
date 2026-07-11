@@ -5,6 +5,7 @@ import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260710.5";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260710.5";
 import { getThemeAsset } from "./themes/lastlight.js?v=20260710.5";
 import { submitRunTelemetry } from "./telemetry.js?v=20260710.5";
+import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260710.5";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -64,7 +65,7 @@ const state = {
   previousSnapshot: null, snapshot: null, snapshotAt: 0, snapshotInterval: 90,
   input: { keys: new Set(), aim: 0, autoAim: true, touchX: 0, touchY: 0 },
   animation: 0, lastFrame: 0, lastSend: 0, lastBroadcast: 0, lastLobbyBroadcast: 0,
-  lastUpgradeKey: "", lastWeaponHUDKey: "", lastPassiveHUDKey: "", lastSquadHUDKey: "", lastEventSeq: 0, endShown: false, resultTimer: null,
+  lastUpgradeKey: "", lastWeaponHUDKey: "", lastPassiveHUDKey: "", lastSquadHUDKey: "", lastBossHUDKey: "", lastEventSeq: 0, endShown: false, resultTimer: null,
   progress: loadProgress(), runHistory: loadRunHistory(), resultGame: null, resultSavedKey: "",
   audio: true, audioContext: null, toastTimer: null, lastVoiceAt: 0,
   soundState: { projectiles: 0, kills: 0, level: 1, damageTaken: 0, xpCollected: 0, lastShot: 0, lastXP: 0 },
@@ -591,6 +592,10 @@ function updateDamageLedger(player, game) {
   content.innerHTML = sources.map(([id, damage], index) => `<div class="${index === 0 ? "leader" : ""}"><span>${escapeHTML(sourceName(id, player))}</span><b>${statNumber(damage)}</b><small>${(damage / seconds).toFixed(1)} DPS</small></div>`).join("");
 }
 
+function healthDividerMarkup(layout) {
+  return layout.dividers.map((divider) => `<i class="health-divider${divider.major ? " major" : ""}" style="left:${(divider.position * 100).toFixed(4)}%"></i>`).join("");
+}
+
 function saveDamageLedgerLayout() {
   try { localStorage.setItem(DAMAGE_LEDGER_LAYOUT_KEY, JSON.stringify(state.damageLedgerLayout)); } catch { /* Storage is optional. */ }
 }
@@ -701,13 +706,26 @@ function updateHUD(game) {
   updateAbilityDetails(player, spec, game);
   $("pause-overlay").classList.toggle("hidden", !(game.paused && game.pauseReason === "manual"));
   const boss = game.enemies?.find((enemy) => enemy.boss);
-  $("boss-hud").classList.toggle("hidden", !boss); if (boss) { $("boss-name").textContent = (typeof game.map === "string" ? MAPS[game.map] : game.map).boss; $("boss-health").style.width = `${clamp(boss.hp / boss.maxHp * 100, 0, 100)}%`; }
-  const squadHUDKey = JSON.stringify(game.players.map((p) => [p.id, p.name, p.specialist]));
+  $("boss-hud").classList.toggle("hidden", !boss);
+  if (boss) {
+    $("boss-name").textContent = (typeof game.map === "string" ? MAPS[game.map] : game.map).boss;
+    $("boss-health").style.width = `${clamp(boss.hp / boss.maxHp * 100, 0, 100)}%`;
+    const bossHUDKey = `${boss.id}:${boss.maxHp}`;
+    if (bossHUDKey !== state.lastBossHUDKey) {
+      state.lastBossHUDKey = bossHUDKey;
+      $("boss-health-segments").innerHTML = healthDividerMarkup(bossHealthSegments(boss.maxHp));
+    }
+  } else state.lastBossHUDKey = "";
+  const squadHUDKey = JSON.stringify(game.players.map((p) => [p.id, p.name, p.specialist, p.maxHp]));
   if (squadHUDKey !== state.lastSquadHUDKey) {
     state.lastSquadHUDKey = squadHUDKey;
-    $("squad-hud").innerHTML = game.players.map((p) => `<div class="squad-pill"><img src="${SPECIALISTS[p.specialist].sprite}" alt=""><div><span>${escapeHTML(p.name)}</span><div class="mini-health"><i></i></div></div></div>`).join("");
+    $("squad-hud").innerHTML = game.players.map((p) => `<div class="squad-pill"><img src="${SPECIALISTS[p.specialist].sprite}" alt=""><div><span>${escapeHTML(p.name)}</span><div class="mini-health"><i class="mini-health-fill"></i><b class="mini-shield-fill"></b><em class="health-dividers" aria-hidden="true">${healthDividerMarkup(playerHealthSegments(p.maxHp))}</em></div></div></div>`).join("");
   }
-  [...$("squad-hud").children].forEach((pill, index) => { const p = game.players[index]; pill.querySelector("i").style.width = `${clamp(p.hp / p.maxHp * 100, 0, 100)}%`; });
+  [...$("squad-hud").children].forEach((pill, index) => {
+    const p = game.players[index], maximum = Math.max(1, p.maxHp || 1);
+    pill.querySelector(".mini-health-fill").style.width = `${clamp(p.hp / maximum * 100, 0, 100)}%`;
+    pill.querySelector(".mini-shield-fill").style.width = `${clamp((p.shield || 0) / maximum * 100, 0, 100)}%`;
+  });
   const weaponEntries = Object.entries(player.weapons || {});
   const weaponHUDKey = JSON.stringify({ weapons: player.weapons, passives: player.passives, maxHp: Math.round(player.maxHp), armor: Math.round(player.armor), specialist: player.specialist, damage: Object.fromEntries(Object.entries(player.damageBySource || {}).map(([id, value]) => [id, Math.floor(value / 25)])) });
   if (weaponHUDKey !== state.lastWeaponHUDKey) {

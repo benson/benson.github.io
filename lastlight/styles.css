@@ -356,8 +356,12 @@ kbd { display: inline-grid; min-width: 26px; height: 24px; place-items: center; 
 .squad-pill { width: 142px; display: grid; grid-template-columns: 38px 1fr; gap: 9px; align-items: center; padding: 6px 8px; background: rgba(5,12,22,.82); border: 1px solid rgba(255,255,255,.14); }
 .squad-pill img { width: 38px; height: 38px; object-fit: contain; }
 .squad-pill span { display: block; font-size: 11px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mini-health { height: 5px; margin-top: 6px; background: #253342; }
-.mini-health i { display: block; height: 100%; background: var(--cyan); }
+.mini-health { position: relative; height: 7px; margin-top: 6px; overflow: visible; background: #253342; border: 1px solid rgba(235,255,250,.16); }
+.mini-health-fill { position: absolute; inset: 0 auto 0 0; display: block; background: var(--cyan); }
+.mini-shield-fill { position: absolute; left: 0; bottom: 100%; display: block; height: 2px; background: #72d8ff; }
+.health-dividers { position: absolute; inset: 0; display: block; pointer-events: none; }
+.health-divider { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(2,7,13,.68); }
+.health-divider.major { width: 2px; background: rgba(2,7,13,.92); }
 .timer-hud { width: 240px; text-align: center; }
 .timer-hud span { display: block; color: #9db0b6; font: 700 11px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; }
 .timer-hud strong { display: block; margin-top: 4px; font: 800 38px/1 var(--display); letter-spacing: .04em; }
@@ -373,8 +377,9 @@ kbd { display: inline-grid; min-width: 26px; height: 24px; place-items: center; 
 .objective-banner strong { display: block; margin-top: 5px; font: 700 19px/1 var(--display); letter-spacing: .06em; text-transform: uppercase; }
 .boss-hud { position: absolute; left: 50%; top: 102px; width: min(520px, 60vw); transform: translateX(-50%); text-align: center; }
 .boss-hud span { font: 800 18px/1 var(--display); letter-spacing: .1em; color: #ff7b62; text-shadow: 0 2px 6px #000; }
-.boss-hud > div { height: 9px; margin-top: 7px; padding: 2px; background: rgba(4,8,14,.9); border: 1px solid rgba(255,119,91,.55); }
-.boss-hud i { display: block; width: 100%; height: 100%; background: linear-gradient(90deg, #ff3e5c, #ff8b58); }
+.boss-hud > div { position: relative; height: 9px; margin-top: 7px; padding: 2px; background: rgba(4,8,14,.9); border: 1px solid rgba(255,119,91,.55); }
+.boss-hud #boss-health { display: block; width: 100%; height: 100%; background: linear-gradient(90deg, #ff3e5c, #ff8b58); }
+.boss-hud .health-dividers { inset: 2px; }
 .loadout-hud { position: absolute; z-index: 7; left: 50%; bottom: 27px; display: flex; gap: 8px; transform: translateX(-50%); }
 .ability-slot { position: relative; width: 64px; height: 70px; padding: 6px; overflow: visible; background: rgba(5,12,22,.88); border: 1px solid rgba(255,255,255,.18); outline: none; }
 .ability-slot kbd { position: absolute; z-index: 4; top: 4px; left: 4px; min-width: 18px; height: 18px; font-size: 8px; }

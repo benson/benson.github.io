@@ -35,3 +35,12 @@ test("desktop-only type overrides lift critical compact controls to nine pixels"
   }
   assert.match(css, /@media \(max-width: 650px\) \{[\s\S]+\.damage-ledger \{[^}]+resize: none;/);
 });
+
+test("squad and boss HUD bars share the segmented health contract", () => {
+  assert.match(game, /import \{ bossHealthSegments, playerHealthSegments \} from "\.\/health-bars\.js/);
+  assert.match(game, /healthDividerMarkup\(bossHealthSegments\(boss\.maxHp\)\)/);
+  assert.match(game, /healthDividerMarkup\(playerHealthSegments\(p\.maxHp\)\)/);
+  assert.match(html, /id="boss-health-segments" class="health-dividers"/);
+  assert.match(css, /\.health-divider\.major/);
+  assert.match(css, /\.mini-shield-fill/);
+});
