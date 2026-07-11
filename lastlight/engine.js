@@ -1,9 +1,9 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
-} from "./data.js?v=20260711.2";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260711.2";
-import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.2";
+} from "./data.js?v=20260711.3";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260711.3";
+import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.3";
 
 const BALANCE = getBalanceConfig();
 

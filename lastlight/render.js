@@ -1,8 +1,8 @@
-import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260711.2";
-import { WORLD } from "./engine.js?v=20260711.2";
-import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation } from "./themes/lastlight.js?v=20260711.2";
-import { animationFrame, directionColumn, springCamera } from "./feel.js?v=20260711.2";
-import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.2";
+import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260711.3";
+import { WORLD } from "./engine.js?v=20260711.3";
+import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation } from "./themes/lastlight.js?v=20260711.3";
+import { animationFrame, directionColumn, springCamera } from "./feel.js?v=20260711.3";
+import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.3";
 
 const TAU = Math.PI * 2;
 export class Renderer {
