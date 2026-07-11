@@ -19,8 +19,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install pinned sprite tooling
+        run: python -m pip install Pillow==12.1.1
       - name: Syntax checks
         run: npm --prefix lastlight run check
+      - name: Deterministic sprite atlas gate
+        run: npm --prefix lastlight run sprites:verify
       - name: Lastlight tests
         run: npm --prefix lastlight test
       - name: Deterministic fixture gates

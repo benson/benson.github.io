@@ -4,6 +4,8 @@
 .env.*
 scripts/spotify-auth.js
 node_modules/
+__pycache__/
+*.py[cod]
 lastlight/artifacts/
 .lastlight-dashboard/
 .mtgcollection-backups/
