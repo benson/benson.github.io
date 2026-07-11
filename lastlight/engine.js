@@ -3,19 +3,22 @@ import {
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
 } from "./data.js?v=20260711.2";
 import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260711.2";
+import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.2";
 
 const BALANCE = getBalanceConfig();
 
 const TAU = Math.PI * 2;
 const WORLD = { width: 3600, height: 2400 };
-let entityId = 1;
+export const SIMULATION_TICK_RATE = 60;
+const RECONNECT_WINDOW_TICKS = 180 * SIMULATION_TICK_RATE;
 
-function id(prefix = "e") { return `${prefix}${entityId++}`; }
-function random(min, max) { return min + Math.random() * (max - min); }
-function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
 function angleTo(a, b) { return Math.atan2(b.y - a.y, b.x - a.x); }
 function fromAngle(angle, speed) { return { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed }; }
 function circleHit(a, b, pad = 0) { return (a.x - b.x) ** 2 + (a.y - b.y) ** 2 <= (a.radius + b.radius + pad) ** 2; }
+function replaySlot(value) {
+  const slot = Number(value);
+  return Number.isInteger(slot) && slot >= 0 && slot <= 3 ? slot : undefined;
+}
 function compactPoint(e) {
   const result = {};
   for (const [key, value] of Object.entries(e)) {
@@ -52,7 +55,19 @@ export function playerMovementSpeed(player) {
 }
 
 export class Simulation {
-  constructor(config = {}) {
+  constructor(config = {}, options = {}) {
+    const balanceVersion = options.balanceVersion ?? config.balanceVersion ?? BALANCE_VERSION;
+    const balanceHash = options.balanceHash ?? config.balanceHash ?? BALANCE_HASH;
+    if (balanceVersion !== BALANCE_VERSION) throw new RangeError(`Unsupported balance version: ${balanceVersion}`);
+    if (balanceHash !== BALANCE_HASH) throw new RangeError(`Unsupported balance hash: ${balanceHash}`);
+    this.seed = options.seed ?? config.seed ?? createRandomSeed();
+    const rootRng = SeededRng.fromHex(this.seed);
+    this.gameplayRng = rootRng.fork("gameplay");
+    this.cosmeticRng = rootRng.fork("cosmetic");
+    this.tick = 0;
+    this.gameplaySequence = 1;
+    this.cosmeticSequence = 1;
+    this.eventSequence = 1;
     this.map = MAPS[config.map] || MAPS.warehouse;
     this.difficulty = DIFFICULTIES[config.difficulty] || DIFFICULTIES.story;
     this.balanceVersion = BALANCE_VERSION;
@@ -105,15 +120,30 @@ export class Simulation {
     this.pushEvent("directive", `Survive ${Math.round(this.duration / 60)} minutes`, "The breach is open");
   }
 
+  nextGameplayId(prefix = "e") { return `${prefix}${this.gameplaySequence++}`; }
+  nextCosmeticId(prefix = "fx") { return `${prefix}c${this.cosmeticSequence++}`; }
+  random(min, max) { return this.gameplayRng.float(min, max); }
+  pick(list) { return list.length ? this.gameplayRng.pick(list) : undefined; }
+  chance(probability) { return this.gameplayRng.nextFloat() < probability; }
+  cosmeticChance(probability) { return this.cosmeticRng.nextFloat() < probability; }
+  secondsToTicks(seconds) { return Math.max(1, Math.round(seconds * SIMULATION_TICK_RATE)); }
+
+  scheduleTask(kind, delaySeconds, payload) {
+    const task = { id: this.nextGameplayId("task"), dueTick: this.tick + this.secondsToTicks(delaySeconds), kind, payload: { ...payload } };
+    this.tasks.push(task);
+    return task;
+  }
+
   addPlayer(info, index = this.players.length) {
     const existing = this.players.find((player) => player.id === info.id);
     if (existing) return existing;
     const spec = SPECIALISTS[info.specialist] || SPECIALISTS.zuri;
     const recoveryKey = /^[a-f0-9]{24,32}$/.test(String(info.resumeToken || "")) ? String(info.resumeToken) : "";
     const recovery = recoveryKey ? this.disconnectedPlayers.get(recoveryKey) : null;
-    if (recovery && performance.now() - recovery.leftAt <= 180_000) {
+    if (recovery && this.tick - recovery.leftTick <= RECONNECT_WINDOW_TICKS) {
       const player = recovery.player, oldId = player.id;
       player.id = info.id; player.name = String(info.name || player.name).slice(0, 16);
+      if (player.replaySlot === undefined) player.replaySlot = replaySlot(info.replaySlot);
       player.input = { x: 0, y: 0, aim: player.facing || 0, autoAim: true };
       player.dead = false; player.downed = false; player.downTimer = 0; player.reviveProgress = 0;
       player.hp = Math.max(player.hp, player.maxHp * .5); player.invuln = 3; player.reconnected = true;
@@ -131,6 +161,7 @@ export class Simulation {
     const angle = (index / Math.max(1, 4)) * TAU;
     const player = {
       id: info.id, name: String(info.name || "Rookie").slice(0, 16), specialist: spec.id,
+      replaySlot: replaySlot(info.replaySlot),
       reconnectKey: recoveryKey,
       x: Math.cos(angle) * 75, y: Math.sin(angle) * 75, radius: 31,
       hp: spec.health, maxHp: spec.health, armor: spec.armor, baseSpeed: spec.speed,
@@ -157,7 +188,7 @@ export class Simulation {
 
   removePlayer(playerId) {
     const player = this.players.find((entry) => entry.id === playerId);
-    if (player?.reconnectKey) this.disconnectedPlayers.set(player.reconnectKey, { player, leftAt: performance.now() });
+    if (player?.reconnectKey) this.disconnectedPlayers.set(player.reconnectKey, { player, leftTick: this.tick });
     this.players = this.players.filter((p) => p.id !== playerId);
     this.drones = this.drones.filter((drone) => drone.owner !== playerId);
     if (this.pendingChoices) {
@@ -170,17 +201,20 @@ export class Simulation {
 
   setInput(playerId, input) {
     const p = this.players.find((player) => player.id === playerId);
-    if (!p) return;
+    const aim = Number(input?.aim);
+    if (!p || !Number.isFinite(aim)) return false;
     p.input = {
       x: clamp(Number(input.x) || 0, -1, 1), y: clamp(Number(input.y) || 0, -1, 1),
-      aim: Number(input.aim) || 0, autoAim: Boolean(input.autoAim),
+      aim, autoAim: Boolean(input.autoAim),
     };
+    return true;
   }
 
   update(dt) {
     dt = Math.min(.05, Math.max(0, dt));
     if (this.stage === "won" || this.stage === "lost" || this.paused) return;
-    this.updateTasks(dt);
+    if (dt > 0) this.tick += Math.max(1, Math.round(dt * SIMULATION_TICK_RATE));
+    this.updateTasks();
     this.updatePlayers(dt);
     this.updateMachine(dt);
     this.updateObjectives(dt);
@@ -247,7 +281,7 @@ export class Simulation {
       if (p.stopwavesBuff > 0 && p.stopwaveClock <= 0) {
         p.stopwaveClock = 2.5;
         for (const enemy of this.enemies) if (distance(p, enemy) < 460) enemy.stun = Math.max(enemy.stun, 1.35);
-        this.effects.push({ id: id("fx"), x: p.x, y: p.y, radius: 460, life: .45, maxLife: .45, damage: 0, owner: p.id, color: "#63f2df", kind: "freeze" });
+        this.effects.push({ id: this.nextCosmeticId("fx"), x: p.x, y: p.y, radius: 460, life: .45, maxLife: .45, damage: 0, owner: p.id, color: "#63f2df", kind: "freeze" });
       }
       p.hotTime = Math.max(0, p.hotTime - dt);
       if (p.hotTime <= 0) p.hotStacks = 0;
@@ -286,7 +320,7 @@ export class Simulation {
         for (let i = 0; i < p.spirits; i++) {
           const a = this.time * .8 - i * .8;
           const sx = p.x - Math.cos(a) * (70 + i * 30), sy = p.y - Math.sin(a) * (70 + i * 30);
-          if (Math.random() < dt * 4) this.blast(sx, sy, 75, 10 + this.level * 1.4, p.id, spec.color, false, "hex");
+          if (this.chance(dt * 4)) this.blast(sx, sy, 75, 10 + this.level * 1.4, p.id, spec.color, false, "hex");
         }
       }
 
@@ -351,7 +385,7 @@ export class Simulation {
     while (this.spawnClock >= interval && this.enemies.length < cap) {
       this.spawnClock -= interval;
       let type = "mite";
-      const roll = Math.random();
+      const roll = this.gameplayRng.nextFloat();
       const match = spawn.composition.find((entry) => progress > entry.after && roll < entry.rollBelow);
       if (match) type = match.id;
       this.spawnEnemy(type);
@@ -360,17 +394,17 @@ export class Simulation {
 
   spawnEnemy(typeId, options = {}) {
     const type = ENEMY_TYPES[typeId] || ENEMY_TYPES.mite;
-    const focus = pick(this.players.filter((p) => !p.dead && !p.downed)) || this.players[0] || { x: 0, y: 0 };
-    const a = random(0, TAU), r = random(BALANCE.waves.spawn.distanceMin, BALANCE.waves.spawn.distanceMax);
+    const focus = this.pick(this.players.filter((p) => !p.dead && !p.downed)) || this.players[0] || { x: 0, y: 0 };
+    const a = this.random(0, TAU), r = this.random(BALANCE.waves.spawn.distanceMin, BALANCE.waves.spawn.distanceMax);
     const elite = Boolean(options.elite);
     const scale = this.difficulty.health * (1 + this.time / Math.max(1, this.duration) * BALANCE.waves.spawn.healthProgressScale);
     const enemy = {
-      id: id("m"), type: type.id, x: clamp(focus.x + Math.cos(a) * r, -WORLD.width / 2 + 30, WORLD.width / 2 - 30),
+      id: this.nextGameplayId("m"), type: type.id, x: clamp(focus.x + Math.cos(a) * r, -WORLD.width / 2 + 30, WORLD.width / 2 - 30),
       y: clamp(focus.y + Math.sin(a) * r, -WORLD.height / 2 + 30, WORLD.height / 2 - 30),
       radius: type.radius * (elite ? 1.45 : 1), hp: type.health * scale * (elite ? 7 : 1),
       maxHp: type.health * scale * (elite ? 7 : 1), speed: type.speed * (elite ? .88 : 1),
       damage: type.damage * this.difficulty.attack * (elite ? 1.4 : 1), color: type.color,
-      elite, miniboss: type.miniboss, boss: false, attackCd: random(0, 1), shotCd: random(.2, 1.5),
+      elite, miniboss: type.miniboss, boss: false, attackCd: this.random(0, 1), shotCd: this.random(.2, 1.5),
       stun: 0, hitFlash: 0, attackFlash: 0, spawnLife: .24, knockVx: 0, knockVy: 0, dead: false, xp: type.xp * (elite ? 4 : 1),
     };
     this.enemies.push(enemy);
@@ -399,8 +433,8 @@ export class Simulation {
     }
     const objectiveTimes = BALANCE.waves.events.objectivesAt.map((progress) => this.duration * progress);
     if (this.objectiveIndex < objectiveTimes.length && this.time >= objectiveTimes[this.objectiveIndex]) {
-      const a = random(0, TAU), r = random(420, 720);
-      this.objectives.push({ id: id("o"), x: Math.cos(a) * r, y: Math.sin(a) * r, radius: 85, progress: 0, life: 38, kind: this.objectiveIndex ? "trial" : "uplink" });
+      const a = this.random(0, TAU), r = this.random(420, 720);
+      this.objectives.push({ id: this.nextGameplayId("o"), x: Math.cos(a) * r, y: Math.sin(a) * r, radius: 85, progress: 0, life: 38, kind: this.objectiveIndex ? "trial" : "uplink" });
       this.objectiveIndex++;
       this.pushEvent("objective", this.objectiveIndex === 1 ? "Capture the uplink" : "Survive the breach trial", "Optional directive");
     }
@@ -414,9 +448,9 @@ export class Simulation {
   }
 
   spawnRelayBall() {
-    const angle = random(0, TAU), radius = random(340, 560);
+    const angle = this.random(0, TAU), radius = this.random(340, 560);
     const x = Math.cos(angle) * radius, y = Math.sin(angle) * radius;
-    this.relayBalls.push({ id: id("ball"), x, y, targetX: -x, targetY: -y, radius: 42, vx: 0, vy: 0, life: 62, done: false });
+    this.relayBalls.push({ id: this.nextGameplayId("ball"), x, y, targetX: -x, targetY: -y, radius: 42, vx: 0, vy: 0, life: 62, done: false });
     this.pushEvent("objective", "Relay ball online", "Push the core into its destination ring");
   }
 
@@ -439,8 +473,8 @@ export class Simulation {
       if (Math.abs(ball.y) > WORLD.height / 2 - ball.radius) { ball.y = clamp(ball.y, -WORLD.height / 2 + ball.radius, WORLD.height / 2 - ball.radius); ball.vy *= -.65; }
       if (Math.hypot(ball.x - ball.targetX, ball.y - ball.targetY) < 82) {
         ball.done = true; this.gold += Math.round(70 * this.difficulty.gold); this.teamXP += this.xpNeed * .8;
-        this.drops.push({ id: id("d"), type: "card", x: ball.targetX, y: ball.targetY, radius: 18 });
-        this.applyBoon(pick(BOONS)); this.pushEvent("upgrade", "Relay delivered", "Gold, data, and an access card secured");
+        this.drops.push({ id: this.nextGameplayId("d"), type: "card", x: ball.targetX, y: ball.targetY, radius: 18 });
+        this.applyBoon(this.pick(BOONS)); this.pushEvent("upgrade", "Relay delivered", "Gold, data, and an access card secured");
       } else if (ball.life <= 0) {
         ball.done = true; this.pushEvent("danger", "Relay lost", "The destination window closed");
       }
@@ -452,17 +486,17 @@ export class Simulation {
       objective.life -= dt;
       const inside = this.players.filter((p) => !p.dead && !p.downed && distance(p, objective) < objective.radius).length;
       if (inside) objective.progress += inside * dt / 5;
-      if (objective.kind === "trial" && Math.random() < dt * 2.3 && this.enemies.length < 280) {
-        const e = this.spawnEnemy(Math.random() < .25 ? "brute" : "hound");
-        const a = random(0, TAU); e.x = objective.x + Math.cos(a) * 310; e.y = objective.y + Math.sin(a) * 310;
+      if (objective.kind === "trial" && this.chance(dt * 2.3) && this.enemies.length < 280) {
+        const e = this.spawnEnemy(this.chance(.25) ? "brute" : "hound");
+        const a = this.random(0, TAU); e.x = objective.x + Math.cos(a) * 310; e.y = objective.y + Math.sin(a) * 310;
       }
       if (objective.progress >= 1) {
         objective.done = true;
-        if (objective.kind === "uplink") this.applyBoon(pick(BOONS));
+        if (objective.kind === "uplink") this.applyBoon(this.pick(BOONS));
         else {
           this.teamXP += this.xpNeed * .75;
           this.gold += Math.round(45 * this.difficulty.gold);
-          for (let i = 0; i < 2; i++) this.drops.push({ id: id("d"), type: "card", x: objective.x + random(-40, 40), y: objective.y + random(-40, 40), radius: 18 });
+          for (let i = 0; i < 2; i++) this.drops.push({ id: this.nextGameplayId("d"), type: "card", x: objective.x + this.random(-40, 40), y: objective.y + this.random(-40, 40), radius: 18 });
           this.pushEvent("upgrade", "Trial complete", "Data, gold, and access keys secured");
         }
       } else if (objective.life <= 0) {
@@ -505,25 +539,64 @@ export class Simulation {
         this.pushEvent("boon", "Freeze core discharged", "The horde is frozen");
       }
     }
-    if (this.machine.active > 0 && Math.random() < dt * 8) {
-      const enemy = pick(this.enemies.filter((e) => !e.dead));
+    if (this.machine.active > 0 && this.chance(dt * 8)) {
+      const enemy = this.pick(this.enemies.filter((e) => !e.dead));
       if (enemy) this.blast(enemy.x, enemy.y, 140, 240, this.players[0]?.id, this.map.accent, true, "blast", "environment");
     }
   }
 
   seedPods() {
     for (let i = 0; i < 14; i++) {
-      const a = random(0, TAU), r = random(260, 1080);
-      this.pods.push({ id: id("p"), x: Math.cos(a) * r, y: Math.sin(a) * r, radius: 25, hp: 100, dead: false });
+      const a = this.random(0, TAU), r = this.random(260, 1080);
+      this.pods.push({ id: this.nextGameplayId("p"), x: Math.cos(a) * r, y: Math.sin(a) * r, radius: 25, hp: 100, dead: false });
     }
   }
 
-  updateTasks(dt) {
-    for (const task of this.tasks) {
-      task.time -= dt;
-      if (task.time <= 0 && !task.done) { task.done = true; task.run(); }
+  updateTasks() {
+    const due = this.tasks.filter((task) => task.dueTick <= this.tick)
+      .sort((left, right) => left.dueTick - right.dueTick);
+    this.tasks = this.tasks.filter((task) => task.dueTick > this.tick);
+    for (const task of due) this.executeTask(task);
+  }
+
+  executeTask(task) {
+    const payload = task.payload || {};
+    if (task.kind === "echo-repeat") {
+      const player = this.players.find((candidate) => candidate.id === payload.ownerId);
+      if (!player || player.dead || player.downed) return;
+      for (let index = 0; index < payload.count; index++) {
+        this.shoot(player, payload.aim + (index - (payload.count - 1) / 2) * payload.spread, payload.speed, payload.damage, {
+          radius: payload.radius, color: payload.color, pierce: payload.pierce, life: payload.life, wave: true,
+        });
+      }
+      return;
     }
-    this.tasks = this.tasks.filter((task) => !task.done);
+    if (task.kind === "bront-repeat-blast") {
+      const target = this.enemies.find((candidate) => candidate.id === payload.targetId && !candidate.dead);
+      this.blast(target?.x ?? payload.x, target?.y ?? payload.y, payload.radius, payload.damage, payload.ownerId, payload.color, true, "blast", "signature");
+      return;
+    }
+    if (task.kind === "sola-detonate" || task.kind === "sola-aftershock") {
+      const player = this.players.find((candidate) => candidate.id === payload.ownerId);
+      if (!player) return;
+      if (task.kind === "sola-detonate") {
+        player.armor = Math.max(SPECIALISTS.sola.armor, player.armor - 25);
+        this.blast(player.x, player.y, 400 * payload.area, 160 + this.level * 15, player.id, payload.color, true, "blast", "ability:e");
+        player.shield += player.maxHp * .25;
+      } else {
+        this.blast(player.x, player.y, 300 * payload.area, 100 + this.level * 10, player.id, payload.color, true, "blast", "ability:e");
+      }
+      return;
+    }
+    if (task.kind === "bomber-detonate") {
+      const enemy = this.enemies.find((candidate) => candidate.id === payload.enemyId && !candidate.dead);
+      if (!enemy) return;
+      for (const player of this.players) if (!player.dead && distance(enemy, player) < 170) this.takeDamage(player, enemy.damage, enemy);
+      enemy.dead = true;
+      enemy.detonationScheduled = false;
+      return;
+    }
+    throw new RangeError(`Unknown simulation task kind: ${task.kind}`);
   }
 
   cooldown(p, base) { return base * (100 / (100 + this.playerStat(p, "haste"))); }
@@ -548,7 +621,7 @@ export class Simulation {
     if (!drone) {
       const orbitAngle = this.players.indexOf(p) * (TAU / Math.max(1, this.players.length));
       drone = {
-        id: id("drone"), owner: p.id, x: p.x, y: p.y, radius: 19,
+        id: this.nextGameplayId("drone"), owner: p.id, x: p.x, y: p.y, radius: 19,
         level: weapon.level || 1, evolved: Boolean(weapon.evolved), orbitAngle,
         facing: p.facing || 0, fireFlash: 0, collectFlash: 0,
         repairFlash: 0, repairClock: Math.max(BALANCE.weapons.universal.drone.initialRepairCooldownMin, BALANCE.weapons.universal.drone.repairCooldownBase + (weapon.level || 1) * BALANCE.weapons.universal.drone.repairCooldownPerLevel),
@@ -582,7 +655,7 @@ export class Simulation {
       drone.repairFlash = Math.max(0, drone.repairFlash - dt);
       drone.repairClock -= dt;
       if (drone.repairClock <= 0) {
-        this.drops.push({ id: id("d"), type: "heal", x: drone.x, y: drone.y, radius: 15, source: "drone" });
+        this.drops.push({ id: this.nextGameplayId("d"), type: "heal", x: drone.x, y: drone.y, radius: 15, source: "drone" });
         drone.repairFlash = .7;
         drone.repairClock = Math.max(tuning.repairCooldownMin, tuning.repairCooldownBase + drone.level * tuning.repairCooldownPerLevel) * (drone.evolved ? tuning.evolvedRepairMultiplier : 1);
       }
@@ -640,11 +713,12 @@ export class Simulation {
       for (let i = 0; i < count; i++) this.shoot(p, aim + (i - (count - 1) / 2) * tuning.spread, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: spec.color, pierce: sig.evolved ? tuning.evolvedPierce : 0, life: tuning.life });
     } else if (p.specialist === "echo") {
       const count = Math.min(tuning.countCap, level * tuning.countPerLevel + extra);
-      const fire = () => {
-        for (let i = 0; i < count; i++) this.shoot(p, aim + (i - (count - 1) / 2) * tuning.spread, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: spec.color, pierce: tuning.pierce, life: sig.evolved ? tuning.evolvedLife : tuning.life, wave: true });
-      };
-      fire();
-      if (Math.random() < tuning.repeatChance) this.tasks.push({ time: tuning.repeatDelay, run: fire });
+      for (let i = 0; i < count; i++) this.shoot(p, aim + (i - (count - 1) / 2) * tuning.spread, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: spec.color, pierce: tuning.pierce, life: sig.evolved ? tuning.evolvedLife : tuning.life, wave: true });
+      if (this.chance(tuning.repeatChance)) this.scheduleTask("echo-repeat", tuning.repeatDelay, {
+        ownerId: p.id, aim, count, spread: tuning.spread, speed: tuning.speed,
+        damage: tuning.damageBase + level * tuning.damagePerLevel, radius: tuning.radius,
+        color: spec.color, pierce: tuning.pierce, life: sig.evolved ? tuning.evolvedLife : tuning.life,
+      });
     } else if (p.specialist === "sola") {
       const count = tuning.countBase + Math.floor(level / tuning.countEveryLevels) + extra;
       for (let i = 0; i < count; i++) this.shoot(p, aim + (i - (count - 1) / 2) * tuning.spread, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel + p.armor * tuning.armorDamage, { radius: tuning.radius * area, color: spec.color, pierce: tuning.pierce, life: tuning.life });
@@ -652,7 +726,10 @@ export class Simulation {
       const target = this.nearestEnemy(p, tuning.range);
       if (!target) return false;
       this.blast(target.x, target.y, (tuning.radiusBase + level * tuning.radiusPerLevel) * area, tuning.damageBase + level * tuning.damagePerLevel, p.id, spec.color, true, "blast", "signature");
-      if (sig.evolved) this.tasks.push({ time: tuning.evolvedDelay, run: () => this.blast(target.x, target.y, tuning.evolvedRadius * area, tuning.evolvedDamageBase + level * tuning.damagePerLevel, p.id, spec.color, true, "blast", "signature") });
+      if (sig.evolved) this.scheduleTask("bront-repeat-blast", tuning.evolvedDelay, {
+        ownerId: p.id, targetId: target.id, x: target.x, y: target.y,
+        radius: tuning.evolvedRadius * area, damage: tuning.evolvedDamageBase + level * tuning.damagePerLevel, color: spec.color,
+      });
     } else if (p.specialist === "fang") {
       const tx = p.x + Math.cos(aim) * tuning.offset, ty = p.y + Math.sin(aim) * tuning.offset;
       this.blast(tx, ty, (tuning.radiusBase + level * tuning.radiusPerLevel) * area, tuning.damageBase + level * tuning.damagePerLevel + p.maxHp * tuning.maxHealthDamage, p.id, spec.color, true, sig.evolved ? "bleed" : "slash", "signature");
@@ -684,7 +761,7 @@ export class Simulation {
     const extra = this.playerStat(p, "projectiles");
     if (weaponId === "uwu") {
       const enemy = this.nearestEnemy(p);
-      if (enemy) for (let i = 0; i < tuning.countBase + Math.floor(level / tuning.countEveryLevels) + extra; i++) this.shoot(p, angleTo(p, enemy) + random(-tuning.spreadRandom, tuning.spreadRandom), tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: "#f58cff", pierce: evolved ? tuning.evolvedPierce : 0, sourceId: weaponId });
+      if (enemy) for (let i = 0; i < tuning.countBase + Math.floor(level / tuning.countEveryLevels) + extra; i++) this.shoot(p, angleTo(p, enemy) + this.random(-tuning.spreadRandom, tuning.spreadRandom), tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: "#f58cff", pierce: evolved ? tuning.evolvedPierce : 0, sourceId: weaponId });
       return this.cooldown(p, evolved ? tuning.evolvedCooldown : tuning.cooldownBase + level * tuning.cooldownPerLevel);
     }
     if (weaponId === "slicers") {
@@ -702,13 +779,13 @@ export class Simulation {
     if (weaponId === "mines") {
       const count = tuning.countBase + level * tuning.countPerLevel + extra;
       for (let i = 0; i < count; i++) {
-        const a = i * TAU / count + random(-tuning.spreadRandom, tuning.spreadRandom), r = tuning.orbitBase + level * tuning.orbitPerLevel;
-        this.effects.push({ id: id("fx"), x: p.x + Math.cos(a) * r, y: p.y + Math.sin(a) * r, radius: (tuning.radiusBase + level * tuning.radiusPerLevel) * area, life: tuning.fuseBase + i * tuning.fusePerMine, maxLife: tuning.fuseBase + i * tuning.fusePerMine, damage: tuning.damageBase + level * tuning.damagePerLevel, owner: p.id, color: "#ff8d55", kind: evolved ? "minePlus" : "mine", sourceId: weaponId, delayed: true, hit: new Set() });
+        const a = i * TAU / count + this.random(-tuning.spreadRandom, tuning.spreadRandom), r = tuning.orbitBase + level * tuning.orbitPerLevel;
+        this.effects.push({ id: this.nextGameplayId("fx"), x: p.x + Math.cos(a) * r, y: p.y + Math.sin(a) * r, radius: (tuning.radiusBase + level * tuning.radiusPerLevel) * area, life: tuning.fuseBase + i * tuning.fusePerMine, maxLife: tuning.fuseBase + i * tuning.fusePerMine, damage: tuning.damageBase + level * tuning.damagePerLevel, owner: p.id, color: "#ff8d55", kind: evolved ? "minePlus" : "mine", sourceId: weaponId, delayed: true, hit: new Set() });
       }
       return this.cooldown(p, tuning.cooldownBase + level * tuning.cooldownPerLevel);
     }
     if (weaponId === "crossbow") {
-      const base = random(0, TAU), count = tuning.countBase + level * tuning.countPerLevel + extra;
+      const base = this.random(0, TAU), count = tuning.countBase + level * tuning.countPerLevel + extra;
       for (let i = 0; i < count; i++) this.shoot(p, base + (i - (count - 1) / 2) * tuning.spread, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: "#f7d76a", pierce: evolved ? tuning.evolvedPierce : tuning.pierce, sourceId: weaponId });
       return this.cooldown(p, tuning.cooldownBase + level * tuning.cooldownPerLevel);
     }
@@ -735,8 +812,8 @@ export class Simulation {
       return this.cooldown(p, tuning.cooldown);
     }
     if (weaponId === "transit") {
-      const y = p.y + random(-tuning.yRange, tuning.yRange);
-      this.effects.push({ id: id("fx"), x: -WORLD.width / 2, y, radius: tuning.radius, life: tuning.life, maxLife: tuning.life, damage: tuning.damageBase + level * tuning.damagePerLevel, owner: p.id, color: "#ff7157", kind: "train", sourceId: weaponId, vx: tuning.speed, hit: new Set(), evolved });
+      const y = p.y + this.random(-tuning.yRange, tuning.yRange);
+      this.effects.push({ id: this.nextGameplayId("fx"), x: -WORLD.width / 2, y, radius: tuning.radius, life: tuning.life, maxLife: tuning.life, damage: tuning.damageBase + level * tuning.damagePerLevel, owner: p.id, color: "#ff7157", kind: "train", sourceId: weaponId, vx: tuning.speed, hit: new Set(), evolved });
       return this.cooldown(p, tuning.cooldownBase + level * tuning.cooldownPerLevel);
     }
     if (weaponId === "ice") {
@@ -744,7 +821,7 @@ export class Simulation {
       return this.cooldown(p, evolved ? tuning.evolvedCooldown : tuning.cooldownBase + level * tuning.cooldownPerLevel);
     }
     if (weaponId === "annihilator") {
-      this.effects.push({ id: id("fx"), x: p.x, y: p.y, radius: tuning.radius * area, life: tuning.fuse, maxLife: tuning.fuse, damage: tuning.damageBase + level * tuning.damagePerLevel, owner: p.id, color: "#f7f1bd", kind: "annihilator", sourceId: weaponId, delayed: true, hit: new Set() });
+      this.effects.push({ id: this.nextGameplayId("fx"), x: p.x, y: p.y, radius: tuning.radius * area, life: tuning.fuse, maxLife: tuning.fuse, damage: tuning.damageBase + level * tuning.damagePerLevel, owner: p.id, color: "#f7f1bd", kind: "annihilator", sourceId: weaponId, delayed: true, hit: new Set() });
       return this.cooldown(p, evolved ? tuning.evolvedCooldown : tuning.cooldownBase + level * tuning.cooldownPerLevel);
     }
     if (weaponId === "drone") {
@@ -767,9 +844,9 @@ export class Simulation {
 
   shoot(p, angle, speed, damage, options = {}) {
     const velocity = fromAngle(angle, speed);
-    const crit = Math.random() < this.playerStat(p, "crit");
+    const crit = this.chance(this.playerStat(p, "crit"));
     const projectile = {
-      id: id("b"), owner: p.id,
+      id: this.nextGameplayId("b"), owner: p.id,
       x: (options.spawnX ?? p.x) + Math.cos(angle) * ((options.sourceRadius ?? p.radius) + 5),
       y: (options.spawnY ?? p.y) + Math.sin(angle) * ((options.sourceRadius ?? p.radius) + 5),
       radius: options.radius || BALANCE.weapons.system.defaultProjectileRadius, vx: velocity.x, vy: velocity.y,
@@ -814,15 +891,15 @@ export class Simulation {
       for (let i = 0; i < 9 + this.playerStat(p, "projectiles"); i++) this.shoot(p, aim + (i - 4) * .13, 560, 49 + this.level * 6, { radius: 9, color: spec.color, explosion: 95 * area, life: 2.4, sourceId: "ability:e" });
     } else if (p.specialist === "echo") {
       for (const ally of this.players) if (!ally.dead && distance(p, ally) < 800) { ally.shield += 345 + this.level * 5; ally.speedBuff = 3; }
-      this.effects.push({ id: id("fx"), x: p.x, y: p.y, radius: 800, life: .6, maxLife: .6, damage: 0, owner: p.id, color: spec.color, kind: "shield" });
+      this.effects.push({ id: this.nextCosmeticId("fx"), x: p.x, y: p.y, radius: 800, life: .6, maxLife: .6, damage: 0, owner: p.id, color: spec.color, kind: "shield" });
     } else if (p.specialist === "sola") {
       p.armor += 25; p.shield += p.maxHp * .25;
-      this.tasks.push({ time: 3, run: () => { p.armor = Math.max(spec.armor, p.armor - 25); this.blast(p.x, p.y, 400 * area, 160 + this.level * 15, p.id, spec.color, true, "blast", "ability:e"); p.shield += p.maxHp * .25; } });
-      this.tasks.push({ time: 5, run: () => this.blast(p.x, p.y, 300 * area, 100 + this.level * 10, p.id, spec.color, true, "blast", "ability:e") });
+      this.scheduleTask("sola-detonate", 3, { ownerId: p.id, area, color: spec.color });
+      this.scheduleTask("sola-aftershock", 5, { ownerId: p.id, area, color: spec.color });
     } else if (p.specialist === "bront") {
       const tx = p.x + Math.cos(aim) * 170, ty = p.y + Math.sin(aim) * 170;
       this.blast(tx, ty, 150 * area, 100 + this.level * 5, p.id, spec.color, true, "knockup", "ability:e");
-      this.effects.push({ id: id("fx"), x: tx, y: ty, radius: 70, life: 16 * this.playerStat(p, "duration"), maxLife: 16, damage: 24, owner: p.id, color: spec.color, kind: "totem", sourceId: "ability:e", tick: .7, hit: new Set() });
+      this.effects.push({ id: this.nextGameplayId("fx"), x: tx, y: ty, radius: 70, life: 16 * this.playerStat(p, "duration"), maxLife: 16, damage: 24, owner: p.id, color: spec.color, kind: "totem", sourceId: "ability:e", tick: .7, hit: new Set() });
     } else if (p.specialist === "fang") {
       this.dashPlayer(p, mobilityAim, 150); p.frenzy = 6 * this.playerStat(p, "duration");
     } else if (p.specialist === "gale") {
@@ -836,7 +913,7 @@ export class Simulation {
     } else if (p.specialist === "vesper") {
       for (const feather of this.feathers.filter((f) => f.owner === p.id)) {
         const a = angleTo(feather, p), v = fromAngle(a, 950);
-        this.projectiles.push({ id: id("b"), owner: p.id, x: feather.x, y: feather.y, radius: 8, vx: v.x, vy: v.y, damage: (54 + this.level * 6) * this.playerStat(p, "damage"), life: 2, pierce: 30, color: spec.color, dead: false, hit: new Set(), dagger: true, age: 0 });
+        this.projectiles.push({ id: this.nextGameplayId("b"), owner: p.id, x: feather.x, y: feather.y, radius: 8, vx: v.x, vy: v.y, damage: (54 + this.level * 6) * this.playerStat(p, "damage"), life: 2, pierce: 30, color: spec.color, dead: false, hit: new Set(), dagger: true, age: 0 });
         feather.dead = true;
       }
     }
@@ -852,14 +929,14 @@ export class Simulation {
       this.blast(p.x, p.y, 1150, 140 + this.level * 8, p.id, spec.color, true, "perfect", "ability:r");
     } else if (p.specialist === "sola") {
       const target = { x: p.x + Math.cos(aim) * 470, y: p.y + Math.sin(aim) * 470 };
-      this.effects.push({ id: id("fx"), ...target, radius: 430 * area, life: .7, maxLife: .7, damage: 180 + this.level * 20, owner: p.id, color: spec.color, kind: "solar", sourceId: "ability:r", delayed: true, stun: 3, hit: new Set() });
+      this.effects.push({ id: this.nextGameplayId("fx"), ...target, radius: 430 * area, life: .7, maxLife: .7, damage: 180 + this.level * 20, owner: p.id, color: spec.color, kind: "solar", sourceId: "ability:r", delayed: true, stun: 3, hit: new Set() });
     } else if (p.specialist === "bront") {
       this.dashPlayer(p, mobilityAim, 160); this.blast(p.x, p.y, 500 * area, 490 + this.level * 10, p.id, spec.color, true, "shockwave", "ability:r"); p.hasteBuff = 8 * this.playerStat(p, "duration");
     } else if (p.specialist === "fang") {
       p.invuln = .9; this.dashPlayer(p, mobilityAim, 700); this.blast(p.x, p.y, 430 * area, 240 + this.level * 16, p.id, spec.color, true, "bomb", "ability:r");
     } else if (p.specialist === "gale") {
       const v = fromAngle(aim, 260);
-      this.effects.push({ id: id("fx"), x: p.x, y: p.y, radius: 90, life: 5, maxLife: 5, damage: 28 + this.level * 4, owner: p.id, color: spec.color, kind: "windwall", sourceId: "ability:r", vx: v.x, vy: v.y, tick: .25, hit: new Set() });
+      this.effects.push({ id: this.nextGameplayId("fx"), x: p.x, y: p.y, radius: 90, life: 5, maxLife: 5, damage: 28 + this.level * 4, owner: p.id, color: spec.color, kind: "windwall", sourceId: "ability:r", vx: v.x, vy: v.y, tick: .25, hit: new Set() });
     } else if (p.specialist === "rift") {
       p.speedBuff = 15 * this.playerStat(p, "duration"); p.hasteBuff = 15; p.eCd = 0;
     } else if (p.specialist === "nova") {
@@ -911,7 +988,7 @@ export class Simulation {
       if (bullet.life <= 0) bullet.dead = true;
       if (bullet.dead && bullet.leaveFeather && !bullet.featherMade) {
         bullet.featherMade = true;
-        this.feathers.push({ id: id("f"), owner: bullet.owner, x: bullet.x, y: bullet.y, radius: 7, life: 15, color: bullet.color });
+        this.feathers.push({ id: this.nextGameplayId("f"), owner: bullet.owner, x: bullet.x, y: bullet.y, radius: 7, life: 15, color: bullet.color });
       }
     }
 
@@ -951,7 +1028,7 @@ export class Simulation {
 
   blast(x, y, radius, damage, owner, color = "#fff", visual = true, kind = "blast", sourceId = kind) {
     this.damageArea(x, y, radius, damage, owner, color, kind, 0, sourceId);
-    if (visual) this.effects.push({ id: id("fx"), x, y, radius, life: .28, maxLife: .28, damage: 0, owner, color, kind, hit: new Set() });
+    if (visual) this.effects.push({ id: this.nextCosmeticId("fx"), x, y, radius, life: .28, maxLife: .28, damage: 0, owner, color, kind, hit: new Set() });
   }
 
   damageArea(x, y, radius, damage, owner, color, kind, stun = 0, sourceId = kind) {
@@ -1008,13 +1085,14 @@ export class Simulation {
         enemy.y -= Math.sin(a) * enemy.speed * .6 * dt;
       }
       if (type.ranged && enemy.shotCd <= 0) {
-        enemy.shotCd = random(1.6, 2.4);
+        enemy.shotCd = this.random(1.6, 2.4);
         const v = fromAngle(a, 260);
-        this.hostile.push({ id: id("h"), ownerId: enemy.id, x: enemy.x, y: enemy.y, vx: v.x, vy: v.y, radius: 9, damage: enemy.damage * this.difficulty.spell, life: 4, color: enemy.color, dead: false });
+        this.hostile.push({ id: this.nextGameplayId("h"), ownerId: enemy.id, x: enemy.x, y: enemy.y, vx: v.x, vy: v.y, radius: 9, damage: enemy.damage * this.difficulty.spell, life: 4, color: enemy.color, dead: false });
       }
-      if (type.bomber && d < 70) {
-        this.effects.push({ id: id("fx"), x: enemy.x, y: enemy.y, radius: 150, life: .55, maxLife: .55, damage: 0, owner: "enemy", color: enemy.color, kind: "danger" });
-        this.tasks.push({ time: .5, run: () => { for (const p of this.players) if (!p.dead && distance(enemy, p) < 170) this.takeDamage(p, enemy.damage, enemy); enemy.dead = true; } });
+      if (type.bomber && d < 70 && !enemy.detonationScheduled) {
+        enemy.detonationScheduled = true;
+        this.effects.push({ id: this.nextCosmeticId("fx"), x: enemy.x, y: enemy.y, radius: 150, life: .55, maxLife: .55, damage: 0, owner: "enemy", color: enemy.color, kind: "danger" });
+        this.scheduleTask("bomber-detonate", .5, { enemyId: enemy.id });
       }
       if (circleHit(enemy, target, -4) && enemy.attackCd <= 0) {
         enemy.attackCd = enemy.miniboss ? 1.3 : .8;
@@ -1035,11 +1113,11 @@ export class Simulation {
       for (let i = 0; i < count; i++) {
         const shotAngle = this.map.id === "lab" ? i * TAU / count + this.time * .15 : a + (i - (count - 1) / 2) * .22;
         const v = fromAngle(shotAngle, this.map.id === "beachhead" ? 330 : 240);
-        this.hostile.push({ id: id("h"), ownerId: boss.id, bossShot: true, x: boss.x, y: boss.y, vx: v.x, vy: v.y, radius: 13, damage: boss.damage * .72 * this.difficulty.spell, life: 6, color: this.map.accent, dead: false });
+        this.hostile.push({ id: this.nextGameplayId("h"), ownerId: boss.id, bossShot: true, x: boss.x, y: boss.y, vx: v.x, vy: v.y, radius: 13, damage: boss.damage * .72 * this.difficulty.spell, life: 6, color: this.map.accent, dead: false });
       }
-      this.effects.push({ id: id("fx"), x: boss.x, y: boss.y, radius: 170, life: .45, maxLife: .45, damage: 0, owner: "enemy", color: this.map.accent, kind: "bossCast" });
+      this.effects.push({ id: this.nextCosmeticId("fx"), x: boss.x, y: boss.y, radius: 170, life: .45, maxLife: .45, damage: 0, owner: "enemy", color: this.map.accent, kind: "bossCast" });
     }
-    if (this.map.id === "outskirts" && boss.attackCd <= .02 && Math.random() < dt * 5) {
+    if (this.map.id === "outskirts" && boss.attackCd <= .02 && this.chance(dt * 5)) {
       boss.x = clamp(boss.x + Math.cos(a) * 170, -WORLD.width/2, WORLD.width/2);
       boss.y = clamp(boss.y + Math.sin(a) * 170, -WORLD.height/2, WORLD.height/2);
     }
@@ -1058,7 +1136,7 @@ export class Simulation {
     if (p.iceReady) {
       p.iceReady = false;
       for (const enemy of this.enemies) if (distance(p, enemy) < 230) enemy.stun = Math.max(enemy.stun, 2.4);
-      this.effects.push({ id: id("fx"), x: p.x, y: p.y, radius: 230, life: .55, maxLife: .55, damage: 0, owner: p.id, color: "#9de7ff", kind: "freeze" });
+      this.effects.push({ id: this.nextCosmeticId("fx"), x: p.x, y: p.y, radius: 230, life: .55, maxLife: .55, damage: 0, owner: p.id, color: "#9de7ff", kind: "freeze" });
       return;
     }
     const reduction = 100 / (100 + Math.max(0, p.armor));
@@ -1081,7 +1159,7 @@ export class Simulation {
     // Prevent stacked contact bodies from applying a whole pack's damage in a
     // single frame while keeping individual hits meaningful.
     p.hitGrace = .22;
-    this.effects.push({ id: id("fx"), x: p.x, y: p.y, radius: p.radius * 1.8, life: .24, maxLife: .24, damage: 0, owner: "enemy", color: "#ff405f", kind: "hurt", angle: impactAngle });
+    this.effects.push({ id: this.nextCosmeticId("fx"), x: p.x, y: p.y, radius: p.radius * 1.8, life: .24, maxLife: .24, damage: 0, owner: "enemy", color: "#ff405f", kind: "hurt", angle: impactAngle });
     if (p.hp <= 0) this.downPlayer(p);
   }
 
@@ -1110,7 +1188,7 @@ export class Simulation {
       const impactAngle = Math.atan2(enemy.y - owner.y, enemy.x - owner.x), knockback = clamp(amount * .28, 8, enemy.boss ? 22 : 72);
       enemy.hitAngle = impactAngle; enemy.knockVx = (enemy.knockVx || 0) + Math.cos(impactAngle) * knockback; enemy.knockVy = (enemy.knockVy || 0) + Math.sin(impactAngle) * knockback;
     }
-    if (critical || amount > 180) this.effects.push({ id: id("n"), x: enemy.x, y: enemy.y - enemy.radius, radius: 0, life: .55, maxLife: .55, damage: Math.round(amount), owner: ownerId, color: critical ? "#ffe073" : "#fff", kind: "number", critical });
+    if (critical || amount > 180) this.effects.push({ id: this.nextCosmeticId("n"), x: enemy.x, y: enemy.y - enemy.radius, radius: 0, life: .55, maxLife: .55, damage: Math.round(amount), owner: ownerId, color: critical ? "#ffe073" : "#fff", kind: "number", critical });
     if (enemy.hp <= 0) this.killEnemy(enemy, ownerId);
   }
 
@@ -1124,28 +1202,28 @@ export class Simulation {
     if (enemy.boss) { this.win(); return; }
     if (enemy.eventType === "treasure") {
       this.gold += Math.round(110 * this.difficulty.gold); this.teamXP += this.xpNeed;
-      for (let i = 0; i < 2; i++) this.drops.push({ id: id("d"), type: "card", x: enemy.x + random(-34, 34), y: enemy.y + random(-34, 34), radius: 18 });
-      for (let i = 0; i < 5; i++) this.drops.push({ id: id("d"), type: "gold", x: enemy.x + random(-55, 55), y: enemy.y + random(-55, 55), radius: 9 });
+      for (let i = 0; i < 2; i++) this.drops.push({ id: this.nextGameplayId("d"), type: "card", x: enemy.x + this.random(-34, 34), y: enemy.y + this.random(-34, 34), radius: 18 });
+      for (let i = 0; i < 5; i++) this.drops.push({ id: this.nextGameplayId("d"), type: "gold", x: enemy.x + this.random(-55, 55), y: enemy.y + this.random(-55, 55), radius: 9 });
       this.pushEvent("upgrade", "Treasure runner caught", "Bonus gold, data, and access cards recovered");
     }
-    this.orbs.push({ id: id("x"), x: enemy.x, y: enemy.y, radius: enemy.elite || enemy.miniboss ? 10 : 5, value: enemy.xp, color: enemy.elite ? "#d7fdff" : "#63f2df", dead: false });
-    if (Math.random() < .035) this.drops.push({ id: id("d"), type: "gold", x: enemy.x + random(-8, 8), y: enemy.y + random(-8, 8), radius: 9 });
+    this.orbs.push({ id: this.nextGameplayId("x"), x: enemy.x, y: enemy.y, radius: enemy.elite || enemy.miniboss ? 10 : 5, value: enemy.xp, color: enemy.elite ? "#d7fdff" : "#63f2df", dead: false });
+    if (this.chance(.035)) this.drops.push({ id: this.nextGameplayId("d"), type: "gold", x: enemy.x + this.random(-8, 8), y: enemy.y + this.random(-8, 8), radius: 9 });
     if (enemy.elite || enemy.miniboss) {
-      this.drops.push({ id: id("d"), type: "card", x: enemy.x, y: enemy.y, radius: 18 });
+      this.drops.push({ id: this.nextGameplayId("d"), type: "card", x: enemy.x, y: enemy.y, radius: 18 });
       this.gold += Math.round((enemy.elite ? 14 : 25) * this.difficulty.gold);
     }
     if (owner?.specialist === "zuri") {
       owner.hotKills += enemy.elite ? 70 : 1;
       if (owner.hotKills >= 70) { owner.hotKills %= 70; owner.hotStacks++; owner.hotTime = 8; }
     }
-    this.effects.push({ id: id("fx"), x: enemy.x, y: enemy.y, radius: enemy.radius * 1.8, life: .22, maxLife: .22, damage: 0, owner: ownerId, color: enemy.color, kind: "pop" });
+    this.effects.push({ id: this.nextCosmeticId("fx"), x: enemy.x, y: enemy.y, radius: enemy.radius * 1.8, life: .22, maxLife: .22, damage: 0, owner: ownerId, color: enemy.color, kind: "pop" });
   }
 
   breakPod(pod) {
     pod.dead = true;
-    const roll = Math.random();
+    const roll = this.gameplayRng.nextFloat();
     const type = roll < .28 ? "heal" : roll < .48 ? "vacuum" : roll < .74 ? "mine" : "gold";
-    this.drops.push({ id: id("d"), type, x: pod.x, y: pod.y, radius: 15 });
+    this.drops.push({ id: this.nextGameplayId("d"), type, x: pod.x, y: pod.y, radius: 15 });
   }
 
   updatePickups(dt) {
@@ -1166,12 +1244,12 @@ export class Simulation {
         const a = angleTo(orb, collector), droneBonus = collector.owner ? 55 + collector.level * 15 : 0;
         const speed = (orb.vacuumTarget ? 760 : 240) + (this.playerStat(target, "pickup") - 85) * 1.4 + droneBonus;
         orb.x += Math.cos(a) * speed * dt; orb.y += Math.sin(a) * speed * dt;
-        if (target.specialist === "vesper" && Math.random() < dt * 8) this.blast(orb.x, orb.y, 30, 9 + this.level * 1.3, target.id, SPECIALISTS.vesper.color, false, "pickup");
+        if (target.specialist === "vesper" && this.chance(dt * 8)) this.blast(orb.x, orb.y, 30, 9 + this.level * 1.3, target.id, SPECIALISTS.vesper.color, false, "pickup");
         if (circleHit(orb, collector, 4)) {
           const gained = orb.value * (1 + Number(target.passives.xp || 0) * .1);
           orb.dead = true; target.xpCollected += gained; this.teamXP += gained;
           if (collector.owner) collector.collectFlash = .24;
-          if (Math.random() < .35) this.effects.push({ id: id("fx"), x: target.x, y: target.y, radius: 24, life: .18, maxLife: .18, damage: 0, owner: target.id, color: orb.color, kind: "pickup" });
+          if (this.cosmeticChance(.35)) this.effects.push({ id: this.nextCosmeticId("fx"), x: target.x, y: target.y, radius: 24, life: .18, maxLife: .18, damage: 0, owner: target.id, color: orb.color, kind: "pickup" });
         }
       }
     }
@@ -1179,13 +1257,13 @@ export class Simulation {
       const target = this.players.find((p) => !p.dead && !p.downed && distance(drop, p) < p.radius + drop.radius + 8);
       if (!target) continue;
       drop.dead = true;
-      this.effects.push({ id: id("fx"), x: target.x, y: target.y, radius: drop.type === "card" ? 72 : 38, life: .32, maxLife: .32, damage: 0, owner: target.id, color: drop.type === "card" ? "#f7d76a" : "#63f2df", kind: "pickup" });
+      this.effects.push({ id: this.nextCosmeticId("fx"), x: target.x, y: target.y, radius: drop.type === "card" ? 72 : 38, life: .32, maxLife: .32, damage: 0, owner: target.id, color: drop.type === "card" ? "#f7d76a" : "#63f2df", kind: "pickup" });
       if (drop.type === "card") this.useAccessCard();
       else if (drop.type === "gold") this.gold += Math.round(8 * this.difficulty.gold);
       else if (drop.type === "heal") for (const p of this.players) p.hp = Math.min(p.maxHp, p.hp + p.maxHp * .2);
       else if (drop.type === "vacuum") {
         for (const orb of this.orbs) if (!orb.dead) orb.vacuumTarget = target.id;
-        this.effects.push({ id: id("fx"), x: target.x, y: target.y, radius: 460, life: .5, maxLife: .5, damage: 0, owner: target.id, color: "#63f2df", kind: "vacuum" });
+        this.effects.push({ id: this.nextCosmeticId("fx"), x: target.x, y: target.y, radius: 460, life: .5, maxLife: .5, damage: 0, owner: target.id, color: "#63f2df", kind: "vacuum" });
         this.pushEvent("boon", "Data vacuum engaged", "Every loose shard is inbound");
       }
       else if (drop.type === "mine") for (const enemy of this.enemies) if (!enemy.boss) this.damageEnemy(enemy, 260, target.id, false, "seaMine");
@@ -1227,7 +1305,7 @@ export class Simulation {
       if ((current > 0 && current < passive.max) || (current === 0 && passiveSlots < BALANCE.core.maxPassiveSlots)) candidates.push({ id: `passive:${passive.id}`, kind: "passive", name: passive.name, copy: passive.amount, glyph: passive.glyph, icon: passive.icon, level: Math.floor(current) + 1, max: passive.max });
     }
     const chosen = [];
-    while (candidates.length && chosen.length < 3) chosen.push(candidates.splice(Math.floor(Math.random() * candidates.length), 1)[0]);
+    while (candidates.length && chosen.length < 3) chosen.push(candidates.splice(this.gameplayRng.int(candidates.length), 1)[0]);
     if (!chosen.length) chosen.push({ id: "heal", kind: "utility", name: "Field Repair", copy: "Restore 25% health.", glyph: "+", icon: PASSIVES.regen.icon, level: 1, max: 1 });
     return chosen;
   }
@@ -1276,7 +1354,7 @@ export class Simulation {
       }
       if (!evolved) {
         const options = Object.entries(p.weapons).filter(([, state]) => state.level < BALANCE.core.maxWeaponLevel);
-        if (options.length) { const [weaponId, state] = pick(options); state.level++; upgraded.push(`${p.name}: ${weaponId === "signature" ? SPECIALISTS[p.specialist].signature.name : WEAPONS[weaponId].name} +1`); }
+        if (options.length) { const [weaponId, state] = this.pick(options); state.level++; upgraded.push(`${p.name}: ${weaponId === "signature" ? SPECIALISTS[p.specialist].signature.name : WEAPONS[weaponId].name} +1`); }
         else p.hp = Math.min(p.maxHp, p.hp + p.maxHp * .25);
       }
     }
@@ -1287,7 +1365,7 @@ export class Simulation {
     this.stage = "boss"; this.remaining = 0; this.enemies = this.enemies.filter((enemy) => enemy.elite || enemy.miniboss);
     const boss = BALANCE.waves.boss;
     const health = boss.baseHealth * this.difficulty.health * (1 + (this.players.length - 1) * boss.healthPerAdditionalPlayer);
-    this.enemies.push({ id: id("boss"), type: "boss", x: 720, y: 0, radius: 92, hp: health, maxHp: health, speed: boss.speed, damage: boss.contactDamage * this.difficulty.attack, color: this.map.accent, elite: false, miniboss: false, boss: true, attackCd: 1, shotCd: 1.5, stun: 0, hitFlash: 0, attackFlash: 0, spawnLife: .5, knockVx: 0, knockVy: 0, dead: false, xp: 0 });
+    this.enemies.push({ id: this.nextGameplayId("boss"), type: "boss", x: 720, y: 0, radius: 92, hp: health, maxHp: health, speed: boss.speed, damage: boss.contactDamage * this.difficulty.attack, color: this.map.accent, elite: false, miniboss: false, boss: true, attackCd: 1, shotCd: 1.5, stun: 0, hitFlash: 0, attackFlash: 0, spawnLife: .5, knockVx: 0, knockVy: 0, dead: false, xp: 0 });
     this.pushEvent("danger", `${this.map.boss} HAS ARRIVED`, "Defeat the apex before enrage");
   }
 
@@ -1299,7 +1377,7 @@ export class Simulation {
   lose(copy) { if (this.stage === "won") return; this.stage = "lost"; this.paused = false; this.pushEvent("defeat", "Operation lost", copy); }
 
   pushEvent(type, title, copy = "") {
-    this.events.push({ seq: entityId++, type, title, copy, at: performance.now() });
+    this.events.push({ seq: this.eventSequence++, type, title, copy, at: this.tick });
     if (this.events.length > 20) this.events.splice(0, this.events.length - 20);
   }
 
@@ -1326,6 +1404,18 @@ export class Simulation {
     }
   }
 
+  deterministicState() {
+    return {
+      seed: this.seed,
+      balanceVersion: this.balanceVersion,
+      balanceHash: this.balanceHash,
+      tick: this.tick,
+      rng: { gameplay: this.gameplayRng.snapshot(), cosmetic: this.cosmeticRng.snapshot() },
+      sequences: { gameplay: this.gameplaySequence, cosmetic: this.cosmeticSequence, event: this.eventSequence },
+      tasks: this.tasks.map((task) => ({ id: task.id, dueTick: task.dueTick, kind: task.kind, payload: { ...task.payload } })),
+    };
+  }
+
   snapshot() {
     const clean = (list, omit = []) => list.map((entry) => {
       const result = {};
@@ -1337,6 +1427,7 @@ export class Simulation {
     });
     return {
       balanceVersion: this.balanceVersion, balanceHash: this.balanceHash,
+      tick: this.tick, determinism: this.deterministicState(),
       map: this.map.id, difficulty: this.difficulty.id, duration: this.duration, time: Math.round(this.time * 10) / 10,
       remaining: Math.round(this.remaining * 10) / 10, stage: this.stage, paused: this.paused, pauseReason: this.pauseReason,
       wave: this.wave, waveName: WAVE_NAMES[this.stage === "boss" ? 7 : this.wave], teamXP: Math.round(this.teamXP),
