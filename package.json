@@ -12,6 +12,7 @@
     "store:product:scaffold": "node scripts/store/product-scaffold.mjs",
     "store:proof:redbullfinch": "node scripts/store/printful-proof-board.mjs",
     "store:printful:map": "node scripts/store/printful-map.mjs",
+    "lastlight:dashboard": "node scripts/lastlight-dashboard.mjs",
     "store:route:setup": "node scripts/store/route-setup.mjs"
   },
   "devDependencies": {

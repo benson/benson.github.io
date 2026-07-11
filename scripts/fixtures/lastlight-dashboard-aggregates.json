@@ -1,0 +1,10 @@
+{
+  "schema": "lastlight.dashboard.aggregate.v1",
+  "generatedAt": "2026-07-11T16:30:00.000Z",
+  "windowDays": 30,
+  "cohorts": [
+    { "build": "2026.07.11.3", "map": "warehouse", "difficulty": "story", "mode": "solo", "specialists": "zuri", "runs": 12, "wins": 7, "sumElapsedSeconds": 2710, "sumPlannedSeconds": 2880, "sumWaveReached": 70, "sumLevelReached": 139, "sumKills": 2500, "sumDamageDealt": 218400, "sumDamageTaken": 780, "sumRevives": 0 },
+    { "build": "2026.07.11.3", "map": "warehouse", "difficulty": "hard", "mode": "squad", "specialists": "echo,sola", "runs": 8, "wins": 3, "sumElapsedSeconds": 1600, "sumPlannedSeconds": 1920, "sumWaveReached": 40, "sumLevelReached": 81, "sumKills": 1980, "sumDamageDealt": 190200, "sumDamageTaken": 980, "sumRevives": 11 },
+    { "build": "2026.07.11.2", "map": "outskirts", "difficulty": "story", "mode": "solo", "specialists": "fang", "runs": 6, "wins": 2, "sumElapsedSeconds": 1160, "sumPlannedSeconds": 1440, "sumWaveReached": 28, "sumLevelReached": 54, "sumKills": 960, "sumDamageDealt": 87200, "sumDamageTaken": 510, "sumRevives": 0 }
+  ]
+}
