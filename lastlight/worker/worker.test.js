@@ -140,15 +140,15 @@ test("room identity is established by the first message instead of the request U
   assert.deepEqual(socket.sent, [{ type: "welcome", id: "first", role: "host", peers: [] }]);
 });
 
-test("legacy query-profile initialization remains available during the rolling client upgrade", () => {
+test("a session can only be initialized once by the hello handshake", () => {
   const room = new Room({});
   const socket = { sent: [], send(payload) { this.sent.push(JSON.parse(payload)); } };
-  const session = { id: "legacy", initialized: false, connectedAt: Date.now() };
+  const session = { id: "handshake", initialized: false, connectedAt: Date.now() };
   room.sessions.set(socket, session);
 
-  assert.equal(room.initializeSession(socket, session, { name: "Legacy", specialist: "echo" }), true);
+  assert.equal(room.initializeSession(socket, session, { name: "First", specialist: "echo" }), true);
   assert.equal(room.initializeSession(socket, session, { name: "Ignored", specialist: "fang" }), false);
-  assert.equal(session.name, "Legacy");
+  assert.equal(session.name, "First");
   assert.equal(session.specialist, "echo");
-  assert.deepEqual(socket.sent, [{ type: "welcome", id: "legacy", role: "host", peers: [] }]);
+  assert.deepEqual(socket.sent, [{ type: "welcome", id: "handshake", role: "host", peers: [] }]);
 });

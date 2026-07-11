@@ -162,15 +162,6 @@ export class Room {
     server.addEventListener("message", (event) => this.onMessage(server, event.data));
     server.addEventListener("close", () => this.onClose(server));
     server.addEventListener("error", () => this.onClose(server));
-    const url = new URL(request.url);
-    const hasLegacyProfile = ["name", "specialist", "resume"].some((key) => url.searchParams.has(key));
-    if (hasLegacyProfile) {
-      this.initializeSession(server, session, {
-        name: url.searchParams.get("name"),
-        specialist: url.searchParams.get("specialist"),
-        resumeToken: url.searchParams.get("resume"),
-      });
-    }
     return new Response(null, { status: 101, webSocket: client });
   }
 
