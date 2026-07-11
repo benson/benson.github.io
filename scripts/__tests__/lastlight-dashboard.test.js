@@ -1,17 +1,21 @@
-import test from "node:test";
-import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
-import {
-  buildAnalyticsQuery,
-  buildDashboardModel,
-  renderDashboardHtml,
-  validateAggregatePayload,
-} from "../lastlight-dashboard-lib.mjs";
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const path = require("node:path");
+const { readFile } = require("node:fs/promises");
 
-const fixtureUrl = new URL("../fixtures/lastlight-dashboard-aggregates.json", import.meta.url);
+let buildAnalyticsQuery;
+let buildDashboardModel;
+let renderDashboardHtml;
+let validateAggregatePayload;
+
+test.before(async () => {
+  ({ buildAnalyticsQuery, buildDashboardModel, renderDashboardHtml, validateAggregatePayload } = await import("../lastlight-dashboard-lib.mjs"));
+});
+
+const fixturePath = path.join(__dirname, "..", "fixtures", "lastlight-dashboard-aggregates.json");
 
 async function fixture() {
-  return JSON.parse(await readFile(fixtureUrl, "utf8"));
+  return JSON.parse(await readFile(fixturePath, "utf8"));
 }
 
 test("Analytics SQL requests only aggregate cohorts and suppresses small cohorts at the source", () => {
