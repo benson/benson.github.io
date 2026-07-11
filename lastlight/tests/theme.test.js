@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { access } from "node:fs/promises";
+import { access, stat } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import {
   LASTLIGHT_THEME,
@@ -33,12 +33,14 @@ test("runtime enemy contract has unique deployable cutouts and render anchors", 
   await Promise.all(paths.map((path) => access(`${root}${path}`)));
   for (const enemyType of THEME_ASSET_KEYS.enemies) {
     const animation = getThemeEnemyAnimation(enemyType);
-    assert.equal(animation.anchor.length, 2);
+    assert.deepEqual(animation.anchor, [.5, .875]);
     assert.equal(animation.drawSize.length, 2);
     assert.ok(animation.drawSize.every((value) => value > 0));
     assert.equal(animation.shadow.length, 2);
     assert.equal(animation.grid.columns, 4);
     assert.equal(animation.grid.rows, enemyType === "spitter" || enemyType === "bomber" ? 5 : 6);
+    assert.deepEqual(animation.atlas.expectedSize, [1024, animation.grid.rows * 256]);
+    assert.match(animation.atlas.src, /^assets\/motion-normalized\/enemies\/.+\.webp$/);
     assert.equal(animation.status, "ready");
     assert.equal(animation.atlas.available, true);
     await access(`${root}${animation.atlas.src}`);
@@ -50,8 +52,23 @@ test("runtime enemy contract has unique deployable cutouts and render anchors", 
     assert.equal(animation.status, "ready");
     assert.equal(animation.atlas.available, true);
     assert.equal(animation.grid.rows, mapId === "beachhead" ? 5 : 6);
+    assert.deepEqual(animation.anchor, [.5, .875]);
+    assert.deepEqual(animation.atlas.expectedSize, [1024, animation.grid.rows * 256]);
+    assert.match(animation.atlas.src, /^assets\/motion-normalized\/bosses\/.+\.webp$/);
     await access(`${root}${animation.atlas.src}`);
   }
+});
+
+test("normalized runtime motion atlases stay within the ten-megabyte delivery budget", async () => {
+  const root = fileURLToPath(new URL("../", import.meta.url));
+  const rigs = [
+    ...THEME_ASSET_KEYS.specialists.filter((id) => id !== "zuri").map((id) => getThemeAnimation(id)),
+    ...THEME_ASSET_KEYS.enemies.map((id) => getThemeEnemyAnimation(id)),
+    ...MOTION_BOSS_IDS.map((id) => getThemeEnemyAnimation("boss", undefined, id)),
+  ];
+  assert.ok(rigs.every((rig) => rig.atlas.src.startsWith("assets/motion-normalized/")));
+  const sizes = await Promise.all(rigs.map((rig) => stat(`${root}${rig.atlas.src}`).then((entry) => entry.size)));
+  assert.ok(sizes.reduce((total, size) => total + size, 0) <= 10_000_000);
 });
 
 test("guide contract gives every passive, enemy, and field category unique art", () => {

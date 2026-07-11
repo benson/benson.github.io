@@ -171,12 +171,12 @@ const specialistSizes = {
 };
 
 const enemyLayout = {
-  mite: { anchor: [.5, .78], drawSize: [72, 59], groundY: 10, shadow: [26, 9], contact: [30, 1] },
-  hound: { anchor: [.5, .77], drawSize: [96, 67], groundY: 13, shadow: [36, 12], contact: [42, 2] },
-  spitter: { anchor: [.5, .76], drawSize: [88, 82], groundY: 14, shadow: [32, 12], contact: [40, -8] },
-  brute: { anchor: [.5, .78], drawSize: [118, 108], groundY: 20, shadow: [45, 15], contact: [54, 1] },
-  bomber: { anchor: [.5, .77], drawSize: [98, 92], groundY: 16, shadow: [38, 13], contact: [44, 0] },
-  shark: { anchor: [.5, .78], drawSize: [168, 125], groundY: 28, shadow: [66, 21], contact: [78, 2] },
+  mite: { anchor: [.5, .875], drawSize: [72, 59], groundY: 10, shadow: [26, 9], contact: [30, 1] },
+  hound: { anchor: [.5, .875], drawSize: [96, 67], groundY: 13, shadow: [36, 12], contact: [42, 2] },
+  spitter: { anchor: [.5, .875], drawSize: [88, 82], groundY: 14, shadow: [32, 12], contact: [40, -8] },
+  brute: { anchor: [.5, .875], drawSize: [118, 108], groundY: 20, shadow: [45, 15], contact: [54, 1] },
+  bomber: { anchor: [.5, .875], drawSize: [98, 92], groundY: 16, shadow: [38, 13], contact: [44, 0] },
+  shark: { anchor: [.5, .875], drawSize: [168, 125], groundY: 28, shadow: [66, 21], contact: [78, 2] },
 };
 
 const frames = (rows, ms, authored = false) => ({
@@ -187,7 +187,7 @@ const frames = (rows, ms, authored = false) => ({
 function plannedSpecialistRig(id) {
   return {
     schema: MOTION_SCHEMA, kind: "specialist", status: "ready",
-    atlas: { src: `assets/motion/specialists/${id}.webp`, available: true, expectedSize: [1024, 1536] },
+    atlas: { src: `assets/motion-normalized/specialists/${id}.webp`, available: true, expectedSize: [1024, 1536] },
     grid: { columns: 4, rows: 6 }, directions: [...MOTION_DIRECTIONS],
     anchor: [.5, .875], drawSize: specialistSizes[id], collisionOffset: [0, 0], groundY: 18, shadow: [34, 12],
     sockets: { muzzle: { distance: id === "sola" || id === "bront" ? 53 : 58, vertical: -8 } },
@@ -223,14 +223,14 @@ function zuriPrototypeRig() {
 }
 
 function plannedEnemyRig(id, layout, boss = false) {
-  const source = boss ? `assets/motion/bosses/${id}.webp` : `assets/motion/enemies/${id}.webp`;
+  const source = boss ? `assets/motion-normalized/bosses/${id}.webp` : `assets/motion-normalized/enemies/${id}.webp`;
   const compactFiveRows = id === "spitter" || id === "bomber" || (boss && id === "beachhead");
   const locomotionRows = compactFiveRows ? [2, 2, 2, 2, 2, 2] : [2, 3, 2, 3, 2, 3];
   const actionRow = compactFiveRows ? 3 : 4;
   const hurtDeathRow = compactFiveRows ? 4 : 5;
   return {
     schema: MOTION_SCHEMA, kind: "enemy", status: "ready",
-    atlas: { src: source, available: true, expectedSize: [1024, 1536] },
+    atlas: { src: source, available: true, expectedSize: [1024, compactFiveRows ? 1280 : 1536] },
     grid: { columns: 4, rows: compactFiveRows ? 5 : 6 }, directions: [...MOTION_DIRECTIONS],
     anchor: layout.anchor, drawSize: layout.drawSize, collisionOffset: [0, 0], groundY: layout.groundY, shadow: layout.shadow,
     sockets: { contact: { distance: layout.contact[0], vertical: layout.contact[1] } }, bindings: {},
@@ -248,7 +248,7 @@ function plannedEnemyRig(id, layout, boss = false) {
 
 const specialistMotions = Object.fromEntries(THEME_ASSET_KEYS.specialists.map((id) => [id, id === "zuri" ? zuriPrototypeRig() : plannedSpecialistRig(id)]));
 const enemyMotions = Object.fromEntries(THEME_ASSET_KEYS.enemies.map((id) => [id, plannedEnemyRig(id, enemyLayout[id])]));
-const bossMotions = Object.fromEntries(MOTION_BOSS_IDS.map((id) => [id, plannedEnemyRig(id, { anchor: [.5, .82], drawSize: [190, 160], groundY: 32, shadow: [76, 24], contact: [90, 2] }, true)]));
+const bossMotions = Object.fromEntries(MOTION_BOSS_IDS.map((id) => [id, plannedEnemyRig(id, { anchor: [.5, .875], drawSize: [190, 160], groundY: 32, shadow: [76, 24], contact: [90, 2] }, true)]));
 
 export const LASTLIGHT_THEME = defineTheme({
   id: "lastlight",

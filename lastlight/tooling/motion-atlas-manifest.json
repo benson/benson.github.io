@@ -1,0 +1,124 @@
+{
+  "schema": "lastlight.motion-normalization.v1",
+  "tool": { "name": "lastlight-motion-atlas-tool", "version": "1.0.0", "pillowVersion": "12.1.1" },
+  "normalization": {
+    "columns": 4,
+    "cellSize": 256,
+    "bleed": 8,
+    "minComponentPixels": 8,
+    "maxRuntimeBytes": 10000000,
+    "webp": { "lossless": false, "quality": 92, "method": 4, "exact": true }
+  },
+  "atlases": [
+    {
+      "id": "bront", "kind": "specialist", "rows": 6,
+      "source": { "path": "assets/motion/specialists/bront.webp", "sha256": "07ad4705ba859ce64a5183f50e5575f7833caf340ece4066849da82e684585a1", "width": 1024, "height": 1536 },
+      "output": { "path": "assets/motion-normalized/specialists/bront.webp", "pixelSha256": "0ae80836f4e99648725ef0e832c4a14bc3d1362a11e6735d1255f6e0be370945", "width": 1024, "height": 1536 },
+      "directions": ["south", "west", "north", "east"], "states": ["idle-a", "idle-b", "run-a", "run-b", "action", "hurt-down"], "anchor": [0.5, 0.875]
+    },
+    {
+      "id": "echo", "kind": "specialist", "rows": 6,
+      "source": { "path": "assets/motion/specialists/echo.webp", "sha256": "525887059a429aa577b880f03c6f45cac3e2f1e98358a4c2921754d69b95ce96", "width": 1024, "height": 1536 },
+      "output": { "path": "assets/motion-normalized/specialists/echo.webp", "pixelSha256": "898ef11953411e3fd521bcc4a8d86ef14525185a2879305fdc18080e72e1a905", "width": 1024, "height": 1536 },
+      "directions": ["south", "west", "north", "east"], "states": ["idle-a", "idle-b", "run-a", "run-b", "action", "hurt-down"], "anchor": [0.5, 0.875]
+    },
+    {
+      "id": "fang", "kind": "specialist", "rows": 6,
+      "source": { "path": "assets/motion/specialists/fang.webp", "sha256": "b59a2f3fa8f5701ed0782965e2603e5a5e6c866cd2d120a7d66d38e63cf6a7d9", "width": 1024, "height": 1536 },
+      "output": { "path": "assets/motion-normalized/specialists/fang.webp", "pixelSha256": "5ac5137c63e96850ae7d4afd9b6bcb00f8598c1853ee95ca707b021670c85b60", "width": 1024, "height": 1536 },
+      "directions": ["south", "west", "north", "east"], "states": ["idle-a", "idle-b", "run-a", "run-b", "action", "hurt-down"], "anchor": [0.5, 0.875]
+    },
+    {
+      "id": "gale", "kind": "specialist", "rows": 6,
+      "source": { "path": "assets/motion/specialists/gale.webp", "sha256": "840da1a8dcee979b0300742bb02fc31360f4b01d9b8c29d50cf5524460d5bac8", "width": 1024, "height": 1536 },
+      "output": { "path": "assets/motion-normalized/specialists/gale.webp", "pixelSha256": "0ef87f9d86f4fb4817a89b23005c55f9aa3f03b85def324fae6cc3d02aeeca84", "width": 1024, "height": 1536 },
+      "directions": ["south", "west", "north", "east"], "states": ["idle-a", "idle-b", "run-a", "run-b", "action", "hurt-down"], "anchor": [0.5, 0.875]
+    },
+    {
+      "id": "nova", "kind": "specialist", "rows": 6,
+      "source": { "path": "assets/motion/specialists/nova.webp", "sha256": "42494a088a5b3b5101a6d6fc515eb8c339cad16b95560ec592317c24aac2b312", "width": 1024, "height": 1536 },
+      "output": { "path": "assets/motion-normalized/specialists/nova.webp", "pixelSha256": "291482dec87641dc913a8aa875222ee81108eaa37531831b906271dea772db90", "width": 1024, "height": 1536 },
+      "directions": ["south", "west", "north", "east"], "states": ["idle-a", "idle-b", "run-a", "run-b", "action", "hurt-down"], "anchor": [0.5, 0.875]
+    },
+    {
+      "id": "rift", "kind": "specialist", "rows": 6,
+      "source": { "path": "assets/motion/specialists/rift.webp", "sha256": "8fd7e1017bb54df8c1f58e428b9e0d3e0958d520af8bb95e56e03beb8a72ca2b", "width": 1024, "height": 1536 },
+      "output": { "path": "assets/motion-normalized/specialists/rift.webp", "pixelSha256": "3bf3a0d60e3790b0fedae4546b8e58cd374dbde808dd1448dd6c9d19b3cbca1b", "width": 1024, "height": 1536 },
+      "directions": ["south", "west", "north", "east"], "states": ["idle-a", "idle-b", "run-a", "run-b", "action", "hurt-down"], "anchor": [0.5, 0.875]
+    },
+    {
+      "id": "sola", "kind": "specialist", "rows": 6,
+      "source": { "path": "assets/motion/specialists/sola.webp", "sha256": "89a19a4e410d859810bb82d24b57fcca5022a828a92450f4f9b8c74c761ed3d9", "width": 1024, "height": 1536 },
+      "output": { "path": "assets/motion-normalized/specialists/sola.webp", "pixelSha256": "8edd18d4a5e3fc687c0be9801eee9c1c76f5cf016de083ee5232a7149dd806d3", "width": 1024, "height": 1536 },
+      "directions": ["south", "west", "north", "east"], "states": ["idle-a", "idle-b", "run-a", "run-b", "action", "hurt-down"], "anchor": [0.5, 0.875]
+    },
+    {
+      "id": "vesper", "kind": "specialist", "rows": 6,
+      "source": { "path": "assets/motion/specialists/vesper.webp", "sha256": "86bfe3c30d362ab6260c406732eb343a1285cb06c96db86b2b42495bf8274d87", "width": 1024, "height": 1536 },
+      "output": { "path": "assets/motion-normalized/specialists/vesper.webp", "pixelSha256": "ef02a7ff2773d282373d74761ca5e31123cad8c8b245b44b8a934f68be162eea", "width": 1024, "height": 1536 },
+      "directions": ["south", "west", "north", "east"], "states": ["idle-a", "idle-b", "run-a", "run-b", "action", "hurt-down"], "anchor": [0.5, 0.875]
+    },
+
+    {
+      "id": "mite", "kind": "enemy", "rows": 6,
+      "source": { "path": "assets/motion/enemies/mite.webp", "sha256": "9942a047c7a295855aeb9b76be6a3087effa96d2d0c6bb2f5b430dd84132fd4d", "width": 1024, "height": 1536 },
+      "output": { "path": "assets/motion-normalized/enemies/mite.webp", "pixelSha256": "84d58c31b8f30cdcf8a5ab7c564eccc6754f0d77af2062ce744647dcbe77f620", "width": 1024, "height": 1536 },
+      "directions": ["south", "west", "north", "east"], "states": ["idle-a", "idle-b", "locomotion-a", "locomotion-b", "action", "hurt-death"], "anchor": [0.5, 0.875]
+    },
+    {
+      "id": "hound", "kind": "enemy", "rows": 6,
+      "source": { "path": "assets/motion/enemies/hound.webp", "sha256": "b6e60c81a5aae5893961281bd1d818016801b11cd37df763ce12422d7ece0a9c", "width": 1024, "height": 1536 },
+      "output": { "path": "assets/motion-normalized/enemies/hound.webp", "pixelSha256": "c3e1375348fa66d75056103c81ae857f5a4c15009198196ad7466a9a21d41f7b", "width": 1024, "height": 1536 },
+      "directions": ["south", "west", "north", "east"], "states": ["idle-a", "idle-b", "locomotion-a", "locomotion-b", "action", "hurt-death"], "anchor": [0.5, 0.875]
+    },
+    {
+      "id": "spitter", "kind": "enemy", "rows": 5,
+      "source": { "path": "assets/motion/enemies/spitter.webp", "sha256": "230cc597fdcce86cd4f2d6b085e9930deeabe33c14990476872186352f2d1275", "width": 1024, "height": 1536 },
+      "output": { "path": "assets/motion-normalized/enemies/spitter.webp", "pixelSha256": "b2892f4357416eaa9a2f758ae190bf251bc92971d581b74e4aeb567f9dd60f8c", "width": 1024, "height": 1280 },
+      "directions": ["south", "west", "north", "east"], "states": ["idle-a", "idle-b", "locomotion", "action", "hurt-death"], "anchor": [0.5, 0.875]
+    },
+    {
+      "id": "brute", "kind": "enemy", "rows": 6,
+      "source": { "path": "assets/motion/enemies/brute.webp", "sha256": "27fe1b2c05afd7dcc846bbfcd04f128af77d3e8358b19984a98d79f25780c252", "width": 1024, "height": 1536 },
+      "output": { "path": "assets/motion-normalized/enemies/brute.webp", "pixelSha256": "edce20a9a6d24123b6ce3cb9f54b1adfe09f027c920ec5efdf40502a719e61f7", "width": 1024, "height": 1536 },
+      "directions": ["south", "west", "north", "east"], "states": ["idle-a", "idle-b", "locomotion-a", "locomotion-b", "action", "hurt-death"], "anchor": [0.5, 0.875]
+    },
+    {
+      "id": "bomber", "kind": "enemy", "rows": 5,
+      "source": { "path": "assets/motion/enemies/bomber.webp", "sha256": "8041adecc6a0fa38d19fe71c6ebe8bbc6e6eb1b9bc97af7095dc5d377ee566f0", "width": 1024, "height": 1536 },
+      "output": { "path": "assets/motion-normalized/enemies/bomber.webp", "pixelSha256": "663df79c0b77c0539a096c27fa8263f35e81523797f2dd5e04e0b055edc857fb", "width": 1024, "height": 1280 },
+      "directions": ["south", "west", "north", "east"], "states": ["idle-a", "idle-b", "locomotion", "action", "hurt-death"], "anchor": [0.5, 0.875]
+    },
+    {
+      "id": "shark", "kind": "enemy", "rows": 6,
+      "source": { "path": "assets/motion/enemies/shark.webp", "sha256": "8f6342c3f9e5c0b62a3b38ae70c20ca88c55823b4e8d5a3ece6d84de41d4ba7b", "width": 1024, "height": 1536 },
+      "output": { "path": "assets/motion-normalized/enemies/shark.webp", "pixelSha256": "caf4ea5a3f48cb2cf8e95a927ac9ccae12f75865dab98da30dcedf6869e831d1", "width": 1024, "height": 1536 },
+      "directions": ["south", "west", "north", "east"], "states": ["idle-a", "idle-b", "locomotion-a", "locomotion-b", "action", "hurt-death"], "anchor": [0.5, 0.875]
+    },
+
+    {
+      "id": "warehouse", "kind": "boss", "rows": 6,
+      "source": { "path": "assets/motion/bosses/warehouse.webp", "sha256": "39f9494835c78f8b3908172675cecd2395d679b5aff51eb25030bb5e951716d4", "width": 1024, "height": 1536 },
+      "output": { "path": "assets/motion-normalized/bosses/warehouse.webp", "pixelSha256": "9740fa58701183adf79a5eb66acfcacabcc72e8fbc4d2faf78a7a1f2b8dfa868", "width": 1024, "height": 1536 },
+      "directions": ["south", "west", "north", "east"], "states": ["idle-a", "idle-b", "locomotion-a", "locomotion-b", "action", "hurt-death"], "anchor": [0.5, 0.875]
+    },
+    {
+      "id": "outskirts", "kind": "boss", "rows": 6,
+      "source": { "path": "assets/motion/bosses/outskirts.webp", "sha256": "464cc56ddbc5ca712fa93414804abd395528044826a5d6fefb8e3358af5b1228", "width": 1024, "height": 1536 },
+      "output": { "path": "assets/motion-normalized/bosses/outskirts.webp", "pixelSha256": "656e255dc9c11191a4128f71bf1d5a1be50a259427c66b9478f00c2e18568a9a", "width": 1024, "height": 1536 },
+      "directions": ["south", "west", "north", "east"], "states": ["idle-a", "idle-b", "locomotion-a", "locomotion-b", "action", "hurt-death"], "anchor": [0.5, 0.875]
+    },
+    {
+      "id": "lab", "kind": "boss", "rows": 6,
+      "source": { "path": "assets/motion/bosses/lab.webp", "sha256": "3a251430851526194ddb752f4c1627ec502867a9ed4ff80fd27d6c8b7b97f756", "width": 1024, "height": 1536 },
+      "output": { "path": "assets/motion-normalized/bosses/lab.webp", "pixelSha256": "4f8fd77114744b29f160dcb2bf1591a1f0900baa6a3b095631ad54cd5e80cf37", "width": 1024, "height": 1536 },
+      "directions": ["south", "west", "north", "east"], "states": ["idle-a", "idle-b", "locomotion-a", "locomotion-b", "action", "hurt-death"], "anchor": [0.5, 0.875]
+    },
+    {
+      "id": "beachhead", "kind": "boss", "rows": 5,
+      "source": { "path": "assets/motion/bosses/beachhead.webp", "sha256": "bf9a7a2b2849c16c6185988ade2b3674c25be0856890d685ca2d9226a1e20eb6", "width": 1024, "height": 1536 },
+      "output": { "path": "assets/motion-normalized/bosses/beachhead.webp", "pixelSha256": "b659d016f6cc4b8cb8651bf479821f0fedf7a0a1037c6f1842761705e32ce229", "width": 1024, "height": 1280 },
+      "directions": ["south", "west", "north", "east"], "states": ["idle-a", "idle-b", "locomotion", "action", "hurt-death"], "anchor": [0.5, 0.875]
+    }
+  ]
+}

@@ -162,3 +162,42 @@ artifacts, not runtime dependencies.
 Never generate contact sheets with platform fonts or timestamps. The tool's QA
 artifacts intentionally use only pixels and canonical sorted JSON so two builds
 from identical inputs compare byte for byte.
+
+## Normalizing generated motion sheets
+
+The shipped image-generated WebPs under `assets/motion/` are immutable source
+sheets. Several poses cross their nominal row or column cuts, so they must never
+be consumed directly as runtime grids. `motion_atlas_tool.py` segments their
+connected alpha foreground and writes isolated 256 × 256 runtime cells under
+`assets/motion-normalized/`.
+
+Run from `lastlight/`:
+
+```bash
+npm run motion-atlases:verify
+npm run motion-atlases:build
+npm run motion-atlases:report
+npm run motion-atlases:test
+```
+
+- `verify` deterministically rebuilds every normalized atlas, decodes the
+  committed WebP, and compares exact RGBA pixels to the manifest's pixel SHA.
+- `build` writes review copies and a report under the gitignored
+  `artifacts/motion-atlas-tooling/` directory.
+- `build -- --runtime` intentionally replaces deployable normalized WebPs.
+  Copy the reported decoded pixel hashes into `motion-atlas-manifest.json`, then
+  run `verify` before committing.
+- `report` includes per-frame alpha bounds and encoded byte counts. The manifest
+  enforces a ten-megabyte aggregate runtime budget.
+
+The normalizer ranks the four-by-N largest disconnected body components, orders
+them top-to-bottom and South/West/North/East, and assigns detached weapons or
+effects to the nearest body. Each complete pose is cropped, uniformly scaled,
+and placed at the canonical foot anchor `(128, 224)`. Every side of every cell
+must retain at least eight fully transparent pixels. If two neighboring poses
+touch into one alpha component, the build fails instead of guessing.
+
+Five-row sources (Spitter, Bomber, and Beachhead) normalize to 1024 × 1280.
+Six-row sources normalize to 1024 × 1536. Runtime WebP uses quality 92 with
+exact alpha. Verification intentionally pins decoded RGBA rather than container
+bytes, so harmless encoder-container differences do not invalidate the art.
