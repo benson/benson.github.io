@@ -259,15 +259,11 @@ test("Yuum.AI is a persistent, scaling combat and collection companion", () => {
 });
 
 test("weapon upgrade choices carry their generated artwork", () => {
-  const sim = new Simulation({ players: [{ id: "p1", name: "One", specialist: "zuri" }] });
-  const random = Math.random;
-  let choices;
-  try {
-    Math.random = () => 0;
-    choices = sim.generateChoices(sim.players[0]);
-  } finally {
-    Math.random = random;
-  }
+  const sim = new Simulation(
+    { players: [{ id: "p1", name: "One", specialist: "zuri" }] },
+    { seed: "0123456789abcdef0123456789abcdef" },
+  );
+  const choices = sim.generateChoices(sim.players[0]);
   const weaponChoices = choices.filter((choice) => choice.kind === "weapon");
   assert.ok(weaponChoices.length > 0);
   for (const choice of weaponChoices) assert.match(choice.icon, /^assets\/weapons\/.+\.webp$/);
