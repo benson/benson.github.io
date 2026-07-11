@@ -4,7 +4,7 @@ export const SPECIALIST_MOTION_STATES = Object.freeze(["idle", "run", "mobility"
 export const ENEMY_MOTION_STATES = Object.freeze(["idle", "locomotion", "attackWindup", "attackContact", "attackRecovery", "hurt", "death"]);
 
 const STATUS = new Set(["ready", "prototype", "missing"]);
-const PATH = /^assets\/motion\/[a-z0-9/_-]+\.webp$|^assets\/sprites\/[a-z0-9/_-]+\.png$/;
+const PATH = /^assets\/(?:motion|motion-normalized)\/[a-z0-9/_-]+\.webp$|^assets\/sprites\/[a-z0-9/_-]+\.png$/;
 const finiteTuple = (value, length) => Array.isArray(value) && value.length === length && value.every(Number.isFinite);
 const exact = (value, keys) => value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === keys.length && Object.keys(value).every((key) => keys.includes(key));
 

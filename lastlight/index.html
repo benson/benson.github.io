@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260711.5">
+  <link rel="stylesheet" href="styles.css?v=20260711.7">
 </head>
 <body>
   <main id="app">
@@ -441,8 +441,18 @@
       <div class="build-history-body">
         <article class="build-release current-build">
           <header>
-            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.11.6</h3></div>
+            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.11.7</h3></div>
             <time class="build-shipped-at" data-build-shipped-at="">Deployment verification pending</time>
+          </header>
+          <ul>
+            <li>Normalized every specialist, enemy, and apex motion atlas into isolated 256-pixel cells so poses cannot bleed across frame boundaries or appear clipped in play.</li>
+            <li>Standardized transparent gutters and ground-contact anchors, corrected the three five-row atlases, and added browser-weight and atlas-integrity release gates.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.11.6</h3></div>
+            <time class="build-shipped-at" data-build-shipped-at="2026-07-11T17:02:00-04:00">Shipped Jul 11, 2026, 5:02 PM EDT</time>
           </header>
           <ul>
             <li>Added authored four-direction motion atlases for Echo, Sola, Bront, Fang, Gale, Rift, Nova, and Vesper with distinct idle, run, action, hurt, and down poses.</li>
@@ -600,8 +610,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.11.6. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.11.6</strong></button>
-  <script src="build-history.js?v=20260711.5"></script>
-  <script type="module" src="game.js?v=20260711.5"></script>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.11.7. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.11.7</strong></button>
+  <script src="build-history.js?v=20260711.7"></script>
+  <script type="module" src="game.js?v=20260711.7"></script>
 </body>
 </html>

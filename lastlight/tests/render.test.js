@@ -57,8 +57,8 @@ test("renderer loads every delivered specialist, field-enemy, and map-apex atlas
   assert.deepEqual(Object.keys(renderer.animationAtlases), ["zuri", "echo", "sola", "bront", "fang", "gale", "rift", "nova", "vesper"]);
   assert.equal(renderer.animationAtlases.zuri.currentSrc, "assets/sprites/zuri-motion-atlas.png");
   assert.deepEqual(Object.keys(renderer.enemyAnimationAtlases), ["mite", "hound", "spitter", "brute", "bomber", "shark", "boss:warehouse", "boss:outskirts", "boss:lab", "boss:beachhead"]);
-  assert.equal(renderer.enemyAnimationAtlases.hound.currentSrc, "assets/motion/enemies/hound.webp");
-  assert.equal(renderer.enemyAnimationAtlases["boss:lab"].currentSrc, "assets/motion/bosses/lab.webp");
+  assert.equal(renderer.enemyAnimationAtlases.hound.currentSrc, "assets/motion-normalized/enemies/hound.webp");
+  assert.equal(renderer.enemyAnimationAtlases["boss:lab"].currentSrc, "assets/motion-normalized/bosses/lab.webp");
 });
 
 test("inspection returns structured combat details and controls hover state", () => {

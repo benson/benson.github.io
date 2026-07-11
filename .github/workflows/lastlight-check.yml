@@ -28,6 +28,10 @@ jobs:
         run: npm --prefix lastlight run check
       - name: Deterministic sprite atlas gate
         run: npm --prefix lastlight run sprites:verify
+      - name: Normalized motion atlas gate
+        run: npm --prefix lastlight run motion-atlases:verify
+      - name: Motion atlas segmentation tests
+        run: npm --prefix lastlight run motion-atlases:test
       - name: Lastlight tests
         run: npm --prefix lastlight test
       - name: Deterministic fixture gates

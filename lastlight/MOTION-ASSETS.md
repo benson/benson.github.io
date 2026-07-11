@@ -24,8 +24,9 @@ direction columns by six physical pose rows, with transparent 256 × 256 cells:
 | 4 | Action or attack contact |
 | 5 | Hurt / down / death |
 
-The final WebP is exactly 1024 × 1536. Every cell uses foot anchor `[0.5,
-0.875]`: the contact point between feet and ground is at pixel `(128, 224)`.
+The normalized runtime WebP is exactly 1024 × 1536 (or 1024 × 1280 for a
+five-row atlas). Every cell uses foot anchor `[0.5, 0.875]`: the contact point
+between feet and ground is at pixel `(128, 224)`.
 Keep that point stationary between cells. Atlases must not include shadows,
 glows, selection rings, health bars, labels, camera movement, or opaque
 background pixels.
@@ -62,11 +63,11 @@ Enemy archetypes:
 - `assets/motion/enemies/bomber.webp`
 - `assets/motion/enemies/shark.webp`
 
-The specialist files above and all six enemy archetype files are live,
-dimension-checked runtime atlases. Spitter, Bomber, and the Beachhead apex use
-five physical rows because their authored locomotion uses one key pose; their
-logical clips reuse that row with timing and transforms. All other newly
-delivered atlases use six rows.
+The authored WebPs above are immutable, SHA-pinned normalization sources. Live
+runtime atlases are the corresponding WebPs under `assets/motion-normalized/`.
+Spitter, Bomber, and the Beachhead apex normalize to five physical rows (1024 ×
+1280) because their authored locomotion uses one key pose; all others normalize
+to six rows (1024 × 1536).
 
 ## Delivered map apexes
 
