@@ -83,3 +83,9 @@ test("upgrade intelligence uses authoritative combat metadata", () => {
   assert.match(game, /class="upgrade-stat" tabindex="0" aria-describedby=/);
   assert.match(css, /\.upgrade-stat-tooltip/);
 });
+
+test("relay identity is sent after WebSocket upgrade instead of in the request URL", () => {
+  assert.match(game, /new URL\(`\$\{RELAY_BASE\}\$\{encodeURIComponent\(code\)\}`\)/);
+  assert.doesNotMatch(game, /url\.searchParams\.set\("(?:name|specialist|resume)"/);
+  assert.match(game, /addEventListener\("open", \(\) => send\(\{ type: "hello", profile:/);
+});

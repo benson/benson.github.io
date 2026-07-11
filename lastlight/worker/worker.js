@@ -149,19 +149,44 @@ export class Room {
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
     server.accept();
-    const url = new URL(request.url);
-    const profile = safeProfile({ name: url.searchParams.get("name"), specialist: url.searchParams.get("specialist"), resumeToken: url.searchParams.get("resume") });
     const id = crypto.randomUUID().slice(0, 8);
-    if (!this.hostId) this.hostId = id;
-    this.sessions.set(server, { id, ...profile, connectedAt: Date.now() });
-    const peers = [...this.sessions.values()].filter((peer) => peer.id !== id).map(publicPeer);
-    server.send(JSON.stringify({ type: "welcome", id, role: id === this.hostId ? "host" : "guest", peers }));
-    this.broadcast({ type: "peer_joined", peer: publicPeer(this.sessions.get(server)) }, server);
+    const session = { id, initialized: false, connectedAt: Date.now() };
+    this.sessions.set(server, session);
+    session.handshakeTimer = setTimeout(() => {
+      if (!session.initialized) {
+        try { server.close(1008, "Handshake required"); } catch {}
+        this.onClose(server);
+      }
+    }, 5_000);
 
     server.addEventListener("message", (event) => this.onMessage(server, event.data));
     server.addEventListener("close", () => this.onClose(server));
     server.addEventListener("error", () => this.onClose(server));
+    const url = new URL(request.url);
+    const hasLegacyProfile = ["name", "specialist", "resume"].some((key) => url.searchParams.has(key));
+    if (hasLegacyProfile) {
+      this.initializeSession(server, session, {
+        name: url.searchParams.get("name"),
+        specialist: url.searchParams.get("specialist"),
+        resumeToken: url.searchParams.get("resume"),
+      });
+    }
     return new Response(null, { status: 101, webSocket: client });
+  }
+
+  initializeSession(socket, session, rawProfile) {
+    if (session.initialized) return false;
+    const profile = safeProfile(rawProfile);
+    Object.assign(session, profile, { initialized: true });
+    clearTimeout(session.handshakeTimer);
+    delete session.handshakeTimer;
+    if (!this.hostId) this.hostId = session.id;
+    const peers = [...this.sessions.values()]
+      .filter((peer) => peer.initialized && peer.id !== session.id)
+      .map(publicPeer);
+    socket.send(JSON.stringify({ type: "welcome", id: session.id, role: session.id === this.hostId ? "host" : "guest", peers }));
+    this.broadcast({ type: "peer_joined", peer: publicPeer(session) }, socket);
+    return true;
   }
 
   onMessage(socket, raw) {
@@ -172,6 +197,11 @@ export class Room {
     let message;
     try { message = JSON.parse(typeof raw === "string" ? raw : new TextDecoder().decode(raw)); } catch { return; }
     if (!message || typeof message.type !== "string") return;
+    if (!session.initialized) {
+      if (message.type !== "hello") return;
+      this.initializeSession(socket, session, message.profile);
+      return;
+    }
     if (message.type === "profile") {
       const profile = safeProfile(message.profile);
       Object.assign(session, profile);
@@ -195,23 +225,26 @@ export class Room {
     const session = this.sessions.get(socket);
     if (!session) return;
     this.sessions.delete(socket);
+    clearTimeout(session.handshakeTimer);
+    if (!session.initialized) return;
     this.broadcast({ type: "peer_left", id: session.id });
     if (session.id === this.hostId) {
-      this.hostId = this.sessions.values().next().value?.id || null;
+      this.hostId = [...this.sessions.values()].find((peer) => peer.initialized)?.id || null;
       if (this.hostId) this.broadcast({ type: "host_changed", id: this.hostId });
     }
   }
 
   broadcast(message, except = null) {
     const payload = JSON.stringify(message);
-    for (const socket of this.sessions.keys()) {
+    for (const [socket, session] of this.sessions.entries()) {
       if (socket === except) continue;
+      if (!session.initialized) continue;
       try { socket.send(payload); } catch { this.onClose(socket); }
     }
   }
 
   sendTo(targetId, message) {
-    const entry = [...this.sessions.entries()].find(([, session]) => session.id === targetId);
+    const entry = [...this.sessions.entries()].find(([, session]) => session.initialized && session.id === targetId);
     if (!entry) return false;
     try { entry[0].send(JSON.stringify(message)); return true; }
     catch { this.onClose(entry[0]); return false; }

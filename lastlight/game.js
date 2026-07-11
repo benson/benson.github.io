@@ -1074,8 +1074,9 @@ function connectRoom(code) {
     const timeout = setTimeout(() => { reject(new Error("Relay connection timed out")); closeSocket(); }, 7000);
     state.connectResolve = (message) => { clearTimeout(timeout); resolve(message); };
     state.connectReject = (error) => { clearTimeout(timeout); reject(error); };
-    const url = new URL(`${RELAY_BASE}${encodeURIComponent(code)}`); url.searchParams.set("name", callsign()); url.searchParams.set("specialist", state.selected); url.searchParams.set("resume", state.resumeToken);
+    const url = new URL(`${RELAY_BASE}${encodeURIComponent(code)}`);
     const ws = new WebSocket(url); state.ws = ws;
+    ws.addEventListener("open", () => send({ type: "hello", profile: { name: callsign(), specialist: state.selected, resumeToken: state.resumeToken } }));
     ws.addEventListener("message", (event) => handleNetworkMessage(event.data));
     ws.addEventListener("error", () => state.connectReject?.(new Error("Relay connection failed")));
     ws.addEventListener("close", () => { if (state.screen === "game" && !state.isHost) { toast("Squad connection lost"); captureClientError("network", "Squad relay connection closed during a run"); } });
