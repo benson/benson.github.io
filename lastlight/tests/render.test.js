@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { settingsForPreset } from "../quality-settings.js";
 import { createImpactStressFixture } from "../fixtures/impact-stress.js";
+import { createEnvironmentInteractionStressFixture } from "../fixtures/environment-stress.js";
 import { MATERIAL_CLASSES } from "../material-impacts.js";
 import { MAP_OBSTACLES } from "../data.js";
 
@@ -183,6 +184,31 @@ test("a disappearing projectile emits the material captured at its final endpoin
   assert.equal(renderer.materialImpacts[0].response.material, "organic");
   assert.equal(renderer.materialImpacts[0].x, 160);
   assert.equal(renderer.materialImpacts[0].y, 80);
+  assert.equal(renderer.materialImpacts[0].angle, 0);
+});
+
+test("renderer draws bounded theme-owned environmental props and contacts", () => {
+  const drawContext = new Proxy({ setTransform: () => {}, measureText: () => ({ width: 0 }) }, {
+    get(target, key) { return key in target ? target[key] : () => {}; },
+    set(target, key, value) { target[key] = value; return true; },
+  });
+  const canvas = { clientWidth: 800, clientHeight: 600, width: 0, height: 0, getContext: () => drawContext, getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }) };
+  const renderer = new Renderer(canvas), fixture = createEnvironmentInteractionStressFixture();
+  renderer.environmentField.update({
+    mapId: "outskirts", bounds: fixture.bounds,
+    state: { map: "outskirts", players: fixture.movers.slice(0, 4), enemies: fixture.movers.slice(4) },
+    previous: { players: fixture.movers.slice(0, 4).map((mover) => ({ ...mover, x: mover.x - 14 })), enemies: fixture.movers.slice(4).map((mover) => ({ ...mover, x: mover.x - 14 })) },
+    materialImpacts: fixture.impacts, frameSeconds: 1 / 60, tier: "high", effectsDensity: 1,
+  });
+  assert.doesNotThrow(() => renderer.drawEnvironmentalProps());
+  assert.doesNotThrow(() => renderer.drawEnvironmentalContacts());
+  const diagnostics = renderer.environmentDiagnostics();
+  assert.ok(diagnostics.visibleProps <= 96);
+  assert.ok(diagnostics.activeProps <= 48);
+  assert.ok(diagnostics.contacts <= 36);
+  renderer.setQualitySettings(settingsForPreset("minimal"));
+  renderer.environmentField.update({ mapId: "outskirts", bounds: fixture.bounds, state: { players: [], enemies: [] }, previous: { players: [], enemies: [] }, frameSeconds: 1 / 60, tier: "minimal", effectsDensity: .3, reducedMotion: true });
+  assert.equal(renderer.environmentDiagnostics().activeProps, 0);
 });
 
 test("motion playback keeps anchors stable, respects specialist facing policies, and caps retained deaths", () => {

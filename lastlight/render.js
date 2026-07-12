@@ -1,6 +1,6 @@
 import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260711.8";
 import { WORLD } from "./engine.js?v=20260711.8";
-import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation } from "./themes/lastlight.js?v=20260711.10";
+import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260712.1";
 import { springCamera } from "./feel.js?v=20260711.8";
 import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistFacingTarget, specialistMotionState, stableDirectionColumn } from "./motion.js?v=20260711.10";
 import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
@@ -9,6 +9,7 @@ import { impactRenderPlan } from "./impact-grammar.js?v=20260711.8";
 import { movementVisualState } from "./movement.js?v=20260711.8";
 import { effectReadabilityCategory, partitionEffects, readabilityPlan, shouldPromoteCache } from "./readability.js?v=20260711.8";
 import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260711.8";
+import { EnvironmentInteractionField, stableEnvironmentUnit } from "./environment-interactions.js?v=20260712.1";
 
 const TAU = Math.PI * 2;
 export class Renderer {
@@ -28,6 +29,7 @@ export class Renderer {
     this.playerVisuals = new Map();
     this.enemyVisuals = new Map();
     this.groundParticles = [];
+    this.environmentField = new EnvironmentInteractionField(getThemeEnvironmentInteractions());
     this.materialImpacts = [];
     this.materialProjectileHistory = new Map();
     this.materialEffectHistory = new Set();
@@ -82,7 +84,7 @@ export class Renderer {
 
   resetCamera() {
     this.camera.x = 0; this.camera.y = 0; this.camera.vx = 0; this.camera.vy = 0;
-    this.playerVisuals.clear(); this.enemyVisuals.clear(); this.groundParticles = []; this.materialImpacts = []; this.materialProjectileHistory.clear(); this.materialEffectHistory.clear(); this.materialAudioCues = []; this.visualFreeze = 0; this.lastLocalHurt = 0;
+    this.playerVisuals.clear(); this.enemyVisuals.clear(); this.groundParticles = []; this.environmentField.reset(); this.materialImpacts = []; this.materialProjectileHistory.clear(); this.materialEffectHistory.clear(); this.materialAudioCues = []; this.visualFreeze = 0; this.lastLocalHurt = 0;
   }
 
   resize() {
@@ -157,7 +159,7 @@ export class Renderer {
       flashIntensity: this.qualityProfile.flashIntensity,
       soundIntensity: Math.max(.35, this.qualityProfile.effectsDensity),
     });
-    const event = { id: `material:${source.id}:${target.targetId}`, x: source.x || 0, y: source.y || 0, ageMs: 0, response, essential: weaponPlan.essential };
+    const event = { id: `material:${source.id}:${target.targetId}`, x: source.x || 0, y: source.y || 0, angle: Number.isFinite(source.vx) || Number.isFinite(source.vy) ? Math.atan2(source.vy || 0, source.vx || 0) : stableImpactUnit(`${source.id}:direction`) * TAU, ageMs: 0, response, essential: weaponPlan.essential };
     const cap = Math.max(12, Math.min(96, Math.round(this.renderBudgets.effects * .4)));
     if (this.materialImpacts.length >= cap) {
       const ordinary = this.materialImpacts.findIndex((impact) => !impact.essential);
@@ -180,7 +182,7 @@ export class Renderer {
     for (const projectile of state.projectiles || []) {
       const weaponPlan = impactRenderPlan(projectile, state, { reducedMotion: this.reducedMotion, density: this.qualityProfile.effectsDensity });
       if (!weaponPlan) continue;
-      nextHistory.set(projectile.id, { entity: { id: projectile.id, x: projectile.x, y: projectile.y }, weaponPlan, target: materialAtPoint(projectile, state, MAP_OBSTACLES, Math.max(24, projectile.radius || 0) + 24) });
+      nextHistory.set(projectile.id, { entity: { id: projectile.id, x: projectile.x, y: projectile.y, vx: projectile.vx, vy: projectile.vy }, weaponPlan, target: materialAtPoint(projectile, state, MAP_OBSTACLES, Math.max(24, projectile.radius || 0) + 24) });
     }
     this.materialProjectileHistory = nextHistory;
 
@@ -263,6 +265,71 @@ export class Renderer {
     else {const rays=/three/.test(fallback.pattern)?3:4;for(let index=0;index<rays;index++){const angle=index*TAU/rays;ctx.beginPath();ctx.moveTo(Math.cos(angle)*3,Math.sin(angle)*3);ctx.lineTo(Math.cos(angle)*radius,Math.sin(angle)*radius);ctx.stroke();}}
     ctx.restore();
   }
+
+  drawEnvironmentalProps() {
+    const ctx = this.ctx, theme = this.environmentField.theme;
+    for (const prop of this.environmentField.props) {
+      const config = theme.props[prop.kind];
+      if (!config || !this.isWorldVisible(prop, config.radius + config.maxOffset)) continue;
+      const reaction = this.environmentField.reactionFor(prop.id);
+      const offsetX = this.reducedMotion ? 0 : clamp(reaction?.x || 0, -config.maxOffset, config.maxOffset);
+      const offsetY = this.reducedMotion ? 0 : clamp(reaction?.y || 0, -config.maxOffset, config.maxOffset);
+      const rotation = this.reducedMotion ? 0 : reaction?.rotation || 0, energy = this.reducedMotion ? 0 : clamp(reaction?.energy || 0, 0, 1.5);
+      const radius = config.radius * prop.scale;
+      ctx.save(); ctx.translate(prop.x + offsetX, prop.y + offsetY); ctx.rotate(prop.angle + rotation);
+      ctx.globalAlpha = config.opacity; ctx.strokeStyle = config.color; ctx.fillStyle = config.color; ctx.lineWidth = 1.5;
+      if (prop.kind === "debris") {
+        ctx.fillStyle = "rgba(0,0,0,.28)"; ctx.beginPath(); ctx.ellipse(2, 3, radius * .85, radius * .35, 0, 0, TAU); ctx.fill();
+        ctx.fillStyle = config.color; ctx.beginPath(); ctx.moveTo(-radius, radius * .2); ctx.lineTo(-radius * .2, -radius * .62); ctx.lineTo(radius, -radius * .18); ctx.lineTo(radius * .38, radius * .62); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = config.secondary; ctx.globalAlpha = config.opacity * .65; ctx.beginPath(); ctx.moveTo(-radius * .45, -.5); ctx.lineTo(radius * .45, -.5); ctx.stroke();
+      } else if (prop.kind === "puddle") {
+        ctx.fillStyle = config.color; ctx.beginPath(); ctx.ellipse(0, 0, radius, radius * .3, 0, 0, TAU); ctx.fill();
+        ctx.strokeStyle = config.secondary; ctx.globalAlpha = config.opacity * (.65 + energy * .2); ctx.beginPath(); ctx.ellipse(0, 0, radius * (.58 + energy * .12), radius * (.15 + energy * .04), 0, 0, TAU); ctx.stroke();
+      } else if (prop.kind === "cable") {
+        ctx.lineCap = "round"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-radius, 0); ctx.quadraticCurveTo(offsetY * .8, -radius * .28 - energy * 3, radius, 0); ctx.stroke();
+        ctx.strokeStyle = config.secondary; ctx.globalAlpha = config.opacity * .45; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-radius * .72, -1); ctx.quadraticCurveTo(offsetY * .5, -radius * .22 - energy * 2, radius * .72, -1); ctx.stroke();
+      } else if (prop.kind === "fiber") {
+        ctx.lineCap = "round"; ctx.lineWidth = 2;
+        for (let index = -1; index <= 1; index++) {
+          const baseX = index * radius * .28, bend = offsetX * (.25 + Math.abs(index) * .1) + energy * (index || 1) * 2;
+          ctx.strokeStyle = index ? config.color : config.secondary; ctx.beginPath(); ctx.moveTo(baseX, radius * .3); ctx.quadraticCurveTo(baseX + bend * .45, -radius * .25, baseX + bend, -radius); ctx.stroke();
+        }
+      } else {
+        for (let index = 0; index < 3; index++) {
+          const unit = stableEnvironmentUnit(`${prop.id}:dust:${index}`), angle = unit * TAU, distance = radius * (.25 + unit * .65);
+          ctx.globalAlpha = config.opacity * (.55 + unit * .35); ctx.beginPath(); ctx.ellipse(Math.cos(angle) * distance, Math.sin(angle) * distance * .45, radius * .28, radius * .1, angle, 0, TAU); ctx.fill();
+        }
+      }
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  drawEnvironmentalContacts() {
+    const ctx = this.ctx;
+    for (const contact of this.environmentField.contacts) {
+      const plan = contact.plan, progress = clamp(contact.ageMs / Math.max(1, plan.lifetimeMs), 0, 1), motionProgress = plan.reducedMotion ? 0 : progress, fade = (1 - progress) * .42;
+      if (!this.isWorldVisible(contact, plan.radius + plan.drift + 12)) continue;
+      ctx.save(); ctx.translate(contact.x, contact.y); ctx.rotate(contact.direction); ctx.strokeStyle = plan.color; ctx.fillStyle = plan.color; ctx.globalAlpha = fade; ctx.lineWidth = 1.5;
+      if (plan.style === "ripple") {
+        for (let index = 0; index < plan.count; index++) { const size = plan.radius * (.35 + motionProgress * .65 + index * .18); ctx.beginPath(); ctx.ellipse(0, 0, size, size * .28, 0, 0, TAU); ctx.stroke(); }
+      } else if (plan.style === "dust") {
+        for (let index = 0; index < plan.count; index++) { const unit = stableEnvironmentUnit(`${contact.id}:${index}`), spread = (unit - .5) * 1.4, travel = plan.drift * motionProgress * (.45 + unit * .55) * contact.intensity; ctx.save(); ctx.translate(-Math.cos(spread) * travel, Math.sin(spread) * travel * .55); ctx.rotate(spread); ctx.beginPath(); ctx.ellipse(0, 0, 3 + motionProgress * 5, 1.3 + motionProgress * 1.2, 0, 0, TAU); ctx.fill(); ctx.restore(); }
+      } else if (plan.style === "bend") {
+        for (let index = -1; index <= 1; index += 2) { ctx.beginPath(); ctx.moveTo(index * 3, 3); ctx.quadraticCurveTo(index * plan.radius * .3, -plan.radius * .35, index * plan.radius * (.35 + motionProgress * .3), -plan.radius * .75); ctx.stroke(); }
+      } else if (plan.style === "arc") {
+        ctx.strokeStyle = plan.secondary; for (let index = 0; index < plan.count; index++) { const y = (index - (plan.count - 1) / 2) * 4; ctx.beginPath(); ctx.moveTo(-plan.radius * .35, y); ctx.lineTo(0, y - 3); ctx.lineTo(plan.radius * .35, y + 1); ctx.stroke(); }
+      } else if (plan.style === "inward") {
+        for (let index = 0; index < plan.count; index++) { const angle = stableEnvironmentUnit(`${contact.id}:void:${index}`) * TAU, distance = plan.radius * (1 - motionProgress) * (.5 + index / Math.max(1, plan.count)); ctx.beginPath(); ctx.arc(Math.cos(angle) * distance, Math.sin(angle) * distance, 2, 0, TAU); ctx.fill(); }
+      } else {
+        for (let index = 0; index < plan.count; index++) { const spread = (index - (plan.count - 1) / 2) * .55; ctx.save(); ctx.rotate(spread); ctx.beginPath(); ctx.moveTo(-3, 0); ctx.lineTo(plan.radius * (.55 + motionProgress * .3), 0); ctx.stroke(); ctx.restore(); }
+      }
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  environmentDiagnostics() { return this.environmentField.diagnostics(); }
 
   clearInspection() {
     this.hoveredEntity = null;
@@ -373,6 +440,12 @@ export class Renderer {
     this.lastLocalHurt = hurt;
     const visualDt = this.visualFreeze > 0 ? 0 : frameSeconds;
     this.visualFreeze = Math.max(0, this.visualFreeze - frameSeconds);
+    this.environmentField.update({
+      mapId: map.id,
+      bounds: { left: this.camera.x - this.width / 2 - 120, top: this.camera.y - this.height / 2 - 120, right: this.camera.x + this.width / 2 + 120, bottom: this.camera.y + this.height / 2 + 120 },
+      state, previous, materialImpacts: this.materialImpacts, frameSeconds: visualDt,
+      tier: this.qualityProfile.tier, effectsDensity: this.qualityProfile.effectsDensity, reducedMotion: this.reducedMotion,
+    });
     const shakeX = Math.sin(performance.now() * .09) * hurt * 7 * this.qualityProfile.shake, shakeY = Math.cos(performance.now() * .073) * hurt * 5 * this.qualityProfile.shake;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.fillStyle = map.floor; ctx.fillRect(0, 0, this.width, this.height);
@@ -382,6 +455,7 @@ export class Renderer {
     ctx.translate(this.width / 2 - this.camera.x + shakeX, this.height / 2 - this.camera.y + shakeY);
     this.drawWorldBorder(map);
     this.drawMapGuides(map);
+    this.drawEnvironmentalProps();
     this.drawMachine(state, map);
     const effectPasses = partitionEffects(state.effects || []);
     const friendlyProjectiles = this.budget(state.projectiles || [], this.renderBudgets.projectiles);
@@ -391,6 +465,7 @@ export class Renderer {
     this.drawDrops(state.drops || []);
     this.drawOrbs(this.budget(state.orbs || [], this.renderBudgets.orbs));
     this.drawMaterialImpacts();
+    this.drawEnvironmentalContacts();
     this.drawEffects(effectPasses.ground, map, previous, interpolation, "ground", state);
     this.drawFeathers(state.feathers || []);
     this.drawProjectiles(friendlyProjectiles, false, state);

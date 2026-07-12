@@ -10,6 +10,7 @@ import {
   getThemeAnimation,
   getThemeAsset,
   getThemeEnemyAnimation,
+  getThemeEnvironmentInteractions,
   getThemeMaterial,
   validateTheme,
 } from "../themes/lastlight.js";
@@ -112,6 +113,9 @@ test("logical asset lookup is predictable and rejects typos", () => {
   assert.equal(getThemeMaterial("metal").label, "Metal / armor");
   assert.equal(getThemeMaterial("void").fallback.pattern, "inward-spiral");
   assert.throws(() => getThemeMaterial("wood"), /Unknown theme material/);
+  assert.equal(getThemeEnvironmentInteractions().schema, "lastlight.environment-interactions.v1");
+  assert.deepEqual(getThemeEnvironmentInteractions().maps.lab.props, ["puddle", "cable", "debris"]);
+  assert.equal(Object.isFrozen(getThemeEnvironmentInteractions()), true);
 });
 
 test("specialist motion metadata is complete, strict, and theme-swappable", async () => {

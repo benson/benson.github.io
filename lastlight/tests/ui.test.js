@@ -14,6 +14,11 @@ test("guide exposes the six adaptive impact materials and their accessibility fa
   assert.match(game, /renderer\.drainMaterialAudioCues/);
 });
 
+test("performance reports expose cosmetic environmental load without protocol fields", () => {
+  assert.match(game, /environmentInteractions: renderer\.environmentDiagnostics\(\)/);
+  assert.doesNotMatch(game, /send\([^\n]+environmentInteractions/);
+});
+
 test("damage source telemetry updates a persistent interactive panel shell", () => {
   assert.match(html, /id="damage-ledger-handle"[^>]+tabindex="0"/);
   assert.match(html, /id="damage-ledger-collapse"[^>]+aria-expanded="true"/);

@@ -1,5 +1,6 @@
 import { ENEMY_MOTION_STATES, MOTION_DIRECTIONS, MOTION_SCHEMA, SPECIALIST_MOTION_STATES, validateMotionRig } from "../motion.js?v=20260711.10";
 import { LASTLIGHT_MATERIAL_THEME, MATERIAL_CLASSES, validateMaterialTheme } from "../material-impacts.js?v=20260711.8";
+import { LASTLIGHT_ENVIRONMENT_INTERACTIONS, validateEnvironmentInteractions } from "../environment-interactions.js?v=20260712.1";
 
 /**
  * The canonical asset contract for a Lastlight visual theme.
@@ -259,6 +260,7 @@ export const LASTLIGHT_THEME = defineTheme({
   name: "Lastlight",
   assets: LASTLIGHT_ASSETS,
   materials: LASTLIGHT_MATERIAL_THEME,
+  environmentInteractions: LASTLIGHT_ENVIRONMENT_INTERACTIONS,
   animations: {
     specialists: specialistMotions,
     enemies: enemyMotions,
@@ -288,6 +290,10 @@ export function getThemeMaterial(materialId, theme = LASTLIGHT_THEME) {
   return theme.materials[materialId];
 }
 
+export function getThemeEnvironmentInteractions(theme = LASTLIGHT_THEME) {
+  return theme?.environmentInteractions || null;
+}
+
 export function getMissingMotionAssets(theme = LASTLIGHT_THEME) {
   const entries = [];
   for (const [id, rig] of Object.entries(theme.animations?.specialists || {})) if (rig.status !== "ready") entries.push({ kind: "specialist", id, status: rig.status, src: rig.atlas.src, expectedSize: [...rig.atlas.expectedSize] });
@@ -313,6 +319,7 @@ export function validateTheme(theme) {
   if (typeof theme.id !== "string" || !theme.id.trim()) errors.push("Theme id must be a non-empty string.");
   if (typeof theme.name !== "string" || !theme.name.trim()) errors.push("Theme name must be a non-empty string.");
   for (const error of validateMaterialTheme(theme.materials)) errors.push(error);
+  for (const error of validateEnvironmentInteractions(theme.environmentInteractions)) errors.push(error);
 
   const groups = [
     ["specialists", theme.assets?.specialists, THEME_ASSET_KEYS.specialists],
