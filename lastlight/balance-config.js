@@ -1,6 +1,6 @@
 // Balance is a versioned simulation input. Replays and fixtures should record
 // this exact version so a future tuning pass never silently changes old runs.
-export const BALANCE_VERSION = "2026.07.12-cover.1";
+export const BALANCE_VERSION = "2026.07.12-identity.2";
 
 export const BALANCE_IDS = Object.freeze({
   specialists: Object.freeze(["zuri", "echo", "sola", "bront", "fang", "gale", "rift", "nova", "vesper"]),
@@ -151,7 +151,7 @@ const config = {
       bront: { cycle: 4.8, cyclePerLevel: -0.20, evolvedCycle: 0.68, range: 700, radiusBase: 95, radiusPerLevel: 16, damageBase: 70, damagePerLevel: 24, evolvedDelay: 0.35, evolvedRadius: 155, evolvedDamageBase: 110 },
       fang: { cycle: 2, cyclePerLevel: -0.10, evolvedCycle: 0.68, offset: 86, radiusBase: 90, radiusPerLevel: 14, damageBase: 36, damagePerLevel: 19, maxHealthDamage: 1.5 },
       gale: { cycle: 0.25, cyclePerLevel: 0, evolvedCycle: 0.68, flowCost: 100, countBase: 1, countEveryLevels: 2, countCap: 7, speed: 430, damageBase: 65, damagePerLevel: 21, spread: 0.16, radiusBase: 14, radiusPerLevel: 2, pierce: 5, evolvedPierce: 12, life: 3.2 },
-      rift: { cycle: 0.3, cyclePerLevel: 0, evolvedCycle: 0.68, offset: 58, radiusBase: 72, radiusPerLevel: 10, damageBase: 30, damagePerLevel: 13 },
+      rift: { cycle: 0.6, cyclePerLevel: 0, evolvedCycle: 0.68, offset: 58, radiusBase: 72, radiusPerLevel: 10, damageBase: 30, damagePerLevel: 13 },
       nova: { cycle: 3, cyclePerLevel: 0, evolvedCycle: 0.68, countBase: 1, countEveryLevels: 2, countCap: 8, speed: 360, damageBase: 53, damagePerLevel: 14, spread: 0.32, radius: 10, pierce: 8, life: 1.75, evolvedLife: 2.25 },
       vesper: { cycle: 2.5, cyclePerLevel: -0.125, evolvedCycle: 0.68, countBase: 1, countEveryLevels: 3, speed: 700, damageBase: 51, damagePerLevel: 14, spread: 0.09, radius: 7, pierce: 7, evolvedPierce: 14, life: 1.7 },
     },

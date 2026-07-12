@@ -1,11 +1,11 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
-} from "./data.js?v=20260711.8";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260711.8";
+} from "./data.js?v=20260712.2";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260712.2";
 import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.5";
 import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260711.5";
-import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260711.8";
+import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260712.2";
 
 const BALANCE = getBalanceConfig();
 
@@ -669,16 +669,6 @@ export class Simulation {
 
   executeTask(task) {
     const payload = task.payload || {};
-    if (task.kind === "echo-repeat") {
-      const player = this.players.find((candidate) => candidate.id === payload.ownerId);
-      if (!player || player.dead || player.downed) return;
-      for (let index = 0; index < payload.count; index++) {
-        this.shoot(player, payload.aim + (index - (payload.count - 1) / 2) * payload.spread, payload.speed, payload.damage, {
-          radius: payload.radius, color: payload.color, pierce: payload.pierce, life: payload.life, wave: true,
-        });
-      }
-      return;
-    }
     if (task.kind === "echo-projectile-repeat") {
       const player = this.players.find((candidate) => candidate.id === payload.ownerId);
       if (!player || player.dead || player.downed) return;

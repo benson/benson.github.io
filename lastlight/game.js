@@ -1,13 +1,13 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260711.8";
-import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260712.1";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260712.2";
+import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260712.2";
 import { Renderer } from "./render.js?v=20260712.1";
 import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260711.8";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
 import { getThemeAsset, getThemeMaterial } from "./themes/lastlight.js?v=20260712.1";
 import { submitRunTelemetry } from "./telemetry.js?v=20260711.5";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260711.8";
-import { BALANCE_HASH, BALANCE_VERSION } from "./balance-config.js?v=20260712.1";
+import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260712.2";
+import { BALANCE_HASH, BALANCE_VERSION } from "./balance-config.js?v=20260712.2";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
 import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260712.1";
 import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260711.5";
@@ -15,8 +15,8 @@ import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settings
 import { clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260711.5";
 import { GuestInputSequenceTracker, HostInputSequenceGate, createSnapshotMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260711.5";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260711.5";
-import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260711.8";
-import { advancePlayerMovement } from "./movement.js?v=20260711.8";
+import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260712.2";
+import { advancePlayerMovement } from "./movement.js?v=20260712.2";
 import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
 import { DynamicAudioMixer } from "./audio-mix.js?v=20260711.10";
 import { buildUpgradeComparison, weaponTelemetry } from "./upgrade-preview.js?v=20260712.1";
@@ -32,7 +32,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.12.1";
+const BUILD = "2026.07.12.2";
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
 const systemReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false;
 const initialQualitySettings = (() => {
@@ -399,7 +399,8 @@ function renderGuide() {
   const identities = SPECIALIST_ORDER.map((id) => {
     const spec = SPECIALISTS[id], identity = getSpecialistIdentity(id);
     const label = (value) => String(value).replaceAll("-", " ");
-    const strengths = [identity.mobility.tier !== "none" && `${label(identity.mobility.tier)} mobility`, identity.safety.tier !== "none" && `${label(identity.safety.tier)} safety`, identity.control.tier !== "none" && `${label(identity.control.tier)} control`, identity.support.tier !== "none" && `${label(identity.support.tier)} support`].filter(Boolean).join(" · ");
+    const strong = (tier) => ["high", "very-high"].includes(tier);
+    const strengths = [strong(identity.mobility.tier) && `${label(identity.mobility.tier)} mobility`, strong(identity.safety.tier) && `${label(identity.safety.tier)} safety`, strong(identity.control.tier) && `${label(identity.control.tier)} control`, strong(identity.support.tier) && `${label(identity.support.tier)} support`].filter(Boolean).join(" · ") || `${label(identity.damageShape.cadence)} ${label(identity.range)}-range damage`;
     return guideCard(spec.number, spec.name, `${label(identity.role.primary)} · ${label(identity.role.specialization)}`, `${strengths}. Failure point: ${identity.failureModes[0].consequence}`, "", spec.sprite, {
       Range: label(identity.range), Mobility: label(identity.mobility.tier), Durability: label(identity.durability.tier), Safety: label(identity.safety.tier), Control: label(identity.control.tier), Support: label(identity.support.tier), "Identity contract": SPECIALIST_IDENTITY_VERSION,
     });
@@ -449,7 +450,8 @@ function selectSpecialist(id) {
   $("detail-role").textContent = spec.role; $("detail-name").textContent = spec.name.toUpperCase(); $("detail-tagline").textContent = spec.tagline;
   $("detail-health").textContent = spec.health; $("detail-armor").textContent = spec.armor; $("detail-range").textContent = spec.range;
   const identity = getSpecialistIdentity(id), label = (value) => String(value).replaceAll("-", " ");
-  $("identity-strengths").textContent = [identity.mobility.tier !== "none" && `${label(identity.mobility.tier)} mobility`, identity.safety.tier !== "none" && `${label(identity.safety.tier)} safety`, identity.control.tier !== "none" && `${label(identity.control.tier)} control`, identity.support.tier !== "none" && `${label(identity.support.tier)} support`].filter(Boolean).join(" · ");
+  const strong = (tier) => ["high", "very-high"].includes(tier);
+  $("identity-strengths").textContent = [strong(identity.mobility.tier) && `${label(identity.mobility.tier)} mobility`, strong(identity.safety.tier) && `${label(identity.safety.tier)} safety`, strong(identity.control.tier) && `${label(identity.control.tier)} control`, strong(identity.support.tier) && `${label(identity.support.tier)} support`].filter(Boolean).join(" · ") || `${label(identity.damageShape.cadence)} ${label(identity.range)}-range damage`;
   $("identity-risk").textContent = identity.failureModes[0].consequence;
   $("detail-weapon-icon").src = spec.signature.icon; $("detail-weapon-icon").alt = ""; $("detail-weapon-name").textContent = spec.signature.name;
   renderStartingWeaponDetails(spec);

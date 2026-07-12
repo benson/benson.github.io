@@ -11,8 +11,8 @@ import { Simulation } from "../engine.js";
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
 test("the canonical movement contract has an explicit stable replay identity", () => {
-  assert.equal(BALANCE_VERSION, "2026.07.12-cover.1");
-  assert.equal(BALANCE_HASH, "fnv1a32:4b3f3e5e");
+  assert.equal(BALANCE_VERSION, "2026.07.12-identity.2");
+  assert.equal(BALANCE_HASH, "fnv1a32:4ba2b39c");
   assert.equal(balanceFingerprint(BALANCE_CONFIG), BALANCE_HASH);
   assert.deepEqual(getBalanceManifest(), { balanceVersion: BALANCE_VERSION, balanceHash: BALANCE_HASH });
   assert.match(canonicalBalanceData(), /^\{"core":/);
@@ -79,7 +79,7 @@ test("catalog data is a lossless view of the baseline contract", () => {
   assert.deepEqual(WAVE_NAMES, BALANCE_CONFIG.waves.names);
 });
 
-test("baseline pacing and combat scalars match the pre-contract production values", () => {
+test("versioned pacing and combat scalars match the authored identity release", () => {
   assert.deepEqual(BALANCE_CONFIG.difficulties, {
     story: { health: 1.2, attack: 1.3, spell: 1.2, gold: 1, spawn: 0.98, passiveRegen: 0.015 },
     hard: { health: 3, attack: 2, spell: 1.5, gold: 1.5, spawn: 1.35, passiveRegen: 0 },
@@ -99,7 +99,7 @@ test("baseline pacing and combat scalars match the pre-contract production value
   });
   assert.deepEqual(
     Object.fromEntries(BALANCE_IDS.specialists.map((id) => [id, BALANCE_CONFIG.weapons.signatures[id].cycle])),
-    { zuri: 2.5, echo: 3, sola: 2.75, bront: 4.8, fang: 2, gale: 0.25, rift: 0.3, nova: 3, vesper: 2.5 },
+    { zuri: 2.5, echo: 3, sola: 2.75, bront: 4.8, fang: 2, gale: 0.25, rift: 0.6, nova: 3, vesper: 2.5 },
   );
   assert.deepEqual(
     Object.fromEntries(BALANCE_IDS.universalWeapons.map((id) => [id, BALANCE_CONFIG.weapons.universal[id].damageBase ?? null])),
@@ -117,10 +117,10 @@ test("simulation headers carry immutable balance identity and baseline enemy mat
   assert.equal(enemy.damage, 0.75 * 1.3);
 });
 
-test("signature cadence remains equivalent at rank one and rank five", () => {
+test("signature cadence matches the versioned rank-one and rank-five contract", () => {
   const expected = {
     zuri: [2.5, 2.5], echo: [3, 2], sola: [2.75, 1.75], bront: [4.8, 4],
-    fang: [2, 1.6], gale: [0.25, 0.25], rift: [0.3, 0.3], nova: [3, 3], vesper: [2.5, 2],
+    fang: [2, 1.6], gale: [0.25, 0.25], rift: [0.6, 0.6], nova: [3, 3], vesper: [2.5, 2],
   };
   for (const [id, [rankOne, rankFive]] of Object.entries(expected)) {
     const tuning = BALANCE_CONFIG.weapons.signatures[id];

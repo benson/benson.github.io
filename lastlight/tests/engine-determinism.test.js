@@ -119,7 +119,7 @@ test("all authored delayed task kinds are descriptors with stable execution", ()
   const echo = create("echo");
   echo.chance = () => true;
   echo.fireSignature(echo.players[0]);
-  assert.equal(echo.tasks[0].kind, "echo-repeat");
+  assert.equal(echo.tasks[0].kind, "echo-projectile-repeat");
   const firstVolley = echo.projectiles.length;
   echo.tick = echo.tasks[0].dueTick;
   echo.updateTasks();
