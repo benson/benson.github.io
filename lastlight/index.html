@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260711.10">
+  <link rel="stylesheet" href="styles.css?v=20260712.1">
 </head>
 <body>
   <main id="app">
@@ -472,7 +472,19 @@
       <div class="build-history-body">
         <article class="build-release current-build">
           <header>
-            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.11.10</h3></div>
+            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.12.1</h3></div>
+            <time class="build-shipped-at" data-build-shipped-at="">Deployment verification pending</time>
+          </header>
+          <ul>
+            <li>Added a verified replay viewer with play, pause, speed, five-second seeking, backward reconstruction, live stats and loadouts, field inspection, and secondary JSON export.</li>
+            <li>Connected movement and weapon impacts to theme-owned debris, puddles, cables, fibers, dust, and six material contact grammars with strict performance and reduced-motion budgets.</li>
+            <li>Made raised cover intercept ordinary friendly and hostile projectiles without tunneling, while preserving explicit rail and apex-fire exceptions; auto-aim movement now keeps body facing aligned with travel.</li>
+            <li>Added authoritative before-and-after upgrade comparisons and made the report shortcut work across command, lobby, waiting, pause, upgrade, result, and live-game screens without firing while typing.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.11.10</h3></div>
             <time class="build-shipped-at" data-build-shipped-at="2026-07-11T22:29:00-04:00">Shipped Jul 11, 2026, 10:29 PM EDT</time>
           </header>
           <ul>
@@ -675,8 +687,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.11.10. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.11.10</strong></button>
-  <script src="build-history.js?v=20260711.10"></script>
-  <script type="module" src="game.js?v=20260711.10"></script>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.12.1. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.12.1</strong></button>
+  <script src="build-history.js?v=20260712.1"></script>
+  <script type="module" src="game.js?v=20260712.1"></script>
 </body>
 </html>

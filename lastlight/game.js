@@ -1,5 +1,5 @@
 import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260711.8";
-import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260711.8";
+import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260712.1";
 import { Renderer } from "./render.js?v=20260712.1";
 import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260711.8";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
@@ -7,9 +7,9 @@ import { getThemeAsset, getThemeMaterial } from "./themes/lastlight.js?v=2026071
 import { submitRunTelemetry } from "./telemetry.js?v=20260711.5";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
 import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260711.8";
-import { BALANCE_HASH, BALANCE_VERSION } from "./balance-config.js?v=20260711.8";
+import { BALANCE_HASH, BALANCE_VERSION } from "./balance-config.js?v=20260712.1";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
-import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260711.10";
+import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260712.1";
 import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260711.5";
 import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260711.5";
 import { clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260711.5";
@@ -19,10 +19,10 @@ import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./im
 import { advancePlayerMovement } from "./movement.js?v=20260711.8";
 import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
 import { DynamicAudioMixer } from "./audio-mix.js?v=20260711.10";
-import { buildUpgradeComparison, weaponTelemetry } from "./upgrade-preview.js?v=20260711.10";
-import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260711.10";
-import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260711.9";
-import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260711.9";
+import { buildUpgradeComparison, weaponTelemetry } from "./upgrade-preview.js?v=20260712.1";
+import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260712.1";
+import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260712.1";
+import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260712.1";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -31,7 +31,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.11.10";
+const BUILD = "2026.07.12.1";
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
 const systemReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false;
 const initialQualitySettings = (() => {
