@@ -1134,6 +1134,11 @@ export class Simulation {
         bullet.x = coverImpact.x; bullet.y = coverImpact.y; bullet.dead = true; bullet.coverImpact = coverImpact.obstacleIndex;
         this.effects.push({ id: this.nextCosmeticId("cover"), x: bullet.x, y: bullet.y, radius: Math.max(10, bullet.radius * 1.6), life: .18, maxLife: .18, damage: 0, owner: "cover", color: bullet.color, kind: "coverImpact", obstacleIndex: coverImpact.obstacleIndex, hit: new Set() });
       } else { bullet.x = endX; bullet.y = endY; }
+      if (!bullet.dead) {
+        const padding = BALANCE.identityTuning.gale.windwallProjectilePadding;
+        const wall = this.effects.find((effect) => effect.kind === "windwall" && effect.life > 0 && Math.hypot(bullet.x - effect.x, bullet.y - effect.y) <= effect.radius + bullet.radius + padding);
+        if (wall) bullet.dead = true;
+      }
       for (const p of this.players) {
         if (p.dead || p.downed || bullet.dead || !circleHit(bullet, p)) continue;
         this.takeDamage(p, bullet.damage, bullet); bullet.dead = true;
