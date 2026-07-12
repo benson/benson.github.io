@@ -1,0 +1,2 @@
+lastlight/benchmarks/reports/*.json text eol=lf
+lastlight/benchmarks/reports/*.md text eol=lf
