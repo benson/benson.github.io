@@ -1,6 +1,6 @@
 // Balance is a versioned simulation input. Replays and fixtures should record
 // this exact version so a future tuning pass never silently changes old runs.
-export const BALANCE_VERSION = "2026.07.12-identity.2";
+export const BALANCE_VERSION = "2026.07.12-signatures.3";
 
 export const BALANCE_IDS = Object.freeze({
   specialists: Object.freeze(["zuri", "echo", "sola", "bront", "fang", "gale", "rift", "nova", "vesper"]),
@@ -38,11 +38,11 @@ const config = {
     echo: { repeatChance: 0.25, repeatDelay: 0.25 },
     sola: { armorMultiplier: 2, aftershockShieldMaxHealth: 0.25 },
     bront: { crashDashDistance: 170 },
-    fang: { missingHealthDamageBonus: 0.60 },
+    fang: { missingHealthDamageBonus: 0.60, signatureKnockbackScale: 0.22 },
     gale: { flowPerSecond: 30, flowHasteRatio: 0.50, evolvedFlowMultiplier: 1.15, windwallKnockback: 240, windwallProjectilePadding: 18 },
-    rift: { damageShieldRatio: 0.03, damageShieldCapMaxHealth: 0.35 },
+    rift: { damageShieldRatio: 0.03, damageShieldCapMaxHealth: 0.35, signatureKnockbackScale: 0.22 },
     nova: { hexDuration: 8 },
-    vesper: { recallPierce: 30 },
+    vesper: { recallPierce: 30, innatePickupRadius: 299 },
   },
   movement: {
     version: "lastlight.movement.v1",
@@ -147,13 +147,13 @@ const config = {
     signatures: {
       zuri: { cycle: 2.5, cyclePerLevel: 0, evolvedCycle: 0.5, countBase: 2, countPerLevel: 1, speed: 780, damageBase: 31, damagePerLevel: 11, spread: 0.07, radius: 5, evolvedPierce: 4, life: 1.7 },
       echo: { cycle: 3, cyclePerLevel: -0.25, evolvedCycle: 0.68, countCap: 6, countPerLevel: 1, speed: 490, damageBase: 48, damagePerLevel: 14, spread: 0.17, radius: 12, pierce: 7, life: 1.9, evolvedLife: 2.6, repeatChance: 0.25, repeatDelay: 0.25 },
-      sola: { cycle: 2.75, cyclePerLevel: -0.25, evolvedCycleSeconds: 1.5, countBase: 3, countEveryLevels: 2, speed: 650, damageBase: 26, damagePerLevel: 11, armorDamage: 1.2, spread: 0.12, radius: 7, pierce: 7, life: 0.62 },
+      sola: { cycle: 2.75, cyclePerLevel: -0.25, evolvedCycleSeconds: 1.5, countBase: 2, countEveryLevels: 2, speed: 650, damageBase: 20, damagePerLevel: 11, armorDamage: 0.85, spread: 0.38, radius: 7, pierce: 7, life: 0.62 },
       bront: { cycle: 4.8, cyclePerLevel: -0.20, evolvedCycle: 0.68, range: 700, radiusBase: 95, radiusPerLevel: 16, damageBase: 70, damagePerLevel: 24, evolvedDelay: 0.35, evolvedRadius: 155, evolvedDamageBase: 110 },
-      fang: { cycle: 2, cyclePerLevel: -0.10, evolvedCycle: 0.68, offset: 86, radiusBase: 90, radiusPerLevel: 14, damageBase: 36, damagePerLevel: 19, maxHealthDamage: 1.5 },
+      fang: { cycle: 2, cyclePerLevel: -0.10, evolvedCycle: 0.78, offset: 86, radiusBase: 90, radiusPerLevel: 14, damageBase: 36, damagePerLevel: 14, maxHealthDamage: 0.75 },
       gale: { cycle: 0.25, cyclePerLevel: 0, evolvedCycle: 0.68, flowCost: 100, countBase: 1, countEveryLevels: 2, countCap: 7, speed: 430, damageBase: 65, damagePerLevel: 21, spread: 0.16, radiusBase: 14, radiusPerLevel: 2, pierce: 5, evolvedPierce: 12, life: 3.2 },
-      rift: { cycle: 0.6, cyclePerLevel: 0, evolvedCycle: 0.68, offset: 58, radiusBase: 72, radiusPerLevel: 10, damageBase: 30, damagePerLevel: 13 },
-      nova: { cycle: 3, cyclePerLevel: 0, evolvedCycle: 0.68, countBase: 1, countEveryLevels: 2, countCap: 8, speed: 360, damageBase: 53, damagePerLevel: 14, spread: 0.32, radius: 10, pierce: 8, life: 1.75, evolvedLife: 2.25 },
-      vesper: { cycle: 2.5, cyclePerLevel: -0.125, evolvedCycle: 0.68, countBase: 1, countEveryLevels: 3, speed: 700, damageBase: 51, damagePerLevel: 14, spread: 0.09, radius: 7, pierce: 7, evolvedPierce: 14, life: 1.7 },
+      rift: { cycle: 0.9, cyclePerLevel: 0, evolvedCycle: 0.75, offset: 58, radiusBase: 72, radiusPerLevel: 10, damageBase: 22, damagePerLevel: 18 },
+      nova: { cycle: 2.8, cyclePerLevel: 0, evolvedCycle: 0.62, countBase: 1, countEveryLevels: 2, countCap: 8, speed: 480, damageBase: 58, damagePerLevel: 17, spread: 0.38, radius: 10, pierce: 8, life: 2.25, evolvedLife: 3 },
+      vesper: { cycle: 2.5, cyclePerLevel: -0.125, evolvedCycle: 0.62, countBase: 1, countEveryLevels: 3, speed: 700, damageBase: 56, damagePerLevel: 16, spread: 0.32, radius: 7, pierce: 7, evolvedPierce: 14, life: 1.7 },
     },
     universal: {
       uwu: { cooldownBase: 0.75, cooldownPerLevel: -0.07, evolvedCooldown: 0.35, countBase: 1, countEveryLevels: 3, speed: 820, damageBase: 28, damagePerLevel: 10, spreadRandom: 0.045, radius: 5, evolvedPierce: 1 },

@@ -484,6 +484,7 @@ kbd { display: inline-grid; min-width: 26px; height: 24px; place-items: center; 
 .active-buff-tooltip small { margin-top: 8px; color: #7f969d; font: 700 9px/1 var(--sans); letter-spacing: .05em; text-transform: uppercase; }
 .active-buff:hover, .active-buff:focus-visible { border-color: rgba(99,242,223,.72); outline: none; }
 .active-buff:hover .active-buff-tooltip, .active-buff:focus-visible .active-buff-tooltip { opacity: 1; transform: translateY(0); }
+.active-buff:focus-visible .active-buff-tooltip { transition: none; }
 .damage-ledger { position: absolute; z-index: 6; left: 22px; top: 112px; width: 250px; min-width: 210px; min-height: 110px; max-width: min(440px, calc(100vw - 16px)); max-height: calc(100vh - 32px); overflow: hidden; resize: both; border: 1px solid rgba(255,255,255,.12); background: rgba(4,11,19,.88); box-shadow: 0 12px 34px rgba(0,0,0,.24); }
 .damage-ledger.no-data { visibility: hidden; pointer-events: none; }
 .damage-ledger-handle { min-height: 34px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 9px 8px 13px; border-bottom: 1px solid rgba(255,255,255,.08); cursor: grab; touch-action: none; }
@@ -1146,4 +1147,5 @@ html[data-reduced-motion="true"] .scanlines { animation: none; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+  .active-buff-tooltip, .active-buff:hover .active-buff-tooltip, .active-buff:focus-visible .active-buff-tooltip { transform: none; transition: none; }
 }

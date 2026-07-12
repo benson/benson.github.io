@@ -1,6 +1,6 @@
 # Specialist identity contract
 
-`specialist-identity.js` is the versioned, immutable design contract for all nine specialists. It describes mechanical intent—not selection-screen copy—and is pinned to balance version `2026.07.12-identity.2`.
+`specialist-identity.js` is the versioned, immutable design contract for all nine specialists. It describes mechanical intent—not selection-screen copy—and is pinned to balance version `2026.07.12-signatures.3`.
 
 Every entry has the same strict shape: role and specialization, effective range, mobility, durability, damage cadence and delivery, scaling, safety, control, support, objective value, failure modes, and intended breakpoints. Validation rejects unknown fields, missing specialists, invalid vocabulary, duplicate identifiers, and drift from base stats, movement profiles, unlock levels, cooldowns, ranges, or evolution passives.
 
@@ -19,7 +19,7 @@ Every entry has the same strict shape: role and specialization, effective range,
 ## Breakpoints
 
 - Level 3 unlocks each active; level 6 unlocks each ultimate.
-- Signature rank 5 is the authored cap and enables evolution with the paired passive.
+- Signature rank 5 is the authored cap. Rank 5 plus at least one rank of the paired passive makes the signature eligible; consuming an elite access card performs the evolution.
 - Additional engine gates are explicit for Zuri (70 kills or one elite), Fang (missing-health curve), Gale (100 flow), Rift (120 units traveled), Nova (one wisp per seven levels), and Vesper (live stored feathers).
 - Objective ratings are indirect. Every living specialist contributes equally to capture, relay-ball, and machine charge; identities add rotation, survival, control, or collection value, never a direct capture multiplier.
 

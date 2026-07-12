@@ -132,6 +132,15 @@ function entityCount(sim) {
   return ["players", "drones", "enemies", "projectiles", "hostile", "effects", "orbs", "drops", "pods", "objectives", "relayBalls", "feathers", "tasks"].reduce((sum, key) => sum + (sim[key]?.length || 0), 0);
 }
 
+export {
+  applyUpgradeTo as applySpecialistBenchmarkUpgrade,
+  createSimulation as createSpecialistBenchmarkSimulation,
+  entityCount as specialistBenchmarkEntityCount,
+  placeEnemy as placeSpecialistBenchmarkEnemy,
+  round as roundSpecialistBenchmarkValue,
+  seedFor as specialistBenchmarkSeed,
+};
+
 function activeAbilityState(sim, player) {
   return player.frenzy > 0 || player.hasteBuff > 0 || player.speedBuff > 0 || player.invuln > 0
     || sim.effects.some((effect) => effect.owner === player.id && String(effect.sourceId || "").startsWith("ability:"));

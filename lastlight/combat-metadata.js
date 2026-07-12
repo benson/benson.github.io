@@ -1,4 +1,4 @@
-import { PASSIVES, SPECIALISTS, WEAPONS } from "./data.js?v=20260712.2";
+import { PASSIVES, SPECIALISTS, WEAPONS } from "./data.js?v=20260712.3";
 
 export const PROJECTILE_MODES = Object.freeze(["counted", "field", "single-effect", "utility"]);
 export const SCALE_TAGS = Object.freeze([
@@ -54,7 +54,7 @@ export const SPECIALIST_COMBAT = Object.freeze({
     ultimate: source("single-effect", false, ["haste", "area", "duration"]),
   }),
   fang: Object.freeze({
-    signature: source("single-effect", false, ["haste", "area", "maxHealth"]),
+    signature: source("single-effect", false, ["damage", "haste", "area", "maxHealth"]),
     active: source("utility", false, ["haste", "duration", "maxHealth"]),
     ultimate: source("single-effect", false, ["haste", "area"]),
   }),
@@ -64,7 +64,7 @@ export const SPECIALIST_COMBAT = Object.freeze({
     ultimate: source("field", false, ["haste"]),
   }),
   rift: Object.freeze({
-    signature: source("single-effect", false, ["haste", "area"]),
+    signature: source("single-effect", false, ["damage", "haste", "area"]),
     active: source("single-effect", false, ["haste", "area"]),
     ultimate: source("utility", false, ["haste", "duration", "move"]),
   }),
@@ -125,8 +125,11 @@ export function projectileDisplay(metadata, count) {
   if (metadata.projectileMode === "counted") {
     const numeric = Number(count);
     if (!Number.isFinite(numeric)) return "Count varies";
-    const suffix = metadata.projectileNote ? ` ${metadata.projectileNote}` : "";
-    return `${Math.max(0, Math.floor(numeric))}${suffix}`;
+    const total = Math.max(0, Math.floor(numeric));
+    const note = total === 1
+      ? metadata.projectileNote.replace(/oes$/, "o").replace(/ies$/, "y").replace(/s$/, "")
+      : metadata.projectileNote;
+    return `${total}${note ? ` ${note}` : ""}`;
   }
   const labels = {
     field: "N/A — continuous field",

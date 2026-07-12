@@ -1,5 +1,5 @@
-import { BALANCE_CONFIG, BALANCE_IDS, BALANCE_VERSION } from "./balance-config.js?v=20260712.2";
-import { SPECIALISTS } from "./data.js?v=20260712.2";
+import { BALANCE_CONFIG, BALANCE_IDS, BALANCE_VERSION } from "./balance-config.js?v=20260712.3";
+import { SPECIALISTS } from "./data.js?v=20260712.3";
 
 export const SPECIALIST_IDENTITY_VERSION = "lastlight.specialist-identity.v1";
 
@@ -23,7 +23,7 @@ const coreBreakpoints = (cooldownE, cooldownR, passive, extra = []) => [
   { id: "active-unlock", trigger: { kind: "level", value: 3 }, effect: `Active unlocks (${cooldownE}s base cooldown).`, source: "balance-config" },
   { id: "ultimate-unlock", trigger: { kind: "level", value: 6 }, effect: `Ultimate unlocks (${cooldownR}s base cooldown).`, source: "balance-config" },
   { id: "signature-cap", trigger: { kind: "signature-rank", value: 5 }, effect: "Signature reaches its maximum authored rank.", source: "balance-config" },
-  { id: "signature-evolution", trigger: { kind: "signature-evolution", value: passive }, effect: `Maximum signature rank plus ${passive} evolves the signature.`, source: "catalog" },
+  { id: "signature-evolution", trigger: { kind: "signature-evolution", value: passive }, effect: `Maximum signature rank plus at least one ${passive} passive rank makes the signature eligible; an elite access card performs the evolution.`, source: "engine" },
   ...extra,
 ];
 
@@ -158,7 +158,7 @@ const specialists = {
 
 export const SPECIALIST_IDENTITY_CONTRACT = deepFreeze({
   schemaVersion: SPECIALIST_IDENTITY_VERSION,
-  balanceVersion: "2026.07.12-identity.2",
+  balanceVersion: "2026.07.12-signatures.3",
   unlocks: { activeLevel: 3, ultimateLevel: 6, signatureMaxRank: 5 },
   specialists,
 });

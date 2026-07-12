@@ -1,11 +1,11 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
-} from "./data.js?v=20260712.2";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260712.2";
+} from "./data.js?v=20260712.3";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260712.3";
 import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.5";
 import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260711.5";
-import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260712.2";
+import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260712.3";
 
 const BALANCE = getBalanceConfig();
 
@@ -142,7 +142,8 @@ export function playerCombatStat(player, stat) {
   if (stat === "crit") return lvl("crit") * BALANCE.passives.crit.amount + (player.specialist === "gale" ? .15 : 0);
   if (stat === "duration") return 1 + lvl("duration") * BALANCE.passives.duration.amount;
   if (stat === "projectiles") return Math.floor(lvl("projectiles"));
-  if (stat === "pickup") return 85 * (1 + lvl("pickup") * BALANCE.passives.pickup.amount);
+  if (stat === "pickup") return 85 * (1 + lvl("pickup") * BALANCE.passives.pickup.amount)
+    + (player.specialist === "vesper" ? BALANCE.identityTuning.vesper.innatePickupRadius : 0);
   if (stat === "regen") return lvl("regen") * BALANCE.passives.regen.amount;
   if (stat === "xp") return 1 + lvl("xp") * BALANCE.passives.xp.amount;
   return 1;
@@ -298,7 +299,6 @@ export class Simulation {
       firedUpBuff: 0, healthbackBuff: 0, stopwavesBuff: 0, stopwaveClock: 0,
       lastHit: 0, iceReady: false, iceTimer: 0,
     };
-    if (spec.id === "vesper") player.passives.pickup = 4;
     this.players.push(player);
     if (this.pendingChoices) {
       this.pendingChoices[player.id] = this.generateChoices(player);
@@ -449,7 +449,7 @@ export class Simulation {
         for (let i = 0; i < p.spirits; i++) {
           const a = this.time * .8 - i * .8;
           const sx = p.x - Math.cos(a) * (70 + i * 30), sy = p.y - Math.sin(a) * (70 + i * 30);
-          if (this.chance(dt * 4)) this.blast(sx, sy, 75, 10 + this.level * 1.4, p.id, spec.color, false, "hex");
+          if (this.chance(dt * 4)) this.blast(sx, sy, 75, 10 + this.level * 1.4, p.id, spec.color, false, "hex", "passive:nova");
         }
       }
 
@@ -713,6 +713,26 @@ export class Simulation {
     return p.input.aim || 0;
   }
 
+  // Keep the aimed lane stable as projectile count changes. The previous
+  // half-step fan removed the center lane for every even count, so Multishot
+  // could make an auto-aimed volley miss the target it was tracking. Prefixing
+  // a deterministic center-out sequence also means every larger fan contains
+  // every lane from the smaller fan.
+  signatureFanAngles(aim, count, spread) {
+    const center = Number.isFinite(Number(aim)) ? Number(aim) : 0;
+    const amount = Math.max(0, Math.floor(Number(count) || 0));
+    const spacing = Number.isFinite(Number(spread)) ? Number(spread) : 0;
+    const angles = [];
+    for (let index = 0; index < amount; index++) {
+      if (index === 0) angles.push(center);
+      else {
+        const ring = Math.ceil(index / 2);
+        angles.push(center + (index % 2 ? -ring : ring) * spacing);
+      }
+    }
+    return angles;
+  }
+
   mobilityAimForPlayer(p) {
     // Auto-aim is useful for weapons, but movement abilities authored as
     // "to the cursor" must always respect the player's latest pointer angle.
@@ -814,13 +834,13 @@ export class Simulation {
 
     if (p.specialist === "zuri") {
       const count = tuning.countBase + level * tuning.countPerLevel + extra;
-      for (let i = 0; i < count; i++) this.shoot(p, aim + (i - (count - 1) / 2) * tuning.spread, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: spec.color, pierce: sig.evolved ? tuning.evolvedPierce : 0, life: tuning.life });
+      for (const angle of this.signatureFanAngles(aim, count, tuning.spread)) this.shoot(p, angle, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: spec.color, pierce: sig.evolved ? tuning.evolvedPierce : 0, life: tuning.life });
     } else if (p.specialist === "echo") {
       const count = Math.min(tuning.countCap, level * tuning.countPerLevel + extra);
-      for (let i = 0; i < count; i++) this.shoot(p, aim + (i - (count - 1) / 2) * tuning.spread, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: spec.color, pierce: tuning.pierce, life: sig.evolved ? tuning.evolvedLife : tuning.life, wave: true });
+      for (const angle of this.signatureFanAngles(aim, count, tuning.spread)) this.shoot(p, angle, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: spec.color, pierce: tuning.pierce, life: sig.evolved ? tuning.evolvedLife : tuning.life, wave: true });
     } else if (p.specialist === "sola") {
       const count = tuning.countBase + Math.floor(level / tuning.countEveryLevels) + extra;
-      for (let i = 0; i < count; i++) this.shoot(p, aim + (i - (count - 1) / 2) * tuning.spread, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel + p.armor * tuning.armorDamage, { radius: tuning.radius * area, color: spec.color, pierce: tuning.pierce, life: tuning.life });
+      for (const angle of this.signatureFanAngles(aim, count, tuning.spread)) this.shoot(p, angle, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel + p.armor * tuning.armorDamage, { radius: tuning.radius * area, color: spec.color, pierce: tuning.pierce, life: tuning.life });
     } else if (p.specialist === "bront") {
       const target = this.nearestEnemy(p, tuning.range);
       if (!target) return false;
@@ -837,16 +857,16 @@ export class Simulation {
       if (p.flow < tuning.flowCost) return false;
       p.flow = 0;
       const count = Math.min(tuning.countCap, tuning.countBase + Math.floor(level / tuning.countEveryLevels) + extra);
-      for (let i = 0; i < count; i++) this.shoot(p, aim + (i - (count - 1) / 2) * tuning.spread, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: (tuning.radiusBase + level * tuning.radiusPerLevel) * area, color: spec.color, pierce: sig.evolved ? tuning.evolvedPierce : tuning.pierce, life: tuning.life, tornado: true });
+      for (const angle of this.signatureFanAngles(aim, count, tuning.spread)) this.shoot(p, angle, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: (tuning.radiusBase + level * tuning.radiusPerLevel) * area, color: spec.color, pierce: sig.evolved ? tuning.evolvedPierce : tuning.pierce, life: tuning.life, tornado: true });
     } else if (p.specialist === "rift") {
       const tx = p.x + Math.cos(aim) * tuning.offset, ty = p.y + Math.sin(aim) * tuning.offset;
       this.blast(tx, ty, (tuning.radiusBase + level * tuning.radiusPerLevel) * area, (tuning.damageBase + level * tuning.damagePerLevel) * this.playerStat(p, "damage"), p.id, spec.color, true, "slash", "signature");
     } else if (p.specialist === "nova") {
       const count = Math.min(tuning.countCap, tuning.countBase + Math.ceil(level / tuning.countEveryLevels) + extra);
-      for (let i = 0; i < count; i++) this.shoot(p, aim + (i - (count - 1) / 2) * tuning.spread, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: spec.color, pierce: tuning.pierce, life: sig.evolved ? tuning.evolvedLife : tuning.life, hex: true });
+      for (const angle of this.signatureFanAngles(aim, count, tuning.spread)) this.shoot(p, angle, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: spec.color, pierce: tuning.pierce, life: sig.evolved ? tuning.evolvedLife : tuning.life, hex: true });
     } else if (p.specialist === "vesper") {
       const count = tuning.countBase + Math.floor(level / tuning.countEveryLevels) + extra;
-      for (let i = 0; i < count; i++) this.shoot(p, aim + (i - (count - 1) / 2) * tuning.spread, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: spec.color, pierce: sig.evolved ? tuning.evolvedPierce : tuning.pierce, life: tuning.life, dagger: true, leaveFeather: true });
+      for (const angle of this.signatureFanAngles(aim, count, tuning.spread)) this.shoot(p, angle, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: spec.color, pierce: sig.evolved ? tuning.evolvedPierce : tuning.pierce, life: tuning.life, dagger: true, leaveFeather: true });
     }
     return true;
   }
@@ -1187,7 +1207,7 @@ export class Simulation {
     for (const enemy of this.enemies) {
       if (enemy.dead || Math.hypot(enemy.x - x, enemy.y - y) > radius + enemy.radius) continue;
       this.damageEnemy(enemy, damage, owner, false, sourceId);
-      if (kind === "hex") enemy.hexed = 6;
+      if (kind === "hex") enemy.hexed = BALANCE.identityTuning.nova.hexDuration;
       if (kind === "stun" || kind === "knockup" || stun) enemy.stun = Math.max(enemy.stun, stun || 1.2);
     }
     for (const pod of this.pods) {
@@ -1332,13 +1352,13 @@ export class Simulation {
     if (enemy.dead) return;
     const dealt = Math.min(amount, Math.max(0, enemy.hp));
     enemy.hp -= amount; enemy.hitFlash = .1;
-    if (source === "hex") enemy.hexed = 8;
     const owner = this.players.find((p) => p.id === ownerId);
     if (owner) {
       owner.damage += dealt;
       const sourceKey = String(source || "other");
       owner.damageBySource[sourceKey] = (owner.damageBySource[sourceKey] || 0) + dealt;
-      const impactAngle = Math.atan2(enemy.y - owner.y, enemy.x - owner.x), knockback = clamp(amount * .28, 8, enemy.boss ? 22 : 72);
+      const signatureScale = source === "signature" ? Number(BALANCE.identityTuning[owner.specialist]?.signatureKnockbackScale || 1) : 1;
+      const impactAngle = Math.atan2(enemy.y - owner.y, enemy.x - owner.x), knockback = clamp(amount * .28, 8, enemy.boss ? 22 : 72) * signatureScale;
       enemy.hitAngle = impactAngle; enemy.knockVx = (enemy.knockVx || 0) + Math.cos(impactAngle) * knockback; enemy.knockVy = (enemy.knockVy || 0) + Math.sin(impactAngle) * knockback;
       if (owner.specialist === "rift" && dealt > 0) {
         const tuning = BALANCE.identityTuning.rift;
@@ -1388,7 +1408,7 @@ export class Simulation {
       let collector = null, target = null, best = Infinity;
       for (const p of this.players) {
         if (p.dead || p.downed) continue;
-        const d = distance(orb, p), range = this.playerStat(p, "pickup") + (p.specialist === "vesper" ? 180 : 0);
+        const d = distance(orb, p), range = this.playerStat(p, "pickup");
         if ((orb.vacuumTarget === p.id || d < range) && d < best) { collector = p; target = p; best = d; }
       }
       for (const drone of this.drones) {

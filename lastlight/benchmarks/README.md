@@ -46,3 +46,21 @@ This is an audit instrument, not an automatic balance authority. Scripted inputs
 make comparisons repeatable while intentionally exposing range, burst, piercing, radial, mobility,
 and support breakpoints. Read the limitations in the report before proposing tuning. Any accepted
 tuning still belongs in a new immutable balance version with fixture migration and full release QA.
+
+## Starting-signature breakpoint matrix
+
+`signature-breakpoint-benchmark.js` isolates each starting signature at rank 1, rank 3,
+rank 5, rank 5 plus its paired passive, and evolved rank 5. Every state uses paired fixed
+seeds across single-target, frontal-area, first-activation burst, and clear-lane range probes.
+The report records the exact finite differences for rank scaling, the paired passive, and
+evolution without applying any balance changes.
+
+```powershell
+npm run benchmarks:signatures
+npm run benchmarks:signatures:verify
+npm run benchmarks:signatures:update
+```
+
+Committed artifacts live at `benchmarks/reports/signature-breakpoints.json` and
+`benchmarks/reports/signature-breakpoints.md`. The JSON schema is strict and versioned;
+unknown metrics, stale balance identity, malformed deltas, and structural budget drift fail CI.
