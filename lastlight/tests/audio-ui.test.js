@@ -28,6 +28,7 @@ test("lobby, deploy, and game gestures share one guaranteed audio unlock path", 
   assert.match(game, /unlockAudioFromGesture\("sound-test"\)/);
   assert.doesNotMatch(game, /audioOutputState\(\{ supported: true, enabled: true/);
   assert.match(game, /audioOutputState\(\{ supported: state\.audioAvailable, enabled: state\.audioSettings\.enabled, contextState: audio\.state \}\)/);
+  assert.match(game, /!\/notallowed\|gesture\|timed out\/i\.test\(state\.audioLastError\)/);
   assert.match(game, /\$\("deploy-button"\)\.addEventListener\("click", deploy\)/);
 });
 

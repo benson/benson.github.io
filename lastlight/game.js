@@ -1831,7 +1831,7 @@ async function unlockAudioFromGesture(reason = "gesture") {
     } catch (error) {
       state.audioLastError = String(error?.message || error).slice(0, 240);
       state.audioStatus = audioOutputState({ supported: state.audioAvailable, enabled: state.audioSettings.enabled, contextState: audio.state });
-      if (state.audioStatus === "locked" && !/notallowed|gesture/i.test(state.audioLastError)) captureClientError("audio unlock", error);
+      if (state.audioStatus === "locked" && !/notallowed|gesture|timed out/i.test(state.audioLastError)) captureClientError("audio unlock", error);
       return false;
     } finally {
       state.audioUnlockInFlight = null;
