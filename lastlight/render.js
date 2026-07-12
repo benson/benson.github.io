@@ -7,7 +7,7 @@ import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from ".
 import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260711.5";
 import { impactRenderPlan } from "./impact-grammar.js?v=20260711.8";
 import { movementVisualState } from "./movement.js?v=20260711.8";
-import { effectReadabilityCategory, partitionEffects, readabilityPlan } from "./readability.js?v=20260711.8";
+import { effectReadabilityCategory, partitionEffects, readabilityPlan, shouldPromoteCache } from "./readability.js?v=20260711.8";
 import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260711.8";
 
 const TAU = Math.PI * 2;
@@ -664,8 +664,9 @@ export class Renderer {
       ctx.fillText(player.dead ? "RETURNING" : `REVIVE ${Math.max(0, Math.ceil(player.downTimer || 0))}s`, 0, 42); ctx.restore();
     }
 
+    const localPlayer = (state.players || []).find((player) => player.id === localPlayerId && !player.dead);
     for (const pod of state.pods || []) {
-      if (!this.isWorldVisible(pod, 55)) continue;
+      if (!this.isWorldVisible(pod, 55) || !shouldPromoteCache(pod, { localPlayer, hoveredId: this.hoveredEntity?.id })) continue;
       corner(pod.x, pod.y, (pod.radius || 24) + 9, obstacleRead.palette.core);
     }
 
