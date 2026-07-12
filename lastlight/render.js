@@ -1,8 +1,8 @@
 import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260711.8";
 import { WORLD } from "./engine.js?v=20260711.8";
-import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation } from "./themes/lastlight.js?v=20260711.8";
+import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation } from "./themes/lastlight.js?v=20260711.9";
 import { springCamera } from "./feel.js?v=20260711.8";
-import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistMotionState } from "./motion.js?v=20260711.8";
+import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistMotionState, stableDirectionColumn } from "./motion.js?v=20260711.9";
 import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
 import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260711.5";
 import { impactRenderPlan } from "./impact-grammar.js?v=20260711.8";
@@ -957,7 +957,7 @@ export class Renderer {
       const aimFacing = target ? Math.atan2(target.y - e.y, target.x - e.x) : Number.isFinite(e.attackAngle) ? e.attackAngle : Math.atan2(dy, dx);
       const locomotionFacing = moving ? Math.atan2(dy, dx) : aimFacing, targetDistance = target ? Math.hypot(target.x - e.x, target.y - e.y) : Infinity;
       const nearTarget = targetDistance <= (ENEMY_TYPES[e.type]?.ranged || e.boss ? 520 : (e.radius || 20) + (target?.radius || 18) + 45);
-      const visual = this.enemyVisuals.get(e.id) || { facing: locomotionFacing, aimFacing, stride: phase, animation: "idle", animationTime: 0, lastAttackFlash: 0, lastHitFlash: 0, lastShotCd: e.shotCd, rangedAttackFlash: 0, updatedAt: now };
+      const visual = this.enemyVisuals.get(e.id) || { facing: locomotionFacing, aimFacing, directionColumn: directionColumn(locomotionFacing), stride: phase, animation: "idle", animationTime: 0, lastAttackFlash: 0, lastHitFlash: 0, lastShotCd: e.shotCd, rangedAttackFlash: 0, updatedAt: now };
       const frameTime = Math.min(.05, Math.max(0, visualDt || (now - visual.updatedAt) / 1000));
       if (moving) visual.facing += Math.atan2(Math.sin(locomotionFacing - visual.facing), Math.cos(locomotionFacing - visual.facing)) * (1 - Math.exp(-16 * frameTime));
       visual.aimFacing += Math.atan2(Math.sin(aimFacing - visual.aimFacing), Math.cos(aimFacing - visual.aimFacing)) * (1 - Math.exp(-22 * frameTime));
@@ -971,6 +971,7 @@ export class Renderer {
       else visual.animationTime += frameTime;
       const motion = motionFrame(animation, motionState, visual.animationTime, { reducedMotion: this.reducedMotion });
       const drawFacing = motionState.startsWith("attack") ? visual.aimFacing : visual.facing;
+      visual.directionColumn = stableDirectionColumn(drawFacing, visual.directionColumn);
       visual.lastAttackFlash = authoritativeAttackFlash; visual.lastHitFlash = e.hitFlash || 0; visual.lastShotCd = e.shotCd; visual.lastEntity = { ...raw, x: e.x, y: e.y }; visual.updatedAt = now;
       this.enemyVisuals.set(e.id, visual);
 
@@ -1003,7 +1004,7 @@ export class Renderer {
         const cellWidth = motionAtlas.naturalWidth / animation.grid.columns, cellHeight = motionAtlas.naturalHeight / animation.grid.rows;
         const [width, height] = animation.drawSize, anchor = animation.anchor || [.5, .875];
         if (hitFlash > 0) ctx.filter = `brightness(${1 + clamp(hitFlash / .12, 0, 1) * 2.2 * this.qualityProfile.flashIntensity}) saturate(.45)`;
-        ctx.drawImage(motionAtlas, directionColumn(drawFacing) * cellWidth, motion.row * cellHeight, cellWidth, cellHeight, -width * anchor[0], groundY - height * anchor[1], width, height);
+        ctx.drawImage(motionAtlas, visual.directionColumn * cellWidth, motion.row * cellHeight, cellWidth, cellHeight, -width * anchor[0], groundY - height * anchor[1], width, height);
       } else if (spriteReady && animation) {
         const [width, height] = animation.drawSize, anchor = animation.anchor || [.5, .78];
         ctx.scale(Math.cos(drawFacing) >= 0 ? 1 : -1, 1);
@@ -1129,19 +1130,24 @@ export class Renderer {
       if (!spec || !this.isWorldVisible(p, 100)) continue;
       const before = this.previousEntity(previous?.players, raw.id);
       const dx = before ? raw.x - before.x : 0, dy = before ? raw.y - before.y : 0;
-      const inferredMoving = Math.hypot(dx, dy) > .15, moving = Boolean(raw.moving ?? inferredMoving) && !p.dead && !p.downed;
+      const inferredMoving = Math.hypot(dx, dy) > .15;
+      const reportedMoving = Boolean(raw.moving ?? inferredMoving) && !p.dead && !p.downed;
       const locomotionTarget = raw.animState === "dash" && Number.isFinite(raw.dashFacing)
         ? raw.dashFacing
+        : reportedMoving && Number.isFinite(raw.movementFacing) ? raw.movementFacing
+        : Number.isFinite(raw.aimFacing) ? raw.aimFacing
         : Number.isFinite(raw.facing) ? raw.facing : inferredMoving ? Math.atan2(dy, dx) : 0;
       const aimTarget = Number.isFinite(raw.aimFacing) ? raw.aimFacing : locomotionTarget;
       const now = performance.now();
       const visual = this.playerVisuals.get(p.id) || {
-        facing: locomotionTarget, aimFacing: aimTarget, turn: Math.cos(locomotionTarget) >= 0 ? 1 : -1,
+        facing: locomotionTarget, aimFacing: aimTarget, directionColumn: directionColumn(locomotionTarget), turn: Math.cos(locomotionTarget) >= 0 ? 1 : -1,
         movementLean: 0, groundOffset: 0, shadowX: 1, shadowY: 1,
         animation: "idle", animationTime: 0, displayHp: p.hp, trailHp: p.hp,
-        previousFootRow: null, wasSkidding: false, lastAuthoritativeAnimTime: 0, updatedAt: now,
+        previousFootRow: null, wasSkidding: false, movementHold: 0, lastAuthoritativeAnimTime: 0, updatedAt: now,
       };
       const frameTime = Math.min(.05, Math.max(0, visualDt || (now - visual.updatedAt) / 1000));
+      visual.movementHold = reportedMoving ? .11 : Math.max(0, (visual.movementHold || 0) - frameTime);
+      const moving = reportedMoving || visual.movementHold > 0;
       const facingDelta = Math.atan2(Math.sin(locomotionTarget - visual.facing), Math.cos(locomotionTarget - visual.facing));
       visual.facing += facingDelta * (1 - Math.exp(-18 * Math.max(frameTime, 1 / 120)));
       const aimDelta = Math.atan2(Math.sin(aimTarget - visual.aimFacing), Math.cos(aimTarget - visual.aimFacing));
@@ -1155,8 +1161,9 @@ export class Renderer {
 
       const hurt = clamp((p.hurtFlash || 0) / .24, 0, 1) * this.qualityProfile.hitFlashes;
       const animation = specialistMotionState(raw, moving, hurt);
-      const usesAimFacing = ["castE", "castR", "cast"].includes(animation) || (raw.weaponFlash || 0) > 0;
-      const drawFacing = usesAimFacing ? visual.aimFacing : visual.facing;
+      const usesAimFacing = ["castE", "castR", "cast"].includes(animation);
+      const drawFacing = usesAimFacing || !moving ? visual.aimFacing : visual.facing;
+      visual.directionColumn = stableDirectionColumn(drawFacing, visual.directionColumn);
       const targetTurn = Math.cos(drawFacing) >= 0 ? 1 : -1;
       visual.turn += (targetTurn - visual.turn) * (1 - Math.exp(-16 * Math.max(frameTime, 1 / 120)));
       const retriggered = (raw.animTime || 0) > (visual.lastAuthoritativeAnimTime || 0) + .025;
@@ -1199,7 +1206,7 @@ export class Renderer {
       if (animationConfig && atlasFrame && motionAtlasReady(atlas, animationConfig)) {
         const cellWidth = atlas.naturalWidth / animationConfig.grid.columns, cellHeight = atlas.naturalHeight / animationConfig.grid.rows;
         const width = animationConfig.drawSize[0], height = animationConfig.drawSize[1], anchor = animationConfig.anchor || [.5, .82];
-        const column = directionColumn(drawFacing), row = atlasFrame.row;
+        const column = visual.directionColumn, row = atlasFrame.row;
         ctx.save();
         ctx.translate((animationConfig.collisionOffset?.[0] || 0) + (atlasFrame.offsetX || 0) + (this.reducedMotion ? 0 : Math.sin(now * .08) * hurt * 3), (animationConfig.collisionOffset?.[1] || 0) + (atlasFrame.offsetY || 0) + movementForm.groundOffset);
         ctx.rotate((atlasFrame.rotation || 0) + movementForm.lean + (this.reducedMotion ? 0 : Math.sin(p.hurtAngle || 0) * hurt * .06));

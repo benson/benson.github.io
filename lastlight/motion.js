@@ -85,6 +85,18 @@ export function directionColumn(angle) {
   return y < 0 ? 2 : 0;
 }
 
+const DIRECTION_ANGLES = Object.freeze([Math.PI / 2, Math.PI, -Math.PI / 2, 0]);
+const angularDistance = (first, second) => Math.abs(Math.atan2(Math.sin(first - second), Math.cos(first - second)));
+
+export function stableDirectionColumn(angle, previousColumn = null, hysteresis = .14) {
+  const candidate = directionColumn(angle);
+  if (!Number.isInteger(previousColumn) || previousColumn < 0 || previousColumn >= DIRECTION_ANGLES.length || candidate === previousColumn) return candidate;
+  const value = Number(angle) || 0;
+  const candidateDistance = angularDistance(value, DIRECTION_ANGLES[candidate]);
+  const previousDistance = angularDistance(value, DIRECTION_ANGLES[previousColumn]);
+  return candidateDistance + Math.max(0, Number(hysteresis) || 0) < previousDistance ? candidate : previousColumn;
+}
+
 export function motionAtlasReady(image, rig) {
   if (!rig?.atlas?.available || !image?.complete || !image.naturalWidth || !image.naturalHeight) return false;
   return image.naturalWidth === rig.atlas.expectedSize[0] && image.naturalHeight === rig.atlas.expectedSize[1];

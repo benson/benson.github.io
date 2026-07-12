@@ -171,7 +171,10 @@ test("a disappearing projectile emits the material captured at its final endpoin
 test("motion playback keeps anchors stable, separates aim from locomotion, and caps retained deaths", () => {
   assert.match(renderSource, /const locomotionTarget =/);
   assert.match(renderSource, /const aimTarget =/);
-  assert.match(renderSource, /const drawFacing = usesAimFacing \? visual\.aimFacing : visual\.facing/);
+  assert.match(renderSource, /reportedMoving && Number\.isFinite\(raw\.movementFacing\)/);
+  assert.match(renderSource, /const drawFacing = usesAimFacing \|\| !moving \? visual\.aimFacing : visual\.facing/);
+  assert.match(renderSource, /stableDirectionColumn\(drawFacing, visual\.directionColumn\)/);
+  assert.doesNotMatch(renderSource, /usesAimFacing[^\n]+weaponFlash/);
   assert.match(renderSource, /fixedSpriteTop/);
   assert.match(renderSource, /deathBudget = Math\.min\(24/);
   assert.match(renderSource, /type: "enemy-death"/);

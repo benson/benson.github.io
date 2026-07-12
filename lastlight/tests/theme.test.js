@@ -129,6 +129,8 @@ test("specialist motion metadata is complete, strict, and theme-swappable", asyn
   for (const specialist of THEME_ASSET_KEYS.specialists) {
     const rig = getThemeAnimation(specialist);
     assert.ok(SPECIALIST_MOTION_STATES.every((state) => rig.states[state]?.frames?.length));
+    assert.equal(rig.states.run.frames.length, 2);
+    assert.ok(rig.states.run.frames.every((frame) => frame.ms >= 120), `${specialist} run cadence is not flash-fast`);
     if (specialist !== "zuri") {
       assert.deepEqual(rig.grid, { columns: 4, rows: 6 });
       assert.equal(rig.status, "ready");
