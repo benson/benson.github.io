@@ -1,5 +1,5 @@
-import { SPECIALIST_ORDER, WEAPONS } from "./data.js?v=20260712.7";
-import { parseWeaponVariantId } from "./weapon-evolution.js?v=20260712.7";
+import { SPECIALIST_ORDER, WEAPONS } from "./data.js?v=20260712.8";
+import { parseWeaponVariantId } from "./weapon-evolution.js?v=20260712.8";
 
 export const IMPACT_GRAMMAR_VERSION = "lastlight.impact-grammar.v1";
 export const IMPACT_PRIORITIES = Object.freeze(["ambient", "standard", "critical"]);

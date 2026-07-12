@@ -107,7 +107,7 @@ test("renderer, HUD, guide, and sound use grammar without touching the engine", 
   assert.match(renderer, /drawImpactTrail/);
   assert.match(renderer, /drawImpactDecal/);
   assert.match(game, /impactSummary\(impact\)/);
-  assert.match(game, /weapon:\$\{grammar\.soundFamily\}/);
+  assert.match(game, /weaponAudioCueName\(grammar\)/);
   assert.match(game, /Audio: impact\?\.soundFamily/);
   assert.doesNotMatch(engine, /impact-grammar|impactRenderPlan|IMPACT_GRAMMAR/);
 });
