@@ -328,10 +328,16 @@
 
     <section id="result-screen" class="screen result-screen hidden">
       <div class="result-card">
-        <p id="result-eyebrow" class="eyebrow">Operation complete</p>
-        <h2 id="result-title">APEX NEUTRALIZED</h2>
-        <p id="result-copy">The line held. Final City gets another sunrise.</p>
-        <div id="result-unlock" class="result-unlock hidden"></div>
+        <header class="result-header" aria-labelledby="result-title">
+          <div class="result-heading">
+            <p id="result-eyebrow" class="eyebrow">Operation complete</p>
+            <h2 id="result-title">APEX NEUTRALIZED</h2>
+          </div>
+          <div class="result-debrief">
+            <p id="result-copy">The line held. Final City gets another sunrise.</p>
+            <div id="result-unlock" class="result-unlock hidden"></div>
+          </div>
+        </header>
         <div class="result-stats">
           <div><span>Time</span><strong id="result-time">04:32</strong></div>
           <div><span>Squad kills</span><strong id="result-kills">1,284</strong></div>

@@ -121,6 +121,8 @@ test("upgrade draft typography is readable on desktop while mobile stays compact
 
 test("post-run results stay contained on phone-width viewports", () => {
   assert.match(css, /\.result-card \{[^}]+min-width: 0;/s);
+  assert.match(html, /<header class="result-header" aria-labelledby="result-title">/);
+  assert.match(css, /\.result-header \{[^}]+grid-template-columns: minmax\(0, 1\.15fr\) minmax\(300px, \.85fr\);/s);
   assert.match(css, /\.scoreboard-wrap \{[^}]+max-width: 100%;[^}]+overflow-x: auto;/s);
   const mobile = css.match(/@media \(max-width: 650px\) \{([\s\S]+?)\n\}/)?.[1] || "";
   assert.match(mobile, /\.result-screen \{ place-items: start center; padding: 12px; \}/);
