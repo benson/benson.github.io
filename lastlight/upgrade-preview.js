@@ -1,7 +1,7 @@
-import { BALANCE_CONFIG } from "./balance-config.js?v=20260712.3";
-import { PASSIVES, SPECIALISTS, WEAPONS } from "./data.js?v=20260712.3";
-import { formatProjectileDisplay, getCombatMetadata } from "./combat-metadata.js?v=20260712.3";
-import { playerCombatStat, playerMovementSpeed, previewPlayerUpgrade } from "./engine.js?v=20260712.3";
+import { BALANCE_CONFIG } from "./balance-config.js?v=20260712.5";
+import { PASSIVES, SPECIALISTS, WEAPONS } from "./data.js?v=20260712.5";
+import { formatProjectileDisplay, getCombatMetadata } from "./combat-metadata.js?v=20260712.5";
+import { playerCombatStat, playerMovementSpeed, previewPlayerUpgrade } from "./engine.js?v=20260712.5";
 
 const { weapons: weaponBalance } = BALANCE_CONFIG;
 

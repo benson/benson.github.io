@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260712.4">
+  <link rel="stylesheet" href="styles.css?v=20260712.5">
 </head>
 <body>
   <main id="app">
@@ -482,7 +482,19 @@
       <div class="build-history-body">
         <article class="build-release current-build">
           <header>
-            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.12.4</h3></div>
+            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.12.5</h3></div>
+            <time class="build-shipped-at deployment-pending">Deployment verification pending</time>
+          </header>
+          <ul>
+            <li>Added a strict, hash-covered evolution contract for all 21 weapons and immutable variant identity for projectiles, effects, delayed tasks, and drones.</li>
+            <li>Added a deterministic 42-variant evolution audit that proves every current behavior and keeps the five still-flat universal evolutions visible as explicit expected failures.</li>
+            <li>Made Lion's Light return an armor-scaled shield on the first hit of each volley, every third Savage Slice pull non-boss targets inward, and Golden Overrun scale knockback from movement stored since the prior crash.</li>
+            <li>Moved the drone's hidden evolved pickup reach into versioned balance data and exposed Guard Return, Predator Hook, Kinetic Reserve, and drone collection range in authoritative comparisons.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.12.4</h3></div>
             <time class="build-shipped-at" data-build-shipped-at="2026-07-12T10:18:00-04:00">Shipped Jul 12, 2026, 10:18 AM EDT</time>
           </header>
           <ul>
@@ -730,8 +742,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.12.4. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.12.4</strong></button>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.12.5. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.12.5</strong></button>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260712.4"></script>
+  <script type="module" src="game.js?v=20260712.5"></script>
 </body>
 </html>
