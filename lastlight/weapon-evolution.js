@@ -21,6 +21,11 @@ export const WEAPON_EVOLUTION_CAPABILITIES = Object.freeze([
   "retarget",
   "phase-hits",
   "movement-return-damage",
+  "occupied-charge-eruption",
+  "mine-grid-chain",
+  "aim-lanes",
+  "horizontal-corridor",
+  "cover-push",
   "impact-identity",
 ]);
 
@@ -97,8 +102,12 @@ const universal = {
   slicers: entry({ key: "universal:slicers", scope: "universal", sourceId: "slicers", specialistId: null, baseName: "Cyclonic Slicers", evolvedName: "Unceasing Cyclone", pairedPassive: "regen", handler: "universal-slicers-v1", capabilities: [
     gameplay("orbit-speed", ["weapons.universal.slicers.evolvedOrbitSpeed"], "Rotates the slicer pattern faster."),
   ] }),
-  aura: entry({ key: "universal:aura", scope: "universal", sourceId: "aura", specialistId: null, baseName: "Radiant Field", evolvedName: "Explosive Embrace", pairedPassive: "maxHealth", status: "presentation-only", handler: "universal-aura-v1", capabilities: [presentation("The current simulation changes the evolved impact identity but not gameplay output.")] }),
-  mines: entry({ key: "universal:mines", scope: "universal", sourceId: "mines", specialistId: null, baseName: "Arc Mines", evolvedName: "Tri-Mine Grid", pairedPassive: "area", status: "presentation-only", handler: "universal-mines-v1", capabilities: [presentation("The current simulation changes the evolved mine identity but not gameplay output.")] }),
+  aura: entry({ key: "universal:aura", scope: "universal", sourceId: "aura", specialistId: null, baseName: "Radiant Field", evolvedName: "Explosive Embrace", pairedPassive: "maxHealth", handler: "universal-aura-v1", capabilities: [
+    gameplay("occupied-charge-eruption", ["weapons.universal.aura.evolvedChargeThreshold", "weapons.universal.aura.evolvedEruptionRadiusMultiplier", "weapons.universal.aura.evolvedEruptionDamageMultiplier"], "Occupied field pulses grant one charge per activation; the eighth emits one 1.45x-radius eruption for 2.5x that pulse's authored damage, then resets."),
+  ] }),
+  mines: entry({ key: "universal:mines", scope: "universal", sourceId: "mines", specialistId: null, baseName: "Arc Mines", evolvedName: "Tri-Mine Grid", pairedPassive: "area", handler: "universal-mines-v1", capabilities: [
+    gameplay("mine-grid-chain", ["weapons.universal.mines.evolvedGroupSize", "weapons.universal.mines.evolvedChainFuseStep", "weapons.universal.mines.evolvedChainRadiusMultiplier"], "Partitions the existing mines into deterministic groups of at most three; the first blast caps remaining sibling fuses at 0.12/0.24 seconds with 25% larger radii."),
+  ] }),
   crossbow: entry({ key: "universal:crossbow", scope: "universal", sourceId: "crossbow", specialistId: null, baseName: "Scatter Bow", evolvedName: "Prime Ballista", pairedPassive: "crit", handler: "universal-crossbow-v1", capabilities: [
     gameplay("pierce", ["weapons.universal.crossbow.evolvedPierce"], "Allows bolts to continue through additional targets."),
     gameplay("corridor-targeting", ["weapons.universal.crossbow.corridorRange", "weapons.universal.crossbow.corridorHalfWidth", "weapons.universal.crossbow.corridorMaxCandidates"], "Scores corridors through at most the nearest 12 enemies and aims the evolved fan down the best deterministic lane."),
@@ -108,11 +117,16 @@ const universal = {
     gameplay("phase-hits", ["weapons.universal.boomerang.returnAfter", "weapons.universal.boomerang.evolvedHitsPerPhase"], "Tracks outbound and inbound hits separately, so each enemy can be struck once in each phase within the nine-hit phase budget."),
     gameplay("movement-return-damage", ["weapons.universal.boomerang.evolvedReturnTravelForMaxBonus", "weapons.universal.boomerang.evolvedReturnDamageMaxBonus"], "Return hits gain up to 30% damage from the owner's resolved movement since cast, reaching the cap at 360 units; the return lane follows the owner's current position."),
   ] }),
-  rail: entry({ key: "universal:rail", scope: "universal", sourceId: "rail", specialistId: null, baseName: "Lioness Rails", evolvedName: "Enveloping Light", pairedPassive: "haste", status: "presentation-only", handler: "universal-rail-v1", capabilities: [presentation("The current simulation changes the evolved impact identity but not gameplay output.")] }),
+  rail: entry({ key: "universal:rail", scope: "universal", sourceId: "rail", specialistId: null, baseName: "Lioness Rails", evolvedName: "Enveloping Light", pairedPassive: "haste", handler: "universal-rail-v1", capabilities: [
+    gameplay("aim-lanes", ["weapons.universal.rail.laneSpacing"], "Rotates the same paired, center-first opposing lanes to the player's current finite aim direction."),
+  ] }),
   glove: entry({ key: "universal:glove", scope: "universal", sourceId: "glove", specialistId: null, baseName: "Vortex Glove", evolvedName: "Tempest Gauntlet", pairedPassive: "regen", handler: "universal-glove-v1", capabilities: [
     gameplay("projectile-streams", ["weapons.universal.glove.evolvedStreams"], "Adds a counter-rotating projectile stream."),
   ] }),
-  transit: entry({ key: "universal:transit", scope: "universal", sourceId: "transit", specialistId: null, baseName: "Final City Transit", evolvedName: "Limited Express", pairedPassive: "damage", status: "presentation-only", handler: "universal-transit-v1", capabilities: [presentation("The current simulation changes the evolved train identity but not gameplay output.")] }),
+  transit: entry({ key: "universal:transit", scope: "universal", sourceId: "transit", specialistId: null, baseName: "Final City Transit", evolvedName: "Limited Express", pairedPassive: "damage", handler: "universal-transit-v1", capabilities: [
+    gameplay("horizontal-corridor", ["weapons.universal.transit.corridorHalfHeight", "weapons.universal.transit.corridorMaxCandidates"], "Selects the densest horizontal corridor among at most the nearest 12 live enemies with stable score, distance, and id ties."),
+    gameplay("cover-push", ["weapons.universal.transit.evolvedPushDistance", "weapons.universal.transit.evolvedStun", "weapons.universal.transit.bossStun"], "Each non-boss hit receives one cover-aware 120-unit forward push and 1.25-second stun; bosses receive the unchanged one-second stun and no push."),
+  ] }),
   ice: entry({ key: "universal:ice", scope: "universal", sourceId: "ice", specialistId: null, baseName: "Iceblast Armor", evolvedName: "Deep Freeze", pairedPassive: "armor", handler: "universal-ice-v1", capabilities: [
     gameplay("cadence", ["weapons.universal.ice.evolvedCooldown"], "Shortens the block-and-freeze recharge."),
   ] }),

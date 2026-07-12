@@ -25,9 +25,9 @@ const EVOLUTION_CONTRACT_ENTRIES = Object.freeze([
 const INVARIANT_METRICS = Object.freeze({
   "signature:zuri": "pierce", "signature:echo": "lifetime", "signature:sola": "guard-return", "signature:bront": "repeat",
   "signature:fang": "predator-hook", "signature:gale": "flow-regeneration", "signature:rift": "kinetic-reserve", "signature:nova": "lifetime",
-  "signature:vesper": "pierce", "universal:uwu": "needle-retarget", "universal:slicers": "orbit-speed", "universal:aura": "nonCosmeticDeltaCount",
-  "universal:mines": "nonCosmeticDeltaCount", "universal:crossbow": "ballista-deep-crit", "universal:boomerang": "boomerang-return",
-  "universal:rail": "nonCosmeticDeltaCount", "universal:glove": "projectile-streams", "universal:transit": "nonCosmeticDeltaCount",
+  "signature:vesper": "pierce", "universal:uwu": "needle-retarget", "universal:slicers": "orbit-speed", "universal:aura": "aura-eruption",
+  "universal:mines": "mine-grid-chain", "universal:crossbow": "ballista-deep-crit", "universal:boomerang": "boomerang-return",
+  "universal:rail": "rail-aim-alignment", "universal:glove": "projectile-streams", "universal:transit": "transit-push",
   "universal:ice": "cadence", "universal:annihilator": "cadence", "universal:drone": "drone-protocol",
 });
 const STAT_ONLY_KEYS = new Set(["universal:slicers", "universal:ice", "universal:annihilator"]);
@@ -57,7 +57,7 @@ export const EVOLUTION_AUDIT_BUDGETS = Object.freeze({
 });
 
 const COMMON_KEYS = Object.freeze(["damage", "hits", "uniqueTargets", "activations", "activationRate", "projectiles", "effects", "tasks", "maxEntities"]);
-const CAPABILITY_KEYS = Object.freeze(["cadence", "pierce", "lifetime", "repeat", "flowRegeneration", "orbitSpeed", "projectileStreams", "repairRate", "pickupRange", "guardReturn", "predatorHook", "kineticReserve", "needleRetarget", "ballistaDeepCrit", "boomerangReturn", "droneProtocol", "impactIdentity"]);
+const CAPABILITY_KEYS = Object.freeze(["cadence", "pierce", "lifetime", "repeat", "flowRegeneration", "orbitSpeed", "projectileStreams", "repairRate", "pickupRange", "guardReturn", "predatorHook", "kineticReserve", "needleRetarget", "auraEruption", "mineGridChain", "ballistaDeepCrit", "boomerangReturn", "railAimAlignment", "transitPush", "droneProtocol", "impactIdentity"]);
 const ROOT_KEYS = Object.freeze(["schema", "schemaVersion", "contract", "versions", "definitions", "cases", "budgets", "limitations"]);
 const VERSION_KEYS = Object.freeze(["balanceVersion", "balanceHash", "evolutionContractHash", "tickRate"]);
 const CASE_KEYS = Object.freeze(["sourceKey", "scope", "passiveId", "capabilities", "status", "seed", "base", "evolved", "delta", "nonCosmeticDeltaCount", "invariant"]);
@@ -184,7 +184,8 @@ function orbitSpeed(samples) {
 function auxiliaryCapabilities(def, evolved) {
   const { sim, player, parts } = configureVariant(def, evolved);
   let cadence = 0, flowRegeneration = 0, repairRate = 0, pickupRange = 0, kineticReserve = 0;
-  let needleRetarget = 0, ballistaDeepCrit = 0, boomerangReturn = 0, droneProtocol = 0, ticks = 0;
+  let needleRetarget = 0, auraEruption = 0, mineGridChain = 0, ballistaDeepCrit = 0, boomerangReturn = 0;
+  let railAimAlignment = 0, transitPush = 0, droneProtocol = 0, ticks = 0;
   if (def.capabilities.includes("cadence")) {
     const timerKey = parts.scope === "signature" ? "signature" : parts.id;
     player.weaponTimers[timerKey] = 0;
@@ -242,6 +243,21 @@ function auxiliaryCapabilities(def, evolved) {
     ticks += 120;
     needleRetarget = sim.events.filter(({ type, mechanicId }) => type === "weapon-evolution-proc" && mechanicId === "needle-retarget").length;
   }
+  if (def.capabilities.includes("occupied-charge-eruption")) {
+    for (let activation = 0; activation < BALANCE_CONFIG.weapons.universal.aura.evolvedChargeThreshold; activation++) {
+      sim.fireCommonWeapon(player, parts.id, player.weapons[parts.id]);
+    }
+    auraEruption = sim.events.filter(({ type, mechanicId }) => type === "weapon-evolution-proc" && mechanicId === "aura-eruption").length;
+  }
+  if (def.capabilities.includes("mine-grid-chain")) {
+    sim.fireCommonWeapon(player, parts.id, player.weapons[parts.id]);
+    const first = sim.effects.find(({ sourceId }) => sourceId === parts.sourceId);
+    if (first) {
+      first.life = 0;
+      sim.updateEffects(0);
+      mineGridChain = sim.events.filter(({ type, mechanicId }) => type === "weapon-evolution-proc" && mechanicId === "mine-grid-chain").length;
+    }
+  }
   if (def.capabilities.includes("deep-crit")) {
     sim.chance = () => false;
     sim.fireCommonWeapon(player, parts.id, player.weapons[parts.id]);
@@ -262,6 +278,27 @@ function auxiliaryCapabilities(def, evolved) {
       boomerangReturn = Math.max(0, Number(projectile.boomerangReturnDamageMultiplier || 0) - 1);
     }
   }
+  if (def.capabilities.includes("aim-lanes")) {
+    const authoredAim = Math.PI / 2;
+    player.input = { ...player.input, autoAim: false, aim: authoredAim };
+    sim.fireCommonWeapon(player, parts.id, player.weapons[parts.id]);
+    const projectile = sim.projectiles.find(({ sourceId }) => sourceId === parts.sourceId);
+    if (projectile) {
+      let error = Math.abs(Math.atan2(projectile.vy, projectile.vx) - authoredAim) % (Math.PI * 2);
+      if (error > Math.PI) error = Math.PI * 2 - error;
+      railAimAlignment = error <= 1e-9 ? 1 : 0;
+    }
+  }
+  if (def.capabilities.includes("cover-push")) {
+    sim.fireCommonWeapon(player, parts.id, player.weapons[parts.id]);
+    const train = sim.effects.find(({ sourceId }) => sourceId === parts.sourceId);
+    const target = sim.enemies.find(({ dead }) => !dead);
+    if (train && target) {
+      train.x = target.x; train.y = target.y;
+      sim.updateEffects(0);
+      transitPush = Math.max(0, ...sim.events.filter(({ type, mechanicId }) => type === "weapon-evolution-proc" && mechanicId === "transit-cover-push").map(({ resolvedDistance }) => Number(resolvedDistance || 0)));
+    }
+  }
   if (def.capabilities.includes("data-protocol")) {
     sim.enemies = [];
     const drone = sim.ensureDrone(player, player.weapons[parts.id]);
@@ -273,7 +310,7 @@ function auxiliaryCapabilities(def, evolved) {
     }
     droneProtocol = Number(drone.protocolCharge || 0);
   }
-  return { cadence: round(cadence), flowRegeneration: round(flowRegeneration), repairRate: round(repairRate), pickupRange: round(pickupRange), kineticReserve: round(kineticReserve), needleRetarget: round(needleRetarget), ballistaDeepCrit: round(ballistaDeepCrit), boomerangReturn: round(boomerangReturn), droneProtocol: round(droneProtocol), ticks };
+  return { cadence: round(cadence), flowRegeneration: round(flowRegeneration), repairRate: round(repairRate), pickupRange: round(pickupRange), kineticReserve: round(kineticReserve), needleRetarget: round(needleRetarget), auraEruption: round(auraEruption), mineGridChain: round(mineGridChain), ballistaDeepCrit: round(ballistaDeepCrit), boomerangReturn: round(boomerangReturn), railAimAlignment: round(railAimAlignment), transitPush: round(transitPush), droneProtocol: round(droneProtocol), ticks };
 }
 
 function runVariant(def, evolved) {
@@ -306,8 +343,12 @@ function runVariant(def, evolved) {
     predatorHook: round(Math.max(0, ...procEvents.filter(({ mechanicId, affected }) => mechanicId === "predator-hook" && affected > 0).map(({ pullDistance }) => Number(pullDistance || 0)))),
     kineticReserve: auxiliary.kineticReserve,
     needleRetarget: auxiliary.needleRetarget,
+    auraEruption: auxiliary.auraEruption,
+    mineGridChain: auxiliary.mineGridChain,
     ballistaDeepCrit: auxiliary.ballistaDeepCrit,
     boomerangReturn: auxiliary.boomerangReturn,
+    railAimAlignment: auxiliary.railAimAlignment,
+    transitPush: auxiliary.transitPush,
     droneProtocol: auxiliary.droneProtocol,
     impactIdentity: trace.variantEmissions + trace.effects,
   };

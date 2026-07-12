@@ -3,9 +3,9 @@
   "schemaVersion": 1,
   "contract": "actual-simulation-paired-evolution-v1",
   "versions": {
-    "balanceVersion": "2026.07.12-evolutions.2",
-    "balanceHash": "fnv1a32:f06f76bb",
-    "evolutionContractHash": "fnv1a32:e64c8ff6",
+    "balanceVersion": "2026.07.12-evolutions.3",
+    "balanceHash": "fnv1a32:4278e96d",
+    "evolutionContractHash": "fnv1a32:78b199d4",
     "tickRate": 60
   },
   "definitions": [
@@ -179,13 +179,13 @@
       "scope": "universal",
       "passiveId": "maxHealth",
       "capabilities": [
-        "impact-identity"
+        "occupied-charge-eruption"
       ],
-      "status": "expected-no-op",
+      "status": "meaningful",
       "invariant": {
-        "metric": "nonCosmeticDeltaCount",
+        "metric": "aura-eruption",
         "comparison": "increase",
-        "expectedFailure": true
+        "expectedFailure": false
       }
     },
     {
@@ -193,13 +193,13 @@
       "scope": "universal",
       "passiveId": "area",
       "capabilities": [
-        "impact-identity"
+        "mine-grid-chain"
       ],
-      "status": "expected-no-op",
+      "status": "meaningful",
       "invariant": {
-        "metric": "nonCosmeticDeltaCount",
+        "metric": "mine-grid-chain",
         "comparison": "increase",
-        "expectedFailure": true
+        "expectedFailure": false
       }
     },
     {
@@ -238,13 +238,13 @@
       "scope": "universal",
       "passiveId": "haste",
       "capabilities": [
-        "impact-identity"
+        "aim-lanes"
       ],
-      "status": "expected-no-op",
+      "status": "meaningful",
       "invariant": {
-        "metric": "nonCosmeticDeltaCount",
+        "metric": "rail-aim-alignment",
         "comparison": "increase",
-        "expectedFailure": true
+        "expectedFailure": false
       }
     },
     {
@@ -266,13 +266,14 @@
       "scope": "universal",
       "passiveId": "damage",
       "capabilities": [
-        "impact-identity"
+        "horizontal-corridor",
+        "cover-push"
       ],
-      "status": "expected-no-op",
+      "status": "meaningful",
       "invariant": {
-        "metric": "nonCosmeticDeltaCount",
+        "metric": "transit-push",
         "comparison": "increase",
-        "expectedFailure": true
+        "expectedFailure": false
       }
     },
     {
@@ -341,7 +342,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "84fb1cf383fb1b6086fb201985fb1e86",
+      "seed": "e534c1bae634c34de334be94e434c027",
       "base": {
         "variantId": "signature:zuri:base",
         "loadout": {
@@ -374,17 +375,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 56
         },
-        "finalHash": "95fc06895b6be4cf",
+        "finalHash": "4b41bc86131eac7c",
         "ticks": 1081,
         "structure": {
           "peakEntities": 17,
           "maxWorkUnitsPerTick": 72,
-          "maxSnapshotBytes": 6933
+          "maxSnapshotBytes": 6948
         }
       },
       "evolved": {
@@ -419,17 +424,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 133
         },
-        "finalHash": "44b54b3e8abb1a75",
+        "finalHash": "6417d9cec0681b3d",
         "ticks": 1081,
         "structure": {
           "peakEntities": 24,
           "maxWorkUnitsPerTick": 135,
-          "maxSnapshotBytes": 9000
+          "maxSnapshotBytes": 9015
         }
       },
       "delta": {
@@ -458,8 +467,12 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 77
         }
@@ -484,7 +497,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "cd86aecece86b061cb86aba8cc86ad3b",
+      "seed": "a513e3bfa413e22ca713e6e5a613e552",
       "base": {
         "variantId": "signature:echo:base",
         "loadout": {
@@ -493,21 +506,21 @@
           "evolved": false
         },
         "common": {
-          "damage": 9086,
-          "hits": 77,
+          "damage": 10030,
+          "hits": 85,
           "uniqueTargets": 9,
           "activations": 9,
           "activationRate": 0.5,
-          "projectiles": 65,
-          "effects": 9,
-          "tasks": 11,
+          "projectiles": 66,
+          "effects": 11,
+          "tasks": 12,
           "maxEntities": 20
         },
         "capabilityMetrics": {
           "cadence": 0.496,
           "pierce": 7,
           "lifetime": 1.9,
-          "repeat": 11,
+          "repeat": 12,
           "flowRegeneration": 0,
           "orbitSpeed": 0,
           "projectileStreams": 6,
@@ -517,17 +530,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
-          "impactIdentity": 85
+          "impactIdentity": 89
         },
-        "finalHash": "856942b3d51d7ece",
+        "finalHash": "99167515213a61e8",
         "ticks": 1081,
         "structure": {
           "peakEntities": 20,
           "maxWorkUnitsPerTick": 99,
-          "maxSnapshotBytes": 7967
+          "maxSnapshotBytes": 7973
         }
       },
       "evolved": {
@@ -538,21 +555,21 @@
           "evolved": true
         },
         "common": {
-          "damage": 12272,
-          "hits": 104,
+          "damage": 14750,
+          "hits": 125,
           "uniqueTargets": 9,
           "activations": 14,
           "activationRate": 0.778,
-          "projectiles": 101,
-          "effects": 27,
-          "tasks": 17,
+          "projectiles": 103,
+          "effects": 24,
+          "tasks": 20,
           "maxEntities": 27
         },
         "capabilityMetrics": {
           "cadence": 0.726,
           "pierce": 7,
           "lifetime": 2.6,
-          "repeat": 17,
+          "repeat": 20,
           "flowRegeneration": 0,
           "orbitSpeed": 0,
           "projectileStreams": 6,
@@ -562,36 +579,40 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
-          "impactIdentity": 145
+          "impactIdentity": 147
         },
-        "finalHash": "42c5a5a0f7de52b8",
+        "finalHash": "85b4fc739f34be6a",
         "ticks": 1081,
         "structure": {
           "peakEntities": 27,
           "maxWorkUnitsPerTick": 162,
-          "maxSnapshotBytes": 10196
+          "maxSnapshotBytes": 10099
         }
       },
       "delta": {
         "common": {
-          "damage": 3186,
-          "hits": 27,
+          "damage": 4720,
+          "hits": 40,
           "uniqueTargets": 0,
           "activations": 5,
           "activationRate": 0.278,
-          "projectiles": 36,
-          "effects": 18,
-          "tasks": 6,
+          "projectiles": 37,
+          "effects": 13,
+          "tasks": 8,
           "maxEntities": 7
         },
         "capabilityMetrics": {
           "cadence": 0.23,
           "pierce": 0,
           "lifetime": 0.7,
-          "repeat": 6,
+          "repeat": 8,
           "flowRegeneration": 0,
           "orbitSpeed": 0,
           "projectileStreams": 0,
@@ -601,10 +622,14 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
-          "impactIdentity": 60
+          "impactIdentity": 58
         }
       },
       "nonCosmeticDeltaCount": 9
@@ -627,7 +652,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "2b85a36e2c85a5012985a0482a85a1db",
+      "seed": "249f1fbb239f1e28269f22e1259f214e",
       "base": {
         "variantId": "signature:sola:base",
         "loadout": {
@@ -660,17 +685,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 44
         },
-        "finalHash": "2e66f262850558de",
+        "finalHash": "ef941ee172a75476",
         "ticks": 1081,
         "structure": {
           "peakEntities": 14,
           "maxWorkUnitsPerTick": 45,
-          "maxSnapshotBytes": 6609
+          "maxSnapshotBytes": 6624
         }
       },
       "evolved": {
@@ -705,17 +734,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 48
         },
-        "finalHash": "069b1b9c63181ca3",
+        "finalHash": "95a973f887958b18",
         "ticks": 1081,
         "structure": {
           "peakEntities": 14,
           "maxWorkUnitsPerTick": 45,
-          "maxSnapshotBytes": 8018
+          "maxSnapshotBytes": 8033
         }
       },
       "delta": {
@@ -744,8 +777,12 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 4
         }
@@ -770,7 +807,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "74b9b68075b9b81376b9b9a677b9bb39",
+      "seed": "769fde97759fdd04789fe1bd779fe02a",
       "base": {
         "variantId": "signature:bront:base",
         "loadout": {
@@ -803,17 +840,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 10
         },
-        "finalHash": "ae2781a69fd8c461",
+        "finalHash": "261a1ee39a927722",
         "ticks": 1081,
         "structure": {
           "peakEntities": 19,
           "maxWorkUnitsPerTick": 81,
-          "maxSnapshotBytes": 6426
+          "maxSnapshotBytes": 6441
         }
       },
       "evolved": {
@@ -848,17 +889,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 35
         },
-        "finalHash": "b7cf20c32231811d",
+        "finalHash": "1a777fe6de83e052",
         "ticks": 1081,
         "structure": {
           "peakEntities": 23,
           "maxWorkUnitsPerTick": 117,
-          "maxSnapshotBytes": 7082
+          "maxSnapshotBytes": 7097
         }
       },
       "delta": {
@@ -887,8 +932,12 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 25
         }
@@ -913,7 +962,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "1c7486d91b7485461a7483b319748220",
+      "seed": "69b279e46ab27b776bb27d0a6cb27e9d",
       "base": {
         "variantId": "signature:fang:base",
         "loadout": {
@@ -946,17 +995,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 24
         },
-        "finalHash": "58fc3762f2c2c00c",
+        "finalHash": "d6ec16a77d8b380b",
         "ticks": 1081,
         "structure": {
           "peakEntities": 11,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 5341
+          "maxSnapshotBytes": 5356
         }
       },
       "evolved": {
@@ -991,17 +1044,21 @@
           "predatorHook": 72,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 30
         },
-        "finalHash": "ae2d2538bb7f06db",
+        "finalHash": "1865d46baa1deeba",
         "ticks": 1081,
         "structure": {
           "peakEntities": 12,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 6561
+          "maxSnapshotBytes": 6576
         }
       },
       "delta": {
@@ -1030,8 +1087,12 @@
           "predatorHook": 72,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 6
         }
@@ -1057,7 +1118,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "cb1a84f4cc1a8687cd1a881ace1a89ad",
+      "seed": "3c3f798d3b3f77fa3a3f7667393f74d4",
       "base": {
         "variantId": "signature:gale:base",
         "loadout": {
@@ -1066,15 +1127,15 @@
           "evolved": false
         },
         "common": {
-          "damage": 5865,
-          "hits": 27,
+          "damage": 7182.5,
+          "hits": 37,
           "uniqueTargets": 9,
           "activations": 5,
           "activationRate": 0.278,
           "projectiles": 15,
           "effects": 2,
           "tasks": 0,
-          "maxEntities": 19
+          "maxEntities": 16
         },
         "capabilityMetrics": {
           "cadence": 10.345,
@@ -1090,17 +1151,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 17
         },
-        "finalHash": "4f150b9f477b2fd4",
+        "finalHash": "19208e49582b2bee",
         "ticks": 1141,
         "structure": {
-          "peakEntities": 19,
-          "maxWorkUnitsPerTick": 90,
-          "maxSnapshotBytes": 6812
+          "peakEntities": 16,
+          "maxWorkUnitsPerTick": 63,
+          "maxSnapshotBytes": 6391
         }
       },
       "evolved": {
@@ -1111,15 +1176,15 @@
           "evolved": true
         },
         "common": {
-          "damage": 6545,
-          "hits": 31,
+          "damage": 7692.5,
+          "hits": 40,
           "uniqueTargets": 9,
           "activations": 6,
           "activationRate": 0.333,
           "projectiles": 18,
-          "effects": 3,
+          "effects": 2,
           "tasks": 0,
-          "maxEntities": 16
+          "maxEntities": 17
         },
         "capabilityMetrics": {
           "cadence": 10.345,
@@ -1135,30 +1200,34 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
-          "impactIdentity": 21
+          "impactIdentity": 20
         },
-        "finalHash": "74a9f2fb13a64188",
+        "finalHash": "a2026fca29fa9561",
         "ticks": 1141,
         "structure": {
-          "peakEntities": 16,
-          "maxWorkUnitsPerTick": 63,
-          "maxSnapshotBytes": 6825
+          "peakEntities": 17,
+          "maxWorkUnitsPerTick": 72,
+          "maxSnapshotBytes": 6997
         }
       },
       "delta": {
         "common": {
-          "damage": 680,
-          "hits": 4,
+          "damage": 510,
+          "hits": 3,
           "uniqueTargets": 0,
           "activations": 1,
           "activationRate": 0.055,
           "projectiles": 3,
-          "effects": 1,
+          "effects": 0,
           "tasks": 0,
-          "maxEntities": -3
+          "maxEntities": 1
         },
         "capabilityMetrics": {
           "cadence": 0,
@@ -1174,10 +1243,14 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
-          "impactIdentity": 4
+          "impactIdentity": 3
         }
       },
       "nonCosmeticDeltaCount": 7
@@ -1200,7 +1273,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "53630e0c54630f9f55631132566312c5",
+      "seed": "86a0592185a0578e84a055fb83a05468",
       "base": {
         "variantId": "signature:rift:base",
         "loadout": {
@@ -1233,17 +1306,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 40
         },
-        "finalHash": "22de71a993b3a4be",
+        "finalHash": "96bce2219346316c",
         "ticks": 1081,
         "structure": {
           "peakEntities": 11,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 5319
+          "maxSnapshotBytes": 5334
         }
       },
       "evolved": {
@@ -1278,17 +1355,21 @@
           "predatorHook": 0,
           "kineticReserve": 0.2,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 54
         },
-        "finalHash": "51dd9d3533a9000a",
+        "finalHash": "317cd59e799edadc",
         "ticks": 1081,
         "structure": {
           "peakEntities": 11,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 6649
+          "maxSnapshotBytes": 6664
         }
       },
       "delta": {
@@ -1317,8 +1398,12 @@
           "predatorHook": 0,
           "kineticReserve": 0.2,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 14
         }
@@ -1343,7 +1428,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "6f8656116e86547e6d8652eb6c865158",
+      "seed": "dab4ea94dbb4ec27dcb4edbaddb4ef4d",
       "base": {
         "variantId": "signature:nova:base",
         "loadout": {
@@ -1376,17 +1461,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 32
         },
-        "finalHash": "e3d8de9d4ba5e3ef",
+        "finalHash": "c7ea74b244de6e7c",
         "ticks": 1081,
         "structure": {
           "peakEntities": 14,
           "maxWorkUnitsPerTick": 45,
-          "maxSnapshotBytes": 6231
+          "maxSnapshotBytes": 6246
         }
       },
       "evolved": {
@@ -1421,17 +1510,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 63
         },
-        "finalHash": "78327764e2042ef6",
+        "finalHash": "40b054b8561c78de",
         "ticks": 1081,
         "structure": {
           "peakEntities": 18,
           "maxWorkUnitsPerTick": 81,
-          "maxSnapshotBytes": 7434
+          "maxSnapshotBytes": 7449
         }
       },
       "delta": {
@@ -1460,8 +1553,12 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 31
         }
@@ -1486,7 +1583,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "a4ea9be6a5ea9d79a2ea98c0a3ea9a53",
+      "seed": "8caadff78baade648eaae31d8daae18a",
       "base": {
         "variantId": "signature:vesper:base",
         "loadout": {
@@ -1519,17 +1616,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 24
         },
-        "finalHash": "4f7187201c122565",
+        "finalHash": "7d96b22db733f577",
         "ticks": 1081,
         "structure": {
           "peakEntities": 26,
           "maxWorkUnitsPerTick": 27,
-          "maxSnapshotBytes": 7003
+          "maxSnapshotBytes": 7018
         }
       },
       "evolved": {
@@ -1564,17 +1665,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 38
         },
-        "finalHash": "8160d5e14f7400fb",
+        "finalHash": "d33b5512c08eb41e",
         "ticks": 1081,
         "structure": {
           "peakEntities": 36,
           "maxWorkUnitsPerTick": 45,
-          "maxSnapshotBytes": 8359
+          "maxSnapshotBytes": 8374
         }
       },
       "delta": {
@@ -1603,8 +1708,12 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 14
         }
@@ -1629,7 +1738,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "77aefcdf76aefb4c79af000578aefe72",
+      "seed": "21fbca0422fbcb9723fbcd2a24fbcebd",
       "base": {
         "variantId": "universal:uwu:base",
         "loadout": {
@@ -1662,17 +1771,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 100
         },
-        "finalHash": "d54e3d382a1a7e68",
+        "finalHash": "9c7ae2271b060db8",
         "ticks": 1201,
         "structure": {
           "peakEntities": 12,
           "maxWorkUnitsPerTick": 27,
-          "maxSnapshotBytes": 5670
+          "maxSnapshotBytes": 5685
         }
       },
       "evolved": {
@@ -1683,8 +1796,8 @@
           "evolved": true
         },
         "common": {
-          "damage": 13665.6,
-          "hits": 204,
+          "damage": 13774.8,
+          "hits": 206,
           "uniqueTargets": 8,
           "activations": 54,
           "activationRate": 3,
@@ -1707,23 +1820,27 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 4,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 108
         },
-        "finalHash": "e3b8d018e4abcb72",
+        "finalHash": "d70a2ecb84c5e4b9",
         "ticks": 1201,
         "structure": {
           "peakEntities": 14,
           "maxWorkUnitsPerTick": 45,
-          "maxSnapshotBytes": 8309
+          "maxSnapshotBytes": 8322
         }
       },
       "delta": {
         "common": {
-          "damage": 6021.6,
-          "hits": 106,
+          "damage": 6130.8,
+          "hits": 108,
           "uniqueTargets": 1,
           "activations": 4,
           "activationRate": 0.222,
@@ -1746,8 +1863,12 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 4,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 8
         }
@@ -1771,7 +1892,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "aee9811dade97f8aace97df7abe97c64",
+      "seed": "a54f104ea64f11e1a34f0d28a44f0ebb",
       "base": {
         "variantId": "universal:slicers:base",
         "loadout": {
@@ -1804,17 +1925,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 1008
         },
-        "finalHash": "bef3a97ae151650b",
+        "finalHash": "cb2bfbdb82c0be6c",
         "ticks": 1080,
         "structure": {
           "peakEntities": 24,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 7848
+          "maxSnapshotBytes": 7863
         }
       },
       "evolved": {
@@ -1849,17 +1974,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 1008
         },
-        "finalHash": "254f1e26321cbf50",
+        "finalHash": "b7fa997e2eb0e955",
         "ticks": 1080,
         "structure": {
           "peakEntities": 24,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 7886
+          "maxSnapshotBytes": 7901
         }
       },
       "delta": {
@@ -1888,8 +2017,12 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 0
         }
@@ -1901,19 +2034,19 @@
       "scope": "universal",
       "passiveId": "maxHealth",
       "capabilities": [
-        "impact-identity"
+        "occupied-charge-eruption"
       ],
-      "status": "expected-no-op",
+      "status": "meaningful",
       "invariant": {
-        "metric": "nonCosmeticDeltaCount",
+        "metric": "aura-eruption",
         "comparison": "increase",
-        "expectedFailure": true,
-        "value": 0,
-        "passed": false,
+        "expectedFailure": false,
+        "value": 1,
+        "passed": true,
         "accepted": true,
-        "outcome": "expected-failure"
+        "outcome": "pass"
       },
-      "seed": "d8d1e78dd7d1e5fad6d1e467d5d1e2d4",
+      "seed": "0c7f6af80d7f6c8b0e7f6e1e0f7f6fb1",
       "base": {
         "variantId": "universal:aura:base",
         "loadout": {
@@ -1946,17 +2079,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 0
         },
-        "finalHash": "2d2f81457bee2e14",
+        "finalHash": "8e58174608197732",
         "ticks": 1080,
         "structure": {
           "peakEntities": 10,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 5220
+          "maxSnapshotBytes": 5235
         }
       },
       "evolved": {
@@ -1967,15 +2104,15 @@
           "evolved": true
         },
         "common": {
-          "damage": 17343.2,
-          "hits": 266,
+          "damage": 19886,
+          "hits": 251,
           "uniqueTargets": 9,
           "activations": 52,
           "activationRate": 2.889,
           "projectiles": 0,
-          "effects": 0,
+          "effects": 4,
           "tasks": 0,
-          "maxEntities": 10
+          "maxEntities": 11
         },
         "capabilityMetrics": {
           "cadence": 2.889,
@@ -1991,30 +2128,34 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 1,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
-          "impactIdentity": 0
+          "impactIdentity": 60
         },
-        "finalHash": "bac50ea251cbd8fe",
+        "finalHash": "1e1952e6e37ab010",
         "ticks": 1080,
         "structure": {
-          "peakEntities": 10,
+          "peakEntities": 11,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 5219
+          "maxSnapshotBytes": 6804
         }
       },
       "delta": {
         "common": {
-          "damage": 0,
-          "hits": 0,
+          "damage": 2542.8,
+          "hits": -15,
           "uniqueTargets": 0,
           "activations": 0,
           "activationRate": 0,
           "projectiles": 0,
-          "effects": 0,
+          "effects": 4,
           "tasks": 0,
-          "maxEntities": 0
+          "maxEntities": 1
         },
         "capabilityMetrics": {
           "cadence": 0,
@@ -2030,32 +2171,36 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 1,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
-          "impactIdentity": 0
+          "impactIdentity": 60
         }
       },
-      "nonCosmeticDeltaCount": 0
+      "nonCosmeticDeltaCount": 3
     },
     {
       "sourceKey": "universal:mines",
       "scope": "universal",
       "passiveId": "area",
       "capabilities": [
-        "impact-identity"
+        "mine-grid-chain"
       ],
-      "status": "expected-no-op",
+      "status": "meaningful",
       "invariant": {
-        "metric": "nonCosmeticDeltaCount",
+        "metric": "mine-grid-chain",
         "comparison": "increase",
-        "expectedFailure": true,
-        "value": 0,
-        "passed": false,
+        "expectedFailure": false,
+        "value": 1,
+        "passed": true,
         "accepted": true,
-        "outcome": "expected-failure"
+        "outcome": "pass"
       },
-      "seed": "538a23d0548a2563558a26f6568a2889",
+      "seed": "e9a92de3e8a92c50eba93109eaa92f76",
       "base": {
         "variantId": "universal:mines:base",
         "loadout": {
@@ -2088,17 +2233,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 28
         },
-        "finalHash": "016d95c09eed4a4f",
+        "finalHash": "d534dd2246a37b87",
         "ticks": 1080,
         "structure": {
           "peakEntities": 23,
           "maxWorkUnitsPerTick": 126,
-          "maxSnapshotBytes": 7244
+          "maxSnapshotBytes": 7399
         }
       },
       "evolved": {
@@ -2109,15 +2258,15 @@
           "evolved": true
         },
         "common": {
-          "damage": 9805,
-          "hits": 53,
+          "damage": 11285,
+          "hits": 61,
           "uniqueTargets": 9,
           "activations": 4,
           "activationRate": 0.222,
           "projectiles": 0,
           "effects": 28,
           "tasks": 0,
-          "maxEntities": 23
+          "maxEntities": 26
         },
         "capabilityMetrics": {
           "cadence": 0.222,
@@ -2133,30 +2282,34 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 1,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 28
         },
-        "finalHash": "4ba7925d8ef5435b",
+        "finalHash": "fdac93b26b098340",
         "ticks": 1080,
         "structure": {
-          "peakEntities": 23,
-          "maxWorkUnitsPerTick": 126,
-          "maxSnapshotBytes": 7271
+          "peakEntities": 26,
+          "maxWorkUnitsPerTick": 153,
+          "maxSnapshotBytes": 10772
         }
       },
       "delta": {
         "common": {
-          "damage": 0,
-          "hits": 0,
+          "damage": 1480,
+          "hits": 8,
           "uniqueTargets": 0,
           "activations": 0,
           "activationRate": 0,
           "projectiles": 0,
           "effects": 0,
           "tasks": 0,
-          "maxEntities": 0
+          "maxEntities": 3
         },
         "capabilityMetrics": {
           "cadence": 0,
@@ -2172,13 +2325,17 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 1,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 0
         }
       },
-      "nonCosmeticDeltaCount": 0
+      "nonCosmeticDeltaCount": 3
     },
     {
       "sourceKey": "universal:crossbow",
@@ -2199,7 +2356,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "99d2ad229ad2aeb597d2a9fc98d2ab8f",
+      "seed": "a363e01fa263de8ca563e345a463e1b2",
       "base": {
         "variantId": "universal:crossbow:base",
         "loadout": {
@@ -2208,15 +2365,15 @@
           "evolved": false
         },
         "common": {
-          "damage": 3125.5,
-          "hits": 22,
-          "uniqueTargets": 4,
+          "damage": 4488.75,
+          "hits": 33,
+          "uniqueTargets": 6,
           "activations": 7,
           "activationRate": 0.389,
           "projectiles": 49,
-          "effects": 14,
+          "effects": 16,
           "tasks": 0,
-          "maxEntities": 18
+          "maxEntities": 17
         },
         "capabilityMetrics": {
           "cadence": 0.389,
@@ -2232,17 +2389,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
-          "impactIdentity": 63
+          "impactIdentity": 65
         },
-        "finalHash": "1ee1790a6a14205b",
+        "finalHash": "b193a1040fafa7d4",
         "ticks": 1260,
         "structure": {
-          "peakEntities": 18,
-          "maxWorkUnitsPerTick": 81,
-          "maxSnapshotBytes": 7153
+          "peakEntities": 17,
+          "maxWorkUnitsPerTick": 72,
+          "maxSnapshotBytes": 7098
         }
       },
       "evolved": {
@@ -2253,7 +2414,7 @@
           "evolved": true
         },
         "common": {
-          "damage": 12335.75,
+          "damage": 12036.5,
           "hits": 83,
           "uniqueTargets": 6,
           "activations": 7,
@@ -2277,30 +2438,34 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 1,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 55
         },
-        "finalHash": "5afc318c0b8ddae7",
+        "finalHash": "c7e5bf3073a3bd3e",
         "ticks": 1260,
         "structure": {
           "peakEntities": 17,
           "maxWorkUnitsPerTick": 72,
-          "maxSnapshotBytes": 8669
+          "maxSnapshotBytes": 8881
         }
       },
       "delta": {
         "common": {
-          "damage": 9210.25,
-          "hits": 61,
-          "uniqueTargets": 2,
+          "damage": 7547.75,
+          "hits": 50,
+          "uniqueTargets": 0,
           "activations": 0,
           "activationRate": 0,
           "projectiles": 0,
-          "effects": -8,
+          "effects": -10,
           "tasks": 0,
-          "maxEntities": -1
+          "maxEntities": 0
         },
         "capabilityMetrics": {
           "cadence": 0,
@@ -2316,13 +2481,17 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 1,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
-          "impactIdentity": -8
+          "impactIdentity": -10
         }
       },
-      "nonCosmeticDeltaCount": 5
+      "nonCosmeticDeltaCount": 4
     },
     {
       "sourceKey": "universal:boomerang",
@@ -2342,7 +2511,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "11d27b6c12d27cff13d27e9214d28025",
+      "seed": "ecd904d3ebd90340eed907f9edd90666",
       "base": {
         "variantId": "universal:boomerang:base",
         "loadout": {
@@ -2375,17 +2544,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 21
         },
-        "finalHash": "7707f5c852b34fad",
+        "finalHash": "03f9750f76a7311e",
         "ticks": 1140,
         "structure": {
           "peakEntities": 13,
           "maxWorkUnitsPerTick": 36,
-          "maxSnapshotBytes": 6139
+          "maxSnapshotBytes": 6154
         }
       },
       "evolved": {
@@ -2420,17 +2593,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0.3,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 21
         },
-        "finalHash": "750a0e26c7f183b6",
+        "finalHash": "b3f625a4fb6308ab",
         "ticks": 1140,
         "structure": {
           "peakEntities": 13,
           "maxWorkUnitsPerTick": 36,
-          "maxSnapshotBytes": 8803
+          "maxSnapshotBytes": 8818
         }
       },
       "delta": {
@@ -2459,8 +2636,12 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0.3,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 0
         }
@@ -2472,19 +2653,19 @@
       "scope": "universal",
       "passiveId": "haste",
       "capabilities": [
-        "impact-identity"
+        "aim-lanes"
       ],
-      "status": "expected-no-op",
+      "status": "meaningful",
       "invariant": {
-        "metric": "nonCosmeticDeltaCount",
+        "metric": "rail-aim-alignment",
         "comparison": "increase",
-        "expectedFailure": true,
-        "value": 0,
-        "passed": false,
+        "expectedFailure": false,
+        "value": 1,
+        "passed": true,
         "accepted": true,
-        "outcome": "expected-failure"
+        "outcome": "pass"
       },
-      "seed": "9aa5b07a9ba5b20d98a5ad5499a5aee7",
+      "seed": "61890eab60890d18638911d16289103e",
       "base": {
         "variantId": "universal:rail:base",
         "loadout": {
@@ -2517,17 +2698,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 48
         },
-        "finalHash": "d53cf22cc2becbd8",
+        "finalHash": "f52acef6eb5cb7f8",
         "ticks": 1080,
         "structure": {
           "peakEntities": 16,
           "maxWorkUnitsPerTick": 63,
-          "maxSnapshotBytes": 6721
+          "maxSnapshotBytes": 6736
         }
       },
       "evolved": {
@@ -2538,9 +2723,9 @@
           "evolved": true
         },
         "common": {
-          "damage": 17010,
-          "hits": 126,
-          "uniqueTargets": 7,
+          "damage": 9855,
+          "hits": 73,
+          "uniqueTargets": 9,
           "activations": 8,
           "activationRate": 0.444,
           "projectiles": 48,
@@ -2562,24 +2747,28 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 1,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 48
         },
-        "finalHash": "702625236cbe3a94",
+        "finalHash": "694d83c8020ae0a7",
         "ticks": 1080,
         "structure": {
           "peakEntities": 16,
           "maxWorkUnitsPerTick": 63,
-          "maxSnapshotBytes": 6738
+          "maxSnapshotBytes": 8492
         }
       },
       "delta": {
         "common": {
-          "damage": 0,
-          "hits": 0,
-          "uniqueTargets": 0,
+          "damage": -7155,
+          "hits": -53,
+          "uniqueTargets": 2,
           "activations": 0,
           "activationRate": 0,
           "projectiles": 0,
@@ -2601,13 +2790,17 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 1,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 0
         }
       },
-      "nonCosmeticDeltaCount": 0
+      "nonCosmeticDeltaCount": 4
     },
     {
       "sourceKey": "universal:glove",
@@ -2626,7 +2819,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "ad7ec83dac7ec6aaab7ec517aa7ec384",
+      "seed": "2f8bac7e308bae112d8ba9582e8baaeb",
       "base": {
         "variantId": "universal:glove:base",
         "loadout": {
@@ -2659,17 +2852,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 49
         },
-        "finalHash": "1ba5a9e6c1ea632c",
+        "finalHash": "4ad45292e2893c1e",
         "ticks": 1080,
         "structure": {
           "peakEntities": 17,
           "maxWorkUnitsPerTick": 72,
-          "maxSnapshotBytes": 7019
+          "maxSnapshotBytes": 7034
         }
       },
       "evolved": {
@@ -2704,17 +2901,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 104
         },
-        "finalHash": "838d96c5d07c271f",
+        "finalHash": "78ea33eda49b434c",
         "ticks": 1080,
         "structure": {
           "peakEntities": 24,
           "maxWorkUnitsPerTick": 135,
-          "maxSnapshotBytes": 9043
+          "maxSnapshotBytes": 9058
         }
       },
       "delta": {
@@ -2743,8 +2944,12 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 55
         }
@@ -2756,19 +2961,20 @@
       "scope": "universal",
       "passiveId": "damage",
       "capabilities": [
-        "impact-identity"
+        "horizontal-corridor",
+        "cover-push"
       ],
-      "status": "expected-no-op",
+      "status": "meaningful",
       "invariant": {
-        "metric": "nonCosmeticDeltaCount",
+        "metric": "transit-push",
         "comparison": "increase",
-        "expectedFailure": true,
-        "value": 0,
-        "passed": false,
+        "expectedFailure": false,
+        "value": 120,
+        "passed": true,
         "accepted": true,
-        "outcome": "expected-failure"
+        "outcome": "pass"
       },
-      "seed": "e3d4cdf3e2d4cc60e5d4d119e4d4cf86",
+      "seed": "62b4398463b43b1764b43caa65b43e3d",
       "base": {
         "variantId": "universal:transit:base",
         "loadout": {
@@ -2777,9 +2983,9 @@
           "evolved": false
         },
         "common": {
-          "damage": 2870,
-          "hits": 7,
-          "uniqueTargets": 7,
+          "damage": 820,
+          "hits": 2,
+          "uniqueTargets": 2,
           "activations": 2,
           "activationRate": 0.111,
           "projectiles": 0,
@@ -2801,17 +3007,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 2
         },
-        "finalHash": "5d85238938483c85",
+        "finalHash": "abba41c891ca3ce6",
         "ticks": 1080,
         "structure": {
           "peakEntities": 12,
           "maxWorkUnitsPerTick": 27,
-          "maxSnapshotBytes": 5434
+          "maxSnapshotBytes": 5433
         }
       },
       "evolved": {
@@ -2822,9 +3032,9 @@
           "evolved": true
         },
         "common": {
-          "damage": 2870,
-          "hits": 7,
-          "uniqueTargets": 7,
+          "damage": 4100,
+          "hits": 10,
+          "uniqueTargets": 5,
           "activations": 2,
           "activationRate": 0.111,
           "projectiles": 0,
@@ -2846,24 +3056,28 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 120,
           "droneProtocol": 0,
           "impactIdentity": 2
         },
-        "finalHash": "cf0eb32348750167",
+        "finalHash": "8c5a4649f6621907",
         "ticks": 1080,
         "structure": {
           "peakEntities": 12,
           "maxWorkUnitsPerTick": 27,
-          "maxSnapshotBytes": 5435
+          "maxSnapshotBytes": 7087
         }
       },
       "delta": {
         "common": {
-          "damage": 0,
-          "hits": 0,
-          "uniqueTargets": 0,
+          "damage": 3280,
+          "hits": 8,
+          "uniqueTargets": 3,
           "activations": 0,
           "activationRate": 0,
           "projectiles": 0,
@@ -2885,13 +3099,17 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 120,
           "droneProtocol": 0,
           "impactIdentity": 0
         }
       },
-      "nonCosmeticDeltaCount": 0
+      "nonCosmeticDeltaCount": 4
     },
     {
       "sourceKey": "universal:ice",
@@ -2910,7 +3128,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "6f733f1f6e733d8c71734245707340b2",
+      "seed": "691701146a1702a76b17043a6c1705cd",
       "base": {
         "variantId": "universal:ice:base",
         "loadout": {
@@ -2943,17 +3161,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 0
         },
-        "finalHash": "18830f3e9d179902",
+        "finalHash": "87b93ac7583d2283",
         "ticks": 1081,
         "structure": {
           "peakEntities": 10,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 4992
+          "maxSnapshotBytes": 5007
         }
       },
       "evolved": {
@@ -2988,17 +3210,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 0
         },
-        "finalHash": "7f726c929121e4f0",
+        "finalHash": "4c482e2c9ffd8299",
         "ticks": 1081,
         "structure": {
           "peakEntities": 10,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 4992
+          "maxSnapshotBytes": 5007
         }
       },
       "delta": {
@@ -3027,8 +3253,12 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 0
         }
@@ -3052,7 +3282,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "d6ce1fafd5ce1e1cd8ce22d5d7ce2142",
+      "seed": "3b7690d43c7692673d7693fa3e76958d",
       "base": {
         "variantId": "universal:annihilator:base",
         "loadout": {
@@ -3085,17 +3315,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 1
         },
-        "finalHash": "ab091355d55a66d9",
+        "finalHash": "6ad96533378d7a34",
         "ticks": 1081,
         "structure": {
           "peakEntities": 19,
           "maxWorkUnitsPerTick": 90,
-          "maxSnapshotBytes": 6484
+          "maxSnapshotBytes": 6499
         }
       },
       "evolved": {
@@ -3130,17 +3364,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 1
         },
-        "finalHash": "1e34b3cc5368887b",
+        "finalHash": "ba7fdf543f07b30e",
         "ticks": 1081,
         "structure": {
           "peakEntities": 19,
           "maxWorkUnitsPerTick": 90,
-          "maxSnapshotBytes": 6483
+          "maxSnapshotBytes": 6498
         }
       },
       "delta": {
@@ -3169,8 +3407,12 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 0
         }
@@ -3198,7 +3440,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "47778b1248778ca5457787ec4677897f",
+      "seed": "5f9d09d55e9d08425d9d06af5c9d051c",
       "base": {
         "variantId": "universal:drone:base",
         "loadout": {
@@ -3231,17 +3473,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 0,
           "impactIdentity": 72
         },
-        "finalHash": "b88c9c5e101664ec",
+        "finalHash": "e375daf2a2bf79c3",
         "ticks": 3245,
         "structure": {
           "peakEntities": 18,
           "maxWorkUnitsPerTick": 64,
-          "maxSnapshotBytes": 7281
+          "maxSnapshotBytes": 7296
         }
       },
       "evolved": {
@@ -3276,17 +3522,21 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 1,
           "impactIdentity": 74
         },
-        "finalHash": "cfe4a7c2dd38230a",
+        "finalHash": "497d6dd15fbc4951",
         "ticks": 3245,
         "structure": {
           "peakEntities": 18,
           "maxWorkUnitsPerTick": 64,
-          "maxSnapshotBytes": 7330
+          "maxSnapshotBytes": 7345
         }
       },
       "delta": {
@@ -3315,8 +3565,12 @@
           "predatorHook": 0,
           "kineticReserve": 0,
           "needleRetarget": 0,
+          "auraEruption": 0,
+          "mineGridChain": 0,
           "ballistaDeepCrit": 0,
           "boomerangReturn": 0,
+          "railAimAlignment": 0,
+          "transitPush": 0,
           "droneProtocol": 1,
           "impactIdentity": 2
         }

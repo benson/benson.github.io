@@ -1,13 +1,13 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
-} from "./data.js?v=20260712.6";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260712.6";
+} from "./data.js?v=20260712.7";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260712.7";
 import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.5";
 import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260711.5";
-import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260712.6";
-import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260712.6";
-import { accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget } from "./projectile-decisions.js?v=20260712.6";
+import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260712.7";
+import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260712.7";
+import { MAX_CORRIDOR_CANDIDATES, accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget, orderEntitiesByDistance } from "./projectile-decisions.js?v=20260712.7";
 
 const BALANCE = getBalanceConfig();
 
@@ -111,6 +111,26 @@ export function moveEntityWithCover(entity, dx, dy) {
     if (!collidesWithCover(entity.x, nextY, entity.radius)) entity.y = nextY;
   }
   return entity;
+}
+
+export function bestHorizontalCorridor(origin, entities, { halfHeight, maxCandidates = MAX_CORRIDOR_CANDIDATES } = {}) {
+  const width = Number(halfHeight), requested = Number(maxCandidates);
+  if (!Number.isFinite(width) || width < 0) throw new RangeError("halfHeight must be finite and nonnegative");
+  if (!Number.isInteger(requested) || requested < 1 || requested > MAX_CORRIDOR_CANDIDATES) {
+    throw new RangeError(`maxCandidates must be an integer from 1 to ${MAX_CORRIDOR_CANDIDATES}`);
+  }
+  const candidates = orderEntitiesByDistance(origin, entities).slice(0, requested);
+  if (!candidates.length) return null;
+  const scored = candidates.map((entity) => ({
+    entity,
+    y: entity.y,
+    score: candidates.filter((target) => Math.abs(target.y - entity.y) <= width).length,
+    distanceSquared: (entity.x - origin.x) ** 2 + (entity.y - origin.y) ** 2,
+    candidateCount: candidates.length,
+    workUnits: candidates.length ** 2,
+  }));
+  return scored.sort((left, right) => right.score - left.score || left.distanceSquared - right.distanceSquared
+    || (left.entity.id < right.entity.id ? -1 : left.entity.id > right.entity.id ? 1 : 0))[0];
 }
 
 export function playerMovementSpeed(player) {
@@ -314,6 +334,7 @@ export class Simulation {
       weaponActivations: {},
       flow: 0, charge: 0, spirits: 0, hotKills: 0, hotStacks: 0, hotTime: 0,
       signatureActivation: 0, guardReturnActivation: 0, predatorHookCounter: 0, kineticReserve: 0,
+      auraCharge: 0,
       traveled: 0, feathers: [], damage: 0, damageBySource: {}, kills: 0, xpCollected: 0, damageTaken: 0, revives: 0,
       firedUpBuff: 0, healthbackBuff: 0, stopwavesBuff: 0, stopwaveClock: 0,
       lastHit: 0, iceReady: false, iceTimer: 0,
@@ -784,10 +805,25 @@ export class Simulation {
   }
 
   pushWeaponEvolutionProc(p, sourceId, mechanicId, activationId, position, direction, details = {}) {
+    const variant = this.weaponVariant(p, sourceId);
     this.pushEvent("weapon-evolution-proc", mechanicId, "", {
       ...details,
       ownerId: p.id,
       sourceId,
+      variantId: variant?.variantId,
+      mechanicId,
+      activationId,
+      position: { x: Number(position.x), y: Number(position.y) },
+      direction: Number(direction),
+    });
+  }
+
+  pushStampedWeaponEvolutionProc(entity, mechanicId, activationId, position, direction, details = {}) {
+    this.pushEvent("weapon-evolution-proc", mechanicId, "", {
+      ...details,
+      ownerId: entity.owner,
+      sourceId: entity.sourceId,
+      variantId: entity.variantId,
       mechanicId,
       activationId,
       position: { x: Number(position.x), y: Number(position.y) },
@@ -805,6 +841,34 @@ export class Simulation {
       position: { x: Number(projectile.x), y: Number(projectile.y) },
       direction: Math.atan2(projectile.vy, projectile.vx),
     });
+  }
+
+  triggerMineGridGroup(trigger) {
+    if (!trigger.mineGroupId || trigger.mineGroupState !== "armed") return false;
+    const tuning = BALANCE.weapons.universal.mines;
+    const group = this.effects.filter((effect) => effect.mineGroupId === trigger.mineGroupId);
+    const siblings = group.filter((effect) => effect !== trigger && !effect.triggered).sort((left, right) =>
+      left.mineGroupMemberSequence - right.mineGroupMemberSequence || (left.id < right.id ? -1 : left.id > right.id ? 1 : 0));
+    trigger.mineGroupState = "triggered";
+    for (const effect of group) if (effect !== trigger) effect.mineGroupState = "chained";
+    for (const [index, sibling] of siblings.entries()) {
+      const delay = tuning.evolvedChainFuseStep * (index + 1);
+      sibling.life = Math.min(sibling.life, delay);
+      sibling.mineChainFuse = sibling.life;
+      sibling.mineChainFuseLimit = delay;
+      sibling.radius *= tuning.evolvedChainRadiusMultiplier;
+      sibling.mineChainRadiusBoosted = true;
+    }
+    const owner = this.players.find((player) => player.id === trigger.owner);
+    this.pushStampedWeaponEvolutionProc(trigger, "mine-grid-chain", trigger.mineActivationId, trigger, owner ? angleTo(owner, trigger) : 0, {
+      groupId: trigger.mineGroupId,
+      groupSequence: trigger.mineGroupSequence,
+      triggerMineId: trigger.id,
+      siblingIds: siblings.map(({ id }) => id),
+      siblingFuses: siblings.map(({ mineChainFuse }) => mineChainFuse),
+      radiusMultiplier: tuning.evolvedChainRadiusMultiplier,
+    });
+    return true;
   }
 
   retargetEvolvedNeedle(projectile, firstTarget) {
@@ -1067,14 +1131,38 @@ export class Simulation {
       return this.cooldown(p, tuning.cooldown);
     }
     if (weaponId === "aura") {
-      this.blast(p.x, p.y, (tuning.radiusBase + level * tuning.radiusPerLevel) * area, tuning.damageBase + level * tuning.damagePerLevel + p.maxHp * tuning.maxHealthDamage, p.id, "#ffd861", false, evolved ? "eruption" : "aura", weaponId);
+      const radius = (tuning.radiusBase + level * tuning.radiusPerLevel) * area;
+      const damage = tuning.damageBase + level * tuning.damagePerLevel + p.maxHp * tuning.maxHealthDamage;
+      const activation = evolved ? this.beginWeaponActivation(p, weaponId) : null;
+      const hitCount = this.blast(p.x, p.y, radius, damage, p.id, "#ffd861", false, evolved ? "eruption" : "aura", weaponId, evolved ? { variantId: variant.variantId } : {});
+      if (evolved && hitCount > 0) {
+        p.auraCharge = Math.min(tuning.evolvedChargeThreshold, Math.max(0, Math.floor(Number(p.auraCharge || 0))) + 1);
+        if (p.auraCharge >= tuning.evolvedChargeThreshold) {
+          p.auraCharge = 0;
+          this.blast(p.x, p.y, radius * tuning.evolvedEruptionRadiusMultiplier, damage * tuning.evolvedEruptionDamageMultiplier, p.id, "#ffb84f", true, "auraEruption", weaponId, { variantId: variant.variantId });
+          this.pushWeaponEvolutionProc(p, weaponId, "aura-eruption", activation.id, p, aim, {
+            charge: 0, threshold: tuning.evolvedChargeThreshold, hitCount,
+            radiusMultiplier: tuning.evolvedEruptionRadiusMultiplier, damageMultiplier: tuning.evolvedEruptionDamageMultiplier,
+          });
+        }
+      }
       return this.cooldown(p, tuning.cooldown);
     }
     if (weaponId === "mines") {
       const count = tuning.countBase + level * tuning.countPerLevel + extra;
+      const activation = evolved ? this.beginWeaponActivation(p, weaponId) : null;
       for (let i = 0; i < count; i++) {
         const a = i * TAU / count + this.random(-tuning.spreadRandom, tuning.spreadRandom), r = tuning.orbitBase + level * tuning.orbitPerLevel;
         const mine = { id: this.nextGameplayId("fx"), x: p.x + Math.cos(a) * r, y: p.y + Math.sin(a) * r, radius: (tuning.radiusBase + level * tuning.radiusPerLevel) * area, life: tuning.fuseBase + i * tuning.fusePerMine, maxLife: tuning.fuseBase + i * tuning.fusePerMine, damage: tuning.damageBase + level * tuning.damagePerLevel, owner: p.id, color: "#ff8d55", kind: evolved ? "minePlus" : "mine", delayed: true, hit: new Set() };
+        if (evolved) {
+          const groupIndex = Math.floor(i / tuning.evolvedGroupSize), member = i % tuning.evolvedGroupSize;
+          mine.mineActivationId = activation.id;
+          mine.mineGroupId = `${activation.id}-g${groupIndex + 1}`;
+          mine.mineGroupSequence = groupIndex + 1;
+          mine.mineGroupMemberSequence = member + 1;
+          mine.mineGroupSize = Math.min(tuning.evolvedGroupSize, count - groupIndex * tuning.evolvedGroupSize);
+          mine.mineGroupState = mine.mineGroupSize >= 2 ? "armed" : "singleton";
+        }
         stampWeaponVariant(mine, variant);
         this.effects.push(mine);
       }
@@ -1111,10 +1199,24 @@ export class Simulation {
     }
     if (weaponId === "rail") {
       const count = tuning.countBase + Math.floor(level / tuning.countEveryLevels) + extra;
-      for (let i = 0; i < count; i++) {
-        const offset = (i - (count - 1) / 2) * tuning.laneSpacing;
-        this.shoot({ ...p, y: p.y + offset }, 0, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: "#ffcd71", pierce: tuning.pierce, sourceId: weaponId });
-        this.shoot({ ...p, y: p.y + offset }, Math.PI, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: "#ffcd71", pierce: tuning.pierce, sourceId: weaponId });
+      if (!evolved) {
+        for (let i = 0; i < count; i++) {
+          const offset = (i - (count - 1) / 2) * tuning.laneSpacing;
+          this.shoot({ ...p, y: p.y + offset }, 0, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: "#ffcd71", pierce: tuning.pierce, sourceId: weaponId });
+          this.shoot({ ...p, y: p.y + offset }, Math.PI, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: "#ffcd71", pierce: tuning.pierce, sourceId: weaponId });
+        }
+      } else {
+        const aim = this.aimForPlayer(p);
+        const activation = this.beginWeaponActivation(p, weaponId);
+        for (let i = 0; i < count; i++) {
+          const ring = Math.ceil(i / 2), lane = i === 0 ? 0 : (i % 2 ? -ring : ring), offset = lane * tuning.laneSpacing;
+          const source = { ...p, x: p.x - Math.sin(aim) * offset, y: p.y + Math.cos(aim) * offset };
+          this.shoot(source, aim, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: "#ffcd71", pierce: tuning.pierce, sourceId: weaponId });
+          this.shoot(source, aim + Math.PI, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: "#ffcd71", pierce: tuning.pierce, sourceId: weaponId });
+        }
+        this.pushWeaponEvolutionProc(p, weaponId, "rails-aim-lanes", activation.id, p, aim, {
+          aim, laneCount: count, projectileCount: count * 2,
+        });
       }
       return this.cooldown(p, tuning.cooldownBase + level * tuning.cooldownPerLevel);
     }
@@ -1127,8 +1229,21 @@ export class Simulation {
       return this.cooldown(p, tuning.cooldown);
     }
     if (weaponId === "transit") {
-      const y = p.y + this.random(-tuning.yRange, tuning.yRange);
+      let y, activation = null, corridor = null;
+      if (!evolved) y = p.y + this.random(-tuning.yRange, tuning.yRange);
+      else {
+        activation = this.beginWeaponActivation(p, weaponId);
+        corridor = bestHorizontalCorridor(p, this.enemies.filter((enemy) => !enemy.dead), {
+          halfHeight: tuning.corridorHalfHeight, maxCandidates: tuning.corridorMaxCandidates,
+        });
+        y = corridor?.y ?? p.y;
+        this.pushWeaponEvolutionProc(p, weaponId, "transit-corridor", activation.id, { x: p.x, y }, 0, {
+          targetId: corridor?.entity.id || "", score: corridor?.score || 0,
+          candidateCount: corridor?.candidateCount || 0, workUnits: corridor?.workUnits || 0, laneY: y,
+        });
+      }
       const train = { id: this.nextGameplayId("fx"), x: -WORLD.width / 2, y, radius: tuning.radius, life: tuning.life, maxLife: tuning.life, damage: tuning.damageBase + level * tuning.damagePerLevel, owner: p.id, color: "#ff7157", kind: "train", vx: tuning.speed, hit: new Set(), evolved };
+      if (activation) { train.evolutionActivationId = activation.id; train.pushProcEmitted = false; }
       stampWeaponVariant(train, variant);
       this.effects.push(train);
       return this.cooldown(p, tuning.cooldownBase + level * tuning.cooldownPerLevel);
@@ -1484,6 +1599,7 @@ export class Simulation {
   }
 
   updateEffects(dt) {
+    const due = [];
     for (const effect of this.effects) {
       effect.life -= dt;
       if (effect.vx) { effect.x += effect.vx * dt; effect.y += (effect.vy || 0) * dt; }
@@ -1509,13 +1625,42 @@ export class Simulation {
         }
       } else if (effect.kind === "train") {
         for (const enemy of this.enemies) {
-          if (enemy.dead || effect.hit.has(enemy.id) || Math.abs(enemy.y - effect.y) > 58 || Math.abs(enemy.x - effect.x) > 110) continue;
-          effect.hit.add(enemy.id); this.damageEnemy(enemy, effect.damage, effect.owner, false, effect.sourceId || "transit"); enemy.stun = 1;
+          if (enemy.dead || effect.hit.has(enemy.id) || Math.abs(enemy.y - effect.y) > BALANCE.weapons.universal.transit.corridorHalfHeight || Math.abs(enemy.x - effect.x) > 110) continue;
+          effect.hit.add(enemy.id); this.damageEnemy(enemy, effect.damage, effect.owner, false, effect.sourceId || "transit");
+          if (!effect.evolved) enemy.stun = 1;
+          else if (enemy.boss) enemy.stun = BALANCE.weapons.universal.transit.bossStun;
+          else if (!enemy.dead) {
+            const tuning = BALANCE.weapons.universal.transit;
+            const beforeX = enemy.x, beforeY = enemy.y, direction = Math.sign(effect.vx || tuning.speed) || 1;
+            moveEntityWithCover(enemy, direction * tuning.evolvedPushDistance, 0);
+            enemy.stun = Math.max(enemy.stun, tuning.evolvedStun);
+            if (!effect.pushProcEmitted) {
+              effect.pushProcEmitted = true;
+              const owner = this.players.find((player) => player.id === effect.owner);
+              if (owner) this.pushWeaponEvolutionProc(owner, "transit", "transit-cover-push", effect.evolutionActivationId, enemy, direction > 0 ? 0 : Math.PI, {
+                targetId: enemy.id,
+                pushDistance: tuning.evolvedPushDistance,
+                resolvedDistance: Math.hypot(enemy.x - beforeX, enemy.y - beforeY),
+                stun: tuning.evolvedStun,
+              });
+            }
+          }
         }
-      } else if (effect.delayed && effect.life <= 0 && !effect.triggered) {
-        effect.triggered = true;
-        this.damageArea(effect.x, effect.y, effect.radius, effect.damage, effect.owner, effect.color, effect.kind, effect.stun, effect.sourceId || effect.kind);
-      }
+      } else if (effect.delayed && effect.life <= 0 && !effect.triggered) due.push(effect);
+    }
+    due.sort((left, right) => {
+      const lifeOrder = left.life - right.life;
+      if (lifeOrder) return lifeOrder;
+      const leftGroup = String(left.mineGroupId || ""), rightGroup = String(right.mineGroupId || "");
+      if (leftGroup !== rightGroup) return leftGroup < rightGroup ? -1 : 1;
+      const memberOrder = Number(left.mineGroupMemberSequence || 0) - Number(right.mineGroupMemberSequence || 0);
+      return memberOrder || (left.id < right.id ? -1 : left.id > right.id ? 1 : 0);
+    });
+    for (const effect of due) {
+      if (effect.triggered) continue;
+      effect.triggered = true;
+      if (effect.mineGroupId) this.triggerMineGridGroup(effect);
+      this.damageArea(effect.x, effect.y, effect.radius, effect.damage, effect.owner, effect.color, effect.kind, effect.stun, effect.sourceId || effect.kind);
     }
     for (const feather of this.feathers) feather.life -= dt;
   }
@@ -1523,19 +1668,22 @@ export class Simulation {
   // The final options bag is shared by immutable visual variant identity and
   // bounded combat modifiers. Keep both out of positional source attribution.
   blast(x, y, radius, damage, owner, color = "#fff", visual = true, kind = "blast", sourceId = kind, options = {}) {
-    this.damageArea(x, y, radius, damage, owner, color, kind, 0, sourceId, options);
+    const hitCount = this.damageArea(x, y, radius, damage, owner, color, kind, 0, sourceId, options);
     if (visual) {
       const effect = { id: this.nextCosmeticId("fx"), x, y, radius, life: .28, maxLife: .28, damage: 0, owner, color, kind, hit: new Set() };
       const variant = this.weaponVariantForOwner(owner, sourceId, { variantId: options.variantId });
       if (variant) stampWeaponVariant(effect, variant);
       this.effects.push(effect);
     }
+    return hitCount;
   }
 
   damageArea(x, y, radius, damage, owner, color, kind, stun = 0, sourceId = kind, options = {}) {
+    let enemyHits = 0;
     for (const enemy of this.enemies) {
       if (enemy.dead || Math.hypot(enemy.x - x, enemy.y - y) > radius + enemy.radius) continue;
       this.damageEnemy(enemy, damage, owner, false, sourceId, options);
+      enemyHits++;
       if (kind === "hex") enemy.hexed = BALANCE.identityTuning.nova.hexDuration;
       if (kind === "stun" || kind === "knockup" || stun) enemy.stun = Math.max(enemy.stun, stun || 1.2);
     }
@@ -1544,6 +1692,7 @@ export class Simulation {
       pod.hp -= damage;
       if (pod.hp <= 0) this.breakPod(pod);
     }
+    return enemyHits;
   }
 
   updateEnemies(dt) {
