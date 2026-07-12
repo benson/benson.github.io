@@ -1,6 +1,33 @@
 {
-  "blurb": "played 20 other games in the last week, went 9-11",
+  "blurb": "played 20 other games in the last week, went 10-10",
   "recent": [
+    {
+      "champion": "Caitlyn",
+      "win": true,
+      "kills": 7,
+      "deaths": 9,
+      "assists": 2,
+      "damage": 23239,
+      "minutes": 23
+    },
+    {
+      "champion": "Bard",
+      "win": false,
+      "kills": 7,
+      "deaths": 7,
+      "assists": 6,
+      "damage": 30394,
+      "minutes": 25
+    },
+    {
+      "champion": "Tryndamere",
+      "win": false,
+      "kills": 6,
+      "deaths": 8,
+      "assists": 5,
+      "damage": 28086,
+      "minutes": 26
+    },
     {
       "champion": "JarvanIV",
       "win": true,
@@ -18,35 +45,8 @@
       "assists": 3,
       "damage": 20050,
       "minutes": 24
-    },
-    {
-      "champion": "Ashe",
-      "win": true,
-      "kills": 3,
-      "deaths": 7,
-      "assists": 11,
-      "damage": 42811,
-      "minutes": 23
-    },
-    {
-      "champion": "Shen",
-      "win": true,
-      "kills": 3,
-      "deaths": 6,
-      "assists": 12,
-      "damage": 23017,
-      "minutes": 24
-    },
-    {
-      "champion": "Vex",
-      "win": true,
-      "kills": 10,
-      "deaths": 6,
-      "assists": 13,
-      "damage": 71487,
-      "minutes": 23
     }
   ],
   "ddragonVersion": "16.13.1",
-  "date": "2026-07-11"
+  "date": "2026-07-12"
 }
