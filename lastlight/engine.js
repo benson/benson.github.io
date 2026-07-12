@@ -298,7 +298,6 @@ export class Simulation {
       firedUpBuff: 0, healthbackBuff: 0, stopwavesBuff: 0, stopwaveClock: 0,
       lastHit: 0, iceReady: false, iceTimer: 0,
     };
-    if (spec.id === "gale") player.passives.crit = 1.875;
     if (spec.id === "vesper") player.passives.pickup = 4;
     this.players.push(player);
     if (this.pendingChoices) {
@@ -438,7 +437,12 @@ export class Simulation {
         p.charge %= 120;
         this.blast(p.x, p.y, 95 * this.playerStat(p, "area"), (32 + this.level * 2) * this.playerStat(p, "damage"), p.id, spec.color, true, "kinetic", "passive:rift");
       }
-      if (p.specialist === "gale") p.flow = Math.min(100, p.flow + 25 * dt);
+      if (p.specialist === "gale") {
+        const tuning = BALANCE.identityTuning.gale;
+        const hasteMultiplier = 1 + this.playerStat(p, "haste") / 100 * tuning.flowHasteRatio;
+        const evolutionMultiplier = p.weapons.signature.evolved ? tuning.evolvedFlowMultiplier : 1;
+        p.flow = Math.min(100, p.flow + tuning.flowPerSecond * hasteMultiplier * evolutionMultiplier * dt);
+      }
       if (p.specialist === "nova") {
         const expected = Math.floor(this.level / 7);
         if (p.spirits < expected) { p.spirits = expected; this.pushEvent("upgrade", "Spirit acquired", `${p.name} now trails ${expected} wisp${expected === 1 ? "" : "s"}`); }

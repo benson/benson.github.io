@@ -23,12 +23,12 @@ Every entry has the same strict shape: role and specialization, effective range,
 - Additional engine gates are explicit for Zuri (70 kills or one elite), Fang (missing-health curve), Gale (100 flow), Rift (120 units traveled), Nova (one wisp per seven levels), and Vesper (live stored feathers).
 - Objective ratings are indirect. Every living specialist contributes equally to capture, relay-ball, and machine charge; identities add rotation, survival, control, or collection value, never a direct capture multiplier.
 
-## Catalog/engine mismatches discovered
+## Catalog/engine mismatches resolved during the audit
 
-These are findings, not behavior or balance changes:
+The first contract pass exposed five promises that the simulation did not execute. Build `2026.07.12.2` closes them and guards each behavior with regression coverage:
 
-- Echo's catalog says every weapon projectile can repeat. The engine's 25% repeat roll exists only in Echo's signature branch.
-- Gale's catalog says Windwall destroys hostile shots and knocks enemies away. The moving effect currently deals periodic area damage, but does neither promised behavior.
-- Rift's catalog says a portion of all damage becomes a shield. No damage-to-shield hook exists; Rift receives a fixed active shield instead.
-- Zuri's `hotStacks` counter increments and resets, but no combat stat reads it. Hot Streak is a non-stacking 8-second +150 haste/+18% damage window.
-- Sola's delayed detonation adds a second shield directly, bypassing the shared shield-cap helper used by the initial shield.
+- Echo repeats compatible signature and universal-weapon projectiles at the authored 25% rate.
+- Gale's Windwall destroys hostile shots and pushes enemies away while it travels.
+- Rift converts a bounded portion of dealt damage into its short-lived shield.
+- Zuri's Hot Streak stacks add movement speed, and Curtain Call scales against wounded targets.
+- Sola doubles current armor and every delayed shield grant remains inside the shared active-shield cap.

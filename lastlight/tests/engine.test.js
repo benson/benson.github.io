@@ -269,6 +269,29 @@ test("Echo repeats compatible universal projectiles and Gale Windwall intercepts
   assert.ok(Math.hypot(enemy.knockVx, enemy.knockVy) > 0);
 });
 
+test("Gale has one authored critical bonus and flow responds to haste and evolution", () => {
+  const countShots = ({ evolved = false, hasteRanks = 0 } = {}) => {
+    const sim = new Simulation({ players: [{ id: "gale", name: "Gale", specialist: "gale" }] });
+    const player = sim.players[0];
+    player.passives.haste = hasteRanks;
+    player.weapons.signature.evolved = evolved;
+    for (let tick = 0; tick < 12 * 60; tick++) {
+      sim.updatePlayers(1 / 60);
+      sim.updateWeapons(1 / 60);
+    }
+    return sim.projectiles.length;
+  };
+  const fresh = new Simulation({ players: [{ id: "gale", name: "Gale", specialist: "gale" }] });
+  assert.equal(fresh.playerStat(fresh.players[0], "crit"), .15);
+  const base = countShots();
+  const haste = countShots({ hasteRanks: 5 });
+  const evolved = countShots({ evolved: true });
+  const combined = countShots({ evolved: true, hasteRanks: 5 });
+  assert.ok(haste > base);
+  assert.ok(evolved > base);
+  assert.ok(combined > haste && combined > evolved);
+});
+
 test("Sola's relative armor buff and delayed shield obey the active shield cap", () => {
   const sim = new Simulation({ players: [{ id: "sola", name: "Sola", specialist: "sola" }] });
   sim.level = 3;

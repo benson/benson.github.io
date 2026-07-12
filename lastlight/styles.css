@@ -346,6 +346,10 @@ select { appearance: none; background-image: linear-gradient(45deg, transparent 
 .stat-line div:last-child { border-right: 0; }
 .stat-line dt { color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .1em; }
 .stat-line dd { margin: 4px 0 0; font: 700 16px/1 var(--display); }
+.identity-readout { display: grid; grid-template-columns: 1fr 1.15fr; gap: 1px; margin: -7px 0 14px; border: 1px solid rgba(99,242,223,.16); background: var(--line); }
+.identity-readout > div { min-width: 0; padding: 9px 10px; background: rgba(5,14,24,.96); }
+.identity-readout span { color: var(--cyan); font: 700 7px/1 var(--sans); letter-spacing: .12em; text-transform: uppercase; }
+.identity-readout p { margin: 5px 0 0; color: #a9bac0; font-size: 10px; line-height: 1.35; text-transform: capitalize; }
 .starting-weapon-detail { position: relative; margin: -7px 0 14px; border: 1px solid rgba(99,242,223,.2); background: rgba(99,242,223,.045); }
 .starting-weapon-trigger { width: 100%; display: grid; grid-template-columns: 42px minmax(0,1fr) auto; align-items: center; gap: 10px; padding: 8px; border: 0; background: transparent; color: var(--paper); text-align: left; cursor: help; }
 .starting-weapon-trigger:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }

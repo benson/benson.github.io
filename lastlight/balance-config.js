@@ -39,7 +39,7 @@ const config = {
     sola: { armorMultiplier: 2, aftershockShieldMaxHealth: 0.25 },
     bront: { crashDashDistance: 170 },
     fang: { missingHealthDamageBonus: 0.60 },
-    gale: { windwallKnockback: 240, windwallProjectilePadding: 18 },
+    gale: { flowPerSecond: 30, flowHasteRatio: 0.50, evolvedFlowMultiplier: 1.15, windwallKnockback: 240, windwallProjectilePadding: 18 },
     rift: { damageShieldRatio: 0.03, damageShieldCapMaxHealth: 0.35 },
     nova: { hexDuration: 8 },
     vesper: { recallPierce: 30 },
