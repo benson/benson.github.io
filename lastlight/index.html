@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260711.10">
+  <link rel="stylesheet" href="styles.css?v=20260712.1">
 </head>
 <body>
   <main id="app">
@@ -343,12 +343,43 @@
         <div id="result-damage-breakdown" class="result-damage-breakdown"></div>
         <div class="result-actions">
           <button id="again-button" class="deploy-button" type="button"><span>Run it again</span><span>↻</span></button>
-          <button id="copy-replay" class="text-button hidden" type="button">Copy deterministic replay</button>
+          <button id="watch-replay" class="text-button hidden" type="button">Watch verified replay</button>
           <button id="result-run-history" class="text-button" type="button">View past runs</button>
           <button id="result-home" class="text-button" type="button">Return to command</button>
         </div>
       </div>
     </section>
+
+    <dialog id="replay-dialog" class="replay-dialog" aria-labelledby="replay-title">
+      <div class="manual-header replay-header">
+        <div><p class="eyebrow">Deterministic operation record</p><h2 id="replay-title">WATCH REPLAY</h2></div>
+        <div class="replay-header-actions">
+          <span id="replay-verification" class="replay-verification" role="status">Verifying checkpoint...</span>
+          <button id="replay-close" class="icon-button" type="button" aria-label="Close replay viewer">Close</button>
+        </div>
+      </div>
+      <div class="replay-body">
+        <section class="replay-stage" aria-label="Replay battlefield">
+          <canvas id="replay-canvas" tabindex="0" aria-label="Interactive replay battlefield. Hover entities for details."></canvas>
+          <article id="replay-inspect" class="replay-inspect hidden" aria-live="polite"></article>
+        </section>
+        <aside class="replay-sidebar" aria-label="Replay statistics and loadouts">
+          <div id="replay-stats" class="replay-stats"></div>
+          <div id="replay-loadouts" class="replay-loadouts"></div>
+        </aside>
+      </div>
+      <div class="replay-controls" aria-label="Replay controls">
+        <div class="replay-transport">
+          <button id="replay-back" type="button" aria-label="Go back 5 seconds">-5s</button>
+          <button id="replay-play" class="replay-play" type="button" aria-pressed="false">Play</button>
+          <button id="replay-forward" type="button" aria-label="Go forward 5 seconds">+5s</button>
+        </div>
+        <label class="replay-scrubber" for="replay-timeline"><span>Timeline</span><input id="replay-timeline" type="range" min="0" max="1" value="0" step="1"><output id="replay-time" for="replay-timeline">00:00 / 00:00</output></label>
+        <label class="replay-speed" for="replay-speed"><span>Speed</span><select id="replay-speed"><option value="0.5">0.5x</option><option value="1" selected>1x</option><option value="2">2x</option><option value="4">4x</option></select></label>
+        <button id="replay-copy" class="text-button" type="button">Copy replay JSON</button>
+      </div>
+      <p class="replay-shortcuts"><kbd>Space</kbd> Play / pause <kbd>Left</kbd><kbd>Right</kbd> +/-5 seconds <kbd>Home</kbd> Restart <kbd>End</kbd> Finish</p>
+    </dialog>
 
     <dialog id="run-history-dialog" class="run-history-dialog" aria-labelledby="run-history-title">
       <div class="manual-header">
@@ -441,7 +472,19 @@
       <div class="build-history-body">
         <article class="build-release current-build">
           <header>
-            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.11.10</h3></div>
+            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.12.1</h3></div>
+            <time class="build-shipped-at" data-build-shipped-at="">Deployment verification pending</time>
+          </header>
+          <ul>
+            <li>Added a verified replay viewer with play, pause, speed, five-second seeking, backward reconstruction, live stats and loadouts, field inspection, and secondary JSON export.</li>
+            <li>Connected movement and weapon impacts to theme-owned debris, puddles, cables, fibers, dust, and six material contact grammars with strict performance and reduced-motion budgets.</li>
+            <li>Made raised cover intercept ordinary friendly and hostile projectiles without tunneling, while preserving explicit rail and apex-fire exceptions; auto-aim movement now keeps body facing aligned with travel.</li>
+            <li>Added authoritative before-and-after upgrade comparisons and made the report shortcut work across command, lobby, waiting, pause, upgrade, result, and live-game screens without firing while typing.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.11.10</h3></div>
             <time class="build-shipped-at" data-build-shipped-at="2026-07-11T22:29:00-04:00">Shipped Jul 11, 2026, 10:29 PM EDT</time>
           </header>
           <ul>
@@ -644,8 +687,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.11.10. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.11.10</strong></button>
-  <script src="build-history.js?v=20260711.10"></script>
-  <script type="module" src="game.js?v=20260711.10"></script>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.12.1. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.12.1</strong></button>
+  <script src="build-history.js?v=20260712.1"></script>
+  <script type="module" src="game.js?v=20260712.1"></script>
 </body>
 </html>

@@ -1,15 +1,15 @@
 import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260711.8";
-import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260711.8";
-import { Renderer } from "./render.js?v=20260711.10";
+import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260712.1";
+import { Renderer } from "./render.js?v=20260712.1";
 import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260711.8";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
-import { getThemeAsset, getThemeMaterial } from "./themes/lastlight.js?v=20260711.10";
+import { getThemeAsset, getThemeMaterial } from "./themes/lastlight.js?v=20260712.1";
 import { submitRunTelemetry } from "./telemetry.js?v=20260711.5";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { formatProjectileDisplay, getCombatMetadata, getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260711.8";
-import { BALANCE_HASH, BALANCE_VERSION } from "./balance-config.js?v=20260711.8";
+import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260711.8";
+import { BALANCE_HASH, BALANCE_VERSION } from "./balance-config.js?v=20260712.1";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
-import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260711.10";
+import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260712.1";
 import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260711.5";
 import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260711.5";
 import { clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260711.5";
@@ -19,6 +19,10 @@ import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./im
 import { advancePlayerMovement } from "./movement.js?v=20260711.8";
 import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
 import { DynamicAudioMixer } from "./audio-mix.js?v=20260711.10";
+import { buildUpgradeComparison, weaponTelemetry } from "./upgrade-preview.js?v=20260712.1";
+import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260712.1";
+import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260712.1";
+import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260712.1";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -27,7 +31,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.11.10";
+const BUILD = "2026.07.12.1";
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
 const systemReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false;
 const initialQualitySettings = (() => {
@@ -41,6 +45,8 @@ const initialQualitySettings = (() => {
 })();
 const renderer = new Renderer($("game-canvas"));
 renderer.setQualitySettings(initialQualitySettings);
+const replayRenderer = new Renderer($("replay-canvas"));
+replayRenderer.setQualitySettings(initialQualitySettings);
 const fixedClock = new FixedStepClock();
 const movementPredictor = new MovementPredictor();
 const hostInputSequences = new HostInputSequenceGate();
@@ -106,6 +112,7 @@ const state = {
   resumeToken: loadClientToken(),
   hostPreviousMotion: null, inputMotionStartedAt: 0, inputMotionStart: null, inputWasActive: false,
   replayRecorder: null, lastReplayCheckpointTick: -1, lastReplay: loadLastReplay(), resultReplay: null,
+  replayViewer: null,
   runtimeConfig: { config: DEFAULT_RUNTIME_CONFIG, source: "built-in", status: "initializing" },
   recoveryOffer: null, lastRecoverySaveAt: 0,
   networkLab: null,
@@ -663,6 +670,7 @@ function performanceSummary() {
     },
     multiplayerInput: inputProtocolDiagnostics(),
     materialImpacts: renderer.materialImpactDiagnostics(),
+    environmentInteractions: renderer.environmentDiagnostics(),
     audioMix: state.audioMixer?.diagnostics() || null,
     maxEntities: metrics.maxEntities,
   };
@@ -701,44 +709,6 @@ function cast(slot) {
     }
     send({ type: "cast", slot }); sfx(slot === "r" ? "ultimate" : "ability");
   }
-}
-
-function weaponTelemetry(weaponId, weapon, player) {
-  const level = weapon.level || 1, evolved = Boolean(weapon.evolved), extra = Math.floor(Number(player.passives?.projectiles || 0));
-  const haste = Number(player.passives?.haste || 0) * 10 + (player.hotTime > 0 ? 150 : 0) + (player.hasteBuff > 0 ? 150 : 0) + (player.frenzy > 0 ? 250 : 0);
-  let damageMultiplier = 1 + Number(player.passives?.damage || 0) * .1;
-  if (player.specialist === "fang") damageMultiplier *= 1 + (1 - player.hp / player.maxHp) * .6;
-  if (player.specialist === "rift") damageMultiplier *= 1.1;
-  if (player.hotTime > 0) damageMultiplier *= 1.18;
-  const cd = (base) => Math.max(.01, base * 100 / (100 + haste));
-  const rounded = (value) => Math.round(value * damageMultiplier);
-  if (weaponId === "signature") {
-    let interval = { zuri: 2.5, echo: 3, sola: 2.75, bront: 4.8, fang: 2, gale: .25, rift: .3, nova: 3, vesper: 2.5 }[player.specialist];
-    if (["echo", "sola"].includes(player.specialist)) interval -= (level - 1) * .25;
-    if (player.specialist === "bront") interval -= (level - 1) * .2;
-    if (player.specialist === "fang") interval -= (level - 1) * .1;
-    if (player.specialist === "vesper") interval -= (level - 1) * .125;
-    if (evolved) interval *= player.specialist === "zuri" ? .5 : player.specialist === "sola" ? 1.5 / interval : .68;
-    const damage = { zuri: 31 + level * 11, echo: 48 + level * 14, sola: 26 + level * 11 + player.armor * 1.2, bront: 70 + level * 24, fang: 36 + level * 19 + player.maxHp * 1.5, gale: 65 + level * 21, rift: 30 + level * 13, nova: 53 + level * 14, vesper: 51 + level * 14 }[player.specialist];
-    const projectiles = { zuri: 2 + level + extra, echo: Math.min(6, level + extra), sola: 3 + Math.floor(level / 2) + extra, bront: 1, fang: 1, gale: Math.min(7, 1 + Math.floor(level / 2) + extra), rift: 1, nova: Math.min(8, 1 + Math.ceil(level / 2) + extra), vesper: 1 + Math.floor(level / 3) + extra }[player.specialist];
-    return { damage: `${rounded(damage)} / hit`, interval: `${cd(interval).toFixed(2)}s`, cooldownSeconds: cd(interval), projectiles: formatProjectileDisplay(getCombatMetadata("signature", player.specialist), projectiles), note: SPECIALISTS[player.specialist].signature.evolve };
-  }
-  const table = {
-    uwu: [28 + level * 10, evolved ? .35 : .75 - level * .07, 1 + Math.floor(level / 3) + extra, "Nearest-target needles"],
-    slicers: [24 + level * 9, .24, 2 + level + extra, "Orbiting contact blades"],
-    aura: [16 + level * 8 + player.maxHp * .8, .34, 1, "Continuous radial field"],
-    mines: [60 + level * 25, 6.8 - level * .45, 2 + level + extra, "Delayed area mines"],
-    crossbow: [48 + level * 17, 4.2 - level * .25, 2 + level + extra, "Piercing random-direction fan"],
-    boomerang: [65 + level * 21, 3.8 - level * .2, 1 + Math.floor(level / 2) + extra, "Returning seeking blades"],
-    rail: [45 + level * 18, 3.7 - level * .22, (1 + Math.floor(level / 2) + extra) * 2, "Paired horizontal rails"],
-    glove: [31 + level * 13, 2.7, (2 + level + extra) * (evolved ? 2 : 1), "Rotating orb streams"],
-    transit: [135 + level * 55, 14 - level * .8, 1, "Full-lane train strike"],
-    ice: [0, evolved ? 9 : 13 - level * .6, 1, "Blocks one hit, then freezes"],
-    annihilator: [450 + level * 175, evolved ? 21 : 30 - level * 1.4, 1, "Massive delayed blast"],
-    drone: [40 + level * 15, 1.6 - level * .1, 1 + Math.floor((level - 1) / 2), "Autonomous target seeker"],
-  }[weaponId];
-  if (!table) return { damage: "—", interval: "—", cooldownSeconds: 0, projectiles: "—", note: "" };
-  return { damage: table[0] ? `${rounded(table[0])} / hit` : "Utility", interval: `${cd(table[1]).toFixed(2)}s`, cooldownSeconds: cd(table[1]), projectiles: formatProjectileDisplay(getCombatMetadata(weaponId, player.specialist), table[2]), note: table[3] };
 }
 
 function elapsedRunSeconds(game) { return Math.max(1, Number(game?.time || 0) + Number(game?.bossElapsed || 0)); }
@@ -788,7 +758,7 @@ function updateCooldownSlot(slot, remaining, maximum, unlocked, unlockLevel) {
 function setEnemyHealthBars(visible, persist = true) {
   state.showEnemyHealthBars = Boolean(visible);
   state.qualitySettings = { ...state.qualitySettings, preset: "custom", healthBars: state.showEnemyHealthBars ? "all" : "off" };
-  renderer.setQualitySettings(state.qualitySettings);
+  renderer.setQualitySettings(state.qualitySettings); replayRenderer.setQualitySettings(state.qualitySettings);
   $("game-canvas").dataset.enemyHealthBars = state.showEnemyHealthBars ? "visible" : "hidden";
   $("enemy-health-bars-toggle").checked = state.showEnemyHealthBars;
   if (persist) state.qualitySettings = saveQualitySettings(state.qualitySettings);
@@ -815,7 +785,7 @@ function renderQualityControls() {
 
 function applyQualitySettings(settings, persist = true) {
   state.qualitySettings = persist ? saveQualitySettings(settings) : settings;
-  renderer.setQualitySettings(state.qualitySettings);
+  renderer.setQualitySettings(state.qualitySettings); replayRenderer.setQualitySettings(state.qualitySettings);
   state.audioMixer?.setDensity(state.qualitySettings.effectsDensity);
   state.showEnemyHealthBars = state.qualitySettings.healthBars !== "off";
   $("enemy-health-bars-toggle").checked = state.showEnemyHealthBars;
@@ -1085,17 +1055,11 @@ function upgradeChoiceVisual(choice) {
 }
 
 function upgradeChoiceDetails(choice, player) {
-  const [kind, target] = String(choice.id).split(":");
-  if (kind === "weapon") {
-    const weaponId = target === "signature" ? "signature" : target;
-    const telemetry = weaponTelemetry(weaponId, { level: choice.level, evolved: false }, player);
-    return { Damage: telemetry.damage, Cooldown: telemetry.interval, Projectiles: telemetry.projectiles };
-  }
-  if (kind === "passive") {
-    const passive = PASSIVES[target], current = Math.max(0, Number(player.passives?.[target] || 0));
-    return { Current: current ? `Rank ${Math.floor(current)}` : "Not owned", After: `Rank ${choice.level}`, "Per rank": passive?.amount || choice.copy };
-  }
-  return { Healing: "25% max HP", Timing: "Immediate" };
+  return buildUpgradeComparison(choice, player);
+}
+
+function upgradeComparisonMarkup(rows) {
+  return rows.map(({ label, before, after, changed }) => `<div class="${changed ? "changed" : "unchanged"}"><dt>${escapeHTML(label)}</dt><dd><span>${escapeHTML(before)}</span><i aria-hidden="true">→</i><strong>${escapeHTML(after)}</strong></dd></div>`).join("");
 }
 
 function evolutionPair(choice, player) {
@@ -1180,7 +1144,7 @@ function updateUpgrade(game) {
     const visual = upgradeChoiceVisual(choice);
     const details = upgradeChoiceDetails(choice, localPlayer);
     const pair = evolutionPair(choice, localPlayer);
-    return `<button class="upgrade-card ${pair ? "evolution-ready" : ""} ${selected ? "selected" : ""} ${passed ? "passed" : ""}" type="button" data-choice="${escapeHTML(choice.id)}" ${ready ? "disabled" : ""}><span class="card-type">${selected ? "Locked choice" : escapeHTML(choice.kind)}</span><kbd class="choice-key">${index + 1}</kbd><div class="card-icon ${visual.className}">${visual.markup}</div><h3>${escapeHTML(choice.name)}</h3><p>${escapeHTML(choice.copy)}</p>${evolutionPairMarkup(pair)}<dl class="card-stats">${Object.entries(details).map(([label, value]) => `<div><dt>${escapeHTML(label)}</dt><dd>${escapeHTML(value)}</dd></div>`).join("")}</dl>${affectedLoadoutMarkup(choice, localPlayer)}<div class="level-pips">${Array.from({ length: choice.max }, (_, i) => `<i class="${i < choice.level ? "on" : ""}"></i>`).join("")}</div></button>`;
+    return `<button class="upgrade-card ${pair ? "evolution-ready" : ""} ${selected ? "selected" : ""} ${passed ? "passed" : ""}" type="button" data-choice="${escapeHTML(choice.id)}" ${ready ? "disabled" : ""}><span class="card-type">${selected ? "Locked choice" : escapeHTML(choice.kind)}</span><kbd class="choice-key">${index + 1}</kbd><div class="card-icon ${visual.className}">${visual.markup}</div><h3>${escapeHTML(choice.name)}</h3><p>${escapeHTML(choice.copy)}</p>${evolutionPairMarkup(pair)}<dl class="card-stats">${upgradeComparisonMarkup(details)}</dl>${affectedLoadoutMarkup(choice, localPlayer)}<div class="level-pips">${Array.from({ length: choice.max }, (_, i) => `<i class="${i < choice.level ? "on" : ""}"></i>`).join("")}</div></button>`;
   }).join("");
   if (!ready) $("upgrade-cards").querySelectorAll("button").forEach((button) => button.addEventListener("click", () => chooseUpgrade(button.dataset.choice)));
 
@@ -1193,7 +1157,7 @@ function updateUpgrade(game) {
     const teammateSelection = game.selectedChoices?.[player.id] || "";
     return `<section class="teammate-draft ${teammateReady ? "ready" : ""}"><header><img src="${SPECIALISTS[player.specialist].sprite}" alt=""><div><strong>${escapeHTML(player.name)}</strong><span>${teammateReady ? "Choice locked" : "Choosing…"}</span></div></header><div class="teammate-choice-grid">${choices.map((choice) => {
       const visual = upgradeChoiceVisual(choice), details = upgradeChoiceDetails(choice, player), pair = evolutionPair(choice, player);
-      return `<div class="teammate-choice ${pair ? "evolution-ready" : ""} ${choice.id === teammateSelection ? "selected" : ""} ${teammateReady && choice.id !== teammateSelection ? "passed" : ""}" tabindex="0"><i class="${visual.className}">${visual.markup}</i><b>${escapeHTML(choice.name)}</b><small>${escapeHTML(choice.kind)} · ${choice.level}/${choice.max}</small><div class="teammate-choice-tooltip"><span>${escapeHTML(choice.kind)} · level ${choice.level}/${choice.max}</span><strong>${escapeHTML(choice.name)}</strong><p>${escapeHTML(choice.copy)}</p>${evolutionPairMarkup(pair)}<dl>${Object.entries(details).map(([label, value]) => `<div><dt>${escapeHTML(label)}</dt><dd>${escapeHTML(value)}</dd></div>`).join("")}</dl></div></div>`;
+      return `<div class="teammate-choice ${pair ? "evolution-ready" : ""} ${choice.id === teammateSelection ? "selected" : ""} ${teammateReady && choice.id !== teammateSelection ? "passed" : ""}" tabindex="0"><i class="${visual.className}">${visual.markup}</i><b>${escapeHTML(choice.name)}</b><small>${escapeHTML(choice.kind)} · ${choice.level}/${choice.max}</small><div class="teammate-choice-tooltip"><span>${escapeHTML(choice.kind)} · level ${choice.level}/${choice.max}</span><strong>${escapeHTML(choice.name)}</strong><p>${escapeHTML(choice.copy)}</p>${evolutionPairMarkup(pair)}<dl>${upgradeComparisonMarkup(details)}</dl></div></div>`;
     }).join("")}</div></section>`;
   }).join("");
 
@@ -1354,7 +1318,7 @@ function showResult(game) {
   $("result-unlock").classList.toggle("hidden", !unlocks.length);
   $("result-unlock").textContent = unlocks.length ? `Campaign updated · ${unlocks.join(" · ")}` : "";
   if (state.isHost && game === state.sim) finalizeReplayCapture();
-  $("copy-replay").classList.toggle("hidden", !state.resultReplay);
+  $("watch-replay").classList.toggle("hidden", !state.resultReplay);
   state.resultGame = game; renderScoreboard(game);
   saveCompletedRun(game);
   setScreen("result");
@@ -1368,6 +1332,123 @@ async function copyReplay() {
   if (!state.resultReplay) return;
   try { await navigator.clipboard.writeText(JSON.stringify(state.resultReplay)); toast("Deterministic replay copied"); }
   catch (error) { captureClientError("replay", error); toast("Could not copy the replay"); }
+}
+
+function replayWeaponMarkup(player) {
+  const spec = SPECIALISTS[player.specialist] || SPECIALISTS.zuri;
+  const weapons = Object.entries(player.weapons || {}).map(([id, weapon]) => {
+    const data = id === "signature" ? spec.signature : WEAPONS[id];
+    if (!data) return "";
+    const name = weapon.evolved ? data.evolve : data.name;
+    return `<span title="${escapeHTML(name)}"><img src="${escapeHTML(data.icon)}" alt=""><b>${escapeHTML(name)} ${weapon.evolved ? "E" : `L${weapon.level}`}</b></span>`;
+  }).join("");
+  const passives = Object.entries(player.passives || {}).filter(([, rank]) => Number(rank) > 0).map(([id, rank]) => {
+    const passive = PASSIVES[id]; if (!passive) return "";
+    return `<span title="${escapeHTML(passive.name)}"><img src="${escapeHTML(passive.icon)}" alt=""><b>${escapeHTML(passive.name)} ${rank}</b></span>`;
+  }).join("");
+  return weapons + passives || `<span>No upgrades yet</span>`;
+}
+
+function renderReplayViewer(force = false) {
+  const viewer = state.replayViewer; if (!viewer) return;
+  const timeline = viewer.timeline, playback = timeline.state(), game = playback.simulation;
+  $("replay-timeline").max = String(timeline.replay.finalTick);
+  $("replay-timeline").value = String(playback.tick);
+  $("replay-time").textContent = `${formatTime(playback.seconds)} / ${formatTime(playback.durationSeconds)}`;
+  $("replay-play").textContent = viewer.playing ? "Pause" : playback.complete ? "Replay" : "Play";
+  $("replay-play").setAttribute("aria-pressed", String(viewer.playing));
+  const verification = $("replay-verification"); verification.classList.toggle("invalid", Boolean(viewer.error));
+  verification.textContent = viewer.error ? "Verification failed" : playback.finalVerified ? "Final hash verified" : playback.lastVerifiedTick === null ? "Awaiting checkpoint" : `Checkpoint verified / ${formatTime(playback.lastVerifiedTick / 60)}`;
+  const stage = game.stage === "boss" ? "Apex" : game.stage === "won" ? "Victory" : game.stage === "lost" ? "Defeat" : `Wave ${String((game.wave || 0) + 1).padStart(2, "0")}`;
+  $("replay-stats").innerHTML = [
+    ["Record time", formatTime(playback.seconds)], ["Phase", stage], ["Level", game.level || 1], ["Squad kills", statNumber(game.kills)], ["Gold", statNumber(game.gold)], ["Entities", statNumber((game.enemies?.length || 0) + (game.projectiles?.length || 0) + (game.hostile?.length || 0))],
+  ].map(([label, value]) => `<div><span>${escapeHTML(label)}</span><strong>${escapeHTML(value)}</strong></div>`).join("");
+  const loadoutKey = JSON.stringify((game.players || []).map((player) => [player.replaySlot, player.hp, player.damage, player.kills, player.weapons, player.passives]));
+  if (force || loadoutKey !== viewer.loadoutKey) {
+    viewer.loadoutKey = loadoutKey;
+    $("replay-loadouts").innerHTML = (game.players || []).map((player) => {
+      const spec = SPECIALISTS[player.specialist] || SPECIALISTS.zuri;
+      return `<article class="replay-player"><header><img src="${escapeHTML(spec.sprite)}" alt=""><div><strong>Specialist ${Number(player.replaySlot) + 1}</strong><small>${escapeHTML(spec.name)}</small></div><em>${Math.max(0, Number(player.hp || 0)).toFixed(1)} HP</em></header><dl><div><dt>Damage</dt><dd>${statNumber(player.damage)}</dd></div><div><dt>Kills</dt><dd>${statNumber(player.kills)}</dd></div><div><dt>XP</dt><dd>${statNumber(player.xpCollected)}</dd></div></dl><div class="replay-kit">${replayWeaponMarkup(player)}</div></article>`;
+    }).join("") || `<p>No active specialists at this point in the record.</p>`;
+  }
+}
+
+function drawReplayFrame(now) {
+  const viewer = state.replayViewer;
+  if (!viewer || !$("replay-dialog").open) return;
+  const dt = Math.min(.05, Math.max(0, (now - viewer.lastFrame) / 1000)); viewer.lastFrame = now;
+  if (viewer.playing && !viewer.error) {
+    try {
+      viewer.timeline.advance(dt, viewer.speed);
+      if (viewer.timeline.complete) viewer.playing = false;
+    } catch (error) {
+      viewer.playing = false; viewer.error = error; captureClientError("replay viewer", error);
+    }
+  }
+  const game = viewer.timeline.simulation, focus = game.players?.[0]?.id;
+  replayRenderer.draw(game, focus, null, 1, dt);
+  if (now - viewer.lastUiAt > 80 || viewer.lastTick !== viewer.timeline.tick) {
+    viewer.lastUiAt = now; viewer.lastTick = viewer.timeline.tick; renderReplayViewer();
+  }
+  viewer.animation = requestAnimationFrame(drawReplayFrame);
+}
+
+function seekReplayTo(targetTick) {
+  const viewer = state.replayViewer; if (!viewer || viewer.error) return;
+  viewer.playing = false;
+  try {
+    const before = viewer.timeline.tick;
+    viewer.timeline.seek(targetTick);
+    if (Math.abs(before - viewer.timeline.tick) > 60) replayRenderer.resetCamera();
+    renderReplayViewer(true);
+  } catch (error) {
+    viewer.error = error; captureClientError("replay seek", error); renderReplayViewer(true);
+  }
+}
+
+function queueReplaySeek(targetTick) {
+  const viewer = state.replayViewer; if (!viewer) return;
+  viewer.playing = false; viewer.pendingSeek = Number(targetTick);
+  if (viewer.seekFrame) return;
+  viewer.seekFrame = requestAnimationFrame(() => {
+    if (!state.replayViewer) return;
+    const target = state.replayViewer.pendingSeek; state.replayViewer.seekFrame = 0;
+    seekReplayTo(target);
+  });
+}
+
+function toggleReplayPlayback() {
+  const viewer = state.replayViewer; if (!viewer || viewer.error) return;
+  if (viewer.timeline.complete) { viewer.timeline.reset(); replayRenderer.resetCamera(); }
+  viewer.playing = !viewer.playing; viewer.lastFrame = performance.now(); renderReplayViewer(true);
+}
+
+function openReplayViewer() {
+  if (!state.resultReplay) return;
+  try {
+    const timeline = new VerifiedReplayTimeline(state.resultReplay, createGameReplayAdapters(), {
+      balanceVersion: BALANCE_VERSION, balanceHash: BALANCE_HASH, rng: RNG_ALGORITHM, stepHz: 60,
+    });
+    state.replayViewer = { timeline, playing: true, speed: 1, error: null, animation: 0, seekFrame: 0, pendingSeek: 0, lastFrame: performance.now(), lastUiAt: 0, lastTick: -1, loadoutKey: "" };
+    $("replay-speed").value = "1";
+    $("replay-dialog").showModal(); replayRenderer.setQualitySettings(state.qualitySettings); replayRenderer.resetCamera(); replayRenderer.resize();
+    renderReplayViewer(true); state.replayViewer.animation = requestAnimationFrame(drawReplayFrame);
+  } catch (error) { captureClientError("replay open", error); toast("This replay could not be verified"); }
+}
+
+function stopReplayViewer() {
+  const viewer = state.replayViewer; if (!viewer) return;
+  cancelAnimationFrame(viewer.animation); cancelAnimationFrame(viewer.seekFrame);
+  replayRenderer.clearInspection(); state.replayViewer = null;
+}
+
+function inspectReplayCanvas(event) {
+  const viewer = state.replayViewer; if (!viewer) return;
+  const detail = replayRenderer.inspectAt(event.clientX, event.clientY, viewer.timeline.simulation), panel = $("replay-inspect");
+  if (!detail) { panel.classList.add("hidden"); return; }
+  const rows = Object.entries(detail.stats || {}).slice(0, 4);
+  panel.innerHTML = `<span>${escapeHTML(detail.type || "Field contact")}</span><strong>${escapeHTML(detail.name || "Unknown")}</strong><p>${escapeHTML(detail.description || detail.copy || "")}</p>${rows.length ? `<dl>${rows.map(([label, value]) => `<div><dt>${escapeHTML(label)}</dt><dd>${escapeHTML(value)}</dd></div>`).join("")}</dl>` : ""}`;
+  panel.classList.remove("hidden");
 }
 
 function returnToLobby() {
@@ -1737,7 +1818,26 @@ function bindEvents() {
   $("pause-button").addEventListener("click", () => togglePause()); $("resume-button").addEventListener("click", () => togglePause(false)); $("abandon-button").addEventListener("click", abandon);
   $("enemy-health-bars-toggle").addEventListener("change", (event) => setEnemyHealthBars(event.target.checked));
   $("again-button").addEventListener("click", returnToLobby); $("result-home").addEventListener("click", leaveToHome);
-  $("copy-replay").addEventListener("click", copyReplay);
+  $("watch-replay").addEventListener("click", openReplayViewer);
+  $("replay-copy").addEventListener("click", copyReplay);
+  $("replay-play").addEventListener("click", toggleReplayPlayback);
+  $("replay-back").addEventListener("click", () => seekReplayTo((state.replayViewer?.timeline.tick || 0) - 300));
+  $("replay-forward").addEventListener("click", () => seekReplayTo((state.replayViewer?.timeline.tick || 0) + 300));
+  $("replay-timeline").addEventListener("input", (event) => queueReplaySeek(event.currentTarget.value));
+  $("replay-speed").addEventListener("change", (event) => { if (state.replayViewer) state.replayViewer.speed = Number(event.currentTarget.value); });
+  $("replay-close").addEventListener("click", () => $("replay-dialog").close());
+  $("replay-dialog").addEventListener("close", stopReplayViewer);
+  $("replay-dialog").addEventListener("click", (event) => { if (event.target === $("replay-dialog")) $("replay-dialog").close(); });
+  $("replay-dialog").addEventListener("keydown", (event) => {
+    if (event.target.matches("button,input,select")) return;
+    if (event.code === "Space") { event.preventDefault(); toggleReplayPlayback(); }
+    else if (event.key === "ArrowLeft") { event.preventDefault(); seekReplayTo((state.replayViewer?.timeline.tick || 0) - 300); }
+    else if (event.key === "ArrowRight") { event.preventDefault(); seekReplayTo((state.replayViewer?.timeline.tick || 0) + 300); }
+    else if (event.key === "Home") { event.preventDefault(); seekReplayTo(0); }
+    else if (event.key === "End") { event.preventDefault(); seekReplayTo(state.replayViewer?.timeline.replay.finalTick || 0); }
+  });
+  $("replay-canvas").addEventListener("pointermove", inspectReplayCanvas);
+  $("replay-canvas").addEventListener("pointerleave", () => { replayRenderer.clearInspection(); $("replay-inspect").classList.add("hidden"); });
   for (const id of ["run-history-button", "lobby-run-history", "result-run-history"]) $(id).addEventListener("click", openRunHistory);
   $("run-history-close").addEventListener("click", () => $("run-history-dialog").close());
   $("run-history-dialog").addEventListener("click", (event) => { if (event.target === $("run-history-dialog")) $("run-history-dialog").close(); });
@@ -1763,19 +1863,20 @@ function bindEvents() {
   window.addEventListener("keydown", (event) => {
     const target = event.target;
     const isTyping = target instanceof Element && Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
-    if (isTyping || document.querySelector("dialog[open]") || state.screen !== "game") return;
+    const dialogOpen = Boolean(document.querySelector("dialog[open]"));
+    if (isReportShortcut(event)) {
+      if (!shouldOpenReportShortcut(event, { isTyping, dialogOpen })) return;
+      event.preventDefault();
+      openReport();
+      return;
+    }
+    if (isTyping || dialogOpen || state.screen !== "game") return;
     const key = event.key.toLowerCase();
     if (key === "shift") { state.inspectActive = true; inspectCanvasAt(state.inspectPointer ? { ...state.inspectPointer, shiftKey: true } : null); return; }
     const upgradeChoice = ["1", "2", "3"].includes(key) && !$("upgrade-overlay").classList.contains("hidden");
     if (upgradeChoice) {
       event.preventDefault();
       if (!event.repeat) $("upgrade-cards").querySelectorAll("button")[Number(key) - 1]?.click();
-      return;
-    }
-    const reportKey = event.code === "Backquote" || key === "`" || key === "~";
-    if (reportKey) {
-      event.preventDefault();
-      if (!event.repeat) openReport();
       return;
     }
     if (["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright","e","r","c","escape"].includes(key)) event.preventDefault();
@@ -1802,6 +1903,9 @@ renderSpecialistGrid(); selectSpecialist("zuri"); bindEvents(); applyQualitySett
 if (query.get("room")) { setPartyMode("join"); $("room-input").value = query.get("room").toUpperCase().slice(0,6); setTimeout(() => $("callsign-input").focus(), 50); }
 if (localHost) Object.defineProperty(window, "__lastlightQA", { value: Object.freeze({
   diagnostics: () => JSON.parse(JSON.stringify(gameDiagnostics())),
+  reportState: () => ({ screen: state.screen, open: $("report-dialog").open, paused: Boolean(state.sim?.paused), pauseReason: state.sim?.pauseReason || "", resumeAfterReport: state.resumeAfterReport }),
+  beginUpgrade: () => { if (!state.sim || state.screen !== "game") return false; state.sim.beginUpgradeChoice(); state.lastUpgradeKey = ""; return true; },
+  setScreen: (screen) => { if (!screens[screen]) return false; setScreen(screen); return true; },
   renderActiveBuffs: (fields = {}) => updateActiveBuffs(fields),
   renderDamageLedger: (damageBySource = {}) => updateDamageLedger({ specialist: state.selected, damageBySource }, { time: 60 }),
   playAudioCues: (names = []) => Array.isArray(names) && names.slice(0, 64).forEach((name) => sfx(String(name))),

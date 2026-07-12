@@ -1,6 +1,28 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { Simulation } from "../engine.js";
+import { MAP_OBSTACLES } from "../data.js";
+import { projectileBlockedByCover, segmentCoverImpact, Simulation } from "../engine.js";
+
+test("swept cover collision blocks ordinary fire without tunneling and preserves authored exceptions", () => {
+  const obstacle = [[0, -20, 40, 40]];
+  const impact = segmentCoverImpact(-100, 0, 100, 0, 5, obstacle);
+  assert.deepEqual({ obstacleIndex: impact.obstacleIndex, x: impact.x, y: impact.y }, { obstacleIndex: 0, x: -5, y: 0 });
+  assert.equal(projectileBlockedByCover({ sourceId: "signature" }), true);
+  assert.equal(projectileBlockedByCover({ sourceId: "rail" }), false, "rail lanes intentionally penetrate cover");
+  assert.equal(projectileBlockedByCover({ bossShot: true }, true), false, "apex fire remains an explicit cover-piercing exception");
+  assert.equal(projectileBlockedByCover({ ownerId: "spitter" }, true), true);
+});
+
+test("friendly and ordinary hostile projectiles stop at raised cover and emit a contact marker", () => {
+  const sim = new Simulation({ players: [{ id: "p1", name: "One", specialist: "zuri" }] });
+  const [left, top, , height] = MAP_OBSTACLES[0];
+  sim.projectiles = [{ id: "friendly", owner: "p1", sourceId: "signature", x: left - 40, y: top + height / 2, vx: 900, vy: 0, radius: 6, damage: 10, life: 2, pierce: 0, color: "#fff", dead: false, hit: new Set(), age: 0 }];
+  sim.hostile = [{ id: "hostile", ownerId: "spitter", x: left - 40, y: top + height / 2 + 20, vx: 900, vy: 0, radius: 6, damage: 1, life: 2, color: "#f00", dead: false }];
+  sim.updateProjectiles(.05);
+  assert.ok(sim.projectiles[0].dead && sim.hostile[0].dead);
+  assert.equal(sim.effects.filter((effect) => effect.kind === "coverImpact").length, 2);
+  assert.ok(sim.effects.every((effect) => effect.x <= left));
+});
 
 test("a run transitions from survival to an apex fight", () => {
   const sim = new Simulation({ duration: .1, players: [{ id: "p1", name: "One", specialist: "zuri" }] });

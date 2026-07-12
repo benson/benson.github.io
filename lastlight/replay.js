@@ -104,7 +104,7 @@ function replayEntity(value, playerMap) {
   if (!value || typeof value !== "object") return playerMap.get(value) || value;
   const result = {};
   for (const [key, child] of Object.entries(value)) {
-    if (key === "name" || key === "reconnectKey" || child === undefined) continue;
+    if (["name", "reconnectKey", "resumeToken", "reconnectToken", "clientToken"].includes(key) || child === undefined) continue;
     if ((key === "id" && Object.hasOwn(value, "replaySlot")) || key === "owner" || key === "ownerId" || key === "playerId") {
       result[key] = playerMap.get(child) || child;
     } else result[key] = replayEntity(child, playerMap);

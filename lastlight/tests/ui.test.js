@@ -14,6 +14,11 @@ test("guide exposes the six adaptive impact materials and their accessibility fa
   assert.match(game, /renderer\.drainMaterialAudioCues/);
 });
 
+test("performance reports expose cosmetic environmental load without protocol fields", () => {
+  assert.match(game, /environmentInteractions: renderer\.environmentDiagnostics\(\)/);
+  assert.doesNotMatch(game, /send\([^\n]+environmentInteractions/);
+});
+
 test("damage source telemetry updates a persistent interactive panel shell", () => {
   assert.match(html, /id="damage-ledger-handle"[^>]+tabindex="0"/);
   assert.match(html, /id="damage-ledger-collapse"[^>]+aria-expanded="true"/);
@@ -112,12 +117,25 @@ test("post-run results stay contained on phone-width viewports", () => {
 
 test("upgrade intelligence uses authoritative combat metadata", () => {
   assert.match(game, /from "\.\/combat-metadata\.js/);
-  assert.match(game, /formatProjectileDisplay\(getCombatMetadata\("signature", player\.specialist\), projectiles\)/);
+  assert.match(game, /from "\.\/upgrade-preview\.js/);
+  assert.match(game, /buildUpgradeComparison\(choice, player\)/);
+  assert.match(game, /upgradeComparisonMarkup\(details\)/);
+  assert.match(game, /aria-hidden="true">→<\/i>/);
   assert.match(game, /getPassiveAffectedSources\(passiveId/);
   assert.match(game, /class="affected-loadout/);
   assert.match(game, /getCurrentStatExplanation\(id, raw\)/);
   assert.match(game, /class="upgrade-stat" tabindex="0" aria-describedby=/);
   assert.match(css, /\.upgrade-stat-tooltip/);
+});
+
+test("the report hotkey is global but yields to typing and open dialogs", () => {
+  assert.match(game, /from "\.\/hotkeys\.js/);
+  assert.match(game, /if \(isReportShortcut\(event\)\)/);
+  assert.match(game, /shouldOpenReportShortcut\(event, \{ isTyping, dialogOpen \}\)/);
+  assert.match(game, /if \(isTyping \|\| dialogOpen \|\| state\.screen !== "game"\) return/);
+  assert.doesNotMatch(game, /state\.screen !== "game"\) return;\s*const key[\s\S]{0,500}reportKey/);
+  assert.match(game, /state\.screen === "game" && state\.isHost && state\.sim && !state\.sim\.paused/);
+  assert.match(game, /state\.resumeAfterReport && state\.screen === "game" && state\.isHost && state\.sim\?\.paused && state\.sim\.pauseReason === "manual"/);
 });
 
 test("relay identity is sent after WebSocket upgrade instead of in the request URL", () => {
@@ -137,15 +155,29 @@ test("multiplayer input uses sequenced host application and snapshot acknowledge
   assert.match(game, /function closeSocket\(\)[^\n]+resetInputProtocol\(\)/);
 });
 
-test("hosts capture anonymous deterministic replays and expose an explicit post-run copy action", () => {
-  assert.match(html, /id="copy-replay"[^>]*>Copy deterministic replay</);
+test("hosts capture anonymous deterministic replays and expose a verified post-run viewer", () => {
+  assert.match(html, /id="watch-replay"[^>]*>Watch verified replay</);
+  assert.doesNotMatch(html, /id="copy-replay"/);
   assert.match(game, /new ReplayRecorder\(/);
   assert.match(game, /createRandomSeed\(\)/);
   assert.match(game, /recordReplayCheckpoint\(\)/);
+  assert.match(html, /id="replay-copy"[^>]*>Copy replay JSON</);
   assert.match(game, /navigator\.clipboard\.writeText\(JSON\.stringify\(state\.resultReplay\)\)/);
   assert.doesNotMatch(game, /submitRunTelemetry\([^)]*replay/i);
   assert.match(game, /captureClientError\("replay finalize", error\)/);
   assert.match(game, /function showResult\(game\)[\s\S]+finalizeReplayCapture\(\)[\s\S]+setScreen\("result"\)/);
+});
+
+test("result screen exposes an accessible verified replay viewer with complete transport controls", () => {
+  for (const id of ["watch-replay", "replay-dialog", "replay-canvas", "replay-play", "replay-back", "replay-forward", "replay-timeline", "replay-speed", "replay-copy", "replay-stats", "replay-loadouts", "replay-inspect"]) assert.match(html, new RegExp(`id="${id}"`));
+  assert.match(html, /aria-label="Interactive replay battlefield/);
+  assert.match(game, /new VerifiedReplayTimeline\(state\.resultReplay, createGameReplayAdapters\(\)/);
+  assert.match(game, /viewer\.timeline\.advance\(dt, viewer\.speed\)/);
+  assert.match(game, /queueReplaySeek\(event\.currentTarget\.value\)/);
+  assert.match(game, /replayRenderer\.inspectAt\(event\.clientX, event\.clientY/);
+  assert.match(game, /event\.code === "Space"/);
+  assert.match(css, /\.replay-dialog/); assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
+  assert.doesNotMatch(css.match(/\.replay-controls button[^}]+\}/s)?.[0] || "", /transition:\s*all/);
 });
 
 test("deployment applies the bounded runtime config to simulation, replay, telemetry, and diagnostics", () => {

@@ -88,7 +88,7 @@ test("recorder keeps transient identities out of replay JSON and deduplicates in
 
 test("paused pointer sampling coalesces safely and mixed-case authored choices remain replayable", () => {
   const recorder = new ReplayRecorder({
-    build: "2026.07.11.10", balanceVersion: "2026.07.11-movement.2", balanceHash: "fnv1a32:62597c66",
+    build: "2026.07.12.1", balanceVersion: "2026.07.12-cover.1", balanceHash: "fnv1a32:4b3f3e5e",
     rng: "xoshiro128ss-v1", seed: "0123456789abcdef0123456789abcdef",
     run: { map: "warehouse", difficulty: "story", duration: 240 },
   });
@@ -184,8 +184,9 @@ test("simulation hashes normalize transient identity but include input, hit sets
   const seed = "0123456789abcdef0123456789abcdef";
   const first = new Simulation({ ...config, players: [{ id: "relay-a", name: "Secret A", specialist: "zuri", replaySlot: 0 }] }, { seed });
   const second = new Simulation({ ...config, players: [{ id: "relay-b", name: "Secret B", specialist: "zuri", replaySlot: 0 }] }, { seed });
+  first.players[0].resumeToken = "a".repeat(24); second.players[0].resumeToken = "b".repeat(24);
   assert.equal(hashSimulationState(first), hashSimulationState(second));
-  assert.doesNotMatch(JSON.stringify(canonicalSimulationState(first)), /relay-a|Secret A/);
+  assert.doesNotMatch(JSON.stringify(canonicalSimulationState(first)), /relay-a|Secret A|aaaaaaaaaaaaaaaaaaaaaaaa/);
 
   first.setInput("relay-a", { x: 1, y: 0, aim: 0, autoAim: true });
   assert.notEqual(hashSimulationState(first), hashSimulationState(second));

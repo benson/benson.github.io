@@ -74,6 +74,32 @@ export function collidesWithCover(x, y, radius) {
   return false;
 }
 
+export function segmentCoverImpact(startX, startY, endX, endY, radius = 0, obstacles = MAP_OBSTACLES) {
+  const dx = endX - startX, dy = endY - startY, padding = Math.max(0, Number(radius) || 0);
+  let earliest = null;
+  for (let obstacleIndex = 0; obstacleIndex < obstacles.length; obstacleIndex++) {
+    const [left, top, width, height] = obstacles[obstacleIndex];
+    const bounds = [left - padding, top - padding, left + width + padding, top + height + padding];
+    let entry = 0, exit = 1, valid = true;
+    for (const [origin, delta, minimum, maximum] of [[startX, dx, bounds[0], bounds[2]], [startY, dy, bounds[1], bounds[3]]]) {
+      if (Math.abs(delta) < 1e-9) { if (origin < minimum || origin > maximum) valid = false; continue; }
+      const first = (minimum - origin) / delta, second = (maximum - origin) / delta;
+      entry = Math.max(entry, Math.min(first, second)); exit = Math.min(exit, Math.max(first, second));
+      if (entry > exit) { valid = false; break; }
+    }
+    if (!valid || exit < 0 || entry > 1) continue;
+    const t = clamp(entry, 0, 1);
+    if (!earliest || t < earliest.t) earliest = { t, obstacleIndex, x: startX + dx * t, y: startY + dy * t };
+  }
+  return earliest;
+}
+
+export function projectileBlockedByCover(projectile, hostile = false) {
+  if (!projectile || projectile.coverPiercing) return false;
+  if (hostile && projectile.bossShot) return false;
+  return hostile || projectile.sourceId !== "rail";
+}
+
 export function moveEntityWithCover(entity, dx, dy) {
   const steps = Math.max(1, Math.ceil(Math.hypot(dx, dy) / 18));
   for (let step = 0; step < steps; step++) {
@@ -91,6 +117,54 @@ export function playerMovementSpeed(player) {
   if (player.specialist === "rift") value *= 1 + Number(player.weapons?.signature?.level || 1) * .05;
   if (player.speedBuff > 0) value *= 2;
   return value;
+}
+
+export function playerCombatStat(player, stat) {
+  const lvl = (key) => Number(player.passives?.[key] || 0);
+  if (stat === "damage") {
+    let value = 1 + lvl("damage") * BALANCE.passives.damage.amount;
+    if (player.specialist === "fang") value *= 1 + (1 - player.hp / player.maxHp) * .6;
+    if (player.specialist === "rift") value *= 1.1;
+    if (player.hotTime > 0) value *= 1.18;
+    return value;
+  }
+  if (stat === "haste") return lvl("haste") * BALANCE.passives.haste.amount + (player.hotTime > 0 ? 150 : 0) + (player.hasteBuff > 0 ? 150 : 0) + (player.frenzy > 0 ? 250 : 0);
+  if (stat === "speed") return playerMovementSpeed(player);
+  if (stat === "area") {
+    let value = 1 + lvl("area") * BALANCE.passives.area.amount;
+    if (player.specialist === "sola") value += player.armor * .003 + player.maxHp * .001 + lvl("regen") * .003;
+    return value;
+  }
+  if (stat === "crit") return lvl("crit") * BALANCE.passives.crit.amount + (player.specialist === "gale" ? .15 : 0);
+  if (stat === "duration") return 1 + lvl("duration") * BALANCE.passives.duration.amount;
+  if (stat === "projectiles") return Math.floor(lvl("projectiles"));
+  if (stat === "pickup") return 85 * (1 + lvl("pickup") * BALANCE.passives.pickup.amount);
+  if (stat === "regen") return lvl("regen") * BALANCE.passives.regen.amount;
+  if (stat === "xp") return 1 + lvl("xp") * BALANCE.passives.xp.amount;
+  return 1;
+}
+
+export function applyPlayerUpgrade(player, choice) {
+  const [kind, target] = String(choice?.id || "").split(":");
+  if (kind === "weapon") {
+    if (target === "signature") player.weapons.signature.level = Math.min(BALANCE.core.maxWeaponLevel, player.weapons.signature.level + 1);
+    else if (player.weapons[target]) player.weapons[target].level = Math.min(BALANCE.core.maxWeaponLevel, player.weapons[target].level + 1);
+    else player.weapons[target] = { level: 1, evolved: false };
+  } else if (kind === "passive") {
+    player.passives[target] = Math.floor(Number(player.passives[target] || 0)) + 1;
+    if (target === "maxHealth") { player.maxHp += BALANCE.passives.maxHealth.amount; player.hp += BALANCE.passives.maxHealth.amount; }
+    if (target === "armor") player.armor += BALANCE.passives.armor.amount;
+  } else if (choice?.id === "heal") player.hp = Math.min(player.maxHp, player.hp + player.maxHp * .25);
+  return player;
+}
+
+export function previewPlayerUpgrade(player, choice) {
+  const preview = {
+    ...player,
+    weapons: Object.fromEntries(Object.entries(player.weapons || {}).map(([id, weapon]) => [id, { ...weapon }])),
+    passives: { ...(player.passives || {}) },
+  };
+  return applyPlayerUpgrade(preview, choice);
 }
 
 export class Simulation {
@@ -385,28 +459,7 @@ export class Simulation {
   }
 
   playerStat(p, stat) {
-    const spec = SPECIALISTS[p.specialist];
-    const lvl = (key) => Number(p.passives[key] || 0);
-    if (stat === "damage") {
-      let value = 1 + lvl("damage") * BALANCE.passives.damage.amount;
-      if (p.specialist === "fang") value *= 1 + (1 - p.hp / p.maxHp) * .6;
-      if (p.specialist === "rift") value *= 1.1;
-      if (p.hotTime > 0) value *= 1.18;
-      return value;
-    }
-    if (stat === "haste") return lvl("haste") * BALANCE.passives.haste.amount + (p.hotTime > 0 ? 150 : 0) + (p.hasteBuff > 0 ? 150 : 0) + (p.frenzy > 0 ? 250 : 0);
-    if (stat === "speed") return playerMovementSpeed(p);
-    if (stat === "area") {
-      let value = 1 + lvl("area") * BALANCE.passives.area.amount;
-      if (p.specialist === "sola") value += p.armor * .003 + p.maxHp * .001 + lvl("regen") * .003;
-      return value;
-    }
-    if (stat === "crit") return lvl("crit") * BALANCE.passives.crit.amount + (p.specialist === "gale" ? .15 : 0);
-    if (stat === "duration") return 1 + lvl("duration") * BALANCE.passives.duration.amount;
-    if (stat === "projectiles") return Math.floor(lvl("projectiles"));
-    if (stat === "pickup") return 85 * (1 + lvl("pickup") * BALANCE.passives.pickup.amount);
-    if (stat === "regen") return lvl("regen") * BALANCE.passives.regen.amount;
-    return 1;
+    return playerCombatStat(p, stat);
   }
 
   collidesWithCover(x, y, radius) {
@@ -1015,7 +1068,7 @@ export class Simulation {
 
   updateProjectiles(dt) {
     for (const bullet of this.projectiles) {
-      bullet.age += dt;
+      bullet.age = (bullet.age || 0) + dt;
       bullet.life -= dt;
       if (bullet.boomerang && bullet.age > .72) {
         const owner = this.players.find((p) => p.id === bullet.owner);
@@ -1024,7 +1077,12 @@ export class Simulation {
           bullet.vx = Math.cos(a) * speed; bullet.vy = Math.sin(a) * speed;
         }
       }
-      bullet.x += bullet.vx * dt; bullet.y += bullet.vy * dt;
+      const startX = bullet.x, startY = bullet.y, endX = startX + bullet.vx * dt, endY = startY + bullet.vy * dt;
+      const coverImpact = projectileBlockedByCover(bullet) ? segmentCoverImpact(startX, startY, endX, endY, bullet.radius) : null;
+      if (coverImpact) {
+        bullet.x = coverImpact.x; bullet.y = coverImpact.y; bullet.dead = true; bullet.coverImpact = coverImpact.obstacleIndex;
+        this.effects.push({ id: this.nextCosmeticId("cover"), x: bullet.x, y: bullet.y, radius: Math.max(10, bullet.radius * 1.6), life: .18, maxLife: .18, damage: 0, owner: bullet.owner || "cover", sourceId: bullet.sourceId, color: bullet.color, kind: "coverImpact", obstacleIndex: coverImpact.obstacleIndex, hit: new Set() });
+      } else { bullet.x = endX; bullet.y = endY; }
       if (Math.abs(bullet.x) > WORLD.width / 2 + 150 || Math.abs(bullet.y) > WORLD.height / 2 + 150) bullet.dead = true;
 
       for (const pod of this.pods) {
@@ -1049,7 +1107,13 @@ export class Simulation {
     }
 
     for (const bullet of this.hostile) {
-      bullet.life -= dt; bullet.x += bullet.vx * dt; bullet.y += bullet.vy * dt;
+      bullet.life -= dt;
+      const startX = bullet.x, startY = bullet.y, endX = startX + bullet.vx * dt, endY = startY + bullet.vy * dt;
+      const coverImpact = projectileBlockedByCover(bullet, true) ? segmentCoverImpact(startX, startY, endX, endY, bullet.radius) : null;
+      if (coverImpact) {
+        bullet.x = coverImpact.x; bullet.y = coverImpact.y; bullet.dead = true; bullet.coverImpact = coverImpact.obstacleIndex;
+        this.effects.push({ id: this.nextCosmeticId("cover"), x: bullet.x, y: bullet.y, radius: Math.max(10, bullet.radius * 1.6), life: .18, maxLife: .18, damage: 0, owner: "cover", color: bullet.color, kind: "coverImpact", obstacleIndex: coverImpact.obstacleIndex, hit: new Set() });
+      } else { bullet.x = endX; bullet.y = endY; }
       for (const p of this.players) {
         if (p.dead || p.downed || bullet.dead || !circleHit(bullet, p)) continue;
         this.takeDamage(p, bullet.damage, bullet); bullet.dead = true;
@@ -1379,16 +1443,7 @@ export class Simulation {
   }
 
   applyUpgrade(p, choice) {
-    const [kind, target] = choice.id.split(":");
-    if (kind === "weapon") {
-      if (target === "signature") p.weapons.signature.level = Math.min(BALANCE.core.maxWeaponLevel, p.weapons.signature.level + 1);
-      else if (p.weapons[target]) p.weapons[target].level = Math.min(BALANCE.core.maxWeaponLevel, p.weapons[target].level + 1);
-      else p.weapons[target] = { level: 1, evolved: false };
-    } else if (kind === "passive") {
-      p.passives[target] = Math.floor(Number(p.passives[target] || 0)) + 1;
-      if (target === "maxHealth") { p.maxHp += BALANCE.passives.maxHealth.amount; p.hp += BALANCE.passives.maxHealth.amount; }
-      if (target === "armor") p.armor += BALANCE.passives.armor.amount;
-    } else if (choice.id === "heal") p.hp = Math.min(p.maxHp, p.hp + p.maxHp * .25);
+    applyPlayerUpgrade(p, choice);
     this.gold += 10;
   }
 
