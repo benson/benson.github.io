@@ -1,11 +1,11 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
-} from "./data.js?v=20260712.2";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260712.2";
+} from "./data.js?v=20260712.3";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260712.3";
 import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.5";
 import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260711.5";
-import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260712.2";
+import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260712.3";
 
 const BALANCE = getBalanceConfig();
 
@@ -142,7 +142,8 @@ export function playerCombatStat(player, stat) {
   if (stat === "crit") return lvl("crit") * BALANCE.passives.crit.amount + (player.specialist === "gale" ? .15 : 0);
   if (stat === "duration") return 1 + lvl("duration") * BALANCE.passives.duration.amount;
   if (stat === "projectiles") return Math.floor(lvl("projectiles"));
-  if (stat === "pickup") return 85 * (1 + lvl("pickup") * BALANCE.passives.pickup.amount);
+  if (stat === "pickup") return 85 * (1 + lvl("pickup") * BALANCE.passives.pickup.amount)
+    + (player.specialist === "vesper" ? BALANCE.identityTuning.vesper.innatePickupRadius : 0);
   if (stat === "regen") return lvl("regen") * BALANCE.passives.regen.amount;
   if (stat === "xp") return 1 + lvl("xp") * BALANCE.passives.xp.amount;
   return 1;
@@ -298,7 +299,6 @@ export class Simulation {
       firedUpBuff: 0, healthbackBuff: 0, stopwavesBuff: 0, stopwaveClock: 0,
       lastHit: 0, iceReady: false, iceTimer: 0,
     };
-    if (spec.id === "vesper") player.passives.pickup = 4;
     this.players.push(player);
     if (this.pendingChoices) {
       this.pendingChoices[player.id] = this.generateChoices(player);
@@ -449,7 +449,7 @@ export class Simulation {
         for (let i = 0; i < p.spirits; i++) {
           const a = this.time * .8 - i * .8;
           const sx = p.x - Math.cos(a) * (70 + i * 30), sy = p.y - Math.sin(a) * (70 + i * 30);
-          if (this.chance(dt * 4)) this.blast(sx, sy, 75, 10 + this.level * 1.4, p.id, spec.color, false, "hex");
+          if (this.chance(dt * 4)) this.blast(sx, sy, 75, 10 + this.level * 1.4, p.id, spec.color, false, "hex", "passive:nova");
         }
       }
 
@@ -1207,7 +1207,7 @@ export class Simulation {
     for (const enemy of this.enemies) {
       if (enemy.dead || Math.hypot(enemy.x - x, enemy.y - y) > radius + enemy.radius) continue;
       this.damageEnemy(enemy, damage, owner, false, sourceId);
-      if (kind === "hex") enemy.hexed = 6;
+      if (kind === "hex") enemy.hexed = BALANCE.identityTuning.nova.hexDuration;
       if (kind === "stun" || kind === "knockup" || stun) enemy.stun = Math.max(enemy.stun, stun || 1.2);
     }
     for (const pod of this.pods) {
@@ -1352,13 +1352,13 @@ export class Simulation {
     if (enemy.dead) return;
     const dealt = Math.min(amount, Math.max(0, enemy.hp));
     enemy.hp -= amount; enemy.hitFlash = .1;
-    if (source === "hex") enemy.hexed = 8;
     const owner = this.players.find((p) => p.id === ownerId);
     if (owner) {
       owner.damage += dealt;
       const sourceKey = String(source || "other");
       owner.damageBySource[sourceKey] = (owner.damageBySource[sourceKey] || 0) + dealt;
-      const impactAngle = Math.atan2(enemy.y - owner.y, enemy.x - owner.x), knockback = clamp(amount * .28, 8, enemy.boss ? 22 : 72);
+      const signatureScale = source === "signature" ? Number(BALANCE.identityTuning[owner.specialist]?.signatureKnockbackScale || 1) : 1;
+      const impactAngle = Math.atan2(enemy.y - owner.y, enemy.x - owner.x), knockback = clamp(amount * .28, 8, enemy.boss ? 22 : 72) * signatureScale;
       enemy.hitAngle = impactAngle; enemy.knockVx = (enemy.knockVx || 0) + Math.cos(impactAngle) * knockback; enemy.knockVy = (enemy.knockVy || 0) + Math.sin(impactAngle) * knockback;
       if (owner.specialist === "rift" && dealt > 0) {
         const tuning = BALANCE.identityTuning.rift;
@@ -1408,7 +1408,7 @@ export class Simulation {
       let collector = null, target = null, best = Infinity;
       for (const p of this.players) {
         if (p.dead || p.downed) continue;
-        const d = distance(orb, p), range = this.playerStat(p, "pickup") + (p.specialist === "vesper" ? 180 : 0);
+        const d = distance(orb, p), range = this.playerStat(p, "pickup");
         if ((orb.vacuumTarget === p.id || d < range) && d < best) { collector = p; target = p; best = d; }
       }
       for (const drone of this.drones) {

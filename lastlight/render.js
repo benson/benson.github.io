@@ -1,12 +1,12 @@
-import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260712.2";
-import { WORLD } from "./engine.js?v=20260712.2";
+import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260712.3";
+import { WORLD } from "./engine.js?v=20260712.3";
 import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260712.1";
-import { springCamera } from "./feel.js?v=20260711.8";
+import { springCamera } from "./feel.js?v=20260712.3";
 import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistFacingTarget, specialistMotionState, stableDirectionColumn } from "./motion.js?v=20260711.10";
 import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
 import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260711.5";
-import { impactRenderPlan } from "./impact-grammar.js?v=20260712.2";
-import { movementVisualState } from "./movement.js?v=20260712.2";
+import { impactRenderPlan } from "./impact-grammar.js?v=20260712.3";
+import { movementVisualState } from "./movement.js?v=20260712.3";
 import { effectReadabilityCategory, partitionEffects, readabilityPlan, shouldPromoteCache } from "./readability.js?v=20260711.8";
 import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260711.8";
 import { EnvironmentInteractionField, stableEnvironmentUnit } from "./environment-interactions.js?v=20260712.1";

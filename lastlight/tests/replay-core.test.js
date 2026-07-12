@@ -88,7 +88,7 @@ test("recorder keeps transient identities out of replay JSON and deduplicates in
 
 test("paused pointer sampling coalesces safely and mixed-case authored choices remain replayable", () => {
   const recorder = new ReplayRecorder({
-    build: "2026.07.12.2", balanceVersion: "2026.07.12-identity.2", balanceHash: "fnv1a32:4ba2b39c",
+    build: "2026.07.12.3", balanceVersion: "2026.07.12-signatures.3", balanceHash: "fnv1a32:e36834e8",
     rng: "xoshiro128ss-v1", seed: "0123456789abcdef0123456789abcdef",
     run: { map: "warehouse", difficulty: "story", duration: 240 },
   });

@@ -210,6 +210,41 @@ test("Vesper Blade Recall credits the active ability", () => {
   assert.equal(player.damageBySource.signature, undefined);
 });
 
+test("Nova wisps use the authored hex duration and a distinct damage source", () => {
+  const sim = new Simulation({ players: [{ id: "nova", name: "Nova", specialist: "nova" }] });
+  const player = sim.players[0];
+  sim.level = 7;
+  sim.chance = () => true;
+  const enemy = sim.spawnEnemy("brute");
+  Object.assign(enemy, { x: -70, y: 0, hp: 1_000, maxHp: 1_000, speed: 0, hexed: 0 });
+  sim.updatePlayers(.016);
+  assert.equal(enemy.hexed, 8);
+  assert.ok(player.damageBySource["passive:nova"] > 0);
+  assert.equal(player.damageBySource.hex, undefined);
+});
+
+test("Vesper's innate pickup reach is visible without consuming passive ranks", () => {
+  const sim = new Simulation({ players: [{ id: "vesper", name: "Vesper", specialist: "vesper" }] });
+  const player = sim.players[0];
+  assert.equal(player.passives.pickup || 0, 0);
+  assert.equal(sim.playerStat(player, "pickup"), 384);
+  player.passives.pickup = 1;
+  assert.equal(sim.playerStat(player, "pickup"), 413.75);
+});
+
+test("close-range signatures keep targets in their authored follow-up range", () => {
+  for (const specialist of ["fang", "rift"]) {
+    const signature = new Simulation({ players: [{ id: specialist, name: specialist, specialist }] });
+    const ordinary = new Simulation({ players: [{ id: specialist, name: specialist, specialist }] });
+    const signatureTarget = signature.spawnEnemy("brute"), ordinaryTarget = ordinary.spawnEnemy("brute");
+    Object.assign(signatureTarget, { x: 80, y: 0, hp: 1_000, maxHp: 1_000, speed: 0, knockVx: 0, knockVy: 0 });
+    Object.assign(ordinaryTarget, { x: 80, y: 0, hp: 1_000, maxHp: 1_000, speed: 0, knockVx: 0, knockVy: 0 });
+    signature.damageEnemy(signatureTarget, 100, signature.players[0].id, false, "signature");
+    ordinary.damageEnemy(ordinaryTarget, 100, ordinary.players[0].id, false, "ability:e");
+    assert.ok(Math.hypot(signatureTarget.knockVx, signatureTarget.knockVy) < Math.hypot(ordinaryTarget.knockVx, ordinaryTarget.knockVy) * .3, specialist);
+  }
+});
+
 test("specialist identity passives affect their native combat paths", () => {
   const fangFull = new Simulation({ players: [{ id: "fang", name: "Fang", specialist: "fang" }] });
   const fangLow = new Simulation({ players: [{ id: "fang", name: "Fang", specialist: "fang" }] });
