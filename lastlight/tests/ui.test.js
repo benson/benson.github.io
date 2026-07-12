@@ -36,9 +36,13 @@ test("damage source telemetry updates a persistent interactive panel shell", () 
 });
 
 test("active powerups expose detailed pointer and keyboard inspection", () => {
-  assert.match(game, /class="active-buff" type="button" aria-describedby=/);
-  assert.match(game, /class="active-buff-tooltip"[^>]+role="tooltip"/);
-  assert.match(game, /seconds remaining/);
+  const activeBuffs = readFileSync(new URL("../active-buffs.js", import.meta.url), "utf8");
+  assert.match(activeBuffs, /createElement\(document, "button", "active-buff"\)/);
+  assert.match(activeBuffs, /createElement\(document, "span", "active-buff-tooltip"\)/);
+  assert.match(activeBuffs, /aria-describedby/);
+  assert.match(activeBuffs, /seconds remaining/);
+  assert.match(game, /reconcileActiveBuffs\(\$\("active-buffs-hud"\), active\)/);
+  assert.doesNotMatch(game, /\$\("active-buffs-hud"\)\.innerHTML/);
   assert.match(css, /\.active-buff:hover \.active-buff-tooltip, \.active-buff:focus-visible \.active-buff-tooltip/);
 });
 

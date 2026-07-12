@@ -24,6 +24,7 @@ import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260
 import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260712.1";
 import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260712.1";
 import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260712.2";
+import { reconcileActiveBuffs } from "./active-buffs.js";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -107,7 +108,7 @@ const state = {
   soundState: { projectiles: 0, kills: 0, level: 1, damageTaken: 0, xpCollected: 0, lastShot: 0, lastXP: 0 },
   recentErrors: [], reportSubmitting: false, resumeAfterReport: false, telemetrySent: false,
   qualitySettings: initialQualitySettings, showEnemyHealthBars: initialQualitySettings.healthBars !== "off", inspectPointer: null, inspectActive: false,
-  performanceMetrics: null, lastActiveBuffKey: "", lastDamageLedgerKey: "",
+  performanceMetrics: null, lastDamageLedgerKey: "",
   damageLedgerLayout: loadDamageLedgerLayout(), damageLedgerResizeObserver: null,
   bannerTimer: null, bannerExitTimer: null,
   resumeToken: loadClientToken(),
@@ -570,7 +571,7 @@ function enterGame() {
   setScreen("game"); renderer.resize(); state.endShown = false; state.telemetrySent = false; state.resultSavedKey = ""; state.lastEventSeq = 0; state.lastUpgradeKey = ""; state.lastWeaponHUDKey = ""; state.lastPassiveHUDKey = ""; state.lastSquadHUDKey = ""; state.lastFrame = performance.now();
   state.performanceMetrics = { samples: [], frames: 0, longFrames: 0, maxEntities: {}, inputLatencies: [], predictionCorrections: [] };
   state.soundState = { projectiles: 0, effects: 0, kills: 0, level: 1, damageTaken: 0, xpCollected: 0, lastShot: 0, lastMaterial: 0, lastXP: 0 };
-  state.lastActiveBuffKey = ""; state.lastDamageLedgerKey = "";
+  state.lastDamageLedgerKey = "";
   state.lastSend = 0; state.lastBroadcast = 0; state.hostPreviousMotion = null; state.inputMotionStartedAt = 0; state.inputMotionStart = null; state.inputWasActive = false;
   fixedClock.reset(); movementPredictor.reset(); resetInputProtocol(); renderer.resetCamera(); $("game-canvas").focus();
   if (!state.animation) state.animation = requestAnimationFrame(gameLoop);
@@ -868,12 +869,7 @@ function updateActiveBuffs(player) {
     ["hotTime", "Hot streak", SPECIALISTS.zuri.signature.icon, 8, "Weapon haste and movement speed surge after a kill streak."],
   ];
   const active = definitions.map(([field, name, icon, max, copy]) => ({ field, name, icon, max, copy, remaining: Number(player[field] || 0) })).filter((buff) => buff.remaining > .04);
-  const key = JSON.stringify(active.map((buff) => [buff.field, Math.ceil(buff.remaining * 10)]));
-  if (key === state.lastActiveBuffKey) return; state.lastActiveBuffKey = key;
-  $("active-buffs-hud").innerHTML = active.map((buff) => {
-    const tooltipId = `active-buff-${buff.field}`;
-    return `<button class="active-buff" type="button" aria-describedby="${tooltipId}" aria-label="${escapeHTML(buff.name)}, ${buff.remaining.toFixed(1)} seconds remaining. ${escapeHTML(buff.copy)}"><img src="${buff.icon}" alt=""><i style="--buff-progress:${clamp(buff.remaining / buff.max * 100, 0, 100)}%"></i><b>${buff.remaining < 10 ? buff.remaining.toFixed(1) : Math.ceil(buff.remaining)}</b><span class="active-buff-label">${escapeHTML(buff.name)}</span><span class="active-buff-tooltip" id="${tooltipId}" role="tooltip"><strong>${escapeHTML(buff.name)}</strong><em>${escapeHTML(buff.copy)}</em><small>${buff.remaining.toFixed(1)} seconds remaining</small></span></button>`;
-  }).join("");
+  reconcileActiveBuffs($("active-buffs-hud"), active);
 }
 
 function updateDamageLedger(player, game) {
