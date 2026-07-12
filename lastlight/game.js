@@ -1,13 +1,13 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260711.8";
-import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260712.1";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260712.2";
+import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260712.2";
 import { Renderer } from "./render.js?v=20260712.1";
 import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260711.8";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
 import { getThemeAsset, getThemeMaterial } from "./themes/lastlight.js?v=20260712.1";
 import { submitRunTelemetry } from "./telemetry.js?v=20260711.5";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260711.8";
-import { BALANCE_HASH, BALANCE_VERSION } from "./balance-config.js?v=20260712.1";
+import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260712.2";
+import { BALANCE_HASH, BALANCE_VERSION } from "./balance-config.js?v=20260712.2";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
 import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260712.1";
 import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260711.5";
@@ -15,14 +15,15 @@ import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settings
 import { clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260711.5";
 import { GuestInputSequenceTracker, HostInputSequenceGate, createSnapshotMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260711.5";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260711.5";
-import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260711.8";
-import { advancePlayerMovement } from "./movement.js?v=20260711.8";
+import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260712.2";
+import { advancePlayerMovement } from "./movement.js?v=20260712.2";
 import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
 import { DynamicAudioMixer } from "./audio-mix.js?v=20260711.10";
 import { buildUpgradeComparison, weaponTelemetry } from "./upgrade-preview.js?v=20260712.1";
 import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260712.1";
 import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260712.1";
 import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260712.1";
+import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260712.2";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -31,7 +32,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.12.1";
+const BUILD = "2026.07.12.2";
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
 const systemReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false;
 const initialQualitySettings = (() => {
@@ -395,6 +396,15 @@ function renderGuide() {
     const spec = SPECIALISTS[id], passive = PASSIVES[spec.signature.passive];
     return guideCard(spec.signature.glyph, `${spec.name} · ${spec.signature.name}`, `Evolves to ${spec.signature.evolve}`, `Reach weapon level 5 and own ${passive?.name || spec.signature.passive}, then collect an elite access card.`, "", spec.signature.icon, guideWeaponDetails("signature", id));
   }).join("");
+  const identities = SPECIALIST_ORDER.map((id) => {
+    const spec = SPECIALISTS[id], identity = getSpecialistIdentity(id);
+    const label = (value) => String(value).replaceAll("-", " ");
+    const strong = (tier) => ["high", "very-high"].includes(tier);
+    const strengths = [strong(identity.mobility.tier) && `${label(identity.mobility.tier)} mobility`, strong(identity.safety.tier) && `${label(identity.safety.tier)} safety`, strong(identity.control.tier) && `${label(identity.control.tier)} control`, strong(identity.support.tier) && `${label(identity.support.tier)} support`].filter(Boolean).join(" · ") || `${label(identity.damageShape.cadence)} ${label(identity.range)}-range damage`;
+    return guideCard(spec.number, spec.name, `${label(identity.role.primary)} · ${label(identity.role.specialization)}`, `${strengths}. Failure point: ${identity.failureModes[0].consequence}`, "", spec.sprite, {
+      Range: label(identity.range), Mobility: label(identity.mobility.tier), Durability: label(identity.durability.tier), Safety: label(identity.safety.tier), Control: label(identity.control.tier), Support: label(identity.support.tier), "Identity contract": SPECIALIST_IDENTITY_VERSION,
+    });
+  }).join("");
   const weapons = Object.values(WEAPONS).map((weapon) => guideCard(weapon.glyph, weapon.name, `Evolves to ${weapon.evolve}`, `${weapon.copy} Evolution requires level 5 + ${PASSIVES[weapon.passive]?.name || weapon.passive}.`, "", weapon.icon, guideWeaponDetails(weapon.id))).join("");
   const materials = MATERIAL_CLASSES.map((id) => {
     const material = getThemeMaterial(id);
@@ -420,7 +430,7 @@ function renderGuide() {
     ...BOONS.map((boon) => guideCard("★", boon.name, "Rare squad boon", boon.copy, "", boon.icon)),
     ...AUGMENTS.map((augment) => guideCard("AUG", augment.name, "Rare augment", augment.copy, "", augment.icon)),
   ].join("");
-  $("guide-content").innerHTML = `<section id="guide-campaign" class="guide-section"><h3>Campaign route</h3><p>Clear threat tiers to unlock harder operations. Progress is saved in this browser.</p><div class="campaign-route">${campaign}</div></section><section id="guide-field" class="guide-section"><h3>Field objects</h3><p>Hold Shift and point at a live field object for its current stats.</p><div class="guide-grid">${fieldObjects}</div></section><section id="guide-signatures" class="guide-section"><h3>Signature evolutions</h3><div class="guide-grid">${signatures}</div></section><section id="guide-weapons" class="guide-section"><h3>Universal weapons</h3><div class="guide-grid">${weapons}</div></section><section id="guide-materials" class="guide-section"><h3>Impact materials</h3><p>Every weapon keeps its silhouette while contact particles, decals, flash, and sound adapt to the target. Shape and pattern remain available when color or motion is reduced.</p><div class="guide-grid">${materials}</div></section><section id="guide-passives" class="guide-section"><h3>Passive upgrades</h3><div class="guide-grid">${passives}</div></section><section id="guide-rare" class="guide-section"><h3>Rare finds & events</h3><div class="guide-grid">${rare}</div></section>`;
+  $("guide-content").innerHTML = `<section id="guide-campaign" class="guide-section"><h3>Campaign route</h3><p>Clear threat tiers to unlock harder operations. Progress is saved in this browser.</p><div class="campaign-route">${campaign}</div></section><section id="guide-specialists" class="guide-section"><h3>Specialist identities</h3><p>Measured roles, strengths, and failure points from the versioned simulation contract.</p><div class="guide-grid">${identities}</div></section><section id="guide-field" class="guide-section"><h3>Field objects</h3><p>Hold Shift and point at a live field object for its current stats.</p><div class="guide-grid">${fieldObjects}</div></section><section id="guide-signatures" class="guide-section"><h3>Signature evolutions</h3><div class="guide-grid">${signatures}</div></section><section id="guide-weapons" class="guide-section"><h3>Universal weapons</h3><div class="guide-grid">${weapons}</div></section><section id="guide-materials" class="guide-section"><h3>Impact materials</h3><p>Every weapon keeps its silhouette while contact particles, decals, flash, and sound adapt to the target. Shape and pattern remain available when color or motion is reduced.</p><div class="guide-grid">${materials}</div></section><section id="guide-passives" class="guide-section"><h3>Passive upgrades</h3><div class="guide-grid">${passives}</div></section><section id="guide-rare" class="guide-section"><h3>Rare finds & events</h3><div class="guide-grid">${rare}</div></section>`;
 }
 
 function renderSpecialistGrid() {
@@ -439,6 +449,10 @@ function selectSpecialist(id) {
   $("detail-number").textContent = spec.number; $("detail-art").src = spec.sprite; $("detail-art").alt = spec.name;
   $("detail-role").textContent = spec.role; $("detail-name").textContent = spec.name.toUpperCase(); $("detail-tagline").textContent = spec.tagline;
   $("detail-health").textContent = spec.health; $("detail-armor").textContent = spec.armor; $("detail-range").textContent = spec.range;
+  const identity = getSpecialistIdentity(id), label = (value) => String(value).replaceAll("-", " ");
+  const strong = (tier) => ["high", "very-high"].includes(tier);
+  $("identity-strengths").textContent = [strong(identity.mobility.tier) && `${label(identity.mobility.tier)} mobility`, strong(identity.safety.tier) && `${label(identity.safety.tier)} safety`, strong(identity.control.tier) && `${label(identity.control.tier)} control`, strong(identity.support.tier) && `${label(identity.support.tier)} support`].filter(Boolean).join(" · ") || `${label(identity.damageShape.cadence)} ${label(identity.range)}-range damage`;
+  $("identity-risk").textContent = identity.failureModes[0].consequence;
   $("detail-weapon-icon").src = spec.signature.icon; $("detail-weapon-icon").alt = ""; $("detail-weapon-name").textContent = spec.signature.name;
   renderStartingWeaponDetails(spec);
   $("passive-name").textContent = spec.passive[0]; $("passive-copy").textContent = spec.passive[1];

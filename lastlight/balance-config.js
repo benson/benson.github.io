@@ -1,6 +1,6 @@
 // Balance is a versioned simulation input. Replays and fixtures should record
 // this exact version so a future tuning pass never silently changes old runs.
-export const BALANCE_VERSION = "2026.07.12-cover.1";
+export const BALANCE_VERSION = "2026.07.12-identity.2";
 
 export const BALANCE_IDS = Object.freeze({
   specialists: Object.freeze(["zuri", "echo", "sola", "bront", "fang", "gale", "rift", "nova", "vesper"]),
@@ -32,6 +32,17 @@ const config = {
     rift: { health: 10, armor: 20, speed: 300, cooldownE: 8, cooldownR: 100 },
     nova: { health: 9, armor: 0, speed: 295, cooldownE: 15, cooldownR: 90 },
     vesper: { health: 9.5, armor: 0, speed: 275, cooldownE: 13, cooldownR: 90 },
+  },
+  identityTuning: {
+    zuri: { speedPerHotStack: 0.10, maxHotStacks: 5, executeMissingHealthBonus: 1.0 },
+    echo: { repeatChance: 0.25, repeatDelay: 0.25 },
+    sola: { armorMultiplier: 2, aftershockShieldMaxHealth: 0.25 },
+    bront: { crashDashDistance: 170 },
+    fang: { missingHealthDamageBonus: 0.60 },
+    gale: { flowPerSecond: 30, flowHasteRatio: 0.50, evolvedFlowMultiplier: 1.15, windwallKnockback: 240, windwallProjectilePadding: 18 },
+    rift: { damageShieldRatio: 0.03, damageShieldCapMaxHealth: 0.35 },
+    nova: { hexDuration: 8 },
+    vesper: { recallPierce: 30 },
   },
   movement: {
     version: "lastlight.movement.v1",
@@ -140,7 +151,7 @@ const config = {
       bront: { cycle: 4.8, cyclePerLevel: -0.20, evolvedCycle: 0.68, range: 700, radiusBase: 95, radiusPerLevel: 16, damageBase: 70, damagePerLevel: 24, evolvedDelay: 0.35, evolvedRadius: 155, evolvedDamageBase: 110 },
       fang: { cycle: 2, cyclePerLevel: -0.10, evolvedCycle: 0.68, offset: 86, radiusBase: 90, radiusPerLevel: 14, damageBase: 36, damagePerLevel: 19, maxHealthDamage: 1.5 },
       gale: { cycle: 0.25, cyclePerLevel: 0, evolvedCycle: 0.68, flowCost: 100, countBase: 1, countEveryLevels: 2, countCap: 7, speed: 430, damageBase: 65, damagePerLevel: 21, spread: 0.16, radiusBase: 14, radiusPerLevel: 2, pierce: 5, evolvedPierce: 12, life: 3.2 },
-      rift: { cycle: 0.3, cyclePerLevel: 0, evolvedCycle: 0.68, offset: 58, radiusBase: 72, radiusPerLevel: 10, damageBase: 30, damagePerLevel: 13 },
+      rift: { cycle: 0.6, cyclePerLevel: 0, evolvedCycle: 0.68, offset: 58, radiusBase: 72, radiusPerLevel: 10, damageBase: 30, damagePerLevel: 13 },
       nova: { cycle: 3, cyclePerLevel: 0, evolvedCycle: 0.68, countBase: 1, countEveryLevels: 2, countCap: 8, speed: 360, damageBase: 53, damagePerLevel: 14, spread: 0.32, radius: 10, pierce: 8, life: 1.75, evolvedLife: 2.25 },
       vesper: { cycle: 2.5, cyclePerLevel: -0.125, evolvedCycle: 0.68, countBase: 1, countEveryLevels: 3, speed: 700, damageBase: 51, damagePerLevel: 14, spread: 0.09, radius: 7, pierce: 7, evolvedPierce: 14, life: 1.7 },
     },
@@ -199,7 +210,7 @@ export function validateBalanceConfig(candidate = BALANCE_CONFIG) {
   };
   if (!candidate || typeof candidate !== "object") return ["config: must be an object"];
   if (typeof candidate.version !== "string" || !candidate.version.trim()) errors.push("version: required");
-  for (const section of ["core", "specialists", "movement", "passives", "shields", "difficulties", "enemies", "waves", "weapons"]) {
+  for (const section of ["core", "specialists", "identityTuning", "movement", "passives", "shields", "difficulties", "enemies", "waves", "weapons"]) {
     if (!candidate[section] || typeof candidate[section] !== "object") errors.push(`${section}: required`);
   }
   const requireExactIds = (path, value, ids) => {
@@ -208,6 +219,7 @@ export function validateBalanceConfig(candidate = BALANCE_CONFIG) {
     if (JSON.stringify(actual) !== JSON.stringify(expected)) errors.push(`${path}: expected ${expected.join(", ")}; got ${actual.join(", ")}`);
   };
   requireExactIds("specialists", candidate.specialists, BALANCE_IDS.specialists);
+  requireExactIds("identityTuning", candidate.identityTuning, BALANCE_IDS.specialists);
   requireExactIds("movement.specialists", candidate.movement?.specialists, BALANCE_IDS.specialists);
   requireExactIds("passives", candidate.passives, BALANCE_IDS.passives);
   requireExactIds("shields", candidate.shields, BALANCE_IDS.shieldAbilities);
@@ -221,6 +233,9 @@ export function validateBalanceConfig(candidate = BALANCE_CONFIG) {
   for (const [id, specialist] of Object.entries(candidate.specialists || {})) {
     for (const key of ["health", "speed", "cooldownE", "cooldownR"]) requireFinite(`specialists.${id}.${key}`, specialist[key], { min: 0, exclusiveMin: true });
     requireFinite(`specialists.${id}.armor`, specialist.armor, { min: 0 });
+  }
+  for (const [id, tuning] of Object.entries(candidate.identityTuning || {})) {
+    for (const [key, value] of Object.entries(tuning)) requireFinite(`identityTuning.${id}.${key}`, value, { min: 0 });
   }
   const movementProfiles = candidate.movement?.profiles || {};
   if (typeof candidate.movement?.version !== "string" || !candidate.movement.version.trim()) errors.push("movement.version: required");

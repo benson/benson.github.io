@@ -196,6 +196,10 @@
               <div><dt>Armor</dt><dd id="detail-armor">0</dd></div>
               <div><dt>Range</dt><dd id="detail-range">Long</dd></div>
             </dl>
+            <div class="identity-readout" aria-label="Specialist strengths and risk">
+              <div><span>Excels at</span><p id="identity-strengths">High mobility · low safety</p></div>
+              <div><span>Failure point</span><p id="identity-risk">No defensive utility can reset spacing.</p></div>
+            </div>
             <div class="starting-weapon-detail">
               <button id="starting-weapon-trigger" class="starting-weapon-trigger" type="button" aria-expanded="false" aria-controls="starting-weapon-tooltip" aria-describedby="starting-weapon-tooltip" aria-label="Inspect Pulse Carbine starting weapon">
                 <img id="detail-weapon-icon" src="assets/weapons/signature-zuri.webp" alt="">
@@ -409,7 +413,7 @@
         <button id="guide-close" class="icon-button" type="button" aria-label="Close upgrade archive">Close</button>
       </div>
       <nav class="guide-tabs" aria-label="Upgrade archive sections">
-        <a href="#guide-campaign">Campaign</a><a href="#guide-field">Field objects</a><a href="#guide-signatures">Signatures</a><a href="#guide-weapons">Weapons</a><a href="#guide-materials">Materials</a><a href="#guide-passives">Passives</a><a href="#guide-rare">Rare finds</a>
+        <a href="#guide-campaign">Campaign</a><a href="#guide-specialists">Specialists</a><a href="#guide-field">Field objects</a><a href="#guide-signatures">Signatures</a><a href="#guide-weapons">Weapons</a><a href="#guide-materials">Materials</a><a href="#guide-passives">Passives</a><a href="#guide-rare">Rare finds</a>
       </nav>
       <div id="guide-content" class="guide-content"></div>
     </dialog>
@@ -472,14 +476,25 @@
       <div class="build-history-body">
         <article class="build-release current-build">
           <header>
-            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.12.1</h3></div>
+            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.12.2</h3></div>
+            <time class="build-shipped-at" data-build-shipped-at="pending">Deployment verification pending</time>
+          </header>
+          <ul>
+            <li>Added a strict, versioned identity contract for all nine specialists and surfaced measured strengths, risks, roles, and failure points in Specialist Select and the Field Manual.</li>
+            <li>Added 90 deterministic specialist benchmarks spanning early damage, abilities, mature builds, mobility, survival, elite/apex fights, objectives, support, pickups, and four-player contribution.</li>
+            <li>Restored missing kit mechanics: Nova hexes, Vesper recall attribution, Echo weapon repeats, Zuri speed stacks and execution damage, Gale projectile interception, Rift damage shields, and bounded Sola armor/shields.</li>
+            <li>Fixed Gale's doubled critical passive and made flow respond to haste and evolution; corrected Rift's extreme opening cadence using benchmark evidence.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.12.1</h3></div>
             <time class="build-shipped-at" data-build-shipped-at="2026-07-12T01:48:00-04:00">Shipped Jul 12, 2026, 1:48 AM EDT</time>
           </header>
           <ul>
-            <li>Added a verified replay viewer with play, pause, speed, five-second seeking, backward reconstruction, live stats and loadouts, field inspection, and secondary JSON export.</li>
-            <li>Connected movement and weapon impacts to theme-owned debris, puddles, cables, fibers, dust, and six material contact grammars with strict performance and reduced-motion budgets.</li>
-            <li>Made raised cover intercept ordinary friendly and hostile projectiles without tunneling, while preserving explicit rail and apex-fire exceptions; auto-aim movement now keeps body facing aligned with travel.</li>
-            <li>Added authoritative before-and-after upgrade comparisons and made the report shortcut work across command, lobby, waiting, pause, upgrade, result, and live-game screens without firing while typing.</li>
+            <li>Added a verified replay viewer with play, pause, speed, seeking, backward reconstruction, live stats, field inspection, and JSON export.</li>
+            <li>Connected movement and impacts to theme-owned environmental reactions and material contact grammars.</li>
+            <li>Made raised cover intercept ordinary projectiles, separated movement-facing from auto-aim, and added authoritative upgrade comparisons.</li>
           </ul>
         </article>
         <article class="build-release">
@@ -687,8 +702,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.12.1. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.12.1</strong></button>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.12.2. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.12.2</strong></button>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260712.1"></script>
+  <script type="module" src="game.js?v=20260712.2"></script>
 </body>
 </html>

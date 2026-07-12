@@ -2,8 +2,8 @@
   "schema": "lastlight.fixture-goldens.v1",
   "schemaVersion": 1,
   "balance": {
-    "version": "2026.07.12-cover.1",
-    "hash": "fnv1a32:4b3f3e5e"
+    "version": "2026.07.12-identity.2",
+    "hash": "fnv1a32:4ba2b39c"
   },
   "replay": {
     "schema": "lastlight.replay.v3",
@@ -17,19 +17,19 @@
       "hashes": [
         {
           "tick": 0,
-          "hash": "359b65d7224ec65b"
+          "hash": "255757f9963b2cb9"
         },
         {
           "tick": 60,
-          "hash": "e778559e66675a41"
+          "hash": "2079fca694ed4c07"
         },
         {
           "tick": 120,
-          "hash": "5a9fb19f8770695b"
+          "hash": "4464151e5e395405"
         },
         {
           "tick": 180,
-          "hash": "88daa2b48df0f12f"
+          "hash": "ec1d7efe35c23c6d"
         }
       ],
       "summary": {
@@ -70,7 +70,7 @@
         ]
       },
       "baselineMetrics": {
-        "maxSnapshotBytes": 12957,
+        "maxSnapshotBytes": 13053,
         "maxTotalEntities": 50,
         "maxWorkUnitsPerTick": 170
       }
@@ -81,27 +81,27 @@
       "hashes": [
         {
           "tick": 0,
-          "hash": "5f6247fb1292e9d6"
+          "hash": "8e2a489e69281e78"
         },
         {
           "tick": 60,
-          "hash": "1c4ddbc129dc05f7"
+          "hash": "89b2c49ff5deebd0"
         },
         {
           "tick": 120,
-          "hash": "06fe2e7fc24faec5"
+          "hash": "b1b5f037a5c088bf"
         },
         {
           "tick": 180,
-          "hash": "66801c09759e68d3"
+          "hash": "5fae8adf78ad38cd"
         },
         {
           "tick": 240,
-          "hash": "88b4583251e5c176"
+          "hash": "1b1c2bde2d3f8c2c"
         },
         {
           "tick": 300,
-          "hash": "8fa88a0cacdc9ca2"
+          "hash": "3c9c5165895ea30b"
         }
       ],
       "summary": {
@@ -109,32 +109,32 @@
         "tick": 6900,
         "wave": 3,
         "level": 8,
-        "kills": 29,
+        "kills": 22,
         "gold": 0,
-        "teamXP": 27,
+        "teamXP": 21,
         "bossPhase": 1,
         "entities": {
           "players": 1,
           "drones": 1,
-          "enemies": 62,
-          "projectiles": 16,
+          "enemies": 69,
+          "projectiles": 19,
           "hostile": 23,
-          "effects": 2,
-          "orbs": 25,
+          "effects": 1,
+          "orbs": 19,
           "drops": 3,
-          "pods": 12,
+          "pods": 11,
           "objectives": 0,
           "relayBalls": 0,
           "feathers": 0,
-          "tasks": 0
+          "tasks": 1
         },
         "players": [
           {
             "slot": 0,
             "specialist": "echo",
             "hp": 10,
-            "damage": 10072.6,
-            "kills": 29,
+            "damage": 10283.2,
+            "kills": 22,
             "revives": 0,
             "downed": false,
             "dead": false
@@ -142,9 +142,9 @@
         ]
       },
       "baselineMetrics": {
-        "maxSnapshotBytes": 31055,
-        "maxTotalEntities": 149,
-        "maxWorkUnitsPerTick": 2757
+        "maxSnapshotBytes": 33880,
+        "maxTotalEntities": 158,
+        "maxWorkUnitsPerTick": 2840
       }
     },
     {
@@ -153,23 +153,23 @@
       "hashes": [
         {
           "tick": 0,
-          "hash": "768346f7fad9c15b"
+          "hash": "52817a19c62dce4d"
         },
         {
           "tick": 30,
-          "hash": "3b781e5b5e6be8ec"
+          "hash": "d8843bb43c12aa1d"
         },
         {
           "tick": 60,
-          "hash": "b32c4edd4c7abf5b"
+          "hash": "89abe2b7653ec285"
         },
         {
           "tick": 90,
-          "hash": "9e16b459340c9e31"
+          "hash": "81a54c1b073c4fe5"
         },
         {
           "tick": 120,
-          "hash": "d3c0e82def9e0bf3"
+          "hash": "aad3a421032e1d7a"
         }
       ],
       "summary": {
@@ -210,7 +210,7 @@
         ]
       },
       "baselineMetrics": {
-        "maxSnapshotBytes": 178946,
+        "maxSnapshotBytes": 179342,
         "maxTotalEntities": 1206,
         "maxWorkUnitsPerTick": 41531
       }
@@ -221,35 +221,35 @@
       "hashes": [
         {
           "tick": 0,
-          "hash": "4c21f9dec148190e"
+          "hash": "6666fcb1754efe14"
         },
         {
           "tick": 30,
-          "hash": "662be80fa4dcd29d"
+          "hash": "c323cd8e85d7244b"
         },
         {
           "tick": 60,
-          "hash": "dd8c0878df6132cb"
+          "hash": "55b1a4c3d5c8e869"
         },
         {
           "tick": 90,
-          "hash": "cff8d0b464de5e5a"
+          "hash": "1025f3b05950ee58"
         },
         {
           "tick": 120,
-          "hash": "5735004141b114cc"
+          "hash": "ff9b2b024351a2a2"
         },
         {
           "tick": 150,
-          "hash": "79d58bbdd60a9ebe"
+          "hash": "4601560983b58790"
         },
         {
           "tick": 180,
-          "hash": "7bff175abb644fde"
+          "hash": "b836d8fc9d1d8f84"
         },
         {
           "tick": 210,
-          "hash": "2c926d8138047163"
+          "hash": "b70052a0fc1237e9"
         }
       ],
       "summary": {
@@ -300,7 +300,7 @@
         ]
       },
       "baselineMetrics": {
-        "maxSnapshotBytes": 12106,
+        "maxSnapshotBytes": 12232,
         "maxTotalEntities": 44,
         "maxWorkUnitsPerTick": 173
       }
@@ -311,23 +311,23 @@
       "hashes": [
         {
           "tick": 0,
-          "hash": "83074fecfceea3d8"
+          "hash": "7b7b705e987c3856"
         },
         {
           "tick": 60,
-          "hash": "a3f786efd6f27a53"
+          "hash": "ee60474c5b4cc0da"
         },
         {
           "tick": 120,
-          "hash": "437daff4902f6ebb"
+          "hash": "3d38009ec5cdea03"
         },
         {
           "tick": 180,
-          "hash": "481508efa58c38d0"
+          "hash": "d0b5f21d4ab37434"
         },
         {
           "tick": 240,
-          "hash": "85fd57f20680cd9b"
+          "hash": "cf3cb2eb3958491f"
         }
       ],
       "summary": {
@@ -335,20 +335,20 @@
         "tick": 8640,
         "wave": 4,
         "level": 9,
-        "kills": 16,
+        "kills": 18,
         "gold": 0,
-        "teamXP": 12,
+        "teamXP": 18,
         "bossPhase": 1,
         "entities": {
           "players": 4,
           "drones": 1,
-          "enemies": 124,
-          "projectiles": 12,
-          "hostile": 17,
-          "effects": 72,
+          "enemies": 122,
+          "projectiles": 7,
+          "hostile": 18,
+          "effects": 64,
           "orbs": 15,
-          "drops": 7,
-          "pods": 8,
+          "drops": 9,
+          "pods": 6,
           "objectives": 0,
           "relayBalls": 0,
           "feathers": 0,
@@ -359,8 +359,8 @@
             "slot": 0,
             "specialist": "zuri",
             "hp": 10,
-            "damage": 54440.6,
-            "kills": 15,
+            "damage": 58041.2,
+            "kills": 17,
             "revives": 0,
             "downed": false,
             "dead": false
@@ -369,7 +369,7 @@
             "slot": 1,
             "specialist": "echo",
             "hp": 10,
-            "damage": 14023,
+            "damage": 12416.9,
             "kills": 1,
             "revives": 1,
             "downed": false,
@@ -379,7 +379,7 @@
             "slot": 2,
             "specialist": "sola",
             "hp": 11,
-            "damage": 3860,
+            "damage": 3990,
             "kills": 0,
             "revives": 0,
             "downed": false,
@@ -389,7 +389,7 @@
             "slot": 3,
             "specialist": "bront",
             "hp": 7.5,
-            "damage": 3162,
+            "damage": 3328,
             "kills": 0,
             "revives": 0,
             "downed": false,
@@ -398,9 +398,9 @@
         ]
       },
       "baselineMetrics": {
-        "maxSnapshotBytes": 61637,
+        "maxSnapshotBytes": 64943,
         "maxTotalEntities": 289,
-        "maxWorkUnitsPerTick": 13848
+        "maxWorkUnitsPerTick": 15022
       }
     },
     {
@@ -409,31 +409,31 @@
       "hashes": [
         {
           "tick": 0,
-          "hash": "c94c9a3b42b28259"
+          "hash": "5c83617e71e91a73"
         },
         {
           "tick": 30,
-          "hash": "4fa0e7a8a6303abf"
+          "hash": "b675d106e0d9213c"
         },
         {
           "tick": 60,
-          "hash": "bf0a176dde180aff"
+          "hash": "828d141aabf3aea8"
         },
         {
           "tick": 90,
-          "hash": "21ea86c35e788783"
+          "hash": "83c16ed36a3e7ab3"
         },
         {
           "tick": 120,
-          "hash": "e311c091d22318e5"
+          "hash": "3bb85ddab7015127"
         },
         {
           "tick": 150,
-          "hash": "dffd69b5c894186a"
+          "hash": "568adfe908057bbc"
         },
         {
           "tick": 180,
-          "hash": "f28ef259e3babd1d"
+          "hash": "bb1b0c389bff1cdf"
         }
       ],
       "summary": {
@@ -465,7 +465,7 @@
             "slot": 0,
             "specialist": "rift",
             "hp": 10,
-            "damage": 4191.2,
+            "damage": 4648.6,
             "kills": 0,
             "revives": 0,
             "downed": false,
@@ -484,8 +484,8 @@
         ]
       },
       "baselineMetrics": {
-        "maxSnapshotBytes": 10590,
-        "maxTotalEntities": 46,
+        "maxSnapshotBytes": 11135,
+        "maxTotalEntities": 45,
         "maxWorkUnitsPerTick": 241
       }
     },
@@ -495,23 +495,23 @@
       "hashes": [
         {
           "tick": 0,
-          "hash": "a36045ac44dd47c0"
+          "hash": "f58c41b0d08fe80a"
         },
         {
           "tick": 15,
-          "hash": "289bba0f0f67ea19"
+          "hash": "d6debbcbe37166df"
         },
         {
           "tick": 30,
-          "hash": "e69468e58053e41b"
+          "hash": "8c33a32cb5632b35"
         },
         {
           "tick": 45,
-          "hash": "7548711bad6ea115"
+          "hash": "15877132b219f1bb"
         },
         {
           "tick": 60,
-          "hash": "d91df7ad44ce27d4"
+          "hash": "1c05e37919c60ef2"
         }
       ],
       "summary": {
@@ -552,7 +552,7 @@
         ]
       },
       "baselineMetrics": {
-        "maxSnapshotBytes": 375502,
+        "maxSnapshotBytes": 376588,
         "maxTotalEntities": 2519,
         "maxWorkUnitsPerTick": 217945
       }

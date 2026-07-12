@@ -177,6 +177,134 @@ test("combat actions expose concise authored animation state", () => {
   assert.equal(player.animState, player.moving ? "run" : "idle");
 });
 
+test("Nova signature hits apply a mark that level-three Veilstep detonates", () => {
+  const sim = new Simulation({ players: [{ id: "nova", name: "Nova", specialist: "nova" }] }, { seed: "83420000000000000000000000000000" });
+  sim.level = 3;
+  const player = sim.players[0];
+  player.invuln = 0;
+  const enemy = sim.spawnEnemy("brute");
+  Object.assign(enemy, { x: 100, y: 0, hp: 1_000, maxHp: 1_000, speed: 0, hexed: 0 });
+  sim.fireSignature(player);
+  for (const projectile of sim.projectiles) Object.assign(projectile, { x: enemy.x, y: enemy.y, vx: 0, vy: 0 });
+  sim.updateProjectiles(.016);
+  assert.equal(enemy.hexed, 8);
+  const before = enemy.hp;
+  assert.equal(sim.cast(player.id, "e"), true);
+  assert.ok(enemy.hp < before);
+  assert.equal(enemy.hexed, 0);
+  assert.ok(player.damageBySource["ability:e"] > 0);
+});
+
+test("Vesper Blade Recall credits the active ability", () => {
+  const sim = new Simulation({ players: [{ id: "vesper", name: "Vesper", specialist: "vesper" }] });
+  sim.level = 3;
+  const player = sim.players[0];
+  sim.feathers.push({ id: "feather", owner: player.id, x: 100, y: 0, radius: 7, life: 15, color: "#fff" });
+  assert.equal(sim.cast(player.id, "e"), true);
+  assert.equal(sim.projectiles[0].sourceId, "ability:e");
+  const enemy = sim.spawnEnemy("brute");
+  Object.assign(enemy, { x: 50, y: 0, hp: 1_000, maxHp: 1_000, speed: 0 });
+  Object.assign(sim.projectiles[0], { x: enemy.x, y: enemy.y, vx: 0, vy: 0 });
+  sim.updateProjectiles(.016);
+  assert.ok(player.damageBySource["ability:e"] > 0);
+  assert.equal(player.damageBySource.signature, undefined);
+});
+
+test("specialist identity passives affect their native combat paths", () => {
+  const fangFull = new Simulation({ players: [{ id: "fang", name: "Fang", specialist: "fang" }] });
+  const fangLow = new Simulation({ players: [{ id: "fang", name: "Fang", specialist: "fang" }] });
+  const fullTarget = fangFull.spawnEnemy("brute"), lowTarget = fangLow.spawnEnemy("brute");
+  Object.assign(fullTarget, { x: 70, y: 0, hp: 5_000, maxHp: 5_000, speed: 0 });
+  Object.assign(lowTarget, { x: 70, y: 0, hp: 5_000, maxHp: 5_000, speed: 0 });
+  fangLow.players[0].hp = fangLow.players[0].maxHp * .1;
+  fangFull.fireSignature(fangFull.players[0]); fangLow.fireSignature(fangLow.players[0]);
+  assert.ok((5_000 - lowTarget.hp) > (5_000 - fullTarget.hp) * 1.45, "Fang's low-health damage must amplify Rending Swipe");
+
+  const rift = new Simulation({ players: [{ id: "rift", name: "Rift", specialist: "rift" }] });
+  const riftTarget = rift.spawnEnemy("brute");
+  Object.assign(riftTarget, { hp: 1_000, maxHp: 1_000, speed: 0 });
+  rift.damageEnemy(riftTarget, 100, rift.players[0].id, false, "signature");
+  assert.ok(rift.players[0].shield > 0, "Rift converts dealt damage into bounded shield");
+  assert.ok(rift.players[0].shield <= rift.players[0].maxHp * .35);
+});
+
+test("Zuri hot stacks add speed and Curtain Call executes wounded targets", () => {
+  const sim = new Simulation({ players: [{ id: "zuri", name: "Zuri", specialist: "zuri" }] });
+  const player = sim.players[0];
+  const baseSpeed = sim.playerStat(player, "speed");
+  player.hotTime = 8; player.hotStacks = 2;
+  assert.ok(sim.playerStat(player, "speed") >= baseSpeed * 1.19);
+
+  const hit = (hp) => {
+    const local = new Simulation({ players: [{ id: "zuri", name: "Zuri", specialist: "zuri" }] });
+    local.level = 6;
+    const enemy = local.spawnEnemy("brute");
+    Object.assign(enemy, { x: 50, y: 0, hp, maxHp: 10_000, speed: 0 });
+    local.castR(local.players[0]);
+    Object.assign(local.projectiles[0], { x: enemy.x, y: enemy.y, vx: 0, vy: 0 });
+    const before = enemy.hp;
+    local.updateProjectiles(.016);
+    return before - enemy.hp;
+  };
+  assert.ok(hit(5_000) > hit(10_000) * 1.45);
+});
+
+test("Echo repeats compatible universal projectiles and Gale Windwall intercepts hostile fire", () => {
+  const echo = new Simulation({ players: [{ id: "echo", name: "Echo", specialist: "echo" }] });
+  echo.chance = () => true;
+  echo.shoot(echo.players[0], 0, 500, 25, { sourceId: "uwu" });
+  assert.equal(echo.tasks.at(-1).kind, "echo-projectile-repeat");
+  echo.executeTask(echo.tasks.at(-1));
+  assert.equal(echo.projectiles.length, 2);
+
+  const gale = new Simulation({ players: [{ id: "gale", name: "Gale", specialist: "gale" }] });
+  gale.level = 6;
+  gale.castR(gale.players[0]);
+  const wall = gale.effects.find((effect) => effect.kind === "windwall");
+  gale.hostile.push({ id: "bolt", x: wall.x, y: wall.y, radius: 6, vx: 0, vy: 0, damage: 1, life: 2, dead: false });
+  const enemy = gale.spawnEnemy("brute");
+  Object.assign(enemy, { x: wall.x + 20, y: wall.y, speed: 0, knockVx: 0, knockVy: 0 });
+  gale.updateEffects(.016);
+  assert.equal(gale.hostile[0].dead, true);
+  assert.ok(Math.hypot(enemy.knockVx, enemy.knockVy) > 0);
+});
+
+test("Gale has one authored critical bonus and flow responds to haste and evolution", () => {
+  const countShots = ({ evolved = false, hasteRanks = 0 } = {}) => {
+    const sim = new Simulation({ players: [{ id: "gale", name: "Gale", specialist: "gale" }] });
+    const player = sim.players[0];
+    player.passives.haste = hasteRanks;
+    player.weapons.signature.evolved = evolved;
+    for (let tick = 0; tick < 12 * 60; tick++) {
+      sim.updatePlayers(1 / 60);
+      sim.updateWeapons(1 / 60);
+    }
+    return sim.projectiles.length;
+  };
+  const fresh = new Simulation({ players: [{ id: "gale", name: "Gale", specialist: "gale" }] });
+  assert.equal(fresh.playerStat(fresh.players[0], "crit"), .15);
+  const base = countShots();
+  const haste = countShots({ hasteRanks: 5 });
+  const evolved = countShots({ evolved: true });
+  const combined = countShots({ evolved: true, hasteRanks: 5 });
+  assert.ok(haste > base);
+  assert.ok(evolved > base);
+  assert.ok(combined > haste && combined > evolved);
+});
+
+test("Sola's relative armor buff and delayed shield obey the active shield cap", () => {
+  const sim = new Simulation({ players: [{ id: "sola", name: "Sola", specialist: "sola" }] });
+  sim.level = 3;
+  const player = sim.players[0];
+  player.armor = 41;
+  sim.castE(player);
+  assert.equal(player.armor, 82);
+  const detonation = sim.tasks.find((task) => task.kind === "sola-detonate");
+  sim.executeTask(detonation);
+  assert.equal(player.armor, 41);
+  assert.ok(player.shield <= player.maxHp * .5);
+});
+
 test("area attacks damage supply caches", () => {
   const sim = new Simulation({ players: [{ id: "p1", name: "One", specialist: "fang" }] });
   const player = sim.players[0];
