@@ -23,7 +23,7 @@ test("lobby, deploy, and game gestures share one guaranteed audio unlock path", 
   assert.match(game, /document\.addEventListener\("pointerdown", unlockFromInteraction, \{ capture: true, passive: true \}\)/);
   assert.match(game, /document\.addEventListener\("click", unlockFromInteraction, \{ capture: true, passive: true \}\)/);
   assert.match(game, /window\.addEventListener\("keydown", unlockFromInteraction, \{ capture: true \}\)/);
-  assert.match(game, /if \(audio\.state !== "running"\) await audio\.resume\(\)/);
+  assert.match(game, /if \(audio\.state !== "running" && !await settleAudioResume\(audio\.resume\(\)\)\) throw new Error\("Audio unlock timed out"\)/);
   assert.match(game, /unlockAudioFromGesture\("settings-open"\)/);
   assert.match(game, /unlockAudioFromGesture\("sound-test"\)/);
   assert.match(game, /\$\("deploy-button"\)\.addEventListener\("click", deploy\)/);

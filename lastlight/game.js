@@ -20,7 +20,7 @@ import { advancePlayerMovement } from "./movement.js?v=20260712.5";
 import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
 import { DynamicAudioMixer } from "./audio-mix.js?v=20260712.5";
 import { LASTLIGHT_AUDIO_CUES, resolveAudioCue } from "./audio-cues.js?v=20260712.5";
-import { audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings } from "./audio-settings.js?v=20260712.5";
+import { audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260712.5";
 import { buildUpgradeComparison, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260712.5";
 import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260712.1";
 import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260712.1";
@@ -1824,7 +1824,7 @@ async function unlockAudioFromGesture(reason = "gesture") {
   if (!audio) return false;
   state.audioUnlockInFlight = (async () => {
     try {
-      if (audio.state !== "running") await audio.resume();
+      if (audio.state !== "running" && !await settleAudioResume(audio.resume())) throw new Error("Audio unlock timed out");
       state.audioLastError = "";
       state.audioStatus = audioOutputState({ supported: true, enabled: true, contextState: audio.state });
       return state.audioStatus === "ready";

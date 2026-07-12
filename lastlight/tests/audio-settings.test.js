@@ -9,6 +9,7 @@ import {
   loadAudioSettings,
   normalizeAudioSettings,
   saveAudioSettings,
+  settleAudioResume,
 } from "../audio-settings.js";
 
 function storage(initial = {}) {
@@ -46,4 +47,11 @@ test("output state is explicit across browser support, gesture lock, readiness, 
   assert.equal(audioOutputState({ supported: true, enabled: true, contextState: "interrupted" }), "locked");
   assert.equal(audioOutputState({ supported: true, enabled: true, contextState: "running" }), "ready");
   assert.equal(audioOutputState({ supported: true, enabled: true, contextState: "closed" }), "unavailable");
+});
+
+test("audio resume attempts settle instead of leaving the sound test pending forever", async () => {
+  assert.equal(await settleAudioResume(Promise.resolve(), 20), true);
+  assert.equal(await settleAudioResume(new Promise(() => {}), 5), false);
+  await assert.rejects(() => settleAudioResume(Promise.reject(new Error("blocked")), 20), /blocked/);
+  await assert.rejects(() => settleAudioResume(Promise.resolve(), 0), /timeout must be positive/);
 });

@@ -44,4 +44,17 @@ export function audioOutputState({ supported = true, enabled = true, contextStat
   return contextState === "running" ? "ready" : "locked";
 }
 
+export async function settleAudioResume(resumePromise, timeoutMs = 2500) {
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) throw new TypeError("Audio resume timeout must be positive");
+  let timer = null;
+  try {
+    return await Promise.race([
+      Promise.resolve(resumePromise).then(() => true),
+      new Promise((resolve) => { timer = setTimeout(() => resolve(false), timeoutMs); }),
+    ]);
+  } finally {
+    if (timer !== null) clearTimeout(timer);
+  }
+}
+
 export function audioPercent(value) { return `${Math.round(clamp01(value, 0) * 100)}%`; }
