@@ -6,7 +6,7 @@ import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgre
 import { getThemeAsset, getThemeMaterial } from "./themes/lastlight.js?v=20260711.10";
 import { submitRunTelemetry } from "./telemetry.js?v=20260711.5";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { formatProjectileDisplay, getCombatMetadata, getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260711.8";
+import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260711.8";
 import { BALANCE_HASH, BALANCE_VERSION } from "./balance-config.js?v=20260711.8";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
 import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260711.10";
@@ -19,6 +19,8 @@ import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./im
 import { advancePlayerMovement } from "./movement.js?v=20260711.8";
 import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
 import { DynamicAudioMixer } from "./audio-mix.js?v=20260711.10";
+import { buildUpgradeComparison, weaponTelemetry } from "./upgrade-preview.js?v=20260711.10";
+import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260711.10";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -703,44 +705,6 @@ function cast(slot) {
   }
 }
 
-function weaponTelemetry(weaponId, weapon, player) {
-  const level = weapon.level || 1, evolved = Boolean(weapon.evolved), extra = Math.floor(Number(player.passives?.projectiles || 0));
-  const haste = Number(player.passives?.haste || 0) * 10 + (player.hotTime > 0 ? 150 : 0) + (player.hasteBuff > 0 ? 150 : 0) + (player.frenzy > 0 ? 250 : 0);
-  let damageMultiplier = 1 + Number(player.passives?.damage || 0) * .1;
-  if (player.specialist === "fang") damageMultiplier *= 1 + (1 - player.hp / player.maxHp) * .6;
-  if (player.specialist === "rift") damageMultiplier *= 1.1;
-  if (player.hotTime > 0) damageMultiplier *= 1.18;
-  const cd = (base) => Math.max(.01, base * 100 / (100 + haste));
-  const rounded = (value) => Math.round(value * damageMultiplier);
-  if (weaponId === "signature") {
-    let interval = { zuri: 2.5, echo: 3, sola: 2.75, bront: 4.8, fang: 2, gale: .25, rift: .3, nova: 3, vesper: 2.5 }[player.specialist];
-    if (["echo", "sola"].includes(player.specialist)) interval -= (level - 1) * .25;
-    if (player.specialist === "bront") interval -= (level - 1) * .2;
-    if (player.specialist === "fang") interval -= (level - 1) * .1;
-    if (player.specialist === "vesper") interval -= (level - 1) * .125;
-    if (evolved) interval *= player.specialist === "zuri" ? .5 : player.specialist === "sola" ? 1.5 / interval : .68;
-    const damage = { zuri: 31 + level * 11, echo: 48 + level * 14, sola: 26 + level * 11 + player.armor * 1.2, bront: 70 + level * 24, fang: 36 + level * 19 + player.maxHp * 1.5, gale: 65 + level * 21, rift: 30 + level * 13, nova: 53 + level * 14, vesper: 51 + level * 14 }[player.specialist];
-    const projectiles = { zuri: 2 + level + extra, echo: Math.min(6, level + extra), sola: 3 + Math.floor(level / 2) + extra, bront: 1, fang: 1, gale: Math.min(7, 1 + Math.floor(level / 2) + extra), rift: 1, nova: Math.min(8, 1 + Math.ceil(level / 2) + extra), vesper: 1 + Math.floor(level / 3) + extra }[player.specialist];
-    return { damage: `${rounded(damage)} / hit`, interval: `${cd(interval).toFixed(2)}s`, cooldownSeconds: cd(interval), projectiles: formatProjectileDisplay(getCombatMetadata("signature", player.specialist), projectiles), note: SPECIALISTS[player.specialist].signature.evolve };
-  }
-  const table = {
-    uwu: [28 + level * 10, evolved ? .35 : .75 - level * .07, 1 + Math.floor(level / 3) + extra, "Nearest-target needles"],
-    slicers: [24 + level * 9, .24, 2 + level + extra, "Orbiting contact blades"],
-    aura: [16 + level * 8 + player.maxHp * .8, .34, 1, "Continuous radial field"],
-    mines: [60 + level * 25, 6.8 - level * .45, 2 + level + extra, "Delayed area mines"],
-    crossbow: [48 + level * 17, 4.2 - level * .25, 2 + level + extra, "Piercing random-direction fan"],
-    boomerang: [65 + level * 21, 3.8 - level * .2, 1 + Math.floor(level / 2) + extra, "Returning seeking blades"],
-    rail: [45 + level * 18, 3.7 - level * .22, (1 + Math.floor(level / 2) + extra) * 2, "Paired horizontal rails"],
-    glove: [31 + level * 13, 2.7, (2 + level + extra) * (evolved ? 2 : 1), "Rotating orb streams"],
-    transit: [135 + level * 55, 14 - level * .8, 1, "Full-lane train strike"],
-    ice: [0, evolved ? 9 : 13 - level * .6, 1, "Blocks one hit, then freezes"],
-    annihilator: [450 + level * 175, evolved ? 21 : 30 - level * 1.4, 1, "Massive delayed blast"],
-    drone: [40 + level * 15, 1.6 - level * .1, 1 + Math.floor((level - 1) / 2), "Autonomous target seeker"],
-  }[weaponId];
-  if (!table) return { damage: "—", interval: "—", cooldownSeconds: 0, projectiles: "—", note: "" };
-  return { damage: table[0] ? `${rounded(table[0])} / hit` : "Utility", interval: `${cd(table[1]).toFixed(2)}s`, cooldownSeconds: cd(table[1]), projectiles: formatProjectileDisplay(getCombatMetadata(weaponId, player.specialist), table[2]), note: table[3] };
-}
-
 function elapsedRunSeconds(game) { return Math.max(1, Number(game?.time || 0) + Number(game?.bossElapsed || 0)); }
 
 function sourceName(sourceId, player) {
@@ -1085,17 +1049,11 @@ function upgradeChoiceVisual(choice) {
 }
 
 function upgradeChoiceDetails(choice, player) {
-  const [kind, target] = String(choice.id).split(":");
-  if (kind === "weapon") {
-    const weaponId = target === "signature" ? "signature" : target;
-    const telemetry = weaponTelemetry(weaponId, { level: choice.level, evolved: false }, player);
-    return { Damage: telemetry.damage, Cooldown: telemetry.interval, Projectiles: telemetry.projectiles };
-  }
-  if (kind === "passive") {
-    const passive = PASSIVES[target], current = Math.max(0, Number(player.passives?.[target] || 0));
-    return { Current: current ? `Rank ${Math.floor(current)}` : "Not owned", After: `Rank ${choice.level}`, "Per rank": passive?.amount || choice.copy };
-  }
-  return { Healing: "25% max HP", Timing: "Immediate" };
+  return buildUpgradeComparison(choice, player);
+}
+
+function upgradeComparisonMarkup(rows) {
+  return rows.map(({ label, before, after, changed }) => `<div class="${changed ? "changed" : "unchanged"}"><dt>${escapeHTML(label)}</dt><dd><span>${escapeHTML(before)}</span><i aria-hidden="true">→</i><strong>${escapeHTML(after)}</strong></dd></div>`).join("");
 }
 
 function evolutionPair(choice, player) {
@@ -1180,7 +1138,7 @@ function updateUpgrade(game) {
     const visual = upgradeChoiceVisual(choice);
     const details = upgradeChoiceDetails(choice, localPlayer);
     const pair = evolutionPair(choice, localPlayer);
-    return `<button class="upgrade-card ${pair ? "evolution-ready" : ""} ${selected ? "selected" : ""} ${passed ? "passed" : ""}" type="button" data-choice="${escapeHTML(choice.id)}" ${ready ? "disabled" : ""}><span class="card-type">${selected ? "Locked choice" : escapeHTML(choice.kind)}</span><kbd class="choice-key">${index + 1}</kbd><div class="card-icon ${visual.className}">${visual.markup}</div><h3>${escapeHTML(choice.name)}</h3><p>${escapeHTML(choice.copy)}</p>${evolutionPairMarkup(pair)}<dl class="card-stats">${Object.entries(details).map(([label, value]) => `<div><dt>${escapeHTML(label)}</dt><dd>${escapeHTML(value)}</dd></div>`).join("")}</dl>${affectedLoadoutMarkup(choice, localPlayer)}<div class="level-pips">${Array.from({ length: choice.max }, (_, i) => `<i class="${i < choice.level ? "on" : ""}"></i>`).join("")}</div></button>`;
+    return `<button class="upgrade-card ${pair ? "evolution-ready" : ""} ${selected ? "selected" : ""} ${passed ? "passed" : ""}" type="button" data-choice="${escapeHTML(choice.id)}" ${ready ? "disabled" : ""}><span class="card-type">${selected ? "Locked choice" : escapeHTML(choice.kind)}</span><kbd class="choice-key">${index + 1}</kbd><div class="card-icon ${visual.className}">${visual.markup}</div><h3>${escapeHTML(choice.name)}</h3><p>${escapeHTML(choice.copy)}</p>${evolutionPairMarkup(pair)}<dl class="card-stats">${upgradeComparisonMarkup(details)}</dl>${affectedLoadoutMarkup(choice, localPlayer)}<div class="level-pips">${Array.from({ length: choice.max }, (_, i) => `<i class="${i < choice.level ? "on" : ""}"></i>`).join("")}</div></button>`;
   }).join("");
   if (!ready) $("upgrade-cards").querySelectorAll("button").forEach((button) => button.addEventListener("click", () => chooseUpgrade(button.dataset.choice)));
 
@@ -1193,7 +1151,7 @@ function updateUpgrade(game) {
     const teammateSelection = game.selectedChoices?.[player.id] || "";
     return `<section class="teammate-draft ${teammateReady ? "ready" : ""}"><header><img src="${SPECIALISTS[player.specialist].sprite}" alt=""><div><strong>${escapeHTML(player.name)}</strong><span>${teammateReady ? "Choice locked" : "Choosing…"}</span></div></header><div class="teammate-choice-grid">${choices.map((choice) => {
       const visual = upgradeChoiceVisual(choice), details = upgradeChoiceDetails(choice, player), pair = evolutionPair(choice, player);
-      return `<div class="teammate-choice ${pair ? "evolution-ready" : ""} ${choice.id === teammateSelection ? "selected" : ""} ${teammateReady && choice.id !== teammateSelection ? "passed" : ""}" tabindex="0"><i class="${visual.className}">${visual.markup}</i><b>${escapeHTML(choice.name)}</b><small>${escapeHTML(choice.kind)} · ${choice.level}/${choice.max}</small><div class="teammate-choice-tooltip"><span>${escapeHTML(choice.kind)} · level ${choice.level}/${choice.max}</span><strong>${escapeHTML(choice.name)}</strong><p>${escapeHTML(choice.copy)}</p>${evolutionPairMarkup(pair)}<dl>${Object.entries(details).map(([label, value]) => `<div><dt>${escapeHTML(label)}</dt><dd>${escapeHTML(value)}</dd></div>`).join("")}</dl></div></div>`;
+      return `<div class="teammate-choice ${pair ? "evolution-ready" : ""} ${choice.id === teammateSelection ? "selected" : ""} ${teammateReady && choice.id !== teammateSelection ? "passed" : ""}" tabindex="0"><i class="${visual.className}">${visual.markup}</i><b>${escapeHTML(choice.name)}</b><small>${escapeHTML(choice.kind)} · ${choice.level}/${choice.max}</small><div class="teammate-choice-tooltip"><span>${escapeHTML(choice.kind)} · level ${choice.level}/${choice.max}</span><strong>${escapeHTML(choice.name)}</strong><p>${escapeHTML(choice.copy)}</p>${evolutionPairMarkup(pair)}<dl>${upgradeComparisonMarkup(details)}</dl></div></div>`;
     }).join("")}</div></section>`;
   }).join("");
 
@@ -1763,19 +1721,20 @@ function bindEvents() {
   window.addEventListener("keydown", (event) => {
     const target = event.target;
     const isTyping = target instanceof Element && Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
-    if (isTyping || document.querySelector("dialog[open]") || state.screen !== "game") return;
+    const dialogOpen = Boolean(document.querySelector("dialog[open]"));
+    if (isReportShortcut(event)) {
+      if (!shouldOpenReportShortcut(event, { isTyping, dialogOpen })) return;
+      event.preventDefault();
+      openReport();
+      return;
+    }
+    if (isTyping || dialogOpen || state.screen !== "game") return;
     const key = event.key.toLowerCase();
     if (key === "shift") { state.inspectActive = true; inspectCanvasAt(state.inspectPointer ? { ...state.inspectPointer, shiftKey: true } : null); return; }
     const upgradeChoice = ["1", "2", "3"].includes(key) && !$("upgrade-overlay").classList.contains("hidden");
     if (upgradeChoice) {
       event.preventDefault();
       if (!event.repeat) $("upgrade-cards").querySelectorAll("button")[Number(key) - 1]?.click();
-      return;
-    }
-    const reportKey = event.code === "Backquote" || key === "`" || key === "~";
-    if (reportKey) {
-      event.preventDefault();
-      if (!event.repeat) openReport();
       return;
     }
     if (["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright","e","r","c","escape"].includes(key)) event.preventDefault();
@@ -1802,6 +1761,9 @@ renderSpecialistGrid(); selectSpecialist("zuri"); bindEvents(); applyQualitySett
 if (query.get("room")) { setPartyMode("join"); $("room-input").value = query.get("room").toUpperCase().slice(0,6); setTimeout(() => $("callsign-input").focus(), 50); }
 if (localHost) Object.defineProperty(window, "__lastlightQA", { value: Object.freeze({
   diagnostics: () => JSON.parse(JSON.stringify(gameDiagnostics())),
+  reportState: () => ({ screen: state.screen, open: $("report-dialog").open, paused: Boolean(state.sim?.paused), pauseReason: state.sim?.pauseReason || "", resumeAfterReport: state.resumeAfterReport }),
+  beginUpgrade: () => { if (!state.sim || state.screen !== "game") return false; state.sim.beginUpgradeChoice(); state.lastUpgradeKey = ""; return true; },
+  setScreen: (screen) => { if (!screens[screen]) return false; setScreen(screen); return true; },
   renderActiveBuffs: (fields = {}) => updateActiveBuffs(fields),
   renderDamageLedger: (damageBySource = {}) => updateDamageLedger({ specialist: state.selected, damageBySource }, { time: 60 }),
   playAudioCues: (names = []) => Array.isArray(names) && names.slice(0, 64).forEach((name) => sfx(String(name))),

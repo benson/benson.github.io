@@ -112,12 +112,25 @@ test("post-run results stay contained on phone-width viewports", () => {
 
 test("upgrade intelligence uses authoritative combat metadata", () => {
   assert.match(game, /from "\.\/combat-metadata\.js/);
-  assert.match(game, /formatProjectileDisplay\(getCombatMetadata\("signature", player\.specialist\), projectiles\)/);
+  assert.match(game, /from "\.\/upgrade-preview\.js/);
+  assert.match(game, /buildUpgradeComparison\(choice, player\)/);
+  assert.match(game, /upgradeComparisonMarkup\(details\)/);
+  assert.match(game, /aria-hidden="true">→<\/i>/);
   assert.match(game, /getPassiveAffectedSources\(passiveId/);
   assert.match(game, /class="affected-loadout/);
   assert.match(game, /getCurrentStatExplanation\(id, raw\)/);
   assert.match(game, /class="upgrade-stat" tabindex="0" aria-describedby=/);
   assert.match(css, /\.upgrade-stat-tooltip/);
+});
+
+test("the report hotkey is global but yields to typing and open dialogs", () => {
+  assert.match(game, /from "\.\/hotkeys\.js/);
+  assert.match(game, /if \(isReportShortcut\(event\)\)/);
+  assert.match(game, /shouldOpenReportShortcut\(event, \{ isTyping, dialogOpen \}\)/);
+  assert.match(game, /if \(isTyping \|\| dialogOpen \|\| state\.screen !== "game"\) return/);
+  assert.doesNotMatch(game, /state\.screen !== "game"\) return;\s*const key[\s\S]{0,500}reportKey/);
+  assert.match(game, /state\.screen === "game" && state\.isHost && state\.sim && !state\.sim\.paused/);
+  assert.match(game, /state\.resumeAfterReport && state\.screen === "game" && state\.isHost && state\.sim\?\.paused && state\.sim\.pauseReason === "manual"/);
 });
 
 test("relay identity is sent after WebSocket upgrade instead of in the request URL", () => {

@@ -119,6 +119,54 @@ export function playerMovementSpeed(player) {
   return value;
 }
 
+export function playerCombatStat(player, stat) {
+  const lvl = (key) => Number(player.passives?.[key] || 0);
+  if (stat === "damage") {
+    let value = 1 + lvl("damage") * BALANCE.passives.damage.amount;
+    if (player.specialist === "fang") value *= 1 + (1 - player.hp / player.maxHp) * .6;
+    if (player.specialist === "rift") value *= 1.1;
+    if (player.hotTime > 0) value *= 1.18;
+    return value;
+  }
+  if (stat === "haste") return lvl("haste") * BALANCE.passives.haste.amount + (player.hotTime > 0 ? 150 : 0) + (player.hasteBuff > 0 ? 150 : 0) + (player.frenzy > 0 ? 250 : 0);
+  if (stat === "speed") return playerMovementSpeed(player);
+  if (stat === "area") {
+    let value = 1 + lvl("area") * BALANCE.passives.area.amount;
+    if (player.specialist === "sola") value += player.armor * .003 + player.maxHp * .001 + lvl("regen") * .003;
+    return value;
+  }
+  if (stat === "crit") return lvl("crit") * BALANCE.passives.crit.amount + (player.specialist === "gale" ? .15 : 0);
+  if (stat === "duration") return 1 + lvl("duration") * BALANCE.passives.duration.amount;
+  if (stat === "projectiles") return Math.floor(lvl("projectiles"));
+  if (stat === "pickup") return 85 * (1 + lvl("pickup") * BALANCE.passives.pickup.amount);
+  if (stat === "regen") return lvl("regen") * BALANCE.passives.regen.amount;
+  if (stat === "xp") return 1 + lvl("xp") * BALANCE.passives.xp.amount;
+  return 1;
+}
+
+export function applyPlayerUpgrade(player, choice) {
+  const [kind, target] = String(choice?.id || "").split(":");
+  if (kind === "weapon") {
+    if (target === "signature") player.weapons.signature.level = Math.min(BALANCE.core.maxWeaponLevel, player.weapons.signature.level + 1);
+    else if (player.weapons[target]) player.weapons[target].level = Math.min(BALANCE.core.maxWeaponLevel, player.weapons[target].level + 1);
+    else player.weapons[target] = { level: 1, evolved: false };
+  } else if (kind === "passive") {
+    player.passives[target] = Math.floor(Number(player.passives[target] || 0)) + 1;
+    if (target === "maxHealth") { player.maxHp += BALANCE.passives.maxHealth.amount; player.hp += BALANCE.passives.maxHealth.amount; }
+    if (target === "armor") player.armor += BALANCE.passives.armor.amount;
+  } else if (choice?.id === "heal") player.hp = Math.min(player.maxHp, player.hp + player.maxHp * .25);
+  return player;
+}
+
+export function previewPlayerUpgrade(player, choice) {
+  const preview = {
+    ...player,
+    weapons: Object.fromEntries(Object.entries(player.weapons || {}).map(([id, weapon]) => [id, { ...weapon }])),
+    passives: { ...(player.passives || {}) },
+  };
+  return applyPlayerUpgrade(preview, choice);
+}
+
 export class Simulation {
   constructor(config = {}, options = {}) {
     const balanceVersion = options.balanceVersion ?? config.balanceVersion ?? BALANCE_VERSION;
@@ -411,28 +459,7 @@ export class Simulation {
   }
 
   playerStat(p, stat) {
-    const spec = SPECIALISTS[p.specialist];
-    const lvl = (key) => Number(p.passives[key] || 0);
-    if (stat === "damage") {
-      let value = 1 + lvl("damage") * BALANCE.passives.damage.amount;
-      if (p.specialist === "fang") value *= 1 + (1 - p.hp / p.maxHp) * .6;
-      if (p.specialist === "rift") value *= 1.1;
-      if (p.hotTime > 0) value *= 1.18;
-      return value;
-    }
-    if (stat === "haste") return lvl("haste") * BALANCE.passives.haste.amount + (p.hotTime > 0 ? 150 : 0) + (p.hasteBuff > 0 ? 150 : 0) + (p.frenzy > 0 ? 250 : 0);
-    if (stat === "speed") return playerMovementSpeed(p);
-    if (stat === "area") {
-      let value = 1 + lvl("area") * BALANCE.passives.area.amount;
-      if (p.specialist === "sola") value += p.armor * .003 + p.maxHp * .001 + lvl("regen") * .003;
-      return value;
-    }
-    if (stat === "crit") return lvl("crit") * BALANCE.passives.crit.amount + (p.specialist === "gale" ? .15 : 0);
-    if (stat === "duration") return 1 + lvl("duration") * BALANCE.passives.duration.amount;
-    if (stat === "projectiles") return Math.floor(lvl("projectiles"));
-    if (stat === "pickup") return 85 * (1 + lvl("pickup") * BALANCE.passives.pickup.amount);
-    if (stat === "regen") return lvl("regen") * BALANCE.passives.regen.amount;
-    return 1;
+    return playerCombatStat(p, stat);
   }
 
   collidesWithCover(x, y, radius) {
@@ -1416,16 +1443,7 @@ export class Simulation {
   }
 
   applyUpgrade(p, choice) {
-    const [kind, target] = choice.id.split(":");
-    if (kind === "weapon") {
-      if (target === "signature") p.weapons.signature.level = Math.min(BALANCE.core.maxWeaponLevel, p.weapons.signature.level + 1);
-      else if (p.weapons[target]) p.weapons[target].level = Math.min(BALANCE.core.maxWeaponLevel, p.weapons[target].level + 1);
-      else p.weapons[target] = { level: 1, evolved: false };
-    } else if (kind === "passive") {
-      p.passives[target] = Math.floor(Number(p.passives[target] || 0)) + 1;
-      if (target === "maxHealth") { p.maxHp += BALANCE.passives.maxHealth.amount; p.hp += BALANCE.passives.maxHealth.amount; }
-      if (target === "armor") p.armor += BALANCE.passives.armor.amount;
-    } else if (choice.id === "heal") p.hp = Math.min(p.maxHp, p.hp + p.maxHp * .25);
+    applyPlayerUpgrade(p, choice);
     this.gold += 10;
   }
 
