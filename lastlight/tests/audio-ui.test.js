@@ -26,6 +26,8 @@ test("lobby, deploy, and game gestures share one guaranteed audio unlock path", 
   assert.match(game, /if \(audio\.state !== "running" && !await settleAudioResume\(audio\.resume\(\)\)\) throw new Error\("Audio unlock timed out"\)/);
   assert.match(game, /unlockAudioFromGesture\("settings-open"\)/);
   assert.match(game, /unlockAudioFromGesture\("sound-test"\)/);
+  assert.doesNotMatch(game, /audioOutputState\(\{ supported: true, enabled: true/);
+  assert.match(game, /audioOutputState\(\{ supported: state\.audioAvailable, enabled: state\.audioSettings\.enabled, contextState: audio\.state \}\)/);
   assert.match(game, /\$\("deploy-button"\)\.addEventListener\("click", deploy\)/);
 });
 

@@ -1826,12 +1826,12 @@ async function unlockAudioFromGesture(reason = "gesture") {
     try {
       if (audio.state !== "running" && !await settleAudioResume(audio.resume())) throw new Error("Audio unlock timed out");
       state.audioLastError = "";
-      state.audioStatus = audioOutputState({ supported: true, enabled: true, contextState: audio.state });
+      state.audioStatus = audioOutputState({ supported: state.audioAvailable, enabled: state.audioSettings.enabled, contextState: audio.state });
       return state.audioStatus === "ready";
     } catch (error) {
       state.audioLastError = String(error?.message || error).slice(0, 240);
-      state.audioStatus = "locked";
-      if (!/notallowed|gesture/i.test(state.audioLastError)) captureClientError("audio unlock", error);
+      state.audioStatus = audioOutputState({ supported: state.audioAvailable, enabled: state.audioSettings.enabled, contextState: audio.state });
+      if (state.audioStatus === "locked" && !/notallowed|gesture/i.test(state.audioLastError)) captureClientError("audio unlock", error);
       return false;
     } finally {
       state.audioUnlockInFlight = null;
