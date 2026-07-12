@@ -1,5 +1,6 @@
 export const AUDIO_MIX_SCHEMA = "lastlight.audio-mix.v1";
 export const AUDIO_DENSITIES = Object.freeze({ full: 1, balanced: .72, low: .42, off: .2 });
+export const AUDIO_MASTER_CALIBRATION = .9;
 
 const policy = (category, bus, priority, cap, duration, duck = 1) => Object.freeze({ category, bus, priority, cap, duration, duck });
 
@@ -99,24 +100,44 @@ export class DynamicAudioMixer {
     this.context = context;
     this.budget = new AudioVoiceBudget(options);
     this.baseGains = Object.freeze({ low: .7, combat: .86, critical: 1, ui: .78 });
-    this.master = context.createGain(); this.master.gain.value = .82; this.master.connect(context.destination);
+    this.volumes = { master: 1, effects: 1 };
+    this.muted = Boolean(options.muted);
+    this.master = context.createGain(); this.master.gain.value = this.muted ? .0001 : AUDIO_MASTER_CALIBRATION; this.master.connect(context.destination);
     this.buses = Object.fromEntries(Object.entries(this.baseGains).map(([name, gain]) => {
       const node = context.createGain(); node.gain.value = gain; node.connect(this.master); return [name, node];
     }));
+    this.setVolumes({ master: options.masterVolume, effects: options.effectsVolume }, false);
   }
 
   setDensity(density) { this.budget.setDensity(density); }
 
+  effectiveBusGain(name) { return this.baseGains[name] * this.volumes.effects; }
+
+  setVolumes({ master, effects } = {}, smooth = true) {
+    const clamp = (value, fallback) => Number.isFinite(Number(value)) ? Math.max(0, Math.min(1, Number(value))) : fallback;
+    this.volumes.master = clamp(master, this.volumes.master);
+    this.volumes.effects = clamp(effects, this.volumes.effects);
+    const now = this.context.currentTime, masterTarget = this.muted ? .0001 : Math.max(.0001, AUDIO_MASTER_CALIBRATION * this.volumes.master);
+    this.master.gain.cancelScheduledValues?.(now);
+    if (smooth) this.master.gain.setTargetAtTime(masterTarget, now, .025); else this.master.gain.value = masterTarget;
+    for (const [name, bus] of Object.entries(this.buses)) {
+      const target = Math.max(.0001, this.effectiveBusGain(name));
+      bus.gain.cancelScheduledValues?.(now);
+      if (smooth) bus.gain.setTargetAtTime(target, now, .025); else bus.gain.value = target;
+    }
+  }
+
   setMuted(muted) {
+    this.muted = Boolean(muted);
     const now = this.context.currentTime;
     this.master.gain.cancelScheduledValues?.(now);
-    this.master.gain.setTargetAtTime(muted ? .0001 : .82, now, .025);
+    this.master.gain.setTargetAtTime(this.muted ? .0001 : Math.max(.0001, AUDIO_MASTER_CALIBRATION * this.volumes.master), now, .025);
   }
 
   duck(rule, now) {
     if (rule.duck >= 1) return;
     for (const busName of ["low", "combat"]) {
-      const parameter = this.buses[busName].gain, base = this.baseGains[busName], target = Math.max(.0001, base * rule.duck);
+      const parameter = this.buses[busName].gain, base = this.effectiveBusGain(busName), target = Math.max(.0001, base * rule.duck);
       parameter.cancelScheduledValues?.(now);
       parameter.setValueAtTime(Math.max(target, Number(parameter.value) || base), now);
       parameter.linearRampToValueAtTime(target, now + .012);
@@ -132,7 +153,7 @@ export class DynamicAudioMixer {
     return { ...allocation, destination: this.buses[rule.bus], variation: audioCueVariation(name, allocation.sequence) };
   }
 
-  diagnostics() { return { ...this.budget.diagnostics(this.context.currentTime), buses: Object.keys(this.buses), muted: this.master.gain.value < .01 }; }
+  diagnostics() { return { ...this.budget.diagnostics(this.context.currentTime), buses: Object.keys(this.buses), muted: this.muted, volumes: { ...this.volumes }, masterCalibration: AUDIO_MASTER_CALIBRATION }; }
 
   dispose() {
     for (const bus of Object.values(this.buses)) bus.disconnect?.();

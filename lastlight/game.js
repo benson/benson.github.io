@@ -18,7 +18,9 @@ import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./networ
 import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260712.5";
 import { advancePlayerMovement } from "./movement.js?v=20260712.5";
 import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
-import { DynamicAudioMixer } from "./audio-mix.js?v=20260711.10";
+import { DynamicAudioMixer } from "./audio-mix.js?v=20260712.5";
+import { LASTLIGHT_AUDIO_CUES, resolveAudioCue } from "./audio-cues.js?v=20260712.5";
+import { audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings } from "./audio-settings.js?v=20260712.5";
 import { buildUpgradeComparison, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260712.5";
 import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260712.1";
 import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260712.1";
@@ -45,6 +47,8 @@ const initialQualitySettings = (() => {
   } catch { /* Storage is optional. */ }
   return settings;
 })();
+const initialAudioSettings = loadAudioSettings(localStorage);
+const audioSupported = Boolean(window.AudioContext || window.webkitAudioContext);
 const renderer = new Renderer($("game-canvas"));
 renderer.setQualitySettings(initialQualitySettings);
 const replayRenderer = new Renderer($("replay-canvas"));
@@ -104,7 +108,10 @@ const state = {
   animation: 0, lastFrame: 0, lastSend: 0, lastBroadcast: 0, lastLobbyBroadcast: 0,
   lastUpgradeKey: "", lastWeaponHUDKey: "", lastPassiveHUDKey: "", lastSquadHUDKey: "", lastBossHUDKey: "", lastEventSeq: 0, endShown: false, resultTimer: null,
   progress: loadProgress(), runHistory: loadRunHistory(), resultGame: null, resultSavedKey: "",
-  audio: true, audioContext: null, audioMixer: null, toastTimer: null, lastVoiceAt: 0,
+  audioSettings: initialAudioSettings,
+  audioAvailable: audioSupported,
+  audioStatus: audioOutputState({ supported: audioSupported, enabled: initialAudioSettings.enabled }),
+  audioContext: null, audioMixer: null, audioUnlockInFlight: null, audioUnlockAttempts: 0, audioUnlockReason: "startup", audioLastError: "", toastTimer: null, lastVoiceAt: 0,
   soundState: { projectiles: 0, kills: 0, level: 1, damageTaken: 0, xpCollected: 0, lastShot: 0, lastXP: 0 },
   recentErrors: [], reportSubmitting: false, resumeAfterReport: false, telemetrySent: false,
   qualitySettings: initialQualitySettings, showEnemyHealthBars: initialQualitySettings.healthBars !== "off", inspectPointer: null, inspectActive: false,
@@ -1633,6 +1640,7 @@ function gameDiagnostics() {
     },
     enemyHealthBars: state.showEnemyHealthBars,
     displayQuality: renderer.getQualityStatus(),
+    audio: audioDiagnostics(),
     audioMix: state.audioMixer?.diagnostics() || null,
     entities: game ? {
       enemies: game.enemies?.length || 0, friendlyProjectiles: game.projectiles?.length || 0,
@@ -1730,17 +1738,111 @@ async function copyDiagnostics() {
 function ensureAudio() {
   if (state.audioContext) return state.audioContext;
   const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContextConstructor) return null;
+  if (!AudioContextConstructor) { state.audioAvailable = false; state.audioStatus = "unavailable"; renderAudioControls(); return null; }
   try {
     state.audioContext = new AudioContextConstructor();
-    state.audioMixer = new DynamicAudioMixer(state.audioContext, { density: state.qualitySettings.effectsDensity });
+    state.audioMixer = new DynamicAudioMixer(state.audioContext, {
+      density: state.qualitySettings.effectsDensity,
+      masterVolume: state.audioSettings.master,
+      effectsVolume: state.audioSettings.effects,
+      muted: !state.audioSettings.enabled,
+    });
+    state.audioContext.addEventListener?.("statechange", () => {
+      state.audioStatus = audioOutputState({ supported: true, enabled: state.audioSettings.enabled, contextState: state.audioContext.state });
+      renderAudioControls();
+    });
     return state.audioContext;
   } catch (error) {
     captureClientError("audio unavailable", error);
-    state.audio = false; return null;
+    state.audioAvailable = false;
+    state.audioLastError = String(error?.message || error).slice(0, 240);
+    state.audioStatus = "unavailable"; renderAudioControls(); return null;
   }
 }
+
+function audioDiagnostics() {
+  return {
+    state: state.audioStatus,
+    supported: state.audioAvailable,
+    contextState: state.audioContext?.state || null,
+    unlockAttempts: state.audioUnlockAttempts,
+    lastUnlockReason: state.audioUnlockReason,
+    lastError: state.audioLastError || null,
+    settings: { ...state.audioSettings },
+    cueRegistry: { schema: LASTLIGHT_AUDIO_CUES.schema, version: LASTLIGHT_AUDIO_CUES.schemaVersion, provenance: { ...LASTLIGHT_AUDIO_CUES.provenance } },
+    mix: state.audioMixer?.diagnostics() || null,
+  };
+}
+
+function renderAudioControls() {
+  const labels = { locked: "Sound locked", ready: "Sound ready", muted: "Sound muted", unavailable: "Sound unavailable" };
+  const descriptions = {
+    locked: "Sound is waiting for a click or key press. Use Test sound to unlock it now.",
+    ready: "Sound is unlocked and ready.",
+    muted: "Sound is muted on this device.",
+    unavailable: "This browser does not expose Web Audio. Sound cannot play here.",
+  };
+  document.documentElement.dataset.audioState = state.audioStatus;
+  for (const id of ["audio-button", "lobby-audio", "pause-audio"]) {
+    const button = $(id); if (!button) continue;
+    const statusLabel = button.querySelector("strong");
+    if (statusLabel) statusLabel.textContent = labels[state.audioStatus];
+    else button.textContent = labels[state.audioStatus];
+    button.dataset.audioState = state.audioStatus;
+    button.setAttribute("aria-label", `Open sound settings · ${state.audioStatus}`);
+    button.setAttribute("aria-haspopup", "dialog");
+  }
+  if (!$('audio-status')) return;
+  $("audio-status").textContent = descriptions[state.audioStatus];
+  $("audio-status").dataset.state = state.audioStatus;
+  $("audio-mute").textContent = state.audioSettings.enabled ? "Mute sound" : "Turn sound on";
+  $("audio-mute").setAttribute("aria-pressed", String(!state.audioSettings.enabled));
+  for (const [key, id] of [["master", "audio-master"], ["effects", "audio-effects"], ["voice", "audio-voice"]]) {
+    $(id).value = String(Math.round(state.audioSettings[key] * 100));
+    $(`${id}-value`).textContent = audioPercent(state.audioSettings[key]);
+  }
+  $("audio-funny-voice").checked = state.audioSettings.funnyVoice;
+  $("audio-test").disabled = state.audioStatus === "unavailable" || !state.audioSettings.enabled;
+}
+
+function applyAudioSettings(settings, persist = true) {
+  state.audioSettings = persist ? saveAudioSettings(settings) : settings;
+  state.audioMixer?.setVolumes({ master: state.audioSettings.master, effects: state.audioSettings.effects });
+  state.audioMixer?.setMuted(!state.audioSettings.enabled);
+  if (!state.audioSettings.enabled) window.speechSynthesis?.cancel();
+  state.audioStatus = audioOutputState({ supported: state.audioAvailable, enabled: state.audioSettings.enabled, contextState: state.audioContext?.state });
+  renderAudioControls();
+}
+
+async function unlockAudioFromGesture(reason = "gesture") {
+  state.audioUnlockAttempts += 1;
+  state.audioUnlockReason = String(reason).slice(0, 40);
+  if (!state.audioAvailable) { state.audioStatus = "unavailable"; renderAudioControls(); return false; }
+  if (!state.audioSettings.enabled) { state.audioStatus = "muted"; renderAudioControls(); return false; }
+  if (state.audioUnlockInFlight) return state.audioUnlockInFlight;
+  const audio = ensureAudio();
+  if (!audio) return false;
+  state.audioUnlockInFlight = (async () => {
+    try {
+      if (audio.state !== "running") await audio.resume();
+      state.audioLastError = "";
+      state.audioStatus = audioOutputState({ supported: true, enabled: true, contextState: audio.state });
+      return state.audioStatus === "ready";
+    } catch (error) {
+      state.audioLastError = String(error?.message || error).slice(0, 240);
+      state.audioStatus = "locked";
+      if (!/notallowed|gesture/i.test(state.audioLastError)) captureClientError("audio unlock", error);
+      return false;
+    } finally {
+      state.audioUnlockInFlight = null;
+      renderAudioControls();
+    }
+  })();
+  return state.audioUnlockInFlight;
+}
+
 function audioTone(audio, frequency, offset = 0, duration = .08, type = "sine", volume = .025, endFrequency = frequency, destination = audio.destination) {
+  if (volume <= 0) return;
   const start = audio.currentTime + offset, oscillator = audio.createOscillator(), gain = audio.createGain();
   oscillator.type = type; oscillator.frequency.setValueAtTime(frequency, start); oscillator.frequency.exponentialRampToValueAtTime(Math.max(20, endFrequency), start + duration);
   gain.gain.setValueAtTime(.0001, start); gain.gain.exponentialRampToValueAtTime(volume, start + .008); gain.gain.exponentialRampToValueAtTime(.0001, start + duration);
@@ -1748,60 +1850,48 @@ function audioTone(audio, frequency, offset = 0, duration = .08, type = "sine", 
 }
 
 function sfx(name, details = {}) {
-  if (!state.audio) return;
+  if (!state.audioSettings.enabled || state.audioStatus === "unavailable") return;
   const audio = ensureAudio(); if (!audio) return;
-  if (audio.state === "suspended") audio.resume()?.catch?.(() => {});
+  if (audio.state !== "running") { state.audioStatus = "locked"; renderAudioControls(); return; }
   const cue = state.audioMixer.requestCue(name, details); if (!cue) return;
-  const note = (frequency, offset, duration, type, volume, end) => audioTone(audio, frequency * cue.variation.pitch, offset, duration, type, volume * cue.variation.gain, (end ?? frequency) * cue.variation.pitch, cue.destination);
-  if (name.startsWith("material:")) {
-    const family = name.slice(9), pitch = clamp(Number(details.pitch) || 1, .5, 1.5), mix = clamp(Number(details.volume) || .6, 0, .8);
-    const profiles = {
-      metal: [1180, 430, "triangle", .045], concrete: [170, 68, "sawtooth", .085], liquid: [760, 1280, "sine", .11],
-      organic: [220, 92, "triangle", .075], energy: [680, 1120, "square", .08], void: [105, 44, "sawtooth", .15],
-    };
-    const [frequency, end, type, duration] = profiles[family] || profiles.concrete;
-    note(frequency * pitch, 0, duration, type, .014 * mix, end * pitch);
-  }
-  else if (name.startsWith("weapon:")) {
-    const family = name.slice(7);
-    const profiles = {
-      pulse: [880, 240, "square", .007, .05], resonance: [520, 760, "sine", .009, .09], solar: [690, 390, "triangle", .01, .1],
-      heavy: [115, 58, "sawtooth", .018, .13], blade: [1250, 480, "triangle", .007, .045], wind: [760, 1180, "sine", .006, .11],
-      kinetic: [210, 620, "square", .012, .075], arcane: [470, 940, "sine", .009, .12], tech: [960, 420, "square", .006, .045],
-      ballistic: [640, 170, "square", .009, .055], industrial: [92, 42, "sawtooth", .018, .16], crystal: [1320, 760, "sine", .008, .13], void: [82, 260, "sawtooth", .014, .2],
-    };
-    const [frequency, end, type, volume, duration] = profiles[family] || profiles.pulse;
-    note(frequency, 0, duration, type, volume, end);
-  }
-  else if (name === "shot") note(820, 0, .055, "square", .008, 210);
-  else if (name === "hurt") { note(145, 0, .11, "sawtooth", .024, 65); note(72, .025, .16, "square", .014, 48); }
-  else if (name === "kill") { note(150, 0, .07, "triangle", .016, 80); note(440, .025, .06, "square", .008, 260); }
-  else if (name === "select") { note(520, 0, .08, "triangle", .025, 650); note(780, .06, .1, "sine", .018, 900); }
-  else if (name === "deploy") { note(170, 0, .18, "sawtooth", .025, 420); note(520, .1, .16, "triangle", .02, 760); }
-  else if (name === "ability") { note(280, 0, .14, "sawtooth", .025, 680); note(920, .04, .09, "sine", .012, 460); }
-  else if (name === "ultimate") { note(92, 0, .45, "sawtooth", .032, 180); note(230, .08, .35, "square", .018, 860); note(980, .2, .22, "sine", .02, 420); }
-  else if (name === "danger") { note(108, 0, .22, "sawtooth", .026, 82); note(108, .25, .22, "sawtooth", .023, 82); }
-  else if (name === "objective") { note(320, 0, .09, "triangle", .018, 420); note(510, .08, .12, "sine", .018, 620); }
-  else if (name === "reward") { note(440, 0, .12, "triangle", .022, 520); note(660, .09, .14, "triangle", .021, 760); note(920, .19, .2, "sine", .018, 1040); }
-  else if (name === "level") { note(392, 0, .1, "triangle", .018, 440); note(587, .07, .12, "triangle", .02, 660); note(880, .16, .18, "sine", .018, 980); }
-  else if (name === "xp") { note(980, 0, .045, "sine", .006, 1320); note(1480, .018, .035, "triangle", .004, 1120); }
-  else if (name === "victory") { [392, 523, 659, 784, 1046].forEach((frequency, index) => note(frequency, index * .09, .28, "triangle", .022, frequency * 1.05)); }
-  else note(440, 0, .08, "sine", .018, 560);
+  const definition = resolveAudioCue(name, details);
+  for (const voice of definition.voices) audioTone(
+    audio,
+    voice.frequency * cue.variation.pitch,
+    voice.offset,
+    voice.duration,
+    voice.waveform,
+    voice.volume * cue.variation.gain,
+    voice.endFrequency * cue.variation.pitch,
+    cue.destination,
+  );
 }
 
 function comicVoice(words) {
   const now = performance.now();
-  if (!state.audio || !window.speechSynthesis || now - state.lastVoiceAt < 8000) return;
+  if (!state.audioSettings.enabled || !state.audioSettings.funnyVoice || state.audioSettings.voice <= 0 || !window.speechSynthesis || now - state.lastVoiceAt < 8000) return;
   state.lastVoiceAt = now;
-  const utterance = new SpeechSynthesisUtterance(words); utterance.rate = 1.65; utterance.pitch = 1.35; utterance.volume = .32;
+  const utterance = new SpeechSynthesisUtterance(words); utterance.rate = 1.65; utterance.pitch = 1.35; utterance.volume = state.audioSettings.voice * state.audioSettings.master;
   window.speechSynthesis.speak(utterance);
 }
 
-function toggleAudio() {
-  state.audio = !state.audio;
-  for (const id of ["audio-button", "lobby-audio"]) { $(id).textContent = state.audio ? "Sound on" : "Sound off"; $(id).setAttribute("aria-pressed", String(!state.audio)); }
-  state.audioMixer?.setMuted(!state.audio);
-  if (state.audio) sfx("ui"); else window.speechSynthesis?.cancel();
+async function toggleAudio() {
+  applyAudioSettings({ ...state.audioSettings, enabled: !state.audioSettings.enabled });
+  if (state.audioSettings.enabled && await unlockAudioFromGesture("settings-toggle")) sfx("ui");
+}
+
+function openAudioSettings() {
+  renderAudioControls();
+  unlockAudioFromGesture("settings-open");
+  $("audio-dialog").showModal();
+  requestAnimationFrame(() => $("audio-mute").focus());
+}
+
+async function testAudioOutput() {
+  $("audio-test-result").textContent = "Unlocking audio…";
+  const ready = await unlockAudioFromGesture("sound-test");
+  if (ready) { sfx("test"); $("audio-test-result").textContent = "Test tone played."; }
+  else $("audio-test-result").textContent = state.audioStatus === "muted" ? "Turn sound on before testing." : state.audioStatus === "unavailable" ? "Web Audio is unavailable in this browser." : "Audio is still locked. Try clicking Test sound again.";
 }
 
 function setStartingWeaponDetailsOpen(open, suppressFocus = false) {
@@ -1824,6 +1914,10 @@ function setupTouch() {
 
 function bindEvents() {
   setupDamageLedger();
+  const unlockFromInteraction = (event) => { if (!event.repeat) unlockAudioFromGesture(event.type); };
+  document.addEventListener("pointerdown", unlockFromInteraction, { capture: true, passive: true });
+  document.addEventListener("click", unlockFromInteraction, { capture: true, passive: true });
+  window.addEventListener("keydown", unlockFromInteraction, { capture: true });
   $("starting-weapon-trigger").addEventListener("click", () => {
     const open = $("starting-weapon-trigger").getAttribute("aria-expanded") !== "true";
     setStartingWeaponDetailsOpen(open, !open);
@@ -1871,7 +1965,14 @@ function bindEvents() {
   for (const id of ["run-history-button", "lobby-run-history", "result-run-history"]) $(id).addEventListener("click", openRunHistory);
   $("run-history-close").addEventListener("click", () => $("run-history-dialog").close());
   $("run-history-dialog").addEventListener("click", (event) => { if (event.target === $("run-history-dialog")) $("run-history-dialog").close(); });
-  for (const id of ["audio-button", "lobby-audio"]) $(id).addEventListener("click", toggleAudio);
+  for (const id of ["audio-button", "lobby-audio", "pause-audio"]) $(id).addEventListener("click", openAudioSettings);
+  $("audio-dialog").addEventListener("click", (event) => { if (event.target === $("audio-dialog")) $("audio-dialog").close(); });
+  $("audio-mute").addEventListener("click", toggleAudio);
+  $("audio-test").addEventListener("click", testAudioOutput);
+  for (const [key, id] of [["master", "audio-master"], ["effects", "audio-effects"], ["voice", "audio-voice"]]) {
+    $(id).addEventListener("input", (event) => applyAudioSettings({ ...state.audioSettings, [key]: Number(event.currentTarget.value) / 100 }));
+  }
+  $("audio-funny-voice").addEventListener("change", (event) => applyAudioSettings({ ...state.audioSettings, funnyVoice: event.currentTarget.checked }));
   for (const id of ["quality-button", "lobby-quality", "pause-quality"]) $(id).addEventListener("click", openQualitySettings);
   $("quality-dialog").addEventListener("click", (event) => { if (event.target === $("quality-dialog")) $("quality-dialog").close(); });
   $("quality-preset").addEventListener("change", (event) => applyQualitySettings(settingsForPreset(event.target.value, systemReducedMotion)));
@@ -1929,10 +2030,12 @@ function bindEvents() {
   setupTouch();
 }
 
-renderSpecialistGrid(); selectSpecialist("zuri"); bindEvents(); applyQualitySettings(state.qualitySettings, false); updateProgressionUI(); setPartyMode("solo");
+renderSpecialistGrid(); selectSpecialist("zuri"); bindEvents(); applyQualitySettings(state.qualitySettings, false); applyAudioSettings(state.audioSettings, false); updateProgressionUI(); setPartyMode("solo");
 if (query.get("room")) { setPartyMode("join"); $("room-input").value = query.get("room").toUpperCase().slice(0,6); setTimeout(() => $("callsign-input").focus(), 50); }
 if (localHost) Object.defineProperty(window, "__lastlightQA", { value: Object.freeze({
   diagnostics: () => JSON.parse(JSON.stringify(gameDiagnostics())),
+  audioState: () => JSON.parse(JSON.stringify(audioDiagnostics())),
+  testAudio: () => testAudioOutput(),
   reportState: () => ({ screen: state.screen, open: $("report-dialog").open, paused: Boolean(state.sim?.paused), pauseReason: state.sim?.pauseReason || "", resumeAfterReport: state.resumeAfterReport }),
   beginUpgrade: () => { if (!state.sim || state.screen !== "game") return false; state.sim.beginUpgradeChoice(); state.lastUpgradeKey = ""; return true; },
   setScreen: (screen) => { if (!screens[screen]) return false; setScreen(screen); return true; },

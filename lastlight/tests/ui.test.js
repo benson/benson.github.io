@@ -51,7 +51,9 @@ test("runtime sound uses the bounded dynamic hierarchy without gameplay RNG", ()
   assert.match(game, /state\.audioMixer\.requestCue\(name, details\)/);
   assert.match(game, /audioMixer\?\.setDensity\(state\.qualitySettings\.effectsDensity\)/);
   assert.match(game, /audioMix: state\.audioMixer\?\.diagnostics\(\) \|\| null/);
-  assert.match(game, /audioTone\([^\n]+cue\.destination/);
+  assert.match(game, /resolveAudioCue\(name, details\)/);
+  assert.match(game, /voice\.volume \* cue\.variation\.gain/);
+  assert.match(game, /cue\.destination/);
   assert.match(game, /if \(localHost\) Object\.defineProperty\(window, "__lastlightQA"/);
 });
 
