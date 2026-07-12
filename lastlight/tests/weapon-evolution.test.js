@@ -75,7 +75,7 @@ test("strict validation rejects coverage, capability, tuning, and presentation-s
   assert.match(validateWeaponEvolutionContract(staleTuning, BALANCE_CONFIG).join("\n"), /notReal is not finite balance tuning/);
 
   const falseGameplay = structuredClone(WEAPON_EVOLUTION_CONTRACT);
-  falseGameplay.universal.rail.status = "gameplay";
+  falseGameplay.universal.aura.status = "gameplay";
   assert.match(validateWeaponEvolutionContract(falseGameplay, BALANCE_CONFIG).join("\n"), /status: must match capability scope/);
 });
 

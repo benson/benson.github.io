@@ -23,6 +23,9 @@ export const WEAPON_EVOLUTION_CAPABILITIES = Object.freeze([
   "movement-return-damage",
   "occupied-charge-eruption",
   "mine-grid-chain",
+  "aim-lanes",
+  "horizontal-corridor",
+  "cover-push",
   "impact-identity",
 ]);
 
@@ -114,11 +117,16 @@ const universal = {
     gameplay("phase-hits", ["weapons.universal.boomerang.returnAfter", "weapons.universal.boomerang.evolvedHitsPerPhase"], "Tracks outbound and inbound hits separately, so each enemy can be struck once in each phase within the nine-hit phase budget."),
     gameplay("movement-return-damage", ["weapons.universal.boomerang.evolvedReturnTravelForMaxBonus", "weapons.universal.boomerang.evolvedReturnDamageMaxBonus"], "Return hits gain up to 30% damage from the owner's resolved movement since cast, reaching the cap at 360 units; the return lane follows the owner's current position."),
   ] }),
-  rail: entry({ key: "universal:rail", scope: "universal", sourceId: "rail", specialistId: null, baseName: "Lioness Rails", evolvedName: "Enveloping Light", pairedPassive: "haste", status: "presentation-only", handler: "universal-rail-v1", capabilities: [presentation("The current simulation changes the evolved impact identity but not gameplay output.")] }),
+  rail: entry({ key: "universal:rail", scope: "universal", sourceId: "rail", specialistId: null, baseName: "Lioness Rails", evolvedName: "Enveloping Light", pairedPassive: "haste", handler: "universal-rail-v1", capabilities: [
+    gameplay("aim-lanes", ["weapons.universal.rail.laneSpacing"], "Rotates the same paired, center-first opposing lanes to the player's current finite aim direction."),
+  ] }),
   glove: entry({ key: "universal:glove", scope: "universal", sourceId: "glove", specialistId: null, baseName: "Vortex Glove", evolvedName: "Tempest Gauntlet", pairedPassive: "regen", handler: "universal-glove-v1", capabilities: [
     gameplay("projectile-streams", ["weapons.universal.glove.evolvedStreams"], "Adds a counter-rotating projectile stream."),
   ] }),
-  transit: entry({ key: "universal:transit", scope: "universal", sourceId: "transit", specialistId: null, baseName: "Final City Transit", evolvedName: "Limited Express", pairedPassive: "damage", status: "presentation-only", handler: "universal-transit-v1", capabilities: [presentation("The current simulation changes the evolved train identity but not gameplay output.")] }),
+  transit: entry({ key: "universal:transit", scope: "universal", sourceId: "transit", specialistId: null, baseName: "Final City Transit", evolvedName: "Limited Express", pairedPassive: "damage", handler: "universal-transit-v1", capabilities: [
+    gameplay("horizontal-corridor", ["weapons.universal.transit.corridorHalfHeight", "weapons.universal.transit.corridorMaxCandidates"], "Selects the densest horizontal corridor among at most the nearest 12 live enemies with stable score, distance, and id ties."),
+    gameplay("cover-push", ["weapons.universal.transit.evolvedPushDistance", "weapons.universal.transit.evolvedStun", "weapons.universal.transit.bossStun"], "Each non-boss hit receives one cover-aware 120-unit forward push and 1.25-second stun; bosses receive the unchanged one-second stun and no push."),
+  ] }),
   ice: entry({ key: "universal:ice", scope: "universal", sourceId: "ice", specialistId: null, baseName: "Iceblast Armor", evolvedName: "Deep Freeze", pairedPassive: "armor", handler: "universal-ice-v1", capabilities: [
     gameplay("cadence", ["weapons.universal.ice.evolvedCooldown"], "Shortens the block-and-freeze recharge."),
   ] }),

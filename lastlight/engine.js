@@ -7,7 +7,7 @@ import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.5";
 import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260711.5";
 import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260712.6";
 import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260712.6";
-import { accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget } from "./projectile-decisions.js?v=20260712.6";
+import { MAX_CORRIDOR_CANDIDATES, accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget, orderEntitiesByDistance } from "./projectile-decisions.js?v=20260712.6";
 
 const BALANCE = getBalanceConfig();
 
@@ -111,6 +111,26 @@ export function moveEntityWithCover(entity, dx, dy) {
     if (!collidesWithCover(entity.x, nextY, entity.radius)) entity.y = nextY;
   }
   return entity;
+}
+
+export function bestHorizontalCorridor(origin, entities, { halfHeight, maxCandidates = MAX_CORRIDOR_CANDIDATES } = {}) {
+  const width = Number(halfHeight), requested = Number(maxCandidates);
+  if (!Number.isFinite(width) || width < 0) throw new RangeError("halfHeight must be finite and nonnegative");
+  if (!Number.isInteger(requested) || requested < 1 || requested > MAX_CORRIDOR_CANDIDATES) {
+    throw new RangeError(`maxCandidates must be an integer from 1 to ${MAX_CORRIDOR_CANDIDATES}`);
+  }
+  const candidates = orderEntitiesByDistance(origin, entities).slice(0, requested);
+  if (!candidates.length) return null;
+  const scored = candidates.map((entity) => ({
+    entity,
+    y: entity.y,
+    score: candidates.filter((target) => Math.abs(target.y - entity.y) <= width).length,
+    distanceSquared: (entity.x - origin.x) ** 2 + (entity.y - origin.y) ** 2,
+    candidateCount: candidates.length,
+    workUnits: candidates.length ** 2,
+  }));
+  return scored.sort((left, right) => right.score - left.score || left.distanceSquared - right.distanceSquared
+    || (left.entity.id < right.entity.id ? -1 : left.entity.id > right.entity.id ? 1 : 0))[0];
 }
 
 export function playerMovementSpeed(player) {
@@ -1179,10 +1199,24 @@ export class Simulation {
     }
     if (weaponId === "rail") {
       const count = tuning.countBase + Math.floor(level / tuning.countEveryLevels) + extra;
-      for (let i = 0; i < count; i++) {
-        const offset = (i - (count - 1) / 2) * tuning.laneSpacing;
-        this.shoot({ ...p, y: p.y + offset }, 0, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: "#ffcd71", pierce: tuning.pierce, sourceId: weaponId });
-        this.shoot({ ...p, y: p.y + offset }, Math.PI, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: "#ffcd71", pierce: tuning.pierce, sourceId: weaponId });
+      if (!evolved) {
+        for (let i = 0; i < count; i++) {
+          const offset = (i - (count - 1) / 2) * tuning.laneSpacing;
+          this.shoot({ ...p, y: p.y + offset }, 0, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: "#ffcd71", pierce: tuning.pierce, sourceId: weaponId });
+          this.shoot({ ...p, y: p.y + offset }, Math.PI, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: "#ffcd71", pierce: tuning.pierce, sourceId: weaponId });
+        }
+      } else {
+        const aim = this.aimForPlayer(p);
+        const activation = this.beginWeaponActivation(p, weaponId);
+        for (let i = 0; i < count; i++) {
+          const ring = Math.ceil(i / 2), lane = i === 0 ? 0 : (i % 2 ? -ring : ring), offset = lane * tuning.laneSpacing;
+          const source = { ...p, x: p.x - Math.sin(aim) * offset, y: p.y + Math.cos(aim) * offset };
+          this.shoot(source, aim, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: "#ffcd71", pierce: tuning.pierce, sourceId: weaponId });
+          this.shoot(source, aim + Math.PI, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: "#ffcd71", pierce: tuning.pierce, sourceId: weaponId });
+        }
+        this.pushWeaponEvolutionProc(p, weaponId, "rails-aim-lanes", activation.id, p, aim, {
+          aim, laneCount: count, projectileCount: count * 2,
+        });
       }
       return this.cooldown(p, tuning.cooldownBase + level * tuning.cooldownPerLevel);
     }
@@ -1195,8 +1229,21 @@ export class Simulation {
       return this.cooldown(p, tuning.cooldown);
     }
     if (weaponId === "transit") {
-      const y = p.y + this.random(-tuning.yRange, tuning.yRange);
+      let y, activation = null, corridor = null;
+      if (!evolved) y = p.y + this.random(-tuning.yRange, tuning.yRange);
+      else {
+        activation = this.beginWeaponActivation(p, weaponId);
+        corridor = bestHorizontalCorridor(p, this.enemies.filter((enemy) => !enemy.dead), {
+          halfHeight: tuning.corridorHalfHeight, maxCandidates: tuning.corridorMaxCandidates,
+        });
+        y = corridor?.y ?? p.y;
+        this.pushWeaponEvolutionProc(p, weaponId, "transit-corridor", activation.id, { x: p.x, y }, 0, {
+          targetId: corridor?.entity.id || "", score: corridor?.score || 0,
+          candidateCount: corridor?.candidateCount || 0, workUnits: corridor?.workUnits || 0, laneY: y,
+        });
+      }
       const train = { id: this.nextGameplayId("fx"), x: -WORLD.width / 2, y, radius: tuning.radius, life: tuning.life, maxLife: tuning.life, damage: tuning.damageBase + level * tuning.damagePerLevel, owner: p.id, color: "#ff7157", kind: "train", vx: tuning.speed, hit: new Set(), evolved };
+      if (activation) { train.evolutionActivationId = activation.id; train.pushProcEmitted = false; }
       stampWeaponVariant(train, variant);
       this.effects.push(train);
       return this.cooldown(p, tuning.cooldownBase + level * tuning.cooldownPerLevel);
@@ -1578,8 +1625,26 @@ export class Simulation {
         }
       } else if (effect.kind === "train") {
         for (const enemy of this.enemies) {
-          if (enemy.dead || effect.hit.has(enemy.id) || Math.abs(enemy.y - effect.y) > 58 || Math.abs(enemy.x - effect.x) > 110) continue;
-          effect.hit.add(enemy.id); this.damageEnemy(enemy, effect.damage, effect.owner, false, effect.sourceId || "transit"); enemy.stun = 1;
+          if (enemy.dead || effect.hit.has(enemy.id) || Math.abs(enemy.y - effect.y) > BALANCE.weapons.universal.transit.corridorHalfHeight || Math.abs(enemy.x - effect.x) > 110) continue;
+          effect.hit.add(enemy.id); this.damageEnemy(enemy, effect.damage, effect.owner, false, effect.sourceId || "transit");
+          if (!effect.evolved) enemy.stun = 1;
+          else if (enemy.boss) enemy.stun = BALANCE.weapons.universal.transit.bossStun;
+          else if (!enemy.dead) {
+            const tuning = BALANCE.weapons.universal.transit;
+            const beforeX = enemy.x, beforeY = enemy.y, direction = Math.sign(effect.vx || tuning.speed) || 1;
+            moveEntityWithCover(enemy, direction * tuning.evolvedPushDistance, 0);
+            enemy.stun = Math.max(enemy.stun, tuning.evolvedStun);
+            if (!effect.pushProcEmitted) {
+              effect.pushProcEmitted = true;
+              const owner = this.players.find((player) => player.id === effect.owner);
+              if (owner) this.pushWeaponEvolutionProc(owner, "transit", "transit-cover-push", effect.evolutionActivationId, enemy, direction > 0 ? 0 : Math.PI, {
+                targetId: enemy.id,
+                pushDistance: tuning.evolvedPushDistance,
+                resolvedDistance: Math.hypot(enemy.x - beforeX, enemy.y - beforeY),
+                stun: tuning.evolvedStun,
+              });
+            }
+          }
         }
       } else if (effect.delayed && effect.life <= 0 && !effect.triggered) due.push(effect);
     }
