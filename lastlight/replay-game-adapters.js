@@ -1,4 +1,4 @@
-import { Simulation } from "./engine.js?v=20260712.5";
+import { Simulation } from "./engine.js?v=20260712.6";
 import { LEGACY_REPLAY_SCHEMA, hashSimulationState } from "./replay.js?v=20260712.1";
 
 export function anonymousReplayToken(slot) {

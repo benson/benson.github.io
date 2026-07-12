@@ -25,10 +25,10 @@ const EVOLUTION_CONTRACT_ENTRIES = Object.freeze([
 const INVARIANT_METRICS = Object.freeze({
   "signature:zuri": "pierce", "signature:echo": "lifetime", "signature:sola": "guard-return", "signature:bront": "repeat",
   "signature:fang": "predator-hook", "signature:gale": "flow-regeneration", "signature:rift": "kinetic-reserve", "signature:nova": "lifetime",
-  "signature:vesper": "pierce", "universal:uwu": "pierce", "universal:slicers": "orbit-speed", "universal:aura": "nonCosmeticDeltaCount",
-  "universal:mines": "nonCosmeticDeltaCount", "universal:crossbow": "pierce", "universal:boomerang": "nonCosmeticDeltaCount",
+  "signature:vesper": "pierce", "universal:uwu": "needle-retarget", "universal:slicers": "orbit-speed", "universal:aura": "nonCosmeticDeltaCount",
+  "universal:mines": "nonCosmeticDeltaCount", "universal:crossbow": "ballista-deep-crit", "universal:boomerang": "boomerang-return",
   "universal:rail": "nonCosmeticDeltaCount", "universal:glove": "projectile-streams", "universal:transit": "nonCosmeticDeltaCount",
-  "universal:ice": "cadence", "universal:annihilator": "cadence", "universal:drone": "repair-rate",
+  "universal:ice": "cadence", "universal:annihilator": "cadence", "universal:drone": "drone-protocol",
 });
 const STAT_ONLY_KEYS = new Set(["universal:slicers", "universal:ice", "universal:annihilator"]);
 
@@ -57,7 +57,7 @@ export const EVOLUTION_AUDIT_BUDGETS = Object.freeze({
 });
 
 const COMMON_KEYS = Object.freeze(["damage", "hits", "uniqueTargets", "activations", "activationRate", "projectiles", "effects", "tasks", "maxEntities"]);
-const CAPABILITY_KEYS = Object.freeze(["cadence", "pierce", "lifetime", "repeat", "flowRegeneration", "orbitSpeed", "projectileStreams", "repairRate", "pickupRange", "guardReturn", "predatorHook", "kineticReserve", "impactIdentity"]);
+const CAPABILITY_KEYS = Object.freeze(["cadence", "pierce", "lifetime", "repeat", "flowRegeneration", "orbitSpeed", "projectileStreams", "repairRate", "pickupRange", "guardReturn", "predatorHook", "kineticReserve", "needleRetarget", "ballistaDeepCrit", "boomerangReturn", "droneProtocol", "impactIdentity"]);
 const ROOT_KEYS = Object.freeze(["schema", "schemaVersion", "contract", "versions", "definitions", "cases", "budgets", "limitations"]);
 const VERSION_KEYS = Object.freeze(["balanceVersion", "balanceHash", "evolutionContractHash", "tickRate"]);
 const CASE_KEYS = Object.freeze(["sourceKey", "scope", "passiveId", "capabilities", "status", "seed", "base", "evolved", "delta", "nonCosmeticDeltaCount", "invariant"]);
@@ -183,7 +183,8 @@ function orbitSpeed(samples) {
 
 function auxiliaryCapabilities(def, evolved) {
   const { sim, player, parts } = configureVariant(def, evolved);
-  let cadence = 0, flowRegeneration = 0, repairRate = 0, pickupRange = 0, kineticReserve = 0, ticks = 0;
+  let cadence = 0, flowRegeneration = 0, repairRate = 0, pickupRange = 0, kineticReserve = 0;
+  let needleRetarget = 0, ballistaDeepCrit = 0, boomerangReturn = 0, droneProtocol = 0, ticks = 0;
   if (def.capabilities.includes("cadence")) {
     const timerKey = parts.scope === "signature" ? "signature" : parts.id;
     player.weaponTimers[timerKey] = 0;
@@ -235,7 +236,44 @@ function auxiliaryCapabilities(def, evolved) {
     }
     kineticReserve = Math.max(...scales) - Math.min(...scales);
   }
-  return { cadence: round(cadence), flowRegeneration: round(flowRegeneration), repairRate: round(repairRate), pickupRange: round(pickupRange), kineticReserve: round(kineticReserve), ticks };
+  if (def.capabilities.includes("retarget")) {
+    sim.fireCommonWeapon(player, parts.id, player.weapons[parts.id]);
+    for (let tick = 0; tick < 120; tick++) sim.updateProjectiles(EVOLUTION_AUDIT_STEP);
+    ticks += 120;
+    needleRetarget = sim.events.filter(({ type, mechanicId }) => type === "weapon-evolution-proc" && mechanicId === "needle-retarget").length;
+  }
+  if (def.capabilities.includes("deep-crit")) {
+    sim.chance = () => false;
+    sim.fireCommonWeapon(player, parts.id, player.weapons[parts.id]);
+    const heavy = sim.projectiles.find(({ ballistaHeavy }) => ballistaHeavy);
+    for (const projectile of sim.projectiles) if (projectile !== heavy) projectile.dead = true;
+    for (let tick = 0; tick < 180; tick++) sim.updateProjectiles(EVOLUTION_AUDIT_STEP);
+    ticks += 180;
+    ballistaDeepCrit = sim.events.filter(({ type, mechanicId }) => type === "weapon-evolution-proc" && mechanicId === "ballista-deep-crit").length;
+  }
+  if (def.capabilities.includes("movement-return-damage")) {
+    player.weaponTimers[parts.id] = 0;
+    sim.fireCommonWeapon(player, parts.id, player.weapons[parts.id]);
+    const projectile = sim.projectiles.find(({ sourceId }) => sourceId === parts.sourceId);
+    if (projectile) {
+      player.x += BALANCE_CONFIG.weapons.universal.boomerang.evolvedReturnTravelForMaxBonus;
+      for (let tick = 0; tick < 60; tick++) sim.updateProjectiles(EVOLUTION_AUDIT_STEP);
+      ticks += 60;
+      boomerangReturn = Math.max(0, Number(projectile.boomerangReturnDamageMultiplier || 0) - 1);
+    }
+  }
+  if (def.capabilities.includes("data-protocol")) {
+    sim.enemies = [];
+    const drone = sim.ensureDrone(player, player.weapons[parts.id]);
+    player.x = -10_000; player.y = 0; drone.x = 0; drone.y = 0;
+    for (let mote = 0; mote < BALANCE_CONFIG.weapons.universal.drone.protocolMotes; mote++) {
+      sim.orbs = [{ id: `protocol-${mote}`, x: 0, y: 0, radius: 5, value: 1, color: "#fff", dead: false }];
+      sim.updatePickups(EVOLUTION_AUDIT_STEP);
+      ticks++;
+    }
+    droneProtocol = Number(drone.protocolCharge || 0);
+  }
+  return { cadence: round(cadence), flowRegeneration: round(flowRegeneration), repairRate: round(repairRate), pickupRange: round(pickupRange), kineticReserve: round(kineticReserve), needleRetarget: round(needleRetarget), ballistaDeepCrit: round(ballistaDeepCrit), boomerangReturn: round(boomerangReturn), droneProtocol: round(droneProtocol), ticks };
 }
 
 function runVariant(def, evolved) {
@@ -259,7 +297,7 @@ function runVariant(def, evolved) {
     activations: trace.activations, activationRate: round(trace.activations / duration), projectiles: trace.projectiles,
     effects: trace.effects, tasks: trace.tasks, maxEntities: peakEntities,
   };
-  const procEvents = sim.events.filter(({ type }) => type === "signature-evolution-proc");
+  const procEvents = sim.events.filter(({ type }) => type === "signature-evolution-proc" || type === "weapon-evolution-proc");
   const capabilityMetrics = {
     cadence: def.capabilities.includes("cadence") ? auxiliary.cadence : common.activationRate, pierce: trace.maxPierce, lifetime: round(trace.maxLife), repeat: trace.tasks,
     flowRegeneration: auxiliary.flowRegeneration, orbitSpeed: round(orbitSpeed(trace.slicerAngles)),
@@ -267,6 +305,10 @@ function runVariant(def, evolved) {
     guardReturn: round(Math.max(0, ...procEvents.filter(({ mechanicId }) => mechanicId === "guard-return").map(({ shieldGranted }) => Number(shieldGranted || 0)))),
     predatorHook: round(Math.max(0, ...procEvents.filter(({ mechanicId, affected }) => mechanicId === "predator-hook" && affected > 0).map(({ pullDistance }) => Number(pullDistance || 0)))),
     kineticReserve: auxiliary.kineticReserve,
+    needleRetarget: auxiliary.needleRetarget,
+    ballistaDeepCrit: auxiliary.ballistaDeepCrit,
+    boomerangReturn: auxiliary.boomerangReturn,
+    droneProtocol: auxiliary.droneProtocol,
     impactIdentity: trace.variantEmissions + trace.effects,
   };
   return {

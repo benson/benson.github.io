@@ -1,4 +1,4 @@
-import { PASSIVES, SPECIALISTS, WEAPONS } from "./data.js?v=20260712.5";
+import { PASSIVES, SPECIALISTS, WEAPONS } from "./data.js?v=20260712.6";
 
 export const PROJECTILE_MODES = Object.freeze(["counted", "field", "single-effect", "utility"]);
 export const SCALE_TAGS = Object.freeze([
@@ -23,7 +23,7 @@ export const UNIVERSAL_WEAPON_COMBAT = Object.freeze({
   aura: source("field", false, ["haste", "area", "maxHealth"]),
   mines: source("counted", true, ["haste", "area", "projectiles"], "deployed mines"),
   crossbow: source("counted", true, ["damage", "haste", "projectiles", "crit"]),
-  boomerang: source("counted", true, ["damage", "haste", "projectiles", "crit"]),
+  boomerang: source("counted", true, ["damage", "haste", "move", "projectiles", "crit"]),
   rail: source("counted", true, ["damage", "haste", "projectiles", "crit"], "paired rails"),
   glove: source("counted", true, ["damage", "haste", "projectiles", "crit"], "orb streams"),
   transit: source("single-effect", false, ["haste"]),

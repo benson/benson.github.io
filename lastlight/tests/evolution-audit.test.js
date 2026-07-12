@@ -15,7 +15,7 @@ import { evolutionAuditReportPaths, verifyCommittedEvolutionAudit } from "../ben
 
 const contractEntries = [...Object.values(WEAPON_EVOLUTION_CONTRACT.signatures), ...Object.values(WEAPON_EVOLUTION_CONTRACT.universal)];
 const expectedOrder = contractEntries.map(({ key }) => key);
-const expectedNoOps = ["universal:aura", "universal:mines", "universal:boomerang", "universal:rail", "universal:transit"];
+const expectedNoOps = ["universal:aura", "universal:mines", "universal:rail", "universal:transit"];
 const started = performance.now();
 const report = runEvolutionAudit();
 const runtimeMs = performance.now() - started;
@@ -70,7 +70,7 @@ test("all observable and capability metrics are finite and structurally bounded"
   const structural = assertEvolutionAuditBudgets(report);
   assert.equal(structural.cases, 21);
   assert.equal(structural.variants, 42);
-  assert.equal(structural.expectedFailures, 5);
+  assert.equal(structural.expectedFailures, 4);
   assert.ok(structural.totalTicks <= EVOLUTION_AUDIT_BUDGETS.maxTotalTicks);
   assert.ok(runtimeMs <= EVOLUTION_AUDIT_BUDGETS.maxSuiteRuntimeMs);
   for (const item of report.cases) for (const variant of [item.base, item.evolved]) {
