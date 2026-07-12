@@ -14,6 +14,12 @@ test("guide exposes the six adaptive impact materials and their accessibility fa
   assert.match(game, /renderer\.drainMaterialAudioCues/);
 });
 
+test("guide derives universal evolution behavior from the authoritative contract", () => {
+  assert.match(game, /getWeaponEvolution\(weapon\.id\)/);
+  assert.match(game, /evolution\?\.capabilities\?\.map/);
+  assert.match(game, /Evolution: evolutionBehavior/);
+});
+
 test("performance reports expose cosmetic environmental load without protocol fields", () => {
   assert.match(game, /environmentInteractions: renderer\.environmentDiagnostics\(\)/);
   assert.doesNotMatch(game, /send\([^\n]+environmentInteractions/);

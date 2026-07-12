@@ -22,6 +22,7 @@ import { DynamicAudioMixer } from "./audio-mix.js?v=20260712.5";
 import { LASTLIGHT_AUDIO_CUES, resolveAudioCue } from "./audio-cues.js?v=20260712.5";
 import { audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260712.5";
 import { buildUpgradeComparison, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260712.5";
+import { getWeaponEvolution } from "./weapon-evolution.js?v=20260712.5";
 import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260712.1";
 import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260712.1";
 import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260712.5";
@@ -427,7 +428,12 @@ function renderGuide() {
       Range: label(identity.range), Mobility: label(identity.mobility.tier), Durability: label(identity.durability.tier), Safety: label(identity.safety.tier), Control: label(identity.control.tier), Support: label(identity.support.tier), "Identity contract": SPECIALIST_IDENTITY_VERSION,
     });
   }).join("");
-  const weapons = Object.values(WEAPONS).map((weapon) => guideCard(weapon.glyph, weapon.name, `Evolves to ${weapon.evolve}`, `${weapon.copy} Evolution requires level 5 + ${PASSIVES[weapon.passive]?.name || weapon.passive} + an elite access card.`, "", weapon.icon, guideWeaponDetails(weapon.id))).join("");
+  const weapons = Object.values(WEAPONS).map((weapon) => {
+    const evolution = getWeaponEvolution(weapon.id);
+    const evolutionBehavior = evolution?.capabilities?.map(({ note }) => note).join(" ") || "Evolution behavior unavailable.";
+    const details = { ...guideWeaponDetails(weapon.id), Evolution: evolutionBehavior };
+    return guideCard(weapon.glyph, weapon.name, `Evolves to ${weapon.evolve}`, `${weapon.copy} Evolution requires level 5 + ${PASSIVES[weapon.passive]?.name || weapon.passive} + an elite access card. ${evolutionBehavior}`, "", weapon.icon, details);
+  }).join("");
   const materials = MATERIAL_CLASSES.map((id) => {
     const material = getThemeMaterial(id);
     return guideCard(id.slice(0, 3).toUpperCase(), material.label, material.examples, `Weapon endpoints adapt with ${material.particles.shape.replaceAll("-", " ")}, a ${material.decal.shape.replaceAll("-", " ")} decal, and an accessibility-safe ${material.fallback.pattern.replaceAll("-", " ")} cue.`, "", "", { Particles: `${material.particles.count} max`, Decal: `${material.decal.lifetimeMs}ms`, Audio: material.sound.family, Fallback: material.fallback.label });
