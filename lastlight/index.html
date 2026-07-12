@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260712.6">
+  <link rel="stylesheet" href="styles.css?v=20260712.7">
 </head>
 <body>
   <main id="app">
@@ -506,7 +506,20 @@
       <div class="build-history-body">
         <article class="build-release current-build">
           <header>
-            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.12.6</h3></div>
+            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.12.7</h3></div>
+            <time class="build-shipped-at deployment-pending">Deployment verification pending</time>
+          </header>
+          <ul>
+            <li>Made Explosive Embrace charge on occupied pulses and erupt on the eighth for a larger, harder-hitting field blast.</li>
+            <li>Made Tri-Mine Grid organize mines into deterministic groups whose first blast chains the remaining fuses with larger radii.</li>
+            <li>Made Enveloping Light rotate its center-first opposing rail lanes to the specialist's current aim direction.</li>
+            <li>Made Limited Express choose the densest bounded horizontal corridor and push non-boss survivors forward until cover stops them.</li>
+            <li>Completed the deterministic 42-variant evolution audit: all 21 evolved weapons now demonstrate authored gameplay behavior with zero expected failures.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.12.6</h3></div>
             <time class="build-shipped-at" data-build-shipped-at="2026-07-12T12:29:00-04:00">Shipped Jul 12, 2026, 12:29 PM EDT</time>
           </header>
           <ul>
@@ -780,8 +793,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.12.6. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.12.6</strong></button>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.12.7. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.12.7</strong></button>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260712.6"></script>
+  <script type="module" src="game.js?v=20260712.7"></script>
 </body>
 </html>

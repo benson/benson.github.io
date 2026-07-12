@@ -82,16 +82,18 @@ test("all observable and capability metrics are finite and structurally bounded"
   }
 });
 
-test("schema rejects stale identity, unknown metrics, and weakened expected failures", () => {
+test("schema rejects stale identity, unknown metrics, and forged expected failures", () => {
   const stale = structuredClone(report);
   stale.versions.balanceVersion = "stale";
   assert.match(validateEvolutionAudit(stale).join("\n"), /runtime identity mismatch/);
   const metric = structuredClone(report);
   metric.cases[0].base.common.unknown = 1;
   assert.match(validateEvolutionAudit(metric).join("\n"), /metric fields mismatch/);
-  const weakened = structuredClone(report);
-  weakened.cases.find((item) => item.sourceKey === expectedNoOps[0]).invariant.outcome = "pass";
-  assert.match(validateEvolutionAudit(weakened).join("\n"), /unexpected outcome/);
+  const forged = structuredClone(report);
+  forged.cases[0].status = "expected-no-op";
+  forged.cases[0].invariant.expectedFailure = true;
+  forged.cases[0].invariant.outcome = "expected-failure";
+  assert.match(validateEvolutionAudit(forged).join("\n"), /expected-failure classification mismatch/);
 });
 
 test("audit uses production simulation and evolution APIs without benchmark-only engine hooks", () => {

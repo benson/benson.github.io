@@ -1,6 +1,6 @@
 # Specialist identity contract
 
-`specialist-identity.js` is the versioned, immutable design contract for all nine specialists. It describes mechanical intent—not selection-screen copy—and is pinned to balance version `2026.07.12-evolutions.2`.
+`specialist-identity.js` is the versioned, immutable design contract for all nine specialists. It describes mechanical intent—not selection-screen copy—and is pinned to balance version `2026.07.12-evolutions.3`.
 
 Every entry has the same strict shape: role and specialization, effective range, mobility, durability, damage cadence and delivery, scaling, safety, control, support, objective value, failure modes, and intended breakpoints. Validation rejects unknown fields, missing specialists, invalid vocabulary, duplicate identifiers, and drift from base stats, movement profiles, unlock levels, cooldowns, ranges, or evolution passives.
 
