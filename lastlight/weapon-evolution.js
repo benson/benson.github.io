@@ -14,6 +14,10 @@ export const WEAPON_EVOLUTION_CAPABILITIES = Object.freeze([
   "guard-return",
   "predator-hook",
   "kinetic-reserve",
+  "corridor-targeting",
+  "deep-crit",
+  "data-protocol",
+  "chain-retarget",
   "impact-identity",
 ]);
 
@@ -94,6 +98,8 @@ const universal = {
   mines: entry({ key: "universal:mines", scope: "universal", sourceId: "mines", specialistId: null, baseName: "Arc Mines", evolvedName: "Tri-Mine Grid", pairedPassive: "area", status: "presentation-only", handler: "universal-mines-v1", capabilities: [presentation("The current simulation changes the evolved mine identity but not gameplay output.")] }),
   crossbow: entry({ key: "universal:crossbow", scope: "universal", sourceId: "crossbow", specialistId: null, baseName: "Scatter Bow", evolvedName: "Prime Ballista", pairedPassive: "crit", handler: "universal-crossbow-v1", capabilities: [
     gameplay("pierce", ["weapons.universal.crossbow.evolvedPierce"], "Allows bolts to continue through additional targets."),
+    gameplay("corridor-targeting", ["weapons.universal.crossbow.corridorRange", "weapons.universal.crossbow.corridorHalfWidth", "weapons.universal.crossbow.corridorMaxCandidates"], "Scores corridors through at most the nearest 12 enemies and aims the evolved fan down the best deterministic lane."),
+    gameplay("deep-crit", ["weapons.universal.crossbow.deepCritAfterTargets"], "The center heavy bolt guarantees critical hits only after penetrating three distinct targets."),
   ] }),
   boomerang: entry({ key: "universal:boomerang", scope: "universal", sourceId: "boomerang", specialistId: null, baseName: "Blade-o-rang", evolvedName: "Quad-o-rang", pairedPassive: "move", status: "presentation-only", handler: "universal-boomerang-v1", capabilities: [presentation("The current simulation changes the evolved impact identity but not gameplay output.")] }),
   rail: entry({ key: "universal:rail", scope: "universal", sourceId: "rail", specialistId: null, baseName: "Lioness Rails", evolvedName: "Enveloping Light", pairedPassive: "haste", status: "presentation-only", handler: "universal-rail-v1", capabilities: [presentation("The current simulation changes the evolved impact identity but not gameplay output.")] }),
@@ -111,6 +117,8 @@ const universal = {
     gameplay("pierce", ["weapons.universal.drone.evolvedPierce"], "Allows drone bolts to continue through additional targets."),
     gameplay("repair-rate", ["weapons.universal.drone.evolvedRepairMultiplier"], "Shortens the drone's repair cycle."),
     gameplay("pickup-range", ["weapons.universal.drone.evolvedPickupBonus"], "Extends the drone's data collection reach."),
+    gameplay("data-protocol", ["weapons.universal.drone.protocolMotes", "weapons.universal.drone.protocolChargeCap", "weapons.universal.drone.protocolRepairThreshold", "weapons.universal.drone.protocolRepairMaxHealth"], "Every five drone-collected data motes charges one protocol: immediately repair the lowest-ratio ally below 70% health, or bank one attack protocol."),
+    gameplay("chain-retarget", ["weapons.universal.drone.protocolChainTargets", "weapons.universal.drone.protocolChainRange"], "A banked attack protocol makes the next center drone bolt retarget through up to three distinct nearby enemies without spawning extra projectiles."),
   ] }),
 };
 
