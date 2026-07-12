@@ -18,6 +18,9 @@ export const WEAPON_EVOLUTION_CAPABILITIES = Object.freeze([
   "deep-crit",
   "data-protocol",
   "chain-retarget",
+  "retarget",
+  "phase-hits",
+  "movement-return-damage",
   "impact-identity",
 ]);
 
@@ -89,7 +92,7 @@ const signatures = {
 const universal = {
   uwu: entry({ key: "universal:uwu", scope: "universal", sourceId: "uwu", specialistId: null, baseName: "Needle Blaster", evolvedName: "Twin Needle Array", pairedPassive: "haste", handler: "universal-uwu-v1", capabilities: [
     gameplay("cadence", ["weapons.universal.uwu.evolvedCooldown"], "Shortens the weapon cooldown."),
-    gameplay("pierce", ["weapons.universal.uwu.evolvedPierce"], "Allows needles to continue through additional targets."),
+    gameplay("retarget", ["weapons.universal.uwu.evolvedRetargetRange", "weapons.universal.uwu.evolvedRetargetDamageMultiplier"], "After its first hit, the same needle turns once toward the nearest unhit enemy within 240 units and deals 70% damage; cover can intercept it."),
   ] }),
   slicers: entry({ key: "universal:slicers", scope: "universal", sourceId: "slicers", specialistId: null, baseName: "Cyclonic Slicers", evolvedName: "Unceasing Cyclone", pairedPassive: "regen", handler: "universal-slicers-v1", capabilities: [
     gameplay("orbit-speed", ["weapons.universal.slicers.evolvedOrbitSpeed"], "Rotates the slicer pattern faster."),
@@ -101,7 +104,10 @@ const universal = {
     gameplay("corridor-targeting", ["weapons.universal.crossbow.corridorRange", "weapons.universal.crossbow.corridorHalfWidth", "weapons.universal.crossbow.corridorMaxCandidates"], "Scores corridors through at most the nearest 12 enemies and aims the evolved fan down the best deterministic lane."),
     gameplay("deep-crit", ["weapons.universal.crossbow.deepCritAfterTargets"], "The center heavy bolt guarantees critical hits only after penetrating three distinct targets."),
   ] }),
-  boomerang: entry({ key: "universal:boomerang", scope: "universal", sourceId: "boomerang", specialistId: null, baseName: "Blade-o-rang", evolvedName: "Quad-o-rang", pairedPassive: "move", status: "presentation-only", handler: "universal-boomerang-v1", capabilities: [presentation("The current simulation changes the evolved impact identity but not gameplay output.")] }),
+  boomerang: entry({ key: "universal:boomerang", scope: "universal", sourceId: "boomerang", specialistId: null, baseName: "Blade-o-rang", evolvedName: "Quad-o-rang", pairedPassive: "move", handler: "universal-boomerang-v1", capabilities: [
+    gameplay("phase-hits", ["weapons.universal.boomerang.returnAfter", "weapons.universal.boomerang.evolvedHitsPerPhase"], "Tracks outbound and inbound hits separately, so each enemy can be struck once in each phase within the nine-hit phase budget."),
+    gameplay("movement-return-damage", ["weapons.universal.boomerang.evolvedReturnTravelForMaxBonus", "weapons.universal.boomerang.evolvedReturnDamageMaxBonus"], "Return hits gain up to 30% damage from the owner's resolved movement since cast, reaching the cap at 360 units; the return lane follows the owner's current position."),
+  ] }),
   rail: entry({ key: "universal:rail", scope: "universal", sourceId: "rail", specialistId: null, baseName: "Lioness Rails", evolvedName: "Enveloping Light", pairedPassive: "haste", status: "presentation-only", handler: "universal-rail-v1", capabilities: [presentation("The current simulation changes the evolved impact identity but not gameplay output.")] }),
   glove: entry({ key: "universal:glove", scope: "universal", sourceId: "glove", specialistId: null, baseName: "Vortex Glove", evolvedName: "Tempest Gauntlet", pairedPassive: "regen", handler: "universal-glove-v1", capabilities: [
     gameplay("projectile-streams", ["weapons.universal.glove.evolvedStreams"], "Adds a counter-rotating projectile stream."),

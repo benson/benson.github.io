@@ -7,7 +7,7 @@ import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.5";
 import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260711.5";
 import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260712.5";
 import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260712.5";
-import { bestCorridorTarget, nearestUnhitTarget } from "./projectile-decisions.js?v=20260712.6";
+import { accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget } from "./projectile-decisions.js?v=20260712.6";
 
 const BALANCE = getBalanceConfig();
 
@@ -795,6 +795,40 @@ export class Simulation {
     });
   }
 
+  pushProjectileEvolutionProc(projectile, mechanicId, details = {}) {
+    this.pushEvent("weapon-evolution-proc", mechanicId, "", {
+      ...details,
+      mechanicId,
+      sourceId: projectile.sourceId,
+      variantId: projectile.variantId,
+      projectileId: projectile.id,
+      position: { x: Number(projectile.x), y: Number(projectile.y) },
+      direction: Math.atan2(projectile.vy, projectile.vx),
+    });
+  }
+
+  retargetEvolvedNeedle(projectile, firstTarget) {
+    if (!projectile.needleRetarget || projectile.needleRetargeted) return false;
+    projectile.needleRetargeted = true;
+    const tuning = BALANCE.weapons.universal.uwu;
+    const target = nearestUnhitTarget(projectile, this.enemies.filter((enemy) => !enemy.dead), {
+      range: tuning.evolvedRetargetRange,
+      hitIds: projectile.hit,
+    });
+    if (!target) return false;
+    const speed = Math.hypot(projectile.vx, projectile.vy), direction = angleTo(projectile, target);
+    projectile.vx = Math.cos(direction) * speed;
+    projectile.vy = Math.sin(direction) * speed;
+    projectile.damage *= tuning.evolvedRetargetDamageMultiplier;
+    projectile.needleRetargetTargetId = target.id;
+    this.pushProjectileEvolutionProc(projectile, "needle-retarget", {
+      firstTargetId: firstTarget.id,
+      targetId: target.id,
+      range: tuning.evolvedRetargetRange,
+      damageMultiplier: tuning.evolvedRetargetDamageMultiplier,
+    });
+    return true;
+  }
   mobilityAimForPlayer(p) {
     // Auto-aim is useful for weapons, but movement abilities authored as
     // "to the cursor" must always respect the player's latest pointer angle.
@@ -1021,7 +1055,7 @@ export class Simulation {
     const variant = this.weaponVariant(p, weaponId, { evolved });
     if (weaponId === "uwu") {
       const enemy = this.nearestEnemy(p);
-      if (enemy) for (let i = 0; i < tuning.countBase + Math.floor(level / tuning.countEveryLevels) + extra; i++) this.shoot(p, angleTo(p, enemy) + this.random(-tuning.spreadRandom, tuning.spreadRandom), tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: "#f58cff", pierce: evolved ? tuning.evolvedPierce : 0, sourceId: weaponId });
+      if (enemy) for (let i = 0; i < tuning.countBase + Math.floor(level / tuning.countEveryLevels) + extra; i++) this.shoot(p, angleTo(p, enemy) + this.random(-tuning.spreadRandom, tuning.spreadRandom), tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: "#f58cff", needleRetarget: evolved, sourceId: weaponId });
       return this.cooldown(p, evolved ? tuning.evolvedCooldown : tuning.cooldownBase + level * tuning.cooldownPerLevel);
     }
     if (weaponId === "slicers") {
@@ -1072,7 +1106,7 @@ export class Simulation {
     }
     if (weaponId === "boomerang") {
       const enemy = this.nearestEnemy(p);
-      if (enemy) for (let i = 0; i < tuning.countBase + Math.floor(level / tuning.countEveryLevels) + extra; i++) this.shoot(p, angleTo(p, enemy) + (i - 1) * tuning.spread, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: "#8cefff", pierce: tuning.pierce, life: tuning.life, boomerang: true, originX: p.x, originY: p.y, sourceId: weaponId });
+      if (enemy) for (let i = 0; i < tuning.countBase + Math.floor(level / tuning.countEveryLevels) + extra; i++) this.shoot(p, angleTo(p, enemy) + (i - 1) * tuning.spread, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: "#8cefff", pierce: tuning.pierce, life: tuning.life, boomerang: true, evolvedBoomerang: evolved, originX: p.x, originY: p.y, sourceId: weaponId });
       return this.cooldown(p, tuning.cooldownBase + level * tuning.cooldownPerLevel);
     }
     if (weaponId === "rail") {
@@ -1166,6 +1200,21 @@ export class Simulation {
       executeMissingHealthBonus: Number(options.executeMissingHealthBonus || 0),
       originX: options.originX, originY: options.originY, age: 0, hit: new Set(),
     };
+    if (options.needleRetarget) {
+      projectile.needleRetarget = true;
+      projectile.needleRetargeted = false;
+    }
+    if (options.evolvedBoomerang) {
+      projectile.evolvedBoomerang = true;
+      projectile.boomerangPhase = "outbound";
+      projectile.boomerangOutboundHit = new Set();
+      projectile.boomerangInboundHit = new Set();
+      projectile.boomerangOwnerTravel = 0;
+      projectile.boomerangOwnerLastX = p.x;
+      projectile.boomerangOwnerLastY = p.y;
+      projectile.boomerangReturnDamageMultiplier = 1;
+      projectile.boomerangReturnProcEmitted = false;
+    }
     if (variant) stampWeaponVariant(projectile, variant);
     else projectile.sourceId = sourceId;
     this.projectiles.push(projectile);
@@ -1304,8 +1353,23 @@ export class Simulation {
     for (const bullet of this.projectiles) {
       bullet.age = (bullet.age || 0) + dt;
       bullet.life -= dt;
-      if (bullet.boomerang && bullet.age > .72) {
-        const owner = this.players.find((p) => p.id === bullet.owner);
+      const owner = bullet.boomerang ? this.players.find((p) => p.id === bullet.owner) : null;
+      if (bullet.evolvedBoomerang && owner) {
+        bullet.boomerangOwnerTravel = accumulateMovementDistance(
+          Number(bullet.boomerangOwnerTravel || 0),
+          { x: Number(bullet.boomerangOwnerLastX), y: Number(bullet.boomerangOwnerLastY) },
+          owner,
+        );
+        bullet.boomerangOwnerLastX = owner.x;
+        bullet.boomerangOwnerLastY = owner.y;
+      }
+      if (bullet.boomerang && bullet.age > BALANCE.weapons.universal.boomerang.returnAfter) {
+        if (bullet.evolvedBoomerang) {
+          bullet.boomerangPhase = "inbound";
+          const tuning = BALANCE.weapons.universal.boomerang;
+          const travelRatio = clamp(bullet.boomerangOwnerTravel / tuning.evolvedReturnTravelForMaxBonus, 0, 1);
+          bullet.boomerangReturnDamageMultiplier = 1 + travelRatio * tuning.evolvedReturnDamageMaxBonus;
+        }
         if (owner) {
           const a = angleTo(bullet, owner), speed = Math.hypot(bullet.vx, bullet.vy);
           bullet.vx = Math.cos(a) * speed; bullet.vy = Math.sin(a) * speed;
@@ -1329,13 +1393,19 @@ export class Simulation {
         if (bullet.pierce-- <= 0) bullet.dead = true;
       }
       for (const enemy of this.enemies) {
-        if (enemy.dead || bullet.dead || bullet.hit.has(enemy.id) || !circleHit(bullet, enemy)) continue;
+        const phaseHit = bullet.evolvedBoomerang
+          ? (bullet.boomerangPhase === "inbound" ? bullet.boomerangInboundHit : bullet.boomerangOutboundHit)
+          : bullet.hit;
+        const phaseAtCapacity = bullet.evolvedBoomerang && phaseHit.size >= BALANCE.weapons.universal.boomerang.evolvedHitsPerPhase;
+        if (enemy.dead || bullet.dead || phaseAtCapacity || phaseHit.has(enemy.id) || !circleHit(bullet, enemy)) continue;
+        phaseHit.add(enemy.id);
         bullet.hit.add(enemy.id);
         if (bullet.enemyHitIds) bullet.enemyHitIds.add(enemy.id);
         const missingHealth = 1 - Math.max(0, enemy.hp) / Math.max(1, enemy.maxHp || enemy.health || enemy.hp);
         const deepCritical = Boolean(bullet.ballistaHeavy && !bullet.crit
           && bullet.enemyHitIds.size > bullet.deepCritAfterTargets);
-        const impactDamage = bullet.damage * (deepCritical ? BALANCE.weapons.system.criticalDamageMultiplier : 1)
+        const returnMultiplier = bullet.evolvedBoomerang && bullet.boomerangPhase === "inbound" ? bullet.boomerangReturnDamageMultiplier : 1;
+        const impactDamage = bullet.damage * returnMultiplier * (deepCritical ? BALANCE.weapons.system.criticalDamageMultiplier : 1)
           * (1 + missingHealth * Number(bullet.executeMissingHealthBonus || 0));
         this.damageEnemy(enemy, impactDamage, bullet.owner, bullet.crit || deepCritical, bullet.sourceId || "signature");
         if (deepCritical && !bullet.deepCritProc) {
@@ -1345,11 +1415,23 @@ export class Simulation {
             penetratedTargets: bullet.deepCritAfterTargets, projectileId: bullet.id,
           });
         }
+        if (bullet.evolvedBoomerang && bullet.boomerangPhase === "inbound" && !bullet.boomerangReturnProcEmitted) {
+          bullet.boomerangReturnProcEmitted = true;
+          this.pushProjectileEvolutionProc(bullet, "boomerang-return", {
+            targetId: enemy.id,
+            phase: "inbound",
+            ownerTravel: bullet.boomerangOwnerTravel,
+            damageMultiplier: bullet.boomerangReturnDamageMultiplier,
+          });
+        }
         if (bullet.signatureEvolutionMechanic === "guard-return") this.applyGuardReturn(bullet, enemy);
         if (bullet.hex) enemy.hexed = BALANCE.identityTuning.nova.hexDuration;
         if (bullet.tornado) enemy.stun = Math.max(enemy.stun, .25);
         if (bullet.explosion) this.blast(bullet.x, bullet.y, bullet.explosion, impactDamage * .55, bullet.owner, bullet.color, true, "explosion", bullet.sourceId || "signature", { variantId: bullet.variantId });
-        if (bullet.pierce-- <= 0) bullet.dead = true;
+        const needleRedirected = bullet.needleRetarget && !bullet.needleRetargeted && this.retargetEvolvedNeedle(bullet, enemy);
+        if (bullet.evolvedBoomerang) {
+          if (bullet.boomerangPhase === "inbound" && phaseHit.size >= BALANCE.weapons.universal.boomerang.evolvedHitsPerPhase) bullet.dead = true;
+        } else if (!needleRedirected && bullet.pierce-- <= 0) bullet.dead = true;
         if (!bullet.dead && bullet.droneProtocolChainRemaining > 0) {
           const target = nearestUnhitTarget(enemy, this.enemies.filter((candidate) => !candidate.dead), {
             range: bullet.droneProtocolChainRange, hitIds: bullet.hit,
@@ -1947,6 +2029,15 @@ export class Simulation {
       }
       return result;
     });
+    const projectiles = clean(this.projectiles, ["hit"]).map((entry, index) => {
+      const projectile = this.projectiles[index];
+      if (!projectile.evolvedBoomerang) return entry;
+      return {
+        ...entry,
+        boomerangOutboundHitIds: [...projectile.boomerangOutboundHit].sort(),
+        boomerangInboundHitIds: [...projectile.boomerangInboundHit].sort(),
+      };
+    });
     return {
       balanceVersion: this.balanceVersion, balanceHash: this.balanceHash,
       features: { gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents },
@@ -1956,7 +2047,7 @@ export class Simulation {
       wave: this.wave, waveName: WAVE_NAMES[this.stage === "boss" ? 7 : this.wave], teamXP: Math.round(this.teamXP),
       level: this.level, xpNeed: this.xpNeed, kills: this.kills, gold: this.gold, bossElapsed: this.bossElapsed,
       bossPhase: this.bossPhase, enraged: this.enraged, machine: compactPoint(this.machine),
-      players: clean(this.players, ["input", "reconnectKey"]), drones: clean(this.drones), enemies: clean(this.enemies), projectiles: clean(this.projectiles, ["hit"]),
+      players: clean(this.players, ["input", "reconnectKey"]), drones: clean(this.drones), enemies: clean(this.enemies), projectiles,
       hostile: clean(this.hostile), effects: clean(this.effects, ["hit"]), orbs: clean(this.orbs), drops: clean(this.drops),
       pods: clean(this.pods), objectives: clean(this.objectives), relayBalls: clean(this.relayBalls), feathers: clean(this.feathers),
       pendingChoices: this.pendingChoices, choiceReady: this.choiceReady, selectedChoices: this.selectedChoices, events: this.events.slice(-5),

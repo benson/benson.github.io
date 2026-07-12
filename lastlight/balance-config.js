@@ -2,7 +2,7 @@ import { WEAPON_EVOLUTION_CONTRACT, validateWeaponEvolutionContract } from "./we
 
 // Balance is a versioned simulation input. Replays and fixtures should record
 // this exact version so a future tuning pass never silently changes old runs.
-export const BALANCE_VERSION = "2026.07.12-evolutions.1";
+export const BALANCE_VERSION = "2026.07.12-evolutions.2";
 
 export const BALANCE_IDS = Object.freeze({
   specialists: Object.freeze(["zuri", "echo", "sola", "bront", "fang", "gale", "rift", "nova", "vesper"]),
@@ -159,12 +159,12 @@ const config = {
       vesper: { cycle: 2.5, cyclePerLevel: -0.125, evolvedCycle: 0.62, countBase: 1, countEveryLevels: 3, speed: 700, damageBase: 56, damagePerLevel: 16, spread: 0.32, radius: 7, pierce: 7, evolvedPierce: 14, life: 1.7 },
     },
     universal: {
-      uwu: { cooldownBase: 0.75, cooldownPerLevel: -0.07, evolvedCooldown: 0.35, countBase: 1, countEveryLevels: 3, speed: 820, damageBase: 28, damagePerLevel: 10, spreadRandom: 0.045, radius: 5, evolvedPierce: 1 },
+      uwu: { cooldownBase: 0.75, cooldownPerLevel: -0.07, evolvedCooldown: 0.35, countBase: 1, countEveryLevels: 3, speed: 820, damageBase: 28, damagePerLevel: 10, spreadRandom: 0.045, radius: 5, evolvedRetargetRange: 240, evolvedRetargetDamageMultiplier: 0.7 },
       slicers: { cooldown: 0.24, countBase: 2, countPerLevel: 1, orbitSpeed: 2.2, evolvedOrbitSpeed: 3.1, orbitRadius: 125, radius: 34, damageBase: 24, damagePerLevel: 9 },
       aura: { cooldown: 0.34, radiusBase: 105, radiusPerLevel: 26, damageBase: 16, damagePerLevel: 8, maxHealthDamage: 0.8 },
       mines: { cooldownBase: 6.8, cooldownPerLevel: -0.45, countBase: 2, countPerLevel: 1, spreadRandom: 0.15, orbitBase: 145, orbitPerLevel: 12, radiusBase: 50, radiusPerLevel: 8, fuseBase: 0.8, fusePerMine: 0.08, damageBase: 60, damagePerLevel: 25 },
       crossbow: { cooldownBase: 4.2, cooldownPerLevel: -0.25, countBase: 2, countPerLevel: 1, spread: 0.14, speed: 630, damageBase: 48, damagePerLevel: 17, radius: 6, pierce: 1, evolvedPierce: 8, corridorRange: 1400, corridorHalfWidth: 52, corridorMaxCandidates: 12, deepCritAfterTargets: 3 },
-      boomerang: { cooldownBase: 3.8, cooldownPerLevel: -0.2, countBase: 1, countEveryLevels: 2, spread: 0.2, speed: 490, damageBase: 65, damagePerLevel: 21, radius: 10, pierce: 8, life: 1.45 },
+      boomerang: { cooldownBase: 3.8, cooldownPerLevel: -0.2, countBase: 1, countEveryLevels: 2, spread: 0.2, speed: 490, damageBase: 65, damagePerLevel: 21, radius: 10, pierce: 8, life: 1.45, returnAfter: 0.72, evolvedHitsPerPhase: 9, evolvedReturnTravelForMaxBonus: 360, evolvedReturnDamageMaxBonus: 0.3 },
       rail: { cooldownBase: 3.7, cooldownPerLevel: -0.22, countBase: 1, countEveryLevels: 2, laneSpacing: 28, speed: 800, damageBase: 45, damagePerLevel: 18, radius: 9, pierce: 20 },
       glove: { cooldown: 2.7, streams: 1, evolvedStreams: 2, countBase: 2, countPerLevel: 1, orbitSpeed: 2.4, spread: 0.16, speed: 390, damageBase: 31, damagePerLevel: 13, radius: 11, pierce: 10, life: 2.2 },
       transit: { cooldownBase: 14, cooldownPerLevel: -0.8, yRange: 300, radius: 52, life: 2.5, damageBase: 135, damagePerLevel: 55, speed: 1700 },
