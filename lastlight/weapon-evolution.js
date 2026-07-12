@@ -21,6 +21,8 @@ export const WEAPON_EVOLUTION_CAPABILITIES = Object.freeze([
   "retarget",
   "phase-hits",
   "movement-return-damage",
+  "occupied-charge-eruption",
+  "mine-grid-chain",
   "impact-identity",
 ]);
 
@@ -97,8 +99,12 @@ const universal = {
   slicers: entry({ key: "universal:slicers", scope: "universal", sourceId: "slicers", specialistId: null, baseName: "Cyclonic Slicers", evolvedName: "Unceasing Cyclone", pairedPassive: "regen", handler: "universal-slicers-v1", capabilities: [
     gameplay("orbit-speed", ["weapons.universal.slicers.evolvedOrbitSpeed"], "Rotates the slicer pattern faster."),
   ] }),
-  aura: entry({ key: "universal:aura", scope: "universal", sourceId: "aura", specialistId: null, baseName: "Radiant Field", evolvedName: "Explosive Embrace", pairedPassive: "maxHealth", status: "presentation-only", handler: "universal-aura-v1", capabilities: [presentation("The current simulation changes the evolved impact identity but not gameplay output.")] }),
-  mines: entry({ key: "universal:mines", scope: "universal", sourceId: "mines", specialistId: null, baseName: "Arc Mines", evolvedName: "Tri-Mine Grid", pairedPassive: "area", status: "presentation-only", handler: "universal-mines-v1", capabilities: [presentation("The current simulation changes the evolved mine identity but not gameplay output.")] }),
+  aura: entry({ key: "universal:aura", scope: "universal", sourceId: "aura", specialistId: null, baseName: "Radiant Field", evolvedName: "Explosive Embrace", pairedPassive: "maxHealth", handler: "universal-aura-v1", capabilities: [
+    gameplay("occupied-charge-eruption", ["weapons.universal.aura.evolvedChargeThreshold", "weapons.universal.aura.evolvedEruptionRadiusMultiplier", "weapons.universal.aura.evolvedEruptionDamageMultiplier"], "Occupied field pulses grant one charge per activation; the eighth emits one 1.45x-radius eruption for 2.5x that pulse's authored damage, then resets."),
+  ] }),
+  mines: entry({ key: "universal:mines", scope: "universal", sourceId: "mines", specialistId: null, baseName: "Arc Mines", evolvedName: "Tri-Mine Grid", pairedPassive: "area", handler: "universal-mines-v1", capabilities: [
+    gameplay("mine-grid-chain", ["weapons.universal.mines.evolvedGroupSize", "weapons.universal.mines.evolvedChainFuseStep", "weapons.universal.mines.evolvedChainRadiusMultiplier"], "Partitions the existing mines into deterministic groups of at most three; the first blast caps remaining sibling fuses at 0.12/0.24 seconds with 25% larger radii."),
+  ] }),
   crossbow: entry({ key: "universal:crossbow", scope: "universal", sourceId: "crossbow", specialistId: null, baseName: "Scatter Bow", evolvedName: "Prime Ballista", pairedPassive: "crit", handler: "universal-crossbow-v1", capabilities: [
     gameplay("pierce", ["weapons.universal.crossbow.evolvedPierce"], "Allows bolts to continue through additional targets."),
     gameplay("corridor-targeting", ["weapons.universal.crossbow.corridorRange", "weapons.universal.crossbow.corridorHalfWidth", "weapons.universal.crossbow.corridorMaxCandidates"], "Scores corridors through at most the nearest 12 enemies and aims the evolved fan down the best deterministic lane."),
