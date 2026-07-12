@@ -311,6 +311,7 @@ export class Simulation {
       dead: false, downed: false, downTimer: 0, respawnTimer: 0, reviveProgress: 0, deaths: 0,
       weaponTimers: {}, weapons: { signature: { level: 1, evolved: false } }, passives: {},
       flow: 0, charge: 0, spirits: 0, hotKills: 0, hotStacks: 0, hotTime: 0,
+      signatureActivation: 0, guardReturnActivation: 0, predatorHookCounter: 0, kineticReserve: 0,
       traveled: 0, feathers: [], damage: 0, damageBySource: {}, kills: 0, xpCollected: 0, damageTaken: 0, revives: 0,
       firedUpBuff: 0, healthbackBuff: 0, stopwavesBuff: 0, stopwaveClock: 0,
       lastHit: 0, iceReady: false, iceTimer: 0,
@@ -446,8 +447,13 @@ export class Simulation {
       const knockFriction = Math.pow(.018, dt); p.knockVx *= knockFriction; p.knockVy *= knockFriction;
       if (wasMoving && !p.moving) p.skidTime = .16;
       if (p.animTime <= 0) p.animState = p.moving ? "run" : "idle";
-      p.traveled += movement.distance + knockDistance;
+      const resolvedDistance = movement.distance + knockDistance;
+      p.traveled += resolvedDistance;
       p.charge += movement.distance;
+      if (p.specialist === "rift") {
+        const reserveCap = BALANCE.identityTuning.rift.kineticReserveDistance;
+        p.kineticReserve = Math.min(reserveCap, Number(p.kineticReserve || 0) + resolvedDistance);
+      }
 
       if (p.specialist === "rift" && p.charge >= 120) {
         p.charge %= 120;
@@ -693,7 +699,7 @@ export class Simulation {
     }
     if (task.kind === "bront-repeat-blast") {
       const target = this.enemies.find((candidate) => candidate.id === payload.targetId && !candidate.dead);
-      this.blast(target?.x ?? payload.x, target?.y ?? payload.y, payload.radius, payload.damage, payload.ownerId, payload.color, true, "blast", task.sourceId || "signature", task.variantId);
+      this.blast(target?.x ?? payload.x, target?.y ?? payload.y, payload.radius, payload.damage, payload.ownerId, payload.color, true, "blast", task.sourceId || "signature", { variantId: task.variantId });
       return;
     }
     if (task.kind === "sola-detonate" || task.kind === "sola-aftershock") {
@@ -747,6 +753,24 @@ export class Simulation {
       }
     }
     return angles;
+  }
+
+  beginSignatureActivation(p) {
+    const sequence = Math.max(0, Math.floor(Number(p.signatureActivation || 0))) + 1;
+    p.signatureActivation = sequence;
+    const slot = replaySlot(p.replaySlot) ?? Math.max(0, this.players.indexOf(p));
+    return { sequence, id: `s${slot}-a${sequence}` };
+  }
+
+  pushSignatureEvolutionProc(p, mechanicId, activation, position, direction, details = {}) {
+    this.pushEvent("signature-evolution-proc", mechanicId, "", {
+      ...details,
+      specialistId: p.specialist,
+      mechanicId,
+      activationId: activation.id,
+      position: { x: Number(position.x), y: Number(position.y) },
+      direction: Number(direction),
+    });
   }
 
   mobilityAimForPlayer(p) {
@@ -865,19 +889,47 @@ export class Simulation {
       const count = Math.min(tuning.countCap, level * tuning.countPerLevel + extra);
       for (const angle of this.signatureFanAngles(aim, count, tuning.spread)) this.shoot(p, angle, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: spec.color, pierce: tuning.pierce, life: sig.evolved ? tuning.evolvedLife : tuning.life, wave: true });
     } else if (p.specialist === "sola") {
+      const activation = this.beginSignatureActivation(p);
       const count = tuning.countBase + Math.floor(level / tuning.countEveryLevels) + extra;
-      for (const angle of this.signatureFanAngles(aim, count, tuning.spread)) this.shoot(p, angle, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel + p.armor * tuning.armorDamage, { radius: tuning.radius * area, color: spec.color, pierce: tuning.pierce, life: tuning.life });
+      for (const angle of this.signatureFanAngles(aim, count, tuning.spread)) this.shoot(p, angle, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel + p.armor * tuning.armorDamage, {
+        radius: tuning.radius * area, color: spec.color, pierce: tuning.pierce, life: tuning.life,
+        signatureActivation: activation.sequence, signatureActivationId: activation.id,
+        signatureEvolutionMechanic: sig.evolved ? "guard-return" : "",
+      });
     } else if (p.specialist === "bront") {
       const target = this.nearestEnemy(p, tuning.range);
       if (!target) return false;
-      this.blast(target.x, target.y, (tuning.radiusBase + level * tuning.radiusPerLevel) * area, tuning.damageBase + level * tuning.damagePerLevel, p.id, spec.color, true, "blast", "signature", variant.variantId);
+      this.blast(target.x, target.y, (tuning.radiusBase + level * tuning.radiusPerLevel) * area, tuning.damageBase + level * tuning.damagePerLevel, p.id, spec.color, true, "blast", "signature", { variantId: variant.variantId });
       if (sig.evolved) this.scheduleTask("bront-repeat-blast", tuning.evolvedDelay, {
         ownerId: p.id, targetId: target.id, x: target.x, y: target.y,
         radius: tuning.evolvedRadius * area, damage: tuning.evolvedDamageBase + level * tuning.damagePerLevel, color: spec.color,
       }, variant);
     } else if (p.specialist === "fang") {
       const tx = p.x + Math.cos(aim) * tuning.offset, ty = p.y + Math.sin(aim) * tuning.offset;
-      this.blast(tx, ty, (tuning.radiusBase + level * tuning.radiusPerLevel) * area, (tuning.damageBase + level * tuning.damagePerLevel + p.maxHp * tuning.maxHealthDamage) * this.playerStat(p, "damage"), p.id, spec.color, true, sig.evolved ? "bleed" : "slash", "signature", variant.variantId);
+      const activation = this.beginSignatureActivation(p);
+      let predatorHook = false;
+      if (sig.evolved) {
+        const hookTuning = BALANCE.identityTuning.fang;
+        p.predatorHookCounter = (Math.max(0, Math.floor(Number(p.predatorHookCounter || 0))) + 1) % hookTuning.predatorHookEvery;
+        predatorHook = p.predatorHookCounter === 0;
+      }
+      const radius = (tuning.radiusBase + level * tuning.radiusPerLevel) * area;
+      const hookTargets = predatorHook
+        ? this.enemies.filter((enemy) => !enemy.dead && !enemy.boss && Math.hypot(enemy.x - tx, enemy.y - ty) <= radius + enemy.radius)
+        : [];
+      this.blast(tx, ty, radius, (tuning.damageBase + level * tuning.damagePerLevel + p.maxHp * tuning.maxHealthDamage) * this.playerStat(p, "damage"), p.id, spec.color, true, sig.evolved ? "bleed" : "slash", "signature", { variantId: variant.variantId });
+      if (predatorHook) {
+        const hookTuning = BALANCE.identityTuning.fang;
+        const pull = clamp(hookTuning.predatorHookBase + p.maxHp * hookTuning.predatorHookMaxHealthRatio, hookTuning.predatorHookMin, hookTuning.predatorHookMax);
+        let affected = 0;
+        for (const enemy of hookTargets) {
+          if (enemy.dead) continue;
+          const direction = angleTo(enemy, p);
+          moveEntityWithCover(enemy, Math.cos(direction) * pull, Math.sin(direction) * pull);
+          enemy.knockVx = 0; enemy.knockVy = 0; affected++;
+        }
+        this.pushSignatureEvolutionProc(p, "predator-hook", activation, { x: tx, y: ty }, aim, { affected, pullDistance: pull });
+      }
       if (p.frenzy > 0) p.hp = Math.min(p.maxHp, p.hp + .1 + (p.maxHp - p.hp) * .05);
     } else if (p.specialist === "gale") {
       if (p.flow < tuning.flowCost) return false;
@@ -886,7 +938,17 @@ export class Simulation {
       for (const angle of this.signatureFanAngles(aim, count, tuning.spread)) this.shoot(p, angle, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: (tuning.radiusBase + level * tuning.radiusPerLevel) * area, color: spec.color, pierce: sig.evolved ? tuning.evolvedPierce : tuning.pierce, life: tuning.life, tornado: true });
     } else if (p.specialist === "rift") {
       const tx = p.x + Math.cos(aim) * tuning.offset, ty = p.y + Math.sin(aim) * tuning.offset;
-      this.blast(tx, ty, (tuning.radiusBase + level * tuning.radiusPerLevel) * area, (tuning.damageBase + level * tuning.damagePerLevel) * this.playerStat(p, "damage"), p.id, spec.color, true, "slash", "signature", variant.variantId);
+      const activation = this.beginSignatureActivation(p);
+      const reserve = Math.min(BALANCE.identityTuning.rift.kineticReserveDistance, Math.max(0, Number(p.kineticReserve || 0)));
+      p.kineticReserve = 0;
+      let knockbackScale;
+      if (sig.evolved) {
+        const reserveTuning = BALANCE.identityTuning.rift;
+        const ratio = clamp(reserve / reserveTuning.kineticReserveDistance, 0, 1);
+        knockbackScale = reserveTuning.kineticReserveMinScale + (reserveTuning.kineticReserveMaxScale - reserveTuning.kineticReserveMinScale) * ratio;
+      }
+      this.blast(tx, ty, (tuning.radiusBase + level * tuning.radiusPerLevel) * area, (tuning.damageBase + level * tuning.damagePerLevel) * this.playerStat(p, "damage"), p.id, spec.color, true, "slash", "signature", { variantId: variant.variantId, knockbackScale });
+      if (sig.evolved) this.pushSignatureEvolutionProc(p, "kinetic-reserve", activation, { x: tx, y: ty }, aim, { reserveDistance: reserve, knockbackScale });
     } else if (p.specialist === "nova") {
       const count = Math.min(tuning.countCap, tuning.countBase + Math.ceil(level / tuning.countEveryLevels) + extra);
       for (const angle of this.signatureFanAngles(aim, count, tuning.spread)) this.shoot(p, angle, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: spec.color, pierce: tuning.pierce, life: sig.evolved ? tuning.evolvedLife : tuning.life, hex: true });
@@ -914,7 +976,7 @@ export class Simulation {
       const count = tuning.countBase + level * tuning.countPerLevel + extra;
       for (let i = 0; i < count; i++) {
         const a = this.time * (evolved ? tuning.evolvedOrbitSpeed : tuning.orbitSpeed) + i * TAU / count;
-        this.blast(p.x + Math.cos(a) * tuning.orbitRadius * area, p.y + Math.sin(a) * tuning.orbitRadius * area, tuning.radius * area, tuning.damageBase + level * tuning.damagePerLevel, p.id, "#8be6ff", true, "slicer", weaponId, variant.variantId);
+        this.blast(p.x + Math.cos(a) * tuning.orbitRadius * area, p.y + Math.sin(a) * tuning.orbitRadius * area, tuning.radius * area, tuning.damageBase + level * tuning.damagePerLevel, p.id, "#8be6ff", true, "slicer", weaponId, { variantId: variant.variantId });
       }
       return this.cooldown(p, tuning.cooldown);
     }
@@ -1009,6 +1071,8 @@ export class Simulation {
       explosion: options.explosion || 0, wave: options.wave, tornado: options.tornado, hex: options.hex,
       dagger: options.dagger, leaveFeather: options.leaveFeather, boomerang: options.boomerang,
       droneBolt: options.droneBolt,
+      signatureActivation: options.signatureActivation, signatureActivationId: options.signatureActivationId,
+      signatureEvolutionMechanic: options.signatureEvolutionMechanic,
       executeMissingHealthBonus: Number(options.executeMissingHealthBonus || 0),
       originX: options.originX, originY: options.originY, age: 0, hit: new Set(),
     };
@@ -1056,6 +1120,18 @@ export class Simulation {
     const available = Math.max(0, p.maxHp * capMaxHealth - p.shield);
     const granted = Math.min(amount, available);
     p.shield += granted;
+    return granted;
+  }
+
+  applyGuardReturn(bullet, enemy) {
+    const owner = this.players.find((player) => player.id === bullet.owner && player.specialist === "sola");
+    const activation = Math.max(0, Math.floor(Number(bullet.signatureActivation || 0)));
+    if (!owner || !activation || activation <= Math.max(0, Math.floor(Number(owner.guardReturnActivation || 0)))) return 0;
+    owner.guardReturnActivation = activation;
+    const tuning = BALANCE.identityTuning.sola;
+    const amount = Math.min(tuning.guardReturnMax, tuning.guardReturnBase + owner.armor * tuning.guardReturnArmorRatio);
+    const granted = this.grantShieldAmount(owner, amount, BALANCE.shields.solaE.capMaxHealth);
+    this.pushSignatureEvolutionProc(owner, "guard-return", { sequence: activation, id: bullet.signatureActivationId }, enemy, angleTo(owner, enemy), { shieldGranted: granted });
     return granted;
   }
 
@@ -1168,9 +1244,10 @@ export class Simulation {
         const missingHealth = 1 - Math.max(0, enemy.hp) / Math.max(1, enemy.maxHp || enemy.health || enemy.hp);
         const impactDamage = bullet.damage * (1 + missingHealth * Number(bullet.executeMissingHealthBonus || 0));
         this.damageEnemy(enemy, impactDamage, bullet.owner, bullet.crit, bullet.sourceId || "signature");
+        if (bullet.signatureEvolutionMechanic === "guard-return") this.applyGuardReturn(bullet, enemy);
         if (bullet.hex) enemy.hexed = BALANCE.identityTuning.nova.hexDuration;
         if (bullet.tornado) enemy.stun = Math.max(enemy.stun, .25);
-        if (bullet.explosion) this.blast(bullet.x, bullet.y, bullet.explosion, impactDamage * .55, bullet.owner, bullet.color, true, "explosion", bullet.sourceId || "signature", bullet.variantId);
+        if (bullet.explosion) this.blast(bullet.x, bullet.y, bullet.explosion, impactDamage * .55, bullet.owner, bullet.color, true, "explosion", bullet.sourceId || "signature", { variantId: bullet.variantId });
         if (bullet.pierce-- <= 0) bullet.dead = true;
       }
       if (bullet.life <= 0) bullet.dead = true;
@@ -1238,20 +1315,22 @@ export class Simulation {
     for (const feather of this.feathers) feather.life -= dt;
   }
 
-  blast(x, y, radius, damage, owner, color = "#fff", visual = true, kind = "blast", sourceId = kind, variantId) {
-    this.damageArea(x, y, radius, damage, owner, color, kind, 0, sourceId);
+  // The final options bag is shared by immutable visual variant identity and
+  // bounded combat modifiers. Keep both out of positional source attribution.
+  blast(x, y, radius, damage, owner, color = "#fff", visual = true, kind = "blast", sourceId = kind, options = {}) {
+    this.damageArea(x, y, radius, damage, owner, color, kind, 0, sourceId, options);
     if (visual) {
       const effect = { id: this.nextCosmeticId("fx"), x, y, radius, life: .28, maxLife: .28, damage: 0, owner, color, kind, hit: new Set() };
-      const variant = this.weaponVariantForOwner(owner, sourceId, { variantId });
+      const variant = this.weaponVariantForOwner(owner, sourceId, { variantId: options.variantId });
       if (variant) stampWeaponVariant(effect, variant);
       this.effects.push(effect);
     }
   }
 
-  damageArea(x, y, radius, damage, owner, color, kind, stun = 0, sourceId = kind) {
+  damageArea(x, y, radius, damage, owner, color, kind, stun = 0, sourceId = kind, options = {}) {
     for (const enemy of this.enemies) {
       if (enemy.dead || Math.hypot(enemy.x - x, enemy.y - y) > radius + enemy.radius) continue;
-      this.damageEnemy(enemy, damage, owner, false, sourceId);
+      this.damageEnemy(enemy, damage, owner, false, sourceId, options);
       if (kind === "hex") enemy.hexed = BALANCE.identityTuning.nova.hexDuration;
       if (kind === "stun" || kind === "knockup" || stun) enemy.stun = Math.max(enemy.stun, stun || 1.2);
     }
@@ -1393,7 +1472,7 @@ export class Simulation {
     this.pushEvent("boon", `${p.name} rejoined`, "Four seconds of invulnerability");
   }
 
-  damageEnemy(enemy, amount, ownerId, critical = false, source = "") {
+  damageEnemy(enemy, amount, ownerId, critical = false, source = "", options = {}) {
     if (enemy.dead) return;
     const dealt = Math.min(amount, Math.max(0, enemy.hp));
     enemy.hp -= amount; enemy.hitFlash = .1;
@@ -1402,7 +1481,10 @@ export class Simulation {
       owner.damage += dealt;
       const sourceKey = String(source || "other");
       owner.damageBySource[sourceKey] = (owner.damageBySource[sourceKey] || 0) + dealt;
-      const signatureScale = source === "signature" ? Number(BALANCE.identityTuning[owner.specialist]?.signatureKnockbackScale || 1) : 1;
+      const authoredScale = Number(options.knockbackScale);
+      const signatureScale = source === "signature"
+        ? (Number.isFinite(authoredScale) ? authoredScale : Number(BALANCE.identityTuning[owner.specialist]?.signatureKnockbackScale || 1))
+        : 1;
       const impactAngle = Math.atan2(enemy.y - owner.y, enemy.x - owner.x), knockback = clamp(amount * .28, 8, enemy.boss ? 22 : 72) * signatureScale;
       enemy.hitAngle = impactAngle; enemy.knockVx = (enemy.knockVx || 0) + Math.cos(impactAngle) * knockback; enemy.knockVy = (enemy.knockVy || 0) + Math.sin(impactAngle) * knockback;
       if (owner.specialist === "rift" && dealt > 0) {
@@ -1589,8 +1671,8 @@ export class Simulation {
   }
   lose(copy) { if (this.stage === "won") return; this.stage = "lost"; this.paused = false; this.pushEvent("defeat", "Operation lost", copy); }
 
-  pushEvent(type, title, copy = "") {
-    this.events.push({ seq: this.eventSequence++, type, title, copy, at: this.tick });
+  pushEvent(type, title, copy = "", details = {}) {
+    this.events.push({ ...details, seq: this.eventSequence++, type, title, copy, at: this.tick });
     if (this.events.length > 20) this.events.splice(0, this.events.length - 20);
   }
 

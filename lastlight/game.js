@@ -1232,6 +1232,7 @@ function processEvents(events) {
   for (const event of events) {
     if (event.seq <= state.lastEventSeq) continue; state.lastEventSeq = event.seq;
     if (event.type === "cast") { if (!state.isHost) sfx("shot"); continue; }
+    if (event.type === "signature-evolution-proc") continue;
     if (event.type === "danger") sfx("danger");
     else if (event.type === "victory") sfx("victory");
     else if (event.type === "upgrade" || event.type === "boon") sfx("reward");
