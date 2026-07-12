@@ -86,6 +86,21 @@ test("recorder keeps transient identities out of replay JSON and deduplicates in
   assert.deepEqual(replay.features, { configVersion: "release-2026.07.11.4", gameplayVersion: "events-v1", objectiveEvents: true });
 });
 
+test("paused pointer sampling coalesces safely and mixed-case authored choices remain replayable", () => {
+  const recorder = new ReplayRecorder({
+    build: "2026.07.11.10", balanceVersion: "2026.07.11-movement.2", balanceHash: "fnv1a32:62597c66",
+    rng: "xoshiro128ss-v1", seed: "0123456789abcdef0123456789abcdef",
+    run: { map: "warehouse", difficulty: "story", duration: 240 },
+  });
+  recorder.registerPlayer("host", "rift", { slot: 0, initial: true });
+  for (let sample = 0; sample < 80; sample++) recorder.recordInput("host", 986, { x: 0, y: 0, aim: sample / 20, autoAim: false }, { coalesceSameTick: true });
+  recorder.recordUpgrade("host", 986, "passive:maxHealth");
+  recorder.recordAbandon(986);
+  const replay = recorder.finalize(986, "1111111111111111");
+  assert.equal(replay.commands.filter((command) => command[2] === "i").length, 1);
+  assert.deepEqual(replay.commands.map((command) => command[2]), ["i", "u", "a"]);
+});
+
 test("legacy v1 replay manifests remain readable with the original gameplay identity", () => {
   const legacy = base();
   legacy.schema = "lastlight.replay.v1";

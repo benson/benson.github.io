@@ -1,8 +1,8 @@
 import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260711.8";
 import { WORLD } from "./engine.js?v=20260711.8";
-import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation } from "./themes/lastlight.js?v=20260711.9";
+import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation } from "./themes/lastlight.js?v=20260711.10";
 import { springCamera } from "./feel.js?v=20260711.8";
-import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistMotionState, stableDirectionColumn } from "./motion.js?v=20260711.9";
+import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistFacingTarget, specialistMotionState, stableDirectionColumn } from "./motion.js?v=20260711.10";
 import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
 import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260711.5";
 import { impactRenderPlan } from "./impact-grammar.js?v=20260711.8";
@@ -1132,11 +1132,8 @@ export class Renderer {
       const dx = before ? raw.x - before.x : 0, dy = before ? raw.y - before.y : 0;
       const inferredMoving = Math.hypot(dx, dy) > .15;
       const reportedMoving = Boolean(raw.moving ?? inferredMoving) && !p.dead && !p.downed;
-      const locomotionTarget = raw.animState === "dash" && Number.isFinite(raw.dashFacing)
-        ? raw.dashFacing
-        : reportedMoving && Number.isFinite(raw.movementFacing) ? raw.movementFacing
-        : Number.isFinite(raw.aimFacing) ? raw.aimFacing
-        : Number.isFinite(raw.facing) ? raw.facing : inferredMoving ? Math.atan2(dy, dx) : 0;
+      const inferredFacing = inferredMoving ? Math.atan2(dy, dx) : 0;
+      const locomotionTarget = specialistFacingTarget(raw, reportedMoving, inferredFacing);
       const aimTarget = Number.isFinite(raw.aimFacing) ? raw.aimFacing : locomotionTarget;
       const now = performance.now();
       const visual = this.playerVisuals.get(p.id) || {

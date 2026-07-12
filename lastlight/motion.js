@@ -85,6 +85,18 @@ export function directionColumn(angle) {
   return y < 0 ? 2 : 0;
 }
 
+// The simulation already resolves each specialist's authored facing policy
+// (aim, movement/contact, or hybrid) into entity.facing. Rendering from raw
+// movementFacing here made aim-facing specialists look away from their target
+// whenever they strafed or backpedalled.
+export function specialistFacingTarget(entity, moving, inferredMovement = 0) {
+  if (entity?.animState === "dash" && Number.isFinite(entity?.dashFacing)) return entity.dashFacing;
+  if (Number.isFinite(entity?.facing)) return entity.facing;
+  if (moving && Number.isFinite(entity?.movementFacing)) return entity.movementFacing;
+  if (Number.isFinite(entity?.aimFacing)) return entity.aimFacing;
+  return Number(inferredMovement) || 0;
+}
+
 const DIRECTION_ANGLES = Object.freeze([Math.PI / 2, Math.PI, -Math.PI / 2, 0]);
 const angularDistance = (first, second) => Math.abs(Math.atan2(Math.sin(first - second), Math.cos(first - second)));
 

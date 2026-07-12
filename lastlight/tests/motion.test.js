@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   ENEMY_MOTION_STATES, MOTION_DIRECTIONS, SPECIALIST_MOTION_STATES, directionColumn,
-  enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, resolveMotionState, specialistMotionState, stableDirectionColumn, validateMotionRig,
+  enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, resolveMotionState, specialistFacingTarget, specialistMotionState, stableDirectionColumn, validateMotionRig,
 } from "../motion.js";
 
 const rig = (kind = "specialist") => ({
@@ -27,6 +27,13 @@ test("direction hysteresis prevents diagonal frame-to-frame atlas flicker", () =
   assert.equal(column, 0, "a decisive turn switches south");
   column = stableDirectionColumn(boundary - .18, column);
   assert.equal(column, 3, "a decisive return switches east");
+});
+
+test("specialist facing honors the simulation's aim, contact, and dash policies", () => {
+  assert.equal(specialistFacingTarget({ facing: 0, movementFacing: Math.PI, aimFacing: 0 }, true), 0, "aim-facing specialist can backpedal without turning away");
+  assert.equal(specialistFacingTarget({ facing: Math.PI, movementFacing: Math.PI, aimFacing: 0 }, true), Math.PI, "contact-facing specialist follows locomotion");
+  assert.equal(specialistFacingTarget({ animState: "dash", dashFacing: -Math.PI / 2, facing: 0 }, true), -Math.PI / 2, "dash pose follows dash travel");
+  assert.equal(specialistFacingTarget({ movementFacing: Math.PI / 2 }, true), Math.PI / 2, "legacy state retains a safe movement fallback");
 });
 
 test("strict motion rigs cover every required clip and four authored directions", () => {
