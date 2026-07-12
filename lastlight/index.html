@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260711.9">
+  <link rel="stylesheet" href="styles.css?v=20260711.10">
 </head>
 <body>
   <main id="app">
@@ -441,7 +441,18 @@
       <div class="build-history-body">
         <article class="build-release current-build">
           <header>
-            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.11.9</h3></div>
+            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.11.10</h3></div>
+            <time class="build-shipped-at" data-build-shipped-at="">Deployment verification pending</time>
+          </header>
+          <ul>
+            <li>Made abandon and post-run results resilient to replay export failures, accepted every authored upgrade identifier, and coalesced redundant pointer samples while the fixed simulation tick is paused.</li>
+            <li>Added a bounded dynamic audio hierarchy with priority buses, deterministic variation, voice caps, and critical-cue ducking.</li>
+            <li>Added detailed hover and keyboard inspection for active powerups and made the damage-source panel show and fit every source by default while respecting intentional resizing.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.11.9</h3></div>
             <time class="build-shipped-at" data-build-shipped-at="2026-07-11T21:00:00-04:00">Shipped Jul 11, 2026, 9:00 PM EDT</time>
           </header>
           <ul>
@@ -632,8 +643,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.11.9. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.11.9</strong></button>
-  <script src="build-history.js?v=20260711.9"></script>
-  <script type="module" src="game.js?v=20260711.9"></script>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.11.10. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.11.10</strong></button>
+  <script src="build-history.js?v=20260711.10"></script>
+  <script type="module" src="game.js?v=20260711.10"></script>
 </body>
 </html>

@@ -9,7 +9,7 @@ import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=202
 import { formatProjectileDisplay, getCombatMetadata, getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260711.8";
 import { BALANCE_HASH, BALANCE_VERSION } from "./balance-config.js?v=20260711.8";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
-import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260711.8";
+import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260711.10";
 import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260711.5";
 import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260711.5";
 import { clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260711.5";
@@ -18,6 +18,7 @@ import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./networ
 import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260711.8";
 import { advancePlayerMovement } from "./movement.js?v=20260711.8";
 import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
+import { DynamicAudioMixer } from "./audio-mix.js?v=20260711.10";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -26,7 +27,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.11.9";
+const BUILD = "2026.07.11.10";
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
 const systemReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false;
 const initialQualitySettings = (() => {
@@ -49,7 +50,7 @@ const RUN_HISTORY_KEY = "lastlight:runs:v1";
 const CLIENT_TOKEN_KEY = "lastlight:client-token:v1";
 const DAMAGE_LEDGER_LAYOUT_KEY = "lastlight:damage-ledger-layout:v1";
 const LAST_REPLAY_KEY = "lastlight:last-replay:v1";
-const DAMAGE_LEDGER_DEFAULT = Object.freeze({ x: 22, y: 112, width: 250, height: 150, collapsed: false });
+const DAMAGE_LEDGER_DEFAULT = Object.freeze({ x: 22, y: 112, width: 250, height: 150, collapsed: false, userSized: false });
 const DIFFICULTY_COPY = { story: "Story · Sharp hits · Lighter opening", hard: "Hard · 3× health · 2× damage", extreme: "Extreme · 7× health · 3× damage" };
 
 function loadProgress() {
@@ -76,7 +77,8 @@ function loadClientToken() {
 function loadDamageLedgerLayout() {
   try {
     const saved = JSON.parse(localStorage.getItem(DAMAGE_LEDGER_LAYOUT_KEY) || "null");
-    return saved && typeof saved === "object" ? { ...DAMAGE_LEDGER_DEFAULT, ...saved } : { ...DAMAGE_LEDGER_DEFAULT };
+    if (!saved || typeof saved !== "object") return { ...DAMAGE_LEDGER_DEFAULT };
+    return { ...DAMAGE_LEDGER_DEFAULT, ...saved, userSized: typeof saved.userSized === "boolean" ? saved.userSized : Number(saved.height) !== DAMAGE_LEDGER_DEFAULT.height };
   } catch { return { ...DAMAGE_LEDGER_DEFAULT }; }
 }
 
@@ -94,7 +96,7 @@ const state = {
   animation: 0, lastFrame: 0, lastSend: 0, lastBroadcast: 0, lastLobbyBroadcast: 0,
   lastUpgradeKey: "", lastWeaponHUDKey: "", lastPassiveHUDKey: "", lastSquadHUDKey: "", lastBossHUDKey: "", lastEventSeq: 0, endShown: false, resultTimer: null,
   progress: loadProgress(), runHistory: loadRunHistory(), resultGame: null, resultSavedKey: "",
-  audio: true, audioContext: null, toastTimer: null, lastVoiceAt: 0,
+  audio: true, audioContext: null, audioMixer: null, toastTimer: null, lastVoiceAt: 0,
   soundState: { projectiles: 0, kills: 0, level: 1, damageTaken: 0, xpCollected: 0, lastShot: 0, lastXP: 0 },
   recentErrors: [], reportSubmitting: false, resumeAfterReport: false, telemetrySent: false,
   qualitySettings: initialQualitySettings, showEnemyHealthBars: initialQualitySettings.healthBars !== "off", inspectPointer: null, inspectActive: false,
@@ -146,12 +148,20 @@ function recordReplayCheckpoint(force = false) {
 
 function finalizeReplayCapture() {
   if (!state.replayRecorder || !state.sim) return null;
-  const replay = state.replayRecorder.finalize(state.sim.tick, hashSimulationState(state.sim));
+  const recorder = state.replayRecorder;
   state.replayRecorder = null;
-  state.lastReplay = replay;
-  state.resultReplay = replay;
-  try { sessionStorage.setItem(LAST_REPLAY_KEY, JSON.stringify(replay)); } catch { /* Replay export remains available in memory. */ }
-  return replay;
+  try {
+    const replay = recorder.finalize(state.sim.tick, hashSimulationState(state.sim));
+    state.lastReplay = replay;
+    state.resultReplay = replay;
+    try { sessionStorage.setItem(LAST_REPLAY_KEY, JSON.stringify(replay)); } catch { /* Replay export remains available in memory. */ }
+    return replay;
+  } catch (error) {
+    state.resultReplay = null;
+    captureClientError("replay finalize", error);
+    console.warn("Replay capture could not be finalized", error);
+    return null;
+  }
 }
 
 function recoveryExpected() {
@@ -233,7 +243,7 @@ function resumeRecovery() {
 function applyHostInput(playerId, input) {
   if (!state.sim) return input;
   const normalized = dequantizeReplayInput(quantizeReplayInput(input));
-  state.replayRecorder?.recordInput(playerId, state.sim.tick, normalized);
+  state.replayRecorder?.recordInput(playerId, state.sim.tick, normalized, { coalesceSameTick: state.sim.paused });
   state.sim.setInput(playerId, normalized);
   return normalized;
 }
@@ -653,6 +663,7 @@ function performanceSummary() {
     },
     multiplayerInput: inputProtocolDiagnostics(),
     materialImpacts: renderer.materialImpactDiagnostics(),
+    audioMix: state.audioMixer?.diagnostics() || null,
     maxEntities: metrics.maxEntities,
   };
 }
@@ -805,6 +816,7 @@ function renderQualityControls() {
 function applyQualitySettings(settings, persist = true) {
   state.qualitySettings = persist ? saveQualitySettings(settings) : settings;
   renderer.setQualitySettings(state.qualitySettings);
+  state.audioMixer?.setDensity(state.qualitySettings.effectsDensity);
   state.showEnemyHealthBars = state.qualitySettings.healthBars !== "off";
   $("enemy-health-bars-toggle").checked = state.showEnemyHealthBars;
   $("game-canvas").dataset.enemyHealthBars = state.showEnemyHealthBars ? "visible" : "hidden";
@@ -863,27 +875,31 @@ function updateAbilityDetails(player, spec, game) {
 
 function updateActiveBuffs(player) {
   const definitions = [
-    ["speedBuff", "Speed surge", getThemeAsset("archive.boons.cruiseControl"), 15],
-    ["hasteBuff", "Rapid fire", getThemeAsset("archive.boons.ultraRapidFire"), 15],
-    ["firedUpBuff", "Fired Up", getThemeAsset("archive.boons.firedUp"), 15],
-    ["healthbackBuff", "Healthback", getThemeAsset("archive.boons.healthback"), 15],
-    ["stopwavesBuff", "Stopwaves", getThemeAsset("archive.boons.stopwaves"), 15],
-    ["frenzy", "Frenzy", SPECIALISTS.fang.signature.icon, 6],
-    ["hotTime", "Hot streak", SPECIALISTS.zuri.signature.icon, 8],
+    ["speedBuff", "Speed surge", getThemeAsset("archive.boons.cruiseControl"), 15, "Massively increases movement speed."],
+    ["hasteBuff", "Rapid fire", getThemeAsset("archive.boons.ultraRapidFire"), 15, "Massively increases weapon and ability haste."],
+    ["firedUpBuff", "Fired Up", getThemeAsset("archive.boons.firedUp"), 15, "Strong fireballs hunt the nearest enemy."],
+    ["healthbackBuff", "Healthback", getThemeAsset("archive.boons.healthback"), 15, "Every takedown restores a little health."],
+    ["stopwavesBuff", "Stopwaves", getThemeAsset("archive.boons.stopwaves"), 15, "Periodic shockwaves freeze nearby enemies."],
+    ["frenzy", "Frenzy", SPECIALISTS.fang.signature.icon, 6, "Movement and attacks accelerate during the hunt."],
+    ["hotTime", "Hot streak", SPECIALISTS.zuri.signature.icon, 8, "Weapon haste and movement speed surge after a kill streak."],
   ];
-  const active = definitions.map(([field, name, icon, max]) => ({ field, name, icon, max, remaining: Number(player[field] || 0) })).filter((buff) => buff.remaining > .04);
+  const active = definitions.map(([field, name, icon, max, copy]) => ({ field, name, icon, max, copy, remaining: Number(player[field] || 0) })).filter((buff) => buff.remaining > .04);
   const key = JSON.stringify(active.map((buff) => [buff.field, Math.ceil(buff.remaining * 10)]));
   if (key === state.lastActiveBuffKey) return; state.lastActiveBuffKey = key;
-  $("active-buffs-hud").innerHTML = active.map((buff) => `<div class="active-buff" title="${escapeHTML(buff.name)} · ${buff.remaining.toFixed(1)}s"><img src="${buff.icon}" alt=""><i style="--buff-progress:${clamp(buff.remaining / buff.max * 100, 0, 100)}%"></i><b>${buff.remaining < 10 ? buff.remaining.toFixed(1) : Math.ceil(buff.remaining)}</b><span>${escapeHTML(buff.name)}</span></div>`).join("");
+  $("active-buffs-hud").innerHTML = active.map((buff) => {
+    const tooltipId = `active-buff-${buff.field}`;
+    return `<button class="active-buff" type="button" aria-describedby="${tooltipId}" aria-label="${escapeHTML(buff.name)}, ${buff.remaining.toFixed(1)} seconds remaining. ${escapeHTML(buff.copy)}"><img src="${buff.icon}" alt=""><i style="--buff-progress:${clamp(buff.remaining / buff.max * 100, 0, 100)}%"></i><b>${buff.remaining < 10 ? buff.remaining.toFixed(1) : Math.ceil(buff.remaining)}</b><span class="active-buff-label">${escapeHTML(buff.name)}</span><span class="active-buff-tooltip" id="${tooltipId}" role="tooltip"><strong>${escapeHTML(buff.name)}</strong><em>${escapeHTML(buff.copy)}</em><small>${buff.remaining.toFixed(1)} seconds remaining</small></span></button>`;
+  }).join("");
 }
 
 function updateDamageLedger(player, game) {
-  const sources = Object.entries(player.damageBySource || {}).filter(([, damage]) => damage > 0).sort((a, b) => b[1] - a[1]).slice(0, 3);
+  const sources = Object.entries(player.damageBySource || {}).filter(([, damage]) => damage > 0).sort((a, b) => b[1] - a[1]);
   const key = JSON.stringify(sources.map(([id, damage]) => [id, Math.round(damage)]));
   if (key === state.lastDamageLedgerKey) return; state.lastDamageLedgerKey = key;
   const seconds = elapsedRunSeconds(game), panel = $("damage-ledger"), content = $("damage-ledger-content");
   panel.classList.toggle("no-data", sources.length === 0);
   content.innerHTML = sources.map(([id, damage], index) => `<div class="${index === 0 ? "leader" : ""}"><span>${escapeHTML(sourceName(id, player))}</span><b>${statNumber(damage)}</b><small>${(damage / seconds).toFixed(1)} DPS</small></div>`).join("");
+  fitDamageLedgerToContents();
 }
 
 function healthDividerMarkup(layout) {
@@ -895,6 +911,15 @@ function saveDamageLedgerLayout() {
 }
 
 function damageLedgerIsMobile() { return matchMedia("(max-width: 650px)").matches; }
+
+function fitDamageLedgerToContents() {
+  const panel = $("damage-ledger"), layout = state.damageLedgerLayout;
+  if (!panel || layout.userSized || layout.collapsed || damageLedgerIsMobile() || panel.classList.contains("no-data")) return;
+  const bounds = panel.parentElement.getBoundingClientRect();
+  const rowsHeight = [...$("damage-ledger-content").children].reduce((height, row) => height + row.getBoundingClientRect().height, 0);
+  layout.height = clamp($("damage-ledger-handle").getBoundingClientRect().height + rowsHeight + 14, 110, Math.max(110, bounds.height - 96));
+  applyDamageLedgerLayout();
+}
 
 function clampDamageLedgerLayout() {
   const panel = $("damage-ledger"), bounds = panel.parentElement.getBoundingClientRect(), layout = state.damageLedgerLayout;
@@ -926,7 +951,7 @@ function applyDamageLedgerLayout({ persist = false } = {}) {
 
 function setupDamageLedger() {
   const panel = $("damage-ledger"), handle = $("damage-ledger-handle"), collapseButton = $("damage-ledger-collapse");
-  let drag = null, applying = false;
+  let drag = null, applying = false, resizeArmed = false;
   const finishDrag = (event) => {
     if (!drag || (event.pointerId !== undefined && event.pointerId !== drag.pointerId)) return;
     drag = null; handle.classList.remove("dragging"); saveDamageLedgerLayout();
@@ -958,13 +983,29 @@ function setupDamageLedger() {
       if (event.key === "ArrowUp") layout.y -= amount;
       if (event.key === "ArrowDown") layout.y += amount;
     }
+    if (resize) state.damageLedgerLayout.userSized = true;
     event.preventDefault(); event.stopPropagation(); applyDamageLedgerLayout({ persist: true });
   });
   panel.addEventListener("keydown", (event) => event.stopPropagation());
   panel.addEventListener("keyup", (event) => event.stopPropagation());
-  panel.addEventListener("pointerdown", (event) => event.stopPropagation());
-  collapseButton.addEventListener("click", () => { state.damageLedgerLayout.collapsed = !state.damageLedgerLayout.collapsed; applyDamageLedgerLayout({ persist: true }); });
-  $("damage-ledger-reset").addEventListener("click", () => { state.damageLedgerLayout = { ...DAMAGE_LEDGER_DEFAULT, collapsed: state.damageLedgerLayout.collapsed }; applyDamageLedgerLayout({ persist: true }); handle.focus(); });
+  panel.addEventListener("pointerdown", (event) => {
+    event.stopPropagation();
+    const rect = panel.getBoundingClientRect();
+    resizeArmed = !damageLedgerIsMobile() && event.button === 0 && event.clientX >= rect.right - 20 && event.clientY >= rect.bottom - 20;
+  });
+  window.addEventListener("pointerup", () => {
+    if (!resizeArmed) return;
+    resizeArmed = false; state.damageLedgerLayout.userSized = true; saveDamageLedgerLayout();
+  });
+  collapseButton.addEventListener("click", () => {
+    state.damageLedgerLayout.collapsed = !state.damageLedgerLayout.collapsed;
+    applyDamageLedgerLayout({ persist: true });
+    if (!state.damageLedgerLayout.collapsed) fitDamageLedgerToContents();
+  });
+  $("damage-ledger-reset").addEventListener("click", () => {
+    state.damageLedgerLayout = { ...DAMAGE_LEDGER_DEFAULT, collapsed: state.damageLedgerLayout.collapsed };
+    fitDamageLedgerToContents(); applyDamageLedgerLayout({ persist: true }); handle.focus();
+  });
   state.damageLedgerResizeObserver = new ResizeObserver(() => {
     if (applying || damageLedgerIsMobile() || state.damageLedgerLayout.collapsed) return;
     const rect = panel.getBoundingClientRect();
@@ -1481,6 +1522,7 @@ function gameDiagnostics() {
     },
     enemyHealthBars: state.showEnemyHealthBars,
     displayQuality: renderer.getQualityStatus(),
+    audioMix: state.audioMixer?.diagnostics() || null,
     entities: game ? {
       enemies: game.enemies?.length || 0, friendlyProjectiles: game.projectiles?.length || 0,
       hostileProjectiles: game.hostile?.length || 0, dataMotes: game.orbs?.length || 0,
@@ -1574,18 +1616,32 @@ async function copyDiagnostics() {
   catch { toast("Clipboard unavailable"); }
 }
 
-function ensureAudio() { if (!state.audioContext) state.audioContext = new (window.AudioContext || window.webkitAudioContext)(); return state.audioContext; }
-function audioTone(audio, frequency, offset = 0, duration = .08, type = "sine", volume = .025, endFrequency = frequency) {
+function ensureAudio() {
+  if (state.audioContext) return state.audioContext;
+  const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextConstructor) return null;
+  try {
+    state.audioContext = new AudioContextConstructor();
+    state.audioMixer = new DynamicAudioMixer(state.audioContext, { density: state.qualitySettings.effectsDensity });
+    return state.audioContext;
+  } catch (error) {
+    captureClientError("audio unavailable", error);
+    state.audio = false; return null;
+  }
+}
+function audioTone(audio, frequency, offset = 0, duration = .08, type = "sine", volume = .025, endFrequency = frequency, destination = audio.destination) {
   const start = audio.currentTime + offset, oscillator = audio.createOscillator(), gain = audio.createGain();
   oscillator.type = type; oscillator.frequency.setValueAtTime(frequency, start); oscillator.frequency.exponentialRampToValueAtTime(Math.max(20, endFrequency), start + duration);
   gain.gain.setValueAtTime(.0001, start); gain.gain.exponentialRampToValueAtTime(volume, start + .008); gain.gain.exponentialRampToValueAtTime(.0001, start + duration);
-  oscillator.connect(gain).connect(audio.destination); oscillator.start(start); oscillator.stop(start + duration + .01);
+  oscillator.connect(gain).connect(destination); oscillator.start(start); oscillator.stop(start + duration + .01);
 }
 
 function sfx(name, details = {}) {
   if (!state.audio) return;
-  const audio = ensureAudio(); if (audio.state === "suspended") audio.resume();
-  const note = (frequency, offset, duration, type, volume, end) => audioTone(audio, frequency, offset, duration, type, volume, end);
+  const audio = ensureAudio(); if (!audio) return;
+  if (audio.state === "suspended") audio.resume()?.catch?.(() => {});
+  const cue = state.audioMixer.requestCue(name, details); if (!cue) return;
+  const note = (frequency, offset, duration, type, volume, end) => audioTone(audio, frequency * cue.variation.pitch, offset, duration, type, volume * cue.variation.gain, (end ?? frequency) * cue.variation.pitch, cue.destination);
   if (name.startsWith("material:")) {
     const family = name.slice(9), pitch = clamp(Number(details.pitch) || 1, .5, 1.5), mix = clamp(Number(details.volume) || .6, 0, .8);
     const profiles = {
@@ -1633,6 +1689,7 @@ function comicVoice(words) {
 function toggleAudio() {
   state.audio = !state.audio;
   for (const id of ["audio-button", "lobby-audio"]) { $(id).textContent = state.audio ? "Sound on" : "Sound off"; $(id).setAttribute("aria-pressed", String(!state.audio)); }
+  state.audioMixer?.setMuted(!state.audio);
   if (state.audio) sfx("ui"); else window.speechSynthesis?.cancel();
 }
 
@@ -1743,3 +1800,9 @@ function bindEvents() {
 
 renderSpecialistGrid(); selectSpecialist("zuri"); bindEvents(); applyQualitySettings(state.qualitySettings, false); updateProgressionUI(); setPartyMode("solo");
 if (query.get("room")) { setPartyMode("join"); $("room-input").value = query.get("room").toUpperCase().slice(0,6); setTimeout(() => $("callsign-input").focus(), 50); }
+if (localHost) Object.defineProperty(window, "__lastlightQA", { value: Object.freeze({
+  diagnostics: () => JSON.parse(JSON.stringify(gameDiagnostics())),
+  renderActiveBuffs: (fields = {}) => updateActiveBuffs(fields),
+  renderDamageLedger: (damageBySource = {}) => updateDamageLedger({ specialist: state.selected, damageBySource }, { time: 60 }),
+  playAudioCues: (names = []) => Array.isArray(names) && names.slice(0, 64).forEach((name) => sfx(String(name))),
+}), configurable: false, writable: false });

@@ -22,9 +22,28 @@ test("damage source telemetry updates a persistent interactive panel shell", () 
   assert.match(game, /new ResizeObserver/);
   assert.match(game, /event\.ctrlKey \|\| event\.metaKey/);
   assert.match(game, /matchMedia\("\(max-width: 650px\)"\)/);
+  assert.match(game, /fitDamageLedgerToContents\(\)/);
+  assert.match(game, /userSized/);
+  assert.doesNotMatch(game, /damageBySource[^\n]+slice\(0, 3\)/);
   assert.doesNotMatch(game, /\$\("damage-ledger"\)\.innerHTML/);
   assert.match(css, /\.damage-ledger \{[^}]+resize: both;/s);
   assert.match(css, /\.damage-ledger\.collapsed \{[^}]+resize: none;/s);
+});
+
+test("active powerups expose detailed pointer and keyboard inspection", () => {
+  assert.match(game, /class="active-buff" type="button" aria-describedby=/);
+  assert.match(game, /class="active-buff-tooltip"[^>]+role="tooltip"/);
+  assert.match(game, /seconds remaining/);
+  assert.match(css, /\.active-buff:hover \.active-buff-tooltip, \.active-buff:focus-visible \.active-buff-tooltip/);
+});
+
+test("runtime sound uses the bounded dynamic hierarchy without gameplay RNG", () => {
+  assert.match(game, /import \{ DynamicAudioMixer \} from "\.\/audio-mix\.js/);
+  assert.match(game, /state\.audioMixer\.requestCue\(name, details\)/);
+  assert.match(game, /audioMixer\?\.setDensity\(state\.qualitySettings\.effectsDensity\)/);
+  assert.match(game, /audioMix: state\.audioMixer\?\.diagnostics\(\) \|\| null/);
+  assert.match(game, /audioTone\([^\n]+cue\.destination/);
+  assert.match(game, /if \(localHost\) Object\.defineProperty\(window, "__lastlightQA"/);
 });
 
 test("objective notices use longer dwell times and a short interruptible fade", () => {
@@ -125,6 +144,8 @@ test("hosts capture anonymous deterministic replays and expose an explicit post-
   assert.match(game, /recordReplayCheckpoint\(\)/);
   assert.match(game, /navigator\.clipboard\.writeText\(JSON\.stringify\(state\.resultReplay\)\)/);
   assert.doesNotMatch(game, /submitRunTelemetry\([^)]*replay/i);
+  assert.match(game, /captureClientError\("replay finalize", error\)/);
+  assert.match(game, /function showResult\(game\)[\s\S]+finalizeReplayCapture\(\)[\s\S]+setScreen\("result"\)/);
 });
 
 test("deployment applies the bounded runtime config to simulation, replay, telemetry, and diagnostics", () => {

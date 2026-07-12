@@ -17,7 +17,7 @@ const SAFE_ID = /^[A-Za-z0-9._-]{1,32}$/;
 const BALANCE_HASH = /^[a-z0-9]+:[0-9a-f]{8,64}$/;
 const STATE_HASH = /^[0-9a-f]{16}$/;
 const SEED = /^[0-9a-f]{32}$/;
-const CHOICE = /^[a-z][a-z0-9:_-]{0,39}$/;
+const CHOICE = /^[A-Za-z][A-Za-z0-9:_-]{0,39}$/;
 const FEATURE_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 const LEGACY_FEATURES = Object.freeze({ configVersion: "builtin-2026.07.11.3", gameplayVersion: "events-v1", objectiveEvents: true });
 const CURRENT_FEATURES = Object.freeze({ configVersion: "release-2026.07.11.4", gameplayVersion: "events-v1", objectiveEvents: true });
@@ -332,11 +332,21 @@ export class ReplayRecorder {
     return tuple;
   }
 
-  recordInput(actualId, tick, input) {
+  recordInput(actualId, tick, input, { coalesceSameTick = false } = {}) {
     const slot = this.slotFor(actualId), quantized = quantizeReplayInput(input);
     const key = `${quantized.x}/${quantized.y}/${quantized.aim}/${quantized.auto}`;
     if (this.lastInputs.get(slot) === key) return null;
     this.lastInputs.set(slot, key);
+    // A paused simulation can receive many pointer samples without advancing a
+    // fixed tick. Only the final adjacent input for a slot can affect the next
+    // simulation step, so replace it instead of overflowing the tick budget.
+    const previous = this.commands.at(-1);
+    if (coalesceSameTick && previous?.[0] === tick && previous[2] === "i" && previous[3] === slot) {
+      const tuple = [tick, previous[1], "i", slot, quantized.x, quantized.y, quantized.aim, quantized.auto];
+      validateCommand(tuple, this.commands.length - 1);
+      this.commands[this.commands.length - 1] = tuple;
+      return tuple;
+    }
     return this.push(tick, "i", slot, quantized.x, quantized.y, quantized.aim, quantized.auto);
   }
 
