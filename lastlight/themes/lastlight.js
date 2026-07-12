@@ -1,4 +1,4 @@
-import { ENEMY_MOTION_STATES, MOTION_DIRECTIONS, MOTION_SCHEMA, SPECIALIST_MOTION_STATES, validateMotionRig } from "../motion.js?v=20260711.8";
+import { ENEMY_MOTION_STATES, MOTION_DIRECTIONS, MOTION_SCHEMA, SPECIALIST_MOTION_STATES, validateMotionRig } from "../motion.js?v=20260711.10";
 import { LASTLIGHT_MATERIAL_THEME, MATERIAL_CLASSES, validateMaterialTheme } from "../material-impacts.js?v=20260711.8";
 
 /**
@@ -195,7 +195,10 @@ function plannedSpecialistRig(id) {
     bindings: { dash: "mobility", castE: "cast", castR: "cast" },
     states: {
       idle: { ...frames([0, 1], [320, 320], true), loop: true },
-      run: { ...frames([2, 3], 125, true), loop: true },
+      // These are two authored key poses, not dense in-between frames. A
+      // half-second stride reads as grounded motion; the previous 250ms stride
+      // presented them as a rapid full-silhouette flash at gameplay scale.
+      run: { ...frames([2, 3], 250, true), loop: true },
       mobility: { loop: false, authored: true, frames: [{ row: 4, ms: 70, scaleX: 1.03, scaleY: .97 }, { row: 4, ms: 70 }, { row: 4, ms: 100, scaleX: .98 }] },
       cast: { loop: false, authored: true, frames: [{ row: 1, ms: 80, scaleX: .98 }, { row: 1, ms: 80 }, { row: 4, ms: 70, scaleX: 1.03 }, { row: 0, ms: 130 }] },
       hurt: frames([5, 5], [80, 150], true),
@@ -213,7 +216,7 @@ function zuriPrototypeRig() {
     grid: { columns: 4, rows: 5 }, anchor: [.5, .82], drawSize: [138, 110],
     states: {
       idle: { ...frames([0, 0], [260, 260], true), loop: true },
-      run: { ...frames([1, 2], 125, true), loop: true },
+      run: { ...frames([1, 2], 250, true), loop: true },
       mobility: frames([3, 3, 3], [60, 60, 100], true),
       cast: frames([3, 3, 3, 0], [80, 80, 70, 130]),
       hurt: frames([4, 4], [80, 150], true), down: frames([4, 4, 4, 4], [90, 110, 140, 420]),
