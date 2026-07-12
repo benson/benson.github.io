@@ -343,12 +343,43 @@
         <div id="result-damage-breakdown" class="result-damage-breakdown"></div>
         <div class="result-actions">
           <button id="again-button" class="deploy-button" type="button"><span>Run it again</span><span>↻</span></button>
-          <button id="copy-replay" class="text-button hidden" type="button">Copy deterministic replay</button>
+          <button id="watch-replay" class="text-button hidden" type="button">Watch verified replay</button>
           <button id="result-run-history" class="text-button" type="button">View past runs</button>
           <button id="result-home" class="text-button" type="button">Return to command</button>
         </div>
       </div>
     </section>
+
+    <dialog id="replay-dialog" class="replay-dialog" aria-labelledby="replay-title">
+      <div class="manual-header replay-header">
+        <div><p class="eyebrow">Deterministic operation record</p><h2 id="replay-title">WATCH REPLAY</h2></div>
+        <div class="replay-header-actions">
+          <span id="replay-verification" class="replay-verification" role="status">Verifying checkpoint...</span>
+          <button id="replay-close" class="icon-button" type="button" aria-label="Close replay viewer">Close</button>
+        </div>
+      </div>
+      <div class="replay-body">
+        <section class="replay-stage" aria-label="Replay battlefield">
+          <canvas id="replay-canvas" tabindex="0" aria-label="Interactive replay battlefield. Hover entities for details."></canvas>
+          <article id="replay-inspect" class="replay-inspect hidden" aria-live="polite"></article>
+        </section>
+        <aside class="replay-sidebar" aria-label="Replay statistics and loadouts">
+          <div id="replay-stats" class="replay-stats"></div>
+          <div id="replay-loadouts" class="replay-loadouts"></div>
+        </aside>
+      </div>
+      <div class="replay-controls" aria-label="Replay controls">
+        <div class="replay-transport">
+          <button id="replay-back" type="button" aria-label="Go back 5 seconds">-5s</button>
+          <button id="replay-play" class="replay-play" type="button" aria-pressed="false">Play</button>
+          <button id="replay-forward" type="button" aria-label="Go forward 5 seconds">+5s</button>
+        </div>
+        <label class="replay-scrubber" for="replay-timeline"><span>Timeline</span><input id="replay-timeline" type="range" min="0" max="1" value="0" step="1"><output id="replay-time" for="replay-timeline">00:00 / 00:00</output></label>
+        <label class="replay-speed" for="replay-speed"><span>Speed</span><select id="replay-speed"><option value="0.5">0.5x</option><option value="1" selected>1x</option><option value="2">2x</option><option value="4">4x</option></select></label>
+        <button id="replay-copy" class="text-button" type="button">Copy replay JSON</button>
+      </div>
+      <p class="replay-shortcuts"><kbd>Space</kbd> Play / pause <kbd>Left</kbd><kbd>Right</kbd> +/-5 seconds <kbd>Home</kbd> Restart <kbd>End</kbd> Finish</p>
+    </dialog>
 
     <dialog id="run-history-dialog" class="run-history-dialog" aria-labelledby="run-history-title">
       <div class="manual-header">

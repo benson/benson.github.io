@@ -117,6 +117,21 @@ test("inspection explains raised-cover projectile interception and authored exce
   assert.equal(result.stats.Exceptions, "Rail lanes · Apex fire");
 });
 
+test("inspection coordinates stay aligned after a modal canvas resize", () => {
+  const context = { setTransform: () => {} };
+  const rect = { left: 40, top: 20, width: 800, height: 600 };
+  const canvas = { clientWidth: 800, clientHeight: 600, width: 0, height: 0, getContext: () => context, getBoundingClientRect: () => ({ ...rect }) };
+  const renderer = new Renderer(canvas);
+  rect.width = 1200; rect.height = 675; canvas.clientWidth = 1200; canvas.clientHeight = 675;
+  renderer.resize(); renderer.camera.x = 0; renderer.camera.y = 0;
+  const detail = renderer.inspectAt(rect.left + rect.width / 2, rect.top + rect.height / 2, {
+    map: "warehouse", machine: { charge: 0, cooldown: 0 }, enemies: [], drops: [], orbs: [], pods: [], objectives: [], relayBalls: [], drones: [], projectiles: [], hostile: [], effects: [],
+  });
+  assert.equal(detail.id, "machine");
+  assert.equal(detail.type, "objective");
+  assert.equal(renderer.width, 1200); assert.equal(renderer.height, 675);
+});
+
 test("renderer applies quality profiles without mutating simulation lists", () => {
   const renderer = createRenderer();
   renderer.setQualitySettings(settingsForPreset("minimal"));

@@ -1,0 +1,58 @@
+import { Simulation } from "./engine.js?v=20260711.9";
+import { LEGACY_REPLAY_SCHEMA, hashSimulationState } from "./replay.js?v=20260711.9";
+
+export function anonymousReplayToken(slot) {
+  const digit = Math.max(0, Math.min(3, Number(slot) || 0)) + 1;
+  return digit.toString(16).repeat(24);
+}
+
+function replayFeatures(replay) {
+  return replay.schema === LEGACY_REPLAY_SCHEMA
+    ? { gameplayVersion: "events-v1", objectiveEvents: true }
+    : { gameplayVersion: replay.features.gameplayVersion, objectiveEvents: replay.features.objectiveEvents };
+}
+
+export function createGameReplayAdapters() {
+  const generations = new WeakMap();
+  const playerForSlot = (simulation, slot) => simulation.players.find((player) => player.replaySlot === slot);
+  const nextId = (simulation, slot) => {
+    const values = generations.get(simulation) || new Map();
+    const generation = (values.get(slot) || 0) + 1;
+    values.set(slot, generation); generations.set(simulation, values);
+    return `replay-${slot}-${generation}`;
+  };
+  const addPlayer = (simulation, slot, specialist) => simulation.addPlayer({
+    id: nextId(simulation, slot), name: `Specialist ${slot + 1}`, specialist, replaySlot: slot, resumeToken: anonymousReplayToken(slot),
+  }, slot);
+
+  return Object.freeze({
+    createSimulation(replay) {
+      const features = replayFeatures(replay);
+      const simulation = new Simulation({
+        ...replay.run, features,
+        players: replay.roster.map(({ slot, specialist }) => ({
+          id: `replay-${slot}-0`, name: `Specialist ${slot + 1}`, specialist, replaySlot: slot, resumeToken: anonymousReplayToken(slot),
+        })),
+      }, { seed: replay.seed, balanceVersion: replay.balance.version, balanceHash: replay.balance.hash, features });
+      generations.set(simulation, new Map(replay.roster.map(({ slot }) => [slot, 0])));
+      return simulation;
+    },
+    applyCommand(simulation, command) {
+      const player = command.slot === undefined ? null : playerForSlot(simulation, command.slot);
+      if (command.kind === "input") { if (!player || !simulation.setInput(player.id, command.input)) throw new Error(`Replay input references inactive slot ${command.slot}`); }
+      else if (command.kind === "cast") { if (!player || !simulation.cast(player.id, command.cast)) throw new Error(`Replay cast was rejected for slot ${command.slot}`); }
+      else if (command.kind === "upgrade") {
+        const accepted = Boolean(player && simulation.pendingChoices?.[player.id]?.some((choice) => choice.id === command.choiceId) && !simulation.choiceReady?.[player.id]);
+        if (!accepted) throw new Error(`Replay upgrade was rejected for slot ${command.slot}`);
+        simulation.choose(player.id, command.choiceId);
+      }
+      else if (command.kind === "join") addPlayer(simulation, command.slot, command.specialist);
+      else if (command.kind === "leave") { if (!player) throw new Error(`Replay leave references inactive slot ${command.slot}`); simulation.removePlayer(player.id); }
+      else if (command.kind === "reconnect") addPlayer(simulation, command.slot, command.specialist || player?.specialist || "zuri");
+      else if (command.kind === "abandon") simulation.lose("The squad withdrew from the breach.");
+      else throw new Error(`Unsupported replay command ${command.kind}`);
+    },
+    stepSimulation(simulation, dt) { simulation.update(dt); },
+    hashState: hashSimulationState,
+  });
+}

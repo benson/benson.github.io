@@ -184,8 +184,9 @@ test("simulation hashes normalize transient identity but include input, hit sets
   const seed = "0123456789abcdef0123456789abcdef";
   const first = new Simulation({ ...config, players: [{ id: "relay-a", name: "Secret A", specialist: "zuri", replaySlot: 0 }] }, { seed });
   const second = new Simulation({ ...config, players: [{ id: "relay-b", name: "Secret B", specialist: "zuri", replaySlot: 0 }] }, { seed });
+  first.players[0].resumeToken = "a".repeat(24); second.players[0].resumeToken = "b".repeat(24);
   assert.equal(hashSimulationState(first), hashSimulationState(second));
-  assert.doesNotMatch(JSON.stringify(canonicalSimulationState(first)), /relay-a|Secret A/);
+  assert.doesNotMatch(JSON.stringify(canonicalSimulationState(first)), /relay-a|Secret A|aaaaaaaaaaaaaaaaaaaaaaaa/);
 
   first.setInput("relay-a", { x: 1, y: 0, aim: 0, autoAim: true });
   assert.notEqual(hashSimulationState(first), hashSimulationState(second));

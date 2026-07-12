@@ -8,4 +8,5 @@ __pycache__/
 *.py[cod]
 lastlight/artifacts/
 .lastlight-dashboard/
+.playwright-cli/
 .mtgcollection-backups/

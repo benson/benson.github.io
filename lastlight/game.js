@@ -21,6 +21,8 @@ import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
 import { DynamicAudioMixer } from "./audio-mix.js?v=20260711.10";
 import { buildUpgradeComparison, weaponTelemetry } from "./upgrade-preview.js?v=20260711.10";
 import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260711.10";
+import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260711.9";
+import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260711.9";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -43,6 +45,8 @@ const initialQualitySettings = (() => {
 })();
 const renderer = new Renderer($("game-canvas"));
 renderer.setQualitySettings(initialQualitySettings);
+const replayRenderer = new Renderer($("replay-canvas"));
+replayRenderer.setQualitySettings(initialQualitySettings);
 const fixedClock = new FixedStepClock();
 const movementPredictor = new MovementPredictor();
 const hostInputSequences = new HostInputSequenceGate();
@@ -108,6 +112,7 @@ const state = {
   resumeToken: loadClientToken(),
   hostPreviousMotion: null, inputMotionStartedAt: 0, inputMotionStart: null, inputWasActive: false,
   replayRecorder: null, lastReplayCheckpointTick: -1, lastReplay: loadLastReplay(), resultReplay: null,
+  replayViewer: null,
   runtimeConfig: { config: DEFAULT_RUNTIME_CONFIG, source: "built-in", status: "initializing" },
   recoveryOffer: null, lastRecoverySaveAt: 0,
   networkLab: null,
@@ -753,7 +758,7 @@ function updateCooldownSlot(slot, remaining, maximum, unlocked, unlockLevel) {
 function setEnemyHealthBars(visible, persist = true) {
   state.showEnemyHealthBars = Boolean(visible);
   state.qualitySettings = { ...state.qualitySettings, preset: "custom", healthBars: state.showEnemyHealthBars ? "all" : "off" };
-  renderer.setQualitySettings(state.qualitySettings);
+  renderer.setQualitySettings(state.qualitySettings); replayRenderer.setQualitySettings(state.qualitySettings);
   $("game-canvas").dataset.enemyHealthBars = state.showEnemyHealthBars ? "visible" : "hidden";
   $("enemy-health-bars-toggle").checked = state.showEnemyHealthBars;
   if (persist) state.qualitySettings = saveQualitySettings(state.qualitySettings);
@@ -780,7 +785,7 @@ function renderQualityControls() {
 
 function applyQualitySettings(settings, persist = true) {
   state.qualitySettings = persist ? saveQualitySettings(settings) : settings;
-  renderer.setQualitySettings(state.qualitySettings);
+  renderer.setQualitySettings(state.qualitySettings); replayRenderer.setQualitySettings(state.qualitySettings);
   state.audioMixer?.setDensity(state.qualitySettings.effectsDensity);
   state.showEnemyHealthBars = state.qualitySettings.healthBars !== "off";
   $("enemy-health-bars-toggle").checked = state.showEnemyHealthBars;
@@ -1313,7 +1318,7 @@ function showResult(game) {
   $("result-unlock").classList.toggle("hidden", !unlocks.length);
   $("result-unlock").textContent = unlocks.length ? `Campaign updated · ${unlocks.join(" · ")}` : "";
   if (state.isHost && game === state.sim) finalizeReplayCapture();
-  $("copy-replay").classList.toggle("hidden", !state.resultReplay);
+  $("watch-replay").classList.toggle("hidden", !state.resultReplay);
   state.resultGame = game; renderScoreboard(game);
   saveCompletedRun(game);
   setScreen("result");
@@ -1327,6 +1332,123 @@ async function copyReplay() {
   if (!state.resultReplay) return;
   try { await navigator.clipboard.writeText(JSON.stringify(state.resultReplay)); toast("Deterministic replay copied"); }
   catch (error) { captureClientError("replay", error); toast("Could not copy the replay"); }
+}
+
+function replayWeaponMarkup(player) {
+  const spec = SPECIALISTS[player.specialist] || SPECIALISTS.zuri;
+  const weapons = Object.entries(player.weapons || {}).map(([id, weapon]) => {
+    const data = id === "signature" ? spec.signature : WEAPONS[id];
+    if (!data) return "";
+    const name = weapon.evolved ? data.evolve : data.name;
+    return `<span title="${escapeHTML(name)}"><img src="${escapeHTML(data.icon)}" alt=""><b>${escapeHTML(name)} ${weapon.evolved ? "E" : `L${weapon.level}`}</b></span>`;
+  }).join("");
+  const passives = Object.entries(player.passives || {}).filter(([, rank]) => Number(rank) > 0).map(([id, rank]) => {
+    const passive = PASSIVES[id]; if (!passive) return "";
+    return `<span title="${escapeHTML(passive.name)}"><img src="${escapeHTML(passive.icon)}" alt=""><b>${escapeHTML(passive.name)} ${rank}</b></span>`;
+  }).join("");
+  return weapons + passives || `<span>No upgrades yet</span>`;
+}
+
+function renderReplayViewer(force = false) {
+  const viewer = state.replayViewer; if (!viewer) return;
+  const timeline = viewer.timeline, playback = timeline.state(), game = playback.simulation;
+  $("replay-timeline").max = String(timeline.replay.finalTick);
+  $("replay-timeline").value = String(playback.tick);
+  $("replay-time").textContent = `${formatTime(playback.seconds)} / ${formatTime(playback.durationSeconds)}`;
+  $("replay-play").textContent = viewer.playing ? "Pause" : playback.complete ? "Replay" : "Play";
+  $("replay-play").setAttribute("aria-pressed", String(viewer.playing));
+  const verification = $("replay-verification"); verification.classList.toggle("invalid", Boolean(viewer.error));
+  verification.textContent = viewer.error ? "Verification failed" : playback.finalVerified ? "Final hash verified" : playback.lastVerifiedTick === null ? "Awaiting checkpoint" : `Checkpoint verified / ${formatTime(playback.lastVerifiedTick / 60)}`;
+  const stage = game.stage === "boss" ? "Apex" : game.stage === "won" ? "Victory" : game.stage === "lost" ? "Defeat" : `Wave ${String((game.wave || 0) + 1).padStart(2, "0")}`;
+  $("replay-stats").innerHTML = [
+    ["Record time", formatTime(playback.seconds)], ["Phase", stage], ["Level", game.level || 1], ["Squad kills", statNumber(game.kills)], ["Gold", statNumber(game.gold)], ["Entities", statNumber((game.enemies?.length || 0) + (game.projectiles?.length || 0) + (game.hostile?.length || 0))],
+  ].map(([label, value]) => `<div><span>${escapeHTML(label)}</span><strong>${escapeHTML(value)}</strong></div>`).join("");
+  const loadoutKey = JSON.stringify((game.players || []).map((player) => [player.replaySlot, player.hp, player.damage, player.kills, player.weapons, player.passives]));
+  if (force || loadoutKey !== viewer.loadoutKey) {
+    viewer.loadoutKey = loadoutKey;
+    $("replay-loadouts").innerHTML = (game.players || []).map((player) => {
+      const spec = SPECIALISTS[player.specialist] || SPECIALISTS.zuri;
+      return `<article class="replay-player"><header><img src="${escapeHTML(spec.sprite)}" alt=""><div><strong>Specialist ${Number(player.replaySlot) + 1}</strong><small>${escapeHTML(spec.name)}</small></div><em>${Math.max(0, Number(player.hp || 0)).toFixed(1)} HP</em></header><dl><div><dt>Damage</dt><dd>${statNumber(player.damage)}</dd></div><div><dt>Kills</dt><dd>${statNumber(player.kills)}</dd></div><div><dt>XP</dt><dd>${statNumber(player.xpCollected)}</dd></div></dl><div class="replay-kit">${replayWeaponMarkup(player)}</div></article>`;
+    }).join("") || `<p>No active specialists at this point in the record.</p>`;
+  }
+}
+
+function drawReplayFrame(now) {
+  const viewer = state.replayViewer;
+  if (!viewer || !$("replay-dialog").open) return;
+  const dt = Math.min(.05, Math.max(0, (now - viewer.lastFrame) / 1000)); viewer.lastFrame = now;
+  if (viewer.playing && !viewer.error) {
+    try {
+      viewer.timeline.advance(dt, viewer.speed);
+      if (viewer.timeline.complete) viewer.playing = false;
+    } catch (error) {
+      viewer.playing = false; viewer.error = error; captureClientError("replay viewer", error);
+    }
+  }
+  const game = viewer.timeline.simulation, focus = game.players?.[0]?.id;
+  replayRenderer.draw(game, focus, null, 1, dt);
+  if (now - viewer.lastUiAt > 80 || viewer.lastTick !== viewer.timeline.tick) {
+    viewer.lastUiAt = now; viewer.lastTick = viewer.timeline.tick; renderReplayViewer();
+  }
+  viewer.animation = requestAnimationFrame(drawReplayFrame);
+}
+
+function seekReplayTo(targetTick) {
+  const viewer = state.replayViewer; if (!viewer || viewer.error) return;
+  viewer.playing = false;
+  try {
+    const before = viewer.timeline.tick;
+    viewer.timeline.seek(targetTick);
+    if (Math.abs(before - viewer.timeline.tick) > 60) replayRenderer.resetCamera();
+    renderReplayViewer(true);
+  } catch (error) {
+    viewer.error = error; captureClientError("replay seek", error); renderReplayViewer(true);
+  }
+}
+
+function queueReplaySeek(targetTick) {
+  const viewer = state.replayViewer; if (!viewer) return;
+  viewer.playing = false; viewer.pendingSeek = Number(targetTick);
+  if (viewer.seekFrame) return;
+  viewer.seekFrame = requestAnimationFrame(() => {
+    if (!state.replayViewer) return;
+    const target = state.replayViewer.pendingSeek; state.replayViewer.seekFrame = 0;
+    seekReplayTo(target);
+  });
+}
+
+function toggleReplayPlayback() {
+  const viewer = state.replayViewer; if (!viewer || viewer.error) return;
+  if (viewer.timeline.complete) { viewer.timeline.reset(); replayRenderer.resetCamera(); }
+  viewer.playing = !viewer.playing; viewer.lastFrame = performance.now(); renderReplayViewer(true);
+}
+
+function openReplayViewer() {
+  if (!state.resultReplay) return;
+  try {
+    const timeline = new VerifiedReplayTimeline(state.resultReplay, createGameReplayAdapters(), {
+      balanceVersion: BALANCE_VERSION, balanceHash: BALANCE_HASH, rng: RNG_ALGORITHM, stepHz: 60,
+    });
+    state.replayViewer = { timeline, playing: true, speed: 1, error: null, animation: 0, seekFrame: 0, pendingSeek: 0, lastFrame: performance.now(), lastUiAt: 0, lastTick: -1, loadoutKey: "" };
+    $("replay-speed").value = "1";
+    $("replay-dialog").showModal(); replayRenderer.setQualitySettings(state.qualitySettings); replayRenderer.resetCamera(); replayRenderer.resize();
+    renderReplayViewer(true); state.replayViewer.animation = requestAnimationFrame(drawReplayFrame);
+  } catch (error) { captureClientError("replay open", error); toast("This replay could not be verified"); }
+}
+
+function stopReplayViewer() {
+  const viewer = state.replayViewer; if (!viewer) return;
+  cancelAnimationFrame(viewer.animation); cancelAnimationFrame(viewer.seekFrame);
+  replayRenderer.clearInspection(); state.replayViewer = null;
+}
+
+function inspectReplayCanvas(event) {
+  const viewer = state.replayViewer; if (!viewer) return;
+  const detail = replayRenderer.inspectAt(event.clientX, event.clientY, viewer.timeline.simulation), panel = $("replay-inspect");
+  if (!detail) { panel.classList.add("hidden"); return; }
+  const rows = Object.entries(detail.stats || {}).slice(0, 4);
+  panel.innerHTML = `<span>${escapeHTML(detail.type || "Field contact")}</span><strong>${escapeHTML(detail.name || "Unknown")}</strong><p>${escapeHTML(detail.description || detail.copy || "")}</p>${rows.length ? `<dl>${rows.map(([label, value]) => `<div><dt>${escapeHTML(label)}</dt><dd>${escapeHTML(value)}</dd></div>`).join("")}</dl>` : ""}`;
+  panel.classList.remove("hidden");
 }
 
 function returnToLobby() {
@@ -1696,7 +1818,26 @@ function bindEvents() {
   $("pause-button").addEventListener("click", () => togglePause()); $("resume-button").addEventListener("click", () => togglePause(false)); $("abandon-button").addEventListener("click", abandon);
   $("enemy-health-bars-toggle").addEventListener("change", (event) => setEnemyHealthBars(event.target.checked));
   $("again-button").addEventListener("click", returnToLobby); $("result-home").addEventListener("click", leaveToHome);
-  $("copy-replay").addEventListener("click", copyReplay);
+  $("watch-replay").addEventListener("click", openReplayViewer);
+  $("replay-copy").addEventListener("click", copyReplay);
+  $("replay-play").addEventListener("click", toggleReplayPlayback);
+  $("replay-back").addEventListener("click", () => seekReplayTo((state.replayViewer?.timeline.tick || 0) - 300));
+  $("replay-forward").addEventListener("click", () => seekReplayTo((state.replayViewer?.timeline.tick || 0) + 300));
+  $("replay-timeline").addEventListener("input", (event) => queueReplaySeek(event.currentTarget.value));
+  $("replay-speed").addEventListener("change", (event) => { if (state.replayViewer) state.replayViewer.speed = Number(event.currentTarget.value); });
+  $("replay-close").addEventListener("click", () => $("replay-dialog").close());
+  $("replay-dialog").addEventListener("close", stopReplayViewer);
+  $("replay-dialog").addEventListener("click", (event) => { if (event.target === $("replay-dialog")) $("replay-dialog").close(); });
+  $("replay-dialog").addEventListener("keydown", (event) => {
+    if (event.target.matches("button,input,select")) return;
+    if (event.code === "Space") { event.preventDefault(); toggleReplayPlayback(); }
+    else if (event.key === "ArrowLeft") { event.preventDefault(); seekReplayTo((state.replayViewer?.timeline.tick || 0) - 300); }
+    else if (event.key === "ArrowRight") { event.preventDefault(); seekReplayTo((state.replayViewer?.timeline.tick || 0) + 300); }
+    else if (event.key === "Home") { event.preventDefault(); seekReplayTo(0); }
+    else if (event.key === "End") { event.preventDefault(); seekReplayTo(state.replayViewer?.timeline.replay.finalTick || 0); }
+  });
+  $("replay-canvas").addEventListener("pointermove", inspectReplayCanvas);
+  $("replay-canvas").addEventListener("pointerleave", () => { replayRenderer.clearInspection(); $("replay-inspect").classList.add("hidden"); });
   for (const id of ["run-history-button", "lobby-run-history", "result-run-history"]) $(id).addEventListener("click", openRunHistory);
   $("run-history-close").addEventListener("click", () => $("run-history-dialog").close());
   $("run-history-dialog").addEventListener("click", (event) => { if (event.target === $("run-history-dialog")) $("run-history-dialog").close(); });

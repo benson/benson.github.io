@@ -155,15 +155,29 @@ test("multiplayer input uses sequenced host application and snapshot acknowledge
   assert.match(game, /function closeSocket\(\)[^\n]+resetInputProtocol\(\)/);
 });
 
-test("hosts capture anonymous deterministic replays and expose an explicit post-run copy action", () => {
-  assert.match(html, /id="copy-replay"[^>]*>Copy deterministic replay</);
+test("hosts capture anonymous deterministic replays and expose a verified post-run viewer", () => {
+  assert.match(html, /id="watch-replay"[^>]*>Watch verified replay</);
+  assert.doesNotMatch(html, /id="copy-replay"/);
   assert.match(game, /new ReplayRecorder\(/);
   assert.match(game, /createRandomSeed\(\)/);
   assert.match(game, /recordReplayCheckpoint\(\)/);
+  assert.match(html, /id="replay-copy"[^>]*>Copy replay JSON</);
   assert.match(game, /navigator\.clipboard\.writeText\(JSON\.stringify\(state\.resultReplay\)\)/);
   assert.doesNotMatch(game, /submitRunTelemetry\([^)]*replay/i);
   assert.match(game, /captureClientError\("replay finalize", error\)/);
   assert.match(game, /function showResult\(game\)[\s\S]+finalizeReplayCapture\(\)[\s\S]+setScreen\("result"\)/);
+});
+
+test("result screen exposes an accessible verified replay viewer with complete transport controls", () => {
+  for (const id of ["watch-replay", "replay-dialog", "replay-canvas", "replay-play", "replay-back", "replay-forward", "replay-timeline", "replay-speed", "replay-copy", "replay-stats", "replay-loadouts", "replay-inspect"]) assert.match(html, new RegExp(`id="${id}"`));
+  assert.match(html, /aria-label="Interactive replay battlefield/);
+  assert.match(game, /new VerifiedReplayTimeline\(state\.resultReplay, createGameReplayAdapters\(\)/);
+  assert.match(game, /viewer\.timeline\.advance\(dt, viewer\.speed\)/);
+  assert.match(game, /queueReplaySeek\(event\.currentTarget\.value\)/);
+  assert.match(game, /replayRenderer\.inspectAt\(event\.clientX, event\.clientY/);
+  assert.match(game, /event\.code === "Space"/);
+  assert.match(css, /\.replay-dialog/); assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
+  assert.doesNotMatch(css.match(/\.replay-controls button[^}]+\}/s)?.[0] || "", /transition:\s*all/);
 });
 
 test("deployment applies the bounded runtime config to simulation, replay, telemetry, and diagnostics", () => {
