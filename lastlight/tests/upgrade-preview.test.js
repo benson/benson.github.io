@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { PASSIVES, WEAPONS } from "../data.js";
+import { PASSIVES, SPECIALISTS, WEAPONS } from "../data.js";
 import { Simulation, previewPlayerUpgrade } from "../engine.js";
-import { buildUpgradeComparison, weaponTelemetry } from "../upgrade-preview.js";
+import { buildUpgradeComparison, signatureEvolutionTelemetry, weaponTelemetry } from "../upgrade-preview.js";
 
 const relevantPlayerState = (player) => ({
   hp: player.hp,
@@ -71,4 +71,53 @@ test("weapon telemetry applies global damage only to runtime sources that scale 
   player.passives.damage = 1;
   assert.equal(weaponTelemetry("crossbow", { level: 1 }, player).damage, "72 / hit");
   assert.equal(weaponTelemetry("transit", { level: 1 }, player).damage, "190 / hit");
+});
+
+test("signature telemetry derives geometry, secondary hits, and evolution requirements from runtime tuning", () => {
+  for (const specialist of Object.values(SPECIALISTS)) {
+    const sim = new Simulation({ players: [{ id: "p", name: "P", specialist: specialist.id }] });
+    const telemetry = weaponTelemetry("signature", { level: 5, evolved: false }, sim.players[0]);
+    for (const key of ["damage", "interval", "projectiles", "radius", "reach", "pierce", "lifetime", "secondary", "cadenceKind"]) {
+      assert.ok(telemetry[key], `${specialist.id}.${key}`);
+    }
+    const evolution = signatureEvolutionTelemetry(specialist.id, sim.players[0]);
+    assert.match(evolution.requirement, /Signature level 5 \+ .+ \(rank 1\+\) \+ an elite access card/);
+    assert.equal(evolution.pairedPassive.id, specialist.signature.passive);
+    assert.ok(evolution.pairedPassive.effect);
+    assert.ok(evolution.changes.length, `${specialist.id} evolution has no runtime delta`);
+  }
+});
+
+test("Gale cadence reports Flow generation and time-to-ready instead of the retry timer", () => {
+  const sim = new Simulation({ players: [{ id: "p", name: "P", specialist: "gale" }] });
+  const player = sim.players[0];
+  const base = weaponTelemetry("signature", { level: 5, evolved: false }, player);
+  const evolved = weaponTelemetry("signature", { level: 5, evolved: true }, player);
+  assert.equal(base.cadenceKind, "flow");
+  assert.equal(base.interval, "30 Flow/s · 3.33s from empty");
+  assert.equal(base.cooldownSeconds, 100 / 30);
+  assert.equal(evolved.interval, "34.5 Flow/s · 2.9s from empty");
+  assert.ok(evolved.cooldownSeconds < base.cooldownSeconds);
+  assert.doesNotMatch(base.interval, /^0\.25s$/);
+  const rows = rowMap(buildUpgradeComparison({ id: "weapon:signature" }, player));
+  assert.equal(rows.cooldown.label, "Flow cadence");
+  assert.match(rows.cooldown.before, /Flow\/s/);
+});
+
+test("previously false evolution claims collapse to their actual engine deltas", () => {
+  const expected = {
+    sola: ["cadence"],
+    fang: ["cadence"],
+    gale: ["cadence", "pierce", "secondary"],
+    vesper: ["cadence", "pierce"],
+  };
+  for (const [specialist, ids] of Object.entries(expected)) {
+    const sim = new Simulation({ players: [{ id: "p", name: "P", specialist }] });
+    const evolution = signatureEvolutionTelemetry(specialist, sim.players[0]);
+    assert.deepEqual(evolution.changes.map((change) => change.id), ids);
+  }
+  const fang = signatureEvolutionTelemetry("fang", new Simulation({ players: [{ id: "p", name: "P", specialist: "fang" }] }).players[0]);
+  assert.doesNotMatch(fang.summary, /bleed|sustain/i);
+  const vesper = signatureEvolutionTelemetry("vesper", new Simulation({ players: [{ id: "p", name: "P", specialist: "vesper" }] }).players[0]);
+  assert.doesNotMatch(vesper.summary, /recall/i);
 });

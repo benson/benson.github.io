@@ -40,6 +40,14 @@ test("impact grammar exhaustively covers every base and evolved weapon", () => {
   }
 });
 
+test("signature evolution copy does not promise mechanics the engine does not implement", () => {
+  assert.match(SIGNATURE_IMPACT_GRAMMAR.sola.evolvedDifference, /1\.50 seconds instead of 1\.75/);
+  assert.doesNotMatch(SIGNATURE_IMPACT_GRAMMAR.sola.evolvedDifference, /extra|added penetration/i);
+  assert.match(SIGNATURE_IMPACT_GRAMMAR.fang.evolvedDifference, /does not add bleed/i);
+  assert.match(SIGNATURE_IMPACT_GRAMMAR.gale.evolvedDifference, /pierce from 5 to 12.+Flow 15% faster/i);
+  assert.match(SIGNATURE_IMPACT_GRAMMAR.vesper.evolvedDifference, /pierce from 7 to 14.+Blade Recall is unchanged/i);
+});
+
 test("entity resolver reads anonymous owner loadouts without mutating simulation state", () => {
   const state = { players: [{ id: "transient-private-id", specialist: "echo", weapons: { signature: { level: 5, evolved: true }, mines: { level: 5, evolved: true } } }] };
   const before = JSON.stringify(state);

@@ -42,6 +42,7 @@ test("baseline anchors stay aligned with balance, movement, and catalog mechanic
     assert.equal(identity.mobility.facing, movement.facing);
     assert.equal(identity.range, SPECIALISTS[id].range.toLowerCase());
     assert.equal(identity.breakpoints.find((value) => value.id === "signature-evolution").trigger.value, SPECIALISTS[id].signature.passive);
+    assert.match(identity.breakpoints.find((value) => value.id === "signature-evolution").effect, /elite access card/);
   }
 });
 

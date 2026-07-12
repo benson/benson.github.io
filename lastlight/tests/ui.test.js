@@ -88,6 +88,15 @@ test("specialist select exposes an accessible authored starting-weapon detail su
   assert.match(html, /id="detail-weapon-stats"/);
   assert.match(game, /const SIGNATURE_BEHAVIORS = \{/);
   assert.match(game, /weaponTelemetry\("signature", \{ level: 1, evolved: false \}, player\)/);
+  assert.match(game, /signatureEvolutionTelemetry\(spec\.id, player\)/);
+  assert.match(game, /Radius: telemetry\.radius/);
+  assert.match(game, /Reach: telemetry\.reach/);
+  assert.match(game, /Pierce: telemetry\.pierce/);
+  assert.match(game, /Lifetime: telemetry\.lifetime/);
+  assert.match(game, /Secondary: telemetry\.secondary/);
+  assert.match(game, /data-cadence-kind/);
+  assert.match(game, /\$\{Math\.round\(100 - remaining\)\} Flow/);
+  assert.match(game, /hasteState: \[player\.hotTime > 0, player\.hasteBuff > 0, player\.frenzy > 0\]/);
   assert.match(game, /Evolves into \$\{spec\.signature\.evolve\}/);
   assert.match(game, /setStartingWeaponDetailsOpen/);
   assert.match(game, /event\.key !== "Escape"/);

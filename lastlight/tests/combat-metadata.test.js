@@ -122,3 +122,8 @@ test("metadata lookup resolves universal and specialist-owned sources", () => {
   assert.equal(getCombatMetadata("ability:r", "rift"), SPECIALIST_COMBAT.rift.ultimate);
   assert.equal(getCombatMetadata("unknown", "zuri"), null);
 });
+
+test("Fang and Rift signature metadata includes the global damage multiplier used by the engine", () => {
+  assert.ok(SPECIALIST_COMBAT.fang.signature.scalesWith.includes("damage"));
+  assert.ok(SPECIALIST_COMBAT.rift.signature.scalesWith.includes("damage"));
+});

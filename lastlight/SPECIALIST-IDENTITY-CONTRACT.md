@@ -19,7 +19,7 @@ Every entry has the same strict shape: role and specialization, effective range,
 ## Breakpoints
 
 - Level 3 unlocks each active; level 6 unlocks each ultimate.
-- Signature rank 5 is the authored cap and enables evolution with the paired passive.
+- Signature rank 5 is the authored cap. Rank 5 plus at least one rank of the paired passive makes the signature eligible; consuming an elite access card performs the evolution.
 - Additional engine gates are explicit for Zuri (70 kills or one elite), Fang (missing-health curve), Gale (100 flow), Rift (120 units traveled), Nova (one wisp per seven levels), and Vesper (live stored feathers).
 - Objective ratings are indirect. Every living specialist contributes equally to capture, relay-ball, and machine charge; identities add rotation, survival, control, or collection value, never a direct capture multiplier.
 

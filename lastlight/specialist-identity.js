@@ -23,7 +23,7 @@ const coreBreakpoints = (cooldownE, cooldownR, passive, extra = []) => [
   { id: "active-unlock", trigger: { kind: "level", value: 3 }, effect: `Active unlocks (${cooldownE}s base cooldown).`, source: "balance-config" },
   { id: "ultimate-unlock", trigger: { kind: "level", value: 6 }, effect: `Ultimate unlocks (${cooldownR}s base cooldown).`, source: "balance-config" },
   { id: "signature-cap", trigger: { kind: "signature-rank", value: 5 }, effect: "Signature reaches its maximum authored rank.", source: "balance-config" },
-  { id: "signature-evolution", trigger: { kind: "signature-evolution", value: passive }, effect: `Maximum signature rank plus ${passive} evolves the signature.`, source: "catalog" },
+  { id: "signature-evolution", trigger: { kind: "signature-evolution", value: passive }, effect: `Maximum signature rank plus at least one ${passive} passive rank makes the signature eligible; an elite access card performs the evolution.`, source: "engine" },
   ...extra,
 ];
 

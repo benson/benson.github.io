@@ -19,7 +19,7 @@ import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./im
 import { advancePlayerMovement } from "./movement.js?v=20260712.2";
 import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
 import { DynamicAudioMixer } from "./audio-mix.js?v=20260711.10";
-import { buildUpgradeComparison, weaponTelemetry } from "./upgrade-preview.js?v=20260712.1";
+import { buildUpgradeComparison, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260712.1";
 import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260712.1";
 import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260712.1";
 import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260712.1";
@@ -355,10 +355,25 @@ function guidePlayer(specialist = "zuri") {
   return { specialist: spec.id, hp: spec.health, maxHp: spec.health, armor: spec.armor, passives: {}, weapons: { signature: { level: 1, evolved: false } }, hotTime: 0, hasteBuff: 0, frenzy: 0 };
 }
 
+function pairedPassiveDelta(evolution) {
+  return evolution.pairedPassive.changes.length
+    ? evolution.pairedPassive.changes.map((change) => `${change.label}: ${change.before} → ${change.after}`).join(" · ")
+    : evolution.pairedPassive.effect;
+}
+
 function guideWeaponDetails(weaponId, specialist = "zuri") {
   const player = guidePlayer(specialist), telemetry = weaponTelemetry(weaponId, { level: 1, evolved: false }, player);
   const impact = getWeaponImpactGrammar(weaponId, { specialistId: specialist, evolved: false });
-  return { Damage: telemetry.damage, Cooldown: telemetry.interval, Projectiles: telemetry.projectiles, Range: weaponId === "signature" ? SPECIALISTS[specialist].range : telemetry.note, Impact: impact?.impact.replaceAll("-", " ") || "Authored effect", Audio: impact?.soundFamily.replaceAll("-", " ") || "Combat" };
+  if (weaponId === "signature") {
+    const evolution = signatureEvolutionTelemetry(specialist, player);
+    return {
+      Damage: telemetry.damage, Cadence: telemetry.interval, Projectiles: telemetry.projectiles,
+      Radius: telemetry.radius, Reach: telemetry.reach, Pierce: telemetry.pierce, Lifetime: telemetry.lifetime,
+      Secondary: telemetry.secondary, "Paired passive": `${evolution.pairedPassive.name}: ${pairedPassiveDelta(evolution)}`,
+      Evolution: `${evolution.requirement}. ${evolution.summary}`,
+    };
+  }
+  return { Damage: telemetry.damage, Cooldown: telemetry.interval, Projectiles: telemetry.projectiles, Range: telemetry.note, Impact: impact?.impact.replaceAll("-", " ") || "Authored effect", Audio: impact?.soundFamily.replaceAll("-", " ") || "Combat" };
 }
 
 const SIGNATURE_BEHAVIORS = {
@@ -367,22 +382,21 @@ const SIGNATURE_BEHAVIORS = {
   sola: "Projects a forward shield beam whose damage grows with Sola's armor.",
   bront: "Crashes a heavy tidal hammer into the closest threat for a wide impact.",
   fang: "Rends targets at close range; the strike grows stronger with Fang's maximum health.",
-  gale: "Cuts rapidly through targets in a flowing mid-range current.",
+  gale: "Spends 100 Flow to release a piercing mid-range current; Flow regenerates continuously and scales partially with haste.",
   rift: "Slams a kinetic shock into nearby threats while fighting at close range.",
   nova: "Sends guiding hexes toward distant threats, building toward spirit detonations.",
-  vesper: "Throws winged daggers that fan outward and return through the fight.",
+  vesper: "Throws winged daggers that leave temporary feathers for Blade Recall to pull through the fight.",
 };
 
 function renderStartingWeaponDetails(spec) {
   const player = guidePlayer(spec.id);
   const telemetry = weaponTelemetry("signature", { level: 1, evolved: false }, player);
-  const passive = PASSIVES[spec.signature.passive];
+  const evolution = signatureEvolutionTelemetry(spec.id, player);
   $("detail-weapon-tooltip-name").textContent = spec.signature.name;
   $("detail-weapon-behavior").textContent = SIGNATURE_BEHAVIORS[spec.id] || "Automatically attacks nearby threats.";
-  $("detail-weapon-stats").innerHTML = Object.entries({ Damage: telemetry.damage, Cooldown: telemetry.interval, Projectiles: telemetry.projectiles, Range: spec.range })
+  $("detail-weapon-stats").innerHTML = Object.entries({ Damage: telemetry.damage, Cadence: telemetry.interval, Projectiles: telemetry.projectiles, Radius: telemetry.radius, Reach: telemetry.reach, Pierce: telemetry.pierce, Lifetime: telemetry.lifetime, Secondary: telemetry.secondary })
     .map(([label, value]) => `<div><dt>${escapeHTML(label)}</dt><dd>${escapeHTML(value)}</dd></div>`).join("");
-  const impact = getWeaponImpactGrammar("signature", { specialistId: spec.id, evolved: false });
-  $("detail-weapon-evolution").textContent = `Evolves into ${spec.signature.evolve} with ${passive?.name || spec.signature.passive} + an elite access card. ${impact?.evolvedDifference || ""}`.trim();
+  $("detail-weapon-evolution").textContent = `Evolves into ${spec.signature.evolve}. ${evolution.requirement}. ${evolution.summary}. Paired passive: ${evolution.pairedPassive.name} — ${pairedPassiveDelta(evolution)}.`;
   $("starting-weapon-trigger").setAttribute("aria-label", `Inspect ${spec.signature.name} starting weapon`);
 }
 
@@ -394,8 +408,8 @@ function renderGuide() {
     return `<article class="campaign-node ${unlocked ? "unlocked" : "locked"}"><img src="${MAPS[map].texture}" alt=""><div><b>${String(index + 1).padStart(2, "0")}</b><span>${MAPS[map].name}</span><small>${unlocked ? `${cleared.length}/3 cleared${cleared.length ? ` · ${cleared.join(", ")}` : ""}` : `Locked · clear ${requirementCopy(requirement)}`}</small></div></article>`;
   }).join("");
   const signatures = SPECIALIST_ORDER.map((id) => {
-    const spec = SPECIALISTS[id], passive = PASSIVES[spec.signature.passive];
-    return guideCard(spec.signature.glyph, `${spec.name} · ${spec.signature.name}`, `Evolves to ${spec.signature.evolve}`, `Reach weapon level 5 and own ${passive?.name || spec.signature.passive}, then collect an elite access card.`, "", spec.signature.icon, guideWeaponDetails("signature", id));
+    const spec = SPECIALISTS[id], evolution = signatureEvolutionTelemetry(id, guidePlayer(id));
+    return guideCard(spec.signature.glyph, `${spec.name} · ${spec.signature.name}`, `Evolves to ${spec.signature.evolve}`, `${evolution.requirement}. ${evolution.summary}`, "", spec.signature.icon, guideWeaponDetails("signature", id));
   }).join("");
   const identities = SPECIALIST_ORDER.map((id) => {
     const spec = SPECIALISTS[id], identity = getSpecialistIdentity(id);
@@ -406,7 +420,7 @@ function renderGuide() {
       Range: label(identity.range), Mobility: label(identity.mobility.tier), Durability: label(identity.durability.tier), Safety: label(identity.safety.tier), Control: label(identity.control.tier), Support: label(identity.support.tier), "Identity contract": SPECIALIST_IDENTITY_VERSION,
     });
   }).join("");
-  const weapons = Object.values(WEAPONS).map((weapon) => guideCard(weapon.glyph, weapon.name, `Evolves to ${weapon.evolve}`, `${weapon.copy} Evolution requires level 5 + ${PASSIVES[weapon.passive]?.name || weapon.passive}.`, "", weapon.icon, guideWeaponDetails(weapon.id))).join("");
+  const weapons = Object.values(WEAPONS).map((weapon) => guideCard(weapon.glyph, weapon.name, `Evolves to ${weapon.evolve}`, `${weapon.copy} Evolution requires level 5 + ${PASSIVES[weapon.passive]?.name || weapon.passive} + an elite access card.`, "", weapon.icon, guideWeaponDetails(weapon.id))).join("");
   const materials = MATERIAL_CLASSES.map((id) => {
     const material = getThemeMaterial(id);
     return guideCard(id.slice(0, 3).toUpperCase(), material.label, material.examples, `Weapon endpoints adapt with ${material.particles.shape.replaceAll("-", " ")}, a ${material.decal.shape.replaceAll("-", " ")} decal, and an accessibility-safe ${material.fallback.pattern.replaceAll("-", " ")} cue.`, "", "", { Particles: `${material.particles.count} max`, Decal: `${material.decal.lifetimeMs}ms`, Audio: material.sound.family, Fallback: material.fallback.label });
@@ -741,7 +755,10 @@ function weaponSlotMarkup(weaponId, weapon, player, spec, game) {
   const icon = data.icon;
   const passive = weaponId === "signature" ? spec.signature.passive : data.passive;
   const damage = Number(player.damageBySource?.[weaponId] || 0), dps = damage / elapsedRunSeconds(game);
-  return `<div class="weapon-slot ${weapon.evolved ? "evolved" : ""}" data-weapon-id="${weaponId}" data-cooldown-max="${telemetry.cooldownSeconds}" tabindex="0" aria-label="${escapeHTML(weapon.evolved ? data.evolve : data.name)} weapon details"><img src="${icon}" alt=""><i class="weapon-cooldown-sweep" aria-hidden="true"></i><b class="weapon-cooldown-seconds" aria-hidden="true"></b><small>${weapon.evolved ? "E" : weapon.level}</small><div class="weapon-tooltip"><span>${weapon.evolved ? "Evolved weapon" : `Level ${weapon.level}`}</span><strong>${escapeHTML(weapon.evolved ? data.evolve : data.name)}</strong><p>${escapeHTML(data.copy || spec.tagline)}</p><dl><div><dt>Damage</dt><dd>${telemetry.damage}</dd></div><div><dt>Cooldown</dt><dd>${telemetry.interval}</dd></div><div><dt>Projectiles</dt><dd>${telemetry.projectiles}</dd></div><div><dt>Impact</dt><dd>${escapeHTML(impactSummary(impact))}</dd></div><div><dt>Run damage</dt><dd>${statNumber(damage)}</dd></div><div><dt>DPS</dt><dd>${dps.toFixed(1)}</dd></div></dl><em>${escapeHTML(weapon.evolved ? impact?.behavior || telemetry.note : impact?.evolvedDifference || telemetry.note)}</em><small>Evolution: level 5 + ${escapeHTML(PASSIVES[passive]?.name || passive)}</small></div></div>`;
+  const evolution = weaponId === "signature" ? signatureEvolutionTelemetry(player.specialist, player) : null;
+  const signatureRows = evolution ? `<div><dt>Radius</dt><dd>${escapeHTML(telemetry.radius)}</dd></div><div><dt>Reach</dt><dd>${escapeHTML(telemetry.reach)}</dd></div><div><dt>Pierce</dt><dd>${escapeHTML(telemetry.pierce)}</dd></div><div><dt>Lifetime</dt><dd>${escapeHTML(telemetry.lifetime)}</dd></div><div><dt>Secondary</dt><dd>${escapeHTML(telemetry.secondary)}</dd></div>` : "";
+  const evolutionCopy = evolution ? `${evolution.requirement}. Paired passive: ${evolution.pairedPassive.name} — ${pairedPassiveDelta(evolution)}. Evolution delta: ${evolution.summary}` : `Level 5 + ${PASSIVES[passive]?.name || passive} + an elite access card`;
+  return `<div class="weapon-slot ${weapon.evolved ? "evolved" : ""}" data-weapon-id="${weaponId}" data-cooldown-max="${telemetry.cooldownSeconds}" data-cadence-kind="${telemetry.cadenceKind || "cooldown"}" tabindex="0" aria-label="${escapeHTML(weapon.evolved ? data.evolve : data.name)} weapon details"><img src="${icon}" alt=""><i class="weapon-cooldown-sweep" aria-hidden="true"></i><b class="weapon-cooldown-seconds" aria-hidden="true"></b><small>${weapon.evolved ? "E" : weapon.level}</small><div class="weapon-tooltip"><span>${weapon.evolved ? "Evolved weapon" : `Level ${weapon.level}`}</span><strong>${escapeHTML(weapon.evolved ? data.evolve : data.name)}</strong><p>${escapeHTML(data.copy || spec.tagline)}</p><dl><div><dt>Damage</dt><dd>${telemetry.damage}</dd></div><div><dt>${evolution ? "Cadence" : "Cooldown"}</dt><dd>${telemetry.interval}</dd></div><div><dt>Projectiles</dt><dd>${telemetry.projectiles}</dd></div>${signatureRows}<div><dt>Impact</dt><dd>${escapeHTML(impactSummary(impact))}</dd></div><div><dt>Run damage</dt><dd>${statNumber(damage)}</dd></div><div><dt>DPS</dt><dd>${dps.toFixed(1)}</dd></div></dl><em>${escapeHTML(evolution ? telemetry.secondary : weapon.evolved ? impact?.behavior || telemetry.note : impact?.evolvedDifference || telemetry.note)}</em><small>Evolution: ${escapeHTML(evolutionCopy)}</small></div></div>`;
 }
 
 function currentAffectedSources(passiveId, player) {
@@ -839,11 +856,13 @@ function updateSoundState(game) {
 
 function updateWeaponCooldowns(player) {
   for (const slot of $("weapon-hud").querySelectorAll(".weapon-slot")) {
-    const weaponId = slot.dataset.weaponId, remaining = Math.max(0, Number(player.weaponTimers?.[weaponId] || 0));
-    const maximum = Math.max(.01, Number(slot.dataset.cooldownMax || 0));
+    const weaponId = slot.dataset.weaponId;
+    const usesFlow = weaponId === "signature" && slot.dataset.cadenceKind === "flow";
+    const maximum = usesFlow ? 100 : Math.max(.01, Number(slot.dataset.cooldownMax || 0));
+    const remaining = usesFlow ? Math.max(0, 100 - Number(player.flow || 0)) : Math.max(0, Number(player.weaponTimers?.[weaponId] || 0));
     slot.querySelector(".weapon-cooldown-sweep")?.style.setProperty("--weapon-cooldown", `${clamp(remaining / maximum * 100, 0, 100)}%`);
     const seconds = slot.querySelector(".weapon-cooldown-seconds");
-    if (seconds) seconds.textContent = remaining > .08 ? `${remaining < 10 ? remaining.toFixed(1) : Math.ceil(remaining)}s` : "";
+    if (seconds) seconds.textContent = usesFlow ? `${Math.round(100 - remaining)} Flow` : remaining > .08 ? `${remaining < 10 ? remaining.toFixed(1) : Math.ceil(remaining)}s` : "";
   }
 }
 
@@ -1045,7 +1064,7 @@ function updateHUD(game) {
     pill.querySelector(".mini-shield-fill").style.width = `${clamp((p.shield || 0) / maximum * 100, 0, 100)}%`;
   });
   const weaponEntries = Object.entries(player.weapons || {});
-  const weaponHUDKey = JSON.stringify({ weapons: player.weapons, passives: player.passives, maxHp: Math.round(player.maxHp), armor: Math.round(player.armor), specialist: player.specialist, damage: Object.fromEntries(Object.entries(player.damageBySource || {}).map(([id, value]) => [id, Math.floor(value / 25)])) });
+  const weaponHUDKey = JSON.stringify({ weapons: player.weapons, passives: player.passives, maxHp: Math.round(player.maxHp), armor: Math.round(player.armor), specialist: player.specialist, hasteState: [player.hotTime > 0, player.hasteBuff > 0, player.frenzy > 0], damage: Object.fromEntries(Object.entries(player.damageBySource || {}).map(([id, value]) => [id, Math.floor(value / 25)])) });
   if (weaponHUDKey !== state.lastWeaponHUDKey) {
     state.lastWeaponHUDKey = weaponHUDKey;
     $("weapon-hud").innerHTML = weaponEntries.map(([weaponId, weapon]) => weaponSlotMarkup(weaponId, weapon, player, spec, game)).join("");

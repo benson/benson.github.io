@@ -36,12 +36,46 @@ export function weaponTelemetry(weaponId, weapon, player) {
       nova: Math.min(tuning.countCap, tuning.countBase + Math.ceil(level / tuning.countEveryLevels) + extra),
       vesper: tuning.countBase + Math.floor(level / tuning.countEveryLevels) + extra,
     };
+    const area = playerCombatStat(player, "area");
     const interval = cooldown(cycle);
+    const flowTuning = BALANCE_CONFIG.identityTuning.gale;
+    const flowRate = player.specialist === "gale"
+      ? flowTuning.flowPerSecond * (1 + haste / 100 * flowTuning.flowHasteRatio) * (evolved ? flowTuning.evolvedFlowMultiplier : 1)
+      : null;
+    const cadenceSeconds = flowRate ? tuning.flowCost / flowRate : interval;
+    const radiusValue = tuning.radius != null ? tuning.radius * (player.specialist === "sola" ? area : 1)
+      : tuning.radiusBase != null ? (tuning.radiusBase + level * tuning.radiusPerLevel) * area
+        : null;
+    const projectileLife = ["echo", "nova"].includes(player.specialist) ? (evolved ? tuning.evolvedLife : tuning.life) : tuning.life;
+    const reachValue = player.specialist === "bront" ? tuning.range
+      : ["fang", "rift"].includes(player.specialist) ? tuning.offset + radiusValue
+        : tuning.speed && projectileLife ? tuning.speed * projectileLife : radiusValue;
+    const pierceValue = player.specialist === "zuri" ? (evolved ? tuning.evolvedPierce : 0)
+      : ["gale", "vesper"].includes(player.specialist) ? (evolved ? tuning.evolvedPierce : tuning.pierce)
+        : Number(tuning.pierce || 0);
+    const secondary = {
+      zuri: evolved ? `Each round can continue through ${pierceValue} additional targets.` : "No secondary hit.",
+      echo: `${decimal(BALANCE_CONFIG.identityTuning.echo.repeatChance * 100, 0)}% chance for each weapon projectile to repeat after ${decimal(BALANCE_CONFIG.identityTuning.echo.repeatDelay)}s.`,
+      sola: "No secondary hit; armor increases hit damage and area.",
+      bront: evolved ? `A second ${Math.round(tuning.evolvedRadius * area)}-unit blast lands after ${decimal(tuning.evolvedDelay)}s for ${roundedDamage(tuning.evolvedDamageBase + level * tuning.damagePerLevel, player, metadata)} damage.` : "No secondary hit.",
+      fang: "During Frenzy, each hit repairs 0.1 vitality plus 5% of missing health; evolution does not add bleed.",
+      gale: `Each tornado stuns for 0.25s on hit; ${evolved ? `evolution also refills Flow ${decimal((flowTuning.evolvedFlowMultiplier - 1) * 100, 0)}% faster` : "evolution improves Flow refill"}.`,
+      rift: `Converts ${decimal(BALANCE_CONFIG.identityTuning.rift.damageShieldRatio * 100, 0)}% of damage into shield, capped at ${decimal(BALANCE_CONFIG.identityTuning.rift.damageShieldCapMaxHealth * 100, 0)}% max health.`,
+      nova: `Hits apply Hex for ${decimal(BALANCE_CONFIG.identityTuning.nova.hexDuration, 0)}s for Veilstep to detonate.`,
+      vesper: `Daggers leave 15s feathers; Blade Recall returns them with ${BALANCE_CONFIG.identityTuning.vesper.recallPierce} pierce regardless of evolution.`,
+    }[player.specialist];
     return {
       damage: `${roundedDamage(damage, player, metadata)} / hit`,
-      interval: `${interval.toFixed(2)}s`,
-      cooldownSeconds: interval,
+      interval: flowRate ? `${decimal(flowRate, 1)} Flow/s · ${decimal(cadenceSeconds)}s from empty` : `${interval.toFixed(2)}s`,
+      cooldownSeconds: cadenceSeconds,
+      cadenceKind: flowRate ? "flow" : "cooldown",
+      flowRate,
       projectiles: formatProjectileDisplay(metadata, counts[player.specialist]),
+      radius: radiusValue == null ? "—" : `${Math.round(radiusValue)} units`,
+      reach: reachValue == null ? "—" : `${Math.round(reachValue)} units`,
+      pierce: pierceValue ? `${pierceValue} additional · up to ${pierceValue + 1} targets` : "Stops on first target",
+      lifetime: projectileLife ? `${decimal(projectileLife)}s` : player.specialist === "bront" ? "Instant blast" : "Instant area hit",
+      secondary,
       note: SPECIALISTS[player.specialist].signature.evolve,
     };
   }
@@ -75,6 +109,39 @@ const decimal = (value, digits = 2) => Number(value).toFixed(digits).replace(/\.
 const vitality = (value) => `${decimal(value, 2)} vitality`;
 const percent = (value) => `${decimal(Number(value) * 100, 1)}%`;
 const multiplier = (value) => `${decimal(value, 2)}×`;
+
+export function signatureEvolutionTelemetry(specialistId, player) {
+  const specialist = SPECIALISTS[specialistId];
+  if (!specialist || !player) return null;
+  const level = BALANCE_CONFIG.core.maxWeaponLevel;
+  const passiveId = specialist.signature.passive;
+  const passive = PASSIVES[passiveId];
+  const pairedPlayer = Number(player.passives?.[passiveId] || 0) > 0
+    ? player
+    : previewPlayerUpgrade(player, { id: `passive:${passiveId}` });
+  const unpaired = weaponTelemetry("signature", { level, evolved: false }, player);
+  const base = weaponTelemetry("signature", { level, evolved: false }, pairedPlayer);
+  const evolved = weaponTelemetry("signature", { level, evolved: true }, pairedPlayer);
+  const fields = [
+    ["cadence", "Cadence", "interval"], ["damage", "Damage", "damage"], ["projectiles", "Projectiles", "projectiles"],
+    ["radius", "Radius", "radius"], ["reach", "Reach", "reach"], ["pierce", "Pierce", "pierce"],
+    ["lifetime", "Lifetime", "lifetime"], ["secondary", "Secondary", "secondary"],
+  ];
+  const changes = fields
+    .filter(([, , key]) => base[key] !== evolved[key])
+    .map(([id, label, key]) => Object.freeze({ id, label, before: base[key], after: evolved[key] }));
+  const pairedChanges = fields
+    .filter(([, , key]) => unpaired[key] !== base[key])
+    .map(([id, label, key]) => Object.freeze({ id, label, before: unpaired[key], after: base[key] }));
+  const requirement = `Signature level ${level} + ${passive?.name || specialist.signature.passive} (rank 1+) + an elite access card`;
+  const summary = changes.length
+    ? changes.map((change) => `${change.label}: ${change.before} → ${change.after}`).join(" · ")
+    : "No runtime signature change.";
+  return Object.freeze({
+    specialistId, base, evolved, changes: Object.freeze(changes), requirement, summary,
+    pairedPassive: Object.freeze({ id: passiveId, name: passive?.name || passiveId, effect: passive?.amount || "Required passive", changes: Object.freeze(pairedChanges) }),
+  });
+}
 
 function globalStat(passiveId, player) {
   const definitions = {
@@ -111,7 +178,7 @@ export function buildUpgradeComparison(choice, player) {
     return [
       comparison("level", "Weapon level", beforeWeapon ? `Level ${beforeWeapon.level}` : "Not owned", `Level ${afterWeapon.level}`),
       comparison("damage", "Damage", before?.damage || "—", after.damage),
-      comparison("cooldown", "Cooldown", before?.interval || "—", after.interval),
+      comparison("cooldown", after.cadenceKind === "flow" ? "Flow cadence" : "Cooldown", before?.interval || "—", after.interval),
       comparison("projectiles", "Projectiles", before?.projectiles || "—", after.projectiles),
     ];
   }

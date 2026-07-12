@@ -54,7 +54,7 @@ export const SPECIALIST_COMBAT = Object.freeze({
     ultimate: source("single-effect", false, ["haste", "area", "duration"]),
   }),
   fang: Object.freeze({
-    signature: source("single-effect", false, ["haste", "area", "maxHealth"]),
+    signature: source("single-effect", false, ["damage", "haste", "area", "maxHealth"]),
     active: source("utility", false, ["haste", "duration", "maxHealth"]),
     ultimate: source("single-effect", false, ["haste", "area"]),
   }),
@@ -64,7 +64,7 @@ export const SPECIALIST_COMBAT = Object.freeze({
     ultimate: source("field", false, ["haste"]),
   }),
   rift: Object.freeze({
-    signature: source("single-effect", false, ["haste", "area"]),
+    signature: source("single-effect", false, ["damage", "haste", "area"]),
     active: source("single-effect", false, ["haste", "area"]),
     ultimate: source("utility", false, ["haste", "duration", "move"]),
   }),
