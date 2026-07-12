@@ -1,7 +1,7 @@
 # Lastlight specialist benchmark
 
 Contract: `actual-simulation-fixed-seed-v1`
-Balance: `2026.07.12-evolutions.1` / `fnv1a32:3f6c1f96`
+Balance: `2026.07.12-evolutions.1` / `fnv1a32:20c3fe1d`
 Matrix: 9 specialists × 10 fixed-seed scenarios = 90 cases
 
 ## Comparable summary
@@ -12,19 +12,19 @@ Matrix: 9 specialists × 10 fixed-seed scenarios = 90 cases
 | Echo | 25.667 | 3581.713 | 10 | 1.1s | 34.55s | 1.533s | 24.5s | 0.081 | 46.173 | 80 |
 | Sola | 24.041 | 3197.108 | 13.75 | 2.4s | 45s | 6.333s | 34.417s | 0.102 | 0 | 80 |
 | Bront | 24.27 | 3093.24 | 17.25 | 1.15s | 45s | 3.183s | 25.417s | 0.129 | 0 | 80 |
-| Fang | 33.113 | 3955.795 | 13.8 | 0.017s | 6.333s | 2.683s | 7.95s | 0.572 | 0 | 80 |
+| Fang | 33.113 | 6775.4 | 13.8 | 0.017s | 5.95s | 2.683s | 7.95s | 0.572 | 0 | 80 |
 | Gale | 27.747 | 2081.108 | 10.45 | 0.417s | 45s | 10.35s | 27.983s | 0.176 | 0 | 80 |
-| Rift | 51.904 | 3770.138 | 12 | 0.383s | 45s | 16.833s | 57.083s | 0.171 | 0 | 80 |
+| Rift | 51.904 | 3850.416 | 12 | 0.383s | 45s | 16.833s | 57.083s | 0.171 | 0 | 80 |
 | Nova | 32.919 | 2305.73 | 9 | 0.017s | 44.2s | 11.517s | — | 0.112 | 0 | 80 |
 | Vesper | 30.789 | 2178.78 | 9.5 | 1.1s | 45s | 9.6s | — | 0.114 | 0 | 400 |
 
 ## Rankings
 
 - **Level 1 single-target DPS:** 1. Zuri (61.31) · 2. Rift (51.904) · 3. Fang (33.113) · 4. Nova (32.919) · 5. Vesper (30.789) · 6. Gale (27.747) · 7. Echo (25.667) · 8. Bront (24.27) · 9. Sola (24.041)
-- **Mature area DPS:** 1. Fang (3955.795) · 2. Rift (3770.138) · 3. Echo (3581.713) · 4. Sola (3197.108) · 5. Bront (3093.24) · 6. Zuri (2941.902) · 7. Nova (2305.73) · 8. Vesper (2178.78) · 9. Gale (2081.108)
+- **Mature area DPS:** 1. Fang (6775.4) · 2. Rift (3850.416) · 3. Echo (3581.713) · 4. Sola (3197.108) · 5. Bront (3093.24) · 6. Zuri (2941.902) · 7. Nova (2305.73) · 8. Vesper (2178.78) · 9. Gale (2081.108)
 - **Base effective vitality:** 1. Bront (17.25) · 2. Fang (13.8) · 3. Sola (13.75) · 4. Rift (12) · 5. Gale (10.45) · 6. Echo (10) · 7. Zuri (10) · 8. Vesper (9.5) · 9. Nova (9)
 - **Escape time:** 1. Fang (0.017) · 2. Nova (0.017) · 3. Rift (0.383) · 4. Gale (0.417) · 5. Echo (1.1) · 6. Vesper (1.1) · 7. Bront (1.15) · 8. Zuri (2.05) · 9. Sola (2.4)
-- **Solo pressure survival:** 1. Bront (45) · 2. Gale (45) · 3. Rift (45) · 4. Sola (45) · 5. Vesper (45) · 6. Zuri (45) · 7. Nova (44.2) · 8. Echo (34.55) · 9. Fang (6.333)
+- **Solo pressure survival:** 1. Bront (45) · 2. Gale (45) · 3. Rift (45) · 4. Sola (45) · 5. Vesper (45) · 6. Zuri (45) · 7. Nova (44.2) · 8. Echo (34.55) · 9. Fang (5.95)
 - **Elite time-to-kill:** 1. Zuri (0.133) · 2. Echo (1.533) · 3. Fang (2.683) · 4. Bront (3.183) · 5. Sola (6.333) · 6. Vesper (9.6) · 7. Gale (10.35) · 8. Nova (11.517) · 9. Rift (16.833)
 - **Apex time-to-kill:** 1. Fang (7.95) · 2. Zuri (17.517) · 3. Echo (24.5) · 4. Bront (25.417) · 5. Gale (27.983) · 6. Sola (34.417) · 7. Rift (57.083) · 8. Nova (not completed) · 9. Vesper (not completed)
 - **Four-player damage share:** 1. Fang (0.572) · 2. Gale (0.176) · 3. Rift (0.171) · 4. Zuri (0.151) · 5. Bront (0.129) · 6. Vesper (0.114) · 7. Nova (0.112) · 8. Sola (0.102) · 9. Echo (0.081)
@@ -53,8 +53,9 @@ Matrix: 9 specialists × 10 fixed-seed scenarios = 90 cases
 - Zuri: escapeTimeSeconds is high at 1.864× median (2.05).
 - Rift: level1Dps is high at 1.686× median (51.904).
 - Zuri: level1Dps is high at 1.991× median (61.31).
+- Fang: matureAreaDps is high at 2.19× median (6775.4).
 - Vesper: pickupReach is high at 5× median (400).
-- Fang: soloSurvivalSeconds is low at 0.141× median (6.333).
+- Fang: soloSurvivalSeconds is low at 0.132× median (5.95).
 - Echo: squadDamageShare is low at 0.628× median (0.081).
 - Fang: squadDamageShare is high at 4.434× median (0.572).
 - Gale: squadDamageShare is high at 1.364× median (0.176).

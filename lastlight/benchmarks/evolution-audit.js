@@ -1,4 +1,4 @@
-import { BALANCE_HASH, BALANCE_VERSION } from "../balance-config.js";
+import { BALANCE_CONFIG, BALANCE_HASH, BALANCE_VERSION } from "../balance-config.js";
 import { SIMULATION_TICK_RATE } from "../engine.js";
 import { deterministicWorkUnits } from "../fixtures/fixture-runner.js";
 import { hashCanonicalState } from "../replay.js";
@@ -23,14 +23,14 @@ const EVOLUTION_CONTRACT_ENTRIES = Object.freeze([
   ...Object.values(WEAPON_EVOLUTION_CONTRACT.universal),
 ]);
 const INVARIANT_METRICS = Object.freeze({
-  "signature:zuri": "pierce", "signature:echo": "lifetime", "signature:sola": "cadence", "signature:bront": "repeat",
-  "signature:fang": "cadence", "signature:gale": "flow-regeneration", "signature:rift": "cadence", "signature:nova": "lifetime",
+  "signature:zuri": "pierce", "signature:echo": "lifetime", "signature:sola": "guard-return", "signature:bront": "repeat",
+  "signature:fang": "predator-hook", "signature:gale": "flow-regeneration", "signature:rift": "kinetic-reserve", "signature:nova": "lifetime",
   "signature:vesper": "pierce", "universal:uwu": "pierce", "universal:slicers": "orbit-speed", "universal:aura": "nonCosmeticDeltaCount",
   "universal:mines": "nonCosmeticDeltaCount", "universal:crossbow": "pierce", "universal:boomerang": "nonCosmeticDeltaCount",
   "universal:rail": "nonCosmeticDeltaCount", "universal:glove": "projectile-streams", "universal:transit": "nonCosmeticDeltaCount",
   "universal:ice": "cadence", "universal:annihilator": "cadence", "universal:drone": "repair-rate",
 });
-const STAT_ONLY_KEYS = new Set(["signature:sola", "signature:fang", "signature:rift", "universal:slicers", "universal:ice", "universal:annihilator"]);
+const STAT_ONLY_KEYS = new Set(["universal:slicers", "universal:ice", "universal:annihilator"]);
 
 const definition = (entry) => {
   const status = entry.status === "presentation-only" ? "expected-no-op" : STAT_ONLY_KEYS.has(entry.key) ? "stat-only" : "meaningful";
@@ -57,7 +57,7 @@ export const EVOLUTION_AUDIT_BUDGETS = Object.freeze({
 });
 
 const COMMON_KEYS = Object.freeze(["damage", "hits", "uniqueTargets", "activations", "activationRate", "projectiles", "effects", "tasks", "maxEntities"]);
-const CAPABILITY_KEYS = Object.freeze(["cadence", "pierce", "lifetime", "repeat", "flowRegeneration", "orbitSpeed", "projectileStreams", "repairRate", "pickupRange", "impactIdentity"]);
+const CAPABILITY_KEYS = Object.freeze(["cadence", "pierce", "lifetime", "repeat", "flowRegeneration", "orbitSpeed", "projectileStreams", "repairRate", "pickupRange", "guardReturn", "predatorHook", "kineticReserve", "impactIdentity"]);
 const ROOT_KEYS = Object.freeze(["schema", "schemaVersion", "contract", "versions", "definitions", "cases", "budgets", "limitations"]);
 const VERSION_KEYS = Object.freeze(["balanceVersion", "balanceHash", "evolutionContractHash", "tickRate"]);
 const CASE_KEYS = Object.freeze(["sourceKey", "scope", "passiveId", "capabilities", "status", "seed", "base", "evolved", "delta", "nonCosmeticDeltaCount", "invariant"]);
@@ -127,8 +127,9 @@ function instrument(sim, player, parts, expectedVariantId) {
   };
   const originalBlast = sim.blast.bind(sim);
   sim.blast = (...args) => {
-    if (args[9] === expectedVariantId) trace.variantEmissions++;
-    if (args[9] === expectedVariantId && parts.id === "slicers" && inActivation && !firstSlicer) {
+    const blastVariantId = typeof args[9] === "string" ? args[9] : args[9]?.variantId;
+    if (blastVariantId === expectedVariantId) trace.variantEmissions++;
+    if (blastVariantId === expectedVariantId && parts.id === "slicers" && inActivation && !firstSlicer) {
       firstSlicer = true;
       trace.slicerAngles.push({ time: sim.time, angle: Math.atan2(args[1] - player.y, args[0] - player.x) });
     }
@@ -141,9 +142,10 @@ function instrument(sim, player, parts, expectedVariantId) {
     return task;
   };
   const originalDamage = sim.damageEnemy.bind(sim);
-  sim.damageEnemy = (enemy, amount, owner, critical, source) => {
+  sim.damageEnemy = (...args) => {
+    const [enemy, amount, owner, critical, source] = args;
     if (source === parts.sourceId) { trace.hits++; trace.targets.add(enemy.id); }
-    return originalDamage(enemy, amount, owner, critical, source);
+    return originalDamage(...args);
   };
   if (parts.scope === "signature") {
     const originalFire = sim.fireSignature.bind(sim);
@@ -181,7 +183,7 @@ function orbitSpeed(samples) {
 
 function auxiliaryCapabilities(def, evolved) {
   const { sim, player, parts } = configureVariant(def, evolved);
-  let cadence = 0, flowRegeneration = 0, repairRate = 0, pickupRange = 0, ticks = 0;
+  let cadence = 0, flowRegeneration = 0, repairRate = 0, pickupRange = 0, kineticReserve = 0, ticks = 0;
   if (def.capabilities.includes("cadence")) {
     const timerKey = parts.scope === "signature" ? "signature" : parts.id;
     player.weaponTimers[timerKey] = 0;
@@ -222,7 +224,18 @@ function auxiliaryCapabilities(def, evolved) {
     }
     pickupRange = lower;
   }
-  return { cadence: round(cadence), flowRegeneration: round(flowRegeneration), repairRate: round(repairRate), pickupRange: round(pickupRange), ticks };
+  if (def.capabilities.includes("kinetic-reserve") && evolved) {
+    const scales = [];
+    for (const distance of [0, BALANCE_CONFIG.identityTuning.rift.kineticReserveDistance]) {
+      const probe = configureVariant(def, true);
+      probe.player.kineticReserve = distance;
+      probe.sim.fireSignature(probe.player);
+      const event = probe.sim.events.find(({ type, mechanicId }) => type === "signature-evolution-proc" && mechanicId === "kinetic-reserve");
+      scales.push(Number(event?.knockbackScale || 0));
+    }
+    kineticReserve = Math.max(...scales) - Math.min(...scales);
+  }
+  return { cadence: round(cadence), flowRegeneration: round(flowRegeneration), repairRate: round(repairRate), pickupRange: round(pickupRange), kineticReserve: round(kineticReserve), ticks };
 }
 
 function runVariant(def, evolved) {
@@ -246,10 +259,14 @@ function runVariant(def, evolved) {
     activations: trace.activations, activationRate: round(trace.activations / duration), projectiles: trace.projectiles,
     effects: trace.effects, tasks: trace.tasks, maxEntities: peakEntities,
   };
+  const procEvents = sim.events.filter(({ type }) => type === "signature-evolution-proc");
   const capabilityMetrics = {
     cadence: def.capabilities.includes("cadence") ? auxiliary.cadence : common.activationRate, pierce: trace.maxPierce, lifetime: round(trace.maxLife), repeat: trace.tasks,
     flowRegeneration: auxiliary.flowRegeneration, orbitSpeed: round(orbitSpeed(trace.slicerAngles)),
     projectileStreams: round(Math.max(0, ...trace.projectilesByActivation)), repairRate: auxiliary.repairRate, pickupRange: auxiliary.pickupRange,
+    guardReturn: round(Math.max(0, ...procEvents.filter(({ mechanicId }) => mechanicId === "guard-return").map(({ shieldGranted }) => Number(shieldGranted || 0)))),
+    predatorHook: round(Math.max(0, ...procEvents.filter(({ mechanicId, affected }) => mechanicId === "predator-hook" && affected > 0).map(({ pullDistance }) => Number(pullDistance || 0)))),
+    kineticReserve: auxiliary.kineticReserve,
     impactIdentity: trace.variantEmissions + trace.effects,
   };
   return {

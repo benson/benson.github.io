@@ -1,7 +1,7 @@
 # Starting signature breakpoint report
 
 Contract: `actual-simulation-fixed-seed-signature-v1`
-Balance: `2026.07.12-evolutions.1` / `fnv1a32:3f6c1f96`
+Balance: `2026.07.12-evolutions.1` / `fnv1a32:20c3fe1d`
 
 Matrix: 9 specialists × 5 states = 45 deterministic breakpoint cases
 
@@ -33,7 +33,7 @@ Matrix: 9 specialists × 5 states = 45 deterministic breakpoint cases
 | Fang | rank-3 | 48.333 | 338.333 | 87 | 0.556 | 60–180 |
 | Fang | rank-5 | 76.667 | 626.111 | 115 | 0.667 | 60–260 |
 | Fang | paired-passive | 80.417 | 656.736 | 120.625 | 0.667 | 60–260 |
-| Fang | evolved | 100.521 | 797.465 | 120.625 | 0.833 | 60–260 |
+| Fang | evolved | 100.521 | 884.583 | 120.625 | 0.833 | 60–260 |
 | Gale | rank-1 | 23.889 | 143.333 | 86 | 0.278 | 60–900 |
 | Gale | rank-3 | 71.111 | 426.667 | 256 | 0.278 | 60–900 |
 | Gale | rank-5 | 148.75 | 854.722 | 510 | 0.278 | 60–900 |
@@ -43,7 +43,7 @@ Matrix: 9 specialists × 5 states = 45 deterministic breakpoint cases
 | Rift | rank-3 | 92.889 | 390.133 | 83.6 | 1.111 | 60–180 |
 | Rift | rank-5 | 136.889 | 725.511 | 123.2 | 1.111 | 60–180 |
 | Rift | paired-passive | 136.889 | 725.511 | 123.2 | 1.111 | 60–180 |
-| Rift | evolved | 184.8 | 917.156 | 123.2 | 1.5 | 60–180 |
+| Rift | evolved | 184.8 | 1067.733 | 123.2 | 1.5 | 60–180 |
 | Nova | rank-1 | 37.5 | 325 | 150 | 0.389 | 60–900 |
 | Nova | rank-3 | 54.5 | 490.5 | 327 | 0.389 | 60–900 |
 | Nova | rank-5 | 71.5 | 579.944 | 429 | 0.389 | 60–900 |
@@ -78,7 +78,7 @@ Matrix: 9 specialists × 5 states = 45 deterministic breakpoint cases
 | Fang | rank-1-to-3 | 63.8% | 91.1% | 47.5% | 11.2% | yes |
 | Fang | rank-3-to-5 | 58.6% | 85.1% | 32.2% | 20% | yes |
 | Fang | paired-passive | 4.9% | 4.9% | 4.9% | 0% | yes |
-| Fang | evolution | 25% | 21.4% | 0% | 24.9% | yes |
+| Fang | evolution | 25% | 34.7% | 0% | 24.9% | yes |
 | Gale | rank-1-to-3 | 197.7% | 197.7% | 197.7% | 0% | yes |
 | Gale | rank-3-to-5 | 109.2% | 100.3% | 99.2% | 0% | yes |
 | Gale | paired-passive | 33.3% | 18.8% | 50% | 0% | yes |
@@ -86,7 +86,7 @@ Matrix: 9 specialists × 5 states = 45 deterministic breakpoint cases
 | Rift | rank-1-to-3 | 90% | 99.5% | 90% | 0% | yes |
 | Rift | rank-3-to-5 | 47.4% | 86% | 47.4% | 0% | yes |
 | Rift | paired-passive | 0% | 0% | 0% | 0% | no |
-| Rift | evolution | 35% | 26.4% | 0% | 35% | yes |
+| Rift | evolution | 35% | 47.2% | 0% | 35% | yes |
 | Nova | rank-1-to-3 | 45.3% | 50.9% | 118% | 0% | yes |
 | Nova | rank-3-to-5 | 31.2% | 18.2% | 31.2% | 0% | yes |
 | Nova | paired-passive | 0% | 0% | 0% | 0% | no |
@@ -102,9 +102,9 @@ Matrix: 9 specialists × 5 states = 45 deterministic breakpoint cases
 - **Echo — Sound Wave → Anima Echo:** paired projectiles passive changes the isolated signature metrics; evolution changes single DPS 18.5% and area DPS 33.2%.
 - **Sola — Shield Beam → Lion's Light:** paired armor passive changes the isolated signature metrics; evolution changes single DPS 7.7% and area DPS 10.6%.
 - **Bront — Tidal Hammer → Grizzly Surge:** paired duration passive does not directly change the isolated signature metrics; evolution changes single DPS 209.5% and area DPS 209.5%.
-- **Fang — Rending Swipe → Savage Slice:** paired maxHealth passive changes the isolated signature metrics; evolution changes single DPS 25% and area DPS 21.4%.
+- **Fang — Rending Swipe → Savage Slice:** paired maxHealth passive changes the isolated signature metrics; evolution changes single DPS 25% and area DPS 34.7%.
 - **Gale — Steel Current → Wandering Storms:** paired crit passive changes the isolated signature metrics; evolution changes single DPS 0% and area DPS 20.2%.
-- **Rift — Kinetic Crash → Golden Overrun:** paired move passive does not directly change the isolated signature metrics; evolution changes single DPS 35% and area DPS 26.4%.
+- **Rift — Kinetic Crash → Golden Overrun:** paired move passive does not directly change the isolated signature metrics; evolution changes single DPS 35% and area DPS 47.2%.
 - **Nova — Guiding Hex → Hopped-Up Hex:** paired xp passive does not directly change the isolated signature metrics; evolution changes single DPS 44.4% and area DPS 35.6%.
 - **Vesper — Winged Dagger → Lover's Ricochet:** paired pickup passive does not directly change the isolated signature metrics; evolution changes single DPS 54.5% and area DPS 60.7%.
 

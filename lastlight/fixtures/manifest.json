@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "balance": {
     "version": "2026.07.12-evolutions.1",
-    "hash": "fnv1a32:3f6c1f96"
+    "hash": "fnv1a32:20c3fe1d"
   },
   "replay": {
     "schema": "lastlight.replay.v3",

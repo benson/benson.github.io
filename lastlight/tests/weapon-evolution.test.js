@@ -35,7 +35,7 @@ function simulation(specialist = "zuri") {
 }
 
 test("the hash-covered evolution contract strictly covers all 21 authored weapons", () => {
-  assert.equal(WEAPON_EVOLUTION_HASH, "fnv1a32:04cdf9e2");
+  assert.equal(WEAPON_EVOLUTION_HASH, "fnv1a32:2dfdf409");
   assert.equal(evolutionContractFingerprint(), WEAPON_EVOLUTION_HASH);
   assert.equal(canonicalEvolutionContract(), canonicalEvolutionContract(structuredClone(WEAPON_EVOLUTION_CONTRACT)));
   assert.deepEqual(validateWeaponEvolutionContract(WEAPON_EVOLUTION_CONTRACT, BALANCE_CONFIG), []);
@@ -171,7 +171,7 @@ test("stamped signature effects survive owner removal and later loadout changes"
 });
 
 test("the balance fingerprint transitively pins the exact evolution contract", () => {
-  assert.equal(BALANCE_HASH, "fnv1a32:3f6c1f96");
+  assert.equal(BALANCE_HASH, "fnv1a32:20c3fe1d");
   assert.equal(BALANCE_CONFIG.evolutions.schema, "lastlight.weapon-evolution.v1");
   assert.deepEqual(Object.keys(BALANCE_CONFIG.evolutions.signatures), [...BALANCE_IDS.specialists]);
   assert.deepEqual(Object.keys(BALANCE_CONFIG.evolutions.universal), [...BALANCE_IDS.universalWeapons]);

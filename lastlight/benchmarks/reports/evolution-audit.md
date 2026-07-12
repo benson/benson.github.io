@@ -1,7 +1,7 @@
 # Lastlight evolution audit
 
-Contract: `actual-simulation-paired-evolution-v1` / `fnv1a32:04cdf9e2`
-Balance: `2026.07.12-evolutions.1` / `fnv1a32:3f6c1f96`
+Contract: `actual-simulation-paired-evolution-v1` / `fnv1a32:2dfdf409`
+Balance: `2026.07.12-evolutions.1` / `fnv1a32:20c3fe1d`
 
 Matrix: 21 legal L5 paired base/evolved cases
 
@@ -9,11 +9,11 @@ Matrix: 21 legal L5 paired base/evolved cases
 |---|---|---|---:|---:|---|---|
 | signature:zuri | meaningful | cadence, pierce | 4816→13244 | 0.444→0.889 | pierce | pass |
 | signature:echo | meaningful | cadence, lifetime | 9204→11918 | 0.5→0.778 | lifetime | pass |
-| signature:sola | stat-only | cadence | 3091.5→3194.55 | 0.611→0.667 | cadence | pass |
+| signature:sola | meaningful | cadence, guard-return | 3091.5→3194.55 | 0.611→0.667 | guard-return | pass |
 | signature:bront | meaningful | cadence, repeat | 5320→10840 | 0.278→0.389 | repeat | pass |
-| signature:fang | stat-only | cadence | 10567.375→12193.125 | 0.667→0.833 | cadence | pass |
+| signature:fang | meaningful | cadence, predator-hook | 10567.375→15328.5 | 0.667→0.833 | predator-hook | pass |
 | signature:gale | meaningful | cadence, pierce, flow-regeneration | 7437.5→8372.5 | 0.278→0.333 | flow-regeneration | pass |
-| signature:rift | stat-only | cadence | 12073.6→14414.4 | 1.111→1.5 | cadence | pass |
+| signature:rift | meaningful | cadence, kinetic-reserve | 12073.6→19588.8 | 1.111→1.5 | kinetic-reserve | pass |
 | signature:nova | meaningful | cadence, lifetime | 2145→3575 | 0.389→0.611 | lifetime | pass |
 | signature:vesper | meaningful | cadence, pierce | 3536→5168 | 0.5→0.833 | pierce | pass |
 | universal:uwu | meaningful | cadence, pierce | 7644→10140 | 2.778→3 | pierce | pass |

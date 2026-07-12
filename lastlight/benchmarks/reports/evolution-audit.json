@@ -4,8 +4,8 @@
   "contract": "actual-simulation-paired-evolution-v1",
   "versions": {
     "balanceVersion": "2026.07.12-evolutions.1",
-    "balanceHash": "fnv1a32:3f6c1f96",
-    "evolutionContractHash": "fnv1a32:04cdf9e2",
+    "balanceHash": "fnv1a32:20c3fe1d",
+    "evolutionContractHash": "fnv1a32:2dfdf409",
     "tickRate": 60
   },
   "definitions": [
@@ -44,11 +44,12 @@
       "scope": "signature",
       "passiveId": "armor",
       "capabilities": [
-        "cadence"
+        "cadence",
+        "guard-return"
       ],
-      "status": "stat-only",
+      "status": "meaningful",
       "invariant": {
-        "metric": "cadence",
+        "metric": "guard-return",
         "comparison": "increase",
         "expectedFailure": false
       }
@@ -73,11 +74,12 @@
       "scope": "signature",
       "passiveId": "maxHealth",
       "capabilities": [
-        "cadence"
+        "cadence",
+        "predator-hook"
       ],
-      "status": "stat-only",
+      "status": "meaningful",
       "invariant": {
-        "metric": "cadence",
+        "metric": "predator-hook",
         "comparison": "increase",
         "expectedFailure": false
       }
@@ -103,11 +105,12 @@
       "scope": "signature",
       "passiveId": "move",
       "capabilities": [
-        "cadence"
+        "cadence",
+        "kinetic-reserve"
       ],
-      "status": "stat-only",
+      "status": "meaningful",
       "invariant": {
-        "metric": "cadence",
+        "metric": "kinetic-reserve",
         "comparison": "increase",
         "expectedFailure": false
       }
@@ -362,14 +365,17 @@
           "projectileStreams": 7,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 56
         },
-        "finalHash": "952bfeba8e3ae726",
+        "finalHash": "156d6693f3a93014",
         "ticks": 1081,
         "structure": {
           "peakEntities": 17,
           "maxWorkUnitsPerTick": 72,
-          "maxSnapshotBytes": 6817
+          "maxSnapshotBytes": 6910
         }
       },
       "evolved": {
@@ -400,14 +406,17 @@
           "projectileStreams": 7,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 133
         },
-        "finalHash": "f924b9dba0023317",
+        "finalHash": "8803b6e847123bdb",
         "ticks": 1081,
         "structure": {
           "peakEntities": 24,
           "maxWorkUnitsPerTick": 135,
-          "maxSnapshotBytes": 8884
+          "maxSnapshotBytes": 8977
         }
       },
       "delta": {
@@ -432,6 +441,9 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 77
         }
       },
@@ -484,14 +496,17 @@
           "projectileStreams": 6,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 89
         },
-        "finalHash": "a67eb867fea66f52",
+        "finalHash": "485e674683397f9a",
         "ticks": 1081,
         "structure": {
           "peakEntities": 19,
           "maxWorkUnitsPerTick": 90,
-          "maxSnapshotBytes": 7554
+          "maxSnapshotBytes": 7647
         }
       },
       "evolved": {
@@ -522,14 +537,17 @@
           "projectileStreams": 6,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 146
         },
-        "finalHash": "97b14a6273154bfa",
+        "finalHash": "05535d39d3073608",
         "ticks": 1081,
         "structure": {
           "peakEntities": 26,
           "maxWorkUnitsPerTick": 153,
-          "maxSnapshotBytes": 9669
+          "maxSnapshotBytes": 9762
         }
       },
       "delta": {
@@ -554,6 +572,9 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 57
         }
       },
@@ -564,14 +585,15 @@
       "scope": "signature",
       "passiveId": "armor",
       "capabilities": [
-        "cadence"
+        "cadence",
+        "guard-return"
       ],
-      "status": "stat-only",
+      "status": "meaningful",
       "invariant": {
-        "metric": "cadence",
+        "metric": "guard-return",
         "comparison": "increase",
         "expectedFailure": false,
-        "value": 0.093,
+        "value": 0.249,
         "passed": true,
         "accepted": true,
         "outcome": "pass"
@@ -605,14 +627,17 @@
           "projectileStreams": 4,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 44
         },
-        "finalHash": "9eb1fbba8626db3c",
+        "finalHash": "aa91a331f7d177be",
         "ticks": 1081,
         "structure": {
           "peakEntities": 14,
           "maxWorkUnitsPerTick": 45,
-          "maxSnapshotBytes": 6132
+          "maxSnapshotBytes": 6586
         }
       },
       "evolved": {
@@ -643,14 +668,17 @@
           "projectileStreams": 4,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0.249,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 48
         },
-        "finalHash": "009b0eb2c509a66f",
+        "finalHash": "4d2510be2f1a20ad",
         "ticks": 1081,
         "structure": {
           "peakEntities": 14,
           "maxWorkUnitsPerTick": 45,
-          "maxSnapshotBytes": 6148
+          "maxSnapshotBytes": 7995
         }
       },
       "delta": {
@@ -675,10 +703,13 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0.249,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 4
         }
       },
-      "nonCosmeticDeltaCount": 6
+      "nonCosmeticDeltaCount": 7
     },
     {
       "sourceKey": "signature:bront",
@@ -727,14 +758,17 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 10
         },
-        "finalHash": "405e354166f3390c",
+        "finalHash": "9c33d38953847da6",
         "ticks": 1081,
         "structure": {
           "peakEntities": 19,
           "maxWorkUnitsPerTick": 81,
-          "maxSnapshotBytes": 6310
+          "maxSnapshotBytes": 6403
         }
       },
       "evolved": {
@@ -765,14 +799,17 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 35
         },
-        "finalHash": "c72760590dac22c6",
+        "finalHash": "479617947925e8aa",
         "ticks": 1081,
         "structure": {
           "peakEntities": 23,
           "maxWorkUnitsPerTick": 117,
-          "maxSnapshotBytes": 6966
+          "maxSnapshotBytes": 7059
         }
       },
       "delta": {
@@ -797,6 +834,9 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 25
         }
       },
@@ -807,14 +847,15 @@
       "scope": "signature",
       "passiveId": "maxHealth",
       "capabilities": [
-        "cadence"
+        "cadence",
+        "predator-hook"
       ],
-      "status": "stat-only",
+      "status": "meaningful",
       "invariant": {
-        "metric": "cadence",
+        "metric": "predator-hook",
         "comparison": "increase",
         "expectedFailure": false,
-        "value": 0.172,
+        "value": 72,
         "passed": true,
         "accepted": true,
         "outcome": "pass"
@@ -848,14 +889,17 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 24
         },
-        "finalHash": "a2df675a07794053",
+        "finalHash": "0a6f3e620c5ddbde",
         "ticks": 1081,
         "structure": {
           "peakEntities": 11,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 5224
+          "maxSnapshotBytes": 5318
         }
       },
       "evolved": {
@@ -866,15 +910,15 @@
           "evolved": true
         },
         "common": {
-          "damage": 12193.125,
-          "hits": 105,
+          "damage": 15328.5,
+          "hits": 132,
           "uniqueTargets": 9,
           "activations": 15,
           "activationRate": 0.833,
           "projectiles": 0,
           "effects": 15,
           "tasks": 0,
-          "maxEntities": 11
+          "maxEntities": 12
         },
         "capabilityMetrics": {
           "cadence": 0.791,
@@ -886,27 +930,30 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 72,
+          "kineticReserve": 0,
           "impactIdentity": 30
         },
-        "finalHash": "f6bbed841267a902",
+        "finalHash": "afded5ef4d0a7935",
         "ticks": 1081,
         "structure": {
-          "peakEntities": 11,
+          "peakEntities": 12,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 5216
+          "maxSnapshotBytes": 6538
         }
       },
       "delta": {
         "common": {
-          "damage": 1625.75,
-          "hits": 14,
+          "damage": 4761.125,
+          "hits": 41,
           "uniqueTargets": 0,
           "activations": 3,
           "activationRate": 0.166,
           "projectiles": 0,
           "effects": 3,
           "tasks": 0,
-          "maxEntities": 0
+          "maxEntities": 1
         },
         "capabilityMetrics": {
           "cadence": 0.172,
@@ -918,10 +965,13 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 72,
+          "kineticReserve": 0,
           "impactIdentity": 6
         }
       },
-      "nonCosmeticDeltaCount": 5
+      "nonCosmeticDeltaCount": 6
     },
     {
       "sourceKey": "signature:gale",
@@ -971,14 +1021,17 @@
           "projectileStreams": 3,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 17
         },
-        "finalHash": "a147fcc5f9fd03a2",
+        "finalHash": "c74f146e0705cc12",
         "ticks": 1141,
         "structure": {
           "peakEntities": 16,
           "maxWorkUnitsPerTick": 63,
-          "maxSnapshotBytes": 6260
+          "maxSnapshotBytes": 6353
         }
       },
       "evolved": {
@@ -1009,14 +1062,17 @@
           "projectileStreams": 3,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 20
         },
-        "finalHash": "4f4e38cfea50facd",
+        "finalHash": "eb4d9cc5b510b7b7",
         "ticks": 1141,
         "structure": {
           "peakEntities": 18,
           "maxWorkUnitsPerTick": 81,
-          "maxSnapshotBytes": 7001
+          "maxSnapshotBytes": 7094
         }
       },
       "delta": {
@@ -1041,6 +1097,9 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 3
         }
       },
@@ -1051,14 +1110,15 @@
       "scope": "signature",
       "passiveId": "move",
       "capabilities": [
-        "cadence"
+        "cadence",
+        "kinetic-reserve"
       ],
-      "status": "stat-only",
+      "status": "meaningful",
       "invariant": {
-        "metric": "cadence",
+        "metric": "kinetic-reserve",
         "comparison": "increase",
         "expectedFailure": false,
-        "value": 0.355,
+        "value": 0.2,
         "passed": true,
         "accepted": true,
         "outcome": "pass"
@@ -1092,14 +1152,17 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 40
         },
-        "finalHash": "6cd68e7df9db53b9",
+        "finalHash": "fecb8ef10de57ead",
         "ticks": 1081,
         "structure": {
           "peakEntities": 11,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 5202
+          "maxSnapshotBytes": 5296
         }
       },
       "evolved": {
@@ -1110,8 +1173,8 @@
           "evolved": true
         },
         "common": {
-          "damage": 14414.4,
-          "hits": 117,
+          "damage": 19588.8,
+          "hits": 159,
           "uniqueTargets": 8,
           "activations": 27,
           "activationRate": 1.5,
@@ -1130,20 +1193,23 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0.2,
           "impactIdentity": 54
         },
-        "finalHash": "b3bc40b561d7785c",
+        "finalHash": "77e0b443bb8f1e05",
         "ticks": 1081,
         "structure": {
           "peakEntities": 11,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 5203
+          "maxSnapshotBytes": 6626
         }
       },
       "delta": {
         "common": {
-          "damage": 2340.8,
-          "hits": 19,
+          "damage": 7515.2,
+          "hits": 61,
           "uniqueTargets": 0,
           "activations": 7,
           "activationRate": 0.389,
@@ -1162,10 +1228,13 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0.2,
           "impactIdentity": 14
         }
       },
-      "nonCosmeticDeltaCount": 5
+      "nonCosmeticDeltaCount": 6
     },
     {
       "sourceKey": "signature:nova",
@@ -1214,14 +1283,17 @@
           "projectileStreams": 4,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 32
         },
-        "finalHash": "c57c6cbfa47b5619",
+        "finalHash": "d118bfb8bdf8c3b9",
         "ticks": 1081,
         "structure": {
           "peakEntities": 14,
           "maxWorkUnitsPerTick": 45,
-          "maxSnapshotBytes": 6115
+          "maxSnapshotBytes": 6208
         }
       },
       "evolved": {
@@ -1252,14 +1324,17 @@
           "projectileStreams": 4,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 63
         },
-        "finalHash": "5293dd2598d5b0d6",
+        "finalHash": "aeebd29b95018ece",
         "ticks": 1081,
         "structure": {
           "peakEntities": 18,
           "maxWorkUnitsPerTick": 81,
-          "maxSnapshotBytes": 7318
+          "maxSnapshotBytes": 7411
         }
       },
       "delta": {
@@ -1284,6 +1359,9 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 31
         }
       },
@@ -1336,14 +1414,17 @@
           "projectileStreams": 2,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 24
         },
-        "finalHash": "a85e94bcef8f64d1",
+        "finalHash": "4de8a8149eb6911b",
         "ticks": 1081,
         "structure": {
           "peakEntities": 26,
           "maxWorkUnitsPerTick": 27,
-          "maxSnapshotBytes": 6887
+          "maxSnapshotBytes": 6980
         }
       },
       "evolved": {
@@ -1374,14 +1455,17 @@
           "projectileStreams": 2,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 38
         },
-        "finalHash": "1a5148e02b94b088",
+        "finalHash": "271d35530969f480",
         "ticks": 1081,
         "structure": {
           "peakEntities": 36,
           "maxWorkUnitsPerTick": 45,
-          "maxSnapshotBytes": 8243
+          "maxSnapshotBytes": 8336
         }
       },
       "delta": {
@@ -1406,6 +1490,9 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 14
         }
       },
@@ -1458,14 +1545,17 @@
           "projectileStreams": 2,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 100
         },
-        "finalHash": "661c23a0b91ac426",
+        "finalHash": "1239ed63a3f3d47c",
         "ticks": 1081,
         "structure": {
           "peakEntities": 12,
           "maxWorkUnitsPerTick": 27,
-          "maxSnapshotBytes": 5554
+          "maxSnapshotBytes": 5647
         }
       },
       "evolved": {
@@ -1496,14 +1586,17 @@
           "projectileStreams": 2,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 163
         },
-        "finalHash": "aff38e19e8167ab3",
+        "finalHash": "68be8d1541ebddf9",
         "ticks": 1081,
         "structure": {
           "peakEntities": 22,
           "maxWorkUnitsPerTick": 117,
-          "maxSnapshotBytes": 8262
+          "maxSnapshotBytes": 8355
         }
       },
       "delta": {
@@ -1528,6 +1621,9 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 63
         }
       },
@@ -1579,14 +1675,17 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 1008
         },
-        "finalHash": "a74deff5e68cacf6",
+        "finalHash": "4edade2eb9013f46",
         "ticks": 1080,
         "structure": {
           "peakEntities": 24,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 7732
+          "maxSnapshotBytes": 7825
         }
       },
       "evolved": {
@@ -1617,14 +1716,17 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 1008
         },
-        "finalHash": "01dafda164822ddf",
+        "finalHash": "15021b22c3f63eff",
         "ticks": 1080,
         "structure": {
           "peakEntities": 24,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 7770
+          "maxSnapshotBytes": 7863
         }
       },
       "delta": {
@@ -1649,6 +1751,9 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 0
         }
       },
@@ -1700,14 +1805,17 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 0
         },
-        "finalHash": "6a7261be9717f1ed",
+        "finalHash": "fd356c9f21bf5399",
         "ticks": 1080,
         "structure": {
           "peakEntities": 10,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 5104
+          "maxSnapshotBytes": 5197
         }
       },
       "evolved": {
@@ -1738,14 +1846,17 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 0
         },
-        "finalHash": "ed8cafadff2274f1",
+        "finalHash": "f6ae3e8983eb0d37",
         "ticks": 1080,
         "structure": {
           "peakEntities": 10,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 5103
+          "maxSnapshotBytes": 5196
         }
       },
       "delta": {
@@ -1770,6 +1881,9 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 0
         }
       },
@@ -1821,14 +1935,17 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 28
         },
-        "finalHash": "10d578f9860774c6",
+        "finalHash": "a94048d41673b4ae",
         "ticks": 1080,
         "structure": {
           "peakEntities": 22,
           "maxWorkUnitsPerTick": 117,
-          "maxSnapshotBytes": 7122
+          "maxSnapshotBytes": 7215
         }
       },
       "evolved": {
@@ -1859,14 +1976,17 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 28
         },
-        "finalHash": "bf38d0502c9b7c24",
+        "finalHash": "a4359b63db0bdd22",
         "ticks": 1080,
         "structure": {
           "peakEntities": 22,
           "maxWorkUnitsPerTick": 117,
-          "maxSnapshotBytes": 7156
+          "maxSnapshotBytes": 7249
         }
       },
       "delta": {
@@ -1891,6 +2011,9 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 0
         }
       },
@@ -1942,14 +2065,17 @@
           "projectileStreams": 7,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 56
         },
-        "finalHash": "10c03ef3f421992b",
+        "finalHash": "2dc37c2cdca1130d",
         "ticks": 1080,
         "structure": {
           "peakEntities": 18,
           "maxWorkUnitsPerTick": 81,
-          "maxSnapshotBytes": 7069
+          "maxSnapshotBytes": 7162
         }
       },
       "evolved": {
@@ -1980,14 +2106,17 @@
           "projectileStreams": 7,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 56
         },
-        "finalHash": "c133eb4d4674eb88",
+        "finalHash": "de889f83b12aa700",
         "ticks": 1080,
         "structure": {
           "peakEntities": 18,
           "maxWorkUnitsPerTick": 81,
-          "maxSnapshotBytes": 7117
+          "maxSnapshotBytes": 7210
         }
       },
       "delta": {
@@ -2012,6 +2141,9 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 0
         }
       },
@@ -2063,14 +2195,17 @@
           "projectileStreams": 3,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 21
         },
-        "finalHash": "0f33aa3ab7d0b5bf",
+        "finalHash": "831909d2d7a4995b",
         "ticks": 1080,
         "structure": {
           "peakEntities": 13,
           "maxWorkUnitsPerTick": 36,
-          "maxSnapshotBytes": 6023
+          "maxSnapshotBytes": 6116
         }
       },
       "evolved": {
@@ -2101,14 +2236,17 @@
           "projectileStreams": 3,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 21
         },
-        "finalHash": "9f8daf5bb4830f43",
+        "finalHash": "652c1e32cae614f9",
         "ticks": 1080,
         "structure": {
           "peakEntities": 13,
           "maxWorkUnitsPerTick": 36,
-          "maxSnapshotBytes": 6031
+          "maxSnapshotBytes": 6124
         }
       },
       "delta": {
@@ -2133,6 +2271,9 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 0
         }
       },
@@ -2184,14 +2325,17 @@
           "projectileStreams": 6,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 48
         },
-        "finalHash": "275ee7f20d92fb07",
+        "finalHash": "2ae162f38a354ae9",
         "ticks": 1080,
         "structure": {
           "peakEntities": 16,
           "maxWorkUnitsPerTick": 63,
-          "maxSnapshotBytes": 6605
+          "maxSnapshotBytes": 6698
         }
       },
       "evolved": {
@@ -2222,14 +2366,17 @@
           "projectileStreams": 6,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 48
         },
-        "finalHash": "38d1c8356f8bdcc5",
+        "finalHash": "c4ad5c3403554385",
         "ticks": 1080,
         "structure": {
           "peakEntities": 16,
           "maxWorkUnitsPerTick": 63,
-          "maxSnapshotBytes": 6622
+          "maxSnapshotBytes": 6715
         }
       },
       "delta": {
@@ -2254,6 +2401,9 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 0
         }
       },
@@ -2305,14 +2455,17 @@
           "projectileStreams": 7,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 49
         },
-        "finalHash": "a8cffeee20bf01b2",
+        "finalHash": "911ed854e3d78344",
         "ticks": 1080,
         "structure": {
           "peakEntities": 17,
           "maxWorkUnitsPerTick": 72,
-          "maxSnapshotBytes": 6903
+          "maxSnapshotBytes": 6996
         }
       },
       "evolved": {
@@ -2343,14 +2496,17 @@
           "projectileStreams": 14,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 104
         },
-        "finalHash": "2e0e350f3bccec0d",
+        "finalHash": "965f42bd0136dbb7",
         "ticks": 1080,
         "structure": {
           "peakEntities": 24,
           "maxWorkUnitsPerTick": 135,
-          "maxSnapshotBytes": 8927
+          "maxSnapshotBytes": 9020
         }
       },
       "delta": {
@@ -2375,6 +2531,9 @@
           "projectileStreams": 7,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 55
         }
       },
@@ -2426,14 +2585,17 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 2
         },
-        "finalHash": "4832145f87f0e457",
+        "finalHash": "c90a24007e6926e7",
         "ticks": 1080,
         "structure": {
           "peakEntities": 12,
           "maxWorkUnitsPerTick": 27,
-          "maxSnapshotBytes": 5243
+          "maxSnapshotBytes": 5336
         }
       },
       "evolved": {
@@ -2464,14 +2626,17 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 2
         },
-        "finalHash": "bfabf90976725ad5",
+        "finalHash": "ec9ad3a6549ad577",
         "ticks": 1080,
         "structure": {
           "peakEntities": 12,
           "maxWorkUnitsPerTick": 27,
-          "maxSnapshotBytes": 5244
+          "maxSnapshotBytes": 5337
         }
       },
       "delta": {
@@ -2496,6 +2661,9 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 0
         }
       },
@@ -2547,14 +2715,17 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 0
         },
-        "finalHash": "42e4f12406ba14b4",
+        "finalHash": "56427cd240deb794",
         "ticks": 1081,
         "structure": {
           "peakEntities": 10,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 4876
+          "maxSnapshotBytes": 4969
         }
       },
       "evolved": {
@@ -2585,14 +2756,17 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 0
         },
-        "finalHash": "c82072b28aa7df86",
+        "finalHash": "3555c9e6975bf110",
         "ticks": 1081,
         "structure": {
           "peakEntities": 10,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 4876
+          "maxSnapshotBytes": 4969
         }
       },
       "delta": {
@@ -2617,6 +2791,9 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 0
         }
       },
@@ -2668,14 +2845,17 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 1
         },
-        "finalHash": "ed7d9e8277a9e7b5",
+        "finalHash": "a262c5aabb802d7d",
         "ticks": 1081,
         "structure": {
           "peakEntities": 19,
           "maxWorkUnitsPerTick": 90,
-          "maxSnapshotBytes": 6368
+          "maxSnapshotBytes": 6461
         }
       },
       "evolved": {
@@ -2706,14 +2886,17 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 1
         },
-        "finalHash": "d6f7debe8fed2ac7",
+        "finalHash": "ebd252200a02fb45",
         "ticks": 1081,
         "structure": {
           "peakEntities": 19,
           "maxWorkUnitsPerTick": 90,
-          "maxSnapshotBytes": 6367
+          "maxSnapshotBytes": 6460
         }
       },
       "delta": {
@@ -2738,6 +2921,9 @@
           "projectileStreams": 0,
           "repairRate": 0,
           "pickupRange": 0,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 0
         }
       },
@@ -2791,14 +2977,17 @@
           "projectileStreams": 3,
           "repairRate": 0.056,
           "pickupRange": 305,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 72
         },
-        "finalHash": "0ab7901476c50340",
+        "finalHash": "76646c91a02c1e54",
         "ticks": 3240,
         "structure": {
           "peakEntities": 18,
           "maxWorkUnitsPerTick": 64,
-          "maxSnapshotBytes": 7081
+          "maxSnapshotBytes": 7174
         }
       },
       "evolved": {
@@ -2829,14 +3018,17 @@
           "projectileStreams": 3,
           "repairRate": 0.083,
           "pickupRange": 400,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 74
         },
-        "finalHash": "491dcede91efb976",
+        "finalHash": "34fa129aac2e66d4",
         "ticks": 3240,
         "structure": {
           "peakEntities": 18,
           "maxWorkUnitsPerTick": 64,
-          "maxSnapshotBytes": 7130
+          "maxSnapshotBytes": 7223
         }
       },
       "delta": {
@@ -2861,6 +3053,9 @@
           "projectileStreams": 0,
           "repairRate": 0.027,
           "pickupRange": 95,
+          "guardReturn": 0,
+          "predatorHook": 0,
+          "kineticReserve": 0,
           "impactIdentity": 2
         }
       },

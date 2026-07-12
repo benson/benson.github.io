@@ -11,6 +11,9 @@ export const WEAPON_EVOLUTION_CAPABILITIES = Object.freeze([
   "projectile-streams",
   "repair-rate",
   "pickup-range",
+  "guard-return",
+  "predator-hook",
+  "kinetic-reserve",
   "impact-identity",
 ]);
 
@@ -50,6 +53,7 @@ const signatures = {
   ] }),
   sola: entry({ key: "signature:sola", scope: "signature", sourceId: "signature", specialistId: "sola", baseName: "Shield Beam", evolvedName: "Lion's Light", pairedPassive: "armor", handler: "signature-sola-v1", capabilities: [
     gameplay("cadence", ["weapons.signatures.sola.evolvedCycleSeconds"], "Sets a shorter fixed evolved firing cycle."),
+    gameplay("guard-return", ["identityTuning.sola.guardReturnBase", "identityTuning.sola.guardReturnArmorRatio", "identityTuning.sola.guardReturnMax"], "The first hit in each evolved volley returns an armor-scaled shield."),
   ] }),
   bront: entry({ key: "signature:bront", scope: "signature", sourceId: "signature", specialistId: "bront", baseName: "Tidal Hammer", evolvedName: "Grizzly Surge", pairedPassive: "duration", handler: "signature-bront-v1", capabilities: [
     gameplay("cadence", ["weapons.signatures.bront.evolvedCycle"], "Shortens the signature firing cycle."),
@@ -57,6 +61,7 @@ const signatures = {
   ] }),
   fang: entry({ key: "signature:fang", scope: "signature", sourceId: "signature", specialistId: "fang", baseName: "Rending Swipe", evolvedName: "Savage Slice", pairedPassive: "maxHealth", handler: "signature-fang-v1", capabilities: [
     gameplay("cadence", ["weapons.signatures.fang.evolvedCycle"], "Shortens the signature firing cycle without adding bleed."),
+    gameplay("predator-hook", ["identityTuning.fang.predatorHookEvery", "identityTuning.fang.predatorHookBase", "identityTuning.fang.predatorHookMaxHealthRatio", "identityTuning.fang.predatorHookMin", "identityTuning.fang.predatorHookMax"], "Every third evolved swipe pulls non-boss targets inward without adding damage."),
   ] }),
   gale: entry({ key: "signature:gale", scope: "signature", sourceId: "signature", specialistId: "gale", baseName: "Steel Current", evolvedName: "Wandering Storms", pairedPassive: "crit", handler: "signature-gale-v1", capabilities: [
     gameplay("cadence", ["weapons.signatures.gale.evolvedCycle"], "Shortens the post-fire signature cycle."),
@@ -65,6 +70,7 @@ const signatures = {
   ] }),
   rift: entry({ key: "signature:rift", scope: "signature", sourceId: "signature", specialistId: "rift", baseName: "Kinetic Crash", evolvedName: "Golden Overrun", pairedPassive: "move", handler: "signature-rift-v1", capabilities: [
     gameplay("cadence", ["weapons.signatures.rift.evolvedCycle"], "Shortens the signature firing cycle."),
+    gameplay("kinetic-reserve", ["identityTuning.rift.kineticReserveDistance", "identityTuning.rift.kineticReserveMinScale", "identityTuning.rift.kineticReserveMaxScale"], "Resolved movement since the prior crash scales evolved knockback across a bounded range."),
   ] }),
   nova: entry({ key: "signature:nova", scope: "signature", sourceId: "signature", specialistId: "nova", baseName: "Guiding Hex", evolvedName: "Hopped-Up Hex", pairedPassive: "xp", handler: "signature-nova-v1", capabilities: [
     gameplay("cadence", ["weapons.signatures.nova.evolvedCycle"], "Shortens the signature firing cycle."),
