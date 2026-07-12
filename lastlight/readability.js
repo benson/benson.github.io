@@ -95,6 +95,14 @@ export function partitionEffects(effects = []) {
   return result;
 }
 
+export function shouldPromoteCache(pod, { localPlayer = null, hoveredId = null, nearbyRadius = 240 } = {}) {
+  if (!pod) return false;
+  if (hoveredId === pod.id || (pod.hp ?? 100) < 100) return true;
+  if (!localPlayer) return false;
+  const dx = (pod.x || 0) - (localPlayer.x || 0), dy = (pod.y || 0) - (localPlayer.y || 0);
+  return dx * dx + dy * dy <= nearbyRadius * nearbyRadius;
+}
+
 function channel(value) {
   const hex = value.replace("#", "");
   const component = Number.parseInt(hex, 16) / 255;

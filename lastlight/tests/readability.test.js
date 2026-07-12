@@ -11,6 +11,7 @@ import {
   effectReadabilityCategory,
   partitionEffects,
   readabilityPlan,
+  shouldPromoteCache,
   validateCombatReadability,
 } from "../readability.js";
 
@@ -55,6 +56,16 @@ test("readability stress fixture covers every category in high, reduced, and min
   assert.equal(fixture.length, READABILITY_CATEGORIES.length * 3);
   assert.equal(new Set(fixture.map((entry) => entry.id)).size, fixture.length);
   assert.ok(fixture.every((entry) => entry.plan.silhouette && entry.plan.pattern));
+});
+
+test("cache priority only promotes nearby, damaged, or inspected props", () => {
+  const pod = { id: "cache-1", x: 400, y: 0, hp: 100 };
+  const localPlayer = { x: 0, y: 0 };
+  assert.equal(shouldPromoteCache(pod, { localPlayer }), false);
+  assert.equal(shouldPromoteCache({ ...pod, x: 239 }, { localPlayer }), true);
+  assert.equal(shouldPromoteCache({ ...pod, hp: 99 }, { localPlayer }), true);
+  assert.equal(shouldPromoteCache(pod, { localPlayer, hoveredId: pod.id }), true);
+  assert.equal(shouldPromoteCache(null, { localPlayer }), false);
 });
 
 test("renderer uses explicit late threat, objective, teammate, feedback, and inspection passes", () => {
