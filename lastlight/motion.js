@@ -91,6 +91,7 @@ export function directionColumn(angle) {
 // whenever they strafed or backpedalled.
 export function specialistFacingTarget(entity, moving, inferredMovement = 0) {
   if (entity?.animState === "dash" && Number.isFinite(entity?.dashFacing)) return entity.dashFacing;
+  if ((entity?.input?.autoAim ?? entity?.autoAim) && moving && Number.isFinite(entity?.movementFacing)) return entity.movementFacing;
   if (Number.isFinite(entity?.facing)) return entity.facing;
   if (moving && Number.isFinite(entity?.movementFacing)) return entity.movementFacing;
   if (Number.isFinite(entity?.aimFacing)) return entity.aimFacing;

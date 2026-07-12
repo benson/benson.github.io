@@ -343,7 +343,7 @@ export class Renderer {
       const [x,y,w,h] = MAP_OBSTACLES[index];
       if (worldX < x || worldX > x + w || worldY < y || worldY > y + h) continue;
       const obstacle = { id: `obstacle-${index}`, x: x + w / 2, y: y + h / 2 };
-      consider(obstacle, Math.max(w, h), { type: "obstacle", name: "Raised Cover", description: "Solid environmental cover. Specialists cannot move or dash through it.", stats: { Width: Math.round(w), Height: Math.round(h), Collision: "Solid" } }, -.2);
+      consider(obstacle, Math.max(w, h), { type: "obstacle", name: "Raised Cover", description: "Solid environmental cover. Specialists cannot move or dash through it, and ordinary friendly or hostile fire stops on contact.", stats: { Width: Math.round(w), Height: Math.round(h), Collision: "Solid", "Projectile cover": "Most shots", Exceptions: "Rail lanes · Apex fire" } }, -.2);
     }
     const machine = { id: "machine", x: 0, y: 0, radius: 77 };
     consider(machine, 77, { type: "objective", name: map?.mechanic || "Field Device", description: "Stand nearby to charge this operation-specific field device.", stats: { Charge: `${Math.round(((state.machine?.charge || 0) / 2.4) * 100)}%`, Cooldown: `${Math.max(0, Math.ceil(state.machine?.cooldown || 0))}s` } }, .04);

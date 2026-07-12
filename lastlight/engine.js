@@ -74,6 +74,32 @@ export function collidesWithCover(x, y, radius) {
   return false;
 }
 
+export function segmentCoverImpact(startX, startY, endX, endY, radius = 0, obstacles = MAP_OBSTACLES) {
+  const dx = endX - startX, dy = endY - startY, padding = Math.max(0, Number(radius) || 0);
+  let earliest = null;
+  for (let obstacleIndex = 0; obstacleIndex < obstacles.length; obstacleIndex++) {
+    const [left, top, width, height] = obstacles[obstacleIndex];
+    const bounds = [left - padding, top - padding, left + width + padding, top + height + padding];
+    let entry = 0, exit = 1, valid = true;
+    for (const [origin, delta, minimum, maximum] of [[startX, dx, bounds[0], bounds[2]], [startY, dy, bounds[1], bounds[3]]]) {
+      if (Math.abs(delta) < 1e-9) { if (origin < minimum || origin > maximum) valid = false; continue; }
+      const first = (minimum - origin) / delta, second = (maximum - origin) / delta;
+      entry = Math.max(entry, Math.min(first, second)); exit = Math.min(exit, Math.max(first, second));
+      if (entry > exit) { valid = false; break; }
+    }
+    if (!valid || exit < 0 || entry > 1) continue;
+    const t = clamp(entry, 0, 1);
+    if (!earliest || t < earliest.t) earliest = { t, obstacleIndex, x: startX + dx * t, y: startY + dy * t };
+  }
+  return earliest;
+}
+
+export function projectileBlockedByCover(projectile, hostile = false) {
+  if (!projectile || projectile.coverPiercing) return false;
+  if (hostile && projectile.bossShot) return false;
+  return hostile || projectile.sourceId !== "rail";
+}
+
 export function moveEntityWithCover(entity, dx, dy) {
   const steps = Math.max(1, Math.ceil(Math.hypot(dx, dy) / 18));
   for (let step = 0; step < steps; step++) {
@@ -1015,7 +1041,7 @@ export class Simulation {
 
   updateProjectiles(dt) {
     for (const bullet of this.projectiles) {
-      bullet.age += dt;
+      bullet.age = (bullet.age || 0) + dt;
       bullet.life -= dt;
       if (bullet.boomerang && bullet.age > .72) {
         const owner = this.players.find((p) => p.id === bullet.owner);
@@ -1024,7 +1050,12 @@ export class Simulation {
           bullet.vx = Math.cos(a) * speed; bullet.vy = Math.sin(a) * speed;
         }
       }
-      bullet.x += bullet.vx * dt; bullet.y += bullet.vy * dt;
+      const startX = bullet.x, startY = bullet.y, endX = startX + bullet.vx * dt, endY = startY + bullet.vy * dt;
+      const coverImpact = projectileBlockedByCover(bullet) ? segmentCoverImpact(startX, startY, endX, endY, bullet.radius) : null;
+      if (coverImpact) {
+        bullet.x = coverImpact.x; bullet.y = coverImpact.y; bullet.dead = true; bullet.coverImpact = coverImpact.obstacleIndex;
+        this.effects.push({ id: this.nextCosmeticId("cover"), x: bullet.x, y: bullet.y, radius: Math.max(10, bullet.radius * 1.6), life: .18, maxLife: .18, damage: 0, owner: bullet.owner || "cover", sourceId: bullet.sourceId, color: bullet.color, kind: "coverImpact", obstacleIndex: coverImpact.obstacleIndex, hit: new Set() });
+      } else { bullet.x = endX; bullet.y = endY; }
       if (Math.abs(bullet.x) > WORLD.width / 2 + 150 || Math.abs(bullet.y) > WORLD.height / 2 + 150) bullet.dead = true;
 
       for (const pod of this.pods) {
@@ -1049,7 +1080,13 @@ export class Simulation {
     }
 
     for (const bullet of this.hostile) {
-      bullet.life -= dt; bullet.x += bullet.vx * dt; bullet.y += bullet.vy * dt;
+      bullet.life -= dt;
+      const startX = bullet.x, startY = bullet.y, endX = startX + bullet.vx * dt, endY = startY + bullet.vy * dt;
+      const coverImpact = projectileBlockedByCover(bullet, true) ? segmentCoverImpact(startX, startY, endX, endY, bullet.radius) : null;
+      if (coverImpact) {
+        bullet.x = coverImpact.x; bullet.y = coverImpact.y; bullet.dead = true; bullet.coverImpact = coverImpact.obstacleIndex;
+        this.effects.push({ id: this.nextCosmeticId("cover"), x: bullet.x, y: bullet.y, radius: Math.max(10, bullet.radius * 1.6), life: .18, maxLife: .18, damage: 0, owner: "cover", color: bullet.color, kind: "coverImpact", obstacleIndex: coverImpact.obstacleIndex, hit: new Set() });
+      } else { bullet.x = endX; bullet.y = endY; }
       for (const p of this.players) {
         if (p.dead || p.downed || bullet.dead || !circleHit(bullet, p)) continue;
         this.takeDamage(p, bullet.damage, bullet); bullet.dead = true;

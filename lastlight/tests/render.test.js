@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { settingsForPreset } from "../quality-settings.js";
 import { createImpactStressFixture } from "../fixtures/impact-stress.js";
 import { MATERIAL_CLASSES } from "../material-impacts.js";
+import { MAP_OBSTACLES } from "../data.js";
 
 globalThis.window = {
   devicePixelRatio: 1,
@@ -97,6 +98,22 @@ test("inspection identifies breakable caches without implying collision", () => 
   assert.equal(result.name, "Breakable Supply Cache");
   assert.match(result.description, /does not block movement/i);
   assert.equal(result.stats.Integrity, "65 / 100");
+});
+
+test("inspection explains raised-cover projectile interception and authored exceptions", () => {
+  const renderer = createRenderer();
+  const state = {
+    map: "warehouse",
+    machine: { charge: 0, cooldown: 0 },
+    enemies: [], drops: [], orbs: [], objectives: [], relayBalls: [], drones: [], projectiles: [], hostile: [], effects: [], pods: [],
+  };
+  const [left, top, width, height] = MAP_OBSTACLES[0];
+  renderer.camera.x = left + width / 2;
+  renderer.camera.y = top + height / 2;
+  const result = renderer.inspectAt(500, 350, state);
+  assert.equal(result.type, "obstacle");
+  assert.equal(result.stats["Projectile cover"], "Most shots");
+  assert.equal(result.stats.Exceptions, "Rail lanes · Apex fire");
 });
 
 test("renderer applies quality profiles without mutating simulation lists", () => {
