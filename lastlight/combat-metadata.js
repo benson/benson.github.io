@@ -125,8 +125,11 @@ export function projectileDisplay(metadata, count) {
   if (metadata.projectileMode === "counted") {
     const numeric = Number(count);
     if (!Number.isFinite(numeric)) return "Count varies";
-    const suffix = metadata.projectileNote ? ` ${metadata.projectileNote}` : "";
-    return `${Math.max(0, Math.floor(numeric))}${suffix}`;
+    const total = Math.max(0, Math.floor(numeric));
+    const note = total === 1
+      ? metadata.projectileNote.replace(/oes$/, "o").replace(/ies$/, "y").replace(/s$/, "")
+      : metadata.projectileNote;
+    return `${total}${note ? ` ${note}` : ""}`;
   }
   const labels = {
     field: "N/A — continuous field",

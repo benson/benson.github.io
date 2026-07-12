@@ -42,7 +42,9 @@ test("every source has a valid, internally consistent projectile contract", () =
 
 test("projectile display distinguishes counts, fields, effects, and utility", () => {
   assert.equal(projectileDisplay(UNIVERSAL_WEAPON_COMBAT.uwu, 3), "3");
+  assert.equal(projectileDisplay(UNIVERSAL_WEAPON_COMBAT.mines, 1), "1 deployed mine");
   assert.equal(projectileDisplay(UNIVERSAL_WEAPON_COMBAT.mines, 5), "5 deployed mines");
+  assert.equal(projectileDisplay(SPECIALIST_COMBAT.gale.signature, 1), "1 tornado");
   assert.equal(projectileDisplay(UNIVERSAL_WEAPON_COMBAT.aura, 1), "N/A — continuous field");
   assert.equal(projectileDisplay(UNIVERSAL_WEAPON_COMBAT.annihilator, 1), "N/A — single effect");
   assert.equal(projectileDisplay(UNIVERSAL_WEAPON_COMBAT.ice, 1), "N/A — utility");

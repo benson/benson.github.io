@@ -396,7 +396,7 @@ function renderStartingWeaponDetails(spec) {
   $("detail-weapon-behavior").textContent = SIGNATURE_BEHAVIORS[spec.id] || "Automatically attacks nearby threats.";
   $("detail-weapon-stats").innerHTML = Object.entries({ Damage: telemetry.damage, Cadence: telemetry.interval, Projectiles: telemetry.projectiles, Radius: telemetry.radius, Reach: telemetry.reach, Pierce: telemetry.pierce, Lifetime: telemetry.lifetime, Secondary: telemetry.secondary })
     .map(([label, value]) => `<div><dt>${escapeHTML(label)}</dt><dd>${escapeHTML(value)}</dd></div>`).join("");
-  $("detail-weapon-evolution").textContent = `Evolves into ${spec.signature.evolve}. ${evolution.requirement}. ${evolution.summary}. Paired passive: ${evolution.pairedPassive.name} — ${pairedPassiveDelta(evolution)}.`;
+  $("detail-weapon-evolution").textContent = `Evolves into ${spec.signature.evolve}. ${evolution.requirement}. ${evolution.summary.replace(/[.!?]+$/, "")}. Paired passive: ${evolution.pairedPassive.name} — ${pairedPassiveDelta(evolution)}.`;
   $("starting-weapon-trigger").setAttribute("aria-label", `Inspect ${spec.signature.name} starting weapon`);
 }
 
