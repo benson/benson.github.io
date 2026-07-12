@@ -713,6 +713,26 @@ export class Simulation {
     return p.input.aim || 0;
   }
 
+  // Keep the aimed lane stable as projectile count changes. The previous
+  // half-step fan removed the center lane for every even count, so Multishot
+  // could make an auto-aimed volley miss the target it was tracking. Prefixing
+  // a deterministic center-out sequence also means every larger fan contains
+  // every lane from the smaller fan.
+  signatureFanAngles(aim, count, spread) {
+    const center = Number.isFinite(Number(aim)) ? Number(aim) : 0;
+    const amount = Math.max(0, Math.floor(Number(count) || 0));
+    const spacing = Number.isFinite(Number(spread)) ? Number(spread) : 0;
+    const angles = [];
+    for (let index = 0; index < amount; index++) {
+      if (index === 0) angles.push(center);
+      else {
+        const ring = Math.ceil(index / 2);
+        angles.push(center + (index % 2 ? -ring : ring) * spacing);
+      }
+    }
+    return angles;
+  }
+
   mobilityAimForPlayer(p) {
     // Auto-aim is useful for weapons, but movement abilities authored as
     // "to the cursor" must always respect the player's latest pointer angle.
@@ -814,13 +834,13 @@ export class Simulation {
 
     if (p.specialist === "zuri") {
       const count = tuning.countBase + level * tuning.countPerLevel + extra;
-      for (let i = 0; i < count; i++) this.shoot(p, aim + (i - (count - 1) / 2) * tuning.spread, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: spec.color, pierce: sig.evolved ? tuning.evolvedPierce : 0, life: tuning.life });
+      for (const angle of this.signatureFanAngles(aim, count, tuning.spread)) this.shoot(p, angle, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: spec.color, pierce: sig.evolved ? tuning.evolvedPierce : 0, life: tuning.life });
     } else if (p.specialist === "echo") {
       const count = Math.min(tuning.countCap, level * tuning.countPerLevel + extra);
-      for (let i = 0; i < count; i++) this.shoot(p, aim + (i - (count - 1) / 2) * tuning.spread, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: spec.color, pierce: tuning.pierce, life: sig.evolved ? tuning.evolvedLife : tuning.life, wave: true });
+      for (const angle of this.signatureFanAngles(aim, count, tuning.spread)) this.shoot(p, angle, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: spec.color, pierce: tuning.pierce, life: sig.evolved ? tuning.evolvedLife : tuning.life, wave: true });
     } else if (p.specialist === "sola") {
       const count = tuning.countBase + Math.floor(level / tuning.countEveryLevels) + extra;
-      for (let i = 0; i < count; i++) this.shoot(p, aim + (i - (count - 1) / 2) * tuning.spread, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel + p.armor * tuning.armorDamage, { radius: tuning.radius * area, color: spec.color, pierce: tuning.pierce, life: tuning.life });
+      for (const angle of this.signatureFanAngles(aim, count, tuning.spread)) this.shoot(p, angle, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel + p.armor * tuning.armorDamage, { radius: tuning.radius * area, color: spec.color, pierce: tuning.pierce, life: tuning.life });
     } else if (p.specialist === "bront") {
       const target = this.nearestEnemy(p, tuning.range);
       if (!target) return false;
@@ -837,16 +857,16 @@ export class Simulation {
       if (p.flow < tuning.flowCost) return false;
       p.flow = 0;
       const count = Math.min(tuning.countCap, tuning.countBase + Math.floor(level / tuning.countEveryLevels) + extra);
-      for (let i = 0; i < count; i++) this.shoot(p, aim + (i - (count - 1) / 2) * tuning.spread, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: (tuning.radiusBase + level * tuning.radiusPerLevel) * area, color: spec.color, pierce: sig.evolved ? tuning.evolvedPierce : tuning.pierce, life: tuning.life, tornado: true });
+      for (const angle of this.signatureFanAngles(aim, count, tuning.spread)) this.shoot(p, angle, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: (tuning.radiusBase + level * tuning.radiusPerLevel) * area, color: spec.color, pierce: sig.evolved ? tuning.evolvedPierce : tuning.pierce, life: tuning.life, tornado: true });
     } else if (p.specialist === "rift") {
       const tx = p.x + Math.cos(aim) * tuning.offset, ty = p.y + Math.sin(aim) * tuning.offset;
       this.blast(tx, ty, (tuning.radiusBase + level * tuning.radiusPerLevel) * area, (tuning.damageBase + level * tuning.damagePerLevel) * this.playerStat(p, "damage"), p.id, spec.color, true, "slash", "signature");
     } else if (p.specialist === "nova") {
       const count = Math.min(tuning.countCap, tuning.countBase + Math.ceil(level / tuning.countEveryLevels) + extra);
-      for (let i = 0; i < count; i++) this.shoot(p, aim + (i - (count - 1) / 2) * tuning.spread, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: spec.color, pierce: tuning.pierce, life: sig.evolved ? tuning.evolvedLife : tuning.life, hex: true });
+      for (const angle of this.signatureFanAngles(aim, count, tuning.spread)) this.shoot(p, angle, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: spec.color, pierce: tuning.pierce, life: sig.evolved ? tuning.evolvedLife : tuning.life, hex: true });
     } else if (p.specialist === "vesper") {
       const count = tuning.countBase + Math.floor(level / tuning.countEveryLevels) + extra;
-      for (let i = 0; i < count; i++) this.shoot(p, aim + (i - (count - 1) / 2) * tuning.spread, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: spec.color, pierce: sig.evolved ? tuning.evolvedPierce : tuning.pierce, life: tuning.life, dagger: true, leaveFeather: true });
+      for (const angle of this.signatureFanAngles(aim, count, tuning.spread)) this.shoot(p, angle, tuning.speed, tuning.damageBase + level * tuning.damagePerLevel, { radius: tuning.radius, color: spec.color, pierce: sig.evolved ? tuning.evolvedPierce : tuning.pierce, life: tuning.life, dagger: true, leaveFeather: true });
     }
     return true;
   }
