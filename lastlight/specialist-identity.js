@@ -158,7 +158,7 @@ const specialists = {
 
 export const SPECIALIST_IDENTITY_CONTRACT = deepFreeze({
   schemaVersion: SPECIALIST_IDENTITY_VERSION,
-  balanceVersion: "2026.07.12-signatures.3",
+  balanceVersion: "2026.07.12-evolutions.1",
   unlocks: { activeLevel: 3, ultimateLevel: 6, signatureMaxRank: 5 },
   specialists,
 });

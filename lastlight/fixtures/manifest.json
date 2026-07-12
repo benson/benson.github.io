@@ -2,8 +2,8 @@
   "schema": "lastlight.fixtures.v1",
   "schemaVersion": 1,
   "balance": {
-    "version": "2026.07.12-signatures.3",
-    "hash": "fnv1a32:e36834e8"
+    "version": "2026.07.12-evolutions.1",
+    "hash": "fnv1a32:1f4e921f"
   },
   "replay": {
     "schema": "lastlight.replay.v3",

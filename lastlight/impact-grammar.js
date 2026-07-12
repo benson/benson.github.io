@@ -1,4 +1,5 @@
 import { SPECIALIST_ORDER, WEAPONS } from "./data.js?v=20260712.3";
+import { parseWeaponVariantId } from "./weapon-evolution.js?v=20260712.4";
 
 export const IMPACT_GRAMMAR_VERSION = "lastlight.impact-grammar.v1";
 export const IMPACT_PRIORITIES = Object.freeze(["ambient", "standard", "critical"]);
@@ -64,6 +65,8 @@ export function getWeaponImpactGrammar(sourceId, { specialistId, evolved = false
 
 export function resolveEntityImpact(entity, state = {}) {
   if (!entity || entity.owner === "enemy" || entity.hostile || entity.bossShot) return null;
+  const stamped = parseWeaponVariantId(entity.variantId);
+  if (stamped) return getWeaponImpactGrammar(stamped.sourceId, { specialistId: stamped.specialistId, evolved: stamped.evolved });
   const owner = (state.players || []).find((player) => player.id === entity.owner);
   let sourceId = entity.sourceId;
   if (!sourceId && entity.kind === "slicer") sourceId = "slicers";

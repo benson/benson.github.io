@@ -1,6 +1,8 @@
+import { WEAPON_EVOLUTION_CONTRACT, validateWeaponEvolutionContract } from "./weapon-evolution.js?v=20260712.4";
+
 // Balance is a versioned simulation input. Replays and fixtures should record
 // this exact version so a future tuning pass never silently changes old runs.
-export const BALANCE_VERSION = "2026.07.12-signatures.3";
+export const BALANCE_VERSION = "2026.07.12-evolutions.1";
 
 export const BALANCE_IDS = Object.freeze({
   specialists: Object.freeze(["zuri", "echo", "sola", "bront", "fang", "gale", "rift", "nova", "vesper"]),
@@ -13,6 +15,7 @@ export const BALANCE_IDS = Object.freeze({
 
 const config = {
   version: BALANCE_VERSION,
+  evolutions: WEAPON_EVOLUTION_CONTRACT,
   core: {
     baseVitality: 10,
     defaultDurationSeconds: 240,
@@ -210,7 +213,7 @@ export function validateBalanceConfig(candidate = BALANCE_CONFIG) {
   };
   if (!candidate || typeof candidate !== "object") return ["config: must be an object"];
   if (typeof candidate.version !== "string" || !candidate.version.trim()) errors.push("version: required");
-  for (const section of ["core", "specialists", "identityTuning", "movement", "passives", "shields", "difficulties", "enemies", "waves", "weapons"]) {
+  for (const section of ["core", "evolutions", "specialists", "identityTuning", "movement", "passives", "shields", "difficulties", "enemies", "waves", "weapons"]) {
     if (!candidate[section] || typeof candidate[section] !== "object") errors.push(`${section}: required`);
   }
   const requireExactIds = (path, value, ids) => {
@@ -283,6 +286,7 @@ export function validateBalanceConfig(candidate = BALANCE_CONFIG) {
     if (entry.rollBelow > 1) errors.push(`waves.spawn.composition.${index}.rollBelow: must be <= 1`);
   }
   for (const id of Object.keys(candidate.specialists || {})) if (!candidate.weapons?.signatures?.[id]) errors.push(`weapons.signatures.${id}: required`);
+  errors.push(...validateWeaponEvolutionContract(candidate.evolutions, candidate).map((error) => `evolutions.${error}`));
   return errors;
 }
 
