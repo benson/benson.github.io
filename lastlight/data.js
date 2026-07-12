@@ -1,5 +1,5 @@
 import { getThemeAsset } from "./themes/lastlight.js?v=20260711.8";
-import { BALANCE_CONFIG } from "./balance-config.js?v=20260712.5";
+import { BALANCE_CONFIG } from "./balance-config.js?v=20260712.6";
 
 // One vitality point is one readable unit of player health. Standard specialists
 // are balanced around 10; every hostile hit can therefore be discussed in hits-to-down.
@@ -98,12 +98,12 @@ export const PASSIVES = {
 };
 
 export const WEAPONS = {
-  uwu: { id: "uwu", name: "Needle Blaster", evolve: "Twin Needle Array", passive: "haste", glyph: "NB", icon: getThemeAsset("weapons.universal.uwu"), max: 5, copy: "Rapidly fires laser needles at the nearest target." },
+  uwu: { id: "uwu", name: "Needle Blaster", evolve: "Twin Needle Array", passive: "haste", glyph: "NB", icon: getThemeAsset("weapons.universal.uwu"), max: 5, copy: "Rapidly fires laser needles. Twin Needle redirects the same shot once toward a nearby unhit enemy for 70% damage." },
   slicers: { id: "slicers", name: "Cyclonic Slicers", evolve: "Unceasing Cyclone", passive: "regen", glyph: "CS", icon: getThemeAsset("weapons.universal.slicers"), max: 5, copy: "Orbiting razors damage and knock enemies back." },
   aura: { id: "aura", name: "Radiant Field", evolve: "Explosive Embrace", passive: "maxHealth", glyph: "RF", icon: getThemeAsset("weapons.universal.aura"), max: 5, copy: "A solar field continuously damages nearby enemies." },
   mines: { id: "mines", name: "Arc Mines", evolve: "Tri-Mine Grid", passive: "area", glyph: "AM", icon: getThemeAsset("weapons.universal.mines"), max: 5, copy: "Deploy timed explosives in a ring." },
   crossbow: { id: "crossbow", name: "Scatter Bow", evolve: "Prime Ballista", passive: "crit", glyph: "SB", icon: getThemeAsset("weapons.universal.crossbow"), max: 5, copy: "Fires a fan of piercing bolts. Prime Ballista finds the densest lane; its center bolt guarantees critical hits after three penetrations." },
-  boomerang: { id: "boomerang", name: "Blade-o-rang", evolve: "Quad-o-rang", passive: "move", glyph: "BR", icon: getThemeAsset("weapons.universal.boomerang"), max: 5, copy: "Returning blades seek the nearest threat." },
+  boomerang: { id: "boomerang", name: "Blade-o-rang", evolve: "Quad-o-rang", passive: "move", glyph: "BR", icon: getThemeAsset("weapons.universal.boomerang"), max: 5, copy: "Returning blades seek the nearest threat. Quad-o-rang can hit once per phase and gains up to 30% return damage from movement." },
   rail: { id: "rail", name: "Lioness Rails", evolve: "Enveloping Light", passive: "haste", glyph: "LR", icon: getThemeAsset("weapons.universal.rail"), max: 5, copy: "Fires paired horizontal crescents through the horde." },
   glove: { id: "glove", name: "Vortex Glove", evolve: "Tempest Gauntlet", passive: "regen", glyph: "VG", icon: getThemeAsset("weapons.universal.glove"), max: 5, copy: "A rotating stream of orbs cuts across the arena." },
   transit: { id: "transit", name: "Final City Transit", evolve: "Limited Express", passive: "damage", glyph: "FC", icon: getThemeAsset("weapons.universal.transit"), max: 5, copy: "Calls a high-speed train through the battlefield." },

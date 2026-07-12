@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260712.5">
+  <link rel="stylesheet" href="styles.css?v=20260712.6">
 </head>
 <body>
   <main id="app">
@@ -506,7 +506,20 @@
       <div class="build-history-body">
         <article class="build-release current-build">
           <header>
-            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.12.5</h3></div>
+            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.12.6</h3></div>
+            <time class="build-shipped-at deployment-pending">Deployment verification pending</time>
+          </header>
+          <ul>
+            <li>Made Twin Needle Array redirect the same projectile once toward the nearest unhit enemy for 70% damage, with deterministic targeting and cover interception.</li>
+            <li>Made Prime Ballista choose the densest bounded corridor and guarantee center-bolt critical hits after three distinct penetrations.</li>
+            <li>Made Quad-o-rang hit enemies once outbound and once inbound, follow its owner's current position, and gain up to 30% return damage from resolved movement.</li>
+            <li>Made Yuum.AI Final convert every five drone-collected motes into a lowest-health ally repair or a same-projectile three-target chain protocol.</li>
+            <li>Expanded the deterministic 42-variant evolution audit to prove the new mechanics, reduced known flat evolutions from five to four, and preserved the existing snapshot performance gates.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.12.5</h3></div>
             <time class="build-shipped-at" data-build-shipped-at="2026-07-12T11:43:00-04:00">Shipped Jul 12, 2026, 11:43 AM EDT</time>
           </header>
           <ul>
@@ -767,8 +780,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.12.5. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.12.5</strong></button>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.12.6. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.12.6</strong></button>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260712.5"></script>
+  <script type="module" src="game.js?v=20260712.6"></script>
 </body>
 </html>

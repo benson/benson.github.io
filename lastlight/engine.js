@@ -1,12 +1,12 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
-} from "./data.js?v=20260712.5";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260712.5";
+} from "./data.js?v=20260712.6";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260712.6";
 import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.5";
 import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260711.5";
-import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260712.5";
-import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260712.5";
+import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260712.6";
+import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260712.6";
 import { accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget } from "./projectile-decisions.js?v=20260712.6";
 
 const BALANCE = getBalanceConfig();
@@ -1190,16 +1190,22 @@ export class Simulation {
       explosion: options.explosion || 0, wave: options.wave, tornado: options.tornado, hex: options.hex,
       dagger: options.dagger, leaveFeather: options.leaveFeather, boomerang: options.boomerang,
       droneBolt: options.droneBolt,
-      ballistaHeavy: options.ballistaHeavy, deepCritAfterTargets: Number(options.deepCritAfterTargets || 0),
-      enemyHitIds: options.ballistaHeavy || options.droneProtocolChainRemaining ? new Set() : undefined,
-      droneProtocolChainRemaining: Number(options.droneProtocolChainRemaining || 0),
-      droneProtocolChainRange: Number(options.droneProtocolChainRange || 0),
-      evolutionActivationId: options.evolutionActivationId,
       signatureActivation: options.signatureActivation, signatureActivationId: options.signatureActivationId,
       signatureEvolutionMechanic: options.signatureEvolutionMechanic,
       executeMissingHealthBonus: Number(options.executeMissingHealthBonus || 0),
       originX: options.originX, originY: options.originY, age: 0, hit: new Set(),
     };
+    if (options.ballistaHeavy) {
+      projectile.ballistaHeavy = true;
+      projectile.deepCritAfterTargets = Number(options.deepCritAfterTargets || 0);
+      projectile.enemyHitIds = new Set();
+      projectile.evolutionActivationId = options.evolutionActivationId;
+    }
+    if (Number(options.droneProtocolChainRemaining || 0) > 0) {
+      projectile.droneProtocolChainRemaining = Number(options.droneProtocolChainRemaining);
+      projectile.droneProtocolChainRange = Number(options.droneProtocolChainRange || 0);
+      projectile.evolutionActivationId = options.evolutionActivationId;
+    }
     if (options.needleRetarget) {
       projectile.needleRetarget = true;
       projectile.needleRetargeted = false;
