@@ -304,7 +304,8 @@
       "collector",
       "collector-sample",
       "play",
-      "prerelease"
+      "prerelease",
+      "value"
     ],
     "extraSheetLabel": "the list / special guests"
   },
@@ -946,7 +947,11 @@
       "collector",
       "draft",
       "jp",
-      "prerelease",
+      "prerelease-lorehold",
+      "prerelease-prismari",
+      "prerelease-quandrix",
+      "prerelease-silverquill",
+      "prerelease-witherbloom",
       "set",
       "set-jp",
       "theme-lorehold",
@@ -1290,7 +1295,11 @@
       "arena",
       "collector",
       "draft",
-      "prerelease",
+      "prerelease-azorius",
+      "prerelease-gruul",
+      "prerelease-orzhov",
+      "prerelease-rakdos",
+      "prerelease-simic",
       "theme-azorius",
       "theme-gruul",
       "theme-orzhov",
@@ -1328,7 +1337,11 @@
     "mtgjsonBoosterTypes": [
       "arena",
       "draft",
-      "prerelease",
+      "prerelease-boros",
+      "prerelease-dimir",
+      "prerelease-golgari",
+      "prerelease-izzet",
+      "prerelease-selesnya",
       "theme-boros",
       "theme-dimir",
       "theme-golgari",
@@ -1561,6 +1574,7 @@
     "limitedBoosterType": "draft",
     "limitedLabel": "draft booster",
     "mtgjsonBoosterTypes": [
+      "buyabox",
       "draft",
       "prerelease"
     ],
@@ -1769,7 +1783,12 @@
     "limitedLabel": "draft booster",
     "mtgjsonBoosterTypes": [
       "draft",
-      "duelspromo"
+      "duelspromo",
+      "prerelease-ambition",
+      "prerelease-ferocity",
+      "prerelease-guile",
+      "prerelease-strength",
+      "prerelease-valor"
     ],
     "extraSheetLabel": null
   },
@@ -2046,6 +2065,8 @@
     "limitedLabel": "draft booster",
     "mtgjsonBoosterTypes": [
       "draft",
+      "mirran",
+      "phyrexian",
       "six"
     ],
     "extraSheetLabel": null
