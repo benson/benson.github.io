@@ -42,8 +42,10 @@ test("impact grammar exhaustively covers every base and evolved weapon", () => {
 
 test("signature evolution copy does not promise mechanics the engine does not implement", () => {
   assert.match(SIGNATURE_IMPACT_GRAMMAR.sola.evolvedDifference, /1\.50 seconds instead of 1\.75/);
+  assert.match(SIGNATURE_IMPACT_GRAMMAR.sola.evolvedDifference, /Guard Return shield/i);
   assert.doesNotMatch(SIGNATURE_IMPACT_GRAMMAR.sola.evolvedDifference, /extra|added penetration/i);
-  assert.match(SIGNATURE_IMPACT_GRAMMAR.fang.evolvedDifference, /does not add bleed/i);
+  assert.match(SIGNATURE_IMPACT_GRAMMAR.fang.evolvedDifference, /every third swipe.+Predator Hook.+without adding bleed/i);
+  assert.match(SIGNATURE_IMPACT_GRAMMAR.rift.evolvedDifference, /Kinetic Reserve.+0\.12× to 0\.32×/i);
   assert.match(SIGNATURE_IMPACT_GRAMMAR.gale.evolvedDifference, /pierce from 5 to 12.+Flow 15% faster/i);
   assert.match(SIGNATURE_IMPACT_GRAMMAR.vesper.evolvedDifference, /pierce from 7 to 14.+Blade Recall is unchanged/i);
 });

@@ -1,7 +1,7 @@
-import { BALANCE_CONFIG } from "./balance-config.js?v=20260712.3";
-import { PASSIVES, SPECIALISTS, WEAPONS } from "./data.js?v=20260712.3";
-import { formatProjectileDisplay, getCombatMetadata } from "./combat-metadata.js?v=20260712.3";
-import { playerCombatStat, playerMovementSpeed, previewPlayerUpgrade } from "./engine.js?v=20260712.3";
+import { BALANCE_CONFIG } from "./balance-config.js?v=20260712.5";
+import { PASSIVES, SPECIALISTS, WEAPONS } from "./data.js?v=20260712.5";
+import { formatProjectileDisplay, getCombatMetadata } from "./combat-metadata.js?v=20260712.5";
+import { playerCombatStat, playerMovementSpeed, previewPlayerUpgrade } from "./engine.js?v=20260712.5";
 
 const { weapons: weaponBalance } = BALANCE_CONFIG;
 
@@ -56,11 +56,15 @@ export function weaponTelemetry(weaponId, weapon, player) {
     const secondary = {
       zuri: evolved ? `Each round can continue through ${pierceValue} additional targets.` : "No secondary hit.",
       echo: `${decimal(BALANCE_CONFIG.identityTuning.echo.repeatChance * 100, 0)}% chance for each weapon projectile to repeat after ${decimal(BALANCE_CONFIG.identityTuning.echo.repeatDelay)}s.`,
-      sola: "No secondary hit; armor increases hit damage and area.",
+      sola: evolved
+        ? `Guard Return: the first hit each volley returns ${decimal(Math.min(BALANCE_CONFIG.identityTuning.sola.guardReturnMax, BALANCE_CONFIG.identityTuning.sola.guardReturnBase + player.armor * BALANCE_CONFIG.identityTuning.sola.guardReturnArmorRatio))} vitality as shield; armor still increases hit damage and area.`
+        : "No secondary hit; armor increases hit damage and area.",
       bront: evolved ? `A second ${Math.round(tuning.evolvedRadius * area)}-unit blast lands after ${decimal(tuning.evolvedDelay)}s for ${roundedDamage(tuning.evolvedDamageBase + level * tuning.damagePerLevel, player, metadata)} damage.` : "No secondary hit.",
-      fang: "During Frenzy, each hit repairs 0.1 vitality plus 5% of missing health; evolution does not add bleed.",
+      fang: evolved
+        ? `Every third swipe triggers Predator Hook, pulling non-boss targets inward by ${BALANCE_CONFIG.identityTuning.fang.predatorHookMin}–${BALANCE_CONFIG.identityTuning.fang.predatorHookMax} units; it adds no bleed or damage instance. Frenzy healing is unchanged.`
+        : "During Frenzy, each hit repairs 0.1 vitality plus 5% of missing health.",
       gale: `Each tornado stuns for 0.25s on hit; ${evolved ? `evolution also refills Flow ${decimal((flowTuning.evolvedFlowMultiplier - 1) * 100, 0)}% faster` : "evolution improves Flow refill"}.`,
-      rift: `Converts ${decimal(BALANCE_CONFIG.identityTuning.rift.damageShieldRatio * 100, 0)}% of damage into shield, capped at ${decimal(BALANCE_CONFIG.identityTuning.rift.damageShieldCapMaxHealth * 100, 0)}% max health.`,
+      rift: `${evolved ? `Kinetic Reserve: resolved movement since the prior crash scales knockback from ${decimal(BALANCE_CONFIG.identityTuning.rift.kineticReserveMinScale, 2)}× to ${decimal(BALANCE_CONFIG.identityTuning.rift.kineticReserveMaxScale, 2)}×. ` : ""}Converts ${decimal(BALANCE_CONFIG.identityTuning.rift.damageShieldRatio * 100, 0)}% of damage into shield, capped at ${decimal(BALANCE_CONFIG.identityTuning.rift.damageShieldCapMaxHealth * 100, 0)}% max health.`,
       nova: `Hits apply Hex for ${decimal(BALANCE_CONFIG.identityTuning.nova.hexDuration, 0)}s for Veilstep to detonate.`,
       vesper: `Daggers leave 15s feathers; Blade Recall returns them with ${BALANCE_CONFIG.identityTuning.vesper.recallPierce} pierce regardless of evolution.`,
     }[player.specialist];

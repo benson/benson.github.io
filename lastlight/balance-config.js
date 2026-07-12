@@ -1,6 +1,8 @@
+import { WEAPON_EVOLUTION_CONTRACT, validateWeaponEvolutionContract } from "./weapon-evolution.js?v=20260712.5";
+
 // Balance is a versioned simulation input. Replays and fixtures should record
 // this exact version so a future tuning pass never silently changes old runs.
-export const BALANCE_VERSION = "2026.07.12-signatures.3";
+export const BALANCE_VERSION = "2026.07.12-evolutions.1";
 
 export const BALANCE_IDS = Object.freeze({
   specialists: Object.freeze(["zuri", "echo", "sola", "bront", "fang", "gale", "rift", "nova", "vesper"]),
@@ -13,6 +15,7 @@ export const BALANCE_IDS = Object.freeze({
 
 const config = {
   version: BALANCE_VERSION,
+  evolutions: WEAPON_EVOLUTION_CONTRACT,
   core: {
     baseVitality: 10,
     defaultDurationSeconds: 240,
@@ -36,11 +39,11 @@ const config = {
   identityTuning: {
     zuri: { speedPerHotStack: 0.10, maxHotStacks: 5, executeMissingHealthBonus: 1.0 },
     echo: { repeatChance: 0.25, repeatDelay: 0.25 },
-    sola: { armorMultiplier: 2, aftershockShieldMaxHealth: 0.25 },
+    sola: { armorMultiplier: 2, aftershockShieldMaxHealth: 0.25, guardReturnBase: 0.15, guardReturnArmorRatio: 0.003, guardReturnMax: 0.45 },
     bront: { crashDashDistance: 170 },
-    fang: { missingHealthDamageBonus: 0.60, signatureKnockbackScale: 0.22 },
+    fang: { missingHealthDamageBonus: 0.60, signatureKnockbackScale: 0.22, predatorHookEvery: 3, predatorHookBase: 45, predatorHookMaxHealthRatio: 2, predatorHookMin: 65, predatorHookMax: 90 },
     gale: { flowPerSecond: 30, flowHasteRatio: 0.50, evolvedFlowMultiplier: 1.15, windwallKnockback: 240, windwallProjectilePadding: 18 },
-    rift: { damageShieldRatio: 0.03, damageShieldCapMaxHealth: 0.35, signatureKnockbackScale: 0.22 },
+    rift: { damageShieldRatio: 0.03, damageShieldCapMaxHealth: 0.35, signatureKnockbackScale: 0.22, kineticReserveDistance: 120, kineticReserveMinScale: 0.12, kineticReserveMaxScale: 0.32 },
     nova: { hexDuration: 8 },
     vesper: { recallPierce: 30, innatePickupRadius: 299 },
   },
@@ -167,7 +170,7 @@ const config = {
       transit: { cooldownBase: 14, cooldownPerLevel: -0.8, yRange: 300, radius: 52, life: 2.5, damageBase: 135, damagePerLevel: 55, speed: 1700 },
       ice: { cooldownBase: 13, cooldownPerLevel: -0.6, evolvedCooldown: 9 },
       annihilator: { cooldownBase: 30, cooldownPerLevel: -1.4, evolvedCooldown: 21, radius: 900, fuse: 0.8, damageBase: 450, damagePerLevel: 175 },
-      drone: { cooldownBase: 1.6, cooldownPerLevel: -0.1, rangeBase: 1100, rangePerLevel: 45, countBase: 1, countEveryLevels: 2, spread: 0.11, speedBase: 590, speedPerLevel: 12, damageBase: 40, damagePerLevel: 15, radius: 7, pierce: 1, evolvedPierce: 3, orbitSpeedBase: 1.15, orbitSpeedPerLevel: 0.09, orbitRadiusBase: 86, orbitRadiusPerLevel: 6, repairCooldownBase: 25, repairCooldownPerLevel: -2.5, initialRepairCooldownMin: 10, repairCooldownMin: 9, evolvedRepairMultiplier: 0.72 },
+      drone: { cooldownBase: 1.6, cooldownPerLevel: -0.1, rangeBase: 1100, rangePerLevel: 45, countBase: 1, countEveryLevels: 2, spread: 0.11, speedBase: 590, speedPerLevel: 12, damageBase: 40, damagePerLevel: 15, radius: 7, pierce: 1, evolvedPierce: 3, orbitSpeedBase: 1.15, orbitSpeedPerLevel: 0.09, orbitRadiusBase: 86, orbitRadiusPerLevel: 6, repairCooldownBase: 25, repairCooldownPerLevel: -2.5, initialRepairCooldownMin: 10, repairCooldownMin: 9, evolvedRepairMultiplier: 0.72, pickupRangeBase: 115, pickupRangePerLevel: 38, evolvedPickupBonus: 95 },
     },
   },
 };
@@ -210,7 +213,7 @@ export function validateBalanceConfig(candidate = BALANCE_CONFIG) {
   };
   if (!candidate || typeof candidate !== "object") return ["config: must be an object"];
   if (typeof candidate.version !== "string" || !candidate.version.trim()) errors.push("version: required");
-  for (const section of ["core", "specialists", "identityTuning", "movement", "passives", "shields", "difficulties", "enemies", "waves", "weapons"]) {
+  for (const section of ["core", "evolutions", "specialists", "identityTuning", "movement", "passives", "shields", "difficulties", "enemies", "waves", "weapons"]) {
     if (!candidate[section] || typeof candidate[section] !== "object") errors.push(`${section}: required`);
   }
   const requireExactIds = (path, value, ids) => {
@@ -283,6 +286,7 @@ export function validateBalanceConfig(candidate = BALANCE_CONFIG) {
     if (entry.rollBelow > 1) errors.push(`waves.spawn.composition.${index}.rollBelow: must be <= 1`);
   }
   for (const id of Object.keys(candidate.specialists || {})) if (!candidate.weapons?.signatures?.[id]) errors.push(`weapons.signatures.${id}: required`);
+  errors.push(...validateWeaponEvolutionContract(candidate.evolutions, candidate).map((error) => `evolutions.${error}`));
   return errors;
 }
 

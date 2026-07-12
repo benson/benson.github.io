@@ -1,7 +1,7 @@
 # Starting signature breakpoint report
 
 Contract: `actual-simulation-fixed-seed-signature-v1`
-Balance: `2026.07.12-signatures.3` / `fnv1a32:e36834e8`
+Balance: `2026.07.12-evolutions.1` / `fnv1a32:20c3fe1d`
 
 Matrix: 9 specialists × 5 states = 45 deterministic breakpoint cases
 
@@ -14,11 +14,11 @@ Matrix: 9 specialists × 5 states = 45 deterministic breakpoint cases
 | Zuri | rank-5 | 200.667 | 267.556 | 602 | 0.444 | 60–900 |
 | Zuri | paired-passive | 243.667 | 367.889 | 602 | 0.611 | 60–900 |
 | Zuri | evolved | 387 | 1958.889 | 602 | 1.222 | 60–900 |
-| Echo | rank-1 | 24.111 | 220.444 | 62 | 0.333 | 60–900 |
-| Echo | rank-3 | 135 | 750 | 270 | 0.444 | 60–900 |
-| Echo | rank-5 | 183.556 | 1389.778 | 708 | 0.5 | 60–900 |
-| Echo | paired-passive | 183.556 | 1324.222 | 708 | 0.5 | 60–900 |
-| Echo | evolved | 222.889 | 1737.222 | 708 | 0.778 | 60–900 |
+| Echo | rank-1 | 24.111 | 165.333 | 124 | 0.333 | 60–900 |
+| Echo | rank-3 | 135 | 765 | 540 | 0.444 | 60–900 |
+| Echo | rank-5 | 183.556 | 1225.889 | 944 | 0.5 | 60–900 |
+| Echo | paired-passive | 177 | 1402.889 | 944 | 0.5 | 60–900 |
+| Echo | evolved | 209.778 | 1868.333 | 944 | 0.778 | 60–900 |
 | Sola | rank-1 | 26.125 | 206.097 | 104.5 | 0.389 | 60–400 |
 | Sola | rank-3 | 41.25 | 358.875 | 222.75 | 0.444 | 60–400 |
 | Sola | rank-5 | 69.514 | 524.028 | 288.75 | 0.611 | 60–400 |
@@ -33,17 +33,17 @@ Matrix: 9 specialists × 5 states = 45 deterministic breakpoint cases
 | Fang | rank-3 | 48.333 | 338.333 | 87 | 0.556 | 60–180 |
 | Fang | rank-5 | 76.667 | 626.111 | 115 | 0.667 | 60–260 |
 | Fang | paired-passive | 80.417 | 656.736 | 120.625 | 0.667 | 60–260 |
-| Fang | evolved | 100.521 | 797.465 | 120.625 | 0.833 | 60–260 |
-| Gale | rank-1 | 23.889 | 186.333 | 86 | 0.278 | 60–900 |
-| Gale | rank-3 | 81.778 | 490.667 | 352 | 0.278 | 60–900 |
-| Gale | rank-5 | 162.917 | 868.889 | 765 | 0.278 | 60–900 |
-| Gale | paired-passive | 212.5 | 1055.417 | 765 | 0.278 | 60–900 |
-| Gale | evolved | 212.5 | 1213.611 | 765 | 0.333 | 60–900 |
+| Fang | evolved | 100.521 | 884.583 | 120.625 | 0.833 | 60–260 |
+| Gale | rank-1 | 23.889 | 143.333 | 86 | 0.278 | 60–900 |
+| Gale | rank-3 | 71.111 | 426.667 | 256 | 0.278 | 60–900 |
+| Gale | rank-5 | 148.75 | 854.722 | 510 | 0.278 | 60–900 |
+| Gale | paired-passive | 198.333 | 1015.278 | 765 | 0.278 | 60–900 |
+| Gale | evolved | 198.333 | 1220.694 | 765 | 0.333 | 60–900 |
 | Rift | rank-1 | 48.889 | 195.556 | 44 | 1.111 | 60–120 |
 | Rift | rank-3 | 92.889 | 390.133 | 83.6 | 1.111 | 60–180 |
 | Rift | rank-5 | 136.889 | 725.511 | 123.2 | 1.111 | 60–180 |
 | Rift | paired-passive | 136.889 | 725.511 | 123.2 | 1.111 | 60–180 |
-| Rift | evolved | 184.8 | 917.156 | 123.2 | 1.5 | 60–180 |
+| Rift | evolved | 184.8 | 1067.733 | 123.2 | 1.5 | 60–180 |
 | Nova | rank-1 | 37.5 | 325 | 150 | 0.389 | 60–900 |
 | Nova | rank-3 | 54.5 | 490.5 | 327 | 0.389 | 60–900 |
 | Nova | rank-5 | 71.5 | 579.944 | 429 | 0.389 | 60–900 |
@@ -63,10 +63,10 @@ Matrix: 9 specialists × 5 states = 45 deterministic breakpoint cases
 | Zuri | rank-3-to-5 | 41.1% | 88.1% | 88.1% | 0% | yes |
 | Zuri | paired-passive | 21.4% | 37.5% | 0% | 37.6% | yes |
 | Zuri | evolution | 58.8% | 432.5% | 0% | 100% | yes |
-| Echo | rank-1-to-3 | 459.9% | 240.2% | 335.5% | 33.3% | yes |
-| Echo | rank-3-to-5 | 36% | 85.3% | 162.2% | 12.6% | yes |
-| Echo | paired-passive | 0% | -4.7% | 0% | 0% | yes |
-| Echo | evolution | 21.4% | 31.2% | 0% | 55.6% | yes |
+| Echo | rank-1-to-3 | 459.9% | 362.7% | 335.5% | 33.3% | yes |
+| Echo | rank-3-to-5 | 36% | 60.2% | 74.8% | 12.6% | yes |
+| Echo | paired-passive | -3.6% | 14.4% | 0% | 0% | yes |
+| Echo | evolution | 18.5% | 33.2% | 0% | 55.6% | yes |
 | Sola | rank-1-to-3 | 57.9% | 74.1% | 113.2% | 14.1% | yes |
 | Sola | rank-3-to-5 | 68.5% | 46% | 29.6% | 37.6% | yes |
 | Sola | paired-passive | 35.3% | 29.8% | 35.3% | 0% | yes |
@@ -78,15 +78,15 @@ Matrix: 9 specialists × 5 states = 45 deterministic breakpoint cases
 | Fang | rank-1-to-3 | 63.8% | 91.1% | 47.5% | 11.2% | yes |
 | Fang | rank-3-to-5 | 58.6% | 85.1% | 32.2% | 20% | yes |
 | Fang | paired-passive | 4.9% | 4.9% | 4.9% | 0% | yes |
-| Fang | evolution | 25% | 21.4% | 0% | 24.9% | yes |
-| Gale | rank-1-to-3 | 242.3% | 163.3% | 309.3% | 0% | yes |
-| Gale | rank-3-to-5 | 99.2% | 77.1% | 117.3% | 0% | yes |
-| Gale | paired-passive | 30.4% | 21.5% | 0% | 0% | yes |
-| Gale | evolution | 0% | 15% | 0% | 19.8% | yes |
+| Fang | evolution | 25% | 34.7% | 0% | 24.9% | yes |
+| Gale | rank-1-to-3 | 197.7% | 197.7% | 197.7% | 0% | yes |
+| Gale | rank-3-to-5 | 109.2% | 100.3% | 99.2% | 0% | yes |
+| Gale | paired-passive | 33.3% | 18.8% | 50% | 0% | yes |
+| Gale | evolution | 0% | 20.2% | 0% | 19.8% | yes |
 | Rift | rank-1-to-3 | 90% | 99.5% | 90% | 0% | yes |
 | Rift | rank-3-to-5 | 47.4% | 86% | 47.4% | 0% | yes |
 | Rift | paired-passive | 0% | 0% | 0% | 0% | no |
-| Rift | evolution | 35% | 26.4% | 0% | 35% | yes |
+| Rift | evolution | 35% | 47.2% | 0% | 35% | yes |
 | Nova | rank-1-to-3 | 45.3% | 50.9% | 118% | 0% | yes |
 | Nova | rank-3-to-5 | 31.2% | 18.2% | 31.2% | 0% | yes |
 | Nova | paired-passive | 0% | 0% | 0% | 0% | no |
@@ -99,12 +99,12 @@ Matrix: 9 specialists × 5 states = 45 deterministic breakpoint cases
 ## Interpretation
 
 - **Zuri — Pulse Carbine → Overdrive Barrage:** paired haste passive changes the isolated signature metrics; evolution changes single DPS 58.8% and area DPS 432.5%.
-- **Echo — Sound Wave → Anima Echo:** paired projectiles passive changes the isolated signature metrics; evolution changes single DPS 21.4% and area DPS 31.2%.
+- **Echo — Sound Wave → Anima Echo:** paired projectiles passive changes the isolated signature metrics; evolution changes single DPS 18.5% and area DPS 33.2%.
 - **Sola — Shield Beam → Lion's Light:** paired armor passive changes the isolated signature metrics; evolution changes single DPS 7.7% and area DPS 10.6%.
 - **Bront — Tidal Hammer → Grizzly Surge:** paired duration passive does not directly change the isolated signature metrics; evolution changes single DPS 209.5% and area DPS 209.5%.
-- **Fang — Rending Swipe → Savage Slice:** paired maxHealth passive changes the isolated signature metrics; evolution changes single DPS 25% and area DPS 21.4%.
-- **Gale — Steel Current → Wandering Storms:** paired crit passive changes the isolated signature metrics; evolution changes single DPS 0% and area DPS 15%.
-- **Rift — Kinetic Crash → Golden Overrun:** paired move passive does not directly change the isolated signature metrics; evolution changes single DPS 35% and area DPS 26.4%.
+- **Fang — Rending Swipe → Savage Slice:** paired maxHealth passive changes the isolated signature metrics; evolution changes single DPS 25% and area DPS 34.7%.
+- **Gale — Steel Current → Wandering Storms:** paired crit passive changes the isolated signature metrics; evolution changes single DPS 0% and area DPS 20.2%.
+- **Rift — Kinetic Crash → Golden Overrun:** paired move passive does not directly change the isolated signature metrics; evolution changes single DPS 35% and area DPS 47.2%.
 - **Nova — Guiding Hex → Hopped-Up Hex:** paired xp passive does not directly change the isolated signature metrics; evolution changes single DPS 44.4% and area DPS 35.6%.
 - **Vesper — Winged Dagger → Lover's Ricochet:** paired pickup passive does not directly change the isolated signature metrics; evolution changes single DPS 54.5% and area DPS 60.7%.
 

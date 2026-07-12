@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { AUDIO_MIX_SCHEMA, AUDIO_POLICIES, AudioVoiceBudget, DynamicAudioMixer, audioCuePolicy, audioCueVariation } from "../audio-mix.js";
+import { AUDIO_MASTER_CALIBRATION, AUDIO_MIX_SCHEMA, AUDIO_POLICIES, AudioVoiceBudget, DynamicAudioMixer, audioCuePolicy, audioCueVariation } from "../audio-mix.js";
 
 test("audio hierarchy classifies every shipped cue with critical information above chatter", () => {
   const categories = new Set(Object.keys(AUDIO_POLICIES));
@@ -59,16 +59,22 @@ function audioContext() {
 }
 
 test("dynamic mixer routes buses, ducks low-priority channels, and exposes bounded diagnostics", () => {
-  const context = audioContext(), mixer = new DynamicAudioMixer(context, { globalLimit: 8 });
+  const context = audioContext(), mixer = new DynamicAudioMixer(context, { globalLimit: 8, masterVolume: .75, effectsVolume: .5 });
+  assert.equal(mixer.master.gain.value, AUDIO_MASTER_CALIBRATION * .75);
+  assert.equal(mixer.buses.combat.gain.value, mixer.baseGains.combat * .5);
   const weapon = mixer.requestCue("weapon:pulse"), ultimate = mixer.requestCue("ultimate");
   assert.equal(weapon.destination, mixer.buses.combat);
   assert.equal(ultimate.destination, mixer.buses.critical);
   assert.ok(mixer.buses.low.gain.calls.some(([kind]) => kind === "ramp"));
   assert.ok(mixer.buses.combat.gain.calls.some(([kind]) => kind === "target"));
-  mixer.setDensity("balanced"); mixer.setMuted(true);
+  mixer.setDensity("balanced"); mixer.setMuted(true); mixer.setVolumes({ master: .6, effects: .4 });
   const diagnostics = mixer.diagnostics();
   assert.equal(diagnostics.density, "balanced");
   assert.deepEqual(diagnostics.buses.sort(), ["combat", "critical", "low", "ui"]);
+  assert.deepEqual(diagnostics.volumes, { master: .6, effects: .4 });
+  assert.equal(diagnostics.masterCalibration, AUDIO_MASTER_CALIBRATION);
+  assert.equal(diagnostics.muted, true);
+  assert.ok(mixer.buses.combat.gain.calls.some(([kind, target]) => kind === "target" && target === mixer.baseGains.combat * .4));
   mixer.dispose();
   assert.equal(mixer.budget.active.length, 0);
 });

@@ -14,6 +14,12 @@ test("guide exposes the six adaptive impact materials and their accessibility fa
   assert.match(game, /renderer\.drainMaterialAudioCues/);
 });
 
+test("guide derives universal evolution behavior from the authoritative contract", () => {
+  assert.match(game, /getWeaponEvolution\(weapon\.id\)/);
+  assert.match(game, /evolution\?\.capabilities\?\.map/);
+  assert.match(game, /Evolution: evolutionBehavior/);
+});
+
 test("performance reports expose cosmetic environmental load without protocol fields", () => {
   assert.match(game, /environmentInteractions: renderer\.environmentDiagnostics\(\)/);
   assert.doesNotMatch(game, /send\([^\n]+environmentInteractions/);
@@ -51,7 +57,9 @@ test("runtime sound uses the bounded dynamic hierarchy without gameplay RNG", ()
   assert.match(game, /state\.audioMixer\.requestCue\(name, details\)/);
   assert.match(game, /audioMixer\?\.setDensity\(state\.qualitySettings\.effectsDensity\)/);
   assert.match(game, /audioMix: state\.audioMixer\?\.diagnostics\(\) \|\| null/);
-  assert.match(game, /audioTone\([^\n]+cue\.destination/);
+  assert.match(game, /resolveAudioCue\(name, details\)/);
+  assert.match(game, /voice\.volume \* cue\.variation\.gain/);
+  assert.match(game, /cue\.destination/);
   assert.match(game, /if \(localHost\) Object\.defineProperty\(window, "__lastlightQA"/);
 });
 

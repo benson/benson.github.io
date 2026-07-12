@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260712.4">
+  <link rel="stylesheet" href="styles.css?v=20260712.5">
 </head>
 <body>
   <main id="app">
@@ -46,7 +46,7 @@
           <button id="guide-button" class="text-button" type="button">Upgrade archive</button>
           <button id="how-button" class="text-button" type="button">Field manual</button>
           <button id="quality-button" class="text-button" type="button">Display</button>
-          <button id="audio-button" class="icon-button" type="button" aria-label="Toggle sound" aria-pressed="false">Sound on</button>
+          <button id="audio-button" class="icon-button" type="button" aria-label="Open sound settings · locked" aria-haspopup="dialog">Sound locked</button>
         </div>
       </nav>
 
@@ -154,7 +154,7 @@
         <header class="lobby-header">
           <button id="lobby-back" class="text-button" type="button">← Leave squad</button>
           <div class="mission-chip"><span class="status-dot"></span><span id="lobby-mission">Iron District · Story</span></div>
-          <div class="lobby-header-actions"><button id="lobby-run-history" class="text-button" type="button">Past runs</button><button id="lobby-guide" class="text-button" type="button">Upgrade archive</button><button id="lobby-quality" class="text-button" type="button">Display</button><button id="lobby-audio" class="icon-button" type="button">Sound on</button></div>
+          <div class="lobby-header-actions"><button id="lobby-run-history" class="text-button" type="button">Past runs</button><button id="lobby-guide" class="text-button" type="button">Upgrade archive</button><button id="lobby-quality" class="text-button" type="button">Display</button><button id="lobby-audio" class="icon-button" type="button" aria-label="Open sound settings · locked" aria-haspopup="dialog">Sound locked</button></div>
         </header>
 
         <div class="control-ribbon lobby-controls" aria-label="Keyboard controls">
@@ -314,6 +314,7 @@
             <i aria-hidden="true"></i>
           </label>
           <button id="pause-quality" class="quality-shortcut" type="button"><span><strong>Display & accessibility</strong><small>Effects, motion, flashes, shake, and performance.</small></span><b>Open</b></button>
+          <button id="pause-audio" class="quality-shortcut" type="button" aria-label="Open sound settings · locked" aria-haspopup="dialog"><span><strong>Sound locked</strong><small>Readiness, volume, voice, and output test.</small></span><b>Open</b></button>
           <button id="resume-button" class="deploy-button" type="button"><span>Resume</span><span>Esc</span></button>
           <button id="abandon-button" class="text-button danger" type="button">Abandon run</button>
         </div>
@@ -450,6 +451,29 @@
       </form>
     </dialog>
 
+    <dialog id="audio-dialog" class="audio-dialog" aria-labelledby="audio-title">
+      <form method="dialog">
+        <div class="manual-header">
+          <div><p class="eyebrow">Local sound profile</p><h2 id="audio-title">SOUND & VOICE</h2></div>
+          <button id="audio-close" class="icon-button" type="submit" aria-label="Close sound settings">Close</button>
+        </div>
+        <div class="audio-body">
+          <section class="audio-readiness" aria-labelledby="audio-readiness-title">
+            <div><strong id="audio-readiness-title">Audio readiness</strong><p id="audio-status" role="status" aria-live="polite">Sound is waiting for a click or key press.</p></div>
+            <button id="audio-mute" class="text-button" type="button" aria-pressed="false">Mute sound</button>
+          </section>
+          <div class="audio-grid">
+            <label for="audio-master"><span><strong>Master volume</strong><small>Overall output on this device.</small></span><span class="audio-range"><input id="audio-master" type="range" min="0" max="100" step="1" value="85"><output id="audio-master-value" for="audio-master">85%</output></span></label>
+            <label for="audio-effects"><span><strong>Effects volume</strong><small>Weapons, impacts, alerts, and interface cues.</small></span><span class="audio-range"><input id="audio-effects" type="range" min="0" max="100" step="1" value="90"><output id="audio-effects-value" for="audio-effects">90%</output></span></label>
+            <label for="audio-voice"><span><strong>Voice volume</strong><small>Optional comic “pew pew pew” callouts.</small></span><span class="audio-range"><input id="audio-voice" type="range" min="0" max="100" step="1" value="32"><output id="audio-voice-value" for="audio-voice">32%</output></span></label>
+            <label class="quality-toggle" for="audio-funny-voice"><span><strong>Funny voice callouts</strong><small>Uses the browser's local speech voice. Optional and rate-limited.</small></span><input id="audio-funny-voice" type="checkbox" checked><i aria-hidden="true"></i></label>
+          </div>
+          <section class="audio-test-row"><div><strong>Output check</strong><small>Plays a short three-note synthesized test cue.</small><span id="audio-test-result" role="status" aria-live="polite"></span></div><button id="audio-test" class="deploy-button" type="button"><span>Test sound</span><span aria-hidden="true">♪</span></button></section>
+          <p class="quality-note">Sound settings are stored only on this device. All shipped cues are generated locally at runtime; no external sound pack is loaded.</p>
+        </div>
+      </form>
+    </dialog>
+
     <dialog id="report-dialog" class="report-dialog">
       <form id="report-form">
         <div class="manual-header">
@@ -482,7 +506,20 @@
       <div class="build-history-body">
         <article class="build-release current-build">
           <header>
-            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.12.4</h3></div>
+            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.12.5</h3></div>
+            <time class="build-shipped-at deployment-pending">Deployment verification pending</time>
+          </header>
+          <ul>
+            <li>Added a strict, hash-covered evolution contract for all 21 weapons and immutable variant identity for projectiles, effects, delayed tasks, and drones.</li>
+            <li>Added a deterministic 42-variant evolution audit that proves every current behavior and keeps the five still-flat universal evolutions visible as explicit expected failures.</li>
+            <li>Made Lion's Light return an armor-scaled shield on the first hit of each volley, every third Savage Slice pull non-boss targets inward, and Golden Overrun scale knockback from movement stored since the prior crash.</li>
+            <li>Moved the drone's hidden evolved pickup reach into versioned balance data and exposed Guard Return, Predator Hook, Kinetic Reserve, and drone collection range in authoritative comparisons.</li>
+            <li>Made browser audio reliably unlock, added persistent master/effects/voice controls and a sound test, and recalibrated theme-swappable combat cues so important feedback is clearly audible.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.12.4</h3></div>
             <time class="build-shipped-at" data-build-shipped-at="2026-07-12T10:18:00-04:00">Shipped Jul 12, 2026, 10:18 AM EDT</time>
           </header>
           <ul>
@@ -730,8 +767,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.12.4. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.12.4</strong></button>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.12.5. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.12.5</strong></button>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260712.4"></script>
+  <script type="module" src="game.js?v=20260712.5"></script>
 </body>
 </html>

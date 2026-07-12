@@ -803,6 +803,29 @@ kbd { display: inline-grid; min-width: 26px; height: 24px; place-items: center; 
 .quality-toggle input:checked ~ i::after { transform: translateX(18px); background: var(--cyan); }
 .quality-toggle input:focus-visible ~ i { outline: 2px solid var(--cyan); outline-offset: 3px; }
 .quality-note { margin: 1px 0 0; padding: 15px 20px; background: #0b1625; color: #69808a; font-size: 8px; line-height: 1.55; }
+.audio-dialog { width: min(760px, calc(100% - 30px)); max-height: min(820px, calc(100vh - 30px)); padding: 0; border: 1px solid var(--line); background: #0b1625; color: var(--paper); box-shadow: 0 35px 90px rgba(0,0,0,.65); }
+.audio-dialog::backdrop { background: rgba(2,7,13,.86); backdrop-filter: blur(6px); }
+.audio-dialog h2 { margin: 0; font: 800 clamp(38px, 5vw, 62px)/.9 var(--display); letter-spacing: -.025em; }
+.audio-body { padding: 1px; background: var(--line); }
+.audio-readiness, .audio-test-row { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 20px; padding: 18px 20px; background: #0b1625; }
+.audio-readiness strong, .audio-test-row strong, .audio-grid strong { display: block; color: #d8e2e1; font: 800 11px/1 var(--sans); letter-spacing: .055em; text-transform: uppercase; }
+.audio-readiness p { margin: 7px 0 0; color: #8ba0a8; font-size: 10px; line-height: 1.45; }
+.audio-readiness p[data-state="ready"] { color: var(--cyan); }
+.audio-readiness p[data-state="locked"] { color: var(--yellow); }
+.audio-readiness p[data-state="muted"], .audio-readiness p[data-state="unavailable"] { color: #ff8f9d; }
+.audio-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 1px; margin-top: 1px; background: var(--line); }
+.audio-grid > label { display: grid; grid-template-columns: minmax(0,1fr) 170px; align-items: center; gap: 16px; min-height: 92px; padding: 16px 20px; background: #0b1625; }
+.audio-grid small, .audio-test-row small, .audio-test-row #audio-test-result { display: block; margin-top: 6px; color: #718992; font-size: 9px; line-height: 1.45; }
+.audio-range { display: grid; grid-template-columns: minmax(0,1fr) 38px; align-items: center; gap: 9px; }
+.audio-range input { width: 100%; accent-color: var(--cyan); cursor: pointer; }
+.audio-range input:focus-visible { outline: 2px solid var(--cyan); outline-offset: 4px; }
+.audio-range output { color: #b9c8ca; font: 800 9px/1 var(--sans); text-align: right; }
+.audio-test-row { margin-top: 1px; }
+.audio-test-row .deploy-button { min-width: 190px; margin-top: 0; }
+.audio-test-row .deploy-button:disabled { cursor: not-allowed; filter: grayscale(1); opacity: .42; }
+#audio-button[data-audio-state="locked"], #lobby-audio[data-audio-state="locked"], #pause-audio[data-audio-state="locked"] strong { color: var(--yellow); }
+#audio-button[data-audio-state="ready"], #lobby-audio[data-audio-state="ready"], #pause-audio[data-audio-state="ready"] strong { color: var(--cyan); }
+#audio-button[data-audio-state="muted"], #lobby-audio[data-audio-state="muted"], #audio-button[data-audio-state="unavailable"], #lobby-audio[data-audio-state="unavailable"], #pause-audio[data-audio-state="muted"] strong, #pause-audio[data-audio-state="unavailable"] strong { color: #ff8f9d; }
 html[data-reduced-motion="true"] .scanlines { animation: none; }
 .manual-grid { display: grid; grid-template-columns: repeat(2, 1fr); }
 .manual-grid section { position: relative; min-height: 185px; padding: 30px 38px; overflow: hidden; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
@@ -939,13 +962,16 @@ html[data-reduced-motion="true"] .scanlines { animation: none; }
 @keyframes alert-pulse { 50% { transform: scale(1.18); box-shadow: 0 0 20px rgba(255,64,95,.9); } }
 
 @media (max-width: 700px) {
-  .quality-dialog { width: calc(100% - 16px); max-height: calc(100vh - 16px); }
-  .quality-dialog .manual-header { padding: 22px 18px; }
-  .quality-dialog h2 { font-size: 38px; }
-  .quality-grid { grid-template-columns: 1fr; }
+  .quality-dialog, .audio-dialog { width: calc(100% - 16px); max-height: calc(100vh - 16px); }
+  .quality-dialog .manual-header, .audio-dialog .manual-header { padding: 22px 18px; }
+  .quality-dialog h2, .audio-dialog h2 { font-size: 38px; }
+  .quality-grid, .audio-grid { grid-template-columns: 1fr; }
   .quality-preset, .quality-grid > label { grid-template-columns: minmax(0,1fr) 118px; gap: 12px; padding: 14px; }
   .quality-grid > label { min-height: 76px; }
   .quality-dialog select { min-height: 44px; font-size: 9px; }
+  .audio-readiness, .audio-test-row { grid-template-columns: 1fr; padding: 16px 14px; }
+  .audio-grid > label { grid-template-columns: minmax(0,1fr) 130px; min-height: 78px; padding: 14px; }
+  .audio-test-row .deploy-button { width: 100%; min-width: 0; }
 }
 
 /* Desktop readability pass: preserve the dense mobile HUD while lifting small labels and controls. */

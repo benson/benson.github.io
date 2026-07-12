@@ -1,0 +1,60 @@
+export const AUDIO_SETTINGS_SCHEMA = "lastlight.audio-settings.v1";
+export const AUDIO_SETTINGS_STORAGE_KEY = "lastlight:audio-settings:v1";
+export const AUDIO_OUTPUT_STATES = Object.freeze(["locked", "ready", "muted", "unavailable"]);
+
+export const DEFAULT_AUDIO_SETTINGS = Object.freeze({
+  enabled: true,
+  master: 0.85,
+  effects: 0.9,
+  voice: 0.32,
+  funnyVoice: true,
+});
+
+const clamp01 = (value, fallback) => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? Math.max(0, Math.min(1, numeric)) : fallback;
+};
+
+export function normalizeAudioSettings(value = {}) {
+  const source = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  return Object.freeze({
+    enabled: typeof source.enabled === "boolean" ? source.enabled : DEFAULT_AUDIO_SETTINGS.enabled,
+    master: clamp01(source.master, DEFAULT_AUDIO_SETTINGS.master),
+    effects: clamp01(source.effects, DEFAULT_AUDIO_SETTINGS.effects),
+    voice: clamp01(source.voice, DEFAULT_AUDIO_SETTINGS.voice),
+    funnyVoice: typeof source.funnyVoice === "boolean" ? source.funnyVoice : DEFAULT_AUDIO_SETTINGS.funnyVoice,
+  });
+}
+
+export function loadAudioSettings(storage = globalThis.localStorage) {
+  try { return normalizeAudioSettings(JSON.parse(storage?.getItem?.(AUDIO_SETTINGS_STORAGE_KEY) || "null")); }
+  catch { return normalizeAudioSettings(); }
+}
+
+export function saveAudioSettings(value, storage = globalThis.localStorage) {
+  const settings = normalizeAudioSettings(value);
+  try { storage?.setItem?.(AUDIO_SETTINGS_STORAGE_KEY, JSON.stringify(settings)); }
+  catch { /* Browser storage is optional. */ }
+  return settings;
+}
+
+export function audioOutputState({ supported = true, enabled = true, contextState = "suspended" } = {}) {
+  if (!supported || contextState === "closed") return "unavailable";
+  if (!enabled) return "muted";
+  return contextState === "running" ? "ready" : "locked";
+}
+
+export async function settleAudioResume(resumePromise, timeoutMs = 2500) {
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) throw new TypeError("Audio resume timeout must be positive");
+  let timer = null;
+  try {
+    return await Promise.race([
+      Promise.resolve(resumePromise).then(() => true),
+      new Promise((resolve) => { timer = setTimeout(() => resolve(false), timeoutMs); }),
+    ]);
+  } finally {
+    if (timer !== null) clearTimeout(timer);
+  }
+}
+
+export function audioPercent(value) { return `${Math.round(clamp01(value, 0) * 100)}%`; }

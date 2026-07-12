@@ -106,9 +106,10 @@ test("Gale cadence reports Flow generation and time-to-ready instead of the retr
 
 test("previously false evolution claims collapse to their actual engine deltas", () => {
   const expected = {
-    sola: ["cadence"],
-    fang: ["cadence"],
+    sola: ["cadence", "secondary"],
+    fang: ["cadence", "secondary"],
     gale: ["cadence", "pierce", "secondary"],
+    rift: ["cadence", "secondary"],
     vesper: ["cadence", "pierce"],
   };
   for (const [specialist, ids] of Object.entries(expected)) {
@@ -117,7 +118,8 @@ test("previously false evolution claims collapse to their actual engine deltas",
     assert.deepEqual(evolution.changes.map((change) => change.id), ids);
   }
   const fang = signatureEvolutionTelemetry("fang", new Simulation({ players: [{ id: "p", name: "P", specialist: "fang" }] }).players[0]);
-  assert.doesNotMatch(fang.summary, /bleed|sustain/i);
+  assert.match(fang.summary, /Predator Hook/i);
+  assert.match(fang.summary, /no bleed/i);
   const vesper = signatureEvolutionTelemetry("vesper", new Simulation({ players: [{ id: "p", name: "P", specialist: "vesper" }] }).players[0]);
   assert.doesNotMatch(vesper.summary, /recall/i);
 });
