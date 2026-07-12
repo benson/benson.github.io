@@ -10,6 +10,7 @@ export const WEAPON_EVOLUTION_CAPABILITIES = Object.freeze([
   "orbit-speed",
   "projectile-streams",
   "repair-rate",
+  "pickup-range",
   "impact-identity",
 ]);
 
@@ -103,6 +104,7 @@ const universal = {
   drone: entry({ key: "universal:drone", scope: "universal", sourceId: "drone", specialistId: null, baseName: "Yuum.AI Drone", evolvedName: "Yuum.AI Final", pairedPassive: "pickup", handler: "universal-drone-v1", capabilities: [
     gameplay("pierce", ["weapons.universal.drone.evolvedPierce"], "Allows drone bolts to continue through additional targets."),
     gameplay("repair-rate", ["weapons.universal.drone.evolvedRepairMultiplier"], "Shortens the drone's repair cycle."),
+    gameplay("pickup-range", ["weapons.universal.drone.evolvedPickupBonus"], "Extends the drone's data collection reach."),
   ] }),
 };
 

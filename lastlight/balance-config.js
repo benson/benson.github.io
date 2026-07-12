@@ -170,7 +170,7 @@ const config = {
       transit: { cooldownBase: 14, cooldownPerLevel: -0.8, yRange: 300, radius: 52, life: 2.5, damageBase: 135, damagePerLevel: 55, speed: 1700 },
       ice: { cooldownBase: 13, cooldownPerLevel: -0.6, evolvedCooldown: 9 },
       annihilator: { cooldownBase: 30, cooldownPerLevel: -1.4, evolvedCooldown: 21, radius: 900, fuse: 0.8, damageBase: 450, damagePerLevel: 175 },
-      drone: { cooldownBase: 1.6, cooldownPerLevel: -0.1, rangeBase: 1100, rangePerLevel: 45, countBase: 1, countEveryLevels: 2, spread: 0.11, speedBase: 590, speedPerLevel: 12, damageBase: 40, damagePerLevel: 15, radius: 7, pierce: 1, evolvedPierce: 3, orbitSpeedBase: 1.15, orbitSpeedPerLevel: 0.09, orbitRadiusBase: 86, orbitRadiusPerLevel: 6, repairCooldownBase: 25, repairCooldownPerLevel: -2.5, initialRepairCooldownMin: 10, repairCooldownMin: 9, evolvedRepairMultiplier: 0.72 },
+      drone: { cooldownBase: 1.6, cooldownPerLevel: -0.1, rangeBase: 1100, rangePerLevel: 45, countBase: 1, countEveryLevels: 2, spread: 0.11, speedBase: 590, speedPerLevel: 12, damageBase: 40, damagePerLevel: 15, radius: 7, pierce: 1, evolvedPierce: 3, orbitSpeedBase: 1.15, orbitSpeedPerLevel: 0.09, orbitRadiusBase: 86, orbitRadiusPerLevel: 6, repairCooldownBase: 25, repairCooldownPerLevel: -2.5, initialRepairCooldownMin: 10, repairCooldownMin: 9, evolvedRepairMultiplier: 0.72, pickupRangeBase: 115, pickupRangePerLevel: 38, evolvedPickupBonus: 95 },
     },
   },
 };

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { SPECIALIST_ORDER, SPECIALISTS, WEAPONS } from "../data.js";
+import { WEAPON_EVOLUTION_CONTRACT, WEAPON_EVOLUTION_HASH } from "../weapon-evolution.js";
 import {
   EVOLUTION_AUDIT_BUDGETS,
   EVOLUTION_AUDIT_SCHEMA,
@@ -13,10 +13,8 @@ import {
 } from "../benchmarks/evolution-audit.js";
 import { evolutionAuditReportPaths, verifyCommittedEvolutionAudit } from "../benchmarks/run-evolution-audit.js";
 
-const expectedOrder = [
-  ...SPECIALIST_ORDER.map((id) => `signature:${id}`),
-  ...Object.keys(WEAPONS).map((id) => `universal:${id}`),
-];
+const contractEntries = [...Object.values(WEAPON_EVOLUTION_CONTRACT.signatures), ...Object.values(WEAPON_EVOLUTION_CONTRACT.universal)];
+const expectedOrder = contractEntries.map(({ key }) => key);
 const expectedNoOps = ["universal:aura", "universal:mines", "universal:boomerang", "universal:rail", "universal:transit"];
 const started = performance.now();
 const report = runEvolutionAudit();
@@ -28,15 +26,15 @@ test("evolution audit covers all 21 legal L5 plus paired-rank-1 cases in stable 
   assert.equal(report.cases.length, 21);
   assert.deepEqual(report.cases.map(({ sourceKey }) => sourceKey), expectedOrder);
   assert.deepEqual(EVOLUTION_CASE_DEFINITIONS.map(({ sourceKey }) => sourceKey), expectedOrder);
-  for (const item of report.cases) {
-    const expectedPassive = item.scope === "signature"
-      ? SPECIALISTS[item.sourceKey.split(":")[1]].signature.passive
-      : WEAPONS[item.sourceKey.split(":")[1]].passive;
-    assert.equal(item.passiveId, expectedPassive, item.sourceKey);
-    assert.equal(item.base.loadout.level, 5);
-    assert.equal(item.evolved.loadout.level, 5);
-    assert.equal(item.base.loadout.pairedPassiveRank, 1);
-    assert.equal(item.evolved.loadout.pairedPassiveRank, 1);
+  assert.equal(report.versions.evolutionContractHash, WEAPON_EVOLUTION_HASH);
+  for (const [index, item] of report.cases.entries()) {
+    const contract = contractEntries[index];
+    assert.equal(item.passiveId, contract.pairedPassive, item.sourceKey);
+    assert.deepEqual(item.capabilities, contract.capabilities.map(({ id }) => id), item.sourceKey);
+    assert.equal(item.base.loadout.level, WEAPON_EVOLUTION_CONTRACT.requirement.weaponLevel);
+    assert.equal(item.evolved.loadout.level, WEAPON_EVOLUTION_CONTRACT.requirement.weaponLevel);
+    assert.equal(item.base.loadout.pairedPassiveRank, WEAPON_EVOLUTION_CONTRACT.requirement.passiveLevel);
+    assert.equal(item.evolved.loadout.pairedPassiveRank, WEAPON_EVOLUTION_CONTRACT.requirement.passiveLevel);
     assert.equal(item.base.loadout.evolved, false);
     assert.equal(item.evolved.loadout.evolved, true);
     assert.equal(item.base.variantId, `${item.sourceKey}:base`);
@@ -96,7 +94,7 @@ test("schema rejects stale identity, unknown metrics, and weakened expected fail
   assert.match(validateEvolutionAudit(weakened).join("\n"), /unexpected outcome/);
 });
 
-test("audit uses production simulation and evolution APIs without central-engine edits", () => {
+test("audit uses production simulation and evolution APIs without benchmark-only engine hooks", () => {
   const source = readFileSync(new URL("../benchmarks/evolution-audit.js", import.meta.url), "utf8");
   assert.match(source, /createSpecialistBenchmarkSimulation\(/);
   assert.match(source, /applySpecialistBenchmarkUpgrade\(/);
@@ -104,6 +102,9 @@ test("audit uses production simulation and evolution APIs without central-engine
   assert.match(source, /sim\.fireSignature/);
   assert.match(source, /sim\.fireCommonWeapon/);
   assert.match(source, /sim\.useAccessCard\(\)/);
+  assert.match(source, /WEAPON_EVOLUTION_CONTRACT/);
+  assert.match(source, /WEAPON_EVOLUTION_HASH/);
+  assert.match(source, /variantId === expectedVariantId/);
   const engine = readFileSync(new URL("../engine.js", import.meta.url), "utf8");
   assert.doesNotMatch(engine, /evolution-audit|EVOLUTION_AUDIT/);
 });

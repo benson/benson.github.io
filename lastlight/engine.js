@@ -1541,7 +1541,8 @@ export class Simulation {
       for (const drone of this.drones) {
         const owner = this.players.find((p) => p.id === drone.owner && !p.dead && !p.downed);
         if (!owner) continue;
-        const d = distance(orb, drone), range = 115 + drone.level * 38 + (drone.evolved ? 95 : 0);
+        const droneTuning = BALANCE.weapons.universal.drone;
+        const d = distance(orb, drone), range = droneTuning.pickupRangeBase + drone.level * droneTuning.pickupRangePerLevel + (drone.evolved ? droneTuning.evolvedPickupBonus : 0);
         if (d < range && d < best) { collector = drone; target = owner; best = d; }
       }
       if (target && collector) {

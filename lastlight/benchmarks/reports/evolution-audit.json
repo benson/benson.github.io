@@ -3,8 +3,9 @@
   "schemaVersion": 1,
   "contract": "actual-simulation-paired-evolution-v1",
   "versions": {
-    "balanceVersion": "2026.07.12-signatures.3",
-    "balanceHash": "fnv1a32:e36834e8",
+    "balanceVersion": "2026.07.12-evolutions.1",
+    "balanceHash": "fnv1a32:3f6c1f96",
+    "evolutionContractHash": "fnv1a32:04cdf9e2",
     "tickRate": 60
   },
   "definitions": [
@@ -86,6 +87,7 @@
       "scope": "signature",
       "passiveId": "crit",
       "capabilities": [
+        "cadence",
         "pierce",
         "flow-regeneration"
       ],
@@ -174,7 +176,7 @@
       "scope": "universal",
       "passiveId": "maxHealth",
       "capabilities": [
-        "visual-only"
+        "impact-identity"
       ],
       "status": "expected-no-op",
       "invariant": {
@@ -188,7 +190,7 @@
       "scope": "universal",
       "passiveId": "area",
       "capabilities": [
-        "visual-only"
+        "impact-identity"
       ],
       "status": "expected-no-op",
       "invariant": {
@@ -216,7 +218,7 @@
       "scope": "universal",
       "passiveId": "move",
       "capabilities": [
-        "visual-only"
+        "impact-identity"
       ],
       "status": "expected-no-op",
       "invariant": {
@@ -230,7 +232,7 @@
       "scope": "universal",
       "passiveId": "haste",
       "capabilities": [
-        "visual-only"
+        "impact-identity"
       ],
       "status": "expected-no-op",
       "invariant": {
@@ -258,7 +260,7 @@
       "scope": "universal",
       "passiveId": "damage",
       "capabilities": [
-        "visual-only"
+        "impact-identity"
       ],
       "status": "expected-no-op",
       "invariant": {
@@ -331,7 +333,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "094f80fd084f7f6a074f7dd7064f7c44",
+      "seed": "08c0870809c0889b0ac08a2e0bc08bc1",
       "base": {
         "variantId": "signature:zuri:base",
         "loadout": {
@@ -359,14 +361,15 @@
           "orbitSpeed": 0,
           "projectileStreams": 7,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 56
         },
-        "finalHash": "17dc65cdc3126b8c",
+        "finalHash": "952bfeba8e3ae726",
         "ticks": 1081,
         "structure": {
           "peakEntities": 17,
           "maxWorkUnitsPerTick": 72,
-          "maxSnapshotBytes": 6579
+          "maxSnapshotBytes": 6817
         }
       },
       "evolved": {
@@ -396,14 +399,15 @@
           "orbitSpeed": 0,
           "projectileStreams": 7,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 133
         },
-        "finalHash": "5e96ab1b7dd621b0",
+        "finalHash": "f924b9dba0023317",
         "ticks": 1081,
         "structure": {
           "peakEntities": 24,
           "maxWorkUnitsPerTick": 135,
-          "maxSnapshotBytes": 8366
+          "maxSnapshotBytes": 8884
         }
       },
       "delta": {
@@ -427,10 +431,11 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 77
         }
       },
-      "nonCosmeticDeltaCount": 10
+      "nonCosmeticDeltaCount": 8
     },
     {
       "sourceKey": "signature:echo",
@@ -450,7 +455,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "c86824a8c968263bca6827cecb682961",
+      "seed": "5ef724b55df723225cf7218f5bf71ffc",
       "base": {
         "variantId": "signature:echo:base",
         "loadout": {
@@ -459,33 +464,34 @@
           "evolved": false
         },
         "common": {
-          "damage": 11446,
-          "hits": 97,
+          "damage": 9204,
+          "hits": 78,
           "uniqueTargets": 9,
           "activations": 9,
           "activationRate": 0.5,
-          "projectiles": 71,
-          "effects": 9,
-          "tasks": 17,
-          "maxEntities": 20
+          "projectiles": 66,
+          "effects": 11,
+          "tasks": 12,
+          "maxEntities": 19
         },
         "capabilityMetrics": {
           "cadence": 0.496,
           "pierce": 7,
           "lifetime": 1.9,
-          "repeat": 17,
+          "repeat": 12,
           "flowRegeneration": 0,
           "orbitSpeed": 0,
           "projectileStreams": 6,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 89
         },
-        "finalHash": "06a9a85346c65b49",
+        "finalHash": "a67eb867fea66f52",
         "ticks": 1081,
         "structure": {
-          "peakEntities": 20,
-          "maxWorkUnitsPerTick": 99,
-          "maxSnapshotBytes": 7469
+          "peakEntities": 19,
+          "maxWorkUnitsPerTick": 90,
+          "maxSnapshotBytes": 7554
         }
       },
       "evolved": {
@@ -496,33 +502,34 @@
           "evolved": true
         },
         "common": {
-          "damage": 14160,
-          "hits": 120,
+          "damage": 11918,
+          "hits": 101,
           "uniqueTargets": 9,
           "activations": 14,
           "activationRate": 0.778,
-          "projectiles": 106,
-          "effects": 24,
-          "tasks": 23,
-          "maxEntities": 27
+          "projectiles": 101,
+          "effects": 26,
+          "tasks": 19,
+          "maxEntities": 26
         },
         "capabilityMetrics": {
           "cadence": 0.726,
           "pierce": 7,
           "lifetime": 2.6,
-          "repeat": 23,
+          "repeat": 19,
           "flowRegeneration": 0,
           "orbitSpeed": 0,
           "projectileStreams": 6,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 146
         },
-        "finalHash": "683897de3fb11c3c",
+        "finalHash": "97b14a6273154bfa",
         "ticks": 1081,
         "structure": {
-          "peakEntities": 27,
-          "maxWorkUnitsPerTick": 162,
-          "maxSnapshotBytes": 9261
+          "peakEntities": 26,
+          "maxWorkUnitsPerTick": 153,
+          "maxSnapshotBytes": 9669
         }
       },
       "delta": {
@@ -534,22 +541,23 @@
           "activationRate": 0.278,
           "projectiles": 35,
           "effects": 15,
-          "tasks": 6,
+          "tasks": 7,
           "maxEntities": 7
         },
         "capabilityMetrics": {
           "cadence": 0.23,
           "pierce": 0,
           "lifetime": 0.7,
-          "repeat": 6,
+          "repeat": 7,
           "flowRegeneration": 0,
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 57
         }
       },
-      "nonCosmeticDeltaCount": 11
+      "nonCosmeticDeltaCount": 9
     },
     {
       "sourceKey": "signature:sola",
@@ -568,7 +576,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "24f5661025f567a326f5693627f56ac9",
+      "seed": "8ed5eda18dd5ec0e8cd5ea7b8bd5e8e8",
       "base": {
         "variantId": "signature:sola:base",
         "loadout": {
@@ -596,14 +604,15 @@
           "orbitSpeed": 0,
           "projectileStreams": 4,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 44
         },
-        "finalHash": "bbdace9b40dc36c0",
+        "finalHash": "9eb1fbba8626db3c",
         "ticks": 1081,
         "structure": {
           "peakEntities": 14,
           "maxWorkUnitsPerTick": 45,
-          "maxSnapshotBytes": 5996
+          "maxSnapshotBytes": 6132
         }
       },
       "evolved": {
@@ -633,14 +642,15 @@
           "orbitSpeed": 0,
           "projectileStreams": 4,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 48
         },
-        "finalHash": "c081370b4637acc9",
+        "finalHash": "009b0eb2c509a66f",
         "ticks": 1081,
         "structure": {
           "peakEntities": 14,
           "maxWorkUnitsPerTick": 45,
-          "maxSnapshotBytes": 6000
+          "maxSnapshotBytes": 6148
         }
       },
       "delta": {
@@ -664,7 +674,8 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 4
         }
       },
       "nonCosmeticDeltaCount": 6
@@ -687,7 +698,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "643ce8e6653cea79623ce5c0633ce753",
+      "seed": "0d3fd1890c3fcff60b3fce630a3fccd0",
       "base": {
         "variantId": "signature:bront:base",
         "loadout": {
@@ -702,7 +713,7 @@
           "activations": 5,
           "activationRate": 0.278,
           "projectiles": 0,
-          "effects": 0,
+          "effects": 5,
           "tasks": 0,
           "maxEntities": 19
         },
@@ -715,14 +726,15 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 10
         },
-        "finalHash": "f30d64f94e9f13c0",
+        "finalHash": "405e354166f3390c",
         "ticks": 1081,
         "structure": {
           "peakEntities": 19,
           "maxWorkUnitsPerTick": 81,
-          "maxSnapshotBytes": 6252
+          "maxSnapshotBytes": 6310
         }
       },
       "evolved": {
@@ -739,7 +751,7 @@
           "activations": 7,
           "activationRate": 0.389,
           "projectiles": 0,
-          "effects": 0,
+          "effects": 14,
           "tasks": 7,
           "maxEntities": 23
         },
@@ -752,14 +764,15 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 35
         },
-        "finalHash": "95e289b8db395a2a",
+        "finalHash": "c72760590dac22c6",
         "ticks": 1081,
         "structure": {
           "peakEntities": 23,
           "maxWorkUnitsPerTick": 117,
-          "maxSnapshotBytes": 6905
+          "maxSnapshotBytes": 6966
         }
       },
       "delta": {
@@ -770,7 +783,7 @@
           "activations": 2,
           "activationRate": 0.111,
           "projectiles": 0,
-          "effects": 0,
+          "effects": 9,
           "tasks": 7,
           "maxEntities": 4
         },
@@ -783,10 +796,11 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 25
         }
       },
-      "nonCosmeticDeltaCount": 8
+      "nonCosmeticDeltaCount": 7
     },
     {
       "sourceKey": "signature:fang",
@@ -805,7 +819,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "47a990ef46a98f5c49a9941548a99282",
+      "seed": "b262e696b362e829b062e370b162e503",
       "base": {
         "variantId": "signature:fang:base",
         "loadout": {
@@ -820,7 +834,7 @@
           "activations": 12,
           "activationRate": 0.667,
           "projectiles": 0,
-          "effects": 0,
+          "effects": 12,
           "tasks": 0,
           "maxEntities": 11
         },
@@ -833,14 +847,15 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 24
         },
-        "finalHash": "53399aeb16a56720",
+        "finalHash": "a2df675a07794053",
         "ticks": 1081,
         "structure": {
           "peakEntities": 11,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 5167
+          "maxSnapshotBytes": 5224
         }
       },
       "evolved": {
@@ -857,7 +872,7 @@
           "activations": 15,
           "activationRate": 0.833,
           "projectiles": 0,
-          "effects": 0,
+          "effects": 15,
           "tasks": 0,
           "maxEntities": 11
         },
@@ -870,14 +885,15 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 30
         },
-        "finalHash": "630dd19c4a92c3ac",
+        "finalHash": "f6bbed841267a902",
         "ticks": 1081,
         "structure": {
           "peakEntities": 11,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 5156
+          "maxSnapshotBytes": 5216
         }
       },
       "delta": {
@@ -888,7 +904,7 @@
           "activations": 3,
           "activationRate": 0.166,
           "projectiles": 0,
-          "effects": 0,
+          "effects": 3,
           "tasks": 0,
           "maxEntities": 0
         },
@@ -901,7 +917,8 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 6
         }
       },
       "nonCosmeticDeltaCount": 5
@@ -911,6 +928,7 @@
       "scope": "signature",
       "passiveId": "crit",
       "capabilities": [
+        "cadence",
         "pierce",
         "flow-regeneration"
       ],
@@ -924,7 +942,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "c9394712ca3948a5c73943ecc839457f",
+      "seed": "e6e9da1fe5e9d88ce8e9dd45e7e9dbb2",
       "base": {
         "variantId": "signature:gale:base",
         "loadout": {
@@ -933,7 +951,7 @@
           "evolved": false
         },
         "common": {
-          "damage": 7692.5,
+          "damage": 7437.5,
           "hits": 37,
           "uniqueTargets": 9,
           "activations": 5,
@@ -944,7 +962,7 @@
           "maxEntities": 16
         },
         "capabilityMetrics": {
-          "cadence": 0.278,
+          "cadence": 10.345,
           "pierce": 5,
           "lifetime": 3.2,
           "repeat": 0,
@@ -952,14 +970,15 @@
           "orbitSpeed": 0,
           "projectileStreams": 3,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 17
         },
-        "finalHash": "4b8643103ca09808",
-        "ticks": 1140,
+        "finalHash": "a147fcc5f9fd03a2",
+        "ticks": 1141,
         "structure": {
           "peakEntities": 16,
           "maxWorkUnitsPerTick": 63,
-          "maxSnapshotBytes": 6223
+          "maxSnapshotBytes": 6260
         }
       },
       "evolved": {
@@ -970,18 +989,18 @@
           "evolved": true
         },
         "common": {
-          "damage": 8330,
-          "hits": 40,
+          "damage": 8372.5,
+          "hits": 41,
           "uniqueTargets": 9,
           "activations": 6,
           "activationRate": 0.333,
           "projectiles": 18,
           "effects": 2,
           "tasks": 0,
-          "maxEntities": 17
+          "maxEntities": 18
         },
         "capabilityMetrics": {
-          "cadence": 0.333,
+          "cadence": 10.345,
           "pierce": 12,
           "lifetime": 3.2,
           "repeat": 0,
@@ -989,30 +1008,31 @@
           "orbitSpeed": 0,
           "projectileStreams": 3,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 20
         },
-        "finalHash": "fcfc302a64bc1c04",
-        "ticks": 1140,
+        "finalHash": "4f4e38cfea50facd",
+        "ticks": 1141,
         "structure": {
-          "peakEntities": 17,
-          "maxWorkUnitsPerTick": 72,
-          "maxSnapshotBytes": 6629
+          "peakEntities": 18,
+          "maxWorkUnitsPerTick": 81,
+          "maxSnapshotBytes": 7001
         }
       },
       "delta": {
         "common": {
-          "damage": 637.5,
-          "hits": 3,
+          "damage": 935,
+          "hits": 4,
           "uniqueTargets": 0,
           "activations": 1,
           "activationRate": 0.055,
           "projectiles": 3,
           "effects": 0,
           "tasks": 0,
-          "maxEntities": 1
+          "maxEntities": 2
         },
         "capabilityMetrics": {
-          "cadence": 0.055,
+          "cadence": 0,
           "pierce": 7,
           "lifetime": 0,
           "repeat": 0,
@@ -1020,10 +1040,11 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 3
         }
       },
-      "nonCosmeticDeltaCount": 9
+      "nonCosmeticDeltaCount": 7
     },
     {
       "sourceKey": "signature:rift",
@@ -1042,7 +1063,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "2b891cde2c891e71298919b82a891b4b",
+      "seed": "b9ae65dfb8ae644cbbae6905baae6772",
       "base": {
         "variantId": "signature:rift:base",
         "loadout": {
@@ -1057,7 +1078,7 @@
           "activations": 20,
           "activationRate": 1.111,
           "projectiles": 0,
-          "effects": 0,
+          "effects": 20,
           "tasks": 0,
           "maxEntities": 11
         },
@@ -1070,14 +1091,15 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 40
         },
-        "finalHash": "04a2c8711fe9d1d8",
+        "finalHash": "6cd68e7df9db53b9",
         "ticks": 1081,
         "structure": {
           "peakEntities": 11,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 5145
+          "maxSnapshotBytes": 5202
         }
       },
       "evolved": {
@@ -1094,7 +1116,7 @@
           "activations": 27,
           "activationRate": 1.5,
           "projectiles": 0,
-          "effects": 0,
+          "effects": 27,
           "tasks": 0,
           "maxEntities": 11
         },
@@ -1107,14 +1129,15 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 54
         },
-        "finalHash": "b9d156d6d343c6ff",
+        "finalHash": "b3bc40b561d7785c",
         "ticks": 1081,
         "structure": {
           "peakEntities": 11,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 5143
+          "maxSnapshotBytes": 5203
         }
       },
       "delta": {
@@ -1125,7 +1148,7 @@
           "activations": 7,
           "activationRate": 0.389,
           "projectiles": 0,
-          "effects": 0,
+          "effects": 7,
           "tasks": 0,
           "maxEntities": 0
         },
@@ -1138,7 +1161,8 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 14
         }
       },
       "nonCosmeticDeltaCount": 5
@@ -1161,7 +1185,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "fe9ba777fd9ba5e4009baa9dff9ba90a",
+      "seed": "f9690176fa690309f768fe50f868ffe3",
       "base": {
         "variantId": "signature:nova:base",
         "loadout": {
@@ -1189,14 +1213,15 @@
           "orbitSpeed": 0,
           "projectileStreams": 4,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 32
         },
-        "finalHash": "e650f36c259e00ca",
+        "finalHash": "c57c6cbfa47b5619",
         "ticks": 1081,
         "structure": {
           "peakEntities": 14,
           "maxWorkUnitsPerTick": 45,
-          "maxSnapshotBytes": 5979
+          "maxSnapshotBytes": 6115
         }
       },
       "evolved": {
@@ -1226,14 +1251,15 @@
           "orbitSpeed": 0,
           "projectileStreams": 4,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 63
         },
-        "finalHash": "0377e7b3da02fa10",
+        "finalHash": "5293dd2598d5b0d6",
         "ticks": 1081,
         "structure": {
           "peakEntities": 18,
           "maxWorkUnitsPerTick": 81,
-          "maxSnapshotBytes": 7022
+          "maxSnapshotBytes": 7318
         }
       },
       "delta": {
@@ -1257,10 +1283,11 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 31
         }
       },
-      "nonCosmeticDeltaCount": 9
+      "nonCosmeticDeltaCount": 7
     },
     {
       "sourceKey": "signature:vesper",
@@ -1280,7 +1307,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "2a00d7ec2b00d97f2c00db122d00dca5",
+      "seed": "26ad080925ad067624ad04e323ad0350",
       "base": {
         "variantId": "signature:vesper:base",
         "loadout": {
@@ -1308,14 +1335,15 @@
           "orbitSpeed": 0,
           "projectileStreams": 2,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 24
         },
-        "finalHash": "e91843ef212c00a5",
+        "finalHash": "a85e94bcef8f64d1",
         "ticks": 1081,
         "structure": {
           "peakEntities": 26,
           "maxWorkUnitsPerTick": 27,
-          "maxSnapshotBytes": 6815
+          "maxSnapshotBytes": 6887
         }
       },
       "evolved": {
@@ -1345,14 +1373,15 @@
           "orbitSpeed": 0,
           "projectileStreams": 2,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 38
         },
-        "finalHash": "a3553cfe015c1b76",
+        "finalHash": "1a5148e02b94b088",
         "ticks": 1081,
         "structure": {
           "peakEntities": 36,
           "maxWorkUnitsPerTick": 45,
-          "maxSnapshotBytes": 8087
+          "maxSnapshotBytes": 8243
         }
       },
       "delta": {
@@ -1376,10 +1405,11 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 14
         }
       },
-      "nonCosmeticDeltaCount": 9
+      "nonCosmeticDeltaCount": 7
     },
     {
       "sourceKey": "universal:uwu",
@@ -1399,7 +1429,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "ee28e801ed28e66eec28e4dbeb28e348",
+      "seed": "82aab48283aab61580aab15c81aab2ef",
       "base": {
         "variantId": "universal:uwu:base",
         "loadout": {
@@ -1427,14 +1457,15 @@
           "orbitSpeed": 0,
           "projectileStreams": 2,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 100
         },
-        "finalHash": "f5c93b5dec11504e",
+        "finalHash": "661c23a0b91ac426",
         "ticks": 1081,
         "structure": {
           "peakEntities": 12,
           "maxWorkUnitsPerTick": 27,
-          "maxSnapshotBytes": 5486
+          "maxSnapshotBytes": 5554
         }
       },
       "evolved": {
@@ -1451,7 +1482,7 @@
           "activations": 54,
           "activationRate": 3,
           "projectiles": 108,
-          "effects": 56,
+          "effects": 55,
           "tasks": 0,
           "maxEntities": 22
         },
@@ -1464,14 +1495,15 @@
           "orbitSpeed": 0,
           "projectileStreams": 2,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 163
         },
-        "finalHash": "1d7e4da6b8c0bcc8",
+        "finalHash": "aff38e19e8167ab3",
         "ticks": 1081,
         "structure": {
           "peakEntities": 22,
           "maxWorkUnitsPerTick": 117,
-          "maxSnapshotBytes": 7836
+          "maxSnapshotBytes": 8262
         }
       },
       "delta": {
@@ -1482,7 +1514,7 @@
           "activations": 4,
           "activationRate": 0.222,
           "projectiles": 8,
-          "effects": 56,
+          "effects": 55,
           "tasks": 0,
           "maxEntities": 10
         },
@@ -1495,10 +1527,11 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 63
         }
       },
-      "nonCosmeticDeltaCount": 10
+      "nonCosmeticDeltaCount": 8
     },
     {
       "sourceKey": "universal:slicers",
@@ -1517,7 +1550,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "8ff873438ef871b091f8766990f874d6",
+      "seed": "a198e650a298e7e3a398e976a498eb09",
       "base": {
         "variantId": "universal:slicers:base",
         "loadout": {
@@ -1532,7 +1565,7 @@
           "activations": 72,
           "activationRate": 4,
           "projectiles": 0,
-          "effects": 0,
+          "effects": 504,
           "tasks": 0,
           "maxEntities": 24
         },
@@ -1545,14 +1578,15 @@
           "orbitSpeed": 2.2,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 1008
         },
-        "finalHash": "19fdc208285fa2de",
+        "finalHash": "a74deff5e68cacf6",
         "ticks": 1080,
         "structure": {
           "peakEntities": 24,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 6920
+          "maxSnapshotBytes": 7732
         }
       },
       "evolved": {
@@ -1569,7 +1603,7 @@
           "activations": 72,
           "activationRate": 4,
           "projectiles": 0,
-          "effects": 0,
+          "effects": 504,
           "tasks": 0,
           "maxEntities": 24
         },
@@ -1582,14 +1616,15 @@
           "orbitSpeed": 3.1,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 1008
         },
-        "finalHash": "f09bdd72b7cf5817",
+        "finalHash": "01dafda164822ddf",
         "ticks": 1080,
         "structure": {
           "peakEntities": 24,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 6916
+          "maxSnapshotBytes": 7770
         }
       },
       "delta": {
@@ -1613,7 +1648,8 @@
           "orbitSpeed": 0.9,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 0
         }
       },
       "nonCosmeticDeltaCount": 1
@@ -1623,7 +1659,7 @@
       "scope": "universal",
       "passiveId": "maxHealth",
       "capabilities": [
-        "visual-only"
+        "impact-identity"
       ],
       "status": "expected-no-op",
       "invariant": {
@@ -1635,7 +1671,7 @@
         "accepted": true,
         "outcome": "expected-failure"
       },
-      "seed": "f52ecf9bf42ece08f72ed2c1f62ed12e",
+      "seed": "41220c9242220e253f22096c40220aff",
       "base": {
         "variantId": "universal:aura:base",
         "loadout": {
@@ -1663,9 +1699,10 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 0
         },
-        "finalHash": "724109b622b3dc0d",
+        "finalHash": "6a7261be9717f1ed",
         "ticks": 1080,
         "structure": {
           "peakEntities": 10,
@@ -1700,9 +1737,10 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 0
         },
-        "finalHash": "e490d87ddcf9cc91",
+        "finalHash": "ed8cafadff2274f1",
         "ticks": 1080,
         "structure": {
           "peakEntities": 10,
@@ -1731,7 +1769,8 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 0
         }
       },
       "nonCosmeticDeltaCount": 0
@@ -1741,7 +1780,7 @@
       "scope": "universal",
       "passiveId": "area",
       "capabilities": [
-        "visual-only"
+        "impact-identity"
       ],
       "status": "expected-no-op",
       "invariant": {
@@ -1753,7 +1792,7 @@
         "accepted": true,
         "outcome": "expected-failure"
       },
-      "seed": "b06e9e4eb16e9fe1ae6e9b28af6e9cbb",
+      "seed": "6ab6b1f569b6b06268b6aecf67b6ad3c",
       "base": {
         "variantId": "universal:mines:base",
         "loadout": {
@@ -1762,15 +1801,15 @@
           "evolved": false
         },
         "common": {
-          "damage": 9620,
-          "hits": 52,
+          "damage": 9435,
+          "hits": 51,
           "uniqueTargets": 9,
           "activations": 4,
           "activationRate": 0.222,
           "projectiles": 0,
           "effects": 28,
           "tasks": 0,
-          "maxEntities": 23
+          "maxEntities": 22
         },
         "capabilityMetrics": {
           "cadence": 0.222,
@@ -1781,14 +1820,15 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 28
         },
-        "finalHash": "0ece39e5d841a772",
+        "finalHash": "10d578f9860774c6",
         "ticks": 1080,
         "structure": {
-          "peakEntities": 23,
-          "maxWorkUnitsPerTick": 126,
-          "maxSnapshotBytes": 7097
+          "peakEntities": 22,
+          "maxWorkUnitsPerTick": 117,
+          "maxSnapshotBytes": 7122
         }
       },
       "evolved": {
@@ -1799,15 +1839,15 @@
           "evolved": true
         },
         "common": {
-          "damage": 9620,
-          "hits": 52,
+          "damage": 9435,
+          "hits": 51,
           "uniqueTargets": 9,
           "activations": 4,
           "activationRate": 0.222,
           "projectiles": 0,
           "effects": 28,
           "tasks": 0,
-          "maxEntities": 23
+          "maxEntities": 22
         },
         "capabilityMetrics": {
           "cadence": 0.222,
@@ -1818,14 +1858,15 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 28
         },
-        "finalHash": "38c0ea7717a549ec",
+        "finalHash": "bf38d0502c9b7c24",
         "ticks": 1080,
         "structure": {
-          "peakEntities": 23,
-          "maxWorkUnitsPerTick": 126,
-          "maxSnapshotBytes": 7116
+          "peakEntities": 22,
+          "maxWorkUnitsPerTick": 117,
+          "maxSnapshotBytes": 7156
         }
       },
       "delta": {
@@ -1849,7 +1890,8 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 0
         }
       },
       "nonCosmeticDeltaCount": 0
@@ -1871,7 +1913,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "4579c55c4679c6ef4779c8824879ca15",
+      "seed": "ad1a9685ac1a94f2ab1a935faa1a91cc",
       "base": {
         "variantId": "universal:crossbow:base",
         "loadout": {
@@ -1880,13 +1922,13 @@
           "evolved": false
         },
         "common": {
-          "damage": 4754.75,
-          "hits": 35,
-          "uniqueTargets": 7,
+          "damage": 4688.25,
+          "hits": 33,
+          "uniqueTargets": 5,
           "activations": 7,
           "activationRate": 0.389,
           "projectiles": 49,
-          "effects": 14,
+          "effects": 7,
           "tasks": 0,
           "maxEntities": 18
         },
@@ -1899,14 +1941,15 @@
           "orbitSpeed": 0,
           "projectileStreams": 7,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 56
         },
-        "finalHash": "0b16ed2d58aa6465",
+        "finalHash": "10c03ef3f421992b",
         "ticks": 1080,
         "structure": {
           "peakEntities": 18,
           "maxWorkUnitsPerTick": 81,
-          "maxSnapshotBytes": 6825
+          "maxSnapshotBytes": 7069
         }
       },
       "evolved": {
@@ -1917,13 +1960,13 @@
           "evolved": true
         },
         "common": {
-          "damage": 6217.75,
-          "hits": 46,
-          "uniqueTargets": 9,
+          "damage": 6084.75,
+          "hits": 42,
+          "uniqueTargets": 7,
           "activations": 7,
           "activationRate": 0.389,
           "projectiles": 49,
-          "effects": 15,
+          "effects": 7,
           "tasks": 0,
           "maxEntities": 18
         },
@@ -1936,25 +1979,26 @@
           "orbitSpeed": 0,
           "projectileStreams": 7,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 56
         },
-        "finalHash": "498db2d8649bbf6e",
+        "finalHash": "c133eb4d4674eb88",
         "ticks": 1080,
         "structure": {
           "peakEntities": 18,
           "maxWorkUnitsPerTick": 81,
-          "maxSnapshotBytes": 6850
+          "maxSnapshotBytes": 7117
         }
       },
       "delta": {
         "common": {
-          "damage": 1463,
-          "hits": 11,
+          "damage": 1396.5,
+          "hits": 9,
           "uniqueTargets": 2,
           "activations": 0,
           "activationRate": 0,
           "projectiles": 0,
-          "effects": 1,
+          "effects": 0,
           "tasks": 0,
           "maxEntities": 0
         },
@@ -1967,17 +2011,18 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 0
         }
       },
-      "nonCosmeticDeltaCount": 5
+      "nonCosmeticDeltaCount": 4
     },
     {
       "sourceKey": "universal:boomerang",
       "scope": "universal",
       "passiveId": "move",
       "capabilities": [
-        "visual-only"
+        "impact-identity"
       ],
       "status": "expected-no-op",
       "invariant": {
@@ -1989,7 +2034,7 @@
         "accepted": true,
         "outcome": "expected-failure"
       },
-      "seed": "6d08d3aa6e08d53d6b08d0846c08d217",
+      "seed": "257932d52479314223792faf22792e1c",
       "base": {
         "variantId": "universal:boomerang:base",
         "loadout": {
@@ -2017,14 +2062,15 @@
           "orbitSpeed": 0,
           "projectileStreams": 3,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 21
         },
-        "finalHash": "4cfd38683c1125ea",
+        "finalHash": "0f33aa3ab7d0b5bf",
         "ticks": 1080,
         "structure": {
           "peakEntities": 13,
           "maxWorkUnitsPerTick": 36,
-          "maxSnapshotBytes": 5906
+          "maxSnapshotBytes": 6023
         }
       },
       "evolved": {
@@ -2054,14 +2100,15 @@
           "orbitSpeed": 0,
           "projectileStreams": 3,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 21
         },
-        "finalHash": "3de9755c24c4972e",
+        "finalHash": "9f8daf5bb4830f43",
         "ticks": 1080,
         "structure": {
           "peakEntities": 13,
           "maxWorkUnitsPerTick": 36,
-          "maxSnapshotBytes": 5905
+          "maxSnapshotBytes": 6031
         }
       },
       "delta": {
@@ -2085,7 +2132,8 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 0
         }
       },
       "nonCosmeticDeltaCount": 0
@@ -2095,7 +2143,7 @@
       "scope": "universal",
       "passiveId": "haste",
       "capabilities": [
-        "visual-only"
+        "impact-identity"
       ],
       "status": "expected-no-op",
       "invariant": {
@@ -2107,7 +2155,7 @@
         "accepted": true,
         "outcome": "expected-failure"
       },
-      "seed": "1a2ba1001b2ba2931c2ba4261d2ba5b9",
+      "seed": "c60dffedc50dfe5ac40dfcc7c30dfb34",
       "base": {
         "variantId": "universal:rail:base",
         "loadout": {
@@ -2135,14 +2183,15 @@
           "orbitSpeed": 0,
           "projectileStreams": 6,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 48
         },
-        "finalHash": "00f554081582bb41",
+        "finalHash": "275ee7f20d92fb07",
         "ticks": 1080,
         "structure": {
           "peakEntities": 16,
           "maxWorkUnitsPerTick": 63,
-          "maxSnapshotBytes": 6401
+          "maxSnapshotBytes": 6605
         }
       },
       "evolved": {
@@ -2172,14 +2221,15 @@
           "orbitSpeed": 0,
           "projectileStreams": 6,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 48
         },
-        "finalHash": "eec4a4a416708a0b",
+        "finalHash": "38d1c8356f8bdcc5",
         "ticks": 1080,
         "structure": {
           "peakEntities": 16,
           "maxWorkUnitsPerTick": 63,
-          "maxSnapshotBytes": 6400
+          "maxSnapshotBytes": 6622
         }
       },
       "delta": {
@@ -2203,7 +2253,8 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 0
         }
       },
       "nonCosmeticDeltaCount": 0
@@ -2225,7 +2276,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "c447372fc347359cc6473a55c54738c2",
+      "seed": "12c7139413c7152714c716ba15c7184d",
       "base": {
         "variantId": "universal:glove:base",
         "loadout": {
@@ -2253,14 +2304,15 @@
           "orbitSpeed": 0,
           "projectileStreams": 7,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 49
         },
-        "finalHash": "7966746d918790bb",
+        "finalHash": "a8cffeee20bf01b2",
         "ticks": 1080,
         "structure": {
           "peakEntities": 17,
           "maxWorkUnitsPerTick": 72,
-          "maxSnapshotBytes": 6658
+          "maxSnapshotBytes": 6903
         }
       },
       "evolved": {
@@ -2290,14 +2342,15 @@
           "orbitSpeed": 0,
           "projectileStreams": 14,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 104
         },
-        "finalHash": "8937ad2b716c9764",
+        "finalHash": "2e0e350f3bccec0d",
         "ticks": 1080,
         "structure": {
           "peakEntities": 24,
           "maxWorkUnitsPerTick": 135,
-          "maxSnapshotBytes": 8395
+          "maxSnapshotBytes": 8927
         }
       },
       "delta": {
@@ -2321,17 +2374,18 @@
           "orbitSpeed": 0,
           "projectileStreams": 7,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 55
         }
       },
-      "nonCosmeticDeltaCount": 7
+      "nonCosmeticDeltaCount": 5
     },
     {
       "sourceKey": "universal:transit",
       "scope": "universal",
       "passiveId": "damage",
       "capabilities": [
-        "visual-only"
+        "impact-identity"
       ],
       "status": "expected-no-op",
       "invariant": {
@@ -2343,7 +2397,7 @@
         "accepted": true,
         "outcome": "expected-failure"
       },
-      "seed": "ff5bdff5fe5bde62fd5bdccffc5bdb3c",
+      "seed": "0f02179a1002192d0d0214740e021607",
       "base": {
         "variantId": "universal:transit:base",
         "loadout": {
@@ -2371,14 +2425,15 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 2
         },
-        "finalHash": "7d1f95561f1d6f3b",
+        "finalHash": "4832145f87f0e457",
         "ticks": 1080,
         "structure": {
           "peakEntities": 12,
           "maxWorkUnitsPerTick": 27,
-          "maxSnapshotBytes": 5265
+          "maxSnapshotBytes": 5243
         }
       },
       "evolved": {
@@ -2408,14 +2463,15 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 2
         },
-        "finalHash": "771ca990cff965c3",
+        "finalHash": "bfabf90976725ad5",
         "ticks": 1080,
         "structure": {
           "peakEntities": 12,
           "maxWorkUnitsPerTick": 27,
-          "maxSnapshotBytes": 5263
+          "maxSnapshotBytes": 5244
         }
       },
       "delta": {
@@ -2439,7 +2495,8 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 0
         }
       },
       "nonCosmeticDeltaCount": 0
@@ -2461,7 +2518,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "e552abb9e452aa26e352a893e252a700",
+      "seed": "56426362574264f55442603c554261cf",
       "base": {
         "variantId": "universal:ice:base",
         "loadout": {
@@ -2489,9 +2546,10 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 0
         },
-        "finalHash": "1e0e500f4f5f5d28",
+        "finalHash": "42e4f12406ba14b4",
         "ticks": 1081,
         "structure": {
           "peakEntities": 10,
@@ -2526,9 +2584,10 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 0
         },
-        "finalHash": "5d5425b5bad569f2",
+        "finalHash": "c82072b28aa7df86",
         "ticks": 1081,
         "structure": {
           "peakEntities": 10,
@@ -2557,7 +2616,8 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 0
         }
       },
       "nonCosmeticDeltaCount": 1
@@ -2579,7 +2639,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "bd36b05dbc36aecabb36ad37ba36aba4",
+      "seed": "ada33d0eaea33ea1aba339e8aca33b7b",
       "base": {
         "variantId": "universal:annihilator:base",
         "loadout": {
@@ -2607,9 +2667,10 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 1
         },
-        "finalHash": "d3fb9fa7960ab1ed",
+        "finalHash": "ed7d9e8277a9e7b5",
         "ticks": 1081,
         "structure": {
           "peakEntities": 19,
@@ -2644,9 +2705,10 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 1
         },
-        "finalHash": "f4c1d520cbbad95f",
+        "finalHash": "d6f7debe8fed2ac7",
         "ticks": 1081,
         "structure": {
           "peakEntities": 19,
@@ -2675,7 +2737,8 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0,
-          "pickupRange": 0
+          "pickupRange": 0,
+          "impactIdentity": 0
         }
       },
       "nonCosmeticDeltaCount": 1
@@ -2699,7 +2762,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "02b97f3c03b980cf04b9826205b983f5",
+      "seed": "f96dae6bf86dacd8fb6db191fa6daffe",
       "base": {
         "variantId": "universal:drone:base",
         "loadout": {
@@ -2727,14 +2790,15 @@
           "orbitSpeed": 0,
           "projectileStreams": 3,
           "repairRate": 0.056,
-          "pickupRange": 305
+          "pickupRange": 305,
+          "impactIdentity": 72
         },
-        "finalHash": "180bb7feacd774f7",
+        "finalHash": "0ab7901476c50340",
         "ticks": 3240,
         "structure": {
           "peakEntities": 18,
           "maxWorkUnitsPerTick": 64,
-          "maxSnapshotBytes": 6817
+          "maxSnapshotBytes": 7081
         }
       },
       "evolved": {
@@ -2764,14 +2828,15 @@
           "orbitSpeed": 0,
           "projectileStreams": 3,
           "repairRate": 0.083,
-          "pickupRange": 400
+          "pickupRange": 400,
+          "impactIdentity": 74
         },
-        "finalHash": "144f33b2c8fcbf03",
+        "finalHash": "491dcede91efb976",
         "ticks": 3240,
         "structure": {
           "peakEntities": 18,
           "maxWorkUnitsPerTick": 64,
-          "maxSnapshotBytes": 6845
+          "maxSnapshotBytes": 7130
         }
       },
       "delta": {
@@ -2795,10 +2860,11 @@
           "orbitSpeed": 0,
           "projectileStreams": 0,
           "repairRate": 0.027,
-          "pickupRange": 95
+          "pickupRange": 95,
+          "impactIdentity": 2
         }
       },
-      "nonCosmeticDeltaCount": 7
+      "nonCosmeticDeltaCount": 6
     }
   ],
   "budgets": {
@@ -2812,7 +2878,7 @@
   },
   "limitations": [
     "The harness records deterministic observables and declared capabilities; it does not implement or approve evolution mechanics.",
-    "Visual-only differences are deliberately excluded from non-cosmetic delta counts.",
+    "Presentation-only impact identity and cosmetic entity-count differences are deliberately excluded from non-cosmetic delta counts.",
     "Expected failures preserve known gameplay-flat production evolutions as visible debt rather than weakening invariants."
   ]
 }

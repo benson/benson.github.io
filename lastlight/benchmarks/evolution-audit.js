@@ -1,8 +1,8 @@
-import { BALANCE_HASH, BALANCE_VERSION, BALANCE_CONFIG } from "../balance-config.js";
-import { SPECIALIST_ORDER, SPECIALISTS, WEAPONS } from "../data.js";
+import { BALANCE_HASH, BALANCE_VERSION } from "../balance-config.js";
 import { SIMULATION_TICK_RATE } from "../engine.js";
 import { deterministicWorkUnits } from "../fixtures/fixture-runner.js";
 import { hashCanonicalState } from "../replay.js";
+import { WEAPON_EVOLUTION_CAPABILITIES, WEAPON_EVOLUTION_CONTRACT, WEAPON_EVOLUTION_HASH } from "../weapon-evolution.js";
 import {
   applySpecialistBenchmarkUpgrade,
   createSpecialistBenchmarkSimulation,
@@ -15,37 +15,36 @@ import {
 export const EVOLUTION_AUDIT_SCHEMA = "lastlight.evolution-audit.v1";
 export const EVOLUTION_AUDIT_VERSION = 1;
 export const EVOLUTION_AUDIT_STEP = 1 / SIMULATION_TICK_RATE;
-export const EVOLUTION_CAPABILITIES = Object.freeze(["cadence", "pierce", "lifetime", "repeat", "flow-regeneration", "orbit-speed", "visual-only", "projectile-streams", "repair-rate", "pickup-range"]);
+export const EVOLUTION_CAPABILITIES = WEAPON_EVOLUTION_CAPABILITIES;
 export const EVOLUTION_STATUSES = Object.freeze(["meaningful", "stat-only", "expected-no-op"]);
 
-const definition = (sourceKey, scope, passiveId, capabilities, invariantMetric, status = "meaningful") => Object.freeze({
-  sourceKey, scope, passiveId, capabilities: Object.freeze(capabilities), status,
-  invariant: Object.freeze({ metric: invariantMetric, comparison: "increase", expectedFailure: status === "expected-no-op" }),
-});
-
-export const EVOLUTION_CASE_DEFINITIONS = Object.freeze([
-  definition("signature:zuri", "signature", "haste", ["cadence", "pierce"], "pierce"),
-  definition("signature:echo", "signature", "projectiles", ["cadence", "lifetime"], "lifetime"),
-  definition("signature:sola", "signature", "armor", ["cadence"], "cadence", "stat-only"),
-  definition("signature:bront", "signature", "duration", ["cadence", "repeat"], "repeat"),
-  definition("signature:fang", "signature", "maxHealth", ["cadence"], "cadence", "stat-only"),
-  definition("signature:gale", "signature", "crit", ["pierce", "flow-regeneration"], "flow-regeneration"),
-  definition("signature:rift", "signature", "move", ["cadence"], "cadence", "stat-only"),
-  definition("signature:nova", "signature", "xp", ["cadence", "lifetime"], "lifetime"),
-  definition("signature:vesper", "signature", "pickup", ["cadence", "pierce"], "pierce"),
-  definition("universal:uwu", "universal", "haste", ["cadence", "pierce"], "pierce"),
-  definition("universal:slicers", "universal", "regen", ["orbit-speed"], "orbit-speed", "stat-only"),
-  definition("universal:aura", "universal", "maxHealth", ["visual-only"], "nonCosmeticDeltaCount", "expected-no-op"),
-  definition("universal:mines", "universal", "area", ["visual-only"], "nonCosmeticDeltaCount", "expected-no-op"),
-  definition("universal:crossbow", "universal", "crit", ["pierce"], "pierce"),
-  definition("universal:boomerang", "universal", "move", ["visual-only"], "nonCosmeticDeltaCount", "expected-no-op"),
-  definition("universal:rail", "universal", "haste", ["visual-only"], "nonCosmeticDeltaCount", "expected-no-op"),
-  definition("universal:glove", "universal", "regen", ["projectile-streams"], "projectile-streams"),
-  definition("universal:transit", "universal", "damage", ["visual-only"], "nonCosmeticDeltaCount", "expected-no-op"),
-  definition("universal:ice", "universal", "armor", ["cadence"], "cadence", "stat-only"),
-  definition("universal:annihilator", "universal", "xp", ["cadence"], "cadence", "stat-only"),
-  definition("universal:drone", "universal", "pickup", ["pierce", "repair-rate", "pickup-range"], "repair-rate"),
+const EVOLUTION_CONTRACT_ENTRIES = Object.freeze([
+  ...Object.values(WEAPON_EVOLUTION_CONTRACT.signatures),
+  ...Object.values(WEAPON_EVOLUTION_CONTRACT.universal),
 ]);
+const INVARIANT_METRICS = Object.freeze({
+  "signature:zuri": "pierce", "signature:echo": "lifetime", "signature:sola": "cadence", "signature:bront": "repeat",
+  "signature:fang": "cadence", "signature:gale": "flow-regeneration", "signature:rift": "cadence", "signature:nova": "lifetime",
+  "signature:vesper": "pierce", "universal:uwu": "pierce", "universal:slicers": "orbit-speed", "universal:aura": "nonCosmeticDeltaCount",
+  "universal:mines": "nonCosmeticDeltaCount", "universal:crossbow": "pierce", "universal:boomerang": "nonCosmeticDeltaCount",
+  "universal:rail": "nonCosmeticDeltaCount", "universal:glove": "projectile-streams", "universal:transit": "nonCosmeticDeltaCount",
+  "universal:ice": "cadence", "universal:annihilator": "cadence", "universal:drone": "repair-rate",
+});
+const STAT_ONLY_KEYS = new Set(["signature:sola", "signature:fang", "signature:rift", "universal:slicers", "universal:ice", "universal:annihilator"]);
+
+const definition = (entry) => {
+  const status = entry.status === "presentation-only" ? "expected-no-op" : STAT_ONLY_KEYS.has(entry.key) ? "stat-only" : "meaningful";
+  return Object.freeze({
+    sourceKey: entry.key,
+    scope: entry.scope,
+    passiveId: entry.pairedPassive,
+    capabilities: Object.freeze(entry.capabilities.map(({ id }) => id)),
+    status,
+    invariant: Object.freeze({ metric: INVARIANT_METRICS[entry.key], comparison: "increase", expectedFailure: status === "expected-no-op" }),
+  });
+};
+
+export const EVOLUTION_CASE_DEFINITIONS = Object.freeze(EVOLUTION_CONTRACT_ENTRIES.map(definition));
 
 export const EVOLUTION_AUDIT_BUDGETS = Object.freeze({
   maxCases: 21,
@@ -58,20 +57,26 @@ export const EVOLUTION_AUDIT_BUDGETS = Object.freeze({
 });
 
 const COMMON_KEYS = Object.freeze(["damage", "hits", "uniqueTargets", "activations", "activationRate", "projectiles", "effects", "tasks", "maxEntities"]);
-const CAPABILITY_KEYS = Object.freeze(["cadence", "pierce", "lifetime", "repeat", "flowRegeneration", "orbitSpeed", "projectileStreams", "repairRate", "pickupRange"]);
+const CAPABILITY_KEYS = Object.freeze(["cadence", "pierce", "lifetime", "repeat", "flowRegeneration", "orbitSpeed", "projectileStreams", "repairRate", "pickupRange", "impactIdentity"]);
 const ROOT_KEYS = Object.freeze(["schema", "schemaVersion", "contract", "versions", "definitions", "cases", "budgets", "limitations"]);
-const VERSION_KEYS = Object.freeze(["balanceVersion", "balanceHash", "tickRate"]);
+const VERSION_KEYS = Object.freeze(["balanceVersion", "balanceHash", "evolutionContractHash", "tickRate"]);
 const CASE_KEYS = Object.freeze(["sourceKey", "scope", "passiveId", "capabilities", "status", "seed", "base", "evolved", "delta", "nonCosmeticDeltaCount", "invariant"]);
 const VARIANT_KEYS = Object.freeze(["variantId", "loadout", "common", "capabilityMetrics", "finalHash", "ticks", "structure"]);
 const LOADOUT_KEYS = Object.freeze(["level", "pairedPassiveRank", "evolved"]);
 const DELTA_KEYS = Object.freeze(["common", "capabilityMetrics"]);
 const INVARIANT_KEYS = Object.freeze(["metric", "comparison", "expectedFailure", "value", "passed", "accepted", "outcome"]);
 const STRUCTURE_KEYS = Object.freeze(["peakEntities", "maxWorkUnitsPerTick", "maxSnapshotBytes"]);
-const NO_OPS = Object.freeze(["universal:aura", "universal:mines", "universal:boomerang", "universal:rail", "universal:transit"]);
+const NO_OPS = Object.freeze(EVOLUTION_CONTRACT_ENTRIES.filter(({ status }) => status === "presentation-only").map(({ key }) => key));
 
 function sourceParts(sourceKey) {
-  const [scope, id] = sourceKey.split(":");
-  return { scope, id, specialistId: scope === "signature" ? id : "zuri", sourceId: scope === "signature" ? "signature" : id };
+  const entry = EVOLUTION_CONTRACT_ENTRIES.find(({ key }) => key === sourceKey);
+  if (!entry) throw new Error(`${sourceKey}: missing authoritative evolution entry`);
+  return {
+    scope: entry.scope,
+    id: entry.scope === "signature" ? entry.specialistId : entry.sourceId,
+    specialistId: entry.specialistId || "zuri",
+    sourceId: entry.sourceId,
+  };
 }
 
 function snapshotHash(sim) { return hashCanonicalState(JSON.parse(JSON.stringify(sim.snapshot()))); }
@@ -83,9 +88,9 @@ function configureVariant(def, evolved) {
   const sim = createSpecialistBenchmarkSimulation([parts.specialistId], seed, "story");
   const player = sim.players[0];
   sim.level = 1; sim.obstacles = [];
-  if (parts.scope === "signature") applySpecialistBenchmarkUpgrade(player, "weapon:signature", BALANCE_CONFIG.core.maxWeaponLevel);
-  else applySpecialistBenchmarkUpgrade(player, `weapon:${parts.id}`, BALANCE_CONFIG.core.maxWeaponLevel);
-  applySpecialistBenchmarkUpgrade(player, `passive:${def.passiveId}`, 1);
+  if (parts.scope === "signature") applySpecialistBenchmarkUpgrade(player, "weapon:signature", WEAPON_EVOLUTION_CONTRACT.requirement.weaponLevel);
+  else applySpecialistBenchmarkUpgrade(player, `weapon:${parts.id}`, WEAPON_EVOLUTION_CONTRACT.requirement.weaponLevel);
+  applySpecialistBenchmarkUpgrade(player, `passive:${def.passiveId}`, WEAPON_EVOLUTION_CONTRACT.requirement.passiveLevel);
   if (evolved) {
     sim.useAccessCard();
     const weapon = parts.scope === "signature" ? player.weapons.signature : player.weapons[parts.id];
@@ -104,17 +109,17 @@ function configureVariant(def, evolved) {
   return { sim, player, parts, seed };
 }
 
-function instrument(sim, player, parts) {
+function instrument(sim, player, parts, expectedVariantId) {
   const trace = {
     activations: 0, projectiles: 0, effects: 0, tasks: 0, hits: 0, targets: new Set(),
-    maxPierce: 0, maxLife: 0, projectilesByActivation: [], slicerAngles: [], seenEffects: new Set(),
+    maxPierce: 0, maxLife: 0, projectilesByActivation: [], slicerAngles: [], seenEffects: new Set(), variantEmissions: 0,
   };
   let inActivation = false, activationProjectiles = 0, firstSlicer = false;
   const originalShoot = sim.shoot.bind(sim);
   sim.shoot = (...args) => {
     const projectile = originalShoot(...args);
-    if (projectile?.sourceId === parts.sourceId) {
-      trace.projectiles++; activationProjectiles += inActivation ? 1 : 0;
+    if (projectile?.variantId === expectedVariantId) {
+      trace.projectiles++; trace.variantEmissions++; activationProjectiles += inActivation ? 1 : 0;
       trace.maxPierce = Math.max(trace.maxPierce, Number(projectile.pierce || 0));
       trace.maxLife = Math.max(trace.maxLife, Number(projectile.life || 0));
     }
@@ -122,8 +127,8 @@ function instrument(sim, player, parts) {
   };
   const originalBlast = sim.blast.bind(sim);
   sim.blast = (...args) => {
-    const sourceId = args[8] ?? args[7];
-    if (sourceId === parts.sourceId && parts.id === "slicers" && inActivation && !firstSlicer) {
+    if (args[9] === expectedVariantId) trace.variantEmissions++;
+    if (args[9] === expectedVariantId && parts.id === "slicers" && inActivation && !firstSlicer) {
       firstSlicer = true;
       trace.slicerAngles.push({ time: sim.time, angle: Math.atan2(args[1] - player.y, args[0] - player.x) });
     }
@@ -131,9 +136,9 @@ function instrument(sim, player, parts) {
   };
   const originalSchedule = sim.scheduleTask.bind(sim);
   sim.scheduleTask = (...args) => {
-    const [kind, , payload] = args;
-    if ((parts.scope === "signature" && ["bront-repeat-blast", "echo-projectile-repeat"].includes(kind)) || payload?.sourceId === parts.sourceId) trace.tasks++;
-    return originalSchedule(...args);
+    const task = originalSchedule(...args);
+    if (task?.variantId === expectedVariantId) { trace.tasks++; trace.variantEmissions++; }
+    return task;
   };
   const originalDamage = sim.damageEnemy.bind(sim);
   sim.damageEnemy = (enemy, amount, owner, critical, source) => {
@@ -203,18 +208,32 @@ function auxiliaryCapabilities(def, evolved) {
     ticks += 36 * SIMULATION_TICK_RATE;
     repairRate = repairs / 36;
   }
-  if (def.capabilities.includes("pickup-range")) pickupRange = parts.id === "drone" ? 115 + 5 * 38 + (evolved ? 95 : 0) : 0;
+  if (def.capabilities.includes("pickup-range")) {
+    sim.enemies = [];
+    const drone = sim.ensureDrone(player, player.weapons[parts.id]);
+    player.x = -10_000; player.y = 0; drone.x = 0; drone.y = 0;
+    let lower = 0, upper = 1_000;
+    for (let probe = 0; probe < 24; probe++) {
+      const distance = (lower + upper) / 2;
+      const orb = { id: `range-${probe}`, x: distance, y: 0, radius: 6, value: 1, color: "#fff", dead: false };
+      sim.orbs = [orb];
+      sim.updatePickups(EVOLUTION_AUDIT_STEP);
+      if (orb.x < distance) lower = distance; else upper = distance;
+    }
+    pickupRange = lower;
+  }
   return { cadence: round(cadence), flowRegeneration: round(flowRegeneration), repairRate: round(repairRate), pickupRange: round(pickupRange), ticks };
 }
 
 function runVariant(def, evolved) {
   const { sim, player, parts, seed } = configureVariant(def, evolved);
-  const trace = instrument(sim, player, parts);
+  const expectedVariantId = `${def.sourceKey}:${evolved ? "evolved" : "base"}`;
+  const trace = instrument(sim, player, parts, expectedVariantId);
   const duration = 18, ticks = duration * SIMULATION_TICK_RATE;
   let peakEntities = 0, maxWorkUnitsPerTick = 0, maxSnapshotBytes = 0;
   for (let tick = 0; tick < ticks; tick++) {
     sim.update(EVOLUTION_AUDIT_STEP);
-    for (const effect of sim.effects) if (effect.sourceId === parts.sourceId && !trace.seenEffects.has(effect.id)) { trace.seenEffects.add(effect.id); trace.effects++; }
+    for (const effect of sim.effects) if (effect.variantId === expectedVariantId && !trace.seenEffects.has(effect.id)) { trace.seenEffects.add(effect.id); trace.effects++; }
     if (tick % SIMULATION_TICK_RATE === 0 || tick === ticks - 1) {
       peakEntities = Math.max(peakEntities, specialistBenchmarkEntityCount(sim));
       maxWorkUnitsPerTick = Math.max(maxWorkUnitsPerTick, deterministicWorkUnits(sim));
@@ -231,10 +250,11 @@ function runVariant(def, evolved) {
     cadence: def.capabilities.includes("cadence") ? auxiliary.cadence : common.activationRate, pierce: trace.maxPierce, lifetime: round(trace.maxLife), repeat: trace.tasks,
     flowRegeneration: auxiliary.flowRegeneration, orbitSpeed: round(orbitSpeed(trace.slicerAngles)),
     projectileStreams: round(Math.max(0, ...trace.projectilesByActivation)), repairRate: auxiliary.repairRate, pickupRange: auxiliary.pickupRange,
+    impactIdentity: trace.variantEmissions + trace.effects,
   };
   return {
-    variantId: `${def.sourceKey}:${evolved ? "evolved" : "base"}`,
-    loadout: { level: BALANCE_CONFIG.core.maxWeaponLevel, pairedPassiveRank: 1, evolved },
+    variantId: expectedVariantId,
+    loadout: { level: WEAPON_EVOLUTION_CONTRACT.requirement.weaponLevel, pairedPassiveRank: WEAPON_EVOLUTION_CONTRACT.requirement.passiveLevel, evolved },
     common, capabilityMetrics, finalHash: snapshotHash(sim), ticks: ticks + auxiliary.ticks,
     structure: { peakEntities, maxWorkUnitsPerTick, maxSnapshotBytes }, seed,
   };
@@ -257,7 +277,10 @@ function benchmarkCase(def) {
   const seed = baseResult.seed;
   delete baseResult.seed; delete evolvedResult.seed;
   const delta = deltaRecord(baseResult, evolvedResult);
-  const values = [...Object.values(delta.common), ...Object.values(delta.capabilityMetrics)];
+  const values = [
+    ...Object.entries(delta.common).filter(([key]) => !["effects", "maxEntities"].includes(key)).map(([, value]) => value),
+    ...Object.entries(delta.capabilityMetrics).filter(([key]) => key !== "impactIdentity").map(([, value]) => value),
+  ];
   const nonCosmeticDeltaCount = values.filter((value) => Math.abs(Number(value) || 0) > 1e-9).length;
   const value = metricValue(def.invariant.metric, delta, nonCosmeticDeltaCount);
   const passed = value > 0;
@@ -271,11 +294,11 @@ function benchmarkCase(def) {
 export function runEvolutionAudit() {
   return {
     schema: EVOLUTION_AUDIT_SCHEMA, schemaVersion: EVOLUTION_AUDIT_VERSION, contract: "actual-simulation-paired-evolution-v1",
-    versions: { balanceVersion: BALANCE_VERSION, balanceHash: BALANCE_HASH, tickRate: SIMULATION_TICK_RATE },
+    versions: { balanceVersion: BALANCE_VERSION, balanceHash: BALANCE_HASH, evolutionContractHash: WEAPON_EVOLUTION_HASH, tickRate: SIMULATION_TICK_RATE },
     definitions: EVOLUTION_CASE_DEFINITIONS, cases: EVOLUTION_CASE_DEFINITIONS.map(benchmarkCase), budgets: EVOLUTION_AUDIT_BUDGETS,
     limitations: [
       "The harness records deterministic observables and declared capabilities; it does not implement or approve evolution mechanics.",
-      "Visual-only differences are deliberately excluded from non-cosmetic delta counts.",
+      "Presentation-only impact identity and cosmetic entity-count differences are deliberately excluded from non-cosmetic delta counts.",
       "Expected failures preserve known gameplay-flat production evolutions as visible debt rather than weakening invariants.",
     ],
   };
@@ -288,7 +311,7 @@ export function validateEvolutionAudit(report) {
   if (!exactKeys(report, ROOT_KEYS)) errors.push("report: fields mismatch");
   if (report?.schema !== EVOLUTION_AUDIT_SCHEMA || report?.schemaVersion !== EVOLUTION_AUDIT_VERSION) errors.push("schema: unsupported evolution audit");
   if (!exactKeys(report?.versions, VERSION_KEYS)) errors.push("versions: fields mismatch");
-  if (report?.versions?.balanceVersion !== BALANCE_VERSION || report?.versions?.balanceHash !== BALANCE_HASH || report?.versions?.tickRate !== SIMULATION_TICK_RATE) errors.push("versions: runtime identity mismatch");
+  if (report?.versions?.balanceVersion !== BALANCE_VERSION || report?.versions?.balanceHash !== BALANCE_HASH || report?.versions?.evolutionContractHash !== WEAPON_EVOLUTION_HASH || report?.versions?.tickRate !== SIMULATION_TICK_RATE) errors.push("versions: runtime identity mismatch");
   if (JSON.stringify(report?.definitions) !== JSON.stringify(EVOLUTION_CASE_DEFINITIONS)) errors.push("definitions: authored contract drift");
   if (JSON.stringify(report?.budgets) !== JSON.stringify(EVOLUTION_AUDIT_BUDGETS)) errors.push("budgets: authored contract drift");
   if (report?.cases?.length !== EVOLUTION_CASE_DEFINITIONS.length) errors.push("cases: expected 21 legal evolutions");
@@ -301,7 +324,7 @@ export function validateEvolutionAudit(report) {
       const variant = item?.[name];
       if (!exactKeys(variant, VARIANT_KEYS)) errors.push(`${path}.${name}: fields mismatch`);
       if (variant?.variantId !== `${item.sourceKey}:${name}`) errors.push(`${path}.${name}.variantId: mismatch`);
-      if (!exactKeys(variant?.loadout, LOADOUT_KEYS) || variant?.loadout?.level !== BALANCE_CONFIG.core.maxWeaponLevel || variant?.loadout?.pairedPassiveRank !== 1 || variant?.loadout?.evolved !== (name === "evolved")) errors.push(`${path}.${name}.loadout: mismatch`);
+      if (!exactKeys(variant?.loadout, LOADOUT_KEYS) || variant?.loadout?.level !== WEAPON_EVOLUTION_CONTRACT.requirement.weaponLevel || variant?.loadout?.pairedPassiveRank !== WEAPON_EVOLUTION_CONTRACT.requirement.passiveLevel || variant?.loadout?.evolved !== (name === "evolved")) errors.push(`${path}.${name}.loadout: mismatch`);
       if (!exactKeys(variant?.common, COMMON_KEYS) || !exactKeys(variant?.capabilityMetrics, CAPABILITY_KEYS) || !exactKeys(variant?.structure, STRUCTURE_KEYS)) errors.push(`${path}.${name}: metric fields mismatch`);
       if (![...Object.values(variant?.common || {}), ...Object.values(variant?.capabilityMetrics || {}), ...Object.values(variant?.structure || {})].every(Number.isFinite)) errors.push(`${path}.${name}: metrics must be finite`);
       if (!/^[0-9a-f]{16}$/.test(variant?.finalHash || "")) errors.push(`${path}.${name}.finalHash: invalid`);
@@ -334,5 +357,5 @@ export function assertEvolutionAuditBudgets(report) {
 
 export function evolutionAuditMarkdown(report) {
   const rows = report.cases.map((item) => `| ${item.sourceKey} | ${item.status} | ${item.capabilities.join(", ")} | ${item.base.common.damage}→${item.evolved.common.damage} | ${item.base.common.activationRate}→${item.evolved.common.activationRate} | ${item.invariant.metric} | ${item.invariant.outcome} |`).join("\n");
-  return `# Lastlight evolution audit\n\nContract: \`${report.contract}\`  \nBalance: \`${report.versions.balanceVersion}\` / \`${report.versions.balanceHash}\`\n\nMatrix: ${report.cases.length} legal L5 paired base/evolved cases\n\n| Source | Status | Declared capabilities | Damage | Activations/s | Invariant | Outcome |\n|---|---|---|---:|---:|---|---|\n${rows}\n\n## Expected failures\n\n${report.cases.filter((item) => item.invariant.expectedFailure).map((item) => `- **${item.sourceKey}:** no authored non-cosmetic evolution delta is observable.`).join("\n")}\n\n## Limits\n\n${report.limitations.map((item) => `- ${item}`).join("\n")}\n`;
+  return `# Lastlight evolution audit\n\nContract: \`${report.contract}\` / \`${report.versions.evolutionContractHash}\`\nBalance: \`${report.versions.balanceVersion}\` / \`${report.versions.balanceHash}\`\n\nMatrix: ${report.cases.length} legal L5 paired base/evolved cases\n\n| Source | Status | Declared capabilities | Damage | Activations/s | Invariant | Outcome |\n|---|---|---|---:|---:|---|---|\n${rows}\n\n## Expected failures\n\n${report.cases.filter((item) => item.invariant.expectedFailure).map((item) => `- **${item.sourceKey}:** no authored non-cosmetic evolution delta is observable.`).join("\n")}\n\n## Limits\n\n${report.limitations.map((item) => `- ${item}`).join("\n")}\n`;
 }

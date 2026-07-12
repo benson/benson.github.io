@@ -1,7 +1,7 @@
 # Starting signature breakpoint report
 
 Contract: `actual-simulation-fixed-seed-signature-v1`
-Balance: `2026.07.12-evolutions.1` / `fnv1a32:1f4e921f`
+Balance: `2026.07.12-evolutions.1` / `fnv1a32:3f6c1f96`
 
 Matrix: 9 specialists × 5 states = 45 deterministic breakpoint cases
 

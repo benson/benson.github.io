@@ -1,7 +1,7 @@
 # Lastlight specialist benchmark
 
 Contract: `actual-simulation-fixed-seed-v1`
-Balance: `2026.07.12-evolutions.1` / `fnv1a32:1f4e921f`
+Balance: `2026.07.12-evolutions.1` / `fnv1a32:3f6c1f96`
 Matrix: 9 specialists × 10 fixed-seed scenarios = 90 cases
 
 ## Comparable summary

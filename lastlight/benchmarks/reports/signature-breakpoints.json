@@ -4,7 +4,7 @@
   "contract": "actual-simulation-fixed-seed-signature-v1",
   "versions": {
     "balanceVersion": "2026.07.12-evolutions.1",
-    "balanceHash": "fnv1a32:1f4e921f",
+    "balanceHash": "fnv1a32:3f6c1f96",
     "specialistBenchmarkSchema": "lastlight.specialist-benchmark.v1"
   },
   "probeContract": {
@@ -150,7 +150,7 @@
               "damage": 1008,
               "attempts": 8,
               "activations": 8,
-              "finalHash": "041c0446b2b70bf7",
+              "finalHash": "143588df2362718f",
               "structure": {
                 "peakEntities": 5,
                 "maxWorkUnitsPerTick": 4,
@@ -164,7 +164,7 @@
               "damage": 1008,
               "attempts": 8,
               "activations": 8,
-              "finalHash": "b7113dbb5ecb8926",
+              "finalHash": "15dc710233646cbe",
               "structure": {
                 "peakEntities": 13,
                 "maxWorkUnitsPerTick": 36,
@@ -178,7 +178,7 @@
               "damage": 126,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "4763ecb37ccf6a98",
+              "finalHash": "f3a339a192234080",
               "structure": {
                 "peakEntities": 5,
                 "maxWorkUnitsPerTick": 4,
@@ -192,7 +192,7 @@
                 "ticks": 240,
                 "damage": 126,
                 "hit": true,
-                "finalHash": "841a6155e8eb3383",
+                "finalHash": "c61b2c204ae67b4b",
                 "structure": {
                   "peakEntities": 8,
                   "maxWorkUnitsPerTick": 7,
@@ -205,7 +205,7 @@
                 "ticks": 240,
                 "damage": 126,
                 "hit": true,
-                "finalHash": "e3de60a25d8abeea",
+                "finalHash": "aee07c989c6ec9b2",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -218,7 +218,7 @@
                 "ticks": 240,
                 "damage": 126,
                 "hit": true,
-                "finalHash": "3d75893003d3f5eb",
+                "finalHash": "16ae8a4a8057a4b3",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -231,7 +231,7 @@
                 "ticks": 240,
                 "damage": 126,
                 "hit": true,
-                "finalHash": "d1a97d5cb8326d8e",
+                "finalHash": "38ea13cfc2f98316",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -244,7 +244,7 @@
                 "ticks": 240,
                 "damage": 126,
                 "hit": true,
-                "finalHash": "139f21ba1113dd6c",
+                "finalHash": "e7892757a6e48bd4",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -257,7 +257,7 @@
                 "ticks": 240,
                 "damage": 126,
                 "hit": true,
-                "finalHash": "9ed43a2d3c9a2bb7",
+                "finalHash": "d26dc5a5d952de1f",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -270,7 +270,7 @@
                 "ticks": 240,
                 "damage": 126,
                 "hit": true,
-                "finalHash": "11c9eb48e3a8cb70",
+                "finalHash": "549a7be7035f36b8",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -283,7 +283,7 @@
                 "ticks": 240,
                 "damage": 126,
                 "hit": true,
-                "finalHash": "91ee555c4aae51f1",
+                "finalHash": "db5fb444209ea7b9",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -296,7 +296,7 @@
                 "ticks": 240,
                 "damage": 126,
                 "hit": true,
-                "finalHash": "76195fb36ea0c70d",
+                "finalHash": "d744f20350f3ee85",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -339,7 +339,7 @@
               "damage": 2560,
               "attempts": 8,
               "activations": 8,
-              "finalHash": "04dbe89aed802455",
+              "finalHash": "5f2ff535d71e874d",
               "structure": {
                 "peakEntities": 7,
                 "maxWorkUnitsPerTick": 6,
@@ -353,7 +353,7 @@
               "damage": 2560,
               "attempts": 8,
               "activations": 8,
-              "finalHash": "03a6b47b81492053",
+              "finalHash": "0eeee585988f2d6b",
               "structure": {
                 "peakEntities": 15,
                 "maxWorkUnitsPerTick": 54,
@@ -367,7 +367,7 @@
               "damage": 320,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "508856b9f5676e94",
+              "finalHash": "0a4ee2633f921c9c",
               "structure": {
                 "peakEntities": 7,
                 "maxWorkUnitsPerTick": 6,
@@ -381,7 +381,7 @@
                 "ticks": 240,
                 "damage": 320,
                 "hit": true,
-                "finalHash": "3bd78d32d68f6adb",
+                "finalHash": "802ae02a46b9d933",
                 "structure": {
                   "peakEntities": 8,
                   "maxWorkUnitsPerTick": 7,
@@ -394,7 +394,7 @@
                 "ticks": 240,
                 "damage": 320,
                 "hit": true,
-                "finalHash": "635868943f1daeb5",
+                "finalHash": "ad0c3f5fd522f66d",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -407,7 +407,7 @@
                 "ticks": 240,
                 "damage": 320,
                 "hit": true,
-                "finalHash": "b658960c8304c1b9",
+                "finalHash": "7ba3b737df1ffcd1",
                 "structure": {
                   "peakEntities": 13,
                   "maxWorkUnitsPerTick": 42,
@@ -420,7 +420,7 @@
                 "ticks": 240,
                 "damage": 320,
                 "hit": true,
-                "finalHash": "4e8a89de7bf56c25",
+                "finalHash": "53ed4b26f1aaec1d",
                 "structure": {
                   "peakEntities": 13,
                   "maxWorkUnitsPerTick": 42,
@@ -433,7 +433,7 @@
                 "ticks": 240,
                 "damage": 320,
                 "hit": true,
-                "finalHash": "20eabfd043c1261c",
+                "finalHash": "c63bd4397d331e14",
                 "structure": {
                   "peakEntities": 13,
                   "maxWorkUnitsPerTick": 42,
@@ -446,7 +446,7 @@
                 "ticks": 240,
                 "damage": 320,
                 "hit": true,
-                "finalHash": "2fb5649cfe5a4d84",
+                "finalHash": "03d4299cff15c25c",
                 "structure": {
                   "peakEntities": 13,
                   "maxWorkUnitsPerTick": 42,
@@ -459,7 +459,7 @@
                 "ticks": 240,
                 "damage": 320,
                 "hit": true,
-                "finalHash": "88ea81a6a62ef2d6",
+                "finalHash": "3ef4066aad71580e",
                 "structure": {
                   "peakEntities": 13,
                   "maxWorkUnitsPerTick": 42,
@@ -472,7 +472,7 @@
                 "ticks": 240,
                 "damage": 320,
                 "hit": true,
-                "finalHash": "166829f03e50025e",
+                "finalHash": "a0139833ea601bf6",
                 "structure": {
                   "peakEntities": 13,
                   "maxWorkUnitsPerTick": 42,
@@ -485,7 +485,7 @@
                 "ticks": 240,
                 "damage": 320,
                 "hit": true,
-                "finalHash": "155c79341a514772",
+                "finalHash": "d20dc19c549b823a",
                 "structure": {
                   "peakEntities": 13,
                   "maxWorkUnitsPerTick": 42,
@@ -528,7 +528,7 @@
               "damage": 3612,
               "attempts": 8,
               "activations": 8,
-              "finalHash": "517adcdc099e63a6",
+              "finalHash": "29f05754ac41d0ce",
               "structure": {
                 "peakEntities": 9,
                 "maxWorkUnitsPerTick": 8,
@@ -542,7 +542,7 @@
               "damage": 4816,
               "attempts": 8,
               "activations": 8,
-              "finalHash": "a045ac7b1e77d4fe",
+              "finalHash": "89190a65f8fbd7e6",
               "structure": {
                 "peakEntities": 17,
                 "maxWorkUnitsPerTick": 72,
@@ -556,7 +556,7 @@
               "damage": 602,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "425ca63b33f32651",
+              "finalHash": "50a22d06ee8fb4e9",
               "structure": {
                 "peakEntities": 9,
                 "maxWorkUnitsPerTick": 8,
@@ -570,7 +570,7 @@
                 "ticks": 240,
                 "damage": 602,
                 "hit": true,
-                "finalHash": "0a341152188861fb",
+                "finalHash": "8a60b596c968eb03",
                 "structure": {
                   "peakEntities": 8,
                   "maxWorkUnitsPerTick": 7,
@@ -583,7 +583,7 @@
                 "ticks": 240,
                 "damage": 602,
                 "hit": true,
-                "finalHash": "ef7a3fe5b529fe74",
+                "finalHash": "d3d2f8bac07f012c",
                 "structure": {
                   "peakEntities": 14,
                   "maxWorkUnitsPerTick": 49,
@@ -596,7 +596,7 @@
                 "ticks": 240,
                 "damage": 602,
                 "hit": true,
-                "finalHash": "1af1969f6b9b1021",
+                "finalHash": "34cc9f4610a9e039",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -609,7 +609,7 @@
                 "ticks": 240,
                 "damage": 602,
                 "hit": true,
-                "finalHash": "98a1444612402fb5",
+                "finalHash": "7094aadcdcc7d88d",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -622,7 +622,7 @@
                 "ticks": 240,
                 "damage": 602,
                 "hit": true,
-                "finalHash": "30f9aa1ffbf6719e",
+                "finalHash": "edd541fa78e07c96",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -635,7 +635,7 @@
                 "ticks": 240,
                 "damage": 602,
                 "hit": true,
-                "finalHash": "764fb04397d7d9e9",
+                "finalHash": "3e15b5e9896e69f1",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -648,7 +648,7 @@
                 "ticks": 240,
                 "damage": 602,
                 "hit": true,
-                "finalHash": "b5a65739f3ddb570",
+                "finalHash": "d1cfd4d6c9662088",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -661,7 +661,7 @@
                 "ticks": 240,
                 "damage": 602,
                 "hit": true,
-                "finalHash": "d30fd5b09588d40b",
+                "finalHash": "4a8708d671982ec3",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -674,7 +674,7 @@
                 "ticks": 240,
                 "damage": 602,
                 "hit": true,
-                "finalHash": "1ddb491c554df9bb",
+                "finalHash": "72ca2235f7ef8813",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -717,7 +717,7 @@
               "damage": 4386,
               "attempts": 11,
               "activations": 11,
-              "finalHash": "c1ac62087f4a3239",
+              "finalHash": "2734af3479cb5141",
               "structure": {
                 "peakEntities": 9,
                 "maxWorkUnitsPerTick": 8,
@@ -731,7 +731,7 @@
               "damage": 6622,
               "attempts": 11,
               "activations": 11,
-              "finalHash": "ad62f04e2d321765",
+              "finalHash": "750e74a553bad40d",
               "structure": {
                 "peakEntities": 17,
                 "maxWorkUnitsPerTick": 72,
@@ -745,7 +745,7 @@
               "damage": 602,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "32bc4b4e494e6425",
+              "finalHash": "ebcd127e5626a52d",
               "structure": {
                 "peakEntities": 9,
                 "maxWorkUnitsPerTick": 8,
@@ -759,7 +759,7 @@
                 "ticks": 240,
                 "damage": 602,
                 "hit": true,
-                "finalHash": "f9324913ac494383",
+                "finalHash": "869bb5c5fa0a823b",
                 "structure": {
                   "peakEntities": 8,
                   "maxWorkUnitsPerTick": 7,
@@ -772,7 +772,7 @@
                 "ticks": 240,
                 "damage": 602,
                 "hit": true,
-                "finalHash": "c53c6aaeb20791a6",
+                "finalHash": "e0ac2c3fab3484ee",
                 "structure": {
                   "peakEntities": 14,
                   "maxWorkUnitsPerTick": 49,
@@ -785,7 +785,7 @@
                 "ticks": 240,
                 "damage": 602,
                 "hit": true,
-                "finalHash": "35226e8b46a10215",
+                "finalHash": "a13d3862a1fb9bdd",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -798,7 +798,7 @@
                 "ticks": 240,
                 "damage": 602,
                 "hit": true,
-                "finalHash": "ef0b4867a2cdca09",
+                "finalHash": "d76be5d76d5284b1",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -811,7 +811,7 @@
                 "ticks": 240,
                 "damage": 602,
                 "hit": true,
-                "finalHash": "08f4e8915cc3db6c",
+                "finalHash": "29a1ddea2af9ba14",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -824,7 +824,7 @@
                 "ticks": 240,
                 "damage": 602,
                 "hit": true,
-                "finalHash": "3da416747c0f642d",
+                "finalHash": "1c19da5f6ed40ac5",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -837,7 +837,7 @@
                 "ticks": 240,
                 "damage": 602,
                 "hit": true,
-                "finalHash": "b82d2365877807e2",
+                "finalHash": "c2f1285f540c74aa",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -850,7 +850,7 @@
                 "ticks": 240,
                 "damage": 602,
                 "hit": true,
-                "finalHash": "2e0af79e9cdba733",
+                "finalHash": "8492f8b5305b4ffb",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -863,7 +863,7 @@
                 "ticks": 240,
                 "damage": 602,
                 "hit": true,
-                "finalHash": "5470d57da55e8043",
+                "finalHash": "4e2ec817c15ef0eb",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -906,7 +906,7 @@
               "damage": 6966,
               "attempts": 22,
               "activations": 22,
-              "finalHash": "8c8ac20669b73528",
+              "finalHash": "ca3eb28b227a9970",
               "structure": {
                 "peakEntities": 22,
                 "maxWorkUnitsPerTick": 21,
@@ -920,7 +920,7 @@
               "damage": 35260,
               "attempts": 22,
               "activations": 22,
-              "finalHash": "b2ab1cfa48dd6e92",
+              "finalHash": "f6fccb9043c9923a",
               "structure": {
                 "peakEntities": 29,
                 "maxWorkUnitsPerTick": 180,
@@ -934,7 +934,7 @@
               "damage": 602,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "1f0d456add8264bd",
+              "finalHash": "70dd736d8abd96a5",
               "structure": {
                 "peakEntities": 9,
                 "maxWorkUnitsPerTick": 8,
@@ -948,7 +948,7 @@
                 "ticks": 240,
                 "damage": 602,
                 "hit": true,
-                "finalHash": "5df9346c20f11c07",
+                "finalHash": "c7411c588b03c29f",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -961,7 +961,7 @@
                 "ticks": 240,
                 "damage": 602,
                 "hit": true,
-                "finalHash": "0e9a7bcf4fa58d0c",
+                "finalHash": "e2628ef19cd03e74",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -974,7 +974,7 @@
                 "ticks": 240,
                 "damage": 602,
                 "hit": true,
-                "finalHash": "7f0030a853d8ed91",
+                "finalHash": "9951af47a1767e59",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -987,7 +987,7 @@
                 "ticks": 240,
                 "damage": 774,
                 "hit": true,
-                "finalHash": "790475c4ca5bdc46",
+                "finalHash": "1c6d0d4a249a58ae",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -1000,7 +1000,7 @@
                 "ticks": 240,
                 "damage": 602,
                 "hit": true,
-                "finalHash": "d9fdb275933b1cae",
+                "finalHash": "ae0ccb705e007316",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -1013,7 +1013,7 @@
                 "ticks": 240,
                 "damage": 602,
                 "hit": true,
-                "finalHash": "865c9f38132d7011",
+                "finalHash": "ef77f6073bce6a29",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -1026,7 +1026,7 @@
                 "ticks": 240,
                 "damage": 602,
                 "hit": true,
-                "finalHash": "270e6061ffcb6c24",
+                "finalHash": "db214b0bc24b876c",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -1039,7 +1039,7 @@
                 "ticks": 240,
                 "damage": 602,
                 "hit": true,
-                "finalHash": "67e2776b5aa6cf37",
+                "finalHash": "542e8088854e987f",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -1052,7 +1052,7 @@
                 "ticks": 240,
                 "damage": 602,
                 "hit": true,
-                "finalHash": "21c2a30f6a056ac7",
+                "finalHash": "b30e48a14d23af6f",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -1338,7 +1338,7 @@
               "damage": 434,
               "attempts": 6,
               "activations": 6,
-              "finalHash": "5d1aec51d39faeb3",
+              "finalHash": "af8a75fbe1c8491b",
               "structure": {
                 "peakEntities": 4,
                 "maxWorkUnitsPerTick": 3,
@@ -1352,7 +1352,7 @@
               "damage": 2976,
               "attempts": 6,
               "activations": 6,
-              "finalHash": "aea69b0b8396045c",
+              "finalHash": "19c2494b048a7304",
               "structure": {
                 "peakEntities": 11,
                 "maxWorkUnitsPerTick": 18,
@@ -1366,7 +1366,7 @@
               "damage": 124,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "ab515393c1e8d3ef",
+              "finalHash": "89adc36d5d02c5e7",
               "structure": {
                 "peakEntities": 4,
                 "maxWorkUnitsPerTick": 3,
@@ -1380,7 +1380,7 @@
                 "ticks": 240,
                 "damage": 124,
                 "hit": true,
-                "finalHash": "9293f4220a6ba94c",
+                "finalHash": "a1e1fba95ec8fb54",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -1393,7 +1393,7 @@
                 "ticks": 240,
                 "damage": 62,
                 "hit": true,
-                "finalHash": "0e8957600a8cc06b",
+                "finalHash": "0372b9c2059fa573",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 14,
@@ -1406,7 +1406,7 @@
                 "ticks": 240,
                 "damage": 124,
                 "hit": true,
-                "finalHash": "3e193b9fc3f020ad",
+                "finalHash": "edba5e0bcb80eaf5",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -1419,7 +1419,7 @@
                 "ticks": 240,
                 "damage": 62,
                 "hit": true,
-                "finalHash": "01601ba71016640a",
+                "finalHash": "04f878ad6147b0d2",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 14,
@@ -1432,7 +1432,7 @@
                 "ticks": 240,
                 "damage": 124,
                 "hit": true,
-                "finalHash": "3b4c5ca2272b1b12",
+                "finalHash": "ef5e74d408c4b9ca",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -1445,7 +1445,7 @@
                 "ticks": 240,
                 "damage": 62,
                 "hit": true,
-                "finalHash": "74636291a1f93016",
+                "finalHash": "69f92ed633acb46e",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 14,
@@ -1458,7 +1458,7 @@
                 "ticks": 240,
                 "damage": 62,
                 "hit": true,
-                "finalHash": "3bc7745b5eae0eef",
+                "finalHash": "85b14d4714f8af07",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 14,
@@ -1471,7 +1471,7 @@
                 "ticks": 240,
                 "damage": 62,
                 "hit": true,
-                "finalHash": "8f1c70c8236641ba",
+                "finalHash": "ce504af31b36eae2",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 14,
@@ -1484,7 +1484,7 @@
                 "ticks": 240,
                 "damage": 124,
                 "hit": true,
-                "finalHash": "c8976716927a9bd7",
+                "finalHash": "1265d9da427907af",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -1527,7 +1527,7 @@
               "damage": 2430,
               "attempts": 8,
               "activations": 8,
-              "finalHash": "c3ecb94487773fc5",
+              "finalHash": "439da4a26f27d14d",
               "structure": {
                 "peakEntities": 8,
                 "maxWorkUnitsPerTick": 7,
@@ -1541,7 +1541,7 @@
               "damage": 13770,
               "attempts": 8,
               "activations": 8,
-              "finalHash": "4c654589464260de",
+              "finalHash": "59039cf2dcec6d36",
               "structure": {
                 "peakEntities": 16,
                 "maxWorkUnitsPerTick": 63,
@@ -1555,7 +1555,7 @@
               "damage": 540,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "a2c088a7078f5adb",
+              "finalHash": "503d0d42308f80e3",
               "structure": {
                 "peakEntities": 8,
                 "maxWorkUnitsPerTick": 7,
@@ -1569,7 +1569,7 @@
                 "ticks": 240,
                 "damage": 450,
                 "hit": true,
-                "finalHash": "66371c6167de3796",
+                "finalHash": "7c8562f56ea8c7de",
                 "structure": {
                   "peakEntities": 13,
                   "maxWorkUnitsPerTick": 42,
@@ -1582,7 +1582,7 @@
                 "ticks": 240,
                 "damage": 270,
                 "hit": true,
-                "finalHash": "2f671f26c2270ca8",
+                "finalHash": "c44cc7abf1afe150",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -1595,7 +1595,7 @@
                 "ticks": 240,
                 "damage": 360,
                 "hit": true,
-                "finalHash": "822cec87f51652ea",
+                "finalHash": "304208b61b673252",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -1608,7 +1608,7 @@
                 "ticks": 240,
                 "damage": 450,
                 "hit": true,
-                "finalHash": "10c35816327f312f",
+                "finalHash": "2664a93767fb5107",
                 "structure": {
                   "peakEntities": 13,
                   "maxWorkUnitsPerTick": 42,
@@ -1621,7 +1621,7 @@
                 "ticks": 240,
                 "damage": 720,
                 "hit": true,
-                "finalHash": "dd12254a48411999",
+                "finalHash": "d72d930039399a31",
                 "structure": {
                   "peakEntities": 13,
                   "maxWorkUnitsPerTick": 42,
@@ -1634,7 +1634,7 @@
                 "ticks": 240,
                 "damage": 270,
                 "hit": true,
-                "finalHash": "8302d6973f23fd9f",
+                "finalHash": "fe5da9b3ad3db747",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -1647,7 +1647,7 @@
                 "ticks": 240,
                 "damage": 360,
                 "hit": true,
-                "finalHash": "ea23babaf1b36d7a",
+                "finalHash": "88d3471f855f4e92",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -1660,7 +1660,7 @@
                 "ticks": 240,
                 "damage": 630,
                 "hit": true,
-                "finalHash": "9339dd8d70e67e3d",
+                "finalHash": "289c7c42d8bbbdb5",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -1673,7 +1673,7 @@
                 "ticks": 240,
                 "damage": 360,
                 "hit": true,
-                "finalHash": "72e10d0e6d8dc098",
+                "finalHash": "2773134c7e32ac60",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -1716,7 +1716,7 @@
               "damage": 3304,
               "attempts": 9,
               "activations": 9,
-              "finalHash": "9675ec65ebdf9b52",
+              "finalHash": "ef90f9a7a157214a",
               "structure": {
                 "peakEntities": 10,
                 "maxWorkUnitsPerTick": 9,
@@ -1730,7 +1730,7 @@
               "damage": 22066,
               "attempts": 9,
               "activations": 9,
-              "finalHash": "3317384d9e983a11",
+              "finalHash": "00cb4dfdcb9abbe9",
               "structure": {
                 "peakEntities": 17,
                 "maxWorkUnitsPerTick": 72,
@@ -1744,7 +1744,7 @@
               "damage": 944,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "3447aee7cc7c3bc9",
+              "finalHash": "b520db95115060d1",
               "structure": {
                 "peakEntities": 10,
                 "maxWorkUnitsPerTick": 9,
@@ -1758,7 +1758,7 @@
                 "ticks": 240,
                 "damage": 944,
                 "hit": true,
-                "finalHash": "1ff1da5fde646c2f",
+                "finalHash": "21e0d5bdf7981097",
                 "structure": {
                   "peakEntities": 16,
                   "maxWorkUnitsPerTick": 63,
@@ -1771,7 +1771,7 @@
                 "ticks": 240,
                 "damage": 826,
                 "hit": true,
-                "finalHash": "c2ec944ce362279c",
+                "finalHash": "8ca32a8b123f6744",
                 "structure": {
                   "peakEntities": 13,
                   "maxWorkUnitsPerTick": 42,
@@ -1784,7 +1784,7 @@
                 "ticks": 240,
                 "damage": 944,
                 "hit": true,
-                "finalHash": "330b80cb92c67930",
+                "finalHash": "3d7111104eba4958",
                 "structure": {
                   "peakEntities": 14,
                   "maxWorkUnitsPerTick": 49,
@@ -1797,7 +1797,7 @@
                 "ticks": 240,
                 "damage": 944,
                 "hit": true,
-                "finalHash": "ef278726a5a007a0",
+                "finalHash": "edf1c222b8852528",
                 "structure": {
                   "peakEntities": 16,
                   "maxWorkUnitsPerTick": 63,
@@ -1810,7 +1810,7 @@
                 "ticks": 240,
                 "damage": 1298,
                 "hit": true,
-                "finalHash": "52b7df0342bf7ab4",
+                "finalHash": "a895bb6a0193929c",
                 "structure": {
                   "peakEntities": 16,
                   "maxWorkUnitsPerTick": 63,
@@ -1823,7 +1823,7 @@
                 "ticks": 240,
                 "damage": 590,
                 "hit": true,
-                "finalHash": "6fd2557f50107d4d",
+                "finalHash": "19a8140086796815",
                 "structure": {
                   "peakEntities": 13,
                   "maxWorkUnitsPerTick": 42,
@@ -1836,7 +1836,7 @@
                 "ticks": 240,
                 "damage": 826,
                 "hit": true,
-                "finalHash": "ae92bb9fa49b80dc",
+                "finalHash": "415ae365fc534b84",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -1849,7 +1849,7 @@
                 "ticks": 240,
                 "damage": 1180,
                 "hit": true,
-                "finalHash": "6f7fdd9be7296542",
+                "finalHash": "e38d3f8776f19f2a",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -1862,7 +1862,7 @@
                 "ticks": 240,
                 "damage": 472,
                 "hit": true,
-                "finalHash": "5b017959f6426fa6",
+                "finalHash": "ce595fe8b5ce506e",
                 "structure": {
                   "peakEntities": 14,
                   "maxWorkUnitsPerTick": 49,
@@ -1905,7 +1905,7 @@
               "damage": 3186,
               "attempts": 9,
               "activations": 9,
-              "finalHash": "e23954b504ed6ae9",
+              "finalHash": "e9e735e2a78d3441",
               "structure": {
                 "peakEntities": 11,
                 "maxWorkUnitsPerTick": 10,
@@ -1919,7 +1919,7 @@
               "damage": 25252,
               "attempts": 9,
               "activations": 9,
-              "finalHash": "348dc8c67a45cdf4",
+              "finalHash": "a891337bb93b0ecc",
               "structure": {
                 "peakEntities": 19,
                 "maxWorkUnitsPerTick": 90,
@@ -1933,7 +1933,7 @@
               "damage": 944,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "35c8cfacfcfa1d89",
+              "finalHash": "1a159b95f41ffa11",
               "structure": {
                 "peakEntities": 11,
                 "maxWorkUnitsPerTick": 10,
@@ -1947,7 +1947,7 @@
                 "ticks": 240,
                 "damage": 1180,
                 "hit": true,
-                "finalHash": "ec395cebce55107d",
+                "finalHash": "62ba410841f39395",
                 "structure": {
                   "peakEntities": 17,
                   "maxWorkUnitsPerTick": 70,
@@ -1960,7 +1960,7 @@
                 "ticks": 240,
                 "damage": 1062,
                 "hit": true,
-                "finalHash": "08e1764d45812a09",
+                "finalHash": "5a5a4ff127daea01",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -1973,7 +1973,7 @@
                 "ticks": 240,
                 "damage": 1062,
                 "hit": true,
-                "finalHash": "08d4f183e986b6ee",
+                "finalHash": "88bd4dfd4f310f66",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -1986,7 +1986,7 @@
                 "ticks": 240,
                 "damage": 1062,
                 "hit": true,
-                "finalHash": "55b44349a04755ea",
+                "finalHash": "2d4e6666c4a13202",
                 "structure": {
                   "peakEntities": 17,
                   "maxWorkUnitsPerTick": 70,
@@ -1999,7 +1999,7 @@
                 "ticks": 240,
                 "damage": 1416,
                 "hit": true,
-                "finalHash": "820007be08f4aa61",
+                "finalHash": "f06140e78ca76299",
                 "structure": {
                   "peakEntities": 17,
                   "maxWorkUnitsPerTick": 70,
@@ -2012,7 +2012,7 @@
                 "ticks": 240,
                 "damage": 708,
                 "hit": true,
-                "finalHash": "5633c88a0cc7feb0",
+                "finalHash": "b4a682ac53969408",
                 "structure": {
                   "peakEntities": 14,
                   "maxWorkUnitsPerTick": 49,
@@ -2025,7 +2025,7 @@
                 "ticks": 240,
                 "damage": 826,
                 "hit": true,
-                "finalHash": "ec78b378a3da19fb",
+                "finalHash": "1903c8b6c372ce13",
                 "structure": {
                   "peakEntities": 16,
                   "maxWorkUnitsPerTick": 63,
@@ -2038,7 +2038,7 @@
                 "ticks": 240,
                 "damage": 1180,
                 "hit": true,
-                "finalHash": "d51db470258b72f2",
+                "finalHash": "075dcca058cfa1ca",
                 "structure": {
                   "peakEntities": 16,
                   "maxWorkUnitsPerTick": 63,
@@ -2051,7 +2051,7 @@
                 "ticks": 240,
                 "damage": 472,
                 "hit": true,
-                "finalHash": "a93723569010a2f7",
+                "finalHash": "8616b145f472f92f",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -2094,7 +2094,7 @@
               "damage": 3776,
               "attempts": 14,
               "activations": 14,
-              "finalHash": "444be8cf3339ae7a",
+              "finalHash": "b0e7b4bfdd74eb92",
               "structure": {
                 "peakEntities": 21,
                 "maxWorkUnitsPerTick": 18,
@@ -2108,7 +2108,7 @@
               "damage": 33630,
               "attempts": 14,
               "activations": 14,
-              "finalHash": "3e684fa11ea96054",
+              "finalHash": "c2fcadf1f7df140c",
               "structure": {
                 "peakEntities": 27,
                 "maxWorkUnitsPerTick": 162,
@@ -2122,7 +2122,7 @@
               "damage": 944,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "2d8f1d3bed3019ef",
+              "finalHash": "ca98dade7d9591d7",
               "structure": {
                 "peakEntities": 11,
                 "maxWorkUnitsPerTick": 10,
@@ -2136,7 +2136,7 @@
                 "ticks": 240,
                 "damage": 1180,
                 "hit": true,
-                "finalHash": "e938e4e15e915171",
+                "finalHash": "bd1c8f3a338cd949",
                 "structure": {
                   "peakEntities": 17,
                   "maxWorkUnitsPerTick": 70,
@@ -2149,7 +2149,7 @@
                 "ticks": 240,
                 "damage": 1062,
                 "hit": true,
-                "finalHash": "732adfdabe3fbc27",
+                "finalHash": "cbf744044a462aff",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -2162,7 +2162,7 @@
                 "ticks": 240,
                 "damage": 1062,
                 "hit": true,
-                "finalHash": "afe658dc19e0ac04",
+                "finalHash": "face5f59b1620d1c",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -2175,7 +2175,7 @@
                 "ticks": 240,
                 "damage": 1062,
                 "hit": true,
-                "finalHash": "94fcc2646776660e",
+                "finalHash": "591ef1bed26d8986",
                 "structure": {
                   "peakEntities": 17,
                   "maxWorkUnitsPerTick": 70,
@@ -2188,7 +2188,7 @@
                 "ticks": 240,
                 "damage": 1416,
                 "hit": true,
-                "finalHash": "d849c1a3d1296b4f",
+                "finalHash": "46cdad79a072d8c7",
                 "structure": {
                   "peakEntities": 17,
                   "maxWorkUnitsPerTick": 70,
@@ -2201,7 +2201,7 @@
                 "ticks": 240,
                 "damage": 708,
                 "hit": true,
-                "finalHash": "a0504015f74d5484",
+                "finalHash": "1ff359bbe0840bbc",
                 "structure": {
                   "peakEntities": 14,
                   "maxWorkUnitsPerTick": 49,
@@ -2214,7 +2214,7 @@
                 "ticks": 240,
                 "damage": 826,
                 "hit": true,
-                "finalHash": "202610e7f79c6299",
+                "finalHash": "def2ef92adcc83f1",
                 "structure": {
                   "peakEntities": 16,
                   "maxWorkUnitsPerTick": 63,
@@ -2227,7 +2227,7 @@
                 "ticks": 240,
                 "damage": 1180,
                 "hit": true,
-                "finalHash": "33c4a59d1cc61aea",
+                "finalHash": "8ae73fda0999e322",
                 "structure": {
                   "peakEntities": 16,
                   "maxWorkUnitsPerTick": 63,
@@ -2240,7 +2240,7 @@
                 "ticks": 240,
                 "damage": 472,
                 "hit": true,
-                "finalHash": "3c0fea6d749e2a91",
+                "finalHash": "098adfb19b16c489",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 56,
@@ -2526,7 +2526,7 @@
               "damage": 470.25,
               "attempts": 7,
               "activations": 7,
-              "finalHash": "1f97bdf982b3eb97",
+              "finalHash": "d272023a6e87e6ef",
               "structure": {
                 "peakEntities": 4,
                 "maxWorkUnitsPerTick": 3,
@@ -2540,7 +2540,7 @@
               "damage": 3709.75,
               "attempts": 7,
               "activations": 7,
-              "finalHash": "3fe0f0d40fcd17a9",
+              "finalHash": "6409f6e32a741691",
               "structure": {
                 "peakEntities": 12,
                 "maxWorkUnitsPerTick": 27,
@@ -2554,7 +2554,7 @@
               "damage": 104.5,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "6a1c3d601d12acc3",
+              "finalHash": "53b7158d3fef340b",
               "structure": {
                 "peakEntities": 4,
                 "maxWorkUnitsPerTick": 3,
@@ -2568,7 +2568,7 @@
                 "ticks": 240,
                 "damage": 104.5,
                 "hit": true,
-                "finalHash": "9b5ce16efafc9dc1",
+                "finalHash": "3ec8391185bcdbd9",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -2581,7 +2581,7 @@
                 "ticks": 240,
                 "damage": 156.75,
                 "hit": true,
-                "finalHash": "540269dd58e7712e",
+                "finalHash": "f2615c183b2fb966",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -2594,7 +2594,7 @@
                 "ticks": 240,
                 "damage": 104.5,
                 "hit": true,
-                "finalHash": "52a0810d39561c54",
+                "finalHash": "d6ba3d0a4834b74c",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -2607,7 +2607,7 @@
                 "ticks": 240,
                 "damage": 104.5,
                 "hit": true,
-                "finalHash": "fe0c1c548d610b0b",
+                "finalHash": "efe06e94821bda93",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -2620,7 +2620,7 @@
                 "ticks": 240,
                 "damage": 104.5,
                 "hit": true,
-                "finalHash": "315013182d2438b2",
+                "finalHash": "298bab13006fa3ba",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -2633,7 +2633,7 @@
                 "ticks": 240,
                 "damage": 104.5,
                 "hit": true,
-                "finalHash": "2cb861052f95cbe2",
+                "finalHash": "270d1ad8ebe86d2a",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -2646,7 +2646,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "4e51d6a0e8061c08",
+                "finalHash": "78ec6f61bfd46050",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -2659,7 +2659,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "c3bbf59f4dd3ecb4",
+                "finalHash": "39196c4ab92e1ccc",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -2672,7 +2672,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "d467734e0e5c64bd",
+                "finalHash": "95ad87e0021ff5d5",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -2715,7 +2715,7 @@
               "damage": 742.5,
               "attempts": 8,
               "activations": 8,
-              "finalHash": "f177c109aacc8490",
+              "finalHash": "5ffa8c0d60a4def8",
               "structure": {
                 "peakEntities": 5,
                 "maxWorkUnitsPerTick": 4,
@@ -2729,7 +2729,7 @@
               "damage": 6459.75,
               "attempts": 8,
               "activations": 8,
-              "finalHash": "1a68e55e5f42842b",
+              "finalHash": "389853e835879443",
               "structure": {
                 "peakEntities": 13,
                 "maxWorkUnitsPerTick": 36,
@@ -2743,7 +2743,7 @@
               "damage": 222.75,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "6d136fac886350bd",
+              "finalHash": "457ec8cd2ae9b075",
               "structure": {
                 "peakEntities": 5,
                 "maxWorkUnitsPerTick": 4,
@@ -2757,7 +2757,7 @@
                 "ticks": 240,
                 "damage": 222.75,
                 "hit": true,
-                "finalHash": "98f00b9d82842c35",
+                "finalHash": "27a1190ca5e7ed9d",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -2770,7 +2770,7 @@
                 "ticks": 240,
                 "damage": 371.25,
                 "hit": true,
-                "finalHash": "66c35fe0938152ea",
+                "finalHash": "46ec2872efa63072",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -2783,7 +2783,7 @@
                 "ticks": 240,
                 "damage": 222.75,
                 "hit": true,
-                "finalHash": "630c612c717201f8",
+                "finalHash": "efbca87b4ef7d0c0",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -2796,7 +2796,7 @@
                 "ticks": 240,
                 "damage": 222.75,
                 "hit": true,
-                "finalHash": "1786c3e663281a02",
+                "finalHash": "e0ab60e060d68dca",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -2809,7 +2809,7 @@
                 "ticks": 240,
                 "damage": 222.75,
                 "hit": true,
-                "finalHash": "d2cfdaf278e3df74",
+                "finalHash": "44012a966c205c3c",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -2822,7 +2822,7 @@
                 "ticks": 240,
                 "damage": 222.75,
                 "hit": true,
-                "finalHash": "adf27c9a0535a28b",
+                "finalHash": "06f85440015daf63",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -2835,7 +2835,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "5bbedd7c40bb8fc8",
+                "finalHash": "28b9902ae7ff2460",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -2848,7 +2848,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "b83ca54b2076cf02",
+                "finalHash": "a5b330ec1d5ba17a",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -2861,7 +2861,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "5b510b92df31b290",
+                "finalHash": "19643905026d78d8",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -2904,7 +2904,7 @@
               "damage": 1251.25,
               "attempts": 11,
               "activations": 11,
-              "finalHash": "3a240865f4c24d71",
+              "finalHash": "ac3d68f6dbccfef9",
               "structure": {
                 "peakEntities": 6,
                 "maxWorkUnitsPerTick": 5,
@@ -2918,7 +2918,7 @@
               "damage": 9432.5,
               "attempts": 11,
               "activations": 11,
-              "finalHash": "1a9e117df6138e33",
+              "finalHash": "fed3ae3be7a5c4cb",
               "structure": {
                 "peakEntities": 14,
                 "maxWorkUnitsPerTick": 45,
@@ -2932,7 +2932,7 @@
               "damage": 288.75,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "4ef7cfc47c111331",
+              "finalHash": "0603e84f76656439",
               "structure": {
                 "peakEntities": 6,
                 "maxWorkUnitsPerTick": 5,
@@ -2946,7 +2946,7 @@
                 "ticks": 240,
                 "damage": 481.25,
                 "hit": true,
-                "finalHash": "cf1a51f566b3735c",
+                "finalHash": "b1a9291a80c33064",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -2959,7 +2959,7 @@
                 "ticks": 240,
                 "damage": 577.5,
                 "hit": true,
-                "finalHash": "c16e109b699b7b44",
+                "finalHash": "360352ed95a6424c",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -2972,7 +2972,7 @@
                 "ticks": 240,
                 "damage": 481.25,
                 "hit": true,
-                "finalHash": "08b45ac4cb617006",
+                "finalHash": "568860982c49e9ee",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -2985,7 +2985,7 @@
                 "ticks": 240,
                 "damage": 385,
                 "hit": true,
-                "finalHash": "31b258e39394b78c",
+                "finalHash": "54e450db514df584",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -2998,7 +2998,7 @@
                 "ticks": 240,
                 "damage": 385,
                 "hit": true,
-                "finalHash": "efbb29a1bd666617",
+                "finalHash": "1a8e12ca7fdd241f",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -3011,7 +3011,7 @@
                 "ticks": 240,
                 "damage": 288.75,
                 "hit": true,
-                "finalHash": "8d7f65d4699ac642",
+                "finalHash": "ff56689f86d966fa",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -3024,7 +3024,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "fe9bbe4f548481e9",
+                "finalHash": "4f0828aa32d1c431",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -3037,7 +3037,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "c93c6a2eccbaa680",
+                "finalHash": "f8b3fee9843186c8",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -3050,7 +3050,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "6656cff413aede0b",
+                "finalHash": "177bbc05ee6e24f3",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -3093,7 +3093,7 @@
               "damage": 1693.25,
               "attempts": 11,
               "activations": 11,
-              "finalHash": "573f06aae532f9b9",
+              "finalHash": "de631bcf1caadd41",
               "structure": {
                 "peakEntities": 6,
                 "maxWorkUnitsPerTick": 5,
@@ -3107,7 +3107,7 @@
               "damage": 12243.5,
               "attempts": 11,
               "activations": 11,
-              "finalHash": "d95b36252d9c097f",
+              "finalHash": "d2816374360eccd7",
               "structure": {
                 "peakEntities": 14,
                 "maxWorkUnitsPerTick": 45,
@@ -3121,7 +3121,7 @@
               "damage": 390.75,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "cfce035d7f735ca5",
+              "finalHash": "3401687598986c8d",
               "structure": {
                 "peakEntities": 6,
                 "maxWorkUnitsPerTick": 5,
@@ -3135,7 +3135,7 @@
                 "ticks": 240,
                 "damage": 651.25,
                 "hit": true,
-                "finalHash": "1d5d82305d624423",
+                "finalHash": "f0f1bdcff9d330fb",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -3148,7 +3148,7 @@
                 "ticks": 240,
                 "damage": 781.5,
                 "hit": true,
-                "finalHash": "ea9899bf09212a7d",
+                "finalHash": "121aa70b3dd25855",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -3161,7 +3161,7 @@
                 "ticks": 240,
                 "damage": 651.25,
                 "hit": true,
-                "finalHash": "8d540fe0074c5952",
+                "finalHash": "7012778f72b9e93a",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -3174,7 +3174,7 @@
                 "ticks": 240,
                 "damage": 521,
                 "hit": true,
-                "finalHash": "930486ff267e9f11",
+                "finalHash": "1d91bedf43cd2029",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -3187,7 +3187,7 @@
                 "ticks": 240,
                 "damage": 521,
                 "hit": true,
-                "finalHash": "7b4f770330a96f5f",
+                "finalHash": "0403375db332dfe7",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -3200,7 +3200,7 @@
                 "ticks": 240,
                 "damage": 390.75,
                 "hit": true,
-                "finalHash": "0cfc8dbf0860bb88",
+                "finalHash": "bda7e60c77a4bf80",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -3213,7 +3213,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "750838555e2d7751",
+                "finalHash": "c538353a6bfb85d9",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -3226,7 +3226,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "ec344c0a1eb0a57a",
+                "finalHash": "6bbc9fa623f9f522",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -3239,7 +3239,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "13877124a67f9ec7",
+                "finalHash": "fe50c1dd90fd748f",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -3282,7 +3282,7 @@
               "damage": 1823.5,
               "attempts": 12,
               "activations": 12,
-              "finalHash": "bc0596c16702c0c5",
+              "finalHash": "6c501160587b408d",
               "structure": {
                 "peakEntities": 6,
                 "maxWorkUnitsPerTick": 5,
@@ -3296,7 +3296,7 @@
               "damage": 13546,
               "attempts": 12,
               "activations": 12,
-              "finalHash": "a0ae61a8c01481f9",
+              "finalHash": "eec8fe9121a7d701",
               "structure": {
                 "peakEntities": 14,
                 "maxWorkUnitsPerTick": 45,
@@ -3310,7 +3310,7 @@
               "damage": 390.75,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "d50e067f7a1d7312",
+              "finalHash": "ae35a1bf3207edba",
               "structure": {
                 "peakEntities": 6,
                 "maxWorkUnitsPerTick": 5,
@@ -3324,7 +3324,7 @@
                 "ticks": 240,
                 "damage": 651.25,
                 "hit": true,
-                "finalHash": "2d5f6a9e27d15d8e",
+                "finalHash": "9bd1b389721841c6",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -3337,7 +3337,7 @@
                 "ticks": 240,
                 "damage": 781.5,
                 "hit": true,
-                "finalHash": "46db03fcb4421954",
+                "finalHash": "010471e04cc8772c",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -3350,7 +3350,7 @@
                 "ticks": 240,
                 "damage": 651.25,
                 "hit": true,
-                "finalHash": "9d3a7724dd18ebab",
+                "finalHash": "1b34eb8244f448b3",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -3363,7 +3363,7 @@
                 "ticks": 240,
                 "damage": 521,
                 "hit": true,
-                "finalHash": "212fc9601811d00c",
+                "finalHash": "8c8d428192df55e4",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -3376,7 +3376,7 @@
                 "ticks": 240,
                 "damage": 521,
                 "hit": true,
-                "finalHash": "b5e002fb8b317726",
+                "finalHash": "85f0470e9615e2ae",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -3389,7 +3389,7 @@
                 "ticks": 240,
                 "damage": 390.75,
                 "hit": true,
-                "finalHash": "0498a9c750e324cf",
+                "finalHash": "0aaee41a343c1fc7",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -3402,7 +3402,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "0738f37a848514d4",
+                "finalHash": "8f37faf8493ba0fc",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -3415,7 +3415,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "4e5f765b56586f7b",
+                "finalHash": "2750bf69359da863",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -3428,7 +3428,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "7bdf922c8f183faa",
+                "finalHash": "548042a1c4fa4f72",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -3714,7 +3714,7 @@
               "damage": 376,
               "attempts": 4,
               "activations": 4,
-              "finalHash": "746a03176396c991",
+              "finalHash": "974f53bdc8958839",
               "structure": {
                 "peakEntities": 3,
                 "maxWorkUnitsPerTick": 1,
@@ -3728,7 +3728,7 @@
               "damage": 2632,
               "attempts": 4,
               "activations": 4,
-              "finalHash": "98325b444e568331",
+              "finalHash": "efa53c88f684b019",
               "structure": {
                 "peakEntities": 11,
                 "maxWorkUnitsPerTick": 9,
@@ -3742,7 +3742,7 @@
               "damage": 94,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "6f3c5223b3196442",
+              "finalHash": "50ce399f4b6fcbca",
               "structure": {
                 "peakEntities": 3,
                 "maxWorkUnitsPerTick": 1,
@@ -3756,7 +3756,7 @@
                 "ticks": 240,
                 "damage": 282,
                 "hit": true,
-                "finalHash": "0a3485e84ab127a5",
+                "finalHash": "45f9bb5253f1546d",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -3769,7 +3769,7 @@
                 "ticks": 240,
                 "damage": 282,
                 "hit": true,
-                "finalHash": "fb76be90c51a7e12",
+                "finalHash": "6c8b9fa62bca6c5a",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -3782,7 +3782,7 @@
                 "ticks": 240,
                 "damage": 282,
                 "hit": true,
-                "finalHash": "7391c0f65944986f",
+                "finalHash": "a468e73ad06e4c57",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -3795,7 +3795,7 @@
                 "ticks": 240,
                 "damage": 282,
                 "hit": true,
-                "finalHash": "da650b038a62d38f",
+                "finalHash": "0e2b5482b5cd39e7",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -3808,7 +3808,7 @@
                 "ticks": 240,
                 "damage": 282,
                 "hit": true,
-                "finalHash": "2c34ee214083d94c",
+                "finalHash": "451d4c1ec47fb3a4",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -3821,7 +3821,7 @@
                 "ticks": 240,
                 "damage": 282,
                 "hit": true,
-                "finalHash": "63995ce7a51df601",
+                "finalHash": "0bfbbb701b90cb79",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -3834,7 +3834,7 @@
                 "ticks": 240,
                 "damage": 282,
                 "hit": true,
-                "finalHash": "738b0e45dd4f7d8c",
+                "finalHash": "af996849217f4184",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -3847,7 +3847,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "854a0c8be26efd3b",
+                "finalHash": "9f09245be27cf753",
                 "structure": {
                   "peakEntities": 8,
                   "maxWorkUnitsPerTick": 7,
@@ -3860,7 +3860,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "9394d16c0d09f72a",
+                "finalHash": "fdc8d39a684ea602",
                 "structure": {
                   "peakEntities": 8,
                   "maxWorkUnitsPerTick": 7,
@@ -3903,7 +3903,7 @@
               "damage": 710,
               "attempts": 5,
               "activations": 5,
-              "finalHash": "3b1d3d4bbd3095cc",
+              "finalHash": "010306c9d0f57464",
               "structure": {
                 "peakEntities": 3,
                 "maxWorkUnitsPerTick": 1,
@@ -3917,7 +3917,7 @@
               "damage": 6390,
               "attempts": 5,
               "activations": 5,
-              "finalHash": "db95ce71c1014f81",
+              "finalHash": "ebccf1333576b189",
               "structure": {
                 "peakEntities": 11,
                 "maxWorkUnitsPerTick": 9,
@@ -3931,7 +3931,7 @@
               "damage": 142,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "3ca8ba8388abf1ff",
+              "finalHash": "e815de137e1689a7",
               "structure": {
                 "peakEntities": 3,
                 "maxWorkUnitsPerTick": 1,
@@ -3945,7 +3945,7 @@
                 "ticks": 240,
                 "damage": 710,
                 "hit": true,
-                "finalHash": "106d12da8fa9522b",
+                "finalHash": "5cf37373e40e4993",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -3958,7 +3958,7 @@
                 "ticks": 240,
                 "damage": 710,
                 "hit": true,
-                "finalHash": "eeaa17fddaba0250",
+                "finalHash": "0396db431bdea198",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -3971,7 +3971,7 @@
                 "ticks": 240,
                 "damage": 710,
                 "hit": true,
-                "finalHash": "eef16a9ec00b5ae3",
+                "finalHash": "eabc38ce9484ef0b",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -3984,7 +3984,7 @@
                 "ticks": 240,
                 "damage": 710,
                 "hit": true,
-                "finalHash": "0b2eb5553ba41ce7",
+                "finalHash": "08cbaa57f831959f",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -3997,7 +3997,7 @@
                 "ticks": 240,
                 "damage": 710,
                 "hit": true,
-                "finalHash": "33a6cd5d4bd1b1b2",
+                "finalHash": "398bb2eb7c3b2eca",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -4010,7 +4010,7 @@
                 "ticks": 240,
                 "damage": 710,
                 "hit": true,
-                "finalHash": "2aac9a53379de1a9",
+                "finalHash": "ad38362e35975a41",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -4023,7 +4023,7 @@
                 "ticks": 240,
                 "damage": 710,
                 "hit": true,
-                "finalHash": "56ccdcb748039a92",
+                "finalHash": "4b629849e0d2926a",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -4036,7 +4036,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "32ecba852cfc7b21",
+                "finalHash": "0b49bb1e59bfe299",
                 "structure": {
                   "peakEntities": 8,
                   "maxWorkUnitsPerTick": 7,
@@ -4049,7 +4049,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "1c6727c2c07e4b60",
+                "finalHash": "3d0f7cf3fae01db8",
                 "structure": {
                   "peakEntities": 8,
                   "maxWorkUnitsPerTick": 7,
@@ -4092,7 +4092,7 @@
               "damage": 950,
               "attempts": 5,
               "activations": 5,
-              "finalHash": "49a60a79abe7775b",
+              "finalHash": "fe09ba60f26b4d13",
               "structure": {
                 "peakEntities": 4,
                 "maxWorkUnitsPerTick": 2,
@@ -4106,7 +4106,7 @@
               "damage": 8550,
               "attempts": 5,
               "activations": 5,
-              "finalHash": "8ca83c94ea67c869",
+              "finalHash": "0e7239496776d641",
               "structure": {
                 "peakEntities": 20,
                 "maxWorkUnitsPerTick": 90,
@@ -4120,7 +4120,7 @@
               "damage": 190,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "e19aa381db3daa1a",
+              "finalHash": "6ee66243e8a785e2",
               "structure": {
                 "peakEntities": 4,
                 "maxWorkUnitsPerTick": 2,
@@ -4134,7 +4134,7 @@
                 "ticks": 240,
                 "damage": 950,
                 "hit": true,
-                "finalHash": "91ca28885eeee0f0",
+                "finalHash": "28309ff1135f7958",
                 "structure": {
                   "peakEntities": 14,
                   "maxWorkUnitsPerTick": 42,
@@ -4147,7 +4147,7 @@
                 "ticks": 240,
                 "damage": 950,
                 "hit": true,
-                "finalHash": "874790821d69f92c",
+                "finalHash": "9dde75ddb16e1bb4",
                 "structure": {
                   "peakEntities": 14,
                   "maxWorkUnitsPerTick": 42,
@@ -4160,7 +4160,7 @@
                 "ticks": 240,
                 "damage": 950,
                 "hit": true,
-                "finalHash": "d997b3c6b586437a",
+                "finalHash": "156321783508cba2",
                 "structure": {
                   "peakEntities": 14,
                   "maxWorkUnitsPerTick": 42,
@@ -4173,7 +4173,7 @@
                 "ticks": 240,
                 "damage": 950,
                 "hit": true,
-                "finalHash": "471fd95117b9a93a",
+                "finalHash": "ec22d2a4d76f97d2",
                 "structure": {
                   "peakEntities": 14,
                   "maxWorkUnitsPerTick": 42,
@@ -4186,7 +4186,7 @@
                 "ticks": 240,
                 "damage": 950,
                 "hit": true,
-                "finalHash": "c6ebb70f55ca3f4b",
+                "finalHash": "4d60b9785f8ac7a3",
                 "structure": {
                   "peakEntities": 14,
                   "maxWorkUnitsPerTick": 42,
@@ -4199,7 +4199,7 @@
                 "ticks": 240,
                 "damage": 950,
                 "hit": true,
-                "finalHash": "08022fae5dd04be6",
+                "finalHash": "a96c04b9ae9bff1e",
                 "structure": {
                   "peakEntities": 14,
                   "maxWorkUnitsPerTick": 42,
@@ -4212,7 +4212,7 @@
                 "ticks": 240,
                 "damage": 950,
                 "hit": true,
-                "finalHash": "3753acc485e778ad",
+                "finalHash": "67e3085654138f65",
                 "structure": {
                   "peakEntities": 14,
                   "maxWorkUnitsPerTick": 42,
@@ -4225,7 +4225,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "c16a7483e76a5017",
+                "finalHash": "50da7cec4f4cbe4f",
                 "structure": {
                   "peakEntities": 8,
                   "maxWorkUnitsPerTick": 7,
@@ -4238,7 +4238,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "56ba24e730ee9046",
+                "finalHash": "df486452c35a7cfe",
                 "structure": {
                   "peakEntities": 8,
                   "maxWorkUnitsPerTick": 7,
@@ -4281,7 +4281,7 @@
               "damage": 950,
               "attempts": 5,
               "activations": 5,
-              "finalHash": "3deda8977a5a2e26",
+              "finalHash": "0ee0755f1a5c5d9e",
               "structure": {
                 "peakEntities": 4,
                 "maxWorkUnitsPerTick": 2,
@@ -4295,7 +4295,7 @@
               "damage": 8550,
               "attempts": 5,
               "activations": 5,
-              "finalHash": "33e5b7cd816b7204",
+              "finalHash": "527a0584ec31599c",
               "structure": {
                 "peakEntities": 20,
                 "maxWorkUnitsPerTick": 90,
@@ -4309,7 +4309,7 @@
               "damage": 190,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "eebfba746553df33",
+              "finalHash": "48fecb0d258f307b",
               "structure": {
                 "peakEntities": 4,
                 "maxWorkUnitsPerTick": 2,
@@ -4323,7 +4323,7 @@
                 "ticks": 240,
                 "damage": 950,
                 "hit": true,
-                "finalHash": "74e4d266f73942f1",
+                "finalHash": "8c3eacae88c3ebf9",
                 "structure": {
                   "peakEntities": 14,
                   "maxWorkUnitsPerTick": 42,
@@ -4336,7 +4336,7 @@
                 "ticks": 240,
                 "damage": 950,
                 "hit": true,
-                "finalHash": "23a942504c02292d",
+                "finalHash": "8156c56285fae655",
                 "structure": {
                   "peakEntities": 14,
                   "maxWorkUnitsPerTick": 42,
@@ -4349,7 +4349,7 @@
                 "ticks": 240,
                 "damage": 950,
                 "hit": true,
-                "finalHash": "9303b4edc5905113",
+                "finalHash": "e3f174cb1b80253b",
                 "structure": {
                   "peakEntities": 14,
                   "maxWorkUnitsPerTick": 42,
@@ -4362,7 +4362,7 @@
                 "ticks": 240,
                 "damage": 950,
                 "hit": true,
-                "finalHash": "baed05ae0c4c60d3",
+                "finalHash": "fcb8aaa6c514644b",
                 "structure": {
                   "peakEntities": 14,
                   "maxWorkUnitsPerTick": 42,
@@ -4375,7 +4375,7 @@
                 "ticks": 240,
                 "damage": 950,
                 "hit": true,
-                "finalHash": "bbff6dfe5d63ccd6",
+                "finalHash": "6e87e1b1827e2fee",
                 "structure": {
                   "peakEntities": 14,
                   "maxWorkUnitsPerTick": 42,
@@ -4388,7 +4388,7 @@
                 "ticks": 240,
                 "damage": 950,
                 "hit": true,
-                "finalHash": "01c541a6956e805f",
+                "finalHash": "13f73db4c6f78477",
                 "structure": {
                   "peakEntities": 14,
                   "maxWorkUnitsPerTick": 42,
@@ -4401,7 +4401,7 @@
                 "ticks": 240,
                 "damage": 950,
                 "hit": true,
-                "finalHash": "fea0ed3c55446728",
+                "finalHash": "049b24212ce169a0",
                 "structure": {
                   "peakEntities": 14,
                   "maxWorkUnitsPerTick": 42,
@@ -4414,7 +4414,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "f93bfcf70bcf60d2",
+                "finalHash": "401ac3f7ea52e60a",
                 "structure": {
                   "peakEntities": 8,
                   "maxWorkUnitsPerTick": 7,
@@ -4427,7 +4427,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "fdae5b7a8b56f63f",
+                "finalHash": "7aa736476164eed7",
                 "structure": {
                   "peakEntities": 8,
                   "maxWorkUnitsPerTick": 7,
@@ -4470,7 +4470,7 @@
               "damage": 2940,
               "attempts": 7,
               "activations": 7,
-              "finalHash": "59d4aaff0d96fbfa",
+              "finalHash": "892e0f1f5aaf8a42",
               "structure": {
                 "peakEntities": 5,
                 "maxWorkUnitsPerTick": 3,
@@ -4484,7 +4484,7 @@
               "damage": 26460,
               "attempts": 7,
               "activations": 7,
-              "finalHash": "b4dada780c7f6bff",
+              "finalHash": "6fc04203b142b9d7",
               "structure": {
                 "peakEntities": 29,
                 "maxWorkUnitsPerTick": 171,
@@ -4498,7 +4498,7 @@
               "damage": 420,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "fbb918f61708b22e",
+              "finalHash": "3b28b95f323bbab6",
               "structure": {
                 "peakEntities": 5,
                 "maxWorkUnitsPerTick": 2,
@@ -4512,7 +4512,7 @@
                 "ticks": 240,
                 "damage": 2100,
                 "hit": true,
-                "finalHash": "c9286173abf28ef1",
+                "finalHash": "1e6bbb6be1982079",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 42,
@@ -4525,7 +4525,7 @@
                 "ticks": 240,
                 "damage": 2100,
                 "hit": true,
-                "finalHash": "fe15d036104d16cb",
+                "finalHash": "981f3cb1ae5bf983",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 42,
@@ -4538,7 +4538,7 @@
                 "ticks": 240,
                 "damage": 2100,
                 "hit": true,
-                "finalHash": "28a0d1ad351177a3",
+                "finalHash": "ccd54c8e465c24fb",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 42,
@@ -4551,7 +4551,7 @@
                 "ticks": 240,
                 "damage": 2100,
                 "hit": true,
-                "finalHash": "52991b25ed979a1e",
+                "finalHash": "bb8d1339f72ef3d6",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 42,
@@ -4564,7 +4564,7 @@
                 "ticks": 240,
                 "damage": 2100,
                 "hit": true,
-                "finalHash": "47e4e439610173aa",
+                "finalHash": "2f32f4f0ed41da82",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 42,
@@ -4577,7 +4577,7 @@
                 "ticks": 240,
                 "damage": 2100,
                 "hit": true,
-                "finalHash": "37386924d33c74cf",
+                "finalHash": "08e4f6327c486ed7",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 42,
@@ -4590,7 +4590,7 @@
                 "ticks": 240,
                 "damage": 2100,
                 "hit": true,
-                "finalHash": "dc86e426d995c3f0",
+                "finalHash": "e537a946e09fd5f8",
                 "structure": {
                   "peakEntities": 15,
                   "maxWorkUnitsPerTick": 42,
@@ -4603,7 +4603,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "9a99ffbd0331cf22",
+                "finalHash": "72f94f15e3696eea",
                 "structure": {
                   "peakEntities": 8,
                   "maxWorkUnitsPerTick": 7,
@@ -4616,7 +4616,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "712afb546d70ba19",
+                "finalHash": "b673303338501721",
                 "structure": {
                   "peakEntities": 8,
                   "maxWorkUnitsPerTick": 7,
@@ -4902,7 +4902,7 @@
               "damage": 531,
               "attempts": 9,
               "activations": 9,
-              "finalHash": "162f56a3146e2e6d",
+              "finalHash": "dfc5cf805ac49365",
               "structure": {
                 "peakEntities": 3,
                 "maxWorkUnitsPerTick": 1,
@@ -4916,7 +4916,7 @@
               "damage": 3186,
               "attempts": 9,
               "activations": 9,
-              "finalHash": "cb050f217af3d0fe",
+              "finalHash": "633f81c9bb6f6456",
               "structure": {
                 "peakEntities": 11,
                 "maxWorkUnitsPerTick": 9,
@@ -4930,7 +4930,7 @@
               "damage": 59,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "342b01babd88f719",
+              "finalHash": "1b4cfbaddcd61d01",
               "structure": {
                 "peakEntities": 3,
                 "maxWorkUnitsPerTick": 1,
@@ -4944,7 +4944,7 @@
                 "ticks": 240,
                 "damage": 177,
                 "hit": true,
-                "finalHash": "a9dcf42d8a63a08e",
+                "finalHash": "cb824eb456eaee86",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -4957,7 +4957,7 @@
                 "ticks": 240,
                 "damage": 177,
                 "hit": true,
-                "finalHash": "f46bcc001038e417",
+                "finalHash": "a33b7eddc0a3677f",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -4970,7 +4970,7 @@
                 "ticks": 240,
                 "damage": 177,
                 "hit": true,
-                "finalHash": "51a946e71e7d56d2",
+                "finalHash": "37b97f4c9cdd256a",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -4983,7 +4983,7 @@
                 "ticks": 240,
                 "damage": 177,
                 "hit": true,
-                "finalHash": "7e20423b5a2cf076",
+                "finalHash": "449db1ec271761ce",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -4996,7 +4996,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "3aa2ae9705baeae0",
+                "finalHash": "0d57389dab7a31b8",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5009,7 +5009,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "53153963f65e0937",
+                "finalHash": "9d8c73c5772faa1f",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5022,7 +5022,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "d3b99ee795f459cb",
+                "finalHash": "323272fd00ba10e3",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5035,7 +5035,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "1ab8539737721aa8",
+                "finalHash": "8cece80bce64f630",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5048,7 +5048,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "900ef3c56f787ba5",
+                "finalHash": "978701c409b9c4fd",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5091,7 +5091,7 @@
               "damage": 870,
               "attempts": 10,
               "activations": 10,
-              "finalHash": "78f54886c5c1713e",
+              "finalHash": "d4937d1f43301986",
               "structure": {
                 "peakEntities": 3,
                 "maxWorkUnitsPerTick": 1,
@@ -5105,7 +5105,7 @@
               "damage": 6090,
               "attempts": 10,
               "activations": 10,
-              "finalHash": "8e3b90579126e98b",
+              "finalHash": "537b4378a15e7da3",
               "structure": {
                 "peakEntities": 11,
                 "maxWorkUnitsPerTick": 9,
@@ -5119,7 +5119,7 @@
               "damage": 87,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "85fc96c5bbae1cfd",
+              "finalHash": "6099d3f6bb21b695",
               "structure": {
                 "peakEntities": 3,
                 "maxWorkUnitsPerTick": 1,
@@ -5133,7 +5133,7 @@
                 "ticks": 240,
                 "damage": 435,
                 "hit": true,
-                "finalHash": "c6dd15c082aa7b25",
+                "finalHash": "c71af1eeec1f5aad",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5146,7 +5146,7 @@
                 "ticks": 240,
                 "damage": 435,
                 "hit": true,
-                "finalHash": "44af0210fc46f69c",
+                "finalHash": "ec6695241285f874",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5159,7 +5159,7 @@
                 "ticks": 240,
                 "damage": 435,
                 "hit": true,
-                "finalHash": "1d3953867449987b",
+                "finalHash": "b73a57b391af2043",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5172,7 +5172,7 @@
                 "ticks": 240,
                 "damage": 261,
                 "hit": true,
-                "finalHash": "91c2b1f284975f0c",
+                "finalHash": "df273e23ea89a794",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5185,7 +5185,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "b1d05840524696aa",
+                "finalHash": "ce108f4418e8ba02",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5198,7 +5198,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "bc5e714192e85fcd",
+                "finalHash": "70bdb973a6a75355",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5211,7 +5211,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "acd367b4c30136b1",
+                "finalHash": "2ed3c1175337d8e9",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5224,7 +5224,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "df78755a51cf7f32",
+                "finalHash": "3e773c324ddb82fa",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5237,7 +5237,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "3db419bf426afeaf",
+                "finalHash": "a36d862dad7f5ce7",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5280,7 +5280,7 @@
               "damage": 1380,
               "attempts": 12,
               "activations": 12,
-              "finalHash": "a411444ec2f9f1fb",
+              "finalHash": "9d1d1604574dacb3",
               "structure": {
                 "peakEntities": 3,
                 "maxWorkUnitsPerTick": 1,
@@ -5294,7 +5294,7 @@
               "damage": 11270,
               "attempts": 12,
               "activations": 12,
-              "finalHash": "94cff5a2849f72b1",
+              "finalHash": "ce71ad4026f04fd9",
               "structure": {
                 "peakEntities": 11,
                 "maxWorkUnitsPerTick": 9,
@@ -5308,7 +5308,7 @@
               "damage": 115,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "eb924b99232f93c5",
+              "finalHash": "3195932d6688382d",
               "structure": {
                 "peakEntities": 3,
                 "maxWorkUnitsPerTick": 1,
@@ -5322,7 +5322,7 @@
                 "ticks": 240,
                 "damage": 575,
                 "hit": true,
-                "finalHash": "0fc8a16a9aa580d5",
+                "finalHash": "961e4940d6d116ed",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5335,7 +5335,7 @@
                 "ticks": 240,
                 "damage": 575,
                 "hit": true,
-                "finalHash": "acf377ec99a55f52",
+                "finalHash": "755ceea5afff619a",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5348,7 +5348,7 @@
                 "ticks": 240,
                 "damage": 575,
                 "hit": true,
-                "finalHash": "48f2fa06450be001",
+                "finalHash": "5e6cb5d4df52e999",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5361,7 +5361,7 @@
                 "ticks": 240,
                 "damage": 575,
                 "hit": true,
-                "finalHash": "f9f01384ff20838b",
+                "finalHash": "77bf344d25c87123",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5374,7 +5374,7 @@
                 "ticks": 240,
                 "damage": 345,
                 "hit": true,
-                "finalHash": "3df98395abd4b759",
+                "finalHash": "219efee10a66ecf1",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5387,7 +5387,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "058df91707cbb15b",
+                "finalHash": "731bd8f0d76116e3",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5400,7 +5400,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "79a75a81a62b40e7",
+                "finalHash": "5ca30dd1a088a41f",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5413,7 +5413,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "436238b5b5601734",
+                "finalHash": "7ba675aaebe60dbc",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5426,7 +5426,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "bd465e7a05e53ff9",
+                "finalHash": "d6999360ca5552b1",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5469,7 +5469,7 @@
               "damage": 1447.5,
               "attempts": 12,
               "activations": 12,
-              "finalHash": "dfcbf18a1681b9b4",
+              "finalHash": "55a1e797ab36db0c",
               "structure": {
                 "peakEntities": 3,
                 "maxWorkUnitsPerTick": 1,
@@ -5483,7 +5483,7 @@
               "damage": 11821.25,
               "attempts": 12,
               "activations": 12,
-              "finalHash": "7149d79da52854b4",
+              "finalHash": "dc2b93d8d7a15b0c",
               "structure": {
                 "peakEntities": 11,
                 "maxWorkUnitsPerTick": 9,
@@ -5497,7 +5497,7 @@
               "damage": 120.625,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "d051d20e142ba375",
+              "finalHash": "1f248e45632e551d",
               "structure": {
                 "peakEntities": 3,
                 "maxWorkUnitsPerTick": 1,
@@ -5511,7 +5511,7 @@
                 "ticks": 240,
                 "damage": 603.125,
                 "hit": true,
-                "finalHash": "b05a0f053673666b",
+                "finalHash": "3a35f8b68917a523",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5524,7 +5524,7 @@
                 "ticks": 240,
                 "damage": 603.125,
                 "hit": true,
-                "finalHash": "13e26ee0cf7110a4",
+                "finalHash": "d336f002449a864c",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5537,7 +5537,7 @@
                 "ticks": 240,
                 "damage": 603.125,
                 "hit": true,
-                "finalHash": "2acabad2ff3b5ba3",
+                "finalHash": "98ae18182cc43b7b",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5550,7 +5550,7 @@
                 "ticks": 240,
                 "damage": 603.125,
                 "hit": true,
-                "finalHash": "942f21698a09f9a1",
+                "finalHash": "68d091870b6abb39",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5563,7 +5563,7 @@
                 "ticks": 240,
                 "damage": 361.875,
                 "hit": true,
-                "finalHash": "7a9e78a23e894053",
+                "finalHash": "cce30da9e07588ab",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5576,7 +5576,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "ff8b5bf5fe8b0d24",
+                "finalHash": "40e79ef3c27102dc",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5589,7 +5589,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "a61ede60d3ab1e40",
+                "finalHash": "26244a7d99b73e28",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5602,7 +5602,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "c9d74ab2dd8b4719",
+                "finalHash": "a572892fb7128e11",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5615,7 +5615,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "9ccef9840f03eeca",
+                "finalHash": "a178ca64a3c5ee52",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5658,7 +5658,7 @@
               "damage": 1809.375,
               "attempts": 15,
               "activations": 15,
-              "finalHash": "9e657c69a2d92446",
+              "finalHash": "78a32d9f43b87eae",
               "structure": {
                 "peakEntities": 3,
                 "maxWorkUnitsPerTick": 1,
@@ -5672,7 +5672,7 @@
               "damage": 14354.375,
               "attempts": 15,
               "activations": 15,
-              "finalHash": "a85be16b7cfdfca6",
+              "finalHash": "ade5ff1aedb0514e",
               "structure": {
                 "peakEntities": 11,
                 "maxWorkUnitsPerTick": 9,
@@ -5686,7 +5686,7 @@
               "damage": 120.625,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "58e7dd7cc66efb79",
+              "finalHash": "3beaa1b92f4aff71",
               "structure": {
                 "peakEntities": 3,
                 "maxWorkUnitsPerTick": 1,
@@ -5700,7 +5700,7 @@
                 "ticks": 240,
                 "damage": 603.125,
                 "hit": true,
-                "finalHash": "4d9e19028d0159c3",
+                "finalHash": "8813bc48ae019d6b",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5713,7 +5713,7 @@
                 "ticks": 240,
                 "damage": 603.125,
                 "hit": true,
-                "finalHash": "9bf86fbe2459c358",
+                "finalHash": "b7f4e6740f269ab0",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5726,7 +5726,7 @@
                 "ticks": 240,
                 "damage": 603.125,
                 "hit": true,
-                "finalHash": "3071ee5e33bdd719",
+                "finalHash": "a2b1282f5a27f141",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5739,7 +5739,7 @@
                 "ticks": 240,
                 "damage": 603.125,
                 "hit": true,
-                "finalHash": "c8fdf3e20beb8ecf",
+                "finalHash": "bde0c15d3df86317",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5752,7 +5752,7 @@
                 "ticks": 240,
                 "damage": 361.875,
                 "hit": true,
-                "finalHash": "c1b460560d6f8d07",
+                "finalHash": "aecd68c79ad17caf",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5765,7 +5765,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "9f46e18672958f8e",
+                "finalHash": "2c52c04aec101c76",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5778,7 +5778,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "6a46d01092429c3e",
+                "finalHash": "a6a047bb47a1a5d6",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5791,7 +5791,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "cb929f10167f1977",
+                "finalHash": "7f68f39975fc26bf",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -5804,7 +5804,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "6bb60fb17a387cd8",
+                "finalHash": "1320c3a1db54a310",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -6090,7 +6090,7 @@
               "damage": 430,
               "attempts": 205,
               "activations": 5,
-              "finalHash": "557d150e570e0c9e",
+              "finalHash": "614d2f3a2fdb5a96",
               "structure": {
                 "peakEntities": 3,
                 "maxWorkUnitsPerTick": 2,
@@ -6104,7 +6104,7 @@
               "damage": 2580,
               "attempts": 205,
               "activations": 5,
-              "finalHash": "5a21a3724a9a6ba0",
+              "finalHash": "45659894226c0778",
               "structure": {
                 "peakEntities": 11,
                 "maxWorkUnitsPerTick": 18,
@@ -6118,7 +6118,7 @@
               "damage": 86,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "64c4919bafb4f712",
+              "finalHash": "792def486c53b9aa",
               "structure": {
                 "peakEntities": 3,
                 "maxWorkUnitsPerTick": 2,
@@ -6132,7 +6132,7 @@
                 "ticks": 240,
                 "damage": 86,
                 "hit": true,
-                "finalHash": "58e02871a0a8a41e",
+                "finalHash": "1db0a38ff9352a86",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 14,
@@ -6145,7 +6145,7 @@
                 "ticks": 240,
                 "damage": 86,
                 "hit": true,
-                "finalHash": "c06f1727aa0ed436",
+                "finalHash": "fead7709d6a9527e",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 14,
@@ -6158,7 +6158,7 @@
                 "ticks": 240,
                 "damage": 86,
                 "hit": true,
-                "finalHash": "68e1c49a4c6ed5f3",
+                "finalHash": "6f17c1ae2192fd6b",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 14,
@@ -6171,7 +6171,7 @@
                 "ticks": 240,
                 "damage": 86,
                 "hit": true,
-                "finalHash": "f71705325c99a4b1",
+                "finalHash": "be422f94d5840bd9",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 14,
@@ -6184,7 +6184,7 @@
                 "ticks": 240,
                 "damage": 86,
                 "hit": true,
-                "finalHash": "7701e98235a36bc6",
+                "finalHash": "d06ac2cd6b0e8b9e",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 14,
@@ -6197,7 +6197,7 @@
                 "ticks": 240,
                 "damage": 86,
                 "hit": true,
-                "finalHash": "84f66e4d91eae38c",
+                "finalHash": "d1fd0b570574cbb4",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 14,
@@ -6210,7 +6210,7 @@
                 "ticks": 240,
                 "damage": 86,
                 "hit": true,
-                "finalHash": "895350399f0faa76",
+                "finalHash": "8be701509353937e",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 14,
@@ -6223,7 +6223,7 @@
                 "ticks": 240,
                 "damage": 86,
                 "hit": true,
-                "finalHash": "61fbbc71e1e8f2e1",
+                "finalHash": "ae94047f9a870839",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 14,
@@ -6236,7 +6236,7 @@
                 "ticks": 240,
                 "damage": 86,
                 "hit": true,
-                "finalHash": "a77393df3d295325",
+                "finalHash": "1d70fd90c1966c7d",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 14,
@@ -6279,7 +6279,7 @@
               "damage": 1280,
               "attempts": 205,
               "activations": 5,
-              "finalHash": "dd7ca116ebb5c085",
+              "finalHash": "f6078ec081f79c0d",
               "structure": {
                 "peakEntities": 4,
                 "maxWorkUnitsPerTick": 3,
@@ -6293,7 +6293,7 @@
               "damage": 7680,
               "attempts": 205,
               "activations": 5,
-              "finalHash": "c588c11cdd8ef6ac",
+              "finalHash": "8818520e4d728714",
               "structure": {
                 "peakEntities": 12,
                 "maxWorkUnitsPerTick": 27,
@@ -6307,7 +6307,7 @@
               "damage": 256,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "f65f6229d002c7ba",
+              "finalHash": "27f230c5b4c199c2",
               "structure": {
                 "peakEntities": 4,
                 "maxWorkUnitsPerTick": 3,
@@ -6321,7 +6321,7 @@
                 "ticks": 240,
                 "damage": 256,
                 "hit": true,
-                "finalHash": "7edbe581d6417797",
+                "finalHash": "b5d167db4add0cff",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -6334,7 +6334,7 @@
                 "ticks": 240,
                 "damage": 256,
                 "hit": true,
-                "finalHash": "6b69f2342c9053ed",
+                "finalHash": "8a9cb5ca5a9e15c5",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -6347,7 +6347,7 @@
                 "ticks": 240,
                 "damage": 256,
                 "hit": true,
-                "finalHash": "57d70b83edb279df",
+                "finalHash": "1ceb2d7aaae49937",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -6360,7 +6360,7 @@
                 "ticks": 240,
                 "damage": 576,
                 "hit": true,
-                "finalHash": "ef9e0e8be2521a7b",
+                "finalHash": "3d4238106ad1a3b3",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -6373,7 +6373,7 @@
                 "ticks": 240,
                 "damage": 384,
                 "hit": true,
-                "finalHash": "5b7743f374e3b9f2",
+                "finalHash": "b1dc69aeb832b1aa",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -6386,7 +6386,7 @@
                 "ticks": 240,
                 "damage": 256,
                 "hit": true,
-                "finalHash": "d8107eaa35580dd8",
+                "finalHash": "db8839be82212820",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -6399,7 +6399,7 @@
                 "ticks": 240,
                 "damage": 256,
                 "hit": true,
-                "finalHash": "567f28741324ff5f",
+                "finalHash": "f6c5079a7aea63f7",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -6412,7 +6412,7 @@
                 "ticks": 240,
                 "damage": 384,
                 "hit": true,
-                "finalHash": "701087ce726a09fb",
+                "finalHash": "959d3a94db485543",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -6425,7 +6425,7 @@
                 "ticks": 240,
                 "damage": 352,
                 "hit": true,
-                "finalHash": "c46b8be79bb7d41c",
+                "finalHash": "584539314dc513f4",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -6468,7 +6468,7 @@
               "damage": 2677.5,
               "attempts": 205,
               "activations": 5,
-              "finalHash": "15288690fdc3c8f0",
+              "finalHash": "b639586739dc1058",
               "structure": {
                 "peakEntities": 5,
                 "maxWorkUnitsPerTick": 4,
@@ -6482,7 +6482,7 @@
               "damage": 15385,
               "attempts": 205,
               "activations": 5,
-              "finalHash": "b345eb933220c444",
+              "finalHash": "1c5662c9211d670c",
               "structure": {
                 "peakEntities": 16,
                 "maxWorkUnitsPerTick": 63,
@@ -6496,7 +6496,7 @@
               "damage": 510,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "519ad7a9198103e9",
+              "finalHash": "d8b994ab1a34b761",
               "structure": {
                 "peakEntities": 5,
                 "maxWorkUnitsPerTick": 4,
@@ -6510,7 +6510,7 @@
                 "ticks": 240,
                 "damage": 510,
                 "hit": true,
-                "finalHash": "3cdc1f3e3ad0705d",
+                "finalHash": "e4572fd4af0f7225",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -6523,7 +6523,7 @@
                 "ticks": 240,
                 "damage": 510,
                 "hit": true,
-                "finalHash": "99218af2fa42bc48",
+                "finalHash": "571e50ea6762e750",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -6536,7 +6536,7 @@
                 "ticks": 240,
                 "damage": 850,
                 "hit": true,
-                "finalHash": "c3bee2d8923cae8b",
+                "finalHash": "5e39c41ca83f4333",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -6549,7 +6549,7 @@
                 "ticks": 240,
                 "damage": 1105,
                 "hit": true,
-                "finalHash": "eef7dea3f128aaf7",
+                "finalHash": "e297a399e43c4a8f",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -6562,7 +6562,7 @@
                 "ticks": 240,
                 "damage": 850,
                 "hit": true,
-                "finalHash": "3d7ffe5ec0ae0fc6",
+                "finalHash": "8b9671b08f0f0b9e",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -6575,7 +6575,7 @@
                 "ticks": 240,
                 "damage": 510,
                 "hit": true,
-                "finalHash": "bbd4d2d9ae576ca4",
+                "finalHash": "7e1c3544a11368ec",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -6588,7 +6588,7 @@
                 "ticks": 240,
                 "damage": 637.5,
                 "hit": true,
-                "finalHash": "69126548b91a210c",
+                "finalHash": "2203f215b7e15494",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -6601,7 +6601,7 @@
                 "ticks": 240,
                 "damage": 1105,
                 "hit": true,
-                "finalHash": "f5aa5d6e28d24780",
+                "finalHash": "6ef9e18c15b751c8",
                 "structure": {
                   "peakEntities": 13,
                   "maxWorkUnitsPerTick": 42,
@@ -6614,7 +6614,7 @@
                 "ticks": 240,
                 "damage": 637.5,
                 "hit": true,
-                "finalHash": "505372b9e396e987",
+                "finalHash": "48b587bbaa80971f",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -6657,7 +6657,7 @@
               "damage": 3570,
               "attempts": 205,
               "activations": 5,
-              "finalHash": "4590efb80fd54bb2",
+              "finalHash": "fe7881044510dbea",
               "structure": {
                 "peakEntities": 8,
                 "maxWorkUnitsPerTick": 7,
@@ -6671,7 +6671,7 @@
               "damage": 18275,
               "attempts": 205,
               "activations": 5,
-              "finalHash": "826c9bfa63dde78b",
+              "finalHash": "ecd3d32aaeea8dd3",
               "structure": {
                 "peakEntities": 18,
                 "maxWorkUnitsPerTick": 81,
@@ -6685,7 +6685,7 @@
               "damage": 765,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "876c059c84f32395",
+              "finalHash": "de7cb3569617abdd",
               "structure": {
                 "peakEntities": 5,
                 "maxWorkUnitsPerTick": 4,
@@ -6699,7 +6699,7 @@
                 "ticks": 240,
                 "damage": 892.5,
                 "hit": true,
-                "finalHash": "f9b1354626c77630",
+                "finalHash": "ddc839e6ab154448",
                 "structure": {
                   "peakEntities": 14,
                   "maxWorkUnitsPerTick": 49,
@@ -6712,7 +6712,7 @@
                 "ticks": 240,
                 "damage": 510,
                 "hit": true,
-                "finalHash": "b7b84fd43ebacf93",
+                "finalHash": "c7022a352d4fa37b",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -6725,7 +6725,7 @@
                 "ticks": 240,
                 "damage": 1232.5,
                 "hit": true,
-                "finalHash": "66c2af459ef3cae8",
+                "finalHash": "e3a7229d8486bb10",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -6738,7 +6738,7 @@
                 "ticks": 240,
                 "damage": 1487.5,
                 "hit": true,
-                "finalHash": "80f7c621b9dae243",
+                "finalHash": "157a95189a70e95b",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -6751,7 +6751,7 @@
                 "ticks": 240,
                 "damage": 1232.5,
                 "hit": true,
-                "finalHash": "d547f08160bbd925",
+                "finalHash": "543f939ff6d8d78d",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -6764,7 +6764,7 @@
                 "ticks": 240,
                 "damage": 765,
                 "hit": true,
-                "finalHash": "b599fa334d6fbf39",
+                "finalHash": "426300507795d371",
                 "structure": {
                   "peakEntities": 13,
                   "maxWorkUnitsPerTick": 42,
@@ -6777,7 +6777,7 @@
                 "ticks": 240,
                 "damage": 637.5,
                 "hit": true,
-                "finalHash": "3e794496cdecdb97",
+                "finalHash": "a5d42c6ba98379bf",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -6790,7 +6790,7 @@
                 "ticks": 240,
                 "damage": 1232.5,
                 "hit": true,
-                "finalHash": "a56efffea6a67dc6",
+                "finalHash": "7b2e20bfaa60600e",
                 "structure": {
                   "peakEntities": 13,
                   "maxWorkUnitsPerTick": 42,
@@ -6803,7 +6803,7 @@
                 "ticks": 240,
                 "damage": 892.5,
                 "hit": true,
-                "finalHash": "b4ee53d0986da447",
+                "finalHash": "3e0d42dbc034cb6f",
                 "structure": {
                   "peakEntities": 14,
                   "maxWorkUnitsPerTick": 49,
@@ -6846,7 +6846,7 @@
               "damage": 3570,
               "attempts": 209,
               "activations": 6,
-              "finalHash": "886d7d3f06846042",
+              "finalHash": "21ef08527e31d92a",
               "structure": {
                 "peakEntities": 11,
                 "maxWorkUnitsPerTick": 10,
@@ -6860,7 +6860,7 @@
               "damage": 21972.5,
               "attempts": 209,
               "activations": 6,
-              "finalHash": "6e254b9173b8d9ad",
+              "finalHash": "33ae68dfaa7400e5",
               "structure": {
                 "peakEntities": 20,
                 "maxWorkUnitsPerTick": 99,
@@ -6874,7 +6874,7 @@
               "damage": 765,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "3c7bd692b19d22e5",
+              "finalHash": "2516ee1b542c054d",
               "structure": {
                 "peakEntities": 5,
                 "maxWorkUnitsPerTick": 4,
@@ -6888,7 +6888,7 @@
                 "ticks": 240,
                 "damage": 892.5,
                 "hit": true,
-                "finalHash": "2b9852a0ea435ad6",
+                "finalHash": "0a7f75f27752f56e",
                 "structure": {
                   "peakEntities": 14,
                   "maxWorkUnitsPerTick": 49,
@@ -6901,7 +6901,7 @@
                 "ticks": 240,
                 "damage": 510,
                 "hit": true,
-                "finalHash": "02aff8c9cc3ee779",
+                "finalHash": "755cbfa66ec3e581",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -6914,7 +6914,7 @@
                 "ticks": 240,
                 "damage": 1232.5,
                 "hit": true,
-                "finalHash": "8457981aae84e578",
+                "finalHash": "084457a6521c3420",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -6927,7 +6927,7 @@
                 "ticks": 240,
                 "damage": 1487.5,
                 "hit": true,
-                "finalHash": "9cf9b2b55fe0eb57",
+                "finalHash": "0b2215715e69f92f",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -6940,7 +6940,7 @@
                 "ticks": 240,
                 "damage": 1232.5,
                 "hit": true,
-                "finalHash": "98b4ecba04f31a2d",
+                "finalHash": "03ea90002f17de15",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -6953,7 +6953,7 @@
                 "ticks": 240,
                 "damage": 765,
                 "hit": true,
-                "finalHash": "6e619602d2335c31",
+                "finalHash": "94bac1e6ac1fdb09",
                 "structure": {
                   "peakEntities": 13,
                   "maxWorkUnitsPerTick": 42,
@@ -6966,7 +6966,7 @@
                 "ticks": 240,
                 "damage": 637.5,
                 "hit": true,
-                "finalHash": "aa5c86f605f11dfb",
+                "finalHash": "9e606bb2486a4d83",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -6979,7 +6979,7 @@
                 "ticks": 240,
                 "damage": 1232.5,
                 "hit": true,
-                "finalHash": "16125b2479252bd0",
+                "finalHash": "bff66142c9edeef8",
                 "structure": {
                   "peakEntities": 13,
                   "maxWorkUnitsPerTick": 42,
@@ -6992,7 +6992,7 @@
                 "ticks": 240,
                 "damage": 892.5,
                 "hit": true,
-                "finalHash": "685a8e45bf20803f",
+                "finalHash": "f94d7f2a4dae48a7",
                 "structure": {
                   "peakEntities": 14,
                   "maxWorkUnitsPerTick": 49,
@@ -7278,7 +7278,7 @@
               "damage": 880,
               "attempts": 20,
               "activations": 20,
-              "finalHash": "fb0d551dc213e34b",
+              "finalHash": "a62bbb8acfe69e63",
               "structure": {
                 "peakEntities": 3,
                 "maxWorkUnitsPerTick": 1,
@@ -7292,7 +7292,7 @@
               "damage": 3520,
               "attempts": 20,
               "activations": 20,
-              "finalHash": "f26f838f16260b7f",
+              "finalHash": "8a6999c555891327",
               "structure": {
                 "peakEntities": 11,
                 "maxWorkUnitsPerTick": 9,
@@ -7306,7 +7306,7 @@
               "damage": 44,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "cdfe1128720d9eba",
+              "finalHash": "0b173241d17f9172",
               "structure": {
                 "peakEntities": 3,
                 "maxWorkUnitsPerTick": 1,
@@ -7320,7 +7320,7 @@
                 "ticks": 240,
                 "damage": 132,
                 "hit": true,
-                "finalHash": "8254c36926f3dce8",
+                "finalHash": "62683225dbd73d20",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7333,7 +7333,7 @@
                 "ticks": 240,
                 "damage": 132,
                 "hit": true,
-                "finalHash": "06b558fc508f8b6c",
+                "finalHash": "e29fe91e23e164c4",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7346,7 +7346,7 @@
                 "ticks": 240,
                 "damage": 132,
                 "hit": true,
-                "finalHash": "b45bf1192e0b4450",
+                "finalHash": "b2b43b95fbb7b008",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7359,7 +7359,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "9fc45d2aa16e4dff",
+                "finalHash": "7925774c4ad632f7",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7372,7 +7372,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "7e6e5f8dafb0f422",
+                "finalHash": "8d9194cea6c502da",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7385,7 +7385,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "8c15f99ed30d11f5",
+                "finalHash": "c21e02627b75db3d",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7398,7 +7398,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "c98863a087938625",
+                "finalHash": "22eb7207eb0f8fad",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7411,7 +7411,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "4667fd41f81c26bf",
+                "finalHash": "96a1c4b3eca10777",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7424,7 +7424,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "8872f57f7f6b876b",
+                "finalHash": "1ee9cf62ca7159e3",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7467,7 +7467,7 @@
               "damage": 1672,
               "attempts": 20,
               "activations": 20,
-              "finalHash": "8a75a182d4985a7b",
+              "finalHash": "857e1fc24446bef3",
               "structure": {
                 "peakEntities": 3,
                 "maxWorkUnitsPerTick": 1,
@@ -7481,7 +7481,7 @@
               "damage": 7022.4,
               "attempts": 20,
               "activations": 20,
-              "finalHash": "9bec72f9f1b1c330",
+              "finalHash": "ab3ffb62cb1efe08",
               "structure": {
                 "peakEntities": 11,
                 "maxWorkUnitsPerTick": 9,
@@ -7495,7 +7495,7 @@
               "damage": 83.6,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "12e850e44ea694ca",
+              "finalHash": "0f64831e1cea13a2",
               "structure": {
                 "peakEntities": 3,
                 "maxWorkUnitsPerTick": 1,
@@ -7509,7 +7509,7 @@
                 "ticks": 240,
                 "damage": 250.8,
                 "hit": true,
-                "finalHash": "67613e061fa721a5",
+                "finalHash": "e823e947a881962d",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7522,7 +7522,7 @@
                 "ticks": 240,
                 "damage": 250.8,
                 "hit": true,
-                "finalHash": "5612584b7bdf94ff",
+                "finalHash": "362be16858b077a7",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7535,7 +7535,7 @@
                 "ticks": 240,
                 "damage": 250.8,
                 "hit": true,
-                "finalHash": "d2592b30972f8a37",
+                "finalHash": "9ef22f8592423e7f",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7548,7 +7548,7 @@
                 "ticks": 240,
                 "damage": 83.6,
                 "hit": true,
-                "finalHash": "578d3bae0840a8da",
+                "finalHash": "085c277144abd9b2",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7561,7 +7561,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "0aaf1b79a4940858",
+                "finalHash": "d22e20e650753990",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7574,7 +7574,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "48823af7039ab43f",
+                "finalHash": "5b94e40a8075d627",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7587,7 +7587,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "772d899a5a86092f",
+                "finalHash": "08e504fc48997517",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7600,7 +7600,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "89fbbbe9c78e8475",
+                "finalHash": "d37b2136f886c80d",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7613,7 +7613,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "51d5e2d74653eb51",
+                "finalHash": "1b8b1d7d1cef21e9",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7656,7 +7656,7 @@
               "damage": 2464,
               "attempts": 20,
               "activations": 20,
-              "finalHash": "d27a16990103caa5",
+              "finalHash": "bfcef2ff67b93b3d",
               "structure": {
                 "peakEntities": 3,
                 "maxWorkUnitsPerTick": 1,
@@ -7670,7 +7670,7 @@
               "damage": 13059.2,
               "attempts": 20,
               "activations": 20,
-              "finalHash": "67c77f788f0f3ece",
+              "finalHash": "dd7db594c08430a6",
               "structure": {
                 "peakEntities": 11,
                 "maxWorkUnitsPerTick": 9,
@@ -7684,7 +7684,7 @@
               "damage": 123.2,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "2af0557eda1ecb65",
+              "finalHash": "aa0cfeac7f01f42d",
               "structure": {
                 "peakEntities": 3,
                 "maxWorkUnitsPerTick": 1,
@@ -7698,7 +7698,7 @@
                 "ticks": 240,
                 "damage": 369.6,
                 "hit": true,
-                "finalHash": "c5a19d6c8d43dd9d",
+                "finalHash": "2594e31607ee5455",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7711,7 +7711,7 @@
                 "ticks": 240,
                 "damage": 369.6,
                 "hit": true,
-                "finalHash": "a853e21258737c97",
+                "finalHash": "fb6f6a8e3ed02fef",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7724,7 +7724,7 @@
                 "ticks": 240,
                 "damage": 369.6,
                 "hit": true,
-                "finalHash": "bdd3192a768a7d7b",
+                "finalHash": "26e12eda7f58c0f3",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7737,7 +7737,7 @@
                 "ticks": 240,
                 "damage": 369.6,
                 "hit": true,
-                "finalHash": "e2a462467d1f0cd8",
+                "finalHash": "5a89144edebd52c0",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7750,7 +7750,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "225273279dc5dd9e",
+                "finalHash": "6cc53d305b5c5b76",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7763,7 +7763,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "85cfb20a5a209c09",
+                "finalHash": "d3a95bea2d9dc0f1",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7776,7 +7776,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "f6bfce551e004a79",
+                "finalHash": "7a674afd8e2ba021",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7789,7 +7789,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "edb5b0f89b757c03",
+                "finalHash": "e69478586355179b",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7802,7 +7802,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "542769b989a56a87",
+                "finalHash": "495a6a376a3fed1f",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7845,7 +7845,7 @@
               "damage": 2464,
               "attempts": 20,
               "activations": 20,
-              "finalHash": "0e3babb5e785bc17",
+              "finalHash": "3b559b97284e25df",
               "structure": {
                 "peakEntities": 3,
                 "maxWorkUnitsPerTick": 1,
@@ -7859,7 +7859,7 @@
               "damage": 13059.2,
               "attempts": 20,
               "activations": 20,
-              "finalHash": "f91ec63934173ca8",
+              "finalHash": "3aed2f632aca7a30",
               "structure": {
                 "peakEntities": 11,
                 "maxWorkUnitsPerTick": 9,
@@ -7873,7 +7873,7 @@
               "damage": 123.2,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "29af897707aa0d27",
+              "finalHash": "5d499d508603ea5f",
               "structure": {
                 "peakEntities": 3,
                 "maxWorkUnitsPerTick": 1,
@@ -7887,7 +7887,7 @@
                 "ticks": 240,
                 "damage": 369.6,
                 "hit": true,
-                "finalHash": "adc729ad4fb55c37",
+                "finalHash": "041856c19c91209f",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7900,7 +7900,7 @@
                 "ticks": 240,
                 "damage": 369.6,
                 "hit": true,
-                "finalHash": "c07efac4ba12adfd",
+                "finalHash": "7c4b54b5fbda0fa5",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7913,7 +7913,7 @@
                 "ticks": 240,
                 "damage": 369.6,
                 "hit": true,
-                "finalHash": "40cac37baf4b3f69",
+                "finalHash": "fc95e36625ce9791",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7926,7 +7926,7 @@
                 "ticks": 240,
                 "damage": 369.6,
                 "hit": true,
-                "finalHash": "e6fdbd812f4db506",
+                "finalHash": "5e9cd48658e6e25e",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7939,7 +7939,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "507700ab42ec8974",
+                "finalHash": "21b8258aae473a7c",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7952,7 +7952,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "16626e82d9c3a397",
+                "finalHash": "78e4be2cf62740cf",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7965,7 +7965,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "ce20ecc74d943ee7",
+                "finalHash": "7e5601e73250999f",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7978,7 +7978,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "e098131e170992ad",
+                "finalHash": "577aec7e0c8c4315",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -7991,7 +7991,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "856cc027d77c5349",
+                "finalHash": "c0391ff865493651",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -8034,7 +8034,7 @@
               "damage": 3326.4,
               "attempts": 27,
               "activations": 27,
-              "finalHash": "7564059c018b7e56",
+              "finalHash": "de6f57e78059414e",
               "structure": {
                 "peakEntities": 3,
                 "maxWorkUnitsPerTick": 1,
@@ -8048,7 +8048,7 @@
               "damage": 16508.8,
               "attempts": 27,
               "activations": 27,
-              "finalHash": "9ff043180ec98474",
+              "finalHash": "1b40e4da6396a72c",
               "structure": {
                 "peakEntities": 11,
                 "maxWorkUnitsPerTick": 9,
@@ -8062,7 +8062,7 @@
               "damage": 123.2,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "d274485c9d623000",
+              "finalHash": "27e7d2ccf905cc18",
               "structure": {
                 "peakEntities": 3,
                 "maxWorkUnitsPerTick": 1,
@@ -8076,7 +8076,7 @@
                 "ticks": 240,
                 "damage": 369.6,
                 "hit": true,
-                "finalHash": "cc96cc27f97141f4",
+                "finalHash": "c9f8b56c7e8d505c",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -8089,7 +8089,7 @@
                 "ticks": 240,
                 "damage": 369.6,
                 "hit": true,
-                "finalHash": "03b5b680634fa5ec",
+                "finalHash": "22414dedc8e90974",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -8102,7 +8102,7 @@
                 "ticks": 240,
                 "damage": 369.6,
                 "hit": true,
-                "finalHash": "8f174686820af3ea",
+                "finalHash": "78519185992691f2",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -8115,7 +8115,7 @@
                 "ticks": 240,
                 "damage": 369.6,
                 "hit": true,
-                "finalHash": "0eea044524105935",
+                "finalHash": "bfabf182b33c7dad",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -8128,7 +8128,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "356f8b554b1018ef",
+                "finalHash": "db8b73bcb34b35b7",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -8141,7 +8141,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "2ccfd31a0d8e8e74",
+                "finalHash": "e3308929d4f141ac",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -8154,7 +8154,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "a1498edcfb370240",
+                "finalHash": "d592ffbd694487d8",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -8167,7 +8167,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "fad4b7a42a4add3e",
+                "finalHash": "c83a61150e7f4d26",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -8180,7 +8180,7 @@
                 "ticks": 240,
                 "damage": 0,
                 "hit": false,
-                "finalHash": "4c6620aea946943e",
+                "finalHash": "4a7962290bcb2506",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 7,
@@ -8466,7 +8466,7 @@
               "damage": 675,
               "attempts": 7,
               "activations": 7,
-              "finalHash": "c4f4b18e0f322a62",
+              "finalHash": "32a2fe49e578d54a",
               "structure": {
                 "peakEntities": 4,
                 "maxWorkUnitsPerTick": 3,
@@ -8480,7 +8480,7 @@
               "damage": 5850,
               "attempts": 7,
               "activations": 7,
-              "finalHash": "30cd2ae65e2e9b6d",
+              "finalHash": "8f48b00f59695935",
               "structure": {
                 "peakEntities": 12,
                 "maxWorkUnitsPerTick": 27,
@@ -8494,7 +8494,7 @@
               "damage": 150,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "277a96c95f4b1a12",
+              "finalHash": "4a6753b6094247ea",
               "structure": {
                 "peakEntities": 4,
                 "maxWorkUnitsPerTick": 3,
@@ -8508,7 +8508,7 @@
                 "ticks": 240,
                 "damage": 150,
                 "hit": true,
-                "finalHash": "ffa4dbf45bccbe4d",
+                "finalHash": "9c5accaf04f3ab85",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -8521,7 +8521,7 @@
                 "ticks": 240,
                 "damage": 225,
                 "hit": true,
-                "finalHash": "09c6a390ae34556e",
+                "finalHash": "c86d73ff4e3eca06",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -8534,7 +8534,7 @@
                 "ticks": 240,
                 "damage": 225,
                 "hit": true,
-                "finalHash": "8d4a6aa069835dff",
+                "finalHash": "81de110a4a38a5d7",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -8547,7 +8547,7 @@
                 "ticks": 240,
                 "damage": 150,
                 "hit": true,
-                "finalHash": "ffc6886d00a4f032",
+                "finalHash": "970458d3116b1aea",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -8560,7 +8560,7 @@
                 "ticks": 240,
                 "damage": 150,
                 "hit": true,
-                "finalHash": "9636ef1b78ee070e",
+                "finalHash": "e811b2f42e6940d6",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -8573,7 +8573,7 @@
                 "ticks": 240,
                 "damage": 150,
                 "hit": true,
-                "finalHash": "31280f1eee4e8cd8",
+                "finalHash": "5947f5fce5708100",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -8586,7 +8586,7 @@
                 "ticks": 240,
                 "damage": 150,
                 "hit": true,
-                "finalHash": "c287898f7b8cf119",
+                "finalHash": "ea9df53851c0f841",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -8599,7 +8599,7 @@
                 "ticks": 240,
                 "damage": 150,
                 "hit": true,
-                "finalHash": "54dbce7c9ffc2317",
+                "finalHash": "6146fc5473def8df",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -8612,7 +8612,7 @@
                 "ticks": 240,
                 "damage": 75,
                 "hit": true,
-                "finalHash": "b7c35bd638aac70a",
+                "finalHash": "3ecb355acaaa1cc2",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -8655,7 +8655,7 @@
               "damage": 981,
               "attempts": 7,
               "activations": 7,
-              "finalHash": "f9b96ea2d05f38aa",
+              "finalHash": "784a1082a1bf07a2",
               "structure": {
                 "peakEntities": 5,
                 "maxWorkUnitsPerTick": 4,
@@ -8669,7 +8669,7 @@
               "damage": 8829,
               "attempts": 7,
               "activations": 7,
-              "finalHash": "10551017b52482cd",
+              "finalHash": "913cb35631f9e0c5",
               "structure": {
                 "peakEntities": 13,
                 "maxWorkUnitsPerTick": 36,
@@ -8683,7 +8683,7 @@
               "damage": 327,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "347707e41ce00f37",
+              "finalHash": "65d1a3b3197c1e9f",
               "structure": {
                 "peakEntities": 5,
                 "maxWorkUnitsPerTick": 4,
@@ -8697,7 +8697,7 @@
                 "ticks": 240,
                 "damage": 327,
                 "hit": true,
-                "finalHash": "b6dccd44bd07686d",
+                "finalHash": "f8bfc5db4c1d2ff5",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -8710,7 +8710,7 @@
                 "ticks": 240,
                 "damage": 545,
                 "hit": true,
-                "finalHash": "c6d1b558e1eba368",
+                "finalHash": "48c8db7a80addc90",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -8723,7 +8723,7 @@
                 "ticks": 240,
                 "damage": 545,
                 "hit": true,
-                "finalHash": "23e0c38edf78e37d",
+                "finalHash": "bf19f5c5df4e5595",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -8736,7 +8736,7 @@
                 "ticks": 240,
                 "damage": 327,
                 "hit": true,
-                "finalHash": "869d40315acf0179",
+                "finalHash": "30cf2a270a9f88f1",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -8749,7 +8749,7 @@
                 "ticks": 240,
                 "damage": 327,
                 "hit": true,
-                "finalHash": "6361d40681d71313",
+                "finalHash": "f0473d4b5c33945b",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -8762,7 +8762,7 @@
                 "ticks": 240,
                 "damage": 327,
                 "hit": true,
-                "finalHash": "86cfd70eb2c8a4fa",
+                "finalHash": "22b24c7b021562c2",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -8775,7 +8775,7 @@
                 "ticks": 240,
                 "damage": 327,
                 "hit": true,
-                "finalHash": "1857f8379f874b73",
+                "finalHash": "01ab93605e76437b",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -8788,7 +8788,7 @@
                 "ticks": 240,
                 "damage": 327,
                 "hit": true,
-                "finalHash": "bcbb41a3971c87f6",
+                "finalHash": "c6609a450d17533e",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -8801,7 +8801,7 @@
                 "ticks": 240,
                 "damage": 109,
                 "hit": true,
-                "finalHash": "c572d682c2e00a6a",
+                "finalHash": "40523fac4e5f2782",
                 "structure": {
                   "peakEntities": 11,
                   "maxWorkUnitsPerTick": 28,
@@ -8844,7 +8844,7 @@
               "damage": 1287,
               "attempts": 7,
               "activations": 7,
-              "finalHash": "9c1455960bed0263",
+              "finalHash": "3429b31ac300567b",
               "structure": {
                 "peakEntities": 6,
                 "maxWorkUnitsPerTick": 5,
@@ -8858,7 +8858,7 @@
               "damage": 10439,
               "attempts": 7,
               "activations": 7,
-              "finalHash": "b51d892caf55caa3",
+              "finalHash": "cff400a0d80766cb",
               "structure": {
                 "peakEntities": 14,
                 "maxWorkUnitsPerTick": 45,
@@ -8872,7 +8872,7 @@
               "damage": 429,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "9329d5558b959d01",
+              "finalHash": "45a43e15ef83a0e9",
               "structure": {
                 "peakEntities": 6,
                 "maxWorkUnitsPerTick": 5,
@@ -8886,7 +8886,7 @@
                 "ticks": 240,
                 "damage": 715,
                 "hit": true,
-                "finalHash": "c088fd8a373134c9",
+                "finalHash": "2eee0543650e37c1",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -8899,7 +8899,7 @@
                 "ticks": 240,
                 "damage": 858,
                 "hit": true,
-                "finalHash": "7895ac94a2f60d84",
+                "finalHash": "15841e50427c189c",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -8912,7 +8912,7 @@
                 "ticks": 240,
                 "damage": 1001,
                 "hit": true,
-                "finalHash": "8563c90bdd1f4bf1",
+                "finalHash": "8bb43d8117bf0cd9",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -8925,7 +8925,7 @@
                 "ticks": 240,
                 "damage": 572,
                 "hit": true,
-                "finalHash": "25e96ea756e46c86",
+                "finalHash": "18e78bf4650cda5e",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -8938,7 +8938,7 @@
                 "ticks": 240,
                 "damage": 572,
                 "hit": true,
-                "finalHash": "e68ca18fb58b703b",
+                "finalHash": "0743e8bd5060ea93",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -8951,7 +8951,7 @@
                 "ticks": 240,
                 "damage": 429,
                 "hit": true,
-                "finalHash": "611d8961919435af",
+                "finalHash": "d006f6db7269c217",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -8964,7 +8964,7 @@
                 "ticks": 240,
                 "damage": 429,
                 "hit": true,
-                "finalHash": "8efe7bf173c356a7",
+                "finalHash": "3bb86c4e152bfe9f",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -8977,7 +8977,7 @@
                 "ticks": 240,
                 "damage": 429,
                 "hit": true,
-                "finalHash": "3683c18e1e005617",
+                "finalHash": "4971e2921f66cb0f",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -8990,7 +8990,7 @@
                 "ticks": 240,
                 "damage": 143,
                 "hit": true,
-                "finalHash": "31b5ceaa2b19d08b",
+                "finalHash": "956f2f5fe911d5f3",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -9033,7 +9033,7 @@
               "damage": 1287,
               "attempts": 7,
               "activations": 7,
-              "finalHash": "b395435e2666accc",
+              "finalHash": "aeed993b3c012544",
               "structure": {
                 "peakEntities": 6,
                 "maxWorkUnitsPerTick": 5,
@@ -9047,7 +9047,7 @@
               "damage": 10439,
               "attempts": 7,
               "activations": 7,
-              "finalHash": "6937561ef9d6e87c",
+              "finalHash": "530f4ebf4122b824",
               "structure": {
                 "peakEntities": 14,
                 "maxWorkUnitsPerTick": 45,
@@ -9061,7 +9061,7 @@
               "damage": 429,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "673747def419e284",
+              "finalHash": "32f4364265628f2c",
               "structure": {
                 "peakEntities": 6,
                 "maxWorkUnitsPerTick": 5,
@@ -9075,7 +9075,7 @@
                 "ticks": 240,
                 "damage": 715,
                 "hit": true,
-                "finalHash": "fd69adadb449328c",
+                "finalHash": "9ff6691cb2b55744",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -9088,7 +9088,7 @@
                 "ticks": 240,
                 "damage": 858,
                 "hit": true,
-                "finalHash": "78507833e383e251",
+                "finalHash": "9a26cb93050a15a9",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -9101,7 +9101,7 @@
                 "ticks": 240,
                 "damage": 1001,
                 "hit": true,
-                "finalHash": "a7d6c9978232ca74",
+                "finalHash": "63edcf7466b68f1c",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -9114,7 +9114,7 @@
                 "ticks": 240,
                 "damage": 572,
                 "hit": true,
-                "finalHash": "8ada50e67eea16ff",
+                "finalHash": "b935bd6b3f29f537",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -9127,7 +9127,7 @@
                 "ticks": 240,
                 "damage": 572,
                 "hit": true,
-                "finalHash": "a6cb662b162ca72a",
+                "finalHash": "c651ea71bac26062",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -9140,7 +9140,7 @@
                 "ticks": 240,
                 "damage": 429,
                 "hit": true,
-                "finalHash": "b06f754e32592e96",
+                "finalHash": "4d6df45059ce88be",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -9153,7 +9153,7 @@
                 "ticks": 240,
                 "damage": 429,
                 "hit": true,
-                "finalHash": "396870194d46118e",
+                "finalHash": "cd8b973e42b20906",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -9166,7 +9166,7 @@
                 "ticks": 240,
                 "damage": 429,
                 "hit": true,
-                "finalHash": "ec441e9458cd7cbe",
+                "finalHash": "b86f9e1a27f6d876",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -9179,7 +9179,7 @@
                 "ticks": 240,
                 "damage": 143,
                 "hit": true,
-                "finalHash": "04dadcd886b6dc3a",
+                "finalHash": "cf21c42956dc7bc2",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -9222,7 +9222,7 @@
               "damage": 1859,
               "attempts": 11,
               "activations": 11,
-              "finalHash": "c2691fa574d0db63",
+              "finalHash": "a158ad5950147e4b",
               "structure": {
                 "peakEntities": 9,
                 "maxWorkUnitsPerTick": 8,
@@ -9236,7 +9236,7 @@
               "damage": 14157,
               "attempts": 11,
               "activations": 11,
-              "finalHash": "9b3f0ce558979955",
+              "finalHash": "58f20e02693b3c8d",
               "structure": {
                 "peakEntities": 17,
                 "maxWorkUnitsPerTick": 72,
@@ -9250,7 +9250,7 @@
               "damage": 429,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "4608377b1e1aa05a",
+              "finalHash": "9db2e7fbd83708f2",
               "structure": {
                 "peakEntities": 6,
                 "maxWorkUnitsPerTick": 5,
@@ -9264,7 +9264,7 @@
                 "ticks": 240,
                 "damage": 715,
                 "hit": true,
-                "finalHash": "b0a33a980e1d85f8",
+                "finalHash": "fb686211a1d3df60",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -9277,7 +9277,7 @@
                 "ticks": 240,
                 "damage": 858,
                 "hit": true,
-                "finalHash": "f3692bd1367662e3",
+                "finalHash": "ba9f40182f32fbab",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -9290,7 +9290,7 @@
                 "ticks": 240,
                 "damage": 1001,
                 "hit": true,
-                "finalHash": "b9623ce628462d18",
+                "finalHash": "c80e7205996e4e90",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -9303,7 +9303,7 @@
                 "ticks": 240,
                 "damage": 572,
                 "hit": true,
-                "finalHash": "b9cd7d7ea9432b4d",
+                "finalHash": "73ea6054edf18415",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -9316,7 +9316,7 @@
                 "ticks": 240,
                 "damage": 572,
                 "hit": true,
-                "finalHash": "046002ef67043d7e",
+                "finalHash": "1f3b0533f2522566",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -9329,7 +9329,7 @@
                 "ticks": 240,
                 "damage": 429,
                 "hit": true,
-                "finalHash": "85d99c1c65f263a8",
+                "finalHash": "69c183e469957fe0",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -9342,7 +9342,7 @@
                 "ticks": 240,
                 "damage": 429,
                 "hit": true,
-                "finalHash": "6b1e38da48a2af80",
+                "finalHash": "f89362d02e8f5188",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -9355,7 +9355,7 @@
                 "ticks": 240,
                 "damage": 429,
                 "hit": true,
-                "finalHash": "356da0eb99048ad4",
+                "finalHash": "6c741ba5540221dc",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -9368,7 +9368,7 @@
                 "ticks": 240,
                 "damage": 143,
                 "hit": true,
-                "finalHash": "c2d5877b73979bd2",
+                "finalHash": "6baeba725277cb0a",
                 "structure": {
                   "peakEntities": 12,
                   "maxWorkUnitsPerTick": 35,
@@ -9654,7 +9654,7 @@
               "damage": 576,
               "attempts": 8,
               "activations": 8,
-              "finalHash": "633c46e26211a72d",
+              "finalHash": "289c8032e53aa2d5",
               "structure": {
                 "peakEntities": 9,
                 "maxWorkUnitsPerTick": 2,
@@ -9668,7 +9668,7 @@
               "damage": 4608,
               "attempts": 8,
               "activations": 8,
-              "finalHash": "5168662b1b5e61ad",
+              "finalHash": "a2574c06a4951c25",
               "structure": {
                 "peakEntities": 16,
                 "maxWorkUnitsPerTick": 18,
@@ -9682,7 +9682,7 @@
               "damage": 72,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "5165ac552e9709ea",
+              "finalHash": "c885060d8953ba32",
               "structure": {
                 "peakEntities": 3,
                 "maxWorkUnitsPerTick": 2,
@@ -9696,7 +9696,7 @@
                 "ticks": 240,
                 "damage": 72,
                 "hit": true,
-                "finalHash": "dfaa2ceb9e4d5894",
+                "finalHash": "6e04ce0db629234c",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 14,
@@ -9709,7 +9709,7 @@
                 "ticks": 240,
                 "damage": 72,
                 "hit": true,
-                "finalHash": "43f135f0d95d6362",
+                "finalHash": "32e2bbf02c689a3a",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 14,
@@ -9722,7 +9722,7 @@
                 "ticks": 240,
                 "damage": 72,
                 "hit": true,
-                "finalHash": "87287c1b8d394bc7",
+                "finalHash": "2edef3695644f88f",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 14,
@@ -9735,7 +9735,7 @@
                 "ticks": 240,
                 "damage": 72,
                 "hit": true,
-                "finalHash": "287361b61b8e66f6",
+                "finalHash": "7dc94ebd0ca041ae",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 14,
@@ -9748,7 +9748,7 @@
                 "ticks": 240,
                 "damage": 72,
                 "hit": true,
-                "finalHash": "77bad76408084e21",
+                "finalHash": "05637192cfcbb7b9",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 14,
@@ -9761,7 +9761,7 @@
                 "ticks": 240,
                 "damage": 72,
                 "hit": true,
-                "finalHash": "8bd5bbc2af967121",
+                "finalHash": "ac4c3d5b2e957019",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 14,
@@ -9774,7 +9774,7 @@
                 "ticks": 240,
                 "damage": 72,
                 "hit": true,
-                "finalHash": "8f4905ecbe34d895",
+                "finalHash": "a5f9dca08073213d",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 14,
@@ -9787,7 +9787,7 @@
                 "ticks": 240,
                 "damage": 72,
                 "hit": true,
-                "finalHash": "66a4a58b7959669f",
+                "finalHash": "8e6417d43d3b52f7",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 14,
@@ -9800,7 +9800,7 @@
                 "ticks": 240,
                 "damage": 72,
                 "hit": true,
-                "finalHash": "c390e2430c56c6dd",
+                "finalHash": "5d73fa7e6dfd1455",
                 "structure": {
                   "peakEntities": 9,
                   "maxWorkUnitsPerTick": 14,
@@ -9843,7 +9843,7 @@
               "damage": 1040,
               "attempts": 8,
               "activations": 8,
-              "finalHash": "ebfaaf565b5ce8ef",
+              "finalHash": "580787836866ae17",
               "structure": {
                 "peakEntities": 17,
                 "maxWorkUnitsPerTick": 3,
@@ -9857,7 +9857,7 @@
               "damage": 8216,
               "attempts": 8,
               "activations": 8,
-              "finalHash": "7b0688d60859e418",
+              "finalHash": "a316c5c53ba66030",
               "structure": {
                 "peakEntities": 25,
                 "maxWorkUnitsPerTick": 27,
@@ -9871,7 +9871,7 @@
               "damage": 208,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "fc46d6ae4676f5f0",
+              "finalHash": "8012c52673c61858",
               "structure": {
                 "peakEntities": 4,
                 "maxWorkUnitsPerTick": 3,
@@ -9885,7 +9885,7 @@
                 "ticks": 240,
                 "damage": 208,
                 "hit": true,
-                "finalHash": "9513d254566970f6",
+                "finalHash": "c7e4bd35e03ae4ce",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -9898,7 +9898,7 @@
                 "ticks": 240,
                 "damage": 208,
                 "hit": true,
-                "finalHash": "d9e58ad94a54e4b8",
+                "finalHash": "82f3bf2d8fd91e30",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -9911,7 +9911,7 @@
                 "ticks": 240,
                 "damage": 312,
                 "hit": true,
-                "finalHash": "7af1a2ad8602c937",
+                "finalHash": "cf13e91aa8ff831f",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -9924,7 +9924,7 @@
                 "ticks": 240,
                 "damage": 208,
                 "hit": true,
-                "finalHash": "e3232dabeb1fe854",
+                "finalHash": "61c35d811ca8495c",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -9937,7 +9937,7 @@
                 "ticks": 240,
                 "damage": 208,
                 "hit": true,
-                "finalHash": "3262761bf635a3a5",
+                "finalHash": "8c14c5e5d7ba808d",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -9950,7 +9950,7 @@
                 "ticks": 240,
                 "damage": 208,
                 "hit": true,
-                "finalHash": "a1b3a91f60b1518e",
+                "finalHash": "b0eb80b7762d7fe6",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -9963,7 +9963,7 @@
                 "ticks": 240,
                 "damage": 312,
                 "hit": true,
-                "finalHash": "2e81398744d544f7",
+                "finalHash": "e3e261908513510f",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -9976,7 +9976,7 @@
                 "ticks": 240,
                 "damage": 208,
                 "hit": true,
-                "finalHash": "0064f860f4828fc4",
+                "finalHash": "faaacee34ca637dc",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -9989,7 +9989,7 @@
                 "ticks": 240,
                 "damage": 104,
                 "hit": true,
-                "finalHash": "a8b18bfe5b595680",
+                "finalHash": "97d3d8e93c363df8",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -10032,7 +10032,7 @@
               "damage": 1496,
               "attempts": 9,
               "activations": 9,
-              "finalHash": "4e52e4ce42efc3f7",
+              "finalHash": "2ff01d39b8a6b96f",
               "structure": {
                 "peakEntities": 18,
                 "maxWorkUnitsPerTick": 3,
@@ -10046,7 +10046,7 @@
               "damage": 11424,
               "attempts": 9,
               "activations": 9,
-              "finalHash": "9eb09901291b342c",
+              "finalHash": "82e561052a953bf4",
               "structure": {
                 "peakEntities": 26,
                 "maxWorkUnitsPerTick": 27,
@@ -10060,7 +10060,7 @@
               "damage": 272,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "4ffba1bf1ebf3210",
+              "finalHash": "0276b8c5d16c8e98",
               "structure": {
                 "peakEntities": 4,
                 "maxWorkUnitsPerTick": 3,
@@ -10074,7 +10074,7 @@
                 "ticks": 240,
                 "damage": 272,
                 "hit": true,
-                "finalHash": "73b4b10ec680a38c",
+                "finalHash": "27cf745f16fd5f44",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -10087,7 +10087,7 @@
                 "ticks": 240,
                 "damage": 272,
                 "hit": true,
-                "finalHash": "df62287fe19e6d8c",
+                "finalHash": "76a5fbfb2314a004",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -10100,7 +10100,7 @@
                 "ticks": 240,
                 "damage": 408,
                 "hit": true,
-                "finalHash": "ddced0e46467b4cf",
+                "finalHash": "52eb4c16752595f7",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -10113,7 +10113,7 @@
                 "ticks": 240,
                 "damage": 272,
                 "hit": true,
-                "finalHash": "78c6497f610df0a4",
+                "finalHash": "65726b9ffbd87e7c",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -10126,7 +10126,7 @@
                 "ticks": 240,
                 "damage": 272,
                 "hit": true,
-                "finalHash": "b804dbbb9438a355",
+                "finalHash": "4bd33157527717ad",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -10139,7 +10139,7 @@
                 "ticks": 240,
                 "damage": 272,
                 "hit": true,
-                "finalHash": "298ff09b4f4d97c2",
+                "finalHash": "921e82628ba4b0aa",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -10152,7 +10152,7 @@
                 "ticks": 240,
                 "damage": 408,
                 "hit": true,
-                "finalHash": "c54e49bcd80387b0",
+                "finalHash": "e8197afa34abd978",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -10165,7 +10165,7 @@
                 "ticks": 240,
                 "damage": 272,
                 "hit": true,
-                "finalHash": "6f3773eba2e73c21",
+                "finalHash": "dbb0f204a25aecb9",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -10178,7 +10178,7 @@
                 "ticks": 240,
                 "damage": 136,
                 "hit": true,
-                "finalHash": "fd96d521d6330693",
+                "finalHash": "8c55841c10fe7eab",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -10221,7 +10221,7 @@
               "damage": 1496,
               "attempts": 9,
               "activations": 9,
-              "finalHash": "77c74732bf0395f6",
+              "finalHash": "41232074f6715a7e",
               "structure": {
                 "peakEntities": 18,
                 "maxWorkUnitsPerTick": 3,
@@ -10235,7 +10235,7 @@
               "damage": 11424,
               "attempts": 9,
               "activations": 9,
-              "finalHash": "94584216d43544f1",
+              "finalHash": "a574bcbd1f3a2ae9",
               "structure": {
                 "peakEntities": 26,
                 "maxWorkUnitsPerTick": 27,
@@ -10249,7 +10249,7 @@
               "damage": 272,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "48e5bddb7de9ff9d",
+              "finalHash": "d4c6ec33428df395",
               "structure": {
                 "peakEntities": 4,
                 "maxWorkUnitsPerTick": 3,
@@ -10263,7 +10263,7 @@
                 "ticks": 240,
                 "damage": 272,
                 "hit": true,
-                "finalHash": "5f6ddf83acc90e29",
+                "finalHash": "a54ff920d6332371",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -10276,7 +10276,7 @@
                 "ticks": 240,
                 "damage": 272,
                 "hit": true,
-                "finalHash": "ac5e0a0b7d1ba829",
+                "finalHash": "2fad7af535437631",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -10289,7 +10289,7 @@
                 "ticks": 240,
                 "damage": 408,
                 "hit": true,
-                "finalHash": "45bb3bc16c926d22",
+                "finalHash": "4c578abaf1f9c07a",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -10302,7 +10302,7 @@
                 "ticks": 240,
                 "damage": 272,
                 "hit": true,
-                "finalHash": "20bc8693e7012351",
+                "finalHash": "bf1ae95aaf8ac2b9",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -10315,7 +10315,7 @@
                 "ticks": 240,
                 "damage": 272,
                 "hit": true,
-                "finalHash": "f3918095e9b313d4",
+                "finalHash": "4da28a8ac136cf5c",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -10328,7 +10328,7 @@
                 "ticks": 240,
                 "damage": 272,
                 "hit": true,
-                "finalHash": "fc059792ab32eea3",
+                "finalHash": "33c10435e7f30fbb",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -10341,7 +10341,7 @@
                 "ticks": 240,
                 "damage": 408,
                 "hit": true,
-                "finalHash": "0ad2c8855ba8da3d",
+                "finalHash": "6af452db7fe7e9f5",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -10354,7 +10354,7 @@
                 "ticks": 240,
                 "damage": 272,
                 "hit": true,
-                "finalHash": "fa5b8eb142526bc0",
+                "finalHash": "757da04c7c63b108",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -10367,7 +10367,7 @@
                 "ticks": 240,
                 "damage": 136,
                 "hit": true,
-                "finalHash": "2976da42ada32f26",
+                "finalHash": "1b28d8348d93112e",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -10410,7 +10410,7 @@
               "damage": 2312,
               "attempts": 15,
               "activations": 15,
-              "finalHash": "e394cf8ee5db2ad1",
+              "finalHash": "8a153099f1ca8509",
               "structure": {
                 "peakEntities": 28,
                 "maxWorkUnitsPerTick": 4,
@@ -10424,7 +10424,7 @@
               "damage": 18360,
               "attempts": 15,
               "activations": 15,
-              "finalHash": "14b4238ec024cb50",
+              "finalHash": "05730dec7d41ad08",
               "structure": {
                 "peakEntities": 36,
                 "maxWorkUnitsPerTick": 45,
@@ -10438,7 +10438,7 @@
               "damage": 272,
               "attempts": 1,
               "activations": 1,
-              "finalHash": "0ae6c73f6cdc3e3d",
+              "finalHash": "313d813fd96a8975",
               "structure": {
                 "peakEntities": 4,
                 "maxWorkUnitsPerTick": 3,
@@ -10452,7 +10452,7 @@
                 "ticks": 240,
                 "damage": 272,
                 "hit": true,
-                "finalHash": "5f7ccccafd6a8109",
+                "finalHash": "ee7614c412361891",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -10465,7 +10465,7 @@
                 "ticks": 240,
                 "damage": 272,
                 "hit": true,
-                "finalHash": "9dce22e2c9375897",
+                "finalHash": "ff1a72f39260a65f",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -10478,7 +10478,7 @@
                 "ticks": 240,
                 "damage": 408,
                 "hit": true,
-                "finalHash": "ebef2ecf8f62e42e",
+                "finalHash": "2ceca2338ef57d66",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -10491,7 +10491,7 @@
                 "ticks": 240,
                 "damage": 272,
                 "hit": true,
-                "finalHash": "edc28a9efb2d330d",
+                "finalHash": "8c561f3b768e2115",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -10504,7 +10504,7 @@
                 "ticks": 240,
                 "damage": 272,
                 "hit": true,
-                "finalHash": "1238bb9ed235ac28",
+                "finalHash": "388c4ff22a028570",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -10517,7 +10517,7 @@
                 "ticks": 240,
                 "damage": 272,
                 "hit": true,
-                "finalHash": "70c432cdc085bce7",
+                "finalHash": "7ac701c78cfd2dbf",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -10530,7 +10530,7 @@
                 "ticks": 240,
                 "damage": 408,
                 "hit": true,
-                "finalHash": "cc68b3697afb8d0b",
+                "finalHash": "d998eba4d04bd0c3",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -10543,7 +10543,7 @@
                 "ticks": 240,
                 "damage": 272,
                 "hit": true,
-                "finalHash": "468304f012c935b4",
+                "finalHash": "e04190b61978a01c",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,
@@ -10556,7 +10556,7 @@
                 "ticks": 240,
                 "damage": 136,
                 "hit": true,
-                "finalHash": "89393056c5d41608",
+                "finalHash": "e2dc33c71e3faf30",
                 "structure": {
                   "peakEntities": 10,
                   "maxWorkUnitsPerTick": 21,

@@ -35,7 +35,7 @@ function simulation(specialist = "zuri") {
 }
 
 test("the hash-covered evolution contract strictly covers all 21 authored weapons", () => {
-  assert.equal(WEAPON_EVOLUTION_HASH, "fnv1a32:a2356877");
+  assert.equal(WEAPON_EVOLUTION_HASH, "fnv1a32:04cdf9e2");
   assert.equal(evolutionContractFingerprint(), WEAPON_EVOLUTION_HASH);
   assert.equal(canonicalEvolutionContract(), canonicalEvolutionContract(structuredClone(WEAPON_EVOLUTION_CONTRACT)));
   assert.deepEqual(validateWeaponEvolutionContract(WEAPON_EVOLUTION_CONTRACT, BALANCE_CONFIG), []);
@@ -123,10 +123,23 @@ test("projectiles, effects, scheduled repeats, and drones retain their firing va
   droneRun.player.weapons.drone = { level: 5, evolved: false };
   const baseDrone = droneRun.sim.ensureDrone(droneRun.player);
   assert.equal(baseDrone.variantId, "universal:drone:base");
+  assert.deepEqual(
+    [BALANCE_CONFIG.weapons.universal.drone.pickupRangeBase, BALANCE_CONFIG.weapons.universal.drone.pickupRangePerLevel, BALANCE_CONFIG.weapons.universal.drone.evolvedPickupBonus],
+    [115, 38, 95],
+  );
+  droneRun.player.x = -10_000; droneRun.player.y = 0; baseDrone.x = 0; baseDrone.y = 0;
+  const baseRangeProbe = { id: "orb-base", x: 306, y: 0, radius: 6, value: 1, color: "#fff", dead: false };
+  droneRun.sim.orbs = [baseRangeProbe];
+  droneRun.sim.updatePickups(1 / 60);
+  assert.equal(baseRangeProbe.x, 306, "rank-five base drone must stop collecting beyond 305 units");
   droneRun.player.weapons.drone.evolved = true;
   const evolvedDrone = droneRun.sim.ensureDrone(droneRun.player);
   assert.notEqual(evolvedDrone, baseDrone);
   assert.equal(evolvedDrone.variantId, "universal:drone:evolved");
+  const evolvedRangeProbe = { id: "orb-evolved", x: 399, y: 0, radius: 6, value: 1, color: "#fff", dead: false };
+  droneRun.sim.orbs = [evolvedRangeProbe]; evolvedDrone.x = 0; evolvedDrone.y = 0;
+  droneRun.sim.updatePickups(1 / 60);
+  assert.ok(evolvedRangeProbe.x < 399, "evolved drone must expose its authored +95 collection reach");
   assert.throws(() => { evolvedDrone.variantId = "universal:drone:base"; }, TypeError);
 });
 
@@ -158,7 +171,7 @@ test("stamped signature effects survive owner removal and later loadout changes"
 });
 
 test("the balance fingerprint transitively pins the exact evolution contract", () => {
-  assert.equal(BALANCE_HASH, "fnv1a32:1f4e921f");
+  assert.equal(BALANCE_HASH, "fnv1a32:3f6c1f96");
   assert.equal(BALANCE_CONFIG.evolutions.schema, "lastlight.weapon-evolution.v1");
   assert.deepEqual(Object.keys(BALANCE_CONFIG.evolutions.signatures), [...BALANCE_IDS.specialists]);
   assert.deepEqual(Object.keys(BALANCE_CONFIG.evolutions.universal), [...BALANCE_IDS.universalWeapons]);
