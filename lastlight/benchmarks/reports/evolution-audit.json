@@ -1,0 +1,2818 @@
+{
+  "schema": "lastlight.evolution-audit.v1",
+  "schemaVersion": 1,
+  "contract": "actual-simulation-paired-evolution-v1",
+  "versions": {
+    "balanceVersion": "2026.07.12-signatures.3",
+    "balanceHash": "fnv1a32:e36834e8",
+    "tickRate": 60
+  },
+  "definitions": [
+    {
+      "sourceKey": "signature:zuri",
+      "scope": "signature",
+      "passiveId": "haste",
+      "capabilities": [
+        "cadence",
+        "pierce"
+      ],
+      "status": "meaningful",
+      "invariant": {
+        "metric": "pierce",
+        "comparison": "increase",
+        "expectedFailure": false
+      }
+    },
+    {
+      "sourceKey": "signature:echo",
+      "scope": "signature",
+      "passiveId": "projectiles",
+      "capabilities": [
+        "cadence",
+        "lifetime"
+      ],
+      "status": "meaningful",
+      "invariant": {
+        "metric": "lifetime",
+        "comparison": "increase",
+        "expectedFailure": false
+      }
+    },
+    {
+      "sourceKey": "signature:sola",
+      "scope": "signature",
+      "passiveId": "armor",
+      "capabilities": [
+        "cadence"
+      ],
+      "status": "stat-only",
+      "invariant": {
+        "metric": "cadence",
+        "comparison": "increase",
+        "expectedFailure": false
+      }
+    },
+    {
+      "sourceKey": "signature:bront",
+      "scope": "signature",
+      "passiveId": "duration",
+      "capabilities": [
+        "cadence",
+        "repeat"
+      ],
+      "status": "meaningful",
+      "invariant": {
+        "metric": "repeat",
+        "comparison": "increase",
+        "expectedFailure": false
+      }
+    },
+    {
+      "sourceKey": "signature:fang",
+      "scope": "signature",
+      "passiveId": "maxHealth",
+      "capabilities": [
+        "cadence"
+      ],
+      "status": "stat-only",
+      "invariant": {
+        "metric": "cadence",
+        "comparison": "increase",
+        "expectedFailure": false
+      }
+    },
+    {
+      "sourceKey": "signature:gale",
+      "scope": "signature",
+      "passiveId": "crit",
+      "capabilities": [
+        "pierce",
+        "flow-regeneration"
+      ],
+      "status": "meaningful",
+      "invariant": {
+        "metric": "flow-regeneration",
+        "comparison": "increase",
+        "expectedFailure": false
+      }
+    },
+    {
+      "sourceKey": "signature:rift",
+      "scope": "signature",
+      "passiveId": "move",
+      "capabilities": [
+        "cadence"
+      ],
+      "status": "stat-only",
+      "invariant": {
+        "metric": "cadence",
+        "comparison": "increase",
+        "expectedFailure": false
+      }
+    },
+    {
+      "sourceKey": "signature:nova",
+      "scope": "signature",
+      "passiveId": "xp",
+      "capabilities": [
+        "cadence",
+        "lifetime"
+      ],
+      "status": "meaningful",
+      "invariant": {
+        "metric": "lifetime",
+        "comparison": "increase",
+        "expectedFailure": false
+      }
+    },
+    {
+      "sourceKey": "signature:vesper",
+      "scope": "signature",
+      "passiveId": "pickup",
+      "capabilities": [
+        "cadence",
+        "pierce"
+      ],
+      "status": "meaningful",
+      "invariant": {
+        "metric": "pierce",
+        "comparison": "increase",
+        "expectedFailure": false
+      }
+    },
+    {
+      "sourceKey": "universal:uwu",
+      "scope": "universal",
+      "passiveId": "haste",
+      "capabilities": [
+        "cadence",
+        "pierce"
+      ],
+      "status": "meaningful",
+      "invariant": {
+        "metric": "pierce",
+        "comparison": "increase",
+        "expectedFailure": false
+      }
+    },
+    {
+      "sourceKey": "universal:slicers",
+      "scope": "universal",
+      "passiveId": "regen",
+      "capabilities": [
+        "orbit-speed"
+      ],
+      "status": "stat-only",
+      "invariant": {
+        "metric": "orbit-speed",
+        "comparison": "increase",
+        "expectedFailure": false
+      }
+    },
+    {
+      "sourceKey": "universal:aura",
+      "scope": "universal",
+      "passiveId": "maxHealth",
+      "capabilities": [
+        "visual-only"
+      ],
+      "status": "expected-no-op",
+      "invariant": {
+        "metric": "nonCosmeticDeltaCount",
+        "comparison": "increase",
+        "expectedFailure": true
+      }
+    },
+    {
+      "sourceKey": "universal:mines",
+      "scope": "universal",
+      "passiveId": "area",
+      "capabilities": [
+        "visual-only"
+      ],
+      "status": "expected-no-op",
+      "invariant": {
+        "metric": "nonCosmeticDeltaCount",
+        "comparison": "increase",
+        "expectedFailure": true
+      }
+    },
+    {
+      "sourceKey": "universal:crossbow",
+      "scope": "universal",
+      "passiveId": "crit",
+      "capabilities": [
+        "pierce"
+      ],
+      "status": "meaningful",
+      "invariant": {
+        "metric": "pierce",
+        "comparison": "increase",
+        "expectedFailure": false
+      }
+    },
+    {
+      "sourceKey": "universal:boomerang",
+      "scope": "universal",
+      "passiveId": "move",
+      "capabilities": [
+        "visual-only"
+      ],
+      "status": "expected-no-op",
+      "invariant": {
+        "metric": "nonCosmeticDeltaCount",
+        "comparison": "increase",
+        "expectedFailure": true
+      }
+    },
+    {
+      "sourceKey": "universal:rail",
+      "scope": "universal",
+      "passiveId": "haste",
+      "capabilities": [
+        "visual-only"
+      ],
+      "status": "expected-no-op",
+      "invariant": {
+        "metric": "nonCosmeticDeltaCount",
+        "comparison": "increase",
+        "expectedFailure": true
+      }
+    },
+    {
+      "sourceKey": "universal:glove",
+      "scope": "universal",
+      "passiveId": "regen",
+      "capabilities": [
+        "projectile-streams"
+      ],
+      "status": "meaningful",
+      "invariant": {
+        "metric": "projectile-streams",
+        "comparison": "increase",
+        "expectedFailure": false
+      }
+    },
+    {
+      "sourceKey": "universal:transit",
+      "scope": "universal",
+      "passiveId": "damage",
+      "capabilities": [
+        "visual-only"
+      ],
+      "status": "expected-no-op",
+      "invariant": {
+        "metric": "nonCosmeticDeltaCount",
+        "comparison": "increase",
+        "expectedFailure": true
+      }
+    },
+    {
+      "sourceKey": "universal:ice",
+      "scope": "universal",
+      "passiveId": "armor",
+      "capabilities": [
+        "cadence"
+      ],
+      "status": "stat-only",
+      "invariant": {
+        "metric": "cadence",
+        "comparison": "increase",
+        "expectedFailure": false
+      }
+    },
+    {
+      "sourceKey": "universal:annihilator",
+      "scope": "universal",
+      "passiveId": "xp",
+      "capabilities": [
+        "cadence"
+      ],
+      "status": "stat-only",
+      "invariant": {
+        "metric": "cadence",
+        "comparison": "increase",
+        "expectedFailure": false
+      }
+    },
+    {
+      "sourceKey": "universal:drone",
+      "scope": "universal",
+      "passiveId": "pickup",
+      "capabilities": [
+        "pierce",
+        "repair-rate",
+        "pickup-range"
+      ],
+      "status": "meaningful",
+      "invariant": {
+        "metric": "repair-rate",
+        "comparison": "increase",
+        "expectedFailure": false
+      }
+    }
+  ],
+  "cases": [
+    {
+      "sourceKey": "signature:zuri",
+      "scope": "signature",
+      "passiveId": "haste",
+      "capabilities": [
+        "cadence",
+        "pierce"
+      ],
+      "status": "meaningful",
+      "invariant": {
+        "metric": "pierce",
+        "comparison": "increase",
+        "expectedFailure": false,
+        "value": 4,
+        "passed": true,
+        "accepted": true,
+        "outcome": "pass"
+      },
+      "seed": "094f80fd084f7f6a074f7dd7064f7c44",
+      "base": {
+        "variantId": "signature:zuri:base",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": false
+        },
+        "common": {
+          "damage": 4816,
+          "hits": 56,
+          "uniqueTargets": 7,
+          "activations": 8,
+          "activationRate": 0.444,
+          "projectiles": 56,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 17
+        },
+        "capabilityMetrics": {
+          "cadence": 0.437,
+          "pierce": 0,
+          "lifetime": 1.7,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 7,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "17dc65cdc3126b8c",
+        "ticks": 1081,
+        "structure": {
+          "peakEntities": 17,
+          "maxWorkUnitsPerTick": 72,
+          "maxSnapshotBytes": 6579
+        }
+      },
+      "evolved": {
+        "variantId": "signature:zuri:evolved",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": true
+        },
+        "common": {
+          "damage": 13244,
+          "hits": 154,
+          "uniqueTargets": 9,
+          "activations": 16,
+          "activationRate": 0.889,
+          "projectiles": 112,
+          "effects": 21,
+          "tasks": 0,
+          "maxEntities": 24
+        },
+        "capabilityMetrics": {
+          "cadence": 0.867,
+          "pierce": 4,
+          "lifetime": 1.7,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 7,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "5e96ab1b7dd621b0",
+        "ticks": 1081,
+        "structure": {
+          "peakEntities": 24,
+          "maxWorkUnitsPerTick": 135,
+          "maxSnapshotBytes": 8366
+        }
+      },
+      "delta": {
+        "common": {
+          "damage": 8428,
+          "hits": 98,
+          "uniqueTargets": 2,
+          "activations": 8,
+          "activationRate": 0.445,
+          "projectiles": 56,
+          "effects": 21,
+          "tasks": 0,
+          "maxEntities": 7
+        },
+        "capabilityMetrics": {
+          "cadence": 0.43,
+          "pierce": 4,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        }
+      },
+      "nonCosmeticDeltaCount": 10
+    },
+    {
+      "sourceKey": "signature:echo",
+      "scope": "signature",
+      "passiveId": "projectiles",
+      "capabilities": [
+        "cadence",
+        "lifetime"
+      ],
+      "status": "meaningful",
+      "invariant": {
+        "metric": "lifetime",
+        "comparison": "increase",
+        "expectedFailure": false,
+        "value": 0.7,
+        "passed": true,
+        "accepted": true,
+        "outcome": "pass"
+      },
+      "seed": "c86824a8c968263bca6827cecb682961",
+      "base": {
+        "variantId": "signature:echo:base",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": false
+        },
+        "common": {
+          "damage": 11446,
+          "hits": 97,
+          "uniqueTargets": 9,
+          "activations": 9,
+          "activationRate": 0.5,
+          "projectiles": 71,
+          "effects": 9,
+          "tasks": 17,
+          "maxEntities": 20
+        },
+        "capabilityMetrics": {
+          "cadence": 0.496,
+          "pierce": 7,
+          "lifetime": 1.9,
+          "repeat": 17,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 6,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "06a9a85346c65b49",
+        "ticks": 1081,
+        "structure": {
+          "peakEntities": 20,
+          "maxWorkUnitsPerTick": 99,
+          "maxSnapshotBytes": 7469
+        }
+      },
+      "evolved": {
+        "variantId": "signature:echo:evolved",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": true
+        },
+        "common": {
+          "damage": 14160,
+          "hits": 120,
+          "uniqueTargets": 9,
+          "activations": 14,
+          "activationRate": 0.778,
+          "projectiles": 106,
+          "effects": 24,
+          "tasks": 23,
+          "maxEntities": 27
+        },
+        "capabilityMetrics": {
+          "cadence": 0.726,
+          "pierce": 7,
+          "lifetime": 2.6,
+          "repeat": 23,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 6,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "683897de3fb11c3c",
+        "ticks": 1081,
+        "structure": {
+          "peakEntities": 27,
+          "maxWorkUnitsPerTick": 162,
+          "maxSnapshotBytes": 9261
+        }
+      },
+      "delta": {
+        "common": {
+          "damage": 2714,
+          "hits": 23,
+          "uniqueTargets": 0,
+          "activations": 5,
+          "activationRate": 0.278,
+          "projectiles": 35,
+          "effects": 15,
+          "tasks": 6,
+          "maxEntities": 7
+        },
+        "capabilityMetrics": {
+          "cadence": 0.23,
+          "pierce": 0,
+          "lifetime": 0.7,
+          "repeat": 6,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        }
+      },
+      "nonCosmeticDeltaCount": 11
+    },
+    {
+      "sourceKey": "signature:sola",
+      "scope": "signature",
+      "passiveId": "armor",
+      "capabilities": [
+        "cadence"
+      ],
+      "status": "stat-only",
+      "invariant": {
+        "metric": "cadence",
+        "comparison": "increase",
+        "expectedFailure": false,
+        "value": 0.093,
+        "passed": true,
+        "accepted": true,
+        "outcome": "pass"
+      },
+      "seed": "24f5661025f567a326f5693627f56ac9",
+      "base": {
+        "variantId": "signature:sola:base",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": false
+        },
+        "common": {
+          "damage": 3091.5,
+          "hits": 30,
+          "uniqueTargets": 9,
+          "activations": 11,
+          "activationRate": 0.611,
+          "projectiles": 44,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 14
+        },
+        "capabilityMetrics": {
+          "cadence": 0.566,
+          "pierce": 7,
+          "lifetime": 0.62,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 4,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "bbdace9b40dc36c0",
+        "ticks": 1081,
+        "structure": {
+          "peakEntities": 14,
+          "maxWorkUnitsPerTick": 45,
+          "maxSnapshotBytes": 5996
+        }
+      },
+      "evolved": {
+        "variantId": "signature:sola:evolved",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": true
+        },
+        "common": {
+          "damage": 3194.55,
+          "hits": 31,
+          "uniqueTargets": 9,
+          "activations": 12,
+          "activationRate": 0.667,
+          "projectiles": 48,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 14
+        },
+        "capabilityMetrics": {
+          "cadence": 0.659,
+          "pierce": 7,
+          "lifetime": 0.62,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 4,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "c081370b4637acc9",
+        "ticks": 1081,
+        "structure": {
+          "peakEntities": 14,
+          "maxWorkUnitsPerTick": 45,
+          "maxSnapshotBytes": 6000
+        }
+      },
+      "delta": {
+        "common": {
+          "damage": 103.05,
+          "hits": 1,
+          "uniqueTargets": 0,
+          "activations": 1,
+          "activationRate": 0.056,
+          "projectiles": 4,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 0
+        },
+        "capabilityMetrics": {
+          "cadence": 0.093,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        }
+      },
+      "nonCosmeticDeltaCount": 6
+    },
+    {
+      "sourceKey": "signature:bront",
+      "scope": "signature",
+      "passiveId": "duration",
+      "capabilities": [
+        "cadence",
+        "repeat"
+      ],
+      "status": "meaningful",
+      "invariant": {
+        "metric": "repeat",
+        "comparison": "increase",
+        "expectedFailure": false,
+        "value": 7,
+        "passed": true,
+        "accepted": true,
+        "outcome": "pass"
+      },
+      "seed": "643ce8e6653cea79623ce5c0633ce753",
+      "base": {
+        "variantId": "signature:bront:base",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": false
+        },
+        "common": {
+          "damage": 5320,
+          "hits": 28,
+          "uniqueTargets": 9,
+          "activations": 5,
+          "activationRate": 0.278,
+          "projectiles": 0,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 19
+        },
+        "capabilityMetrics": {
+          "cadence": 0.249,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "f30d64f94e9f13c0",
+        "ticks": 1081,
+        "structure": {
+          "peakEntities": 19,
+          "maxWorkUnitsPerTick": 81,
+          "maxSnapshotBytes": 6252
+        }
+      },
+      "evolved": {
+        "variantId": "signature:bront:evolved",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": true
+        },
+        "common": {
+          "damage": 10840,
+          "hits": 52,
+          "uniqueTargets": 9,
+          "activations": 7,
+          "activationRate": 0.389,
+          "projectiles": 0,
+          "effects": 0,
+          "tasks": 7,
+          "maxEntities": 23
+        },
+        "capabilityMetrics": {
+          "cadence": 0.365,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 7,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "95e289b8db395a2a",
+        "ticks": 1081,
+        "structure": {
+          "peakEntities": 23,
+          "maxWorkUnitsPerTick": 117,
+          "maxSnapshotBytes": 6905
+        }
+      },
+      "delta": {
+        "common": {
+          "damage": 5520,
+          "hits": 24,
+          "uniqueTargets": 0,
+          "activations": 2,
+          "activationRate": 0.111,
+          "projectiles": 0,
+          "effects": 0,
+          "tasks": 7,
+          "maxEntities": 4
+        },
+        "capabilityMetrics": {
+          "cadence": 0.116,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 7,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        }
+      },
+      "nonCosmeticDeltaCount": 8
+    },
+    {
+      "sourceKey": "signature:fang",
+      "scope": "signature",
+      "passiveId": "maxHealth",
+      "capabilities": [
+        "cadence"
+      ],
+      "status": "stat-only",
+      "invariant": {
+        "metric": "cadence",
+        "comparison": "increase",
+        "expectedFailure": false,
+        "value": 0.172,
+        "passed": true,
+        "accepted": true,
+        "outcome": "pass"
+      },
+      "seed": "47a990ef46a98f5c49a9941548a99282",
+      "base": {
+        "variantId": "signature:fang:base",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": false
+        },
+        "common": {
+          "damage": 10567.375,
+          "hits": 91,
+          "uniqueTargets": 9,
+          "activations": 12,
+          "activationRate": 0.667,
+          "projectiles": 0,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 11
+        },
+        "capabilityMetrics": {
+          "cadence": 0.619,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "53399aeb16a56720",
+        "ticks": 1081,
+        "structure": {
+          "peakEntities": 11,
+          "maxWorkUnitsPerTick": 9,
+          "maxSnapshotBytes": 5167
+        }
+      },
+      "evolved": {
+        "variantId": "signature:fang:evolved",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": true
+        },
+        "common": {
+          "damage": 12193.125,
+          "hits": 105,
+          "uniqueTargets": 9,
+          "activations": 15,
+          "activationRate": 0.833,
+          "projectiles": 0,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 11
+        },
+        "capabilityMetrics": {
+          "cadence": 0.791,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "630dd19c4a92c3ac",
+        "ticks": 1081,
+        "structure": {
+          "peakEntities": 11,
+          "maxWorkUnitsPerTick": 9,
+          "maxSnapshotBytes": 5156
+        }
+      },
+      "delta": {
+        "common": {
+          "damage": 1625.75,
+          "hits": 14,
+          "uniqueTargets": 0,
+          "activations": 3,
+          "activationRate": 0.166,
+          "projectiles": 0,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 0
+        },
+        "capabilityMetrics": {
+          "cadence": 0.172,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        }
+      },
+      "nonCosmeticDeltaCount": 5
+    },
+    {
+      "sourceKey": "signature:gale",
+      "scope": "signature",
+      "passiveId": "crit",
+      "capabilities": [
+        "pierce",
+        "flow-regeneration"
+      ],
+      "status": "meaningful",
+      "invariant": {
+        "metric": "flow-regeneration",
+        "comparison": "increase",
+        "expectedFailure": false,
+        "value": 4.5,
+        "passed": true,
+        "accepted": true,
+        "outcome": "pass"
+      },
+      "seed": "c9394712ca3948a5c73943ecc839457f",
+      "base": {
+        "variantId": "signature:gale:base",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": false
+        },
+        "common": {
+          "damage": 7692.5,
+          "hits": 37,
+          "uniqueTargets": 9,
+          "activations": 5,
+          "activationRate": 0.278,
+          "projectiles": 15,
+          "effects": 2,
+          "tasks": 0,
+          "maxEntities": 16
+        },
+        "capabilityMetrics": {
+          "cadence": 0.278,
+          "pierce": 5,
+          "lifetime": 3.2,
+          "repeat": 0,
+          "flowRegeneration": 30,
+          "orbitSpeed": 0,
+          "projectileStreams": 3,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "4b8643103ca09808",
+        "ticks": 1140,
+        "structure": {
+          "peakEntities": 16,
+          "maxWorkUnitsPerTick": 63,
+          "maxSnapshotBytes": 6223
+        }
+      },
+      "evolved": {
+        "variantId": "signature:gale:evolved",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": true
+        },
+        "common": {
+          "damage": 8330,
+          "hits": 40,
+          "uniqueTargets": 9,
+          "activations": 6,
+          "activationRate": 0.333,
+          "projectiles": 18,
+          "effects": 2,
+          "tasks": 0,
+          "maxEntities": 17
+        },
+        "capabilityMetrics": {
+          "cadence": 0.333,
+          "pierce": 12,
+          "lifetime": 3.2,
+          "repeat": 0,
+          "flowRegeneration": 34.5,
+          "orbitSpeed": 0,
+          "projectileStreams": 3,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "fcfc302a64bc1c04",
+        "ticks": 1140,
+        "structure": {
+          "peakEntities": 17,
+          "maxWorkUnitsPerTick": 72,
+          "maxSnapshotBytes": 6629
+        }
+      },
+      "delta": {
+        "common": {
+          "damage": 637.5,
+          "hits": 3,
+          "uniqueTargets": 0,
+          "activations": 1,
+          "activationRate": 0.055,
+          "projectiles": 3,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 1
+        },
+        "capabilityMetrics": {
+          "cadence": 0.055,
+          "pierce": 7,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 4.5,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        }
+      },
+      "nonCosmeticDeltaCount": 9
+    },
+    {
+      "sourceKey": "signature:rift",
+      "scope": "signature",
+      "passiveId": "move",
+      "capabilities": [
+        "cadence"
+      ],
+      "status": "stat-only",
+      "invariant": {
+        "metric": "cadence",
+        "comparison": "increase",
+        "expectedFailure": false,
+        "value": 0.355,
+        "passed": true,
+        "accepted": true,
+        "outcome": "pass"
+      },
+      "seed": "2b891cde2c891e71298919b82a891b4b",
+      "base": {
+        "variantId": "signature:rift:base",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": false
+        },
+        "common": {
+          "damage": 12073.6,
+          "hits": 98,
+          "uniqueTargets": 8,
+          "activations": 20,
+          "activationRate": 1.111,
+          "projectiles": 0,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 11
+        },
+        "capabilityMetrics": {
+          "cadence": 1.091,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "04a2c8711fe9d1d8",
+        "ticks": 1081,
+        "structure": {
+          "peakEntities": 11,
+          "maxWorkUnitsPerTick": 9,
+          "maxSnapshotBytes": 5145
+        }
+      },
+      "evolved": {
+        "variantId": "signature:rift:evolved",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": true
+        },
+        "common": {
+          "damage": 14414.4,
+          "hits": 117,
+          "uniqueTargets": 8,
+          "activations": 27,
+          "activationRate": 1.5,
+          "projectiles": 0,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 11
+        },
+        "capabilityMetrics": {
+          "cadence": 1.446,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "b9d156d6d343c6ff",
+        "ticks": 1081,
+        "structure": {
+          "peakEntities": 11,
+          "maxWorkUnitsPerTick": 9,
+          "maxSnapshotBytes": 5143
+        }
+      },
+      "delta": {
+        "common": {
+          "damage": 2340.8,
+          "hits": 19,
+          "uniqueTargets": 0,
+          "activations": 7,
+          "activationRate": 0.389,
+          "projectiles": 0,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 0
+        },
+        "capabilityMetrics": {
+          "cadence": 0.355,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        }
+      },
+      "nonCosmeticDeltaCount": 5
+    },
+    {
+      "sourceKey": "signature:nova",
+      "scope": "signature",
+      "passiveId": "xp",
+      "capabilities": [
+        "cadence",
+        "lifetime"
+      ],
+      "status": "meaningful",
+      "invariant": {
+        "metric": "lifetime",
+        "comparison": "increase",
+        "expectedFailure": false,
+        "value": 0.75,
+        "passed": true,
+        "accepted": true,
+        "outcome": "pass"
+      },
+      "seed": "fe9ba777fd9ba5e4009baa9dff9ba90a",
+      "base": {
+        "variantId": "signature:nova:base",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": false
+        },
+        "common": {
+          "damage": 2145,
+          "hits": 15,
+          "uniqueTargets": 9,
+          "activations": 7,
+          "activationRate": 0.389,
+          "projectiles": 28,
+          "effects": 4,
+          "tasks": 0,
+          "maxEntities": 14
+        },
+        "capabilityMetrics": {
+          "cadence": 0.355,
+          "pierce": 8,
+          "lifetime": 2.25,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 4,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "e650f36c259e00ca",
+        "ticks": 1081,
+        "structure": {
+          "peakEntities": 14,
+          "maxWorkUnitsPerTick": 45,
+          "maxSnapshotBytes": 5979
+        }
+      },
+      "evolved": {
+        "variantId": "signature:nova:evolved",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": true
+        },
+        "common": {
+          "damage": 3575,
+          "hits": 25,
+          "uniqueTargets": 9,
+          "activations": 11,
+          "activationRate": 0.611,
+          "projectiles": 44,
+          "effects": 19,
+          "tasks": 0,
+          "maxEntities": 18
+        },
+        "capabilityMetrics": {
+          "cadence": 0.571,
+          "pierce": 8,
+          "lifetime": 3,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 4,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "0377e7b3da02fa10",
+        "ticks": 1081,
+        "structure": {
+          "peakEntities": 18,
+          "maxWorkUnitsPerTick": 81,
+          "maxSnapshotBytes": 7022
+        }
+      },
+      "delta": {
+        "common": {
+          "damage": 1430,
+          "hits": 10,
+          "uniqueTargets": 0,
+          "activations": 4,
+          "activationRate": 0.222,
+          "projectiles": 16,
+          "effects": 15,
+          "tasks": 0,
+          "maxEntities": 4
+        },
+        "capabilityMetrics": {
+          "cadence": 0.216,
+          "pierce": 0,
+          "lifetime": 0.75,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        }
+      },
+      "nonCosmeticDeltaCount": 9
+    },
+    {
+      "sourceKey": "signature:vesper",
+      "scope": "signature",
+      "passiveId": "pickup",
+      "capabilities": [
+        "cadence",
+        "pierce"
+      ],
+      "status": "meaningful",
+      "invariant": {
+        "metric": "pierce",
+        "comparison": "increase",
+        "expectedFailure": false,
+        "value": 7,
+        "passed": true,
+        "accepted": true,
+        "outcome": "pass"
+      },
+      "seed": "2a00d7ec2b00d97f2c00db122d00dca5",
+      "base": {
+        "variantId": "signature:vesper:base",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": false
+        },
+        "common": {
+          "damage": 3536,
+          "hits": 26,
+          "uniqueTargets": 9,
+          "activations": 9,
+          "activationRate": 0.5,
+          "projectiles": 18,
+          "effects": 6,
+          "tasks": 0,
+          "maxEntities": 26
+        },
+        "capabilityMetrics": {
+          "cadence": 0.496,
+          "pierce": 7,
+          "lifetime": 1.7,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 2,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "e91843ef212c00a5",
+        "ticks": 1081,
+        "structure": {
+          "peakEntities": 26,
+          "maxWorkUnitsPerTick": 27,
+          "maxSnapshotBytes": 6815
+        }
+      },
+      "evolved": {
+        "variantId": "signature:vesper:evolved",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": true
+        },
+        "common": {
+          "damage": 5168,
+          "hits": 38,
+          "uniqueTargets": 9,
+          "activations": 15,
+          "activationRate": 0.833,
+          "projectiles": 30,
+          "effects": 8,
+          "tasks": 0,
+          "maxEntities": 36
+        },
+        "capabilityMetrics": {
+          "cadence": 0.796,
+          "pierce": 14,
+          "lifetime": 1.7,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 2,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "a3553cfe015c1b76",
+        "ticks": 1081,
+        "structure": {
+          "peakEntities": 36,
+          "maxWorkUnitsPerTick": 45,
+          "maxSnapshotBytes": 8087
+        }
+      },
+      "delta": {
+        "common": {
+          "damage": 1632,
+          "hits": 12,
+          "uniqueTargets": 0,
+          "activations": 6,
+          "activationRate": 0.333,
+          "projectiles": 12,
+          "effects": 2,
+          "tasks": 0,
+          "maxEntities": 10
+        },
+        "capabilityMetrics": {
+          "cadence": 0.3,
+          "pierce": 7,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        }
+      },
+      "nonCosmeticDeltaCount": 9
+    },
+    {
+      "sourceKey": "universal:uwu",
+      "scope": "universal",
+      "passiveId": "haste",
+      "capabilities": [
+        "cadence",
+        "pierce"
+      ],
+      "status": "meaningful",
+      "invariant": {
+        "metric": "pierce",
+        "comparison": "increase",
+        "expectedFailure": false,
+        "value": 1,
+        "passed": true,
+        "accepted": true,
+        "outcome": "pass"
+      },
+      "seed": "ee28e801ed28e66eec28e4dbeb28e348",
+      "base": {
+        "variantId": "universal:uwu:base",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": false
+        },
+        "common": {
+          "damage": 7644,
+          "hits": 98,
+          "uniqueTargets": 7,
+          "activations": 50,
+          "activationRate": 2.778,
+          "projectiles": 100,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 12
+        },
+        "capabilityMetrics": {
+          "cadence": 2.629,
+          "pierce": 0,
+          "lifetime": 2,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 2,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "f5c93b5dec11504e",
+        "ticks": 1081,
+        "structure": {
+          "peakEntities": 12,
+          "maxWorkUnitsPerTick": 27,
+          "maxSnapshotBytes": 5486
+        }
+      },
+      "evolved": {
+        "variantId": "universal:uwu:evolved",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": true
+        },
+        "common": {
+          "damage": 10140,
+          "hits": 130,
+          "uniqueTargets": 8,
+          "activations": 54,
+          "activationRate": 3,
+          "projectiles": 108,
+          "effects": 56,
+          "tasks": 0,
+          "maxEntities": 22
+        },
+        "capabilityMetrics": {
+          "cadence": 2.986,
+          "pierce": 1,
+          "lifetime": 2,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 2,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "1d7e4da6b8c0bcc8",
+        "ticks": 1081,
+        "structure": {
+          "peakEntities": 22,
+          "maxWorkUnitsPerTick": 117,
+          "maxSnapshotBytes": 7836
+        }
+      },
+      "delta": {
+        "common": {
+          "damage": 2496,
+          "hits": 32,
+          "uniqueTargets": 1,
+          "activations": 4,
+          "activationRate": 0.222,
+          "projectiles": 8,
+          "effects": 56,
+          "tasks": 0,
+          "maxEntities": 10
+        },
+        "capabilityMetrics": {
+          "cadence": 0.357,
+          "pierce": 1,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        }
+      },
+      "nonCosmeticDeltaCount": 10
+    },
+    {
+      "sourceKey": "universal:slicers",
+      "scope": "universal",
+      "passiveId": "regen",
+      "capabilities": [
+        "orbit-speed"
+      ],
+      "status": "stat-only",
+      "invariant": {
+        "metric": "orbit-speed",
+        "comparison": "increase",
+        "expectedFailure": false,
+        "value": 0.9,
+        "passed": true,
+        "accepted": true,
+        "outcome": "pass"
+      },
+      "seed": "8ff873438ef871b091f8766990f874d6",
+      "base": {
+        "variantId": "universal:slicers:base",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": false
+        },
+        "common": {
+          "damage": 7383,
+          "hits": 107,
+          "uniqueTargets": 7,
+          "activations": 72,
+          "activationRate": 4,
+          "projectiles": 0,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 24
+        },
+        "capabilityMetrics": {
+          "cadence": 4,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 2.2,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "19fdc208285fa2de",
+        "ticks": 1080,
+        "structure": {
+          "peakEntities": 24,
+          "maxWorkUnitsPerTick": 9,
+          "maxSnapshotBytes": 6920
+        }
+      },
+      "evolved": {
+        "variantId": "universal:slicers:evolved",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": true
+        },
+        "common": {
+          "damage": 7383,
+          "hits": 107,
+          "uniqueTargets": 7,
+          "activations": 72,
+          "activationRate": 4,
+          "projectiles": 0,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 24
+        },
+        "capabilityMetrics": {
+          "cadence": 4,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 3.1,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "f09bdd72b7cf5817",
+        "ticks": 1080,
+        "structure": {
+          "peakEntities": 24,
+          "maxWorkUnitsPerTick": 9,
+          "maxSnapshotBytes": 6916
+        }
+      },
+      "delta": {
+        "common": {
+          "damage": 0,
+          "hits": 0,
+          "uniqueTargets": 0,
+          "activations": 0,
+          "activationRate": 0,
+          "projectiles": 0,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 0
+        },
+        "capabilityMetrics": {
+          "cadence": 0,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0.9,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        }
+      },
+      "nonCosmeticDeltaCount": 1
+    },
+    {
+      "sourceKey": "universal:aura",
+      "scope": "universal",
+      "passiveId": "maxHealth",
+      "capabilities": [
+        "visual-only"
+      ],
+      "status": "expected-no-op",
+      "invariant": {
+        "metric": "nonCosmeticDeltaCount",
+        "comparison": "increase",
+        "expectedFailure": true,
+        "value": 0,
+        "passed": false,
+        "accepted": true,
+        "outcome": "expected-failure"
+      },
+      "seed": "f52ecf9bf42ece08f72ed2c1f62ed12e",
+      "base": {
+        "variantId": "universal:aura:base",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": false
+        },
+        "common": {
+          "damage": 17343.2,
+          "hits": 266,
+          "uniqueTargets": 9,
+          "activations": 52,
+          "activationRate": 2.889,
+          "projectiles": 0,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 10
+        },
+        "capabilityMetrics": {
+          "cadence": 2.889,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "724109b622b3dc0d",
+        "ticks": 1080,
+        "structure": {
+          "peakEntities": 10,
+          "maxWorkUnitsPerTick": 9,
+          "maxSnapshotBytes": 5104
+        }
+      },
+      "evolved": {
+        "variantId": "universal:aura:evolved",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": true
+        },
+        "common": {
+          "damage": 17343.2,
+          "hits": 266,
+          "uniqueTargets": 9,
+          "activations": 52,
+          "activationRate": 2.889,
+          "projectiles": 0,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 10
+        },
+        "capabilityMetrics": {
+          "cadence": 2.889,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "e490d87ddcf9cc91",
+        "ticks": 1080,
+        "structure": {
+          "peakEntities": 10,
+          "maxWorkUnitsPerTick": 9,
+          "maxSnapshotBytes": 5103
+        }
+      },
+      "delta": {
+        "common": {
+          "damage": 0,
+          "hits": 0,
+          "uniqueTargets": 0,
+          "activations": 0,
+          "activationRate": 0,
+          "projectiles": 0,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 0
+        },
+        "capabilityMetrics": {
+          "cadence": 0,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        }
+      },
+      "nonCosmeticDeltaCount": 0
+    },
+    {
+      "sourceKey": "universal:mines",
+      "scope": "universal",
+      "passiveId": "area",
+      "capabilities": [
+        "visual-only"
+      ],
+      "status": "expected-no-op",
+      "invariant": {
+        "metric": "nonCosmeticDeltaCount",
+        "comparison": "increase",
+        "expectedFailure": true,
+        "value": 0,
+        "passed": false,
+        "accepted": true,
+        "outcome": "expected-failure"
+      },
+      "seed": "b06e9e4eb16e9fe1ae6e9b28af6e9cbb",
+      "base": {
+        "variantId": "universal:mines:base",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": false
+        },
+        "common": {
+          "damage": 9620,
+          "hits": 52,
+          "uniqueTargets": 9,
+          "activations": 4,
+          "activationRate": 0.222,
+          "projectiles": 0,
+          "effects": 28,
+          "tasks": 0,
+          "maxEntities": 23
+        },
+        "capabilityMetrics": {
+          "cadence": 0.222,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "0ece39e5d841a772",
+        "ticks": 1080,
+        "structure": {
+          "peakEntities": 23,
+          "maxWorkUnitsPerTick": 126,
+          "maxSnapshotBytes": 7097
+        }
+      },
+      "evolved": {
+        "variantId": "universal:mines:evolved",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": true
+        },
+        "common": {
+          "damage": 9620,
+          "hits": 52,
+          "uniqueTargets": 9,
+          "activations": 4,
+          "activationRate": 0.222,
+          "projectiles": 0,
+          "effects": 28,
+          "tasks": 0,
+          "maxEntities": 23
+        },
+        "capabilityMetrics": {
+          "cadence": 0.222,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "38c0ea7717a549ec",
+        "ticks": 1080,
+        "structure": {
+          "peakEntities": 23,
+          "maxWorkUnitsPerTick": 126,
+          "maxSnapshotBytes": 7116
+        }
+      },
+      "delta": {
+        "common": {
+          "damage": 0,
+          "hits": 0,
+          "uniqueTargets": 0,
+          "activations": 0,
+          "activationRate": 0,
+          "projectiles": 0,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 0
+        },
+        "capabilityMetrics": {
+          "cadence": 0,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        }
+      },
+      "nonCosmeticDeltaCount": 0
+    },
+    {
+      "sourceKey": "universal:crossbow",
+      "scope": "universal",
+      "passiveId": "crit",
+      "capabilities": [
+        "pierce"
+      ],
+      "status": "meaningful",
+      "invariant": {
+        "metric": "pierce",
+        "comparison": "increase",
+        "expectedFailure": false,
+        "value": 7,
+        "passed": true,
+        "accepted": true,
+        "outcome": "pass"
+      },
+      "seed": "4579c55c4679c6ef4779c8824879ca15",
+      "base": {
+        "variantId": "universal:crossbow:base",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": false
+        },
+        "common": {
+          "damage": 4754.75,
+          "hits": 35,
+          "uniqueTargets": 7,
+          "activations": 7,
+          "activationRate": 0.389,
+          "projectiles": 49,
+          "effects": 14,
+          "tasks": 0,
+          "maxEntities": 18
+        },
+        "capabilityMetrics": {
+          "cadence": 0.389,
+          "pierce": 1,
+          "lifetime": 2,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 7,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "0b16ed2d58aa6465",
+        "ticks": 1080,
+        "structure": {
+          "peakEntities": 18,
+          "maxWorkUnitsPerTick": 81,
+          "maxSnapshotBytes": 6825
+        }
+      },
+      "evolved": {
+        "variantId": "universal:crossbow:evolved",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": true
+        },
+        "common": {
+          "damage": 6217.75,
+          "hits": 46,
+          "uniqueTargets": 9,
+          "activations": 7,
+          "activationRate": 0.389,
+          "projectiles": 49,
+          "effects": 15,
+          "tasks": 0,
+          "maxEntities": 18
+        },
+        "capabilityMetrics": {
+          "cadence": 0.389,
+          "pierce": 8,
+          "lifetime": 2,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 7,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "498db2d8649bbf6e",
+        "ticks": 1080,
+        "structure": {
+          "peakEntities": 18,
+          "maxWorkUnitsPerTick": 81,
+          "maxSnapshotBytes": 6850
+        }
+      },
+      "delta": {
+        "common": {
+          "damage": 1463,
+          "hits": 11,
+          "uniqueTargets": 2,
+          "activations": 0,
+          "activationRate": 0,
+          "projectiles": 0,
+          "effects": 1,
+          "tasks": 0,
+          "maxEntities": 0
+        },
+        "capabilityMetrics": {
+          "cadence": 0,
+          "pierce": 7,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        }
+      },
+      "nonCosmeticDeltaCount": 5
+    },
+    {
+      "sourceKey": "universal:boomerang",
+      "scope": "universal",
+      "passiveId": "move",
+      "capabilities": [
+        "visual-only"
+      ],
+      "status": "expected-no-op",
+      "invariant": {
+        "metric": "nonCosmeticDeltaCount",
+        "comparison": "increase",
+        "expectedFailure": true,
+        "value": 0,
+        "passed": false,
+        "accepted": true,
+        "outcome": "expected-failure"
+      },
+      "seed": "6d08d3aa6e08d53d6b08d0846c08d217",
+      "base": {
+        "variantId": "universal:boomerang:base",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": false
+        },
+        "common": {
+          "damage": 6290,
+          "hits": 37,
+          "uniqueTargets": 9,
+          "activations": 7,
+          "activationRate": 0.389,
+          "projectiles": 21,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 13
+        },
+        "capabilityMetrics": {
+          "cadence": 0.389,
+          "pierce": 8,
+          "lifetime": 1.45,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 3,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "4cfd38683c1125ea",
+        "ticks": 1080,
+        "structure": {
+          "peakEntities": 13,
+          "maxWorkUnitsPerTick": 36,
+          "maxSnapshotBytes": 5906
+        }
+      },
+      "evolved": {
+        "variantId": "universal:boomerang:evolved",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": true
+        },
+        "common": {
+          "damage": 6290,
+          "hits": 37,
+          "uniqueTargets": 9,
+          "activations": 7,
+          "activationRate": 0.389,
+          "projectiles": 21,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 13
+        },
+        "capabilityMetrics": {
+          "cadence": 0.389,
+          "pierce": 8,
+          "lifetime": 1.45,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 3,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "3de9755c24c4972e",
+        "ticks": 1080,
+        "structure": {
+          "peakEntities": 13,
+          "maxWorkUnitsPerTick": 36,
+          "maxSnapshotBytes": 5905
+        }
+      },
+      "delta": {
+        "common": {
+          "damage": 0,
+          "hits": 0,
+          "uniqueTargets": 0,
+          "activations": 0,
+          "activationRate": 0,
+          "projectiles": 0,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 0
+        },
+        "capabilityMetrics": {
+          "cadence": 0,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        }
+      },
+      "nonCosmeticDeltaCount": 0
+    },
+    {
+      "sourceKey": "universal:rail",
+      "scope": "universal",
+      "passiveId": "haste",
+      "capabilities": [
+        "visual-only"
+      ],
+      "status": "expected-no-op",
+      "invariant": {
+        "metric": "nonCosmeticDeltaCount",
+        "comparison": "increase",
+        "expectedFailure": true,
+        "value": 0,
+        "passed": false,
+        "accepted": true,
+        "outcome": "expected-failure"
+      },
+      "seed": "1a2ba1001b2ba2931c2ba4261d2ba5b9",
+      "base": {
+        "variantId": "universal:rail:base",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": false
+        },
+        "common": {
+          "damage": 17010,
+          "hits": 126,
+          "uniqueTargets": 7,
+          "activations": 8,
+          "activationRate": 0.444,
+          "projectiles": 48,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 16
+        },
+        "capabilityMetrics": {
+          "cadence": 0.444,
+          "pierce": 20,
+          "lifetime": 2,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 6,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "00f554081582bb41",
+        "ticks": 1080,
+        "structure": {
+          "peakEntities": 16,
+          "maxWorkUnitsPerTick": 63,
+          "maxSnapshotBytes": 6401
+        }
+      },
+      "evolved": {
+        "variantId": "universal:rail:evolved",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": true
+        },
+        "common": {
+          "damage": 17010,
+          "hits": 126,
+          "uniqueTargets": 7,
+          "activations": 8,
+          "activationRate": 0.444,
+          "projectiles": 48,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 16
+        },
+        "capabilityMetrics": {
+          "cadence": 0.444,
+          "pierce": 20,
+          "lifetime": 2,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 6,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "eec4a4a416708a0b",
+        "ticks": 1080,
+        "structure": {
+          "peakEntities": 16,
+          "maxWorkUnitsPerTick": 63,
+          "maxSnapshotBytes": 6400
+        }
+      },
+      "delta": {
+        "common": {
+          "damage": 0,
+          "hits": 0,
+          "uniqueTargets": 0,
+          "activations": 0,
+          "activationRate": 0,
+          "projectiles": 0,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 0
+        },
+        "capabilityMetrics": {
+          "cadence": 0,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        }
+      },
+      "nonCosmeticDeltaCount": 0
+    },
+    {
+      "sourceKey": "universal:glove",
+      "scope": "universal",
+      "passiveId": "regen",
+      "capabilities": [
+        "projectile-streams"
+      ],
+      "status": "meaningful",
+      "invariant": {
+        "metric": "projectile-streams",
+        "comparison": "increase",
+        "expectedFailure": false,
+        "value": 7,
+        "passed": true,
+        "accepted": true,
+        "outcome": "pass"
+      },
+      "seed": "c447372fc347359cc6473a55c54738c2",
+      "base": {
+        "variantId": "universal:glove:base",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": false
+        },
+        "common": {
+          "damage": 3648,
+          "hits": 38,
+          "uniqueTargets": 6,
+          "activations": 7,
+          "activationRate": 0.389,
+          "projectiles": 49,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 17
+        },
+        "capabilityMetrics": {
+          "cadence": 0.389,
+          "pierce": 10,
+          "lifetime": 2.2,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 7,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "7966746d918790bb",
+        "ticks": 1080,
+        "structure": {
+          "peakEntities": 17,
+          "maxWorkUnitsPerTick": 72,
+          "maxSnapshotBytes": 6658
+        }
+      },
+      "evolved": {
+        "variantId": "universal:glove:evolved",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": true
+        },
+        "common": {
+          "damage": 10656,
+          "hits": 111,
+          "uniqueTargets": 8,
+          "activations": 7,
+          "activationRate": 0.389,
+          "projectiles": 98,
+          "effects": 6,
+          "tasks": 0,
+          "maxEntities": 24
+        },
+        "capabilityMetrics": {
+          "cadence": 0.389,
+          "pierce": 10,
+          "lifetime": 2.2,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 14,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "8937ad2b716c9764",
+        "ticks": 1080,
+        "structure": {
+          "peakEntities": 24,
+          "maxWorkUnitsPerTick": 135,
+          "maxSnapshotBytes": 8395
+        }
+      },
+      "delta": {
+        "common": {
+          "damage": 7008,
+          "hits": 73,
+          "uniqueTargets": 2,
+          "activations": 0,
+          "activationRate": 0,
+          "projectiles": 49,
+          "effects": 6,
+          "tasks": 0,
+          "maxEntities": 7
+        },
+        "capabilityMetrics": {
+          "cadence": 0,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 7,
+          "repairRate": 0,
+          "pickupRange": 0
+        }
+      },
+      "nonCosmeticDeltaCount": 7
+    },
+    {
+      "sourceKey": "universal:transit",
+      "scope": "universal",
+      "passiveId": "damage",
+      "capabilities": [
+        "visual-only"
+      ],
+      "status": "expected-no-op",
+      "invariant": {
+        "metric": "nonCosmeticDeltaCount",
+        "comparison": "increase",
+        "expectedFailure": true,
+        "value": 0,
+        "passed": false,
+        "accepted": true,
+        "outcome": "expected-failure"
+      },
+      "seed": "ff5bdff5fe5bde62fd5bdccffc5bdb3c",
+      "base": {
+        "variantId": "universal:transit:base",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": false
+        },
+        "common": {
+          "damage": 820,
+          "hits": 2,
+          "uniqueTargets": 2,
+          "activations": 2,
+          "activationRate": 0.111,
+          "projectiles": 0,
+          "effects": 2,
+          "tasks": 0,
+          "maxEntities": 12
+        },
+        "capabilityMetrics": {
+          "cadence": 0.111,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "7d1f95561f1d6f3b",
+        "ticks": 1080,
+        "structure": {
+          "peakEntities": 12,
+          "maxWorkUnitsPerTick": 27,
+          "maxSnapshotBytes": 5265
+        }
+      },
+      "evolved": {
+        "variantId": "universal:transit:evolved",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": true
+        },
+        "common": {
+          "damage": 820,
+          "hits": 2,
+          "uniqueTargets": 2,
+          "activations": 2,
+          "activationRate": 0.111,
+          "projectiles": 0,
+          "effects": 2,
+          "tasks": 0,
+          "maxEntities": 12
+        },
+        "capabilityMetrics": {
+          "cadence": 0.111,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "771ca990cff965c3",
+        "ticks": 1080,
+        "structure": {
+          "peakEntities": 12,
+          "maxWorkUnitsPerTick": 27,
+          "maxSnapshotBytes": 5263
+        }
+      },
+      "delta": {
+        "common": {
+          "damage": 0,
+          "hits": 0,
+          "uniqueTargets": 0,
+          "activations": 0,
+          "activationRate": 0,
+          "projectiles": 0,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 0
+        },
+        "capabilityMetrics": {
+          "cadence": 0,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        }
+      },
+      "nonCosmeticDeltaCount": 0
+    },
+    {
+      "sourceKey": "universal:ice",
+      "scope": "universal",
+      "passiveId": "armor",
+      "capabilities": [
+        "cadence"
+      ],
+      "status": "stat-only",
+      "invariant": {
+        "metric": "cadence",
+        "comparison": "increase",
+        "expectedFailure": false,
+        "value": 0.011,
+        "passed": true,
+        "accepted": true,
+        "outcome": "pass"
+      },
+      "seed": "e552abb9e452aa26e352a893e252a700",
+      "base": {
+        "variantId": "universal:ice:base",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": false
+        },
+        "common": {
+          "damage": 0,
+          "hits": 0,
+          "uniqueTargets": 0,
+          "activations": 2,
+          "activationRate": 0.111,
+          "projectiles": 0,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 10
+        },
+        "capabilityMetrics": {
+          "cadence": 0.1,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "1e0e500f4f5f5d28",
+        "ticks": 1081,
+        "structure": {
+          "peakEntities": 10,
+          "maxWorkUnitsPerTick": 9,
+          "maxSnapshotBytes": 4876
+        }
+      },
+      "evolved": {
+        "variantId": "universal:ice:evolved",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": true
+        },
+        "common": {
+          "damage": 0,
+          "hits": 0,
+          "uniqueTargets": 0,
+          "activations": 2,
+          "activationRate": 0.111,
+          "projectiles": 0,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 10
+        },
+        "capabilityMetrics": {
+          "cadence": 0.111,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "5d5425b5bad569f2",
+        "ticks": 1081,
+        "structure": {
+          "peakEntities": 10,
+          "maxWorkUnitsPerTick": 9,
+          "maxSnapshotBytes": 4876
+        }
+      },
+      "delta": {
+        "common": {
+          "damage": 0,
+          "hits": 0,
+          "uniqueTargets": 0,
+          "activations": 0,
+          "activationRate": 0,
+          "projectiles": 0,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 0
+        },
+        "capabilityMetrics": {
+          "cadence": 0.011,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        }
+      },
+      "nonCosmeticDeltaCount": 1
+    },
+    {
+      "sourceKey": "universal:annihilator",
+      "scope": "universal",
+      "passiveId": "xp",
+      "capabilities": [
+        "cadence"
+      ],
+      "status": "stat-only",
+      "invariant": {
+        "metric": "cadence",
+        "comparison": "increase",
+        "expectedFailure": false,
+        "value": 0.005,
+        "passed": true,
+        "accepted": true,
+        "outcome": "pass"
+      },
+      "seed": "bd36b05dbc36aecabb36ad37ba36aba4",
+      "base": {
+        "variantId": "universal:annihilator:base",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": false
+        },
+        "common": {
+          "damage": 11925,
+          "hits": 9,
+          "uniqueTargets": 9,
+          "activations": 1,
+          "activationRate": 0.056,
+          "projectiles": 0,
+          "effects": 1,
+          "tasks": 0,
+          "maxEntities": 19
+        },
+        "capabilityMetrics": {
+          "cadence": 0.043,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "d3fb9fa7960ab1ed",
+        "ticks": 1081,
+        "structure": {
+          "peakEntities": 19,
+          "maxWorkUnitsPerTick": 90,
+          "maxSnapshotBytes": 6368
+        }
+      },
+      "evolved": {
+        "variantId": "universal:annihilator:evolved",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": true
+        },
+        "common": {
+          "damage": 11925,
+          "hits": 9,
+          "uniqueTargets": 9,
+          "activations": 1,
+          "activationRate": 0.056,
+          "projectiles": 0,
+          "effects": 1,
+          "tasks": 0,
+          "maxEntities": 19
+        },
+        "capabilityMetrics": {
+          "cadence": 0.048,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        },
+        "finalHash": "f4c1d520cbbad95f",
+        "ticks": 1081,
+        "structure": {
+          "peakEntities": 19,
+          "maxWorkUnitsPerTick": 90,
+          "maxSnapshotBytes": 6367
+        }
+      },
+      "delta": {
+        "common": {
+          "damage": 0,
+          "hits": 0,
+          "uniqueTargets": 0,
+          "activations": 0,
+          "activationRate": 0,
+          "projectiles": 0,
+          "effects": 0,
+          "tasks": 0,
+          "maxEntities": 0
+        },
+        "capabilityMetrics": {
+          "cadence": 0.005,
+          "pierce": 0,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0,
+          "pickupRange": 0
+        }
+      },
+      "nonCosmeticDeltaCount": 1
+    },
+    {
+      "sourceKey": "universal:drone",
+      "scope": "universal",
+      "passiveId": "pickup",
+      "capabilities": [
+        "pierce",
+        "repair-rate",
+        "pickup-range"
+      ],
+      "status": "meaningful",
+      "invariant": {
+        "metric": "repair-rate",
+        "comparison": "increase",
+        "expectedFailure": false,
+        "value": 0.027,
+        "passed": true,
+        "accepted": true,
+        "outcome": "pass"
+      },
+      "seed": "02b97f3c03b980cf04b9826205b983f5",
+      "base": {
+        "variantId": "universal:drone:base",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": false
+        },
+        "common": {
+          "damage": 6555,
+          "hits": 57,
+          "uniqueTargets": 7,
+          "activations": 17,
+          "activationRate": 0.944,
+          "projectiles": 51,
+          "effects": 21,
+          "tasks": 0,
+          "maxEntities": 18
+        },
+        "capabilityMetrics": {
+          "cadence": 0.944,
+          "pierce": 1,
+          "lifetime": 2,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 3,
+          "repairRate": 0.056,
+          "pickupRange": 305
+        },
+        "finalHash": "180bb7feacd774f7",
+        "ticks": 3240,
+        "structure": {
+          "peakEntities": 18,
+          "maxWorkUnitsPerTick": 64,
+          "maxSnapshotBytes": 6817
+        }
+      },
+      "evolved": {
+        "variantId": "universal:drone:evolved",
+        "loadout": {
+          "level": 5,
+          "pairedPassiveRank": 1,
+          "evolved": true
+        },
+        "common": {
+          "damage": 7360,
+          "hits": 64,
+          "uniqueTargets": 9,
+          "activations": 17,
+          "activationRate": 0.944,
+          "projectiles": 51,
+          "effects": 23,
+          "tasks": 0,
+          "maxEntities": 18
+        },
+        "capabilityMetrics": {
+          "cadence": 0.944,
+          "pierce": 3,
+          "lifetime": 2,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 3,
+          "repairRate": 0.083,
+          "pickupRange": 400
+        },
+        "finalHash": "144f33b2c8fcbf03",
+        "ticks": 3240,
+        "structure": {
+          "peakEntities": 18,
+          "maxWorkUnitsPerTick": 64,
+          "maxSnapshotBytes": 6845
+        }
+      },
+      "delta": {
+        "common": {
+          "damage": 805,
+          "hits": 7,
+          "uniqueTargets": 2,
+          "activations": 0,
+          "activationRate": 0,
+          "projectiles": 0,
+          "effects": 2,
+          "tasks": 0,
+          "maxEntities": 0
+        },
+        "capabilityMetrics": {
+          "cadence": 0,
+          "pierce": 2,
+          "lifetime": 0,
+          "repeat": 0,
+          "flowRegeneration": 0,
+          "orbitSpeed": 0,
+          "projectileStreams": 0,
+          "repairRate": 0.027,
+          "pickupRange": 95
+        }
+      },
+      "nonCosmeticDeltaCount": 7
+    }
+  ],
+  "budgets": {
+    "maxCases": 21,
+    "maxTicksPerVariant": 3600,
+    "maxTotalTicks": 110000,
+    "maxEntitiesPerVariant": 300,
+    "maxSnapshotBytes": 150000,
+    "maxWorkUnitsPerTick": 150000,
+    "maxSuiteRuntimeMs": 30000
+  },
+  "limitations": [
+    "The harness records deterministic observables and declared capabilities; it does not implement or approve evolution mechanics.",
+    "Visual-only differences are deliberately excluded from non-cosmetic delta counts.",
+    "Expected failures preserve known gameplay-flat production evolutions as visible debt rather than weakening invariants."
+  ]
+}
