@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  AUDIO_CALIBRATION_VERSION,
   AUDIO_OUTPUT_STATES,
   AUDIO_SETTINGS_STORAGE_KEY,
   DEFAULT_AUDIO_SETTINGS,
@@ -24,10 +25,19 @@ function storage(initial = {}) {
 test("audio settings normalize, clamp, persist, and recover without identity", () => {
   const target = storage();
   const saved = saveAudioSettings({ enabled: false, master: 2, effects: -.5, voice: .44, funnyVoice: false, ignored: "secret" }, target);
-  assert.deepEqual(saved, { enabled: false, master: 1, effects: 0, voice: .44, funnyVoice: false });
+  assert.deepEqual(saved, { enabled: false, master: 1, effects: 0, voice: .44, funnyVoice: false, calibrationVersion: AUDIO_CALIBRATION_VERSION });
   assert.deepEqual(loadAudioSettings(target), saved);
-  assert.deepEqual(Object.keys(JSON.parse(target.value(AUDIO_SETTINGS_STORAGE_KEY))).sort(), ["effects", "enabled", "funnyVoice", "master", "voice"]);
+  assert.deepEqual(Object.keys(JSON.parse(target.value(AUDIO_SETTINGS_STORAGE_KEY))).sort(), ["calibrationVersion", "effects", "enabled", "funnyVoice", "master", "voice"]);
   assert.doesNotMatch(target.value(AUDIO_SETTINGS_STORAGE_KEY), /name|room|token|specialist/i);
+});
+
+test("legacy untouched defaults migrate to the louder calibrated mix without overriding custom levels", () => {
+  const legacy = storage({ [AUDIO_SETTINGS_STORAGE_KEY]: JSON.stringify({ enabled: true, master: .85, effects: .9, voice: .32, funnyVoice: true }) });
+  assert.equal(loadAudioSettings(legacy).master, DEFAULT_AUDIO_SETTINGS.master);
+  assert.equal(loadAudioSettings(legacy).effects, DEFAULT_AUDIO_SETTINGS.effects);
+  const custom = storage({ [AUDIO_SETTINGS_STORAGE_KEY]: JSON.stringify({ enabled: true, master: .4, effects: .7, voice: .2, funnyVoice: false }) });
+  assert.equal(loadAudioSettings(custom).master, .4);
+  assert.equal(loadAudioSettings(custom).effects, .7);
 });
 
 test("malformed or unavailable storage falls back to calibrated defaults", () => {

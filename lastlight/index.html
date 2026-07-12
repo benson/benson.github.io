@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260712.7">
+  <link rel="stylesheet" href="styles.css?v=20260712.8">
 </head>
 <body>
   <main id="app">
@@ -463,13 +463,13 @@
             <button id="audio-mute" class="text-button" type="button" aria-pressed="false">Mute sound</button>
           </section>
           <div class="audio-grid">
-            <label for="audio-master"><span><strong>Master volume</strong><small>Overall output on this device.</small></span><span class="audio-range"><input id="audio-master" type="range" min="0" max="100" step="1" value="85"><output id="audio-master-value" for="audio-master">85%</output></span></label>
-            <label for="audio-effects"><span><strong>Effects volume</strong><small>Weapons, impacts, alerts, and interface cues.</small></span><span class="audio-range"><input id="audio-effects" type="range" min="0" max="100" step="1" value="90"><output id="audio-effects-value" for="audio-effects">90%</output></span></label>
+            <label for="audio-master"><span><strong>Master volume</strong><small>Overall output with protected headroom.</small></span><span class="audio-range"><input id="audio-master" type="range" min="0" max="100" step="1" value="95"><output id="audio-master-value" for="audio-master">95%</output></span></label>
+            <label for="audio-effects"><span><strong>Effects volume</strong><small>Layered weapons, spatial impacts, and priority threat cues.</small></span><span class="audio-range"><input id="audio-effects" type="range" min="0" max="100" step="1" value="100"><output id="audio-effects-value" for="audio-effects">100%</output></span></label>
             <label for="audio-voice"><span><strong>Voice volume</strong><small>Optional comic “pew pew pew” callouts.</small></span><span class="audio-range"><input id="audio-voice" type="range" min="0" max="100" step="1" value="32"><output id="audio-voice-value" for="audio-voice">32%</output></span></label>
             <label class="quality-toggle" for="audio-funny-voice"><span><strong>Funny voice callouts</strong><small>Uses the browser's local speech voice. Optional and rate-limited.</small></span><input id="audio-funny-voice" type="checkbox" checked><i aria-hidden="true"></i></label>
           </div>
           <section class="audio-test-row"><div><strong>Output check</strong><small>Plays a short three-note synthesized test cue.</small><span id="audio-test-result" role="status" aria-live="polite"></span></div><button id="audio-test" class="deploy-button" type="button"><span>Test sound</span><span aria-hidden="true">♪</span></button></section>
-          <p class="quality-note">Sound settings are stored only on this device. All shipped cues are generated locally at runtime; no external sound pack is loaded.</p>
+          <p class="quality-note">Sound settings are stored only on this device. Critical hits, hostile fire, and apex warnings stay above friendly weapon chatter. Funny voice callouts use a separate control and cadence. All shipped cues are generated locally at runtime; no external sound pack is loaded.</p>
         </div>
       </form>
     </dialog>
@@ -506,7 +506,20 @@
       <div class="build-history-body">
         <article class="build-release current-build">
           <header>
-            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.12.7</h3></div>
+            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.12.8</h3></div>
+            <time class="build-shipped-at deployment-pending">Deployment verification pending</time>
+          </header>
+          <ul>
+            <li>Gave all nine signatures and twelve universal weapons distinct layered sound profiles with unique transients, body, and tails.</li>
+            <li>Added spatial panning for weapons and impacts plus priority cues for melee, heavy, Spitter, Bomber, and apex attacks.</li>
+            <li>Reserved mixer capacity for player damage, hostile fire, objectives, and apex warnings so critical information stays above late-wave chatter.</li>
+            <li>Added a compressor, bounded soft-clip stage, and fixed −3 dB output ceiling with real oscillator accounting and dense-wave fatigue tests.</li>
+            <li>Raised the calibrated default mix, migrated untouched legacy defaults, and kept funny voice callouts optional, unqueued, and separately controlled.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.12.7</h3></div>
             <time class="build-shipped-at" data-build-shipped-at="2026-07-12T15:09:00-04:00">Shipped Jul 12, 2026, 3:09 PM EDT</time>
           </header>
           <ul>
@@ -793,8 +806,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.12.7. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.12.7</strong></button>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.12.8. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.12.8</strong></button>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260712.7"></script>
+  <script type="module" src="game.js?v=20260712.8"></script>
 </body>
 </html>

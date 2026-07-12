@@ -1,13 +1,13 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260712.7";
-import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260712.7";
-import { Renderer } from "./render.js?v=20260712.7";
-import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260712.7";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260712.8";
+import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260712.8";
+import { Renderer } from "./render.js?v=20260712.8";
+import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260712.8";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
 import { getThemeAsset, getThemeMaterial } from "./themes/lastlight.js?v=20260712.1";
 import { submitRunTelemetry } from "./telemetry.js?v=20260711.5";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260712.7";
-import { BALANCE_HASH, BALANCE_VERSION } from "./balance-config.js?v=20260712.7";
+import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260712.8";
+import { BALANCE_HASH, BALANCE_VERSION } from "./balance-config.js?v=20260712.8";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
 import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260712.1";
 import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260711.5";
@@ -15,19 +15,20 @@ import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settings
 import { clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260711.5";
 import { GuestInputSequenceTracker, HostInputSequenceGate, createSnapshotMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260711.5";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260711.5";
-import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260712.7";
-import { advancePlayerMovement } from "./movement.js?v=20260712.7";
+import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260712.8";
+import { advancePlayerMovement } from "./movement.js?v=20260712.8";
 import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
-import { DynamicAudioMixer } from "./audio-mix.js?v=20260712.7";
-import { LASTLIGHT_AUDIO_CUES, resolveAudioCue } from "./audio-cues.js?v=20260712.7";
-import { audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260712.7";
-import { buildUpgradeComparison, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260712.7";
-import { getWeaponEvolution } from "./weapon-evolution.js?v=20260712.7";
+import { DynamicAudioMixer } from "./audio-mix.js?v=20260712.8";
+import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260712.8";
+import { enemyAudioCueName, newEntities, spatialAudioPan, weaponAudioCueName, weaponTimerActivations } from "./audio-events.js?v=20260712.8";
+import { FUNNY_VOICE_MIN_INTERVAL_MS, audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260712.8";
+import { buildUpgradeComparison, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260712.8";
+import { getWeaponEvolution } from "./weapon-evolution.js?v=20260712.8";
 import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260712.1";
 import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260712.1";
-import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260712.7";
-import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260712.7";
-import { reconcileActiveBuffs } from "./active-buffs.js?v=20260712.7";
+import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260712.8";
+import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260712.8";
+import { reconcileActiveBuffs } from "./active-buffs.js?v=20260712.8";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -36,7 +37,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.12.7";
+const BUILD = "2026.07.12.8";
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
 const systemReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false;
 const initialQualitySettings = (() => {
@@ -64,6 +65,11 @@ const CLIENT_TOKEN_KEY = "lastlight:client-token:v1";
 const DAMAGE_LEDGER_LAYOUT_KEY = "lastlight:damage-ledger-layout:v1";
 const LAST_REPLAY_KEY = "lastlight:last-replay:v1";
 const DAMAGE_LEDGER_DEFAULT = Object.freeze({ x: 22, y: 112, width: 250, height: 150, collapsed: false, userSized: false });
+const emptySoundState = () => ({
+  projectileIds: new Set(), effectIds: new Set(), hostileIds: new Set(), attackingIds: new Set(), weaponTimers: new Map(),
+  kills: 0, level: 1, damageTaken: 0, xpCollected: 0,
+  lastShot: 0, lastEnemy: 0, lastKill: 0, lastMaterial: 0, lastXP: 0,
+});
 const DIFFICULTY_COPY = { story: "Story · Sharp hits · Lighter opening", hard: "Hard · 3× health · 2× damage", extreme: "Extreme · 7× health · 3× damage" };
 
 function loadProgress() {
@@ -112,8 +118,8 @@ const state = {
   audioSettings: initialAudioSettings,
   audioAvailable: audioSupported,
   audioStatus: audioOutputState({ supported: audioSupported, enabled: initialAudioSettings.enabled }),
-  audioContext: null, audioMixer: null, audioUnlockInFlight: null, audioUnlockAttempts: 0, audioUnlockReason: "startup", audioLastError: "", toastTimer: null, lastVoiceAt: 0,
-  soundState: { projectiles: 0, kills: 0, level: 1, damageTaken: 0, xpCollected: 0, lastShot: 0, lastXP: 0 },
+  audioContext: null, audioMixer: null, audioUnlockInFlight: null, audioUnlockAttempts: 0, audioUnlockReason: "startup", audioLastError: "", activeAudioNodes: 0, peakAudioNodes: 0, toastTimer: null, lastVoiceAt: 0,
+  soundState: emptySoundState(),
   recentErrors: [], reportSubmitting: false, resumeAfterReport: false, telemetrySent: false,
   qualitySettings: initialQualitySettings, showEnemyHealthBars: initialQualitySettings.healthBars !== "off", inspectPointer: null, inspectActive: false,
   performanceMetrics: null, lastDamageLedgerKey: "",
@@ -597,7 +603,7 @@ function startRemoteGame(message) {
 function enterGame() {
   setScreen("game"); renderer.resize(); state.endShown = false; state.telemetrySent = false; state.resultSavedKey = ""; state.lastEventSeq = 0; state.lastUpgradeKey = ""; state.lastWeaponHUDKey = ""; state.lastPassiveHUDKey = ""; state.lastSquadHUDKey = ""; state.lastFrame = performance.now();
   state.performanceMetrics = { samples: [], frames: 0, longFrames: 0, maxEntities: {}, inputLatencies: [], predictionCorrections: [] };
-  state.soundState = { projectiles: 0, effects: 0, kills: 0, level: 1, damageTaken: 0, xpCollected: 0, lastShot: 0, lastMaterial: 0, lastXP: 0 };
+  state.soundState = emptySoundState();
   state.lastDamageLedgerKey = "";
   state.lastSend = 0; state.lastBroadcast = 0; state.hostPreviousMotion = null; state.inputMotionStartedAt = 0; state.inputMotionStart = null; state.inputWasActive = false;
   fixedClock.reset(); movementPredictor.reset(); resetInputProtocol(); renderer.resetCamera(); $("game-canvas").focus();
@@ -639,7 +645,10 @@ function gameLoop(now) {
   if (current) {
     const renderStarted = performance.now(); renderer.draw(renderState || current, state.clientId, renderPrevious, interpolation, dt); const renderMs = performance.now() - renderStarted;
     const materialCue = renderer.drainMaterialAudioCues(1)[0];
-    if (materialCue && now - state.soundState.lastMaterial > 72) { state.soundState.lastMaterial = now; sfx(`material:${materialCue.family}`, materialCue); }
+    if (materialCue && now - state.soundState.lastMaterial > 140) {
+      const listener = current.players?.find((player) => player.id === state.clientId) || current.players?.[0];
+      state.soundState.lastMaterial = now; sfx(`material:${materialCue.family}`, { ...materialCue, pan: spatialAudioPan(materialCue, listener) });
+    }
     const hudStarted = performance.now(); updateHUD(current); updateUpgrade(current); processEvents(current.events || []); const hudMs = performance.now() - hudStarted;
     if (state.inspectActive && state.inspectPointer) inspectCanvasAt({ ...state.inspectPointer, shiftKey: true });
     trackInputLatency(renderState || current, input, now);
@@ -741,6 +750,7 @@ function cast(slot) {
   if (state.isHost) {
     if (recordHostCast(state.clientId, slot)) {
       sfx(slot === "r" ? "ultimate" : "ability");
+      send({ type: "cast_audio", playerId: state.clientId, slot });
       if (slot === "r") comicVoice("pew pew pew");
     }
   } else {
@@ -750,6 +760,7 @@ function cast(slot) {
       movementPredictor.player.aimFacing = state.input.aim;
     }
     send({ type: "cast", slot }); sfx(slot === "r" ? "ultimate" : "ability");
+    if (slot === "r") comicVoice("pew pew pew");
   }
 }
 
@@ -845,22 +856,52 @@ function openQualitySettings() {
 }
 
 function updateSoundState(game) {
-  const now = performance.now(), projectiles = game.projectiles?.length || 0, effects = game.effects?.length || 0;
+  const now = performance.now();
   const local = game.players?.find((player) => player.id === state.clientId) || game.players?.[0];
-  if (projectiles > state.soundState.projectiles && now - state.soundState.lastShot > 85) {
-    const grammar = resolveEntityImpact(game.projectiles.at(-1), game);
-    state.soundState.lastShot = now; sfx(grammar ? `weapon:${grammar.soundFamily}` : "shot");
-  } else if (effects > state.soundState.effects && now - state.soundState.lastShot > 120) {
-    const effect = [...(game.effects || [])].reverse().find((candidate) => resolveEntityImpact(candidate, game));
-    const grammar = resolveEntityImpact(effect, game);
-    if (grammar) { state.soundState.lastShot = now; sfx(`weapon:${grammar.soundFamily}`); }
+  const timerActivations = weaponTimerActivations(state.soundState.weaponTimers, game.players);
+  state.soundState.weaponTimers = timerActivations.timers;
+  const fieldActivation = [...timerActivations.activated].reverse().find(({ player }) => player.id === local?.id) || timerActivations.activated.at(-1);
+  if (fieldActivation && now - state.soundState.lastShot > 125) {
+    state.soundState.lastShot = now;
+    sfx(`weapon:universal-${fieldActivation.weaponId}`, { pan: spatialAudioPan(fieldActivation.player, local) });
   }
-  if (game.kills > state.soundState.kills) sfx("kill");
+  const projectiles = newEntities(state.soundState.projectileIds, game.projectiles);
+  state.soundState.projectileIds = projectiles.ids;
+  if (projectiles.added.length && now - state.soundState.lastShot > 125) {
+    const projectile = [...projectiles.added].reverse().find((candidate) => candidate.owner === local?.id) || projectiles.added.at(-1);
+    const grammar = resolveEntityImpact(projectile, game);
+    state.soundState.lastShot = now;
+    sfx(grammar ? weaponAudioCueName(grammar) : "shot", { pan: spatialAudioPan(projectile, local) });
+  }
+  const effects = newEntities(state.soundState.effectIds, game.effects);
+  state.soundState.effectIds = effects.ids;
+  const hostileEffect = effects.added.find((effect) => effect.owner === "enemy" && effect.kind === "danger");
+  if (hostileEffect && now - state.soundState.lastEnemy > 180) {
+    state.soundState.lastEnemy = now;
+    sfx("enemy:bomber", { pan: spatialAudioPan(hostileEffect, local) });
+  } else if (!projectiles.added.length && effects.added.length && now - state.soundState.lastShot > 140) {
+    const effect = [...effects.added].reverse().find((candidate) => resolveEntityImpact(candidate, game));
+    const grammar = resolveEntityImpact(effect, game);
+    if (grammar) { state.soundState.lastShot = now; sfx(weaponAudioCueName(grammar), { pan: spatialAudioPan(effect, local) }); }
+  }
+  const hostile = newEntities(state.soundState.hostileIds, game.hostile);
+  state.soundState.hostileIds = hostile.ids;
+  if (hostile.added.length && now - state.soundState.lastEnemy > 130) {
+    const projectile = hostile.added.at(-1);
+    state.soundState.lastEnemy = now;
+    sfx(enemyAudioCueName(projectile, game.enemies), { pan: spatialAudioPan(projectile, local) });
+  }
+  const attackers = newEntities(state.soundState.attackingIds, (game.enemies || []).filter((enemy) => Number(enemy.attackFlash) > .04));
+  state.soundState.attackingIds = attackers.ids;
+  if (attackers.added.length && now - state.soundState.lastEnemy > 180) {
+    const attacker = attackers.added.at(-1);
+    state.soundState.lastEnemy = now;
+    sfx(enemyAudioCueName(attacker, game.enemies), { pan: spatialAudioPan(attacker, local) });
+  }
+  if (game.kills > state.soundState.kills && now - state.soundState.lastKill > 100) { state.soundState.lastKill = now; sfx("kill"); }
   if (game.level > state.soundState.level) sfx("level");
   if ((local?.damageTaken || 0) > state.soundState.damageTaken) sfx("hurt");
-  if ((local?.xpCollected || 0) > state.soundState.xpCollected && now - state.soundState.lastXP > 42) { state.soundState.lastXP = now; sfx("xp"); }
-  state.soundState.projectiles = projectiles;
-  state.soundState.effects = effects;
+  if ((local?.xpCollected || 0) > state.soundState.xpCollected && now - state.soundState.lastXP > 170) { state.soundState.lastXP = now; sfx("xp"); }
   state.soundState.kills = game.kills || 0;
   state.soundState.level = game.level || 1;
   state.soundState.damageTaken = local?.damageTaken || 0;
@@ -1244,10 +1285,11 @@ function chooseUpgrade(choiceId) {
 function processEvents(events) {
   for (const event of events) {
     if (event.seq <= state.lastEventSeq) continue; state.lastEventSeq = event.seq;
-    if (event.type === "cast") { if (!state.isHost) sfx("shot"); continue; }
+    if (event.type === "cast") continue;
     if (event.type === "signature-evolution-proc" || event.type === "weapon-evolution-proc") continue;
-    if (event.type === "danger") sfx("danger");
+    if (event.type === "danger") sfx(/apex|phase|has arrived|enraged/i.test(event.title) ? "enemy:apex" : "danger");
     else if (event.type === "victory") sfx("victory");
+    else if (event.type === "defeat") sfx("defeat");
     else if (event.type === "upgrade" || event.type === "boon") sfx("reward");
     else sfx("objective");
     showBanner(event.title, event.copy, event.type);
@@ -1577,7 +1619,13 @@ function handleNetworkMessage(raw) {
   }
   else if (message.type === "return_lobby" && !state.isHost) returnToLobby();
   else if (message.type === "input" && state.isHost) applyGuestNetworkInput(message);
-  else if (message.type === "cast" && state.isHost) recordHostCast(message._from, message.slot);
+  else if (message.type === "cast" && state.isHost) {
+    if (recordHostCast(message._from, message.slot)) {
+      sfx(message.slot === "r" ? "ultimate" : "ability");
+      send({ type: "cast_audio", playerId: message._from, slot: message.slot });
+    }
+  }
+  else if (message.type === "cast_audio" && !state.isHost && message.playerId !== state.clientId) sfx(message.slot === "r" ? "ultimate" : "ability");
   else if (message.type === "choice" && state.isHost) recordHostChoice(message._from, message.choiceId);
   else if (message.type === "snapshot" && !state.isHost) {
     let snapshotMessage; try { snapshotMessage = sanitizeSnapshotMessage(message, { transport: true }); } catch { return; }
@@ -1776,6 +1824,7 @@ function audioDiagnostics() {
     lastError: state.audioLastError || null,
     settings: { ...state.audioSettings },
     cueRegistry: { schema: LASTLIGHT_AUDIO_CUES.schema, version: LASTLIGHT_AUDIO_CUES.schemaVersion, provenance: { ...LASTLIGHT_AUDIO_CUES.provenance } },
+    runtimeNodes: { active: state.activeAudioNodes, peak: state.peakAudioNodes },
     mix: state.audioMixer?.diagnostics() || null,
   };
 }
@@ -1815,7 +1864,7 @@ function applyAudioSettings(settings, persist = true) {
   state.audioSettings = persist ? saveAudioSettings(settings) : settings;
   state.audioMixer?.setVolumes({ master: state.audioSettings.master, effects: state.audioSettings.effects });
   state.audioMixer?.setMuted(!state.audioSettings.enabled);
-  if (!state.audioSettings.enabled) window.speechSynthesis?.cancel();
+  if (!state.audioSettings.enabled || !state.audioSettings.funnyVoice || state.audioSettings.voice <= 0) window.speechSynthesis?.cancel();
   state.audioStatus = audioOutputState({ supported: state.audioAvailable, enabled: state.audioSettings.enabled, contextState: state.audioContext?.state });
   renderAudioControls();
 }
@@ -1847,20 +1896,28 @@ async function unlockAudioFromGesture(reason = "gesture") {
   return state.audioUnlockInFlight;
 }
 
-function audioTone(audio, frequency, offset = 0, duration = .08, type = "sine", volume = .025, endFrequency = frequency, destination = audio.destination) {
+function audioTone(audio, frequency, offset = 0, duration = .08, type = "sine", volume = .025, endFrequency = frequency, destination = audio.destination, pan = 0) {
   if (volume <= 0) return;
   const start = audio.currentTime + offset, oscillator = audio.createOscillator(), gain = audio.createGain();
   oscillator.type = type; oscillator.frequency.setValueAtTime(frequency, start); oscillator.frequency.exponentialRampToValueAtTime(Math.max(20, endFrequency), start + duration);
   gain.gain.setValueAtTime(.0001, start); gain.gain.exponentialRampToValueAtTime(volume, start + .008); gain.gain.exponentialRampToValueAtTime(.0001, start + duration);
-  oscillator.connect(gain).connect(destination); oscillator.start(start); oscillator.stop(start + duration + .01);
+  const panner = audio.createStereoPanner?.();
+  if (panner) { panner.pan.setValueAtTime(Math.max(-1, Math.min(1, Number(pan) || 0)), start); oscillator.connect(gain).connect(panner).connect(destination); }
+  else oscillator.connect(gain).connect(destination);
+  state.activeAudioNodes += 1; state.peakAudioNodes = Math.max(state.peakAudioNodes, state.activeAudioNodes);
+  let cleaned = false;
+  const cleanup = () => { if (cleaned) return; cleaned = true; state.activeAudioNodes = Math.max(0, state.activeAudioNodes - 1); oscillator.disconnect?.(); gain.disconnect?.(); panner?.disconnect?.(); };
+  oscillator.addEventListener?.("ended", cleanup, { once: true });
+  oscillator.start(start); oscillator.stop(start + duration + .01);
 }
 
 function sfx(name, details = {}) {
-  if (!state.audioSettings.enabled || state.audioStatus === "unavailable") return;
-  const audio = ensureAudio(); if (!audio) return;
-  if (audio.state !== "running") { state.audioStatus = "locked"; renderAudioControls(); return; }
-  const cue = state.audioMixer.requestCue(name, details); if (!cue) return;
+  if (!state.audioSettings.enabled || state.audioStatus === "unavailable") return false;
+  const audio = ensureAudio(); if (!audio) return false;
+  if (audio.state !== "running") { state.audioStatus = "locked"; renderAudioControls(); return false; }
   const definition = resolveAudioCue(name, details);
+  const envelope = audioCueEnvelopeDuration(name, details);
+  const cue = state.audioMixer.requestCue(name, { ...details, duration: Math.max(Number(details.duration) || 0, envelope), voiceCount: definition.voices.length }); if (!cue) return false;
   for (const voice of definition.voices) audioTone(
     audio,
     voice.frequency * cue.variation.pitch,
@@ -1870,15 +1927,38 @@ function sfx(name, details = {}) {
     voice.volume * cue.variation.gain,
     voice.endFrequency * cue.variation.pitch,
     cue.destination,
+    cue.pan,
   );
+  return true;
 }
 
 function comicVoice(words) {
   const now = performance.now();
-  if (!state.audioSettings.enabled || !state.audioSettings.funnyVoice || state.audioSettings.voice <= 0 || !window.speechSynthesis || now - state.lastVoiceAt < 8000) return;
+  if (!state.audioSettings.enabled || !state.audioSettings.funnyVoice || state.audioSettings.voice <= 0 || !window.speechSynthesis || window.speechSynthesis.speaking || window.speechSynthesis.pending || now - state.lastVoiceAt < FUNNY_VOICE_MIN_INTERVAL_MS) return;
   state.lastVoiceAt = now;
   const utterance = new SpeechSynthesisUtterance(words); utterance.rate = 1.65; utterance.pitch = 1.35; utterance.volume = state.audioSettings.voice * state.audioSettings.master;
   window.speechSynthesis.speak(utterance);
+}
+
+async function measureOfflineAudioHeadroom(names = []) {
+  const OfflineContext = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  if (!OfflineContext) return { supported: false };
+  const sampleRate = 48_000, audio = new OfflineContext(2, sampleRate * 2, sampleRate);
+  const mixer = new DynamicAudioMixer(audio, { density: "full", masterVolume: 1, effectsVolume: 1 });
+  const entries = Array.isArray(names) ? names.slice(0, 64) : [];
+  for (const entry of entries) {
+    const name = typeof entry === "string" ? entry : String(entry?.name || "ui");
+    const details = typeof entry === "object" && entry ? entry : {};
+    const definition = resolveAudioCue(name, details), envelope = audioCueEnvelopeDuration(name, details);
+    const cue = mixer.requestCue(name, { ...details, duration: envelope, voiceCount: definition.voices.length });
+    if (!cue) continue;
+    for (const voice of definition.voices) audioTone(audio, voice.frequency, voice.offset, voice.duration, voice.waveform, voice.volume, voice.endFrequency, cue.destination, cue.pan);
+  }
+  const mix = mixer.diagnostics(), buffer = await audio.startRendering();
+  let peak = 0;
+  for (let channel = 0; channel < buffer.numberOfChannels; channel++) for (const sample of buffer.getChannelData(channel)) peak = Math.max(peak, Math.abs(sample));
+  mixer.dispose();
+  return { supported: true, peak, peakDb: peak > 0 ? 20 * Math.log10(peak) : -Infinity, mix };
 }
 
 async function toggleAudio() {
@@ -1896,7 +1976,7 @@ function openAudioSettings() {
 async function testAudioOutput() {
   $("audio-test-result").textContent = "Unlocking audio…";
   const ready = await unlockAudioFromGesture("sound-test");
-  if (ready) { sfx("test"); $("audio-test-result").textContent = "Test tone played."; }
+  if (ready) $("audio-test-result").textContent = sfx("test") ? "Test tone played." : "Test tone is busy. Try again in a moment.";
   else $("audio-test-result").textContent = state.audioStatus === "muted" ? "Turn sound on before testing." : state.audioStatus === "unavailable" ? "Web Audio is unavailable in this browser." : "Audio is still locked. Try clicking Test sound again.";
 }
 
@@ -2047,5 +2127,6 @@ if (localHost) Object.defineProperty(window, "__lastlightQA", { value: Object.fr
   setScreen: (screen) => { if (!screens[screen]) return false; setScreen(screen); return true; },
   renderActiveBuffs: (fields = {}) => updateActiveBuffs(fields),
   renderDamageLedger: (damageBySource = {}) => updateDamageLedger({ specialist: state.selected, damageBySource }, { time: 60 }),
-  playAudioCues: (names = []) => Array.isArray(names) && names.slice(0, 64).forEach((name) => sfx(String(name))),
+    playAudioCues: (entries = []) => Array.isArray(entries) && entries.slice(0, 64).forEach((entry) => typeof entry === "string" ? sfx(entry) : sfx(String(entry?.name || "ui"), entry || {})),
+    measureAudioHeadroom: (names = []) => measureOfflineAudioHeadroom(names),
 }), configurable: false, writable: false });
