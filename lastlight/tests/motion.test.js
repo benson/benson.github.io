@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   ENEMY_MOTION_STATES, MOTION_DIRECTIONS, SPECIALIST_MOTION_STATES, directionColumn,
-  enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, resolveMotionState, specialistMotionState, validateMotionRig,
+  enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, resolveMotionState, specialistMotionState, stableDirectionColumn, validateMotionRig,
 } from "../motion.js";
 
 const rig = (kind = "specialist") => ({
@@ -16,6 +16,17 @@ const rig = (kind = "specialist") => ({
     loop: ["idle", "run", "locomotion", "victory"].includes(state), authored: false,
     frames: [{ row: index, ms: 100, offsetY: 3, rotation: .1, scaleX: .9, scaleY: 1.1 }],
   }])),
+});
+
+test("direction hysteresis prevents diagonal frame-to-frame atlas flicker", () => {
+  const boundary = Math.PI / 4;
+  let column = 3;
+  for (const jitter of [-.03, .02, -.01, .04, -.04, .03]) column = stableDirectionColumn(boundary + jitter, column);
+  assert.equal(column, 3, "small diagonal aim jitter stays east");
+  column = stableDirectionColumn(boundary + .18, column);
+  assert.equal(column, 0, "a decisive turn switches south");
+  column = stableDirectionColumn(boundary - .18, column);
+  assert.equal(column, 3, "a decisive return switches east");
 });
 
 test("strict motion rigs cover every required clip and four authored directions", () => {

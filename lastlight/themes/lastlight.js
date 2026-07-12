@@ -195,7 +195,7 @@ function plannedSpecialistRig(id) {
     bindings: { dash: "mobility", castE: "cast", castR: "cast" },
     states: {
       idle: { ...frames([0, 1], [320, 320], true), loop: true },
-      run: { ...frames([2, 3, 2, 3, 2, 3], 72, true), loop: true },
+      run: { ...frames([2, 3], 125, true), loop: true },
       mobility: { loop: false, authored: true, frames: [{ row: 4, ms: 70, scaleX: 1.03, scaleY: .97 }, { row: 4, ms: 70 }, { row: 4, ms: 100, scaleX: .98 }] },
       cast: { loop: false, authored: true, frames: [{ row: 1, ms: 80, scaleX: .98 }, { row: 1, ms: 80 }, { row: 4, ms: 70, scaleX: 1.03 }, { row: 0, ms: 130 }] },
       hurt: frames([5, 5], [80, 150], true),
@@ -213,7 +213,7 @@ function zuriPrototypeRig() {
     grid: { columns: 4, rows: 5 }, anchor: [.5, .82], drawSize: [138, 110],
     states: {
       idle: { ...frames([0, 0], [260, 260], true), loop: true },
-      run: { ...frames([1, 2, 1, 2, 1, 2], 72, true), loop: true },
+      run: { ...frames([1, 2], 125, true), loop: true },
       mobility: frames([3, 3, 3], [60, 60, 100], true),
       cast: frames([3, 3, 3, 0], [80, 80, 70, 130]),
       hurt: frames([4, 4], [80, 150], true), down: frames([4, 4, 4, 4], [90, 110, 140, 420]),
@@ -226,7 +226,7 @@ function zuriPrototypeRig() {
 function plannedEnemyRig(id, layout, boss = false) {
   const source = boss ? `assets/motion-normalized/bosses/${id}.webp` : `assets/motion-normalized/enemies/${id}.webp`;
   const compactFiveRows = id === "spitter" || id === "bomber" || (boss && id === "beachhead");
-  const locomotionRows = compactFiveRows ? [2, 2, 2, 2, 2, 2] : [2, 3, 2, 3, 2, 3];
+  const locomotionRows = compactFiveRows ? [2] : [2, 3];
   const actionRow = compactFiveRows ? 3 : 4;
   const hurtDeathRow = compactFiveRows ? 4 : 5;
   return {
@@ -237,7 +237,7 @@ function plannedEnemyRig(id, layout, boss = false) {
     sockets: { contact: { distance: layout.contact[0], vertical: layout.contact[1] } }, bindings: {},
     states: {
       idle: { ...frames([0, 1], [300, 300], true), loop: true },
-      locomotion: { ...frames(locomotionRows, boss ? 105 : 82, true), loop: true },
+      locomotion: { ...frames(locomotionRows, boss ? 135 : compactFiveRows ? 140 : 110, true), loop: true },
       attackWindup: { loop: false, authored: false, frames: [{ row: 1, ms: 90, scaleX: .96 }, { row: 1, ms: 90, scaleX: .93, scaleY: 1.03 }] },
       attackContact: frames([actionRow], 70, true),
       attackRecovery: { loop: false, authored: true, frames: [{ row: actionRow, ms: 90, scaleX: 1.03 }, { row: 0, ms: 130 }] },
