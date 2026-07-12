@@ -6,6 +6,14 @@ const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 const game = readFileSync(new URL("../game.js", import.meta.url), "utf8");
 
+test("guide exposes the six adaptive impact materials and their accessibility fallbacks", () => {
+  assert.match(html, /href="#guide-materials"/);
+  assert.match(game, /id="guide-materials"/);
+  assert.match(game, /MATERIAL_CLASSES\.map/);
+  assert.match(game, /material\.fallback\.label/);
+  assert.match(game, /renderer\.drainMaterialAudioCues/);
+});
+
 test("damage source telemetry updates a persistent interactive panel shell", () => {
   assert.match(html, /id="damage-ledger-handle"[^>]+tabindex="0"/);
   assert.match(html, /id="damage-ledger-collapse"[^>]+aria-expanded="true"/);
@@ -72,6 +80,15 @@ test("upgrade draft typography is readable on desktop while mobile stays compact
   ]) assert.match(desktop, rule);
   assert.match(css, /@media \(max-width: 650px\) \{[\s\S]+\.upgrade-panel h2 \{ font-size: 40px; \}/);
   assert.match(css, /\.teammate-choice:focus-visible \.teammate-choice-tooltip \{[^}]+transition: none;/s);
+});
+
+test("post-run results stay contained on phone-width viewports", () => {
+  assert.match(css, /\.result-card \{[^}]+min-width: 0;/s);
+  assert.match(css, /\.scoreboard-wrap \{[^}]+max-width: 100%;[^}]+overflow-x: auto;/s);
+  const mobile = css.match(/@media \(max-width: 650px\) \{([\s\S]+?)\n\}/)?.[1] || "";
+  assert.match(mobile, /\.result-screen \{ place-items: start center; padding: 12px; \}/);
+  assert.match(mobile, /\.result-damage-breakdown \{ grid-template-columns: minmax\(0, 1fr\); \}/);
+  assert.match(mobile, /\.result-damage-breakdown article > div \{ grid-template-columns: minmax\(72px, \.8fr\) minmax\(42px, 1fr\) minmax\(76px, auto\);/);
 });
 
 test("upgrade intelligence uses authoritative combat metadata", () => {

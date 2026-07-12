@@ -1,4 +1,5 @@
-import { ENEMY_MOTION_STATES, MOTION_DIRECTIONS, MOTION_SCHEMA, SPECIALIST_MOTION_STATES, validateMotionRig } from "../motion.js?v=20260711.6";
+import { ENEMY_MOTION_STATES, MOTION_DIRECTIONS, MOTION_SCHEMA, SPECIALIST_MOTION_STATES, validateMotionRig } from "../motion.js?v=20260711.8";
+import { LASTLIGHT_MATERIAL_THEME, MATERIAL_CLASSES, validateMaterialTheme } from "../material-impacts.js?v=20260711.8";
 
 /**
  * The canonical asset contract for a Lastlight visual theme.
@@ -254,6 +255,7 @@ export const LASTLIGHT_THEME = defineTheme({
   id: "lastlight",
   name: "Lastlight",
   assets: LASTLIGHT_ASSETS,
+  materials: LASTLIGHT_MATERIAL_THEME,
   animations: {
     specialists: specialistMotions,
     enemies: enemyMotions,
@@ -276,6 +278,11 @@ export function getThemeAnimation(specialistId, theme = LASTLIGHT_THEME) {
 
 export function getThemeEnemyAnimation(enemyType, theme = LASTLIGHT_THEME, mapId = "") {
   return enemyType === "boss" ? theme?.animations?.bosses?.[mapId] || null : theme?.animations?.enemies?.[enemyType] || null;
+}
+
+export function getThemeMaterial(materialId, theme = LASTLIGHT_THEME) {
+  if (!MATERIAL_CLASSES.includes(materialId) || !theme?.materials?.[materialId]) throw new Error(`Unknown theme material: ${materialId}`);
+  return theme.materials[materialId];
 }
 
 export function getMissingMotionAssets(theme = LASTLIGHT_THEME) {
@@ -302,6 +309,7 @@ export function validateTheme(theme) {
   if (!theme || typeof theme !== "object") return { valid: false, errors: ["Theme must be an object."], assetCount: 0 };
   if (typeof theme.id !== "string" || !theme.id.trim()) errors.push("Theme id must be a non-empty string.");
   if (typeof theme.name !== "string" || !theme.name.trim()) errors.push("Theme name must be a non-empty string.");
+  for (const error of validateMaterialTheme(theme.materials)) errors.push(error);
 
   const groups = [
     ["specialists", theme.assets?.specialists, THEME_ASSET_KEYS.specialists],

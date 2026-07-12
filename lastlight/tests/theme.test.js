@@ -10,6 +10,7 @@ import {
   getThemeAnimation,
   getThemeAsset,
   getThemeEnemyAnimation,
+  getThemeMaterial,
   validateTheme,
 } from "../themes/lastlight.js";
 import { ENEMY_MOTION_STATES, SPECIALIST_MOTION_STATES } from "../motion.js";
@@ -108,6 +109,9 @@ test("logical asset lookup is predictable and rejects typos", () => {
   assert.equal(getThemeAsset("guide.passives.projectiles"), "assets/guide/passives/multishot.webp");
   assert.equal(getThemeAsset("archive.augments.glassCannon"), "assets/archive/glass-cannon.webp");
   assert.throws(() => getThemeAsset("archive.augments.glassCanon"), /Unknown theme asset/);
+  assert.equal(getThemeMaterial("metal").label, "Metal / armor");
+  assert.equal(getThemeMaterial("void").fallback.pattern, "inward-spiral");
+  assert.throws(() => getThemeMaterial("wood"), /Unknown theme material/);
 });
 
 test("specialist motion metadata is complete, strict, and theme-swappable", async () => {

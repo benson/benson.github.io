@@ -94,6 +94,13 @@ test("legacy v1 replay manifests remain readable with the original gameplay iden
   assert.throws(() => validateReplay(legacy, { gameplayVersion: "events-off-v1" }), /gameplay feature version mismatch/);
 });
 
+test("movement v3 keeps feature-bearing v2 manifests readable without changing input tuples", () => {
+  const legacy = base();
+  legacy.schema = "lastlight.replay.v2";
+  assert.doesNotThrow(() => validateReplay(legacy, { gameplayVersion: "events-v1" }));
+  assert.equal(legacy.commands[0].length, 8);
+});
+
 test("join and reconnect commands reuse an anonymous slot without changing the initial roster", () => {
   const recorder = new ReplayRecorder({
     build: "2026.07.11.3", balanceVersion: "2026.07.11-baseline.1", balanceHash: "fnv1a32:7e33be79",

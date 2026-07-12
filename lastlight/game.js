@@ -1,21 +1,23 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260711.5";
-import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260711.5";
-import { Renderer } from "./render.js?v=20260711.5";
-import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260711.5";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260711.8";
+import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260711.8";
+import { Renderer } from "./render.js?v=20260711.8";
+import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260711.8";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
-import { getThemeAsset } from "./themes/lastlight.js?v=20260711.5";
+import { getThemeAsset, getThemeMaterial } from "./themes/lastlight.js?v=20260711.8";
 import { submitRunTelemetry } from "./telemetry.js?v=20260711.5";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { formatProjectileDisplay, getCombatMetadata, getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260711.5";
-import { BALANCE_HASH, BALANCE_VERSION } from "./balance-config.js?v=20260711.5";
+import { formatProjectileDisplay, getCombatMetadata, getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260711.8";
+import { BALANCE_HASH, BALANCE_VERSION } from "./balance-config.js?v=20260711.8";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
-import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260711.5";
+import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260711.8";
 import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260711.5";
 import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260711.5";
 import { clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260711.5";
 import { GuestInputSequenceTracker, HostInputSequenceGate, createSnapshotMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260711.5";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260711.5";
-import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260711.5";
+import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260711.8";
+import { advancePlayerMovement } from "./movement.js?v=20260711.8";
+import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -24,7 +26,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.11.7";
+const BUILD = "2026.07.11.8";
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
 const systemReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false;
 const initialQualitySettings = (() => {
@@ -377,6 +379,10 @@ function renderGuide() {
     return guideCard(spec.signature.glyph, `${spec.name} · ${spec.signature.name}`, `Evolves to ${spec.signature.evolve}`, `Reach weapon level 5 and own ${passive?.name || spec.signature.passive}, then collect an elite access card.`, "", spec.signature.icon, guideWeaponDetails("signature", id));
   }).join("");
   const weapons = Object.values(WEAPONS).map((weapon) => guideCard(weapon.glyph, weapon.name, `Evolves to ${weapon.evolve}`, `${weapon.copy} Evolution requires level 5 + ${PASSIVES[weapon.passive]?.name || weapon.passive}.`, "", weapon.icon, guideWeaponDetails(weapon.id))).join("");
+  const materials = MATERIAL_CLASSES.map((id) => {
+    const material = getThemeMaterial(id);
+    return guideCard(id.slice(0, 3).toUpperCase(), material.label, material.examples, `Weapon endpoints adapt with ${material.particles.shape.replaceAll("-", " ")}, a ${material.decal.shape.replaceAll("-", " ")} decal, and an accessibility-safe ${material.fallback.pattern.replaceAll("-", " ")} cue.`, "", "", { Particles: `${material.particles.count} max`, Decal: `${material.decal.lifetimeMs}ms`, Audio: material.sound.family, Fallback: material.fallback.label });
+  }).join("");
   const passives = Object.values(PASSIVES).map((passive) => guideCard(passive.glyph, passive.name, `${passive.amount} · max ${passive.max}`, passive.id === "projectiles" ? "Adds a projectile to compatible attacks; single-instance fields and utility effects do not multiply." : "Passive stats also unlock matching weapon evolutions.", "", passive.icon, { "Each rank": passive.amount, "Maximum": `${passive.max} ranks` })).join("");
   const fieldObjects = [
     ...Object.values(ENEMY_TYPES).map((enemy) => {
@@ -397,7 +403,7 @@ function renderGuide() {
     ...BOONS.map((boon) => guideCard("★", boon.name, "Rare squad boon", boon.copy, "", boon.icon)),
     ...AUGMENTS.map((augment) => guideCard("AUG", augment.name, "Rare augment", augment.copy, "", augment.icon)),
   ].join("");
-  $("guide-content").innerHTML = `<section id="guide-campaign" class="guide-section"><h3>Campaign route</h3><p>Clear threat tiers to unlock harder operations. Progress is saved in this browser.</p><div class="campaign-route">${campaign}</div></section><section id="guide-field" class="guide-section"><h3>Field objects</h3><p>Hold Shift and point at a live field object for its current stats.</p><div class="guide-grid">${fieldObjects}</div></section><section id="guide-signatures" class="guide-section"><h3>Signature evolutions</h3><div class="guide-grid">${signatures}</div></section><section id="guide-weapons" class="guide-section"><h3>Universal weapons</h3><div class="guide-grid">${weapons}</div></section><section id="guide-passives" class="guide-section"><h3>Passive upgrades</h3><div class="guide-grid">${passives}</div></section><section id="guide-rare" class="guide-section"><h3>Rare finds & events</h3><div class="guide-grid">${rare}</div></section>`;
+  $("guide-content").innerHTML = `<section id="guide-campaign" class="guide-section"><h3>Campaign route</h3><p>Clear threat tiers to unlock harder operations. Progress is saved in this browser.</p><div class="campaign-route">${campaign}</div></section><section id="guide-field" class="guide-section"><h3>Field objects</h3><p>Hold Shift and point at a live field object for its current stats.</p><div class="guide-grid">${fieldObjects}</div></section><section id="guide-signatures" class="guide-section"><h3>Signature evolutions</h3><div class="guide-grid">${signatures}</div></section><section id="guide-weapons" class="guide-section"><h3>Universal weapons</h3><div class="guide-grid">${weapons}</div></section><section id="guide-materials" class="guide-section"><h3>Impact materials</h3><p>Every weapon keeps its silhouette while contact particles, decals, flash, and sound adapt to the target. Shape and pattern remain available when color or motion is reduced.</p><div class="guide-grid">${materials}</div></section><section id="guide-passives" class="guide-section"><h3>Passive upgrades</h3><div class="guide-grid">${passives}</div></section><section id="guide-rare" class="guide-section"><h3>Rare finds & events</h3><div class="guide-grid">${rare}</div></section>`;
 }
 
 function renderSpecialistGrid() {
@@ -532,7 +538,7 @@ function startRemoteGame(message) {
 function enterGame() {
   setScreen("game"); renderer.resize(); state.endShown = false; state.telemetrySent = false; state.resultSavedKey = ""; state.lastEventSeq = 0; state.lastUpgradeKey = ""; state.lastWeaponHUDKey = ""; state.lastPassiveHUDKey = ""; state.lastSquadHUDKey = ""; state.lastFrame = performance.now();
   state.performanceMetrics = { samples: [], frames: 0, longFrames: 0, maxEntities: {}, inputLatencies: [], predictionCorrections: [] };
-  state.soundState = { projectiles: 0, effects: 0, kills: 0, level: 1, damageTaken: 0, xpCollected: 0, lastShot: 0, lastXP: 0 };
+  state.soundState = { projectiles: 0, effects: 0, kills: 0, level: 1, damageTaken: 0, xpCollected: 0, lastShot: 0, lastMaterial: 0, lastXP: 0 };
   state.lastActiveBuffKey = ""; state.lastDamageLedgerKey = "";
   state.lastSend = 0; state.lastBroadcast = 0; state.hostPreviousMotion = null; state.inputMotionStartedAt = 0; state.inputMotionStart = null; state.inputWasActive = false;
   fixedClock.reset(); movementPredictor.reset(); resetInputProtocol(); renderer.resetCamera(); $("game-canvas").focus();
@@ -573,6 +579,8 @@ function gameLoop(now) {
   const current = state.isHost ? state.sim : state.snapshot;
   if (current) {
     const renderStarted = performance.now(); renderer.draw(renderState || current, state.clientId, renderPrevious, interpolation, dt); const renderMs = performance.now() - renderStarted;
+    const materialCue = renderer.drainMaterialAudioCues(1)[0];
+    if (materialCue && now - state.soundState.lastMaterial > 72) { state.soundState.lastMaterial = now; sfx(`material:${materialCue.family}`, materialCue); }
     const hudStarted = performance.now(); updateHUD(current); updateUpgrade(current); processEvents(current.events || []); const hudMs = performance.now() - hudStarted;
     if (state.inspectActive && state.inspectPointer) inspectCanvasAt({ ...state.inspectPointer, shiftKey: true });
     trackInputLatency(renderState || current, input, now);
@@ -591,10 +599,7 @@ function withLocalMovementPreview(game, input, remainingSeconds) {
   const player = game?.players?.find((entry) => entry.id === state.clientId);
   if (!player || remainingSeconds <= 0) return game;
   const preview = { ...player, predicted: true };
-  let x = input.x, y = input.y; const inputLength = Math.hypot(x, y);
-  if (inputLength > 1) { x /= inputLength; y /= inputLength; }
-  moveEntityWithCover(preview, x * playerMovementSpeed(player) * remainingSeconds, y * playerMovementSpeed(player) * remainingSeconds);
-  if (inputLength > .01) { preview.facing = Math.atan2(y, x); preview.moving = true; }
+  advancePlayerMovement(preview, input, remainingSeconds, playerMovementSpeed(player), moveEntityWithCover);
   return { ...game, players: game.players.map((entry) => entry.id === preview.id ? preview : entry) };
 }
 
@@ -647,6 +652,7 @@ function performanceSummary() {
       maxCorrection: Math.max(0, ...metrics.predictionCorrections),
     },
     multiplayerInput: inputProtocolDiagnostics(),
+    materialImpacts: renderer.materialImpactDiagnostics(),
     maxEntities: metrics.maxEntities,
   };
 }
@@ -1576,11 +1582,20 @@ function audioTone(audio, frequency, offset = 0, duration = .08, type = "sine", 
   oscillator.connect(gain).connect(audio.destination); oscillator.start(start); oscillator.stop(start + duration + .01);
 }
 
-function sfx(name) {
+function sfx(name, details = {}) {
   if (!state.audio) return;
   const audio = ensureAudio(); if (audio.state === "suspended") audio.resume();
   const note = (frequency, offset, duration, type, volume, end) => audioTone(audio, frequency, offset, duration, type, volume, end);
-  if (name.startsWith("weapon:")) {
+  if (name.startsWith("material:")) {
+    const family = name.slice(9), pitch = clamp(Number(details.pitch) || 1, .5, 1.5), mix = clamp(Number(details.volume) || .6, 0, .8);
+    const profiles = {
+      metal: [1180, 430, "triangle", .045], concrete: [170, 68, "sawtooth", .085], liquid: [760, 1280, "sine", .11],
+      organic: [220, 92, "triangle", .075], energy: [680, 1120, "square", .08], void: [105, 44, "sawtooth", .15],
+    };
+    const [frequency, end, type, duration] = profiles[family] || profiles.concrete;
+    note(frequency * pitch, 0, duration, type, .014 * mix, end * pitch);
+  }
+  else if (name.startsWith("weapon:")) {
     const family = name.slice(7);
     const profiles = {
       pulse: [880, 240, "square", .007, .05], resonance: [520, 760, "sine", .009, .09], solar: [690, 390, "triangle", .01, .1],

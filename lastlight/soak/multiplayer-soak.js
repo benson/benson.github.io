@@ -242,7 +242,13 @@ export function runMultiplayerSoak(options = {}) {
     }
     drain(logicalTick);
     adapters.onTick?.({ tick: logicalTick, replicas, queue });
-    for (const replica of replicas) replica.simulation.update(1 / SIMULATION_TICK_RATE);
+    // Ability casts author their own short invulnerability windows. Reassert
+    // the harness guard after commands so this structural convergence soak is
+    // never accidentally converted into a combat-balance test.
+    for (const replica of replicas) {
+      for (const player of replica.simulation.players) player.invuln = Math.max(player.invuln, settings.durationSeconds + 20);
+      replica.simulation.update(1 / SIMULATION_TICK_RATE);
+    }
     timing.push(performance.now() - started);
 
     for (const event of replicas[0].simulation.events) if (event.type === "objective") seenEvents.add(event.title);

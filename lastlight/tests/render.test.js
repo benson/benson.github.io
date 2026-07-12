@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { settingsForPreset } from "../quality-settings.js";
 import { createImpactStressFixture } from "../fixtures/impact-stress.js";
+import { MATERIAL_CLASSES } from "../material-impacts.js";
 
 globalThis.window = {
   devicePixelRatio: 1,
@@ -133,6 +134,38 @@ test("renderer accepts the complete base/evolved impact stress grid at full and 
     assert.doesNotThrow(() => renderer.drawProjectiles(projectiles, false, state));
     assert.equal(projectiles.length, 42);
   }
+});
+
+test("material endpoints remain bounded and drawable across the full 42 by 6 stress matrix", () => {
+  const drawContext = new Proxy({ setTransform: () => {}, measureText: () => ({ width: 0 }) }, {
+    get(target, key) { return key in target ? target[key] : () => {}; },
+    set(target, key, value) { target[key] = value; return true; },
+  });
+  const canvas = { clientWidth: 800, clientHeight: 600, width: 0, height: 0, getContext: () => drawContext, getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }) };
+  const renderer = new Renderer(canvas);
+  renderer.setQualitySettings(settingsForPreset("high"));
+  for (const weapon of createImpactStressFixture()) for (const material of MATERIAL_CLASSES) renderer.emitMaterialImpact({ id: `${weapon.entity.id}:${material}`, x: 0, y: 0 }, { material, targetId: material }, weapon.plan);
+  const diagnostics = renderer.materialImpactDiagnostics();
+  assert.ok(diagnostics.active <= 96);
+  assert.ok(diagnostics.queuedAudio <= 12);
+  assert.doesNotThrow(() => renderer.drawMaterialImpacts());
+  assert.ok(renderer.drainMaterialAudioCues(99).length <= 4);
+});
+
+test("a disappearing projectile emits the material captured at its final endpoint", () => {
+  const renderer = createRenderer();
+  const [{ entity, player }] = createImpactStressFixture();
+  const state = {
+    map: "warehouse", players: [player], enemies: [{ id: "target", type: "mite", x: 160, y: 80, radius: 20 }],
+    pods: [], objectives: [], relayBalls: [], effects: [], projectiles: [{ ...entity, x: 160, y: 80 }],
+  };
+  renderer.updateMaterialImpacts(state, null, 1 / 60);
+  assert.deepEqual(renderer.materialImpactDiagnostics(), { active: 0, queuedAudio: 0, trackedProjectiles: 1, trackedEffects: 0 });
+  renderer.updateMaterialImpacts({ ...state, projectiles: [] }, null, 1 / 60);
+  assert.equal(renderer.materialImpacts.length, 1);
+  assert.equal(renderer.materialImpacts[0].response.material, "organic");
+  assert.equal(renderer.materialImpacts[0].x, 160);
+  assert.equal(renderer.materialImpacts[0].y, 80);
 });
 
 test("motion playback keeps anchors stable, separates aim from locomotion, and caps retained deaths", () => {
