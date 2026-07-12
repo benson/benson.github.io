@@ -33,6 +33,17 @@ const config = {
     nova: { health: 9, armor: 0, speed: 295, cooldownE: 15, cooldownR: 90 },
     vesper: { health: 9.5, armor: 0, speed: 275, cooldownE: 13, cooldownR: 90 },
   },
+  identityTuning: {
+    zuri: { speedPerHotStack: 0.10, maxHotStacks: 5, executeMissingHealthBonus: 1.0 },
+    echo: { repeatChance: 0.25, repeatDelay: 0.25 },
+    sola: { armorMultiplier: 2, aftershockShieldMaxHealth: 0.25 },
+    bront: { crashDashDistance: 170 },
+    fang: { missingHealthDamageBonus: 0.60 },
+    gale: { windwallKnockback: 240, windwallProjectilePadding: 18 },
+    rift: { damageShieldRatio: 0.03, damageShieldCapMaxHealth: 0.35 },
+    nova: { hexDuration: 8 },
+    vesper: { recallPierce: 30 },
+  },
   movement: {
     version: "lastlight.movement.v1",
     profiles: {
@@ -199,7 +210,7 @@ export function validateBalanceConfig(candidate = BALANCE_CONFIG) {
   };
   if (!candidate || typeof candidate !== "object") return ["config: must be an object"];
   if (typeof candidate.version !== "string" || !candidate.version.trim()) errors.push("version: required");
-  for (const section of ["core", "specialists", "movement", "passives", "shields", "difficulties", "enemies", "waves", "weapons"]) {
+  for (const section of ["core", "specialists", "identityTuning", "movement", "passives", "shields", "difficulties", "enemies", "waves", "weapons"]) {
     if (!candidate[section] || typeof candidate[section] !== "object") errors.push(`${section}: required`);
   }
   const requireExactIds = (path, value, ids) => {
@@ -208,6 +219,7 @@ export function validateBalanceConfig(candidate = BALANCE_CONFIG) {
     if (JSON.stringify(actual) !== JSON.stringify(expected)) errors.push(`${path}: expected ${expected.join(", ")}; got ${actual.join(", ")}`);
   };
   requireExactIds("specialists", candidate.specialists, BALANCE_IDS.specialists);
+  requireExactIds("identityTuning", candidate.identityTuning, BALANCE_IDS.specialists);
   requireExactIds("movement.specialists", candidate.movement?.specialists, BALANCE_IDS.specialists);
   requireExactIds("passives", candidate.passives, BALANCE_IDS.passives);
   requireExactIds("shields", candidate.shields, BALANCE_IDS.shieldAbilities);
@@ -221,6 +233,9 @@ export function validateBalanceConfig(candidate = BALANCE_CONFIG) {
   for (const [id, specialist] of Object.entries(candidate.specialists || {})) {
     for (const key of ["health", "speed", "cooldownE", "cooldownR"]) requireFinite(`specialists.${id}.${key}`, specialist[key], { min: 0, exclusiveMin: true });
     requireFinite(`specialists.${id}.armor`, specialist.armor, { min: 0 });
+  }
+  for (const [id, tuning] of Object.entries(candidate.identityTuning || {})) {
+    for (const [key, value] of Object.entries(tuning)) requireFinite(`identityTuning.${id}.${key}`, value, { min: 0 });
   }
   const movementProfiles = candidate.movement?.profiles || {};
   if (typeof candidate.movement?.version !== "string" || !candidate.movement.version.trim()) errors.push("movement.version: required");
