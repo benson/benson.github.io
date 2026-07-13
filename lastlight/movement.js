@@ -1,4 +1,4 @@
-import { BALANCE_CONFIG } from "./balance-config.js?v=20260713.1";
+import { BALANCE_CONFIG } from "./balance-config.js?v=20260713.2";
 
 const EPSILON = 1e-6;
 const DEFAULT_MOVEMENT_POLICIES = Object.freeze(Object.fromEntries(

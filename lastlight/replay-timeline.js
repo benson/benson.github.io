@@ -1,4 +1,4 @@
-import { LEGACY_REPLAY_SCHEMA, REPLAY_STEP_HZ, decodeReplayCommand, validateReplay } from "./replay.js?v=20260713.1";
+import { LEGACY_REPLAY_SCHEMA, REPLAY_STEP_HZ, decodeReplayCommand, validateReplay } from "./replay.js?v=20260713.2";
 
 const LEGACY_FEATURES = Object.freeze({ gameplayVersion: "events-v1", objectiveEvents: true });
 
