@@ -34,6 +34,35 @@ function createRenderer() {
   return new Renderer(canvas);
 }
 
+function createRecordingRenderer() {
+  const calls = [];
+  const context = new Proxy({
+    setTransform: (...args) => calls.push(["setTransform", ...args]),
+    measureText: (value) => ({ width: String(value).length * 6 }),
+  }, {
+    get(target, key) {
+      if (key in target) return target[key];
+      return (...args) => calls.push([key, ...args]);
+    },
+    set(target, key, value) { target[key] = value; return true; },
+  });
+  const canvas = {
+    clientWidth: 800, clientHeight: 600, width: 0, height: 0,
+    getContext: () => context,
+    getBoundingClientRect: () => ({ left: 100, top: 50, width: 800, height: 600 }),
+  };
+  return { renderer: new Renderer(canvas), calls };
+}
+
+const pingIntents = ["danger", "objective", "pickup", "help", "regroup", "recommendation"];
+
+function pingFixture(count = pingIntents.length) {
+  return Array.from({ length: count }, (_, index) => ({
+    intent: pingIntents[index % pingIntents.length], x: index * 20, y: index * -12,
+    tick: index, replaySlot: index % 4, seq: index,
+  }));
+}
+
 test("enemy health bar preferences expose off, important, and all modes", () => {
   const renderer = createRenderer();
   assert.equal(renderer.enemyHealthBarMode, "important");
@@ -130,6 +159,61 @@ test("inspection coordinates stay aligned after a modal canvas resize", () => {
   assert.equal(detail.id, "machine");
   assert.equal(detail.type, "objective");
   assert.equal(renderer.width, 1200); assert.equal(renderer.height, 675);
+});
+
+test("clientToWorld is the public coordinate transform used by inspection", () => {
+  const renderer = createRenderer();
+  renderer.camera.x = 125; renderer.camera.y = -75;
+  assert.deepEqual(renderer.clientToWorld(500, 350), { x: 125, y: -75 });
+  assert.equal(renderer.clientToWorld(Number.NaN, 350), null);
+
+  let converted = 0;
+  renderer.clientToWorld = () => { converted++; return { x: 0, y: 0 }; };
+  renderer.inspectAt(0, 0, {
+    map: "warehouse", machine: { charge: 0, cooldown: 0 }, enemies: [], drops: [], orbs: [], pods: [], objectives: [], relayBalls: [], drones: [], projectiles: [], hostile: [], effects: [],
+  });
+  assert.equal(converted, 1);
+});
+
+test("ping presentation is copied, deterministically selected, expired, and capped by quality tier", () => {
+  const renderer = createRenderer(), source = pingFixture(48), before = structuredClone(source);
+  assert.equal(renderer.setPings(source), 32);
+  assert.deepEqual(source, before, "renderer never mutates caller-owned ping data");
+  source[0].intent = "pickup";
+  assert.equal(renderer.visiblePings(48).length, 12);
+  assert.equal(renderer.visiblePings(48)[0].intent, "help", "shared intent priority controls deterministic selection");
+
+  renderer.setQualitySettings(settingsForPreset("reduced"));
+  assert.equal(renderer.visiblePings(48).length, 8);
+  renderer.setQualitySettings(settingsForPreset("minimal"));
+  assert.equal(renderer.visiblePings(48).length, 4);
+  assert.equal(renderer.reducedMotion, true);
+
+  renderer.setPings([{ intent: "danger", x: 0, y: 0, tick: 10, replaySlot: 0, seq: 0 }]);
+  assert.equal(renderer.visiblePings(189).length, 1);
+  assert.equal(renderer.visiblePings(190).length, 0, "markers expire after exactly 180 simulation ticks");
+});
+
+test("world and offscreen pings render all six non-color labels and stay static for reduced motion", () => {
+  const { renderer, calls } = createRecordingRenderer();
+  renderer.setPings(pingFixture());
+  const previousRandom = Math.random;
+  Math.random = () => { throw new Error("ping rendering must not use random state"); };
+  try {
+    renderer.drawPings(10);
+    renderer.drawOffscreenPings({ tick: 10, players: [{ id: "local", x: 0, y: 0 }] }, "local");
+  } finally { Math.random = previousRandom; }
+  const labels = calls.filter(([name]) => name === "fillText").map(([, value]) => value);
+  for (const intent of ["DANGER", "OBJECTIVE", "PICKUP", "HELP", "REGROUP", "RECOMMEND"]) assert.ok(labels.includes(intent), `${intent} has a text label`);
+  assert.ok(calls.some(([name]) => name === "arc"), "circle intent has distinct geometry");
+  assert.ok(calls.some(([name]) => name === "rect"), "square intent has distinct geometry");
+
+  calls.length = 0;
+  renderer.setQualitySettings(settingsForPreset("minimal"));
+  renderer.drawPings(10);
+  const scales = calls.filter(([name]) => name === "scale").map(([, x, y]) => [x, y]);
+  assert.ok(scales.length > 0);
+  assert.ok(scales.every(([x, y]) => x === 1 && y === 1), "reduced-motion markers do not pulse");
 });
 
 test("renderer applies quality profiles without mutating simulation lists", () => {

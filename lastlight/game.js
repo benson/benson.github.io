@@ -1,6 +1,6 @@
 import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260713.2";
-import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.3";
-import { Renderer } from "./render.js?v=20260713.2";
+import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.3";
+import { Renderer } from "./render.js?v=20260713.4";
 import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260713.2";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
 import { getThemeAsset, getThemeMaterial } from "./themes/lastlight.js?v=20260713.2";
@@ -10,7 +10,7 @@ import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-m
 import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260713.2";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
 import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260713.2";
-import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260713.2";
+import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260713.4";
 import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260711.5";
 import { clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260713.2";
 import { GuestInputSequenceTracker, HostInputSequenceGate, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260713.2";
@@ -38,6 +38,11 @@ import {
   migrationCompatibilityMatches, validateMigrationCheckpoint,
 } from "./host-migration.js?v=20260713.2";
 import { RECONNECT_DELAYS_MS, SquadPresenceTracker, authorityStateCopy } from "./reconnect-state.js?v=20260713.3";
+import {
+  HostPingGate, PING_INTENTS, PING_LIFETIME_TICKS, PING_WHEEL_ORDER, PingSequenceTracker,
+  pingIntentFromDelta, sanitizePingBroadcast, sanitizePingRequest,
+} from "./ping-contract.js?v=20260713.4";
+import { resolveContextualPing } from "./ping-context.js?v=20260713.4";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -46,7 +51,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.13.3";
+const BUILD = "2026.07.13.4";
 const AUTHORITY_WATCHDOG_MS = Object.freeze({ synchronizing: 10_000, migrating: 25_000 });
 const BALANCE = getBalanceConfig();
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
@@ -72,6 +77,8 @@ const movementPredictor = new MovementPredictor();
 const hostInputSequences = new HostInputSequenceGate();
 const guestInputSequences = new GuestInputSequenceTracker();
 const authoritySnapshotGate = new AuthoritySnapshotGate();
+const pingSequences = new PingSequenceTracker();
+const hostPingGate = new HostPingGate();
 const PROGRESS_KEY = "lastlight:campaign:v1";
 const RUN_HISTORY_KEY = "lastlight:runs:v1";
 const CLIENT_TOKEN_KEY = "lastlight:session-token:v1";
@@ -153,10 +160,13 @@ const state = {
   migrationFailureReason: "", migrationStartedAt: 0,
   reconnectTimer: null, reconnectAttempts: 0, authorityRestoreTimer: null, authorityWatchdogTimer: null, authorityPreviousFocus: null,
   squadPresence: new SquadPresenceTracker(), lastPresenceAnnouncement: "",
+  pings: new Map(), pingWheel: null, pingPointerId: null,
+  pingStats: { sent: 0, received: 0, rejected: 0, byIntent: Object.fromEntries(PING_WHEEL_ORDER.map((intent) => [intent, 0])) },
 };
 
 const runtimeConfigReady = loadRuntimeConfig({ endpoint: RUNTIME_CONFIG_ENDPOINT }).then((result) => {
   state.runtimeConfig = result;
+  syncPingAvailability();
   refreshRecoveryOffer();
   return result;
 });
@@ -202,6 +212,7 @@ function setAuthorityState(next, detail = {}) {
   if (!["active", "restored"].includes(next)) { clearTimeout(state.authorityRestoreTimer); state.authorityRestoreTimer = null; }
   state.authorityState = next;
   if (next !== "active") clearGameplayControls();
+  if (next !== "active") closePingWheel({ restoreFocus: false });
   if (["migrating", "reconnecting", "synchronizing"].includes(next)) state.migrationStartedAt ||= performance.now();
   if (next === "active") { state.migrationStartedAt = 0; state.migrationFailureReason = ""; }
   if (next === "unavailable") state.migrationFailureReason = String(detail.reason || "unavailable");
@@ -333,6 +344,7 @@ function stageMigrationOffer(message) {
 function commitMigratedAuthority(message) {
   clearTimeout(state.resultTimer); state.resultTimer = null; state.endShown = false;
   state.authorityEpoch = message.authorityEpoch;
+  pingSequences.reset(state.authorityEpoch); hostPingGate.reset(state.authorityEpoch); clearPings();
   state.authorityHostId = message.id;
   authoritySnapshotGate.commit({ epoch: state.authorityEpoch, hostId: state.authorityHostId });
   guestInputSequences.setEpoch(state.authorityEpoch);
@@ -504,6 +516,145 @@ function resetInputProtocol() {
   hostInputSequences.reset({ epoch: state.authorityEpoch });
   guestInputSequences.reset({ epoch: state.authorityEpoch });
   authoritySnapshotGate.reset({ epoch: state.authorityEpoch, hostId: state.authorityHostId });
+  pingSequences.reset(state.authorityEpoch);
+  hostPingGate.reset(state.authorityEpoch);
+  clearPings();
+}
+
+function currentGameState() { return state.isHost ? state.sim : state.snapshot || state.sim; }
+function pingKey({ epoch, replaySlot, seq }) { return `${epoch}:${replaySlot}:${seq}`; }
+
+function clearPings() {
+  state.pings.clear();
+  renderer.setPings?.([]);
+  closePingWheel({ restoreFocus: false });
+}
+
+function syncPingAvailability() {
+  const enabled = Boolean(state.runtimeConfig.config.flags.contextualPings);
+  document.documentElement.dataset.contextualPings = enabled ? "true" : "false";
+  for (const node of document.querySelectorAll('[data-control-ping]')) node.hidden = !enabled;
+  if ($('touch-ping')) $('touch-ping').hidden = !enabled;
+  if (!enabled) closePingWheel({ restoreFocus: false });
+}
+
+function localReplaySlot(game = currentGameState()) {
+  return game?.players?.find((player) => player.id === state.clientId)?.replaySlot
+    ?? state.lobby.get(state.clientId)?.replaySlot ?? 0;
+}
+
+function pingInputAvailable() {
+  if (!state.runtimeConfig.config.flags.contextualPings) return false;
+  if (state.screen !== "game" || state.authorityState !== "active" || !currentGameState()) return false;
+  if (document.querySelector("dialog[open]")) return false;
+  if (!$('upgrade-overlay').classList.contains('hidden') || !$('pause-overlay').classList.contains('hidden')) return false;
+  return !currentGameState()?.paused;
+}
+
+function pingTargetAt(clientX, clientY) {
+  const game = currentGameState();
+  const canvas = $('game-canvas'), rect = canvas.getBoundingClientRect();
+  const fallback = { clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 };
+  const pointer = Number.isFinite(clientX) && Number.isFinite(clientY) ? { clientX, clientY } : fallback;
+  const world = renderer.clientToWorld?.(pointer.clientX, pointer.clientY)
+    || { x: 0, y: 0 };
+  const inspected = renderer.inspectAt(pointer.clientX, pointer.clientY, game);
+  const targetKind = ["enemy", "objective", "pickup", "cache", "ally"].includes(inspected?.type) ? inspected.type : "ground";
+  return {
+    x: clamp(inspected?.world?.x ?? world.x, -WORLD.width / 2 + 20, WORLD.width / 2 - 20),
+    y: clamp(inspected?.world?.y ?? world.y, -WORLD.height / 2 + 20, WORLD.height / 2 - 20),
+    targetKind,
+  };
+}
+
+function resolveAuthoritativePing(request) {
+  return resolveContextualPing(state.sim, request);
+}
+
+function acceptVisiblePing(message) {
+  let ping; try { ping = sanitizePingBroadcast(message, { transport: Boolean(message?._from) }); } catch { state.pingStats.rejected++; return false; }
+  if (ping.epoch !== state.authorityEpoch) { state.pingStats.rejected++; return false; }
+  const key = pingKey(ping);
+  if (state.pings.has(key)) return false;
+  state.pings.set(key, { ...ping });
+  while (state.pings.size > 24) state.pings.delete(state.pings.keys().next().value);
+  state.pingStats.received++; state.pingStats.byIntent[ping.intent]++;
+  const source = [...state.lobby.values()].find((player) => player.replaySlot === ping.replaySlot);
+  const label = PING_INTENTS[ping.intent].label;
+  $('ping-live-region').textContent = `${source?.name || `Specialist ${ping.replaySlot + 1}`} pinged ${label.toLowerCase()}.`;
+  if (performance.now() - (state.pingAudioAt || 0) > 120) {
+    state.pingAudioAt = performance.now();
+    sfx(ping.intent === "danger" ? "danger" : ping.intent === "objective" ? "objective" : ping.intent === "pickup" ? "reward" : "ui");
+  }
+  return true;
+}
+
+function acceptHostPing(message) {
+  if (!state.isHost || state.authorityState !== "active" || !state.sim) return false;
+  let parsed; try { parsed = sanitizePingRequest(message, { transport: true }); } catch { state.pingStats.rejected++; return false; }
+  const target = resolveAuthoritativePing(parsed);
+  if (!target) { state.pingStats.rejected++; return false; }
+  const verdict = hostPingGate.apply(parsed, state.sim.tick);
+  if (!verdict.accepted) { state.pingStats.rejected++; return false; }
+  const broadcast = sanitizePingBroadcast({ ...verdict.ping, ...target });
+  acceptVisiblePing(broadcast);
+  if (state.partyMode !== "solo" && state.ws?.readyState === WebSocket.OPEN) send(broadcast);
+  return true;
+}
+
+function commitPing(intent, target = pingTargetAt()) {
+  if (!pingInputAvailable() || !PING_INTENTS[intent]) return false;
+  const game = currentGameState(), request = pingSequences.create({ tick: game.tick, intent, ...target });
+  state.pingStats.sent++;
+  if (state.partyMode === "solo") return acceptHostPing({ ...request, _from: state.clientId, replaySlot: localReplaySlot(game) });
+  send(request);
+  return true;
+}
+
+function setPingWheelSelection(intent) {
+  if (!state.pingWheel || intent && !PING_INTENTS[intent]) return;
+  state.pingWheel.intent = intent || null;
+  $('ping-wheel').querySelectorAll('[data-ping-intent]').forEach((button) => {
+    const selected = button.dataset.pingIntent === state.pingWheel.intent;
+    button.classList.toggle('selected', selected); button.setAttribute('aria-checked', String(selected));
+  });
+  $('ping-wheel').dataset.intent = state.pingWheel.intent || "none";
+}
+
+function openPingWheel({ clientX, clientY, visualClientX, visualClientY, source = "keyboard", pointerId = null } = {}) {
+  if (!pingInputAvailable()) return false;
+  const canvas = $('game-canvas'), rect = canvas.getBoundingClientRect();
+  const targetClientX = Number.isFinite(clientX) ? clientX : state.inspectPointer?.clientX ?? rect.left + rect.width / 2;
+  const targetClientY = Number.isFinite(clientY) ? clientY : state.inspectPointer?.clientY ?? rect.top + rect.height / 2;
+  const visualX = clamp(Number.isFinite(visualClientX) ? visualClientX : targetClientX, 112, innerWidth - 112);
+  const visualY = clamp(Number.isFinite(visualClientY) ? visualClientY : targetClientY, 112, innerHeight - 112);
+  state.pingWheel = { source, pointerId, clientX: targetClientX, clientY: targetClientY, visualX, visualY, intent: null };
+  state.pingPointerId = pointerId;
+  const wheel = $('ping-wheel'); wheel.classList.remove('hidden'); wheel.style.left = `${visualX}px`; wheel.style.top = `${visualY}px`;
+  wheel.setAttribute('aria-hidden', 'false');
+  setPingWheelSelection(state.pingWheel.intent);
+  $('ping-live-region').textContent = "Ping wheel open. Choose danger, objective, pickup, help, regroup, or recommend.";
+  return true;
+}
+
+function updatePingWheel(clientX, clientY) {
+  if (!state.pingWheel) return;
+  setPingWheelSelection(pingIntentFromDelta(clientX - state.pingWheel.visualX, clientY - state.pingWheel.visualY));
+}
+
+function closePingWheel({ commit = false, restoreFocus = true } = {}) {
+  const wheelState = state.pingWheel;
+  state.pingWheel = null; state.pingPointerId = null;
+  const wheel = $('ping-wheel');
+  if (wheel) { wheel.classList.add('hidden'); wheel.setAttribute('aria-hidden', 'true'); wheel.dataset.intent = "none"; }
+  if (commit && wheelState?.intent) commitPing(wheelState.intent, pingTargetAt(wheelState.clientX, wheelState.clientY));
+  if (restoreFocus && state.screen === "game" && state.authorityState === "active") $('game-canvas').focus({ preventScroll: true });
+}
+
+function prunePings() {
+  const tick = currentGameState()?.tick;
+  if (Number.isSafeInteger(tick)) for (const [key, ping] of state.pings) if (ping.tick > tick || tick - ping.tick >= PING_LIFETIME_TICKS) state.pings.delete(key);
+  renderer.setPings?.([...state.pings.values()]);
 }
 
 function recordHostCast(playerId, slot) {
@@ -534,6 +685,7 @@ function nextReplaySlot() {
 }
 
 function setScreen(name) {
+  closePingWheel({ restoreFocus: false });
   state.screen = name;
   for (const [key, screen] of Object.entries(screens)) screen.classList.toggle("hidden", key !== name);
   document.body.style.overflow = name === "game" ? "hidden" : "auto";
@@ -907,6 +1059,7 @@ function gameLoop(now) {
   }
   const current = state.isHost ? state.sim : state.snapshot || state.sim;
   if (current) {
+    prunePings();
     const renderStarted = performance.now(); renderer.draw(renderState || current, state.clientId, renderPrevious, interpolation, dt); const renderMs = performance.now() - renderStarted;
     const materialCue = renderer.drainMaterialAudioCues(1)[0];
     if (materialCue && now - state.soundState.lastMaterial > 140) {
@@ -1351,6 +1504,7 @@ function togglePause(force) {
   if (!state.isHost || !state.sim) { toast("Only the squad leader can pause"); return; }
   if (state.sim.pauseReason === "upgrade") return;
   const next = force ?? !state.sim.paused; state.sim.paused = next; state.sim.pauseReason = next ? "manual" : "";
+  if (next) closePingWheel({ restoreFocus: false });
   $("pause-overlay").classList.toggle("hidden", !next);
 }
 
@@ -1531,6 +1685,7 @@ function updateUpgrade(game) {
   state.activeUpgradeGame = game;
   const pending = game.pendingChoices?.[state.clientId];
   if (!pending) { $("upgrade-overlay").classList.add("hidden"); state.lastUpgradeKey = ""; ensureDraftForecasts(game); return; }
+  closePingWheel({ restoreFocus: false });
   ensureDraftForecasts(game);
   $("upgrade-overlay").classList.remove("hidden");
   const ready = Boolean(game.choiceReady?.[state.clientId]);
@@ -1996,6 +2151,7 @@ function handleNetworkMessage(raw) {
     const recoveringAuthority = ["reconnecting", "synchronizing"].includes(state.authorityState);
     state.clientId = message.id; state.isHost = message.role === "host"; state.authorityEpoch = Number(message.authorityEpoch || 0); state.authorityHostId = message.hostId || (state.isHost ? message.id : ""); state.lobby = new Map();
     guestInputSequences.setEpoch(state.authorityEpoch);
+    pingSequences.reset(state.authorityEpoch); hostPingGate.reset(state.authorityEpoch); clearPings();
     if (state.authorityHostId) {
       authoritySnapshotGate.commit({ epoch: state.authorityEpoch, hostId: state.authorityHostId });
       if (recoveringAuthority) setAuthorityState("synchronizing");
@@ -2078,6 +2234,11 @@ function handleNetworkMessage(raw) {
     else toast("Joined operation in progress");
   }
   else if (message.type === "return_lobby" && !state.isHost) returnToLobby();
+  else if (message.type === "ping" && state.isHost) acceptHostPing(message);
+  else if (message.type === "ping_broadcast" && !state.isHost) {
+    if (message._from !== state.authorityHostId) { state.pingStats.rejected++; return; }
+    acceptVisiblePing(message);
+  }
   else if (message.type === "input" && state.isHost) applyGuestNetworkInput(message);
   else if (message.type === "cast" && state.isHost) {
     if (recordHostCast(message._from, message.slot)) {
@@ -2171,6 +2332,15 @@ function gameDiagnostics() {
     teamSize: Number(game?.players?.length || state.lobby.size || 1),
     multiplayerRole: state.partyMode === "solo" ? "solo" : state.isHost ? "host" : "guest",
     multiplayerInput: inputProtocolDiagnostics(),
+    pings: {
+      protocolVersion: 1,
+      active: state.pings.size,
+      sent: state.pingStats.sent,
+      received: state.pingStats.received,
+      rejected: state.pingStats.rejected,
+      byIntent: { ...state.pingStats.byIntent },
+      hostGate: state.isHost ? hostPingGate.diagnostics() : null,
+    },
     hostMigration: {
       enabled: Boolean(state.runtimeConfig.config.flags.migrationCheckpointReplication
         && state.runtimeConfig.config.flags.hostMigrationElection
@@ -2231,6 +2401,7 @@ function captureClientError(type, value) {
 function clearReportNote() { $("report-note").value = ""; }
 
 function openReport() {
+  closePingWheel({ restoreFocus: false });
   const game = gameDiagnostics();
   clearReportNote();
   state.resumeAfterReport = false;
@@ -2560,6 +2731,54 @@ function setupTouch() {
   }
 }
 
+function setupPingControls() {
+  const canvas = $('game-canvas'), touchButton = $('touch-ping');
+  canvas.addEventListener('pointerdown', (event) => {
+    if (event.button !== 1 || !openPingWheel({ clientX: event.clientX, clientY: event.clientY, source: 'pointer', pointerId: event.pointerId })) return;
+    event.preventDefault(); canvas.setPointerCapture?.(event.pointerId);
+  });
+  canvas.addEventListener('pointerup', (event) => {
+    if (state.pingWheel?.source !== 'pointer' || event.pointerId !== state.pingPointerId) return;
+    event.preventDefault(); closePingWheel({ commit: true });
+  });
+  canvas.addEventListener('pointercancel', (event) => {
+    if (event.pointerId === state.pingPointerId) closePingWheel();
+  });
+  canvas.addEventListener('lostpointercapture', (event) => {
+    if (state.pingWheel?.source === 'pointer' && event.pointerId === state.pingPointerId) closePingWheel();
+  });
+  touchButton.addEventListener('pointerdown', (event) => {
+    if (event.button !== 0) return;
+    const rect = canvas.getBoundingClientRect();
+    if (!openPingWheel({
+      clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2,
+      visualClientX: event.clientX, visualClientY: event.clientY, source: 'touch', pointerId: event.pointerId,
+    })) return;
+    event.preventDefault(); state.pingSuppressClickUntil = performance.now() + 500; touchButton.setPointerCapture?.(event.pointerId);
+  });
+  touchButton.addEventListener('pointermove', (event) => {
+    if (state.pingWheel?.source === 'touch' && event.pointerId === state.pingPointerId) updatePingWheel(event.clientX, event.clientY);
+  });
+  const endTouchPing = (event, commit) => {
+    if (state.pingWheel?.source !== 'touch' || event.pointerId !== state.pingPointerId) return;
+    event.preventDefault(); closePingWheel({ commit });
+  };
+  touchButton.addEventListener('pointerup', (event) => endTouchPing(event, true));
+  touchButton.addEventListener('pointercancel', (event) => endTouchPing(event, false));
+  touchButton.addEventListener('lostpointercapture', (event) => endTouchPing(event, false));
+  touchButton.addEventListener('click', (event) => {
+    if (performance.now() < (state.pingSuppressClickUntil || 0)) { event.preventDefault(); return; }
+    const rect = canvas.getBoundingClientRect();
+    if (openPingWheel({ clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2, visualClientX: innerWidth - 112, visualClientY: innerHeight - 150, source: 'button' })) {
+      setPingWheelSelection('danger'); $('ping-wheel').querySelector('[data-ping-intent="danger"]').focus();
+    }
+  });
+  $('ping-wheel').querySelectorAll('[data-ping-intent]').forEach((button) => button.addEventListener('click', () => {
+    if (!state.pingWheel) return;
+    setPingWheelSelection(button.dataset.pingIntent); closePingWheel({ commit: true });
+  }));
+}
+
 function bindEvents() {
   setupDamageLedger();
   const unlockFromInteraction = (event) => { if (!event.repeat) unlockAudioFromGesture(event.type); };
@@ -2671,6 +2890,26 @@ function bindEvents() {
     const target = event.target;
     const isTyping = target instanceof Element && Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
     const dialogOpen = Boolean(document.querySelector("dialog[open]"));
+    const key = event.key.toLowerCase();
+    if (state.pingWheel && !isTyping && !dialogOpen) {
+      if (key === 'escape') { event.preventDefault(); closePingWheel(); return; }
+      if (key === 'enter' || key === ' ') { event.preventDefault(); if (!event.repeat) closePingWheel({ commit: true }); return; }
+      if (["1", "2", "3", "4", "5", "6"].includes(key)) { event.preventDefault(); if (!event.repeat) setPingWheelSelection(PING_WHEEL_ORDER[Number(key) - 1]); return; }
+      if (["arrowleft", "arrowup", "arrowright", "arrowdown"].includes(key)) {
+        event.preventDefault();
+        if (!event.repeat) {
+          const direction = ["arrowleft", "arrowup"].includes(key) ? -1 : 1;
+          const current = PING_WHEEL_ORDER.indexOf(state.pingWheel.intent);
+          setPingWheelSelection(PING_WHEEL_ORDER[(current < 0 ? direction < 0 ? 0 : -1 : current + direction + PING_WHEEL_ORDER.length) % PING_WHEEL_ORDER.length]);
+        }
+        return;
+      }
+      if (key === 'g') { event.preventDefault(); return; }
+      if (!["w", "a", "s", "d"].includes(key)) { event.preventDefault(); return; }
+    }
+    if (!isTyping && !dialogOpen && key === 'g' && state.screen === 'game') {
+      event.preventDefault(); if (!event.repeat) openPingWheel({ source: 'keyboard' }); return;
+    }
     if (isReportShortcut(event)) {
       if (!shouldOpenReportShortcut(event, { isTyping, dialogOpen })) return;
       event.preventDefault();
@@ -2678,9 +2917,8 @@ function bindEvents() {
       return;
     }
     if (isTyping || dialogOpen || state.screen !== "game") return;
-    const key = event.key.toLowerCase();
     if (state.authorityState !== "active") {
-      if (["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright","e","r","c","escape","shift","1","2","3","4","5","0"].includes(key)) event.preventDefault();
+      if (["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright","e","r","c","g","escape","shift","1","2","3","4","5","0"].includes(key)) event.preventDefault();
       return;
     }
     if (key === "shift") { state.inspectActive = true; inspectCanvasAt(state.inspectPointer ? { ...state.inspectPointer, shiftKey: true } : null); return; }
@@ -2707,21 +2945,23 @@ function bindEvents() {
     else if (key === "escape" && !event.repeat && state.screen === "game") togglePause();
     state.input.keys.add(key);
   });
-  window.addEventListener("keyup", (event) => { const key = event.key.toLowerCase(); state.input.keys.delete(key); if (key === "shift") { state.inspectActive = false; hideInspectPanel(); } });
-  window.addEventListener("blur", () => { state.input.keys.clear(); state.inspectActive = false; hideInspectPanel(); });
+  window.addEventListener("keyup", (event) => { const key = event.key.toLowerCase(); state.input.keys.delete(key); if (key === "g" && state.pingWheel?.source === "keyboard") { event.preventDefault(); closePingWheel({ commit: true }); } if (key === "shift") { state.inspectActive = false; hideInspectPanel(); } });
+  window.addEventListener("blur", () => { closePingWheel(); state.input.keys.clear(); state.inspectActive = false; hideInspectPanel(); });
   $("game-canvas").addEventListener("pointermove", (event) => {
     const rect = $("game-canvas").getBoundingClientRect();
     state.input.aim = Math.atan2(event.clientY - rect.top - rect.height / 2, event.clientX - rect.left - rect.width / 2);
     state.inspectPointer = { clientX: event.clientX, clientY: event.clientY };
+    if (state.pingWheel && (state.pingWheel.source === "keyboard" || event.pointerId === state.pingPointerId)) updatePingWheel(event.clientX, event.clientY);
     state.inspectActive = event.shiftKey;
     inspectCanvasAt({ ...state.inspectPointer, shiftKey: event.shiftKey });
   });
   $("game-canvas").addEventListener("pointerleave", () => { state.inspectPointer = null; state.inspectActive = false; hideInspectPanel(); });
   document.addEventListener("contextmenu", (event) => event.preventDefault());
+  setupPingControls();
   setupTouch();
 }
 
-renderSpecialistGrid(); selectSpecialist("zuri"); bindEvents(); applyQualitySettings(state.qualitySettings, false); applyAudioSettings(state.audioSettings, false); updateProgressionUI(); setPartyMode("solo");
+renderSpecialistGrid(); selectSpecialist("zuri"); bindEvents(); applyQualitySettings(state.qualitySettings, false); applyAudioSettings(state.audioSettings, false); syncPingAvailability(); updateProgressionUI(); setPartyMode("solo");
 if (query.get("room")) { setPartyMode("join"); $("room-input").value = query.get("room").toUpperCase().slice(0,6); setTimeout(() => $("callsign-input").focus(), 50); }
 if (localHost) Object.defineProperty(window, "__lastlightQA", { value: Object.freeze({
   diagnostics: () => JSON.parse(JSON.stringify(gameDiagnostics())),

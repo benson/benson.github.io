@@ -11,8 +11,45 @@ import { effectReadabilityCategory, partitionEffects, readabilityPlan, shouldPro
 import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260711.8";
 import { EnvironmentInteractionField, stableEnvironmentUnit } from "./environment-interactions.js?v=20260712.1";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
+import { PING_INTENTS, PING_LIFETIME_TICKS, selectVisiblePings } from "./ping-contract.js?v=20260713.4";
 
 const TAU = Math.PI * 2;
+const PING_BUFFER_LIMIT = 32;
+const PING_RENDER_LIMITS = Object.freeze({ high: 12, reduced: 8, minimal: 4 });
+const PING_COLORS = Object.freeze({
+  danger: "#ff667b",
+  objective: "#67e8f9",
+  pickup: "#ffd166",
+  help: "#ff8ad8",
+  regroup: "#7cf7c7",
+  recommendation: "#c6a6ff",
+});
+
+function tracePingShape(ctx, shape, radius) {
+  ctx.beginPath();
+  if (shape === "triangle") {
+    ctx.moveTo(0, -radius); ctx.lineTo(radius * .92, radius * .72); ctx.lineTo(-radius * .92, radius * .72); ctx.closePath();
+  } else if (shape === "diamond") {
+    ctx.moveTo(0, -radius); ctx.lineTo(radius, 0); ctx.lineTo(0, radius); ctx.lineTo(-radius, 0); ctx.closePath();
+  } else if (shape === "square") {
+    ctx.rect(-radius * .76, -radius * .76, radius * 1.52, radius * 1.52);
+  } else if (shape === "hexagon") {
+    for (let index = 0; index < 6; index++) {
+      const angle = -Math.PI / 2 + index * TAU / 6, x = Math.cos(angle) * radius, y = Math.sin(angle) * radius;
+      if (index) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+    }
+    ctx.closePath();
+  } else if (shape === "star") {
+    for (let index = 0; index < 10; index++) {
+      const angle = -Math.PI / 2 + index * TAU / 10, pointRadius = index % 2 ? radius * .44 : radius;
+      const x = Math.cos(angle) * pointRadius, y = Math.sin(angle) * pointRadius;
+      if (index) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+    }
+    ctx.closePath();
+  } else {
+    ctx.arc(0, 0, radius, 0, TAU);
+  }
+}
 
 const ENEMY_AFFIX_PRESENTATION = Object.freeze({
   hasted: Object.freeze({ label: "Hasted", pattern: "chevrons", color: "#ffd36b" }),
@@ -128,6 +165,7 @@ export class Renderer {
     this.enemyHealthBarMode = "important";
     this.hoveredEntity = null;
     this.lastInspection = { at: -Infinity, state: null, result: null };
+    this.pings = Object.freeze([]);
     this.prevMaps = {};
     this.systemReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false;
     this.qualityController = new AdaptiveQualityController(settingsForPreset("auto", this.systemReducedMotion));
@@ -172,7 +210,7 @@ export class Renderer {
 
   resetCamera() {
     this.camera.x = 0; this.camera.y = 0; this.camera.vx = 0; this.camera.vy = 0;
-    this.playerVisuals.clear(); this.enemyVisuals.clear(); this.groundParticles = []; this.environmentField.reset(); this.materialImpacts = []; this.materialProjectileHistory.clear(); this.materialEffectHistory.clear(); this.materialAudioCues = []; this.visualFreeze = 0; this.lastLocalHurt = 0;
+    this.playerVisuals.clear(); this.enemyVisuals.clear(); this.groundParticles = []; this.environmentField.reset(); this.materialImpacts = []; this.materialProjectileHistory.clear(); this.materialEffectHistory.clear(); this.materialAudioCues = []; this.pings = Object.freeze([]); this.visualFreeze = 0; this.lastLocalHurt = 0;
   }
 
   resize() {
@@ -237,6 +275,41 @@ export class Renderer {
     let hash = 2166136261;
     for (let index = 0; index < value.length; index++) { hash ^= value.charCodeAt(index); hash = Math.imul(hash, 16777619); }
     return (hash >>> 0) / 4294967296 < density;
+  }
+
+  clientToWorld(clientX, clientY) {
+    if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) return null;
+    const rect = this.canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    return Object.freeze({
+      x: (clientX - rect.left) * (this.width / rect.width) + this.camera.x - this.width / 2,
+      y: (clientY - rect.top) * (this.height / rect.height) + this.camera.y - this.height / 2,
+    });
+  }
+
+  setPings(pings = []) {
+    const normalized = [];
+    if (Array.isArray(pings)) {
+      for (const ping of pings.slice(0, 256)) {
+        if (!PING_INTENTS[ping?.intent] || !Number.isFinite(ping.x) || !Number.isFinite(ping.y)) continue;
+        const tick = Number.isSafeInteger(ping.tick) && ping.tick >= 0 ? ping.tick : 0;
+        const seq = Number.isSafeInteger(ping.seq) && ping.seq >= 0 ? ping.seq : 0;
+        const replaySlot = Number.isSafeInteger(ping.replaySlot) && ping.replaySlot >= 0 && ping.replaySlot <= 3 ? ping.replaySlot : 0;
+        normalized.push(Object.freeze({ intent: ping.intent, x: ping.x, y: ping.y, tick, seq, replaySlot }));
+      }
+    }
+    this.pings = Object.freeze(selectVisiblePings(normalized, PING_BUFFER_LIMIT));
+    return this.pings.length;
+  }
+
+  pingRenderLimit() {
+    return PING_RENDER_LIMITS[this.qualityProfile?.tier] || PING_RENDER_LIMITS.high;
+  }
+
+  visiblePings(currentTick) {
+    const tick = Number.isSafeInteger(currentTick) && currentTick >= 0 ? currentTick : null;
+    const active = tick === null ? this.pings : this.pings.filter((ping) => ping.tick <= tick && tick - ping.tick < PING_LIFETIME_TICKS);
+    return selectVisiblePings(active, this.pingRenderLimit());
   }
 
   emitMaterialImpact(source, target, weaponPlan) {
@@ -450,10 +523,9 @@ export class Renderer {
     // Pointermove can fire faster than paint. Coalesce inspection work to one
     // pass per frame even if the UI binds this method directly.
     if (this.lastInspection.state === state && inspectionNow - this.lastInspection.at < 15) return this.lastInspection.result;
-    const rect = this.canvas.getBoundingClientRect();
-    if (!rect.width || !rect.height) { this.clearInspection(); return null; }
-    const worldX = (clientX - rect.left) * (this.width / rect.width) + this.camera.x - this.width / 2;
-    const worldY = (clientY - rect.top) * (this.height / rect.height) + this.camera.y - this.height / 2;
+    const world = this.clientToWorld(clientX, clientY);
+    if (!world) { this.clearInspection(); return null; }
+    const { x: worldX, y: worldY } = world;
     const map = typeof state.map === "string" ? MAPS[state.map] : state.map;
     let best = null, bestScore = Infinity;
     const consider = (entity, radius, info, priority = 0) => {
@@ -571,6 +643,7 @@ export class Renderer {
     this.drawProjectiles(friendlyProjectiles, false, state);
     this.drawGroundParticles(visualDt);
     this.drawGroundedQueue(state, previous, interpolation, map, localPlayerId, visualDt);
+    this.drawPings(state.tick);
     // Intent geometry is authoritative combat information, not cosmetic density.
     // Draw it from the complete viewport-culled enemy list so a low quality
     // sprite budget can never make a committed attack invisible.
@@ -585,6 +658,7 @@ export class Renderer {
     ctx.restore();
     this.drawVignette(state, current);
     this.drawOffscreenMarkers(state, map, localPlayerId);
+    this.drawOffscreenPings(state, localPlayerId);
   }
 
   position(entity, previousList, t) {
@@ -1556,6 +1630,72 @@ export class Renderer {
       ctx.restore();
     }
     ctx.shadowBlur = 0;
+  }
+
+  drawPingBadge(ping, { radius = 19, compact = false } = {}) {
+    const presentation = PING_INTENTS[ping.intent];
+    if (!presentation) return;
+    const ctx = this.ctx, color = PING_COLORS[ping.intent] || "#f4eee2";
+    ctx.save();
+    ctx.fillStyle = "rgba(3,10,18,.88)";
+    ctx.strokeStyle = color;
+    ctx.lineWidth = compact ? 2 : 2.5;
+    ctx.shadowColor = "rgba(0,0,0,.72)";
+    ctx.shadowBlur = compact ? 5 : 8;
+    tracePingShape(ctx, presentation.shape, radius);
+    ctx.fill(); ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "#fff";
+    ctx.font = `900 ${compact ? 10 : 12}px Inter`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(presentation.glyph, 0, presentation.shape === "triangle" ? 2 : 0);
+
+    const label = presentation.label.toUpperCase(), labelY = radius + (compact ? 12 : 15);
+    ctx.font = `900 ${compact ? 8 : 9}px Inter`;
+    const labelWidth = Math.ceil(ctx.measureText?.(label)?.width || label.length * (compact ? 5 : 6));
+    ctx.fillStyle = "rgba(3,10,18,.9)";
+    ctx.fillRect(-labelWidth / 2 - 5, labelY - 6, labelWidth + 10, compact ? 12 : 13);
+    ctx.fillStyle = "#fff";
+    ctx.fillText(label, 0, labelY);
+    ctx.restore();
+  }
+
+  drawPings(currentTick) {
+    const ctx = this.ctx, tick = Number.isSafeInteger(currentTick) ? currentTick : 0;
+    for (const ping of this.visiblePings(currentTick)) {
+      const age = Math.max(0, tick - ping.tick), pulse = this.reducedMotion ? 0 : (Math.sin(age * .18) + 1) / 2;
+      ctx.save(); ctx.translate(ping.x, ping.y);
+      ctx.fillStyle = "rgba(0,0,0,.28)";
+      ctx.beginPath(); ctx.ellipse(0, 16, 25, 8, 0, 0, TAU); ctx.fill();
+      if (!this.reducedMotion) {
+        ctx.globalAlpha = .42 - pulse * .18;
+        ctx.strokeStyle = PING_COLORS[ping.intent] || "#f4eee2"; ctx.lineWidth = 2;
+        tracePingShape(ctx, PING_INTENTS[ping.intent].shape, 23 + pulse * 5); ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+      const scale = this.reducedMotion ? 1 : 1 + pulse * .04;
+      ctx.scale(scale, scale);
+      this.drawPingBadge(ping);
+      ctx.restore();
+    }
+  }
+
+  drawOffscreenPings(state, localPlayerId) {
+    const player = state.players?.find((entry) => entry.id === localPlayerId) || state.players?.[0];
+    if (!player) return;
+    const ctx = this.ctx;
+    for (const ping of this.visiblePings(state.tick)) {
+      const screenX = ping.x - this.camera.x + this.width / 2, screenY = ping.y - this.camera.y + this.height / 2;
+      if (screenX > 45 && screenX < this.width - 45 && screenY > 80 && screenY < this.height - 55) continue;
+      const angle = Math.atan2(ping.y - player.y, ping.x - player.x), margin = 68;
+      const x = clamp(this.width / 2 + Math.cos(angle) * this.width * .42, margin, this.width - margin);
+      const y = clamp(this.height / 2 + Math.sin(angle) * this.height * .38, 94, this.height - margin);
+      ctx.save(); ctx.translate(x, y);
+      ctx.save(); ctx.rotate(angle); ctx.strokeStyle = PING_COLORS[ping.intent] || "#f4eee2"; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(25, 0); ctx.lineTo(17, -5); ctx.moveTo(25, 0); ctx.lineTo(17, 5); ctx.stroke(); ctx.restore();
+      this.drawPingBadge(ping, { radius: 13, compact: true });
+      ctx.restore();
+    }
   }
 
   drawVignette(state, current) {
