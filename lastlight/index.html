@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260713.9">
+  <link rel="stylesheet" href="styles.css?v=20260713.10">
 </head>
 <body>
   <main id="app">
@@ -594,7 +594,16 @@
       </div>
       <div class="build-history-body">
         <article class="build-release current-build">
-          <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.13.9</h3></div><time class="build-shipped-at" datetime="2026-07-13T10:56:00-04:00" data-build-shipped-at="2026-07-13T10:56:00-04:00">Shipped Jul 13, 2026 · 10:56 AM EDT</time></header>
+          <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.13.10</h3></div><span class="build-time-pending">Deployment verification pending</span></header>
+          <ul>
+            <li>Added the deterministic squad enemy director: role-aware lanes, pincers, splits, arcs, objective convergence, and late-run elite escorts that consume the existing spawn budget.</li>
+            <li>Carried the director through replay v9, recovery v8, host migration v6, privacy-safe aggregate telemetry v4, Field Manual guidance, and an independent rollback flag while preserving the exact solo path.</li>
+            <li>Fixed Rift's damage barrier refilling through sustained contact and stopped live weapon-stat updates from rebuilding an open tooltip.</li>
+            <li>Added a longer, gold weapon-evolution ceremony with explicit screen-reader text and layered sound feedback.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header><div><span class="build-release-status">Previous build</span><h3>2026.07.13.9</h3></div><time class="build-shipped-at" datetime="2026-07-13T10:56:00-04:00" data-build-shipped-at="2026-07-13T10:56:00-04:00">Shipped Jul 13, 2026 · 10:56 AM EDT</time></header>
           <ul>
             <li>Added relay-owned, deterministic mid-run reinforcement and reconnect admission with stable replay slots, safe spawn placement, catch-up ranks, and three selectable deployment packages.</li>
             <li>Carried reinforcement identity through replay, recovery, host migration, telemetry, and fair campaign-clear eligibility behind an independent rollback flag.</li>
@@ -1040,8 +1049,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.13.9. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.13.9</strong></button>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.13.10. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.13.10</strong></button>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260713.9"></script>
+  <script type="module" src="game.js?v=20260713.10"></script>
 </body>
 </html>

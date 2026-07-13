@@ -12,8 +12,8 @@ const base = () => ({
   build: "2026.07.11.3",
   balance: { version: "2026.07.11-baseline.1", hash: "fnv1a32:7e33be79" },
   features: {
-    configVersion: "release-2026.07.13.9", gameplayVersion: "join-normalization-v1", objectiveEvents: true,
-    squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, registryVersion: "lastlight.squad-synergy.v1",
+    configVersion: "release-2026.07.13.10", gameplayVersion: "squad-director-v1", objectiveEvents: true,
+    squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, registryVersion: "lastlight.squad-synergy.v1",
   },
   engine: { stepHz: REPLAY_STEP_HZ, rng: "xoshiro128ss-v1" },
   seed: "0123456789abcdef0123456789abcdef",
@@ -64,6 +64,8 @@ test("validator rejects unknown fields, identity, nonfinite input, and stale con
   assert.throws(() => validateReplay(missingDownedActivity), /unexpected or missing fields/);
   const missingJoinNormalization = base(); delete missingJoinNormalization.features.joinInProgressNormalization;
   assert.throws(() => validateReplay(missingJoinNormalization), /unexpected or missing fields/);
+  const missingDirector = base(); delete missingDirector.features.squadEnemyDirector;
+  assert.throws(() => validateReplay(missingDirector), /unexpected or missing fields/);
 });
 
 test("validator enforces tuple length, command order, and per-tick bounds", () => {
@@ -96,8 +98,8 @@ test("recorder keeps transient identities out of replay JSON and deduplicates in
   assert.equal(replay.commands.length, 6);
   assert.deepEqual(replay.roster, [{ slot: 0, specialist: "zuri" }]);
   assert.deepEqual(replay.features, {
-    configVersion: "release-2026.07.13.9", gameplayVersion: "join-normalization-v1", objectiveEvents: true,
-    squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, registryVersion: "lastlight.squad-synergy.v1",
+    configVersion: "release-2026.07.13.10", gameplayVersion: "squad-director-v1", objectiveEvents: true,
+    squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, registryVersion: "lastlight.squad-synergy.v1",
   });
 });
 
@@ -146,6 +148,7 @@ test("legacy v5 manifests preserve squad synergies and disable participation cre
   delete legacy.features.sharedParticipationCredit;
   delete legacy.features.downedActivity;
   delete legacy.features.joinInProgressNormalization;
+  delete legacy.features.squadEnemyDirector;
   assert.doesNotThrow(() => validateReplay(legacy, { squadSynergies: true, sharedParticipationCredit: false, registryVersion: "lastlight.squad-synergy.v1" }));
   assert.throws(() => validateReplay(legacy, { sharedParticipationCredit: true }), /shared-participation-credit flag mismatch/);
 });
@@ -155,6 +158,7 @@ test("legacy v6 manifests preserve participation credit and disable downed activ
   legacy.schema = "lastlight.replay.v6";
   delete legacy.features.downedActivity;
   delete legacy.features.joinInProgressNormalization;
+  delete legacy.features.squadEnemyDirector;
   assert.doesNotThrow(() => validateReplay(legacy, { sharedParticipationCredit: true, downedActivity: false }));
   assert.throws(() => validateReplay(legacy, { downedActivity: true }), /downed-activity flag mismatch/);
 });
@@ -163,6 +167,7 @@ test("legacy v7 manifests preserve downed activity and disable join normalizatio
   const legacy = base();
   legacy.schema = "lastlight.replay.v7";
   delete legacy.features.joinInProgressNormalization;
+  delete legacy.features.squadEnemyDirector;
   legacy.commands = [[0, 0, "j", 1, "echo"]];
   assert.doesNotThrow(() => validateReplay(legacy, { downedActivity: true, joinInProgressNormalization: false }));
   assert.throws(() => validateReplay(legacy, { joinInProgressNormalization: true }), /join-in-progress-normalization flag mismatch/);
@@ -181,13 +186,14 @@ test("legacy replay drafts resume with squad synergies explicitly disabled", () 
   delete draft.header.sharedParticipationCredit;
   delete draft.header.downedActivity;
   delete draft.header.joinInProgressNormalization;
+  delete draft.header.squadEnemyDirector;
   delete draft.header.registryVersion;
   const resumed = ReplayRecorder.fromDraft(draft, [{ id: "host-restored", specialist: "zuri", replaySlot: 0 }]);
   const replay = resumed.finalize(0, "0000000000000000");
   assert.equal(replay.schema, "lastlight.replay.v4");
   assert.deepEqual(replayGameplayFeatures(replay), {
-    gameplayVersion: "join-normalization-v1", objectiveEvents: true, squadSynergies: false,
-    sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, registryVersion: "none",
+    gameplayVersion: "squad-director-v1", objectiveEvents: true, squadSynergies: false,
+    sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, registryVersion: "none",
   });
 });
 
@@ -203,6 +209,7 @@ test("legacy v2 replay drafts preserve squad synergies and disable participation
   delete draft.header.sharedParticipationCredit;
   delete draft.header.downedActivity;
   delete draft.header.joinInProgressNormalization;
+  delete draft.header.squadEnemyDirector;
   const resumed = ReplayRecorder.fromDraft(draft, [{ id: "host-restored", specialist: "zuri", replaySlot: 0 }]);
   const replay = resumed.finalize(0, "0000000000000000");
   assert.equal(replay.schema, "lastlight.replay.v5");
@@ -225,6 +232,7 @@ test("legacy v3 replay drafts preserve participation credit and disable downed a
   draft.schema = "lastlight.replay-draft.v3";
   delete draft.header.downedActivity;
   delete draft.header.joinInProgressNormalization;
+  delete draft.header.squadEnemyDirector;
   const resumed = ReplayRecorder.fromDraft(draft, [{ id: "host-restored", specialist: "zuri", replaySlot: 0 }]);
   const replay = resumed.finalize(0, "0000000000000000");
   assert.equal(replay.schema, "lastlight.replay.v6");
@@ -244,6 +252,7 @@ test("legacy v4 replay drafts preserve downed activity and disable join normaliz
   const draft = recorder.exportDraft(0);
   draft.schema = "lastlight.replay-draft.v4";
   delete draft.header.joinInProgressNormalization;
+  delete draft.header.squadEnemyDirector;
   const resumed = ReplayRecorder.fromDraft(draft, [{ id: "host-restored", specialist: "zuri", replaySlot: 0 }]);
   const replay = resumed.finalize(0, "0000000000000000");
   assert.equal(replay.schema, "lastlight.replay.v7");
@@ -262,6 +271,7 @@ test("legacy v4 drafts retain five-field join commands and legacy seat reuse", (
   const draft = recorder.exportDraft(0);
   draft.schema = "lastlight.replay-draft.v4";
   delete draft.header.joinInProgressNormalization;
+  delete draft.header.squadEnemyDirector;
   const resumed = ReplayRecorder.fromDraft(draft, [{ id: "host-restored", specialist: "zuri", replaySlot: 0 }]);
   resumed.registerPlayer("guest", "echo", { slot: 1, tick: 1 });
   resumed.recordLeave("guest", 2);
@@ -371,7 +381,7 @@ test("driver rejects a simulation created with different gameplay flags before s
   replay.features = {
     configVersion: "rollback-42", gameplayVersion: "participation-off-v1", objectiveEvents: false,
     squadSynergies: false, sharedParticipationCredit: false, downedActivity: false,
-    joinInProgressNormalization: false, registryVersion: "lastlight.squad-synergy.v1",
+    joinInProgressNormalization: false, squadEnemyDirector: false, registryVersion: "lastlight.squad-synergy.v1",
   };
   const driver = new ReplayDriver(replay, {
     createSimulation: () => ({ gameplayVersion: "events-v1", objectiveEvents: true, squadSynergies: true, synergyRegistryVersion: "lastlight.squad-synergy.v1" }),
@@ -416,7 +426,7 @@ test("simulation hashes normalize transient identity but include input, hit sets
 test("feature-off canonical hashes preserve the legacy v7 simulation shape", () => {
   const features = {
     gameplayVersion: "participation-v1", objectiveEvents: true, squadSynergies: true,
-    sharedParticipationCredit: true, downedActivity: false, joinInProgressNormalization: false,
+    sharedParticipationCredit: true, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false,
     registryVersion: "lastlight.squad-synergy.v1",
   };
   const simulation = new Simulation({
@@ -436,16 +446,24 @@ test("feature-off canonical hashes preserve the legacy v7 simulation shape", () 
   delete snapshot.downedState;
   delete snapshot.features.downedActivity;
   delete snapshot.features.joinInProgressNormalization;
+  delete snapshot.features.squadEnemyDirector;
   delete snapshot.determinism.features.downedActivity;
   delete snapshot.determinism.features.joinInProgressNormalization;
+  delete snapshot.determinism.features.squadEnemyDirector;
+  delete snapshot.determinism.directorState;
+  delete snapshot.directorState;
   delete snapshot.runSlotsUsed;
   const determinism = simulation.deterministicState();
   delete determinism.features.downedActivity;
   delete determinism.features.joinInProgressNormalization;
+  delete determinism.features.squadEnemyDirector;
+  delete determinism.directorState;
   const legacyShape = {
     ...simulation,
     downedActivity: undefined,
     joinInProgressNormalization: undefined,
+    squadEnemyDirector: undefined,
+    directorState: undefined,
     runSlotsUsed: undefined,
     players: simulation.players.map(stripPlayer),
     disconnectedPlayers: new Map([...simulation.disconnectedPlayers].map(([key, entry]) => [key, { ...entry, player: stripPlayer(entry.player) }])),
@@ -456,6 +474,8 @@ test("feature-off canonical hashes preserve the legacy v7 simulation shape", () 
   assert.equal(Object.hasOwn(canonical, "downedState"), false);
   assert.equal(Object.hasOwn(canonical.features, "downedActivity"), false);
   assert.equal(Object.hasOwn(canonical.features, "joinInProgressNormalization"), false);
+  assert.equal(Object.hasOwn(canonical.features, "squadEnemyDirector"), false);
+  assert.equal(Object.hasOwn(canonical, "directorState"), false);
   assert.equal(Object.hasOwn(canonical, "runSlotsUsed"), false);
   for (const key of fields) assert.equal(Object.hasOwn(canonical.players[0], key), false, key);
   assert.deepEqual(canonical, canonicalSimulationState(legacyShape));
@@ -489,6 +509,7 @@ test("a recorded deterministic Simulation replays to the same final hash", () =>
         squadSynergies: manifest.features.squadSynergies, sharedParticipationCredit: manifest.features.sharedParticipationCredit,
         downedActivity: manifest.features.downedActivity,
         joinInProgressNormalization: manifest.features.joinInProgressNormalization,
+        squadEnemyDirector: manifest.features.squadEnemyDirector,
         registryVersion: manifest.features.registryVersion,
       },
     }),

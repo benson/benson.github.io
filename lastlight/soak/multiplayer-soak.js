@@ -121,6 +121,7 @@ function createReplica(index, options) {
       squadSynergies: true, sharedParticipationCredit: options.sharedParticipationCredit,
       downedActivity: DEFAULT_RUNTIME_CONFIG.flags.downedActivity,
       joinInProgressNormalization: options.joinInProgressNormalization,
+      squadEnemyDirector: options.squadEnemyDirector,
       registryVersion: DEFAULT_RUNTIME_CONFIG.registryVersion,
     },
   }, { seed: options.seed, balanceVersion: BALANCE_VERSION, balanceHash: BALANCE_HASH });
@@ -205,6 +206,7 @@ export function runMultiplayerSoak(options = {}) {
     gameplayVersion: options.gameplayVersion || DEFAULT_RUNTIME_CONFIG.gameplayVersion,
     sharedParticipationCredit: options.sharedParticipationCredit ?? DEFAULT_RUNTIME_CONFIG.flags.sharedParticipationCredit,
     joinInProgressNormalization: options.joinInProgressNormalization ?? DEFAULT_RUNTIME_CONFIG.flags.joinInProgressNormalization,
+    squadEnemyDirector: options.squadEnemyDirector ?? DEFAULT_RUNTIME_CONFIG.flags.squadEnemyDirector,
     checkpointEvery: options.checkpointEvery || 300,
   };
   if (!/^[0-9a-f]{32}$/.test(settings.seed) || /^0+$/.test(settings.seed)) throw new TypeError("seed must be non-zero 128-bit lowercase hex");

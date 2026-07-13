@@ -453,6 +453,9 @@ kbd { display: inline-grid; min-width: 26px; height: 24px; place-items: center; 
 .objective-banner.is-exiting { transform: translate(-50%, -4px); opacity: 0; transition-duration: 180ms; }
 .objective-banner span { display: block; color: var(--cyan); font: 700 10px/1 var(--sans); letter-spacing: .15em; }
 .objective-banner strong { display: block; margin-top: 5px; font: 700 19px/1 var(--display); letter-spacing: .06em; text-transform: uppercase; }
+.objective-banner[data-type="evolution"] { min-width: 440px; padding: 18px 26px; border-color: #f7d76a; background: linear-gradient(110deg, rgba(20,18,12,.97), rgba(38,29,9,.96), rgba(8,23,27,.97)); box-shadow: 0 0 0 1px rgba(247,215,106,.2), 0 16px 48px rgba(0,0,0,.48); }
+.objective-banner[data-type="evolution"] span { color: #f7d76a; font-size: 12px; }
+.objective-banner[data-type="evolution"] strong { margin-top: 8px; color: #fff8d9; font-size: 25px; text-shadow: 0 0 20px rgba(247,215,106,.35); }
 .boss-hud { position: absolute; z-index: 7; left: 50%; top: 92px; width: min(520px, 60vw); transform: translateX(-50%); text-align: center; }
 .boss-hud span { font: 800 18px/1 var(--display); letter-spacing: .1em; color: #ff7b62; text-shadow: 0 2px 6px #000; }
 .boss-hud > div { position: relative; height: 9px; margin-top: 7px; padding: 2px; background: rgba(4,8,14,.9); border: 1px solid rgba(255,119,91,.55); }

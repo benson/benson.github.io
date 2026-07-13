@@ -185,6 +185,7 @@ function migrationCompatibility() {
     sharedParticipationCredit: DEFAULT_RUNTIME_CONFIG.flags.sharedParticipationCredit,
     downedActivity: DEFAULT_RUNTIME_CONFIG.flags.downedActivity,
     joinInProgressNormalization: DEFAULT_RUNTIME_CONFIG.flags.joinInProgressNormalization,
+    squadEnemyDirector: DEFAULT_RUNTIME_CONFIG.flags.squadEnemyDirector,
     registryVersion: DEFAULT_RUNTIME_CONFIG.registryVersion,
     recoveryVersion: RECOVERY_SIMULATION_VERSION,
   });

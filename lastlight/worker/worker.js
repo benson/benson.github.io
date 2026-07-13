@@ -33,6 +33,7 @@ const TELEMETRY_V1_FIELDS = new Set([
 ]);
 const TELEMETRY_V2_FIELDS = new Set([...TELEMETRY_V1_FIELDS, "synergyIds", "synergyTotals"]);
 const TELEMETRY_V3_FIELDS = new Set([...TELEMETRY_V2_FIELDS, "participationTotals"]);
+const TELEMETRY_V4_FIELDS = new Set([...TELEMETRY_V3_FIELDS, "directorTotals"]);
 const TELEMETRY_MAPS = new Set(["warehouse", "outskirts", "lab", "beachhead"]);
 const TELEMETRY_DIFFICULTIES = new Set(["story", "hard", "extreme"]);
 const TELEMETRY_OUTCOMES = new Set(["won", "lost"]);
@@ -72,6 +73,10 @@ const TELEMETRY_PARTICIPATION_TOTAL_CAPS = Object.freeze({
   eliteParticipations: 1_000_000,
   apexParticipations: 10_000,
 });
+const TELEMETRY_DIRECTOR_TOTAL_FIELDS = Object.freeze([
+  "decisions", "peakSquadSize", "lane", "pincer", "split", "surround", "objective",
+  "column", "flankPair", "wedge", "arc", "objectivePressure", "eliteEscorts",
+]);
 
 export function normalizeCode(value) {
   return String(value || "").toUpperCase().replace(/[^A-Z2-9]/g, "").slice(0, 6);
@@ -105,8 +110,8 @@ function telemetryExactKeys(value, expected, field) {
 
 export function sanitizeRunTelemetry(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new TypeError("Telemetry must be an object");
-  if (value.schemaVersion !== 1 && value.schemaVersion !== 2 && value.schemaVersion !== 3) throw new TypeError("Unsupported telemetry schema");
-  const allowedFields = value.schemaVersion === 3 ? TELEMETRY_V3_FIELDS : value.schemaVersion === 2 ? TELEMETRY_V2_FIELDS : TELEMETRY_V1_FIELDS;
+  if (![1, 2, 3, 4].includes(value.schemaVersion)) throw new TypeError("Unsupported telemetry schema");
+  const allowedFields = value.schemaVersion === 4 ? TELEMETRY_V4_FIELDS : value.schemaVersion === 3 ? TELEMETRY_V3_FIELDS : value.schemaVersion === 2 ? TELEMETRY_V2_FIELDS : TELEMETRY_V1_FIELDS;
   for (const key of Object.keys(value)) {
     if (!allowedFields.has(key)) throw new TypeError(`Unexpected telemetry field: ${key}`);
   }
@@ -168,7 +173,7 @@ export function sanitizeRunTelemetry(value) {
     }
     Object.assign(run, { synergyIds, synergyTotals });
   }
-  if (value.schemaVersion === 3) {
+  if (value.schemaVersion >= 3) {
     telemetryExactKeys(value.participationTotals, TELEMETRY_PARTICIPATION_TOTAL_FIELDS, "participationTotals");
     const participationTotals = Object.fromEntries(TELEMETRY_PARTICIPATION_TOTAL_FIELDS.map((field) => {
       const integer = TELEMETRY_PARTICIPATION_INTEGER_FIELDS.has(field);
@@ -179,6 +184,19 @@ export function sanitizeRunTelemetry(value) {
       ];
     }));
     run.participationTotals = participationTotals;
+  }
+  if (value.schemaVersion === 4) {
+    telemetryExactKeys(value.directorTotals, TELEMETRY_DIRECTOR_TOTAL_FIELDS, "directorTotals");
+    const directorTotals = Object.fromEntries(TELEMETRY_DIRECTOR_TOTAL_FIELDS.map((field) => [
+      field,
+      telemetryNumber(value.directorTotals[field], `directorTotals.${field}`, 0, field === "peakSquadSize" ? 4 : 1_000_000_000, true),
+    ]));
+    const approaches = ["lane", "pincer", "split", "surround", "objective"].reduce((sum, field) => sum + directorTotals[field], 0);
+    const formations = ["column", "flankPair", "wedge", "arc"].reduce((sum, field) => sum + directorTotals[field], 0);
+    if (approaches !== directorTotals.decisions || formations !== directorTotals.decisions) throw new TypeError("Director decision totals do not reconcile");
+    if ((directorTotals.decisions === 0) !== (directorTotals.peakSquadSize === 0) || (directorTotals.decisions > 0 && directorTotals.peakSquadSize < 2)) throw new TypeError("Director squad-size band does not reconcile");
+    if (directorTotals.objectivePressure !== directorTotals.objective) throw new TypeError("Director objective totals do not reconcile");
+    run.directorTotals = directorTotals;
   }
   return run;
 }
@@ -249,6 +267,14 @@ function participationDataPoint(run) {
   };
 }
 
+function directorDataPoint(run) {
+  return {
+    blobs: ["squad-director.v1", run.build, run.map, run.difficulty, run.outcome, run.directorTotals.peakSquadSize === 4 ? "full" : run.directorTotals.peakSquadSize === 3 ? "trio" : run.directorTotals.peakSquadSize === 2 ? "duo" : "off"],
+    doubles: TELEMETRY_DIRECTOR_TOTAL_FIELDS.map((field) => run.directorTotals[field]),
+    indexes: ["lastlight-squad-director-v1"],
+  };
+}
+
 async function handleTelemetry(request, env) {
   if (request.method !== "POST") {
     return Response.json({ error: "Method not allowed" }, { status: 405, headers: { ...corsHeaders(request), Allow: "POST" } });
@@ -276,7 +302,8 @@ async function handleTelemetry(request, env) {
     return Response.json({ error: "Telemetry unavailable" }, { status: 503, headers: corsHeaders(request) });
   }
   env.RUN_TELEMETRY.writeDataPoint(telemetryDataPoint(run));
-  if (run.schemaVersion === 3) env.RUN_TELEMETRY.writeDataPoint(participationDataPoint(run));
+  if (run.schemaVersion >= 3) env.RUN_TELEMETRY.writeDataPoint(participationDataPoint(run));
+  if (run.schemaVersion === 4) env.RUN_TELEMETRY.writeDataPoint(directorDataPoint(run));
   return Response.json({ ok: true }, { status: 202, headers: { ...corsHeaders(request), "Cache-Control": "no-store" } });
 }
 

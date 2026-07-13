@@ -36,6 +36,11 @@ const PARTICIPATION_TOTAL_CAPS = Object.freeze({
   eliteParticipations: 1_000_000,
   apexParticipations: 10_000,
 });
+const DIRECTOR_TOTAL_FIELDS = Object.freeze([
+  "decisions", "peakSquadSize", "lane", "pincer", "split", "surround", "objective",
+  "column", "flankPair", "wedge", "arc", "objectivePressure", "eliteEscorts",
+]);
+const DIRECTOR_COUNT_CAP = 1_000_000_000;
 
 export const DEFAULT_TELEMETRY_ENDPOINT = "https://lastlight-relay.bensonperry.workers.dev/telemetry";
 
@@ -108,6 +113,27 @@ function buildParticipationTelemetry(value) {
   return participationTotals;
 }
 
+function emptyParticipationTelemetry() {
+  return Object.fromEntries(PARTICIPATION_TOTAL_FIELDS.map((field) => [field, 0]));
+}
+
+function buildDirectorTelemetry(value) {
+  exactKeys(value, DIRECTOR_TOTAL_FIELDS, "Director totals");
+  const directorTotals = {};
+  for (const field of DIRECTOR_TOTAL_FIELDS) {
+    const number = value[field], maximum = field === "peakSquadSize" ? 4 : DIRECTOR_COUNT_CAP;
+    if (!Number.isInteger(number) || number < 0 || number > maximum) throw new TypeError(`Invalid director total: ${field}`);
+    directorTotals[field] = number;
+  }
+  const approaches = ["lane", "pincer", "split", "surround", "objective"].reduce((sum, field) => sum + directorTotals[field], 0);
+  const formations = ["column", "flankPair", "wedge", "arc"].reduce((sum, field) => sum + directorTotals[field], 0);
+  if (approaches !== directorTotals.decisions || formations !== directorTotals.decisions) throw new TypeError("Director decision totals do not reconcile");
+  if ((directorTotals.decisions === 0) !== (directorTotals.peakSquadSize === 0)) throw new TypeError("Director squad-size band does not reconcile");
+  if (directorTotals.decisions > 0 && directorTotals.peakSquadSize < 2) throw new TypeError("Director requires a squad");
+  if (directorTotals.objectivePressure !== directorTotals.objective) throw new TypeError("Director objective totals do not reconcile");
+  return directorTotals;
+}
+
 export function buildRunTelemetry(snapshot, build) {
   if (!snapshot || typeof snapshot !== "object") throw new TypeError("A result snapshot is required");
   if (snapshot.stage !== "won" && snapshot.stage !== "lost") throw new TypeError("Telemetry is only recorded for completed runs");
@@ -155,6 +181,14 @@ export function buildRunTelemetry(snapshot, build) {
       : snapshot.participationTelemetry;
     if (payload.schemaVersion === 1) Object.assign(payload, emptySynergyTelemetry());
     Object.assign(payload, { schemaVersion: 3, participationTotals: buildParticipationTelemetry(participationTelemetry) });
+  }
+  if (snapshot.directorTelemetry !== undefined) {
+    const directorTelemetry = typeof snapshot.directorTelemetry === "function"
+      ? snapshot.directorTelemetry()
+      : snapshot.directorTelemetry;
+    if (payload.schemaVersion === 1) Object.assign(payload, emptySynergyTelemetry());
+    if (payload.schemaVersion < 3) Object.assign(payload, { participationTotals: emptyParticipationTelemetry() });
+    Object.assign(payload, { schemaVersion: 4, directorTotals: buildDirectorTelemetry(directorTelemetry) });
   }
   return payload;
 }

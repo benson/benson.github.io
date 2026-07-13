@@ -1,5 +1,5 @@
-import { PASSIVES, SPECIALISTS, WEAPONS } from "./data.js?v=20260713.2";
-import { BALANCE_CONFIG } from "./balance-config.js?v=20260713.6";
+import { PASSIVES, SPECIALISTS, WEAPONS } from "./data.js?v=20260713.10";
+import { BALANCE_CONFIG } from "./balance-config.js?v=20260713.10";
 
 export const JOIN_IN_PROGRESS_SCHEMA = "lastlight.join-in-progress.v1";
 export const JOIN_PACKAGE_SCHEMA = "lastlight.join-package.v1";

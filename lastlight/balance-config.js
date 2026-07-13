@@ -4,7 +4,7 @@ import { APEX_CONTRACTS, validateApexContracts } from "./apex-encounters.js?v=20
 
 // Balance is a versioned simulation input. Replays and fixtures should record
 // this exact version so a future tuning pass never silently changes old runs.
-export const BALANCE_VERSION = "2026.07.13-synergies.1";
+export const BALANCE_VERSION = "2026.07.13-director.1";
 
 export const BALANCE_IDS = Object.freeze({
   specialists: Object.freeze(["zuri", "echo", "sola", "bront", "fang", "gale", "rift", "nova", "vesper"]),
@@ -92,7 +92,7 @@ const config = {
     bront: { crashDashDistance: 170 },
     fang: { missingHealthDamageBonus: 0.60, signatureKnockbackScale: 0.22, predatorHookEvery: 3, predatorHookBase: 45, predatorHookMaxHealthRatio: 2, predatorHookMin: 65, predatorHookMax: 90 },
     gale: { flowPerSecond: 30, flowHasteRatio: 0.50, evolvedFlowMultiplier: 1.15, windwallKnockback: 240, windwallProjectilePadding: 18 },
-    rift: { damageShieldRatio: 0.03, damageShieldCapMaxHealth: 0.35, signatureKnockbackScale: 0.22, kineticReserveDistance: 120, kineticReserveMinScale: 0.12, kineticReserveMaxScale: 0.32 },
+    rift: { damageShieldRatio: 0.03, damageShieldCapMaxHealth: 0.35, damageShieldLockoutSeconds: 5, signatureKnockbackScale: 0.22, kineticReserveDistance: 120, kineticReserveMinScale: 0.12, kineticReserveMaxScale: 0.32 },
     nova: { hexDuration: 8 },
     vesper: { recallPierce: 30, innatePickupRadius: 299 },
   },

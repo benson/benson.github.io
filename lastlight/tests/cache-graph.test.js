@@ -2,16 +2,20 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const RELEASE = "20260713.9";
+const RELEASE = "20260713.10";
 const importers = [
   "index.html", "game.js", "engine.js", "render.js", "replay-timeline.js",
   "replay-game-adapters.js", "specialist-identity.js", "host-migration.js",
+  "data.js", "movement.js", "join-in-progress.js", "upgrade-preview.js",
+  "combat-metadata.js", "impact-grammar.js", "synergy-tags.js",
 ];
 const changedTargets = new Set([
   "styles.css", "game.js", "engine.js", "render.js",
   "replay.js", "feature-config.js", "recovery.js", "replay-timeline.js",
   "replay-game-adapters.js", "host-migration.js",
-  "downed-activity.js", "join-in-progress.js",
+  "join-in-progress.js", "enemy-director.js", "balance-config.js",
+  "telemetry.js", "data.js", "movement.js", "specialist-identity.js", "upgrade-preview.js",
+  "combat-metadata.js", "impact-grammar.js", "synergy-tags.js",
 ]);
 
 test("the active build cache-busts every changed module through the transitive browser graph", () => {
@@ -31,7 +35,7 @@ test("the active build cache-busts every changed module through the transitive b
 test("the visible and runtime build identities match the cache release", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
   const game = readFileSync(new URL("../game.js", import.meta.url), "utf8");
-  assert.match(html, /Lastlight build 2026\.07\.13\.9/);
-  assert.match(html, /<strong>2026\.07\.13\.9<\/strong>/);
-  assert.match(game, /const BUILD = "2026\.07\.13\.9"/);
+  assert.match(html, /Lastlight build 2026\.07\.13\.10/);
+  assert.match(html, /<strong>2026\.07\.13\.10<\/strong>/);
+  assert.match(game, /const BUILD = "2026\.07\.13\.10"/);
 });
