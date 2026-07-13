@@ -1,8 +1,9 @@
-import { WEAPON_EVOLUTION_CONTRACT, validateWeaponEvolutionContract } from "./weapon-evolution.js?v=20260712.10";
+import { WEAPON_EVOLUTION_CONTRACT, validateWeaponEvolutionContract } from "./weapon-evolution.js?v=20260712.11";
+import { validateEnemyIdentityContract } from "./enemy-archetypes.js?v=20260712.11";
 
 // Balance is a versioned simulation input. Replays and fixtures should record
 // this exact version so a future tuning pass never silently changes old runs.
-export const BALANCE_VERSION = "2026.07.12-draft.1";
+export const BALANCE_VERSION = "2026.07.12-enemies.1";
 
 export const BALANCE_IDS = Object.freeze({
   specialists: Object.freeze(["zuri", "echo", "sola", "bront", "fang", "gale", "rift", "nova", "vesper"]),
@@ -112,6 +113,37 @@ const config = {
     bomber: { radius: 28, health: 170, speed: 76, damage: 3.85, xp: 18 },
     shark: { radius: 55, health: 1800, speed: 42, damage: 3.1, xp: 100 },
   },
+  enemyIdentity: {
+    version: "lastlight.enemy-identity.v1",
+    archetypes: {
+      mite: { handler: "swarm-contact-v1", role: "swarm", contactCooldown: 0.8, weave: 0.18 },
+      hound: { handler: "charge-v1", role: "flanker", contactCooldown: 0.8, triggerRange: 390, windup: 0.5, active: 0.3, recovery: 0.7, cooldown: 3, chargeSpeed: 440 },
+      spitter: { handler: "kite-shot-v1", role: "suppressor", preferredRange: 330, retreatRange: 260, windup: 0.55, cooldownMin: 1.6, cooldownMax: 2.4, projectileSpeed: 260, projectileRadius: 9, projectileLife: 4 },
+      brute: { handler: "slam-v1", role: "blocker", contactCooldown: 0.9, triggerRange: 125, windup: 0.8, recovery: 1.4, cooldown: 2.4, radius: 115 },
+      bomber: { handler: "detonate-v1", role: "area-denial", triggerRange: 70, windup: 0.5, radius: 170 },
+      shark: { handler: "siege-charge-v1", role: "linebreaker", contactCooldown: 1.3, triggerRange: 520, windup: 0.9, active: 0.6, recovery: 1.2, cooldown: 4, chargeSpeed: 360, endpointRadius: 150 },
+    },
+    spawnPhases: [
+      { after: 0, weights: { mite: 100 } },
+      { after: 0.13, weights: { mite: 62, hound: 38 } },
+      { after: 0.34, weights: { mite: 45, hound: 33, brute: 22 } },
+      { after: 0.52, weights: { mite: 35, hound: 32, spitter: 20, brute: 13 } },
+      { after: 0.68, weights: { mite: 25, hound: 25, spitter: 20, brute: 12, bomber: 18 } },
+    ],
+    elite: {
+      radiusMultiplier: 1.45,
+      healthMultiplier: 7,
+      speedMultiplier: 0.88,
+      damageMultiplier: 1.4,
+      xpMultiplier: 4,
+      affixCount: 1,
+      affixes: {
+        hasted: { weight: 35, speedMultiplier: 1.2, cooldownMultiplier: 0.8 },
+        shielded: { weight: 35, shieldMaxHealth: 0.35 },
+        volatile: { weight: 30, windup: 0.55, radius: 150, damageMultiplier: 1.25, excludes: ["bomber"] },
+      },
+    },
+  },
   waves: {
     names: ["Contact", "Pressure", "Pincer", "Heavy signal", "Breach", "Black tide", "Last stand", "Apex"],
     survivalWaveCount: 7,
@@ -124,12 +156,6 @@ const config = {
       capStart: 65,
       capProgress: 105,
       capPerAdditionalPlayer: 32,
-      composition: [
-        { id: "bomber", after: 0.68, rollBelow: 0.18 },
-        { id: "spitter", after: 0.52, rollBelow: 0.33 },
-        { id: "brute", after: 0.34, rollBelow: 0.22 },
-        { id: "hound", after: 0.13, rollBelow: 0.38 },
-      ],
       distanceMin: 650,
       distanceMax: 880,
       healthProgressScale: 0.9,
@@ -221,7 +247,7 @@ export function validateBalanceConfig(candidate = BALANCE_CONFIG) {
   };
   if (!candidate || typeof candidate !== "object") return ["config: must be an object"];
   if (typeof candidate.version !== "string" || !candidate.version.trim()) errors.push("version: required");
-  for (const section of ["core", "evolutions", "specialists", "identityTuning", "movement", "passives", "shields", "difficulties", "enemies", "waves", "weapons"]) {
+  for (const section of ["core", "evolutions", "specialists", "identityTuning", "movement", "passives", "shields", "difficulties", "enemies", "enemyIdentity", "waves", "weapons"]) {
     if (!candidate[section] || typeof candidate[section] !== "object") errors.push(`${section}: required`);
   }
   const requireExactIds = (path, value, ids) => {
@@ -289,15 +315,7 @@ export function validateBalanceConfig(candidate = BALANCE_CONFIG) {
   }
   const names = candidate.waves?.names;
   if (!Array.isArray(names) || names.length !== Number(candidate.waves?.survivalWaveCount) + 1) errors.push("waves.names: must contain every survival wave plus Apex");
-  const composition = candidate.waves?.spawn?.composition;
-  if (!Array.isArray(composition) || !composition.length) errors.push("waves.spawn.composition: required");
-  for (const [index, entry] of (composition || []).entries()) {
-    if (!candidate.enemies?.[entry.id]) errors.push(`waves.spawn.composition.${index}.id: unknown enemy ${entry.id}`);
-    requireFinite(`waves.spawn.composition.${index}.after`, entry.after, { min: 0 });
-    requireFinite(`waves.spawn.composition.${index}.rollBelow`, entry.rollBelow, { min: 0 });
-    if (entry.after > 1) errors.push(`waves.spawn.composition.${index}.after: must be <= 1`);
-    if (entry.rollBelow > 1) errors.push(`waves.spawn.composition.${index}.rollBelow: must be <= 1`);
-  }
+  errors.push(...validateEnemyIdentityContract(candidate.enemyIdentity, candidate.enemies).map((error) => `enemyIdentity.${error}`));
   for (const id of Object.keys(candidate.specialists || {})) if (!candidate.weapons?.signatures?.[id]) errors.push(`weapons.signatures.${id}: required`);
   errors.push(...validateWeaponEvolutionContract(candidate.evolutions, candidate).map((error) => `evolutions.${error}`));
   return errors;

@@ -226,6 +226,16 @@ test("display and accessibility settings are persistent and reachable while wait
   assert.doesNotMatch(css.match(/\.quality-shortcut \{[^}]+\}/s)?.[0] || "", /transition:\s*all/);
 });
 
+test("enemy identity guide stays named and reachable on mobile", () => {
+  assert.match(html, /id="guide-dialog"[^>]+aria-labelledby="guide-title"/);
+  assert.match(html, /<h2 id="guide-title">UPGRADES & RARE FINDS<\/h2>/);
+  assert.match(game, /Hasted elite/);
+  assert.match(game, /Shielded elite/);
+  assert.match(game, /Volatile elite/);
+  assert.match(css, /\.topbar-actions #guide-button \{ display: inline-flex;/);
+  assert.match(css, /#lobby-guide \{ display: inline-flex;/);
+});
+
 test("mobile reuses the visible E and R slots instead of rendering duplicate cast buttons", () => {
   assert.doesNotMatch(html, /id="touch-[er]"/);
   assert.match(html, /id="move-stick"/);

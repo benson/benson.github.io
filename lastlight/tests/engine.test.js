@@ -202,7 +202,7 @@ test("level-five Echo shields stay on the ten-vitality scale under sustained Sto
   assert.equal(sim.cast(player.id, "e"), true);
   assert.equal(player.shield, player.maxHp * 0.5, "the cap cannot be bypassed by rapid recasts");
 
-  const brute = sim.spawnEnemy("brute");
+  const brute = sim.spawnEnemy("mite");
   Object.assign(brute, { x: 0, y: 0, radius: 1_000, speed: 0, hp: 1e12, maxHp: 1e12, attackCd: 0, shotCd: 1e9 });
   let contacts = 0;
   for (let tick = 0; tick < 20 * 20 && sim.stage === "running"; tick++) {

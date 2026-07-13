@@ -126,6 +126,10 @@ export function specialistMotionState(entity, moving, hurtAmount = 0) {
 export function enemyMotionState(enemy, moving, nearTarget = false) {
   if (enemy?.dead) return "death";
   if ((enemy?.hitFlash || 0) > .015) return "hurt";
+  const behavior = typeof enemy?.behaviorState === "string" ? enemy.behaviorState : enemy?.behaviorState?.id;
+  if (behavior === "windup") return "attackWindup";
+  if (behavior === "charge") return "attackContact";
+  if (behavior === "recovery") return "attackRecovery";
   const flash = Number(enemy?.attackFlash || 0);
   if (flash > .13) return "attackContact";
   if (flash > 0) return "attackRecovery";

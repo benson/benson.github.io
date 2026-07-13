@@ -1,5 +1,5 @@
 import { getThemeAsset } from "./themes/lastlight.js?v=20260711.8";
-import { BALANCE_CONFIG } from "./balance-config.js?v=20260712.10";
+import { BALANCE_CONFIG } from "./balance-config.js?v=20260712.11";
 
 // One vitality point is one readable unit of player health. Standard specialists
 // are balanced around 10; every hostile hit can therefore be discussed in hits-to-down.
@@ -144,10 +144,10 @@ export const DIFFICULTIES = Object.fromEntries(Object.entries(BALANCE_CONFIG.dif
 export const ENEMY_TYPES = {
   mite: { id: "mite", name: "Skitter", ...BALANCE_CONFIG.enemies.mite, color: "#ff7658", shape: 3, icon: getThemeAsset("guide.enemies.mite") },
   hound: { id: "hound", name: "Rusher", ...BALANCE_CONFIG.enemies.hound, color: "#ffad53", shape: 4, icon: getThemeAsset("guide.enemies.hound") },
-  spitter: { id: "spitter", name: "Spitter", ...BALANCE_CONFIG.enemies.spitter, color: "#c36cff", shape: 6, ranged: true, icon: getThemeAsset("guide.enemies.spitter") },
+  spitter: { id: "spitter", name: "Spitter", ...BALANCE_CONFIG.enemies.spitter, color: "#c36cff", shape: 6, icon: getThemeAsset("guide.enemies.spitter") },
   brute: { id: "brute", name: "Brute", ...BALANCE_CONFIG.enemies.brute, color: "#e84a67", shape: 6, icon: getThemeAsset("guide.enemies.brute") },
-  bomber: { id: "bomber", name: "Bomber", ...BALANCE_CONFIG.enemies.bomber, color: "#ffd45d", shape: 5, bomber: true, icon: getThemeAsset("guide.enemies.bomber") },
-  shark: { id: "shark", name: "Siegebreaker", ...BALANCE_CONFIG.enemies.shark, color: "#ff5575", shape: 5, miniboss: true, icon: getThemeAsset("guide.enemies.shark") },
+  bomber: { id: "bomber", name: "Bomber", ...BALANCE_CONFIG.enemies.bomber, color: "#ffd45d", shape: 5, icon: getThemeAsset("guide.enemies.bomber") },
+  shark: { id: "shark", name: "Siegebreaker", ...BALANCE_CONFIG.enemies.shark, color: "#ff5575", shape: 5, icon: getThemeAsset("guide.enemies.shark") },
 };
 
 export const MAP_OBSTACLES = [

@@ -1101,9 +1101,12 @@ html[data-reduced-motion="true"] .scanlines { animation: none; }
   .upgrade-overlay { backdrop-filter: none; }
   .topbar { height: 62px; padding-inline: 16px; }
   .topbar-actions .text-button { display: none; }
+  .topbar-actions #guide-button { display: inline-flex; padding-inline: 8px; font-size: 0; }
+  .topbar-actions #guide-button::after { content: "Archive"; font-size: 10px; }
   .lobby-header { min-height: 62px; height: auto; padding: 10px 16px; gap: 8px; }
   .lobby-header-actions { gap: 0; margin-left: auto; }
-  #lobby-run-history, #lobby-guide, #lobby-audio { display: none; }
+  #lobby-run-history, #lobby-audio { display: none; }
+  #lobby-guide { display: inline-flex; padding-inline: 5px; font-size: 9px; }
   #lobby-quality { padding-inline: 4px; }
   .mission-chip { max-width: 92px; font-size: 10px; line-height: 1.05; }
   .home-content { width: calc(100% - 28px); padding-top: 36px; }

@@ -1,13 +1,14 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
-} from "./data.js?v=20260712.10";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260712.10";
+} from "./data.js?v=20260712.11";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260712.11";
 import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.5";
 import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260711.5";
-import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260712.10";
-import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260712.10";
-import { MAX_CORRIDOR_CANDIDATES, accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget, orderEntitiesByDistance } from "./projectile-decisions.js?v=20260712.10";
+import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260712.11";
+import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260712.11";
+import { MAX_CORRIDOR_CANDIDATES, accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget, orderEntitiesByDistance } from "./projectile-decisions.js?v=20260712.11";
+import { selectEliteAffixes, selectSpawnArchetype } from "./enemy-archetypes.js?v=20260712.11";
 
 const BALANCE = getBalanceConfig();
 
@@ -604,10 +605,7 @@ export class Simulation {
     const cap = spawn.capStart + Math.floor(progress * spawn.capProgress) + (livePlayers - 1) * spawn.capPerAdditionalPlayer;
     while (this.spawnClock >= interval && this.enemies.length < cap) {
       this.spawnClock -= interval;
-      let type = "mite";
-      const roll = this.gameplayRng.nextFloat();
-      const match = spawn.composition.find((entry) => progress > entry.after && roll < entry.rollBelow);
-      if (match) type = match.id;
+      const type = selectSpawnArchetype(this.gameplayRng, progress, BALANCE.enemyIdentity.spawnPhases);
       this.spawnEnemy(type);
     }
   }
@@ -616,17 +614,30 @@ export class Simulation {
     const type = ENEMY_TYPES[typeId] || ENEMY_TYPES.mite;
     const focus = this.pick(this.players.filter((p) => !p.dead && !p.downed)) || this.players[0] || { x: 0, y: 0 };
     const a = this.random(0, TAU), r = this.random(BALANCE.waves.spawn.distanceMin, BALANCE.waves.spawn.distanceMax);
-    const elite = Boolean(options.elite);
+    const elite = Boolean(options.elite), eliteTuning = BALANCE.enemyIdentity.elite;
     const scale = this.difficulty.health * (1 + this.time / Math.max(1, this.duration) * BALANCE.waves.spawn.healthProgressScale);
     const enemy = {
       id: this.nextGameplayId("m"), type: type.id, x: clamp(focus.x + Math.cos(a) * r, -WORLD.width / 2 + 30, WORLD.width / 2 - 30),
       y: clamp(focus.y + Math.sin(a) * r, -WORLD.height / 2 + 30, WORLD.height / 2 - 30),
-      radius: type.radius * (elite ? 1.45 : 1), hp: type.health * scale * (elite ? 7 : 1),
-      maxHp: type.health * scale * (elite ? 7 : 1), speed: type.speed * (elite ? .88 : 1),
-      damage: type.damage * this.difficulty.attack * (elite ? 1.4 : 1), color: type.color,
-      elite, miniboss: type.miniboss, boss: false, attackCd: this.random(0, 1), shotCd: this.random(.2, 1.5),
-      stun: 0, hitFlash: 0, attackFlash: 0, spawnLife: .24, knockVx: 0, knockVy: 0, dead: false, xp: type.xp * (elite ? 4 : 1),
+      radius: type.radius * (elite ? eliteTuning.radiusMultiplier : 1), hp: type.health * scale * (elite ? eliteTuning.healthMultiplier : 1),
+      maxHp: type.health * scale * (elite ? eliteTuning.healthMultiplier : 1), speed: type.speed * (elite ? eliteTuning.speedMultiplier : 1),
+      damage: type.damage * this.difficulty.attack * (elite ? eliteTuning.damageMultiplier : 1), color: type.color,
+      elite, miniboss: type.id === "shark", boss: false, attackCd: this.random(0, 1), shotCd: this.random(.2, 1.5),
+      stun: 0, hitFlash: 0, attackFlash: 0, spawnLife: .24, knockVx: 0, knockVy: 0, dead: false, xp: type.xp * (elite ? eliteTuning.xpMultiplier : 1),
+      behaviorState: "approach", behaviorStartedTick: this.tick, behaviorUntilTick: this.tick,
+      abilityReadyTick: this.tick, actionSequence: 0, attackAngle: 0, behaviorHitIds: [], affixIds: [], affixState: {},
     };
+    if (elite) {
+      const affixRng = SeededRng.fromHex(this.seed).fork("elite-affix-v1").fork(enemy.id);
+      enemy.affixIds = selectEliteAffixes({
+        rng: affixRng,
+        context: { spawnContext: options.spawnContext || "unspecified", typeId: type.id, elite, miniboss: type.id === "shark", boss: false, eventType: options.eventType || null },
+        count: eliteTuning.affixCount,
+        definitions: eliteTuning.affixes,
+      });
+      if (enemy.affixIds.includes("hasted")) enemy.speed *= eliteTuning.affixes.hasted.speedMultiplier;
+      if (enemy.affixIds.includes("shielded")) enemy.affixState.shield = enemy.maxHp * eliteTuning.affixes.shielded.shieldMaxHealth;
+    }
     this.enemies.push(enemy);
     return enemy;
   }
@@ -641,10 +652,12 @@ export class Simulation {
       this.nextRelayBall += Math.max(BALANCE.waves.events.relayRepeatMin, this.duration * BALANCE.waves.events.relayRepeat);
     }
     if (this.time >= this.nextElite) {
-      const elite = this.spawnEnemy(this.time / this.duration > BALANCE.waves.events.eliteBruteAfter ? "brute" : "hound", { elite: true });
+      const elite = this.spawnEnemy(this.time / this.duration > BALANCE.waves.events.eliteBruteAfter ? "brute" : "hound", { elite: true, spawnContext: "scheduled-elite" });
       elite.x = clamp(elite.x, -WORLD.width / 2 + 100, WORLD.width / 2 - 100);
+      const affix = elite.affixIds[0];
+      if (affix) this.pushEvent("danger", `${affix[0].toUpperCase()}${affix.slice(1)} elite inbound`, `${affix === "shielded" ? "Break the diamond barrier first" : affix === "volatile" ? "Its death leaves a notched blast warning" : "Triple chevrons mark faster attacks"} · access key on takedown`);
+      else this.pushEvent("danger", "Elite signal", "An access key is on the line");
       this.nextElite += this.duration * BALANCE.waves.events.eliteRepeat;
-      this.pushEvent("danger", "Elite signal", "An access key is on the line");
     }
     if (this.time >= this.nextMiniBoss) {
       this.spawnEnemy("shark");
@@ -661,7 +674,7 @@ export class Simulation {
   }
 
   spawnTreasureRunner() {
-    const runner = this.spawnEnemy("hound", { elite: true });
+    const runner = this.spawnEnemy("hound", { elite: true, spawnContext: "treasure-event", eventType: "treasure" });
     const health = 720 * this.difficulty.health * (1 + this.time / Math.max(1, this.duration));
     Object.assign(runner, { eventType: "treasure", radius: 31, hp: health, maxHp: health, speed: 195, damage: 0, color: "#ffd45d", life: 28, xp: 120 });
     this.pushEvent("objective", "Treasure runner detected", "Catch it before the signal escapes");
@@ -810,6 +823,15 @@ export class Simulation {
       for (const player of this.players) if (!player.dead && distance(enemy, player) < 170) this.takeDamage(player, enemy.damage, enemy);
       enemy.dead = true;
       enemy.detonationScheduled = false;
+      return;
+    }
+    if (task.kind === "elite-volatile") {
+      for (const player of this.players) {
+        if (!player.dead && !player.downed && Math.hypot(player.x - payload.x, player.y - payload.y) <= payload.radius) {
+          this.takeDamage(player, payload.damage, { id: payload.enemyId, x: payload.x, y: payload.y, elite: true, affixIds: ["volatile"] });
+        }
+      }
+      this.effects.push({ id: this.nextCosmeticId("fx"), x: payload.x, y: payload.y, radius: payload.radius, life: .3, maxLife: .3, damage: 0, owner: "enemy", color: "#ff6b4a", kind: "danger" });
       return;
     }
     throw new RangeError(`Unknown simulation task kind: ${task.kind}`);
@@ -1762,6 +1784,175 @@ export class Simulation {
     return enemyHits;
   }
 
+  enemyTarget(enemy, living) {
+    return [...living].sort((left, right) => {
+      const delta = distance(enemy, left) - distance(enemy, right);
+      if (Math.abs(delta) > 1e-9) return delta;
+      const slotDelta = (replaySlot(left.replaySlot) ?? 99) - (replaySlot(right.replaySlot) ?? 99);
+      const leftId = String(left.id), rightId = String(right.id);
+      return slotDelta || (leftId < rightId ? -1 : leftId > rightId ? 1 : 0);
+    })[0] || null;
+  }
+
+  enemyTuning(enemy) {
+    return BALANCE.enemyIdentity.archetypes[enemy.type] || BALANCE.enemyIdentity.archetypes.mite;
+  }
+
+  enemyCooldown(enemy, seconds) {
+    const multiplier = enemy.affixIds?.includes("hasted") ? BALANCE.enemyIdentity.elite.affixes.hasted.cooldownMultiplier : 1;
+    return Math.max(1, Math.round(seconds * multiplier * SIMULATION_TICK_RATE));
+  }
+
+  setEnemyBehavior(enemy, state, seconds = 0, angle = enemy.attackAngle || 0) {
+    delete enemy.behaviorEndX; delete enemy.behaviorEndY; delete enemy.behaviorRange;
+    enemy.behaviorState = state;
+    enemy.behaviorStartedTick = this.tick;
+    enemy.behaviorUntilTick = this.tick + Math.max(0, Math.round(seconds * SIMULATION_TICK_RATE));
+    enemy.attackAngle = Number.isFinite(angle) ? angle : 0;
+    enemy.actionSequence = Math.max(0, Number(enemy.actionSequence) || 0) + 1;
+    enemy.behaviorHitIds = [];
+  }
+
+  moveEnemy(enemy, angle, amount) {
+    moveEntityWithCover(enemy, Math.cos(angle) * amount, Math.sin(angle) * amount);
+  }
+
+  enemyContact(enemy, target, cooldown) {
+    if (!circleHit(enemy, target, -4) || enemy.attackCd > 0) return false;
+    const multiplier = enemy.affixIds?.includes("hasted") ? BALANCE.enemyIdentity.elite.affixes.hasted.cooldownMultiplier : 1;
+    enemy.attackCd = cooldown * multiplier;
+    this.takeDamage(target, enemy.damage, enemy);
+    return true;
+  }
+
+  updateSwarmEnemy(enemy, target, dt, tuning) {
+    const direct = angleTo(enemy, target);
+    let phase = 0;
+    for (const character of String(enemy.id)) phase = (phase * 33 + character.charCodeAt(0)) >>> 0;
+    const weave = Math.sin((this.tick + phase % 180) / 22) * Number(tuning.weave || 0);
+    this.moveEnemy(enemy, direct + weave, enemy.speed * dt);
+    this.enemyContact(enemy, target, tuning.contactCooldown);
+  }
+
+  updateChargeEnemy(enemy, target, dt, tuning, { endpoint = false } = {}) {
+    if (enemy.behaviorState === "windup") {
+      if (this.tick < enemy.behaviorUntilTick) return;
+      this.setEnemyBehavior(enemy, "charge", tuning.active, enemy.attackAngle);
+      const travel = tuning.chargeSpeed * tuning.active;
+      const targetX = clamp(enemy.x + Math.cos(enemy.attackAngle) * travel, -WORLD.width / 2 + 40, WORLD.width / 2 - 40);
+      const targetY = clamp(enemy.y + Math.sin(enemy.attackAngle) * travel, -WORLD.height / 2 + 40, WORLD.height / 2 - 40);
+      const impact = segmentCoverImpact(enemy.x, enemy.y, targetX, targetY, enemy.radius);
+      const resolvedAngle = Math.atan2(targetY - enemy.y, targetX - enemy.x), unclippedTravel = Math.hypot(targetX - enemy.x, targetY - enemy.y), resolvedTravel = impact ? unclippedTravel * Math.max(0, impact.t - .01) : unclippedTravel;
+      enemy.attackAngle = resolvedAngle;
+      enemy.behaviorEndX = enemy.x + Math.cos(enemy.attackAngle) * resolvedTravel;
+      enemy.behaviorEndY = enemy.y + Math.sin(enemy.attackAngle) * resolvedTravel;
+      enemy.behaviorRange = resolvedTravel;
+    }
+    if (enemy.behaviorState === "charge") {
+      const remainingX = enemy.behaviorEndX - enemy.x, remainingY = enemy.behaviorEndY - enemy.y, remaining = Math.hypot(remainingX, remainingY);
+      const step = Math.min(remaining, tuning.chargeSpeed * dt);
+      if (remaining > 1e-9) { enemy.x += remainingX / remaining * step; enemy.y += remainingY / remaining * step; }
+      for (const player of this.players) {
+        if (player.dead || player.downed || enemy.behaviorHitIds.includes(player.id) || !circleHit(enemy, player, 2)) continue;
+        enemy.behaviorHitIds.push(player.id);
+        this.takeDamage(player, enemy.damage, enemy);
+      }
+      if (this.tick < enemy.behaviorUntilTick) return;
+      if (endpoint) {
+        for (const player of this.players) if (!player.dead && !player.downed && distance(enemy, player) <= tuning.endpointRadius) this.takeDamage(player, enemy.damage * 0.8, enemy);
+        this.effects.push({ id: this.nextCosmeticId("fx"), x: enemy.x, y: enemy.y, radius: tuning.endpointRadius, life: .32, maxLife: .32, damage: 0, owner: "enemy", color: enemy.color, kind: "danger" });
+      }
+      this.setEnemyBehavior(enemy, "recovery", tuning.recovery, enemy.attackAngle);
+      enemy.abilityReadyTick = this.tick + this.enemyCooldown(enemy, tuning.cooldown);
+      return;
+    }
+    if (enemy.behaviorState === "recovery") {
+      if (this.tick < enemy.behaviorUntilTick) return;
+      this.setEnemyBehavior(enemy, "approach");
+    }
+    const angle = angleTo(enemy, target), separation = distance(enemy, target);
+    if (this.tick >= enemy.abilityReadyTick && separation <= tuning.triggerRange) {
+      this.setEnemyBehavior(enemy, "windup", tuning.windup, angle);
+      return;
+    }
+    this.moveEnemy(enemy, angle, enemy.speed * dt);
+    this.enemyContact(enemy, target, tuning.contactCooldown);
+  }
+
+  updateSpitterEnemy(enemy, target, dt, tuning) {
+    if (enemy.behaviorState === "windup") {
+      if (this.tick < enemy.behaviorUntilTick) return;
+      const angle = enemy.attackAngle, velocity = fromAngle(angle, tuning.projectileSpeed);
+      this.hostile.push({ id: this.nextGameplayId("h"), ownerId: enemy.id, x: enemy.x, y: enemy.y, vx: velocity.x, vy: velocity.y, radius: tuning.projectileRadius, damage: enemy.damage * this.difficulty.spell, life: tuning.projectileLife, color: enemy.color, dead: false });
+      const range = Math.max(1, Math.round((tuning.cooldownMax - tuning.cooldownMin) * 10));
+      const jitter = ((enemy.actionSequence * 17 + String(enemy.id).length * 13) % range) / 10;
+      enemy.abilityReadyTick = this.tick + this.enemyCooldown(enemy, tuning.cooldownMin + jitter);
+      enemy.attackFlash = .2;
+      this.setEnemyBehavior(enemy, "contact", .1, angle);
+      return;
+    }
+    if (enemy.behaviorState === "contact") {
+      if (this.tick < enemy.behaviorUntilTick) return;
+      this.setEnemyBehavior(enemy, "recovery", .25, enemy.attackAngle);
+      return;
+    }
+    if (enemy.behaviorState === "recovery") {
+      if (this.tick < enemy.behaviorUntilTick) return;
+      this.setEnemyBehavior(enemy, "approach");
+    }
+    const separation = distance(enemy, target), angle = angleTo(enemy, target);
+    if (separation > tuning.preferredRange + 25) this.moveEnemy(enemy, angle, enemy.speed * dt);
+    else if (separation < tuning.retreatRange) this.moveEnemy(enemy, angle + Math.PI, enemy.speed * .6 * dt);
+    if (this.tick >= enemy.abilityReadyTick) {
+      const targetVx = Number(target.moveVx || target.vx || 0), targetVy = Number(target.moveVy || target.vy || 0);
+      const flight = Math.min(1.1, separation / tuning.projectileSpeed);
+      const aim = Math.atan2(target.y + targetVy * flight - enemy.y, target.x + targetVx * flight - enemy.x);
+      this.setEnemyBehavior(enemy, "windup", tuning.windup, aim);
+    }
+  }
+
+  updateBruteEnemy(enemy, target, dt, tuning) {
+    if (enemy.behaviorState === "windup") {
+      if (this.tick < enemy.behaviorUntilTick) return;
+      for (const player of this.players) if (!player.dead && !player.downed && distance(enemy, player) <= tuning.radius) this.takeDamage(player, enemy.damage, enemy);
+      this.effects.push({ id: this.nextCosmeticId("fx"), x: enemy.x, y: enemy.y, radius: tuning.radius, life: .3, maxLife: .3, damage: 0, owner: "enemy", color: enemy.color, kind: "danger" });
+      enemy.abilityReadyTick = this.tick + this.enemyCooldown(enemy, tuning.cooldown);
+      this.setEnemyBehavior(enemy, "recovery", tuning.recovery, enemy.attackAngle);
+      return;
+    }
+    if (enemy.behaviorState === "recovery") {
+      if (this.tick < enemy.behaviorUntilTick) return;
+      this.setEnemyBehavior(enemy, "approach");
+    }
+    const angle = angleTo(enemy, target), separation = distance(enemy, target);
+    if (this.tick >= enemy.abilityReadyTick && separation <= tuning.triggerRange) {
+      this.setEnemyBehavior(enemy, "windup", tuning.windup, angle);
+      return;
+    }
+    this.moveEnemy(enemy, angle, enemy.speed * dt);
+    this.enemyContact(enemy, target, tuning.contactCooldown);
+  }
+
+  updateBomberEnemy(enemy, target, dt, tuning) {
+    if (enemy.behaviorState === "windup") {
+      if (this.tick < enemy.behaviorUntilTick) return;
+      for (const player of this.players) if (!player.dead && !player.downed && distance(enemy, player) <= tuning.radius) this.takeDamage(player, enemy.damage, enemy);
+      enemy.dead = true;
+      return;
+    }
+    if (enemy.behaviorState === "recovery") {
+      if (this.tick < enemy.behaviorUntilTick || this.tick < enemy.abilityReadyTick) return;
+      this.setEnemyBehavior(enemy, "approach");
+    }
+    const angle = angleTo(enemy, target), separation = distance(enemy, target);
+    if (separation <= tuning.triggerRange && this.tick >= enemy.abilityReadyTick) {
+      this.setEnemyBehavior(enemy, "windup", tuning.windup, angle);
+      this.effects.push({ id: this.nextCosmeticId("fx"), x: enemy.x, y: enemy.y, radius: tuning.radius, life: tuning.windup, maxLife: tuning.windup, damage: 0, owner: "enemy", color: enemy.color, kind: "danger" });
+      return;
+    }
+    this.moveEnemy(enemy, angle, enemy.speed * dt);
+  }
+
   updateEnemies(dt) {
     const living = this.players.filter((p) => !p.dead && !p.downed);
     if (!living.length) return;
@@ -1788,33 +1979,23 @@ export class Simulation {
         enemy.y = clamp(enemy.y + Math.sin(angle) * enemy.speed * dt, -WORLD.height / 2 + 55, WORLD.height / 2 - 55);
         continue;
       }
-      if (enemy.stun > 0) continue;
-      const target = living.reduce((best, p) => !best || distance(enemy, p) < distance(enemy, best) ? p : best, null);
+      if (enemy.stun > 0) {
+        if (["windup", "charge"].includes(enemy.behaviorState)) {
+          const tuning = this.enemyTuning(enemy);
+          this.setEnemyBehavior(enemy, "recovery", Number(tuning.recovery || .45), enemy.attackAngle);
+          enemy.abilityReadyTick = this.tick + this.enemyCooldown(enemy, Number(tuning.cooldown || 1));
+        }
+        continue;
+      }
+      const target = this.enemyTarget(enemy, living);
       if (!target) continue;
-      const a = angleTo(enemy, target), type = ENEMY_TYPES[enemy.type] || ENEMY_TYPES.mite;
-      const desired = type.ranged ? 330 : 0;
-      const d = distance(enemy, target);
-      if (d > desired + 25) {
-        enemy.x += Math.cos(a) * enemy.speed * dt;
-        enemy.y += Math.sin(a) * enemy.speed * dt;
-      } else if (type.ranged && d < desired - 70) {
-        enemy.x -= Math.cos(a) * enemy.speed * .6 * dt;
-        enemy.y -= Math.sin(a) * enemy.speed * .6 * dt;
-      }
-      if (type.ranged && enemy.shotCd <= 0) {
-        enemy.shotCd = this.random(1.6, 2.4);
-        const v = fromAngle(a, 260);
-        this.hostile.push({ id: this.nextGameplayId("h"), ownerId: enemy.id, x: enemy.x, y: enemy.y, vx: v.x, vy: v.y, radius: 9, damage: enemy.damage * this.difficulty.spell, life: 4, color: enemy.color, dead: false });
-      }
-      if (type.bomber && d < 70 && !enemy.detonationScheduled) {
-        enemy.detonationScheduled = true;
-        this.effects.push({ id: this.nextCosmeticId("fx"), x: enemy.x, y: enemy.y, radius: 150, life: .55, maxLife: .55, damage: 0, owner: "enemy", color: enemy.color, kind: "danger" });
-        this.scheduleTask("bomber-detonate", .5, { enemyId: enemy.id });
-      }
-      if (circleHit(enemy, target, -4) && enemy.attackCd <= 0) {
-        enemy.attackCd = enemy.miniboss ? 1.3 : .8;
-        this.takeDamage(target, enemy.damage, enemy);
-      }
+      const tuning = this.enemyTuning(enemy);
+      if (tuning.handler === "charge-v1") this.updateChargeEnemy(enemy, target, dt, tuning);
+      else if (tuning.handler === "kite-shot-v1") this.updateSpitterEnemy(enemy, target, dt, tuning);
+      else if (tuning.handler === "slam-v1") this.updateBruteEnemy(enemy, target, dt, tuning);
+      else if (tuning.handler === "detonate-v1") this.updateBomberEnemy(enemy, target, dt, tuning);
+      else if (tuning.handler === "siege-charge-v1") this.updateChargeEnemy(enemy, target, dt, tuning, { endpoint: true });
+      else this.updateSwarmEnemy(enemy, target, dt, tuning);
     }
   }
 
@@ -1895,8 +2076,14 @@ export class Simulation {
 
   damageEnemy(enemy, amount, ownerId, critical = false, source = "", options = {}) {
     if (enemy.dead) return;
-    const dealt = Math.min(amount, Math.max(0, enemy.hp));
-    enemy.hp -= amount; enemy.hitFlash = .1;
+    let remaining = Math.max(0, Number(amount) || 0), absorbed = 0;
+    if (enemy.affixState?.shield > 0 && remaining > 0) {
+      absorbed = Math.min(enemy.affixState.shield, remaining);
+      enemy.affixState.shield -= absorbed;
+      remaining -= absorbed;
+    }
+    const dealt = absorbed + Math.min(remaining, Math.max(0, enemy.hp));
+    enemy.hp -= remaining; enemy.hitFlash = .1;
     const owner = this.players.find((p) => p.id === ownerId);
     if (owner) {
       owner.damage += dealt;
@@ -1925,6 +2112,11 @@ export class Simulation {
     if (owner) owner.kills++;
     if (owner?.healthbackBuff > 0) owner.hp = Math.min(owner.maxHp, owner.hp + owner.maxHp * .018);
     if (enemy.boss) { this.win(); return; }
+    if (enemy.affixIds?.includes("volatile")) {
+      const tuning = BALANCE.enemyIdentity.elite.affixes.volatile;
+      this.effects.push({ id: this.nextCosmeticId("fx"), x: enemy.x, y: enemy.y, radius: tuning.radius, life: tuning.windup, maxLife: tuning.windup, damage: 0, owner: "enemy", color: "#ff6b4a", kind: "danger" });
+      this.scheduleTask("elite-volatile", tuning.windup, { enemyId: enemy.id, x: enemy.x, y: enemy.y, radius: tuning.radius, damage: enemy.damage * tuning.damageMultiplier });
+    }
     if (enemy.eventType === "treasure") {
       this.gold += Math.round(110 * this.difficulty.gold); this.teamXP += this.xpNeed;
       for (let i = 0; i < 2; i++) this.drops.push({ id: this.nextGameplayId("d"), type: "card", x: enemy.x + this.random(-34, 34), y: enemy.y + this.random(-34, 34), radius: 18 });
@@ -2139,7 +2331,7 @@ export class Simulation {
     this.stage = "boss"; this.remaining = 0; this.enemies = this.enemies.filter((enemy) => enemy.elite || enemy.miniboss);
     const boss = BALANCE.waves.boss;
     const health = boss.baseHealth * this.difficulty.health * (1 + (this.players.length - 1) * boss.healthPerAdditionalPlayer);
-    this.enemies.push({ id: this.nextGameplayId("boss"), type: "boss", x: 720, y: 0, radius: 92, hp: health, maxHp: health, speed: boss.speed, damage: boss.contactDamage * this.difficulty.attack, color: this.map.accent, elite: false, miniboss: false, boss: true, attackCd: 1, shotCd: 1.5, stun: 0, hitFlash: 0, attackFlash: 0, spawnLife: .5, knockVx: 0, knockVy: 0, dead: false, xp: 0 });
+    this.enemies.push({ id: this.nextGameplayId("boss"), type: "boss", x: 720, y: 0, radius: 92, hp: health, maxHp: health, speed: boss.speed, damage: boss.contactDamage * this.difficulty.attack, color: this.map.accent, elite: false, miniboss: false, boss: true, attackCd: 1, shotCd: 1.5, stun: 0, hitFlash: 0, attackFlash: 0, spawnLife: .5, knockVx: 0, knockVy: 0, dead: false, xp: 0, affixIds: [], affixState: {} });
     this.pushEvent("danger", `${this.map.boss} HAS ARRIVED`, "Defeat the apex before enrage");
   }
 
@@ -2282,6 +2474,35 @@ export class Simulation {
       return restored;
     });
     for (const key of Object.keys(RECOVERY_LIST_LIMITS)) sim[key] = deserializeRecoveryValue(value.lists[key]);
+    const validBehaviorStates = new Set(["approach", "windup", "contact", "charge", "recovery"]), restoredPlayerIds = new Set(sim.players.map(({ id }) => id));
+    for (const [index, enemy] of sim.enemies.entries()) {
+      if (!enemy || (!enemy.boss && !ENEMY_TYPES[enemy.type])) throw new TypeError(`Recovery enemy ${index} has an unknown type`);
+      if (!enemy.boss && !validBehaviorStates.has(enemy.behaviorState)) throw new TypeError(`Recovery enemy ${index} has an invalid behavior state`);
+      for (const key of ["behaviorStartedTick", "behaviorUntilTick", "abilityReadyTick", "actionSequence"]) {
+        if (!enemy.boss && (!Number.isSafeInteger(enemy[key]) || enemy[key] < 0)) throw new TypeError(`Recovery enemy ${index} has invalid ${key}`);
+      }
+      if (!enemy.boss && !Number.isFinite(enemy.attackAngle)) throw new TypeError(`Recovery enemy ${index} has invalid attackAngle`);
+      if (!enemy.boss && (!Array.isArray(enemy.behaviorHitIds) || enemy.behaviorHitIds.length > 4 || new Set(enemy.behaviorHitIds).size !== enemy.behaviorHitIds.length || enemy.behaviorHitIds.some((id) => !restoredPlayerIds.has(id)))) throw new TypeError(`Recovery enemy ${index} has invalid behaviorHitIds`);
+      if (enemy.behaviorState === "charge") {
+        for (const key of ["behaviorEndX", "behaviorEndY", "behaviorRange"]) if (!Number.isFinite(enemy[key])) throw new TypeError(`Recovery enemy ${index} has invalid ${key}`);
+      } else if (["behaviorEndX", "behaviorEndY", "behaviorRange"].some((key) => enemy[key] !== undefined)) throw new TypeError(`Recovery enemy ${index} has unexpected charge geometry`);
+      if (!Array.isArray(enemy.affixIds) || enemy.affixIds.length > BALANCE.enemyIdentity.elite.affixCount) throw new TypeError(`Recovery enemy ${index} has invalid affixes`);
+      const canonicalAffixes = [...new Set(enemy.affixIds)].sort((left, right) => left < right ? -1 : left > right ? 1 : 0);
+      if (canonicalAffixes.length !== enemy.affixIds.length || canonicalAffixes.some((id, affixIndex) => id !== enemy.affixIds[affixIndex]) || canonicalAffixes.some((id) => !BALANCE.enemyIdentity.elite.affixes[id])) throw new TypeError(`Recovery enemy ${index} has invalid affixes`);
+      if (enemy.affixIds.length && (!enemy.elite || enemy.eventType || enemy.miniboss || enemy.boss || (enemy.type === "bomber" && enemy.affixIds.includes("volatile")))) throw new TypeError(`Recovery enemy ${index} has incompatible affixes`);
+      if (!enemy.affixState || typeof enemy.affixState !== "object" || Array.isArray(enemy.affixState)) throw new TypeError(`Recovery enemy ${index} has invalid affix state`);
+      const affixStateKeys = Object.keys(enemy.affixState).sort();
+      if (enemy.affixIds.includes("shielded")) {
+        if (affixStateKeys.join(",") !== "shield" || !Number.isFinite(enemy.affixState.shield) || enemy.affixState.shield < 0 || enemy.affixState.shield > enemy.maxHp) throw new TypeError(`Recovery enemy ${index} has invalid affix shield`);
+      } else if (affixStateKeys.length) throw new TypeError(`Recovery enemy ${index} has unexpected affix state`);
+    }
+    for (const [index, task] of sim.tasks.entries()) {
+      if (task.kind !== "elite-volatile") continue;
+      const payload = task.payload, keys = Object.keys(payload || {}).sort();
+      if (keys.join(",") !== "damage,enemyId,radius,x,y" || typeof payload.enemyId !== "string" || payload.enemyId.length > 64
+        || !Number.isFinite(payload.x) || !Number.isFinite(payload.y) || !Number.isFinite(payload.radius) || payload.radius <= 0 || payload.radius > 1_000
+        || !Number.isFinite(payload.damage) || payload.damage <= 0 || payload.damage > 1_000) throw new TypeError(`Recovery task ${index} has invalid elite-volatile payload`);
+    }
     for (const key of ["projectiles", "effects", "drones", "tasks"]) {
       for (const entity of sim[key]) {
         const variant = parseWeaponVariantId(entity.variantId);
@@ -2315,6 +2536,16 @@ export class Simulation {
         boomerangInboundHitIds: [...projectile.boomerangInboundHit].sort(),
       };
     });
+    const enemies = clean(this.enemies).map((entry) => {
+      const result = { ...entry };
+      delete result.actionSequence; delete result.abilityReadyTick; delete result.behaviorHitIds;
+      if (!result.affixIds?.length) { delete result.affixIds; delete result.affixState; }
+      else if (!Object.keys(result.affixState || {}).length) delete result.affixState;
+      if (!result.behaviorState || result.behaviorState === "approach") {
+        delete result.behaviorState; delete result.behaviorStartedTick; delete result.behaviorUntilTick; delete result.attackAngle;
+      }
+      return result;
+    });
     return {
       balanceVersion: this.balanceVersion, balanceHash: this.balanceHash,
       features: { gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents },
@@ -2324,7 +2555,7 @@ export class Simulation {
       wave: this.wave, waveName: WAVE_NAMES[this.stage === "boss" ? 7 : this.wave], teamXP: Math.round(this.teamXP),
       level: this.level, xpNeed: this.xpNeed, kills: this.kills, gold: this.gold, bossElapsed: this.bossElapsed,
       bossPhase: this.bossPhase, enraged: this.enraged, machine: compactPoint(this.machine),
-      players: clean(this.players, ["input", "reconnectKey"]), drones: clean(this.drones), enemies: clean(this.enemies), projectiles,
+      players: clean(this.players, ["input", "reconnectKey"]), drones: clean(this.drones), enemies, projectiles,
       hostile: clean(this.hostile), effects: clean(this.effects, ["hit"]), orbs: clean(this.orbs), drops: clean(this.drops),
       pods: clean(this.pods), objectives: clean(this.objectives), relayBalls: clean(this.relayBalls), feathers: clean(this.feathers),
       pendingChoices: this.pendingChoices, choiceReady: this.choiceReady, selectedChoices: this.selectedChoices, events: this.events.slice(-5),

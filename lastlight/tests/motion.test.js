@@ -80,6 +80,9 @@ test("authoritative fields select specialist and enemy motion without changing s
   assert.equal(enemyMotionState({ attackFlash: .18 }, false, true), "attackContact");
   assert.equal(enemyMotionState({ attackFlash: .08 }, false, true), "attackRecovery");
   assert.equal(enemyMotionState({ attackCd: .1 }, false, true), "attackWindup");
+  assert.equal(enemyMotionState({ behaviorState: "windup" }, true), "attackWindup");
+  assert.equal(enemyMotionState({ behaviorState: "charge" }, true), "attackContact");
+  assert.equal(enemyMotionState({ behaviorState: "recovery" }, true), "attackRecovery");
   assert.equal(enemyMotionState({ dead: true }, true), "death");
   assert.deepEqual([0, Math.PI, -Math.PI / 2, 0].map(directionColumn), [3, 1, 2, 3]);
 });
