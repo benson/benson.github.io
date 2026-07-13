@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260712.10">
+  <link rel="stylesheet" href="styles.css?v=20260712.11">
 </head>
 <body>
   <main id="app">
@@ -43,7 +43,7 @@
         </a>
         <div class="topbar-actions">
           <button id="run-history-button" class="text-button" type="button">Past runs</button>
-          <button id="guide-button" class="text-button" type="button">Upgrade archive</button>
+          <button id="guide-button" class="text-button" type="button" aria-label="Upgrade archive">Upgrade archive</button>
           <button id="how-button" class="text-button" type="button">Field manual</button>
           <button id="quality-button" class="text-button" type="button">Display</button>
           <button id="audio-button" class="icon-button" type="button" aria-label="Open sound settings · locked" aria-haspopup="dialog">Sound locked</button>
@@ -154,7 +154,7 @@
         <header class="lobby-header">
           <button id="lobby-back" class="text-button" type="button">← Leave squad</button>
           <div class="mission-chip"><span class="status-dot"></span><span id="lobby-mission">Iron District · Story</span></div>
-          <div class="lobby-header-actions"><button id="lobby-run-history" class="text-button" type="button">Past runs</button><button id="lobby-guide" class="text-button" type="button">Upgrade archive</button><button id="lobby-quality" class="text-button" type="button">Display</button><button id="lobby-audio" class="icon-button" type="button" aria-label="Open sound settings · locked" aria-haspopup="dialog">Sound locked</button></div>
+          <div class="lobby-header-actions"><button id="lobby-run-history" class="text-button" type="button">Past runs</button><button id="lobby-guide" class="text-button" type="button" aria-label="Upgrade archive">Upgrade archive</button><button id="lobby-quality" class="text-button" type="button">Display</button><button id="lobby-audio" class="icon-button" type="button" aria-label="Open sound settings · locked" aria-haspopup="dialog">Sound locked</button></div>
         </header>
 
         <div class="control-ribbon lobby-controls" aria-label="Keyboard controls">
@@ -319,10 +319,13 @@
             </ul>
             <button id="pause-guide-button" type="button">Open full field guide</button>
           </div>
-          <label class="pause-setting" for="enemy-health-bars-toggle">
-            <input id="enemy-health-bars-toggle" type="checkbox" checked>
-            <span><strong>Enemy health bars</strong><small>Show remaining health above damaged targets.</small></span>
-            <i aria-hidden="true"></i>
+          <label class="pause-setting pause-setting-select" for="enemy-health-bars-toggle">
+            <span><strong>Enemy health bars</strong><small>Choose which targets show remaining health.</small></span>
+            <select id="enemy-health-bars-toggle" aria-label="Enemy health bars">
+              <option value="all">All enemies</option>
+              <option value="important">Elites &amp; apex</option>
+              <option value="off">Off</option>
+            </select>
           </label>
           <button id="pause-quality" class="quality-shortcut" type="button"><span><strong>Display & accessibility</strong><small>Effects, motion, flashes, shake, and performance.</small></span><b>Open</b></button>
           <button id="pause-audio" class="quality-shortcut" type="button" aria-label="Open sound settings · locked" aria-haspopup="dialog"><span><strong>Sound locked</strong><small>Readiness, volume, voice, and output test.</small></span><b>Open</b></button>
@@ -423,9 +426,9 @@
       <div class="manual-controls"><span><kbd>WASD</kbd> Move</span><span><kbd>Mouse</kbd> Aim</span><span><kbd>C</kbd> Auto-aim</span><span><kbd>E</kbd> Ability</span><span><kbd>R</kbd> Ultimate</span><span><kbd>1–3</kbd> Upgrade</span><span><kbd>Esc</kbd> Pause</span><span><kbd>` / ~</kbd> Report</span></div>
     </dialog>
 
-    <dialog id="guide-dialog" class="guide-dialog">
+    <dialog id="guide-dialog" class="guide-dialog" aria-labelledby="guide-title">
       <div class="manual-header">
-        <div><p class="eyebrow">Command archive // live</p><h2>UPGRADES & RARE FINDS</h2></div>
+        <div><p class="eyebrow">Command archive // live</p><h2 id="guide-title">UPGRADES & RARE FINDS</h2></div>
         <button id="guide-close" class="icon-button" type="button" aria-label="Close upgrade archive">Close</button>
       </div>
       <nav class="guide-tabs" aria-label="Upgrade archive sections">
@@ -515,7 +518,20 @@
       <div class="build-history-body">
         <article class="build-release current-build">
           <header>
-            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.12.10</h3></div>
+            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.12.11</h3></div>
+            <time class="build-shipped-at deployment-pending">Deployment verification pending</time>
+          </header>
+          <ul>
+            <li>Gave all six field enemies distinct deterministic roles, windups, committed attacks, recovery windows, and counterplay.</li>
+            <li>Replaced overlapping spawn thresholds with validated weighted phases so late-wave Brutes and every intended role remain present.</li>
+            <li>Added Hasted, Shielded, and Volatile elite affixes with stable assignment, exact combat state, and explicit event/miniboss/apex exclusions.</li>
+            <li>Added shape- and pattern-based affix badges plus essential attack telegraphs that survive reduced motion, minimal effects, and sprite culling.</li>
+            <li>Unified three-state enemy health-bar controls and expanded inspection, recovery, replay, guide, and stress coverage.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.12.10</h3></div>
             <time class="build-shipped-at" datetime="2026-07-12T22:46:00-04:00">Shipped Jul 12, 2026 · 10:46 PM EDT</time>
           </header>
           <ul>
@@ -841,8 +857,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.12.10. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.12.10</strong></button>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.12.11. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.12.11</strong></button>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260712.10"></script>
+  <script type="module" src="game.js?v=20260712.11"></script>
 </body>
 </html>

@@ -1,35 +1,36 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260712.10";
-import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260712.10";
-import { Renderer } from "./render.js?v=20260712.10";
-import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260712.10";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260712.11";
+import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260712.11";
+import { Renderer } from "./render.js?v=20260712.11";
+import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260712.11";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
 import { getThemeAsset, getThemeMaterial } from "./themes/lastlight.js?v=20260712.1";
 import { submitRunTelemetry } from "./telemetry.js?v=20260711.5";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260712.10";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260712.10";
+import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260712.11";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260712.11";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
 import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260712.1";
 import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260711.5";
 import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260711.5";
 import { clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260711.5";
-import { GuestInputSequenceTracker, HostInputSequenceGate, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260712.10";
+import { GuestInputSequenceTracker, HostInputSequenceGate, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260712.11";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260711.5";
-import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260712.10";
-import { advancePlayerMovement } from "./movement.js?v=20260712.10";
+import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260712.11";
+import { advancePlayerMovement } from "./movement.js?v=20260712.11";
 import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
-import { DynamicAudioMixer } from "./audio-mix.js?v=20260712.10";
-import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260712.10";
-import { enemyAudioCueName, newEntities, spatialAudioPan, weaponAudioCueName, weaponTimerActivations } from "./audio-events.js?v=20260712.10";
-import { FUNNY_VOICE_MIN_INTERVAL_MS, audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260712.10";
-import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260712.10";
-import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260712.10";
-import { getWeaponEvolution } from "./weapon-evolution.js?v=20260712.10";
+import { DynamicAudioMixer } from "./audio-mix.js?v=20260712.11";
+import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260712.11";
+import { enemyAudioCueName, newEntities, spatialAudioPan, weaponAudioCueName, weaponTimerActivations } from "./audio-events.js?v=20260712.11";
+import { FUNNY_VOICE_MIN_INTERVAL_MS, audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260712.11";
+import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260712.11";
+import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260712.11";
+import { getWeaponEvolution } from "./weapon-evolution.js?v=20260712.11";
 import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260712.1";
 import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260712.1";
-import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260712.10";
-import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260712.10";
-import { reconcileActiveBuffs } from "./active-buffs.js?v=20260712.10";
+import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260712.11";
+import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260712.11";
+import { reconcileActiveBuffs } from "./active-buffs.js?v=20260712.11";
+import { ELITE_AFFIXES, ENEMY_ARCHETYPES } from "./enemy-archetypes.js?v=20260712.11";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -38,15 +39,16 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.12.10";
+const BUILD = "2026.07.12.11";
 const BALANCE = getBalanceConfig();
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
 const systemReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false;
 const initialQualitySettings = (() => {
   const settings = loadQualitySettings(localStorage, systemReducedMotion);
   try {
-    if (!localStorage.getItem(QUALITY_STORAGE_KEY) && localStorage.getItem("lastlight:enemy-health-bars:v1") === "false") {
-      return saveQualitySettings({ ...settings, preset: "custom", healthBars: "off" });
+    const legacyHealthBars = localStorage.getItem("lastlight:enemy-health-bars:v1");
+    if (!localStorage.getItem(QUALITY_STORAGE_KEY) && ["true", "false"].includes(legacyHealthBars)) {
+      return saveQualitySettings({ ...settings, preset: "custom", healthBars: legacyHealthBars === "true" ? "all" : "off" });
     }
   } catch { /* Storage is optional. */ }
   return settings;
@@ -390,7 +392,7 @@ function pairedPassiveDelta(evolution) {
 function guideWeaponDetails(weaponId, specialist = "zuri") {
   const player = guidePlayer(specialist), telemetry = weaponTelemetry(weaponId, { level: 1, evolved: false }, player);
   const impact = getWeaponImpactGrammar(weaponId, { specialistId: specialist, evolved: false });
-  const buildcraft = sourceBuildcraft(weaponId, { specialistId }), buildTraits = buildcraft?.traits.map(({ value }) => value).join(" · ") || "—";
+  const buildcraft = sourceBuildcraft(weaponId, { specialistId: specialist }), buildTraits = buildcraft?.traits.map(({ value }) => value).join(" · ") || "—";
   if (weaponId === "signature") {
     const evolution = signatureEvolutionTelemetry(specialist, player);
     return {
@@ -460,8 +462,17 @@ function renderGuide() {
   const passives = Object.values(PASSIVES).map((passive) => guideCard(passive.glyph, passive.name, `${passive.amount} · max ${passive.max}`, passive.id === "projectiles" ? "Adds a projectile to compatible attacks; single-instance fields and utility effects do not multiply." : "Passive stats also unlock matching weapon evolutions.", "", passive.icon, { "Each rank": passive.amount, "Maximum": `${passive.max} ranks` })).join("");
   const fieldObjects = [
     ...Object.values(ENEMY_TYPES).map((enemy) => {
-      const storyDamage = enemy.damage * DIFFICULTIES.story.attack * (enemy.ranged ? DIFFICULTIES.story.spell : 1);
-      return guideCard("EN", enemy.name, enemy.ranged ? "Ranged threat" : enemy.miniboss ? "Miniboss" : enemy.bomber ? "Explosive contact" : "Contact threat", enemy.ranged ? "Keeps its distance and fires orange hostile projectiles." : "Closes distance and deals contact damage.", "", enemy.icon, { Health: enemy.health, "Story hit": `${storyDamage.toFixed(1)} HP`, "Hits vs 10 HP": Math.ceil(BASE_VITALITY / storyDamage), Speed: enemy.speed, XP: enemy.xp });
+      const identity = ENEMY_ARCHETYPES[enemy.id];
+      const behavior = {
+        mite: "Weaves through the swarm and pressures by contact. Area coverage keeps packs from stacking.",
+        hound: "Locks a lane, shows a directional windup, then commits to a dodgeable straight charge.",
+        spitter: "Maintains range, leads moving targets, and shows a dotted aim line before firing one hostile bolt.",
+        brute: "Closes slowly, then marks a toothed ground ring before a heavy seismic slam.",
+        bomber: "Arms at close range and shows its full blast radius. Destroy or stun it before detonation.",
+        shark: "A miniboss linebreaker with a broad charge wedge, committed travel, and an endpoint shockwave.",
+      }[enemy.id];
+      const storyDamage = enemy.damage * DIFFICULTIES.story.attack * (identity.handler === "kite-shot-v1" ? DIFFICULTIES.story.spell : 1);
+      return guideCard("EN", enemy.name, `${identity.role.replaceAll("-", " ")} · ${identity.handler.replace("-v1", "").replaceAll("-", " ")}`, behavior, "", enemy.icon, { Health: enemy.health, "Story hit": `${storyDamage.toFixed(1)} HP`, "Hits vs 10 HP": Math.ceil(BASE_VITALITY / storyDamage), Speed: enemy.speed, XP: enemy.xp });
     }),
     guideCard("XP", "Combat data", "Cyan crystal pickup", "Collect data motes to advance the squad's next upgrade choice.", "", getThemeAsset("guide.field.combatData"), { Effect: "Squad XP", Attraction: "Pickup radius" }),
     guideCard("BREAK", "Supply cache", "Destructible field object", "Damage the orange cache with projectiles or area attacks to reveal a random pickup.", "", getThemeAsset("guide.field.supplyCache"), { Integrity: 100, Collision: "None", Drops: "Repair / vacuum / mine / gold" }),
@@ -474,6 +485,9 @@ function renderGuide() {
     guideCard("KEY", "Elite access card", "Rare evolution drop", "Elites and minibosses drop access cards. A card evolves one eligible level-five weapon whose matching passive is owned.", "", getThemeAsset("archive.events.eliteAccessCard")),
     guideCard("$", "Treasure runner", "Timed chase event", "Catch the fleeing gold target before it escapes to earn bonus gold, data, and access cards.", "", getThemeAsset("archive.events.treasureRunner")),
     guideCard("ORB", "Relay ball", "Push objective", "Make contact to drive the relay ball into its marked destination ring for a squad reward.", "", getThemeAsset("archive.events.relayBall")),
+    guideCard("»", "Hasted elite", "Elite affix", `Moves ${Math.round((ELITE_AFFIXES.hasted.speedMultiplier - 1) * 100)}% faster and recovers attacks ${Math.round((1 - ELITE_AFFIXES.hasted.cooldownMultiplier) * 100)}% sooner. Triple chevrons identify it without color.`, "", getThemeAsset("archive.augments.withHaste")),
+    guideCard("◇", "Shielded elite", "Elite affix", `Arrives with a one-time barrier worth ${Math.round(ELITE_AFFIXES.shielded.shieldMaxHealth * 100)}% of maximum health. A diamond badge and separate barrier readout mark it.`, "", getThemeAsset("archive.boons.squadShield")),
+    guideCard("!", "Volatile elite", "Elite affix", `Leaves a ${ELITE_AFFIXES.volatile.radius}-unit delayed blast on death. A notched warning ring remains visible with motion, flash, and effects reduced.`, "", getThemeAsset("archive.augments.eliteBomber")),
     ...BOONS.map((boon) => guideCard("★", boon.name, "Rare squad boon", boon.copy, "", boon.icon)),
     ...AUGMENTS.map((augment) => guideCard("AUG", augment.name, "Rare augment", augment.copy, "", augment.icon)),
   ].join("");
@@ -827,14 +841,25 @@ function updateCooldownSlot(slot, remaining, maximum, unlocked, unlockLevel) {
   node.setAttribute("aria-disabled", String(!unlocked || cooldown > .04));
 }
 
-function setEnemyHealthBars(visible, persist = true) {
-  state.showEnemyHealthBars = Boolean(visible);
-  state.qualitySettings = { ...state.qualitySettings, preset: "custom", healthBars: state.showEnemyHealthBars ? "all" : "off" };
-  renderer.setQualitySettings(state.qualitySettings); replayRenderer.setQualitySettings(state.qualitySettings);
+const ENEMY_HEALTH_BAR_MODES = new Set(["all", "important", "off"]);
+
+function normalizeEnemyHealthBarMode(mode) {
+  if (ENEMY_HEALTH_BAR_MODES.has(mode)) return mode;
+  if (mode === true || mode === "true") return "all";
+  if (mode === false || mode === "false") return "off";
+  return "important";
+}
+
+function syncEnemyHealthBarControls() {
+  const mode = normalizeEnemyHealthBarMode(state.qualitySettings.healthBars);
+  state.showEnemyHealthBars = mode !== "off";
+  $("enemy-health-bars-toggle").value = mode;
   $("game-canvas").dataset.enemyHealthBars = state.showEnemyHealthBars ? "visible" : "hidden";
-  $("enemy-health-bars-toggle").checked = state.showEnemyHealthBars;
-  if (persist) state.qualitySettings = saveQualitySettings(state.qualitySettings);
-  renderQualityControls();
+  $("game-canvas").dataset.enemyHealthBarMode = mode;
+}
+
+function setEnemyHealthBars(mode, persist = true) {
+  applyQualitySettings({ ...state.qualitySettings, preset: "custom", healthBars: normalizeEnemyHealthBarMode(mode) }, persist);
 }
 
 const QUALITY_FIELDS = Object.freeze({
@@ -859,9 +884,7 @@ function applyQualitySettings(settings, persist = true) {
   state.qualitySettings = persist ? saveQualitySettings(settings) : settings;
   renderer.setQualitySettings(state.qualitySettings); replayRenderer.setQualitySettings(state.qualitySettings);
   state.audioMixer?.setDensity(state.qualitySettings.effectsDensity);
-  state.showEnemyHealthBars = state.qualitySettings.healthBars !== "off";
-  $("enemy-health-bars-toggle").checked = state.showEnemyHealthBars;
-  $("game-canvas").dataset.enemyHealthBars = state.showEnemyHealthBars ? "visible" : "hidden";
+  syncEnemyHealthBarControls();
   renderQualityControls();
 }
 
@@ -1787,6 +1810,7 @@ function gameDiagnostics() {
       flags: { ...state.runtimeConfig.config.flags },
     },
     enemyHealthBars: state.showEnemyHealthBars,
+    enemyHealthBarMode: state.qualitySettings.healthBars,
     displayQuality: renderer.getQualityStatus(),
     audio: audioDiagnostics(),
     audioMix: state.audioMixer?.diagnostics() || null,
@@ -2178,7 +2202,7 @@ function bindEvents() {
   $("room-input").addEventListener("input", (event) => { event.target.value = event.target.value.toUpperCase().replace(/[^A-Z2-9]/g, ""); });
   $("lobby-back").addEventListener("click", leaveToHome); $("ready-button").addEventListener("click", handleReady); $("copy-link").addEventListener("click", copyInvite);
   $("pause-button").addEventListener("click", () => togglePause()); $("resume-button").addEventListener("click", () => togglePause(false)); $("abandon-button").addEventListener("click", abandon);
-  $("enemy-health-bars-toggle").addEventListener("change", (event) => setEnemyHealthBars(event.target.checked));
+  $("enemy-health-bars-toggle").addEventListener("change", (event) => setEnemyHealthBars(event.target.value));
   $("again-button").addEventListener("click", returnToLobby); $("result-home").addEventListener("click", leaveToHome);
   $("watch-replay").addEventListener("click", openReplayViewer);
   $("replay-copy").addEventListener("click", copyReplay);

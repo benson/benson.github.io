@@ -11,8 +11,8 @@ import { Simulation } from "../engine.js";
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
 test("the canonical movement contract has an explicit stable replay identity", () => {
-  assert.equal(BALANCE_VERSION, "2026.07.12-draft.1");
-  assert.equal(BALANCE_HASH, "fnv1a32:7bd246b8");
+  assert.equal(BALANCE_VERSION, "2026.07.12-enemies.1");
+  assert.equal(BALANCE_HASH, "fnv1a32:93d69cea");
   assert.equal(balanceFingerprint(BALANCE_CONFIG), BALANCE_HASH);
   assert.deepEqual(getBalanceManifest(), { balanceVersion: BALANCE_VERSION, balanceHash: BALANCE_HASH });
   assert.match(canonicalBalanceData(), /^\{"core":/);
@@ -29,7 +29,7 @@ test("canonical fingerprints ignore object insertion order but detect tuning cha
 
 test("the balance object is recursively immutable", () => {
   assert.equal(Object.isFrozen(BALANCE_CONFIG), true);
-  assert.equal(Object.isFrozen(BALANCE_CONFIG.waves.spawn.composition), true);
+  assert.equal(Object.isFrozen(BALANCE_CONFIG.enemyIdentity.spawnPhases), true);
   assert.equal(Object.isFrozen(BALANCE_CONFIG.weapons.universal.drone), true);
   assert.throws(() => { BALANCE_CONFIG.enemies.mite.health = 1; }, TypeError);
 });
@@ -49,14 +49,14 @@ test("validation exhaustively covers every authored balance id", () => {
   invalid.specialists.zuri.health = -1;
   invalid.difficulties.story.spawn = 0;
   invalid.shields.echoE.capMaxHealth = 0;
-  invalid.waves.spawn.composition[0].id = "unknown";
+  invalid.enemyIdentity.spawnPhases[0].weights = { unknown: 100 };
   invalid.weapons.universal.uwu.damageBase = Number.NaN;
   const errors = validateBalanceConfig(invalid);
   assert.ok(errors.some((error) => error.startsWith("enemies: expected")));
   assert.ok(errors.includes("specialists.zuri.health: must be > 0"));
   assert.ok(errors.includes("difficulties.story.spawn: must be > 0"));
   assert.ok(errors.includes("shields.echoE.capMaxHealth: must be > 0"));
-  assert.ok(errors.includes("waves.spawn.composition.0.id: unknown enemy unknown"));
+  assert.ok(errors.includes("enemyIdentity.spawnPhases.0.weights.unknown: unknown archetype"));
   assert.ok(errors.includes("weapons.universal.uwu.damageBase: must be finite"));
 });
 
@@ -85,12 +85,9 @@ test("versioned pacing and combat scalars match the authored identity release", 
     hard: { health: 3, attack: 2, spell: 1.5, gold: 1.5, spawn: 1.35, passiveRegen: 0 },
     extreme: { health: 7, attack: 3, spell: 2, gold: 2.25, spawn: 1.68, passiveRegen: 0 },
   });
-  assert.deepEqual(BALANCE_CONFIG.waves.spawn.composition, [
-    { id: "bomber", after: 0.68, rollBelow: 0.18 },
-    { id: "spitter", after: 0.52, rollBelow: 0.33 },
-    { id: "brute", after: 0.34, rollBelow: 0.22 },
-    { id: "hound", after: 0.13, rollBelow: 0.38 },
-  ]);
+  assert.deepEqual(BALANCE_CONFIG.enemyIdentity.spawnPhases.at(-1), {
+    after: 0.68, weights: { mite: 25, hound: 25, spitter: 20, brute: 12, bomber: 18 },
+  });
   assert.deepEqual(BALANCE_CONFIG.shields, {
     echoE: { flatBase: 1.5, flatPerLevel: 0.25, maxHealth: 0, capMaxHealth: 0.5 },
     solaE: { flatBase: 0, flatPerLevel: 0, maxHealth: 0.25, capMaxHealth: 0.5 },

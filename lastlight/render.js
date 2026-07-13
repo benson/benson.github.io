@@ -1,17 +1,104 @@
-import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260712.10";
-import { WORLD } from "./engine.js?v=20260712.10";
+import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260712.11";
+import { WORLD } from "./engine.js?v=20260712.11";
 import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260712.1";
-import { springCamera } from "./feel.js?v=20260712.10";
-import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistFacingTarget, specialistMotionState, stableDirectionColumn } from "./motion.js?v=20260711.10";
+import { springCamera } from "./feel.js?v=20260712.11";
+import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistFacingTarget, specialistMotionState, stableDirectionColumn } from "./motion.js?v=20260712.11";
 import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
 import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260711.5";
-import { impactRenderPlan } from "./impact-grammar.js?v=20260712.10";
-import { movementVisualState } from "./movement.js?v=20260712.10";
+import { impactRenderPlan } from "./impact-grammar.js?v=20260712.11";
+import { movementVisualState } from "./movement.js?v=20260712.11";
 import { effectReadabilityCategory, partitionEffects, readabilityPlan, shouldPromoteCache } from "./readability.js?v=20260711.8";
 import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260711.8";
 import { EnvironmentInteractionField, stableEnvironmentUnit } from "./environment-interactions.js?v=20260712.1";
 
 const TAU = Math.PI * 2;
+
+const ENEMY_AFFIX_PRESENTATION = Object.freeze({
+  hasted: Object.freeze({ label: "Hasted", pattern: "chevrons", color: "#ffd36b" }),
+  frenzied: Object.freeze({ label: "Frenzied", pattern: "chevrons", color: "#ffd36b" }),
+  shielded: Object.freeze({ label: "Shielded", pattern: "diamond", color: "#79dcff" }),
+  warded: Object.freeze({ label: "Warded", pattern: "diamond", color: "#79dcff" }),
+  volatile: Object.freeze({ label: "Volatile", pattern: "burst", color: "#ff8068" }),
+  seismic: Object.freeze({ label: "Seismic", pattern: "burst", color: "#ff8068" }),
+});
+
+const ENEMY_BEHAVIOR_LABELS = Object.freeze({
+  acquire: "Acquiring target",
+  windup: "Attack windup",
+  active: "Attack committed",
+  recover: "Recovering",
+});
+
+const ENEMY_TELEGRAPH_DEFAULTS = Object.freeze({
+  mite: Object.freeze({ radius: 70, range: 90 }),
+  hound: Object.freeze({ radius: 70, range: 132 }),
+  spitter: Object.freeze({ radius: 70, range: 390 }),
+  brute: Object.freeze({ radius: 115, range: 115 }),
+  bomber: Object.freeze({ radius: 170, range: 70 }),
+  shark: Object.freeze({ radius: 150, range: 216 }),
+});
+
+function enemyAffixIds(enemy) {
+  if (!Array.isArray(enemy?.affixIds)) return [];
+  return [...new Set(enemy.affixIds.filter((id) => typeof id === "string" && id.trim()).map((id) => id.trim().toLowerCase()))].slice(0, 3);
+}
+
+function enemyAffixPresentation(id) {
+  const normalized = String(id || "").toLowerCase();
+  if (ENEMY_AFFIX_PRESENTATION[normalized]) return ENEMY_AFFIX_PRESENTATION[normalized];
+  return Object.freeze({ label: normalized ? normalized.replace(/(^|[-_])([a-z])/g, (_, gap, letter) => `${gap ? " " : ""}${letter.toUpperCase()}`) : "Affix", pattern: "notched", color: "#f4eee2" });
+}
+
+function enemyBehaviorState(enemy) {
+  const raw = enemy?.behaviorState;
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    return {
+      phase: String(raw.phase || raw.state || raw.kind || "").toLowerCase(),
+      behavior: String(raw.behaviorId || raw.handlerId || raw.id || enemy?.behaviorId || "").toLowerCase(),
+    };
+  }
+  return { phase: String(raw || "").toLowerCase(), behavior: String(enemy?.behaviorId || "").toLowerCase() };
+}
+
+function enemyBehaviorLabel(enemy) {
+  const { phase, behavior } = enemyBehaviorState(enemy);
+  if (!phase && !behavior) return "";
+  if (/recover|cooldown/.test(phase)) return ENEMY_BEHAVIOR_LABELS.recover;
+  if (/acquire|idle|locomotion|approach|pursue|weave/.test(phase)) return ENEMY_BEHAVIOR_LABELS.acquire;
+  const prefix = enemy?.type === "hound" ? "Charge" : enemy?.type === "spitter" ? "Ranged shot" : enemy?.type === "brute" ? "Seismic slam" : enemy?.type === "bomber" ? "Detonation" : enemy?.type === "shark" ? "Siege charge" : "Attack";
+  if (/windup|telegraph|arm|fuse/.test(phase)) return `${prefix} windup`;
+  if (/active|charge|slam|deton|attack|fire/.test(phase) || behavior) return `${prefix} committed`;
+  return ENEMY_BEHAVIOR_LABELS[phase] || phase.replace(/(^|[-_])([a-z])/g, (_, gap, letter) => `${gap ? " " : ""}${letter.toUpperCase()}`);
+}
+
+function enemyTelegraphKind(enemy, tick = 0) {
+  const { phase, behavior } = enemyBehaviorState(enemy);
+  const activePhase = /windup|telegraph|active|charge|slam|deton|armed|fuse|attack|fire/.test(phase);
+  const volatile = enemyAffixIds(enemy).includes("volatile");
+  const affix = enemy?.affixState && typeof enemy.affixState === "object" ? enemy.affixState : {};
+  const volatileState = affix.volatile && typeof affix.volatile === "object" ? affix.volatile : affix;
+  const volatileUntil = Number(volatileState.untilTick ?? volatileState.behaviorUntilTick ?? affix.volatileUntilTick);
+  const volatilePhase = String(volatileState.phase || volatileState.state || "").toLowerCase();
+  if (volatile && ((Number.isFinite(volatileUntil) && volatileUntil >= tick) || /windup|armed|active|deton/.test(volatilePhase))) return "burst";
+  if (!activePhase) return null;
+  if (enemy.type === "bomber" || /detonate|fuse/.test(behavior + phase)) return "burst";
+  if (enemy.type === "brute" || /slam/.test(behavior + phase)) return "ring";
+  if (enemy.type === "spitter" || /kite-shot|spit|shot/.test(behavior + phase)) return "line";
+  if (enemy.type === "shark" || /siege/.test(behavior + phase)) return "wedge";
+  if (enemy.type === "hound" || /charge/.test(behavior + phase)) return "lane";
+  return "ring";
+}
+
+function enemyTelegraphProgress(enemy, tick = 0) {
+  const raw = enemy?.behaviorState;
+  const affix = enemy?.affixState && typeof enemy.affixState === "object" ? enemy.affixState : {};
+  const volatile = affix.volatile && typeof affix.volatile === "object" ? affix.volatile : affix;
+  const started = Number(enemy?.behaviorStartedTick ?? (raw && typeof raw === "object" ? raw.behaviorStartedTick ?? raw.startedTick : undefined) ?? volatile.startedTick ?? volatile.behaviorStartedTick ?? affix.volatileStartedTick);
+  const until = Number(enemy?.behaviorUntilTick ?? (raw && typeof raw === "object" ? raw.behaviorUntilTick ?? raw.untilTick : undefined) ?? volatile.untilTick ?? volatile.behaviorUntilTick ?? affix.volatileUntilTick);
+  if (!Number.isFinite(started) || !Number.isFinite(until) || until <= started) return 0;
+  return clamp((Number(tick) - started) / (until - started), 0, 1);
+}
+
 export class Renderer {
   constructor(canvas) {
     this.canvas = canvas;
@@ -379,11 +466,17 @@ export class Renderer {
 
     for (const enemy of state.enemies || []) {
       const data = ENEMY_TYPES[enemy.type] || {};
-      const name = enemy.boss ? (map?.boss || "Apex") : enemy.eventType === "treasure" ? "Treasure Runner" : `${enemy.elite ? "Elite " : ""}${data.name || "Enemy"}`;
+      const affixIds = enemyAffixIds(enemy), affixNames = affixIds.map((id) => enemyAffixPresentation(id).label);
+      const name = enemy.boss ? (map?.boss || "Apex") : enemy.eventType === "treasure" ? "Treasure Runner" : `${affixNames.length ? `${affixNames.join(" ")} ` : enemy.elite ? "Elite " : ""}${data.name || "Enemy"}`;
+      const behavior = enemyBehaviorLabel(enemy), stats = { Health: `${Math.max(0, Math.ceil(enemy.hp))} / ${Math.ceil(enemy.maxHp)}`, Damage: Math.round(enemy.damage || 0), Speed: Math.round(enemy.speed || 0) };
+      if (behavior) stats.Intent = behavior;
+      if (affixNames.length) stats.Affixes = affixNames.join(" · ");
+      const barrier = Number(enemy.affixState?.shielded?.barrier ?? enemy.affixState?.shield ?? enemy.affixState?.barrier);
+      if (Number.isFinite(barrier) && barrier > 0) stats.Barrier = Math.ceil(barrier);
       consider(enemy, enemy.radius + 12, {
         type: "enemy", name,
-        description: enemy.eventType === "treasure" ? "Chase it down before its timer expires to recover bonus loot." : enemy.boss ? "The operation's apex target." : data.ranged ? "A ranged enemy that fires hostile bolts." : "A hostile contact that attacks at close range.",
-        stats: { Health: `${Math.max(0, Math.ceil(enemy.hp))} / ${Math.ceil(enemy.maxHp)}`, Damage: Math.round(enemy.damage || 0), Speed: Math.round(enemy.speed || 0) },
+        description: enemy.eventType === "treasure" ? "Chase it down before its timer expires to recover bonus loot." : enemy.boss ? "The operation's apex target." : `${enemy.type === "spitter" ? "A ranged enemy that fires hostile bolts." : "A hostile field enemy with an authored attack pattern."}${behavior ? ` Current intent: ${behavior}.` : ""}${affixNames.length ? ` Affixes: ${affixNames.join(", ")}.` : ""}`,
+        stats,
       }, .24);
     }
     const pickupNames = {
@@ -471,6 +564,10 @@ export class Renderer {
     this.drawProjectiles(friendlyProjectiles, false, state);
     this.drawGroundParticles(visualDt);
     this.drawGroundedQueue(state, previous, interpolation, map, localPlayerId, visualDt);
+    // Intent geometry is authoritative combat information, not cosmetic density.
+    // Draw it from the complete viewport-culled enemy list so a low quality
+    // sprite budget can never make a committed attack invisible.
+    this.drawEnemyBehaviorTelegraphs(state.enemies || [], previous, interpolation, state);
     this.drawProjectiles(hostileProjectiles, true, state);
     this.drawObjectives(state.objectives || [], map, "overlay");
     this.drawEffects(effectPasses.threat, map, previous, interpolation, "threat", state);
@@ -577,7 +674,7 @@ export class Renderer {
     }
     for (const block of MAP_OBSTACLES) items.push({ type: "cover", value: block, sortY: block[1] + block[3] });
     for (const pod of state.pods || []) items.push({ type: "pod", value: pod, sortY: pod.y + (pod.radius || 0) });
-    for (const enemy of this.budget(state.enemies || [], this.renderBudgets.enemies, (entry) => entry.boss || entry.elite || entry.miniboss || entry.eventType)) {
+    for (const enemy of this.budget(state.enemies || [], this.renderBudgets.enemies, (entry) => entry.boss || entry.elite || entry.miniboss || entry.eventType || enemyAffixIds(entry).length)) {
       const position = this.position(enemy, previous?.enemies, t);
       items.push({ type: "enemy", value: enemy, sortY: position.y + (enemy.radius || 0) * .45 });
     }
@@ -1017,6 +1114,104 @@ export class Renderer {
     ctx.restore();
   }
 
+  drawEnemyBehaviorTelegraphs(enemies, previous, t, state = {}) {
+    const ctx = this.ctx, tick = Number(state.tick) || 0, danger = this.readability("lethalTelegraph");
+    const authoredThreats = (state.effects || []).filter((effect) => effect && (effect.owner === "enemy" || effect.kind === "danger" || effect.kind === "bossCast"));
+    const outlined = (draw, dash = []) => {
+      ctx.setLineDash(dash); ctx.strokeStyle = danger.palette.keyline; ctx.lineWidth = 7; draw(); ctx.stroke();
+      ctx.setLineDash(dash); ctx.strokeStyle = danger.palette.core; ctx.lineWidth = 2.25; draw(); ctx.stroke();
+      ctx.setLineDash([]);
+    };
+    for (const raw of enemies) {
+      if (raw?.dead || !this.isWorldVisible(raw, 420)) continue;
+      const kind = enemyTelegraphKind(raw, tick);
+      if (!kind) continue;
+      // Bomber and volatile explosions already own an authoritative danger
+      // effect. Avoid stacking a second ring over the exact same warning.
+      if (kind === "burst" && authoredThreats.some((effect) => Math.abs(Number(effect.x) - Number(raw.x)) < 2 && Math.abs(Number(effect.y) - Number(raw.y)) < 2)) continue;
+      const enemy = this.position(raw, previous?.enemies, t), angle = Number.isFinite(raw.attackAngle) ? raw.attackAngle : 0;
+      const progress = enemyTelegraphProgress(raw, tick), timing = this.reducedMotion ? Math.floor(progress * 4) / 4 : progress;
+      const defaults = ENEMY_TELEGRAPH_DEFAULTS[raw.type] || ENEMY_TELEGRAPH_DEFAULTS.mite;
+      const authoredRadius = Number(raw.behaviorRadius ?? raw.attackRadius ?? raw.telegraphRadius);
+      const radius = Number.isFinite(authoredRadius) && authoredRadius > 0 ? authoredRadius : defaults.radius;
+      const authoredRange = Number(raw.behaviorRange ?? raw.attackRange ?? raw.telegraphRange);
+      let range = Number.isFinite(authoredRange) && authoredRange > 0 ? authoredRange : defaults.range;
+      const phase = enemyBehaviorState(raw).phase;
+      if (phase === "charge" && Number.isFinite(raw.behaviorEndX) && Number.isFinite(raw.behaviorEndY)) range = Math.hypot(raw.behaviorEndX - enemy.x, raw.behaviorEndY - enemy.y);
+      ctx.save(); ctx.translate(enemy.x, enemy.y); ctx.rotate(angle); ctx.globalAlpha = .94;
+
+      if (kind === "ring" || kind === "burst") {
+        ctx.fillStyle = danger.palette.body; ctx.globalAlpha = .07; ctx.beginPath(); ctx.arc(0, 0, radius, 0, TAU); ctx.fill(); ctx.globalAlpha = .94;
+        outlined(() => { ctx.beginPath(); ctx.arc(0, 0, radius, 0, TAU); }, kind === "burst" ? [5, 5] : [12, 7]);
+        // Inward teeth remain legible in greyscale and do not depend on motion.
+        ctx.fillStyle = danger.palette.core;
+        for (let index = 0; index < 8; index++) {
+          ctx.save(); ctx.rotate(index * TAU / 8); ctx.translate(radius - 1, 0); ctx.beginPath();
+          ctx.moveTo(0, -5); ctx.lineTo(-12, 0); ctx.lineTo(0, 5); ctx.closePath(); ctx.fill(); ctx.restore();
+        }
+        ctx.strokeStyle = danger.palette.core; ctx.lineWidth = 4; ctx.beginPath();
+        ctx.arc(0, 0, Math.max(16, radius - 12), -.5 * Math.PI, -.5 * Math.PI + TAU * timing); ctx.stroke();
+        if (kind === "burst") {
+          ctx.strokeStyle = danger.palette.keyline; ctx.lineWidth = 6;
+          for (let index = 0; index < 4; index++) { ctx.save(); ctx.rotate(Math.PI / 4 + index * Math.PI / 2); ctx.beginPath(); ctx.moveTo(radius * .2, 0); ctx.lineTo(radius * .62, 0); ctx.stroke(); ctx.restore(); }
+          ctx.strokeStyle = danger.palette.core; ctx.lineWidth = 2;
+          for (let index = 0; index < 4; index++) { ctx.save(); ctx.rotate(Math.PI / 4 + index * Math.PI / 2); ctx.beginPath(); ctx.moveTo(radius * .2, 0); ctx.lineTo(radius * .62, 0); ctx.stroke(); ctx.restore(); }
+        }
+      } else if (kind === "wedge") {
+        const halfAngle = .38;
+        ctx.fillStyle = danger.palette.body; ctx.globalAlpha = .07; ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, range, -halfAngle, halfAngle); ctx.closePath(); ctx.fill(); ctx.globalAlpha = .94;
+        outlined(() => { ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(-halfAngle) * range, Math.sin(-halfAngle) * range); ctx.arc(0, 0, range, -halfAngle, halfAngle); ctx.closePath(); }, [11, 7]);
+        outlined(() => { ctx.beginPath(); ctx.arc(range, 0, radius, 0, TAU); }, [5, 6]);
+        for (let index = 1; index <= 3; index++) {
+          const x = range * index / 4; ctx.strokeStyle = danger.palette.core; ctx.lineWidth = 2; ctx.beginPath();
+          ctx.moveTo(x - 10, -8); ctx.lineTo(x, 0); ctx.lineTo(x - 10, 8); ctx.stroke();
+        }
+      } else {
+        const halfWidth = kind === "line" ? 13 : Math.max(22, (raw.radius || 24) * .82), start = Math.max(8, (raw.radius || 24) * .45);
+        ctx.fillStyle = danger.palette.body; ctx.globalAlpha = kind === "line" ? .035 : .065; ctx.fillRect(start, -halfWidth, range - start, halfWidth * 2); ctx.globalAlpha = .94;
+        outlined(() => { ctx.beginPath(); ctx.moveTo(start, -halfWidth); ctx.lineTo(range, -halfWidth); ctx.lineTo(range, halfWidth); ctx.lineTo(start, halfWidth); ctx.closePath(); }, kind === "line" ? [3, 7] : [13, 8]);
+        outlined(() => { ctx.beginPath(); ctx.moveTo(start, 0); ctx.lineTo(range, 0); }, kind === "line" ? [2, 8] : [10, 9]);
+        for (let index = 1; index <= 3; index++) {
+          const x = range * index / 4; ctx.strokeStyle = danger.palette.core; ctx.lineWidth = 2; ctx.beginPath();
+          ctx.moveTo(x - 9, -7); ctx.lineTo(x, 0); ctx.lineTo(x - 9, 7); ctx.stroke();
+        }
+        const marker = start + (range - start) * timing;
+        ctx.strokeStyle = danger.palette.core; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(marker, -halfWidth - 7); ctx.lineTo(marker, halfWidth + 7); ctx.stroke();
+        if (kind === "line") {
+          ctx.beginPath(); ctx.arc(range, 0, 10, 0, TAU); ctx.moveTo(range - 15, 0); ctx.lineTo(range + 15, 0); ctx.moveTo(range, -15); ctx.lineTo(range, 15); ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1; ctx.setLineDash([]); ctx.shadowBlur = 0;
+  }
+
+  drawEnemyAffixBadges(enemy, y) {
+    const affixes = enemyAffixIds(enemy);
+    if (!affixes.length) return;
+    const ctx = this.ctx, size = 16, gap = 4, total = affixes.length * size + (affixes.length - 1) * gap;
+    for (let index = 0; index < affixes.length; index++) {
+      const id = affixes[index], presentation = enemyAffixPresentation(id), x = -total / 2 + index * (size + gap) + size / 2;
+      ctx.save(); ctx.translate(x, y); ctx.fillStyle = "rgba(2,7,13,.94)"; ctx.fillRect(-size / 2, -size / 2, size, size);
+      ctx.strokeStyle = "#02060b"; ctx.lineWidth = 4; ctx.strokeRect(-size / 2, -size / 2, size, size);
+      ctx.strokeStyle = presentation.color; ctx.fillStyle = presentation.color; ctx.lineWidth = 1.75;
+      if (presentation.pattern === "diamond") {
+        ctx.beginPath(); ctx.moveTo(0, -6); ctx.lineTo(6, 0); ctx.lineTo(0, 6); ctx.lineTo(-6, 0); ctx.closePath(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-3, 0); ctx.lineTo(0, 3); ctx.lineTo(4, -3); ctx.stroke();
+      } else if (presentation.pattern === "chevrons") {
+        for (let row = -1; row <= 1; row++) { const offset = row * 4; ctx.beginPath(); ctx.moveTo(-5, offset - 2); ctx.lineTo(0, offset + 1); ctx.lineTo(5, offset - 2); ctx.stroke(); }
+      } else if (presentation.pattern === "burst") {
+        ctx.beginPath(); ctx.arc(0, 0, 5, 0, TAU); ctx.stroke();
+        for (let ray = 0; ray < 4; ray++) { ctx.save(); ctx.rotate(Math.PI / 4 + ray * Math.PI / 2); ctx.beginPath(); ctx.moveTo(3, 0); ctx.lineTo(7, 0); ctx.stroke(); ctx.restore(); }
+      } else {
+        ctx.beginPath(); ctx.moveTo(-6, -2); ctx.lineTo(-6, -6); ctx.lineTo(-2, -6); ctx.moveTo(2, -6); ctx.lineTo(6, -6); ctx.lineTo(6, -2);
+        ctx.moveTo(6, 2); ctx.lineTo(6, 6); ctx.lineTo(2, 6); ctx.moveTo(-2, 6); ctx.lineTo(-6, 6); ctx.lineTo(-6, 2); ctx.stroke();
+        ctx.font = "900 7px Inter"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(presentation.label.slice(0, 1), 0, .5);
+      }
+      ctx.restore();
+    }
+  }
+
   drawEnemies(enemies, previous, t, map, players = [], visualDt = 1 / 60) {
     const ctx = this.ctx, now = performance.now();
     for (const raw of enemies) {
@@ -1029,15 +1224,16 @@ export class Renderer {
       const image = this.enemySprites[e.type], spriteReady = image?.complete && image.naturalWidth;
       const phase = Array.from(String(e.id)).reduce((sum, character) => sum + character.charCodeAt(0), 0) % 628 / 100;
       const target = players.filter((player) => !player.dead && !player.downed).reduce((best, player) => !best || Math.hypot(player.x - e.x, player.y - e.y) < Math.hypot(best.x - e.x, best.y - e.y) ? player : best, null);
-      const aimFacing = target ? Math.atan2(target.y - e.y, target.x - e.x) : Number.isFinite(e.attackAngle) ? e.attackAngle : Math.atan2(dy, dx);
+      const behaviorPhase = enemyBehaviorState(e).phase, committedFacing = ["windup", "contact", "charge", "recovery"].includes(behaviorPhase) && Number.isFinite(e.attackAngle);
+      const aimFacing = committedFacing ? e.attackAngle : target ? Math.atan2(target.y - e.y, target.x - e.x) : Number.isFinite(e.attackAngle) ? e.attackAngle : Math.atan2(dy, dx);
       const locomotionFacing = moving ? Math.atan2(dy, dx) : aimFacing, targetDistance = target ? Math.hypot(target.x - e.x, target.y - e.y) : Infinity;
-      const nearTarget = targetDistance <= (ENEMY_TYPES[e.type]?.ranged || e.boss ? 520 : (e.radius || 20) + (target?.radius || 18) + 45);
+      const nearTarget = targetDistance <= (e.type === "spitter" || e.boss ? 520 : (e.radius || 20) + (target?.radius || 18) + 45);
       const visual = this.enemyVisuals.get(e.id) || { facing: locomotionFacing, aimFacing, directionColumn: directionColumn(locomotionFacing), stride: phase, animation: "idle", animationTime: 0, lastAttackFlash: 0, lastHitFlash: 0, lastShotCd: e.shotCd, rangedAttackFlash: 0, updatedAt: now };
       const frameTime = Math.min(.05, Math.max(0, visualDt || (now - visual.updatedAt) / 1000));
       if (moving) visual.facing += Math.atan2(Math.sin(locomotionFacing - visual.facing), Math.cos(locomotionFacing - visual.facing)) * (1 - Math.exp(-16 * frameTime));
       visual.aimFacing += Math.atan2(Math.sin(aimFacing - visual.aimFacing), Math.cos(aimFacing - visual.aimFacing)) * (1 - Math.exp(-22 * frameTime));
       visual.stride += speed > .12 ? .16 : .035;
-      const firedRangedShot = (ENEMY_TYPES[e.type]?.ranged || e.boss) && Number.isFinite(e.shotCd) && Number.isFinite(visual.lastShotCd) && e.shotCd > visual.lastShotCd + .3;
+      const firedRangedShot = e.boss && Number.isFinite(e.shotCd) && Number.isFinite(visual.lastShotCd) && e.shotCd > visual.lastShotCd + .3;
       visual.rangedAttackFlash = firedRangedShot ? .2 : Math.max(0, visual.rangedAttackFlash - frameTime);
       const authoritativeAttackFlash = Math.max(e.attackFlash || 0, visual.rangedAttackFlash);
       const motionState = enemyMotionState(authoritativeAttackFlash === (e.attackFlash || 0) ? e : { ...e, attackFlash: authoritativeAttackFlash }, moving, nearTarget);
@@ -1115,17 +1311,19 @@ export class Renderer {
         ctx.fillStyle = "#fff2a8"; ctx.font = "900 15px Inter"; ctx.textAlign = "center"; ctx.fillText("$", 0, -2);
         ctx.fillStyle = "#f7d76a"; ctx.font = "800 9px Inter"; ctx.fillText(`TREASURE · ${Math.max(0, Math.ceil(e.life))}s`, 0, barY - 9);
       }
-      const important = e.elite || e.miniboss || e.boss;
+      const important = e.elite || e.miniboss || e.boss || enemyAffixIds(e).length > 0;
       if (!e.dead && (this.enemyHealthBarMode === "all" || (this.enemyHealthBarMode === "important" && important))) {
         const width = e.boss ? 180 : important ? Math.max(56, e.radius * 2) : Math.max(34, e.radius * 1.65);
         this.drawSegmentedHealthBar({
           x: -width / 2, y: barY, width, height: e.boss ? 8 : 6,
           value: e.hp, maxValue: e.maxHp,
+          shield: Number(e.affixState?.shield || 0),
           layout: e.boss ? bossHealthSegments(e.maxHp) : enemyHealthSegments(e.maxHp),
           color: e.boss ? map.accent : important ? "#ffcf64" : "#ff6759",
           trailColor: e.boss ? map.accent : important ? "#ffcf64" : "#ff6759",
         });
       }
+      if (!e.dead) this.drawEnemyAffixBadges(e, barY - 12);
       ctx.restore();
     }
     ctx.shadowBlur = 0;

@@ -142,11 +142,10 @@ test("all authored delayed task kinds are descriptors with stable execution", ()
   const specialist = bomber.players[0];
   enemy.x = specialist.x + 10; enemy.y = specialist.y; enemy.stun = 0;
   bomber.updateEnemies(1 / SIMULATION_TICK_RATE);
+  assert.equal(enemy.behaviorState, "windup");
+  assert.equal(bomber.tasks.filter((task) => task.kind === "bomber-detonate").length, 0);
+  bomber.tick = enemy.behaviorUntilTick;
   bomber.updateEnemies(1 / SIMULATION_TICK_RATE);
-  assert.equal(bomber.tasks.filter((task) => task.kind === "bomber-detonate").length, 1);
-  assert.equal(enemy.detonationScheduled, true);
-  bomber.tick = bomber.tasks[0].dueTick;
-  bomber.updateTasks();
   assert.equal(enemy.dead, true);
 
   assert.equal(echo.tasks.length, 0);
