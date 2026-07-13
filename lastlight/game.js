@@ -1,35 +1,35 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260712.9";
-import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260712.9";
-import { Renderer } from "./render.js?v=20260712.9";
-import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260712.9";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260712.10";
+import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260712.10";
+import { Renderer } from "./render.js?v=20260712.10";
+import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260712.10";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
 import { getThemeAsset, getThemeMaterial } from "./themes/lastlight.js?v=20260712.1";
 import { submitRunTelemetry } from "./telemetry.js?v=20260711.5";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260712.9";
-import { BALANCE_HASH, BALANCE_VERSION } from "./balance-config.js?v=20260712.9";
+import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260712.10";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260712.10";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
 import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260712.1";
 import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260711.5";
 import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260711.5";
 import { clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260711.5";
-import { GuestInputSequenceTracker, HostInputSequenceGate, createSnapshotMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260711.5";
+import { GuestInputSequenceTracker, HostInputSequenceGate, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260712.10";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260711.5";
-import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260712.9";
-import { advancePlayerMovement } from "./movement.js?v=20260712.9";
+import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260712.10";
+import { advancePlayerMovement } from "./movement.js?v=20260712.10";
 import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
-import { DynamicAudioMixer } from "./audio-mix.js?v=20260712.9";
-import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260712.9";
-import { enemyAudioCueName, newEntities, spatialAudioPan, weaponAudioCueName, weaponTimerActivations } from "./audio-events.js?v=20260712.9";
-import { FUNNY_VOICE_MIN_INTERVAL_MS, audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260712.9";
-import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260712.9";
-import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260712.9";
-import { getWeaponEvolution } from "./weapon-evolution.js?v=20260712.9";
+import { DynamicAudioMixer } from "./audio-mix.js?v=20260712.10";
+import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260712.10";
+import { enemyAudioCueName, newEntities, spatialAudioPan, weaponAudioCueName, weaponTimerActivations } from "./audio-events.js?v=20260712.10";
+import { FUNNY_VOICE_MIN_INTERVAL_MS, audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260712.10";
+import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260712.10";
+import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260712.10";
+import { getWeaponEvolution } from "./weapon-evolution.js?v=20260712.10";
 import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260712.1";
 import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260712.1";
-import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260712.9";
-import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260712.9";
-import { reconcileActiveBuffs } from "./active-buffs.js?v=20260712.9";
+import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260712.10";
+import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260712.10";
+import { reconcileActiveBuffs } from "./active-buffs.js?v=20260712.10";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -38,7 +38,8 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.12.9";
+const BUILD = "2026.07.12.10";
+const BALANCE = getBalanceConfig();
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
 const systemReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false;
 const initialQualitySettings = (() => {
@@ -130,7 +131,9 @@ const state = {
   hostPreviousMotion: null, inputMotionStartedAt: 0, inputMotionStart: null, inputWasActive: false,
   replayRecorder: null, lastReplayCheckpointTick: -1, lastReplay: loadLastReplay(), resultReplay: null,
   replayViewer: null,
-  draftForecastKey: "", draftForecastCache: new Map(),
+  draftForecastKey: "", draftForecastKeys: new Map(), draftForecastCache: new Map(),
+  draftBanishMode: false, draftSkipArmed: false, replacementChoiceId: "", replacementForecasts: new Map(),
+  activeUpgradeGame: null,
   runtimeConfig: { config: DEFAULT_RUNTIME_CONFIG, source: "built-in", status: "initializing" },
   recoveryOffer: null, lastRecoverySaveAt: 0,
   networkLab: null,
@@ -291,12 +294,19 @@ function recordHostCast(playerId, slot) {
   return true;
 }
 
+function recordHostDraftAction(playerId, action) {
+  const result = state.sim?.draftAction(playerId, action);
+  if (!result?.accepted) return result || { accepted: false, reason: "no_simulation" };
+  if (result.action === "pick") state.replayRecorder?.recordUpgrade(playerId, state.sim.tick, result.choiceId);
+  else if (result.action === "replace") state.replayRecorder?.recordDraftReplacement(playerId, state.sim.tick, result.choiceId, result.replacementId);
+  else if (result.action === "reroll") state.replayRecorder?.recordDraftReroll(playerId, state.sim.tick);
+  else if (result.action === "banish") state.replayRecorder?.recordDraftBanish(playerId, state.sim.tick, result.choiceId);
+  else if (result.action === "skip") state.replayRecorder?.recordDraftSkip(playerId, state.sim.tick);
+  return result;
+}
+
 function recordHostChoice(playerId, choiceId) {
-  const accepted = Boolean(state.sim?.pendingChoices?.[playerId]?.some((choice) => choice.id === choiceId) && !state.sim.choiceReady?.[playerId]);
-  if (!accepted) return false;
-  state.sim.choose(playerId, choiceId);
-  state.replayRecorder?.recordUpgrade(playerId, state.sim.tick, choiceId);
-  return true;
+  return Boolean(recordHostDraftAction(playerId, { type: "pick", choiceId })?.accepted);
 }
 
 function nextReplaySlot() {
@@ -1154,12 +1164,12 @@ function buildcraftTagsMarkup(buildcraft, limit = 3) {
 function forecastConsequencesMarkup(forecast) {
   if (!forecast) return "";
   const labels = { hp: "Health", maxHealth: "Max health", armor: "Armor", damage: "Damage", haste: "Haste", area: "Area", crit: "Crit", duration: "Duration", projectiles: "Projectiles", xp: "XP gain", pickup: "Pickup", regen: "Repair", move: "Move speed" };
-  const format = (id, value) => ["damage", "area", "duration", "xp", "pickup", "regen", "move"].includes(id) ? `${Math.round(value * 100)}%` : id === "crit" ? `${Math.round(value * 100)}%` : Number.isInteger(value) ? String(value) : Number(value).toFixed(2);
+  const format = (id, value) => ["damage", "area", "duration", "xp"].includes(id) ? `${Math.round(value * 100)}%` : id === "crit" ? `${Math.round(value * 100)}%` : ["pickup", "move"].includes(id) ? String(Math.round(value)) : id === "regen" ? Number(value).toFixed(2) : Number.isInteger(value) ? String(value) : Number(value).toFixed(2);
   const notes = forecast.statChanges.slice(0, 3).map(({ id, before, after }) => `${labels[id] || id}: ${format(id, before)} → ${format(id, after)}`);
   if (forecast.evolution.newlyReady.length) notes.push(`${forecast.evolution.newlyReady.map(({ sourceId }) => sourceId === "signature" ? "Signature" : WEAPONS[sourceId]?.name || sourceId).join(", ")} ready for next access card`);
   if (forecast.slots.weapons.after > forecast.slots.weapons.before) notes.push(`Weapons ${forecast.slots.weapons.before}/${forecast.slots.weapons.max} → ${forecast.slots.weapons.after}/${forecast.slots.weapons.max}`);
   if (forecast.slots.passives.after > forecast.slots.passives.before) notes.push(`Passives ${forecast.slots.passives.before}/${forecast.slots.passives.max} → ${forecast.slots.passives.after}/${forecast.slots.passives.max}`);
-  notes.push(`Squad gold +${forecast.economy.delta}`);
+  notes.push(forecast.requiresReplacement ? "Choose a replacement to preview the final result" : `Squad gold +${forecast.economy.delta}`);
   return `<div class="forecast-consequences" aria-label="Draft consequences">${notes.map((note) => `<span>${escapeHTML(note)}</span>`).join("")}</div>`;
 }
 
@@ -1168,12 +1178,16 @@ function draftForecastIdentity(game) {
 }
 
 function ensureDraftForecasts(game) {
-  const identity = draftForecastIdentity(game);
-  if (!identity) { state.draftForecastKey = ""; state.draftForecastCache.clear(); return; }
-  if (identity === state.draftForecastKey) return;
-  state.draftForecastKey = identity; state.draftForecastCache = new Map();
-  for (const player of game.players || []) for (const choice of game.pendingChoices?.[player.id] || []) {
-    state.draftForecastCache.set(`${player.id}:${choice.id}`, game.choiceReady?.[player.id] ? null : forecastDraftChoice(choice, player, { gold: game.gold, gameLevel: game.level }));
+  if (!game.pendingChoices) { state.draftForecastKey = ""; state.draftForecastKeys.clear(); state.draftForecastCache.clear(); state.replacementForecasts.clear(); return; }
+  for (const player of game.players || []) {
+    const choices = game.pendingChoices?.[player.id] || [], draft = player.draft || {};
+    const identity = `${game.level}:${draft.round || 0}:${draft.revision || 0}:${choices.map(({ id }) => id).join(",")}`;
+    if (state.draftForecastKeys.get(player.id) === identity) continue;
+    state.draftForecastKeys.set(player.id, identity);
+    for (const key of [...state.draftForecastCache.keys()]) if (key.startsWith(`${player.id}:`)) state.draftForecastCache.delete(key);
+    for (const key of [...state.replacementForecasts.keys()]) if (key.startsWith(`${player.id}:`)) state.replacementForecasts.delete(key);
+    if (game.choiceReady?.[player.id]) continue;
+    for (const choice of choices) state.draftForecastCache.set(`${player.id}:${choice.id}`, forecastDraftChoice(choice, player, { gold: game.gold, gameLevel: game.level }));
   }
 }
 
@@ -1241,25 +1255,35 @@ function renderUpgradeStats(player) {
 }
 
 function updateUpgrade(game) {
+  state.activeUpgradeGame = game;
   const pending = game.pendingChoices?.[state.clientId];
   if (!pending) { $("upgrade-overlay").classList.add("hidden"); state.lastUpgradeKey = ""; ensureDraftForecasts(game); return; }
   ensureDraftForecasts(game);
   $("upgrade-overlay").classList.remove("hidden");
   const ready = Boolean(game.choiceReady?.[state.clientId]);
-  const selectedId = game.selectedChoices?.[state.clientId] || "";
-  const key = `${game.level}:${JSON.stringify(game.choiceReady)}:${JSON.stringify(game.selectedChoices)}:${Object.entries(game.pendingChoices || {}).map(([id, choices]) => `${id}:${choices.map((choice) => choice.id).join(",")}`).join("|")}`;
+  const selectedDecision = game.selectedChoices?.[state.clientId] || "", selectedId = selectedBaseChoiceId(selectedDecision);
+  const key = `${game.level}:${JSON.stringify(game.choiceReady)}:${JSON.stringify(game.selectedChoices)}:${JSON.stringify(game.players.map(({ id, draft }) => [id, draft]))}:${state.draftBanishMode}:${state.draftSkipArmed}:${state.replacementChoiceId}:${Object.entries(game.pendingChoices || {}).map(([id, choices]) => `${id}:${choices.map((choice) => choice.id).join(",")}`).join("|")}`;
   if (key === state.lastUpgradeKey) return; state.lastUpgradeKey = key;
   const localPlayer = game.players.find((player) => player.id === state.clientId);
   renderUpgradeStats(localPlayer);
   $("upgrade-local-name").textContent = localPlayer?.name || callsign();
   $("upgrade-local-status").textContent = ready ? "Locked" : "Choosing";
+  const draft = localPlayer?.draft || {};
+  $("draft-rerolls").textContent = Number(draft.rerolls || 0); $("draft-banishes").textContent = Number(draft.banishes || 0); $("draft-skips").textContent = Number(draft.skips || 0);
+  const replacementActive = Boolean(state.replacementChoiceId);
+  $("draft-reroll").disabled = ready || replacementActive || Number(draft.rerolls || 0) < 1;
+  $("draft-banish").disabled = ready || replacementActive || Number(draft.banishes || 0) < 1;
+  $("draft-skip").disabled = ready || replacementActive || Number(draft.skips || 0) < 1;
+  $("draft-banish").setAttribute("aria-pressed", String(state.draftBanishMode));
+  $("draft-skip").querySelector("span").textContent = state.draftSkipArmed ? `Confirm skip · +${BALANCE.core.draft.skipGold} gold` : `Skip · +${BALANCE.core.draft.skipGold} gold`;
   $("upgrade-cards").innerHTML = pending.map((choice, index) => {
     const selected = selectedId === choice.id, passed = ready && !selected;
     const visual = upgradeChoiceVisual(choice);
     const forecast = cachedDraftForecast(localPlayer.id, choice.id), details = upgradeChoiceDetails(choice, localPlayer, forecast);
     const pair = evolutionPair(choice, localPlayer);
     const target = choice.id.split(":")[1], buildcraft = forecast?.tags || (choice.kind === "weapon" ? sourceBuildcraft(target, { specialistId: localPlayer.specialist }) : choice.kind === "passive" ? passiveBuildcraft(target) : null);
-    return `<button class="upgrade-card ${pair ? "evolution-ready" : ""} ${selected ? "selected" : ""} ${passed ? "passed" : ""}" type="button" data-choice="${escapeHTML(choice.id)}" ${ready ? `aria-disabled="true"` : ""}><span class="card-type">${selected ? "Locked choice" : escapeHTML(choice.kind)}</span><kbd class="choice-key">${index + 1}</kbd><div class="card-icon ${visual.className}">${visual.markup}</div><h3>${escapeHTML(choice.name)}</h3>${buildcraftTagsMarkup(buildcraft)}<p>${escapeHTML(choice.copy)}</p>${evolutionPairMarkup(pair)}<dl class="card-stats">${upgradeComparisonMarkup(details)}</dl>${forecastConsequencesMarkup(forecast)}${affectedLoadoutMarkup(choice, localPlayer, forecast, game.level)}<div class="level-pips">${Array.from({ length: choice.max }, (_, i) => `<i class="${i < choice.level ? "on" : ""}"></i>`).join("")}</div></button>`;
+    const needsReplacement = replacementRequired(choice, localPlayer);
+    return `<button class="upgrade-card ${pair ? "evolution-ready" : ""} ${needsReplacement ? "replacement-required" : ""} ${selected ? "selected" : ""} ${passed ? "passed" : ""}" type="button" data-choice="${escapeHTML(choice.id)}" ${ready ? `aria-disabled="true"` : ""}><span class="card-type">${selected ? "Locked choice" : needsReplacement ? "Replacement required" : escapeHTML(choice.kind)}</span><kbd class="choice-key">${index + 1}</kbd><div class="card-icon ${visual.className}">${visual.markup}</div><h3>${escapeHTML(choice.name)}</h3>${buildcraftTagsMarkup(buildcraft)}<p>${escapeHTML(choice.copy)}</p>${evolutionPairMarkup(pair)}<dl class="card-stats">${upgradeComparisonMarkup(details)}</dl>${forecastConsequencesMarkup(forecast)}${affectedLoadoutMarkup(choice, localPlayer, forecast, game.level)}<div class="level-pips">${Array.from({ length: choice.max }, (_, i) => `<i class="${i < choice.level ? "on" : ""}"></i>`).join("")}</div></button>`;
   }).join("");
   if (!ready) $("upgrade-cards").querySelectorAll("button").forEach((button) => button.addEventListener("click", () => chooseUpgrade(button.dataset.choice)));
 
@@ -1269,17 +1293,21 @@ function updateUpgrade(game) {
   $("teammate-upgrades").innerHTML = teammates.map((player) => {
     const choices = game.pendingChoices?.[player.id] || [];
     const teammateReady = Boolean(game.choiceReady?.[player.id]);
-    const teammateSelection = game.selectedChoices?.[player.id] || "";
+    const teammateDecision = game.selectedChoices?.[player.id] || "", teammateSelection = selectedBaseChoiceId(teammateDecision);
     return `<section class="teammate-draft ${teammateReady ? "ready" : ""}"><header><img src="${SPECIALISTS[player.specialist].sprite}" alt=""><div><strong>${escapeHTML(player.name)}</strong><span>${teammateReady ? "Choice locked" : "Choosing…"}</span></div></header><div class="teammate-choice-grid">${choices.map((choice) => {
       const visual = upgradeChoiceVisual(choice), forecast = cachedDraftForecast(player.id, choice.id), details = upgradeChoiceDetails(choice, player, forecast), pair = evolutionPair(choice, player);
       const target = choice.id.split(":")[1], buildcraft = forecast?.tags || (choice.kind === "weapon" ? sourceBuildcraft(target, { specialistId: player.specialist }) : choice.kind === "passive" ? passiveBuildcraft(target) : null);
-      return `<div class="teammate-choice ${pair ? "evolution-ready" : ""} ${choice.id === teammateSelection ? "selected" : ""} ${teammateReady && choice.id !== teammateSelection ? "passed" : ""}" tabindex="0"><i class="${visual.className}">${visual.markup}</i><b>${escapeHTML(choice.name)}</b>${buildcraftTagsMarkup(buildcraft, 2)}<small>${escapeHTML(choice.kind)} · ${choice.level}/${choice.max}</small><div class="teammate-choice-tooltip"><span>${escapeHTML(choice.kind)} · level ${choice.level}/${choice.max}</span><strong>${escapeHTML(choice.name)}</strong><p>${escapeHTML(choice.copy)}</p>${evolutionPairMarkup(pair)}<dl>${upgradeComparisonMarkup(details)}</dl>${forecastConsequencesMarkup(forecast)}</div></div>`;
+      const replacedId = teammateDecision.startsWith("replace:") && choice.id === teammateSelection ? teammateDecision.split(":")[3] : "";
+      const replacedName = replacedId ? teammateDecision.split(":")[1] === "passive" ? PASSIVES[replacedId]?.name || replacedId : WEAPONS[replacedId]?.name || replacedId : "";
+      return `<div class="teammate-choice ${pair ? "evolution-ready" : ""} ${choice.id === teammateSelection ? "selected" : ""} ${teammateReady && choice.id !== teammateSelection ? "passed" : ""}" tabindex="0"><i class="${visual.className}">${visual.markup}</i><b>${escapeHTML(choice.name)}</b>${buildcraftTagsMarkup(buildcraft, 2)}<small>${escapeHTML(choice.kind)} · ${choice.level}/${choice.max}${replacedName ? ` · replaces ${escapeHTML(replacedName)}` : ""}</small><div class="teammate-choice-tooltip"><span>${escapeHTML(choice.kind)} · level ${choice.level}/${choice.max}</span><strong>${escapeHTML(choice.name)}</strong><p>${escapeHTML(choice.copy)}</p>${evolutionPairMarkup(pair)}<dl>${upgradeComparisonMarkup(details)}</dl>${forecastConsequencesMarkup(forecast)}</div></div>`;
     }).join("")}</div></section>`;
   }).join("");
 
   const waiting = game.players.filter((player) => !game.choiceReady?.[player.id]).map((player) => player.id === state.clientId ? "you" : player.name);
   const picked = pending.find((choice) => choice.id === selectedId);
-  $("upgrade-wait").textContent = ready ? `${picked?.name || "Upgrade"} locked. Waiting on ${waiting.join(", ") || "the squad"}.` : "Press 1, 2, or 3 to pick. Teammate options stay visible so the squad can coordinate.";
+  const pickedName = selectedDecision === "draft:skip" ? `Skipped · +${BALANCE.core.draft.skipGold} gold` : picked?.name || "Upgrade";
+  $("upgrade-wait").textContent = ready ? `${pickedName} locked. Waiting on ${waiting.join(", ") || "the squad"}.` : state.draftBanishMode ? "Banish mode: press 1, 2, or 3 to remove that option from this run. Press Escape to cancel." : "Press 1, 2, or 3 to pick. Use 4 to reroll, 5 to banish, or 0 twice to skip.";
+  renderReplacementTray(game, localPlayer);
 }
 
 function showInspectPanel(detail = {}) {
@@ -1310,9 +1338,38 @@ function inspectCanvasAt(pointer) {
 
 window.LastlightInspect = Object.freeze({ show: showInspectPanel, hide: hideInspectPanel });
 
+function currentDraftContext() {
+  const game = state.activeUpgradeGame || (state.isHost ? state.sim : state.snapshot);
+  const player = game?.players?.find(({ id }) => id === state.clientId);
+  return { game, player, draft: player?.draft || null };
+}
+
+function performDraftAction(action) {
+  const { draft } = currentDraftContext();
+  if (!draft) return { accepted: false, reason: "no_draft" };
+  const message = { ...action, round: draft.round, revision: draft.revision };
+  const result = state.isHost ? recordHostDraftAction(state.clientId, message) : (send(createDraftActionMessage(message)), { accepted: true, pending: true });
+  if (result?.accepted) {
+    sfx(action.type === "skip" ? "reward" : "select");
+    state.draftBanishMode = false; state.draftSkipArmed = false;
+    if (action.type === "replace") closeReplacement({ focus: false });
+    state.lastUpgradeKey = "";
+    $("draft-status").textContent = action.type === "reroll" ? "Upgrade choices rerolled." : action.type === "banish" ? "Upgrade banished for this run." : action.type === "skip" ? `Upgrade skipped for ${BALANCE.core.draft.skipGold} squad gold.` : action.type === "replace" ? "Loadout replacement locked." : "Upgrade locked.";
+  }
+  return result;
+}
+
 function chooseUpgrade(choiceId) {
-  sfx("select");
-  if (state.isHost) recordHostChoice(state.clientId, choiceId); else send({ type: "choice", choiceId });
+  const { game, player } = currentDraftContext();
+  const choice = game?.pendingChoices?.[state.clientId]?.find(({ id }) => id === choiceId);
+  if (!choice || !player || game.choiceReady?.[state.clientId]) return;
+  if (state.draftBanishMode) { performDraftAction({ type: "banish", choiceId }); return; }
+  if (replacementRequired(choice, player)) {
+    state.replacementChoiceId = choiceId; state.lastUpgradeKey = ""; updateUpgrade(game);
+    requestAnimationFrame(() => $("replacement-tray").querySelector("button[data-replacement]")?.focus());
+    return;
+  }
+  performDraftAction({ type: "pick", choiceId });
 }
 
 function processEvents(events) {
@@ -1660,6 +1717,10 @@ function handleNetworkMessage(raw) {
   }
   else if (message.type === "cast_audio" && !state.isHost && message.playerId !== state.clientId) sfx(message.slot === "r" ? "ultimate" : "ability");
   else if (message.type === "choice" && state.isHost) recordHostChoice(message._from, message.choiceId);
+  else if (message.type === "draft_action" && state.isHost) {
+    let action; try { action = sanitizeDraftActionMessage(message, { transport: true }); } catch { return; }
+    recordHostDraftAction(action._from, action);
+  }
   else if (message.type === "snapshot" && !state.isHost) {
     let snapshotMessage; try { snapshotMessage = sanitizeSnapshotMessage(message, { transport: true }); } catch { return; }
     const now = performance.now(); if (state.snapshotAt) state.snapshotInterval = clamp(now - state.snapshotAt, 60, 180);
@@ -1944,6 +2005,51 @@ function audioTone(audio, frequency, offset = 0, duration = .08, type = "sine", 
   oscillator.start(start); oscillator.stop(start + duration + .01);
 }
 
+function replacementRequired(choice, player) {
+  const [kind, target] = String(choice?.id || "").split(":");
+  if (kind === "weapon") return !player.weapons?.[target] && Object.keys(player.weapons || {}).length >= BALANCE.core.maxWeaponSlots;
+  if (kind === "passive") return Number(player.passives?.[target] || 0) < 1 && Object.values(player.passives || {}).filter((rank) => Number(rank) > 0).length >= BALANCE.core.maxPassiveSlots;
+  return false;
+}
+
+function replacementTargets(choice, player) {
+  const kind = String(choice?.id || "").split(":")[0];
+  if (kind === "weapon") return Object.entries(player.weapons || {}).filter(([id]) => id !== "signature").map(([id, item]) => ({ id, name: WEAPONS[id]?.name || id, detail: `${item.evolved ? "Evolved" : `Level ${item.level}`}` }));
+  if (kind === "passive") return Object.entries(player.passives || {}).filter(([, rank]) => Number(rank) > 0).map(([id, rank]) => ({ id, name: PASSIVES[id]?.name || id, detail: `Rank ${rank}` }));
+  return [];
+}
+
+function selectedBaseChoiceId(decisionId) {
+  const parts = String(decisionId || "").split(":");
+  return parts[0] === "replace" ? `${parts[1]}:${parts[2]}` : decisionId;
+}
+
+function closeReplacement({ focus = true } = {}) {
+  const choiceId = state.replacementChoiceId;
+  state.replacementChoiceId = "";
+  $("replacement-tray").classList.add("hidden");
+  if (focus && choiceId) $("upgrade-cards").querySelector(`[data-choice="${CSS.escape(choiceId)}"]`)?.focus();
+}
+
+function renderReplacementTray(game, player) {
+  const choice = game.pendingChoices?.[player.id]?.find(({ id }) => id === state.replacementChoiceId);
+  if (!choice || game.choiceReady?.[player.id] || !replacementRequired(choice, player)) { closeReplacement({ focus: false }); return; }
+  const tray = $("replacement-tray"), targets = replacementTargets(choice, player);
+  $("replacement-title").textContent = `Add ${choice.name}`;
+  $("replacement-copy").textContent = `Your ${choice.kind} slots are full. Choose exactly one owned ${choice.kind} to remove; the new item starts at level 1.`;
+  $("replacement-options").innerHTML = targets.map((target, index) => {
+    const key = `${player.id}:${choice.id}:${target.id}`;
+    let forecast = state.replacementForecasts.get(key);
+    if (!forecast) { forecast = forecastDraftChoice(choice, player, { gold: game.gold, gameLevel: game.level, replacementId: target.id }); state.replacementForecasts.set(key, forecast); }
+    const added = forecast.comparisonRows.filter(({ id }) => ["damage", "cooldown", "projectiles"].includes(id)).map(({ label, after }) => `${label} ${after}`).join(" · ");
+    const removed = forecast.removed?.kind === "weapon" ? `${target.detail} · Damage ${forecast.removed.details.damage} · ${forecast.removed.details.interval}` : `${target.detail} · ${forecast.removed?.details?.stat || ""}`;
+    const deltas = forecast.statChanges.slice(0, 2).map(({ id, direction }) => `${id} ${direction === "up" ? "increases" : "decreases"}`).join(" · ");
+    return `<button class="replacement-option" type="button" data-replacement="${escapeHTML(target.id)}"><b>${index + 1}. Remove ${escapeHTML(target.name)}</b><span>${escapeHTML(removed)} → Add level 1 · ${escapeHTML(added || deltas || "slot preserved")}</span></button>`;
+  }).join("");
+  tray.classList.remove("hidden");
+  tray.querySelectorAll("[data-replacement]").forEach((button) => button.addEventListener("click", () => performDraftAction({ type: "replace", choiceId: choice.id, replacementId: button.dataset.replacement })));
+}
+
 function sfx(name, details = {}) {
   if (!state.audioSettings.enabled || state.audioStatus === "unavailable") return false;
   const audio = ensureAudio(); if (!audio) return false;
@@ -2112,6 +2218,17 @@ function bindEvents() {
   $("quality-reduced-motion").addEventListener("change", (event) => applyQualitySettings({ ...state.qualitySettings, preset: "custom", reducedMotion: event.target.checked }));
   $("how-button").addEventListener("click", () => $("manual-dialog").showModal()); $("manual-close").addEventListener("click", () => $("manual-dialog").close());
   $("manual-dialog").addEventListener("click", (event) => { if (event.target === $("manual-dialog")) $("manual-dialog").close(); });
+  $("draft-reroll").addEventListener("click", () => performDraftAction({ type: "reroll" }));
+  $("draft-banish").addEventListener("click", () => {
+    state.draftBanishMode = !state.draftBanishMode; state.draftSkipArmed = false; closeReplacement({ focus: false }); state.lastUpgradeKey = "";
+    $("draft-status").textContent = state.draftBanishMode ? "Banish mode enabled. Choose option 1, 2, or 3." : "Banish mode cancelled.";
+    updateUpgrade(state.activeUpgradeGame);
+  });
+  $("draft-skip").addEventListener("click", () => {
+    if (state.draftSkipArmed) performDraftAction({ type: "skip" });
+    else { state.draftSkipArmed = true; state.draftBanishMode = false; closeReplacement({ focus: false }); state.lastUpgradeKey = ""; $("draft-status").textContent = "Press skip again to confirm."; updateUpgrade(state.activeUpgradeGame); }
+  });
+  $("replacement-cancel").addEventListener("click", () => { closeReplacement(); state.lastUpgradeKey = ""; });
   for (const id of ["guide-button", "lobby-guide", "upgrade-guide-button", "pause-guide-button"]) $(id).addEventListener("click", () => { renderGuide(); $("guide-dialog").showModal(); });
   $("guide-close").addEventListener("click", () => $("guide-dialog").close());
   $("guide-dialog").addEventListener("click", (event) => { if (event.target === $("guide-dialog")) $("guide-dialog").close(); });
@@ -2136,7 +2253,18 @@ function bindEvents() {
     if (isTyping || dialogOpen || state.screen !== "game") return;
     const key = event.key.toLowerCase();
     if (key === "shift") { state.inspectActive = true; inspectCanvasAt(state.inspectPointer ? { ...state.inspectPointer, shiftKey: true } : null); return; }
-    const upgradeChoice = ["1", "2", "3"].includes(key) && !$("upgrade-overlay").classList.contains("hidden");
+    const upgradeOpen = !$("upgrade-overlay").classList.contains("hidden");
+    const replacementOpen = upgradeOpen && !$("replacement-tray").classList.contains("hidden");
+    if (replacementOpen && key === "escape") { event.preventDefault(); closeReplacement(); state.lastUpgradeKey = ""; return; }
+    if (replacementOpen && ["1", "2", "3", "4", "5", "6"].includes(key)) {
+      event.preventDefault(); if (!event.repeat) $("replacement-options").querySelectorAll("button")[Number(key) - 1]?.click(); return;
+    }
+    if (replacementOpen && key === "0") { event.preventDefault(); return; }
+    if (upgradeOpen && key === "4") { event.preventDefault(); if (!event.repeat) $("draft-reroll").click(); return; }
+    if (upgradeOpen && key === "5") { event.preventDefault(); if (!event.repeat) $("draft-banish").click(); return; }
+    if (upgradeOpen && key === "0") { event.preventDefault(); if (!event.repeat) $("draft-skip").click(); return; }
+    if (upgradeOpen && key === "escape" && state.draftBanishMode) { event.preventDefault(); state.draftBanishMode = false; state.lastUpgradeKey = ""; updateUpgrade(state.activeUpgradeGame); return; }
+    const upgradeChoice = ["1", "2", "3"].includes(key) && upgradeOpen;
     if (upgradeChoice) {
       event.preventDefault();
       if (!event.repeat) $("upgrade-cards").querySelectorAll("button")[Number(key) - 1]?.click();
@@ -2170,6 +2298,14 @@ if (localHost) Object.defineProperty(window, "__lastlightQA", { value: Object.fr
   testAudio: () => testAudioOutput(),
   reportState: () => ({ screen: state.screen, open: $("report-dialog").open, paused: Boolean(state.sim?.paused), pauseReason: state.sim?.pauseReason || "", resumeAfterReport: state.resumeAfterReport }),
   beginUpgrade: () => { if (!state.sim || state.screen !== "game") return false; state.sim.beginUpgradeChoice(); state.lastUpgradeKey = ""; return true; },
+  beginReplacementDraft: () => {
+    if (!state.sim || state.screen !== "game") return false;
+    const player = state.sim.players.find(({ id }) => id === state.clientId); if (!player) return false;
+    player.weapons = { signature: { level: 5, evolved: false }, aura: { level: 4, evolved: false }, mines: { level: 3, evolved: false }, crossbow: { level: 2, evolved: false }, drone: { level: 1, evolved: false } };
+    state.sim.beginUpgradeChoice(); const weapon = WEAPONS.uwu;
+    state.sim.pendingChoices[player.id] = [{ id: "weapon:uwu", kind: "weapon", name: weapon.name, copy: weapon.copy, glyph: weapon.glyph, icon: weapon.icon, level: 1, max: BALANCE.core.maxWeaponLevel }];
+    state.lastUpgradeKey = ""; return true;
+  },
   setScreen: (screen) => { if (!screens[screen]) return false; setScreen(screen); return true; },
   renderActiveBuffs: (fields = {}) => updateActiveBuffs(fields),
   renderDamageLedger: (damageBySource = {}) => updateDamageLedger({ specialist: state.selected, damageBySource }, { time: 60 }),

@@ -81,9 +81,30 @@ test("game adapter accepts only the exact pending upgrade choice", () => {
   const adapters = createGameReplayAdapters(), applied = [];
   const simulation = {
     players: [{ id: "p0", replaySlot: 0 }], pendingChoices: { p0: [{ id: "weapon:uwu" }] }, choiceReady: { p0: false },
-    choose: (id, choice) => applied.push([id, choice]),
+    draftAction: (id, action) => action.choiceId === "weapon:uwu" ? (applied.push([id, action.choiceId]), { accepted: true }) : { accepted: false },
   };
   adapters.applyCommand(simulation, { kind: "upgrade", slot: 0, choiceId: "weapon:uwu" });
   assert.deepEqual(applied, [["p0", "weapon:uwu"]]);
   assert.throws(() => adapters.applyCommand(simulation, { kind: "upgrade", slot: 0, choiceId: "weapon:mines" }), /rejected/);
+});
+
+test("game adapter replays authoritative reroll, banish, skip, and replacement decisions", () => {
+  const adapters = createGameReplayAdapters();
+  const sim = new Simulation({ players: [{ id: "p0", name: "P", specialist: "zuri", replaySlot: 0 }] }, { seed: "0123456789abcdef0123456789abcdef" });
+  sim.beginUpgradeChoice();
+  adapters.applyCommand(sim, { kind: "draft-reroll", slot: 0 });
+  const banish = sim.pendingChoices.p0.find(({ kind }) => kind === "weapon" || kind === "passive");
+  adapters.applyCommand(sim, { kind: "draft-banish", slot: 0, choiceId: banish.id });
+  adapters.applyCommand(sim, { kind: "draft-skip", slot: 0 });
+  assert.equal(sim.gold, 30);
+  assert.equal(sim.players[0].draft.rerolls, 1);
+  assert.equal(sim.players[0].draft.banishes, 1);
+  assert.equal(sim.players[0].draft.skips, 0);
+
+  const full = new Simulation({ players: [{ id: "p0", name: "P", specialist: "zuri", replaySlot: 0 }] });
+  full.players[0].weapons = { signature: { level: 1, evolved: false }, aura: { level: 1, evolved: false }, mines: { level: 1, evolved: false }, crossbow: { level: 1, evolved: false }, drone: { level: 1, evolved: false } };
+  full.beginUpgradeChoice();
+  full.pendingChoices.p0 = [{ id: "weapon:uwu", kind: "weapon" }];
+  adapters.applyCommand(full, { kind: "draft-replace", slot: 0, choiceId: "weapon:uwu", replacementId: "drone" });
+  assert.ok(full.players[0].weapons.uwu && !full.players[0].weapons.drone);
 });

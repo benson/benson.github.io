@@ -1,13 +1,13 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
-} from "./data.js?v=20260712.9";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260712.9";
+} from "./data.js?v=20260712.10";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260712.10";
 import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.5";
 import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260711.5";
-import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260712.9";
-import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260712.9";
-import { MAX_CORRIDOR_CANDIDATES, accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget, orderEntitiesByDistance } from "./projectile-decisions.js?v=20260712.9";
+import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260712.10";
+import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260712.10";
+import { MAX_CORRIDOR_CANDIDATES, accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget, orderEntitiesByDistance } from "./projectile-decisions.js?v=20260712.10";
 
 const BALANCE = getBalanceConfig();
 
@@ -23,6 +23,20 @@ function replaySlot(value) {
   const slot = Number(value);
   return Number.isInteger(slot) && slot >= 0 && slot <= 3 ? slot : undefined;
 }
+function initialDraftState() {
+  return {
+    round: 0, revision: 0,
+    rerolls: BALANCE.core.draft.rerolls,
+    banishes: BALANCE.core.draft.banishes,
+    skips: BALANCE.core.draft.skips,
+    banished: [], excluded: [],
+  };
+}
+
+function ensureDraftState(player) {
+  if (!player.draft || typeof player.draft !== "object") player.draft = initialDraftState();
+  return player.draft;
+}
 function compactPoint(e) {
   const result = {};
   for (const [key, value] of Object.entries(e)) {
@@ -31,7 +45,7 @@ function compactPoint(e) {
   return result;
 }
 
-const RECOVERY_STATE_VERSION = 1;
+const RECOVERY_STATE_VERSION = 2;
 const RECOVERY_SCALARS = [
   "tick", "time", "remaining", "stage", "paused", "pauseReason", "wave", "teamXP", "level", "xpNeed", "kills", "gold",
   "spawnClock", "nextElite", "nextMiniBoss", "nextTreasure", "nextRelayBall", "objectiveIndex", "bossElapsed", "bossPhase", "enraged",
@@ -176,8 +190,13 @@ export function applyPlayerUpgrade(player, choice) {
   if (kind === "weapon") {
     if (target === "signature") player.weapons.signature.level = Math.min(BALANCE.core.maxWeaponLevel, player.weapons.signature.level + 1);
     else if (player.weapons[target]) player.weapons[target].level = Math.min(BALANCE.core.maxWeaponLevel, player.weapons[target].level + 1);
-    else player.weapons[target] = { level: 1, evolved: false };
+    else {
+      if (Object.keys(player.weapons || {}).length >= BALANCE.core.maxWeaponSlots) throw new RangeError("Weapon capacity requires an explicit replacement");
+      player.weapons[target] = { level: 1, evolved: false };
+    }
   } else if (kind === "passive") {
+    const owned = Number(player.passives[target] || 0) > 0;
+    if (!owned && Object.values(player.passives || {}).filter((rank) => Number(rank) > 0).length >= BALANCE.core.maxPassiveSlots) throw new RangeError("Passive capacity requires an explicit replacement");
     player.passives[target] = Math.floor(Number(player.passives[target] || 0)) + 1;
     if (target === "maxHealth") { player.maxHp += BALANCE.passives.maxHealth.amount; player.hp += BALANCE.passives.maxHealth.amount; }
     if (target === "armor") player.armor += BALANCE.passives.armor.amount;
@@ -185,16 +204,59 @@ export function applyPlayerUpgrade(player, choice) {
   return player;
 }
 
-export function previewPlayerUpgrade(player, choice) {
+function validateDraftState(value) {
+  const keys = ["banished", "banishes", "excluded", "rerolls", "revision", "round", "skips"];
+  if (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value).sort().some((key, index) => key !== keys[index]) || Object.keys(value).length !== keys.length) throw new TypeError("Recovery draft state is invalid");
+  for (const [key, max] of [["round", 10_000], ["revision", 10_000], ["rerolls", BALANCE.core.draft.rerolls], ["banishes", BALANCE.core.draft.banishes], ["skips", BALANCE.core.draft.skips]]) {
+    if (!Number.isInteger(value[key]) || value[key] < 0 || value[key] > max) throw new TypeError(`Recovery draft ${key} is invalid`);
+  }
+  const validChoiceId = (id) => /^(weapon|passive):[a-zA-Z]+$/.test(id) && (id === "weapon:signature" || WEAPONS[id.split(":")[1]] || PASSIVES[id.split(":")[1]]);
+  if (!Array.isArray(value.banished) || value.banished.length > BALANCE.core.draft.maxBanished || value.banished.some((id) => !validChoiceId(id)) || [...value.banished].sort().some((id, index) => id !== value.banished[index])) throw new TypeError("Recovery draft banished ids are invalid");
+  if (!Array.isArray(value.excluded) || value.excluded.length > 3 || value.excluded.some((id) => id !== "heal" && !validChoiceId(id))) throw new TypeError("Recovery draft excluded ids are invalid");
+  return value;
+}
+
+function removePlayerUpgrade(player, kind, target) {
+  if (kind === "weapon") {
+    if (target === "signature" || !player.weapons?.[target]) throw new RangeError("Weapon replacement target is invalid");
+    delete player.weapons[target];
+    delete player.weaponTimers?.[target];
+    delete player.weaponActivations?.[target];
+    if (target === "aura") player.auraCharge = 0;
+    if (target === "ice") { player.iceReady = false; player.iceTimer = 0; }
+  } else if (kind === "passive") {
+    const rank = Math.floor(Number(player.passives?.[target] || 0));
+    if (rank < 1) throw new RangeError("Passive replacement target is invalid");
+    delete player.passives[target];
+    if (target === "maxHealth") {
+      player.maxHp = Math.max(1, player.maxHp - rank * BALANCE.passives.maxHealth.amount);
+      player.hp = Math.min(player.hp, player.maxHp);
+    }
+    if (target === "armor") player.armor = Math.max(0, player.armor - rank * BALANCE.passives.armor.amount);
+  } else throw new RangeError("Replacement category is invalid");
+  return player;
+}
+
+export function applyPlayerReplacement(player, choice, replacementId) {
+  const [kind, target] = String(choice?.id || "").split(":");
+  if (!["weapon", "passive"].includes(kind) || !target || !replacementId || target === replacementId) throw new RangeError("Replacement decision is invalid");
+  removePlayerUpgrade(player, kind, replacementId);
+  return applyPlayerUpgrade(player, choice);
+}
+
+export function previewPlayerUpgrade(player, choice, { replacementId = "" } = {}) {
   const preview = {
     ...player,
     weapons: Object.fromEntries(Object.entries(player.weapons || {}).map(([id, weapon]) => [id, { ...weapon }])),
     passives: { ...(player.passives || {}) },
+    weaponTimers: { ...(player.weaponTimers || {}) },
+    weaponActivations: { ...(player.weaponActivations || {}) },
   };
-  return applyPlayerUpgrade(preview, choice);
+  return replacementId ? applyPlayerReplacement(preview, choice, replacementId) : applyPlayerUpgrade(preview, choice);
 }
 
-export const UPGRADE_GOLD_REWARD = 10;
+export const UPGRADE_GOLD_REWARD = BALANCE.core.draft.choiceGold;
+export const SKIP_GOLD_REWARD = BALANCE.core.draft.skipGold;
 
 export class Simulation {
   constructor(config = {}, options = {}) {
@@ -314,6 +376,7 @@ export class Simulation {
       this.disconnectedPlayers.delete(recoveryKey);
       this.players.push(player);
       if (this.pendingChoices) {
+        ensureDraftState(player);
         this.pendingChoices[player.id] = this.generateChoices(player);
         this.choiceReady[player.id] = false;
       }
@@ -333,6 +396,7 @@ export class Simulation {
       eCd: 0, eCdMax: 0, rCd: 0, rCdMax: 0, shield: 0, invuln: 2, hitGrace: 0, hurtFlash: 0, hurtAngle: 0, knockVx: 0, knockVy: 0, frenzy: 0, hasteBuff: 0, speedBuff: 0,
       dead: false, downed: false, downTimer: 0, respawnTimer: 0, reviveProgress: 0, deaths: 0,
       weaponTimers: {}, weapons: { signature: { level: 1, evolved: false } }, passives: {},
+      draft: initialDraftState(),
       weaponActivations: {},
       flow: 0, charge: 0, spirits: 0, hotKills: 0, hotStacks: 0, hotTime: 0,
       signatureActivation: 0, guardReturnActivation: 0, predatorHookCounter: 0, kineticReserve: 0,
@@ -343,6 +407,7 @@ export class Simulation {
     };
     this.players.push(player);
     if (this.pendingChoices) {
+      const draft = ensureDraftState(player); draft.round += 1; draft.revision = 0; draft.excluded = [];
       this.pendingChoices[player.id] = this.generateChoices(player);
       this.choiceReady[player.id] = false;
     }
@@ -1945,48 +2010,102 @@ export class Simulation {
   beginUpgradeChoice() {
     this.paused = true; this.pauseReason = "upgrade"; this.pendingChoices = {}; this.choiceReady = {}; this.selectedChoices = {};
     for (const p of this.players) {
+      const draft = ensureDraftState(p);
+      draft.round += 1; draft.revision = 0; draft.excluded = [];
       this.pendingChoices[p.id] = this.generateChoices(p);
       this.choiceReady[p.id] = false;
     }
   }
 
-  generateChoices(p) {
+  draftCandidates(p) {
     const candidates = [];
     const sig = p.weapons.signature;
     if (sig.level < BALANCE.core.maxWeaponLevel) {
       const signature = SPECIALISTS[p.specialist].signature;
       candidates.push({ id: "weapon:signature", kind: "weapon", name: signature.name, copy: "Upgrade your specialist's signature weapon.", glyph: signature.glyph, icon: signature.icon, level: sig.level + 1, max: BALANCE.core.maxWeaponLevel });
     }
-    const weaponSlots = Object.keys(p.weapons).length;
     for (const weapon of Object.values(WEAPONS)) {
       const current = p.weapons[weapon.id];
       if (current && current.level < BALANCE.core.maxWeaponLevel) candidates.push({ id: `weapon:${weapon.id}`, kind: "weapon", name: weapon.name, copy: weapon.copy, glyph: weapon.glyph, icon: weapon.icon, level: current.level + 1, max: BALANCE.core.maxWeaponLevel });
-      else if (!current && weaponSlots < BALANCE.core.maxWeaponSlots) candidates.push({ id: `weapon:${weapon.id}`, kind: "weapon", name: weapon.name, copy: weapon.copy, glyph: weapon.glyph, icon: weapon.icon, level: 1, max: BALANCE.core.maxWeaponLevel });
+      else if (!current) candidates.push({ id: `weapon:${weapon.id}`, kind: "weapon", name: weapon.name, copy: weapon.copy, glyph: weapon.glyph, icon: weapon.icon, level: 1, max: BALANCE.core.maxWeaponLevel });
     }
-    const passiveSlots = Object.keys(p.passives).filter((key) => p.passives[key] >= 1).length;
     for (const passive of Object.values(PASSIVES)) {
       const current = Number(p.passives[passive.id] || 0);
-      if ((current > 0 && current < passive.max) || (current === 0 && passiveSlots < BALANCE.core.maxPassiveSlots)) candidates.push({ id: `passive:${passive.id}`, kind: "passive", name: passive.name, copy: passive.amount, glyph: passive.glyph, icon: passive.icon, level: Math.floor(current) + 1, max: passive.max });
+      if ((current > 0 && current < passive.max) || current === 0) candidates.push({ id: `passive:${passive.id}`, kind: "passive", name: passive.name, copy: passive.amount, glyph: passive.glyph, icon: passive.icon, level: Math.floor(current) + 1, max: passive.max });
     }
+    const banished = new Set(ensureDraftState(p).banished);
+    return candidates.filter(({ id }) => !banished.has(id)).sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+  }
+
+  generateChoices(p) {
+    const draft = ensureDraftState(p), candidates = this.draftCandidates(p);
+    if (!candidates.length) return [{ id: "heal", kind: "utility", name: "Field Repair", copy: "Restore 25% health.", glyph: "+", icon: PASSIVES.regen.icon, level: 1, max: 1 }];
+    const excluded = new Set(draft.excluded || []);
+    const alternatives = candidates.filter(({ id }) => !excluded.has(id));
+    const pool = alternatives.length >= Math.min(3, candidates.length) ? [...alternatives] : [...alternatives, ...candidates.filter(({ id }) => excluded.has(id))];
+    const slot = replaySlot(p.replaySlot) ?? Math.max(0, this.players.indexOf(p));
+    const rng = SeededRng.fromHex(this.seed).fork("draft-v1").fork(`slot:${slot}/round:${draft.round}/revision:${draft.revision}`);
     const chosen = [];
-    while (candidates.length && chosen.length < 3) chosen.push(candidates.splice(this.gameplayRng.int(candidates.length), 1)[0]);
-    if (!chosen.length) chosen.push({ id: "heal", kind: "utility", name: "Field Repair", copy: "Restore 25% health.", glyph: "+", icon: PASSIVES.regen.icon, level: 1, max: 1 });
+    while (pool.length && chosen.length < 3) chosen.push(pool.splice(rng.int(pool.length), 1)[0]);
     return chosen;
   }
 
-  choose(playerId, choiceId) {
-    if (!this.pendingChoices?.[playerId] || this.choiceReady[playerId]) return;
-    const choice = this.pendingChoices[playerId].find((item) => item.id === choiceId);
+  draftAction(playerId, action = {}) {
     const p = this.players.find((player) => player.id === playerId);
-    if (!choice || !p) return;
-    this.applyUpgrade(p, choice);
-    this.selectedChoices[playerId] = choiceId;
-    this.choiceReady[playerId] = true;
+    const draft = p ? ensureDraftState(p) : null;
+    const reject = (reason) => Object.freeze({ accepted: false, reason });
+    if (!p || !draft || !this.pendingChoices?.[playerId] || this.choiceReady[playerId]) return reject("not_pending");
+    if (action.round !== undefined && action.round !== draft.round) return reject("stale_round");
+    if (action.revision !== undefined && action.revision !== draft.revision) return reject("stale_revision");
+    const type = String(action.type || "pick");
+    if (type === "reroll") {
+      if (draft.rerolls < 1) return reject("no_rerolls");
+      draft.rerolls -= 1; draft.excluded = this.pendingChoices[playerId].map(({ id }) => id).sort(); draft.revision += 1;
+      this.pendingChoices[playerId] = this.generateChoices(p);
+      return Object.freeze({ accepted: true, action: type, round: draft.round, revision: draft.revision });
+    }
+    if (type === "banish") {
+      const choice = this.pendingChoices[playerId].find(({ id }) => id === action.choiceId);
+      if (!choice || !["weapon", "passive"].includes(choice.kind)) return reject("not_banishable");
+      if (draft.banishes < 1 || draft.banished.length >= BALANCE.core.draft.maxBanished) return reject("no_banishes");
+      if (draft.banished.includes(choice.id)) return reject("already_banished");
+      draft.banishes -= 1; draft.banished = [...draft.banished, choice.id].sort(); draft.excluded = []; draft.revision += 1;
+      this.pendingChoices[playerId] = this.generateChoices(p);
+      return Object.freeze({ accepted: true, action: type, choiceId: choice.id, round: draft.round, revision: draft.revision });
+    }
+    if (type === "skip") {
+      if (draft.skips < 1) return reject("no_skips");
+      draft.skips -= 1; this.gold += SKIP_GOLD_REWARD; this.selectedChoices[playerId] = "draft:skip"; this.choiceReady[playerId] = true;
+      this.maybeResumeFromChoices();
+      return Object.freeze({ accepted: true, action: type, gold: SKIP_GOLD_REWARD, round: draft.round, revision: draft.revision });
+    }
+    if (!["pick", "replace"].includes(type)) return reject("unknown_action");
+    const choice = this.pendingChoices[playerId].find((item) => item.id === action.choiceId);
+    if (!choice) return reject("choice_not_offered");
+    const [kind, target] = choice.id.split(":"), replacementId = String(action.replacementId || "");
+    const full = kind === "weapon" ? Object.keys(p.weapons || {}).length >= BALANCE.core.maxWeaponSlots : kind === "passive" ? Object.values(p.passives || {}).filter((rank) => Number(rank) > 0).length >= BALANCE.core.maxPassiveSlots : false;
+    const unowned = kind === "weapon" ? !p.weapons?.[target] : kind === "passive" ? Number(p.passives?.[target] || 0) < 1 : false;
+    if (full && unowned && type !== "replace") return reject("replacement_required");
+    if (type === "replace") {
+      const ownedReplacement = kind === "weapon" ? replacementId !== "signature" && Boolean(p.weapons?.[replacementId]) : kind === "passive" ? Number(p.passives?.[replacementId] || 0) > 0 : false;
+      if (!full || !unowned || !ownedReplacement || replacementId === target) return reject("invalid_replacement");
+    } else if (replacementId) return reject("unexpected_replacement");
+    this.applyUpgrade(p, choice, type === "replace" ? replacementId : "");
+    const decisionId = type === "replace" ? `replace:${kind}:${target}:${replacementId}` : choice.id;
+    this.selectedChoices[playerId] = decisionId; this.choiceReady[playerId] = true;
     this.maybeResumeFromChoices();
+    return Object.freeze({ accepted: true, action: type, choiceId: choice.id, replacementId, decisionId, round: draft.round, revision: draft.revision });
   }
 
-  applyUpgrade(p, choice) {
-    applyPlayerUpgrade(p, choice);
+  choose(playerId, choiceId) {
+    return this.draftAction(playerId, { type: "pick", choiceId });
+  }
+
+  applyUpgrade(p, choice, replacementId = "") {
+    if (replacementId) {
+      applyPlayerReplacement(p, choice, replacementId);
+      if (replacementId === "drone") this.drones = this.drones.filter((drone) => drone.owner !== p.id);
+    } else applyPlayerUpgrade(p, choice);
     this.gold += UPGRADE_GOLD_REWARD;
   }
 
@@ -2157,6 +2276,7 @@ export class Simulation {
     sim.machine = deserializeRecoveryValue(value.machine);
     sim.players = value.players.map((stored) => {
       const restored = deserializeRecoveryValue(stored);
+      validateDraftState(restored.draft);
       restored.name = `Specialist ${restored.replaySlot + 1}`;
       restored.reconnectKey = "";
       return restored;

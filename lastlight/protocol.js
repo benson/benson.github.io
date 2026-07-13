@@ -1,8 +1,10 @@
 export const MULTIPLAYER_PROTOCOL_VERSION = 2;
 export const MAX_INPUT_SEQUENCE = 0x7fffffff;
 export const MAX_PENDING_INPUTS = 256;
+export const DRAFT_PROTOCOL_VERSION = 1;
 
 const PLAYER_ID = /^[A-Za-z0-9_-]{1,32}$/;
+const CHOICE_ID = /^(?:weapon|passive):[A-Za-z][A-Za-z0-9]{0,23}$/;
 
 function exactKeys(value, allowed, label) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new TypeError(`${label} must be an object`);
@@ -82,6 +84,37 @@ export function sanitizeSnapshotMessage(value, { allowLegacy = true, transport =
   const result = { type: "snapshot", state: value.state };
   if (transportKeys.length) result._from = value._from;
   return result;
+}
+
+export function sanitizeDraftActionMessage(value, { transport = false } = {}) {
+  const transportKeys = transport && Object.hasOwn(value || {}, "_from") ? ["_from"] : [];
+  const action = String(value?.action || "");
+  const fields = ["type", "protocolVersion", "action", "round", "revision", ...transportKeys];
+  if (["pick", "banish", "replace"].includes(action)) fields.push("choiceId");
+  if (action === "replace") fields.push("replacementId");
+  exactKeys(value, fields, "draft action message");
+  if (value.type !== "draft_action" || value.protocolVersion !== DRAFT_PROTOCOL_VERSION || !["pick", "reroll", "banish", "skip", "replace"].includes(action)) throw new TypeError("draft action message is invalid");
+  const result = {
+    type: "draft_action", protocolVersion: DRAFT_PROTOCOL_VERSION, action,
+    round: sequence(value.round, "draft round"), revision: sequence(value.revision, "draft revision"),
+  };
+  if (fields.includes("choiceId")) {
+    if (!CHOICE_ID.test(String(value.choiceId || ""))) throw new TypeError("draft choice id is invalid");
+    result.choiceId = value.choiceId;
+  }
+  if (action === "replace") {
+    if (!/^[A-Za-z][A-Za-z0-9]{0,23}$/.test(String(value.replacementId || ""))) throw new TypeError("draft replacement id is invalid");
+    result.replacementId = value.replacementId;
+  }
+  if (transportKeys.length) {
+    if (!PLAYER_ID.test(String(value._from || ""))) throw new TypeError("draft sender is invalid");
+    result._from = value._from;
+  }
+  return Object.freeze(result);
+}
+
+export function createDraftActionMessage(action) {
+  return sanitizeDraftActionMessage({ ...action, type: "draft_action", protocolVersion: DRAFT_PROTOCOL_VERSION });
 }
 
 export class HostInputSequenceGate {

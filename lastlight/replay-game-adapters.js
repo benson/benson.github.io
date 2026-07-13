@@ -1,4 +1,4 @@
-import { Simulation } from "./engine.js?v=20260712.9";
+import { Simulation } from "./engine.js?v=20260712.10";
 import { LEGACY_REPLAY_SCHEMA, hashSimulationState } from "./replay.js?v=20260712.1";
 
 export function anonymousReplayToken(slot) {
@@ -42,9 +42,24 @@ export function createGameReplayAdapters() {
       if (command.kind === "input") { if (!player || !simulation.setInput(player.id, command.input)) throw new Error(`Replay input references inactive slot ${command.slot}`); }
       else if (command.kind === "cast") { if (!player || !simulation.cast(player.id, command.cast)) throw new Error(`Replay cast was rejected for slot ${command.slot}`); }
       else if (command.kind === "upgrade") {
-        const accepted = Boolean(player && simulation.pendingChoices?.[player.id]?.some((choice) => choice.id === command.choiceId) && !simulation.choiceReady?.[player.id]);
-        if (!accepted) throw new Error(`Replay upgrade was rejected for slot ${command.slot}`);
-        simulation.choose(player.id, command.choiceId);
+        const result = player && simulation.draftAction(player.id, { type: "pick", choiceId: command.choiceId });
+        if (!result?.accepted) throw new Error(`Replay upgrade was rejected for slot ${command.slot}`);
+      }
+      else if (command.kind === "draft-reroll") {
+        const result = player && simulation.draftAction(player.id, { type: "reroll" });
+        if (!result?.accepted) throw new Error(`Replay reroll was rejected for slot ${command.slot}`);
+      }
+      else if (command.kind === "draft-banish") {
+        const result = player && simulation.draftAction(player.id, { type: "banish", choiceId: command.choiceId });
+        if (!result?.accepted) throw new Error(`Replay banish was rejected for slot ${command.slot}`);
+      }
+      else if (command.kind === "draft-skip") {
+        const result = player && simulation.draftAction(player.id, { type: "skip" });
+        if (!result?.accepted) throw new Error(`Replay skip was rejected for slot ${command.slot}`);
+      }
+      else if (command.kind === "draft-replace") {
+        const result = player && simulation.draftAction(player.id, { type: "replace", choiceId: command.choiceId, replacementId: command.replacementId });
+        if (!result?.accepted) throw new Error(`Replay replacement was rejected for slot ${command.slot}`);
       }
       else if (command.kind === "join") addPlayer(simulation, command.slot, command.specialist);
       else if (command.kind === "leave") { if (!player) throw new Error(`Replay leave references inactive slot ${command.slot}`); simulation.removePlayer(player.id); }

@@ -250,6 +250,22 @@ test("draft intelligence remains visible for local and teammate locked choices",
   assert.match(css, /\.forecast-consequences/);
 });
 
+test("draft controls and replacement decisions stay in-place, accessible, and touch-sized", () => {
+  for (const id of ["draft-controls", "draft-reroll", "draft-banish", "draft-skip", "draft-status", "replacement-tray", "replacement-options", "replacement-cancel"]) assert.match(html, new RegExp(`id="${id}"`));
+  assert.match(html, /aria-live="polite"/);
+  assert.match(html, /aria-pressed="false"/);
+  assert.match(game, /createDraftActionMessage\(message\)/);
+  assert.match(game, /sanitizeDraftActionMessage\(message, \{ transport: true \}\)/);
+  assert.match(game, /performDraftAction\(\{ type: "reroll" \}\)/);
+  assert.match(game, /performDraftAction\(\{ type: "skip" \}\)/);
+  assert.match(game, /replacementRequired\(choice, player\)/);
+  assert.match(game, /forecastDraftChoice\(choice, player, \{ gold: game\.gold, gameLevel: game\.level, replacementId: target\.id \}\)/);
+  assert.match(game, /state\.draftForecastKeys\.get\(player\.id\)/);
+  assert.match(css, /\.draft-controls button \{[^}]*min-height: 42px/s);
+  assert.match(css, /@media \(max-width: 650px\)[\s\S]*\.draft-controls button \{ min-height: 44px;/);
+  assert.match(css, /\.replacement-option \{[^}]*min-height: 54px/s);
+});
+
 test("compatible local run recovery is explicit, privacy-safe, and resumes paused", () => {
   for (const id of ["recovery-offer", "recovery-title", "recovery-copy", "recovery-resume", "recovery-discard"]) assert.match(html, new RegExp(`id="${id}"`));
   assert.match(game, /Simulation\.fromRecoveryState\(checkpoint\.simulation\)/);

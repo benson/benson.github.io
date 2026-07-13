@@ -43,7 +43,8 @@ test("strict replay validation accepts every command kind", () => {
   replay.roster.push({ slot: 1, specialist: "echo" });
   replay.commands = [
     [0, 0, "i", 0, 0, 0, 0, 1], [0, 1, "c", 0, "e"], [0, 2, "u", 0, "passive:damage"],
-    [0, 3, "j", 1, "echo"], [0, 4, "l", 1], [0, 5, "r", 1, "echo"], [0, 6, "a"],
+    [0, 3, "q", 0], [0, 4, "b", 0, "weapon:uwu"], [0, 5, "s", 0], [0, 6, "x", 0, "weapon:uwu", "drone"],
+    [0, 7, "j", 1, "echo"], [0, 8, "l", 1], [0, 9, "r", 1, "echo"], [0, 10, "a"],
   ];
   assert.deepEqual(validateReplay(replay), replay);
 });
@@ -77,11 +78,15 @@ test("recorder keeps transient identities out of replay JSON and deduplicates in
   recorder.recordInput("relay-secret-123", 0, { x: 1, y: 0, aim: 0, autoAim: true });
   recorder.recordInput("relay-secret-123", 1, { x: 1, y: 0, aim: 0, autoAim: true });
   recorder.recordCast("relay-secret-123", 5, "e");
+  recorder.recordDraftReroll("relay-secret-123", 5);
+  recorder.recordDraftBanish("relay-secret-123", 5, "weapon:uwu");
+  recorder.recordDraftSkip("relay-secret-123", 5);
+  recorder.recordDraftReplacement("relay-secret-123", 5, "weapon:mines", "drone");
   recorder.addCheckpoint(0, "0000000000000000");
   const replay = recorder.finalize(5, "1111111111111111");
   const text = JSON.stringify(replay);
   assert.doesNotMatch(text, /relay-secret|callsign|resume|room/i);
-  assert.equal(replay.commands.length, 2);
+  assert.equal(replay.commands.length, 6);
   assert.deepEqual(replay.roster, [{ slot: 0, specialist: "zuri" }]);
   assert.deepEqual(replay.features, { configVersion: "release-2026.07.11.4", gameplayVersion: "events-v1", objectiveEvents: true });
 });
@@ -107,6 +112,11 @@ test("legacy v1 replay manifests remain readable with the original gameplay iden
   delete legacy.features;
   assert.doesNotThrow(() => validateReplay(legacy, { gameplayVersion: "events-v1" }));
   assert.throws(() => validateReplay(legacy, { gameplayVersion: "events-off-v1" }), /gameplay feature version mismatch/);
+});
+
+test("legacy v3 manifests reject v4-only draft commands", () => {
+  const legacy = base(); legacy.schema = "lastlight.replay.v3"; legacy.commands = [[0, 0, "q", 0]];
+  assert.throws(() => validateReplay(legacy), /unsupported/);
 });
 
 test("movement v3 keeps feature-bearing v2 manifests readable without changing input tuples", () => {

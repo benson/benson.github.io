@@ -582,6 +582,22 @@ kbd { display: inline-grid; min-width: 26px; height: 24px; place-items: center; 
 .upgrade-current-stats > p { grid-column: 1 / -1; margin: 0; padding: 7px 10px; background: #08111b; color: #71868f; font-size: 7px; line-height: 1.4; }
 .upgrade-current-stats > .upgrade-stat:nth-of-type(-n+2) .upgrade-stat-tooltip { left: 0; transform: none; }
 .upgrade-current-stats > .upgrade-stat:nth-last-of-type(-n+2) .upgrade-stat-tooltip { right: 0; left: auto; transform: none; }
+.draft-controls { display: flex; justify-content: center; gap: 8px; margin-top: 10px; }
+.draft-controls button { min-height: 42px; display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid #284454; background: #0b1a28; color: #a9c2cb; font: 800 9px/1 var(--sans); text-transform: uppercase; }
+.draft-controls button:hover, .draft-controls button:focus-visible, .draft-controls button[aria-pressed="true"] { border-color: var(--cyan); color: var(--cyan); background: #0c2730; }
+.draft-controls button[disabled] { opacity: .35; cursor: not-allowed; }
+.draft-controls kbd { color: #fff; }
+.draft-controls b { display: grid; place-items: center; min-width: 20px; height: 20px; border-radius: 50%; background: #173140; color: #fff; }
+.replacement-tray { margin-top: 10px; border: 1px solid var(--cyan); background: #08141f; padding: 14px; text-align: left; }
+.replacement-tray header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.replacement-tray header span { color: var(--orange); font: 800 7px/1 var(--sans); letter-spacing: .12em; text-transform: uppercase; }
+.replacement-tray h3 { margin: 4px 0 0; font-size: 22px; }
+.replacement-tray > p { color: #8eabb5; font-size: 10px; }
+.replacement-tray > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.replacement-option { min-height: 54px; padding: 9px; border: 1px solid #284454; background: #0c1d2b; color: #dce7e8; text-align: left; }
+.replacement-option:hover, .replacement-option:focus-visible { border-color: var(--cyan); }
+.replacement-option b, .replacement-option span { display: block; }
+.replacement-option span { margin-top: 5px; color: #72909b; font-size: 8px; }
 .upgrade-card .level-pips { position: absolute; left: 22px; right: 22px; bottom: 17px; display: flex; gap: 4px; }
 .affected-loadout { margin: -8px 0 24px; }
 .affected-loadout > span { color: var(--cyan); font: 700 9px/1 var(--sans); letter-spacing: .1em; text-transform: uppercase; }
@@ -1127,6 +1143,10 @@ html[data-reduced-motion="true"] .scanlines { animation: none; }
   .upgrade-draft { gap: 10px; margin-top: 14px; }
   .upgrade-current-stats { grid-template-columns: auto repeat(9, minmax(58px,1fr)); overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; }
   .upgrade-current-stats > p { position: sticky; left: 0; }
+  .draft-controls { flex-wrap: wrap; }
+  .draft-controls button { min-height: 44px; flex: 1 1 120px; justify-content: center; }
+  .replacement-tray > div { grid-template-columns: 1fr; }
+  .replacement-option { min-height: 56px; }
   .upgrade-stat-tooltip,
   .upgrade-current-stats > .upgrade-stat:nth-of-type(-n+2) .upgrade-stat-tooltip,
   .upgrade-current-stats > .upgrade-stat:nth-last-of-type(-n+2) .upgrade-stat-tooltip { position: fixed; right: 12px; left: 12px; bottom: 22px; width: auto; transform: none; }

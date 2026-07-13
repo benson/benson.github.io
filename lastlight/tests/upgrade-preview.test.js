@@ -84,6 +84,36 @@ test("forecast evolution readiness never claims the draft evolves immediately", 
   assert.equal(forecast.evolution.nextEligible, "signature");
 });
 
+test("replacement forecasts exactly match atomic engine outcomes without mutating the source", () => {
+  const sim = new Simulation({ players: [{ id: "p", name: "P", specialist: "sola" }] });
+  const player = sim.players[0];
+  player.weapons = {
+    signature: { level: 5, evolved: false }, aura: { level: 5, evolved: false }, mines: { level: 2, evolved: false },
+    crossbow: { level: 1, evolved: false }, drone: { level: 3, evolved: true },
+  };
+  player.passives = { area: 1, duration: 1, damage: 2, maxHealth: 3, armor: 2, regen: 1 };
+  player.maxHp += 4.5; player.hp = player.maxHp; player.armor += 16;
+  const before = structuredClone(player);
+  const weaponChoice = { id: "weapon:uwu" };
+  const unresolved = forecastDraftChoice(weaponChoice, player, { gold: 50 });
+  assert.equal(unresolved.requiresReplacement, true);
+  assert.equal(unresolved.economy.delta, 0);
+  assert.deepEqual(unresolved.afterPlayer, player);
+  const forecast = forecastDraftChoice(weaponChoice, player, { replacementId: "drone", gold: 50 });
+  const applied = previewPlayerUpgrade(player, weaponChoice, { replacementId: "drone" });
+  assert.deepEqual(forecast.afterPlayer, applied);
+  assert.deepEqual(player, before);
+  assert.deepEqual({ id: forecast.removed.id, kind: forecast.removed.kind, name: forecast.removed.name, level: forecast.removed.level, evolved: forecast.removed.evolved }, { id: "drone", kind: "weapon", name: WEAPONS.drone.name, level: 3, evolved: true });
+  assert.ok(forecast.removed.details.damage && forecast.removed.details.interval);
+  assert.deepEqual(forecast.slots.weapons, { before: 5, after: 5, max: 5 });
+  const passive = forecastDraftChoice({ id: "passive:crit" }, player, { replacementId: "maxHealth" });
+  assert.equal(passive.afterPlayer.passives.maxHealth, undefined);
+  assert.equal(passive.afterPlayer.passives.crit, 1);
+  assert.equal(passive.afterPlayer.maxHp, player.maxHp - 4.5);
+  assert.equal(passive.afterPlayer.hp, passive.afterPlayer.maxHp);
+  assert.deepEqual(passive.slots.passives, { before: 6, after: 6, max: 6 });
+});
+
 test("weapon cards normalize level, damage, cooldown, and projectile before-to-after values", () => {
   const sim = new Simulation({ players: [{ id: "p", name: "P", specialist: "zuri" }] });
   const player = sim.players[0];

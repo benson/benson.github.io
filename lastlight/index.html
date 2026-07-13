@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260712.9">
+  <link rel="stylesheet" href="styles.css?v=20260712.10">
 </head>
 <body>
   <main id="app">
@@ -280,7 +280,18 @@
             <section class="upgrade-local">
               <div class="upgrade-player-heading"><span>You</span><strong id="upgrade-local-name">Rookie</strong><i id="upgrade-local-status">Choosing</i></div>
               <aside id="upgrade-current-stats" class="upgrade-current-stats" aria-label="Current specialist statistics"></aside>
+              <div id="draft-controls" class="draft-controls" aria-label="Draft controls">
+                <button id="draft-reroll" type="button"><kbd>4</kbd><span>Reroll</span><b id="draft-rerolls">2</b></button>
+                <button id="draft-banish" type="button" aria-pressed="false"><kbd>5</kbd><span>Banish</span><b id="draft-banishes">2</b></button>
+                <button id="draft-skip" type="button"><kbd>0</kbd><span>Skip · +30 gold</span><b id="draft-skips">1</b></button>
+                <span id="draft-status" class="sr-only" aria-live="polite"></span>
+              </div>
               <div id="upgrade-cards" class="upgrade-cards"></div>
+              <section id="replacement-tray" class="replacement-tray hidden" aria-labelledby="replacement-title">
+                <header><div><span>Loadout full</span><h3 id="replacement-title">Choose an item to replace</h3></div><button id="replacement-cancel" type="button">Back <kbd>Esc</kbd></button></header>
+                <p id="replacement-copy"></p>
+                <div id="replacement-options"></div>
+              </section>
             </section>
             <aside id="teammate-upgrades" class="teammate-upgrades" aria-label="Teammate upgrade choices"></aside>
           </div>
@@ -504,7 +515,20 @@
       <div class="build-history-body">
         <article class="build-release current-build">
           <header>
-            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.12.9</h3></div>
+            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.12.10</h3></div>
+            <time class="build-shipped-at deployment-pending">Deployment verification pending</time>
+          </header>
+          <ul>
+            <li>Added deterministic per-specialist reroll, banish, and skip resources without coupling draft variance to combat RNG.</li>
+            <li>Added revision-guarded multiplayer draft actions, replay v4 commands, and anonymous recovery for every authoritative draft decision.</li>
+            <li>Added an in-place, keyboard- and touch-ready draft control bar while keeping every teammate's choices and locked forecast visible.</li>
+            <li>Added explicit full-loadout replacement decisions with exact remove/add forecasts, slot preservation, evolution consequences, and source cleanup.</li>
+            <li>Added a premium skip reward, strict capacity enforcement, deterministic dead-end fallbacks, and multiplayer soak coverage.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.12.9</h3></div>
             <time class="build-shipped-at" datetime="2026-07-12T21:44:00-04:00">Shipped Jul 12, 2026 · 9:44 PM EDT</time>
           </header>
           <ul>
@@ -817,8 +841,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.12.9. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.12.9</strong></button>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.12.10. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.12.10</strong></button>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260712.9"></script>
+  <script type="module" src="game.js?v=20260712.10"></script>
 </body>
 </html>

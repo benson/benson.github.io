@@ -48,6 +48,21 @@ test("simulation recovery is exact, anonymous, and continues deterministically",
   assert.equal(hashSimulationState(restored), hashSimulationState(original));
 });
 
+test("draft budgets, revisions, offers, and banishes recover exactly and reject corruption", () => {
+  const original = simulation(); original.beginUpgradeChoice();
+  original.draftAction("relay-secret", { type: "reroll", round: 1, revision: 0 });
+  const choice = original.pendingChoices["relay-secret"].find(({ kind }) => kind === "weapon" || kind === "passive");
+  original.draftAction("relay-secret", { type: "banish", choiceId: choice.id, round: 1, revision: 1 });
+  const exported = original.exportRecoveryState(), restored = Simulation.fromRecoveryState(structuredClone(exported));
+  assert.deepEqual(restored.players[0].draft, original.players[0].draft);
+  assert.deepEqual(restored.pendingChoices["slot-0"], original.pendingChoices["relay-secret"]);
+  assert.equal(hashSimulationState(restored), hashSimulationState(original));
+  const corrupt = structuredClone(exported); corrupt.players[0].draft.rerolls = 99;
+  assert.throws(() => Simulation.fromRecoveryState(corrupt), /draft rerolls/);
+  const oversized = structuredClone(exported); oversized.players[0].draft.banished = ["weapon:uwu", "weapon:mines", "weapon:drone"];
+  assert.throws(() => Simulation.fromRecoveryState(oversized), /banished/);
+});
+
 test("replay drafts resume without storing transient player identity", () => {
   const sim = simulation();
   const recorder = new ReplayRecorder({

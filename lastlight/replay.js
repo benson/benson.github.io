@@ -1,5 +1,6 @@
-export const REPLAY_SCHEMA = "lastlight.replay.v3";
-export const REPLAY_SCHEMA_VERSION = 3;
+export const REPLAY_SCHEMA = "lastlight.replay.v4";
+export const REPLAY_SCHEMA_VERSION = 4;
+export const LEGACY_REPLAY_SCHEMA_V3 = "lastlight.replay.v3";
 export const LEGACY_REPLAY_SCHEMA_V2 = "lastlight.replay.v2";
 export const LEGACY_REPLAY_SCHEMA = "lastlight.replay.v1";
 export const REPLAY_STEP_HZ = 60;
@@ -173,7 +174,7 @@ export function dequantizeReplayInput(input) {
   return { x: input.x / 127, y: input.y / 127, aim: input.aim / 4095 * Math.PI * 2, autoAim: Boolean(input.auto) };
 }
 
-function validateCommand(tuple, index) {
+function validateCommand(tuple, index, allowDraftActions = true) {
   if (!Array.isArray(tuple) || tuple.length < 3) throw new TypeError(`commands.${index} must be a tuple`);
   const [tick, ordinal, kind] = tuple;
   integer(tick, 0, MAX_REPLAY_TICK, `commands.${index}.tick`);
@@ -190,6 +191,15 @@ function validateCommand(tuple, index) {
   } else if (kind === "u") {
     if (tuple.length !== 5) throw new TypeError(`commands.${index} upgrade tuple length is invalid`);
     slot(); safeString(tuple[4], CHOICE, `commands.${index}.choice`);
+  } else if (allowDraftActions && (kind === "q" || kind === "s")) {
+    if (tuple.length !== 4) throw new TypeError(`commands.${index} draft tuple length is invalid`);
+    slot();
+  } else if (allowDraftActions && kind === "b") {
+    if (tuple.length !== 5) throw new TypeError(`commands.${index} banish tuple length is invalid`);
+    slot(); safeString(tuple[4], CHOICE, `commands.${index}.choice`);
+  } else if (allowDraftActions && kind === "x") {
+    if (tuple.length !== 6) throw new TypeError(`commands.${index} replacement tuple length is invalid`);
+    slot(); safeString(tuple[4], CHOICE, `commands.${index}.choice`); safeString(tuple[5], CHOICE, `commands.${index}.replacement`);
   } else if (kind === "j") {
     if (tuple.length !== 5) throw new TypeError(`commands.${index} join tuple length is invalid`);
     slot(); if (!SPECIALISTS.has(tuple[4])) throw new TypeError(`commands.${index}.specialist is invalid`);
@@ -207,10 +217,11 @@ function validateCommand(tuple, index) {
 
 export function validateReplay(value, expected = {}) {
   const currentSchema = value?.schema === REPLAY_SCHEMA;
+  const legacyV3Schema = value?.schema === LEGACY_REPLAY_SCHEMA_V3;
   const legacyV2Schema = value?.schema === LEGACY_REPLAY_SCHEMA_V2;
   const legacySchema = value?.schema === LEGACY_REPLAY_SCHEMA;
-  const hasFeatures = currentSchema || legacyV2Schema;
-  if (!currentSchema && !legacyV2Schema && !legacySchema) throw new TypeError("Unsupported replay schema");
+  const hasFeatures = currentSchema || legacyV3Schema || legacyV2Schema;
+  if (!currentSchema && !legacyV3Schema && !legacyV2Schema && !legacySchema) throw new TypeError("Unsupported replay schema");
   assertExactKeys(value, ["schema", "build", "balance", "engine", "seed", "run", ...(hasFeatures ? ["features"] : []), "roster", "commands", "checkpoints", "finalTick", "finalHash"], "replay");
   safeString(value.build, SAFE_ID, "build");
   assertExactKeys(value.balance, ["version", "hash"], "balance");
@@ -245,7 +256,7 @@ export function validateReplay(value, expected = {}) {
   if (!Array.isArray(value.commands) || value.commands.length > MAX_REPLAY_COMMANDS) throw new TypeError("commands exceed replay bounds");
   let previousTick = -1, previousOrdinal = -1, commandsAtTick = 0;
   for (const [index, command] of value.commands.entries()) {
-    validateCommand(command, index);
+    validateCommand(command, index, currentSchema);
     const [tick, ordinal] = command;
     if (tick < previousTick || ordinal <= previousOrdinal) throw new TypeError("commands must be ordered by tick and globally increasing ordinal");
     commandsAtTick = tick === previousTick ? commandsAtTick + 1 : 1;
@@ -284,6 +295,10 @@ export function decodeReplayCommand(tuple) {
   if (kind === "i") return { tick, ordinal, kind: "input", slot: tuple[3], input: dequantizeReplayInput({ x: tuple[4], y: tuple[5], aim: tuple[6], auto: tuple[7] }) };
   if (kind === "c") return { tick, ordinal, kind: "cast", slot: tuple[3], cast: tuple[4] };
   if (kind === "u") return { tick, ordinal, kind: "upgrade", slot: tuple[3], choiceId: tuple[4] };
+  if (kind === "q") return { tick, ordinal, kind: "draft-reroll", slot: tuple[3] };
+  if (kind === "b") return { tick, ordinal, kind: "draft-banish", slot: tuple[3], choiceId: tuple[4] };
+  if (kind === "s") return { tick, ordinal, kind: "draft-skip", slot: tuple[3] };
+  if (kind === "x") return { tick, ordinal, kind: "draft-replace", slot: tuple[3], choiceId: tuple[4], replacementId: tuple[5] };
   if (kind === "j") return { tick, ordinal, kind: "join", slot: tuple[3], specialist: tuple[4] };
   if (kind === "l") return { tick, ordinal, kind: "leave", slot: tuple[3] };
   if (kind === "r") return { tick, ordinal, kind: "reconnect", slot: tuple[3], specialist: tuple[4] };
@@ -352,6 +367,10 @@ export class ReplayRecorder {
 
   recordCast(actualId, tick, cast) { return this.push(tick, "c", this.slotFor(actualId), cast); }
   recordUpgrade(actualId, tick, choiceId) { return this.push(tick, "u", this.slotFor(actualId), choiceId); }
+  recordDraftReroll(actualId, tick) { return this.push(tick, "q", this.slotFor(actualId)); }
+  recordDraftBanish(actualId, tick, choiceId) { return this.push(tick, "b", this.slotFor(actualId), choiceId); }
+  recordDraftSkip(actualId, tick) { return this.push(tick, "s", this.slotFor(actualId)); }
+  recordDraftReplacement(actualId, tick, choiceId, replacementId) { return this.push(tick, "x", this.slotFor(actualId), choiceId, replacementId); }
   recordLeave(actualId, tick) { const slot = this.slotFor(actualId); this.actualToSlot.delete(actualId); return this.push(tick, "l", slot); }
   recordAbandon(tick) { return this.push(tick, "a"); }
 

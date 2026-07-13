@@ -1,8 +1,8 @@
-import { WEAPON_EVOLUTION_CONTRACT, validateWeaponEvolutionContract } from "./weapon-evolution.js?v=20260712.9";
+import { WEAPON_EVOLUTION_CONTRACT, validateWeaponEvolutionContract } from "./weapon-evolution.js?v=20260712.10";
 
 // Balance is a versioned simulation input. Replays and fixtures should record
 // this exact version so a future tuning pass never silently changes old runs.
-export const BALANCE_VERSION = "2026.07.12-evolutions.3";
+export const BALANCE_VERSION = "2026.07.12-draft.1";
 
 export const BALANCE_IDS = Object.freeze({
   specialists: Object.freeze(["zuri", "echo", "sola", "bront", "fang", "gale", "rift", "nova", "vesper"]),
@@ -24,6 +24,14 @@ const config = {
     maxWeaponLevel: 5,
     maxWeaponSlots: 5,
     maxPassiveSlots: 6,
+    draft: {
+      rerolls: 2,
+      banishes: 2,
+      skips: 1,
+      choiceGold: 10,
+      skipGold: 30,
+      maxBanished: 2,
+    },
   },
   specialists: {
     zuri: { health: 10, armor: 0, speed: 285, cooldownE: 8, cooldownR: 50 },
@@ -233,6 +241,11 @@ export function validateBalanceConfig(candidate = BALANCE_CONFIG) {
   for (const key of ["baseVitality", "defaultDurationSeconds", "startingLevel", "startingXpNeed", "maxWeaponLevel", "maxWeaponSlots", "maxPassiveSlots"]) {
     requireFinite(`core.${key}`, candidate.core?.[key], { min: 0, exclusiveMin: true });
   }
+  for (const key of ["rerolls", "banishes", "skips", "choiceGold", "skipGold", "maxBanished"]) {
+    requireFinite(`core.draft.${key}`, candidate.core?.draft?.[key], { min: 0 });
+  }
+  if (candidate.core.draft.maxBanished !== candidate.core.draft.banishes) throw new TypeError("core.draft maxBanished must equal the banish budget");
+  if (candidate.core.draft.skipGold <= candidate.core.draft.choiceGold) throw new TypeError("core.draft skipGold must exceed the ordinary choice reward");
   for (const [id, specialist] of Object.entries(candidate.specialists || {})) {
     for (const key of ["health", "speed", "cooldownE", "cooldownR"]) requireFinite(`specialists.${id}.${key}`, specialist[key], { min: 0, exclusiveMin: true });
     requireFinite(`specialists.${id}.armor`, specialist.armor, { min: 0 });
