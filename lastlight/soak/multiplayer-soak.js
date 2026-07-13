@@ -1,5 +1,6 @@
 import { BALANCE_HASH, BALANCE_VERSION } from "../balance-config.js";
 import { Simulation, SIMULATION_TICK_RATE } from "../engine.js";
+import { DEFAULT_RUNTIME_CONFIG } from "../feature-config.js";
 import { canonicalSimulationState, hashSimulationState } from "../replay.js";
 
 export const SOAK_REPORT_SCHEMA = "lastlight.multiplayer-soak.v1";
@@ -117,7 +118,8 @@ function createReplica(index, options) {
     players,
     features: {
       gameplayVersion: options.gameplayVersion, objectiveEvents: true,
-      squadSynergies: true, registryVersion: "lastlight.squad-synergy.v1",
+      squadSynergies: true, sharedParticipationCredit: options.sharedParticipationCredit,
+      registryVersion: DEFAULT_RUNTIME_CONFIG.registryVersion,
     },
   }, { seed: options.seed, balanceVersion: BALANCE_VERSION, balanceHash: BALANCE_HASH });
   // The soak exercises systems and structural growth rather than tuning. Long
@@ -198,7 +200,8 @@ export function runMultiplayerSoak(options = {}) {
     map: options.map || "warehouse",
     difficulty: options.difficulty || "story",
     durationSeconds: options.durationSeconds || 60,
-    gameplayVersion: options.gameplayVersion || "events-v1",
+    gameplayVersion: options.gameplayVersion || DEFAULT_RUNTIME_CONFIG.gameplayVersion,
+    sharedParticipationCredit: options.sharedParticipationCredit ?? DEFAULT_RUNTIME_CONFIG.flags.sharedParticipationCredit,
     checkpointEvery: options.checkpointEvery || 300,
   };
   if (!/^[0-9a-f]{32}$/.test(settings.seed) || /^0+$/.test(settings.seed)) throw new TypeError("seed must be non-zero 128-bit lowercase hex");

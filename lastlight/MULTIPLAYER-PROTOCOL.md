@@ -52,17 +52,18 @@ schema and the deterministic compatibility tuple:
 ```json
 {
   "schema":"lastlight.host-migration.v1",
-  "protocolVersion":2,
+  "protocolVersion":3,
   "compatibility":{
     "build":"build-id",
     "balanceVersion":"balance-v1",
     "balanceHash":"fnv1a32:01234567",
-    "configVersion":"config-v1",
-    "gameplayVersion":"events-v1",
+    "configVersion":"release-2026.07.13.7",
+    "gameplayVersion":"participation-v1",
     "objectiveEvents":true,
     "squadSynergies":true,
+    "sharedParticipationCredit":true,
     "registryVersion":"lastlight.squad-synergy.v1",
-    "recoveryVersion":4
+    "recoveryVersion":5
   }
 }
 ```
@@ -172,11 +173,11 @@ gameplay feature contract. A run with a disabled flag or different registry
 cannot be replayed, restored, or offered to a migration successor as though it
 were compatible.
 
-Replay schema v5 records both values in its feature header. Recovery simulation
-version 4 serializes the bounded synergy state: Breach Window control windows
+Replay schema v6 records both values in its feature header. Recovery simulation
+version 5 serializes the bounded synergy state: Breach Window control windows
 and target cooldowns, Ultimate Resonance cast history and cooldown, Moving
 Screen pair hysteresis, and aggregate per-slot counters. Host-migration protocol
-version 2 includes the flag, registry version, and recovery version in its
+version 3 includes the flag, registry version, and recovery version in its
 strict compatibility tuple. Every restored state is validated before play
 resumes, and its canonical hash includes the synergy state.
 
@@ -185,6 +186,32 @@ HUD chips, announcements, guide copy, and result cards do not feed back into
 simulation or command ordering. Run analytics receives only allowlisted team
 aggregates; the schema and privacy bounds are documented in
 [`worker/TELEMETRY.md`](worker/TELEMETRY.md).
+
+## Shared participation deterministic state
+
+Shared participation credit is authoritative, anonymous replay-slot state. Runtime
+config schema v3 adds the `sharedParticipationCredit` flag to the exact gameplay
+contract. When enabled, `lastlight.participation.v1` records bounded per-slot
+healing, shielding, damage prevention, control and revive assists, objective
+presence and movement, elite/apex participation, and synergy contribution.
+Actual effective amounts are counted: over-heal, over-shield, overkill, duplicate
+periodic effects, duplicate network traffic, and idle proximity do not create
+credit.
+
+Replay schema v6 and replay-draft schema v3 record the flag. Replay v5 and older,
+and replay-draft v2 and older, normalize it to `false` without mutating the legacy
+manifest. Recovery envelope v3 and simulation version 5 persist and validate the
+participation state. Host-migration protocol v3 includes the flag and recovery
+version in its exact compatibility tuple, so mixed attribution contracts cannot
+inherit authority. Anonymous replay slots survive disconnect, reconnect, recovery,
+and migration; callsigns, room codes, resume tokens, and transient relay IDs do not
+enter durable participation state.
+
+Disabling `sharedParticipationCredit` is the rollback boundary. It leaves combat,
+objectives, health, shields, and existing squad synergies unchanged while omitting
+new credit state, live acknowledgements, result details, and v3 participation
+telemetry. Runs created under opposite flag values are deliberately incompatible
+for replay, recovery, and migration.
 
 ## Replay, privacy, and diagnostics
 
@@ -208,6 +235,10 @@ Migration has three independently reversible runtime flags:
 - `hostMigrationElection`: allow the relay to select and offer a successor;
 - `hostMigrationResume`: allow a validated candidate to commit authority and
   continue the run.
+
+Participation attribution has its own reversible `sharedParticipationCredit`
+flag. Because it affects deterministic state, a flag change applies only to new
+runs; an active run never changes compatibility in place.
 
 Roll out in that order. Checkpoint shadow validation should precede election,
 and election telemetry should precede live resume. Disabling checkpoint

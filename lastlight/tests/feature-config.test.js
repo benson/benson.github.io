@@ -11,12 +11,13 @@ function memoryStorage(initial = {}) {
 }
 
 const operatorConfig = {
-  schemaVersion: 2, configVersion: "rollback-42", gameplayVersion: "synergies-off-v1", registryVersion: "lastlight.squad-synergy.v1",
+  schemaVersion: 3, configVersion: "rollback-42", gameplayVersion: "participation-off-v1", registryVersion: "lastlight.squad-synergy.v1",
   flags: {
     deterministicReplay: false, runTelemetry: false, objectiveEvents: false,
     migrationCheckpointReplication: false, hostMigrationElection: false, hostMigrationResume: false,
     contextualPings: false, upgradeRecommendations: false,
     squadSynergies: false,
+    sharedParticipationCredit: false,
   },
 };
 
@@ -27,7 +28,8 @@ test("runtime config is a strict allowlisted immutable contract", () => {
   assert.throws(() => validateRuntimeConfig({ ...operatorConfig, flags: { ...operatorConfig.flags, runTelemetry: "no" } }), /boolean/);
   assert.equal(Object.isFrozen(DEFAULT_RUNTIME_CONFIG.flags), true);
   assert.deepEqual(gameplayFeatureContract(operatorConfig), {
-    gameplayVersion: "synergies-off-v1", objectiveEvents: false, squadSynergies: false,
+    gameplayVersion: "participation-off-v1", objectiveEvents: false, squadSynergies: false,
+    sharedParticipationCredit: false,
     registryVersion: "lastlight.squad-synergy.v1",
   });
   assert.doesNotMatch(serializeRuntimeConfig(operatorConfig), /name|room|token/i);

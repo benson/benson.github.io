@@ -46,6 +46,11 @@ host-migration compatibility. Only allowlisted team-level synergy aggregates
 are accepted by run telemetry; see `worker/TELEMETRY.md` for the schema and
 privacy limits.
 
+Shared participation credit is pinned by anonymous replay slot across replay,
+interrupted-run recovery, reconnect, and host migration. Only effective support,
+actual prevention, qualified assists, completed revive work, objective work,
+and elite/apex participation count. Telemetry receives aggregate totals only.
+
 ## Checks
 
 - `npm run check` in `lastlight`

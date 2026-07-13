@@ -12,8 +12,8 @@ const base = () => ({
   build: "2026.07.11.3",
   balance: { version: "2026.07.11-baseline.1", hash: "fnv1a32:7e33be79" },
   features: {
-    configVersion: "release-2026.07.13.6", gameplayVersion: "synergies-v1", objectiveEvents: true,
-    squadSynergies: true, registryVersion: "lastlight.squad-synergy.v1",
+    configVersion: "release-2026.07.13.7", gameplayVersion: "participation-v1", objectiveEvents: true,
+    squadSynergies: true, sharedParticipationCredit: true, registryVersion: "lastlight.squad-synergy.v1",
   },
   engine: { stepHz: REPLAY_STEP_HZ, rng: "xoshiro128ss-v1" },
   seed: "0123456789abcdef0123456789abcdef",
@@ -92,8 +92,8 @@ test("recorder keeps transient identities out of replay JSON and deduplicates in
   assert.equal(replay.commands.length, 6);
   assert.deepEqual(replay.roster, [{ slot: 0, specialist: "zuri" }]);
   assert.deepEqual(replay.features, {
-    configVersion: "release-2026.07.13.6", gameplayVersion: "synergies-v1", objectiveEvents: true,
-    squadSynergies: true, registryVersion: "lastlight.squad-synergy.v1",
+    configVersion: "release-2026.07.13.7", gameplayVersion: "participation-v1", objectiveEvents: true,
+    squadSynergies: true, sharedParticipationCredit: true, registryVersion: "lastlight.squad-synergy.v1",
   });
 });
 
@@ -136,6 +136,14 @@ test("legacy v4 manifests remain readable with squad synergies explicitly disabl
   assert.throws(() => validateReplay(legacy, { squadSynergies: true }), /squad-synergies flag mismatch/);
 });
 
+test("legacy v5 manifests preserve squad synergies and disable participation credit", () => {
+  const legacy = base();
+  legacy.schema = "lastlight.replay.v5";
+  delete legacy.features.sharedParticipationCredit;
+  assert.doesNotThrow(() => validateReplay(legacy, { squadSynergies: true, sharedParticipationCredit: false, registryVersion: "lastlight.squad-synergy.v1" }));
+  assert.throws(() => validateReplay(legacy, { sharedParticipationCredit: true }), /shared-participation-credit flag mismatch/);
+});
+
 test("legacy replay drafts resume with squad synergies explicitly disabled", () => {
   const recorder = new ReplayRecorder({
     build: "2026.07.13.5", balanceVersion: "2026.07.12-signatures.3", balanceHash: "fnv1a32:e36834e8",
@@ -146,13 +154,31 @@ test("legacy replay drafts resume with squad synergies explicitly disabled", () 
   const draft = recorder.exportDraft(0);
   draft.schema = "lastlight.replay-draft.v1";
   delete draft.header.squadSynergies;
+  delete draft.header.sharedParticipationCredit;
   delete draft.header.registryVersion;
   const resumed = ReplayRecorder.fromDraft(draft, [{ id: "host-restored", specialist: "zuri", replaySlot: 0 }]);
   const replay = resumed.finalize(0, "0000000000000000");
   assert.deepEqual(replay.features, {
-    configVersion: "release-2026.07.13.6", gameplayVersion: "synergies-v1", objectiveEvents: true,
-    squadSynergies: false, registryVersion: "none",
+    configVersion: "release-2026.07.13.7", gameplayVersion: "participation-v1", objectiveEvents: true,
+    squadSynergies: false, sharedParticipationCredit: false, registryVersion: "none",
   });
+});
+
+test("legacy v2 replay drafts preserve squad synergies and disable participation credit", () => {
+  const recorder = new ReplayRecorder({
+    build: "2026.07.13.6", balanceVersion: "2026.07.12-signatures.3", balanceHash: "fnv1a32:e36834e8",
+    rng: "xoshiro128ss-v1", seed: "0123456789abcdef0123456789abcdef",
+    run: { map: "warehouse", difficulty: "story", duration: 240 },
+  });
+  recorder.registerPlayer("host", "zuri", { slot: 0, initial: true });
+  const draft = recorder.exportDraft(0);
+  draft.schema = "lastlight.replay-draft.v2";
+  delete draft.header.sharedParticipationCredit;
+  const resumed = ReplayRecorder.fromDraft(draft, [{ id: "host-restored", specialist: "zuri", replaySlot: 0 }]);
+  const replay = resumed.finalize(0, "0000000000000000");
+  assert.equal(replay.features.squadSynergies, true);
+  assert.equal(replay.features.sharedParticipationCredit, false);
+  assert.equal(replay.features.registryVersion, "lastlight.squad-synergy.v1");
 });
 
 test("movement v3 keeps feature-bearing v2 manifests readable without changing input tuples", () => {
@@ -233,8 +259,8 @@ test("driver reports the first divergent checkpoint", () => {
 test("driver rejects a simulation created with different gameplay flags before stepping", () => {
   const replay = base();
   replay.features = {
-    configVersion: "rollback-42", gameplayVersion: "synergies-off-v1", objectiveEvents: false,
-    squadSynergies: false, registryVersion: "lastlight.squad-synergy.v1",
+    configVersion: "rollback-42", gameplayVersion: "participation-off-v1", objectiveEvents: false,
+    squadSynergies: false, sharedParticipationCredit: false, registryVersion: "lastlight.squad-synergy.v1",
   };
   const driver = new ReplayDriver(replay, {
     createSimulation: () => ({ gameplayVersion: "events-v1", objectiveEvents: true, squadSynergies: true, synergyRegistryVersion: "lastlight.squad-synergy.v1" }),
@@ -286,7 +312,8 @@ test("a recorded deterministic Simulation replays to the same final hash", () =>
       seed: manifest.seed, balanceVersion: manifest.balance.version, balanceHash: manifest.balance.hash,
       features: {
         gameplayVersion: manifest.features.gameplayVersion, objectiveEvents: manifest.features.objectiveEvents,
-        squadSynergies: manifest.features.squadSynergies, registryVersion: manifest.features.registryVersion,
+        squadSynergies: manifest.features.squadSynergies, sharedParticipationCredit: manifest.features.sharedParticipationCredit,
+        registryVersion: manifest.features.registryVersion,
       },
     }),
     applyCommand: (sim, command) => {

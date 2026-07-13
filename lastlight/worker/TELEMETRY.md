@@ -1,8 +1,8 @@
 # Run telemetry
 
 `POST /telemetry` accepts one aggregate record after a run finishes and writes it to the
-`lastlight_runs` Analytics Engine dataset. Rolling deploys accept both schema v1 and v2 and store
-them with distinct `run.v1` / `run.v2` schema blobs and schema-specific shared indexes. The
+`lastlight_runs` Analytics Engine dataset. Rolling deploys accept schemas v1, v2, and v3 and store
+them with distinct `run.v1` / `run.v2` / `run.v3` schema blobs and schema-specific shared indexes. The
 endpoint intentionally rejects unknown fields: callsigns, player IDs or slots, room codes,
 reconnect tokens, browser
 identity, IP addresses, and request geolocation never enter the dataset. Analytics Engine retains
@@ -14,7 +14,7 @@ The ordered fields in `worker.js` map to Analytics Engine columns as follows:
 
 | Column | Meaning |
 | --- | --- |
-| `blob1` | schema (`run.v1` or `run.v2`) |
+| `blob1` | schema (`run.v1`, `run.v2`, or `run.v3`) |
 | `blob2` | game build |
 | `blob3` | map |
 | `blob4` | difficulty |
@@ -66,12 +66,67 @@ synergyTelemetry() {
 }
 ```
 
-No contributor array, replay slot, player row, name, or arbitrary synergy ID is accepted. If a
-rolling client omits `synergyTelemetry`, it emits schema v1; when the field is present, it emits
-schema v2. Empty `ids` are valid only when all six totals are zero.
+Schema v3 keeps the complete queryable v2 run datapoint and writes one supplemental,
+aggregate-only participation datapoint. This is necessary because Analytics Engine accepts at
+most 20 doubles per datapoint; the run datapoint already uses 18. The supplemental point has the
+same aggregate run dimensions but no session identifier, so it cannot be joined to a particular
+player, room, browser, or run.
 
-`index1` is the shared schema value `lastlight-run-v1` or `lastlight-run-v2`; it is never a
-player/session identifier.
+| Participation column | Meaning | Accepted range |
+| --- | --- | --- |
+| `blob1` | schema (`participation.v1`) | exact value |
+| `blob2` | game build | allowlisted build identifier |
+| `blob3` | map | allowlisted map |
+| `blob4` | difficulty | allowlisted difficulty |
+| `blob5` | outcome | `won` or `lost` |
+| `blob6` | mode | `solo` or `squad` |
+| `blob7` | sorted specialist composition | one to four allowlisted specialists |
+| `double1` | effective healing | 0–1,000,000,000 |
+| `double2` | effective shielding granted | 0–1,000,000,000 |
+| `double3` | shield damage prevented | 0–1,000,000,000 |
+| `double4` | mitigation damage prevented | 0–1,000,000,000 |
+| `double5` | damage assists | integer, 0–1,000,000 |
+| `double6` | control assists | integer, 0–1,000,000 |
+| `double7` | revives | integer, 0–10,000 |
+| `double8` | active revive contribution seconds | 0–16,000 |
+| `double9` | objective presence seconds | 0–16,000 |
+| `double10` | positive objective movement | 0–1,000,000,000 |
+| `double11` | objective completions | integer, 0–10,000 |
+| `double12` | elite participations | integer, 0–1,000,000 |
+| `double13` | apex participations | integer, 0–10,000 |
+
+The live simulation exposes `participationTelemetry()` as the exact 13-key totals object. Test and
+result snapshots may expose that object directly as `participationTelemetry`. Unknown, nested,
+missing, non-finite, negative, fractional count, and over-cap values fail closed. No per-slot rows
+or contributor arrays are accepted.
+
+```js
+participationTelemetry() {
+  return {
+    effectiveHealing: 120.3,
+    effectiveShielding: 98.4,
+    shieldDamagePrevented: 51.3,
+    mitigationPrevented: 32,
+    damageAssists: 7,
+    controlAssists: 3,
+    revives: 2,
+    reviveSeconds: 5.3,
+    objectivePresenceSeconds: 44.4,
+    objectiveMovement: 812.3,
+    objectiveCompletions: 4,
+    eliteParticipations: 9,
+    apexParticipations: 2,
+  };
+}
+```
+
+No contributor array, replay slot, player row, name, or arbitrary synergy ID is accepted. If a
+rolling client omits both aggregate methods, it emits schema v1; synergy alone emits schema v2;
+participation emits schema v3 and supplies an empty valid synergy aggregate when necessary. Empty
+synergy `ids` are valid only when all six synergy totals are zero.
+
+`index1` is the shared schema value `lastlight-run-v1`, `lastlight-run-v2`,
+`lastlight-run-v3`, or `lastlight-participation-v1`; it is never a player/session identifier.
 
 For balance reviews, group by `blob3`, `blob4`, and `blob6`, weight aggregates by
 `_sample_interval`, and compare win rate, elapsed time, damage taken, and level reached between

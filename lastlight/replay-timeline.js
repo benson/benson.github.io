@@ -1,15 +1,9 @@
-import { LEGACY_REPLAY_SCHEMA, REPLAY_STEP_HZ, decodeReplayCommand, validateReplay } from "./replay.js?v=20260713.6";
-
-const LEGACY_FEATURES = Object.freeze({ gameplayVersion: "events-v1", objectiveEvents: true });
+import { REPLAY_STEP_HZ, decodeReplayCommand, replayGameplayFeatures, validateReplay } from "./replay.js?v=20260713.7";
 
 function clampInteger(value, min, max, label) {
   const number = Math.round(Number(value));
   if (!Number.isFinite(number)) throw new TypeError(`${label} must be finite`);
   return Math.max(min, Math.min(max, number));
-}
-
-function replayFeatures(replay) {
-  return replay.schema === LEGACY_REPLAY_SCHEMA ? LEGACY_FEATURES : replay.features;
 }
 
 export class ReplayVerificationError extends Error {
@@ -37,9 +31,12 @@ export class VerifiedReplayTimeline {
 
   reset() {
     this.simulation = this.adapters.createSimulation(this.replay);
-    const features = replayFeatures(this.replay);
+    const features = replayGameplayFeatures(this.replay);
     if (Object.hasOwn(this.simulation, "gameplayVersion") && this.simulation.gameplayVersion !== features.gameplayVersion) throw new Error("Replay gameplay feature version mismatch");
     if (Object.hasOwn(this.simulation, "objectiveEvents") && this.simulation.objectiveEvents !== features.objectiveEvents) throw new Error("Replay objective-events flag mismatch");
+    if (Object.hasOwn(this.simulation, "squadSynergies") && this.simulation.squadSynergies !== features.squadSynergies) throw new Error("Replay squad-synergies flag mismatch");
+    if (Object.hasOwn(this.simulation, "sharedParticipationCredit") && this.simulation.sharedParticipationCredit !== features.sharedParticipationCredit) throw new Error("Replay shared-participation-credit flag mismatch");
+    if (Object.hasOwn(this.simulation, "synergyRegistryVersion") && this.simulation.synergyRegistryVersion !== features.registryVersion) throw new Error("Replay synergy registry version mismatch");
     this.tick = 0;
     this.commandIndex = 0;
     this.complete = false;
