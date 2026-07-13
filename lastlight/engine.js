@@ -1,14 +1,15 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
-} from "./data.js?v=20260712.11";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260712.11";
+} from "./data.js?v=20260712.12";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260712.12";
 import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.5";
 import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260711.5";
-import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260712.11";
-import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260712.11";
-import { MAX_CORRIDOR_CANDIDATES, accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget, orderEntitiesByDistance } from "./projectile-decisions.js?v=20260712.11";
-import { selectEliteAffixes, selectSpawnArchetype } from "./enemy-archetypes.js?v=20260712.11";
+import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260712.12";
+import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260712.12";
+import { MAX_CORRIDOR_CANDIDATES, accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget, orderEntitiesByDistance } from "./projectile-decisions.js?v=20260712.12";
+import { selectEliteAffixes, selectSpawnArchetype } from "./enemy-archetypes.js?v=20260712.12";
+import { APEX_CONTRACTS, APEX_STATE_SCHEMA, orderedApexTargets } from "./apex-encounters.js?v=20260712.12";
 
 const BALANCE = getBalanceConfig();
 
@@ -465,11 +466,12 @@ export class Simulation {
       if (this.remaining <= 0) this.spawnBoss();
     } else if (this.stage === "boss") {
       this.bossElapsed += dt;
-      if (this.bossElapsed >= BALANCE.waves.boss.enrageAtSeconds && !this.enraged) {
+      const apex = this.enemies.find((enemy) => enemy.boss && !enemy.dead), contract = APEX_CONTRACTS[this.map.id];
+      if (apex && this.tick >= apex.apexSpawnTick + contract.enrageTicks && !this.enraged) {
         this.enraged = true;
         this.pushEvent("danger", "APEX ENRAGED", "Thirty seconds to lethal nova");
       }
-      if (this.bossElapsed >= BALANCE.waves.boss.lethalAtSeconds) this.lose("The apex consumed the operation.");
+      if (apex && this.tick >= apex.apexSpawnTick + contract.lethalTicks) this.lose("The apex consumed the operation.");
     }
   }
 
@@ -2000,33 +2002,68 @@ export class Simulation {
   }
 
   updateBoss(boss, dt, living) {
-    const target = living.reduce((best, p) => !best || distance(boss, p) < distance(boss, best) ? p : best, null);
-    if (!target || boss.stun > 0) return;
-    const a = angleTo(boss, target), speedBoost = this.enraged ? 1.35 : 1;
-    if (distance(boss, target) > 120) { boss.x += Math.cos(a) * boss.speed * speedBoost * dt; boss.y += Math.sin(a) * boss.speed * speedBoost * dt; }
-    if (circleHit(boss, target, 8) && boss.attackCd <= 0) { boss.attackCd = 1.1; this.takeDamage(target, boss.damage * (this.enraged ? 1.2 : 1), boss); }
-    if (boss.shotCd <= 0) {
-      boss.shotCd = this.map.id === "lab" ? 1.3 : 2.2;
-      const count = this.map.id === "lab" ? 12 : this.map.id === "beachhead" ? 8 : 5;
-      for (let i = 0; i < count; i++) {
-        const shotAngle = this.map.id === "lab" ? i * TAU / count + this.time * .15 : a + (i - (count - 1) / 2) * .22;
-        const v = fromAngle(shotAngle, this.map.id === "beachhead" ? 330 : 240);
-        this.hostile.push({ id: this.nextGameplayId("h"), ownerId: boss.id, bossShot: true, x: boss.x, y: boss.y, vx: v.x, vy: v.y, radius: 13, damage: boss.damage * .72 * this.difficulty.spell, life: 6, color: this.map.accent, dead: false });
-      }
-      this.effects.push({ id: this.nextCosmeticId("fx"), x: boss.x, y: boss.y, radius: 170, life: .45, maxLife: .45, damage: 0, owner: "enemy", color: this.map.accent, kind: "bossCast" });
+    const contract = APEX_CONTRACTS[this.map.id], target = orderedApexTargets(boss, living, 1)[0];
+    if (!contract || !target) return;
+    if (boss.apexPendingPhase === 1 && boss.apexPhaseIndex === 0) {
+      boss.apexPhaseIndex = 1; boss.apexPendingPhase = -1; boss.apexPhaseStartedTick = this.tick; this.bossPhase = 2;
+      boss.apexActionState = "transition"; boss.apexActionId = ""; boss.apexGeometry = null; boss.apexTargetIds = [];
+      boss.apexActionUntilTick = this.tick + contract.transitionTicks; boss.apexReadyTick = boss.apexActionUntilTick;
+      const phase = contract.phases[1];
+      this.pushEvent("danger", `${contract.bossName} · ${phase.id.replaceAll("-", " ").toUpperCase()}`, `Arena shift: ${phase.arenaMode.replaceAll("-", " ")}`, { apexPhase: 2 });
     }
-    if (this.map.id === "outskirts" && boss.attackCd <= .02 && this.chance(dt * 5)) {
-      boss.x = clamp(boss.x + Math.cos(a) * 170, -WORLD.width/2, WORLD.width/2);
-      boss.y = clamp(boss.y + Math.sin(a) * 170, -WORLD.height/2, WORLD.height/2);
+    const phase = contract.phases[boss.apexPhaseIndex]; this.updateApexArena(boss, phase, living);
+    if (boss.apexActionState === "transition") { if (this.tick < boss.apexActionUntilTick) return; boss.apexActionState = "idle"; }
+    if (boss.apexActionState === "windup" && boss.stun > 0 && boss.apexInterruptPolicy === "stagger") {
+      boss.stun = 0; boss.apexActionState = "recovery"; boss.apexActionUntilTick = this.tick + 45; boss.apexGeometry = null; boss.apexTargetIds = [];
     }
-    if (this.map.id === "beachhead" && this.bossPhase === 1 && boss.hp <= boss.maxHp * .5) {
-      this.bossPhase = 2; boss.hp = boss.maxHp * .62; boss.damage *= 1.25;
-      this.pushEvent("danger", "Abyss Blade · phase two", "The ocean is rising from the east");
+    if (boss.apexActionState === "windup" && this.tick >= boss.apexActionUntilTick) {
+      const action = contract.intents[boss.apexActionId]; boss.apexActionState = "active"; boss.apexActionStartedTick = this.tick; boss.apexActionUntilTick = this.tick + action.activeTicks; this.resolveApexIntent(boss, action, living);
+    } else if (boss.apexActionState === "active" && this.tick >= boss.apexActionUntilTick) {
+      const action = contract.intents[boss.apexActionId]; boss.apexActionState = "recovery"; boss.apexActionUntilTick = this.tick + action.recoveryTicks;
+    } else if (boss.apexActionState === "recovery" && this.tick >= boss.apexActionUntilTick) {
+      boss.apexActionState = "idle"; boss.apexGeometry = null; boss.apexTargetIds = []; boss.apexReadyTick = this.tick + 24;
     }
-    if (this.map.id === "beachhead" && this.bossPhase === 2) {
-      const floodX = WORLD.width / 2 - clamp(this.bossElapsed * 24, 0, WORLD.width / 2);
-      for (const p of living) if (p.x > floodX) this.takeDamage(p, .5 * dt / .165);
-    }
+    if (boss.apexActionState === "idle" && this.tick >= boss.apexReadyTick) this.beginApexIntent(boss, contract, phase, living);
+    const committed = ["windup", "active"].includes(boss.apexActionState), a = committed && Number.isFinite(boss.apexAttackAngle) ? boss.apexAttackAngle : angleTo(boss, target);
+    boss.attackAngle = a;
+    if (!committed && boss.stun <= 0 && distance(boss, target) > 150) this.moveEnemy(boss, a, boss.speed * (this.enraged ? 1.2 : 1) * dt);
+    if (!committed && circleHit(boss, target, 8) && boss.attackCd <= 0) { boss.attackCd = 1.35; this.takeDamage(target, Math.min(boss.damage, 4.5) * (this.enraged ? 1.15 : 1), boss); }
+  }
+
+  beginApexIntent(boss, contract, phase, living) {
+    const actionId = phase.intentCycle[boss.apexSequence % phase.intentCycle.length], action = contract.intents[actionId], target = orderedApexTargets(boss, living, 1)[0]; if (!target) return;
+    const angle = action.targetPolicy === "cardinal" ? (boss.apexSequence % 4) * Math.PI / 2 : angleTo(boss, target), g = action.geometry;
+    const geometry = { kind: action.shape, originX: boss.x, originY: boss.y, angle };
+    if (action.shape === "line") Object.assign(geometry,{endX:boss.x+Math.cos(angle)*g.range,endY:boss.y+Math.sin(angle)*g.range,halfWidth:g.halfWidth});
+    else if (action.shape === "cone") Object.assign(geometry,{range:g.range,halfAngle:g.halfAngle});
+    else if (action.shape === "annulus") Object.assign(geometry,{innerRadius:g.innerRadius,outerRadius:g.outerRadius});
+    else if (action.shape === "lanes") Object.assign(geometry,{axis:g.axis==="cycle"?(boss.apexSequence%2?"y":"x"):g.axis,width:g.width,spacing:g.spacing,safeIndex:boss.apexSequence%3});
+    else Object.assign(geometry,{count:g.count,range:g.range,halfWidth:g.halfWidth,offset:boss.apexSequence%g.count*TAU/g.count});
+    boss.apexSequence++; boss.apexActionId=actionId; boss.apexActionState="windup"; boss.apexActionStartedTick=this.tick; boss.apexActionUntilTick=this.tick+action.telegraphTicks;
+    boss.apexInterruptPolicy=action.interruptPolicy; boss.apexTargetIds=action.targetPolicy==="nearest"?[target.id]:[]; boss.apexGeometry=geometry; boss.apexAttackAngle=angle;
+    this.pushEvent("danger",action.text,`${action.pattern.replaceAll("-"," ")} · ${(action.telegraphTicks/SIMULATION_TICK_RATE).toFixed(1)}s`,{apexIntent:actionId,apexSequence:boss.apexSequence});
+  }
+
+  resolveApexIntent(boss, action, living) {
+    const g=boss.apexGeometry;if(!g)return;
+    for(const player of orderedApexTargets(boss,living,4)){const dx=player.x-g.originX,dy=player.y-g.originY,range=Math.hypot(dx,dy),relative=Math.atan2(Math.sin(Math.atan2(dy,dx)-g.angle),Math.cos(Math.atan2(dy,dx)-g.angle));let hit=false;
+      if(g.kind==="line"){const length=Math.hypot(g.endX-g.originX,g.endY-g.originY),along=dx*Math.cos(g.angle)+dy*Math.sin(g.angle),across=Math.abs(-dx*Math.sin(g.angle)+dy*Math.cos(g.angle));hit=along>=0&&along<=length&&across<=g.halfWidth+player.radius;}
+      else if(g.kind==="cone")hit=range<=g.range+player.radius&&Math.abs(relative)<=g.halfAngle;
+      else if(g.kind==="annulus")hit=range+player.radius>=g.innerRadius&&range-player.radius<=g.outerRadius;
+      else if(g.kind==="lanes"){const coordinate=g.axis==="x"?player.y:player.x;hit=[-1,0,1].some((lane,index)=>index!==g.safeIndex&&Math.abs(coordinate-lane*g.spacing)<=g.width/2+player.radius);}
+      else {const step=TAU/g.count,wrapped=((relative-g.offset)%step+step)%step;hit=range<=g.range&&Math.min(wrapped,step-wrapped)*range<=g.halfWidth+player.radius;}
+      if(hit)this.takeDamage(player,Math.min(action.damage*this.difficulty.attack,player.maxHp*.8),boss);
+    }boss.attackFlash=.2;
+  }
+
+  updateApexArena(boss, phase, living) {
+    if(boss.apexPhaseIndex===0)return;const elapsed=this.tick-boss.apexPhaseStartedTick;
+    if(phase.arenaMode==="rising-ocean")boss.apexArenaBoundary=Math.max(0,WORLD.width/2-elapsed*.3);
+    else if(phase.arenaMode==="ion-grid")boss.apexArenaBoundary=1100-Math.min(320,elapsed*.45);
+    else if(phase.arenaMode==="freeze-cores")boss.apexArenaBoundary=Math.floor(elapsed/240)%2;
+    else boss.apexArenaBoundary=Math.min(3,Math.floor(elapsed/300));
+    if(this.tick<boss.apexArenaNextPulseTick)return;boss.apexArenaNextPulseTick=this.tick+60;
+    for(const player of living){let hit=false;if(phase.arenaMode==="rising-ocean")hit=player.x>boss.apexArenaBoundary;else if(phase.arenaMode==="ion-grid")hit=Math.hypot(player.x,player.y)>boss.apexArenaBoundary;else if(phase.arenaMode==="freeze-cores")hit=boss.apexArenaBoundary?Math.abs(player.x)<105:Math.abs(player.y)<105;else hit=boss.apexArenaBoundary>0&&Math.abs(player.y-(boss.apexArenaBoundary-2)*260)<52;if(hit)this.takeDamage(player,1*this.difficulty.attack,boss);}
   }
 
   takeDamage(p, amount, source = null) {
@@ -2081,6 +2118,10 @@ export class Simulation {
       absorbed = Math.min(enemy.affixState.shield, remaining);
       enemy.affixState.shield -= absorbed;
       remaining -= absorbed;
+    }
+    if (enemy.boss && enemy.apexPhaseIndex === 0) {
+      const gate = enemy.maxHp * APEX_CONTRACTS[this.map.id].phaseGateRatio;
+      if (enemy.hp - remaining <= gate) { remaining = Math.max(0, enemy.hp - gate); enemy.apexPendingPhase = 1; }
     }
     const dealt = absorbed + Math.min(remaining, Math.max(0, enemy.hp));
     enemy.hp -= remaining; enemy.hitFlash = .1;
@@ -2331,7 +2372,12 @@ export class Simulation {
     this.stage = "boss"; this.remaining = 0; this.enemies = this.enemies.filter((enemy) => enemy.elite || enemy.miniboss);
     const boss = BALANCE.waves.boss;
     const health = boss.baseHealth * this.difficulty.health * (1 + (this.players.length - 1) * boss.healthPerAdditionalPlayer);
-    this.enemies.push({ id: this.nextGameplayId("boss"), type: "boss", x: 720, y: 0, radius: 92, hp: health, maxHp: health, speed: boss.speed, damage: boss.contactDamage * this.difficulty.attack, color: this.map.accent, elite: false, miniboss: false, boss: true, attackCd: 1, shotCd: 1.5, stun: 0, hitFlash: 0, attackFlash: 0, spawnLife: .5, knockVx: 0, knockVy: 0, dead: false, xp: 0, affixIds: [], affixState: {} });
+    const bossId = this.nextGameplayId("boss"), contract = APEX_CONTRACTS[this.map.id];
+    this.enemies.push({ id: bossId, type: "boss", x: 720, y: 0, radius: 92, hp: health, maxHp: health, speed: boss.speed, damage: boss.contactDamage * this.difficulty.attack, color: this.map.accent, elite: false, miniboss: false, boss: true, attackCd: 1, shotCd: 1.5, stun: 0, hitFlash: 0, attackFlash: 0, spawnLife: .5, knockVx: 0, knockVy: 0, dead: false, xp: 0, affixIds: [], affixState: {},
+      apexSchema: APEX_STATE_SCHEMA, apexContractId: contract.id, apexSpawnTick: this.tick, apexPhaseIndex: 0, apexPendingPhase: -1, apexPhaseStartedTick: this.tick,
+      apexSequence: 0, apexActionId: "", apexActionState: "idle", apexActionStartedTick: this.tick, apexActionUntilTick: this.tick,
+      apexReadyTick: this.tick + 90, apexInterruptPolicy: "unstoppable", apexTargetIds: [], apexGeometry: null, apexAttackAngle: 0,
+      apexArenaBoundary: 0, apexArenaNextPulseTick: this.tick + 60 });
     this.pushEvent("danger", `${this.map.boss} HAS ARRIVED`, "Defeat the apex before enrage");
   }
 
@@ -2477,6 +2523,18 @@ export class Simulation {
     const validBehaviorStates = new Set(["approach", "windup", "contact", "charge", "recovery"]), restoredPlayerIds = new Set(sim.players.map(({ id }) => id));
     for (const [index, enemy] of sim.enemies.entries()) {
       if (!enemy || (!enemy.boss && !ENEMY_TYPES[enemy.type])) throw new TypeError(`Recovery enemy ${index} has an unknown type`);
+      if (enemy.boss) {
+        const contract = APEX_CONTRACTS[header.map], states = new Set(["idle", "windup", "active", "recovery", "transition"]);
+        if (enemy.apexSchema !== APEX_STATE_SCHEMA || enemy.apexContractId !== contract.id || ![0, 1].includes(enemy.apexPhaseIndex) || ![-1, 1].includes(enemy.apexPendingPhase)) throw new TypeError(`Recovery apex ${index} has invalid identity or phase`);
+        if (!states.has(enemy.apexActionState) || !Number.isSafeInteger(enemy.apexSequence) || enemy.apexSequence < 0) throw new TypeError(`Recovery apex ${index} has invalid action state`);
+        for (const key of ["apexSpawnTick", "apexPhaseStartedTick", "apexActionStartedTick", "apexActionUntilTick", "apexReadyTick", "apexArenaNextPulseTick"]) if (!Number.isSafeInteger(enemy[key]) || enemy[key] < 0) throw new TypeError(`Recovery apex ${index} has invalid ${key}`);
+        if (!Array.isArray(enemy.apexTargetIds) || enemy.apexTargetIds.length > 4 || new Set(enemy.apexTargetIds).size !== enemy.apexTargetIds.length || enemy.apexTargetIds.some((id) => !restoredPlayerIds.has(id))) throw new TypeError(`Recovery apex ${index} has invalid targets`);
+        if (["windup", "active", "recovery"].includes(enemy.apexActionState) && !contract.intents[enemy.apexActionId]) throw new TypeError(`Recovery apex ${index} has invalid action`);
+        if (["windup", "active", "recovery"].includes(enemy.apexActionState) && enemy.apexGeometry !== null) {
+          const geometry = enemy.apexGeometry, kinds = new Set(["line", "cone", "annulus", "lanes", "radial"]);
+          if (!geometry || !kinds.has(geometry.kind) || Object.values(geometry).some((value) => typeof value === "number" && !Number.isFinite(value))) throw new TypeError(`Recovery apex ${index} has invalid geometry`);
+        } else if (["idle", "transition"].includes(enemy.apexActionState) && enemy.apexGeometry !== null) throw new TypeError(`Recovery apex ${index} has unexpected geometry`);
+      }
       if (!enemy.boss && !validBehaviorStates.has(enemy.behaviorState)) throw new TypeError(`Recovery enemy ${index} has an invalid behavior state`);
       for (const key of ["behaviorStartedTick", "behaviorUntilTick", "abilityReadyTick", "actionSequence"]) {
         if (!enemy.boss && (!Number.isSafeInteger(enemy[key]) || enemy[key] < 0)) throw new TypeError(`Recovery enemy ${index} has invalid ${key}`);

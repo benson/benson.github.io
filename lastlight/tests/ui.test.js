@@ -83,11 +83,14 @@ test("desktop-only type overrides lift critical compact controls to nine pixels"
 
 test("squad and boss HUD bars share the segmented health contract", () => {
   assert.match(game, /import \{ bossHealthSegments, playerHealthSegments \} from "\.\/health-bars\.js/);
-  assert.match(game, /healthDividerMarkup\(bossHealthSegments\(boss\.maxHp\)\)/);
+  assert.match(game, /healthDividerMarkup\(bossHealthSegments\(boss\.maxHp, apexContract\?\.phases/);
   assert.match(game, /healthDividerMarkup\(playerHealthSegments\(p\.maxHp\)\)/);
   assert.match(html, /id="boss-health-segments" class="health-dividers"/);
   assert.match(css, /\.health-divider\.major/);
   assert.match(css, /\.mini-shield-fill/);
+  assert.match(html, /id="boss-hud"[^>]+role="progressbar"[^>]+aria-valuetext=/);
+  assert.match(game, /aria-valuetext[\s\S]+apexActionId/);
+  assert.match(html, /href="#guide-apex">Apexes/);
 });
 
 test("specialist select exposes an accessible authored starting-weapon detail surface", () => {

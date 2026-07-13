@@ -2,8 +2,8 @@
   "schema": "lastlight.fixtures.v1",
   "schemaVersion": 1,
   "balance": {
-    "version": "2026.07.12-enemies.1",
-    "hash": "fnv1a32:93d69cea"
+    "version": "2026.07.13-apex.1",
+    "hash": "fnv1a32:873c43bc"
   },
   "replay": {
     "schema": "lastlight.replay.v4",

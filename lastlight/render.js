@@ -1,15 +1,16 @@
-import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260712.11";
-import { WORLD } from "./engine.js?v=20260712.11";
+import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260712.12";
+import { WORLD } from "./engine.js?v=20260712.12";
 import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260712.1";
-import { springCamera } from "./feel.js?v=20260712.11";
-import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistFacingTarget, specialistMotionState, stableDirectionColumn } from "./motion.js?v=20260712.11";
+import { springCamera } from "./feel.js?v=20260712.12";
+import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistFacingTarget, specialistMotionState, stableDirectionColumn } from "./motion.js?v=20260712.12";
 import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
 import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260711.5";
-import { impactRenderPlan } from "./impact-grammar.js?v=20260712.11";
-import { movementVisualState } from "./movement.js?v=20260712.11";
+import { impactRenderPlan } from "./impact-grammar.js?v=20260712.12";
+import { movementVisualState } from "./movement.js?v=20260712.12";
 import { effectReadabilityCategory, partitionEffects, readabilityPlan, shouldPromoteCache } from "./readability.js?v=20260711.8";
 import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260711.8";
 import { EnvironmentInteractionField, stableEnvironmentUnit } from "./environment-interactions.js?v=20260712.1";
+import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260712.12";
 
 const TAU = Math.PI * 2;
 
@@ -469,13 +470,19 @@ export class Renderer {
       const affixIds = enemyAffixIds(enemy), affixNames = affixIds.map((id) => enemyAffixPresentation(id).label);
       const name = enemy.boss ? (map?.boss || "Apex") : enemy.eventType === "treasure" ? "Treasure Runner" : `${affixNames.length ? `${affixNames.join(" ")} ` : enemy.elite ? "Elite " : ""}${data.name || "Enemy"}`;
       const behavior = enemyBehaviorLabel(enemy), stats = { Health: `${Math.max(0, Math.ceil(enemy.hp))} / ${Math.ceil(enemy.maxHp)}`, Damage: Math.round(enemy.damage || 0), Speed: Math.round(enemy.speed || 0) };
+      if (enemy.boss) {
+        const contract = APEX_CONTRACTS[map?.id], phase = contract?.phases[enemy.apexPhaseIndex || 0];
+        stats.Phase = `${(enemy.apexPhaseIndex || 0) + 1}/${contract?.phases.length || 2} · ${phase?.id.replaceAll("-", " ") || "unknown"}`;
+        stats.Intent = enemy.apexActionId ? `${enemy.apexActionId.replaceAll("-", " ")} · ${enemy.apexActionState}` : enemy.apexActionState;
+        stats.Arena = phase?.arenaMode.replaceAll("-", " ") || "unknown";
+      }
       if (behavior) stats.Intent = behavior;
       if (affixNames.length) stats.Affixes = affixNames.join(" · ");
       const barrier = Number(enemy.affixState?.shielded?.barrier ?? enemy.affixState?.shield ?? enemy.affixState?.barrier);
       if (Number.isFinite(barrier) && barrier > 0) stats.Barrier = Math.ceil(barrier);
       consider(enemy, enemy.radius + 12, {
         type: "enemy", name,
-        description: enemy.eventType === "treasure" ? "Chase it down before its timer expires to recover bonus loot." : enemy.boss ? "The operation's apex target." : `${enemy.type === "spitter" ? "A ranged enemy that fires hostile bolts." : "A hostile field enemy with an authored attack pattern."}${behavior ? ` Current intent: ${behavior}.` : ""}${affixNames.length ? ` Affixes: ${affixNames.join(", ")}.` : ""}`,
+        description: enemy.eventType === "treasure" ? "Chase it down before its timer expires to recover bonus loot." : enemy.boss ? "A multi-phase apex. Its named shape, static pattern, countdown, and arena boundary all describe authoritative danger." : `${enemy.type === "spitter" ? "A ranged enemy that fires hostile bolts." : "A hostile field enemy with an authored attack pattern."}${behavior ? ` Current intent: ${behavior}.` : ""}${affixNames.length ? ` Affixes: ${affixNames.join(", ")}.` : ""}`,
         stats,
       }, .24);
     }
@@ -568,6 +575,7 @@ export class Renderer {
     // Draw it from the complete viewport-culled enemy list so a low quality
     // sprite budget can never make a committed attack invisible.
     this.drawEnemyBehaviorTelegraphs(state.enemies || [], previous, interpolation, state);
+    this.drawApexTelegraphs(state.enemies || [], state, map);
     this.drawProjectiles(hostileProjectiles, true, state);
     this.drawObjectives(state.objectives || [], map, "overlay");
     this.drawEffects(effectPasses.threat, map, previous, interpolation, "threat", state);
@@ -1186,6 +1194,32 @@ export class Renderer {
     ctx.globalAlpha = 1; ctx.setLineDash([]); ctx.shadowBlur = 0;
   }
 
+  drawApexTelegraphs(enemies, state, map) {
+    const boss = enemies.find((enemy) => enemy.boss && !enemy.dead), g = boss?.apexGeometry;
+    if (!boss) return;
+    const ctx = this.ctx, danger = this.readability("lethalTelegraph"), phase = Number(boss.apexPhaseIndex || 0);
+    ctx.save();
+    // Arena loss is authoritative and remains visible with effects disabled.
+    if (phase > 0) {
+      ctx.fillStyle = danger.palette.body; ctx.strokeStyle = danger.palette.keyline; ctx.lineWidth = 8; ctx.globalAlpha = .12;
+      if (map.id === "beachhead") { const x = Number(boss.apexArenaBoundary); ctx.fillRect(x, -WORLD.height/2, WORLD.width/2-x, WORLD.height); ctx.globalAlpha = .95; ctx.beginPath(); ctx.moveTo(x,-WORLD.height/2);ctx.lineTo(x,WORLD.height/2);ctx.stroke(); }
+      else if (map.id === "outskirts") { ctx.beginPath();ctx.rect(-WORLD.width/2,-WORLD.height/2,WORLD.width,WORLD.height);ctx.arc(0,0,Number(boss.apexArenaBoundary),0,TAU,true);ctx.fill("evenodd");ctx.globalAlpha=.95;ctx.beginPath();ctx.arc(0,0,Number(boss.apexArenaBoundary),0,TAU);ctx.stroke(); }
+      else if (map.id === "lab") { const vertical=Boolean(boss.apexArenaBoundary);ctx.fillRect(vertical?-105:-WORLD.width/2,vertical?-WORLD.height/2:-105,vertical?210:WORLD.width,vertical?WORLD.height:210); }
+      else if (Number(boss.apexArenaBoundary)>0) { const y=(boss.apexArenaBoundary-2)*260;ctx.fillRect(-WORLD.width/2,y-52,WORLD.width,104); }
+    }
+    if (!g || !["windup","active"].includes(boss.apexActionState)) { ctx.restore(); return; }
+    const remaining=Math.max(0,Number(boss.apexActionUntilTick||0)-Number(state.tick||0)),steps=Math.max(1,Math.ceil(remaining/30));
+    ctx.strokeStyle=danger.palette.keyline;ctx.fillStyle=danger.palette.body;ctx.lineWidth=8;ctx.globalAlpha=.14;
+    const strokeTwice=(path)=>{path();ctx.stroke();ctx.strokeStyle=danger.palette.core;ctx.lineWidth=2.5;ctx.globalAlpha=.98;path();ctx.stroke();};
+    if(g.kind==="line"){strokeTwice(()=>{ctx.beginPath();ctx.moveTo(g.originX-Math.sin(g.angle)*g.halfWidth,g.originY+Math.cos(g.angle)*g.halfWidth);ctx.lineTo(g.endX-Math.sin(g.angle)*g.halfWidth,g.endY+Math.cos(g.angle)*g.halfWidth);ctx.lineTo(g.endX+Math.sin(g.angle)*g.halfWidth,g.endY-Math.cos(g.angle)*g.halfWidth);ctx.lineTo(g.originX+Math.sin(g.angle)*g.halfWidth,g.originY-Math.cos(g.angle)*g.halfWidth);ctx.closePath();});}
+    else if(g.kind==="cone"){strokeTwice(()=>{ctx.beginPath();ctx.moveTo(g.originX,g.originY);ctx.arc(g.originX,g.originY,g.range,g.angle-g.halfAngle,g.angle+g.halfAngle);ctx.closePath();});}
+    else if(g.kind==="annulus"){strokeTwice(()=>{ctx.beginPath();ctx.arc(g.originX,g.originY,g.outerRadius,0,TAU);ctx.moveTo(g.originX+g.innerRadius,g.originY);ctx.arc(g.originX,g.originY,g.innerRadius,0,TAU);});}
+    else if(g.kind==="lanes"){for(let index=0;index<3;index++){if(index===g.safeIndex)continue;const center=(index-1)*g.spacing;strokeTwice(()=>{ctx.beginPath();if(g.axis==="x")ctx.rect(-WORLD.width/2,center-g.width/2,WORLD.width,g.width);else ctx.rect(center-g.width/2,-WORLD.height/2,g.width,WORLD.height);});}}
+    else {for(let i=0;i<g.count;i++){const a=g.offset+i*TAU/g.count;strokeTwice(()=>{ctx.beginPath();ctx.moveTo(g.originX,g.originY);ctx.lineTo(g.originX+Math.cos(a)*g.range,g.originY+Math.sin(a)*g.range);});}}
+    ctx.globalAlpha=.96;ctx.fillStyle="#fff";ctx.strokeStyle="#07111b";ctx.lineWidth=4;ctx.font="900 24px sans-serif";ctx.textAlign="center";ctx.strokeText(`${boss.apexActionId.replaceAll("-"," ").toUpperCase()} · ${steps}`,g.originX,g.originY-130);ctx.fillText(`${boss.apexActionId.replaceAll("-"," ").toUpperCase()} · ${steps}`,g.originX,g.originY-130);
+    ctx.restore();
+  }
+
   drawEnemyAffixBadges(enemy, y) {
     const affixes = enemyAffixIds(enemy);
     if (!affixes.length) return;
@@ -1318,7 +1352,7 @@ export class Renderer {
           x: -width / 2, y: barY, width, height: e.boss ? 8 : 6,
           value: e.hp, maxValue: e.maxHp,
           shield: Number(e.affixState?.shield || 0),
-          layout: e.boss ? bossHealthSegments(e.maxHp) : enemyHealthSegments(e.maxHp),
+          layout: e.boss ? bossHealthSegments(e.maxHp, APEX_CONTRACTS[map.id]?.phases.slice(1).map((phase) => phase.enterHpRatio)) : enemyHealthSegments(e.maxHp),
           color: e.boss ? map.accent : important ? "#ffcf64" : "#ff6759",
           trailColor: e.boss ? map.accent : important ? "#ffcf64" : "#ff6759",
         });

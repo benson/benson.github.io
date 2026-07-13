@@ -153,6 +153,10 @@ function applyMessage(replica, envelope) {
     if (!boss) return false;
     const owner = replica.activeIds.get(0);
     simulation.damageEnemy(boss, boss.hp + 1, owner, true, "soak-finish");
+    if (!boss.dead) {
+      boss.apexPhaseIndex = 1; boss.apexPendingPhase = -1; simulation.bossPhase = 2;
+      simulation.damageEnemy(boss, boss.hp + 1, owner, true, "soak-finish");
+    }
     return true;
   }
   throw new TypeError(`Unsupported soak message ${envelope.type}`);

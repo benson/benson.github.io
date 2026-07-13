@@ -1,9 +1,10 @@
-import { WEAPON_EVOLUTION_CONTRACT, validateWeaponEvolutionContract } from "./weapon-evolution.js?v=20260712.11";
-import { validateEnemyIdentityContract } from "./enemy-archetypes.js?v=20260712.11";
+import { WEAPON_EVOLUTION_CONTRACT, validateWeaponEvolutionContract } from "./weapon-evolution.js?v=20260712.12";
+import { validateEnemyIdentityContract } from "./enemy-archetypes.js?v=20260712.12";
+import { APEX_CONTRACTS, validateApexContracts } from "./apex-encounters.js?v=20260712.12";
 
 // Balance is a versioned simulation input. Replays and fixtures should record
 // this exact version so a future tuning pass never silently changes old runs.
-export const BALANCE_VERSION = "2026.07.12-enemies.1";
+export const BALANCE_VERSION = "2026.07.13-apex.1";
 
 export const BALANCE_IDS = Object.freeze({
   specialists: Object.freeze(["zuri", "echo", "sola", "bront", "fang", "gale", "rift", "nova", "vesper"]),
@@ -17,6 +18,7 @@ export const BALANCE_IDS = Object.freeze({
 const config = {
   version: BALANCE_VERSION,
   evolutions: WEAPON_EVOLUTION_CONTRACT,
+  apex: APEX_CONTRACTS,
   core: {
     baseVitality: 10,
     defaultDurationSeconds: 240,
@@ -247,7 +249,7 @@ export function validateBalanceConfig(candidate = BALANCE_CONFIG) {
   };
   if (!candidate || typeof candidate !== "object") return ["config: must be an object"];
   if (typeof candidate.version !== "string" || !candidate.version.trim()) errors.push("version: required");
-  for (const section of ["core", "evolutions", "specialists", "identityTuning", "movement", "passives", "shields", "difficulties", "enemies", "enemyIdentity", "waves", "weapons"]) {
+  for (const section of ["core", "evolutions", "apex", "specialists", "identityTuning", "movement", "passives", "shields", "difficulties", "enemies", "enemyIdentity", "waves", "weapons"]) {
     if (!candidate[section] || typeof candidate[section] !== "object") errors.push(`${section}: required`);
   }
   const requireExactIds = (path, value, ids) => {
@@ -267,6 +269,7 @@ export function validateBalanceConfig(candidate = BALANCE_CONFIG) {
   for (const key of ["baseVitality", "defaultDurationSeconds", "startingLevel", "startingXpNeed", "maxWeaponLevel", "maxWeaponSlots", "maxPassiveSlots"]) {
     requireFinite(`core.${key}`, candidate.core?.[key], { min: 0, exclusiveMin: true });
   }
+  errors.push(...validateApexContracts(candidate.apex).map((error) => `apex.${error}`));
   for (const key of ["rerolls", "banishes", "skips", "choiceGold", "skipGold", "maxBanished"]) {
     requireFinite(`core.draft.${key}`, candidate.core?.draft?.[key], { min: 0 });
   }

@@ -56,7 +56,8 @@ test("report exposes survival, support, pickup, objective, elite, and apex diffe
   assert.ok(byId.echo.summary.squadSupport > byId.zuri.summary.squadSupport);
   assert.ok(byId.vesper.summary.pickupReach > byId.zuri.summary.pickupReach);
   assert.ok(report.specialists.every((specialist) => specialist.summary.objectiveProgress === 1));
-  assert.ok(report.specialists.some((specialist) => specialist.summary.apexTtkSeconds === null));
+  const apexTimes = report.specialists.map((specialist) => specialist.summary.apexTtkSeconds).filter(Number.isFinite);
+  assert.ok(apexTimes.length >= 2 && Math.max(...apexTimes) > Math.min(...apexTimes));
   assert.ok(report.specialists.some((specialist) => specialist.summary.soloSurvivalSeconds < 45));
   assert.ok(report.rankings.every((ranking) => ranking.entries.length === SPECIALIST_ORDER.length));
   assert.ok(report.outliers.length > 0);
