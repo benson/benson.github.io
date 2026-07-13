@@ -37,6 +37,12 @@ test("boss layouts add stronger major divisions without changing minor math", ()
   assert.deepEqual(layout.dividers.filter((divider) => divider.major).map((divider) => divider.index), [2, 4, 6, 8]);
 });
 
+test("authored apex gates replace arbitrary major divisions", () => {
+  const layout = bossHealthSegments(14500, [.55]);
+  assert.deepEqual(layout.dividers.filter((divider) => divider.major).map((divider) => divider.position), [.55]);
+  assert.equal(layout.dividers.find((divider) => divider.position === .55).phase, true);
+});
+
 test("explicit segment units remain deterministic for DOM adapters", () => {
   const layout = healthSegmentLayout(15, { unit: 1, majorSections: 5 });
   assert.equal(layout.segmentCount, 15);

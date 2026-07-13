@@ -11,11 +11,11 @@ import { Simulation } from "../engine.js";
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
 test("the canonical movement contract has an explicit stable replay identity", () => {
-  assert.equal(BALANCE_VERSION, "2026.07.12-enemies.1");
-  assert.equal(BALANCE_HASH, "fnv1a32:93d69cea");
+  assert.equal(BALANCE_VERSION, "2026.07.13-apex.1");
+  assert.equal(BALANCE_HASH, "fnv1a32:873c43bc");
   assert.equal(balanceFingerprint(BALANCE_CONFIG), BALANCE_HASH);
   assert.deepEqual(getBalanceManifest(), { balanceVersion: BALANCE_VERSION, balanceHash: BALANCE_HASH });
-  assert.match(canonicalBalanceData(), /^\{"core":/);
+  assert.match(canonicalBalanceData(), /^\{"apex":/);
   assert.equal(getBalanceConfig(), BALANCE_CONFIG);
   assert.throws(() => getBalanceConfig("missing"), /Unknown balance version/);
 });

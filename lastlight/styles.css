@@ -409,12 +409,12 @@ kbd { display: inline-grid; min-width: 26px; height: 24px; place-items: center; 
 .game-stats { justify-self: end; display: flex; gap: 19px; align-items: center; color: #9db0b6; font-size: 11px; letter-spacing: .07em; text-transform: uppercase; }
 .game-stats b { color: var(--paper); font-size: 14px; }
 .game-stats button { pointer-events: auto; padding: 8px 10px; border: 1px solid rgba(255,255,255,.2); background: rgba(5,12,22,.78); color: var(--paper); cursor: pointer; font-size: 10px; text-transform: uppercase; }
-.objective-banner { position: absolute; left: 50%; top: 105px; min-width: 320px; padding: 12px 20px; transform: translate(-50%, -8px); text-align: center; background: rgba(7,17,28,.9); border-inline: 2px solid var(--cyan); opacity: 0; pointer-events: none; transition: opacity 220ms cubic-bezier(.23,1,.32,1), transform 220ms cubic-bezier(.23,1,.32,1); }
+.objective-banner { position: absolute; left: 50%; top: 154px; min-width: 320px; padding: 12px 20px; transform: translate(-50%, -8px); text-align: center; background: rgba(7,17,28,.9); border-inline: 2px solid var(--cyan); opacity: 0; pointer-events: none; transition: opacity 220ms cubic-bezier(.23,1,.32,1), transform 220ms cubic-bezier(.23,1,.32,1); }
 .objective-banner.is-visible { transform: translate(-50%, 0); opacity: 1; }
 .objective-banner.is-exiting { transform: translate(-50%, -4px); opacity: 0; transition-duration: 180ms; }
 .objective-banner span { display: block; color: var(--cyan); font: 700 10px/1 var(--sans); letter-spacing: .15em; }
 .objective-banner strong { display: block; margin-top: 5px; font: 700 19px/1 var(--display); letter-spacing: .06em; text-transform: uppercase; }
-.boss-hud { position: absolute; left: 50%; top: 102px; width: min(520px, 60vw); transform: translateX(-50%); text-align: center; }
+.boss-hud { position: absolute; z-index: 7; left: 50%; top: 92px; width: min(520px, 60vw); transform: translateX(-50%); text-align: center; }
 .boss-hud span { font: 800 18px/1 var(--display); letter-spacing: .1em; color: #ff7b62; text-shadow: 0 2px 6px #000; }
 .boss-hud > div { position: relative; height: 9px; margin-top: 7px; padding: 2px; background: rgba(4,8,14,.9); border: 1px solid rgba(255,119,91,.55); }
 .boss-hud #boss-health { display: block; width: 100%; height: 100%; background: linear-gradient(90deg, #ff3e5c, #ff8b58); }
@@ -1133,7 +1133,14 @@ html[data-reduced-motion="true"] .scanlines { animation: none; }
   .timer-hud strong { font-size: 25px; }
   .game-stats { gap: 8px; }
   .game-stats span { display: none; }
+  .boss-hud { top: 72px; width: calc(100vw - 24px); }
+  .boss-hud span { font-size: 14px; letter-spacing: .055em; }
+  .objective-banner { top: 132px; min-width: 0; width: calc(100vw - 24px); padding: 9px 12px; }
+  .objective-banner strong { font-size: 14px; }
   .damage-ledger { left: 12px !important; top: 74px !important; width: min(250px, calc(100vw - 24px)) !important; height: auto !important; min-height: 0; max-height: 42vh; resize: none; }
+  .game-screen.apex-active .damage-ledger { top: 184px !important; width: 178px !important; }
+  .game-screen.apex-active .damage-ledger-content { display: none; }
+  .game-screen.apex-active .damage-ledger-handle { border-bottom: 0; }
   .damage-ledger-handle { cursor: default; touch-action: auto; }
   .damage-ledger-actions button:first-child { display: none; }
   .damage-ledger-content { max-height: calc(42vh - 34px); }

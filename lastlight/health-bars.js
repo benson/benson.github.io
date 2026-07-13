@@ -72,8 +72,15 @@ export function enemyHealthSegments(maxValue, options = {}) {
   return healthSegmentLayout(maxValue, { minSegments: 5, maxSegments: 10, targetSegments: 8, ...options });
 }
 
-export function bossHealthSegments(maxValue) {
-  return enemyHealthSegments(maxValue, { majorSections: 5 });
+export function bossHealthSegments(maxValue, phaseRatios = []) {
+  const authored = [...new Set((phaseRatios || []).filter((ratio) => Number.isFinite(ratio) && ratio > 0 && ratio < 1))].sort((a, b) => a - b);
+  if (!authored.length) return enemyHealthSegments(maxValue, { majorSections: 5 });
+  const layout = enemyHealthSegments(maxValue);
+  const phasePositions = new Set(authored.map((ratio) => Math.round(ratio * 1e6)));
+  const dividers = layout.dividers.filter((divider) => !phasePositions.has(Math.round(divider.position * 1e6))).map((divider) => ({ ...divider, major: false }));
+  authored.forEach((position, index) => dividers.push({ index: `phase-${index}`, value: maxValue * position, position, major: true, phase: true }));
+  dividers.sort((left, right) => left.position - right.position);
+  return Object.freeze({ ...layout, dividers: Object.freeze(dividers.map((divider) => Object.freeze(divider))) });
 }
 
 export const LASTLIGHT_HEALTH_BARS = Object.freeze({

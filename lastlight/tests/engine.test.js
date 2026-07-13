@@ -443,18 +443,18 @@ test("data vacuum visibly attracts motes before collecting them", () => {
   assert.equal(player.xpCollected, 10);
 });
 
-test("apex arrows remove at least one third of maximum health", () => {
+test("apex attacks acquire a locked, readable intent before dealing damage", () => {
   const sim = new Simulation({ difficulty: "story", players: [{ id: "p1", name: "One", specialist: "zuri" }] });
   const player = sim.players[0];
   player.invuln = 0; player.hitGrace = 0;
   sim.spawnBoss();
   const boss = sim.enemies.find((enemy) => enemy.boss);
-  boss.shotCd = 0;
+  boss.apexReadyTick = sim.tick;
   sim.updateBoss(boss, .016, [player]);
-  const arrow = sim.hostile.find((projectile) => projectile.bossShot);
-  assert.ok(arrow);
-  sim.takeDamage(player, arrow.damage, arrow);
-  assert.ok(player.hp <= player.maxHp * .64, `remaining health was ${player.hp}`);
+  assert.equal(boss.apexActionState, "windup");
+  assert.ok(boss.apexActionUntilTick > sim.tick);
+  assert.ok(boss.apexGeometry && Number.isFinite(boss.apexGeometry.originX));
+  assert.deepEqual(boss.apexTargetIds, [player.id]);
 });
 
 test("treasure runners pay out bonus cards, gold, and data when caught", () => {

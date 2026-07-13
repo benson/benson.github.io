@@ -1,36 +1,37 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260712.11";
-import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260712.11";
-import { Renderer } from "./render.js?v=20260712.11";
-import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260712.11";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260712.12";
+import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260712.12";
+import { Renderer } from "./render.js?v=20260712.12";
+import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260712.12";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
 import { getThemeAsset, getThemeMaterial } from "./themes/lastlight.js?v=20260712.1";
 import { submitRunTelemetry } from "./telemetry.js?v=20260711.5";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260712.11";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260712.11";
+import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260712.12";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260712.12";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
 import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260712.1";
 import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260711.5";
 import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260711.5";
 import { clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260711.5";
-import { GuestInputSequenceTracker, HostInputSequenceGate, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260712.11";
+import { GuestInputSequenceTracker, HostInputSequenceGate, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260712.12";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260711.5";
-import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260712.11";
-import { advancePlayerMovement } from "./movement.js?v=20260712.11";
+import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260712.12";
+import { advancePlayerMovement } from "./movement.js?v=20260712.12";
 import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
-import { DynamicAudioMixer } from "./audio-mix.js?v=20260712.11";
-import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260712.11";
-import { enemyAudioCueName, newEntities, spatialAudioPan, weaponAudioCueName, weaponTimerActivations } from "./audio-events.js?v=20260712.11";
-import { FUNNY_VOICE_MIN_INTERVAL_MS, audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260712.11";
-import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260712.11";
-import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260712.11";
-import { getWeaponEvolution } from "./weapon-evolution.js?v=20260712.11";
+import { DynamicAudioMixer } from "./audio-mix.js?v=20260712.12";
+import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260712.12";
+import { enemyAudioCueName, newEntities, spatialAudioPan, weaponAudioCueName, weaponTimerActivations } from "./audio-events.js?v=20260712.12";
+import { FUNNY_VOICE_MIN_INTERVAL_MS, audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260712.12";
+import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260712.12";
+import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260712.12";
+import { getWeaponEvolution } from "./weapon-evolution.js?v=20260712.12";
 import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260712.1";
 import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260712.1";
-import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260712.11";
-import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260712.11";
-import { reconcileActiveBuffs } from "./active-buffs.js?v=20260712.11";
-import { ELITE_AFFIXES, ENEMY_ARCHETYPES } from "./enemy-archetypes.js?v=20260712.11";
+import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260712.12";
+import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260712.12";
+import { reconcileActiveBuffs } from "./active-buffs.js?v=20260712.12";
+import { ELITE_AFFIXES, ENEMY_ARCHETYPES } from "./enemy-archetypes.js?v=20260712.12";
+import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260712.12";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -39,7 +40,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.12.11";
+const BUILD = "2026.07.12.12";
 const BALANCE = getBalanceConfig();
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
 const systemReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false;
@@ -436,6 +437,12 @@ function renderGuide() {
     const requirement = MAP_REQUIREMENTS[map];
     return `<article class="campaign-node ${unlocked ? "unlocked" : "locked"}"><img src="${MAPS[map].texture}" alt=""><div><b>${String(index + 1).padStart(2, "0")}</b><span>${MAPS[map].name}</span><small>${unlocked ? `${cleared.length}/3 cleared${cleared.length ? ` · ${cleared.join(", ")}` : ""}` : `Locked · clear ${requirementCopy(requirement)}`}</small></div></article>`;
   }).join("");
+  const apexes = MAP_ORDER.map((mapId) => {
+    const contract = APEX_CONTRACTS[mapId], map = MAPS[mapId];
+    const phases = contract.phases.map((phase, phaseIndex) => `Phase ${phaseIndex + 1}: ${phase.id.replaceAll("-", " ")} (${phase.arenaMode.replaceAll("-", " ")})`).join(" · ");
+    const attacks = Object.values(contract.intents).map((intent) => `${intent.text}: ${intent.pattern.replaceAll("-", " ")}, ${(intent.telegraphTicks / 60).toFixed(1)}s warning`).join(". ");
+    return guideCard("APEX", contract.bossName, `${map.name} · gate ${Math.round(contract.phaseGateRatio * 100)}%`, `${phases}. ${attacks}.`, "", map.texture, { Phases: contract.phases.length, "Phase gate": `${Math.round(contract.phaseGateRatio * 100)}%`, Enrage: `${contract.enrageTicks / 60}s`, Lethal: `${contract.lethalTicks / 60}s`, Counterplay: "Read shape, pattern, countdown, and arena boundary" });
+  }).join("");
   const signatures = SPECIALIST_ORDER.map((id) => {
     const spec = SPECIALISTS[id], evolution = signatureEvolutionTelemetry(id, guidePlayer(id));
     return guideCard(spec.signature.glyph, `${spec.name} · ${spec.signature.name}`, `Evolves to ${spec.signature.evolve}`, `${evolution.requirement}. ${evolution.summary}`, "", spec.signature.icon, guideWeaponDetails("signature", id));
@@ -476,7 +483,7 @@ function renderGuide() {
     }),
     guideCard("XP", "Combat data", "Cyan crystal pickup", "Collect data motes to advance the squad's next upgrade choice.", "", getThemeAsset("guide.field.combatData"), { Effect: "Squad XP", Attraction: "Pickup radius" }),
     guideCard("BREAK", "Supply cache", "Destructible field object", "Damage the orange cache with projectiles or area attacks to reveal a random pickup.", "", getThemeAsset("guide.field.supplyCache"), { Integrity: 100, Collision: "None", Drops: "Repair / vacuum / mine / gold" }),
-    guideCard("!", "Hostile projectile", "Orange-red enemy fire", "Evade hostile bolts. Apex arrows remove at least 36% of maximum health before shields.", "", getThemeAsset("guide.field.hostileProjectile"), { Threat: "Damage", Apex: "36%+ max HP" }),
+    guideCard("!", "Hostile projectile", "Orange-red enemy fire", "Evade hostile bolts. Apex attacks lock exact danger geometry after a named countdown.", "", getThemeAsset("guide.field.hostileProjectile"), { Threat: "Damage", Apex: "Named shape telegraph" }),
     guideCard("+", "Repair kit", "Green squad pickup", "Restores 20% health to every surviving specialist.", "", getThemeAsset("guide.field.repairKit"), { Healing: "20% max HP", Target: "Whole squad" }),
     guideCard("ORB", "Relay ball", "Push objective", "Make contact to drive the relay core into its destination ring.", "", getThemeAsset("guide.field.relayBall"), { Time: "62 seconds", Reward: "Gold + data + access card" }),
     guideCard("FIELD", "Operation device", "Map-specific objective", "Stand close to charge the central device. Its effect changes with the operation.", "", getThemeAsset("guide.field.fieldDevice"), { Charge: "2.4 seconds", Effect: "Map-specific" }),
@@ -491,7 +498,7 @@ function renderGuide() {
     ...BOONS.map((boon) => guideCard("★", boon.name, "Rare squad boon", boon.copy, "", boon.icon)),
     ...AUGMENTS.map((augment) => guideCard("AUG", augment.name, "Rare augment", augment.copy, "", augment.icon)),
   ].join("");
-  $("guide-content").innerHTML = `<section id="guide-campaign" class="guide-section"><h3>Campaign route</h3><p>Clear threat tiers to unlock harder operations. Progress is saved in this browser.</p><div class="campaign-route">${campaign}</div></section><section id="guide-specialists" class="guide-section"><h3>Specialist identities</h3><p>Measured roles, strengths, and failure points from the versioned simulation contract.</p><div class="guide-grid">${identities}</div></section><section id="guide-field" class="guide-section"><h3>Field objects</h3><p>Hold Shift and point at a live field object for its current stats.</p><div class="guide-grid">${fieldObjects}</div></section><section id="guide-signatures" class="guide-section"><h3>Signature evolutions</h3><div class="guide-grid">${signatures}</div></section><section id="guide-weapons" class="guide-section"><h3>Universal weapons</h3><div class="guide-grid">${weapons}</div></section><section id="guide-materials" class="guide-section"><h3>Impact materials</h3><p>Every weapon keeps its silhouette while contact particles, decals, flash, and sound adapt to the target. Shape and pattern remain available when color or motion is reduced.</p><div class="guide-grid">${materials}</div></section><section id="guide-passives" class="guide-section"><h3>Passive upgrades</h3><div class="guide-grid">${passives}</div></section><section id="guide-rare" class="guide-section"><h3>Rare finds & events</h3><div class="guide-grid">${rare}</div></section>`;
+  $("guide-content").innerHTML = `<section id="guide-campaign" class="guide-section"><h3>Campaign route</h3><p>Clear threat tiers to unlock harder operations. Progress is saved in this browser.</p><div class="campaign-route">${campaign}</div></section><section id="guide-apex" class="guide-section"><h3>Map apexes</h3><p>Every apex has two deterministic phases, a real health gate, named attacks, and a map-specific arena change.</p><div class="guide-grid">${apexes}</div></section><section id="guide-specialists" class="guide-section"><h3>Specialist identities</h3><p>Measured roles, strengths, and failure points from the versioned simulation contract.</p><div class="guide-grid">${identities}</div></section><section id="guide-field" class="guide-section"><h3>Field objects</h3><p>Hold Shift and point at a live field object for its current stats.</p><div class="guide-grid">${fieldObjects}</div></section><section id="guide-signatures" class="guide-section"><h3>Signature evolutions</h3><div class="guide-grid">${signatures}</div></section><section id="guide-weapons" class="guide-section"><h3>Universal weapons</h3><div class="guide-grid">${weapons}</div></section><section id="guide-materials" class="guide-section"><h3>Impact materials</h3><p>Every weapon keeps its silhouette while contact particles, decals, flash, and sound adapt to the target. Shape and pattern remain available when color or motion is reduced.</p><div class="guide-grid">${materials}</div></section><section id="guide-passives" class="guide-section"><h3>Passive upgrades</h3><div class="guide-grid">${passives}</div></section><section id="guide-rare" class="guide-section"><h3>Rare finds & events</h3><div class="guide-grid">${rare}</div></section>`;
 }
 
 function renderSpecialistGrid() {
@@ -1136,14 +1143,19 @@ function updateHUD(game) {
   updateAbilityDetails(player, spec, game);
   $("pause-overlay").classList.toggle("hidden", !(game.paused && game.pauseReason === "manual"));
   const boss = game.enemies?.find((enemy) => enemy.boss);
+  screens.game.classList.toggle("apex-active", Boolean(boss));
   $("boss-hud").classList.toggle("hidden", !boss);
   if (boss) {
-    $("boss-name").textContent = (typeof game.map === "string" ? MAPS[game.map] : game.map).boss;
-    $("boss-health").style.width = `${clamp(boss.hp / boss.maxHp * 100, 0, 100)}%`;
+    const apexContract = APEX_CONTRACTS[typeof game.map === "string" ? game.map : game.map.id], apexPhase = apexContract?.phases[boss.apexPhaseIndex || 0];
+    const apexPercent = Math.round(clamp(boss.hp / boss.maxHp * 100, 0, 100));
+    $("boss-name").textContent = `${(typeof game.map === "string" ? MAPS[game.map] : game.map).boss} · PHASE ${(boss.apexPhaseIndex || 0) + 1}/${apexContract?.phases.length || 2}${apexPhase ? ` · ${apexPhase.id.replaceAll("-", " ").toUpperCase()}` : ""}`;
+    $("boss-health").style.width = `${apexPercent}%`;
+    $("boss-hud").setAttribute("aria-valuenow", String(apexPercent));
+    $("boss-hud").setAttribute("aria-valuetext", `Phase ${(boss.apexPhaseIndex || 0) + 1} of ${apexContract?.phases.length || 2}, ${apexPhase?.id.replaceAll("-", " ") || "apex"}, ${apexPercent} percent health${boss.apexActionId ? `, ${boss.apexActionId.replaceAll("-", " ")} ${boss.apexActionState}` : ""}`);
     const bossHUDKey = `${boss.id}:${boss.maxHp}`;
     if (bossHUDKey !== state.lastBossHUDKey) {
       state.lastBossHUDKey = bossHUDKey;
-      $("boss-health-segments").innerHTML = healthDividerMarkup(bossHealthSegments(boss.maxHp));
+      $("boss-health-segments").innerHTML = healthDividerMarkup(bossHealthSegments(boss.maxHp, apexContract?.phases.slice(1).map((phase) => phase.enterHpRatio)));
     }
   } else state.lastBossHUDKey = "";
   const squadHUDKey = JSON.stringify(game.players.map((p) => [p.id, p.name, p.specialist, p.maxHp]));
@@ -1400,7 +1412,7 @@ function processEvents(events) {
     if (event.seq <= state.lastEventSeq) continue; state.lastEventSeq = event.seq;
     if (event.type === "cast") continue;
     if (event.type === "signature-evolution-proc" || event.type === "weapon-evolution-proc") continue;
-    if (event.type === "danger") sfx(/apex|phase|has arrived|enraged/i.test(event.title) ? "enemy:apex" : "danger");
+    if (event.type === "danger") sfx(event.apexIntent || event.apexPhase || /apex|phase|has arrived|enraged/i.test(event.title) ? "enemy:apex" : "danger");
     else if (event.type === "victory") sfx("victory");
     else if (event.type === "defeat") sfx("defeat");
     else if (event.type === "upgrade" || event.type === "boon") sfx("reward");
@@ -2321,7 +2333,15 @@ if (localHost) Object.defineProperty(window, "__lastlightQA", { value: Object.fr
   audioState: () => JSON.parse(JSON.stringify(audioDiagnostics())),
   testAudio: () => testAudioOutput(),
   reportState: () => ({ screen: state.screen, open: $("report-dialog").open, paused: Boolean(state.sim?.paused), pauseReason: state.sim?.pauseReason || "", resumeAfterReport: state.resumeAfterReport }),
-  beginUpgrade: () => { if (!state.sim || state.screen !== "game") return false; state.sim.beginUpgradeChoice(); state.lastUpgradeKey = ""; return true; },
+      beginUpgrade: () => { if (!state.sim || state.screen !== "game") return false; state.sim.beginUpgradeChoice(); state.lastUpgradeKey = ""; return true; },
+      beginApex: (phase = 1) => {
+        if (!state.sim || state.screen !== "game") return false;
+        for (const player of state.sim.players) player.invuln = Math.max(player.invuln || 0, 999);
+        if (state.sim.stage !== "boss") state.sim.spawnBoss();
+        const boss = state.sim.enemies.find((enemy) => enemy.boss && !enemy.dead); if (!boss) return false;
+        if (Number(phase) >= 2 && boss.apexPhaseIndex === 0) { state.sim.damageEnemy(boss, boss.maxHp, state.clientId, true, "qa-apex-phase"); state.sim.updateBoss(boss, 1 / 60, state.sim.players.filter((player) => !player.dead && !player.downed)); }
+        boss.apexReadyTick = state.sim.tick; boss.apexActionUntilTick = Math.min(boss.apexActionUntilTick, state.sim.tick); return true;
+      },
   beginReplacementDraft: () => {
     if (!state.sim || state.screen !== "game") return false;
     const player = state.sim.players.find(({ id }) => id === state.clientId); if (!player) return false;

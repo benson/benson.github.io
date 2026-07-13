@@ -1,5 +1,5 @@
-import { BALANCE_CONFIG, BALANCE_IDS, BALANCE_VERSION } from "./balance-config.js?v=20260712.11";
-import { SPECIALISTS } from "./data.js?v=20260712.11";
+import { BALANCE_CONFIG, BALANCE_IDS, BALANCE_VERSION } from "./balance-config.js?v=20260712.12";
+import { SPECIALISTS } from "./data.js?v=20260712.12";
 
 export const SPECIALIST_IDENTITY_VERSION = "lastlight.specialist-identity.v1";
 
@@ -158,7 +158,7 @@ const specialists = {
 
 export const SPECIALIST_IDENTITY_CONTRACT = deepFreeze({
   schemaVersion: SPECIALIST_IDENTITY_VERSION,
-  balanceVersion: "2026.07.12-enemies.1",
+  balanceVersion: "2026.07.13-apex.1",
   unlocks: { activeLevel: 3, ultimateLevel: 6, signatureMaxRank: 5 },
   specialists,
 });
