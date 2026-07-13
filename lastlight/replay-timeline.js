@@ -1,4 +1,4 @@
-import { REPLAY_STEP_HZ, decodeReplayCommand, replayGameplayFeatures, validateReplay } from "./replay.js?v=20260713.12";
+import { REPLAY_STEP_HZ, decodeReplayCommand, replayGameplayFeatures, validateReplay } from "./replay.js?v=20260713.13";
 
 function clampInteger(value, min, max, label) {
   const number = Math.round(Number(value));

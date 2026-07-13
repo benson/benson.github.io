@@ -10,6 +10,7 @@ import {
   getThemeAnimation,
   getThemeAsset,
   getThemeEnemyAnimation,
+  getThemeEnvironmentChunks,
   getThemeEnvironmentInteractions,
   getThemeMaterial,
   validateTheme,
@@ -20,9 +21,10 @@ test("default theme satisfies the complete asset contract", () => {
   const result = validateTheme(LASTLIGHT_THEME);
   assert.deepEqual(result.errors, []);
   assert.equal(result.valid, true);
-  assert.equal(result.assetCount, 110);
+  assert.equal(result.assetCount, 114);
   assert.equal(Object.isFrozen(LASTLIGHT_THEME), true);
   assert.equal(Object.isFrozen(LASTLIGHT_THEME.assets.archive.augments), true);
+  assert.equal(getThemeEnvironmentChunks().schema, "lastlight.environment-chunks.v1");
 });
 
 test("runtime enemy contract has unique deployable cutouts and render anchors", async () => {

@@ -5,6 +5,8 @@ every swappable image a logical key, so a future rebrand can replace the full
 look without renaming specialists, weapons, maps, gameplay effects, or archive
 entries throughout the game. The same contract now covers every guide icon, so
 passives, enemies, pickups, and field devices move with the rest of a rebrand.
+Generated environment-chunk atlases and their deterministic cosmetic composition
+contract are theme-owned as well; see `../ENVIRONMENT-CHUNKS.md`.
 
 ## Make a new visual theme
 
@@ -29,7 +31,8 @@ const glassCannonIcon = getThemeAsset("archive.augments.glassCannon", theme);
 const multishotIcon = getThemeAsset("guide.passives.projectiles", theme);
 ```
 
-The complete contract contains 85 unique images. That includes 24 archive
+The complete contract contains 89 unique images. That includes four authored
+environment-chunk atlases, 24 archive
 images (three events, six squad boons, and 15 augments) plus 24 complete-guide
 images (12 passives, six enemies, and six field categories).
 `validateTheme(theme)` returns `{ valid, errors, assetCount }` for editor tooling

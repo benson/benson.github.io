@@ -1,4 +1,4 @@
-import { RECOVERY_SIMULATION_VERSION } from "./recovery.js?v=20260713.12";
+import { RECOVERY_SIMULATION_VERSION } from "./recovery.js?v=20260713.13";
 
 export const HOST_MIGRATION_SCHEMA = "lastlight.host-migration.v1";
 export const HOST_MIGRATION_PROTOCOL_VERSION = 7;
