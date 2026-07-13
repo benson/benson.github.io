@@ -319,10 +319,13 @@
             </ul>
             <button id="pause-guide-button" type="button">Open full field guide</button>
           </div>
-          <label class="pause-setting" for="enemy-health-bars-toggle">
-            <input id="enemy-health-bars-toggle" type="checkbox" checked>
-            <span><strong>Enemy health bars</strong><small>Show remaining health above damaged targets.</small></span>
-            <i aria-hidden="true"></i>
+          <label class="pause-setting pause-setting-select" for="enemy-health-bars-toggle">
+            <span><strong>Enemy health bars</strong><small>Choose which targets show remaining health.</small></span>
+            <select id="enemy-health-bars-toggle" aria-label="Enemy health bars">
+              <option value="all">All enemies</option>
+              <option value="important">Elites &amp; apex</option>
+              <option value="off">Off</option>
+            </select>
           </label>
           <button id="pause-quality" class="quality-shortcut" type="button"><span><strong>Display & accessibility</strong><small>Effects, motion, flashes, shake, and performance.</small></span><b>Open</b></button>
           <button id="pause-audio" class="quality-shortcut" type="button" aria-label="Open sound settings · locked" aria-haspopup="dialog"><span><strong>Sound locked</strong><small>Readiness, volume, voice, and output test.</small></span><b>Open</b></button>

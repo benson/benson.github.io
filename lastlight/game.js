@@ -45,8 +45,9 @@ const systemReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce
 const initialQualitySettings = (() => {
   const settings = loadQualitySettings(localStorage, systemReducedMotion);
   try {
-    if (!localStorage.getItem(QUALITY_STORAGE_KEY) && localStorage.getItem("lastlight:enemy-health-bars:v1") === "false") {
-      return saveQualitySettings({ ...settings, preset: "custom", healthBars: "off" });
+    const legacyHealthBars = localStorage.getItem("lastlight:enemy-health-bars:v1");
+    if (!localStorage.getItem(QUALITY_STORAGE_KEY) && ["true", "false"].includes(legacyHealthBars)) {
+      return saveQualitySettings({ ...settings, preset: "custom", healthBars: legacyHealthBars === "true" ? "all" : "off" });
     }
   } catch { /* Storage is optional. */ }
   return settings;
@@ -827,14 +828,25 @@ function updateCooldownSlot(slot, remaining, maximum, unlocked, unlockLevel) {
   node.setAttribute("aria-disabled", String(!unlocked || cooldown > .04));
 }
 
-function setEnemyHealthBars(visible, persist = true) {
-  state.showEnemyHealthBars = Boolean(visible);
-  state.qualitySettings = { ...state.qualitySettings, preset: "custom", healthBars: state.showEnemyHealthBars ? "all" : "off" };
-  renderer.setQualitySettings(state.qualitySettings); replayRenderer.setQualitySettings(state.qualitySettings);
+const ENEMY_HEALTH_BAR_MODES = new Set(["all", "important", "off"]);
+
+function normalizeEnemyHealthBarMode(mode) {
+  if (ENEMY_HEALTH_BAR_MODES.has(mode)) return mode;
+  if (mode === true || mode === "true") return "all";
+  if (mode === false || mode === "false") return "off";
+  return "important";
+}
+
+function syncEnemyHealthBarControls() {
+  const mode = normalizeEnemyHealthBarMode(state.qualitySettings.healthBars);
+  state.showEnemyHealthBars = mode !== "off";
+  $("enemy-health-bars-toggle").value = mode;
   $("game-canvas").dataset.enemyHealthBars = state.showEnemyHealthBars ? "visible" : "hidden";
-  $("enemy-health-bars-toggle").checked = state.showEnemyHealthBars;
-  if (persist) state.qualitySettings = saveQualitySettings(state.qualitySettings);
-  renderQualityControls();
+  $("game-canvas").dataset.enemyHealthBarMode = mode;
+}
+
+function setEnemyHealthBars(mode, persist = true) {
+  applyQualitySettings({ ...state.qualitySettings, preset: "custom", healthBars: normalizeEnemyHealthBarMode(mode) }, persist);
 }
 
 const QUALITY_FIELDS = Object.freeze({
@@ -859,9 +871,7 @@ function applyQualitySettings(settings, persist = true) {
   state.qualitySettings = persist ? saveQualitySettings(settings) : settings;
   renderer.setQualitySettings(state.qualitySettings); replayRenderer.setQualitySettings(state.qualitySettings);
   state.audioMixer?.setDensity(state.qualitySettings.effectsDensity);
-  state.showEnemyHealthBars = state.qualitySettings.healthBars !== "off";
-  $("enemy-health-bars-toggle").checked = state.showEnemyHealthBars;
-  $("game-canvas").dataset.enemyHealthBars = state.showEnemyHealthBars ? "visible" : "hidden";
+  syncEnemyHealthBarControls();
   renderQualityControls();
 }
 
@@ -1787,6 +1797,7 @@ function gameDiagnostics() {
       flags: { ...state.runtimeConfig.config.flags },
     },
     enemyHealthBars: state.showEnemyHealthBars,
+    enemyHealthBarMode: state.qualitySettings.healthBars,
     displayQuality: renderer.getQualityStatus(),
     audio: audioDiagnostics(),
     audioMix: state.audioMixer?.diagnostics() || null,
@@ -2178,7 +2189,7 @@ function bindEvents() {
   $("room-input").addEventListener("input", (event) => { event.target.value = event.target.value.toUpperCase().replace(/[^A-Z2-9]/g, ""); });
   $("lobby-back").addEventListener("click", leaveToHome); $("ready-button").addEventListener("click", handleReady); $("copy-link").addEventListener("click", copyInvite);
   $("pause-button").addEventListener("click", () => togglePause()); $("resume-button").addEventListener("click", () => togglePause(false)); $("abandon-button").addEventListener("click", abandon);
-  $("enemy-health-bars-toggle").addEventListener("change", (event) => setEnemyHealthBars(event.target.checked));
+  $("enemy-health-bars-toggle").addEventListener("change", (event) => setEnemyHealthBars(event.target.value));
   $("again-button").addEventListener("click", returnToLobby); $("result-home").addEventListener("click", leaveToHome);
   $("watch-replay").addEventListener("click", openReplayViewer);
   $("replay-copy").addEventListener("click", copyReplay);

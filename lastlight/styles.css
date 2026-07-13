@@ -678,6 +678,9 @@ kbd { display: inline-grid; min-width: 26px; height: 24px; place-items: center; 
 .pause-setting input:checked ~ i { border-color: rgba(99,242,223,.65); background: rgba(99,242,223,.14); }
 .pause-setting input:checked ~ i::after { transform: translateX(16px); background: var(--cyan); }
 .pause-setting input:focus-visible ~ i { outline: 2px solid var(--cyan); outline-offset: 3px; }
+.pause-setting-select { grid-template-columns: minmax(0,1fr) 132px; cursor: default; }
+.pause-setting-select select { width: 100%; min-height: 36px; padding: 0 30px 0 10px; border: 1px solid var(--line-strong); border-radius: 0; background-color: #07111d; color: var(--paper); font: 700 8px/1 var(--sans); outline: none; text-transform: uppercase; }
+.pause-setting-select select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
 .pause-card .text-button { margin-top: 18px; }
 .quality-shortcut { display: grid; width: 100%; grid-template-columns: 1fr auto; align-items: center; gap: 16px; margin-top: 9px; padding: 12px 13px; border: 1px solid var(--line); background: rgba(3,9,16,.25); color: inherit; text-align: left; cursor: pointer; transition: transform 140ms cubic-bezier(.23,1,.32,1), border-color 140ms ease, background-color 140ms ease; }
 .quality-shortcut:active { transform: scale(.98); }
