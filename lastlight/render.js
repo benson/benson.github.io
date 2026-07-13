@@ -1,16 +1,17 @@
-import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260713.12";
-import { WORLD } from "./engine.js?v=20260713.12";
-import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260713.2";
+import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260713.13";
+import { WORLD } from "./engine.js?v=20260713.13";
+import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260713.13";
 import { springCamera } from "./feel.js?v=20260713.2";
 import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistFacingTarget, specialistMotionState, stableDirectionColumn } from "./motion.js?v=20260713.1";
 import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
 import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260711.5";
-import { impactRenderPlan } from "./impact-grammar.js?v=20260713.12";
-import { movementVisualState } from "./movement.js?v=20260713.12";
+import { impactRenderPlan } from "./impact-grammar.js?v=20260713.13";
+import { movementVisualState } from "./movement.js?v=20260713.13";
 import { effectReadabilityCategory, partitionEffects, readabilityPlan, shouldPromoteCache } from "./readability.js?v=20260711.8";
 import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260711.8";
 import { EnvironmentInteractionField, stableEnvironmentUnit } from "./environment-interactions.js?v=20260712.1";
-import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260713.12";
+import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260713.13";
+import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260713.13";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
 import { PING_INTENTS, PING_LIFETIME_TICKS, selectVisiblePings } from "./ping-contract.js?v=20260713.4";
 
@@ -154,6 +155,7 @@ export class Renderer {
     this.camera = { x: 0, y: 0, vx: 0, vy: 0 };
     this.sprites = {};
     this.environments = {};
+    this.environmentChunkAtlases = {};
     this.effectSprites = {};
     this.enemySprites = {};
     this.animationAtlases = {};
@@ -162,6 +164,9 @@ export class Renderer {
     this.enemyVisuals = new Map();
     this.groundParticles = [];
     this.environmentField = new EnvironmentInteractionField(getThemeEnvironmentInteractions());
+    this.environmentChunkTheme = getThemeEnvironmentChunks();
+    this.environmentChunkLayouts = new Map();
+    this.visibleEnvironmentChunks = Object.freeze([]);
     this.materialImpacts = [];
     this.materialProjectileHistory = new Map();
     this.materialEffectHistory = new Set();
@@ -195,6 +200,7 @@ export class Renderer {
     for (const map of Object.values(MAPS)) {
       if (!map.texture) continue;
       const image = new Image(); image.src = map.texture; this.environments[map.id] = image;
+      const chunkAtlas = new Image(); chunkAtlas.src = getThemeAsset(`environmentChunks.${map.id}`); this.environmentChunkAtlases[map.id] = chunkAtlas;
     }
     for (const type of Object.keys(ENEMY_TYPES)) {
       const image = new Image(); image.src = getThemeAsset(`enemies.${type}`); this.enemySprites[type] = image;
@@ -217,7 +223,7 @@ export class Renderer {
 
   resetCamera() {
     this.camera.x = 0; this.camera.y = 0; this.camera.vx = 0; this.camera.vy = 0;
-    this.playerVisuals.clear(); this.enemyVisuals.clear(); this.groundParticles = []; this.environmentField.reset(); this.materialImpacts = []; this.materialProjectileHistory.clear(); this.materialEffectHistory.clear(); this.materialAudioCues = []; this.pings = Object.freeze([]); this.visualFreeze = 0; this.lastLocalHurt = 0;
+    this.playerVisuals.clear(); this.enemyVisuals.clear(); this.groundParticles = []; this.environmentField.reset(); this.visibleEnvironmentChunks = Object.freeze([]); this.materialImpacts = []; this.materialProjectileHistory.clear(); this.materialEffectHistory.clear(); this.materialAudioCues = []; this.pings = Object.freeze([]); this.visualFreeze = 0; this.lastLocalHurt = 0;
   }
 
   resize() {
@@ -497,7 +503,9 @@ export class Renderer {
     ctx.globalAlpha = 1;
   }
 
-  environmentDiagnostics() { return this.environmentField.diagnostics(); }
+  environmentDiagnostics() {
+    return { ...this.environmentField.diagnostics(), chunks: { schema: this.environmentChunkTheme.schema, visible: this.visibleEnvironmentChunks.length, collision: "none", snapshotBytes: 0 } };
+  }
 
   clearInspection() {
     this.hoveredEntity = null;
@@ -633,6 +641,15 @@ export class Renderer {
       state, previous, materialImpacts: this.materialImpacts, frameSeconds: visualDt,
       tier: this.qualityProfile.tier, effectsDensity: this.qualityProfile.effectsDensity, reducedMotion: this.reducedMotion,
     });
+    const environmentLayoutKey = `${map.id}:${this.qualityProfile.tier}`;
+    if (!this.environmentChunkLayouts.has(environmentLayoutKey)) this.environmentChunkLayouts.set(environmentLayoutKey, environmentChunkLayout({
+      mapId: map.id, tier: this.qualityProfile.tier, world: WORLD, obstacles: MAP_OBSTACLES, theme: this.environmentChunkTheme,
+    }));
+    this.visibleEnvironmentChunks = environmentChunksForBounds({
+      mapId: map.id,
+      bounds: { left: this.camera.x - this.width / 2 - 180, top: this.camera.y - this.height / 2 - 180, right: this.camera.x + this.width / 2 + 180, bottom: this.camera.y + this.height / 2 + 180 },
+      tier: this.qualityProfile.tier, world: WORLD, obstacles: MAP_OBSTACLES, theme: this.environmentChunkTheme, layout: this.environmentChunkLayouts.get(environmentLayoutKey),
+    });
     const shakeX = Math.sin(performance.now() * .09) * hurt * 7 * this.qualityProfile.shake, shakeY = Math.cos(performance.now() * .073) * hurt * 5 * this.qualityProfile.shake;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.fillStyle = map.floor; ctx.fillRect(0, 0, this.width, this.height);
@@ -641,6 +658,7 @@ export class Renderer {
     ctx.save();
     ctx.translate(this.width / 2 - this.camera.x + shakeX, this.height / 2 - this.camera.y + shakeY);
     this.drawWorldBorder(map);
+    this.drawEnvironmentChunks(map);
     this.drawMapGuides(map);
     this.drawMapMechanic(mechanicFrameForState(state), map);
     this.drawEnvironmentalProps();
@@ -730,6 +748,24 @@ export class Renderer {
     ctx.fillRect(WORLD.width / 2, -WORLD.height / 2, 500, WORLD.height);
     ctx.strokeStyle = map.accent; ctx.globalAlpha = .35; ctx.lineWidth = 3;
     ctx.strokeRect(-WORLD.width / 2, -WORLD.height / 2, WORLD.width, WORLD.height); ctx.globalAlpha = 1;
+  }
+
+  drawEnvironmentChunks(map) {
+    const atlas = this.environmentChunkAtlases[map.id], theme = this.environmentChunkTheme;
+    if (!atlas?.complete || !atlas.naturalWidth || !atlas.naturalHeight || !this.visibleEnvironmentChunks.length) return;
+    const sourceWidth = atlas.naturalWidth / theme.atlas.columns, sourceHeight = atlas.naturalHeight / theme.atlas.rows;
+    const ctx = this.ctx;
+    for (const chunk of this.visibleEnvironmentChunks) {
+      const frame = theme.maps[map.id].frames[chunk.frame];
+      const sourceX = (chunk.frame % theme.atlas.columns) * sourceWidth, sourceY = Math.floor(chunk.frame / theme.atlas.columns) * sourceHeight;
+      const width = frame.drawSize[0] * chunk.scale, height = frame.drawSize[1] * chunk.scale;
+      ctx.save(); ctx.translate(chunk.x, chunk.y); ctx.rotate(chunk.rotation); ctx.scale(chunk.flipX ? -1 : 1, 1);
+      ctx.globalAlpha = chunk.opacity * .72;
+      ctx.filter = "saturate(.78) brightness(.76)";
+      ctx.drawImage(atlas, sourceX, sourceY, sourceWidth, sourceHeight, -width * frame.anchor[0], -height * frame.anchor[1], width, height);
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1; ctx.filter = "none";
   }
 
   drawMapMechanic(frame, map) {

@@ -1,6 +1,7 @@
 import { ENEMY_MOTION_STATES, MOTION_DIRECTIONS, MOTION_SCHEMA, SPECIALIST_MOTION_STATES, validateMotionRig } from "../motion.js?v=20260713.1";
 import { LASTLIGHT_MATERIAL_THEME, MATERIAL_CLASSES, validateMaterialTheme } from "../material-impacts.js?v=20260711.8";
 import { LASTLIGHT_ENVIRONMENT_INTERACTIONS, validateEnvironmentInteractions } from "../environment-interactions.js?v=20260712.1";
+import { LASTLIGHT_ENVIRONMENT_CHUNKS, validateEnvironmentChunks } from "../environment-chunks.js?v=20260713.13";
 
 /**
  * The canonical asset contract for a Lastlight visual theme.
@@ -15,6 +16,7 @@ export const THEME_ASSET_KEYS = deepFreeze({
   signatureWeapons: ["zuri", "echo", "sola", "bront", "fang", "gale", "rift", "nova", "vesper"],
   universalWeapons: ["uwu", "slicers", "aura", "mines", "crossbow", "boomerang", "rail", "glove", "transit", "ice", "annihilator", "drone"],
   environments: ["warehouse", "outskirts", "lab", "beachhead"],
+  environmentChunks: ["warehouse", "outskirts", "lab", "beachhead"],
   enemies: ["mite", "hound", "spitter", "brute", "bomber", "shark"],
   effects: ["xpShard", "hostileBolt", "barricade"],
   guidePassives: ["damage", "haste", "maxHealth", "armor", "move", "area", "crit", "duration", "projectiles", "xp", "pickup", "regen"],
@@ -85,6 +87,12 @@ const LASTLIGHT_ASSETS = {
     outskirts: "assets/environments/outskirts.webp",
     lab: "assets/environments/lab.webp",
     beachhead: "assets/environments/beachhead.webp",
+  },
+  environmentChunks: {
+    warehouse: "assets/environment-chunks/warehouse-atlas.webp",
+    outskirts: "assets/environment-chunks/outskirts-atlas.webp",
+    lab: "assets/environment-chunks/lab-atlas.webp",
+    beachhead: "assets/environment-chunks/beachhead-atlas.webp",
   },
   enemies: {
     mite: "assets/enemies/skitter.webp",
@@ -261,6 +269,7 @@ export const LASTLIGHT_THEME = defineTheme({
   assets: LASTLIGHT_ASSETS,
   materials: LASTLIGHT_MATERIAL_THEME,
   environmentInteractions: LASTLIGHT_ENVIRONMENT_INTERACTIONS,
+  environmentChunks: LASTLIGHT_ENVIRONMENT_CHUNKS,
   animations: {
     specialists: specialistMotions,
     enemies: enemyMotions,
@@ -294,6 +303,10 @@ export function getThemeEnvironmentInteractions(theme = LASTLIGHT_THEME) {
   return theme?.environmentInteractions || null;
 }
 
+export function getThemeEnvironmentChunks(theme = LASTLIGHT_THEME) {
+  return theme?.environmentChunks || null;
+}
+
 export function getMissingMotionAssets(theme = LASTLIGHT_THEME) {
   const entries = [];
   for (const [id, rig] of Object.entries(theme.animations?.specialists || {})) if (rig.status !== "ready") entries.push({ kind: "specialist", id, status: rig.status, src: rig.atlas.src, expectedSize: [...rig.atlas.expectedSize] });
@@ -320,12 +333,14 @@ export function validateTheme(theme) {
   if (typeof theme.name !== "string" || !theme.name.trim()) errors.push("Theme name must be a non-empty string.");
   for (const error of validateMaterialTheme(theme.materials)) errors.push(error);
   for (const error of validateEnvironmentInteractions(theme.environmentInteractions)) errors.push(error);
+  for (const error of validateEnvironmentChunks(theme.environmentChunks)) errors.push(error);
 
   const groups = [
     ["specialists", theme.assets?.specialists, THEME_ASSET_KEYS.specialists],
     ["weapons.signatures", theme.assets?.weapons?.signatures, THEME_ASSET_KEYS.signatureWeapons],
     ["weapons.universal", theme.assets?.weapons?.universal, THEME_ASSET_KEYS.universalWeapons],
     ["environments", theme.assets?.environments, THEME_ASSET_KEYS.environments],
+    ["environmentChunks", theme.assets?.environmentChunks, THEME_ASSET_KEYS.environmentChunks],
     ["enemies", theme.assets?.enemies, THEME_ASSET_KEYS.enemies],
     ["effects", theme.assets?.effects, THEME_ASSET_KEYS.effects],
     ["guide.passives", theme.assets?.guide?.passives, THEME_ASSET_KEYS.guidePassives],
