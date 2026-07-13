@@ -1,6 +1,24 @@
 {
-  "blurb": "played 20 other games in the last week, went 10-10",
+  "blurb": "played 20 other games in the last week, went 9-11",
   "recent": [
+    {
+      "champion": "Varus",
+      "win": false,
+      "kills": 5,
+      "deaths": 8,
+      "assists": 1,
+      "damage": 11277,
+      "minutes": 21
+    },
+    {
+      "champion": "Jhin",
+      "win": false,
+      "kills": 1,
+      "deaths": 8,
+      "assists": 3,
+      "damage": 10842,
+      "minutes": 26
+    },
     {
       "champion": "Caitlyn",
       "win": true,
@@ -27,24 +45,6 @@
       "assists": 5,
       "damage": 28086,
       "minutes": 26
-    },
-    {
-      "champion": "JarvanIV",
-      "win": true,
-      "kills": 4,
-      "deaths": 8,
-      "assists": 19,
-      "damage": 24743,
-      "minutes": 22
-    },
-    {
-      "champion": "Teemo",
-      "win": false,
-      "kills": 2,
-      "deaths": 8,
-      "assists": 3,
-      "damage": 20050,
-      "minutes": 24
     }
   ],
   "ddragonVersion": "16.13.1",
