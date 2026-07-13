@@ -1,37 +1,42 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260712.12";
-import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260712.12";
-import { Renderer } from "./render.js?v=20260712.12";
-import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260712.12";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260713.1";
+import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.1";
+import { Renderer } from "./render.js?v=20260713.1";
+import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260713.1";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
 import { getThemeAsset, getThemeMaterial } from "./themes/lastlight.js?v=20260712.1";
 import { submitRunTelemetry } from "./telemetry.js?v=20260711.5";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260712.12";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260712.12";
+import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260713.1";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260713.1";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
-import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260712.1";
+import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260713.1";
 import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260711.5";
 import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260711.5";
 import { clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260711.5";
-import { GuestInputSequenceTracker, HostInputSequenceGate, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260712.12";
+import { GuestInputSequenceTracker, HostInputSequenceGate, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260713.1";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260711.5";
-import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260712.12";
-import { advancePlayerMovement } from "./movement.js?v=20260712.12";
+import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260713.1";
+import { advancePlayerMovement } from "./movement.js?v=20260713.1";
 import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
-import { DynamicAudioMixer } from "./audio-mix.js?v=20260712.12";
-import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260712.12";
-import { enemyAudioCueName, newEntities, spatialAudioPan, weaponAudioCueName, weaponTimerActivations } from "./audio-events.js?v=20260712.12";
-import { FUNNY_VOICE_MIN_INTERVAL_MS, audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260712.12";
-import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260712.12";
-import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260712.12";
-import { getWeaponEvolution } from "./weapon-evolution.js?v=20260712.12";
+import { DynamicAudioMixer } from "./audio-mix.js?v=20260713.1";
+import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260713.1";
+import { enemyAudioCueName, newEntities, spatialAudioPan, weaponAudioCueName, weaponTimerActivations } from "./audio-events.js?v=20260713.1";
+import { FUNNY_VOICE_MIN_INTERVAL_MS, audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260713.1";
+import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260713.1";
+import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260713.1";
+import { getWeaponEvolution } from "./weapon-evolution.js?v=20260713.1";
 import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260712.1";
-import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260712.1";
-import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260712.12";
-import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260712.12";
-import { reconcileActiveBuffs } from "./active-buffs.js?v=20260712.12";
-import { ELITE_AFFIXES, ENEMY_ARCHETYPES } from "./enemy-archetypes.js?v=20260712.12";
-import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260712.12";
+import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260713.1";
+import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260713.1";
+import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260713.1";
+import { reconcileActiveBuffs } from "./active-buffs.js?v=20260713.1";
+import { ELITE_AFFIXES, ENEMY_ARCHETYPES } from "./enemy-archetypes.js?v=20260713.1";
+import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
+import {
+  AuthoritySnapshotGate, HOST_MIGRATION_PROTOCOL_VERSION, MIGRATION_CHECKPOINT_INTERVAL_TICKS,
+  createMigrationCapabilities, createMigrationCheckpoint, createMigrationReady,
+  migrationCompatibilityMatches, validateMigrationCheckpoint,
+} from "./host-migration.js?v=20260713.1";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -40,7 +45,8 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.12.12";
+const BUILD = "2026.07.13.1";
+const RECONNECT_DELAYS_MS = Object.freeze([400, 800, 1_500, 3_000, 5_000, 8_000]);
 const BALANCE = getBalanceConfig();
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
 const systemReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false;
@@ -64,9 +70,10 @@ const fixedClock = new FixedStepClock();
 const movementPredictor = new MovementPredictor();
 const hostInputSequences = new HostInputSequenceGate();
 const guestInputSequences = new GuestInputSequenceTracker();
+const authoritySnapshotGate = new AuthoritySnapshotGate();
 const PROGRESS_KEY = "lastlight:campaign:v1";
 const RUN_HISTORY_KEY = "lastlight:runs:v1";
-const CLIENT_TOKEN_KEY = "lastlight:client-token:v1";
+const CLIENT_TOKEN_KEY = "lastlight:session-token:v1";
 const DAMAGE_LEDGER_LAYOUT_KEY = "lastlight:damage-ledger-layout:v1";
 const LAST_REPLAY_KEY = "lastlight:last-replay:v1";
 const DAMAGE_LEDGER_DEFAULT = Object.freeze({ x: 22, y: 112, width: 250, height: 150, collapsed: false, userSized: false });
@@ -91,10 +98,10 @@ function loadRunHistory() {
 
 function loadClientToken() {
   try {
-    const stored = localStorage.getItem(CLIENT_TOKEN_KEY) || "";
+    const stored = sessionStorage.getItem(CLIENT_TOKEN_KEY) || "";
     if (/^[a-f0-9]{24,32}$/.test(stored)) return stored;
     const token = crypto.randomUUID().replace(/-/g, "").slice(0, 24);
-    localStorage.setItem(CLIENT_TOKEN_KEY, token); return token;
+    sessionStorage.setItem(CLIENT_TOKEN_KEY, token); return token;
   } catch { return crypto.randomUUID().replace(/-/g, "").slice(0, 24); }
 }
 
@@ -140,6 +147,10 @@ const state = {
   runtimeConfig: { config: DEFAULT_RUNTIME_CONFIG, source: "built-in", status: "initializing" },
   recoveryOffer: null, lastRecoverySaveAt: 0,
   networkLab: null,
+  authorityEpoch: 0, authorityHostId: "", authorityState: "active", authoritySnapshotSeq: 0,
+  migrationLastCheckpointTick: -1, migrationCheckpointBytes: 0, migrationOffer: null,
+  migrationFailureReason: "", migrationStartedAt: 0,
+  reconnectTimer: null, reconnectAttempts: 0,
 };
 
 const runtimeConfigReady = loadRuntimeConfig({ endpoint: RUNTIME_CONFIG_ENDPOINT }).then((result) => {
@@ -147,6 +158,126 @@ const runtimeConfigReady = loadRuntimeConfig({ endpoint: RUNTIME_CONFIG_ENDPOINT
   refreshRecoveryOffer();
   return result;
 });
+
+function migrationCompatibility() {
+  return {
+    build: BUILD, balanceVersion: BALANCE_VERSION, balanceHash: BALANCE_HASH,
+    configVersion: state.runtimeConfig.config.configVersion,
+    gameplayVersion: state.runtimeConfig.config.gameplayVersion,
+    objectiveEvents: state.runtimeConfig.config.flags.objectiveEvents,
+  };
+}
+
+function migrationCapabilities() { return createMigrationCapabilities(migrationCompatibility()); }
+
+function clearGameplayControls() {
+  state.input.keys.clear(); state.input.touchX = 0; state.input.touchY = 0;
+  state.inspectActive = false; hideInspectPanel(); movementPredictor.reset();
+}
+
+function setAuthorityState(next, detail = {}) {
+  state.authorityState = next;
+  if (next !== "active") clearGameplayControls();
+  if (next === "migrating" || next === "reconnecting") state.migrationStartedAt ||= performance.now();
+  if (next === "active") { state.migrationStartedAt = 0; state.migrationFailureReason = ""; }
+  if (next === "unavailable") state.migrationFailureReason = String(detail.reason || "unavailable");
+  const overlay = $("network-state-overlay");
+  if (!overlay) return;
+  const visible = next !== "active";
+  overlay.classList.toggle("hidden", !visible);
+  screens.game?.setAttribute("aria-busy", visible ? "true" : "false");
+  const copy = {
+    reconnecting: ["RECONNECTING", "Connection interrupted. The operation is frozen and no input is being applied."],
+    migrating: ["MIGRATING HOST", `Restoring deterministic authority${detail.tick !== undefined ? ` from tick ${detail.tick}` : ""}. The battlefield is frozen.`],
+    restored: ["AUTHORITY RESTORED", "The squad is synchronized. Release movement controls, then continue."],
+    unavailable: ["RUN UNAVAILABLE", "No compatible authority checkpoint survived. This run will not continue from an unsafe state."],
+  }[next] || ["NETWORK HOLD", "The operation is frozen while authority is verified."];
+  $("network-state-title").textContent = copy[0];
+  $("network-state-copy").textContent = copy[1];
+  $("network-state-return").classList.toggle("hidden", next !== "unavailable");
+  overlay.dataset.state = next;
+}
+
+function migrationRoster(simulation = state.sim) {
+  return (simulation?.players || []).map(({ id, replaySlot }) => ({ id, replaySlot })).sort((left, right) => left.replaySlot - right.replaySlot);
+}
+
+function publishMigrationCheckpoint(force = false) {
+  const flags = state.runtimeConfig.config.flags;
+  if (!flags.migrationCheckpointReplication || state.partyMode === "solo" || !state.isHost || state.authorityState !== "active"
+    || !state.sim || state.sim.players.length < 2 || state.ws?.readyState !== WebSocket.OPEN || !["running", "boss", "won", "lost"].includes(state.sim.stage)) return false;
+  if (!force && state.sim.tick - state.migrationLastCheckpointTick < MIGRATION_CHECKPOINT_INTERVAL_TICKS) return false;
+  try {
+    const checkpoint = createMigrationCheckpoint({
+      epoch: state.authorityEpoch, tick: state.sim.tick, hash: hashSimulationState(state.sim),
+      ack: hostInputSequences.acknowledgements(), compatibility: migrationCompatibility(), roster: migrationRoster(),
+      simulation: state.sim.exportRecoveryState(), replay: state.replayRecorder?.exportDraft(state.sim.tick) || null,
+    });
+    state.migrationLastCheckpointTick = checkpoint.tick;
+    state.migrationCheckpointBytes = new TextEncoder().encode(JSON.stringify(checkpoint)).byteLength;
+    send(checkpoint);
+    return true;
+  } catch (error) {
+    captureClientError("host migration checkpoint", error);
+    return false;
+  }
+}
+
+function stageMigrationOffer(message) {
+  const offeredEpoch = Number(message?.authorityEpoch);
+  if (!state.runtimeConfig.config.flags.hostMigrationResume || (offeredEpoch !== state.authorityEpoch && offeredEpoch !== state.authorityEpoch + 1)) return false;
+  try {
+    const checkpoint = validateMigrationCheckpoint(message.checkpoint);
+    if (!migrationCompatibilityMatches(checkpoint.compatibility, migrationCompatibility())) throw new TypeError("Migration checkpoint build contract mismatch");
+    const playerIdsBySlot = Object.fromEntries(checkpoint.roster.map(({ id, replaySlot }) => [replaySlot, id]));
+    if (!checkpoint.roster.some(({ id }) => id === state.clientId)) throw new TypeError("Local player is absent from migration checkpoint");
+    const sim = Simulation.fromRecoveryState(checkpoint.simulation, { playerIdsBySlot });
+    for (const player of sim.players) {
+      const lobbyPlayer = state.lobby.get(player.id) || [...state.lobby.values()].find(({ replaySlot }) => replaySlot === player.replaySlot);
+      if (lobbyPlayer?.name) player.name = lobbyPlayer.name;
+      player.reconnectKey = `migration-slot-${player.replaySlot}`;
+    }
+    if (hashSimulationState(sim) !== checkpoint.hash) throw new TypeError("Migration checkpoint hash mismatch");
+    const replayRecorder = checkpoint.replay ? ReplayRecorder.fromDraft(checkpoint.replay, sim.players) : null;
+    state.migrationOffer = { checkpoint, sim, replayRecorder, oldHostId: message.oldHostId, epoch: offeredEpoch };
+    setAuthorityState("migrating", { tick: checkpoint.tick });
+    send(createMigrationReady({ epoch: offeredEpoch, checkpointId: checkpoint.checkpointId, tick: checkpoint.tick, hash: checkpoint.hash }));
+    return true;
+  } catch (error) {
+    captureClientError("host migration restore", error);
+    state.migrationOffer = null;
+    return false;
+  }
+}
+
+function commitMigratedAuthority(message) {
+  clearTimeout(state.resultTimer); state.resultTimer = null; state.endShown = false;
+  state.authorityEpoch = message.authorityEpoch;
+  state.authorityHostId = message.id;
+  authoritySnapshotGate.commit({ epoch: state.authorityEpoch, hostId: state.authorityHostId });
+  guestInputSequences.setEpoch(state.authorityEpoch);
+  if (message.id !== state.clientId) {
+    state.isHost = false; state.migrationOffer = null; clearGameplayControls(); setAuthorityState("active"); return;
+  }
+  const offer = state.migrationOffer;
+  if (!offer || offer.epoch !== state.authorityEpoch || offer.checkpoint.checkpointId !== message.checkpointId) {
+    setAuthorityState("unavailable", { reason: "missing-candidate-state" }); return;
+  }
+  state.isHost = true; state.sim = offer.sim; state.replayRecorder = offer.replayRecorder;
+  hostInputSequences.restore(offer.checkpoint.ack, state.authorityEpoch);
+  state.authoritySnapshotSeq = 0;
+  const departed = state.sim.players.find(({ id }) => id === message.oldHostId);
+  if (departed) {
+    departed.reconnectKey = `migration-slot-${departed.replaySlot}`;
+    state.replayRecorder?.recordLeave(message.oldHostId, state.sim.tick);
+    state.sim.removePlayer(message.oldHostId);
+  }
+  state.previousSnapshot = null; state.snapshot = null; state.migrationOffer = null;
+  fixedClock.reset(); clearGameplayControls();
+  if (state.screen === "result" && ["running", "boss"].includes(state.sim.stage)) setScreen("game");
+  setAuthorityState("restored");
+  requestAnimationFrame(() => { setAuthorityState("active"); publishMigrationCheckpoint(true); });
+}
 
 function replayRunConfig() {
   return { map: state.config.map, difficulty: state.config.difficulty, duration: Number(state.config.duration) };
@@ -287,8 +418,9 @@ function applyGuestNetworkInput(message) {
 }
 
 function resetInputProtocol() {
-  hostInputSequences.reset();
-  guestInputSequences.reset();
+  hostInputSequences.reset({ epoch: state.authorityEpoch });
+  guestInputSequences.reset({ epoch: state.authorityEpoch });
+  authoritySnapshotGate.reset({ epoch: state.authorityEpoch, hostId: state.authorityHostId });
 }
 
 function recordHostCast(playerId, slot) {
@@ -305,6 +437,7 @@ function recordHostDraftAction(playerId, action) {
   else if (result.action === "reroll") state.replayRecorder?.recordDraftReroll(playerId, state.sim.tick);
   else if (result.action === "banish") state.replayRecorder?.recordDraftBanish(playerId, state.sim.tick, result.choiceId);
   else if (result.action === "skip") state.replayRecorder?.recordDraftSkip(playerId, state.sim.tick);
+  publishMigrationCheckpoint(true);
   return result;
 }
 
@@ -616,22 +749,27 @@ function handleReady() {
 
 function startHostedGame() {
   if (!state.isHost) return;
-  const players = [...state.lobby.values()].map((p, replaySlot) => ({ id: p.id, name: p.name, specialist: p.specialist, resumeToken: p.resumeToken || "", replaySlot }));
+  const players = [...state.lobby.values()].map((p, replaySlot) => ({
+    id: p.id, name: p.name, specialist: p.specialist, replaySlot,
+    ...(state.partyMode === "solo" ? {} : { reconnectSlot: `migration-slot-${replaySlot}` }),
+  }));
   if (!players.length) return;
   const seed = createRandomSeed();
   const features = gameplayFeatureContract(state.runtimeConfig.config);
   state.config = { ...state.config, features };
   state.sim = new Simulation({ ...state.config, players }, { seed, balanceVersion: BALANCE_VERSION, balanceHash: BALANCE_HASH, features });
+  state.authorityEpoch = 0; state.authorityHostId = state.clientId; state.authoritySnapshotSeq = 0; state.migrationLastCheckpointTick = -1; setAuthorityState("active");
   beginReplayCapture(players, seed);
   discardRecovery({ notify: false });
   state.previousSnapshot = null; state.snapshot = null;
   if (state.ws?.readyState === WebSocket.OPEN) send({ type: "start", config: state.config, players: publicLobbyPlayers() });
   enterGame();
   persistRecoveryCheckpoint(true);
+  publishMigrationCheckpoint(true);
 }
 
 function startRemoteGame(message) {
-  state.config = message.config; state.sim = null; state.previousSnapshot = null; state.snapshot = null; movementPredictor.reset(); enterGame();
+  state.config = message.config; state.sim = null; state.previousSnapshot = null; state.snapshot = null; state.migrationLastCheckpointTick = -1; setAuthorityState("active"); movementPredictor.reset(); enterGame();
 }
 
 function enterGame() {
@@ -650,7 +788,7 @@ function gameLoop(now) {
   const frameStarted = performance.now(); let simulationMs = 0;
   const input = currentInput();
   let interpolation = 1, renderPrevious = null, renderState = null;
-  if (state.isHost && state.sim) {
+  if (state.isHost && state.sim && state.authorityState === "active") {
     const simulationStarted = performance.now(); const hostInput = applyHostInput(state.clientId, input);
     const timing = fixedClock.advance(dt, (stepSeconds) => {
       state.hostPreviousMotion = captureMotionState(state.sim);
@@ -658,13 +796,14 @@ function gameLoop(now) {
       recordReplayCheckpoint();
     });
     persistRecoveryCheckpoint();
+    publishMigrationCheckpoint();
     simulationMs = performance.now() - simulationStarted; interpolation = timing.alpha; renderPrevious = state.hostPreviousMotion;
     renderState = withLocalMovementPreview(state.sim, hostInput, fixedClock.accumulator);
     if (state.ws?.readyState === WebSocket.OPEN && now - state.lastBroadcast > 83) {
       state.lastBroadcast = now;
-      send(createSnapshotMessage(state.sim.snapshot(), hostInputSequences.acknowledgements()));
+      send(createSnapshotMessage(state.sim.snapshot(), hostInputSequences.acknowledgements(), { epoch: state.authorityEpoch, snapshotSeq: state.authoritySnapshotSeq++ }));
     }
-  } else {
+  } else if (state.authorityState === "active") {
     const authoritative = state.snapshot?.players?.find((player) => player.id === state.clientId);
     if (authoritative && !movementPredictor.player) movementPredictor.sync(authoritative);
     if (movementPredictor.player) movementPredictor.advance(input, dt, playerMovementSpeed(movementPredictor.player), moveEntityWithCover);
@@ -675,7 +814,7 @@ function gameLoop(now) {
       send(guestInputSequences.create(input, now));
     }
   }
-  const current = state.isHost ? state.sim : state.snapshot;
+  const current = state.isHost ? state.sim : state.snapshot || state.sim;
   if (current) {
     const renderStarted = performance.now(); renderer.draw(renderState || current, state.clientId, renderPrevious, interpolation, dt); const renderMs = performance.now() - renderStarted;
     const materialCue = renderer.drainMaterialAudioCues(1)[0];
@@ -687,7 +826,7 @@ function gameLoop(now) {
     if (state.inspectActive && state.inspectPointer) inspectCanvasAt({ ...state.inspectPointer, shiftKey: true });
     trackInputLatency(renderState || current, input, now);
     trackPerformance(current, dt * 1000, performance.now() - frameStarted, simulationMs, renderMs, hudMs);
-    if ((current.stage === "won" || current.stage === "lost") && !state.endShown) scheduleResult(current);
+    if ((current.stage === "won" || current.stage === "lost") && !state.endShown) { publishMigrationCheckpoint(true); scheduleResult(current); }
   }
   state.animation = requestAnimationFrame(gameLoop);
 }
@@ -780,7 +919,7 @@ function currentInput() {
 }
 
 function cast(slot) {
-  if (state.screen !== "game") return;
+  if (state.screen !== "game" || state.authorityState !== "active") return;
   if (state.isHost) {
     if (recordHostCast(state.clientId, slot)) {
       sfx(slot === "r" ? "ultimate" : "ability");
@@ -1380,10 +1519,11 @@ function currentDraftContext() {
 }
 
 function performDraftAction(action) {
+  if (state.authorityState !== "active") return { accepted: false, reason: "authority_hold" };
   const { draft } = currentDraftContext();
   if (!draft) return { accepted: false, reason: "no_draft" };
   const message = { ...action, round: draft.round, revision: draft.revision };
-  const result = state.isHost ? recordHostDraftAction(state.clientId, message) : (send(createDraftActionMessage(message)), { accepted: true, pending: true });
+  const result = state.isHost ? recordHostDraftAction(state.clientId, message) : (send(createDraftActionMessage(message, state.authorityEpoch)), { accepted: true, pending: true });
   if (result?.accepted) {
     sfx(action.type === "skip" ? "reward" : "select");
     state.draftBanishMode = false; state.draftSkipArmed = false;
@@ -1670,37 +1810,78 @@ function returnToLobby() {
   enterLobby(); if (state.isHost) broadcastLobby(); else updateLocalProfile({ ready: false });
 }
 
-function leaveToHome() { closeSocket(); state.sim = null; state.snapshot = null; state.replayRecorder = null; state.resultGame = null; state.lobby.clear(); setScreen("home"); updateProgressionUI(); }
+function leaveToHome() {
+  closeSocket(); state.sim = null; state.snapshot = null; state.replayRecorder = null; state.resultGame = null; state.lobby.clear();
+  const url = new URL(location.href); url.searchParams.delete("room"); history.replaceState(null, "", url);
+  setScreen("home"); updateProgressionUI();
+}
 
-function connectRoom(code) {
-  closeSocket(); state.room = code; state.connecting = true;
+function rememberRoomInUrl(code) {
+  const url = new URL(location.href); url.searchParams.set("room", code); history.replaceState(null, "", url);
+}
+
+function scheduleRoomReconnect() {
+  if (state.reconnectTimer || state.connecting || state.partyMode === "solo" || !state.room || !["game", "result"].includes(state.screen)) return;
+  if (state.reconnectAttempts >= RECONNECT_DELAYS_MS.length) {
+    setAuthorityState("unavailable", { reason: "reconnect-exhausted" }); return;
+  }
+  const delay = RECONNECT_DELAYS_MS[state.reconnectAttempts];
+  state.reconnectTimer = setTimeout(() => {
+    state.reconnectTimer = null; state.reconnectAttempts++;
+    connectRoom(state.room, { reconnecting: true }).then(() => {
+      state.reconnectAttempts = 0; toast("Relay restored · synchronizing authority");
+    }).catch(() => scheduleRoomReconnect());
+  }, delay);
+}
+
+function connectRoom(code, { reconnecting = false } = {}) {
+  closeSocket({ preserveReconnect: reconnecting }); state.room = code; state.connecting = true; rememberRoomInUrl(code);
   return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => { reject(new Error("Relay connection timed out")); closeSocket(); }, 7000);
-    state.connectResolve = (message) => { clearTimeout(timeout); resolve(message); };
-    state.connectReject = (error) => { clearTimeout(timeout); reject(error); };
+    const timeout = setTimeout(() => { state.connecting = false; reject(new Error("Relay connection timed out")); closeSocket({ preserveReconnect: reconnecting }); }, 7000);
+    state.connectResolve = (message) => { clearTimeout(timeout); state.connecting = false; resolve(message); };
+    state.connectReject = (error) => { clearTimeout(timeout); state.connecting = false; reject(error); };
     const url = new URL(`${RELAY_BASE}${encodeURIComponent(code)}`);
     const ws = new WebSocket(url); state.ws = ws;
     state.networkLab = createActivatedNetworkLab(NETWORK_LAB_ACTIVATION, {
       onForcedDisconnect: () => { if (state.ws === ws) ws.close(4100, "Network lab reconnect"); },
       onError: (error) => captureClientError("network lab", error),
     });
-    ws.addEventListener("open", () => send({ type: "hello", profile: { name: callsign(), specialist: state.selected, resumeToken: state.resumeToken } }));
+    ws.addEventListener("open", () => send({
+      type: "hello", profile: { name: callsign(), specialist: state.selected, resumeToken: state.resumeToken },
+      migrationCapabilities: migrationCapabilities(),
+    }));
     ws.addEventListener("message", (event) => {
       if (state.networkLab) state.networkLab.downstream(event.data, (payload) => handleNetworkMessage(payload));
       else handleNetworkMessage(event.data);
     });
     ws.addEventListener("error", () => state.connectReject?.(new Error("Relay connection failed")));
-    ws.addEventListener("close", () => { if (state.screen === "game" && !state.isHost) { toast("Squad connection lost"); captureClientError("network", "Squad relay connection closed during a run"); } });
+    ws.addEventListener("close", () => {
+      if (ws.__lastlightIntentionalClose) return;
+      if (state.ws === ws) state.ws = null;
+      const rejectConnection = state.connectReject; state.connectReject = null; rejectConnection?.(new Error("Relay connection closed")); state.connecting = false;
+      if (state.screen === "game" && state.partyMode !== "solo") {
+        setAuthorityState("reconnecting"); toast("Squad connection lost · operation frozen");
+        captureClientError("network", "Squad relay connection closed during a run");
+        scheduleRoomReconnect();
+      } else if (state.screen === "result" && state.partyMode !== "solo") {
+        setAuthorityState("reconnecting"); scheduleRoomReconnect();
+      }
+    });
   });
 }
 
 function handleNetworkMessage(raw) {
   let message; try { message = JSON.parse(raw); } catch { return; }
   if (message.type === "welcome") {
-    state.clientId = message.id; state.isHost = message.role === "host"; state.lobby = new Map();
+    state.clientId = message.id; state.isHost = message.role === "host"; state.authorityEpoch = Number(message.authorityEpoch || 0); state.authorityHostId = message.hostId || (state.isHost ? message.id : ""); state.lobby = new Map();
+    guestInputSequences.setEpoch(state.authorityEpoch);
+    if (state.authorityHostId) {
+      authoritySnapshotGate.commit({ epoch: state.authorityEpoch, hostId: state.authorityHostId });
+      if (state.authorityState === "reconnecting") setAuthorityState("active");
+    }
     for (const peer of message.peers || []) state.lobby.set(peer.id, { id: peer.id, name: peer.name || "Connecting…", specialist: peer.specialist || "zuri", ready: false });
     state.lobby.set(state.clientId, { id: state.clientId, name: callsign(), specialist: state.selected, ready: state.isHost, resumeToken: state.resumeToken });
-    send({ type: "profile", profile: state.lobby.get(state.clientId) }); state.connectResolve?.(message); state.connectResolve = null; return;
+    send({ type: "profile", profile: state.lobby.get(state.clientId) }); state.connectResolve?.(message); state.connectResolve = null; state.connectReject = null; return;
   }
   if (message.type === "peer_joined") {
     if (state.isHost) { state.lobby.set(message.peer.id, { id: message.peer.id, name: message.peer.name || "Connecting…", specialist: message.peer.specialist || "zuri", ready: false }); broadcastLobby(); }
@@ -1709,17 +1890,34 @@ function handleNetworkMessage(raw) {
     if (state.isHost && state.sim && state.replayRecorder) {
       try { state.replayRecorder.recordLeave(message.id, state.sim.tick); } catch { /* A pre-run peer has no replay slot. */ }
     }
-    hostInputSequences.remove(message.id); state.lobby.delete(message.id); state.sim?.removePlayer(message.id);
+    hostInputSequences.remove(message.id); state.lobby.delete(message.id);
+    const departingPlayer = state.sim?.players.find(({ id }) => id === message.id);
+    if (departingPlayer && Number.isInteger(departingPlayer.replaySlot)) departingPlayer.reconnectKey = `migration-slot-${departingPlayer.replaySlot}`;
+    state.sim?.removePlayer(message.id);
     if (state.isHost && state.sim && state.screen === "game") state.sim.pushEvent("danger", `${departed?.name || "A specialist"} disconnected`, "Their callsign is reserved for three minutes");
     if (state.screen === "lobby") renderLobby(); if (state.isHost) broadcastLobby();
+  } else if (message.type === "migration_started") {
+    clearTimeout(state.resultTimer); state.resultTimer = null; state.endShown = false;
+    state.authorityEpoch = Number(message.authorityEpoch); setAuthorityState("migrating", { tick: message.tick });
+  } else if (message.type === "migration_offer") {
+    stageMigrationOffer(message);
+  } else if (message.type === "migration_failed") {
+    state.isHost = false; state.migrationOffer = null; setAuthorityState("unavailable", { reason: message.reason });
   } else if (message.type === "host_changed") {
-    state.isHost = message.id === state.clientId; if (state.isHost && state.screen === "lobby") { const me = state.lobby.get(state.clientId); if (me) me.ready = true; broadcastLobby(); renderLobby(); }
-    else if (state.isHost && state.screen === "game" && !state.sim) toast("The host left — this run cannot migrate yet");
+    if (message.migrated && ["game", "result"].includes(state.screen)) commitMigratedAuthority(message);
+    else {
+      state.authorityEpoch = Number(message.authorityEpoch || state.authorityEpoch); state.authorityHostId = message.id;
+      state.isHost = message.id === state.clientId; authoritySnapshotGate.commit({ epoch: state.authorityEpoch, hostId: message.id });
+      if (state.isHost && state.screen === "lobby") { const me = state.lobby.get(state.clientId); if (me) me.ready = true; broadcastLobby(); renderLobby(); }
+    }
   } else if (message.type === "profile" && state.isHost) {
     state.lobby.set(message._from, { ...message.profile, id: message._from });
     if (state.sim && state.screen === "game") {
-      const availableReplaySlot = nextReplaySlot();
-      const player = state.sim.addPlayer({ ...message.profile, id: message._from, replaySlot: availableReplaySlot });
+      const availableReplaySlot = Number.isInteger(message.profile?.replaySlot) ? message.profile.replaySlot : nextReplaySlot();
+      const player = state.sim.addPlayer({
+        ...message.profile, id: message._from, replaySlot: availableReplaySlot,
+        ...(Number.isInteger(availableReplaySlot) ? { reconnectSlot: `migration-slot-${availableReplaySlot}` } : {}),
+      });
       const resumed = Boolean(player?.reconnected); if (player) delete player.reconnected;
       if (player && state.sim.players.some((entry) => entry !== player && entry.replaySlot === player.replaySlot)) player.replaySlot = availableReplaySlot;
       if (player && state.replayRecorder) state.replayRecorder.registerPlayer(message._from, player.specialist, { slot: player.replaySlot, tick: state.sim.tick, reconnect: resumed });
@@ -1754,10 +1952,14 @@ function handleNetworkMessage(raw) {
   else if (message.type === "choice" && state.isHost) recordHostChoice(message._from, message.choiceId);
   else if (message.type === "draft_action" && state.isHost) {
     let action; try { action = sanitizeDraftActionMessage(message, { transport: true }); } catch { return; }
-    recordHostDraftAction(action._from, action);
+    recordHostDraftAction(action._from, { ...action, type: action.action });
   }
   else if (message.type === "snapshot" && !state.isHost) {
     let snapshotMessage; try { snapshotMessage = sanitizeSnapshotMessage(message, { transport: true }); } catch { return; }
+    if (snapshotMessage.protocolVersion === 3 && !authoritySnapshotGate.accept({
+      epoch: snapshotMessage.epoch, hostId: snapshotMessage._from, tick: snapshotMessage.tick, sequence: snapshotMessage.snapshotSeq,
+    })) return;
+    if (snapshotMessage.protocolVersion !== 3 && state.authorityEpoch > 0) return;
     const now = performance.now(); if (state.snapshotAt) state.snapshotInterval = clamp(now - state.snapshotAt, 60, 180);
     if (snapshotMessage.protocolVersion) guestInputSequences.acknowledge(snapshotMessage.ack[state.clientId], now);
     else guestInputSequences.observeLegacySnapshot(now);
@@ -1781,11 +1983,19 @@ function publicLobbyPlayers() {
 
 function send(message, targetId = "") {
   if (state.ws?.readyState !== WebSocket.OPEN) return;
-  const socket = state.ws, payload = JSON.stringify(targetId ? { ...message, _to: targetId } : message);
+  const epochTypes = new Set(["cast", "cast_audio", "choice", "draft_action", "sync_game", "return_lobby"]);
+  const framed = epochTypes.has(message.type) && !Object.hasOwn(message, "epoch") ? { ...message, epoch: state.authorityEpoch } : message;
+  const socket = state.ws, payload = JSON.stringify(targetId ? { ...framed, _to: targetId } : framed);
   const deliver = (delayed) => { if (state.ws === socket && socket.readyState === WebSocket.OPEN) socket.send(delayed); };
   if (state.networkLab) state.networkLab.upstream(payload, deliver); else deliver(payload);
 }
-function closeSocket() { state.networkLab?.teardown(); state.networkLab = null; if (state.ws) { state.ws.onclose = null; state.ws.close(); } state.ws = null; state.connectResolve = null; state.connectReject = null; resetInputProtocol(); }
+function closeSocket({ preserveReconnect = false } = {}) {
+  state.networkLab?.teardown(); state.networkLab = null;
+  if (!preserveReconnect) { clearTimeout(state.reconnectTimer); state.reconnectTimer = null; state.reconnectAttempts = 0; }
+  const socket = state.ws; state.ws = null;
+  if (socket) { socket.__lastlightIntentionalClose = true; try { socket.close(); } catch { /* Already closed. */ } }
+  state.connectResolve = null; state.connectReject = null; resetInputProtocol();
+}
 function randomRoomCode() { const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; return Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join(""); }
 
 async function copyInvite() {
@@ -1813,6 +2023,19 @@ function gameDiagnostics() {
     teamSize: Number(game?.players?.length || state.lobby.size || 1),
     multiplayerRole: state.partyMode === "solo" ? "solo" : state.isHost ? "host" : "guest",
     multiplayerInput: inputProtocolDiagnostics(),
+    hostMigration: {
+      enabled: Boolean(state.runtimeConfig.config.flags.migrationCheckpointReplication
+        && state.runtimeConfig.config.flags.hostMigrationElection
+        && state.runtimeConfig.config.flags.hostMigrationResume),
+      protocolVersion: HOST_MIGRATION_PROTOCOL_VERSION,
+      state: state.authorityState,
+      authorityEpoch: state.authorityEpoch,
+      checkpointTick: state.migrationLastCheckpointTick,
+      checkpointBytes: state.migrationCheckpointBytes,
+      elapsedMilliseconds: state.migrationStartedAt ? Math.max(0, Math.round(performance.now() - state.migrationStartedAt)) : 0,
+      failureReason: state.migrationFailureReason || null,
+      snapshotGate: authoritySnapshotGate.diagnostics(),
+    },
     networkLab: state.networkLab ? (() => { const { seed, ...diagnostics } = state.networkLab.diagnostics(); return diagnostics; })() : { active: false, reason: NETWORK_LAB_ACTIVATION.reason },
     runtimeConfig: {
       version: state.runtimeConfig.config.configVersion,
@@ -2214,6 +2437,7 @@ function bindEvents() {
   $("room-input").addEventListener("input", (event) => { event.target.value = event.target.value.toUpperCase().replace(/[^A-Z2-9]/g, ""); });
   $("lobby-back").addEventListener("click", leaveToHome); $("ready-button").addEventListener("click", handleReady); $("copy-link").addEventListener("click", copyInvite);
   $("pause-button").addEventListener("click", () => togglePause()); $("resume-button").addEventListener("click", () => togglePause(false)); $("abandon-button").addEventListener("click", abandon);
+  $("network-state-return").addEventListener("click", leaveToHome);
   $("enemy-health-bars-toggle").addEventListener("change", (event) => setEnemyHealthBars(event.target.value));
   $("again-button").addEventListener("click", returnToLobby); $("result-home").addEventListener("click", leaveToHome);
   $("watch-replay").addEventListener("click", openReplayViewer);
@@ -2288,6 +2512,10 @@ function bindEvents() {
     }
     if (isTyping || dialogOpen || state.screen !== "game") return;
     const key = event.key.toLowerCase();
+    if (state.authorityState !== "active") {
+      if (["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright","e","r","c","escape","shift","1","2","3","4","5","0"].includes(key)) event.preventDefault();
+      return;
+    }
     if (key === "shift") { state.inspectActive = true; inspectCanvasAt(state.inspectPointer ? { ...state.inspectPointer, shiftKey: true } : null); return; }
     const upgradeOpen = !$("upgrade-overlay").classList.contains("hidden");
     const replacementOpen = upgradeOpen && !$("replacement-tray").classList.contains("hidden");
@@ -2330,6 +2558,28 @@ renderSpecialistGrid(); selectSpecialist("zuri"); bindEvents(); applyQualitySett
 if (query.get("room")) { setPartyMode("join"); $("room-input").value = query.get("room").toUpperCase().slice(0,6); setTimeout(() => $("callsign-input").focus(), 50); }
 if (localHost) Object.defineProperty(window, "__lastlightQA", { value: Object.freeze({
   diagnostics: () => JSON.parse(JSON.stringify(gameDiagnostics())),
+  authorityState: () => ({
+    clientId: state.clientId,
+    room: state.room,
+    screen: state.screen,
+    isHost: state.isHost,
+    authorityEpoch: state.authorityEpoch,
+    authorityHostId: state.authorityHostId,
+    migrationState: state.authorityState,
+    reconnectAttempts: state.reconnectAttempts,
+    socketState: state.ws?.readyState ?? WebSocket.CLOSED,
+  }),
+  disconnectRelay: () => {
+    if (!state.ws || state.ws.readyState !== WebSocket.OPEN) return false;
+    state.ws.close(4101, "QA authority loss");
+    return true;
+  },
+  protectPlayers: () => {
+    if (!state.sim || !state.isHost) return false;
+    for (const player of state.sim.players) player.invuln = Math.max(player.invuln || 0, 999);
+    publishMigrationCheckpoint(true);
+    return true;
+  },
   audioState: () => JSON.parse(JSON.stringify(audioDiagnostics())),
   testAudio: () => testAudioOutput(),
   reportState: () => ({ screen: state.screen, open: $("report-dialog").open, paused: Boolean(state.sim?.paused), pauseReason: state.sim?.pauseReason || "", resumeAfterReport: state.resumeAfterReport }),

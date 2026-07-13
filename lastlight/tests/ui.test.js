@@ -168,18 +168,18 @@ test("the report hotkey is global but yields to typing and open dialogs", () => 
 test("relay identity is sent after WebSocket upgrade instead of in the request URL", () => {
   assert.match(game, /new URL\(`\$\{RELAY_BASE\}\$\{encodeURIComponent\(code\)\}`\)/);
   assert.doesNotMatch(game, /url\.searchParams\.set\("(?:name|specialist|resume)"/);
-  assert.match(game, /addEventListener\("open", \(\) => send\(\{ type: "hello", profile:/);
+  assert.match(game, /addEventListener\("open", \(\) => send\(\{[\s\S]{0,160}type: "hello", profile:[\s\S]{0,160}migrationCapabilities: migrationCapabilities\(\)/);
 });
 
 test("multiplayer input uses sequenced host application and snapshot acknowledgements", () => {
   assert.match(game, /from "\.\/protocol\.js/);
   assert.match(game, /guestInputSequences\.create\(input, now\)/);
   assert.match(game, /hostInputSequences\.apply\(message\?\._from, message\)/);
-  assert.match(game, /createSnapshotMessage\(state\.sim\.snapshot\(\), hostInputSequences\.acknowledgements\(\)\)/);
+  assert.match(game, /createSnapshotMessage\(state\.sim\.snapshot\(\), hostInputSequences\.acknowledgements\(\), \{ epoch: state\.authorityEpoch, snapshotSeq: state\.authoritySnapshotSeq\+\+ \}\)/);
   assert.match(game, /guestInputSequences\.acknowledge\(snapshotMessage\.ack\[state\.clientId\], now\)/);
   assert.match(game, /multiplayerInput: inputProtocolDiagnostics\(\)/);
   assert.match(game, /hostInputSequences\.remove\(message\.id\)/);
-  assert.match(game, /function closeSocket\(\)[^\n]+resetInputProtocol\(\)/);
+  assert.match(game, /function closeSocket\([^)]*\) \{[\s\S]{0,700}resetInputProtocol\(\)/);
 });
 
 test("hosts capture anonymous deterministic replays and expose a verified post-run viewer", () => {
@@ -229,6 +229,37 @@ test("display and accessibility settings are persistent and reachable while wait
   assert.doesNotMatch(css.match(/\.quality-shortcut \{[^}]+\}/s)?.[0] || "", /transition:\s*all/);
 });
 
+test("reconnect identity is tab-scoped so a second tab cannot steal the first tab's seat", () => {
+  assert.match(game, /sessionStorage\.getItem\(CLIENT_TOKEN_KEY\)/);
+  assert.match(game, /sessionStorage\.setItem\(CLIENT_TOKEN_KEY, token\)/);
+  assert.doesNotMatch(game, /localStorage\.(?:getItem|setItem)\(CLIENT_TOKEN_KEY/);
+});
+
+test("authority loss freezes controls, cancels stale results, and retries the same room", () => {
+  assert.match(game, /const RECONNECT_DELAYS_MS = Object\.freeze\(\[/);
+  assert.match(game, /connectRoom\(state\.room, \{ reconnecting: true \}\)/);
+  assert.match(game, /rememberRoomInUrl\(code\)/);
+  assert.match(game, /url\.searchParams\.delete\("room"\)/);
+  assert.match(game, /if \(next !== "active"\) clearGameplayControls\(\)/);
+  assert.match(game, /state\.authorityState !== "active"/);
+  assert.match(game, /clearTimeout\(state\.resultTimer\); state\.resultTimer = null; state\.endShown = false/);
+  assert.match(game, /message\.migrated && \["game", "result"\]\.includes\(state\.screen\)/);
+});
+
+test("localhost QA can inspect authority and deliberately exercise relay loss", () => {
+  assert.match(game, /authorityState:\s*\(\)\s*=>\s*\(\{/);
+  assert.match(game, /disconnectRelay:\s*\(\)\s*=>\s*\{/);
+  assert.match(game, /state\.ws\.close\(4101,\s*"QA authority loss"\)/);
+  assert.match(game, /protectPlayers:\s*\(\)\s*=>\s*\{/);
+  assert.match(game, /if \(localHost\) Object\.defineProperty\(window, "__lastlightQA"/);
+});
+
+test("a rejoined client adopts the current authority epoch and leaves reconnecting state", () => {
+  assert.match(game, /guestInputSequences\.setEpoch\(state\.authorityEpoch\)/);
+  assert.match(game, /authoritySnapshotGate\.commit\(\{ epoch: state\.authorityEpoch, hostId: state\.authorityHostId \}\)/);
+  assert.match(game, /if \(state\.authorityState === "reconnecting"\) setAuthorityState\("active"\)/);
+});
+
 test("enemy identity guide stays named and reachable on mobile", () => {
   assert.match(html, /id="guide-dialog"[^>]+aria-labelledby="guide-title"/);
   assert.match(html, /<h2 id="guide-title">UPGRADES & RARE FINDS<\/h2>/);
@@ -267,7 +298,7 @@ test("draft controls and replacement decisions stay in-place, accessible, and to
   for (const id of ["draft-controls", "draft-reroll", "draft-banish", "draft-skip", "draft-status", "replacement-tray", "replacement-options", "replacement-cancel"]) assert.match(html, new RegExp(`id="${id}"`));
   assert.match(html, /aria-live="polite"/);
   assert.match(html, /aria-pressed="false"/);
-  assert.match(game, /createDraftActionMessage\(message\)/);
+  assert.match(game, /createDraftActionMessage\(message, state\.authorityEpoch\)/);
   assert.match(game, /sanitizeDraftActionMessage\(message, \{ transport: true \}\)/);
   assert.match(game, /performDraftAction\(\{ type: "reroll" \}\)/);
   assert.match(game, /performDraftAction\(\{ type: "skip" \}\)/);

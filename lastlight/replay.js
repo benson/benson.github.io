@@ -326,7 +326,11 @@ export class ReplayRecorder {
     const assigned = slot === undefined ? [0, 1, 2, 3].find((candidate) => !this.knownSlots.has(candidate)) : slot;
     integer(assigned, 0, 3, "slot");
     const activeOwner = [...this.actualToSlot.entries()].find(([, activeSlot]) => activeSlot === assigned)?.[0];
-    if (activeOwner !== undefined && activeOwner !== actualId) throw new TypeError("Replay slot already belongs to an active player");
+    if (activeOwner !== undefined && activeOwner !== actualId) {
+      if (!reconnect) throw new TypeError("Replay slot already belongs to an active player");
+      this.actualToSlot.delete(activeOwner);
+      this.push(tick, "l", assigned);
+    }
     this.actualToSlot.set(actualId, assigned);
     this.knownSlots.set(assigned, specialist);
     if (initial) this.roster.set(assigned, specialist);

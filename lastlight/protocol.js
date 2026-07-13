@@ -1,7 +1,9 @@
-export const MULTIPLAYER_PROTOCOL_VERSION = 2;
+export const MULTIPLAYER_PROTOCOL_VERSION = 3;
+export const LEGACY_MULTIPLAYER_PROTOCOL_VERSION = 2;
 export const MAX_INPUT_SEQUENCE = 0x7fffffff;
 export const MAX_PENDING_INPUTS = 256;
-export const DRAFT_PROTOCOL_VERSION = 1;
+export const DRAFT_PROTOCOL_VERSION = 2;
+export const LEGACY_DRAFT_PROTOCOL_VERSION = 1;
 
 const PLAYER_ID = /^[A-Za-z0-9_-]{1,32}$/;
 const CHOICE_ID = /^(?:weapon|passive):[A-Za-z][A-Za-z0-9]{0,23}$/;
@@ -38,9 +40,17 @@ export function validateNetworkInput(input) {
 export function sanitizeInputMessage(value, { allowLegacy = true, transport = false } = {}) {
   const transportKeys = transport && Object.hasOwn(value || {}, "_from") ? ["_from"] : [];
   if (value?.protocolVersion === MULTIPLAYER_PROTOCOL_VERSION) {
-    exactKeys(value, ["type", "protocolVersion", "seq", "input", ...transportKeys], "input message");
+    exactKeys(value, ["type", "protocolVersion", "epoch", "seq", "input", ...transportKeys], "input message");
     if (value.type !== "input") throw new TypeError("input message type is invalid");
-    const result = { type: "input", protocolVersion: MULTIPLAYER_PROTOCOL_VERSION, seq: sequence(value.seq), input: validateNetworkInput(value.input) };
+    const result = { type: "input", protocolVersion: MULTIPLAYER_PROTOCOL_VERSION, epoch: epoch(value.epoch), seq: sequence(value.seq), input: validateNetworkInput(value.input) };
+    if (transportKeys.length) result._from = value._from;
+    return result;
+  }
+  if (value?.protocolVersion === LEGACY_MULTIPLAYER_PROTOCOL_VERSION) {
+    if (!allowLegacy) throw new TypeError("Legacy input protocol is unsupported");
+    exactKeys(value, ["type", "protocolVersion", "seq", "input", ...transportKeys], "legacy v2 input message");
+    if (value.type !== "input") throw new TypeError("input message type is invalid");
+    const result = { type: "input", protocolVersion: LEGACY_MULTIPLAYER_PROTOCOL_VERSION, seq: sequence(value.seq), input: validateNetworkInput(value.input) };
     if (transportKeys.length) result._from = value._from;
     return result;
   }
@@ -64,17 +74,29 @@ export function validateAcknowledgements(value) {
   return Object.freeze(result);
 }
 
-export function createSnapshotMessage(state, acknowledgements = {}) {
+export function createSnapshotMessage(state, acknowledgements = {}, { epoch: authorityEpoch = 0, snapshotSeq = 0 } = {}) {
   if (!state || typeof state !== "object" || Array.isArray(state)) throw new TypeError("snapshot state must be an object");
-  return { type: "snapshot", protocolVersion: MULTIPLAYER_PROTOCOL_VERSION, ack: validateAcknowledgements(acknowledgements), state };
+  return {
+    type: "snapshot", protocolVersion: MULTIPLAYER_PROTOCOL_VERSION, epoch: epoch(authorityEpoch), snapshotSeq: sequence(snapshotSeq, "snapshot sequence"),
+    tick: sequence(state.tick, "snapshot tick"), ack: validateAcknowledgements(acknowledgements), state,
+  };
 }
 
 export function sanitizeSnapshotMessage(value, { allowLegacy = true, transport = false } = {}) {
   const transportKeys = transport && Object.hasOwn(value || {}, "_from") ? ["_from"] : [];
   if (value?.protocolVersion === MULTIPLAYER_PROTOCOL_VERSION) {
-    exactKeys(value, ["type", "protocolVersion", "ack", "state", ...transportKeys], "snapshot message");
+    exactKeys(value, ["type", "protocolVersion", "epoch", "snapshotSeq", "tick", "ack", "state", ...transportKeys], "snapshot message");
     if (value.type !== "snapshot" || !value.state || typeof value.state !== "object" || Array.isArray(value.state)) throw new TypeError("snapshot message is invalid");
-    const result = createSnapshotMessage(value.state, value.ack);
+    if (value.state.tick !== value.tick) throw new TypeError("snapshot tick does not match state");
+    const result = createSnapshotMessage(value.state, value.ack, { epoch: value.epoch, snapshotSeq: value.snapshotSeq });
+    if (transportKeys.length) result._from = value._from;
+    return result;
+  }
+  if (value?.protocolVersion === LEGACY_MULTIPLAYER_PROTOCOL_VERSION) {
+    if (!allowLegacy) throw new TypeError("Legacy snapshot protocol is unsupported");
+    exactKeys(value, ["type", "protocolVersion", "ack", "state", ...transportKeys], "legacy v2 snapshot message");
+    if (value.type !== "snapshot" || !value.state || typeof value.state !== "object" || Array.isArray(value.state)) throw new TypeError("snapshot message is invalid");
+    const result = { type: "snapshot", protocolVersion: LEGACY_MULTIPLAYER_PROTOCOL_VERSION, ack: validateAcknowledgements(value.ack), state: value.state };
     if (transportKeys.length) result._from = value._from;
     return result;
   }
@@ -86,16 +108,20 @@ export function sanitizeSnapshotMessage(value, { allowLegacy = true, transport =
   return result;
 }
 
+function epoch(value, label = "authority epoch") { return sequence(value, label); }
+
 export function sanitizeDraftActionMessage(value, { transport = false } = {}) {
   const transportKeys = transport && Object.hasOwn(value || {}, "_from") ? ["_from"] : [];
   const action = String(value?.action || "");
-  const fields = ["type", "protocolVersion", "action", "round", "revision", ...transportKeys];
+  const modern = value?.protocolVersion === DRAFT_PROTOCOL_VERSION, legacy = value?.protocolVersion === LEGACY_DRAFT_PROTOCOL_VERSION;
+  if (!modern && !legacy) throw new TypeError("draft action message protocol is invalid");
+  const fields = ["type", "protocolVersion", ...(modern ? ["epoch"] : []), "action", "round", "revision", ...transportKeys];
   if (["pick", "banish", "replace"].includes(action)) fields.push("choiceId");
   if (action === "replace") fields.push("replacementId");
   exactKeys(value, fields, "draft action message");
-  if (value.type !== "draft_action" || value.protocolVersion !== DRAFT_PROTOCOL_VERSION || !["pick", "reroll", "banish", "skip", "replace"].includes(action)) throw new TypeError("draft action message is invalid");
+  if (value.type !== "draft_action" || !["pick", "reroll", "banish", "skip", "replace"].includes(action)) throw new TypeError("draft action message is invalid");
   const result = {
-    type: "draft_action", protocolVersion: DRAFT_PROTOCOL_VERSION, action,
+    type: "draft_action", protocolVersion: value.protocolVersion, ...(modern ? { epoch: epoch(value.epoch) } : {}), action,
     round: sequence(value.round, "draft round"), revision: sequence(value.revision, "draft revision"),
   };
   if (fields.includes("choiceId")) {
@@ -113,18 +139,29 @@ export function sanitizeDraftActionMessage(value, { transport = false } = {}) {
   return Object.freeze(result);
 }
 
-export function createDraftActionMessage(action) {
-  return sanitizeDraftActionMessage({ ...action, type: "draft_action", protocolVersion: DRAFT_PROTOCOL_VERSION });
+export function createDraftActionMessage(action, authorityEpoch = 0) {
+  return sanitizeDraftActionMessage({ ...action, type: "draft_action", protocolVersion: DRAFT_PROTOCOL_VERSION, epoch: authorityEpoch });
 }
 
 export class HostInputSequenceGate {
-  constructor() { this.reset(); }
+  constructor(authorityEpoch = 0) { this.reset({ epoch: authorityEpoch }); }
 
-  reset() {
+  reset({ epoch: authorityEpoch = 0, acknowledgements = {} } = {}) {
+    this.epoch = epoch(authorityEpoch);
     this.lastApplied = new Map();
     this.modernPlayers = new Set();
     this.rejectedStale = 0;
     this.rejectedInvalid = 0;
+    this.rejectedEpoch = 0;
+    this.restore(acknowledgements, this.epoch);
+  }
+
+  restore(acknowledgements = {}, authorityEpoch = this.epoch) {
+    this.epoch = epoch(authorityEpoch);
+    const restored = validateAcknowledgements(acknowledgements);
+    this.lastApplied = new Map(Object.entries(restored));
+    this.modernPlayers = new Set(this.lastApplied.keys());
+    return this;
   }
 
   apply(playerId, message) {
@@ -133,9 +170,10 @@ export class HostInputSequenceGate {
     try { parsed = sanitizeInputMessage(message, { allowLegacy: true, transport: true }); }
     catch { this.rejectedInvalid++; return { accepted: false, reason: "invalid-message" }; }
     if (parsed.protocolVersion !== MULTIPLAYER_PROTOCOL_VERSION) {
-      if (this.modernPlayers.has(playerId)) { this.rejectedStale++; return { accepted: false, reason: "legacy-after-v2" }; }
+      if (this.epoch > 0 || this.modernPlayers.has(playerId)) { this.rejectedStale++; return { accepted: false, reason: "legacy-after-v3" }; }
       return { accepted: true, legacy: true, input: parsed.input };
     }
+    if (parsed.epoch !== this.epoch) { this.rejectedEpoch++; return { accepted: false, reason: "stale-epoch" }; }
     this.modernPlayers.add(playerId);
     const last = this.lastApplied.get(playerId);
     if (last !== undefined && parsed.seq <= last) { this.rejectedStale++; return { accepted: false, reason: "stale-sequence" }; }
@@ -153,14 +191,15 @@ export class HostInputSequenceGate {
   }
 
   diagnostics() {
-    return { protocolVersion: MULTIPLAYER_PROTOCOL_VERSION, sequencedPeers: this.modernPlayers.size, rejectedStale: this.rejectedStale, rejectedInvalid: this.rejectedInvalid };
+    return { protocolVersion: MULTIPLAYER_PROTOCOL_VERSION, epoch: this.epoch, sequencedPeers: this.modernPlayers.size, rejectedStale: this.rejectedStale, rejectedInvalid: this.rejectedInvalid, rejectedEpoch: this.rejectedEpoch };
   }
 }
 
 export class GuestInputSequenceTracker {
-  constructor() { this.reset(); }
+  constructor(authorityEpoch = 0) { this.reset({ epoch: authorityEpoch }); }
 
-  reset() {
+  reset({ epoch: authorityEpoch = 0 } = {}) {
+    this.epoch = epoch(authorityEpoch);
     this.nextSequence = 0;
     this.lastSent = -1;
     this.lastAcknowledged = -1;
@@ -176,16 +215,17 @@ export class GuestInputSequenceTracker {
     if (this.nextSequence > MAX_INPUT_SEQUENCE) throw new RangeError("Input sequence space exhausted; reconnect required");
     const seq = this.nextSequence++;
     this.lastSent = seq;
-    this.pending.set(seq, Number(now) || 0);
+    const message = { type: "input", protocolVersion: MULTIPLAYER_PROTOCOL_VERSION, epoch: this.epoch, seq, input: validateNetworkInput(input) };
+    this.pending.set(seq, { sentAt: Number(now) || 0, message });
     if (this.pending.size > MAX_PENDING_INPUTS) {
       this.pending.delete(this.pending.keys().next().value);
       this.droppedPending++;
     }
-    return { type: "input", protocolVersion: MULTIPLAYER_PROTOCOL_VERSION, seq, input: validateNetworkInput(input) };
+    return message;
   }
 
   acknowledge(value, now = performance.now()) {
-    this.mode = "v2";
+    this.mode = "v3";
     this.lastSnapshotAt = Number(now) || 0;
     if (value === undefined) return false;
     try { sequence(value, "acknowledgement"); }
@@ -203,11 +243,18 @@ export class GuestInputSequenceTracker {
     this.lastSnapshotAt = Number(now) || 0;
   }
 
+  setEpoch(authorityEpoch) { this.epoch = epoch(authorityEpoch); return this; }
+
+  pendingMessagesAfter(acknowledged = -1) {
+    return [...this.pending.entries()].filter(([seq]) => seq > acknowledged).map(([, entry]) => entry.message);
+  }
+
   diagnostics(now = performance.now()) {
     const at = Number(now) || 0;
-    const oldest = this.pending.values().next().value;
+    const oldest = this.pending.values().next().value?.sentAt;
     return {
       protocolVersion: MULTIPLAYER_PROTOCOL_VERSION,
+      epoch: this.epoch,
       mode: this.mode,
       lastSentSequence: this.lastSent,
       lastAcknowledgedSequence: this.lastAcknowledged,

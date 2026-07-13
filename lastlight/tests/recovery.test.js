@@ -38,14 +38,55 @@ test("simulation recovery is exact, anonymous, and continues deterministically",
 
   const restored = Simulation.fromRecoveryState(JSON.parse(json));
   assert.equal(restored.players[0].name, "Specialist 1");
-  assert.equal(restored.players[0].reconnectKey, "");
+  assert.equal(restored.players[0].reconnectKey, "migration-slot-0");
   assert.ok(restored.projectiles.at(-1).hit instanceof Set);
   assert.equal(hashSimulationState(restored), hashSimulationState(original));
+
+  const migrated = Simulation.fromRecoveryState(JSON.parse(json), { playerIdsBySlot: { 0: "new-host" } });
+  assert.equal(migrated.players[0].id, "new-host");
+  assert.equal(migrated.projectiles.at(-1).owner, "new-host");
+  assert.equal(hashSimulationState(migrated), hashSimulationState(original));
+  assert.throws(() => Simulation.fromRecoveryState(JSON.parse(json), { playerIdsBySlot: { 0: "bad id" } }), /identity/);
 
   original.setInput("relay-secret", { x: -.4, y: .6, aim: .2, autoAim: false });
   restored.setInput("slot-0", { x: -.4, y: .6, aim: .2, autoAim: false });
   for (let tick = 0; tick < 120; tick++) { original.update(1 / 60); restored.update(1 / 60); }
   assert.equal(hashSimulationState(restored), hashSimulationState(original));
+});
+
+test("terminal victory and defeat states survive exact migration recovery", () => {
+  for (const stage of ["won", "lost"]) {
+    const sim = simulation();
+    sim.stage = stage;
+    const restored = Simulation.fromRecoveryState(sim.exportRecoveryState());
+    assert.equal(restored.stage, stage);
+    assert.equal(hashSimulationState(restored), hashSimulationState(sim));
+    const tick = restored.tick;
+    restored.update(1 / 60);
+    assert.equal(restored.tick, tick);
+  }
+});
+
+test("disconnected seats survive chained migration and remain anonymously reconnectable", () => {
+  const sim = new Simulation({
+    players: [
+      { id: "host", name: "Host", specialist: "zuri", replaySlot: 0, reconnectSlot: "migration-slot-0" },
+      { id: "guest-a", name: "Guest A", specialist: "echo", replaySlot: 1, reconnectSlot: "migration-slot-1" },
+      { id: "guest-b", name: "Guest B", specialist: "sola", replaySlot: 2, reconnectSlot: "migration-slot-2" },
+    ],
+  });
+  sim.players[2].weapons.signature.level = 4;
+  sim.removePlayer("guest-b");
+  const first = Simulation.fromRecoveryState(sim.exportRecoveryState(), { playerIdsBySlot: { 0: "next-host", 1: "guest-a" } });
+  assert.equal(hashSimulationState(first), hashSimulationState(sim));
+  assert.equal(first.disconnectedPlayers.get("migration-slot-2")?.player.weapons.signature.level, 4);
+  first.removePlayer("next-host");
+  const second = Simulation.fromRecoveryState(first.exportRecoveryState(), { playerIdsBySlot: { 1: "third-host" } });
+  assert.equal(hashSimulationState(second), hashSimulationState(first));
+  const returned = second.addPlayer({ id: "host-returned", name: "Host", specialist: "zuri", replaySlot: 0, reconnectSlot: "migration-slot-0" });
+  assert.equal(returned.reconnected, true);
+  assert.equal(returned.replaySlot, 0);
+  assert.doesNotMatch(JSON.stringify(second.exportRecoveryState()), /Host|Guest|resumeToken|reconnectKey/);
 });
 
 test("draft budgets, revisions, offers, and banishes recover exactly and reject corruption", () => {

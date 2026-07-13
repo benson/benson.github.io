@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260712.12">
+  <link rel="stylesheet" href="styles.css?v=20260713.1">
 </head>
 <body>
   <main id="app">
@@ -229,7 +229,7 @@
       </div>
     </section>
 
-    <section id="game-screen" class="screen game-screen hidden">
+    <section id="game-screen" class="screen game-screen hidden" aria-busy="false">
       <canvas id="game-canvas" tabindex="0" aria-label="Lastlight game arena"></canvas>
       <div class="scanlines" aria-hidden="true"></div>
       <header class="game-topbar">
@@ -271,6 +271,17 @@
         <p id="inspect-copy"></p>
         <dl id="inspect-details"></dl>
       </aside>
+
+      <div id="network-state-overlay" class="overlay network-state-overlay hidden" role="alert" aria-live="assertive" aria-atomic="true" aria-labelledby="network-state-title" aria-describedby="network-state-copy" data-state="active">
+        <div class="network-state-card">
+          <span class="network-state-mark" aria-hidden="true">↻</span>
+          <p class="eyebrow">Squad authority // verified recovery</p>
+          <h2 id="network-state-title">MIGRATING HOST</h2>
+          <p id="network-state-copy">The operation is frozen while deterministic authority is restored.</p>
+          <div class="network-state-steps" aria-hidden="true"><i></i><i></i><i></i></div>
+          <button id="network-state-return" class="deploy-button hidden" type="button"><span>Return home</span><span>Safe exit</span></button>
+        </div>
+      </div>
 
       <div id="upgrade-overlay" class="overlay upgrade-overlay hidden">
         <div class="upgrade-panel">
@@ -518,7 +529,20 @@
       <div class="build-history-body">
         <article class="build-release current-build">
           <header>
-            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.12.12</h3></div>
+            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.13.1</h3></div>
+            <span class="build-shipped-at">Deployment verification pending</span>
+          </header>
+          <ul>
+            <li>Added deterministic mid-run host migration with replay-slot election, authority epochs, stale-packet fencing, and a strict readiness barrier.</li>
+            <li>Added anonymous one-second checkpoints that restore combat, upgrade drafts, apex windups, disconnected seats, and terminal results exactly.</li>
+            <li>Added bounded automatic room reconnection so a dropped host can return as a follower with their loadout and progress intact.</li>
+            <li>Added an accessible frozen-state overlay, reduced-motion behavior, held-input clearing, callsign preservation, and fail-closed recovery messaging.</li>
+            <li>Kept reconnect secrets relay-private and added three independent rollback flags, adversarial relay coverage, and repeated hash-convergence soak tests.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.12.12</h3></div>
             <time class="build-shipped-at" datetime="2026-07-13T00:38:00-04:00">Shipped Jul 13, 2026 · 12:38 AM EDT</time>
           </header>
           <ul>
@@ -870,8 +894,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.12.12. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.12.12</strong></button>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.13.1. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.13.1</strong></button>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260712.12"></script>
+  <script type="module" src="game.js?v=20260713.1"></script>
 </body>
 </html>
