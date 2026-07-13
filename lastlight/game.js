@@ -1,5 +1,5 @@
 import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260713.2";
-import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.2";
+import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.3";
 import { Renderer } from "./render.js?v=20260713.2";
 import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260713.2";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
@@ -37,6 +37,7 @@ import {
   createMigrationCapabilities, createMigrationCheckpoint, createMigrationReady,
   migrationCompatibilityMatches, validateMigrationCheckpoint,
 } from "./host-migration.js?v=20260713.2";
+import { RECONNECT_DELAYS_MS, SquadPresenceTracker, authorityStateCopy } from "./reconnect-state.js?v=20260713.3";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -45,8 +46,8 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.13.2";
-const RECONNECT_DELAYS_MS = Object.freeze([400, 800, 1_500, 3_000, 5_000, 8_000]);
+const BUILD = "2026.07.13.3";
+const AUTHORITY_WATCHDOG_MS = Object.freeze({ synchronizing: 10_000, migrating: 25_000 });
 const BALANCE = getBalanceConfig();
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
 const systemReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false;
@@ -150,7 +151,8 @@ const state = {
   authorityEpoch: 0, authorityHostId: "", authorityState: "active", authoritySnapshotSeq: 0,
   migrationLastCheckpointTick: -1, migrationCheckpointBytes: 0, migrationOffer: null,
   migrationFailureReason: "", migrationStartedAt: 0,
-  reconnectTimer: null, reconnectAttempts: 0,
+  reconnectTimer: null, reconnectAttempts: 0, authorityRestoreTimer: null, authorityWatchdogTimer: null, authorityPreviousFocus: null,
+  squadPresence: new SquadPresenceTracker(), lastPresenceAnnouncement: "",
 };
 
 const runtimeConfigReady = loadRuntimeConfig({ endpoint: RUNTIME_CONFIG_ENDPOINT }).then((result) => {
@@ -175,27 +177,105 @@ function clearGameplayControls() {
   state.inspectActive = false; hideInspectPanel(); movementPredictor.reset();
 }
 
+function canRestoreAuthorityFocus(node) {
+  return node instanceof HTMLElement && node !== document.body && node.isConnected && !node.inert && !node.closest(".hidden,[inert]");
+}
+
+function trapAuthorityFocus(event) {
+  if (event.key !== "Tab" || $("network-state-overlay").classList.contains("hidden")) return;
+  const card = $("network-state-overlay").querySelector(".network-state-card");
+  const focusable = [...$("network-state-overlay").querySelectorAll("button:not(.hidden):not(:disabled)")];
+  if (!focusable.length) { event.preventDefault(); card.focus(); return; }
+  const first = focusable[0], last = focusable.at(-1);
+  if (event.shiftKey && (document.activeElement === first || document.activeElement === card)) { event.preventDefault(); last.focus(); }
+  else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+}
+
 function setAuthorityState(next, detail = {}) {
+  const previous = state.authorityState;
+  clearTimeout(state.authorityWatchdogTimer); state.authorityWatchdogTimer = null;
+  const watchdogMs = AUTHORITY_WATCHDOG_MS[next];
+  if (watchdogMs) state.authorityWatchdogTimer = setTimeout(() => {
+    state.authorityWatchdogTimer = null;
+    if (state.authorityState === next) setAuthorityState("unavailable", { reason: "timeout" });
+  }, watchdogMs);
+  if (!["active", "restored"].includes(next)) { clearTimeout(state.authorityRestoreTimer); state.authorityRestoreTimer = null; }
   state.authorityState = next;
   if (next !== "active") clearGameplayControls();
-  if (next === "migrating" || next === "reconnecting") state.migrationStartedAt ||= performance.now();
+  if (["migrating", "reconnecting", "synchronizing"].includes(next)) state.migrationStartedAt ||= performance.now();
   if (next === "active") { state.migrationStartedAt = 0; state.migrationFailureReason = ""; }
   if (next === "unavailable") state.migrationFailureReason = String(detail.reason || "unavailable");
   const overlay = $("network-state-overlay");
   if (!overlay) return;
   const visible = next !== "active";
+  if (visible && !state.authorityPreviousFocus) state.authorityPreviousFocus = document.activeElement;
   overlay.classList.toggle("hidden", !visible);
-  screens.game?.setAttribute("aria-busy", visible ? "true" : "false");
-  const copy = {
-    reconnecting: ["RECONNECTING", "Connection interrupted. The operation is frozen and no input is being applied."],
-    migrating: ["MIGRATING HOST", `Restoring deterministic authority${detail.tick !== undefined ? ` from tick ${detail.tick}` : ""}. The battlefield is frozen.`],
-    restored: ["AUTHORITY RESTORED", "The squad is synchronized. Release movement controls, then continue."],
-    unavailable: ["RUN UNAVAILABLE", "No compatible authority checkpoint survived. This run will not continue from an unsafe state."],
-  }[next] || ["NETWORK HOLD", "The operation is frozen while authority is verified."];
-  $("network-state-title").textContent = copy[0];
-  $("network-state-copy").textContent = copy[1];
-  $("network-state-return").classList.toggle("hidden", next !== "unavailable");
+  for (const [name, screen] of Object.entries(screens)) {
+    const blocked = visible && name === state.screen;
+    screen.inert = blocked;
+    if (name === "game" || name === "result") screen.setAttribute("aria-busy", blocked ? "true" : "false");
+  }
+  $("game-canvas").setAttribute("aria-disabled", visible && state.screen === "game" ? "true" : "false");
+  for (const id of ["report-button", "build-history-button"]) $(id).inert = visible;
+  const presentation = authorityStateCopy(next, detail);
+  $("network-state-mark").textContent = presentation.mark;
+  $("network-state-title").textContent = presentation.title;
+  $("network-state-copy").textContent = presentation.copy;
+  $("network-state-progress").textContent = presentation.progress;
+  const canRetry = next === "reconnecting" || next === "unavailable" && ["reconnect-exhausted", "timeout"].includes(detail.reason);
+  $("network-state-retry").classList.toggle("hidden", !canRetry);
+  $("network-state-retry").disabled = state.connecting;
+  $("network-state-return").querySelector("span").textContent = presentation.terminal ? "Return home" : "Leave run";
+  if (next !== previous && ["reconnecting", "migrating", "unavailable"].includes(next)) $("network-state-announcement").textContent = `${presentation.title}. ${presentation.copy}`;
   overlay.dataset.state = next;
+  if (presentation.terminal) requestAnimationFrame(() => $("network-state-return").focus());
+  else if (visible && next !== previous) requestAnimationFrame(() => overlay.querySelector(".network-state-card").focus());
+  if (!visible) {
+    const focus = state.authorityPreviousFocus; state.authorityPreviousFocus = null;
+    if (detail.restoreFocus !== false) requestAnimationFrame(() => (canRestoreAuthorityFocus(focus) ? focus : $("game-canvas")).focus?.());
+  }
+}
+
+function finishAuthorityRestoration(onActive = null) {
+  clearTimeout(state.authorityRestoreTimer);
+  setAuthorityState("restored");
+  state.authorityRestoreTimer = setTimeout(() => {
+    state.authorityRestoreTimer = null;
+    if (state.authorityState === "restored") { setAuthorityState("active"); onActive?.(); }
+  }, 900);
+}
+
+function presenceTick(game = state.sim || state.snapshot) {
+  return Math.max(0, Number.isSafeInteger(game?.tick) ? game.tick : 0);
+}
+
+function presenceTransitionCopy(entry, tick = presenceTick()) {
+  const spec = SPECIALISTS[entry.specialist]?.name || "Specialist";
+  if (entry.status === "reconnecting") {
+    const seconds = Math.max(0, Math.ceil((entry.deadlineTick - tick) / 60));
+    return { visible: `RECONNECTING · ${formatTime(seconds)}`, icon: "↻", announcement: `${entry.name}, ${spec}, disconnected. Seat reserved for ${Math.ceil(seconds / 60)} minutes.` };
+  }
+  if (entry.status === "restored") return { visible: "RESTORED", icon: "✓", announcement: `${entry.name}, ${spec}, restored with their run state.` };
+  if (entry.status === "departed") return { visible: "DEPARTED", icon: "×", announcement: `${entry.name}, ${spec}, departed. Their reserved seat expired.` };
+  return { visible: "", icon: "", announcement: "" };
+}
+
+function announcePresence(entry, tick = presenceTick()) {
+  if (!entry || entry.status === "connected") return;
+  const key = `${entry.replaySlot}:${entry.status}:${entry.statusSinceTick}`;
+  if (key === state.lastPresenceAnnouncement) return;
+  state.lastPresenceAnnouncement = key;
+  $("squad-connection-status").textContent = presenceTransitionCopy(entry, tick).announcement;
+}
+
+function observeSquadPresence(game) {
+  if (!game?.players) return state.squadPresence.view();
+  const tick = presenceTick(game), activeSlots = new Set(game.players.map(({ replaySlot }) => replaySlot));
+  for (const entry of state.squadPresence.view()) {
+    if (["connected", "restored"].includes(entry.status) && !activeSlots.has(entry.replaySlot)) announcePresence(state.squadPresence.disconnect(entry, tick), tick);
+  }
+  for (const entry of state.squadPresence.observe(game.players, tick)) announcePresence(entry, tick);
+  return state.squadPresence.view();
 }
 
 function migrationRoster(simulation = state.sim) {
@@ -257,7 +337,8 @@ function commitMigratedAuthority(message) {
   authoritySnapshotGate.commit({ epoch: state.authorityEpoch, hostId: state.authorityHostId });
   guestInputSequences.setEpoch(state.authorityEpoch);
   if (message.id !== state.clientId) {
-    state.isHost = false; state.migrationOffer = null; clearGameplayControls(); setAuthorityState("active"); return;
+    state.isHost = false; state.migrationOffer = null; clearGameplayControls();
+    setAuthorityState("synchronizing"); return;
   }
   const offer = state.migrationOffer;
   if (!offer || offer.epoch !== state.authorityEpoch || offer.checkpoint.checkpointId !== message.checkpointId) {
@@ -275,8 +356,10 @@ function commitMigratedAuthority(message) {
   state.previousSnapshot = null; state.snapshot = null; state.migrationOffer = null;
   fixedClock.reset(); clearGameplayControls();
   if (state.screen === "result" && ["running", "boss"].includes(state.sim.stage)) setScreen("game");
-  setAuthorityState("restored");
-  requestAnimationFrame(() => { setAuthorityState("active"); publishMigrationCheckpoint(true); });
+  else if (state.screen === "result") {
+    for (const peer of state.lobby.values()) if (peer.id !== state.clientId) sendRunSync(peer.id);
+  }
+  finishAuthorityRestoration(() => publishMigrationCheckpoint(true));
 }
 
 function replayRunConfig() {
@@ -754,10 +837,12 @@ function startHostedGame() {
     ...(state.partyMode === "solo" ? {} : { reconnectSlot: `migration-slot-${replaySlot}` }),
   }));
   if (!players.length) return;
+  for (const player of players) state.lobby.set(player.id, { ...state.lobby.get(player.id), replaySlot: player.replaySlot });
   const seed = createRandomSeed();
   const features = gameplayFeatureContract(state.runtimeConfig.config);
   state.config = { ...state.config, features };
   state.sim = new Simulation({ ...state.config, players }, { seed, balanceVersion: BALANCE_VERSION, balanceHash: BALANCE_HASH, features });
+  state.squadPresence.reset(state.sim.players, state.sim.tick); state.lastPresenceAnnouncement = "";
   state.authorityEpoch = 0; state.authorityHostId = state.clientId; state.authoritySnapshotSeq = 0; state.migrationLastCheckpointTick = -1; setAuthorityState("active");
   beginReplayCapture(players, seed);
   discardRecovery({ notify: false });
@@ -769,7 +854,13 @@ function startHostedGame() {
 }
 
 function startRemoteGame(message) {
-  state.config = message.config; state.sim = null; state.previousSnapshot = null; state.snapshot = null; state.migrationLastCheckpointTick = -1; setAuthorityState("active"); movementPredictor.reset(); enterGame();
+  const synchronizing = ["reconnecting", "synchronizing"].includes(state.authorityState);
+  if (Array.isArray(message.players)) state.lobby = new Map(message.players.map((player) => [player.id, player]));
+  state.config = message.config; state.sim = null; state.previousSnapshot = null; state.snapshot = null; state.migrationLastCheckpointTick = -1;
+  if (!synchronizing) setAuthorityState("active");
+  const players = message.state?.players || message.players || [];
+  if (!synchronizing) { state.squadPresence.reset(players, presenceTick(message.state)); state.lastPresenceAnnouncement = ""; }
+  movementPredictor.reset(); enterGame();
 }
 
 function enterGame() {
@@ -1297,15 +1388,23 @@ function updateHUD(game) {
       $("boss-health-segments").innerHTML = healthDividerMarkup(bossHealthSegments(boss.maxHp, apexContract?.phases.slice(1).map((phase) => phase.enterHpRatio)));
     }
   } else state.lastBossHUDKey = "";
-  const squadHUDKey = JSON.stringify(game.players.map((p) => [p.id, p.name, p.specialist, p.maxHp]));
+  const presenceEntries = observeSquadPresence(game), currentPresenceTick = presenceTick(game);
+  const squadHUDKey = JSON.stringify(presenceEntries.map((p) => [p.replaySlot, p.id, p.name, p.specialist, p.maxHp, p.status, p.statusSinceTick]));
   if (squadHUDKey !== state.lastSquadHUDKey) {
     state.lastSquadHUDKey = squadHUDKey;
-    $("squad-hud").innerHTML = game.players.map((p) => `<div class="squad-pill"><img src="${SPECIALISTS[p.specialist].sprite}" alt=""><div><span>${escapeHTML(p.name)}</span><div class="mini-health"><i class="mini-health-fill"></i><b class="mini-shield-fill"></b><em class="health-dividers" aria-hidden="true">${healthDividerMarkup(playerHealthSegments(p.maxHp))}</em></div></div></div>`).join("");
+    $("squad-hud").innerHTML = presenceEntries.map((p) => {
+      const spec = SPECIALISTS[p.specialist] || SPECIALISTS.zuri, status = presenceTransitionCopy(p, currentPresenceTick);
+      return `<div class="squad-pill" role="listitem" data-replay-slot="${p.replaySlot}" data-connection-state="${p.status}"><img src="${spec.sprite}" alt=""><div><span>${escapeHTML(p.name)}</span><small class="squad-connection-state"${p.status === "connected" ? " hidden" : ""}><i aria-hidden="true">${status.icon}</i><b>${status.visible}</b></small><div class="mini-health"><i class="mini-health-fill"></i><b class="mini-shield-fill"></b><em class="health-dividers" aria-hidden="true">${healthDividerMarkup(playerHealthSegments(p.maxHp))}</em></div></div></div>`;
+    }).join("");
   }
-  [...$("squad-hud").children].forEach((pill, index) => {
-    const p = game.players[index], maximum = Math.max(1, p.maxHp || 1);
+  [...$("squad-hud").children].forEach((pill) => {
+    const p = presenceEntries.find(({ replaySlot }) => replaySlot === Number(pill.dataset.replaySlot)); if (!p) return;
+    const maximum = Math.max(1, p.maxHp || 1), status = presenceTransitionCopy(p, currentPresenceTick), spec = SPECIALISTS[p.specialist]?.name || "Specialist";
     pill.querySelector(".mini-health-fill").style.width = `${clamp(p.hp / maximum * 100, 0, 100)}%`;
     pill.querySelector(".mini-shield-fill").style.width = `${clamp((p.shield || 0) / maximum * 100, 0, 100)}%`;
+    const connection = pill.querySelector(".squad-connection-state"); connection.hidden = p.status === "connected";
+    if (!connection.hidden) { connection.querySelector("i").textContent = status.icon; connection.querySelector("b").textContent = status.visible; }
+    pill.setAttribute("aria-label", `${p.name}, ${spec}, ${p.status}${p.status === "reconnecting" ? ", seat reserved" : ""}, ${Math.round(clamp(p.hp / maximum * 100, 0, 100))} percent health`);
   });
   const weaponEntries = Object.entries(player.weapons || {});
   const weaponHUDKey = JSON.stringify({ weapons: player.weapons, passives: player.passives, maxHp: Math.round(player.maxHp), armor: Math.round(player.armor), specialist: player.specialist, hasteState: [player.hotTime > 0, player.hasteBuff > 0, player.frenzy > 0], damage: Object.fromEntries(Object.entries(player.damageBySource || {}).map(([id, value]) => [id, Math.floor(value / 25)])) });
@@ -1805,33 +1904,52 @@ function returnToLobby() {
   discardRecovery({ notify: false });
   resetInputProtocol();
   state.sim = null; state.snapshot = null; state.previousSnapshot = null; state.replayRecorder = null; state.endShown = false; clearTimeout(state.resultTimer);
+  state.squadPresence.reset(); state.lastPresenceAnnouncement = ""; clearTimeout(state.authorityRestoreTimer); state.authorityRestoreTimer = null; setAuthorityState("active", { restoreFocus: false });
   for (const member of state.lobby.values()) member.ready = member.id === state.clientId && state.isHost;
   if (state.ws?.readyState === WebSocket.OPEN) send({ type: "return_lobby" });
   enterLobby(); if (state.isHost) broadcastLobby(); else updateLocalProfile({ ready: false });
+  requestAnimationFrame(() => $("ready-button").focus());
 }
 
 function leaveToHome() {
   closeSocket(); state.sim = null; state.snapshot = null; state.replayRecorder = null; state.resultGame = null; state.lobby.clear();
+  state.squadPresence.reset(); state.lastPresenceAnnouncement = ""; clearTimeout(state.authorityRestoreTimer); state.authorityRestoreTimer = null; setAuthorityState("active", { restoreFocus: false });
   const url = new URL(location.href); url.searchParams.delete("room"); history.replaceState(null, "", url);
-  setScreen("home"); updateProgressionUI();
+  setScreen("home"); updateProgressionUI(); refreshRecoveryOffer();
+  requestAnimationFrame(() => $("callsign-input").focus());
 }
 
 function rememberRoomInUrl(code) {
   const url = new URL(location.href); url.searchParams.set("room", code); history.replaceState(null, "", url);
 }
 
-function scheduleRoomReconnect() {
+function scheduleRoomReconnect({ immediate = false } = {}) {
   if (state.reconnectTimer || state.connecting || state.partyMode === "solo" || !state.room || !["game", "result"].includes(state.screen)) return;
   if (state.reconnectAttempts >= RECONNECT_DELAYS_MS.length) {
     setAuthorityState("unavailable", { reason: "reconnect-exhausted" }); return;
   }
-  const delay = RECONNECT_DELAYS_MS[state.reconnectAttempts];
+  if (navigator.onLine === false) { setAuthorityState("reconnecting", { attempt: state.reconnectAttempts, phase: "offline" }); return; }
+  const delay = immediate ? 0 : RECONNECT_DELAYS_MS[state.reconnectAttempts];
+  setAuthorityState("reconnecting", { attempt: state.reconnectAttempts, nextRetryMs: delay, phase: "waiting" });
   state.reconnectTimer = setTimeout(() => {
     state.reconnectTimer = null; state.reconnectAttempts++;
-    connectRoom(state.room, { reconnecting: true }).then(() => {
-      state.reconnectAttempts = 0; toast("Relay restored · synchronizing authority");
+    setAuthorityState("reconnecting", { attempt: state.reconnectAttempts, phase: "connecting" });
+    connectRoom(state.room, { reconnecting: true }).then((welcome) => {
+      state.reconnectAttempts = 0;
+      if (!welcome.hostId && welcome.role !== "host") {
+        setAuthorityState("unavailable", { reason: "no-compatible-successor" });
+        toast("Relay restored · no compatible authority survived"); return;
+      }
+      setAuthorityState("synchronizing"); toast("Relay restored · synchronizing authority");
     }).catch(() => scheduleRoomReconnect());
   }, delay);
+}
+
+function retryRoomConnection() {
+  if (state.connecting || state.partyMode === "solo" || !state.room) return;
+  clearTimeout(state.reconnectTimer); state.reconnectTimer = null;
+  if (state.authorityState === "unavailable") state.reconnectAttempts = 0;
+  scheduleRoomReconnect({ immediate: true });
 }
 
 function connectRoom(code, { reconnecting = false } = {}) {
@@ -1860,6 +1978,8 @@ function connectRoom(code, { reconnecting = false } = {}) {
       if (state.ws === ws) state.ws = null;
       const rejectConnection = state.connectReject; state.connectReject = null; rejectConnection?.(new Error("Relay connection closed")); state.connecting = false;
       if (state.screen === "game" && state.partyMode !== "solo") {
+        const visibleGame = state.sim || state.snapshot, localPlayer = visibleGame?.players?.find(({ id }) => id === state.clientId);
+        if (localPlayer) announcePresence(state.squadPresence.disconnect(localPlayer, presenceTick(visibleGame)));
         setAuthorityState("reconnecting"); toast("Squad connection lost · operation frozen");
         captureClientError("network", "Squad relay connection closed during a run");
         scheduleRoomReconnect();
@@ -1873,26 +1993,30 @@ function connectRoom(code, { reconnecting = false } = {}) {
 function handleNetworkMessage(raw) {
   let message; try { message = JSON.parse(raw); } catch { return; }
   if (message.type === "welcome") {
+    const recoveringAuthority = ["reconnecting", "synchronizing"].includes(state.authorityState);
     state.clientId = message.id; state.isHost = message.role === "host"; state.authorityEpoch = Number(message.authorityEpoch || 0); state.authorityHostId = message.hostId || (state.isHost ? message.id : ""); state.lobby = new Map();
     guestInputSequences.setEpoch(state.authorityEpoch);
     if (state.authorityHostId) {
       authoritySnapshotGate.commit({ epoch: state.authorityEpoch, hostId: state.authorityHostId });
-      if (state.authorityState === "reconnecting") setAuthorityState("active");
+      if (recoveringAuthority) setAuthorityState("synchronizing");
     }
     for (const peer of message.peers || []) state.lobby.set(peer.id, { id: peer.id, name: peer.name || "Connecting…", specialist: peer.specialist || "zuri", ready: false });
     state.lobby.set(state.clientId, { id: state.clientId, name: callsign(), specialist: state.selected, ready: state.isHost, resumeToken: state.resumeToken });
     send({ type: "profile", profile: state.lobby.get(state.clientId) }); state.connectResolve?.(message); state.connectResolve = null; state.connectReject = null; return;
   }
   if (message.type === "peer_joined") {
-    if (state.isHost) { state.lobby.set(message.peer.id, { id: message.peer.id, name: message.peer.name || "Connecting…", specialist: message.peer.specialist || "zuri", ready: false }); broadcastLobby(); }
+    if (state.isHost) { state.lobby.set(message.peer.id, { id: message.peer.id, name: message.peer.name || "Connecting…", specialist: message.peer.specialist || "zuri", ready: false, ...(Number.isInteger(message.peer.replaySlot) ? { replaySlot: message.peer.replaySlot } : {}) }); broadcastLobby(); }
   } else if (message.type === "peer_left") {
     const departed = state.lobby.get(message.id);
+    const visibleGame = state.sim || state.snapshot;
+    const departingPlayer = visibleGame?.players?.find(({ id }) => id === message.id) || (Number.isInteger(departed?.replaySlot) ? departed : null);
+    if (departingPlayer) announcePresence(state.squadPresence.disconnect({ ...departingPlayer, name: departed?.name || departingPlayer.name, specialist: departed?.specialist || departingPlayer.specialist }, presenceTick(visibleGame)));
     if (state.isHost && state.sim && state.replayRecorder) {
       try { state.replayRecorder.recordLeave(message.id, state.sim.tick); } catch { /* A pre-run peer has no replay slot. */ }
     }
     hostInputSequences.remove(message.id); state.lobby.delete(message.id);
-    const departingPlayer = state.sim?.players.find(({ id }) => id === message.id);
-    if (departingPlayer && Number.isInteger(departingPlayer.replaySlot)) departingPlayer.reconnectKey = `migration-slot-${departingPlayer.replaySlot}`;
+    const hostedPlayer = state.sim?.players.find(({ id }) => id === message.id);
+    if (hostedPlayer && Number.isInteger(hostedPlayer.replaySlot)) hostedPlayer.reconnectKey = `migration-slot-${hostedPlayer.replaySlot}`;
     state.sim?.removePlayer(message.id);
     if (state.isHost && state.sim && state.screen === "game") state.sim.pushEvent("danger", `${departed?.name || "A specialist"} disconnected`, "Their callsign is reserved for three minutes");
     if (state.screen === "lobby") renderLobby(); if (state.isHost) broadcastLobby();
@@ -1921,24 +2045,37 @@ function handleNetworkMessage(raw) {
       const resumed = Boolean(player?.reconnected); if (player) delete player.reconnected;
       if (player && state.sim.players.some((entry) => entry !== player && entry.replaySlot === player.replaySlot)) player.replaySlot = availableReplaySlot;
       if (player && state.replayRecorder) state.replayRecorder.registerPlayer(message._from, player.specialist, { slot: player.replaySlot, tick: state.sim.tick, reconnect: resumed });
+      if (player) {
+        const presence = resumed ? state.squadPresence.restore(player, state.sim.tick) : state.squadPresence.connect(player, state.sim.tick);
+        if (resumed) announcePresence(presence, state.sim.tick);
+        state.lobby.set(message._from, { ...state.lobby.get(message._from), replaySlot: player.replaySlot });
+      }
       if (player && !resumed) {
         const anchor = state.sim.players.find((entry) => entry.id !== player.id && !entry.dead && !entry.downed);
         if (anchor) { player.x = anchor.x + 45; player.y = anchor.y + 25; }
         player.invuln = 5;
       }
       state.sim.pushEvent("boon", `${player?.name || message.profile.name} ${resumed ? "reconnected" : "joined the run"}`, resumed ? "Loadout and progress restored" : "Deployed at the squad position");
-      send({ type: "sync_game", config: state.config, players: publicLobbyPlayers(), state: state.sim.snapshot() }, message._from);
+      sendRunSync(message._from);
       toast(`${player?.name || message.profile.name} ${resumed ? "reconnected" : "joined"}`);
+    } else if (state.sim && state.screen === "result") {
+      sendRunSync(message._from);
     }
     broadcastLobby(); if (state.screen === "lobby") renderLobby();
   } else if (message.type === "lobby_state" && !state.isHost) {
     state.config = message.config; state.lobby = new Map(message.players.map((p) => [p.id, p])); if (state.screen === "lobby") renderLobby();
   } else if (message.type === "start" && !state.isHost) startRemoteGame(message);
   else if (message.type === "sync_game" && !state.isHost) {
+    const recoveringAuthority = ["reconnecting", "synchronizing"].includes(state.authorityState);
     state.lobby = new Map((message.players || []).map((player) => [player.id, player]));
-    startRemoteGame(message); state.snapshot = message.state; state.snapshotAt = performance.now();
+    const recoveringResult = recoveringAuthority && state.screen === "result";
+    if (!recoveringResult) startRemoteGame(message);
+    state.snapshot = message.state; state.snapshotAt = performance.now();
+    if (recoveringResult) state.resultGame = message.state;
+    for (const transition of state.squadPresence.observe(state.snapshot?.players || [], presenceTick(state.snapshot))) announcePresence(transition, presenceTick(state.snapshot));
     movementPredictor.sync(state.snapshot?.players?.find((player) => player.id === state.clientId));
-    toast("Joined operation in progress");
+    if (recoveringAuthority) { finishAuthorityRestoration(); toast("Operation restored · run state synchronized"); }
+    else toast("Joined operation in progress");
   }
   else if (message.type === "return_lobby" && !state.isHost) returnToLobby();
   else if (message.type === "input" && state.isHost) applyGuestNetworkInput(message);
@@ -1964,11 +2101,13 @@ function handleNetworkMessage(raw) {
     if (snapshotMessage.protocolVersion) guestInputSequences.acknowledge(snapshotMessage.ack[state.clientId], now);
     else guestInputSequences.observeLegacySnapshot(now);
     state.previousSnapshot = state.snapshot; state.snapshot = snapshotMessage.state; state.snapshotAt = now;
+    for (const transition of state.squadPresence.observe(state.snapshot?.players || [], presenceTick(state.snapshot))) announcePresence(transition, presenceTick(state.snapshot));
     const predicted = movementPredictor.sync(state.snapshot?.players?.find((player) => player.id === state.clientId));
     if (predicted && movementPredictor.lastCorrectionDistance > 0) {
       const corrections = state.performanceMetrics?.predictionCorrections;
       if (corrections) { corrections.push(movementPredictor.lastCorrectionDistance); if (corrections.length > 600) corrections.splice(0, 60); }
     }
+    if (state.authorityState === "synchronizing") finishAuthorityRestoration();
   }
 }
 
@@ -1978,7 +2117,16 @@ function broadcastLobby() {
 }
 
 function publicLobbyPlayers() {
-  return [...state.lobby.values()].map(({ id, name, specialist, ready }) => ({ id, name, specialist, ready: Boolean(ready) }));
+  return [...state.lobby.values()].map(({ id, name, specialist, ready, replaySlot }) => ({
+    id, name, specialist, ready: Boolean(ready),
+    ...(Number.isInteger(replaySlot) ? { replaySlot } : {}),
+  }));
+}
+
+function sendRunSync(targetId) {
+  if (!state.isHost || !state.sim || !targetId) return false;
+  send({ type: "sync_game", config: state.config, players: publicLobbyPlayers(), state: state.sim.snapshot() }, targetId);
+  return true;
 }
 
 function send(message, targetId = "") {
@@ -2036,6 +2184,7 @@ function gameDiagnostics() {
       failureReason: state.migrationFailureReason || null,
       snapshotGate: authoritySnapshotGate.diagnostics(),
     },
+    squadPresence: state.squadPresence.view().map(({ replaySlot, status, statusSinceTick, deadlineTick }) => ({ replaySlot, status, statusSinceTick, deadlineTick })),
     networkLab: state.networkLab ? (() => { const { seed, ...diagnostics } = state.networkLab.diagnostics(); return diagnostics; })() : { active: false, reason: NETWORK_LAB_ACTIVATION.reason },
     runtimeConfig: {
       version: state.runtimeConfig.config.configVersion,
@@ -2058,10 +2207,12 @@ function gameDiagnostics() {
   };
 }
 
+function reportLocation() { return `${location.origin}${location.pathname}`; }
+
 function diagnosticText() {
   return JSON.stringify({
     capturedAt: new Date().toISOString(),
-    url: location.href,
+    url: reportLocation(),
     game: gameDiagnostics(),
     viewport: { width: innerWidth, height: innerHeight, devicePixelRatio },
     userAgent: navigator.userAgent,
@@ -2083,7 +2234,7 @@ function openReport() {
   const game = gameDiagnostics();
   clearReportNote();
   state.resumeAfterReport = false;
-  if (state.screen === "game" && state.isHost && state.sim && !state.sim.paused) { togglePause(true); state.resumeAfterReport = true; }
+  if (state.screen === "game" && state.authorityState === "active" && state.isHost && state.sim && !state.sim.paused) { togglePause(true); state.resumeAfterReport = true; }
   $("report-context").textContent = `BUILD ${BUILD} · ${game.screen.toUpperCase()} · ${game.map || "NO MAP"} / ${game.difficulty || "NO TIER"} · ${game.multiplayerRole.toUpperCase()} · ${state.recentErrors.length} RECENT ERROR${state.recentErrors.length === 1 ? "" : "S"}`;
   $("report-status").textContent = ""; $("report-status").className = "report-status";
   $("report-screenshot").disabled = state.screen !== "game";
@@ -2113,10 +2264,10 @@ async function submitReport(event) {
     kind: "vellum.feedback", version: 1, project: "lastlight", capturedAt: new Date().toISOString(),
     note: `[${$("report-category").value}] ${note}`,
     reporter: { flow: "public-user", signedIn: false, userLabel: (contact || callsign()).slice(0, 180) },
-    url: location.href,
+    url: reportLocation(),
     diagnostics: {
       app: "lastlight", build: BUILD, game,
-      route: { viewMode: state.screen, path: location.pathname, search: location.search, activeLocation: game.map || state.screen },
+      route: { viewMode: state.screen, path: location.pathname, search: "", activeLocation: game.map || state.screen },
       browser: { viewport: { width: innerWidth, height: innerHeight, devicePixelRatio }, userAgent: navigator.userAgent },
     },
     recentHistory: [
@@ -2438,6 +2589,22 @@ function bindEvents() {
   $("lobby-back").addEventListener("click", leaveToHome); $("ready-button").addEventListener("click", handleReady); $("copy-link").addEventListener("click", copyInvite);
   $("pause-button").addEventListener("click", () => togglePause()); $("resume-button").addEventListener("click", () => togglePause(false)); $("abandon-button").addEventListener("click", abandon);
   $("network-state-return").addEventListener("click", leaveToHome);
+  $("network-state-retry").addEventListener("click", retryRoomConnection);
+  $("network-state-report").addEventListener("click", openReport);
+  $("network-state-overlay").addEventListener("keydown", trapAuthorityFocus);
+  window.addEventListener("offline", () => {
+    if (state.partyMode === "solo" || !["game", "result"].includes(state.screen)) return;
+    const visibleGame = state.sim || state.snapshot, localPlayer = visibleGame?.players?.find(({ id }) => id === state.clientId);
+    if (localPlayer) announcePresence(state.squadPresence.disconnect(localPlayer, presenceTick(visibleGame)));
+    clearTimeout(state.reconnectTimer); state.reconnectTimer = null;
+    // A browser may keep a WebSocket reporting OPEN while the network is gone. Close it
+    // deliberately so the authority stops applying held input and host election can begin.
+    closeSocket({ preserveReconnect: true });
+    setAuthorityState("reconnecting", { attempt: state.reconnectAttempts, phase: "offline" });
+  });
+  window.addEventListener("online", () => {
+    if (state.authorityState === "reconnecting" && !state.connecting) scheduleRoomReconnect({ immediate: true });
+  });
   $("enemy-health-bars-toggle").addEventListener("change", (event) => setEnemyHealthBars(event.target.value));
   $("again-button").addEventListener("click", returnToLobby); $("result-home").addEventListener("click", leaveToHome);
   $("watch-replay").addEventListener("click", openReplayViewer);
@@ -2569,6 +2736,7 @@ if (localHost) Object.defineProperty(window, "__lastlightQA", { value: Object.fr
     reconnectAttempts: state.reconnectAttempts,
     socketState: state.ws?.readyState ?? WebSocket.CLOSED,
   }),
+  squadState: () => state.squadPresence.view().map(({ replaySlot, name, specialist, status, statusSinceTick, deadlineTick }) => ({ replaySlot, name, specialist, status, statusSinceTick, deadlineTick })),
   disconnectRelay: () => {
     if (!state.ws || state.ws.readyState !== WebSocket.OPEN) return false;
     state.ws.close(4101, "QA authority loss");

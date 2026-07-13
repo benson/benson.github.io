@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260713.2">
+  <link rel="stylesheet" href="styles.css?v=20260713.3">
 </head>
 <body>
   <main id="app">
@@ -233,7 +233,7 @@
       <canvas id="game-canvas" tabindex="0" aria-label="Lastlight game arena"></canvas>
       <div class="scanlines" aria-hidden="true"></div>
       <header class="game-topbar">
-        <div class="squad-hud" id="squad-hud"></div>
+        <div class="squad-hud" id="squad-hud" role="list" aria-label="Squad connection and health status"></div>
         <div class="timer-hud">
           <span id="wave-label">Wave 01 · Contact</span>
           <strong id="game-timer">04:00</strong>
@@ -271,17 +271,6 @@
         <p id="inspect-copy"></p>
         <dl id="inspect-details"></dl>
       </aside>
-
-      <div id="network-state-overlay" class="overlay network-state-overlay hidden" role="alert" aria-live="assertive" aria-atomic="true" aria-labelledby="network-state-title" aria-describedby="network-state-copy" data-state="active">
-        <div class="network-state-card">
-          <span class="network-state-mark" aria-hidden="true">↻</span>
-          <p class="eyebrow">Squad authority // verified recovery</p>
-          <h2 id="network-state-title">MIGRATING HOST</h2>
-          <p id="network-state-copy">The operation is frozen while deterministic authority is restored.</p>
-          <div class="network-state-steps" aria-hidden="true"><i></i><i></i><i></i></div>
-          <button id="network-state-return" class="deploy-button hidden" type="button"><span>Return home</span><span>Safe exit</span></button>
-        </div>
-      </div>
 
       <div id="upgrade-overlay" class="overlay upgrade-overlay hidden">
         <div class="upgrade-panel">
@@ -383,6 +372,24 @@
         </div>
       </div>
     </section>
+
+    <div id="squad-connection-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+    <div id="network-state-announcement" class="sr-only" role="alert" aria-live="assertive" aria-atomic="true"></div>
+    <div id="network-state-overlay" class="overlay network-state-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="network-state-title" aria-describedby="network-state-copy network-state-progress" data-state="active">
+      <div class="network-state-card" tabindex="-1">
+        <span id="network-state-mark" class="network-state-mark" aria-hidden="true">↻</span>
+        <p class="eyebrow">Squad authority // verified recovery</p>
+        <h2 id="network-state-title">MIGRATING HOST</h2>
+        <p id="network-state-copy">The operation is frozen while deterministic authority is restored.</p>
+        <p id="network-state-progress" class="network-state-progress" aria-live="polite">Verification pending</p>
+        <div class="network-state-steps" aria-hidden="true"><i></i><i></i><i></i></div>
+        <div class="network-state-actions">
+          <button id="network-state-retry" class="secondary-button hidden" type="button">Retry now</button>
+          <button id="network-state-report" class="secondary-button" type="button">Report problem</button>
+          <button id="network-state-return" class="deploy-button" type="button"><span>Leave run</span><span>Safe exit</span></button>
+        </div>
+      </div>
+    </div>
 
     <dialog id="replay-dialog" class="replay-dialog" aria-labelledby="replay-title">
       <div class="manual-header replay-header">
@@ -529,7 +536,18 @@
       <div class="build-history-body">
         <article class="build-release current-build">
           <header>
-            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.13.2</h3></div>
+            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.13.3</h3></div>
+            <span class="build-shipped-at">Deployment verification pending</span>
+          </header>
+          <ul>
+            <li>Added persistent replay-slot squad states for reconnecting, restored, and departed specialists, including tick-matched three-minute seat reservations.</li>
+            <li>Kept reconnecting clients frozen through transport recovery until a current authoritative snapshot or exact run sync arrives.</li>
+            <li>Added mobile-visible status pills, one-shot accessible announcements, explicit retry/offline progress, safe exit/report actions, and reason-specific terminal recovery copy.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.13.2</h3></div>
             <time class="build-shipped-at" datetime="2026-07-13T02:32:00-04:00">Shipped Jul 13, 2026 · 2:32 AM EDT</time>
           </header>
           <ul>
@@ -905,8 +923,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.13.2. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.13.2</strong></button>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.13.3. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.13.3</strong></button>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260713.2"></script>
+  <script type="module" src="game.js?v=20260713.3"></script>
 </body>
 </html>

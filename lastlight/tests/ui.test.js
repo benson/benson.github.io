@@ -161,7 +161,7 @@ test("the report hotkey is global but yields to typing and open dialogs", () => 
   assert.match(game, /shouldOpenReportShortcut\(event, \{ isTyping, dialogOpen \}\)/);
   assert.match(game, /if \(isTyping \|\| dialogOpen \|\| state\.screen !== "game"\) return/);
   assert.doesNotMatch(game, /state\.screen !== "game"\) return;\s*const key[\s\S]{0,500}reportKey/);
-  assert.match(game, /state\.screen === "game" && state\.isHost && state\.sim && !state\.sim\.paused/);
+  assert.match(game, /state\.screen === "game" && state\.authorityState === "active" && state\.isHost && state\.sim && !state\.sim\.paused/);
   assert.match(game, /state\.resumeAfterReport && state\.screen === "game" && state\.isHost && state\.sim\?\.paused && state\.sim\.pauseReason === "manual"/);
 });
 
@@ -236,7 +236,7 @@ test("reconnect identity is tab-scoped so a second tab cannot steal the first ta
 });
 
 test("authority loss freezes controls, cancels stale results, and retries the same room", () => {
-  assert.match(game, /const RECONNECT_DELAYS_MS = Object\.freeze\(\[/);
+  assert.match(game, /import \{ RECONNECT_DELAYS_MS, SquadPresenceTracker, authorityStateCopy \}/);
   assert.match(game, /connectRoom\(state\.room, \{ reconnecting: true \}\)/);
   assert.match(game, /rememberRoomInUrl\(code\)/);
   assert.match(game, /url\.searchParams\.delete\("room"\)/);
@@ -244,6 +244,15 @@ test("authority loss freezes controls, cancels stale results, and retries the sa
   assert.match(game, /state\.authorityState !== "active"/);
   assert.match(game, /clearTimeout\(state\.resultTimer\); state\.resultTimer = null; state\.endShown = false/);
   assert.match(game, /message\.migrated && \["game", "result"\]\.includes\(state\.screen\)/);
+});
+
+test("going offline closes an apparently live relay before waiting without consuming attempts", () => {
+  assert.match(game, /window\.addEventListener\("offline", \(\) => \{[\s\S]+?clearTimeout\(state\.reconnectTimer\); state\.reconnectTimer = null;[\s\S]+?closeSocket\(\{ preserveReconnect: true \}\);[\s\S]+?setAuthorityState\("reconnecting", \{ attempt: state\.reconnectAttempts, phase: "offline" \}\);/);
+  assert.match(game, /if \(navigator\.onLine === false\) \{ setAuthorityState\("reconnecting", \{ attempt: state\.reconnectAttempts, phase: "offline" \}\); return; \}/);
+});
+
+test("a reconnect welcome without a live authority fails closed instead of synchronizing forever", () => {
+  assert.match(game, /connectRoom\(state\.room, \{ reconnecting: true \}\)\.then\(\(welcome\) => \{[\s\S]+?if \(!welcome\.hostId && welcome\.role !== "host"\) \{[\s\S]+?setAuthorityState\("unavailable", \{ reason: "no-compatible-successor" \}\);/);
 });
 
 test("localhost QA can inspect authority and deliberately exercise relay loss", () => {
@@ -254,10 +263,27 @@ test("localhost QA can inspect authority and deliberately exercise relay loss", 
   assert.match(game, /if \(localHost\) Object\.defineProperty\(window, "__lastlightQA"/);
 });
 
-test("a rejoined client adopts the current authority epoch and leaves reconnecting state", () => {
+test("a rejoined client adopts the current authority epoch but stays frozen until authoritative sync", () => {
   assert.match(game, /guestInputSequences\.setEpoch\(state\.authorityEpoch\)/);
   assert.match(game, /authoritySnapshotGate\.commit\(\{ epoch: state\.authorityEpoch, hostId: state\.authorityHostId \}\)/);
-  assert.match(game, /if \(state\.authorityState === "reconnecting"\) setAuthorityState\("active"\)/);
+  assert.match(game, /if \(recoveringAuthority\) setAuthorityState\("synchronizing"\)/);
+  assert.match(game, /if \(recoveringAuthority\) \{ finishAuthorityRestoration\(\); toast\("Operation restored · run state synchronized"\); \}/);
+  assert.match(game, /if \(state\.authorityState === "synchronizing"\) finishAuthorityRestoration\(\)/);
+  assert.doesNotMatch(game, /state\.authorityState === "reconnecting"\) setAuthorityState\("active"\)/);
+});
+
+test("feedback diagnostics strip room, relay, token, and network-lab query parameters", () => {
+  assert.match(game, /function reportLocation\(\) \{ return `\$\{location\.origin\}\$\{location\.pathname\}`; \}/);
+  assert.equal((game.match(/url: reportLocation\(\)/g) || []).length, 2);
+  assert.match(game, /route: \{ viewMode: state\.screen, path: location\.pathname, search: ""/);
+  assert.doesNotMatch(game.slice(game.indexOf("function diagnosticText"), game.indexOf("function captureClientError")), /location\.(?:href|search)/);
+});
+
+test("result-screen recovery also waits for an authoritative ended-run sync", () => {
+  assert.doesNotMatch(game, /state\.screen === "result" \? finishAuthorityRestoration\(\) : setAuthorityState\("synchronizing"\)/);
+  assert.match(game, /if \(recoveringAuthority\) setAuthorityState\("synchronizing"\)/);
+  assert.match(game, /const recoveringResult = recoveringAuthority && state\.screen === "result";[\s\S]+?if \(!recoveringResult\) startRemoteGame\(message\);[\s\S]+?if \(recoveringResult\) state\.resultGame = message\.state;/);
+  assert.match(game, /else if \(state\.sim && state\.screen === "result"\) \{\s*sendRunSync\(message\._from\);/);
 });
 
 test("enemy identity guide stays named and reachable on mobile", () => {
