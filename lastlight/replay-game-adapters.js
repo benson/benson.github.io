@@ -1,15 +1,9 @@
-import { Simulation } from "./engine.js?v=20260713.2";
-import { LEGACY_REPLAY_SCHEMA, hashSimulationState } from "./replay.js?v=20260713.2";
+import { Simulation } from "./engine.js?v=20260713.6";
+import { hashSimulationState, replayGameplayFeatures } from "./replay.js?v=20260713.6";
 
 export function anonymousReplayToken(slot) {
   const digit = Math.max(0, Math.min(3, Number(slot) || 0)) + 1;
   return digit.toString(16).repeat(24);
-}
-
-function replayFeatures(replay) {
-  return replay.schema === LEGACY_REPLAY_SCHEMA
-    ? { gameplayVersion: "events-v1", objectiveEvents: true }
-    : { gameplayVersion: replay.features.gameplayVersion, objectiveEvents: replay.features.objectiveEvents };
 }
 
 export function createGameReplayAdapters() {
@@ -27,7 +21,7 @@ export function createGameReplayAdapters() {
 
   return Object.freeze({
     createSimulation(replay) {
-      const features = replayFeatures(replay);
+      const features = replayGameplayFeatures(replay);
       const simulation = new Simulation({
         ...replay.run, features,
         players: replay.roster.map(({ slot, specialist }) => ({

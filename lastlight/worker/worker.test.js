@@ -9,7 +9,8 @@ import {
 
 const migrationCompatibility = {
   build: "2026.07.13.1", balanceVersion: "2026.07.13-apex.1", balanceHash: "fnv1a32:873c43bc",
-  configVersion: "release-2026.07.13.1", gameplayVersion: "events-v1", objectiveEvents: true,
+  configVersion: "release-2026.07.13.6", gameplayVersion: "synergies-v1", objectiveEvents: true,
+  squadSynergies: true, registryVersion: "lastlight.squad-synergy.v1", recoveryVersion: 4,
 };
 const migrationCapabilities = createMigrationCapabilities(migrationCompatibility);
 const migrationSocket = () => ({ sent: [], send(payload) { this.sent.push(JSON.parse(payload)); } });
@@ -33,6 +34,19 @@ const validTelemetry = {
   damageTaken: 93.2,
   revives: 1,
   distanceTraveled: 1740.1,
+};
+const validTelemetryV2 = {
+  ...validTelemetry,
+  schemaVersion: 2,
+  synergyIds: ["ultimate-resonance", "breach-window", "moving-screen"],
+  synergyTotals: {
+    triggers: 9,
+    damage: 321.3,
+    shielding: 84.4,
+    mitigated: 26.1,
+    formationSeconds: 73.3,
+    ultimateChains: 2,
+  },
 };
 
 function telemetryRequest(payload = validTelemetry, init = {}) {
@@ -58,11 +72,14 @@ test("profiles discard markup and constrain specialist ids", () => {
   assert.equal(safeProfile({ resumeToken: "a".repeat(24) }).resumeToken, "a".repeat(24));
 });
 
-test("run telemetry is normalized into a fixed aggregate schema", () => {
+test("rolling telemetry accepts v1 and normalizes v2 into fixed aggregate schemas", () => {
   const run = sanitizeRunTelemetry(validTelemetry);
   assert.deepEqual(run.specialists, ["echo", "zuri"]);
   assert.equal(run.damageDealt, 2000.3);
   assert.equal(Object.hasOwn(run, "name"), false);
+  const v2 = sanitizeRunTelemetry(validTelemetryV2);
+  assert.deepEqual(v2.synergyIds, ["breach-window", "moving-screen", "ultimate-resonance"]);
+  assert.deepEqual(v2.synergyTotals, validTelemetryV2.synergyTotals);
 });
 
 test("telemetry endpoint writes one identity-free Analytics Engine datapoint", async () => {
@@ -79,6 +96,51 @@ test("telemetry endpoint writes one identity-free Analytics Engine datapoint", a
     indexes: ["lastlight-run-v1"],
   });
   assert.doesNotMatch(JSON.stringify(writes), /name|room|ip/i);
+});
+
+test("telemetry v2 writes a distinct aggregate-only Analytics Engine datapoint", async () => {
+  const writes = [];
+  const response = await worker.fetch(telemetryRequest(validTelemetryV2), {
+    RUN_TELEMETRY: { writeDataPoint: (point) => writes.push(point) },
+  });
+  assert.equal(response.status, 202);
+  assert.deepEqual(writes, [{
+    blobs: [
+      "run.v2", "2026.07.10.1", "warehouse", "story", "won", "squad", "echo,zuri",
+      "breach-window,moving-screen,ultimate-resonance",
+    ],
+    doubles: [
+      2, 240, 258.3, 7, 12, 321, 99, 830.3, 2000.3, 93.2, 1, 1740.1,
+      9, 321.3, 84.4, 26.1, 73.3, 2,
+    ],
+    indexes: ["lastlight-run-v2"],
+  }]);
+  assert.doesNotMatch(JSON.stringify(writes), /callsign|playerName|roomId|ipAddress|replaySlot|resumeToken/i);
+});
+
+test("telemetry v2 rejects unknown or duplicate ids, nested identity, and totals beyond caps", async () => {
+  const invalidPayloads = [
+    { ...validTelemetryV2, synergyIds: ["private-combo"] },
+    { ...validTelemetryV2, synergyIds: ["breach-window", "breach-window"] },
+    { ...validTelemetryV2, synergyTotals: { ...validTelemetryV2.synergyTotals, playerName: "Benson" } },
+    { ...validTelemetryV2, synergyTotals: { ...validTelemetryV2.synergyTotals, damage: 1_000_000_001 } },
+    { ...validTelemetryV2, synergyTotals: { ...validTelemetryV2.synergyTotals, ultimateChains: 1.5 } },
+    { ...validTelemetryV2, synergyIds: [], synergyTotals: { ...validTelemetryV2.synergyTotals, triggers: 1 } },
+  ];
+  for (const payload of invalidPayloads) {
+    const writes = [];
+    const response = await worker.fetch(telemetryRequest(payload), {
+      RUN_TELEMETRY: { writeDataPoint: (point) => writes.push(point) },
+    });
+    assert.equal(response.status, 400);
+    assert.equal(writes.length, 0);
+  }
+});
+
+test("rolling telemetry schemas reject cross-version fields", () => {
+  assert.throws(() => sanitizeRunTelemetry({ ...validTelemetry, synergyIds: [], synergyTotals: {} }), /Unexpected telemetry field/);
+  assert.throws(() => sanitizeRunTelemetry({ ...validTelemetryV2, schemaVersion: 2, synergyTotals: undefined }), /Invalid synergyTotals/);
+  assert.throws(() => sanitizeRunTelemetry({ ...validTelemetryV2, schemaVersion: 3 }), /Unsupported telemetry schema/);
 });
 
 test("telemetry rejects identity fields instead of silently persisting them", async () => {
@@ -117,11 +179,12 @@ test("telemetry endpoint enforces method, type, size, origin, and CORS", async (
 
 test("runtime config endpoint is allowlisted, no-store, origin-aware, and read-only", async () => {
   const config = {
-    schemaVersion: 1, configVersion: "rollback-42", gameplayVersion: "events-off-v1",
+    schemaVersion: 2, configVersion: "rollback-42", gameplayVersion: "synergies-off-v1",
+    registryVersion: "lastlight.squad-synergy.v1",
     flags: {
       deterministicReplay: false, runTelemetry: false, objectiveEvents: false,
       migrationCheckpointReplication: false, hostMigrationElection: false, hostMigrationResume: false,
-      contextualPings: false, upgradeRecommendations: false,
+      contextualPings: false, upgradeRecommendations: false, squadSynergies: false,
     },
   };
   const env = { LASTLIGHT_RUNTIME_CONFIG: JSON.stringify(config) };
@@ -144,7 +207,7 @@ test("invalid operator config fails closed to immutable release defaults", () =>
   assert.deepEqual(invalid.config.flags, {
     deterministicReplay: true, runTelemetry: true, objectiveEvents: true,
     migrationCheckpointReplication: true, hostMigrationElection: true, hostMigrationResume: true,
-    contextualPings: true, upgradeRecommendations: true,
+    contextualPings: true, upgradeRecommendations: true, squadSynergies: true,
   });
   assert.equal(operatorRuntimeConfig({}).source, "built-in");
 });
@@ -220,7 +283,7 @@ test("room identity is established by the first message instead of the request U
   assert.equal(room.hostId, "first");
   assert.equal(room.sessions.get(socket).name, "Private Pilot");
   assert.equal(room.sessions.get(socket).resumeToken, "a".repeat(24));
-  assert.deepEqual(socket.sent, [{ type: "welcome", id: "first", role: "host", hostId: "first", peers: [], authorityEpoch: 0, migrationProtocol: 1 }]);
+  assert.deepEqual(socket.sent, [{ type: "welcome", id: "first", role: "host", hostId: "first", peers: [], authorityEpoch: 0, migrationProtocol: 2 }]);
 });
 
 test("reconnect tokens stay relay-private when profiles are routed", () => {
@@ -266,7 +329,7 @@ test("a session can only be initialized once by the hello handshake", () => {
   assert.equal(room.initializeSession(socket, session, { name: "Ignored", specialist: "fang" }), false);
   assert.equal(session.name, "First");
   assert.equal(session.specialist, "echo");
-  assert.deepEqual(socket.sent, [{ type: "welcome", id: "handshake", role: "host", hostId: "handshake", peers: [], authorityEpoch: 0, migrationProtocol: 1 }]);
+  assert.deepEqual(socket.sent, [{ type: "welcome", id: "handshake", role: "host", hostId: "handshake", peers: [], authorityEpoch: 0, migrationProtocol: 2 }]);
 });
 
 test("active host loss freezes routing and deterministically offers authority to the lowest replay slot", () => {
@@ -280,7 +343,7 @@ test("active host loss freezes routing and deterministically offers authority to
   const checkpoint = createMigrationCheckpoint({
     epoch: 0, tick: 180, hash: "0123456789abcdef", ack: { "slot-one": 4, "slot-two": 8 }, compatibility: migrationCompatibility,
     roster: [{ id: "host", replaySlot: 0 }, { id: "slot-one", replaySlot: 1 }, { id: "slot-two", replaySlot: 2 }],
-    simulation: { version: 3, scalars: { tick: 180 } }, replay: { currentTick: 180 },
+    simulation: { version: 4, scalars: { tick: 180 } }, replay: { currentTick: 180 },
   });
   assert.equal(room.acceptMigrationCheckpoint(hostSession, checkpoint), true);
 
@@ -310,7 +373,7 @@ test("migration rejects stale checkpoints, incompatible candidates, and forged r
   const checkpoint = createMigrationCheckpoint({
     epoch: 0, tick: 60, hash: "fedcba9876543210", ack: { guest: 1 }, compatibility: migrationCompatibility,
     roster: [{ id: "host", replaySlot: 0 }, { id: "guest", replaySlot: 1 }],
-    simulation: { version: 3, scalars: { tick: 60 } }, replay: null,
+    simulation: { version: 4, scalars: { tick: 60 } }, replay: null,
   });
   assert.equal(room.acceptMigrationCheckpoint(hostSession, checkpoint), true);
   assert.equal(room.acceptMigrationCheckpoint(hostSession, checkpoint), false);
@@ -332,7 +395,7 @@ function migrationFixture({ env = {}, hostToken = "a".repeat(24) } = {}) {
   const checkpoint = createMigrationCheckpoint({
     epoch: 0, tick: 180, hash: "0123456789abcdef", ack: { successor: 7, observer: 4 }, compatibility: migrationCompatibility,
     roster: [{ id: "host", replaySlot: 0 }, { id: "successor", replaySlot: 1 }, { id: "observer", replaySlot: 2 }],
-    simulation: { version: 3, scalars: { tick: 180 } }, replay: { currentTick: 180 },
+    simulation: { version: 4, scalars: { tick: 180 } }, replay: { currentTick: 180 },
   });
   return { room, host, successor, observer, hostSession, successorSession, observerSession, checkpoint, hostToken };
 }
@@ -390,11 +453,12 @@ test("active host loss without a checkpoint fails closed instead of promoting an
 
 test("disabled host migration fails closed even when a valid checkpoint exists", () => {
   const config = {
-    schemaVersion: 1, configVersion: "migration-off", gameplayVersion: "events-v1",
+    schemaVersion: 2, configVersion: "migration-off", gameplayVersion: "synergies-v1",
+    registryVersion: "lastlight.squad-synergy.v1",
     flags: {
       deterministicReplay: true, runTelemetry: true, objectiveEvents: true,
       migrationCheckpointReplication: true, hostMigrationElection: false, hostMigrationResume: true,
-      contextualPings: true, upgradeRecommendations: true,
+      contextualPings: true, upgradeRecommendations: true, squadSynergies: true,
     },
   };
   const fixture = migrationFixture({ env: { LASTLIGHT_RUNTIME_CONFIG: JSON.stringify(config) } });
@@ -431,7 +495,7 @@ test("a returning old host reclaims its checkpoint replay slot but remains a gue
       { id: "successor", replaySlot: 1 },
       { id: "observer", replaySlot: 2 },
     ],
-    authorityEpoch: 1, migrationProtocol: 1,
+    authorityEpoch: 1, migrationProtocol: 2,
   });
   assert.deepEqual(successor.sent.at(-1), {
     type: "peer_joined",
@@ -555,11 +619,12 @@ test("only the host can relay a strict ping broadcast and cannot forge a guest p
 
 test("the runtime rollback flag rejects request and broadcast paths", () => {
   const config = {
-    schemaVersion: 1, configVersion: "pings-off", gameplayVersion: "events-v1",
+    schemaVersion: 2, configVersion: "pings-off", gameplayVersion: "synergies-v1",
+    registryVersion: "lastlight.squad-synergy.v1",
     flags: {
       deterministicReplay: true, runTelemetry: true, objectiveEvents: true,
       migrationCheckpointReplication: true, hostMigrationElection: true, hostMigrationResume: true,
-      contextualPings: false, upgradeRecommendations: true,
+      contextualPings: false, upgradeRecommendations: true, squadSynergies: true,
     },
   };
   const { room, host, guest, observer } = pingRoomFixture({ LASTLIGHT_RUNTIME_CONFIG: JSON.stringify(config) });
@@ -600,7 +665,7 @@ test("ping rate state survives host migration while pending old-epoch pings do n
   const checkpoint = createMigrationCheckpoint({
     epoch: 0, tick: 180, hash: "0123456789abcdef", ack: { guest: 4, observer: 4 }, compatibility: migrationCompatibility,
     roster: [{ id: "host", replaySlot: 0 }, { id: "guest", replaySlot: 1 }, { id: "observer", replaySlot: 2 }],
-    simulation: { version: 3, scalars: { tick: 180 } }, replay: { currentTick: 180 },
+    simulation: { version: 4, scalars: { tick: 180 } }, replay: { currentTick: 180 },
   });
   assert.equal(room.acceptMigrationCheckpoint(hostSession, checkpoint), true);
   room.onClose(host);
@@ -761,7 +826,7 @@ test("host migration clears old-epoch recommendation intent while preserving slo
   const checkpoint = createMigrationCheckpoint({
     epoch: 0, tick: 180, hash: "0123456789abcdef", ack: { guest: 4, observer: 4 }, compatibility: migrationCompatibility,
     roster: [{ id: "host", replaySlot: 0 }, { id: "guest", replaySlot: 1 }, { id: "observer", replaySlot: 2 }],
-    simulation: { version: 3, scalars: { tick: 180 } }, replay: { currentTick: 180 },
+    simulation: { version: 4, scalars: { tick: 180 } }, replay: { currentTick: 180 },
   });
   assert.equal(room.acceptMigrationCheckpoint(hostSession, checkpoint), true);
   room.onClose(host);

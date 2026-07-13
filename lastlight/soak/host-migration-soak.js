@@ -180,6 +180,9 @@ function migrationCompatibility() {
     configVersion: DEFAULT_RUNTIME_CONFIG.configVersion,
     gameplayVersion: DEFAULT_RUNTIME_CONFIG.gameplayVersion,
     objectiveEvents: true,
+    squadSynergies: DEFAULT_RUNTIME_CONFIG.flags.squadSynergies,
+    registryVersion: DEFAULT_RUNTIME_CONFIG.registryVersion,
+    recoveryVersion: 4,
   });
 }
 

@@ -109,7 +109,8 @@ test("replay drafts resume without storing transient player identity", () => {
   const recorder = new ReplayRecorder({
     build: BUILD, balanceVersion: sim.balanceVersion, balanceHash: sim.balanceHash,
     featureConfigVersion: DEFAULT_RUNTIME_CONFIG.configVersion, gameplayVersion: sim.gameplayVersion,
-    objectiveEvents: sim.objectiveEvents, rng: RNG_ALGORITHM, seed: SEED,
+    objectiveEvents: sim.objectiveEvents, squadSynergies: sim.squadSynergies,
+    registryVersion: sim.synergyRegistryVersion, rng: RNG_ALGORITHM, seed: SEED,
     run: { map: "warehouse", difficulty: "story", duration: 240 },
   });
   recorder.registerPlayer("relay-secret", "zuri", { slot: 0, initial: true });
@@ -135,6 +136,8 @@ test("local recovery enforces age, runtime identity, privacy, and corruption cle
   assert.equal(loadRunRecovery(storage, { build: BUILD, runtime, now: now + 1_000 }).localSlot, 0);
   assert.throws(() => validateRunRecovery(checkpoint, { build: "other", runtime, now }), /build mismatch/);
   assert.throws(() => validateRunRecovery(checkpoint, { build: BUILD, runtime: { ...runtime, objectiveEvents: false }, now }), /configuration mismatch/);
+  assert.throws(() => validateRunRecovery(checkpoint, { build: BUILD, runtime: { ...runtime, squadSynergies: false }, now }), /configuration mismatch/);
+  assert.throws(() => validateRunRecovery(checkpoint, { build: BUILD, runtime: { ...runtime, registryVersion: "other" }, now }), /configuration mismatch/);
   assert.throws(() => validateRunRecovery({ ...checkpoint, roomCode: "SECRET" }, { build: BUILD, runtime, now }), /unexpected fields/);
   assert.throws(() => validateRunRecovery({ ...checkpoint, expiresAt: now + RECOVERY_MAX_AGE_MS, simulation: { ...checkpoint.simulation, resumeToken: "secret" } }, { build: BUILD, runtime, now }), /not permitted/);
 

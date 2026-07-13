@@ -2,11 +2,11 @@
   "schema": "lastlight.fixture-goldens.v1",
   "schemaVersion": 1,
   "balance": {
-    "version": "2026.07.13-apex.1",
-    "hash": "fnv1a32:873c43bc"
+    "version": "2026.07.13-synergies.1",
+    "hash": "fnv1a32:4cfa0ff0"
   },
   "replay": {
-    "schema": "lastlight.replay.v4",
+    "schema": "lastlight.replay.v5",
     "stepHz": 60,
     "rng": "xoshiro128ss-v1"
   },
@@ -17,19 +17,19 @@
       "hashes": [
         {
           "tick": 0,
-          "hash": "e4d3045ccc845be6"
+          "hash": "03e225b588e538e3"
         },
         {
           "tick": 60,
-          "hash": "154d4a8153c876f9"
+          "hash": "16eba117f0dab068"
         },
         {
           "tick": 120,
-          "hash": "e1d76aa857f4a509"
+          "hash": "e59e7584c4b6e532"
         },
         {
           "tick": 180,
-          "hash": "43ca1520145e53ce"
+          "hash": "abbf53ca77915961"
         }
       ],
       "summary": {
@@ -70,7 +70,7 @@
         ]
       },
       "baselineMetrics": {
-        "maxSnapshotBytes": 13960,
+        "maxSnapshotBytes": 14591,
         "maxTotalEntities": 50,
         "maxWorkUnitsPerTick": 167
       }
@@ -81,27 +81,27 @@
       "hashes": [
         {
           "tick": 0,
-          "hash": "25fd6aa763b4ea05"
+          "hash": "b72e76c98ee2c3a4"
         },
         {
           "tick": 60,
-          "hash": "e8725cd4e188fdde"
+          "hash": "8e2524427bb5ddc1"
         },
         {
           "tick": 120,
-          "hash": "6584dcb01a17e569"
+          "hash": "5b6ef53cb3c850da"
         },
         {
           "tick": 180,
-          "hash": "c49b34104ddbab78"
+          "hash": "b77410738e0b2727"
         },
         {
           "tick": 240,
-          "hash": "e3018193e4db0b95"
+          "hash": "34ea3b49d1c8ee42"
         },
         {
           "tick": 300,
-          "hash": "bcd80b234e564915"
+          "hash": "d6127c466ce12fb2"
         }
       ],
       "summary": {
@@ -142,7 +142,7 @@
         ]
       },
       "baselineMetrics": {
-        "maxSnapshotBytes": 37325,
+        "maxSnapshotBytes": 37956,
         "maxTotalEntities": 151,
         "maxWorkUnitsPerTick": 2715
       }
@@ -153,23 +153,23 @@
       "hashes": [
         {
           "tick": 0,
-          "hash": "894b771e0193ad4e"
+          "hash": "0b19b87bbd92fdc5"
         },
         {
           "tick": 30,
-          "hash": "ffb7b544c7d55f17"
+          "hash": "6e54d1c2f9fc56a4"
         },
         {
           "tick": 60,
-          "hash": "70b9fdf3f94e26a3"
+          "hash": "062f2b5aad39abb6"
         },
         {
           "tick": 90,
-          "hash": "7d2779389fc700ec"
+          "hash": "96db549acd8b8d31"
         },
         {
           "tick": 120,
-          "hash": "934a1d33c0e87402"
+          "hash": "fe17e703571568f5"
         }
       ],
       "summary": {
@@ -210,7 +210,7 @@
         ]
       },
       "baselineMetrics": {
-        "maxSnapshotBytes": 188600,
+        "maxSnapshotBytes": 189231,
         "maxTotalEntities": 1229,
         "maxWorkUnitsPerTick": 41190
       }
@@ -221,35 +221,35 @@
       "hashes": [
         {
           "tick": 0,
-          "hash": "e79a2bc1e777b226"
+          "hash": "e3c72f676cd43ec9"
         },
         {
           "tick": 30,
-          "hash": "33abe338d4167bf6"
+          "hash": "b1ac6b8b8969550f"
         },
         {
           "tick": 60,
-          "hash": "87b8795abae7b267"
+          "hash": "97e994217ff5ab3a"
         },
         {
           "tick": 90,
-          "hash": "cd476645fbd13767"
+          "hash": "5cabde7cb40e755a"
         },
         {
           "tick": 120,
-          "hash": "12b79e5c41c776ca"
+          "hash": "8dcc992aee0f7759"
         },
         {
           "tick": 150,
-          "hash": "6d5cf911887e05ec"
+          "hash": "cd77037c9359d28b"
         },
         {
           "tick": 180,
-          "hash": "f1bec9fd54b0bfb6"
+          "hash": "f25d2af89cf8ad83"
         },
         {
           "tick": 210,
-          "hash": "4d875e1f5daf9deb"
+          "hash": "7da4fbac35cc6de4"
         }
       ],
       "summary": {
@@ -300,7 +300,7 @@
         ]
       },
       "baselineMetrics": {
-        "maxSnapshotBytes": 13196,
+        "maxSnapshotBytes": 13940,
         "maxTotalEntities": 45,
         "maxWorkUnitsPerTick": 136
       }
@@ -311,23 +311,23 @@
       "hashes": [
         {
           "tick": 0,
-          "hash": "0cbff95af72cfd35"
+          "hash": "0243e53190486071"
         },
         {
           "tick": 60,
-          "hash": "c85af512511d1cc9"
+          "hash": "f40638e0d18b6f2d"
         },
         {
           "tick": 120,
-          "hash": "cc931ec9e95ce234"
+          "hash": "9c1c983c0d4fb948"
         },
         {
           "tick": 180,
-          "hash": "2da1aa54b4424842"
+          "hash": "294e587da5581e72"
         },
         {
           "tick": 240,
-          "hash": "d7bccc6b351e3690"
+          "hash": "3f467804b268d92a"
         }
       ],
       "summary": {
@@ -398,7 +398,7 @@
         ]
       },
       "baselineMetrics": {
-        "maxSnapshotBytes": 76779,
+        "maxSnapshotBytes": 77749,
         "maxTotalEntities": 361,
         "maxWorkUnitsPerTick": 19833
       }
@@ -409,31 +409,31 @@
       "hashes": [
         {
           "tick": 0,
-          "hash": "39ec6fd80ce34d7d"
+          "hash": "ad7597bbc928d994"
         },
         {
           "tick": 30,
-          "hash": "9c1d3486487a4faf"
+          "hash": "3d8c33a4edfb2416"
         },
         {
           "tick": 60,
-          "hash": "0a75601fc33c8da1"
+          "hash": "8345ae237d5ec0f4"
         },
         {
           "tick": 90,
-          "hash": "6276b0e6576040df"
+          "hash": "b74ada05a53e512c"
         },
         {
           "tick": 120,
-          "hash": "4ab405a4c28aca23"
+          "hash": "d675ac639fcf00a6"
         },
         {
           "tick": 150,
-          "hash": "eb965384026f58f6"
+          "hash": "64b07e7426dad395"
         },
         {
           "tick": 180,
-          "hash": "1f22739fd9aa1f97"
+          "hash": "8f6ffc6435847d50"
         }
       ],
       "summary": {
@@ -484,7 +484,7 @@
         ]
       },
       "baselineMetrics": {
-        "maxSnapshotBytes": 13170,
+        "maxSnapshotBytes": 13914,
         "maxTotalEntities": 40,
         "maxWorkUnitsPerTick": 241
       }
@@ -495,23 +495,23 @@
       "hashes": [
         {
           "tick": 0,
-          "hash": "5076e2fd3042c507"
+          "hash": "4ef7df3a2026e4c0"
         },
         {
           "tick": 15,
-          "hash": "3cdc705cdca3bc63"
+          "hash": "47ed815e1ea5688e"
         },
         {
           "tick": 30,
-          "hash": "a5f772d4b8c6680b"
+          "hash": "e9ee7e51ccdba388"
         },
         {
           "tick": 45,
-          "hash": "2e245c22394575c7"
+          "hash": "14dd0f16452beeda"
         },
         {
           "tick": 60,
-          "hash": "e7aa61946bab771b"
+          "hash": "cde8f0a1303326f6"
         }
       ],
       "summary": {
@@ -552,7 +552,7 @@
         ]
       },
       "baselineMetrics": {
-        "maxSnapshotBytes": 393695,
+        "maxSnapshotBytes": 394326,
         "maxTotalEntities": 2556,
         "maxWorkUnitsPerTick": 216989
       }
