@@ -12,7 +12,10 @@ function memoryStorage(initial = {}) {
 
 const operatorConfig = {
   schemaVersion: 1, configVersion: "rollback-42", gameplayVersion: "events-off-v1",
-  flags: { deterministicReplay: false, runTelemetry: false, objectiveEvents: false },
+  flags: {
+    deterministicReplay: false, runTelemetry: false, objectiveEvents: false,
+    migrationCheckpointReplication: false, hostMigrationElection: false, hostMigrationResume: false,
+  },
 };
 
 test("runtime config is a strict allowlisted immutable contract", () => {

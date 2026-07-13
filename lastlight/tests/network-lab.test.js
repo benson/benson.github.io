@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  NETWORK_LAB_PROFILES, NetworkLab, createActivatedNetworkLab, resolveNetworkLabActivation, validateNetworkLabProfile,
+  NETWORK_LAB_LIMITS, NETWORK_LAB_PROFILES, NetworkLab, createActivatedNetworkLab, resolveNetworkLabActivation, validateNetworkLabProfile,
 } from "../network-lab.js";
 
 function fakeClock() {
@@ -104,6 +104,44 @@ test("message, byte, and queue limits fail closed", () => {
   assert.throws(() => instance.upstream({ private: "object" }, () => {}), /strings, ArrayBuffers/);
   assert.throws(() => lab({ limits: { unknown: 1 } }), /unknown fields/);
   assert.throws(() => lab({ limits: { maxQueueMessages: 1.5 } }), /safe integer/);
+});
+
+test("default capacity admits one migration checkpoint up to the relay ceiling", () => {
+  const delayed = validateNetworkLabProfile({
+    upstream: { delayMs: 1_000, jitterMs: 0, loss: 0, duplication: 0, reordering: 0, reorderWindowMs: 0 },
+    downstream: NETWORK_LAB_PROFILES.healthy.downstream, forcedDisconnect: null,
+  });
+  const { instance } = lab({ profile: delayed, seed: "checkpoint-capacity" });
+  const checkpoint = "x".repeat(NETWORK_LAB_LIMITS.maxMessageBytes);
+
+  assert.equal(instance.upstream(checkpoint, () => {}), true);
+  assert.equal(instance.diagnostics().upstream.queueBytes, NETWORK_LAB_LIMITS.maxMessageBytes);
+  assert.equal(instance.upstream(`${checkpoint}x`, () => {}), false);
+  assert.equal(instance.diagnostics().upstream.dropReasons.message_bytes, 1);
+});
+
+test("default migration queue remains bounded at eight MiB per direction", () => {
+  const delayed = validateNetworkLabProfile({
+    upstream: { delayMs: 1_000, jitterMs: 0, loss: 0, duplication: 0, reordering: 0, reorderWindowMs: 0 },
+    downstream: { delayMs: 1_000, jitterMs: 0, loss: 0, duplication: 0, reordering: 0, reorderWindowMs: 0 },
+    forcedDisconnect: null,
+  });
+  const { instance } = lab({ profile: delayed, seed: "checkpoint-queue" });
+  const checkpoint = "x".repeat(NETWORK_LAB_LIMITS.maxMessageBytes);
+
+  for (let index = 0; index < 5; index++) assert.equal(instance.upstream(checkpoint, () => {}), true);
+  assert.equal(instance.upstream(checkpoint, () => {}), false);
+  for (let index = 0; index < 5; index++) assert.equal(instance.downstream(checkpoint, () => {}), true);
+  assert.equal(instance.downstream(checkpoint, () => {}), false);
+
+  const diagnostics = instance.diagnostics();
+  assert.equal(diagnostics.limits.maxQueueBytes, 8 * 1024 * 1024);
+  assert.equal(diagnostics.upstream.queueBytes, 5 * NETWORK_LAB_LIMITS.maxMessageBytes);
+  assert.equal(diagnostics.downstream.queueBytes, 5 * NETWORK_LAB_LIMITS.maxMessageBytes);
+  assert.equal(diagnostics.upstream.dropReasons.queue_bytes, 1);
+  assert.equal(diagnostics.downstream.dropReasons.queue_bytes, 1);
+  assert.ok(diagnostics.upstream.peakQueueBytes <= diagnostics.limits.maxQueueBytes);
+  assert.ok(diagnostics.downstream.peakQueueBytes <= diagnostics.limits.maxQueueBytes);
 });
 
 test("an earlier reordered message reschedules the active delivery timer", () => {

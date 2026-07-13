@@ -1,6 +1,6 @@
-import { WEAPON_EVOLUTION_CONTRACT, validateWeaponEvolutionContract } from "./weapon-evolution.js?v=20260712.12";
-import { validateEnemyIdentityContract } from "./enemy-archetypes.js?v=20260712.12";
-import { APEX_CONTRACTS, validateApexContracts } from "./apex-encounters.js?v=20260712.12";
+import { WEAPON_EVOLUTION_CONTRACT, validateWeaponEvolutionContract } from "./weapon-evolution.js?v=20260713.1";
+import { validateEnemyIdentityContract } from "./enemy-archetypes.js?v=20260713.1";
+import { APEX_CONTRACTS, validateApexContracts } from "./apex-encounters.js?v=20260713.1";
 
 // Balance is a versioned simulation input. Replays and fixtures should record
 // this exact version so a future tuning pass never silently changes old runs.

@@ -6,8 +6,15 @@
 export const NETWORK_LAB_QUERY_PARAM = "llNetwork";
 export const NETWORK_LAB_SEED_PARAM = "llNetworkSeed";
 export const NETWORK_LAB_LIMITS = Object.freeze({
-  maxMessageBytes: 256 * 1024,
-  maxQueueBytes: 2 * 1024 * 1024,
+  // Migration checkpoints are capped at 1.5 MB before their transport
+  // envelope is added. Keep the lab aligned with the relay's 1.55 MB wire
+  // ceiling so adverse-network tests exercise migration instead of dropping
+  // every valid checkpoint at the simulator boundary.
+  maxMessageBytes: 1_550_000,
+  // The cap is enforced independently for upstream and downstream queues.
+  // Five maximum-size checkpoints can be delayed at once; a sixth fails
+  // closed instead of letting a lossy/reordered test grow without bound.
+  maxQueueBytes: 8 * 1024 * 1024,
   maxQueueMessages: 256,
   maxDelayMs: 10_000,
   maxReorderMs: 2_000,

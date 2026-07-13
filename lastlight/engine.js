@@ -1,15 +1,15 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
-} from "./data.js?v=20260712.12";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260712.12";
+} from "./data.js?v=20260713.1";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260713.1";
 import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.5";
 import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260711.5";
-import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260712.12";
-import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260712.12";
-import { MAX_CORRIDOR_CANDIDATES, accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget, orderEntitiesByDistance } from "./projectile-decisions.js?v=20260712.12";
-import { selectEliteAffixes, selectSpawnArchetype } from "./enemy-archetypes.js?v=20260712.12";
-import { APEX_CONTRACTS, APEX_STATE_SCHEMA, orderedApexTargets } from "./apex-encounters.js?v=20260712.12";
+import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260713.1";
+import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260713.1";
+import { MAX_CORRIDOR_CANDIDATES, accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget, orderEntitiesByDistance } from "./projectile-decisions.js?v=20260713.1";
+import { selectEliteAffixes, selectSpawnArchetype } from "./enemy-archetypes.js?v=20260713.1";
+import { APEX_CONTRACTS, APEX_STATE_SCHEMA, orderedApexTargets } from "./apex-encounters.js?v=20260713.1";
 
 const BALANCE = getBalanceConfig();
 
@@ -47,7 +47,7 @@ function compactPoint(e) {
   return result;
 }
 
-const RECOVERY_STATE_VERSION = 2;
+const RECOVERY_STATE_VERSION = 3;
 const RECOVERY_SCALARS = [
   "tick", "time", "remaining", "stage", "paused", "pauseReason", "wave", "teamXP", "level", "xpNeed", "kills", "gold",
   "spawnClock", "nextElite", "nextMiniBoss", "nextTreasure", "nextRelayBall", "objectiveIndex", "bossElapsed", "bossPhase", "enraged",
@@ -68,13 +68,32 @@ function serializeRecoveryValue(value, playerIds) {
   return value;
 }
 
-function deserializeRecoveryValue(value) {
-  if (Array.isArray(value)) return value.map(deserializeRecoveryValue);
+function deserializeRecoveryValue(value, playerIds = null) {
+  if (typeof value === "string" && playerIds?.has(value)) return playerIds.get(value);
+  if (Array.isArray(value)) return value.map((entry) => deserializeRecoveryValue(entry, playerIds));
   if (value && typeof value === "object") {
-    if (Object.keys(value).length === 1 && Array.isArray(value.$set)) return new Set(value.$set.map(deserializeRecoveryValue));
-    return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, deserializeRecoveryValue(entry)]));
+    if (Object.keys(value).length === 1 && Array.isArray(value.$set)) return new Set(value.$set.map((entry) => deserializeRecoveryValue(entry, playerIds)));
+    return Object.fromEntries(Object.entries(value).map(([key, entry]) => [playerIds?.get(key) || key, deserializeRecoveryValue(entry, playerIds)]));
   }
   return value;
+}
+
+function migrationPlayerIds(value, players, disconnectedPlayers = []) {
+  if (value === undefined || value === null) return null;
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new TypeError("Recovery player identity map is invalid");
+  const result = new Map(), ids = new Set();
+  for (const stored of players) {
+    const slot = replaySlot(stored?.replaySlot), id = value[slot];
+    if (typeof id !== "string" || !/^[A-Za-z0-9_-]{1,32}$/.test(id) || ids.has(id)) throw new TypeError(`Recovery player identity for slot ${slot} is invalid`);
+    result.set(`slot-${slot}`, id); ids.add(id);
+  }
+  if (Object.keys(value).length !== result.size) throw new TypeError("Recovery player identity map has unexpected slots");
+  for (const entry of disconnectedPlayers) {
+    const slot = replaySlot(entry?.player?.replaySlot), id = `migration-disconnected-${slot}`;
+    if (slot === undefined || result.has(`slot-${slot}`) || ids.has(id)) throw new TypeError(`Recovery disconnected player identity for slot ${slot} is invalid`);
+    result.set(`slot-${slot}`, id); ids.add(id);
+  }
+  return result;
 }
 
 function recoveryRecord(value, playerIds) {
@@ -358,11 +377,19 @@ export class Simulation {
     return task;
   }
 
+  pruneDisconnectedPlayers() {
+    for (const [key, recovery] of this.disconnectedPlayers) {
+      if (!recovery || this.tick - recovery.leftTick > RECONNECT_WINDOW_TICKS) this.disconnectedPlayers.delete(key);
+    }
+  }
+
   addPlayer(info, index = this.players.length) {
+    this.pruneDisconnectedPlayers();
     const existing = this.players.find((player) => player.id === info.id);
     if (existing) return existing;
     const spec = SPECIALISTS[info.specialist] || SPECIALISTS.zuri;
-    const recoveryKey = /^[a-f0-9]{24,32}$/.test(String(info.resumeToken || "")) ? String(info.resumeToken) : "";
+    const reconnectSlot = /^migration-slot-[0-3]$/.test(String(info.reconnectSlot || "")) ? String(info.reconnectSlot) : "";
+    const recoveryKey = reconnectSlot || (/^[a-f0-9]{24,32}$/.test(String(info.resumeToken || "")) ? String(info.resumeToken) : "");
     const recovery = recoveryKey ? this.disconnectedPlayers.get(recoveryKey) : null;
     if (recovery && this.tick - recovery.leftTick <= RECONNECT_WINDOW_TICKS) {
       const player = recovery.player, oldId = player.id;
@@ -417,6 +444,7 @@ export class Simulation {
   }
 
   removePlayer(playerId) {
+    this.pruneDisconnectedPlayers();
     const player = this.players.find((entry) => entry.id === playerId);
     if (player?.reconnectKey) this.disconnectedPlayers.set(player.reconnectKey, { player, leftTick: this.tick });
     this.players = this.players.filter((p) => p.id !== playerId);
@@ -444,6 +472,7 @@ export class Simulation {
     dt = Math.min(.05, Math.max(0, dt));
     if (this.stage === "won" || this.stage === "lost" || this.paused) return;
     if (dt > 0) this.tick += Math.max(1, Math.round(dt * SIMULATION_TICK_RATE));
+    this.pruneDisconnectedPlayers();
     this.updateTasks();
     this.updatePlayers(dt);
     this.updateMachine(dt);
@@ -2430,15 +2459,18 @@ export class Simulation {
   }
 
   exportRecoveryState() {
-    if (this.stage !== "running" && this.stage !== "boss") throw new TypeError("Only an active run can be checkpointed");
+    if (!["running", "boss", "won", "lost"].includes(this.stage)) throw new TypeError("Only a run state can be checkpointed");
     const usedSlots = new Set();
     const playerIds = new Map();
-    for (const [index, player] of this.players.entries()) {
+    const disconnected = [...this.disconnectedPlayers.values()].sort((left, right) => left.player.replaySlot - right.player.replaySlot);
+    const allPlayers = [...this.players, ...disconnected.map(({ player }) => player)];
+    if (allPlayers.length > 4) throw new TypeError("Recovery roster exceeds squad bounds");
+    for (const [index, player] of allPlayers.entries()) {
       const slot = replaySlot(player.replaySlot) ?? index;
       if (slot > 3 || usedSlots.has(slot)) throw new TypeError("Recovery roster requires unique anonymous slots");
       usedSlots.add(slot); playerIds.set(player.id, `slot-${slot}`);
     }
-    const players = this.players.map((player, index) => {
+    const sanitizePlayer = (player, index) => {
       const sanitized = {};
       for (const [key, value] of Object.entries(player)) {
         if (key === "name" || key === "reconnectKey") continue;
@@ -2447,7 +2479,12 @@ export class Simulation {
       sanitized.id = playerIds.get(player.id);
       sanitized.replaySlot = replaySlot(player.replaySlot) ?? index;
       return sanitized;
-    });
+    };
+    const players = this.players.map(sanitizePlayer);
+    const disconnectedPlayers = disconnected.map(({ player, leftTick }, index) => ({
+      leftTick,
+      player: sanitizePlayer(player, this.players.length + index),
+    }));
     const scalars = Object.fromEntries(RECOVERY_SCALARS.map((key) => [key, this[key]]));
     const lists = Object.fromEntries(Object.keys(RECOVERY_LIST_LIMITS).map((key) => [key, serializeRecoveryValue(this[key], playerIds)]));
     return {
@@ -2462,6 +2499,7 @@ export class Simulation {
       scalars,
       machine: serializeRecoveryValue(this.machine, playerIds),
       players,
+      disconnectedPlayers,
       lists,
       pendingChoices: recoveryRecord(this.pendingChoices, playerIds),
       choiceReady: recoveryRecord(this.choiceReady, playerIds),
@@ -2469,9 +2507,9 @@ export class Simulation {
     };
   }
 
-  static fromRecoveryState(value) {
+  static fromRecoveryState(value, { playerIdsBySlot } = {}) {
     if (!value || typeof value !== "object" || Array.isArray(value) || value.version !== RECOVERY_STATE_VERSION) throw new TypeError("Unsupported recovery state");
-    const expected = ["version", "header", "rng", "sequences", "scalars", "machine", "players", "lists", "pendingChoices", "choiceReady", "selectedChoices"];
+    const expected = ["version", "header", "rng", "sequences", "scalars", "machine", "players", "disconnectedPlayers", "lists", "pendingChoices", "choiceReady", "selectedChoices"];
     const actual = Object.keys(value).sort();
     if (actual.length !== expected.length || expected.sort().some((key, index) => key !== actual[index])) throw new TypeError("Recovery state has unexpected fields");
     const header = value.header;
@@ -2484,8 +2522,17 @@ export class Simulation {
       slots.add(slot);
       return { id: stored.id, name: `Specialist ${slot + 1}`, specialist: stored.specialist, replaySlot: slot };
     });
+    if (!Array.isArray(value.disconnectedPlayers) || value.disconnectedPlayers.length + value.players.length > 4) throw new TypeError("Recovery disconnected roster is invalid");
+    for (const [index, entry] of value.disconnectedPlayers.entries()) {
+      const stored = entry?.player, slot = replaySlot(stored?.replaySlot);
+      if (!Number.isSafeInteger(entry?.leftTick) || entry.leftTick < 0 || entry.leftTick > value.scalars?.tick || slot === undefined || slots.has(slot)
+        || stored.id !== `slot-${slot}` || !SPECIALISTS[stored.specialist]) throw new TypeError(`Recovery disconnected player ${index} is invalid`);
+      slots.add(slot);
+    }
+    const restoredPlayerIds = migrationPlayerIds(playerIdsBySlot, value.players, value.disconnectedPlayers);
+    if (restoredPlayerIds) for (const player of roster) player.id = restoredPlayerIds.get(player.id);
     if (!value.scalars || !RECOVERY_SCALARS.every((key) => Object.hasOwn(value.scalars, key))) throw new TypeError("Recovery scalars are incomplete");
-    if (!Number.isInteger(value.scalars.tick) || value.scalars.tick < 0 || !["running", "boss"].includes(value.scalars.stage)) throw new TypeError("Recovery progress is invalid");
+    if (!Number.isInteger(value.scalars.tick) || value.scalars.tick < 0 || !["running", "boss", "won", "lost"].includes(value.scalars.stage)) throw new TypeError("Recovery progress is invalid");
     for (const key of RECOVERY_SCALARS) {
       const entry = value.scalars[key];
       if (typeof entry === "number" && !Number.isFinite(entry)) throw new TypeError(`Recovery scalar ${key} is invalid`);
@@ -2511,16 +2558,25 @@ export class Simulation {
     sim.gameplaySequence = value.sequences.gameplay;
     sim.cosmeticSequence = value.sequences.cosmetic;
     sim.eventSequence = value.sequences.event;
-    sim.machine = deserializeRecoveryValue(value.machine);
+    sim.machine = deserializeRecoveryValue(value.machine, restoredPlayerIds);
     sim.players = value.players.map((stored) => {
-      const restored = deserializeRecoveryValue(stored);
+      const restored = deserializeRecoveryValue(stored, restoredPlayerIds);
       validateDraftState(restored.draft);
       restored.name = `Specialist ${restored.replaySlot + 1}`;
-      restored.reconnectKey = "";
+      restored.reconnectKey = `migration-slot-${restored.replaySlot}`;
       return restored;
     });
-    for (const key of Object.keys(RECOVERY_LIST_LIMITS)) sim[key] = deserializeRecoveryValue(value.lists[key]);
-    const validBehaviorStates = new Set(["approach", "windup", "contact", "charge", "recovery"]), restoredPlayerIds = new Set(sim.players.map(({ id }) => id));
+    const restoredDisconnectedPlayers = value.disconnectedPlayers.map(({ player: stored, leftTick }) => {
+      const restored = deserializeRecoveryValue(stored, restoredPlayerIds);
+      validateDraftState(restored.draft);
+      restored.name = `Specialist ${restored.replaySlot + 1}`;
+      restored.reconnectKey = `migration-slot-${restored.replaySlot}`;
+      return { key: restored.reconnectKey, leftTick, player: restored };
+    });
+    for (const key of Object.keys(RECOVERY_LIST_LIMITS)) sim[key] = deserializeRecoveryValue(value.lists[key], restoredPlayerIds);
+    const validBehaviorStates = new Set(["approach", "windup", "contact", "charge", "recovery"]), restoredPlayerIdSet = new Set([
+      ...sim.players.map(({ id }) => id), ...restoredDisconnectedPlayers.map(({ player }) => player.id),
+    ]);
     for (const [index, enemy] of sim.enemies.entries()) {
       if (!enemy || (!enemy.boss && !ENEMY_TYPES[enemy.type])) throw new TypeError(`Recovery enemy ${index} has an unknown type`);
       if (enemy.boss) {
@@ -2528,7 +2584,7 @@ export class Simulation {
         if (enemy.apexSchema !== APEX_STATE_SCHEMA || enemy.apexContractId !== contract.id || ![0, 1].includes(enemy.apexPhaseIndex) || ![-1, 1].includes(enemy.apexPendingPhase)) throw new TypeError(`Recovery apex ${index} has invalid identity or phase`);
         if (!states.has(enemy.apexActionState) || !Number.isSafeInteger(enemy.apexSequence) || enemy.apexSequence < 0) throw new TypeError(`Recovery apex ${index} has invalid action state`);
         for (const key of ["apexSpawnTick", "apexPhaseStartedTick", "apexActionStartedTick", "apexActionUntilTick", "apexReadyTick", "apexArenaNextPulseTick"]) if (!Number.isSafeInteger(enemy[key]) || enemy[key] < 0) throw new TypeError(`Recovery apex ${index} has invalid ${key}`);
-        if (!Array.isArray(enemy.apexTargetIds) || enemy.apexTargetIds.length > 4 || new Set(enemy.apexTargetIds).size !== enemy.apexTargetIds.length || enemy.apexTargetIds.some((id) => !restoredPlayerIds.has(id))) throw new TypeError(`Recovery apex ${index} has invalid targets`);
+        if (!Array.isArray(enemy.apexTargetIds) || enemy.apexTargetIds.length > 4 || new Set(enemy.apexTargetIds).size !== enemy.apexTargetIds.length || enemy.apexTargetIds.some((id) => !restoredPlayerIdSet.has(id))) throw new TypeError(`Recovery apex ${index} has invalid targets`);
         if (["windup", "active", "recovery"].includes(enemy.apexActionState) && !contract.intents[enemy.apexActionId]) throw new TypeError(`Recovery apex ${index} has invalid action`);
         if (["windup", "active", "recovery"].includes(enemy.apexActionState) && enemy.apexGeometry !== null) {
           const geometry = enemy.apexGeometry, kinds = new Set(["line", "cone", "annulus", "lanes", "radial"]);
@@ -2540,7 +2596,7 @@ export class Simulation {
         if (!enemy.boss && (!Number.isSafeInteger(enemy[key]) || enemy[key] < 0)) throw new TypeError(`Recovery enemy ${index} has invalid ${key}`);
       }
       if (!enemy.boss && !Number.isFinite(enemy.attackAngle)) throw new TypeError(`Recovery enemy ${index} has invalid attackAngle`);
-      if (!enemy.boss && (!Array.isArray(enemy.behaviorHitIds) || enemy.behaviorHitIds.length > 4 || new Set(enemy.behaviorHitIds).size !== enemy.behaviorHitIds.length || enemy.behaviorHitIds.some((id) => !restoredPlayerIds.has(id)))) throw new TypeError(`Recovery enemy ${index} has invalid behaviorHitIds`);
+      if (!enemy.boss && (!Array.isArray(enemy.behaviorHitIds) || enemy.behaviorHitIds.length > 4 || new Set(enemy.behaviorHitIds).size !== enemy.behaviorHitIds.length || enemy.behaviorHitIds.some((id) => !restoredPlayerIdSet.has(id)))) throw new TypeError(`Recovery enemy ${index} has invalid behaviorHitIds`);
       if (enemy.behaviorState === "charge") {
         for (const key of ["behaviorEndX", "behaviorEndY", "behaviorRange"]) if (!Number.isFinite(enemy[key])) throw new TypeError(`Recovery enemy ${index} has invalid ${key}`);
       } else if (["behaviorEndX", "behaviorEndY", "behaviorRange"].some((key) => enemy[key] !== undefined)) throw new TypeError(`Recovery enemy ${index} has unexpected charge geometry`);
@@ -2568,11 +2624,12 @@ export class Simulation {
         if (variant) stampWeaponVariant(entity, variant);
       }
     }
-    sim.pendingChoices = deserializeRecoveryValue(value.pendingChoices);
-    sim.choiceReady = deserializeRecoveryValue(value.choiceReady) || {};
-    sim.selectedChoices = deserializeRecoveryValue(value.selectedChoices) || {};
+    sim.pendingChoices = deserializeRecoveryValue(value.pendingChoices, restoredPlayerIds);
+    sim.choiceReady = deserializeRecoveryValue(value.choiceReady, restoredPlayerIds) || {};
+    sim.selectedChoices = deserializeRecoveryValue(value.selectedChoices, restoredPlayerIds) || {};
     sim.events = [];
-    sim.disconnectedPlayers = new Map();
+    sim.disconnectedPlayers = new Map(restoredDisconnectedPlayers.map(({ key, player, leftTick }) => [key, { player, leftTick }]));
+    sim.pruneDisconnectedPlayers();
     return sim;
   }
 

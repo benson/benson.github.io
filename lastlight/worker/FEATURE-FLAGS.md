@@ -7,7 +7,7 @@ response through the Worker's `LASTLIGHT_RUNTIME_CONFIG` secret.
 The release defaults preserve build `2026.07.11.3` behavior:
 
 ```json
-{"schemaVersion":1,"configVersion":"release-2026.07.11.4","gameplayVersion":"events-v1","flags":{"deterministicReplay":true,"runTelemetry":true,"objectiveEvents":true}}
+{"schemaVersion":1,"configVersion":"release-2026.07.13.1","gameplayVersion":"events-v1","flags":{"deterministicReplay":true,"runTelemetry":true,"objectiveEvents":true,"migrationCheckpointReplication":true,"hostMigrationElection":true,"hostMigrationResume":true}}
 ```
 
 Unknown keys, missing keys, wrong types, and malformed JSON fail closed to those
@@ -41,6 +41,10 @@ the active config version, gameplay version, source, load status, and flags.
 - Analytics/telemetry problem: set `runTelemetry` to `false`.
 - Treasure runner, relay ball, or optional objective problem: set
   `objectiveEvents` to `false` and publish a new `gameplayVersion`.
+- Checkpoint bandwidth or serialization problem: set
+  `migrationCheckpointReplication` to `false`; new host losses fail safely instead of attempting a restore.
+- Relay election problem: set `hostMigrationElection` to `false`; lobby host reassignment remains available, but active runs freeze and fail safely.
+- Restore/continuation problem: set `hostMigrationResume` to `false`; checkpoints may continue in shadow mode while active-run promotion is disabled.
 - Restore release defaults: delete the override with
   `npx wrangler secret delete LASTLIGHT_RUNTIME_CONFIG`, then verify `/config` says
   `source: built-in`.

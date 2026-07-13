@@ -594,6 +594,19 @@ test("a persistent browser identity can reconnect with its run progress", () => 
   assert.ok(restored.hp >= restored.maxHp * .5);
 });
 
+test("a relay-owned anonymous replay slot reconnects without exposing a browser token", () => {
+  const sim = new Simulation({ players: [{ id: "old", name: "One", specialist: "echo", replaySlot: 2, reconnectSlot: "migration-slot-2" }] });
+  const original = sim.players[0]; original.weapons.signature.level = 4; original.hp = 3;
+  sim.removePlayer("old");
+  const restored = sim.addPlayer({ id: "new", name: "Renamed", specialist: "zuri", replaySlot: 2, reconnectSlot: "migration-slot-2" });
+  assert.equal(restored, original);
+  assert.equal(restored.id, "new");
+  assert.equal(restored.weapons.signature.level, 4);
+  assert.equal(restored.reconnectKey, "migration-slot-2");
+  assert.equal(restored.reconnected, true);
+  assert.doesNotMatch(JSON.stringify(sim.exportRecoveryState()), /resumeToken|reconnectKey|migration-slot/);
+});
+
 test("duplicate callsigns do not steal another browser's reconnect slot", () => {
   const sim = new Simulation({ players: [{ id: "old", name: "Rookie", specialist: "echo", resumeToken: "a".repeat(24) }] });
   sim.players[0].damage = 321; sim.removePlayer("old");

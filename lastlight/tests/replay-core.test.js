@@ -142,6 +142,20 @@ test("join and reconnect commands reuse an anonymous slot without changing the i
   assert.deepEqual(replay.commands.map((command) => command[2]), ["j", "l", "r"]);
 });
 
+test("a validated reconnect can reclaim a stale active replay owner after authority migration", () => {
+  const recorder = new ReplayRecorder({
+    build: "2026.07.11.3", balanceVersion: "2026.07.11-baseline.1", balanceHash: "fnv1a32:7e33be79",
+    rng: "xoshiro128ss-v1", seed: "0123456789abcdef0123456789abcdef",
+    run: { map: "warehouse", difficulty: "story", duration: 240 },
+  });
+  recorder.registerPlayer("old-host", "zuri", { slot: 0, initial: true });
+  assert.throws(() => recorder.registerPlayer("intruder", "zuri", { slot: 0, tick: 10 }), /already belongs/);
+  assert.doesNotThrow(() => recorder.registerPlayer("returned-host", "zuri", { slot: 0, tick: 10, reconnect: true }));
+  assert.throws(() => recorder.slotFor("old-host"), /not registered/);
+  assert.equal(recorder.slotFor("returned-host"), 0);
+  assert.deepEqual(recorder.commands.slice(-2).map((command) => command[2]), ["l", "r"]);
+});
+
 test("a departed anonymous slot can be reused by a different specialist", () => {
   const recorder = new ReplayRecorder({
     build: "2026.07.11.3", balanceVersion: "2026.07.11-baseline.1", balanceHash: "fnv1a32:7e33be79",

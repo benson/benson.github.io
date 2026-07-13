@@ -7,30 +7,31 @@ import {
 import { ReplayRecorder } from "../replay.js";
 
 const input = { x: 1, y: 0, aim: .5, autoAim: true };
-const modern = (seq) => ({ type: "input", protocolVersion: MULTIPLAYER_PROTOCOL_VERSION, seq, input, _from: "guest-1" });
+const modern = (seq, epoch = 0) => ({ type: "input", protocolVersion: MULTIPLAYER_PROTOCOL_VERSION, epoch, seq, input, _from: "guest-1" });
 
 test("draft actions have exact bounded action-specific wire shapes", () => {
   const reroll = createDraftActionMessage({ action: "reroll", round: 2, revision: 1 });
-  assert.deepEqual(reroll, { type: "draft_action", protocolVersion: DRAFT_PROTOCOL_VERSION, action: "reroll", round: 2, revision: 1 });
-  const replace = sanitizeDraftActionMessage({ type: "draft_action", protocolVersion: DRAFT_PROTOCOL_VERSION, action: "replace", round: 3, revision: 0, choiceId: "weapon:uwu", replacementId: "drone", _from: "guest-1" }, { transport: true });
+  assert.deepEqual(reroll, { type: "draft_action", protocolVersion: DRAFT_PROTOCOL_VERSION, epoch: 0, action: "reroll", round: 2, revision: 1 });
+  const replace = sanitizeDraftActionMessage({ type: "draft_action", protocolVersion: DRAFT_PROTOCOL_VERSION, epoch: 0, action: "replace", round: 3, revision: 0, choiceId: "weapon:uwu", replacementId: "drone", _from: "guest-1" }, { transport: true });
   assert.equal(replace._from, "guest-1");
   for (const invalid of [
     { ...reroll, extra: true },
     { ...reroll, revision: -1 },
     { ...reroll, action: "pick" },
     { ...reroll, action: "skip", choiceId: "weapon:uwu" },
-    { type: "draft_action", protocolVersion: DRAFT_PROTOCOL_VERSION, action: "banish", round: 1, revision: 0, choiceId: "../../bad" },
+    { type: "draft_action", protocolVersion: DRAFT_PROTOCOL_VERSION, epoch: 0, action: "banish", round: 1, revision: 0, choiceId: "../../bad" },
   ]) assert.throws(() => sanitizeDraftActionMessage(invalid), /draft|sequence/i);
 });
 
-test("host applies only newer valid v2 sequences", () => {
+test("host applies only newer valid v3 sequences in the committed authority epoch", () => {
   const gate = new HostInputSequenceGate();
   assert.equal(gate.apply("guest-1", modern(4)).accepted, true);
   assert.deepEqual(gate.acknowledgements(), { "guest-1": 4 });
   assert.equal(gate.apply("guest-1", modern(4)).reason, "stale-sequence");
   assert.equal(gate.apply("guest-1", modern(3)).reason, "stale-sequence");
   assert.equal(gate.apply("guest-1", modern(6)).accepted, true);
-  assert.deepEqual(gate.diagnostics(), { protocolVersion: 2, sequencedPeers: 1, rejectedStale: 2, rejectedInvalid: 0 });
+  assert.equal(gate.apply("guest-1", modern(7, 1)).reason, "stale-epoch");
+  assert.deepEqual(gate.diagnostics(), { protocolVersion: 3, epoch: 0, sequencedPeers: 1, rejectedStale: 2, rejectedInvalid: 0, rejectedEpoch: 1 });
 });
 
 test("deterministic replay records accepted host order without transport metadata", () => {
@@ -51,11 +52,11 @@ test("deterministic replay records accepted host order without transport metadat
   assert.doesNotMatch(JSON.stringify(replay), /protocolVersion|"seq"|guest-1/);
 });
 
-test("rolling compatibility accepts legacy input only before that peer speaks v2", () => {
+test("rolling compatibility accepts legacy input only before that peer speaks v3", () => {
   const gate = new HostInputSequenceGate(), legacy = { type: "input", input, _from: "guest-1" };
   assert.deepEqual(gate.apply("guest-1", legacy), { accepted: true, legacy: true, input });
   gate.apply("guest-1", modern(0));
-  assert.equal(gate.apply("guest-1", legacy).reason, "legacy-after-v2");
+  assert.equal(gate.apply("guest-1", legacy).reason, "legacy-after-v3");
   gate.remove("guest-1");
   assert.equal(gate.apply("guest-1", legacy).accepted, true);
 });
@@ -64,7 +65,7 @@ test("input and acknowledgement schemas are exact and bounded", () => {
   assert.throws(() => sanitizeInputMessage({ ...modern(1), surprise: true }, { transport: true }), /unsupported/);
   assert.throws(() => sanitizeInputMessage(modern(MAX_INPUT_SEQUENCE + 1), { transport: true }), /sequence/);
   assert.throws(() => sanitizeInputMessage({ ...modern(1), input: { ...input, x: 2 } }, { transport: true }), /input x/);
-  assert.throws(() => createSnapshotMessage({}, { a: 1, b: 2, c: 3, d: 4, e: 5 }), /squad bounds/);
+  assert.throws(() => createSnapshotMessage({ tick: 0 }, { a: 1, b: 2, c: 3, d: 4, e: 5 }), /squad bounds/);
 });
 
 test("guest tracks bounded pending inputs and acknowledgement health without identity", () => {
@@ -73,7 +74,7 @@ test("guest tracks bounded pending inputs and acknowledgement health without ide
   assert.equal(tracker.create(input, 110).seq, 1);
   assert.equal(tracker.acknowledge(0, 150), true);
   assert.deepEqual(tracker.diagnostics(175), {
-    protocolVersion: 2, mode: "v2", lastSentSequence: 1, lastAcknowledgedSequence: 0,
+    protocolVersion: 3, epoch: 0, mode: "v3", lastSentSequence: 1, lastAcknowledgedSequence: 0,
     pendingInputs: 1, oldestPendingMs: 65, acknowledgementAgeMs: 25,
     droppedPending: 0, invalidAcknowledgements: 0,
   });
@@ -86,8 +87,8 @@ test("guest tracks bounded pending inputs and acknowledgement health without ide
   assert.equal(tracker.diagnostics(999).pendingInputs, 0);
 });
 
-test("new snapshot envelopes acknowledge v2 while legacy snapshots remain readable", () => {
-  const snapshot = createSnapshotMessage({ level: 3 }, { "guest-1": 9 });
+test("new snapshot envelopes carry epoch, sequence, and tick while legacy snapshots remain readable", () => {
+  const snapshot = createSnapshotMessage({ level: 3, tick: 12 }, { "guest-1": 9 }, { epoch: 2, snapshotSeq: 4 });
   assert.deepEqual(sanitizeSnapshotMessage(snapshot), snapshot);
   assert.deepEqual(sanitizeSnapshotMessage({ type: "snapshot", state: { level: 2 } }), { type: "snapshot", state: { level: 2 } });
   assert.throws(() => sanitizeSnapshotMessage({ ...snapshot, ack: { "bad id": 1 } }), /player id/);

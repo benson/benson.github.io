@@ -1,44 +1,214 @@
-# Multiplayer input protocol
+# Multiplayer authority protocol
 
-Build `2026.07.11.5` uses input protocol v2. The relay remains a transport; the
-host browser is authoritative for simulation and deterministic replay.
+Protocol v3 adds authority epochs and deterministic host migration to the v2
+sequenced-input contract. The relay remains a transport and election arbiter;
+exactly one browser owns the authoritative `Simulation` and replay recorder at
+any point in a run.
 
-## Envelopes
+Host migration is fail-closed. Peers freeze the battlefield while authority is
+unavailable. A run continues only when the relay has granted a new epoch and a
+compatible successor has validated the latest deterministic checkpoint.
 
-A v2 guest input is:
+## Authority epochs and envelopes
+
+The relay starts a run in epoch `0`. Every active-run host election attempt
+increments the epoch before offering authority to a successor. Epochs are
+monotonic integers from `0` through `2147483647`; they never move backwards or
+wrap during a room's lifetime.
+
+A v3 guest input binds its monotonic input sequence to the current authority
+epoch:
 
 ```json
-{"type":"input","protocolVersion":2,"seq":17,"input":{"x":1,"y":0,"aim":0.5,"autoAim":true}}
+{"type":"input","protocolVersion":3,"epoch":2,"seq":17,"input":{"x":1,"y":0,"aim":0.5,"autoAim":true}}
 ```
 
-Sequences are monotonic integers from `0` through `2147483647`. The host applies
-only a sequence newer than the last accepted sequence for that relay peer. Its
-snapshots acknowledge the last applied sequence for each active sequenced peer:
+The host accepts only an input in its committed epoch with a sequence newer
+than the last accepted sequence for that peer. Its snapshot carries the epoch,
+an authority-local monotonic snapshot sequence, the authoritative simulation
+tick, and each peer's accepted input frontier:
 
 ```json
-{"type":"snapshot","protocolVersion":2,"ack":{"peer-id":17},"state":{}}
+{"type":"snapshot","protocolVersion":3,"epoch":2,"snapshotSeq":41,"tick":912,"ack":{"peer-id":17},"state":{"tick":912}}
 ```
 
-Both envelopes have exact allowlisted fields. Inputs, sequences, acknowledgement
-keys, squad size, and the existing relay message byte limit are bounded.
+The snapshot `tick` must equal `state.tick`. A guest accepts a snapshot only
+when all of these are true:
+
+- its epoch equals the guest's committed epoch;
+- `_from` is the relay-announced host for that epoch;
+- `(tick, snapshotSeq)` is newer than the last accepted authority frame.
+
+This gate fences delayed snapshots from the old host, duplicate frames, and
+presentation rewinds. Casts, draft actions, choice messages, and cast-audio
+messages are epoch-framed as well. Draft actions retain their round and revision
+guards, so a delayed choice cannot mutate a newer offer.
+
+## Migration capabilities and compatibility
+
+The WebSocket `hello` message advertises the strict host-migration capability
+schema and the deterministic compatibility tuple:
+
+```json
+{
+  "schema":"lastlight.host-migration.v1",
+  "protocolVersion":1,
+  "compatibility":{
+    "build":"build-id",
+    "balanceVersion":"balance-v1",
+    "balanceHash":"fnv1a32:01234567",
+    "configVersion":"config-v1",
+    "gameplayVersion":"events-v1",
+    "objectiveEvents":true
+  }
+}
+```
+
+All fields must match exactly. A missing, malformed, or incompatible capability
+makes that peer ineligible to receive active-run authority. Compatibility is
+checked before a checkpoint is retained and again before a successor is
+offered it; recovery is never attempted on a best-effort or mixed-build basis.
+
+## Deterministic checkpoints
+
+While checkpoint replication is enabled, the current host publishes at most
+one `migration_checkpoint` every 60 simulation ticks. The relay retains only
+the latest valid, strictly newer checkpoint.
+
+A checkpoint is bound to one epoch, tick, canonical state hash, compatibility
+tuple, and ordered anonymous roster. Its identity is
+`e{epoch}-t{tick}-{hash}`. It contains:
+
+- the complete anonymous `Simulation.exportRecoveryState()` payload;
+- the deterministic replay draft at the same tick, when replay is enabled;
+- the last accepted input sequence for each roster peer;
+- the roster's transient relay IDs mapped to unique replay slots `0..3`.
+
+The recovery state's tick, replay draft tick, checkpoint tick, and canonical
+hash must agree before the candidate can declare readiness. Callsigns, room
+codes, resume tokens, contact details, and client identity fields are forbidden
+from durable recovery and replay state. Resume tokens remain relay-scoped seat
+proof and are not embedded in a checkpoint.
+The browser stores that proof per tab in session storage, so opening the same
+invite in another tab creates a distinct seat. The relay also strips a token
+from any second live session that presents the same proof, preventing a tab
+collision from overwriting replay-slot ownership.
+
+The deterministic checkpoint body is capped at 1,500,000 bytes. The relay and
+developer network lab allow a 1,550,000-byte wire envelope; ordinary gameplay
+messages retain their smaller relay limit. The adverse-network simulator caps
+each direction's delayed queue at 8 MiB and records explicit `message_bytes` or
+`queue_bytes` drops instead of growing without bound.
+
+## Election and readiness barrier
+
+When the active host socket closes, the relay clears `hostId`, increments the
+authority epoch, freezes ordinary run traffic, and selects from connected peers
+that are present in the retained checkpoint and exactly compatible with it.
+Candidates are ordered by ascending replay slot, then original join order as a
+deterministic tie-breaker.
+
+The relay broadcasts `migration_started` and sends only the selected candidate
+a `migration_offer` containing the checkpoint. The candidate must:
+
+1. validate the checkpoint schema, bounds, compatibility, and identity;
+2. restore the simulation with the checkpoint's live relay-ID-to-slot map;
+3. verify the restored canonical hash;
+4. restore the replay draft and accepted-input frontier;
+5. send `migration_ready` bound to the offered epoch, checkpoint ID, tick, and
+   hash.
+
+The prepare window is 6 seconds per candidate. A timeout or candidate
+disconnect moves to the next eligible replay slot. The relay commits `hostId`
+and broadcasts `host_changed` only after a matching readiness message. Until
+that commit, nobody may publish snapshots or advance gameplay.
+
+On commit, every client installs the new `(epoch, hostId)` authority gate. The
+successor begins from the checkpoint tick and applies only guest inputs newer
+than the restored acknowledgement frontier. The old host, if it reconnects,
+returns as a guest in the current epoch and cannot reclaim authority with
+old-epoch traffic.
+
+## Failure behavior and fencing
+
+The relay rejects or ignores:
+
+- authority messages from a sender other than the committed host;
+- active-run messages whose epoch differs from the room epoch;
+- checkpoints from a non-host, an incompatible host, the wrong epoch, or a tick
+  no newer than the retained checkpoint;
+- readiness from any peer except the current candidate, or readiness whose
+  epoch/checkpoint/tick/hash tuple differs from the offer;
+- all ordinary run traffic while an election is in progress.
+
+If there is no checkpoint, migration is disabled, every compatible candidate
+fails, or no successor remains, the relay broadcasts `migration_failed`. Clients
+show an unavailable state and do not fork the run, promote a render snapshot,
+or silently continue solo. Local interrupted-run recovery remains a separate,
+explicit flow.
 
 ## Rolling compatibility
 
-- A v2 host accepts legacy unsequenced input until that peer sends its first v2
-  input. It then rejects legacy and stale input for that connection.
-- A v2 guest accepts legacy snapshots and reports `mode: legacy` in diagnostics.
-- A legacy host ignores v2 input metadata and continues reading `input`.
-- A legacy guest ignores acknowledgement metadata and continues reading `state`.
+- Epoch `0` accepts legacy unsequenced or v2 input only until that peer sends
+  its first v3 input. After v3 traffic, legacy input is rejected.
+- Any migrated epoch (`>0`) rejects legacy input because it cannot be fenced.
+- V3 readers can parse legacy v2 snapshots during the epoch-0 rollout, but
+  legacy peers are not eligible migration successors.
+- Sequence state resets for a genuinely new run or socket lifecycle. During
+  migration, the successor restores the accepted v3 acknowledgement frontier
+  instead of resetting it.
 
-This permits Worker and static-client rollout in either order. Sequence state is
-reset on a new run, socket teardown, lobby return, and peer removal, so a
-reconnecting browser can begin again at sequence zero under its new relay ID.
+Static client and Worker rollout may therefore occur in either order without
+granting legacy clients unsafe post-migration authority.
 
-## Replay and privacy
+## Replay, privacy, and diagnostics
 
-Only inputs accepted by the authoritative host reach `ReplayRecorder`. Replay
-command order therefore matches host application order, never client timestamps
-or network sequence values. Transport sequence numbers and relay peer IDs are not
-included in replay exports or problem-report protocol diagnostics. Diagnostics
-contain only protocol version/mode, counts, acknowledgement age, and aggregate
-rejection counters.
+Only commands accepted by the authoritative host reach `ReplayRecorder`.
+Replay command order follows authority application order, never client wall
+clock time or transport sequence values. Migration restores the anonymous
+replay draft at the checkpoint tick so final verification continues across the
+authority change.
+
+Problem-report diagnostics expose aggregate epoch, acknowledgement, rejection,
+queue, and migration status only. They do not include message bodies, room
+codes, callsigns, resume tokens, transient peer identifiers, or the checkpoint
+payload.
+
+## Feature flags, rollout, and rollback
+
+Migration has three independently reversible runtime flags:
+
+- `migrationCheckpointReplication`: publish and retain checkpoints; may run in
+  shadow mode without electing or resuming;
+- `hostMigrationElection`: allow the relay to select and offer a successor;
+- `hostMigrationResume`: allow a validated candidate to commit authority and
+  continue the run.
+
+Roll out in that order. Checkpoint shadow validation should precede election,
+and election telemetry should precede live resume. Disabling checkpoint
+replication makes future host losses fail safely. Disabling election or resume
+keeps the run frozen and unavailable rather than reverting to unfenced host
+assignment.
+
+Immediately disable `hostMigrationResume` for any canonical hash divergence,
+old-epoch acceptance, split authority, duplicate terminal result, or privacy
+leak. Disable election as well for candidate-selection or timeout loops. Disable
+checkpoint replication for serialization, bandwidth, queue, or memory growth.
+The previous v2 behavior is not used as a live-run fallback; rollback means
+safe run termination while lobby host reassignment remains available.
+
+Release gates for enabling resume are:
+
+- zero split-brain, stale-epoch acceptance, canonical divergence, privacy leak,
+  or duplicate result across the forced-migration soak;
+- migration success at least 99.5%;
+- gameplay freeze p95 no more than 4 seconds and p99 no more than 6 seconds;
+- invalid restore below 0.1%;
+- client migration memory no more than 2 MiB above the retained checkpoint and
+  delayed transport queues no more than their 8 MiB per-direction cap;
+- steady-state network growth no more than 25% and long-frame regression no
+  more than one percentage point.
+
+Any hard invariant failure blocks the build. Operational rollback also triggers
+when success falls below 99%, p95 exceeds 5 seconds, invalid restore exceeds
+0.5%, or the memory/network budgets are breached.

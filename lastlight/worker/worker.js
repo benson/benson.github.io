@@ -1,8 +1,13 @@
 import { DEFAULT_RUNTIME_CONFIG, validateRuntimeConfig } from "../feature-config.js";
-import { sanitizeInputMessage, sanitizeSnapshotMessage } from "../protocol.js";
+import { sanitizeDraftActionMessage, sanitizeInputMessage, sanitizeSnapshotMessage } from "../protocol.js";
+import {
+  HOST_MIGRATION_PROTOCOL_VERSION, MIGRATION_PREPARE_TIMEOUT_MS, migrationCompatibilityMatches,
+  validateMigrationCapabilities, validateMigrationCheckpoint, validateMigrationReady,
+} from "../host-migration.js";
 
 const MAX_PLAYERS = 4;
-const MAX_MESSAGE_BYTES = 512_000;
+const MAX_MESSAGE_BYTES = 1_550_000;
+const MAX_STANDARD_MESSAGE_BYTES = 512_000;
 const MAX_TELEMETRY_BYTES = 8_192;
 
 const TELEMETRY_FIELDS = new Set([
@@ -163,10 +168,17 @@ export default {
 };
 
 export class Room {
-  constructor(state) {
+  constructor(state, env = {}) {
     this.state = state;
+    this.env = env;
     this.sessions = new Map();
     this.hostId = null;
+    this.authorityEpoch = 0;
+    this.runActive = false;
+    this.migrationCheckpoint = null;
+    this.migration = null;
+    this.nextJoinOrdinal = 0;
+    this.seatTokens = new Map();
   }
 
   async fetch(request) {
@@ -176,7 +188,7 @@ export class Room {
     const [client, server] = Object.values(pair);
     server.accept();
     const id = crypto.randomUUID().slice(0, 8);
-    const session = { id, initialized: false, connectedAt: Date.now() };
+    const session = { id, initialized: false, connectedAt: Date.now(), joinOrdinal: this.nextJoinOrdinal++ };
     this.sessions.set(server, session);
     session.handshakeTimer = setTimeout(() => {
       if (!session.initialized) {
@@ -191,17 +203,27 @@ export class Room {
     return new Response(null, { status: 101, webSocket: client });
   }
 
-  initializeSession(socket, session, rawProfile) {
+  initializeSession(socket, session, rawProfile, rawCapabilities = null) {
     if (session.initialized) return false;
     const profile = safeProfile(rawProfile);
-    Object.assign(session, profile, { initialized: true });
+    if (profile.resumeToken && this.connectedSessions().some((peer) => peer.id !== session.id && peer.resumeToken === profile.resumeToken)) {
+      profile.resumeToken = "";
+    }
+    let migrationCapabilities = null;
+    try { if (rawCapabilities) migrationCapabilities = validateMigrationCapabilities(rawCapabilities); } catch { migrationCapabilities = null; }
+    const replaySlot = profile.resumeToken ? this.seatTokens.get(profile.resumeToken) : undefined;
+    Object.assign(session, profile, { initialized: true, migrationCapabilities, ...(Number.isInteger(replaySlot) ? { replaySlot } : {}) });
+    if (this.runActive && this.migration) session.pendingProfile = true;
     clearTimeout(session.handshakeTimer);
     delete session.handshakeTimer;
-    if (!this.hostId) this.hostId = session.id;
+    if (!this.hostId && !this.runActive && !this.migration) this.hostId = session.id;
     const peers = [...this.sessions.values()]
       .filter((peer) => peer.initialized && peer.id !== session.id)
       .map(publicPeer);
-    socket.send(JSON.stringify({ type: "welcome", id: session.id, role: session.id === this.hostId ? "host" : "guest", peers }));
+    socket.send(JSON.stringify({
+      type: "welcome", id: session.id, role: session.id === this.hostId ? "host" : "guest", hostId: this.hostId, peers,
+      authorityEpoch: this.authorityEpoch, migrationProtocol: HOST_MIGRATION_PROTOCOL_VERSION,
+    }));
     this.broadcast({ type: "peer_joined", peer: publicPeer(session) }, socket);
     return true;
   }
@@ -214,26 +236,41 @@ export class Room {
     let message;
     try { message = JSON.parse(typeof raw === "string" ? raw : new TextDecoder().decode(raw)); } catch { return; }
     if (!message || typeof message.type !== "string") return;
+    if (bytes > MAX_STANDARD_MESSAGE_BYTES && message.type !== "migration_checkpoint") { socket.close(1009, "Message too large"); return; }
     if (!session.initialized) {
       if (message.type !== "hello") return;
-      this.initializeSession(socket, session, message.profile);
+      this.initializeSession(socket, session, message.profile, message.migrationCapabilities);
       return;
     }
     if (message.type === "profile") {
       const profile = safeProfile(message.profile);
       Object.assign(session, profile);
-      message.profile = { id: session.id, ...profile };
+      if (this.migration) session.pendingProfile = true;
+      message.profile = {
+        id: session.id, name: profile.name, specialist: profile.specialist, ready: profile.ready,
+        ...(Number.isInteger(session.replaySlot) ? { replaySlot: session.replaySlot } : {}),
+      };
     }
     const targetId = typeof message._to === "string" ? message._to : "";
     delete message._to;
+    if (message.type === "migration_checkpoint") { this.acceptMigrationCheckpoint(session, message); return; }
+    if (message.type === "migration_ready") { this.acceptMigrationReady(session, message); return; }
+    if (this.migration) return;
     try {
       if (message.type === "input") message = sanitizeInputMessage(message, { allowLegacy: true });
       else if (message.type === "snapshot") message = sanitizeSnapshotMessage(message, { allowLegacy: true });
+      else if (message.type === "draft_action") message = { ...sanitizeDraftActionMessage(message) };
     } catch { return; }
-    const allowed = new Set(["profile", "lobby_state", "start", "sync_game", "return_lobby", "input", "cast", "choice", "snapshot"]);
+    const allowed = new Set(["profile", "lobby_state", "start", "sync_game", "return_lobby", "input", "cast", "cast_audio", "choice", "draft_action", "snapshot"]);
     if (!allowed.has(message.type)) return;
-    const hostOnly = new Set(["lobby_state", "start", "sync_game", "return_lobby", "snapshot"]);
+    const hostOnly = new Set(["lobby_state", "start", "sync_game", "return_lobby", "snapshot", "cast_audio"]);
     if (hostOnly.has(message.type) && session.id !== this.hostId) return;
+    if (this.runActive && this.authorityEpoch > 0 && Number(message.epoch) !== this.authorityEpoch && message.type !== "profile") return;
+    if (message.type === "start" && session.id === this.hostId) {
+      this.runActive = true; this.migrationCheckpoint = null; this.authorityEpoch = 0;
+    } else if (message.type === "return_lobby" && session.id === this.hostId) {
+      this.runActive = false; this.migrationCheckpoint = null; this.clearMigration();
+    }
     message._from = session.id;
     if (targetId) {
       if (session.id !== this.hostId || !hostOnly.has(message.type)) return;
@@ -251,9 +288,102 @@ export class Room {
     if (!session.initialized) return;
     this.broadcast({ type: "peer_left", id: session.id });
     if (session.id === this.hostId) {
-      this.hostId = [...this.sessions.values()].find((peer) => peer.initialized)?.id || null;
-      if (this.hostId) this.broadcast({ type: "host_changed", id: this.hostId });
+      if (this.runActive) this.beginMigration(session.id);
+      else {
+        const successor = this.connectedSessions().sort((a, b) => a.joinOrdinal - b.joinOrdinal)[0];
+        this.hostId = successor?.id || null;
+        if (this.hostId) this.broadcast({ type: "host_changed", id: this.hostId, authorityEpoch: this.authorityEpoch, migrated: false });
+      }
+    } else if (this.migration?.candidateId === session.id) this.tryNextMigrationCandidate();
+  }
+
+  runtimeFlags() { return operatorRuntimeConfig(this.env).config.flags; }
+
+  connectedSessions() { return [...this.sessions.values()].filter((session) => session.initialized); }
+
+  acceptMigrationCheckpoint(session, raw) {
+    if (!this.runtimeFlags().migrationCheckpointReplication || session.id !== this.hostId || this.migration || !this.runActive) return false;
+    let checkpoint; try { checkpoint = validateMigrationCheckpoint(raw); } catch { return false; }
+    if (checkpoint.epoch !== this.authorityEpoch || !checkpoint.roster.some(({ id }) => id === session.id)) return false;
+    if (!session.migrationCapabilities || !migrationCompatibilityMatches(session.migrationCapabilities.compatibility, checkpoint.compatibility)) return false;
+    if (this.migrationCheckpoint && checkpoint.tick <= this.migrationCheckpoint.tick) return false;
+    for (const member of checkpoint.roster) {
+      const connected = this.connectedSessions().find(({ id }) => id === member.id);
+      if (!connected) continue;
+      connected.replaySlot = member.replaySlot;
+      if (connected.resumeToken) this.seatTokens.set(connected.resumeToken, member.replaySlot);
     }
+    this.migrationCheckpoint = checkpoint;
+    return true;
+  }
+
+  eligibleMigrationCandidates(excluded = new Set()) {
+    const checkpoint = this.migrationCheckpoint;
+    if (!checkpoint) return [];
+    const slots = new Map(checkpoint.roster.map(({ id, replaySlot }) => [id, replaySlot]));
+    return this.connectedSessions()
+      .filter((session) => !excluded.has(session.id) && slots.has(session.id) && session.migrationCapabilities
+        && migrationCompatibilityMatches(session.migrationCapabilities.compatibility, checkpoint.compatibility))
+      .sort((left, right) => slots.get(left.id) - slots.get(right.id) || left.joinOrdinal - right.joinOrdinal);
+  }
+
+  beginMigration(oldHostId) {
+    const flags = this.runtimeFlags();
+    this.hostId = null;
+    if (!flags.hostMigrationElection || !flags.hostMigrationResume || !this.migrationCheckpoint) {
+      this.broadcast({ type: "migration_failed", reason: !this.migrationCheckpoint ? "no-checkpoint" : "disabled" });
+      return false;
+    }
+    this.authorityEpoch++;
+    this.migration = { oldHostId, failed: new Set(), candidateId: "", timer: null };
+    return this.tryNextMigrationCandidate();
+  }
+
+  tryNextMigrationCandidate() {
+    if (!this.migration) return false;
+    clearTimeout(this.migration.timer);
+    if (this.migration.candidateId) this.migration.failed.add(this.migration.candidateId);
+    const candidate = this.eligibleMigrationCandidates(this.migration.failed)[0];
+    if (!candidate) {
+      this.broadcast({ type: "migration_failed", reason: "no-compatible-successor", authorityEpoch: this.authorityEpoch });
+      this.clearMigration(); return false;
+    }
+    this.migration.candidateId = candidate.id;
+    this.broadcast({
+      type: "migration_started", authorityEpoch: this.authorityEpoch, candidateId: candidate.id,
+      checkpointId: this.migrationCheckpoint.checkpointId, tick: this.migrationCheckpoint.tick,
+    });
+    this.sendTo(candidate.id, {
+      type: "migration_offer", authorityEpoch: this.authorityEpoch, oldHostId: this.migration.oldHostId,
+      checkpoint: this.migrationCheckpoint,
+    });
+    this.migration.timer = setTimeout(() => this.tryNextMigrationCandidate(), MIGRATION_PREPARE_TIMEOUT_MS);
+    return true;
+  }
+
+  acceptMigrationReady(session, raw) {
+    if (!this.migration || session.id !== this.migration.candidateId) return false;
+    let ready; try { ready = validateMigrationReady(raw); } catch { return false; }
+    const checkpoint = this.migrationCheckpoint;
+    if (ready.epoch !== this.authorityEpoch || ready.checkpointId !== checkpoint?.checkpointId || ready.tick !== checkpoint.tick || ready.hash !== checkpoint.hash) return false;
+    const oldHostId = this.migration.oldHostId;
+    this.hostId = session.id;
+    this.clearMigration();
+    this.broadcast({
+      type: "host_changed", id: session.id, authorityEpoch: this.authorityEpoch, migrated: true,
+      oldHostId, checkpointId: checkpoint.checkpointId, tick: checkpoint.tick, hash: checkpoint.hash,
+    });
+    for (const peer of this.connectedSessions()) {
+      if (!peer.pendingProfile || peer.id === session.id) continue;
+      delete peer.pendingProfile;
+      this.sendTo(session.id, { type: "profile", profile: publicPeer(peer), _from: peer.id });
+    }
+    return true;
+  }
+
+  clearMigration() {
+    clearTimeout(this.migration?.timer);
+    this.migration = null;
   }
 
   broadcast(message, except = null) {
@@ -274,7 +404,7 @@ export class Room {
 }
 
 function publicPeer(session) {
-  return { id: session.id, name: session.name, specialist: session.specialist, ready: session.ready };
+  return { id: session.id, name: session.name, specialist: session.specialist, ready: session.ready, ...(Number.isInteger(session.replaySlot) ? { replaySlot: session.replaySlot } : {}) };
 }
 
 function corsHeaders(request) {

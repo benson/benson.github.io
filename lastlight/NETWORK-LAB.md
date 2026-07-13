@@ -53,7 +53,10 @@ payload content.
 - It copies binary payloads and never rewrites message content.
 - Hostile telegraphs and simulation time are not treated specially; this is a
   transport test, not a gameplay modifier.
-- A message is capped at 256 KiB; each direction is capped at 256 queued messages
-  and 2 MiB. Delays and reorder windows are also strictly bounded.
+- A message is capped at 1,550,000 bytes so the lab can exercise the relay's
+  1.5 MB migration-checkpoint contract with framing headroom. Each direction is
+  still capped at 256 queued messages and now has an 8 MiB byte budget, enough
+  for five maximum-size checkpoints but not a sixth. Delays and reorder windows
+  are also strictly bounded.
 - Reconnect triggers exactly once after the profile's audited message count and
   delegates socket closure to the integration callback.
