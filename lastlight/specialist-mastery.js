@@ -1,4 +1,4 @@
-import { fnv1a64 } from "./replay.js?v=20260713.15";
+import { fnv1a64 } from "./replay.js?v=20260713.16";
 
 export const SPECIALIST_MASTERY_SCHEMA = "lastlight.specialist-mastery.v1";
 export const SPECIALIST_MASTERY_STORAGE_VERSION = 1;
@@ -133,7 +133,7 @@ export function saveSpecialistMasteryState(storage, value) {
 function fieldValue(player, field) { return field.split(".").reduce((value, key) => value?.[key], player); }
 
 function validateMasteryRunEvidence(report) {
-  if (!report || report.schema !== "lastlight.squad-run-report.v3" || !/^[0-9a-f]{16}$/.test(report.fingerprint || "") || !["won", "lost"].includes(report.outcome) || !["story", "hard", "extreme"].includes(report.difficulty) || !Array.isArray(report.players)) throw new TypeError("Invalid terminal mastery evidence");
+  if (!report || report.schema !== "lastlight.squad-run-report.v4" || !/^[0-9a-f]{16}$/.test(report.fingerprint || "") || !["won", "lost"].includes(report.outcome) || !["story", "hard", "extreme"].includes(report.difficulty) || !Array.isArray(report.players)) throw new TypeError("Invalid terminal mastery evidence");
   if (!report.mutations || !integer(report.mutations.clears, 0, 100) || !integer(report.mutations.encounters, 0, 100) || !integer(report.mutations.failures, 0, 100) || report.mutations.clears + report.mutations.failures !== report.mutations.encounters) throw new TypeError("Invalid terminal mastery mutation evidence");
   for (const player of report.players) if (!integer(player.slot, 0, 3) || !SPECIALIST_MASTERY_IDS.includes(player.specialist) || typeof player.campaignEligible !== "boolean" || ["damage", "kills", "xpCollected", "distance"].some((field) => typeof player[field] !== "number" || !Number.isFinite(player[field]) || player[field] < 0) || !player.participation || typeof player.participation !== "object") throw new TypeError("Invalid terminal mastery player evidence");
 }

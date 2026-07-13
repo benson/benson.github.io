@@ -125,6 +125,7 @@ function createReplica(index, options) {
       mapMechanics: options.mapMechanics,
       campaignMutations: options.campaignMutations,
       specialistMastery: options.specialistMastery,
+      rareDiscoveries: options.rareDiscoveries,
       registryVersion: DEFAULT_RUNTIME_CONFIG.registryVersion,
     },
   }, { seed: options.seed, balanceVersion: BALANCE_VERSION, balanceHash: BALANCE_HASH });
@@ -213,6 +214,7 @@ export function runMultiplayerSoak(options = {}) {
     mapMechanics: options.mapMechanics ?? DEFAULT_RUNTIME_CONFIG.flags.mapMechanics,
     campaignMutations: options.campaignMutations ?? DEFAULT_RUNTIME_CONFIG.flags.campaignMutations,
     specialistMastery: options.specialistMastery ?? DEFAULT_RUNTIME_CONFIG.flags.specialistMastery,
+    rareDiscoveries: options.rareDiscoveries ?? DEFAULT_RUNTIME_CONFIG.flags.rareDiscoveries,
     checkpointEvery: options.checkpointEvery || 300,
   };
   if (!/^[0-9a-f]{32}$/.test(settings.seed) || /^0+$/.test(settings.seed)) throw new TypeError("seed must be non-zero 128-bit lowercase hex");

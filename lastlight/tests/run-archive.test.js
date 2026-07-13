@@ -110,9 +110,10 @@ test("legacy v1/v2 local entries migrate to bounded current reports without bloc
   assert.equal(migrated[0].report.players[0].callsign, "Old"); assert.equal(migrated[0].report.players[0].damage, 500);
 });
 
-test("signed v2 reports migrate to v3 with an explicit baseline mastery start", () => {
+test("signed v2 reports migrate to v4 with an explicit baseline mastery start and empty discoveries", () => {
   const legacy = structuredClone(createSquadRunReport(run(), { build: "2026.07.13.14" }));
   legacy.schema = "lastlight.squad-run-report.v2";
+  delete legacy.discoveries;
   for (const player of legacy.players) delete player.masteryStart;
   const identity = {
     schema: legacy.schema, build: legacy.build, runKey: legacy.runKey, outcome: legacy.outcome, map: legacy.map,
@@ -124,5 +125,6 @@ test("signed v2 reports migrate to v3 with an explicit baseline mastery start", 
   const [entry] = normalizeRunArchiveStorage([{ schemaVersion: 4, savedAt: "2026-07-13T16:31:00.000Z", report: legacy }]);
   assert.equal(entry.report.schema, SQUAD_RUN_REPORT_SCHEMA);
   assert.ok(entry.report.players.every(({ masteryStart }) => masteryStart === "baseline"));
+  assert.deepEqual(entry.report.discoveries, []);
   assert.doesNotThrow(() => validateSquadRunReport(entry.report));
 });

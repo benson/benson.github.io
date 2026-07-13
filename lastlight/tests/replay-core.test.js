@@ -13,8 +13,8 @@ const base = () => ({
   build: "2026.07.11.3",
   balance: { version: "2026.07.11-baseline.1", hash: "fnv1a32:7e33be79" },
   features: {
-    configVersion: "release-2026.07.13.15", gameplayVersion: "specialist-mastery-v1", objectiveEvents: true,
-    squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, specialistMastery: true, registryVersion: "lastlight.squad-synergy.v1",
+    configVersion: "release-2026.07.13.16", gameplayVersion: "rare-discoveries-v1", objectiveEvents: true,
+    squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, specialistMastery: true, rareDiscoveries: true, registryVersion: "lastlight.squad-synergy.v1",
   },
   engine: { stepHz: REPLAY_STEP_HZ, rng: "xoshiro128ss-v1" },
   seed: "0123456789abcdef0123456789abcdef",
@@ -75,12 +75,14 @@ test("validator rejects unknown fields, identity, nonfinite input, and stale con
 
 function stripMastery(value) {
   delete value.features?.specialistMastery;
+  delete value.features?.rareDiscoveries;
   for (const member of value.roster || []) delete member.masteryStart;
   return value;
 }
 
 function stripDraftMastery(value) {
   delete value.header?.specialistMastery;
+  delete value.header?.rareDiscoveries;
   for (const member of [...(value.roster || []), ...(value.knownSlots || [])]) delete member.masteryStart;
   return value;
 }
@@ -115,8 +117,8 @@ test("recorder keeps transient identities out of replay JSON and deduplicates in
   assert.equal(replay.commands.length, 6);
   assert.deepEqual(replay.roster, [{ slot: 0, specialist: "zuri", masteryStart: "baseline" }]);
   assert.deepEqual(replay.features, {
-    configVersion: "release-2026.07.13.15", gameplayVersion: "specialist-mastery-v1", objectiveEvents: true,
-    squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, specialistMastery: true, registryVersion: "lastlight.squad-synergy.v1",
+    configVersion: "release-2026.07.13.16", gameplayVersion: "rare-discoveries-v1", objectiveEvents: true,
+    squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, specialistMastery: true, rareDiscoveries: true, registryVersion: "lastlight.squad-synergy.v1",
   });
 });
 
@@ -245,8 +247,8 @@ test("legacy replay drafts resume with squad synergies explicitly disabled", () 
   const replay = resumed.finalize(0, "0000000000000000");
   assert.equal(replay.schema, "lastlight.replay.v4");
   assert.deepEqual(replayGameplayFeatures(replay), {
-    gameplayVersion: "specialist-mastery-v1", objectiveEvents: true, squadSynergies: false,
-    sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, specialistMastery: false, registryVersion: "none",
+    gameplayVersion: "rare-discoveries-v1", objectiveEvents: true, squadSynergies: false,
+    sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, specialistMastery: false, rareDiscoveries: false, registryVersion: "none",
   });
 });
 
@@ -442,7 +444,7 @@ test("driver rejects a simulation created with different gameplay flags before s
   replay.features = {
     configVersion: "rollback-42", gameplayVersion: "participation-off-v1", objectiveEvents: false,
     squadSynergies: false, sharedParticipationCredit: false, downedActivity: false,
-    joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, specialistMastery: false, registryVersion: "lastlight.squad-synergy.v1",
+    joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, specialistMastery: false, rareDiscoveries: false, registryVersion: "lastlight.squad-synergy.v1",
   };
   const driver = new ReplayDriver(replay, {
     createSimulation: () => ({ gameplayVersion: "events-v1", objectiveEvents: true, squadSynergies: true, synergyRegistryVersion: "lastlight.squad-synergy.v1" }),
@@ -487,7 +489,7 @@ test("simulation hashes normalize transient identity but include input, hit sets
 test("feature-off canonical hashes preserve the legacy v7 simulation shape", () => {
   const features = {
     gameplayVersion: "participation-v1", objectiveEvents: true, squadSynergies: true,
-    sharedParticipationCredit: true, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, specialistMastery: false,
+    sharedParticipationCredit: true, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, specialistMastery: false, rareDiscoveries: false,
     registryVersion: "lastlight.squad-synergy.v1",
   };
   const simulation = new Simulation({
@@ -574,6 +576,7 @@ test("a recorded deterministic Simulation replays to the same final hash", () =>
         mapMechanics: manifest.features.mapMechanics,
         campaignMutations: manifest.features.campaignMutations,
         specialistMastery: manifest.features.specialistMastery,
+        rareDiscoveries: manifest.features.rareDiscoveries,
         registryVersion: manifest.features.registryVersion,
       },
     }),

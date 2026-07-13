@@ -36,6 +36,9 @@ const TELEMETRY_V3_FIELDS = new Set([...TELEMETRY_V2_FIELDS, "participationTotal
 const TELEMETRY_V4_FIELDS = new Set([...TELEMETRY_V3_FIELDS, "directorTotals"]);
 const TELEMETRY_V5_FIELDS = new Set([...TELEMETRY_V4_FIELDS, "mutationPackageId", "mutationTotals"]);
 const TELEMETRY_V6_FIELDS = new Set([...TELEMETRY_V5_FIELDS, "masterySpecialist", "masteryLevelBand", "masteryChallengeCompletions", "masteryMilestoneUnlocks", "masterySelectedStart"]);
+const TELEMETRY_MASTERY_FIELDS = Object.freeze(["masterySpecialist", "masteryLevelBand", "masteryChallengeCompletions", "masteryMilestoneUnlocks", "masterySelectedStart"]);
+const TELEMETRY_DISCOVERY_CATEGORIES = Object.freeze(["event", "affix", "boon", "augment"]);
+const TELEMETRY_V7_FIELDS = new Set([...TELEMETRY_V6_FIELDS, "rareDiscoveryCount", "rareDiscoveryNewCount", "rareDiscoveryCategories"]);
 const TELEMETRY_MAPS = new Set(["warehouse", "outskirts", "lab", "beachhead"]);
 const TELEMETRY_DIFFICULTIES = new Set(["story", "hard", "extreme"]);
 const TELEMETRY_OUTCOMES = new Set(["won", "lost"]);
@@ -115,8 +118,8 @@ function telemetryExactKeys(value, expected, field) {
 
 export function sanitizeRunTelemetry(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new TypeError("Telemetry must be an object");
-  if (![1, 2, 3, 4, 5, 6].includes(value.schemaVersion)) throw new TypeError("Unsupported telemetry schema");
-  const allowedFields = value.schemaVersion === 6 ? TELEMETRY_V6_FIELDS : value.schemaVersion === 5 ? TELEMETRY_V5_FIELDS : value.schemaVersion === 4 ? TELEMETRY_V4_FIELDS : value.schemaVersion === 3 ? TELEMETRY_V3_FIELDS : value.schemaVersion === 2 ? TELEMETRY_V2_FIELDS : TELEMETRY_V1_FIELDS;
+  if (![1, 2, 3, 4, 5, 6, 7].includes(value.schemaVersion)) throw new TypeError("Unsupported telemetry schema");
+  const allowedFields = value.schemaVersion === 7 ? TELEMETRY_V7_FIELDS : value.schemaVersion === 6 ? TELEMETRY_V6_FIELDS : value.schemaVersion === 5 ? TELEMETRY_V5_FIELDS : value.schemaVersion === 4 ? TELEMETRY_V4_FIELDS : value.schemaVersion === 3 ? TELEMETRY_V3_FIELDS : value.schemaVersion === 2 ? TELEMETRY_V2_FIELDS : TELEMETRY_V1_FIELDS;
   for (const key of Object.keys(value)) {
     if (!allowedFields.has(key)) throw new TypeError(`Unexpected telemetry field: ${key}`);
   }
@@ -212,7 +215,9 @@ export function sanitizeRunTelemetry(value) {
     if (mutationTotals.clears + mutationTotals.failures !== mutationTotals.encounters) throw new TypeError("Mutation encounter totals do not reconcile");
     Object.assign(run, { mutationPackageId: value.mutationPackageId, mutationTotals });
   }
-  if (value.schemaVersion === 6) {
+  const masteryFieldCount = TELEMETRY_MASTERY_FIELDS.filter((field) => Object.hasOwn(value, field)).length;
+  if (value.schemaVersion === 6 || masteryFieldCount) {
+    if (masteryFieldCount !== TELEMETRY_MASTERY_FIELDS.length) throw new TypeError("Incomplete mastery telemetry");
     if (!TELEMETRY_SPECIALISTS.has(value.masterySpecialist) || !["1-2", "3-4", "5"].includes(value.masteryLevelBand) || !["baseline", "field-kit"].includes(value.masterySelectedStart)) throw new TypeError("Invalid mastery telemetry identity");
     Object.assign(run, {
       masterySpecialist: value.masterySpecialist, masteryLevelBand: value.masteryLevelBand,
@@ -220,6 +225,16 @@ export function sanitizeRunTelemetry(value) {
       masteryMilestoneUnlocks: telemetryNumber(value.masteryMilestoneUnlocks, "masteryMilestoneUnlocks", 0, 4, true),
       masterySelectedStart: value.masterySelectedStart,
     });
+  }
+  if (value.schemaVersion === 7) {
+    const rareDiscoveryCount = telemetryNumber(value.rareDiscoveryCount, "rareDiscoveryCount", 0, 27, true);
+    const rareDiscoveryNewCount = telemetryNumber(value.rareDiscoveryNewCount, "rareDiscoveryNewCount", 0, rareDiscoveryCount, true);
+    telemetryExactKeys(value.rareDiscoveryCategories, TELEMETRY_DISCOVERY_CATEGORIES, "rareDiscoveryCategories");
+    const rareDiscoveryCategories = Object.fromEntries(TELEMETRY_DISCOVERY_CATEGORIES.map((category) => [
+      category, telemetryNumber(value.rareDiscoveryCategories[category], `rareDiscoveryCategories.${category}`, 0, 27, true),
+    ]));
+    if (Object.values(rareDiscoveryCategories).reduce((sum, count) => sum + count, 0) !== rareDiscoveryCount) throw new TypeError("Rare discovery categories do not reconcile");
+    Object.assign(run, { rareDiscoveryCount, rareDiscoveryNewCount, rareDiscoveryCategories });
   }
   return run;
 }
@@ -314,6 +329,14 @@ function masteryDataPoint(run) {
   };
 }
 
+function rareDiscoveryDataPoint(run) {
+  return {
+    blobs: ["rare-discoveries.v1", run.build, run.map, run.difficulty, run.outcome],
+    doubles: [run.rareDiscoveryCount, run.rareDiscoveryNewCount, ...TELEMETRY_DISCOVERY_CATEGORIES.map((category) => run.rareDiscoveryCategories[category])],
+    indexes: ["lastlight-rare-discoveries-v1"],
+  };
+}
+
 async function handleTelemetry(request, env) {
   if (request.method !== "POST") {
     return Response.json({ error: "Method not allowed" }, { status: 405, headers: { ...corsHeaders(request), Allow: "POST" } });
@@ -344,7 +367,8 @@ async function handleTelemetry(request, env) {
   if (run.schemaVersion >= 3) env.RUN_TELEMETRY.writeDataPoint(participationDataPoint(run));
   if (run.schemaVersion >= 4) env.RUN_TELEMETRY.writeDataPoint(directorDataPoint(run));
   if (run.schemaVersion >= 5) env.RUN_TELEMETRY.writeDataPoint(mutationDataPoint(run));
-  if (run.schemaVersion === 6) env.RUN_TELEMETRY.writeDataPoint(masteryDataPoint(run));
+  if (run.masterySpecialist) env.RUN_TELEMETRY.writeDataPoint(masteryDataPoint(run));
+  if (run.schemaVersion === 7) env.RUN_TELEMETRY.writeDataPoint(rareDiscoveryDataPoint(run));
   return Response.json({ ok: true }, { status: 202, headers: { ...corsHeaders(request), "Cache-Control": "no-store" } });
 }
 

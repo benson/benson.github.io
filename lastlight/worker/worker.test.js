@@ -9,9 +9,9 @@ import {
 
 const migrationCompatibility = {
   build: "2026.07.13.1", balanceVersion: "2026.07.13-apex.1", balanceHash: "fnv1a32:873c43bc",
-  configVersion: "release-2026.07.13.12", gameplayVersion: "map-mechanics-v1", objectiveEvents: true,
+  configVersion: "release-2026.07.13.16", gameplayVersion: "rare-discoveries-v1", objectiveEvents: true,
   squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true,
-  squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, specialistMastery: true, registryVersion: "lastlight.squad-synergy.v1", recoveryVersion: 11,
+  squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, specialistMastery: true, rareDiscoveries: true, registryVersion: "lastlight.squad-synergy.v1", recoveryVersion: 12,
 };
 const migrationCapabilities = createMigrationCapabilities(migrationCompatibility);
 const migrationSocket = () => ({ sent: [], send(payload) { this.sent.push(JSON.parse(payload)); } });
@@ -118,6 +118,12 @@ const validTelemetryV6 = {
   masterySpecialist: "zuri", masteryLevelBand: "3-4", masteryChallengeCompletions: 1,
   masteryMilestoneUnlocks: 2, masterySelectedStart: "field-kit",
 };
+const validTelemetryV7 = {
+  ...validTelemetryV6,
+  schemaVersion: 7,
+  rareDiscoveryCount: 9, rareDiscoveryNewCount: 2,
+  rareDiscoveryCategories: { event: 2, affix: 1, boon: 4, augment: 2 },
+};
 
 function telemetryRequest(payload = validTelemetry, init = {}) {
   return new Request("https://lastlight-relay.example/telemetry", {
@@ -142,7 +148,7 @@ test("profiles discard markup and constrain specialist ids", () => {
   assert.equal(safeProfile({ resumeToken: "a".repeat(24) }).resumeToken, "a".repeat(24));
 });
 
-test("rolling telemetry accepts v1 through v6 as fixed aggregate schemas", () => {
+test("rolling telemetry accepts v1 through v7 as fixed aggregate schemas", () => {
   const run = sanitizeRunTelemetry(validTelemetry);
   assert.deepEqual(run.specialists, ["echo", "zuri"]);
   assert.equal(run.damageDealt, 2000.3);
@@ -161,6 +167,8 @@ test("rolling telemetry accepts v1 through v6 as fixed aggregate schemas", () =>
   assert.deepEqual(v5.mutationTotals, validTelemetryV5.mutationTotals);
   const v6 = sanitizeRunTelemetry(validTelemetryV6);
   assert.equal(v6.masterySpecialist, "zuri"); assert.equal(v6.masterySelectedStart, "field-kit");
+  const v7 = sanitizeRunTelemetry(validTelemetryV7);
+  assert.equal(v7.rareDiscoveryCount, 9); assert.deepEqual(v7.rareDiscoveryCategories, validTelemetryV7.rareDiscoveryCategories);
 });
 
 test("telemetry endpoint writes one identity-free Analytics Engine datapoint", async () => {
@@ -266,6 +274,21 @@ test("telemetry v6 writes one bounded aggregate-only specialist mastery datapoin
   assert.doesNotMatch(JSON.stringify(writes), /callsign|playerName|roomId|ipAddress|replaySlot|resumeToken|position|slot/i);
 });
 
+test("telemetry v7 writes bounded aggregate-only rare discovery and optional mastery datapoints", async () => {
+  const writes = [];
+  const response = await worker.fetch(telemetryRequest(validTelemetryV7), { RUN_TELEMETRY: { writeDataPoint: (point) => writes.push(point) } });
+  assert.equal(response.status, 202); assert.equal(writes.length, 6);
+  assert.deepEqual(writes[5], {
+    blobs: ["rare-discoveries.v1", "2026.07.10.1", "warehouse", "story", "won"],
+    doubles: [9, 2, 2, 1, 4, 2], indexes: ["lastlight-rare-discoveries-v1"],
+  });
+  const withoutMastery = Object.fromEntries(Object.entries(validTelemetryV7).filter(([key]) => !key.startsWith("mastery")));
+  const aggregateOnly = sanitizeRunTelemetry(withoutMastery);
+  assert.equal(aggregateOnly.rareDiscoveryCount, 9); assert.equal(Object.hasOwn(aggregateOnly, "masterySpecialist"), false);
+  assert.throws(() => sanitizeRunTelemetry({ ...validTelemetryV7, rareDiscoveryCategories: { ...validTelemetryV7.rareDiscoveryCategories, event: 3 } }), /do not reconcile/);
+  assert.doesNotMatch(JSON.stringify(writes), /discoveryId|callsign|playerName|roomId|ipAddress|replaySlot|resumeToken|position|slot/i);
+});
+
 test("telemetry v4 rejects identity and inconsistent director aggregates before writing", async () => {
   for (const directorTotals of [
     { ...validTelemetryV4.directorTotals, roomId: "SECRET" },
@@ -322,7 +345,7 @@ test("rolling telemetry schemas reject cross-version fields", () => {
   assert.throws(() => sanitizeRunTelemetry({ ...validTelemetryV2, schemaVersion: 2, synergyTotals: undefined }), /Invalid synergyTotals/);
   assert.throws(() => sanitizeRunTelemetry({ ...validTelemetryV2, schemaVersion: 3 }), /Invalid participationTotals/);
   assert.throws(() => sanitizeRunTelemetry({ ...validTelemetryV3, schemaVersion: 4 }), /Invalid directorTotals/);
-  assert.throws(() => sanitizeRunTelemetry({ ...validTelemetryV4, schemaVersion: 7 }), /Unsupported telemetry schema/);
+  assert.throws(() => sanitizeRunTelemetry({ ...validTelemetryV4, schemaVersion: 8 }), /Unsupported telemetry schema/);
   assert.throws(() => sanitizeRunTelemetry({ ...validTelemetryV2, participationTotals: validTelemetryV3.participationTotals }), /Unexpected telemetry field/);
 });
 
@@ -362,12 +385,12 @@ test("telemetry endpoint enforces method, type, size, origin, and CORS", async (
 
 test("runtime config endpoint is allowlisted, no-store, origin-aware, and read-only", async () => {
   const config = {
-    schemaVersion: 10, configVersion: "rollback-42", gameplayVersion: "director-off-v1",
+    schemaVersion: 11, configVersion: "rollback-42", gameplayVersion: "director-off-v1",
     registryVersion: "lastlight.squad-synergy.v1",
     flags: {
       deterministicReplay: false, runTelemetry: false, objectiveEvents: false,
       migrationCheckpointReplication: false, hostMigrationElection: false, hostMigrationResume: false,
-      contextualPings: false, upgradeRecommendations: false, squadSynergies: false, sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, specialistMastery: false, sharedSquadRunArchive: false,
+      contextualPings: false, upgradeRecommendations: false, squadSynergies: false, sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, specialistMastery: false, rareDiscoveries: false, sharedSquadRunArchive: false,
     },
   };
   const env = { LASTLIGHT_RUNTIME_CONFIG: JSON.stringify(config) };
@@ -390,7 +413,7 @@ test("invalid operator config fails closed to immutable release defaults", () =>
   assert.deepEqual(invalid.config.flags, {
     deterministicReplay: true, runTelemetry: true, objectiveEvents: true,
     migrationCheckpointReplication: true, hostMigrationElection: true, hostMigrationResume: true,
-    contextualPings: true, upgradeRecommendations: true, squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, specialistMastery: true, sharedSquadRunArchive: true,
+    contextualPings: true, upgradeRecommendations: true, squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, specialistMastery: true, rareDiscoveries: true, sharedSquadRunArchive: true,
   });
   assert.equal(operatorRuntimeConfig({}).source, "built-in");
 });
@@ -466,7 +489,7 @@ test("room identity is established by the first message instead of the request U
   assert.equal(room.hostId, "first");
   assert.equal(room.sessions.get(socket).name, "Private Pilot");
   assert.equal(room.sessions.get(socket).resumeToken, "a".repeat(24));
-  assert.deepEqual(socket.sent, [{ type: "welcome", id: "first", role: "host", hostId: "first", peers: [], authorityEpoch: 0, migrationProtocol: 9 }]);
+  assert.deepEqual(socket.sent, [{ type: "welcome", id: "first", role: "host", hostId: "first", peers: [], authorityEpoch: 0, migrationProtocol: 10 }]);
 });
 
 test("reconnect tokens stay relay-private and immutable when profiles are routed", () => {
@@ -512,7 +535,7 @@ test("a session can only be initialized once by the hello handshake", () => {
   assert.equal(room.initializeSession(socket, session, { name: "Ignored", specialist: "fang" }), false);
   assert.equal(session.name, "First");
   assert.equal(session.specialist, "echo");
-  assert.deepEqual(socket.sent, [{ type: "welcome", id: "handshake", role: "host", hostId: "handshake", peers: [], authorityEpoch: 0, migrationProtocol: 9 }]);
+  assert.deepEqual(socket.sent, [{ type: "welcome", id: "handshake", role: "host", hostId: "handshake", peers: [], authorityEpoch: 0, migrationProtocol: 10 }]);
 });
 
 test("fresh active-run admission binds one relay-owned slot only after an explicit package request", () => {
@@ -644,7 +667,7 @@ test("active host loss freezes routing and deterministically offers authority to
   const checkpoint = createMigrationCheckpoint({
     epoch: 0, tick: 180, hash: "0123456789abcdef", ack: { "slot-one": 4, "slot-two": 8 }, compatibility: migrationCompatibility,
     roster: [{ id: "host", replaySlot: 0 }, { id: "slot-one", replaySlot: 1 }, { id: "slot-two", replaySlot: 2 }],
-    simulation: { version: 11, scalars: { tick: 180 } }, replay: { currentTick: 180 },
+    simulation: { version: 12, scalars: { tick: 180 } }, replay: { currentTick: 180 },
   });
   assert.equal(room.acceptMigrationCheckpoint(hostSession, checkpoint), true);
 
@@ -674,7 +697,7 @@ test("migration rejects stale checkpoints, incompatible candidates, and forged r
   const checkpoint = createMigrationCheckpoint({
     epoch: 0, tick: 60, hash: "fedcba9876543210", ack: { guest: 1 }, compatibility: migrationCompatibility,
     roster: [{ id: "host", replaySlot: 0 }, { id: "guest", replaySlot: 1 }],
-    simulation: { version: 11, scalars: { tick: 60 } }, replay: null,
+    simulation: { version: 12, scalars: { tick: 60 } }, replay: null,
   });
   assert.equal(room.acceptMigrationCheckpoint(hostSession, checkpoint), true);
   assert.equal(room.acceptMigrationCheckpoint(hostSession, checkpoint), false);
@@ -696,7 +719,7 @@ function migrationFixture({ env = {}, hostToken = "a".repeat(24) } = {}) {
   const checkpoint = createMigrationCheckpoint({
     epoch: 0, tick: 180, hash: "0123456789abcdef", ack: { successor: 7, observer: 4 }, compatibility: migrationCompatibility,
     roster: [{ id: "host", replaySlot: 0 }, { id: "successor", replaySlot: 1 }, { id: "observer", replaySlot: 2 }],
-    simulation: { version: 11, scalars: { tick: 180 } }, replay: { currentTick: 180 },
+    simulation: { version: 12, scalars: { tick: 180 } }, replay: { currentTick: 180 },
   });
   return { room, host, successor, observer, hostSession, successorSession, observerSession, checkpoint, hostToken };
 }
@@ -754,12 +777,12 @@ test("active host loss without a checkpoint fails closed instead of promoting an
 
 test("disabled host migration fails closed even when a valid checkpoint exists", () => {
   const config = {
-    schemaVersion: 10, configVersion: "migration-off", gameplayVersion: "map-mechanics-v1",
+    schemaVersion: 11, configVersion: "migration-off", gameplayVersion: "map-mechanics-v1",
     registryVersion: "lastlight.squad-synergy.v1",
     flags: {
       deterministicReplay: true, runTelemetry: true, objectiveEvents: true,
       migrationCheckpointReplication: true, hostMigrationElection: false, hostMigrationResume: true,
-      contextualPings: true, upgradeRecommendations: true, squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, specialistMastery: true, sharedSquadRunArchive: true,
+      contextualPings: true, upgradeRecommendations: true, squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, specialistMastery: true, rareDiscoveries: true, sharedSquadRunArchive: true,
     },
   };
   const fixture = migrationFixture({ env: { LASTLIGHT_RUNTIME_CONFIG: JSON.stringify(config) } });
@@ -796,7 +819,7 @@ test("a returning old host reclaims its checkpoint replay slot but remains a gue
       { id: "successor", masteryStart: "baseline", replaySlot: 1 },
       { id: "observer", masteryStart: "baseline", replaySlot: 2 },
     ],
-    authorityEpoch: 1, migrationProtocol: 9,
+    authorityEpoch: 1, migrationProtocol: 10,
   });
   assert.deepEqual(successor.sent.at(-1), {
     type: "profile", _from: "host-returned",
@@ -830,7 +853,7 @@ test("fresh admission queues through migration and is replayed exactly once to t
   const checkpoint = createMigrationCheckpoint({
     epoch: 0, tick: 180, hash: "0123456789abcdef", ack: { "guest-1": 4, "guest-2": 3 }, compatibility: migrationCompatibility,
     roster: sessions.map((session, replaySlot) => ({ id: session.id, replaySlot })),
-    simulation: { version: 11, scalars: { tick: 180 } }, replay: { currentTick: 180 },
+    simulation: { version: 12, scalars: { tick: 180 } }, replay: { currentTick: 180 },
   });
   assert.equal(room.acceptMigrationCheckpoint(hostSession, checkpoint), true);
   room.onClose(host);
@@ -948,12 +971,12 @@ test("only the host can relay a strict ping broadcast and cannot forge a guest p
 
 test("the runtime rollback flag rejects request and broadcast paths", () => {
   const config = {
-    schemaVersion: 10, configVersion: "pings-off", gameplayVersion: "map-mechanics-v1",
+    schemaVersion: 11, configVersion: "pings-off", gameplayVersion: "map-mechanics-v1",
     registryVersion: "lastlight.squad-synergy.v1",
     flags: {
       deterministicReplay: true, runTelemetry: true, objectiveEvents: true,
       migrationCheckpointReplication: true, hostMigrationElection: true, hostMigrationResume: true,
-      contextualPings: false, upgradeRecommendations: true, squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, specialistMastery: true, sharedSquadRunArchive: true,
+      contextualPings: false, upgradeRecommendations: true, squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, specialistMastery: true, rareDiscoveries: true, sharedSquadRunArchive: true,
     },
   };
   const { room, host, guest, observer } = pingRoomFixture({ LASTLIGHT_RUNTIME_CONFIG: JSON.stringify(config) });
@@ -994,7 +1017,7 @@ test("ping rate state survives host migration while pending old-epoch pings do n
   const checkpoint = createMigrationCheckpoint({
     epoch: 0, tick: 180, hash: "0123456789abcdef", ack: { guest: 4, observer: 4 }, compatibility: migrationCompatibility,
     roster: [{ id: "host", replaySlot: 0 }, { id: "guest", replaySlot: 1 }, { id: "observer", replaySlot: 2 }],
-    simulation: { version: 11, scalars: { tick: 180 } }, replay: { currentTick: 180 },
+    simulation: { version: 12, scalars: { tick: 180 } }, replay: { currentTick: 180 },
   });
   assert.equal(room.acceptMigrationCheckpoint(hostSession, checkpoint), true);
   room.onClose(host);
@@ -1155,7 +1178,7 @@ test("host migration clears old-epoch recommendation intent while preserving slo
   const checkpoint = createMigrationCheckpoint({
     epoch: 0, tick: 180, hash: "0123456789abcdef", ack: { guest: 4, observer: 4 }, compatibility: migrationCompatibility,
     roster: [{ id: "host", replaySlot: 0 }, { id: "guest", replaySlot: 1 }, { id: "observer", replaySlot: 2 }],
-    simulation: { version: 11, scalars: { tick: 180 } }, replay: { currentTick: 180 },
+    simulation: { version: 12, scalars: { tick: 180 } }, replay: { currentTick: 180 },
   });
   assert.equal(room.acceptMigrationCheckpoint(hostSession, checkpoint), true);
   room.onClose(host);

@@ -44,6 +44,7 @@ const DIRECTOR_COUNT_CAP = 1_000_000_000;
 const MUTATION_PACKAGE_IDS = new Set(["base-line", "contested-operations", "breach-cascade"]);
 const MUTATION_TOTAL_FIELDS = Object.freeze(["encounters", "clears", "failures", "objectiveCompletions", "surgeWaves"]);
 const MASTERY_LEVEL_BANDS = new Set(["1-2", "3-4", "5"]);
+const DISCOVERY_CATEGORIES = Object.freeze(["event", "affix", "boon", "augment"]);
 
 export const DEFAULT_TELEMETRY_ENDPOINT = "https://lastlight-relay.bensonperry.workers.dev/telemetry";
 
@@ -161,7 +162,22 @@ function buildMasteryTelemetry(value) {
   };
 }
 
-export function buildRunTelemetry(snapshot, build, masteryTelemetry = null) {
+function buildRareDiscoveryTelemetry(value) {
+  exactKeys(value, ["discoveredCount", "newlyRevealedCount", "categories"], "Rare discovery telemetry");
+  exactKeys(value.categories, DISCOVERY_CATEGORIES, "Rare discovery categories");
+  if (!Number.isInteger(value.discoveredCount) || value.discoveredCount < 0 || value.discoveredCount > 27
+    || !Number.isInteger(value.newlyRevealedCount) || value.newlyRevealedCount < 0 || value.newlyRevealedCount > value.discoveredCount) throw new TypeError("Invalid rare discovery totals");
+  const categories = {};
+  for (const category of DISCOVERY_CATEGORIES) {
+    const count = value.categories[category];
+    if (!Number.isInteger(count) || count < 0 || count > 27) throw new TypeError(`Invalid rare discovery category: ${category}`);
+    categories[category] = count;
+  }
+  if (Object.values(categories).reduce((sum, count) => sum + count, 0) !== value.discoveredCount) throw new TypeError("Rare discovery categories do not reconcile");
+  return { rareDiscoveryCount: value.discoveredCount, rareDiscoveryNewCount: value.newlyRevealedCount, rareDiscoveryCategories: categories };
+}
+
+export function buildRunTelemetry(snapshot, build, masteryTelemetry = null, discoveryTelemetry = null) {
   if (!snapshot || typeof snapshot !== "object") throw new TypeError("A result snapshot is required");
   if (snapshot.stage !== "won" && snapshot.stage !== "lost") throw new TypeError("Telemetry is only recorded for completed runs");
 
@@ -228,11 +244,15 @@ export function buildRunTelemetry(snapshot, build, masteryTelemetry = null) {
     if (payload.schemaVersion < 5) throw new TypeError("Mastery telemetry requires the current aggregate run schema");
     Object.assign(payload, { schemaVersion: 6, ...buildMasteryTelemetry(masteryTelemetry) });
   }
+  if (discoveryTelemetry !== null) {
+    if (payload.schemaVersion < 5) throw new TypeError("Rare discovery telemetry requires the current aggregate run schema");
+    Object.assign(payload, { schemaVersion: 7, ...buildRareDiscoveryTelemetry(discoveryTelemetry) });
+  }
   return payload;
 }
 
 export async function submitRunTelemetry(snapshot, build, options = {}) {
-  const payload = buildRunTelemetry(snapshot, build, options.masteryTelemetry ?? null);
+  const payload = buildRunTelemetry(snapshot, build, options.masteryTelemetry ?? null, options.discoveryTelemetry ?? null);
   const request = options.fetch || globalThis.fetch;
   if (typeof request !== "function") throw new TypeError("fetch is unavailable");
   const response = await request(options.endpoint || DEFAULT_TELEMETRY_ENDPOINT, {

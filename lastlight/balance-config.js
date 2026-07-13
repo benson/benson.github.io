@@ -1,12 +1,13 @@
 import { WEAPON_EVOLUTION_CONTRACT, validateWeaponEvolutionContract } from "./weapon-evolution.js?v=20260713.1";
 import { validateEnemyIdentityContract } from "./enemy-archetypes.js?v=20260713.1";
 import { APEX_CONTRACTS, validateApexContracts } from "./apex-encounters.js?v=20260713.1";
-import { CAMPAIGN_MUTATIONS, validateCampaignMutations } from "./campaign-mutations.js?v=20260713.15";
-import { SPECIALIST_MASTERY, validateSpecialistMasteryRegistry } from "./specialist-mastery.js?v=20260713.15";
+import { CAMPAIGN_MUTATIONS, validateCampaignMutations } from "./campaign-mutations.js?v=20260713.16";
+import { SPECIALIST_MASTERY, validateSpecialistMasteryRegistry } from "./specialist-mastery.js?v=20260713.16";
+import { RARE_DISCOVERY_REGISTRY, validateRareDiscoveryRegistry } from "./rare-discoveries.js?v=20260713.16";
 
 // Balance is a versioned simulation input. Replays and fixtures should record
 // this exact version so a future tuning pass never silently changes old runs.
-export const BALANCE_VERSION = "2026.07.13-mastery.1";
+export const BALANCE_VERSION = "2026.07.13-discoveries.1";
 
 export const BALANCE_IDS = Object.freeze({
   specialists: Object.freeze(["zuri", "echo", "sola", "bront", "fang", "gale", "rift", "nova", "vesper"]),
@@ -20,6 +21,7 @@ export const BALANCE_IDS = Object.freeze({
 
 const config = {
   version: BALANCE_VERSION,
+  rareDiscoveries: RARE_DISCOVERY_REGISTRY,
   specialistMastery: SPECIALIST_MASTERY,
   campaignMutations: CAMPAIGN_MUTATIONS,
   evolutions: WEAPON_EVOLUTION_CONTRACT,
@@ -291,7 +293,7 @@ export function validateBalanceConfig(candidate = BALANCE_CONFIG) {
   };
   if (!candidate || typeof candidate !== "object") return ["config: must be an object"];
   if (typeof candidate.version !== "string" || !candidate.version.trim()) errors.push("version: required");
-  for (const section of ["core", "specialistMastery", "campaignMutations", "evolutions", "apex", "synergies", "specialists", "identityTuning", "movement", "passives", "shields", "difficulties", "enemies", "enemyIdentity", "waves", "weapons"]) {
+  for (const section of ["core", "rareDiscoveries", "specialistMastery", "campaignMutations", "evolutions", "apex", "synergies", "specialists", "identityTuning", "movement", "passives", "shields", "difficulties", "enemies", "enemyIdentity", "waves", "weapons"]) {
     if (!candidate[section] || typeof candidate[section] !== "object") errors.push(`${section}: required`);
   }
   const requireExactIds = (path, value, ids) => {
@@ -314,6 +316,7 @@ export function validateBalanceConfig(candidate = BALANCE_CONFIG) {
   errors.push(...validateApexContracts(candidate.apex).map((error) => `apex.${error}`));
   errors.push(...validateCampaignMutations(candidate.campaignMutations).map((error) => `campaignMutations.${error}`));
   errors.push(...validateSpecialistMasteryRegistry(candidate.specialistMastery).map((error) => `specialistMastery.${error}`));
+  errors.push(...validateRareDiscoveryRegistry(candidate.rareDiscoveries).map((error) => `rareDiscoveries.${error}`));
   const synergy = candidate.synergies || {};
   const exactSynergyKeys = (path, value, expected) => {
     const actual = Object.keys(value || {}).sort(), wanted = [...expected].sort();
