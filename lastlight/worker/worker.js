@@ -4,11 +4,14 @@ import {
   HOST_MIGRATION_PROTOCOL_VERSION, MIGRATION_PREPARE_TIMEOUT_MS, migrationCompatibilityMatches,
   validateMigrationCapabilities, validateMigrationCheckpoint, validateMigrationReady,
 } from "../host-migration.js";
+import { PingTokenBucket, sanitizePingBroadcast, sanitizePingRequest } from "../ping-contract.js";
 
 const MAX_PLAYERS = 4;
 const MAX_MESSAGE_BYTES = 1_550_000;
 const MAX_STANDARD_MESSAGE_BYTES = 512_000;
 const MAX_TELEMETRY_BYTES = 8_192;
+const MAX_PENDING_PINGS = 32;
+const PENDING_PING_LIFETIME_MS = 8_000;
 
 const TELEMETRY_FIELDS = new Set([
   "schemaVersion", "build", "map", "difficulty", "outcome", "specialists", "playerCount",
@@ -179,6 +182,9 @@ export class Room {
     this.migration = null;
     this.nextJoinOrdinal = 0;
     this.seatTokens = new Map();
+    this.pingRate = new PingTokenBucket();
+    this.pendingPings = new Map();
+    this.pingNow = () => Date.now();
   }
 
   async fetch(request) {
@@ -228,6 +234,65 @@ export class Room {
     return true;
   }
 
+  resetPingState() {
+    this.pingRate.reset();
+    this.pendingPings.clear();
+  }
+
+  assignRunReplaySlots(players) {
+    const connected = this.connectedSessions();
+    if (!Array.isArray(players) || players.length < 1 || players.length > MAX_PLAYERS) return false;
+    const byId = new Map(connected.map((session) => [session.id, session]));
+    const assignments = new Map(), usedIds = new Set(), usedSlots = new Set();
+    for (let index = 0; index < players.length; index++) {
+      const player = players[index], id = String(player?.id || "");
+      const replaySlot = Number.isInteger(player?.replaySlot) ? Number(player.replaySlot) : index;
+      if (!id || usedIds.has(id) || !Number.isInteger(replaySlot) || replaySlot < 0 || replaySlot >= MAX_PLAYERS || usedSlots.has(replaySlot)) return false;
+      usedIds.add(id); usedSlots.add(replaySlot);
+      if (byId.has(id)) assignments.set(id, replaySlot);
+    }
+    if (assignments.size !== connected.length) return false;
+    this.seatTokens.clear();
+    for (const session of connected) {
+      session.replaySlot = assignments.get(session.id);
+      if (session.resumeToken) this.seatTokens.set(session.resumeToken, session.replaySlot);
+    }
+    return true;
+  }
+
+  pendingPingKey(ping) { return `${ping.epoch}:${ping.replaySlot}:${ping.seq}`; }
+
+  prunePendingPings(now = this.pingNow()) {
+    for (const [key, pending] of this.pendingPings) {
+      if (now - pending.receivedAt >= PENDING_PING_LIFETIME_MS) this.pendingPings.delete(key);
+    }
+  }
+
+  routePingRequest(session, raw) {
+    if (!this.runtimeFlags().contextualPings || !this.runActive || this.migration || !this.hostId || !Number.isInteger(session.replaySlot)) return false;
+    let ping; try { ping = sanitizePingRequest(raw); } catch { return false; }
+    if (ping.epoch !== this.authorityEpoch) return false;
+    const now = this.pingNow(); this.prunePendingPings(now);
+    if (this.pendingPings.size >= MAX_PENDING_PINGS || !this.pingRate.take(String(session.replaySlot), now)) return false;
+    const routed = sanitizePingRequest({ ...ping, _from: session.id, replaySlot: session.replaySlot }, { transport: true });
+    const key = this.pendingPingKey(routed);
+    this.pendingPings.set(key, { ping: routed, receivedAt: now });
+    if (this.sendTo(this.hostId, routed)) return true;
+    this.pendingPings.delete(key); return false;
+  }
+
+  relayPingBroadcast(session, raw) {
+    if (!this.runtimeFlags().contextualPings || !this.runActive || this.migration || session.id !== this.hostId || !Number.isInteger(session.replaySlot)) return false;
+    let ping; try { ping = sanitizePingBroadcast(raw); } catch { return false; }
+    if (ping.epoch !== this.authorityEpoch) return false;
+    const now = this.pingNow(); this.prunePendingPings(now);
+    const key = this.pendingPingKey(ping), pending = this.pendingPings.get(key);
+    if (!pending || pending.ping.intent !== ping.intent) return false;
+    this.pendingPings.delete(key);
+    this.broadcast({ ...ping, _from: session.id }, socketForSession(this.sessions, session));
+    return true;
+  }
+
   onMessage(socket, raw) {
     const session = this.sessions.get(socket);
     if (!session) return;
@@ -256,6 +321,8 @@ export class Room {
     if (message.type === "migration_checkpoint") { this.acceptMigrationCheckpoint(session, message); return; }
     if (message.type === "migration_ready") { this.acceptMigrationReady(session, message); return; }
     if (this.migration) return;
+    if (message.type === "ping") { if (!targetId) this.routePingRequest(session, message); return; }
+    if (message.type === "ping_broadcast") { if (!targetId) this.relayPingBroadcast(session, message); return; }
     try {
       if (message.type === "input") message = sanitizeInputMessage(message, { allowLegacy: true });
       else if (message.type === "snapshot") message = sanitizeSnapshotMessage(message, { allowLegacy: true });
@@ -267,9 +334,10 @@ export class Room {
     if (hostOnly.has(message.type) && session.id !== this.hostId) return;
     if (this.runActive && this.authorityEpoch > 0 && Number(message.epoch) !== this.authorityEpoch && message.type !== "profile") return;
     if (message.type === "start" && session.id === this.hostId) {
-      this.runActive = true; this.migrationCheckpoint = null; this.authorityEpoch = 0;
+      if (!this.assignRunReplaySlots(message.players)) return;
+      this.runActive = true; this.migrationCheckpoint = null; this.authorityEpoch = 0; this.resetPingState();
     } else if (message.type === "return_lobby" && session.id === this.hostId) {
-      this.runActive = false; this.migrationCheckpoint = null; this.clearMigration();
+      this.runActive = false; this.migrationCheckpoint = null; this.clearMigration(); this.resetPingState();
     }
     message._from = session.id;
     if (targetId) {
@@ -329,7 +397,7 @@ export class Room {
 
   beginMigration(oldHostId) {
     const flags = this.runtimeFlags();
-    this.hostId = null;
+    this.hostId = null; this.pendingPings.clear();
     if (!flags.hostMigrationElection || !flags.hostMigrationResume || !this.migrationCheckpoint) {
       this.broadcast({ type: "migration_failed", reason: !this.migrationCheckpoint ? "no-checkpoint" : "disabled" });
       return false;
@@ -405,6 +473,11 @@ export class Room {
 
 function publicPeer(session) {
   return { id: session.id, name: session.name, specialist: session.specialist, ready: session.ready, ...(Number.isInteger(session.replaySlot) ? { replaySlot: session.replaySlot } : {}) };
+}
+
+function socketForSession(sessions, target) {
+  for (const [socket, session] of sessions) if (session === target) return socket;
+  return null;
 }
 
 function corsHeaders(request) {

@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import worker, { Room, normalizeCode, operatorRuntimeConfig, safeProfile, sanitizeRunTelemetry } from "./worker.js";
 import { createMigrationCapabilities, createMigrationCheckpoint, createMigrationReady } from "../host-migration.js";
+import { createPingBroadcast, createPingRequest } from "../ping-contract.js";
 
 const migrationCompatibility = {
   build: "2026.07.13.1", balanceVersion: "2026.07.13-apex.1", balanceHash: "fnv1a32:873c43bc",
@@ -117,6 +118,7 @@ test("runtime config endpoint is allowlisted, no-store, origin-aware, and read-o
     flags: {
       deterministicReplay: false, runTelemetry: false, objectiveEvents: false,
       migrationCheckpointReplication: false, hostMigrationElection: false, hostMigrationResume: false,
+      contextualPings: false,
     },
   };
   const env = { LASTLIGHT_RUNTIME_CONFIG: JSON.stringify(config) };
@@ -139,6 +141,7 @@ test("invalid operator config fails closed to immutable release defaults", () =>
   assert.deepEqual(invalid.config.flags, {
     deterministicReplay: true, runTelemetry: true, objectiveEvents: true,
     migrationCheckpointReplication: true, hostMigrationElection: true, hostMigrationResume: true,
+    contextualPings: true,
   });
   assert.equal(operatorRuntimeConfig({}).source, "built-in");
 });
@@ -388,6 +391,7 @@ test("disabled host migration fails closed even when a valid checkpoint exists",
     flags: {
       deterministicReplay: true, runTelemetry: true, objectiveEvents: true,
       migrationCheckpointReplication: true, hostMigrationElection: false, hostMigrationResume: true,
+      contextualPings: true,
     },
   };
   const fixture = migrationFixture({ env: { LASTLIGHT_RUNTIME_CONFIG: JSON.stringify(config) } });
@@ -451,4 +455,177 @@ test("a profile that reconnects during election is replayed to the committed suc
     profile: { id: "host-returned", name: "Original host", specialist: "zuri", ready: false, replaySlot: 0 },
   });
   assert.equal(returningSession.pendingProfile, undefined);
+});
+
+function pingRoomFixture(env = {}) {
+  const room = new Room({}, env);
+  const host = migrationSocket(), guest = migrationSocket(), observer = migrationSocket();
+  const hostSession = { id: "host", initialized: true, joinOrdinal: 0, name: "Host", specialist: "zuri", ready: true, resumeToken: "a".repeat(24), migrationCapabilities };
+  const guestSession = { id: "guest", initialized: true, joinOrdinal: 1, name: "Guest", specialist: "echo", ready: true, resumeToken: "b".repeat(24), migrationCapabilities };
+  const observerSession = { id: "observer", initialized: true, joinOrdinal: 2, name: "Observer", specialist: "nova", ready: true, resumeToken: "c".repeat(24), migrationCapabilities };
+  room.sessions.set(host, hostSession); room.sessions.set(guest, guestSession); room.sessions.set(observer, observerSession); room.hostId = hostSession.id;
+  const players = [
+    { id: hostSession.id, replaySlot: 0 }, { id: guestSession.id, replaySlot: 1 }, { id: observerSession.id, replaySlot: 2 },
+  ];
+  room.onMessage(host, JSON.stringify({ type: "start", config: {}, players }));
+  host.sent.length = 0; guest.sent.length = 0; observer.sent.length = 0;
+  return { room, host, guest, observer, hostSession, guestSession, observerSession, players };
+}
+
+function pingRequest(seq, fields = {}) {
+  return createPingRequest({ epoch: 0, seq, tick: 20 + seq, intent: "danger", x: 120, y: -80, targetKind: "ground", ...fields });
+}
+
+test("run start authenticates unique replay slots before ping routing", () => {
+  const room = new Room({});
+  const host = migrationSocket(), guest = migrationSocket();
+  const hostSession = { id: "host", initialized: true, joinOrdinal: 0, resumeToken: "a".repeat(24) };
+  const guestSession = { id: "guest", initialized: true, joinOrdinal: 1, resumeToken: "b".repeat(24) };
+  room.sessions.set(host, hostSession); room.sessions.set(guest, guestSession); room.hostId = "host";
+
+  room.onMessage(host, JSON.stringify({ type: "start", players: [{ id: "host", replaySlot: 0 }, { id: "guest", replaySlot: 0 }] }));
+  assert.equal(room.runActive, false);
+  assert.equal(hostSession.replaySlot, undefined); assert.equal(guestSession.replaySlot, undefined);
+  assert.equal(guest.sent.length, 0);
+
+  room.onMessage(host, JSON.stringify({ type: "start", players: [{ id: "host", replaySlot: 0 }, { id: "guest", replaySlot: 1 }] }));
+  assert.equal(room.runActive, true);
+  assert.equal(hostSession.replaySlot, 0); assert.equal(guestSession.replaySlot, 1);
+  assert.equal(room.seatTokens.get("a".repeat(24)), 0); assert.equal(room.seatTokens.get("b".repeat(24)), 1);
+});
+
+test("legacy and disconnect-race start rosters preserve rolling compatibility", () => {
+  const room = new Room({}), host = migrationSocket(), guest = migrationSocket();
+  const hostSession = { id: "host", initialized: true, joinOrdinal: 0, resumeToken: "a".repeat(24) };
+  const guestSession = { id: "guest", initialized: true, joinOrdinal: 1, resumeToken: "b".repeat(24) };
+  room.sessions.set(host, hostSession); room.sessions.set(guest, guestSession); room.hostId = "host";
+  room.onMessage(host, JSON.stringify({ type: "start", players: [{ id: "host" }, { id: "guest" }, { id: "already-left" }] }));
+  assert.equal(room.runActive, true); assert.equal(hostSession.replaySlot, 0); assert.equal(guestSession.replaySlot, 1);
+});
+
+test("strict guest pings route only to the host with an authenticated replay slot", () => {
+  const { room, host, guest, observer } = pingRoomFixture();
+  const request = pingRequest(0);
+  room.onMessage(guest, JSON.stringify(request));
+
+  assert.deepEqual(host.sent, [{ ...request, _from: "guest", replaySlot: 1 }]);
+  assert.equal(observer.sent.length, 0, "raw guest ping intent must not fan out to peers");
+  assert.equal(guest.sent.length, 0);
+
+  room.onMessage(guest, JSON.stringify({ ...pingRequest(1), unsupported: true }));
+  room.onMessage(guest, JSON.stringify({ ...pingRequest(2), _from: "spoofed" }));
+  room.onMessage(guest, JSON.stringify({ ...pingRequest(3), replaySlot: 3 }));
+  room.onMessage(guest, JSON.stringify({ ...pingRequest(4), _to: "observer" }));
+  assert.equal(host.sent.length, 1, "extra transport or unsupported fields must fail closed");
+});
+
+test("only the host can relay a strict ping broadcast and cannot forge a guest ping", () => {
+  const { room, host, guest, observer } = pingRoomFixture();
+  room.onMessage(guest, JSON.stringify(pingRequest(0)));
+  const routed = host.sent.pop(), broadcast = createPingBroadcast(routed, 1, 30);
+
+  room.onMessage(observer, JSON.stringify(broadcast));
+  assert.equal(guest.sent.length, 0); assert.equal(observer.sent.length, 0);
+
+  room.onMessage(host, JSON.stringify({ ...broadcast, seq: 99 }));
+  room.onMessage(host, JSON.stringify({ ...broadcast, unsupported: true }));
+  room.onMessage(host, JSON.stringify({ ...broadcast, _to: "guest" }));
+  assert.equal(guest.sent.length, 0, "unmatched or malformed host broadcasts must fail closed");
+
+  room.onMessage(host, JSON.stringify(broadcast));
+  const relayed = { ...broadcast, _from: "host" };
+  assert.deepEqual(guest.sent, [relayed]); assert.deepEqual(observer.sent, [relayed]);
+  assert.equal(room.pendingPings.size, 0);
+
+  const hostRequest = pingRequest(0, { intent: "help", x: 0, y: 0, targetKind: "ally" });
+  room.onMessage(host, JSON.stringify(hostRequest));
+  const hostPing = createPingBroadcast(host.sent.at(-1), 0, 31);
+  room.onMessage(host, JSON.stringify(hostPing));
+  assert.deepEqual(guest.sent.at(-1), { ...hostPing, _from: "host" });
+
+  room.onMessage(guest, JSON.stringify(pingRequest(1, { intent: "objective", x: 10, y: 10, targetKind: "ground" })));
+  const snappedRequest = host.sent.at(-1);
+  const snapped = createPingBroadcast({ ...snappedRequest, x: 200, y: 150, targetKind: "objective" }, 1, 32);
+  room.onMessage(host, JSON.stringify(snapped));
+  assert.deepEqual(observer.sent.at(-1), { ...snapped, _from: "host" }, "host-canonicalized target coordinates must relay");
+});
+
+test("the runtime rollback flag rejects request and broadcast paths", () => {
+  const config = {
+    schemaVersion: 1, configVersion: "pings-off", gameplayVersion: "events-v1",
+    flags: {
+      deterministicReplay: true, runTelemetry: true, objectiveEvents: true,
+      migrationCheckpointReplication: true, hostMigrationElection: true, hostMigrationResume: true,
+      contextualPings: false,
+    },
+  };
+  const { room, host, guest, observer } = pingRoomFixture({ LASTLIGHT_RUNTIME_CONFIG: JSON.stringify(config) });
+  room.onMessage(guest, JSON.stringify(pingRequest(0)));
+  assert.equal(host.sent.length, 0);
+  room.onMessage(host, JSON.stringify(createPingBroadcast(pingRequest(0), 0, 30)));
+  assert.equal(guest.sent.length, 0); assert.equal(observer.sent.length, 0); assert.equal(room.pendingPings.size, 0);
+});
+
+test("ping token buckets are slot keyed across reconnect and refill one token every two seconds", () => {
+  const { room, host, guest, guestSession } = pingRoomFixture();
+  let now = 1_000; room.pingNow = () => now;
+  for (let seq = 0; seq < 5; seq++) room.onMessage(guest, JSON.stringify(pingRequest(seq)));
+  assert.equal(host.sent.length, 4); assert.equal(room.pingRate.entries.size, 1);
+
+  room.onClose(guest); host.sent.length = 0;
+  const returning = migrationSocket(), returningSession = { id: "guest-returned", initialized: false, connectedAt: now, joinOrdinal: 3 };
+  room.sessions.set(returning, returningSession);
+  assert.equal(room.initializeSession(returning, returningSession, { name: "Guest", specialist: "echo", resumeToken: guestSession.resumeToken }, migrationCapabilities), true);
+  assert.equal(returningSession.replaySlot, 1);
+  host.sent.length = 0;
+
+  room.onMessage(returning, JSON.stringify(pingRequest(5)));
+  assert.equal(host.sent.length, 0, "reconnect must not refill the replay slot bucket");
+  now += 2_000;
+  room.onMessage(returning, JSON.stringify(pingRequest(6)));
+  assert.equal(host.sent.length, 1);
+  assert.equal(host.sent[0].replaySlot, 1);
+  assert.equal(host.sent[0]._from, "guest-returned");
+});
+
+test("ping rate state survives host migration while pending old-epoch pings do not", () => {
+  const { room, host, guest, observer, hostSession, guestSession, observerSession } = pingRoomFixture();
+  let now = 5_000; room.pingNow = () => now;
+  for (let seq = 0; seq < 4; seq++) room.onMessage(observer, JSON.stringify(pingRequest(seq)));
+  assert.equal(host.sent.length, 4); assert.equal(room.pendingPings.size, 4);
+
+  const checkpoint = createMigrationCheckpoint({
+    epoch: 0, tick: 180, hash: "0123456789abcdef", ack: { guest: 4, observer: 4 }, compatibility: migrationCompatibility,
+    roster: [{ id: "host", replaySlot: 0 }, { id: "guest", replaySlot: 1 }, { id: "observer", replaySlot: 2 }],
+    simulation: { version: 3, scalars: { tick: 180 } }, replay: { currentTick: 180 },
+  });
+  assert.equal(room.acceptMigrationCheckpoint(hostSession, checkpoint), true);
+  room.onClose(host);
+  assert.equal(room.pendingPings.size, 0);
+  assert.equal(room.acceptMigrationReady(guestSession, createMigrationReady({ ...checkpoint, epoch: 1 })), true);
+  assert.equal(room.hostId, "guest"); assert.equal(room.authorityEpoch, 1);
+  guest.sent.length = 0; observer.sent.length = 0;
+
+  room.onMessage(observer, JSON.stringify(pingRequest(4, { epoch: 0, tick: 181 })));
+  room.onMessage(observer, JSON.stringify(pingRequest(5, { epoch: 1, tick: 181 })));
+  assert.equal(guest.sent.length, 0, "migration must preserve the exhausted slot bucket and fence the old epoch");
+  now += 2_000;
+  room.onMessage(observer, JSON.stringify(pingRequest(6, { epoch: 1, tick: 182 })));
+  assert.equal(guest.sent.length, 1);
+  assert.equal(guest.sent[0].replaySlot, observerSession.replaySlot);
+});
+
+test("returning to lobby and starting a new run reset bounded ping state", () => {
+  const { room, host, guest, players } = pingRoomFixture();
+  let now = 9_000; room.pingNow = () => now;
+  for (let seq = 0; seq < 4; seq++) room.onMessage(guest, JSON.stringify(pingRequest(seq)));
+  assert.equal(room.pendingPings.size, 4); assert.equal(room.pingRate.entries.size, 1);
+
+  room.onMessage(host, JSON.stringify({ type: "return_lobby", epoch: 0 }));
+  assert.equal(room.runActive, false); assert.equal(room.pendingPings.size, 0); assert.equal(room.pingRate.entries.size, 0);
+  room.onMessage(host, JSON.stringify({ type: "start", config: {}, players }));
+  host.sent.length = 0;
+  room.onMessage(guest, JSON.stringify(pingRequest(10)));
+  assert.equal(host.sent.length, 1);
+  assert.ok(room.pendingPings.size <= 32); assert.ok(room.pingRate.entries.size <= 4);
 });

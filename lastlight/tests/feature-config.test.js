@@ -15,6 +15,7 @@ const operatorConfig = {
   flags: {
     deterministicReplay: false, runTelemetry: false, objectiveEvents: false,
     migrationCheckpointReplication: false, hostMigrationElection: false, hostMigrationResume: false,
+    contextualPings: false,
   },
 };
 
