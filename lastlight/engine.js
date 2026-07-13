@@ -1,11 +1,11 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
-} from "./data.js?v=20260713.11";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260713.11";
+} from "./data.js?v=20260713.12";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260713.12";
 import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.5";
-import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260713.11";
-import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260713.11";
+import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260713.12";
+import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260713.12";
 import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260713.1";
 import { MAX_CORRIDOR_CANDIDATES, accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget, orderEntitiesByDistance } from "./projectile-decisions.js?v=20260713.1";
 import { selectEliteAffixes, selectSpawnArchetype, spawnPhaseAt } from "./enemy-archetypes.js?v=20260713.1";
@@ -28,10 +28,11 @@ import {
   beginDownedActivity, createDownedActivityState, removeDownedActivity, triggerDownedSupport,
   validateDownedActivityState,
 } from "./downed-activity.js?v=20260713.9";
-import { generateJoinPackage, JOIN_IN_PROGRESS_REGISTRY, joinPackageUpgradeIds, transitionJoinPackage } from "./join-in-progress.js?v=20260713.11";
+import { generateJoinPackage, JOIN_IN_PROGRESS_REGISTRY, joinPackageUpgradeIds, transitionJoinPackage } from "./join-in-progress.js?v=20260713.12";
 import {
   DIRECTOR_APPROACHES, DIRECTOR_FORMATIONS, createSquadDirectorState, planSquadFormation, validateSquadDirectorState,
-} from "./enemy-director.js?v=20260713.11";
+} from "./enemy-director.js?v=20260713.12";
+import { mapMechanicFrame, mapSpawnWeights, pointInMapMechanic } from "./map-mechanics.js?v=20260713.12";
 
 const BALANCE = getBalanceConfig();
 
@@ -68,7 +69,7 @@ function compactPoint(e) {
   return result;
 }
 
-const RECOVERY_STATE_VERSION = 8;
+const RECOVERY_STATE_VERSION = 9;
 const RECOVERY_SCALARS = [
   "tick", "time", "remaining", "stage", "paused", "pauseReason", "wave", "teamXP", "level", "xpNeed", "kills", "gold",
   "spawnClock", "nextElite", "nextMiniBoss", "nextTreasure", "nextRelayBall", "objectiveIndex", "bossElapsed", "bossPhase", "enraged",
@@ -198,6 +199,7 @@ export function playerMovementSpeed(player) {
     value *= 1 + Math.min(Number(player.hotStacks || 0), tuning.maxHotStacks) * tuning.speedPerHotStack;
   }
   if (player.speedBuff > 0) value *= 2;
+  value *= Number.isFinite(player.mapMoveMultiplier) ? player.mapMoveMultiplier : 1;
   return value;
 }
 
@@ -340,6 +342,7 @@ export class Simulation {
     this.downedActivity = features.downedActivity;
     this.joinInProgressNormalization = features.joinInProgressNormalization;
     this.squadEnemyDirector = features.squadEnemyDirector;
+    this.mapMechanics = features.mapMechanics;
     this.synergyRegistryVersion = features.registryVersion;
     if (this.squadSynergies && this.synergyRegistryVersion !== SQUAD_SYNERGY_SCHEMA) throw new RangeError(`Unsupported squad synergy registry: ${this.synergyRegistryVersion}`);
     this.duration = Number(config.duration) || BALANCE.core.defaultDurationSeconds;
@@ -490,6 +493,7 @@ export class Simulation {
       traveled: 0, feathers: [], damage: 0, damageBySource: {}, kills: 0, xpCollected: 0, damageTaken: 0, revives: 0,
       joinKind: "initial", joinedAtTick: 0, deployedTicks: 0, preApexDeployedTicks: 0, joinPackageId: "", catchUpRanks: 0,
       firedUpBuff: 0, healthbackBuff: 0, stopwavesBuff: 0, stopwaveClock: 0,
+      mapMoveMultiplier: 1, mapMechanicHitKey: "",
       lastHit: 0, riftShieldBlockedUntil: 0, iceReady: false, iceTimer: 0,
     };
     this.players.push(player);
@@ -603,6 +607,7 @@ export class Simulation {
     }
     this.pruneDisconnectedPlayers();
     this.updateTasks();
+    this.updateMapMechanic(dt);
     this.updatePlayers(dt);
     this.updateSquadSynergies();
     this.updateMachine(dt);
@@ -936,6 +941,8 @@ export class Simulation {
 
   updateSpawns(dt) {
     const progress = clamp(this.time / this.duration, 0, 1);
+    const phase = spawnPhaseAt(progress, BALANCE.enemyIdentity.spawnPhases);
+    const phaseWeights = this.mapMechanics ? mapSpawnWeights(this.map.id, phase.weights) : phase.weights;
     const livePlayers = Math.max(1, this.players.filter((p) => !p.dead).length);
     // Swarm's early waves leave room to learn a kit before the arena fills. The
     // extra opening multiplier fades over the first 35 seconds, then the curve
@@ -949,7 +956,7 @@ export class Simulation {
     if (!this.squadEnemyDirector || livePlayers < 2) {
       while (this.spawnClock >= interval && this.enemies.length < cap) {
         this.spawnClock -= interval;
-        const type = selectSpawnArchetype(this.gameplayRng, progress, BALANCE.enemyIdentity.spawnPhases);
+        const type = selectSpawnArchetype(this.gameplayRng, 0, [{ after: 0, weights: phaseWeights }]);
         this.spawnEnemy(type);
       }
       return;
@@ -957,11 +964,10 @@ export class Simulation {
     while (this.spawnClock >= interval && this.enemies.length < cap) {
       const budget = Math.min(Math.floor(this.spawnClock / interval), cap - this.enemies.length, livePlayers);
       if (budget < 1) break;
-      const phase = spawnPhaseAt(progress, BALANCE.enemyIdentity.spawnPhases);
       const planned = planSquadFormation({
         seed: this.seed, state: this.directorState, tick: this.tick, progress, players: this.players,
         objective: this.objectives.find((entry) => !entry.done) || null,
-        phaseWeights: phase.weights, archetypes: BALANCE.enemyIdentity.archetypes, maxSize: budget,
+        phaseWeights, archetypes: BALANCE.enemyIdentity.archetypes, maxSize: budget,
         distanceMin: spawn.distanceMin, distanceMax: spawn.distanceMax, worldWidth: WORLD.width, worldHeight: WORLD.height,
       });
       if (!planned.decision) break;
@@ -1044,9 +1050,10 @@ export class Simulation {
       const living = this.players.filter((player) => !player.dead && !player.downed);
       if (this.squadEnemyDirector && living.length >= 3 && this.time / this.duration >= .45) {
         const phase = spawnPhaseAt(this.time / this.duration, BALANCE.enemyIdentity.spawnPhases);
+        const phaseWeights = this.mapMechanics ? mapSpawnWeights(this.map.id, phase.weights) : phase.weights;
         const escort = planSquadFormation({
           seed: this.seed, state: this.directorState, tick: this.tick, progress: this.time / this.duration, players: this.players,
-          objective: this.objectives.find((entry) => !entry.done) || null, phaseWeights: phase.weights,
+          objective: this.objectives.find((entry) => !entry.done) || null, phaseWeights,
           archetypes: BALANCE.enemyIdentity.archetypes, maxSize: living.length - 1, distanceMin: 180, distanceMax: 260,
           worldWidth: WORLD.width, worldHeight: WORLD.height, eliteEscort: true,
         });
@@ -1184,6 +1191,32 @@ export class Simulation {
       else if (boon.name === "Fired Up") { p.firedUpBuff = 15; p.weaponTimers.boonFire = 0; }
     }
     this.pushEvent("boon", boon.name, boon.copy);
+  }
+
+  updateMapMechanic(dt) {
+    for (const player of this.players) player.mapMoveMultiplier = 1;
+    if (!this.mapMechanics || this.stage !== "running") return;
+    const frame = mapMechanicFrame(this.map.id, this.tick, { worldWidth: WORLD.width, worldHeight: WORLD.height });
+    if (!frame.active) return;
+    const effect = frame.effect, hitKey = `${frame.mapId}:${frame.cycle}`;
+    for (const player of this.players) {
+      if (player.dead || player.downed || !pointInMapMechanic(frame, player.x, player.y)) continue;
+      player.mapMoveMultiplier = effect.playerSpeedMultiplier;
+      if (effect.pushPerSecond > 0) this.movePlayer(player, frame.direction * effect.pushPerSecond * dt, 0);
+      if (effect.playerDamage > 0 && player.mapMechanicHitKey !== hitKey) {
+        player.mapMechanicHitKey = hitKey;
+        this.takeDamage(player, effect.playerDamage * this.difficulty.attack, { x: player.x - frame.direction * 100, y: player.y }, { environmental: true });
+      }
+    }
+    for (const enemy of this.enemies) {
+      if (enemy.dead || enemy.boss || !pointInMapMechanic(frame, enemy.x, enemy.y)) continue;
+      if (effect.pushPerSecond > 0) moveEntityWithCover(enemy, frame.direction * effect.pushPerSecond * dt, 0);
+      if (effect.enemyControlSeconds > 0) this.applyControl(enemy, effect.enemyControlSeconds);
+      if (effect.enemyDamageFraction > 0 && enemy.mapMechanicHitKey !== hitKey) {
+        enemy.mapMechanicHitKey = hitKey;
+        this.damageEnemy(enemy, enemy.maxHp * effect.enemyDamageFraction, null, false, "environment", { suppressSynergy: true });
+      }
+    }
   }
 
   updateMachine(dt) {
@@ -2954,7 +2987,7 @@ export class Simulation {
       features: {
         gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents,
         squadSynergies: this.squadSynergies, sharedParticipationCredit: this.sharedParticipationCredit, downedActivity: this.downedActivity,
-        joinInProgressNormalization: this.joinInProgressNormalization, squadEnemyDirector: this.squadEnemyDirector, registryVersion: this.synergyRegistryVersion,
+        joinInProgressNormalization: this.joinInProgressNormalization, squadEnemyDirector: this.squadEnemyDirector, mapMechanics: this.mapMechanics, registryVersion: this.synergyRegistryVersion,
       },
       tick: this.tick,
       rng: { gameplay: this.gameplayRng.snapshot(), cosmetic: this.cosmeticRng.snapshot() },
@@ -3003,7 +3036,7 @@ export class Simulation {
         seed: this.seed, balanceVersion: this.balanceVersion, balanceHash: this.balanceHash,
         gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents,
         squadSynergies: this.squadSynergies, sharedParticipationCredit: this.sharedParticipationCredit, downedActivity: this.downedActivity,
-        joinInProgressNormalization: this.joinInProgressNormalization, squadEnemyDirector: this.squadEnemyDirector, registryVersion: this.synergyRegistryVersion,
+        joinInProgressNormalization: this.joinInProgressNormalization, squadEnemyDirector: this.squadEnemyDirector, mapMechanics: this.mapMechanics, registryVersion: this.synergyRegistryVersion,
         map: this.map.id, difficulty: this.difficulty.id, duration: this.duration,
       },
       rng: { gameplay: this.gameplayRng.snapshot(), cosmetic: this.cosmeticRng.snapshot() },
@@ -3067,14 +3100,14 @@ export class Simulation {
       features: {
         gameplayVersion: header.gameplayVersion, objectiveEvents: header.objectiveEvents,
         squadSynergies: header.squadSynergies, sharedParticipationCredit: header.sharedParticipationCredit, downedActivity: header.downedActivity,
-        joinInProgressNormalization: header.joinInProgressNormalization, squadEnemyDirector: header.squadEnemyDirector, registryVersion: header.registryVersion,
+        joinInProgressNormalization: header.joinInProgressNormalization, squadEnemyDirector: header.squadEnemyDirector, mapMechanics: header.mapMechanics, registryVersion: header.registryVersion,
       },
     }, {
       seed: header.seed, balanceVersion: header.balanceVersion, balanceHash: header.balanceHash,
       features: {
         gameplayVersion: header.gameplayVersion, objectiveEvents: header.objectiveEvents,
         squadSynergies: header.squadSynergies, sharedParticipationCredit: header.sharedParticipationCredit, downedActivity: header.downedActivity,
-        joinInProgressNormalization: header.joinInProgressNormalization, squadEnemyDirector: header.squadEnemyDirector, registryVersion: header.registryVersion,
+        joinInProgressNormalization: header.joinInProgressNormalization, squadEnemyDirector: header.squadEnemyDirector, mapMechanics: header.mapMechanics, registryVersion: header.registryVersion,
       },
     });
     sim.gameplayRng = SeededRng.fromSnapshot(value.rng?.gameplay);
@@ -3211,7 +3244,7 @@ export class Simulation {
       features: {
         gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents,
         squadSynergies: this.squadSynergies, sharedParticipationCredit: this.sharedParticipationCredit, downedActivity: this.downedActivity,
-        joinInProgressNormalization: this.joinInProgressNormalization, squadEnemyDirector: this.squadEnemyDirector, registryVersion: this.synergyRegistryVersion,
+        joinInProgressNormalization: this.joinInProgressNormalization, squadEnemyDirector: this.squadEnemyDirector, mapMechanics: this.mapMechanics, registryVersion: this.synergyRegistryVersion,
       },
       tick: this.tick, determinism: this.deterministicState(),
       map: this.map.id, difficulty: this.difficulty.id, duration: this.duration, time: Math.round(this.time * 10) / 10,
@@ -3220,7 +3253,7 @@ export class Simulation {
       level: this.level, xpNeed: this.xpNeed, kills: this.kills, gold: this.gold, bossElapsed: this.bossElapsed,
       bossPhase: this.bossPhase, enraged: this.enraged, machine: compactPoint(this.machine),
       runSlotsUsed: [...this.runSlotsUsed].sort((left, right) => left - right),
-      players: clean(this.players, ["input", "reconnectKey"]), drones: clean(this.drones), enemies, projectiles,
+      players: clean(this.players, ["input", "reconnectKey", "mapMoveMultiplier", "mapMechanicHitKey"]), drones: clean(this.drones), enemies, projectiles,
       hostile: clean(this.hostile), effects: clean(this.effects, ["hit"]), orbs: clean(this.orbs), drops: clean(this.drops),
       pods: clean(this.pods), objectives: clean(this.objectives), relayBalls: clean(this.relayBalls), feathers: clean(this.feathers),
       synergyState: structuredClone(this.synergyState), synergyTelemetry: this.synergyTelemetry(),

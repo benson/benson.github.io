@@ -1,20 +1,27 @@
-import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260713.11";
-import { WORLD } from "./engine.js?v=20260713.11";
+import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260713.12";
+import { WORLD } from "./engine.js?v=20260713.12";
 import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260713.2";
 import { springCamera } from "./feel.js?v=20260713.2";
 import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistFacingTarget, specialistMotionState, stableDirectionColumn } from "./motion.js?v=20260713.1";
 import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
 import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260711.5";
-import { impactRenderPlan } from "./impact-grammar.js?v=20260713.11";
-import { movementVisualState } from "./movement.js?v=20260713.11";
+import { impactRenderPlan } from "./impact-grammar.js?v=20260713.12";
+import { movementVisualState } from "./movement.js?v=20260713.12";
 import { effectReadabilityCategory, partitionEffects, readabilityPlan, shouldPromoteCache } from "./readability.js?v=20260711.8";
 import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260711.8";
 import { EnvironmentInteractionField, stableEnvironmentUnit } from "./environment-interactions.js?v=20260712.1";
+import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260713.12";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
 import { PING_INTENTS, PING_LIFETIME_TICKS, selectVisiblePings } from "./ping-contract.js?v=20260713.4";
 
 const TAU = Math.PI * 2;
 const PING_BUFFER_LIMIT = 32;
+
+function mechanicFrameForState(state) {
+  if (!state?.features?.mapMechanics || state.stage !== "running" || !Number.isSafeInteger(state.tick)) return null;
+  const mapId = typeof state.map === "string" ? state.map : state.map?.id;
+  return mapMechanicFrame(mapId, state.tick, { worldWidth: WORLD.width, worldHeight: WORLD.height });
+}
 const PING_RENDER_LIMITS = Object.freeze({ high: 12, reduced: 8, minimal: 4 });
 const PING_COLORS = Object.freeze({
   danger: "#ff667b",
@@ -586,6 +593,14 @@ export class Renderer {
     }
     const machine = { id: "machine", x: 0, y: 0, radius: 77 };
     consider(machine, 77, { type: "objective", name: map?.mechanic || "Field Device", description: "Stand nearby to charge this operation-specific field device.", stats: { Charge: `${Math.round(((state.machine?.charge || 0) / 2.4) * 100)}%`, Cooldown: `${Math.max(0, Math.ceil(state.machine?.cooldown || 0))}s` } }, .04);
+    const mapMechanic = mechanicFrameForState(state);
+    if (mapMechanic && mapMechanic.phase !== "idle" && pointInMapMechanic(mapMechanic, worldX, worldY)) {
+      const definition = mapMechanicDefinition(mapMechanic.mapId);
+      consider({ id: `map-mechanic-${mapMechanic.cycle}`, x: worldX, y: worldY }, 34, {
+        type: "hazard", name: definition.name, description: `${definition.description} ${definition.counterplay}`,
+        stats: { State: mapMechanic.phase, Time: `${mapMechanic.remainingSeconds}s`, Effect: definition.short, Direction: mapMechanic.direction > 0 ? "East" : "West" },
+      }, .5);
+    }
 
     this.hoveredEntity = best ? { id: best.id, type: best.type } : null;
     this.lastInspection = { at: inspectionNow, state, result: best };
@@ -627,6 +642,7 @@ export class Renderer {
     ctx.translate(this.width / 2 - this.camera.x + shakeX, this.height / 2 - this.camera.y + shakeY);
     this.drawWorldBorder(map);
     this.drawMapGuides(map);
+    this.drawMapMechanic(mechanicFrameForState(state), map);
     this.drawEnvironmentalProps();
     this.drawMachine(state, map);
     const effectPasses = partitionEffects(state.effects || []);
@@ -714,6 +730,37 @@ export class Renderer {
     ctx.fillRect(WORLD.width / 2, -WORLD.height / 2, 500, WORLD.height);
     ctx.strokeStyle = map.accent; ctx.globalAlpha = .35; ctx.lineWidth = 3;
     ctx.strokeRect(-WORLD.width / 2, -WORLD.height / 2, WORLD.width, WORLD.height); ctx.globalAlpha = 1;
+  }
+
+  drawMapMechanic(frame, map) {
+    if (!frame || frame.phase === "idle") return;
+    const ctx = this.ctx, geometry = frame.geometry, vertical = geometry.axis === "vertical";
+    const x = vertical ? geometry.center - geometry.halfWidth : -WORLD.width / 2;
+    const y = vertical ? -WORLD.height / 2 : geometry.center - geometry.halfWidth;
+    const width = vertical ? geometry.halfWidth * 2 : WORLD.width;
+    const height = vertical ? WORLD.height : geometry.halfWidth * 2;
+    const active = frame.active, direction = frame.direction;
+    ctx.save();
+    ctx.fillStyle = active ? `${map.accent}26` : "rgba(255,203,92,.09)";
+    ctx.strokeStyle = active ? map.accent : "#ffd36b";
+    ctx.lineWidth = active ? 5 : 3;
+    ctx.setLineDash(active ? [] : [18, 12]);
+    ctx.fillRect(x, y, width, height); ctx.strokeRect(x, y, width, height);
+    ctx.globalAlpha = active ? .9 : .72;
+    const alongStart = vertical ? y + 70 : x + 70, alongEnd = vertical ? y + height - 70 : x + width - 70;
+    const cross = vertical ? geometry.center : geometry.center;
+    for (let cursor = alongStart; cursor <= alongEnd; cursor += 150) {
+      ctx.save(); ctx.translate(vertical ? cross : cursor, vertical ? cursor : cross);
+      ctx.rotate(direction > 0 ? 0 : Math.PI); ctx.strokeStyle = active ? "#f4fffd" : "#ffd36b"; ctx.lineWidth = 3; ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(-14, -10); ctx.lineTo(0, 0); ctx.lineTo(-14, 10); ctx.moveTo(0, -10); ctx.lineTo(14, 0); ctx.lineTo(0, 10); ctx.stroke(); ctx.restore();
+    }
+    const labelX = vertical ? geometry.center : clamp(this.camera.x, -WORLD.width / 2 + 180, WORLD.width / 2 - 180);
+    const labelY = vertical ? clamp(this.camera.y - this.height * .28, -WORLD.height / 2 + 50, WORLD.height / 2 - 50) : geometry.center;
+    ctx.setLineDash([]); ctx.globalAlpha = .96; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = "900 17px Inter"; ctx.lineWidth = 6; ctx.strokeStyle = "#06101a"; ctx.fillStyle = "#fff";
+    const label = `${frame.name.toUpperCase()} · ${active ? "ACTIVE" : `WARNING ${frame.remainingSeconds}`}`;
+    ctx.strokeText(label, labelX, labelY); ctx.fillText(label, labelX, labelY);
+    ctx.restore();
   }
 
   drawMapGuides(map) {

@@ -3,10 +3,12 @@ import { SPECIALIST_ORDER, SPECIALISTS } from "../data.js";
 import { SIMULATION_TICK_RATE, Simulation, applyPlayerUpgrade } from "../engine.js";
 import { hashCanonicalState } from "../replay.js";
 import { deterministicWorkUnits } from "../fixtures/fixture-runner.js";
+import { gameplayFeatureContract } from "../feature-config.js";
 
 export const SPECIALIST_BENCHMARK_SCHEMA = "lastlight.specialist-benchmark.v1";
 export const SPECIALIST_BENCHMARK_VERSION = 1;
 export const SPECIALIST_BENCHMARK_STEP = 1 / SIMULATION_TICK_RATE;
+const BENCHMARK_FEATURES = Object.freeze({ ...gameplayFeatureContract(), objectiveEvents: false, mapMechanics: false });
 
 export const SPECIALIST_BENCHMARK_BUDGETS = Object.freeze({
   maxCases: 100,
@@ -81,7 +83,7 @@ function seedFor(specialist, scenario) {
 
 function createSimulation(specialists, seed, difficulty = "story") {
   const players = specialists.map((specialist, index) => ({ id: index ? `ally-${index}` : "candidate", name: index ? `Ally ${index}` : "Candidate", specialist, replaySlot: index }));
-  const sim = new Simulation({ map: "warehouse", difficulty, duration: 3_600, players }, { seed });
+  const sim = new Simulation({ map: "warehouse", difficulty, duration: 3_600, players, features: BENCHMARK_FEATURES }, { seed, features: BENCHMARK_FEATURES });
   sim.pods = []; sim.events = []; sim.spawnClock = -1_000_000; sim.nextElite = Infinity; sim.nextMiniBoss = Infinity; sim.nextTreasure = Infinity; sim.nextRelayBall = Infinity; sim.objectiveEvents = false; sim.machine.cooldown = 1_000_000;
   for (const player of sim.players) { player.invuln = 0; player.hitGrace = 0; player.x = 0; player.y = 0; }
   return sim;

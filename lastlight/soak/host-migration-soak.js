@@ -186,6 +186,7 @@ function migrationCompatibility() {
     downedActivity: DEFAULT_RUNTIME_CONFIG.flags.downedActivity,
     joinInProgressNormalization: DEFAULT_RUNTIME_CONFIG.flags.joinInProgressNormalization,
     squadEnemyDirector: DEFAULT_RUNTIME_CONFIG.flags.squadEnemyDirector,
+    mapMechanics: DEFAULT_RUNTIME_CONFIG.flags.mapMechanics,
     registryVersion: DEFAULT_RUNTIME_CONFIG.registryVersion,
     recoveryVersion: RECOVERY_SIMULATION_VERSION,
   });
