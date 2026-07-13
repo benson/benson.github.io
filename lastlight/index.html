@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260713.15">
+  <link rel="stylesheet" href="styles.css?v=20260713.16">
 </head>
 <body>
   <main id="app">
@@ -299,6 +299,7 @@
       <aside class="synergy-hud" id="synergy-hud" aria-label="Active squad synergies" hidden></aside>
       <div id="synergy-live-region" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
       <div id="participation-live-region" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+      <div id="discovery-live-region" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
       <aside class="damage-ledger no-data" id="damage-ledger" aria-label="Leading damage sources">
         <header id="damage-ledger-handle" class="damage-ledger-handle" tabindex="0" aria-label="Move Damage Sources panel with arrow keys. Hold Control and use arrow keys to resize.">
           <strong>Damage sources</strong>
@@ -417,6 +418,7 @@
         </div>
         <section id="result-mutations" class="result-mutations" aria-labelledby="result-mutations-title"><h3 id="result-mutations-title">Campaign package</h3><div class="mutation-package"></div></section>
         <section id="result-mastery" class="result-mastery hidden" aria-labelledby="result-mastery-title"><p class="eyebrow">Specialist mastery</p><h3 id="result-mastery-title">Track advanced</h3><p id="result-mastery-copy"></p></section>
+        <section id="result-discoveries" class="result-discoveries hidden" aria-labelledby="result-discoveries-title"><p class="eyebrow">Field Manual</p><h3 id="result-discoveries-title">Signals catalogued</h3><p id="result-discoveries-copy"></p><ul id="result-discovery-list"></ul></section>
         <div class="scoreboard-wrap">
           <table class="result-scoreboard">
             <thead><tr><th>Specialist</th><th>Deployment</th><th>Damage</th><th>DPS</th><th>Kills</th><th>XP picked up</th><th>Damage taken</th><th>Revives</th><th>Distance</th><th>Share</th></tr></thead>
@@ -612,7 +614,16 @@
       </div>
       <div class="build-history-body">
         <article class="build-release current-build">
-          <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.13.15</h3></div><time class="build-shipped-at" datetime="2026-07-13T17:34:48-04:00" data-build-shipped-at="2026-07-13T17:34:48-04:00">Shipped Jul 13, 2026 · 5:34 PM EDT</time></header>
+          <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.13.16</h3></div><time>Production verification pending</time></header>
+          <ul>
+            <li>Added a deterministic 27-entry rare-discovery registry for events, elite affixes, squad boons, and recovered augment dossiers.</li>
+            <li>Added a concealed Field Manual collection that decrypts from signed terminal reports and remains informational, local, bounded, and identity-free.</li>
+            <li>Carried discovery evidence through replay, recovery, reconnect, host migration, signed run reports, shared archives, and aggregate-only telemetry.</li>
+            <li>Added live accessible discovery announcements, post-run reveal summaries, imported-report claims, exact rollback behavior, and deterministic dossier selection.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header><div><span class="build-release-status">Previous build</span><h3>2026.07.13.15</h3></div><time class="build-shipped-at" datetime="2026-07-13T17:34:48-04:00" data-build-shipped-at="2026-07-13T17:34:48-04:00">Shipped Jul 13, 2026 · 5:34 PM EDT</time></header>
           <ul>
             <li>Added nine persistent specialist mastery tracks with authored challenges, milestones, cosmetics, lore records, and mastery badges.</li>
             <li>Added unlockable Field Kit starts as explicit sidegrades: one signature-paired passive rank in exchange for ten percent maximum vitality.</li>
@@ -1112,8 +1123,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.13.15. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.13.15</strong></button>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.13.16. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.13.16</strong></button>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260713.15"></script>
+  <script type="module" src="game.js?v=20260713.16"></script>
 </body>
 </html>

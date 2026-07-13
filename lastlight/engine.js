@@ -1,11 +1,11 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
-} from "./data.js?v=20260713.15";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260713.15";
+} from "./data.js?v=20260713.16";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260713.16";
 import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.5";
-import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260713.15";
-import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260713.15";
+import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260713.16";
+import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260713.16";
 import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260713.1";
 import { MAX_CORRIDOR_CANDIDATES, accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget, orderEntitiesByDistance } from "./projectile-decisions.js?v=20260713.1";
 import { selectEliteAffixes, selectSpawnArchetype, spawnPhaseAt } from "./enemy-archetypes.js?v=20260713.1";
@@ -28,17 +28,21 @@ import {
   beginDownedActivity, createDownedActivityState, removeDownedActivity, triggerDownedSupport,
   validateDownedActivityState,
 } from "./downed-activity.js?v=20260713.9";
-import { generateJoinPackage, JOIN_IN_PROGRESS_REGISTRY, joinPackageUpgradeIds, transitionJoinPackage } from "./join-in-progress.js?v=20260713.15";
+import { generateJoinPackage, JOIN_IN_PROGRESS_REGISTRY, joinPackageUpgradeIds, transitionJoinPackage } from "./join-in-progress.js?v=20260713.16";
 import {
   DIRECTOR_APPROACHES, DIRECTOR_FORMATIONS, createSquadDirectorState, planSquadFormation, validateSquadDirectorState,
-} from "./enemy-director.js?v=20260713.15";
-import { mapMechanicFrame, mapSpawnWeights, pointInMapMechanic } from "./map-mechanics.js?v=20260713.15";
+} from "./enemy-director.js?v=20260713.16";
+import { mapMechanicFrame, mapSpawnWeights, pointInMapMechanic } from "./map-mechanics.js?v=20260713.16";
 import {
   CAMPAIGN_MUTATIONS, campaignMutationDefinition, campaignMutationObjectiveCompleted, campaignMutationWaveStarted,
   cancelCampaignMutationEncounter, consumeCampaignMutationEncounter, createCampaignMutationState,
   resolveCampaignMutationEncounter, validateCampaignMutationState,
-} from "./campaign-mutations.js?v=20260713.15";
-import { masteryStartDefinition } from "./specialist-mastery.js?v=20260713.15";
+} from "./campaign-mutations.js?v=20260713.16";
+import { masteryStartDefinition } from "./specialist-mastery.js?v=20260713.16";
+import {
+  createRareDiscoveryRunState, rareDiscoveryIdForBoon, recordRareDiscovery,
+  revealNextAugmentDossier, validateRareDiscoveryRunState,
+} from "./rare-discoveries.js?v=20260713.16";
 
 const BALANCE = getBalanceConfig();
 
@@ -75,7 +79,7 @@ function compactPoint(e) {
   return result;
 }
 
-const RECOVERY_STATE_VERSION = 11;
+const RECOVERY_STATE_VERSION = 12;
 const RECOVERY_SCALARS = [
   "tick", "time", "remaining", "stage", "paused", "pauseReason", "wave", "teamXP", "level", "xpNeed", "kills", "gold",
   "spawnClock", "nextElite", "nextMiniBoss", "nextTreasure", "nextRelayBall", "objectiveIndex", "bossElapsed", "bossPhase", "enraged",
@@ -360,6 +364,7 @@ export class Simulation {
     this.mapMechanics = features.mapMechanics;
     this.campaignMutations = features.campaignMutations;
     this.specialistMastery = features.specialistMastery;
+    this.rareDiscoveries = features.rareDiscoveries;
     this.synergyRegistryVersion = features.registryVersion;
     if (this.squadSynergies && this.synergyRegistryVersion !== SQUAD_SYNERGY_SCHEMA) throw new RangeError(`Unsupported squad synergy registry: ${this.synergyRegistryVersion}`);
     this.duration = Number(config.duration) || BALANCE.core.defaultDurationSeconds;
@@ -403,6 +408,7 @@ export class Simulation {
     this.machine = { x: 0, y: 0, charge: 0, cooldown: 0, active: 0 };
     this.directorState = createSquadDirectorState(this.squadEnemyDirector);
     this.mutationState = createCampaignMutationState(this.difficulty.id, this.campaignMutations);
+    this.discoveryState = createRareDiscoveryRunState(this.rareDiscoveries);
     this.bossElapsed = 0;
     this.bossPhase = 1;
     this.enraged = false;
@@ -423,6 +429,13 @@ export class Simulation {
   chance(probability) { return this.gameplayRng.nextFloat() < probability; }
   cosmeticChance(probability) { return this.cosmeticRng.nextFloat() < probability; }
   secondsToTicks(seconds) { return Math.max(1, Math.round(seconds * SIMULATION_TICK_RATE)); }
+
+  discoverRare(id) {
+    const transition = recordRareDiscovery(this.discoveryState, id);
+    this.discoveryState = transition.state;
+    if (transition.discovery) this.pushEvent("discovery", `Discovery // ${transition.discovery.name}`, transition.discovery.copy, { discoveryId: transition.discovery.id });
+    return transition.discovery;
+  }
 
   weaponVariant(player, sourceId, { evolved, variantId } = {}) {
     const parsed = parseWeaponVariantId(variantId);
@@ -1120,6 +1133,7 @@ export class Simulation {
       });
       if (enemy.affixIds.includes("hasted")) enemy.speed *= eliteTuning.affixes.hasted.speedMultiplier;
       if (enemy.affixIds.includes("shielded")) enemy.affixState.shield = enemy.maxHp * eliteTuning.affixes.shielded.shieldMaxHealth;
+      for (const affix of enemy.affixIds) this.discoverRare(`affix:${affix}`);
     }
     this.enemies.push(enemy);
     return enemy;
@@ -1176,6 +1190,7 @@ export class Simulation {
   }
 
   spawnTreasureRunner() {
+    this.discoverRare("event:treasure-runner");
     const runner = this.spawnEnemy("hound", { elite: true, spawnContext: "treasure-event", eventType: "treasure" });
     const health = 720 * this.difficulty.health * (1 + this.time / Math.max(1, this.duration));
     Object.assign(runner, { eventType: "treasure", radius: 31, hp: health, maxHp: health, speed: 195, damage: 0, color: "#ffd45d", life: 28, xp: 120 });
@@ -1183,6 +1198,7 @@ export class Simulation {
   }
 
   spawnRelayBall() {
+    this.discoverRare("event:relay-ball");
     const angle = this.random(0, TAU), radius = this.random(340, 560);
     const x = Math.cos(angle) * radius, y = Math.sin(angle) * radius;
     this.relayBalls.push({ id: this.nextGameplayId("ball"), x, y, targetX: -x, targetY: -y, radius: 42, vx: 0, vy: 0, life: 62, done: false, beganTick: this.tick, routeDistance: Math.hypot(x * 2, y * 2) });
@@ -1276,6 +1292,8 @@ export class Simulation {
   }
 
   applyBoon(boon) {
+    const discoveryId = rareDiscoveryIdForBoon(boon);
+    if (discoveryId) this.discoverRare(discoveryId);
     for (const p of this.players) {
       if (boon.name === "Cruise Control") p.speedBuff = 15;
       else if (boon.name === "Squad Shield") this.grantShieldAmount(p, p.maxHp * .75, 1, null);
@@ -2823,6 +2841,12 @@ export class Simulation {
     this.orbs.push({ id: this.nextGameplayId("x"), x: enemy.x, y: enemy.y, radius: enemy.elite || enemy.miniboss ? 10 : 5, value: enemy.xp, color: enemy.elite ? "#d7fdff" : "#63f2df", dead: false });
     if (this.chance(.035)) this.drops.push({ id: this.nextGameplayId("d"), type: "gold", x: enemy.x + this.random(-8, 8), y: enemy.y + this.random(-8, 8), radius: 9 });
     if (enemy.elite || enemy.miniboss) {
+      this.discoverRare("event:elite-access-card");
+      if (enemy.miniboss) {
+        const dossier = revealNextAugmentDossier(this.discoveryState, this.seed);
+        this.discoveryState = dossier.state;
+        if (dossier.discovery) this.pushEvent("discovery", `Dossier recovered // ${dossier.discovery.name}`, dossier.discovery.copy, { discoveryId: dossier.discovery.id });
+      }
       this.drops.push({ id: this.nextGameplayId("d"), type: "card", x: enemy.x, y: enemy.y, radius: 18 });
       this.gold += Math.round((enemy.elite ? 14 : 25) * this.difficulty.gold);
     }
@@ -3085,7 +3109,7 @@ export class Simulation {
       features: {
         gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents,
         squadSynergies: this.squadSynergies, sharedParticipationCredit: this.sharedParticipationCredit, downedActivity: this.downedActivity,
-        joinInProgressNormalization: this.joinInProgressNormalization, squadEnemyDirector: this.squadEnemyDirector, mapMechanics: this.mapMechanics, campaignMutations: this.campaignMutations, specialistMastery: this.specialistMastery, registryVersion: this.synergyRegistryVersion,
+        joinInProgressNormalization: this.joinInProgressNormalization, squadEnemyDirector: this.squadEnemyDirector, mapMechanics: this.mapMechanics, campaignMutations: this.campaignMutations, specialistMastery: this.specialistMastery, rareDiscoveries: this.rareDiscoveries, registryVersion: this.synergyRegistryVersion,
       },
       tick: this.tick,
       rng: { gameplay: this.gameplayRng.snapshot(), cosmetic: this.cosmeticRng.snapshot() },
@@ -3093,6 +3117,7 @@ export class Simulation {
       tasks: this.tasks.map((task) => ({ id: task.id, dueTick: task.dueTick, kind: task.kind, payload: { ...task.payload }, ...(task.sourceId ? { sourceId: task.sourceId, variantId: task.variantId } : {}) })),
       directorState: structuredClone(this.directorState),
       mutationState: structuredClone(this.mutationState),
+      discoveryState: structuredClone(this.discoveryState),
     };
   }
 
@@ -3135,7 +3160,7 @@ export class Simulation {
         seed: this.seed, balanceVersion: this.balanceVersion, balanceHash: this.balanceHash,
         gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents,
         squadSynergies: this.squadSynergies, sharedParticipationCredit: this.sharedParticipationCredit, downedActivity: this.downedActivity,
-        joinInProgressNormalization: this.joinInProgressNormalization, squadEnemyDirector: this.squadEnemyDirector, mapMechanics: this.mapMechanics, campaignMutations: this.campaignMutations, specialistMastery: this.specialistMastery, registryVersion: this.synergyRegistryVersion,
+        joinInProgressNormalization: this.joinInProgressNormalization, squadEnemyDirector: this.squadEnemyDirector, mapMechanics: this.mapMechanics, campaignMutations: this.campaignMutations, specialistMastery: this.specialistMastery, rareDiscoveries: this.rareDiscoveries, registryVersion: this.synergyRegistryVersion,
         map: this.map.id, difficulty: this.difficulty.id, duration: this.duration,
       },
       rng: { gameplay: this.gameplayRng.snapshot(), cosmetic: this.cosmeticRng.snapshot() },
@@ -3154,12 +3179,13 @@ export class Simulation {
       downedState: serializeRecoveryValue(this.downedState, playerIds),
       directorState: structuredClone(this.directorState),
       mutationState: structuredClone(this.mutationState),
+      discoveryState: structuredClone(this.discoveryState),
     };
   }
 
   static fromRecoveryState(value, { playerIdsBySlot } = {}) {
     if (!value || typeof value !== "object" || Array.isArray(value) || value.version !== RECOVERY_STATE_VERSION) throw new TypeError("Unsupported recovery state");
-    const expected = ["version", "header", "rng", "sequences", "scalars", "machine", "players", "disconnectedPlayers", "runSlotsUsed", "lists", "pendingChoices", "choiceReady", "selectedChoices", "synergyState", "participationState", "downedState", "directorState", "mutationState"];
+    const expected = ["version", "header", "rng", "sequences", "scalars", "machine", "players", "disconnectedPlayers", "runSlotsUsed", "lists", "pendingChoices", "choiceReady", "selectedChoices", "synergyState", "participationState", "downedState", "directorState", "mutationState", "discoveryState"];
     const actual = Object.keys(value).sort();
     if (actual.length !== expected.length || expected.sort().some((key, index) => key !== actual[index])) throw new TypeError("Recovery state has unexpected fields");
     const header = value.header;
@@ -3200,14 +3226,14 @@ export class Simulation {
       features: {
         gameplayVersion: header.gameplayVersion, objectiveEvents: header.objectiveEvents,
         squadSynergies: header.squadSynergies, sharedParticipationCredit: header.sharedParticipationCredit, downedActivity: header.downedActivity,
-        joinInProgressNormalization: header.joinInProgressNormalization, squadEnemyDirector: header.squadEnemyDirector, mapMechanics: header.mapMechanics, campaignMutations: header.campaignMutations, specialistMastery: header.specialistMastery, registryVersion: header.registryVersion,
+        joinInProgressNormalization: header.joinInProgressNormalization, squadEnemyDirector: header.squadEnemyDirector, mapMechanics: header.mapMechanics, campaignMutations: header.campaignMutations, specialistMastery: header.specialistMastery, rareDiscoveries: header.rareDiscoveries, registryVersion: header.registryVersion,
       },
     }, {
       seed: header.seed, balanceVersion: header.balanceVersion, balanceHash: header.balanceHash,
       features: {
         gameplayVersion: header.gameplayVersion, objectiveEvents: header.objectiveEvents,
         squadSynergies: header.squadSynergies, sharedParticipationCredit: header.sharedParticipationCredit, downedActivity: header.downedActivity,
-        joinInProgressNormalization: header.joinInProgressNormalization, squadEnemyDirector: header.squadEnemyDirector, mapMechanics: header.mapMechanics, campaignMutations: header.campaignMutations, specialistMastery: header.specialistMastery, registryVersion: header.registryVersion,
+        joinInProgressNormalization: header.joinInProgressNormalization, squadEnemyDirector: header.squadEnemyDirector, mapMechanics: header.mapMechanics, campaignMutations: header.campaignMutations, specialistMastery: header.specialistMastery, rareDiscoveries: header.rareDiscoveries, registryVersion: header.registryVersion,
       },
     });
     sim.gameplayRng = SeededRng.fromSnapshot(value.rng?.gameplay);
@@ -3223,6 +3249,8 @@ export class Simulation {
     sim.directorState = validateSquadDirectorState(value.directorState);
     if (!validateCampaignMutationState(value.mutationState) || value.mutationState.difficulty !== header.difficulty || value.mutationState.enabled !== Boolean(header.campaignMutations && header.difficulty !== "story")) throw new TypeError("Recovery campaign mutation state is invalid");
     sim.mutationState = Object.freeze(structuredClone(value.mutationState));
+    if (!validateRareDiscoveryRunState(value.discoveryState) || value.discoveryState.enabled !== Boolean(header.rareDiscoveries)) throw new TypeError("Recovery rare discovery state is invalid");
+    sim.discoveryState = Object.freeze(structuredClone(value.discoveryState));
     sim.players = value.players.map((stored) => {
       const restored = deserializeRecoveryValue(stored, restoredPlayerIds);
       validateDraftState(restored.draft);
@@ -3348,7 +3376,7 @@ export class Simulation {
       features: {
         gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents,
         squadSynergies: this.squadSynergies, sharedParticipationCredit: this.sharedParticipationCredit, downedActivity: this.downedActivity,
-        joinInProgressNormalization: this.joinInProgressNormalization, squadEnemyDirector: this.squadEnemyDirector, mapMechanics: this.mapMechanics, campaignMutations: this.campaignMutations, specialistMastery: this.specialistMastery, registryVersion: this.synergyRegistryVersion,
+        joinInProgressNormalization: this.joinInProgressNormalization, squadEnemyDirector: this.squadEnemyDirector, mapMechanics: this.mapMechanics, campaignMutations: this.campaignMutations, specialistMastery: this.specialistMastery, rareDiscoveries: this.rareDiscoveries, registryVersion: this.synergyRegistryVersion,
       },
       tick: this.tick, determinism: this.deterministicState(),
       map: this.map.id, difficulty: this.difficulty.id, duration: this.duration, time: Math.round(this.time * 10) / 10,
@@ -3364,6 +3392,7 @@ export class Simulation {
       participationState: structuredClone(this.participationState), participationTelemetry: this.participationTelemetry(),
       downedState: structuredClone(this.downedState),
       mutationState: structuredClone(this.mutationState),
+      discoveryState: structuredClone(this.discoveryState),
       ...(this.directorState.sequence > 0 ? { directorTelemetry: this.directorTelemetry() } : {}),
       mutationTelemetry: this.mutationTelemetry(),
       pendingChoices: this.pendingChoices, choiceReady: this.choiceReady, selectedChoices: this.selectedChoices, events: this.events.slice(-5),

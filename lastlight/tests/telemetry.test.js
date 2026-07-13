@@ -180,6 +180,20 @@ test("specialist-mastery telemetry v6 is bounded, aggregate-only, and requires t
   assert.throws(() => buildRunTelemetry(run, "build", { ...mastery, replaySlot: 0 }), /unexpected fields/);
 });
 
+test("rare-discovery telemetry v7 is reconciled, aggregate-only, and independent of mastery", () => {
+  const run = completedRun({ mutationTelemetry: { packageId: "breach-cascade", encounters: 5, clears: 4, failures: 1, objectiveCompletions: 3, surgeWaves: 2 } });
+  const discoveries = { discoveredCount: 9, newlyRevealedCount: 2, categories: { event: 2, affix: 1, boon: 4, augment: 2 } };
+  const payload = buildRunTelemetry(run, "build-16", null, discoveries);
+  assert.equal(payload.schemaVersion, 7);
+  assert.equal(payload.rareDiscoveryCount, 9);
+  assert.equal(payload.rareDiscoveryNewCount, 2);
+  assert.deepEqual(payload.rareDiscoveryCategories, discoveries.categories);
+  assert.doesNotMatch(JSON.stringify(payload), /discoveryId|Benson|Friend|private-|SECRET-ROOM|replaySlot|playerName|roomId|position|slot/i);
+  assert.throws(() => buildRunTelemetry(completedRun(), "build", null, discoveries), /current aggregate run schema/);
+  assert.throws(() => buildRunTelemetry(run, "build", null, { ...discoveries, callsign: "Private" }), /unexpected fields/);
+  assert.throws(() => buildRunTelemetry(run, "build", null, { ...discoveries, categories: { ...discoveries.categories, event: 3 } }), /do not reconcile/);
+});
+
 test("squad-director telemetry fails closed on identity, inconsistent totals, and invalid squad bands", () => {
   assert.throws(() => buildRunTelemetry(completedRun({ directorTelemetry: { ...directorTotals, roomId: "SECRET" } }), "build"), /unexpected fields/);
   assert.throws(() => buildRunTelemetry(completedRun({ directorTelemetry: { ...directorTotals, pincer: 3 } }), "build"), /do not reconcile/);

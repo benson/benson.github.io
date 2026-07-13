@@ -23,7 +23,7 @@ test("local and teammate choices expose non-color aggregate recommendation marke
 });
 
 test("recommendation updates patch marker subnodes without rebuilding the upgrade overlay", () => {
-  const patchBody = game.match(/function renderDraftRecommendationMarkers[\s\S]*?\n}\n\nfunction updateUpgrade/)?.[0] || "";
+  const patchBody = game.match(/function renderDraftRecommendationMarkers[\s\S]*?\r?\n}\r?\n\r?\nfunction updateUpgrade/)?.[0] || "";
   assert.match(patchBody, /querySelectorAll\(\"\[data-recommendation-markers\]\"\)/);
   assert.match(patchBody, /querySelectorAll\(\"\.draft-recommend-button\"\)/);
   assert.doesNotMatch(patchBody, /upgrade-cards\"\)\.innerHTML|teammate-upgrades\"\)\.innerHTML/);

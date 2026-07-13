@@ -52,7 +52,7 @@ test("feature-off preserves legacy immobility/support suppression and solo remai
     { id: "a", name: "A", specialist: "zuri", replaySlot: 0 }, { id: "b", name: "B", specialist: "echo", replaySlot: 1 },
   ], features: {
     gameplayVersion: "downed-v1", objectiveEvents: true, squadSynergies: true, sharedParticipationCredit: true,
-    downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, specialistMastery: false, registryVersion: "lastlight.squad-synergy.v1",
+    downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, specialistMastery: false, rareDiscoveries: false, registryVersion: "lastlight.squad-synergy.v1",
   } }, { seed: SEED });
   const [player, ally] = legacy.players; ally.x = 800; legacy.downPlayer(player); legacy.setInput(player.id, { x: 1, y: 0, aim: 0 });
   const beforeX = player.x, beforeTimer = player.downTimer; legacy.updatePlayers(1 / 60);

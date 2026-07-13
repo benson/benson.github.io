@@ -5,10 +5,10 @@ The relay exposes `GET /config`. It is read-only, origin-aware, and always sends
 response through the Worker's `LASTLIGHT_RUNTIME_CONFIG` secret.
 
 The current release defaults enable the versioned gameplay systems shipped in
-build `2026.07.13.15`:
+build `2026.07.13.16`:
 
 ```json
-{"schemaVersion":10,"configVersion":"release-2026.07.13.15","gameplayVersion":"specialist-mastery-v1","registryVersion":"lastlight.squad-synergy.v1","flags":{"deterministicReplay":true,"runTelemetry":true,"objectiveEvents":true,"migrationCheckpointReplication":true,"hostMigrationElection":true,"hostMigrationResume":true,"contextualPings":true,"upgradeRecommendations":true,"squadSynergies":true,"sharedParticipationCredit":true,"downedActivity":true,"joinInProgressNormalization":true,"squadEnemyDirector":true,"mapMechanics":true,"campaignMutations":true,"specialistMastery":true,"sharedSquadRunArchive":true}}
+{"schemaVersion":11,"configVersion":"release-2026.07.13.16","gameplayVersion":"rare-discoveries-v1","registryVersion":"lastlight.squad-synergy.v1","flags":{"deterministicReplay":true,"runTelemetry":true,"objectiveEvents":true,"migrationCheckpointReplication":true,"hostMigrationElection":true,"hostMigrationResume":true,"contextualPings":true,"upgradeRecommendations":true,"squadSynergies":true,"sharedParticipationCredit":true,"downedActivity":true,"joinInProgressNormalization":true,"squadEnemyDirector":true,"mapMechanics":true,"campaignMutations":true,"specialistMastery":true,"rareDiscoveries":true,"sharedSquadRunArchive":true}}
 ```
 
 Unknown keys, missing keys, wrong types, and malformed JSON fail closed to those
@@ -64,6 +64,10 @@ the active config version, gameplay version, source, load status, and flags.
   `specialistMastery` to `false` and publish a new `configVersion` and
   `gameplayVersion` for new runs. Existing runs retain their starting contract;
   local mastery data remains stored but inactive.
+- Discovery evidence, dossier selection, Field Manual, or result-award problem:
+  set `rareDiscoveries` to `false` and publish a new `configVersion` and
+  `gameplayVersion` for new runs. Existing runs retain their starting contract;
+  the bounded local collection remains stored but inactive.
 - Shared run-history import or archive problem: set `sharedSquadRunArchive` to
   `false`. This client-only flag does not change deterministic simulation state.
 - Restore release defaults: delete the override with

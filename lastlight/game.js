@@ -1,44 +1,44 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260713.15";
-import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.15";
-import { Renderer } from "./render.js?v=20260713.15";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260713.16";
+import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.16";
+import { Renderer } from "./render.js?v=20260713.16";
 import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260713.2";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
-import { getThemeAsset, getThemeEnvironmentChunks, getThemeMaterial } from "./themes/lastlight.js?v=20260713.15";
-import { submitRunTelemetry } from "./telemetry.js?v=20260713.15";
+import { getThemeAsset, getThemeEnvironmentChunks, getThemeMaterial } from "./themes/lastlight.js?v=20260713.16";
+import { submitRunTelemetry } from "./telemetry.js?v=20260713.16";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260713.15";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260713.15";
+import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260713.16";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260713.16";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
-import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260713.15";
-import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260713.15";
+import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260713.16";
+import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260713.16";
 import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260711.5";
-import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260713.15";
+import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260713.16";
 import { GuestInputSequenceTracker, HostInputSequenceGate, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260713.2";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260713.2";
-import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260713.15";
-import { advancePlayerMovement } from "./movement.js?v=20260713.15";
+import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260713.16";
+import { advancePlayerMovement } from "./movement.js?v=20260713.16";
 import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
 import { DynamicAudioMixer } from "./audio-mix.js?v=20260713.1";
 import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260713.1";
 import { enemyAudioCueName, newEntities, spatialAudioPan, weaponAudioCueName, weaponTimerActivations } from "./audio-events.js?v=20260713.1";
 import { FUNNY_VOICE_MIN_INTERVAL_MS, audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260713.1";
-import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260713.15";
-import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260713.15";
+import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260713.16";
+import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260713.16";
 import { getWeaponEvolution } from "./weapon-evolution.js?v=20260713.1";
 import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260712.1";
-import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260713.15";
-import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260713.15";
-import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260713.15";
+import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260713.16";
+import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260713.16";
+import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260713.16";
 import { reconcileActiveBuffs } from "./active-buffs.js?v=20260713.1";
 import { ELITE_AFFIXES, ENEMY_ARCHETYPES } from "./enemy-archetypes.js?v=20260713.1";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
-import { mapMechanicDefinition } from "./map-mechanics.js?v=20260713.15";
-import { CAMPAIGN_MUTATIONS, campaignMutationDefinition } from "./campaign-mutations.js?v=20260713.15";
+import { mapMechanicDefinition } from "./map-mechanics.js?v=20260713.16";
+import { CAMPAIGN_MUTATIONS, campaignMutationDefinition } from "./campaign-mutations.js?v=20260713.16";
 import {
   AuthoritySnapshotGate, HOST_MIGRATION_PROTOCOL_VERSION, MIGRATION_CHECKPOINT_INTERVAL_TICKS,
   createMigrationCapabilities, createMigrationCheckpoint, createMigrationReady,
   migrationCompatibilityMatches, validateMigrationCheckpoint,
-} from "./host-migration.js?v=20260713.15";
+} from "./host-migration.js?v=20260713.16";
 import { RECONNECT_DELAYS_MS, SquadPresenceTracker, authorityStateCopy } from "./reconnect-state.js?v=20260713.3";
 import {
   HostPingGate, PING_INTENTS, PING_LIFETIME_TICKS, PING_WHEEL_ORDER, PingSequenceTracker,
@@ -54,15 +54,19 @@ import { DraftRecommendationStore, recommendationMarkerModel } from "./draft-rec
 import { SQUAD_SYNERGY_REGISTRY } from "./squad-synergies.js?v=20260713.6";
 import { reconcileActiveSynergies } from "./active-synergies.js?v=20260713.6";
 import { PARTICIPATION_REGISTRY } from "./participation-credit.js?v=20260713.7";
-import { campaignJoinEligibility } from "./join-in-progress.js?v=20260713.15";
+import { campaignJoinEligibility } from "./join-in-progress.js?v=20260713.16";
 import {
   RUN_ARCHIVE_STORAGE_KEY, createSquadRunReport, decodeSquadRunFragment, normalizeRunArchiveStorage,
   squadRunShareFragment, upsertRunArchive,
-} from "./run-archive.js?v=20260713.15";
+} from "./run-archive.js?v=20260713.16";
 import {
   SPECIALIST_MASTERY, SPECIALIST_MASTERY_LEVELS, awardSpecialistMastery, loadSpecialistMasteryState,
   masteryStartDefinition, saveSpecialistMasteryState, selectMasteryStart,
-} from "./specialist-mastery.js?v=20260713.15";
+} from "./specialist-mastery.js?v=20260713.16";
+import {
+  RARE_DISCOVERY_REGISTRY, awardRareDiscoveries, loadRareDiscoveryCollection,
+  rareDiscoveryDefinition, rareDiscoveryTelemetry, saveRareDiscoveryCollection,
+} from "./rare-discoveries.js?v=20260713.16";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -71,7 +75,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.13.15";
+const BUILD = "2026.07.13.16";
 const AUTHORITY_WATCHDOG_MS = Object.freeze({ synchronizing: 10_000, migrating: 25_000 });
 const BALANCE = getBalanceConfig();
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
@@ -88,6 +92,7 @@ const initialQualitySettings = (() => {
 })();
 const initialAudioSettings = loadAudioSettings(localStorage);
 const initialMasteryState = loadSpecialistMasteryState(localStorage);
+const initialRareDiscoveries = loadRareDiscoveryCollection(localStorage);
 const audioSupported = Boolean(window.AudioContext || window.webkitAudioContext);
 const renderer = new Renderer($("game-canvas"));
 renderer.setQualitySettings(initialQualitySettings);
@@ -169,6 +174,7 @@ const state = {
   lastUpgradeKey: "", lastWeaponHUDKey: "", lastPassiveHUDKey: "", lastSquadHUDKey: "", lastBossHUDKey: "", lastEventSeq: 0, endShown: false, resultTimer: null,
   progress: loadProgress(), runHistory: loadRunHistory(), resultGame: null, resultReport: null, resultSavedKey: "",
   mastery: initialMasteryState, resultMasteryAward: null,
+  rareDiscoveries: initialRareDiscoveries, resultDiscoveryAward: null,
   sharedRun: initialSharedRun.value, sharedRunError: initialSharedRun.error, sharedRunPresented: false,
   audioSettings: initialAudioSettings,
   audioAvailable: audioSupported,
@@ -226,6 +232,7 @@ function migrationCompatibility() {
     mapMechanics: state.runtimeConfig.config.flags.mapMechanics,
     campaignMutations: state.runtimeConfig.config.flags.campaignMutations,
     specialistMastery: state.runtimeConfig.config.flags.specialistMastery,
+    rareDiscoveries: state.runtimeConfig.config.flags.rareDiscoveries,
     registryVersion: state.runtimeConfig.config.registryVersion,
     recoveryVersion: RECOVERY_SIMULATION_VERSION,
   };
@@ -448,6 +455,7 @@ function beginReplayCapture(players, seed) {
     mapMechanics: state.runtimeConfig.config.flags.mapMechanics,
     campaignMutations: state.runtimeConfig.config.flags.campaignMutations,
     specialistMastery: state.runtimeConfig.config.flags.specialistMastery,
+    rareDiscoveries: state.runtimeConfig.config.flags.rareDiscoveries,
     registryVersion: state.runtimeConfig.config.registryVersion,
     rng: RNG_ALGORITHM, seed, run: replayRunConfig(),
   });
@@ -1130,7 +1138,7 @@ function renderGuide() {
     guideCard("OBJ", "Directive convergence", "Objective-aware approach", "When an uplink, trial, or relay is active, some authored approaches form around that directive instead of only centering on the squad.", "", getThemeAsset("guide.field.fieldDevice"), { Trigger: "Active field directive", Counterplay: "Read the approach warning", Privacy: "Aggregate run totals only" }),
     guideCard("EL", "Elite escort", "Late-run squad encounter", "Three- and four-player squads can meet ordinary formation escorts around scheduled elites after the operation midpoint. Escorts never duplicate elite keys or elite rewards.", "", getThemeAsset("archive.events.eliteAccessCard"), { Squad: "3–4 standing specialists", Timing: "After 45% progress", Rewards: "Standard enemy rewards only" }),
   ].join("");
-  const rare = [
+  const legacyRare = [
     guideCard("KEY", "Elite access card", "Rare evolution drop", "Elites and minibosses drop access cards. A card evolves one eligible level-five weapon whose matching passive is owned.", "", getThemeAsset("archive.events.eliteAccessCard")),
     guideCard("$", "Treasure runner", "Timed chase event", "Catch the fleeing gold target before it escapes to earn bonus gold, data, and access cards.", "", getThemeAsset("archive.events.treasureRunner")),
     guideCard("ORB", "Relay ball", "Push objective", "Make contact to drive the relay ball into its marked destination ring for a squad reward.", "", getThemeAsset("archive.events.relayBall")),
@@ -1140,7 +1148,22 @@ function renderGuide() {
     ...BOONS.map((boon) => guideCard("★", boon.name, "Rare squad boon", boon.copy, "", boon.icon)),
     ...AUGMENTS.map((augment) => guideCard("AUG", augment.name, "Rare augment", augment.copy, "", augment.icon)),
   ].join("");
+  const discoveryEnabled = Boolean(state.runtimeConfig?.config?.flags?.rareDiscoveries);
+  const discovered = new Set(state.rareDiscoveries.discovered);
+  const rare = discoveryEnabled ? RARE_DISCOVERY_REGISTRY.entries.map((entry) => {
+    const revealed = discovered.has(entry.id);
+    return guideCard(revealed ? entry.glyph : "?", revealed ? entry.name : entry.concealed,
+      `${entry.category} // ${revealed ? "catalogued" : "undiscovered"}`,
+      revealed ? `${entry.copy} ${entry.lore}` : "Encounter this signal in a completed operation to decrypt its Field Manual entry.",
+      revealed ? "discovered" : "locked", revealed ? entry.icon : "");
+  }).join("") : legacyRare;
+  const rareHeading = discoveryEnabled
+    ? `Rare discoveries // ${discovered.size}/${RARE_DISCOVERY_REGISTRY.entries.length}`
+    : "Rare finds & events";
   $("guide-content").innerHTML = `<section id="guide-campaign" class="guide-section"><h3>Campaign route</h3><p>Clear threat tiers to unlock harder operations. Progress is saved in this browser.</p><div class="campaign-route">${campaign}</div></section><section id="guide-map-mechanics" class="guide-section"><h3>Operation identities</h3><p>Every operation changes battlefield routing, enemy composition, and counterplay through a deterministic map mechanic.</p><div class="guide-grid">${mapMechanics}</div></section><section id="guide-environments" class="guide-section"><h3>Environment identities</h3><p>Generated landmark atlases give every operation authored set dressing. These chunks are visual only: they never block movement, hide a pickup, or enter multiplayer snapshots.</p><div class="guide-grid">${environments}</div></section><section id="guide-apex" class="guide-section"><h3>Map apexes</h3><p>Every apex has two deterministic phases, a real health gate, named attacks, and a map-specific arena change.</p><div class="guide-grid">${apexes}</div></section><section id="guide-specialists" class="guide-section"><h3>Specialist identities</h3><p>Measured roles, strengths, and failure points from the versioned simulation contract.</p><div class="guide-grid">${identities}</div></section><section id="guide-field" class="guide-section"><h3>Field objects</h3><p>Hold Shift and point at a live field object for its current stats.</p><div class="guide-grid">${fieldObjects}</div></section><section id="guide-signatures" class="guide-section"><h3>Signature evolutions</h3><div class="guide-grid">${signatures}</div></section><section id="guide-weapons" class="guide-section"><h3>Universal weapons</h3><div class="guide-grid">${weapons}</div></section><section id="guide-materials" class="guide-section"><h3>Impact materials</h3><p>Every weapon keeps its silhouette while contact particles, decals, flash, and sound adapt to the target. Shape and pattern remain available when color or motion is reduced.</p><div class="guide-grid">${materials}</div></section><section id="guide-passives" class="guide-section"><h3>Passive upgrades</h3><div class="guide-grid">${passives}</div></section><section id="guide-downed" class="guide-section"><h3>Downed activity</h3><p>A downed specialist stays useful but cannot fight, collect, score objective work, or revive themself. The authoritative simulation decides every action.</p><div class="guide-grid">${downed}</div></section><section id="guide-participation" class="guide-section"><h3>Participation credit</h3><p>Credit records effective work by anonymous specialist slot. Genuine overlap is shared; duplicate traffic, excess values, idle proximity, and system restoration are excluded.</p><div class="guide-grid">${participation}</div></section><section id="guide-synergies" class="guide-section"><h3>Squad synergies</h3><p>Coordinate roles, ultimate timing, and movement. Effects are authoritative, bounded, non-stacking, and disabled in solo runs.</p><div class="guide-grid">${synergies}</div></section><section id="guide-director" class="guide-section"><h3>Squad enemy director</h3><p>Squad runs receive deterministic, objective-aware formations while solo and rollback paths preserve the original spawn contract.</p><div class="guide-grid">${director}</div></section><section id="guide-rare" class="guide-section"><h3>Rare finds & events</h3><div class="guide-grid">${rare}</div></section>`;
+  const rareSection = $("guide-content").querySelector("#guide-rare");
+  rareSection.querySelector("h3").textContent = rareHeading;
+  if (discoveryEnabled) rareSection.querySelector("h3").insertAdjacentHTML("afterend", "<p>Discoveries are informational, local to this browser, and never grant combat power.</p>");
 }
 
 function renderSpecialistGrid() {
@@ -2310,18 +2333,21 @@ function processEvents(events) {
       sfx("reward");
       continue;
     }
+    if (event.type === "discovery") {
+      $("discovery-live-region").textContent = `${event.title}. ${event.copy || "Field Manual entry catalogued."}`;
+    }
     if (event.type === "danger") sfx(event.apexIntent || event.apexPhase || /apex|phase|has arrived|enraged/i.test(event.title) ? "enemy:apex" : "danger");
     else if (event.type === "victory") sfx("victory");
     else if (event.type === "defeat") sfx("defeat");
     else if (event.type === "evolution") { sfx("level"); setTimeout(() => sfx("reward"), 160); }
-    else if (event.type === "upgrade" || event.type === "boon") sfx("reward");
+    else if (event.type === "upgrade" || event.type === "boon" || event.type === "discovery") sfx("reward");
     else sfx("objective");
     showBanner(event.title, event.copy, event.type);
   }
 }
 
 function showBanner(title, copy, type) {
-  const banner = $("objective-banner"); banner.dataset.type = type; banner.querySelector("span").textContent = type === "danger" ? "THREAT DETECTED" : type === "boon" ? "SQUAD BOOST" : type === "upgrade" ? "SYSTEM UPGRADE" : type === "evolution" ? "WEAPON EVOLVED" : "NEW DIRECTIVE";
+  const banner = $("objective-banner"); banner.dataset.type = type; banner.querySelector("span").textContent = type === "danger" ? "THREAT DETECTED" : type === "boon" ? "SQUAD BOOST" : type === "upgrade" ? "SYSTEM UPGRADE" : type === "evolution" ? "WEAPON EVOLVED" : type === "discovery" ? "FIELD MANUAL UPDATED" : "NEW DIRECTIVE";
   banner.querySelector("strong").textContent = `${title}${copy ? ` · ${copy}` : ""}`;
   clearTimeout(state.bannerTimer); clearTimeout(state.bannerExitTimer);
   banner.classList.remove("hidden", "is-visible", "is-exiting");
@@ -2435,6 +2461,31 @@ function renderResultMastery(award) {
   $("result-mastery-copy").textContent = `${level}${challenge}${unlocks}`;
 }
 
+function awardLocalRareDiscoveries(report) {
+  if (!state.runtimeConfig.config.flags.rareDiscoveries || !report) return null;
+  try {
+    const result = awardRareDiscoveries(state.rareDiscoveries, report);
+    state.rareDiscoveries = saveRareDiscoveryCollection(localStorage, result.state);
+    state.resultDiscoveryAward = result.award;
+    return result.award;
+  } catch (error) { captureClientError("rare discovery award", error); return null; }
+}
+
+function renderResultRareDiscoveries(report, award) {
+  const discoveries = report?.discoveries || [];
+  $("result-discoveries").classList.toggle("hidden", !state.runtimeConfig.config.flags.rareDiscoveries || !discoveries.length);
+  if (!discoveries.length) return;
+  const newlyRevealed = new Set(award?.discovered || []);
+  $("result-discoveries-title").textContent = `${discoveries.length} signal${discoveries.length === 1 ? "" : "s"} catalogued`;
+  $("result-discoveries-copy").textContent = award?.discovered?.length
+    ? `${award.discovered.length} new Field Manual ${award.discovered.length === 1 ? "entry" : "entries"} decrypted. Collection ${award.total}/${award.available}.`
+    : `All signals were already catalogued. Collection ${state.rareDiscoveries.discovered.length}/${RARE_DISCOVERY_REGISTRY.entries.length}.`;
+  $("result-discovery-list").innerHTML = discoveries.map((id) => {
+    const entry = rareDiscoveryDefinition(id);
+    return `<li class="${newlyRevealed.has(id) ? "new" : ""}"><span>${escapeHTML(entry?.glyph || "?")}</span><b>${escapeHTML(entry?.name || id)}</b>${newlyRevealed.has(id) ? "<em>New</em>" : ""}</li>`;
+  }).join("");
+}
+
 function localMasteryTelemetry(player) {
   if (!player || !state.runtimeConfig.config.flags.specialistMastery) return null;
   const track = state.mastery.tracks[player.specialist];
@@ -2475,7 +2526,9 @@ function archiveEntryCard(entry, { imported = false, mode = "local" } = {}) {
   const map = MAPS[report.map]?.name || report.map, difficulty = DIFFICULTIES[report.difficulty]?.name || report.difficulty;
   const saved = state.runHistory.some((candidate) => candidate.report.id === report.id);
   const date = savedAt ? new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(savedAt)) : "Shared report";
-  const players = report.players.map((player) => archivePlayerCard(player, report.elapsed)).join("");
+  const discoverySummary = report.discoveries?.length
+    ? `<p class="archive-discoveries"><strong>Rare discoveries ${report.discoveries.length}</strong> · ${report.discoveries.map((id) => escapeHTML(rareDiscoveryDefinition(id)?.name || id)).join(" · ")}</p>` : "";
+  const players = `${discoverySummary}${report.players.map((player) => archivePlayerCard(player, report.elapsed)).join("")}`;
   const shareActions = archiveEnabled() ? `<button type="button" data-archive-share="${report.id}">Copy anonymous link</button><button type="button" data-archive-share-named="${report.id}">Include callsigns</button>` : "";
   const saveAction = imported && !saved ? `<button type="button" data-archive-save="${report.id}">Save to this browser</button>` : "";
   const mutation = report.mutations;
@@ -2504,7 +2557,10 @@ function saveImportedRun(id) {
   if (!report) return;
   state.runHistory = upsertRunArchive(state.runHistory, report);
   try { localStorage.setItem(RUN_ARCHIVE_STORAGE_KEY, JSON.stringify(state.runHistory)); } catch { /* Archive remains readable in memory. */ }
-  renderRunHistory(); toast("Squad report saved to this browser");
+  const award = awardLocalRareDiscoveries(report);
+  renderRunHistory();
+  if ($("guide-dialog").open) renderGuide();
+  toast(award?.discovered?.length ? `Squad report saved · ${award.discovered.length} discoveries decrypted` : "Squad report saved to this browser");
 }
 
 function renderRunHistory() {
@@ -2586,12 +2642,17 @@ function showResult(game) {
   state.resultGame = game;
   const report = saveCompletedRun(game);
   renderResultMastery(awardLocalMastery(report, localPlayer));
+  const discoveryAward = awardLocalRareDiscoveries(report);
+  renderResultRareDiscoveries(report, discoveryAward);
   renderScoreboard(game);
   syncArchiveAvailability();
   setScreen("result");
   if (state.isHost && !state.telemetrySent && state.runtimeConfig.config.flags.runTelemetry) {
     state.telemetrySent = true;
-    submitRunTelemetry(game, BUILD, { masteryTelemetry: localMasteryTelemetry(localPlayer) }).catch((error) => console.warn("Run telemetry unavailable", error));
+    submitRunTelemetry(game, BUILD, {
+      masteryTelemetry: localMasteryTelemetry(localPlayer),
+      discoveryTelemetry: rareDiscoveryTelemetry(state.rareDiscoveries, discoveryAward?.discovered || []),
+    }).catch((error) => console.warn("Run telemetry unavailable", error));
   }
 }
 
@@ -3801,7 +3862,9 @@ if (localHost) Object.defineProperty(window, "__lastlightQA", { value: Object.fr
     }));
     const slots = players.map(({ replaySlot }) => ({ replaySlot, slot: replaySlot, effectiveHealing: replaySlot * 105, effectiveShielding: replaySlot * 57, shieldDamagePrevented: replaySlot * 88, mitigationPrevented: replaySlot * 24, damageAssists: 5 + replaySlot, controlAssists: replaySlot, revives: replaySlot, reviveTicks: replaySlot * 74, objectiveCompletions: 3 - Math.min(2, replaySlot), objectivePresenceTicks: 974 - replaySlot * 91, objectiveMovement: 711 - replaySlot * 80, eliteParticipations: 4, apexParticipations: 1 }));
     state.telemetrySent = true;
-    showResult({ stage: "won", time: 285, bossElapsed: 0, kills: 1_284, level: 13, gold: 660, map: "warehouse", difficulty: "story", players, participationState: { slots }, synergyState: { stats: players.map(({ replaySlot }) => ({ slot: replaySlot, triggers: replaySlot, assists: replaySlot, ultimateChains: 0, damage: replaySlot * 320, shielding: 0, mitigated: 0, formationTicks: 0 })) } });
+        showResult({ stage: "won", time: 285, bossElapsed: 0, kills: 1_284, level: 13, gold: 660, map: "warehouse", difficulty: "story", players,
+          discoveryState: { enabled: true, encountered: ["affix:hasted", "boon:squad-shield", "event:treasure-runner"] },
+          participationState: { slots }, synergyState: { stats: players.map(({ replaySlot }) => ({ slot: replaySlot, triggers: replaySlot, assists: replaySlot, ultimateChains: 0, damage: replaySlot * 320, shielding: 0, mitigated: 0, formationTicks: 0 })) } });
     return true;
   },
   renderActiveBuffs: (fields = {}) => updateActiveBuffs(fields),

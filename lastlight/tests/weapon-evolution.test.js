@@ -171,7 +171,7 @@ test("stamped signature effects survive owner removal and later loadout changes"
 });
 
 test("the balance fingerprint transitively pins the exact evolution contract", () => {
-  assert.equal(BALANCE_HASH, "fnv1a32:f9f93ac0");
+  assert.equal(BALANCE_HASH, "fnv1a32:bc731c2c");
   assert.equal(BALANCE_CONFIG.evolutions.schema, "lastlight.weapon-evolution.v1");
   assert.deepEqual(Object.keys(BALANCE_CONFIG.evolutions.signatures), [...BALANCE_IDS.specialists]);
   assert.deepEqual(Object.keys(BALANCE_CONFIG.evolutions.universal), [...BALANCE_IDS.universalWeapons]);

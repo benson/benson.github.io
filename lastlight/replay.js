@@ -1,5 +1,6 @@
-export const REPLAY_SCHEMA = "lastlight.replay.v12";
-export const REPLAY_SCHEMA_VERSION = 12;
+export const REPLAY_SCHEMA = "lastlight.replay.v13";
+export const REPLAY_SCHEMA_VERSION = 13;
+export const LEGACY_REPLAY_SCHEMA_V12 = "lastlight.replay.v12";
 export const LEGACY_REPLAY_SCHEMA_V11 = "lastlight.replay.v11";
 export const LEGACY_REPLAY_SCHEMA_V10 = "lastlight.replay.v10";
 export const LEGACY_REPLAY_SCHEMA_V9 = "lastlight.replay.v9";
@@ -17,7 +18,8 @@ export const MAX_REPLAY_TICK = 216_000;
 export const MAX_REPLAY_COMMANDS = 100_000;
 export const MAX_COMMANDS_PER_TICK = 32;
 export const MAX_REPLAY_CHECKPOINTS = 721;
-export const REPLAY_DRAFT_SCHEMA = "lastlight.replay-draft.v9";
+export const REPLAY_DRAFT_SCHEMA = "lastlight.replay-draft.v10";
+export const LEGACY_REPLAY_DRAFT_SCHEMA_V9 = "lastlight.replay-draft.v9";
 export const LEGACY_REPLAY_DRAFT_SCHEMA_V8 = "lastlight.replay-draft.v8";
 export const LEGACY_REPLAY_DRAFT_SCHEMA_V7 = "lastlight.replay-draft.v7";
 export const LEGACY_REPLAY_DRAFT_SCHEMA_V6 = "lastlight.replay-draft.v6";
@@ -46,8 +48,8 @@ const LEGACY_FEATURES = Object.freeze({
   squadSynergies: false, sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, registryVersion: NO_SYNERGY_REGISTRY_VERSION,
 });
 const CURRENT_FEATURES = Object.freeze({
-  configVersion: "release-2026.07.13.15", gameplayVersion: "specialist-mastery-v1", objectiveEvents: true,
-  squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, specialistMastery: true, registryVersion: "lastlight.squad-synergy.v1",
+  configVersion: "release-2026.07.13.16", gameplayVersion: "rare-discoveries-v1", objectiveEvents: true,
+  squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, specialistMastery: true, rareDiscoveries: true, registryVersion: "lastlight.squad-synergy.v1",
 });
 
 const ownKeys = (value) => value && typeof value === "object" && !Array.isArray(value) ? Object.keys(value) : [];
@@ -191,6 +193,7 @@ export function canonicalSimulationState(simulation) {
   const legacyDirectorShape = simulation.squadEnemyDirector === false;
   const legacyMapShape = simulation.mapMechanics === false;
   const legacyMasteryShape = simulation.specialistMastery === false;
+  const legacyDiscoveryShape = simulation.rareDiscoveries === false;
   snapshot.players = (simulation.players || [])
     .map((player) => replayEntity(player, playerMap))
     .map((player) => legacyDownedShape ? legacyDownedPlayerShape(player) : player)
@@ -236,6 +239,12 @@ export function canonicalSimulationState(simulation) {
   if (legacyMasteryShape) {
     if (snapshot.features) delete snapshot.features.specialistMastery;
     if (snapshot.determinism?.features) delete snapshot.determinism.features.specialistMastery;
+  }
+  if (legacyDiscoveryShape) {
+    delete snapshot.discoveryState;
+    if (snapshot.features) delete snapshot.features.rareDiscoveries;
+    if (snapshot.determinism?.features) delete snapshot.determinism.features.rareDiscoveries;
+    if (snapshot.determinism) delete snapshot.determinism.discoveryState;
   }
   return canonicalize(snapshot);
 }
@@ -330,7 +339,18 @@ export function replayGameplayFeatures(value) {
       mapMechanics: value.features.mapMechanics,
       campaignMutations: value.features.campaignMutations,
       specialistMastery: value.features.specialistMastery,
+      rareDiscoveries: value.features.rareDiscoveries,
       registryVersion: value.features.registryVersion,
+    });
+  }
+  if (value?.schema === LEGACY_REPLAY_SCHEMA_V12) {
+    return Object.freeze({
+      gameplayVersion: value.features.gameplayVersion, objectiveEvents: value.features.objectiveEvents,
+      squadSynergies: value.features.squadSynergies, sharedParticipationCredit: value.features.sharedParticipationCredit,
+      downedActivity: value.features.downedActivity, joinInProgressNormalization: value.features.joinInProgressNormalization,
+      squadEnemyDirector: value.features.squadEnemyDirector, mapMechanics: value.features.mapMechanics,
+      campaignMutations: value.features.campaignMutations, specialistMastery: value.features.specialistMastery,
+      rareDiscoveries: false, registryVersion: value.features.registryVersion,
     });
   }
   if (value?.schema === LEGACY_REPLAY_SCHEMA_V11) {
@@ -339,7 +359,7 @@ export function replayGameplayFeatures(value) {
       squadSynergies: value.features.squadSynergies, sharedParticipationCredit: value.features.sharedParticipationCredit,
       downedActivity: value.features.downedActivity, joinInProgressNormalization: value.features.joinInProgressNormalization,
       squadEnemyDirector: value.features.squadEnemyDirector, mapMechanics: value.features.mapMechanics,
-      campaignMutations: value.features.campaignMutations, specialistMastery: false, registryVersion: value.features.registryVersion,
+      campaignMutations: value.features.campaignMutations, specialistMastery: false, rareDiscoveries: false, registryVersion: value.features.registryVersion,
     });
   }
   if (value?.schema === LEGACY_REPLAY_SCHEMA_V10) {
@@ -347,7 +367,7 @@ export function replayGameplayFeatures(value) {
       gameplayVersion: value.features.gameplayVersion, objectiveEvents: value.features.objectiveEvents,
       squadSynergies: value.features.squadSynergies, sharedParticipationCredit: value.features.sharedParticipationCredit,
       downedActivity: value.features.downedActivity, joinInProgressNormalization: value.features.joinInProgressNormalization,
-      squadEnemyDirector: value.features.squadEnemyDirector, mapMechanics: value.features.mapMechanics, campaignMutations: false, specialistMastery: false, registryVersion: value.features.registryVersion,
+      squadEnemyDirector: value.features.squadEnemyDirector, mapMechanics: value.features.mapMechanics, campaignMutations: false, specialistMastery: false, rareDiscoveries: false, registryVersion: value.features.registryVersion,
     });
   }
   if (value?.schema === LEGACY_REPLAY_SCHEMA_V9) {
@@ -355,7 +375,7 @@ export function replayGameplayFeatures(value) {
       gameplayVersion: value.features.gameplayVersion, objectiveEvents: value.features.objectiveEvents,
       squadSynergies: value.features.squadSynergies, sharedParticipationCredit: value.features.sharedParticipationCredit,
       downedActivity: value.features.downedActivity, joinInProgressNormalization: value.features.joinInProgressNormalization,
-      squadEnemyDirector: value.features.squadEnemyDirector, mapMechanics: false, campaignMutations: false, specialistMastery: false, registryVersion: value.features.registryVersion,
+      squadEnemyDirector: value.features.squadEnemyDirector, mapMechanics: false, campaignMutations: false, specialistMastery: false, rareDiscoveries: false, registryVersion: value.features.registryVersion,
     });
   }
   if (value?.schema === LEGACY_REPLAY_SCHEMA_V8) {
@@ -363,7 +383,7 @@ export function replayGameplayFeatures(value) {
       gameplayVersion: value.features.gameplayVersion, objectiveEvents: value.features.objectiveEvents,
       squadSynergies: value.features.squadSynergies, sharedParticipationCredit: value.features.sharedParticipationCredit,
       downedActivity: value.features.downedActivity, joinInProgressNormalization: value.features.joinInProgressNormalization,
-      squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, specialistMastery: false, registryVersion: value.features.registryVersion,
+      squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, specialistMastery: false, rareDiscoveries: false, registryVersion: value.features.registryVersion,
     });
   }
   if (value?.schema === LEGACY_REPLAY_SCHEMA_V7) {
@@ -374,7 +394,7 @@ export function replayGameplayFeatures(value) {
       sharedParticipationCredit: value.features.sharedParticipationCredit,
       downedActivity: value.features.downedActivity,
       joinInProgressNormalization: false,
-      squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, specialistMastery: false,
+      squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, specialistMastery: false, rareDiscoveries: false,
       registryVersion: value.features.registryVersion,
     });
   }
@@ -386,7 +406,7 @@ export function replayGameplayFeatures(value) {
       sharedParticipationCredit: value.features.sharedParticipationCredit,
       downedActivity: false,
       joinInProgressNormalization: false,
-      squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, specialistMastery: false,
+      squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, specialistMastery: false, rareDiscoveries: false,
       registryVersion: value.features.registryVersion,
     });
   }
@@ -398,7 +418,7 @@ export function replayGameplayFeatures(value) {
       sharedParticipationCredit: false,
       downedActivity: false,
       joinInProgressNormalization: false,
-      squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, specialistMastery: false,
+      squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, specialistMastery: false, rareDiscoveries: false,
       registryVersion: value.features.registryVersion,
     });
   }
@@ -413,12 +433,14 @@ export function replayGameplayFeatures(value) {
     mapMechanics: false,
     campaignMutations: false,
     specialistMastery: false,
+    rareDiscoveries: false,
     registryVersion: NO_SYNERGY_REGISTRY_VERSION,
   });
 }
 
 export function validateReplay(value, expected = {}) {
   const currentSchema = value?.schema === REPLAY_SCHEMA;
+  const legacyV12Schema = value?.schema === LEGACY_REPLAY_SCHEMA_V12;
   const legacyV11Schema = value?.schema === LEGACY_REPLAY_SCHEMA_V11;
   const legacyV10Schema = value?.schema === LEGACY_REPLAY_SCHEMA_V10;
   const legacyV9Schema = value?.schema === LEGACY_REPLAY_SCHEMA_V9;
@@ -430,8 +452,8 @@ export function validateReplay(value, expected = {}) {
   const legacyV3Schema = value?.schema === LEGACY_REPLAY_SCHEMA_V3;
   const legacyV2Schema = value?.schema === LEGACY_REPLAY_SCHEMA_V2;
   const legacySchema = value?.schema === LEGACY_REPLAY_SCHEMA;
-  const hasFeatures = currentSchema || legacyV11Schema || legacyV10Schema || legacyV9Schema || legacyV8Schema || legacyV7Schema || legacyV6Schema || legacyV5Schema || legacyV4Schema || legacyV3Schema || legacyV2Schema;
-  if (!currentSchema && !legacyV11Schema && !legacyV10Schema && !legacyV9Schema && !legacyV8Schema && !legacyV7Schema && !legacyV6Schema && !legacyV5Schema && !legacyV4Schema && !legacyV3Schema && !legacyV2Schema && !legacySchema) throw new TypeError("Unsupported replay schema");
+  const hasFeatures = currentSchema || legacyV12Schema || legacyV11Schema || legacyV10Schema || legacyV9Schema || legacyV8Schema || legacyV7Schema || legacyV6Schema || legacyV5Schema || legacyV4Schema || legacyV3Schema || legacyV2Schema;
+  if (!currentSchema && !legacyV12Schema && !legacyV11Schema && !legacyV10Schema && !legacyV9Schema && !legacyV8Schema && !legacyV7Schema && !legacyV6Schema && !legacyV5Schema && !legacyV4Schema && !legacyV3Schema && !legacyV2Schema && !legacySchema) throw new TypeError("Unsupported replay schema");
   assertExactKeys(value, ["schema", "build", "balance", "engine", "seed", "run", ...(hasFeatures ? ["features"] : []), "roster", "commands", "checkpoints", "finalTick", "finalHash"], "replay");
   safeString(value.build, SAFE_ID, "build");
   assertExactKeys(value.balance, ["version", "hash"], "balance");
@@ -443,21 +465,22 @@ export function validateReplay(value, expected = {}) {
   safeString(value.seed, SEED, "seed");
   const features = hasFeatures ? value.features : LEGACY_FEATURES;
   if (hasFeatures) {
-    assertExactKeys(features, ["configVersion", "gameplayVersion", "objectiveEvents", ...((currentSchema || legacyV11Schema || legacyV10Schema || legacyV9Schema || legacyV8Schema || legacyV7Schema || legacyV6Schema || legacyV5Schema) ? ["squadSynergies", "registryVersion"] : []), ...((currentSchema || legacyV11Schema || legacyV10Schema || legacyV9Schema || legacyV8Schema || legacyV7Schema || legacyV6Schema) ? ["sharedParticipationCredit"] : []), ...((currentSchema || legacyV11Schema || legacyV10Schema || legacyV9Schema || legacyV8Schema || legacyV7Schema) ? ["downedActivity"] : []), ...((currentSchema || legacyV11Schema || legacyV10Schema || legacyV9Schema || legacyV8Schema) ? ["joinInProgressNormalization"] : []), ...((currentSchema || legacyV11Schema || legacyV10Schema || legacyV9Schema) ? ["squadEnemyDirector"] : []), ...((currentSchema || legacyV11Schema || legacyV10Schema) ? ["mapMechanics"] : []), ...((currentSchema || legacyV11Schema) ? ["campaignMutations"] : []), ...(currentSchema ? ["specialistMastery"] : [])], "features");
+    assertExactKeys(features, ["configVersion", "gameplayVersion", "objectiveEvents", ...((currentSchema || legacyV12Schema || legacyV11Schema || legacyV10Schema || legacyV9Schema || legacyV8Schema || legacyV7Schema || legacyV6Schema || legacyV5Schema) ? ["squadSynergies", "registryVersion"] : []), ...((currentSchema || legacyV12Schema || legacyV11Schema || legacyV10Schema || legacyV9Schema || legacyV8Schema || legacyV7Schema || legacyV6Schema) ? ["sharedParticipationCredit"] : []), ...((currentSchema || legacyV12Schema || legacyV11Schema || legacyV10Schema || legacyV9Schema || legacyV8Schema || legacyV7Schema) ? ["downedActivity"] : []), ...((currentSchema || legacyV12Schema || legacyV11Schema || legacyV10Schema || legacyV9Schema || legacyV8Schema) ? ["joinInProgressNormalization"] : []), ...((currentSchema || legacyV12Schema || legacyV11Schema || legacyV10Schema || legacyV9Schema) ? ["squadEnemyDirector"] : []), ...((currentSchema || legacyV12Schema || legacyV11Schema || legacyV10Schema) ? ["mapMechanics"] : []), ...((currentSchema || legacyV12Schema || legacyV11Schema) ? ["campaignMutations"] : []), ...((currentSchema || legacyV12Schema) ? ["specialistMastery"] : []), ...(currentSchema ? ["rareDiscoveries"] : [])], "features");
     safeString(features.configVersion, FEATURE_ID, "features.configVersion");
     safeString(features.gameplayVersion, FEATURE_ID, "features.gameplayVersion");
     if (typeof features.objectiveEvents !== "boolean") throw new TypeError("features.objectiveEvents must be boolean");
-    if (currentSchema || legacyV11Schema || legacyV10Schema || legacyV9Schema || legacyV8Schema || legacyV7Schema || legacyV6Schema || legacyV5Schema) {
+    if (currentSchema || legacyV12Schema || legacyV11Schema || legacyV10Schema || legacyV9Schema || legacyV8Schema || legacyV7Schema || legacyV6Schema || legacyV5Schema) {
       if (typeof features.squadSynergies !== "boolean") throw new TypeError("features.squadSynergies must be boolean");
       safeString(features.registryVersion, FEATURE_ID, "features.registryVersion");
     }
-    if ((currentSchema || legacyV11Schema || legacyV10Schema || legacyV9Schema || legacyV8Schema || legacyV7Schema || legacyV6Schema) && typeof features.sharedParticipationCredit !== "boolean") throw new TypeError("features.sharedParticipationCredit must be boolean");
-    if ((currentSchema || legacyV11Schema || legacyV10Schema || legacyV9Schema || legacyV8Schema || legacyV7Schema) && typeof features.downedActivity !== "boolean") throw new TypeError("features.downedActivity must be boolean");
-    if ((currentSchema || legacyV11Schema || legacyV10Schema || legacyV9Schema || legacyV8Schema) && typeof features.joinInProgressNormalization !== "boolean") throw new TypeError("features.joinInProgressNormalization must be boolean");
-    if ((currentSchema || legacyV11Schema || legacyV10Schema || legacyV9Schema) && typeof features.squadEnemyDirector !== "boolean") throw new TypeError("features.squadEnemyDirector must be boolean");
-    if ((currentSchema || legacyV11Schema || legacyV10Schema) && typeof features.mapMechanics !== "boolean") throw new TypeError("features.mapMechanics must be boolean");
-    if ((currentSchema || legacyV11Schema) && typeof features.campaignMutations !== "boolean") throw new TypeError("features.campaignMutations must be boolean");
-    if (currentSchema && typeof features.specialistMastery !== "boolean") throw new TypeError("features.specialistMastery must be boolean");
+    if ((currentSchema || legacyV12Schema || legacyV11Schema || legacyV10Schema || legacyV9Schema || legacyV8Schema || legacyV7Schema || legacyV6Schema) && typeof features.sharedParticipationCredit !== "boolean") throw new TypeError("features.sharedParticipationCredit must be boolean");
+    if ((currentSchema || legacyV12Schema || legacyV11Schema || legacyV10Schema || legacyV9Schema || legacyV8Schema || legacyV7Schema) && typeof features.downedActivity !== "boolean") throw new TypeError("features.downedActivity must be boolean");
+    if ((currentSchema || legacyV12Schema || legacyV11Schema || legacyV10Schema || legacyV9Schema || legacyV8Schema) && typeof features.joinInProgressNormalization !== "boolean") throw new TypeError("features.joinInProgressNormalization must be boolean");
+    if ((currentSchema || legacyV12Schema || legacyV11Schema || legacyV10Schema || legacyV9Schema) && typeof features.squadEnemyDirector !== "boolean") throw new TypeError("features.squadEnemyDirector must be boolean");
+    if ((currentSchema || legacyV12Schema || legacyV11Schema || legacyV10Schema) && typeof features.mapMechanics !== "boolean") throw new TypeError("features.mapMechanics must be boolean");
+    if ((currentSchema || legacyV12Schema || legacyV11Schema) && typeof features.campaignMutations !== "boolean") throw new TypeError("features.campaignMutations must be boolean");
+    if ((currentSchema || legacyV12Schema) && typeof features.specialistMastery !== "boolean") throw new TypeError("features.specialistMastery must be boolean");
+    if (currentSchema && typeof features.rareDiscoveries !== "boolean") throw new TypeError("features.rareDiscoveries must be boolean");
   }
   assertExactKeys(value.run, ["map", "difficulty", "duration"], "run");
   if (!MAPS.has(value.run.map)) throw new TypeError("run.map is invalid");
@@ -467,12 +490,12 @@ export function validateReplay(value, expected = {}) {
   if (!Array.isArray(value.roster) || value.roster.length < 1 || value.roster.length > 4) throw new TypeError("roster must contain one to four specialists");
   const slots = new Set();
   for (const [index, member] of value.roster.entries()) {
-    assertExactKeys(member, currentSchema ? ["slot", "specialist", "masteryStart"] : ["slot", "specialist"], `roster.${index}`);
+    assertExactKeys(member, currentSchema || legacyV12Schema ? ["slot", "specialist", "masteryStart"] : ["slot", "specialist"], `roster.${index}`);
     integer(member.slot, 0, 3, `roster.${index}.slot`);
     if (slots.has(member.slot)) throw new TypeError("roster slots must be unique");
     slots.add(member.slot);
     if (!SPECIALISTS.has(member.specialist)) throw new TypeError(`roster.${index}.specialist is invalid`);
-    if (currentSchema && !MASTERY_START_IDS.has(member.masteryStart)) throw new TypeError(`roster.${index}.masteryStart is invalid`);
+    if ((currentSchema || legacyV12Schema) && !MASTERY_START_IDS.has(member.masteryStart)) throw new TypeError(`roster.${index}.masteryStart is invalid`);
   }
 
   if (!Array.isArray(value.commands) || value.commands.length > MAX_REPLAY_COMMANDS) throw new TypeError("commands exceed replay bounds");
@@ -514,6 +537,7 @@ export function validateReplay(value, expected = {}) {
   if (expected.mapMechanics !== undefined && normalizedFeatures.mapMechanics !== expected.mapMechanics) throw new TypeError("Replay map-mechanics flag mismatch");
   if (expected.campaignMutations !== undefined && normalizedFeatures.campaignMutations !== expected.campaignMutations) throw new TypeError("Replay campaign-mutations flag mismatch");
   if (expected.specialistMastery !== undefined && normalizedFeatures.specialistMastery !== expected.specialistMastery) throw new TypeError("Replay specialist-mastery flag mismatch");
+  if (expected.rareDiscoveries !== undefined && normalizedFeatures.rareDiscoveries !== expected.rareDiscoveries) throw new TypeError("Replay rare-discoveries flag mismatch");
   if (expected.registryVersion && normalizedFeatures.registryVersion !== expected.registryVersion) throw new TypeError("Replay synergy registry version mismatch");
 
   const serialized = JSON.stringify(value);
@@ -552,6 +576,7 @@ export class ReplayRecorder {
     mapMechanics = CURRENT_FEATURES.mapMechanics,
     campaignMutations = CURRENT_FEATURES.campaignMutations,
     specialistMastery = CURRENT_FEATURES.specialistMastery,
+    rareDiscoveries = CURRENT_FEATURES.rareDiscoveries,
     registryVersion = CURRENT_FEATURES.registryVersion, rng, seed, run,
   }) {
     safeString(featureConfigVersion, FEATURE_ID, "featureConfigVersion");
@@ -565,10 +590,11 @@ export class ReplayRecorder {
     if (typeof mapMechanics !== "boolean") throw new TypeError("mapMechanics must be boolean");
     if (typeof campaignMutations !== "boolean") throw new TypeError("campaignMutations must be boolean");
     if (typeof specialistMastery !== "boolean") throw new TypeError("specialistMastery must be boolean");
+    if (typeof rareDiscoveries !== "boolean") throw new TypeError("rareDiscoveries must be boolean");
     safeString(registryVersion, FEATURE_ID, "registryVersion");
     this.header = {
       build, balanceVersion, balanceHash, featureConfigVersion, gameplayVersion, objectiveEvents,
-      squadSynergies, sharedParticipationCredit, downedActivity, joinInProgressNormalization, squadEnemyDirector, mapMechanics, campaignMutations, specialistMastery, registryVersion, rng, seed, run: clone(run),
+      squadSynergies, sharedParticipationCredit, downedActivity, joinInProgressNormalization, squadEnemyDirector, mapMechanics, campaignMutations, specialistMastery, rareDiscoveries, registryVersion, rng, seed, run: clone(run),
     };
     this.actualToSlot = new Map();
     this.roster = new Map();
@@ -669,7 +695,8 @@ export class ReplayRecorder {
 
   exportDraft(currentTick) {
     integer(currentTick, 0, MAX_REPLAY_TICK, "currentTick");
-    const schema = this.outputSchema === LEGACY_REPLAY_SCHEMA_V11 ? LEGACY_REPLAY_DRAFT_SCHEMA_V8
+    const schema = this.outputSchema === LEGACY_REPLAY_SCHEMA_V12 ? LEGACY_REPLAY_DRAFT_SCHEMA_V9
+      : this.outputSchema === LEGACY_REPLAY_SCHEMA_V11 ? LEGACY_REPLAY_DRAFT_SCHEMA_V8
       : this.outputSchema === LEGACY_REPLAY_SCHEMA_V10 ? LEGACY_REPLAY_DRAFT_SCHEMA_V7
       : this.outputSchema === LEGACY_REPLAY_SCHEMA_V9 ? LEGACY_REPLAY_DRAFT_SCHEMA_V6
       : this.outputSchema === LEGACY_REPLAY_SCHEMA_V8 ? LEGACY_REPLAY_DRAFT_SCHEMA_V5
@@ -679,13 +706,14 @@ export class ReplayRecorder {
       : this.outputSchema === LEGACY_REPLAY_SCHEMA_V4 ? LEGACY_REPLAY_DRAFT_SCHEMA
       : REPLAY_DRAFT_SCHEMA;
     const header = clone(this.header);
-    if (schema !== REPLAY_DRAFT_SCHEMA) delete header.specialistMastery;
-    if (![REPLAY_DRAFT_SCHEMA, LEGACY_REPLAY_DRAFT_SCHEMA_V8].includes(schema)) delete header.campaignMutations;
-    if (![REPLAY_DRAFT_SCHEMA, LEGACY_REPLAY_DRAFT_SCHEMA_V8, LEGACY_REPLAY_DRAFT_SCHEMA_V7].includes(schema)) delete header.mapMechanics;
-    if (![REPLAY_DRAFT_SCHEMA, LEGACY_REPLAY_DRAFT_SCHEMA_V8, LEGACY_REPLAY_DRAFT_SCHEMA_V7, LEGACY_REPLAY_DRAFT_SCHEMA_V6].includes(schema)) delete header.squadEnemyDirector;
-    if (![REPLAY_DRAFT_SCHEMA, LEGACY_REPLAY_DRAFT_SCHEMA_V8, LEGACY_REPLAY_DRAFT_SCHEMA_V7, LEGACY_REPLAY_DRAFT_SCHEMA_V6, LEGACY_REPLAY_DRAFT_SCHEMA_V5].includes(schema)) delete header.joinInProgressNormalization;
-    if (![REPLAY_DRAFT_SCHEMA, LEGACY_REPLAY_DRAFT_SCHEMA_V8, LEGACY_REPLAY_DRAFT_SCHEMA_V7, LEGACY_REPLAY_DRAFT_SCHEMA_V6, LEGACY_REPLAY_DRAFT_SCHEMA_V5, LEGACY_REPLAY_DRAFT_SCHEMA_V4].includes(schema)) delete header.downedActivity;
-    if (![REPLAY_DRAFT_SCHEMA, LEGACY_REPLAY_DRAFT_SCHEMA_V8, LEGACY_REPLAY_DRAFT_SCHEMA_V7, LEGACY_REPLAY_DRAFT_SCHEMA_V6, LEGACY_REPLAY_DRAFT_SCHEMA_V5, LEGACY_REPLAY_DRAFT_SCHEMA_V4, LEGACY_REPLAY_DRAFT_SCHEMA_V3].includes(schema)) delete header.sharedParticipationCredit;
+    if (schema !== REPLAY_DRAFT_SCHEMA) delete header.rareDiscoveries;
+    if (![REPLAY_DRAFT_SCHEMA, LEGACY_REPLAY_DRAFT_SCHEMA_V9].includes(schema)) delete header.specialistMastery;
+    if (![REPLAY_DRAFT_SCHEMA, LEGACY_REPLAY_DRAFT_SCHEMA_V9, LEGACY_REPLAY_DRAFT_SCHEMA_V8].includes(schema)) delete header.campaignMutations;
+    if (![REPLAY_DRAFT_SCHEMA, LEGACY_REPLAY_DRAFT_SCHEMA_V9, LEGACY_REPLAY_DRAFT_SCHEMA_V8, LEGACY_REPLAY_DRAFT_SCHEMA_V7].includes(schema)) delete header.mapMechanics;
+    if (![REPLAY_DRAFT_SCHEMA, LEGACY_REPLAY_DRAFT_SCHEMA_V9, LEGACY_REPLAY_DRAFT_SCHEMA_V8, LEGACY_REPLAY_DRAFT_SCHEMA_V7, LEGACY_REPLAY_DRAFT_SCHEMA_V6].includes(schema)) delete header.squadEnemyDirector;
+    if (![REPLAY_DRAFT_SCHEMA, LEGACY_REPLAY_DRAFT_SCHEMA_V9, LEGACY_REPLAY_DRAFT_SCHEMA_V8, LEGACY_REPLAY_DRAFT_SCHEMA_V7, LEGACY_REPLAY_DRAFT_SCHEMA_V6, LEGACY_REPLAY_DRAFT_SCHEMA_V5].includes(schema)) delete header.joinInProgressNormalization;
+    if (![REPLAY_DRAFT_SCHEMA, LEGACY_REPLAY_DRAFT_SCHEMA_V9, LEGACY_REPLAY_DRAFT_SCHEMA_V8, LEGACY_REPLAY_DRAFT_SCHEMA_V7, LEGACY_REPLAY_DRAFT_SCHEMA_V6, LEGACY_REPLAY_DRAFT_SCHEMA_V5, LEGACY_REPLAY_DRAFT_SCHEMA_V4].includes(schema)) delete header.downedActivity;
+    if (![REPLAY_DRAFT_SCHEMA, LEGACY_REPLAY_DRAFT_SCHEMA_V9, LEGACY_REPLAY_DRAFT_SCHEMA_V8, LEGACY_REPLAY_DRAFT_SCHEMA_V7, LEGACY_REPLAY_DRAFT_SCHEMA_V6, LEGACY_REPLAY_DRAFT_SCHEMA_V5, LEGACY_REPLAY_DRAFT_SCHEMA_V4, LEGACY_REPLAY_DRAFT_SCHEMA_V3].includes(schema)) delete header.sharedParticipationCredit;
     if (schema === LEGACY_REPLAY_DRAFT_SCHEMA) {
       delete header.squadSynergies;
       delete header.registryVersion;
@@ -694,8 +722,8 @@ export class ReplayRecorder {
       schema,
       currentTick,
       header,
-      roster: [...this.roster.entries()].sort(([a], [b]) => a - b).map(([slot, specialist]) => ({ slot, specialist, ...(schema === REPLAY_DRAFT_SCHEMA ? { masteryStart: this.masteryStarts.get(slot) || "baseline" } : {}) })),
-      knownSlots: [...this.knownSlots.entries()].sort(([a], [b]) => a - b).map(([slot, specialist]) => ({ slot, specialist, ...(schema === REPLAY_DRAFT_SCHEMA ? { masteryStart: this.masteryStarts.get(slot) || "baseline" } : {}) })),
+      roster: [...this.roster.entries()].sort(([a], [b]) => a - b).map(([slot, specialist]) => ({ slot, specialist, ...([REPLAY_DRAFT_SCHEMA, LEGACY_REPLAY_DRAFT_SCHEMA_V9].includes(schema) ? { masteryStart: this.masteryStarts.get(slot) || "baseline" } : {}) })),
+      knownSlots: [...this.knownSlots.entries()].sort(([a], [b]) => a - b).map(([slot, specialist]) => ({ slot, specialist, ...([REPLAY_DRAFT_SCHEMA, LEGACY_REPLAY_DRAFT_SCHEMA_V9].includes(schema) ? { masteryStart: this.masteryStarts.get(slot) || "baseline" } : {}) })),
       commands: clone(this.commands),
       checkpoints: clone(this.checkpoints),
       lastInputs: [...this.lastInputs.entries()].sort(([a], [b]) => a - b),
@@ -706,6 +734,7 @@ export class ReplayRecorder {
   static fromDraft(draft, players = []) {
     assertExactKeys(draft, ["schema", "currentTick", "header", "roster", "knownSlots", "commands", "checkpoints", "lastInputs", "ordinal"], "replay draft");
     const currentDraft = draft.schema === REPLAY_DRAFT_SCHEMA;
+    const legacyV9Draft = draft.schema === LEGACY_REPLAY_DRAFT_SCHEMA_V9;
     const legacyV8Draft = draft.schema === LEGACY_REPLAY_DRAFT_SCHEMA_V8;
     const legacyV7Draft = draft.schema === LEGACY_REPLAY_DRAFT_SCHEMA_V7;
     const legacyV6Draft = draft.schema === LEGACY_REPLAY_DRAFT_SCHEMA_V6;
@@ -714,18 +743,20 @@ export class ReplayRecorder {
     const legacyV3Draft = draft.schema === LEGACY_REPLAY_DRAFT_SCHEMA_V3;
     const legacyV2Draft = draft.schema === LEGACY_REPLAY_DRAFT_SCHEMA_V2;
     const legacyDraft = draft.schema === LEGACY_REPLAY_DRAFT_SCHEMA;
-    if (!currentDraft && !legacyV8Draft && !legacyV7Draft && !legacyV6Draft && !legacyV5Draft && !legacyV4Draft && !legacyV3Draft && !legacyV2Draft && !legacyDraft) throw new TypeError("Unsupported replay draft schema");
+    if (!currentDraft && !legacyV9Draft && !legacyV8Draft && !legacyV7Draft && !legacyV6Draft && !legacyV5Draft && !legacyV4Draft && !legacyV3Draft && !legacyV2Draft && !legacyDraft) throw new TypeError("Unsupported replay draft schema");
     integer(draft.currentTick, 0, MAX_REPLAY_TICK, "replay draft currentTick");
     assertExactKeys(draft.header, [
       "build", "balanceVersion", "balanceHash", "featureConfigVersion", "gameplayVersion", "objectiveEvents",
-      ...((currentDraft || legacyV8Draft || legacyV7Draft || legacyV6Draft || legacyV5Draft || legacyV4Draft || legacyV3Draft || legacyV2Draft) ? ["squadSynergies", "registryVersion"] : []),
-      ...((currentDraft || legacyV8Draft || legacyV7Draft || legacyV6Draft || legacyV5Draft || legacyV4Draft || legacyV3Draft) ? ["sharedParticipationCredit"] : []),
-      ...((currentDraft || legacyV8Draft || legacyV7Draft || legacyV6Draft || legacyV5Draft || legacyV4Draft) ? ["downedActivity"] : []),
-      ...((currentDraft || legacyV8Draft || legacyV7Draft || legacyV6Draft || legacyV5Draft) ? ["joinInProgressNormalization"] : []),
-      ...((currentDraft || legacyV8Draft || legacyV7Draft || legacyV6Draft) ? ["squadEnemyDirector"] : []), ...((currentDraft || legacyV8Draft || legacyV7Draft) ? ["mapMechanics"] : []), ...((currentDraft || legacyV8Draft) ? ["campaignMutations"] : []), ...(currentDraft ? ["specialistMastery"] : []), "rng", "seed", "run",
+      ...((currentDraft || legacyV9Draft || legacyV8Draft || legacyV7Draft || legacyV6Draft || legacyV5Draft || legacyV4Draft || legacyV3Draft || legacyV2Draft) ? ["squadSynergies", "registryVersion"] : []),
+      ...((currentDraft || legacyV9Draft || legacyV8Draft || legacyV7Draft || legacyV6Draft || legacyV5Draft || legacyV4Draft || legacyV3Draft) ? ["sharedParticipationCredit"] : []),
+      ...((currentDraft || legacyV9Draft || legacyV8Draft || legacyV7Draft || legacyV6Draft || legacyV5Draft || legacyV4Draft) ? ["downedActivity"] : []),
+      ...((currentDraft || legacyV9Draft || legacyV8Draft || legacyV7Draft || legacyV6Draft || legacyV5Draft) ? ["joinInProgressNormalization"] : []),
+      ...((currentDraft || legacyV9Draft || legacyV8Draft || legacyV7Draft || legacyV6Draft) ? ["squadEnemyDirector"] : []), ...((currentDraft || legacyV9Draft || legacyV8Draft || legacyV7Draft) ? ["mapMechanics"] : []), ...((currentDraft || legacyV9Draft || legacyV8Draft) ? ["campaignMutations"] : []), ...((currentDraft || legacyV9Draft) ? ["specialistMastery"] : []), ...(currentDraft ? ["rareDiscoveries"] : []), "rng", "seed", "run",
     ], "replay draft header");
     const draftFeatures = currentDraft
-      ? { squadSynergies: draft.header.squadSynergies, sharedParticipationCredit: draft.header.sharedParticipationCredit, downedActivity: draft.header.downedActivity, joinInProgressNormalization: draft.header.joinInProgressNormalization, squadEnemyDirector: draft.header.squadEnemyDirector, mapMechanics: draft.header.mapMechanics, campaignMutations: draft.header.campaignMutations, specialistMastery: draft.header.specialistMastery, registryVersion: draft.header.registryVersion }
+      ? { squadSynergies: draft.header.squadSynergies, sharedParticipationCredit: draft.header.sharedParticipationCredit, downedActivity: draft.header.downedActivity, joinInProgressNormalization: draft.header.joinInProgressNormalization, squadEnemyDirector: draft.header.squadEnemyDirector, mapMechanics: draft.header.mapMechanics, campaignMutations: draft.header.campaignMutations, specialistMastery: draft.header.specialistMastery, rareDiscoveries: draft.header.rareDiscoveries, registryVersion: draft.header.registryVersion }
+      : legacyV9Draft
+        ? { squadSynergies: draft.header.squadSynergies, sharedParticipationCredit: draft.header.sharedParticipationCredit, downedActivity: draft.header.downedActivity, joinInProgressNormalization: draft.header.joinInProgressNormalization, squadEnemyDirector: draft.header.squadEnemyDirector, mapMechanics: draft.header.mapMechanics, campaignMutations: draft.header.campaignMutations, specialistMastery: draft.header.specialistMastery, rareDiscoveries: false, registryVersion: draft.header.registryVersion }
       : legacyV8Draft
         ? { squadSynergies: draft.header.squadSynergies, sharedParticipationCredit: draft.header.sharedParticipationCredit, downedActivity: draft.header.downedActivity, joinInProgressNormalization: draft.header.joinInProgressNormalization, squadEnemyDirector: draft.header.squadEnemyDirector, mapMechanics: draft.header.mapMechanics, campaignMutations: draft.header.campaignMutations, specialistMastery: false, registryVersion: draft.header.registryVersion }
       : legacyV7Draft
@@ -742,13 +773,15 @@ export class ReplayRecorder {
         ? { squadSynergies: draft.header.squadSynergies, sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, registryVersion: draft.header.registryVersion }
         : { squadSynergies: false, sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, registryVersion: NO_SYNERGY_REGISTRY_VERSION };
     const validationReplay = {
-      schema: currentDraft ? REPLAY_SCHEMA : legacyV8Draft ? LEGACY_REPLAY_SCHEMA_V11 : legacyV7Draft ? LEGACY_REPLAY_SCHEMA_V10 : legacyV6Draft ? LEGACY_REPLAY_SCHEMA_V9 : legacyV5Draft ? LEGACY_REPLAY_SCHEMA_V8 : legacyV4Draft ? LEGACY_REPLAY_SCHEMA_V7 : legacyV3Draft ? LEGACY_REPLAY_SCHEMA_V6 : legacyV2Draft ? LEGACY_REPLAY_SCHEMA_V5 : LEGACY_REPLAY_SCHEMA_V4,
+      schema: currentDraft ? REPLAY_SCHEMA : legacyV9Draft ? LEGACY_REPLAY_SCHEMA_V12 : legacyV8Draft ? LEGACY_REPLAY_SCHEMA_V11 : legacyV7Draft ? LEGACY_REPLAY_SCHEMA_V10 : legacyV6Draft ? LEGACY_REPLAY_SCHEMA_V9 : legacyV5Draft ? LEGACY_REPLAY_SCHEMA_V8 : legacyV4Draft ? LEGACY_REPLAY_SCHEMA_V7 : legacyV3Draft ? LEGACY_REPLAY_SCHEMA_V6 : legacyV2Draft ? LEGACY_REPLAY_SCHEMA_V5 : LEGACY_REPLAY_SCHEMA_V4,
       build: draft.header.build,
       balance: { version: draft.header.balanceVersion, hash: draft.header.balanceHash },
       features: {
         configVersion: draft.header.featureConfigVersion, gameplayVersion: draft.header.gameplayVersion,
         objectiveEvents: draft.header.objectiveEvents,
-        ...(currentDraft ? draftFeatures : legacyV8Draft
+        ...(currentDraft ? draftFeatures : legacyV9Draft
+          ? { squadSynergies: draftFeatures.squadSynergies, sharedParticipationCredit: draftFeatures.sharedParticipationCredit, downedActivity: draftFeatures.downedActivity, joinInProgressNormalization: draftFeatures.joinInProgressNormalization, squadEnemyDirector: draftFeatures.squadEnemyDirector, mapMechanics: draftFeatures.mapMechanics, campaignMutations: draftFeatures.campaignMutations, specialistMastery: draftFeatures.specialistMastery, registryVersion: draftFeatures.registryVersion }
+          : legacyV8Draft
           ? { squadSynergies: draftFeatures.squadSynergies, sharedParticipationCredit: draftFeatures.sharedParticipationCredit, downedActivity: draftFeatures.downedActivity, joinInProgressNormalization: draftFeatures.joinInProgressNormalization, squadEnemyDirector: draftFeatures.squadEnemyDirector, mapMechanics: draftFeatures.mapMechanics, campaignMutations: draftFeatures.campaignMutations, registryVersion: draftFeatures.registryVersion }
           : legacyV7Draft
           ? { squadSynergies: draftFeatures.squadSynergies, sharedParticipationCredit: draftFeatures.sharedParticipationCredit, downedActivity: draftFeatures.downedActivity, joinInProgressNormalization: draftFeatures.joinInProgressNormalization, squadEnemyDirector: draftFeatures.squadEnemyDirector, mapMechanics: draftFeatures.mapMechanics, registryVersion: draftFeatures.registryVersion }
@@ -778,10 +811,10 @@ export class ReplayRecorder {
     if (!Array.isArray(draft.knownSlots) || draft.knownSlots.length < draft.roster.length || draft.knownSlots.length > 4) throw new TypeError("Replay draft knownSlots are invalid");
     const knownSlots = new Map();
     for (const [index, member] of draft.knownSlots.entries()) {
-      assertExactKeys(member, currentDraft ? ["slot", "specialist", "masteryStart"] : ["slot", "specialist"], `replay draft knownSlots.${index}`);
+      assertExactKeys(member, currentDraft || legacyV9Draft ? ["slot", "specialist", "masteryStart"] : ["slot", "specialist"], `replay draft knownSlots.${index}`);
       integer(member.slot, 0, 3, `replay draft knownSlots.${index}.slot`);
       if (knownSlots.has(member.slot) || !SPECIALISTS.has(member.specialist)) throw new TypeError("Replay draft knownSlots are invalid");
-      if (currentDraft && !MASTERY_START_IDS.has(member.masteryStart)) throw new TypeError("Replay draft knownSlots mastery start is invalid");
+      if ((currentDraft || legacyV9Draft) && !MASTERY_START_IDS.has(member.masteryStart)) throw new TypeError("Replay draft knownSlots mastery start is invalid");
       knownSlots.set(member.slot, member.specialist);
     }
     if (!Array.isArray(draft.lastInputs) || draft.lastInputs.length > 4) throw new TypeError("Replay draft lastInputs are invalid");
@@ -818,17 +851,18 @@ export class ReplayRecorder {
     const features = {
       configVersion: this.header.featureConfigVersion, gameplayVersion: this.header.gameplayVersion,
       objectiveEvents: this.header.objectiveEvents,
-      ...([REPLAY_SCHEMA, LEGACY_REPLAY_SCHEMA_V11, LEGACY_REPLAY_SCHEMA_V10, LEGACY_REPLAY_SCHEMA_V9, LEGACY_REPLAY_SCHEMA_V8, LEGACY_REPLAY_SCHEMA_V7, LEGACY_REPLAY_SCHEMA_V6, LEGACY_REPLAY_SCHEMA_V5].includes(this.outputSchema)
+      ...([REPLAY_SCHEMA, LEGACY_REPLAY_SCHEMA_V12, LEGACY_REPLAY_SCHEMA_V11, LEGACY_REPLAY_SCHEMA_V10, LEGACY_REPLAY_SCHEMA_V9, LEGACY_REPLAY_SCHEMA_V8, LEGACY_REPLAY_SCHEMA_V7, LEGACY_REPLAY_SCHEMA_V6, LEGACY_REPLAY_SCHEMA_V5].includes(this.outputSchema)
         ? { squadSynergies: this.header.squadSynergies, registryVersion: this.header.registryVersion } : {}),
-      ...([REPLAY_SCHEMA, LEGACY_REPLAY_SCHEMA_V11, LEGACY_REPLAY_SCHEMA_V10, LEGACY_REPLAY_SCHEMA_V9, LEGACY_REPLAY_SCHEMA_V8, LEGACY_REPLAY_SCHEMA_V7, LEGACY_REPLAY_SCHEMA_V6].includes(this.outputSchema)
+      ...([REPLAY_SCHEMA, LEGACY_REPLAY_SCHEMA_V12, LEGACY_REPLAY_SCHEMA_V11, LEGACY_REPLAY_SCHEMA_V10, LEGACY_REPLAY_SCHEMA_V9, LEGACY_REPLAY_SCHEMA_V8, LEGACY_REPLAY_SCHEMA_V7, LEGACY_REPLAY_SCHEMA_V6].includes(this.outputSchema)
         ? { sharedParticipationCredit: this.header.sharedParticipationCredit } : {}),
-      ...([REPLAY_SCHEMA, LEGACY_REPLAY_SCHEMA_V11, LEGACY_REPLAY_SCHEMA_V10, LEGACY_REPLAY_SCHEMA_V9, LEGACY_REPLAY_SCHEMA_V8, LEGACY_REPLAY_SCHEMA_V7].includes(this.outputSchema)
+      ...([REPLAY_SCHEMA, LEGACY_REPLAY_SCHEMA_V12, LEGACY_REPLAY_SCHEMA_V11, LEGACY_REPLAY_SCHEMA_V10, LEGACY_REPLAY_SCHEMA_V9, LEGACY_REPLAY_SCHEMA_V8, LEGACY_REPLAY_SCHEMA_V7].includes(this.outputSchema)
         ? { downedActivity: this.header.downedActivity } : {}),
-      ...([REPLAY_SCHEMA, LEGACY_REPLAY_SCHEMA_V11, LEGACY_REPLAY_SCHEMA_V10, LEGACY_REPLAY_SCHEMA_V9, LEGACY_REPLAY_SCHEMA_V8].includes(this.outputSchema) ? { joinInProgressNormalization: this.header.joinInProgressNormalization } : {}),
-      ...([REPLAY_SCHEMA, LEGACY_REPLAY_SCHEMA_V11, LEGACY_REPLAY_SCHEMA_V10, LEGACY_REPLAY_SCHEMA_V9].includes(this.outputSchema) ? { squadEnemyDirector: this.header.squadEnemyDirector } : {}),
-      ...([REPLAY_SCHEMA, LEGACY_REPLAY_SCHEMA_V11, LEGACY_REPLAY_SCHEMA_V10].includes(this.outputSchema) ? { mapMechanics: this.header.mapMechanics } : {}),
-      ...([REPLAY_SCHEMA, LEGACY_REPLAY_SCHEMA_V11].includes(this.outputSchema) ? { campaignMutations: this.header.campaignMutations } : {}),
-      ...(this.outputSchema === REPLAY_SCHEMA ? { specialistMastery: this.header.specialistMastery } : {}),
+      ...([REPLAY_SCHEMA, LEGACY_REPLAY_SCHEMA_V12, LEGACY_REPLAY_SCHEMA_V11, LEGACY_REPLAY_SCHEMA_V10, LEGACY_REPLAY_SCHEMA_V9, LEGACY_REPLAY_SCHEMA_V8].includes(this.outputSchema) ? { joinInProgressNormalization: this.header.joinInProgressNormalization } : {}),
+      ...([REPLAY_SCHEMA, LEGACY_REPLAY_SCHEMA_V12, LEGACY_REPLAY_SCHEMA_V11, LEGACY_REPLAY_SCHEMA_V10, LEGACY_REPLAY_SCHEMA_V9].includes(this.outputSchema) ? { squadEnemyDirector: this.header.squadEnemyDirector } : {}),
+      ...([REPLAY_SCHEMA, LEGACY_REPLAY_SCHEMA_V12, LEGACY_REPLAY_SCHEMA_V11, LEGACY_REPLAY_SCHEMA_V10].includes(this.outputSchema) ? { mapMechanics: this.header.mapMechanics } : {}),
+      ...([REPLAY_SCHEMA, LEGACY_REPLAY_SCHEMA_V12, LEGACY_REPLAY_SCHEMA_V11].includes(this.outputSchema) ? { campaignMutations: this.header.campaignMutations } : {}),
+      ...([REPLAY_SCHEMA, LEGACY_REPLAY_SCHEMA_V12].includes(this.outputSchema) ? { specialistMastery: this.header.specialistMastery } : {}),
+      ...(this.outputSchema === REPLAY_SCHEMA ? { rareDiscoveries: this.header.rareDiscoveries } : {}),
     };
     const replay = {
       schema: this.outputSchema,
@@ -838,7 +872,7 @@ export class ReplayRecorder {
       engine: { stepHz: REPLAY_STEP_HZ, rng: this.header.rng },
       seed: this.header.seed,
       run: clone(this.header.run),
-      roster: [...this.roster.entries()].sort(([a], [b]) => a - b).map(([slot, specialist]) => ({ slot, specialist, ...(this.outputSchema === REPLAY_SCHEMA ? { masteryStart: this.masteryStarts.get(slot) || "baseline" } : {}) })),
+      roster: [...this.roster.entries()].sort(([a], [b]) => a - b).map(([slot, specialist]) => ({ slot, specialist, ...([REPLAY_SCHEMA, LEGACY_REPLAY_SCHEMA_V12].includes(this.outputSchema) ? { masteryStart: this.masteryStarts.get(slot) || "baseline" } : {}) })),
       commands: clone(this.commands), checkpoints: clone(this.checkpoints), finalTick, finalHash,
     };
     return validateReplay(replay);
@@ -886,6 +920,9 @@ export class ReplayDriver {
     }
     if (Object.hasOwn(simulation, "specialistMastery") && simulation.specialistMastery !== features.specialistMastery) {
       throw new Error("Replay specialist-mastery flag mismatch");
+    }
+    if (Object.hasOwn(simulation, "rareDiscoveries") && simulation.rareDiscoveries !== features.rareDiscoveries) {
+      throw new Error("Replay rare-discoveries flag mismatch");
     }
     if (Object.hasOwn(simulation, "synergyRegistryVersion") && simulation.synergyRegistryVersion !== features.registryVersion) {
       throw new Error("Replay synergy registry version mismatch");
