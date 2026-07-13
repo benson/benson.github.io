@@ -25,6 +25,7 @@ const TELEMETRY_V1_FIELDS = new Set([
   "goldEarned", "xpCollected", "damageDealt", "damageTaken", "revives", "distanceTraveled",
 ]);
 const TELEMETRY_V2_FIELDS = new Set([...TELEMETRY_V1_FIELDS, "synergyIds", "synergyTotals"]);
+const TELEMETRY_V3_FIELDS = new Set([...TELEMETRY_V2_FIELDS, "participationTotals"]);
 const TELEMETRY_MAPS = new Set(["warehouse", "outskirts", "lab", "beachhead"]);
 const TELEMETRY_DIFFICULTIES = new Set(["story", "hard", "extreme"]);
 const TELEMETRY_OUTCOMES = new Set(["won", "lost"]);
@@ -40,6 +41,29 @@ const TELEMETRY_SYNERGY_TOTAL_CAPS = Object.freeze({
   mitigated: 1_000_000_000,
   formationSeconds: 16_000,
   ultimateChains: 10_000,
+});
+const TELEMETRY_PARTICIPATION_TOTAL_FIELDS = Object.freeze([
+  "effectiveHealing", "effectiveShielding", "shieldDamagePrevented", "mitigationPrevented",
+  "damageAssists", "controlAssists", "revives", "reviveSeconds", "objectivePresenceSeconds",
+  "objectiveMovement", "objectiveCompletions", "eliteParticipations", "apexParticipations",
+]);
+const TELEMETRY_PARTICIPATION_INTEGER_FIELDS = new Set([
+  "damageAssists", "controlAssists", "revives", "objectiveCompletions", "eliteParticipations", "apexParticipations",
+]);
+const TELEMETRY_PARTICIPATION_TOTAL_CAPS = Object.freeze({
+  effectiveHealing: 1_000_000_000,
+  effectiveShielding: 1_000_000_000,
+  shieldDamagePrevented: 1_000_000_000,
+  mitigationPrevented: 1_000_000_000,
+  damageAssists: 1_000_000,
+  controlAssists: 1_000_000,
+  revives: 10_000,
+  reviveSeconds: 16_000,
+  objectivePresenceSeconds: 16_000,
+  objectiveMovement: 1_000_000_000,
+  objectiveCompletions: 10_000,
+  eliteParticipations: 1_000_000,
+  apexParticipations: 10_000,
 });
 
 export function normalizeCode(value) {
@@ -74,8 +98,8 @@ function telemetryExactKeys(value, expected, field) {
 
 export function sanitizeRunTelemetry(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new TypeError("Telemetry must be an object");
-  if (value.schemaVersion !== 1 && value.schemaVersion !== 2) throw new TypeError("Unsupported telemetry schema");
-  const allowedFields = value.schemaVersion === 2 ? TELEMETRY_V2_FIELDS : TELEMETRY_V1_FIELDS;
+  if (value.schemaVersion !== 1 && value.schemaVersion !== 2 && value.schemaVersion !== 3) throw new TypeError("Unsupported telemetry schema");
+  const allowedFields = value.schemaVersion === 3 ? TELEMETRY_V3_FIELDS : value.schemaVersion === 2 ? TELEMETRY_V2_FIELDS : TELEMETRY_V1_FIELDS;
   for (const key of Object.keys(value)) {
     if (!allowedFields.has(key)) throw new TypeError(`Unexpected telemetry field: ${key}`);
   }
@@ -114,7 +138,7 @@ export function sanitizeRunTelemetry(value) {
     revives: telemetryNumber(value.revives, "revives", 0, 10_000, true),
     distanceTraveled: telemetryNumber(value.distanceTraveled, "distanceTraveled", 0, 1_000_000_000),
   };
-  if (value.schemaVersion === 2) {
+  if (value.schemaVersion >= 2) {
     if (!Array.isArray(value.synergyIds) || value.synergyIds.length > TELEMETRY_SYNERGIES.size) {
       throw new TypeError("Invalid synergyIds");
     }
@@ -137,6 +161,18 @@ export function sanitizeRunTelemetry(value) {
     }
     Object.assign(run, { synergyIds, synergyTotals });
   }
+  if (value.schemaVersion === 3) {
+    telemetryExactKeys(value.participationTotals, TELEMETRY_PARTICIPATION_TOTAL_FIELDS, "participationTotals");
+    const participationTotals = Object.fromEntries(TELEMETRY_PARTICIPATION_TOTAL_FIELDS.map((field) => {
+      const integer = TELEMETRY_PARTICIPATION_INTEGER_FIELDS.has(field);
+      if (integer && !Number.isInteger(value.participationTotals[field])) throw new TypeError(`Invalid participationTotals.${field}`);
+      return [
+        field,
+        telemetryNumber(value.participationTotals[field], `participationTotals.${field}`, 0, TELEMETRY_PARTICIPATION_TOTAL_CAPS[field], integer),
+      ];
+    }));
+    run.participationTotals = participationTotals;
+  }
   return run;
 }
 
@@ -148,7 +184,7 @@ function telemetryDataPoint(run) {
     run.totalKills, run.goldEarned, run.xpCollected, run.damageDealt, run.damageTaken,
     run.revives, run.distanceTraveled,
   ];
-  if (run.schemaVersion === 2) {
+  if (run.schemaVersion >= 2) {
     blobs.push(run.synergyIds.join(","));
     doubles.push(...TELEMETRY_SYNERGY_TOTAL_FIELDS.map((field) => run.synergyTotals[field]));
   }
@@ -158,6 +194,17 @@ function telemetryDataPoint(run) {
     doubles,
     // A shared sampling key prevents this aggregate dataset from becoming a pseudonymous user log.
     indexes: [`lastlight-run-v${run.schemaVersion}`],
+  };
+}
+
+function participationDataPoint(run) {
+  return {
+    blobs: [
+      "participation.v1", run.build, run.map, run.difficulty, run.outcome,
+      run.playerCount === 1 ? "solo" : "squad", run.specialists.join(","),
+    ],
+    doubles: TELEMETRY_PARTICIPATION_TOTAL_FIELDS.map((field) => run.participationTotals[field]),
+    indexes: ["lastlight-participation-v1"],
   };
 }
 
@@ -188,6 +235,7 @@ async function handleTelemetry(request, env) {
     return Response.json({ error: "Telemetry unavailable" }, { status: 503, headers: corsHeaders(request) });
   }
   env.RUN_TELEMETRY.writeDataPoint(telemetryDataPoint(run));
+  if (run.schemaVersion === 3) env.RUN_TELEMETRY.writeDataPoint(participationDataPoint(run));
   return Response.json({ ok: true }, { status: 202, headers: { ...corsHeaders(request), "Cache-Control": "no-store" } });
 }
 

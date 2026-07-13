@@ -4,7 +4,7 @@ import {
 } from "./data.js?v=20260713.2";
 import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260713.6";
 import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.5";
-import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260713.6";
+import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260713.7";
 import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260713.2";
 import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260713.1";
 import { MAX_CORRIDOR_CANDIDATES, accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget, orderEntitiesByDistance } from "./projectile-decisions.js?v=20260713.1";
@@ -16,6 +16,13 @@ import {
   formationDamageMultiplier, recordBreachControl, recordUltimateCast, removeSquadSynergySlot,
   resolveBreachFollowup, updateFormationPairs, validateSquadSynergyState,
 } from "./squad-synergies.js?v=20260713.6";
+import {
+  PARTICIPATION_SCHEMA, addEffectiveHealing, addMitigationPrevented, createParticipationState,
+  grantAttributedShield, recordObjectiveWork, recordReviveWork,
+  recordTargetControl, recordTargetDamage, reduceAttributedShield, removeObjectiveCredit,
+  removeReviveCredit, removeTargetCredit, settleObjectiveCredit, settleReviveCredit,
+  settleTargetCredit, validateParticipationState,
+} from "./participation-credit.js?v=20260713.7";
 
 const BALANCE = getBalanceConfig();
 
@@ -52,7 +59,7 @@ function compactPoint(e) {
   return result;
 }
 
-const RECOVERY_STATE_VERSION = 4;
+const RECOVERY_STATE_VERSION = 5;
 const RECOVERY_SCALARS = [
   "tick", "time", "remaining", "stage", "paused", "pauseReason", "wave", "teamXP", "level", "xpNeed", "kills", "gold",
   "spawnClock", "nextElite", "nextMiniBoss", "nextTreasure", "nextRelayBall", "objectiveIndex", "bossElapsed", "bossPhase", "enraged",
@@ -306,6 +313,7 @@ export class Simulation {
     this.gameplayVersion = features.gameplayVersion;
     this.objectiveEvents = features.objectiveEvents;
     this.squadSynergies = features.squadSynergies;
+    this.sharedParticipationCredit = features.sharedParticipationCredit;
     this.synergyRegistryVersion = features.registryVersion;
     if (this.squadSynergies && this.synergyRegistryVersion !== SQUAD_SYNERGY_SCHEMA) throw new RangeError(`Unsupported squad synergy registry: ${this.synergyRegistryVersion}`);
     this.duration = Number(config.duration) || BALANCE.core.defaultDurationSeconds;
@@ -352,6 +360,7 @@ export class Simulation {
 
     const players = config.players?.length ? config.players : [{ id: "solo", name: "Rookie", specialist: "zuri" }];
     this.synergyState = createSquadSynergyState({ enabled: this.squadSynergies, slots: players.map((player, index) => replaySlot(player.replaySlot) ?? index) });
+    this.participationState = createParticipationState({ enabled: this.sharedParticipationCredit, slots: players.map((player, index) => replaySlot(player.replaySlot) ?? index) });
     players.forEach((p, index) => this.addPlayer(p, index));
     this.seedPods();
     this.pushEvent("directive", `Survive ${Math.round(this.duration / 60)} minutes`, "The breach is open");
@@ -388,7 +397,10 @@ export class Simulation {
 
   pruneDisconnectedPlayers() {
     for (const [key, recovery] of this.disconnectedPlayers) {
-      if (!recovery || this.tick - recovery.leftTick > RECONNECT_WINDOW_TICKS) this.disconnectedPlayers.delete(key);
+      if (!recovery || this.tick - recovery.leftTick > RECONNECT_WINDOW_TICKS) {
+        if (recovery?.player && this.participationState?.enabled) this.participationState = removeReviveCredit(this.participationState, recovery.player.replaySlot);
+        this.disconnectedPlayers.delete(key);
+      }
     }
   }
 
@@ -407,6 +419,7 @@ export class Simulation {
       player.input = { x: 0, y: 0, aim: player.facing || 0, autoAim: true };
       resetPlayerMovement(player);
       player.dead = false; player.downed = false; player.downTimer = 0; player.reviveProgress = 0;
+      if (this.participationState?.enabled) this.participationState = removeReviveCredit(this.participationState, player.replaySlot);
       player.hp = Math.max(player.hp, player.maxHp * .5); player.invuln = 3; player.reconnected = true;
       for (const list of [this.projectiles, this.effects, this.feathers, this.drones]) {
         for (const entity of list) if (entity.owner === oldId) entity.owner = player.id;
@@ -525,12 +538,28 @@ export class Simulation {
     for (const p of this.players) {
       const spec = SPECIALISTS[p.specialist];
       if (p.downed) {
+        if (!Number.isSafeInteger(p.downedTick)) p.downedTick = this.tick;
         resetPlayerMovement(p);
         p.downTimer -= dt;
         const rescuers = this.players.filter((ally) => !ally.dead && !ally.downed && distance(p, ally) < 90);
+        if (this.participationState?.enabled) for (const ally of rescuers) {
+          this.participationState = recordReviveWork(this.participationState, {
+            downedSlot: p.replaySlot, contributorSlot: ally.replaySlot, beganTick: p.downedTick ?? this.tick, ticks: 1,
+          });
+        }
         p.reviveProgress += rescuers.length * dt;
-        if (p.reviveProgress >= 3) { for (const ally of rescuers) ally.revives++; this.revive(p); }
+        if (p.reviveProgress >= 3) {
+          if (this.participationState?.enabled) {
+            const result = settleReviveCredit(this.participationState, p.replaySlot); this.participationState = result.state;
+            for (const replaySlot of result.creditedSlots) { const ally = this.players.find((entry) => entry.replaySlot === replaySlot); if (ally) ally.revives++; }
+            if (result.creditedSlots.length) this.pushEvent("participation", "Shared rescue credited", "Completed revive work recorded", {
+              participationSequence: this.participationState.sequence, slots: result.creditedSlots,
+            });
+          } else for (const ally of rescuers) ally.revives++;
+          this.revive(p);
+        }
         else if (p.downTimer <= 0) {
+          if (this.participationState?.enabled) this.participationState = removeReviveCredit(this.participationState, p.replaySlot);
           p.downed = false; p.dead = true; p.respawnTimer = Math.min(60, 15 + Math.max(0, p.deaths - 1) * 9);
         }
         continue;
@@ -559,12 +588,16 @@ export class Simulation {
       p.stopwaveClock = Math.max(0, (p.stopwaveClock || 0) - dt);
       if (p.stopwavesBuff > 0 && p.stopwaveClock <= 0) {
         p.stopwaveClock = 2.5;
-        for (const enemy of this.enemies) if (distance(p, enemy) < 460) enemy.stun = Math.max(enemy.stun, 1.35);
+        for (const enemy of this.enemies) if (distance(p, enemy) < 460) this.applyControl(enemy, 1.35, p.id);
         this.effects.push({ id: this.nextCosmeticId("fx"), x: p.x, y: p.y, radius: 460, life: .45, maxLife: .45, damage: 0, owner: p.id, color: "#63f2df", kind: "freeze" });
       }
       p.hotTime = Math.max(0, p.hotTime - dt);
       if (p.hotTime <= 0) p.hotStacks = 0;
-      p.shield = Math.max(0, p.shield - Math.max(.01, p.maxHp * .015) * dt);
+      const shieldDecay = Math.min(p.shield, Math.max(.01, p.maxHp * .015) * dt);
+      p.shield -= shieldDecay;
+      if (shieldDecay > 0 && this.participationState?.enabled) {
+        this.participationState = reduceAttributedShield(this.participationState, { targetSlot: p.replaySlot, amount: shieldDecay, prevented: false }).state;
+      }
 
       let movementInput = p.input;
       if (p.frenzy > 0) {
@@ -617,11 +650,10 @@ export class Simulation {
       // Story mode stands in for a few ranks of Swarm's permanent upgrade
       // economy so a fresh browser player is not entering with a zero-meta save.
       const regen = this.playerStat(p, "regen") + this.difficulty.passiveRegen;
-      let bonusRegen = 0;
+      if (regen > 0) this.healPlayer(p, regen * dt, p.replaySlot);
       for (const ally of this.players.filter((ally) => ally.specialist === "bront")) {
-        for (const effect of this.effects.filter((e) => e.kind === "totem" && e.owner === ally.id)) if (distance(p, effect) < 260) bonusRegen += .1;
+        for (const effect of this.effects.filter((e) => e.kind === "totem" && e.owner === ally.id)) if (distance(p, effect) < 260) this.healPlayer(p, .1 * dt, ally.replaySlot);
       }
-      if (regen + bonusRegen > 0) p.hp = Math.min(p.maxHp, p.hp + (regen + bonusRegen) * dt);
     }
 
     if (this.players.length && this.players.every((p) => p.dead || p.downed)) this.lose("Every specialist is down.");
@@ -642,6 +674,57 @@ export class Simulation {
         synergyId: transition.id, synergySequence: this.synergyState.sequence, slots: transition.slots,
       });
     }
+  }
+
+  participationTargetKind(enemy) {
+    if (enemy?.boss) return "apex";
+    if (enemy?.miniboss) return "miniboss";
+    if (enemy?.elite) return enemy.eventType ? "event" : "elite";
+    return "normal";
+  }
+
+  participationTelemetry() {
+    const stats = this.participationState?.slots || [], sum = (key) => stats.reduce((total, entry) => total + Number(entry[key] || 0), 0);
+    return {
+      effectiveHealing: sum("effectiveHealing"), effectiveShielding: sum("effectiveShielding"),
+      shieldDamagePrevented: sum("shieldDamagePrevented"), mitigationPrevented: sum("mitigationPrevented"),
+      damageAssists: sum("damageAssists"), controlAssists: sum("controlAssists"), revives: sum("revives"),
+      reviveSeconds: sum("reviveTicks") / SIMULATION_TICK_RATE,
+      objectivePresenceSeconds: sum("objectivePresenceTicks") / SIMULATION_TICK_RATE,
+      objectiveMovement: sum("objectiveMovement"), objectiveCompletions: sum("objectiveCompletions"),
+      eliteParticipations: sum("eliteParticipations"), apexParticipations: sum("apexParticipations"),
+    };
+  }
+
+  healPlayer(player, amount, sourceSlot = null, { credit = true } = {}) {
+    const before = player.hp, after = Math.min(player.maxHp, before + Math.max(0, Number(amount) || 0));
+    const healed = Math.max(0, after - before);
+    player.hp = after;
+    if (credit) this.creditEffectiveHealing(sourceSlot, healed);
+    return healed;
+  }
+
+  creditEffectiveHealing(sourceSlot, healed) {
+    if (sourceSlot !== null && healed > 0 && this.participationState?.enabled) {
+      this.participationState = addEffectiveHealing(this.participationState, { sourceSlot, amount: healed });
+    }
+  }
+
+  applyControl(enemy, controlSeconds, ownerId = null) {
+    if (!enemy || enemy.dead || !Number.isFinite(controlSeconds) || controlSeconds <= 0) return 0;
+    const beforeSeconds = Math.max(0, Number(enemy.stun || 0));
+    const afterSeconds = Math.max(beforeSeconds, controlSeconds);
+    const extensionTicks = Math.max(0, Math.round((afterSeconds - beforeSeconds) * SIMULATION_TICK_RATE));
+    enemy.stun = afterSeconds;
+    const owner = this.players.find((player) => player.id === ownerId);
+    if (owner && extensionTicks > 0 && this.participationState?.enabled) {
+      this.participationState = recordTargetControl(this.participationState, {
+        enemyId: enemy.id, kind: this.participationTargetKind(enemy), maxHp: enemy.maxHp,
+        slot: owner.replaySlot, extensionTicks, tick: this.tick,
+      });
+    }
+    if (owner && extensionTicks > 0) this.recordBreachControl(enemy, ownerId, extensionTicks / SIMULATION_TICK_RATE);
+    return extensionTicks;
   }
 
   recordBreachControl(enemy, ownerId, controlSeconds) {
@@ -668,7 +751,7 @@ export class Simulation {
     let shielding = 0;
     for (const ally of living) {
       if (Math.hypot(ally.x - result.pulse.x, ally.y - result.pulse.y) > result.pulse.radius) continue;
-      shielding += this.grantShieldAmount(ally, ally.maxHp * result.pulse.shieldMaxHealth, result.pulse.shieldCapMaxHealth);
+      shielding += this.grantShieldAmount(ally, ally.maxHp * result.pulse.shieldMaxHealth, result.pulse.shieldCapMaxHealth, result.pulse.contributorSlots);
     }
     const contributors = result.pulse.contributorSlots, share = shielding / contributors.length;
     for (const slot of contributors) this.synergyState = addSquadSynergyStats(this.synergyState, slot, { triggers: 1, shielding: share, ultimateChains: 1 });
@@ -781,7 +864,7 @@ export class Simulation {
     const objectiveTimes = BALANCE.waves.events.objectivesAt.map((progress) => this.duration * progress);
     if (this.objectiveEvents && this.objectiveIndex < objectiveTimes.length && this.time >= objectiveTimes[this.objectiveIndex]) {
       const a = this.random(0, TAU), r = this.random(420, 720);
-      this.objectives.push({ id: this.nextGameplayId("o"), x: Math.cos(a) * r, y: Math.sin(a) * r, radius: 85, progress: 0, life: 38, kind: this.objectiveIndex ? "trial" : "uplink" });
+      this.objectives.push({ id: this.nextGameplayId("o"), x: Math.cos(a) * r, y: Math.sin(a) * r, radius: 85, progress: 0, life: 38, kind: this.objectiveIndex ? "trial" : "uplink", beganTick: this.tick });
       this.objectiveIndex++;
       this.pushEvent("objective", this.objectiveIndex === 1 ? "Capture the uplink" : "Survive the breach trial", "Optional directive");
     }
@@ -797,32 +880,52 @@ export class Simulation {
   spawnRelayBall() {
     const angle = this.random(0, TAU), radius = this.random(340, 560);
     const x = Math.cos(angle) * radius, y = Math.sin(angle) * radius;
-    this.relayBalls.push({ id: this.nextGameplayId("ball"), x, y, targetX: -x, targetY: -y, radius: 42, vx: 0, vy: 0, life: 62, done: false });
+    this.relayBalls.push({ id: this.nextGameplayId("ball"), x, y, targetX: -x, targetY: -y, radius: 42, vx: 0, vy: 0, life: 62, done: false, beganTick: this.tick, routeDistance: Math.hypot(x * 2, y * 2) });
     this.pushEvent("objective", "Relay ball online", "Push the core into its destination ring");
   }
 
   updateRelayBalls(dt) {
     for (const ball of this.relayBalls) {
       if (ball.done) continue;
+      if (!Number.isSafeInteger(ball.beganTick)) ball.beganTick = this.tick;
+      if (!Number.isFinite(ball.routeDistance)) ball.routeDistance = Math.hypot(ball.x - ball.targetX, ball.y - ball.targetY);
       ball.life -= dt;
+      const beforeDistance = Math.hypot(ball.x - ball.targetX, ball.y - ball.targetY), forceShares = [];
       for (const player of this.players) {
         if (player.dead || player.downed) continue;
         const d = distance(player, ball);
         if (d > player.radius + ball.radius + 14) continue;
         const angle = angleTo(player, ball), force = 680 * (1 - clamp(d / (player.radius + ball.radius + 14), 0, 1) * .35);
-        ball.vx += Math.cos(angle) * force * dt; ball.vy += Math.sin(angle) * force * dt;
+        const fx = Math.cos(angle) * force * dt, fy = Math.sin(angle) * force * dt;
+        ball.vx += fx; ball.vy += fy; forceShares.push({ slot: player.replaySlot, fx, fy });
       }
       const speed = Math.hypot(ball.vx, ball.vy);
       if (speed > 290) { ball.vx = ball.vx / speed * 290; ball.vy = ball.vy / speed * 290; }
       ball.x += ball.vx * dt; ball.y += ball.vy * dt;
+      const towardMovement = Math.max(0, beforeDistance - Math.hypot(ball.x - ball.targetX, ball.y - ball.targetY));
+      if (towardMovement > 0 && forceShares.length && this.participationState?.enabled) {
+        const tx = ball.targetX - ball.x, ty = ball.targetY - ball.y, length = Math.max(Number.EPSILON, Math.hypot(tx, ty));
+        const weights = forceShares.map((entry) => ({ ...entry, weight: Math.max(0, (entry.fx * tx + entry.fy * ty) / length) })), totalWeight = weights.reduce((sum, entry) => sum + entry.weight, 0);
+        if (totalWeight > 0) for (const entry of weights) if (entry.weight > 0) this.participationState = recordObjectiveWork(this.participationState, {
+          objectiveId: ball.id, kind: "relay-ball", beganTick: ball.beganTick ?? this.tick, routeDistance: ball.routeDistance ?? beforeDistance,
+          slot: entry.slot, movement: towardMovement * entry.weight / totalWeight,
+        });
+      }
       const friction = Math.pow(.14, dt); ball.vx *= friction; ball.vy *= friction;
       if (Math.abs(ball.x) > WORLD.width / 2 - ball.radius) { ball.x = clamp(ball.x, -WORLD.width / 2 + ball.radius, WORLD.width / 2 - ball.radius); ball.vx *= -.65; }
       if (Math.abs(ball.y) > WORLD.height / 2 - ball.radius) { ball.y = clamp(ball.y, -WORLD.height / 2 + ball.radius, WORLD.height / 2 - ball.radius); ball.vy *= -.65; }
       if (Math.hypot(ball.x - ball.targetX, ball.y - ball.targetY) < 82) {
+        if (this.participationState?.enabled) {
+          const result = settleObjectiveCredit(this.participationState, ball.id); this.participationState = result.state;
+          if (result.creditedSlots.length) this.pushEvent("participation", "Relay work credited", "Forward movement recorded", {
+            participationSequence: this.participationState.sequence, slots: result.creditedSlots, objectiveId: ball.id,
+          });
+        }
         ball.done = true; this.gold += Math.round(70 * this.difficulty.gold); this.teamXP += this.xpNeed * .8;
         this.drops.push({ id: this.nextGameplayId("d"), type: "card", x: ball.targetX, y: ball.targetY, radius: 18 });
         this.applyBoon(this.pick(BOONS)); this.pushEvent("upgrade", "Relay delivered", "Gold, data, and an access card secured");
       } else if (ball.life <= 0) {
+        if (this.participationState?.enabled) this.participationState = removeObjectiveCredit(this.participationState, ball.id);
         ball.done = true; this.pushEvent("danger", "Relay lost", "The destination window closed");
       }
     }
@@ -830,14 +933,26 @@ export class Simulation {
 
   updateObjectives(dt) {
     for (const objective of this.objectives) {
+      if (!Number.isSafeInteger(objective.beganTick)) objective.beganTick = this.tick;
       objective.life -= dt;
-      const inside = this.players.filter((p) => !p.dead && !p.downed && distance(p, objective) < objective.radius).length;
-      if (inside) objective.progress += inside * dt / 5;
+      const inside = this.players.filter((p) => !p.dead && !p.downed && distance(p, objective) < objective.radius);
+      if (inside.length) {
+        objective.progress += inside.length * dt / 5;
+        if (this.participationState?.enabled) for (const player of inside) this.participationState = recordObjectiveWork(this.participationState, {
+          objectiveId: objective.id, kind: "zone", beganTick: objective.beganTick ?? this.tick, slot: player.replaySlot, presenceTicks: 1,
+        });
+      }
       if (objective.kind === "trial" && this.chance(dt * 2.3) && this.enemies.length < 280) {
         const e = this.spawnEnemy(this.chance(.25) ? "brute" : "hound");
         const a = this.random(0, TAU); e.x = objective.x + Math.cos(a) * 310; e.y = objective.y + Math.sin(a) * 310;
       }
       if (objective.progress >= 1) {
+        if (this.participationState?.enabled) {
+          const result = settleObjectiveCredit(this.participationState, objective.id); this.participationState = result.state;
+          if (result.creditedSlots.length) this.pushEvent("participation", "Objective work credited", "Completed hold work recorded", {
+            participationSequence: this.participationState.sequence, slots: result.creditedSlots, objectiveId: objective.id,
+          });
+        }
         objective.done = true;
         if (objective.kind === "uplink") this.applyBoon(this.pick(BOONS));
         else {
@@ -847,6 +962,7 @@ export class Simulation {
           this.pushEvent("upgrade", "Trial complete", "Data, gold, and access keys secured");
         }
       } else if (objective.life <= 0) {
+        if (this.participationState?.enabled) this.participationState = removeObjectiveCredit(this.participationState, objective.id);
         objective.done = true;
         this.pushEvent("danger", "Directive failed", "The signal collapsed");
       }
@@ -856,10 +972,10 @@ export class Simulation {
   applyBoon(boon) {
     for (const p of this.players) {
       if (boon.name === "Cruise Control") p.speedBuff = 15;
-      else if (boon.name === "Squad Shield") p.shield += p.maxHp * .75;
+      else if (boon.name === "Squad Shield") this.grantShieldAmount(p, p.maxHp * .75, 1, null);
       else if (boon.name === "Ultra Rapid Fire-r") p.hasteBuff = 15;
-      else if (boon.name === "Healthback") { p.healthbackBuff = 15; p.hp = Math.min(p.maxHp, p.hp + p.maxHp * .2); }
-      else if (boon.name === "Stopwaves") { p.stopwavesBuff = 15; p.stopwaveClock = 0; for (const enemy of this.enemies) enemy.stun = Math.max(enemy.stun, 4); }
+      else if (boon.name === "Healthback") { p.healthbackBuff = 15; this.healPlayer(p, p.maxHp * .2, null, { credit: false }); }
+      else if (boon.name === "Stopwaves") { p.stopwavesBuff = 15; p.stopwaveClock = 0; for (const enemy of this.enemies) this.applyControl(enemy, 4); }
       else if (boon.name === "Fired Up") { p.firedUpBuff = 15; p.weaponTimers.boonFire = 0; }
     }
     this.pushEvent("boon", boon.name, boon.copy);
@@ -874,14 +990,14 @@ export class Simulation {
     if (this.machine.charge >= 2.4) {
       this.machine.charge = 0;
       if (this.map.id === "warehouse") {
-        for (const p of this.players) p.hp = Math.min(p.maxHp, p.hp + p.maxHp * .5);
+        for (const p of this.players) this.healPlayer(p, p.maxHp * .5, null, { credit: false });
         this.machine.cooldown = 75;
         this.pushEvent("boon", "Healing relay charged", "Squad restored by 50%");
       } else if (this.map.id === "outskirts") {
         this.machine.active = 30; this.machine.cooldown = 70;
         this.pushEvent("boon", "Ion cannon online", "Thirty seconds of orbital fire");
       } else if (this.map.id === "lab") {
-        for (const enemy of this.enemies) enemy.stun = Math.max(enemy.stun, 5);
+        for (const enemy of this.enemies) this.applyControl(enemy, 5);
         this.machine.cooldown = 45;
         this.pushEvent("boon", "Freeze core discharged", "The horde is frozen");
       }
@@ -925,7 +1041,7 @@ export class Simulation {
       if (task.kind === "sola-detonate") {
         player.armor = Math.max(SPECIALISTS.sola.armor, player.armor - Number(payload.armorBonus || 0));
         this.blast(player.x, player.y, 400 * payload.area, 160 + this.level * 15, player.id, payload.color, true, "blast", "ability:e");
-        this.grantShieldAmount(player, player.maxHp * BALANCE.identityTuning.sola.aftershockShieldMaxHealth);
+        this.grantShieldAmount(player, player.maxHp * BALANCE.identityTuning.sola.aftershockShieldMaxHealth, .5, player.replaySlot);
       } else {
         this.blast(player.x, player.y, 300 * payload.area, 100 + this.level * 10, player.id, payload.color, true, "blast", "ability:e");
       }
@@ -1144,7 +1260,7 @@ export class Simulation {
         || (String(left.id) < String(right.id) ? -1 : String(left.id) > String(right.id) ? 1 : 0));
     if (injured.length) {
       const ally = injured[0], before = ally.hp;
-      ally.hp = Math.min(ally.maxHp, ally.hp + ally.maxHp * tuning.protocolRepairMaxHealth);
+      this.healPlayer(ally, ally.maxHp * tuning.protocolRepairMaxHealth, owner.replaySlot);
       drone.repairFlash = Math.max(drone.repairFlash || 0, .7);
       this.pushWeaponEvolutionProc(owner, "drone", "drone-protocol-repair", activationId, drone, angleTo(drone, ally), {
         targetId: ally.id, repaired: ally.hp - before,
@@ -1283,7 +1399,11 @@ export class Simulation {
         }
         this.pushSignatureEvolutionProc(p, "predator-hook", activation, { x: tx, y: ty }, aim, { affected, pullDistance: pull });
       }
-      if (p.frenzy > 0) p.hp = Math.min(p.maxHp, p.hp + .1 + (p.maxHp - p.hp) * .05);
+      if (p.frenzy > 0) {
+        const before = p.hp;
+        p.hp = Math.min(p.maxHp, p.hp + .1 + (p.maxHp - p.hp) * .05);
+        this.creditEffectiveHealing(p.replaySlot, p.hp - before);
+      }
     } else if (p.specialist === "gale") {
       if (p.flow < tuning.flowCost) return false;
       p.flow = 0;
@@ -1575,15 +1695,23 @@ export class Simulation {
     return false;
   }
 
-  grantShield(p, tuning, level = this.level) {
+  grantShield(p, tuning, level = this.level, sourceSlot = p.replaySlot) {
     const amount = valueAtLevel(tuning.flatBase, tuning.flatPerLevel, level) + p.maxHp * tuning.maxHealth;
-    return this.grantShieldAmount(p, amount, tuning.capMaxHealth);
+    return this.grantShieldAmount(p, amount, tuning.capMaxHealth, sourceSlot);
   }
 
-  grantShieldAmount(p, amount, capMaxHealth = 0.5) {
+  grantShieldAmount(p, amount, capMaxHealth = 0.5, sourceSlot = null) {
     const available = Math.max(0, p.maxHp * capMaxHealth - p.shield);
     const granted = Math.min(amount, available);
     p.shield += granted;
+    if (granted > 0 && this.participationState?.enabled) {
+      const providers = Array.isArray(sourceSlot) ? [...new Set(sourceSlot)].sort((a, b) => a - b) : [sourceSlot];
+      let assigned = 0;
+      providers.forEach((provider, index) => {
+        const share = index === providers.length - 1 ? granted - assigned : granted / providers.length; assigned += share;
+        this.participationState = grantAttributedShield(this.participationState, { sourceSlot: provider, targetSlot: p.replaySlot, amount: share });
+      });
+    }
     return granted;
   }
 
@@ -1594,7 +1722,7 @@ export class Simulation {
     owner.guardReturnActivation = activation;
     const tuning = BALANCE.identityTuning.sola;
     const amount = Math.min(tuning.guardReturnMax, tuning.guardReturnBase + owner.armor * tuning.guardReturnArmorRatio);
-    const granted = this.grantShieldAmount(owner, amount, BALANCE.shields.solaE.capMaxHealth);
+    const granted = this.grantShieldAmount(owner, amount, BALANCE.shields.solaE.capMaxHealth, owner.replaySlot);
     this.pushSignatureEvolutionProc(owner, "guard-return", { sequence: activation, id: bullet.signatureActivationId }, enemy, angleTo(owner, enemy), { shieldGranted: granted });
     return granted;
   }
@@ -1604,7 +1732,7 @@ export class Simulation {
     if (p.specialist === "zuri") {
       for (let i = 0; i < 9 + this.playerStat(p, "projectiles"); i++) this.shoot(p, aim + (i - 4) * .13, 560, 49 + this.level * 6, { radius: 9, color: spec.color, explosion: 95 * area, life: 2.4, sourceId: "ability:e" });
     } else if (p.specialist === "echo") {
-      for (const ally of this.players) if (!ally.dead && distance(p, ally) < 800) { this.grantShield(ally, BALANCE.shields.echoE); ally.speedBuff = 3; }
+      for (const ally of this.players) if (!ally.dead && distance(p, ally) < 800) { this.grantShield(ally, BALANCE.shields.echoE, this.level, p.replaySlot); ally.speedBuff = 3; }
       this.effects.push({ id: this.nextCosmeticId("fx"), x: p.x, y: p.y, radius: 800, life: .6, maxLife: .6, damage: 0, owner: p.id, color: spec.color, kind: "shield" });
     } else if (p.specialist === "sola") {
       const armorBonus = p.armor * (BALANCE.identityTuning.sola.armorMultiplier - 1);
@@ -1641,7 +1769,7 @@ export class Simulation {
     if (p.specialist === "zuri") this.shoot(p, aim, 900, 450 + this.level * 50, { radius: 24, color: "#ffb050", explosion: 600 * area, life: 2.5, pierce: 0, sourceId: "ability:r", executeMissingHealthBonus: BALANCE.identityTuning.zuri.executeMissingHealthBonus });
     else if (p.specialist === "echo") {
       for (const ally of this.players) ally.invuln = 3;
-      for (const enemy of this.enemies) { enemy.stun = Math.max(enemy.stun, 2.5); this.recordBreachControl(enemy, p.id, 2.5); }
+      for (const enemy of this.enemies) this.applyControl(enemy, 2.5, p.id);
       this.blast(p.x, p.y, 1150, 140 + this.level * 8, p.id, spec.color, true, "perfect", "ability:r");
     } else if (p.specialist === "sola") {
       const target = { x: p.x + Math.cos(aim) * 470, y: p.y + Math.sin(aim) * 470 };
@@ -1751,7 +1879,7 @@ export class Simulation {
         }
         if (bullet.signatureEvolutionMechanic === "guard-return") this.applyGuardReturn(bullet, enemy);
         if (bullet.hex) enemy.hexed = BALANCE.identityTuning.nova.hexDuration;
-        if (bullet.tornado) enemy.stun = Math.max(enemy.stun, .25);
+        if (bullet.tornado) this.applyControl(enemy, .25, bullet.owner);
         if (bullet.explosion) this.blast(bullet.x, bullet.y, bullet.explosion, impactDamage * .55, bullet.owner, bullet.color, true, "explosion", bullet.sourceId || "signature", { variantId: bullet.variantId });
         const needleRedirected = bullet.needleRetarget && !bullet.needleRetargeted && this.retargetEvolvedNeedle(bullet, enemy);
         if (bullet.evolvedBoomerang) {
@@ -1831,13 +1959,13 @@ export class Simulation {
         for (const enemy of this.enemies) {
           if (enemy.dead || effect.hit.has(enemy.id) || Math.abs(enemy.y - effect.y) > BALANCE.weapons.universal.transit.corridorHalfHeight || Math.abs(enemy.x - effect.x) > 110) continue;
           effect.hit.add(enemy.id); this.damageEnemy(enemy, effect.damage, effect.owner, false, effect.sourceId || "transit");
-          if (!effect.evolved) enemy.stun = 1;
-          else if (enemy.boss) enemy.stun = BALANCE.weapons.universal.transit.bossStun;
+          if (!effect.evolved) this.applyControl(enemy, 1, effect.owner);
+          else if (enemy.boss) this.applyControl(enemy, BALANCE.weapons.universal.transit.bossStun, effect.owner);
           else if (!enemy.dead) {
             const tuning = BALANCE.weapons.universal.transit;
             const beforeX = enemy.x, beforeY = enemy.y, direction = Math.sign(effect.vx || tuning.speed) || 1;
             moveEntityWithCover(enemy, direction * tuning.evolvedPushDistance, 0);
-            enemy.stun = Math.max(enemy.stun, tuning.evolvedStun);
+            this.applyControl(enemy, tuning.evolvedStun, effect.owner);
             if (!effect.pushProcEmitted) {
               effect.pushProcEmitted = true;
               const owner = this.players.find((player) => player.id === effect.owner);
@@ -1849,7 +1977,6 @@ export class Simulation {
               });
             }
           }
-          this.recordBreachControl(enemy, effect.owner, enemy.stun);
         }
       } else if (effect.delayed && effect.life <= 0 && !effect.triggered) due.push(effect);
     }
@@ -1892,8 +2019,7 @@ export class Simulation {
       if (kind === "hex") enemy.hexed = BALANCE.identityTuning.nova.hexDuration;
       if (kind === "stun" || kind === "knockup" || stun) {
         const control = stun || 1.2;
-        enemy.stun = Math.max(enemy.stun, control);
-        this.recordBreachControl(enemy, owner, control);
+        this.applyControl(enemy, control, owner);
       }
     }
     for (const pod of this.pods) {
@@ -2089,7 +2215,11 @@ export class Simulation {
       if (enemy.boss) { this.updateBoss(enemy, dt, living); continue; }
       if (enemy.eventType === "treasure") {
         enemy.life -= dt;
-        if (enemy.life <= 0) { enemy.dead = true; this.pushEvent("danger", "Treasure signal escaped", "The runner vanished into the breach"); continue; }
+        if (enemy.life <= 0) {
+          enemy.dead = true;
+          if (this.participationState?.enabled) this.participationState = removeTargetCredit(this.participationState, enemy.id);
+          this.pushEvent("danger", "Treasure signal escaped", "The runner vanished into the breach"); continue;
+        }
         if (enemy.stun > 0) continue;
         const hunter = living.reduce((best, player) => !best || distance(enemy, player) < distance(enemy, best) ? player : best, null);
         if (!hunter) continue;
@@ -2188,7 +2318,7 @@ export class Simulation {
     if (p.invuln > 0 || p.hitGrace > 0 || p.dead || p.downed) return;
     if (p.iceReady) {
       p.iceReady = false;
-      for (const enemy of this.enemies) if (distance(p, enemy) < 230) enemy.stun = Math.max(enemy.stun, 2.4);
+      for (const enemy of this.enemies) if (distance(p, enemy) < 230) this.applyControl(enemy, 2.4, p.id);
       this.effects.push({ id: this.nextCosmeticId("fx"), x: p.x, y: p.y, radius: 230, life: .55, maxLife: .55, damage: 0, owner: p.id, color: "#9de7ff", kind: "freeze" });
       return;
     }
@@ -2199,9 +2329,17 @@ export class Simulation {
       const multiplier = formationDamageMultiplier(this.synergyState, p.replaySlot), mitigated = damage * (1 - multiplier);
       damage *= multiplier;
       if (mitigated > 0) this.synergyState = addSquadSynergyStats(this.synergyState, p.replaySlot, { mitigated });
+      if (mitigated > 0 && this.participationState?.enabled) {
+        const providers = new Set([p.replaySlot]);
+        for (const link of this.synergyState.formationLinks.filter((entry) => entry.active && (entry.a === p.replaySlot || entry.b === p.replaySlot))) providers.add(link.a === p.replaySlot ? link.b : link.a);
+        this.participationState = addMitigationPrevented(this.participationState, { providers: [...providers], amount: mitigated });
+      }
     }
     if (p.frenzy > 0) damage *= p.hp < p.maxHp * .5 ? .5 : .75;
-    if (p.shield > 0) { const blocked = Math.min(p.shield, damage); p.shield -= blocked; damage -= blocked; }
+    if (p.shield > 0) {
+      const blocked = Math.min(p.shield, damage); p.shield -= blocked; damage -= blocked;
+      if (blocked > 0 && this.participationState?.enabled) this.participationState = reduceAttributedShield(this.participationState, { targetSlot: p.replaySlot, amount: blocked, prevented: true }).state;
+    }
     p.damageTaken += Math.max(0, Math.min(damage, p.hp));
     p.hp -= damage; p.lastHit = this.time;
     let impactAngle = p.facing + Math.PI;
@@ -2224,7 +2362,7 @@ export class Simulation {
   downPlayer(p) {
     p.hp = 0; p.deaths++; p.animState = "down"; p.animTime = 10;
     if (this.players.length === 1) { p.dead = true; this.lose(`${p.name} was overwhelmed.`); return; }
-    p.downed = true; p.downTimer = 10; p.reviveProgress = 0;
+    p.downed = true; p.downTimer = 10; p.reviveProgress = 0; p.downedTick = this.tick;
     this.pushEvent("danger", `${p.name} is down`, "Stand in the ring to revive");
   }
 
@@ -2251,6 +2389,12 @@ export class Simulation {
     const owner = this.players.find((p) => p.id === ownerId);
     if (owner) {
       owner.damage += dealt;
+      if (dealt > 0 && this.participationState?.enabled) {
+        this.participationState = recordTargetDamage(this.participationState, {
+          enemyId: enemy.id, kind: this.participationTargetKind(enemy), maxHp: enemy.maxHp,
+          slot: owner.replaySlot, damage: dealt, tick: this.tick,
+        });
+      }
       const sourceKey = String(source || "other");
       owner.damageBySource[sourceKey] = (owner.damageBySource[sourceKey] || 0) + dealt;
       const authoredScale = Number(options.knockbackScale);
@@ -2261,7 +2405,7 @@ export class Simulation {
       enemy.hitAngle = impactAngle; enemy.knockVx = (enemy.knockVx || 0) + Math.cos(impactAngle) * knockback; enemy.knockVy = (enemy.knockVy || 0) + Math.sin(impactAngle) * knockback;
       if (owner.specialist === "rift" && dealt > 0) {
         const tuning = BALANCE.identityTuning.rift;
-        this.grantShieldAmount(owner, dealt * tuning.damageShieldRatio, tuning.damageShieldCapMaxHealth);
+        this.grantShieldAmount(owner, dealt * tuning.damageShieldRatio, tuning.damageShieldCapMaxHealth, owner.replaySlot);
       }
     }
     if (owner && dealt > 0 && !options.suppressSynergy && this.synergyState?.enabled && (enemy.elite || enemy.miniboss || enemy.boss)) {
@@ -2272,10 +2416,10 @@ export class Simulation {
       this.synergyState = result.state;
       if (result.accepted && result.proc) {
         this.synergyState = addSquadSynergyStats(this.synergyState, result.proc.setupSlot, { assists: 1 });
-        this.synergyState = addSquadSynergyStats(this.synergyState, result.proc.finisherSlot, { triggers: 1, damage: result.proc.damage });
-        this.damageEnemy(enemy, result.proc.damage, ownerId, false, result.proc.sourceId, { suppressSynergy: true });
+        const synergyDealt = this.damageEnemy(enemy, result.proc.damage, ownerId, false, result.proc.sourceId, { suppressSynergy: true });
+        this.synergyState = addSquadSynergyStats(this.synergyState, result.proc.finisherSlot, { triggers: 1, damage: synergyDealt });
         this.pushEvent("synergy", "Breach Window", "Control converted into focused bonus damage", {
-          synergyId: result.proc.id, synergySequence: result.proc.sequence, slots: [result.proc.setupSlot, result.proc.finisherSlot], damage: result.proc.damage,
+          synergyId: result.proc.id, synergySequence: result.proc.sequence, slots: [result.proc.setupSlot, result.proc.finisherSlot], damage: synergyDealt,
         });
       }
     }
@@ -2286,11 +2430,18 @@ export class Simulation {
 
   killEnemy(enemy, ownerId) {
     if (enemy.dead) return;
+    if (this.participationState?.enabled) {
+      const killer = this.players.find((player) => player.id === ownerId), result = settleTargetCredit(this.participationState, { enemyId: enemy.id, killerSlot: killer?.replaySlot ?? null, tick: this.tick });
+      this.participationState = result.state;
+      if (result.awards.length) this.pushEvent("participation", "Shared participation credited", enemy.boss ? "Apex contribution recorded" : enemy.elite || enemy.miniboss ? "Priority-target contribution recorded" : "Combat assists recorded", {
+        participationSequence: this.participationState.sequence, slots: result.awards.map(({ slot }) => slot), enemyId: enemy.id,
+      });
+    }
     enemy.dead = true;
     this.kills++;
     const owner = this.players.find((p) => p.id === ownerId);
     if (owner) owner.kills++;
-    if (owner?.healthbackBuff > 0) owner.hp = Math.min(owner.maxHp, owner.hp + owner.maxHp * .018);
+    if (owner?.healthbackBuff > 0) this.healPlayer(owner, owner.maxHp * .018, owner.replaySlot);
     if (enemy.boss) { this.win(); return; }
     if (enemy.affixIds?.includes("volatile")) {
       const tuning = BALANCE.enemyIdentity.elite.affixes.volatile;
@@ -2361,7 +2512,7 @@ export class Simulation {
       this.effects.push({ id: this.nextCosmeticId("fx"), x: target.x, y: target.y, radius: drop.type === "card" ? 72 : 38, life: .32, maxLife: .32, damage: 0, owner: target.id, color: drop.type === "card" ? "#f7d76a" : "#63f2df", kind: "pickup" });
       if (drop.type === "card") this.useAccessCard();
       else if (drop.type === "gold") this.gold += Math.round(8 * this.difficulty.gold);
-      else if (drop.type === "heal") for (const p of this.players) p.hp = Math.min(p.maxHp, p.hp + p.maxHp * .2);
+      else if (drop.type === "heal") for (const p of this.players) this.healPlayer(p, p.maxHp * .2, target.replaySlot);
       else if (drop.type === "vacuum") {
         for (const orb of this.orbs) if (!orb.dead) orb.vacuumTarget = target.id;
         this.effects.push({ id: this.nextCosmeticId("fx"), x: target.x, y: target.y, radius: 460, life: .5, maxLife: .5, damage: 0, owner: target.id, color: "#63f2df", kind: "vacuum" });
@@ -2501,7 +2652,7 @@ export class Simulation {
       if (!evolved) {
         const options = Object.entries(p.weapons).filter(([, state]) => state.level < BALANCE.core.maxWeaponLevel);
         if (options.length) { const [weaponId, state] = this.pick(options); state.level++; upgraded.push(`${p.name}: ${weaponId === "signature" ? SPECIALISTS[p.specialist].signature.name : WEAPONS[weaponId].name} +1`); }
-        else p.hp = Math.min(p.maxHp, p.hp + p.maxHp * .25);
+        else this.healPlayer(p, p.maxHp * .25, null, { credit: false });
       }
     }
     this.pushEvent("upgrade", "Access key decrypted", upgraded.join(" · ") || "Squad repaired");
@@ -2562,7 +2713,7 @@ export class Simulation {
       balanceHash: this.balanceHash,
       features: {
         gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents,
-        squadSynergies: this.squadSynergies, registryVersion: this.synergyRegistryVersion,
+        squadSynergies: this.squadSynergies, sharedParticipationCredit: this.sharedParticipationCredit, registryVersion: this.synergyRegistryVersion,
       },
       tick: this.tick,
       rng: { gameplay: this.gameplayRng.snapshot(), cosmetic: this.cosmeticRng.snapshot() },
@@ -2605,7 +2756,7 @@ export class Simulation {
       header: {
         seed: this.seed, balanceVersion: this.balanceVersion, balanceHash: this.balanceHash,
         gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents,
-        squadSynergies: this.squadSynergies, registryVersion: this.synergyRegistryVersion,
+        squadSynergies: this.squadSynergies, sharedParticipationCredit: this.sharedParticipationCredit, registryVersion: this.synergyRegistryVersion,
         map: this.map.id, difficulty: this.difficulty.id, duration: this.duration,
       },
       rng: { gameplay: this.gameplayRng.snapshot(), cosmetic: this.cosmeticRng.snapshot() },
@@ -2619,12 +2770,13 @@ export class Simulation {
       choiceReady: recoveryRecord(this.choiceReady, playerIds),
       selectedChoices: recoveryRecord(this.selectedChoices, playerIds),
       synergyState: serializeRecoveryValue(this.synergyState, playerIds),
+      participationState: serializeRecoveryValue(this.participationState, playerIds),
     };
   }
 
   static fromRecoveryState(value, { playerIdsBySlot } = {}) {
     if (!value || typeof value !== "object" || Array.isArray(value) || value.version !== RECOVERY_STATE_VERSION) throw new TypeError("Unsupported recovery state");
-    const expected = ["version", "header", "rng", "sequences", "scalars", "machine", "players", "disconnectedPlayers", "lists", "pendingChoices", "choiceReady", "selectedChoices", "synergyState"];
+    const expected = ["version", "header", "rng", "sequences", "scalars", "machine", "players", "disconnectedPlayers", "lists", "pendingChoices", "choiceReady", "selectedChoices", "synergyState", "participationState"];
     const actual = Object.keys(value).sort();
     if (actual.length !== expected.length || expected.sort().some((key, index) => key !== actual[index])) throw new TypeError("Recovery state has unexpected fields");
     const header = value.header;
@@ -2661,13 +2813,13 @@ export class Simulation {
       balanceVersion: header.balanceVersion, balanceHash: header.balanceHash,
       features: {
         gameplayVersion: header.gameplayVersion, objectiveEvents: header.objectiveEvents,
-        squadSynergies: header.squadSynergies, registryVersion: header.registryVersion,
+        squadSynergies: header.squadSynergies, sharedParticipationCredit: header.sharedParticipationCredit, registryVersion: header.registryVersion,
       },
     }, {
       seed: header.seed, balanceVersion: header.balanceVersion, balanceHash: header.balanceHash,
       features: {
         gameplayVersion: header.gameplayVersion, objectiveEvents: header.objectiveEvents,
-        squadSynergies: header.squadSynergies, registryVersion: header.registryVersion,
+        squadSynergies: header.squadSynergies, sharedParticipationCredit: header.sharedParticipationCredit, registryVersion: header.registryVersion,
       },
     });
     sim.gameplayRng = SeededRng.fromSnapshot(value.rng?.gameplay);
@@ -2750,6 +2902,8 @@ export class Simulation {
     sim.selectedChoices = deserializeRecoveryValue(value.selectedChoices, restoredPlayerIds) || {};
     sim.synergyState = validateSquadSynergyState(deserializeRecoveryValue(value.synergyState, restoredPlayerIds));
     if (sim.synergyState.enabled !== sim.squadSynergies) throw new TypeError("Recovery squad synergy flag mismatch");
+    sim.participationState = validateParticipationState(deserializeRecoveryValue(value.participationState, restoredPlayerIds));
+    if (sim.participationState.enabled !== sim.sharedParticipationCredit || sim.participationState.registryVersion !== PARTICIPATION_SCHEMA) throw new TypeError("Recovery participation flag or registry mismatch");
     sim.events = [];
     sim.disconnectedPlayers = new Map(restoredDisconnectedPlayers.map(({ key, player, leftTick }) => [key, { player, leftTick }]));
     sim.pruneDisconnectedPlayers();
@@ -2788,7 +2942,7 @@ export class Simulation {
       balanceVersion: this.balanceVersion, balanceHash: this.balanceHash,
       features: {
         gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents,
-        squadSynergies: this.squadSynergies, registryVersion: this.synergyRegistryVersion,
+        squadSynergies: this.squadSynergies, sharedParticipationCredit: this.sharedParticipationCredit, registryVersion: this.synergyRegistryVersion,
       },
       tick: this.tick, determinism: this.deterministicState(),
       map: this.map.id, difficulty: this.difficulty.id, duration: this.duration, time: Math.round(this.time * 10) / 10,
@@ -2800,6 +2954,7 @@ export class Simulation {
       hostile: clean(this.hostile), effects: clean(this.effects, ["hit"]), orbs: clean(this.orbs), drops: clean(this.drops),
       pods: clean(this.pods), objectives: clean(this.objectives), relayBalls: clean(this.relayBalls), feathers: clean(this.feathers),
       synergyState: structuredClone(this.synergyState), synergyTelemetry: this.synergyTelemetry(),
+      participationState: structuredClone(this.participationState), participationTelemetry: this.participationTelemetry(),
       pendingChoices: this.pendingChoices, choiceReady: this.choiceReady, selectedChoices: this.selectedChoices, events: this.events.slice(-5),
     };
   }

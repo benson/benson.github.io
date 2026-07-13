@@ -1,18 +1,18 @@
 import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260713.2";
-import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.6";
-import { Renderer } from "./render.js?v=20260713.6";
+import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.7";
+import { Renderer } from "./render.js?v=20260713.7";
 import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260713.2";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
 import { getThemeAsset, getThemeMaterial } from "./themes/lastlight.js?v=20260713.2";
-import { submitRunTelemetry } from "./telemetry.js?v=20260713.6";
+import { submitRunTelemetry } from "./telemetry.js?v=20260713.7";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
 import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260713.2";
 import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260713.6";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
-import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260713.6";
-import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260713.6";
+import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260713.7";
+import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260713.7";
 import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260711.5";
-import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260713.6";
+import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260713.7";
 import { GuestInputSequenceTracker, HostInputSequenceGate, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260713.2";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260713.2";
 import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260713.2";
@@ -26,8 +26,8 @@ import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatur
 import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260713.2";
 import { getWeaponEvolution } from "./weapon-evolution.js?v=20260713.1";
 import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260712.1";
-import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260713.6";
-import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260713.6";
+import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260713.7";
+import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260713.7";
 import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260713.6";
 import { reconcileActiveBuffs } from "./active-buffs.js?v=20260713.1";
 import { ELITE_AFFIXES, ENEMY_ARCHETYPES } from "./enemy-archetypes.js?v=20260713.1";
@@ -36,7 +36,7 @@ import {
   AuthoritySnapshotGate, HOST_MIGRATION_PROTOCOL_VERSION, MIGRATION_CHECKPOINT_INTERVAL_TICKS,
   createMigrationCapabilities, createMigrationCheckpoint, createMigrationReady,
   migrationCompatibilityMatches, validateMigrationCheckpoint,
-} from "./host-migration.js?v=20260713.6";
+} from "./host-migration.js?v=20260713.7";
 import { RECONNECT_DELAYS_MS, SquadPresenceTracker, authorityStateCopy } from "./reconnect-state.js?v=20260713.3";
 import {
   HostPingGate, PING_INTENTS, PING_LIFETIME_TICKS, PING_WHEEL_ORDER, PingSequenceTracker,
@@ -51,6 +51,7 @@ import {
 import { DraftRecommendationStore, recommendationMarkerModel } from "./draft-recommendations.js?v=20260713.5";
 import { SQUAD_SYNERGY_REGISTRY } from "./squad-synergies.js?v=20260713.6";
 import { reconcileActiveSynergies } from "./active-synergies.js?v=20260713.6";
+import { PARTICIPATION_REGISTRY } from "./participation-credit.js?v=20260713.7";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -59,7 +60,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.13.6";
+const BUILD = "2026.07.13.7";
 const AUTHORITY_WATCHDOG_MS = Object.freeze({ synchronizing: 10_000, migrating: 25_000 });
 const BALANCE = getBalanceConfig();
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
@@ -90,7 +91,8 @@ const hostPingGate = new HostPingGate();
 const draftRecommendationSequences = new DraftRecommendationSequenceTracker();
 const hostDraftRecommendationGate = new HostDraftRecommendationGate();
 const PROGRESS_KEY = "lastlight:campaign:v1";
-const RUN_HISTORY_KEY = "lastlight:runs:v1";
+const RUN_HISTORY_KEY = "lastlight:runs:v2";
+const LEGACY_RUN_HISTORY_KEY = "lastlight:runs:v1";
 const CLIENT_TOKEN_KEY = "lastlight:session-token:v1";
 const DAMAGE_LEDGER_LAYOUT_KEY = "lastlight:damage-ledger-layout:v1";
 const LAST_REPLAY_KEY = "lastlight:last-replay:v1";
@@ -107,10 +109,49 @@ function loadProgress() {
   catch { return emptyProgress(); }
 }
 
+const PARTICIPATION_TOTAL_FIELDS = Object.freeze([
+  "effectiveHealing", "effectiveShielding", "shieldDamagePrevented", "mitigationPrevented",
+  "damageAssists", "controlAssists", "revives", "reviveSeconds", "objectivePresenceSeconds",
+  "objectiveMovement", "objectiveCompletions", "eliteParticipations", "apexParticipations",
+]);
+
+function safeRunNumber(value, max = 1_000_000_000) {
+  const number = Number(value);
+  return Number.isFinite(number) ? clamp(number, 0, max) : 0;
+}
+
+function normalizeParticipationTotals(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return Object.fromEntries(PARTICIPATION_TOTAL_FIELDS.map((field) => [field, safeRunNumber(value[field], field.includes("Seconds") ? 16_000 : 1_000_000_000)]));
+}
+
+function normalizeRunHistoryEntry(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const map = typeof value.map === "string" && MAPS[value.map] ? value.map : "warehouse";
+  const difficulty = typeof value.difficulty === "string" && DIFFICULTIES[value.difficulty] ? value.difficulty : "story";
+  const finishedAt = Number.isFinite(Date.parse(value.finishedAt)) ? new Date(value.finishedAt).toISOString() : new Date(0).toISOString();
+  const players = Array.isArray(value.players) ? value.players.slice(0, 4).map((player) => ({
+    name: String(player?.name || "Specialist").slice(0, 16),
+    specialist: SPECIALISTS[player?.specialist] ? player.specialist : "zuri",
+    damage: safeRunNumber(player?.damage), kills: safeRunNumber(player?.kills, 10_000_000),
+    xpCollected: safeRunNumber(player?.xpCollected), damageTaken: safeRunNumber(player?.damageTaken),
+    revives: safeRunNumber(player?.revives, 10_000), traveled: safeRunNumber(player?.traveled),
+    damageBySource: {},
+  })) : [];
+  return {
+    schemaVersion: Number(value.schemaVersion) === 2 ? 2 : 1,
+    id: String(value.id || finishedAt).slice(0, 80), finishedAt, won: Boolean(value.won), map, difficulty,
+    elapsed: safeRunNumber(value.elapsed, 4_000), level: safeRunNumber(value.level, 500),
+    kills: safeRunNumber(value.kills, 10_000_000), gold: safeRunNumber(value.gold, 10_000_000), players,
+    participationTotals: normalizeParticipationTotals(value.participationTotals || value.participationTelemetry),
+  };
+}
+
 function loadRunHistory() {
   try {
-    const runs = JSON.parse(localStorage.getItem(RUN_HISTORY_KEY) || "[]");
-    return Array.isArray(runs) ? runs.slice(0, 24) : [];
+    const current = JSON.parse(localStorage.getItem(RUN_HISTORY_KEY) || "null");
+    const legacy = current === null ? JSON.parse(localStorage.getItem(LEGACY_RUN_HISTORY_KEY) || "[]") : current;
+    return Array.isArray(legacy) ? legacy.map(normalizeRunHistoryEntry).filter(Boolean).slice(0, 24) : [];
   } catch { return []; }
 }
 
@@ -191,6 +232,7 @@ function migrationCompatibility() {
     gameplayVersion: state.runtimeConfig.config.gameplayVersion,
     objectiveEvents: state.runtimeConfig.config.flags.objectiveEvents,
     squadSynergies: state.runtimeConfig.config.flags.squadSynergies,
+    sharedParticipationCredit: state.runtimeConfig.config.flags.sharedParticipationCredit,
     registryVersion: state.runtimeConfig.config.registryVersion,
     recoveryVersion: RECOVERY_SIMULATION_VERSION,
   };
@@ -406,6 +448,7 @@ function beginReplayCapture(players, seed) {
     gameplayVersion: state.runtimeConfig.config.gameplayVersion,
     objectiveEvents: state.runtimeConfig.config.flags.objectiveEvents,
     squadSynergies: state.runtimeConfig.config.flags.squadSynergies,
+    sharedParticipationCredit: state.runtimeConfig.config.flags.sharedParticipationCredit,
     registryVersion: state.runtimeConfig.config.registryVersion,
     rng: RNG_ALGORITHM, seed, run: replayRunConfig(),
   });
@@ -993,6 +1036,13 @@ function renderGuide() {
     };
     return guideCard(entry.presentation.glyph, entry.name, entry.category.replaceAll("-", " "), `${entry.presentation.copy} Solo runs are unchanged.`, "", "", details);
   }).join("");
+  const participation = [
+    guideCard("+", "Effective support", "Healing & shielding", "Only health actually restored and shield actually granted count. Overheal, overshield, shield decay, reconnect restoration, and respawn restoration are excluded."),
+    guideCard("AS", "Damage assists", "Priority participation", `Deal 5% of target max health, bounded from ${PARTICIPATION_REGISTRY.damageAssist.minimumDamage} to ${PARTICIPATION_REGISTRY.damageAssist.maximumDamage} damage, within ${PARTICIPATION_REGISTRY.damageAssist.recencyTicks / 60} seconds. Overkill, environment damage, and proximity do not count.`),
+    guideCard("CC", "Control assists", "Effective crowd control", `Extend control by ${PARTICIPATION_REGISTRY.controlAssist.minimumExtensionTicks} new ticks within ${PARTICIPATION_REGISTRY.controlAssist.recencyTicks / 60} seconds. Refreshing existing control and duplicate traffic do not count twice.`),
+    guideCard("RV", "Revive work", "Shared rescue", `Contribute ${PARTICIPATION_REGISTRY.revive.minimumTicks} ticks and ${Math.round(PARTICIPATION_REGISTRY.revive.minimumShare * 100)}% of completed work. Credit follows active time in the ring, not the final frame.`),
+    guideCard("OBJ", "Objective work", "Presence & movement", `Zone credit needs ${PARTICIPATION_REGISTRY.objective.minimumTicks} ticks and ${Math.round(PARTICIPATION_REGISTRY.objective.minimumShare * 100)}% of work. Relay credit counts only movement toward the destination: ${PARTICIPATION_REGISTRY.objective.relayMinimumMovement} units or ${Math.round(PARTICIPATION_REGISTRY.objective.relayRouteRatio * 100)}% of route.`),
+  ].join("");
   const rare = [
     guideCard("KEY", "Elite access card", "Rare evolution drop", "Elites and minibosses drop access cards. A card evolves one eligible level-five weapon whose matching passive is owned.", "", getThemeAsset("archive.events.eliteAccessCard")),
     guideCard("$", "Treasure runner", "Timed chase event", "Catch the fleeing gold target before it escapes to earn bonus gold, data, and access cards.", "", getThemeAsset("archive.events.treasureRunner")),
@@ -1003,7 +1053,7 @@ function renderGuide() {
     ...BOONS.map((boon) => guideCard("★", boon.name, "Rare squad boon", boon.copy, "", boon.icon)),
     ...AUGMENTS.map((augment) => guideCard("AUG", augment.name, "Rare augment", augment.copy, "", augment.icon)),
   ].join("");
-  $("guide-content").innerHTML = `<section id="guide-campaign" class="guide-section"><h3>Campaign route</h3><p>Clear threat tiers to unlock harder operations. Progress is saved in this browser.</p><div class="campaign-route">${campaign}</div></section><section id="guide-apex" class="guide-section"><h3>Map apexes</h3><p>Every apex has two deterministic phases, a real health gate, named attacks, and a map-specific arena change.</p><div class="guide-grid">${apexes}</div></section><section id="guide-specialists" class="guide-section"><h3>Specialist identities</h3><p>Measured roles, strengths, and failure points from the versioned simulation contract.</p><div class="guide-grid">${identities}</div></section><section id="guide-field" class="guide-section"><h3>Field objects</h3><p>Hold Shift and point at a live field object for its current stats.</p><div class="guide-grid">${fieldObjects}</div></section><section id="guide-signatures" class="guide-section"><h3>Signature evolutions</h3><div class="guide-grid">${signatures}</div></section><section id="guide-weapons" class="guide-section"><h3>Universal weapons</h3><div class="guide-grid">${weapons}</div></section><section id="guide-materials" class="guide-section"><h3>Impact materials</h3><p>Every weapon keeps its silhouette while contact particles, decals, flash, and sound adapt to the target. Shape and pattern remain available when color or motion is reduced.</p><div class="guide-grid">${materials}</div></section><section id="guide-passives" class="guide-section"><h3>Passive upgrades</h3><div class="guide-grid">${passives}</div></section><section id="guide-synergies" class="guide-section"><h3>Squad synergies</h3><p>Coordinate roles, ultimate timing, and movement. Effects are authoritative, bounded, non-stacking, and disabled in solo runs.</p><div class="guide-grid">${synergies}</div></section><section id="guide-rare" class="guide-section"><h3>Rare finds & events</h3><div class="guide-grid">${rare}</div></section>`;
+  $("guide-content").innerHTML = `<section id="guide-campaign" class="guide-section"><h3>Campaign route</h3><p>Clear threat tiers to unlock harder operations. Progress is saved in this browser.</p><div class="campaign-route">${campaign}</div></section><section id="guide-apex" class="guide-section"><h3>Map apexes</h3><p>Every apex has two deterministic phases, a real health gate, named attacks, and a map-specific arena change.</p><div class="guide-grid">${apexes}</div></section><section id="guide-specialists" class="guide-section"><h3>Specialist identities</h3><p>Measured roles, strengths, and failure points from the versioned simulation contract.</p><div class="guide-grid">${identities}</div></section><section id="guide-field" class="guide-section"><h3>Field objects</h3><p>Hold Shift and point at a live field object for its current stats.</p><div class="guide-grid">${fieldObjects}</div></section><section id="guide-signatures" class="guide-section"><h3>Signature evolutions</h3><div class="guide-grid">${signatures}</div></section><section id="guide-weapons" class="guide-section"><h3>Universal weapons</h3><div class="guide-grid">${weapons}</div></section><section id="guide-materials" class="guide-section"><h3>Impact materials</h3><p>Every weapon keeps its silhouette while contact particles, decals, flash, and sound adapt to the target. Shape and pattern remain available when color or motion is reduced.</p><div class="guide-grid">${materials}</div></section><section id="guide-passives" class="guide-section"><h3>Passive upgrades</h3><div class="guide-grid">${passives}</div></section><section id="guide-participation" class="guide-section"><h3>Participation credit</h3><p>Credit records effective work by anonymous specialist slot. Genuine overlap is shared; duplicate traffic, excess values, idle proximity, and system restoration are excluded.</p><div class="guide-grid">${participation}</div></section><section id="guide-synergies" class="guide-section"><h3>Squad synergies</h3><p>Coordinate roles, ultimate timing, and movement. Effects are authoritative, bounded, non-stacking, and disabled in solo runs.</p><div class="guide-grid">${synergies}</div></section><section id="guide-rare" class="guide-section"><h3>Rare finds & events</h3><div class="guide-grid">${rare}</div></section>`;
 }
 
 function renderSpecialistGrid() {
@@ -2020,6 +2070,11 @@ function processEvents(events) {
       sfx("reward");
       continue;
     }
+    if (event.type === "participation") {
+      $("participation-live-region").textContent = `${event.title}. ${event.copy || ""}`.trim();
+      sfx("reward");
+      continue;
+    }
     if (event.type === "danger") sfx(event.apexIntent || event.apexPhase || /apex|phase|has arrived|enraged/i.test(event.title) ? "enemy:apex" : "danger");
     else if (event.type === "victory") sfx("victory");
     else if (event.type === "defeat") sfx("defeat");
@@ -2050,6 +2105,30 @@ function scheduleResult(game) {
 
 function statNumber(value) { return Math.round(Number(value) || 0).toLocaleString(); }
 
+function contributionCell(glyph, value, detail, label) {
+  return `<td aria-label="${escapeHTML(label)}"><span class="contribution-value"><i aria-hidden="true">${glyph}</i><b>${escapeHTML(value)}</b><small>${escapeHTML(detail)}</small></span></td>`;
+}
+
+function renderContributionTable(game) {
+  const section = $("result-contribution"), participation = game.participationState;
+  if (!section || !participation?.slots) { section?.classList.add("hidden"); return; }
+  const bySlot = new Map(participation.slots.map((entry) => [entry.slot, entry]));
+  const synergyBySlot = new Map((game.synergyState?.stats || []).map((entry) => [entry.slot, entry]));
+  const playersBySlot = new Map(game.players.map((player) => [player.replaySlot, player]));
+  $("result-contribution-body").innerHTML = participation.slots.map(({ slot }) => playersBySlot.get(slot) || {
+    replaySlot: slot, name: "Departed specialist",
+  }).map((player) => {
+    const stats = bySlot.get(player.replaySlot) || {}, synergy = synergyBySlot.get(player.replaySlot) || {};
+    const support = Number(stats.effectiveHealing || 0) + Number(stats.effectiveShielding || 0);
+    const prevented = Number(stats.shieldDamagePrevented || 0) + Number(stats.mitigationPrevented || 0);
+    const assists = Number(stats.damageAssists || 0) + Number(stats.controlAssists || 0);
+    const synergyActions = Number(synergy.triggers || 0) + Number(synergy.assists || 0) + Number(synergy.ultimateChains || 0);
+    const synergyImpact = Number(synergy.damage || 0) + Number(synergy.shielding || 0) + Number(synergy.mitigated || 0);
+    return `<tr><th scope="row"><span>S${player.replaySlot + 1}</span>${escapeHTML(player.name)}</th>${contributionCell("+", statNumber(support), `${statNumber(stats.effectiveHealing)} heal · ${statNumber(stats.effectiveShielding)} shield`, `Support ${support}`)}${contributionCell("◇", statNumber(prevented), `${statNumber(stats.shieldDamagePrevented)} barrier · ${statNumber(stats.mitigationPrevented)} formation`, `Damage prevented ${prevented}`)}${contributionCell("A", statNumber(assists), `${statNumber(stats.damageAssists)} damage · ${statNumber(stats.controlAssists)} control`, `Assists ${assists}`)}${contributionCell("R", statNumber(stats.revives), `${(Number(stats.reviveTicks || 0) / 60).toFixed(1)}s active`, `Revives ${stats.revives || 0}`)}${contributionCell("O", statNumber(stats.objectiveCompletions), `${(Number(stats.objectivePresenceTicks || 0) / 60).toFixed(1)}s · ${statNumber(stats.objectiveMovement)}u`, `Objective completions ${stats.objectiveCompletions || 0}`)}${contributionCell("!", `${statNumber(stats.eliteParticipations)}/${statNumber(stats.apexParticipations)}`, "elite / apex", `Priority participation ${stats.eliteParticipations || 0} elite and ${stats.apexParticipations || 0} apex`)}${contributionCell("S", statNumber(synergyActions), `${statNumber(synergyImpact)} impact`, `Synergy actions ${synergyActions}`)}</tr>`;
+  }).join("");
+  section.classList.remove("hidden");
+}
+
 function renderScoreboard(game) {
   const seconds = elapsedRunSeconds(game);
   $("result-scoreboard-body").innerHTML = game.players.map((player) => {
@@ -2057,6 +2136,7 @@ function renderScoreboard(game) {
     return `<tr><td><div class="result-scoreboard-player"><img src="${spec.sprite}" alt=""><div><strong>${escapeHTML(player.name)}</strong><small>${spec.name}</small></div></div></td><td>${statNumber(player.damage)}</td><td>${(Number(player.damage || 0) / seconds).toFixed(1)}</td><td>${statNumber(player.kills)}</td><td>${statNumber(player.xpCollected)}</td><td>${statNumber(player.damageTaken)}</td><td>${statNumber(player.revives)}</td><td>${statNumber(player.traveled)}</td><td><button class="copy-scorecard" type="button" data-player-id="${player.id}">Copy card</button></td></tr>`;
   }).join("");
   $("result-scoreboard-body").querySelectorAll(".copy-scorecard").forEach((button) => button.addEventListener("click", () => copyPlayerScorecard(button.dataset.playerId)));
+  renderContributionTable(game);
   const synergyStats = game.synergyState?.stats || [], bySlot = new Map(synergyStats.map((entry) => [entry.slot, entry]));
   const teamwork = [
     { id: "breach-window", fields: [["Triggers", "triggers"], ["Setup assists", "assists"], ["Bonus damage", "damage"]] },
@@ -2086,11 +2166,14 @@ function saveCompletedRun(game) {
   const key = `${game.stage}:${Math.round(Number(game.time || 0) * 10)}:${game.players.map((player) => player.id).join(",")}`;
   if (state.resultSavedKey === key) return;
   state.resultSavedKey = key;
+  const participationTelemetry = typeof game.participationTelemetry === "function" ? game.participationTelemetry() : game.participationTelemetry;
   const run = {
+    schemaVersion: 2,
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, finishedAt: new Date().toISOString(), won: game.stage === "won",
     map: typeof game.map === "string" ? game.map : game.map.id, difficulty: typeof game.difficulty === "string" ? game.difficulty : game.difficulty.id,
     elapsed: elapsedRunSeconds(game), level: Number(game.level || 0), kills: Number(game.kills || 0), gold: Number(game.gold || 0),
-    synergyTelemetry: game.synergyTelemetry || null,
+    synergyTelemetry: typeof game.synergyTelemetry === "function" ? game.synergyTelemetry() : game.synergyTelemetry || null,
+    participationTotals: normalizeParticipationTotals(participationTelemetry),
     players: game.players.map((player) => ({ name: player.name, specialist: player.specialist, damage: player.damage, kills: player.kills, xpCollected: player.xpCollected, damageTaken: player.damageTaken, revives: player.revives, traveled: player.traveled, damageBySource: player.damageBySource || {} })),
   };
   state.runHistory = [run, ...state.runHistory].slice(0, 24);

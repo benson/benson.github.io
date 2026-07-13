@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260713.6">
+  <link rel="stylesheet" href="styles.css?v=20260713.7">
 </head>
 <body>
   <main id="app">
@@ -257,6 +257,7 @@
       <div class="active-buffs-hud" id="active-buffs-hud" aria-label="Active powerups"></div>
       <aside class="synergy-hud" id="synergy-hud" aria-label="Active squad synergies" hidden></aside>
       <div id="synergy-live-region" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+      <div id="participation-live-region" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
       <aside class="damage-ledger no-data" id="damage-ledger" aria-label="Leading damage sources">
         <header id="damage-ledger-handle" class="damage-ledger-handle" tabindex="0" aria-label="Move Damage Sources panel with arrow keys. Hold Control and use arrow keys to resize.">
           <strong>Damage sources</strong>
@@ -378,6 +379,17 @@
             <tbody id="result-scoreboard-body"></tbody>
           </table>
         </div>
+        <section id="result-contribution" class="result-contribution hidden" aria-labelledby="result-contribution-title">
+          <header><div><p class="eyebrow">Effective work // anonymous slots</p><h3 id="result-contribution-title">Squad contribution</h3></div><p>Only effective, bounded actions count. Focus or tap a column heading for its definition.</p></header>
+          <div class="contribution-wrap" tabindex="0" aria-label="Scrollable squad contribution table">
+            <table class="contribution-table">
+              <caption>Shared credit is non-zero-sum for genuine overlap. Excess healing or shielding, duplicate effects, overkill, idle proximity, and system restoration are excluded.</caption>
+              <thead><tr><th scope="col">Specialist</th><th scope="col"><button type="button" aria-describedby="contribution-support-help"><span aria-hidden="true">+</span> Support</button></th><th scope="col"><button type="button" aria-describedby="contribution-prevented-help"><span aria-hidden="true">◇</span> Prevented</button></th><th scope="col"><button type="button" aria-describedby="contribution-assists-help"><span aria-hidden="true">A</span> Assists</button></th><th scope="col"><button type="button" aria-describedby="contribution-revive-help"><span aria-hidden="true">R</span> Revive</button></th><th scope="col"><button type="button" aria-describedby="contribution-objective-help"><span aria-hidden="true">O</span> Objective</button></th><th scope="col"><button type="button" aria-describedby="contribution-priority-help"><span aria-hidden="true">!</span> Priority</button></th><th scope="col"><button type="button" aria-describedby="contribution-synergy-help"><span aria-hidden="true">S</span> Synergy</button></th></tr></thead>
+              <tbody id="result-contribution-body"></tbody>
+            </table>
+          </div>
+          <div class="sr-only"><p id="contribution-support-help">Effective health restored plus shield actually granted.</p><p id="contribution-prevented-help">Damage absorbed by attributed shields plus direct impact mitigation.</p><p id="contribution-assists-help">Qualified damage assists plus effective crowd control assists.</p><p id="contribution-revive-help">Completed revive credits and active contribution time.</p><p id="contribution-objective-help">Objective presence, positive relay movement, and completions.</p><p id="contribution-priority-help">Qualified elite and apex participation, never proximity alone.</p><p id="contribution-synergy-help">Breach, ultimate resonance, and moving screen actions with effective impact.</p></div>
+        </section>
         <section id="result-synergies" class="result-synergies hidden" aria-labelledby="result-synergies-title"><h3 id="result-synergies-title">Teamwork</h3><div id="result-synergy-cards"></div></section>
         <div id="result-damage-breakdown" class="result-damage-breakdown"></div>
         <div class="result-actions">
@@ -466,7 +478,7 @@
         <button id="guide-close" class="icon-button" type="button" aria-label="Close upgrade archive">Close</button>
       </div>
       <nav class="guide-tabs" aria-label="Upgrade archive sections">
-        <a href="#guide-campaign">Campaign</a><a href="#guide-apex">Apexes</a><a href="#guide-specialists">Specialists</a><a href="#guide-field">Field objects</a><a href="#guide-signatures">Signatures</a><a href="#guide-weapons">Weapons</a><a href="#guide-materials">Materials</a><a href="#guide-passives">Passives</a><a href="#guide-synergies">Squad synergies</a><a href="#guide-rare">Rare finds</a>
+        <a href="#guide-campaign">Campaign</a><a href="#guide-apex">Apexes</a><a href="#guide-specialists">Specialists</a><a href="#guide-field">Field objects</a><a href="#guide-signatures">Signatures</a><a href="#guide-weapons">Weapons</a><a href="#guide-materials">Materials</a><a href="#guide-passives">Passives</a><a href="#guide-participation">Participation</a><a href="#guide-synergies">Squad synergies</a><a href="#guide-rare">Rare finds</a>
       </nav>
       <div id="guide-content" class="guide-content"></div>
     </dialog>
@@ -551,8 +563,16 @@
       </div>
       <div class="build-history-body">
         <article class="build-release current-build">
+          <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.13.7</h3></div><span class="build-time-unavailable">Deployment verification pending</span></header>
+          <ul>
+            <li>Added authoritative shared participation credit for support, prevention, assists, revives, objectives, and priority targets.</li>
+            <li>Added an accessible contribution table, exact Field Manual definitions, discrete milestone announcements, and run-history v2 totals.</li>
+            <li>Added replay-slot persistence across recovery, reconnect, host migration, and privacy-safe aggregate telemetry behind an independent rollback flag.</li>
+          </ul>
+        </article>
+        <article class="build-release">
           <header>
-            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.13.6</h3></div>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.13.6</h3></div>
             <time class="build-shipped-at" datetime="2026-07-13T07:46:00-04:00" data-build-shipped-at="2026-07-13T07:46:00-04:00">Shipped Jul 13, 2026 · 7:46 AM EDT</time>
           </header>
           <ul>
@@ -972,8 +992,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.13.6. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.13.6</strong></button>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.13.7. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.13.7</strong></button>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260713.6"></script>
+  <script type="module" src="game.js?v=20260713.7"></script>
 </body>
 </html>

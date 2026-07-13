@@ -13,6 +13,29 @@ const SYNERGY_TOTAL_CAPS = Object.freeze({
   formationSeconds: 16_000,
   ultimateChains: 10_000,
 });
+const PARTICIPATION_TOTAL_FIELDS = Object.freeze([
+  "effectiveHealing", "effectiveShielding", "shieldDamagePrevented", "mitigationPrevented",
+  "damageAssists", "controlAssists", "revives", "reviveSeconds", "objectivePresenceSeconds",
+  "objectiveMovement", "objectiveCompletions", "eliteParticipations", "apexParticipations",
+]);
+const PARTICIPATION_INTEGER_FIELDS = new Set([
+  "damageAssists", "controlAssists", "revives", "objectiveCompletions", "eliteParticipations", "apexParticipations",
+]);
+const PARTICIPATION_TOTAL_CAPS = Object.freeze({
+  effectiveHealing: 1_000_000_000,
+  effectiveShielding: 1_000_000_000,
+  shieldDamagePrevented: 1_000_000_000,
+  mitigationPrevented: 1_000_000_000,
+  damageAssists: 1_000_000,
+  controlAssists: 1_000_000,
+  revives: 10_000,
+  reviveSeconds: 16_000,
+  objectivePresenceSeconds: 16_000,
+  objectiveMovement: 1_000_000_000,
+  objectiveCompletions: 10_000,
+  eliteParticipations: 1_000_000,
+  apexParticipations: 10_000,
+});
 
 export const DEFAULT_TELEMETRY_ENDPOINT = "https://lastlight-relay.bensonperry.workers.dev/telemetry";
 
@@ -64,6 +87,27 @@ function buildSynergyTelemetry(value) {
   return { synergyIds, synergyTotals };
 }
 
+function emptySynergyTelemetry() {
+  return buildSynergyTelemetry({
+    ids: [],
+    totals: Object.fromEntries(SYNERGY_TOTAL_FIELDS.map((field) => [field, 0])),
+  });
+}
+
+function buildParticipationTelemetry(value) {
+  exactKeys(value, PARTICIPATION_TOTAL_FIELDS, "Participation totals");
+  const participationTotals = {};
+  for (const field of PARTICIPATION_TOTAL_FIELDS) {
+    const number = value[field];
+    const integer = PARTICIPATION_INTEGER_FIELDS.has(field);
+    if (typeof number !== "number" || !Number.isFinite(number) || number < 0 || number > PARTICIPATION_TOTAL_CAPS[field] || (integer && !Number.isInteger(number))) {
+      throw new TypeError(`Invalid participation total: ${field}`);
+    }
+    participationTotals[field] = rounded(number, integer);
+  }
+  return participationTotals;
+}
+
 export function buildRunTelemetry(snapshot, build) {
   if (!snapshot || typeof snapshot !== "object") throw new TypeError("A result snapshot is required");
   if (snapshot.stage !== "won" && snapshot.stage !== "lost") throw new TypeError("Telemetry is only recorded for completed runs");
@@ -104,6 +148,13 @@ export function buildRunTelemetry(snapshot, build) {
       ? snapshot.synergyTelemetry()
       : snapshot.synergyTelemetry;
     Object.assign(payload, { schemaVersion: 2, ...buildSynergyTelemetry(synergyTelemetry) });
+  }
+  if (snapshot.participationTelemetry !== undefined) {
+    const participationTelemetry = typeof snapshot.participationTelemetry === "function"
+      ? snapshot.participationTelemetry()
+      : snapshot.participationTelemetry;
+    if (payload.schemaVersion === 1) Object.assign(payload, emptySynergyTelemetry());
+    Object.assign(payload, { schemaVersion: 3, participationTotals: buildParticipationTelemetry(participationTelemetry) });
   }
   return payload;
 }

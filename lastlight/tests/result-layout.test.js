@@ -13,7 +13,10 @@ test("post-game hierarchy uses one compact semantic header before unchanged stat
   assert.match(result, /<div class="result-heading">[\s\S]+id="result-eyebrow"[\s\S]+id="result-title"/);
   assert.match(result, /<div class="result-debrief">[\s\S]+id="result-copy"[\s\S]+id="result-unlock"/);
   assert.ok(result.indexOf('class="result-header"') < result.indexOf('class="result-stats"'));
-  for (const id of ["result-time", "result-kills", "result-level", "result-gold", "result-scoreboard-body", "result-damage-breakdown", "watch-replay", "result-run-history", "result-home"]) assert.match(result, new RegExp(`id="${id}"`));
+  for (const id of ["result-time", "result-kills", "result-level", "result-gold", "result-scoreboard-body", "result-contribution", "result-contribution-body", "result-damage-breakdown", "watch-replay", "result-run-history", "result-home"]) assert.match(result, new RegExp(`id="${id}"`));
+  assert.ok(result.indexOf('class="scoreboard-wrap"') < result.indexOf('id="result-contribution"'));
+  assert.match(result, /<caption>Shared credit is non-zero-sum/);
+  for (const id of ["support", "prevented", "assists", "revive", "objective", "priority", "synergy"]) assert.match(result, new RegExp(`aria-describedby="contribution-${id}-help"`));
 });
 
 test("desktop result shell spends vertical space on statistics instead of ceremony", () => {
@@ -33,6 +36,7 @@ test("phone results collapse the header without weakening containment or control
   assert.match(mobile, /\.result-debrief \{ padding-left: 0; border-left: 0; \}/);
   assert.match(mobile, /\.result-damage-breakdown \{ grid-template-columns: minmax\(0, 1fr\); \}/);
   assert.match(css, /\.scoreboard-wrap \{[^}]+max-width: 100%;[^}]+overflow-x: auto;/s);
+  assert.match(css, /\.contribution-wrap \{[^}]+max-width: 100%;[^}]+overflow-x: auto;/s);
   for (const id of ["replay-play", "replay-back", "replay-forward", "replay-timeline", "replay-speed", "replay-copy", "build-history-button"]) assert.match(html, new RegExp(`id="${id}"`));
   assert.match(html, /id="build-history-button" class="build-badge"/);
 });

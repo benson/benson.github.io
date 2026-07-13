@@ -1,5 +1,6 @@
-export const REPLAY_SCHEMA = "lastlight.replay.v5";
-export const REPLAY_SCHEMA_VERSION = 5;
+export const REPLAY_SCHEMA = "lastlight.replay.v6";
+export const REPLAY_SCHEMA_VERSION = 6;
+export const LEGACY_REPLAY_SCHEMA_V5 = "lastlight.replay.v5";
 export const LEGACY_REPLAY_SCHEMA_V4 = "lastlight.replay.v4";
 export const LEGACY_REPLAY_SCHEMA_V3 = "lastlight.replay.v3";
 export const LEGACY_REPLAY_SCHEMA_V2 = "lastlight.replay.v2";
@@ -10,7 +11,8 @@ export const MAX_REPLAY_TICK = 216_000;
 export const MAX_REPLAY_COMMANDS = 100_000;
 export const MAX_COMMANDS_PER_TICK = 32;
 export const MAX_REPLAY_CHECKPOINTS = 721;
-export const REPLAY_DRAFT_SCHEMA = "lastlight.replay-draft.v2";
+export const REPLAY_DRAFT_SCHEMA = "lastlight.replay-draft.v3";
+export const LEGACY_REPLAY_DRAFT_SCHEMA_V2 = "lastlight.replay-draft.v2";
 export const LEGACY_REPLAY_DRAFT_SCHEMA = "lastlight.replay-draft.v1";
 
 const MAPS = new Set(["warehouse", "outskirts", "lab", "beachhead"]);
@@ -25,11 +27,11 @@ const FEATURE_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 const NO_SYNERGY_REGISTRY_VERSION = "none";
 const LEGACY_FEATURES = Object.freeze({
   configVersion: "builtin-2026.07.11.3", gameplayVersion: "events-v1", objectiveEvents: true,
-  squadSynergies: false, registryVersion: NO_SYNERGY_REGISTRY_VERSION,
+  squadSynergies: false, sharedParticipationCredit: false, registryVersion: NO_SYNERGY_REGISTRY_VERSION,
 });
 const CURRENT_FEATURES = Object.freeze({
-  configVersion: "release-2026.07.13.6", gameplayVersion: "synergies-v1", objectiveEvents: true,
-  squadSynergies: true, registryVersion: "lastlight.squad-synergy.v1",
+  configVersion: "release-2026.07.13.7", gameplayVersion: "participation-v1", objectiveEvents: true,
+  squadSynergies: true, sharedParticipationCredit: true, registryVersion: "lastlight.squad-synergy.v1",
 });
 
 const ownKeys = (value) => value && typeof value === "object" && !Array.isArray(value) ? Object.keys(value) : [];
@@ -231,6 +233,16 @@ export function replayGameplayFeatures(value) {
       gameplayVersion: value.features.gameplayVersion,
       objectiveEvents: value.features.objectiveEvents,
       squadSynergies: value.features.squadSynergies,
+      sharedParticipationCredit: value.features.sharedParticipationCredit,
+      registryVersion: value.features.registryVersion,
+    });
+  }
+  if (value?.schema === LEGACY_REPLAY_SCHEMA_V5) {
+    return Object.freeze({
+      gameplayVersion: value.features.gameplayVersion,
+      objectiveEvents: value.features.objectiveEvents,
+      squadSynergies: value.features.squadSynergies,
+      sharedParticipationCredit: false,
       registryVersion: value.features.registryVersion,
     });
   }
@@ -238,18 +250,20 @@ export function replayGameplayFeatures(value) {
     gameplayVersion: value?.features?.gameplayVersion || LEGACY_FEATURES.gameplayVersion,
     objectiveEvents: value?.features?.objectiveEvents ?? LEGACY_FEATURES.objectiveEvents,
     squadSynergies: false,
+    sharedParticipationCredit: false,
     registryVersion: NO_SYNERGY_REGISTRY_VERSION,
   });
 }
 
 export function validateReplay(value, expected = {}) {
   const currentSchema = value?.schema === REPLAY_SCHEMA;
+  const legacyV5Schema = value?.schema === LEGACY_REPLAY_SCHEMA_V5;
   const legacyV4Schema = value?.schema === LEGACY_REPLAY_SCHEMA_V4;
   const legacyV3Schema = value?.schema === LEGACY_REPLAY_SCHEMA_V3;
   const legacyV2Schema = value?.schema === LEGACY_REPLAY_SCHEMA_V2;
   const legacySchema = value?.schema === LEGACY_REPLAY_SCHEMA;
-  const hasFeatures = currentSchema || legacyV4Schema || legacyV3Schema || legacyV2Schema;
-  if (!currentSchema && !legacyV4Schema && !legacyV3Schema && !legacyV2Schema && !legacySchema) throw new TypeError("Unsupported replay schema");
+  const hasFeatures = currentSchema || legacyV5Schema || legacyV4Schema || legacyV3Schema || legacyV2Schema;
+  if (!currentSchema && !legacyV5Schema && !legacyV4Schema && !legacyV3Schema && !legacyV2Schema && !legacySchema) throw new TypeError("Unsupported replay schema");
   assertExactKeys(value, ["schema", "build", "balance", "engine", "seed", "run", ...(hasFeatures ? ["features"] : []), "roster", "commands", "checkpoints", "finalTick", "finalHash"], "replay");
   safeString(value.build, SAFE_ID, "build");
   assertExactKeys(value.balance, ["version", "hash"], "balance");
@@ -261,14 +275,15 @@ export function validateReplay(value, expected = {}) {
   safeString(value.seed, SEED, "seed");
   const features = hasFeatures ? value.features : LEGACY_FEATURES;
   if (hasFeatures) {
-    assertExactKeys(features, ["configVersion", "gameplayVersion", "objectiveEvents", ...(currentSchema ? ["squadSynergies", "registryVersion"] : [])], "features");
+    assertExactKeys(features, ["configVersion", "gameplayVersion", "objectiveEvents", ...((currentSchema || legacyV5Schema) ? ["squadSynergies", "registryVersion"] : []), ...(currentSchema ? ["sharedParticipationCredit"] : [])], "features");
     safeString(features.configVersion, FEATURE_ID, "features.configVersion");
     safeString(features.gameplayVersion, FEATURE_ID, "features.gameplayVersion");
     if (typeof features.objectiveEvents !== "boolean") throw new TypeError("features.objectiveEvents must be boolean");
-    if (currentSchema) {
+    if (currentSchema || legacyV5Schema) {
       if (typeof features.squadSynergies !== "boolean") throw new TypeError("features.squadSynergies must be boolean");
       safeString(features.registryVersion, FEATURE_ID, "features.registryVersion");
     }
+    if (currentSchema && typeof features.sharedParticipationCredit !== "boolean") throw new TypeError("features.sharedParticipationCredit must be boolean");
   }
   assertExactKeys(value.run, ["map", "difficulty", "duration"], "run");
   if (!MAPS.has(value.run.map)) throw new TypeError("run.map is invalid");
@@ -288,7 +303,7 @@ export function validateReplay(value, expected = {}) {
   if (!Array.isArray(value.commands) || value.commands.length > MAX_REPLAY_COMMANDS) throw new TypeError("commands exceed replay bounds");
   let previousTick = -1, previousOrdinal = -1, commandsAtTick = 0;
   for (const [index, command] of value.commands.entries()) {
-    validateCommand(command, index, currentSchema || legacyV4Schema);
+    validateCommand(command, index, currentSchema || legacyV5Schema || legacyV4Schema);
     const [tick, ordinal] = command;
     if (tick < previousTick || ordinal <= previousOrdinal) throw new TypeError("commands must be ordered by tick and globally increasing ordinal");
     commandsAtTick = tick === previousTick ? commandsAtTick + 1 : 1;
@@ -317,6 +332,7 @@ export function validateReplay(value, expected = {}) {
   if (expected.gameplayVersion && features.gameplayVersion !== expected.gameplayVersion) throw new TypeError("Replay gameplay feature version mismatch");
   const normalizedFeatures = replayGameplayFeatures(value);
   if (expected.squadSynergies !== undefined && normalizedFeatures.squadSynergies !== expected.squadSynergies) throw new TypeError("Replay squad-synergies flag mismatch");
+  if (expected.sharedParticipationCredit !== undefined && normalizedFeatures.sharedParticipationCredit !== expected.sharedParticipationCredit) throw new TypeError("Replay shared-participation-credit flag mismatch");
   if (expected.registryVersion && normalizedFeatures.registryVersion !== expected.registryVersion) throw new TypeError("Replay synergy registry version mismatch");
 
   const serialized = JSON.stringify(value);
@@ -345,16 +361,18 @@ export class ReplayRecorder {
     build, balanceVersion, balanceHash,
     featureConfigVersion = CURRENT_FEATURES.configVersion, gameplayVersion = CURRENT_FEATURES.gameplayVersion,
     objectiveEvents = CURRENT_FEATURES.objectiveEvents, squadSynergies = CURRENT_FEATURES.squadSynergies,
+    sharedParticipationCredit = CURRENT_FEATURES.sharedParticipationCredit,
     registryVersion = CURRENT_FEATURES.registryVersion, rng, seed, run,
   }) {
     safeString(featureConfigVersion, FEATURE_ID, "featureConfigVersion");
     safeString(gameplayVersion, FEATURE_ID, "gameplayVersion");
     if (typeof objectiveEvents !== "boolean") throw new TypeError("objectiveEvents must be boolean");
     if (typeof squadSynergies !== "boolean") throw new TypeError("squadSynergies must be boolean");
+    if (typeof sharedParticipationCredit !== "boolean") throw new TypeError("sharedParticipationCredit must be boolean");
     safeString(registryVersion, FEATURE_ID, "registryVersion");
     this.header = {
       build, balanceVersion, balanceHash, featureConfigVersion, gameplayVersion, objectiveEvents,
-      squadSynergies, registryVersion, rng, seed, run: clone(run),
+      squadSynergies, sharedParticipationCredit, registryVersion, rng, seed, run: clone(run),
     };
     this.actualToSlot = new Map();
     this.roster = new Map();
@@ -446,23 +464,31 @@ export class ReplayRecorder {
 
   static fromDraft(draft, players = []) {
     assertExactKeys(draft, ["schema", "currentTick", "header", "roster", "knownSlots", "commands", "checkpoints", "lastInputs", "ordinal"], "replay draft");
-    const currentDraft = draft.schema === REPLAY_DRAFT_SCHEMA, legacyDraft = draft.schema === LEGACY_REPLAY_DRAFT_SCHEMA;
-    if (!currentDraft && !legacyDraft) throw new TypeError("Unsupported replay draft schema");
+    const currentDraft = draft.schema === REPLAY_DRAFT_SCHEMA;
+    const legacyV2Draft = draft.schema === LEGACY_REPLAY_DRAFT_SCHEMA_V2;
+    const legacyDraft = draft.schema === LEGACY_REPLAY_DRAFT_SCHEMA;
+    if (!currentDraft && !legacyV2Draft && !legacyDraft) throw new TypeError("Unsupported replay draft schema");
     integer(draft.currentTick, 0, MAX_REPLAY_TICK, "replay draft currentTick");
     assertExactKeys(draft.header, [
       "build", "balanceVersion", "balanceHash", "featureConfigVersion", "gameplayVersion", "objectiveEvents",
-      ...(currentDraft ? ["squadSynergies", "registryVersion"] : []), "rng", "seed", "run",
+      ...((currentDraft || legacyV2Draft) ? ["squadSynergies", "registryVersion"] : []),
+      ...(currentDraft ? ["sharedParticipationCredit"] : []), "rng", "seed", "run",
     ], "replay draft header");
     const draftFeatures = currentDraft
-      ? { squadSynergies: draft.header.squadSynergies, registryVersion: draft.header.registryVersion }
-      : { squadSynergies: false, registryVersion: NO_SYNERGY_REGISTRY_VERSION };
+      ? { squadSynergies: draft.header.squadSynergies, sharedParticipationCredit: draft.header.sharedParticipationCredit, registryVersion: draft.header.registryVersion }
+      : legacyV2Draft
+        ? { squadSynergies: draft.header.squadSynergies, sharedParticipationCredit: false, registryVersion: draft.header.registryVersion }
+        : { squadSynergies: false, sharedParticipationCredit: false, registryVersion: NO_SYNERGY_REGISTRY_VERSION };
     const validationReplay = {
-      schema: currentDraft ? REPLAY_SCHEMA : LEGACY_REPLAY_SCHEMA_V4,
+      schema: currentDraft ? REPLAY_SCHEMA : legacyV2Draft ? LEGACY_REPLAY_SCHEMA_V5 : LEGACY_REPLAY_SCHEMA_V4,
       build: draft.header.build,
       balance: { version: draft.header.balanceVersion, hash: draft.header.balanceHash },
       features: {
         configVersion: draft.header.featureConfigVersion, gameplayVersion: draft.header.gameplayVersion,
-        objectiveEvents: draft.header.objectiveEvents, ...(currentDraft ? draftFeatures : {}),
+        objectiveEvents: draft.header.objectiveEvents,
+        ...(currentDraft ? draftFeatures : legacyV2Draft
+          ? { squadSynergies: draftFeatures.squadSynergies, registryVersion: draftFeatures.registryVersion }
+          : {}),
       },
       engine: { stepHz: REPLAY_STEP_HZ, rng: draft.header.rng },
       seed: draft.header.seed,
@@ -518,7 +544,7 @@ export class ReplayRecorder {
       features: {
         configVersion: this.header.featureConfigVersion, gameplayVersion: this.header.gameplayVersion,
         objectiveEvents: this.header.objectiveEvents, squadSynergies: this.header.squadSynergies,
-        registryVersion: this.header.registryVersion,
+        sharedParticipationCredit: this.header.sharedParticipationCredit, registryVersion: this.header.registryVersion,
       },
       engine: { stepHz: REPLAY_STEP_HZ, rng: this.header.rng },
       seed: this.header.seed,
@@ -550,6 +576,9 @@ export class ReplayDriver {
     }
     if (Object.hasOwn(simulation, "squadSynergies") && simulation.squadSynergies !== features.squadSynergies) {
       throw new Error("Replay squad-synergies flag mismatch");
+    }
+    if (Object.hasOwn(simulation, "sharedParticipationCredit") && simulation.sharedParticipationCredit !== features.sharedParticipationCredit) {
+      throw new Error("Replay shared-participation-credit flag mismatch");
     }
     if (Object.hasOwn(simulation, "synergyRegistryVersion") && simulation.synergyRegistryVersion !== features.registryVersion) {
       throw new Error("Replay synergy registry version mismatch");

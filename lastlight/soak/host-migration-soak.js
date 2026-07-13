@@ -8,6 +8,7 @@ import {
   validateMigrationCheckpoint,
 } from "../host-migration.js";
 import { canonicalSimulationState, hashSimulationState } from "../replay.js";
+import { RECOVERY_SIMULATION_VERSION } from "../recovery.js";
 
 export const HOST_MIGRATION_SOAK_SCHEMA = "lastlight.host-migration-soak.v1";
 export const DEFAULT_HOST_MIGRATION_SOAK_SEED = "a057a11ce00000000000000000000001";
@@ -181,8 +182,9 @@ function migrationCompatibility() {
     gameplayVersion: DEFAULT_RUNTIME_CONFIG.gameplayVersion,
     objectiveEvents: true,
     squadSynergies: DEFAULT_RUNTIME_CONFIG.flags.squadSynergies,
+    sharedParticipationCredit: DEFAULT_RUNTIME_CONFIG.flags.sharedParticipationCredit,
     registryVersion: DEFAULT_RUNTIME_CONFIG.registryVersion,
-    recoveryVersion: 4,
+    recoveryVersion: RECOVERY_SIMULATION_VERSION,
   });
 }
 

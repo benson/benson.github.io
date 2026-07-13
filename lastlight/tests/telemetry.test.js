@@ -23,6 +23,22 @@ function completedRun(overrides = {}) {
   };
 }
 
+const participationTotals = Object.freeze({
+  effectiveHealing: 120.26,
+  effectiveShielding: 98.44,
+  shieldDamagePrevented: 51.25,
+  mitigationPrevented: 32.04,
+  damageAssists: 7,
+  controlAssists: 3,
+  revives: 2,
+  reviveSeconds: 5.26,
+  objectivePresenceSeconds: 44.44,
+  objectiveMovement: 812.28,
+  objectiveCompletions: 4,
+  eliteParticipations: 9,
+  apexParticipations: 2,
+});
+
 test("completed-run telemetry contains aggregate balancing data and no player identity", () => {
   const payload = buildRunTelemetry(completedRun(), "2026.07.10.1+dev");
   assert.deepEqual(payload, {
@@ -87,6 +103,55 @@ test("live game telemetry reads the engine aggregate method without exposing per
   assert.deepEqual(payload.synergyIds, ["moving-screen"]);
   assert.equal(payload.synergyTotals.formationSeconds, 120);
   assert.equal(Object.hasOwn(payload, "stats"), false);
+});
+
+test("participation telemetry v3 is exact, aggregate-only, and retains synergy totals", () => {
+  const run = completedRun({
+    synergyTelemetry: () => ({
+      ids: ["moving-screen"],
+      totals: { triggers: 1, damage: 0, shielding: 0, mitigated: 12, formationSeconds: 120, ultimateChains: 0 },
+    }),
+    participationTelemetry: () => ({ ...participationTotals }),
+  });
+  const payload = buildRunTelemetry(run, "build-10");
+  assert.equal(payload.schemaVersion, 3);
+  assert.deepEqual(payload.synergyIds, ["moving-screen"]);
+  assert.equal(payload.synergyTotals.mitigated, 12);
+  assert.deepEqual(payload.participationTotals, {
+    ...participationTotals,
+    effectiveHealing: 120.3,
+    effectiveShielding: 98.4,
+    shieldDamagePrevented: 51.3,
+    mitigationPrevented: 32,
+    reviveSeconds: 5.3,
+    objectivePresenceSeconds: 44.4,
+    objectiveMovement: 812.3,
+  });
+  assert.doesNotMatch(JSON.stringify(payload), /Benson|Friend|private-|SECRET-ROOM|replaySlot|playerName|roomId|contributors|slots/i);
+});
+
+test("participation v3 supplies an empty synergy aggregate when no synergy method is present", () => {
+  const payload = buildRunTelemetry(completedRun({ participationTelemetry: participationTotals }), "build-11");
+  assert.equal(payload.schemaVersion, 3);
+  assert.deepEqual(payload.synergyIds, []);
+  assert.deepEqual(payload.synergyTotals, {
+    triggers: 0, damage: 0, shielding: 0, mitigated: 0, formationSeconds: 0, ultimateChains: 0,
+  });
+});
+
+test("participation telemetry fails closed on identity, non-finite, over-cap, and fractional count fields", () => {
+  assert.throws(() => buildRunTelemetry(completedRun({
+    participationTelemetry: { ...participationTotals, replaySlot: 1 },
+  }), "build"), /unexpected fields/);
+  assert.throws(() => buildRunTelemetry(completedRun({
+    participationTelemetry: { ...participationTotals, effectiveHealing: Number.NaN },
+  }), "build"), /Invalid participation total: effectiveHealing/);
+  assert.throws(() => buildRunTelemetry(completedRun({
+    participationTelemetry: { ...participationTotals, objectiveMovement: 1_000_000_001 },
+  }), "build"), /Invalid participation total: objectiveMovement/);
+  assert.throws(() => buildRunTelemetry(completedRun({
+    participationTelemetry: { ...participationTotals, damageAssists: 1.5 },
+  }), "build"), /Invalid participation total: damageAssists/);
 });
 
 test("synergy telemetry fails closed on unknown ids, identity fields, and totals beyond exact caps", () => {
