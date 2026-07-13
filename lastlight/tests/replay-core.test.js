@@ -12,7 +12,7 @@ const base = () => ({
   build: "2026.07.11.3",
   balance: { version: "2026.07.11-baseline.1", hash: "fnv1a32:7e33be79" },
   features: {
-    configVersion: "release-2026.07.13.10", gameplayVersion: "squad-director-v1", objectiveEvents: true,
+    configVersion: "release-2026.07.13.11", gameplayVersion: "squad-director-v1", objectiveEvents: true,
     squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, registryVersion: "lastlight.squad-synergy.v1",
   },
   engine: { stepHz: REPLAY_STEP_HZ, rng: "xoshiro128ss-v1" },
@@ -98,7 +98,7 @@ test("recorder keeps transient identities out of replay JSON and deduplicates in
   assert.equal(replay.commands.length, 6);
   assert.deepEqual(replay.roster, [{ slot: 0, specialist: "zuri" }]);
   assert.deepEqual(replay.features, {
-    configVersion: "release-2026.07.13.10", gameplayVersion: "squad-director-v1", objectiveEvents: true,
+    configVersion: "release-2026.07.13.11", gameplayVersion: "squad-director-v1", objectiveEvents: true,
     squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, registryVersion: "lastlight.squad-synergy.v1",
   });
 });

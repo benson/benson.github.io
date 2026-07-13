@@ -39,7 +39,7 @@ const LEGACY_FEATURES = Object.freeze({
   squadSynergies: false, sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, registryVersion: NO_SYNERGY_REGISTRY_VERSION,
 });
 const CURRENT_FEATURES = Object.freeze({
-  configVersion: "release-2026.07.13.10", gameplayVersion: "squad-director-v1", objectiveEvents: true,
+  configVersion: "release-2026.07.13.11", gameplayVersion: "squad-director-v1", objectiveEvents: true,
   squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, registryVersion: "lastlight.squad-synergy.v1",
 });
 

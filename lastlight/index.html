@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260713.10">
+  <link rel="stylesheet" href="styles.css?v=20260713.11">
 </head>
 <body>
   <main id="app">
@@ -423,6 +423,8 @@
         <div class="result-actions">
           <button id="again-button" class="deploy-button" type="button"><span>Run it again</span><span>↻</span></button>
           <button id="watch-replay" class="text-button hidden" type="button">Watch verified replay</button>
+          <button id="copy-squad-report" class="text-button" type="button">Copy squad report</button>
+          <button id="copy-squad-report-named" class="text-button" type="button">Copy with callsigns</button>
           <button id="result-run-history" class="text-button" type="button">View past runs</button>
           <button id="result-home" class="text-button" type="button">Return to command</button>
         </div>
@@ -480,7 +482,7 @@
 
     <dialog id="run-history-dialog" class="run-history-dialog" aria-labelledby="run-history-title">
       <div class="manual-header">
-        <div><p class="eyebrow">Local operation archive</p><h2 id="run-history-title">PAST RUNS</h2></div>
+        <div><p class="eyebrow">Squad operation archive</p><h2 id="run-history-title">PAST RUNS</h2></div>
         <button id="run-history-close" class="icon-button" type="button" aria-label="Close past runs">Close</button>
       </div>
       <div id="run-history-list" class="run-history-list"></div>
@@ -594,7 +596,16 @@
       </div>
       <div class="build-history-body">
         <article class="build-release current-build">
-          <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.13.10</h3></div><time class="build-shipped-at" datetime="2026-07-13T12:10:00-04:00" data-build-shipped-at="2026-07-13T12:10:00-04:00">Shipped Jul 13, 2026 · 12:10 PM EDT</time></header>
+          <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.13.11</h3></div><span class="build-time-unavailable">Deployment verification pending</span></header>
+          <ul>
+            <li>Added a deterministic squad-owned operation archive with one canonical report identity shared by every participant.</li>
+            <li>Added expanded archive debriefs with complete loadouts, combat sources, participation credit, synergy contribution, and reinforcement eligibility.</li>
+            <li>Added integrity-checked fragment links that never reach hosting or the relay, stay anonymous by default, and include callsigns only through a separate explicit action.</li>
+            <li>Migrated local history to a bounded deduplicating v3 contract and added import/save flows, responsive mobile layout, a 10px-plus type floor, and an independent rollback flag.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header><div><span class="build-release-status">Previous build</span><h3>2026.07.13.10</h3></div><time class="build-shipped-at" datetime="2026-07-13T12:10:00-04:00" data-build-shipped-at="2026-07-13T12:10:00-04:00">Shipped Jul 13, 2026 · 12:10 PM EDT</time></header>
           <ul>
             <li>Added the deterministic squad enemy director: role-aware lanes, pincers, splits, arcs, objective convergence, and late-run elite escorts that consume the existing spawn budget.</li>
             <li>Carried the director through replay v9, recovery v8, host migration v6, privacy-safe aggregate telemetry v4, Field Manual guidance, and an independent rollback flag while preserving the exact solo path.</li>
@@ -1049,8 +1060,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.13.10. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.13.10</strong></button>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.13.11. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.13.11</strong></button>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260713.10"></script>
+  <script type="module" src="game.js?v=20260713.11"></script>
 </body>
 </html>

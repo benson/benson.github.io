@@ -1,4 +1,4 @@
-import { PASSIVES, SPECIALISTS, WEAPONS } from "./data.js?v=20260713.10";
+import { PASSIVES, SPECIALISTS, WEAPONS } from "./data.js?v=20260713.11";
 
 export const PROJECTILE_MODES = Object.freeze(["counted", "field", "single-effect", "utility"]);
 export const SCALE_TAGS = Object.freeze([

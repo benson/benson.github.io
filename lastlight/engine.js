@@ -1,11 +1,11 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
-} from "./data.js?v=20260713.10";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260713.10";
+} from "./data.js?v=20260713.11";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260713.11";
 import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.5";
-import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260713.10";
-import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260713.10";
+import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260713.11";
+import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260713.11";
 import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260713.1";
 import { MAX_CORRIDOR_CANDIDATES, accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget, orderEntitiesByDistance } from "./projectile-decisions.js?v=20260713.1";
 import { selectEliteAffixes, selectSpawnArchetype, spawnPhaseAt } from "./enemy-archetypes.js?v=20260713.1";
@@ -28,10 +28,10 @@ import {
   beginDownedActivity, createDownedActivityState, removeDownedActivity, triggerDownedSupport,
   validateDownedActivityState,
 } from "./downed-activity.js?v=20260713.9";
-import { generateJoinPackage, JOIN_IN_PROGRESS_REGISTRY, joinPackageUpgradeIds, transitionJoinPackage } from "./join-in-progress.js?v=20260713.10";
+import { generateJoinPackage, JOIN_IN_PROGRESS_REGISTRY, joinPackageUpgradeIds, transitionJoinPackage } from "./join-in-progress.js?v=20260713.11";
 import {
   DIRECTOR_APPROACHES, DIRECTOR_FORMATIONS, createSquadDirectorState, planSquadFormation, validateSquadDirectorState,
-} from "./enemy-director.js?v=20260713.10";
+} from "./enemy-director.js?v=20260713.11";
 
 const BALANCE = getBalanceConfig();
 
