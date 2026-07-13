@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { PASSIVES, SPECIALISTS, WEAPONS } from "../data.js";
-import { Simulation, previewPlayerUpgrade } from "../engine.js";
-import { buildUpgradeComparison, signatureEvolutionTelemetry, weaponTelemetry } from "../upgrade-preview.js";
+import { Simulation, previewPlayerUpgrade, UPGRADE_GOLD_REWARD } from "../engine.js";
+import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "../upgrade-preview.js";
 
 const relevantPlayerState = (player) => ({
   hp: player.hp,
@@ -33,6 +33,55 @@ test("upgrade previews never mutate their source and exactly match engine applic
     sim.applyUpgrade(player, choice);
     assert.deepEqual(relevantPlayerState(preview), relevantPlayerState(player), `${choice.id} diverged from engine application`);
   }
+});
+
+test("draft forecasts use the exact engine outcome, slots, and shared gold reward", () => {
+  for (const specialist of Object.keys(SPECIALISTS)) {
+    for (const choice of [{ id: "weapon:uwu" }, { id: "passive:haste" }, { id: "heal" }]) {
+      const sim = new Simulation({ players: [{ id: "p", name: "P", specialist }] });
+      const player = sim.players[0]; player.hp = 4;
+      const before = structuredClone(relevantPlayerState(player));
+      const forecast = forecastDraftChoice(choice, player, { gold: 30 });
+      assert.deepEqual(relevantPlayerState(player), before);
+      sim.applyUpgrade(player, choice);
+      assert.deepEqual(relevantPlayerState(forecast.afterPlayer), relevantPlayerState(player));
+      assert.deepEqual(forecast.economy, { before: 30, after: 30 + UPGRADE_GOLD_REWARD, delta: UPGRADE_GOLD_REWARD });
+      assert.equal(forecast.slots.weapons.max, 5); assert.equal(forecast.slots.passives.max, 6);
+    }
+  }
+});
+
+test("draft forecasts include only currently unlocked specialist abilities", () => {
+  const sim = new Simulation({ players: [{ id: "p", name: "P", specialist: "zuri" }] });
+  const choice = { id: "passive:damage" };
+  const early = forecastDraftChoice(choice, sim.players[0], { gameLevel: 2 });
+  const active = forecastDraftChoice(choice, sim.players[0], { gameLevel: 3 });
+  const ultimate = forecastDraftChoice(choice, sim.players[0], { gameLevel: 6 });
+  assert.equal(early.affectedSources.some(({ id }) => id.startsWith("ability:")), false);
+  assert.equal(active.affectedSources.some(({ id }) => id === "ability:e"), true);
+  assert.equal(active.affectedSources.some(({ id }) => id === "ability:r"), false);
+  assert.equal(ultimate.affectedSources.some(({ id }) => id === "ability:r"), true);
+});
+
+test("canonical build stats expose transitive and negative specialist consequences", () => {
+  const sola = new Simulation({ players: [{ id: "p", name: "P", specialist: "sola" }] }).players[0];
+  const armor = forecastDraftChoice({ id: "passive:armor" }, sola);
+  assert.ok(armor.statChanges.some(({ id }) => id === "area"), "Sola armor must forecast transitive area");
+  const fang = new Simulation({ players: [{ id: "p", name: "P", specialist: "fang" }] }).players[0];
+  fang.hp = 2;
+  const heal = forecastDraftChoice({ id: "heal" }, fang);
+  assert.ok(heal.statChanges.some(({ id, direction }) => id === "damage" && direction === "down"));
+  assert.ok(heal.statChanges.some(({ id, direction }) => id === "move" && direction === "down"));
+  assert.deepEqual(playerBuildStats(fang), playerBuildStats(fang));
+});
+
+test("forecast evolution readiness never claims the draft evolves immediately", () => {
+  const sim = new Simulation({ players: [{ id: "p", name: "P", specialist: "zuri" }] });
+  const player = sim.players[0]; player.weapons.signature.level = 5;
+  const forecast = forecastDraftChoice({ id: "passive:haste" }, player);
+  assert.equal(forecast.afterPlayer.weapons.signature.evolved, false);
+  assert.deepEqual(forecast.evolution.newlyReady.map(({ sourceId }) => sourceId), ["signature"]);
+  assert.equal(forecast.evolution.nextEligible, "signature");
 });
 
 test("weapon cards normalize level, damage, cooldown, and projectile before-to-after values", () => {

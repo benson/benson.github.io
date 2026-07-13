@@ -1,7 +1,8 @@
-import { BALANCE_CONFIG } from "./balance-config.js?v=20260712.8";
-import { PASSIVES, SPECIALISTS, WEAPONS } from "./data.js?v=20260712.8";
-import { formatProjectileDisplay, getCombatMetadata } from "./combat-metadata.js?v=20260712.8";
-import { playerCombatStat, playerMovementSpeed, previewPlayerUpgrade } from "./engine.js?v=20260712.8";
+import { BALANCE_CONFIG } from "./balance-config.js?v=20260712.9";
+import { PASSIVES, SPECIALISTS, WEAPONS } from "./data.js?v=20260712.9";
+import { formatProjectileDisplay, getCombatMetadata } from "./combat-metadata.js?v=20260712.9";
+import { playerCombatStat, playerMovementSpeed, previewPlayerUpgrade, UPGRADE_GOLD_REWARD } from "./engine.js?v=20260712.9";
+import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260712.9";
 
 const { weapons: weaponBalance } = BALANCE_CONFIG;
 
@@ -199,4 +200,57 @@ export function buildUpgradeComparison(choice, player) {
     return rows;
   }
   return [comparison("health", "Current health", vitality(player.hp), vitality(preview.hp))];
+}
+
+export function playerBuildStats(player) {
+  return Object.freeze({
+    hp: Number(player.hp), maxHealth: Number(player.maxHp), armor: Number(player.armor),
+    damage: playerCombatStat(player, "damage"), haste: playerCombatStat(player, "haste"), area: playerCombatStat(player, "area"),
+    crit: playerCombatStat(player, "crit"), duration: playerCombatStat(player, "duration"), projectiles: playerCombatStat(player, "projectiles"),
+    xp: playerCombatStat(player, "xp"), pickup: playerCombatStat(player, "pickup"), regen: playerCombatStat(player, "regen"), move: playerMovementSpeed(player),
+  });
+}
+
+function equippedSources(player, gameLevel = 0) {
+  const weapons = Object.entries(player.weapons || {}).filter(([, weapon]) => weapon && Number(weapon.level || 0) > 0).map(([sourceId, weapon]) => ({
+    id: sourceId, name: sourceId === "signature" ? SPECIALISTS[player.specialist].signature.name : WEAPONS[sourceId]?.name || sourceId,
+    metadata: getCombatMetadata(sourceId, player.specialist), tags: sourceBuildcraft(sourceId, { specialistId: player.specialist, evolved: weapon.evolved }),
+  }));
+  const abilities = [
+    { id: "ability:e", name: "Active ability", unlockLevel: 3 },
+    { id: "ability:r", name: "Ultimate", unlockLevel: 6 },
+  ].filter(({ unlockLevel }) => gameLevel >= unlockLevel).map(({ id, name }) => ({ id, name, metadata: getCombatMetadata(id, player.specialist), tags: null }));
+  return [...weapons, ...abilities];
+}
+
+function evolutionProgress(player) {
+  return Object.entries(player.weapons || {}).map(([sourceId, weapon], order) => {
+    const passiveId = sourceId === "signature" ? SPECIALISTS[player.specialist].signature.passive : WEAPONS[sourceId]?.passive;
+    const levelReady = Number(weapon.level || 0) >= BALANCE_CONFIG.core.maxWeaponLevel;
+    const pairReady = Number(player.passives?.[passiveId] || 0) > 0;
+    return Object.freeze({ sourceId, order, passiveId, level: Number(weapon.level || 0), levelReady, pairReady, evolved: Boolean(weapon.evolved), ready: levelReady && pairReady && !weapon.evolved });
+  });
+}
+
+export function forecastDraftChoice(choice, player, { gold = 0, gameLevel = 0 } = {}) {
+  if (!choice || !player) return null;
+  const afterPlayer = previewPlayerUpgrade(player, choice), beforeStats = playerBuildStats(player), afterStats = playerBuildStats(afterPlayer);
+  const statChanges = Object.keys(beforeStats).filter((id) => beforeStats[id] !== afterStats[id]).map((id) => Object.freeze({ id, before: beforeStats[id], after: afterStats[id], direction: afterStats[id] > beforeStats[id] ? "up" : "down" }));
+  const changedIds = new Set(statChanges.map(({ id }) => id));
+  const affectedSources = equippedSources(afterPlayer, gameLevel).filter(({ metadata }) => metadata?.scalesWith.some((id) => changedIds.has(id))).map(({ id, name, tags }) => Object.freeze({ id, name, tags }));
+  const beforeWeapons = Object.keys(player.weapons || {}).length, afterWeapons = Object.keys(afterPlayer.weapons || {}).length;
+  const beforePassives = Object.values(player.passives || {}).filter((rank) => Number(rank) > 0).length, afterPassives = Object.values(afterPlayer.passives || {}).filter((rank) => Number(rank) > 0).length;
+  const [kind, target] = String(choice.id).split(":"), tags = kind === "weapon"
+    ? sourceBuildcraft(target, { specialistId: player.specialist, evolved: Boolean(afterPlayer.weapons?.[target]?.evolved) })
+    : kind === "passive" ? passiveBuildcraft(target) : null;
+  const beforeEvolution = evolutionProgress(player), afterEvolution = evolutionProgress(afterPlayer);
+  const newlyReady = afterEvolution.filter((after) => after.ready && !beforeEvolution.find((before) => before.sourceId === after.sourceId)?.ready);
+  return Object.freeze({
+    choiceId: choice.id, comparisonRows: Object.freeze(buildUpgradeComparison(choice, player)), beforeStats, afterStats,
+    statChanges: Object.freeze(statChanges), affectedSources: Object.freeze(affectedSources), tags,
+    evolution: Object.freeze({ before: Object.freeze(beforeEvolution), after: Object.freeze(afterEvolution), newlyReady: Object.freeze(newlyReady), nextEligible: afterEvolution.find(({ ready }) => ready)?.sourceId || null }),
+    slots: Object.freeze({ weapons: Object.freeze({ before: beforeWeapons, after: afterWeapons, max: BALANCE_CONFIG.core.maxWeaponSlots }), passives: Object.freeze({ before: beforePassives, after: afterPassives, max: BALANCE_CONFIG.core.maxPassiveSlots }) }),
+    economy: Object.freeze({ before: Number(gold) || 0, after: (Number(gold) || 0) + UPGRADE_GOLD_REWARD, delta: UPGRADE_GOLD_REWARD }),
+    afterPlayer,
+  });
 }
