@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260713.1">
+  <link rel="stylesheet" href="styles.css?v=20260713.2">
 </head>
 <body>
   <main id="app">
@@ -529,7 +529,18 @@
       <div class="build-history-body">
         <article class="build-release current-build">
           <header>
-            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.13.1</h3></div>
+            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.13.2</h3></div>
+            <span class="build-shipped-at">Deployment verification pending</span>
+          </header>
+          <ul>
+            <li>Hotfixed the transitive asset cache graph so the live client loads the current migration, protocol, recovery, and runtime-config modules.</li>
+            <li>Added a release test that rejects stale cache keys for every module changed by the active build.</li>
+            <li>Preserved the verified relay rollout and all deterministic host-migration behavior from 2026.07.13.1.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.13.1</h3></div>
             <time class="build-shipped-at" datetime="2026-07-13T02:17:00-04:00">Shipped Jul 13, 2026 · 2:17 AM EDT</time>
           </header>
           <ul>
@@ -894,8 +905,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.13.1. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.13.1</strong></button>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.13.2. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.13.2</strong></button>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260713.1"></script>
+  <script type="module" src="game.js?v=20260713.2"></script>
 </body>
 </html>
