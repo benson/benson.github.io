@@ -188,6 +188,7 @@ function migrationCompatibility() {
     squadEnemyDirector: DEFAULT_RUNTIME_CONFIG.flags.squadEnemyDirector,
     mapMechanics: DEFAULT_RUNTIME_CONFIG.flags.mapMechanics,
     campaignMutations: DEFAULT_RUNTIME_CONFIG.flags.campaignMutations,
+    specialistMastery: DEFAULT_RUNTIME_CONFIG.flags.specialistMastery,
     registryVersion: DEFAULT_RUNTIME_CONFIG.registryVersion,
     recoveryVersion: RECOVERY_SIMULATION_VERSION,
   });

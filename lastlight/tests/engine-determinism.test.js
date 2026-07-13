@@ -96,7 +96,7 @@ test("events and delayed tasks use tick-stamped serializable state", () => {
 test("versioned gameplay flags can safely suppress optional objective systems", () => {
   const disabled = new Simulation({ players: [player()], features: {
     gameplayVersion: "events-off-v1", objectiveEvents: false,
-    squadSynergies: false, sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, registryVersion: "lastlight.squad-synergy.v1",
+    squadSynergies: false, sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, specialistMastery: false, registryVersion: "lastlight.squad-synergy.v1",
   } }, { seed: SEED });
   disabled.time = disabled.duration;
   disabled.nextTreasure = 0; disabled.nextRelayBall = 0; disabled.objectiveIndex = 0;
@@ -107,12 +107,12 @@ test("versioned gameplay flags can safely suppress optional objective systems", 
   assert.equal(disabled.objectives.length, 0);
   assert.deepEqual(disabled.snapshot().features, {
     gameplayVersion: "events-off-v1", objectiveEvents: false,
-    squadSynergies: false, sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, registryVersion: "lastlight.squad-synergy.v1",
+    squadSynergies: false, sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, specialistMastery: false, registryVersion: "lastlight.squad-synergy.v1",
   });
 
   const enabled = new Simulation({ players: [player()], features: {
     gameplayVersion: "events-v1", objectiveEvents: true,
-    squadSynergies: false, sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, registryVersion: "lastlight.squad-synergy.v1",
+    squadSynergies: false, sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, specialistMastery: false, registryVersion: "lastlight.squad-synergy.v1",
   } }, { seed: SEED });
   enabled.time = enabled.duration;
   enabled.nextTreasure = 0; enabled.nextRelayBall = 0; enabled.objectiveIndex = 0;
@@ -123,7 +123,7 @@ test("versioned gameplay flags can safely suppress optional objective systems", 
   assert.equal(enabled.objectives.length, 1);
   assert.throws(() => new Simulation({ players: [player()], features: {
     gameplayVersion: "events-v1", objectiveEvents: true,
-    squadSynergies: false, sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, registryVersion: "lastlight.squad-synergy.v1", unknown: true,
+    squadSynergies: false, sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, specialistMastery: false, registryVersion: "lastlight.squad-synergy.v1", unknown: true,
   } }, { seed: SEED }), /unsupported/);
 });
 

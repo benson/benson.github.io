@@ -169,7 +169,7 @@ test("the report hotkey is global but yields to typing and open dialogs", () => 
 test("relay identity is sent after WebSocket upgrade instead of in the request URL", () => {
   assert.match(game, /new URL\(`\$\{RELAY_BASE\}\$\{encodeURIComponent\(code\)\}`\)/);
   assert.doesNotMatch(game, /url\.searchParams\.set\("(?:name|specialist|resume)"/);
-  assert.match(game, /addEventListener\("open", \(\) => send\(\{[\s\S]{0,160}type: "hello", profile:[\s\S]{0,160}migrationCapabilities: migrationCapabilities\(\)/);
+  assert.match(game, /addEventListener\("open", \(\) => send\(\{[\s\S]{0,160}type: "hello", profile:[\s\S]{0,260}migrationCapabilities: migrationCapabilities\(\)/);
 });
 
 test("multiplayer input uses sequenced host application and snapshot acknowledgements", () => {

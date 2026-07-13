@@ -129,7 +129,7 @@ test("replay drafts resume without storing transient player identity", () => {
   resumed.recordInput("slot-0", 3, { x: 0, y: 1, aim: 1, autoAim: true });
   const replay = resumed.finalize(3, hashSimulationState(sim));
   assert.equal(replay.commands.length, 2);
-  assert.deepEqual(replay.roster, [{ slot: 0, specialist: "zuri" }]);
+  assert.deepEqual(replay.roster, [{ slot: 0, specialist: "zuri", masteryStart: "baseline" }]);
 });
 
 test("local recovery enforces age, runtime identity, privacy, and corruption cleanup", () => {

@@ -11,8 +11,8 @@ import { Simulation } from "../engine.js";
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
 test("the canonical balance contract has an explicit stable replay identity", () => {
-  assert.equal(BALANCE_VERSION, "2026.07.13-mutations.1");
-  assert.equal(BALANCE_HASH, "fnv1a32:e796cf62");
+  assert.equal(BALANCE_VERSION, "2026.07.13-mastery.1");
+  assert.equal(BALANCE_HASH, "fnv1a32:f9f93ac0");
   assert.equal(balanceFingerprint(BALANCE_CONFIG), BALANCE_HASH);
   assert.deepEqual(getBalanceManifest(), { balanceVersion: BALANCE_VERSION, balanceHash: BALANCE_HASH });
   assert.match(canonicalBalanceData(), /^\{"apex":/);

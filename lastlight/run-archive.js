@@ -1,10 +1,10 @@
-import { DIFFICULTIES, MAPS, PASSIVES, SPECIALISTS, WEAPONS } from "./data.js?v=20260713.14";
-import { canonicalStringify, fnv1a64 } from "./replay.js?v=20260713.14";
+import { DIFFICULTIES, MAPS, PASSIVES, SPECIALISTS, WEAPONS } from "./data.js?v=20260713.15";
+import { canonicalStringify, fnv1a64 } from "./replay.js?v=20260713.15";
 
-export const SQUAD_RUN_REPORT_SCHEMA = "lastlight.squad-run-report.v2";
+export const SQUAD_RUN_REPORT_SCHEMA = "lastlight.squad-run-report.v3";
 export const SQUAD_RUN_SHARE_SCHEMA = "lastlight.squad-run-share.v1";
-export const RUN_ARCHIVE_STORAGE_VERSION = 4;
-export const RUN_ARCHIVE_STORAGE_KEY = "lastlight:runs:v4";
+export const RUN_ARCHIVE_STORAGE_VERSION = 5;
+export const RUN_ARCHIVE_STORAGE_KEY = "lastlight:runs:v5";
 export const RUN_ARCHIVE_FRAGMENT_KEY = "run";
 export const MAX_RUN_ARCHIVE_ENTRIES = 24;
 export const MAX_RUN_SHARE_BYTES = 24_576;
@@ -22,7 +22,7 @@ const PARTICIPATION_FIELDS = Object.freeze([
 ]);
 const SYNERGY_FIELDS = Object.freeze(["triggers", "assists", "damage", "shielding", "mitigated", "formationTicks", "ultimateChains"]);
 const PLAYER_FIELDS = Object.freeze([
-  "slot", "callsign", "specialist", "joinKind", "campaignEligible", "joinedAtSecond", "catchUpRanks",
+  "slot", "callsign", "specialist", "masteryStart", "joinKind", "campaignEligible", "joinedAtSecond", "catchUpRanks",
   "damage", "kills", "xpCollected", "damageTaken", "revives", "distance", "weapons", "passives",
   "damageSources", "participation", "synergy",
 ]);
@@ -112,6 +112,7 @@ function canonicalPlayer(player, index, game) {
     slot,
     callsign: safeText(player?.name, 16, `Specialist ${slot + 1}`),
     specialist: SPECIALISTS[player?.specialist] ? player.specialist : "zuri",
+    masteryStart: player?.masteryStart === "field-kit" ? "field-kit" : "baseline",
     joinKind: player?.joinKind === "fresh" ? "fresh" : "initial",
     campaignEligible: campaignEligible(player, duration),
     joinedAtSecond: finite(Math.max(0, Number(player?.joinedAtTick || 0) / 60), 0, 3_600, "player.joinedAtSecond"),
@@ -178,7 +179,23 @@ function upgradeV1Report(value) {
     gold: value.gold, players: value.players.map((player) => ({ ...player, callsign: "" })), totals: value.totals,
   };
   if (fnv1a64(canonicalStringify(legacyIdentity)) !== value.fingerprint) throw new TypeError("legacy report integrity fingerprint mismatch");
-  const body = { ...clone(value), schema: SQUAD_RUN_REPORT_SCHEMA, id: "", fingerprint: "", mutations: canonicalMutations(null, value.difficulty) };
+  const body = { ...clone(value), schema: SQUAD_RUN_REPORT_SCHEMA, id: "", fingerprint: "", mutations: canonicalMutations(null, value.difficulty), players: value.players.map((player) => ({ ...player, masteryStart: "baseline" })) };
+  return validateSquadRunReport(signedReport(body));
+}
+
+function upgradeV2Report(value) {
+  if (value?.schema !== "lastlight.squad-run-report.v2" || !HASH.test(value.runKey) || !HASH.test(value.fingerprint)) throw new TypeError("legacy v2 report identity is invalid");
+  const legacyPlayerFields = PLAYER_FIELDS.filter((field) => field !== "masteryStart");
+  exactKeys(value, REPORT_FIELDS, "legacy v2 report");
+  for (const [index, player] of value.players.entries()) exactKeys(player, legacyPlayerFields, `legacy v2 report.players.${index}`);
+  const identity = {
+    schema: value.schema, build: value.build, runKey: value.runKey, outcome: value.outcome, map: value.map,
+    difficulty: value.difficulty, elapsed: value.elapsed, level: value.level, squadKills: value.squadKills,
+    gold: value.gold, mutations: value.mutations, players: value.players.map((player) => ({ ...player, callsign: "" })), totals: value.totals,
+  };
+  const fingerprint = fnv1a64(canonicalStringify(identity));
+  if (fingerprint !== value.fingerprint || value.id !== `ll-${value.runKey.slice(0, 8)}-${fingerprint.slice(0, 8)}`) throw new TypeError("legacy v2 report integrity fingerprint mismatch");
+  const body = { ...clone(value), schema: SQUAD_RUN_REPORT_SCHEMA, id: "", fingerprint: "", players: value.players.map((player) => ({ ...player, masteryStart: "baseline" })) };
   return validateSquadRunReport(signedReport(body));
 }
 
@@ -236,7 +253,7 @@ export function validateSquadRunReport(value) {
   for (const [index, player] of value.players.entries()) {
     const path = `report.players.${index}`; exactKeys(player, PLAYER_FIELDS, path);
     finite(player.slot, 0, 3, `${path}.slot`, true); if (player.slot <= priorSlot) throw new TypeError("report roster must use canonical unique slots"); priorSlot = player.slot;
-    if (safeText(player.callsign, 16) !== player.callsign || !SPECIALISTS[player.specialist] || !["initial", "fresh"].includes(player.joinKind) || typeof player.campaignEligible !== "boolean") throw new TypeError(`${path} identity is invalid`);
+    if (safeText(player.callsign, 16) !== player.callsign || !SPECIALISTS[player.specialist] || !["baseline", "field-kit"].includes(player.masteryStart) || !["initial", "fresh"].includes(player.joinKind) || typeof player.campaignEligible !== "boolean") throw new TypeError(`${path} identity is invalid`);
     finite(player.joinedAtSecond, 0, 3_600, `${path}.joinedAtSecond`); finite(player.catchUpRanks, 0, 100, `${path}.catchUpRanks`, true);
     finite(player.damage, 0, MAX_VALUE, `${path}.damage`); finite(player.kills, 0, 10_000_000, `${path}.kills`, true);
     finite(player.xpCollected, 0, MAX_VALUE, `${path}.xpCollected`); finite(player.damageTaken, 0, MAX_VALUE, `${path}.damageTaken`);
@@ -282,6 +299,10 @@ export function normalizeRunArchiveStorage(value) {
         exactKeys(item, ["schemaVersion", "savedAt", "report"], "archive entry");
         if (!Number.isFinite(Date.parse(item.savedAt))) throw new TypeError("archive savedAt is invalid");
         entry = { schemaVersion: RUN_ARCHIVE_STORAGE_VERSION, savedAt: new Date(item.savedAt).toISOString(), report: validateSquadRunReport(item.report) };
+      } else if (Number(item?.schemaVersion) === 4) {
+        exactKeys(item, ["schemaVersion", "savedAt", "report"], "legacy archive entry");
+        if (!Number.isFinite(Date.parse(item.savedAt))) throw new TypeError("archive savedAt is invalid");
+        entry = { schemaVersion: RUN_ARCHIVE_STORAGE_VERSION, savedAt: new Date(item.savedAt).toISOString(), report: upgradeV2Report(item.report) };
       } else if (Number(item?.schemaVersion) === 3) {
         exactKeys(item, ["schemaVersion", "savedAt", "report"], "legacy archive entry");
         if (!Number.isFinite(Date.parse(item.savedAt))) throw new TypeError("archive savedAt is invalid");

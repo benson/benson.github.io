@@ -35,6 +35,7 @@ const TELEMETRY_V2_FIELDS = new Set([...TELEMETRY_V1_FIELDS, "synergyIds", "syne
 const TELEMETRY_V3_FIELDS = new Set([...TELEMETRY_V2_FIELDS, "participationTotals"]);
 const TELEMETRY_V4_FIELDS = new Set([...TELEMETRY_V3_FIELDS, "directorTotals"]);
 const TELEMETRY_V5_FIELDS = new Set([...TELEMETRY_V4_FIELDS, "mutationPackageId", "mutationTotals"]);
+const TELEMETRY_V6_FIELDS = new Set([...TELEMETRY_V5_FIELDS, "masterySpecialist", "masteryLevelBand", "masteryChallengeCompletions", "masteryMilestoneUnlocks", "masterySelectedStart"]);
 const TELEMETRY_MAPS = new Set(["warehouse", "outskirts", "lab", "beachhead"]);
 const TELEMETRY_DIFFICULTIES = new Set(["story", "hard", "extreme"]);
 const TELEMETRY_OUTCOMES = new Set(["won", "lost"]);
@@ -89,6 +90,7 @@ export function safeProfile(value = {}) {
   return {
     name: String(value.name || "Rookie").replace(/[^\w .'-]/g, "").slice(0, 16) || "Rookie",
     specialist: /^[a-z]{3,8}$/.test(value.specialist) ? value.specialist : "zuri",
+    masteryStart: value.masteryStart === "field-kit" ? "field-kit" : "baseline",
     ready: Boolean(value.ready),
     resumeToken: /^[a-f0-9]{24,32}$/.test(String(value.resumeToken || "")) ? String(value.resumeToken) : "",
   };
@@ -113,8 +115,8 @@ function telemetryExactKeys(value, expected, field) {
 
 export function sanitizeRunTelemetry(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new TypeError("Telemetry must be an object");
-  if (![1, 2, 3, 4, 5].includes(value.schemaVersion)) throw new TypeError("Unsupported telemetry schema");
-  const allowedFields = value.schemaVersion === 5 ? TELEMETRY_V5_FIELDS : value.schemaVersion === 4 ? TELEMETRY_V4_FIELDS : value.schemaVersion === 3 ? TELEMETRY_V3_FIELDS : value.schemaVersion === 2 ? TELEMETRY_V2_FIELDS : TELEMETRY_V1_FIELDS;
+  if (![1, 2, 3, 4, 5, 6].includes(value.schemaVersion)) throw new TypeError("Unsupported telemetry schema");
+  const allowedFields = value.schemaVersion === 6 ? TELEMETRY_V6_FIELDS : value.schemaVersion === 5 ? TELEMETRY_V5_FIELDS : value.schemaVersion === 4 ? TELEMETRY_V4_FIELDS : value.schemaVersion === 3 ? TELEMETRY_V3_FIELDS : value.schemaVersion === 2 ? TELEMETRY_V2_FIELDS : TELEMETRY_V1_FIELDS;
   for (const key of Object.keys(value)) {
     if (!allowedFields.has(key)) throw new TypeError(`Unexpected telemetry field: ${key}`);
   }
@@ -201,7 +203,7 @@ export function sanitizeRunTelemetry(value) {
     if (directorTotals.objectivePressure !== directorTotals.objective) throw new TypeError("Director objective totals do not reconcile");
     run.directorTotals = directorTotals;
   }
-  if (value.schemaVersion === 5) {
+  if (value.schemaVersion >= 5) {
     if (!TELEMETRY_MUTATION_PACKAGES.has(value.mutationPackageId)) throw new TypeError("Invalid mutationPackageId");
     telemetryExactKeys(value.mutationTotals, TELEMETRY_MUTATION_TOTAL_FIELDS, "mutationTotals");
     const mutationTotals = Object.fromEntries(TELEMETRY_MUTATION_TOTAL_FIELDS.map((field) => [
@@ -209,6 +211,15 @@ export function sanitizeRunTelemetry(value) {
     ]));
     if (mutationTotals.clears + mutationTotals.failures !== mutationTotals.encounters) throw new TypeError("Mutation encounter totals do not reconcile");
     Object.assign(run, { mutationPackageId: value.mutationPackageId, mutationTotals });
+  }
+  if (value.schemaVersion === 6) {
+    if (!TELEMETRY_SPECIALISTS.has(value.masterySpecialist) || !["1-2", "3-4", "5"].includes(value.masteryLevelBand) || !["baseline", "field-kit"].includes(value.masterySelectedStart)) throw new TypeError("Invalid mastery telemetry identity");
+    Object.assign(run, {
+      masterySpecialist: value.masterySpecialist, masteryLevelBand: value.masteryLevelBand,
+      masteryChallengeCompletions: telemetryNumber(value.masteryChallengeCompletions, "masteryChallengeCompletions", 0, 1, true),
+      masteryMilestoneUnlocks: telemetryNumber(value.masteryMilestoneUnlocks, "masteryMilestoneUnlocks", 0, 4, true),
+      masterySelectedStart: value.masterySelectedStart,
+    });
   }
   return run;
 }
@@ -295,6 +306,14 @@ function mutationDataPoint(run) {
   };
 }
 
+function masteryDataPoint(run) {
+  return {
+    blobs: ["specialist-mastery.v1", run.build, run.map, run.difficulty, run.outcome, run.masterySpecialist, run.masteryLevelBand, run.masterySelectedStart],
+    doubles: [run.masteryChallengeCompletions, run.masteryMilestoneUnlocks],
+    indexes: ["lastlight-specialist-mastery-v1"],
+  };
+}
+
 async function handleTelemetry(request, env) {
   if (request.method !== "POST") {
     return Response.json({ error: "Method not allowed" }, { status: 405, headers: { ...corsHeaders(request), Allow: "POST" } });
@@ -324,7 +343,8 @@ async function handleTelemetry(request, env) {
   env.RUN_TELEMETRY.writeDataPoint(telemetryDataPoint(run));
   if (run.schemaVersion >= 3) env.RUN_TELEMETRY.writeDataPoint(participationDataPoint(run));
   if (run.schemaVersion >= 4) env.RUN_TELEMETRY.writeDataPoint(directorDataPoint(run));
-  if (run.schemaVersion === 5) env.RUN_TELEMETRY.writeDataPoint(mutationDataPoint(run));
+  if (run.schemaVersion >= 5) env.RUN_TELEMETRY.writeDataPoint(mutationDataPoint(run));
+  if (run.schemaVersion === 6) env.RUN_TELEMETRY.writeDataPoint(masteryDataPoint(run));
   return Response.json({ ok: true }, { status: 202, headers: { ...corsHeaders(request), "Cache-Control": "no-store" } });
 }
 
@@ -782,13 +802,13 @@ export class Room {
       const profile = safeProfile(message.profile);
       if (this.runActive) {
         if (session.admissionKind === "fresh" && ["selecting", "waiting"].includes(session.admissionState)) {
-          Object.assign(session, { name: profile.name, specialist: profile.specialist, ready: profile.ready });
+          Object.assign(session, { name: profile.name, specialist: profile.specialist, masteryStart: "baseline", ready: profile.ready });
         }
         return;
       }
-      Object.assign(session, { name: profile.name, specialist: profile.specialist, ready: profile.ready });
+      Object.assign(session, { name: profile.name, specialist: profile.specialist, masteryStart: profile.masteryStart, ready: profile.ready });
       message.profile = {
-        id: session.id, name: profile.name, specialist: profile.specialist, ready: profile.ready,
+        id: session.id, name: profile.name, specialist: profile.specialist, masteryStart: session.masteryStart, ready: profile.ready,
         ...(Number.isInteger(session.replaySlot) ? { replaySlot: session.replaySlot } : {}),
       };
     }
@@ -981,7 +1001,7 @@ export class Room {
 }
 
 function publicPeer(session) {
-  return { id: session.id, name: session.name, specialist: session.specialist, ready: session.ready, ...(Number.isInteger(session.replaySlot) ? { replaySlot: session.replaySlot } : {}) };
+  return { id: session.id, name: session.name, specialist: session.specialist, masteryStart: session.masteryStart === "field-kit" ? "field-kit" : "baseline", ready: session.ready, ...(Number.isInteger(session.replaySlot) ? { replaySlot: session.replaySlot } : {}) };
 }
 
 function socketForSession(sessions, target) {

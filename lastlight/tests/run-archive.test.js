@@ -103,9 +103,26 @@ test("v4 storage deduplicates canonical reports and isolates malformed entries",
   assert.equal(normalized.length, 1); assert.equal(normalized[0].report.id, report.id);
 });
 
-test("legacy v1/v2 local entries migrate to bounded v4 reports without blocking", () => {
+test("legacy v1/v2 local entries migrate to bounded current reports without blocking", () => {
   const legacy = { schemaVersion: 2, id: "old", finishedAt: "2026-07-12T12:00:00.000Z", won: true, map: "warehouse", difficulty: "story", elapsed: 244, level: 12, kills: 90, gold: 100, players: [{ name: "Old", specialist: "echo", damage: 500, kills: 90, xpCollected: 300, damageTaken: 2, revives: 0, traveled: 1_000 }] };
   const migrated = normalizeRunArchiveStorage([legacy]);
-  assert.equal(migrated.length, 1); assert.equal(migrated[0].schemaVersion, 4); assert.equal(migrated[0].report.build, "legacy");
+  assert.equal(migrated.length, 1); assert.equal(migrated[0].schemaVersion, RUN_ARCHIVE_STORAGE_VERSION); assert.equal(migrated[0].report.build, "legacy");
   assert.equal(migrated[0].report.players[0].callsign, "Old"); assert.equal(migrated[0].report.players[0].damage, 500);
+});
+
+test("signed v2 reports migrate to v3 with an explicit baseline mastery start", () => {
+  const legacy = structuredClone(createSquadRunReport(run(), { build: "2026.07.13.14" }));
+  legacy.schema = "lastlight.squad-run-report.v2";
+  for (const player of legacy.players) delete player.masteryStart;
+  const identity = {
+    schema: legacy.schema, build: legacy.build, runKey: legacy.runKey, outcome: legacy.outcome, map: legacy.map,
+    difficulty: legacy.difficulty, elapsed: legacy.elapsed, level: legacy.level, squadKills: legacy.squadKills,
+    gold: legacy.gold, mutations: legacy.mutations, players: legacy.players.map((player) => ({ ...player, callsign: "" })), totals: legacy.totals,
+  };
+  legacy.fingerprint = fnv1a64(canonicalStringify(identity));
+  legacy.id = `ll-${legacy.runKey.slice(0, 8)}-${legacy.fingerprint.slice(0, 8)}`;
+  const [entry] = normalizeRunArchiveStorage([{ schemaVersion: 4, savedAt: "2026-07-13T16:31:00.000Z", report: legacy }]);
+  assert.equal(entry.report.schema, SQUAD_RUN_REPORT_SCHEMA);
+  assert.ok(entry.report.players.every(({ masteryStart }) => masteryStart === "baseline"));
+  assert.doesNotThrow(() => validateSquadRunReport(entry.report));
 });

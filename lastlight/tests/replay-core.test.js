@@ -6,19 +6,20 @@ import {
   quantizeReplayInput, replayGameplayFeatures, validateReplay,
 } from "../replay.js";
 import { Simulation } from "../engine.js";
+import { createGameReplayAdapters } from "../replay-game-adapters.js";
 
 const base = () => ({
   schema: REPLAY_SCHEMA,
   build: "2026.07.11.3",
   balance: { version: "2026.07.11-baseline.1", hash: "fnv1a32:7e33be79" },
   features: {
-    configVersion: "release-2026.07.13.14", gameplayVersion: "campaign-mutations-v1", objectiveEvents: true,
-    squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, registryVersion: "lastlight.squad-synergy.v1",
+    configVersion: "release-2026.07.13.15", gameplayVersion: "specialist-mastery-v1", objectiveEvents: true,
+    squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, specialistMastery: true, registryVersion: "lastlight.squad-synergy.v1",
   },
   engine: { stepHz: REPLAY_STEP_HZ, rng: "xoshiro128ss-v1" },
   seed: "0123456789abcdef0123456789abcdef",
   run: { map: "warehouse", difficulty: "story", duration: 240 },
-  roster: [{ slot: 0, specialist: "zuri" }],
+  roster: [{ slot: 0, specialist: "zuri", masteryStart: "baseline" }],
   commands: [[0, 0, "i", 0, 127, 0, 0, 1]],
   checkpoints: [[0, "0000000000000000"]],
   finalTick: 0,
@@ -43,7 +44,7 @@ test("input quantization is bounded, normalized, and round-trippable", () => {
 
 test("strict replay validation accepts every command kind", () => {
   const replay = base();
-  replay.roster.push({ slot: 1, specialist: "echo" });
+  replay.roster.push({ slot: 1, specialist: "echo", masteryStart: "baseline" });
   replay.commands = [
     [0, 0, "i", 0, 0, 0, 0, 1], [0, 1, "c", 0, "e"], [0, 2, "u", 0, "passive:damage"],
     [0, 3, "q", 0], [0, 4, "b", 0, "weapon:uwu"], [0, 5, "s", 0], [0, 6, "x", 0, "weapon:uwu", "drone"],
@@ -71,6 +72,18 @@ test("validator rejects unknown fields, identity, nonfinite input, and stale con
   const missingCampaignMutations = base(); delete missingCampaignMutations.features.campaignMutations;
   assert.throws(() => validateReplay(missingCampaignMutations), /unexpected or missing fields/);
 });
+
+function stripMastery(value) {
+  delete value.features?.specialistMastery;
+  for (const member of value.roster || []) delete member.masteryStart;
+  return value;
+}
+
+function stripDraftMastery(value) {
+  delete value.header?.specialistMastery;
+  for (const member of [...(value.roster || []), ...(value.knownSlots || [])]) delete member.masteryStart;
+  return value;
+}
 
 test("validator enforces tuple length, command order, and per-tick bounds", () => {
   const length = base(); length.commands = [[0, 0, "a", 1]];
@@ -100,10 +113,10 @@ test("recorder keeps transient identities out of replay JSON and deduplicates in
   const text = JSON.stringify(replay);
   assert.doesNotMatch(text, /relay-secret|callsign|resume|room/i);
   assert.equal(replay.commands.length, 6);
-  assert.deepEqual(replay.roster, [{ slot: 0, specialist: "zuri" }]);
+  assert.deepEqual(replay.roster, [{ slot: 0, specialist: "zuri", masteryStart: "baseline" }]);
   assert.deepEqual(replay.features, {
-    configVersion: "release-2026.07.13.14", gameplayVersion: "campaign-mutations-v1", objectiveEvents: true,
-    squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, registryVersion: "lastlight.squad-synergy.v1",
+    configVersion: "release-2026.07.13.15", gameplayVersion: "specialist-mastery-v1", objectiveEvents: true,
+    squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, specialistMastery: true, registryVersion: "lastlight.squad-synergy.v1",
   });
 });
 
@@ -124,7 +137,7 @@ test("paused pointer sampling coalesces safely and mixed-case authored choices r
 
 test("legacy v1 replay manifests remain readable with the original gameplay identity", () => {
   const legacy = base();
-  legacy.schema = "lastlight.replay.v1";
+  legacy.schema = "lastlight.replay.v1"; stripMastery(legacy);
   delete legacy.features;
   assert.doesNotThrow(() => validateReplay(legacy, { gameplayVersion: "events-v1" }));
   assert.throws(() => validateReplay(legacy, { gameplayVersion: "events-off-v1" }), /gameplay feature version mismatch/);
@@ -132,7 +145,7 @@ test("legacy v1 replay manifests remain readable with the original gameplay iden
 
 test("legacy v3 manifests reject v4-only draft commands", () => {
   const legacy = base();
-  legacy.schema = "lastlight.replay.v3";
+  legacy.schema = "lastlight.replay.v3"; stripMastery(legacy);
   legacy.features = { configVersion: "release-2026.07.13.5", gameplayVersion: "events-v1", objectiveEvents: true };
   legacy.commands = [[0, 0, "q", 0]];
   assert.throws(() => validateReplay(legacy), /unsupported/);
@@ -140,7 +153,7 @@ test("legacy v3 manifests reject v4-only draft commands", () => {
 
 test("legacy v4 manifests remain readable with squad synergies explicitly disabled", () => {
   const legacy = base();
-  legacy.schema = "lastlight.replay.v4";
+  legacy.schema = "lastlight.replay.v4"; stripMastery(legacy);
   legacy.features = { configVersion: "release-2026.07.13.5", gameplayVersion: "events-v1", objectiveEvents: true };
   assert.doesNotThrow(() => validateReplay(legacy, { squadSynergies: false, registryVersion: "none" }));
   assert.throws(() => validateReplay(legacy, { squadSynergies: true }), /squad-synergies flag mismatch/);
@@ -148,7 +161,7 @@ test("legacy v4 manifests remain readable with squad synergies explicitly disabl
 
 test("legacy v5 manifests preserve squad synergies and disable participation credit", () => {
   const legacy = base();
-  legacy.schema = "lastlight.replay.v5";
+  legacy.schema = "lastlight.replay.v5"; stripMastery(legacy);
   delete legacy.features.sharedParticipationCredit;
   delete legacy.features.downedActivity;
   delete legacy.features.joinInProgressNormalization;
@@ -161,7 +174,7 @@ test("legacy v5 manifests preserve squad synergies and disable participation cre
 
 test("legacy v6 manifests preserve participation credit and disable downed activity", () => {
   const legacy = base();
-  legacy.schema = "lastlight.replay.v6";
+  legacy.schema = "lastlight.replay.v6"; stripMastery(legacy);
   delete legacy.features.downedActivity;
   delete legacy.features.joinInProgressNormalization;
   delete legacy.features.squadEnemyDirector;
@@ -173,7 +186,7 @@ test("legacy v6 manifests preserve participation credit and disable downed activ
 
 test("legacy v7 manifests preserve downed activity and disable join normalization", () => {
   const legacy = base();
-  legacy.schema = "lastlight.replay.v7";
+  legacy.schema = "lastlight.replay.v7"; stripMastery(legacy);
   delete legacy.features.joinInProgressNormalization;
   delete legacy.features.squadEnemyDirector;
   delete legacy.features.mapMechanics;
@@ -184,12 +197,12 @@ test("legacy v7 manifests preserve downed activity and disable join normalizatio
 });
 
 test("legacy v8 through v10 manifests preserve their exact rolling feature boundaries", () => {
-  const v10 = base(); v10.schema = "lastlight.replay.v10"; delete v10.features.campaignMutations;
+  const v10 = stripMastery(base()); v10.schema = "lastlight.replay.v10"; delete v10.features.campaignMutations;
   assert.doesNotThrow(() => validateReplay(v10, { mapMechanics: true, campaignMutations: false }));
-  const v9 = base(); v9.schema = "lastlight.replay.v9"; delete v9.features.mapMechanics; delete v9.features.campaignMutations;
+  const v9 = stripMastery(base()); v9.schema = "lastlight.replay.v9"; delete v9.features.mapMechanics; delete v9.features.campaignMutations;
   assert.doesNotThrow(() => validateReplay(v9, { squadEnemyDirector: true, mapMechanics: false }));
   assert.equal(replayGameplayFeatures(v9).mapMechanics, false);
-  const v8 = base(); v8.schema = "lastlight.replay.v8";
+  const v8 = stripMastery(base()); v8.schema = "lastlight.replay.v8";
   delete v8.features.mapMechanics; delete v8.features.campaignMutations; delete v8.features.squadEnemyDirector;
   assert.doesNotThrow(() => validateReplay(v8, { joinInProgressNormalization: true, squadEnemyDirector: false, mapMechanics: false }));
   assert.equal(replayGameplayFeatures(v8).squadEnemyDirector, false);
@@ -203,7 +216,7 @@ test("legacy v6 drafts resume as v9 replays with map mechanics explicitly disabl
     run: { map: "warehouse", difficulty: "story", duration: 240 },
   });
   recorder.registerPlayer("host", "zuri", { slot: 0, initial: true });
-  const draft = recorder.exportDraft(0); draft.schema = "lastlight.replay-draft.v6"; delete draft.header.mapMechanics; delete draft.header.campaignMutations;
+  const draft = stripDraftMastery(recorder.exportDraft(0)); draft.schema = "lastlight.replay-draft.v6"; delete draft.header.mapMechanics; delete draft.header.campaignMutations;
   const resumed = ReplayRecorder.fromDraft(draft, [{ id: "restored", specialist: "zuri", replaySlot: 0 }]);
   const replay = resumed.finalize(0, "0000000000000000");
   assert.equal(replay.schema, "lastlight.replay.v9");
@@ -219,7 +232,7 @@ test("legacy replay drafts resume with squad synergies explicitly disabled", () 
   });
   recorder.registerPlayer("host", "zuri", { slot: 0, initial: true });
   const draft = recorder.exportDraft(0);
-  draft.schema = "lastlight.replay-draft.v1";
+  draft.schema = "lastlight.replay-draft.v1"; stripDraftMastery(draft);
   delete draft.header.squadSynergies;
   delete draft.header.sharedParticipationCredit;
   delete draft.header.downedActivity;
@@ -232,8 +245,8 @@ test("legacy replay drafts resume with squad synergies explicitly disabled", () 
   const replay = resumed.finalize(0, "0000000000000000");
   assert.equal(replay.schema, "lastlight.replay.v4");
   assert.deepEqual(replayGameplayFeatures(replay), {
-    gameplayVersion: "campaign-mutations-v1", objectiveEvents: true, squadSynergies: false,
-    sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, registryVersion: "none",
+    gameplayVersion: "specialist-mastery-v1", objectiveEvents: true, squadSynergies: false,
+    sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, specialistMastery: false, registryVersion: "none",
   });
 });
 
@@ -245,7 +258,7 @@ test("legacy v2 replay drafts preserve squad synergies and disable participation
   });
   recorder.registerPlayer("host", "zuri", { slot: 0, initial: true });
   const draft = recorder.exportDraft(0);
-  draft.schema = "lastlight.replay-draft.v2";
+  draft.schema = "lastlight.replay-draft.v2"; stripDraftMastery(draft);
   delete draft.header.sharedParticipationCredit;
   delete draft.header.downedActivity;
   delete draft.header.joinInProgressNormalization;
@@ -271,7 +284,7 @@ test("legacy v3 replay drafts preserve participation credit and disable downed a
   });
   recorder.registerPlayer("host", "zuri", { slot: 0, initial: true });
   const draft = recorder.exportDraft(0);
-  draft.schema = "lastlight.replay-draft.v3";
+  draft.schema = "lastlight.replay-draft.v3"; stripDraftMastery(draft);
   delete draft.header.downedActivity;
   delete draft.header.joinInProgressNormalization;
   delete draft.header.squadEnemyDirector;
@@ -294,7 +307,7 @@ test("legacy v4 replay drafts preserve downed activity and disable join normaliz
   });
   recorder.registerPlayer("host", "zuri", { slot: 0, initial: true });
   const draft = recorder.exportDraft(0);
-  draft.schema = "lastlight.replay-draft.v4";
+  draft.schema = "lastlight.replay-draft.v4"; stripDraftMastery(draft);
   delete draft.header.joinInProgressNormalization;
   delete draft.header.squadEnemyDirector;
   delete draft.header.mapMechanics;
@@ -315,7 +328,7 @@ test("legacy v4 drafts retain five-field join commands and legacy seat reuse", (
   });
   recorder.registerPlayer("host", "zuri", { slot: 0, initial: true });
   const draft = recorder.exportDraft(0);
-  draft.schema = "lastlight.replay-draft.v4";
+  draft.schema = "lastlight.replay-draft.v4"; stripDraftMastery(draft);
   delete draft.header.joinInProgressNormalization;
   delete draft.header.squadEnemyDirector;
   delete draft.header.mapMechanics;
@@ -337,7 +350,7 @@ test("legacy v4 drafts retain five-field join commands and legacy seat reuse", (
 
 test("movement v3 keeps feature-bearing v2 manifests readable without changing input tuples", () => {
   const legacy = base();
-  legacy.schema = "lastlight.replay.v2";
+  legacy.schema = "lastlight.replay.v2"; stripMastery(legacy);
   legacy.features = { configVersion: "release-2026.07.13.5", gameplayVersion: "events-v1", objectiveEvents: true };
   assert.doesNotThrow(() => validateReplay(legacy, { gameplayVersion: "events-v1" }));
   assert.equal(legacy.commands[0].length, 8);
@@ -355,7 +368,7 @@ test("join and reconnect commands reuse an anonymous slot without changing the i
   recorder.registerPlayer("guest-new", "echo", { slot: 1, tick: 25, reconnect: true });
   recorder.addCheckpoint(0, "0000000000000000");
   const replay = recorder.finalize(25, "1111111111111111");
-  assert.deepEqual(replay.roster, [{ slot: 0, specialist: "zuri" }]);
+  assert.deepEqual(replay.roster, [{ slot: 0, specialist: "zuri", masteryStart: "baseline" }]);
   assert.deepEqual(replay.commands.map((command) => command[2]), ["j", "l", "r"]);
 });
 
@@ -429,7 +442,7 @@ test("driver rejects a simulation created with different gameplay flags before s
   replay.features = {
     configVersion: "rollback-42", gameplayVersion: "participation-off-v1", objectiveEvents: false,
     squadSynergies: false, sharedParticipationCredit: false, downedActivity: false,
-    joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, registryVersion: "lastlight.squad-synergy.v1",
+    joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, specialistMastery: false, registryVersion: "lastlight.squad-synergy.v1",
   };
   const driver = new ReplayDriver(replay, {
     createSimulation: () => ({ gameplayVersion: "events-v1", objectiveEvents: true, squadSynergies: true, synergyRegistryVersion: "lastlight.squad-synergy.v1" }),
@@ -474,7 +487,7 @@ test("simulation hashes normalize transient identity but include input, hit sets
 test("feature-off canonical hashes preserve the legacy v7 simulation shape", () => {
   const features = {
     gameplayVersion: "participation-v1", objectiveEvents: true, squadSynergies: true,
-    sharedParticipationCredit: true, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false,
+    sharedParticipationCredit: true, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, specialistMastery: false,
     registryVersion: "lastlight.squad-synergy.v1",
   };
   const simulation = new Simulation({
@@ -549,7 +562,7 @@ test("a recorded deterministic Simulation replays to the same final hash", () =>
   const driver = new ReplayDriver(replay, {
     createSimulation: (manifest) => new Simulation({
       ...manifest.run,
-      players: manifest.roster.map(({ slot, specialist }) => ({ id: `p${slot}`, name: `P${slot}`, specialist, replaySlot: slot })),
+      players: manifest.roster.map(({ slot, specialist, masteryStart }) => ({ id: `p${slot}`, name: `P${slot}`, specialist, masteryStart, replaySlot: slot })),
     }, {
       seed: manifest.seed, balanceVersion: manifest.balance.version, balanceHash: manifest.balance.hash,
       features: {
@@ -560,6 +573,7 @@ test("a recorded deterministic Simulation replays to the same final hash", () =>
         squadEnemyDirector: manifest.features.squadEnemyDirector,
         mapMechanics: manifest.features.mapMechanics,
         campaignMutations: manifest.features.campaignMutations,
+        specialistMastery: manifest.features.specialistMastery,
         registryVersion: manifest.features.registryVersion,
       },
     }),
@@ -571,6 +585,18 @@ test("a recorded deterministic Simulation replays to the same final hash", () =>
     hashState: hashSimulationState,
   });
   assert.equal(driver.run().finalHash, replay.finalHash);
+});
+
+test("mastery field-kit starts are recorded and replayed without browser progression state", () => {
+  const run = { map: "warehouse", difficulty: "story", duration: 240 };
+  const seed = "1123456789abcdef0123456789abcdef";
+  const source = new Simulation({ ...run, players: [{ id: "source", name: "Source", specialist: "zuri", replaySlot: 0, masteryStart: "field-kit" }] }, { seed });
+  const recorder = new ReplayRecorder({ build: "2026.07.13.15", balanceVersion: source.balanceVersion, balanceHash: source.balanceHash, rng: "xoshiro128ss-v1", seed, run });
+  recorder.registerPlayer("source", "zuri", { slot: 0, masteryStart: "field-kit", initial: true });
+  recorder.addCheckpoint(0, hashSimulationState(source));
+  const replay = recorder.finalize(0, hashSimulationState(source));
+  assert.deepEqual(replay.roster, [{ slot: 0, specialist: "zuri", masteryStart: "field-kit" }]);
+  assert.equal(new ReplayDriver(replay, createGameReplayAdapters()).run().finalHash, replay.finalHash);
 });
 
 test("oversized replays are rejected before playback", () => {
