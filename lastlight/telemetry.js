@@ -193,7 +193,13 @@ function buildChallengeAchievementTelemetry(value) {
   return { challengeAchievementCount: value.completedCount, challengeAchievementNewCount: value.newlyCompletedCount, challengeAchievementCategories: categories };
 }
 
-export function buildRunTelemetry(snapshot, build, masteryTelemetry = null, discoveryTelemetry = null, challengeTelemetry = null) {
+function buildSeededOperationTelemetry(value) {
+  exactKeys(value, ["kind", "outcome", "completed", "map", "difficulty", "scoreBand"], "Seeded operation telemetry");
+  if (!["daily", "weekly"].includes(value.kind) || !["won", "lost"].includes(value.outcome) || typeof value.completed !== "boolean" || value.completed !== (value.outcome === "won") || !MAPS.has(value.map) || !DIFFICULTIES.has(value.difficulty) || !["attempt", "silver", "gold"].includes(value.scoreBand)) throw new TypeError("Invalid seeded operation telemetry");
+  return { seededOperationKind: value.kind, seededOperationCompleted: value.completed, seededOperationScoreBand: value.scoreBand };
+}
+
+export function buildRunTelemetry(snapshot, build, masteryTelemetry = null, discoveryTelemetry = null, challengeTelemetry = null, seededTelemetry = null) {
   if (!snapshot || typeof snapshot !== "object") throw new TypeError("A result snapshot is required");
   if (snapshot.stage !== "won" && snapshot.stage !== "lost") throw new TypeError("Telemetry is only recorded for completed runs");
 
@@ -268,11 +274,15 @@ export function buildRunTelemetry(snapshot, build, masteryTelemetry = null, disc
     if (payload.schemaVersion < 5) throw new TypeError("Challenge achievement telemetry requires the current aggregate run schema");
     Object.assign(payload, { schemaVersion: 8, ...buildChallengeAchievementTelemetry(challengeTelemetry) });
   }
+  if (seededTelemetry !== null) {
+    if (payload.schemaVersion < 5 || seededTelemetry.map !== map || seededTelemetry.difficulty !== difficulty || seededTelemetry.outcome !== snapshot.stage) throw new TypeError("Seeded operation telemetry requires the matching current aggregate run schema");
+    Object.assign(payload, { schemaVersion: 9, ...buildSeededOperationTelemetry(seededTelemetry) });
+  }
   return payload;
 }
 
 export async function submitRunTelemetry(snapshot, build, options = {}) {
-  const payload = buildRunTelemetry(snapshot, build, options.masteryTelemetry ?? null, options.discoveryTelemetry ?? null, options.challengeTelemetry ?? null);
+  const payload = buildRunTelemetry(snapshot, build, options.masteryTelemetry ?? null, options.discoveryTelemetry ?? null, options.challengeTelemetry ?? null, options.seededOperationTelemetry ?? null);
   const request = options.fetch || globalThis.fetch;
   if (typeof request !== "function") throw new TypeError("fetch is unavailable");
   const response = await request(options.endpoint || DEFAULT_TELEMETRY_ENDPOINT, {

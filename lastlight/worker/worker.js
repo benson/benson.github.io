@@ -43,6 +43,8 @@ const TELEMETRY_DISCOVERY_FIELDS = Object.freeze(["rareDiscoveryCount", "rareDis
 const TELEMETRY_CHALLENGE_CATEGORIES = Object.freeze(["build", "survival", "teamwork", "operation", "discovery", "specialist"]);
 const TELEMETRY_CHALLENGE_FIELDS = Object.freeze(["challengeAchievementCount", "challengeAchievementNewCount", "challengeAchievementCategories"]);
 const TELEMETRY_V8_FIELDS = new Set([...TELEMETRY_V7_FIELDS, ...TELEMETRY_CHALLENGE_FIELDS]);
+const TELEMETRY_SEEDED_FIELDS = Object.freeze(["seededOperationKind", "seededOperationCompleted", "seededOperationScoreBand"]);
+const TELEMETRY_V9_FIELDS = new Set([...TELEMETRY_V8_FIELDS, ...TELEMETRY_SEEDED_FIELDS]);
 const TELEMETRY_MAPS = new Set(["warehouse", "outskirts", "lab", "beachhead"]);
 const TELEMETRY_DIFFICULTIES = new Set(["story", "hard", "extreme"]);
 const TELEMETRY_OUTCOMES = new Set(["won", "lost"]);
@@ -122,8 +124,8 @@ function telemetryExactKeys(value, expected, field) {
 
 export function sanitizeRunTelemetry(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new TypeError("Telemetry must be an object");
-  if (![1, 2, 3, 4, 5, 6, 7, 8].includes(value.schemaVersion)) throw new TypeError("Unsupported telemetry schema");
-  const allowedFields = value.schemaVersion === 8 ? TELEMETRY_V8_FIELDS : value.schemaVersion === 7 ? TELEMETRY_V7_FIELDS : value.schemaVersion === 6 ? TELEMETRY_V6_FIELDS : value.schemaVersion === 5 ? TELEMETRY_V5_FIELDS : value.schemaVersion === 4 ? TELEMETRY_V4_FIELDS : value.schemaVersion === 3 ? TELEMETRY_V3_FIELDS : value.schemaVersion === 2 ? TELEMETRY_V2_FIELDS : TELEMETRY_V1_FIELDS;
+  if (![1, 2, 3, 4, 5, 6, 7, 8, 9].includes(value.schemaVersion)) throw new TypeError("Unsupported telemetry schema");
+  const allowedFields = value.schemaVersion === 9 ? TELEMETRY_V9_FIELDS : value.schemaVersion === 8 ? TELEMETRY_V8_FIELDS : value.schemaVersion === 7 ? TELEMETRY_V7_FIELDS : value.schemaVersion === 6 ? TELEMETRY_V6_FIELDS : value.schemaVersion === 5 ? TELEMETRY_V5_FIELDS : value.schemaVersion === 4 ? TELEMETRY_V4_FIELDS : value.schemaVersion === 3 ? TELEMETRY_V3_FIELDS : value.schemaVersion === 2 ? TELEMETRY_V2_FIELDS : TELEMETRY_V1_FIELDS;
   for (const key of Object.keys(value)) {
     if (!allowedFields.has(key)) throw new TypeError(`Unexpected telemetry field: ${key}`);
   }
@@ -254,6 +256,12 @@ export function sanitizeRunTelemetry(value) {
     if (Object.values(challengeAchievementCategories).reduce((sum, count) => sum + count, 0) !== challengeAchievementCount) throw new TypeError("Challenge achievement categories do not reconcile");
     Object.assign(run, { challengeAchievementCount, challengeAchievementNewCount, challengeAchievementCategories });
   }
+  const seededFieldCount = TELEMETRY_SEEDED_FIELDS.filter((field) => Object.hasOwn(value, field)).length;
+  if (value.schemaVersion === 9 || seededFieldCount) {
+    if (seededFieldCount !== TELEMETRY_SEEDED_FIELDS.length) throw new TypeError("Incomplete seeded operation telemetry");
+    if (!["daily", "weekly"].includes(value.seededOperationKind) || typeof value.seededOperationCompleted !== "boolean" || value.seededOperationCompleted !== (value.outcome === "won") || !["attempt", "silver", "gold"].includes(value.seededOperationScoreBand)) throw new TypeError("Invalid seeded operation telemetry");
+    Object.assign(run, { seededOperationKind: value.seededOperationKind, seededOperationCompleted: value.seededOperationCompleted, seededOperationScoreBand: value.seededOperationScoreBand });
+  }
   return run;
 }
 
@@ -363,6 +371,14 @@ function challengeAchievementDataPoint(run) {
   };
 }
 
+function seededOperationDataPoint(run) {
+  return {
+    blobs: ["seeded-operations.v1", run.build, run.map, run.difficulty, run.outcome, run.seededOperationKind, run.seededOperationScoreBand],
+    doubles: [run.seededOperationCompleted ? 1 : 0, run.playerCount],
+    indexes: ["lastlight-seeded-operations-v1"],
+  };
+}
+
 async function handleTelemetry(request, env) {
   if (request.method !== "POST") {
     return Response.json({ error: "Method not allowed" }, { status: 405, headers: { ...corsHeaders(request), Allow: "POST" } });
@@ -396,6 +412,7 @@ async function handleTelemetry(request, env) {
   if (run.masterySpecialist) env.RUN_TELEMETRY.writeDataPoint(masteryDataPoint(run));
   if (run.rareDiscoveryCategories) env.RUN_TELEMETRY.writeDataPoint(rareDiscoveryDataPoint(run));
   if (run.challengeAchievementCategories) env.RUN_TELEMETRY.writeDataPoint(challengeAchievementDataPoint(run));
+  if (run.seededOperationKind) env.RUN_TELEMETRY.writeDataPoint(seededOperationDataPoint(run));
   return Response.json({ ok: true }, { status: 202, headers: { ...corsHeaders(request), "Cache-Control": "no-store" } });
 }
 

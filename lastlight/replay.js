@@ -482,10 +482,16 @@ export function validateReplay(value, expected = {}) {
     if ((currentSchema || legacyV12Schema) && typeof features.specialistMastery !== "boolean") throw new TypeError("features.specialistMastery must be boolean");
     if (currentSchema && typeof features.rareDiscoveries !== "boolean") throw new TypeError("features.rareDiscoveries must be boolean");
   }
-  assertExactKeys(value.run, ["map", "difficulty", "duration"], "run");
+  const hasSeededOperation = currentSchema && value.run?.seededOperation !== undefined;
+  assertExactKeys(value.run, ["map", "difficulty", "duration", ...(hasSeededOperation ? ["seededOperation"] : [])], "run");
   if (!MAPS.has(value.run.map)) throw new TypeError("run.map is invalid");
   if (!DIFFICULTIES.has(value.run.difficulty)) throw new TypeError("run.difficulty is invalid");
   integer(value.run.duration, 60, 3600, "run.duration");
+  if (hasSeededOperation) {
+    const operation = value.run.seededOperation;
+    if (!operation || typeof operation !== "object" || Array.isArray(operation)) throw new TypeError("Replay seeded operation is invalid");
+    if (operation.seed !== value.seed || operation.map !== value.run.map || operation.difficulty !== value.run.difficulty || operation.duration !== value.run.duration) throw new TypeError("Replay seeded operation configuration is inconsistent");
+  }
 
   if (!Array.isArray(value.roster) || value.roster.length < 1 || value.roster.length > 4) throw new TypeError("roster must contain one to four specialists");
   const slots = new Set();

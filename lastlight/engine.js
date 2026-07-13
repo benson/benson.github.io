@@ -1,11 +1,11 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
-} from "./data.js?v=20260713.17";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260713.17";
+} from "./data.js?v=20260713.18";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260713.18";
 import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.5";
-import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260713.17";
-import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260713.17";
+import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260713.18";
+import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260713.18";
 import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260713.1";
 import { MAX_CORRIDOR_CANDIDATES, accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget, orderEntitiesByDistance } from "./projectile-decisions.js?v=20260713.1";
 import { selectEliteAffixes, selectSpawnArchetype, spawnPhaseAt } from "./enemy-archetypes.js?v=20260713.1";
@@ -28,21 +28,22 @@ import {
   beginDownedActivity, createDownedActivityState, removeDownedActivity, triggerDownedSupport,
   validateDownedActivityState,
 } from "./downed-activity.js?v=20260713.9";
-import { generateJoinPackage, JOIN_IN_PROGRESS_REGISTRY, joinPackageUpgradeIds, transitionJoinPackage } from "./join-in-progress.js?v=20260713.17";
+import { generateJoinPackage, JOIN_IN_PROGRESS_REGISTRY, joinPackageUpgradeIds, transitionJoinPackage } from "./join-in-progress.js?v=20260713.18";
 import {
   DIRECTOR_APPROACHES, DIRECTOR_FORMATIONS, createSquadDirectorState, planSquadFormation, validateSquadDirectorState,
-} from "./enemy-director.js?v=20260713.17";
-import { mapMechanicFrame, mapSpawnWeights, pointInMapMechanic } from "./map-mechanics.js?v=20260713.17";
+} from "./enemy-director.js?v=20260713.18";
+import { mapMechanicFrame, mapSpawnWeights, pointInMapMechanic } from "./map-mechanics.js?v=20260713.18";
 import {
   CAMPAIGN_MUTATIONS, campaignMutationDefinition, campaignMutationObjectiveCompleted, campaignMutationWaveStarted,
   cancelCampaignMutationEncounter, consumeCampaignMutationEncounter, createCampaignMutationState,
   resolveCampaignMutationEncounter, validateCampaignMutationState,
-} from "./campaign-mutations.js?v=20260713.17";
-import { masteryStartDefinition } from "./specialist-mastery.js?v=20260713.17";
+} from "./campaign-mutations.js?v=20260713.18";
+import { masteryStartDefinition } from "./specialist-mastery.js?v=20260713.18";
 import {
   createRareDiscoveryRunState, rareDiscoveryIdForBoon, recordRareDiscovery,
   revealNextAugmentDossier, validateRareDiscoveryRunState,
-} from "./rare-discoveries.js?v=20260713.17";
+} from "./rare-discoveries.js?v=20260713.18";
+import { validateSeededOperation } from "./seeded-operations.js?v=20260713.18";
 
 const BALANCE = getBalanceConfig();
 
@@ -352,6 +353,8 @@ export class Simulation {
     this.eventSequence = 1;
     this.map = MAPS[config.map] || MAPS.warehouse;
     this.difficulty = DIFFICULTIES[config.difficulty] || DIFFICULTIES.story;
+    this.seededOperation = config.seededOperation ? validateSeededOperation(config.seededOperation) : null;
+    if (this.seededOperation && (this.seededOperation.seed !== this.seed || this.seededOperation.map !== this.map.id || this.seededOperation.difficulty !== this.difficulty.id || this.seededOperation.duration !== Number(config.duration))) throw new RangeError("Seeded operation simulation configuration is inconsistent");
     this.balanceVersion = BALANCE_VERSION;
     this.balanceHash = BALANCE_HASH;
     this.gameplayVersion = features.gameplayVersion;
@@ -3118,6 +3121,7 @@ export class Simulation {
       directorState: structuredClone(this.directorState),
       mutationState: structuredClone(this.mutationState),
       discoveryState: structuredClone(this.discoveryState),
+      ...(this.seededOperation ? { seededOperation: structuredClone(this.seededOperation) } : {}),
     };
   }
 
@@ -3162,6 +3166,7 @@ export class Simulation {
         squadSynergies: this.squadSynergies, sharedParticipationCredit: this.sharedParticipationCredit, downedActivity: this.downedActivity,
         joinInProgressNormalization: this.joinInProgressNormalization, squadEnemyDirector: this.squadEnemyDirector, mapMechanics: this.mapMechanics, campaignMutations: this.campaignMutations, specialistMastery: this.specialistMastery, rareDiscoveries: this.rareDiscoveries, registryVersion: this.synergyRegistryVersion,
         map: this.map.id, difficulty: this.difficulty.id, duration: this.duration,
+        ...(this.seededOperation ? { seededOperation: structuredClone(this.seededOperation) } : {}),
       },
       rng: { gameplay: this.gameplayRng.snapshot(), cosmetic: this.cosmeticRng.snapshot() },
       sequences: { gameplay: this.gameplaySequence, cosmetic: this.cosmeticSequence, event: this.eventSequence },
@@ -3222,6 +3227,7 @@ export class Simulation {
     }
     const sim = new Simulation({
       map: header.map, difficulty: header.difficulty, duration: header.duration, players: roster,
+      ...(header.seededOperation ? { seededOperation: validateSeededOperation(header.seededOperation) } : {}),
       balanceVersion: header.balanceVersion, balanceHash: header.balanceHash,
       features: {
         gameplayVersion: header.gameplayVersion, objectiveEvents: header.objectiveEvents,
@@ -3380,6 +3386,7 @@ export class Simulation {
       },
       tick: this.tick, determinism: this.deterministicState(),
       map: this.map.id, difficulty: this.difficulty.id, duration: this.duration, time: Math.round(this.time * 10) / 10,
+      ...(this.seededOperation ? { seededOperation: structuredClone(this.seededOperation) } : {}),
       remaining: Math.round(this.remaining * 10) / 10, stage: this.stage, paused: this.paused, pauseReason: this.pauseReason,
       wave: this.wave, waveName: WAVE_NAMES[this.stage === "boss" ? 7 : this.wave], teamXP: Math.round(this.teamXP),
       level: this.level, xpNeed: this.xpNeed, kills: this.kills, gold: this.gold, bossElapsed: this.bossElapsed,

@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260713.17">
+  <link rel="stylesheet" href="styles.css?v=20260713.18">
 </head>
 <body>
   <main id="app">
@@ -137,6 +137,11 @@
                   </select>
                 </label>
               </div>
+              <section id="seeded-operations" class="seeded-operations" aria-labelledby="seeded-operations-title">
+                <header><div><span>Shared deterministic contracts</span><strong id="seeded-operations-title">Seeded operations</strong></div><small>No account · local records only</small></header>
+                <div id="seeded-operation-cards" class="seeded-operation-cards"></div>
+                <p id="seeded-operation-status" class="seeded-operation-status" role="status" aria-live="polite">Standard operation selected.</p>
+              </section>
               <section id="deployment-mutations" class="mutation-package" aria-live="polite"></section>
               <p id="progression-note" class="progression-note"></p>
 
@@ -420,6 +425,7 @@
         <section id="result-mutations" class="result-mutations" aria-labelledby="result-mutations-title"><h3 id="result-mutations-title">Campaign package</h3><div class="mutation-package"></div></section>
         <section id="result-mastery" class="result-mastery hidden" aria-labelledby="result-mastery-title"><p class="eyebrow">Specialist mastery</p><h3 id="result-mastery-title">Track advanced</h3><p id="result-mastery-copy"></p></section>
         <section id="result-achievements" class="result-discoveries hidden" aria-labelledby="result-achievements-title"><p class="eyebrow">Challenge archive</p><h3 id="result-achievements-title">Records completed</h3><p id="result-achievements-copy"></p><ul id="result-achievement-list"></ul></section>
+        <section id="result-seeded-operation" class="result-discoveries hidden" aria-labelledby="result-seeded-operation-title"><p class="eyebrow">Seeded operation</p><h3 id="result-seeded-operation-title">Local record updated</h3><p id="result-seeded-operation-copy"></p><ul id="result-seeded-operation-list"></ul></section>
         <section id="result-discoveries" class="result-discoveries hidden" aria-labelledby="result-discoveries-title"><p class="eyebrow">Field Manual</p><h3 id="result-discoveries-title">Signals catalogued</h3><p id="result-discoveries-copy"></p><ul id="result-discovery-list"></ul></section>
         <div class="scoreboard-wrap">
           <table class="result-scoreboard">
@@ -616,7 +622,16 @@
       </div>
       <div class="build-history-body">
         <article class="build-release current-build">
-          <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.13.17</h3></div><time class="build-shipped-at" datetime="2026-07-13T18:59:21-04:00" data-build-shipped-at="2026-07-13T18:59:21-04:00">Shipped Jul 13, 2026 · 6:59 PM EDT</time></header>
+          <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.13.18</h3></div><time>Production verification pending</time></header>
+          <ul>
+            <li>Added reproducible daily and weekly UTC operation contracts with fixed seeds, maps, threat tiers, pacing, campaign packages, and challenge sets.</li>
+            <li>Added accessible deployment cards, exact rollover windows, local completion and best-score records, and an explicit standard-operation fallback.</li>
+            <li>Carried seeded contract identity through deterministic replay, recovery, reconnect, host migration, signed terminal reports, shared archives, and explicit imported-report saves.</li>
+            <li>Added cosmetic-only recognition, an independent client rollback flag, and aggregate-only comparison telemetry with no schedule seed, report identity, or player identity.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header><div><span class="build-release-status">Previous build</span><h3>2026.07.13.17</h3></div><time class="build-shipped-at" datetime="2026-07-13T18:59:21-04:00" data-build-shipped-at="2026-07-13T18:59:21-04:00">Shipped Jul 13, 2026 · 6:59 PM EDT</time></header>
           <ul>
             <li>Added 18 deterministic challenges across buildcraft, survival, teamwork, operations, discovery, and specialist expression.</li>
             <li>Added strict local achievement storage, signed terminal-report awards, bounded anonymous claim deduplication, and explicit imported-report handling.</li>
@@ -1134,8 +1149,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.13.17. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.13.17</strong></button>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.13.18. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.13.18</strong></button>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260713.17"></script>
+  <script type="module" src="game.js?v=20260713.18"></script>
 </body>
 </html>

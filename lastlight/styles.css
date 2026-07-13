@@ -298,6 +298,20 @@ select { appearance: none; background-image: linear-gradient(45deg, transparent 
 .deploy-arrow { font-size: 20px; }
 .connection-note { margin: 14px 0 0; color: #667f8c; font-size: 11px; line-height: 1.5; }
 .progression-note { min-height: 32px; margin: 14px 0 -5px; padding: 9px 11px; border-left: 2px solid var(--cyan); background: rgba(99,242,223,.045); color: #78919b; font-size: 9px; line-height: 1.5; }
+.seeded-operations { margin-top: 12px; border: 1px solid rgba(103,232,249,.22); background: rgba(5,16,29,.72); padding: 14px; display: grid; gap: 12px; }
+.seeded-operations.hidden { display: none; }
+.seeded-operations > header { display: flex; align-items: end; justify-content: space-between; gap: 12px; }
+.seeded-operations > header div { display: grid; gap: 3px; }
+.seeded-operations > header span, .seeded-operations > header small { color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .1em; }
+.seeded-operations > header strong { font: 800 18px/1 var(--display); letter-spacing: .03em; text-transform: uppercase; }
+.seeded-operation-cards { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+.seeded-operation-card { min-width: 0; text-align: left; border: 1px solid rgba(157,175,196,.3); background: rgba(12,27,44,.86); color: var(--text); padding: 12px; display: grid; gap: 6px; cursor: pointer; }
+.seeded-operation-card:hover, .seeded-operation-card:focus-visible { border-color: var(--cyan); }
+.seeded-operation-card[aria-pressed="true"] { border-color: var(--cyan); box-shadow: inset 3px 0 0 var(--cyan); }
+.seeded-operation-card span, .seeded-operation-card small { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.seeded-operation-card strong { font: 800 15px/1 var(--display); text-transform: uppercase; }
+.seeded-operation-card em { font-style: normal; font-size: 10px; color: var(--cyan); }
+.seeded-operation-status { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.45; }
 
 .control-ribbon {
   min-height: 48px;
@@ -1014,6 +1028,8 @@ html[data-upgrade-recommendations="false"] .draft-recommendation-markers, html[d
   .contribution-value { min-width: 0; }
 }
 @media (max-width: 620px) {
+  .seeded-operation-cards { grid-template-columns: minmax(0,1fr); }
+  .seeded-operations > header { align-items: start; flex-direction: column; }
   .result-card { padding: 20px 12px; }
   .result-scoreboard tr, .contribution-table tbody tr { grid-template-columns: minmax(0,1fr); }
   .result-scoreboard td, .contribution-table tbody td { grid-column: 1; border-left: 0 !important; }

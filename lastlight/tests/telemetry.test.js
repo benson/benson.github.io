@@ -208,6 +208,20 @@ test("challenge-achievement telemetry v8 is reconciled, aggregate-only, and inde
   assert.throws(() => buildRunTelemetry(run, "build", null, null, { ...achievements, categories: { ...achievements.categories, build: 3 } }), /do not reconcile/);
 });
 
+test("seeded-operation telemetry v9 is reconciled and omits schedule identity", () => {
+  const run = completedRun({ mutationTelemetry: { packageId: "breach-cascade", encounters: 5, clears: 4, failures: 1, objectiveCompletions: 3, surgeWaves: 2 } });
+  const seeded = { kind: "daily", outcome: "won", completed: true, map: "warehouse", difficulty: "story", scoreBand: "gold" };
+  const payload = buildRunTelemetry(run, "build-18", null, null, null, seeded);
+  assert.equal(payload.schemaVersion, 9);
+  assert.equal(payload.seededOperationKind, "daily");
+  assert.equal(payload.seededOperationCompleted, true);
+  assert.equal(payload.seededOperationScoreBand, "gold");
+  assert.doesNotMatch(JSON.stringify(payload), /scheduleId|configHash|callsign|roomId|replaySlot|"seed"|position/i);
+  assert.throws(() => buildRunTelemetry(run, "build", null, null, null, { ...seeded, map: "lab" }), /matching current/);
+  assert.throws(() => buildRunTelemetry(run, "build", null, null, null, { ...seeded, completed: false }), /Invalid seeded/);
+  assert.throws(() => buildRunTelemetry(run, "build", null, null, null, { ...seeded, scheduleId: "daily:2026-07-13" }), /unexpected fields/);
+});
+
 test("squad-director telemetry fails closed on identity, inconsistent totals, and invalid squad bands", () => {
   assert.throws(() => buildRunTelemetry(completedRun({ directorTelemetry: { ...directorTotals, roomId: "SECRET" } }), "build"), /unexpected fields/);
   assert.throws(() => buildRunTelemetry(completedRun({ directorTelemetry: { ...directorTotals, pincer: 3 } }), "build"), /do not reconcile/);
