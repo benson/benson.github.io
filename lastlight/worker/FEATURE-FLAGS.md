@@ -4,10 +4,11 @@ The relay exposes `GET /config`. It is read-only, origin-aware, and always sends
 `Cache-Control: no-store`. There is no HTTP mutation route. Operators control the
 response through the Worker's `LASTLIGHT_RUNTIME_CONFIG` secret.
 
-The release defaults preserve build `2026.07.11.3` behavior:
+The current release defaults enable the versioned gameplay systems shipped in
+build `2026.07.13.8`:
 
 ```json
-{"schemaVersion":1,"configVersion":"release-2026.07.13.1","gameplayVersion":"events-v1","flags":{"deterministicReplay":true,"runTelemetry":true,"objectiveEvents":true,"migrationCheckpointReplication":true,"hostMigrationElection":true,"hostMigrationResume":true}}
+{"schemaVersion":4,"configVersion":"release-2026.07.13.8","gameplayVersion":"downed-v1","registryVersion":"lastlight.squad-synergy.v1","flags":{"deterministicReplay":true,"runTelemetry":true,"objectiveEvents":true,"migrationCheckpointReplication":true,"hostMigrationElection":true,"hostMigrationResume":true,"contextualPings":true,"upgradeRecommendations":true,"squadSynergies":true,"sharedParticipationCredit":true,"downedActivity":true}}
 ```
 
 Unknown keys, missing keys, wrong types, and malformed JSON fail closed to those
@@ -45,6 +46,8 @@ the active config version, gameplay version, source, load status, and flags.
   `migrationCheckpointReplication` to `false`; new host losses fail safely instead of attempting a restore.
 - Relay election problem: set `hostMigrationElection` to `false`; lobby host reassignment remains available, but active runs freeze and fail safely.
 - Restore/continuation problem: set `hostMigrationResume` to `false`; checkpoints may continue in shadow mode while active-run promotion is disabled.
+- Downed crawl, support, recovery, or presentation problem: set `downedActivity`
+  to `false` and publish a new `configVersion` and `gameplayVersion` for new runs.
 - Restore release defaults: delete the override with
   `npx wrangler secret delete LASTLIGHT_RUNTIME_CONFIG`, then verify `/config` says
   `source: built-in`.

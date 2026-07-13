@@ -119,6 +119,7 @@ function createReplica(index, options) {
     features: {
       gameplayVersion: options.gameplayVersion, objectiveEvents: true,
       squadSynergies: true, sharedParticipationCredit: options.sharedParticipationCredit,
+      downedActivity: DEFAULT_RUNTIME_CONFIG.flags.downedActivity,
       registryVersion: DEFAULT_RUNTIME_CONFIG.registryVersion,
     },
   }, { seed: options.seed, balanceVersion: BALANCE_VERSION, balanceHash: BALANCE_HASH });

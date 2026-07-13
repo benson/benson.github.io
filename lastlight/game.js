@@ -1,6 +1,6 @@
 import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260713.2";
-import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.7";
-import { Renderer } from "./render.js?v=20260713.7";
+import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.8";
+import { Renderer } from "./render.js?v=20260713.8";
 import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260713.2";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
 import { getThemeAsset, getThemeMaterial } from "./themes/lastlight.js?v=20260713.2";
@@ -9,10 +9,10 @@ import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=202
 import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260713.2";
 import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260713.6";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
-import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260713.7";
-import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260713.7";
+import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260713.8";
+import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260713.8";
 import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260711.5";
-import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260713.7";
+import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260713.8";
 import { GuestInputSequenceTracker, HostInputSequenceGate, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260713.2";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260713.2";
 import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260713.2";
@@ -26,8 +26,8 @@ import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatur
 import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260713.2";
 import { getWeaponEvolution } from "./weapon-evolution.js?v=20260713.1";
 import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260712.1";
-import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260713.7";
-import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260713.7";
+import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260713.8";
+import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260713.8";
 import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260713.6";
 import { reconcileActiveBuffs } from "./active-buffs.js?v=20260713.1";
 import { ELITE_AFFIXES, ENEMY_ARCHETYPES } from "./enemy-archetypes.js?v=20260713.1";
@@ -36,7 +36,7 @@ import {
   AuthoritySnapshotGate, HOST_MIGRATION_PROTOCOL_VERSION, MIGRATION_CHECKPOINT_INTERVAL_TICKS,
   createMigrationCapabilities, createMigrationCheckpoint, createMigrationReady,
   migrationCompatibilityMatches, validateMigrationCheckpoint,
-} from "./host-migration.js?v=20260713.7";
+} from "./host-migration.js?v=20260713.8";
 import { RECONNECT_DELAYS_MS, SquadPresenceTracker, authorityStateCopy } from "./reconnect-state.js?v=20260713.3";
 import {
   HostPingGate, PING_INTENTS, PING_LIFETIME_TICKS, PING_WHEEL_ORDER, PingSequenceTracker,
@@ -60,7 +60,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.13.7";
+const BUILD = "2026.07.13.8";
 const AUTHORITY_WATCHDOG_MS = Object.freeze({ synchronizing: 10_000, migrating: 25_000 });
 const BALANCE = getBalanceConfig();
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
@@ -233,6 +233,7 @@ function migrationCompatibility() {
     objectiveEvents: state.runtimeConfig.config.flags.objectiveEvents,
     squadSynergies: state.runtimeConfig.config.flags.squadSynergies,
     sharedParticipationCredit: state.runtimeConfig.config.flags.sharedParticipationCredit,
+    downedActivity: state.runtimeConfig.config.flags.downedActivity,
     registryVersion: state.runtimeConfig.config.registryVersion,
     recoveryVersion: RECOVERY_SIMULATION_VERSION,
   };
@@ -449,6 +450,7 @@ function beginReplayCapture(players, seed) {
     objectiveEvents: state.runtimeConfig.config.flags.objectiveEvents,
     squadSynergies: state.runtimeConfig.config.flags.squadSynergies,
     sharedParticipationCredit: state.runtimeConfig.config.flags.sharedParticipationCredit,
+    downedActivity: state.runtimeConfig.config.flags.downedActivity,
     registryVersion: state.runtimeConfig.config.registryVersion,
     rng: RNG_ALGORITHM, seed, run: replayRunConfig(),
   });
@@ -588,6 +590,32 @@ function resetInputProtocol() {
 }
 
 function currentGameState() { return state.isHost ? state.sim : state.snapshot || state.sim; }
+
+function localGamePlayer(game = currentGameState()) {
+  return game?.players?.find((player) => player.id === state.clientId) || game?.players?.[0] || null;
+}
+
+function downedActivityEnabled(game = currentGameState()) {
+  return Boolean(game?.downedActivity ?? game?.features?.downedActivity ?? state.runtimeConfig.config.flags.downedActivity);
+}
+
+/**
+ * Presentation contract supplied by the authoritative snapshot when downedActivity is enabled:
+ * downedSupportCooldown, downedSupportCooldownMax, downedSupportReady,
+ * downedSupportLabel, downedCrawling, and reviveRequired. Every field remains null-safe
+ * so an older host can render without granting a client-only action.
+ */
+function downedPresentation(player) {
+  const cooldown = Math.max(0, Number(player?.downedSupportCooldown) || 0);
+  const cooldownMax = Math.max(.01, Number(player?.downedSupportCooldownMax) || 3);
+  return {
+    cooldown, cooldownMax,
+    ready: player?.downedSupportReady === true || (player?.downedSupportReady == null && cooldown <= .04),
+    label: String(player?.downedSupportLabel || "Guard pulse"),
+    crawling: Boolean(player?.downedCrawling),
+    reviveRequired: Math.max(.01, Number(player?.reviveRequired) || 3),
+  };
+}
 function pingKey({ epoch, replaySlot, seq }) { return `${epoch}:${replaySlot}:${seq}`; }
 
 function clearPings() {
@@ -1043,6 +1071,11 @@ function renderGuide() {
     guideCard("RV", "Revive work", "Shared rescue", `Contribute ${PARTICIPATION_REGISTRY.revive.minimumTicks} ticks and ${Math.round(PARTICIPATION_REGISTRY.revive.minimumShare * 100)}% of completed work. Credit follows active time in the ring, not the final frame.`),
     guideCard("OBJ", "Objective work", "Presence & movement", `Zone credit needs ${PARTICIPATION_REGISTRY.objective.minimumTicks} ticks and ${Math.round(PARTICIPATION_REGISTRY.objective.minimumShare * 100)}% of work. Relay credit counts only movement toward the destination: ${PARTICIPATION_REGISTRY.objective.relayMinimumMovement} units or ${Math.round(PARTICIPATION_REGISTRY.objective.relayRouteRatio * 100)}% of route.`),
   ].join("");
+  const downed = [
+    guideCard("WASD", "Crawl to safety", "Downed movement", "You keep limited ground movement while downed. Crawl out of hazards or toward a standing squadmate; cover and arena boundaries still block you.", "", "", { Control: "WASD / arrows / touch stick", Combat: "Weapons, active ability, and ultimate disabled", Pickup: "Disabled", Objectives: "Disabled" }),
+    guideCard("E", "Guard pulse", "Weak support action", "Protect a nearby standing ally with a small shield. The pulse deals no damage, cannot heal, cannot target you, and never contributes to your own rescue.", "", "", { Control: "E / downed action button", Cooldown: "Shown in the downed panel", Target: "Nearby standing ally", "Self-revive": "Never" }),
+    guideCard("G", "Call for help", "Contextual ping", "Open the ping wheel and mark Help or Regroup without interrupting your crawl. The battlefield ring and HUD show both bleedout and incoming rescue progress.", "", "", { Control: "G / touch ping", Bleedout: "10 seconds", Rescue: "3 seconds of nearby squad work", Readability: "Pattern + text + color" }),
+  ].join("");
   const rare = [
     guideCard("KEY", "Elite access card", "Rare evolution drop", "Elites and minibosses drop access cards. A card evolves one eligible level-five weapon whose matching passive is owned.", "", getThemeAsset("archive.events.eliteAccessCard")),
     guideCard("$", "Treasure runner", "Timed chase event", "Catch the fleeing gold target before it escapes to earn bonus gold, data, and access cards.", "", getThemeAsset("archive.events.treasureRunner")),
@@ -1053,7 +1086,7 @@ function renderGuide() {
     ...BOONS.map((boon) => guideCard("★", boon.name, "Rare squad boon", boon.copy, "", boon.icon)),
     ...AUGMENTS.map((augment) => guideCard("AUG", augment.name, "Rare augment", augment.copy, "", augment.icon)),
   ].join("");
-  $("guide-content").innerHTML = `<section id="guide-campaign" class="guide-section"><h3>Campaign route</h3><p>Clear threat tiers to unlock harder operations. Progress is saved in this browser.</p><div class="campaign-route">${campaign}</div></section><section id="guide-apex" class="guide-section"><h3>Map apexes</h3><p>Every apex has two deterministic phases, a real health gate, named attacks, and a map-specific arena change.</p><div class="guide-grid">${apexes}</div></section><section id="guide-specialists" class="guide-section"><h3>Specialist identities</h3><p>Measured roles, strengths, and failure points from the versioned simulation contract.</p><div class="guide-grid">${identities}</div></section><section id="guide-field" class="guide-section"><h3>Field objects</h3><p>Hold Shift and point at a live field object for its current stats.</p><div class="guide-grid">${fieldObjects}</div></section><section id="guide-signatures" class="guide-section"><h3>Signature evolutions</h3><div class="guide-grid">${signatures}</div></section><section id="guide-weapons" class="guide-section"><h3>Universal weapons</h3><div class="guide-grid">${weapons}</div></section><section id="guide-materials" class="guide-section"><h3>Impact materials</h3><p>Every weapon keeps its silhouette while contact particles, decals, flash, and sound adapt to the target. Shape and pattern remain available when color or motion is reduced.</p><div class="guide-grid">${materials}</div></section><section id="guide-passives" class="guide-section"><h3>Passive upgrades</h3><div class="guide-grid">${passives}</div></section><section id="guide-participation" class="guide-section"><h3>Participation credit</h3><p>Credit records effective work by anonymous specialist slot. Genuine overlap is shared; duplicate traffic, excess values, idle proximity, and system restoration are excluded.</p><div class="guide-grid">${participation}</div></section><section id="guide-synergies" class="guide-section"><h3>Squad synergies</h3><p>Coordinate roles, ultimate timing, and movement. Effects are authoritative, bounded, non-stacking, and disabled in solo runs.</p><div class="guide-grid">${synergies}</div></section><section id="guide-rare" class="guide-section"><h3>Rare finds & events</h3><div class="guide-grid">${rare}</div></section>`;
+  $("guide-content").innerHTML = `<section id="guide-campaign" class="guide-section"><h3>Campaign route</h3><p>Clear threat tiers to unlock harder operations. Progress is saved in this browser.</p><div class="campaign-route">${campaign}</div></section><section id="guide-apex" class="guide-section"><h3>Map apexes</h3><p>Every apex has two deterministic phases, a real health gate, named attacks, and a map-specific arena change.</p><div class="guide-grid">${apexes}</div></section><section id="guide-specialists" class="guide-section"><h3>Specialist identities</h3><p>Measured roles, strengths, and failure points from the versioned simulation contract.</p><div class="guide-grid">${identities}</div></section><section id="guide-field" class="guide-section"><h3>Field objects</h3><p>Hold Shift and point at a live field object for its current stats.</p><div class="guide-grid">${fieldObjects}</div></section><section id="guide-signatures" class="guide-section"><h3>Signature evolutions</h3><div class="guide-grid">${signatures}</div></section><section id="guide-weapons" class="guide-section"><h3>Universal weapons</h3><div class="guide-grid">${weapons}</div></section><section id="guide-materials" class="guide-section"><h3>Impact materials</h3><p>Every weapon keeps its silhouette while contact particles, decals, flash, and sound adapt to the target. Shape and pattern remain available when color or motion is reduced.</p><div class="guide-grid">${materials}</div></section><section id="guide-passives" class="guide-section"><h3>Passive upgrades</h3><div class="guide-grid">${passives}</div></section><section id="guide-downed" class="guide-section"><h3>Downed activity</h3><p>A downed specialist stays useful but cannot fight, collect, score objective work, or revive themself. The authoritative simulation decides every action.</p><div class="guide-grid">${downed}</div></section><section id="guide-participation" class="guide-section"><h3>Participation credit</h3><p>Credit records effective work by anonymous specialist slot. Genuine overlap is shared; duplicate traffic, excess values, idle proximity, and system restoration are excluded.</p><div class="guide-grid">${participation}</div></section><section id="guide-synergies" class="guide-section"><h3>Squad synergies</h3><p>Coordinate roles, ultimate timing, and movement. Effects are authoritative, bounded, non-stacking, and disabled in solo runs.</p><div class="guide-grid">${synergies}</div></section><section id="guide-rare" class="guide-section"><h3>Rare finds & events</h3><div class="guide-grid">${rare}</div></section>`;
 }
 
 function renderSpecialistGrid() {
@@ -1238,8 +1271,8 @@ function gameLoop(now) {
   } else if (state.authorityState === "active") {
     const authoritative = state.snapshot?.players?.find((player) => player.id === state.clientId);
     if (authoritative && !movementPredictor.player) movementPredictor.sync(authoritative);
-    if (movementPredictor.player) movementPredictor.advance(input, dt, playerMovementSpeed(movementPredictor.player), moveEntityWithCover);
-    renderState = withPredictedPlayer(state.snapshot, movementPredictor.player); renderPrevious = state.previousSnapshot;
+    if (movementPredictor.player && !authoritative?.downed) movementPredictor.advance(input, dt, playerMovementSpeed(movementPredictor.player), moveEntityWithCover);
+    renderState = withPredictedPlayer(state.snapshot, authoritative?.downed ? null : movementPredictor.player); renderPrevious = state.previousSnapshot;
     interpolation = clamp((now - state.snapshotAt) / state.snapshotInterval, 0, 1);
     if (state.ws?.readyState === WebSocket.OPEN && now - state.lastSend > 35) {
       state.lastSend = now;
@@ -1271,7 +1304,7 @@ function captureMotionState(game) {
 
 function withLocalMovementPreview(game, input, remainingSeconds) {
   const player = game?.players?.find((entry) => entry.id === state.clientId);
-  if (!player || remainingSeconds <= 0) return game;
+  if (!player || player.downed || remainingSeconds <= 0) return game;
   const preview = { ...player, predicted: true };
   advancePlayerMovement(preview, input, remainingSeconds, playerMovementSpeed(player), moveEntityWithCover);
   return { ...game, players: game.players.map((entry) => entry.id === preview.id ? preview : entry) };
@@ -1353,6 +1386,12 @@ function currentInput() {
 
 function cast(slot) {
   if (state.screen !== "game" || state.authorityState !== "active") return;
+  const game = currentGameState(), player = localGamePlayer(game);
+  if (!player || player.dead) return;
+  if (player.downed) {
+    const activity = downedPresentation(player);
+    if (!downedActivityEnabled(game) || slot !== "e" || !activity.ready) return;
+  }
   if (state.isHost) {
     if (recordHostCast(state.clientId, slot)) {
       sfx(slot === "r" ? "ultimate" : "ability");
@@ -1360,7 +1399,7 @@ function cast(slot) {
       if (slot === "r") comicVoice("pew pew pew");
     }
   } else {
-    if (movementPredictor.player) {
+    if (movementPredictor.player && !player.downed) {
       movementPredictor.player.animState = slot === "r" ? "castR" : "castE";
       movementPredictor.player.animTime = slot === "r" ? .42 : .28;
       movementPredictor.player.aimFacing = state.input.aim;
@@ -1727,6 +1766,59 @@ function abandon() {
   $("pause-overlay").classList.add("hidden");
 }
 
+function updateDownedActivity(game, player) {
+  const panel = $("downed-activity"), live = $("downed-activity-live");
+  if (!panel) return;
+  const visible = downedActivityEnabled(game) && Boolean(player?.downed) && !player?.dead;
+  panel.hidden = !visible; panel.classList.toggle("hidden", !visible);
+  screens.game.classList.toggle("downed-active", visible);
+  if (!visible) {
+    if (panel.dataset.announcementKey) live.textContent = "";
+    panel.dataset.announcementKey = "";
+    return;
+  }
+
+  const activity = downedPresentation(player);
+  const bleedout = Math.max(0, Number(player.downTimer) || 0), bleedoutMaximum = 10;
+  const rescue = clamp(Number(player.reviveProgress) || 0, 0, activity.reviveRequired);
+  const rescuePercent = clamp(rescue / activity.reviveRequired * 100, 0, 100);
+  const bleedoutPercent = clamp(bleedout / bleedoutMaximum * 100, 0, 100);
+  $("downed-bleedout-copy").textContent = `${bleedout.toFixed(1)}s`;
+  $("downed-bleedout").style.setProperty("--downed-progress", `${bleedoutPercent}%`);
+  $("downed-bleedout").setAttribute("aria-valuenow", bleedout.toFixed(1));
+  $("downed-bleedout").setAttribute("aria-valuetext", `${bleedout.toFixed(1)} seconds before bleedout`);
+  $("downed-revive-copy").textContent = rescue > .01 ? `${rescue.toFixed(1)} / ${activity.reviveRequired.toFixed(1)}s` : "No rescuer in range";
+  $("downed-revive").style.setProperty("--downed-progress", `${rescuePercent}%`);
+  $("downed-revive").setAttribute("aria-valuemax", activity.reviveRequired.toFixed(1));
+  $("downed-revive").setAttribute("aria-valuenow", rescue.toFixed(1));
+  $("downed-revive").setAttribute("aria-valuetext", rescue > .01 ? `${Math.round(rescuePercent)} percent revived` : "No rescuer in range");
+
+  $("downed-crawl-status").classList.toggle("is-active", activity.crawling);
+  $("downed-crawl-status").querySelector("b").textContent = activity.crawling ? "Crawling" : "Crawl to cover";
+  $("downed-support-label").textContent = activity.label;
+  $("downed-support-status").textContent = activity.ready ? "Ready · protects a nearby ally" : `${activity.cooldown.toFixed(1)}s cooldown`;
+  const supportButton = $("downed-support-action");
+  supportButton.disabled = !activity.ready; supportButton.setAttribute("aria-disabled", String(!activity.ready));
+  $("downed-ping-status").querySelector("b").textContent = state.runtimeConfig.config.flags.contextualPings ? "Ping for help" : "Ping unavailable";
+
+  updateCooldownSlot("e", activity.cooldown, activity.cooldownMax, true, 0);
+  $("e-name").textContent = activity.label;
+  $("e-detail-status").textContent = activity.ready ? "Ready" : `${activity.cooldown.toFixed(1)}s remaining`;
+  $("e-detail-copy").textContent = "Send a weak protective pulse to a nearby standing ally. It cannot revive you or deal damage.";
+  $("e-detail-cooldown").textContent = `${activity.cooldownMax.toFixed(1)}s`;
+  $("r-slot").classList.add("locked"); $("r-slot").setAttribute("aria-disabled", "true");
+  $("r-slot").setAttribute("aria-label", "Ultimate unavailable while downed");
+  $("r-cooldown").style.setProperty("--cooldown-sweep", "100%"); $("r-cooldown-seconds").textContent = "";
+
+  const announcementKey = `downed:${rescue > .01 ? "rescue" : "waiting"}:${activity.ready ? "support-ready" : "support-cooldown"}`;
+  if (announcementKey !== panel.dataset.announcementKey) {
+    panel.dataset.announcementKey = announcementKey;
+    live.textContent = rescue > .01
+      ? `Downed. Rescue in progress, ${Math.round(rescuePercent)} percent. Crawl with movement controls, press E for ${activity.label} when ready, or G to ping.`
+      : `Downed. ${bleedout.toFixed(1)} seconds remain. Crawl with movement controls, press E for ${activity.label} when ready, or G to ping for help.`;
+  }
+}
+
 function updateHUD(game) {
   const player = game.players.find((p) => p.id === state.clientId) || game.players[0]; if (!player) return;
   updateSoundState(game);
@@ -1739,6 +1831,7 @@ function updateHUD(game) {
   $("e-name").textContent = game.level < 3 ? "Unlocks Lv 3" : spec.active[0]; $("r-name").textContent = game.level < 6 ? "Unlocks Lv 6" : spec.ultimate[0];
   updateCooldownSlot("e", player.eCd, player.eCdMax || spec.cooldownE, game.level >= 3, 3); updateCooldownSlot("r", player.rCd, player.rCdMax || spec.cooldownR, game.level >= 6, 6);
   updateAbilityDetails(player, spec, game);
+  updateDownedActivity(game, player);
   $("pause-overlay").classList.toggle("hidden", !(game.paused && game.pauseReason === "manual"));
   const boss = game.enemies?.find((enemy) => enemy.boss);
   screens.game.classList.toggle("apex-active", Boolean(boss));
@@ -3071,6 +3164,10 @@ function setupTouch() {
       event.preventDefault(); cast(slot);
     });
   }
+  $("downed-support-action").addEventListener("click", (event) => {
+    event.preventDefault();
+    if (!event.currentTarget.disabled) cast("e");
+  });
 }
 
 function setupPingControls() {
@@ -3281,6 +3378,12 @@ function bindEvents() {
       if (!event.repeat) $("upgrade-cards").querySelectorAll("button")[Number(key) - 1]?.click();
       return;
     }
+    const localPlayer = localGamePlayer();
+    if (localPlayer?.downed && ["e", "r"].includes(key)) {
+      event.preventDefault();
+      if (key === "e" && !event.repeat) cast("e");
+      return;
+    }
     if (["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright","e","r","c","escape"].includes(key)) event.preventDefault();
     if (key === "e" && !event.repeat) cast("e"); else if (key === "r" && !event.repeat) cast("r");
     else if (key === "c" && !event.repeat) { state.input.autoAim = !state.input.autoAim; toast(state.input.autoAim ? "Auto-aim on" : "Manual aim on"); }
@@ -3329,6 +3432,14 @@ if (localHost) Object.defineProperty(window, "__lastlightQA", { value: Object.fr
     for (const player of state.sim.players) player.invuln = Math.max(player.invuln || 0, 999);
     publishMigrationCheckpoint(true);
     return true;
+  },
+  beginDowned: () => {
+    if (!state.sim || !state.isHost || state.screen !== "game") return false;
+    const player = state.sim.players.find(({ id }) => id === state.clientId); if (!player || player.dead || player.downed) return false;
+    let ally = state.sim.players.find(({ id, dead, downed }) => id !== state.clientId && !dead && !downed);
+    if (!ally) ally = state.sim.addPlayer({ id: "qa-downed-ally", name: "QA Ally", specialist: "echo", replaySlot: 1 }, 1);
+    ally.dead = false; ally.downed = false; ally.x = player.x + 160; ally.y = player.y; ally.shield = 0;
+    state.sim.downPlayer(player); publishMigrationCheckpoint(true); return player.downed;
   },
   audioState: () => JSON.parse(JSON.stringify(audioDiagnostics())),
   testAudio: () => testAudioOutput(),
