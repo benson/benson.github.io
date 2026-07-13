@@ -1,5 +1,5 @@
-export const RUNTIME_CONFIG_SCHEMA_VERSION = 3;
-export const RUNTIME_CONFIG_STORAGE_KEY = "lastlight:runtime-config:v3";
+export const RUNTIME_CONFIG_SCHEMA_VERSION = 4;
+export const RUNTIME_CONFIG_STORAGE_KEY = "lastlight:runtime-config:v4";
 export const SQUAD_SYNERGY_REGISTRY_VERSION = "lastlight.squad-synergy.v1";
 
 const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
@@ -10,13 +10,14 @@ const FLAG_NAMES = Object.freeze([
   "upgradeRecommendations",
   "squadSynergies",
   "sharedParticipationCredit",
+  "downedActivity",
 ]);
 const MAX_RUNTIME_CONFIG_BYTES = 4_096;
 
 export const DEFAULT_RUNTIME_CONFIG = deepFreeze({
   schemaVersion: RUNTIME_CONFIG_SCHEMA_VERSION,
-  configVersion: "release-2026.07.13.7",
-  gameplayVersion: "participation-v1",
+  configVersion: "release-2026.07.13.8",
+  gameplayVersion: "downed-v1",
   registryVersion: SQUAD_SYNERGY_REGISTRY_VERSION,
   flags: {
     deterministicReplay: true,
@@ -29,6 +30,7 @@ export const DEFAULT_RUNTIME_CONFIG = deepFreeze({
     upgradeRecommendations: true,
     squadSynergies: true,
     sharedParticipationCredit: true,
+    downedActivity: true,
   },
 });
 
@@ -82,18 +84,20 @@ export function gameplayFeatureContract(config = DEFAULT_RUNTIME_CONFIG) {
     objectiveEvents: validated.flags.objectiveEvents,
     squadSynergies: validated.flags.squadSynergies,
     sharedParticipationCredit: validated.flags.sharedParticipationCredit,
+    downedActivity: validated.flags.downedActivity,
     registryVersion: validated.registryVersion,
   });
 }
 
 export function validateGameplayFeatureContract(value = gameplayFeatureContract()) {
-  exactKeys(value, ["gameplayVersion", "objectiveEvents", "squadSynergies", "sharedParticipationCredit", "registryVersion"], "gameplay feature contract");
+  exactKeys(value, ["gameplayVersion", "objectiveEvents", "squadSynergies", "sharedParticipationCredit", "downedActivity", "registryVersion"], "gameplay feature contract");
   if (typeof value.objectiveEvents !== "boolean") throw new TypeError("objectiveEvents must be boolean");
   if (typeof value.squadSynergies !== "boolean") throw new TypeError("squadSynergies must be boolean");
   if (typeof value.sharedParticipationCredit !== "boolean") throw new TypeError("sharedParticipationCredit must be boolean");
+  if (typeof value.downedActivity !== "boolean") throw new TypeError("downedActivity must be boolean");
   return deepFreeze({
     gameplayVersion: identifier(value.gameplayVersion, "gameplayVersion"), objectiveEvents: value.objectiveEvents,
-    squadSynergies: value.squadSynergies, sharedParticipationCredit: value.sharedParticipationCredit,
+    squadSynergies: value.squadSynergies, sharedParticipationCredit: value.sharedParticipationCredit, downedActivity: value.downedActivity,
     registryVersion: identifier(value.registryVersion, "registryVersion"),
   });
 }

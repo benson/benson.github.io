@@ -183,6 +183,7 @@ function migrationCompatibility() {
     objectiveEvents: true,
     squadSynergies: DEFAULT_RUNTIME_CONFIG.flags.squadSynergies,
     sharedParticipationCredit: DEFAULT_RUNTIME_CONFIG.flags.sharedParticipationCredit,
+    downedActivity: DEFAULT_RUNTIME_CONFIG.flags.downedActivity,
     registryVersion: DEFAULT_RUNTIME_CONFIG.registryVersion,
     recoveryVersion: RECOVERY_SIMULATION_VERSION,
   });

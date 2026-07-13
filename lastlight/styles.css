@@ -429,6 +429,31 @@ kbd { display: inline-grid; min-width: 26px; height: 24px; place-items: center; 
 .boss-hud > div { position: relative; height: 9px; margin-top: 7px; padding: 2px; background: rgba(4,8,14,.9); border: 1px solid rgba(255,119,91,.55); }
 .boss-hud #boss-health { display: block; width: 100%; height: 100%; background: linear-gradient(90deg, #ff3e5c, #ff8b58); }
 .boss-hud .health-dividers { inset: 2px; }
+.downed-activity { --downed-danger: #ff755f; position: absolute; z-index: 8; left: 50%; bottom: 112px; width: min(510px, calc(100vw - 36px)); padding: 13px 14px 12px; transform: translateX(-50%); border: 1px solid rgba(255,117,95,.48); border-top: 3px solid var(--downed-danger); background: linear-gradient(105deg, rgba(15,13,22,.96), rgba(4,15,24,.96)); box-shadow: 0 18px 52px rgba(0,0,0,.46); }
+.downed-activity[hidden] { display: none !important; }
+.downed-activity header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.downed-activity header span { color: var(--downed-danger); font: 800 8px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; }
+.downed-activity header strong { color: var(--paper); font: 800 17px/1 var(--display); letter-spacing: .05em; text-transform: uppercase; }
+.downed-meters { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 9px; margin-top: 10px; }
+.downed-meter > span { display: flex; justify-content: space-between; gap: 8px; color: #aabbbf; font: 700 8px/1 var(--sans); letter-spacing: .05em; text-transform: uppercase; }
+.downed-meter > span em { overflow: hidden; color: #e7efed; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
+.downed-meter > div { --downed-progress: 0%; position: relative; height: 8px; margin-top: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,.16); background: repeating-linear-gradient(90deg, rgba(255,255,255,.06) 0 16px, transparent 16px 19px); }
+.downed-meter > div::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 16px, rgba(4,11,18,.92) 16px 19px); pointer-events: none; }
+.downed-meter > div i { display: block; width: var(--downed-progress); height: 100%; background: var(--downed-danger); }
+.downed-meter.revive > div i { background: var(--cyan); }
+.downed-actions { display: grid; grid-template-columns: minmax(0,1fr) minmax(145px,1.3fr) minmax(0,1fr); gap: 7px; margin-top: 10px; }
+.downed-actions > span, .downed-actions > button { min-width: 0; min-height: 41px; display: flex; align-items: center; gap: 7px; padding: 6px 8px; border: 1px solid rgba(255,255,255,.13); background: rgba(255,255,255,.035); color: #d6e1df; text-align: left; }
+.downed-actions kbd { flex: 0 0 auto; min-width: 25px; height: 23px; padding-inline: 4px; font-size: 8px; }
+.downed-actions b, .downed-actions small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.downed-actions b { font: 800 9px/1 var(--sans); letter-spacing: .03em; text-transform: uppercase; }
+.downed-actions small { margin-top: 4px; color: #8ca0a6; font: 600 7px/1 var(--sans); }
+.downed-actions > button { cursor: pointer; font: inherit; }
+.downed-actions > button:hover, .downed-actions > button:focus-visible { border-color: var(--cyan); background: rgba(99,242,223,.09); outline: none; }
+.downed-actions > button:active { transform: scale(.98); }
+.downed-actions > button:disabled { cursor: not-allowed; opacity: .52; }
+.downed-actions > span.is-active { border-style: dashed; border-color: rgba(255,255,255,.4); }
+.game-screen.downed-active .weapon-hud { opacity: .38; filter: grayscale(1); pointer-events: none; }
+.game-screen.downed-active #r-slot { opacity: .48; }
 .loadout-hud { position: absolute; z-index: 7; left: 50%; bottom: 27px; display: flex; gap: 8px; transform: translateX(-50%); }
 .ability-slot { position: relative; width: 64px; height: 70px; padding: 6px; overflow: visible; background: rgba(5,12,22,.88); border: 1px solid rgba(255,255,255,.18); outline: none; }
 .ability-slot kbd { position: absolute; z-index: 4; top: 4px; left: 4px; min-width: 18px; height: 18px; font-size: 8px; }
@@ -969,6 +994,7 @@ html[data-reduced-motion="true"] .network-state-overlay, html[data-reduced-motio
 html[data-reduced-motion="true"] .ping-wheel { animation: none !important; }
 html[data-reduced-motion="true"] .ping-option { transition: none !important; }
 html[data-reduced-motion="true"] .draft-recommend-button { transition: none !important; transform: none !important; }
+html[data-reduced-motion="true"] .downed-activity, html[data-reduced-motion="true"] .downed-actions > button { animation: none !important; transition: none !important; }
 .manual-grid { display: grid; grid-template-columns: repeat(2, 1fr); }
 .manual-grid section { position: relative; min-height: 185px; padding: 30px 38px; overflow: hidden; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .manual-grid section:nth-child(2n) { border-right: 0; }
@@ -1262,6 +1288,12 @@ html[data-reduced-motion="true"] .draft-recommend-button { transition: none !imp
   .game-stats span { display: none; }
   .boss-hud { top: 72px; width: calc(100vw - 24px); }
   .boss-hud span { font-size: 14px; letter-spacing: .055em; }
+  .downed-activity { right: 12px; bottom: 164px; left: 12px; width: auto; max-height: calc(100dvh - 240px); overflow-y: auto; transform: none; overscroll-behavior: contain; }
+  .downed-activity header { align-items: flex-start; flex-direction: column; gap: 4px; }
+  .downed-meters { grid-template-columns: 1fr; }
+  .downed-actions { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .downed-actions > span:first-child { grid-column: 1 / -1; }
+  .downed-actions > span, .downed-actions > button { min-height: 44px; }
   .objective-banner { top: 132px; min-width: 0; width: calc(100vw - 24px); padding: 9px 12px; }
   .objective-banner strong { font-size: 14px; }
   .damage-ledger { left: 12px !important; top: 74px !important; width: min(250px, calc(100vw - 24px)) !important; height: auto !important; min-height: 0; max-height: 42vh; resize: none; }
@@ -1355,4 +1387,5 @@ html[data-reduced-motion="true"] .draft-recommend-button { transition: none !imp
   *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
   .active-buff-tooltip, .active-buff:hover .active-buff-tooltip, .active-buff:focus-visible .active-buff-tooltip { transform: none; transition: none; }
   .synergy-tooltip, .synergy-chip:hover .synergy-tooltip, .synergy-chip:focus-visible .synergy-tooltip { transform: none; transition: none; }
+  .downed-activity, .downed-actions > button { animation: none !important; transition: none !important; }
 }

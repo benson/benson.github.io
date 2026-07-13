@@ -12,8 +12,8 @@ const base = () => ({
   build: "2026.07.11.3",
   balance: { version: "2026.07.11-baseline.1", hash: "fnv1a32:7e33be79" },
   features: {
-    configVersion: "release-2026.07.13.7", gameplayVersion: "participation-v1", objectiveEvents: true,
-    squadSynergies: true, sharedParticipationCredit: true, registryVersion: "lastlight.squad-synergy.v1",
+    configVersion: "release-2026.07.13.8", gameplayVersion: "downed-v1", objectiveEvents: true,
+    squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, registryVersion: "lastlight.squad-synergy.v1",
   },
   engine: { stepHz: REPLAY_STEP_HZ, rng: "xoshiro128ss-v1" },
   seed: "0123456789abcdef0123456789abcdef",
@@ -60,6 +60,8 @@ test("validator rejects unknown fields, identity, nonfinite input, and stale con
   assert.throws(() => validateReplay(base(), { balanceHash: "fnv1a32:deadbeef" }), /mismatch/);
   assert.throws(() => validateReplay(base(), { rng: "different-v1" }), /mismatch/);
   assert.throws(() => validateReplay(base(), { gameplayVersion: "events-off-v1" }), /gameplay feature version mismatch/);
+  const missingDownedActivity = base(); delete missingDownedActivity.features.downedActivity;
+  assert.throws(() => validateReplay(missingDownedActivity), /unexpected or missing fields/);
 });
 
 test("validator enforces tuple length, command order, and per-tick bounds", () => {
@@ -92,8 +94,8 @@ test("recorder keeps transient identities out of replay JSON and deduplicates in
   assert.equal(replay.commands.length, 6);
   assert.deepEqual(replay.roster, [{ slot: 0, specialist: "zuri" }]);
   assert.deepEqual(replay.features, {
-    configVersion: "release-2026.07.13.7", gameplayVersion: "participation-v1", objectiveEvents: true,
-    squadSynergies: true, sharedParticipationCredit: true, registryVersion: "lastlight.squad-synergy.v1",
+    configVersion: "release-2026.07.13.8", gameplayVersion: "downed-v1", objectiveEvents: true,
+    squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, registryVersion: "lastlight.squad-synergy.v1",
   });
 });
 
@@ -140,8 +142,17 @@ test("legacy v5 manifests preserve squad synergies and disable participation cre
   const legacy = base();
   legacy.schema = "lastlight.replay.v5";
   delete legacy.features.sharedParticipationCredit;
+  delete legacy.features.downedActivity;
   assert.doesNotThrow(() => validateReplay(legacy, { squadSynergies: true, sharedParticipationCredit: false, registryVersion: "lastlight.squad-synergy.v1" }));
   assert.throws(() => validateReplay(legacy, { sharedParticipationCredit: true }), /shared-participation-credit flag mismatch/);
+});
+
+test("legacy v6 manifests preserve participation credit and disable downed activity", () => {
+  const legacy = base();
+  legacy.schema = "lastlight.replay.v6";
+  delete legacy.features.downedActivity;
+  assert.doesNotThrow(() => validateReplay(legacy, { sharedParticipationCredit: true, downedActivity: false }));
+  assert.throws(() => validateReplay(legacy, { downedActivity: true }), /downed-activity flag mismatch/);
 });
 
 test("legacy replay drafts resume with squad synergies explicitly disabled", () => {
@@ -155,12 +166,13 @@ test("legacy replay drafts resume with squad synergies explicitly disabled", () 
   draft.schema = "lastlight.replay-draft.v1";
   delete draft.header.squadSynergies;
   delete draft.header.sharedParticipationCredit;
+  delete draft.header.downedActivity;
   delete draft.header.registryVersion;
   const resumed = ReplayRecorder.fromDraft(draft, [{ id: "host-restored", specialist: "zuri", replaySlot: 0 }]);
   const replay = resumed.finalize(0, "0000000000000000");
   assert.deepEqual(replay.features, {
-    configVersion: "release-2026.07.13.7", gameplayVersion: "participation-v1", objectiveEvents: true,
-    squadSynergies: false, sharedParticipationCredit: false, registryVersion: "none",
+    configVersion: "release-2026.07.13.8", gameplayVersion: "downed-v1", objectiveEvents: true,
+    squadSynergies: false, sharedParticipationCredit: false, downedActivity: false, registryVersion: "none",
   });
 });
 
@@ -174,11 +186,29 @@ test("legacy v2 replay drafts preserve squad synergies and disable participation
   const draft = recorder.exportDraft(0);
   draft.schema = "lastlight.replay-draft.v2";
   delete draft.header.sharedParticipationCredit;
+  delete draft.header.downedActivity;
   const resumed = ReplayRecorder.fromDraft(draft, [{ id: "host-restored", specialist: "zuri", replaySlot: 0 }]);
   const replay = resumed.finalize(0, "0000000000000000");
   assert.equal(replay.features.squadSynergies, true);
   assert.equal(replay.features.sharedParticipationCredit, false);
+  assert.equal(replay.features.downedActivity, false);
   assert.equal(replay.features.registryVersion, "lastlight.squad-synergy.v1");
+});
+
+test("legacy v3 replay drafts preserve participation credit and disable downed activity", () => {
+  const recorder = new ReplayRecorder({
+    build: "2026.07.13.7", balanceVersion: "2026.07.12-signatures.3", balanceHash: "fnv1a32:e36834e8",
+    rng: "xoshiro128ss-v1", seed: "0123456789abcdef0123456789abcdef",
+    run: { map: "warehouse", difficulty: "story", duration: 240 },
+  });
+  recorder.registerPlayer("host", "zuri", { slot: 0, initial: true });
+  const draft = recorder.exportDraft(0);
+  draft.schema = "lastlight.replay-draft.v3";
+  delete draft.header.downedActivity;
+  const resumed = ReplayRecorder.fromDraft(draft, [{ id: "host-restored", specialist: "zuri", replaySlot: 0 }]);
+  const replay = resumed.finalize(0, "0000000000000000");
+  assert.equal(replay.features.sharedParticipationCredit, true);
+  assert.equal(replay.features.downedActivity, false);
 });
 
 test("movement v3 keeps feature-bearing v2 manifests readable without changing input tuples", () => {
@@ -260,13 +290,27 @@ test("driver rejects a simulation created with different gameplay flags before s
   const replay = base();
   replay.features = {
     configVersion: "rollback-42", gameplayVersion: "participation-off-v1", objectiveEvents: false,
-    squadSynergies: false, sharedParticipationCredit: false, registryVersion: "lastlight.squad-synergy.v1",
+    squadSynergies: false, sharedParticipationCredit: false, downedActivity: false, registryVersion: "lastlight.squad-synergy.v1",
   };
   const driver = new ReplayDriver(replay, {
     createSimulation: () => ({ gameplayVersion: "events-v1", objectiveEvents: true, squadSynergies: true, synergyRegistryVersion: "lastlight.squad-synergy.v1" }),
     applyCommand() {}, stepSimulation() {}, hashState: () => replay.finalHash,
   });
   assert.throws(() => driver.run(), /gameplay feature version mismatch/);
+});
+
+test("driver rejects a simulation with mismatched downed activity before stepping", () => {
+  const replay = base();
+  replay.checkpoints = [];
+  const driver = new ReplayDriver(replay, {
+    createSimulation: () => ({
+      gameplayVersion: replay.features.gameplayVersion, objectiveEvents: replay.features.objectiveEvents,
+      squadSynergies: replay.features.squadSynergies, sharedParticipationCredit: replay.features.sharedParticipationCredit,
+      downedActivity: false, synergyRegistryVersion: replay.features.registryVersion,
+    }),
+    applyCommand() {}, stepSimulation() {}, hashState: () => replay.finalHash,
+  });
+  assert.throws(() => driver.run(), /downed-activity flag mismatch/);
 });
 
 test("simulation hashes normalize transient identity but include input, hit sets, and pending tasks", () => {
@@ -286,6 +330,43 @@ test("simulation hashes normalize transient identity but include input, hit sets
   first.projectiles.push({ id: "b-test", owner: "relay-a", hit: new Set(["enemy-2"]) });
   second.projectiles.push({ id: "b-test", owner: "relay-b", hit: new Set() });
   assert.notEqual(hashSimulationState(first), hashSimulationState(second));
+});
+
+test("feature-off canonical hashes preserve the legacy v6 simulation shape", () => {
+  const features = {
+    gameplayVersion: "participation-v1", objectiveEvents: true, squadSynergies: true,
+    sharedParticipationCredit: true, downedActivity: false, registryVersion: "lastlight.squad-synergy.v1",
+  };
+  const simulation = new Simulation({
+    map: "warehouse", difficulty: "story", duration: 240,
+    players: [{ id: "relay-a", name: "Secret A", specialist: "zuri", replaySlot: 0 }], features,
+  }, { seed: "0123456789abcdef0123456789abcdef", features });
+  const fields = ["downedSupportCooldown", "downedSupportCooldownMax", "downedSupportReady", "downedSupportLabel", "downedCrawling", "reviveRequired"];
+  const stripPlayer = (player) => {
+    const result = structuredClone(player);
+    for (const key of fields) delete result[key];
+    return result;
+  };
+  const snapshot = simulation.snapshot();
+  delete snapshot.downedState;
+  delete snapshot.features.downedActivity;
+  delete snapshot.determinism.features.downedActivity;
+  const determinism = simulation.deterministicState();
+  delete determinism.features.downedActivity;
+  const legacyShape = {
+    ...simulation,
+    downedActivity: undefined,
+    players: simulation.players.map(stripPlayer),
+    disconnectedPlayers: new Map([...simulation.disconnectedPlayers].map(([key, entry]) => [key, { ...entry, player: stripPlayer(entry.player) }])),
+    snapshot: () => structuredClone(snapshot),
+    deterministicState: () => structuredClone(determinism),
+  };
+  const canonical = canonicalSimulationState(simulation);
+  assert.equal(Object.hasOwn(canonical, "downedState"), false);
+  assert.equal(Object.hasOwn(canonical.features, "downedActivity"), false);
+  for (const key of fields) assert.equal(Object.hasOwn(canonical.players[0], key), false, key);
+  assert.deepEqual(canonical, canonicalSimulationState(legacyShape));
+  assert.equal(hashSimulationState(simulation), hashSimulationState(legacyShape));
 });
 
 test("a recorded deterministic Simulation replays to the same final hash", () => {
@@ -313,6 +394,7 @@ test("a recorded deterministic Simulation replays to the same final hash", () =>
       features: {
         gameplayVersion: manifest.features.gameplayVersion, objectiveEvents: manifest.features.objectiveEvents,
         squadSynergies: manifest.features.squadSynergies, sharedParticipationCredit: manifest.features.sharedParticipationCredit,
+        downedActivity: manifest.features.downedActivity,
         registryVersion: manifest.features.registryVersion,
       },
     }),

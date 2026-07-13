@@ -1,5 +1,5 @@
 import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260713.2";
-import { WORLD } from "./engine.js?v=20260713.7";
+import { WORLD } from "./engine.js?v=20260713.8";
 import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260713.2";
 import { springCamera } from "./feel.js?v=20260713.2";
 import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistFacingTarget, specialistMotionState, stableDirectionColumn } from "./motion.js?v=20260713.1";
@@ -916,7 +916,8 @@ export class Renderer {
       ctx.save(); ctx.translate(player.x, player.y); ctx.fillStyle = "rgba(2,7,13,.9)"; ctx.fillRect(-43, 28, 86, 20);
       ctx.strokeStyle = squadRead.palette.body; ctx.strokeRect(-43, 28, 86, 20);
       ctx.fillStyle = squadRead.palette.core; ctx.font = "900 10px Inter"; ctx.textAlign = "center";
-      ctx.fillText(player.dead ? "RETURNING" : `REVIVE ${Math.max(0, Math.ceil(player.downTimer || 0))}s`, 0, 42); ctx.restore();
+      const reviveRequired = Math.max(.01, Number(player.reviveRequired) || 3), revivePercent = Math.round(clamp(Number(player.reviveProgress) || 0, 0, reviveRequired) / reviveRequired * 100);
+      ctx.fillText(player.dead ? "RETURNING" : revivePercent > 0 ? `RESCUE ${revivePercent}%` : `BLEED ${Math.max(0, Math.ceil(player.downTimer || 0))}s`, 0, 42); ctx.restore();
     }
 
     const localPlayer = (state.players || []).find((player) => player.id === localPlayerId && !player.dead);
@@ -1537,7 +1538,7 @@ export class Renderer {
       const before = this.previousEntity(previous?.players, raw.id);
       const dx = before ? raw.x - before.x : 0, dy = before ? raw.y - before.y : 0;
       const inferredMoving = Math.hypot(dx, dy) > .15;
-      const reportedMoving = Boolean(raw.moving ?? inferredMoving) && !p.dead && !p.downed;
+      const reportedMoving = Boolean(p.downed ? raw.downedCrawling : raw.moving ?? inferredMoving) && !p.dead;
       const inferredFacing = inferredMoving ? Math.atan2(dy, dx) : 0;
       const locomotionTarget = specialistFacingTarget(raw, reportedMoving, inferredFacing);
       const aimTarget = Number.isFinite(raw.aimFacing) ? raw.aimFacing : locomotionTarget;
@@ -1596,6 +1597,29 @@ export class Renderer {
         ctx.strokeStyle = spec.color; ctx.globalAlpha = .66; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.ellipse(0, groundY - 2, 39, 17, 0, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1;
       }
+      if (p.downed) {
+        const bleedout = clamp((Number(p.downTimer) || 0) / 10, 0, 1);
+        const reviveRequired = Math.max(.01, Number(p.reviveRequired) || 3);
+        const rescue = clamp((Number(p.reviveProgress) || 0) / reviveRequired, 0, 1);
+        ctx.save(); ctx.translate(0, groundY - 2);
+        ctx.strokeStyle = "rgba(2,7,13,.92)"; ctx.lineWidth = 7; ctx.setLineDash([8, 5]);
+        ctx.beginPath(); ctx.ellipse(0, 0, 49, 22, 0, 0, TAU); ctx.stroke();
+        ctx.strokeStyle = "rgba(255,245,230,.78)"; ctx.lineWidth = 2; ctx.lineDashOffset = this.reducedMotion ? 0 : -(visual.animationTime || 0) * 12;
+        ctx.beginPath(); ctx.ellipse(0, 0, 49, 22, 0, 0, TAU); ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0;
+        ctx.strokeStyle = "#ff755f"; ctx.lineWidth = 4; ctx.beginPath(); ctx.ellipse(0, 0, 44, 19, 0, -Math.PI / 2, -Math.PI / 2 + TAU * bleedout); ctx.stroke();
+        ctx.strokeStyle = "#63f2df"; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(0, 0, 36, 15, 0, -Math.PI / 2, -Math.PI / 2 + TAU * rescue); ctx.stroke();
+        ctx.strokeStyle = "rgba(255,255,255,.82)"; ctx.lineWidth = 2;
+        for (let index = 0; index < 8; index++) {
+          const angle = index * TAU / 8, x1 = Math.cos(angle) * 52, y1 = Math.sin(angle) * 24, x2 = Math.cos(angle) * 57, y2 = Math.sin(angle) * 27;
+          ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+        }
+        if (raw.downedCrawling) {
+          ctx.rotate(visual.facing + Math.PI); ctx.setLineDash([6, 5]); ctx.strokeStyle = "rgba(255,255,255,.62)"; ctx.lineWidth = 2;
+          for (const offset of [-7, 7]) { ctx.beginPath(); ctx.moveTo(18, offset); ctx.lineTo(54, offset); ctx.stroke(); }
+          ctx.setLineDash([]);
+        }
+        ctx.restore();
+      }
       if (p.invuln > 0 || p.shield > 0) {
         ctx.strokeStyle = p.invuln > 0 ? "#fff" : spec.color; ctx.globalAlpha = .55; ctx.lineWidth = 4;
         ctx.beginPath(); ctx.ellipse(0, -4, 43 + (this.reducedMotion ? 0 : Math.sin(now * .008) * 2), 49, 0, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1;
@@ -1603,6 +1627,9 @@ export class Renderer {
       if (hurt > 0) {
         ctx.save(); ctx.rotate(p.hurtAngle || 0); ctx.strokeStyle = "#ff5870"; ctx.lineWidth = 4; ctx.globalAlpha = hurt;
         ctx.beginPath(); ctx.arc(0, 0, 45 + hurt * 9, -.9, .9); ctx.stroke(); ctx.restore();
+        ctx.save(); ctx.translate(0, groundY - 2); ctx.rotate(p.hurtAngle || 0); ctx.globalAlpha = hurt; ctx.strokeStyle = "#fff"; ctx.lineWidth = 3;
+        for (const side of [-1, 1]) { ctx.beginPath(); ctx.moveTo(35, side * 12); ctx.lineTo(47, side * 7); ctx.lineTo(38, side * 2); ctx.stroke(); }
+        ctx.restore();
       }
 
       const atlas = this.animationAtlases[p.specialist];
@@ -1649,8 +1676,10 @@ export class Renderer {
       });
       ctx.fillStyle = "#fff"; ctx.font = "700 9px Inter"; ctx.textAlign = "center"; ctx.shadowColor = "#000"; ctx.shadowBlur = 3; ctx.fillText(p.name, 0, barY - 7);
       if (p.dead || p.downed) {
-        ctx.globalAlpha = 1; ctx.fillStyle = "rgba(2,7,13,.82)"; ctx.fillRect(-46, 11, 92, 22);
-        ctx.fillStyle = "#ff7184"; ctx.font = "800 11px Inter"; ctx.fillText(p.dead ? `${Math.ceil(p.respawnTimer)}s` : `REVIVE ${Math.ceil(p.downTimer)}s`, 0, 26);
+        const reviveRequired = Math.max(.01, Number(p.reviveRequired) || 3), revivePercent = Math.round(clamp(Number(p.reviveProgress) || 0, 0, reviveRequired) / reviveRequired * 100);
+        ctx.globalAlpha = 1; ctx.fillStyle = "rgba(2,7,13,.86)"; ctx.fillRect(-52, 11, 104, 22);
+        ctx.fillStyle = p.dead ? "#ff7184" : revivePercent > 0 ? "#63f2df" : "#ff9a7d"; ctx.font = "800 11px Inter";
+        ctx.fillText(p.dead ? `${Math.ceil(p.respawnTimer)}s` : revivePercent > 0 ? `RESCUE ${revivePercent}%` : `BLEED ${Math.max(0, Number(p.downTimer) || 0).toFixed(1)}s`, 0, 26);
       }
       ctx.restore();
     }

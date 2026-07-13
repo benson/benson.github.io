@@ -52,18 +52,19 @@ schema and the deterministic compatibility tuple:
 ```json
 {
   "schema":"lastlight.host-migration.v1",
-  "protocolVersion":3,
+  "protocolVersion":4,
   "compatibility":{
     "build":"build-id",
     "balanceVersion":"balance-v1",
     "balanceHash":"fnv1a32:01234567",
-    "configVersion":"release-2026.07.13.7",
-    "gameplayVersion":"participation-v1",
+    "configVersion":"release-2026.07.13.8",
+    "gameplayVersion":"downed-v1",
     "objectiveEvents":true,
     "squadSynergies":true,
     "sharedParticipationCredit":true,
+    "downedActivity":true,
     "registryVersion":"lastlight.squad-synergy.v1",
-    "recoveryVersion":5
+    "recoveryVersion":6
   }
 }
 ```
@@ -213,6 +214,23 @@ new credit state, live acknowledgements, result details, and v3 participation
 telemetry. Runs created under opposite flag values are deliberately incompatible
 for replay, recovery, and migration.
 
+## Downed activity deterministic state
+
+Runtime config schema v4 adds the independent `downedActivity` flag. When it is
+enabled, `lastlight.downed-activity.v1` owns anonymous per-slot crawl position,
+velocity, facing, bleedout ticks, and support-pulse cooldown. Crawl uses the same
+fixed 60 Hz authority clock, cover rectangles, and world bounds as the run. A
+downed E command can grant only a small effective shield to nearby standing
+allies; weapons, damage, healing, pickups, objectives, relay work, revive work,
+and self-revive remain unavailable.
+
+Replay schema v7 and draft schema v4 record the flag; replay v6 and draft v3
+normalize it to `false` and retain their legacy canonical hash shape. Recovery
+envelope v4 and simulation version 6 validate the exact bounded activity state.
+Host-migration protocol v4 includes the flag and recovery version in its strict
+compatibility tuple. Disabling `downedActivity` restores the previous immobile
+downed behavior for newly created runs without changing the active run in place.
+
 ## Replay, privacy, and diagnostics
 
 Only commands accepted by the authoritative host reach `ReplayRecorder`.
@@ -239,6 +257,9 @@ Migration has three independently reversible runtime flags:
 Participation attribution has its own reversible `sharedParticipationCredit`
 flag. Because it affects deterministic state, a flag change applies only to new
 runs; an active run never changes compatibility in place.
+
+Downed activity has its own reversible `downedActivity` flag with the same
+new-run-only compatibility rule.
 
 Roll out in that order. Checkpoint shadow validation should precede election,
 and election telemetry should precede live resume. Disabling checkpoint

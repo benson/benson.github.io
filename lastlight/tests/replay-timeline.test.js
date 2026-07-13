@@ -14,7 +14,7 @@ function genericReplay() {
       balance: { version: BALANCE_VERSION, hash: BALANCE_HASH },
       features: {
         configVersion: "test-v1", gameplayVersion: "participation-v1", objectiveEvents: true,
-        squadSynergies: true, sharedParticipationCredit: true, registryVersion: "lastlight.squad-synergy.v1",
+        squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, registryVersion: "lastlight.squad-synergy.v1",
       },
       engine: { stepHz: 60, rng: "xoshiro128ss-v1" }, seed: "0123456789abcdef0123456789abcdef",
       run: { map: "warehouse", difficulty: "story", duration: 240 }, roster: [{ slot: 0, specialist: "zuri" }],
@@ -98,6 +98,15 @@ test("timeline rejects a simulation with mismatched participation compatibility 
     squadSynergies: true, sharedParticipationCredit: false, synergyRegistryVersion: replay.features.registryVersion,
   });
   assert.throws(() => new VerifiedReplayTimeline(replay, adapters), /shared-participation-credit flag mismatch/);
+});
+
+test("timeline rejects a simulation with mismatched downed activity before playback", () => {
+  const { replay, adapters } = genericReplay();
+  adapters.createSimulation = () => ({
+    value: 0, gameplayVersion: replay.features.gameplayVersion, objectiveEvents: true,
+    squadSynergies: true, sharedParticipationCredit: true, downedActivity: false, synergyRegistryVersion: replay.features.registryVersion,
+  });
+  assert.throws(() => new VerifiedReplayTimeline(replay, adapters), /downed-activity flag mismatch/);
 });
 
 test("game adapter replays authoritative reroll, banish, skip, and replacement decisions", () => {

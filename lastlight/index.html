@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260713.7">
+  <link rel="stylesheet" href="styles.css?v=20260713.8">
 </head>
 <body>
   <main id="app">
@@ -246,6 +246,20 @@
 
       <div id="objective-banner" class="objective-banner hidden"><span>NEW DIRECTIVE</span><strong>Capture the uplink</strong></div>
       <div id="boss-hud" class="boss-hud hidden" role="progressbar" aria-label="Apex health" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" aria-valuetext="Apex phase 1, 100 percent health"><span id="boss-name" aria-live="polite">APEX</span><div><i id="boss-health"></i><em id="boss-health-segments" class="health-dividers" aria-hidden="true"></em></div></div>
+
+      <aside id="downed-activity" class="downed-activity hidden" aria-labelledby="downed-activity-title">
+        <header><span>Squad emergency</span><strong id="downed-activity-title">DOWNED // STAY ACTIVE</strong></header>
+        <div class="downed-meters">
+          <div class="downed-meter bleedout"><span><b>Bleedout</b><em id="downed-bleedout-copy">10.0s</em></span><div id="downed-bleedout" role="progressbar" aria-label="Bleedout time remaining" aria-valuemin="0" aria-valuemax="10" aria-valuenow="10"><i></i></div></div>
+          <div class="downed-meter revive"><span><b>Rescue</b><em id="downed-revive-copy">No rescuer in range</em></span><div id="downed-revive" role="progressbar" aria-label="Revive progress" aria-valuemin="0" aria-valuemax="3" aria-valuenow="0"><i></i></div></div>
+        </div>
+        <div class="downed-actions" aria-label="Controls available while downed">
+          <span id="downed-crawl-status"><kbd>WASD</kbd><b>Crawl to cover</b></span>
+          <button id="downed-support-action" type="button"><kbd>E</kbd><span><b id="downed-support-label">Guard pulse</b><small id="downed-support-status">Ready</small></span></button>
+          <span id="downed-ping-status"><kbd>G</kbd><b>Ping for help</b></span>
+        </div>
+      </aside>
+      <div id="downed-activity-live" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
       <aside class="loadout-hud">
         <div id="e-slot" class="ability-slot" tabindex="0"><kbd>E</kbd><span id="e-icon">E</span><i id="e-cooldown" class="cooldown-sweep" aria-hidden="true"></i><b id="e-cooldown-seconds" class="cooldown-seconds" aria-hidden="true"></b><small id="e-name">Rocket Bloom</small><div class="ability-tooltip"><span>Active ability</span><strong id="e-detail-status">Locked</strong><p id="e-detail-copy">Fire nine explosive rockets in a wide cone.</p><dl><div><dt>Cooldown</dt><dd id="e-detail-cooldown">Unlocks Lv 3</dd></div><div><dt>Control</dt><dd>E</dd></div></dl></div></div>
@@ -467,7 +481,7 @@
         <section><span class="manual-number">01</span><h3>Move, aim, cast</h3><p>Move with WASD or arrow keys. Your signature weapon fires automatically toward the cursor. Tap C to toggle auto-aim. E and R are active abilities.</p></section>
         <section><span class="manual-number">02</span><h3>Build the machine</h3><p>Collect cyan data motes to level up. Pick weapons and passive stats. A level-five weapon plus its matching passive can evolve when an elite drops an access key.</p></section>
         <section><span class="manual-number">03</span><h3>Hold for the apex</h3><p>Enemy tiers and wave density rise throughout the operation. Survive the timer, then defeat the map's apex before its five-minute enrage.</p></section>
-        <section><span class="manual-number">04</span><h3>Revive the squad</h3><p>In co-op, stand inside a downed ally's ring for ten seconds to revive them. If every specialist is down at once, the operation is lost.</p></section>
+        <section><span class="manual-number">04</span><h3>Stay active when downed</h3><p>In co-op, crawl toward safety, press E to shield a nearby standing ally, and use G to call for help. A squadmate inside your ring completes the rescue in three seconds.</p></section>
       </div>
       <div class="manual-controls"><span><kbd>WASD</kbd> Move</span><span><kbd>Mouse</kbd> Aim</span><span><kbd>C</kbd> Auto-aim</span><span><kbd>E</kbd> Ability</span><span><kbd>R</kbd> Ultimate</span><span><kbd>1–3</kbd> Upgrade</span><span><kbd>Esc</kbd> Pause</span><span><kbd>` / ~</kbd> Report</span></div>
     </dialog>
@@ -478,7 +492,7 @@
         <button id="guide-close" class="icon-button" type="button" aria-label="Close upgrade archive">Close</button>
       </div>
       <nav class="guide-tabs" aria-label="Upgrade archive sections">
-        <a href="#guide-campaign">Campaign</a><a href="#guide-apex">Apexes</a><a href="#guide-specialists">Specialists</a><a href="#guide-field">Field objects</a><a href="#guide-signatures">Signatures</a><a href="#guide-weapons">Weapons</a><a href="#guide-materials">Materials</a><a href="#guide-passives">Passives</a><a href="#guide-participation">Participation</a><a href="#guide-synergies">Squad synergies</a><a href="#guide-rare">Rare finds</a>
+        <a href="#guide-campaign">Campaign</a><a href="#guide-apex">Apexes</a><a href="#guide-specialists">Specialists</a><a href="#guide-field">Field objects</a><a href="#guide-signatures">Signatures</a><a href="#guide-weapons">Weapons</a><a href="#guide-materials">Materials</a><a href="#guide-passives">Passives</a><a href="#guide-downed">Downed activity</a><a href="#guide-participation">Participation</a><a href="#guide-synergies">Squad synergies</a><a href="#guide-rare">Rare finds</a>
       </nav>
       <div id="guide-content" class="guide-content"></div>
     </dialog>
@@ -563,7 +577,15 @@
       </div>
       <div class="build-history-body">
         <article class="build-release current-build">
-          <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.13.7</h3></div><time class="build-shipped-at" datetime="2026-07-13T08:45:00-04:00" data-build-shipped-at="2026-07-13T08:45:00-04:00">Shipped Jul 13, 2026 · 8:45 AM EDT</time></header>
+          <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.13.8</h3></div><time class="build-shipped-at" datetime="2026-07-13T09:10:00-04:00" data-build-shipped-at="2026-07-13T09:10:00-04:00">Shipped Jul 13, 2026 · 9:10 AM EDT</time></header>
+          <ul>
+            <li>Downed specialists can now crawl toward cover or a rescuer while the authoritative ten-second bleedout continues.</li>
+            <li>Added a bounded E support pulse that shields nearby standing allies without dealing damage, healing, scoring objectives, or enabling self-revive.</li>
+            <li>Added persistent bleedout and rescue HUD feedback, touch controls, Field Manual guidance, replay v7, exact recovery, and host-migration support behind an independent rollback flag.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header><div><span class="build-release-status">Previous build</span><h3>2026.07.13.7</h3></div><time class="build-shipped-at" datetime="2026-07-13T08:45:00-04:00" data-build-shipped-at="2026-07-13T08:45:00-04:00">Shipped Jul 13, 2026 · 8:45 AM EDT</time></header>
           <ul>
             <li>Added authoritative shared participation credit for support, prevention, assists, revives, objectives, and priority targets.</li>
             <li>Added an accessible contribution table, exact Field Manual definitions, discrete milestone announcements, and run-history v2 totals.</li>
@@ -992,8 +1014,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.13.7. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.13.7</strong></button>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.13.8. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.13.8</strong></button>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260713.7"></script>
+  <script type="module" src="game.js?v=20260713.8"></script>
 </body>
 </html>

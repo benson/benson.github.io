@@ -1,6 +1,6 @@
-export const RECOVERY_SCHEMA = "lastlight.run-recovery.v3";
-export const RECOVERY_STORAGE_KEY = "lastlight:run-recovery:v3";
-export const RECOVERY_SIMULATION_VERSION = 5;
+export const RECOVERY_SCHEMA = "lastlight.run-recovery.v4";
+export const RECOVERY_STORAGE_KEY = "lastlight:run-recovery:v4";
+export const RECOVERY_SIMULATION_VERSION = 6;
 export const MAX_RECOVERY_BYTES = 1_500_000;
 export const RECOVERY_MAX_AGE_MS = 6 * 60 * 60 * 1_000;
 
@@ -33,6 +33,7 @@ export function runtimeRecoveryIdentity(config) {
     objectiveEvents: Boolean(config?.flags?.objectiveEvents ?? config?.objectiveEvents),
     squadSynergies: Boolean(config?.flags?.squadSynergies ?? config?.squadSynergies),
     sharedParticipationCredit: Boolean(config?.flags?.sharedParticipationCredit ?? config?.sharedParticipationCredit),
+    downedActivity: Boolean(config?.flags?.downedActivity ?? config?.downedActivity),
     registryVersion: String(config?.registryVersion || ""),
   });
 }
@@ -61,12 +62,13 @@ export function validateRunRecovery(value, { build, runtime, now = Date.now() } 
   if (value.expiresAt - value.savedAt !== RECOVERY_MAX_AGE_MS || value.savedAt > now + 5 * 60_000 || value.expiresAt <= now) throw new TypeError("Recovery checkpoint is stale");
   if (value.source !== "solo" && value.source !== "host") throw new TypeError("Recovery source is invalid");
   finiteInteger(value.localSlot, 0, 3, "localSlot");
-  exactKeys(value.runtime, ["configVersion", "gameplayVersion", "objectiveEvents", "squadSynergies", "sharedParticipationCredit", "registryVersion"], "runtime");
+  exactKeys(value.runtime, ["configVersion", "gameplayVersion", "objectiveEvents", "squadSynergies", "sharedParticipationCredit", "downedActivity", "registryVersion"], "runtime");
   if (typeof value.runtime.objectiveEvents !== "boolean" || typeof value.runtime.squadSynergies !== "boolean"
-    || typeof value.runtime.sharedParticipationCredit !== "boolean") throw new TypeError("Recovery runtime flags are invalid");
+    || typeof value.runtime.sharedParticipationCredit !== "boolean" || typeof value.runtime.downedActivity !== "boolean") throw new TypeError("Recovery runtime flags are invalid");
   if (!runtime || value.runtime.configVersion !== runtime.configVersion || value.runtime.gameplayVersion !== runtime.gameplayVersion
     || value.runtime.objectiveEvents !== runtime.objectiveEvents || value.runtime.squadSynergies !== runtime.squadSynergies
     || value.runtime.sharedParticipationCredit !== runtime.sharedParticipationCredit
+    || value.runtime.downedActivity !== runtime.downedActivity
     || value.runtime.registryVersion !== runtime.registryVersion) {
     throw new TypeError("Recovery runtime configuration mismatch");
   }
