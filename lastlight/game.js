@@ -1,44 +1,44 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260713.14";
-import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.14";
-import { Renderer } from "./render.js?v=20260713.14";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260713.15";
+import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.15";
+import { Renderer } from "./render.js?v=20260713.15";
 import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260713.2";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
-import { getThemeAsset, getThemeEnvironmentChunks, getThemeMaterial } from "./themes/lastlight.js?v=20260713.14";
-import { submitRunTelemetry } from "./telemetry.js?v=20260713.14";
+import { getThemeAsset, getThemeEnvironmentChunks, getThemeMaterial } from "./themes/lastlight.js?v=20260713.15";
+import { submitRunTelemetry } from "./telemetry.js?v=20260713.15";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260713.14";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260713.14";
+import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260713.15";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260713.15";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
-import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260713.14";
-import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260713.14";
+import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260713.15";
+import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260713.15";
 import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260711.5";
-import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260713.14";
+import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260713.15";
 import { GuestInputSequenceTracker, HostInputSequenceGate, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260713.2";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260713.2";
-import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260713.14";
-import { advancePlayerMovement } from "./movement.js?v=20260713.14";
+import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260713.15";
+import { advancePlayerMovement } from "./movement.js?v=20260713.15";
 import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
 import { DynamicAudioMixer } from "./audio-mix.js?v=20260713.1";
 import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260713.1";
 import { enemyAudioCueName, newEntities, spatialAudioPan, weaponAudioCueName, weaponTimerActivations } from "./audio-events.js?v=20260713.1";
 import { FUNNY_VOICE_MIN_INTERVAL_MS, audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260713.1";
-import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260713.14";
-import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260713.14";
+import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260713.15";
+import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260713.15";
 import { getWeaponEvolution } from "./weapon-evolution.js?v=20260713.1";
 import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260712.1";
-import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260713.14";
-import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260713.14";
-import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260713.14";
+import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260713.15";
+import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260713.15";
+import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260713.15";
 import { reconcileActiveBuffs } from "./active-buffs.js?v=20260713.1";
 import { ELITE_AFFIXES, ENEMY_ARCHETYPES } from "./enemy-archetypes.js?v=20260713.1";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
-import { mapMechanicDefinition } from "./map-mechanics.js?v=20260713.14";
-import { CAMPAIGN_MUTATIONS, campaignMutationDefinition } from "./campaign-mutations.js?v=20260713.14";
+import { mapMechanicDefinition } from "./map-mechanics.js?v=20260713.15";
+import { CAMPAIGN_MUTATIONS, campaignMutationDefinition } from "./campaign-mutations.js?v=20260713.15";
 import {
   AuthoritySnapshotGate, HOST_MIGRATION_PROTOCOL_VERSION, MIGRATION_CHECKPOINT_INTERVAL_TICKS,
   createMigrationCapabilities, createMigrationCheckpoint, createMigrationReady,
   migrationCompatibilityMatches, validateMigrationCheckpoint,
-} from "./host-migration.js?v=20260713.14";
+} from "./host-migration.js?v=20260713.15";
 import { RECONNECT_DELAYS_MS, SquadPresenceTracker, authorityStateCopy } from "./reconnect-state.js?v=20260713.3";
 import {
   HostPingGate, PING_INTENTS, PING_LIFETIME_TICKS, PING_WHEEL_ORDER, PingSequenceTracker,
@@ -54,11 +54,15 @@ import { DraftRecommendationStore, recommendationMarkerModel } from "./draft-rec
 import { SQUAD_SYNERGY_REGISTRY } from "./squad-synergies.js?v=20260713.6";
 import { reconcileActiveSynergies } from "./active-synergies.js?v=20260713.6";
 import { PARTICIPATION_REGISTRY } from "./participation-credit.js?v=20260713.7";
-import { campaignJoinEligibility } from "./join-in-progress.js?v=20260713.14";
+import { campaignJoinEligibility } from "./join-in-progress.js?v=20260713.15";
 import {
   RUN_ARCHIVE_STORAGE_KEY, createSquadRunReport, decodeSquadRunFragment, normalizeRunArchiveStorage,
   squadRunShareFragment, upsertRunArchive,
-} from "./run-archive.js?v=20260713.14";
+} from "./run-archive.js?v=20260713.15";
+import {
+  SPECIALIST_MASTERY, SPECIALIST_MASTERY_LEVELS, awardSpecialistMastery, loadSpecialistMasteryState,
+  masteryStartDefinition, saveSpecialistMasteryState, selectMasteryStart,
+} from "./specialist-mastery.js?v=20260713.15";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -67,7 +71,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.13.14";
+const BUILD = "2026.07.13.15";
 const AUTHORITY_WATCHDOG_MS = Object.freeze({ synchronizing: 10_000, migrating: 25_000 });
 const BALANCE = getBalanceConfig();
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
@@ -83,6 +87,7 @@ const initialQualitySettings = (() => {
   return settings;
 })();
 const initialAudioSettings = loadAudioSettings(localStorage);
+const initialMasteryState = loadSpecialistMasteryState(localStorage);
 const audioSupported = Boolean(window.AudioContext || window.webkitAudioContext);
 const renderer = new Renderer($("game-canvas"));
 renderer.setQualitySettings(initialQualitySettings);
@@ -98,7 +103,7 @@ const hostPingGate = new HostPingGate();
 const draftRecommendationSequences = new DraftRecommendationSequenceTracker();
 const hostDraftRecommendationGate = new HostDraftRecommendationGate();
 const PROGRESS_KEY = "lastlight:campaign:v1";
-const LEGACY_RUN_HISTORY_KEYS = Object.freeze(["lastlight:runs:v2", "lastlight:runs:v1"]);
+const LEGACY_RUN_HISTORY_KEYS = Object.freeze(["lastlight:runs:v4", "lastlight:runs:v3", "lastlight:runs:v2", "lastlight:runs:v1"]);
 const CLIENT_TOKEN_KEY = "lastlight:session-token:v1";
 const DAMAGE_LEDGER_LAYOUT_KEY = "lastlight:damage-ledger-layout:v1";
 const LAST_REPLAY_KEY = "lastlight:last-replay:v1";
@@ -163,6 +168,7 @@ const state = {
   animation: 0, lastFrame: 0, lastSend: 0, lastBroadcast: 0, lastLobbyBroadcast: 0,
   lastUpgradeKey: "", lastWeaponHUDKey: "", lastPassiveHUDKey: "", lastSquadHUDKey: "", lastBossHUDKey: "", lastEventSeq: 0, endShown: false, resultTimer: null,
   progress: loadProgress(), runHistory: loadRunHistory(), resultGame: null, resultReport: null, resultSavedKey: "",
+  mastery: initialMasteryState, resultMasteryAward: null,
   sharedRun: initialSharedRun.value, sharedRunError: initialSharedRun.error, sharedRunPresented: false,
   audioSettings: initialAudioSettings,
   audioAvailable: audioSupported,
@@ -201,6 +207,7 @@ const runtimeConfigReady = loadRuntimeConfig({ endpoint: RUNTIME_CONFIG_ENDPOINT
   syncPingAvailability();
   syncDraftRecommendationAvailability();
   syncArchiveAvailability();
+  renderMasteryLoadout(state.selected);
   refreshRecoveryOffer();
   return result;
 });
@@ -218,6 +225,7 @@ function migrationCompatibility() {
     squadEnemyDirector: state.runtimeConfig.config.flags.squadEnemyDirector,
     mapMechanics: state.runtimeConfig.config.flags.mapMechanics,
     campaignMutations: state.runtimeConfig.config.flags.campaignMutations,
+    specialistMastery: state.runtimeConfig.config.flags.specialistMastery,
     registryVersion: state.runtimeConfig.config.registryVersion,
     recoveryVersion: RECOVERY_SIMULATION_VERSION,
   };
@@ -439,10 +447,11 @@ function beginReplayCapture(players, seed) {
     squadEnemyDirector: state.runtimeConfig.config.flags.squadEnemyDirector,
     mapMechanics: state.runtimeConfig.config.flags.mapMechanics,
     campaignMutations: state.runtimeConfig.config.flags.campaignMutations,
+    specialistMastery: state.runtimeConfig.config.flags.specialistMastery,
     registryVersion: state.runtimeConfig.config.registryVersion,
     rng: RNG_ALGORITHM, seed, run: replayRunConfig(),
   });
-  for (const player of players) state.replayRecorder.registerPlayer(player.id, player.specialist, { slot: player.replaySlot, initial: true });
+  for (const player of players) state.replayRecorder.registerPlayer(player.id, player.specialist, { slot: player.replaySlot, masteryStart: player.masteryStart, initial: true });
   state.lastReplayCheckpointTick = -1;
   state.resultReplay = null;
   recordReplayCheckpoint(true);
@@ -1140,6 +1149,34 @@ function renderSpecialistGrid() {
     return `<button class="specialist-card" type="button" role="option" data-specialist="${id}" aria-selected="${id === state.selected}"><small>${spec.number}</small><img class="specialist-art" src="${spec.sprite}" alt=""><span class="specialist-name">${spec.name.toUpperCase()}</span><span class="specialist-weapon"><img src="${spec.signature.icon}" alt=""><em>${escapeHTML(spec.signature.name)}</em></span></button>`;
   }).join("");
   $("specialist-grid").querySelectorAll("button").forEach((button) => button.addEventListener("click", () => selectSpecialist(button.dataset.specialist)));
+  $("mastery-loadout").querySelectorAll("[data-mastery-start]").forEach((button) => button.addEventListener("click", () => chooseMasteryStart(button.dataset.masteryStart)));
+}
+
+function renderMasteryLoadout(id) {
+  const definition = SPECIALIST_MASTERY.tracks[id], track = state.mastery.tracks[id];
+  const enabled = Boolean(state.runtimeConfig.config.flags.specialistMastery);
+  $("mastery-loadout").classList.toggle("hidden", !enabled);
+  if (!enabled) return;
+  const next = SPECIALIST_MASTERY_LEVELS[track.level] ?? SPECIALIST_MASTERY_LEVELS.at(-1);
+  $("mastery-loadout-title").textContent = `${definition.name} // level ${track.level}`;
+  $("mastery-points").textContent = track.level === 5 ? `${track.points} // mastered` : `${track.points} / ${next}`;
+  $("mastery-summary").textContent = definition.summary;
+  const challengeDone = track.completedChallenges.includes(definition.challenge.id);
+  $("mastery-challenge").textContent = `${challengeDone ? "Challenge complete" : "Track challenge"} // ${definition.challenge.field.replace("participation.", "")} ${definition.challenge.minimum.toLocaleString()} // +${definition.challenge.rewardPoints}`;
+  $("mastery-loadout").querySelectorAll("[data-mastery-start]").forEach((button) => {
+    const start = masteryStartDefinition(id, button.dataset.masteryStart), locked = track.level < start.unlockLevel;
+    button.disabled = locked; button.setAttribute("aria-checked", String(track.selectedStart === start.id));
+    button.querySelector("small").textContent = locked ? `Unlocks at mastery level ${start.unlockLevel}.` : start.summary;
+  });
+}
+
+function chooseMasteryStart(startId) {
+  if (!state.runtimeConfig.config.flags.specialistMastery) return;
+  try {
+    state.mastery = saveSpecialistMasteryState(localStorage, selectMasteryStart(state.mastery, state.selected, startId));
+    renderMasteryLoadout(state.selected);
+    if (state.screen === "lobby") updateLocalProfile({ masteryStart: startId });
+  } catch { toast("That field kit is still locked"); }
 }
 
 function selectSpecialist(id) {
@@ -1159,7 +1196,8 @@ function selectSpecialist(id) {
   $("passive-name").textContent = spec.passive[0]; $("passive-copy").textContent = spec.passive[1];
   $("active-name").textContent = spec.active[0]; $("active-copy").textContent = spec.active[1];
   $("ultimate-name").textContent = spec.ultimate[0]; $("ultimate-copy").textContent = spec.ultimate[1];
-  if (state.screen === "lobby") updateLocalProfile({ specialist: id });
+  renderMasteryLoadout(id);
+  if (state.screen === "lobby") updateLocalProfile({ specialist: id, masteryStart: state.mastery.tracks[id].selectedStart });
 }
 
 function setPartyMode(mode) {
@@ -1253,12 +1291,13 @@ function renderParty() {
   const members = [...state.lobby.values()];
   $("party-list").innerHTML = members.map((member) => {
     const spec = SPECIALISTS[member.specialist] || SPECIALISTS.zuri;
-    return `<div class="party-member ${member.ready || member.id === state.clientId && state.isHost ? "ready" : ""}"><img src="${spec.sprite}" alt=""><div><strong>${escapeHTML(member.name || "Connecting…")}</strong><small>${member.id === state.clientId ? "YOU" : member.ready ? "READY" : "CHOOSING"} · ${spec.name}</small></div></div>`;
+    const start = member.masteryStart === "field-kit" ? "FIELD KIT" : "STANDARD";
+    return `<div class="party-member ${member.ready || member.id === state.clientId && state.isHost ? "ready" : ""}"><img src="${spec.sprite}" alt=""><div><strong>${escapeHTML(member.name || "Connecting…")}</strong><small>${member.id === state.clientId ? "YOU" : member.ready ? "READY" : "CHOOSING"} · ${spec.name} · ${start}</small></div></div>`;
   }).join("");
 }
 
 function updateLocalProfile(patch = {}) {
-  const current = state.lobby.get(state.clientId) || { id: state.clientId, name: callsign(), specialist: state.selected, ready: state.isHost };
+  const current = state.lobby.get(state.clientId) || { id: state.clientId, name: callsign(), specialist: state.selected, masteryStart: state.mastery.tracks[state.selected].selectedStart, ready: state.isHost };
   const profile = { ...current, ...patch, id: state.clientId, name: callsign(), resumeToken: current.resumeToken || state.resumeToken };
   state.lobby.set(state.clientId, profile);
   if (state.ws?.readyState === WebSocket.OPEN) send({ type: "profile", profile });
@@ -1283,7 +1322,8 @@ function startHostedGame() {
   if (!state.isHost) return;
   state.joiningActiveRun = false; state.runAdmission = null; state.joinRequestSent = false;
   const players = [...state.lobby.values()].map((p, replaySlot) => ({
-    id: p.id, name: p.name, specialist: p.specialist, replaySlot,
+    id: p.id, name: p.name, specialist: p.specialist,
+    masteryStart: state.runtimeConfig.config.flags.specialistMastery ? p.masteryStart || "baseline" : "baseline", replaySlot,
     ...(state.partyMode === "solo" ? {} : { reconnectSlot: `migration-slot-${replaySlot}` }),
   }));
   if (!players.length) return;
@@ -2331,7 +2371,8 @@ function renderScoreboard(game) {
   $("result-scoreboard-body").innerHTML = game.players.map((player) => {
     const spec = SPECIALISTS[player.specialist] || SPECIALISTS.zuri;
     const joinedAt = Math.max(0, Number(player.joinedAtTick || 0) / 60);
-    const deployment = player.joinKind === "fresh" ? `Reinforcement · ${formatTime(joinedAt)}` : "Launch squad";
+    const start = player.masteryStart === "field-kit" ? "Field kit" : "Standard issue";
+    const deployment = player.joinKind === "fresh" ? `Reinforcement · ${formatTime(joinedAt)} · ${start}` : `Launch squad · ${start}`;
     return `<tr><td data-label="Specialist"><div class="result-scoreboard-player"><img src="${spec.sprite}" alt=""><div><strong>${escapeHTML(player.name)}</strong><small>${spec.name}</small></div></div></td><td data-label="Deployment"><span class="result-deployment">${escapeHTML(deployment)}</span></td><td data-label="Damage">${statNumber(player.damage)}</td><td data-label="DPS">${(Number(player.damage || 0) / seconds).toFixed(1)}</td><td data-label="Kills">${statNumber(player.kills)}</td><td data-label="XP picked up">${statNumber(player.xpCollected)}</td><td data-label="Damage taken">${statNumber(player.damageTaken)}</td><td data-label="Revives">${statNumber(player.revives)}</td><td data-label="Distance">${statNumber(player.traveled)}</td><td data-label="Share"><button class="copy-scorecard" type="button" data-player-id="${player.id}">Copy card</button></td></tr>`;
   }).join("");
   $("result-scoreboard-body").querySelectorAll(".copy-scorecard").forEach((button) => button.addEventListener("click", () => copyPlayerScorecard(button.dataset.playerId)));
@@ -2373,6 +2414,40 @@ function saveCompletedRun(game) {
   return report;
 }
 
+function awardLocalMastery(report, localPlayer) {
+  if (!state.runtimeConfig.config.flags.specialistMastery || !localPlayer || !report) return null;
+  try {
+    const result = awardSpecialistMastery(state.mastery, report, localPlayer.replaySlot);
+    state.mastery = saveSpecialistMasteryState(localStorage, result.state);
+    state.resultMasteryAward = result.award;
+    return result.award;
+  } catch (error) { captureClientError("specialist mastery award", error); return null; }
+}
+
+function renderResultMastery(award) {
+  $("result-mastery").classList.toggle("hidden", !award);
+  if (!award) return;
+  const specialist = SPECIALISTS[award.specialist]?.name || award.specialist;
+  $("result-mastery-title").textContent = `${specialist} // +${award.points} mastery`;
+  const level = award.level > award.beforeLevel ? `Level ${award.level} reached.` : `Level ${award.level}.`;
+  const challenge = award.challenge ? " Track challenge complete." : "";
+  const unlocks = award.unlocked.length ? ` Unlocked: ${award.unlocked.map(({ kind }) => kind === "start" ? "Field kit" : kind).join(" · ")}.` : "";
+  $("result-mastery-copy").textContent = `${level}${challenge}${unlocks}`;
+}
+
+function localMasteryTelemetry(player) {
+  if (!player || !state.runtimeConfig.config.flags.specialistMastery) return null;
+  const track = state.mastery.tracks[player.specialist];
+  if (!track) return null;
+  return {
+    specialist: player.specialist,
+    levelBand: track.level >= 5 ? "5" : track.level >= 3 ? "3-4" : "1-2",
+    challengeCompletions: track.completedChallenges.length,
+    milestoneUnlocks: SPECIALIST_MASTERY.tracks[player.specialist].unlocks.filter(({ level }) => level <= track.level).length,
+    selectedStart: player.masteryStart === "field-kit" ? "field-kit" : "baseline",
+  };
+}
+
 function archiveEnabled() { return Boolean(state.runtimeConfig.config.flags.sharedSquadRunArchive); }
 
 function archivePlayerCard(player, elapsed) {
@@ -2390,7 +2465,8 @@ function archivePlayerCard(player, elapsed) {
     ...player.passives.map((passive) => `<span><img src="${escapeHTML(PASSIVES[passive.id]?.icon || "")}" alt=""><b>${escapeHTML(PASSIVES[passive.id]?.name || passive.id)}</b><em>R${passive.rank}</em></span>`),
   ].join("");
   const sources = player.damageSources.slice(0, 5).map((source) => `<li><span>${escapeHTML(sourceName(source.id, player))}</span><b>${statNumber(source.damage)}</b></li>`).join("");
-  const deployment = player.joinKind === "fresh" ? `Reinforcement at ${formatTime(player.joinedAtSecond)}${player.campaignEligible ? "" : " · assist only"}` : "Launch squad";
+  const start = player.masteryStart === "field-kit" ? "Field kit" : "Standard issue";
+  const deployment = player.joinKind === "fresh" ? `Reinforcement at ${formatTime(player.joinedAtSecond)}${player.campaignEligible ? "" : " · assist only"} · ${start}` : `Launch squad · ${start}`;
   return `<article class="archive-player"><header><img src="${escapeHTML(spec.sprite)}" alt=""><div><strong>${escapeHTML(player.callsign)}</strong><span>S${player.slot + 1} · ${escapeHTML(spec.name)}</span></div><em>${escapeHTML(deployment)}</em></header><dl><div><dt>Damage</dt><dd>${statNumber(player.damage)}</dd></div><div><dt>DPS</dt><dd>${(player.damage / Math.max(1, elapsed)).toFixed(1)}</dd></div><div><dt>Kills</dt><dd>${statNumber(player.kills)}</dd></div><div><dt>XP</dt><dd>${statNumber(player.xpCollected)}</dd></div><div><dt>Taken</dt><dd>${statNumber(player.damageTaken)}</dd></div><div><dt>Revives</dt><dd>${statNumber(player.revives)}</dd></div></dl><div class="archive-loadout">${loadout}</div><div class="archive-contribution"><span>Support <b>${statNumber(support)}</b></span><span>Prevented <b>${statNumber(prevented)}</b></span><span>Assists <b>${statNumber(assists)}</b></span><span>Objectives <b>${statNumber(player.participation.objectiveCompletions)}</b></span><span>Synergy <b>${statNumber(synergy)}</b></span></div>${sources ? `<ol class="archive-sources">${sources}</ol>` : ""}</article>`;
 }
 
@@ -2507,12 +2583,15 @@ function showResult(game) {
   $("result-unlock").textContent = unlocks.length ? `Campaign updated · ${unlocks.join(" · ")}` : ineligibleClear ? `Campaign clear not awarded · reinforce for at least ${Math.ceil(joinEligibility.requiredCombatSeconds)} pre-apex seconds` : "";
   if (state.isHost && game === state.sim) finalizeReplayCapture();
   $("watch-replay").classList.toggle("hidden", !state.resultReplay);
-  state.resultGame = game; saveCompletedRun(game); renderScoreboard(game);
+  state.resultGame = game;
+  const report = saveCompletedRun(game);
+  renderResultMastery(awardLocalMastery(report, localPlayer));
+  renderScoreboard(game);
   syncArchiveAvailability();
   setScreen("result");
   if (state.isHost && !state.telemetrySent && state.runtimeConfig.config.flags.runTelemetry) {
     state.telemetrySent = true;
-    submitRunTelemetry(game, BUILD).catch((error) => console.warn("Run telemetry unavailable", error));
+    submitRunTelemetry(game, BUILD, { masteryTelemetry: localMasteryTelemetry(localPlayer) }).catch((error) => console.warn("Run telemetry unavailable", error));
   }
 }
 
@@ -2705,7 +2784,7 @@ function connectRoom(code, { reconnecting = false } = {}) {
       onError: (error) => captureClientError("network lab", error),
     });
     ws.addEventListener("open", () => send({
-      type: "hello", profile: { name: callsign(), specialist: state.selected, resumeToken: state.resumeToken },
+      type: "hello", profile: { name: callsign(), specialist: state.selected, masteryStart: state.mastery.tracks[state.selected].selectedStart, resumeToken: state.resumeToken },
       roomProtocolVersion: 2,
       migrationCapabilities: migrationCapabilities(),
     }));
@@ -2754,7 +2833,7 @@ function resolveRunAdmission(message) {
     if (!player || player.replaySlot !== message.replaySlot) throw new Error("seat-mismatch");
     state.lobby.set(message._from, { ...message.profile, id: message._from, replaySlot: player.replaySlot });
     if (state.replayRecorder) {
-      if (resumed) state.replayRecorder.registerPlayer(message._from, player.specialist, { slot: player.replaySlot, tick: state.sim.tick, reconnect: true });
+      if (resumed) state.replayRecorder.registerPlayer(message._from, player.specialist, { slot: player.replaySlot, tick: state.sim.tick, masteryStart: player.masteryStart, reconnect: true });
       else state.replayRecorder.registerPlayer(message._from, player.specialist, { slot: player.replaySlot, tick: state.sim.tick, packageId: deployment.packageId, catchUpRanks: deployment.catchUpRanks });
     }
     state.draftRecommendations.resetSeat(player.replaySlot);
@@ -2918,8 +2997,8 @@ function broadcastLobby() {
 }
 
 function publicLobbyPlayers() {
-  return [...state.lobby.values()].map(({ id, name, specialist, ready, replaySlot }) => ({
-    id, name, specialist, ready: Boolean(ready),
+  return [...state.lobby.values()].map(({ id, name, specialist, masteryStart, ready, replaySlot }) => ({
+    id, name, specialist, masteryStart: masteryStart === "field-kit" ? "field-kit" : "baseline", ready: Boolean(ready),
     ...(Number.isInteger(replaySlot) ? { replaySlot } : {}),
   }));
 }

@@ -1,5 +1,5 @@
-import { Simulation } from "./engine.js?v=20260713.14";
-import { hashSimulationState, replayGameplayFeatures } from "./replay.js?v=20260713.14";
+import { Simulation } from "./engine.js?v=20260713.15";
+import { hashSimulationState, replayGameplayFeatures } from "./replay.js?v=20260713.15";
 
 export function anonymousReplayToken(slot) {
   const digit = Math.max(0, Math.min(3, Number(slot) || 0)) + 1;
@@ -8,6 +8,7 @@ export function anonymousReplayToken(slot) {
 
 export function createGameReplayAdapters() {
   const generations = new WeakMap();
+  const masteryStarts = new WeakMap();
   const playerForSlot = (simulation, slot) => simulation.players.find((player) => player.replaySlot === slot);
   const nextId = (simulation, slot) => {
     const values = generations.get(simulation) || new Map();
@@ -15,8 +16,8 @@ export function createGameReplayAdapters() {
     values.set(slot, generation); generations.set(simulation, values);
     return `replay-${slot}-${generation}`;
   };
-  const addPlayer = (simulation, slot, specialist) => simulation.addPlayer({
-    id: nextId(simulation, slot), name: `Specialist ${slot + 1}`, specialist, replaySlot: slot, resumeToken: anonymousReplayToken(slot),
+  const addPlayer = (simulation, slot, specialist, masteryStart = "baseline") => simulation.addPlayer({
+    id: nextId(simulation, slot), name: `Specialist ${slot + 1}`, specialist, replaySlot: slot, masteryStart, resumeToken: anonymousReplayToken(slot),
   }, slot);
   const deployLateJoin = (simulation, command) => {
     if (!simulation.joinInProgressNormalization) return addPlayer(simulation, command.slot, command.specialist);
@@ -32,11 +33,12 @@ export function createGameReplayAdapters() {
       const features = replayGameplayFeatures(replay);
       const simulation = new Simulation({
         ...replay.run, features,
-        players: replay.roster.map(({ slot, specialist }) => ({
-          id: `replay-${slot}-0`, name: `Specialist ${slot + 1}`, specialist, replaySlot: slot, resumeToken: anonymousReplayToken(slot),
+        players: replay.roster.map(({ slot, specialist, masteryStart = "baseline" }) => ({
+          id: `replay-${slot}-0`, name: `Specialist ${slot + 1}`, specialist, replaySlot: slot, masteryStart, resumeToken: anonymousReplayToken(slot),
         })),
       }, { seed: replay.seed, balanceVersion: replay.balance.version, balanceHash: replay.balance.hash, features });
       generations.set(simulation, new Map(replay.roster.map(({ slot }) => [slot, 0])));
+      masteryStarts.set(simulation, new Map(replay.roster.map(({ slot, masteryStart = "baseline" }) => [slot, masteryStart])));
       return simulation;
     },
     applyCommand(simulation, command) {
@@ -65,7 +67,9 @@ export function createGameReplayAdapters() {
       }
       else if (command.kind === "join") deployLateJoin(simulation, command);
       else if (command.kind === "leave") { if (!player) throw new Error(`Replay leave references inactive slot ${command.slot}`); simulation.removePlayer(player.id); }
-      else if (command.kind === "reconnect") addPlayer(simulation, command.slot, command.specialist || player?.specialist || "zuri");
+      else if (command.kind === "reconnect") {
+        addPlayer(simulation, command.slot, command.specialist || player?.specialist || "zuri", masteryStarts.get(simulation)?.get(command.slot) || "baseline");
+      }
       else if (command.kind === "abandon") simulation.lose("The squad withdrew from the breach.");
       else throw new Error(`Unsupported replay command ${command.kind}`);
     },

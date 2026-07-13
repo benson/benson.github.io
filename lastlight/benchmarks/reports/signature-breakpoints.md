@@ -1,7 +1,7 @@
 # Starting signature breakpoint report
 
 Contract: `actual-simulation-fixed-seed-signature-v1`
-Balance: `2026.07.13-mutations.1` / `fnv1a32:e796cf62`
+Balance: `2026.07.13-mastery.1` / `fnv1a32:f9f93ac0`
 
 Matrix: 9 specialists × 5 states = 45 deterministic breakpoint cases
 
@@ -14,11 +14,11 @@ Matrix: 9 specialists × 5 states = 45 deterministic breakpoint cases
 | Zuri | rank-5 | 200.667 | 267.556 | 602 | 0.444 | 60–900 |
 | Zuri | paired-passive | 243.667 | 367.889 | 602 | 0.611 | 60–900 |
 | Zuri | evolved | 387 | 1958.889 | 602 | 1.222 | 60–900 |
-| Echo | rank-1 | 24.111 | 220.444 | 62 | 0.333 | 60–900 |
-| Echo | rank-3 | 135 | 725 | 270 | 0.444 | 60–900 |
-| Echo | rank-5 | 177 | 1343.889 | 708 | 0.5 | 60–900 |
-| Echo | paired-passive | 196.667 | 1416 | 708 | 0.5 | 60–900 |
-| Echo | evolved | 229.444 | 1861.778 | 708 | 0.778 | 60–900 |
+| Echo | rank-1 | 31 | 165.333 | 62 | 0.333 | 60–900 |
+| Echo | rank-3 | 135 | 750 | 450 | 0.444 | 60–900 |
+| Echo | rank-5 | 177 | 1225.889 | 826 | 0.5 | 60–900 |
+| Echo | paired-passive | 177 | 1370.111 | 826 | 0.5 | 60–900 |
+| Echo | evolved | 222.889 | 1776.556 | 826 | 0.778 | 60–900 |
 | Sola | rank-1 | 26.125 | 188.681 | 104.5 | 0.389 | 60–400 |
 | Sola | rank-3 | 41.25 | 342.375 | 222.75 | 0.444 | 60–400 |
 | Sola | rank-5 | 69.514 | 524.028 | 288.75 | 0.611 | 60–400 |
@@ -34,11 +34,11 @@ Matrix: 9 specialists × 5 states = 45 deterministic breakpoint cases
 | Fang | rank-5 | 76.667 | 549.444 | 115 | 0.667 | 60–260 |
 | Fang | paired-passive | 80.417 | 576.319 | 120.625 | 0.667 | 60–260 |
 | Fang | evolved | 100.521 | 717.049 | 120.625 | 0.833 | 60–260 |
-| Gale | rank-1 | 27.472 | 143.333 | 150.5 | 0.278 | 60–900 |
-| Gale | rank-3 | 76.444 | 483.556 | 352 | 0.278 | 60–900 |
-| Gale | rank-5 | 148.75 | 897.222 | 637.5 | 0.278 | 60–900 |
-| Gale | paired-passive | 191.25 | 1067.222 | 892.5 | 0.278 | 60–900 |
-| Gale | evolved | 191.25 | 1256.111 | 892.5 | 0.333 | 60–900 |
+| Gale | rank-1 | 31.056 | 164.833 | 86 | 0.278 | 60–900 |
+| Gale | rank-3 | 81.778 | 510.222 | 256 | 0.278 | 60–900 |
+| Gale | rank-5 | 177.083 | 925.556 | 510 | 0.278 | 60–900 |
+| Gale | paired-passive | 219.583 | 1017.639 | 765 | 0.278 | 60–900 |
+| Gale | evolved | 219.583 | 1192.361 | 765 | 0.333 | 60–900 |
 | Rift | rank-1 | 48.889 | 151.556 | 44 | 1.111 | 60–120 |
 | Rift | rank-3 | 92.889 | 348.333 | 83.6 | 1.111 | 60–180 |
 | Rift | rank-5 | 136.889 | 574.933 | 123.2 | 1.111 | 60–180 |
@@ -63,10 +63,10 @@ Matrix: 9 specialists × 5 states = 45 deterministic breakpoint cases
 | Zuri | rank-3-to-5 | 41.1% | 88.1% | 88.1% | 0% | yes |
 | Zuri | paired-passive | 21.4% | 37.5% | 0% | 37.6% | yes |
 | Zuri | evolution | 58.8% | 432.5% | 0% | 100% | yes |
-| Echo | rank-1-to-3 | 459.9% | 228.9% | 335.5% | 33.3% | yes |
-| Echo | rank-3-to-5 | 31.1% | 85.4% | 162.2% | 12.6% | yes |
-| Echo | paired-passive | 11.1% | 5.4% | 0% | 0% | yes |
-| Echo | evolution | 16.7% | 31.5% | 0% | 55.6% | yes |
+| Echo | rank-1-to-3 | 335.5% | 353.6% | 625.8% | 33.3% | yes |
+| Echo | rank-3-to-5 | 31.1% | 63.5% | 83.6% | 12.6% | yes |
+| Echo | paired-passive | 0% | 11.8% | 0% | 0% | yes |
+| Echo | evolution | 25.9% | 29.7% | 0% | 55.6% | yes |
 | Sola | rank-1-to-3 | 57.9% | 81.5% | 113.2% | 14.1% | yes |
 | Sola | rank-3-to-5 | 68.5% | 53.1% | 29.6% | 37.6% | yes |
 | Sola | paired-passive | 35.3% | 29.8% | 35.3% | 0% | yes |
@@ -79,10 +79,10 @@ Matrix: 9 specialists × 5 states = 45 deterministic breakpoint cases
 | Fang | rank-3-to-5 | 58.6% | 83.4% | 32.2% | 20% | yes |
 | Fang | paired-passive | 4.9% | 4.9% | 4.9% | 0% | yes |
 | Fang | evolution | 25% | 24.4% | 0% | 24.9% | yes |
-| Gale | rank-1-to-3 | 178.3% | 237.4% | 133.9% | 0% | yes |
-| Gale | rank-3-to-5 | 94.6% | 85.5% | 81.1% | 0% | yes |
-| Gale | paired-passive | 28.6% | 18.9% | 40% | 0% | yes |
-| Gale | evolution | 0% | 17.7% | 0% | 19.8% | yes |
+| Gale | rank-1-to-3 | 163.3% | 209.5% | 197.7% | 0% | yes |
+| Gale | rank-3-to-5 | 116.5% | 81.4% | 99.2% | 0% | yes |
+| Gale | paired-passive | 24% | 9.9% | 50% | 0% | yes |
+| Gale | evolution | 0% | 17.2% | 0% | 19.8% | yes |
 | Rift | rank-1-to-3 | 90% | 129.8% | 90% | 0% | yes |
 | Rift | rank-3-to-5 | 47.4% | 65.1% | 47.4% | 0% | yes |
 | Rift | paired-passive | 0% | 0% | 0% | 0% | no |
@@ -99,11 +99,11 @@ Matrix: 9 specialists × 5 states = 45 deterministic breakpoint cases
 ## Interpretation
 
 - **Zuri — Pulse Carbine → Overdrive Barrage:** paired haste passive changes the isolated signature metrics; evolution changes single DPS 58.8% and area DPS 432.5%.
-- **Echo — Sound Wave → Anima Echo:** paired projectiles passive changes the isolated signature metrics; evolution changes single DPS 16.7% and area DPS 31.5%.
+- **Echo — Sound Wave → Anima Echo:** paired projectiles passive changes the isolated signature metrics; evolution changes single DPS 25.9% and area DPS 29.7%.
 - **Sola — Shield Beam → Lion's Light:** paired armor passive changes the isolated signature metrics; evolution changes single DPS 7.7% and area DPS 10.6%.
 - **Bront — Tidal Hammer → Grizzly Surge:** paired duration passive does not directly change the isolated signature metrics; evolution changes single DPS 209.5% and area DPS 209.5%.
 - **Fang — Rending Swipe → Savage Slice:** paired maxHealth passive changes the isolated signature metrics; evolution changes single DPS 25% and area DPS 24.4%.
-- **Gale — Steel Current → Wandering Storms:** paired crit passive changes the isolated signature metrics; evolution changes single DPS 0% and area DPS 17.7%.
+- **Gale — Steel Current → Wandering Storms:** paired crit passive changes the isolated signature metrics; evolution changes single DPS 0% and area DPS 17.2%.
 - **Rift — Kinetic Crash → Golden Overrun:** paired move passive does not directly change the isolated signature metrics; evolution changes single DPS 35% and area DPS 35.7%.
 - **Nova — Guiding Hex → Hopped-Up Hex:** paired xp passive does not directly change the isolated signature metrics; evolution changes single DPS 44.4% and area DPS 35.6%.
 - **Vesper — Winged Dagger → Lover's Ricochet:** paired pickup passive does not directly change the isolated signature metrics; evolution changes single DPS 54.5% and area DPS 60.7%.

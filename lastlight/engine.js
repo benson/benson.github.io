@@ -1,11 +1,11 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
-} from "./data.js?v=20260713.14";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260713.14";
+} from "./data.js?v=20260713.15";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260713.15";
 import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.5";
-import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260713.14";
-import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260713.14";
+import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260713.15";
+import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260713.15";
 import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260713.1";
 import { MAX_CORRIDOR_CANDIDATES, accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget, orderEntitiesByDistance } from "./projectile-decisions.js?v=20260713.1";
 import { selectEliteAffixes, selectSpawnArchetype, spawnPhaseAt } from "./enemy-archetypes.js?v=20260713.1";
@@ -28,16 +28,17 @@ import {
   beginDownedActivity, createDownedActivityState, removeDownedActivity, triggerDownedSupport,
   validateDownedActivityState,
 } from "./downed-activity.js?v=20260713.9";
-import { generateJoinPackage, JOIN_IN_PROGRESS_REGISTRY, joinPackageUpgradeIds, transitionJoinPackage } from "./join-in-progress.js?v=20260713.14";
+import { generateJoinPackage, JOIN_IN_PROGRESS_REGISTRY, joinPackageUpgradeIds, transitionJoinPackage } from "./join-in-progress.js?v=20260713.15";
 import {
   DIRECTOR_APPROACHES, DIRECTOR_FORMATIONS, createSquadDirectorState, planSquadFormation, validateSquadDirectorState,
-} from "./enemy-director.js?v=20260713.14";
-import { mapMechanicFrame, mapSpawnWeights, pointInMapMechanic } from "./map-mechanics.js?v=20260713.14";
+} from "./enemy-director.js?v=20260713.15";
+import { mapMechanicFrame, mapSpawnWeights, pointInMapMechanic } from "./map-mechanics.js?v=20260713.15";
 import {
   CAMPAIGN_MUTATIONS, campaignMutationDefinition, campaignMutationObjectiveCompleted, campaignMutationWaveStarted,
   cancelCampaignMutationEncounter, consumeCampaignMutationEncounter, createCampaignMutationState,
   resolveCampaignMutationEncounter, validateCampaignMutationState,
-} from "./campaign-mutations.js?v=20260713.14";
+} from "./campaign-mutations.js?v=20260713.15";
+import { masteryStartDefinition } from "./specialist-mastery.js?v=20260713.15";
 
 const BALANCE = getBalanceConfig();
 
@@ -74,7 +75,7 @@ function compactPoint(e) {
   return result;
 }
 
-const RECOVERY_STATE_VERSION = 10;
+const RECOVERY_STATE_VERSION = 11;
 const RECOVERY_SCALARS = [
   "tick", "time", "remaining", "stage", "paused", "pauseReason", "wave", "teamXP", "level", "xpNeed", "kills", "gold",
   "spawnClock", "nextElite", "nextMiniBoss", "nextTreasure", "nextRelayBall", "objectiveIndex", "bossElapsed", "bossPhase", "enraged",
@@ -279,6 +280,15 @@ function validateJoinPlayerState(player, tick, enabled) {
   return player;
 }
 
+function validateMasteryPlayerState(player, enabled) {
+  if (!enabled) {
+    if (player.masteryStart !== "baseline") throw new TypeError("Recovery disabled mastery start is invalid");
+    return player;
+  }
+  masteryStartDefinition(player.specialist, player.masteryStart);
+  return player;
+}
+
 function removePlayerUpgrade(player, kind, target) {
   if (kind === "weapon") {
     if (target === "signature" || !player.weapons?.[target]) throw new RangeError("Weapon replacement target is invalid");
@@ -349,6 +359,7 @@ export class Simulation {
     this.squadEnemyDirector = features.squadEnemyDirector;
     this.mapMechanics = features.mapMechanics;
     this.campaignMutations = features.campaignMutations;
+    this.specialistMastery = features.specialistMastery;
     this.synergyRegistryVersion = features.registryVersion;
     if (this.squadSynergies && this.synergyRegistryVersion !== SQUAD_SYNERGY_SCHEMA) throw new RangeError(`Unsupported squad synergy registry: ${this.synergyRegistryVersion}`);
     this.duration = Number(config.duration) || BALANCE.core.defaultDurationSeconds;
@@ -477,6 +488,7 @@ export class Simulation {
       return player;
     }
     const angle = (index / Math.max(1, 4)) * TAU;
+    const masteryStart = this.specialistMastery && info.masteryStart === "field-kit" ? "field-kit" : "baseline";
     const player = {
       id: info.id, name: String(info.name || "Rookie").slice(0, 16), specialist: spec.id,
       replaySlot: info.replaySlot === undefined ? replaySlot(index) : replaySlot(info.replaySlot),
@@ -491,7 +503,7 @@ export class Simulation {
       dead: false, downed: false, downTimer: 0, respawnTimer: 0, reviveProgress: 0, deaths: 0,
       downedSupportCooldown: 0, downedSupportCooldownMax: DOWNED_ACTIVITY_REGISTRY.support.cooldownTicks / SIMULATION_TICK_RATE,
       downedSupportReady: false, downedSupportLabel: "Support pulse unavailable", downedCrawling: false, reviveRequired: 0,
-      weaponTimers: {}, weapons: { signature: { level: 1, evolved: false } }, passives: {},
+      weaponTimers: {}, weapons: { signature: { level: 1, evolved: false } }, passives: {}, masteryStart,
       draft: initialDraftState(),
       weaponActivations: {},
       flow: 0, charge: 0, spirits: 0, hotKills: 0, hotStacks: 0, hotTime: 0,
@@ -503,6 +515,12 @@ export class Simulation {
       mapMoveMultiplier: 1, mapMechanicHitKey: "",
       lastHit: 0, riftShieldBlockedUntil: 0, iceReady: false, iceTimer: 0,
     };
+    if (masteryStart === "field-kit") {
+      const start = masteryStartDefinition(spec.id, masteryStart);
+      applyPlayerUpgrade(player, { id: `passive:${start.passive}` });
+      player.maxHp = Math.round(player.maxHp * start.vitalityMultiplier * 1_000) / 1_000;
+      player.hp = player.maxHp;
+    }
     this.players.push(player);
     if (replaySlot(player.replaySlot) !== undefined) this.runSlotsUsed.add(player.replaySlot);
     if (this.synergyState && replaySlot(player.replaySlot) !== undefined) this.synergyState = addSquadSynergyStats(this.synergyState, player.replaySlot);
@@ -3067,7 +3085,7 @@ export class Simulation {
       features: {
         gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents,
         squadSynergies: this.squadSynergies, sharedParticipationCredit: this.sharedParticipationCredit, downedActivity: this.downedActivity,
-        joinInProgressNormalization: this.joinInProgressNormalization, squadEnemyDirector: this.squadEnemyDirector, mapMechanics: this.mapMechanics, campaignMutations: this.campaignMutations, registryVersion: this.synergyRegistryVersion,
+        joinInProgressNormalization: this.joinInProgressNormalization, squadEnemyDirector: this.squadEnemyDirector, mapMechanics: this.mapMechanics, campaignMutations: this.campaignMutations, specialistMastery: this.specialistMastery, registryVersion: this.synergyRegistryVersion,
       },
       tick: this.tick,
       rng: { gameplay: this.gameplayRng.snapshot(), cosmetic: this.cosmeticRng.snapshot() },
@@ -3117,7 +3135,7 @@ export class Simulation {
         seed: this.seed, balanceVersion: this.balanceVersion, balanceHash: this.balanceHash,
         gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents,
         squadSynergies: this.squadSynergies, sharedParticipationCredit: this.sharedParticipationCredit, downedActivity: this.downedActivity,
-        joinInProgressNormalization: this.joinInProgressNormalization, squadEnemyDirector: this.squadEnemyDirector, mapMechanics: this.mapMechanics, campaignMutations: this.campaignMutations, registryVersion: this.synergyRegistryVersion,
+        joinInProgressNormalization: this.joinInProgressNormalization, squadEnemyDirector: this.squadEnemyDirector, mapMechanics: this.mapMechanics, campaignMutations: this.campaignMutations, specialistMastery: this.specialistMastery, registryVersion: this.synergyRegistryVersion,
         map: this.map.id, difficulty: this.difficulty.id, duration: this.duration,
       },
       rng: { gameplay: this.gameplayRng.snapshot(), cosmetic: this.cosmeticRng.snapshot() },
@@ -3182,14 +3200,14 @@ export class Simulation {
       features: {
         gameplayVersion: header.gameplayVersion, objectiveEvents: header.objectiveEvents,
         squadSynergies: header.squadSynergies, sharedParticipationCredit: header.sharedParticipationCredit, downedActivity: header.downedActivity,
-        joinInProgressNormalization: header.joinInProgressNormalization, squadEnemyDirector: header.squadEnemyDirector, mapMechanics: header.mapMechanics, campaignMutations: header.campaignMutations, registryVersion: header.registryVersion,
+        joinInProgressNormalization: header.joinInProgressNormalization, squadEnemyDirector: header.squadEnemyDirector, mapMechanics: header.mapMechanics, campaignMutations: header.campaignMutations, specialistMastery: header.specialistMastery, registryVersion: header.registryVersion,
       },
     }, {
       seed: header.seed, balanceVersion: header.balanceVersion, balanceHash: header.balanceHash,
       features: {
         gameplayVersion: header.gameplayVersion, objectiveEvents: header.objectiveEvents,
         squadSynergies: header.squadSynergies, sharedParticipationCredit: header.sharedParticipationCredit, downedActivity: header.downedActivity,
-        joinInProgressNormalization: header.joinInProgressNormalization, squadEnemyDirector: header.squadEnemyDirector, mapMechanics: header.mapMechanics, campaignMutations: header.campaignMutations, registryVersion: header.registryVersion,
+        joinInProgressNormalization: header.joinInProgressNormalization, squadEnemyDirector: header.squadEnemyDirector, mapMechanics: header.mapMechanics, campaignMutations: header.campaignMutations, specialistMastery: header.specialistMastery, registryVersion: header.registryVersion,
       },
     });
     sim.gameplayRng = SeededRng.fromSnapshot(value.rng?.gameplay);
@@ -3209,6 +3227,7 @@ export class Simulation {
       const restored = deserializeRecoveryValue(stored, restoredPlayerIds);
       validateDraftState(restored.draft);
       validateJoinPlayerState(restored, value.scalars.tick, Boolean(header.joinInProgressNormalization));
+      validateMasteryPlayerState(restored, Boolean(header.specialistMastery));
       restored.name = `Specialist ${restored.replaySlot + 1}`;
       restored.reconnectKey = `migration-slot-${restored.replaySlot}`;
       return restored;
@@ -3217,6 +3236,7 @@ export class Simulation {
       const restored = deserializeRecoveryValue(stored, restoredPlayerIds);
       validateDraftState(restored.draft);
       validateJoinPlayerState(restored, value.scalars.tick, Boolean(header.joinInProgressNormalization));
+      validateMasteryPlayerState(restored, Boolean(header.specialistMastery));
       restored.name = `Specialist ${restored.replaySlot + 1}`;
       restored.reconnectKey = `migration-slot-${restored.replaySlot}`;
       return { key: restored.reconnectKey, leftTick, player: restored };
@@ -3328,7 +3348,7 @@ export class Simulation {
       features: {
         gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents,
         squadSynergies: this.squadSynergies, sharedParticipationCredit: this.sharedParticipationCredit, downedActivity: this.downedActivity,
-        joinInProgressNormalization: this.joinInProgressNormalization, squadEnemyDirector: this.squadEnemyDirector, mapMechanics: this.mapMechanics, campaignMutations: this.campaignMutations, registryVersion: this.synergyRegistryVersion,
+        joinInProgressNormalization: this.joinInProgressNormalization, squadEnemyDirector: this.squadEnemyDirector, mapMechanics: this.mapMechanics, campaignMutations: this.campaignMutations, specialistMastery: this.specialistMastery, registryVersion: this.synergyRegistryVersion,
       },
       tick: this.tick, determinism: this.deterministicState(),
       map: this.map.id, difficulty: this.difficulty.id, duration: this.duration, time: Math.round(this.time * 10) / 10,

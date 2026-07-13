@@ -43,6 +43,7 @@ const DIRECTOR_TOTAL_FIELDS = Object.freeze([
 const DIRECTOR_COUNT_CAP = 1_000_000_000;
 const MUTATION_PACKAGE_IDS = new Set(["base-line", "contested-operations", "breach-cascade"]);
 const MUTATION_TOTAL_FIELDS = Object.freeze(["encounters", "clears", "failures", "objectiveCompletions", "surgeWaves"]);
+const MASTERY_LEVEL_BANDS = new Set(["1-2", "3-4", "5"]);
 
 export const DEFAULT_TELEMETRY_ENDPOINT = "https://lastlight-relay.bensonperry.workers.dev/telemetry";
 
@@ -149,7 +150,18 @@ function buildMutationTelemetry(value) {
   return { mutationPackageId: value.packageId, mutationTotals };
 }
 
-export function buildRunTelemetry(snapshot, build) {
+function buildMasteryTelemetry(value) {
+  exactKeys(value, ["specialist", "levelBand", "challengeCompletions", "milestoneUnlocks", "selectedStart"], "Mastery telemetry");
+  if (!SPECIALISTS.has(value.specialist) || !MASTERY_LEVEL_BANDS.has(value.levelBand) || !["baseline", "field-kit"].includes(value.selectedStart)) throw new TypeError("Invalid mastery telemetry identity");
+  if (!Number.isInteger(value.challengeCompletions) || value.challengeCompletions < 0 || value.challengeCompletions > 1 || !Number.isInteger(value.milestoneUnlocks) || value.milestoneUnlocks < 0 || value.milestoneUnlocks > 4) throw new TypeError("Invalid mastery telemetry totals");
+  return {
+    masterySpecialist: value.specialist, masteryLevelBand: value.levelBand,
+    masteryChallengeCompletions: value.challengeCompletions, masteryMilestoneUnlocks: value.milestoneUnlocks,
+    masterySelectedStart: value.selectedStart,
+  };
+}
+
+export function buildRunTelemetry(snapshot, build, masteryTelemetry = null) {
   if (!snapshot || typeof snapshot !== "object") throw new TypeError("A result snapshot is required");
   if (snapshot.stage !== "won" && snapshot.stage !== "lost") throw new TypeError("Telemetry is only recorded for completed runs");
 
@@ -212,11 +224,15 @@ export function buildRunTelemetry(snapshot, build) {
     if (payload.schemaVersion < 4) Object.assign(payload, { directorTotals: buildDirectorTelemetry({ decisions: 0, peakSquadSize: 0, lane: 0, pincer: 0, split: 0, surround: 0, objective: 0, column: 0, flankPair: 0, wedge: 0, arc: 0, objectivePressure: 0, eliteEscorts: 0 }) });
     Object.assign(payload, { schemaVersion: 5, ...buildMutationTelemetry(mutationTelemetry) });
   }
+  if (masteryTelemetry !== null) {
+    if (payload.schemaVersion < 5) throw new TypeError("Mastery telemetry requires the current aggregate run schema");
+    Object.assign(payload, { schemaVersion: 6, ...buildMasteryTelemetry(masteryTelemetry) });
+  }
   return payload;
 }
 
 export async function submitRunTelemetry(snapshot, build, options = {}) {
-  const payload = buildRunTelemetry(snapshot, build);
+  const payload = buildRunTelemetry(snapshot, build, options.masteryTelemetry ?? null);
   const request = options.fetch || globalThis.fetch;
   if (typeof request !== "function") throw new TypeError("fetch is unavailable");
   const response = await request(options.endpoint || DEFAULT_TELEMETRY_ENDPOINT, {

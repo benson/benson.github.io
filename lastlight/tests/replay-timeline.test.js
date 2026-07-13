@@ -14,10 +14,10 @@ function genericReplay() {
       balance: { version: BALANCE_VERSION, hash: BALANCE_HASH },
       features: {
         configVersion: "test-v1", gameplayVersion: "join-normalization-v1", objectiveEvents: true,
-        squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, registryVersion: "lastlight.squad-synergy.v1",
+        squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, specialistMastery: true, registryVersion: "lastlight.squad-synergy.v1",
       },
       engine: { stepHz: 60, rng: "xoshiro128ss-v1" }, seed: "0123456789abcdef0123456789abcdef",
-      run: { map: "warehouse", difficulty: "story", duration: 240 }, roster: [{ slot: 0, specialist: "zuri" }],
+      run: { map: "warehouse", difficulty: "story", duration: 240 }, roster: [{ slot: 0, specialist: "zuri", masteryStart: "baseline" }],
       commands: [[0, 0, "i", 0, 127, 0, 0, 1]], checkpoints: [[0, hashCanonicalState(states[0])]],
       finalTick: 3, finalHash: hashCanonicalState(states[3]),
     },

@@ -59,7 +59,7 @@ test("real revive and objective completion settle work while feature-off preserv
 
   const off = new Simulation({ map: "warehouse", duration: 240, players: [
     { id: "a", name: "A", specialist: "zuri", replaySlot: 0 }, { id: "b", name: "B", specialist: "echo", replaySlot: 1 },
-  ], features: { gameplayVersion: "participation-v1", objectiveEvents: true, squadSynergies: false, sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, registryVersion: "lastlight.squad-synergy.v1" } }, { seed: SEED });
+  ], features: { gameplayVersion: "participation-v1", objectiveEvents: true, squadSynergies: false, sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, specialistMastery: false, registryVersion: "lastlight.squad-synergy.v1" } }, { seed: SEED });
   off.players[0].x = off.players[1].x = 0; off.players[0].y = off.players[1].y = 0; off.downPlayer(off.players[1]);
   for (let index = 0; index < 181 && off.players[1].downed; index++) off.updatePlayers(1 / 60);
   assert.equal(off.players[0].revives, 1); assert.equal(off.participationState.enabled, false);
