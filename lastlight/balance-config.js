@@ -4,7 +4,7 @@ import { APEX_CONTRACTS, validateApexContracts } from "./apex-encounters.js?v=20
 
 // Balance is a versioned simulation input. Replays and fixtures should record
 // this exact version so a future tuning pass never silently changes old runs.
-export const BALANCE_VERSION = "2026.07.13-apex.1";
+export const BALANCE_VERSION = "2026.07.13-synergies.1";
 
 export const BALANCE_IDS = Object.freeze({
   specialists: Object.freeze(["zuri", "echo", "sola", "bront", "fang", "gale", "rift", "nova", "vesper"]),
@@ -13,12 +13,50 @@ export const BALANCE_IDS = Object.freeze({
   enemies: Object.freeze(["mite", "hound", "spitter", "brute", "bomber", "shark"]),
   shieldAbilities: Object.freeze(["echoE", "solaE", "galeE", "riftE"]),
   universalWeapons: Object.freeze(["uwu", "slicers", "aura", "mines", "crossbow", "boomerang", "rail", "glove", "transit", "ice", "annihilator", "drone"]),
+  synergies: Object.freeze(["breach-window", "ultimate-resonance", "moving-screen"]),
 });
 
 const config = {
   version: BALANCE_VERSION,
   evolutions: WEAPON_EVOLUTION_CONTRACT,
   apex: APEX_CONTRACTS,
+  synergies: {
+    version: "lastlight.squad-synergy.v1",
+    breachWindow: {
+      controlMinimumTicks: 30,
+      followupWindowTicks: 150,
+      targetCooldownTicks: 480,
+      bonusDamageRatio: 0.2,
+      bonusDamageCapBase: 4,
+      bonusDamageCapPerLevel: 0.75,
+      maxTrackedTargets: 16,
+      maxProcsPerTick: 2,
+    },
+    ultimateResonance: {
+      castWindowTicks: 180,
+      teamCooldownTicks: 1200,
+      contributorRange: 700,
+      effectRadius: 650,
+      shieldMaxHealth: 0.15,
+      shieldCapMaxHealth: 0.35,
+      maxWindowCasts: 4,
+    },
+    movingScreen: {
+      evaluationIntervalTicks: 6,
+      enterDistanceMin: 100,
+      enterDistanceMax: 280,
+      stayDistanceMin: 70,
+      stayDistanceMax: 340,
+      enterMoveRatio: 0.35,
+      stayMoveRatio: 0.2,
+      enterHeadingDegrees: 35,
+      stayHeadingDegrees: 55,
+      enterTicks: 48,
+      leaveTicks: 24,
+      directDamageMultiplier: 0.85,
+      maxLinks: 6,
+    },
+  },
   core: {
     baseVitality: 10,
     defaultDurationSeconds: 240,
@@ -249,7 +287,7 @@ export function validateBalanceConfig(candidate = BALANCE_CONFIG) {
   };
   if (!candidate || typeof candidate !== "object") return ["config: must be an object"];
   if (typeof candidate.version !== "string" || !candidate.version.trim()) errors.push("version: required");
-  for (const section of ["core", "evolutions", "apex", "specialists", "identityTuning", "movement", "passives", "shields", "difficulties", "enemies", "enemyIdentity", "waves", "weapons"]) {
+  for (const section of ["core", "evolutions", "apex", "synergies", "specialists", "identityTuning", "movement", "passives", "shields", "difficulties", "enemies", "enemyIdentity", "waves", "weapons"]) {
     if (!candidate[section] || typeof candidate[section] !== "object") errors.push(`${section}: required`);
   }
   const requireExactIds = (path, value, ids) => {
@@ -270,6 +308,26 @@ export function validateBalanceConfig(candidate = BALANCE_CONFIG) {
     requireFinite(`core.${key}`, candidate.core?.[key], { min: 0, exclusiveMin: true });
   }
   errors.push(...validateApexContracts(candidate.apex).map((error) => `apex.${error}`));
+  const synergy = candidate.synergies || {};
+  const exactSynergyKeys = (path, value, expected) => {
+    const actual = Object.keys(value || {}).sort(), wanted = [...expected].sort();
+    if (JSON.stringify(actual) !== JSON.stringify(wanted)) errors.push(`${path}: expected ${wanted.join(", ")}; got ${actual.join(", ")}`);
+  };
+  exactSynergyKeys("synergies", synergy, ["version", "breachWindow", "ultimateResonance", "movingScreen"]);
+  if (synergy.version !== "lastlight.squad-synergy.v1") errors.push("synergies.version: unsupported version");
+  exactSynergyKeys("synergies.breachWindow", synergy.breachWindow, ["controlMinimumTicks", "followupWindowTicks", "targetCooldownTicks", "bonusDamageRatio", "bonusDamageCapBase", "bonusDamageCapPerLevel", "maxTrackedTargets", "maxProcsPerTick"]);
+  exactSynergyKeys("synergies.ultimateResonance", synergy.ultimateResonance, ["castWindowTicks", "teamCooldownTicks", "contributorRange", "effectRadius", "shieldMaxHealth", "shieldCapMaxHealth", "maxWindowCasts"]);
+  exactSynergyKeys("synergies.movingScreen", synergy.movingScreen, ["evaluationIntervalTicks", "enterDistanceMin", "enterDistanceMax", "stayDistanceMin", "stayDistanceMax", "enterMoveRatio", "stayMoveRatio", "enterHeadingDegrees", "stayHeadingDegrees", "enterTicks", "leaveTicks", "directDamageMultiplier", "maxLinks"]);
+  for (const [key, value] of Object.entries(synergy.breachWindow || {})) if (key !== "bonusDamageRatio") requireFinite(`synergies.breachWindow.${key}`, value, { min: 0, exclusiveMin: true });
+  requireFinite("synergies.breachWindow.bonusDamageRatio", synergy.breachWindow?.bonusDamageRatio, { min: 0, exclusiveMin: true });
+  for (const [key, value] of Object.entries(synergy.ultimateResonance || {})) requireFinite(`synergies.ultimateResonance.${key}`, value, { min: 0, exclusiveMin: true });
+  for (const [key, value] of Object.entries(synergy.movingScreen || {})) requireFinite(`synergies.movingScreen.${key}`, value, { min: 0, exclusiveMin: true });
+  if (synergy.breachWindow?.controlMinimumTicks > synergy.breachWindow?.followupWindowTicks) errors.push("synergies.breachWindow.controlMinimumTicks: must not exceed followup window");
+  if (synergy.ultimateResonance?.effectRadius > synergy.ultimateResonance?.contributorRange) errors.push("synergies.ultimateResonance.effectRadius: must not exceed contributor range");
+  if (synergy.ultimateResonance?.shieldMaxHealth > synergy.ultimateResonance?.shieldCapMaxHealth) errors.push("synergies.ultimateResonance.shieldMaxHealth: must not exceed shield cap");
+  if (synergy.movingScreen?.stayDistanceMin > synergy.movingScreen?.enterDistanceMin || synergy.movingScreen?.stayDistanceMax < synergy.movingScreen?.enterDistanceMax) errors.push("synergies.movingScreen: stay distance must contain enter distance");
+  if (synergy.movingScreen?.stayMoveRatio > synergy.movingScreen?.enterMoveRatio || synergy.movingScreen?.stayHeadingDegrees < synergy.movingScreen?.enterHeadingDegrees) errors.push("synergies.movingScreen: stay thresholds must provide hysteresis");
+  if (synergy.movingScreen?.directDamageMultiplier >= 1) errors.push("synergies.movingScreen.directDamageMultiplier: must be < 1");
   for (const key of ["rerolls", "banishes", "skips", "choiceGold", "skipGold", "maxBanished"]) {
     requireFinite(`core.draft.${key}`, candidate.core?.draft?.[key], { min: 0 });
   }

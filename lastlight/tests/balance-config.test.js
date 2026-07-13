@@ -11,8 +11,8 @@ import { Simulation } from "../engine.js";
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
 test("the canonical movement contract has an explicit stable replay identity", () => {
-  assert.equal(BALANCE_VERSION, "2026.07.13-apex.1");
-  assert.equal(BALANCE_HASH, "fnv1a32:873c43bc");
+  assert.equal(BALANCE_VERSION, "2026.07.13-synergies.1");
+  assert.equal(BALANCE_HASH, "fnv1a32:4cfa0ff0");
   assert.equal(balanceFingerprint(BALANCE_CONFIG), BALANCE_HASH);
   assert.deepEqual(getBalanceManifest(), { balanceVersion: BALANCE_VERSION, balanceHash: BALANCE_HASH });
   assert.match(canonicalBalanceData(), /^\{"apex":/);
@@ -30,6 +30,7 @@ test("canonical fingerprints ignore object insertion order but detect tuning cha
 test("the balance object is recursively immutable", () => {
   assert.equal(Object.isFrozen(BALANCE_CONFIG), true);
   assert.equal(Object.isFrozen(BALANCE_CONFIG.enemyIdentity.spawnPhases), true);
+  assert.equal(Object.isFrozen(BALANCE_CONFIG.synergies.movingScreen), true);
   assert.equal(Object.isFrozen(BALANCE_CONFIG.weapons.universal.drone), true);
   assert.throws(() => { BALANCE_CONFIG.enemies.mite.health = 1; }, TypeError);
 });
@@ -43,6 +44,7 @@ test("validation exhaustively covers every authored balance id", () => {
   assert.deepEqual(Object.keys(BALANCE_CONFIG.enemies), [...BALANCE_IDS.enemies]);
   assert.deepEqual(Object.keys(BALANCE_CONFIG.weapons.signatures), [...BALANCE_IDS.specialists]);
   assert.deepEqual(Object.keys(BALANCE_CONFIG.weapons.universal), [...BALANCE_IDS.universalWeapons]);
+  assert.deepEqual(BALANCE_IDS.synergies, ["breach-window", "ultimate-resonance", "moving-screen"]);
 
   const invalid = clone(BALANCE_CONFIG);
   delete invalid.enemies.mite;
@@ -51,6 +53,7 @@ test("validation exhaustively covers every authored balance id", () => {
   invalid.shields.echoE.capMaxHealth = 0;
   invalid.enemyIdentity.spawnPhases[0].weights = { unknown: 100 };
   invalid.weapons.universal.uwu.damageBase = Number.NaN;
+  invalid.synergies.movingScreen.directDamageMultiplier = 1;
   const errors = validateBalanceConfig(invalid);
   assert.ok(errors.some((error) => error.startsWith("enemies: expected")));
   assert.ok(errors.includes("specialists.zuri.health: must be > 0"));
@@ -58,6 +61,7 @@ test("validation exhaustively covers every authored balance id", () => {
   assert.ok(errors.includes("shields.echoE.capMaxHealth: must be > 0"));
   assert.ok(errors.includes("enemyIdentity.spawnPhases.0.weights.unknown: unknown archetype"));
   assert.ok(errors.includes("weapons.universal.uwu.damageBase: must be finite"));
+  assert.ok(errors.includes("synergies.movingScreen.directDamageMultiplier: must be < 1"));
 });
 
 test("catalog data is a lossless view of the baseline contract", () => {

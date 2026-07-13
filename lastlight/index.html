@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260713.5">
+  <link rel="stylesheet" href="styles.css?v=20260713.6">
 </head>
 <body>
   <main id="app">
@@ -255,6 +255,8 @@
       <div class="weapon-hud" id="weapon-hud"></div>
       <div class="passive-hud" id="passive-hud" aria-label="Equipped passive upgrades"></div>
       <div class="active-buffs-hud" id="active-buffs-hud" aria-label="Active powerups"></div>
+      <aside class="synergy-hud" id="synergy-hud" aria-label="Active squad synergies" hidden></aside>
+      <div id="synergy-live-region" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
       <aside class="damage-ledger no-data" id="damage-ledger" aria-label="Leading damage sources">
         <header id="damage-ledger-handle" class="damage-ledger-handle" tabindex="0" aria-label="Move Damage Sources panel with arrow keys. Hold Control and use arrow keys to resize.">
           <strong>Damage sources</strong>
@@ -376,6 +378,7 @@
             <tbody id="result-scoreboard-body"></tbody>
           </table>
         </div>
+        <section id="result-synergies" class="result-synergies hidden" aria-labelledby="result-synergies-title"><h3 id="result-synergies-title">Teamwork</h3><div id="result-synergy-cards"></div></section>
         <div id="result-damage-breakdown" class="result-damage-breakdown"></div>
         <div class="result-actions">
           <button id="again-button" class="deploy-button" type="button"><span>Run it again</span><span>↻</span></button>
@@ -463,7 +466,7 @@
         <button id="guide-close" class="icon-button" type="button" aria-label="Close upgrade archive">Close</button>
       </div>
       <nav class="guide-tabs" aria-label="Upgrade archive sections">
-        <a href="#guide-campaign">Campaign</a><a href="#guide-apex">Apexes</a><a href="#guide-specialists">Specialists</a><a href="#guide-field">Field objects</a><a href="#guide-signatures">Signatures</a><a href="#guide-weapons">Weapons</a><a href="#guide-materials">Materials</a><a href="#guide-passives">Passives</a><a href="#guide-rare">Rare finds</a>
+        <a href="#guide-campaign">Campaign</a><a href="#guide-apex">Apexes</a><a href="#guide-specialists">Specialists</a><a href="#guide-field">Field objects</a><a href="#guide-signatures">Signatures</a><a href="#guide-weapons">Weapons</a><a href="#guide-materials">Materials</a><a href="#guide-passives">Passives</a><a href="#guide-synergies">Squad synergies</a><a href="#guide-rare">Rare finds</a>
       </nav>
       <div id="guide-content" class="guide-content"></div>
     </dialog>
@@ -549,7 +552,18 @@
       <div class="build-history-body">
         <article class="build-release current-build">
           <header>
-            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.13.5</h3></div>
+            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.13.6</h3></div>
+            <span class="build-time-unavailable">Deployment verification pending</span>
+          </header>
+          <ul>
+            <li>Added three deterministic squad synergies: Breach Window, Ultimate Resonance, and Moving Screen.</li>
+            <li>Added live formation links, focus-stable HUD status, Field Manual entries, result breakdowns, and accessible announcements.</li>
+            <li>Added replay, interrupted-run recovery, host-migration, and aggregate privacy-safe telemetry support behind an independent rollback flag.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.13.5</h3></div>
             <time class="build-shipped-at" datetime="2026-07-13T06:56:00-04:00" data-build-shipped-at="2026-07-13T06:56:00-04:00">Shipped Jul 13, 2026 · 6:56 AM EDT</time>
           </header>
           <ul>
@@ -958,8 +972,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.13.5. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.13.5</strong></button>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.13.6. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.13.6</strong></button>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260713.5"></script>
+  <script type="module" src="game.js?v=20260713.6"></script>
 </body>
 </html>

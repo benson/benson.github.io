@@ -1,5 +1,5 @@
 import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260713.2";
-import { WORLD } from "./engine.js?v=20260713.2";
+import { WORLD } from "./engine.js?v=20260713.6";
 import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260713.2";
 import { springCamera } from "./feel.js?v=20260713.2";
 import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistFacingTarget, specialistMotionState, stableDirectionColumn } from "./motion.js?v=20260713.1";
@@ -639,6 +639,7 @@ export class Renderer {
     this.drawMaterialImpacts();
     this.drawEnvironmentalContacts();
     this.drawEffects(effectPasses.ground, map, previous, interpolation, "ground", state);
+    this.drawSquadSynergies(state, previous, interpolation);
     this.drawFeathers(state.feathers || []);
     this.drawProjectiles(friendlyProjectiles, false, state);
     this.drawGroundParticles(visualDt);
@@ -1193,6 +1194,30 @@ export class Renderer {
       if (shieldRatio > 0) ctx.fillRect(dividerX, y - 3, dividerWidth, 2);
     }
     ctx.strokeStyle = "rgba(235,255,250,.22)"; ctx.lineWidth = 1; ctx.strokeRect(x + .5, y + .5, width - 1, height - 1);
+    ctx.restore();
+  }
+
+  drawSquadSynergies(state, previous, interpolation) {
+    const links = (state.synergyState?.formationLinks || []).filter(({ active }) => active).slice(0, 6);
+    if (!links.length) return;
+    const ctx = this.ctx, bySlot = new Map((state.players || []).map((player) => [player.replaySlot, this.position(player, previous?.players, interpolation)]));
+    const bracketed = new Set();
+    ctx.save(); ctx.lineCap = "round"; ctx.lineJoin = "round";
+    for (const link of links) {
+      const a = bySlot.get(link.a), b = bySlot.get(link.b);
+      if (!a || !b) continue;
+      const draw = () => { ctx.beginPath(); ctx.moveTo(a.x, a.y + 18); ctx.lineTo(b.x, b.y + 18); ctx.stroke(); };
+      ctx.setLineDash([9, 7]); ctx.lineDashOffset = this.reducedMotion ? 0 : -(Number(state.tick || 0) % 16);
+      ctx.strokeStyle = "rgba(2,7,13,.82)"; ctx.lineWidth = 7; draw();
+      ctx.strokeStyle = "rgba(142,183,255,.76)"; ctx.lineWidth = 2; draw();
+      bracketed.add(link.a); bracketed.add(link.b);
+    }
+    ctx.setLineDash([]);
+    for (const slot of bracketed) {
+      const player = bySlot.get(slot); if (!player) continue;
+      ctx.strokeStyle = "rgba(2,7,13,.88)"; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(player.x, player.y + 18, 39, .18, Math.PI - .18); ctx.stroke();
+      ctx.strokeStyle = "#8eb7ff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(player.x, player.y + 18, 39, .18, Math.PI - .18); ctx.stroke();
+    }
     ctx.restore();
   }
 

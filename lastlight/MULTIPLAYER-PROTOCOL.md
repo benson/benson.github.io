@@ -52,14 +52,17 @@ schema and the deterministic compatibility tuple:
 ```json
 {
   "schema":"lastlight.host-migration.v1",
-  "protocolVersion":1,
+  "protocolVersion":2,
   "compatibility":{
     "build":"build-id",
     "balanceVersion":"balance-v1",
     "balanceHash":"fnv1a32:01234567",
     "configVersion":"config-v1",
     "gameplayVersion":"events-v1",
-    "objectiveEvents":true
+    "objectiveEvents":true,
+    "squadSynergies":true,
+    "registryVersion":"lastlight.squad-synergy.v1",
+    "recoveryVersion":4
   }
 }
 ```
@@ -160,6 +163,28 @@ explicit flow.
 
 Static client and Worker rollout may therefore occur in either order without
 granting legacy clients unsafe post-migration authority.
+
+## Squad synergy deterministic state
+
+Squad synergies are authoritative simulation state, not a client-side combat
+effect. The `squadSynergies` flag and exact `registryVersion` are part of the
+gameplay feature contract. A run with a disabled flag or different registry
+cannot be replayed, restored, or offered to a migration successor as though it
+were compatible.
+
+Replay schema v5 records both values in its feature header. Recovery simulation
+version 4 serializes the bounded synergy state: Breach Window control windows
+and target cooldowns, Ultimate Resonance cast history and cooldown, Moving
+Screen pair hysteresis, and aggregate per-slot counters. Host-migration protocol
+version 2 includes the flag, registry version, and recovery version in its
+strict compatibility tuple. Every restored state is validated before play
+resumes, and its canonical hash includes the synergy state.
+
+Presentation remains derived from the authoritative snapshot. Formation links,
+HUD chips, announcements, guide copy, and result cards do not feed back into
+simulation or command ordering. Run analytics receives only allowlisted team
+aggregates; the schema and privacy bounds are documented in
+[`worker/TELEMETRY.md`](worker/TELEMETRY.md).
 
 ## Replay, privacy, and diagnostics
 

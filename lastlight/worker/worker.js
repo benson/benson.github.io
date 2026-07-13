@@ -19,15 +19,28 @@ const PENDING_PING_LIFETIME_MS = 8_000;
 const MAX_PENDING_DRAFT_RECOMMENDATIONS = 48;
 const PENDING_DRAFT_RECOMMENDATION_LIFETIME_MS = 8_000;
 
-const TELEMETRY_FIELDS = new Set([
+const TELEMETRY_V1_FIELDS = new Set([
   "schemaVersion", "build", "map", "difficulty", "outcome", "specialists", "playerCount",
   "plannedDurationSeconds", "elapsedSeconds", "waveReached", "levelReached", "totalKills",
   "goldEarned", "xpCollected", "damageDealt", "damageTaken", "revives", "distanceTraveled",
 ]);
+const TELEMETRY_V2_FIELDS = new Set([...TELEMETRY_V1_FIELDS, "synergyIds", "synergyTotals"]);
 const TELEMETRY_MAPS = new Set(["warehouse", "outskirts", "lab", "beachhead"]);
 const TELEMETRY_DIFFICULTIES = new Set(["story", "hard", "extreme"]);
 const TELEMETRY_OUTCOMES = new Set(["won", "lost"]);
 const TELEMETRY_SPECIALISTS = new Set(["zuri", "echo", "sola", "bront", "fang", "gale", "rift", "nova", "vesper"]);
+const TELEMETRY_SYNERGIES = new Set(["breach-window", "ultimate-resonance", "moving-screen"]);
+const TELEMETRY_SYNERGY_TOTAL_FIELDS = Object.freeze([
+  "triggers", "damage", "shielding", "mitigated", "formationSeconds", "ultimateChains",
+]);
+const TELEMETRY_SYNERGY_TOTAL_CAPS = Object.freeze({
+  triggers: 1_000_000,
+  damage: 1_000_000_000,
+  shielding: 1_000_000_000,
+  mitigated: 1_000_000_000,
+  formationSeconds: 16_000,
+  ultimateChains: 10_000,
+});
 
 export function normalizeCode(value) {
   return String(value || "").toUpperCase().replace(/[^A-Z2-9]/g, "").slice(0, 6);
@@ -50,12 +63,22 @@ function telemetryNumber(value, field, min, max, integer = false) {
   return Object.is(normalized, -0) ? 0 : normalized;
 }
 
+function telemetryExactKeys(value, expected, field) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new TypeError(`Invalid ${field}`);
+  const actual = Object.keys(value).sort();
+  const wanted = [...expected].sort();
+  if (actual.length !== wanted.length || actual.some((key, index) => key !== wanted[index])) {
+    throw new TypeError(`Invalid ${field}`);
+  }
+}
+
 export function sanitizeRunTelemetry(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new TypeError("Telemetry must be an object");
+  if (value.schemaVersion !== 1 && value.schemaVersion !== 2) throw new TypeError("Unsupported telemetry schema");
+  const allowedFields = value.schemaVersion === 2 ? TELEMETRY_V2_FIELDS : TELEMETRY_V1_FIELDS;
   for (const key of Object.keys(value)) {
-    if (!TELEMETRY_FIELDS.has(key)) throw new TypeError(`Unexpected telemetry field: ${key}`);
+    if (!allowedFields.has(key)) throw new TypeError(`Unexpected telemetry field: ${key}`);
   }
-  if (value.schemaVersion !== 1) throw new TypeError("Unsupported telemetry schema");
   const build = String(value.build || "");
   if (!/^[A-Za-z0-9._-]{1,32}$/.test(build)) throw new TypeError("Invalid build");
   if (!TELEMETRY_MAPS.has(value.map)) throw new TypeError("Invalid map");
@@ -71,8 +94,8 @@ export function sanitizeRunTelemetry(value) {
   const playerCount = telemetryNumber(value.playerCount, "playerCount", 1, MAX_PLAYERS, true);
   if (playerCount !== specialists.length) throw new TypeError("Specialist count does not match player count");
 
-  return {
-    schemaVersion: 1,
+  const run = {
+    schemaVersion: value.schemaVersion,
     build,
     map: value.map,
     difficulty: value.difficulty,
@@ -91,19 +114,50 @@ export function sanitizeRunTelemetry(value) {
     revives: telemetryNumber(value.revives, "revives", 0, 10_000, true),
     distanceTraveled: telemetryNumber(value.distanceTraveled, "distanceTraveled", 0, 1_000_000_000),
   };
+  if (value.schemaVersion === 2) {
+    if (!Array.isArray(value.synergyIds) || value.synergyIds.length > TELEMETRY_SYNERGIES.size) {
+      throw new TypeError("Invalid synergyIds");
+    }
+    const synergyIds = value.synergyIds.map((id) => String(id));
+    if (new Set(synergyIds).size !== synergyIds.length || synergyIds.some((id) => !TELEMETRY_SYNERGIES.has(id))) {
+      throw new TypeError("Invalid synergyIds");
+    }
+    synergyIds.sort();
+    telemetryExactKeys(value.synergyTotals, TELEMETRY_SYNERGY_TOTAL_FIELDS, "synergyTotals");
+    const synergyTotals = Object.fromEntries(TELEMETRY_SYNERGY_TOTAL_FIELDS.map((field) => {
+      const integer = field === "triggers" || field === "ultimateChains";
+      if (integer && !Number.isInteger(value.synergyTotals[field])) throw new TypeError(`Invalid synergyTotals.${field}`);
+      return [
+        field,
+        telemetryNumber(value.synergyTotals[field], `synergyTotals.${field}`, 0, TELEMETRY_SYNERGY_TOTAL_CAPS[field], integer),
+      ];
+    }));
+    if (!synergyIds.length && TELEMETRY_SYNERGY_TOTAL_FIELDS.some((field) => synergyTotals[field] !== 0)) {
+      throw new TypeError("Synergy totals require at least one synergy id");
+    }
+    Object.assign(run, { synergyIds, synergyTotals });
+  }
+  return run;
 }
 
 function telemetryDataPoint(run) {
+  const schema = `run.v${run.schemaVersion}`;
+  const blobs = [schema, run.build, run.map, run.difficulty, run.outcome, run.playerCount === 1 ? "solo" : "squad", run.specialists.join(",")];
+  const doubles = [
+    run.playerCount, run.plannedDurationSeconds, run.elapsedSeconds, run.waveReached, run.levelReached,
+    run.totalKills, run.goldEarned, run.xpCollected, run.damageDealt, run.damageTaken,
+    run.revives, run.distanceTraveled,
+  ];
+  if (run.schemaVersion === 2) {
+    blobs.push(run.synergyIds.join(","));
+    doubles.push(...TELEMETRY_SYNERGY_TOTAL_FIELDS.map((field) => run.synergyTotals[field]));
+  }
   return {
     // Ordered fields are intentionally documented here because Analytics Engine exposes them as blobN/doubleN.
-    blobs: ["run.v1", run.build, run.map, run.difficulty, run.outcome, run.playerCount === 1 ? "solo" : "squad", run.specialists.join(",")],
-    doubles: [
-      run.playerCount, run.plannedDurationSeconds, run.elapsedSeconds, run.waveReached, run.levelReached,
-      run.totalKills, run.goldEarned, run.xpCollected, run.damageDealt, run.damageTaken,
-      run.revives, run.distanceTraveled,
-    ],
+    blobs,
+    doubles,
     // A shared sampling key prevents this aggregate dataset from becoming a pseudonymous user log.
-    indexes: ["lastlight-run-v1"],
+    indexes: [`lastlight-run-v${run.schemaVersion}`],
   };
 }
 

@@ -3,16 +3,19 @@ import assert from "node:assert/strict";
 import { BALANCE_HASH, BALANCE_VERSION } from "../balance-config.js";
 import { Simulation } from "../engine.js";
 import { createGameReplayAdapters } from "../replay-game-adapters.js";
-import { ReplayRecorder, hashCanonicalState, hashSimulationState } from "../replay.js";
+import { REPLAY_SCHEMA, ReplayRecorder, hashCanonicalState, hashSimulationState } from "../replay.js";
 import { ReplayVerificationError, VerifiedReplayTimeline } from "../replay-timeline.js";
 
 function genericReplay() {
   const states = [{ value: 0 }, { value: 2 }, { value: 4 }, { value: 6 }];
   return {
     replay: {
-      schema: "lastlight.replay.v3", build: "2026.07.11.7",
+      schema: REPLAY_SCHEMA, build: "2026.07.11.7",
       balance: { version: BALANCE_VERSION, hash: BALANCE_HASH },
-      features: { configVersion: "test-v1", gameplayVersion: "events-v1", objectiveEvents: true },
+      features: {
+        configVersion: "test-v1", gameplayVersion: "synergies-v1", objectiveEvents: true,
+        squadSynergies: true, registryVersion: "lastlight.squad-synergy.v1",
+      },
       engine: { stepHz: 60, rng: "xoshiro128ss-v1" }, seed: "0123456789abcdef0123456789abcdef",
       run: { map: "warehouse", difficulty: "story", duration: 240 }, roster: [{ slot: 0, specialist: "zuri" }],
       commands: [[0, 0, "i", 0, 127, 0, 0, 1]], checkpoints: [[0, hashCanonicalState(states[0])]],

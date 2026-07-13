@@ -1,18 +1,18 @@
 import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260713.2";
-import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.3";
-import { Renderer } from "./render.js?v=20260713.4";
+import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.6";
+import { Renderer } from "./render.js?v=20260713.6";
 import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260713.2";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
 import { getThemeAsset, getThemeMaterial } from "./themes/lastlight.js?v=20260713.2";
-import { submitRunTelemetry } from "./telemetry.js?v=20260711.5";
+import { submitRunTelemetry } from "./telemetry.js?v=20260713.6";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
 import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260713.2";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260713.2";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260713.6";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
-import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260713.2";
-import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260713.5";
+import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260713.6";
+import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260713.6";
 import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260711.5";
-import { clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260713.2";
+import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260713.6";
 import { GuestInputSequenceTracker, HostInputSequenceGate, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260713.2";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260713.2";
 import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260713.2";
@@ -26,9 +26,9 @@ import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatur
 import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260713.2";
 import { getWeaponEvolution } from "./weapon-evolution.js?v=20260713.1";
 import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260712.1";
-import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260713.2";
-import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260713.2";
-import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260713.2";
+import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260713.6";
+import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260713.6";
+import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260713.6";
 import { reconcileActiveBuffs } from "./active-buffs.js?v=20260713.1";
 import { ELITE_AFFIXES, ENEMY_ARCHETYPES } from "./enemy-archetypes.js?v=20260713.1";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
@@ -36,7 +36,7 @@ import {
   AuthoritySnapshotGate, HOST_MIGRATION_PROTOCOL_VERSION, MIGRATION_CHECKPOINT_INTERVAL_TICKS,
   createMigrationCapabilities, createMigrationCheckpoint, createMigrationReady,
   migrationCompatibilityMatches, validateMigrationCheckpoint,
-} from "./host-migration.js?v=20260713.2";
+} from "./host-migration.js?v=20260713.6";
 import { RECONNECT_DELAYS_MS, SquadPresenceTracker, authorityStateCopy } from "./reconnect-state.js?v=20260713.3";
 import {
   HostPingGate, PING_INTENTS, PING_LIFETIME_TICKS, PING_WHEEL_ORDER, PingSequenceTracker,
@@ -49,6 +49,8 @@ import {
   sanitizeDraftRecommendationState, sanitizeDraftRecommendationSync,
 } from "./draft-recommendation-contract.js?v=20260713.5";
 import { DraftRecommendationStore, recommendationMarkerModel } from "./draft-recommendations.js?v=20260713.5";
+import { SQUAD_SYNERGY_REGISTRY } from "./squad-synergies.js?v=20260713.6";
+import { reconcileActiveSynergies } from "./active-synergies.js?v=20260713.6";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -57,7 +59,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.13.5";
+const BUILD = "2026.07.13.6";
 const AUTHORITY_WATCHDOG_MS = Object.freeze({ synchronizing: 10_000, migrating: 25_000 });
 const BALANCE = getBalanceConfig();
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
@@ -188,6 +190,9 @@ function migrationCompatibility() {
     configVersion: state.runtimeConfig.config.configVersion,
     gameplayVersion: state.runtimeConfig.config.gameplayVersion,
     objectiveEvents: state.runtimeConfig.config.flags.objectiveEvents,
+    squadSynergies: state.runtimeConfig.config.flags.squadSynergies,
+    registryVersion: state.runtimeConfig.config.registryVersion,
+    recoveryVersion: RECOVERY_SIMULATION_VERSION,
   };
 }
 
@@ -400,6 +405,8 @@ function beginReplayCapture(players, seed) {
     featureConfigVersion: state.runtimeConfig.config.configVersion,
     gameplayVersion: state.runtimeConfig.config.gameplayVersion,
     objectiveEvents: state.runtimeConfig.config.flags.objectiveEvents,
+    squadSynergies: state.runtimeConfig.config.flags.squadSynergies,
+    registryVersion: state.runtimeConfig.config.registryVersion,
     rng: RNG_ALGORITHM, seed, run: replayRunConfig(),
   });
   for (const player of players) state.replayRecorder.registerPlayer(player.id, player.specialist, { slot: player.replaySlot, initial: true });
@@ -778,6 +785,7 @@ function prunePings() {
 function recordHostCast(playerId, slot) {
   if (!state.sim?.cast(playerId, slot)) return false;
   state.replayRecorder?.recordCast(playerId, state.sim.tick, slot);
+  if (slot === "r") publishMigrationCheckpoint(true);
   return true;
 }
 
@@ -975,6 +983,16 @@ function renderGuide() {
     guideCard("ORB", "Relay ball", "Push objective", "Make contact to drive the relay core into its destination ring.", "", getThemeAsset("guide.field.relayBall"), { Time: "62 seconds", Reward: "Gold + data + access card" }),
     guideCard("FIELD", "Operation device", "Map-specific objective", "Stand close to charge the central device. Its effect changes with the operation.", "", getThemeAsset("guide.field.fieldDevice"), { Charge: "2.4 seconds", Effect: "Map-specific" }),
   ].join("");
+  const synergies = SQUAD_SYNERGY_REGISTRY.entries.map((entry) => {
+    const details = entry.id === "breach-window" ? {
+      Trigger: "30+ control ticks, then a different damage role", Window: `${(entry.timing.windowTicks / 60).toFixed(1)}s`, Cooldown: `${entry.timing.cooldownTicks / 60}s per target`, Effect: `20% follow-up damage, capped by level`, Stacking: "Maximum two procs per tick",
+    } : entry.id === "ultimate-resonance" ? {
+      Trigger: "Two distinct nearby ultimate casts", Window: `${entry.timing.windowTicks / 60}s`, Radius: `${entry.effect.radius} units`, Shield: `${Math.round(entry.effect.maxHealth * 100)}% max HP`, Cooldown: `${entry.timing.cooldownTicks / 60}s team cooldown`,
+    } : {
+      Trigger: "Two allies moving together for 0.8s", "Enter range": `${entry.condition.enterDistance[0]}–${entry.condition.enterDistance[1]}`, "Leave range": `${entry.condition.stayDistance[0]}–${entry.condition.stayDistance[1]}`, Effect: `${Math.round((1 - entry.effect.multiplier) * 100)}% less direct impact damage`, Stacking: "Never stacks",
+    };
+    return guideCard(entry.presentation.glyph, entry.name, entry.category.replaceAll("-", " "), `${entry.presentation.copy} Solo runs are unchanged.`, "", "", details);
+  }).join("");
   const rare = [
     guideCard("KEY", "Elite access card", "Rare evolution drop", "Elites and minibosses drop access cards. A card evolves one eligible level-five weapon whose matching passive is owned.", "", getThemeAsset("archive.events.eliteAccessCard")),
     guideCard("$", "Treasure runner", "Timed chase event", "Catch the fleeing gold target before it escapes to earn bonus gold, data, and access cards.", "", getThemeAsset("archive.events.treasureRunner")),
@@ -985,7 +1003,7 @@ function renderGuide() {
     ...BOONS.map((boon) => guideCard("★", boon.name, "Rare squad boon", boon.copy, "", boon.icon)),
     ...AUGMENTS.map((augment) => guideCard("AUG", augment.name, "Rare augment", augment.copy, "", augment.icon)),
   ].join("");
-  $("guide-content").innerHTML = `<section id="guide-campaign" class="guide-section"><h3>Campaign route</h3><p>Clear threat tiers to unlock harder operations. Progress is saved in this browser.</p><div class="campaign-route">${campaign}</div></section><section id="guide-apex" class="guide-section"><h3>Map apexes</h3><p>Every apex has two deterministic phases, a real health gate, named attacks, and a map-specific arena change.</p><div class="guide-grid">${apexes}</div></section><section id="guide-specialists" class="guide-section"><h3>Specialist identities</h3><p>Measured roles, strengths, and failure points from the versioned simulation contract.</p><div class="guide-grid">${identities}</div></section><section id="guide-field" class="guide-section"><h3>Field objects</h3><p>Hold Shift and point at a live field object for its current stats.</p><div class="guide-grid">${fieldObjects}</div></section><section id="guide-signatures" class="guide-section"><h3>Signature evolutions</h3><div class="guide-grid">${signatures}</div></section><section id="guide-weapons" class="guide-section"><h3>Universal weapons</h3><div class="guide-grid">${weapons}</div></section><section id="guide-materials" class="guide-section"><h3>Impact materials</h3><p>Every weapon keeps its silhouette while contact particles, decals, flash, and sound adapt to the target. Shape and pattern remain available when color or motion is reduced.</p><div class="guide-grid">${materials}</div></section><section id="guide-passives" class="guide-section"><h3>Passive upgrades</h3><div class="guide-grid">${passives}</div></section><section id="guide-rare" class="guide-section"><h3>Rare finds & events</h3><div class="guide-grid">${rare}</div></section>`;
+  $("guide-content").innerHTML = `<section id="guide-campaign" class="guide-section"><h3>Campaign route</h3><p>Clear threat tiers to unlock harder operations. Progress is saved in this browser.</p><div class="campaign-route">${campaign}</div></section><section id="guide-apex" class="guide-section"><h3>Map apexes</h3><p>Every apex has two deterministic phases, a real health gate, named attacks, and a map-specific arena change.</p><div class="guide-grid">${apexes}</div></section><section id="guide-specialists" class="guide-section"><h3>Specialist identities</h3><p>Measured roles, strengths, and failure points from the versioned simulation contract.</p><div class="guide-grid">${identities}</div></section><section id="guide-field" class="guide-section"><h3>Field objects</h3><p>Hold Shift and point at a live field object for its current stats.</p><div class="guide-grid">${fieldObjects}</div></section><section id="guide-signatures" class="guide-section"><h3>Signature evolutions</h3><div class="guide-grid">${signatures}</div></section><section id="guide-weapons" class="guide-section"><h3>Universal weapons</h3><div class="guide-grid">${weapons}</div></section><section id="guide-materials" class="guide-section"><h3>Impact materials</h3><p>Every weapon keeps its silhouette while contact particles, decals, flash, and sound adapt to the target. Shape and pattern remain available when color or motion is reduced.</p><div class="guide-grid">${materials}</div></section><section id="guide-passives" class="guide-section"><h3>Passive upgrades</h3><div class="guide-grid">${passives}</div></section><section id="guide-synergies" class="guide-section"><h3>Squad synergies</h3><p>Coordinate roles, ultimate timing, and movement. Effects are authoritative, bounded, non-stacking, and disabled in solo runs.</p><div class="guide-grid">${synergies}</div></section><section id="guide-rare" class="guide-section"><h3>Rare finds & events</h3><div class="guide-grid">${rare}</div></section>`;
 }
 
 function renderSpecialistGrid() {
@@ -1495,6 +1513,31 @@ function updateActiveBuffs(player) {
   reconcileActiveBuffs($("active-buffs-hud"), active);
 }
 
+function updateSynergyHUD(game) {
+  const root = $("synergy-hud"), synergy = game.synergyState;
+  if (!root || !synergy?.enabled || game.players.length < 2) { if (root) reconcileActiveSynergies(root, []); return; }
+  const definition = (id) => SQUAD_SYNERGY_REGISTRY.entries.find((entry) => entry.id === id);
+  const contributors = (slots) => [...new Set(slots)].sort((a, b) => a - b).map((slot) => ({
+    slot, name: game.players.find((player) => player.replaySlot === slot)?.name || "Specialist",
+  }));
+  const entries = [];
+  const breachTargets = synergy.breachTargets.filter((target) => target.expiresTick >= game.tick && target.cooldownUntilTick <= game.tick);
+  if (breachTargets.length) {
+    const item = definition("breach-window"), remaining = Math.max(...breachTargets.map((target) => target.expiresTick - game.tick));
+    entries.push({ id: item.id, name: item.name, glyph: item.presentation.glyph, status: `${(remaining / 60).toFixed(1)}s · ${breachTargets.length} marked`, copy: item.presentation.copy, contributors: contributors(breachTargets.map(({ setupSlot }) => setupSlot)), progress: remaining / item.timing.windowTicks });
+  }
+  if (synergy.ultimateWindow.length) {
+    const item = definition("ultimate-resonance"), latest = Math.max(...synergy.ultimateWindow.map(({ tick }) => tick)), remaining = Math.max(0, latest + item.timing.windowTicks - game.tick);
+    if (remaining > 0) entries.push({ id: item.id, name: item.name, glyph: item.presentation.glyph, status: `${(remaining / 60).toFixed(1)}s · chain armed`, copy: item.presentation.copy, contributors: contributors(synergy.ultimateWindow.map(({ slot }) => slot)), progress: remaining / item.timing.windowTicks });
+  }
+  const links = synergy.formationLinks.filter(({ active }) => active);
+  if (links.length) {
+    const item = definition("moving-screen");
+    entries.push({ id: item.id, name: item.name, glyph: item.presentation.glyph, status: `${links.length} active link${links.length === 1 ? "" : "s"} · 15% impact guard`, copy: item.presentation.copy, contributors: contributors(links.flatMap(({ a, b }) => [a, b])), progress: 1 });
+  }
+  reconcileActiveSynergies(root, entries);
+}
+
 function updateDamageLedger(player, game) {
   const sources = Object.entries(player.damageBySource || {}).filter(([, damage]) => damage > 0).sort((a, b) => b[1] - a[1]);
   const key = JSON.stringify(sources.map(([id, damage]) => [id, Math.round(damage)]));
@@ -1693,7 +1736,7 @@ function updateHUD(game) {
     state.lastPassiveHUDKey = passiveHUDKey;
     $("passive-hud").innerHTML = Object.entries(player.passives || {}).filter(([, rank]) => Number(rank) > 0).map(([passiveId, rank]) => passiveSlotMarkup(passiveId, rank, player, game.level)).join("");
   }
-  updateActiveBuffs(player); updateDamageLedger(player, game);
+  updateActiveBuffs(player); updateSynergyHUD(game); updateDamageLedger(player, game);
 }
 
 function upgradeChoiceVisual(choice) {
@@ -1972,6 +2015,11 @@ function processEvents(events) {
     if (event.seq <= state.lastEventSeq) continue; state.lastEventSeq = event.seq;
     if (event.type === "cast") continue;
     if (event.type === "signature-evolution-proc" || event.type === "weapon-evolution-proc") continue;
+    if (event.type === "synergy") {
+      $("synergy-live-region").textContent = `${event.title}. ${event.copy || ""}`.trim();
+      sfx("reward");
+      continue;
+    }
     if (event.type === "danger") sfx(event.apexIntent || event.apexPhase || /apex|phase|has arrived|enraged/i.test(event.title) ? "enemy:apex" : "danger");
     else if (event.type === "victory") sfx("victory");
     else if (event.type === "defeat") sfx("defeat");
@@ -2009,6 +2057,24 @@ function renderScoreboard(game) {
     return `<tr><td><div class="result-scoreboard-player"><img src="${spec.sprite}" alt=""><div><strong>${escapeHTML(player.name)}</strong><small>${spec.name}</small></div></div></td><td>${statNumber(player.damage)}</td><td>${(Number(player.damage || 0) / seconds).toFixed(1)}</td><td>${statNumber(player.kills)}</td><td>${statNumber(player.xpCollected)}</td><td>${statNumber(player.damageTaken)}</td><td>${statNumber(player.revives)}</td><td>${statNumber(player.traveled)}</td><td><button class="copy-scorecard" type="button" data-player-id="${player.id}">Copy card</button></td></tr>`;
   }).join("");
   $("result-scoreboard-body").querySelectorAll(".copy-scorecard").forEach((button) => button.addEventListener("click", () => copyPlayerScorecard(button.dataset.playerId)));
+  const synergyStats = game.synergyState?.stats || [], bySlot = new Map(synergyStats.map((entry) => [entry.slot, entry]));
+  const teamwork = [
+    { id: "breach-window", fields: [["Triggers", "triggers"], ["Setup assists", "assists"], ["Bonus damage", "damage"]] },
+    { id: "ultimate-resonance", fields: [["Chains", "ultimateChains"], ["Shielding", "shielding"]] },
+    { id: "moving-screen", fields: [["Formation time", "formationTicks"], ["Damage prevented", "mitigated"]] },
+  ].map((group) => {
+    const registry = SQUAD_SYNERGY_REGISTRY.entries.find(({ id }) => id === group.id);
+    const total = group.fields.reduce((sum, [, key]) => sum + synergyStats.reduce((value, entry) => value + Number(entry[key] || 0), 0), 0);
+    if (total <= 0) return "";
+    const rows = game.players.map((player) => {
+      const stats = bySlot.get(player.replaySlot) || {};
+      const values = group.fields.map(([label, key]) => `${label}: ${key === "formationTicks" ? `${(Number(stats[key] || 0) / 60).toFixed(1)}s` : statNumber(stats[key])}`).join(" · ");
+      return `<li><span>S${player.replaySlot + 1} · ${escapeHTML(player.name)}</span><b>${values}</b></li>`;
+    }).join("");
+    return `<article class="result-synergy-card synergy-${group.id}"><header><b>${registry.presentation.glyph}</b><div><strong>${registry.name}</strong><span>${registry.category.replaceAll("-", " ")}</span></div></header><p>${registry.presentation.copy}</p><ul>${rows}</ul></article>`;
+  }).filter(Boolean);
+  $("result-synergies").classList.toggle("hidden", teamwork.length === 0);
+  $("result-synergy-cards").innerHTML = teamwork.join("");
   $("result-damage-breakdown").innerHTML = game.players.map((player) => {
     const sources = Object.entries(player.damageBySource || {}).filter(([, damage]) => damage > 0).sort((a, b) => b[1] - a[1]);
     const total = Math.max(1, Number(player.damage || 0));
@@ -2024,6 +2090,7 @@ function saveCompletedRun(game) {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, finishedAt: new Date().toISOString(), won: game.stage === "won",
     map: typeof game.map === "string" ? game.map : game.map.id, difficulty: typeof game.difficulty === "string" ? game.difficulty : game.difficulty.id,
     elapsed: elapsedRunSeconds(game), level: Number(game.level || 0), kills: Number(game.kills || 0), gold: Number(game.gold || 0),
+    synergyTelemetry: game.synergyTelemetry || null,
     players: game.players.map((player) => ({ name: player.name, specialist: player.specialist, damage: player.damage, kills: player.kills, xpCollected: player.xpCollected, damageTaken: player.damageTaken, revives: player.revives, traveled: player.traveled, damageBySource: player.damageBySource || {} })),
   };
   state.runHistory = [run, ...state.runHistory].slice(0, 24);

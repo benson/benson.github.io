@@ -1,5 +1,6 @@
-export const RECOVERY_SCHEMA = "lastlight.run-recovery.v1";
-export const RECOVERY_STORAGE_KEY = "lastlight:run-recovery:v1";
+export const RECOVERY_SCHEMA = "lastlight.run-recovery.v2";
+export const RECOVERY_STORAGE_KEY = "lastlight:run-recovery:v2";
+export const RECOVERY_SIMULATION_VERSION = 4;
 export const MAX_RECOVERY_BYTES = 1_500_000;
 export const RECOVERY_MAX_AGE_MS = 6 * 60 * 60 * 1_000;
 
@@ -30,6 +31,8 @@ export function runtimeRecoveryIdentity(config) {
     configVersion: String(config?.configVersion || ""),
     gameplayVersion: String(config?.gameplayVersion || ""),
     objectiveEvents: Boolean(config?.flags?.objectiveEvents ?? config?.objectiveEvents),
+    squadSynergies: Boolean(config?.flags?.squadSynergies ?? config?.squadSynergies),
+    registryVersion: String(config?.registryVersion || ""),
   });
 }
 
@@ -57,11 +60,13 @@ export function validateRunRecovery(value, { build, runtime, now = Date.now() } 
   if (value.expiresAt - value.savedAt !== RECOVERY_MAX_AGE_MS || value.savedAt > now + 5 * 60_000 || value.expiresAt <= now) throw new TypeError("Recovery checkpoint is stale");
   if (value.source !== "solo" && value.source !== "host") throw new TypeError("Recovery source is invalid");
   finiteInteger(value.localSlot, 0, 3, "localSlot");
-  exactKeys(value.runtime, ["configVersion", "gameplayVersion", "objectiveEvents"], "runtime");
-  if (!runtime || value.runtime.configVersion !== runtime.configVersion || value.runtime.gameplayVersion !== runtime.gameplayVersion || value.runtime.objectiveEvents !== runtime.objectiveEvents) {
+  exactKeys(value.runtime, ["configVersion", "gameplayVersion", "objectiveEvents", "squadSynergies", "registryVersion"], "runtime");
+  if (!runtime || value.runtime.configVersion !== runtime.configVersion || value.runtime.gameplayVersion !== runtime.gameplayVersion
+    || value.runtime.objectiveEvents !== runtime.objectiveEvents || value.runtime.squadSynergies !== runtime.squadSynergies
+    || value.runtime.registryVersion !== runtime.registryVersion) {
     throw new TypeError("Recovery runtime configuration mismatch");
   }
-  if (!value.simulation || value.simulation.version !== 3 || !Array.isArray(value.simulation.players) || !value.simulation.players.some((player) => player.replaySlot === value.localSlot)) {
+  if (!value.simulation || value.simulation.version !== RECOVERY_SIMULATION_VERSION || !Array.isArray(value.simulation.players) || !value.simulation.players.some((player) => player.replaySlot === value.localSlot)) {
     throw new TypeError("Recovery simulation is invalid");
   }
   if (value.replay !== null && (typeof value.replay !== "object" || value.replay.currentTick !== value.simulation.scalars?.tick)) throw new TypeError("Recovery replay identity is invalid");

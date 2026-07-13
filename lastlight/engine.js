@@ -2,15 +2,20 @@ import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
 } from "./data.js?v=20260713.2";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260713.2";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260713.6";
 import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.5";
-import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260713.2";
+import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260713.6";
 import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260713.2";
 import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260713.1";
 import { MAX_CORRIDOR_CANDIDATES, accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget, orderEntitiesByDistance } from "./projectile-decisions.js?v=20260713.1";
 import { selectEliteAffixes, selectSpawnArchetype } from "./enemy-archetypes.js?v=20260713.1";
 import { APEX_CONTRACTS, APEX_STATE_SCHEMA, orderedApexTargets } from "./apex-encounters.js?v=20260713.1";
 import { RECONNECT_WINDOW_TICKS } from "./reconnect-state.js?v=20260713.3";
+import {
+  SQUAD_SYNERGY_SCHEMA, activeFormationSlots, addSquadSynergyStats, createSquadSynergyState,
+  formationDamageMultiplier, recordBreachControl, recordUltimateCast, removeSquadSynergySlot,
+  resolveBreachFollowup, updateFormationPairs, validateSquadSynergyState,
+} from "./squad-synergies.js?v=20260713.6";
 
 const BALANCE = getBalanceConfig();
 
@@ -47,7 +52,7 @@ function compactPoint(e) {
   return result;
 }
 
-const RECOVERY_STATE_VERSION = 3;
+const RECOVERY_STATE_VERSION = 4;
 const RECOVERY_SCALARS = [
   "tick", "time", "remaining", "stage", "paused", "pauseReason", "wave", "teamXP", "level", "xpNeed", "kills", "gold",
   "spawnClock", "nextElite", "nextMiniBoss", "nextTreasure", "nextRelayBall", "objectiveIndex", "bossElapsed", "bossPhase", "enraged",
@@ -300,6 +305,9 @@ export class Simulation {
     this.balanceHash = BALANCE_HASH;
     this.gameplayVersion = features.gameplayVersion;
     this.objectiveEvents = features.objectiveEvents;
+    this.squadSynergies = features.squadSynergies;
+    this.synergyRegistryVersion = features.registryVersion;
+    if (this.squadSynergies && this.synergyRegistryVersion !== SQUAD_SYNERGY_SCHEMA) throw new RangeError(`Unsupported squad synergy registry: ${this.synergyRegistryVersion}`);
     this.duration = Number(config.duration) || BALANCE.core.defaultDurationSeconds;
     this.time = 0;
     this.remaining = this.duration;
@@ -343,6 +351,7 @@ export class Simulation {
     this.enraged = false;
 
     const players = config.players?.length ? config.players : [{ id: "solo", name: "Rookie", specialist: "zuri" }];
+    this.synergyState = createSquadSynergyState({ enabled: this.squadSynergies, slots: players.map((player, index) => replaySlot(player.replaySlot) ?? index) });
     players.forEach((p, index) => this.addPlayer(p, index));
     this.seedPods();
     this.pushEvent("directive", `Survive ${Math.round(this.duration / 60)} minutes`, "The breach is open");
@@ -404,6 +413,7 @@ export class Simulation {
       }
       this.disconnectedPlayers.delete(recoveryKey);
       this.players.push(player);
+      if (this.synergyState && replaySlot(player.replaySlot) !== undefined) this.synergyState = addSquadSynergyStats(this.synergyState, player.replaySlot);
       if (this.pendingChoices) {
         ensureDraftState(player);
         this.pendingChoices[player.id] = this.generateChoices(player);
@@ -414,7 +424,7 @@ export class Simulation {
     const angle = (index / Math.max(1, 4)) * TAU;
     const player = {
       id: info.id, name: String(info.name || "Rookie").slice(0, 16), specialist: spec.id,
-      replaySlot: replaySlot(info.replaySlot),
+      replaySlot: info.replaySlot === undefined ? replaySlot(index) : replaySlot(info.replaySlot),
       reconnectKey: recoveryKey,
       x: Math.cos(angle) * 75, y: Math.sin(angle) * 75, radius: 31,
       hp: spec.health, maxHp: spec.health, armor: spec.armor, baseSpeed: spec.speed,
@@ -435,6 +445,7 @@ export class Simulation {
       lastHit: 0, iceReady: false, iceTimer: 0,
     };
     this.players.push(player);
+    if (this.synergyState && replaySlot(player.replaySlot) !== undefined) this.synergyState = addSquadSynergyStats(this.synergyState, player.replaySlot);
     if (this.pendingChoices) {
       const draft = ensureDraftState(player); draft.round += 1; draft.revision = 0; draft.excluded = [];
       this.pendingChoices[player.id] = this.generateChoices(player);
@@ -448,6 +459,11 @@ export class Simulation {
     const player = this.players.find((entry) => entry.id === playerId);
     if (player?.reconnectKey) this.disconnectedPlayers.set(player.reconnectKey, { player, leftTick: this.tick });
     this.players = this.players.filter((p) => p.id !== playerId);
+    if (player && this.synergyState) {
+      const result = removeSquadSynergySlot(this.synergyState, player.replaySlot, this.tick);
+      this.synergyState = result.state;
+      for (const transition of result.transitions || []) this.pushEvent("synergy", "Moving Screen ended", "Formation link lost", { synergyId: transition.id, synergySequence: this.synergyState.sequence, slots: transition.slots });
+    }
     this.drones = this.drones.filter((drone) => drone.owner !== playerId);
     if (this.pendingChoices) {
       delete this.pendingChoices[playerId];
@@ -475,6 +491,7 @@ export class Simulation {
     this.pruneDisconnectedPlayers();
     this.updateTasks();
     this.updatePlayers(dt);
+    this.updateSquadSynergies();
     this.updateMachine(dt);
     this.updateObjectives(dt);
     this.updateRelayBalls(dt);
@@ -608,6 +625,72 @@ export class Simulation {
     }
 
     if (this.players.length && this.players.every((p) => p.dead || p.downed)) this.lose("Every specialist is down.");
+  }
+
+  updateSquadSynergies() {
+    if (!this.synergyState) return;
+    const result = updateFormationPairs(this.synergyState, this.players, this.tick);
+    this.synergyState = result.state;
+    if (this.tick % BALANCE.synergies.movingScreen.evaluationIntervalTicks === 0) {
+      for (const slot of activeFormationSlots(this.synergyState)) {
+        this.synergyState = addSquadSynergyStats(this.synergyState, slot, { formationTicks: BALANCE.synergies.movingScreen.evaluationIntervalTicks });
+      }
+    }
+    for (const transition of result.transitions || []) {
+      const entering = transition.type === "enter";
+      this.pushEvent("synergy", entering ? "Moving Screen active" : "Moving Screen ended", entering ? "Aligned movement is reducing direct impacts" : "Formation link released", {
+        synergyId: transition.id, synergySequence: this.synergyState.sequence, slots: transition.slots,
+      });
+    }
+  }
+
+  recordBreachControl(enemy, ownerId, controlSeconds) {
+    if (!this.synergyState?.enabled || !enemy || !Number.isFinite(controlSeconds)) return false;
+    const owner = this.players.find((player) => player.id === ownerId);
+    const targetKind = enemy.boss ? "apex" : enemy.miniboss ? "miniboss" : enemy.elite ? "elite" : "";
+    if (!owner || !targetKind) return false;
+    const result = recordBreachControl(this.synergyState, {
+      tick: this.tick, enemyId: enemy.id, setupSlot: owner.replaySlot, specialistId: owner.specialist,
+      controlTicks: Math.round(controlSeconds * SIMULATION_TICK_RATE), targetKind,
+    });
+    this.synergyState = result.state;
+    return result.accepted;
+  }
+
+  recordSquadUltimate(player) {
+    if (!this.synergyState?.enabled) return false;
+    const living = this.players.filter((ally) => !ally.dead && !ally.downed);
+    const result = recordUltimateCast(this.synergyState, {
+      tick: this.tick, slot: player.replaySlot, x: player.x, y: player.y, livingSlots: living.map(({ replaySlot: slot }) => slot),
+    });
+    this.synergyState = result.state;
+    if (!result.triggered || !result.pulse) return false;
+    let shielding = 0;
+    for (const ally of living) {
+      if (Math.hypot(ally.x - result.pulse.x, ally.y - result.pulse.y) > result.pulse.radius) continue;
+      shielding += this.grantShieldAmount(ally, ally.maxHp * result.pulse.shieldMaxHealth, result.pulse.shieldCapMaxHealth);
+    }
+    const contributors = result.pulse.contributorSlots, share = shielding / contributors.length;
+    for (const slot of contributors) this.synergyState = addSquadSynergyStats(this.synergyState, slot, { triggers: 1, shielding: share, ultimateChains: 1 });
+    this.pushEvent("synergy", "Ultimate Resonance", "Coordinated ultimates shielded the nearby squad", {
+      synergyId: result.pulse.id, synergySequence: result.pulse.sequence, slots: contributors, shielding,
+    });
+    return true;
+  }
+
+  synergyTelemetry() {
+    const stats = this.synergyState?.stats || [], sum = (key) => stats.reduce((total, entry) => total + Number(entry[key] || 0), 0);
+    const ids = [];
+    if (sum("damage") > 0) ids.push("breach-window");
+    if (sum("shielding") > 0 || sum("ultimateChains") > 0) ids.push("ultimate-resonance");
+    if (sum("formationTicks") > 0 || sum("mitigated") > 0) ids.push("moving-screen");
+    return {
+      ids,
+      totals: {
+        triggers: sum("triggers"), damage: sum("damage"), shielding: sum("shielding"), mitigated: sum("mitigated"),
+        formationSeconds: sum("formationTicks") / SIMULATION_TICK_RATE, ultimateChains: sum("ultimateChains"),
+      },
+    };
   }
 
   playerStat(p, stat) {
@@ -1486,6 +1569,7 @@ export class Simulation {
       p.rCd = p.rCdMax = this.cooldown(p, spec.cooldownR);
       p.animState = "castR"; p.animTime = .42;
       this.castR(p);
+      this.recordSquadUltimate(p);
       return true;
     }
     return false;
@@ -1557,7 +1641,7 @@ export class Simulation {
     if (p.specialist === "zuri") this.shoot(p, aim, 900, 450 + this.level * 50, { radius: 24, color: "#ffb050", explosion: 600 * area, life: 2.5, pierce: 0, sourceId: "ability:r", executeMissingHealthBonus: BALANCE.identityTuning.zuri.executeMissingHealthBonus });
     else if (p.specialist === "echo") {
       for (const ally of this.players) ally.invuln = 3;
-      for (const enemy of this.enemies) enemy.stun = Math.max(enemy.stun, 2.5);
+      for (const enemy of this.enemies) { enemy.stun = Math.max(enemy.stun, 2.5); this.recordBreachControl(enemy, p.id, 2.5); }
       this.blast(p.x, p.y, 1150, 140 + this.level * 8, p.id, spec.color, true, "perfect", "ability:r");
     } else if (p.specialist === "sola") {
       const target = { x: p.x + Math.cos(aim) * 470, y: p.y + Math.sin(aim) * 470 };
@@ -1765,6 +1849,7 @@ export class Simulation {
               });
             }
           }
+          this.recordBreachControl(enemy, effect.owner, enemy.stun);
         }
       } else if (effect.delayed && effect.life <= 0 && !effect.triggered) due.push(effect);
     }
@@ -1805,7 +1890,11 @@ export class Simulation {
       this.damageEnemy(enemy, damage, owner, false, sourceId, options);
       enemyHits++;
       if (kind === "hex") enemy.hexed = BALANCE.identityTuning.nova.hexDuration;
-      if (kind === "stun" || kind === "knockup" || stun) enemy.stun = Math.max(enemy.stun, stun || 1.2);
+      if (kind === "stun" || kind === "knockup" || stun) {
+        const control = stun || 1.2;
+        enemy.stun = Math.max(enemy.stun, control);
+        this.recordBreachControl(enemy, owner, control);
+      }
     }
     for (const pod of this.pods) {
       if (pod.dead || Math.hypot(pod.x - x, pod.y - y) > radius + pod.radius) continue;
@@ -2092,10 +2181,10 @@ export class Simulation {
     else if(phase.arenaMode==="freeze-cores")boss.apexArenaBoundary=Math.floor(elapsed/240)%2;
     else boss.apexArenaBoundary=Math.min(3,Math.floor(elapsed/300));
     if(this.tick<boss.apexArenaNextPulseTick)return;boss.apexArenaNextPulseTick=this.tick+60;
-    for(const player of living){let hit=false;if(phase.arenaMode==="rising-ocean")hit=player.x>boss.apexArenaBoundary;else if(phase.arenaMode==="ion-grid")hit=Math.hypot(player.x,player.y)>boss.apexArenaBoundary;else if(phase.arenaMode==="freeze-cores")hit=boss.apexArenaBoundary?Math.abs(player.x)<105:Math.abs(player.y)<105;else hit=boss.apexArenaBoundary>0&&Math.abs(player.y-(boss.apexArenaBoundary-2)*260)<52;if(hit)this.takeDamage(player,1*this.difficulty.attack,boss);}
+    for(const player of living){let hit=false;if(phase.arenaMode==="rising-ocean")hit=player.x>boss.apexArenaBoundary;else if(phase.arenaMode==="ion-grid")hit=Math.hypot(player.x,player.y)>boss.apexArenaBoundary;else if(phase.arenaMode==="freeze-cores")hit=boss.apexArenaBoundary?Math.abs(player.x)<105:Math.abs(player.y)<105;else hit=boss.apexArenaBoundary>0&&Math.abs(player.y-(boss.apexArenaBoundary-2)*260)<52;if(hit)this.takeDamage(player,1*this.difficulty.attack,boss,{environmental:true});}
   }
 
-  takeDamage(p, amount, source = null) {
+  takeDamage(p, amount, source = null, context = {}) {
     if (p.invuln > 0 || p.hitGrace > 0 || p.dead || p.downed) return;
     if (p.iceReady) {
       p.iceReady = false;
@@ -2106,6 +2195,11 @@ export class Simulation {
     const reduction = 100 / (100 + Math.max(0, p.armor));
     const scaledAmount = source?.bossShot ? Math.max(amount, p.maxHp * .36 / reduction) : amount;
     let damage = scaledAmount * reduction;
+    if (this.synergyState?.enabled && this.enemies.includes(source) && !context.environmental) {
+      const multiplier = formationDamageMultiplier(this.synergyState, p.replaySlot), mitigated = damage * (1 - multiplier);
+      damage *= multiplier;
+      if (mitigated > 0) this.synergyState = addSquadSynergyStats(this.synergyState, p.replaySlot, { mitigated });
+    }
     if (p.frenzy > 0) damage *= p.hp < p.maxHp * .5 ? .5 : .75;
     if (p.shield > 0) { const blocked = Math.min(p.shield, damage); p.shield -= blocked; damage -= blocked; }
     p.damageTaken += Math.max(0, Math.min(damage, p.hp));
@@ -2141,7 +2235,7 @@ export class Simulation {
   }
 
   damageEnemy(enemy, amount, ownerId, critical = false, source = "", options = {}) {
-    if (enemy.dead) return;
+    if (enemy.dead) return 0;
     let remaining = Math.max(0, Number(amount) || 0), absorbed = 0;
     if (enemy.affixState?.shield > 0 && remaining > 0) {
       absorbed = Math.min(enemy.affixState.shield, remaining);
@@ -2170,8 +2264,24 @@ export class Simulation {
         this.grantShieldAmount(owner, dealt * tuning.damageShieldRatio, tuning.damageShieldCapMaxHealth);
       }
     }
+    if (owner && dealt > 0 && !options.suppressSynergy && this.synergyState?.enabled && (enemy.elite || enemy.miniboss || enemy.boss)) {
+      const result = resolveBreachFollowup(this.synergyState, {
+        tick: this.tick, enemyId: enemy.id, finisherSlot: owner.replaySlot, specialistId: owner.specialist,
+        sourceId: source, actualDamage: dealt, level: this.level,
+      });
+      this.synergyState = result.state;
+      if (result.accepted && result.proc) {
+        this.synergyState = addSquadSynergyStats(this.synergyState, result.proc.setupSlot, { assists: 1 });
+        this.synergyState = addSquadSynergyStats(this.synergyState, result.proc.finisherSlot, { triggers: 1, damage: result.proc.damage });
+        this.damageEnemy(enemy, result.proc.damage, ownerId, false, result.proc.sourceId, { suppressSynergy: true });
+        this.pushEvent("synergy", "Breach Window", "Control converted into focused bonus damage", {
+          synergyId: result.proc.id, synergySequence: result.proc.sequence, slots: [result.proc.setupSlot, result.proc.finisherSlot], damage: result.proc.damage,
+        });
+      }
+    }
     if (critical || amount > 180) this.effects.push({ id: this.nextCosmeticId("n"), x: enemy.x, y: enemy.y - enemy.radius, radius: 0, life: .55, maxLife: .55, damage: Math.round(amount), owner: ownerId, color: critical ? "#ffe073" : "#fff", kind: "number", critical });
     if (enemy.hp <= 0) this.killEnemy(enemy, ownerId);
+    return dealt;
   }
 
   killEnemy(enemy, ownerId) {
@@ -2450,7 +2560,10 @@ export class Simulation {
       seed: this.seed,
       balanceVersion: this.balanceVersion,
       balanceHash: this.balanceHash,
-      features: { gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents },
+      features: {
+        gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents,
+        squadSynergies: this.squadSynergies, registryVersion: this.synergyRegistryVersion,
+      },
       tick: this.tick,
       rng: { gameplay: this.gameplayRng.snapshot(), cosmetic: this.cosmeticRng.snapshot() },
       sequences: { gameplay: this.gameplaySequence, cosmetic: this.cosmeticSequence, event: this.eventSequence },
@@ -2492,6 +2605,7 @@ export class Simulation {
       header: {
         seed: this.seed, balanceVersion: this.balanceVersion, balanceHash: this.balanceHash,
         gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents,
+        squadSynergies: this.squadSynergies, registryVersion: this.synergyRegistryVersion,
         map: this.map.id, difficulty: this.difficulty.id, duration: this.duration,
       },
       rng: { gameplay: this.gameplayRng.snapshot(), cosmetic: this.cosmeticRng.snapshot() },
@@ -2504,12 +2618,13 @@ export class Simulation {
       pendingChoices: recoveryRecord(this.pendingChoices, playerIds),
       choiceReady: recoveryRecord(this.choiceReady, playerIds),
       selectedChoices: recoveryRecord(this.selectedChoices, playerIds),
+      synergyState: serializeRecoveryValue(this.synergyState, playerIds),
     };
   }
 
   static fromRecoveryState(value, { playerIdsBySlot } = {}) {
     if (!value || typeof value !== "object" || Array.isArray(value) || value.version !== RECOVERY_STATE_VERSION) throw new TypeError("Unsupported recovery state");
-    const expected = ["version", "header", "rng", "sequences", "scalars", "machine", "players", "disconnectedPlayers", "lists", "pendingChoices", "choiceReady", "selectedChoices"];
+    const expected = ["version", "header", "rng", "sequences", "scalars", "machine", "players", "disconnectedPlayers", "lists", "pendingChoices", "choiceReady", "selectedChoices", "synergyState"];
     const actual = Object.keys(value).sort();
     if (actual.length !== expected.length || expected.sort().some((key, index) => key !== actual[index])) throw new TypeError("Recovery state has unexpected fields");
     const header = value.header;
@@ -2544,10 +2659,16 @@ export class Simulation {
     const sim = new Simulation({
       map: header.map, difficulty: header.difficulty, duration: header.duration, players: roster,
       balanceVersion: header.balanceVersion, balanceHash: header.balanceHash,
-      features: { gameplayVersion: header.gameplayVersion, objectiveEvents: header.objectiveEvents },
+      features: {
+        gameplayVersion: header.gameplayVersion, objectiveEvents: header.objectiveEvents,
+        squadSynergies: header.squadSynergies, registryVersion: header.registryVersion,
+      },
     }, {
       seed: header.seed, balanceVersion: header.balanceVersion, balanceHash: header.balanceHash,
-      features: { gameplayVersion: header.gameplayVersion, objectiveEvents: header.objectiveEvents },
+      features: {
+        gameplayVersion: header.gameplayVersion, objectiveEvents: header.objectiveEvents,
+        squadSynergies: header.squadSynergies, registryVersion: header.registryVersion,
+      },
     });
     sim.gameplayRng = SeededRng.fromSnapshot(value.rng?.gameplay);
     sim.cosmeticRng = SeededRng.fromSnapshot(value.rng?.cosmetic);
@@ -2627,6 +2748,8 @@ export class Simulation {
     sim.pendingChoices = deserializeRecoveryValue(value.pendingChoices, restoredPlayerIds);
     sim.choiceReady = deserializeRecoveryValue(value.choiceReady, restoredPlayerIds) || {};
     sim.selectedChoices = deserializeRecoveryValue(value.selectedChoices, restoredPlayerIds) || {};
+    sim.synergyState = validateSquadSynergyState(deserializeRecoveryValue(value.synergyState, restoredPlayerIds));
+    if (sim.synergyState.enabled !== sim.squadSynergies) throw new TypeError("Recovery squad synergy flag mismatch");
     sim.events = [];
     sim.disconnectedPlayers = new Map(restoredDisconnectedPlayers.map(({ key, player, leftTick }) => [key, { player, leftTick }]));
     sim.pruneDisconnectedPlayers();
@@ -2663,7 +2786,10 @@ export class Simulation {
     });
     return {
       balanceVersion: this.balanceVersion, balanceHash: this.balanceHash,
-      features: { gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents },
+      features: {
+        gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents,
+        squadSynergies: this.squadSynergies, registryVersion: this.synergyRegistryVersion,
+      },
       tick: this.tick, determinism: this.deterministicState(),
       map: this.map.id, difficulty: this.difficulty.id, duration: this.duration, time: Math.round(this.time * 10) / 10,
       remaining: Math.round(this.remaining * 10) / 10, stage: this.stage, paused: this.paused, pauseReason: this.pauseReason,
@@ -2673,6 +2799,7 @@ export class Simulation {
       players: clean(this.players, ["input", "reconnectKey"]), drones: clean(this.drones), enemies, projectiles,
       hostile: clean(this.hostile), effects: clean(this.effects, ["hit"]), orbs: clean(this.orbs), drops: clean(this.drops),
       pods: clean(this.pods), objectives: clean(this.objectives), relayBalls: clean(this.relayBalls), feathers: clean(this.feathers),
+      synergyState: structuredClone(this.synergyState), synergyTelemetry: this.synergyTelemetry(),
       pendingChoices: this.pendingChoices, choiceReady: this.choiceReady, selectedChoices: this.selectedChoices, events: this.events.slice(-5),
     };
   }

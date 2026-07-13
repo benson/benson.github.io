@@ -1,5 +1,7 @@
+import { RECOVERY_SIMULATION_VERSION } from "./recovery.js?v=20260713.6";
+
 export const HOST_MIGRATION_SCHEMA = "lastlight.host-migration.v1";
-export const HOST_MIGRATION_PROTOCOL_VERSION = 1;
+export const HOST_MIGRATION_PROTOCOL_VERSION = 2;
 export const MAX_AUTHORITY_EPOCH = 0x7fffffff;
 export const MAX_MIGRATION_CHECKPOINT_BYTES = 1_500_000;
 export const MIGRATION_CHECKPOINT_INTERVAL_TICKS = 60;
@@ -48,8 +50,12 @@ function assertAnonymousPayload(value) {
 }
 
 export function validateMigrationCompatibility(value) {
-  exactKeys(value, ["build", "balanceVersion", "balanceHash", "configVersion", "gameplayVersion", "objectiveEvents"], "migration compatibility");
+  exactKeys(value, [
+    "build", "balanceVersion", "balanceHash", "configVersion", "gameplayVersion", "objectiveEvents",
+    "squadSynergies", "registryVersion", "recoveryVersion",
+  ], "migration compatibility");
   if (typeof value.objectiveEvents !== "boolean") throw new TypeError("migration compatibility objectiveEvents is invalid");
+  if (typeof value.squadSynergies !== "boolean") throw new TypeError("migration compatibility squadSynergies is invalid");
   return Object.freeze({
     build: safeString(value.build, SAFE_VERSION, "migration build"),
     balanceVersion: safeString(value.balanceVersion, SAFE_VERSION, "migration balance version"),
@@ -57,6 +63,9 @@ export function validateMigrationCompatibility(value) {
     configVersion: safeString(value.configVersion, SAFE_VERSION, "migration config version"),
     gameplayVersion: safeString(value.gameplayVersion, SAFE_VERSION, "migration gameplay version"),
     objectiveEvents: value.objectiveEvents,
+    squadSynergies: value.squadSynergies,
+    registryVersion: safeString(value.registryVersion, SAFE_VERSION, "migration synergy registry version"),
+    recoveryVersion: integer(value.recoveryVersion, RECOVERY_SIMULATION_VERSION, RECOVERY_SIMULATION_VERSION, "migration recovery version"),
   });
 }
 
@@ -134,7 +143,7 @@ export function validateMigrationCheckpoint(value, { maxBytes = MAX_MIGRATION_CH
     if (!rosterIds.has(id)) throw new TypeError("migration acknowledgement references an unknown player");
     ack[id] = integer(sequence, 0, 0x7fffffff, "migration acknowledgement");
   }
-  if (!value.simulation || value.simulation.version !== 3 || value.simulation.scalars?.tick !== tick) {
+  if (!value.simulation || value.simulation.version !== RECOVERY_SIMULATION_VERSION || value.simulation.scalars?.tick !== tick) {
     throw new TypeError("migration recovery state does not match its tick");
   }
   if (value.replay !== null && (!value.replay || value.replay.currentTick !== tick)) {

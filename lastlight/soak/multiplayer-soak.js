@@ -115,7 +115,10 @@ function createReplica(index, options) {
     difficulty: options.difficulty,
     duration: options.durationSeconds,
     players,
-    features: { gameplayVersion: options.gameplayVersion, objectiveEvents: true },
+    features: {
+      gameplayVersion: options.gameplayVersion, objectiveEvents: true,
+      squadSynergies: true, registryVersion: "lastlight.squad-synergy.v1",
+    },
   }, { seed: options.seed, balanceVersion: BALANCE_VERSION, balanceHash: BALANCE_HASH });
   // The soak exercises systems and structural growth rather than tuning. Long
   // invulnerability guarantees the four replicas reach the apex deterministically.

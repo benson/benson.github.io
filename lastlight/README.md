@@ -40,6 +40,12 @@ art matrix are documented in `MOTION-ASSETS.md`.
 Sequenced input, snapshot acknowledgements, rolling compatibility, and replay
 boundaries are documented in `MULTIPLAYER-PROTOCOL.md`.
 
+Squad synergy state uses the same deterministic contract: the runtime flag and
+registry version are pinned in replay headers, interrupted-run recovery, and
+host-migration compatibility. Only allowlisted team-level synergy aggregates
+are accepted by run telemetry; see `worker/TELEMETRY.md` for the schema and
+privacy limits.
+
 ## Checks
 
 - `npm run check` in `lastlight`

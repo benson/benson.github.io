@@ -1,5 +1,6 @@
-export const RUNTIME_CONFIG_SCHEMA_VERSION = 1;
-export const RUNTIME_CONFIG_STORAGE_KEY = "lastlight:runtime-config:v1";
+export const RUNTIME_CONFIG_SCHEMA_VERSION = 2;
+export const RUNTIME_CONFIG_STORAGE_KEY = "lastlight:runtime-config:v2";
+export const SQUAD_SYNERGY_REGISTRY_VERSION = "lastlight.squad-synergy.v1";
 
 const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 const FLAG_NAMES = Object.freeze([
@@ -7,13 +8,15 @@ const FLAG_NAMES = Object.freeze([
   "migrationCheckpointReplication", "hostMigrationElection", "hostMigrationResume",
   "contextualPings",
   "upgradeRecommendations",
+  "squadSynergies",
 ]);
 const MAX_RUNTIME_CONFIG_BYTES = 4_096;
 
 export const DEFAULT_RUNTIME_CONFIG = deepFreeze({
   schemaVersion: RUNTIME_CONFIG_SCHEMA_VERSION,
-  configVersion: "release-2026.07.13.5",
-  gameplayVersion: "events-v1",
+  configVersion: "release-2026.07.13.6",
+  gameplayVersion: "synergies-v1",
+  registryVersion: SQUAD_SYNERGY_REGISTRY_VERSION,
   flags: {
     deterministicReplay: true,
     runTelemetry: true,
@@ -23,6 +26,7 @@ export const DEFAULT_RUNTIME_CONFIG = deepFreeze({
     hostMigrationResume: true,
     contextualPings: true,
     upgradeRecommendations: true,
+    squadSynergies: true,
   },
 });
 
@@ -52,7 +56,7 @@ function identifier(value, label) {
 
 /** Validate an operator or cached runtime config without accepting arbitrary keys. */
 export function validateRuntimeConfig(value) {
-  exactKeys(value, ["schemaVersion", "configVersion", "gameplayVersion", "flags"], "runtime config");
+  exactKeys(value, ["schemaVersion", "configVersion", "gameplayVersion", "registryVersion", "flags"], "runtime config");
   if (value.schemaVersion !== RUNTIME_CONFIG_SCHEMA_VERSION) throw new TypeError("Unsupported runtime config schema");
   exactKeys(value.flags, FLAG_NAMES, "runtime config flags");
   for (const name of FLAG_NAMES) {
@@ -62,6 +66,7 @@ export function validateRuntimeConfig(value) {
     schemaVersion: value.schemaVersion,
     configVersion: identifier(value.configVersion, "configVersion"),
     gameplayVersion: identifier(value.gameplayVersion, "gameplayVersion"),
+    registryVersion: identifier(value.registryVersion, "registryVersion"),
     flags: Object.fromEntries(FLAG_NAMES.map((name) => [name, value.flags[name]])),
   };
   return deepFreeze(config);
@@ -73,13 +78,19 @@ export function gameplayFeatureContract(config = DEFAULT_RUNTIME_CONFIG) {
   return deepFreeze({
     gameplayVersion: validated.gameplayVersion,
     objectiveEvents: validated.flags.objectiveEvents,
+    squadSynergies: validated.flags.squadSynergies,
+    registryVersion: validated.registryVersion,
   });
 }
 
 export function validateGameplayFeatureContract(value = gameplayFeatureContract()) {
-  exactKeys(value, ["gameplayVersion", "objectiveEvents"], "gameplay feature contract");
+  exactKeys(value, ["gameplayVersion", "objectiveEvents", "squadSynergies", "registryVersion"], "gameplay feature contract");
   if (typeof value.objectiveEvents !== "boolean") throw new TypeError("objectiveEvents must be boolean");
-  return deepFreeze({ gameplayVersion: identifier(value.gameplayVersion, "gameplayVersion"), objectiveEvents: value.objectiveEvents });
+  if (typeof value.squadSynergies !== "boolean") throw new TypeError("squadSynergies must be boolean");
+  return deepFreeze({
+    gameplayVersion: identifier(value.gameplayVersion, "gameplayVersion"), objectiveEvents: value.objectiveEvents,
+    squadSynergies: value.squadSynergies, registryVersion: identifier(value.registryVersion, "registryVersion"),
+  });
 }
 
 export function runtimeConfigEndpoint(relayBase, pageUrl = globalThis.location?.href || "https://bensonperry.com/lastlight/") {
