@@ -34,6 +34,7 @@ const TELEMETRY_V1_FIELDS = new Set([
 const TELEMETRY_V2_FIELDS = new Set([...TELEMETRY_V1_FIELDS, "synergyIds", "synergyTotals"]);
 const TELEMETRY_V3_FIELDS = new Set([...TELEMETRY_V2_FIELDS, "participationTotals"]);
 const TELEMETRY_V4_FIELDS = new Set([...TELEMETRY_V3_FIELDS, "directorTotals"]);
+const TELEMETRY_V5_FIELDS = new Set([...TELEMETRY_V4_FIELDS, "mutationPackageId", "mutationTotals"]);
 const TELEMETRY_MAPS = new Set(["warehouse", "outskirts", "lab", "beachhead"]);
 const TELEMETRY_DIFFICULTIES = new Set(["story", "hard", "extreme"]);
 const TELEMETRY_OUTCOMES = new Set(["won", "lost"]);
@@ -77,6 +78,8 @@ const TELEMETRY_DIRECTOR_TOTAL_FIELDS = Object.freeze([
   "decisions", "peakSquadSize", "lane", "pincer", "split", "surround", "objective",
   "column", "flankPair", "wedge", "arc", "objectivePressure", "eliteEscorts",
 ]);
+const TELEMETRY_MUTATION_PACKAGES = new Set(["base-line", "contested-operations", "breach-cascade"]);
+const TELEMETRY_MUTATION_TOTAL_FIELDS = Object.freeze(["encounters", "clears", "failures", "objectiveCompletions", "surgeWaves"]);
 
 export function normalizeCode(value) {
   return String(value || "").toUpperCase().replace(/[^A-Z2-9]/g, "").slice(0, 6);
@@ -110,8 +113,8 @@ function telemetryExactKeys(value, expected, field) {
 
 export function sanitizeRunTelemetry(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new TypeError("Telemetry must be an object");
-  if (![1, 2, 3, 4].includes(value.schemaVersion)) throw new TypeError("Unsupported telemetry schema");
-  const allowedFields = value.schemaVersion === 4 ? TELEMETRY_V4_FIELDS : value.schemaVersion === 3 ? TELEMETRY_V3_FIELDS : value.schemaVersion === 2 ? TELEMETRY_V2_FIELDS : TELEMETRY_V1_FIELDS;
+  if (![1, 2, 3, 4, 5].includes(value.schemaVersion)) throw new TypeError("Unsupported telemetry schema");
+  const allowedFields = value.schemaVersion === 5 ? TELEMETRY_V5_FIELDS : value.schemaVersion === 4 ? TELEMETRY_V4_FIELDS : value.schemaVersion === 3 ? TELEMETRY_V3_FIELDS : value.schemaVersion === 2 ? TELEMETRY_V2_FIELDS : TELEMETRY_V1_FIELDS;
   for (const key of Object.keys(value)) {
     if (!allowedFields.has(key)) throw new TypeError(`Unexpected telemetry field: ${key}`);
   }
@@ -185,7 +188,7 @@ export function sanitizeRunTelemetry(value) {
     }));
     run.participationTotals = participationTotals;
   }
-  if (value.schemaVersion === 4) {
+  if (value.schemaVersion >= 4) {
     telemetryExactKeys(value.directorTotals, TELEMETRY_DIRECTOR_TOTAL_FIELDS, "directorTotals");
     const directorTotals = Object.fromEntries(TELEMETRY_DIRECTOR_TOTAL_FIELDS.map((field) => [
       field,
@@ -197,6 +200,15 @@ export function sanitizeRunTelemetry(value) {
     if ((directorTotals.decisions === 0) !== (directorTotals.peakSquadSize === 0) || (directorTotals.decisions > 0 && directorTotals.peakSquadSize < 2)) throw new TypeError("Director squad-size band does not reconcile");
     if (directorTotals.objectivePressure !== directorTotals.objective) throw new TypeError("Director objective totals do not reconcile");
     run.directorTotals = directorTotals;
+  }
+  if (value.schemaVersion === 5) {
+    if (!TELEMETRY_MUTATION_PACKAGES.has(value.mutationPackageId)) throw new TypeError("Invalid mutationPackageId");
+    telemetryExactKeys(value.mutationTotals, TELEMETRY_MUTATION_TOTAL_FIELDS, "mutationTotals");
+    const mutationTotals = Object.fromEntries(TELEMETRY_MUTATION_TOTAL_FIELDS.map((field) => [
+      field, telemetryNumber(value.mutationTotals[field], `mutationTotals.${field}`, 0, 1_000_000, true),
+    ]));
+    if (mutationTotals.clears + mutationTotals.failures !== mutationTotals.encounters) throw new TypeError("Mutation encounter totals do not reconcile");
+    Object.assign(run, { mutationPackageId: value.mutationPackageId, mutationTotals });
   }
   return run;
 }
@@ -275,6 +287,14 @@ function directorDataPoint(run) {
   };
 }
 
+function mutationDataPoint(run) {
+  return {
+    blobs: ["campaign-mutations.v1", run.build, run.map, run.difficulty, run.outcome, run.mutationPackageId],
+    doubles: TELEMETRY_MUTATION_TOTAL_FIELDS.map((field) => run.mutationTotals[field]),
+    indexes: ["lastlight-campaign-mutations-v1"],
+  };
+}
+
 async function handleTelemetry(request, env) {
   if (request.method !== "POST") {
     return Response.json({ error: "Method not allowed" }, { status: 405, headers: { ...corsHeaders(request), Allow: "POST" } });
@@ -303,7 +323,8 @@ async function handleTelemetry(request, env) {
   }
   env.RUN_TELEMETRY.writeDataPoint(telemetryDataPoint(run));
   if (run.schemaVersion >= 3) env.RUN_TELEMETRY.writeDataPoint(participationDataPoint(run));
-  if (run.schemaVersion === 4) env.RUN_TELEMETRY.writeDataPoint(directorDataPoint(run));
+  if (run.schemaVersion >= 4) env.RUN_TELEMETRY.writeDataPoint(directorDataPoint(run));
+  if (run.schemaVersion === 5) env.RUN_TELEMETRY.writeDataPoint(mutationDataPoint(run));
   return Response.json({ ok: true }, { status: 202, headers: { ...corsHeaders(request), "Cache-Control": "no-store" } });
 }
 

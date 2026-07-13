@@ -10,9 +10,9 @@ import { Simulation } from "../engine.js";
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
-test("the canonical movement contract has an explicit stable replay identity", () => {
-  assert.equal(BALANCE_VERSION, "2026.07.13-director.1");
-  assert.equal(BALANCE_HASH, "fnv1a32:fae5ab46");
+test("the canonical balance contract has an explicit stable replay identity", () => {
+  assert.equal(BALANCE_VERSION, "2026.07.13-mutations.1");
+  assert.equal(BALANCE_HASH, "fnv1a32:e796cf62");
   assert.equal(balanceFingerprint(BALANCE_CONFIG), BALANCE_HASH);
   assert.deepEqual(getBalanceManifest(), { balanceVersion: BALANCE_VERSION, balanceHash: BALANCE_HASH });
   assert.match(canonicalBalanceData(), /^\{"apex":/);
@@ -86,8 +86,8 @@ test("catalog data is a lossless view of the baseline contract", () => {
 test("versioned pacing and combat scalars match the authored identity release", () => {
   assert.deepEqual(BALANCE_CONFIG.difficulties, {
     story: { health: 1.2, attack: 1.3, spell: 1.2, gold: 1, spawn: 0.98, passiveRegen: 0.015 },
-    hard: { health: 3, attack: 2, spell: 1.5, gold: 1.5, spawn: 1.35, passiveRegen: 0 },
-    extreme: { health: 7, attack: 3, spell: 2, gold: 2.25, spawn: 1.68, passiveRegen: 0 },
+    hard: { health: 2.5, attack: 1.8, spell: 1.4, gold: 1.5, spawn: 1.22, passiveRegen: 0 },
+    extreme: { health: 4.5, attack: 2.4, spell: 1.7, gold: 2.25, spawn: 1.42, passiveRegen: 0 },
   });
   assert.deepEqual(BALANCE_CONFIG.enemyIdentity.spawnPhases.at(-1), {
     after: 0.68, weights: { mite: 25, hound: 25, spitter: 20, brute: 12, bomber: 18 },

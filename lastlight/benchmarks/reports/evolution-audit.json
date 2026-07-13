@@ -3,8 +3,8 @@
   "schemaVersion": 1,
   "contract": "actual-simulation-paired-evolution-v1",
   "versions": {
-    "balanceVersion": "2026.07.13-director.1",
-    "balanceHash": "fnv1a32:fae5ab46",
+    "balanceVersion": "2026.07.13-mutations.1",
+    "balanceHash": "fnv1a32:e796cf62",
     "evolutionContractHash": "fnv1a32:78b199d4",
     "tickRate": 60
   },
@@ -342,7 +342,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "355f795d345f77ca335f7637325f74a4",
+      "seed": "402fa53f3f2fa3ac422fa865412fa6d2",
       "base": {
         "variantId": "signature:zuri:base",
         "loadout": {
@@ -384,12 +384,12 @@
           "droneProtocol": 0,
           "impactIdentity": 56
         },
-        "finalHash": "d6b6ae25bcea7d52",
+        "finalHash": "a2302a3166e3a6ee",
         "ticks": 1081,
         "structure": {
           "peakEntities": 17,
           "maxWorkUnitsPerTick": 72,
-          "maxSnapshotBytes": 10882
+          "maxSnapshotBytes": 11639
         }
       },
       "evolved": {
@@ -433,12 +433,12 @@
           "droneProtocol": 0,
           "impactIdentity": 133
         },
-        "finalHash": "066e09ed5a5dc17e",
+        "finalHash": "a42c2b00efe4d444",
         "ticks": 1081,
         "structure": {
           "peakEntities": 24,
           "maxWorkUnitsPerTick": 135,
-          "maxSnapshotBytes": 13543
+          "maxSnapshotBytes": 14300
         }
       },
       "delta": {
@@ -497,7 +497,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "b6c3fa08b7c3fb9bb8c3fd2eb9c3fec1",
+      "seed": "3c4874323d4875c53a48710c3b48729f",
       "base": {
         "variantId": "signature:echo:base",
         "loadout": {
@@ -506,15 +506,15 @@
           "evolved": false
         },
         "common": {
-          "damage": 9322,
-          "hits": 79,
+          "damage": 8496,
+          "hits": 72,
           "uniqueTargets": 9,
           "activations": 9,
           "activationRate": 0.5,
           "projectiles": 67,
-          "effects": 11,
+          "effects": 10,
           "tasks": 13,
-          "maxEntities": 23
+          "maxEntities": 22
         },
         "capabilityMetrics": {
           "cadence": 0.496,
@@ -537,14 +537,14 @@
           "railAimAlignment": 0,
           "transitPush": 0,
           "droneProtocol": 0,
-          "impactIdentity": 91
+          "impactIdentity": 90
         },
-        "finalHash": "e5ec8c155a00b98c",
+        "finalHash": "554cc6cc89f61a7f",
         "ticks": 1081,
         "structure": {
-          "peakEntities": 23,
+          "peakEntities": 22,
           "maxWorkUnitsPerTick": 90,
-          "maxSnapshotBytes": 12424
+          "maxSnapshotBytes": 12911
         }
       },
       "evolved": {
@@ -555,13 +555,13 @@
           "evolved": true
         },
         "common": {
-          "damage": 11564,
-          "hits": 98,
+          "damage": 11446,
+          "hits": 97,
           "uniqueTargets": 9,
           "activations": 14,
           "activationRate": 0.778,
-          "projectiles": 104,
-          "effects": 30,
+          "projectiles": 102,
+          "effects": 24,
           "tasks": 21,
           "maxEntities": 26
         },
@@ -586,27 +586,27 @@
           "railAimAlignment": 0,
           "transitPush": 0,
           "droneProtocol": 0,
-          "impactIdentity": 155
+          "impactIdentity": 147
         },
-        "finalHash": "d206f30ecb7f7bf6",
+        "finalHash": "188a251ac5149f81",
         "ticks": 1081,
         "structure": {
           "peakEntities": 26,
-          "maxWorkUnitsPerTick": 153,
-          "maxSnapshotBytes": 14350
+          "maxWorkUnitsPerTick": 144,
+          "maxSnapshotBytes": 15192
         }
       },
       "delta": {
         "common": {
-          "damage": 2242,
-          "hits": 19,
+          "damage": 2950,
+          "hits": 25,
           "uniqueTargets": 0,
           "activations": 5,
           "activationRate": 0.278,
-          "projectiles": 37,
-          "effects": 19,
+          "projectiles": 35,
+          "effects": 14,
           "tasks": 8,
-          "maxEntities": 3
+          "maxEntities": 4
         },
         "capabilityMetrics": {
           "cadence": 0.23,
@@ -629,7 +629,7 @@
           "railAimAlignment": 0,
           "transitPush": 0,
           "droneProtocol": 0,
-          "impactIdentity": 64
+          "impactIdentity": 57
         }
       },
       "nonCosmeticDeltaCount": 9
@@ -652,7 +652,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "f97bc170fa7bc303fb7bc496fc7bc629",
+      "seed": "3e032e723f0330053c032b4c3d032cdf",
       "base": {
         "variantId": "signature:sola:base",
         "loadout": {
@@ -694,12 +694,12 @@
           "droneProtocol": 0,
           "impactIdentity": 44
         },
-        "finalHash": "0741756598578811",
+        "finalHash": "444ba8d85c27c4c7",
         "ticks": 1081,
         "structure": {
           "peakEntities": 16,
           "maxWorkUnitsPerTick": 45,
-          "maxSnapshotBytes": 11309
+          "maxSnapshotBytes": 12066
         }
       },
       "evolved": {
@@ -743,12 +743,12 @@
           "droneProtocol": 0,
           "impactIdentity": 48
         },
-        "finalHash": "6241460b64da86a9",
+        "finalHash": "fc8cc26890dfd356",
         "ticks": 1081,
         "structure": {
           "peakEntities": 14,
           "maxWorkUnitsPerTick": 45,
-          "maxSnapshotBytes": 12644
+          "maxSnapshotBytes": 13401
         }
       },
       "delta": {
@@ -807,7 +807,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "b624cf46b724d0d9b424cc20b524cdb3",
+      "seed": "e4d7fc34e5d7fdc7e6d7ff5ae7d800ed",
       "base": {
         "variantId": "signature:bront:base",
         "loadout": {
@@ -849,12 +849,12 @@
           "droneProtocol": 0,
           "impactIdentity": 10
         },
-        "finalHash": "e7d4393e635e5900",
+        "finalHash": "a0d2579ec6557d6d",
         "ticks": 1081,
         "structure": {
           "peakEntities": 19,
           "maxWorkUnitsPerTick": 81,
-          "maxSnapshotBytes": 10891
+          "maxSnapshotBytes": 11648
         }
       },
       "evolved": {
@@ -898,12 +898,12 @@
           "droneProtocol": 0,
           "impactIdentity": 35
         },
-        "finalHash": "575ea5bcc478d81f",
+        "finalHash": "c2b16afb85380e70",
         "ticks": 1081,
         "structure": {
           "peakEntities": 23,
           "maxWorkUnitsPerTick": 117,
-          "maxSnapshotBytes": 11570
+          "maxSnapshotBytes": 12327
         }
       },
       "delta": {
@@ -962,7 +962,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "4a5194cf4951933c4c5197f54b519662",
+      "seed": "3d13a2d53c13a1423b139faf3a139e1c",
       "base": {
         "variantId": "signature:fang:base",
         "loadout": {
@@ -1004,12 +1004,12 @@
           "droneProtocol": 0,
           "impactIdentity": 24
         },
-        "finalHash": "1eddc67cbd012596",
+        "finalHash": "749059e49b2c20b0",
         "ticks": 1081,
         "structure": {
           "peakEntities": 13,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 10315
+          "maxSnapshotBytes": 11072
         }
       },
       "evolved": {
@@ -1053,12 +1053,12 @@
           "droneProtocol": 0,
           "impactIdentity": 30
         },
-        "finalHash": "9cdfa4299925ba5c",
+        "finalHash": "1a981fb40d54e8f2",
         "ticks": 1081,
         "structure": {
           "peakEntities": 14,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 11477
+          "maxSnapshotBytes": 12234
         }
       },
       "delta": {
@@ -1118,7 +1118,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "98cbdff299cbe18596cbdccc97cbde5f",
+      "seed": "5f384e6060384ff36138518662385319",
       "base": {
         "variantId": "signature:gale:base",
         "loadout": {
@@ -1127,7 +1127,7 @@
           "evolved": false
         },
         "common": {
-          "damage": 4675,
+          "damage": 6587.5,
           "hits": 26,
           "uniqueTargets": 9,
           "activations": 5,
@@ -1135,7 +1135,7 @@
           "projectiles": 15,
           "effects": 2,
           "tasks": 0,
-          "maxEntities": 15
+          "maxEntities": 27
         },
         "capabilityMetrics": {
           "cadence": 10.345,
@@ -1160,12 +1160,12 @@
           "droneProtocol": 0,
           "impactIdentity": 17
         },
-        "finalHash": "9db909df0b416aad",
+        "finalHash": "d8fa8552c6cf2338",
         "ticks": 1141,
         "structure": {
-          "peakEntities": 15,
-          "maxWorkUnitsPerTick": 45,
-          "maxSnapshotBytes": 10656
+          "peakEntities": 27,
+          "maxWorkUnitsPerTick": 162,
+          "maxSnapshotBytes": 13399
         }
       },
       "evolved": {
@@ -1176,7 +1176,7 @@
           "evolved": true
         },
         "common": {
-          "damage": 5185,
+          "damage": 7097.5,
           "hits": 29,
           "uniqueTargets": 9,
           "activations": 6,
@@ -1184,7 +1184,7 @@
           "projectiles": 18,
           "effects": 3,
           "tasks": 0,
-          "maxEntities": 16
+          "maxEntities": 22
         },
         "capabilityMetrics": {
           "cadence": 10.345,
@@ -1209,12 +1209,12 @@
           "droneProtocol": 0,
           "impactIdentity": 21
         },
-        "finalHash": "a40503dec9b3f239",
+        "finalHash": "e9d47ac769c1925a",
         "ticks": 1141,
         "structure": {
-          "peakEntities": 16,
-          "maxWorkUnitsPerTick": 63,
-          "maxSnapshotBytes": 10749
+          "peakEntities": 22,
+          "maxWorkUnitsPerTick": 117,
+          "maxSnapshotBytes": 12456
         }
       },
       "delta": {
@@ -1227,7 +1227,7 @@
           "projectiles": 3,
           "effects": 1,
           "tasks": 0,
-          "maxEntities": 1
+          "maxEntities": -5
         },
         "capabilityMetrics": {
           "cadence": 0,
@@ -1273,7 +1273,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "6b0209be6c020b51690206986a02082b",
+      "seed": "4e8976a04f897833508979c651897b59",
       "base": {
         "variantId": "signature:rift:base",
         "loadout": {
@@ -1315,12 +1315,12 @@
           "droneProtocol": 0,
           "impactIdentity": 40
         },
-        "finalHash": "c6078fb537920a35",
+        "finalHash": "0f68745e55d86b54",
         "ticks": 1081,
         "structure": {
           "peakEntities": 14,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 10369
+          "maxSnapshotBytes": 11126
         }
       },
       "evolved": {
@@ -1364,12 +1364,12 @@
           "droneProtocol": 0,
           "impactIdentity": 54
         },
-        "finalHash": "6bb969ea8fa41810",
+        "finalHash": "bc11db1531914fd9",
         "ticks": 1081,
         "structure": {
           "peakEntities": 13,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 11927
+          "maxSnapshotBytes": 12684
         }
       },
       "delta": {
@@ -1428,7 +1428,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "87078657860784c48907897d880787ea",
+      "seed": "9765b30d9665b17a9565afe79465ae54",
       "base": {
         "variantId": "signature:nova:base",
         "loadout": {
@@ -1470,12 +1470,12 @@
           "droneProtocol": 0,
           "impactIdentity": 32
         },
-        "finalHash": "9f4e1cc6bd968f07",
+        "finalHash": "37b533e9976380e5",
         "ticks": 1081,
         "structure": {
           "peakEntities": 18,
           "maxWorkUnitsPerTick": 45,
-          "maxSnapshotBytes": 10985
+          "maxSnapshotBytes": 11742
         }
       },
       "evolved": {
@@ -1519,12 +1519,12 @@
           "droneProtocol": 0,
           "impactIdentity": 63
         },
-        "finalHash": "cb0340675d5dc120",
+        "finalHash": "d64c49ca7f599ee8",
         "ticks": 1081,
         "structure": {
           "peakEntities": 20,
           "maxWorkUnitsPerTick": 81,
-          "maxSnapshotBytes": 12118
+          "maxSnapshotBytes": 12875
         }
       },
       "delta": {
@@ -1583,7 +1583,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "69279ecc6a27a05f6b27a1f26c27a385",
+      "seed": "181dedf2191def85161deacc171dec5f",
       "base": {
         "variantId": "signature:vesper:base",
         "loadout": {
@@ -1625,12 +1625,12 @@
           "droneProtocol": 0,
           "impactIdentity": 24
         },
-        "finalHash": "bd5d2fa72e307b03",
+        "finalHash": "d453a1c7c17c5258",
         "ticks": 1081,
         "structure": {
           "peakEntities": 26,
           "maxWorkUnitsPerTick": 27,
-          "maxSnapshotBytes": 11494
+          "maxSnapshotBytes": 12251
         }
       },
       "evolved": {
@@ -1674,12 +1674,12 @@
           "droneProtocol": 0,
           "impactIdentity": 38
         },
-        "finalHash": "3eb29ad524495bc8",
+        "finalHash": "626e9863b7016726",
         "ticks": 1081,
         "structure": {
           "peakEntities": 36,
           "maxWorkUnitsPerTick": 45,
-          "maxSnapshotBytes": 12848
+          "maxSnapshotBytes": 13605
         }
       },
       "delta": {
@@ -1738,7 +1738,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "4ef445614df443ce4cf4423b4bf440a8",
+      "seed": "c8c6c443c7c6c2b0cac6c769c9c6c5d6",
       "base": {
         "variantId": "universal:uwu:base",
         "loadout": {
@@ -1780,12 +1780,12 @@
           "droneProtocol": 0,
           "impactIdentity": 100
         },
-        "finalHash": "26cade75b698aa67",
+        "finalHash": "c548226b57af0c85",
         "ticks": 1201,
         "structure": {
           "peakEntities": 14,
           "maxWorkUnitsPerTick": 27,
-          "maxSnapshotBytes": 9797
+          "maxSnapshotBytes": 10556
         }
       },
       "evolved": {
@@ -1796,8 +1796,8 @@
           "evolved": true
         },
         "common": {
-          "damage": 13774.8,
-          "hits": 206,
+          "damage": 13720.2,
+          "hits": 205,
           "uniqueTargets": 8,
           "activations": 54,
           "activationRate": 3,
@@ -1829,18 +1829,18 @@
           "droneProtocol": 0,
           "impactIdentity": 108
         },
-        "finalHash": "e53653ee9236dc1f",
+        "finalHash": "47815d762543afe8",
         "ticks": 1201,
         "structure": {
           "peakEntities": 16,
           "maxWorkUnitsPerTick": 45,
-          "maxSnapshotBytes": 12672
+          "maxSnapshotBytes": 13442
         }
       },
       "delta": {
         "common": {
-          "damage": 6130.8,
-          "hits": 108,
+          "damage": 6076.2,
+          "hits": 107,
           "uniqueTargets": 1,
           "activations": 4,
           "activationRate": 0.222,
@@ -1892,7 +1892,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "aa739ea3a9739d10ac73a1c9ab73a036",
+      "seed": "0b2b5bf90a2b5a66092b58d3082b5740",
       "base": {
         "variantId": "universal:slicers:base",
         "loadout": {
@@ -1934,12 +1934,12 @@
           "droneProtocol": 0,
           "impactIdentity": 1008
         },
-        "finalHash": "e9d1a20cea378f45",
+        "finalHash": "7463a43c886ddfba",
         "ticks": 1080,
         "structure": {
           "peakEntities": 25,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 12161
+          "maxSnapshotBytes": 12918
         }
       },
       "evolved": {
@@ -1983,12 +1983,12 @@
           "droneProtocol": 0,
           "impactIdentity": 1008
         },
-        "finalHash": "b64d47eb475edee2",
+        "finalHash": "f4945a47aab8cebd",
         "ticks": 1080,
         "structure": {
           "peakEntities": 25,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 12212
+          "maxSnapshotBytes": 12969
         }
       },
       "delta": {
@@ -2046,7 +2046,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "675513fb66551268695517216855158e",
+      "seed": "953e7569943e73d6933e7243923e70b0",
       "base": {
         "variantId": "universal:aura:base",
         "loadout": {
@@ -2088,12 +2088,12 @@
           "droneProtocol": 0,
           "impactIdentity": 0
         },
-        "finalHash": "ccdf03c134f7de10",
+        "finalHash": "cfaaa108af20fe6e",
         "ticks": 1080,
         "structure": {
           "peakEntities": 11,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 10010
+          "maxSnapshotBytes": 10767
         }
       },
       "evolved": {
@@ -2137,12 +2137,12 @@
           "droneProtocol": 0,
           "impactIdentity": 60
         },
-        "finalHash": "b370f59701e9bafc",
+        "finalHash": "ce491e0fcb7f0146",
         "ticks": 1080,
         "structure": {
           "peakEntities": 11,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 11400
+          "maxSnapshotBytes": 12157
         }
       },
       "delta": {
@@ -2200,7 +2200,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "7b81fd2e7c81fec17981fa087a81fb9b",
+      "seed": "f2f17314f3f174a7f4f1763af5f177cd",
       "base": {
         "variantId": "universal:mines:base",
         "loadout": {
@@ -2209,15 +2209,15 @@
           "evolved": false
         },
         "common": {
-          "damage": 10175,
-          "hits": 55,
+          "damage": 9990,
+          "hits": 54,
           "uniqueTargets": 9,
           "activations": 4,
           "activationRate": 0.222,
           "projectiles": 0,
           "effects": 28,
           "tasks": 0,
-          "maxEntities": 28
+          "maxEntities": 27
         },
         "capabilityMetrics": {
           "cadence": 0.222,
@@ -2242,12 +2242,12 @@
           "droneProtocol": 0,
           "impactIdentity": 28
         },
-        "finalHash": "abd839b5afcd6648",
+        "finalHash": "cb2bc276497654b2",
         "ticks": 1080,
         "structure": {
-          "peakEntities": 28,
+          "peakEntities": 27,
           "maxWorkUnitsPerTick": 135,
-          "maxSnapshotBytes": 12405
+          "maxSnapshotBytes": 13012
         }
       },
       "evolved": {
@@ -2258,15 +2258,15 @@
           "evolved": true
         },
         "common": {
-          "damage": 10360,
-          "hits": 56,
+          "damage": 10915,
+          "hits": 59,
           "uniqueTargets": 9,
           "activations": 4,
           "activationRate": 0.222,
           "projectiles": 0,
           "effects": 28,
           "tasks": 0,
-          "maxEntities": 28
+          "maxEntities": 30
         },
         "capabilityMetrics": {
           "cadence": 0.222,
@@ -2291,25 +2291,25 @@
           "droneProtocol": 0,
           "impactIdentity": 28
         },
-        "finalHash": "223cbf0c062563e7",
+        "finalHash": "db72f68a6f1e7bf7",
         "ticks": 1080,
         "structure": {
-          "peakEntities": 28,
+          "peakEntities": 30,
           "maxWorkUnitsPerTick": 144,
-          "maxSnapshotBytes": 15274
+          "maxSnapshotBytes": 16032
         }
       },
       "delta": {
         "common": {
-          "damage": 185,
-          "hits": 1,
+          "damage": 925,
+          "hits": 5,
           "uniqueTargets": 0,
           "activations": 0,
           "activationRate": 0,
           "projectiles": 0,
           "effects": 0,
           "tasks": 0,
-          "maxEntities": 0
+          "maxEntities": 3
         },
         "capabilityMetrics": {
           "cadence": 0,
@@ -2356,7 +2356,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "10c377bc11c3794f12c37ae213c37c75",
+      "seed": "ec59392eed593ac1ea593608eb59379b",
       "base": {
         "variantId": "universal:crossbow:base",
         "loadout": {
@@ -2365,15 +2365,15 @@
           "evolved": false
         },
         "common": {
-          "damage": 4621.75,
-          "hits": 34,
-          "uniqueTargets": 6,
+          "damage": 5519.5,
+          "hits": 40,
+          "uniqueTargets": 8,
           "activations": 7,
           "activationRate": 0.389,
           "projectiles": 49,
-          "effects": 18,
+          "effects": 14,
           "tasks": 0,
-          "maxEntities": 22
+          "maxEntities": 18
         },
         "capabilityMetrics": {
           "cadence": 0.389,
@@ -2396,14 +2396,14 @@
           "railAimAlignment": 0,
           "transitPush": 0,
           "droneProtocol": 0,
-          "impactIdentity": 67
+          "impactIdentity": 63
         },
-        "finalHash": "be4de4ffecc05af6",
+        "finalHash": "56766f8998824702",
         "ticks": 1260,
         "structure": {
-          "peakEntities": 22,
+          "peakEntities": 18,
           "maxWorkUnitsPerTick": 81,
-          "maxSnapshotBytes": 11149
+          "maxSnapshotBytes": 12131
         }
       },
       "evolved": {
@@ -2414,8 +2414,8 @@
           "evolved": true
         },
         "common": {
-          "damage": 11803.75,
-          "hits": 82,
+          "damage": 11737.25,
+          "hits": 83,
           "uniqueTargets": 6,
           "activations": 7,
           "activationRate": 0.389,
@@ -2447,25 +2447,25 @@
           "droneProtocol": 0,
           "impactIdentity": 55
         },
-        "finalHash": "3272d251dc6a90c9",
+        "finalHash": "e053bf745f94b839",
         "ticks": 1260,
         "structure": {
           "peakEntities": 21,
           "maxWorkUnitsPerTick": 72,
-          "maxSnapshotBytes": 13113
+          "maxSnapshotBytes": 13865
         }
       },
       "delta": {
         "common": {
-          "damage": 7182,
-          "hits": 48,
-          "uniqueTargets": 0,
+          "damage": 6217.75,
+          "hits": 43,
+          "uniqueTargets": -2,
           "activations": 0,
           "activationRate": 0,
           "projectiles": 0,
-          "effects": -12,
+          "effects": -8,
           "tasks": 0,
-          "maxEntities": -1
+          "maxEntities": 3
         },
         "capabilityMetrics": {
           "cadence": 0,
@@ -2488,10 +2488,10 @@
           "railAimAlignment": 0,
           "transitPush": 0,
           "droneProtocol": 0,
-          "impactIdentity": -12
+          "impactIdentity": -8
         }
       },
-      "nonCosmeticDeltaCount": 4
+      "nonCosmeticDeltaCount": 5
     },
     {
       "sourceKey": "universal:boomerang",
@@ -2511,7 +2511,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "540ca70a550ca89d520ca3e4530ca577",
+      "seed": "b2d9b418b3d9b5abb4d9b73eb5d9b8d1",
       "base": {
         "variantId": "universal:boomerang:base",
         "loadout": {
@@ -2553,12 +2553,12 @@
           "droneProtocol": 0,
           "impactIdentity": 21
         },
-        "finalHash": "b517b4a2b545a366",
+        "finalHash": "c70ed051edab77b8",
         "ticks": 1140,
         "structure": {
           "peakEntities": 17,
           "maxWorkUnitsPerTick": 36,
-          "maxSnapshotBytes": 10870
+          "maxSnapshotBytes": 11627
         }
       },
       "evolved": {
@@ -2602,12 +2602,12 @@
           "droneProtocol": 0,
           "impactIdentity": 21
         },
-        "finalHash": "8ed8197509c0d8b8",
+        "finalHash": "3894d6f592dcfe2a",
         "ticks": 1140,
         "structure": {
           "peakEntities": 17,
           "maxWorkUnitsPerTick": 36,
-          "maxSnapshotBytes": 13305
+          "maxSnapshotBytes": 14062
         }
       },
       "delta": {
@@ -2665,7 +2665,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "750ba7e0760ba973770bab06780bac99",
+      "seed": "e6591716e75918a9e45913f0e5591583",
       "base": {
         "variantId": "universal:rail:base",
         "loadout": {
@@ -2707,12 +2707,12 @@
           "droneProtocol": 0,
           "impactIdentity": 48
         },
-        "finalHash": "7e95d5617a9ba31a",
+        "finalHash": "070a0a7fd2cd20cd",
         "ticks": 1080,
         "structure": {
           "peakEntities": 20,
           "maxWorkUnitsPerTick": 63,
-          "maxSnapshotBytes": 11652
+          "maxSnapshotBytes": 12409
         }
       },
       "evolved": {
@@ -2756,12 +2756,12 @@
           "droneProtocol": 0,
           "impactIdentity": 48
         },
-        "finalHash": "bab458860a6040b8",
+        "finalHash": "c11b82280109900f",
         "ticks": 1080,
         "structure": {
           "peakEntities": 20,
           "maxWorkUnitsPerTick": 63,
-          "maxSnapshotBytes": 12965
+          "maxSnapshotBytes": 13722
         }
       },
       "delta": {
@@ -2819,7 +2819,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "702a078f6f2a05fc722a0ab5712a0922",
+      "seed": "ede16ce1ece16b4eebe169bbeae16828",
       "base": {
         "variantId": "universal:glove:base",
         "loadout": {
@@ -2861,12 +2861,12 @@
           "droneProtocol": 0,
           "impactIdentity": 49
         },
-        "finalHash": "ac267e51d2726da3",
+        "finalHash": "2a05daae88b8e0c5",
         "ticks": 1080,
         "structure": {
           "peakEntities": 21,
           "maxWorkUnitsPerTick": 72,
-          "maxSnapshotBytes": 11574
+          "maxSnapshotBytes": 12331
         }
       },
       "evolved": {
@@ -2910,12 +2910,12 @@
           "droneProtocol": 0,
           "impactIdentity": 104
         },
-        "finalHash": "665149a3a40d6742",
+        "finalHash": "20c34925bba817ea",
         "ticks": 1080,
         "structure": {
           "peakEntities": 28,
           "maxWorkUnitsPerTick": 135,
-          "maxSnapshotBytes": 13814
+          "maxSnapshotBytes": 14571
         }
       },
       "delta": {
@@ -2974,7 +2974,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "a4fe52d5a3fe5142a2fe4fafa1fe4e1c",
+      "seed": "e4414587e34143f4e64148ade541471a",
       "base": {
         "variantId": "universal:transit:base",
         "loadout": {
@@ -2983,9 +2983,9 @@
           "evolved": false
         },
         "common": {
-          "damage": 2870,
-          "hits": 7,
-          "uniqueTargets": 7,
+          "damage": 2460,
+          "hits": 6,
+          "uniqueTargets": 6,
           "activations": 2,
           "activationRate": 0.111,
           "projectiles": 0,
@@ -3016,12 +3016,12 @@
           "droneProtocol": 0,
           "impactIdentity": 2
         },
-        "finalHash": "d9b01aa96a9ffe98",
+        "finalHash": "b23c79bd9d784c0e",
         "ticks": 1080,
         "structure": {
           "peakEntities": 17,
           "maxWorkUnitsPerTick": 27,
-          "maxSnapshotBytes": 9668
+          "maxSnapshotBytes": 10197
         }
       },
       "evolved": {
@@ -3065,19 +3065,19 @@
           "droneProtocol": 0,
           "impactIdentity": 2
         },
-        "finalHash": "8c5350af4fcfcf40",
+        "finalHash": "9a146ecb4a62b49c",
         "ticks": 1080,
         "structure": {
           "peakEntities": 17,
           "maxWorkUnitsPerTick": 27,
-          "maxSnapshotBytes": 10939
+          "maxSnapshotBytes": 11696
         }
       },
       "delta": {
         "common": {
-          "damage": 1230,
-          "hits": 3,
-          "uniqueTargets": -2,
+          "damage": 1640,
+          "hits": 4,
+          "uniqueTargets": -1,
           "activations": 0,
           "activationRate": 0,
           "projectiles": 0,
@@ -3128,7 +3128,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "c7029d19c6029b86c50299f3c4029860",
+      "seed": "16b48f8315b48df018b492a917b49116",
       "base": {
         "variantId": "universal:ice:base",
         "loadout": {
@@ -3170,12 +3170,12 @@
           "droneProtocol": 0,
           "impactIdentity": 0
         },
-        "finalHash": "16a6236896daeffc",
+        "finalHash": "c7affe11fc0975d5",
         "ticks": 1081,
         "structure": {
           "peakEntities": 13,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 10030
+          "maxSnapshotBytes": 10787
         }
       },
       "evolved": {
@@ -3219,12 +3219,12 @@
           "droneProtocol": 0,
           "impactIdentity": 0
         },
-        "finalHash": "624296589002f472",
+        "finalHash": "007b742d84b68159",
         "ticks": 1081,
         "structure": {
           "peakEntities": 13,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 10028
+          "maxSnapshotBytes": 10785
         }
       },
       "delta": {
@@ -3282,7 +3282,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "1315803d12157eaa11157d1710157b84",
+      "seed": "89ec4f5388ec4dc08bec52798aec50e6",
       "base": {
         "variantId": "universal:annihilator:base",
         "loadout": {
@@ -3324,12 +3324,12 @@
           "droneProtocol": 0,
           "impactIdentity": 1
         },
-        "finalHash": "bce8181b7acec285",
+        "finalHash": "b022a282d8df476b",
         "ticks": 1081,
         "structure": {
           "peakEntities": 24,
           "maxWorkUnitsPerTick": 90,
-          "maxSnapshotBytes": 12016
+          "maxSnapshotBytes": 12773
         }
       },
       "evolved": {
@@ -3373,12 +3373,12 @@
           "droneProtocol": 0,
           "impactIdentity": 1
         },
-        "finalHash": "0c5aab6ae1e90889",
+        "finalHash": "10283b49b26783eb",
         "ticks": 1081,
         "structure": {
           "peakEntities": 24,
           "maxWorkUnitsPerTick": 90,
-          "maxSnapshotBytes": 12015
+          "maxSnapshotBytes": 12772
         }
       },
       "delta": {
@@ -3440,7 +3440,7 @@
         "accepted": true,
         "outcome": "pass"
       },
-      "seed": "aff0f71cb0f0f8afb1f0fa42b2f0fbd5",
+      "seed": "1896b1be1996b3511696ae981796b02b",
       "base": {
         "variantId": "universal:drone:base",
         "loadout": {
@@ -3482,12 +3482,12 @@
           "droneProtocol": 0,
           "impactIdentity": 72
         },
-        "finalHash": "471d31736cea11dc",
+        "finalHash": "431cea2a51edcba8",
         "ticks": 3245,
         "structure": {
           "peakEntities": 18,
           "maxWorkUnitsPerTick": 64,
-          "maxSnapshotBytes": 11415
+          "maxSnapshotBytes": 12172
         }
       },
       "evolved": {
@@ -3531,12 +3531,12 @@
           "droneProtocol": 1,
           "impactIdentity": 74
         },
-        "finalHash": "95c76e84333f7729",
+        "finalHash": "4b6043310e57806d",
         "ticks": 3245,
         "structure": {
           "peakEntities": 18,
           "maxWorkUnitsPerTick": 64,
-          "maxSnapshotBytes": 11822
+          "maxSnapshotBytes": 12579
         }
       },
       "delta": {

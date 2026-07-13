@@ -1,7 +1,7 @@
-import { RECOVERY_SIMULATION_VERSION } from "./recovery.js?v=20260713.13";
+import { RECOVERY_SIMULATION_VERSION } from "./recovery.js?v=20260713.14";
 
 export const HOST_MIGRATION_SCHEMA = "lastlight.host-migration.v1";
-export const HOST_MIGRATION_PROTOCOL_VERSION = 7;
+export const HOST_MIGRATION_PROTOCOL_VERSION = 8;
 export const MAX_AUTHORITY_EPOCH = 0x7fffffff;
 export const MAX_MIGRATION_CHECKPOINT_BYTES = 1_500_000;
 export const MIGRATION_CHECKPOINT_INTERVAL_TICKS = 60;
@@ -52,7 +52,7 @@ function assertAnonymousPayload(value) {
 export function validateMigrationCompatibility(value) {
   exactKeys(value, [
     "build", "balanceVersion", "balanceHash", "configVersion", "gameplayVersion", "objectiveEvents",
-    "squadSynergies", "sharedParticipationCredit", "downedActivity", "joinInProgressNormalization", "squadEnemyDirector", "mapMechanics", "registryVersion", "recoveryVersion",
+    "squadSynergies", "sharedParticipationCredit", "downedActivity", "joinInProgressNormalization", "squadEnemyDirector", "mapMechanics", "campaignMutations", "registryVersion", "recoveryVersion",
   ], "migration compatibility");
   if (typeof value.objectiveEvents !== "boolean") throw new TypeError("migration compatibility objectiveEvents is invalid");
   if (typeof value.squadSynergies !== "boolean") throw new TypeError("migration compatibility squadSynergies is invalid");
@@ -61,6 +61,7 @@ export function validateMigrationCompatibility(value) {
   if (typeof value.joinInProgressNormalization !== "boolean") throw new TypeError("migration compatibility joinInProgressNormalization is invalid");
   if (typeof value.squadEnemyDirector !== "boolean") throw new TypeError("migration compatibility squadEnemyDirector is invalid");
   if (typeof value.mapMechanics !== "boolean") throw new TypeError("migration compatibility mapMechanics is invalid");
+  if (typeof value.campaignMutations !== "boolean") throw new TypeError("migration compatibility campaignMutations is invalid");
   return Object.freeze({
     build: safeString(value.build, SAFE_VERSION, "migration build"),
     balanceVersion: safeString(value.balanceVersion, SAFE_VERSION, "migration balance version"),
@@ -74,6 +75,7 @@ export function validateMigrationCompatibility(value) {
     joinInProgressNormalization: value.joinInProgressNormalization,
     squadEnemyDirector: value.squadEnemyDirector,
     mapMechanics: value.mapMechanics,
+    campaignMutations: value.campaignMutations,
     registryVersion: safeString(value.registryVersion, SAFE_VERSION, "migration synergy registry version"),
     recoveryVersion: integer(value.recoveryVersion, RECOVERY_SIMULATION_VERSION, RECOVERY_SIMULATION_VERSION, "migration recovery version"),
   });

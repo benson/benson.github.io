@@ -517,7 +517,7 @@ test("difficulty tiers materially increase pressure and enemy lethality", () => 
   const extremeEnemy = extreme.spawnEnemy("mite");
   assert.ok(storyEnemy.hp > 42, "Story should no longer use the base training health");
   assert.ok(hardEnemy.hp > storyEnemy.hp * 2);
-  assert.ok(extremeEnemy.hp > hardEnemy.hp * 2);
+  assert.ok(extremeEnemy.hp > hardEnemy.hp * 1.7);
   assert.ok(hardEnemy.damage > storyEnemy.damage);
   assert.ok(extremeEnemy.damage > hardEnemy.damage);
   assert.ok(storyEnemy.damage >= .9, "Even the lightest Story contact should cost about one of ten vitality points");

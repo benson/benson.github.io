@@ -1,5 +1,5 @@
-export const RUNTIME_CONFIG_SCHEMA_VERSION = 8;
-export const RUNTIME_CONFIG_STORAGE_KEY = "lastlight:runtime-config:v8";
+export const RUNTIME_CONFIG_SCHEMA_VERSION = 9;
+export const RUNTIME_CONFIG_STORAGE_KEY = "lastlight:runtime-config:v9";
 export const SQUAD_SYNERGY_REGISTRY_VERSION = "lastlight.squad-synergy.v1";
 
 const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
@@ -14,14 +14,15 @@ const FLAG_NAMES = Object.freeze([
   "joinInProgressNormalization",
   "squadEnemyDirector",
   "mapMechanics",
+  "campaignMutations",
   "sharedSquadRunArchive",
 ]);
 const MAX_RUNTIME_CONFIG_BYTES = 4_096;
 
 export const DEFAULT_RUNTIME_CONFIG = deepFreeze({
   schemaVersion: RUNTIME_CONFIG_SCHEMA_VERSION,
-  configVersion: "release-2026.07.13.12",
-  gameplayVersion: "map-mechanics-v1",
+  configVersion: "release-2026.07.13.14",
+  gameplayVersion: "campaign-mutations-v1",
   registryVersion: SQUAD_SYNERGY_REGISTRY_VERSION,
   flags: {
     deterministicReplay: true,
@@ -38,6 +39,7 @@ export const DEFAULT_RUNTIME_CONFIG = deepFreeze({
     joinInProgressNormalization: true,
     squadEnemyDirector: true,
     mapMechanics: true,
+    campaignMutations: true,
     sharedSquadRunArchive: true,
   },
 });
@@ -96,12 +98,13 @@ export function gameplayFeatureContract(config = DEFAULT_RUNTIME_CONFIG) {
     joinInProgressNormalization: validated.flags.joinInProgressNormalization,
     squadEnemyDirector: validated.flags.squadEnemyDirector,
     mapMechanics: validated.flags.mapMechanics,
+    campaignMutations: validated.flags.campaignMutations,
     registryVersion: validated.registryVersion,
   });
 }
 
 export function validateGameplayFeatureContract(value = gameplayFeatureContract()) {
-  exactKeys(value, ["gameplayVersion", "objectiveEvents", "squadSynergies", "sharedParticipationCredit", "downedActivity", "joinInProgressNormalization", "squadEnemyDirector", "mapMechanics", "registryVersion"], "gameplay feature contract");
+  exactKeys(value, ["gameplayVersion", "objectiveEvents", "squadSynergies", "sharedParticipationCredit", "downedActivity", "joinInProgressNormalization", "squadEnemyDirector", "mapMechanics", "campaignMutations", "registryVersion"], "gameplay feature contract");
   if (typeof value.objectiveEvents !== "boolean") throw new TypeError("objectiveEvents must be boolean");
   if (typeof value.squadSynergies !== "boolean") throw new TypeError("squadSynergies must be boolean");
   if (typeof value.sharedParticipationCredit !== "boolean") throw new TypeError("sharedParticipationCredit must be boolean");
@@ -109,10 +112,11 @@ export function validateGameplayFeatureContract(value = gameplayFeatureContract(
   if (typeof value.joinInProgressNormalization !== "boolean") throw new TypeError("joinInProgressNormalization must be boolean");
   if (typeof value.squadEnemyDirector !== "boolean") throw new TypeError("squadEnemyDirector must be boolean");
   if (typeof value.mapMechanics !== "boolean") throw new TypeError("mapMechanics must be boolean");
+  if (typeof value.campaignMutations !== "boolean") throw new TypeError("campaignMutations must be boolean");
   return deepFreeze({
     gameplayVersion: identifier(value.gameplayVersion, "gameplayVersion"), objectiveEvents: value.objectiveEvents,
     squadSynergies: value.squadSynergies, sharedParticipationCredit: value.sharedParticipationCredit, downedActivity: value.downedActivity,
-    joinInProgressNormalization: value.joinInProgressNormalization, squadEnemyDirector: value.squadEnemyDirector, mapMechanics: value.mapMechanics,
+    joinInProgressNormalization: value.joinInProgressNormalization, squadEnemyDirector: value.squadEnemyDirector, mapMechanics: value.mapMechanics, campaignMutations: value.campaignMutations,
     registryVersion: identifier(value.registryVersion, "registryVersion"),
   });
 }

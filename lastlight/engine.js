@@ -1,11 +1,11 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
-} from "./data.js?v=20260713.13";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260713.13";
+} from "./data.js?v=20260713.14";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260713.14";
 import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.5";
-import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260713.13";
-import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260713.13";
+import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260713.14";
+import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260713.14";
 import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260713.1";
 import { MAX_CORRIDOR_CANDIDATES, accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget, orderEntitiesByDistance } from "./projectile-decisions.js?v=20260713.1";
 import { selectEliteAffixes, selectSpawnArchetype, spawnPhaseAt } from "./enemy-archetypes.js?v=20260713.1";
@@ -28,11 +28,16 @@ import {
   beginDownedActivity, createDownedActivityState, removeDownedActivity, triggerDownedSupport,
   validateDownedActivityState,
 } from "./downed-activity.js?v=20260713.9";
-import { generateJoinPackage, JOIN_IN_PROGRESS_REGISTRY, joinPackageUpgradeIds, transitionJoinPackage } from "./join-in-progress.js?v=20260713.13";
+import { generateJoinPackage, JOIN_IN_PROGRESS_REGISTRY, joinPackageUpgradeIds, transitionJoinPackage } from "./join-in-progress.js?v=20260713.14";
 import {
   DIRECTOR_APPROACHES, DIRECTOR_FORMATIONS, createSquadDirectorState, planSquadFormation, validateSquadDirectorState,
-} from "./enemy-director.js?v=20260713.13";
-import { mapMechanicFrame, mapSpawnWeights, pointInMapMechanic } from "./map-mechanics.js?v=20260713.13";
+} from "./enemy-director.js?v=20260713.14";
+import { mapMechanicFrame, mapSpawnWeights, pointInMapMechanic } from "./map-mechanics.js?v=20260713.14";
+import {
+  CAMPAIGN_MUTATIONS, campaignMutationDefinition, campaignMutationObjectiveCompleted, campaignMutationWaveStarted,
+  cancelCampaignMutationEncounter, consumeCampaignMutationEncounter, createCampaignMutationState,
+  resolveCampaignMutationEncounter, validateCampaignMutationState,
+} from "./campaign-mutations.js?v=20260713.14";
 
 const BALANCE = getBalanceConfig();
 
@@ -69,7 +74,7 @@ function compactPoint(e) {
   return result;
 }
 
-const RECOVERY_STATE_VERSION = 9;
+const RECOVERY_STATE_VERSION = 10;
 const RECOVERY_SCALARS = [
   "tick", "time", "remaining", "stage", "paused", "pauseReason", "wave", "teamXP", "level", "xpNeed", "kills", "gold",
   "spawnClock", "nextElite", "nextMiniBoss", "nextTreasure", "nextRelayBall", "objectiveIndex", "bossElapsed", "bossPhase", "enraged",
@@ -343,6 +348,7 @@ export class Simulation {
     this.joinInProgressNormalization = features.joinInProgressNormalization;
     this.squadEnemyDirector = features.squadEnemyDirector;
     this.mapMechanics = features.mapMechanics;
+    this.campaignMutations = features.campaignMutations;
     this.synergyRegistryVersion = features.registryVersion;
     if (this.squadSynergies && this.synergyRegistryVersion !== SQUAD_SYNERGY_SCHEMA) throw new RangeError(`Unsupported squad synergy registry: ${this.synergyRegistryVersion}`);
     this.duration = Number(config.duration) || BALANCE.core.defaultDurationSeconds;
@@ -385,6 +391,7 @@ export class Simulation {
     this.feathers = [];
     this.machine = { x: 0, y: 0, charge: 0, cooldown: 0, active: 0 };
     this.directorState = createSquadDirectorState(this.squadEnemyDirector);
+    this.mutationState = createCampaignMutationState(this.difficulty.id, this.campaignMutations);
     this.bossElapsed = 0;
     this.bossPhase = 1;
     this.enraged = false;
@@ -627,6 +634,7 @@ export class Simulation {
       this.wave = Math.min(BALANCE.waves.survivalWaveCount - 1, Math.floor((this.time / this.duration) * BALANCE.waves.survivalWaveCount));
       this.updateSpawns(dt);
       this.updateScheduledEvents();
+      this.updateCampaignMutations();
       if (this.remaining <= 0) this.spawnBoss();
     } else if (this.stage === "boss") {
       this.bossElapsed += dt;
@@ -927,6 +935,18 @@ export class Simulation {
     };
   }
 
+  mutationTelemetry() {
+    const state = this.mutationState;
+    return {
+      packageId: state.packageId,
+      encounters: state.encounterSequence,
+      clears: state.resolvedEncounters,
+      failures: Math.max(0, state.encounterSequence - state.resolvedEncounters),
+      objectiveCompletions: state.objectiveCompletions,
+      surgeWaves: state.triggeredSurgeWaves.length,
+    };
+  }
+
   playerStat(p, stat) {
     return playerCombatStat(p, stat);
   }
@@ -981,6 +1001,60 @@ export class Simulation {
     }
   }
 
+  completeCampaignObjective(kind) {
+    const previousPressure = this.mutationState.pressureAdvanceTicks;
+    this.mutationState = campaignMutationObjectiveCompleted(this.mutationState, { tick: this.tick, objectiveKind: kind });
+    const pending = this.mutationState.pending;
+    if (pending?.triggerTick === this.tick) {
+      const definition = campaignMutationDefinition(this.difficulty.id);
+      this.pushEvent("danger", `${definition.name}: retaliation inbound`, `${Math.ceil((pending.dueTick - this.tick) / SIMULATION_TICK_RATE)} seconds · clear it for a named reward`, { mutationId: pending.id, mutationKind: pending.kind });
+    }
+    if (this.mutationState.pressureAdvanceTicks > previousPressure) this.pushEvent("danger", "Operation pressure advanced", "The next map-mechanic cycle arrives sooner", { mutationPackageId: this.mutationState.packageId });
+  }
+
+  mutationApproachPoints(count) {
+    const approach = CAMPAIGN_MUTATIONS.maps[this.map.id].approach;
+    const anchors = {
+      "east-freight": { x: WORLD.width / 2 - 120, y: 0 }, "west-checkpoint": { x: -WORLD.width / 2 + 120, y: 0 },
+      "north-cryo": { x: 0, y: -WORLD.height / 2 + 120 }, "south-seawall": { x: 0, y: WORLD.height / 2 - 120 },
+    };
+    const anchor = anchors[approach], vertical = Math.abs(anchor.x) > 0;
+    return Array.from({ length: count }, (_, index) => {
+      const offset = (index - (count - 1) / 2) * 92;
+      return this.safeDirectorSpawn({ x: anchor.x + (vertical ? 0 : offset), y: anchor.y + (vertical ? offset : 0) }, { x: 0, y: 0 });
+    });
+  }
+
+  updateCampaignMutations() {
+    if (!this.mutationState?.enabled || this.stage !== "running" || this.pendingChoices) return;
+    const humanWave = this.wave + 1;
+    this.mutationState = campaignMutationWaveStarted(this.mutationState, { tick: this.tick, wave: humanWave });
+    if (this.mutationState.pending?.triggerTick === this.tick && this.mutationState.pending.kind === "surge") {
+      this.pushEvent("danger", "Breach Cascade: surge inbound", `${Math.ceil((this.mutationState.pending.dueTick - this.tick) / SIMULATION_TICK_RATE)} seconds · elite formation approaching`, { mutationId: this.mutationState.pending.id, mutationKind: "surge" });
+    }
+    if (this.mutationState.active) {
+      const living = this.enemies.some((enemy) => !enemy.dead && enemy.campaignMutationId === this.mutationState.active.id);
+      if (!living) {
+        const active = this.mutationState.active, definition = campaignMutationDefinition(this.difficulty.id);
+        const reward = active.kind === "surge" ? definition.surge : definition.objectiveRetaliation;
+        this.gold += reward.rewardGold;
+        for (let index = 0; index < reward.rewardCards; index++) this.drops.push({ id: this.nextGameplayId("d"), type: "card", x: (index - (reward.rewardCards - 1) / 2) * 40, y: 0, radius: 18 });
+        this.mutationState = resolveCampaignMutationEncounter(this.mutationState, active.id, this.tick);
+        this.pushEvent("upgrade", `${active.kind === "surge" ? "Surge" : "Retaliation"} cleared`, `${reward.rewardGold} gold${reward.rewardCards ? ` · ${reward.rewardCards} access card` : ""}`, { mutationId: active.id, mutationKind: active.kind, mutationCleared: true });
+      }
+      return;
+    }
+    const consumed = consumeCampaignMutationEncounter(this.mutationState, this.tick);
+    this.mutationState = consumed.state;
+    if (!consumed.encounter) return;
+    const definition = campaignMutationDefinition(this.difficulty.id), tuning = consumed.encounter.kind === "surge" ? definition.surge : definition.objectiveRetaliation;
+    const packageTypes = CAMPAIGN_MUTATIONS.maps[this.map.id][consumed.encounter.kind], points = this.mutationApproachPoints(tuning.enemyCount);
+    for (let index = 0; index < tuning.enemyCount; index++) this.spawnEnemy(packageTypes[index % packageTypes.length], {
+      ...points[index], elite: index < tuning.eliteCount, campaignMutationId: consumed.encounter.id, campaignMutationKind: consumed.encounter.kind,
+    });
+    this.pushEvent("danger", `${consumed.encounter.kind === "surge" ? "Surge" : "Retaliation"} engaged`, `${tuning.enemyCount} hostiles · ${tuning.rewardGold} gold reward`, { mutationId: consumed.encounter.id, mutationKind: consumed.encounter.kind });
+  }
+
   safeDirectorSpawn(point, target) {
     const dx = point.x - target.x, dy = point.y - target.y, radius = Math.max(1, Math.hypot(dx, dy)), angle = Math.atan2(dy, dx);
     for (const radialOffset of [0, 60, -60, 120, -120, 180]) {
@@ -1016,6 +1090,7 @@ export class Simulation {
       behaviorState: "approach", behaviorStartedTick: this.tick, behaviorUntilTick: this.tick,
       abilityReadyTick: this.tick, actionSequence: 0, attackAngle: 0, behaviorHitIds: [], affixIds: [], affixState: {},
       ...(options.directorApproach ? { directorApproach: options.directorApproach, directorFormation: options.directorFormation || "column" } : {}),
+      ...(options.campaignMutationId ? { campaignMutationId: options.campaignMutationId, campaignMutationKind: options.campaignMutationKind } : {}),
     };
     if (elite) {
       const affixRng = SeededRng.fromHex(this.seed).fork("elite-affix-v1").fork(enemy.id);
@@ -1135,7 +1210,7 @@ export class Simulation {
         }
         ball.done = true; this.gold += Math.round(70 * this.difficulty.gold); this.teamXP += this.xpNeed * .8;
         this.drops.push({ id: this.nextGameplayId("d"), type: "card", x: ball.targetX, y: ball.targetY, radius: 18 });
-        this.applyBoon(this.pick(BOONS)); this.pushEvent("upgrade", "Relay delivered", "Gold, data, and an access card secured");
+        this.applyBoon(this.pick(BOONS)); this.completeCampaignObjective("relay"); this.pushEvent("upgrade", "Relay delivered", "Gold, data, and an access card secured");
       } else if (ball.life <= 0) {
         if (this.participationState?.enabled) this.participationState = removeObjectiveCredit(this.participationState, ball.id);
         ball.done = true; this.pushEvent("danger", "Relay lost", "The destination window closed");
@@ -1166,6 +1241,7 @@ export class Simulation {
           });
         }
         objective.done = true;
+        this.completeCampaignObjective(objective.kind);
         if (objective.kind === "uplink") this.applyBoon(this.pick(BOONS));
         else {
           this.teamXP += this.xpNeed * .75;
@@ -1196,7 +1272,7 @@ export class Simulation {
   updateMapMechanic(dt) {
     for (const player of this.players) player.mapMoveMultiplier = 1;
     if (!this.mapMechanics || this.stage !== "running") return;
-    const frame = mapMechanicFrame(this.map.id, this.tick, { worldWidth: WORLD.width, worldHeight: WORLD.height });
+    const frame = mapMechanicFrame(this.map.id, this.tick + (this.mutationState?.pressureAdvanceTicks || 0), { worldWidth: WORLD.width, worldHeight: WORLD.height });
     if (!frame.active) return;
     const effect = frame.effect, hitKey = `${frame.mapId}:${frame.cycle}`;
     for (const player of this.players) {
@@ -2932,6 +3008,10 @@ export class Simulation {
   }
 
   spawnBoss() {
+    if (this.mutationState?.enabled) {
+      this.enemies = this.enemies.filter((enemy) => !enemy.campaignMutationId);
+      this.mutationState = cancelCampaignMutationEncounter(this.mutationState);
+    }
     this.stage = "boss"; this.remaining = 0; this.enemies = this.enemies.filter((enemy) => enemy.elite || enemy.miniboss);
     const boss = BALANCE.waves.boss;
     const health = boss.baseHealth * this.difficulty.health * (1 + (this.players.length - 1) * boss.healthPerAdditionalPlayer);
@@ -2987,13 +3067,14 @@ export class Simulation {
       features: {
         gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents,
         squadSynergies: this.squadSynergies, sharedParticipationCredit: this.sharedParticipationCredit, downedActivity: this.downedActivity,
-        joinInProgressNormalization: this.joinInProgressNormalization, squadEnemyDirector: this.squadEnemyDirector, mapMechanics: this.mapMechanics, registryVersion: this.synergyRegistryVersion,
+        joinInProgressNormalization: this.joinInProgressNormalization, squadEnemyDirector: this.squadEnemyDirector, mapMechanics: this.mapMechanics, campaignMutations: this.campaignMutations, registryVersion: this.synergyRegistryVersion,
       },
       tick: this.tick,
       rng: { gameplay: this.gameplayRng.snapshot(), cosmetic: this.cosmeticRng.snapshot() },
       sequences: { gameplay: this.gameplaySequence, cosmetic: this.cosmeticSequence, event: this.eventSequence },
       tasks: this.tasks.map((task) => ({ id: task.id, dueTick: task.dueTick, kind: task.kind, payload: { ...task.payload }, ...(task.sourceId ? { sourceId: task.sourceId, variantId: task.variantId } : {}) })),
       directorState: structuredClone(this.directorState),
+      mutationState: structuredClone(this.mutationState),
     };
   }
 
@@ -3036,7 +3117,7 @@ export class Simulation {
         seed: this.seed, balanceVersion: this.balanceVersion, balanceHash: this.balanceHash,
         gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents,
         squadSynergies: this.squadSynergies, sharedParticipationCredit: this.sharedParticipationCredit, downedActivity: this.downedActivity,
-        joinInProgressNormalization: this.joinInProgressNormalization, squadEnemyDirector: this.squadEnemyDirector, mapMechanics: this.mapMechanics, registryVersion: this.synergyRegistryVersion,
+        joinInProgressNormalization: this.joinInProgressNormalization, squadEnemyDirector: this.squadEnemyDirector, mapMechanics: this.mapMechanics, campaignMutations: this.campaignMutations, registryVersion: this.synergyRegistryVersion,
         map: this.map.id, difficulty: this.difficulty.id, duration: this.duration,
       },
       rng: { gameplay: this.gameplayRng.snapshot(), cosmetic: this.cosmeticRng.snapshot() },
@@ -3054,12 +3135,13 @@ export class Simulation {
       participationState: serializeRecoveryValue(this.participationState, playerIds),
       downedState: serializeRecoveryValue(this.downedState, playerIds),
       directorState: structuredClone(this.directorState),
+      mutationState: structuredClone(this.mutationState),
     };
   }
 
   static fromRecoveryState(value, { playerIdsBySlot } = {}) {
     if (!value || typeof value !== "object" || Array.isArray(value) || value.version !== RECOVERY_STATE_VERSION) throw new TypeError("Unsupported recovery state");
-    const expected = ["version", "header", "rng", "sequences", "scalars", "machine", "players", "disconnectedPlayers", "runSlotsUsed", "lists", "pendingChoices", "choiceReady", "selectedChoices", "synergyState", "participationState", "downedState", "directorState"];
+    const expected = ["version", "header", "rng", "sequences", "scalars", "machine", "players", "disconnectedPlayers", "runSlotsUsed", "lists", "pendingChoices", "choiceReady", "selectedChoices", "synergyState", "participationState", "downedState", "directorState", "mutationState"];
     const actual = Object.keys(value).sort();
     if (actual.length !== expected.length || expected.sort().some((key, index) => key !== actual[index])) throw new TypeError("Recovery state has unexpected fields");
     const header = value.header;
@@ -3100,14 +3182,14 @@ export class Simulation {
       features: {
         gameplayVersion: header.gameplayVersion, objectiveEvents: header.objectiveEvents,
         squadSynergies: header.squadSynergies, sharedParticipationCredit: header.sharedParticipationCredit, downedActivity: header.downedActivity,
-        joinInProgressNormalization: header.joinInProgressNormalization, squadEnemyDirector: header.squadEnemyDirector, mapMechanics: header.mapMechanics, registryVersion: header.registryVersion,
+        joinInProgressNormalization: header.joinInProgressNormalization, squadEnemyDirector: header.squadEnemyDirector, mapMechanics: header.mapMechanics, campaignMutations: header.campaignMutations, registryVersion: header.registryVersion,
       },
     }, {
       seed: header.seed, balanceVersion: header.balanceVersion, balanceHash: header.balanceHash,
       features: {
         gameplayVersion: header.gameplayVersion, objectiveEvents: header.objectiveEvents,
         squadSynergies: header.squadSynergies, sharedParticipationCredit: header.sharedParticipationCredit, downedActivity: header.downedActivity,
-        joinInProgressNormalization: header.joinInProgressNormalization, squadEnemyDirector: header.squadEnemyDirector, mapMechanics: header.mapMechanics, registryVersion: header.registryVersion,
+        joinInProgressNormalization: header.joinInProgressNormalization, squadEnemyDirector: header.squadEnemyDirector, mapMechanics: header.mapMechanics, campaignMutations: header.campaignMutations, registryVersion: header.registryVersion,
       },
     });
     sim.gameplayRng = SeededRng.fromSnapshot(value.rng?.gameplay);
@@ -3121,6 +3203,8 @@ export class Simulation {
     sim.eventSequence = value.sequences.event;
     sim.machine = deserializeRecoveryValue(value.machine, restoredPlayerIds);
     sim.directorState = validateSquadDirectorState(value.directorState);
+    if (!validateCampaignMutationState(value.mutationState) || value.mutationState.difficulty !== header.difficulty || value.mutationState.enabled !== Boolean(header.campaignMutations && header.difficulty !== "story")) throw new TypeError("Recovery campaign mutation state is invalid");
+    sim.mutationState = Object.freeze(structuredClone(value.mutationState));
     sim.players = value.players.map((stored) => {
       const restored = deserializeRecoveryValue(stored, restoredPlayerIds);
       validateDraftState(restored.draft);
@@ -3244,7 +3328,7 @@ export class Simulation {
       features: {
         gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents,
         squadSynergies: this.squadSynergies, sharedParticipationCredit: this.sharedParticipationCredit, downedActivity: this.downedActivity,
-        joinInProgressNormalization: this.joinInProgressNormalization, squadEnemyDirector: this.squadEnemyDirector, mapMechanics: this.mapMechanics, registryVersion: this.synergyRegistryVersion,
+        joinInProgressNormalization: this.joinInProgressNormalization, squadEnemyDirector: this.squadEnemyDirector, mapMechanics: this.mapMechanics, campaignMutations: this.campaignMutations, registryVersion: this.synergyRegistryVersion,
       },
       tick: this.tick, determinism: this.deterministicState(),
       map: this.map.id, difficulty: this.difficulty.id, duration: this.duration, time: Math.round(this.time * 10) / 10,
@@ -3259,7 +3343,9 @@ export class Simulation {
       synergyState: structuredClone(this.synergyState), synergyTelemetry: this.synergyTelemetry(),
       participationState: structuredClone(this.participationState), participationTelemetry: this.participationTelemetry(),
       downedState: structuredClone(this.downedState),
+      mutationState: structuredClone(this.mutationState),
       ...(this.directorState.sequence > 0 ? { directorTelemetry: this.directorTelemetry() } : {}),
+      mutationTelemetry: this.mutationTelemetry(),
       pendingChoices: this.pendingChoices, choiceReady: this.choiceReady, selectedChoices: this.selectedChoices, events: this.events.slice(-5),
     };
   }
