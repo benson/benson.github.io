@@ -226,6 +226,30 @@ test("display and accessibility settings are persistent and reachable while wait
   assert.doesNotMatch(css.match(/\.quality-shortcut \{[^}]+\}/s)?.[0] || "", /transition:\s*all/);
 });
 
+test("mobile reuses the visible E and R slots instead of rendering duplicate cast buttons", () => {
+  assert.doesNotMatch(html, /id="touch-[er]"/);
+  assert.match(html, /id="move-stick"/);
+  assert.doesNotMatch(css, /#touch-e|#touch-r|\.touch-controls button/);
+  assert.match(game, /\[\["e-slot", "e"\], \["r-slot", "r"\]\]/);
+  assert.match(game, /matchMedia\("\(pointer: coarse\)"\)\.matches/);
+  assert.match(game, /node\.setAttribute\("role", "button"\)/);
+  assert.match(game, /node\.setAttribute\("aria-keyshortcuts", slot\.toUpperCase\(\)\)/);
+  assert.match(game, /!\["Enter", " "\]\.includes\(event\.key\)/);
+  assert.match(game, /node\.setAttribute\("aria-disabled", String\(!unlocked \|\| cooldown > \.04\)\)/);
+  assert.equal((game.match(/node\.getAttribute\("aria-disabled"\) === "true"/g) || []).length, 2);
+});
+
+test("draft intelligence remains visible for local and teammate locked choices", () => {
+  assert.match(game, /draftForecastIdentity\(game\)/);
+  assert.match(game, /forecastDraftChoice\(choice, player, \{ gold: game\.gold, gameLevel: game\.level \}\)/);
+  assert.match(game, /buildcraftTagsMarkup\(buildcraft, 2\)/);
+  assert.match(game, /forecastConsequencesMarkup\(forecast\)/);
+  assert.match(game, /ready \? `aria-disabled="true"`/);
+  assert.doesNotMatch(game, /ready \? "disabled"/);
+  assert.match(css, /\.buildcraft-tags/);
+  assert.match(css, /\.forecast-consequences/);
+});
+
 test("compatible local run recovery is explicit, privacy-safe, and resumes paused", () => {
   for (const id of ["recovery-offer", "recovery-title", "recovery-copy", "recovery-resume", "recovery-discard"]) assert.match(html, new RegExp(`id="${id}"`));
   assert.match(game, /Simulation\.fromRecoveryState\(checkpoint\.simulation\)/);

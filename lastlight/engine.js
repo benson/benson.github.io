@@ -1,13 +1,13 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
-} from "./data.js?v=20260712.8";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260712.8";
+} from "./data.js?v=20260712.9";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260712.9";
 import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.5";
 import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260711.5";
-import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260712.8";
-import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260712.8";
-import { MAX_CORRIDOR_CANDIDATES, accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget, orderEntitiesByDistance } from "./projectile-decisions.js?v=20260712.8";
+import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260712.9";
+import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260712.9";
+import { MAX_CORRIDOR_CANDIDATES, accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget, orderEntitiesByDistance } from "./projectile-decisions.js?v=20260712.9";
 
 const BALANCE = getBalanceConfig();
 
@@ -193,6 +193,8 @@ export function previewPlayerUpgrade(player, choice) {
   };
   return applyPlayerUpgrade(preview, choice);
 }
+
+export const UPGRADE_GOLD_REWARD = 10;
 
 export class Simulation {
   constructor(config = {}, options = {}) {
@@ -1985,7 +1987,7 @@ export class Simulation {
 
   applyUpgrade(p, choice) {
     applyPlayerUpgrade(p, choice);
-    this.gold += 10;
+    this.gold += UPGRADE_GOLD_REWARD;
   }
 
   maybeResumeFromChoices() {

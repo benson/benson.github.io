@@ -1,13 +1,13 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260712.8";
-import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260712.8";
-import { Renderer } from "./render.js?v=20260712.8";
-import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260712.8";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260712.9";
+import { Simulation, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260712.9";
+import { Renderer } from "./render.js?v=20260712.9";
+import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260712.9";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
 import { getThemeAsset, getThemeMaterial } from "./themes/lastlight.js?v=20260712.1";
 import { submitRunTelemetry } from "./telemetry.js?v=20260711.5";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260712.8";
-import { BALANCE_HASH, BALANCE_VERSION } from "./balance-config.js?v=20260712.8";
+import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260712.9";
+import { BALANCE_HASH, BALANCE_VERSION } from "./balance-config.js?v=20260712.9";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
 import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260712.1";
 import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260711.5";
@@ -15,20 +15,21 @@ import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settings
 import { clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260711.5";
 import { GuestInputSequenceTracker, HostInputSequenceGate, createSnapshotMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260711.5";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260711.5";
-import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260712.8";
-import { advancePlayerMovement } from "./movement.js?v=20260712.8";
+import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260712.9";
+import { advancePlayerMovement } from "./movement.js?v=20260712.9";
 import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
-import { DynamicAudioMixer } from "./audio-mix.js?v=20260712.8";
-import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260712.8";
-import { enemyAudioCueName, newEntities, spatialAudioPan, weaponAudioCueName, weaponTimerActivations } from "./audio-events.js?v=20260712.8";
-import { FUNNY_VOICE_MIN_INTERVAL_MS, audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260712.8";
-import { buildUpgradeComparison, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260712.8";
-import { getWeaponEvolution } from "./weapon-evolution.js?v=20260712.8";
+import { DynamicAudioMixer } from "./audio-mix.js?v=20260712.9";
+import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260712.9";
+import { enemyAudioCueName, newEntities, spatialAudioPan, weaponAudioCueName, weaponTimerActivations } from "./audio-events.js?v=20260712.9";
+import { FUNNY_VOICE_MIN_INTERVAL_MS, audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260712.9";
+import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260712.9";
+import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260712.9";
+import { getWeaponEvolution } from "./weapon-evolution.js?v=20260712.9";
 import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260712.1";
 import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260712.1";
-import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260712.8";
-import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260712.8";
-import { reconcileActiveBuffs } from "./active-buffs.js?v=20260712.8";
+import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260712.9";
+import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260712.9";
+import { reconcileActiveBuffs } from "./active-buffs.js?v=20260712.9";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -37,7 +38,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.12.8";
+const BUILD = "2026.07.12.9";
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
 const systemReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false;
 const initialQualitySettings = (() => {
@@ -129,6 +130,7 @@ const state = {
   hostPreviousMotion: null, inputMotionStartedAt: 0, inputMotionStart: null, inputWasActive: false,
   replayRecorder: null, lastReplayCheckpointTick: -1, lastReplay: loadLastReplay(), resultReplay: null,
   replayViewer: null,
+  draftForecastKey: "", draftForecastCache: new Map(),
   runtimeConfig: { config: DEFAULT_RUNTIME_CONFIG, source: "built-in", status: "initializing" },
   recoveryOffer: null, lastRecoverySaveAt: 0,
   networkLab: null,
@@ -378,16 +380,17 @@ function pairedPassiveDelta(evolution) {
 function guideWeaponDetails(weaponId, specialist = "zuri") {
   const player = guidePlayer(specialist), telemetry = weaponTelemetry(weaponId, { level: 1, evolved: false }, player);
   const impact = getWeaponImpactGrammar(weaponId, { specialistId: specialist, evolved: false });
+  const buildcraft = sourceBuildcraft(weaponId, { specialistId }), buildTraits = buildcraft?.traits.map(({ value }) => value).join(" · ") || "—";
   if (weaponId === "signature") {
     const evolution = signatureEvolutionTelemetry(specialist, player);
     return {
       Damage: telemetry.damage, Cadence: telemetry.interval, Projectiles: telemetry.projectiles,
       Radius: telemetry.radius, Reach: telemetry.reach, Pierce: telemetry.pierce, Lifetime: telemetry.lifetime,
-      Secondary: telemetry.secondary, "Paired passive": `${evolution.pairedPassive.name}: ${pairedPassiveDelta(evolution)}`,
+      Secondary: telemetry.secondary, "Build traits": buildTraits, "Scales with": buildcraft?.scalesWith.map(({ name }) => name).join(", ") || "None", "Paired passive": `${evolution.pairedPassive.name}: ${pairedPassiveDelta(evolution)}`,
       Evolution: `${evolution.requirement}. ${evolution.summary}`,
     };
   }
-  return { Damage: telemetry.damage, Cooldown: telemetry.interval, Projectiles: telemetry.projectiles, Range: telemetry.note, Impact: impact?.impact.replaceAll("-", " ") || "Authored effect", Audio: impact?.soundFamily.replaceAll("-", " ") || "Combat" };
+  return { Damage: telemetry.damage, Cooldown: telemetry.interval, Projectiles: telemetry.projectiles, Range: telemetry.note, "Build traits": buildTraits, "Scales with": buildcraft?.scalesWith.map(({ name }) => name).join(", ") || "None", Impact: impact?.impact.replaceAll("-", " ") || "Authored effect", Audio: impact?.soundFamily.replaceAll("-", " ") || "Combat" };
 }
 
 const SIGNATURE_BEHAVIORS = {
@@ -780,25 +783,27 @@ function weaponSlotMarkup(weaponId, weapon, player, spec, game) {
   const passive = weaponId === "signature" ? spec.signature.passive : data.passive;
   const damage = Number(player.damageBySource?.[weaponId] || 0), dps = damage / elapsedRunSeconds(game);
   const evolution = weaponId === "signature" ? signatureEvolutionTelemetry(player.specialist, player) : null;
+  const buildcraft = sourceBuildcraft(weaponId, { specialistId: player.specialist, evolved: Boolean(weapon.evolved) });
   const signatureRows = evolution ? `<div><dt>Radius</dt><dd>${escapeHTML(telemetry.radius)}</dd></div><div><dt>Reach</dt><dd>${escapeHTML(telemetry.reach)}</dd></div><div><dt>Pierce</dt><dd>${escapeHTML(telemetry.pierce)}</dd></div><div><dt>Lifetime</dt><dd>${escapeHTML(telemetry.lifetime)}</dd></div><div><dt>Secondary</dt><dd>${escapeHTML(telemetry.secondary)}</dd></div>` : "";
-  const evolutionCopy = evolution ? `${evolution.requirement}. Paired passive: ${evolution.pairedPassive.name} — ${pairedPassiveDelta(evolution)}. Evolution delta: ${evolution.summary}` : `Level 5 + ${PASSIVES[passive]?.name || passive} + an elite access card`;
+  const evolutionCopy = `${evolution ? `${evolution.requirement}. Paired passive: ${evolution.pairedPassive.name} — ${pairedPassiveDelta(evolution)}. Evolution delta: ${evolution.summary}` : `Level 5 + ${PASSIVES[passive]?.name || passive} + an elite access card`} Build traits: ${buildcraft?.traits.map(({ value }) => value).join(", ") || "none"}. Direct scaling: ${buildcraft?.scalesWith.map(({ name }) => name).join(", ") || "none"}.`;
   return `<div class="weapon-slot ${weapon.evolved ? "evolved" : ""}" data-weapon-id="${weaponId}" data-cooldown-max="${telemetry.cooldownSeconds}" data-cadence-kind="${telemetry.cadenceKind || "cooldown"}" tabindex="0" aria-label="${escapeHTML(weapon.evolved ? data.evolve : data.name)} weapon details"><img src="${icon}" alt=""><i class="weapon-cooldown-sweep" aria-hidden="true"></i><b class="weapon-cooldown-seconds" aria-hidden="true"></b><small>${weapon.evolved ? "E" : weapon.level}</small><div class="weapon-tooltip"><span>${weapon.evolved ? "Evolved weapon" : `Level ${weapon.level}`}</span><strong>${escapeHTML(weapon.evolved ? data.evolve : data.name)}</strong><p>${escapeHTML(data.copy || spec.tagline)}</p><dl><div><dt>Damage</dt><dd>${telemetry.damage}</dd></div><div><dt>${evolution ? "Cadence" : "Cooldown"}</dt><dd>${telemetry.interval}</dd></div><div><dt>Projectiles</dt><dd>${telemetry.projectiles}</dd></div>${signatureRows}<div><dt>Impact</dt><dd>${escapeHTML(impactSummary(impact))}</dd></div><div><dt>Run damage</dt><dd>${statNumber(damage)}</dd></div><div><dt>DPS</dt><dd>${dps.toFixed(1)}</dd></div></dl><em>${escapeHTML(evolution ? telemetry.secondary : weapon.evolved ? impact?.behavior || telemetry.note : impact?.evolvedDifference || telemetry.note)}</em><small>Evolution: ${escapeHTML(evolutionCopy)}</small></div></div>`;
 }
 
-function currentAffectedSources(passiveId, player) {
+function currentAffectedSources(passiveId, player, gameLevel = 0) {
   return getPassiveAffectedSources(passiveId, { specialistId: player?.specialist, weapons: player?.weapons || {} }).filter((source) => {
-    if (source.id === "ability:e") return Number(player?.level || 0) >= 3;
-    if (source.id === "ability:r") return Number(player?.level || 0) >= 6;
+    if (source.id === "ability:e") return gameLevel >= 3;
+    if (source.id === "ability:r") return gameLevel >= 6;
     return true;
   });
 }
 
-function passiveSlotMarkup(passiveId, rank, player) {
+function passiveSlotMarkup(passiveId, rank, player, gameLevel = 0) {
   const passive = PASSIVES[passiveId];
   if (!passive) return "";
   const level = Math.max(1, Math.floor(Number(rank) || 1));
-  const affected = currentAffectedSources(passiveId, player);
-  const impact = affected.length ? `Affects now: ${affected.map((source) => source.name).join(", ")}.` : passiveId === "projectiles" ? "No equipped attacks can gain another projectile yet." : "Improves a core specialist system rather than a specific attack.";
+  const affected = currentAffectedSources(passiveId, player, gameLevel);
+  const buildcraft = passiveBuildcraft(passiveId);
+  const impact = `${affected.length ? `Affects now: ${affected.map((source) => source.name).join(", ")}.` : passiveId === "projectiles" ? "No equipped attacks can gain another projectile yet." : "Improves a core specialist system rather than a specific attack."} Trait: ${buildcraft?.trait.category.replaceAll("-", " ") || "support"}. Evolution pairs: ${buildcraft?.pairedSources.map(({ name }) => name).join(", ") || "none"}.`;
   return `<div class="passive-slot" style="--passive-color:${escapeHTML(passive.color)}" tabindex="0" aria-label="${escapeHTML(passive.name)}, passive rank ${level} of ${passive.max}"><span><img src="${passive.icon}" alt=""></span><small>${level}</small><div class="weapon-tooltip"><span>Passive upgrade</span><strong>${escapeHTML(passive.name)}</strong><p>${escapeHTML(passive.amount)} per rank. ${passive.id === "projectiles" ? "Applies only to attacks marked as multishot-compatible." : "Compatibility comes from the authoritative combat model."}</p><dl><div><dt>Current rank</dt><dd>${level} / ${passive.max}</dd></div><div><dt>Each rank</dt><dd>${escapeHTML(passive.amount)}</dd></div></dl><em>${escapeHTML(impact)}</em></div></div>`;
 }
 
@@ -809,6 +814,7 @@ function updateCooldownSlot(slot, remaining, maximum, unlocked, unlockLevel) {
   sweep.style.setProperty("--cooldown-sweep", `${unlocked ? clamp(cooldown / Math.max(.01, maximum) * 100, 0, 100) : 100}%`);
   seconds.textContent = unlocked && cooldown > .04 ? `${cooldown < 10 ? cooldown.toFixed(1) : Math.ceil(cooldown)}s` : "";
   node.setAttribute("aria-label", !unlocked ? `Unlocks at level ${unlockLevel}` : cooldown > .04 ? `${cooldown.toFixed(1)} seconds remaining` : "Ready");
+  node.setAttribute("aria-disabled", String(!unlocked || cooldown > .04));
 }
 
 function setEnemyHealthBars(visible, persist = true) {
@@ -1124,10 +1130,10 @@ function updateHUD(game) {
     $("weapon-hud").innerHTML = weaponEntries.map(([weaponId, weapon]) => weaponSlotMarkup(weaponId, weapon, player, spec, game)).join("");
   }
   updateWeaponCooldowns(player);
-  const passiveHUDKey = JSON.stringify(player.passives || {});
+  const passiveHUDKey = JSON.stringify({ passives: player.passives || {}, abilityTier: game.level >= 6 ? 2 : game.level >= 3 ? 1 : 0 });
   if (passiveHUDKey !== state.lastPassiveHUDKey) {
     state.lastPassiveHUDKey = passiveHUDKey;
-    $("passive-hud").innerHTML = Object.entries(player.passives || {}).filter(([, rank]) => Number(rank) > 0).map(([passiveId, rank]) => passiveSlotMarkup(passiveId, rank, player)).join("");
+    $("passive-hud").innerHTML = Object.entries(player.passives || {}).filter(([, rank]) => Number(rank) > 0).map(([passiveId, rank]) => passiveSlotMarkup(passiveId, rank, player, game.level)).join("");
   }
   updateActiveBuffs(player); updateDamageLedger(player, game);
 }
@@ -1137,9 +1143,41 @@ function upgradeChoiceVisual(choice) {
   return { className: icon ? "has-image" : "", markup: icon ? `<img src="${escapeHTML(icon)}" alt="">` : escapeHTML(choice.glyph || "?") };
 }
 
-function upgradeChoiceDetails(choice, player) {
-  return buildUpgradeComparison(choice, player);
+function upgradeChoiceDetails(choice, player, forecast) { return forecast?.comparisonRows || buildUpgradeComparison(choice, player); }
+
+function buildcraftTagsMarkup(buildcraft, limit = 3) {
+  if (!buildcraft) return "";
+  const traits = buildcraft.traits || (buildcraft.trait ? [buildcraft.trait] : []), shown = traits.slice(0, limit), hidden = Math.max(0, traits.length - shown.length);
+  return `<div class="buildcraft-tags" aria-label="Build traits">${shown.map(({ category, value, themeToken }) => `<span data-buildcraft-category="${escapeHTML(category)}" data-theme-token="${escapeHTML(themeToken)}">${escapeHTML(value)}</span>`).join("")}${hidden ? `<b aria-label="${hidden} more build traits">+${hidden}</b>` : ""}</div>`;
 }
+
+function forecastConsequencesMarkup(forecast) {
+  if (!forecast) return "";
+  const labels = { hp: "Health", maxHealth: "Max health", armor: "Armor", damage: "Damage", haste: "Haste", area: "Area", crit: "Crit", duration: "Duration", projectiles: "Projectiles", xp: "XP gain", pickup: "Pickup", regen: "Repair", move: "Move speed" };
+  const format = (id, value) => ["damage", "area", "duration", "xp", "pickup", "regen", "move"].includes(id) ? `${Math.round(value * 100)}%` : id === "crit" ? `${Math.round(value * 100)}%` : Number.isInteger(value) ? String(value) : Number(value).toFixed(2);
+  const notes = forecast.statChanges.slice(0, 3).map(({ id, before, after }) => `${labels[id] || id}: ${format(id, before)} → ${format(id, after)}`);
+  if (forecast.evolution.newlyReady.length) notes.push(`${forecast.evolution.newlyReady.map(({ sourceId }) => sourceId === "signature" ? "Signature" : WEAPONS[sourceId]?.name || sourceId).join(", ")} ready for next access card`);
+  if (forecast.slots.weapons.after > forecast.slots.weapons.before) notes.push(`Weapons ${forecast.slots.weapons.before}/${forecast.slots.weapons.max} → ${forecast.slots.weapons.after}/${forecast.slots.weapons.max}`);
+  if (forecast.slots.passives.after > forecast.slots.passives.before) notes.push(`Passives ${forecast.slots.passives.before}/${forecast.slots.passives.max} → ${forecast.slots.passives.after}/${forecast.slots.passives.max}`);
+  notes.push(`Squad gold +${forecast.economy.delta}`);
+  return `<div class="forecast-consequences" aria-label="Draft consequences">${notes.map((note) => `<span>${escapeHTML(note)}</span>`).join("")}</div>`;
+}
+
+function draftForecastIdentity(game) {
+  return game.pendingChoices ? `${game.level}:${Object.entries(game.pendingChoices).map(([id, choices]) => `${id}:${choices.map((choice) => choice.id).join(",")}`).join("|")}` : "";
+}
+
+function ensureDraftForecasts(game) {
+  const identity = draftForecastIdentity(game);
+  if (!identity) { state.draftForecastKey = ""; state.draftForecastCache.clear(); return; }
+  if (identity === state.draftForecastKey) return;
+  state.draftForecastKey = identity; state.draftForecastCache = new Map();
+  for (const player of game.players || []) for (const choice of game.pendingChoices?.[player.id] || []) {
+    state.draftForecastCache.set(`${player.id}:${choice.id}`, game.choiceReady?.[player.id] ? null : forecastDraftChoice(choice, player, { gold: game.gold, gameLevel: game.level }));
+  }
+}
+
+function cachedDraftForecast(playerId, choiceId) { return state.draftForecastCache.get(`${playerId}:${choiceId}`) || null; }
 
 function upgradeComparisonMarkup(rows) {
   return rows.map(({ label, before, after, changed }) => `<div class="${changed ? "changed" : "unchanged"}"><dt>${escapeHTML(label)}</dt><dd><span>${escapeHTML(before)}</span><i aria-hidden="true">→</i><strong>${escapeHTML(after)}</strong></dd></div>`).join("");
@@ -1171,10 +1209,10 @@ function evolutionPairMarkup(pair) {
   return pair ? `<div class="evolution-pair"><span>${escapeHTML(pair.label)}</span><b>${escapeHTML(pair.copy)}</b></div>` : "";
 }
 
-function affectedLoadoutMarkup(choice, player) {
+function affectedLoadoutMarkup(choice, player, forecast, gameLevel = 0) {
   const [kind, passiveId] = String(choice?.id || "").split(":");
   if (kind !== "passive" || !player) return "";
-  const affected = currentAffectedSources(passiveId, player);
+  const affected = forecast?.affectedSources?.length ? forecast.affectedSources : currentAffectedSources(passiveId, player, gameLevel);
   if (!affected.length) {
     const message = passiveId === "projectiles" ? "No equipped attacks are multishot-compatible yet." : "Improves a core specialist system; no equipped attack uses it directly.";
     return `<div class="affected-loadout empty"><span>Affects now</span><p>${escapeHTML(message)}</p></div>`;
@@ -1183,15 +1221,7 @@ function affectedLoadoutMarkup(choice, player) {
 }
 
 function renderUpgradeStats(player) {
-  const damage = (1 + Number(player.passives?.damage || 0) * .1) * (player.specialist === "rift" ? 1.1 : 1);
-  const haste = Number(player.passives?.haste || 0) * 10 + (player.hasteBuff > 0 ? 150 : 0);
-  const projectiles = Math.floor(Number(player.passives?.projectiles || 0));
-  const crit = Number(player.passives?.crit || 0) * .08 + (player.specialist === "gale" ? .15 : 0);
-  const area = 1 + Number(player.passives?.area || 0) * .11;
-  const move = player.baseSpeed * (1 + Number(player.passives?.move || 0) * .09);
-  const armor = Number(player.armor || 0);
-  const pickup = 85 * (1 + Number(player.passives?.pickup || 0) * .35);
-  const regen = Number(player.passives?.regen || 0) * .04;
+  const { damage, haste, projectiles, crit, area, move, armor, pickup, regen } = playerBuildStats(player);
   const stats = [
     ["damage", "Damage", `+${Math.round((damage - 1) * 100)}%`, damage],
     ["haste", "Ability haste", `${Math.round(haste)}`, haste],
@@ -1212,7 +1242,8 @@ function renderUpgradeStats(player) {
 
 function updateUpgrade(game) {
   const pending = game.pendingChoices?.[state.clientId];
-  if (!pending) { $("upgrade-overlay").classList.add("hidden"); state.lastUpgradeKey = ""; return; }
+  if (!pending) { $("upgrade-overlay").classList.add("hidden"); state.lastUpgradeKey = ""; ensureDraftForecasts(game); return; }
+  ensureDraftForecasts(game);
   $("upgrade-overlay").classList.remove("hidden");
   const ready = Boolean(game.choiceReady?.[state.clientId]);
   const selectedId = game.selectedChoices?.[state.clientId] || "";
@@ -1225,9 +1256,10 @@ function updateUpgrade(game) {
   $("upgrade-cards").innerHTML = pending.map((choice, index) => {
     const selected = selectedId === choice.id, passed = ready && !selected;
     const visual = upgradeChoiceVisual(choice);
-    const details = upgradeChoiceDetails(choice, localPlayer);
+    const forecast = cachedDraftForecast(localPlayer.id, choice.id), details = upgradeChoiceDetails(choice, localPlayer, forecast);
     const pair = evolutionPair(choice, localPlayer);
-    return `<button class="upgrade-card ${pair ? "evolution-ready" : ""} ${selected ? "selected" : ""} ${passed ? "passed" : ""}" type="button" data-choice="${escapeHTML(choice.id)}" ${ready ? "disabled" : ""}><span class="card-type">${selected ? "Locked choice" : escapeHTML(choice.kind)}</span><kbd class="choice-key">${index + 1}</kbd><div class="card-icon ${visual.className}">${visual.markup}</div><h3>${escapeHTML(choice.name)}</h3><p>${escapeHTML(choice.copy)}</p>${evolutionPairMarkup(pair)}<dl class="card-stats">${upgradeComparisonMarkup(details)}</dl>${affectedLoadoutMarkup(choice, localPlayer)}<div class="level-pips">${Array.from({ length: choice.max }, (_, i) => `<i class="${i < choice.level ? "on" : ""}"></i>`).join("")}</div></button>`;
+    const target = choice.id.split(":")[1], buildcraft = forecast?.tags || (choice.kind === "weapon" ? sourceBuildcraft(target, { specialistId: localPlayer.specialist }) : choice.kind === "passive" ? passiveBuildcraft(target) : null);
+    return `<button class="upgrade-card ${pair ? "evolution-ready" : ""} ${selected ? "selected" : ""} ${passed ? "passed" : ""}" type="button" data-choice="${escapeHTML(choice.id)}" ${ready ? `aria-disabled="true"` : ""}><span class="card-type">${selected ? "Locked choice" : escapeHTML(choice.kind)}</span><kbd class="choice-key">${index + 1}</kbd><div class="card-icon ${visual.className}">${visual.markup}</div><h3>${escapeHTML(choice.name)}</h3>${buildcraftTagsMarkup(buildcraft)}<p>${escapeHTML(choice.copy)}</p>${evolutionPairMarkup(pair)}<dl class="card-stats">${upgradeComparisonMarkup(details)}</dl>${forecastConsequencesMarkup(forecast)}${affectedLoadoutMarkup(choice, localPlayer, forecast, game.level)}<div class="level-pips">${Array.from({ length: choice.max }, (_, i) => `<i class="${i < choice.level ? "on" : ""}"></i>`).join("")}</div></button>`;
   }).join("");
   if (!ready) $("upgrade-cards").querySelectorAll("button").forEach((button) => button.addEventListener("click", () => chooseUpgrade(button.dataset.choice)));
 
@@ -1239,8 +1271,9 @@ function updateUpgrade(game) {
     const teammateReady = Boolean(game.choiceReady?.[player.id]);
     const teammateSelection = game.selectedChoices?.[player.id] || "";
     return `<section class="teammate-draft ${teammateReady ? "ready" : ""}"><header><img src="${SPECIALISTS[player.specialist].sprite}" alt=""><div><strong>${escapeHTML(player.name)}</strong><span>${teammateReady ? "Choice locked" : "Choosing…"}</span></div></header><div class="teammate-choice-grid">${choices.map((choice) => {
-      const visual = upgradeChoiceVisual(choice), details = upgradeChoiceDetails(choice, player), pair = evolutionPair(choice, player);
-      return `<div class="teammate-choice ${pair ? "evolution-ready" : ""} ${choice.id === teammateSelection ? "selected" : ""} ${teammateReady && choice.id !== teammateSelection ? "passed" : ""}" tabindex="0"><i class="${visual.className}">${visual.markup}</i><b>${escapeHTML(choice.name)}</b><small>${escapeHTML(choice.kind)} · ${choice.level}/${choice.max}</small><div class="teammate-choice-tooltip"><span>${escapeHTML(choice.kind)} · level ${choice.level}/${choice.max}</span><strong>${escapeHTML(choice.name)}</strong><p>${escapeHTML(choice.copy)}</p>${evolutionPairMarkup(pair)}<dl>${upgradeComparisonMarkup(details)}</dl></div></div>`;
+      const visual = upgradeChoiceVisual(choice), forecast = cachedDraftForecast(player.id, choice.id), details = upgradeChoiceDetails(choice, player, forecast), pair = evolutionPair(choice, player);
+      const target = choice.id.split(":")[1], buildcraft = forecast?.tags || (choice.kind === "weapon" ? sourceBuildcraft(target, { specialistId: player.specialist }) : choice.kind === "passive" ? passiveBuildcraft(target) : null);
+      return `<div class="teammate-choice ${pair ? "evolution-ready" : ""} ${choice.id === teammateSelection ? "selected" : ""} ${teammateReady && choice.id !== teammateSelection ? "passed" : ""}" tabindex="0"><i class="${visual.className}">${visual.markup}</i><b>${escapeHTML(choice.name)}</b>${buildcraftTagsMarkup(buildcraft, 2)}<small>${escapeHTML(choice.kind)} · ${choice.level}/${choice.max}</small><div class="teammate-choice-tooltip"><span>${escapeHTML(choice.kind)} · level ${choice.level}/${choice.max}</span><strong>${escapeHTML(choice.name)}</strong><p>${escapeHTML(choice.copy)}</p>${evolutionPairMarkup(pair)}<dl>${upgradeComparisonMarkup(details)}</dl>${forecastConsequencesMarkup(forecast)}</div></div>`;
     }).join("")}</div></section>`;
   }).join("");
 
@@ -1995,7 +2028,20 @@ function setupTouch() {
   stick.addEventListener("pointermove", (event) => { if(event.pointerId===pointer)update(event); });
   const end = (event) => { if(event.pointerId!==pointer)return;pointer=null;state.input.touchX=0;state.input.touchY=0;knob.style.transform=""; };
   stick.addEventListener("pointerup",end);stick.addEventListener("pointercancel",end);
-  $("touch-e").addEventListener("pointerdown",()=>cast("e"));$("touch-r").addEventListener("pointerdown",()=>cast("r"));
+  for (const [id, slot] of [["e-slot", "e"], ["r-slot", "r"]]) {
+    const node = $(id);
+    node.setAttribute("role", "button"); node.setAttribute("aria-keyshortcuts", slot.toUpperCase());
+    node.addEventListener("pointerdown", (event) => {
+      if (!matchMedia("(pointer: coarse)").matches || event.button !== 0) return;
+      if (node.getAttribute("aria-disabled") === "true") return;
+      event.preventDefault(); cast(slot);
+    });
+    node.addEventListener("keydown", (event) => {
+      if (!["Enter", " "].includes(event.key) || event.repeat) return;
+      if (node.getAttribute("aria-disabled") === "true") return;
+      event.preventDefault(); cast(slot);
+    });
+  }
 }
 
 function bindEvents() {

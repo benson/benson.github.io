@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260712.8">
+  <link rel="stylesheet" href="styles.css?v=20260712.9">
 </head>
 <body>
   <main id="app">
@@ -322,8 +322,6 @@
 
       <div class="touch-controls" aria-hidden="true">
         <div id="move-stick" class="touch-stick"><i></i></div>
-        <button id="touch-e" type="button">E</button>
-        <button id="touch-r" type="button">R</button>
       </div>
     </section>
 
@@ -506,7 +504,20 @@
       <div class="build-history-body">
         <article class="build-release current-build">
           <header>
-            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.12.8</h3></div>
+            <div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.12.9</h3></div>
+            <time class="build-shipped-at deployment-pending">Deployment verification pending</time>
+          </header>
+          <ul>
+            <li>Added a strict theme-ready buildcraft taxonomy that keeps attack traits, direct passive scaling, and evolution pairs truthful and distinct.</li>
+            <li>Added engine-backed draft forecasts for exact stat changes, affected sources, evolution readiness, slot use, and squad gold.</li>
+            <li>Preserved each squad member's pre-choice forecast after locking so choices remain discussable without double-applying the selected upgrade.</li>
+            <li>Replaced drift-prone current-build math with the same authoritative specialist stat helpers used by combat.</li>
+            <li>Removed duplicate mobile E/R circles and made the existing ability slots the single touch, keyboard, cooldown, and inspection surface.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header>
+            <div><span class="build-release-status">Previous build</span><h3>2026.07.12.8</h3></div>
             <time class="build-shipped-at" data-build-shipped-at="2026-07-12T15:59:00-04:00">Shipped Jul 12, 2026, 3:59 PM EDT</time>
           </header>
           <ul>
@@ -806,8 +817,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.12.8. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.12.8</strong></button>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.12.9. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.12.9</strong></button>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260712.8"></script>
+  <script type="module" src="game.js?v=20260712.9"></script>
 </body>
 </html>

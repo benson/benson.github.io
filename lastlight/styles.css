@@ -541,6 +541,11 @@ kbd { display: inline-grid; min-width: 26px; height: 24px; place-items: center; 
 .evolution-pair { display: grid; gap: 4px; margin: 12px 0 0; padding: 8px 10px; border-left: 2px solid var(--yellow); background: rgba(247,215,106,.075); }
 .evolution-pair span { color: var(--yellow); font: 700 7px/1 var(--sans); letter-spacing: .12em; text-transform: uppercase; }
 .evolution-pair b { color: #e8dcaf; font: 700 9px/1.25 var(--sans); }
+.buildcraft-tags { display:flex; flex-wrap:wrap; gap:4px; margin:2px 0 5px; }
+.buildcraft-tags span,.buildcraft-tags b { border:1px solid rgba(94,240,219,.28); background:rgba(94,240,219,.07); color:#a8f6ea; padding:2px 5px; font:700 8px/1.1 var(--sans); letter-spacing:.06em; text-transform:uppercase; }
+.buildcraft-tags b { color:var(--muted); border-color:rgba(255,255,255,.15); background:rgba(255,255,255,.04); }
+.forecast-consequences { display:grid; gap:3px; margin:7px 0; padding:6px 7px; border-left:2px solid var(--teal); background:rgba(94,240,219,.055); }
+.forecast-consequences span { color:var(--paper); font:600 9px/1.25 var(--sans); }
 .upgrade-card .choice-key { position: absolute; top: 15px; right: 15px; min-width: 29px; height: 28px; color: var(--cyan); border-color: rgba(99,242,223,.35); background: rgba(99,242,223,.08); font-size: 11px; transition: opacity .15s ease; }
 .upgrade-card:disabled .choice-key { opacity: .22; }
 .upgrade-card.selected .choice-key { opacity: 0; }
@@ -1138,9 +1143,7 @@ html[data-reduced-motion="true"] .scanlines { animation: none; }
   .game-controls-hint { display: none; }
   .touch-stick { position: absolute; left: 18px; bottom: 42px; width: 104px; height: 104px; border: 1px solid rgba(255,255,255,.25); border-radius: 50%; background: rgba(5,12,22,.25); touch-action: none; }
   .touch-stick i { position: absolute; width: 42px; height: 42px; left: 31px; top: 31px; border-radius: 50%; background: rgba(255,255,255,.22); }
-  .touch-controls button { position: absolute; width: 50px; height: 50px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25); background: rgba(5,12,22,.65); color: var(--paper); font: 800 19px/1 var(--display); }
-  #touch-e { right: 79px; bottom: 50px; }
-  #touch-r { right: 21px; bottom: 81px; border-color: rgba(255,92,53,.5); }
+  .ability-slot { cursor: pointer; touch-action: manipulation; }
   .result-stats { grid-template-columns: repeat(2, 1fr); }
   .result-stats div:nth-child(2) { border-right: 0; }
   .result-screen { place-items: start center; padding: 12px; }
