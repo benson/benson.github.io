@@ -10,13 +10,13 @@ import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "
 import { MAX_CORRIDOR_CANDIDATES, accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget, orderEntitiesByDistance } from "./projectile-decisions.js?v=20260713.1";
 import { selectEliteAffixes, selectSpawnArchetype } from "./enemy-archetypes.js?v=20260713.1";
 import { APEX_CONTRACTS, APEX_STATE_SCHEMA, orderedApexTargets } from "./apex-encounters.js?v=20260713.1";
+import { RECONNECT_WINDOW_TICKS } from "./reconnect-state.js?v=20260713.3";
 
 const BALANCE = getBalanceConfig();
 
 const TAU = Math.PI * 2;
 const WORLD = { width: 3600, height: 2400 };
 export const SIMULATION_TICK_RATE = 60;
-const RECONNECT_WINDOW_TICKS = 180 * SIMULATION_TICK_RATE;
 
 function angleTo(a, b) { return Math.atan2(b.y - a.y, b.x - a.x); }
 function fromAngle(angle, speed) { return { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed }; }
