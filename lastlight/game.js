@@ -1,34 +1,34 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260713.10";
-import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.10";
-import { Renderer } from "./render.js?v=20260713.10";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260713.11";
+import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.11";
+import { Renderer } from "./render.js?v=20260713.11";
 import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260713.2";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
 import { getThemeAsset, getThemeMaterial } from "./themes/lastlight.js?v=20260713.2";
-import { submitRunTelemetry } from "./telemetry.js?v=20260713.10";
+import { submitRunTelemetry } from "./telemetry.js?v=20260713.11";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260713.10";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260713.10";
+import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260713.11";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260713.11";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
-import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260713.10";
-import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260713.10";
+import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260713.11";
+import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260713.11";
 import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260711.5";
-import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260713.10";
+import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260713.11";
 import { GuestInputSequenceTracker, HostInputSequenceGate, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260713.2";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260713.2";
-import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260713.10";
-import { advancePlayerMovement } from "./movement.js?v=20260713.10";
+import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260713.11";
+import { advancePlayerMovement } from "./movement.js?v=20260713.11";
 import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
 import { DynamicAudioMixer } from "./audio-mix.js?v=20260713.1";
 import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260713.1";
 import { enemyAudioCueName, newEntities, spatialAudioPan, weaponAudioCueName, weaponTimerActivations } from "./audio-events.js?v=20260713.1";
 import { FUNNY_VOICE_MIN_INTERVAL_MS, audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260713.1";
-import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260713.10";
-import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260713.10";
+import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260713.11";
+import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260713.11";
 import { getWeaponEvolution } from "./weapon-evolution.js?v=20260713.1";
 import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260712.1";
-import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260713.10";
-import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260713.10";
-import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260713.10";
+import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260713.11";
+import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260713.11";
+import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260713.11";
 import { reconcileActiveBuffs } from "./active-buffs.js?v=20260713.1";
 import { ELITE_AFFIXES, ENEMY_ARCHETYPES } from "./enemy-archetypes.js?v=20260713.1";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
@@ -36,7 +36,7 @@ import {
   AuthoritySnapshotGate, HOST_MIGRATION_PROTOCOL_VERSION, MIGRATION_CHECKPOINT_INTERVAL_TICKS,
   createMigrationCapabilities, createMigrationCheckpoint, createMigrationReady,
   migrationCompatibilityMatches, validateMigrationCheckpoint,
-} from "./host-migration.js?v=20260713.10";
+} from "./host-migration.js?v=20260713.11";
 import { RECONNECT_DELAYS_MS, SquadPresenceTracker, authorityStateCopy } from "./reconnect-state.js?v=20260713.3";
 import {
   HostPingGate, PING_INTENTS, PING_LIFETIME_TICKS, PING_WHEEL_ORDER, PingSequenceTracker,
@@ -52,7 +52,11 @@ import { DraftRecommendationStore, recommendationMarkerModel } from "./draft-rec
 import { SQUAD_SYNERGY_REGISTRY } from "./squad-synergies.js?v=20260713.6";
 import { reconcileActiveSynergies } from "./active-synergies.js?v=20260713.6";
 import { PARTICIPATION_REGISTRY } from "./participation-credit.js?v=20260713.7";
-import { campaignJoinEligibility } from "./join-in-progress.js?v=20260713.10";
+import { campaignJoinEligibility } from "./join-in-progress.js?v=20260713.11";
+import {
+  RUN_ARCHIVE_STORAGE_KEY, createSquadRunReport, decodeSquadRunFragment, normalizeRunArchiveStorage,
+  squadRunShareFragment, upsertRunArchive,
+} from "./run-archive.js?v=20260713.11";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -61,7 +65,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.13.10";
+const BUILD = "2026.07.13.11";
 const AUTHORITY_WATCHDOG_MS = Object.freeze({ synchronizing: 10_000, migrating: 25_000 });
 const BALANCE = getBalanceConfig();
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
@@ -92,8 +96,7 @@ const hostPingGate = new HostPingGate();
 const draftRecommendationSequences = new DraftRecommendationSequenceTracker();
 const hostDraftRecommendationGate = new HostDraftRecommendationGate();
 const PROGRESS_KEY = "lastlight:campaign:v1";
-const RUN_HISTORY_KEY = "lastlight:runs:v2";
-const LEGACY_RUN_HISTORY_KEY = "lastlight:runs:v1";
+const LEGACY_RUN_HISTORY_KEYS = Object.freeze(["lastlight:runs:v2", "lastlight:runs:v1"]);
 const CLIENT_TOKEN_KEY = "lastlight:session-token:v1";
 const DAMAGE_LEDGER_LAYOUT_KEY = "lastlight:damage-ledger-layout:v1";
 const LAST_REPLAY_KEY = "lastlight:last-replay:v1";
@@ -110,51 +113,22 @@ function loadProgress() {
   catch { return emptyProgress(); }
 }
 
-const PARTICIPATION_TOTAL_FIELDS = Object.freeze([
-  "effectiveHealing", "effectiveShielding", "shieldDamagePrevented", "mitigationPrevented",
-  "damageAssists", "controlAssists", "revives", "reviveSeconds", "objectivePresenceSeconds",
-  "objectiveMovement", "objectiveCompletions", "eliteParticipations", "apexParticipations",
-]);
-
-function safeRunNumber(value, max = 1_000_000_000) {
-  const number = Number(value);
-  return Number.isFinite(number) ? clamp(number, 0, max) : 0;
-}
-
-function normalizeParticipationTotals(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  return Object.fromEntries(PARTICIPATION_TOTAL_FIELDS.map((field) => [field, safeRunNumber(value[field], field.includes("Seconds") ? 16_000 : 1_000_000_000)]));
-}
-
-function normalizeRunHistoryEntry(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const map = typeof value.map === "string" && MAPS[value.map] ? value.map : "warehouse";
-  const difficulty = typeof value.difficulty === "string" && DIFFICULTIES[value.difficulty] ? value.difficulty : "story";
-  const finishedAt = Number.isFinite(Date.parse(value.finishedAt)) ? new Date(value.finishedAt).toISOString() : new Date(0).toISOString();
-  const players = Array.isArray(value.players) ? value.players.slice(0, 4).map((player) => ({
-    name: String(player?.name || "Specialist").slice(0, 16),
-    specialist: SPECIALISTS[player?.specialist] ? player.specialist : "zuri",
-    damage: safeRunNumber(player?.damage), kills: safeRunNumber(player?.kills, 10_000_000),
-    xpCollected: safeRunNumber(player?.xpCollected), damageTaken: safeRunNumber(player?.damageTaken),
-    revives: safeRunNumber(player?.revives, 10_000), traveled: safeRunNumber(player?.traveled),
-    damageBySource: {},
-  })) : [];
-  return {
-    schemaVersion: Number(value.schemaVersion) === 2 ? 2 : 1,
-    id: String(value.id || finishedAt).slice(0, 80), finishedAt, won: Boolean(value.won), map, difficulty,
-    elapsed: safeRunNumber(value.elapsed, 4_000), level: safeRunNumber(value.level, 500),
-    kills: safeRunNumber(value.kills, 10_000_000), gold: safeRunNumber(value.gold, 10_000_000), players,
-    participationTotals: normalizeParticipationTotals(value.participationTotals || value.participationTelemetry),
-  };
-}
-
 function loadRunHistory() {
   try {
-    const current = JSON.parse(localStorage.getItem(RUN_HISTORY_KEY) || "null");
-    const legacy = current === null ? JSON.parse(localStorage.getItem(LEGACY_RUN_HISTORY_KEY) || "[]") : current;
-    return Array.isArray(legacy) ? legacy.map(normalizeRunHistoryEntry).filter(Boolean).slice(0, 24) : [];
+    const current = JSON.parse(localStorage.getItem(RUN_ARCHIVE_STORAGE_KEY) || "null");
+    if (current !== null) return normalizeRunArchiveStorage(current);
+    for (const key of LEGACY_RUN_HISTORY_KEYS) {
+      const legacy = JSON.parse(localStorage.getItem(key) || "null");
+      if (legacy !== null) return normalizeRunArchiveStorage(legacy);
+    }
+    return [];
   } catch { return []; }
 }
+
+const initialSharedRun = (() => {
+  try { return { value: decodeSquadRunFragment(location.hash), error: "" }; }
+  catch (error) { return { value: null, error: String(error?.message || "Shared report link is invalid") }; }
+})();
 
 function loadClientToken() {
   try {
@@ -186,7 +160,8 @@ const state = {
   input: { keys: new Set(), aim: 0, autoAim: true, touchX: 0, touchY: 0 },
   animation: 0, lastFrame: 0, lastSend: 0, lastBroadcast: 0, lastLobbyBroadcast: 0,
   lastUpgradeKey: "", lastWeaponHUDKey: "", lastPassiveHUDKey: "", lastSquadHUDKey: "", lastBossHUDKey: "", lastEventSeq: 0, endShown: false, resultTimer: null,
-  progress: loadProgress(), runHistory: loadRunHistory(), resultGame: null, resultSavedKey: "",
+  progress: loadProgress(), runHistory: loadRunHistory(), resultGame: null, resultReport: null, resultSavedKey: "",
+  sharedRun: initialSharedRun.value, sharedRunError: initialSharedRun.error, sharedRunPresented: false,
   audioSettings: initialAudioSettings,
   audioAvailable: audioSupported,
   audioStatus: audioOutputState({ supported: audioSupported, enabled: initialAudioSettings.enabled }),
@@ -223,6 +198,7 @@ const runtimeConfigReady = loadRuntimeConfig({ endpoint: RUNTIME_CONFIG_ENDPOINT
   state.runtimeConfig = result;
   syncPingAvailability();
   syncDraftRecommendationAvailability();
+  syncArchiveAvailability();
   refreshRecoveryOffer();
   return result;
 });
@@ -1277,7 +1253,7 @@ function startRemoteGame(message) {
 }
 
 function enterGame() {
-  setScreen("game"); renderer.resize(); state.endShown = false; state.telemetrySent = false; state.resultSavedKey = ""; state.lastEventSeq = 0; state.lastUpgradeKey = ""; state.lastWeaponHUDKey = ""; state.lastPassiveHUDKey = ""; state.lastSquadHUDKey = ""; state.lastFrame = performance.now();
+  setScreen("game"); renderer.resize(); state.endShown = false; state.telemetrySent = false; state.resultSavedKey = ""; state.resultReport = null; state.lastEventSeq = 0; state.lastUpgradeKey = ""; state.lastWeaponHUDKey = ""; state.lastPassiveHUDKey = ""; state.lastSquadHUDKey = ""; state.lastFrame = performance.now();
   state.performanceMetrics = { samples: [], frames: 0, longFrames: 0, maxEntities: {}, inputLatencies: [], predictionCorrections: [] };
   state.soundState = emptySoundState();
   state.lastDamageLedgerKey = "";
@@ -2307,31 +2283,88 @@ function renderScoreboard(game) {
 }
 
 function saveCompletedRun(game) {
-  const key = `${game.stage}:${Math.round(Number(game.time || 0) * 10)}:${game.players.map((player) => player.id).join(",")}`;
-  if (state.resultSavedKey === key) return;
-  state.resultSavedKey = key;
-  const participationTelemetry = typeof game.participationTelemetry === "function" ? game.participationTelemetry() : game.participationTelemetry;
-  const run = {
-    schemaVersion: 2,
-    id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, finishedAt: new Date().toISOString(), won: game.stage === "won",
-    map: typeof game.map === "string" ? game.map : game.map.id, difficulty: typeof game.difficulty === "string" ? game.difficulty : game.difficulty.id,
-    elapsed: elapsedRunSeconds(game), level: Number(game.level || 0), kills: Number(game.kills || 0), gold: Number(game.gold || 0),
-    synergyTelemetry: typeof game.synergyTelemetry === "function" ? game.synergyTelemetry() : game.synergyTelemetry || null,
-    participationTotals: normalizeParticipationTotals(participationTelemetry),
-    players: game.players.map((player) => ({ name: player.name, specialist: player.specialist, damage: player.damage, kills: player.kills, xpCollected: player.xpCollected, damageTaken: player.damageTaken, revives: player.revives, traveled: player.traveled, damageBySource: player.damageBySource || {} })),
-  };
-  state.runHistory = [run, ...state.runHistory].slice(0, 24);
-  try { localStorage.setItem(RUN_HISTORY_KEY, JSON.stringify(state.runHistory)); } catch { /* Run history is optional. */ }
+  const report = createSquadRunReport(game, { build: BUILD });
+  if (state.resultSavedKey === report.id && state.resultReport) return state.resultReport;
+  state.resultSavedKey = report.id; state.resultReport = report;
+  state.runHistory = upsertRunArchive(state.runHistory, report);
+  try { localStorage.setItem(RUN_ARCHIVE_STORAGE_KEY, JSON.stringify(state.runHistory)); } catch { /* Run history is optional. */ }
+  return report;
+}
+
+function archiveEnabled() { return Boolean(state.runtimeConfig.config.flags.sharedSquadRunArchive); }
+
+function archivePlayerCard(player, elapsed) {
+  const spec = SPECIALISTS[player.specialist] || SPECIALISTS.zuri;
+  const support = Number(player.participation.effectiveHealing) + Number(player.participation.effectiveShielding);
+  const prevented = Number(player.participation.shieldDamagePrevented) + Number(player.participation.mitigationPrevented);
+  const assists = Number(player.participation.damageAssists) + Number(player.participation.controlAssists);
+  const synergy = Number(player.synergy.triggers) + Number(player.synergy.assists) + Number(player.synergy.ultimateChains);
+  const loadout = [
+    ...player.weapons.map((weapon) => {
+      const data = weapon.id === "signature" ? spec.signature : WEAPONS[weapon.id];
+      const name = weapon.evolved ? data?.evolve : data?.name;
+      return `<span><img src="${escapeHTML(data?.icon || spec.signature.icon)}" alt=""><b>${escapeHTML(name || weapon.id)}</b><em>${weapon.evolved ? "Evolved" : `L${weapon.level}`}</em></span>`;
+    }),
+    ...player.passives.map((passive) => `<span><img src="${escapeHTML(PASSIVES[passive.id]?.icon || "")}" alt=""><b>${escapeHTML(PASSIVES[passive.id]?.name || passive.id)}</b><em>R${passive.rank}</em></span>`),
+  ].join("");
+  const sources = player.damageSources.slice(0, 5).map((source) => `<li><span>${escapeHTML(sourceName(source.id, player))}</span><b>${statNumber(source.damage)}</b></li>`).join("");
+  const deployment = player.joinKind === "fresh" ? `Reinforcement at ${formatTime(player.joinedAtSecond)}${player.campaignEligible ? "" : " · assist only"}` : "Launch squad";
+  return `<article class="archive-player"><header><img src="${escapeHTML(spec.sprite)}" alt=""><div><strong>${escapeHTML(player.callsign)}</strong><span>S${player.slot + 1} · ${escapeHTML(spec.name)}</span></div><em>${escapeHTML(deployment)}</em></header><dl><div><dt>Damage</dt><dd>${statNumber(player.damage)}</dd></div><div><dt>DPS</dt><dd>${(player.damage / Math.max(1, elapsed)).toFixed(1)}</dd></div><div><dt>Kills</dt><dd>${statNumber(player.kills)}</dd></div><div><dt>XP</dt><dd>${statNumber(player.xpCollected)}</dd></div><div><dt>Taken</dt><dd>${statNumber(player.damageTaken)}</dd></div><div><dt>Revives</dt><dd>${statNumber(player.revives)}</dd></div></dl><div class="archive-loadout">${loadout}</div><div class="archive-contribution"><span>Support <b>${statNumber(support)}</b></span><span>Prevented <b>${statNumber(prevented)}</b></span><span>Assists <b>${statNumber(assists)}</b></span><span>Objectives <b>${statNumber(player.participation.objectiveCompletions)}</b></span><span>Synergy <b>${statNumber(synergy)}</b></span></div>${sources ? `<ol class="archive-sources">${sources}</ol>` : ""}</article>`;
+}
+
+function archiveEntryCard(entry, { imported = false, mode = "local" } = {}) {
+  const report = entry.report, savedAt = entry.savedAt;
+  const map = MAPS[report.map]?.name || report.map, difficulty = DIFFICULTIES[report.difficulty]?.name || report.difficulty;
+  const saved = state.runHistory.some((candidate) => candidate.report.id === report.id);
+  const date = savedAt ? new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(savedAt)) : "Shared report";
+  const players = report.players.map((player) => archivePlayerCard(player, report.elapsed)).join("");
+  const shareActions = archiveEnabled() ? `<button type="button" data-archive-share="${report.id}">Copy anonymous link</button><button type="button" data-archive-share-named="${report.id}">Include callsigns</button>` : "";
+  const saveAction = imported && !saved ? `<button type="button" data-archive-save="${report.id}">Save to this browser</button>` : "";
+  return `<details class="run-history-entry ${report.outcome === "won" ? "won" : "lost"}${imported ? " imported" : ""}"><summary><div><span>${imported ? `Shared · ${mode}` : report.outcome === "won" ? "Victory" : "Defeat"}</span><strong>${escapeHTML(map)} · ${escapeHTML(difficulty)}</strong><small>${report.players.map((player) => `${escapeHTML(player.callsign)} / ${escapeHTML(SPECIALISTS[player.specialist]?.name || player.specialist)}`).join(" · ")}</small></div><time${savedAt ? ` datetime="${escapeHTML(savedAt)}"` : ""}>${escapeHTML(date)}</time></summary><div class="archive-overview"><dl><div><dt>Time</dt><dd>${formatTime(report.elapsed)}</dd></div><div><dt>Level</dt><dd>${report.level}</dd></div><div><dt>Kills</dt><dd>${statNumber(report.squadKills)}</dd></div><div><dt>Damage</dt><dd>${statNumber(report.totals.damage)}</dd></div><div><dt>DPS</dt><dd>${(report.totals.damage / Math.max(1, report.elapsed)).toFixed(1)}</dd></div><div><dt>Gold</dt><dd>${statNumber(report.gold)}</dd></div></dl><p>Report ${escapeHTML(report.id)} · Integrity ${escapeHTML(report.fingerprint.slice(0, 8).toUpperCase())}</p></div><div class="archive-players">${players}</div><footer>${saveAction}${shareActions}</footer></details>`;
+}
+
+function archiveReportById(id) {
+  if (state.resultReport?.id === id) return state.resultReport;
+  if (state.sharedRun?.report?.id === id) return state.sharedRun.report;
+  return state.runHistory.find((entry) => entry.report.id === id)?.report || null;
+}
+
+async function copySquadReportLink(report, { includeCallsigns = false } = {}) {
+  if (!archiveEnabled() || !report) { toast("Squad report sharing is currently disabled"); return false; }
+  try {
+    const url = new URL(location.href); url.search = ""; url.hash = squadRunShareFragment(report, { includeCallsigns });
+    await navigator.clipboard.writeText(url.toString());
+    toast(includeCallsigns ? "Named squad report link copied" : "Anonymous squad report link copied");
+    return true;
+  } catch (error) { captureClientError("squad report share", error); toast("Could not copy the squad report"); return false; }
+}
+
+function saveImportedRun(id) {
+  const report = state.sharedRun?.report?.id === id ? state.sharedRun.report : null;
+  if (!report) return;
+  state.runHistory = upsertRunArchive(state.runHistory, report);
+  try { localStorage.setItem(RUN_ARCHIVE_STORAGE_KEY, JSON.stringify(state.runHistory)); } catch { /* Archive remains readable in memory. */ }
+  renderRunHistory(); toast("Squad report saved to this browser");
 }
 
 function renderRunHistory() {
-  $("run-history-list").innerHTML = state.runHistory.length ? state.runHistory.map((run) => {
-    const totalDamage = (run.players || []).reduce((sum, player) => sum + Number(player.damage || 0), 0);
-    return `<article class="run-history-entry ${run.won ? "won" : "lost"}"><header><div><span>${run.won ? "Victory" : "Defeat"}</span><strong>${escapeHTML(MAPS[run.map]?.name || run.map)} · ${escapeHTML(DIFFICULTIES[run.difficulty]?.name || run.difficulty)}</strong></div><time datetime="${escapeHTML(run.finishedAt)}">${new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(run.finishedAt))}</time></header><dl><div><dt>Time</dt><dd>${formatTime(run.elapsed)}</dd></div><div><dt>Level</dt><dd>${run.level}</dd></div><div><dt>Kills</dt><dd>${statNumber(run.kills)}</dd></div><div><dt>Damage</dt><dd>${statNumber(totalDamage)}</dd></div><div><dt>DPS</dt><dd>${(totalDamage / Math.max(1, run.elapsed)).toFixed(1)}</dd></div></dl><p>${(run.players || []).map((player) => `${escapeHTML(player.name)} / ${escapeHTML(SPECIALISTS[player.specialist]?.name || player.specialist)}`).join(" · ")}</p></article>`;
-  }).join("") : `<div class="run-history-empty"><strong>No operations recorded yet.</strong><p>Completed and failed runs will be saved in this browser.</p></div>`;
+  const imported = archiveEnabled() && state.sharedRun?.report && !state.runHistory.some((entry) => entry.report.id === state.sharedRun.report.id)
+    ? archiveEntryCard({ report: state.sharedRun.report, savedAt: "" }, { imported: true, mode: state.sharedRun.mode }) : "";
+  const local = state.runHistory.map((entry) => archiveEntryCard(entry)).join("");
+  $("run-history-list").innerHTML = imported || local ? `${imported}${local}` : `<div class="run-history-empty"><strong>No operations recorded yet.</strong><p>Completed and failed runs will be saved in this browser.</p></div>`;
+  $("run-history-list").querySelectorAll("[data-archive-share]").forEach((button) => button.addEventListener("click", () => copySquadReportLink(archiveReportById(button.dataset.archiveShare))));
+  $("run-history-list").querySelectorAll("[data-archive-share-named]").forEach((button) => button.addEventListener("click", () => copySquadReportLink(archiveReportById(button.dataset.archiveShareNamed), { includeCallsigns: true })));
+  $("run-history-list").querySelectorAll("[data-archive-save]").forEach((button) => button.addEventListener("click", () => saveImportedRun(button.dataset.archiveSave)));
 }
 
 function openRunHistory() { renderRunHistory(); $("run-history-dialog").showModal(); }
+
+function syncArchiveAvailability() {
+  const enabled = archiveEnabled(); document.documentElement.dataset.sharedRunArchive = String(enabled);
+  for (const id of ["copy-squad-report", "copy-squad-report-named"]) $(id)?.classList.toggle("hidden", !enabled);
+  if (state.sharedRunError && !state.sharedRunPresented) { state.sharedRunPresented = true; setTimeout(() => toast("Shared squad report link could not be verified"), 0); }
+  else if (enabled && state.sharedRun && !state.sharedRunPresented) { state.sharedRunPresented = true; setTimeout(openRunHistory, 0); }
+}
 
 async function scorecardBlob(player, game) {
   const canvas = document.createElement("canvas"); canvas.width = 1200; canvas.height = 630;
@@ -2388,8 +2421,8 @@ function showResult(game) {
   $("result-unlock").textContent = unlocks.length ? `Campaign updated · ${unlocks.join(" · ")}` : ineligibleClear ? `Campaign clear not awarded · reinforce for at least ${Math.ceil(joinEligibility.requiredCombatSeconds)} pre-apex seconds` : "";
   if (state.isHost && game === state.sim) finalizeReplayCapture();
   $("watch-replay").classList.toggle("hidden", !state.resultReplay);
-  state.resultGame = game; renderScoreboard(game);
-  saveCompletedRun(game);
+  state.resultGame = game; saveCompletedRun(game); renderScoreboard(game);
+  syncArchiveAvailability();
   setScreen("result");
   if (state.isHost && !state.telemetrySent && state.runtimeConfig.config.flags.runTelemetry) {
     state.telemetrySent = true;
@@ -2533,7 +2566,7 @@ function returnToLobby() {
 }
 
 function leaveToHome() {
-  closeSocket(); state.sim = null; state.snapshot = null; state.replayRecorder = null; state.resultGame = null; state.lobby.clear(); state.joiningActiveRun = false; state.runAdmission = null; state.joinRequestSent = false; state.pendingRunAdmissions = []; state.draftRecommendations.reset(state.authorityEpoch);
+  closeSocket(); state.sim = null; state.snapshot = null; state.replayRecorder = null; state.resultGame = null; state.resultReport = null; state.lobby.clear(); state.joiningActiveRun = false; state.runAdmission = null; state.joinRequestSent = false; state.pendingRunAdmissions = []; state.draftRecommendations.reset(state.authorityEpoch);
   state.squadPresence.reset(); state.lastPresenceAnnouncement = ""; clearTimeout(state.authorityRestoreTimer); state.authorityRestoreTimer = null; setAuthorityState("active", { restoreFocus: false });
   const url = new URL(location.href); url.searchParams.delete("room"); history.replaceState(null, "", url);
   setScreen("home"); updateProgressionUI(); refreshRecoveryOffer();
@@ -3392,6 +3425,8 @@ function bindEvents() {
   $("enemy-health-bars-toggle").addEventListener("change", (event) => setEnemyHealthBars(event.target.value));
   $("again-button").addEventListener("click", returnToLobby); $("result-home").addEventListener("click", leaveToHome);
   $("watch-replay").addEventListener("click", openReplayViewer);
+  $("copy-squad-report").addEventListener("click", () => copySquadReportLink(state.resultReport));
+  $("copy-squad-report-named").addEventListener("click", () => copySquadReportLink(state.resultReport, { includeCallsigns: true }));
   $("replay-copy").addEventListener("click", copyReplay);
   $("replay-play").addEventListener("click", toggleReplayPlayback);
   $("replay-back").addEventListener("click", () => seekReplayTo((state.replayViewer?.timeline.tick || 0) - 300));

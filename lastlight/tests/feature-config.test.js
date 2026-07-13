@@ -11,7 +11,7 @@ function memoryStorage(initial = {}) {
 }
 
 const operatorConfig = {
-  schemaVersion: 6, configVersion: "rollback-42", gameplayVersion: "squad-director-off-v1", registryVersion: "lastlight.squad-synergy.v1",
+  schemaVersion: 7, configVersion: "rollback-42", gameplayVersion: "squad-director-off-v1", registryVersion: "lastlight.squad-synergy.v1",
   flags: {
     deterministicReplay: false, runTelemetry: false, objectiveEvents: false,
     migrationCheckpointReplication: false, hostMigrationElection: false, hostMigrationResume: false,
@@ -21,6 +21,7 @@ const operatorConfig = {
     downedActivity: false,
     joinInProgressNormalization: false,
     squadEnemyDirector: false,
+    sharedSquadRunArchive: false,
   },
 };
 
