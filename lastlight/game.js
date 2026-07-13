@@ -1,34 +1,34 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260713.2";
-import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.9";
-import { Renderer } from "./render.js?v=20260713.9";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260713.10";
+import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.10";
+import { Renderer } from "./render.js?v=20260713.10";
 import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260713.2";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
 import { getThemeAsset, getThemeMaterial } from "./themes/lastlight.js?v=20260713.2";
-import { submitRunTelemetry } from "./telemetry.js?v=20260713.7";
+import { submitRunTelemetry } from "./telemetry.js?v=20260713.10";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260713.2";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260713.6";
+import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260713.10";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260713.10";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
-import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260713.9";
-import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260713.9";
+import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260713.10";
+import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260713.10";
 import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260711.5";
-import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260713.9";
+import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260713.10";
 import { GuestInputSequenceTracker, HostInputSequenceGate, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260713.2";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260713.2";
-import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260713.2";
-import { advancePlayerMovement } from "./movement.js?v=20260713.2";
+import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260713.10";
+import { advancePlayerMovement } from "./movement.js?v=20260713.10";
 import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
 import { DynamicAudioMixer } from "./audio-mix.js?v=20260713.1";
 import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260713.1";
 import { enemyAudioCueName, newEntities, spatialAudioPan, weaponAudioCueName, weaponTimerActivations } from "./audio-events.js?v=20260713.1";
 import { FUNNY_VOICE_MIN_INTERVAL_MS, audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260713.1";
-import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260713.2";
-import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260713.2";
+import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260713.10";
+import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260713.10";
 import { getWeaponEvolution } from "./weapon-evolution.js?v=20260713.1";
 import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260712.1";
-import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260713.9";
-import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260713.9";
-import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260713.6";
+import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260713.10";
+import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260713.10";
+import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260713.10";
 import { reconcileActiveBuffs } from "./active-buffs.js?v=20260713.1";
 import { ELITE_AFFIXES, ENEMY_ARCHETYPES } from "./enemy-archetypes.js?v=20260713.1";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
@@ -36,7 +36,7 @@ import {
   AuthoritySnapshotGate, HOST_MIGRATION_PROTOCOL_VERSION, MIGRATION_CHECKPOINT_INTERVAL_TICKS,
   createMigrationCapabilities, createMigrationCheckpoint, createMigrationReady,
   migrationCompatibilityMatches, validateMigrationCheckpoint,
-} from "./host-migration.js?v=20260713.9";
+} from "./host-migration.js?v=20260713.10";
 import { RECONNECT_DELAYS_MS, SquadPresenceTracker, authorityStateCopy } from "./reconnect-state.js?v=20260713.3";
 import {
   HostPingGate, PING_INTENTS, PING_LIFETIME_TICKS, PING_WHEEL_ORDER, PingSequenceTracker,
@@ -52,7 +52,7 @@ import { DraftRecommendationStore, recommendationMarkerModel } from "./draft-rec
 import { SQUAD_SYNERGY_REGISTRY } from "./squad-synergies.js?v=20260713.6";
 import { reconcileActiveSynergies } from "./active-synergies.js?v=20260713.6";
 import { PARTICIPATION_REGISTRY } from "./participation-credit.js?v=20260713.7";
-import { campaignJoinEligibility } from "./join-in-progress.js?v=20260713.9";
+import { campaignJoinEligibility } from "./join-in-progress.js?v=20260713.10";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -61,7 +61,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.13.9";
+const BUILD = "2026.07.13.10";
 const AUTHORITY_WATCHDOG_MS = Object.freeze({ synchronizing: 10_000, migrating: 25_000 });
 const BALANCE = getBalanceConfig();
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
@@ -237,6 +237,7 @@ function migrationCompatibility() {
     sharedParticipationCredit: state.runtimeConfig.config.flags.sharedParticipationCredit,
     downedActivity: state.runtimeConfig.config.flags.downedActivity,
     joinInProgressNormalization: state.runtimeConfig.config.flags.joinInProgressNormalization,
+    squadEnemyDirector: state.runtimeConfig.config.flags.squadEnemyDirector,
     registryVersion: state.runtimeConfig.config.registryVersion,
     recoveryVersion: RECOVERY_SIMULATION_VERSION,
   };
@@ -455,6 +456,7 @@ function beginReplayCapture(players, seed) {
     sharedParticipationCredit: state.runtimeConfig.config.flags.sharedParticipationCredit,
     downedActivity: state.runtimeConfig.config.flags.downedActivity,
     joinInProgressNormalization: state.runtimeConfig.config.flags.joinInProgressNormalization,
+    squadEnemyDirector: state.runtimeConfig.config.flags.squadEnemyDirector,
     registryVersion: state.runtimeConfig.config.registryVersion,
     rng: RNG_ALGORITHM, seed, run: replayRunConfig(),
   });
@@ -1075,6 +1077,11 @@ function renderGuide() {
     guideCard("E", "Guard pulse", "Weak support action", "Protect a nearby standing ally with a small shield. The pulse deals no damage, cannot heal, cannot target you, and never contributes to your own rescue.", "", "", { Control: "E / downed action button", Cooldown: "Shown in the downed panel", Target: "Nearby standing ally", "Self-revive": "Never" }),
     guideCard("G", "Call for help", "Contextual ping", "Open the ping wheel and mark Help or Regroup without interrupting your crawl. The battlefield ring and HUD show both bleedout and incoming rescue progress.", "", "", { Control: "G / touch ping", Bleedout: "10 seconds", Rescue: "3 seconds of nearby squad work", Readability: "Pattern + text + color" }),
   ].join("");
+  const director = [
+    guideCard("ARC", "Formation pressure", "Squad-only enemy direction", "Two-to-four-player runs receive deterministic lanes, pincers, wedges, columns, and arcs. The director spends the existing spawn budget, so formations do not create free enemies.", "", getThemeAsset("guide.field.hostileProjectile"), { Solo: "Legacy spawn path unchanged", Readability: "Bounded formation warnings", Scaling: "Squad size + wave phase" }),
+    guideCard("OBJ", "Directive convergence", "Objective-aware approach", "When an uplink, trial, or relay is active, some authored approaches form around that directive instead of only centering on the squad.", "", getThemeAsset("guide.field.fieldDevice"), { Trigger: "Active field directive", Counterplay: "Read the approach warning", Privacy: "Aggregate run totals only" }),
+    guideCard("EL", "Elite escort", "Late-run squad encounter", "Three- and four-player squads can meet ordinary formation escorts around scheduled elites after the operation midpoint. Escorts never duplicate elite keys or elite rewards.", "", getThemeAsset("archive.events.eliteAccessCard"), { Squad: "3–4 standing specialists", Timing: "After 45% progress", Rewards: "Standard enemy rewards only" }),
+  ].join("");
   const rare = [
     guideCard("KEY", "Elite access card", "Rare evolution drop", "Elites and minibosses drop access cards. A card evolves one eligible level-five weapon whose matching passive is owned.", "", getThemeAsset("archive.events.eliteAccessCard")),
     guideCard("$", "Treasure runner", "Timed chase event", "Catch the fleeing gold target before it escapes to earn bonus gold, data, and access cards.", "", getThemeAsset("archive.events.treasureRunner")),
@@ -1085,7 +1092,7 @@ function renderGuide() {
     ...BOONS.map((boon) => guideCard("★", boon.name, "Rare squad boon", boon.copy, "", boon.icon)),
     ...AUGMENTS.map((augment) => guideCard("AUG", augment.name, "Rare augment", augment.copy, "", augment.icon)),
   ].join("");
-  $("guide-content").innerHTML = `<section id="guide-campaign" class="guide-section"><h3>Campaign route</h3><p>Clear threat tiers to unlock harder operations. Progress is saved in this browser.</p><div class="campaign-route">${campaign}</div></section><section id="guide-apex" class="guide-section"><h3>Map apexes</h3><p>Every apex has two deterministic phases, a real health gate, named attacks, and a map-specific arena change.</p><div class="guide-grid">${apexes}</div></section><section id="guide-specialists" class="guide-section"><h3>Specialist identities</h3><p>Measured roles, strengths, and failure points from the versioned simulation contract.</p><div class="guide-grid">${identities}</div></section><section id="guide-field" class="guide-section"><h3>Field objects</h3><p>Hold Shift and point at a live field object for its current stats.</p><div class="guide-grid">${fieldObjects}</div></section><section id="guide-signatures" class="guide-section"><h3>Signature evolutions</h3><div class="guide-grid">${signatures}</div></section><section id="guide-weapons" class="guide-section"><h3>Universal weapons</h3><div class="guide-grid">${weapons}</div></section><section id="guide-materials" class="guide-section"><h3>Impact materials</h3><p>Every weapon keeps its silhouette while contact particles, decals, flash, and sound adapt to the target. Shape and pattern remain available when color or motion is reduced.</p><div class="guide-grid">${materials}</div></section><section id="guide-passives" class="guide-section"><h3>Passive upgrades</h3><div class="guide-grid">${passives}</div></section><section id="guide-downed" class="guide-section"><h3>Downed activity</h3><p>A downed specialist stays useful but cannot fight, collect, score objective work, or revive themself. The authoritative simulation decides every action.</p><div class="guide-grid">${downed}</div></section><section id="guide-participation" class="guide-section"><h3>Participation credit</h3><p>Credit records effective work by anonymous specialist slot. Genuine overlap is shared; duplicate traffic, excess values, idle proximity, and system restoration are excluded.</p><div class="guide-grid">${participation}</div></section><section id="guide-synergies" class="guide-section"><h3>Squad synergies</h3><p>Coordinate roles, ultimate timing, and movement. Effects are authoritative, bounded, non-stacking, and disabled in solo runs.</p><div class="guide-grid">${synergies}</div></section><section id="guide-rare" class="guide-section"><h3>Rare finds & events</h3><div class="guide-grid">${rare}</div></section>`;
+  $("guide-content").innerHTML = `<section id="guide-campaign" class="guide-section"><h3>Campaign route</h3><p>Clear threat tiers to unlock harder operations. Progress is saved in this browser.</p><div class="campaign-route">${campaign}</div></section><section id="guide-apex" class="guide-section"><h3>Map apexes</h3><p>Every apex has two deterministic phases, a real health gate, named attacks, and a map-specific arena change.</p><div class="guide-grid">${apexes}</div></section><section id="guide-specialists" class="guide-section"><h3>Specialist identities</h3><p>Measured roles, strengths, and failure points from the versioned simulation contract.</p><div class="guide-grid">${identities}</div></section><section id="guide-field" class="guide-section"><h3>Field objects</h3><p>Hold Shift and point at a live field object for its current stats.</p><div class="guide-grid">${fieldObjects}</div></section><section id="guide-signatures" class="guide-section"><h3>Signature evolutions</h3><div class="guide-grid">${signatures}</div></section><section id="guide-weapons" class="guide-section"><h3>Universal weapons</h3><div class="guide-grid">${weapons}</div></section><section id="guide-materials" class="guide-section"><h3>Impact materials</h3><p>Every weapon keeps its silhouette while contact particles, decals, flash, and sound adapt to the target. Shape and pattern remain available when color or motion is reduced.</p><div class="guide-grid">${materials}</div></section><section id="guide-passives" class="guide-section"><h3>Passive upgrades</h3><div class="guide-grid">${passives}</div></section><section id="guide-downed" class="guide-section"><h3>Downed activity</h3><p>A downed specialist stays useful but cannot fight, collect, score objective work, or revive themself. The authoritative simulation decides every action.</p><div class="guide-grid">${downed}</div></section><section id="guide-participation" class="guide-section"><h3>Participation credit</h3><p>Credit records effective work by anonymous specialist slot. Genuine overlap is shared; duplicate traffic, excess values, idle proximity, and system restoration are excluded.</p><div class="guide-grid">${participation}</div></section><section id="guide-synergies" class="guide-section"><h3>Squad synergies</h3><p>Coordinate roles, ultimate timing, and movement. Effects are authoritative, bounded, non-stacking, and disabled in solo runs.</p><div class="guide-grid">${synergies}</div></section><section id="guide-director" class="guide-section"><h3>Squad enemy director</h3><p>Squad runs receive deterministic, objective-aware formations while solo and rollback paths preserve the original spawn contract.</p><div class="guide-grid">${director}</div></section><section id="guide-rare" class="guide-section"><h3>Rare finds & events</h3><div class="guide-grid">${rare}</div></section>`;
 }
 
 function renderSpecialistGrid() {
@@ -1461,7 +1468,7 @@ function weaponSlotMarkup(weaponId, weapon, player, spec, game) {
   const buildcraft = sourceBuildcraft(weaponId, { specialistId: player.specialist, evolved: Boolean(weapon.evolved) });
   const signatureRows = evolution ? `<div><dt>Radius</dt><dd>${escapeHTML(telemetry.radius)}</dd></div><div><dt>Reach</dt><dd>${escapeHTML(telemetry.reach)}</dd></div><div><dt>Pierce</dt><dd>${escapeHTML(telemetry.pierce)}</dd></div><div><dt>Lifetime</dt><dd>${escapeHTML(telemetry.lifetime)}</dd></div><div><dt>Secondary</dt><dd>${escapeHTML(telemetry.secondary)}</dd></div>` : "";
   const evolutionCopy = `${evolution ? `${evolution.requirement}. Paired passive: ${evolution.pairedPassive.name} — ${pairedPassiveDelta(evolution)}. Evolution delta: ${evolution.summary}` : `Level 5 + ${PASSIVES[passive]?.name || passive} + an elite access card`} Build traits: ${buildcraft?.traits.map(({ value }) => value).join(", ") || "none"}. Direct scaling: ${buildcraft?.scalesWith.map(({ name }) => name).join(", ") || "none"}.`;
-  return `<div class="weapon-slot ${weapon.evolved ? "evolved" : ""}" data-weapon-id="${weaponId}" data-cooldown-max="${telemetry.cooldownSeconds}" data-cadence-kind="${telemetry.cadenceKind || "cooldown"}" tabindex="0" aria-label="${escapeHTML(weapon.evolved ? data.evolve : data.name)} weapon details"><img src="${icon}" alt=""><i class="weapon-cooldown-sweep" aria-hidden="true"></i><b class="weapon-cooldown-seconds" aria-hidden="true"></b><small>${weapon.evolved ? "E" : weapon.level}</small><div class="weapon-tooltip"><span>${weapon.evolved ? "Evolved weapon" : `Level ${weapon.level}`}</span><strong>${escapeHTML(weapon.evolved ? data.evolve : data.name)}</strong><p>${escapeHTML(data.copy || spec.tagline)}</p><dl><div><dt>Damage</dt><dd>${telemetry.damage}</dd></div><div><dt>${evolution ? "Cadence" : "Cooldown"}</dt><dd>${telemetry.interval}</dd></div><div><dt>Projectiles</dt><dd>${telemetry.projectiles}</dd></div>${signatureRows}<div><dt>Impact</dt><dd>${escapeHTML(impactSummary(impact))}</dd></div><div><dt>Run damage</dt><dd>${statNumber(damage)}</dd></div><div><dt>DPS</dt><dd>${dps.toFixed(1)}</dd></div></dl><em>${escapeHTML(evolution ? telemetry.secondary : weapon.evolved ? impact?.behavior || telemetry.note : impact?.evolvedDifference || telemetry.note)}</em><small>Evolution: ${escapeHTML(evolutionCopy)}</small></div></div>`;
+  return `<div class="weapon-slot ${weapon.evolved ? "evolved" : ""}" data-weapon-id="${weaponId}" data-cooldown-max="${telemetry.cooldownSeconds}" data-cadence-kind="${telemetry.cadenceKind || "cooldown"}" tabindex="0" aria-label="${escapeHTML(weapon.evolved ? data.evolve : data.name)} weapon details"><img src="${icon}" alt=""><i class="weapon-cooldown-sweep" aria-hidden="true"></i><b class="weapon-cooldown-seconds" aria-hidden="true"></b><small>${weapon.evolved ? "E" : weapon.level}</small><div class="weapon-tooltip"><span>${weapon.evolved ? "Evolved weapon" : `Level ${weapon.level}`}</span><strong>${escapeHTML(weapon.evolved ? data.evolve : data.name)}</strong><p>${escapeHTML(data.copy || spec.tagline)}</p><dl><div><dt>Damage</dt><dd>${telemetry.damage}</dd></div><div><dt>${evolution ? "Cadence" : "Cooldown"}</dt><dd>${telemetry.interval}</dd></div><div><dt>Projectiles</dt><dd>${telemetry.projectiles}</dd></div>${signatureRows}<div><dt>Impact</dt><dd>${escapeHTML(impactSummary(impact))}</dd></div><div><dt>Run damage</dt><dd data-run-damage>${statNumber(damage)}</dd></div><div><dt>DPS</dt><dd data-run-dps>${dps.toFixed(1)}</dd></div></dl><em>${escapeHTML(evolution ? telemetry.secondary : weapon.evolved ? impact?.behavior || telemetry.note : impact?.evolvedDifference || telemetry.note)}</em><small>Evolution: ${escapeHTML(evolutionCopy)}</small></div></div>`;
 }
 
 function currentAffectedSources(passiveId, player, gameLevel = 0) {
@@ -1598,7 +1605,7 @@ function updateSoundState(game) {
   state.soundState.xpCollected = local?.xpCollected || 0;
 }
 
-function updateWeaponCooldowns(player) {
+function updateWeaponCooldowns(player, game) {
   for (const slot of $("weapon-hud").querySelectorAll(".weapon-slot")) {
     const weaponId = slot.dataset.weaponId;
     const usesFlow = weaponId === "signature" && slot.dataset.cadenceKind === "flow";
@@ -1607,6 +1614,10 @@ function updateWeaponCooldowns(player) {
     slot.querySelector(".weapon-cooldown-sweep")?.style.setProperty("--weapon-cooldown", `${clamp(remaining / maximum * 100, 0, 100)}%`);
     const seconds = slot.querySelector(".weapon-cooldown-seconds");
     if (seconds) seconds.textContent = usesFlow ? `${Math.round(100 - remaining)} Flow` : remaining > .08 ? `${remaining < 10 ? remaining.toFixed(1) : Math.ceil(remaining)}s` : "";
+    const damage = Number(player.damageBySource?.[weaponId] || 0);
+    const runDamage = slot.querySelector("[data-run-damage]"), runDps = slot.querySelector("[data-run-dps]");
+    if (runDamage) runDamage.textContent = statNumber(damage);
+    if (runDps) runDps.textContent = (damage / elapsedRunSeconds(game)).toFixed(1);
   }
 }
 
@@ -1901,12 +1912,12 @@ function updateHUD(game) {
     pill.setAttribute("aria-label", `${p.name}, ${spec}, ${p.status}${p.status === "reconnecting" ? ", seat reserved" : ""}, ${Math.round(clamp(p.hp / maximum * 100, 0, 100))} percent health`);
   });
   const weaponEntries = Object.entries(player.weapons || {});
-  const weaponHUDKey = JSON.stringify({ weapons: player.weapons, passives: player.passives, maxHp: Math.round(player.maxHp), armor: Math.round(player.armor), specialist: player.specialist, hasteState: [player.hotTime > 0, player.hasteBuff > 0, player.frenzy > 0], damage: Object.fromEntries(Object.entries(player.damageBySource || {}).map(([id, value]) => [id, Math.floor(value / 25)])) });
+  const weaponHUDKey = JSON.stringify({ weapons: player.weapons, passives: player.passives, maxHp: Math.round(player.maxHp), armor: Math.round(player.armor), specialist: player.specialist, hasteState: [player.hotTime > 0, player.hasteBuff > 0, player.frenzy > 0] });
   if (weaponHUDKey !== state.lastWeaponHUDKey) {
     state.lastWeaponHUDKey = weaponHUDKey;
     $("weapon-hud").innerHTML = weaponEntries.map(([weaponId, weapon]) => weaponSlotMarkup(weaponId, weapon, player, spec, game)).join("");
   }
-  updateWeaponCooldowns(player);
+  updateWeaponCooldowns(player, game);
   const passiveHUDKey = JSON.stringify({ passives: player.passives || {}, abilityTier: game.level >= 6 ? 2 : game.level >= 3 ? 1 : 0 });
   if (passiveHUDKey !== state.lastPassiveHUDKey) {
     state.lastPassiveHUDKey = passiveHUDKey;
@@ -2204,6 +2215,7 @@ function processEvents(events) {
     if (event.type === "danger") sfx(event.apexIntent || event.apexPhase || /apex|phase|has arrived|enraged/i.test(event.title) ? "enemy:apex" : "danger");
     else if (event.type === "victory") sfx("victory");
     else if (event.type === "defeat") sfx("defeat");
+    else if (event.type === "evolution") { sfx("level"); setTimeout(() => sfx("reward"), 160); }
     else if (event.type === "upgrade" || event.type === "boon") sfx("reward");
     else sfx("objective");
     showBanner(event.title, event.copy, event.type);
@@ -2211,7 +2223,7 @@ function processEvents(events) {
 }
 
 function showBanner(title, copy, type) {
-  const banner = $("objective-banner"); banner.querySelector("span").textContent = type === "danger" ? "THREAT DETECTED" : type === "boon" ? "SQUAD BOOST" : type === "upgrade" ? "SYSTEM UPGRADE" : "NEW DIRECTIVE";
+  const banner = $("objective-banner"); banner.dataset.type = type; banner.querySelector("span").textContent = type === "danger" ? "THREAT DETECTED" : type === "boon" ? "SQUAD BOOST" : type === "upgrade" ? "SYSTEM UPGRADE" : type === "evolution" ? "WEAPON EVOLVED" : "NEW DIRECTIVE";
   banner.querySelector("strong").textContent = `${title}${copy ? ` · ${copy}` : ""}`;
   clearTimeout(state.bannerTimer); clearTimeout(state.bannerExitTimer);
   banner.classList.remove("hidden", "is-visible", "is-exiting");
@@ -2221,7 +2233,7 @@ function showBanner(title, copy, type) {
     banner.classList.remove("is-visible"); banner.classList.add("is-exiting");
     const exitDuration = matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 180;
     state.bannerExitTimer = setTimeout(() => { banner.classList.add("hidden"); banner.classList.remove("is-exiting"); }, exitDuration);
-  }, type === "danger" ? 4500 : 3800);
+  }, type === "evolution" ? 5600 : type === "danger" ? 4500 : 3800);
 }
 
 function scheduleResult(game) {

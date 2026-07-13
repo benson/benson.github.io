@@ -134,6 +134,9 @@ test("access cards evolve a level-five weapon with its passive", () => {
   player.passives.crit = 1;
   sim.useAccessCard();
   assert.equal(player.weapons.signature.evolved, true);
+  assert.equal(sim.events.at(-1).type, "evolution");
+  assert.equal(sim.events.at(-1).title, "Weapon evolved");
+  assert.match(sim.events.at(-1).copy, /One:/);
 });
 
 test("co-op teammates can revive a downed specialist", () => {
@@ -329,6 +332,25 @@ test("specialist identity passives affect their native combat paths", () => {
   rift.damageEnemy(riftTarget, 100, rift.players[0].id, false, "signature");
   assert.ok(rift.players[0].shield > 0, "Rift converts dealt damage into bounded shield");
   assert.ok(rift.players[0].shield <= rift.players[0].maxHp * .35);
+});
+
+test("Rift's damage barrier cannot refresh through sustained incoming contact", () => {
+  const sim = new Simulation({ difficulty: "story", players: [{ id: "rift", name: "Rift", specialist: "rift" }] });
+  const player = sim.players[0], target = sim.spawnEnemy("brute"), attacker = sim.spawnEnemy("mite");
+  Object.assign(target, { hp: 100_000, maxHp: 100_000, speed: 0 });
+  Object.assign(attacker, { x: player.x, y: player.y, speed: 0 });
+  player.invuln = 0; sim.time = 10;
+  sim.damageEnemy(target, 1_000, player.id, false, "signature");
+  assert.equal(player.shield, player.maxHp * .35);
+  const initialHp = player.hp;
+  for (let hit = 0; hit < 20; hit++) {
+    player.hitGrace = 0;
+    sim.takeDamage(player, attacker.damage * sim.difficulty.attack, attacker);
+    sim.time += .8;
+    sim.damageEnemy(target, 1_000, player.id, false, "signature");
+  }
+  assert.ok(player.hp < initialHp, `sustained contact left Rift at ${player.hp}/${initialHp} health`);
+  assert.ok(player.damageTaken > 0);
 });
 
 test("Zuri hot stacks add speed and Curtain Call executes wounded targets", () => {

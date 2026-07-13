@@ -38,6 +38,10 @@ const participationTotals = Object.freeze({
   eliteParticipations: 9,
   apexParticipations: 2,
 });
+const directorTotals = Object.freeze({
+  decisions: 8, peakSquadSize: 4, lane: 2, pincer: 2, split: 1, surround: 1, objective: 2,
+  column: 2, flankPair: 1, wedge: 3, arc: 2, objectivePressure: 2, eliteEscorts: 1,
+});
 
 test("completed-run telemetry contains aggregate balancing data and no player identity", () => {
   const payload = buildRunTelemetry(completedRun(), "2026.07.10.1+dev");
@@ -137,6 +141,22 @@ test("participation v3 supplies an empty synergy aggregate when no synergy metho
   assert.deepEqual(payload.synergyTotals, {
     triggers: 0, damage: 0, shielding: 0, mitigated: 0, formationSeconds: 0, ultimateChains: 0,
   });
+});
+
+test("squad-director telemetry v4 is reconciled, bounded, and aggregate-only", () => {
+  const payload = buildRunTelemetry(completedRun({
+    participationTelemetry: () => ({ ...participationTotals }),
+    directorTelemetry: () => ({ ...directorTotals }),
+  }), "build-12");
+  assert.equal(payload.schemaVersion, 4);
+  assert.deepEqual(payload.directorTotals, directorTotals);
+  assert.doesNotMatch(JSON.stringify(payload), /Benson|Friend|private-|SECRET-ROOM|replaySlot|playerName|roomId|positions|slots/i);
+});
+
+test("squad-director telemetry fails closed on identity, inconsistent totals, and invalid squad bands", () => {
+  assert.throws(() => buildRunTelemetry(completedRun({ directorTelemetry: { ...directorTotals, roomId: "SECRET" } }), "build"), /unexpected fields/);
+  assert.throws(() => buildRunTelemetry(completedRun({ directorTelemetry: { ...directorTotals, pincer: 3 } }), "build"), /do not reconcile/);
+  assert.throws(() => buildRunTelemetry(completedRun({ directorTelemetry: { ...directorTotals, peakSquadSize: 1 } }), "build"), /requires a squad/);
 });
 
 test("participation telemetry fails closed on identity, non-finite, over-cap, and fractional count fields", () => {

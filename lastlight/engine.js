@@ -1,14 +1,14 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
-} from "./data.js?v=20260713.2";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260713.6";
+} from "./data.js?v=20260713.10";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260713.10";
 import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.5";
-import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260713.9";
-import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260713.2";
+import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260713.10";
+import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260713.10";
 import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260713.1";
 import { MAX_CORRIDOR_CANDIDATES, accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget, orderEntitiesByDistance } from "./projectile-decisions.js?v=20260713.1";
-import { selectEliteAffixes, selectSpawnArchetype } from "./enemy-archetypes.js?v=20260713.1";
+import { selectEliteAffixes, selectSpawnArchetype, spawnPhaseAt } from "./enemy-archetypes.js?v=20260713.1";
 import { APEX_CONTRACTS, APEX_STATE_SCHEMA, orderedApexTargets } from "./apex-encounters.js?v=20260713.1";
 import { RECONNECT_WINDOW_TICKS } from "./reconnect-state.js?v=20260713.3";
 import {
@@ -28,7 +28,10 @@ import {
   beginDownedActivity, createDownedActivityState, removeDownedActivity, triggerDownedSupport,
   validateDownedActivityState,
 } from "./downed-activity.js?v=20260713.9";
-import { generateJoinPackage, JOIN_IN_PROGRESS_REGISTRY, joinPackageUpgradeIds, transitionJoinPackage } from "./join-in-progress.js?v=20260713.9";
+import { generateJoinPackage, JOIN_IN_PROGRESS_REGISTRY, joinPackageUpgradeIds, transitionJoinPackage } from "./join-in-progress.js?v=20260713.10";
+import {
+  DIRECTOR_APPROACHES, DIRECTOR_FORMATIONS, createSquadDirectorState, planSquadFormation, validateSquadDirectorState,
+} from "./enemy-director.js?v=20260713.10";
 
 const BALANCE = getBalanceConfig();
 
@@ -65,7 +68,7 @@ function compactPoint(e) {
   return result;
 }
 
-const RECOVERY_STATE_VERSION = 7;
+const RECOVERY_STATE_VERSION = 8;
 const RECOVERY_SCALARS = [
   "tick", "time", "remaining", "stage", "paused", "pauseReason", "wave", "teamXP", "level", "xpNeed", "kills", "gold",
   "spawnClock", "nextElite", "nextMiniBoss", "nextTreasure", "nextRelayBall", "objectiveIndex", "bossElapsed", "bossPhase", "enraged",
@@ -336,6 +339,7 @@ export class Simulation {
     this.sharedParticipationCredit = features.sharedParticipationCredit;
     this.downedActivity = features.downedActivity;
     this.joinInProgressNormalization = features.joinInProgressNormalization;
+    this.squadEnemyDirector = features.squadEnemyDirector;
     this.synergyRegistryVersion = features.registryVersion;
     if (this.squadSynergies && this.synergyRegistryVersion !== SQUAD_SYNERGY_SCHEMA) throw new RangeError(`Unsupported squad synergy registry: ${this.synergyRegistryVersion}`);
     this.duration = Number(config.duration) || BALANCE.core.defaultDurationSeconds;
@@ -377,6 +381,7 @@ export class Simulation {
     this.tasks = [];
     this.feathers = [];
     this.machine = { x: 0, y: 0, charge: 0, cooldown: 0, active: 0 };
+    this.directorState = createSquadDirectorState(this.squadEnemyDirector);
     this.bossElapsed = 0;
     this.bossPhase = 1;
     this.enraged = false;
@@ -485,7 +490,7 @@ export class Simulation {
       traveled: 0, feathers: [], damage: 0, damageBySource: {}, kills: 0, xpCollected: 0, damageTaken: 0, revives: 0,
       joinKind: "initial", joinedAtTick: 0, deployedTicks: 0, preApexDeployedTicks: 0, joinPackageId: "", catchUpRanks: 0,
       firedUpBuff: 0, healthbackBuff: 0, stopwavesBuff: 0, stopwaveClock: 0,
-      lastHit: 0, iceReady: false, iceTimer: 0,
+      lastHit: 0, riftShieldBlockedUntil: 0, iceReady: false, iceTimer: 0,
     };
     this.players.push(player);
     if (replaySlot(player.replaySlot) !== undefined) this.runSlotsUsed.add(player.replaySlot);
@@ -904,6 +909,19 @@ export class Simulation {
     };
   }
 
+  directorTelemetry() {
+    const state = this.directorState, metrics = state?.metrics || {};
+    return {
+      decisions: Number(state?.sequence || 0), peakSquadSize: Number(state?.peakSquadSize || 0),
+      lane: Number(metrics["approach:lane"] || 0), pincer: Number(metrics["approach:pincer"] || 0),
+      split: Number(metrics["approach:split"] || 0), surround: Number(metrics["approach:surround"] || 0),
+      objective: Number(metrics["approach:objective"] || 0), column: Number(metrics["formation:column"] || 0),
+      flankPair: Number(metrics["formation:flank-pair"] || 0), wedge: Number(metrics["formation:wedge"] || 0),
+      arc: Number(metrics["formation:arc"] || 0), objectivePressure: Number(metrics.objectivePressure || 0),
+      eliteEscorts: Number(metrics.eliteEscorts || 0),
+    };
+  }
+
   playerStat(p, stat) {
     return playerCombatStat(p, stat);
   }
@@ -928,22 +946,62 @@ export class Simulation {
       / this.difficulty.spawn / Math.sqrt(livePlayers);
     this.spawnClock += dt;
     const cap = spawn.capStart + Math.floor(progress * spawn.capProgress) + (livePlayers - 1) * spawn.capPerAdditionalPlayer;
-    while (this.spawnClock >= interval && this.enemies.length < cap) {
-      this.spawnClock -= interval;
-      const type = selectSpawnArchetype(this.gameplayRng, progress, BALANCE.enemyIdentity.spawnPhases);
-      this.spawnEnemy(type);
+    if (!this.squadEnemyDirector || livePlayers < 2) {
+      while (this.spawnClock >= interval && this.enemies.length < cap) {
+        this.spawnClock -= interval;
+        const type = selectSpawnArchetype(this.gameplayRng, progress, BALANCE.enemyIdentity.spawnPhases);
+        this.spawnEnemy(type);
+      }
+      return;
     }
+    while (this.spawnClock >= interval && this.enemies.length < cap) {
+      const budget = Math.min(Math.floor(this.spawnClock / interval), cap - this.enemies.length, livePlayers);
+      if (budget < 1) break;
+      const phase = spawnPhaseAt(progress, BALANCE.enemyIdentity.spawnPhases);
+      const planned = planSquadFormation({
+        seed: this.seed, state: this.directorState, tick: this.tick, progress, players: this.players,
+        objective: this.objectives.find((entry) => !entry.done) || null,
+        phaseWeights: phase.weights, archetypes: BALANCE.enemyIdentity.archetypes, maxSize: budget,
+        distanceMin: spawn.distanceMin, distanceMax: spawn.distanceMax, worldWidth: WORLD.width, worldHeight: WORLD.height,
+      });
+      if (!planned.decision) break;
+      this.directorState = planned.state;
+      this.spawnClock -= interval * planned.decision.units.length;
+      for (const unit of planned.decision.units) {
+        const point = this.safeDirectorSpawn(unit, planned.decision.target);
+        this.spawnEnemy(unit.type, { x: point.x, y: point.y, directorApproach: planned.decision.approach, directorFormation: planned.decision.formation });
+      }
+      if (planned.decision.signal) this.pushEvent("objective", `${planned.decision.formation.replace("-", " ")} pressure forming`, planned.decision.approach === "objective" ? "Enemy lanes are converging on the directive" : "The squad is being attacked from a new approach");
+    }
+  }
+
+  safeDirectorSpawn(point, target) {
+    const dx = point.x - target.x, dy = point.y - target.y, radius = Math.max(1, Math.hypot(dx, dy)), angle = Math.atan2(dy, dx);
+    for (const radialOffset of [0, 60, -60, 120, -120, 180]) {
+      for (let attempt = 0; attempt < 24; attempt++) {
+        const offset = attempt === 0 ? 0 : Math.ceil(attempt / 2) * .16 * (attempt % 2 ? 1 : -1);
+        const candidateRadius = Math.max(60, radius + radialOffset);
+        const x = clamp(target.x + Math.cos(angle + offset) * candidateRadius, -WORLD.width / 2 + 30, WORLD.width / 2 - 30);
+        const y = clamp(target.y + Math.sin(angle + offset) * candidateRadius, -WORLD.height / 2 + 30, WORLD.height / 2 - 30);
+        if (!collidesWithCover(x, y, 34)) return { x, y };
+      }
+    }
+    for (let y = -WORLD.height / 2 + 48; y <= WORLD.height / 2 - 48; y += 96) {
+      for (let x = -WORLD.width / 2 + 48; x <= WORLD.width / 2 - 48; x += 96) if (!collidesWithCover(x, y, 34)) return { x, y };
+    }
+    throw new RangeError("No collision-safe directed spawn point is available");
   }
 
   spawnEnemy(typeId, options = {}) {
     const type = ENEMY_TYPES[typeId] || ENEMY_TYPES.mite;
-    const focus = this.pick(this.players.filter((p) => !p.dead && !p.downed)) || this.players[0] || { x: 0, y: 0 };
-    const a = this.random(0, TAU), r = this.random(BALANCE.waves.spawn.distanceMin, BALANCE.waves.spawn.distanceMax);
+    const directed = Number.isFinite(options.x) && Number.isFinite(options.y);
+    const focus = directed ? null : this.pick(this.players.filter((p) => !p.dead && !p.downed)) || this.players[0] || { x: 0, y: 0 };
+    const a = directed ? 0 : this.random(0, TAU), r = directed ? 0 : this.random(BALANCE.waves.spawn.distanceMin, BALANCE.waves.spawn.distanceMax);
     const elite = Boolean(options.elite), eliteTuning = BALANCE.enemyIdentity.elite;
     const scale = this.difficulty.health * (1 + this.time / Math.max(1, this.duration) * BALANCE.waves.spawn.healthProgressScale);
     const enemy = {
-      id: this.nextGameplayId("m"), type: type.id, x: clamp(focus.x + Math.cos(a) * r, -WORLD.width / 2 + 30, WORLD.width / 2 - 30),
-      y: clamp(focus.y + Math.sin(a) * r, -WORLD.height / 2 + 30, WORLD.height / 2 - 30),
+      id: this.nextGameplayId("m"), type: type.id, x: directed ? options.x : clamp(focus.x + Math.cos(a) * r, -WORLD.width / 2 + 30, WORLD.width / 2 - 30),
+      y: directed ? options.y : clamp(focus.y + Math.sin(a) * r, -WORLD.height / 2 + 30, WORLD.height / 2 - 30),
       radius: type.radius * (elite ? eliteTuning.radiusMultiplier : 1), hp: type.health * scale * (elite ? eliteTuning.healthMultiplier : 1),
       maxHp: type.health * scale * (elite ? eliteTuning.healthMultiplier : 1), speed: type.speed * (elite ? eliteTuning.speedMultiplier : 1),
       damage: type.damage * this.difficulty.attack * (elite ? eliteTuning.damageMultiplier : 1), color: type.color,
@@ -951,6 +1009,7 @@ export class Simulation {
       stun: 0, hitFlash: 0, attackFlash: 0, spawnLife: .24, knockVx: 0, knockVy: 0, dead: false, xp: type.xp * (elite ? eliteTuning.xpMultiplier : 1),
       behaviorState: "approach", behaviorStartedTick: this.tick, behaviorUntilTick: this.tick,
       abilityReadyTick: this.tick, actionSequence: 0, attackAngle: 0, behaviorHitIds: [], affixIds: [], affixState: {},
+      ...(options.directorApproach ? { directorApproach: options.directorApproach, directorFormation: options.directorFormation || "column" } : {}),
     };
     if (elite) {
       const affixRng = SeededRng.fromHex(this.seed).fork("elite-affix-v1").fork(enemy.id);
@@ -982,6 +1041,24 @@ export class Simulation {
       const affix = elite.affixIds[0];
       if (affix) this.pushEvent("danger", `${affix[0].toUpperCase()}${affix.slice(1)} elite inbound`, `${affix === "shielded" ? "Break the diamond barrier first" : affix === "volatile" ? "Its death leaves a notched blast warning" : "Triple chevrons mark faster attacks"} · access key on takedown`);
       else this.pushEvent("danger", "Elite signal", "An access key is on the line");
+      const living = this.players.filter((player) => !player.dead && !player.downed);
+      if (this.squadEnemyDirector && living.length >= 3 && this.time / this.duration >= .45) {
+        const phase = spawnPhaseAt(this.time / this.duration, BALANCE.enemyIdentity.spawnPhases);
+        const escort = planSquadFormation({
+          seed: this.seed, state: this.directorState, tick: this.tick, progress: this.time / this.duration, players: this.players,
+          objective: this.objectives.find((entry) => !entry.done) || null, phaseWeights: phase.weights,
+          archetypes: BALANCE.enemyIdentity.archetypes, maxSize: living.length - 1, distanceMin: 180, distanceMax: 260,
+          worldWidth: WORLD.width, worldHeight: WORLD.height, eliteEscort: true,
+        });
+        if (escort.decision) {
+          this.directorState = escort.state;
+          for (const unit of escort.decision.units) {
+            const angle = Math.atan2(unit.y - escort.decision.target.y, unit.x - escort.decision.target.x);
+            const point = this.safeDirectorSpawn({ x: elite.x + Math.cos(angle) * 95, y: elite.y + Math.sin(angle) * 95 }, elite);
+            this.spawnEnemy(unit.type, { x: point.x, y: point.y, directorApproach: "elite-escort", directorFormation: escort.decision.formation });
+          }
+        }
+      }
       this.nextElite += this.duration * BALANCE.waves.events.eliteRepeat;
     }
     if (this.time >= this.nextMiniBoss) {
@@ -2491,6 +2568,7 @@ export class Simulation {
       const blocked = Math.min(p.shield, damage); p.shield -= blocked; damage -= blocked;
       if (blocked > 0 && this.participationState?.enabled) this.participationState = reduceAttributedShield(this.participationState, { targetSlot: p.replaySlot, amount: blocked, prevented: true }).state;
     }
+    if (p.specialist === "rift") p.riftShieldBlockedUntil = this.time + BALANCE.identityTuning.rift.damageShieldLockoutSeconds;
     p.damageTaken += Math.max(0, Math.min(damage, p.hp));
     p.hp -= damage; p.lastHit = this.time;
     let impactAngle = p.facing + Math.PI;
@@ -2564,7 +2642,7 @@ export class Simulation {
         : 1;
       const impactAngle = Math.atan2(enemy.y - owner.y, enemy.x - owner.x), knockback = clamp(amount * .28, 8, enemy.boss ? 22 : 72) * signatureScale;
       enemy.hitAngle = impactAngle; enemy.knockVx = (enemy.knockVx || 0) + Math.cos(impactAngle) * knockback; enemy.knockVy = (enemy.knockVy || 0) + Math.sin(impactAngle) * knockback;
-      if (owner.specialist === "rift" && dealt > 0) {
+      if (owner.specialist === "rift" && dealt > 0 && this.time >= Number(owner.riftShieldBlockedUntil || 0)) {
         const tuning = BALANCE.identityTuning.rift;
         this.grantShieldAmount(owner, dealt * tuning.damageShieldRatio, tuning.damageShieldCapMaxHealth, owner.replaySlot);
       }
@@ -2799,7 +2877,7 @@ export class Simulation {
   }
 
   useAccessCard() {
-    const upgraded = [];
+    const upgraded = [], evolutions = [];
     for (const p of this.players) {
       let evolved = false;
       for (const [weaponId, state] of Object.entries(p.weapons)) {
@@ -2807,7 +2885,7 @@ export class Simulation {
         if (state.level >= BALANCE.core.maxWeaponLevel && !state.evolved && Number(p.passives[requirement] || 0) > 0) {
           state.evolved = true; evolved = true;
           const name = weaponId === "signature" ? SPECIALISTS[p.specialist].signature.evolve : WEAPONS[weaponId].evolve;
-          upgraded.push(`${p.name}: ${name}`); break;
+          const label = `${p.name}: ${name}`; upgraded.push(label); evolutions.push(label); break;
         }
       }
       if (!evolved) {
@@ -2816,7 +2894,8 @@ export class Simulation {
         else this.healPlayer(p, p.maxHp * .25, null, { credit: false });
       }
     }
-    this.pushEvent("upgrade", "Access key decrypted", upgraded.join(" · ") || "Squad repaired");
+    if (evolutions.length) this.pushEvent("evolution", evolutions.length > 1 ? "Weapons evolved" : "Weapon evolved", evolutions.join(" · "), { evolutionCount: evolutions.length });
+    else this.pushEvent("upgrade", "Access key decrypted", upgraded.join(" · ") || "Squad repaired");
   }
 
   spawnBoss() {
@@ -2875,12 +2954,13 @@ export class Simulation {
       features: {
         gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents,
         squadSynergies: this.squadSynergies, sharedParticipationCredit: this.sharedParticipationCredit, downedActivity: this.downedActivity,
-        joinInProgressNormalization: this.joinInProgressNormalization, registryVersion: this.synergyRegistryVersion,
+        joinInProgressNormalization: this.joinInProgressNormalization, squadEnemyDirector: this.squadEnemyDirector, registryVersion: this.synergyRegistryVersion,
       },
       tick: this.tick,
       rng: { gameplay: this.gameplayRng.snapshot(), cosmetic: this.cosmeticRng.snapshot() },
       sequences: { gameplay: this.gameplaySequence, cosmetic: this.cosmeticSequence, event: this.eventSequence },
       tasks: this.tasks.map((task) => ({ id: task.id, dueTick: task.dueTick, kind: task.kind, payload: { ...task.payload }, ...(task.sourceId ? { sourceId: task.sourceId, variantId: task.variantId } : {}) })),
+      directorState: structuredClone(this.directorState),
     };
   }
 
@@ -2923,7 +3003,7 @@ export class Simulation {
         seed: this.seed, balanceVersion: this.balanceVersion, balanceHash: this.balanceHash,
         gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents,
         squadSynergies: this.squadSynergies, sharedParticipationCredit: this.sharedParticipationCredit, downedActivity: this.downedActivity,
-        joinInProgressNormalization: this.joinInProgressNormalization, registryVersion: this.synergyRegistryVersion,
+        joinInProgressNormalization: this.joinInProgressNormalization, squadEnemyDirector: this.squadEnemyDirector, registryVersion: this.synergyRegistryVersion,
         map: this.map.id, difficulty: this.difficulty.id, duration: this.duration,
       },
       rng: { gameplay: this.gameplayRng.snapshot(), cosmetic: this.cosmeticRng.snapshot() },
@@ -2940,12 +3020,13 @@ export class Simulation {
       synergyState: serializeRecoveryValue(this.synergyState, playerIds),
       participationState: serializeRecoveryValue(this.participationState, playerIds),
       downedState: serializeRecoveryValue(this.downedState, playerIds),
+      directorState: structuredClone(this.directorState),
     };
   }
 
   static fromRecoveryState(value, { playerIdsBySlot } = {}) {
     if (!value || typeof value !== "object" || Array.isArray(value) || value.version !== RECOVERY_STATE_VERSION) throw new TypeError("Unsupported recovery state");
-    const expected = ["version", "header", "rng", "sequences", "scalars", "machine", "players", "disconnectedPlayers", "runSlotsUsed", "lists", "pendingChoices", "choiceReady", "selectedChoices", "synergyState", "participationState", "downedState"];
+    const expected = ["version", "header", "rng", "sequences", "scalars", "machine", "players", "disconnectedPlayers", "runSlotsUsed", "lists", "pendingChoices", "choiceReady", "selectedChoices", "synergyState", "participationState", "downedState", "directorState"];
     const actual = Object.keys(value).sort();
     if (actual.length !== expected.length || expected.sort().some((key, index) => key !== actual[index])) throw new TypeError("Recovery state has unexpected fields");
     const header = value.header;
@@ -2986,14 +3067,14 @@ export class Simulation {
       features: {
         gameplayVersion: header.gameplayVersion, objectiveEvents: header.objectiveEvents,
         squadSynergies: header.squadSynergies, sharedParticipationCredit: header.sharedParticipationCredit, downedActivity: header.downedActivity,
-        joinInProgressNormalization: header.joinInProgressNormalization, registryVersion: header.registryVersion,
+        joinInProgressNormalization: header.joinInProgressNormalization, squadEnemyDirector: header.squadEnemyDirector, registryVersion: header.registryVersion,
       },
     }, {
       seed: header.seed, balanceVersion: header.balanceVersion, balanceHash: header.balanceHash,
       features: {
         gameplayVersion: header.gameplayVersion, objectiveEvents: header.objectiveEvents,
         squadSynergies: header.squadSynergies, sharedParticipationCredit: header.sharedParticipationCredit, downedActivity: header.downedActivity,
-        joinInProgressNormalization: header.joinInProgressNormalization, registryVersion: header.registryVersion,
+        joinInProgressNormalization: header.joinInProgressNormalization, squadEnemyDirector: header.squadEnemyDirector, registryVersion: header.registryVersion,
       },
     });
     sim.gameplayRng = SeededRng.fromSnapshot(value.rng?.gameplay);
@@ -3006,6 +3087,7 @@ export class Simulation {
     sim.cosmeticSequence = value.sequences.cosmetic;
     sim.eventSequence = value.sequences.event;
     sim.machine = deserializeRecoveryValue(value.machine, restoredPlayerIds);
+    sim.directorState = validateSquadDirectorState(value.directorState);
     sim.players = value.players.map((stored) => {
       const restored = deserializeRecoveryValue(stored, restoredPlayerIds);
       validateDraftState(restored.draft);
@@ -3045,6 +3127,8 @@ export class Simulation {
         if (!enemy.boss && (!Number.isSafeInteger(enemy[key]) || enemy[key] < 0)) throw new TypeError(`Recovery enemy ${index} has invalid ${key}`);
       }
       if (!enemy.boss && !Number.isFinite(enemy.attackAngle)) throw new TypeError(`Recovery enemy ${index} has invalid attackAngle`);
+      const directed = enemy.directorApproach !== undefined || enemy.directorFormation !== undefined;
+      if (directed && (!header.squadEnemyDirector || enemy.boss || ![...DIRECTOR_APPROACHES, "elite-escort"].includes(enemy.directorApproach) || !DIRECTOR_FORMATIONS.includes(enemy.directorFormation))) throw new TypeError(`Recovery enemy ${index} has invalid director metadata`);
       if (!enemy.boss && (!Array.isArray(enemy.behaviorHitIds) || enemy.behaviorHitIds.length > 4 || new Set(enemy.behaviorHitIds).size !== enemy.behaviorHitIds.length || enemy.behaviorHitIds.some((id) => !restoredPlayerIdSet.has(id)))) throw new TypeError(`Recovery enemy ${index} has invalid behaviorHitIds`);
       if (enemy.behaviorState === "charge") {
         for (const key of ["behaviorEndX", "behaviorEndY", "behaviorRange"]) if (!Number.isFinite(enemy[key])) throw new TypeError(`Recovery enemy ${index} has invalid ${key}`);
@@ -3127,7 +3211,7 @@ export class Simulation {
       features: {
         gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents,
         squadSynergies: this.squadSynergies, sharedParticipationCredit: this.sharedParticipationCredit, downedActivity: this.downedActivity,
-        joinInProgressNormalization: this.joinInProgressNormalization, registryVersion: this.synergyRegistryVersion,
+        joinInProgressNormalization: this.joinInProgressNormalization, squadEnemyDirector: this.squadEnemyDirector, registryVersion: this.synergyRegistryVersion,
       },
       tick: this.tick, determinism: this.deterministicState(),
       map: this.map.id, difficulty: this.difficulty.id, duration: this.duration, time: Math.round(this.time * 10) / 10,
@@ -3142,6 +3226,7 @@ export class Simulation {
       synergyState: structuredClone(this.synergyState), synergyTelemetry: this.synergyTelemetry(),
       participationState: structuredClone(this.participationState), participationTelemetry: this.participationTelemetry(),
       downedState: structuredClone(this.downedState),
+      ...(this.directorState.sequence > 0 ? { directorTelemetry: this.directorTelemetry() } : {}),
       pendingChoices: this.pendingChoices, choiceReady: this.choiceReady, selectedChoices: this.selectedChoices, events: this.events.slice(-5),
     };
   }

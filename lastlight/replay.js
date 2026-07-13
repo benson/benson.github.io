@@ -1,5 +1,6 @@
-export const REPLAY_SCHEMA = "lastlight.replay.v8";
-export const REPLAY_SCHEMA_VERSION = 8;
+export const REPLAY_SCHEMA = "lastlight.replay.v9";
+export const REPLAY_SCHEMA_VERSION = 9;
+export const LEGACY_REPLAY_SCHEMA_V8 = "lastlight.replay.v8";
 export const LEGACY_REPLAY_SCHEMA_V7 = "lastlight.replay.v7";
 export const LEGACY_REPLAY_SCHEMA_V6 = "lastlight.replay.v6";
 export const LEGACY_REPLAY_SCHEMA_V5 = "lastlight.replay.v5";
@@ -13,7 +14,8 @@ export const MAX_REPLAY_TICK = 216_000;
 export const MAX_REPLAY_COMMANDS = 100_000;
 export const MAX_COMMANDS_PER_TICK = 32;
 export const MAX_REPLAY_CHECKPOINTS = 721;
-export const REPLAY_DRAFT_SCHEMA = "lastlight.replay-draft.v5";
+export const REPLAY_DRAFT_SCHEMA = "lastlight.replay-draft.v6";
+export const LEGACY_REPLAY_DRAFT_SCHEMA_V5 = "lastlight.replay-draft.v5";
 export const LEGACY_REPLAY_DRAFT_SCHEMA_V4 = "lastlight.replay-draft.v4";
 export const LEGACY_REPLAY_DRAFT_SCHEMA_V3 = "lastlight.replay-draft.v3";
 export const LEGACY_REPLAY_DRAFT_SCHEMA_V2 = "lastlight.replay-draft.v2";
@@ -34,11 +36,11 @@ export const MAX_JOIN_CATCH_UP_RANKS = 54;
 const NO_SYNERGY_REGISTRY_VERSION = "none";
 const LEGACY_FEATURES = Object.freeze({
   configVersion: "builtin-2026.07.11.3", gameplayVersion: "events-v1", objectiveEvents: true,
-  squadSynergies: false, sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, registryVersion: NO_SYNERGY_REGISTRY_VERSION,
+  squadSynergies: false, sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, registryVersion: NO_SYNERGY_REGISTRY_VERSION,
 });
 const CURRENT_FEATURES = Object.freeze({
-  configVersion: "release-2026.07.13.9", gameplayVersion: "join-normalization-v1", objectiveEvents: true,
-  squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, registryVersion: "lastlight.squad-synergy.v1",
+  configVersion: "release-2026.07.13.10", gameplayVersion: "squad-director-v1", objectiveEvents: true,
+  squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, registryVersion: "lastlight.squad-synergy.v1",
 });
 
 const ownKeys = (value) => value && typeof value === "object" && !Array.isArray(value) ? Object.keys(value) : [];
@@ -167,6 +169,7 @@ export function canonicalSimulationState(simulation) {
   delete snapshot.events;
   const legacyDownedShape = simulation.downedActivity === false;
   const legacyJoinShape = simulation.joinInProgressNormalization === false;
+  const legacyDirectorShape = simulation.squadEnemyDirector === false;
   snapshot.players = (simulation.players || [])
     .map((player) => replayEntity(player, playerMap))
     .map((player) => legacyDownedShape ? legacyDownedPlayerShape(player) : player)
@@ -193,6 +196,12 @@ export function canonicalSimulationState(simulation) {
     delete snapshot.runSlotsUsed;
     if (snapshot.features) delete snapshot.features.joinInProgressNormalization;
     if (snapshot.determinism?.features) delete snapshot.determinism.features.joinInProgressNormalization;
+  }
+  if (legacyDirectorShape) {
+    delete snapshot.directorState;
+    if (snapshot.features) delete snapshot.features.squadEnemyDirector;
+    if (snapshot.determinism?.features) delete snapshot.determinism.features.squadEnemyDirector;
+    if (snapshot.determinism) delete snapshot.determinism.directorState;
   }
   return canonicalize(snapshot);
 }
@@ -283,7 +292,16 @@ export function replayGameplayFeatures(value) {
       sharedParticipationCredit: value.features.sharedParticipationCredit,
       downedActivity: value.features.downedActivity,
       joinInProgressNormalization: value.features.joinInProgressNormalization,
+      squadEnemyDirector: value.features.squadEnemyDirector,
       registryVersion: value.features.registryVersion,
+    });
+  }
+  if (value?.schema === LEGACY_REPLAY_SCHEMA_V8) {
+    return Object.freeze({
+      gameplayVersion: value.features.gameplayVersion, objectiveEvents: value.features.objectiveEvents,
+      squadSynergies: value.features.squadSynergies, sharedParticipationCredit: value.features.sharedParticipationCredit,
+      downedActivity: value.features.downedActivity, joinInProgressNormalization: value.features.joinInProgressNormalization,
+      squadEnemyDirector: false, registryVersion: value.features.registryVersion,
     });
   }
   if (value?.schema === LEGACY_REPLAY_SCHEMA_V7) {
@@ -294,6 +312,7 @@ export function replayGameplayFeatures(value) {
       sharedParticipationCredit: value.features.sharedParticipationCredit,
       downedActivity: value.features.downedActivity,
       joinInProgressNormalization: false,
+      squadEnemyDirector: false,
       registryVersion: value.features.registryVersion,
     });
   }
@@ -305,6 +324,7 @@ export function replayGameplayFeatures(value) {
       sharedParticipationCredit: value.features.sharedParticipationCredit,
       downedActivity: false,
       joinInProgressNormalization: false,
+      squadEnemyDirector: false,
       registryVersion: value.features.registryVersion,
     });
   }
@@ -316,6 +336,7 @@ export function replayGameplayFeatures(value) {
       sharedParticipationCredit: false,
       downedActivity: false,
       joinInProgressNormalization: false,
+      squadEnemyDirector: false,
       registryVersion: value.features.registryVersion,
     });
   }
@@ -326,12 +347,14 @@ export function replayGameplayFeatures(value) {
     sharedParticipationCredit: false,
     downedActivity: false,
     joinInProgressNormalization: false,
+    squadEnemyDirector: false,
     registryVersion: NO_SYNERGY_REGISTRY_VERSION,
   });
 }
 
 export function validateReplay(value, expected = {}) {
   const currentSchema = value?.schema === REPLAY_SCHEMA;
+  const legacyV8Schema = value?.schema === LEGACY_REPLAY_SCHEMA_V8;
   const legacyV7Schema = value?.schema === LEGACY_REPLAY_SCHEMA_V7;
   const legacyV6Schema = value?.schema === LEGACY_REPLAY_SCHEMA_V6;
   const legacyV5Schema = value?.schema === LEGACY_REPLAY_SCHEMA_V5;
@@ -339,8 +362,8 @@ export function validateReplay(value, expected = {}) {
   const legacyV3Schema = value?.schema === LEGACY_REPLAY_SCHEMA_V3;
   const legacyV2Schema = value?.schema === LEGACY_REPLAY_SCHEMA_V2;
   const legacySchema = value?.schema === LEGACY_REPLAY_SCHEMA;
-  const hasFeatures = currentSchema || legacyV7Schema || legacyV6Schema || legacyV5Schema || legacyV4Schema || legacyV3Schema || legacyV2Schema;
-  if (!currentSchema && !legacyV7Schema && !legacyV6Schema && !legacyV5Schema && !legacyV4Schema && !legacyV3Schema && !legacyV2Schema && !legacySchema) throw new TypeError("Unsupported replay schema");
+  const hasFeatures = currentSchema || legacyV8Schema || legacyV7Schema || legacyV6Schema || legacyV5Schema || legacyV4Schema || legacyV3Schema || legacyV2Schema;
+  if (!currentSchema && !legacyV8Schema && !legacyV7Schema && !legacyV6Schema && !legacyV5Schema && !legacyV4Schema && !legacyV3Schema && !legacyV2Schema && !legacySchema) throw new TypeError("Unsupported replay schema");
   assertExactKeys(value, ["schema", "build", "balance", "engine", "seed", "run", ...(hasFeatures ? ["features"] : []), "roster", "commands", "checkpoints", "finalTick", "finalHash"], "replay");
   safeString(value.build, SAFE_ID, "build");
   assertExactKeys(value.balance, ["version", "hash"], "balance");
@@ -352,17 +375,18 @@ export function validateReplay(value, expected = {}) {
   safeString(value.seed, SEED, "seed");
   const features = hasFeatures ? value.features : LEGACY_FEATURES;
   if (hasFeatures) {
-    assertExactKeys(features, ["configVersion", "gameplayVersion", "objectiveEvents", ...((currentSchema || legacyV7Schema || legacyV6Schema || legacyV5Schema) ? ["squadSynergies", "registryVersion"] : []), ...((currentSchema || legacyV7Schema || legacyV6Schema) ? ["sharedParticipationCredit"] : []), ...((currentSchema || legacyV7Schema) ? ["downedActivity"] : []), ...(currentSchema ? ["joinInProgressNormalization"] : [])], "features");
+    assertExactKeys(features, ["configVersion", "gameplayVersion", "objectiveEvents", ...((currentSchema || legacyV8Schema || legacyV7Schema || legacyV6Schema || legacyV5Schema) ? ["squadSynergies", "registryVersion"] : []), ...((currentSchema || legacyV8Schema || legacyV7Schema || legacyV6Schema) ? ["sharedParticipationCredit"] : []), ...((currentSchema || legacyV8Schema || legacyV7Schema) ? ["downedActivity"] : []), ...((currentSchema || legacyV8Schema) ? ["joinInProgressNormalization"] : []), ...(currentSchema ? ["squadEnemyDirector"] : [])], "features");
     safeString(features.configVersion, FEATURE_ID, "features.configVersion");
     safeString(features.gameplayVersion, FEATURE_ID, "features.gameplayVersion");
     if (typeof features.objectiveEvents !== "boolean") throw new TypeError("features.objectiveEvents must be boolean");
-    if (currentSchema || legacyV7Schema || legacyV6Schema || legacyV5Schema) {
+    if (currentSchema || legacyV8Schema || legacyV7Schema || legacyV6Schema || legacyV5Schema) {
       if (typeof features.squadSynergies !== "boolean") throw new TypeError("features.squadSynergies must be boolean");
       safeString(features.registryVersion, FEATURE_ID, "features.registryVersion");
     }
-    if ((currentSchema || legacyV7Schema || legacyV6Schema) && typeof features.sharedParticipationCredit !== "boolean") throw new TypeError("features.sharedParticipationCredit must be boolean");
-    if ((currentSchema || legacyV7Schema) && typeof features.downedActivity !== "boolean") throw new TypeError("features.downedActivity must be boolean");
-    if (currentSchema && typeof features.joinInProgressNormalization !== "boolean") throw new TypeError("features.joinInProgressNormalization must be boolean");
+    if ((currentSchema || legacyV8Schema || legacyV7Schema || legacyV6Schema) && typeof features.sharedParticipationCredit !== "boolean") throw new TypeError("features.sharedParticipationCredit must be boolean");
+    if ((currentSchema || legacyV8Schema || legacyV7Schema) && typeof features.downedActivity !== "boolean") throw new TypeError("features.downedActivity must be boolean");
+    if ((currentSchema || legacyV8Schema) && typeof features.joinInProgressNormalization !== "boolean") throw new TypeError("features.joinInProgressNormalization must be boolean");
+    if (currentSchema && typeof features.squadEnemyDirector !== "boolean") throw new TypeError("features.squadEnemyDirector must be boolean");
   }
   assertExactKeys(value.run, ["map", "difficulty", "duration"], "run");
   if (!MAPS.has(value.run.map)) throw new TypeError("run.map is invalid");
@@ -382,7 +406,7 @@ export function validateReplay(value, expected = {}) {
   if (!Array.isArray(value.commands) || value.commands.length > MAX_REPLAY_COMMANDS) throw new TypeError("commands exceed replay bounds");
   let previousTick = -1, previousOrdinal = -1, commandsAtTick = 0;
   for (const [index, command] of value.commands.entries()) {
-    validateCommand(command, index, { allowDraftActions: currentSchema || legacyV7Schema || legacyV6Schema || legacyV5Schema || legacyV4Schema, packagedJoins: currentSchema });
+    validateCommand(command, index, { allowDraftActions: currentSchema || legacyV8Schema || legacyV7Schema || legacyV6Schema || legacyV5Schema || legacyV4Schema, packagedJoins: currentSchema || legacyV8Schema });
     const [tick, ordinal] = command;
     if (tick < previousTick || ordinal <= previousOrdinal) throw new TypeError("commands must be ordered by tick and globally increasing ordinal");
     commandsAtTick = tick === previousTick ? commandsAtTick + 1 : 1;
@@ -414,6 +438,7 @@ export function validateReplay(value, expected = {}) {
   if (expected.sharedParticipationCredit !== undefined && normalizedFeatures.sharedParticipationCredit !== expected.sharedParticipationCredit) throw new TypeError("Replay shared-participation-credit flag mismatch");
   if (expected.downedActivity !== undefined && normalizedFeatures.downedActivity !== expected.downedActivity) throw new TypeError("Replay downed-activity flag mismatch");
   if (expected.joinInProgressNormalization !== undefined && normalizedFeatures.joinInProgressNormalization !== expected.joinInProgressNormalization) throw new TypeError("Replay join-in-progress-normalization flag mismatch");
+  if (expected.squadEnemyDirector !== undefined && normalizedFeatures.squadEnemyDirector !== expected.squadEnemyDirector) throw new TypeError("Replay squad-enemy-director flag mismatch");
   if (expected.registryVersion && normalizedFeatures.registryVersion !== expected.registryVersion) throw new TypeError("Replay synergy registry version mismatch");
 
   const serialized = JSON.stringify(value);
@@ -448,6 +473,7 @@ export class ReplayRecorder {
     sharedParticipationCredit = CURRENT_FEATURES.sharedParticipationCredit,
     downedActivity = CURRENT_FEATURES.downedActivity,
     joinInProgressNormalization = CURRENT_FEATURES.joinInProgressNormalization,
+    squadEnemyDirector = CURRENT_FEATURES.squadEnemyDirector,
     registryVersion = CURRENT_FEATURES.registryVersion, rng, seed, run,
   }) {
     safeString(featureConfigVersion, FEATURE_ID, "featureConfigVersion");
@@ -457,10 +483,11 @@ export class ReplayRecorder {
     if (typeof sharedParticipationCredit !== "boolean") throw new TypeError("sharedParticipationCredit must be boolean");
     if (typeof downedActivity !== "boolean") throw new TypeError("downedActivity must be boolean");
     if (typeof joinInProgressNormalization !== "boolean") throw new TypeError("joinInProgressNormalization must be boolean");
+    if (typeof squadEnemyDirector !== "boolean") throw new TypeError("squadEnemyDirector must be boolean");
     safeString(registryVersion, FEATURE_ID, "registryVersion");
     this.header = {
       build, balanceVersion, balanceHash, featureConfigVersion, gameplayVersion, objectiveEvents,
-      squadSynergies, sharedParticipationCredit, downedActivity, joinInProgressNormalization, registryVersion, rng, seed, run: clone(run),
+      squadSynergies, sharedParticipationCredit, downedActivity, joinInProgressNormalization, squadEnemyDirector, registryVersion, rng, seed, run: clone(run),
     };
     this.actualToSlot = new Map();
     this.roster = new Map();
@@ -555,15 +582,17 @@ export class ReplayRecorder {
 
   exportDraft(currentTick) {
     integer(currentTick, 0, MAX_REPLAY_TICK, "currentTick");
-    const schema = this.outputSchema === LEGACY_REPLAY_SCHEMA_V7 ? LEGACY_REPLAY_DRAFT_SCHEMA_V4
+    const schema = this.outputSchema === LEGACY_REPLAY_SCHEMA_V8 ? LEGACY_REPLAY_DRAFT_SCHEMA_V5
+      : this.outputSchema === LEGACY_REPLAY_SCHEMA_V7 ? LEGACY_REPLAY_DRAFT_SCHEMA_V4
       : this.outputSchema === LEGACY_REPLAY_SCHEMA_V6 ? LEGACY_REPLAY_DRAFT_SCHEMA_V3
       : this.outputSchema === LEGACY_REPLAY_SCHEMA_V5 ? LEGACY_REPLAY_DRAFT_SCHEMA_V2
       : this.outputSchema === LEGACY_REPLAY_SCHEMA_V4 ? LEGACY_REPLAY_DRAFT_SCHEMA
       : REPLAY_DRAFT_SCHEMA;
     const header = clone(this.header);
-    if (schema !== REPLAY_DRAFT_SCHEMA) delete header.joinInProgressNormalization;
-    if (![REPLAY_DRAFT_SCHEMA, LEGACY_REPLAY_DRAFT_SCHEMA_V4].includes(schema)) delete header.downedActivity;
-    if (![REPLAY_DRAFT_SCHEMA, LEGACY_REPLAY_DRAFT_SCHEMA_V4, LEGACY_REPLAY_DRAFT_SCHEMA_V3].includes(schema)) delete header.sharedParticipationCredit;
+    if (schema !== REPLAY_DRAFT_SCHEMA) delete header.squadEnemyDirector;
+    if (![REPLAY_DRAFT_SCHEMA, LEGACY_REPLAY_DRAFT_SCHEMA_V5].includes(schema)) delete header.joinInProgressNormalization;
+    if (![REPLAY_DRAFT_SCHEMA, LEGACY_REPLAY_DRAFT_SCHEMA_V5, LEGACY_REPLAY_DRAFT_SCHEMA_V4].includes(schema)) delete header.downedActivity;
+    if (![REPLAY_DRAFT_SCHEMA, LEGACY_REPLAY_DRAFT_SCHEMA_V5, LEGACY_REPLAY_DRAFT_SCHEMA_V4, LEGACY_REPLAY_DRAFT_SCHEMA_V3].includes(schema)) delete header.sharedParticipationCredit;
     if (schema === LEGACY_REPLAY_DRAFT_SCHEMA) {
       delete header.squadSynergies;
       delete header.registryVersion;
@@ -584,36 +613,42 @@ export class ReplayRecorder {
   static fromDraft(draft, players = []) {
     assertExactKeys(draft, ["schema", "currentTick", "header", "roster", "knownSlots", "commands", "checkpoints", "lastInputs", "ordinal"], "replay draft");
     const currentDraft = draft.schema === REPLAY_DRAFT_SCHEMA;
+    const legacyV5Draft = draft.schema === LEGACY_REPLAY_DRAFT_SCHEMA_V5;
     const legacyV4Draft = draft.schema === LEGACY_REPLAY_DRAFT_SCHEMA_V4;
     const legacyV3Draft = draft.schema === LEGACY_REPLAY_DRAFT_SCHEMA_V3;
     const legacyV2Draft = draft.schema === LEGACY_REPLAY_DRAFT_SCHEMA_V2;
     const legacyDraft = draft.schema === LEGACY_REPLAY_DRAFT_SCHEMA;
-    if (!currentDraft && !legacyV4Draft && !legacyV3Draft && !legacyV2Draft && !legacyDraft) throw new TypeError("Unsupported replay draft schema");
+    if (!currentDraft && !legacyV5Draft && !legacyV4Draft && !legacyV3Draft && !legacyV2Draft && !legacyDraft) throw new TypeError("Unsupported replay draft schema");
     integer(draft.currentTick, 0, MAX_REPLAY_TICK, "replay draft currentTick");
     assertExactKeys(draft.header, [
       "build", "balanceVersion", "balanceHash", "featureConfigVersion", "gameplayVersion", "objectiveEvents",
-      ...((currentDraft || legacyV4Draft || legacyV3Draft || legacyV2Draft) ? ["squadSynergies", "registryVersion"] : []),
-      ...((currentDraft || legacyV4Draft || legacyV3Draft) ? ["sharedParticipationCredit"] : []),
-      ...((currentDraft || legacyV4Draft) ? ["downedActivity"] : []),
-      ...(currentDraft ? ["joinInProgressNormalization"] : []), "rng", "seed", "run",
+      ...((currentDraft || legacyV5Draft || legacyV4Draft || legacyV3Draft || legacyV2Draft) ? ["squadSynergies", "registryVersion"] : []),
+      ...((currentDraft || legacyV5Draft || legacyV4Draft || legacyV3Draft) ? ["sharedParticipationCredit"] : []),
+      ...((currentDraft || legacyV5Draft || legacyV4Draft) ? ["downedActivity"] : []),
+      ...((currentDraft || legacyV5Draft) ? ["joinInProgressNormalization"] : []),
+      ...(currentDraft ? ["squadEnemyDirector"] : []), "rng", "seed", "run",
     ], "replay draft header");
     const draftFeatures = currentDraft
-      ? { squadSynergies: draft.header.squadSynergies, sharedParticipationCredit: draft.header.sharedParticipationCredit, downedActivity: draft.header.downedActivity, joinInProgressNormalization: draft.header.joinInProgressNormalization, registryVersion: draft.header.registryVersion }
+      ? { squadSynergies: draft.header.squadSynergies, sharedParticipationCredit: draft.header.sharedParticipationCredit, downedActivity: draft.header.downedActivity, joinInProgressNormalization: draft.header.joinInProgressNormalization, squadEnemyDirector: draft.header.squadEnemyDirector, registryVersion: draft.header.registryVersion }
+      : legacyV5Draft
+        ? { squadSynergies: draft.header.squadSynergies, sharedParticipationCredit: draft.header.sharedParticipationCredit, downedActivity: draft.header.downedActivity, joinInProgressNormalization: draft.header.joinInProgressNormalization, squadEnemyDirector: false, registryVersion: draft.header.registryVersion }
       : legacyV4Draft
-        ? { squadSynergies: draft.header.squadSynergies, sharedParticipationCredit: draft.header.sharedParticipationCredit, downedActivity: draft.header.downedActivity, joinInProgressNormalization: false, registryVersion: draft.header.registryVersion }
+        ? { squadSynergies: draft.header.squadSynergies, sharedParticipationCredit: draft.header.sharedParticipationCredit, downedActivity: draft.header.downedActivity, joinInProgressNormalization: false, squadEnemyDirector: false, registryVersion: draft.header.registryVersion }
       : legacyV3Draft
-        ? { squadSynergies: draft.header.squadSynergies, sharedParticipationCredit: draft.header.sharedParticipationCredit, downedActivity: false, joinInProgressNormalization: false, registryVersion: draft.header.registryVersion }
+        ? { squadSynergies: draft.header.squadSynergies, sharedParticipationCredit: draft.header.sharedParticipationCredit, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, registryVersion: draft.header.registryVersion }
       : legacyV2Draft
-        ? { squadSynergies: draft.header.squadSynergies, sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, registryVersion: draft.header.registryVersion }
-        : { squadSynergies: false, sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, registryVersion: NO_SYNERGY_REGISTRY_VERSION };
+        ? { squadSynergies: draft.header.squadSynergies, sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, registryVersion: draft.header.registryVersion }
+        : { squadSynergies: false, sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, registryVersion: NO_SYNERGY_REGISTRY_VERSION };
     const validationReplay = {
-      schema: currentDraft ? REPLAY_SCHEMA : legacyV4Draft ? LEGACY_REPLAY_SCHEMA_V7 : legacyV3Draft ? LEGACY_REPLAY_SCHEMA_V6 : legacyV2Draft ? LEGACY_REPLAY_SCHEMA_V5 : LEGACY_REPLAY_SCHEMA_V4,
+      schema: currentDraft ? REPLAY_SCHEMA : legacyV5Draft ? LEGACY_REPLAY_SCHEMA_V8 : legacyV4Draft ? LEGACY_REPLAY_SCHEMA_V7 : legacyV3Draft ? LEGACY_REPLAY_SCHEMA_V6 : legacyV2Draft ? LEGACY_REPLAY_SCHEMA_V5 : LEGACY_REPLAY_SCHEMA_V4,
       build: draft.header.build,
       balance: { version: draft.header.balanceVersion, hash: draft.header.balanceHash },
       features: {
         configVersion: draft.header.featureConfigVersion, gameplayVersion: draft.header.gameplayVersion,
         objectiveEvents: draft.header.objectiveEvents,
-        ...(currentDraft ? draftFeatures : legacyV4Draft
+        ...(currentDraft ? draftFeatures : legacyV5Draft
+          ? { squadSynergies: draftFeatures.squadSynergies, sharedParticipationCredit: draftFeatures.sharedParticipationCredit, downedActivity: draftFeatures.downedActivity, joinInProgressNormalization: draftFeatures.joinInProgressNormalization, registryVersion: draftFeatures.registryVersion }
+          : legacyV4Draft
           ? { squadSynergies: draftFeatures.squadSynergies, sharedParticipationCredit: draftFeatures.sharedParticipationCredit, downedActivity: draftFeatures.downedActivity, registryVersion: draftFeatures.registryVersion }
           : legacyV3Draft
           ? { squadSynergies: draftFeatures.squadSynergies, sharedParticipationCredit: draftFeatures.sharedParticipationCredit, registryVersion: draftFeatures.registryVersion }
@@ -672,13 +707,14 @@ export class ReplayRecorder {
     const features = {
       configVersion: this.header.featureConfigVersion, gameplayVersion: this.header.gameplayVersion,
       objectiveEvents: this.header.objectiveEvents,
-      ...([REPLAY_SCHEMA, LEGACY_REPLAY_SCHEMA_V7, LEGACY_REPLAY_SCHEMA_V6, LEGACY_REPLAY_SCHEMA_V5].includes(this.outputSchema)
+      ...([REPLAY_SCHEMA, LEGACY_REPLAY_SCHEMA_V8, LEGACY_REPLAY_SCHEMA_V7, LEGACY_REPLAY_SCHEMA_V6, LEGACY_REPLAY_SCHEMA_V5].includes(this.outputSchema)
         ? { squadSynergies: this.header.squadSynergies, registryVersion: this.header.registryVersion } : {}),
-      ...([REPLAY_SCHEMA, LEGACY_REPLAY_SCHEMA_V7, LEGACY_REPLAY_SCHEMA_V6].includes(this.outputSchema)
+      ...([REPLAY_SCHEMA, LEGACY_REPLAY_SCHEMA_V8, LEGACY_REPLAY_SCHEMA_V7, LEGACY_REPLAY_SCHEMA_V6].includes(this.outputSchema)
         ? { sharedParticipationCredit: this.header.sharedParticipationCredit } : {}),
-      ...([REPLAY_SCHEMA, LEGACY_REPLAY_SCHEMA_V7].includes(this.outputSchema)
+      ...([REPLAY_SCHEMA, LEGACY_REPLAY_SCHEMA_V8, LEGACY_REPLAY_SCHEMA_V7].includes(this.outputSchema)
         ? { downedActivity: this.header.downedActivity } : {}),
-      ...(this.outputSchema === REPLAY_SCHEMA ? { joinInProgressNormalization: this.header.joinInProgressNormalization } : {}),
+      ...([REPLAY_SCHEMA, LEGACY_REPLAY_SCHEMA_V8].includes(this.outputSchema) ? { joinInProgressNormalization: this.header.joinInProgressNormalization } : {}),
+      ...(this.outputSchema === REPLAY_SCHEMA ? { squadEnemyDirector: this.header.squadEnemyDirector } : {}),
     };
     const replay = {
       schema: this.outputSchema,
@@ -724,6 +760,9 @@ export class ReplayDriver {
     }
     if (Object.hasOwn(simulation, "joinInProgressNormalization") && simulation.joinInProgressNormalization !== features.joinInProgressNormalization) {
       throw new Error("Replay join-in-progress-normalization flag mismatch");
+    }
+    if (Object.hasOwn(simulation, "squadEnemyDirector") && simulation.squadEnemyDirector !== features.squadEnemyDirector) {
+      throw new Error("Replay squad-enemy-director flag mismatch");
     }
     if (Object.hasOwn(simulation, "synergyRegistryVersion") && simulation.synergyRegistryVersion !== features.registryVersion) {
       throw new Error("Replay synergy registry version mismatch");
