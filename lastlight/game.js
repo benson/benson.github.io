@@ -10,7 +10,7 @@ import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-m
 import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260713.2";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
 import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260713.2";
-import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260713.4";
+import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260713.5";
 import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260711.5";
 import { clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260713.2";
 import { GuestInputSequenceTracker, HostInputSequenceGate, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260713.2";
@@ -43,6 +43,12 @@ import {
   pingIntentFromDelta, sanitizePingBroadcast, sanitizePingRequest,
 } from "./ping-contract.js?v=20260713.4";
 import { resolveContextualPing } from "./ping-context.js?v=20260713.4";
+import {
+  DRAFT_RECOMMENDATION_PROTOCOL_VERSION, DraftRecommendationSequenceTracker, HostDraftRecommendationGate,
+  createDraftRecommendationSync, sanitizeDraftRecommendationRequest,
+  sanitizeDraftRecommendationState, sanitizeDraftRecommendationSync,
+} from "./draft-recommendation-contract.js?v=20260713.5";
+import { DraftRecommendationStore, recommendationMarkerModel } from "./draft-recommendations.js?v=20260713.5";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -51,7 +57,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.13.4";
+const BUILD = "2026.07.13.5";
 const AUTHORITY_WATCHDOG_MS = Object.freeze({ synchronizing: 10_000, migrating: 25_000 });
 const BALANCE = getBalanceConfig();
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
@@ -79,6 +85,8 @@ const guestInputSequences = new GuestInputSequenceTracker();
 const authoritySnapshotGate = new AuthoritySnapshotGate();
 const pingSequences = new PingSequenceTracker();
 const hostPingGate = new HostPingGate();
+const draftRecommendationSequences = new DraftRecommendationSequenceTracker();
+const hostDraftRecommendationGate = new HostDraftRecommendationGate();
 const PROGRESS_KEY = "lastlight:campaign:v1";
 const RUN_HISTORY_KEY = "lastlight:runs:v1";
 const CLIENT_TOKEN_KEY = "lastlight:session-token:v1";
@@ -162,11 +170,14 @@ const state = {
   squadPresence: new SquadPresenceTracker(), lastPresenceAnnouncement: "",
   pings: new Map(), pingWheel: null, pingPointerId: null,
   pingStats: { sent: 0, received: 0, rejected: 0, byIntent: Object.fromEntries(PING_WHEEL_ORDER.map((intent) => [intent, 0])) },
+  draftRecommendations: new DraftRecommendationStore(),
+  draftRecommendationStats: { sent: 0, received: 0, rejected: 0 },
 };
 
 const runtimeConfigReady = loadRuntimeConfig({ endpoint: RUNTIME_CONFIG_ENDPOINT }).then((result) => {
   state.runtimeConfig = result;
   syncPingAvailability();
+  syncDraftRecommendationAvailability();
   refreshRecoveryOffer();
   return result;
 });
@@ -345,6 +356,7 @@ function commitMigratedAuthority(message) {
   clearTimeout(state.resultTimer); state.resultTimer = null; state.endShown = false;
   state.authorityEpoch = message.authorityEpoch;
   pingSequences.reset(state.authorityEpoch); hostPingGate.reset(state.authorityEpoch); clearPings();
+  draftRecommendationSequences.reset(state.authorityEpoch); hostDraftRecommendationGate.reset(state.authorityEpoch); state.draftRecommendations.rebase(state.authorityEpoch);
   state.authorityHostId = message.id;
   authoritySnapshotGate.commit({ epoch: state.authorityEpoch, hostId: state.authorityHostId });
   guestInputSequences.setEpoch(state.authorityEpoch);
@@ -371,7 +383,8 @@ function commitMigratedAuthority(message) {
   else if (state.screen === "result") {
     for (const peer of state.lobby.values()) if (peer.id !== state.clientId) sendRunSync(peer.id);
   }
-  finishAuthorityRestoration(() => publishMigrationCheckpoint(true));
+  pruneDraftRecommendations(state.sim);
+  finishAuthorityRestoration(() => { publishMigrationCheckpoint(true); sendDraftRecommendationSync(); });
 }
 
 function replayRunConfig() {
@@ -518,6 +531,9 @@ function resetInputProtocol() {
   authoritySnapshotGate.reset({ epoch: state.authorityEpoch, hostId: state.authorityHostId });
   pingSequences.reset(state.authorityEpoch);
   hostPingGate.reset(state.authorityEpoch);
+  draftRecommendationSequences.reset(state.authorityEpoch);
+  hostDraftRecommendationGate.reset(state.authorityEpoch);
+  state.draftRecommendations.rebase(state.authorityEpoch);
   clearPings();
 }
 
@@ -536,6 +552,108 @@ function syncPingAvailability() {
   for (const node of document.querySelectorAll('[data-control-ping]')) node.hidden = !enabled;
   if ($('touch-ping')) $('touch-ping').hidden = !enabled;
   if (!enabled) closePingWheel({ restoreFocus: false });
+}
+
+function syncDraftRecommendationAvailability() {
+  const enabled = Boolean(state.runtimeConfig.config.flags.upgradeRecommendations);
+  document.documentElement.dataset.upgradeRecommendations = enabled ? "true" : "false";
+  if (!enabled) {
+    state.draftRecommendations.reset(state.authorityEpoch);
+    state.lastUpgradeKey = "";
+    if (state.activeUpgradeGame) updateUpgrade(state.activeUpgradeGame);
+  }
+}
+
+function draftRecommendationGame() { return state.isHost ? state.sim : state.snapshot || state.sim; }
+
+function draftRecommendationInputAvailable(game = draftRecommendationGame()) {
+  return Boolean(state.runtimeConfig.config.flags.upgradeRecommendations && state.partyMode !== "solo"
+    && state.authorityState === "active" && game?.pendingChoices);
+}
+
+function recommendationPlayerBySlot(game, replaySlot) {
+  return game?.players?.find((player) => player.replaySlot === replaySlot) || null;
+}
+
+function draftRecommendationStateEntry(recommendation) {
+  return {
+    type: "draft_recommendation_state", protocolVersion: DRAFT_RECOMMENDATION_PROTOCOL_VERSION,
+    epoch: recommendation.epoch, seq: recommendation.seq, recommenderSlot: recommendation.recommenderSlot,
+    targetSlot: recommendation.targetSlot, round: recommendation.round, revision: recommendation.revision,
+    optionIndex: recommendation.optionIndex, active: recommendation.active,
+  };
+}
+
+function pruneDraftRecommendations(game = draftRecommendationGame(), { broadcast = false } = {}) {
+  const changed = state.draftRecommendations.prune(game);
+  if (changed && broadcast && state.isHost) sendDraftRecommendationSync();
+  return changed;
+}
+
+function recommendationAnnouncement(entry, game, removed = !entry.active) {
+  const source = recommendationPlayerBySlot(game, entry.recommenderSlot), target = recommendationPlayerBySlot(game, entry.targetSlot);
+  const choice = target ? game?.pendingChoices?.[target.id]?.[entry.optionIndex] : null;
+  return `${source?.name || `Specialist ${entry.recommenderSlot + 1}`} ${removed ? "removed their recommendation" : `recommends ${choice?.name || "an upgrade"}`} ${target?.name ? `for ${target.name}` : ""}.`.replace(/\s+\./, ".");
+}
+
+function applyDraftRecommendationState(message, { announce = true } = {}) {
+  let parsed; try { parsed = sanitizeDraftRecommendationState(message, { transport: Boolean(message?._from) }); }
+  catch { state.draftRecommendationStats.rejected++; return false; }
+  if (parsed.epoch !== state.authorityEpoch) { state.draftRecommendationStats.rejected++; return false; }
+  const game = draftRecommendationGame(), result = state.draftRecommendations.apply(parsed);
+  if (!result.accepted) { state.draftRecommendationStats.rejected++; return false; }
+  state.draftRecommendationStats.received++;
+  renderDraftRecommendationMarkers(game);
+  if (announce && $("draft-status")) $("draft-status").textContent = recommendationAnnouncement(parsed, game);
+  return true;
+}
+
+function acceptHostDraftRecommendation(message) {
+  if (!state.isHost || !draftRecommendationInputAvailable(state.sim) || state.sim?.pauseReason !== "upgrade") return false;
+  let parsed; try { parsed = sanitizeDraftRecommendationRequest(message, { transport: true }); }
+  catch { state.draftRecommendationStats.rejected++; return false; }
+  const source = recommendationPlayerBySlot(state.sim, parsed.recommenderSlot), target = recommendationPlayerBySlot(state.sim, parsed.targetSlot);
+  const choices = target ? state.sim.pendingChoices?.[target.id] : null, draft = target?.draft;
+  if (!source || source.id !== parsed._from || !target || source === target || !Array.isArray(choices) || !choices[parsed.optionIndex]
+    || !draft || state.sim.choiceReady?.[target.id]) { state.draftRecommendationStats.rejected++; return false; }
+  const current = state.draftRecommendations.recommendationBy(parsed.recommenderSlot, parsed.targetSlot);
+  if (!parsed.active && (!current || current.round !== parsed.round || current.revision !== parsed.revision || current.optionIndex !== parsed.optionIndex)) {
+    state.draftRecommendationStats.rejected++; return false;
+  }
+  const verdict = hostDraftRecommendationGate.apply(parsed, { round: draft.round, revision: draft.revision });
+  if (!verdict.accepted) { state.draftRecommendationStats.rejected++; return false; }
+  if (!applyDraftRecommendationState(verdict.recommendation)) return false;
+  send(verdict.recommendation); return true;
+}
+
+function requestDraftRecommendation(targetSlot, optionIndex) {
+  const game = draftRecommendationGame();
+  if (!draftRecommendationInputAvailable(game)) return false;
+  const target = recommendationPlayerBySlot(game, Number(targetSlot)), localSlot = localReplaySlot(game);
+  const draft = target?.draft, choices = target ? game.pendingChoices?.[target.id] : null;
+  if (!target || localSlot === target.replaySlot || !draft || !choices?.[optionIndex] || game.choiceReady?.[target.id]) return false;
+  const current = state.draftRecommendations.recommendationBy(localSlot, target.replaySlot);
+  const active = !(current && current.round === draft.round && current.revision === draft.revision && current.optionIndex === optionIndex);
+  const request = draftRecommendationSequences.create({ targetSlot: target.replaySlot, round: draft.round, revision: draft.revision, optionIndex, active });
+  state.draftRecommendationStats.sent++;
+  if (state.isHost) return acceptHostDraftRecommendation({ ...request, _from: state.clientId, recommenderSlot: localSlot });
+  send(request); $("draft-status").textContent = active ? `Recommendation sent to ${target.name}.` : `Removing recommendation for ${target.name}.`;
+  return true;
+}
+
+function sendDraftRecommendationSync(targetId = "") {
+  if (!state.isHost || !state.runtimeConfig.config.flags.upgradeRecommendations || state.partyMode === "solo") return false;
+  if (!targetId) {
+    let sent = false;
+    for (const peer of state.lobby.values()) if (peer.id !== state.clientId) sent = sendDraftRecommendationSync(peer.id) || sent;
+    return sent;
+  }
+  pruneDraftRecommendations(state.sim);
+  const sync = createDraftRecommendationSync({
+    epoch: state.authorityEpoch,
+    entries: state.draftRecommendations.entries().map(draftRecommendationStateEntry),
+  });
+  send(sync, targetId); return true;
 }
 
 function localReplaySlot(game = currentGameState()) {
@@ -671,6 +789,7 @@ function recordHostDraftAction(playerId, action) {
   else if (result.action === "reroll") state.replayRecorder?.recordDraftReroll(playerId, state.sim.tick);
   else if (result.action === "banish") state.replayRecorder?.recordDraftBanish(playerId, state.sim.tick, result.choiceId);
   else if (result.action === "skip") state.replayRecorder?.recordDraftSkip(playerId, state.sim.tick);
+  pruneDraftRecommendations(state.sim, { broadcast: true });
   publishMigrationCheckpoint(true);
   return result;
 }
@@ -996,6 +1115,7 @@ function startHostedGame() {
   state.sim = new Simulation({ ...state.config, players }, { seed, balanceVersion: BALANCE_VERSION, balanceHash: BALANCE_HASH, features });
   state.squadPresence.reset(state.sim.players, state.sim.tick); state.lastPresenceAnnouncement = "";
   state.authorityEpoch = 0; state.authorityHostId = state.clientId; state.authoritySnapshotSeq = 0; state.migrationLastCheckpointTick = -1; setAuthorityState("active");
+  state.draftRecommendations.reset(0); draftRecommendationSequences.reset(0); hostDraftRecommendationGate.reset(0);
   beginReplayCapture(players, seed);
   discardRecovery({ notify: false });
   state.previousSnapshot = null; state.snapshot = null;
@@ -1009,6 +1129,7 @@ function startRemoteGame(message) {
   const synchronizing = ["reconnecting", "synchronizing"].includes(state.authorityState);
   if (Array.isArray(message.players)) state.lobby = new Map(message.players.map((player) => [player.id, player]));
   state.config = message.config; state.sim = null; state.previousSnapshot = null; state.snapshot = null; state.migrationLastCheckpointTick = -1;
+  if (!synchronizing) state.draftRecommendations.reset(state.authorityEpoch);
   if (!synchronizing) setAuthorityState("active");
   const players = message.state?.players || message.players || [];
   if (!synchronizing) { state.squadPresence.reset(players, presenceTick(message.state)); state.lastPresenceAnnouncement = ""; }
@@ -1681,10 +1802,54 @@ function renderUpgradeStats(player) {
   }).join("")}<p>Focus or point at a current stat for its formula. Upgrade cards list every equipped weapon or ability affected right now.</p>`;
 }
 
+function draftRecommendationMarkersMarkup(game, target, optionIndex) {
+  const draft = target?.draft;
+  const entries = draft ? state.draftRecommendations.forOption(target.replaySlot, draft.round, draft.revision, optionIndex) : [];
+  const markers = recommendationMarkerModel(entries, game?.players || []), names = markers.map(({ name }) => name);
+  return `<div class="draft-recommendation-markers ${markers.length ? "has-recommendations" : ""}" data-recommendation-markers data-recommend-target="${target?.replaySlot ?? -1}" data-recommend-option="${optionIndex}" aria-label="${escapeHTML(names.length ? `Recommended by ${names.join(", ")}` : "No squad recommendations")}"><span aria-hidden="true">★ Squad recommends</span><div>${markers.map(({ replaySlot, name, specialist }) => `<i data-replay-slot="${replaySlot}" title="${escapeHTML(name)}"><img src="${escapeHTML(SPECIALISTS[specialist]?.sprite || SPECIALISTS.zuri.sprite)}" alt=""><b>${replaySlot + 1}</b></i>`).join("")}</div></div>`;
+}
+
+function draftRecommendationButtonMarkup(game, target, choice, optionIndex, targetReady) {
+  if (!draftRecommendationInputAvailable(game) || targetReady || target.replaySlot === localReplaySlot(game)) return "";
+  const localSlot = localReplaySlot(game), draft = target.draft;
+  const current = state.draftRecommendations.recommendationBy(localSlot, target.replaySlot);
+  const pressed = Boolean(current && current.round === draft.round && current.revision === draft.revision && current.optionIndex === optionIndex);
+  return `<button class="draft-recommend-button" type="button" data-recommend-target="${target.replaySlot}" data-recommend-option="${optionIndex}" aria-pressed="${pressed}" aria-label="${escapeHTML(`${pressed ? "Remove recommendation of" : "Recommend"} ${choice.name} ${pressed ? "for" : "to"} ${target.name}`)}"><span aria-hidden="true">★</span><b>${pressed ? "Recommended" : "Recommend"}</b></button>`;
+}
+
+function bindDraftRecommendationButtons(root = $("teammate-upgrades")) {
+  root?.querySelectorAll(".draft-recommend-button").forEach((button) => button.addEventListener("click", (event) => {
+    event.preventDefault(); event.stopPropagation(); requestDraftRecommendation(Number(button.dataset.recommendTarget), Number(button.dataset.recommendOption));
+  }));
+}
+
+function renderDraftRecommendationMarkers(game = state.activeUpgradeGame) {
+  if (!game || $("upgrade-overlay")?.classList.contains("hidden")) return;
+  pruneDraftRecommendations(game);
+  document.querySelectorAll("[data-recommendation-markers]").forEach((node) => {
+    const target = recommendationPlayerBySlot(game, Number(node.dataset.recommendTarget));
+    const optionIndex = Number(node.dataset.recommendOption), draft = target?.draft;
+    const entries = draft ? state.draftRecommendations.forOption(target.replaySlot, draft.round, draft.revision, optionIndex) : [];
+    const markers = recommendationMarkerModel(entries, game.players || []), names = markers.map(({ name }) => name);
+    node.classList.toggle("has-recommendations", markers.length > 0);
+    node.setAttribute("aria-label", names.length ? `Recommended by ${names.join(", ")}` : "No squad recommendations");
+    const list = node.querySelector("div");
+    if (list) list.innerHTML = markers.map(({ replaySlot, name, specialist }) => `<i data-replay-slot="${replaySlot}" title="${escapeHTML(name)}"><img src="${escapeHTML(SPECIALISTS[specialist]?.sprite || SPECIALISTS.zuri.sprite)}" alt=""><b>${replaySlot + 1}</b></i>`).join("");
+  });
+  document.querySelectorAll(".draft-recommend-button").forEach((button) => {
+    const target = recommendationPlayerBySlot(game, Number(button.dataset.recommendTarget)), optionIndex = Number(button.dataset.recommendOption);
+    const current = state.draftRecommendations.recommendationBy(localReplaySlot(game), target?.replaySlot), draft = target?.draft;
+    const pressed = Boolean(current && draft && current.round === draft.round && current.revision === draft.revision && current.optionIndex === optionIndex);
+    button.setAttribute("aria-pressed", String(pressed)); button.querySelector("b").textContent = pressed ? "Recommended" : "Recommend";
+    const choice = target ? game.pendingChoices?.[target.id]?.[optionIndex] : null;
+    if (choice && target) button.setAttribute("aria-label", `${pressed ? "Remove recommendation of" : "Recommend"} ${choice.name} ${pressed ? "for" : "to"} ${target.name}`);
+  });
+}
+
 function updateUpgrade(game) {
   state.activeUpgradeGame = game;
   const pending = game.pendingChoices?.[state.clientId];
-  if (!pending) { $("upgrade-overlay").classList.add("hidden"); state.lastUpgradeKey = ""; ensureDraftForecasts(game); return; }
+  if (!pending) { if (pruneDraftRecommendations(game) && state.isHost) sendDraftRecommendationSync(); $("upgrade-overlay").classList.add("hidden"); state.lastUpgradeKey = ""; ensureDraftForecasts(game); return; }
   closePingWheel({ restoreFocus: false });
   ensureDraftForecasts(game);
   $("upgrade-overlay").classList.remove("hidden");
@@ -1711,7 +1876,7 @@ function updateUpgrade(game) {
     const pair = evolutionPair(choice, localPlayer);
     const target = choice.id.split(":")[1], buildcraft = forecast?.tags || (choice.kind === "weapon" ? sourceBuildcraft(target, { specialistId: localPlayer.specialist }) : choice.kind === "passive" ? passiveBuildcraft(target) : null);
     const needsReplacement = replacementRequired(choice, localPlayer);
-    return `<button class="upgrade-card ${pair ? "evolution-ready" : ""} ${needsReplacement ? "replacement-required" : ""} ${selected ? "selected" : ""} ${passed ? "passed" : ""}" type="button" data-choice="${escapeHTML(choice.id)}" ${ready ? `aria-disabled="true"` : ""}><span class="card-type">${selected ? "Locked choice" : needsReplacement ? "Replacement required" : escapeHTML(choice.kind)}</span><kbd class="choice-key">${index + 1}</kbd><div class="card-icon ${visual.className}">${visual.markup}</div><h3>${escapeHTML(choice.name)}</h3>${buildcraftTagsMarkup(buildcraft)}<p>${escapeHTML(choice.copy)}</p>${evolutionPairMarkup(pair)}<dl class="card-stats">${upgradeComparisonMarkup(details)}</dl>${forecastConsequencesMarkup(forecast)}${affectedLoadoutMarkup(choice, localPlayer, forecast, game.level)}<div class="level-pips">${Array.from({ length: choice.max }, (_, i) => `<i class="${i < choice.level ? "on" : ""}"></i>`).join("")}</div></button>`;
+    return `<button class="upgrade-card ${pair ? "evolution-ready" : ""} ${needsReplacement ? "replacement-required" : ""} ${selected ? "selected" : ""} ${passed ? "passed" : ""}" type="button" data-choice="${escapeHTML(choice.id)}" ${ready ? `aria-disabled="true"` : ""}><span class="card-type">${selected ? "Locked choice" : needsReplacement ? "Replacement required" : escapeHTML(choice.kind)}</span><kbd class="choice-key">${index + 1}</kbd><div class="card-icon ${visual.className}">${visual.markup}</div><h3>${escapeHTML(choice.name)}</h3>${buildcraftTagsMarkup(buildcraft)}<p>${escapeHTML(choice.copy)}</p>${evolutionPairMarkup(pair)}<dl class="card-stats">${upgradeComparisonMarkup(details)}</dl>${forecastConsequencesMarkup(forecast)}${affectedLoadoutMarkup(choice, localPlayer, forecast, game.level)}${draftRecommendationMarkersMarkup(game, localPlayer, index)}<div class="level-pips">${Array.from({ length: choice.max }, (_, i) => `<i class="${i < choice.level ? "on" : ""}"></i>`).join("")}</div></button>`;
   }).join("");
   if (!ready) $("upgrade-cards").querySelectorAll("button").forEach((button) => button.addEventListener("click", () => chooseUpgrade(button.dataset.choice)));
 
@@ -1722,14 +1887,15 @@ function updateUpgrade(game) {
     const choices = game.pendingChoices?.[player.id] || [];
     const teammateReady = Boolean(game.choiceReady?.[player.id]);
     const teammateDecision = game.selectedChoices?.[player.id] || "", teammateSelection = selectedBaseChoiceId(teammateDecision);
-    return `<section class="teammate-draft ${teammateReady ? "ready" : ""}"><header><img src="${SPECIALISTS[player.specialist].sprite}" alt=""><div><strong>${escapeHTML(player.name)}</strong><span>${teammateReady ? "Choice locked" : "Choosing…"}</span></div></header><div class="teammate-choice-grid">${choices.map((choice) => {
+    return `<section class="teammate-draft ${teammateReady ? "ready" : ""}"><header><img src="${SPECIALISTS[player.specialist].sprite}" alt=""><div><strong>${escapeHTML(player.name)}</strong><span>${teammateReady ? "Choice locked" : "Choosing…"}</span></div></header><div class="teammate-choice-grid">${choices.map((choice, optionIndex) => {
       const visual = upgradeChoiceVisual(choice), forecast = cachedDraftForecast(player.id, choice.id), details = upgradeChoiceDetails(choice, player, forecast), pair = evolutionPair(choice, player);
       const target = choice.id.split(":")[1], buildcraft = forecast?.tags || (choice.kind === "weapon" ? sourceBuildcraft(target, { specialistId: player.specialist }) : choice.kind === "passive" ? passiveBuildcraft(target) : null);
       const replacedId = teammateDecision.startsWith("replace:") && choice.id === teammateSelection ? teammateDecision.split(":")[3] : "";
       const replacedName = replacedId ? teammateDecision.split(":")[1] === "passive" ? PASSIVES[replacedId]?.name || replacedId : WEAPONS[replacedId]?.name || replacedId : "";
-      return `<div class="teammate-choice ${pair ? "evolution-ready" : ""} ${choice.id === teammateSelection ? "selected" : ""} ${teammateReady && choice.id !== teammateSelection ? "passed" : ""}" tabindex="0"><i class="${visual.className}">${visual.markup}</i><b>${escapeHTML(choice.name)}</b>${buildcraftTagsMarkup(buildcraft, 2)}<small>${escapeHTML(choice.kind)} · ${choice.level}/${choice.max}${replacedName ? ` · replaces ${escapeHTML(replacedName)}` : ""}</small><div class="teammate-choice-tooltip"><span>${escapeHTML(choice.kind)} · level ${choice.level}/${choice.max}</span><strong>${escapeHTML(choice.name)}</strong><p>${escapeHTML(choice.copy)}</p>${evolutionPairMarkup(pair)}<dl>${upgradeComparisonMarkup(details)}</dl>${forecastConsequencesMarkup(forecast)}</div></div>`;
+      return `<div class="teammate-choice ${pair ? "evolution-ready" : ""} ${choice.id === teammateSelection ? "selected" : ""} ${teammateReady && choice.id !== teammateSelection ? "passed" : ""}" tabindex="0"><i class="${visual.className}">${visual.markup}</i><b>${escapeHTML(choice.name)}</b>${buildcraftTagsMarkup(buildcraft, 2)}<small>${escapeHTML(choice.kind)} · ${choice.level}/${choice.max}${replacedName ? ` · replaces ${escapeHTML(replacedName)}` : ""}</small>${draftRecommendationMarkersMarkup(game, player, optionIndex)}${draftRecommendationButtonMarkup(game, player, choice, optionIndex, teammateReady)}<div class="teammate-choice-tooltip"><span>${escapeHTML(choice.kind)} · level ${choice.level}/${choice.max}</span><strong>${escapeHTML(choice.name)}</strong><p>${escapeHTML(choice.copy)}</p>${evolutionPairMarkup(pair)}<dl>${upgradeComparisonMarkup(details)}</dl>${forecastConsequencesMarkup(forecast)}</div></div>`;
     }).join("")}</div></section>`;
   }).join("");
+  bindDraftRecommendationButtons();
 
   const waiting = game.players.filter((player) => !game.choiceReady?.[player.id]).map((player) => player.id === state.clientId ? "you" : player.name);
   const picked = pending.find((choice) => choice.id === selectedId);
@@ -1777,7 +1943,7 @@ function performDraftAction(action) {
   const { draft } = currentDraftContext();
   if (!draft) return { accepted: false, reason: "no_draft" };
   const message = { ...action, round: draft.round, revision: draft.revision };
-  const result = state.isHost ? recordHostDraftAction(state.clientId, message) : (send(createDraftActionMessage(message, state.authorityEpoch)), { accepted: true, pending: true });
+  const result = state.isHost ? recordHostDraftAction(state.clientId, message) : (send(createDraftActionMessage({ ...message, action: message.type }, state.authorityEpoch)), { accepted: true, pending: true });
   if (result?.accepted) {
     sfx(action.type === "skip" ? "reward" : "select");
     state.draftBanishMode = false; state.draftSkipArmed = false;
@@ -2059,6 +2225,7 @@ function returnToLobby() {
   discardRecovery({ notify: false });
   resetInputProtocol();
   state.sim = null; state.snapshot = null; state.previousSnapshot = null; state.replayRecorder = null; state.endShown = false; clearTimeout(state.resultTimer);
+  state.draftRecommendations.reset(state.authorityEpoch);
   state.squadPresence.reset(); state.lastPresenceAnnouncement = ""; clearTimeout(state.authorityRestoreTimer); state.authorityRestoreTimer = null; setAuthorityState("active", { restoreFocus: false });
   for (const member of state.lobby.values()) member.ready = member.id === state.clientId && state.isHost;
   if (state.ws?.readyState === WebSocket.OPEN) send({ type: "return_lobby" });
@@ -2067,7 +2234,7 @@ function returnToLobby() {
 }
 
 function leaveToHome() {
-  closeSocket(); state.sim = null; state.snapshot = null; state.replayRecorder = null; state.resultGame = null; state.lobby.clear();
+  closeSocket(); state.sim = null; state.snapshot = null; state.replayRecorder = null; state.resultGame = null; state.lobby.clear(); state.draftRecommendations.reset(state.authorityEpoch);
   state.squadPresence.reset(); state.lastPresenceAnnouncement = ""; clearTimeout(state.authorityRestoreTimer); state.authorityRestoreTimer = null; setAuthorityState("active", { restoreFocus: false });
   const url = new URL(location.href); url.searchParams.delete("room"); history.replaceState(null, "", url);
   setScreen("home"); updateProgressionUI(); refreshRecoveryOffer();
@@ -2152,6 +2319,8 @@ function handleNetworkMessage(raw) {
     state.clientId = message.id; state.isHost = message.role === "host"; state.authorityEpoch = Number(message.authorityEpoch || 0); state.authorityHostId = message.hostId || (state.isHost ? message.id : ""); state.lobby = new Map();
     guestInputSequences.setEpoch(state.authorityEpoch);
     pingSequences.reset(state.authorityEpoch); hostPingGate.reset(state.authorityEpoch); clearPings();
+    draftRecommendationSequences.reset(state.authorityEpoch); hostDraftRecommendationGate.reset(state.authorityEpoch);
+    if (recoveringAuthority) state.draftRecommendations.rebase(state.authorityEpoch); else state.draftRecommendations.reset(state.authorityEpoch);
     if (state.authorityHostId) {
       authoritySnapshotGate.commit({ epoch: state.authorityEpoch, hostId: state.authorityHostId });
       if (recoveringAuthority) setAuthorityState("synchronizing");
@@ -2175,6 +2344,7 @@ function handleNetworkMessage(raw) {
     if (hostedPlayer && Number.isInteger(hostedPlayer.replaySlot)) hostedPlayer.reconnectKey = `migration-slot-${hostedPlayer.replaySlot}`;
     state.sim?.removePlayer(message.id);
     if (state.isHost && state.sim && state.screen === "game") state.sim.pushEvent("danger", `${departed?.name || "A specialist"} disconnected`, "Their callsign is reserved for three minutes");
+    if (state.isHost && pruneDraftRecommendations(state.sim)) sendDraftRecommendationSync();
     if (state.screen === "lobby") renderLobby(); if (state.isHost) broadcastLobby();
   } else if (message.type === "migration_started") {
     clearTimeout(state.resultTimer); state.resultTimer = null; state.endShown = false;
@@ -2199,6 +2369,7 @@ function handleNetworkMessage(raw) {
         ...(Number.isInteger(availableReplaySlot) ? { reconnectSlot: `migration-slot-${availableReplaySlot}` } : {}),
       });
       const resumed = Boolean(player?.reconnected); if (player) delete player.reconnected;
+      if (resumed && Number.isInteger(player?.replaySlot)) state.draftRecommendations.resetSeat(player.replaySlot);
       if (player && state.sim.players.some((entry) => entry !== player && entry.replaySlot === player.replaySlot)) player.replaySlot = availableReplaySlot;
       if (player && state.replayRecorder) state.replayRecorder.registerPlayer(message._from, player.specialist, { slot: player.replaySlot, tick: state.sim.tick, reconnect: resumed });
       if (player) {
@@ -2238,6 +2409,18 @@ function handleNetworkMessage(raw) {
   else if (message.type === "ping_broadcast" && !state.isHost) {
     if (message._from !== state.authorityHostId) { state.pingStats.rejected++; return; }
     acceptVisiblePing(message);
+  }
+  else if (message.type === "draft_recommendation" && state.isHost) acceptHostDraftRecommendation(message);
+  else if (message.type === "draft_recommendation_state" && !state.isHost) {
+    if (message._from !== state.authorityHostId) { state.draftRecommendationStats.rejected++; return; }
+    applyDraftRecommendationState(message);
+  }
+  else if (message.type === "draft_recommendation_sync" && !state.isHost) {
+    if (message._from !== state.authorityHostId) { state.draftRecommendationStats.rejected++; return; }
+    let sync; try { sync = sanitizeDraftRecommendationSync(message, { transport: true }); }
+    catch { state.draftRecommendationStats.rejected++; return; }
+    if (sync.epoch !== state.authorityEpoch || !state.draftRecommendations.replace(sync).accepted) { state.draftRecommendationStats.rejected++; return; }
+    pruneDraftRecommendations(draftRecommendationGame()); renderDraftRecommendationMarkers(draftRecommendationGame());
   }
   else if (message.type === "input" && state.isHost) applyGuestNetworkInput(message);
   else if (message.type === "cast" && state.isHost) {
@@ -2287,6 +2470,7 @@ function publicLobbyPlayers() {
 function sendRunSync(targetId) {
   if (!state.isHost || !state.sim || !targetId) return false;
   send({ type: "sync_game", config: state.config, players: publicLobbyPlayers(), state: state.sim.snapshot() }, targetId);
+  sendDraftRecommendationSync(targetId);
   return true;
 }
 
@@ -2340,6 +2524,14 @@ function gameDiagnostics() {
       rejected: state.pingStats.rejected,
       byIntent: { ...state.pingStats.byIntent },
       hostGate: state.isHost ? hostPingGate.diagnostics() : null,
+    },
+    draftRecommendations: {
+      protocolVersion: DRAFT_RECOMMENDATION_PROTOCOL_VERSION,
+      enabled: Boolean(state.runtimeConfig.config.flags.upgradeRecommendations),
+      active: state.draftRecommendations.entries().length,
+      sent: state.draftRecommendationStats.sent,
+      received: state.draftRecommendationStats.received,
+      rejected: state.draftRecommendationStats.rejected,
     },
     hostMigration: {
       enabled: Boolean(state.runtimeConfig.config.flags.migrationCheckpointReplication
@@ -2961,7 +3153,7 @@ function bindEvents() {
   setupTouch();
 }
 
-renderSpecialistGrid(); selectSpecialist("zuri"); bindEvents(); applyQualitySettings(state.qualitySettings, false); applyAudioSettings(state.audioSettings, false); syncPingAvailability(); updateProgressionUI(); setPartyMode("solo");
+renderSpecialistGrid(); selectSpecialist("zuri"); bindEvents(); applyQualitySettings(state.qualitySettings, false); applyAudioSettings(state.audioSettings, false); syncPingAvailability(); syncDraftRecommendationAvailability(); updateProgressionUI(); setPartyMode("solo");
 if (query.get("room")) { setPartyMode("join"); $("room-input").value = query.get("room").toUpperCase().slice(0,6); setTimeout(() => $("callsign-input").focus(), 50); }
 if (localHost) Object.defineProperty(window, "__lastlightQA", { value: Object.freeze({
   diagnostics: () => JSON.parse(JSON.stringify(gameDiagnostics())),

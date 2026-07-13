@@ -3,6 +3,9 @@ import assert from "node:assert/strict";
 import worker, { Room, normalizeCode, operatorRuntimeConfig, safeProfile, sanitizeRunTelemetry } from "./worker.js";
 import { createMigrationCapabilities, createMigrationCheckpoint, createMigrationReady } from "../host-migration.js";
 import { createPingBroadcast, createPingRequest } from "../ping-contract.js";
+import {
+  createDraftRecommendationRequest, createDraftRecommendationState, createDraftRecommendationSync,
+} from "../draft-recommendation-contract.js";
 
 const migrationCompatibility = {
   build: "2026.07.13.1", balanceVersion: "2026.07.13-apex.1", balanceHash: "fnv1a32:873c43bc",
@@ -118,7 +121,7 @@ test("runtime config endpoint is allowlisted, no-store, origin-aware, and read-o
     flags: {
       deterministicReplay: false, runTelemetry: false, objectiveEvents: false,
       migrationCheckpointReplication: false, hostMigrationElection: false, hostMigrationResume: false,
-      contextualPings: false,
+      contextualPings: false, upgradeRecommendations: false,
     },
   };
   const env = { LASTLIGHT_RUNTIME_CONFIG: JSON.stringify(config) };
@@ -141,7 +144,7 @@ test("invalid operator config fails closed to immutable release defaults", () =>
   assert.deepEqual(invalid.config.flags, {
     deterministicReplay: true, runTelemetry: true, objectiveEvents: true,
     migrationCheckpointReplication: true, hostMigrationElection: true, hostMigrationResume: true,
-    contextualPings: true,
+    contextualPings: true, upgradeRecommendations: true,
   });
   assert.equal(operatorRuntimeConfig({}).source, "built-in");
 });
@@ -391,7 +394,7 @@ test("disabled host migration fails closed even when a valid checkpoint exists",
     flags: {
       deterministicReplay: true, runTelemetry: true, objectiveEvents: true,
       migrationCheckpointReplication: true, hostMigrationElection: false, hostMigrationResume: true,
-      contextualPings: true,
+      contextualPings: true, upgradeRecommendations: true,
     },
   };
   const fixture = migrationFixture({ env: { LASTLIGHT_RUNTIME_CONFIG: JSON.stringify(config) } });
@@ -556,7 +559,7 @@ test("the runtime rollback flag rejects request and broadcast paths", () => {
     flags: {
       deterministicReplay: true, runTelemetry: true, objectiveEvents: true,
       migrationCheckpointReplication: true, hostMigrationElection: true, hostMigrationResume: true,
-      contextualPings: false,
+      contextualPings: false, upgradeRecommendations: true,
     },
   };
   const { room, host, guest, observer } = pingRoomFixture({ LASTLIGHT_RUNTIME_CONFIG: JSON.stringify(config) });
@@ -628,4 +631,161 @@ test("returning to lobby and starting a new run reset bounded ping state", () =>
   room.onMessage(guest, JSON.stringify(pingRequest(10)));
   assert.equal(host.sent.length, 1);
   assert.ok(room.pendingPings.size <= 32); assert.ok(room.pingRate.entries.size <= 4);
+});
+
+function recommendationRoomFixture() {
+  const fixture = pingRoomFixture();
+  fixture.room.runtimeFlags = () => ({
+    contextualPings: true, upgradeRecommendations: true,
+    migrationCheckpointReplication: true, hostMigrationElection: true, hostMigrationResume: true,
+  });
+  fixture.host.sent.length = 0; fixture.guest.sent.length = 0; fixture.observer.sent.length = 0;
+  return fixture;
+}
+
+function recommendationRequest(seq, fields = {}) {
+  return createDraftRecommendationRequest({
+    epoch: 0, seq, targetSlot: 0, round: 3, revision: 1, optionIndex: 2, active: true, ...fields,
+  });
+}
+
+test("strict draft recommendation intent routes only to the host with authenticated transport identity", () => {
+  const { room, host, guest, observer } = recommendationRoomFixture();
+  const request = recommendationRequest(0);
+  room.onMessage(guest, JSON.stringify(request));
+  assert.deepEqual(host.sent, [{ ...request, _from: "guest", recommenderSlot: 1 }]);
+  assert.equal(guest.sent.length, 0); assert.equal(observer.sent.length, 0);
+
+  room.onMessage(guest, JSON.stringify(request));
+  room.onMessage(guest, JSON.stringify({ ...recommendationRequest(1), unsupported: true }));
+  room.onMessage(guest, JSON.stringify({ ...recommendationRequest(2), _from: "spoofed" }));
+  room.onMessage(guest, JSON.stringify({ ...recommendationRequest(3), epoch: 1 }));
+  room.onMessage(guest, JSON.stringify({ ...recommendationRequest(4), _to: "observer" }));
+  assert.equal(host.sent.length, 1, "duplicate, malformed, stale-epoch, and targeted intent must fail closed");
+});
+
+test("only a matching host-authoritative recommendation delta can fan out", () => {
+  const { room, host, guest, observer } = recommendationRoomFixture();
+  room.onMessage(guest, JSON.stringify(recommendationRequest(0)));
+  const routed = host.sent.pop(), state = createDraftRecommendationState(routed);
+
+  room.onMessage(observer, JSON.stringify(state));
+  room.onMessage(host, JSON.stringify({ ...state, seq: 99 }));
+  room.onMessage(host, JSON.stringify({ ...state, optionIndex: 1 }));
+  room.onMessage(host, JSON.stringify({ ...state, unsupported: true }));
+  room.onMessage(host, JSON.stringify({ ...state, _to: "guest" }));
+  assert.equal(guest.sent.length, 0); assert.equal(observer.sent.length, 0);
+
+  room.onMessage(host, JSON.stringify(state));
+  assert.deepEqual(guest.sent, [{ ...state, _from: "host" }]);
+  assert.deepEqual(observer.sent, [{ ...state, _from: "host" }]);
+  assert.equal(room.pendingDraftRecommendations.size, 0);
+});
+
+test("the authority may publish its own sequenced recommendation without forging another seat", () => {
+  const { room, host, guest, observer } = recommendationRoomFixture();
+  const own = createDraftRecommendationState({
+    ...recommendationRequest(0, { targetSlot: 1, optionIndex: 0 }), _from: "host", recommenderSlot: 0,
+  });
+  room.onMessage(host, JSON.stringify(own));
+  assert.deepEqual(guest.sent, [{ ...own, _from: "host" }]);
+  assert.deepEqual(observer.sent, [{ ...own, _from: "host" }]);
+  room.onMessage(host, JSON.stringify(own));
+  room.onMessage(host, JSON.stringify({ ...own, seq: 1, recommenderSlot: 2 }));
+  assert.equal(guest.sent.length, 1, "duplicate authority state and forged peer attribution fail closed");
+});
+
+test("host-only recommendation sync is strict, bounded, epoch-fenced, and targeted", () => {
+  const { room, host, guest, observer } = recommendationRoomFixture();
+  const first = createDraftRecommendationState({ ...recommendationRequest(2, { optionIndex: 2 }), _from: "guest", recommenderSlot: 1 });
+  const second = createDraftRecommendationState({ ...recommendationRequest(1, { optionIndex: 0 }), _from: "observer", recommenderSlot: 2 });
+  const sync = createDraftRecommendationSync({ epoch: 0, entries: [first, second] });
+
+  room.onMessage(guest, JSON.stringify({ ...sync, _to: "observer" }));
+  room.onMessage(host, JSON.stringify(sync));
+  room.onMessage(host, JSON.stringify({ ...sync, epoch: 1, _to: "guest" }));
+  room.onMessage(host, JSON.stringify({ ...sync, unsupported: true, _to: "guest" }));
+  assert.equal(guest.sent.length, 0); assert.equal(observer.sent.length, 0);
+
+  room.onMessage(host, JSON.stringify({ ...sync, _to: "guest" }));
+  assert.deepEqual(guest.sent, [{ ...sync, _from: "host" }]);
+  assert.equal(observer.sent.length, 0, "targeted recovery state must not leak to other peers");
+  assert.deepEqual(guest.sent[0].entries.map(({ optionIndex }) => optionIndex), [2, 0]);
+});
+
+test("draft recommendation relay rate and sequence state are bounded and reset at lifecycle fences", () => {
+  const { room, host, guest, players } = recommendationRoomFixture();
+  let now = 1_000; room.draftRecommendationNow = () => now;
+  for (let seq = 0; seq < 13; seq++) room.onMessage(guest, JSON.stringify(recommendationRequest(seq)));
+  assert.equal(host.sent.length, 12); assert.equal(room.pendingDraftRecommendations.size, 12);
+  assert.equal(room.draftRecommendationRate.entries.size, 1);
+  now += 250;
+  room.onMessage(guest, JSON.stringify(recommendationRequest(13)));
+  assert.equal(host.sent.length, 13);
+
+  room.onMessage(host, JSON.stringify({ type: "return_lobby", epoch: 0 }));
+  assert.equal(room.pendingDraftRecommendations.size, 0);
+  assert.equal(room.draftRecommendationSequences.size, 0);
+  assert.equal(room.draftRecommendationRate.entries.size, 0);
+  room.onMessage(host, JSON.stringify({ type: "start", config: {}, players }));
+  host.sent.length = 0;
+  room.onMessage(guest, JSON.stringify(recommendationRequest(0)));
+  assert.equal(host.sent.length, 1);
+});
+
+test("a resumed recommendation seat may restart sequence without resetting its abuse budget", () => {
+  const { room, host, guest, guestSession } = recommendationRoomFixture();
+  let now = 2_000; room.draftRecommendationNow = () => now;
+  room.onMessage(guest, JSON.stringify(recommendationRequest(0)));
+  assert.equal(host.sent.length, 1); assert.equal(room.pendingDraftRecommendations.size, 1);
+  room.onClose(guest); host.sent.length = 0;
+
+  const returning = migrationSocket();
+  const returningSession = { id: "guest-returned", initialized: false, connectedAt: now, joinOrdinal: 4 };
+  room.sessions.set(returning, returningSession);
+  assert.equal(room.initializeSession(returning, returningSession, {
+    name: "Guest", specialist: "echo", resumeToken: guestSession.resumeToken,
+  }, migrationCapabilities), true);
+  host.sent.length = 0;
+  assert.equal(room.pendingDraftRecommendations.size, 0, "unconfirmed intent from the old connection must be discarded");
+  room.onMessage(returning, JSON.stringify(recommendationRequest(0)));
+  assert.equal(host.sent.length, 1, "the authenticated replacement connection gets a fresh sequence space");
+  assert.equal(room.draftRecommendationRate.entries.get("1").tokens, 10, "reconnect must retain the slot-keyed rate budget");
+});
+
+test("host migration clears old-epoch recommendation intent while preserving slot rate limits", () => {
+  const { room, host, observer, hostSession, guestSession } = recommendationRoomFixture();
+  let now = 4_000; room.draftRecommendationNow = () => now;
+  for (let seq = 0; seq < 12; seq++) room.onMessage(observer, JSON.stringify(recommendationRequest(seq)));
+  assert.equal(room.pendingDraftRecommendations.size, 12);
+  const checkpoint = createMigrationCheckpoint({
+    epoch: 0, tick: 180, hash: "0123456789abcdef", ack: { guest: 4, observer: 4 }, compatibility: migrationCompatibility,
+    roster: [{ id: "host", replaySlot: 0 }, { id: "guest", replaySlot: 1 }, { id: "observer", replaySlot: 2 }],
+    simulation: { version: 3, scalars: { tick: 180 } }, replay: { currentTick: 180 },
+  });
+  assert.equal(room.acceptMigrationCheckpoint(hostSession, checkpoint), true);
+  room.onClose(host);
+  assert.equal(room.pendingDraftRecommendations.size, 0);
+  assert.equal(room.draftRecommendationSequences.size, 0);
+  assert.equal(room.draftRecommendationRate.entries.get("2").tokens, 0);
+  assert.equal(room.acceptMigrationReady(guestSession, createMigrationReady({ ...checkpoint, epoch: 1 })), true);
+  const successor = [...room.sessions.keys()].find((socket) => room.sessions.get(socket)?.id === "guest");
+  successor.sent.length = 0;
+  room.onMessage(observer, JSON.stringify(recommendationRequest(0, { epoch: 1 })));
+  assert.equal(successor.sent.length, 0, "migration does not refill a saturated seat");
+  now += 250;
+  room.onMessage(observer, JSON.stringify(recommendationRequest(1, { epoch: 1 })));
+  assert.equal(successor.sent.length, 1);
+});
+
+test("the upgrade recommendation rollback flag closes request, state, and sync paths", () => {
+  const { room, host, guest, observer } = recommendationRoomFixture();
+  room.runtimeFlags = () => ({ contextualPings: true, upgradeRecommendations: false });
+  room.onMessage(guest, JSON.stringify(recommendationRequest(0)));
+  room.onMessage(host, JSON.stringify(createDraftRecommendationState({
+    ...recommendationRequest(0), _from: "guest", recommenderSlot: 1,
+  })));
+  room.onMessage(host, JSON.stringify({ ...createDraftRecommendationSync({ epoch: 0, entries: [] }), _to: "guest" }));
+  assert.equal(host.sent.length, 0); assert.equal(guest.sent.length, 0); assert.equal(observer.sent.length, 0);
+  assert.equal(room.pendingDraftRecommendations.size, 0);
 });

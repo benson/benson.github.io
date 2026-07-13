@@ -212,3 +212,33 @@ Release gates for enabling resume are:
 Any hard invariant failure blocks the build. Operational rollback also triggers
 when success falls below 99%, p95 exceeds 5 seconds, invalid restore exceeds
 0.5%, or the memory/network budgets are breached.
+
+## Upgrade recommendation coordination v1
+
+Upgrade recommendations use a separate presentation-only protocol. They never
+enter `Simulation`, snapshots, recovery, replay, RNG, combat hashes, balance
+contracts, or run telemetry. Identity is limited to authenticated replay slots.
+
+A guest sends a strict `draft_recommendation` request containing the current
+authority epoch, a per-seat sequence, target replay slot, target draft round and
+revision, option index, and active state. The relay adds the authenticated
+sender and recommender slot, rate-limits the seat, and routes the request only
+to the current host. The host resolves the option index against authoritative
+pending choices and rejects self-targeting, stale drafts, locked targets,
+duplicates, and nonparticipants before publishing `draft_recommendation_state`.
+The relay broadcasts only a state delta matching a pending guest request, or a
+properly attributed host-owned recommendation.
+
+Each recommender may hold one active recommendation per target draft, so a
+four-player room is bounded to 12 entries. A new recommendation moves the
+existing marker atomically; selecting the same marker again removes it. A host
+may send a strict, sorted `draft_recommendation_sync` directly to one peer after
+`sync_game`. Connected clients retain the replay-slot store through migration;
+the successor rebases it to the new epoch, prunes against restored pending
+choices, and sends a new directed sync to every peer. Recommendation sequence
+and pending-request fences reset at migration, while relay abuse budgets remain
+seat-bound.
+
+`upgradeRecommendations` disables request, state, sync, controls, and markers
+without changing gameplay compatibility. Disabling it clears client
+presentation state and leaves the active draft and deterministic run untouched.

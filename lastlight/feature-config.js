@@ -6,12 +6,13 @@ const FLAG_NAMES = Object.freeze([
   "deterministicReplay", "runTelemetry", "objectiveEvents",
   "migrationCheckpointReplication", "hostMigrationElection", "hostMigrationResume",
   "contextualPings",
+  "upgradeRecommendations",
 ]);
 const MAX_RUNTIME_CONFIG_BYTES = 4_096;
 
 export const DEFAULT_RUNTIME_CONFIG = deepFreeze({
   schemaVersion: RUNTIME_CONFIG_SCHEMA_VERSION,
-  configVersion: "release-2026.07.13.4",
+  configVersion: "release-2026.07.13.5",
   gameplayVersion: "events-v1",
   flags: {
     deterministicReplay: true,
@@ -21,6 +22,7 @@ export const DEFAULT_RUNTIME_CONFIG = deepFreeze({
     hostMigrationElection: true,
     hostMigrationResume: true,
     contextualPings: true,
+    upgradeRecommendations: true,
   },
 });
 
