@@ -1,4 +1,4 @@
-import { fnv1a64 } from "./replay.js?v=20260713.17";
+import { fnv1a64 } from "./replay.js?v=20260713.18";
 
 export const RARE_DISCOVERY_SCHEMA = "lastlight.rare-discoveries.v1";
 export const RARE_DISCOVERY_REGISTRY_VERSION = "lastlight.rare-discoveries.registry.v1";
@@ -186,7 +186,7 @@ export function saveRareDiscoveryCollection(storage, value) {
 export function awardRareDiscoveries(collection, report) {
   const current = normalizeRareDiscoveryCollection(collection);
   const canonical = canonicalIds(report?.discoveries);
-  if (!report || report.schema !== "lastlight.squad-run-report.v4" || !/^[0-9a-f]{16}$/.test(report.fingerprint || "") || !Array.isArray(report.discoveries) || report.discoveries.length > RARE_DISCOVERY_IDS.length || canonical.length !== report.discoveries.length || canonical.some((id, index) => id !== report.discoveries[index])) throw new TypeError("Invalid terminal rare discovery evidence");
+  if (!report || !["lastlight.squad-run-report.v4", "lastlight.squad-run-report.v5"].includes(report.schema) || !/^[0-9a-f]{16}$/.test(report.fingerprint || "") || !Array.isArray(report.discoveries) || report.discoveries.length > RARE_DISCOVERY_IDS.length || canonical.length !== report.discoveries.length || canonical.some((id, index) => id !== report.discoveries[index])) throw new TypeError("Invalid terminal rare discovery evidence");
   const claim = fnv1a64(`${report.fingerprint}:rare-discoveries`);
   if (current.appliedClaims.includes(claim)) return deepFreeze({ state: current, award: null });
   const newlyDiscovered = report.discoveries.filter((id) => !current.discovered.includes(id));

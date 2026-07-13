@@ -1,44 +1,44 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260713.17";
-import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.17";
-import { Renderer } from "./render.js?v=20260713.17";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260713.18";
+import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.18";
+import { Renderer } from "./render.js?v=20260713.18";
 import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260713.2";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
-import { getThemeAsset, getThemeEnvironmentChunks, getThemeMaterial } from "./themes/lastlight.js?v=20260713.17";
-import { submitRunTelemetry } from "./telemetry.js?v=20260713.17";
+import { getThemeAsset, getThemeEnvironmentChunks, getThemeMaterial } from "./themes/lastlight.js?v=20260713.18";
+import { submitRunTelemetry } from "./telemetry.js?v=20260713.18";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260713.17";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260713.17";
+import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260713.18";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260713.18";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
-import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260713.17";
-import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260713.17";
+import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260713.18";
+import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260713.18";
 import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260711.5";
-import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260713.17";
+import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260713.18";
 import { GuestInputSequenceTracker, HostInputSequenceGate, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260713.2";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260713.2";
-import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260713.17";
-import { advancePlayerMovement } from "./movement.js?v=20260713.17";
+import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260713.18";
+import { advancePlayerMovement } from "./movement.js?v=20260713.18";
 import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
 import { DynamicAudioMixer } from "./audio-mix.js?v=20260713.1";
 import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260713.1";
 import { enemyAudioCueName, newEntities, spatialAudioPan, weaponAudioCueName, weaponTimerActivations } from "./audio-events.js?v=20260713.1";
 import { FUNNY_VOICE_MIN_INTERVAL_MS, audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260713.1";
-import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260713.17";
-import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260713.17";
+import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260713.18";
+import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260713.18";
 import { getWeaponEvolution } from "./weapon-evolution.js?v=20260713.1";
 import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260712.1";
-import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260713.17";
-import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260713.17";
-import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260713.17";
+import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260713.18";
+import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260713.18";
+import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260713.18";
 import { reconcileActiveBuffs } from "./active-buffs.js?v=20260713.1";
 import { ELITE_AFFIXES, ENEMY_ARCHETYPES } from "./enemy-archetypes.js?v=20260713.1";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
-import { mapMechanicDefinition } from "./map-mechanics.js?v=20260713.17";
-import { CAMPAIGN_MUTATIONS, campaignMutationDefinition } from "./campaign-mutations.js?v=20260713.17";
+import { mapMechanicDefinition } from "./map-mechanics.js?v=20260713.18";
+import { CAMPAIGN_MUTATIONS, campaignMutationDefinition } from "./campaign-mutations.js?v=20260713.18";
 import {
   AuthoritySnapshotGate, HOST_MIGRATION_PROTOCOL_VERSION, MIGRATION_CHECKPOINT_INTERVAL_TICKS,
   createMigrationCapabilities, createMigrationCheckpoint, createMigrationReady,
   migrationCompatibilityMatches, validateMigrationCheckpoint,
-} from "./host-migration.js?v=20260713.17";
+} from "./host-migration.js?v=20260713.18";
 import { RECONNECT_DELAYS_MS, SquadPresenceTracker, authorityStateCopy } from "./reconnect-state.js?v=20260713.3";
 import {
   HostPingGate, PING_INTENTS, PING_LIFETIME_TICKS, PING_WHEEL_ORDER, PingSequenceTracker,
@@ -54,24 +54,28 @@ import { DraftRecommendationStore, recommendationMarkerModel } from "./draft-rec
 import { SQUAD_SYNERGY_REGISTRY } from "./squad-synergies.js?v=20260713.6";
 import { reconcileActiveSynergies } from "./active-synergies.js?v=20260713.6";
 import { PARTICIPATION_REGISTRY } from "./participation-credit.js?v=20260713.7";
-import { campaignJoinEligibility } from "./join-in-progress.js?v=20260713.17";
+import { campaignJoinEligibility } from "./join-in-progress.js?v=20260713.18";
 import {
   RUN_ARCHIVE_STORAGE_KEY, createSquadRunReport, decodeSquadRunFragment, normalizeRunArchiveStorage,
   squadRunShareFragment, upsertRunArchive,
-} from "./run-archive.js?v=20260713.17";
+} from "./run-archive.js?v=20260713.18";
 import {
   SPECIALIST_MASTERY, SPECIALIST_MASTERY_LEVELS, awardSpecialistMastery, loadSpecialistMasteryState,
   masteryStartDefinition, saveSpecialistMasteryState, selectMasteryStart,
-} from "./specialist-mastery.js?v=20260713.17";
+} from "./specialist-mastery.js?v=20260713.18";
 import {
   RARE_DISCOVERY_REGISTRY, awardRareDiscoveries, loadRareDiscoveryCollection,
   rareDiscoveryDefinition, rareDiscoveryTelemetry, saveRareDiscoveryCollection,
-} from "./rare-discoveries.js?v=20260713.17";
+} from "./rare-discoveries.js?v=20260713.18";
 import {
   CHALLENGE_ACHIEVEMENT_REGISTRY, awardChallengeAchievements, challengeAchievementDefinition,
   challengeAchievementTelemetry, evaluateChallengeAchievements, loadChallengeAchievementState,
   saveChallengeAchievementState,
-} from "./challenge-achievements.js?v=20260713.17";
+} from "./challenge-achievements.js?v=20260713.18";
+import {
+  loadSeededOperationRecords, recordSeededOperationResult, saveSeededOperationRecords,
+  seededOperationFor, seededOperationFromId, seededOperationTelemetry,
+} from "./seeded-operations.js?v=20260713.18";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -80,7 +84,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.13.17";
+const BUILD = "2026.07.13.18";
 const AUTHORITY_WATCHDOG_MS = Object.freeze({ synchronizing: 10_000, migrating: 25_000 });
 const BALANCE = getBalanceConfig();
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
@@ -99,6 +103,7 @@ const initialAudioSettings = loadAudioSettings(localStorage);
 const initialMasteryState = loadSpecialistMasteryState(localStorage);
 const initialRareDiscoveries = loadRareDiscoveryCollection(localStorage);
 const initialChallengeAchievements = loadChallengeAchievementState(localStorage);
+const initialSeededOperationRecords = loadSeededOperationRecords(localStorage);
 const audioSupported = Boolean(window.AudioContext || window.webkitAudioContext);
 const renderer = new Renderer($("game-canvas"));
 renderer.setQualitySettings(initialQualitySettings);
@@ -114,7 +119,7 @@ const hostPingGate = new HostPingGate();
 const draftRecommendationSequences = new DraftRecommendationSequenceTracker();
 const hostDraftRecommendationGate = new HostDraftRecommendationGate();
 const PROGRESS_KEY = "lastlight:campaign:v1";
-const LEGACY_RUN_HISTORY_KEYS = Object.freeze(["lastlight:runs:v4", "lastlight:runs:v3", "lastlight:runs:v2", "lastlight:runs:v1"]);
+const LEGACY_RUN_HISTORY_KEYS = Object.freeze(["lastlight:runs:v6", "lastlight:runs:v5", "lastlight:runs:v4", "lastlight:runs:v3", "lastlight:runs:v2", "lastlight:runs:v1"]);
 const CLIENT_TOKEN_KEY = "lastlight:session-token:v1";
 const DAMAGE_LEDGER_LAYOUT_KEY = "lastlight:damage-ledger-layout:v1";
 const LAST_REPLAY_KEY = "lastlight:last-replay:v1";
@@ -182,6 +187,7 @@ const state = {
   mastery: initialMasteryState, resultMasteryAward: null,
   rareDiscoveries: initialRareDiscoveries, resultDiscoveryAward: null,
   challengeAchievements: initialChallengeAchievements, resultChallengeAward: null,
+  seededOperationRecords: initialSeededOperationRecords, seededOperationKind: "", resultSeededOperation: null,
   lastChallengeWatchTick: -60, lastChallengeWatchKey: "",
   sharedRun: initialSharedRun.value, sharedRunError: initialSharedRun.error, sharedRunPresented: false,
   audioSettings: initialAudioSettings,
@@ -221,6 +227,7 @@ const runtimeConfigReady = loadRuntimeConfig({ endpoint: RUNTIME_CONFIG_ENDPOINT
   syncPingAvailability();
   syncDraftRecommendationAvailability();
   syncArchiveAvailability();
+  renderSeededOperations();
   renderMasteryLoadout(state.selected);
   refreshRecoveryOffer();
   return result;
@@ -443,7 +450,7 @@ function commitMigratedAuthority(message) {
 }
 
 function replayRunConfig() {
-  return { map: state.config.map, difficulty: state.config.difficulty, duration: Number(state.config.duration) };
+  return { map: state.config.map, difficulty: state.config.difficulty, duration: Number(state.config.duration), ...(state.config.seededOperation ? { seededOperation: state.config.seededOperation } : {}) };
 }
 
 function beginReplayCapture(players, seed) {
@@ -556,6 +563,7 @@ function resumeRecovery() {
     state.clientId = localId; state.isHost = true; state.room = ""; state.partyMode = checkpoint.source;
     state.config = {
       map: checkpoint.simulation.header.map, difficulty: checkpoint.simulation.header.difficulty, duration: checkpoint.simulation.header.duration,
+      ...(checkpoint.simulation.header.seededOperation ? { seededOperation: checkpoint.simulation.header.seededOperation } : {}),
       features: gameplayFeatureContract(state.runtimeConfig.config),
     };
     state.sim = sim;
@@ -961,6 +969,39 @@ function updateProgressionUI() {
   if ($("guide-dialog").open) renderGuide();
 }
 
+function seededOperationRecord(id) {
+  return state.seededOperationRecords.records.find((record) => record.id === id) || null;
+}
+
+function renderSeededOperations(now = new Date()) {
+  const section = $("seeded-operations"), enabled = Boolean(state.runtimeConfig?.config?.flags?.seededOperations);
+  if (!section) return;
+  section.classList.toggle("hidden", !enabled || state.partyMode === "join");
+  if (!enabled || state.partyMode === "join") return;
+  const operations = [seededOperationFor("daily", now), seededOperationFor("weekly", now)];
+  $("seeded-operation-cards").innerHTML = operations.map((operation) => {
+    const record = seededOperationRecord(operation.id), selected = state.seededOperationKind === operation.kind;
+    const windowLabel = operation.kind === "daily" ? "Resets 00:00 UTC" : `Ends ${new Date(operation.windowEnd).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })} UTC`;
+    return `<button type="button" class="seeded-operation-card" data-seeded-operation="${operation.kind}" aria-pressed="${selected}"><span>${operation.kind} // ${escapeHTML(operation.id.split(":")[1])}</span><strong>${escapeHTML(MAPS[operation.map].name)} · ${escapeHTML(DIFFICULTIES[operation.difficulty].name)}</strong><small>${Math.round(operation.duration / 60)} min · ${escapeHTML(operation.modifierId.replaceAll("-", " "))} · ${operation.challengeIds.length} goals</small><em>${record?.completed ? `Complete · best ${record.best.score.toLocaleString()}` : record ? `Attempted · best ${record.best.score.toLocaleString()}` : windowLabel}</em></button>`;
+  }).join("");
+  const selected = operations.find((operation) => operation.kind === state.seededOperationKind);
+  const selectedGoals = selected?.challengeIds.map((id) => challengeAchievementDefinition(id)?.name || id).join(" · ") || "";
+  $("seeded-operation-status").textContent = selected
+    ? `${selected.kind === "daily" ? "Daily" : "Weekly"} contract selected · fixed seed and rules · goals: ${selectedGoals} · ${selected.reward.name} is cosmetic only. Select again to return to a standard operation.`
+    : "Standard operation selected. Seeded results and bests stay only in this browser unless you explicitly share a report.";
+}
+
+function selectSeededOperation(kind) {
+  if (!["daily", "weekly"].includes(kind) || !state.runtimeConfig.config.flags.seededOperations || state.partyMode === "join") return;
+  state.seededOperationKind = state.seededOperationKind === kind ? "" : kind;
+  const selected = state.seededOperationKind ? seededOperationFor(state.seededOperationKind, new Date()) : null;
+  if (selected) {
+    $("map-select").value = selected.map; $("difficulty-select").value = selected.difficulty; $("duration-select").value = String(selected.duration);
+    renderDeploymentMutations();
+  } else updateProgressionUI();
+  renderSeededOperations();
+}
+
 function recordVictory(map, difficulty) {
   const result = completeRun(state.progress, map, difficulty);
   state.progress = result.progress; saveProgress(); updateProgressionUI();
@@ -1241,7 +1282,9 @@ function selectSpecialist(id) {
 }
 
 function setPartyMode(mode) {
+  const clearedSeededOperation = mode === "join" && Boolean(state.seededOperationKind);
   state.partyMode = mode;
+  if (mode === "join") state.seededOperationKind = "";
   document.querySelectorAll(".mode-tab").forEach((button) => {
     const active = button.dataset.partyMode === mode; button.classList.toggle("active", active); button.setAttribute("aria-selected", active);
   });
@@ -1249,6 +1292,8 @@ function setPartyMode(mode) {
   $("host-options").classList.toggle("hidden", mode === "join");
   $("progression-note").classList.toggle("hidden", mode === "join");
   $("deploy-button").querySelector("span").textContent = mode === "solo" ? "Deploy solo" : mode === "host" ? "Create squad" : "Join squad";
+  if (clearedSeededOperation) { updateProgressionUI(); renderDeploymentMutations(); }
+  renderSeededOperations();
 }
 
 async function deploy() {
@@ -1256,8 +1301,11 @@ async function deploy() {
   state.connecting = true; $("deploy-button").disabled = true;
   await runtimeConfigReady;
   state.connecting = false; $("deploy-button").disabled = false;
-  state.config = { map: $("map-select").value, difficulty: $("difficulty-select").value, duration: Number($("duration-select").value) };
-  if (state.partyMode !== "join" && (!isMapUnlocked(state.progress, state.config.map) || !isDifficultyUnlocked(state.progress, state.config.map, state.config.difficulty))) {
+  const seeded = state.runtimeConfig.config.flags.seededOperations && state.seededOperationKind ? seededOperationFor(state.seededOperationKind, new Date()) : null;
+  state.config = seeded
+    ? { map: seeded.map, difficulty: seeded.difficulty, duration: seeded.duration, seededOperation: seeded }
+    : { map: $("map-select").value, difficulty: $("difficulty-select").value, duration: Number($("duration-select").value) };
+  if (!seeded && state.partyMode !== "join" && (!isMapUnlocked(state.progress, state.config.map) || !isDifficultyUnlocked(state.progress, state.config.map, state.config.difficulty))) {
     toast("Complete the previous campaign requirement first"); updateProgressionUI(); return;
   }
   sfx("deploy");
@@ -1308,7 +1356,8 @@ function renderReinforcementPanel() {
 
 function renderLobby() {
   const map = MAPS[state.config.map], difficulty = DIFFICULTIES[state.config.difficulty];
-  $("lobby-mission").textContent = `${map.name} · ${difficulty.name} · ${state.config.duration === 900 ? "15:00" : "04:00"}`;
+  const seeded = state.config.seededOperation ? ` · ${state.config.seededOperation.kind.toUpperCase()}` : "";
+  $("lobby-mission").textContent = `${map.name} · ${difficulty.name} · ${state.config.duration === 900 ? "15:00" : "04:00"}${seeded}`;
   $("lobby-mutations").innerHTML = mutationPackageMarkup(state.config.difficulty, state.config.map);
   renderParty();
   const button = $("ready-button"), members = [...state.lobby.values()];
@@ -1368,7 +1417,7 @@ function startHostedGame() {
   }));
   if (!players.length) return;
   for (const player of players) state.lobby.set(player.id, { ...state.lobby.get(player.id), replaySlot: player.replaySlot });
-  const seed = createRandomSeed();
+  const seed = state.config.seededOperation?.seed || createRandomSeed();
   const features = gameplayFeatureContract(state.runtimeConfig.config);
   state.config = { ...state.config, features };
   state.sim = new Simulation({ ...state.config, players }, { seed, balanceVersion: BALANCE_VERSION, balanceHash: BALANCE_HASH, features });
@@ -2542,6 +2591,27 @@ function renderResultChallengeAchievements(award) {
   }).join("");
 }
 
+function awardLocalSeededOperation(report) {
+  if (!state.runtimeConfig.config.flags.seededOperations || !report?.seededOperation) return null;
+  try {
+    const result = recordSeededOperationResult(state.seededOperationRecords, report);
+    state.seededOperationRecords = saveSeededOperationRecords(localStorage, result.state);
+    state.resultSeededOperation = result;
+    renderSeededOperations();
+    return result;
+  } catch (error) { captureClientError("seeded operation record", error); return null; }
+}
+
+function renderResultSeededOperation(result) {
+  const panel = $("result-seeded-operation"), record = result?.record;
+  panel.classList.toggle("hidden", !record);
+  if (!record) return;
+  const operation = seededOperationFromId(record.id), improved = Boolean(result.changed);
+  $("result-seeded-operation-title").textContent = improved ? `${operation.kind} record updated` : `${operation.kind} record held`;
+  $("result-seeded-operation-copy").textContent = `${record.completed ? "Contract complete" : "Attempt archived"} · score ${record.best.score.toLocaleString()} · fixed configuration ${operation.configHash.toUpperCase()}. Results stay local unless you explicitly share the signed squad report.`;
+  $("result-seeded-operation-list").innerHTML = `<li class="${improved ? "new" : ""}"><span>${operation.kind === "daily" ? "24H" : "7D"}</span><b>${escapeHTML(MAPS[operation.map].name)} · ${escapeHTML(DIFFICULTIES[operation.difficulty].name)}</b><em>${result.reward ? `${escapeHTML(result.reward.name)} · cosmetic only` : improved ? "New local best" : "Previous best retained"}</em></li>`;
+}
+
 function reportChallengeEvidence(report) {
   if (!state.runtimeConfig.config.flags.challengeAchievements) return [];
   try {
@@ -2596,7 +2666,9 @@ function archiveEntryCard(entry, { imported = false, mode = "local" } = {}) {
   const challengeEvidence = reportChallengeEvidence(report);
   const challengeSummary = challengeEvidence.length
     ? `<p class="archive-discoveries"><strong>Challenge evidence ${challengeEvidence.length}</strong> · ${challengeEvidence.map((id) => escapeHTML(challengeAchievementDefinition(id)?.name || id)).join(" · ")}</p>` : "";
-  const players = `${challengeSummary}${discoverySummary}${report.players.map((player) => archivePlayerCard(player, report.elapsed)).join("")}`;
+  const seededSummary = report.seededOperation
+    ? `<p class="archive-discoveries"><strong>${escapeHTML(report.seededOperation.kind)} seeded operation</strong> · ${escapeHTML(report.seededOperation.id)} · configuration ${escapeHTML(report.seededOperation.configHash.toUpperCase())}</p>` : "";
+  const players = `${seededSummary}${challengeSummary}${discoverySummary}${report.players.map((player) => archivePlayerCard(player, report.elapsed)).join("")}`;
   const shareActions = archiveEnabled() ? `<button type="button" data-archive-share="${report.id}">Copy anonymous link</button><button type="button" data-archive-share-named="${report.id}">Include callsigns</button>` : "";
   const saveAction = imported && !saved ? `<button type="button" data-archive-save="${report.id}">Save to this browser</button>` : "";
   const mutation = report.mutations;
@@ -2625,10 +2697,10 @@ function saveImportedRun(id) {
   if (!report) return;
   state.runHistory = upsertRunArchive(state.runHistory, report);
   try { localStorage.setItem(RUN_ARCHIVE_STORAGE_KEY, JSON.stringify(state.runHistory)); } catch { /* Archive remains readable in memory. */ }
-  const award = awardLocalRareDiscoveries(report), challengeAward = awardLocalChallengeAchievements(report);
+  const award = awardLocalRareDiscoveries(report), challengeAward = awardLocalChallengeAchievements(report), seededResult = awardLocalSeededOperation(report);
   renderRunHistory();
   if ($("guide-dialog").open) renderGuide();
-  const updates = [award?.discovered?.length ? `${award.discovered.length} discoveries decrypted` : "", challengeAward?.completed?.length ? `${challengeAward.completed.length} squad challenges completed` : ""].filter(Boolean).join(" · ");
+  const updates = [award?.discovered?.length ? `${award.discovered.length} discoveries decrypted` : "", challengeAward?.completed?.length ? `${challengeAward.completed.length} squad challenges completed` : "", seededResult?.changed ? `${seededResult.record.kind} local best updated` : ""].filter(Boolean).join(" · ");
   toast(updates ? `Squad report saved · ${updates}` : "Squad report saved to this browser");
 }
 
@@ -2702,7 +2774,7 @@ function showResult(game) {
   const joinEligibility = localPlayer?.joinKind === "fresh" && state.runtimeConfig.config.flags.joinInProgressNormalization
     ? campaignJoinEligibility({ activeCombatTicks: Number(localPlayer.preApexDeployedTicks || 0), preApexCombatTicks: Math.round(Number(game.duration || state.config.duration || 240) * 60) })
     : { eligible: true, requiredCombatSeconds: 0 };
-  const unlocks = won && joinEligibility.eligible ? recordVictory(mapId, difficultyId) : [];
+  const unlocks = won && joinEligibility.eligible && !game.seededOperation ? recordVictory(mapId, difficultyId) : [];
   const ineligibleClear = won && !joinEligibility.eligible;
   $("result-unlock").classList.toggle("hidden", !unlocks.length && !ineligibleClear);
   $("result-unlock").textContent = unlocks.length ? `Campaign updated · ${unlocks.join(" · ")}` : ineligibleClear ? `Campaign clear not awarded · reinforce for at least ${Math.ceil(joinEligibility.requiredCombatSeconds)} pre-apex seconds` : "";
@@ -2713,6 +2785,7 @@ function showResult(game) {
   renderResultMastery(awardLocalMastery(report, localPlayer));
   const challengeAward = awardLocalChallengeAchievements(report, localPlayer);
   renderResultChallengeAchievements(challengeAward);
+  renderResultSeededOperation(awardLocalSeededOperation(report));
   const discoveryAward = awardLocalRareDiscoveries(report);
   renderResultRareDiscoveries(report, discoveryAward);
   renderScoreboard(game);
@@ -2724,6 +2797,7 @@ function showResult(game) {
       masteryTelemetry: localMasteryTelemetry(localPlayer),
       discoveryTelemetry: rareDiscoveryTelemetry(state.rareDiscoveries, discoveryAward?.discovered || []),
       challengeTelemetry: state.runtimeConfig.config.flags.challengeAchievements ? challengeAchievementTelemetry(state.challengeAchievements, challengeAward?.completed || []) : null,
+      seededOperationTelemetry: state.runtimeConfig.config.flags.seededOperations && report ? seededOperationTelemetry(report) : null,
     }).catch((error) => console.warn("Run telemetry unavailable", error));
   }
 }
@@ -3693,6 +3767,10 @@ function bindEvents() {
     if (!event.target.closest?.(".starting-weapon-detail")) setStartingWeaponDetailsOpen(false);
   });
   document.querySelectorAll(".mode-tab").forEach((button) => button.addEventListener("click", () => setPartyMode(button.dataset.partyMode)));
+  $("seeded-operation-cards").addEventListener("click", (event) => {
+    const button = event.target.closest?.("[data-seeded-operation]");
+    if (button) selectSeededOperation(button.dataset.seededOperation);
+  });
   document.querySelectorAll("[data-join-package]").forEach((button) => button.addEventListener("click", () => {
     if (!state.joiningActiveRun || state.joinRequestSent) return;
     state.joinPackageId = button.dataset.joinPackage; renderLobby();

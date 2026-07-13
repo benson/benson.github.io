@@ -1,4 +1,4 @@
-import { fnv1a64 } from "./replay.js?v=20260713.17";
+import { fnv1a64 } from "./replay.js?v=20260713.18";
 
 export const CHALLENGE_ACHIEVEMENT_SCHEMA = "lastlight.challenge-achievements.v1";
 export const CHALLENGE_ACHIEVEMENT_REGISTRY_VERSION = "lastlight.challenge-achievements.registry.v1";
@@ -111,7 +111,7 @@ function predicateComplete(predicate, report, player) {
 }
 
 function validateTerminalEvidence(report) {
-  if (!report || report.schema !== "lastlight.squad-run-report.v4" || !/^[0-9a-f]{16}$/.test(report.fingerprint || "") || !["won", "lost"].includes(report.outcome) || !["story", "hard", "extreme"].includes(report.difficulty) || !Array.isArray(report.discoveries) || !Array.isArray(report.players) || report.players.length < 1 || report.players.length > 4) throw new TypeError("Invalid terminal challenge evidence");
+  if (!report || !["lastlight.squad-run-report.v4", "lastlight.squad-run-report.v5"].includes(report.schema) || !/^[0-9a-f]{16}$/.test(report.fingerprint || "") || !["won", "lost"].includes(report.outcome) || !["story", "hard", "extreme"].includes(report.difficulty) || !Array.isArray(report.discoveries) || !Array.isArray(report.players) || report.players.length < 1 || report.players.length > 4) throw new TypeError("Invalid terminal challenge evidence");
   if (!report.mutations || !integer(report.mutations.encounters, 0, 100) || !integer(report.mutations.clears, 0, 100) || !integer(report.mutations.failures, 0, 100) || report.mutations.clears + report.mutations.failures !== report.mutations.encounters || !integer(report.mutations.surgeWaves, 0, 3)) throw new TypeError("Invalid terminal challenge mutation evidence");
   for (const player of report.players) {
     if (!integer(player.slot, 0, 3) || typeof player.campaignEligible !== "boolean" || !Array.isArray(player.weapons) || !Array.isArray(player.passives) || !player.participation || !player.synergy) throw new TypeError("Invalid terminal challenge player evidence");

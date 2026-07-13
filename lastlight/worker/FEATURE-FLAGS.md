@@ -5,10 +5,10 @@ The relay exposes `GET /config`. It is read-only, origin-aware, and always sends
 response through the Worker's `LASTLIGHT_RUNTIME_CONFIG` secret.
 
 The current release defaults enable the versioned gameplay systems shipped in
-build `2026.07.13.17`:
+build `2026.07.13.18`:
 
 ```json
-{"schemaVersion":12,"configVersion":"release-2026.07.13.17","gameplayVersion":"rare-discoveries-v1","registryVersion":"lastlight.squad-synergy.v1","flags":{"deterministicReplay":true,"runTelemetry":true,"objectiveEvents":true,"migrationCheckpointReplication":true,"hostMigrationElection":true,"hostMigrationResume":true,"contextualPings":true,"upgradeRecommendations":true,"squadSynergies":true,"sharedParticipationCredit":true,"downedActivity":true,"joinInProgressNormalization":true,"squadEnemyDirector":true,"mapMechanics":true,"campaignMutations":true,"specialistMastery":true,"rareDiscoveries":true,"challengeAchievements":true,"sharedSquadRunArchive":true}}
+{"schemaVersion":13,"configVersion":"release-2026.07.13.18","gameplayVersion":"rare-discoveries-v1","registryVersion":"lastlight.squad-synergy.v1","flags":{"deterministicReplay":true,"runTelemetry":true,"objectiveEvents":true,"migrationCheckpointReplication":true,"hostMigrationElection":true,"hostMigrationResume":true,"contextualPings":true,"upgradeRecommendations":true,"squadSynergies":true,"sharedParticipationCredit":true,"downedActivity":true,"joinInProgressNormalization":true,"squadEnemyDirector":true,"mapMechanics":true,"campaignMutations":true,"specialistMastery":true,"rareDiscoveries":true,"challengeAchievements":true,"seededOperations":true,"sharedSquadRunArchive":true}}
 ```
 
 Unknown keys, missing keys, wrong types, and malformed JSON fail closed to those
@@ -72,6 +72,10 @@ the active config version, gameplay version, source, load status, and flags.
   `challengeAchievements` to `false` and publish a new `configVersion`. This
   client-only flag does not alter simulation, replay, recovery, migration, or
   signed run-report output; bounded local achievement state remains stored but inactive.
+- Seeded schedule, UTC rollover, local-best, report-evidence, or presentation problem:
+  set `seededOperations` to `false` and publish a new `configVersion`. This
+  client-selected contract flag does not alter standard operations; bounded local
+  daily/weekly records remain stored but inactive and standard deployment remains available.
 - Shared run-history import or archive problem: set `sharedSquadRunArchive` to
   `false`. This client-only flag does not change deterministic simulation state.
 - Restore release defaults: delete the override with

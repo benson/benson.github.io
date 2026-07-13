@@ -32,7 +32,8 @@ function run(overrides = {}) {
 
 test("terminal squad state becomes one immutable canonical report without transport identity", () => {
   const report = createSquadRunReport(run(), { build: "2026.07.13.11" });
-  assert.equal(report.schema, SQUAD_RUN_REPORT_SCHEMA);
+  assert.equal(report.schema, "lastlight.squad-run-report.v4");
+  assert.equal(Object.hasOwn(report, "seededOperation"), false);
   assert.match(report.id, /^ll-[0-9a-f]{8}-[0-9a-f]{8}$/);
   assert.equal(report.players[0].slot, 0); assert.equal(report.players[1].slot, 2);
   assert.equal(report.players[1].campaignEligible, true);
@@ -110,10 +111,11 @@ test("legacy v1/v2 local entries migrate to bounded current reports without bloc
   assert.equal(migrated[0].report.players[0].callsign, "Old"); assert.equal(migrated[0].report.players[0].damage, 500);
 });
 
-test("signed v2 reports migrate to v4 with an explicit baseline mastery start and empty discoveries", () => {
+test("signed v2 reports migrate to v5 with baseline mastery, empty discoveries, and no seeded operation", () => {
   const legacy = structuredClone(createSquadRunReport(run(), { build: "2026.07.13.14" }));
   legacy.schema = "lastlight.squad-run-report.v2";
   delete legacy.discoveries;
+  delete legacy.seededOperation;
   for (const player of legacy.players) delete player.masteryStart;
   const identity = {
     schema: legacy.schema, build: legacy.build, runKey: legacy.runKey, outcome: legacy.outcome, map: legacy.map,
@@ -126,5 +128,24 @@ test("signed v2 reports migrate to v4 with an explicit baseline mastery start an
   assert.equal(entry.report.schema, SQUAD_RUN_REPORT_SCHEMA);
   assert.ok(entry.report.players.every(({ masteryStart }) => masteryStart === "baseline"));
   assert.deepEqual(entry.report.discoveries, []);
+  assert.equal(entry.report.seededOperation, null);
+  assert.doesNotThrow(() => validateSquadRunReport(entry.report));
+});
+
+test("signed v4 reports migrate from v6 storage with explicit empty seeded evidence", () => {
+  const legacy = structuredClone(createSquadRunReport(run(), { build: "2026.07.13.17" }));
+  legacy.schema = "lastlight.squad-run-report.v4";
+  delete legacy.seededOperation;
+  const identity = {
+    schema: legacy.schema, build: legacy.build, runKey: legacy.runKey, outcome: legacy.outcome, map: legacy.map,
+    difficulty: legacy.difficulty, elapsed: legacy.elapsed, level: legacy.level, squadKills: legacy.squadKills,
+    gold: legacy.gold, mutations: legacy.mutations, discoveries: legacy.discoveries,
+    players: legacy.players.map((player) => ({ ...player, callsign: "" })), totals: legacy.totals,
+  };
+  legacy.fingerprint = fnv1a64(canonicalStringify(identity));
+  legacy.id = `ll-${legacy.runKey.slice(0, 8)}-${legacy.fingerprint.slice(0, 8)}`;
+  const [entry] = normalizeRunArchiveStorage([{ schemaVersion: 6, savedAt: "2026-07-13T22:59:21.000Z", report: legacy }]);
+  assert.equal(entry.report.schema, SQUAD_RUN_REPORT_SCHEMA);
+  assert.equal(entry.report.seededOperation, null);
   assert.doesNotThrow(() => validateSquadRunReport(entry.report));
 });

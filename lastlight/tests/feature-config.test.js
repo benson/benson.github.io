@@ -11,7 +11,7 @@ function memoryStorage(initial = {}) {
 }
 
 const operatorConfig = {
-  schemaVersion: 12, configVersion: "rollback-46", gameplayVersion: "rare-discoveries-off-v1", registryVersion: "lastlight.squad-synergy.v1",
+  schemaVersion: 13, configVersion: "rollback-47", gameplayVersion: "rare-discoveries-off-v1", registryVersion: "lastlight.squad-synergy.v1",
   flags: {
     deterministicReplay: false, runTelemetry: false, objectiveEvents: false,
     migrationCheckpointReplication: false, hostMigrationElection: false, hostMigrationResume: false,
@@ -22,7 +22,7 @@ const operatorConfig = {
     joinInProgressNormalization: false,
     squadEnemyDirector: false,
     mapMechanics: false,
-    campaignMutations: false, specialistMastery: false, rareDiscoveries: false, challengeAchievements: false,
+    campaignMutations: false, specialistMastery: false, rareDiscoveries: false, challengeAchievements: false, seededOperations: false,
     sharedSquadRunArchive: false,
   },
 };
