@@ -194,6 +194,20 @@ test("rare-discovery telemetry v7 is reconciled, aggregate-only, and independent
   assert.throws(() => buildRunTelemetry(run, "build", null, { ...discoveries, categories: { ...discoveries.categories, event: 3 } }), /do not reconcile/);
 });
 
+test("challenge-achievement telemetry v8 is reconciled, aggregate-only, and independent of discovery ids", () => {
+  const run = completedRun({ mutationTelemetry: { packageId: "breach-cascade", encounters: 5, clears: 4, failures: 1, objectiveCompletions: 3, surgeWaves: 2 } });
+  const achievements = { completedCount: 6, newlyCompletedCount: 2, categories: { build: 2, survival: 1, teamwork: 1, operation: 1, discovery: 1, specialist: 0 } };
+  const payload = buildRunTelemetry(run, "build-17", null, null, achievements);
+  assert.equal(payload.schemaVersion, 8);
+  assert.equal(payload.challengeAchievementCount, 6);
+  assert.equal(payload.challengeAchievementNewCount, 2);
+  assert.deepEqual(payload.challengeAchievementCategories, achievements.categories);
+  assert.doesNotMatch(JSON.stringify(payload), /achievementId|predicate|fingerprint|callsign|roomId|replaySlot|slot/i);
+  assert.throws(() => buildRunTelemetry(completedRun(), "build", null, null, achievements), /current aggregate run schema/);
+  assert.throws(() => buildRunTelemetry(run, "build", null, null, { ...achievements, room: "Private" }), /unexpected fields/);
+  assert.throws(() => buildRunTelemetry(run, "build", null, null, { ...achievements, categories: { ...achievements.categories, build: 3 } }), /do not reconcile/);
+});
+
 test("squad-director telemetry fails closed on identity, inconsistent totals, and invalid squad bands", () => {
   assert.throws(() => buildRunTelemetry(completedRun({ directorTelemetry: { ...directorTotals, roomId: "SECRET" } }), "build"), /unexpected fields/);
   assert.throws(() => buildRunTelemetry(completedRun({ directorTelemetry: { ...directorTotals, pincer: 3 } }), "build"), /do not reconcile/);

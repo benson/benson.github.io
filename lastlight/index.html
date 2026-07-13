@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260713.16">
+  <link rel="stylesheet" href="styles.css?v=20260713.17">
 </head>
 <body>
   <main id="app">
@@ -272,6 +272,7 @@
 
       <div id="objective-banner" class="objective-banner hidden"><span>NEW DIRECTIVE</span><strong>Capture the uplink</strong></div>
       <aside id="mutation-hud" class="mutation-hud" aria-live="polite" aria-atomic="true"></aside>
+      <aside id="challenge-watch" class="challenge-watch hidden" role="status" aria-live="polite" aria-atomic="true"></aside>
       <div id="boss-hud" class="boss-hud hidden" role="progressbar" aria-label="Apex health" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" aria-valuetext="Apex phase 1, 100 percent health"><span id="boss-name" aria-live="polite">APEX</span><div><i id="boss-health"></i><em id="boss-health-segments" class="health-dividers" aria-hidden="true"></em></div></div>
 
       <aside id="downed-activity" class="downed-activity hidden" aria-labelledby="downed-activity-title">
@@ -418,6 +419,7 @@
         </div>
         <section id="result-mutations" class="result-mutations" aria-labelledby="result-mutations-title"><h3 id="result-mutations-title">Campaign package</h3><div class="mutation-package"></div></section>
         <section id="result-mastery" class="result-mastery hidden" aria-labelledby="result-mastery-title"><p class="eyebrow">Specialist mastery</p><h3 id="result-mastery-title">Track advanced</h3><p id="result-mastery-copy"></p></section>
+        <section id="result-achievements" class="result-discoveries hidden" aria-labelledby="result-achievements-title"><p class="eyebrow">Challenge archive</p><h3 id="result-achievements-title">Records completed</h3><p id="result-achievements-copy"></p><ul id="result-achievement-list"></ul></section>
         <section id="result-discoveries" class="result-discoveries hidden" aria-labelledby="result-discoveries-title"><p class="eyebrow">Field Manual</p><h3 id="result-discoveries-title">Signals catalogued</h3><p id="result-discoveries-copy"></p><ul id="result-discovery-list"></ul></section>
         <div class="scoreboard-wrap">
           <table class="result-scoreboard">
@@ -522,11 +524,11 @@
 
     <dialog id="guide-dialog" class="guide-dialog" aria-labelledby="guide-title">
       <div class="manual-header">
-        <div><p class="eyebrow">Command archive // live</p><h2 id="guide-title">UPGRADES & RARE FINDS</h2></div>
+        <div><p class="eyebrow">Command archive // live</p><h2 id="guide-title">FIELD MANUAL & RECORDS</h2></div>
         <button id="guide-close" class="icon-button" type="button" aria-label="Close upgrade archive">Close</button>
       </div>
       <nav class="guide-tabs" aria-label="Upgrade archive sections">
-        <a href="#guide-campaign">Campaign</a><a href="#guide-map-mechanics">Operations</a><a href="#guide-environments">Environments</a><a href="#guide-apex">Apexes</a><a href="#guide-specialists">Specialists</a><a href="#guide-field">Field objects</a><a href="#guide-signatures">Signatures</a><a href="#guide-weapons">Weapons</a><a href="#guide-materials">Materials</a><a href="#guide-passives">Passives</a><a href="#guide-downed">Downed activity</a><a href="#guide-participation">Participation</a><a href="#guide-synergies">Squad synergies</a><a href="#guide-director">Director</a><a href="#guide-rare">Rare finds</a>
+        <a href="#guide-campaign">Campaign</a><a href="#guide-map-mechanics">Operations</a><a href="#guide-environments">Environments</a><a href="#guide-apex">Apexes</a><a href="#guide-specialists">Specialists</a><a href="#guide-field">Field objects</a><a href="#guide-signatures">Signatures</a><a href="#guide-weapons">Weapons</a><a href="#guide-materials">Materials</a><a href="#guide-passives">Passives</a><a href="#guide-downed">Downed activity</a><a href="#guide-participation">Participation</a><a href="#guide-synergies">Squad synergies</a><a href="#guide-director">Director</a><a href="#guide-challenges">Challenges</a><a href="#guide-rare">Rare finds</a>
       </nav>
       <div id="guide-content" class="guide-content"></div>
     </dialog>
@@ -614,7 +616,16 @@
       </div>
       <div class="build-history-body">
         <article class="build-release current-build">
-          <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.13.16</h3></div><time class="build-shipped-at" datetime="2026-07-13T18:23:09-04:00" data-build-shipped-at="2026-07-13T18:23:09-04:00">Shipped Jul 13, 2026 · 6:23 PM EDT</time></header>
+          <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.13.17</h3></div><time>Production verification pending</time></header>
+          <ul>
+            <li>Added 18 deterministic challenges across buildcraft, survival, teamwork, operations, discovery, and specialist expression.</li>
+            <li>Added strict local achievement storage, signed terminal-report awards, bounded anonymous claim deduplication, and explicit imported-report handling.</li>
+            <li>Added Field Manual progress, result unlocks, shared archive evidence, cosmetic and informational rewards, and no permanent gameplay power.</li>
+            <li>Added an independent runtime rollback flag plus aggregate-only challenge telemetry with no challenge IDs, predicates, run identity, or player identity.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header><div><span class="build-release-status">Previous build</span><h3>2026.07.13.16</h3></div><time class="build-shipped-at" datetime="2026-07-13T18:23:09-04:00" data-build-shipped-at="2026-07-13T18:23:09-04:00">Shipped Jul 13, 2026 · 6:23 PM EDT</time></header>
           <ul>
             <li>Added a deterministic 27-entry rare-discovery registry for events, elite affixes, squad boons, and recovered augment dossiers.</li>
             <li>Added a concealed Field Manual collection that decrypts from signed terminal reports and remains informational, local, bounded, and identity-free.</li>
@@ -1123,8 +1134,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.13.16. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.13.16</strong></button>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.13.17. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.13.17</strong></button>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260713.16"></script>
+  <script type="module" src="game.js?v=20260713.17"></script>
 </body>
 </html>

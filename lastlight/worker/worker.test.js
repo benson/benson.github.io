@@ -124,6 +124,12 @@ const validTelemetryV7 = {
   rareDiscoveryCount: 9, rareDiscoveryNewCount: 2,
   rareDiscoveryCategories: { event: 2, affix: 1, boon: 4, augment: 2 },
 };
+const validTelemetryV8 = {
+  ...validTelemetryV7,
+  schemaVersion: 8,
+  challengeAchievementCount: 6, challengeAchievementNewCount: 2,
+  challengeAchievementCategories: { build: 2, survival: 1, teamwork: 1, operation: 1, discovery: 1, specialist: 0 },
+};
 
 function telemetryRequest(payload = validTelemetry, init = {}) {
   return new Request("https://lastlight-relay.example/telemetry", {
@@ -148,7 +154,7 @@ test("profiles discard markup and constrain specialist ids", () => {
   assert.equal(safeProfile({ resumeToken: "a".repeat(24) }).resumeToken, "a".repeat(24));
 });
 
-test("rolling telemetry accepts v1 through v7 as fixed aggregate schemas", () => {
+test("rolling telemetry accepts v1 through v8 as fixed aggregate schemas", () => {
   const run = sanitizeRunTelemetry(validTelemetry);
   assert.deepEqual(run.specialists, ["echo", "zuri"]);
   assert.equal(run.damageDealt, 2000.3);
@@ -169,6 +175,8 @@ test("rolling telemetry accepts v1 through v7 as fixed aggregate schemas", () =>
   assert.equal(v6.masterySpecialist, "zuri"); assert.equal(v6.masterySelectedStart, "field-kit");
   const v7 = sanitizeRunTelemetry(validTelemetryV7);
   assert.equal(v7.rareDiscoveryCount, 9); assert.deepEqual(v7.rareDiscoveryCategories, validTelemetryV7.rareDiscoveryCategories);
+  const v8 = sanitizeRunTelemetry(validTelemetryV8);
+  assert.equal(v8.challengeAchievementCount, 6); assert.deepEqual(v8.challengeAchievementCategories, validTelemetryV8.challengeAchievementCategories);
 });
 
 test("telemetry endpoint writes one identity-free Analytics Engine datapoint", async () => {
@@ -289,6 +297,18 @@ test("telemetry v7 writes bounded aggregate-only rare discovery and optional mas
   assert.doesNotMatch(JSON.stringify(writes), /discoveryId|callsign|playerName|roomId|ipAddress|replaySlot|resumeToken|position|slot/i);
 });
 
+test("telemetry v8 writes bounded aggregate-only challenge achievement datapoints", async () => {
+  const writes = [];
+  const response = await worker.fetch(telemetryRequest(validTelemetryV8), { RUN_TELEMETRY: { writeDataPoint: (point) => writes.push(point) } });
+  assert.equal(response.status, 202); assert.equal(writes.length, 7);
+  assert.deepEqual(writes[6], {
+    blobs: ["challenge-achievements.v1", "2026.07.10.1", "warehouse", "story", "won"],
+    doubles: [6, 2, 2, 1, 1, 1, 1, 0], indexes: ["lastlight-challenge-achievements-v1"],
+  });
+  assert.throws(() => sanitizeRunTelemetry({ ...validTelemetryV8, challengeAchievementCategories: { ...validTelemetryV8.challengeAchievementCategories, build: 3 } }), /do not reconcile/);
+  assert.doesNotMatch(JSON.stringify(writes), /achievementId|predicate|callsign|roomId|replaySlot|resumeToken|position|slot/i);
+});
+
 test("telemetry v4 rejects identity and inconsistent director aggregates before writing", async () => {
   for (const directorTotals of [
     { ...validTelemetryV4.directorTotals, roomId: "SECRET" },
@@ -345,7 +365,7 @@ test("rolling telemetry schemas reject cross-version fields", () => {
   assert.throws(() => sanitizeRunTelemetry({ ...validTelemetryV2, schemaVersion: 2, synergyTotals: undefined }), /Invalid synergyTotals/);
   assert.throws(() => sanitizeRunTelemetry({ ...validTelemetryV2, schemaVersion: 3 }), /Invalid participationTotals/);
   assert.throws(() => sanitizeRunTelemetry({ ...validTelemetryV3, schemaVersion: 4 }), /Invalid directorTotals/);
-  assert.throws(() => sanitizeRunTelemetry({ ...validTelemetryV4, schemaVersion: 8 }), /Unsupported telemetry schema/);
+  assert.throws(() => sanitizeRunTelemetry({ ...validTelemetryV4, schemaVersion: 9 }), /Unsupported telemetry schema/);
   assert.throws(() => sanitizeRunTelemetry({ ...validTelemetryV2, participationTotals: validTelemetryV3.participationTotals }), /Unexpected telemetry field/);
 });
 
@@ -385,12 +405,12 @@ test("telemetry endpoint enforces method, type, size, origin, and CORS", async (
 
 test("runtime config endpoint is allowlisted, no-store, origin-aware, and read-only", async () => {
   const config = {
-    schemaVersion: 11, configVersion: "rollback-42", gameplayVersion: "director-off-v1",
+    schemaVersion: 12, configVersion: "rollback-46", gameplayVersion: "director-off-v1",
     registryVersion: "lastlight.squad-synergy.v1",
     flags: {
       deterministicReplay: false, runTelemetry: false, objectiveEvents: false,
       migrationCheckpointReplication: false, hostMigrationElection: false, hostMigrationResume: false,
-      contextualPings: false, upgradeRecommendations: false, squadSynergies: false, sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, specialistMastery: false, rareDiscoveries: false, sharedSquadRunArchive: false,
+      contextualPings: false, upgradeRecommendations: false, squadSynergies: false, sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, specialistMastery: false, rareDiscoveries: false, challengeAchievements: false, sharedSquadRunArchive: false,
     },
   };
   const env = { LASTLIGHT_RUNTIME_CONFIG: JSON.stringify(config) };
@@ -413,7 +433,7 @@ test("invalid operator config fails closed to immutable release defaults", () =>
   assert.deepEqual(invalid.config.flags, {
     deterministicReplay: true, runTelemetry: true, objectiveEvents: true,
     migrationCheckpointReplication: true, hostMigrationElection: true, hostMigrationResume: true,
-    contextualPings: true, upgradeRecommendations: true, squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, specialistMastery: true, rareDiscoveries: true, sharedSquadRunArchive: true,
+    contextualPings: true, upgradeRecommendations: true, squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, specialistMastery: true, rareDiscoveries: true, challengeAchievements: true, sharedSquadRunArchive: true,
   });
   assert.equal(operatorRuntimeConfig({}).source, "built-in");
 });
@@ -777,12 +797,12 @@ test("active host loss without a checkpoint fails closed instead of promoting an
 
 test("disabled host migration fails closed even when a valid checkpoint exists", () => {
   const config = {
-    schemaVersion: 11, configVersion: "migration-off", gameplayVersion: "map-mechanics-v1",
+    schemaVersion: 12, configVersion: "migration-off", gameplayVersion: "map-mechanics-v1",
     registryVersion: "lastlight.squad-synergy.v1",
     flags: {
       deterministicReplay: true, runTelemetry: true, objectiveEvents: true,
       migrationCheckpointReplication: true, hostMigrationElection: false, hostMigrationResume: true,
-      contextualPings: true, upgradeRecommendations: true, squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, specialistMastery: true, rareDiscoveries: true, sharedSquadRunArchive: true,
+      contextualPings: true, upgradeRecommendations: true, squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, specialistMastery: true, rareDiscoveries: true, challengeAchievements: true, sharedSquadRunArchive: true,
     },
   };
   const fixture = migrationFixture({ env: { LASTLIGHT_RUNTIME_CONFIG: JSON.stringify(config) } });
@@ -971,12 +991,12 @@ test("only the host can relay a strict ping broadcast and cannot forge a guest p
 
 test("the runtime rollback flag rejects request and broadcast paths", () => {
   const config = {
-    schemaVersion: 11, configVersion: "pings-off", gameplayVersion: "map-mechanics-v1",
+    schemaVersion: 12, configVersion: "pings-off", gameplayVersion: "map-mechanics-v1",
     registryVersion: "lastlight.squad-synergy.v1",
     flags: {
       deterministicReplay: true, runTelemetry: true, objectiveEvents: true,
       migrationCheckpointReplication: true, hostMigrationElection: true, hostMigrationResume: true,
-      contextualPings: false, upgradeRecommendations: true, squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, specialistMastery: true, rareDiscoveries: true, sharedSquadRunArchive: true,
+      contextualPings: false, upgradeRecommendations: true, squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, specialistMastery: true, rareDiscoveries: true, challengeAchievements: true, sharedSquadRunArchive: true,
     },
   };
   const { room, host, guest, observer } = pingRoomFixture({ LASTLIGHT_RUNTIME_CONFIG: JSON.stringify(config) });

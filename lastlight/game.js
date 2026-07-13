@@ -1,44 +1,44 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260713.16";
-import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.16";
-import { Renderer } from "./render.js?v=20260713.16";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260713.17";
+import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.17";
+import { Renderer } from "./render.js?v=20260713.17";
 import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260713.2";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
-import { getThemeAsset, getThemeEnvironmentChunks, getThemeMaterial } from "./themes/lastlight.js?v=20260713.16";
-import { submitRunTelemetry } from "./telemetry.js?v=20260713.16";
+import { getThemeAsset, getThemeEnvironmentChunks, getThemeMaterial } from "./themes/lastlight.js?v=20260713.17";
+import { submitRunTelemetry } from "./telemetry.js?v=20260713.17";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260713.16";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260713.16";
+import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260713.17";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260713.17";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
-import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260713.16";
-import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260713.16";
+import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260713.17";
+import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260713.17";
 import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260711.5";
-import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260713.16";
+import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260713.17";
 import { GuestInputSequenceTracker, HostInputSequenceGate, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260713.2";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260713.2";
-import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260713.16";
-import { advancePlayerMovement } from "./movement.js?v=20260713.16";
+import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260713.17";
+import { advancePlayerMovement } from "./movement.js?v=20260713.17";
 import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
 import { DynamicAudioMixer } from "./audio-mix.js?v=20260713.1";
 import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260713.1";
 import { enemyAudioCueName, newEntities, spatialAudioPan, weaponAudioCueName, weaponTimerActivations } from "./audio-events.js?v=20260713.1";
 import { FUNNY_VOICE_MIN_INTERVAL_MS, audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260713.1";
-import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260713.16";
-import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260713.16";
+import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260713.17";
+import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260713.17";
 import { getWeaponEvolution } from "./weapon-evolution.js?v=20260713.1";
 import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260712.1";
-import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260713.16";
-import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260713.16";
-import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260713.16";
+import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260713.17";
+import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260713.17";
+import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260713.17";
 import { reconcileActiveBuffs } from "./active-buffs.js?v=20260713.1";
 import { ELITE_AFFIXES, ENEMY_ARCHETYPES } from "./enemy-archetypes.js?v=20260713.1";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
-import { mapMechanicDefinition } from "./map-mechanics.js?v=20260713.16";
-import { CAMPAIGN_MUTATIONS, campaignMutationDefinition } from "./campaign-mutations.js?v=20260713.16";
+import { mapMechanicDefinition } from "./map-mechanics.js?v=20260713.17";
+import { CAMPAIGN_MUTATIONS, campaignMutationDefinition } from "./campaign-mutations.js?v=20260713.17";
 import {
   AuthoritySnapshotGate, HOST_MIGRATION_PROTOCOL_VERSION, MIGRATION_CHECKPOINT_INTERVAL_TICKS,
   createMigrationCapabilities, createMigrationCheckpoint, createMigrationReady,
   migrationCompatibilityMatches, validateMigrationCheckpoint,
-} from "./host-migration.js?v=20260713.16";
+} from "./host-migration.js?v=20260713.17";
 import { RECONNECT_DELAYS_MS, SquadPresenceTracker, authorityStateCopy } from "./reconnect-state.js?v=20260713.3";
 import {
   HostPingGate, PING_INTENTS, PING_LIFETIME_TICKS, PING_WHEEL_ORDER, PingSequenceTracker,
@@ -54,19 +54,24 @@ import { DraftRecommendationStore, recommendationMarkerModel } from "./draft-rec
 import { SQUAD_SYNERGY_REGISTRY } from "./squad-synergies.js?v=20260713.6";
 import { reconcileActiveSynergies } from "./active-synergies.js?v=20260713.6";
 import { PARTICIPATION_REGISTRY } from "./participation-credit.js?v=20260713.7";
-import { campaignJoinEligibility } from "./join-in-progress.js?v=20260713.16";
+import { campaignJoinEligibility } from "./join-in-progress.js?v=20260713.17";
 import {
   RUN_ARCHIVE_STORAGE_KEY, createSquadRunReport, decodeSquadRunFragment, normalizeRunArchiveStorage,
   squadRunShareFragment, upsertRunArchive,
-} from "./run-archive.js?v=20260713.16";
+} from "./run-archive.js?v=20260713.17";
 import {
   SPECIALIST_MASTERY, SPECIALIST_MASTERY_LEVELS, awardSpecialistMastery, loadSpecialistMasteryState,
   masteryStartDefinition, saveSpecialistMasteryState, selectMasteryStart,
-} from "./specialist-mastery.js?v=20260713.16";
+} from "./specialist-mastery.js?v=20260713.17";
 import {
   RARE_DISCOVERY_REGISTRY, awardRareDiscoveries, loadRareDiscoveryCollection,
   rareDiscoveryDefinition, rareDiscoveryTelemetry, saveRareDiscoveryCollection,
-} from "./rare-discoveries.js?v=20260713.16";
+} from "./rare-discoveries.js?v=20260713.17";
+import {
+  CHALLENGE_ACHIEVEMENT_REGISTRY, awardChallengeAchievements, challengeAchievementDefinition,
+  challengeAchievementTelemetry, evaluateChallengeAchievements, loadChallengeAchievementState,
+  saveChallengeAchievementState,
+} from "./challenge-achievements.js?v=20260713.17";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -75,7 +80,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.13.16";
+const BUILD = "2026.07.13.17";
 const AUTHORITY_WATCHDOG_MS = Object.freeze({ synchronizing: 10_000, migrating: 25_000 });
 const BALANCE = getBalanceConfig();
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
@@ -93,6 +98,7 @@ const initialQualitySettings = (() => {
 const initialAudioSettings = loadAudioSettings(localStorage);
 const initialMasteryState = loadSpecialistMasteryState(localStorage);
 const initialRareDiscoveries = loadRareDiscoveryCollection(localStorage);
+const initialChallengeAchievements = loadChallengeAchievementState(localStorage);
 const audioSupported = Boolean(window.AudioContext || window.webkitAudioContext);
 const renderer = new Renderer($("game-canvas"));
 renderer.setQualitySettings(initialQualitySettings);
@@ -175,6 +181,8 @@ const state = {
   progress: loadProgress(), runHistory: loadRunHistory(), resultGame: null, resultReport: null, resultSavedKey: "",
   mastery: initialMasteryState, resultMasteryAward: null,
   rareDiscoveries: initialRareDiscoveries, resultDiscoveryAward: null,
+  challengeAchievements: initialChallengeAchievements, resultChallengeAward: null,
+  lastChallengeWatchTick: -60, lastChallengeWatchKey: "",
   sharedRun: initialSharedRun.value, sharedRunError: initialSharedRun.error, sharedRunPresented: false,
   audioSettings: initialAudioSettings,
   audioAvailable: audioSupported,
@@ -1160,7 +1168,16 @@ function renderGuide() {
   const rareHeading = discoveryEnabled
     ? `Rare discoveries // ${discovered.size}/${RARE_DISCOVERY_REGISTRY.entries.length}`
     : "Rare finds & events";
-  $("guide-content").innerHTML = `<section id="guide-campaign" class="guide-section"><h3>Campaign route</h3><p>Clear threat tiers to unlock harder operations. Progress is saved in this browser.</p><div class="campaign-route">${campaign}</div></section><section id="guide-map-mechanics" class="guide-section"><h3>Operation identities</h3><p>Every operation changes battlefield routing, enemy composition, and counterplay through a deterministic map mechanic.</p><div class="guide-grid">${mapMechanics}</div></section><section id="guide-environments" class="guide-section"><h3>Environment identities</h3><p>Generated landmark atlases give every operation authored set dressing. These chunks are visual only: they never block movement, hide a pickup, or enter multiplayer snapshots.</p><div class="guide-grid">${environments}</div></section><section id="guide-apex" class="guide-section"><h3>Map apexes</h3><p>Every apex has two deterministic phases, a real health gate, named attacks, and a map-specific arena change.</p><div class="guide-grid">${apexes}</div></section><section id="guide-specialists" class="guide-section"><h3>Specialist identities</h3><p>Measured roles, strengths, and failure points from the versioned simulation contract.</p><div class="guide-grid">${identities}</div></section><section id="guide-field" class="guide-section"><h3>Field objects</h3><p>Hold Shift and point at a live field object for its current stats.</p><div class="guide-grid">${fieldObjects}</div></section><section id="guide-signatures" class="guide-section"><h3>Signature evolutions</h3><div class="guide-grid">${signatures}</div></section><section id="guide-weapons" class="guide-section"><h3>Universal weapons</h3><div class="guide-grid">${weapons}</div></section><section id="guide-materials" class="guide-section"><h3>Impact materials</h3><p>Every weapon keeps its silhouette while contact particles, decals, flash, and sound adapt to the target. Shape and pattern remain available when color or motion is reduced.</p><div class="guide-grid">${materials}</div></section><section id="guide-passives" class="guide-section"><h3>Passive upgrades</h3><div class="guide-grid">${passives}</div></section><section id="guide-downed" class="guide-section"><h3>Downed activity</h3><p>A downed specialist stays useful but cannot fight, collect, score objective work, or revive themself. The authoritative simulation decides every action.</p><div class="guide-grid">${downed}</div></section><section id="guide-participation" class="guide-section"><h3>Participation credit</h3><p>Credit records effective work by anonymous specialist slot. Genuine overlap is shared; duplicate traffic, excess values, idle proximity, and system restoration are excluded.</p><div class="guide-grid">${participation}</div></section><section id="guide-synergies" class="guide-section"><h3>Squad synergies</h3><p>Coordinate roles, ultimate timing, and movement. Effects are authoritative, bounded, non-stacking, and disabled in solo runs.</p><div class="guide-grid">${synergies}</div></section><section id="guide-director" class="guide-section"><h3>Squad enemy director</h3><p>Squad runs receive deterministic, objective-aware formations while solo and rollback paths preserve the original spawn contract.</p><div class="guide-grid">${director}</div></section><section id="guide-rare" class="guide-section"><h3>Rare finds & events</h3><div class="guide-grid">${rare}</div></section>`;
+  const challengeEnabled = Boolean(state.runtimeConfig?.config?.flags?.challengeAchievements);
+  document.querySelector('a[href="#guide-challenges"]')?.classList.toggle("hidden", !challengeEnabled);
+  const completedChallenges = new Set(state.challengeAchievements.completed);
+  const challenges = challengeEnabled ? CHALLENGE_ACHIEVEMENT_REGISTRY.entries.map((item) => {
+    const complete = completedChallenges.has(item.id);
+    return guideCard(complete ? "OK" : "GOAL", item.name, `${item.category} // ${item.scope} // ${complete ? "complete" : "open"}`,
+      `${item.summary} Reward: ${item.reward.name} (${item.reward.kind}).`, complete ? "complete" : "open", item.icon,
+      { Progress: complete ? "1 / 1" : "0 / 1", Evidence: "Validated terminal report", Power: "No gameplay power", Rollback: "Independent runtime flag" });
+  }).join("") : "";
+  $("guide-content").innerHTML = `<section id="guide-campaign" class="guide-section"><h3>Campaign route</h3><p>Clear threat tiers to unlock harder operations. Progress is saved in this browser.</p><div class="campaign-route">${campaign}</div></section><section id="guide-map-mechanics" class="guide-section"><h3>Operation identities</h3><p>Every operation changes battlefield routing, enemy composition, and counterplay through a deterministic map mechanic.</p><div class="guide-grid">${mapMechanics}</div></section><section id="guide-environments" class="guide-section"><h3>Environment identities</h3><p>Generated landmark atlases give every operation authored set dressing. These chunks are visual only: they never block movement, hide a pickup, or enter multiplayer snapshots.</p><div class="guide-grid">${environments}</div></section><section id="guide-apex" class="guide-section"><h3>Map apexes</h3><p>Every apex has two deterministic phases, a real health gate, named attacks, and a map-specific arena change.</p><div class="guide-grid">${apexes}</div></section><section id="guide-specialists" class="guide-section"><h3>Specialist identities</h3><p>Measured roles, strengths, and failure points from the versioned simulation contract.</p><div class="guide-grid">${identities}</div></section><section id="guide-field" class="guide-section"><h3>Field objects</h3><p>Hold Shift and point at a live field object for its current stats.</p><div class="guide-grid">${fieldObjects}</div></section><section id="guide-signatures" class="guide-section"><h3>Signature evolutions</h3><div class="guide-grid">${signatures}</div></section><section id="guide-weapons" class="guide-section"><h3>Universal weapons</h3><div class="guide-grid">${weapons}</div></section><section id="guide-materials" class="guide-section"><h3>Impact materials</h3><p>Every weapon keeps its silhouette while contact particles, decals, flash, and sound adapt to the target. Shape and pattern remain available when color or motion is reduced.</p><div class="guide-grid">${materials}</div></section><section id="guide-passives" class="guide-section"><h3>Passive upgrades</h3><div class="guide-grid">${passives}</div></section><section id="guide-downed" class="guide-section"><h3>Downed activity</h3><p>A downed specialist stays useful but cannot fight, collect, score objective work, or revive themself. The authoritative simulation decides every action.</p><div class="guide-grid">${downed}</div></section><section id="guide-participation" class="guide-section"><h3>Participation credit</h3><p>Credit records effective work by anonymous specialist slot. Genuine overlap is shared; duplicate traffic, excess values, idle proximity, and system restoration are excluded.</p><div class="guide-grid">${participation}</div></section><section id="guide-synergies" class="guide-section"><h3>Squad synergies</h3><p>Coordinate roles, ultimate timing, and movement. Effects are authoritative, bounded, non-stacking, and disabled in solo runs.</p><div class="guide-grid">${synergies}</div></section><section id="guide-director" class="guide-section"><h3>Squad enemy director</h3><p>Squad runs receive deterministic, objective-aware formations while solo and rollback paths preserve the original spawn contract.</p><div class="guide-grid">${director}</div></section>${challengeEnabled ? `<section id="guide-challenges" class="guide-section"><h3>Challenges & achievements // ${completedChallenges.size}/${CHALLENGE_ACHIEVEMENT_REGISTRY.entries.length}</h3><p>Authored goals reward unusual builds and cooperative mastery with local badges, titles, lore, and cosmetics. They never grant gameplay power.</p><div class="guide-grid">${challenges}</div></section>` : ""}<section id="guide-rare" class="guide-section"><h3>Rare finds & events</h3><div class="guide-grid">${rare}</div></section>`;
   const rareSection = $("guide-content").querySelector("#guide-rare");
   rareSection.querySelector("h3").textContent = rareHeading;
   if (discoveryEnabled) rareSection.querySelector("h3").insertAdjacentHTML("afterend", "<p>Discoveries are informational, local to this browser, and never grant combat power.</p>");
@@ -1983,6 +2000,22 @@ function updateMutationHUD(game) {
   $("pause-mutations").innerHTML = mutationPackageMarkup(mutation.difficulty, typeof game.map === "string" ? game.map : game.map.id, { ...mutation, tick: game.tick });
 }
 
+function updateChallengeWatch(game, player) {
+  const target = $("challenge-watch"), enabled = Boolean(state.runtimeConfig.config.flags.challengeAchievements);
+  if (!enabled || !target || !player || !["running", "boss"].includes(game.stage)) { target?.classList.add("hidden"); return; }
+  if (game.tick >= state.lastChallengeWatchTick && game.tick - state.lastChallengeWatchTick < 60) return;
+  state.lastChallengeWatchTick = game.tick;
+  try {
+    const provisional = createSquadRunReport({ ...game, stage: "lost" }, { build: BUILD });
+    const achieved = evaluateChallengeAchievements(provisional, player.replaySlot).filter((id) => !state.challengeAchievements.completed.includes(id));
+    const key = achieved.join("|");
+    if (key === state.lastChallengeWatchKey) return;
+    state.lastChallengeWatchKey = key;
+    target.classList.toggle("hidden", !achieved.length);
+    if (achieved.length) target.innerHTML = `<span>Challenge condition met</span><strong>${achieved.length} pending verification</strong><small>${achieved.slice(0, 2).map((id) => escapeHTML(challengeAchievementDefinition(id)?.name || id)).join(" · ")}${achieved.length > 2 ? ` · +${achieved.length - 2} more` : ""} · complete the operation to archive</small>`;
+  } catch { target.classList.add("hidden"); }
+}
+
 function updateHUD(game) {
   const player = game.players.find((p) => p.id === state.clientId) || game.players[0]; if (!player) return;
   updateSoundState(game);
@@ -1992,6 +2025,7 @@ function updateHUD(game) {
   $("timer-progress").style.width = `${game.stage === "boss" ? 100 : clamp(game.time / game.duration * 100, 0, 100)}%`;
   $("kill-count").textContent = Number(game.kills || 0).toLocaleString(); $("gold-count").textContent = Math.round(game.gold || 0).toLocaleString();
   updateMutationHUD(game);
+  updateChallengeWatch(game, player);
   $("level-label").textContent = `LV ${game.level}`; $("xp-progress").style.width = `${clamp(game.teamXP / game.xpNeed * 100, 0, 100)}%`;
   $("e-name").textContent = game.level < 3 ? "Unlocks Lv 3" : spec.active[0]; $("r-name").textContent = game.level < 6 ? "Unlocks Lv 6" : spec.ultimate[0];
   updateCooldownSlot("e", player.eCd, player.eCdMax || spec.cooldownE, game.level >= 3, 3); updateCooldownSlot("r", player.rCd, player.rCdMax || spec.cooldownR, game.level >= 6, 6);
@@ -2486,6 +2520,37 @@ function renderResultRareDiscoveries(report, award) {
   }).join("");
 }
 
+function awardLocalChallengeAchievements(report, localPlayer = null) {
+  if (!state.runtimeConfig.config.flags.challengeAchievements || !report) return null;
+  try {
+    const result = awardChallengeAchievements(state.challengeAchievements, report, localPlayer?.replaySlot ?? null);
+    state.challengeAchievements = saveChallengeAchievementState(localStorage, result.state);
+    state.resultChallengeAward = result.award;
+    return result.award;
+  } catch (error) { captureClientError("challenge achievement award", error); return null; }
+}
+
+function renderResultChallengeAchievements(award) {
+  const completed = award?.completed || [];
+  $("result-achievements").classList.toggle("hidden", !completed.length);
+  if (!completed.length) return;
+  $("result-achievements-title").textContent = `${completed.length} record${completed.length === 1 ? "" : "s"} completed`;
+  $("result-achievements-copy").textContent = `Archive ${award.total}/${award.available}. Rewards are local, cosmetic or informational, and grant no gameplay power.`;
+  $("result-achievement-list").innerHTML = completed.map((id) => {
+    const item = challengeAchievementDefinition(id);
+    return `<li class="new"><span>OK</span><b>${escapeHTML(item?.name || id)}</b><em>${escapeHTML(item?.reward?.name || "Complete")}</em></li>`;
+  }).join("");
+}
+
+function reportChallengeEvidence(report) {
+  if (!state.runtimeConfig.config.flags.challengeAchievements) return [];
+  try {
+    const ids = new Set(evaluateChallengeAchievements(report, null));
+    for (const player of report.players) for (const id of evaluateChallengeAchievements(report, player.slot)) ids.add(id);
+    return [...ids].sort((left, right) => left.localeCompare(right));
+  } catch { return []; }
+}
+
 function localMasteryTelemetry(player) {
   if (!player || !state.runtimeConfig.config.flags.specialistMastery) return null;
   const track = state.mastery.tracks[player.specialist];
@@ -2528,7 +2593,10 @@ function archiveEntryCard(entry, { imported = false, mode = "local" } = {}) {
   const date = savedAt ? new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(savedAt)) : "Shared report";
   const discoverySummary = report.discoveries?.length
     ? `<p class="archive-discoveries"><strong>Rare discoveries ${report.discoveries.length}</strong> · ${report.discoveries.map((id) => escapeHTML(rareDiscoveryDefinition(id)?.name || id)).join(" · ")}</p>` : "";
-  const players = `${discoverySummary}${report.players.map((player) => archivePlayerCard(player, report.elapsed)).join("")}`;
+  const challengeEvidence = reportChallengeEvidence(report);
+  const challengeSummary = challengeEvidence.length
+    ? `<p class="archive-discoveries"><strong>Challenge evidence ${challengeEvidence.length}</strong> · ${challengeEvidence.map((id) => escapeHTML(challengeAchievementDefinition(id)?.name || id)).join(" · ")}</p>` : "";
+  const players = `${challengeSummary}${discoverySummary}${report.players.map((player) => archivePlayerCard(player, report.elapsed)).join("")}`;
   const shareActions = archiveEnabled() ? `<button type="button" data-archive-share="${report.id}">Copy anonymous link</button><button type="button" data-archive-share-named="${report.id}">Include callsigns</button>` : "";
   const saveAction = imported && !saved ? `<button type="button" data-archive-save="${report.id}">Save to this browser</button>` : "";
   const mutation = report.mutations;
@@ -2557,10 +2625,11 @@ function saveImportedRun(id) {
   if (!report) return;
   state.runHistory = upsertRunArchive(state.runHistory, report);
   try { localStorage.setItem(RUN_ARCHIVE_STORAGE_KEY, JSON.stringify(state.runHistory)); } catch { /* Archive remains readable in memory. */ }
-  const award = awardLocalRareDiscoveries(report);
+  const award = awardLocalRareDiscoveries(report), challengeAward = awardLocalChallengeAchievements(report);
   renderRunHistory();
   if ($("guide-dialog").open) renderGuide();
-  toast(award?.discovered?.length ? `Squad report saved · ${award.discovered.length} discoveries decrypted` : "Squad report saved to this browser");
+  const updates = [award?.discovered?.length ? `${award.discovered.length} discoveries decrypted` : "", challengeAward?.completed?.length ? `${challengeAward.completed.length} squad challenges completed` : ""].filter(Boolean).join(" · ");
+  toast(updates ? `Squad report saved · ${updates}` : "Squad report saved to this browser");
 }
 
 function renderRunHistory() {
@@ -2642,6 +2711,8 @@ function showResult(game) {
   state.resultGame = game;
   const report = saveCompletedRun(game);
   renderResultMastery(awardLocalMastery(report, localPlayer));
+  const challengeAward = awardLocalChallengeAchievements(report, localPlayer);
+  renderResultChallengeAchievements(challengeAward);
   const discoveryAward = awardLocalRareDiscoveries(report);
   renderResultRareDiscoveries(report, discoveryAward);
   renderScoreboard(game);
@@ -2652,6 +2723,7 @@ function showResult(game) {
     submitRunTelemetry(game, BUILD, {
       masteryTelemetry: localMasteryTelemetry(localPlayer),
       discoveryTelemetry: rareDiscoveryTelemetry(state.rareDiscoveries, discoveryAward?.discovered || []),
+      challengeTelemetry: state.runtimeConfig.config.flags.challengeAchievements ? challengeAchievementTelemetry(state.challengeAchievements, challengeAward?.completed || []) : null,
     }).catch((error) => console.warn("Run telemetry unavailable", error));
   }
 }
