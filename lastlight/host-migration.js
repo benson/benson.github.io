@@ -1,7 +1,7 @@
-import { RECOVERY_SIMULATION_VERSION } from "./recovery.js?v=20260713.8";
+import { RECOVERY_SIMULATION_VERSION } from "./recovery.js?v=20260713.9";
 
 export const HOST_MIGRATION_SCHEMA = "lastlight.host-migration.v1";
-export const HOST_MIGRATION_PROTOCOL_VERSION = 4;
+export const HOST_MIGRATION_PROTOCOL_VERSION = 5;
 export const MAX_AUTHORITY_EPOCH = 0x7fffffff;
 export const MAX_MIGRATION_CHECKPOINT_BYTES = 1_500_000;
 export const MIGRATION_CHECKPOINT_INTERVAL_TICKS = 60;
@@ -52,12 +52,13 @@ function assertAnonymousPayload(value) {
 export function validateMigrationCompatibility(value) {
   exactKeys(value, [
     "build", "balanceVersion", "balanceHash", "configVersion", "gameplayVersion", "objectiveEvents",
-    "squadSynergies", "sharedParticipationCredit", "downedActivity", "registryVersion", "recoveryVersion",
+    "squadSynergies", "sharedParticipationCredit", "downedActivity", "joinInProgressNormalization", "registryVersion", "recoveryVersion",
   ], "migration compatibility");
   if (typeof value.objectiveEvents !== "boolean") throw new TypeError("migration compatibility objectiveEvents is invalid");
   if (typeof value.squadSynergies !== "boolean") throw new TypeError("migration compatibility squadSynergies is invalid");
   if (typeof value.sharedParticipationCredit !== "boolean") throw new TypeError("migration compatibility sharedParticipationCredit is invalid");
   if (typeof value.downedActivity !== "boolean") throw new TypeError("migration compatibility downedActivity is invalid");
+  if (typeof value.joinInProgressNormalization !== "boolean") throw new TypeError("migration compatibility joinInProgressNormalization is invalid");
   return Object.freeze({
     build: safeString(value.build, SAFE_VERSION, "migration build"),
     balanceVersion: safeString(value.balanceVersion, SAFE_VERSION, "migration balance version"),
@@ -68,6 +69,7 @@ export function validateMigrationCompatibility(value) {
     squadSynergies: value.squadSynergies,
     sharedParticipationCredit: value.sharedParticipationCredit,
     downedActivity: value.downedActivity,
+    joinInProgressNormalization: value.joinInProgressNormalization,
     registryVersion: safeString(value.registryVersion, SAFE_VERSION, "migration synergy registry version"),
     recoveryVersion: integer(value.recoveryVersion, RECOVERY_SIMULATION_VERSION, RECOVERY_SIMULATION_VERSION, "migration recovery version"),
   });

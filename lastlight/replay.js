@@ -1,5 +1,6 @@
-export const REPLAY_SCHEMA = "lastlight.replay.v7";
-export const REPLAY_SCHEMA_VERSION = 7;
+export const REPLAY_SCHEMA = "lastlight.replay.v8";
+export const REPLAY_SCHEMA_VERSION = 8;
+export const LEGACY_REPLAY_SCHEMA_V7 = "lastlight.replay.v7";
 export const LEGACY_REPLAY_SCHEMA_V6 = "lastlight.replay.v6";
 export const LEGACY_REPLAY_SCHEMA_V5 = "lastlight.replay.v5";
 export const LEGACY_REPLAY_SCHEMA_V4 = "lastlight.replay.v4";
@@ -12,7 +13,8 @@ export const MAX_REPLAY_TICK = 216_000;
 export const MAX_REPLAY_COMMANDS = 100_000;
 export const MAX_COMMANDS_PER_TICK = 32;
 export const MAX_REPLAY_CHECKPOINTS = 721;
-export const REPLAY_DRAFT_SCHEMA = "lastlight.replay-draft.v4";
+export const REPLAY_DRAFT_SCHEMA = "lastlight.replay-draft.v5";
+export const LEGACY_REPLAY_DRAFT_SCHEMA_V4 = "lastlight.replay-draft.v4";
 export const LEGACY_REPLAY_DRAFT_SCHEMA_V3 = "lastlight.replay-draft.v3";
 export const LEGACY_REPLAY_DRAFT_SCHEMA_V2 = "lastlight.replay-draft.v2";
 export const LEGACY_REPLAY_DRAFT_SCHEMA = "lastlight.replay-draft.v1";
@@ -26,14 +28,17 @@ const STATE_HASH = /^[0-9a-f]{16}$/;
 const SEED = /^[0-9a-f]{32}$/;
 const CHOICE = /^[A-Za-z][A-Za-z0-9:_-]{0,39}$/;
 const FEATURE_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
+const JOIN_PACKAGE_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
+const JOIN_PACKAGE_IDS = new Set(["signature", "assault", "survival"]);
+export const MAX_JOIN_CATCH_UP_RANKS = 54;
 const NO_SYNERGY_REGISTRY_VERSION = "none";
 const LEGACY_FEATURES = Object.freeze({
   configVersion: "builtin-2026.07.11.3", gameplayVersion: "events-v1", objectiveEvents: true,
-  squadSynergies: false, sharedParticipationCredit: false, downedActivity: false, registryVersion: NO_SYNERGY_REGISTRY_VERSION,
+  squadSynergies: false, sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, registryVersion: NO_SYNERGY_REGISTRY_VERSION,
 });
 const CURRENT_FEATURES = Object.freeze({
-  configVersion: "release-2026.07.13.8", gameplayVersion: "downed-v1", objectiveEvents: true,
-  squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, registryVersion: "lastlight.squad-synergy.v1",
+  configVersion: "release-2026.07.13.9", gameplayVersion: "join-normalization-v1", objectiveEvents: true,
+  squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, registryVersion: "lastlight.squad-synergy.v1",
 });
 
 const ownKeys = (value) => value && typeof value === "object" && !Array.isArray(value) ? Object.keys(value) : [];
@@ -135,9 +140,17 @@ const LEGACY_DOWNED_PLAYER_FIELDS = Object.freeze([
   "downedSupportCooldown", "downedSupportCooldownMax", "downedSupportReady",
   "downedSupportLabel", "downedCrawling", "reviveRequired",
 ]);
+const LEGACY_JOIN_PLAYER_FIELDS = Object.freeze([
+  "joinKind", "joinedAtTick", "deployedTicks", "preApexDeployedTicks", "joinPackageId", "catchUpRanks",
+]);
 
 function legacyDownedPlayerShape(player) {
   for (const key of LEGACY_DOWNED_PLAYER_FIELDS) delete player[key];
+  return player;
+}
+
+function legacyJoinPlayerShape(player) {
+  for (const key of LEGACY_JOIN_PLAYER_FIELDS) delete player[key];
   return player;
 }
 
@@ -153,9 +166,11 @@ export function canonicalSimulationState(simulation) {
   const snapshot = simulation.snapshot();
   delete snapshot.events;
   const legacyDownedShape = simulation.downedActivity === false;
+  const legacyJoinShape = simulation.joinInProgressNormalization === false;
   snapshot.players = (simulation.players || [])
     .map((player) => replayEntity(player, playerMap))
     .map((player) => legacyDownedShape ? legacyDownedPlayerShape(player) : player)
+    .map((player) => legacyJoinShape ? legacyJoinPlayerShape(player) : player)
     .sort((a, b) => a.replaySlot - b.replaySlot);
   for (const key of ["drones", "enemies", "projectiles", "hostile", "effects", "orbs", "drops", "pods", "objectives", "relayBalls", "feathers"]) {
     snapshot[key] = replayEntity(simulation[key] || [], playerMap);
@@ -167,11 +182,17 @@ export function canonicalSimulationState(simulation) {
   snapshot.disconnectedPlayers = [...(simulation.disconnectedPlayers?.values?.() || [])]
     .map((entry) => ({ leftTick: entry.leftTick, player: replayEntity(entry.player, playerMap) }))
     .map((entry) => legacyDownedShape ? { ...entry, player: legacyDownedPlayerShape(entry.player) } : entry)
+    .map((entry) => legacyJoinShape ? { ...entry, player: legacyJoinPlayerShape(entry.player) } : entry)
     .sort((a, b) => a.player.replaySlot - b.player.replaySlot);
   if (legacyDownedShape) {
     delete snapshot.downedState;
     if (snapshot.features) delete snapshot.features.downedActivity;
     if (snapshot.determinism?.features) delete snapshot.determinism.features.downedActivity;
+  }
+  if (legacyJoinShape) {
+    delete snapshot.runSlotsUsed;
+    if (snapshot.features) delete snapshot.features.joinInProgressNormalization;
+    if (snapshot.determinism?.features) delete snapshot.determinism.features.joinInProgressNormalization;
   }
   return canonicalize(snapshot);
 }
@@ -205,7 +226,7 @@ export function dequantizeReplayInput(input) {
   return { x: input.x / 127, y: input.y / 127, aim: input.aim / 4095 * Math.PI * 2, autoAim: Boolean(input.auto) };
 }
 
-function validateCommand(tuple, index, allowDraftActions = true) {
+function validateCommand(tuple, index, { allowDraftActions = true, packagedJoins = null } = {}) {
   if (!Array.isArray(tuple) || tuple.length < 3) throw new TypeError(`commands.${index} must be a tuple`);
   const [tick, ordinal, kind] = tuple;
   integer(tick, 0, MAX_REPLAY_TICK, `commands.${index}.tick`);
@@ -232,8 +253,14 @@ function validateCommand(tuple, index, allowDraftActions = true) {
     if (tuple.length !== 6) throw new TypeError(`commands.${index} replacement tuple length is invalid`);
     slot(); safeString(tuple[4], CHOICE, `commands.${index}.choice`); safeString(tuple[5], CHOICE, `commands.${index}.replacement`);
   } else if (kind === "j") {
-    if (tuple.length !== 5) throw new TypeError(`commands.${index} join tuple length is invalid`);
+    const validLength = packagedJoins === true ? tuple.length === 7 : packagedJoins === false ? tuple.length === 5 : tuple.length === 5 || tuple.length === 7;
+    if (!validLength) throw new TypeError(`commands.${index} join tuple length is invalid`);
     slot(); if (!SPECIALISTS.has(tuple[4])) throw new TypeError(`commands.${index}.specialist is invalid`);
+    if (tuple.length === 7) {
+      safeString(tuple[5], JOIN_PACKAGE_ID, `commands.${index}.packageId`);
+      if (!JOIN_PACKAGE_IDS.has(tuple[5])) throw new TypeError(`commands.${index}.packageId is unsupported`);
+      integer(tuple[6], 0, MAX_JOIN_CATCH_UP_RANKS, `commands.${index}.catchUpRanks`);
+    }
   } else if (kind === "l") {
     if (tuple.length !== 4) throw new TypeError(`commands.${index} leave tuple length is invalid`);
     slot();
@@ -255,6 +282,18 @@ export function replayGameplayFeatures(value) {
       squadSynergies: value.features.squadSynergies,
       sharedParticipationCredit: value.features.sharedParticipationCredit,
       downedActivity: value.features.downedActivity,
+      joinInProgressNormalization: value.features.joinInProgressNormalization,
+      registryVersion: value.features.registryVersion,
+    });
+  }
+  if (value?.schema === LEGACY_REPLAY_SCHEMA_V7) {
+    return Object.freeze({
+      gameplayVersion: value.features.gameplayVersion,
+      objectiveEvents: value.features.objectiveEvents,
+      squadSynergies: value.features.squadSynergies,
+      sharedParticipationCredit: value.features.sharedParticipationCredit,
+      downedActivity: value.features.downedActivity,
+      joinInProgressNormalization: false,
       registryVersion: value.features.registryVersion,
     });
   }
@@ -265,6 +304,7 @@ export function replayGameplayFeatures(value) {
       squadSynergies: value.features.squadSynergies,
       sharedParticipationCredit: value.features.sharedParticipationCredit,
       downedActivity: false,
+      joinInProgressNormalization: false,
       registryVersion: value.features.registryVersion,
     });
   }
@@ -275,6 +315,7 @@ export function replayGameplayFeatures(value) {
       squadSynergies: value.features.squadSynergies,
       sharedParticipationCredit: false,
       downedActivity: false,
+      joinInProgressNormalization: false,
       registryVersion: value.features.registryVersion,
     });
   }
@@ -284,20 +325,22 @@ export function replayGameplayFeatures(value) {
     squadSynergies: false,
     sharedParticipationCredit: false,
     downedActivity: false,
+    joinInProgressNormalization: false,
     registryVersion: NO_SYNERGY_REGISTRY_VERSION,
   });
 }
 
 export function validateReplay(value, expected = {}) {
   const currentSchema = value?.schema === REPLAY_SCHEMA;
+  const legacyV7Schema = value?.schema === LEGACY_REPLAY_SCHEMA_V7;
   const legacyV6Schema = value?.schema === LEGACY_REPLAY_SCHEMA_V6;
   const legacyV5Schema = value?.schema === LEGACY_REPLAY_SCHEMA_V5;
   const legacyV4Schema = value?.schema === LEGACY_REPLAY_SCHEMA_V4;
   const legacyV3Schema = value?.schema === LEGACY_REPLAY_SCHEMA_V3;
   const legacyV2Schema = value?.schema === LEGACY_REPLAY_SCHEMA_V2;
   const legacySchema = value?.schema === LEGACY_REPLAY_SCHEMA;
-  const hasFeatures = currentSchema || legacyV6Schema || legacyV5Schema || legacyV4Schema || legacyV3Schema || legacyV2Schema;
-  if (!currentSchema && !legacyV6Schema && !legacyV5Schema && !legacyV4Schema && !legacyV3Schema && !legacyV2Schema && !legacySchema) throw new TypeError("Unsupported replay schema");
+  const hasFeatures = currentSchema || legacyV7Schema || legacyV6Schema || legacyV5Schema || legacyV4Schema || legacyV3Schema || legacyV2Schema;
+  if (!currentSchema && !legacyV7Schema && !legacyV6Schema && !legacyV5Schema && !legacyV4Schema && !legacyV3Schema && !legacyV2Schema && !legacySchema) throw new TypeError("Unsupported replay schema");
   assertExactKeys(value, ["schema", "build", "balance", "engine", "seed", "run", ...(hasFeatures ? ["features"] : []), "roster", "commands", "checkpoints", "finalTick", "finalHash"], "replay");
   safeString(value.build, SAFE_ID, "build");
   assertExactKeys(value.balance, ["version", "hash"], "balance");
@@ -309,16 +352,17 @@ export function validateReplay(value, expected = {}) {
   safeString(value.seed, SEED, "seed");
   const features = hasFeatures ? value.features : LEGACY_FEATURES;
   if (hasFeatures) {
-    assertExactKeys(features, ["configVersion", "gameplayVersion", "objectiveEvents", ...((currentSchema || legacyV6Schema || legacyV5Schema) ? ["squadSynergies", "registryVersion"] : []), ...((currentSchema || legacyV6Schema) ? ["sharedParticipationCredit"] : []), ...(currentSchema ? ["downedActivity"] : [])], "features");
+    assertExactKeys(features, ["configVersion", "gameplayVersion", "objectiveEvents", ...((currentSchema || legacyV7Schema || legacyV6Schema || legacyV5Schema) ? ["squadSynergies", "registryVersion"] : []), ...((currentSchema || legacyV7Schema || legacyV6Schema) ? ["sharedParticipationCredit"] : []), ...((currentSchema || legacyV7Schema) ? ["downedActivity"] : []), ...(currentSchema ? ["joinInProgressNormalization"] : [])], "features");
     safeString(features.configVersion, FEATURE_ID, "features.configVersion");
     safeString(features.gameplayVersion, FEATURE_ID, "features.gameplayVersion");
     if (typeof features.objectiveEvents !== "boolean") throw new TypeError("features.objectiveEvents must be boolean");
-    if (currentSchema || legacyV6Schema || legacyV5Schema) {
+    if (currentSchema || legacyV7Schema || legacyV6Schema || legacyV5Schema) {
       if (typeof features.squadSynergies !== "boolean") throw new TypeError("features.squadSynergies must be boolean");
       safeString(features.registryVersion, FEATURE_ID, "features.registryVersion");
     }
-    if ((currentSchema || legacyV6Schema) && typeof features.sharedParticipationCredit !== "boolean") throw new TypeError("features.sharedParticipationCredit must be boolean");
-    if (currentSchema && typeof features.downedActivity !== "boolean") throw new TypeError("features.downedActivity must be boolean");
+    if ((currentSchema || legacyV7Schema || legacyV6Schema) && typeof features.sharedParticipationCredit !== "boolean") throw new TypeError("features.sharedParticipationCredit must be boolean");
+    if ((currentSchema || legacyV7Schema) && typeof features.downedActivity !== "boolean") throw new TypeError("features.downedActivity must be boolean");
+    if (currentSchema && typeof features.joinInProgressNormalization !== "boolean") throw new TypeError("features.joinInProgressNormalization must be boolean");
   }
   assertExactKeys(value.run, ["map", "difficulty", "duration"], "run");
   if (!MAPS.has(value.run.map)) throw new TypeError("run.map is invalid");
@@ -338,7 +382,7 @@ export function validateReplay(value, expected = {}) {
   if (!Array.isArray(value.commands) || value.commands.length > MAX_REPLAY_COMMANDS) throw new TypeError("commands exceed replay bounds");
   let previousTick = -1, previousOrdinal = -1, commandsAtTick = 0;
   for (const [index, command] of value.commands.entries()) {
-    validateCommand(command, index, currentSchema || legacyV6Schema || legacyV5Schema || legacyV4Schema);
+    validateCommand(command, index, { allowDraftActions: currentSchema || legacyV7Schema || legacyV6Schema || legacyV5Schema || legacyV4Schema, packagedJoins: currentSchema });
     const [tick, ordinal] = command;
     if (tick < previousTick || ordinal <= previousOrdinal) throw new TypeError("commands must be ordered by tick and globally increasing ordinal");
     commandsAtTick = tick === previousTick ? commandsAtTick + 1 : 1;
@@ -369,6 +413,7 @@ export function validateReplay(value, expected = {}) {
   if (expected.squadSynergies !== undefined && normalizedFeatures.squadSynergies !== expected.squadSynergies) throw new TypeError("Replay squad-synergies flag mismatch");
   if (expected.sharedParticipationCredit !== undefined && normalizedFeatures.sharedParticipationCredit !== expected.sharedParticipationCredit) throw new TypeError("Replay shared-participation-credit flag mismatch");
   if (expected.downedActivity !== undefined && normalizedFeatures.downedActivity !== expected.downedActivity) throw new TypeError("Replay downed-activity flag mismatch");
+  if (expected.joinInProgressNormalization !== undefined && normalizedFeatures.joinInProgressNormalization !== expected.joinInProgressNormalization) throw new TypeError("Replay join-in-progress-normalization flag mismatch");
   if (expected.registryVersion && normalizedFeatures.registryVersion !== expected.registryVersion) throw new TypeError("Replay synergy registry version mismatch");
 
   const serialized = JSON.stringify(value);
@@ -386,7 +431,10 @@ export function decodeReplayCommand(tuple) {
   if (kind === "b") return { tick, ordinal, kind: "draft-banish", slot: tuple[3], choiceId: tuple[4] };
   if (kind === "s") return { tick, ordinal, kind: "draft-skip", slot: tuple[3] };
   if (kind === "x") return { tick, ordinal, kind: "draft-replace", slot: tuple[3], choiceId: tuple[4], replacementId: tuple[5] };
-  if (kind === "j") return { tick, ordinal, kind: "join", slot: tuple[3], specialist: tuple[4] };
+  if (kind === "j") return {
+    tick, ordinal, kind: "join", slot: tuple[3], specialist: tuple[4],
+    ...(tuple.length === 7 ? { packageId: tuple[5], catchUpRanks: tuple[6] } : {}),
+  };
   if (kind === "l") return { tick, ordinal, kind: "leave", slot: tuple[3] };
   if (kind === "r") return { tick, ordinal, kind: "reconnect", slot: tuple[3], specialist: tuple[4] };
   return { tick, ordinal, kind: "abandon" };
@@ -399,6 +447,7 @@ export class ReplayRecorder {
     objectiveEvents = CURRENT_FEATURES.objectiveEvents, squadSynergies = CURRENT_FEATURES.squadSynergies,
     sharedParticipationCredit = CURRENT_FEATURES.sharedParticipationCredit,
     downedActivity = CURRENT_FEATURES.downedActivity,
+    joinInProgressNormalization = CURRENT_FEATURES.joinInProgressNormalization,
     registryVersion = CURRENT_FEATURES.registryVersion, rng, seed, run,
   }) {
     safeString(featureConfigVersion, FEATURE_ID, "featureConfigVersion");
@@ -407,10 +456,11 @@ export class ReplayRecorder {
     if (typeof squadSynergies !== "boolean") throw new TypeError("squadSynergies must be boolean");
     if (typeof sharedParticipationCredit !== "boolean") throw new TypeError("sharedParticipationCredit must be boolean");
     if (typeof downedActivity !== "boolean") throw new TypeError("downedActivity must be boolean");
+    if (typeof joinInProgressNormalization !== "boolean") throw new TypeError("joinInProgressNormalization must be boolean");
     safeString(registryVersion, FEATURE_ID, "registryVersion");
     this.header = {
       build, balanceVersion, balanceHash, featureConfigVersion, gameplayVersion, objectiveEvents,
-      squadSynergies, sharedParticipationCredit, downedActivity, registryVersion, rng, seed, run: clone(run),
+      squadSynergies, sharedParticipationCredit, downedActivity, joinInProgressNormalization, registryVersion, rng, seed, run: clone(run),
     };
     this.actualToSlot = new Map();
     this.roster = new Map();
@@ -419,13 +469,19 @@ export class ReplayRecorder {
     this.checkpoints = [];
     this.lastInputs = new Map();
     this.ordinal = 0;
+    this.outputSchema = REPLAY_SCHEMA;
   }
 
-  registerPlayer(actualId, specialist, { slot, tick = 0, initial = false, reconnect = false } = {}) {
+  registerPlayer(actualId, specialist, { slot, tick = 0, initial = false, reconnect = false, packageId, catchUpRanks } = {}) {
     if (actualId === null || actualId === undefined) throw new TypeError("A transient player id is required");
     if (!SPECIALISTS.has(specialist)) throw new TypeError("Unknown specialist");
     const assigned = slot === undefined ? [0, 1, 2, 3].find((candidate) => !this.knownSlots.has(candidate)) : slot;
     integer(assigned, 0, 3, "slot");
+    const knownSpecialist = this.knownSlots.get(assigned);
+    if (!initial && reconnect && knownSpecialist === undefined) throw new TypeError("Reconnect references an unknown replay slot");
+    if (!initial && reconnect && knownSpecialist !== specialist) throw new TypeError("Reconnect specialist does not match its reserved replay slot");
+    if (!initial && !reconnect && this.header.joinInProgressNormalization && knownSpecialist !== undefined) throw new TypeError("Fresh join requires a never-used replay slot");
+    if (initial && knownSpecialist !== undefined) throw new TypeError("Initial replay slot is duplicated");
     const activeOwner = [...this.actualToSlot.entries()].find(([, activeSlot]) => activeSlot === assigned)?.[0];
     if (activeOwner !== undefined && activeOwner !== actualId) {
       if (!reconnect) throw new TypeError("Replay slot already belongs to an active player");
@@ -435,7 +491,19 @@ export class ReplayRecorder {
     this.actualToSlot.set(actualId, assigned);
     this.knownSlots.set(assigned, specialist);
     if (initial) this.roster.set(assigned, specialist);
-    if (!initial) this.push(tick, reconnect ? "r" : "j", assigned, specialist);
+    if (!initial) {
+      if (reconnect) this.push(tick, "r", assigned, specialist);
+      else {
+        if (this.outputSchema === REPLAY_SCHEMA) {
+          const recordedPackageId = packageId ?? (this.header.joinInProgressNormalization ? undefined : "signature");
+          const recordedCatchUpRanks = catchUpRanks ?? (this.header.joinInProgressNormalization ? undefined : 0);
+          safeString(recordedPackageId, JOIN_PACKAGE_ID, "packageId");
+          if (!JOIN_PACKAGE_IDS.has(recordedPackageId)) throw new TypeError("packageId is unsupported");
+          integer(recordedCatchUpRanks, 0, MAX_JOIN_CATCH_UP_RANKS, "catchUpRanks");
+          this.push(tick, "j", assigned, specialist, recordedPackageId, recordedCatchUpRanks);
+        } else this.push(tick, "j", assigned, specialist);
+      }
+    }
     return assigned;
   }
 
@@ -447,7 +515,7 @@ export class ReplayRecorder {
 
   push(tick, kind, ...payload) {
     const tuple = [tick, this.ordinal++, kind, ...payload];
-    validateCommand(tuple, this.commands.length);
+    validateCommand(tuple, this.commands.length, { packagedJoins: this.outputSchema === REPLAY_SCHEMA });
     this.commands.push(tuple);
     return tuple;
   }
@@ -487,10 +555,23 @@ export class ReplayRecorder {
 
   exportDraft(currentTick) {
     integer(currentTick, 0, MAX_REPLAY_TICK, "currentTick");
+    const schema = this.outputSchema === LEGACY_REPLAY_SCHEMA_V7 ? LEGACY_REPLAY_DRAFT_SCHEMA_V4
+      : this.outputSchema === LEGACY_REPLAY_SCHEMA_V6 ? LEGACY_REPLAY_DRAFT_SCHEMA_V3
+      : this.outputSchema === LEGACY_REPLAY_SCHEMA_V5 ? LEGACY_REPLAY_DRAFT_SCHEMA_V2
+      : this.outputSchema === LEGACY_REPLAY_SCHEMA_V4 ? LEGACY_REPLAY_DRAFT_SCHEMA
+      : REPLAY_DRAFT_SCHEMA;
+    const header = clone(this.header);
+    if (schema !== REPLAY_DRAFT_SCHEMA) delete header.joinInProgressNormalization;
+    if (![REPLAY_DRAFT_SCHEMA, LEGACY_REPLAY_DRAFT_SCHEMA_V4].includes(schema)) delete header.downedActivity;
+    if (![REPLAY_DRAFT_SCHEMA, LEGACY_REPLAY_DRAFT_SCHEMA_V4, LEGACY_REPLAY_DRAFT_SCHEMA_V3].includes(schema)) delete header.sharedParticipationCredit;
+    if (schema === LEGACY_REPLAY_DRAFT_SCHEMA) {
+      delete header.squadSynergies;
+      delete header.registryVersion;
+    }
     return {
-      schema: REPLAY_DRAFT_SCHEMA,
+      schema,
       currentTick,
-      header: clone(this.header),
+      header,
       roster: [...this.roster.entries()].sort(([a], [b]) => a - b).map(([slot, specialist]) => ({ slot, specialist })),
       knownSlots: [...this.knownSlots.entries()].sort(([a], [b]) => a - b).map(([slot, specialist]) => ({ slot, specialist })),
       commands: clone(this.commands),
@@ -503,32 +584,38 @@ export class ReplayRecorder {
   static fromDraft(draft, players = []) {
     assertExactKeys(draft, ["schema", "currentTick", "header", "roster", "knownSlots", "commands", "checkpoints", "lastInputs", "ordinal"], "replay draft");
     const currentDraft = draft.schema === REPLAY_DRAFT_SCHEMA;
+    const legacyV4Draft = draft.schema === LEGACY_REPLAY_DRAFT_SCHEMA_V4;
     const legacyV3Draft = draft.schema === LEGACY_REPLAY_DRAFT_SCHEMA_V3;
     const legacyV2Draft = draft.schema === LEGACY_REPLAY_DRAFT_SCHEMA_V2;
     const legacyDraft = draft.schema === LEGACY_REPLAY_DRAFT_SCHEMA;
-    if (!currentDraft && !legacyV3Draft && !legacyV2Draft && !legacyDraft) throw new TypeError("Unsupported replay draft schema");
+    if (!currentDraft && !legacyV4Draft && !legacyV3Draft && !legacyV2Draft && !legacyDraft) throw new TypeError("Unsupported replay draft schema");
     integer(draft.currentTick, 0, MAX_REPLAY_TICK, "replay draft currentTick");
     assertExactKeys(draft.header, [
       "build", "balanceVersion", "balanceHash", "featureConfigVersion", "gameplayVersion", "objectiveEvents",
-      ...((currentDraft || legacyV3Draft || legacyV2Draft) ? ["squadSynergies", "registryVersion"] : []),
-      ...((currentDraft || legacyV3Draft) ? ["sharedParticipationCredit"] : []),
-      ...(currentDraft ? ["downedActivity"] : []), "rng", "seed", "run",
+      ...((currentDraft || legacyV4Draft || legacyV3Draft || legacyV2Draft) ? ["squadSynergies", "registryVersion"] : []),
+      ...((currentDraft || legacyV4Draft || legacyV3Draft) ? ["sharedParticipationCredit"] : []),
+      ...((currentDraft || legacyV4Draft) ? ["downedActivity"] : []),
+      ...(currentDraft ? ["joinInProgressNormalization"] : []), "rng", "seed", "run",
     ], "replay draft header");
     const draftFeatures = currentDraft
-      ? { squadSynergies: draft.header.squadSynergies, sharedParticipationCredit: draft.header.sharedParticipationCredit, downedActivity: draft.header.downedActivity, registryVersion: draft.header.registryVersion }
+      ? { squadSynergies: draft.header.squadSynergies, sharedParticipationCredit: draft.header.sharedParticipationCredit, downedActivity: draft.header.downedActivity, joinInProgressNormalization: draft.header.joinInProgressNormalization, registryVersion: draft.header.registryVersion }
+      : legacyV4Draft
+        ? { squadSynergies: draft.header.squadSynergies, sharedParticipationCredit: draft.header.sharedParticipationCredit, downedActivity: draft.header.downedActivity, joinInProgressNormalization: false, registryVersion: draft.header.registryVersion }
       : legacyV3Draft
-        ? { squadSynergies: draft.header.squadSynergies, sharedParticipationCredit: draft.header.sharedParticipationCredit, downedActivity: false, registryVersion: draft.header.registryVersion }
+        ? { squadSynergies: draft.header.squadSynergies, sharedParticipationCredit: draft.header.sharedParticipationCredit, downedActivity: false, joinInProgressNormalization: false, registryVersion: draft.header.registryVersion }
       : legacyV2Draft
-        ? { squadSynergies: draft.header.squadSynergies, sharedParticipationCredit: false, downedActivity: false, registryVersion: draft.header.registryVersion }
-        : { squadSynergies: false, sharedParticipationCredit: false, downedActivity: false, registryVersion: NO_SYNERGY_REGISTRY_VERSION };
+        ? { squadSynergies: draft.header.squadSynergies, sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, registryVersion: draft.header.registryVersion }
+        : { squadSynergies: false, sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, registryVersion: NO_SYNERGY_REGISTRY_VERSION };
     const validationReplay = {
-      schema: currentDraft ? REPLAY_SCHEMA : legacyV3Draft ? LEGACY_REPLAY_SCHEMA_V6 : legacyV2Draft ? LEGACY_REPLAY_SCHEMA_V5 : LEGACY_REPLAY_SCHEMA_V4,
+      schema: currentDraft ? REPLAY_SCHEMA : legacyV4Draft ? LEGACY_REPLAY_SCHEMA_V7 : legacyV3Draft ? LEGACY_REPLAY_SCHEMA_V6 : legacyV2Draft ? LEGACY_REPLAY_SCHEMA_V5 : LEGACY_REPLAY_SCHEMA_V4,
       build: draft.header.build,
       balance: { version: draft.header.balanceVersion, hash: draft.header.balanceHash },
       features: {
         configVersion: draft.header.featureConfigVersion, gameplayVersion: draft.header.gameplayVersion,
         objectiveEvents: draft.header.objectiveEvents,
-        ...(currentDraft ? draftFeatures : legacyV3Draft
+        ...(currentDraft ? draftFeatures : legacyV4Draft
+          ? { squadSynergies: draftFeatures.squadSynergies, sharedParticipationCredit: draftFeatures.sharedParticipationCredit, downedActivity: draftFeatures.downedActivity, registryVersion: draftFeatures.registryVersion }
+          : legacyV3Draft
           ? { squadSynergies: draftFeatures.squadSynergies, sharedParticipationCredit: draftFeatures.sharedParticipationCredit, registryVersion: draftFeatures.registryVersion }
           : legacyV2Draft
           ? { squadSynergies: draftFeatures.squadSynergies, registryVersion: draftFeatures.registryVersion }
@@ -566,6 +653,7 @@ export class ReplayRecorder {
     if (draft.ordinal <= lastOrdinal) throw new TypeError("Replay draft ordinal must follow recorded commands");
 
     const recorder = new ReplayRecorder({ ...draft.header, ...draftFeatures });
+    recorder.outputSchema = validationReplay.schema;
     recorder.roster = new Map(draft.roster.map(({ slot, specialist }) => [slot, specialist]));
     recorder.knownSlots = knownSlots;
     recorder.commands = clone(draft.commands);
@@ -581,15 +669,22 @@ export class ReplayRecorder {
   }
 
   finalize(finalTick, finalHash) {
+    const features = {
+      configVersion: this.header.featureConfigVersion, gameplayVersion: this.header.gameplayVersion,
+      objectiveEvents: this.header.objectiveEvents,
+      ...([REPLAY_SCHEMA, LEGACY_REPLAY_SCHEMA_V7, LEGACY_REPLAY_SCHEMA_V6, LEGACY_REPLAY_SCHEMA_V5].includes(this.outputSchema)
+        ? { squadSynergies: this.header.squadSynergies, registryVersion: this.header.registryVersion } : {}),
+      ...([REPLAY_SCHEMA, LEGACY_REPLAY_SCHEMA_V7, LEGACY_REPLAY_SCHEMA_V6].includes(this.outputSchema)
+        ? { sharedParticipationCredit: this.header.sharedParticipationCredit } : {}),
+      ...([REPLAY_SCHEMA, LEGACY_REPLAY_SCHEMA_V7].includes(this.outputSchema)
+        ? { downedActivity: this.header.downedActivity } : {}),
+      ...(this.outputSchema === REPLAY_SCHEMA ? { joinInProgressNormalization: this.header.joinInProgressNormalization } : {}),
+    };
     const replay = {
-      schema: REPLAY_SCHEMA,
+      schema: this.outputSchema,
       build: this.header.build,
       balance: { version: this.header.balanceVersion, hash: this.header.balanceHash },
-      features: {
-        configVersion: this.header.featureConfigVersion, gameplayVersion: this.header.gameplayVersion,
-        objectiveEvents: this.header.objectiveEvents, squadSynergies: this.header.squadSynergies,
-        sharedParticipationCredit: this.header.sharedParticipationCredit, downedActivity: this.header.downedActivity, registryVersion: this.header.registryVersion,
-      },
+      features,
       engine: { stepHz: REPLAY_STEP_HZ, rng: this.header.rng },
       seed: this.header.seed,
       run: clone(this.header.run),
@@ -626,6 +721,9 @@ export class ReplayDriver {
     }
     if (Object.hasOwn(simulation, "downedActivity") && simulation.downedActivity !== features.downedActivity) {
       throw new Error("Replay downed-activity flag mismatch");
+    }
+    if (Object.hasOwn(simulation, "joinInProgressNormalization") && simulation.joinInProgressNormalization !== features.joinInProgressNormalization) {
+      throw new Error("Replay join-in-progress-normalization flag mismatch");
     }
     if (Object.hasOwn(simulation, "synergyRegistryVersion") && simulation.synergyRegistryVersion !== features.registryVersion) {
       throw new Error("Replay synergy registry version mismatch");

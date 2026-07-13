@@ -4,7 +4,7 @@ import {
 } from "./data.js?v=20260713.2";
 import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260713.6";
 import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.5";
-import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260713.8";
+import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260713.9";
 import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260713.2";
 import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260713.1";
 import { MAX_CORRIDOR_CANDIDATES, accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget, orderEntitiesByDistance } from "./projectile-decisions.js?v=20260713.1";
@@ -27,7 +27,8 @@ import {
   DOWNED_ACTIVITY_REGISTRY, DOWNED_ACTIVITY_SCHEMA, advanceDownedBleedout, advanceDownedCrawl,
   beginDownedActivity, createDownedActivityState, removeDownedActivity, triggerDownedSupport,
   validateDownedActivityState,
-} from "./downed-activity.js?v=20260713.8";
+} from "./downed-activity.js?v=20260713.9";
+import { generateJoinPackage, JOIN_IN_PROGRESS_REGISTRY, joinPackageUpgradeIds, transitionJoinPackage } from "./join-in-progress.js?v=20260713.9";
 
 const BALANCE = getBalanceConfig();
 
@@ -64,7 +65,7 @@ function compactPoint(e) {
   return result;
 }
 
-const RECOVERY_STATE_VERSION = 6;
+const RECOVERY_STATE_VERSION = 7;
 const RECOVERY_SCALARS = [
   "tick", "time", "remaining", "stage", "paused", "pauseReason", "wave", "teamXP", "level", "xpNeed", "kills", "gold",
   "spawnClock", "nextElite", "nextMiniBoss", "nextTreasure", "nextRelayBall", "objectiveIndex", "bossElapsed", "bossPhase", "enraged",
@@ -254,6 +255,20 @@ function validateDraftState(value) {
   return value;
 }
 
+function validateJoinPlayerState(player, tick, enabled) {
+  if (!enabled) return player;
+  if (!player || !["initial", "fresh"].includes(player.joinKind)) throw new TypeError("Recovery player join kind is invalid");
+  for (const key of ["joinedAtTick", "deployedTicks", "preApexDeployedTicks"]) {
+    if (!Number.isSafeInteger(player[key]) || player[key] < 0 || player[key] > tick) throw new TypeError(`Recovery player ${key} is invalid`);
+  }
+  if (!Number.isSafeInteger(player.catchUpRanks) || player.catchUpRanks < 0 || player.catchUpRanks > JOIN_IN_PROGRESS_REGISTRY.caps.maxCatchUpRanks) throw new TypeError("Recovery player catch-up ranks are invalid");
+  if (player.preApexDeployedTicks > player.deployedTicks || player.joinedAtTick > tick) throw new TypeError("Recovery player deployment timing is invalid");
+  if (player.joinKind === "initial") {
+    if (player.joinedAtTick !== 0 || player.joinPackageId !== "" || player.catchUpRanks !== 0) throw new TypeError("Recovery initial player join state is invalid");
+  } else if (!["signature", "assault", "survival"].includes(player.joinPackageId)) throw new TypeError("Recovery reinforcement package is invalid");
+  return player;
+}
+
 function removePlayerUpgrade(player, kind, target) {
   if (kind === "weapon") {
     if (target === "signature" || !player.weapons?.[target]) throw new RangeError("Weapon replacement target is invalid");
@@ -320,6 +335,7 @@ export class Simulation {
     this.squadSynergies = features.squadSynergies;
     this.sharedParticipationCredit = features.sharedParticipationCredit;
     this.downedActivity = features.downedActivity;
+    this.joinInProgressNormalization = features.joinInProgressNormalization;
     this.synergyRegistryVersion = features.registryVersion;
     if (this.squadSynergies && this.synergyRegistryVersion !== SQUAD_SYNERGY_SCHEMA) throw new RangeError(`Unsupported squad synergy registry: ${this.synergyRegistryVersion}`);
     this.duration = Number(config.duration) || BALANCE.core.defaultDurationSeconds;
@@ -347,6 +363,7 @@ export class Simulation {
     this.events = [];
     this.players = [];
     this.disconnectedPlayers = new Map();
+    this.runSlotsUsed = new Set();
     this.drones = [];
     this.enemies = [];
     this.projectiles = [];
@@ -412,14 +429,14 @@ export class Simulation {
     }
   }
 
-  addPlayer(info, index = this.players.length) {
+  addPlayer(info, index = this.players.length, { fresh = false } = {}) {
     this.pruneDisconnectedPlayers();
     const existing = this.players.find((player) => player.id === info.id);
     if (existing) return existing;
     const spec = SPECIALISTS[info.specialist] || SPECIALISTS.zuri;
     const reconnectSlot = /^migration-slot-[0-3]$/.test(String(info.reconnectSlot || "")) ? String(info.reconnectSlot) : "";
     const recoveryKey = reconnectSlot || (/^[a-f0-9]{24,32}$/.test(String(info.resumeToken || "")) ? String(info.resumeToken) : "");
-    const recovery = recoveryKey ? this.disconnectedPlayers.get(recoveryKey) : null;
+    const recovery = !fresh && recoveryKey ? this.disconnectedPlayers.get(recoveryKey) : null;
     if (recovery && this.tick - recovery.leftTick <= RECONNECT_WINDOW_TICKS) {
       const player = recovery.player, oldId = player.id;
       player.id = info.id; player.name = String(info.name || player.name).slice(0, 16);
@@ -435,6 +452,7 @@ export class Simulation {
       }
       this.disconnectedPlayers.delete(recoveryKey);
       this.players.push(player);
+      if (replaySlot(player.replaySlot) !== undefined) this.runSlotsUsed.add(player.replaySlot);
       if (this.synergyState && replaySlot(player.replaySlot) !== undefined) this.synergyState = addSquadSynergyStats(this.synergyState, player.replaySlot);
       if (this.pendingChoices) {
         ensureDraftState(player);
@@ -447,7 +465,7 @@ export class Simulation {
     const player = {
       id: info.id, name: String(info.name || "Rookie").slice(0, 16), specialist: spec.id,
       replaySlot: info.replaySlot === undefined ? replaySlot(index) : replaySlot(info.replaySlot),
-      reconnectKey: recoveryKey,
+      reconnectKey: fresh ? "" : recoveryKey,
       x: Math.cos(angle) * 75, y: Math.sin(angle) * 75, radius: 31,
       hp: spec.health, maxHp: spec.health, armor: spec.armor, baseSpeed: spec.speed,
       input: { x: 0, y: 0, aim: 0, autoAim: true },
@@ -465,10 +483,12 @@ export class Simulation {
       signatureActivation: 0, guardReturnActivation: 0, predatorHookCounter: 0, kineticReserve: 0,
       auraCharge: 0,
       traveled: 0, feathers: [], damage: 0, damageBySource: {}, kills: 0, xpCollected: 0, damageTaken: 0, revives: 0,
+      joinKind: "initial", joinedAtTick: 0, deployedTicks: 0, preApexDeployedTicks: 0, joinPackageId: "", catchUpRanks: 0,
       firedUpBuff: 0, healthbackBuff: 0, stopwavesBuff: 0, stopwaveClock: 0,
       lastHit: 0, iceReady: false, iceTimer: 0,
     };
     this.players.push(player);
+    if (replaySlot(player.replaySlot) !== undefined) this.runSlotsUsed.add(player.replaySlot);
     if (this.synergyState && replaySlot(player.replaySlot) !== undefined) this.synergyState = addSquadSynergyStats(this.synergyState, player.replaySlot);
     if (this.pendingChoices) {
       const draft = ensureDraftState(player); draft.round += 1; draft.revision = 0; draft.excluded = [];
@@ -476,6 +496,62 @@ export class Simulation {
       this.choiceReady[player.id] = false;
     }
     return player;
+  }
+
+  safeLateJoinSpawn(player) {
+    const anchors = this.players
+      .filter((candidate) => candidate !== player && !candidate.dead && !candidate.downed)
+      .sort((left, right) => (replaySlot(left.replaySlot) ?? 99) - (replaySlot(right.replaySlot) ?? 99));
+    const radii = [82, 118, 156, 204], directions = 12;
+    const safe = (x, y) => {
+      if (Math.abs(x) > WORLD.width / 2 - player.radius - 40 || Math.abs(y) > WORLD.height / 2 - player.radius - 40) return false;
+      if (collidesWithCover(x, y, player.radius + 8)) return false;
+      if (this.enemies.some((enemy) => !enemy.dead && Math.hypot(enemy.x - x, enemy.y - y) < enemy.radius + player.radius + 100)) return false;
+      if (this.hostile.some((shot) => !shot.dead && Math.hypot(shot.x - x, shot.y - y) < Number(shot.radius || 0) + player.radius + 60)) return false;
+      if (this.effects.some((effect) => Number(effect.damage || 0) > 0 && Math.hypot(effect.x - x, effect.y - y) < Number(effect.radius || 0) + player.radius + 36)) return false;
+      return true;
+    };
+    for (const anchor of anchors) {
+      const offset = (replaySlot(player.replaySlot) ?? 0) * 3;
+      for (const radius of radii) for (let step = 0; step < directions; step++) {
+        const angle = (step + offset) * TAU / directions, x = anchor.x + Math.cos(angle) * radius, y = anchor.y + Math.sin(angle) * radius;
+        if (safe(x, y)) return Object.freeze({ x, y });
+      }
+    }
+    for (const radius of [0, 120, 240, 360]) for (let step = 0; step < directions; step++) {
+      const angle = step * TAU / directions, x = Math.cos(angle) * radius, y = Math.sin(angle) * radius;
+      if (safe(x, y)) return Object.freeze({ x, y });
+    }
+    throw new RangeError("No safe reinforcement deployment point is available");
+  }
+
+  deployLateJoin(info, { packageId = "signature", catchUpRanks } = {}) {
+    if (!this.joinInProgressNormalization) throw new RangeError("Fresh mid-run joins are disabled");
+    if (this.stage !== "running") throw new RangeError("Fresh deployment is locked for this run stage");
+    if (this.paused) throw new RangeError("Fresh deployment waits for the current squad decision");
+    const slot = replaySlot(info?.replaySlot);
+    if (slot === undefined || this.runSlotsUsed.has(slot)) throw new RangeError("Fresh deployment requires a never-used replay slot");
+    if (this.players.length >= 4 || this.players.some((candidate) => candidate.id === info?.id)) throw new RangeError("Fresh deployment exceeds squad bounds");
+    const player = this.addPlayer({ ...info, replaySlot: slot, reconnectSlot: "", resumeToken: "" }, slot, { fresh: true });
+    if (!player) throw new RangeError("Fresh deployment could not create a player");
+    try {
+      let joinPackage = generateJoinPackage({ slot, specialistId: player.specialist, squadLevel: this.level, packageId });
+      if (catchUpRanks !== undefined && catchUpRanks !== joinPackage.catchUpRanks) throw new RangeError("Catch-up rank budget does not match the authoritative level");
+      joinPackage = transitionJoinPackage(joinPackage, "selected");
+      for (const choiceId of joinPackageUpgradeIds(joinPackage)) applyPlayerUpgrade(player, { id: choiceId });
+      joinPackage = transitionJoinPackage(joinPackage, "applied");
+      const spawn = this.safeLateJoinSpawn(player);
+      player.x = spawn.x; player.y = spawn.y; player.hp = player.maxHp; player.invuln = 5;
+      player.joinKind = "fresh"; player.joinedAtTick = this.tick; player.deployedTicks = 0; player.preApexDeployedTicks = 0;
+      player.joinPackageId = joinPackage.packageId; player.catchUpRanks = joinPackage.catchUpRanks;
+      const draft = ensureDraftState(player); draft.round = Math.max(0, this.level - 1); draft.revision = 0; draft.excluded = [];
+      return Object.freeze({ player, package: joinPackage, packageId: joinPackage.packageId, catchUpRanks: joinPackage.catchUpRanks });
+    } catch (error) {
+      this.players = this.players.filter((candidate) => candidate !== player);
+      this.runSlotsUsed.delete(slot);
+      if (this.synergyState) this.synergyState = removeSquadSynergySlot(this.synergyState, slot, this.tick).state;
+      throw error;
+    }
   }
 
   removePlayer(playerId) {
@@ -512,7 +588,14 @@ export class Simulation {
   update(dt) {
     dt = Math.min(.05, Math.max(0, dt));
     if (this.stage === "won" || this.stage === "lost" || this.paused) return;
-    if (dt > 0) this.tick += Math.max(1, Math.round(dt * SIMULATION_TICK_RATE));
+    const stepTicks = dt > 0 ? Math.max(1, Math.round(dt * SIMULATION_TICK_RATE)) : 0;
+    if (stepTicks > 0) {
+      this.tick += stepTicks;
+      if (this.joinInProgressNormalization) for (const player of this.players) {
+        player.deployedTicks = Math.max(0, Math.floor(Number(player.deployedTicks || 0))) + stepTicks;
+        if (this.stage === "running") player.preApexDeployedTicks = Math.max(0, Math.floor(Number(player.preApexDeployedTicks || 0))) + stepTicks;
+      }
+    }
     this.pruneDisconnectedPlayers();
     this.updateTasks();
     this.updatePlayers(dt);
@@ -2791,7 +2874,8 @@ export class Simulation {
       balanceHash: this.balanceHash,
       features: {
         gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents,
-        squadSynergies: this.squadSynergies, sharedParticipationCredit: this.sharedParticipationCredit, downedActivity: this.downedActivity, registryVersion: this.synergyRegistryVersion,
+        squadSynergies: this.squadSynergies, sharedParticipationCredit: this.sharedParticipationCredit, downedActivity: this.downedActivity,
+        joinInProgressNormalization: this.joinInProgressNormalization, registryVersion: this.synergyRegistryVersion,
       },
       tick: this.tick,
       rng: { gameplay: this.gameplayRng.snapshot(), cosmetic: this.cosmeticRng.snapshot() },
@@ -2816,7 +2900,11 @@ export class Simulation {
       const sanitized = {};
       for (const [key, value] of Object.entries(player)) {
         if (key === "name" || key === "reconnectKey") continue;
-        sanitized[key] = serializeRecoveryValue(value, playerIds);
+        // Authored enum values can legally equal a relay-issued player id. They
+        // are literals, not identity references, so never anonymize them.
+        sanitized[key] = ["specialist", "joinKind", "joinPackageId"].includes(key)
+          ? value
+          : serializeRecoveryValue(value, playerIds);
       }
       sanitized.id = playerIds.get(player.id);
       sanitized.replaySlot = replaySlot(player.replaySlot) ?? index;
@@ -2834,7 +2922,8 @@ export class Simulation {
       header: {
         seed: this.seed, balanceVersion: this.balanceVersion, balanceHash: this.balanceHash,
         gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents,
-        squadSynergies: this.squadSynergies, sharedParticipationCredit: this.sharedParticipationCredit, downedActivity: this.downedActivity, registryVersion: this.synergyRegistryVersion,
+        squadSynergies: this.squadSynergies, sharedParticipationCredit: this.sharedParticipationCredit, downedActivity: this.downedActivity,
+        joinInProgressNormalization: this.joinInProgressNormalization, registryVersion: this.synergyRegistryVersion,
         map: this.map.id, difficulty: this.difficulty.id, duration: this.duration,
       },
       rng: { gameplay: this.gameplayRng.snapshot(), cosmetic: this.cosmeticRng.snapshot() },
@@ -2843,6 +2932,7 @@ export class Simulation {
       machine: serializeRecoveryValue(this.machine, playerIds),
       players,
       disconnectedPlayers,
+      runSlotsUsed: [...this.runSlotsUsed].sort((left, right) => left - right),
       lists,
       pendingChoices: recoveryRecord(this.pendingChoices, playerIds),
       choiceReady: recoveryRecord(this.choiceReady, playerIds),
@@ -2855,7 +2945,7 @@ export class Simulation {
 
   static fromRecoveryState(value, { playerIdsBySlot } = {}) {
     if (!value || typeof value !== "object" || Array.isArray(value) || value.version !== RECOVERY_STATE_VERSION) throw new TypeError("Unsupported recovery state");
-    const expected = ["version", "header", "rng", "sequences", "scalars", "machine", "players", "disconnectedPlayers", "lists", "pendingChoices", "choiceReady", "selectedChoices", "synergyState", "participationState", "downedState"];
+    const expected = ["version", "header", "rng", "sequences", "scalars", "machine", "players", "disconnectedPlayers", "runSlotsUsed", "lists", "pendingChoices", "choiceReady", "selectedChoices", "synergyState", "participationState", "downedState"];
     const actual = Object.keys(value).sort();
     if (actual.length !== expected.length || expected.sort().some((key, index) => key !== actual[index])) throw new TypeError("Recovery state has unexpected fields");
     const header = value.header;
@@ -2875,6 +2965,9 @@ export class Simulation {
         || stored.id !== `slot-${slot}` || !SPECIALISTS[stored.specialist]) throw new TypeError(`Recovery disconnected player ${index} is invalid`);
       slots.add(slot);
     }
+    if (!Array.isArray(value.runSlotsUsed) || value.runSlotsUsed.length < slots.size || value.runSlotsUsed.length > 4
+      || value.runSlotsUsed.some((slot, index) => replaySlot(slot) === undefined || index > 0 && value.runSlotsUsed[index - 1] >= slot)
+      || [...slots].some((slot) => !value.runSlotsUsed.includes(slot))) throw new TypeError("Recovery used replay slots are invalid");
     const restoredPlayerIds = migrationPlayerIds(playerIdsBySlot, value.players, value.disconnectedPlayers);
     if (restoredPlayerIds) for (const player of roster) player.id = restoredPlayerIds.get(player.id);
     if (!value.scalars || !RECOVERY_SCALARS.every((key) => Object.hasOwn(value.scalars, key))) throw new TypeError("Recovery scalars are incomplete");
@@ -2892,13 +2985,15 @@ export class Simulation {
       balanceVersion: header.balanceVersion, balanceHash: header.balanceHash,
       features: {
         gameplayVersion: header.gameplayVersion, objectiveEvents: header.objectiveEvents,
-        squadSynergies: header.squadSynergies, sharedParticipationCredit: header.sharedParticipationCredit, downedActivity: header.downedActivity, registryVersion: header.registryVersion,
+        squadSynergies: header.squadSynergies, sharedParticipationCredit: header.sharedParticipationCredit, downedActivity: header.downedActivity,
+        joinInProgressNormalization: header.joinInProgressNormalization, registryVersion: header.registryVersion,
       },
     }, {
       seed: header.seed, balanceVersion: header.balanceVersion, balanceHash: header.balanceHash,
       features: {
         gameplayVersion: header.gameplayVersion, objectiveEvents: header.objectiveEvents,
-        squadSynergies: header.squadSynergies, sharedParticipationCredit: header.sharedParticipationCredit, downedActivity: header.downedActivity, registryVersion: header.registryVersion,
+        squadSynergies: header.squadSynergies, sharedParticipationCredit: header.sharedParticipationCredit, downedActivity: header.downedActivity,
+        joinInProgressNormalization: header.joinInProgressNormalization, registryVersion: header.registryVersion,
       },
     });
     sim.gameplayRng = SeededRng.fromSnapshot(value.rng?.gameplay);
@@ -2914,6 +3009,7 @@ export class Simulation {
     sim.players = value.players.map((stored) => {
       const restored = deserializeRecoveryValue(stored, restoredPlayerIds);
       validateDraftState(restored.draft);
+      validateJoinPlayerState(restored, value.scalars.tick, Boolean(header.joinInProgressNormalization));
       restored.name = `Specialist ${restored.replaySlot + 1}`;
       restored.reconnectKey = `migration-slot-${restored.replaySlot}`;
       return restored;
@@ -2921,6 +3017,7 @@ export class Simulation {
     const restoredDisconnectedPlayers = value.disconnectedPlayers.map(({ player: stored, leftTick }) => {
       const restored = deserializeRecoveryValue(stored, restoredPlayerIds);
       validateDraftState(restored.draft);
+      validateJoinPlayerState(restored, value.scalars.tick, Boolean(header.joinInProgressNormalization));
       restored.name = `Specialist ${restored.replaySlot + 1}`;
       restored.reconnectKey = `migration-slot-${restored.replaySlot}`;
       return { key: restored.reconnectKey, leftTick, player: restored };
@@ -2992,6 +3089,7 @@ export class Simulation {
     }
     sim.events = [];
     sim.disconnectedPlayers = new Map(restoredDisconnectedPlayers.map(({ key, player, leftTick }) => [key, { player, leftTick }]));
+    sim.runSlotsUsed = new Set(value.runSlotsUsed);
     sim.pruneDisconnectedPlayers();
     return sim;
   }
@@ -3028,7 +3126,8 @@ export class Simulation {
       balanceVersion: this.balanceVersion, balanceHash: this.balanceHash,
       features: {
         gameplayVersion: this.gameplayVersion, objectiveEvents: this.objectiveEvents,
-        squadSynergies: this.squadSynergies, sharedParticipationCredit: this.sharedParticipationCredit, downedActivity: this.downedActivity, registryVersion: this.synergyRegistryVersion,
+        squadSynergies: this.squadSynergies, sharedParticipationCredit: this.sharedParticipationCredit, downedActivity: this.downedActivity,
+        joinInProgressNormalization: this.joinInProgressNormalization, registryVersion: this.synergyRegistryVersion,
       },
       tick: this.tick, determinism: this.deterministicState(),
       map: this.map.id, difficulty: this.difficulty.id, duration: this.duration, time: Math.round(this.time * 10) / 10,
@@ -3036,6 +3135,7 @@ export class Simulation {
       wave: this.wave, waveName: WAVE_NAMES[this.stage === "boss" ? 7 : this.wave], teamXP: Math.round(this.teamXP),
       level: this.level, xpNeed: this.xpNeed, kills: this.kills, gold: this.gold, bossElapsed: this.bossElapsed,
       bossPhase: this.bossPhase, enraged: this.enraged, machine: compactPoint(this.machine),
+      runSlotsUsed: [...this.runSlotsUsed].sort((left, right) => left - right),
       players: clean(this.players, ["input", "reconnectKey"]), drones: clean(this.drones), enemies, projectiles,
       hostile: clean(this.hostile), effects: clean(this.effects, ["hit"]), orbs: clean(this.orbs), drops: clean(this.drops),
       pods: clean(this.pods), objectives: clean(this.objectives), relayBalls: clean(this.relayBalls), feathers: clean(this.feathers),

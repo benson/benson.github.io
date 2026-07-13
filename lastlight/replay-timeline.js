@@ -1,4 +1,4 @@
-import { REPLAY_STEP_HZ, decodeReplayCommand, replayGameplayFeatures, validateReplay } from "./replay.js?v=20260713.8";
+import { REPLAY_STEP_HZ, decodeReplayCommand, replayGameplayFeatures, validateReplay } from "./replay.js?v=20260713.9";
 
 function clampInteger(value, min, max, label) {
   const number = Math.round(Number(value));
@@ -37,6 +37,7 @@ export class VerifiedReplayTimeline {
     if (Object.hasOwn(this.simulation, "squadSynergies") && this.simulation.squadSynergies !== features.squadSynergies) throw new Error("Replay squad-synergies flag mismatch");
     if (Object.hasOwn(this.simulation, "sharedParticipationCredit") && this.simulation.sharedParticipationCredit !== features.sharedParticipationCredit) throw new Error("Replay shared-participation-credit flag mismatch");
     if (Object.hasOwn(this.simulation, "downedActivity") && this.simulation.downedActivity !== features.downedActivity) throw new Error("Replay downed-activity flag mismatch");
+    if (Object.hasOwn(this.simulation, "joinInProgressNormalization") && this.simulation.joinInProgressNormalization !== features.joinInProgressNormalization) throw new Error("Replay join-in-progress-normalization flag mismatch");
     if (Object.hasOwn(this.simulation, "synergyRegistryVersion") && this.simulation.synergyRegistryVersion !== features.registryVersion) throw new Error("Replay synergy registry version mismatch");
     this.tick = 0;
     this.commandIndex = 0;

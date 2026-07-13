@@ -11,6 +11,13 @@ import {
 } from "../draft-recommendation-contract.js";
 
 const MAX_PLAYERS = 4;
+const MAX_PENDING_SESSIONS = 4;
+export const ROOM_ADMISSION_PROTOCOL_VERSION = 2;
+const JOIN_PACKAGES = new Set(["signature", "assault", "survival"]);
+const ACTIVE_RUN_BROADCASTS = new Set([
+  "lobby_state", "start", "sync_game", "return_lobby", "input", "cast", "cast_audio", "choice", "draft_action", "snapshot",
+  "ping", "ping_broadcast", "draft_recommendation", "draft_recommendation_state", "draft_recommendation_sync",
+]);
 const MAX_MESSAGE_BYTES = 1_550_000;
 const MAX_STANDARD_MESSAGE_BYTES = 512_000;
 const MAX_TELEMETRY_BYTES = 8_192;
@@ -197,6 +204,40 @@ function telemetryDataPoint(run) {
   };
 }
 
+function roomProtocolVersion(value) {
+  return Number(value) === ROOM_ADMISSION_PROTOCOL_VERSION ? ROOM_ADMISSION_PROTOCOL_VERSION : 1;
+}
+
+function sanitizeJoinRequest(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new TypeError("Invalid join request");
+  const keys = Object.keys(value).sort(), expected = ["packageId", "protocolVersion", "specialist", "type"];
+  if (keys.length !== expected.length || keys.some((key, index) => key !== expected[index])) throw new TypeError("Invalid join request fields");
+  if (value.type !== "join_request" || value.protocolVersion !== ROOM_ADMISSION_PROTOCOL_VERSION) throw new TypeError("Unsupported join request");
+  const specialist = String(value.specialist || "");
+  if (!TELEMETRY_SPECIALISTS.has(specialist)) throw new TypeError("Invalid join specialist");
+  const packageId = String(value.packageId || "");
+  if (!JOIN_PACKAGES.has(packageId)) throw new TypeError("Invalid join package");
+  return Object.freeze({ type: "join_request", protocolVersion: ROOM_ADMISSION_PROTOCOL_VERSION, specialist, packageId });
+}
+
+function sanitizeAdmissionResolution(value, type) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new TypeError("Invalid admission resolution");
+  const expected = type === "join_committed"
+    ? ["admissionId", "protocolVersion", "replaySlot", "type"]
+    : ["admissionId", "protocolVersion", "reason", "replaySlot", "type"];
+  const keys = Object.keys(value).sort(), wanted = [...expected].sort();
+  if (keys.length !== wanted.length || keys.some((key, index) => key !== wanted[index])) throw new TypeError("Invalid admission resolution fields");
+  if (value.type !== type || value.protocolVersion !== ROOM_ADMISSION_PROTOCOL_VERSION) throw new TypeError("Unsupported admission resolution");
+  const replaySlot = Number(value.replaySlot);
+  if (!Number.isInteger(replaySlot) || replaySlot < 0 || replaySlot >= MAX_PLAYERS) throw new TypeError("Invalid admission replay slot");
+  const admissionId = String(value.admissionId || "");
+  if (!/^a[0-9]+-[A-Za-z0-9_-]{1,32}-[0-3]$/.test(admissionId)) throw new TypeError("Invalid admission id");
+  if (type === "join_committed") return Object.freeze({ type, protocolVersion: ROOM_ADMISSION_PROTOCOL_VERSION, admissionId, replaySlot });
+  const reason = String(value.reason || "");
+  if (!/^[a-z][a-z0-9-]{0,31}$/.test(reason)) throw new TypeError("Invalid admission rejection reason");
+  return Object.freeze({ type, protocolVersion: ROOM_ADMISSION_PROTOCOL_VERSION, admissionId, replaySlot, reason });
+}
+
 function participationDataPoint(run) {
   return {
     blobs: [
@@ -290,6 +331,10 @@ export class Room {
     this.migration = null;
     this.nextJoinOrdinal = 0;
     this.seatTokens = new Map();
+    this.runSeats = new Map();
+    this.runCompatibility = null;
+    this.runRoomProtocolVersion = 1;
+    this.nextAdmissionOrdinal = 0;
     this.pingRate = new PingTokenBucket();
     this.pendingPings = new Map();
     this.pingNow = () => Date.now();
@@ -301,7 +346,7 @@ export class Room {
 
   async fetch(request) {
     if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket") return new Response("WebSocket required", { status: 426 });
-    if (this.sessions.size >= MAX_PLAYERS) return new Response("Squad full", { status: 409 });
+    if (this.sessions.size >= MAX_PLAYERS + MAX_PENDING_SESSIONS) return new Response("Squad connection queue full", { status: 409 });
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
     server.accept();
@@ -321,29 +366,164 @@ export class Room {
     return new Response(null, { status: 101, webSocket: client });
   }
 
-  initializeSession(socket, session, rawProfile, rawCapabilities = null) {
+  hostSession() { return this.connectedSessions().find((peer) => peer.id === this.hostId) || null; }
+
+  isActiveRunSession(peer) {
+    return peer?.admissionState === "active" || (peer?.admissionState === undefined && Number.isInteger(peer?.replaySlot));
+  }
+
+  activeRunSessions() {
+    return this.connectedSessions().filter((peer) => this.isActiveRunSession(peer));
+  }
+
+  runPeers(exceptId = "") {
+    const peers = this.runActive ? this.activeRunSessions() : this.connectedSessions().filter((peer) => peer.admissionState !== "denied");
+    return peers.filter((peer) => peer.id !== exceptId).map(publicPeer);
+  }
+
+  admissionCompatibilityMatches(session) {
+    if (session.roomProtocolVersion !== ROOM_ADMISSION_PROTOCOL_VERSION || this.runRoomProtocolVersion !== ROOM_ADMISSION_PROTOCOL_VERSION) return false;
+    if (!session.migrationCapabilities || !this.runCompatibility) return false;
+    return migrationCompatibilityMatches(session.migrationCapabilities.compatibility, this.runCompatibility);
+  }
+
+  freshAdmissionReason(session) {
+    if (!this.runActive) return "run-inactive";
+    if (!this.hostId && !this.migration) return "no-authority";
+    if (this.runtimeFlags().joinInProgressNormalization === false) return "disabled";
+    if (!session.resumeToken) return "identity-required";
+    if (!this.admissionCompatibilityMatches(session)) return "incompatible";
+    if (this.runSeats.size >= MAX_PLAYERS) return "squad-full";
+    return "";
+  }
+
+  availableRunSlot() {
+    return [0, 1, 2, 3].find((slot) => !this.runSeats.has(slot));
+  }
+
+  nextAdmissionId(session, replaySlot) {
+    return `a${this.nextAdmissionOrdinal++}-${session.id}-${replaySlot}`;
+  }
+
+  bindRunSeat(session, replaySlot, { kind, specialist = session.specialist, packageId = "" } = {}) {
+    const seat = this.runSeats.get(replaySlot) || {
+      replaySlot, resumeToken: session.resumeToken || "", specialist, packageId: packageId || "", status: "reserved", currentId: "",
+    };
+    if (seat.currentId && seat.currentId !== session.id && this.connectedSessions().some((peer) => peer.id === seat.currentId)) return null;
+    seat.currentId = session.id;
+    seat.specialist = kind === "fresh" ? specialist : seat.specialist || specialist;
+    if (kind === "fresh") seat.packageId = packageId;
+    if (kind === "fresh") seat.status = "pending-fresh";
+    if (!seat.resumeToken && session.resumeToken) seat.resumeToken = session.resumeToken;
+    this.runSeats.set(replaySlot, seat);
+    if (seat.resumeToken) this.seatTokens.set(seat.resumeToken, replaySlot);
+    Object.assign(session, {
+      replaySlot, specialist: seat.specialist, packageId: seat.packageId || "", admissionKind: kind,
+      admissionState: this.migration ? "queued" : "pending", admissionDelivered: false, checkpointed: false,
+    });
+    session.admissionId ||= this.nextAdmissionId(session, replaySlot);
+    this.resetDraftRecommendationSeat(replaySlot);
+    return seat;
+  }
+
+  welcomeAdmission(session, kind, fields = {}) {
+    return { kind, ...fields, roomProtocolVersion: ROOM_ADMISSION_PROTOCOL_VERSION };
+  }
+
+  sendWelcome(socket, session, admission = null) {
+    const payload = {
+      type: "welcome", id: session.id, role: session.id === this.hostId ? "host" : "guest", hostId: this.hostId,
+      peers: this.runPeers(session.id), authorityEpoch: this.authorityEpoch, migrationProtocol: HOST_MIGRATION_PROTOCOL_VERSION,
+    };
+    if (session.roomProtocolVersion === ROOM_ADMISSION_PROTOCOL_VERSION) {
+      payload.roomProtocolVersion = ROOM_ADMISSION_PROTOCOL_VERSION;
+      payload.runActive = this.runActive;
+      payload.admission = admission;
+    }
+    socket.send(JSON.stringify(payload));
+  }
+
+  denyActiveSession(socket, session, reason) {
+    session.admissionKind = "denied"; session.admissionState = "denied";
+    if (session.roomProtocolVersion === ROOM_ADMISSION_PROTOCOL_VERSION) {
+      this.sendWelcome(socket, session, this.welcomeAdmission(session, "denied", { reason }));
+      try { socket.close(1008, reason); } catch {}
+    } else {
+      socket.send(JSON.stringify({ type: "admission_denied", protocolVersion: ROOM_ADMISSION_PROTOCOL_VERSION, reason }));
+      try { socket.close(1008, reason); } catch {}
+    }
+    return true;
+  }
+
+  routeRunAdmission(session) {
+    if (!this.runActive || !this.hostId || this.migration || !session.admissionId || session.admissionDelivered) return false;
+    const host = this.hostSession();
+    if (!host) return false;
+    if (host.roomProtocolVersion !== ROOM_ADMISSION_PROTOCOL_VERSION) {
+      if (session.admissionKind !== "reconnect") return false;
+      session.admissionState = "active";
+      const seat = this.runSeats.get(session.replaySlot); if (seat) seat.status = "active";
+      session.admissionDelivered = true;
+      return this.sendTo(host.id, { type: "profile", profile: publicPeer(session), _from: session.id });
+    }
+    const message = {
+      type: "run_admission", protocolVersion: ROOM_ADMISSION_PROTOCOL_VERSION,
+      admissionId: session.admissionId, kind: session.admissionKind, replaySlot: session.replaySlot,
+      profile: publicPeer(session), _from: session.id,
+      ...(session.admissionKind === "fresh" ? { packageId: session.packageId } : {}),
+    };
+    if (!this.sendTo(host.id, message)) return false;
+    session.admissionDelivered = true;
+    return true;
+  }
+
+  initializeSession(socket, session, rawProfile, rawCapabilities = null, rawRoomProtocolVersion = 1) {
     if (session.initialized) return false;
     const profile = safeProfile(rawProfile);
-    if (profile.resumeToken && this.connectedSessions().some((peer) => peer.id !== session.id && peer.resumeToken === profile.resumeToken)) {
-      profile.resumeToken = "";
-    }
+    const duplicateToken = profile.resumeToken && this.connectedSessions().some((peer) => peer.id !== session.id && peer.resumeToken === profile.resumeToken);
+    if (duplicateToken && !this.runActive) profile.resumeToken = "";
     let migrationCapabilities = null;
     try { if (rawCapabilities) migrationCapabilities = validateMigrationCapabilities(rawCapabilities); } catch { migrationCapabilities = null; }
+    Object.assign(session, profile, {
+      initialized: true, migrationCapabilities, roomProtocolVersion: roomProtocolVersion(rawRoomProtocolVersion), admissionState: this.runActive ? "pending" : "lobby",
+    });
+    clearTimeout(session.handshakeTimer); delete session.handshakeTimer;
+
+    if (!this.runActive) {
+      if (this.connectedSessions().length > MAX_PLAYERS) {
+        session.admissionState = "denied";
+        if (session.roomProtocolVersion === ROOM_ADMISSION_PROTOCOL_VERSION) this.sendWelcome(socket, session, this.welcomeAdmission(session, "denied", { reason: "squad-full" }));
+        else try { socket.close(1008, "Squad full"); } catch {}
+        return true;
+      }
+      if (!this.hostId && !this.migration) this.hostId = session.id;
+      this.sendWelcome(socket, session, session.roomProtocolVersion === ROOM_ADMISSION_PROTOCOL_VERSION ? null : undefined);
+      this.broadcast({ type: "peer_joined", peer: publicPeer(session) }, socket);
+      return true;
+    }
+
+    if (duplicateToken) return this.denyActiveSession(socket, session, "identity-in-use");
+    if (!this.hostId && !this.migration) return this.denyActiveSession(socket, session, "no-authority");
     const replaySlot = profile.resumeToken ? this.seatTokens.get(profile.resumeToken) : undefined;
-    Object.assign(session, profile, { initialized: true, migrationCapabilities, ...(Number.isInteger(replaySlot) ? { replaySlot } : {}) });
-    if (Number.isInteger(replaySlot)) this.resetDraftRecommendationSeat(replaySlot);
-    if (this.runActive && this.migration) session.pendingProfile = true;
-    clearTimeout(session.handshakeTimer);
-    delete session.handshakeTimer;
-    if (!this.hostId && !this.runActive && !this.migration) this.hostId = session.id;
-    const peers = [...this.sessions.values()]
-      .filter((peer) => peer.initialized && peer.id !== session.id)
-      .map(publicPeer);
-    socket.send(JSON.stringify({
-      type: "welcome", id: session.id, role: session.id === this.hostId ? "host" : "guest", hostId: this.hostId, peers,
-      authorityEpoch: this.authorityEpoch, migrationProtocol: HOST_MIGRATION_PROTOCOL_VERSION,
-    }));
-    this.broadcast({ type: "peer_joined", peer: publicPeer(session) }, socket);
+    if (Number.isInteger(replaySlot)) {
+      const seat = this.runSeats.get(replaySlot);
+      if (seat?.status === "rejected") return this.denyActiveSession(socket, session, "seat-unavailable");
+      if (session.roomProtocolVersion === ROOM_ADMISSION_PROTOCOL_VERSION && this.runCompatibility && !this.admissionCompatibilityMatches(session)) {
+        return this.denyActiveSession(socket, session, "incompatible");
+      }
+      const kind = seat?.status === "pending-fresh" ? "fresh" : "reconnect";
+      if (!this.bindRunSeat(session, replaySlot, { kind, specialist: seat?.specialist || profile.specialist, packageId: seat?.packageId || "" })) {
+        return this.denyActiveSession(socket, session, "identity-in-use");
+      }
+      this.sendWelcome(socket, session, this.welcomeAdmission(session, this.migration ? "waiting" : kind, { slot: replaySlot }));
+      if (!this.migration) this.routeRunAdmission(session);
+      return true;
+    }
+
+    const reason = this.freshAdmissionReason(session);
+    if (reason) return this.denyActiveSession(socket, session, reason);
+    session.admissionKind = "fresh"; session.admissionState = this.migration ? "waiting" : "selecting";
+    this.sendWelcome(socket, session, this.welcomeAdmission(session, this.migration ? "waiting" : "fresh"));
     return true;
   }
 
@@ -367,8 +547,48 @@ export class Room {
     }
   }
 
+  handleJoinRequest(session, raw) {
+    if (!this.runActive || session.roomProtocolVersion !== ROOM_ADMISSION_PROTOCOL_VERSION
+      || session.admissionKind !== "fresh" || !["selecting", "waiting"].includes(session.admissionState)) return false;
+    let request; try { request = sanitizeJoinRequest(raw); } catch { return false; }
+    const reason = this.freshAdmissionReason(session);
+    if (reason) {
+      session.admissionKind = "denied"; session.admissionState = "denied";
+      this.sendTo(session.id, { type: "admission_denied", protocolVersion: ROOM_ADMISSION_PROTOCOL_VERSION, reason });
+      return false;
+    }
+    const replaySlot = this.availableRunSlot();
+    if (!Number.isInteger(replaySlot)) return false;
+    session.specialist = request.specialist; session.packageId = request.packageId;
+    if (!this.bindRunSeat(session, replaySlot, { kind: "fresh", specialist: request.specialist, packageId: request.packageId })) return false;
+    if (this.migration) { session.admissionState = "queued"; return true; }
+    return this.routeRunAdmission(session);
+  }
+
+  resolveRunAdmission(session, raw, targetId, type) {
+    if (!this.runActive || session.id !== this.hostId || !targetId || targetId === session.id) return false;
+    const target = this.connectedSessions().find((peer) => peer.id === targetId);
+    if (!target || !["pending", "queued"].includes(target.admissionState)) return false;
+    let resolution; try { resolution = sanitizeAdmissionResolution(raw, type); } catch { return false; }
+    if (resolution.admissionId !== target.admissionId || resolution.replaySlot !== target.replaySlot) return false;
+    const seat = this.runSeats.get(target.replaySlot);
+    if (!seat || seat.currentId !== target.id) return false;
+    if (type === "join_committed") {
+      target.admissionState = "active"; target.checkpointed = false; seat.status = "active";
+      this.sendTo(target.id, resolution);
+      this.broadcast({
+        type: "peer_joined", peer: publicPeer(target),
+        admission: { protocolVersion: ROOM_ADMISSION_PROTOCOL_VERSION, kind: target.admissionKind, replaySlot: target.replaySlot },
+      }, socketForSession(this.sessions, target));
+      return true;
+    }
+    target.admissionState = "denied"; seat.status = "rejected"; seat.currentId = "";
+    this.sendTo(target.id, resolution);
+    return true;
+  }
+
   assignRunReplaySlots(players) {
-    const connected = this.connectedSessions();
+    const connected = this.connectedSessions().filter((session) => session.admissionState !== "denied");
     if (!Array.isArray(players) || players.length < 1 || players.length > MAX_PLAYERS) return false;
     const byId = new Map(connected.map((session) => [session.id, session]));
     const assignments = new Map(), usedIds = new Set(), usedSlots = new Set();
@@ -380,9 +600,18 @@ export class Room {
       if (byId.has(id)) assignments.set(id, replaySlot);
     }
     if (assignments.size !== connected.length) return false;
-    this.seatTokens.clear();
+    this.seatTokens.clear(); this.runSeats.clear();
+    for (let index = 0; index < players.length; index++) {
+      const player = players[index], replaySlot = Number.isInteger(player?.replaySlot) ? Number(player.replaySlot) : index;
+      const connectedSession = byId.get(String(player?.id || ""));
+      this.runSeats.set(replaySlot, {
+        replaySlot, resumeToken: connectedSession?.resumeToken || "", specialist: connectedSession?.specialist || String(player?.specialist || "zuri"),
+        packageId: "", status: connectedSession ? "active" : "reserved", currentId: connectedSession?.id || "",
+      });
+    }
     for (const session of connected) {
       session.replaySlot = assignments.get(session.id);
+      session.admissionKind = "initial"; session.admissionState = "active"; session.admissionDelivered = true; session.checkpointed = true;
       if (session.resumeToken) this.seatTokens.set(session.resumeToken, session.replaySlot);
     }
     return true;
@@ -498,13 +727,18 @@ export class Room {
     if (bytes > MAX_STANDARD_MESSAGE_BYTES && message.type !== "migration_checkpoint") { socket.close(1009, "Message too large"); return; }
     if (!session.initialized) {
       if (message.type !== "hello") return;
-      this.initializeSession(socket, session, message.profile, message.migrationCapabilities);
+      this.initializeSession(socket, session, message.profile, message.migrationCapabilities, message.roomProtocolVersion);
       return;
     }
     if (message.type === "profile") {
       const profile = safeProfile(message.profile);
-      Object.assign(session, profile);
-      if (this.migration) session.pendingProfile = true;
+      if (this.runActive) {
+        if (session.admissionKind === "fresh" && ["selecting", "waiting"].includes(session.admissionState)) {
+          Object.assign(session, { name: profile.name, specialist: profile.specialist, ready: profile.ready });
+        }
+        return;
+      }
+      Object.assign(session, { name: profile.name, specialist: profile.specialist, ready: profile.ready });
       message.profile = {
         id: session.id, name: profile.name, specialist: profile.specialist, ready: profile.ready,
         ...(Number.isInteger(session.replaySlot) ? { replaySlot: session.replaySlot } : {}),
@@ -514,7 +748,12 @@ export class Room {
     delete message._to;
     if (message.type === "migration_checkpoint") { this.acceptMigrationCheckpoint(session, message); return; }
     if (message.type === "migration_ready") { this.acceptMigrationReady(session, message); return; }
+    if (message.type === "join_request") { this.handleJoinRequest(session, message); return; }
+    if (message.type === "join_committed" || message.type === "join_rejected") {
+      this.resolveRunAdmission(session, message, targetId, message.type); return;
+    }
     if (this.migration) return;
+    if (this.runActive && !this.isActiveRunSession(session)) return;
     if (message.type === "ping") { if (!targetId) this.routePingRequest(session, message); return; }
     if (message.type === "ping_broadcast") { if (!targetId) this.relayPingBroadcast(session, message); return; }
     if (message.type === "draft_recommendation") { if (!targetId) this.routeDraftRecommendationRequest(session, message); return; }
@@ -532,9 +771,17 @@ export class Room {
     if (this.runActive && this.authorityEpoch > 0 && Number(message.epoch) !== this.authorityEpoch && message.type !== "profile") return;
     if (message.type === "start" && session.id === this.hostId) {
       if (!this.assignRunReplaySlots(message.players)) return;
-      this.runActive = true; this.migrationCheckpoint = null; this.authorityEpoch = 0; this.resetPingState(); this.resetDraftRecommendationState();
+      this.runActive = true; this.migrationCheckpoint = null; this.authorityEpoch = 0;
+      this.runCompatibility = session.migrationCapabilities?.compatibility || null;
+      this.runRoomProtocolVersion = session.roomProtocolVersion;
+      this.resetPingState(); this.resetDraftRecommendationState();
     } else if (message.type === "return_lobby" && session.id === this.hostId) {
       this.runActive = false; this.migrationCheckpoint = null; this.clearMigration(); this.resetPingState(); this.resetDraftRecommendationState();
+      this.seatTokens.clear(); this.runSeats.clear(); this.runCompatibility = null; this.runRoomProtocolVersion = 1; this.nextAdmissionOrdinal = 0;
+      for (const peer of this.connectedSessions()) {
+        delete peer.replaySlot; delete peer.admissionId; delete peer.admissionKind; delete peer.packageId; delete peer.admissionDelivered;
+        peer.admissionState = "lobby";
+      }
     }
     message._from = session.id;
     if (targetId) {
@@ -551,11 +798,13 @@ export class Room {
     this.sessions.delete(socket);
     clearTimeout(session.handshakeTimer);
     if (!session.initialized) return;
-    this.broadcast({ type: "peer_left", id: session.id });
+    const seat = Number.isInteger(session.replaySlot) ? this.runSeats.get(session.replaySlot) : null;
+    if (seat?.currentId === session.id) { seat.currentId = ""; if (seat.status === "active") seat.status = "reserved"; }
+    if (!this.runActive || this.isActiveRunSession(session)) this.broadcast({ type: "peer_left", id: session.id });
     if (session.id === this.hostId) {
       if (this.runActive) this.beginMigration(session.id);
       else {
-        const successor = this.connectedSessions().sort((a, b) => a.joinOrdinal - b.joinOrdinal)[0];
+        const successor = this.connectedSessions().filter((peer) => peer.admissionState !== "denied").sort((a, b) => a.joinOrdinal - b.joinOrdinal)[0];
         this.hostId = successor?.id || null;
         if (this.hostId) this.broadcast({ type: "host_changed", id: this.hostId, authorityEpoch: this.authorityEpoch, migrated: false });
       }
@@ -576,8 +825,16 @@ export class Room {
       const connected = this.connectedSessions().find(({ id }) => id === member.id);
       if (!connected) continue;
       connected.replaySlot = member.replaySlot;
+      connected.checkpointed = true;
       if (connected.resumeToken) this.seatTokens.set(connected.resumeToken, member.replaySlot);
+      const seat = this.runSeats.get(member.replaySlot) || {
+        replaySlot: member.replaySlot, resumeToken: connected.resumeToken || "", specialist: connected.specialist || "zuri", packageId: "", status: "active", currentId: connected.id,
+      };
+      seat.currentId = connected.id; seat.status = "active";
+      if (!seat.resumeToken && connected.resumeToken) seat.resumeToken = connected.resumeToken;
+      this.runSeats.set(member.replaySlot, seat);
     }
+    this.runCompatibility ||= checkpoint.compatibility;
     this.migrationCheckpoint = checkpoint;
     return true;
   }
@@ -586,7 +843,7 @@ export class Room {
     const checkpoint = this.migrationCheckpoint;
     if (!checkpoint) return [];
     const slots = new Map(checkpoint.roster.map(({ id, replaySlot }) => [id, replaySlot]));
-    return this.connectedSessions()
+    return this.activeRunSessions()
       .filter((session) => !excluded.has(session.id) && slots.has(session.id) && session.migrationCapabilities
         && migrationCompatibilityMatches(session.migrationCapabilities.compatibility, checkpoint.compatibility))
       .sort((left, right) => slots.get(left.id) - slots.get(right.id) || left.joinOrdinal - right.joinOrdinal);
@@ -638,10 +895,16 @@ export class Room {
       type: "host_changed", id: session.id, authorityEpoch: this.authorityEpoch, migrated: true,
       oldHostId, checkpointId: checkpoint.checkpointId, tick: checkpoint.tick, hash: checkpoint.hash,
     });
+    const checkpointIds = new Set(checkpoint.roster.map(({ id }) => id));
     for (const peer of this.connectedSessions()) {
-      if (!peer.pendingProfile || peer.id === session.id) continue;
-      delete peer.pendingProfile;
-      this.sendTo(session.id, { type: "profile", profile: publicPeer(peer), _from: peer.id });
+      if (peer.id === session.id || !Number.isInteger(peer.replaySlot) || checkpointIds.has(peer.id)) continue;
+      const seat = this.runSeats.get(peer.replaySlot);
+      if (!seat || seat.currentId !== peer.id || seat.status === "rejected" || peer.admissionState === "denied") continue;
+      peer.checkpointed = false;
+      peer.admissionKind = peer.admissionKind === "fresh" ? "fresh" : "reconnect";
+      peer.admissionState = "pending"; peer.admissionDelivered = false;
+      peer.admissionId ||= this.nextAdmissionId(peer, peer.replaySlot);
+      this.routeRunAdmission(peer);
     }
     return true;
   }
@@ -656,6 +919,7 @@ export class Room {
     for (const [socket, session] of this.sessions.entries()) {
       if (socket === except) continue;
       if (!session.initialized) continue;
+      if (this.runActive && ACTIVE_RUN_BROADCASTS.has(message.type) && !this.isActiveRunSession(session)) continue;
       try { socket.send(payload); } catch { this.onClose(socket); }
     }
   }

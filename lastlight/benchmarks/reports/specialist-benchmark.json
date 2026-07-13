@@ -224,9 +224,9 @@
           "structure": {
             "peakEntities": 5,
             "maxWorkUnitsPerTick": 4,
-            "maxSnapshotBytes": 5528
+            "maxSnapshotBytes": 5758
           },
-          "finalHash": "34b12f3cab870ca5"
+          "finalHash": "dd2fb78d689a3ede"
         },
         {
           "id": "e-unlock",
@@ -269,9 +269,9 @@
           "structure": {
             "peakEntities": 23,
             "maxWorkUnitsPerTick": 130,
-            "maxSnapshotBytes": 11176
+            "maxSnapshotBytes": 11408
           },
-          "finalHash": "da89fbdea120ce78"
+          "finalHash": "3a0c78e09d7728ff"
         },
         {
           "id": "r-unlock",
@@ -314,9 +314,9 @@
           "structure": {
             "peakEntities": 35,
             "maxWorkUnitsPerTick": 240,
-            "maxSnapshotBytes": 12007
+            "maxSnapshotBytes": 12239
           },
-          "finalHash": "8b20c6df54ed7d9a"
+          "finalHash": "03b73bafa50671db"
         },
         {
           "id": "mature-loadout",
@@ -359,9 +359,9 @@
           "structure": {
             "peakEntities": 66,
             "maxWorkUnitsPerTick": 532,
-            "maxSnapshotBytes": 22565
+            "maxSnapshotBytes": 22801
           },
-          "finalHash": "028941a53dd87b5d"
+          "finalHash": "42cf43c8982475c4"
         },
         {
           "id": "mobility-escape",
@@ -404,9 +404,9 @@
           "structure": {
             "peakEntities": 41,
             "maxWorkUnitsPerTick": 24,
-            "maxSnapshotBytes": 14670
+            "maxSnapshotBytes": 14902
           },
-          "finalHash": "f5e871f5a6ea8892"
+          "finalHash": "7698844648f600cd"
         },
         {
           "id": "pickup-objective",
@@ -449,9 +449,9 @@
           "structure": {
             "peakEntities": 44,
             "maxWorkUnitsPerTick": 9,
-            "maxSnapshotBytes": 14455
+            "maxSnapshotBytes": 14689
           },
-          "finalHash": "e1e6e81e9417b7c6"
+          "finalHash": "f271a48ec4feab83"
         },
         {
           "id": "solo-pressure",
@@ -494,9 +494,9 @@
           "structure": {
             "peakEntities": 87,
             "maxWorkUnitsPerTick": 1152,
-            "maxSnapshotBytes": 30196
+            "maxSnapshotBytes": 30430
           },
-          "finalHash": "a3b3395480c77058"
+          "finalHash": "16969d1071b3a661"
         },
         {
           "id": "elite-duel",
@@ -539,9 +539,9 @@
           "structure": {
             "peakEntities": 34,
             "maxWorkUnitsPerTick": 25,
-            "maxSnapshotBytes": 12373
+            "maxSnapshotBytes": 12603
           },
-          "finalHash": "8937d405586a2a95"
+          "finalHash": "17983f594ab6b28e"
         },
         {
           "id": "apex-duel",
@@ -584,9 +584,9 @@
           "structure": {
             "peakEntities": 58,
             "maxWorkUnitsPerTick": 47,
-            "maxSnapshotBytes": 18556
+            "maxSnapshotBytes": 18789
           },
-          "finalHash": "468b0b6ffabfd8ef"
+          "finalHash": "6cab5c089022268a"
         },
         {
           "id": "four-player",
@@ -629,9 +629,9 @@
           "structure": {
             "peakEntities": 151,
             "maxWorkUnitsPerTick": 113,
-            "maxSnapshotBytes": 50449
+            "maxSnapshotBytes": 51048
           },
-          "finalHash": "504e39b376319dc3"
+          "finalHash": "5d04f5baf3099850"
         }
       ],
       "summary": {
@@ -726,9 +726,9 @@
           "structure": {
             "peakEntities": 5,
             "maxWorkUnitsPerTick": 3,
-            "maxSnapshotBytes": 5419
+            "maxSnapshotBytes": 5653
           },
-          "finalHash": "9e716c1f5cd25525"
+          "finalHash": "3eebb3adeee9725e"
         },
         {
           "id": "e-unlock",
@@ -771,9 +771,9 @@
           "structure": {
             "peakEntities": 22,
             "maxWorkUnitsPerTick": 30,
-            "maxSnapshotBytes": 10235
+            "maxSnapshotBytes": 10467
           },
-          "finalHash": "84281fb166496295"
+          "finalHash": "619fb1273a270386"
         },
         {
           "id": "r-unlock",
@@ -816,9 +816,9 @@
           "structure": {
             "peakEntities": 25,
             "maxWorkUnitsPerTick": 130,
-            "maxSnapshotBytes": 12043
+            "maxSnapshotBytes": 12273
           },
-          "finalHash": "d9fcf86f810f8f62"
+          "finalHash": "ccd4d38048af4585"
         },
         {
           "id": "mature-loadout",
@@ -861,9 +861,9 @@
           "structure": {
             "peakEntities": 94,
             "maxWorkUnitsPerTick": 812,
-            "maxSnapshotBytes": 31481
+            "maxSnapshotBytes": 31715
           },
-          "finalHash": "b77ca1eb16dbc032"
+          "finalHash": "9272797aaa7dea0b"
         },
         {
           "id": "mobility-escape",
@@ -906,9 +906,9 @@
           "structure": {
             "peakEntities": 63,
             "maxWorkUnitsPerTick": 1,
-            "maxSnapshotBytes": 18129
+            "maxSnapshotBytes": 18361
           },
-          "finalHash": "9efd64b4604d7dcd"
+          "finalHash": "dbfccbfec71b35e0"
         },
         {
           "id": "pickup-objective",
@@ -951,9 +951,9 @@
           "structure": {
             "peakEntities": 80,
             "maxWorkUnitsPerTick": 9,
-            "maxSnapshotBytes": 21064
+            "maxSnapshotBytes": 21298
           },
-          "finalHash": "59ca563d2824e450"
+          "finalHash": "d985ea9640cc2c73"
         },
         {
           "id": "solo-pressure",
@@ -996,9 +996,9 @@
           "structure": {
             "peakEntities": 123,
             "maxWorkUnitsPerTick": 1310,
-            "maxSnapshotBytes": 37864
+            "maxSnapshotBytes": 38100
           },
-          "finalHash": "bca931fe36cb3f32"
+          "finalHash": "5c4ee8b9cfb93e7f"
         },
         {
           "id": "elite-duel",
@@ -1041,9 +1041,9 @@
           "structure": {
             "peakEntities": 74,
             "maxWorkUnitsPerTick": 51,
-            "maxSnapshotBytes": 19834
+            "maxSnapshotBytes": 20066
           },
-          "finalHash": "6216c6c2d752448c"
+          "finalHash": "4f20d77c1ccbd87f"
         },
         {
           "id": "apex-duel",
@@ -1086,9 +1086,9 @@
           "structure": {
             "peakEntities": 114,
             "maxWorkUnitsPerTick": 91,
-            "maxSnapshotBytes": 35056
+            "maxSnapshotBytes": 35289
           },
-          "finalHash": "8ab298aa43da7320"
+          "finalHash": "c75ebd4c994a6fc3"
         },
         {
           "id": "four-player",
@@ -1131,9 +1131,9 @@
           "structure": {
             "peakEntities": 204,
             "maxWorkUnitsPerTick": 149,
-            "maxSnapshotBytes": 63324
+            "maxSnapshotBytes": 63919
           },
-          "finalHash": "627e244d92767ce4"
+          "finalHash": "37d45ae574aadaad"
         }
       ],
       "summary": {
@@ -1227,9 +1227,9 @@
           "structure": {
             "peakEntities": 5,
             "maxWorkUnitsPerTick": 3,
-            "maxSnapshotBytes": 5602
+            "maxSnapshotBytes": 5836
           },
-          "finalHash": "d45cb4bfa35fd3cd"
+          "finalHash": "c4cd0995984e0604"
         },
         {
           "id": "e-unlock",
@@ -1272,9 +1272,9 @@
           "structure": {
             "peakEntities": 25,
             "maxWorkUnitsPerTick": 130,
-            "maxSnapshotBytes": 12059
+            "maxSnapshotBytes": 12293
           },
-          "finalHash": "fa38f5ba7cebba51"
+          "finalHash": "1e174e2e3826e3b0"
         },
         {
           "id": "r-unlock",
@@ -1317,9 +1317,9 @@
           "structure": {
             "peakEntities": 25,
             "maxWorkUnitsPerTick": 130,
-            "maxSnapshotBytes": 12708
+            "maxSnapshotBytes": 12942
           },
-          "finalHash": "5020fb25495bcab5"
+          "finalHash": "049066e522b95e82"
         },
         {
           "id": "mature-loadout",
@@ -1362,9 +1362,9 @@
           "structure": {
             "peakEntities": 53,
             "maxWorkUnitsPerTick": 378,
-            "maxSnapshotBytes": 20990
+            "maxSnapshotBytes": 21224
           },
-          "finalHash": "f38f6bf7d8cb6fe6"
+          "finalHash": "aad365429fead0d1"
         },
         {
           "id": "mobility-escape",
@@ -1407,9 +1407,9 @@
           "structure": {
             "peakEntities": 25,
             "maxWorkUnitsPerTick": 12,
-            "maxSnapshotBytes": 9649
+            "maxSnapshotBytes": 9879
           },
-          "finalHash": "e6ed6cef7e078bdc"
+          "finalHash": "cb47a0a77d513989"
         },
         {
           "id": "pickup-objective",
@@ -1452,9 +1452,9 @@
           "structure": {
             "peakEntities": 29,
             "maxWorkUnitsPerTick": 9,
-            "maxSnapshotBytes": 10393
+            "maxSnapshotBytes": 10627
           },
-          "finalHash": "d97fcbcee48b1824"
+          "finalHash": "992c870b3d86c0c3"
         },
         {
           "id": "solo-pressure",
@@ -1497,9 +1497,9 @@
           "structure": {
             "peakEntities": 90,
             "maxWorkUnitsPerTick": 997,
-            "maxSnapshotBytes": 26977
+            "maxSnapshotBytes": 27211
           },
-          "finalHash": "2197176fde763782"
+          "finalHash": "21736f6f36e04f7f"
         },
         {
           "id": "elite-duel",
@@ -1542,9 +1542,9 @@
           "structure": {
             "peakEntities": 27,
             "maxWorkUnitsPerTick": 13,
-            "maxSnapshotBytes": 12073
+            "maxSnapshotBytes": 12307
           },
-          "finalHash": "0a123d7eaf64d849"
+          "finalHash": "1c170127df2ef1ec"
         },
         {
           "id": "apex-duel",
@@ -1587,9 +1587,9 @@
           "structure": {
             "peakEntities": 30,
             "maxWorkUnitsPerTick": 19,
-            "maxSnapshotBytes": 13884
+            "maxSnapshotBytes": 14117
           },
-          "finalHash": "4b918ab67c6d2926"
+          "finalHash": "950d32622f06de25"
         },
         {
           "id": "four-player",
@@ -1632,9 +1632,9 @@
           "structure": {
             "peakEntities": 133,
             "maxWorkUnitsPerTick": 85,
-            "maxSnapshotBytes": 46111
+            "maxSnapshotBytes": 46710
           },
-          "finalHash": "c084d873fcad5141"
+          "finalHash": "911aa8e918e09390"
         }
       ],
       "summary": {
@@ -1729,9 +1729,9 @@
           "structure": {
             "peakEntities": 4,
             "maxWorkUnitsPerTick": 1,
-            "maxSnapshotBytes": 5146
+            "maxSnapshotBytes": 5380
           },
-          "finalHash": "fe1d53f41dfe21fa"
+          "finalHash": "bd76c20cf3bbfcd5"
         },
         {
           "id": "e-unlock",
@@ -1774,9 +1774,9 @@
           "structure": {
             "peakEntities": 14,
             "maxWorkUnitsPerTick": 30,
-            "maxSnapshotBytes": 9273
+            "maxSnapshotBytes": 9507
           },
-          "finalHash": "227a7c88b0c8c5bc"
+          "finalHash": "52937d994776ca95"
         },
         {
           "id": "r-unlock",
@@ -1819,9 +1819,9 @@
           "structure": {
             "peakEntities": 25,
             "maxWorkUnitsPerTick": 120,
-            "maxSnapshotBytes": 11753
+            "maxSnapshotBytes": 11983
           },
-          "finalHash": "834980cead063399"
+          "finalHash": "ea24abd41551e440"
         },
         {
           "id": "mature-loadout",
@@ -1864,9 +1864,9 @@
           "structure": {
             "peakEntities": 72,
             "maxWorkUnitsPerTick": 588,
-            "maxSnapshotBytes": 21232
+            "maxSnapshotBytes": 21466
           },
-          "finalHash": "0996707238eb8392"
+          "finalHash": "d6d0ba4b78a73055"
         },
         {
           "id": "mobility-escape",
@@ -1909,9 +1909,9 @@
           "structure": {
             "peakEntities": 26,
             "maxWorkUnitsPerTick": 1,
-            "maxSnapshotBytes": 10426
+            "maxSnapshotBytes": 10660
           },
-          "finalHash": "c93c8e2e22036f54"
+          "finalHash": "68aa9ac5f4ad41d7"
         },
         {
           "id": "pickup-objective",
@@ -1954,9 +1954,9 @@
           "structure": {
             "peakEntities": 24,
             "maxWorkUnitsPerTick": 9,
-            "maxSnapshotBytes": 8850
+            "maxSnapshotBytes": 9084
           },
-          "finalHash": "e5267adfbbd3a4d4"
+          "finalHash": "eaad9a43785950ff"
         },
         {
           "id": "solo-pressure",
@@ -1999,9 +1999,9 @@
           "structure": {
             "peakEntities": 121,
             "maxWorkUnitsPerTick": 1695,
-            "maxSnapshotBytes": 30587
+            "maxSnapshotBytes": 30823
           },
-          "finalHash": "0b03d2190982433a"
+          "finalHash": "610b57fc3300fc29"
         },
         {
           "id": "elite-duel",
@@ -2044,9 +2044,9 @@
           "structure": {
             "peakEntities": 36,
             "maxWorkUnitsPerTick": 20,
-            "maxSnapshotBytes": 13639
+            "maxSnapshotBytes": 13873
           },
-          "finalHash": "ec4ce23f82a9eb78"
+          "finalHash": "d3111318aebb41c9"
         },
         {
           "id": "apex-duel",
@@ -2089,9 +2089,9 @@
           "structure": {
             "peakEntities": 48,
             "maxWorkUnitsPerTick": 32,
-            "maxSnapshotBytes": 17644
+            "maxSnapshotBytes": 17876
           },
-          "finalHash": "0a7d1fd2ff1693f0"
+          "finalHash": "1897aa49b80db159"
         },
         {
           "id": "four-player",
@@ -2134,9 +2134,9 @@
           "structure": {
             "peakEntities": 137,
             "maxWorkUnitsPerTick": 94,
-            "maxSnapshotBytes": 46047
+            "maxSnapshotBytes": 46642
           },
-          "finalHash": "7026602a447531b7"
+          "finalHash": "bbd396f7f6ee75a0"
         }
       ],
       "summary": {
@@ -2230,9 +2230,9 @@
           "structure": {
             "peakEntities": 4,
             "maxWorkUnitsPerTick": 1,
-            "maxSnapshotBytes": 5115
+            "maxSnapshotBytes": 5345
           },
-          "finalHash": "aa95019833796ff3"
+          "finalHash": "828d7d4bc7519e0e"
         },
         {
           "id": "e-unlock",
@@ -2275,9 +2275,9 @@
           "structure": {
             "peakEntities": 16,
             "maxWorkUnitsPerTick": 10,
-            "maxSnapshotBytes": 9935
+            "maxSnapshotBytes": 10169
           },
-          "finalHash": "8393d09b53d5f744"
+          "finalHash": "02f60779857478e3"
         },
         {
           "id": "r-unlock",
@@ -2320,9 +2320,9 @@
           "structure": {
             "peakEntities": 15,
             "maxWorkUnitsPerTick": 10,
-            "maxSnapshotBytes": 9586
+            "maxSnapshotBytes": 9822
           },
-          "finalHash": "b0903055b87f9792"
+          "finalHash": "c8a3b8cbc252ccc5"
         },
         {
           "id": "mature-loadout",
@@ -2365,9 +2365,9 @@
           "structure": {
             "peakEntities": 63,
             "maxWorkUnitsPerTick": 378,
-            "maxSnapshotBytes": 22921
+            "maxSnapshotBytes": 23155
           },
-          "finalHash": "8a0f32fa83be8d98"
+          "finalHash": "f1b91cc34564b943"
         },
         {
           "id": "mobility-escape",
@@ -2410,9 +2410,9 @@
           "structure": {
             "peakEntities": 48,
             "maxWorkUnitsPerTick": 23,
-            "maxSnapshotBytes": 15601
+            "maxSnapshotBytes": 15833
           },
-          "finalHash": "f7c80b156a03004d"
+          "finalHash": "b9dde6aa6bdcc7a4"
         },
         {
           "id": "pickup-objective",
@@ -2455,9 +2455,9 @@
           "structure": {
             "peakEntities": 25,
             "maxWorkUnitsPerTick": 9,
-            "maxSnapshotBytes": 9504
+            "maxSnapshotBytes": 9738
           },
-          "finalHash": "2f446fb413e412af"
+          "finalHash": "f2d408b9d3ba6b54"
         },
         {
           "id": "solo-pressure",
@@ -2500,9 +2500,9 @@
           "structure": {
             "peakEntities": 120,
             "maxWorkUnitsPerTick": 1432,
-            "maxSnapshotBytes": 34744
+            "maxSnapshotBytes": 34978
           },
-          "finalHash": "c76da981468f3877"
+          "finalHash": "de0f2a8458574a30"
         },
         {
           "id": "elite-duel",
@@ -2545,9 +2545,9 @@
           "structure": {
             "peakEntities": 43,
             "maxWorkUnitsPerTick": 21,
-            "maxSnapshotBytes": 15338
+            "maxSnapshotBytes": 15570
           },
-          "finalHash": "587d1b93b07ef0e9"
+          "finalHash": "948b337552344b18"
         },
         {
           "id": "apex-duel",
@@ -2590,9 +2590,9 @@
           "structure": {
             "peakEntities": 47,
             "maxWorkUnitsPerTick": 25,
-            "maxSnapshotBytes": 16196
+            "maxSnapshotBytes": 16427
           },
-          "finalHash": "4f9a6925a74e4a82"
+          "finalHash": "98daacf3de2160e6"
         },
         {
           "id": "four-player",
@@ -2635,9 +2635,9 @@
           "structure": {
             "peakEntities": 131,
             "maxWorkUnitsPerTick": 78,
-            "maxSnapshotBytes": 45021
+            "maxSnapshotBytes": 45616
           },
-          "finalHash": "5cff22b51f574b6d"
+          "finalHash": "0f99f641c173c9d0"
         }
       ],
       "summary": {
@@ -2732,9 +2732,9 @@
           "structure": {
             "peakEntities": 4,
             "maxWorkUnitsPerTick": 3,
-            "maxSnapshotBytes": 5324
+            "maxSnapshotBytes": 5558
           },
-          "finalHash": "ac4a9a5acd483b0c"
+          "finalHash": "a313725dd612b7b3"
         },
         {
           "id": "e-unlock",
@@ -2777,9 +2777,9 @@
           "structure": {
             "peakEntities": 14,
             "maxWorkUnitsPerTick": 40,
-            "maxSnapshotBytes": 9193
+            "maxSnapshotBytes": 9429
           },
-          "finalHash": "7f9e80fd90ca7701"
+          "finalHash": "3d1df3e9835d285c"
         },
         {
           "id": "r-unlock",
@@ -2822,9 +2822,9 @@
           "structure": {
             "peakEntities": 14,
             "maxWorkUnitsPerTick": 30,
-            "maxSnapshotBytes": 9888
+            "maxSnapshotBytes": 10122
           },
-          "finalHash": "a591dde41dc41821"
+          "finalHash": "0090dc4cfaa2d568"
         },
         {
           "id": "mature-loadout",
@@ -2867,9 +2867,9 @@
           "structure": {
             "peakEntities": 53,
             "maxWorkUnitsPerTick": 406,
-            "maxSnapshotBytes": 20722
+            "maxSnapshotBytes": 20956
           },
-          "finalHash": "95695e10c331ab64"
+          "finalHash": "a71d96a3b5ef7fe1"
         },
         {
           "id": "mobility-escape",
@@ -2912,9 +2912,9 @@
           "structure": {
             "peakEntities": 25,
             "maxWorkUnitsPerTick": 14,
-            "maxSnapshotBytes": 10719
+            "maxSnapshotBytes": 10951
           },
-          "finalHash": "3388b8897507c6f0"
+          "finalHash": "68cbc026e21993df"
         },
         {
           "id": "pickup-objective",
@@ -2957,9 +2957,9 @@
           "structure": {
             "peakEntities": 29,
             "maxWorkUnitsPerTick": 9,
-            "maxSnapshotBytes": 9825
+            "maxSnapshotBytes": 10059
           },
-          "finalHash": "4bf91deac95e6132"
+          "finalHash": "7f6ae84bb815ccc5"
         },
         {
           "id": "solo-pressure",
@@ -3002,9 +3002,9 @@
           "structure": {
             "peakEntities": 89,
             "maxWorkUnitsPerTick": 1135,
-            "maxSnapshotBytes": 28907
+            "maxSnapshotBytes": 29143
           },
-          "finalHash": "f12d13f209c2c276"
+          "finalHash": "b98626ef621f409f"
         },
         {
           "id": "elite-duel",
@@ -3047,9 +3047,9 @@
           "structure": {
             "peakEntities": 33,
             "maxWorkUnitsPerTick": 22,
-            "maxSnapshotBytes": 12806
+            "maxSnapshotBytes": 13040
           },
-          "finalHash": "5a53d40a4346985b"
+          "finalHash": "3b6e3e2d6f0531f4"
         },
         {
           "id": "apex-duel",
@@ -3092,9 +3092,9 @@
           "structure": {
             "peakEntities": 34,
             "maxWorkUnitsPerTick": 23,
-            "maxSnapshotBytes": 13667
+            "maxSnapshotBytes": 13900
           },
-          "finalHash": "c1c2f62ecada66c6"
+          "finalHash": "340785854c9416e1"
         },
         {
           "id": "four-player",
@@ -3137,9 +3137,9 @@
           "structure": {
             "peakEntities": 127,
             "maxWorkUnitsPerTick": 82,
-            "maxSnapshotBytes": 44401
+            "maxSnapshotBytes": 45000
           },
-          "finalHash": "3e062569216596c7"
+          "finalHash": "b7ddb55147efa710"
         }
       ],
       "summary": {
@@ -3234,9 +3234,9 @@
           "structure": {
             "peakEntities": 4,
             "maxWorkUnitsPerTick": 1,
-            "maxSnapshotBytes": 5373
+            "maxSnapshotBytes": 5605
           },
-          "finalHash": "ecaadfc44af2bb05"
+          "finalHash": "ca04bb91e58afd7a"
         },
         {
           "id": "e-unlock",
@@ -3279,9 +3279,9 @@
           "structure": {
             "peakEntities": 23,
             "maxWorkUnitsPerTick": 100,
-            "maxSnapshotBytes": 11140
+            "maxSnapshotBytes": 11374
           },
-          "finalHash": "d86a91100bc3bce2"
+          "finalHash": "1ad1d81334112a1d"
         },
         {
           "id": "r-unlock",
@@ -3324,9 +3324,9 @@
           "structure": {
             "peakEntities": 24,
             "maxWorkUnitsPerTick": 110,
-            "maxSnapshotBytes": 12080
+            "maxSnapshotBytes": 12314
           },
-          "finalHash": "0bf3132b571eb7f3"
+          "finalHash": "7112f25ff461910e"
         },
         {
           "id": "mature-loadout",
@@ -3369,9 +3369,9 @@
           "structure": {
             "peakEntities": 56,
             "maxWorkUnitsPerTick": 336,
-            "maxSnapshotBytes": 21738
+            "maxSnapshotBytes": 21972
           },
-          "finalHash": "ff39757943e0e937"
+          "finalHash": "639ed4a59cea9d8a"
         },
         {
           "id": "mobility-escape",
@@ -3414,9 +3414,9 @@
           "structure": {
             "peakEntities": 31,
             "maxWorkUnitsPerTick": 10,
-            "maxSnapshotBytes": 12094
+            "maxSnapshotBytes": 12328
           },
-          "finalHash": "d6ffcdf2e2404743"
+          "finalHash": "4aa42cfbfa80a31c"
         },
         {
           "id": "pickup-objective",
@@ -3459,9 +3459,9 @@
           "structure": {
             "peakEntities": 30,
             "maxWorkUnitsPerTick": 9,
-            "maxSnapshotBytes": 9977
+            "maxSnapshotBytes": 10211
           },
-          "finalHash": "ef5194019b1219a1"
+          "finalHash": "0caa0e1012e29704"
         },
         {
           "id": "solo-pressure",
@@ -3504,9 +3504,9 @@
           "structure": {
             "peakEntities": 80,
             "maxWorkUnitsPerTick": 600,
-            "maxSnapshotBytes": 28989
+            "maxSnapshotBytes": 29223
           },
-          "finalHash": "edbce573f93c8789"
+          "finalHash": "2b6d846e10c0a50c"
         },
         {
           "id": "elite-duel",
@@ -3549,9 +3549,9 @@
           "structure": {
             "peakEntities": 42,
             "maxWorkUnitsPerTick": 21,
-            "maxSnapshotBytes": 16039
+            "maxSnapshotBytes": 16273
           },
-          "finalHash": "acbfa4be51bc0526"
+          "finalHash": "bb5f170e635f884d"
         },
         {
           "id": "apex-duel",
@@ -3594,9 +3594,9 @@
           "structure": {
             "peakEntities": 45,
             "maxWorkUnitsPerTick": 25,
-            "maxSnapshotBytes": 16861
+            "maxSnapshotBytes": 17093
           },
-          "finalHash": "1b2e51433e91f944"
+          "finalHash": "73dde66e9fb28d78"
         },
         {
           "id": "four-player",
@@ -3639,9 +3639,9 @@
           "structure": {
             "peakEntities": 134,
             "maxWorkUnitsPerTick": 81,
-            "maxSnapshotBytes": 45245
+            "maxSnapshotBytes": 45840
           },
-          "finalHash": "0e6f1e5ece31e442"
+          "finalHash": "8a921678af011d37"
         }
       ],
       "summary": {
@@ -3736,9 +3736,9 @@
           "structure": {
             "peakEntities": 5,
             "maxWorkUnitsPerTick": 3,
-            "maxSnapshotBytes": 5640
+            "maxSnapshotBytes": 5872
           },
-          "finalHash": "8772556982807281"
+          "finalHash": "74e73dac983fc710"
         },
         {
           "id": "e-unlock",
@@ -3781,9 +3781,9 @@
           "structure": {
             "peakEntities": 17,
             "maxWorkUnitsPerTick": 30,
-            "maxSnapshotBytes": 10112
+            "maxSnapshotBytes": 10346
           },
-          "finalHash": "d7eb8a756d4cf894"
+          "finalHash": "8b854640d3be2019"
         },
         {
           "id": "r-unlock",
@@ -3826,9 +3826,9 @@
           "structure": {
             "peakEntities": 24,
             "maxWorkUnitsPerTick": 130,
-            "maxSnapshotBytes": 11803
+            "maxSnapshotBytes": 12033
           },
-          "finalHash": "5dcfac47a748c722"
+          "finalHash": "5d5754c8980444eb"
         },
         {
           "id": "mature-loadout",
@@ -3871,9 +3871,9 @@
           "structure": {
             "peakEntities": 139,
             "maxWorkUnitsPerTick": 1484,
-            "maxSnapshotBytes": 32058
+            "maxSnapshotBytes": 32292
           },
-          "finalHash": "6fd3e137700ac1ee"
+          "finalHash": "89619a2465c18c19"
         },
         {
           "id": "mobility-escape",
@@ -3916,9 +3916,9 @@
           "structure": {
             "peakEntities": 27,
             "maxWorkUnitsPerTick": 14,
-            "maxSnapshotBytes": 10238
+            "maxSnapshotBytes": 10470
           },
-          "finalHash": "e17d1592ccca3a42"
+          "finalHash": "fa4176d406e4d5ab"
         },
         {
           "id": "pickup-objective",
@@ -3961,9 +3961,9 @@
           "structure": {
             "peakEntities": 35,
             "maxWorkUnitsPerTick": 9,
-            "maxSnapshotBytes": 11384
+            "maxSnapshotBytes": 11618
           },
-          "finalHash": "0deb5baad30b557a"
+          "finalHash": "3b735b4f1ab75e09"
         },
         {
           "id": "solo-pressure",
@@ -4006,9 +4006,9 @@
           "structure": {
             "peakEntities": 232,
             "maxWorkUnitsPerTick": 4091,
-            "maxSnapshotBytes": 47544
+            "maxSnapshotBytes": 47780
           },
-          "finalHash": "6a1766f8baccf376"
+          "finalHash": "1163c774f7d50071"
         },
         {
           "id": "elite-duel",
@@ -4051,9 +4051,9 @@
           "structure": {
             "peakEntities": 34,
             "maxWorkUnitsPerTick": 24,
-            "maxSnapshotBytes": 13307
+            "maxSnapshotBytes": 13541
           },
-          "finalHash": "c1207226c696a220"
+          "finalHash": "fecf00a303890bef"
         },
         {
           "id": "apex-duel",
@@ -4096,9 +4096,9 @@
           "structure": {
             "peakEntities": 37,
             "maxWorkUnitsPerTick": 26,
-            "maxSnapshotBytes": 15045
+            "maxSnapshotBytes": 15277
           },
-          "finalHash": "117891c4a69b040d"
+          "finalHash": "c2e9a03b72454d15"
         },
         {
           "id": "four-player",
@@ -4141,9 +4141,9 @@
           "structure": {
             "peakEntities": 134,
             "maxWorkUnitsPerTick": 89,
-            "maxSnapshotBytes": 46229
+            "maxSnapshotBytes": 46828
           },
-          "finalHash": "d4c26831097ea9b8"
+          "finalHash": "837d73fe5fb35d67"
         }
       ],
       "summary": {
@@ -4238,9 +4238,9 @@
           "structure": {
             "peakEntities": 10,
             "maxWorkUnitsPerTick": 2,
-            "maxSnapshotBytes": 5620
+            "maxSnapshotBytes": 5854
           },
-          "finalHash": "b87bfd223b8cc7a8"
+          "finalHash": "4bfbc7a7bb91a405"
         },
         {
           "id": "e-unlock",
@@ -4283,9 +4283,9 @@
           "structure": {
             "peakEntities": 21,
             "maxWorkUnitsPerTick": 60,
-            "maxSnapshotBytes": 10664
+            "maxSnapshotBytes": 10900
           },
-          "finalHash": "dd9ff329b9dc880e"
+          "finalHash": "1c4b0892855ec65b"
         },
         {
           "id": "r-unlock",
@@ -4328,9 +4328,9 @@
           "structure": {
             "peakEntities": 33,
             "maxWorkUnitsPerTick": 140,
-            "maxSnapshotBytes": 14531
+            "maxSnapshotBytes": 14763
           },
-          "finalHash": "711643e675dae685"
+          "finalHash": "89ef63ab5426b37a"
         },
         {
           "id": "mature-loadout",
@@ -4373,9 +4373,9 @@
           "structure": {
             "peakEntities": 73,
             "maxWorkUnitsPerTick": 616,
-            "maxSnapshotBytes": 23014
+            "maxSnapshotBytes": 23248
           },
-          "finalHash": "e7f4cedeb3debade"
+          "finalHash": "b217058c35ba995b"
         },
         {
           "id": "mobility-escape",
@@ -4418,9 +4418,9 @@
           "structure": {
             "peakEntities": 47,
             "maxWorkUnitsPerTick": 19,
-            "maxSnapshotBytes": 12415
+            "maxSnapshotBytes": 12647
           },
-          "finalHash": "adf68d499a58d27a"
+          "finalHash": "338fb2a2a869c567"
         },
         {
           "id": "pickup-objective",
@@ -4463,9 +4463,9 @@
           "structure": {
             "peakEntities": 30,
             "maxWorkUnitsPerTick": 9,
-            "maxSnapshotBytes": 10141
+            "maxSnapshotBytes": 10375
           },
-          "finalHash": "7564e68055e213b5"
+          "finalHash": "fe01849b36ad15b4"
         },
         {
           "id": "solo-pressure",
@@ -4508,9 +4508,9 @@
           "structure": {
             "peakEntities": 89,
             "maxWorkUnitsPerTick": 992,
-            "maxSnapshotBytes": 31943
+            "maxSnapshotBytes": 32177
           },
-          "finalHash": "2bbd6a71b00b1b41"
+          "finalHash": "5723235330c855ee"
         },
         {
           "id": "elite-duel",
@@ -4553,9 +4553,9 @@
           "structure": {
             "peakEntities": 57,
             "maxWorkUnitsPerTick": 23,
-            "maxSnapshotBytes": 13686
+            "maxSnapshotBytes": 13920
           },
-          "finalHash": "af4f1ac27f0ac3d1"
+          "finalHash": "baef96520438f056"
         },
         {
           "id": "apex-duel",
@@ -4598,9 +4598,9 @@
           "structure": {
             "peakEntities": 61,
             "maxWorkUnitsPerTick": 38,
-            "maxSnapshotBytes": 19643
+            "maxSnapshotBytes": 19875
           },
-          "finalHash": "3cae0459f80e9a08"
+          "finalHash": "a9806a71d8726e47"
         },
         {
           "id": "four-player",
@@ -4643,9 +4643,9 @@
           "structure": {
             "peakEntities": 151,
             "maxWorkUnitsPerTick": 100,
-            "maxSnapshotBytes": 49426
+            "maxSnapshotBytes": 50025
           },
-          "finalHash": "a7cda5cf16b3adc4"
+          "finalHash": "40bc78dd2ce15dbb"
         }
       ],
       "summary": {

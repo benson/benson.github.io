@@ -1,5 +1,5 @@
-import { Simulation } from "./engine.js?v=20260713.8";
-import { hashSimulationState, replayGameplayFeatures } from "./replay.js?v=20260713.8";
+import { Simulation } from "./engine.js?v=20260713.9";
+import { hashSimulationState, replayGameplayFeatures } from "./replay.js?v=20260713.9";
 
 export function anonymousReplayToken(slot) {
   const digit = Math.max(0, Math.min(3, Number(slot) || 0)) + 1;
@@ -18,6 +18,14 @@ export function createGameReplayAdapters() {
   const addPlayer = (simulation, slot, specialist) => simulation.addPlayer({
     id: nextId(simulation, slot), name: `Specialist ${slot + 1}`, specialist, replaySlot: slot, resumeToken: anonymousReplayToken(slot),
   }, slot);
+  const deployLateJoin = (simulation, command) => {
+    if (!simulation.joinInProgressNormalization) return addPlayer(simulation, command.slot, command.specialist);
+    if (typeof simulation.deployLateJoin !== "function") throw new Error("Replay simulation does not implement deterministic late-join deployment");
+    return simulation.deployLateJoin({
+      id: nextId(simulation, command.slot), name: `Specialist ${command.slot + 1}`,
+      specialist: command.specialist, replaySlot: command.slot, resumeToken: anonymousReplayToken(command.slot),
+    }, { packageId: command.packageId, catchUpRanks: command.catchUpRanks });
+  };
 
   return Object.freeze({
     createSimulation(replay) {
@@ -55,7 +63,7 @@ export function createGameReplayAdapters() {
         const result = player && simulation.draftAction(player.id, { type: "replace", choiceId: command.choiceId, replacementId: command.replacementId });
         if (!result?.accepted) throw new Error(`Replay replacement was rejected for slot ${command.slot}`);
       }
-      else if (command.kind === "join") addPlayer(simulation, command.slot, command.specialist);
+      else if (command.kind === "join") deployLateJoin(simulation, command);
       else if (command.kind === "leave") { if (!player) throw new Error(`Replay leave references inactive slot ${command.slot}`); simulation.removePlayer(player.id); }
       else if (command.kind === "reconnect") addPlayer(simulation, command.slot, command.specialist || player?.specialist || "zuri");
       else if (command.kind === "abandon") simulation.lose("The squad withdrew from the breach.");

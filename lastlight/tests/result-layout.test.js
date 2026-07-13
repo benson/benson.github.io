@@ -21,7 +21,7 @@ test("post-game hierarchy uses one compact semantic header before unchanged stat
 
 test("desktop result shell spends vertical space on statistics instead of ceremony", () => {
   assert.match(rule(".result-screen"), /place-items: start center/);
-  assert.match(rule(".result-screen"), /padding: 24px 30px/);
+  assert.match(rule(".result-screen"), /padding: 20px/);
   assert.match(rule(".result-card"), /padding: clamp\(22px, 2\.5vw, 34px\)/);
   assert.match(rule(".result-header"), /grid-template-columns: minmax\(0, 1\.15fr\) minmax\(300px, \.85fr\)/);
   assert.match(rule(".result-header"), /padding-bottom: 18px/);

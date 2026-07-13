@@ -13,8 +13,8 @@ function genericReplay() {
       schema: REPLAY_SCHEMA, build: "2026.07.11.7",
       balance: { version: BALANCE_VERSION, hash: BALANCE_HASH },
       features: {
-        configVersion: "test-v1", gameplayVersion: "participation-v1", objectiveEvents: true,
-        squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, registryVersion: "lastlight.squad-synergy.v1",
+        configVersion: "test-v1", gameplayVersion: "join-normalization-v1", objectiveEvents: true,
+        squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, registryVersion: "lastlight.squad-synergy.v1",
       },
       engine: { stepHz: 60, rng: "xoshiro128ss-v1" }, seed: "0123456789abcdef0123456789abcdef",
       run: { map: "warehouse", difficulty: "story", duration: 240 }, roster: [{ slot: 0, specialist: "zuri" }],
@@ -91,6 +91,35 @@ test("game adapter accepts only the exact pending upgrade choice", () => {
   assert.throws(() => adapters.applyCommand(simulation, { kind: "upgrade", slot: 0, choiceId: "weapon:mines" }), /rejected/);
 });
 
+test("game adapter routes packaged joins through the deterministic deployment seam", () => {
+  const calls = [];
+  const simulation = {
+    joinInProgressNormalization: true, players: [],
+    deployLateJoin: (info, options) => calls.push({ info, options }),
+  };
+  createGameReplayAdapters().applyCommand(simulation, {
+    kind: "join", slot: 2, specialist: "sola", packageId: "signature", catchUpRanks: 4,
+  });
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0].options, { packageId: "signature", catchUpRanks: 4 });
+  assert.equal(calls[0].info.replaySlot, 2);
+  assert.equal(calls[0].info.specialist, "sola");
+  assert.match(calls[0].info.id, /^replay-2-1$/);
+});
+
+test("game adapter preserves the legacy add-player seam only when normalization is disabled", () => {
+  const calls = [];
+  const simulation = {
+    joinInProgressNormalization: false, players: [],
+    addPlayer: (...args) => calls.push(args),
+    deployLateJoin: () => assert.fail("legacy joins must not use normalized deployment"),
+  };
+  createGameReplayAdapters().applyCommand(simulation, { kind: "join", slot: 1, specialist: "echo" });
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][0].replaySlot, 1);
+  assert.equal(calls[0][0].specialist, "echo");
+});
+
 test("timeline rejects a simulation with mismatched participation compatibility before playback", () => {
   const { replay, adapters } = genericReplay();
   adapters.createSimulation = () => ({
@@ -107,6 +136,16 @@ test("timeline rejects a simulation with mismatched downed activity before playb
     squadSynergies: true, sharedParticipationCredit: true, downedActivity: false, synergyRegistryVersion: replay.features.registryVersion,
   });
   assert.throws(() => new VerifiedReplayTimeline(replay, adapters), /downed-activity flag mismatch/);
+});
+
+test("timeline rejects a simulation with mismatched join normalization before playback", () => {
+  const { replay, adapters } = genericReplay();
+  adapters.createSimulation = () => ({
+    value: 0, gameplayVersion: replay.features.gameplayVersion, objectiveEvents: true,
+    squadSynergies: true, sharedParticipationCredit: true, downedActivity: true,
+    joinInProgressNormalization: false, synergyRegistryVersion: replay.features.registryVersion,
+  });
+  assert.throws(() => new VerifiedReplayTimeline(replay, adapters), /join-in-progress-normalization flag mismatch/);
 });
 
 test("game adapter replays authoritative reroll, banish, skip, and replacement decisions", () => {

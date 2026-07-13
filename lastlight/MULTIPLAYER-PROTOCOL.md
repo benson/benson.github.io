@@ -1,7 +1,8 @@
 # Multiplayer authority protocol
 
-Protocol v3 adds authority epochs and deterministic host migration to the v2
-sequenced-input contract. The relay remains a transport and election arbiter;
+Protocol v5 adds deterministic join-in-progress normalization to the authority
+epochs and host migration introduced in v3. The relay remains a transport and
+election arbiter;
 exactly one browser owns the authoritative `Simulation` and replay recorder at
 any point in a run.
 
@@ -52,19 +53,20 @@ schema and the deterministic compatibility tuple:
 ```json
 {
   "schema":"lastlight.host-migration.v1",
-  "protocolVersion":4,
+  "protocolVersion":5,
   "compatibility":{
     "build":"build-id",
     "balanceVersion":"balance-v1",
     "balanceHash":"fnv1a32:01234567",
-    "configVersion":"release-2026.07.13.8",
-    "gameplayVersion":"downed-v1",
+    "configVersion":"release-2026.07.13.9",
+    "gameplayVersion":"join-normalization-v1",
     "objectiveEvents":true,
     "squadSynergies":true,
     "sharedParticipationCredit":true,
     "downedActivity":true,
+    "joinInProgressNormalization":true,
     "registryVersion":"lastlight.squad-synergy.v1",
-    "recoveryVersion":6
+    "recoveryVersion":7
   }
 }
 ```
@@ -231,6 +233,33 @@ Host-migration protocol v4 includes the flag and recovery version in its strict
 compatibility tuple. Disabling `downedActivity` restores the previous immobile
 downed behavior for newly created runs without changing the active run in place.
 
+## Join-in-progress normalization
+
+Runtime config schema v5 adds the independent `joinInProgressNormalization`
+flag. When enabled, `lastlight.join-normalization.v1` assigns every genuinely
+new late join an unused run seat and an authoritative, bounded deployment
+package. A departed seat remains reserved for its proven reconnect and cannot
+be inherited merely because its replay slot is absent. The package records a
+stable `packageId` and integer `catchUpRanks`; player state records join kind,
+join tick, deployed ticks, pre-apex deployed ticks, and the run's used-seat set.
+Reconnects restore the existing player unchanged.
+
+Replay schema v8 records new joins as
+`[tick, ordinal, "j", slot, specialist, packageId, catchUpRanks]`. Package IDs
+are bounded to the versioned `signature`, `assault`, and `survival` registry and
+ranks to `0..54`; malformed or truncated tuples fail validation. Replay v7
+remains readable with its legacy five-field
+join tuple and normalizes this flag to `false`. Replay draft v5 uses the current
+contract, while draft v4 remains readable with legacy semantics.
+
+Recovery envelope v5 and simulation version 7 serialize and strictly validate
+the new anonymous state. Host-migration protocol v5 includes the flag and
+recovery version in its exact compatibility tuple. Playback uses the same
+`deployLateJoin` authority seam as live play when the flag is enabled and uses
+legacy `addPlayer` behavior only for a feature-off replay. Disabling the flag is
+a new-run rollback boundary; it never changes an active run or reinterprets an
+existing replay.
+
 ## Replay, privacy, and diagnostics
 
 Only commands accepted by the authoritative host reach `ReplayRecorder`.
@@ -260,6 +289,10 @@ runs; an active run never changes compatibility in place.
 
 Downed activity has its own reversible `downedActivity` flag with the same
 new-run-only compatibility rule.
+
+Join-in-progress normalization has its own reversible
+`joinInProgressNormalization` flag with the same new-run-only compatibility
+rule. A legacy flag-off replay retains its previous canonical hash shape.
 
 Roll out in that order. Checkpoint shadow validation should precede election,
 and election telemetry should precede live resume. Disabling checkpoint

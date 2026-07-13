@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import worker, { Room, normalizeCode, operatorRuntimeConfig, safeProfile, sanitizeRunTelemetry } from "./worker.js";
+import worker, { ROOM_ADMISSION_PROTOCOL_VERSION, Room, normalizeCode, operatorRuntimeConfig, safeProfile, sanitizeRunTelemetry } from "./worker.js";
 import { createMigrationCapabilities, createMigrationCheckpoint, createMigrationReady } from "../host-migration.js";
 import { createPingBroadcast, createPingRequest } from "../ping-contract.js";
 import {
@@ -9,11 +9,42 @@ import {
 
 const migrationCompatibility = {
   build: "2026.07.13.1", balanceVersion: "2026.07.13-apex.1", balanceHash: "fnv1a32:873c43bc",
-  configVersion: "release-2026.07.13.8", gameplayVersion: "downed-v1", objectiveEvents: true,
-  squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, registryVersion: "lastlight.squad-synergy.v1", recoveryVersion: 6,
+  configVersion: "release-2026.07.13.9", gameplayVersion: "join-normalization-v1", objectiveEvents: true,
+  squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true,
+  registryVersion: "lastlight.squad-synergy.v1", recoveryVersion: 7,
 };
 const migrationCapabilities = createMigrationCapabilities(migrationCompatibility);
 const migrationSocket = () => ({ sent: [], send(payload) { this.sent.push(JSON.parse(payload)); } });
+const admissionSocket = () => ({ sent: [], closed: null, send(payload) { this.sent.push(JSON.parse(payload)); }, close(code, reason) { this.closed = { code, reason }; } });
+
+function admissionRoomFixture(count = 2) {
+  const room = new Room({});
+  const sockets = [], sessions = [];
+  const specialists = ["zuri", "echo", "sola", "bront"];
+  for (let index = 0; index < count; index++) {
+    const socket = admissionSocket(), session = {
+      id: index === 0 ? "host" : `guest-${index}`, initialized: true, joinOrdinal: index,
+      name: index === 0 ? "Host" : `Guest ${index}`, specialist: specialists[index], ready: true,
+      resumeToken: String(index + 1).repeat(24), migrationCapabilities,
+      roomProtocolVersion: ROOM_ADMISSION_PROTOCOL_VERSION, admissionState: "lobby",
+    };
+    room.sessions.set(socket, session); sockets.push(socket); sessions.push(session);
+  }
+  room.nextJoinOrdinal = count;
+  room.hostId = sessions[0].id;
+  room.onMessage(sockets[0], JSON.stringify({
+    type: "start", config: {}, players: sessions.map((session, replaySlot) => ({ id: session.id, specialist: session.specialist, replaySlot })),
+  }));
+  for (const socket of sockets) socket.sent.length = 0;
+  return { room, sockets, sessions, host: sockets[0], hostSession: sessions[0] };
+}
+
+function connectAdmissionSession(room, { id, token, specialist = "nova", capabilities = migrationCapabilities, protocolVersion = ROOM_ADMISSION_PROTOCOL_VERSION } = {}) {
+  const socket = admissionSocket(), session = { id, initialized: false, connectedAt: Date.now(), joinOrdinal: room.nextJoinOrdinal++ };
+  room.sessions.set(socket, session);
+  room.initializeSession(socket, session, { name: id, specialist, resumeToken: token }, capabilities, protocolVersion);
+  return { socket, session };
+}
 
 const validTelemetry = {
   schemaVersion: 1,
@@ -244,12 +275,12 @@ test("telemetry endpoint enforces method, type, size, origin, and CORS", async (
 
 test("runtime config endpoint is allowlisted, no-store, origin-aware, and read-only", async () => {
   const config = {
-    schemaVersion: 4, configVersion: "rollback-42", gameplayVersion: "downed-off-v1",
+    schemaVersion: 5, configVersion: "rollback-42", gameplayVersion: "join-off-v1",
     registryVersion: "lastlight.squad-synergy.v1",
     flags: {
       deterministicReplay: false, runTelemetry: false, objectiveEvents: false,
       migrationCheckpointReplication: false, hostMigrationElection: false, hostMigrationResume: false,
-      contextualPings: false, upgradeRecommendations: false, squadSynergies: false, sharedParticipationCredit: false, downedActivity: false,
+      contextualPings: false, upgradeRecommendations: false, squadSynergies: false, sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false,
     },
   };
   const env = { LASTLIGHT_RUNTIME_CONFIG: JSON.stringify(config) };
@@ -272,7 +303,7 @@ test("invalid operator config fails closed to immutable release defaults", () =>
   assert.deepEqual(invalid.config.flags, {
     deterministicReplay: true, runTelemetry: true, objectiveEvents: true,
     migrationCheckpointReplication: true, hostMigrationElection: true, hostMigrationResume: true,
-    contextualPings: true, upgradeRecommendations: true, squadSynergies: true, sharedParticipationCredit: true, downedActivity: true,
+    contextualPings: true, upgradeRecommendations: true, squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true,
   });
   assert.equal(operatorRuntimeConfig({}).source, "built-in");
 });
@@ -348,10 +379,10 @@ test("room identity is established by the first message instead of the request U
   assert.equal(room.hostId, "first");
   assert.equal(room.sessions.get(socket).name, "Private Pilot");
   assert.equal(room.sessions.get(socket).resumeToken, "a".repeat(24));
-  assert.deepEqual(socket.sent, [{ type: "welcome", id: "first", role: "host", hostId: "first", peers: [], authorityEpoch: 0, migrationProtocol: 4 }]);
+  assert.deepEqual(socket.sent, [{ type: "welcome", id: "first", role: "host", hostId: "first", peers: [], authorityEpoch: 0, migrationProtocol: 5 }]);
 });
 
-test("reconnect tokens stay relay-private when profiles are routed", () => {
+test("reconnect tokens stay relay-private and immutable when profiles are routed", () => {
   const room = new Room({});
   const host = { sent: [], send(payload) { this.sent.push(JSON.parse(payload)); } };
   const guest = { sent: [], send(payload) { this.sent.push(JSON.parse(payload)); } };
@@ -361,7 +392,7 @@ test("reconnect tokens stay relay-private when profiles are routed", () => {
   room.onMessage(guest, JSON.stringify({
     type: "profile", profile: { name: "Guest", specialist: "echo", ready: true, resumeToken: "a".repeat(24) },
   }));
-  assert.equal(room.sessions.get(guest).resumeToken, "a".repeat(24));
+  assert.equal(room.sessions.get(guest).resumeToken, undefined);
   assert.deepEqual(host.sent, [{
     type: "profile", profile: { id: "guest", name: "Guest", specialist: "echo", ready: true }, _from: "guest",
   }]);
@@ -394,7 +425,125 @@ test("a session can only be initialized once by the hello handshake", () => {
   assert.equal(room.initializeSession(socket, session, { name: "Ignored", specialist: "fang" }), false);
   assert.equal(session.name, "First");
   assert.equal(session.specialist, "echo");
-  assert.deepEqual(socket.sent, [{ type: "welcome", id: "handshake", role: "host", hostId: "handshake", peers: [], authorityEpoch: 0, migrationProtocol: 4 }]);
+  assert.deepEqual(socket.sent, [{ type: "welcome", id: "handshake", role: "host", hostId: "handshake", peers: [], authorityEpoch: 0, migrationProtocol: 5 }]);
+});
+
+test("fresh active-run admission binds one relay-owned slot only after an explicit package request", () => {
+  const { room, host, sockets } = admissionRoomFixture(2);
+  const token = "a".repeat(24), { socket, session } = connectAdmissionSession(room, { id: "fresh", token });
+  const welcome = socket.sent[0];
+  assert.deepEqual(welcome.admission, { kind: "fresh", roomProtocolVersion: ROOM_ADMISSION_PROTOCOL_VERSION });
+  assert.equal(session.replaySlot, undefined); assert.equal(room.runSeats.size, 2); assert.equal(host.sent.length, 0);
+
+  room.onMessage(socket, JSON.stringify({ type: "profile", profile: { name: "Selected", specialist: "fang", ready: true, resumeToken: "b".repeat(24) } }));
+  assert.equal(session.name, "Selected"); assert.equal(session.resumeToken, token, "profile cannot replace the hello identity");
+  assert.equal(host.sent.length, 0, "profile selection is relay-local and cannot admit a player");
+
+  const request = { type: "join_request", protocolVersion: ROOM_ADMISSION_PROTOCOL_VERSION, specialist: "fang", packageId: "assault" };
+  room.onMessage(socket, JSON.stringify(request));
+  assert.equal(session.replaySlot, 2); assert.equal(room.seatTokens.get(token), 2); assert.equal(session.admissionState, "pending");
+  assert.deepEqual(host.sent.at(-1), {
+    type: "run_admission", protocolVersion: ROOM_ADMISSION_PROTOCOL_VERSION, admissionId: session.admissionId,
+    kind: "fresh", replaySlot: 2, packageId: "assault", _from: "fresh",
+    profile: { id: "fresh", name: "Selected", specialist: "fang", ready: true, replaySlot: 2 },
+  });
+  const routed = host.sent.length;
+  room.onMessage(socket, JSON.stringify(request));
+  assert.equal(host.sent.length, routed, "a session gets exactly one admission request");
+
+  room.onMessage(host, JSON.stringify({ type: "snapshot", state: { tick: 10 } }));
+  assert.equal(socket.sent.some(({ type }) => type === "snapshot"), false, "pending players cannot spectate active snapshots");
+  room.onMessage(socket, JSON.stringify({ type: "input", input: { x: 1, y: 0, aim: 0, autoAim: true } }));
+  assert.equal(host.sent.length, routed, "pending gameplay traffic is not routed to authority");
+
+  room.onMessage(sockets[1], JSON.stringify({
+    type: "join_committed", protocolVersion: 2, admissionId: session.admissionId, replaySlot: 2, _to: "fresh",
+  }));
+  room.onMessage(host, JSON.stringify({
+    type: "join_committed", protocolVersion: 2, admissionId: `${session.admissionId}x`, replaySlot: 2, _to: "fresh",
+  }));
+  assert.equal(session.admissionState, "pending", "only the current host may resolve the exact admission tuple");
+
+  room.onMessage(host, JSON.stringify({
+    type: "join_committed", protocolVersion: ROOM_ADMISSION_PROTOCOL_VERSION, admissionId: session.admissionId, replaySlot: 2, _to: "fresh",
+  }));
+  assert.equal(session.admissionState, "active"); assert.equal(room.runSeats.get(2).status, "active");
+  assert.equal(socket.sent.at(-1).type, "join_committed");
+  const committedMessages = socket.sent.filter(({ type }) => type === "join_committed").length;
+  room.onMessage(host, JSON.stringify({
+    type: "join_committed", protocolVersion: 2, admissionId: session.admissionId, replaySlot: 2, _to: "fresh",
+  }));
+  assert.equal(socket.sent.filter(({ type }) => type === "join_committed").length, committedMessages, "commit is idempotent");
+  room.onMessage(host, JSON.stringify({ type: "snapshot", state: { tick: 11 } }));
+  assert.equal(socket.sent.at(-1).type, "snapshot");
+  assert.equal(sockets[1].sent.filter(({ type }) => type === "snapshot").length, 2);
+});
+
+test("reserved reconnect seats cannot be claimed by strangers and are never reused during a run", () => {
+  const { room, sockets, sessions, host } = admissionRoomFixture(2);
+  room.onClose(sockets[1]); host.sent.length = 0;
+  assert.equal(room.runSeats.get(1).status, "reserved");
+
+  const stranger = connectAdmissionSession(room, { id: "stranger", token: "c".repeat(24) });
+  room.onMessage(stranger.socket, JSON.stringify({ type: "join_request", protocolVersion: 2, specialist: "nova", packageId: "survival" }));
+  assert.equal(stranger.session.replaySlot, 2, "fresh admission uses the lowest never-used slot, not a reserved seat");
+  room.onMessage(host, JSON.stringify({ type: "join_rejected", protocolVersion: 2, admissionId: stranger.session.admissionId, replaySlot: 2, reason: "run-locked", _to: "stranger" }));
+  assert.equal(room.runSeats.get(2).status, "rejected");
+
+  const next = connectAdmissionSession(room, { id: "next", token: "d".repeat(24) });
+  room.onMessage(next.socket, JSON.stringify({ type: "join_request", protocolVersion: 2, specialist: "bront", packageId: "signature" }));
+  assert.equal(next.session.replaySlot, 3, "a rejected identity is not recycled during the same run");
+  room.onClose(next.socket); host.sent.length = 0;
+  const resumedFresh = connectAdmissionSession(room, { id: "next-returned", token: "d".repeat(24) });
+  assert.equal(resumedFresh.socket.sent[0].admission.kind, "fresh", "an uncommitted fresh identity does not masquerade as a reconnect");
+  assert.equal(resumedFresh.socket.sent[0].admission.slot, 3);
+  assert.equal(host.sent.at(-1).kind, "fresh"); assert.equal(host.sent.at(-1).packageId, "signature");
+
+  const returning = connectAdmissionSession(room, { id: "guest-returned", token: sessions[1].resumeToken, specialist: "vesper" });
+  assert.equal(returning.session.replaySlot, 1); assert.equal(returning.session.specialist, "echo", "reconnect retains the seat specialist");
+  assert.equal(returning.socket.sent[0].admission.kind, "reconnect");
+  assert.equal(host.sent.at(-1).kind, "reconnect"); assert.equal(host.sent.at(-1).replaySlot, 1);
+});
+
+test("active admission fails closed for duplicate, incompatible, full, and hostless sessions", () => {
+  const first = admissionRoomFixture(2), duplicate = connectAdmissionSession(first.room, { id: "duplicate", token: first.sessions[1].resumeToken });
+  assert.deepEqual(duplicate.socket.sent[0].admission, { kind: "denied", reason: "identity-in-use", roomProtocolVersion: 2 });
+
+  const incompatibleCapabilities = createMigrationCapabilities({ ...migrationCompatibility, build: "2026.07.13.incompatible" });
+  const incompatible = connectAdmissionSession(first.room, { id: "incompatible", token: "e".repeat(24), capabilities: incompatibleCapabilities });
+  assert.equal(incompatible.socket.sent[0].admission.reason, "incompatible");
+
+  const full = admissionRoomFixture(4), overflow = connectAdmissionSession(full.room, { id: "overflow", token: "f".repeat(24) });
+  assert.equal(overflow.socket.sent[0].admission.reason, "squad-full");
+
+  const hostless = admissionRoomFixture(2); hostless.room.hostId = null; hostless.room.migration = null;
+  const stranded = connectAdmissionSession(hostless.room, { id: "stranded", token: "a1".repeat(12) });
+  assert.equal(stranded.socket.sent[0].admission.reason, "no-authority");
+});
+
+test("legacy hosts allow authenticated reconnect only while fresh joins fail closed", () => {
+  const { room, sockets, sessions, hostSession, host } = admissionRoomFixture(2);
+  hostSession.roomProtocolVersion = 1; room.runRoomProtocolVersion = 1;
+  const fresh = connectAdmissionSession(room, { id: "fresh-modern", token: "a2".repeat(12) });
+  assert.equal(fresh.socket.sent[0].admission.reason, "incompatible");
+
+  room.onClose(sockets[1]); host.sent.length = 0;
+  const returning = connectAdmissionSession(room, { id: "legacy-return", token: sessions[1].resumeToken, protocolVersion: 1 });
+  assert.equal(returning.session.admissionState, "active");
+  assert.deepEqual(host.sent.at(-1), {
+    type: "profile", _from: "legacy-return",
+    profile: { id: "legacy-return", name: "legacy-return", specialist: "echo", ready: false, replaySlot: 1 },
+  });
+});
+
+test("return_lobby clears every run seat, token, and admission fence", () => {
+  const { room, host, sessions } = admissionRoomFixture(2);
+  room.onMessage(host, JSON.stringify({ type: "return_lobby", epoch: 0 }));
+  assert.equal(room.runActive, false); assert.equal(room.runSeats.size, 0); assert.equal(room.seatTokens.size, 0);
+  assert.equal(room.runCompatibility, null); assert.equal(room.runRoomProtocolVersion, 1);
+  for (const session of sessions) {
+    assert.equal(session.admissionState, "lobby"); assert.equal(session.replaySlot, undefined); assert.equal(session.admissionId, undefined);
+  }
 });
 
 test("active host loss freezes routing and deterministically offers authority to the lowest replay slot", () => {
@@ -408,7 +557,7 @@ test("active host loss freezes routing and deterministically offers authority to
   const checkpoint = createMigrationCheckpoint({
     epoch: 0, tick: 180, hash: "0123456789abcdef", ack: { "slot-one": 4, "slot-two": 8 }, compatibility: migrationCompatibility,
     roster: [{ id: "host", replaySlot: 0 }, { id: "slot-one", replaySlot: 1 }, { id: "slot-two", replaySlot: 2 }],
-    simulation: { version: 6, scalars: { tick: 180 } }, replay: { currentTick: 180 },
+    simulation: { version: 7, scalars: { tick: 180 } }, replay: { currentTick: 180 },
   });
   assert.equal(room.acceptMigrationCheckpoint(hostSession, checkpoint), true);
 
@@ -438,7 +587,7 @@ test("migration rejects stale checkpoints, incompatible candidates, and forged r
   const checkpoint = createMigrationCheckpoint({
     epoch: 0, tick: 60, hash: "fedcba9876543210", ack: { guest: 1 }, compatibility: migrationCompatibility,
     roster: [{ id: "host", replaySlot: 0 }, { id: "guest", replaySlot: 1 }],
-    simulation: { version: 6, scalars: { tick: 60 } }, replay: null,
+    simulation: { version: 7, scalars: { tick: 60 } }, replay: null,
   });
   assert.equal(room.acceptMigrationCheckpoint(hostSession, checkpoint), true);
   assert.equal(room.acceptMigrationCheckpoint(hostSession, checkpoint), false);
@@ -460,7 +609,7 @@ function migrationFixture({ env = {}, hostToken = "a".repeat(24) } = {}) {
   const checkpoint = createMigrationCheckpoint({
     epoch: 0, tick: 180, hash: "0123456789abcdef", ack: { successor: 7, observer: 4 }, compatibility: migrationCompatibility,
     roster: [{ id: "host", replaySlot: 0 }, { id: "successor", replaySlot: 1 }, { id: "observer", replaySlot: 2 }],
-    simulation: { version: 6, scalars: { tick: 180 } }, replay: { currentTick: 180 },
+    simulation: { version: 7, scalars: { tick: 180 } }, replay: { currentTick: 180 },
   });
   return { room, host, successor, observer, hostSession, successorSession, observerSession, checkpoint, hostToken };
 }
@@ -518,12 +667,12 @@ test("active host loss without a checkpoint fails closed instead of promoting an
 
 test("disabled host migration fails closed even when a valid checkpoint exists", () => {
   const config = {
-    schemaVersion: 4, configVersion: "migration-off", gameplayVersion: "downed-v1",
+    schemaVersion: 5, configVersion: "migration-off", gameplayVersion: "join-normalization-v1",
     registryVersion: "lastlight.squad-synergy.v1",
     flags: {
       deterministicReplay: true, runTelemetry: true, objectiveEvents: true,
       migrationCheckpointReplication: true, hostMigrationElection: false, hostMigrationResume: true,
-      contextualPings: true, upgradeRecommendations: true, squadSynergies: true, sharedParticipationCredit: true, downedActivity: true,
+      contextualPings: true, upgradeRecommendations: true, squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true,
     },
   };
   const fixture = migrationFixture({ env: { LASTLIGHT_RUNTIME_CONFIG: JSON.stringify(config) } });
@@ -560,11 +709,11 @@ test("a returning old host reclaims its checkpoint replay slot but remains a gue
       { id: "successor", replaySlot: 1 },
       { id: "observer", replaySlot: 2 },
     ],
-    authorityEpoch: 1, migrationProtocol: 4,
+    authorityEpoch: 1, migrationProtocol: 5,
   });
   assert.deepEqual(successor.sent.at(-1), {
-    type: "peer_joined",
-    peer: { id: "host-returned", name: "Original host", specialist: "zuri", ready: false, replaySlot: 0 },
+    type: "profile", _from: "host-returned",
+    profile: { id: "host-returned", name: "Original host", specialist: "zuri", ready: false, replaySlot: 0 },
   });
 });
 
@@ -579,7 +728,7 @@ test("a profile that reconnects during election is replayed to the committed suc
   assert.equal(room.initializeSession(returning, returningSession, {
     name: "Original host", specialist: "zuri", resumeToken: hostToken,
   }, migrationCapabilities), true);
-  assert.equal(returningSession.pendingProfile, true);
+  assert.equal(returningSession.admissionState, "queued");
   successor.sent.length = 0;
   assert.equal(room.acceptMigrationReady(successorSession, createMigrationReady({ ...checkpoint, epoch: 1 })), true);
   assert.deepEqual(successor.sent.at(-1), {
@@ -587,6 +736,34 @@ test("a profile that reconnects during election is replayed to the committed suc
     profile: { id: "host-returned", name: "Original host", specialist: "zuri", ready: false, replaySlot: 0 },
   });
   assert.equal(returningSession.pendingProfile, undefined);
+});
+
+test("fresh admission queues through migration and is replayed exactly once to the committed successor", () => {
+  const { room, sockets, sessions, host, hostSession } = admissionRoomFixture(3);
+  const checkpoint = createMigrationCheckpoint({
+    epoch: 0, tick: 180, hash: "0123456789abcdef", ack: { "guest-1": 4, "guest-2": 3 }, compatibility: migrationCompatibility,
+    roster: sessions.map((session, replaySlot) => ({ id: session.id, replaySlot })),
+    simulation: { version: 7, scalars: { tick: 180 } }, replay: { currentTick: 180 },
+  });
+  assert.equal(room.acceptMigrationCheckpoint(hostSession, checkpoint), true);
+  room.onClose(host);
+  assert.equal(room.migration.candidateId, "guest-1");
+
+  const queued = connectAdmissionSession(room, { id: "queued", token: "e1".repeat(12) });
+  assert.deepEqual(queued.socket.sent[0].admission, { kind: "waiting", roomProtocolVersion: 2 });
+  room.onMessage(queued.socket, JSON.stringify({ type: "join_request", protocolVersion: 2, specialist: "vesper", packageId: "survival" }));
+  assert.equal(queued.session.replaySlot, 3); assert.equal(queued.session.admissionState, "queued");
+  const successor = sockets[1], successorSession = sessions[1]; successor.sent.length = 0;
+  assert.equal(room.acceptMigrationReady(successorSession, createMigrationReady({ ...checkpoint, epoch: 1 })), true);
+  const admissions = successor.sent.filter(({ type }) => type === "run_admission");
+  assert.equal(admissions.length, 1);
+  assert.deepEqual(admissions[0], {
+    type: "run_admission", protocolVersion: 2, admissionId: queued.session.admissionId, kind: "fresh", replaySlot: 3,
+    packageId: "survival", _from: "queued",
+    profile: { id: "queued", name: "queued", specialist: "vesper", ready: false, replaySlot: 3 },
+  });
+  room.acceptMigrationReady(successorSession, createMigrationReady({ ...checkpoint, epoch: 1 }));
+  assert.equal(successor.sent.filter(({ type }) => type === "run_admission").length, 1);
 });
 
 function pingRoomFixture(env = {}) {
@@ -684,12 +861,12 @@ test("only the host can relay a strict ping broadcast and cannot forge a guest p
 
 test("the runtime rollback flag rejects request and broadcast paths", () => {
   const config = {
-    schemaVersion: 4, configVersion: "pings-off", gameplayVersion: "downed-v1",
+    schemaVersion: 5, configVersion: "pings-off", gameplayVersion: "join-normalization-v1",
     registryVersion: "lastlight.squad-synergy.v1",
     flags: {
       deterministicReplay: true, runTelemetry: true, objectiveEvents: true,
       migrationCheckpointReplication: true, hostMigrationElection: true, hostMigrationResume: true,
-      contextualPings: false, upgradeRecommendations: true, squadSynergies: true, sharedParticipationCredit: true, downedActivity: true,
+      contextualPings: false, upgradeRecommendations: true, squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true,
     },
   };
   const { room, host, guest, observer } = pingRoomFixture({ LASTLIGHT_RUNTIME_CONFIG: JSON.stringify(config) });
@@ -730,7 +907,7 @@ test("ping rate state survives host migration while pending old-epoch pings do n
   const checkpoint = createMigrationCheckpoint({
     epoch: 0, tick: 180, hash: "0123456789abcdef", ack: { guest: 4, observer: 4 }, compatibility: migrationCompatibility,
     roster: [{ id: "host", replaySlot: 0 }, { id: "guest", replaySlot: 1 }, { id: "observer", replaySlot: 2 }],
-    simulation: { version: 6, scalars: { tick: 180 } }, replay: { currentTick: 180 },
+    simulation: { version: 7, scalars: { tick: 180 } }, replay: { currentTick: 180 },
   });
   assert.equal(room.acceptMigrationCheckpoint(hostSession, checkpoint), true);
   room.onClose(host);
@@ -891,7 +1068,7 @@ test("host migration clears old-epoch recommendation intent while preserving slo
   const checkpoint = createMigrationCheckpoint({
     epoch: 0, tick: 180, hash: "0123456789abcdef", ack: { guest: 4, observer: 4 }, compatibility: migrationCompatibility,
     roster: [{ id: "host", replaySlot: 0 }, { id: "guest", replaySlot: 1 }, { id: "observer", replaySlot: 2 }],
-    simulation: { version: 6, scalars: { tick: 180 } }, replay: { currentTick: 180 },
+    simulation: { version: 7, scalars: { tick: 180 } }, replay: { currentTick: 180 },
   });
   assert.equal(room.acceptMigrationCheckpoint(hostSession, checkpoint), true);
   room.onClose(host);
