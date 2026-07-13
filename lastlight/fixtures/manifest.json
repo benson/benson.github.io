@@ -6,7 +6,7 @@
     "hash": "fnv1a32:fae5ab46"
   },
   "replay": {
-    "schema": "lastlight.replay.v9",
+    "schema": "lastlight.replay.v10",
     "stepHz": 60,
     "rng": "xoshiro128ss-v1"
   },

@@ -1,6 +1,6 @@
-export const RECOVERY_SCHEMA = "lastlight.run-recovery.v6";
-export const RECOVERY_STORAGE_KEY = "lastlight:run-recovery:v6";
-export const RECOVERY_SIMULATION_VERSION = 8;
+export const RECOVERY_SCHEMA = "lastlight.run-recovery.v7";
+export const RECOVERY_STORAGE_KEY = "lastlight:run-recovery:v7";
+export const RECOVERY_SIMULATION_VERSION = 9;
 export const MAX_RECOVERY_BYTES = 1_500_000;
 export const RECOVERY_MAX_AGE_MS = 6 * 60 * 60 * 1_000;
 
@@ -36,6 +36,7 @@ export function runtimeRecoveryIdentity(config) {
     downedActivity: Boolean(config?.flags?.downedActivity ?? config?.downedActivity),
     joinInProgressNormalization: Boolean(config?.flags?.joinInProgressNormalization ?? config?.joinInProgressNormalization),
     squadEnemyDirector: Boolean(config?.flags?.squadEnemyDirector ?? config?.squadEnemyDirector),
+    mapMechanics: Boolean(config?.flags?.mapMechanics ?? config?.mapMechanics),
     registryVersion: String(config?.registryVersion || ""),
   });
 }
@@ -64,16 +65,18 @@ export function validateRunRecovery(value, { build, runtime, now = Date.now() } 
   if (value.expiresAt - value.savedAt !== RECOVERY_MAX_AGE_MS || value.savedAt > now + 5 * 60_000 || value.expiresAt <= now) throw new TypeError("Recovery checkpoint is stale");
   if (value.source !== "solo" && value.source !== "host") throw new TypeError("Recovery source is invalid");
   finiteInteger(value.localSlot, 0, 3, "localSlot");
-  exactKeys(value.runtime, ["configVersion", "gameplayVersion", "objectiveEvents", "squadSynergies", "sharedParticipationCredit", "downedActivity", "joinInProgressNormalization", "squadEnemyDirector", "registryVersion"], "runtime");
+  exactKeys(value.runtime, ["configVersion", "gameplayVersion", "objectiveEvents", "squadSynergies", "sharedParticipationCredit", "downedActivity", "joinInProgressNormalization", "squadEnemyDirector", "mapMechanics", "registryVersion"], "runtime");
   if (typeof value.runtime.objectiveEvents !== "boolean" || typeof value.runtime.squadSynergies !== "boolean"
     || typeof value.runtime.sharedParticipationCredit !== "boolean" || typeof value.runtime.downedActivity !== "boolean"
-    || typeof value.runtime.joinInProgressNormalization !== "boolean" || typeof value.runtime.squadEnemyDirector !== "boolean") throw new TypeError("Recovery runtime flags are invalid");
+    || typeof value.runtime.joinInProgressNormalization !== "boolean" || typeof value.runtime.squadEnemyDirector !== "boolean"
+    || typeof value.runtime.mapMechanics !== "boolean") throw new TypeError("Recovery runtime flags are invalid");
   if (!runtime || value.runtime.configVersion !== runtime.configVersion || value.runtime.gameplayVersion !== runtime.gameplayVersion
     || value.runtime.objectiveEvents !== runtime.objectiveEvents || value.runtime.squadSynergies !== runtime.squadSynergies
     || value.runtime.sharedParticipationCredit !== runtime.sharedParticipationCredit
     || value.runtime.downedActivity !== runtime.downedActivity
     || value.runtime.joinInProgressNormalization !== runtime.joinInProgressNormalization
     || value.runtime.squadEnemyDirector !== runtime.squadEnemyDirector
+    || value.runtime.mapMechanics !== runtime.mapMechanics
     || value.runtime.registryVersion !== runtime.registryVersion) {
     throw new TypeError("Recovery runtime configuration mismatch");
   }

@@ -5,10 +5,10 @@ The relay exposes `GET /config`. It is read-only, origin-aware, and always sends
 response through the Worker's `LASTLIGHT_RUNTIME_CONFIG` secret.
 
 The current release defaults enable the versioned gameplay systems shipped in
-build `2026.07.13.9`:
+build `2026.07.13.12`:
 
 ```json
-{"schemaVersion":5,"configVersion":"release-2026.07.13.9","gameplayVersion":"join-normalization-v1","registryVersion":"lastlight.squad-synergy.v1","flags":{"deterministicReplay":true,"runTelemetry":true,"objectiveEvents":true,"migrationCheckpointReplication":true,"hostMigrationElection":true,"hostMigrationResume":true,"contextualPings":true,"upgradeRecommendations":true,"squadSynergies":true,"sharedParticipationCredit":true,"downedActivity":true,"joinInProgressNormalization":true}}
+{"schemaVersion":8,"configVersion":"release-2026.07.13.12","gameplayVersion":"map-mechanics-v1","registryVersion":"lastlight.squad-synergy.v1","flags":{"deterministicReplay":true,"runTelemetry":true,"objectiveEvents":true,"migrationCheckpointReplication":true,"hostMigrationElection":true,"hostMigrationResume":true,"contextualPings":true,"upgradeRecommendations":true,"squadSynergies":true,"sharedParticipationCredit":true,"downedActivity":true,"joinInProgressNormalization":true,"squadEnemyDirector":true,"mapMechanics":true,"sharedSquadRunArchive":true}}
 ```
 
 Unknown keys, missing keys, wrong types, and malformed JSON fail closed to those
@@ -52,6 +52,13 @@ the active config version, gameplay version, source, load status, and flags.
   `joinInProgressNormalization` to `false` and publish a new `configVersion` and
   `gameplayVersion` for new runs. Existing runs retain the contract they started
   with.
+- Squad formation or objective-convergence problem: set `squadEnemyDirector` to
+  `false` and publish a new `configVersion` and `gameplayVersion` for new runs.
+- Freight Grid, Ion Front, Cryo Grid, Undertow, or map-composition problem: set
+  `mapMechanics` to `false` and publish a new `configVersion` and
+  `gameplayVersion` for new runs.
+- Shared run-history import or archive problem: set `sharedSquadRunArchive` to
+  `false`. This client-only flag does not change deterministic simulation state.
 - Restore release defaults: delete the override with
   `npx wrangler secret delete LASTLIGHT_RUNTIME_CONFIG`, then verify `/config` says
   `source: built-in`.

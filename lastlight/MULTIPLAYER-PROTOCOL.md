@@ -1,7 +1,7 @@
 # Multiplayer authority protocol
 
-Protocol v5 adds deterministic join-in-progress normalization to the authority
-epochs and host migration introduced in v3. The relay remains a transport and
+Protocol v7 carries deterministic map mechanics through the join-normalized,
+squad-directed authority epochs and host migration introduced in v3. The relay remains a transport and
 election arbiter;
 exactly one browser owns the authoritative `Simulation` and replay recorder at
 any point in a run.
@@ -53,20 +53,22 @@ schema and the deterministic compatibility tuple:
 ```json
 {
   "schema":"lastlight.host-migration.v1",
-  "protocolVersion":5,
+  "protocolVersion":7,
   "compatibility":{
     "build":"build-id",
     "balanceVersion":"balance-v1",
     "balanceHash":"fnv1a32:01234567",
-    "configVersion":"release-2026.07.13.9",
-    "gameplayVersion":"join-normalization-v1",
+    "configVersion":"release-2026.07.13.12",
+    "gameplayVersion":"map-mechanics-v1",
     "objectiveEvents":true,
     "squadSynergies":true,
     "sharedParticipationCredit":true,
     "downedActivity":true,
     "joinInProgressNormalization":true,
+    "squadEnemyDirector":true,
+    "mapMechanics":true,
     "registryVersion":"lastlight.squad-synergy.v1",
-    "recoveryVersion":7
+    "recoveryVersion":9
   }
 }
 ```
