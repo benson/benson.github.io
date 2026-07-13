@@ -41,6 +41,8 @@ const DIRECTOR_TOTAL_FIELDS = Object.freeze([
   "column", "flankPair", "wedge", "arc", "objectivePressure", "eliteEscorts",
 ]);
 const DIRECTOR_COUNT_CAP = 1_000_000_000;
+const MUTATION_PACKAGE_IDS = new Set(["base-line", "contested-operations", "breach-cascade"]);
+const MUTATION_TOTAL_FIELDS = Object.freeze(["encounters", "clears", "failures", "objectiveCompletions", "surgeWaves"]);
 
 export const DEFAULT_TELEMETRY_ENDPOINT = "https://lastlight-relay.bensonperry.workers.dev/telemetry";
 
@@ -134,6 +136,19 @@ function buildDirectorTelemetry(value) {
   return directorTotals;
 }
 
+function buildMutationTelemetry(value) {
+  exactKeys(value, ["packageId", ...MUTATION_TOTAL_FIELDS], "Mutation telemetry");
+  if (!MUTATION_PACKAGE_IDS.has(value.packageId)) throw new TypeError("Invalid mutation package id");
+  const mutationTotals = {};
+  for (const field of MUTATION_TOTAL_FIELDS) {
+    const number = value[field];
+    if (!Number.isInteger(number) || number < 0 || number > 1_000_000) throw new TypeError(`Invalid mutation total: ${field}`);
+    mutationTotals[field] = number;
+  }
+  if (mutationTotals.clears + mutationTotals.failures !== mutationTotals.encounters) throw new TypeError("Mutation encounter totals do not reconcile");
+  return { mutationPackageId: value.packageId, mutationTotals };
+}
+
 export function buildRunTelemetry(snapshot, build) {
   if (!snapshot || typeof snapshot !== "object") throw new TypeError("A result snapshot is required");
   if (snapshot.stage !== "won" && snapshot.stage !== "lost") throw new TypeError("Telemetry is only recorded for completed runs");
@@ -189,6 +204,13 @@ export function buildRunTelemetry(snapshot, build) {
     if (payload.schemaVersion === 1) Object.assign(payload, emptySynergyTelemetry());
     if (payload.schemaVersion < 3) Object.assign(payload, { participationTotals: emptyParticipationTelemetry() });
     Object.assign(payload, { schemaVersion: 4, directorTotals: buildDirectorTelemetry(directorTelemetry) });
+  }
+  if (snapshot.mutationTelemetry !== undefined) {
+    const mutationTelemetry = typeof snapshot.mutationTelemetry === "function" ? snapshot.mutationTelemetry() : snapshot.mutationTelemetry;
+    if (payload.schemaVersion === 1) Object.assign(payload, emptySynergyTelemetry());
+    if (payload.schemaVersion < 3) Object.assign(payload, { participationTotals: emptyParticipationTelemetry() });
+    if (payload.schemaVersion < 4) Object.assign(payload, { directorTotals: buildDirectorTelemetry({ decisions: 0, peakSquadSize: 0, lane: 0, pincer: 0, split: 0, surround: 0, objective: 0, column: 0, flankPair: 0, wedge: 0, arc: 0, objectivePressure: 0, eliteEscorts: 0 }) });
+    Object.assign(payload, { schemaVersion: 5, ...buildMutationTelemetry(mutationTelemetry) });
   }
   return payload;
 }

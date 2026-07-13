@@ -1,43 +1,44 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260713.13";
-import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.13";
-import { Renderer } from "./render.js?v=20260713.13";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260713.14";
+import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.14";
+import { Renderer } from "./render.js?v=20260713.14";
 import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260713.2";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
-import { getThemeAsset, getThemeEnvironmentChunks, getThemeMaterial } from "./themes/lastlight.js?v=20260713.13";
-import { submitRunTelemetry } from "./telemetry.js?v=20260713.13";
+import { getThemeAsset, getThemeEnvironmentChunks, getThemeMaterial } from "./themes/lastlight.js?v=20260713.14";
+import { submitRunTelemetry } from "./telemetry.js?v=20260713.14";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260713.13";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260713.13";
+import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260713.14";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260713.14";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
-import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260713.13";
-import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260713.13";
+import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260713.14";
+import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260713.14";
 import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260711.5";
-import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260713.13";
+import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260713.14";
 import { GuestInputSequenceTracker, HostInputSequenceGate, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260713.2";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260713.2";
-import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260713.13";
-import { advancePlayerMovement } from "./movement.js?v=20260713.13";
+import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260713.14";
+import { advancePlayerMovement } from "./movement.js?v=20260713.14";
 import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
 import { DynamicAudioMixer } from "./audio-mix.js?v=20260713.1";
 import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260713.1";
 import { enemyAudioCueName, newEntities, spatialAudioPan, weaponAudioCueName, weaponTimerActivations } from "./audio-events.js?v=20260713.1";
 import { FUNNY_VOICE_MIN_INTERVAL_MS, audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260713.1";
-import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260713.13";
-import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260713.13";
+import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260713.14";
+import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260713.14";
 import { getWeaponEvolution } from "./weapon-evolution.js?v=20260713.1";
 import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260712.1";
-import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260713.13";
-import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260713.13";
-import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260713.13";
+import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260713.14";
+import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260713.14";
+import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260713.14";
 import { reconcileActiveBuffs } from "./active-buffs.js?v=20260713.1";
 import { ELITE_AFFIXES, ENEMY_ARCHETYPES } from "./enemy-archetypes.js?v=20260713.1";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
-import { mapMechanicDefinition } from "./map-mechanics.js?v=20260713.13";
+import { mapMechanicDefinition } from "./map-mechanics.js?v=20260713.14";
+import { CAMPAIGN_MUTATIONS, campaignMutationDefinition } from "./campaign-mutations.js?v=20260713.14";
 import {
   AuthoritySnapshotGate, HOST_MIGRATION_PROTOCOL_VERSION, MIGRATION_CHECKPOINT_INTERVAL_TICKS,
   createMigrationCapabilities, createMigrationCheckpoint, createMigrationReady,
   migrationCompatibilityMatches, validateMigrationCheckpoint,
-} from "./host-migration.js?v=20260713.13";
+} from "./host-migration.js?v=20260713.14";
 import { RECONNECT_DELAYS_MS, SquadPresenceTracker, authorityStateCopy } from "./reconnect-state.js?v=20260713.3";
 import {
   HostPingGate, PING_INTENTS, PING_LIFETIME_TICKS, PING_WHEEL_ORDER, PingSequenceTracker,
@@ -53,11 +54,11 @@ import { DraftRecommendationStore, recommendationMarkerModel } from "./draft-rec
 import { SQUAD_SYNERGY_REGISTRY } from "./squad-synergies.js?v=20260713.6";
 import { reconcileActiveSynergies } from "./active-synergies.js?v=20260713.6";
 import { PARTICIPATION_REGISTRY } from "./participation-credit.js?v=20260713.7";
-import { campaignJoinEligibility } from "./join-in-progress.js?v=20260713.13";
+import { campaignJoinEligibility } from "./join-in-progress.js?v=20260713.14";
 import {
   RUN_ARCHIVE_STORAGE_KEY, createSquadRunReport, decodeSquadRunFragment, normalizeRunArchiveStorage,
   squadRunShareFragment, upsertRunArchive,
-} from "./run-archive.js?v=20260713.13";
+} from "./run-archive.js?v=20260713.14";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -66,7 +67,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.13.13";
+const BUILD = "2026.07.13.14";
 const AUTHORITY_WATCHDOG_MS = Object.freeze({ synchronizing: 10_000, migrating: 25_000 });
 const BALANCE = getBalanceConfig();
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
@@ -107,7 +108,7 @@ const emptySoundState = () => ({
   kills: 0, level: 1, damageTaken: 0, xpCollected: 0,
   lastShot: 0, lastEnemy: 0, lastKill: 0, lastMaterial: 0, lastXP: 0,
 });
-const DIFFICULTY_COPY = { story: "Story · Sharp hits · Lighter opening", hard: "Hard · 3× health · 2× damage", extreme: "Extreme · 7× health · 3× damage" };
+const DIFFICULTY_COPY = { story: "Story · Sharp hits · Lighter opening", hard: "Hard · 2.5× health · 1.8× damage", extreme: "Extreme · 4.5× health · 2.4× damage" };
 
 function loadProgress() {
   try { return normalizeProgress(JSON.parse(localStorage.getItem(PROGRESS_KEY) || "null")); }
@@ -216,6 +217,7 @@ function migrationCompatibility() {
     joinInProgressNormalization: state.runtimeConfig.config.flags.joinInProgressNormalization,
     squadEnemyDirector: state.runtimeConfig.config.flags.squadEnemyDirector,
     mapMechanics: state.runtimeConfig.config.flags.mapMechanics,
+    campaignMutations: state.runtimeConfig.config.flags.campaignMutations,
     registryVersion: state.runtimeConfig.config.registryVersion,
     recoveryVersion: RECOVERY_SIMULATION_VERSION,
   };
@@ -436,6 +438,7 @@ function beginReplayCapture(players, seed) {
     joinInProgressNormalization: state.runtimeConfig.config.flags.joinInProgressNormalization,
     squadEnemyDirector: state.runtimeConfig.config.flags.squadEnemyDirector,
     mapMechanics: state.runtimeConfig.config.flags.mapMechanics,
+    campaignMutations: state.runtimeConfig.config.flags.campaignMutations,
     registryVersion: state.runtimeConfig.config.registryVersion,
     rng: RNG_ALGORITHM, seed, run: replayRunConfig(),
   });
@@ -891,6 +894,29 @@ function updateDifficultyOptions() {
     option.textContent = unlocked ? DIFFICULTY_COPY[option.value] : `Locked · Clear ${MAPS[map].name} · ${DIFFICULTIES[previous].name}`;
   }
   if (!isDifficultyUnlocked(state.progress, map, $("difficulty-select").value)) $("difficulty-select").value = "story";
+  renderDeploymentMutations();
+}
+
+function mutationPackageMarkup(difficultyId, mapId, mutationState = null) {
+  const definition = campaignMutationDefinition(difficultyId), mapPackage = CAMPAIGN_MUTATIONS.maps[mapId] || CAMPAIGN_MUTATIONS.maps.warehouse;
+  const enabled = Boolean((state.runtimeConfig?.config?.flags?.campaignMutations ?? true) && difficultyId !== "story");
+  const rules = [];
+  if (!enabled) rules.push(difficultyId === "story" ? "No mutation encounters · readable baseline rules" : "Mutation rollback active · legacy threat scalars only");
+  else {
+    rules.push(`Objective retaliation · ${(definition.objectiveRetaliation.warningTicks / 60).toFixed(1)}s warning · ${(definition.objectiveRetaliation.cooldownTicks / 60).toFixed(1)}s cooldown · ${definition.objectiveRetaliation.rewardGold} gold`);
+    rules.push(`Operation pressure · next map cycle advances ${(definition.mapPressureAdvanceTicks / 60).toFixed(1)}s per completed objective`);
+    if (definition.surge.enabled) rules.push(`Elite surge · waves ${definition.surgeWaves.join(", ")} · ${(definition.surge.cooldownTicks / 60).toFixed(1)}s cooldown · ${definition.surge.rewardGold} gold + ${definition.surge.rewardCards} access card`);
+  }
+  const tick = Number(mutationState?.tick || 0);
+  const live = mutationState?.pending
+    ? `${mutationState.pending.kind} inbound · ${Math.max(0, Math.ceil((mutationState.pending.dueTick - tick) / 60))}s`
+    : mutationState?.active ? `${mutationState.active.kind} active · clear every marked hostile` : "No mutation encounter active";
+  return `<header><span>${escapeHTML(DIFFICULTIES[difficultyId].name)} package</span><strong>${escapeHTML(definition.name)}</strong></header><p>${escapeHTML(definition.summary)}</p><ul>${rules.map((rule) => `<li>${escapeHTML(rule)}</li>`).join("")}<li>${escapeHTML(MAPS[mapId].name)} approach · ${escapeHTML(mapPackage.approach.replaceAll("-", " "))}</li></ul>${mutationState ? `<small>${escapeHTML(live)}</small>` : ""}`;
+}
+
+function renderDeploymentMutations() {
+  const target = $("deployment-mutations");
+  if (target) target.innerHTML = mutationPackageMarkup($("difficulty-select").value, $("map-select").value);
 }
 
 function updateProgressionUI() {
@@ -977,12 +1003,25 @@ function renderStartingWeaponDetails(spec) {
 }
 
 function renderGuide() {
-  const campaign = MAP_ORDER.map((map, index) => {
+  let campaign = MAP_ORDER.map((map, index) => {
     const unlocked = isMapUnlocked(state.progress, map);
     const cleared = DIFFICULTY_ORDER.filter((difficulty) => hasCompleted(state.progress, map, difficulty)).map((difficulty) => DIFFICULTIES[difficulty].name);
     const requirement = MAP_REQUIREMENTS[map];
     return `<article class="campaign-node ${unlocked ? "unlocked" : "locked"}"><img src="${MAPS[map].texture}" alt=""><div><b>${String(index + 1).padStart(2, "0")}</b><span>${MAPS[map].name}</span><small>${unlocked ? `${cleared.length}/3 cleared${cleared.length ? ` · ${cleared.join(", ")}` : ""}` : `Locked · clear ${requirementCopy(requirement)}`}</small></div></article>`;
   }).join("");
+  const mutations = DIFFICULTY_ORDER.map((difficultyId) => {
+    const definition = campaignMutationDefinition(difficultyId);
+    const rules = difficultyId === "story"
+      ? "No retaliation or surge encounters. Small passive recovery remains available for onboarding."
+      : `Successful objectives schedule a ${(definition.objectiveRetaliation.warningTicks / 60).toFixed(1)}s retaliation worth ${definition.objectiveRetaliation.rewardGold} gold and advance map pressure ${(definition.mapPressureAdvanceTicks / 60).toFixed(1)}s.${definition.surge.enabled ? ` Waves ${definition.surgeWaves.join(", ")} add an elite surge worth ${definition.surge.rewardGold} gold and ${definition.surge.rewardCards} access card.` : ""}`;
+    return guideCard("THREAT", definition.name, DIFFICULTIES[difficultyId].name, `${definition.summary} ${rules}`, "", MAPS.warehouse.texture, {
+      Retaliation: definition.objectiveRetaliation.enabled ? `${definition.objectiveRetaliation.enemyCount} hostiles · ${definition.objectiveRetaliation.eliteCount} elite` : "None",
+      Surges: definition.surge.enabled ? `Waves ${definition.surgeWaves.join(", ")}` : "None",
+      Counterplay: "Read the countdown and approach; clear every marked hostile for the reward",
+      Rollback: difficultyId === "story" ? "Always baseline" : "Independent runtime flag",
+    });
+  }).join("");
+  campaign += `<div class="campaign-mutation-manual"><h4>Threat mutation packages</h4><p>Warnings use text, countdowns, and named approaches—not color alone.</p><div class="guide-grid">${mutations}</div></div>`;
   const apexes = MAP_ORDER.map((mapId) => {
     const contract = APEX_CONTRACTS[mapId], map = MAPS[mapId];
     const phases = contract.phases.map((phase, phaseIndex) => `Phase ${phaseIndex + 1}: ${phase.id.replaceAll("-", " ")} (${phase.arenaMode.replaceAll("-", " ")})`).join(" · ");
@@ -1192,6 +1231,7 @@ function renderReinforcementPanel() {
 function renderLobby() {
   const map = MAPS[state.config.map], difficulty = DIFFICULTIES[state.config.difficulty];
   $("lobby-mission").textContent = `${map.name} · ${difficulty.name} · ${state.config.duration === 900 ? "15:00" : "04:00"}`;
+  $("lobby-mutations").innerHTML = mutationPackageMarkup(state.config.difficulty, state.config.map);
   renderParty();
   const button = $("ready-button"), members = [...state.lobby.values()];
   renderReinforcementPanel();
@@ -1863,6 +1903,23 @@ function updateDownedActivity(game, player) {
   }
 }
 
+function updateMutationHUD(game) {
+  const target = $("mutation-hud"), mutation = game.mutationState;
+  if (!target || !mutation) return;
+  const definition = campaignMutationDefinition(mutation.difficulty), encounter = mutation.pending || mutation.active;
+  target.classList.toggle("is-active", Boolean(encounter));
+  if (mutation.pending) {
+    const seconds = Math.max(0, Math.ceil((mutation.pending.dueTick - game.tick) / 60));
+    target.innerHTML = `<span>${escapeHTML(definition.name)}</span><strong>${escapeHTML(mutation.pending.kind.toUpperCase())} INBOUND · ${seconds}s</strong><small>Clear every marked hostile for the named reward</small>`;
+  } else if (mutation.active) {
+    const living = (game.enemies || []).filter((enemy) => enemy.campaignMutationId === mutation.active.id && !enemy.dead).length;
+    target.innerHTML = `<span>${escapeHTML(definition.name)}</span><strong>${escapeHTML(mutation.active.kind.toUpperCase())} ACTIVE · ${living} REMAIN</strong><small>Reward pays only after the complete formation is cleared</small>`;
+  } else {
+    target.innerHTML = `<span>${escapeHTML(definition.name)}</span><strong>${mutation.enabled ? "MUTATION READY" : "BASELINE RULES"}</strong><small>${mutation.pressureAdvanceTicks ? `${Math.round(mutation.pressureAdvanceTicks / 60)}s operation pressure` : "No active mutation encounter"}</small>`;
+  }
+  $("pause-mutations").innerHTML = mutationPackageMarkup(mutation.difficulty, typeof game.map === "string" ? game.map : game.map.id, { ...mutation, tick: game.tick });
+}
+
 function updateHUD(game) {
   const player = game.players.find((p) => p.id === state.clientId) || game.players[0]; if (!player) return;
   updateSoundState(game);
@@ -1871,6 +1928,7 @@ function updateHUD(game) {
   $("wave-label").textContent = game.stage === "boss" ? `${(typeof game.map === "string" ? MAPS[game.map] : game.map).boss} · ENRAGE ${formatTime(300 - (game.bossElapsed || 0))}` : `Wave ${String((game.wave || 0) + 1).padStart(2, "0")} · ${WAVE_NAMES[game.wave || 0]}`;
   $("timer-progress").style.width = `${game.stage === "boss" ? 100 : clamp(game.time / game.duration * 100, 0, 100)}%`;
   $("kill-count").textContent = Number(game.kills || 0).toLocaleString(); $("gold-count").textContent = Math.round(game.gold || 0).toLocaleString();
+  updateMutationHUD(game);
   $("level-label").textContent = `LV ${game.level}`; $("xp-progress").style.width = `${clamp(game.teamXP / game.xpNeed * 100, 0, 100)}%`;
   $("e-name").textContent = game.level < 3 ? "Unlocks Lv 3" : spec.active[0]; $("r-name").textContent = game.level < 6 ? "Unlocks Lv 6" : spec.ultimate[0];
   updateCooldownSlot("e", player.eCd, player.eCdMax || spec.cooldownE, game.level >= 3, 3); updateCooldownSlot("r", player.rCd, player.rCdMax || spec.cooldownR, game.level >= 6, 6);
@@ -2344,7 +2402,9 @@ function archiveEntryCard(entry, { imported = false, mode = "local" } = {}) {
   const players = report.players.map((player) => archivePlayerCard(player, report.elapsed)).join("");
   const shareActions = archiveEnabled() ? `<button type="button" data-archive-share="${report.id}">Copy anonymous link</button><button type="button" data-archive-share-named="${report.id}">Include callsigns</button>` : "";
   const saveAction = imported && !saved ? `<button type="button" data-archive-save="${report.id}">Save to this browser</button>` : "";
-  return `<details class="run-history-entry ${report.outcome === "won" ? "won" : "lost"}${imported ? " imported" : ""}"><summary><div><span>${imported ? `Shared · ${mode}` : report.outcome === "won" ? "Victory" : "Defeat"}</span><strong>${escapeHTML(map)} · ${escapeHTML(difficulty)}</strong><small>${report.players.map((player) => `${escapeHTML(player.callsign)} / ${escapeHTML(SPECIALISTS[player.specialist]?.name || player.specialist)}`).join(" · ")}</small></div><time${savedAt ? ` datetime="${escapeHTML(savedAt)}"` : ""}>${escapeHTML(date)}</time></summary><div class="archive-overview"><dl><div><dt>Time</dt><dd>${formatTime(report.elapsed)}</dd></div><div><dt>Level</dt><dd>${report.level}</dd></div><div><dt>Kills</dt><dd>${statNumber(report.squadKills)}</dd></div><div><dt>Damage</dt><dd>${statNumber(report.totals.damage)}</dd></div><div><dt>DPS</dt><dd>${(report.totals.damage / Math.max(1, report.elapsed)).toFixed(1)}</dd></div><div><dt>Gold</dt><dd>${statNumber(report.gold)}</dd></div></dl><p>Report ${escapeHTML(report.id)} · Integrity ${escapeHTML(report.fingerprint.slice(0, 8).toUpperCase())}</p></div><div class="archive-players">${players}</div><footer>${saveAction}${shareActions}</footer></details>`;
+  const mutation = report.mutations;
+  const mutationSummary = `<p class="archive-mutations"><strong>${escapeHTML(mutation.packageId)}</strong> · ${mutation.enabled ? `${mutation.clears}/${mutation.encounters} cleared · ${mutation.objectiveCompletions} objectives · ${mutation.surgeWaves} surges` : "Baseline rules"}</p>`;
+  return `<details class="run-history-entry ${report.outcome === "won" ? "won" : "lost"}${imported ? " imported" : ""}"><summary><div><span>${imported ? `Shared · ${mode}` : report.outcome === "won" ? "Victory" : "Defeat"}</span><strong>${escapeHTML(map)} · ${escapeHTML(difficulty)}</strong><small>${report.players.map((player) => `${escapeHTML(player.callsign)} / ${escapeHTML(SPECIALISTS[player.specialist]?.name || player.specialist)}`).join(" · ")}</small></div><time${savedAt ? ` datetime="${escapeHTML(savedAt)}"` : ""}>${escapeHTML(date)}</time></summary><div class="archive-overview"><dl><div><dt>Time</dt><dd>${formatTime(report.elapsed)}</dd></div><div><dt>Level</dt><dd>${report.level}</dd></div><div><dt>Kills</dt><dd>${statNumber(report.squadKills)}</dd></div><div><dt>Damage</dt><dd>${statNumber(report.totals.damage)}</dd></div><div><dt>DPS</dt><dd>${(report.totals.damage / Math.max(1, report.elapsed)).toFixed(1)}</dd></div><div><dt>Gold</dt><dd>${statNumber(report.gold)}</dd></div></dl>${mutationSummary}<p>Report ${escapeHTML(report.id)} · Integrity ${escapeHTML(report.fingerprint.slice(0, 8).toUpperCase())}</p></div><div class="archive-players">${players}</div><footer>${saveAction}${shareActions}</footer></details>`;
 }
 
 function archiveReportById(id) {
@@ -2435,6 +2495,8 @@ function showResult(game) {
   $("result-time").textContent = formatTime(game.time + (game.bossElapsed || 0)); $("result-kills").textContent = Number(game.kills || 0).toLocaleString(); $("result-level").textContent = game.level; $("result-gold").textContent = Math.round(game.gold || 0);
   const mapId = typeof game.map === "string" ? game.map : game.map.id;
   const difficultyId = typeof game.difficulty === "string" ? game.difficulty : game.difficulty.id;
+  const mutation = game.mutationState;
+  $("result-mutations").querySelector("div").innerHTML = mutationPackageMarkup(difficultyId, mapId, mutation ? { ...mutation, tick: game.tick } : null);
   const localPlayer = game.players?.find((player) => player.id === state.clientId);
   const joinEligibility = localPlayer?.joinKind === "fresh" && state.runtimeConfig.config.flags.joinInProgressNormalization
     ? campaignJoinEligibility({ activeCombatTicks: Number(localPlayer.preApexDeployedTicks || 0), preApexCombatTicks: Math.round(Number(game.duration || state.config.duration || 240) * 60) })
@@ -3424,6 +3486,7 @@ function bindEvents() {
     state.joinPackageId = button.dataset.joinPackage; renderLobby();
   }));
   $("map-select").addEventListener("change", updateDifficultyOptions);
+  $("difficulty-select").addEventListener("change", renderDeploymentMutations);
   $("deploy-button").addEventListener("click", deploy); $("room-input").addEventListener("keydown", (event) => { if (event.key === "Enter") deploy(); });
   $("recovery-resume").addEventListener("click", resumeRecovery); $("recovery-discard").addEventListener("click", () => discardRecovery());
   $("room-input").addEventListener("input", (event) => { event.target.value = event.target.value.toUpperCase().replace(/[^A-Z2-9]/g, ""); });

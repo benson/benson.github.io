@@ -1,10 +1,10 @@
-import { DIFFICULTIES, MAPS, PASSIVES, SPECIALISTS, WEAPONS } from "./data.js?v=20260713.13";
-import { canonicalStringify, fnv1a64 } from "./replay.js?v=20260713.13";
+import { DIFFICULTIES, MAPS, PASSIVES, SPECIALISTS, WEAPONS } from "./data.js?v=20260713.14";
+import { canonicalStringify, fnv1a64 } from "./replay.js?v=20260713.14";
 
-export const SQUAD_RUN_REPORT_SCHEMA = "lastlight.squad-run-report.v1";
+export const SQUAD_RUN_REPORT_SCHEMA = "lastlight.squad-run-report.v2";
 export const SQUAD_RUN_SHARE_SCHEMA = "lastlight.squad-run-share.v1";
-export const RUN_ARCHIVE_STORAGE_VERSION = 3;
-export const RUN_ARCHIVE_STORAGE_KEY = "lastlight:runs:v3";
+export const RUN_ARCHIVE_STORAGE_VERSION = 4;
+export const RUN_ARCHIVE_STORAGE_KEY = "lastlight:runs:v4";
 export const RUN_ARCHIVE_FRAGMENT_KEY = "run";
 export const MAX_RUN_ARCHIVE_ENTRIES = 24;
 export const MAX_RUN_SHARE_BYTES = 24_576;
@@ -28,8 +28,10 @@ const PLAYER_FIELDS = Object.freeze([
 ]);
 const REPORT_FIELDS = Object.freeze([
   "schema", "id", "fingerprint", "build", "runKey", "outcome", "map", "difficulty", "elapsed",
-  "level", "squadKills", "gold", "players", "totals",
+  "level", "squadKills", "gold", "mutations", "players", "totals",
 ]);
+const MUTATION_FIELDS = Object.freeze(["packageId", "enabled", "objectiveCompletions", "encounters", "clears", "failures", "surgeWaves"]);
+const MUTATION_PACKAGES = Object.freeze({ story: "base-line", hard: "contested-operations", extreme: "breach-cascade" });
 
 function deepFreeze(value) {
   if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
@@ -137,17 +139,47 @@ function reportTotals(players) {
   };
 }
 
+function canonicalMutations(game, difficulty) {
+  const telemetry = typeof game?.mutationTelemetry === "function" ? game.mutationTelemetry() : game?.mutationTelemetry;
+  const state = game?.mutationState;
+  const encounters = finite(Math.round(Number(telemetry?.encounters ?? state?.encounterSequence ?? 0)), 0, 100, "mutations.encounters", true);
+  const clears = finite(Math.round(Number(telemetry?.clears ?? state?.resolvedEncounters ?? 0)), 0, encounters, "mutations.clears", true);
+  const failures = finite(Math.round(Number(telemetry?.failures ?? Math.max(0, encounters - clears))), 0, encounters, "mutations.failures", true);
+  if (clears + failures !== encounters) throw new TypeError("mutation totals do not reconcile");
+  return {
+    packageId: safeText(telemetry?.packageId || state?.packageId, 32, MUTATION_PACKAGES[difficulty]),
+    enabled: Boolean(state?.enabled ?? telemetry?.enabled ?? false),
+    objectiveCompletions: finite(Math.round(Number(telemetry?.objectiveCompletions ?? state?.objectiveCompletions ?? 0)), 0, 12, "mutations.objectiveCompletions", true),
+    encounters, clears, failures,
+    surgeWaves: finite(Math.round(Number(telemetry?.surgeWaves ?? state?.triggeredSurgeWaves?.length ?? 0)), 0, 3, "mutations.surgeWaves", true),
+  };
+}
+
 function identityBody(report) {
   return {
     schema: report.schema, build: report.build, runKey: report.runKey, outcome: report.outcome, map: report.map,
     difficulty: report.difficulty, elapsed: report.elapsed, level: report.level, squadKills: report.squadKills,
-    gold: report.gold, players: report.players.map((player) => ({ ...player, callsign: "" })), totals: report.totals,
+    gold: report.gold, mutations: report.mutations, players: report.players.map((player) => ({ ...player, callsign: "" })), totals: report.totals,
   };
 }
 
 function signedReport(body) {
   const fingerprint = fnv1a64(canonicalStringify(identityBody(body)));
   return { ...body, id: `ll-${body.runKey.slice(0, 8)}-${fingerprint.slice(0, 8)}`, fingerprint };
+}
+
+function upgradeV1Report(value) {
+  const legacyFields = REPORT_FIELDS.filter((field) => field !== "mutations");
+  exactKeys(value, legacyFields, "legacy report");
+  if (value.schema !== "lastlight.squad-run-report.v1" || !HASH.test(value.runKey) || !HASH.test(value.fingerprint)) throw new TypeError("legacy report identity is invalid");
+  const legacyIdentity = {
+    schema: value.schema, build: value.build, runKey: value.runKey, outcome: value.outcome, map: value.map,
+    difficulty: value.difficulty, elapsed: value.elapsed, level: value.level, squadKills: value.squadKills,
+    gold: value.gold, players: value.players.map((player) => ({ ...player, callsign: "" })), totals: value.totals,
+  };
+  if (fnv1a64(canonicalStringify(legacyIdentity)) !== value.fingerprint) throw new TypeError("legacy report integrity fingerprint mismatch");
+  const body = { ...clone(value), schema: SQUAD_RUN_REPORT_SCHEMA, id: "", fingerprint: "", mutations: canonicalMutations(null, value.difficulty) };
+  return validateSquadRunReport(signedReport(body));
 }
 
 export function createSquadRunReport(game, { build = "legacy", runKey = "" } = {}) {
@@ -166,7 +198,7 @@ export function createSquadRunReport(game, { build = "legacy", runKey = "" } = {
     elapsed: finite(Number(game.time || 0) + Number(game.bossElapsed || 0), 0, 4_000, "run.elapsed"),
     level: finite(Math.round(Number(game.level || 0)), 0, 500, "run.level", true),
     squadKills: finite(Math.round(Number(game.kills || 0)), 0, 10_000_000, "run.squadKills", true),
-    gold: finite(Number(game.gold || 0), 0, 10_000_000, "run.gold"), players, totals: reportTotals(players),
+    gold: finite(Number(game.gold || 0), 0, 10_000_000, "run.gold"), mutations: canonicalMutations(game, difficulty), players, totals: reportTotals(players),
   };
   return deepFreeze(validateSquadRunReport(signedReport(body)));
 }
@@ -195,6 +227,10 @@ export function validateSquadRunReport(value) {
   if (!SAFE_BUILD.test(value.build) || !["won", "lost"].includes(value.outcome) || !MAPS[value.map] || !DIFFICULTIES[value.difficulty]) throw new TypeError("report metadata is invalid");
   finite(value.elapsed, 0, 4_000, "report.elapsed"); finite(value.level, 0, 500, "report.level", true);
   finite(value.squadKills, 0, 10_000_000, "report.squadKills", true); finite(value.gold, 0, 10_000_000, "report.gold");
+  exactKeys(value.mutations, MUTATION_FIELDS, "report.mutations");
+  if (value.mutations.packageId !== MUTATION_PACKAGES[value.difficulty] || typeof value.mutations.enabled !== "boolean") throw new TypeError("report mutation identity is invalid");
+  for (const field of ["objectiveCompletions", "encounters", "clears", "failures", "surgeWaves"]) finite(value.mutations[field], 0, field === "objectiveCompletions" ? 12 : field === "surgeWaves" ? 3 : 100, `report.mutations.${field}`, true);
+  if (value.mutations.clears + value.mutations.failures !== value.mutations.encounters) throw new TypeError("report mutation totals do not reconcile");
   if (!Array.isArray(value.players) || value.players.length < 1 || value.players.length > 4) throw new TypeError("report roster is invalid");
   let priorSlot = -1;
   for (const [index, player] of value.players.entries()) {
@@ -246,6 +282,10 @@ export function normalizeRunArchiveStorage(value) {
         exactKeys(item, ["schemaVersion", "savedAt", "report"], "archive entry");
         if (!Number.isFinite(Date.parse(item.savedAt))) throw new TypeError("archive savedAt is invalid");
         entry = { schemaVersion: RUN_ARCHIVE_STORAGE_VERSION, savedAt: new Date(item.savedAt).toISOString(), report: validateSquadRunReport(item.report) };
+      } else if (Number(item?.schemaVersion) === 3) {
+        exactKeys(item, ["schemaVersion", "savedAt", "report"], "legacy archive entry");
+        if (!Number.isFinite(Date.parse(item.savedAt))) throw new TypeError("archive savedAt is invalid");
+        entry = { schemaVersion: RUN_ARCHIVE_STORAGE_VERSION, savedAt: new Date(item.savedAt).toISOString(), report: upgradeV1Report(item.report) };
       } else {
         if (![1, 2].includes(Number(item?.schemaVersion)) || !Number.isFinite(Date.parse(item?.finishedAt)) || !Array.isArray(item?.players)) throw new TypeError("legacy archive entry is invalid");
         const savedAt = Number.isFinite(Date.parse(item?.finishedAt)) ? new Date(item.finishedAt).toISOString() : new Date(0).toISOString();

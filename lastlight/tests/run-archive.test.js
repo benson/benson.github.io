@@ -36,6 +36,7 @@ test("terminal squad state becomes one immutable canonical report without transp
   assert.match(report.id, /^ll-[0-9a-f]{8}-[0-9a-f]{8}$/);
   assert.equal(report.players[0].slot, 0); assert.equal(report.players[1].slot, 2);
   assert.equal(report.players[1].campaignEligible, true);
+  assert.deepEqual(report.mutations, { packageId: "base-line", enabled: false, objectiveCompletions: 0, encounters: 0, clears: 0, failures: 0, surgeWaves: 0 });
   assert.deepEqual(report.totals, { damage: 170_750, kills: 401, xpCollected: 6_300, damageTaken: 13.2, revives: 1, distance: 65_700 });
   assert.ok(Object.isFrozen(report) && Object.isFrozen(report.players[0].weapons));
   assert.doesNotMatch(JSON.stringify(report), /relay-a|relay-c|0123456789abcdef|room|resumeToken|reconnect/i);
@@ -92,7 +93,7 @@ test("share payload validation rejects mutation, unknown private fields, invalid
   assert.throws(() => decodeSquadRunShare(Buffer.from(canonicalStringify(exposed)).toString("base64url")), /exposes callsigns/i);
 });
 
-test("v3 storage deduplicates canonical reports and isolates malformed entries", () => {
+test("v4 storage deduplicates canonical reports and isolates malformed entries", () => {
   const report = createSquadRunReport(run(), { build: "2026.07.13.11" });
   const first = upsertRunArchive([], report, "2026-07-13T16:30:00.000Z");
   const second = upsertRunArchive(first, report, "2026-07-13T16:31:00.000Z");
@@ -102,9 +103,9 @@ test("v3 storage deduplicates canonical reports and isolates malformed entries",
   assert.equal(normalized.length, 1); assert.equal(normalized[0].report.id, report.id);
 });
 
-test("legacy v1/v2 local entries migrate to bounded v3 reports without blocking", () => {
+test("legacy v1/v2 local entries migrate to bounded v4 reports without blocking", () => {
   const legacy = { schemaVersion: 2, id: "old", finishedAt: "2026-07-12T12:00:00.000Z", won: true, map: "warehouse", difficulty: "story", elapsed: 244, level: 12, kills: 90, gold: 100, players: [{ name: "Old", specialist: "echo", damage: 500, kills: 90, xpCollected: 300, damageTaken: 2, revives: 0, traveled: 1_000 }] };
   const migrated = normalizeRunArchiveStorage([legacy]);
-  assert.equal(migrated.length, 1); assert.equal(migrated[0].schemaVersion, 3); assert.equal(migrated[0].report.build, "legacy");
+  assert.equal(migrated.length, 1); assert.equal(migrated[0].schemaVersion, 4); assert.equal(migrated[0].report.build, "legacy");
   assert.equal(migrated[0].report.players[0].callsign, "Old"); assert.equal(migrated[0].report.players[0].damage, 500);
 });

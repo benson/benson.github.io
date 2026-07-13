@@ -115,6 +115,7 @@ test("replay drafts resume without storing transient player identity", () => {
     joinInProgressNormalization: sim.joinInProgressNormalization ?? true,
     squadEnemyDirector: sim.squadEnemyDirector ?? true,
     mapMechanics: sim.mapMechanics ?? true,
+    campaignMutations: sim.campaignMutations ?? true,
     registryVersion: sim.synergyRegistryVersion, rng: RNG_ALGORITHM, seed: SEED,
     run: { map: "warehouse", difficulty: "story", duration: 240 },
   });

@@ -153,6 +153,18 @@ test("squad-director telemetry v4 is reconciled, bounded, and aggregate-only", (
   assert.doesNotMatch(JSON.stringify(payload), /Benson|Friend|private-|SECRET-ROOM|replaySlot|playerName|roomId|positions|slots/i);
 });
 
+test("campaign-mutation telemetry v5 is reconciled, allowlisted, and aggregate-only", () => {
+  const payload = buildRunTelemetry(completedRun({
+    mutationTelemetry: () => ({ packageId: "breach-cascade", encounters: 5, clears: 4, failures: 1, objectiveCompletions: 3, surgeWaves: 2 }),
+  }), "build-14");
+  assert.equal(payload.schemaVersion, 5);
+  assert.equal(payload.mutationPackageId, "breach-cascade");
+  assert.deepEqual(payload.mutationTotals, { encounters: 5, clears: 4, failures: 1, objectiveCompletions: 3, surgeWaves: 2 });
+  assert.doesNotMatch(JSON.stringify(payload), /Benson|Friend|private-|SECRET-ROOM|replaySlot|playerName|roomId|positions|slots/i);
+  assert.throws(() => buildRunTelemetry(completedRun({ mutationTelemetry: { packageId: "unknown", encounters: 0, clears: 0, failures: 0, objectiveCompletions: 0, surgeWaves: 0 } }), "build"), /package id/);
+  assert.throws(() => buildRunTelemetry(completedRun({ mutationTelemetry: { packageId: "breach-cascade", encounters: 2, clears: 2, failures: 1, objectiveCompletions: 0, surgeWaves: 0 } }), "build"), /do not reconcile/);
+});
+
 test("squad-director telemetry fails closed on identity, inconsistent totals, and invalid squad bands", () => {
   assert.throws(() => buildRunTelemetry(completedRun({ directorTelemetry: { ...directorTotals, roomId: "SECRET" } }), "build"), /unexpected fields/);
   assert.throws(() => buildRunTelemetry(completedRun({ directorTelemetry: { ...directorTotals, pincer: 3 } }), "build"), /do not reconcile/);

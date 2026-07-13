@@ -1,10 +1,11 @@
 import { WEAPON_EVOLUTION_CONTRACT, validateWeaponEvolutionContract } from "./weapon-evolution.js?v=20260713.1";
 import { validateEnemyIdentityContract } from "./enemy-archetypes.js?v=20260713.1";
 import { APEX_CONTRACTS, validateApexContracts } from "./apex-encounters.js?v=20260713.1";
+import { CAMPAIGN_MUTATIONS, validateCampaignMutations } from "./campaign-mutations.js?v=20260713.14";
 
 // Balance is a versioned simulation input. Replays and fixtures should record
 // this exact version so a future tuning pass never silently changes old runs.
-export const BALANCE_VERSION = "2026.07.13-director.1";
+export const BALANCE_VERSION = "2026.07.13-mutations.1";
 
 export const BALANCE_IDS = Object.freeze({
   specialists: Object.freeze(["zuri", "echo", "sola", "bront", "fang", "gale", "rift", "nova", "vesper"]),
@@ -18,6 +19,7 @@ export const BALANCE_IDS = Object.freeze({
 
 const config = {
   version: BALANCE_VERSION,
+  campaignMutations: CAMPAIGN_MUTATIONS,
   evolutions: WEAPON_EVOLUTION_CONTRACT,
   apex: APEX_CONTRACTS,
   synergies: {
@@ -142,8 +144,8 @@ const config = {
   },
   difficulties: {
     story: { health: 1.2, attack: 1.3, spell: 1.2, gold: 1, spawn: 0.98, passiveRegen: 0.015 },
-    hard: { health: 3, attack: 2, spell: 1.5, gold: 1.5, spawn: 1.35, passiveRegen: 0 },
-    extreme: { health: 7, attack: 3, spell: 2, gold: 2.25, spawn: 1.68, passiveRegen: 0 },
+    hard: { health: 2.5, attack: 1.8, spell: 1.4, gold: 1.5, spawn: 1.22, passiveRegen: 0 },
+    extreme: { health: 4.5, attack: 2.4, spell: 1.7, gold: 2.25, spawn: 1.42, passiveRegen: 0 },
   },
   enemies: {
     mite: { radius: 19, health: 42, speed: 92, damage: 0.75, xp: 6 },
@@ -287,7 +289,7 @@ export function validateBalanceConfig(candidate = BALANCE_CONFIG) {
   };
   if (!candidate || typeof candidate !== "object") return ["config: must be an object"];
   if (typeof candidate.version !== "string" || !candidate.version.trim()) errors.push("version: required");
-  for (const section of ["core", "evolutions", "apex", "synergies", "specialists", "identityTuning", "movement", "passives", "shields", "difficulties", "enemies", "enemyIdentity", "waves", "weapons"]) {
+  for (const section of ["core", "campaignMutations", "evolutions", "apex", "synergies", "specialists", "identityTuning", "movement", "passives", "shields", "difficulties", "enemies", "enemyIdentity", "waves", "weapons"]) {
     if (!candidate[section] || typeof candidate[section] !== "object") errors.push(`${section}: required`);
   }
   const requireExactIds = (path, value, ids) => {
@@ -308,6 +310,7 @@ export function validateBalanceConfig(candidate = BALANCE_CONFIG) {
     requireFinite(`core.${key}`, candidate.core?.[key], { min: 0, exclusiveMin: true });
   }
   errors.push(...validateApexContracts(candidate.apex).map((error) => `apex.${error}`));
+  errors.push(...validateCampaignMutations(candidate.campaignMutations).map((error) => `campaignMutations.${error}`));
   const synergy = candidate.synergies || {};
   const exactSynergyKeys = (path, value, expected) => {
     const actual = Object.keys(value || {}).sort(), wanted = [...expected].sort();
