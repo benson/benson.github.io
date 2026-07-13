@@ -112,6 +112,7 @@ test("replay drafts resume without storing transient player identity", () => {
     objectiveEvents: sim.objectiveEvents, squadSynergies: sim.squadSynergies,
     sharedParticipationCredit: sim.sharedParticipationCredit ?? true,
     downedActivity: sim.downedActivity ?? true,
+    joinInProgressNormalization: sim.joinInProgressNormalization ?? true,
     registryVersion: sim.synergyRegistryVersion, rng: RNG_ALGORITHM, seed: SEED,
     run: { map: "warehouse", difficulty: "story", duration: 240 },
   });
@@ -141,7 +142,9 @@ test("local recovery enforces age, runtime identity, privacy, and corruption cle
   assert.throws(() => validateRunRecovery(checkpoint, { build: BUILD, runtime: { ...runtime, squadSynergies: false }, now }), /configuration mismatch/);
   assert.throws(() => validateRunRecovery(checkpoint, { build: BUILD, runtime: { ...runtime, sharedParticipationCredit: false }, now }), /configuration mismatch/);
   assert.throws(() => validateRunRecovery(checkpoint, { build: BUILD, runtime: { ...runtime, downedActivity: false }, now }), /configuration mismatch/);
+  assert.throws(() => validateRunRecovery(checkpoint, { build: BUILD, runtime: { ...runtime, joinInProgressNormalization: false }, now }), /configuration mismatch/);
   assert.throws(() => validateRunRecovery({ ...checkpoint, runtime: { ...checkpoint.runtime, sharedParticipationCredit: "yes" } }, { build: BUILD, runtime, now }), /flags are invalid/);
+  assert.throws(() => validateRunRecovery({ ...checkpoint, runtime: { ...checkpoint.runtime, joinInProgressNormalization: "yes" } }, { build: BUILD, runtime, now }), /flags are invalid/);
   assert.throws(() => validateRunRecovery(checkpoint, { build: BUILD, runtime: { ...runtime, registryVersion: "other" }, now }), /configuration mismatch/);
   assert.throws(() => validateRunRecovery({ ...checkpoint, roomCode: "SECRET" }, { build: BUILD, runtime, now }), /unexpected fields/);
   assert.throws(() => validateRunRecovery({ ...checkpoint, expiresAt: now + RECOVERY_MAX_AGE_MS, simulation: { ...checkpoint.simulation, resumeToken: "secret" } }, { build: BUILD, runtime, now }), /not permitted/);

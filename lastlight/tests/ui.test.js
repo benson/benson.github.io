@@ -72,12 +72,13 @@ test("objective notices use longer dwell times and a short interruptible fade", 
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
 });
 
-test("desktop-only type overrides lift critical compact controls to nine pixels", () => {
+test("desktop-only type overrides preserve compact controls while result actions stay readable", () => {
   const desktop = css.match(/@media \(min-width: 981px\) \{([\s\S]+?)\n\}/)?.[1] || "";
   assert.match(desktop, /\.control-ribbon \{ font-size: 10px; \}/);
-  for (const selector of [".control-ribbon kbd", ".damage-ledger-actions button", ".copy-scorecard", ".guide-tabs a", ".report-button", ".build-badge"]) {
+  for (const selector of [".control-ribbon kbd", ".damage-ledger-actions button", ".guide-tabs a", ".report-button", ".build-badge"]) {
     assert.match(desktop, new RegExp(selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
+  assert.match(css, /\.copy-scorecard \{[^}]+font: 700 12px\/1 var\(--sans\)/s);
   assert.match(css, /@media \(max-width: 650px\) \{[\s\S]+\.damage-ledger \{[^}]+resize: none;/);
 });
 

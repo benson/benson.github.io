@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260713.8">
+  <link rel="stylesheet" href="styles.css?v=20260713.9">
 </head>
 <body>
   <main id="app">
@@ -182,6 +182,20 @@
             <button id="copy-link" type="button">Copy invite link</button>
           </div>
         </div>
+
+        <section id="reinforcement-panel" class="reinforcement-panel hidden" aria-labelledby="reinforcement-title" aria-describedby="reinforcement-copy">
+          <header>
+            <div><p class="eyebrow">Active operation // reinforcement</p><h3 id="reinforcement-title">CHOOSE A DEPLOYMENT PACKAGE</h3></div>
+            <span id="reinforcement-status" role="status" aria-live="polite">Your choices do not pause the squad.</span>
+          </header>
+          <p id="reinforcement-copy">Pick a specialist, then choose how the command rig distributes your deterministic catch-up ranks. Catch-up grants no retroactive XP, gold, rare finds, or participation.</p>
+          <div id="reinforcement-packages" class="reinforcement-packages" role="radiogroup" aria-label="Catch-up deployment package">
+            <button type="button" role="radio" aria-checked="true" data-join-package="signature"><span>SIG</span><strong>Signature</strong><small>Prioritize your specialist weapon and its evolution passive.</small><em>Inspecting package…</em></button>
+            <button type="button" role="radio" aria-checked="false" data-join-package="assault"><span>ATK</span><strong>Assault</strong><small>Prioritize offensive weapons, damage, and firing cadence.</small><em>Inspecting package…</em></button>
+            <button type="button" role="radio" aria-checked="false" data-join-package="survival"><span>DEF</span><strong>Survival</strong><small>Prioritize defensive weapons, vitality, armor, and recovery.</small><em>Inspecting package…</em></button>
+          </div>
+          <div id="reinforcement-waiting" class="reinforcement-waiting hidden"><i aria-hidden="true"></i><div><strong>LOADOUT CONFIRMED</strong><p id="reinforcement-waiting-copy">Waiting for the current squad draft to close.</p></div></div>
+        </section>
 
         <div class="lobby-grid">
           <div id="specialist-grid" class="specialist-grid" role="listbox" aria-label="Choose a specialist"></div>
@@ -389,7 +403,7 @@
         </div>
         <div class="scoreboard-wrap">
           <table class="result-scoreboard">
-            <thead><tr><th>Specialist</th><th>Damage</th><th>DPS</th><th>Kills</th><th>XP picked up</th><th>Damage taken</th><th>Revives</th><th>Distance</th><th>Share</th></tr></thead>
+            <thead><tr><th>Specialist</th><th>Deployment</th><th>Damage</th><th>DPS</th><th>Kills</th><th>XP picked up</th><th>Damage taken</th><th>Revives</th><th>Distance</th><th>Share</th></tr></thead>
             <tbody id="result-scoreboard-body"></tbody>
           </table>
         </div>
@@ -559,7 +573,10 @@
             <label class="callsign-field"><span class="input-label">Contact (optional)</span><input id="report-contact" type="text" maxlength="120" autocomplete="email" placeholder="Email or handle"></label>
             <label class="report-note"><span class="input-label">What happened?</span><textarea id="report-note" minlength="8" maxlength="4000" required placeholder="What were you doing, what did you expect, and what happened instead?"></textarea></label>
           </div>
-          <label class="report-screenshot"><input id="report-screenshot" type="checkbox" checked><span>Include a screenshot of the game canvas when available</span></label>
+          <div class="report-attachments">
+            <label class="report-screenshot"><input id="report-screenshot" type="checkbox" checked><span>Include the live game canvas automatically during a run</span></label>
+            <p id="report-image-status"><strong>Paste a screenshot</strong> anywhere while this form is open. It will attach automatically.</p>
+          </div>
           <div id="report-context" class="report-context"></div>
           <div id="report-status" class="report-status" role="status" aria-live="polite"></div>
           <div class="report-actions"><button id="report-submit" class="deploy-button" type="submit"><span>Send report</span><span>↗</span></button><button id="report-copy" class="text-button" type="button">Copy diagnostic details</button></div>
@@ -1014,8 +1031,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.13.8. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.13.8</strong></button>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.13.9. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.13.9</strong></button>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260713.8"></script>
+  <script type="module" src="game.js?v=20260713.9"></script>
 </body>
 </html>

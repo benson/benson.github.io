@@ -5,10 +5,10 @@ The relay exposes `GET /config`. It is read-only, origin-aware, and always sends
 response through the Worker's `LASTLIGHT_RUNTIME_CONFIG` secret.
 
 The current release defaults enable the versioned gameplay systems shipped in
-build `2026.07.13.8`:
+build `2026.07.13.9`:
 
 ```json
-{"schemaVersion":4,"configVersion":"release-2026.07.13.8","gameplayVersion":"downed-v1","registryVersion":"lastlight.squad-synergy.v1","flags":{"deterministicReplay":true,"runTelemetry":true,"objectiveEvents":true,"migrationCheckpointReplication":true,"hostMigrationElection":true,"hostMigrationResume":true,"contextualPings":true,"upgradeRecommendations":true,"squadSynergies":true,"sharedParticipationCredit":true,"downedActivity":true}}
+{"schemaVersion":5,"configVersion":"release-2026.07.13.9","gameplayVersion":"join-normalization-v1","registryVersion":"lastlight.squad-synergy.v1","flags":{"deterministicReplay":true,"runTelemetry":true,"objectiveEvents":true,"migrationCheckpointReplication":true,"hostMigrationElection":true,"hostMigrationResume":true,"contextualPings":true,"upgradeRecommendations":true,"squadSynergies":true,"sharedParticipationCredit":true,"downedActivity":true,"joinInProgressNormalization":true}}
 ```
 
 Unknown keys, missing keys, wrong types, and malformed JSON fail closed to those
@@ -48,6 +48,10 @@ the active config version, gameplay version, source, load status, and flags.
 - Restore/continuation problem: set `hostMigrationResume` to `false`; checkpoints may continue in shadow mode while active-run promotion is disabled.
 - Downed crawl, support, recovery, or presentation problem: set `downedActivity`
   to `false` and publish a new `configVersion` and `gameplayVersion` for new runs.
+- Late-join deployment, reserved-seat, or catch-up problem: set
+  `joinInProgressNormalization` to `false` and publish a new `configVersion` and
+  `gameplayVersion` for new runs. Existing runs retain the contract they started
+  with.
 - Restore release defaults: delete the override with
   `npx wrangler secret delete LASTLIGHT_RUNTIME_CONFIG`, then verify `/config` says
   `source: built-in`.

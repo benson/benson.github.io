@@ -1,6 +1,6 @@
 import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260713.2";
-import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.8";
-import { Renderer } from "./render.js?v=20260713.8";
+import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.9";
+import { Renderer } from "./render.js?v=20260713.9";
 import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260713.2";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
 import { getThemeAsset, getThemeMaterial } from "./themes/lastlight.js?v=20260713.2";
@@ -9,10 +9,10 @@ import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=202
 import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260713.2";
 import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260713.6";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
-import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260713.8";
-import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260713.8";
+import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260713.9";
+import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260713.9";
 import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260711.5";
-import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260713.8";
+import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260713.9";
 import { GuestInputSequenceTracker, HostInputSequenceGate, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260713.2";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260713.2";
 import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260713.2";
@@ -26,8 +26,8 @@ import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatur
 import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260713.2";
 import { getWeaponEvolution } from "./weapon-evolution.js?v=20260713.1";
 import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260712.1";
-import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260713.8";
-import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260713.8";
+import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260713.9";
+import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260713.9";
 import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260713.6";
 import { reconcileActiveBuffs } from "./active-buffs.js?v=20260713.1";
 import { ELITE_AFFIXES, ENEMY_ARCHETYPES } from "./enemy-archetypes.js?v=20260713.1";
@@ -36,7 +36,7 @@ import {
   AuthoritySnapshotGate, HOST_MIGRATION_PROTOCOL_VERSION, MIGRATION_CHECKPOINT_INTERVAL_TICKS,
   createMigrationCapabilities, createMigrationCheckpoint, createMigrationReady,
   migrationCompatibilityMatches, validateMigrationCheckpoint,
-} from "./host-migration.js?v=20260713.8";
+} from "./host-migration.js?v=20260713.9";
 import { RECONNECT_DELAYS_MS, SquadPresenceTracker, authorityStateCopy } from "./reconnect-state.js?v=20260713.3";
 import {
   HostPingGate, PING_INTENTS, PING_LIFETIME_TICKS, PING_WHEEL_ORDER, PingSequenceTracker,
@@ -52,6 +52,7 @@ import { DraftRecommendationStore, recommendationMarkerModel } from "./draft-rec
 import { SQUAD_SYNERGY_REGISTRY } from "./squad-synergies.js?v=20260713.6";
 import { reconcileActiveSynergies } from "./active-synergies.js?v=20260713.6";
 import { PARTICIPATION_REGISTRY } from "./participation-credit.js?v=20260713.7";
+import { campaignJoinEligibility } from "./join-in-progress.js?v=20260713.9";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -60,7 +61,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.13.8";
+const BUILD = "2026.07.13.9";
 const AUTHORITY_WATCHDOG_MS = Object.freeze({ synchronizing: 10_000, migrating: 25_000 });
 const BALANCE = getBalanceConfig();
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
@@ -191,7 +192,7 @@ const state = {
   audioStatus: audioOutputState({ supported: audioSupported, enabled: initialAudioSettings.enabled }),
   audioContext: null, audioMixer: null, audioUnlockInFlight: null, audioUnlockAttempts: 0, audioUnlockReason: "startup", audioLastError: "", activeAudioNodes: 0, peakAudioNodes: 0, toastTimer: null, lastVoiceAt: 0,
   soundState: emptySoundState(),
-  recentErrors: [], reportSubmitting: false, resumeAfterReport: false, telemetrySent: false,
+  recentErrors: [], reportSubmitting: false, resumeAfterReport: false, reportImageDataUrl: "", reportImageMimeType: "", reportImageName: "", telemetrySent: false,
   qualitySettings: initialQualitySettings, showEnemyHealthBars: initialQualitySettings.healthBars !== "off", inspectPointer: null, inspectActive: false,
   performanceMetrics: null, lastDamageLedgerKey: "",
   damageLedgerLayout: loadDamageLedgerLayout(), damageLedgerResizeObserver: null,
@@ -215,6 +216,7 @@ const state = {
   pingStats: { sent: 0, received: 0, rejected: 0, byIntent: Object.fromEntries(PING_WHEEL_ORDER.map((intent) => [intent, 0])) },
   draftRecommendations: new DraftRecommendationStore(),
   draftRecommendationStats: { sent: 0, received: 0, rejected: 0 },
+  runAdmission: null, joinPackageId: "signature", joiningActiveRun: false, joinRequestSent: false, pendingRunAdmissions: [],
 };
 
 const runtimeConfigReady = loadRuntimeConfig({ endpoint: RUNTIME_CONFIG_ENDPOINT }).then((result) => {
@@ -234,6 +236,7 @@ function migrationCompatibility() {
     squadSynergies: state.runtimeConfig.config.flags.squadSynergies,
     sharedParticipationCredit: state.runtimeConfig.config.flags.sharedParticipationCredit,
     downedActivity: state.runtimeConfig.config.flags.downedActivity,
+    joinInProgressNormalization: state.runtimeConfig.config.flags.joinInProgressNormalization,
     registryVersion: state.runtimeConfig.config.registryVersion,
     recoveryVersion: RECOVERY_SIMULATION_VERSION,
   };
@@ -451,6 +454,7 @@ function beginReplayCapture(players, seed) {
     squadSynergies: state.runtimeConfig.config.flags.squadSynergies,
     sharedParticipationCredit: state.runtimeConfig.config.flags.sharedParticipationCredit,
     downedActivity: state.runtimeConfig.config.flags.downedActivity,
+    joinInProgressNormalization: state.runtimeConfig.config.flags.joinInProgressNormalization,
     registryVersion: state.runtimeConfig.config.registryVersion,
     rng: RNG_ALGORITHM, seed, run: replayRunConfig(),
   });
@@ -877,11 +881,6 @@ function recordHostChoice(playerId, choiceId) {
   return Boolean(recordHostDraftAction(playerId, { type: "pick", choiceId })?.accepted);
 }
 
-function nextReplaySlot() {
-  const used = new Set((state.sim?.players || []).map((player) => player.replaySlot));
-  return [0, 1, 2, 3].find((slot) => !used.has(slot));
-}
-
 function setScreen(name) {
   closePingWheel({ restoreFocus: false });
   state.screen = name;
@@ -1165,12 +1164,36 @@ function enterLobby() {
   renderLobby();
 }
 
+function renderReinforcementPanel() {
+  const panel = $("reinforcement-panel"), admission = state.runAdmission;
+  panel.classList.toggle("hidden", !state.joiningActiveRun);
+  if (!state.joiningActiveRun) return;
+  const choosing = ["fresh", "waiting"].includes(admission?.kind) && !state.joinRequestSent && admission?.kind !== "denied";
+  const denied = admission?.kind === "denied";
+  $("reinforcement-packages").classList.toggle("hidden", !choosing);
+  $("reinforcement-waiting").classList.toggle("hidden", choosing || denied);
+  $("reinforcement-status").textContent = denied ? "Deployment unavailable" : choosing ? "Your choices do not pause the squad." : "Admission secured · synchronizing with the host.";
+  $("reinforcement-waiting-copy").textContent = admission?.kind === "reconnect"
+    ? "Your reserved seat is restoring its exact loadout and progress."
+    : admission?.kind === "waiting" ? "Host migration is finishing before deployment." : "The host is applying your package at a safe squad position.";
+  $("reinforcement-copy").textContent = denied
+    ? `This operation cannot accept another specialist${admission?.reason ? `: ${String(admission.reason).replaceAll("-", " ")}` : "."}`
+    : "Pick a specialist, then choose how the command rig distributes your deterministic catch-up ranks. Catch-up grants no retroactive XP, gold, rare finds, or participation.";
+  document.querySelectorAll("[data-join-package]").forEach((button) => button.setAttribute("aria-checked", String(button.dataset.joinPackage === state.joinPackageId)));
+}
+
 function renderLobby() {
   const map = MAPS[state.config.map], difficulty = DIFFICULTIES[state.config.difficulty];
   $("lobby-mission").textContent = `${map.name} · ${difficulty.name} · ${state.config.duration === 900 ? "15:00" : "04:00"}`;
   renderParty();
   const button = $("ready-button"), members = [...state.lobby.values()];
-  if (state.partyMode === "solo") { button.disabled = false; button.innerHTML = `<span>Start operation</span><span>Solo</span>`; }
+  renderReinforcementPanel();
+  if (state.joiningActiveRun) {
+    const choosing = ["fresh", "waiting"].includes(state.runAdmission?.kind) && !state.joinRequestSent && state.runAdmission?.kind !== "denied";
+    button.disabled = !choosing;
+    button.innerHTML = `<span>${state.runAdmission?.kind === "denied" ? "Operation locked" : state.joinRequestSent || state.runAdmission?.kind === "reconnect" ? "Synchronizing" : "Deploy reinforcement"}</span><span>${state.joinPackageId.toUpperCase()}</span>`;
+  }
+  else if (state.partyMode === "solo") { button.disabled = false; button.innerHTML = `<span>Start operation</span><span>Solo</span>`; }
   else if (state.isHost) {
     const waiting = members.filter((member) => member.id !== state.clientId && !member.ready).length;
     button.disabled = waiting > 0; button.innerHTML = `<span>${waiting ? "Waiting for squad" : "Start operation"}</span><span>${members.length} / 04</span>`;
@@ -1197,6 +1220,13 @@ function updateLocalProfile(patch = {}) {
 }
 
 function handleReady() {
+  if (state.joiningActiveRun) {
+    if (state.joinRequestSent || state.runAdmission?.kind === "reconnect" || state.runAdmission?.kind === "denied") return;
+    state.joinRequestSent = true;
+    send({ type: "join_request", protocolVersion: 2, specialist: state.selected, packageId: state.joinPackageId });
+    renderLobby();
+    return;
+  }
   if (state.partyMode === "solo") { startHostedGame(); return; }
   if (state.isHost) { startHostedGame(); return; }
   const me = state.lobby.get(state.clientId); updateLocalProfile({ ready: !me?.ready });
@@ -1204,6 +1234,7 @@ function handleReady() {
 
 function startHostedGame() {
   if (!state.isHost) return;
+  state.joiningActiveRun = false; state.runAdmission = null; state.joinRequestSent = false;
   const players = [...state.lobby.values()].map((p, replaySlot) => ({
     id: p.id, name: p.name, specialist: p.specialist, replaySlot,
     ...(state.partyMode === "solo" ? {} : { reconnectSlot: `migration-slot-${replaySlot}` }),
@@ -1228,6 +1259,7 @@ function startHostedGame() {
 
 function startRemoteGame(message) {
   const synchronizing = ["reconnecting", "synchronizing"].includes(state.authorityState);
+  state.joiningActiveRun = false; state.runAdmission = null; state.joinRequestSent = false;
   if (Array.isArray(message.players)) state.lobby = new Map(message.players.map((player) => [player.id, player]));
   state.config = message.config; state.sim = null; state.previousSnapshot = null; state.snapshot = null; state.migrationLastCheckpointTick = -1;
   if (!synchronizing) state.draftRecommendations.reset(state.authorityEpoch);
@@ -1254,6 +1286,7 @@ function gameLoop(now) {
   const input = currentInput();
   let interpolation = 1, renderPrevious = null, renderState = null;
   if (state.isHost && state.sim && state.authorityState === "active") {
+    processPendingRunAdmissions();
     const simulationStarted = performance.now(); const hostInput = applyHostInput(state.clientId, input);
     const timing = fixedClock.advance(dt, (stepSeconds) => {
       state.hostPreviousMotion = captureMotionState(state.sim);
@@ -2198,8 +2231,9 @@ function scheduleResult(game) {
 
 function statNumber(value) { return Math.round(Number(value) || 0).toLocaleString(); }
 
-function contributionCell(glyph, value, detail, label) {
-  return `<td aria-label="${escapeHTML(label)}"><span class="contribution-value"><i aria-hidden="true">${glyph}</i><b>${escapeHTML(value)}</b><small>${escapeHTML(detail)}</small></span></td>`;
+function contributionCell(glyph, value, detail, label, heading) {
+  const cardLabel = heading || String(label).replace(/\s+-?\d.*$/, "");
+  return `<td data-label="${escapeHTML(cardLabel)}" aria-label="${escapeHTML(label)}"><span class="contribution-value"><i aria-hidden="true">${glyph}</i><b>${escapeHTML(value)}</b><small>${escapeHTML(detail)}</small></span></td>`;
 }
 
 function renderContributionTable(game) {
@@ -2226,7 +2260,9 @@ function renderScoreboard(game) {
   const seconds = elapsedRunSeconds(game);
   $("result-scoreboard-body").innerHTML = game.players.map((player) => {
     const spec = SPECIALISTS[player.specialist] || SPECIALISTS.zuri;
-    return `<tr><td><div class="result-scoreboard-player"><img src="${spec.sprite}" alt=""><div><strong>${escapeHTML(player.name)}</strong><small>${spec.name}</small></div></div></td><td>${statNumber(player.damage)}</td><td>${(Number(player.damage || 0) / seconds).toFixed(1)}</td><td>${statNumber(player.kills)}</td><td>${statNumber(player.xpCollected)}</td><td>${statNumber(player.damageTaken)}</td><td>${statNumber(player.revives)}</td><td>${statNumber(player.traveled)}</td><td><button class="copy-scorecard" type="button" data-player-id="${player.id}">Copy card</button></td></tr>`;
+    const joinedAt = Math.max(0, Number(player.joinedAtTick || 0) / 60);
+    const deployment = player.joinKind === "fresh" ? `Reinforcement · ${formatTime(joinedAt)}` : "Launch squad";
+    return `<tr><td data-label="Specialist"><div class="result-scoreboard-player"><img src="${spec.sprite}" alt=""><div><strong>${escapeHTML(player.name)}</strong><small>${spec.name}</small></div></div></td><td data-label="Deployment"><span class="result-deployment">${escapeHTML(deployment)}</span></td><td data-label="Damage">${statNumber(player.damage)}</td><td data-label="DPS">${(Number(player.damage || 0) / seconds).toFixed(1)}</td><td data-label="Kills">${statNumber(player.kills)}</td><td data-label="XP picked up">${statNumber(player.xpCollected)}</td><td data-label="Damage taken">${statNumber(player.damageTaken)}</td><td data-label="Revives">${statNumber(player.revives)}</td><td data-label="Distance">${statNumber(player.traveled)}</td><td data-label="Share"><button class="copy-scorecard" type="button" data-player-id="${player.id}">Copy card</button></td></tr>`;
   }).join("");
   $("result-scoreboard-body").querySelectorAll(".copy-scorecard").forEach((button) => button.addEventListener("click", () => copyPlayerScorecard(button.dataset.playerId)));
   renderContributionTable(game);
@@ -2250,8 +2286,11 @@ function renderScoreboard(game) {
   $("result-synergy-cards").innerHTML = teamwork.join("");
   $("result-damage-breakdown").innerHTML = game.players.map((player) => {
     const sources = Object.entries(player.damageBySource || {}).filter(([, damage]) => damage > 0).sort((a, b) => b[1] - a[1]);
+    const displayedSources = sources.length > 6
+      ? [...sources.slice(0, 5), [`Other sources (${sources.length - 5})`, sources.slice(5).reduce((sum, [, damage]) => sum + damage, 0)]]
+      : sources;
     const total = Math.max(1, Number(player.damage || 0));
-    return `<article><header><strong>${escapeHTML(player.name)} · damage by source</strong><span>${statNumber(player.damage)} total</span></header>${sources.length ? sources.map(([id, damage], index) => `<div class="${index === 0 ? "leader" : ""}"><span>${escapeHTML(sourceName(id, player))}</span><i><b style="width:${clamp(damage / total * 100, 0, 100)}%"></b></i><em>${statNumber(damage)} · ${(damage / seconds).toFixed(1)} DPS · ${Math.round(damage / total * 100)}%</em></div>`).join("") : `<p>No source data recorded.</p>`}</article>`;
+    return `<article><header><strong>${escapeHTML(player.name)} · damage by source</strong><span>${statNumber(player.damage)} total</span></header>${displayedSources.length ? displayedSources.map(([id, damage], index) => `<div class="${index === 0 ? "leader" : ""}"><span>${escapeHTML(id.startsWith("Other sources") ? id : sourceName(id, player))}</span><i><b style="width:${clamp(damage / total * 100, 0, 100)}%"></b></i><em>${statNumber(damage)} · ${(damage / seconds).toFixed(1)} DPS · ${Math.round(damage / total * 100)}%</em></div>`).join("") : `<p>No source data recorded.</p>`}</article>`;
   }).join("");
 }
 
@@ -2327,9 +2366,14 @@ function showResult(game) {
   $("result-time").textContent = formatTime(game.time + (game.bossElapsed || 0)); $("result-kills").textContent = Number(game.kills || 0).toLocaleString(); $("result-level").textContent = game.level; $("result-gold").textContent = Math.round(game.gold || 0);
   const mapId = typeof game.map === "string" ? game.map : game.map.id;
   const difficultyId = typeof game.difficulty === "string" ? game.difficulty : game.difficulty.id;
-  const unlocks = won ? recordVictory(mapId, difficultyId) : [];
-  $("result-unlock").classList.toggle("hidden", !unlocks.length);
-  $("result-unlock").textContent = unlocks.length ? `Campaign updated · ${unlocks.join(" · ")}` : "";
+  const localPlayer = game.players?.find((player) => player.id === state.clientId);
+  const joinEligibility = localPlayer?.joinKind === "fresh" && state.runtimeConfig.config.flags.joinInProgressNormalization
+    ? campaignJoinEligibility({ activeCombatTicks: Number(localPlayer.preApexDeployedTicks || 0), preApexCombatTicks: Math.round(Number(game.duration || state.config.duration || 240) * 60) })
+    : { eligible: true, requiredCombatSeconds: 0 };
+  const unlocks = won && joinEligibility.eligible ? recordVictory(mapId, difficultyId) : [];
+  const ineligibleClear = won && !joinEligibility.eligible;
+  $("result-unlock").classList.toggle("hidden", !unlocks.length && !ineligibleClear);
+  $("result-unlock").textContent = unlocks.length ? `Campaign updated · ${unlocks.join(" · ")}` : ineligibleClear ? `Campaign clear not awarded · reinforce for at least ${Math.ceil(joinEligibility.requiredCombatSeconds)} pre-apex seconds` : "";
   if (state.isHost && game === state.sim) finalizeReplayCapture();
   $("watch-replay").classList.toggle("hidden", !state.resultReplay);
   state.resultGame = game; renderScoreboard(game);
@@ -2467,7 +2511,7 @@ function inspectReplayCanvas(event) {
 function returnToLobby() {
   discardRecovery({ notify: false });
   resetInputProtocol();
-  state.sim = null; state.snapshot = null; state.previousSnapshot = null; state.replayRecorder = null; state.endShown = false; clearTimeout(state.resultTimer);
+  state.sim = null; state.snapshot = null; state.previousSnapshot = null; state.replayRecorder = null; state.endShown = false; state.joiningActiveRun = false; state.runAdmission = null; state.joinRequestSent = false; state.pendingRunAdmissions = []; clearTimeout(state.resultTimer);
   state.draftRecommendations.reset(state.authorityEpoch);
   state.squadPresence.reset(); state.lastPresenceAnnouncement = ""; clearTimeout(state.authorityRestoreTimer); state.authorityRestoreTimer = null; setAuthorityState("active", { restoreFocus: false });
   for (const member of state.lobby.values()) member.ready = member.id === state.clientId && state.isHost;
@@ -2477,7 +2521,7 @@ function returnToLobby() {
 }
 
 function leaveToHome() {
-  closeSocket(); state.sim = null; state.snapshot = null; state.replayRecorder = null; state.resultGame = null; state.lobby.clear(); state.draftRecommendations.reset(state.authorityEpoch);
+  closeSocket(); state.sim = null; state.snapshot = null; state.replayRecorder = null; state.resultGame = null; state.lobby.clear(); state.joiningActiveRun = false; state.runAdmission = null; state.joinRequestSent = false; state.pendingRunAdmissions = []; state.draftRecommendations.reset(state.authorityEpoch);
   state.squadPresence.reset(); state.lastPresenceAnnouncement = ""; clearTimeout(state.authorityRestoreTimer); state.authorityRestoreTimer = null; setAuthorityState("active", { restoreFocus: false });
   const url = new URL(location.href); url.searchParams.delete("room"); history.replaceState(null, "", url);
   setScreen("home"); updateProgressionUI(); refreshRecoveryOffer();
@@ -2531,6 +2575,7 @@ function connectRoom(code, { reconnecting = false } = {}) {
     });
     ws.addEventListener("open", () => send({
       type: "hello", profile: { name: callsign(), specialist: state.selected, resumeToken: state.resumeToken },
+      roomProtocolVersion: 2,
       migrationCapabilities: migrationCapabilities(),
     }));
     ws.addEventListener("message", (event) => {
@@ -2555,6 +2600,52 @@ function connectRoom(code, { reconnecting = false } = {}) {
   });
 }
 
+function resolveRunAdmission(message) {
+  if (!state.isHost || message.protocolVersion !== 2 || !message.admissionId || !Number.isInteger(message.replaySlot)) return;
+  const reject = (reason) => send({ type: "join_rejected", protocolVersion: 2, admissionId: message.admissionId, replaySlot: message.replaySlot, reason }, message._from);
+  if (!state.sim || !["game", "result"].includes(state.screen)) { reject("run-unavailable"); return; }
+  if (state.sim.paused || ["draft", "migrating", "synchronizing"].includes(state.authorityState)) {
+    if (!state.pendingRunAdmissions.some((entry) => entry.admissionId === message.admissionId)) state.pendingRunAdmissions.push(message);
+    return;
+  }
+  if (message.kind === "fresh" && state.sim.stage !== "running") { reject("run-locked"); return; }
+  try {
+    const info = { ...message.profile, id: message._from, replaySlot: message.replaySlot };
+    let player, resumed = message.kind === "reconnect", deployment = null;
+    if (resumed) {
+      player = state.sim.addPlayer({ ...info, reconnectSlot: `migration-slot-${message.replaySlot}` });
+      if (!player?.reconnected) throw new Error("reconnect-seat-mismatch");
+      if (player) delete player.reconnected;
+    } else if (message.kind === "fresh") {
+      deployment = state.sim.deployLateJoin(info, { packageId: message.packageId });
+      player = deployment.player;
+    } else throw new Error("unsupported-admission-kind");
+    if (!player || player.replaySlot !== message.replaySlot) throw new Error("seat-mismatch");
+    state.lobby.set(message._from, { ...message.profile, id: message._from, replaySlot: player.replaySlot });
+    if (state.replayRecorder) {
+      if (resumed) state.replayRecorder.registerPlayer(message._from, player.specialist, { slot: player.replaySlot, tick: state.sim.tick, reconnect: true });
+      else state.replayRecorder.registerPlayer(message._from, player.specialist, { slot: player.replaySlot, tick: state.sim.tick, packageId: deployment.packageId, catchUpRanks: deployment.catchUpRanks });
+    }
+    state.draftRecommendations.resetSeat(player.replaySlot);
+    const presence = resumed ? state.squadPresence.restore(player, state.sim.tick) : state.squadPresence.connect(player, state.sim.tick);
+    if (resumed) announcePresence(presence, state.sim.tick);
+    state.sim.pushEvent("boon", `${player.name} ${resumed ? "reconnected" : "joined the run"}`, resumed ? "Loadout and progress restored" : `${deployment.packageId} package · ${deployment.catchUpRanks} catch-up ranks`);
+    send({ type: "join_committed", protocolVersion: 2, admissionId: message.admissionId, replaySlot: message.replaySlot }, message._from);
+    publishMigrationCheckpoint(true);
+    sendRunSync(message._from); broadcastLobby();
+    toast(`${player.name} ${resumed ? "reconnected" : "deployed"}`);
+  } catch (error) {
+    captureClientError("run admission", error);
+    reject("admission-failed");
+  }
+}
+
+function processPendingRunAdmissions() {
+  if (!state.isHost || !state.sim || state.sim.paused || state.authorityState !== "active" || !state.pendingRunAdmissions.length) return;
+  const pending = state.pendingRunAdmissions.splice(0);
+  for (const admission of pending) resolveRunAdmission(admission);
+}
+
 function handleNetworkMessage(raw) {
   let message; try { message = JSON.parse(raw); } catch { return; }
   if (message.type === "welcome") {
@@ -2570,6 +2661,10 @@ function handleNetworkMessage(raw) {
     }
     for (const peer of message.peers || []) state.lobby.set(peer.id, { id: peer.id, name: peer.name || "Connecting…", specialist: peer.specialist || "zuri", ready: false });
     state.lobby.set(state.clientId, { id: state.clientId, name: callsign(), specialist: state.selected, ready: state.isHost, resumeToken: state.resumeToken });
+    state.joiningActiveRun = Boolean(message.runActive);
+    state.runAdmission = message.runActive ? (message.admission || { kind: "denied", reason: "unsupported-admission" }) : null;
+    state.joinRequestSent = ["reconnect", "denied"].includes(state.runAdmission?.kind)
+      || state.runAdmission?.kind === "waiting" && Number.isInteger(state.runAdmission?.slot);
     send({ type: "profile", profile: state.lobby.get(state.clientId) }); state.connectResolve?.(message); state.connectResolve = null; state.connectReject = null; return;
   }
   if (message.type === "peer_joined") {
@@ -2603,35 +2698,23 @@ function handleNetworkMessage(raw) {
       state.isHost = message.id === state.clientId; authoritySnapshotGate.commit({ epoch: state.authorityEpoch, hostId: message.id });
       if (state.isHost && state.screen === "lobby") { const me = state.lobby.get(state.clientId); if (me) me.ready = true; broadcastLobby(); renderLobby(); }
     }
+  } else if (message.type === "run_admission" && state.isHost) {
+    resolveRunAdmission(message);
+  } else if (message.type === "join_committed" && !state.isHost) {
+    state.runAdmission = { kind: "committed", slot: message.replaySlot, roomProtocolVersion: 2 };
+    state.joinRequestSent = true; renderLobby();
+  } else if (message.type === "join_rejected" && !state.isHost) {
+    state.runAdmission = { kind: "denied", reason: message.reason, roomProtocolVersion: 2 };
+    state.joinRequestSent = true; renderLobby();
   } else if (message.type === "profile" && state.isHost) {
     state.lobby.set(message._from, { ...message.profile, id: message._from });
-    if (state.sim && state.screen === "game") {
-      const availableReplaySlot = Number.isInteger(message.profile?.replaySlot) ? message.profile.replaySlot : nextReplaySlot();
-      const player = state.sim.addPlayer({
-        ...message.profile, id: message._from, replaySlot: availableReplaySlot,
-        ...(Number.isInteger(availableReplaySlot) ? { reconnectSlot: `migration-slot-${availableReplaySlot}` } : {}),
-      });
-      const resumed = Boolean(player?.reconnected); if (player) delete player.reconnected;
-      if (resumed && Number.isInteger(player?.replaySlot)) state.draftRecommendations.resetSeat(player.replaySlot);
-      if (player && state.sim.players.some((entry) => entry !== player && entry.replaySlot === player.replaySlot)) player.replaySlot = availableReplaySlot;
-      if (player && state.replayRecorder) state.replayRecorder.registerPlayer(message._from, player.specialist, { slot: player.replaySlot, tick: state.sim.tick, reconnect: resumed });
-      if (player) {
-        const presence = resumed ? state.squadPresence.restore(player, state.sim.tick) : state.squadPresence.connect(player, state.sim.tick);
-        if (resumed) announcePresence(presence, state.sim.tick);
-        state.lobby.set(message._from, { ...state.lobby.get(message._from), replaySlot: player.replaySlot });
-      }
-      if (player && !resumed) {
-        const anchor = state.sim.players.find((entry) => entry.id !== player.id && !entry.dead && !entry.downed);
-        if (anchor) { player.x = anchor.x + 45; player.y = anchor.y + 25; }
-        player.invuln = 5;
-      }
-      state.sim.pushEvent("boon", `${player?.name || message.profile.name} ${resumed ? "reconnected" : "joined the run"}`, resumed ? "Loadout and progress restored" : "Deployed at the squad position");
-      sendRunSync(message._from);
-      toast(`${player?.name || message.profile.name} ${resumed ? "reconnected" : "joined"}`);
-    } else if (state.sim && state.screen === "result") {
+    // Active-run identity and seat changes are admitted only through the
+    // relay-owned v2 barrier above. Profile updates remain lobby metadata.
+    broadcastLobby();
+    if (state.screen === "lobby") renderLobby();
+    else if (state.sim && state.screen === "result") {
       sendRunSync(message._from);
     }
-    broadcastLobby(); if (state.screen === "lobby") renderLobby();
   } else if (message.type === "lobby_state" && !state.isHost) {
     state.config = message.config; state.lobby = new Map(message.players.map((p) => [p.id, p])); if (state.screen === "lobby") renderLobby();
   } else if (message.type === "start" && !state.isHost) startRemoteGame(message);
@@ -2835,10 +2918,37 @@ function captureClientError(type, value) {
 
 function clearReportNote() { $("report-note").value = ""; }
 
+function clearReportImage() {
+  state.reportImageDataUrl = ""; state.reportImageMimeType = ""; state.reportImageName = "";
+  $("report-image-status").innerHTML = "<strong>Paste a screenshot</strong> anywhere while this form is open. It will attach automatically.";
+  $("report-image-status").className = "";
+}
+
+async function attachReportImage(file) {
+  if (!file || !/^image\/(png|jpeg|webp)$/.test(file.type)) { $("report-image-status").textContent = "Choose a PNG, JPEG, or WebP screenshot."; $("report-image-status").className = "error"; return; }
+  if (file.size > 5_000_000) { $("report-image-status").textContent = "That screenshot is over 5 MB. Please crop or compress it first."; $("report-image-status").className = "error"; return; }
+  try {
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || "")); reader.onerror = () => reject(reader.error || new Error("Screenshot could not be read"));
+      reader.readAsDataURL(file);
+    });
+    state.reportImageDataUrl = dataUrl; state.reportImageMimeType = file.type; state.reportImageName = file.name || "pasted screenshot";
+    $("report-image-status").textContent = `${state.reportImageName} attached · ${(file.size / 1_000_000).toFixed(1)} MB`;
+    $("report-image-status").className = "success";
+  } catch { $("report-image-status").textContent = "That screenshot could not be attached."; $("report-image-status").className = "error"; }
+}
+
+function pasteReportImage(event) {
+  const file = [...(event.clipboardData?.files || [])].find((entry) => entry.type.startsWith("image/"));
+  if (!file) return;
+  event.preventDefault(); attachReportImage(file);
+}
+
 function openReport() {
   closePingWheel({ restoreFocus: false });
   const game = gameDiagnostics();
-  clearReportNote();
+  clearReportNote(); clearReportImage();
   state.resumeAfterReport = false;
   if (state.screen === "game" && state.authorityState === "active" && state.isHost && state.sim && !state.sim.paused) { togglePause(true); state.resumeAfterReport = true; }
   $("report-context").textContent = `BUILD ${BUILD} · ${game.screen.toUpperCase()} · ${game.map || "NO MAP"} / ${game.difficulty || "NO TIER"} · ${game.multiplayerRole.toUpperCase()} · ${state.recentErrors.length} RECENT ERROR${state.recentErrors.length === 1 ? "" : "S"}`;
@@ -2861,8 +2971,8 @@ async function submitReport(event) {
   if (note.length < 8) { $("report-status").textContent = "Please include a little more detail."; $("report-status").className = "report-status error"; return; }
   state.reportSubmitting = true; $("report-submit").disabled = true;
   $("report-status").textContent = "Sending diagnostics to command…"; $("report-status").className = "report-status";
-  let dataUrl = "", mimeType = "";
-  if ($("report-screenshot").checked && state.screen === "game") {
+  let dataUrl = state.reportImageDataUrl, mimeType = state.reportImageMimeType;
+  if (!dataUrl && $("report-screenshot").checked && state.screen === "game") {
     try { mimeType = "image/jpeg"; dataUrl = $("game-canvas").toDataURL(mimeType, .76); } catch { /* A report is still useful without a screenshot. */ }
   }
   const game = gameDiagnostics(), contact = $("report-contact").value.trim();
@@ -2887,7 +2997,7 @@ async function submitReport(event) {
     const result = await response.json().catch(() => ({}));
     if (!response.ok || !result.ok) throw new Error(result.error || `Report service returned ${response.status}`);
     $("report-status").textContent = `Report sent${result.issue?.identifier ? ` as ${result.issue.identifier}` : ""}. Thank you.`;
-    $("report-status").className = "report-status success"; $("report-alert").classList.add("hidden"); clearReportNote(); sfx("reward");
+    $("report-status").className = "report-status success"; $("report-alert").classList.add("hidden"); clearReportNote(); clearReportImage(); sfx("reward");
   } catch (error) {
     console.error(error); $("report-status").textContent = "Could not send automatically. Use “Copy diagnostic details” and share them directly.";
     $("report-status").className = "report-status error"; sfx("danger");
@@ -3240,6 +3350,10 @@ function bindEvents() {
     if (!event.target.closest?.(".starting-weapon-detail")) setStartingWeaponDetailsOpen(false);
   });
   document.querySelectorAll(".mode-tab").forEach((button) => button.addEventListener("click", () => setPartyMode(button.dataset.partyMode)));
+  document.querySelectorAll("[data-join-package]").forEach((button) => button.addEventListener("click", () => {
+    if (!state.joiningActiveRun || state.joinRequestSent) return;
+    state.joinPackageId = button.dataset.joinPackage; renderLobby();
+  }));
   $("map-select").addEventListener("change", updateDifficultyOptions);
   $("deploy-button").addEventListener("click", deploy); $("room-input").addEventListener("keydown", (event) => { if (event.key === "Enter") deploy(); });
   $("recovery-resume").addEventListener("click", resumeRecovery); $("recovery-discard").addEventListener("click", () => discardRecovery());
@@ -3319,6 +3433,7 @@ function bindEvents() {
   $("guide-dialog").addEventListener("click", (event) => { if (event.target === $("guide-dialog")) $("guide-dialog").close(); });
   $("report-button").addEventListener("click", openReport); $("report-close").addEventListener("click", () => $("report-dialog").close());
   $("report-dialog").addEventListener("click", (event) => { if (event.target === $("report-dialog")) $("report-dialog").close(); });
+  $("report-dialog").addEventListener("paste", pasteReportImage);
   $("report-dialog").addEventListener("close", handleReportClosed);
   $("report-form").addEventListener("submit", submitReport); $("report-copy").addEventListener("click", copyDiagnostics);
   window.addEventListener("lastlight:inspect", (event) => showInspectPanel(event.detail || {}));
@@ -3462,6 +3577,20 @@ if (localHost) Object.defineProperty(window, "__lastlightQA", { value: Object.fr
     state.lastUpgradeKey = ""; return true;
   },
   setScreen: (screen) => { if (!screens[screen]) return false; setScreen(screen); return true; },
+  showResultFixture: () => {
+    const specialists = ["rift", "zuri", "echo", "sola"];
+    const players = specialists.map((specialist, replaySlot) => ({
+      id: `qa-result-${replaySlot}`, name: ["Rookie", "Long Callsign", "Mender", "Vanguard"][replaySlot], specialist, replaySlot,
+      joinKind: replaySlot === 3 ? "fresh" : "initial", joinedAtTick: replaySlot === 3 ? 6_120 : 0,
+      damage: 129_675 - replaySlot * 21_337, kills: 429 - replaySlot * 73, xpCollected: 4_237 - replaySlot * 510,
+      damageTaken: replaySlot * 318, revives: replaySlot, traveled: 60_823 - replaySlot * 7_120,
+      damageBySource: { signature: 53_002 - replaySlot * 4_100, aura: 30_337 - replaySlot * 3_200, mines: 25_164 - replaySlot * 2_700, crossbow: 7_786, active: 3_755, passive: 2_042, ultimate: 1_589 },
+    }));
+    const slots = players.map(({ replaySlot }) => ({ replaySlot, slot: replaySlot, effectiveHealing: replaySlot * 105, effectiveShielding: replaySlot * 57, shieldDamagePrevented: replaySlot * 88, mitigationPrevented: replaySlot * 24, damageAssists: 5 + replaySlot, controlAssists: replaySlot, revives: replaySlot, reviveTicks: replaySlot * 74, objectiveCompletions: 3 - Math.min(2, replaySlot), objectivePresenceTicks: 974 - replaySlot * 91, objectiveMovement: 711 - replaySlot * 80, eliteParticipations: 4, apexParticipations: 1 }));
+    state.telemetrySent = true;
+    showResult({ stage: "won", time: 285, bossElapsed: 0, kills: 1_284, level: 13, gold: 660, map: "warehouse", difficulty: "story", players, participationState: { slots }, synergyState: { stats: players.map(({ replaySlot }) => ({ slot: replaySlot, triggers: replaySlot, assists: replaySlot, ultimateChains: 0, damage: replaySlot * 320, shielding: 0, mitigated: 0, formationTicks: 0 })) } });
+    return true;
+  },
   renderActiveBuffs: (fields = {}) => updateActiveBuffs(fields),
   renderDamageLedger: (damageBySource = {}) => updateDamageLedger({ specialist: state.selected, damageBySource }, { time: 60 }),
     playAudioCues: (entries = []) => Array.isArray(entries) && entries.slice(0, 64).forEach((entry) => typeof entry === "string" ? sfx(entry) : sfx(String(entry?.name || "ui"), entry || {})),

@@ -7,15 +7,16 @@ import {
 
 const compatibility = Object.freeze({
   build: "2026.07.13.1", balanceVersion: "2026.07.13-apex.1", balanceHash: "fnv1a32:873c43bc",
-  configVersion: "release-2026.07.13.8", gameplayVersion: "downed-v1", objectiveEvents: true,
-  squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, registryVersion: "lastlight.squad-synergy.v1", recoveryVersion: 6,
+  configVersion: "release-2026.07.13.9", gameplayVersion: "join-normalization-v1", objectiveEvents: true,
+  squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true,
+  registryVersion: "lastlight.squad-synergy.v1", recoveryVersion: 7,
 });
 
 function checkpoint(overrides = {}) {
   return createMigrationCheckpoint({
     epoch: 3, tick: 120, hash: "0123456789abcdef", ack: { alpha: 7, beta: 9 }, compatibility,
     roster: [{ id: "alpha", replaySlot: 0 }, { id: "beta", replaySlot: 1 }],
-    simulation: { version: 6, scalars: { tick: 120 } }, replay: { currentTick: 120 }, ...overrides,
+    simulation: { version: 7, scalars: { tick: 120 } }, replay: { currentTick: 120 }, ...overrides,
   });
 }
 
@@ -27,8 +28,9 @@ test("migration capabilities pin exact build, balance, runtime, and gameplay ide
   assert.equal(migrationCompatibilityMatches(compatibility, { ...compatibility, squadSynergies: false }), false);
   assert.equal(migrationCompatibilityMatches(compatibility, { ...compatibility, sharedParticipationCredit: false }), false);
   assert.equal(migrationCompatibilityMatches(compatibility, { ...compatibility, downedActivity: false }), false);
+  assert.equal(migrationCompatibilityMatches(compatibility, { ...compatibility, joinInProgressNormalization: false }), false);
   assert.equal(migrationCompatibilityMatches(compatibility, { ...compatibility, registryVersion: "other" }), false);
-  assert.equal(migrationCompatibilityMatches(compatibility, { ...compatibility, recoveryVersion: 5 }), false);
+  assert.equal(migrationCompatibilityMatches(compatibility, { ...compatibility, recoveryVersion: 6 }), false);
   assert.throws(() => createMigrationCapabilities({ ...compatibility, room: "SECRET" }), /unsupported/);
 });
 
@@ -39,8 +41,8 @@ test("migration checkpoints use strict bounded anonymous state", () => {
   assert.throws(() => validateMigrationCheckpoint({ ...value, surprise: true }), /unsupported/);
   assert.throws(() => checkpoint({ roster: [{ id: "alpha", replaySlot: 1 }, { id: "beta", replaySlot: 0 }] }), /ordered/);
   assert.throws(() => checkpoint({ ack: { stranger: 1 } }), /unknown player/);
-  assert.throws(() => checkpoint({ simulation: { version: 6, scalars: { tick: 119 } } }), /match its tick/);
-  assert.throws(() => checkpoint({ simulation: { version: 5, scalars: { tick: 120 } } }), /match its tick/);
+  assert.throws(() => checkpoint({ simulation: { version: 7, scalars: { tick: 119 } } }), /match its tick/);
+  assert.throws(() => checkpoint({ simulation: { version: 6, scalars: { tick: 120 } } }), /match its tick/);
   assert.throws(() => validateMigrationCheckpoint(value, { maxBytes: 32 }), /size bounds/);
 });
 
@@ -58,7 +60,7 @@ test("migration readiness is bound to one epoch, checkpoint, tick, and hash", ()
   const source = checkpoint();
   const ready = createMigrationReady(source);
   assert.deepEqual(ready, {
-    type: "migration_ready", schema: HOST_MIGRATION_SCHEMA, protocolVersion: 4,
+    type: "migration_ready", schema: HOST_MIGRATION_SCHEMA, protocolVersion: 5,
     epoch: 3, checkpointId: source.checkpointId, tick: 120, hash: source.hash,
   });
   assert.throws(() => createMigrationReady({ ...source, checkpointId: "../../bad" }), /checkpoint id/);
