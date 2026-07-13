@@ -1,5 +1,5 @@
-export const RUNTIME_CONFIG_SCHEMA_VERSION = 11;
-export const RUNTIME_CONFIG_STORAGE_KEY = "lastlight:runtime-config:v11";
+export const RUNTIME_CONFIG_SCHEMA_VERSION = 12;
+export const RUNTIME_CONFIG_STORAGE_KEY = "lastlight:runtime-config:v12";
 export const SQUAD_SYNERGY_REGISTRY_VERSION = "lastlight.squad-synergy.v1";
 
 const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
@@ -17,13 +17,14 @@ const FLAG_NAMES = Object.freeze([
   "campaignMutations",
   "specialistMastery",
   "rareDiscoveries",
+  "challengeAchievements",
   "sharedSquadRunArchive",
 ]);
 const MAX_RUNTIME_CONFIG_BYTES = 4_096;
 
 export const DEFAULT_RUNTIME_CONFIG = deepFreeze({
   schemaVersion: RUNTIME_CONFIG_SCHEMA_VERSION,
-  configVersion: "release-2026.07.13.16",
+  configVersion: "release-2026.07.13.17",
   gameplayVersion: "rare-discoveries-v1",
   registryVersion: SQUAD_SYNERGY_REGISTRY_VERSION,
   flags: {
@@ -44,6 +45,7 @@ export const DEFAULT_RUNTIME_CONFIG = deepFreeze({
     campaignMutations: true,
     specialistMastery: true,
     rareDiscoveries: true,
+    challengeAchievements: true,
     sharedSquadRunArchive: true,
   },
 });

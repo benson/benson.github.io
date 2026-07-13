@@ -45,6 +45,7 @@ const MUTATION_PACKAGE_IDS = new Set(["base-line", "contested-operations", "brea
 const MUTATION_TOTAL_FIELDS = Object.freeze(["encounters", "clears", "failures", "objectiveCompletions", "surgeWaves"]);
 const MASTERY_LEVEL_BANDS = new Set(["1-2", "3-4", "5"]);
 const DISCOVERY_CATEGORIES = Object.freeze(["event", "affix", "boon", "augment"]);
+const CHALLENGE_CATEGORIES = Object.freeze(["build", "survival", "teamwork", "operation", "discovery", "specialist"]);
 
 export const DEFAULT_TELEMETRY_ENDPOINT = "https://lastlight-relay.bensonperry.workers.dev/telemetry";
 
@@ -177,7 +178,22 @@ function buildRareDiscoveryTelemetry(value) {
   return { rareDiscoveryCount: value.discoveredCount, rareDiscoveryNewCount: value.newlyRevealedCount, rareDiscoveryCategories: categories };
 }
 
-export function buildRunTelemetry(snapshot, build, masteryTelemetry = null, discoveryTelemetry = null) {
+function buildChallengeAchievementTelemetry(value) {
+  exactKeys(value, ["completedCount", "newlyCompletedCount", "categories"], "Challenge achievement telemetry");
+  exactKeys(value.categories, CHALLENGE_CATEGORIES, "Challenge achievement categories");
+  if (!Number.isInteger(value.completedCount) || value.completedCount < 0 || value.completedCount > 18
+    || !Number.isInteger(value.newlyCompletedCount) || value.newlyCompletedCount < 0 || value.newlyCompletedCount > value.completedCount) throw new TypeError("Invalid challenge achievement totals");
+  const categories = {};
+  for (const category of CHALLENGE_CATEGORIES) {
+    const count = value.categories[category];
+    if (!Number.isInteger(count) || count < 0 || count > 18) throw new TypeError(`Invalid challenge achievement category: ${category}`);
+    categories[category] = count;
+  }
+  if (Object.values(categories).reduce((sum, count) => sum + count, 0) !== value.completedCount) throw new TypeError("Challenge achievement categories do not reconcile");
+  return { challengeAchievementCount: value.completedCount, challengeAchievementNewCount: value.newlyCompletedCount, challengeAchievementCategories: categories };
+}
+
+export function buildRunTelemetry(snapshot, build, masteryTelemetry = null, discoveryTelemetry = null, challengeTelemetry = null) {
   if (!snapshot || typeof snapshot !== "object") throw new TypeError("A result snapshot is required");
   if (snapshot.stage !== "won" && snapshot.stage !== "lost") throw new TypeError("Telemetry is only recorded for completed runs");
 
@@ -248,11 +264,15 @@ export function buildRunTelemetry(snapshot, build, masteryTelemetry = null, disc
     if (payload.schemaVersion < 5) throw new TypeError("Rare discovery telemetry requires the current aggregate run schema");
     Object.assign(payload, { schemaVersion: 7, ...buildRareDiscoveryTelemetry(discoveryTelemetry) });
   }
+  if (challengeTelemetry !== null) {
+    if (payload.schemaVersion < 5) throw new TypeError("Challenge achievement telemetry requires the current aggregate run schema");
+    Object.assign(payload, { schemaVersion: 8, ...buildChallengeAchievementTelemetry(challengeTelemetry) });
+  }
   return payload;
 }
 
 export async function submitRunTelemetry(snapshot, build, options = {}) {
-  const payload = buildRunTelemetry(snapshot, build, options.masteryTelemetry ?? null, options.discoveryTelemetry ?? null);
+  const payload = buildRunTelemetry(snapshot, build, options.masteryTelemetry ?? null, options.discoveryTelemetry ?? null, options.challengeTelemetry ?? null);
   const request = options.fetch || globalThis.fetch;
   if (typeof request !== "function") throw new TypeError("fetch is unavailable");
   const response = await request(options.endpoint || DEFAULT_TELEMETRY_ENDPOINT, {

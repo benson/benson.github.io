@@ -1,8 +1,8 @@
 # Run telemetry
 
 `POST /telemetry` accepts one aggregate record after a run finishes and writes it to the
-`lastlight_runs` Analytics Engine dataset. Rolling deploys accept schemas v1 through v7 and store
-them with distinct `run.v1` through `run.v7` schema blobs and schema-specific shared indexes. The
+`lastlight_runs` Analytics Engine dataset. Rolling deploys accept schemas v1 through v8 and store
+them with distinct `run.v1` through `run.v8` schema blobs and schema-specific shared indexes. The
 endpoint intentionally rejects unknown fields: callsigns, player IDs or slots, room codes,
 reconnect tokens, browser
 identity, IP addresses, and request geolocation never enter the dataset. Analytics Engine retains
@@ -14,7 +14,7 @@ The ordered fields in `worker.js` map to Analytics Engine columns as follows:
 
 | Column | Meaning |
 | --- | --- |
-| `blob1` | schema (`run.v1` through `run.v7`) |
+| `blob1` | schema (`run.v1` through `run.v8`) |
 | `blob2` | game build |
 | `blob3` | map |
 | `blob4` | difficulty |
@@ -143,15 +143,24 @@ exactly to the collection total. Discovery IDs, dossier order, claim hashes, cal
 rooms, browser identifiers, and run identifiers are never accepted. Mastery fields remain an
 optional complete group so the `rareDiscoveries` rollback flag stays independent.
 
+Schema v8 adds one `challenge-achievements.v1` aggregate datapoint. Its dimensions are build,
+map, difficulty, and outcome. Its ordered doubles are total completed records, newly completed
+records, and totals for build, survival, teamwork, operation, discovery, and specialist
+categories. Category totals must reconcile exactly to the completed total. Challenge IDs,
+predicates, progress history, reward selections, claim hashes, callsigns, slots, rooms, browser
+identifiers, and run identifiers are never accepted. Discovery and mastery fields remain
+optional complete groups so all three rollback controls stay independent.
+
 No contributor array, replay slot, player row, name, or arbitrary synergy ID is accepted. If a
 rolling client omits both aggregate methods, it emits schema v1; synergy alone emits schema v2;
 participation emits schema v3 and supplies an empty valid synergy aggregate when necessary. Empty
 synergy `ids` are valid only when all six synergy totals are zero.
 
 `index1` is the shared schema value `lastlight-run-v1`, `lastlight-run-v2`,
-`lastlight-run-v3`, `lastlight-run-v4`, `lastlight-run-v5`, `lastlight-run-v6`, `lastlight-run-v7`,
+`lastlight-run-v3`, `lastlight-run-v4`, `lastlight-run-v5`, `lastlight-run-v6`, `lastlight-run-v7`, `lastlight-run-v8`,
 `lastlight-participation-v1`, `lastlight-squad-director-v1`, `lastlight-campaign-mutations-v1`,
-`lastlight-specialist-mastery-v1`, or `lastlight-rare-discoveries-v1`; it is never a player/session identifier.
+`lastlight-specialist-mastery-v1`, `lastlight-rare-discoveries-v1`, or
+`lastlight-challenge-achievements-v1`; it is never a player/session identifier.
 
 For balance reviews, group by `blob3`, `blob4`, and `blob6`, weight aggregates by
 `_sample_interval`, and compare win rate, elapsed time, damage taken, and level reached between

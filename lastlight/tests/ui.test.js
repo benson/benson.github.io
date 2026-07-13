@@ -289,7 +289,7 @@ test("result-screen recovery also waits for an authoritative ended-run sync", ()
 
 test("enemy identity guide stays named and reachable on mobile", () => {
   assert.match(html, /id="guide-dialog"[^>]+aria-labelledby="guide-title"/);
-  assert.match(html, /<h2 id="guide-title">UPGRADES & RARE FINDS<\/h2>/);
+  assert.match(html, /<h2 id="guide-title">FIELD MANUAL & RECORDS<\/h2>/);
   assert.match(game, /Hasted elite/);
   assert.match(game, /Shielded elite/);
   assert.match(game, /Volatile elite/);
