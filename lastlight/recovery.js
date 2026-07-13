@@ -61,7 +61,7 @@ export function validateRunRecovery(value, { build, runtime, now = Date.now() } 
   if (!runtime || value.runtime.configVersion !== runtime.configVersion || value.runtime.gameplayVersion !== runtime.gameplayVersion || value.runtime.objectiveEvents !== runtime.objectiveEvents) {
     throw new TypeError("Recovery runtime configuration mismatch");
   }
-  if (!value.simulation || value.simulation.version !== 1 || !Array.isArray(value.simulation.players) || !value.simulation.players.some((player) => player.replaySlot === value.localSlot)) {
+  if (!value.simulation || value.simulation.version !== 2 || !Array.isArray(value.simulation.players) || !value.simulation.players.some((player) => player.replaySlot === value.localSlot)) {
     throw new TypeError("Recovery simulation is invalid");
   }
   if (value.replay !== null && (typeof value.replay !== "object" || value.replay.currentTick !== value.simulation.scalars?.tick)) throw new TypeError("Recovery replay identity is invalid");

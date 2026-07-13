@@ -129,6 +129,9 @@ function applyMessage(replica, envelope) {
   if (envelope.type === "input") return id ? simulation.setInput(id, envelope.payload) : false;
   if (envelope.type === "cast") return id ? simulation.cast(id, envelope.payload.slot) : false;
   if (envelope.type === "upgrade") return id ? simulation.choose(id, envelope.payload.choiceId) : false;
+  if (envelope.type === "draft-reroll") return id ? simulation.draftAction(id, { type: "reroll" }) : false;
+  if (envelope.type === "draft-banish") return id ? simulation.draftAction(id, { type: "banish", choiceId: envelope.payload.choiceId }) : false;
+  if (envelope.type === "draft-skip") return id ? simulation.draftAction(id, { type: "skip" }) : false;
   if (envelope.type === "grant-xp") { simulation.teamXP += simulation.xpNeed; return true; }
   if (envelope.type === "disconnect") {
     if (!id) return false;
@@ -202,7 +205,8 @@ export function runMultiplayerSoak(options = {}) {
   if (!queue || !["enqueue", "drain", "pendingCount", "metrics"].every((key) => typeof queue[key] === "function")) throw new TypeError("transportFactory returned an invalid replication queue");
   const checkpoints = [], timing = [], seenEvents = new Set(), peakEntities = {};
   let maxTotalEntities = 0, maxSnapshotBytes = 0, maxSimulationTasks = 0, maxPendingUpgradeChoices = 0;
-  let upgrades = 0, disconnected = false, reconnected = false, apexFinished = false;
+  let upgrades = 0, rerolls = 0, banishes = 0, skips = 0, disconnected = false, reconnected = false, apexFinished = false;
+  const draftActions = new Set();
   const disconnectTick = Math.round(settings.durationSeconds * SIMULATION_TICK_RATE * .37);
   const reconnectTick = disconnectTick + 5 * SIMULATION_TICK_RATE;
   const finishTick = settings.durationSeconds * SIMULATION_TICK_RATE + 3 * SIMULATION_TICK_RATE;
@@ -236,6 +240,18 @@ export function runMultiplayerSoak(options = {}) {
       const choices = replicas[0].simulation.pendingChoices;
       for (let slot = 0; slot < 4; slot++) {
         const id = replicas[0].activeIds.get(slot);
+        const player = replicas[0].simulation.players.find((entry) => entry.id === id), round = player?.draft?.round || 0;
+        const actionKey = `${round}:${slot}`;
+        if (slot === 0 && player?.draft?.rerolls > 0 && !draftActions.has(`${actionKey}:reroll`)) {
+          draftActions.add(`${actionKey}:reroll`); broadcast(logicalTick, "draft-reroll", slot); rerolls++; continue;
+        }
+        if (slot === 1 && player?.draft?.banishes > 0 && !draftActions.has(`${actionKey}:banish`)) {
+          const target = (choices[id] || []).find(({ kind }) => kind === "weapon" || kind === "passive");
+          if (target) { draftActions.add(`${actionKey}:banish`); broadcast(logicalTick, "draft-banish", slot, { choiceId: target.id }); banishes++; continue; }
+        }
+        if (slot === 2 && player?.draft?.skips > 0 && !draftActions.has(`${actionKey}:skip`)) {
+          draftActions.add(`${actionKey}:skip`); broadcast(logicalTick, "draft-skip", slot); skips++; continue;
+        }
         const choice = id && [...(choices[id] || [])].sort((a, b) => a.id.localeCompare(b.id))[0];
         if (choice) { broadcast(logicalTick, "upgrade", slot, { choiceId: choice.id }); upgrades++; }
       }
@@ -277,6 +293,7 @@ export function runMultiplayerSoak(options = {}) {
   if (transport.pending !== 0 || transport.sent !== transport.delivered) throw new Error("Replication queue did not drain");
   if (!disconnected || !reconnected || replicas.some((replica) => !replica.activeIds.has(1))) throw new Error("Disconnect/reconnect lifecycle was not completed");
   if (upgrades < 4) throw new Error("Soak did not complete a squad upgrade draft");
+  if (!rerolls || !banishes || !skips) throw new Error("Soak did not exercise every draft-control action");
   if (seenEvents.size < 3) throw new Error(`Soak observed only ${seenEvents.size} objective events`);
   if (replicas.some((replica) => replica.simulation.stage !== "won")) throw new Error("Soak did not reach a converged result");
 
@@ -285,7 +302,7 @@ export function runMultiplayerSoak(options = {}) {
     status: "passed",
     contract: { balanceVersion: BALANCE_VERSION, balanceHash: BALANCE_HASH, stepHz: SIMULATION_TICK_RATE, players: 4 },
     scenario: { map: settings.map, difficulty: settings.difficulty, durationSeconds: settings.durationSeconds },
-    coverage: { upgrades, objectiveEvents: [...seenEvents].sort(), disconnected, reconnected, result: "won" },
+    coverage: { upgrades, rerolls, banishes, skips, objectiveEvents: [...seenEvents].sort(), disconnected, reconnected, result: "won" },
     checkpoints,
     metrics: {
       logicalTicks: finalLogicalTick + 1, maxTotalEntities, maxSnapshotBytes, maxSimulationTasks, maxPendingUpgradeChoices,

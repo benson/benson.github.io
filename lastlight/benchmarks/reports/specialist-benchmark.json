@@ -3,8 +3,8 @@
   "schemaVersion": 1,
   "contract": "actual-simulation-fixed-seed-v1",
   "versions": {
-    "balanceVersion": "2026.07.12-evolutions.3",
-    "balanceHash": "fnv1a32:4278e96d",
+    "balanceVersion": "2026.07.12-draft.1",
+    "balanceHash": "fnv1a32:7bd246b8",
     "simulationTickRate": 60
   },
   "budgets": {
@@ -185,7 +185,7 @@
       "scenarios": [
         {
           "id": "level-1",
-          "seed": "1752eb3d1652e9aa1552e8171452e684",
+          "seed": "7b287d347c287ec77d28805a7e2881ed",
           "level": 1,
           "teamSize": 1,
           "elapsedSeconds": 7.633,
@@ -224,13 +224,13 @@
           "structure": {
             "peakEntities": 5,
             "maxWorkUnitsPerTick": 4,
-            "maxSnapshotBytes": 3446
+            "maxSnapshotBytes": 3532
           },
-          "finalHash": "d9b44fdf61e27063"
+          "finalHash": "202aa859f749bde7"
         },
         {
           "id": "e-unlock",
-          "seed": "964a2f71954a2dde944a2c4b934a2ab8",
+          "seed": "bb3acfa2bc3ad135b93acc7cba3ace0f",
           "level": 3,
           "teamSize": 1,
           "elapsedSeconds": 20,
@@ -269,13 +269,13 @@
           "structure": {
             "peakEntities": 23,
             "maxWorkUnitsPerTick": 130,
-            "maxSnapshotBytes": 8233
+            "maxSnapshotBytes": 8319
           },
-          "finalHash": "8ef78be8fcfbb46d"
+          "finalHash": "4b0410329d8f82be"
         },
         {
           "id": "r-unlock",
-          "seed": "fa2f00cafb2f025df82efda4f92eff37",
+          "seed": "1622fa291522f8961422f7031322f570",
           "level": 6,
           "teamSize": 1,
           "elapsedSeconds": 20,
@@ -314,24 +314,24 @@
           "structure": {
             "peakEntities": 35,
             "maxWorkUnitsPerTick": 240,
-            "maxSnapshotBytes": 8551
+            "maxSnapshotBytes": 8637
           },
-          "finalHash": "4d53ce9e65a8eb1d"
+          "finalHash": "7a974e00c7f7bb39"
         },
         {
           "id": "mature-loadout",
-          "seed": "9827b0d29927b2659627adac9727af3f",
+          "seed": "8d1ead118c1eab7e8b1ea9eb8a1ea858",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 30,
           "ticks": 1800,
           "metrics": {
-            "damageTotal": 88257.058,
-            "signatureDamage": 23142.6,
+            "damageTotal": 88592.458,
+            "signatureDamage": 23478,
             "abilityDamage": 23947.858,
-            "damagePerSecond": 2941.902,
+            "damagePerSecond": 2953.082,
             "singleTargetDps": null,
-            "areaDps": 2941.902,
+            "areaDps": 2953.082,
             "ttkSeconds": null,
             "kills": 0,
             "teamDamageShare": null,
@@ -359,13 +359,13 @@
           "structure": {
             "peakEntities": 66,
             "maxWorkUnitsPerTick": 532,
-            "maxSnapshotBytes": 17562
+            "maxSnapshotBytes": 17454
           },
-          "finalHash": "2a261aaced3e9d36"
+          "finalHash": "e9297f2ce73e40e2"
         },
         {
           "id": "mobility-escape",
-          "seed": "a99c80caaa9c825da79c7da4a89c7f37",
+          "seed": "306c61cf2f6c603c326c64f5316c6362",
           "level": 6,
           "teamSize": 1,
           "elapsedSeconds": 8,
@@ -404,13 +404,13 @@
           "structure": {
             "peakEntities": 41,
             "maxWorkUnitsPerTick": 24,
-            "maxSnapshotBytes": 12646
+            "maxSnapshotBytes": 12734
           },
-          "finalHash": "9ff83ba839675ee3"
+          "finalHash": "a172e2312cedcc65"
         },
         {
           "id": "pickup-objective",
-          "seed": "ef5ef625ee5ef492ed5ef2ffec5ef16c",
+          "seed": "ed3daf1aee3db0adeb3dabf4ec3dad87",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 6,
@@ -426,7 +426,7 @@
             "kills": 0,
             "teamDamageShare": null,
             "effectiveVitality": 15.08,
-            "peakEffectiveVitality": 26.39,
+            "peakEffectiveVitality": 15.08,
             "damageTaken": 0,
             "hpRemaining": 13,
             "survivalSeconds": 6,
@@ -449,23 +449,23 @@
           "structure": {
             "peakEntities": 44,
             "maxWorkUnitsPerTick": 9,
-            "maxSnapshotBytes": 12208
+            "maxSnapshotBytes": 12306
           },
-          "finalHash": "4885ff23bc85b073"
+          "finalHash": "610abafd2bd824b0"
         },
         {
           "id": "solo-pressure",
-          "seed": "05d3e4ac06d3e63f07d3e7d208d3e965",
+          "seed": "23503a35225038a22150370f2050357c",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 45,
           "ticks": 2700,
           "metrics": {
-            "damageTotal": 219938.996,
-            "signatureDamage": 77812.8,
-            "abilityDamage": 111459.396,
-            "damagePerSecond": 4887.533,
-            "singleTargetDps": 4887.533,
+            "damageTotal": 215300.175,
+            "signatureDamage": 76694.8,
+            "abilityDamage": 107991.875,
+            "damagePerSecond": 4784.448,
+            "singleTargetDps": 4784.448,
             "areaDps": null,
             "ttkSeconds": null,
             "kills": 0,
@@ -479,7 +479,7 @@
             "travelDistance": 12830.653,
             "escapeTimeSeconds": null,
             "combatUptime": 1,
-            "abilityUptimeSeconds": 2.367,
+            "abilityUptimeSeconds": 2.383,
             "controlEnemySeconds": 0,
             "shieldGranted": 0,
             "shieldAllies": 0,
@@ -492,15 +492,15 @@
             "objectiveProgress": 0
           },
           "structure": {
-            "peakEntities": 101,
-            "maxWorkUnitsPerTick": 1309,
-            "maxSnapshotBytes": 23805
+            "peakEntities": 99,
+            "maxWorkUnitsPerTick": 1284,
+            "maxSnapshotBytes": 23495
           },
-          "finalHash": "63c99a718b202fb8"
+          "finalHash": "3158c7562fca7d2e"
         },
         {
           "id": "elite-duel",
-          "seed": "317aad0f307aab7c337ab035327aaea2",
+          "seed": "3f8014d040801663418017f642801989",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 0.133,
@@ -539,13 +539,13 @@
           "structure": {
             "peakEntities": 34,
             "maxWorkUnitsPerTick": 25,
-            "maxSnapshotBytes": 10160
+            "maxSnapshotBytes": 10257
           },
-          "finalHash": "8dbb835a05fb7b31"
+          "finalHash": "c26760dac4279bf3"
         },
         {
           "id": "apex-duel",
-          "seed": "9cd1b5189dd1b6ab9ed1b83e9fd1b9d1",
+          "seed": "cd666881cc6666eecb66655bca6663c8",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 17.517,
@@ -582,36 +582,36 @@
             "objectiveProgress": 0
           },
           "structure": {
-            "peakEntities": 67,
-            "maxWorkUnitsPerTick": 56,
-            "maxSnapshotBytes": 17444
+            "peakEntities": 68,
+            "maxWorkUnitsPerTick": 57,
+            "maxSnapshotBytes": 17519
           },
-          "finalHash": "2934ad88beaffea7"
+          "finalHash": "25ebef63fb0c6fda"
         },
         {
           "id": "four-player",
-          "seed": "b675c5cbb575c438b875c8f1b775c75e",
+          "seed": "1b9625ae1c962741199622881a96241b",
           "level": 20,
           "teamSize": 4,
           "elapsedSeconds": 45,
           "ticks": 2700,
           "metrics": {
-            "damageTotal": 10284.371,
+            "damageTotal": 10133.571,
             "signatureDamage": 2459.6,
             "abilityDamage": 3948.171,
-            "damagePerSecond": 228.542,
-            "singleTargetDps": 228.542,
+            "damagePerSecond": 225.19,
+            "singleTargetDps": 225.19,
             "areaDps": null,
             "ttkSeconds": null,
             "kills": 0,
-            "teamDamageShare": 0.157,
+            "teamDamageShare": 0.151,
             "effectiveVitality": 15.08,
             "peakEffectiveVitality": 15.08,
             "damageTaken": 9.1,
             "hpRemaining": 0,
-            "survivalSeconds": 24.867,
+            "survivalSeconds": 24.817,
             "downed": true,
-            "travelDistance": 7095.898,
+            "travelDistance": 7081.654,
             "escapeTimeSeconds": null,
             "combatUptime": 0.587,
             "abilityUptimeSeconds": 0.833,
@@ -629,21 +629,21 @@
           "structure": {
             "peakEntities": 149,
             "maxWorkUnitsPerTick": 151,
-            "maxSnapshotBytes": 42365
+            "maxSnapshotBytes": 42530
           },
-          "finalHash": "30fe0066c44f7f6b"
+          "finalHash": "863476bcfe84fd30"
         }
       ],
       "summary": {
         "level1Dps": 61.31,
-        "matureAreaDps": 2941.902,
+        "matureAreaDps": 2953.082,
         "effectiveVitality": 10,
         "escapeTimeSeconds": 2.05,
         "soloSurvivalSeconds": 45,
         "soloDamageTaken": 4.31,
         "eliteTtkSeconds": 0.133,
         "apexTtkSeconds": 17.517,
-        "squadDamageShare": 0.157,
+        "squadDamageShare": 0.151,
         "squadSupport": 0,
         "pickupReach": 80,
         "objectiveProgress": 1
@@ -687,19 +687,19 @@
       "scenarios": [
         {
           "id": "level-1",
-          "seed": "cb21aacccc21ac5fcd21adf2ce21af85",
+          "seed": "c456e1fdc356e06ac256ded7c156dd44",
           "level": 1,
           "teamSize": 1,
-          "elapsedSeconds": 18.233,
-          "ticks": 1094,
+          "elapsedSeconds": 21.25,
+          "ticks": 1275,
           "metrics": {
             "damageTotal": 468,
             "signatureDamage": 468,
             "abilityDamage": 0,
-            "damagePerSecond": 25.667,
-            "singleTargetDps": 25.667,
+            "damagePerSecond": 22.024,
+            "singleTargetDps": 22.024,
             "areaDps": null,
-            "ttkSeconds": 18.233,
+            "ttkSeconds": 21.25,
             "kills": 1,
             "teamDamageShare": null,
             "effectiveVitality": 10,
@@ -710,7 +710,7 @@
             "downed": false,
             "travelDistance": 0,
             "escapeTimeSeconds": null,
-            "combatUptime": 0.646,
+            "combatUptime": 0.632,
             "abilityUptimeSeconds": 0,
             "controlEnemySeconds": 0,
             "shieldGranted": 0,
@@ -725,14 +725,14 @@
           },
           "structure": {
             "peakEntities": 4,
-            "maxWorkUnitsPerTick": 3,
-            "maxSnapshotBytes": 3250
+            "maxWorkUnitsPerTick": 2,
+            "maxSnapshotBytes": 3063
           },
-          "finalHash": "b85f1162e43f6931"
+          "finalHash": "e61fe8f17612e96c"
         },
         {
           "id": "e-unlock",
-          "seed": "568a15ca578a175d548a12a4558a1437",
+          "seed": "5e2312b15d23111e5c230f8b5b230df8",
           "level": 3,
           "teamSize": 1,
           "elapsedSeconds": 20,
@@ -771,24 +771,24 @@
           "structure": {
             "peakEntities": 14,
             "maxWorkUnitsPerTick": 30,
-            "maxSnapshotBytes": 6036
+            "maxSnapshotBytes": 6315
           },
-          "finalHash": "619ed890e6fb67bc"
+          "finalHash": "a4b8e45bf5312283"
         },
         {
           "id": "r-unlock",
-          "seed": "f2a54471f1a542def0a5414befa53fb8",
+          "seed": "0a53ee0a0b53ef9d0853eae40953ec77",
           "level": 6,
           "teamSize": 1,
           "elapsedSeconds": 20,
           "ticks": 1200,
           "metrics": {
-            "damageTotal": 2624,
-            "signatureDamage": 744,
+            "damageTotal": 2562,
+            "signatureDamage": 682,
             "abilityDamage": 1880,
-            "damagePerSecond": 131.2,
+            "damagePerSecond": 128.1,
             "singleTargetDps": null,
-            "areaDps": 131.2,
+            "areaDps": 128.1,
             "ttkSeconds": null,
             "kills": 0,
             "teamDamageShare": null,
@@ -814,26 +814,26 @@
             "objectiveProgress": 0
           },
           "structure": {
-            "peakEntities": 24,
-            "maxWorkUnitsPerTick": 120,
-            "maxSnapshotBytes": 7633
+            "peakEntities": 25,
+            "maxWorkUnitsPerTick": 130,
+            "maxSnapshotBytes": 8073
           },
-          "finalHash": "6cd921ac69180209"
+          "finalHash": "8a2c39ffbbf6f9ab"
         },
         {
           "id": "mature-loadout",
-          "seed": "2f997a592e9978c62d9977332c9975a0",
+          "seed": "1613ae121713afa51413aaec1513ac7f",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 30,
           "ticks": 1800,
           "metrics": {
-            "damageTotal": 107287.8,
-            "signatureDamage": 10738,
+            "damageTotal": 105633,
+            "signatureDamage": 11198.2,
             "abilityDamage": 4200,
-            "damagePerSecond": 3576.26,
+            "damagePerSecond": 3521.1,
             "singleTargetDps": null,
-            "areaDps": 3576.26,
+            "areaDps": 3521.1,
             "ttkSeconds": null,
             "kills": 0,
             "teamDamageShare": null,
@@ -859,15 +859,15 @@
             "objectiveProgress": 0
           },
           "structure": {
-            "peakEntities": 92,
-            "maxWorkUnitsPerTick": 798,
-            "maxSnapshotBytes": 26437
+            "peakEntities": 95,
+            "maxWorkUnitsPerTick": 854,
+            "maxSnapshotBytes": 25390
           },
-          "finalHash": "231ff6b4e1396e7f"
+          "finalHash": "c63e44119bda4eaf"
         },
         {
           "id": "mobility-escape",
-          "seed": "425122a741512114445125cd4351243a",
+          "seed": "5402bc0a5502bd9d5202b8e45302ba77",
           "level": 6,
           "teamSize": 1,
           "elapsedSeconds": 8,
@@ -904,15 +904,15 @@
             "objectiveProgress": 0
           },
           "structure": {
-            "peakEntities": 59,
+            "peakEntities": 60,
             "maxWorkUnitsPerTick": 1,
-            "maxSnapshotBytes": 14939
+            "maxSnapshotBytes": 15035
           },
-          "finalHash": "72b6d9ec9693e75d"
+          "finalHash": "c14208a3367e24da"
         },
         {
           "id": "pickup-objective",
-          "seed": "8c8205b28d8207458a82028c8b82041f",
+          "seed": "103bd3650f3bd1d20e3bd03f0d3bceac",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 6,
@@ -936,7 +936,7 @@
             "travelDistance": 0,
             "escapeTimeSeconds": null,
             "combatUptime": 1,
-            "abilityUptimeSeconds": 1,
+            "abilityUptimeSeconds": 0,
             "controlEnemySeconds": 0,
             "shieldGranted": 0,
             "shieldAllies": 0,
@@ -949,41 +949,41 @@
             "objectiveProgress": 1
           },
           "structure": {
-            "peakEntities": 83,
+            "peakEntities": 70,
             "maxWorkUnitsPerTick": 9,
-            "maxSnapshotBytes": 19776
+            "maxSnapshotBytes": 16562
           },
-          "finalHash": "f42ebdb2a659d89b"
+          "finalHash": "ffd3f8349bd78b2e"
         },
         {
           "id": "solo-pressure",
-          "seed": "e9d5159de8d5140ae7d51277e6d510e4",
+          "seed": "12abf1ec13abf37f14abf51215abf6a5",
           "level": 20,
           "teamSize": 1,
-          "elapsedSeconds": 45,
-          "ticks": 2700,
+          "elapsedSeconds": 27.633,
+          "ticks": 1658,
           "metrics": {
-            "damageTotal": 139709.2,
-            "signatureDamage": 61973.6,
+            "damageTotal": 95999.5,
+            "signatureDamage": 36509.2,
             "abilityDamage": 7200,
-            "damagePerSecond": 3104.649,
-            "singleTargetDps": 3104.649,
+            "damagePerSecond": 3474.047,
+            "singleTargetDps": 3474.047,
             "areaDps": null,
             "ttkSeconds": null,
             "kills": 0,
             "teamDamageShare": null,
             "effectiveVitality": 15.08,
             "peakEffectiveVitality": 22.616,
-            "damageTaken": 4.603,
-            "hpRemaining": 5.797,
-            "survivalSeconds": 45,
-            "downed": false,
-            "travelDistance": 11591.987,
+            "damageTaken": 10.4,
+            "hpRemaining": 0,
+            "survivalSeconds": 27.633,
+            "downed": true,
+            "travelDistance": 7586.123,
             "escapeTimeSeconds": null,
-            "combatUptime": 0.998,
-            "abilityUptimeSeconds": 12,
+            "combatUptime": 1,
+            "abilityUptimeSeconds": 9,
             "controlEnemySeconds": 60,
-            "shieldGranted": 17.554,
+            "shieldGranted": 15.152,
             "shieldAllies": 0,
             "repairSelf": 0,
             "repairAllies": 0,
@@ -994,27 +994,27 @@
             "objectiveProgress": 0
           },
           "structure": {
-            "peakEntities": 117,
-            "maxWorkUnitsPerTick": 1356,
-            "maxSnapshotBytes": 32053
+            "peakEntities": 110,
+            "maxWorkUnitsPerTick": 1280,
+            "maxSnapshotBytes": 29935
           },
-          "finalHash": "d6444e72d715aec8"
+          "finalHash": "11c800003177f044"
         },
         {
           "id": "elite-duel",
-          "seed": "048e2848058e29db068e2b6e078e2d01",
+          "seed": "7413b34f7313b1bc7613b6757513b4e2",
           "level": 20,
           "teamSize": 1,
-          "elapsedSeconds": 2.233,
-          "ticks": 134,
+          "elapsedSeconds": 2.25,
+          "ticks": 135,
           "metrics": {
             "damageTotal": 3276,
             "signatureDamage": 460.2,
             "abilityDamage": 300,
-            "damagePerSecond": 1466.866,
-            "singleTargetDps": 1466.866,
+            "damagePerSecond": 1456,
+            "singleTargetDps": 1456,
             "areaDps": null,
-            "ttkSeconds": 2.233,
+            "ttkSeconds": 2.25,
             "kills": 1,
             "teamDamageShare": null,
             "effectiveVitality": 15.08,
@@ -1023,11 +1023,11 @@
             "hpRemaining": 13,
             "survivalSeconds": 60,
             "downed": false,
-            "travelDistance": 1160.166,
+            "travelDistance": 1164.899,
             "escapeTimeSeconds": null,
             "combatUptime": 1,
-            "abilityUptimeSeconds": 2.233,
-            "controlEnemySeconds": 2.217,
+            "abilityUptimeSeconds": 2.25,
+            "controlEnemySeconds": 2.233,
             "shieldGranted": 6.25,
             "shieldAllies": 0,
             "repairSelf": 0,
@@ -1040,21 +1040,21 @@
           },
           "structure": {
             "peakEntities": 79,
-            "maxWorkUnitsPerTick": 56,
-            "maxSnapshotBytes": 18724
+            "maxWorkUnitsPerTick": 57,
+            "maxSnapshotBytes": 18292
           },
-          "finalHash": "d55c4bd4079fc277"
+          "finalHash": "4cb9aaa03193a3f5"
         },
         {
           "id": "apex-duel",
-          "seed": "af540839ae5406a6ad540513ac540380",
+          "seed": "7ed291587fd292eb80d2947e81d29611",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 24.5,
           "ticks": 1470,
           "metrics": {
             "damageTotal": 17400,
-            "signatureDamage": 613.6,
+            "signatureDamage": 767,
             "abilityDamage": 300,
             "damagePerSecond": 710.204,
             "singleTargetDps": 710.204,
@@ -1084,29 +1084,29 @@
             "objectiveProgress": 0
           },
           "structure": {
-            "peakEntities": 118,
-            "maxWorkUnitsPerTick": 96,
-            "maxSnapshotBytes": 30701
+            "peakEntities": 112,
+            "maxWorkUnitsPerTick": 93,
+            "maxSnapshotBytes": 30792
           },
-          "finalHash": "4e3cc431dab7f017"
+          "finalHash": "ca7c20e7e5789a97"
         },
         {
           "id": "four-player",
-          "seed": "fe13efd6ff13f169fc13ecb0fd13ee43",
+          "seed": "4011540b3f115278421157314111559e",
           "level": 20,
           "teamSize": 4,
           "elapsedSeconds": 45,
           "ticks": 2700,
           "metrics": {
-            "damageTotal": 4601.7,
+            "damageTotal": 4526.3,
             "signatureDamage": 460.2,
             "abilityDamage": 300,
-            "damagePerSecond": 102.26,
-            "singleTargetDps": 102.26,
+            "damagePerSecond": 100.584,
+            "singleTargetDps": 100.584,
             "areaDps": null,
             "ttkSeconds": null,
             "kills": 0,
-            "teamDamageShare": 0.076,
+            "teamDamageShare": 0.074,
             "effectiveVitality": 15.08,
             "peakEffectiveVitality": 22.616,
             "damageTaken": 0,
@@ -1129,23 +1129,23 @@
             "objectiveProgress": 0
           },
           "structure": {
-            "peakEntities": 209,
-            "maxWorkUnitsPerTick": 198,
-            "maxSnapshotBytes": 55391
+            "peakEntities": 206,
+            "maxWorkUnitsPerTick": 195,
+            "maxSnapshotBytes": 55612
           },
-          "finalHash": "781857f52f2bcac5"
+          "finalHash": "ad09bfbf452bf04e"
         }
       ],
       "summary": {
-        "level1Dps": 25.667,
-        "matureAreaDps": 3576.26,
+        "level1Dps": 22.024,
+        "matureAreaDps": 3521.1,
         "effectiveVitality": 10,
         "escapeTimeSeconds": 1.1,
-        "soloSurvivalSeconds": 45,
-        "soloDamageTaken": 4.603,
-        "eliteTtkSeconds": 2.233,
+        "soloSurvivalSeconds": 27.633,
+        "soloDamageTaken": 10.4,
+        "eliteTtkSeconds": 2.25,
         "apexTtkSeconds": 24.5,
-        "squadDamageShare": 0.076,
+        "squadDamageShare": 0.074,
         "squadSupport": 46.173,
         "pickupReach": 80,
         "objectiveProgress": 1
@@ -1188,7 +1188,7 @@
       "scenarios": [
         {
           "id": "level-1",
-          "seed": "2c6b91582d6b92eb2e6b947e2f6b9611",
+          "seed": "ccbbb35dcbbbb1cacabbb037c9bbaea4",
           "level": 1,
           "teamSize": 1,
           "elapsedSeconds": 19.467,
@@ -1227,13 +1227,13 @@
           "structure": {
             "peakEntities": 5,
             "maxWorkUnitsPerTick": 3,
-            "maxSnapshotBytes": 3432
+            "maxSnapshotBytes": 3518
           },
-          "finalHash": "ccc564ff60f90191"
+          "finalHash": "1fcce55512d8ff1f"
         },
         {
           "id": "e-unlock",
-          "seed": "0e2da45e0f2da5f10c2da1380d2da2cb",
+          "seed": "842299118322977e822295eb81229458",
           "level": 3,
           "teamSize": 1,
           "elapsedSeconds": 20,
@@ -1272,13 +1272,13 @@
           "structure": {
             "peakEntities": 25,
             "maxWorkUnitsPerTick": 130,
-            "maxSnapshotBytes": 8012
+            "maxSnapshotBytes": 8098
           },
-          "finalHash": "d55f433081625cff"
+          "finalHash": "5d97b6bf7ece489b"
         },
         {
           "id": "r-unlock",
-          "seed": "258fe26d248fe0da238fdf47228fddb4",
+          "seed": "c0c070eac1c0727dbec06dc4bfc06f57",
           "level": 6,
           "teamSize": 1,
           "elapsedSeconds": 20,
@@ -1317,24 +1317,24 @@
           "structure": {
             "peakEntities": 25,
             "maxWorkUnitsPerTick": 130,
-            "maxSnapshotBytes": 8108
+            "maxSnapshotBytes": 8194
           },
-          "finalHash": "dabb84dec07b2bb7"
+          "finalHash": "fdba19350b5132d8"
         },
         {
           "id": "mature-loadout",
-          "seed": "f7cb5585f6cb53f2f5cb525ff4cb50cc",
+          "seed": "1e108c721f108e051c10894c1d108adf",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 30,
           "ticks": 1800,
           "metrics": {
-            "damageTotal": 96082.575,
-            "signatureDamage": 16357.575,
+            "damageTotal": 96226.225,
+            "signatureDamage": 16501.225,
             "abilityDamage": 35540,
-            "damagePerSecond": 3202.752,
+            "damagePerSecond": 3207.541,
             "singleTargetDps": null,
-            "areaDps": 3202.752,
+            "areaDps": 3207.541,
             "ttkSeconds": null,
             "kills": 0,
             "teamDamageShare": null,
@@ -1362,13 +1362,13 @@
           "structure": {
             "peakEntities": 53,
             "maxWorkUnitsPerTick": 378,
-            "maxSnapshotBytes": 15938
+            "maxSnapshotBytes": 16024
           },
-          "finalHash": "fa04fc1dcb3cc15b"
+          "finalHash": "9e1894dad9209756"
         },
         {
           "id": "mobility-escape",
-          "seed": "a62948dba5294748a8294c01a7294a6e",
+          "seed": "12e7baea13e7bc7d10e7b7c411e7b957",
           "level": 6,
           "teamSize": 1,
           "elapsedSeconds": 8,
@@ -1407,13 +1407,13 @@
           "structure": {
             "peakEntities": 25,
             "maxWorkUnitsPerTick": 12,
-            "maxSnapshotBytes": 7284
+            "maxSnapshotBytes": 7370
           },
-          "finalHash": "7d660384e8ddae8f"
+          "finalHash": "1f8cb5f8c16d757c"
         },
         {
           "id": "pickup-objective",
-          "seed": "f2e8852ef3e886c1f0e88208f1e8839b",
+          "seed": "bf176bc5be176a32bd17689fbc17670c",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 6,
@@ -1429,7 +1429,7 @@
             "kills": 0,
             "teamDamageShare": null,
             "effectiveVitality": 23.1,
-            "peakEffectiveVitality": 40.425,
+            "peakEffectiveVitality": 23.1,
             "damageTaken": 0,
             "hpRemaining": 14,
             "survivalSeconds": 6,
@@ -1450,25 +1450,25 @@
             "objectiveProgress": 1
           },
           "structure": {
-            "peakEntities": 28,
+            "peakEntities": 29,
             "maxWorkUnitsPerTick": 9,
-            "maxSnapshotBytes": 8197
+            "maxSnapshotBytes": 8276
           },
-          "finalHash": "0901fbdcd0419a90"
+          "finalHash": "47880705f319f3b0"
         },
         {
           "id": "solo-pressure",
-          "seed": "1d546d611c546bce1b546a3b1a5468a8",
+          "seed": "15c02fcc16c0315f17c032f218c03485",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 45,
           "ticks": 2700,
           "metrics": {
-            "damageTotal": 160278.275,
-            "signatureDamage": 58482.775,
+            "damageTotal": 159860.15,
+            "signatureDamage": 58215.95,
             "abilityDamage": 61160,
-            "damagePerSecond": 3561.739,
-            "singleTargetDps": 3561.739,
+            "damagePerSecond": 3552.448,
+            "singleTargetDps": 3552.448,
             "areaDps": null,
             "ttkSeconds": null,
             "kills": 0,
@@ -1495,27 +1495,27 @@
             "objectiveProgress": 0
           },
           "structure": {
-            "peakEntities": 93,
-            "maxWorkUnitsPerTick": 1025,
-            "maxSnapshotBytes": 19504
+            "peakEntities": 92,
+            "maxWorkUnitsPerTick": 1023,
+            "maxSnapshotBytes": 19292
           },
-          "finalHash": "fcb1833aa797a14f"
+          "finalHash": "78bec96d0fb6af80"
         },
         {
           "id": "elite-duel",
-          "seed": "12fb533413fb54c714fb565a15fb57ed",
+          "seed": "522e3baf512e3a1c542e3ed5532e3d42",
           "level": 20,
           "teamSize": 1,
-          "elapsedSeconds": 6.8,
-          "ticks": 408,
+          "elapsedSeconds": 6.767,
+          "ticks": 406,
           "metrics": {
             "damageTotal": 3276,
             "signatureDamage": 482.3,
             "abilityDamage": 580,
-            "damagePerSecond": 481.765,
-            "singleTargetDps": 481.765,
+            "damagePerSecond": 484.138,
+            "singleTargetDps": 484.138,
             "areaDps": null,
-            "ttkSeconds": 6.8,
+            "ttkSeconds": 6.767,
             "kills": 1,
             "teamDamageShare": null,
             "effectiveVitality": 23.1,
@@ -1524,7 +1524,7 @@
             "hpRemaining": 14,
             "survivalSeconds": 60,
             "downed": false,
-            "travelDistance": 1648.623,
+            "travelDistance": 1640.463,
             "escapeTimeSeconds": null,
             "combatUptime": 1,
             "abilityUptimeSeconds": 0.683,
@@ -1542,13 +1542,13 @@
           "structure": {
             "peakEntities": 27,
             "maxWorkUnitsPerTick": 14,
-            "maxSnapshotBytes": 9653
+            "maxSnapshotBytes": 9737
           },
-          "finalHash": "ac5a2d25b09a572f"
+          "finalHash": "ecb41f3568e42e61"
         },
         {
           "id": "apex-duel",
-          "seed": "d4607c15d3607a82d26078efd160775c",
+          "seed": "299d1f382a9d20cb2b9d225e2c9d23f1",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 34.817,
@@ -1587,27 +1587,27 @@
           "structure": {
             "peakEntities": 43,
             "maxWorkUnitsPerTick": 32,
-            "maxSnapshotBytes": 12525
+            "maxSnapshotBytes": 12613
           },
-          "finalHash": "4b99faf9e822e5b5"
+          "finalHash": "10c0991323362061"
         },
         {
           "id": "four-player",
-          "seed": "8e56c6928f56c8258c56c36c8d56c4ff",
+          "seed": "6ba252eb6aa251586da256116ca2547e",
           "level": 20,
           "teamSize": 4,
           "elapsedSeconds": 45,
           "ticks": 2700,
           "metrics": {
-            "damageTotal": 6900.6,
+            "damageTotal": 6825.2,
             "signatureDamage": 0,
             "abilityDamage": 580,
-            "damagePerSecond": 153.347,
-            "singleTargetDps": 153.347,
+            "damagePerSecond": 151.671,
+            "singleTargetDps": 151.671,
             "areaDps": null,
             "ttkSeconds": null,
             "kills": 0,
-            "teamDamageShare": 0.107,
+            "teamDamageShare": 0.105,
             "effectiveVitality": 23.1,
             "peakEffectiveVitality": 34.644,
             "damageTaken": 0.409,
@@ -1630,23 +1630,23 @@
             "objectiveProgress": 0
           },
           "structure": {
-            "peakEntities": 137,
-            "maxWorkUnitsPerTick": 143,
-            "maxSnapshotBytes": 40265
+            "peakEntities": 140,
+            "maxWorkUnitsPerTick": 145,
+            "maxSnapshotBytes": 40086
           },
-          "finalHash": "5397c278d4b17cf4"
+          "finalHash": "b7946a8031581850"
         }
       ],
       "summary": {
         "level1Dps": 24.041,
-        "matureAreaDps": 3202.752,
+        "matureAreaDps": 3207.541,
         "effectiveVitality": 13.75,
         "escapeTimeSeconds": 2.4,
         "soloSurvivalSeconds": 45,
         "soloDamageTaken": 0,
-        "eliteTtkSeconds": 6.8,
+        "eliteTtkSeconds": 6.767,
         "apexTtkSeconds": 34.817,
-        "squadDamageShare": 0.107,
+        "squadDamageShare": 0.105,
         "squadSupport": 0,
         "pickupReach": 80,
         "objectiveProgress": 1
@@ -1690,7 +1690,7 @@
       "scenarios": [
         {
           "id": "level-1",
-          "seed": "293f94b42a3f96472b3f97da2c3f996d",
+          "seed": "a29c1e33a19c1ca0a49c2159a39c1fc6",
           "level": 1,
           "teamSize": 1,
           "elapsedSeconds": 19.283,
@@ -1729,13 +1729,13 @@
           "structure": {
             "peakEntities": 4,
             "maxWorkUnitsPerTick": 1,
-            "maxSnapshotBytes": 2884
+            "maxSnapshotBytes": 2970
           },
-          "finalHash": "0a71c554cdb74d1a"
+          "finalHash": "7003ef208b9cf3e7"
         },
         {
           "id": "e-unlock",
-          "seed": "4994ce224a94cfb54794cafc4894cc8f",
+          "seed": "cade650fc9de637cccde6835cbde66a2",
           "level": 3,
           "teamSize": 1,
           "elapsedSeconds": 20,
@@ -1774,13 +1774,13 @@
           "structure": {
             "peakEntities": 14,
             "maxWorkUnitsPerTick": 30,
-            "maxSnapshotBytes": 6047
+            "maxSnapshotBytes": 6133
           },
-          "finalHash": "c8e50d837ddb024b"
+          "finalHash": "24033c01eb9c7fcc"
         },
         {
           "id": "r-unlock",
-          "seed": "a47cf8a9a37cf716a27cf583a17cf3f0",
+          "seed": "9b86079c9c86092f9d860ac29e860c55",
           "level": 6,
           "teamSize": 1,
           "elapsedSeconds": 20,
@@ -1819,24 +1819,24 @@
           "structure": {
             "peakEntities": 25,
             "maxWorkUnitsPerTick": 120,
-            "maxSnapshotBytes": 7747
+            "maxSnapshotBytes": 7833
           },
-          "finalHash": "438f70f77f6f7882"
+          "finalHash": "527fdac04e476599"
         },
         {
           "id": "mature-loadout",
-          "seed": "57b4b79156b4b5fe55b4b46b54b4b2d8",
+          "seed": "6b69cb6c6c69ccff6d69ce926e69d025",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 30,
           "ticks": 1800,
           "metrics": {
-            "damageTotal": 92417.2,
-            "signatureDamage": 63860,
+            "damageTotal": 89316,
+            "signatureDamage": 60650,
             "abilityDamage": 10460,
-            "damagePerSecond": 3080.573,
+            "damagePerSecond": 2977.2,
             "singleTargetDps": null,
-            "areaDps": 3080.573,
+            "areaDps": 2977.2,
             "ttkSeconds": null,
             "kills": 0,
             "teamDamageShare": null,
@@ -1864,13 +1864,13 @@
           "structure": {
             "peakEntities": 72,
             "maxWorkUnitsPerTick": 588,
-            "maxSnapshotBytes": 16309
+            "maxSnapshotBytes": 16377
           },
-          "finalHash": "b363b13bf5da44c6"
+          "finalHash": "a38eed1f587b7d4b"
         },
         {
           "id": "mobility-escape",
-          "seed": "9a9ee94f999ee7bc9c9eec759b9eeae2",
+          "seed": "b1152dd4b2152f67b31530fab415328d",
           "level": 6,
           "teamSize": 1,
           "elapsedSeconds": 8,
@@ -1909,13 +1909,13 @@
           "structure": {
             "peakEntities": 26,
             "maxWorkUnitsPerTick": 1,
-            "maxSnapshotBytes": 8370
+            "maxSnapshotBytes": 8456
           },
-          "finalHash": "e761ae6c97ca2903"
+          "finalHash": "a34067ba3bd591be"
         },
         {
           "id": "pickup-objective",
-          "seed": "9ac8fd9a9bc8ff2d98c8fa7499c8fc07",
+          "seed": "02bf0ba701bf0a1404bf0ecd03bf0d3a",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 6,
@@ -1939,7 +1939,7 @@
             "travelDistance": 0,
             "escapeTimeSeconds": null,
             "combatUptime": 0.883,
-            "abilityUptimeSeconds": 0,
+            "abilityUptimeSeconds": 1,
             "controlEnemySeconds": 0,
             "shieldGranted": 0,
             "shieldAllies": 0,
@@ -1954,23 +1954,23 @@
           "structure": {
             "peakEntities": 24,
             "maxWorkUnitsPerTick": 9,
-            "maxSnapshotBytes": 6665
+            "maxSnapshotBytes": 6752
           },
-          "finalHash": "0da45ea1ff6b4799"
+          "finalHash": "c3bcd0149f604c22"
         },
         {
           "id": "solo-pressure",
-          "seed": "8cf295b58bf294228af2928f89f290fc",
+          "seed": "cef89d3acff89ecdccf89a14cdf89ba7",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 45,
           "ticks": 2700,
           "metrics": {
-            "damageTotal": 269259,
-            "signatureDamage": 221120,
-            "abilityDamage": 17864,
-            "damagePerSecond": 5983.533,
-            "singleTargetDps": 5983.533,
+            "damageTotal": 269382.4,
+            "signatureDamage": 221600,
+            "abilityDamage": 18064,
+            "damagePerSecond": 5986.276,
+            "singleTargetDps": 5986.276,
             "areaDps": null,
             "ttkSeconds": null,
             "kills": 0,
@@ -1985,7 +1985,7 @@
             "escapeTimeSeconds": null,
             "combatUptime": 1,
             "abilityUptimeSeconds": 45,
-            "controlEnemySeconds": 4.733,
+            "controlEnemySeconds": 5.917,
             "shieldGranted": 0,
             "shieldAllies": 0,
             "repairSelf": 1.898,
@@ -1997,27 +1997,27 @@
             "objectiveProgress": 0
           },
           "structure": {
-            "peakEntities": 115,
-            "maxWorkUnitsPerTick": 1526,
-            "maxSnapshotBytes": 25524
+            "peakEntities": 117,
+            "maxWorkUnitsPerTick": 1576,
+            "maxSnapshotBytes": 25219
           },
-          "finalHash": "f7d16c1f29c9ccfc"
+          "finalHash": "1c6e74312eb36962"
         },
         {
           "id": "elite-duel",
-          "seed": "82b2775083b278e384b27a7685b27c09",
+          "seed": "68b6c37567b6c1e266b6c04f65b6bebc",
           "level": 20,
           "teamSize": 1,
-          "elapsedSeconds": 3.183,
-          "ticks": 191,
+          "elapsedSeconds": 3.2,
+          "ticks": 192,
           "metrics": {
             "damageTotal": 3276,
             "signatureDamage": 840,
             "abilityDamage": 690,
-            "damagePerSecond": 1029.11,
-            "singleTargetDps": 1029.11,
+            "damagePerSecond": 1023.75,
+            "singleTargetDps": 1023.75,
             "areaDps": null,
-            "ttkSeconds": 3.183,
+            "ttkSeconds": 3.2,
             "kills": 1,
             "teamDamageShare": null,
             "effectiveVitality": 23.58,
@@ -2026,10 +2026,10 @@
             "hpRemaining": 18,
             "survivalSeconds": 60,
             "downed": false,
-            "travelDistance": 1048.59,
+            "travelDistance": 1052.504,
             "escapeTimeSeconds": null,
             "combatUptime": 1,
-            "abilityUptimeSeconds": 3.183,
+            "abilityUptimeSeconds": 3.2,
             "controlEnemySeconds": 0,
             "shieldGranted": 0,
             "shieldAllies": 0,
@@ -2044,41 +2044,41 @@
           "structure": {
             "peakEntities": 36,
             "maxWorkUnitsPerTick": 20,
-            "maxSnapshotBytes": 11384
+            "maxSnapshotBytes": 11463
           },
-          "finalHash": "232c0e42606f014e"
+          "finalHash": "c492f94573308d76"
         },
         {
           "id": "apex-duel",
-          "seed": "65120c0164120a6e631208db62120748",
+          "seed": "3978e91a3a78eaad3778e5f43878e787",
           "level": 20,
           "teamSize": 1,
-          "elapsedSeconds": 25.333,
-          "ticks": 1520,
+          "elapsedSeconds": 25.417,
+          "ticks": 1525,
           "metrics": {
             "damageTotal": 17400,
             "signatureDamage": 2100,
             "abilityDamage": 954,
-            "damagePerSecond": 686.842,
-            "singleTargetDps": 686.842,
+            "damagePerSecond": 684.59,
+            "singleTargetDps": 684.59,
             "areaDps": null,
-            "ttkSeconds": 25.333,
+            "ttkSeconds": 25.417,
             "kills": 1,
             "teamDamageShare": null,
             "effectiveVitality": 23.58,
             "peakEffectiveVitality": 23.58,
             "damageTaken": 12.96,
-            "hpRemaining": 5.931,
+            "hpRemaining": 5.941,
             "survivalSeconds": 90,
             "downed": false,
-            "travelDistance": 6971.018,
+            "travelDistance": 6991.106,
             "escapeTimeSeconds": null,
             "combatUptime": 1,
-            "abilityUptimeSeconds": 25.333,
+            "abilityUptimeSeconds": 25.417,
             "controlEnemySeconds": 0,
             "shieldGranted": 0,
             "shieldAllies": 0,
-            "repairSelf": 0.891,
+            "repairSelf": 0.901,
             "repairAllies": 0,
             "invulnerabilityAllySeconds": 0,
             "xpPickedUp": 0,
@@ -2089,32 +2089,32 @@
           "structure": {
             "peakEntities": 60,
             "maxWorkUnitsPerTick": 43,
-            "maxSnapshotBytes": 15916
+            "maxSnapshotBytes": 15984
           },
-          "finalHash": "07b3ce3bd9e66526"
+          "finalHash": "bd2e092e7ff18ba8"
         },
         {
           "id": "four-player",
-          "seed": "63e7352e64e736c161e7320862e7339b",
+          "seed": "77a6d4e576a6d35275a6d1bf74a6d02c",
           "level": 20,
           "teamSize": 4,
           "elapsedSeconds": 45,
           "ticks": 2700,
           "metrics": {
-            "damageTotal": 7830.9,
+            "damageTotal": 8261.2,
             "signatureDamage": 0,
             "abilityDamage": 690,
-            "damagePerSecond": 174.02,
-            "singleTargetDps": 174.02,
+            "damagePerSecond": 183.582,
+            "singleTargetDps": 183.582,
             "areaDps": null,
             "ttkSeconds": null,
             "kills": 0,
-            "teamDamageShare": 0.121,
+            "teamDamageShare": 0.127,
             "effectiveVitality": 23.58,
             "peakEffectiveVitality": 23.58,
             "damageTaken": 12.952,
             "hpRemaining": 9.112,
-            "survivalSeconds": 10.9,
+            "survivalSeconds": 10.917,
             "downed": false,
             "travelDistance": 5537.25,
             "escapeTimeSeconds": null,
@@ -2133,22 +2133,22 @@
           },
           "structure": {
             "peakEntities": 140,
-            "maxWorkUnitsPerTick": 126,
-            "maxSnapshotBytes": 40893
+            "maxWorkUnitsPerTick": 127,
+            "maxSnapshotBytes": 41277
           },
-          "finalHash": "fd3a57674dd32702"
+          "finalHash": "661f9789f3f81ab5"
         }
       ],
       "summary": {
         "level1Dps": 24.27,
-        "matureAreaDps": 3080.573,
+        "matureAreaDps": 2977.2,
         "effectiveVitality": 17.25,
         "escapeTimeSeconds": 1.15,
         "soloSurvivalSeconds": 45,
         "soloDamageTaken": 0,
-        "eliteTtkSeconds": 3.183,
-        "apexTtkSeconds": 25.333,
-        "squadDamageShare": 0.121,
+        "eliteTtkSeconds": 3.2,
+        "apexTtkSeconds": 25.417,
+        "squadDamageShare": 0.127,
         "squadSupport": 0,
         "pickupReach": 80,
         "objectiveProgress": 1
@@ -2191,7 +2191,7 @@
       "scenarios": [
         {
           "id": "level-1",
-          "seed": "a3100f8ba2100df8a51012b1a410111e",
+          "seed": "bd0fd7bebe0fd951bb0fd498bc0fd62b",
           "level": 1,
           "teamSize": 1,
           "elapsedSeconds": 14.133,
@@ -2230,13 +2230,13 @@
           "structure": {
             "peakEntities": 4,
             "maxWorkUnitsPerTick": 1,
-            "maxSnapshotBytes": 2861
+            "maxSnapshotBytes": 2947
           },
-          "finalHash": "495051902a00591f"
+          "finalHash": "e4e9687370dced84"
         },
         {
           "id": "e-unlock",
-          "seed": "2959f3972859f2042b59f6bd2a59f52a",
+          "seed": "13e64a4414e64bd715e64d6a16e64efd",
           "level": 3,
           "teamSize": 1,
           "elapsedSeconds": 20,
@@ -2275,13 +2275,13 @@
           "structure": {
             "peakEntities": 13,
             "maxWorkUnitsPerTick": 10,
-            "maxSnapshotBytes": 5867
+            "maxSnapshotBytes": 5953
           },
-          "finalHash": "6298b5809ae34965"
+          "finalHash": "0d6262a485dff88f"
         },
         {
           "id": "r-unlock",
-          "seed": "c4bce5e4c5bce777c6bce90ac7bcea9d",
+          "seed": "7a1e9a77791e98e47c1e9d9d7b1e9c0a",
           "level": 6,
           "teamSize": 1,
           "elapsedSeconds": 20,
@@ -2320,24 +2320,24 @@
           "structure": {
             "peakEntities": 13,
             "maxWorkUnitsPerTick": 10,
-            "maxSnapshotBytes": 5832
+            "maxSnapshotBytes": 5918
           },
-          "finalHash": "54cc89fbe6a9f097"
+          "finalHash": "6d6235c7829131c1"
         },
         {
           "id": "mature-loadout",
-          "seed": "c970ed74ca70ef07cb70f09acc70f22d",
+          "seed": "267798f72577976428779c1d27779a8a",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 30,
           "ticks": 1800,
           "metrics": {
-            "damageTotal": 252258.125,
-            "signatureDamage": 76838.125,
+            "damageTotal": 212626.725,
+            "signatureDamage": 60529.625,
             "abilityDamage": 2912,
-            "damagePerSecond": 8408.604,
+            "damagePerSecond": 7087.558,
             "singleTargetDps": null,
-            "areaDps": 8408.604,
+            "areaDps": 7087.558,
             "ttkSeconds": null,
             "kills": 0,
             "teamDamageShare": null,
@@ -2347,9 +2347,9 @@
             "hpRemaining": 19.5,
             "survivalSeconds": 30,
             "downed": false,
-            "travelDistance": 4070.801,
+            "travelDistance": 3914.609,
             "escapeTimeSeconds": null,
-            "combatUptime": 0.954,
+            "combatUptime": 0.948,
             "abilityUptimeSeconds": 15.833,
             "controlEnemySeconds": 0,
             "shieldGranted": 0,
@@ -2363,15 +2363,15 @@
             "objectiveProgress": 0
           },
           "structure": {
-            "peakEntities": 59,
-            "maxWorkUnitsPerTick": 322,
-            "maxSnapshotBytes": 18777
+            "peakEntities": 64,
+            "maxWorkUnitsPerTick": 392,
+            "maxSnapshotBytes": 19459
           },
-          "finalHash": "ce3051ec008bd527"
+          "finalHash": "93e9cd0e0bd338d2"
         },
         {
           "id": "mobility-escape",
-          "seed": "4805f4ec4905f67f4a05f8124b05f9a5",
+          "seed": "65fbe41d64fbe28a63fbe0f762fbdf64",
           "level": 6,
           "teamSize": 1,
           "elapsedSeconds": 8,
@@ -2410,13 +2410,13 @@
           "structure": {
             "peakEntities": 48,
             "maxWorkUnitsPerTick": 23,
-            "maxSnapshotBytes": 13540
+            "maxSnapshotBytes": 13623
           },
-          "finalHash": "a2f215c9e63eae78"
+          "finalHash": "a809b2d1e72701ca"
         },
         {
           "id": "pickup-objective",
-          "seed": "572ccb9f562cca0c592ccec5582ccd32",
+          "seed": "b90dd2e8ba0dd47bbb0dd60ebc0dd7a1",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 6,
@@ -2455,41 +2455,41 @@
           "structure": {
             "peakEntities": 25,
             "maxWorkUnitsPerTick": 9,
-            "maxSnapshotBytes": 7319
+            "maxSnapshotBytes": 7405
           },
-          "finalHash": "96874b0bfe20598a"
+          "finalHash": "dfce7e1f875ffbea"
         },
         {
           "id": "solo-pressure",
-          "seed": "a204bb22a304bcb5a004b7fca104b98f",
+          "seed": "ab461df7aa461c64ad46211dac461f8a",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 6.133,
           "ticks": 368,
           "metrics": {
-            "damageTotal": 125842.645,
-            "signatureDamage": 52559.173,
+            "damageTotal": 126711.055,
+            "signatureDamage": 52916.478,
             "abilityDamage": 5707.52,
-            "damagePerSecond": 20517.823,
-            "singleTargetDps": 20517.823,
+            "damagePerSecond": 20659.411,
+            "singleTargetDps": 20659.411,
             "areaDps": null,
             "ttkSeconds": null,
             "kills": 0,
             "teamDamageShare": null,
             "effectiveVitality": 25.545,
             "peakEffectiveVitality": 25.545,
-            "damageTaken": 26.445,
+            "damageTaken": 26.651,
             "hpRemaining": 0,
             "survivalSeconds": 6.133,
             "downed": true,
-            "travelDistance": 2381.661,
+            "travelDistance": 2421.76,
             "escapeTimeSeconds": null,
             "combatUptime": 1,
             "abilityUptimeSeconds": 6,
             "controlEnemySeconds": 0,
             "shieldGranted": 0,
             "shieldAllies": 0,
-            "repairSelf": 10.845,
+            "repairSelf": 10.26,
             "repairAllies": 0,
             "invulnerabilityAllySeconds": 0,
             "xpPickedUp": 0,
@@ -2498,15 +2498,15 @@
             "objectiveProgress": 0
           },
           "structure": {
-            "peakEntities": 118,
-            "maxWorkUnitsPerTick": 1543,
-            "maxSnapshotBytes": 27618
+            "peakEntities": 127,
+            "maxWorkUnitsPerTick": 1760,
+            "maxSnapshotBytes": 29524
           },
-          "finalHash": "55bed3269a46e613"
+          "finalHash": "320e506217170c87"
         },
         {
           "id": "elite-duel",
-          "seed": "32e5c6ed31e5c55a30e5c3c72fe5c234",
+          "seed": "2fa5d2b230a5d4452da5cf8c2ea5d11f",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 2.683,
@@ -2545,13 +2545,13 @@
           "structure": {
             "peakEntities": 43,
             "maxWorkUnitsPerTick": 21,
-            "maxSnapshotBytes": 13084
+            "maxSnapshotBytes": 13170
           },
-          "finalHash": "1d3ebff48cca7e87"
+          "finalHash": "c7f4fdb3ffd22121"
         },
         {
           "id": "apex-duel",
-          "seed": "460e05f2470e0785440e02cc450e045f",
+          "seed": "cdfc4447ccfc42b4cffc476dcefc45da",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 7.95,
@@ -2590,41 +2590,41 @@
           "structure": {
             "peakEntities": 53,
             "maxWorkUnitsPerTick": 30,
-            "maxSnapshotBytes": 13708
+            "maxSnapshotBytes": 13795
           },
-          "finalHash": "963a7b0bb58a5438"
+          "finalHash": "382dc387e3b0ac2f"
         },
         {
           "id": "four-player",
-          "seed": "781df86d771df6da761df547751df3b4",
+          "seed": "9c8a391c9d8a3aaf9e8a3c429f8a3dd5",
           "level": 20,
           "teamSize": 4,
           "elapsedSeconds": 45,
           "ticks": 2700,
           "metrics": {
-            "damageTotal": 36806.494,
-            "signatureDamage": 6047.863,
+            "damageTotal": 40733.614,
+            "signatureDamage": 6466.753,
             "abilityDamage": 0,
-            "damagePerSecond": 817.922,
-            "singleTargetDps": 817.922,
+            "damagePerSecond": 905.191,
+            "singleTargetDps": 905.191,
             "areaDps": null,
             "ttkSeconds": null,
             "kills": 0,
-            "teamDamageShare": 0.539,
+            "teamDamageShare": 0.552,
             "effectiveVitality": 25.545,
             "peakEffectiveVitality": 25.545,
-            "damageTaken": 38.42,
-            "hpRemaining": 3.795,
-            "survivalSeconds": 11.367,
+            "damageTaken": 35.487,
+            "hpRemaining": 7.284,
+            "survivalSeconds": 10.4,
             "downed": false,
-            "travelDistance": 5784.137,
+            "travelDistance": 6025.518,
             "escapeTimeSeconds": null,
-            "combatUptime": 0.482,
-            "abilityUptimeSeconds": 13.733,
+            "combatUptime": 0.447,
+            "abilityUptimeSeconds": 14.7,
             "controlEnemySeconds": 0,
             "shieldGranted": 0,
             "shieldAllies": 0,
-            "repairSelf": 28.116,
+            "repairSelf": 29.121,
             "repairAllies": 0,
             "invulnerabilityAllySeconds": 0,
             "xpPickedUp": 0,
@@ -2633,23 +2633,23 @@
             "objectiveProgress": 0
           },
           "structure": {
-            "peakEntities": 137,
-            "maxWorkUnitsPerTick": 108,
-            "maxSnapshotBytes": 40929
+            "peakEntities": 136,
+            "maxWorkUnitsPerTick": 113,
+            "maxSnapshotBytes": 41034
           },
-          "finalHash": "be7cb26b25acf317"
+          "finalHash": "d813c3375526def1"
         }
       ],
       "summary": {
         "level1Dps": 33.113,
-        "matureAreaDps": 8408.604,
+        "matureAreaDps": 7087.558,
         "effectiveVitality": 13.8,
         "escapeTimeSeconds": 0.017,
         "soloSurvivalSeconds": 6.133,
-        "soloDamageTaken": 26.445,
+        "soloDamageTaken": 26.651,
         "eliteTtkSeconds": 2.683,
         "apexTtkSeconds": 7.95,
-        "squadDamageShare": 0.539,
+        "squadDamageShare": 0.552,
         "squadSupport": 0,
         "pickupReach": 80,
         "objectiveProgress": 1
@@ -2693,7 +2693,7 @@
       "scenarios": [
         {
           "id": "level-1",
-          "seed": "0aad201e0bad21b108ad1cf809ad1e8b",
+          "seed": "4ade3c9f49de3b0c4cde3fc54bde3e32",
           "level": 1,
           "teamSize": 1,
           "elapsedSeconds": 16.867,
@@ -2730,26 +2730,26 @@
             "objectiveProgress": 0
           },
           "structure": {
-            "peakEntities": 4,
+            "peakEntities": 5,
             "maxWorkUnitsPerTick": 3,
-            "maxSnapshotBytes": 2992
+            "maxSnapshotBytes": 3078
           },
-          "finalHash": "e34006c6598fd85a"
+          "finalHash": "9d35cf43b3728e9e"
         },
         {
           "id": "e-unlock",
-          "seed": "55c3b3a456c3b53757c3b6ca58c3b85d",
+          "seed": "5bb2c6f35ab2c5605db2ca195cb2c886",
           "level": 3,
           "teamSize": 1,
           "elapsedSeconds": 20,
           "ticks": 1200,
           "metrics": {
-            "damageTotal": 1612.5,
-            "signatureDamage": 1612.5,
+            "damageTotal": 1290,
+            "signatureDamage": 1290,
             "abilityDamage": 0,
-            "damagePerSecond": 80.625,
+            "damagePerSecond": 64.5,
             "singleTargetDps": null,
-            "areaDps": 80.625,
+            "areaDps": 64.5,
             "ttkSeconds": null,
             "kills": 0,
             "teamDamageShare": null,
@@ -2775,15 +2775,15 @@
             "objectiveProgress": 0
           },
           "structure": {
-            "peakEntities": 14,
-            "maxWorkUnitsPerTick": 40,
-            "maxSnapshotBytes": 5978
+            "peakEntities": 13,
+            "maxWorkUnitsPerTick": 20,
+            "maxSnapshotBytes": 5934
           },
-          "finalHash": "3b0734320f6a1a28"
+          "finalHash": "5614f7e87aab16b9"
         },
         {
           "id": "r-unlock",
-          "seed": "29a56f5728a56dc42ba5727d2aa570ea",
+          "seed": "920fb8c8930fba5b940fbbee950fbd81",
           "level": 6,
           "teamSize": 1,
           "elapsedSeconds": 20,
@@ -2822,24 +2822,24 @@
           "structure": {
             "peakEntities": 14,
             "maxWorkUnitsPerTick": 30,
-            "maxSnapshotBytes": 6203
+            "maxSnapshotBytes": 6289
           },
-          "finalHash": "4cf754ec8c6379d6"
+          "finalHash": "66df348d9dc1fbb6"
         },
         {
           "id": "mature-loadout",
-          "seed": "9f4b87d79e4b8644a14b8afda04b896a",
+          "seed": "e3cf8d38e4cf8ecbe5cf905ee6cf91f1",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 30,
           "ticks": 1800,
           "metrics": {
-            "damageTotal": 72774.025,
-            "signatureDamage": 39061.75,
-            "abilityDamage": 2460,
-            "damagePerSecond": 2425.801,
+            "damageTotal": 63919.7,
+            "signatureDamage": 32763.25,
+            "abilityDamage": 2798,
+            "damagePerSecond": 2130.657,
             "singleTargetDps": null,
-            "areaDps": 2425.801,
+            "areaDps": 2130.657,
             "ttkSeconds": null,
             "kills": 0,
             "teamDamageShare": null,
@@ -2853,7 +2853,7 @@
             "escapeTimeSeconds": null,
             "combatUptime": 1,
             "abilityUptimeSeconds": 10.433,
-            "controlEnemySeconds": 22.35,
+            "controlEnemySeconds": 15.833,
             "shieldGranted": 10.581,
             "shieldAllies": 0,
             "repairSelf": 0,
@@ -2865,15 +2865,15 @@
             "objectiveProgress": 0
           },
           "structure": {
-            "peakEntities": 56,
-            "maxWorkUnitsPerTick": 462,
-            "maxSnapshotBytes": 15686
+            "peakEntities": 52,
+            "maxWorkUnitsPerTick": 378,
+            "maxSnapshotBytes": 15035
           },
-          "finalHash": "d5f9e29bde00a225"
+          "finalHash": "e8a794c8d87ca9e3"
         },
         {
           "id": "mobility-escape",
-          "seed": "2525eb7d2425e9ea2325e8572225e6c4",
+          "seed": "7dc1c0487ec1c1db7fc1c36e80c1c501",
           "level": 6,
           "teamSize": 1,
           "elapsedSeconds": 8,
@@ -2910,15 +2910,15 @@
             "objectiveProgress": 0
           },
           "structure": {
-            "peakEntities": 26,
-            "maxWorkUnitsPerTick": 15,
-            "maxSnapshotBytes": 8427
+            "peakEntities": 25,
+            "maxWorkUnitsPerTick": 14,
+            "maxSnapshotBytes": 8518
           },
-          "finalHash": "e65c326aefe8b9e7"
+          "finalHash": "fa7461b768174859"
         },
         {
           "id": "pickup-objective",
-          "seed": "8cca2fc88dca315b8eca32ee8fca3481",
+          "seed": "03447853024476c005447b79044479e6",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 6,
@@ -2957,38 +2957,38 @@
           "structure": {
             "peakEntities": 29,
             "maxWorkUnitsPerTick": 9,
-            "maxSnapshotBytes": 7571
+            "maxSnapshotBytes": 7653
           },
-          "finalHash": "7fa6e530ccc7d479"
+          "finalHash": "3338f20a6eac5451"
         },
         {
           "id": "solo-pressure",
-          "seed": "e61fa657e51fa4c4e81fa97de71fa7ea",
+          "seed": "8e19441e8f1945b18c1940f88d19428b",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 45,
           "ticks": 2700,
           "metrics": {
-            "damageTotal": 137090.85,
-            "signatureDamage": 102930.75,
-            "abilityDamage": 3704,
-            "damagePerSecond": 3046.463,
-            "singleTargetDps": 3046.463,
+            "damageTotal": 138858.275,
+            "signatureDamage": 100720.75,
+            "abilityDamage": 3488,
+            "damagePerSecond": 3085.739,
+            "singleTargetDps": 3085.739,
             "areaDps": null,
             "ttkSeconds": null,
             "kills": 0,
             "teamDamageShare": null,
             "effectiveVitality": 15.75,
             "peakEffectiveVitality": 23.621,
-            "damageTaken": 0,
-            "hpRemaining": 10,
+            "damageTaken": 4.923,
+            "hpRemaining": 5.077,
             "survivalSeconds": 45,
             "downed": false,
-            "travelDistance": 14229.612,
+            "travelDistance": 14030.647,
             "escapeTimeSeconds": null,
             "combatUptime": 1,
             "abilityUptimeSeconds": 15.65,
-            "controlEnemySeconds": 63,
+            "controlEnemySeconds": 67.35,
             "shieldGranted": 14.775,
             "shieldAllies": 0,
             "repairSelf": 0,
@@ -3000,27 +3000,27 @@
             "objectiveProgress": 0
           },
           "structure": {
-            "peakEntities": 89,
-            "maxWorkUnitsPerTick": 1021,
-            "maxSnapshotBytes": 22216
+            "peakEntities": 88,
+            "maxWorkUnitsPerTick": 1020,
+            "maxSnapshotBytes": 22406
           },
-          "finalHash": "9374bd30b949f8b1"
+          "finalHash": "4a69177395f94f2e"
         },
         {
           "id": "elite-duel",
-          "seed": "af4dac12b04dada5ad4da8ecae4daa7f",
+          "seed": "98444891974446fe9644456b954443d8",
           "level": 20,
           "teamSize": 1,
-          "elapsedSeconds": 10.35,
-          "ticks": 621,
+          "elapsedSeconds": 10.683,
+          "ticks": 641,
           "metrics": {
             "damageTotal": 3276,
-            "signatureDamage": 773.5,
+            "signatureDamage": 607.75,
             "abilityDamage": 0,
-            "damagePerSecond": 316.522,
-            "singleTargetDps": 316.522,
+            "damagePerSecond": 306.646,
+            "singleTargetDps": 306.646,
             "areaDps": null,
-            "ttkSeconds": 10.35,
+            "ttkSeconds": 10.683,
             "kills": 1,
             "teamDamageShare": null,
             "effectiveVitality": 15.75,
@@ -3029,11 +3029,11 @@
             "hpRemaining": 12.5,
             "survivalSeconds": 60,
             "downed": false,
-            "travelDistance": 3794.032,
+            "travelDistance": 3887.328,
             "escapeTimeSeconds": null,
             "combatUptime": 1,
             "abilityUptimeSeconds": 5.217,
-            "controlEnemySeconds": 0.283,
+            "controlEnemySeconds": 0.5,
             "shieldGranted": 5.5,
             "shieldAllies": 0,
             "repairSelf": 0,
@@ -3047,41 +3047,41 @@
           "structure": {
             "peakEntities": 33,
             "maxWorkUnitsPerTick": 22,
-            "maxSnapshotBytes": 10415
+            "maxSnapshotBytes": 10323
           },
-          "finalHash": "7e2c093c95cbf298"
+          "finalHash": "fecc77268883430e"
         },
         {
           "id": "apex-duel",
-          "seed": "97aba1a796aba01499aba4cd98aba33a",
+          "seed": "8ef7dab68ff7dc498cf7d7908df7d923",
           "level": 20,
           "teamSize": 1,
-          "elapsedSeconds": 27,
-          "ticks": 1620,
+          "elapsedSeconds": 27.95,
+          "ticks": 1677,
           "metrics": {
             "damageTotal": 17400,
-            "signatureDamage": 5801.25,
+            "signatureDamage": 4751.5,
             "abilityDamage": 216,
-            "damagePerSecond": 644.444,
-            "singleTargetDps": 644.444,
+            "damagePerSecond": 622.54,
+            "singleTargetDps": 622.54,
             "areaDps": null,
-            "ttkSeconds": 27,
+            "ttkSeconds": 27.95,
             "kills": 1,
             "teamDamageShare": null,
             "effectiveVitality": 15.75,
             "peakEffectiveVitality": 20.857,
             "damageTaken": 5.644,
-            "hpRemaining": 7.09,
+            "hpRemaining": 7.104,
             "survivalSeconds": 90,
             "downed": false,
-            "travelDistance": 9040.537,
+            "travelDistance": 9306.43,
             "escapeTimeSeconds": null,
             "combatUptime": 1,
             "abilityUptimeSeconds": 10.433,
-            "controlEnemySeconds": 3.333,
+            "controlEnemySeconds": 3.217,
             "shieldGranted": 11,
             "shieldAllies": 0,
-            "repairSelf": 0.233,
+            "repairSelf": 0.248,
             "repairAllies": 0,
             "invulnerabilityAllySeconds": 0,
             "xpPickedUp": 0,
@@ -3090,41 +3090,41 @@
             "objectiveProgress": 0
           },
           "structure": {
-            "peakEntities": 48,
-            "maxWorkUnitsPerTick": 36,
-            "maxSnapshotBytes": 12756
+            "peakEntities": 47,
+            "maxWorkUnitsPerTick": 35,
+            "maxSnapshotBytes": 12676
           },
-          "finalHash": "ffc51a266157c77d"
+          "finalHash": "d56636ff7ab0bc6b"
         },
         {
           "id": "four-player",
-          "seed": "e1a7ff7ce2a8010fe3a802a2e4a80435",
+          "seed": "37ca244136ca22ae35ca211b34ca1f88",
           "level": 20,
           "teamSize": 4,
           "elapsedSeconds": 45,
           "ticks": 2700,
           "metrics": {
-            "damageTotal": 11359.175,
-            "signatureDamage": 2320.5,
-            "abilityDamage": 108,
-            "damagePerSecond": 252.426,
-            "singleTargetDps": 252.426,
+            "damageTotal": 15391.025,
+            "signatureDamage": 3425.5,
+            "abilityDamage": 0,
+            "damagePerSecond": 342.023,
+            "singleTargetDps": 342.023,
             "areaDps": null,
             "ttkSeconds": null,
             "kills": 0,
-            "teamDamageShare": 0.203,
+            "teamDamageShare": 0.297,
             "effectiveVitality": 15.75,
             "peakEffectiveVitality": 23.621,
-            "damageTaken": 0.887,
-            "hpRemaining": 7.863,
+            "damageTaken": 0,
+            "hpRemaining": 8.75,
             "survivalSeconds": 45,
             "downed": false,
-            "travelDistance": 14054.147,
+            "travelDistance": 12699.299,
             "escapeTimeSeconds": null,
             "combatUptime": 1,
             "abilityUptimeSeconds": 15.65,
-            "controlEnemySeconds": 1.433,
-            "shieldGranted": 14.775,
+            "controlEnemySeconds": 2.367,
+            "shieldGranted": 16.081,
             "shieldAllies": 0,
             "repairSelf": 0,
             "repairAllies": 0,
@@ -3135,23 +3135,23 @@
             "objectiveProgress": 0
           },
           "structure": {
-            "peakEntities": 138,
-            "maxWorkUnitsPerTick": 138,
-            "maxSnapshotBytes": 37555
+            "peakEntities": 132,
+            "maxWorkUnitsPerTick": 133,
+            "maxSnapshotBytes": 37413
           },
-          "finalHash": "22210e5fa3861747"
+          "finalHash": "85649cf79649c1e3"
         }
       ],
       "summary": {
         "level1Dps": 27.747,
-        "matureAreaDps": 2425.801,
+        "matureAreaDps": 2130.657,
         "effectiveVitality": 10.45,
         "escapeTimeSeconds": 0.417,
         "soloSurvivalSeconds": 45,
-        "soloDamageTaken": 0,
-        "eliteTtkSeconds": 10.35,
-        "apexTtkSeconds": 27,
-        "squadDamageShare": 0.203,
+        "soloDamageTaken": 4.923,
+        "eliteTtkSeconds": 10.683,
+        "apexTtkSeconds": 27.95,
+        "squadDamageShare": 0.297,
         "squadSupport": 0,
         "pickupReach": 80,
         "objectiveProgress": 1
@@ -3195,7 +3195,7 @@
       "scenarios": [
         {
           "id": "level-1",
-          "seed": "843a4322853a44b5823a3ffc833a418f",
+          "seed": "3c7acb1f3b7ac98c3e7ace453d7accb2",
           "level": 1,
           "teamSize": 1,
           "elapsedSeconds": 9.017,
@@ -3234,13 +3234,13 @@
           "structure": {
             "peakEntities": 4,
             "maxWorkUnitsPerTick": 1,
-            "maxSnapshotBytes": 2882
+            "maxSnapshotBytes": 2968
           },
-          "finalHash": "d0bc1e8dfe548ef0"
+          "finalHash": "181593d8aaf526fb"
         },
         {
           "id": "e-unlock",
-          "seed": "d70a03b0d80a0543d90a06d6da0a0869",
+          "seed": "35271a73342718e037271d9936271c06",
           "level": 3,
           "teamSize": 1,
           "elapsedSeconds": 20,
@@ -3279,13 +3279,13 @@
           "structure": {
             "peakEntities": 23,
             "maxWorkUnitsPerTick": 100,
-            "maxSnapshotBytes": 6811
+            "maxSnapshotBytes": 6897
           },
-          "finalHash": "6cb559158300ed8a"
+          "finalHash": "730da58e8f3c1c71"
         },
         {
           "id": "r-unlock",
-          "seed": "2acffd3b29cffba82cd000612bcffece",
+          "seed": "6b840c486c840ddb6d840f6e6e841101",
           "level": 6,
           "teamSize": 1,
           "elapsedSeconds": 20,
@@ -3324,24 +3324,24 @@
           "structure": {
             "peakEntities": 24,
             "maxWorkUnitsPerTick": 110,
-            "maxSnapshotBytes": 7650
+            "maxSnapshotBytes": 7736
           },
-          "finalHash": "f1b3e71535b3d560"
+          "finalHash": "738dafd25ee89152"
         },
         {
           "id": "mature-loadout",
-          "seed": "d97bde5bd87bdcc8db7be181da7bdfee",
+          "seed": "5c0544b85d05464b5e0547de5f054971",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 30,
           "ticks": 1800,
           "metrics": {
-            "damageTotal": 114873.4,
-            "signatureDamage": 24664.64,
+            "damageTotal": 115450.05,
+            "signatureDamage": 25305.28,
             "abilityDamage": 29858.4,
-            "damagePerSecond": 3829.113,
+            "damagePerSecond": 3848.335,
             "singleTargetDps": null,
-            "areaDps": 3829.113,
+            "areaDps": 3848.335,
             "ttkSeconds": null,
             "kills": 0,
             "teamDamageShare": null,
@@ -3369,13 +3369,13 @@
           "structure": {
             "peakEntities": 56,
             "maxWorkUnitsPerTick": 336,
-            "maxSnapshotBytes": 16611
+            "maxSnapshotBytes": 16689
           },
-          "finalHash": "5fa144b2d2b5f2db"
+          "finalHash": "03ee81ae6faa660f"
         },
         {
           "id": "mobility-escape",
-          "seed": "8f679b798e6799e68d6798538c6796c0",
+          "seed": "3a519ec83b51a05b3c51a1ee3d51a381",
           "level": 6,
           "teamSize": 1,
           "elapsedSeconds": 8,
@@ -3414,13 +3414,13 @@
           "structure": {
             "peakEntities": 31,
             "maxWorkUnitsPerTick": 10,
-            "maxSnapshotBytes": 9912
+            "maxSnapshotBytes": 9998
           },
-          "finalHash": "7ed465eef706b4fa"
+          "finalHash": "459bde34ce7d7f55"
         },
         {
           "id": "pickup-objective",
-          "seed": "887c9bdc897c9d6f8a7c9f028b7ca095",
+          "seed": "59bfbbd358bfba405bbfbef95abfbd66",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 6,
@@ -3436,7 +3436,7 @@
             "kills": 0,
             "teamDamageShare": null,
             "effectiveVitality": 17.68,
-            "peakEffectiveVitality": 30.94,
+            "peakEffectiveVitality": 17.68,
             "damageTaken": 0,
             "hpRemaining": 13,
             "survivalSeconds": 6,
@@ -3457,25 +3457,25 @@
             "objectiveProgress": 1
           },
           "structure": {
-            "peakEntities": 25,
+            "peakEntities": 26,
             "maxWorkUnitsPerTick": 9,
-            "maxSnapshotBytes": 7804
+            "maxSnapshotBytes": 7890
           },
-          "finalHash": "80e9e2e50d3076fb"
+          "finalHash": "67832caae945cba3"
         },
         {
           "id": "solo-pressure",
-          "seed": "76b61d6375b61bd078b6208977b61ef6",
+          "seed": "ed5d5e9eee5d6031eb5d5b78ec5d5d0b",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 45,
           "ticks": 2700,
           "metrics": {
-            "damageTotal": 36146.88,
-            "signatureDamage": 3363.36,
+            "damageTotal": 36064.07,
+            "signatureDamage": 3523.52,
             "abilityDamage": 11196.9,
-            "damagePerSecond": 803.264,
-            "singleTargetDps": 803.264,
+            "damagePerSecond": 801.424,
+            "singleTargetDps": 801.424,
             "areaDps": null,
             "ttkSeconds": null,
             "kills": 0,
@@ -3486,12 +3486,12 @@
             "hpRemaining": 10.4,
             "survivalSeconds": 45,
             "downed": false,
-            "travelDistance": 24253.317,
+            "travelDistance": 24308.906,
             "escapeTimeSeconds": null,
             "combatUptime": 0.994,
             "abilityUptimeSeconds": 14.983,
             "controlEnemySeconds": 21.3,
-            "shieldGranted": 14.947,
+            "shieldGranted": 14.895,
             "shieldAllies": 0,
             "repairSelf": 0,
             "repairAllies": 0,
@@ -3504,13 +3504,13 @@
           "structure": {
             "peakEntities": 79,
             "maxWorkUnitsPerTick": 600,
-            "maxSnapshotBytes": 22579
+            "maxSnapshotBytes": 22409
           },
-          "finalHash": "2e3d1ebad5793fe1"
+          "finalHash": "36f2e8ed727039ec"
         },
         {
           "id": "elite-duel",
-          "seed": "b6ac7246b7ac73d9b4ac6f20b5ac70b3",
+          "seed": "dfc58811dec5867eddc584ebdcc58358",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 13.55,
@@ -3536,7 +3536,7 @@
             "combatUptime": 1,
             "abilityUptimeSeconds": 13.55,
             "controlEnemySeconds": 1.183,
-            "shieldGranted": 8.216,
+            "shieldGranted": 8.226,
             "shieldAllies": 0,
             "repairSelf": 0,
             "repairAllies": 0,
@@ -3547,27 +3547,27 @@
             "objectiveProgress": 0
           },
           "structure": {
-            "peakEntities": 42,
-            "maxWorkUnitsPerTick": 22,
-            "maxSnapshotBytes": 13983
+            "peakEntities": 43,
+            "maxWorkUnitsPerTick": 23,
+            "maxSnapshotBytes": 14344
           },
-          "finalHash": "ab3ecb9ef3814844"
+          "finalHash": "820ccb0dce2d4c95"
         },
         {
           "id": "apex-duel",
-          "seed": "1eeb51bb1deb502820eb54e11feb534e",
+          "seed": "61174d3662174ec95f174a1060174ba3",
           "level": 20,
           "teamSize": 1,
-          "elapsedSeconds": 57.1,
-          "ticks": 3426,
+          "elapsedSeconds": 57.083,
+          "ticks": 3425,
           "metrics": {
             "damageTotal": 17400,
             "signatureDamage": 320.32,
             "abilityDamage": 0,
-            "damagePerSecond": 304.729,
-            "singleTargetDps": 304.729,
+            "damagePerSecond": 304.818,
+            "singleTargetDps": 304.818,
             "areaDps": null,
-            "ttkSeconds": 57.1,
+            "ttkSeconds": 57.083,
             "kills": 1,
             "teamDamageShare": null,
             "effectiveVitality": 17.68,
@@ -3576,7 +3576,7 @@
             "hpRemaining": 13,
             "survivalSeconds": 90,
             "downed": false,
-            "travelDistance": 30152.316,
+            "travelDistance": 30143.188,
             "escapeTimeSeconds": null,
             "combatUptime": 0.991,
             "abilityUptimeSeconds": 14.983,
@@ -3592,41 +3592,41 @@
             "objectiveProgress": 0
           },
           "structure": {
-            "peakEntities": 55,
-            "maxWorkUnitsPerTick": 35,
-            "maxSnapshotBytes": 15842
+            "peakEntities": 56,
+            "maxWorkUnitsPerTick": 36,
+            "maxSnapshotBytes": 15928
           },
-          "finalHash": "55db0487fff60616"
+          "finalHash": "b9359b9fe56b9362"
         },
         {
           "id": "four-player",
-          "seed": "2f52092030520ab331520c4632520dd9",
+          "seed": "48411ac14741192e4641179b45411608",
           "level": 20,
           "teamSize": 4,
           "elapsedSeconds": 45,
           "ticks": 2700,
           "metrics": {
-            "damageTotal": 9592.35,
+            "damageTotal": 9956.65,
             "signatureDamage": 480.48,
             "abilityDamage": 622.05,
-            "damagePerSecond": 213.163,
-            "singleTargetDps": 213.163,
+            "damagePerSecond": 221.259,
+            "singleTargetDps": 221.259,
             "areaDps": null,
             "ttkSeconds": null,
             "kills": 0,
-            "teamDamageShare": 0.17,
+            "teamDamageShare": 0.177,
             "effectiveVitality": 17.68,
             "peakEffectiveVitality": 26.516,
-            "damageTaken": 0.154,
-            "hpRemaining": 8.946,
+            "damageTaken": 0.161,
+            "hpRemaining": 8.939,
             "survivalSeconds": 45,
             "downed": false,
-            "travelDistance": 24320.828,
+            "travelDistance": 24320.687,
             "escapeTimeSeconds": null,
             "combatUptime": 0.991,
             "abilityUptimeSeconds": 14.983,
             "controlEnemySeconds": 1.183,
-            "shieldGranted": 12.868,
+            "shieldGranted": 12.9,
             "shieldAllies": 0,
             "repairSelf": 0,
             "repairAllies": 0,
@@ -3639,21 +3639,21 @@
           "structure": {
             "peakEntities": 141,
             "maxWorkUnitsPerTick": 140,
-            "maxSnapshotBytes": 40406
+            "maxSnapshotBytes": 40475
           },
-          "finalHash": "f1bd6c18509b06f6"
+          "finalHash": "5bd6e07aff2e402e"
         }
       ],
       "summary": {
         "level1Dps": 51.904,
-        "matureAreaDps": 3829.113,
+        "matureAreaDps": 3848.335,
         "effectiveVitality": 12,
         "escapeTimeSeconds": 0.383,
         "soloSurvivalSeconds": 45,
         "soloDamageTaken": 0,
         "eliteTtkSeconds": 13.55,
-        "apexTtkSeconds": 57.1,
-        "squadDamageShare": 0.17,
+        "apexTtkSeconds": 57.083,
+        "squadDamageShare": 0.177,
         "squadSupport": 0,
         "pickupReach": 80,
         "objectiveProgress": 1
@@ -3697,7 +3697,7 @@
       "scenarios": [
         {
           "id": "level-1",
-          "seed": "7cc60a6b7bc608d87ec60d917dc60bfe",
+          "seed": "6ff03a5670f03be96df037306ef038c3",
           "level": 1,
           "teamSize": 1,
           "elapsedSeconds": 14.217,
@@ -3736,13 +3736,13 @@
           "structure": {
             "peakEntities": 5,
             "maxWorkUnitsPerTick": 3,
-            "maxSnapshotBytes": 3262
+            "maxSnapshotBytes": 3348
           },
-          "finalHash": "58046313101451ba"
+          "finalHash": "6c954e156e1d54e7"
         },
         {
           "id": "e-unlock",
-          "seed": "5b8633f75a8632645d86371d5c86358a",
+          "seed": "1b85b7ac1c85b93f1d85bad21e85bc65",
           "level": 3,
           "teamSize": 1,
           "elapsedSeconds": 20,
@@ -3781,13 +3781,13 @@
           "structure": {
             "peakEntities": 17,
             "maxWorkUnitsPerTick": 30,
-            "maxSnapshotBytes": 6709
+            "maxSnapshotBytes": 6795
           },
-          "finalHash": "c0f39d8b6180e01d"
+          "finalHash": "b50c60c89f54168a"
         },
         {
           "id": "r-unlock",
-          "seed": "f54de3c4f64de557f74de6eaf84de87d",
+          "seed": "7b64823f7a6480ac7d6485657c6483d2",
           "level": 6,
           "teamSize": 1,
           "elapsedSeconds": 20,
@@ -3826,24 +3826,24 @@
           "structure": {
             "peakEntities": 24,
             "maxWorkUnitsPerTick": 130,
-            "maxSnapshotBytes": 7797
+            "maxSnapshotBytes": 7883
           },
-          "finalHash": "3f49d7694d678c7c"
+          "finalHash": "10271aefd24cfc4b"
         },
         {
           "id": "mature-loadout",
-          "seed": "32aa1d5433aa1ee734aa207a35aa220d",
+          "seed": "cadb36bfc9db352cccdb39e5cbdb3852",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 30,
           "ticks": 1800,
           "metrics": {
-            "damageTotal": 69621.9,
+            "damageTotal": 69395.7,
             "signatureDamage": 18775.9,
             "abilityDamage": 40290,
-            "damagePerSecond": 2320.73,
+            "damagePerSecond": 2313.19,
             "singleTargetDps": null,
-            "areaDps": 2320.73,
+            "areaDps": 2313.19,
             "ttkSeconds": null,
             "kills": 0,
             "teamDamageShare": null,
@@ -3871,13 +3871,13 @@
           "structure": {
             "peakEntities": 139,
             "maxWorkUnitsPerTick": 1484,
-            "maxSnapshotBytes": 27163
+            "maxSnapshotBytes": 27247
           },
-          "finalHash": "e1df04b84e96436c"
+          "finalHash": "9d946d3f5c2df340"
         },
         {
           "id": "mobility-escape",
-          "seed": "39d7e8cc3ad7ea5f3bd7ebf23cd7ed85",
+          "seed": "28660b9527660a022666086f256606dc",
           "level": 6,
           "teamSize": 1,
           "elapsedSeconds": 8,
@@ -3914,15 +3914,15 @@
             "objectiveProgress": 0
           },
           "structure": {
-            "peakEntities": 27,
+            "peakEntities": 28,
             "maxWorkUnitsPerTick": 14,
-            "maxSnapshotBytes": 7974
+            "maxSnapshotBytes": 8071
           },
-          "finalHash": "78c0ec04cddb677c"
+          "finalHash": "ccbf0278d91df7ee"
         },
         {
           "id": "pickup-objective",
-          "seed": "27a6737f26a671ec29a676a528a67512",
+          "seed": "bf8fd820c08fd9b3c18fdb46c28fdcd9",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 6,
@@ -3938,7 +3938,7 @@
             "kills": 0,
             "teamDamageShare": null,
             "effectiveVitality": 13.92,
-            "peakEffectiveVitality": 13.92,
+            "peakEffectiveVitality": 24.36,
             "damageTaken": 0,
             "hpRemaining": 12,
             "survivalSeconds": 6,
@@ -3961,23 +3961,23 @@
           "structure": {
             "peakEntities": 35,
             "maxWorkUnitsPerTick": 9,
-            "maxSnapshotBytes": 9210
+            "maxSnapshotBytes": 9296
           },
-          "finalHash": "a236c0b2aa1045bb"
+          "finalHash": "987d260da6e43508"
         },
         {
           "id": "solo-pressure",
-          "seed": "fc24b782fd24b915fa24b45cfb24b5ef",
+          "seed": "58cd46df57cd454c5acd4a0559cd4872",
           "level": 20,
           "teamSize": 1,
-          "elapsedSeconds": 11.1,
-          "ticks": 666,
+          "elapsedSeconds": 44.133,
+          "ticks": 2648,
           "metrics": {
-            "damageTotal": 26813.5,
-            "signatureDamage": 8179.6,
-            "abilityDamage": 10440,
-            "damagePerSecond": 2415.631,
-            "singleTargetDps": 2415.631,
+            "damageTotal": 216716.6,
+            "signatureDamage": 36436.4,
+            "abilityDamage": 140940,
+            "damagePerSecond": 4910.497,
+            "singleTargetDps": 4910.497,
             "areaDps": null,
             "ttkSeconds": null,
             "kills": 0,
@@ -3986,12 +3986,12 @@
             "peakEffectiveVitality": 13.92,
             "damageTaken": 9.6,
             "hpRemaining": 0,
-            "survivalSeconds": 11.1,
+            "survivalSeconds": 44.133,
             "downed": true,
-            "travelDistance": 4180.057,
+            "travelDistance": 15065.631,
             "escapeTimeSeconds": null,
             "combatUptime": 1,
-            "abilityUptimeSeconds": 2.5,
+            "abilityUptimeSeconds": 10,
             "controlEnemySeconds": 0,
             "shieldGranted": 0,
             "shieldAllies": 0,
@@ -4004,15 +4004,15 @@
             "objectiveProgress": 0
           },
           "structure": {
-            "peakEntities": 70,
-            "maxWorkUnitsPerTick": 888,
-            "maxSnapshotBytes": 19303
+            "peakEntities": 308,
+            "maxWorkUnitsPerTick": 5824,
+            "maxSnapshotBytes": 53209
           },
-          "finalHash": "96d50715b78927ea"
+          "finalHash": "e35d5430f38ff05f"
         },
         {
           "id": "elite-duel",
-          "seed": "1b4cdc4d1a4cdaba194cd927184cd794",
+          "seed": "d44035cad540375dd24032a4d3403437",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 11.033,
@@ -4051,23 +4051,23 @@
           "structure": {
             "peakEntities": 33,
             "maxWorkUnitsPerTick": 24,
-            "maxSnapshotBytes": 11037
+            "maxSnapshotBytes": 11124
           },
-          "finalHash": "4dabcbadadc6723e"
+          "finalHash": "1af57568ce42f7f6"
         },
         {
           "id": "apex-duel",
-          "seed": "cea977d2cfa97965cca974accda9763f",
+          "seed": "c5fa5c1fc4fa5a8cc7fa5f45c6fa5db2",
           "level": 20,
           "teamSize": 1,
-          "elapsedSeconds": 30.283,
-          "ticks": 1817,
+          "elapsedSeconds": 30.317,
+          "ticks": 1819,
           "metrics": {
-            "damageTotal": 12429.5,
+            "damageTotal": 12680.7,
             "signatureDamage": 2788.5,
             "abilityDamage": 660,
-            "damagePerSecond": 410.44,
-            "singleTargetDps": 410.44,
+            "damagePerSecond": 418.275,
+            "singleTargetDps": 418.275,
             "areaDps": null,
             "ttkSeconds": null,
             "kills": 0,
@@ -4076,9 +4076,9 @@
             "peakEffectiveVitality": 13.92,
             "damageTaken": 12.121,
             "hpRemaining": 0,
-            "survivalSeconds": 30.283,
+            "survivalSeconds": 30.317,
             "downed": true,
-            "travelDistance": 9593.321,
+            "travelDistance": 9592.596,
             "escapeTimeSeconds": null,
             "combatUptime": 1,
             "abilityUptimeSeconds": 7.5,
@@ -4096,27 +4096,27 @@
           "structure": {
             "peakEntities": 48,
             "maxWorkUnitsPerTick": 36,
-            "maxSnapshotBytes": 13587
+            "maxSnapshotBytes": 13673
           },
-          "finalHash": "fb1ad9bd23f45aa2"
+          "finalHash": "780968743c52763e"
         },
         {
           "id": "four-player",
-          "seed": "ff050acdfe05093afd0507a7fc050614",
+          "seed": "44fd59a445fd5b3746fd5cca47fd5e5d",
           "level": 20,
           "teamSize": 4,
           "elapsedSeconds": 45,
           "ticks": 2700,
           "metrics": {
-            "damageTotal": 6826,
+            "damageTotal": 6976.8,
             "signatureDamage": 1115.4,
             "abilityDamage": 885,
-            "damagePerSecond": 151.689,
-            "singleTargetDps": 151.689,
+            "damagePerSecond": 155.04,
+            "singleTargetDps": 155.04,
             "areaDps": null,
             "ttkSeconds": null,
             "kills": 0,
-            "teamDamageShare": 0.115,
+            "teamDamageShare": 0.119,
             "effectiveVitality": 13.92,
             "peakEffectiveVitality": 13.92,
             "damageTaken": 0,
@@ -4141,21 +4141,21 @@
           "structure": {
             "peakEntities": 134,
             "maxWorkUnitsPerTick": 134,
-            "maxSnapshotBytes": 39134
+            "maxSnapshotBytes": 39493
           },
-          "finalHash": "d01928e24f1272f5"
+          "finalHash": "fd9719834279fe11"
         }
       ],
       "summary": {
         "level1Dps": 32.919,
-        "matureAreaDps": 2320.73,
+        "matureAreaDps": 2313.19,
         "effectiveVitality": 9,
         "escapeTimeSeconds": 0.017,
-        "soloSurvivalSeconds": 11.1,
+        "soloSurvivalSeconds": 44.133,
         "soloDamageTaken": 9.6,
         "eliteTtkSeconds": 11.033,
         "apexTtkSeconds": null,
-        "squadDamageShare": 0.115,
+        "squadDamageShare": 0.119,
         "squadSupport": 0,
         "pickupReach": 80,
         "objectiveProgress": 1
@@ -4199,7 +4199,7 @@
       "scenarios": [
         {
           "id": "level-1",
-          "seed": "ecc26484edc26617eec267aaefc2693d",
+          "seed": "cc4c3e3dcb4c3caaca4c3b17c94c3984",
           "level": 1,
           "teamSize": 1,
           "elapsedSeconds": 15.2,
@@ -4238,13 +4238,13 @@
           "structure": {
             "peakEntities": 10,
             "maxWorkUnitsPerTick": 2,
-            "maxSnapshotBytes": 3453
+            "maxSnapshotBytes": 3539
           },
-          "finalHash": "f9f564aedd2cabd7"
+          "finalHash": "91e13c68e10f0572"
         },
         {
           "id": "e-unlock",
-          "seed": "70fb6e3271fb6fc56efb6b0c6ffb6c9f",
+          "seed": "7ac7d87179c7d6de78c7d54b77c7d3b8",
           "level": 3,
           "teamSize": 1,
           "elapsedSeconds": 20,
@@ -4283,13 +4283,13 @@
           "structure": {
             "peakEntities": 17,
             "maxWorkUnitsPerTick": 50,
-            "maxSnapshotBytes": 6783
+            "maxSnapshotBytes": 6869
           },
-          "finalHash": "645ae682ae609d6d"
+          "finalHash": "46f5c7068b6e9871"
         },
         {
           "id": "r-unlock",
-          "seed": "5a778e5959778cc658778b33577789a0",
+          "seed": "deaca9cadfacab5ddcaca6a4ddaca837",
           "level": 6,
           "teamSize": 1,
           "elapsedSeconds": 20,
@@ -4328,24 +4328,24 @@
           "structure": {
             "peakEntities": 29,
             "maxWorkUnitsPerTick": 140,
-            "maxSnapshotBytes": 9150
+            "maxSnapshotBytes": 9236
           },
-          "finalHash": "10c6413bc10ccb3b"
+          "finalHash": "85378bf1c040fdad"
         },
         {
           "id": "mature-loadout",
-          "seed": "de075ca1dd075b0edc07597bdb0757e8",
+          "seed": "317011d2327013652f700eac3070103f",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 30,
           "ticks": 1800,
           "metrics": {
-            "damageTotal": 64786.2,
-            "signatureDamage": 9724,
-            "abilityDamage": 12760.8,
-            "damagePerSecond": 2159.54,
+            "damageTotal": 65363.4,
+            "signatureDamage": 9547.2,
+            "abilityDamage": 13665.6,
+            "damagePerSecond": 2178.78,
             "singleTargetDps": null,
-            "areaDps": 2159.54,
+            "areaDps": 2178.78,
             "ttkSeconds": null,
             "kills": 0,
             "teamDamageShare": null,
@@ -4371,15 +4371,15 @@
             "objectiveProgress": 0
           },
           "structure": {
-            "peakEntities": 72,
+            "peakEntities": 73,
             "maxWorkUnitsPerTick": 616,
-            "maxSnapshotBytes": 18067
+            "maxSnapshotBytes": 18153
           },
-          "finalHash": "712c764f8f2102f6"
+          "finalHash": "992aa785284be244"
         },
         {
           "id": "mobility-escape",
-          "seed": "afdcb01faedcae8cb1dcb345b0dcb1b2",
+          "seed": "f68d33caf78d355df48d30a4f58d3237",
           "level": 6,
           "teamSize": 1,
           "elapsedSeconds": 8,
@@ -4418,13 +4418,13 @@
           "structure": {
             "peakEntities": 47,
             "maxWorkUnitsPerTick": 19,
-            "maxSnapshotBytes": 10395
+            "maxSnapshotBytes": 10481
           },
-          "finalHash": "adde151c2a25286c"
+          "finalHash": "caf65e0556bc9274"
         },
         {
           "id": "pickup-objective",
-          "seed": "d7974c2ad8974dbdd5974904d6974a97",
+          "seed": "0e48bf250d48bd920c48bbff0b48ba6c",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 6,
@@ -4448,7 +4448,7 @@
             "travelDistance": 0,
             "escapeTimeSeconds": null,
             "combatUptime": 1,
-            "abilityUptimeSeconds": 0,
+            "abilityUptimeSeconds": 1,
             "controlEnemySeconds": 0,
             "shieldGranted": 0,
             "shieldAllies": 0,
@@ -4461,25 +4461,25 @@
             "objectiveProgress": 1
           },
           "structure": {
-            "peakEntities": 30,
+            "peakEntities": 35,
             "maxWorkUnitsPerTick": 9,
-            "maxSnapshotBytes": 7956
+            "maxSnapshotBytes": 8226
           },
-          "finalHash": "2540ed86ecf23166"
+          "finalHash": "157c8a939fc43137"
         },
         {
           "id": "solo-pressure",
-          "seed": "3914afa53814ae123714ac7f3614aaec",
+          "seed": "2a6a9fac2b6aa13f2c6aa2d22d6aa465",
           "level": 20,
           "teamSize": 1,
-          "elapsedSeconds": 11.767,
-          "ticks": 706,
+          "elapsedSeconds": 11.35,
+          "ticks": 681,
           "metrics": {
-            "damageTotal": 30585.2,
-            "signatureDamage": 7956,
-            "abilityDamage": 9698,
-            "damagePerSecond": 2599.309,
-            "singleTargetDps": 2599.309,
+            "damageTotal": 28392.2,
+            "signatureDamage": 7602.4,
+            "abilityDamage": 9471.8,
+            "damagePerSecond": 2501.515,
+            "singleTargetDps": 2501.515,
             "areaDps": null,
             "ttkSeconds": null,
             "kills": 0,
@@ -4488,11 +4488,11 @@
             "peakEffectiveVitality": 14.5,
             "damageTaken": 10,
             "hpRemaining": 0,
-            "survivalSeconds": 11.767,
+            "survivalSeconds": 11.35,
             "downed": true,
-            "travelDistance": 3745.916,
+            "travelDistance": 3623.406,
             "escapeTimeSeconds": null,
-            "combatUptime": 0.976,
+            "combatUptime": 0.975,
             "abilityUptimeSeconds": 2.333,
             "controlEnemySeconds": 0,
             "shieldGranted": 0,
@@ -4506,27 +4506,27 @@
             "objectiveProgress": 0
           },
           "structure": {
-            "peakEntities": 87,
+            "peakEntities": 86,
             "maxWorkUnitsPerTick": 984,
-            "maxSnapshotBytes": 22684
+            "maxSnapshotBytes": 22747
           },
-          "finalHash": "1bd514ad175f3754"
+          "finalHash": "b334650ea46c6f6a"
         },
         {
           "id": "elite-duel",
-          "seed": "88843b0089843c938a843e268b843fb9",
+          "seed": "1d8efe0f1c8efc7c1f8f01351e8effa2",
           "level": 20,
           "teamSize": 1,
-          "elapsedSeconds": 9.567,
-          "ticks": 574,
+          "elapsedSeconds": 9.867,
+          "ticks": 592,
           "metrics": {
             "damageTotal": 3276,
             "signatureDamage": 707.2,
             "abilityDamage": 338,
-            "damagePerSecond": 342.439,
-            "singleTargetDps": 342.439,
+            "damagePerSecond": 332.027,
+            "singleTargetDps": 332.027,
             "areaDps": null,
-            "ttkSeconds": 9.567,
+            "ttkSeconds": 9.867,
             "kills": 1,
             "teamDamageShare": null,
             "effectiveVitality": 14.5,
@@ -4535,9 +4535,9 @@
             "hpRemaining": 12.5,
             "survivalSeconds": 60,
             "downed": false,
-            "travelDistance": 3098.655,
+            "travelDistance": 3181.109,
             "escapeTimeSeconds": null,
-            "combatUptime": 0.972,
+            "combatUptime": 0.973,
             "abilityUptimeSeconds": 2,
             "controlEnemySeconds": 0,
             "shieldGranted": 0,
@@ -4551,25 +4551,25 @@
             "objectiveProgress": 0
           },
           "structure": {
-            "peakEntities": 54,
+            "peakEntities": 57,
             "maxWorkUnitsPerTick": 23,
-            "maxSnapshotBytes": 11451
+            "maxSnapshotBytes": 11814
           },
-          "finalHash": "c8140d262cf651c6"
+          "finalHash": "ca2a3d850e62c8e0"
         },
         {
           "id": "apex-duel",
-          "seed": "cfe8fa31cee8f89ecde8f70bcce8f578",
+          "seed": "4ea2c0184fa2c1ab50a2c33e51a2c4d1",
           "level": 20,
           "teamSize": 1,
           "elapsedSeconds": 24.517,
           "ticks": 1471,
           "metrics": {
-            "damageTotal": 11550.4,
+            "damageTotal": 11701.2,
             "signatureDamage": 3005.6,
             "abilityDamage": 1242.8,
-            "damagePerSecond": 471.124,
-            "singleTargetDps": 471.124,
+            "damagePerSecond": 477.275,
+            "singleTargetDps": 477.275,
             "areaDps": null,
             "ttkSeconds": null,
             "kills": 0,
@@ -4580,7 +4580,7 @@
             "hpRemaining": 0,
             "survivalSeconds": 24.517,
             "downed": true,
-            "travelDistance": 7243.464,
+            "travelDistance": 7243.467,
             "escapeTimeSeconds": null,
             "combatUptime": 0.988,
             "abilityUptimeSeconds": 3.767,
@@ -4598,27 +4598,27 @@
           "structure": {
             "peakEntities": 71,
             "maxWorkUnitsPerTick": 49,
-            "maxSnapshotBytes": 17543
+            "maxSnapshotBytes": 17618
           },
-          "finalHash": "dc1cbbca79fe24cd"
+          "finalHash": "219a5b813adbd731"
         },
         {
           "id": "four-player",
-          "seed": "82f2f6de83f2f87180f2f3b881f2f54b",
+          "seed": "5a7148cb597147385c714bf15b714a5e",
           "level": 20,
           "teamSize": 4,
           "elapsedSeconds": 45,
           "ticks": 2700,
           "metrics": {
-            "damageTotal": 7512.7,
+            "damageTotal": 7588.1,
             "signatureDamage": 530.4,
             "abilityDamage": 1016.6,
-            "damagePerSecond": 166.949,
-            "singleTargetDps": 166.949,
+            "damagePerSecond": 168.624,
+            "singleTargetDps": 168.624,
             "areaDps": null,
             "ttkSeconds": null,
             "kills": 0,
-            "teamDamageShare": 0.114,
+            "teamDamageShare": 0.115,
             "effectiveVitality": 14.5,
             "peakEffectiveVitality": 14.5,
             "damageTaken": 6.517,
@@ -4627,8 +4627,8 @@
             "downed": false,
             "travelDistance": 12886.691,
             "escapeTimeSeconds": null,
-            "combatUptime": 0.996,
-            "abilityUptimeSeconds": 6.517,
+            "combatUptime": 0.997,
+            "abilityUptimeSeconds": 6.533,
             "controlEnemySeconds": 0,
             "shieldGranted": 0,
             "shieldAllies": 0,
@@ -4643,21 +4643,21 @@
           "structure": {
             "peakEntities": 146,
             "maxWorkUnitsPerTick": 145,
-            "maxSnapshotBytes": 41267
+            "maxSnapshotBytes": 41607
           },
-          "finalHash": "7c95da1ecd9b045d"
+          "finalHash": "044024440f25af2f"
         }
       ],
       "summary": {
         "level1Dps": 30.789,
-        "matureAreaDps": 2159.54,
+        "matureAreaDps": 2178.78,
         "effectiveVitality": 9.5,
         "escapeTimeSeconds": 1.1,
-        "soloSurvivalSeconds": 11.767,
+        "soloSurvivalSeconds": 11.35,
         "soloDamageTaken": 10,
-        "eliteTtkSeconds": 9.567,
+        "eliteTtkSeconds": 9.867,
         "apexTtkSeconds": null,
-        "squadDamageShare": 0.114,
+        "squadDamageShare": 0.115,
         "squadSupport": 0,
         "pickupReach": 400,
         "objectiveProgress": 1
@@ -4695,16 +4695,16 @@
           "value": 27.747
         },
         {
-          "specialist": "echo",
-          "value": 25.667
-        },
-        {
           "specialist": "bront",
           "value": 24.27
         },
         {
           "specialist": "sola",
           "value": 24.041
+        },
+        {
+          "specialist": "echo",
+          "value": 22.024
         }
       ]
     },
@@ -4715,39 +4715,39 @@
       "entries": [
         {
           "specialist": "fang",
-          "value": 8408.604
+          "value": 7087.558
         },
         {
           "specialist": "rift",
-          "value": 3829.113
+          "value": 3848.335
         },
         {
           "specialist": "echo",
-          "value": 3576.26
+          "value": 3521.1
         },
         {
           "specialist": "sola",
-          "value": 3202.752
+          "value": 3207.541
         },
         {
           "specialist": "bront",
-          "value": 3080.573
+          "value": 2977.2
         },
         {
           "specialist": "zuri",
-          "value": 2941.902
-        },
-        {
-          "specialist": "gale",
-          "value": 2425.801
+          "value": 2953.082
         },
         {
           "specialist": "nova",
-          "value": 2320.73
+          "value": 2313.19
         },
         {
           "specialist": "vesper",
-          "value": 2159.54
+          "value": 2178.78
+        },
+        {
+          "specialist": "gale",
+          "value": 2130.657
         }
       ]
     },
@@ -4847,10 +4847,6 @@
           "value": 45
         },
         {
-          "specialist": "echo",
-          "value": 45
-        },
-        {
           "specialist": "gale",
           "value": 45
         },
@@ -4867,12 +4863,16 @@
           "value": 45
         },
         {
-          "specialist": "vesper",
-          "value": 11.767
+          "specialist": "nova",
+          "value": 44.133
         },
         {
-          "specialist": "nova",
-          "value": 11.1
+          "specialist": "echo",
+          "value": 27.633
+        },
+        {
+          "specialist": "vesper",
+          "value": 11.35
         },
         {
           "specialist": "fang",
@@ -4891,7 +4891,7 @@
         },
         {
           "specialist": "echo",
-          "value": 2.233
+          "value": 2.25
         },
         {
           "specialist": "fang",
@@ -4899,19 +4899,19 @@
         },
         {
           "specialist": "bront",
-          "value": 3.183
+          "value": 3.2
         },
         {
           "specialist": "sola",
-          "value": 6.8
+          "value": 6.767
         },
         {
           "specialist": "vesper",
-          "value": 9.567
+          "value": 9.867
         },
         {
           "specialist": "gale",
-          "value": 10.35
+          "value": 10.683
         },
         {
           "specialist": "nova",
@@ -4942,11 +4942,11 @@
         },
         {
           "specialist": "bront",
-          "value": 25.333
+          "value": 25.417
         },
         {
           "specialist": "gale",
-          "value": 27
+          "value": 27.95
         },
         {
           "specialist": "sola",
@@ -4954,7 +4954,7 @@
         },
         {
           "specialist": "rift",
-          "value": 57.1
+          "value": 57.083
         },
         {
           "specialist": "nova",
@@ -4973,39 +4973,39 @@
       "entries": [
         {
           "specialist": "fang",
-          "value": 0.539
+          "value": 0.552
         },
         {
           "specialist": "gale",
-          "value": 0.203
+          "value": 0.297
         },
         {
           "specialist": "rift",
-          "value": 0.17
+          "value": 0.177
         },
         {
           "specialist": "zuri",
-          "value": 0.157
+          "value": 0.151
         },
         {
           "specialist": "bront",
-          "value": 0.121
+          "value": 0.127
         },
         {
           "specialist": "nova",
-          "value": 0.115
+          "value": 0.119
         },
         {
           "specialist": "vesper",
-          "value": 0.114
+          "value": 0.115
         },
         {
           "specialist": "sola",
-          "value": 0.107
+          "value": 0.105
         },
         {
           "specialist": "echo",
-          "value": 0.076
+          "value": 0.074
         }
       ]
     },
@@ -5102,21 +5102,21 @@
       "specialist": "fang",
       "direction": "low",
       "value": 7.95,
-      "ratioToMedian": 0.314
+      "ratioToMedian": 0.313
     },
     {
       "metric": "apexTtkSeconds",
       "specialist": "rift",
       "direction": "high",
-      "value": 57.1,
-      "ratioToMedian": 2.254
+      "value": 57.083,
+      "ratioToMedian": 2.246
     },
     {
       "metric": "apexTtkSeconds",
       "specialist": "sola",
       "direction": "high",
       "value": 34.817,
-      "ratioToMedian": 1.374
+      "ratioToMedian": 1.37
     },
     {
       "metric": "effectiveVitality",
@@ -5129,50 +5129,50 @@
       "metric": "eliteTtkSeconds",
       "specialist": "bront",
       "direction": "low",
-      "value": 3.183,
-      "ratioToMedian": 0.468
+      "value": 3.2,
+      "ratioToMedian": 0.473
     },
     {
       "metric": "eliteTtkSeconds",
       "specialist": "echo",
       "direction": "low",
-      "value": 2.233,
-      "ratioToMedian": 0.328
+      "value": 2.25,
+      "ratioToMedian": 0.332
     },
     {
       "metric": "eliteTtkSeconds",
       "specialist": "fang",
       "direction": "low",
       "value": 2.683,
-      "ratioToMedian": 0.395
+      "ratioToMedian": 0.396
     },
     {
       "metric": "eliteTtkSeconds",
       "specialist": "gale",
       "direction": "high",
-      "value": 10.35,
-      "ratioToMedian": 1.522
+      "value": 10.683,
+      "ratioToMedian": 1.579
     },
     {
       "metric": "eliteTtkSeconds",
       "specialist": "nova",
       "direction": "high",
       "value": 11.033,
-      "ratioToMedian": 1.623
+      "ratioToMedian": 1.63
     },
     {
       "metric": "eliteTtkSeconds",
       "specialist": "rift",
       "direction": "high",
       "value": 13.55,
-      "ratioToMedian": 1.993
+      "ratioToMedian": 2.002
     },
     {
       "metric": "eliteTtkSeconds",
       "specialist": "vesper",
       "direction": "high",
-      "value": 9.567,
-      "ratioToMedian": 1.407
+      "value": 9.867,
+      "ratioToMedian": 1.458
     },
     {
       "metric": "eliteTtkSeconds",
@@ -5241,8 +5241,8 @@
       "metric": "matureAreaDps",
       "specialist": "fang",
       "direction": "high",
-      "value": 8408.604,
-      "ratioToMedian": 2.73
+      "value": 7087.558,
+      "ratioToMedian": 2.381
     },
     {
       "metric": "pickupReach",
@@ -5253,6 +5253,13 @@
     },
     {
       "metric": "soloSurvivalSeconds",
+      "specialist": "echo",
+      "direction": "low",
+      "value": 27.633,
+      "ratioToMedian": 0.614
+    },
+    {
+      "metric": "soloSurvivalSeconds",
       "specialist": "fang",
       "direction": "low",
       "value": 6.133,
@@ -5260,45 +5267,38 @@
     },
     {
       "metric": "soloSurvivalSeconds",
-      "specialist": "nova",
-      "direction": "low",
-      "value": 11.1,
-      "ratioToMedian": 0.247
-    },
-    {
-      "metric": "soloSurvivalSeconds",
       "specialist": "vesper",
       "direction": "low",
-      "value": 11.767,
-      "ratioToMedian": 0.261
+      "value": 11.35,
+      "ratioToMedian": 0.252
     },
     {
       "metric": "squadDamageShare",
       "specialist": "echo",
       "direction": "low",
-      "value": 0.076,
-      "ratioToMedian": 0.628
+      "value": 0.074,
+      "ratioToMedian": 0.583
     },
     {
       "metric": "squadDamageShare",
       "specialist": "fang",
       "direction": "high",
-      "value": 0.539,
-      "ratioToMedian": 4.455
+      "value": 0.552,
+      "ratioToMedian": 4.346
     },
     {
       "metric": "squadDamageShare",
       "specialist": "gale",
       "direction": "high",
-      "value": 0.203,
-      "ratioToMedian": 1.678
+      "value": 0.297,
+      "ratioToMedian": 2.339
     },
     {
       "metric": "squadDamageShare",
       "specialist": "rift",
       "direction": "high",
-      "value": 0.17,
-      "ratioToMedian": 1.405
+      "value": 0.177,
+      "ratioToMedian": 1.394
     }
   ],
   "limitations": [

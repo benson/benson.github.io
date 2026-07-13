@@ -2,11 +2,11 @@
   "schema": "lastlight.fixtures.v1",
   "schemaVersion": 1,
   "balance": {
-    "version": "2026.07.12-evolutions.3",
-    "hash": "fnv1a32:4278e96d"
+    "version": "2026.07.12-draft.1",
+    "hash": "fnv1a32:7bd246b8"
   },
   "replay": {
-    "schema": "lastlight.replay.v3",
+    "schema": "lastlight.replay.v4",
     "stepHz": 60,
     "rng": "xoshiro128ss-v1"
   },

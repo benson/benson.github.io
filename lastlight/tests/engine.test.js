@@ -59,6 +59,74 @@ test("upgrade rounds expose each locked choice until the squad finishes", () => 
   assert.equal(sim.paused, false);
 });
 
+test("draft controls are per-player, revision-guarded, and isolated from combat RNG", () => {
+  const sim = new Simulation({ players: [
+    { id: "p1", name: "One", specialist: "zuri", replaySlot: 0 },
+    { id: "p2", name: "Two", specialist: "echo", replaySlot: 1 },
+  ] }, { seed: "0123456789abcdef0123456789abcdef" });
+  sim.beginUpgradeChoice();
+  const combatRng = sim.gameplayRng.snapshot(), teammate = structuredClone(sim.pendingChoices.p2);
+  const before = sim.pendingChoices.p1.map(({ id }) => id);
+  const reroll = sim.draftAction("p1", { type: "reroll", round: 1, revision: 0 });
+  assert.equal(reroll.accepted, true);
+  assert.equal(sim.players[0].draft.rerolls, 1);
+  assert.equal(sim.players[0].draft.revision, 1);
+  assert.notDeepEqual(sim.pendingChoices.p1.map(({ id }) => id), before);
+  assert.deepEqual(sim.pendingChoices.p2, teammate);
+  assert.deepEqual(sim.gameplayRng.snapshot(), combatRng);
+  const stale = structuredClone(sim.snapshot());
+  assert.deepEqual(sim.draftAction("p1", { type: "reroll", round: 1, revision: 0 }), { accepted: false, reason: "stale_revision" });
+  assert.deepEqual(sim.snapshot(), stale);
+});
+
+test("banish persists for the run and skip resolves the multiplayer barrier with its premium", () => {
+  const sim = new Simulation({ players: [
+    { id: "p1", name: "One", specialist: "zuri", replaySlot: 0 },
+    { id: "p2", name: "Two", specialist: "echo", replaySlot: 1 },
+  ] }, { seed: "fedcba9876543210fedcba9876543210" });
+  sim.beginUpgradeChoice();
+  const banished = sim.pendingChoices.p1.find(({ kind }) => kind === "weapon" || kind === "passive");
+  const result = sim.draftAction("p1", { type: "banish", choiceId: banished.id, round: 1, revision: 0 });
+  assert.equal(result.accepted, true);
+  assert.equal(sim.players[0].draft.banishes, 1);
+  assert.ok(sim.players[0].draft.banished.includes(banished.id));
+  assert.ok(!sim.pendingChoices.p1.some(({ id }) => id === banished.id));
+  sim.draftAction("p1", { type: "skip", round: 1, revision: 1 });
+  assert.equal(sim.selectedChoices.p1, "draft:skip");
+  assert.equal(sim.gold, 30);
+  assert.equal(sim.paused, true);
+  sim.choose("p2", sim.pendingChoices.p2[0].id);
+  assert.equal(sim.paused, false);
+  assert.equal(sim.gold, 40);
+  sim.beginUpgradeChoice();
+  assert.ok(!sim.pendingChoices.p1.some(({ id }) => id === banished.id));
+});
+
+test("full loadouts require one atomic explicit replacement and clean source state", () => {
+  const sim = new Simulation({ players: [{ id: "p1", name: "One", specialist: "zuri", replaySlot: 0 }] });
+  const player = sim.players[0];
+  player.weapons = {
+    signature: { level: 1, evolved: false }, aura: { level: 3, evolved: false }, mines: { level: 2, evolved: false },
+    crossbow: { level: 1, evolved: false }, drone: { level: 4, evolved: true },
+  };
+  player.weaponTimers.drone = 2; player.weaponActivations.drone = 7;
+  sim.drones.push({ id: "owned-drone", owner: player.id, x: 0, y: 0 });
+  sim.beginUpgradeChoice();
+  const offered = { id: "weapon:uwu", kind: "weapon", name: "Twin Needle", copy: "", glyph: "", icon: "", level: 1, max: 5 };
+  sim.pendingChoices.p1 = [offered];
+  assert.equal(sim.draftAction("p1", { type: "pick", choiceId: offered.id }).reason, "replacement_required");
+  const replaced = sim.draftAction("p1", { type: "replace", choiceId: offered.id, replacementId: "drone" });
+  assert.equal(replaced.accepted, true);
+  assert.equal(Object.keys(player.weapons).length, 5);
+  assert.equal(player.weapons.drone, undefined);
+  assert.deepEqual(player.weapons.uwu, { level: 1, evolved: false });
+  assert.equal(player.weaponTimers.drone, undefined);
+  assert.equal(player.weaponActivations.drone, undefined);
+  assert.equal(sim.drones.some(({ owner }) => owner === player.id), false);
+  assert.equal(sim.gold, 10);
+  assert.equal(replaced.decisionId, "replace:weapon:uwu:drone");
+});
+
 test("access cards evolve a level-five weapon with its passive", () => {
   const sim = new Simulation({ players: [{ id: "p1", name: "One", specialist: "gale" }] });
   const player = sim.players[0];

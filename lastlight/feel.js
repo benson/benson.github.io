@@ -1,4 +1,4 @@
-import { advancePlayerMovement } from "./movement.js?v=20260712.9";
+import { advancePlayerMovement } from "./movement.js?v=20260712.10";
 
 export const FIXED_STEP_SECONDS = 1 / 60;
 

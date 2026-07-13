@@ -2,12 +2,26 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   GuestInputSequenceTracker, HostInputSequenceGate, MAX_INPUT_SEQUENCE, MAX_PENDING_INPUTS,
-  MULTIPLAYER_PROTOCOL_VERSION, createSnapshotMessage, sanitizeInputMessage, sanitizeSnapshotMessage,
+  MULTIPLAYER_PROTOCOL_VERSION, DRAFT_PROTOCOL_VERSION, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeInputMessage, sanitizeSnapshotMessage,
 } from "../protocol.js";
 import { ReplayRecorder } from "../replay.js";
 
 const input = { x: 1, y: 0, aim: .5, autoAim: true };
 const modern = (seq) => ({ type: "input", protocolVersion: MULTIPLAYER_PROTOCOL_VERSION, seq, input, _from: "guest-1" });
+
+test("draft actions have exact bounded action-specific wire shapes", () => {
+  const reroll = createDraftActionMessage({ action: "reroll", round: 2, revision: 1 });
+  assert.deepEqual(reroll, { type: "draft_action", protocolVersion: DRAFT_PROTOCOL_VERSION, action: "reroll", round: 2, revision: 1 });
+  const replace = sanitizeDraftActionMessage({ type: "draft_action", protocolVersion: DRAFT_PROTOCOL_VERSION, action: "replace", round: 3, revision: 0, choiceId: "weapon:uwu", replacementId: "drone", _from: "guest-1" }, { transport: true });
+  assert.equal(replace._from, "guest-1");
+  for (const invalid of [
+    { ...reroll, extra: true },
+    { ...reroll, revision: -1 },
+    { ...reroll, action: "pick" },
+    { ...reroll, action: "skip", choiceId: "weapon:uwu" },
+    { type: "draft_action", protocolVersion: DRAFT_PROTOCOL_VERSION, action: "banish", round: 1, revision: 0, choiceId: "../../bad" },
+  ]) assert.throws(() => sanitizeDraftActionMessage(invalid), /draft|sequence/i);
+});
 
 test("host applies only newer valid v2 sequences", () => {
   const gate = new HostInputSequenceGate();
