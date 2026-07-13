@@ -5,6 +5,10 @@ import {
   validateMigrationCapabilities, validateMigrationCheckpoint, validateMigrationReady,
 } from "../host-migration.js";
 import { PingTokenBucket, sanitizePingBroadcast, sanitizePingRequest } from "../ping-contract.js";
+import {
+  DraftRecommendationTokenBucket, sanitizeDraftRecommendationRequest,
+  sanitizeDraftRecommendationState, sanitizeDraftRecommendationSync,
+} from "../draft-recommendation-contract.js";
 
 const MAX_PLAYERS = 4;
 const MAX_MESSAGE_BYTES = 1_550_000;
@@ -12,6 +16,8 @@ const MAX_STANDARD_MESSAGE_BYTES = 512_000;
 const MAX_TELEMETRY_BYTES = 8_192;
 const MAX_PENDING_PINGS = 32;
 const PENDING_PING_LIFETIME_MS = 8_000;
+const MAX_PENDING_DRAFT_RECOMMENDATIONS = 48;
+const PENDING_DRAFT_RECOMMENDATION_LIFETIME_MS = 8_000;
 
 const TELEMETRY_FIELDS = new Set([
   "schemaVersion", "build", "map", "difficulty", "outcome", "specialists", "playerCount",
@@ -185,6 +191,10 @@ export class Room {
     this.pingRate = new PingTokenBucket();
     this.pendingPings = new Map();
     this.pingNow = () => Date.now();
+    this.draftRecommendationRate = new DraftRecommendationTokenBucket();
+    this.pendingDraftRecommendations = new Map();
+    this.draftRecommendationSequences = new Map();
+    this.draftRecommendationNow = () => Date.now();
   }
 
   async fetch(request) {
@@ -219,6 +229,7 @@ export class Room {
     try { if (rawCapabilities) migrationCapabilities = validateMigrationCapabilities(rawCapabilities); } catch { migrationCapabilities = null; }
     const replaySlot = profile.resumeToken ? this.seatTokens.get(profile.resumeToken) : undefined;
     Object.assign(session, profile, { initialized: true, migrationCapabilities, ...(Number.isInteger(replaySlot) ? { replaySlot } : {}) });
+    if (Number.isInteger(replaySlot)) this.resetDraftRecommendationSeat(replaySlot);
     if (this.runActive && this.migration) session.pendingProfile = true;
     clearTimeout(session.handshakeTimer);
     delete session.handshakeTimer;
@@ -237,6 +248,21 @@ export class Room {
   resetPingState() {
     this.pingRate.reset();
     this.pendingPings.clear();
+  }
+
+  resetDraftRecommendationState({ resetRate = true } = {}) {
+    if (resetRate) this.draftRecommendationRate.reset();
+    this.pendingDraftRecommendations.clear();
+    this.draftRecommendationSequences.clear();
+  }
+
+  resetDraftRecommendationSeat(replaySlot) {
+    for (const [key, pending] of this.pendingDraftRecommendations) {
+      if (pending.recommendation.recommenderSlot === replaySlot) this.pendingDraftRecommendations.delete(key);
+    }
+    for (const key of this.draftRecommendationSequences.keys()) {
+      if (key.endsWith(`:${replaySlot}`)) this.draftRecommendationSequences.delete(key);
+    }
   }
 
   assignRunReplaySlots(players) {
@@ -293,6 +319,72 @@ export class Room {
     return true;
   }
 
+  pendingDraftRecommendationKey(recommendation) {
+    return `${recommendation.epoch}:${recommendation.recommenderSlot}:${recommendation.seq}`;
+  }
+
+  prunePendingDraftRecommendations(now = this.draftRecommendationNow()) {
+    for (const [key, pending] of this.pendingDraftRecommendations) {
+      if (now - pending.receivedAt >= PENDING_DRAFT_RECOMMENDATION_LIFETIME_MS) this.pendingDraftRecommendations.delete(key);
+    }
+  }
+
+  routeDraftRecommendationRequest(session, raw) {
+    if (!this.runtimeFlags().upgradeRecommendations || !this.runActive || this.migration || !this.hostId || !Number.isInteger(session.replaySlot)) return false;
+    let recommendation;
+    try { recommendation = sanitizeDraftRecommendationRequest(raw); } catch { return false; }
+    if (recommendation.epoch !== this.authorityEpoch) return false;
+    const sequenceKey = `${recommendation.epoch}:${session.replaySlot}`;
+    const previousSequence = this.draftRecommendationSequences.get(sequenceKey);
+    if (previousSequence !== undefined && recommendation.seq <= previousSequence) return false;
+    this.draftRecommendationSequences.set(sequenceKey, recommendation.seq);
+    const now = this.draftRecommendationNow(); this.prunePendingDraftRecommendations(now);
+    if (this.pendingDraftRecommendations.size >= MAX_PENDING_DRAFT_RECOMMENDATIONS
+      || !this.draftRecommendationRate.take(String(session.replaySlot), now)) return false;
+    const routed = sanitizeDraftRecommendationRequest({
+      ...recommendation, _from: session.id, recommenderSlot: session.replaySlot,
+    }, { transport: true });
+    const key = this.pendingDraftRecommendationKey(routed);
+    this.pendingDraftRecommendations.set(key, { recommendation: routed, receivedAt: now });
+    if (this.sendTo(this.hostId, routed)) return true;
+    this.pendingDraftRecommendations.delete(key); return false;
+  }
+
+  relayDraftRecommendationState(session, raw) {
+    if (!this.runtimeFlags().upgradeRecommendations || !this.runActive || this.migration
+      || session.id !== this.hostId || !Number.isInteger(session.replaySlot)) return false;
+    let recommendation;
+    try { recommendation = sanitizeDraftRecommendationState(raw); } catch { return false; }
+    if (recommendation.epoch !== this.authorityEpoch) return false;
+    const now = this.draftRecommendationNow(); this.prunePendingDraftRecommendations(now);
+    const key = this.pendingDraftRecommendationKey(recommendation);
+    const pending = this.pendingDraftRecommendations.get(key)?.recommendation;
+    if (pending) {
+      if (pending.targetSlot !== recommendation.targetSlot || pending.round !== recommendation.round
+        || pending.revision !== recommendation.revision || pending.optionIndex !== recommendation.optionIndex
+        || pending.active !== recommendation.active) return false;
+      this.pendingDraftRecommendations.delete(key);
+    } else {
+      if (recommendation.recommenderSlot !== session.replaySlot) return false;
+      const sequenceKey = `${recommendation.epoch}:${session.replaySlot}`;
+      const previousSequence = this.draftRecommendationSequences.get(sequenceKey);
+      if (previousSequence !== undefined && recommendation.seq <= previousSequence) return false;
+      this.draftRecommendationSequences.set(sequenceKey, recommendation.seq);
+      if (!this.draftRecommendationRate.take(String(session.replaySlot), now)) return false;
+    }
+    this.broadcast({ ...recommendation, _from: session.id }, socketForSession(this.sessions, session));
+    return true;
+  }
+
+  relayDraftRecommendationSync(session, raw, targetId) {
+    if (!this.runtimeFlags().upgradeRecommendations || !this.runActive || this.migration
+      || session.id !== this.hostId || !targetId || targetId === session.id) return false;
+    let sync;
+    try { sync = sanitizeDraftRecommendationSync(raw); } catch { return false; }
+    if (sync.epoch !== this.authorityEpoch) return false;
+    return this.sendTo(targetId, { ...sync, _from: session.id });
+  }
+
   onMessage(socket, raw) {
     const session = this.sessions.get(socket);
     if (!session) return;
@@ -323,6 +415,9 @@ export class Room {
     if (this.migration) return;
     if (message.type === "ping") { if (!targetId) this.routePingRequest(session, message); return; }
     if (message.type === "ping_broadcast") { if (!targetId) this.relayPingBroadcast(session, message); return; }
+    if (message.type === "draft_recommendation") { if (!targetId) this.routeDraftRecommendationRequest(session, message); return; }
+    if (message.type === "draft_recommendation_state") { if (!targetId) this.relayDraftRecommendationState(session, message); return; }
+    if (message.type === "draft_recommendation_sync") { this.relayDraftRecommendationSync(session, message, targetId); return; }
     try {
       if (message.type === "input") message = sanitizeInputMessage(message, { allowLegacy: true });
       else if (message.type === "snapshot") message = sanitizeSnapshotMessage(message, { allowLegacy: true });
@@ -335,9 +430,9 @@ export class Room {
     if (this.runActive && this.authorityEpoch > 0 && Number(message.epoch) !== this.authorityEpoch && message.type !== "profile") return;
     if (message.type === "start" && session.id === this.hostId) {
       if (!this.assignRunReplaySlots(message.players)) return;
-      this.runActive = true; this.migrationCheckpoint = null; this.authorityEpoch = 0; this.resetPingState();
+      this.runActive = true; this.migrationCheckpoint = null; this.authorityEpoch = 0; this.resetPingState(); this.resetDraftRecommendationState();
     } else if (message.type === "return_lobby" && session.id === this.hostId) {
-      this.runActive = false; this.migrationCheckpoint = null; this.clearMigration(); this.resetPingState();
+      this.runActive = false; this.migrationCheckpoint = null; this.clearMigration(); this.resetPingState(); this.resetDraftRecommendationState();
     }
     message._from = session.id;
     if (targetId) {
@@ -397,7 +492,7 @@ export class Room {
 
   beginMigration(oldHostId) {
     const flags = this.runtimeFlags();
-    this.hostId = null; this.pendingPings.clear();
+    this.hostId = null; this.pendingPings.clear(); this.resetDraftRecommendationState({ resetRate: false });
     if (!flags.hostMigrationElection || !flags.hostMigrationResume || !this.migrationCheckpoint) {
       this.broadcast({ type: "migration_failed", reason: !this.migrationCheckpoint ? "no-checkpoint" : "disabled" });
       return false;

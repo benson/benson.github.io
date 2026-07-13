@@ -324,7 +324,7 @@ test("draft controls and replacement decisions stay in-place, accessible, and to
   for (const id of ["draft-controls", "draft-reroll", "draft-banish", "draft-skip", "draft-status", "replacement-tray", "replacement-options", "replacement-cancel"]) assert.match(html, new RegExp(`id="${id}"`));
   assert.match(html, /aria-live="polite"/);
   assert.match(html, /aria-pressed="false"/);
-  assert.match(game, /createDraftActionMessage\(message, state\.authorityEpoch\)/);
+  assert.match(game, /createDraftActionMessage\(\{ \.\.\.message, action: message\.type \}, state\.authorityEpoch\)/);
   assert.match(game, /sanitizeDraftActionMessage\(message, \{ transport: true \}\)/);
   assert.match(game, /performDraftAction\(\{ type: "reroll" \}\)/);
   assert.match(game, /performDraftAction\(\{ type: "skip" \}\)/);
