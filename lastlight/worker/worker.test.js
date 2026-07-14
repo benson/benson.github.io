@@ -425,12 +425,12 @@ test("telemetry endpoint enforces method, type, size, origin, and CORS", async (
 
 test("runtime config endpoint is allowlisted, no-store, origin-aware, and read-only", async () => {
   const config = {
-    schemaVersion: 14, configVersion: "rollback-48", gameplayVersion: "director-off-v1",
+    schemaVersion: 15, configVersion: "rollback-49", gameplayVersion: "director-off-v1",
     registryVersion: "lastlight.squad-synergy.v1",
     flags: {
       deterministicReplay: false, runTelemetry: false, objectiveEvents: false,
       migrationCheckpointReplication: false, hostMigrationElection: false, hostMigrationResume: false,
-      contextualPings: false, upgradeRecommendations: false, squadSynergies: false, sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, specialistMastery: false, rareDiscoveries: false, challengeAchievements: false, seededOperations: false, practiceLaboratory: false, sharedSquadRunArchive: false,
+      contextualPings: false, upgradeRecommendations: false, squadSynergies: false, sharedParticipationCredit: false, downedActivity: false, joinInProgressNormalization: false, squadEnemyDirector: false, mapMechanics: false, campaignMutations: false, specialistMastery: false, rareDiscoveries: false, challengeAchievements: false, seededOperations: false, practiceLaboratory: false, accessibilityPass: false, sharedSquadRunArchive: false,
     },
   };
   const env = { LASTLIGHT_RUNTIME_CONFIG: JSON.stringify(config) };
@@ -453,7 +453,7 @@ test("invalid operator config fails closed to immutable release defaults", () =>
   assert.deepEqual(invalid.config.flags, {
     deterministicReplay: true, runTelemetry: true, objectiveEvents: true,
     migrationCheckpointReplication: true, hostMigrationElection: true, hostMigrationResume: true,
-    contextualPings: true, upgradeRecommendations: true, squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, specialistMastery: true, rareDiscoveries: true, challengeAchievements: true, seededOperations: true, practiceLaboratory: true, sharedSquadRunArchive: true,
+    contextualPings: true, upgradeRecommendations: true, squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, specialistMastery: true, rareDiscoveries: true, challengeAchievements: true, seededOperations: true, practiceLaboratory: true, accessibilityPass: true, sharedSquadRunArchive: true,
   });
   assert.equal(operatorRuntimeConfig({}).source, "built-in");
 });
@@ -817,12 +817,12 @@ test("active host loss without a checkpoint fails closed instead of promoting an
 
 test("disabled host migration fails closed even when a valid checkpoint exists", () => {
   const config = {
-    schemaVersion: 14, configVersion: "migration-off", gameplayVersion: "map-mechanics-v1",
+    schemaVersion: 15, configVersion: "migration-off", gameplayVersion: "map-mechanics-v1",
     registryVersion: "lastlight.squad-synergy.v1",
     flags: {
       deterministicReplay: true, runTelemetry: true, objectiveEvents: true,
       migrationCheckpointReplication: true, hostMigrationElection: false, hostMigrationResume: true,
-      contextualPings: true, upgradeRecommendations: true, squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, specialistMastery: true, rareDiscoveries: true, challengeAchievements: true, seededOperations: true, practiceLaboratory: true, sharedSquadRunArchive: true,
+      contextualPings: true, upgradeRecommendations: true, squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, specialistMastery: true, rareDiscoveries: true, challengeAchievements: true, seededOperations: true, practiceLaboratory: true, accessibilityPass: true, sharedSquadRunArchive: true,
     },
   };
   const fixture = migrationFixture({ env: { LASTLIGHT_RUNTIME_CONFIG: JSON.stringify(config) } });
@@ -1011,12 +1011,12 @@ test("only the host can relay a strict ping broadcast and cannot forge a guest p
 
 test("the runtime rollback flag rejects request and broadcast paths", () => {
   const config = {
-    schemaVersion: 14, configVersion: "pings-off", gameplayVersion: "map-mechanics-v1",
+    schemaVersion: 15, configVersion: "pings-off", gameplayVersion: "map-mechanics-v1",
     registryVersion: "lastlight.squad-synergy.v1",
     flags: {
       deterministicReplay: true, runTelemetry: true, objectiveEvents: true,
       migrationCheckpointReplication: true, hostMigrationElection: true, hostMigrationResume: true,
-      contextualPings: false, upgradeRecommendations: true, squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, specialistMastery: true, rareDiscoveries: true, challengeAchievements: true, seededOperations: true, practiceLaboratory: true, sharedSquadRunArchive: true,
+      contextualPings: false, upgradeRecommendations: true, squadSynergies: true, sharedParticipationCredit: true, downedActivity: true, joinInProgressNormalization: true, squadEnemyDirector: true, mapMechanics: true, campaignMutations: true, specialistMastery: true, rareDiscoveries: true, challengeAchievements: true, seededOperations: true, practiceLaboratory: true, accessibilityPass: true, sharedSquadRunArchive: true,
     },
   };
   const { room, host, guest, observer } = pingRoomFixture({ LASTLIGHT_RUNTIME_CONFIG: JSON.stringify(config) });

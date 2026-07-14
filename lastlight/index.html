@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260713.19">
+  <link rel="stylesheet" href="styles.css?v=20260713.20">
 </head>
 <body>
   <main id="app">
@@ -53,15 +53,15 @@
 
       <div class="control-ribbon" aria-label="Keyboard controls">
         <strong>Controls</strong>
-        <span><kbd>WASD</kbd> Move</span>
+        <span data-control-movement><kbd>WASD</kbd> Move</span>
         <span><kbd>Mouse</kbd> Aim</span>
-        <span><kbd>C</kbd> Auto-aim</span>
-        <span><kbd>E</kbd> Ability</span>
-        <span><kbd>R</kbd> Ultimate</span>
-        <span><kbd>1–3</kbd> Upgrade</span>
-        <span data-control-ping><kbd>G</kbd> Ping</span>
-        <span><kbd>Esc</kbd> Pause</span>
-        <span><kbd>` / ~</kbd> Report</span>
+        <span data-control-action="autoAim"><kbd>C</kbd> Auto-aim</span>
+        <span data-control-action="active"><kbd>E</kbd> Ability</span>
+        <span data-control-action="ultimate"><kbd>R</kbd> Ultimate</span>
+        <span data-control-choices><kbd>1–3</kbd> Upgrade</span>
+        <span data-control-ping data-control-action="ping"><kbd>G</kbd> Ping</span>
+        <span data-control-action="pause"><kbd>Esc</kbd> Pause</span>
+        <span data-control-action="report"><kbd>` / ~</kbd> Report</span>
       </div>
 
       <div class="home-content">
@@ -169,15 +169,15 @@
 
         <div class="control-ribbon lobby-controls" aria-label="Keyboard controls">
           <strong>Controls</strong>
-          <span><kbd>WASD</kbd> Move</span>
+          <span data-control-movement><kbd>WASD</kbd> Move</span>
           <span><kbd>Mouse</kbd> Aim</span>
-          <span><kbd>C</kbd> Auto-aim</span>
-          <span><kbd>E</kbd> Ability</span>
-          <span><kbd>R</kbd> Ultimate</span>
-          <span><kbd>1–3</kbd> Upgrade</span>
-          <span data-control-ping><kbd>G</kbd> Ping</span>
-          <span><kbd>Esc</kbd> Pause</span>
-          <span><kbd>` / ~</kbd> Report</span>
+          <span data-control-action="autoAim"><kbd>C</kbd> Auto-aim</span>
+          <span data-control-action="active"><kbd>E</kbd> Ability</span>
+          <span data-control-action="ultimate"><kbd>R</kbd> Ultimate</span>
+          <span data-control-choices><kbd>1–3</kbd> Upgrade</span>
+          <span data-control-ping data-control-action="ping"><kbd>G</kbd> Ping</span>
+          <span data-control-action="pause"><kbd>Esc</kbd> Pause</span>
+          <span data-control-action="report"><kbd>` / ~</kbd> Report</span>
         </div>
 
         <div class="lobby-title-row">
@@ -250,8 +250,8 @@
             </div>
             <div class="kit-list">
               <div><kbd>I</kbd><p><strong id="passive-name">Hot Streak</strong><span id="passive-copy">Kills trigger a stacking burst of speed and haste.</span></p></div>
-              <div><kbd>E</kbd><p><strong id="active-name">Rocket Bloom</strong><span id="active-copy">Fire nine explosive rockets in a wide cone.</span></p></div>
-              <div><kbd>R</kbd><p><strong id="ultimate-name">Curtain Call</strong><span id="ultimate-copy">Launch a massive execution rocket.</span></p></div>
+              <div data-control-action="active"><kbd>E</kbd><p><strong id="active-name">Rocket Bloom</strong><span id="active-copy">Fire nine explosive rockets in a wide cone.</span></p></div>
+              <div data-control-action="ultimate"><kbd>R</kbd><p><strong id="ultimate-name">Curtain Call</strong><span id="ultimate-copy">Launch a massive execution rocket.</span></p></div>
             </div>
           </aside>
         </div>
@@ -290,14 +290,14 @@
         <div class="downed-actions" aria-label="Controls available while downed">
           <span id="downed-crawl-status"><kbd>WASD</kbd><b>Crawl to cover</b></span>
           <button id="downed-support-action" type="button"><kbd>E</kbd><span><b id="downed-support-label">Guard pulse</b><small id="downed-support-status">Ready</small></span></button>
-          <span id="downed-ping-status"><kbd>G</kbd><b>Ping for help</b></span>
+          <span id="downed-ping-status" data-control-action="ping"><kbd>G</kbd><b>Ping for help</b></span>
         </div>
       </aside>
       <div id="downed-activity-live" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
       <aside class="loadout-hud">
-        <div id="e-slot" class="ability-slot" tabindex="0"><kbd>E</kbd><span id="e-icon">E</span><i id="e-cooldown" class="cooldown-sweep" aria-hidden="true"></i><b id="e-cooldown-seconds" class="cooldown-seconds" aria-hidden="true"></b><small id="e-name">Rocket Bloom</small><div class="ability-tooltip"><span>Active ability</span><strong id="e-detail-status">Locked</strong><p id="e-detail-copy">Fire nine explosive rockets in a wide cone.</p><dl><div><dt>Cooldown</dt><dd id="e-detail-cooldown">Unlocks Lv 3</dd></div><div><dt>Control</dt><dd>E</dd></div></dl></div></div>
-        <div id="r-slot" class="ability-slot ultimate" tabindex="0"><kbd>R</kbd><span id="r-icon">R</span><i id="r-cooldown" class="cooldown-sweep" aria-hidden="true"></i><b id="r-cooldown-seconds" class="cooldown-seconds" aria-hidden="true"></b><small id="r-name">Curtain Call</small><div class="ability-tooltip"><span>Ultimate ability</span><strong id="r-detail-status">Locked</strong><p id="r-detail-copy">Launch a massive execution rocket.</p><dl><div><dt>Cooldown</dt><dd id="r-detail-cooldown">Unlocks Lv 6</dd></div><div><dt>Control</dt><dd>R</dd></div></dl></div></div>
+        <div id="e-slot" class="ability-slot" tabindex="0"><kbd>E</kbd><span id="e-icon">E</span><i id="e-cooldown" class="cooldown-sweep" aria-hidden="true"></i><b id="e-cooldown-seconds" class="cooldown-seconds" aria-hidden="true"></b><small id="e-name">Rocket Bloom</small><div class="ability-tooltip"><span>Active ability</span><strong id="e-detail-status">Locked</strong><p id="e-detail-copy">Fire nine explosive rockets in a wide cone.</p><dl><div><dt>Cooldown</dt><dd id="e-detail-cooldown">Unlocks Lv 3</dd></div><div><dt>Control</dt><dd data-control-action="active">E</dd></div></dl></div></div>
+        <div id="r-slot" class="ability-slot ultimate" tabindex="0"><kbd>R</kbd><span id="r-icon">R</span><i id="r-cooldown" class="cooldown-sweep" aria-hidden="true"></i><b id="r-cooldown-seconds" class="cooldown-seconds" aria-hidden="true"></b><small id="r-name">Curtain Call</small><div class="ability-tooltip"><span>Ultimate ability</span><strong id="r-detail-status">Locked</strong><p id="r-detail-copy">Launch a massive execution rocket.</p><dl><div><dt>Cooldown</dt><dd id="r-detail-cooldown">Unlocks Lv 6</dd></div><div><dt>Control</dt><dd data-control-action="ultimate">R</dd></div></dl></div></div>
       </aside>
 
       <div class="weapon-hud" id="weapon-hud"></div>
@@ -318,7 +318,7 @@
         <div id="damage-ledger-content" class="damage-ledger-content" aria-live="polite"></div>
       </aside>
       <div class="xp-wrap"><span id="level-label">LV 1</span><div class="xp-track"><i id="xp-progress"></i></div></div>
-      <div class="game-controls-hint" aria-label="Keyboard controls"><span><kbd>WASD</kbd> Move</span><span><kbd>C</kbd> Auto-aim</span><span><kbd>Mouse</kbd> Aim</span><span data-control-ping><kbd>G</kbd> Ping</span><span><kbd>Shift</kbd> Inspect</span><span><kbd>` / ~</kbd> Report</span></div>
+      <div class="game-controls-hint" aria-label="Keyboard controls"><span data-control-movement><kbd>WASD</kbd> Move</span><span data-control-action="autoAim"><kbd>C</kbd> Auto-aim</span><span><kbd>Mouse</kbd> Aim</span><span data-control-ping data-control-action="ping"><kbd>G</kbd> Ping</span><span data-control-action="inspect"><kbd>Shift</kbd> Inspect</span><span data-control-action="report"><kbd>` / ~</kbd> Report</span></div>
       <aside id="inspect-panel" class="inspect-panel hidden" role="tooltip" aria-live="polite">
         <span id="inspect-kind">Field object</span>
         <strong id="inspect-title">Supply cache</strong>
@@ -345,9 +345,9 @@
               <div class="upgrade-player-heading"><span>You</span><strong id="upgrade-local-name">Rookie</strong><i id="upgrade-local-status">Choosing</i></div>
               <aside id="upgrade-current-stats" class="upgrade-current-stats" aria-label="Current specialist statistics"></aside>
               <div id="draft-controls" class="draft-controls" aria-label="Draft controls">
-                <button id="draft-reroll" type="button"><kbd>4</kbd><span>Reroll</span><b id="draft-rerolls">2</b></button>
-                <button id="draft-banish" type="button" aria-pressed="false"><kbd>5</kbd><span>Banish</span><b id="draft-banishes">2</b></button>
-                <button id="draft-skip" type="button"><kbd>0</kbd><span>Skip · +30 gold</span><b id="draft-skips">1</b></button>
+                <button id="draft-reroll" type="button" data-control-action="reroll"><kbd>4</kbd><span>Reroll</span><b id="draft-rerolls">2</b></button>
+                <button id="draft-banish" type="button" data-control-action="banish" aria-pressed="false"><kbd>5</kbd><span>Banish</span><b id="draft-banishes">2</b></button>
+                <button id="draft-skip" type="button" data-control-action="skip"><kbd>0</kbd><span>Skip · +30 gold</span><b id="draft-skips">1</b></button>
                 <span id="draft-status" class="sr-only" aria-live="polite"></span>
               </div>
               <div id="upgrade-cards" class="upgrade-cards"></div>
@@ -379,7 +379,7 @@
               <li><i class="reference-swatch xp"></i><span><b>Cyan shards</b> are experience.</span></li>
               <li><i class="reference-swatch hostile"></i><span><b>Orange bolts</b> are hostile fire.</span></li>
               <li><i class="reference-swatch cache"></i><span><b>BREAK caches</b> open when shot.</span></li>
-              <li><kbd>Shift</kbd><span>Point at a field object to inspect it.</span></li>
+              <li data-control-action="inspect"><kbd>Shift</kbd><span>Point at a field object to inspect it.</span></li>
             </ul>
             <button id="pause-guide-button" type="button">Open full field guide</button>
           </div>
@@ -526,7 +526,7 @@
         <section><span class="manual-number">03</span><h3>Hold for the apex</h3><p>Enemy tiers and wave density rise throughout the operation. Survive the timer, then defeat the map's apex before its five-minute enrage.</p></section>
         <section><span class="manual-number">04</span><h3>Stay active when downed</h3><p>In co-op, crawl toward safety, press E to shield a nearby standing ally, and use G to call for help. A squadmate inside your ring completes the rescue in three seconds.</p></section>
       </div>
-      <div class="manual-controls"><span><kbd>WASD</kbd> Move</span><span><kbd>Mouse</kbd> Aim</span><span><kbd>C</kbd> Auto-aim</span><span><kbd>E</kbd> Ability</span><span><kbd>R</kbd> Ultimate</span><span><kbd>1–3</kbd> Upgrade</span><span><kbd>Esc</kbd> Pause</span><span><kbd>` / ~</kbd> Report</span></div>
+      <div class="manual-controls"><span data-control-movement><kbd>WASD</kbd> Move</span><span><kbd>Mouse</kbd> Aim</span><span data-control-action="autoAim"><kbd>C</kbd> Auto-aim</span><span data-control-action="active"><kbd>E</kbd> Ability</span><span data-control-action="ultimate"><kbd>R</kbd> Ultimate</span><span data-control-choices><kbd>1–3</kbd> Upgrade</span><span data-control-action="pause"><kbd>Esc</kbd> Pause</span><span data-control-action="report"><kbd>` / ~</kbd> Report</span></div>
     </dialog>
 
     <dialog id="practice-dialog" class="guide-dialog practice-dialog" aria-labelledby="practice-title">
@@ -588,7 +588,22 @@
             <label><span><strong>Enemy health bars</strong><small>Keep priority targets legible in busy waves.</small></span><select id="quality-health-bars"><option value="all">All enemies</option><option value="important">Elites & apex</option><option value="off">Off</option></select></label>
             <label class="quality-toggle" for="quality-reduced-motion"><span><strong>Reduce motion</strong><small>Removes camera look-ahead, bob, and decorative movement.</small></span><input id="quality-reduced-motion" type="checkbox"><i aria-hidden="true"></i></label>
           </div>
-          <p class="quality-note">Display settings are stored only on this device. They never alter damage, enemy behavior, simulation timing, replays, or squad synchronization.</p>
+          <section id="accessibility-settings" class="accessibility-settings" aria-labelledby="accessibility-title">
+            <header><div><span>Input, vision, motion, and scale</span><h3 id="accessibility-title">Accessibility</h3></div><button id="accessibility-reset" type="button">Reset accessibility</button></header>
+            <div class="quality-grid accessibility-grid">
+              <label><span><strong>Interface scale</strong><small>Reflows menus and dialogs from 100% to 200%.</small></span><select id="accessibility-text-scale"><option value="1">100%</option><option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option></select></label>
+              <label><span><strong>Combat HUD scale</strong><small>Enlarges live status, abilities, and build readouts.</small></span><select id="accessibility-hud-scale"><option value="1">100%</option><option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option></select></label>
+              <label><span><strong>Touch control scale</strong><small>Enlarges the movement stick and action targets.</small></span><select id="accessibility-touch-scale"><option value="1">100%</option><option value="1.25">125%</option><option value="1.5">150%</option></select></label>
+              <label><span><strong>Color and contrast</strong><small>Retunes color while preserving labels, patterns, and shapes.</small></span><select id="accessibility-color-vision"><option value="default">Authored palette</option><option value="deuteranopia">Deuteranopia support</option><option value="protanopia">Protanopia support</option><option value="tritanopia">Tritanopia support</option><option value="high-contrast">High contrast</option></select></label>
+              <label><span><strong>Directional audio</strong><small>Standard, stronger left/right separation, or mono.</small></span><select id="accessibility-directional-audio"><option value="standard">Standard spatial</option><option value="enhanced">Enhanced direction</option><option value="mono">Mono</option></select></label>
+              <label class="quality-toggle" for="accessibility-reduced-flash"><span><strong>Reduce flashes</strong><small>Removes nonessential hit, muzzle, and transition flashes.</small></span><input id="accessibility-reduced-flash" type="checkbox"><i aria-hidden="true"></i></label>
+              <label class="quality-toggle" for="accessibility-controller"><span><strong>Standard gamepad</strong><small>Left stick moves, right stick aims, face buttons cast.</small></span><input id="accessibility-controller" type="checkbox" checked><i aria-hidden="true"></i></label>
+              <label><span><strong>Stick deadzone</strong><small>Ignore accidental analog movement near center.</small></span><select id="accessibility-deadzone"><option value="0.1">10%</option><option value="0.18">18%</option><option value="0.25">25%</option><option value="0.35">35%</option><option value="0.5">50%</option></select></label>
+            </div>
+            <section class="binding-section" aria-labelledby="binding-title"><header><div><strong id="binding-title">Keyboard remapping</strong><small>Select a command, then press one unique physical key. Escape cancels capture.</small></div><span id="accessibility-controller-status" role="status" aria-live="polite">No standard gamepad detected.</span></header><div id="accessibility-bindings" class="binding-grid"></div></section>
+            <p id="accessibility-status" class="quality-note" role="status" aria-live="polite">Accessibility settings are local and never alter simulation or shared records.</p>
+          </section>
+          <p class="quality-note">Display and accessibility settings are stored only on this device. They never alter damage, enemy behavior, simulation timing, replays, recovery, multiplayer authority, shared reports, or telemetry identity.</p>
         </div>
       </form>
     </dialog>
@@ -650,7 +665,16 @@
       </div>
       <div class="build-history-body">
         <article class="build-release current-build">
-          <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.13.19</h3></div><time class="build-shipped-at" datetime="2026-07-13T20:09:05-04:00" data-build-shipped-at="2026-07-13T20:09:05-04:00">Shipped Jul 13, 2026 · 8:09 PM EDT</time></header>
+          <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.13.20</h3></div><span class="build-time-unavailable">Release verification pending</span></header>
+          <ul>
+            <li>Added complete physical-key remapping with unique bindings, accessible status feedback, persistent local profiles, and standard gamepad movement, aim, combat, ping, pause, and draft controls.</li>
+            <li>Added independent interface, combat HUD, and touch-control scaling with responsive 200% dialog reflow and 44-pixel minimum mobile targets.</li>
+            <li>Added color-vision and high-contrast presentation profiles while preserving authored labels, patterns, shapes, progress text, and non-color state cues.</li>
+            <li>Added reduced-flash rendering and standard, enhanced, or mono directional audio behind an independent presentation-only rollback flag.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header><div><span class="build-release-status">Previous build</span><h3>2026.07.13.19</h3></div><time class="build-shipped-at" datetime="2026-07-13T20:09:05-04:00" data-build-shipped-at="2026-07-13T20:09:05-04:00">Shipped Jul 13, 2026 · 8:09 PM EDT</time></header>
           <ul>
             <li>Added a deterministic local practice laboratory for all nine specialists, universal weapons, passives, enemy archetypes, elite affixes, and operation apexes.</li>
             <li>Added canonical loadout controls for authored Field Kit sidegrades and valid level-five weapon evolutions with their required paired passives.</li>
@@ -1186,8 +1210,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.13.19. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.13.19</strong></button>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.13.20. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.13.20</strong></button>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260713.19"></script>
+  <script type="module" src="game.js?v=20260713.20"></script>
 </body>
 </html>
