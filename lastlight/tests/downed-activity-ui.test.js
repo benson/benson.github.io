@@ -27,11 +27,11 @@ test("the snapshot presentation contract is exact, null-safe, and feature gated"
 
 test("keyboard and pointer inputs suppress normal combat while retaining support and ping", () => {
   assert.match(game, /if \(player\.downed\) \{[\s\S]{0,220}slot !== "e"/);
-  assert.match(game, /localPlayer\?\.downed && \["e", "r"\]\.includes\(key\)/);
-  assert.match(game, /if \(key === "e" && !event\.repeat\) cast\("e"\)/);
+  assert.match(game, /localPlayer\?\.downed && \["active", "ultimate"\]\.includes\(action\)/);
+  assert.match(game, /if \(action === "active" && !event\.repeat\) cast\("e"\)/);
   assert.match(html, /id="downed-support-action" type="button"/);
   assert.match(game, /\$\("downed-support-action"\)\.addEventListener\("click"/);
-  assert.match(game, /key === 'g' && state\.screen === 'game'/);
+  assert.match(game, /action === "ping" && state\.screen === 'game'/);
   assert.match(game, /movementPredictor\.player && !authoritative\?\.downed/);
   assert.match(game, /!player \|\| player\.downed \|\| remainingSeconds <= 0/);
 });

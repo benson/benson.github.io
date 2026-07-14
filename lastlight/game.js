@@ -1,44 +1,48 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260713.19";
-import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.19";
-import { Renderer } from "./render.js?v=20260713.19";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260713.20";
+import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.20";
+import { Renderer } from "./render.js?v=20260713.20";
 import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260713.2";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
-import { getThemeAsset, getThemeEnvironmentChunks, getThemeMaterial } from "./themes/lastlight.js?v=20260713.19";
-import { submitRunTelemetry } from "./telemetry.js?v=20260713.19";
+import { getThemeAsset, getThemeEnvironmentChunks, getThemeMaterial } from "./themes/lastlight.js?v=20260713.20";
+import { submitRunTelemetry } from "./telemetry.js?v=20260713.20";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260713.19";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260713.19";
+import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260713.20";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260713.20";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
-import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260713.19";
-import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260713.19";
+import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260713.20";
+import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260713.20";
 import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260711.5";
-import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260713.19";
+import {
+  ACCESSIBILITY_ACTIONS, GAMEPAD_ACTIONS, bindingLabel, defaultAccessibilitySettings,
+  keyboardActionForEvent, loadAccessibilitySettings, readStandardGamepad, saveAccessibilitySettings,
+} from "./accessibility-settings.js?v=20260713.20";
+import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260713.20";
 import { GuestInputSequenceTracker, HostInputSequenceGate, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260713.2";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260713.2";
-import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260713.19";
-import { advancePlayerMovement } from "./movement.js?v=20260713.19";
+import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260713.20";
+import { advancePlayerMovement } from "./movement.js?v=20260713.20";
 import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
 import { DynamicAudioMixer } from "./audio-mix.js?v=20260713.1";
 import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260713.1";
 import { enemyAudioCueName, newEntities, spatialAudioPan, weaponAudioCueName, weaponTimerActivations } from "./audio-events.js?v=20260713.1";
 import { FUNNY_VOICE_MIN_INTERVAL_MS, audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260713.1";
-import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260713.19";
-import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260713.19";
+import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260713.20";
+import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260713.20";
 import { getWeaponEvolution } from "./weapon-evolution.js?v=20260713.1";
 import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260712.1";
-import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260713.19";
-import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260713.19";
-import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260713.19";
+import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260713.20";
+import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260713.20";
+import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260713.20";
 import { reconcileActiveBuffs } from "./active-buffs.js?v=20260713.1";
 import { ELITE_AFFIXES, ENEMY_ARCHETYPES, eliteAffixEligibility } from "./enemy-archetypes.js?v=20260713.1";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
-import { mapMechanicDefinition } from "./map-mechanics.js?v=20260713.19";
-import { CAMPAIGN_MUTATIONS, campaignMutationDefinition } from "./campaign-mutations.js?v=20260713.19";
+import { mapMechanicDefinition } from "./map-mechanics.js?v=20260713.20";
+import { CAMPAIGN_MUTATIONS, campaignMutationDefinition } from "./campaign-mutations.js?v=20260713.20";
 import {
   AuthoritySnapshotGate, HOST_MIGRATION_PROTOCOL_VERSION, MIGRATION_CHECKPOINT_INTERVAL_TICKS,
   createMigrationCapabilities, createMigrationCheckpoint, createMigrationReady,
   migrationCompatibilityMatches, validateMigrationCheckpoint,
-} from "./host-migration.js?v=20260713.19";
+} from "./host-migration.js?v=20260713.20";
 import { RECONNECT_DELAYS_MS, SquadPresenceTracker, authorityStateCopy } from "./reconnect-state.js?v=20260713.3";
 import {
   HostPingGate, PING_INTENTS, PING_LIFETIME_TICKS, PING_WHEEL_ORDER, PingSequenceTracker,
@@ -54,32 +58,32 @@ import { DraftRecommendationStore, recommendationMarkerModel } from "./draft-rec
 import { SQUAD_SYNERGY_REGISTRY } from "./squad-synergies.js?v=20260713.6";
 import { reconcileActiveSynergies } from "./active-synergies.js?v=20260713.6";
 import { PARTICIPATION_REGISTRY } from "./participation-credit.js?v=20260713.7";
-import { campaignJoinEligibility } from "./join-in-progress.js?v=20260713.19";
+import { campaignJoinEligibility } from "./join-in-progress.js?v=20260713.20";
 import {
   RUN_ARCHIVE_STORAGE_KEY, createSquadRunReport, decodeSquadRunFragment, normalizeRunArchiveStorage,
   squadRunShareFragment, upsertRunArchive,
-} from "./run-archive.js?v=20260713.19";
+} from "./run-archive.js?v=20260713.20";
 import {
   SPECIALIST_MASTERY, SPECIALIST_MASTERY_LEVELS, awardSpecialistMastery, loadSpecialistMasteryState,
   masteryStartDefinition, saveSpecialistMasteryState, selectMasteryStart,
-} from "./specialist-mastery.js?v=20260713.19";
+} from "./specialist-mastery.js?v=20260713.20";
 import {
   RARE_DISCOVERY_REGISTRY, awardRareDiscoveries, loadRareDiscoveryCollection,
   rareDiscoveryDefinition, rareDiscoveryTelemetry, saveRareDiscoveryCollection,
-} from "./rare-discoveries.js?v=20260713.19";
+} from "./rare-discoveries.js?v=20260713.20";
 import {
   CHALLENGE_ACHIEVEMENT_REGISTRY, awardChallengeAchievements, challengeAchievementDefinition,
   challengeAchievementTelemetry, evaluateChallengeAchievements, loadChallengeAchievementState,
   saveChallengeAchievementState,
-} from "./challenge-achievements.js?v=20260713.19";
+} from "./challenge-achievements.js?v=20260713.20";
 import {
   loadSeededOperationRecords, recordSeededOperationResult, saveSeededOperationRecords,
   seededOperationFor, seededOperationFromId, seededOperationTelemetry,
-} from "./seeded-operations.js?v=20260713.19";
+} from "./seeded-operations.js?v=20260713.20";
 import {
   PRACTICE_MAX_PASSIVES, PRACTICE_MAX_WEAPONS, defaultPracticeLaboratoryConfig,
   measurePracticeLaboratory, normalizePracticeLaboratoryConfig,
-} from "./practice-laboratory.js?v=20260713.19";
+} from "./practice-laboratory.js?v=20260713.20";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -88,7 +92,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.13.19";
+const BUILD = "2026.07.13.20";
 const AUTHORITY_WATCHDOG_MS = Object.freeze({ synchronizing: 10_000, migrating: 25_000 });
 const BALANCE = getBalanceConfig();
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
@@ -104,6 +108,7 @@ const initialQualitySettings = (() => {
   return settings;
 })();
 const initialAudioSettings = loadAudioSettings(localStorage);
+const initialAccessibilitySettings = loadAccessibilitySettings(localStorage, systemReducedMotion);
 const initialMasteryState = loadSpecialistMasteryState(localStorage);
 const initialRareDiscoveries = loadRareDiscoveryCollection(localStorage);
 const initialChallengeAchievements = loadChallengeAchievementState(localStorage);
@@ -184,7 +189,7 @@ const state = {
   lobby: new Map(), ws: null, connecting: false, connectResolve: null, connectReject: null,
   config: { map: "warehouse", difficulty: "story", duration: 240 }, sim: null,
   previousSnapshot: null, snapshot: null, snapshotAt: 0, snapshotInterval: 90,
-  input: { keys: new Set(), aim: 0, autoAim: true, touchX: 0, touchY: 0 },
+  input: { keys: new Set(), aim: 0, autoAim: true, touchX: 0, touchY: 0, gamepadX: 0, gamepadY: 0, gamepadButtons: new Set() },
   animation: 0, lastFrame: 0, lastSend: 0, lastBroadcast: 0, lastLobbyBroadcast: 0,
   lastUpgradeKey: "", lastWeaponHUDKey: "", lastPassiveHUDKey: "", lastSquadHUDKey: "", lastBossHUDKey: "", lastEventSeq: 0, endShown: false, resultTimer: null,
   progress: loadProgress(), runHistory: loadRunHistory(), resultGame: null, resultReport: null, resultSavedKey: "",
@@ -201,7 +206,7 @@ const state = {
   audioContext: null, audioMixer: null, audioUnlockInFlight: null, audioUnlockAttempts: 0, audioUnlockReason: "startup", audioLastError: "", activeAudioNodes: 0, peakAudioNodes: 0, toastTimer: null, lastVoiceAt: 0,
   soundState: emptySoundState(),
   recentErrors: [], reportSubmitting: false, resumeAfterReport: false, reportImageDataUrl: "", reportImageMimeType: "", reportImageName: "", telemetrySent: false,
-  qualitySettings: initialQualitySettings, showEnemyHealthBars: initialQualitySettings.healthBars !== "off", inspectPointer: null, inspectActive: false,
+  qualitySettings: initialQualitySettings, accessibilitySettings: initialAccessibilitySettings, accessibilityCapture: "", showEnemyHealthBars: initialQualitySettings.healthBars !== "off", inspectPointer: null, inspectActive: false,
   performanceMetrics: null, lastDamageLedgerKey: "",
   damageLedgerLayout: loadDamageLedgerLayout(), damageLedgerResizeObserver: null,
   bannerTimer: null, bannerExitTimer: null,
@@ -233,6 +238,7 @@ const runtimeConfigReady = loadRuntimeConfig({ endpoint: RUNTIME_CONFIG_ENDPOINT
   syncDraftRecommendationAvailability();
   syncArchiveAvailability();
   syncPracticeLaboratoryAvailability();
+  syncAccessibilityAvailability();
   renderSeededOperations();
   renderMasteryLoadout(state.selected);
   refreshRecoveryOffer();
@@ -1560,6 +1566,7 @@ function enterGame() {
 
 function gameLoop(now) {
   if (state.screen !== "game") { state.animation = 0; return; }
+  pollGamepadInput();
   const dt = Math.min(.05, Math.max(0, (now - state.lastFrame) / 1000)); state.lastFrame = now;
   const frameStarted = performance.now(); let simulationMs = 0;
   const input = currentInput();
@@ -1598,7 +1605,7 @@ function gameLoop(now) {
     const materialCue = renderer.drainMaterialAudioCues(1)[0];
     if (materialCue && now - state.soundState.lastMaterial > 140) {
       const listener = current.players?.find((player) => player.id === state.clientId) || current.players?.[0];
-      state.soundState.lastMaterial = now; sfx(`material:${materialCue.family}`, { ...materialCue, pan: spatialAudioPan(materialCue, listener) });
+      state.soundState.lastMaterial = now; sfx(`material:${materialCue.family}`, { ...materialCue, pan: accessibleAudioPan(spatialAudioPan(materialCue, listener)) });
     }
     const hudStarted = performance.now(); updateHUD(current); updateUpgrade(current); processEvents(current.events || []); const hudMs = performance.now() - hudStarted;
     if (state.inspectActive && state.inspectPointer) inspectCanvasAt({ ...state.inspectPointer, shiftKey: true });
@@ -1689,9 +1696,9 @@ function percentileFrom(values = [], amount = .95) {
 }
 
 function currentInput() {
-  const keys = state.input.keys;
-  let x = (keys.has("d") || keys.has("arrowright") ? 1 : 0) - (keys.has("a") || keys.has("arrowleft") ? 1 : 0) + state.input.touchX;
-  let y = (keys.has("s") || keys.has("arrowdown") ? 1 : 0) - (keys.has("w") || keys.has("arrowup") ? 1 : 0) + state.input.touchY;
+  const keys = state.input.keys, bindings = effectiveAccessibilitySettings().bindings;
+  let x = (keys.has(bindings.moveRight) ? 1 : 0) - (keys.has(bindings.moveLeft) ? 1 : 0) + state.input.touchX + state.input.gamepadX;
+  let y = (keys.has(bindings.moveDown) ? 1 : 0) - (keys.has(bindings.moveUp) ? 1 : 0) + state.input.touchY + state.input.gamepadY;
   const length = Math.hypot(x, y); if (length > 1) { x /= length; y /= length; }
   return { x, y, aim: state.input.aim, autoAim: state.input.autoAim };
 }
@@ -1797,6 +1804,146 @@ const QUALITY_FIELDS = Object.freeze({
   healthBars: "quality-health-bars", flashIntensity: "quality-flash",
 });
 
+const ACCESSIBILITY_FIELD_IDS = Object.freeze({
+  textScale: "accessibility-text-scale", hudScale: "accessibility-hud-scale", touchScale: "accessibility-touch-scale",
+  colorVision: "accessibility-color-vision", directionalAudio: "accessibility-directional-audio",
+});
+const ACCESSIBILITY_ACTION_LABELS = Object.freeze({
+  moveUp: "Move up", moveDown: "Move down", moveLeft: "Move left", moveRight: "Move right", active: "Active ability",
+  ultimate: "Ultimate ability", autoAim: "Toggle auto-aim", ping: "Contextual ping", pause: "Pause", inspect: "Inspect field",
+  report: "Open report", choice1: "Draft choice 1", choice2: "Draft choice 2", choice3: "Draft choice 3",
+  reroll: "Reroll draft", banish: "Banish draft choice", skip: "Skip draft",
+});
+
+function accessibilityEnabled() { return Boolean(state.runtimeConfig?.config?.flags?.accessibilityPass); }
+function effectiveAccessibilitySettings() { return accessibilityEnabled() ? state.accessibilitySettings : defaultAccessibilitySettings(systemReducedMotion); }
+function effectiveQualitySettings() {
+  const access = effectiveAccessibilitySettings();
+  return access.reducedFlash ? { ...state.qualitySettings, hitFlashes: "off", flashIntensity: "off" } : state.qualitySettings;
+}
+function accessibleAudioPan(pan) {
+  const mode = effectiveAccessibilitySettings().directionalAudio;
+  return mode === "mono" ? 0 : mode === "enhanced" ? clamp(Number(pan || 0) * 1.45, -1, 1) : pan;
+}
+
+function renderAccessibilityControls(message = "") {
+  if (!$(`accessibility-bindings`)) return;
+  const enabled = accessibilityEnabled(), settings = effectiveAccessibilitySettings();
+  $("accessibility-settings").hidden = !enabled;
+  if (!enabled) return;
+  for (const [key, id] of Object.entries(ACCESSIBILITY_FIELD_IDS)) $(id).value = String(settings[key]);
+  $("accessibility-reduced-flash").checked = settings.reducedFlash;
+  $("accessibility-controller").checked = settings.controller.enabled;
+  $("accessibility-deadzone").value = String(settings.controller.deadzone);
+  $("accessibility-bindings").innerHTML = ACCESSIBILITY_ACTIONS.map((action) => `<button type="button" data-binding-action="${action}" aria-label="Remap ${ACCESSIBILITY_ACTION_LABELS[action]}. Current key ${bindingLabel(settings.bindings[action])}"><span>${ACCESSIBILITY_ACTION_LABELS[action]}</span><kbd>${bindingLabel(settings.bindings[action])}</kbd></button>`).join("");
+  const gamepad = navigator.getGamepads?.() ? [...navigator.getGamepads()].find((candidate) => candidate?.connected && candidate.mapping === "standard") : null;
+  $("accessibility-controller-status").textContent = gamepad ? `${gamepad.id || "Standard gamepad"} connected.` : "No standard gamepad detected.";
+  if (message) $("accessibility-status").textContent = message;
+  syncControlLabels();
+}
+
+function syncControlLabels() {
+  const bindings = effectiveAccessibilitySettings().bindings;
+  const ariaShortcut = (code) => String(code).replace(/^Key/, "").replace(/^Digit/, "").replace("Backquote", "`").replace(/^(Shift|Control|Alt)(Left|Right)$/, "$1");
+  const labels = { "e-slot": "active", "r-slot": "ultimate", "downed-support-action": "active", "touch-ping": "ping" };
+  for (const [id, action] of Object.entries(labels)) {
+    const node = $(id); if (!node) continue;
+    node.querySelector("kbd")?.replaceChildren(bindingLabel(bindings[action]));
+    node.setAttribute("aria-keyshortcuts", ariaShortcut(bindings[action]));
+  }
+  for (const node of document.querySelectorAll("[data-control-action]")) {
+    const action = node.dataset.controlAction, label = bindingLabel(bindings[action]);
+    const target = node.matches("kbd,dd") ? node : node.querySelector("kbd");
+    if (target) target.textContent = label;
+    node.setAttribute("aria-keyshortcuts", ariaShortcut(bindings[action]));
+  }
+  const movement = ["moveUp", "moveLeft", "moveDown", "moveRight"].map((action) => bindingLabel(bindings[action])).join(" ");
+  for (const node of document.querySelectorAll("[data-control-movement]")) { node.querySelector("kbd").textContent = movement; node.setAttribute("aria-keyshortcuts", ["moveUp", "moveLeft", "moveDown", "moveRight"].map((action) => ariaShortcut(bindings[action])).join(" ")); }
+  const choices = ["choice1", "choice2", "choice3"].map((action) => bindingLabel(bindings[action])).join(" ");
+  for (const node of document.querySelectorAll("[data-control-choices]")) { node.querySelector("kbd").textContent = choices; node.setAttribute("aria-keyshortcuts", ["choice1", "choice2", "choice3"].map((action) => ariaShortcut(bindings[action])).join(" ")); }
+  const crawl = $("downed-crawl-status")?.querySelector("kbd");
+  if (crawl) crawl.textContent = movement;
+}
+
+function applyAccessibilitySettings(settings, persist = true, message = "Accessibility settings saved locally.") {
+  state.accessibilitySettings = persist ? saveAccessibilitySettings(settings) : settings;
+  const access = effectiveAccessibilitySettings(), root = document.documentElement;
+  root.style.setProperty("--interface-scale", access.textScale);
+  root.style.setProperty("--hud-scale", access.hudScale);
+  root.style.setProperty("--touch-scale", access.touchScale);
+  root.dataset.colorVision = access.colorVision;
+  root.dataset.interfaceScale = String(access.textScale);
+  root.dataset.reducedFlash = String(access.reducedFlash);
+  root.dataset.directionalAudio = access.directionalAudio;
+  renderer.setQualitySettings(effectiveQualitySettings()); replayRenderer.setQualitySettings(effectiveQualitySettings());
+  renderAccessibilityControls(message);
+}
+
+function syncAccessibilityAvailability() {
+  document.documentElement.dataset.accessibilityPass = String(accessibilityEnabled());
+  applyAccessibilitySettings(state.accessibilitySettings, false, accessibilityEnabled() ? "Accessibility settings are local and never alter simulation or shared records." : "Accessibility controls are unavailable in this release channel.");
+}
+
+function updateAccessibilitySetting(patch) { applyAccessibilitySettings({ ...state.accessibilitySettings, ...patch }); }
+
+function handleBindingCapture(event) {
+  if (!state.accessibilityCapture) return false;
+  event.preventDefault(); event.stopPropagation();
+  const action = state.accessibilityCapture; state.accessibilityCapture = "";
+  if (event.code === "Escape") { renderAccessibilityControls("Remapping cancelled."); return true; }
+  const conflict = ACCESSIBILITY_ACTIONS.find((candidate) => candidate !== action && state.accessibilitySettings.bindings[candidate] === event.code);
+  if (conflict) { renderAccessibilityControls(`${bindingLabel(event.code)} is already assigned to ${ACCESSIBILITY_ACTION_LABELS[conflict]}.`); return true; }
+  applyAccessibilitySettings({ ...state.accessibilitySettings, bindings: { ...state.accessibilitySettings.bindings, [action]: event.code } }, true, `${ACCESSIBILITY_ACTION_LABELS[action]} is now ${bindingLabel(event.code)}.`);
+  $(`accessibility-bindings`).querySelector(`[data-binding-action="${action}"]`)?.focus();
+  return true;
+}
+
+function performMappedAction(action) {
+  const upgradeOpen = !$(`upgrade-overlay`).classList.contains("hidden");
+  if (upgradeOpen) {
+    const choices = { choice1: 0, choice2: 1, choice3: 2 };
+    if (action in choices) { $("upgrade-cards").querySelectorAll("button")[choices[action]]?.click(); return true; }
+    const buttons = { reroll: "draft-reroll", banish: "draft-banish", skip: "draft-skip" };
+    if (buttons[action]) { $(buttons[action]).click(); return true; }
+  }
+  if (action === "active") cast("e");
+  else if (action === "ultimate") cast("r");
+  else if (action === "autoAim") { state.input.autoAim = !state.input.autoAim; toast(state.input.autoAim ? "Auto-aim on" : "Manual aim on"); }
+  else if (action === "ping") openPingWheel({ source: "keyboard" });
+  else if (action === "pause") togglePause();
+  else if (action === "report") openReport();
+  else return false;
+  return true;
+}
+
+function pollGamepadInput() {
+  const settings = effectiveAccessibilitySettings();
+  if (!settings.controller.enabled || !navigator.getGamepads) {
+    state.input.gamepadX = 0; state.input.gamepadY = 0; state.input.gamepadButtons.clear();
+    document.documentElement.dataset.controllerConnected = "false";
+    return;
+  }
+  const gamepad = [...navigator.getGamepads()].find((candidate) => candidate?.connected && candidate.mapping === "standard");
+  const sample = readStandardGamepad(gamepad, state.input.gamepadButtons, settings.controller.deadzone);
+  state.input.gamepadX = sample.movement.x; state.input.gamepadY = sample.movement.y;
+  if (sample.aim !== null) state.input.aim = sample.aim;
+  state.input.gamepadButtons = new Set(sample.held);
+  document.documentElement.dataset.controllerConnected = String(sample.connected);
+  const status = $("accessibility-controller-status");
+  const statusCopy = sample.connected ? `${gamepad.id || "Standard gamepad"} connected.` : "No standard gamepad detected.";
+  if (status && status.textContent !== statusCopy) status.textContent = statusCopy;
+  state.inspectActive = sample.held.includes(4) || state.input.keys.has(settings.bindings.inspect);
+  const draftOpen = !$(`upgrade-overlay`).classList.contains("hidden");
+  if (draftOpen) {
+    const draftButtons = { 0: "choice1", 2: "choice2", 3: "choice3", 4: "reroll", 5: "banish", 8: "skip" };
+    for (const button of sample.pressed) if (draftButtons[button]) performMappedAction(draftButtons[button]);
+  } else {
+    if (sample.pressed.includes(2)) openPingWheel({ source: "gamepad" });
+    if (state.pingWheel?.source === "gamepad" && !sample.held.includes(2)) closePingWheel({ commit: true });
+    for (const button of sample.pressed) if (GAMEPAD_ACTIONS[button] && !["inspect", "ping"].includes(GAMEPAD_ACTIONS[button])) performMappedAction(GAMEPAD_ACTIONS[button]);
+  }
+}
+
 function renderQualityControls() {
   if (!$("quality-preset")) return;
   $("quality-preset").value = state.qualitySettings.preset;
@@ -1812,7 +1959,7 @@ function renderQualityControls() {
 
 function applyQualitySettings(settings, persist = true) {
   state.qualitySettings = persist ? saveQualitySettings(settings) : settings;
-  renderer.setQualitySettings(state.qualitySettings); replayRenderer.setQualitySettings(state.qualitySettings);
+  renderer.setQualitySettings(effectiveQualitySettings()); replayRenderer.setQualitySettings(effectiveQualitySettings());
   state.audioMixer?.setDensity(state.qualitySettings.effectsDensity);
   syncEnemyHealthBarControls();
   renderQualityControls();
@@ -1820,6 +1967,7 @@ function applyQualitySettings(settings, persist = true) {
 
 function openQualitySettings() {
   renderQualityControls();
+  renderAccessibilityControls();
   $("quality-dialog").showModal();
   requestAnimationFrame(() => $("quality-preset").focus());
 }
@@ -1832,7 +1980,7 @@ function updateSoundState(game) {
   const fieldActivation = [...timerActivations.activated].reverse().find(({ player }) => player.id === local?.id) || timerActivations.activated.at(-1);
   if (fieldActivation && now - state.soundState.lastShot > 125) {
     state.soundState.lastShot = now;
-    sfx(`weapon:universal-${fieldActivation.weaponId}`, { pan: spatialAudioPan(fieldActivation.player, local) });
+    sfx(`weapon:universal-${fieldActivation.weaponId}`, { pan: accessibleAudioPan(spatialAudioPan(fieldActivation.player, local)) });
   }
   const projectiles = newEntities(state.soundState.projectileIds, game.projectiles);
   state.soundState.projectileIds = projectiles.ids;
@@ -1840,32 +1988,32 @@ function updateSoundState(game) {
     const projectile = [...projectiles.added].reverse().find((candidate) => candidate.owner === local?.id) || projectiles.added.at(-1);
     const grammar = resolveEntityImpact(projectile, game);
     state.soundState.lastShot = now;
-    sfx(grammar ? weaponAudioCueName(grammar) : "shot", { pan: spatialAudioPan(projectile, local) });
+    sfx(grammar ? weaponAudioCueName(grammar) : "shot", { pan: accessibleAudioPan(spatialAudioPan(projectile, local)) });
   }
   const effects = newEntities(state.soundState.effectIds, game.effects);
   state.soundState.effectIds = effects.ids;
   const hostileEffect = effects.added.find((effect) => effect.owner === "enemy" && effect.kind === "danger");
   if (hostileEffect && now - state.soundState.lastEnemy > 180) {
     state.soundState.lastEnemy = now;
-    sfx("enemy:bomber", { pan: spatialAudioPan(hostileEffect, local) });
+    sfx("enemy:bomber", { pan: accessibleAudioPan(spatialAudioPan(hostileEffect, local)) });
   } else if (!projectiles.added.length && effects.added.length && now - state.soundState.lastShot > 140) {
     const effect = [...effects.added].reverse().find((candidate) => resolveEntityImpact(candidate, game));
     const grammar = resolveEntityImpact(effect, game);
-    if (grammar) { state.soundState.lastShot = now; sfx(weaponAudioCueName(grammar), { pan: spatialAudioPan(effect, local) }); }
+    if (grammar) { state.soundState.lastShot = now; sfx(weaponAudioCueName(grammar), { pan: accessibleAudioPan(spatialAudioPan(effect, local)) }); }
   }
   const hostile = newEntities(state.soundState.hostileIds, game.hostile);
   state.soundState.hostileIds = hostile.ids;
   if (hostile.added.length && now - state.soundState.lastEnemy > 130) {
     const projectile = hostile.added.at(-1);
     state.soundState.lastEnemy = now;
-    sfx(enemyAudioCueName(projectile, game.enemies), { pan: spatialAudioPan(projectile, local) });
+    sfx(enemyAudioCueName(projectile, game.enemies), { pan: accessibleAudioPan(spatialAudioPan(projectile, local)) });
   }
   const attackers = newEntities(state.soundState.attackingIds, (game.enemies || []).filter((enemy) => Number(enemy.attackFlash) > .04));
   state.soundState.attackingIds = attackers.ids;
   if (attackers.added.length && now - state.soundState.lastEnemy > 180) {
     const attacker = attackers.added.at(-1);
     state.soundState.lastEnemy = now;
-    sfx(enemyAudioCueName(attacker, game.enemies), { pan: spatialAudioPan(attacker, local) });
+    sfx(enemyAudioCueName(attacker, game.enemies), { pan: accessibleAudioPan(spatialAudioPan(attacker, local)) });
   }
   if (game.kills > state.soundState.kills && now - state.soundState.lastKill > 100) { state.soundState.lastKill = now; sfx("kill"); }
   if (game.level > state.soundState.level) sfx("level");
@@ -3008,7 +3156,7 @@ function openReplayViewer() {
     });
     state.replayViewer = { timeline, playing: true, speed: 1, error: null, animation: 0, seekFrame: 0, pendingSeek: 0, lastFrame: performance.now(), lastUiAt: 0, lastTick: -1, loadoutKey: "" };
     $("replay-speed").value = "1";
-    $("replay-dialog").showModal(); replayRenderer.setQualitySettings(state.qualitySettings); replayRenderer.resetCamera(); replayRenderer.resize();
+    $("replay-dialog").showModal(); replayRenderer.setQualitySettings(effectiveQualitySettings()); replayRenderer.resetCamera(); replayRenderer.resize();
     renderReplayViewer(true); state.replayViewer.animation = requestAnimationFrame(drawReplayFrame);
   } catch (error) { captureClientError("replay open", error); toast("This replay could not be verified"); }
 }
@@ -3998,6 +4146,17 @@ function bindEvents() {
   $("quality-preset").addEventListener("change", (event) => applyQualitySettings(settingsForPreset(event.target.value, systemReducedMotion)));
   for (const [key, id] of Object.entries(QUALITY_FIELDS)) $(id).addEventListener("change", (event) => applyQualitySettings({ ...state.qualitySettings, preset: "custom", [key]: event.target.value }));
   $("quality-reduced-motion").addEventListener("change", (event) => applyQualitySettings({ ...state.qualitySettings, preset: "custom", reducedMotion: event.target.checked }));
+  for (const [key, id] of Object.entries(ACCESSIBILITY_FIELD_IDS)) $(id).addEventListener("change", (event) => updateAccessibilitySetting({ [key]: Number.isFinite(Number(event.target.value)) && ["textScale", "hudScale", "touchScale"].includes(key) ? Number(event.target.value) : event.target.value }));
+  $("accessibility-reduced-flash").addEventListener("change", (event) => updateAccessibilitySetting({ reducedFlash: event.target.checked }));
+  $("accessibility-controller").addEventListener("change", (event) => updateAccessibilitySetting({ controller: { ...state.accessibilitySettings.controller, enabled: event.target.checked } }));
+  $("accessibility-deadzone").addEventListener("change", (event) => updateAccessibilitySetting({ controller: { ...state.accessibilitySettings.controller, deadzone: Number(event.target.value) } }));
+  $("accessibility-reset").addEventListener("click", () => applyAccessibilitySettings(defaultAccessibilitySettings(systemReducedMotion), true, "Accessibility settings reset."));
+  $("accessibility-bindings").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-binding-action]"); if (!button) return;
+    state.accessibilityCapture = button.dataset.bindingAction;
+    $("accessibility-status").textContent = `Press a key for ${ACCESSIBILITY_ACTION_LABELS[state.accessibilityCapture]}. Escape cancels.`;
+    button.setAttribute("data-capturing", "true");
+  });
   $("how-button").addEventListener("click", () => $("manual-dialog").showModal()); $("manual-close").addEventListener("click", () => $("manual-dialog").close());
   $("manual-dialog").addEventListener("click", (event) => { if (event.target === $("manual-dialog")) $("manual-dialog").close(); });
   $("draft-reroll").addEventListener("click", () => performDraftAction({ type: "reroll" }));
@@ -4023,11 +4182,15 @@ function bindEvents() {
   window.addEventListener("lastlight:inspect-clear", hideInspectPanel);
   window.addEventListener("error", (event) => captureClientError("error", event.error || event.message));
   window.addEventListener("unhandledrejection", (event) => captureClientError("unhandled promise", event.reason));
+  window.addEventListener("gamepadconnected", (event) => { if (event.gamepad?.mapping === "standard") renderAccessibilityControls(`${event.gamepad.id || "Standard gamepad"} connected.`); });
+  window.addEventListener("gamepaddisconnected", () => renderAccessibilityControls("Standard gamepad disconnected."));
   window.addEventListener("keydown", (event) => {
+    if (handleBindingCapture(event)) return;
     const target = event.target;
     const isTyping = target instanceof Element && Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
     const dialogOpen = Boolean(document.querySelector("dialog[open]"));
     const key = event.key.toLowerCase();
+    const action = keyboardActionForEvent(effectiveAccessibilitySettings(), event);
     if (state.pingWheel && !isTyping && !dialogOpen) {
       if (key === 'escape') { event.preventDefault(); closePingWheel(); return; }
       if (key === 'enter' || key === ' ') { event.preventDefault(); if (!event.repeat) closePingWheel({ commit: true }); return; }
@@ -4041,12 +4204,13 @@ function bindEvents() {
         }
         return;
       }
-      if (key === 'g') { event.preventDefault(); return; }
-      if (!["w", "a", "s", "d"].includes(key)) { event.preventDefault(); return; }
+      if (action === "ping") { event.preventDefault(); return; }
+      if (!["moveUp", "moveDown", "moveLeft", "moveRight"].includes(action)) { event.preventDefault(); return; }
     }
-    if (!isTyping && !dialogOpen && key === 'g' && state.screen === 'game') {
+    if (!isTyping && !dialogOpen && action === "ping" && state.screen === 'game') {
       event.preventDefault(); if (!event.repeat) openPingWheel({ source: 'keyboard' }); return;
     }
+    if (action === "report" && !isTyping && !dialogOpen) { event.preventDefault(); openReport(); return; }
     if (isReportShortcut(event)) {
       if (!shouldOpenReportShortcut(event, { isTyping, dialogOpen })) return;
       event.preventDefault();
@@ -4055,10 +4219,10 @@ function bindEvents() {
     }
     if (isTyping || dialogOpen || state.screen !== "game") return;
     if (state.authorityState !== "active") {
-      if (["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright","e","r","c","g","escape","shift","1","2","3","4","5","0"].includes(key)) event.preventDefault();
+      if (action) event.preventDefault();
       return;
     }
-    if (key === "shift") { state.inspectActive = true; inspectCanvasAt(state.inspectPointer ? { ...state.inspectPointer, shiftKey: true } : null); return; }
+    if (action === "inspect") { state.input.keys.add(event.code); state.inspectActive = true; inspectCanvasAt(state.inspectPointer ? { ...state.inspectPointer, shiftKey: true } : null); return; }
     const upgradeOpen = !$("upgrade-overlay").classList.contains("hidden");
     const replacementOpen = upgradeOpen && !$("replacement-tray").classList.contains("hidden");
     if (replacementOpen && key === "escape") { event.preventDefault(); closeReplacement(); state.lastUpgradeKey = ""; return; }
@@ -4066,37 +4230,33 @@ function bindEvents() {
       event.preventDefault(); if (!event.repeat) $("replacement-options").querySelectorAll("button")[Number(key) - 1]?.click(); return;
     }
     if (replacementOpen && key === "0") { event.preventDefault(); return; }
-    if (upgradeOpen && key === "4") { event.preventDefault(); if (!event.repeat) $("draft-reroll").click(); return; }
-    if (upgradeOpen && key === "5") { event.preventDefault(); if (!event.repeat) $("draft-banish").click(); return; }
-    if (upgradeOpen && key === "0") { event.preventDefault(); if (!event.repeat) $("draft-skip").click(); return; }
+    if (upgradeOpen && ["reroll", "banish", "skip"].includes(action)) { event.preventDefault(); if (!event.repeat) performMappedAction(action); return; }
     if (upgradeOpen && key === "escape" && state.draftBanishMode) { event.preventDefault(); state.draftBanishMode = false; state.lastUpgradeKey = ""; updateUpgrade(state.activeUpgradeGame); return; }
-    const upgradeChoice = ["1", "2", "3"].includes(key) && upgradeOpen;
+    const upgradeChoice = ["choice1", "choice2", "choice3"].includes(action) && upgradeOpen;
     if (upgradeChoice) {
       event.preventDefault();
-      if (!event.repeat) $("upgrade-cards").querySelectorAll("button")[Number(key) - 1]?.click();
+      if (!event.repeat) performMappedAction(action);
       return;
     }
     const localPlayer = localGamePlayer();
-    if (localPlayer?.downed && ["e", "r"].includes(key)) {
+    if (localPlayer?.downed && ["active", "ultimate"].includes(action)) {
       event.preventDefault();
-      if (key === "e" && !event.repeat) cast("e");
+      if (action === "active" && !event.repeat) cast("e");
       return;
     }
-    if (["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright","e","r","c","escape"].includes(key)) event.preventDefault();
-    if (key === "e" && !event.repeat) cast("e"); else if (key === "r" && !event.repeat) cast("r");
-    else if (key === "c" && !event.repeat) { state.input.autoAim = !state.input.autoAim; toast(state.input.autoAim ? "Auto-aim on" : "Manual aim on"); }
-    else if (key === "escape" && !event.repeat && state.screen === "game") togglePause();
-    state.input.keys.add(key);
+    if (action) event.preventDefault();
+    if (!event.repeat && ["active", "ultimate", "autoAim", "pause"].includes(action)) performMappedAction(action);
+    state.input.keys.add(event.code);
   });
-  window.addEventListener("keyup", (event) => { const key = event.key.toLowerCase(); state.input.keys.delete(key); if (key === "g" && state.pingWheel?.source === "keyboard") { event.preventDefault(); closePingWheel({ commit: true }); } if (key === "shift") { state.inspectActive = false; hideInspectPanel(); } });
+  window.addEventListener("keyup", (event) => { const action = keyboardActionForEvent(effectiveAccessibilitySettings(), event); state.input.keys.delete(event.code); if (action === "ping" && state.pingWheel?.source === "keyboard") { event.preventDefault(); closePingWheel({ commit: true }); } if (action === "inspect") { state.inspectActive = false; hideInspectPanel(); } });
   window.addEventListener("blur", () => { closePingWheel(); state.input.keys.clear(); state.inspectActive = false; hideInspectPanel(); });
   $("game-canvas").addEventListener("pointermove", (event) => {
     const rect = $("game-canvas").getBoundingClientRect();
     state.input.aim = Math.atan2(event.clientY - rect.top - rect.height / 2, event.clientX - rect.left - rect.width / 2);
     state.inspectPointer = { clientX: event.clientX, clientY: event.clientY };
     if (state.pingWheel && (state.pingWheel.source === "keyboard" || event.pointerId === state.pingPointerId)) updatePingWheel(event.clientX, event.clientY);
-    state.inspectActive = event.shiftKey;
-    inspectCanvasAt({ ...state.inspectPointer, shiftKey: event.shiftKey });
+    state.inspectActive = event.shiftKey || state.input.keys.has(effectiveAccessibilitySettings().bindings.inspect);
+    inspectCanvasAt({ ...state.inspectPointer, shiftKey: state.inspectActive });
   });
   $("game-canvas").addEventListener("pointerleave", () => { state.inspectPointer = null; state.inspectActive = false; hideInspectPanel(); });
   document.addEventListener("contextmenu", (event) => event.preventDefault());
@@ -4104,7 +4264,7 @@ function bindEvents() {
   setupTouch();
 }
 
-renderSpecialistGrid(); selectSpecialist("zuri"); bindEvents(); applyQualitySettings(state.qualitySettings, false); applyAudioSettings(state.audioSettings, false); syncPingAvailability(); syncDraftRecommendationAvailability(); syncPracticeLaboratoryAvailability(); updateProgressionUI(); setPartyMode("solo");
+renderSpecialistGrid(); selectSpecialist("zuri"); bindEvents(); applyQualitySettings(state.qualitySettings, false); applyAccessibilitySettings(state.accessibilitySettings, false); applyAudioSettings(state.audioSettings, false); syncPingAvailability(); syncDraftRecommendationAvailability(); syncPracticeLaboratoryAvailability(); syncAccessibilityAvailability(); updateProgressionUI(); setPartyMode("solo");
 if (query.get("room")) { setPartyMode("join"); $("room-input").value = query.get("room").toUpperCase().slice(0,6); setTimeout(() => $("callsign-input").focus(), 50); }
 if (localHost) Object.defineProperty(window, "__lastlightQA", { value: Object.freeze({
   diagnostics: () => JSON.parse(JSON.stringify(gameDiagnostics())),

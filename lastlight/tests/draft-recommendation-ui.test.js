@@ -30,7 +30,7 @@ test("recommendation updates patch marker subnodes without rebuilding the upgrad
 });
 
 test("existing upgrade shortcuts stay local and recommendation buttons are keyboard-native", () => {
-  assert.match(game, /const upgradeChoice = \[\"1\", \"2\", \"3\"\]\.includes\(key\) && upgradeOpen/);
+  assert.match(game, /const upgradeChoice = \[\"choice1\", \"choice2\", \"choice3\"\]\.includes\(action\) && upgradeOpen/);
   assert.doesNotMatch(game, /key === ["'](?:6|7|8|9)["'][^\n]+recommend/i);
   assert.match(css, /\.draft-recommend-button \{[^}]*min-height: 44px/);
   assert.match(css, /\.draft-recommend-button:focus-visible/);

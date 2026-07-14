@@ -5,10 +5,10 @@ The relay exposes `GET /config`. It is read-only, origin-aware, and always sends
 response through the Worker's `LASTLIGHT_RUNTIME_CONFIG` secret.
 
 The current release defaults enable the versioned gameplay systems shipped in
-build `2026.07.13.19`:
+build `2026.07.13.20`:
 
 ```json
-{"schemaVersion":14,"configVersion":"release-2026.07.13.19","gameplayVersion":"rare-discoveries-v1","registryVersion":"lastlight.squad-synergy.v1","flags":{"deterministicReplay":true,"runTelemetry":true,"objectiveEvents":true,"migrationCheckpointReplication":true,"hostMigrationElection":true,"hostMigrationResume":true,"contextualPings":true,"upgradeRecommendations":true,"squadSynergies":true,"sharedParticipationCredit":true,"downedActivity":true,"joinInProgressNormalization":true,"squadEnemyDirector":true,"mapMechanics":true,"campaignMutations":true,"specialistMastery":true,"rareDiscoveries":true,"challengeAchievements":true,"seededOperations":true,"practiceLaboratory":true,"sharedSquadRunArchive":true}}
+{"schemaVersion":15,"configVersion":"release-2026.07.13.20","gameplayVersion":"rare-discoveries-v1","registryVersion":"lastlight.squad-synergy.v1","flags":{"deterministicReplay":true,"runTelemetry":true,"objectiveEvents":true,"migrationCheckpointReplication":true,"hostMigrationElection":true,"hostMigrationResume":true,"contextualPings":true,"upgradeRecommendations":true,"squadSynergies":true,"sharedParticipationCredit":true,"downedActivity":true,"joinInProgressNormalization":true,"squadEnemyDirector":true,"mapMechanics":true,"campaignMutations":true,"specialistMastery":true,"rareDiscoveries":true,"challengeAchievements":true,"seededOperations":true,"practiceLaboratory":true,"accessibilityPass":true,"sharedSquadRunArchive":true}}
 ```
 
 Unknown keys, missing keys, wrong types, and malformed JSON fail closed to those
@@ -80,6 +80,10 @@ the active config version, gameplay version, source, load status, and flags.
   `practiceLaboratory` to `false` and publish a new `configVersion`. This
   client-only flag does not alter standard operations, simulation contracts,
   replay, recovery, migration, records, or telemetry.
+- Keyboard, controller, scaling, color, flash, or directional-audio presentation
+  problem: set `accessibilityPass` to `false` and publish a new `configVersion`.
+  The client returns to authored presentation defaults without changing simulation,
+  replay, recovery, migration, shared reports, or telemetry.
 - Shared run-history import or archive problem: set `sharedSquadRunArchive` to
   `false`. This client-only flag does not change deterministic simulation state.
 - Restore release defaults: delete the override with

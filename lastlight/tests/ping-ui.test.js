@@ -22,8 +22,8 @@ test("keyboard, middle-pointer, touch, cancellation, and shortcut isolation are 
   assert.match(game, /event\.pointerId === state\.pingPointerId\)\) updatePingWheel/);
   assert.match(game, /touchButton\.setPointerCapture/);
   assert.match(game, /if \(key === 'escape'\) \{ event\.preventDefault\(\); closePingWheel\(\); return; \}/);
-  assert.match(game, /if \(key === "g" && state\.pingWheel\?\.source === "keyboard"\)[^\n]+closePingWheel\(\{ commit: true \}\)/);
-  assert.match(game, /if \(!\["w", "a", "s", "d"\]\.includes\(key\)\) \{ event\.preventDefault\(\); return; \}/);
+  assert.match(game, /if \(action === "ping" && state\.pingWheel\?\.source === "keyboard"\)[^\n]+closePingWheel\(\{ commit: true \}\)/);
+  assert.match(game, /if \(!\["moveUp", "moveDown", "moveLeft", "moveRight"\]\.includes\(action\)\) \{ event\.preventDefault\(\); return; \}/);
   assert.doesNotMatch(game, /openPingWheel[\s\S]{0,900}clearGameplayControls\(\)/);
 });
 
