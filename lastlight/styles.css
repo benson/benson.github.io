@@ -1209,6 +1209,48 @@ html[data-reduced-motion="true"] .downed-activity, html[data-reduced-motion="tru
 .manual-controls kbd { margin-right: 6px; }
 .guide-dialog { width: min(1180px, calc(100% - 30px)); max-height: min(860px, calc(100vh - 30px)); padding: 0; border: 1px solid var(--line); background: #0b1625; color: var(--paper); box-shadow: 0 35px 90px rgba(0,0,0,.65); }
 .guide-dialog::backdrop { background: rgba(2,7,13,.86); backdrop-filter: blur(6px); }
+.practice-dialog { width: min(1240px, calc(100% - 30px)); max-height: min(920px, calc(100dvh - 30px)); }
+.practice-body { display: grid; gap: 20px; padding: 26px 34px 38px; }
+.practice-disclosure { margin: 0; padding: 13px 15px; border-left: 3px solid var(--cyan); background: rgba(99,242,223,.055); color: #b9cdcf; font-size: 11px; line-height: 1.55; }
+.practice-controls { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 10px; }
+.practice-controls > label, .practice-loadout-row > label { display: grid; min-width: 0; gap: 7px; color: var(--muted); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; }
+.practice-controls select, .practice-loadout-row select { width: 100%; min-height: 42px; padding: 0 30px 0 11px; border: 1px solid var(--line-strong); background: #07111d; color: var(--paper); font: 700 10px/1 var(--sans); outline: none; text-transform: uppercase; }
+.practice-controls select:focus-visible, .practice-loadout-row select:focus-visible, .practice-loadout-row button:focus-visible, .practice-build-grid header button:focus-visible { border-color: var(--cyan); outline: 2px solid rgba(99,242,223,.3); outline-offset: 2px; }
+.practice-controls .practice-check { align-self: end; display: flex; min-height: 42px; align-items: center; gap: 10px; padding: 0 12px; border: 1px solid var(--line); background: rgba(255,255,255,.025); }
+.practice-check input { width: 18px; height: 18px; accent-color: var(--cyan); }
+.practice-build-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.practice-build-grid > section { min-width: 0; padding: 14px; border: 1px solid var(--line); background: rgba(255,255,255,.018); }
+.practice-build-grid > section > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.practice-build-grid > section > header strong { font: 800 18px/1 var(--display); text-transform: uppercase; }
+.practice-build-grid button, .practice-loadout-row button { min-height: 38px; padding: 0 12px; border: 1px solid var(--line-strong); background: #0b1928; color: var(--paper); font: 800 9px/1 var(--sans); letter-spacing: .06em; text-transform: uppercase; }
+.practice-build-grid button:disabled { opacity: .35; cursor: not-allowed; }
+#practice-weapons, #practice-passives { display: grid; gap: 7px; }
+.practice-loadout-row { display: grid; grid-template-columns: minmax(0,1fr) 88px auto auto; align-items: end; gap: 7px; padding: 9px; border: 1px solid rgba(157,175,196,.18); background: rgba(5,13,23,.54); }
+#practice-passives .practice-loadout-row { grid-template-columns: minmax(0,1fr) 88px auto; }
+.practice-loadout-row .practice-check { display: flex; min-height: 42px; align-items: center; gap: 7px; }
+.practice-empty { margin: 14px 4px; color: var(--muted); font-size: 10px; }
+.practice-actions { display: grid; grid-template-columns: minmax(260px,360px) 1fr; align-items: center; gap: 16px; }
+.practice-actions p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.practice-results { display: grid; gap: 14px; padding: 16px; border: 1px solid rgba(99,242,223,.3); background: rgba(5,16,29,.72); }
+.practice-results > header { display: grid; gap: 4px; }
+.practice-results > header span { color: var(--cyan); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; }
+.practice-results > header strong { font: 800 22px/1 var(--display); text-transform: uppercase; }
+#practice-results-body { display: grid; gap: 14px; }
+.practice-result-hero { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 7px; }
+.practice-result-hero > div { display: grid; gap: 5px; padding: 12px; border: 1px solid var(--line); }
+.practice-result-hero span, .practice-stat-grid dt { color: var(--muted); font-size: 8px; letter-spacing: .08em; text-transform: uppercase; }
+.practice-result-hero strong { font: 800 18px/1.15 var(--display); text-transform: uppercase; }
+.practice-results table { width: 100%; border-collapse: collapse; font-size: 10px; }
+.practice-results th, .practice-results td { padding: 9px; border-bottom: 1px solid var(--line); text-align: right; }
+.practice-results th:first-child, .practice-results td:first-child { text-align: left; }
+.practice-results section h3 { margin: 0 0 8px; font: 800 15px/1 var(--display); text-transform: uppercase; }
+.practice-stat-grid { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); margin: 0; gap: 6px; }
+.practice-stat-grid div { min-width: 0; padding: 9px; border: 1px solid var(--line); }
+.practice-stat-grid dd { margin: 4px 0 0; font: 800 14px/1 var(--display); }
+.practice-weapon-results { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px; }
+.practice-weapon-results article { display: grid; gap: 5px; padding: 10px; border: 1px solid var(--line); }
+.practice-weapon-results strong { font: 800 12px/1 var(--display); text-transform: uppercase; }
+.practice-weapon-results span { color: var(--muted); font-size: 9px; line-height: 1.4; }
 .guide-tabs { position: sticky; z-index: 2; top: 0; display: flex; gap: 4px; overflow-x: auto; padding: 9px 30px; border-bottom: 1px solid var(--line); background: #0b1625; }
 .guide-tabs a { padding: 8px 11px; color: var(--muted); font: 700 10px/1 var(--sans); letter-spacing: .1em; text-decoration: none; text-transform: uppercase; white-space: nowrap; }
 .guide-tabs a:hover { color: var(--cyan); background: rgba(99,242,223,.06); }
@@ -1350,6 +1392,17 @@ html[data-reduced-motion="true"] .downed-activity, html[data-reduced-motion="tru
   .audio-readiness, .audio-test-row { grid-template-columns: 1fr; padding: 16px 14px; }
   .audio-grid > label { grid-template-columns: minmax(0,1fr) 130px; min-height: 78px; padding: 14px; }
   .audio-test-row .deploy-button { width: 100%; min-width: 0; }
+  .practice-dialog { width: calc(100% - 10px); max-height: calc(100dvh - 10px); }
+  .practice-dialog .manual-header { padding: 20px 16px; }
+  .practice-dialog h2 { font-size: 38px; }
+  .practice-body { padding: 18px 14px 26px; }
+  .practice-controls, .practice-build-grid, .practice-actions { grid-template-columns: minmax(0,1fr); }
+  .practice-controls select, .practice-loadout-row select, .practice-build-grid button, .practice-loadout-row button { min-height: 44px; }
+  .practice-loadout-row, #practice-passives .practice-loadout-row { grid-template-columns: minmax(0,1fr) 76px; }
+  .practice-loadout-row > .practice-check, .practice-loadout-row > button { grid-column: auto / span 1; }
+  .practice-result-hero { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .practice-stat-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .practice-weapon-results { grid-template-columns: minmax(0,1fr); }
 }
 
 /* Desktop readability pass: preserve the dense mobile HUD while lifting small labels and controls. */
@@ -1462,6 +1515,7 @@ html[data-reduced-motion="true"] .downed-activity, html[data-reduced-motion="tru
   .network-state-actions .deploy-button { grid-column: auto; }
   .topbar { height: 62px; padding-inline: 16px; }
   .topbar-actions .text-button { display: none; }
+  .topbar-actions #practice-button { display: inline-flex; padding-inline: 6px; font-size: 9px; }
   .topbar-actions #guide-button { display: inline-flex; padding-inline: 8px; font-size: 0; }
   .topbar-actions #guide-button::after { content: "Archive"; font-size: 10px; }
   .lobby-header { min-height: 62px; height: auto; padding: 10px 16px; gap: 8px; }

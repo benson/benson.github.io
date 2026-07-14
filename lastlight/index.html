@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260713.18">
+  <link rel="stylesheet" href="styles.css?v=20260713.19">
 </head>
 <body>
   <main id="app">
@@ -42,6 +42,7 @@
           <span>LASTLIGHT</span>
         </a>
         <div class="topbar-actions">
+          <button id="practice-button" class="text-button" type="button" aria-haspopup="dialog" aria-controls="practice-dialog">Practice</button>
           <button id="run-history-button" class="text-button" type="button">Past runs</button>
           <button id="guide-button" class="text-button" type="button" aria-label="Upgrade archive">Upgrade archive</button>
           <button id="how-button" class="text-button" type="button">Field manual</button>
@@ -161,7 +162,7 @@
         <header class="lobby-header">
           <button id="lobby-back" class="text-button" type="button">← Leave squad</button>
           <div class="mission-chip"><span class="status-dot"></span><span id="lobby-mission">Iron District · Story</span></div>
-          <div class="lobby-header-actions"><button id="lobby-run-history" class="text-button" type="button">Past runs</button><button id="lobby-guide" class="text-button" type="button" aria-label="Upgrade archive">Upgrade archive</button><button id="lobby-quality" class="text-button" type="button">Display</button><button id="lobby-audio" class="icon-button" type="button" aria-label="Open sound settings · locked" aria-haspopup="dialog">Sound locked</button></div>
+          <div class="lobby-header-actions"><button id="lobby-practice" class="text-button" type="button" aria-haspopup="dialog" aria-controls="practice-dialog">Practice</button><button id="lobby-run-history" class="text-button" type="button">Past runs</button><button id="lobby-guide" class="text-button" type="button" aria-label="Upgrade archive">Upgrade archive</button><button id="lobby-quality" class="text-button" type="button">Display</button><button id="lobby-audio" class="icon-button" type="button" aria-label="Open sound settings · locked" aria-haspopup="dialog">Sound locked</button></div>
         </header>
 
         <section id="lobby-mutations" class="mutation-package lobby-mutation-package" aria-label="Active campaign mutation package"></section>
@@ -528,6 +529,33 @@
       <div class="manual-controls"><span><kbd>WASD</kbd> Move</span><span><kbd>Mouse</kbd> Aim</span><span><kbd>C</kbd> Auto-aim</span><span><kbd>E</kbd> Ability</span><span><kbd>R</kbd> Ultimate</span><span><kbd>1–3</kbd> Upgrade</span><span><kbd>Esc</kbd> Pause</span><span><kbd>` / ~</kbd> Report</span></div>
     </dialog>
 
+    <dialog id="practice-dialog" class="guide-dialog practice-dialog" aria-labelledby="practice-title">
+      <div class="manual-header">
+        <div><p class="eyebrow">Local deterministic sandbox</p><h2 id="practice-title">PRACTICE LABORATORY</h2></div>
+        <button id="practice-close" class="icon-button" type="button" aria-label="Close practice laboratory">Close</button>
+      </div>
+      <div class="practice-body">
+        <p class="practice-disclosure">No campaign progress, rewards, records, replay, sharing, multiplayer, or telemetry. Measurements use the authoritative engine and reset from the same fixed seed.</p>
+        <section class="practice-controls" aria-label="Practice configuration">
+          <label><span>Specialist</span><select id="practice-specialist"></select></label>
+          <label><span>Starting package</span><select id="practice-mastery-start"></select></label>
+          <label><span>Range map</span><select id="practice-map"></select></label>
+          <label><span>Threat tuning</span><select id="practice-difficulty"></select></label>
+          <label><span>Target</span><select id="practice-target"></select></label>
+          <label><span>Elite affix</span><select id="practice-affix"></select></label>
+          <label><span>Target behavior</span><select id="practice-behavior"><option value="stationary">Stationary measurement target</option><option value="active">Active authored behavior</option></select></label>
+          <label><span>Measurement window</span><select id="practice-window"><option value="5">5 seconds</option><option value="10">10 seconds</option><option value="30">30 seconds</option></select></label>
+          <label class="practice-check"><input id="practice-invulnerable" type="checkbox" checked><span>Prevent target damage to specialist</span></label>
+        </section>
+        <div class="practice-build-grid">
+          <section aria-labelledby="practice-weapons-title"><header><strong id="practice-weapons-title">Weapons</strong><button id="practice-add-weapon" type="button">Add weapon</button></header><div id="practice-weapons"></div></section>
+          <section aria-labelledby="practice-passives-title"><header><strong id="practice-passives-title">Passives</strong><button id="practice-add-passive" type="button">Add passive</button></header><div id="practice-passives"></div></section>
+        </div>
+        <div class="practice-actions"><button id="practice-measure" class="deploy-button" type="button"><span>Reset + measure</span><span class="deploy-arrow">↗</span></button><p id="practice-status" role="status" aria-live="polite">Configure a build, then run an identity-free local measurement.</p></div>
+        <section id="practice-results" class="practice-results hidden" aria-labelledby="practice-results-title"><header><span>Authoritative output</span><strong id="practice-results-title">Measurement summary</strong></header><div id="practice-results-body"></div></section>
+      </div>
+    </dialog>
+
     <dialog id="guide-dialog" class="guide-dialog" aria-labelledby="guide-title">
       <div class="manual-header">
         <div><p class="eyebrow">Command archive // live</p><h2 id="guide-title">FIELD MANUAL & RECORDS</h2></div>
@@ -622,7 +650,16 @@
       </div>
       <div class="build-history-body">
         <article class="build-release current-build">
-          <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.13.18</h3></div><time class="build-shipped-at" datetime="2026-07-13T19:37:46-04:00" data-build-shipped-at="2026-07-13T19:37:46-04:00">Shipped Jul 13, 2026 · 7:37 PM EDT</time></header>
+          <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.13.19</h3></div><span class="build-time-unavailable">Release verification pending</span></header>
+          <ul>
+            <li>Added a deterministic local practice laboratory for all nine specialists, universal weapons, passives, enemy archetypes, elite affixes, and operation apexes.</li>
+            <li>Added canonical loadout controls for authored Field Kit sidegrades and valid level-five weapon evolutions with their required paired passives.</li>
+            <li>Added fixed-seed 5, 10, and 30 second measurement windows using the authoritative simulation, damage ledger, build stats, and weapon telemetry.</li>
+            <li>Kept practice isolated from campaign progress, rewards, records, replay, sharing, multiplayer, storage, and telemetry behind an independent rollback flag.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header><div><span class="build-release-status">Previous build</span><h3>2026.07.13.18</h3></div><time class="build-shipped-at" datetime="2026-07-13T19:37:46-04:00" data-build-shipped-at="2026-07-13T19:37:46-04:00">Shipped Jul 13, 2026 · 7:37 PM EDT</time></header>
           <ul>
             <li>Added reproducible daily and weekly UTC operation contracts with fixed seeds, maps, threat tiers, pacing, campaign packages, and challenge sets.</li>
             <li>Added accessible deployment cards, exact rollover windows, local completion and best-score records, and an explicit standard-operation fallback.</li>
@@ -1149,8 +1186,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.13.18. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.13.18</strong></button>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.13.19. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.13.19</strong></button>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260713.18"></script>
+  <script type="module" src="game.js?v=20260713.19"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-import { fnv1a64 } from "./replay.js?v=20260713.18";
+import { fnv1a64 } from "./replay.js?v=20260713.19";
 
 export const RARE_DISCOVERY_SCHEMA = "lastlight.rare-discoveries.v1";
 export const RARE_DISCOVERY_REGISTRY_VERSION = "lastlight.rare-discoveries.registry.v1";
