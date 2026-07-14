@@ -163,6 +163,21 @@ Never generate contact sheets with platform fonts or timestamps. The tool's QA
 artifacts intentionally use only pixels and canonical sorted JSON so two builds
 from identical inputs compare byte for byte.
 
+## Auditing runtime specialist motion
+
+The atlas builders above prove source normalization and atlas validity. The
+separate runtime audit proves what the shipped game actually selects and draws:
+
+```bash
+npm run motion-audit:verify
+npm run motion-audit:report
+```
+
+It shares the live renderer's specialist atlas plan and exercises all nine
+specialists, states, directions, aiming policies, transitions, and
+normal/reduced-motion modes. See `../MOTION-AUDIT.md` for the matrix, artifact
+index, deterministic expectations, and review workflow.
+
 ## Normalizing generated motion sheets
 
 The shipped image-generated WebPs under `assets/motion/` are immutable source

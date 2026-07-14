@@ -18,6 +18,50 @@ import { PING_INTENTS, PING_LIFETIME_TICKS, selectVisiblePings } from "./ping-co
 const TAU = Math.PI * 2;
 const PING_BUFFER_LIMIT = 32;
 
+/**
+ * Resolve the exact atlas crop and local Canvas2D transforms used to draw a
+ * specialist. The runtime renderer and the deterministic motion-audit tooling
+ * intentionally share this plan so QA evidence cannot drift into a second set
+ * of atlas-row or anchor assumptions.
+ */
+export function specialistAtlasRenderPlan({
+  rig, atlas, frame, direction = 0, reducedMotion = false, hurt = 0,
+  now = 0, hurtAngle = 0, movementForm = {}, dead = false, downed = false,
+} = {}) {
+  if (!rig) return { fallback: true, fallbackReason: "missing-rig" };
+  if (!frame) return { fallback: true, fallbackReason: "missing-frame" };
+  if (!motionAtlasReady(atlas, rig)) return { fallback: true, fallbackReason: "atlas-not-ready" };
+  const column = Number(direction);
+  if (!Number.isInteger(column) || column < 0 || column >= rig.grid.columns) return { fallback: true, fallbackReason: "invalid-direction" };
+  if (!Number.isInteger(frame.row) || frame.row < 0 || frame.row >= rig.grid.rows) return { fallback: true, fallbackReason: "invalid-row" };
+  const cellWidth = atlas.naturalWidth / rig.grid.columns, cellHeight = atlas.naturalHeight / rig.grid.rows;
+  const width = rig.drawSize[0], height = rig.drawSize[1], anchor = rig.anchor || [.5, .82];
+  const form = {
+    lean: Number(movementForm.lean) || 0,
+    groundOffset: Number(movementForm.groundOffset) || 0,
+  };
+  const hit = clamp(Number(hurt) || 0, 0, 1);
+  return Object.freeze({
+    fallback: false,
+    fallbackReason: null,
+    sourceRect: Object.freeze([column * cellWidth, frame.row * cellHeight, cellWidth, cellHeight]),
+    destinationRect: Object.freeze([-width * anchor[0], rig.groundY - height * anchor[1], width, height]),
+    translate: Object.freeze([
+      (rig.collisionOffset?.[0] || 0) + (frame.offsetX || 0) + (reducedMotion ? 0 : Math.sin(now * .08) * hit * 3),
+      (rig.collisionOffset?.[1] || 0) + (frame.offsetY || 0) + form.groundOffset,
+    ]),
+    rotation: (frame.rotation || 0) + form.lean + (reducedMotion ? 0 : Math.sin(hurtAngle) * hit * .06),
+    scale: Object.freeze([frame.scaleX || 1, frame.scaleY || 1]),
+    filter: hit > 0 ? `brightness(${1 + hit * 2.2}) saturate(${1 - hit * .5}) sepia(${hit * .4})` : "none",
+    alpha: dead || downed ? .45 : 1,
+    column,
+    row: frame.row,
+    anchor: Object.freeze([...anchor]),
+    drawSize: Object.freeze([...rig.drawSize]),
+    socket: Object.freeze({ ...rig.sockets.muzzle }),
+  });
+}
+
 function mechanicFrameForState(state) {
   if (!state?.features?.mapMechanics || state.stage !== "running" || !Number.isSafeInteger(state.tick)) return null;
   const mapId = typeof state.map === "string" ? state.map : state.map?.id;
@@ -1716,17 +1760,19 @@ export class Renderer {
       }
 
       const atlas = this.animationAtlases[p.specialist];
-      if (animationConfig && atlasFrame && motionAtlasReady(atlas, animationConfig)) {
-        const cellWidth = atlas.naturalWidth / animationConfig.grid.columns, cellHeight = atlas.naturalHeight / animationConfig.grid.rows;
-        const width = animationConfig.drawSize[0], height = animationConfig.drawSize[1], anchor = animationConfig.anchor || [.5, .82];
-        const column = visual.directionColumn, row = atlasFrame.row;
+      const spritePlan = specialistAtlasRenderPlan({
+        rig: animationConfig, atlas, frame: atlasFrame, direction: visual.directionColumn,
+        reducedMotion: this.reducedMotion, hurt, now, hurtAngle: p.hurtAngle,
+        movementForm, dead: p.dead, downed: p.downed,
+      });
+      if (!spritePlan.fallback) {
         ctx.save();
-        ctx.translate((animationConfig.collisionOffset?.[0] || 0) + (atlasFrame.offsetX || 0) + (this.reducedMotion ? 0 : Math.sin(now * .08) * hurt * 3), (animationConfig.collisionOffset?.[1] || 0) + (atlasFrame.offsetY || 0) + movementForm.groundOffset);
-        ctx.rotate((atlasFrame.rotation || 0) + movementForm.lean + (this.reducedMotion ? 0 : Math.sin(p.hurtAngle || 0) * hurt * .06));
-        ctx.scale(atlasFrame.scaleX || 1, atlasFrame.scaleY || 1);
-        if (hurt > 0) ctx.filter = `brightness(${1 + hurt * 2.2}) saturate(${1 - hurt * .5}) sepia(${hurt * .4})`;
-        if (p.dead || p.downed) ctx.globalAlpha = .45;
-        ctx.drawImage(atlas, column * cellWidth, row * cellHeight, cellWidth, cellHeight, -width * anchor[0], groundY - height * anchor[1], width, height);
+        ctx.translate(...spritePlan.translate);
+        ctx.rotate(spritePlan.rotation);
+        ctx.scale(...spritePlan.scale);
+        if (spritePlan.filter !== "none") ctx.filter = spritePlan.filter;
+        ctx.globalAlpha = spritePlan.alpha;
+        ctx.drawImage(atlas, ...spritePlan.sourceRect, ...spritePlan.destinationRect);
         ctx.restore();
       } else {
         const image = this.sprites[p.specialist];
