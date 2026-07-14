@@ -5,10 +5,10 @@ The relay exposes `GET /config`. It is read-only, origin-aware, and always sends
 response through the Worker's `LASTLIGHT_RUNTIME_CONFIG` secret.
 
 The current release defaults enable the versioned gameplay systems shipped in
-build `2026.07.13.20`:
+build `2026.07.13.21`:
 
 ```json
-{"schemaVersion":15,"configVersion":"release-2026.07.13.20","gameplayVersion":"rare-discoveries-v1","registryVersion":"lastlight.squad-synergy.v1","flags":{"deterministicReplay":true,"runTelemetry":true,"objectiveEvents":true,"migrationCheckpointReplication":true,"hostMigrationElection":true,"hostMigrationResume":true,"contextualPings":true,"upgradeRecommendations":true,"squadSynergies":true,"sharedParticipationCredit":true,"downedActivity":true,"joinInProgressNormalization":true,"squadEnemyDirector":true,"mapMechanics":true,"campaignMutations":true,"specialistMastery":true,"rareDiscoveries":true,"challengeAchievements":true,"seededOperations":true,"practiceLaboratory":true,"accessibilityPass":true,"sharedSquadRunArchive":true}}
+{"schemaVersion":15,"configVersion":"release-2026.07.13.21","gameplayVersion":"rare-discoveries-v1","registryVersion":"lastlight.squad-synergy.v1","flags":{"deterministicReplay":true,"runTelemetry":true,"objectiveEvents":true,"migrationCheckpointReplication":true,"hostMigrationElection":true,"hostMigrationResume":true,"contextualPings":true,"upgradeRecommendations":true,"squadSynergies":true,"sharedParticipationCredit":true,"downedActivity":true,"joinInProgressNormalization":true,"squadEnemyDirector":true,"mapMechanics":true,"campaignMutations":true,"specialistMastery":true,"rareDiscoveries":true,"challengeAchievements":true,"seededOperations":true,"practiceLaboratory":true,"accessibilityPass":true,"sharedSquadRunArchive":true}}
 ```
 
 Unknown keys, missing keys, wrong types, and malformed JSON fail closed to those

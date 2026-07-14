@@ -1,6 +1,6 @@
-import { PASSIVES, SPECIALISTS, WEAPONS } from "./data.js?v=20260713.20";
-import { getCombatMetadata, SCALE_TAGS } from "./combat-metadata.js?v=20260713.20";
-import { getSpecialistIdentity } from "./specialist-identity.js?v=20260713.20";
+import { PASSIVES, SPECIALISTS, WEAPONS } from "./data.js?v=20260713.21";
+import { getCombatMetadata, SCALE_TAGS } from "./combat-metadata.js?v=20260713.21";
+import { getSpecialistIdentity } from "./specialist-identity.js?v=20260713.21";
 
 export const BUILDCRAFT_SCHEMA = "lastlight.buildcraft-tags.v1";
 export const BUILDCRAFT_CATEGORIES = Object.freeze([
