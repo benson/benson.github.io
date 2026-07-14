@@ -1,16 +1,30 @@
 :root {
   color-scheme: dark;
-  --ink: #070d18;
+  --brand-ink: #070d18;
+  --brand-panel: #0b1524;
+  --brand-panel-raised: #101c2d;
+  --brand-paper: #edf7f4;
+  --brand-muted: #8ba2ad;
+  --brand-signal: #63f2df;
+  --brand-breach: #ff5c35;
+  --brand-objective: #f7d76a;
+  --brand-danger: #ff4667;
+  --brand-void: #b68cff;
+  --ink: var(--brand-ink);
   --panel: rgba(11, 21, 36, .92);
-  --panel-2: #101c2d;
+  --panel-2: var(--brand-panel-raised);
   --line: rgba(178, 220, 235, .18);
-  --muted: #8ba2ad;
-  --paper: #edf7f4;
-  --cyan: #63f2df;
-  --orange: #ff5c35;
-  --yellow: #f7d76a;
-  --danger: #ff4667;
+  --muted: var(--brand-muted);
+  --paper: var(--brand-paper);
+  --cyan: var(--brand-signal);
+  --orange: var(--brand-breach);
+  --yellow: var(--brand-objective);
+  --danger: var(--brand-danger);
   --ease-out: cubic-bezier(.23, 1, .32, 1);
+  --ease-in-out: cubic-bezier(.77, 0, .175, 1);
+  --duration-press: 120ms;
+  --duration-micro: 150ms;
+  --duration-panel: 240ms;
   --display: "Barlow Condensed", Impact, sans-serif;
   --sans: Inter, system-ui, sans-serif;
   --interface-scale: 1;
@@ -125,7 +139,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, canvas:focus-vi
   font-weight: 700;
   letter-spacing: .08em;
   text-transform: uppercase;
+  transition: color var(--duration-micro) var(--ease-out), border-color var(--duration-micro) var(--ease-out), transform var(--duration-press) var(--ease-out);
 }
+.text-button:active, .icon-button:active { transform: scale(.97); }
 .text-button { color: var(--muted); }
 .text-button:hover { color: var(--paper); }
 .icon-button {
