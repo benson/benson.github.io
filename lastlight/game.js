@@ -1,44 +1,44 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260713.18";
-import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.18";
-import { Renderer } from "./render.js?v=20260713.18";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260713.19";
+import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260713.19";
+import { Renderer } from "./render.js?v=20260713.19";
 import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260713.2";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
-import { getThemeAsset, getThemeEnvironmentChunks, getThemeMaterial } from "./themes/lastlight.js?v=20260713.18";
-import { submitRunTelemetry } from "./telemetry.js?v=20260713.18";
+import { getThemeAsset, getThemeEnvironmentChunks, getThemeMaterial } from "./themes/lastlight.js?v=20260713.19";
+import { submitRunTelemetry } from "./telemetry.js?v=20260713.19";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260713.18";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260713.18";
+import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260713.19";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260713.19";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
-import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260713.18";
-import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260713.18";
+import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260713.19";
+import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260713.19";
 import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260711.5";
-import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260713.18";
+import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260713.19";
 import { GuestInputSequenceTracker, HostInputSequenceGate, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260713.2";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260713.2";
-import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260713.18";
-import { advancePlayerMovement } from "./movement.js?v=20260713.18";
+import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260713.19";
+import { advancePlayerMovement } from "./movement.js?v=20260713.19";
 import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
 import { DynamicAudioMixer } from "./audio-mix.js?v=20260713.1";
 import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260713.1";
 import { enemyAudioCueName, newEntities, spatialAudioPan, weaponAudioCueName, weaponTimerActivations } from "./audio-events.js?v=20260713.1";
 import { FUNNY_VOICE_MIN_INTERVAL_MS, audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260713.1";
-import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260713.18";
-import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260713.18";
+import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260713.19";
+import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260713.19";
 import { getWeaponEvolution } from "./weapon-evolution.js?v=20260713.1";
 import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260712.1";
-import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260713.18";
-import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260713.18";
-import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260713.18";
+import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260713.19";
+import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260713.19";
+import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260713.19";
 import { reconcileActiveBuffs } from "./active-buffs.js?v=20260713.1";
-import { ELITE_AFFIXES, ENEMY_ARCHETYPES } from "./enemy-archetypes.js?v=20260713.1";
+import { ELITE_AFFIXES, ENEMY_ARCHETYPES, eliteAffixEligibility } from "./enemy-archetypes.js?v=20260713.1";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
-import { mapMechanicDefinition } from "./map-mechanics.js?v=20260713.18";
-import { CAMPAIGN_MUTATIONS, campaignMutationDefinition } from "./campaign-mutations.js?v=20260713.18";
+import { mapMechanicDefinition } from "./map-mechanics.js?v=20260713.19";
+import { CAMPAIGN_MUTATIONS, campaignMutationDefinition } from "./campaign-mutations.js?v=20260713.19";
 import {
   AuthoritySnapshotGate, HOST_MIGRATION_PROTOCOL_VERSION, MIGRATION_CHECKPOINT_INTERVAL_TICKS,
   createMigrationCapabilities, createMigrationCheckpoint, createMigrationReady,
   migrationCompatibilityMatches, validateMigrationCheckpoint,
-} from "./host-migration.js?v=20260713.18";
+} from "./host-migration.js?v=20260713.19";
 import { RECONNECT_DELAYS_MS, SquadPresenceTracker, authorityStateCopy } from "./reconnect-state.js?v=20260713.3";
 import {
   HostPingGate, PING_INTENTS, PING_LIFETIME_TICKS, PING_WHEEL_ORDER, PingSequenceTracker,
@@ -54,28 +54,32 @@ import { DraftRecommendationStore, recommendationMarkerModel } from "./draft-rec
 import { SQUAD_SYNERGY_REGISTRY } from "./squad-synergies.js?v=20260713.6";
 import { reconcileActiveSynergies } from "./active-synergies.js?v=20260713.6";
 import { PARTICIPATION_REGISTRY } from "./participation-credit.js?v=20260713.7";
-import { campaignJoinEligibility } from "./join-in-progress.js?v=20260713.18";
+import { campaignJoinEligibility } from "./join-in-progress.js?v=20260713.19";
 import {
   RUN_ARCHIVE_STORAGE_KEY, createSquadRunReport, decodeSquadRunFragment, normalizeRunArchiveStorage,
   squadRunShareFragment, upsertRunArchive,
-} from "./run-archive.js?v=20260713.18";
+} from "./run-archive.js?v=20260713.19";
 import {
   SPECIALIST_MASTERY, SPECIALIST_MASTERY_LEVELS, awardSpecialistMastery, loadSpecialistMasteryState,
   masteryStartDefinition, saveSpecialistMasteryState, selectMasteryStart,
-} from "./specialist-mastery.js?v=20260713.18";
+} from "./specialist-mastery.js?v=20260713.19";
 import {
   RARE_DISCOVERY_REGISTRY, awardRareDiscoveries, loadRareDiscoveryCollection,
   rareDiscoveryDefinition, rareDiscoveryTelemetry, saveRareDiscoveryCollection,
-} from "./rare-discoveries.js?v=20260713.18";
+} from "./rare-discoveries.js?v=20260713.19";
 import {
   CHALLENGE_ACHIEVEMENT_REGISTRY, awardChallengeAchievements, challengeAchievementDefinition,
   challengeAchievementTelemetry, evaluateChallengeAchievements, loadChallengeAchievementState,
   saveChallengeAchievementState,
-} from "./challenge-achievements.js?v=20260713.18";
+} from "./challenge-achievements.js?v=20260713.19";
 import {
   loadSeededOperationRecords, recordSeededOperationResult, saveSeededOperationRecords,
   seededOperationFor, seededOperationFromId, seededOperationTelemetry,
-} from "./seeded-operations.js?v=20260713.18";
+} from "./seeded-operations.js?v=20260713.19";
+import {
+  PRACTICE_MAX_PASSIVES, PRACTICE_MAX_WEAPONS, defaultPracticeLaboratoryConfig,
+  measurePracticeLaboratory, normalizePracticeLaboratoryConfig,
+} from "./practice-laboratory.js?v=20260713.19";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -84,7 +88,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.13.18";
+const BUILD = "2026.07.13.19";
 const AUTHORITY_WATCHDOG_MS = Object.freeze({ synchronizing: 10_000, migrating: 25_000 });
 const BALANCE = getBalanceConfig();
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
@@ -188,6 +192,7 @@ const state = {
   rareDiscoveries: initialRareDiscoveries, resultDiscoveryAward: null,
   challengeAchievements: initialChallengeAchievements, resultChallengeAward: null,
   seededOperationRecords: initialSeededOperationRecords, seededOperationKind: "", resultSeededOperation: null,
+  practiceLaboratory: structuredClone(defaultPracticeLaboratoryConfig()),
   lastChallengeWatchTick: -60, lastChallengeWatchKey: "",
   sharedRun: initialSharedRun.value, sharedRunError: initialSharedRun.error, sharedRunPresented: false,
   audioSettings: initialAudioSettings,
@@ -227,6 +232,7 @@ const runtimeConfigReady = loadRuntimeConfig({ endpoint: RUNTIME_CONFIG_ENDPOINT
   syncPingAvailability();
   syncDraftRecommendationAvailability();
   syncArchiveAvailability();
+  syncPracticeLaboratoryAvailability();
   renderSeededOperations();
   renderMasteryLoadout(state.selected);
   refreshRecoveryOffer();
@@ -1000,6 +1006,103 @@ function selectSeededOperation(kind) {
     renderDeploymentMutations();
   } else updateProgressionUI();
   renderSeededOperations();
+}
+
+function practiceLaboratoryEnabled() { return Boolean(state.runtimeConfig?.config?.flags?.practiceLaboratory); }
+
+function syncPracticeLaboratoryAvailability() {
+  const enabled = practiceLaboratoryEnabled();
+  document.documentElement.dataset.practiceLaboratory = String(enabled);
+  for (const id of ["practice-button", "lobby-practice"]) $(id)?.classList.toggle("hidden", !enabled);
+  if (!enabled && $("practice-dialog")?.open) $("practice-dialog").close();
+}
+
+function practiceWeaponName(id) { return id === "signature" ? SPECIALISTS[state.practiceLaboratory.specialist].signature.name : WEAPONS[id]?.name || id; }
+function practiceWeaponPassive(id) { return id === "signature" ? SPECIALISTS[state.practiceLaboratory.specialist].signature.passive : WEAPONS[id]?.passive; }
+function practicePassiveName(id) { return PASSIVES[id]?.name || id; }
+function practiceTargetName(id) { return id === "apex" ? `${MAPS[state.practiceLaboratory.map].boss} (apex)` : ENEMY_TYPES[id]?.name || id; }
+
+function practiceFieldKitUnlocked(specialist = state.practiceLaboratory.specialist) {
+  return Number(state.mastery?.tracks?.[specialist]?.level || 1) >= masteryStartDefinition(specialist, "field-kit").unlockLevel;
+}
+
+function addPracticePassive(id, rank = 1) {
+  const draft = state.practiceLaboratory;
+  const existing = draft.passives.find((passive) => passive.id === id);
+  if (existing) { existing.rank = Math.max(existing.rank, rank); return true; }
+  if (!PASSIVES[id] || draft.passives.length >= PRACTICE_MAX_PASSIVES) return false;
+  draft.passives.push({ id, rank });
+  return true;
+}
+
+function reconcilePracticeLoadout() {
+  const draft = state.practiceLaboratory, required = SPECIALISTS[draft.specialist].signature.passive;
+  if (draft.masteryStart === "field-kit" && !addPracticePassive(required)) draft.masteryStart = "baseline";
+  for (const weapon of draft.weapons) {
+    if (!weapon.evolved) continue;
+    const paired = practiceWeaponPassive(weapon.id);
+    if (weapon.level !== 5 || !draft.passives.some(({ id }) => id === paired)) weapon.evolved = false;
+  }
+  draft.weapons.sort((left, right) => left.id === "signature" ? -1 : right.id === "signature" ? 1 : left.id.localeCompare(right.id));
+  draft.passives.sort((left, right) => left.id.localeCompare(right.id));
+}
+
+function practiceSelectOptions(records, selected, disabled = () => false) {
+  return records.map(([id, name]) => `<option value="${escapeHTML(id)}"${id === selected ? " selected" : ""}${disabled(id) ? " disabled" : ""}>${escapeHTML(name)}</option>`).join("");
+}
+
+function invalidatePracticeMeasurement(message = "Build changed; reset and measure again for authoritative output.") {
+  $("practice-results").classList.add("hidden");
+  $("practice-status").textContent = message;
+}
+
+function renderPracticeLaboratory() {
+  reconcilePracticeLoadout();
+  const draft = state.practiceLaboratory;
+  $("practice-specialist").innerHTML = practiceSelectOptions(SPECIALIST_ORDER.map((id) => [id, SPECIALISTS[id].name]), draft.specialist);
+  $("practice-mastery-start").innerHTML = practiceSelectOptions([["baseline", "Standard issue"], ["field-kit", practiceFieldKitUnlocked() ? "Field kit" : `Field kit (mastery level ${masteryStartDefinition(draft.specialist, "field-kit").unlockLevel})`]], draft.masteryStart, (id) => id === "field-kit" && !practiceFieldKitUnlocked());
+  $("practice-map").innerHTML = practiceSelectOptions(Object.entries(MAPS).map(([id, value]) => [id, value.name]), draft.map);
+  $("practice-difficulty").innerHTML = practiceSelectOptions(Object.entries(DIFFICULTIES).map(([id, value]) => [id, value.name]), draft.difficulty);
+  $("practice-target").innerHTML = practiceSelectOptions([...Object.entries(ENEMY_TYPES).map(([id, value]) => [id, value.name]), ["apex", `${MAPS[draft.map].boss} (apex)`]], draft.target.type);
+  const affixes = [["none", "No elite affix"], ...Object.keys(ELITE_AFFIXES).map((id) => [id, id[0].toUpperCase() + id.slice(1)])];
+  $("practice-affix").innerHTML = practiceSelectOptions(affixes, draft.target.eliteAffix, (id) => id !== "none" && (draft.target.type === "apex" || !eliteAffixEligibility({ spawnContext: "practice-laboratory", typeId: draft.target.type, elite: true, miniboss: draft.target.type === "shark", boss: false, eventType: null }, id).eligible));
+  $("practice-behavior").value = draft.target.behavior; $("practice-window").value = String(draft.measurementSeconds); $("practice-invulnerable").checked = draft.playerInvulnerable;
+  const usedWeapons = new Set(draft.weapons.map(({ id }) => id));
+  $("practice-weapons").innerHTML = draft.weapons.map((weapon, index) => {
+    const choices = [["signature", SPECIALISTS[draft.specialist].signature.name], ...Object.entries(WEAPONS).map(([id, value]) => [id, value.name])];
+    const options = practiceSelectOptions(choices, weapon.id, (id) => id !== weapon.id && usedWeapons.has(id));
+    return `<div class="practice-loadout-row" data-practice-weapon="${index}"><label><span>Weapon</span><select data-practice-weapon-id${index === 0 ? " disabled" : ""}>${options}</select></label><label><span>Level</span><select data-practice-weapon-level>${[1,2,3,4,5].map((level) => `<option value="${level}"${level === weapon.level ? " selected" : ""}>${level}</option>`).join("")}</select></label><label class="practice-check"><input type="checkbox" data-practice-evolved${weapon.evolved ? " checked" : ""}><span>Evolved</span></label>${index ? `<button type="button" data-practice-remove-weapon aria-label="Remove ${escapeHTML(practiceWeaponName(weapon.id))}">Remove</button>` : ""}</div>`;
+  }).join("");
+  const usedPassives = new Set(draft.passives.map(({ id }) => id)), required = draft.masteryStart === "field-kit" ? SPECIALISTS[draft.specialist].signature.passive : "";
+  $("practice-passives").innerHTML = draft.passives.map((passive, index) => {
+    const options = practiceSelectOptions(Object.entries(PASSIVES).map(([id, value]) => [id, value.name]), passive.id, (id) => id !== passive.id && usedPassives.has(id));
+    return `<div class="practice-loadout-row" data-practice-passive="${index}"><label><span>Passive</span><select data-practice-passive-id>${options}</select></label><label><span>Rank</span><select data-practice-passive-rank>${Array.from({ length: PASSIVES[passive.id].max }, (_, offset) => offset + 1).map((rank) => `<option value="${rank}"${rank === passive.rank ? " selected" : ""}>${rank}</option>`).join("")}</select></label><button type="button" data-practice-remove-passive${passive.id === required ? " disabled" : ""} aria-label="Remove ${escapeHTML(practicePassiveName(passive.id))}">Remove</button></div>`;
+  }).join("") || `<p class="practice-empty">No passives equipped.</p>`;
+  $("practice-add-weapon").disabled = draft.weapons.length >= PRACTICE_MAX_WEAPONS;
+  $("practice-add-passive").disabled = draft.passives.length >= PRACTICE_MAX_PASSIVES;
+  invalidatePracticeMeasurement();
+}
+
+function renderPracticeResults(result) {
+  const sourceName = (id) => id === "signature" ? SPECIALISTS[result.config.specialist].signature.name : WEAPONS[id]?.name || id.replaceAll("_", " ");
+  const sources = result.sources.length ? result.sources.map((source) => `<tr><th scope="row">${escapeHTML(sourceName(source.id))}</th><td>${source.damage.toLocaleString()}</td><td>${source.dps.toLocaleString()}</td></tr>`).join("") : `<tr><td colspan="3">No damage resolved in this window.</td></tr>`;
+  const stats = Object.entries(result.stats).map(([id, value]) => `<div><dt>${escapeHTML(id.replace(/([A-Z])/g, " $1"))}</dt><dd>${Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 })}</dd></div>`).join("");
+  const weapons = result.weapons.map((weapon) => `<article><strong>${escapeHTML(sourceName(weapon.id))} · L${weapon.level}${weapon.evolved ? " · evolved" : ""}</strong><span>${escapeHTML(weapon.damage)} · ${escapeHTML(weapon.interval)} · ${escapeHTML(weapon.projectiles)}</span></article>`).join("");
+  $("practice-results-body").innerHTML = `<div class="practice-result-hero"><div><span>Actual damage</span><strong>${result.totalDamage.toLocaleString()}</strong></div><div><span>DPS</span><strong>${result.dps.toLocaleString()}</strong></div><div><span>Window</span><strong>${result.config.measurementSeconds}s · ${result.ticks} ticks</strong></div><div><span>Target</span><strong>${escapeHTML(practiceTargetName(result.target.type))}</strong></div></div><table><thead><tr><th>Source</th><th>Damage</th><th>DPS</th></tr></thead><tbody>${sources}</tbody></table><section><h3>Build stats</h3><dl class="practice-stat-grid">${stats}</dl></section><section><h3>Weapon telemetry</h3><div class="practice-weapon-results">${weapons}</div></section>`;
+  $("practice-results").classList.remove("hidden");
+}
+
+function openPracticeLaboratory() {
+  if (!practiceLaboratoryEnabled()) return;
+  renderPracticeLaboratory(); $("practice-status").textContent = "Configure a build, then run an identity-free local measurement."; $("practice-dialog").showModal();
+}
+
+function measurePracticeBuild() {
+  try {
+    $("practice-status").textContent = "Resetting the fixed seed and measuring authoritative simulation…";
+    const config = normalizePracticeLaboratoryConfig(state.practiceLaboratory), result = measurePracticeLaboratory(config);
+    renderPracticeResults(result); $("practice-status").textContent = `Measurement complete · ${result.ticks} deterministic ticks · no record saved.`;
+  } catch (error) { $("practice-status").textContent = `Configuration needs attention: ${String(error?.message || error)}`; }
 }
 
 function recordVictory(map, difficulty) {
@@ -3771,6 +3874,62 @@ function bindEvents() {
     const button = event.target.closest?.("[data-seeded-operation]");
     if (button) selectSeededOperation(button.dataset.seededOperation);
   });
+  for (const id of ["practice-button", "lobby-practice"]) $(id).addEventListener("click", openPracticeLaboratory);
+  $("practice-close").addEventListener("click", () => $("practice-dialog").close());
+  $("practice-dialog").addEventListener("click", (event) => { if (event.target === $("practice-dialog")) $("practice-dialog").close(); });
+  $("practice-specialist").addEventListener("change", (event) => {
+    state.practiceLaboratory.specialist = event.currentTarget.value; state.practiceLaboratory.masteryStart = "baseline";
+    state.practiceLaboratory.weapons = [{ id: "signature", level: 1, evolved: false }]; state.practiceLaboratory.passives = [];
+    renderPracticeLaboratory(); $("practice-status").textContent = "Specialist changed; loadout reset to its authoritative signature baseline.";
+  });
+  $("practice-mastery-start").addEventListener("change", (event) => { state.practiceLaboratory.masteryStart = event.currentTarget.value; reconcilePracticeLoadout(); renderPracticeLaboratory(); });
+  $("practice-map").addEventListener("change", (event) => { state.practiceLaboratory.map = event.currentTarget.value; renderPracticeLaboratory(); });
+  $("practice-difficulty").addEventListener("change", (event) => { state.practiceLaboratory.difficulty = event.currentTarget.value; invalidatePracticeMeasurement(); });
+  $("practice-target").addEventListener("change", (event) => { state.practiceLaboratory.target.type = event.currentTarget.value; state.practiceLaboratory.target.eliteAffix = "none"; renderPracticeLaboratory(); });
+  $("practice-affix").addEventListener("change", (event) => { state.practiceLaboratory.target.eliteAffix = event.currentTarget.value; invalidatePracticeMeasurement(); });
+  $("practice-behavior").addEventListener("change", (event) => { state.practiceLaboratory.target.behavior = event.currentTarget.value; invalidatePracticeMeasurement(); });
+  $("practice-window").addEventListener("change", (event) => { state.practiceLaboratory.measurementSeconds = Number(event.currentTarget.value); invalidatePracticeMeasurement(); });
+  $("practice-invulnerable").addEventListener("change", (event) => { state.practiceLaboratory.playerInvulnerable = event.currentTarget.checked; invalidatePracticeMeasurement(); });
+  $("practice-add-weapon").addEventListener("click", () => {
+    const id = Object.keys(WEAPONS).find((candidate) => !state.practiceLaboratory.weapons.some((weapon) => weapon.id === candidate));
+    if (id && state.practiceLaboratory.weapons.length < PRACTICE_MAX_WEAPONS) state.practiceLaboratory.weapons.push({ id, level: 1, evolved: false });
+    renderPracticeLaboratory();
+  });
+  $("practice-add-passive").addEventListener("click", () => {
+    const id = Object.keys(PASSIVES).find((candidate) => !state.practiceLaboratory.passives.some((passive) => passive.id === candidate));
+    if (id) addPracticePassive(id); renderPracticeLaboratory();
+  });
+  $("practice-weapons").addEventListener("change", (event) => {
+    const row = event.target.closest("[data-practice-weapon]"), weapon = state.practiceLaboratory.weapons[Number(row?.dataset.practiceWeapon)];
+    if (!weapon) return;
+    if (event.target.matches("[data-practice-weapon-id]")) { weapon.id = event.target.value; weapon.evolved = false; }
+    else if (event.target.matches("[data-practice-weapon-level]")) { weapon.level = Number(event.target.value); if (weapon.level !== 5) weapon.evolved = false; }
+    else if (event.target.matches("[data-practice-evolved]")) {
+      weapon.evolved = event.target.checked;
+      if (weapon.evolved) {
+        weapon.level = 5;
+        if (!addPracticePassive(practiceWeaponPassive(weapon.id))) weapon.evolved = false;
+      }
+    }
+    renderPracticeLaboratory();
+    if (event.target.matches("[data-practice-evolved]") && event.target.checked && !weapon.evolved) invalidatePracticeMeasurement("Remove a passive before evolving this weapon; all passive slots are occupied.");
+  });
+  $("practice-weapons").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-practice-remove-weapon]"), row = button?.closest("[data-practice-weapon]");
+    if (!row) return; state.practiceLaboratory.weapons.splice(Number(row.dataset.practiceWeapon), 1); renderPracticeLaboratory();
+  });
+  $("practice-passives").addEventListener("change", (event) => {
+    const row = event.target.closest("[data-practice-passive]"), passive = state.practiceLaboratory.passives[Number(row?.dataset.practicePassive)];
+    if (!passive) return;
+    if (event.target.matches("[data-practice-passive-id]")) { passive.id = event.target.value; passive.rank = Math.min(passive.rank, PASSIVES[passive.id].max); }
+    else if (event.target.matches("[data-practice-passive-rank]")) passive.rank = Number(event.target.value);
+    reconcilePracticeLoadout(); renderPracticeLaboratory();
+  });
+  $("practice-passives").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-practice-remove-passive]"), row = button?.closest("[data-practice-passive]");
+    if (!row || button.disabled) return; state.practiceLaboratory.passives.splice(Number(row.dataset.practicePassive), 1); reconcilePracticeLoadout(); renderPracticeLaboratory();
+  });
+  $("practice-measure").addEventListener("click", measurePracticeBuild);
   document.querySelectorAll("[data-join-package]").forEach((button) => button.addEventListener("click", () => {
     if (!state.joiningActiveRun || state.joinRequestSent) return;
     state.joinPackageId = button.dataset.joinPackage; renderLobby();
@@ -3945,7 +4104,7 @@ function bindEvents() {
   setupTouch();
 }
 
-renderSpecialistGrid(); selectSpecialist("zuri"); bindEvents(); applyQualitySettings(state.qualitySettings, false); applyAudioSettings(state.audioSettings, false); syncPingAvailability(); syncDraftRecommendationAvailability(); updateProgressionUI(); setPartyMode("solo");
+renderSpecialistGrid(); selectSpecialist("zuri"); bindEvents(); applyQualitySettings(state.qualitySettings, false); applyAudioSettings(state.audioSettings, false); syncPingAvailability(); syncDraftRecommendationAvailability(); syncPracticeLaboratoryAvailability(); updateProgressionUI(); setPartyMode("solo");
 if (query.get("room")) { setPartyMode("join"); $("room-input").value = query.get("room").toUpperCase().slice(0,6); setTimeout(() => $("callsign-input").focus(), 50); }
 if (localHost) Object.defineProperty(window, "__lastlightQA", { value: Object.freeze({
   diagnostics: () => JSON.parse(JSON.stringify(gameDiagnostics())),

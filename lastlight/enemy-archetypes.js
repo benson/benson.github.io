@@ -202,7 +202,7 @@ export function selectSpawnArchetype(rng, progress, phases = ENEMY_SPAWN_PHASES)
 export function eliteAffixEligibility(context = {}, affixId, definitions = ELITE_AFFIXES) {
   const record = definitions?.[affixId], typeId = context.typeId ?? context.archetypeId;
   if (!record) return Object.freeze({ eligible: false, reason: "unknown-affix" });
-  if (context.spawnContext !== "scheduled-elite" || context.elite !== true) return Object.freeze({ eligible: false, reason: "not-scheduled-elite" });
+  if (!["scheduled-elite", "practice-laboratory"].includes(context.spawnContext) || context.elite !== true) return Object.freeze({ eligible: false, reason: "not-scheduled-elite" });
   if (context.eventType) return Object.freeze({ eligible: false, reason: "event-enemy" });
   if (context.miniboss) return Object.freeze({ eligible: false, reason: "miniboss" });
   if (context.boss) return Object.freeze({ eligible: false, reason: "boss" });

@@ -61,7 +61,7 @@ test("spawn selection is stable, sorted by code point, and consumes one bounded 
   );
 });
 
-test("only scheduled regular elites are eligible and volatile excludes bombers", () => {
+test("only scheduled or practice regular elites are eligible and volatile excludes bombers", () => {
   const regular = { spawnContext: "scheduled-elite", elite: true, archetypeId: "hound", eventType: "", miniboss: false, boss: false };
   for (const id of ELITE_AFFIX_IDS) assert.equal(eliteAffixEligibility(regular, id).eligible, true, id);
   assert.deepEqual(eliteAffixEligibility({ ...regular, archetypeId: "bomber" }, "volatile"), { eligible: false, reason: "incompatible-archetype" });
@@ -69,6 +69,7 @@ test("only scheduled regular elites are eligible and volatile excludes bombers",
   assert.equal(eliteAffixEligibility({ ...regular, miniboss: true }, "shielded").reason, "miniboss");
   assert.equal(eliteAffixEligibility({ ...regular, boss: true }, "shielded").reason, "boss");
   assert.equal(eliteAffixEligibility({ ...regular, spawnContext: "fixture" }, "shielded").reason, "not-scheduled-elite");
+  assert.equal(eliteAffixEligibility({ ...regular, spawnContext: "practice-laboratory" }, "shielded").eligible, true);
 });
 
 test("affix assignment forks by enemy id without advancing the supplied root", () => {
