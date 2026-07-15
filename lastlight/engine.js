@@ -351,6 +351,9 @@ export class Simulation {
     this.gameplaySequence = 1;
     this.cosmeticSequence = 1;
     this.eventSequence = 1;
+    // Presentation-only contact ledger. It intentionally stays out of replay,
+    // recovery, and deterministic hashes; snapshots expose only a small tail.
+    this.impactEventSequence = 1;
     this.map = MAPS[config.map] || MAPS.warehouse;
     this.difficulty = DIFFICULTIES[config.difficulty] || DIFFICULTIES.story;
     this.seededOperation = config.seededOperation ? validateSeededOperation(config.seededOperation) : null;
@@ -393,6 +396,7 @@ export class Simulation {
     this.choiceReady = {};
     this.selectedChoices = {};
     this.events = [];
+    this.impactEvents = [];
     this.players = [];
     this.disconnectedPlayers = new Map();
     this.runSlotsUsed = new Set();
@@ -2699,6 +2703,7 @@ export class Simulation {
       this.effects.push({ id: this.nextCosmeticId("fx"), x: p.x, y: p.y, radius: 230, life: .55, maxLife: .55, damage: 0, owner: p.id, color: "#9de7ff", kind: "freeze" });
       return;
     }
+    const hpBefore = p.hp, shieldBefore = p.shield;
     const reduction = 100 / (100 + Math.max(0, p.armor));
     const scaledAmount = source?.bossShot ? Math.max(amount, p.maxHp * .36 / reduction) : amount;
     let damage = scaledAmount * reduction;
@@ -2734,6 +2739,12 @@ export class Simulation {
     // single frame while keeping individual hits meaningful.
     p.hitGrace = .22;
     this.effects.push({ id: this.nextCosmeticId("fx"), x: p.x, y: p.y, radius: p.radius * 1.8, life: .24, maxLife: .24, damage: 0, owner: "enemy", color: "#ff405f", kind: "hurt", angle: impactAngle });
+    const dealt = Math.max(0, hpBefore - p.hp) + Math.max(0, shieldBefore - p.shield);
+    if (dealt > 0) this.pushImpactEvent({
+      kind: "player-hit", sourceId: source?.id || source?.ownerId || "environment", ownerId: source?.ownerId || source?.id || null,
+      targetId: p.id, targetKind: "player", x: p.x, y: p.y, angle: impactAngle,
+      damage: dealt, maxHp: p.maxHp, critical: Boolean(source?.bossShot), boss: Boolean(source?.boss || source?.bossShot), killed: p.hp <= 0,
+    });
     if (p.hp <= 0) this.downPlayer(p);
   }
 
@@ -2775,6 +2786,7 @@ export class Simulation {
     const dealt = absorbed + Math.min(remaining, Math.max(0, enemy.hp));
     enemy.hp -= remaining; enemy.hitFlash = .1;
     const owner = this.players.find((p) => p.id === ownerId);
+    const impactAngle = owner ? Math.atan2(enemy.y - owner.y, enemy.x - owner.x) : Number(enemy.hitAngle) || 0;
     if (owner) {
       owner.damage += dealt;
       if (dealt > 0 && this.participationState?.enabled) {
@@ -2789,13 +2801,19 @@ export class Simulation {
       const signatureScale = source === "signature"
         ? (Number.isFinite(authoredScale) ? authoredScale : Number(BALANCE.identityTuning[owner.specialist]?.signatureKnockbackScale || 1))
         : 1;
-      const impactAngle = Math.atan2(enemy.y - owner.y, enemy.x - owner.x), knockback = clamp(amount * .28, 8, enemy.boss ? 22 : 72) * signatureScale;
+      const knockback = clamp(amount * .28, 8, enemy.boss ? 22 : 72) * signatureScale;
       enemy.hitAngle = impactAngle; enemy.knockVx = (enemy.knockVx || 0) + Math.cos(impactAngle) * knockback; enemy.knockVy = (enemy.knockVy || 0) + Math.sin(impactAngle) * knockback;
       if (owner.specialist === "rift" && dealt > 0 && this.time >= Number(owner.riftShieldBlockedUntil || 0)) {
         const tuning = BALANCE.identityTuning.rift;
         this.grantShieldAmount(owner, dealt * tuning.damageShieldRatio, tuning.damageShieldCapMaxHealth, owner.replaySlot);
       }
     }
+    if (dealt > 0) this.pushImpactEvent({
+      kind: "enemy-hit", sourceId: String(source || "contact"), ownerId: ownerId || null,
+      targetId: enemy.id, targetKind: enemy.boss ? "boss" : enemy.type || "enemy", x: enemy.x, y: enemy.y,
+      angle: impactAngle, damage: dealt, maxHp: enemy.maxHp, critical: Boolean(critical), elite: Boolean(enemy.elite || enemy.miniboss),
+      boss: Boolean(enemy.boss), killed: enemy.hp <= 0,
+    });
     if (owner && dealt > 0 && !options.suppressSynergy && this.synergyState?.enabled && (enemy.elite || enemy.miniboss || enemy.boss)) {
       const result = resolveBreachFollowup(this.synergyState, {
         tick: this.tick, enemyId: enemy.id, finisherSlot: owner.replaySlot, specialistId: owner.specialist,
@@ -3082,6 +3100,11 @@ export class Simulation {
     if (this.events.length > 20) this.events.splice(0, this.events.length - 20);
   }
 
+  pushImpactEvent(details = {}) {
+    this.impactEvents.push({ ...details, id: `impact-${this.tick}-${this.impactEventSequence}`, seq: this.impactEventSequence++, tick: this.tick });
+    if (this.impactEvents.length > 64) this.impactEvents.splice(0, this.impactEvents.length - 64);
+  }
+
   cleanup() {
     this.enemies = this.enemies.filter((e) => !e.dead);
     this.projectiles = this.projectiles.filter((e) => !e.dead);
@@ -3350,7 +3373,7 @@ export class Simulation {
     return sim;
   }
 
-  snapshot() {
+  snapshot({ presentation = false } = {}) {
     const clean = (list, omit = []) => list.map((entry) => {
       const result = {};
       for (const [key, value] of Object.entries(entry)) {
@@ -3403,7 +3426,8 @@ export class Simulation {
       discoveryState: structuredClone(this.discoveryState),
       ...(this.directorState.sequence > 0 ? { directorTelemetry: this.directorTelemetry() } : {}),
       mutationTelemetry: this.mutationTelemetry(),
-      pendingChoices: this.pendingChoices, choiceReady: this.choiceReady, selectedChoices: this.selectedChoices, events: this.events.slice(-5),
+      pendingChoices: this.pendingChoices, choiceReady: this.choiceReady, selectedChoices: this.selectedChoices,
+      events: this.events.slice(-5), ...(presentation ? { impactEvents: this.impactEvents.slice(-32) } : {}),
     };
   }
 }

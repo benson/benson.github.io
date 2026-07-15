@@ -26,6 +26,7 @@ import { DynamicAudioMixer } from "./audio-mix.js?v=20260713.1";
 import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260713.1";
 import { enemyAudioCueName, newEntities, spatialAudioPan, weaponAudioCueName, weaponTimerActivations } from "./audio-events.js?v=20260713.1";
 import { FUNNY_VOICE_MIN_INTERVAL_MS, audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260713.1";
+import { playFeedbackHaptics } from "./feedback-haptics.js?v=20260715.1";
 import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260715.1";
 import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260715.1";
 import { getWeaponEvolution } from "./weapon-evolution.js?v=20260713.1";
@@ -1585,7 +1586,7 @@ function gameLoop(now) {
     renderState = withLocalMovementPreview(state.sim, hostInput, fixedClock.accumulator);
     if (state.ws?.readyState === WebSocket.OPEN && now - state.lastBroadcast > 83) {
       state.lastBroadcast = now;
-      send(createSnapshotMessage(state.sim.snapshot(), hostInputSequences.acknowledgements(), { epoch: state.authorityEpoch, snapshotSeq: state.authoritySnapshotSeq++ }));
+      send(createSnapshotMessage(state.sim.snapshot({ presentation: true }), hostInputSequences.acknowledgements(), { epoch: state.authorityEpoch, snapshotSeq: state.authoritySnapshotSeq++ }));
     }
   } else if (state.authorityState === "active") {
     const authoritative = state.snapshot?.players?.find((player) => player.id === state.clientId);
@@ -1602,8 +1603,13 @@ function gameLoop(now) {
   if (current) {
     prunePings();
     const renderStarted = performance.now(); renderer.draw(renderState || current, state.clientId, renderPrevious, interpolation, dt); const renderMs = performance.now() - renderStarted;
-    const materialCue = renderer.drainMaterialAudioCues(1)[0];
-    if (materialCue && now - state.soundState.lastMaterial > 140) {
+    const impactSignals = renderer.drainImpactFeedbackSignals(4).filter((signal) => signal.local);
+    if (impactSignals.length && state.accessibilitySettings.controller.enabled) {
+      const gamepad = navigator.getGamepads?.() ? [...navigator.getGamepads()].find((candidate) => candidate?.connected && candidate.mapping === "standard") : null;
+      void playFeedbackHaptics(impactSignals, { gamepad, paused: current.paused, connected: Boolean(gamepad), allowVibrate: false });
+    }
+    const materialCue = now - state.soundState.lastMaterial > 140 ? renderer.drainMaterialAudioCues(1)[0] : null;
+    if (materialCue) {
       const listener = current.players?.find((player) => player.id === state.clientId) || current.players?.[0];
       state.soundState.lastMaterial = now; sfx(`material:${materialCue.family}`, { ...materialCue, pan: accessibleAudioPan(spatialAudioPan(materialCue, listener)) });
     }
@@ -3468,7 +3474,7 @@ function publicLobbyPlayers() {
 
 function sendRunSync(targetId) {
   if (!state.isHost || !state.sim || !targetId) return false;
-  send({ type: "sync_game", config: state.config, players: publicLobbyPlayers(), state: state.sim.snapshot() }, targetId);
+  send({ type: "sync_game", config: state.config, players: publicLobbyPlayers(), state: state.sim.snapshot({ presentation: true }) }, targetId);
   sendDraftRecommendationSync(targetId);
   return true;
 }
