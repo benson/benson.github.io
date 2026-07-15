@@ -122,11 +122,11 @@ test("logical asset lookup is predictable and rejects typos", () => {
 
 test("specialist motion metadata is complete, strict, and theme-swappable", async () => {
   const animation = getThemeAnimation("zuri");
-  assert.equal(animation.atlas.src, "assets/sprites/zuri-motion-atlas.png");
+  assert.equal(animation.atlas.src, "assets/motion-normalized/specialists/zuri.webp");
   assert.equal(animation.atlas.available, true);
-  assert.equal(animation.status, "prototype");
+  assert.equal(animation.status, "ready");
   assert.deepEqual(animation.directions, ["south", "west", "north", "east"]);
-  assert.deepEqual(animation.grid, { columns: 4, rows: 5 });
+  assert.deepEqual(animation.grid, { columns: 4, rows: 6 });
   assert.ok(SPECIALIST_MOTION_STATES.every((state) => animation.states[state]?.frames?.length));
   assert.deepEqual(animation.bindings, { dash: "mobility", castE: "cast", castR: "cast" });
   assert.deepEqual(animation.collisionOffset, [0, 0]);
@@ -137,22 +137,17 @@ test("specialist motion metadata is complete, strict, and theme-swappable", asyn
     assert.ok(SPECIALIST_MOTION_STATES.every((state) => rig.states[state]?.frames?.length));
     assert.equal(rig.states.run.frames.length, 2);
     assert.ok(rig.states.run.frames.every((frame) => frame.ms >= 120), `${specialist} run cadence is not flash-fast`);
-    if (specialist !== "zuri") {
-      assert.deepEqual(rig.grid, { columns: 4, rows: 6 });
-      assert.equal(rig.status, "ready");
-      assert.equal(rig.atlas.available, true);
-      await access(`${root}${rig.atlas.src}`);
-    }
+    assert.deepEqual(rig.grid, { columns: 4, rows: 6 });
+    assert.equal(rig.status, "ready");
+    assert.equal(rig.atlas.available, true);
+    await access(`${root}${rig.atlas.src}`);
   }
   await access(`${root}${animation.atlas.src}`);
 });
 
-test("motion asset gaps only report Zuri's legacy prototype grid", () => {
+test("the shipped roster has no missing or prototype motion atlas", () => {
   const gaps = getMissingMotionAssets();
-  assert.equal(gaps.length, 1);
-  assert.deepEqual(gaps.map(({ kind }) => kind).reduce((counts, kind) => ({ ...counts, [kind]: (counts[kind] || 0) + 1 }), {}), { specialist: 1 });
-  assert.equal(gaps.find(({ kind, id }) => kind === "specialist" && id === "zuri").status, "prototype");
-  assert.equal(gaps.some(({ status }) => status === "missing"), false);
+  assert.deepEqual(gaps, []);
 });
 
 test("every default-theme asset is present in the deployable game tree", async () => {

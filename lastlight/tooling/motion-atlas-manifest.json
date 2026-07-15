@@ -11,6 +11,21 @@
   },
   "atlases": [
     {
+      "id": "zuri", "kind": "specialist", "rows": 6, "sourceGridRows": 5,
+      "source": { "path": "assets/sprites/zuri-motion-atlas.png", "sha256": "fa8cd509d3209f18143653a10ac3ffce2b84bd5e32277eb975b1d5d8ae49f5ba", "width": 1256, "height": 1255 },
+      "output": { "path": "assets/motion-normalized/specialists/zuri.webp", "pixelSha256": "aab36cf30f263aabff2da6685b3ac035727e824112a1578444456c57107dd370", "width": 1024, "height": 1536 },
+      "sourceSlots": [[0,1,2,3], [0,1,2,3], [0,1,2,3], [0,1,2,3], [0,1,2,3], [0,1,2,3]],
+      "sourceRows": {
+        "idle-b.south": 0, "idle-b.west": 0, "idle-b.north": 0, "idle-b.east": 0,
+        "run-a.south": 1, "run-a.west": 1, "run-a.north": 1, "run-a.east": 1,
+        "run-b.south": 2, "run-b.west": 2, "run-b.north": 2, "run-b.east": 2,
+        "action.south": 3, "action.west": 3, "action.north": 3, "action.east": 3,
+        "hurt-down.south": 4, "hurt-down.west": 4, "hurt-down.north": 4, "hurt-down.east": 4
+      },
+      "flipX": [],
+      "directions": ["south", "west", "north", "east"], "states": ["idle-a", "idle-b", "run-a", "run-b", "action", "hurt-down"], "anchor": [0.5, 0.875]
+    },
+    {
       "id": "bront", "kind": "specialist", "rows": 6,
       "source": { "path": "assets/motion/specialists/bront.webp", "sha256": "07ad4705ba859ce64a5183f50e5575f7833caf340ece4066849da82e684585a1", "width": 1024, "height": 1536 },
       "output": { "path": "assets/motion-normalized/specialists/bront.webp", "pixelSha256": "0ae80836f4e99648725ef0e832c4a14bc3d1362a11e6735d1255f6e0be370945", "width": 1024, "height": 1536 },

@@ -36,7 +36,7 @@ test("phone results collapse the header without weakening containment or control
   assert.match(mobile, /\.result-debrief \{ padding-left: 0; border-left: 0; \}/);
   assert.match(mobile, /\.result-damage-breakdown \{ grid-template-columns: minmax\(0, 1fr\); \}/);
   assert.match(css, /\.scoreboard-wrap \{[^}]+max-width: 100%;[^}]+overflow-x: auto;/s);
-  assert.match(css, /\.contribution-wrap \{[^}]+max-width: 100%;[^}]+overflow-x: auto;/s);
+  assert.match(css, /\.contribution-wrap \{[^}]+max-width: calc\(100% - 26px\);[^}]+overflow-x: auto;/s);
   for (const id of ["replay-play", "replay-back", "replay-forward", "replay-timeline", "replay-speed", "replay-copy", "build-history-button"]) assert.match(html, new RegExp(`id="${id}"`));
   assert.match(html, /id="build-history-button" class="build-badge"/);
 });

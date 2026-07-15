@@ -106,3 +106,24 @@ test("committed charge geometry, facing, and shield meter remain authoritative",
   assert.equal(renderer.enemyVisuals.get("charge").aimFacing, 0, "sprite faces its locked committed lane rather than the moving target");
   assert.equal(bar.shield, 25, "enemy health presentation exposes the remaining barrier");
 });
+
+test("renderer-local detonation history supplies contact feedback without entering simulation state", () => {
+  const { renderer } = recordingRenderer();
+  const warning = { id: "warning", kind: "danger", owner: "enemy", x: 30, y: 40, radius: 170, life: .5, maxLife: .5 };
+  const state = { enemies: [{ id: "bomber", type: "bomber", x: 30, y: 40, behaviorState: "windup" }], effects: [warning] };
+  const before = structuredClone(state);
+  renderer.updateEnemyAttackContacts(state, 1 / 60);
+  renderer.updateEnemyAttackContacts({ enemies: [], effects: [] }, 1 / 60);
+  assert.equal(renderer.enemyAttackContacts.length, 1);
+  assert.deepEqual(renderer.enemyAttackContacts[0], { id: "presentation:warning", x: 30, y: 40, radius: 170, angle: 0, family: "detonation", life: .3, maxLife: .3 });
+  assert.deepEqual(state, before, "presentation history never annotates or mutates authoritative effects");
+});
+
+test("a defused bomber warning cannot synthesize a false detonation", () => {
+  const { renderer } = recordingRenderer();
+  const warning = { id: "warning", kind: "danger", owner: "enemy", x: 30, y: 40, radius: 170, life: .5, maxLife: .5 };
+  renderer.updateEnemyAttackContacts({ enemies: [{ id: "bomber", type: "bomber", x: 30, y: 40, behaviorState: "windup" }], effects: [warning] }, 1 / 60);
+  renderer.updateEnemyAttackContacts({ enemies: [], effects: [{ ...warning, life: .25 }] }, 1 / 60);
+  renderer.updateEnemyAttackContacts({ enemies: [], effects: [] }, 1 / 60);
+  assert.equal(renderer.enemyAttackContacts.length, 0, "warning expiry after its source vanished remains visually defused");
+});

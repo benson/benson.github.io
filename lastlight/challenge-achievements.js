@@ -1,4 +1,4 @@
-import { fnv1a64 } from "./replay.js?v=20260713.21";
+import { fnv1a64 } from "./replay.js?v=20260715.1";
 
 export const CHALLENGE_ACHIEVEMENT_SCHEMA = "lastlight.challenge-achievements.v1";
 export const CHALLENGE_ACHIEVEMENT_REGISTRY_VERSION = "lastlight.challenge-achievements.registry.v1";

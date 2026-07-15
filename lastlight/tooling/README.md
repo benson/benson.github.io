@@ -163,6 +163,21 @@ Never generate contact sheets with platform fonts or timestamps. The tool's QA
 artifacts intentionally use only pixels and canonical sorted JSON so two builds
 from identical inputs compare byte for byte.
 
+## Auditing runtime specialist motion
+
+The atlas builders above prove source normalization and atlas validity. The
+separate runtime audit proves what the shipped game actually selects and draws:
+
+```bash
+npm run motion-audit:verify
+npm run motion-audit:report
+```
+
+It shares the live renderer's specialist atlas plan and exercises all nine
+specialists, states, directions, aiming policies, transitions, and
+normal/reduced-motion modes. See `../MOTION-AUDIT.md` for the matrix, artifact
+index, deterministic expectations, and review workflow.
+
 ## Normalizing generated motion sheets
 
 The shipped image-generated WebPs under `assets/motion/` are immutable source
@@ -170,6 +185,11 @@ sheets. Several poses cross their nominal row or column cuts, so they must never
 be consumed directly as runtime grids. `motion_atlas_tool.py` segments their
 connected alpha foreground and writes isolated 256 × 256 runtime cells under
 `assets/motion-normalized/`.
+
+An atlas may declare `sourceGridRows` when an immutable legacy source has a
+different physical row count from its runtime contract. Zuri uses this path to
+promote its four-by-five PNG into a four-by-six runtime WebP; every duplicated
+or remapped pose remains explicit in `sourceRows` and in the QA report.
 
 Run from `lastlight/`:
 

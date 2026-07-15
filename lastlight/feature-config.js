@@ -27,7 +27,7 @@ const MAX_RUNTIME_CONFIG_BYTES = 4_096;
 
 export const DEFAULT_RUNTIME_CONFIG = deepFreeze({
   schemaVersion: RUNTIME_CONFIG_SCHEMA_VERSION,
-  configVersion: "release-2026.07.13.21",
+  configVersion: "release-2026.07.15.1",
   gameplayVersion: "rare-discoveries-v1",
   registryVersion: SQUAD_SYNERGY_REGISTRY_VERSION,
   flags: {

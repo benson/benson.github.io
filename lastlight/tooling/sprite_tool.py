@@ -416,15 +416,33 @@ def verify_theme_coverage(root, manifest, compare_metadata=True):
         for specialist, animation in runtime_animations.items()
         if specialist in required_specialists and isinstance(animation, dict) and animation.get("atlas", {}).get("available", True)
     }
-    expected = {(atlas["specialist"], atlas["output"]["path"]) for atlas in manifest["atlases"]}
-    if discovered != expected:
-        raise SpriteToolError(f"Theme animation coverage mismatch: expected {sorted(expected)}, found {sorted(discovered)}")
+    discovered_specialists = {item[0] for item in discovered}
+    if discovered_specialists != required_specialists:
+        raise SpriteToolError(f"Theme animation coverage mismatch: expected {sorted(required_specialists)}, found {sorted(discovered_specialists)}")
+    runtime_paths = dict(discovered)
     if not compare_metadata:
         return {"module": manifest["theme"]["module"], "animatedSpecialists": sorted(item[0] for item in discovered)}
+    motion_manifest_path = root / "tooling" / "motion-atlas-manifest.json"
+    try:
+        motion_manifest = json.loads(motion_manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise SpriteToolError(f"Cannot inspect motion normalization handoff: {error}") from error
     for atlas in manifest["atlases"]:
         render = atlas["render"]
         runtime = runtime_animations.get(atlas["specialist"], {})
         runtime_atlas = runtime.get("atlas", {})
+        runtime_path = runtime_paths.get(atlas["specialist"])
+        if runtime_path != atlas["output"]["path"]:
+            handoff = next((entry for entry in motion_manifest.get("atlases", []) if entry.get("kind") == "specialist" and entry.get("id") == atlas["specialist"]), None)
+            valid_handoff = (
+                isinstance(handoff, dict)
+                and handoff.get("source", {}).get("path") == atlas["output"]["path"]
+                and handoff.get("output", {}).get("path") == runtime_path
+                and handoff.get("sourceGridRows", handoff.get("rows")) == atlas["layout"]["rows"]
+            )
+            if not valid_handoff:
+                raise SpriteToolError(f"Theme motion normalization handoff drift: animations.specialists.{atlas['specialist']}")
+            continue
         bindings = runtime.get("bindings", {})
         runtime_states = runtime.get("states", {})
         normalized_states = {}

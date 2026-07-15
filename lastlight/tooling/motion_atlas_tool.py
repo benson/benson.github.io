@@ -94,10 +94,17 @@ def validate_manifest(manifest):
     ids, sources, outputs, runtime_keys = set(), set(), set(), set()
     for index, atlas in enumerate(atlases):
         label = f"manifest.atlases[{index}]"
-        exact(atlas, ["id", "kind", "source", "output", "rows", "directions", "states", "sourceSlots", "sourceRows", "flipX", "anchor"], label)
+        required_atlas_fields = ["id", "kind", "source", "output", "rows", "directions", "states", "sourceSlots", "sourceRows", "flipX", "anchor"]
+        fail(isinstance(atlas, dict), f"{label} must be an object")
+        unknown = sorted(set(atlas) - set(required_atlas_fields) - {"sourceGridRows"})
+        fail(not unknown, f"{label} contains unknown fields: {', '.join(unknown)}")
+        missing = [key for key in required_atlas_fields if key not in atlas]
+        fail(not missing, f"{label} is missing fields: {', '.join(missing)}")
         fail(isinstance(atlas["id"], str) and atlas["id"].replace("-", "").isalnum() and atlas["id"] == atlas["id"].lower(), f"{label}.id is invalid")
         fail(atlas["kind"] in ["specialist", "enemy", "boss"], f"{label}.kind is invalid")
         fail(isinstance(atlas["rows"], int) and atlas["rows"] in [5, 6], f"{label}.rows must be 5 or 6")
+        source_grid_rows = atlas.get("sourceGridRows", atlas["rows"])
+        fail(isinstance(source_grid_rows, int) and source_grid_rows in [5, 6], f"{label}.sourceGridRows must be 5 or 6")
         fail(atlas["directions"] == DIRECTIONS, f"{label}.directions must be {DIRECTIONS}")
         states = atlas["states"]
         fail(isinstance(states, list) and len(states) == atlas["rows"] and len(set(states)) == len(states), f"{label}.states must uniquely name every row")
@@ -109,7 +116,7 @@ def validate_manifest(manifest):
         frame_ids = {f"{state}.{direction}" for state in states for direction in DIRECTIONS}
         source_rows = atlas["sourceRows"]
         fail(isinstance(source_rows, dict) and set(source_rows).issubset(frame_ids), f"{label}.sourceRows contains an unknown frame id")
-        fail(all(isinstance(row, int) and 0 <= row < atlas["rows"] for row in source_rows.values()), f"{label}.sourceRows values must name a physical source row")
+        fail(all(isinstance(row, int) and 0 <= row < source_grid_rows for row in source_rows.values()), f"{label}.sourceRows values must name a physical source row")
         flip_x = atlas["flipX"]
         fail(isinstance(flip_x, list) and len(flip_x) == len(set(flip_x)) and set(flip_x).issubset(frame_ids), f"{label}.flipX must contain unique known frame ids")
         anchor = atlas["anchor"]
@@ -121,7 +128,7 @@ def validate_manifest(manifest):
         safe_path(output["path"], f"{label}.output.path", [".webp"])
         fail(isinstance(source["sha256"], str) and len(source["sha256"]) == 64, f"{label}.source.sha256 is invalid")
         fail(isinstance(output["pixelSha256"], str) and len(output["pixelSha256"]) == 64, f"{label}.output.pixelSha256 is invalid")
-        fail(source["width"] == 1024 and source["height"] == 1536, f"{label}.source must be 1024x1536")
+        fail(all(isinstance(source.get(key), int) and source[key] > 0 for key in ["width", "height"]), f"{label}.source dimensions must be positive integers")
         fail(output["width"] == 1024 and output["height"] == atlas["rows"] * 256, f"{label}.output dimensions do not match the grid")
         runtime_key = (atlas["kind"], atlas["id"])
         fail(atlas["id"] not in ids and source["path"] not in sources and output["path"] not in outputs and runtime_key not in runtime_keys, f"{label} duplicates an id, path, or runtime key")
@@ -333,9 +340,10 @@ def build_atlas(root, atlas, normalization):
         fail(opened.size == (atlas["source"]["width"], atlas["source"]["height"]), f"Source dimensions mismatch: {atlas['source']['path']}")
         source = opened.convert("RGBA")
     components, ignored_count = connected_components(source.getchannel("A"), normalization["minComponentPixels"])
-    add_nominal_overlaps(components, source.width, source.height, normalization["columns"], atlas["rows"])
-    primaries = choose_primary_components(components, normalization["columns"], atlas["rows"], atlas["id"])
-    assignments = assign_components(components, primaries, source.size, atlas["rows"])
+    source_grid_rows = atlas.get("sourceGridRows", atlas["rows"])
+    add_nominal_overlaps(components, source.width, source.height, normalization["columns"], source_grid_rows)
+    primaries = choose_primary_components(components, normalization["columns"], source_grid_rows, atlas["id"])
+    assignments = assign_components(components, primaries, source.size, source_grid_rows)
     cell_size = normalization["cellSize"]
     output = Image.new("RGBA", (normalization["columns"] * cell_size, atlas["rows"] * cell_size), (0, 0, 0, 0))
     source_frames = []
@@ -354,7 +362,7 @@ def build_atlas(root, atlas, normalization):
     frames = validate_output(output, atlas, normalization)
     for frame, source_frame in zip(frames, source_frames):
         frame.update(source_frame)
-    return output, frames, {"components": len(components), "ignoredComponents": ignored_count}
+    return output, frames, {"components": len(components), "ignoredComponents": ignored_count, "sourceGridRows": source_grid_rows}
 
 
 def encode_runtime_webp(image, config):

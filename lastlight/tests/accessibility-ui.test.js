@@ -28,7 +28,7 @@ test("scaling reflows at 200 percent and touch controls retain minimum target si
   assert.match(styles, /--hud-scale/);
   assert.match(styles, /--touch-scale/);
   assert.match(styles, /data-reduced-flash="true"/);
-  assert.match(styles, /topbar-actions #quality-button \{ display: inline-flex/);
+  assert.match(styles, /topbar-actions \.command-menu-panel \.text-button \{ display: flex/);
 });
 
 test("the accessibility rollback flag is presentation-only and defaults restore authored output", () => {

@@ -86,12 +86,12 @@ export function directionColumn(angle) {
 }
 
 // The simulation already resolves each specialist's authored facing policy
-// (aim, movement/contact, or hybrid) into entity.facing. Rendering from raw
-// movementFacing here made aim-facing specialists look away from their target
-// whenever they strafed or backpedalled.
+// (aim, movement/contact, or hybrid) into entity.facing. Rendering must consume
+// that authoritative result regardless of whether weapon auto-aim is enabled;
+// otherwise aim-facing specialists turn toward travel while their attacks keep
+// tracking a different target.
 export function specialistFacingTarget(entity, moving, inferredMovement = 0) {
   if (entity?.animState === "dash" && Number.isFinite(entity?.dashFacing)) return entity.dashFacing;
-  if ((entity?.input?.autoAim ?? entity?.autoAim) && moving && Number.isFinite(entity?.movementFacing)) return entity.movementFacing;
   if (Number.isFinite(entity?.facing)) return entity.facing;
   if (moving && Number.isFinite(entity?.movementFacing)) return entity.movementFacing;
   if (Number.isFinite(entity?.aimFacing)) return entity.aimFacing;

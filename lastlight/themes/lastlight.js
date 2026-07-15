@@ -1,7 +1,7 @@
 import { ENEMY_MOTION_STATES, MOTION_DIRECTIONS, MOTION_SCHEMA, SPECIALIST_MOTION_STATES, validateMotionRig } from "../motion.js?v=20260713.1";
 import { LASTLIGHT_MATERIAL_THEME, MATERIAL_CLASSES, validateMaterialTheme } from "../material-impacts.js?v=20260711.8";
 import { LASTLIGHT_ENVIRONMENT_INTERACTIONS, validateEnvironmentInteractions } from "../environment-interactions.js?v=20260712.1";
-import { LASTLIGHT_ENVIRONMENT_CHUNKS, validateEnvironmentChunks } from "../environment-chunks.js?v=20260713.21";
+import { LASTLIGHT_ENVIRONMENT_CHUNKS, validateEnvironmentChunks } from "../environment-chunks.js?v=20260715.1";
 
 /**
  * The canonical asset contract for a Lastlight visual theme.
@@ -218,29 +218,39 @@ function plannedSpecialistRig(id) {
   };
 }
 
-function zuriPrototypeRig() {
-  const rig = plannedSpecialistRig("zuri");
-  return {
-    ...rig, status: "prototype", atlas: { src: "assets/sprites/zuri-motion-atlas.png", available: true, expectedSize: [1256, 1255] },
-    grid: { columns: 4, rows: 5 }, anchor: [.5, .82], drawSize: [138, 110],
-    states: {
-      idle: { ...frames([0, 0], [260, 260], true), loop: true },
-      run: { ...frames([1, 2], 250, true), loop: true },
-      mobility: frames([3, 3, 3], [60, 60, 100], true),
-      cast: frames([3, 3, 3, 0], [80, 80, 70, 130]),
-      hurt: frames([4, 4], [80, 150], true), down: frames([4, 4, 4, 4], [90, 110, 140, 420]),
-      revive: frames([0, 0, 0, 0], [100, 100, 100, 180]),
-      victory: { ...frames([0, 0, 0, 0], [150, 150, 180, 220]), loop: true },
-    },
-  };
-}
-
 function plannedEnemyRig(id, layout, boss = false) {
   const source = boss ? `assets/motion-normalized/bosses/${id}.webp` : `assets/motion-normalized/enemies/${id}.webp`;
   const compactFiveRows = id === "spitter" || id === "bomber" || (boss && id === "beachhead");
   const locomotionRows = compactFiveRows ? [2] : [2, 3];
   const actionRow = compactFiveRows ? 3 : 4;
   const hurtDeathRow = compactFiveRows ? 4 : 5;
+  const fieldAttack = !boss && {
+    hound: {
+      windup: [{ row: 1, ms: 100, scaleX: .98 }, { row: 1, ms: 100, offsetX: -2, scaleX: .95, scaleY: 1.03 }, { row: 1, ms: 100, offsetX: -4, scaleX: .91, scaleY: 1.06 }],
+      contact: [{ row: actionRow, ms: 80, offsetX: 4, scaleX: 1.05, scaleY: .96 }, { row: actionRow, ms: 120, offsetX: 2, scaleX: 1.02, scaleY: .98 }],
+      recovery: [{ row: actionRow, ms: 90, scaleX: 1.02 }, { row: 0, ms: 150 }],
+    },
+    spitter: {
+      windup: [{ row: 1, ms: 100, scaleX: .98 }, { row: 1, ms: 100, offsetX: -2, rotation: -.025, scaleX: .95, scaleY: 1.03 }, { row: 1, ms: 100, offsetX: -3, rotation: -.045, scaleX: .92, scaleY: 1.05 }],
+      contact: [{ row: actionRow, ms: 65, offsetX: 4, rotation: .035, scaleX: 1.06, scaleY: .95 }, { row: actionRow, ms: 35, offsetX: 1, scaleX: 1.02 }],
+      recovery: [{ row: actionRow, ms: 80, scaleX: 1.02 }, { row: 0, ms: 170 }],
+    },
+    brute: {
+      windup: [{ row: 1, ms: 100, scaleY: .99 }, { row: 1, ms: 100, offsetY: 2, scaleX: 1.03, scaleY: .96 }, { row: 1, ms: 100, offsetY: 4, scaleX: 1.06, scaleY: .92 }],
+      contact: [{ row: actionRow, ms: 70, offsetY: 3, scaleX: 1.07, scaleY: .93 }, { row: actionRow, ms: 50, scaleX: 1.03, scaleY: .98 }],
+      recovery: [{ row: actionRow, ms: 100, scaleX: 1.03 }, { row: 0, ms: 180 }],
+    },
+    bomber: {
+      windup: [{ row: 1, ms: 100, scaleX: .98 }, { row: 1, ms: 100, rotation: -.025, scaleX: 1.03, scaleY: .97 }, { row: 1, ms: 84, rotation: .035, scaleX: 1.08, scaleY: .92 }, { row: actionRow, ms: 16, offsetY: 2, scaleX: 1.1, scaleY: .9 }],
+      contact: [{ row: actionRow, ms: 70, scaleX: 1.06, scaleY: .94 }],
+      recovery: [{ row: actionRow, ms: 70 }, { row: 0, ms: 130 }],
+    },
+    shark: {
+      windup: [{ row: 1, ms: 100, scaleX: .98 }, { row: 1, ms: 100, offsetX: -3, scaleX: .95, scaleY: 1.03 }, { row: 1, ms: 100, offsetX: -6, scaleX: .9, scaleY: 1.07 }],
+      contact: [{ row: actionRow, ms: 90, offsetX: 6, scaleX: 1.06, scaleY: .95 }, { row: actionRow, ms: 130, offsetX: 3, scaleX: 1.025, scaleY: .98 }],
+      recovery: [{ row: actionRow, ms: 110, scaleX: 1.035 }, { row: 0, ms: 190 }],
+    },
+  }[id];
   return {
     schema: MOTION_SCHEMA, kind: "enemy", status: "ready",
     atlas: { src: source, available: true, expectedSize: [1024, compactFiveRows ? 1280 : 1536] },
@@ -250,16 +260,16 @@ function plannedEnemyRig(id, layout, boss = false) {
     states: {
       idle: { ...frames([0, 1], [300, 300], true), loop: true },
       locomotion: { ...frames(locomotionRows, boss ? 135 : compactFiveRows ? 140 : 110, true), loop: true },
-      attackWindup: { loop: false, authored: false, frames: [{ row: 1, ms: 90, scaleX: .96 }, { row: 1, ms: 90, scaleX: .93, scaleY: 1.03 }] },
-      attackContact: frames([actionRow], 70, true),
-      attackRecovery: { loop: false, authored: true, frames: [{ row: actionRow, ms: 90, scaleX: 1.03 }, { row: 0, ms: 130 }] },
+      attackWindup: { loop: false, authored: false, frames: fieldAttack?.windup || [{ row: 1, ms: 90, scaleX: .96 }, { row: 1, ms: 90, scaleX: .93, scaleY: 1.03 }] },
+      attackContact: { loop: false, authored: true, frames: fieldAttack?.contact || [{ row: actionRow, ms: 70 }] },
+      attackRecovery: { loop: false, authored: true, frames: fieldAttack?.recovery || [{ row: actionRow, ms: 90, scaleX: 1.03 }, { row: 0, ms: 130 }] },
       hurt: frames([hurtDeathRow, hurtDeathRow], [70, 110], true),
       death: { loop: false, authored: true, frames: [{ row: hurtDeathRow, ms: 80 }, { row: hurtDeathRow, ms: 100, rotation: -.05 }, { row: hurtDeathRow, ms: 130, rotation: -.11, offsetY: 5 }, { row: hurtDeathRow, ms: 220, rotation: -.14, offsetY: 8 }] },
     },
   };
 }
 
-const specialistMotions = Object.fromEntries(THEME_ASSET_KEYS.specialists.map((id) => [id, id === "zuri" ? zuriPrototypeRig() : plannedSpecialistRig(id)]));
+const specialistMotions = Object.fromEntries(THEME_ASSET_KEYS.specialists.map((id) => [id, plannedSpecialistRig(id)]));
 const enemyMotions = Object.fromEntries(THEME_ASSET_KEYS.enemies.map((id) => [id, plannedEnemyRig(id, enemyLayout[id])]));
 const bossMotions = Object.fromEntries(MOTION_BOSS_IDS.map((id) => [id, plannedEnemyRig(id, { anchor: [.5, .875], drawSize: [190, 160], groundY: 32, shadow: [76, 24], contact: [90, 2] }, true)]));
 

@@ -41,14 +41,15 @@ def make_source(rows, touching=False):
     return image
 
 
-def atlas_record(root, rows, touching=False):
-    source = make_source(rows, touching)
+def atlas_record(root, rows, touching=False, source_rows=None):
+    source_rows = source_rows or rows
+    source = make_source(source_rows, touching)
     source_path = root / "assets" / "source.png"
     source_path.parent.mkdir(parents=True)
     source.save(source_path, format="PNG")
     source_hash = hashlib.sha256(source_path.read_bytes()).hexdigest()
     states = [f"pose-{index}" for index in range(rows)]
-    return {
+    record = {
         "id": f"fixture-{rows}",
         "kind": "specialist",
         "rows": rows,
@@ -61,6 +62,9 @@ def atlas_record(root, rows, touching=False):
         "flipX": [],
         "anchor": [.5, .875],
     }
+    if source_rows != rows:
+        record["sourceGridRows"] = source_rows
+    return record
 
 
 class MotionAtlasNormalizationTests(unittest.TestCase):
@@ -132,6 +136,25 @@ class MotionAtlasNormalizationTests(unittest.TestCase):
             self.assertIn(reused_color, {pixel[:3] for pixel in north.get_flattened_data() if pixel[3] == 255})
             self.assertEqual(frames[1 * 4 + 2]["sourceRow"], 3)
             self.assertEqual(frames[1 * 4 + 1]["flipX"], True)
+
+    def test_five_row_legacy_source_promotes_to_six_row_runtime_grid(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            atlas = atlas_record(root, 6, source_rows=5)
+            for column, direction in enumerate(tool.DIRECTIONS):
+                atlas["sourceRows"][f"pose-1.{direction}"] = 0
+                atlas["sourceRows"][f"pose-2.{direction}"] = 1
+                atlas["sourceRows"][f"pose-3.{direction}"] = 2
+                atlas["sourceRows"][f"pose-4.{direction}"] = 3
+                atlas["sourceRows"][f"pose-5.{direction}"] = 4
+            output, frames, segmentation = tool.build_atlas(root, atlas, NORMALIZATION)
+            self.assertEqual(output.size, (1024, 1536))
+            self.assertEqual(len(frames), 24)
+            self.assertEqual(segmentation["sourceGridRows"], 5)
+            first_idle = output.crop((0, 0, 256, 256))
+            second_idle = output.crop((0, 256, 256, 512))
+            self.assertEqual(tool.pixel_sha256(first_idle), tool.pixel_sha256(second_idle))
+            self.assertEqual(frames[-1]["sourceRow"], 4)
 
     def test_manifest_rejects_incomplete_or_duplicate_source_slot_maps(self):
         manifest_path = Path(__file__).resolve().parents[1] / "motion-atlas-manifest.json"
