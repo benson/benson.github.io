@@ -14,6 +14,7 @@ import { environmentChunkLayout, environmentChunksForBounds } from "./environmen
 import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260713.21";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
 import { PING_INTENTS, PING_LIFETIME_TICKS, selectVisiblePings } from "./ping-contract.js?v=20260713.4";
+import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260715.1";
 
 const TAU = Math.PI * 2;
 const PING_BUFFER_LIMIT = 32;
@@ -214,6 +215,8 @@ export class Renderer {
     this.materialImpacts = [];
     this.materialProjectileHistory = new Map();
     this.materialEffectHistory = new Set();
+    this.enemyAttackThreatHistory = new Map();
+    this.enemyAttackContacts = [];
     this.materialAudioCues = [];
     this.visualFreeze = 0;
     this.lastLocalHurt = 0;
@@ -267,7 +270,7 @@ export class Renderer {
 
   resetCamera() {
     this.camera.x = 0; this.camera.y = 0; this.camera.vx = 0; this.camera.vy = 0;
-    this.playerVisuals.clear(); this.enemyVisuals.clear(); this.groundParticles = []; this.environmentField.reset(); this.visibleEnvironmentChunks = Object.freeze([]); this.materialImpacts = []; this.materialProjectileHistory.clear(); this.materialEffectHistory.clear(); this.materialAudioCues = []; this.pings = Object.freeze([]); this.visualFreeze = 0; this.lastLocalHurt = 0;
+    this.playerVisuals.clear(); this.enemyVisuals.clear(); this.groundParticles = []; this.environmentField.reset(); this.visibleEnvironmentChunks = Object.freeze([]); this.materialImpacts = []; this.materialProjectileHistory.clear(); this.materialEffectHistory.clear(); this.enemyAttackThreatHistory.clear(); this.enemyAttackContacts = []; this.materialAudioCues = []; this.pings = Object.freeze([]); this.visualFreeze = 0; this.lastLocalHurt = 0;
   }
 
   resize() {
@@ -415,6 +418,42 @@ export class Renderer {
     const elapsedMs = Math.max(0, Math.min(50, frameSeconds * 1000));
     for (const impact of this.materialImpacts) impact.ageMs += elapsedMs;
     this.materialImpacts = this.materialImpacts.filter((impact) => impact.ageMs <= Math.max(impact.response.lifetimeMs, impact.response.decal.lifetimeMs));
+  }
+
+  updateEnemyAttackContacts(state, frameSeconds) {
+    const dt = Math.max(0, Math.min(.05, frameSeconds || 0));
+    for (const contact of this.enemyAttackContacts) contact.life -= dt;
+    this.enemyAttackContacts = this.enemyAttackContacts.filter(({ life }) => life > 0);
+    const enemies = state.enemies || [], effects = state.effects || [], current = new Map(), contacts = [];
+    for (const effect of effects) {
+      const presentation = enemyAttackEffectPresentation(effect, enemies);
+      if (!presentation) continue;
+      if (presentation.stage === "windup" && presentation.family === "detonation") {
+        const prior = this.enemyAttackThreatHistory.get(effect.id);
+        const source = enemies.find((enemy) => enemy?.type === "bomber" && Math.hypot(enemy.x - effect.x, enemy.y - effect.y) < 8);
+        const sourceId = prior?.sourceId || source?.id || null;
+        const sourcePresent = !sourceId || enemies.some((enemy) => enemy?.id === sourceId);
+        current.set(effect.id, {
+          x: effect.x, y: effect.y, radius: effect.radius, angle: presentation.angle, family: presentation.family,
+          sourceId, cancelled: Boolean(prior?.cancelled || (sourceId && !sourcePresent)),
+        });
+      }
+      if (presentation.stage === "contact") contacts.push({ x: effect.x, y: effect.y, radius: effect.radius, family: presentation.family });
+    }
+    for (const [id, threat] of this.enemyAttackThreatHistory) {
+      if (current.has(id)) continue;
+      // Bomber warnings can outlive a bomber killed during its fuse. Only a
+      // warning that retained its source through the final sampled frame may
+      // synthesize the otherwise-unrepresented self-detonation contact.
+      if (!threat.sourceId || threat.cancelled) continue;
+      const resolvedBySimulation = contacts.some((contact) => contact.family === threat.family && Math.hypot(contact.x - threat.x, contact.y - threat.y) < 8);
+      if (!resolvedBySimulation) this.enemyAttackContacts.push({
+        id: `presentation:${id}`, x: threat.x, y: threat.y, radius: threat.radius, angle: threat.angle,
+        family: threat.family, life: .3, maxLife: .3,
+      });
+    }
+    if (this.enemyAttackContacts.length > 12) this.enemyAttackContacts.splice(0, this.enemyAttackContacts.length - 12);
+    this.enemyAttackThreatHistory = current;
   }
 
   drainMaterialAudioCues(maximum = 1) {
@@ -669,6 +708,7 @@ export class Renderer {
     const ctx = this.ctx;
     const map = typeof state.map === "string" ? MAPS[state.map] : state.map;
     this.updateMaterialImpacts(state, map, frameSeconds);
+    this.updateEnemyAttackContacts(state, frameSeconds);
     const current = state.players.find((p) => p.id === localPlayerId) || state.players[0] || { x: 0, y: 0 };
     const pos = this.position(current, previous?.players, interpolation);
     const lookAngle = Number.isFinite(current.aimFacing) ? current.aimFacing : current.facing || 0;
@@ -731,6 +771,7 @@ export class Renderer {
     this.drawProjectiles(hostileProjectiles, true, state);
     this.drawObjectives(state.objectives || [], map, "overlay");
     this.drawEffects(effectPasses.threat, map, previous, interpolation, "threat", state);
+    this.drawEnemyAttackRecoveryContacts();
     this.drawCriticalOverlays(state, map, localPlayerId);
     this.drawEffects(effectPasses.feedback, map, previous, interpolation, "feedback", state);
     this.drawHovered(state, map);
@@ -1193,6 +1234,16 @@ export class Renderer {
       }
       const hostileTelegraph = e.owner === "enemy" || e.kind === "danger" || e.kind === "bossCast";
       if (hostileTelegraph) {
+        const attackPresentation = enemyAttackEffectPresentation(e, state.enemies || []), attackFamily = attackPresentation?.family;
+        if (attackFamily && attackPresentation.stage === "contact") {
+          this.drawEnemyAttackContact(enemyAttackMotionPlan({
+            family: attackFamily, stage: "contact", progress,
+            geometry: { radius: e.radius, angle: attackPresentation.angle || 0 },
+            reducedMotion: this.reducedMotion, reducedFlash: this.qualityProfile.flashIntensity <= .25,
+            crowded: relevant.length > 12,
+          }), semantic);
+          ctx.restore(); continue;
+        }
         // Enemy ground damage owns a fixed red/black warning language: solid
         // perimeter, inward teeth, and a closing white timing ring.
         ctx.fillStyle = "rgba(93,4,18,.28)"; ctx.beginPath(); ctx.arc(0,0,e.radius,0,TAU); ctx.fill();
@@ -1203,6 +1254,12 @@ export class Renderer {
         }
         ctx.strokeStyle=semantic.palette.core;ctx.globalAlpha=.82;ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,e.radius*(.18+progress*.72),0,TAU);ctx.stroke();
         ctx.globalAlpha=.26;ctx.strokeStyle="#ff9a54";ctx.lineWidth=2;for(let a=0;a<TAU;a+=Math.PI/3){ctx.beginPath();ctx.moveTo(Math.cos(a)*e.radius*.22,Math.sin(a)*e.radius*.22);ctx.lineTo(Math.cos(a)*e.radius*.72,Math.sin(a)*e.radius*.72);ctx.stroke();}
+        if (attackFamily) this.drawEnemyAttackAccents(enemyAttackMotionPlan({
+          family: attackFamily, stage: "windup", progress,
+          geometry: { radius: e.radius, angle: e.attackAngle || 0 },
+          reducedMotion: this.reducedMotion, reducedFlash: this.qualityProfile.flashIntensity <= .25,
+          crowded: relevant.length > 12,
+        }), semantic);
         ctx.restore();continue;
       }
       const delayed = e.delayed && e.life > 0;
@@ -1349,6 +1406,116 @@ export class Renderer {
     ctx.restore();
   }
 
+  drawEnemyAttackAccents(plan, danger) {
+    const ctx = this.ctx, geometry = plan.authoritativeGeometry, accents = plan.accents;
+    ctx.save(); ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.shadowBlur = 0;
+    if (plan.family === "charge") {
+      const span = Math.max(1, geometry.range - geometry.start), count = accents.chevrons;
+      ctx.strokeStyle = danger.palette.core; ctx.lineWidth = 2; ctx.globalAlpha = .64;
+      for (let index = 0; index < count; index++) {
+        const unit = ((index + .45) / count + accents.travel / count) % 1;
+        const x = geometry.start + span * unit, size = Math.min(12, Math.max(7, geometry.halfWidth * .42));
+        ctx.beginPath(); ctx.moveTo(x - size, -size * .7); ctx.lineTo(x, 0); ctx.lineTo(x - size, size * .7); ctx.stroke();
+      }
+      ctx.globalAlpha = .46; ctx.strokeStyle = danger.palette.body; ctx.lineWidth = 2;
+      for (const side of [-1, 1]) {
+        const y = side * Math.max(3, geometry.halfWidth - accents.railInset);
+        ctx.beginPath(); ctx.moveTo(geometry.start, y); ctx.lineTo(geometry.range, y); ctx.stroke();
+      }
+      ctx.fillStyle = danger.palette.core; ctx.globalAlpha = .76;
+      for (let index = 0; index < accents.endpointTeeth; index++) {
+        const y = (index - (accents.endpointTeeth - 1) / 2) * Math.max(7, geometry.halfWidth * 1.7 / Math.max(1, accents.endpointTeeth - 1));
+        ctx.beginPath(); ctx.moveTo(geometry.range - 10, y - 4); ctx.lineTo(geometry.range, y); ctx.lineTo(geometry.range - 10, y + 4); ctx.closePath(); ctx.fill();
+      }
+      if (accents.launchArcs) {
+        ctx.globalAlpha = .36; ctx.strokeStyle = danger.palette.body; ctx.lineWidth = 2;
+        for (let index = 0; index < accents.launchArcs; index++) {
+          const r = geometry.start + 8 + index * 7; ctx.beginPath(); ctx.arc(0, 0, r, -.52, .52); ctx.stroke();
+        }
+      }
+    } else if (plan.family === "slam") {
+      ctx.strokeStyle = danger.palette.core; ctx.lineWidth = 2.25; ctx.globalAlpha = .55;
+      for (let ring = 0; ring < accents.brokenRings; ring++) {
+        const base = .38 + ring * .18, radius = geometry.radius * Math.max(.18, base - accents.compression * .35);
+        for (let segment = 0; segment < 4; segment++) {
+          const start = accents.rotation + segment * TAU / 4 + ring * .2;
+          ctx.beginPath(); ctx.arc(0, 0, radius, start, start + .7); ctx.stroke();
+        }
+      }
+      ctx.strokeStyle = danger.palette.body; ctx.lineWidth = 2; ctx.globalAlpha = .48;
+      for (let index = 0; index < accents.fractures; index++) {
+        const angle = index * TAU / accents.fractures + accents.rotation, inner = geometry.radius * (.24 + (index % 2) * .08), outer = geometry.radius * (.52 + accents.compression);
+        ctx.beginPath(); ctx.moveTo(Math.cos(angle) * inner, Math.sin(angle) * inner); ctx.lineTo(Math.cos(angle + .04) * outer, Math.sin(angle + .04) * outer); ctx.stroke();
+      }
+    } else {
+      const segmentRadius = geometry.radius * .72, segmentArc = TAU / accents.fuseSegments;
+      ctx.lineWidth = 5;
+      for (let index = 0; index < accents.fuseSegments; index++) {
+        ctx.strokeStyle = index < accents.litSegments ? danger.palette.core : danger.palette.body;
+        ctx.globalAlpha = index < accents.litSegments ? .82 : .24;
+        const start = -Math.PI / 2 + index * segmentArc + accents.unstableRotation;
+        ctx.beginPath(); ctx.arc(0, 0, segmentRadius, start, start + segmentArc * .55); ctx.stroke();
+      }
+      const core = geometry.radius * accents.coreScale;
+      ctx.fillStyle = danger.palette.body; ctx.globalAlpha = .18; ctx.beginPath();
+      for (let index = 0; index < 6; index++) {
+        const angle = index * TAU / 6 - Math.PI / 2 + accents.unstableRotation, x = Math.cos(angle) * core, y = Math.sin(angle) * core;
+        index ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      }
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = danger.palette.core; ctx.globalAlpha = .42; ctx.lineWidth = 2;
+      for (let index = 0; index < accents.spokes; index++) {
+        const angle = index * TAU / accents.spokes + accents.unstableRotation;
+        ctx.beginPath(); ctx.moveTo(Math.cos(angle) * geometry.radius * .28, Math.sin(angle) * geometry.radius * .28); ctx.lineTo(Math.cos(angle) * geometry.radius * .56, Math.sin(angle) * geometry.radius * .56); ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  drawEnemyAttackContact(plan, danger) {
+    const ctx = this.ctx, geometry = plan.authoritativeGeometry, contact = plan.contact;
+    if (contact.alpha <= 0) return;
+    const progress = contact.progress, radius = geometry.radius, expansion = .22 + progress * .78;
+    ctx.save(); ctx.rotate(geometry.angle); ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.globalAlpha = contact.alpha;
+    ctx.strokeStyle = contact.brightCore ? danger.palette.core : danger.palette.body;
+    ctx.lineWidth = contact.brightCore ? 4 : 2.5;
+    ctx.shadowColor = danger.palette.body; ctx.shadowBlur = contact.brightCore ? 7 : 0;
+    if (plan.family === "charge") {
+      ctx.beginPath(); ctx.arc(0, 0, radius * expansion, -.72, .72); ctx.stroke();
+      for (let index = -2; index <= 2; index++) {
+        const angle = index * .24, inner = radius * .2, outer = radius * (.5 + contact.travel * .5);
+        ctx.beginPath(); ctx.moveTo(Math.cos(angle) * inner, Math.sin(angle) * inner); ctx.lineTo(Math.cos(angle) * outer, Math.sin(angle) * outer); ctx.stroke();
+      }
+    } else if (plan.family === "slam") {
+      ctx.beginPath(); ctx.arc(0, 0, radius * expansion, 0, TAU); ctx.stroke();
+      for (let index = 0; index < plan.accents.fractures; index++) {
+        const angle = index * TAU / plan.accents.fractures, inner = radius * .18, outer = radius * (.48 + progress * .42);
+        ctx.beginPath(); ctx.moveTo(Math.cos(angle) * inner, Math.sin(angle) * inner); ctx.lineTo(Math.cos(angle + .045) * outer, Math.sin(angle + .045) * outer); ctx.stroke();
+      }
+    } else {
+      ctx.beginPath(); ctx.arc(0, 0, radius * expansion, 0, TAU); ctx.stroke();
+      for (let index = 0; index < plan.accents.spokes; index++) {
+        const angle = index * TAU / plan.accents.spokes, inner = radius * .14, outer = radius * (.42 + contact.travel * .54);
+        ctx.beginPath(); ctx.moveTo(Math.cos(angle) * inner, Math.sin(angle) * inner); ctx.lineTo(Math.cos(angle) * outer, Math.sin(angle) * outer); ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  drawEnemyAttackRecoveryContacts() {
+    const ctx = this.ctx, danger = this.readability("lethalTelegraph");
+    for (const contact of this.enemyAttackContacts) {
+      const progress = 1 - clamp(contact.life / contact.maxLife, 0, 1);
+      const plan = enemyAttackMotionPlan({
+        family: contact.family, stage: "contact", progress,
+        geometry: { radius: contact.radius, angle: contact.angle || 0 },
+        reducedMotion: this.reducedMotion, reducedFlash: this.qualityProfile.flashIntensity <= .25,
+        crowded: this.enemyAttackContacts.length > 6,
+      });
+      ctx.save(); ctx.translate(contact.x, contact.y); this.drawEnemyAttackContact(plan, danger); ctx.restore();
+    }
+  }
+
   drawEnemyBehaviorTelegraphs(enemies, previous, t, state = {}) {
     const ctx = this.ctx, tick = Number(state.tick) || 0, danger = this.readability("lethalTelegraph");
     const authoredThreats = (state.effects || []).filter((effect) => effect && (effect.owner === "enemy" || effect.kind === "danger" || effect.kind === "bossCast"));
@@ -1359,8 +1526,21 @@ export class Renderer {
     };
     for (const raw of enemies) {
       if (raw?.dead || !this.isWorldVisible(raw, 420)) continue;
+      const phase = enemyBehaviorState(raw).phase;
       const kind = enemyTelegraphKind(raw, tick);
-      if (!kind) continue;
+      if (!kind) {
+        if (raw.type === "hound" && phase === "recovery") {
+          const enemy = this.position(raw, previous?.enemies, t), progress = enemyTelegraphProgress(raw, tick);
+          const plan = enemyAttackMotionPlan({
+            family: "charge", stage: "recovery", progress,
+            geometry: { radius: Math.max(34, (raw.radius || 24) * 2.1), angle: raw.attackAngle || 0 },
+            reducedMotion: this.reducedMotion, reducedFlash: this.qualityProfile.flashIntensity <= .25,
+            crowded: enemies.length > 18,
+          });
+          ctx.save(); ctx.translate(enemy.x, enemy.y); this.drawEnemyAttackContact(plan, danger); ctx.restore();
+        }
+        continue;
+      }
       // Bomber and volatile explosions already own an authoritative danger
       // effect. Avoid stacking a second ring over the exact same warning.
       if (kind === "burst" && authoredThreats.some((effect) => Math.abs(Number(effect.x) - Number(raw.x)) < 2 && Math.abs(Number(effect.y) - Number(raw.y)) < 2)) continue;
@@ -1371,9 +1551,9 @@ export class Renderer {
       const radius = Number.isFinite(authoredRadius) && authoredRadius > 0 ? authoredRadius : defaults.radius;
       const authoredRange = Number(raw.behaviorRange ?? raw.attackRange ?? raw.telegraphRange);
       let range = Number.isFinite(authoredRange) && authoredRange > 0 ? authoredRange : defaults.range;
-      const phase = enemyBehaviorState(raw).phase;
       if (phase === "charge" && Number.isFinite(raw.behaviorEndX) && Number.isFinite(raw.behaviorEndY)) range = Math.hypot(raw.behaviorEndX - enemy.x, raw.behaviorEndY - enemy.y);
       ctx.save(); ctx.translate(enemy.x, enemy.y); ctx.rotate(angle); ctx.globalAlpha = .94;
+      let halfWidth = Math.max(22, (raw.radius || 24) * .82), start = Math.max(8, (raw.radius || 24) * .45);
 
       if (kind === "ring" || kind === "burst") {
         ctx.fillStyle = danger.palette.body; ctx.globalAlpha = .07; ctx.beginPath(); ctx.arc(0, 0, radius, 0, TAU); ctx.fill(); ctx.globalAlpha = .94;
@@ -1402,7 +1582,7 @@ export class Renderer {
           ctx.moveTo(x - 10, -8); ctx.lineTo(x, 0); ctx.lineTo(x - 10, 8); ctx.stroke();
         }
       } else {
-        const halfWidth = kind === "line" ? 13 : Math.max(22, (raw.radius || 24) * .82), start = Math.max(8, (raw.radius || 24) * .45);
+        halfWidth = kind === "line" ? 13 : halfWidth;
         ctx.fillStyle = danger.palette.body; ctx.globalAlpha = kind === "line" ? .035 : .065; ctx.fillRect(start, -halfWidth, range - start, halfWidth * 2); ctx.globalAlpha = .94;
         outlined(() => { ctx.beginPath(); ctx.moveTo(start, -halfWidth); ctx.lineTo(range, -halfWidth); ctx.lineTo(range, halfWidth); ctx.lineTo(start, halfWidth); ctx.closePath(); }, kind === "line" ? [3, 7] : [13, 8]);
         outlined(() => { ctx.beginPath(); ctx.moveTo(start, 0); ctx.lineTo(range, 0); }, kind === "line" ? [2, 8] : [10, 9]);
@@ -1416,6 +1596,13 @@ export class Renderer {
           ctx.beginPath(); ctx.arc(range, 0, 10, 0, TAU); ctx.moveTo(range - 15, 0); ctx.lineTo(range + 15, 0); ctx.moveTo(range, -15); ctx.lineTo(range, 15); ctx.stroke();
         }
       }
+      const family = enemyAttackFamily({ type: raw.type, telegraphKind: kind });
+      if (family) this.drawEnemyAttackAccents(enemyAttackMotionPlan({
+        family, stage: "windup", progress,
+        geometry: { radius, range, start, halfWidth },
+        reducedMotion: this.reducedMotion, reducedFlash: this.qualityProfile.flashIntensity <= .25,
+        crowded: enemies.length > 18,
+      }), danger);
       ctx.restore();
     }
     ctx.globalAlpha = 1; ctx.setLineDash([]); ctx.shadowBlur = 0;
