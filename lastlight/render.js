@@ -1,21 +1,26 @@
-import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260715.1";
-import { WORLD } from "./engine.js?v=20260715.1";
-import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260715.1";
+import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260715.2";
+import { WORLD } from "./engine.js?v=20260715.2";
+import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260715.2";
 import { springCamera } from "./feel.js?v=20260713.2";
 import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistFacingTarget, specialistMotionState, stableDirectionColumn } from "./motion.js?v=20260713.1";
 import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
 import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260711.5";
-import { impactRenderPlan } from "./impact-grammar.js?v=20260715.1";
-import { movementVisualState } from "./movement.js?v=20260715.1";
+import { impactRenderPlan } from "./impact-grammar.js?v=20260715.2";
+import { movementVisualState } from "./movement.js?v=20260715.2";
 import { effectReadabilityCategory, partitionEffects, readabilityPlan, shouldPromoteCache } from "./readability.js?v=20260711.8";
 import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260711.8";
 import { EnvironmentInteractionField, stableEnvironmentUnit } from "./environment-interactions.js?v=20260712.1";
-import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260715.1";
-import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260715.1";
+import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260715.2";
+import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260715.2";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
 import { PING_INTENTS, PING_LIFETIME_TICKS, selectVisiblePings } from "./ping-contract.js?v=20260713.4";
-import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260715.1";
-import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260715.1";
+import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260715.2";
+import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260715.2";
+import {
+  ImpactIntensityDirector, aftermathPlan, attackerRecoilTransform, cameraLookBias,
+  impactFeedbackPlan, impactReactionTransform, impactTierForEvent, projectileMotionPlan,
+  secondaryMotionPlan, selectImpactFeedback,
+} from "./impact-feel.js?v=20260715.2";
 
 const TAU = Math.PI * 2;
 const PING_BUFFER_LIMIT = 32;
@@ -219,19 +224,32 @@ export class Renderer {
     this.enemyAttackThreatHistory = new Map();
     this.enemyAttackContacts = [];
     this.materialAudioCues = [];
-    this.visualFreeze = 0;
     this.lastLocalHurt = 0;
+    this.impactDirector = new ImpactIntensityDirector(16);
+    this.seenImpactIds = new Set();
+    this.targetImpactVisuals = new Map();
+    this.attackerImpactVisuals = new Map();
+    this.impactContacts = [];
+    this.impactAftermath = [];
+    this.impactFeedbackSignals = [];
+    this.cameraImpact = { x: 0, y: 0, vx: 0, vy: 0 };
     this.previousIndexes = new WeakMap();
     this.enemyHealthBarMode = "important";
     this.hoveredEntity = null;
     this.lastInspection = { at: -Infinity, state: null, result: null };
     this.pings = Object.freeze([]);
     this.prevMaps = {};
-    this.systemReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false;
+    this.reducedMotionQuery = window.matchMedia?.("(prefers-reduced-motion: reduce)") || null;
+    this.systemReducedMotion = this.reducedMotionQuery?.matches || false;
     this.qualityController = new AdaptiveQualityController(settingsForPreset("auto", this.systemReducedMotion));
     this.qualityProfile = this.qualityController.profile();
     this.renderBudgets = { ...this.qualityProfile };
     this.reducedMotion = this.systemReducedMotion || this.qualityProfile.reducedMotion;
+    this.reducedMotionQuery?.addEventListener?.("change", (event) => {
+      this.systemReducedMotion = Boolean(event.matches);
+      this.reducedMotion = this.systemReducedMotion || this.qualityProfile.reducedMotion;
+      if (this.reducedMotion) this.cameraImpact = { x: 0, y: 0, vx: 0, vy: 0 };
+    });
     this.loadSprites();
     this.resize();
     window.addEventListener("resize", () => this.resize());
@@ -271,7 +289,8 @@ export class Renderer {
 
   resetCamera() {
     this.camera.x = 0; this.camera.y = 0; this.camera.vx = 0; this.camera.vy = 0;
-    this.playerVisuals.clear(); this.enemyVisuals.clear(); this.groundParticles = []; this.environmentField.reset(); this.visibleEnvironmentChunks = Object.freeze([]); this.materialImpacts = []; this.materialProjectileHistory.clear(); this.materialEffectHistory.clear(); this.enemyAttackThreatHistory.clear(); this.enemyAttackContacts = []; this.materialAudioCues = []; this.pings = Object.freeze([]); this.visualFreeze = 0; this.lastLocalHurt = 0;
+    this.playerVisuals.clear(); this.enemyVisuals.clear(); this.groundParticles = []; this.environmentField.reset(); this.visibleEnvironmentChunks = Object.freeze([]); this.materialImpacts = []; this.materialProjectileHistory.clear(); this.materialEffectHistory.clear(); this.enemyAttackThreatHistory.clear(); this.enemyAttackContacts = []; this.materialAudioCues = []; this.pings = Object.freeze([]); this.lastLocalHurt = 0;
+    this.seenImpactIds.clear(); this.targetImpactVisuals.clear(); this.attackerImpactVisuals.clear(); this.impactContacts = []; this.impactAftermath = []; this.impactFeedbackSignals = []; this.cameraImpact = { x: 0, y: 0, vx: 0, vy: 0 };
   }
 
   resize() {
@@ -371,6 +390,104 @@ export class Renderer {
     const tick = Number.isSafeInteger(currentTick) && currentTick >= 0 ? currentTick : null;
     const active = tick === null ? this.pings : this.pings.filter((ping) => ping.tick <= tick && tick - ping.tick < PING_LIFETIME_TICKS);
     return selectVisiblePings(active, this.pingRenderLimit());
+  }
+
+  updateImpactFeel(state, frameSeconds, localPlayerId) {
+    const elapsedMs = Math.max(0, Math.min(50, Number(frameSeconds) * 1000 || 0));
+    const advance = (collection) => {
+      for (const item of collection) item.ageMs += elapsedMs;
+      return collection.filter((item) => item.ageMs <= item.lifetimeMs);
+    };
+    this.impactContacts = advance(this.impactContacts);
+    this.impactAftermath = advance(this.impactAftermath);
+    for (const [id, item] of this.targetImpactVisuals) { item.ageMs += elapsedMs; if (item.ageMs > item.lifetimeMs) this.targetImpactVisuals.delete(id); }
+    for (const [id, item] of this.attackerImpactVisuals) { item.ageMs += elapsedMs; if (item.ageMs > item.lifetimeMs) this.attackerImpactVisuals.delete(id); }
+
+    const density = this.qualityProfile.effectsDensity;
+    const crowded = (state.enemies?.length || 0) > 24 || (state.effects?.length || 0) > 80;
+    this.impactDirector.beginFrame({ crowded, density });
+    const candidates = [];
+    for (const event of state.impactEvents || []) {
+      if (!event?.id || this.seenImpactIds.has(event.id)) continue;
+      this.seenImpactIds.add(event.id);
+      let tier = impactTierForEvent(event);
+      if (event.killed && tier === "light") tier = "heavy";
+      const plan = impactFeedbackPlan({
+        tier, angle: event.angle, reducedMotion: this.reducedMotion,
+        reducedFlash: this.qualityProfile.flashIntensity <= .25, crowded, density,
+        source: event.sourceId, mass: event.targetKind,
+      });
+      candidates.push({ id: event.id, event, plan });
+    }
+    if (this.seenImpactIds.size > 256) this.seenImpactIds = new Set([...(state.impactEvents || []).map(({ id }) => id).filter(Boolean)]);
+    for (const candidate of selectImpactFeedback(candidates, this.impactDirector)) {
+      const { event, plan } = candidate, lifetimeMs = Math.max(180, plan.timing.holdMs + 170);
+      const visual = { event, plan, ageMs: 0, lifetimeMs };
+      this.targetImpactVisuals.set(event.targetId, visual);
+      if (event.ownerId) this.attackerImpactVisuals.set(event.ownerId, { ...visual });
+      this.impactContacts.push({ ...visual, x: event.x, y: event.y });
+      const residue = aftermathPlan(plan, { radius: Math.max(10, event.targetKind === "boss" ? 52 : 20), material: event.targetKind === "player" ? "energy" : "organic" });
+      if (residue.visible) this.impactAftermath.push({ id: `${event.id}:aftermath`, x: event.x, y: event.y, angle: event.angle, ageMs: 0, lifetimeMs: residue.lifetimeMs, residue });
+      if (this.impactAftermath.length > 40) this.impactAftermath.splice(0, this.impactAftermath.length - 40);
+      if (event.kind === "player-hit" && event.targetId === localPlayerId || event.critical || event.killed) {
+        this.cameraImpact.vx -= Math.cos(plan.angle) * plan.force.cameraPunch * 42;
+        this.cameraImpact.vy -= Math.sin(plan.angle) * plan.force.cameraPunch * 42;
+      }
+      this.impactFeedbackSignals.push({ id: event.id, tier: plan.tier, priority: plan.priority, audio: plan.audio, haptic: plan.haptic, local: event.targetId === localPlayerId || event.ownerId === localPlayerId });
+    }
+    if (this.impactContacts.length > 28) this.impactContacts.splice(0, this.impactContacts.length - 28);
+    if (this.impactFeedbackSignals.length > 12) this.impactFeedbackSignals.splice(0, this.impactFeedbackSignals.length - 12);
+
+    const dt = Math.min(.05, Math.max(0, Number(frameSeconds) || 0));
+    const spring = 1 - Math.exp(-30 * dt), damping = Math.exp(-18 * dt);
+    this.cameraImpact.vx += -this.cameraImpact.x * 180 * dt;
+    this.cameraImpact.vy += -this.cameraImpact.y * 180 * dt;
+    this.cameraImpact.vx *= damping; this.cameraImpact.vy *= damping;
+    this.cameraImpact.x = clamp(this.cameraImpact.x + this.cameraImpact.vx * dt * spring, -9, 9);
+    this.cameraImpact.y = clamp(this.cameraImpact.y + this.cameraImpact.vy * dt * spring, -9, 9);
+  }
+
+  impactTransformFor(id, attacker = false) {
+    const visual = (attacker ? this.attackerImpactVisuals : this.targetImpactVisuals).get(id);
+    if (!visual) return null;
+    const progress = clamp((visual.ageMs - visual.plan.timing.holdMs) / Math.max(1, visual.lifetimeMs - visual.plan.timing.holdMs), 0, 1);
+    return attacker ? attackerRecoilTransform(visual.plan, 1 - progress) : impactReactionTransform(visual.plan, progress);
+  }
+
+  drainImpactFeedbackSignals(maximum = 1) {
+    const count = Math.max(0, Math.min(4, Math.floor(maximum)));
+    if (!count) return [];
+    this.impactFeedbackSignals.sort((left, right) => right.priority - left.priority || String(left.id).localeCompare(String(right.id)));
+    return this.impactFeedbackSignals.splice(0, count);
+  }
+
+  drawImpactAftermath() {
+    const ctx = this.ctx;
+    for (const event of this.impactAftermath) {
+      if (!this.isWorldVisible(event, event.residue.radius + 20)) continue;
+      const progress = clamp(event.ageMs / Math.max(1, event.lifetimeMs), 0, 1);
+      ctx.save(); ctx.translate(event.x, event.y); ctx.rotate(event.angle || 0); ctx.globalAlpha = event.residue.opacity * (1 - progress);
+      ctx.fillStyle = event.residue.material === "energy" ? "#68e8ff" : "#281817";
+      ctx.beginPath(); ctx.ellipse(0, 3, event.residue.radius, event.residue.radius * .36, 0, 0, TAU); ctx.fill();
+      if (event.residue.smoke && !this.reducedMotion) { ctx.fillStyle = "#a77b6b"; ctx.beginPath(); ctx.arc(-event.residue.radius * .22, -progress * 18, 3 + progress * 5, 0, TAU); ctx.fill(); }
+      ctx.restore();
+    }
+  }
+
+  drawImpactContacts() {
+    const ctx = this.ctx;
+    for (const event of this.impactContacts) {
+      if (!this.isWorldVisible(event, 80)) continue;
+      const progress = clamp(event.ageMs / Math.max(1, event.lifetimeMs), 0, 1), envelope = 1 - progress;
+      const radius = 7 + event.plan.force.actorPunch * 3 + progress * 18;
+      ctx.save(); ctx.translate(event.x, event.y); ctx.rotate(event.plan.angle); ctx.globalAlpha = envelope;
+      ctx.strokeStyle = "#07111b"; ctx.lineWidth = 7; ctx.beginPath(); ctx.arc(0, 0, radius, -.9, .9); ctx.stroke();
+      ctx.strokeStyle = event.plan.tier === "critical" ? "#ffe67a" : "#fff"; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(0, 0, radius, -.9, .9); ctx.stroke();
+      const count = event.plan.vfx.particleCount;
+      for (let index = 0; index < count; index++) { const spread = (stableImpactUnit(`${event.event.id}:${index}`) - .5) * 1.3; ctx.save(); ctx.rotate(spread); ctx.beginPath(); ctx.moveTo(radius * .4, 0); ctx.lineTo(radius + 10 + index % 3 * 4, 0); ctx.stroke(); ctx.restore(); }
+      if (event.plan.vfx.criticalGraphic) { ctx.rotate(-event.plan.angle); ctx.lineWidth = 3; ctx.beginPath(); for (let index = 0; index < 8; index++) { const angle = index * TAU / 8, r = index % 2 ? radius * .45 : radius * 1.2; index ? ctx.lineTo(Math.cos(angle) * r, Math.sin(angle) * r) : ctx.moveTo(Math.cos(angle) * r, Math.sin(angle) * r); } ctx.closePath(); ctx.stroke(); }
+      ctx.restore();
+    }
   }
 
   emitMaterialImpact(source, target, weaponPlan) {
@@ -710,16 +827,15 @@ export class Renderer {
     const map = typeof state.map === "string" ? MAPS[state.map] : state.map;
     this.updateMaterialImpacts(state, map, frameSeconds);
     this.updateEnemyAttackContacts(state, frameSeconds);
+    this.updateImpactFeel(state, frameSeconds, localPlayerId);
     const current = state.players.find((p) => p.id === localPlayerId) || state.players[0] || { x: 0, y: 0 };
     const pos = this.position(current, previous?.players, interpolation);
     const lookAngle = Number.isFinite(current.aimFacing) ? current.aimFacing : current.facing || 0;
-    const lookDistance = this.reducedMotion ? 0 : current.moving ? 44 : 25;
-    springCamera(this.camera, { x: pos.x + Math.cos(lookAngle) * lookDistance, y: pos.y + Math.sin(lookAngle) * lookDistance }, frameSeconds);
+    const look = cameraLookBias({ aimAngle: lookAngle, moving: current.moving, speedRatio: current.moveSpeedRatio, reducedMotion: this.reducedMotion });
+    springCamera(this.camera, { x: pos.x + look.x, y: pos.y + look.y }, frameSeconds);
     const hurt = this.reducedMotion ? 0 : clamp((current.hurtFlash || 0) / .24, 0, 1) * this.qualityProfile.hitFlashes;
-    if (hurt > this.lastLocalHurt + .35 && !this.reducedMotion) this.visualFreeze = Math.max(this.visualFreeze, .045);
     this.lastLocalHurt = hurt;
-    const visualDt = this.visualFreeze > 0 ? 0 : frameSeconds;
-    this.visualFreeze = Math.max(0, this.visualFreeze - frameSeconds);
+    const visualDt = frameSeconds;
     this.environmentField.update({
       mapId: map.id,
       bounds: { left: this.camera.x - this.width / 2 - 120, top: this.camera.y - this.height / 2 - 120, right: this.camera.x + this.width / 2 + 120, bottom: this.camera.y + this.height / 2 + 120 },
@@ -735,7 +851,8 @@ export class Renderer {
       bounds: { left: this.camera.x - this.width / 2 - 180, top: this.camera.y - this.height / 2 - 180, right: this.camera.x + this.width / 2 + 180, bottom: this.camera.y + this.height / 2 + 180 },
       tier: this.qualityProfile.tier, world: WORLD, obstacles: MAP_OBSTACLES, theme: this.environmentChunkTheme, layout: this.environmentChunkLayouts.get(environmentLayoutKey),
     });
-    const shakeX = Math.sin(performance.now() * .09) * hurt * 7 * this.qualityProfile.shake, shakeY = Math.cos(performance.now() * .073) * hurt * 5 * this.qualityProfile.shake;
+    const shakeX = this.reducedMotion ? 0 : this.cameraImpact.x * this.qualityProfile.shake;
+    const shakeY = this.reducedMotion ? 0 : this.cameraImpact.y * this.qualityProfile.shake;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.fillStyle = map.floor; ctx.fillRect(0, 0, this.width, this.height);
     this.drawFloor(map, state.time || 0);
@@ -755,6 +872,7 @@ export class Renderer {
     this.drawObjectives(state.objectives || [], map, "ground");
     this.drawDrops(state.drops || []);
     this.drawOrbs(this.budget(state.orbs || [], this.renderBudgets.orbs));
+    this.drawImpactAftermath();
     this.drawMaterialImpacts();
     this.drawEnvironmentalContacts();
     this.drawEffects(effectPasses.ground, map, previous, interpolation, "ground", state);
@@ -773,6 +891,7 @@ export class Renderer {
     this.drawObjectives(state.objectives || [], map, "overlay");
     this.drawEffects(effectPasses.threat, map, previous, interpolation, "threat", state);
     this.drawEnemyAttackRecoveryContacts();
+    this.drawImpactContacts();
     this.drawCriticalOverlays(state, map, localPlayerId);
     this.drawEffects(effectPasses.feedback, map, previous, interpolation, "feedback", state);
     this.drawHovered(state, map);
@@ -1291,9 +1410,9 @@ export class Renderer {
     ctx.restore();
   }
 
-  drawImpactTrail(projectile, plan) {
+  drawImpactTrail(projectile, plan, motionPlan = projectileMotionPlan(projectile, plan, { reducedMotion: this.reducedMotion })) {
     if (!plan || plan.trail.style === "none" || plan.trail.length <= 0) return;
-    const ctx = this.ctx, length = plan.trail.length, width = Math.max(1, plan.trail.width), style = plan.trail.style;
+    const ctx = this.ctx, length = motionPlan.trailLength, width = Math.max(1, motionPlan.trailWidth), style = plan.trail.style;
     ctx.save(); ctx.lineCap = "round";
     if (/motes|data|segmented|shards/.test(style)) {
       for (let index = 1; index <= 3; index++) { ctx.globalAlpha = .62 / index; ctx.fillStyle = index % 2 ? plan.colors.body : plan.colors.core; ctx.beginPath(); ctx.arc(-length * index / 3, (index % 2 ? -1 : 1) * width, Math.max(1, width * .65), 0, TAU); ctx.fill(); }
@@ -1301,7 +1420,10 @@ export class Renderer {
       ctx.strokeStyle = plan.colors.keyline; ctx.globalAlpha = .58; ctx.lineWidth = width + 3; ctx.beginPath(); ctx.moveTo(-3,0); ctx.lineTo(-length,0); ctx.stroke();
       ctx.strokeStyle = plan.colors.body; ctx.globalAlpha = .72; ctx.lineWidth = width; ctx.beginPath(); ctx.moveTo(-2,0); ctx.lineTo(-length,0); ctx.stroke();
       if (/double|ribbon|corkscrew|lane|wake|link|return|slash|radial/.test(style)) { ctx.strokeStyle = plan.colors.core; ctx.globalAlpha = .55; ctx.lineWidth = Math.max(1, width * .45); ctx.beginPath(); ctx.moveTo(-2,-width); ctx.lineTo(-length,width); ctx.stroke(); }
+      if (motionPlan.smear) { ctx.strokeStyle = plan.colors.body; ctx.globalAlpha = .18; ctx.lineWidth = width * 3.4; ctx.beginPath(); ctx.moveTo(-length * .2, 0); ctx.lineTo(-length * 1.15, 0); ctx.stroke(); }
     }
+    if (motionPlan.birth) { ctx.strokeStyle = plan.colors.core; ctx.globalAlpha = .8; ctx.lineWidth = 2; for (const side of [-1, 1]) { ctx.beginPath(); ctx.moveTo(-2, side * width); ctx.lineTo(-10, side * (width + 6)); ctx.stroke(); } }
+    if (motionPlan.terminal) { ctx.strokeStyle = plan.colors.core; ctx.globalAlpha = .62; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, Math.max(5, projectile.radius * 1.45), 0, TAU); ctx.stroke(); }
     ctx.restore();
   }
 
@@ -1310,6 +1432,7 @@ export class Renderer {
     for(const b of projectiles){
       if(!this.isWorldVisible(b,60))continue;
       const plan = hostile ? null : impactRenderPlan(b, state, { reducedMotion: this.reducedMotion, density: this.qualityProfile.effectsDensity });
+      const motionPlan = plan ? projectileMotionPlan(b, plan, { reducedMotion: this.reducedMotion }) : null;
       const silhouette = plan?.silhouette || "", speed=Math.hypot(b.vx||0,b.vy||0), angle=Math.atan2(b.vy||0,b.vx||0), color=plan?.colors.body||b.color||"#8cefff";
       ctx.save();ctx.translate(b.x,b.y);ctx.rotate(angle);ctx.lineJoin="round";ctx.lineCap="round";
       if(hostile){
@@ -1327,7 +1450,7 @@ export class Renderer {
 
       // Friendly fire uses a dark keyline plus white core, and each weapon
       // family keeps its own silhouette instead of becoming another glow dot.
-      if(plan) this.drawImpactTrail(b, plan);
+      if(plan) { this.drawImpactTrail(b, plan, motionPlan); ctx.scale(motionPlan.stretch, 1); }
       else if(speed>20&&!b.wave&&!b.tornado){ctx.strokeStyle="rgba(1,6,12,.55)";ctx.lineWidth=Math.max(5,b.radius*.8);ctx.beginPath();ctx.moveTo(-b.radius*.3,0);ctx.lineTo(-20-b.radius,0);ctx.stroke();ctx.strokeStyle=color;ctx.globalAlpha=.5;ctx.lineWidth=Math.max(2,b.radius*.36);ctx.beginPath();ctx.moveTo(-b.radius*.2,0);ctx.lineTo(-18-b.radius,0);ctx.stroke();ctx.globalAlpha=1;}
       ctx.shadowColor=color;ctx.shadowBlur=plan ? ({ none: 0, low: 3, medium: 7, high: 11 }[plan.flash] || 0) * this.qualityProfile.flashIntensity : 7;ctx.strokeStyle=color;ctx.fillStyle=plan?.colors.core||"#f8feff";
       if(b.droneBolt||silhouette.includes("drone-dart")){
@@ -1678,7 +1801,9 @@ export class Renderer {
       const locomotionFacing = moving ? Math.atan2(dy, dx) : aimFacing, targetDistance = target ? Math.hypot(target.x - e.x, target.y - e.y) : Infinity;
       const nearTarget = targetDistance <= (e.type === "spitter" || e.boss ? 520 : (e.radius || 20) + (target?.radius || 18) + 45);
       const visual = this.enemyVisuals.get(e.id) || { facing: locomotionFacing, aimFacing, directionColumn: directionColumn(locomotionFacing), stride: phase, animation: "idle", animationTime: 0, lastAttackFlash: 0, lastHitFlash: 0, lastShotCd: e.shotCd, rangedAttackFlash: 0, updatedAt: now };
-      const frameTime = Math.min(.05, Math.max(0, visualDt || (now - visual.updatedAt) / 1000));
+      const targetImpact = this.targetImpactVisuals.get(e.id);
+      const rawFrameTime = Math.min(.05, Math.max(0, visualDt || (now - visual.updatedAt) / 1000));
+      const frameTime = targetImpact && targetImpact.ageMs < targetImpact.plan.timing.freezeMs ? 0 : rawFrameTime;
       if (moving) visual.facing += Math.atan2(Math.sin(locomotionFacing - visual.facing), Math.cos(locomotionFacing - visual.facing)) * (1 - Math.exp(-16 * frameTime));
       visual.aimFacing += Math.atan2(Math.sin(aimFacing - visual.aimFacing), Math.cos(aimFacing - visual.aimFacing)) * (1 - Math.exp(-22 * frameTime));
       visual.stride += speed > .12 ? .16 : .035;
@@ -1709,6 +1834,8 @@ export class Renderer {
       const step = (motion?.offsetY || 0) + (this.reducedMotion ? 0 : Math.sin(visual.stride) * 1.5 * clamp(speed * .75, .18, 1));
 
       ctx.save(); ctx.translate(e.x, e.y);
+      const hitTransform = this.impactTransformFor(e.id), recoilTransform = this.impactTransformFor(e.id, true);
+      for (const transform of [hitTransform, recoilTransform]) if (transform) { ctx.translate(transform.x, transform.y); ctx.rotate(transform.rotation); if (transform.scaleX) ctx.scale(transform.scaleX, transform.scaleY); }
       ctx.globalAlpha = (1 - spawn * .55) * (1 - deathProgress * .72);
       ctx.fillStyle = e.dead ? "rgba(0,0,0,.18)" : "rgba(0,0,0,.34)"; ctx.beginPath(); ctx.ellipse(4, groundY, shadow[0], shadow[1], 0, 0, TAU); ctx.fill();
       if (!e.dead && (e.elite || e.boss)) {
@@ -1868,7 +1995,9 @@ export class Renderer {
         animation: "idle", animationTime: 0, displayHp: p.hp, trailHp: p.hp,
         previousFootRow: null, wasSkidding: false, movementHold: 0, lastAuthoritativeAnimTime: 0, updatedAt: now,
       };
-      const frameTime = Math.min(.05, Math.max(0, visualDt || (now - visual.updatedAt) / 1000));
+      const targetImpact = this.targetImpactVisuals.get(p.id);
+      const rawFrameTime = Math.min(.05, Math.max(0, visualDt || (now - visual.updatedAt) / 1000));
+      const frameTime = targetImpact && targetImpact.ageMs < targetImpact.plan.timing.freezeMs ? 0 : rawFrameTime;
       visual.movementHold = reportedMoving ? .11 : Math.max(0, (visual.movementHold || 0) - frameTime);
       const moving = reportedMoving || visual.movementHold > 0;
       const facingDelta = Math.atan2(Math.sin(locomotionTarget - visual.facing), Math.cos(locomotionTarget - visual.facing));
@@ -1881,6 +2010,7 @@ export class Renderer {
       visual.groundOffset += (movementTarget.groundOffset - visual.groundOffset) * movementBlend;
       visual.shadowX += (movementTarget.shadowX - visual.shadowX) * movementBlend;
       visual.shadowY += (movementTarget.shadowY - visual.shadowY) * movementBlend;
+      visual.secondary = secondaryMotionPlan({ turnDelta: facingDelta, speedRatio: raw.moveSpeedRatio, recoil: clamp((raw.weaponFlash || 0) / .09, 0, 1), mass: "player", reducedMotion: this.reducedMotion });
 
       const hurt = clamp((p.hurtFlash || 0) / .24, 0, 1) * this.qualityProfile.hitFlashes;
       const animation = specialistMotionState(raw, moving, hurt);
@@ -1909,6 +2039,8 @@ export class Renderer {
       const groundY = animationConfig?.groundY ?? 24;
       const movementForm = { lean: visual.movementLean, groundOffset: visual.groundOffset, shadowX: visual.shadowX, shadowY: visual.shadowY };
       ctx.save(); ctx.translate(p.x, p.y);
+      const hitTransform = this.impactTransformFor(p.id), recoilTransform = this.impactTransformFor(p.id, true);
+      for (const transform of [hitTransform, recoilTransform]) if (transform) { ctx.translate(transform.x, transform.y); ctx.rotate(transform.rotation); if (transform.scaleX) ctx.scale(transform.scaleX, transform.scaleY); }
       const shadow = animationConfig?.shadow || [35, 14];
       ctx.fillStyle = p.dead || p.downed ? "rgba(0,0,0,.2)" : "rgba(0,0,0,.38)";
       ctx.beginPath(); ctx.ellipse(2, groundY, shadow[0] * movementForm.shadowX, shadow[1] * movementForm.shadowY, 0, 0, TAU); ctx.fill();
@@ -1960,7 +2092,8 @@ export class Renderer {
       if (!spritePlan.fallback) {
         ctx.save();
         ctx.translate(...spritePlan.translate);
-        ctx.rotate(spritePlan.rotation);
+        ctx.rotate(spritePlan.rotation + (visual.secondary?.rotation || 0));
+        ctx.transform(1, 0, visual.secondary?.shear || 0, 1, 0, 0);
         ctx.scale(...spritePlan.scale);
         if (spritePlan.filter !== "none") ctx.filter = spritePlan.filter;
         ctx.globalAlpha = spritePlan.alpha;
@@ -1971,7 +2104,8 @@ export class Renderer {
         if (image?.complete) {
           const size = p.specialist === "sola" ? 118 : 104;
           ctx.save(); ctx.translate(this.reducedMotion ? 0 : Math.sin(now * .08) * hurt * 3, movementForm.groundOffset - (this.reducedMotion ? 0 : hurt * 2));
-          ctx.rotate(movementForm.lean + (this.reducedMotion ? 0 : Math.sin(p.hurtAngle || 0) * hurt * .09));
+          ctx.rotate(movementForm.lean + (visual.secondary?.rotation || 0) + (this.reducedMotion ? 0 : Math.sin(p.hurtAngle || 0) * hurt * .09));
+          ctx.transform(1, 0, visual.secondary?.shear || 0, 1, 0, 0);
           ctx.transform(visual.turn, 0, -Math.sin(drawFacing) * .045, 1, 0, 0);
           if (hurt > 0) ctx.filter = `brightness(${1 + hurt * 2.4}) saturate(${1 - hurt * .55}) sepia(${hurt * .45})`;
           if (p.dead || p.downed) ctx.globalAlpha = .35;

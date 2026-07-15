@@ -7,7 +7,7 @@ import { enemyBodyMotionPlan } from "../enemy-body-motion.js";
 import {
   assertEnemyBodyMotionAuditMetadata, buildEnemyBodyMotionAuditMetadata,
 } from "../enemy-body-motion-audit.js";
-import { motionFrame } from "../motion.js";
+import { motionClipDuration, motionFrame } from "../motion.js";
 import { getThemeEnemyAnimation } from "../themes/lastlight.js";
 
 const timed = (type, behaviorState, startedTick, untilTick, tick, extra = {}) => ({
@@ -40,6 +40,28 @@ test("long windups use snapshot phase instead of finishing their 300ms clip earl
     assert.equal(late.contactTick, 100 + windupTicks);
     assert.ok(late.elapsed <= rig.states.attackWindup.frames.reduce((sum, frame) => sum + frame.ms, 0) / 1000);
   }
+});
+
+test("archetype mass curves reshape poses without changing authoritative clocks or entities", () => {
+  const cases = [
+    ["hound", "windup", "attackWindup"],
+    ["brute", "windup", "attackWindup"],
+    ["hound", "charge", "attackContact"],
+    ["shark", "charge", "attackContact"],
+    ["spitter", "recovery", "attackRecovery"],
+    ["shark", "recovery", "attackRecovery"],
+  ];
+  const normalized = new Map();
+  for (const [type, phase, state] of cases) {
+    const enemy = timed(type, phase, 100, 140, 120, phase === "recovery" ? { contactTick: 90 } : {});
+    const before = structuredClone(enemy), result = plan(enemy, 120), rig = getThemeEnemyAnimation(type);
+    assert.deepEqual(enemy, before, `${type}/${phase} remains presentation-only`);
+    assert.deepEqual([result.startedTick, result.untilTick, result.progress], [100, 140, .5]);
+    normalized.set(`${type}:${phase}`, result.elapsed / motionClipDuration(rig, state));
+  }
+  assert.ok(normalized.get("hound:windup") > normalized.get("brute:windup"), "lighter Hound reaches its anticipated pose sooner than Brute");
+  assert.ok(normalized.get("shark:charge") > normalized.get("hound:charge"), "Siegebreaker commits with the heavier contact curve");
+  assert.ok(normalized.get("shark:recovery") > normalized.get("spitter:recovery"), "archetypes retain distinct recovery curves");
 });
 
 test("recovery never fabricates a commit tick that its snapshot no longer carries", () => {

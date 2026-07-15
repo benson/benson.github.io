@@ -1,4 +1,5 @@
 import { enemyMotionState, motionClipDuration } from "./motion.js";
+import { impactPhaseProgress } from "./impact-feel.js?v=20260715.2";
 
 export const ENEMY_BODY_MOTION_SCHEMA = "lastlight.enemy-body-motion.v1";
 export const ENEMY_BODY_MOTION_TYPES = Object.freeze(["hound", "spitter", "brute", "bomber", "shark"]);
@@ -20,9 +21,10 @@ function behaviorClock(enemy, tick) {
   return Object.freeze({ startedTick, untilTick, durationTicks, elapsedTicks, progress: elapsedTicks / durationTicks });
 }
 
-function clipElapsed(rig, state, progress) {
+function clipElapsed(rig, state, progress, type, phase) {
   const duration = motionClipDuration(rig, state);
-  return duration > 0 ? clamp(progress, 0, 1) * duration : 0;
+  const curvedProgress = impactPhaseProgress(type, phase, clamp(progress, 0, 1));
+  return duration > 0 ? curvedProgress * duration : 0;
 }
 
 function result({ enemy, state, elapsed, phase, clock, contactTick = null, interrupted = false, authoritative = false, terminal = false }) {
@@ -56,8 +58,8 @@ export function enemyBodyMotionPlan({
     return result({ enemy, state, elapsed: 0, phase, clock, contactTick: null, interrupted: true, authoritative: phase === "recovery" });
   }
 
-  if (clock && phase === "windup") return result({ enemy, state: "attackWindup", elapsed: clipElapsed(rig, "attackWindup", clock.progress), phase, clock, contactTick: clock.untilTick, authoritative: true, terminal: enemy?.type === "bomber" });
-  if (clock && (phase === "charge" || phase === "contact")) return result({ enemy, state: "attackContact", elapsed: clipElapsed(rig, "attackContact", clock.progress), phase, clock, contactTick: clock.startedTick, authoritative: true });
+  if (clock && phase === "windup") return result({ enemy, state: "attackWindup", elapsed: clipElapsed(rig, "attackWindup", clock.progress, enemy?.type, phase), phase, clock, contactTick: clock.untilTick, authoritative: true, terminal: enemy?.type === "bomber" });
+  if (clock && (phase === "charge" || phase === "contact")) return result({ enemy, state: "attackContact", elapsed: clipElapsed(rig, "attackContact", clock.progress, enemy?.type, phase), phase, clock, contactTick: clock.startedTick, authoritative: true });
   if (clock && phase === "recovery") {
     const carriedContactTick = Number.isFinite(Number(enemy?.contactTick)) ? Number(enemy.contactTick) : null;
     const recoveryContactTick = enemy?.type === "brute" ? clock.startedTick : carriedContactTick;
@@ -66,11 +68,11 @@ export function enemyBodyMotionPlan({
     // recovery and therefore cancelled the slam.
     if (enemy?.type === "brute" && clock.elapsedTicks < ENEMY_BODY_CONTACT_HOLD_TICKS) {
       const contactProgress = clock.elapsedTicks / ENEMY_BODY_CONTACT_HOLD_TICKS;
-      return result({ enemy, state: "attackContact", elapsed: clipElapsed(rig, "attackContact", contactProgress), phase, clock, contactTick: clock.startedTick, authoritative: true });
+      return result({ enemy, state: "attackContact", elapsed: clipElapsed(rig, "attackContact", contactProgress, enemy?.type, "contact"), phase, clock, contactTick: clock.startedTick, authoritative: true });
     }
     const recoveryStart = enemy?.type === "brute" ? ENEMY_BODY_CONTACT_HOLD_TICKS : 0;
     const recoveryProgress = clamp((clock.elapsedTicks - recoveryStart) / Math.max(1, clock.durationTicks - recoveryStart), 0, 1);
-    return result({ enemy, state: "attackRecovery", elapsed: clipElapsed(rig, "attackRecovery", recoveryProgress), phase, clock, contactTick: recoveryContactTick, authoritative: true });
+    return result({ enemy, state: "attackRecovery", elapsed: clipElapsed(rig, "attackRecovery", recoveryProgress, enemy?.type, phase), phase, clock, contactTick: recoveryContactTick, authoritative: true });
   }
 
   return result({ enemy, state: fallback, elapsed: fallbackElapsed, phase, clock, interrupted: false, authoritative: false });

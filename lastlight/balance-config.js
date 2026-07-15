@@ -1,9 +1,9 @@
 import { WEAPON_EVOLUTION_CONTRACT, validateWeaponEvolutionContract } from "./weapon-evolution.js?v=20260713.1";
 import { validateEnemyIdentityContract } from "./enemy-archetypes.js?v=20260713.1";
 import { APEX_CONTRACTS, validateApexContracts } from "./apex-encounters.js?v=20260713.1";
-import { CAMPAIGN_MUTATIONS, validateCampaignMutations } from "./campaign-mutations.js?v=20260715.1";
-import { SPECIALIST_MASTERY, validateSpecialistMasteryRegistry } from "./specialist-mastery.js?v=20260715.1";
-import { RARE_DISCOVERY_REGISTRY, validateRareDiscoveryRegistry } from "./rare-discoveries.js?v=20260715.1";
+import { CAMPAIGN_MUTATIONS, validateCampaignMutations } from "./campaign-mutations.js?v=20260715.2";
+import { SPECIALIST_MASTERY, validateSpecialistMasteryRegistry } from "./specialist-mastery.js?v=20260715.2";
+import { RARE_DISCOVERY_REGISTRY, validateRareDiscoveryRegistry } from "./rare-discoveries.js?v=20260715.2";
 
 // Balance is a versioned simulation input. Replays and fixtures should record
 // this exact version so a future tuning pass never silently changes old runs.

@@ -179,7 +179,7 @@ test("multiplayer input uses sequenced host application and snapshot acknowledge
   assert.match(game, /from "\.\/protocol\.js/);
   assert.match(game, /guestInputSequences\.create\(input, now\)/);
   assert.match(game, /hostInputSequences\.apply\(message\?\._from, message\)/);
-  assert.match(game, /createSnapshotMessage\(state\.sim\.snapshot\(\), hostInputSequences\.acknowledgements\(\), \{ epoch: state\.authorityEpoch, snapshotSeq: state\.authoritySnapshotSeq\+\+ \}\)/);
+  assert.match(game, /createSnapshotMessage\(state\.sim\.snapshot\(\{ presentation: true \}\), hostInputSequences\.acknowledgements\(\), \{ epoch: state\.authorityEpoch, snapshotSeq: state\.authoritySnapshotSeq\+\+ \}\)/);
   assert.match(game, /guestInputSequences\.acknowledge\(snapshotMessage\.ack\[state\.clientId\], now\)/);
   assert.match(game, /multiplayerInput: inputProtocolDiagnostics\(\)/);
   assert.match(game, /hostInputSequences\.remove\(message\.id\)/);
