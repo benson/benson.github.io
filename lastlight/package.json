@@ -33,6 +33,8 @@
     "enemy-attack-motion-audit:verify": "node tooling/run_enemy_attack_motion_audit.js verify",
     "enemy-attack-motion-audit:report": "node tooling/run_enemy_attack_motion_audit.js report",
     "enemy-body-motion-audit:verify": "node tooling/run_enemy_body_motion_audit.js verify",
-    "enemy-body-motion-audit:report": "node tooling/run_enemy_body_motion_audit.js report"
+    "enemy-body-motion-audit:report": "node tooling/run_enemy_body_motion_audit.js report",
+    "combat-orientation-audit:verify": "node tooling/run_combat_orientation_audit.js verify",
+    "combat-orientation-audit:report": "node tooling/run_combat_orientation_audit.js report"
   }
 }

@@ -75,7 +75,8 @@ export class MovementPredictor {
   advance(input, frameSeconds, speed, move) {
     if (!this.player) return null;
     const dt = Math.min(.05, Math.max(0, Number(frameSeconds) || 0));
-    advancePlayerMovement(this.player, input, dt, speed, move);
+    const predictedInput = input?.autoAim ? { ...input, aim: Number(this.player.aimFacing) || 0 } : input;
+    advancePlayerMovement(this.player, predictedInput, dt, speed, move);
     if (this.authoritative && !this.player.moving) {
       const blend = 1 - Math.exp(-7 * dt);
       this.player.x += (this.authoritative.x - this.player.x) * blend;

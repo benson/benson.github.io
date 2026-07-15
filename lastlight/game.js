@@ -1631,7 +1631,8 @@ function withLocalMovementPreview(game, input, remainingSeconds) {
   const player = game?.players?.find((entry) => entry.id === state.clientId);
   if (!player || player.downed || remainingSeconds <= 0) return game;
   const preview = { ...player, predicted: true };
-  advancePlayerMovement(preview, input, remainingSeconds, playerMovementSpeed(player), moveEntityWithCover);
+  const predictedInput = input?.autoAim ? { ...input, aim: Number(player.aimFacing) || 0 } : input;
+  advancePlayerMovement(preview, predictedInput, remainingSeconds, playerMovementSpeed(player), moveEntityWithCover);
   return { ...game, players: game.players.map((entry) => entry.id === preview.id ? preview : entry) };
 }
 

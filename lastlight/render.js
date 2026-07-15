@@ -21,6 +21,7 @@ import {
   impactFeedbackPlan, impactReactionTransform, impactTierForEvent, projectileMotionPlan,
   secondaryMotionPlan, selectImpactFeedback,
 } from "./impact-feel.js?v=20260715.2";
+import { combatTurnPlan, isBodyDrivingSource, resolvedCombatFacing, specialistMuzzlePoint } from "./combat-orientation.js?v=20260715.2";
 
 const TAU = Math.PI * 2;
 const PING_BUFFER_LIMIT = 32;
@@ -818,6 +819,7 @@ export class Renderer {
 
   draw(state, localPlayerId, previous = null, interpolation = 1, frameSeconds = 1 / 60) {
     if (!state?.players) return;
+    this.renderTick = Number(state.tick) || 0;
     this.updateQuality(frameSeconds);
     // The renderer is constructed while the game screen is display:none. Some
     // browsers therefore report a 0x0 canvas until the first run begins. Never
@@ -830,7 +832,7 @@ export class Renderer {
     this.updateImpactFeel(state, frameSeconds, localPlayerId);
     const current = state.players.find((p) => p.id === localPlayerId) || state.players[0] || { x: 0, y: 0 };
     const pos = this.position(current, previous?.players, interpolation);
-    const lookAngle = Number.isFinite(current.aimFacing) ? current.aimFacing : current.facing || 0;
+    const lookAngle = resolvedCombatFacing(current, this.renderTick);
     const look = cameraLookBias({ aimAngle: lookAngle, moving: current.moving, speedRatio: current.moveSpeedRatio, reducedMotion: this.reducedMotion });
     springCamera(this.camera, { x: pos.x + look.x, y: pos.y + look.y }, frameSeconds);
     const hurt = this.reducedMotion ? 0 : clamp((current.hurtFlash || 0) / .24, 0, 1) * this.qualityProfile.hitFlashes;
@@ -1434,7 +1436,13 @@ export class Renderer {
       const plan = hostile ? null : impactRenderPlan(b, state, { reducedMotion: this.reducedMotion, density: this.qualityProfile.effectsDensity });
       const motionPlan = plan ? projectileMotionPlan(b, plan, { reducedMotion: this.reducedMotion }) : null;
       const silhouette = plan?.silhouette || "", speed=Math.hypot(b.vx||0,b.vy||0), angle=Math.atan2(b.vy||0,b.vx||0), color=plan?.colors.body||b.color||"#8cefff";
-      ctx.save();ctx.translate(b.x,b.y);ctx.rotate(angle);ctx.lineJoin="round";ctx.lineCap="round";
+      const launchAge = Math.max(0, Number(b.age) || 0), launchProgress = Math.min(1, launchAge / .075), launchBlend = (1 - launchProgress) ** 3;
+      const owner = launchProgress < 1 && !b.bodyNeutral && isBodyDrivingSource(b.sourceId) ? state.players?.find(({ id }) => id === b.owner) : null;
+      const muzzle = owner ? specialistMuzzlePoint(owner, Number.isFinite(owner.recoilAngle) ? owner.recoilAngle : angle) : null;
+      const launchX = muzzle ? muzzle.x + (Number(b.vx) || 0) * launchAge : b.x;
+      const launchY = muzzle ? muzzle.y + (Number(b.vy) || 0) * launchAge : b.y;
+      const drawX = b.x + (launchX - b.x) * launchBlend, drawY = b.y + (launchY - b.y) * launchBlend;
+      ctx.save();ctx.translate(drawX,drawY);ctx.rotate(angle);ctx.lineJoin="round";ctx.lineCap="round";
       if(hostile){
         // Hostile shots are always winged arrowheads with a long hot tail. The
         // silhouette stays dangerous even when their source enemy is teal.
@@ -1987,7 +1995,7 @@ export class Renderer {
       const reportedMoving = Boolean(p.downed ? raw.downedCrawling : raw.moving ?? inferredMoving) && !p.dead;
       const inferredFacing = inferredMoving ? Math.atan2(dy, dx) : 0;
       const locomotionTarget = specialistFacingTarget(raw, reportedMoving, inferredFacing);
-      const aimTarget = Number.isFinite(raw.aimFacing) ? raw.aimFacing : locomotionTarget;
+      const aimTarget = resolvedCombatFacing(raw, this.renderTick);
       const now = performance.now();
       const visual = this.playerVisuals.get(p.id) || {
         facing: locomotionTarget, aimFacing: aimTarget, directionColumn: directionColumn(locomotionTarget), turn: Math.cos(locomotionTarget) >= 0 ? 1 : -1,
@@ -2010,11 +2018,15 @@ export class Renderer {
       visual.groundOffset += (movementTarget.groundOffset - visual.groundOffset) * movementBlend;
       visual.shadowX += (movementTarget.shadowX - visual.shadowX) * movementBlend;
       visual.shadowY += (movementTarget.shadowY - visual.shadowY) * movementBlend;
-      visual.secondary = secondaryMotionPlan({ turnDelta: facingDelta, speedRatio: raw.moveSpeedRatio, recoil: clamp((raw.weaponFlash || 0) / .09, 0, 1), mass: "player", reducedMotion: this.reducedMotion });
+      const recoil = clamp((raw.weaponFlash || 0) / .09, 0, 1);
+      const bodyTurn = combatTurnPlan({ from: visual.aimFacing, to: aimTarget, recoil, reducedMotion: this.reducedMotion });
+      const secondary = secondaryMotionPlan({ turnDelta: facingDelta, speedRatio: raw.moveSpeedRatio, recoil, mass: "player", reducedMotion: this.reducedMotion });
+      visual.secondary = { ...secondary, rotation: secondary.rotation + bodyTurn.rotation, shear: secondary.shear + bodyTurn.shear };
 
       const hurt = clamp((p.hurtFlash || 0) / .24, 0, 1) * this.qualityProfile.hitFlashes;
       const animation = specialistMotionState(raw, moving, hurt);
-      const usesAimFacing = ["castE", "castR", "cast"].includes(animation);
+      const combatCommitted = raw.orient === 1 || Number(raw.combatFacingUntilTick) >= this.renderTick;
+      const usesAimFacing = ["castE", "castR", "cast"].includes(animation) || combatCommitted || raw.orient === 2 || Boolean(raw.autoAim && (raw.autoAimTargetId || raw.autoAimTracking));
       const drawFacing = usesAimFacing || !moving ? visual.aimFacing : visual.facing;
       visual.directionColumn = stableDirectionColumn(drawFacing, visual.directionColumn);
       const targetTurn = Math.cos(drawFacing) >= 0 ? 1 : -1;
@@ -2115,8 +2127,7 @@ export class Renderer {
 
       if ((p.weaponFlash || 0) > 0 && !p.dead && !p.downed) {
         const flash = clamp(p.weaponFlash / .09, 0, 1), angle = Number.isFinite(p.recoilAngle) ? p.recoilAngle : visual.aimFacing;
-        const muzzle = animationConfig?.sockets?.muzzle;
-        const distance = muzzle?.distance ?? animationConfig?.muzzleDistance ?? 47, x = Math.cos(angle) * distance, y = Math.sin(angle) * distance + (muzzle?.vertical ?? -8);
+        const { x, y } = specialistMuzzlePoint({ x: 0, y: 0, specialist: p.specialist }, angle);
         ctx.save(); ctx.translate(x, y); ctx.rotate(angle); ctx.globalAlpha = flash * this.qualityProfile.flashIntensity; ctx.shadowColor = "#ff5c91"; ctx.shadowBlur = 16 * this.qualityProfile.flashIntensity;
         ctx.fillStyle = "#fff4c7"; ctx.beginPath(); ctx.moveTo(18, 0); ctx.lineTo(-6, -7); ctx.lineTo(-1, 0); ctx.lineTo(-6, 7); ctx.closePath(); ctx.fill(); ctx.restore();
       }
