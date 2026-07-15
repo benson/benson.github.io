@@ -132,7 +132,7 @@ const LEGACY_RUN_HISTORY_KEYS = Object.freeze(["lastlight:runs:v6", "lastlight:r
 const CLIENT_TOKEN_KEY = "lastlight:session-token:v1";
 const DAMAGE_LEDGER_LAYOUT_KEY = "lastlight:damage-ledger-layout:v1";
 const LAST_REPLAY_KEY = "lastlight:last-replay:v1";
-const DAMAGE_LEDGER_DEFAULT = Object.freeze({ x: 22, y: 112, width: 250, height: 150, collapsed: false, userSized: false });
+const DAMAGE_LEDGER_DEFAULT = Object.freeze({ x: 22, y: 232, width: 250, height: 150, collapsed: true, userSized: false });
 const emptySoundState = () => ({
   projectileIds: new Set(), effectIds: new Set(), hostileIds: new Set(), attackingIds: new Set(), weaponTimers: new Map(),
   kills: 0, level: 1, damageTaken: 0, xpCollected: 0,
@@ -175,7 +175,7 @@ function loadDamageLedgerLayout() {
   try {
     const saved = JSON.parse(localStorage.getItem(DAMAGE_LEDGER_LAYOUT_KEY) || "null");
     if (!saved || typeof saved !== "object") return { ...DAMAGE_LEDGER_DEFAULT };
-    return { ...DAMAGE_LEDGER_DEFAULT, ...saved, userSized: typeof saved.userSized === "boolean" ? saved.userSized : Number(saved.height) !== DAMAGE_LEDGER_DEFAULT.height };
+    return { ...DAMAGE_LEDGER_DEFAULT, ...saved, y: Number(saved.y) === 112 ? DAMAGE_LEDGER_DEFAULT.y : saved.y, userSized: typeof saved.userSized === "boolean" ? saved.userSized : Number(saved.height) !== DAMAGE_LEDGER_DEFAULT.height };
   } catch { return { ...DAMAGE_LEDGER_DEFAULT }; }
 }
 
@@ -915,7 +915,7 @@ function setScreen(name) {
   state.screen = name;
   for (const [key, screen] of Object.entries(screens)) screen.classList.toggle("hidden", key !== name);
   document.body.style.overflow = name === "game" ? "hidden" : "auto";
-  if (name !== "game") { state.inspectActive = false; hideInspectPanel(); }
+  if (name !== "game") { state.inspectActive = false; setTacticalIntel(false); hideInspectPanel(); }
 }
 
 function callsign() {
@@ -1933,6 +1933,7 @@ function pollGamepadInput() {
   const statusCopy = sample.connected ? `${gamepad.id || "Standard gamepad"} connected.` : "No standard gamepad detected.";
   if (status && status.textContent !== statusCopy) status.textContent = statusCopy;
   state.inspectActive = sample.held.includes(4) || state.input.keys.has(settings.bindings.inspect);
+  setTacticalIntel(state.inspectActive);
   const draftOpen = !$(`upgrade-overlay`).classList.contains("hidden");
   if (draftOpen) {
     const draftButtons = { 0: "choice1", 2: "choice2", 3: "choice3", 4: "reroll", 5: "banish", 8: "skip" };
@@ -2127,7 +2128,7 @@ function clampDamageLedgerLayout() {
   layout.width = clamp(Number(layout.width) || DAMAGE_LEDGER_DEFAULT.width, 210, maxWidth);
   layout.height = clamp(Number(layout.height) || DAMAGE_LEDGER_DEFAULT.height, 110, maxHeight);
   layout.x = clamp(Number(layout.x) || 0, 8, Math.max(8, bounds.width - layout.width - 8));
-  layout.y = clamp(Number(layout.y) || 0, 72, Math.max(72, bounds.height - (layout.collapsed ? 40 : layout.height) - 24));
+  layout.y = clamp(Number(layout.y) || 0, DAMAGE_LEDGER_DEFAULT.y, Math.max(DAMAGE_LEDGER_DEFAULT.y, bounds.height - (layout.collapsed ? 40 : layout.height) - 24));
 }
 
 function applyDamageLedgerLayout({ persist = false } = {}) {
@@ -2288,6 +2289,7 @@ function updateMutationHUD(game) {
   if (!target || !mutation) return;
   const definition = campaignMutationDefinition(mutation.difficulty), encounter = mutation.pending || mutation.active;
   target.classList.toggle("is-active", Boolean(encounter));
+  target.classList.toggle("is-enabled", Boolean(mutation.enabled));
   if (mutation.pending) {
     const seconds = Math.max(0, Math.ceil((mutation.pending.dueTick - game.tick) / 60));
     target.innerHTML = `<span>${escapeHTML(definition.name)}</span><strong>${escapeHTML(mutation.pending.kind.toUpperCase())} INBOUND · ${seconds}s</strong><small>Clear every marked hostile for the named reward</small>`;
@@ -2604,6 +2606,8 @@ function showInspectPanel(detail = {}) {
   panel.style.left = `${clamp(left, 10, Math.max(10, innerWidth - width - 10))}px`;
   panel.style.top = `${clamp(top, 10, Math.max(10, innerHeight - height - 18))}px`;
 }
+
+function setTacticalIntel(active) { $("game-screen")?.classList.toggle("tactical-intel", Boolean(active)); }
 
 function hideInspectPanel() { renderer.clearInspection(); $("inspect-panel").classList.add("hidden"); }
 
@@ -3013,6 +3017,7 @@ async function copyPlayerScorecard(playerId) {
 
 function showResult(game) {
   discardRecovery({ notify: false });
+  document.querySelectorAll("#result-screen details").forEach((details) => { details.open = false; });
   const won = game.stage === "won"; $("result-eyebrow").textContent = won ? "Operation complete" : "Signal lost";
   $("result-title").textContent = won ? "APEX NEUTRALIZED" : "THE LINE BROKE"; $("result-title").style.color = won ? "var(--cyan)" : "var(--danger)";
   $("result-copy").textContent = won ? "The line held. Final City gets another sunrise." : "Recalibrate the loadout, regroup, and breach again.";
@@ -4016,6 +4021,12 @@ function bindEvents() {
   });
   document.addEventListener("pointerdown", (event) => {
     if (!event.target.closest?.(".starting-weapon-detail")) setStartingWeaponDetailsOpen(false);
+    document.querySelectorAll(".command-menu[open]").forEach((menu) => { if (!menu.contains(event.target)) menu.open = false; });
+  });
+  document.querySelectorAll(".command-menu button").forEach((button) => button.addEventListener("click", () => { button.closest(".command-menu").open = false; }));
+  window.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    document.querySelectorAll(".command-menu[open]").forEach((menu) => { menu.open = false; });
   });
   document.querySelectorAll(".mode-tab").forEach((button) => button.addEventListener("click", () => setPartyMode(button.dataset.partyMode)));
   $("seeded-operation-cards").addEventListener("click", (event) => {
@@ -4222,7 +4233,7 @@ function bindEvents() {
       if (action) event.preventDefault();
       return;
     }
-    if (action === "inspect") { state.input.keys.add(event.code); state.inspectActive = true; inspectCanvasAt(state.inspectPointer ? { ...state.inspectPointer, shiftKey: true } : null); return; }
+    if (action === "inspect") { state.input.keys.add(event.code); state.inspectActive = true; setTacticalIntel(true); inspectCanvasAt(state.inspectPointer ? { ...state.inspectPointer, shiftKey: true } : null); return; }
     const upgradeOpen = !$("upgrade-overlay").classList.contains("hidden");
     const replacementOpen = upgradeOpen && !$("replacement-tray").classList.contains("hidden");
     if (replacementOpen && key === "escape") { event.preventDefault(); closeReplacement(); state.lastUpgradeKey = ""; return; }
@@ -4248,17 +4259,18 @@ function bindEvents() {
     if (!event.repeat && ["active", "ultimate", "autoAim", "pause"].includes(action)) performMappedAction(action);
     state.input.keys.add(event.code);
   });
-  window.addEventListener("keyup", (event) => { const action = keyboardActionForEvent(effectiveAccessibilitySettings(), event); state.input.keys.delete(event.code); if (action === "ping" && state.pingWheel?.source === "keyboard") { event.preventDefault(); closePingWheel({ commit: true }); } if (action === "inspect") { state.inspectActive = false; hideInspectPanel(); } });
-  window.addEventListener("blur", () => { closePingWheel(); state.input.keys.clear(); state.inspectActive = false; hideInspectPanel(); });
+  window.addEventListener("keyup", (event) => { const action = keyboardActionForEvent(effectiveAccessibilitySettings(), event); state.input.keys.delete(event.code); if (action === "ping" && state.pingWheel?.source === "keyboard") { event.preventDefault(); closePingWheel({ commit: true }); } if (action === "inspect") { state.inspectActive = false; setTacticalIntel(false); hideInspectPanel(); } });
+  window.addEventListener("blur", () => { closePingWheel(); state.input.keys.clear(); state.inspectActive = false; setTacticalIntel(false); hideInspectPanel(); });
   $("game-canvas").addEventListener("pointermove", (event) => {
     const rect = $("game-canvas").getBoundingClientRect();
     state.input.aim = Math.atan2(event.clientY - rect.top - rect.height / 2, event.clientX - rect.left - rect.width / 2);
     state.inspectPointer = { clientX: event.clientX, clientY: event.clientY };
     if (state.pingWheel && (state.pingWheel.source === "keyboard" || event.pointerId === state.pingPointerId)) updatePingWheel(event.clientX, event.clientY);
     state.inspectActive = event.shiftKey || state.input.keys.has(effectiveAccessibilitySettings().bindings.inspect);
+    setTacticalIntel(state.inspectActive);
     inspectCanvasAt({ ...state.inspectPointer, shiftKey: state.inspectActive });
   });
-  $("game-canvas").addEventListener("pointerleave", () => { state.inspectPointer = null; state.inspectActive = false; hideInspectPanel(); });
+  $("game-canvas").addEventListener("pointerleave", () => { state.inspectPointer = null; state.inspectActive = false; setTacticalIntel(false); hideInspectPanel(); });
   document.addEventListener("contextmenu", (event) => event.preventDefault());
   setupPingControls();
   setupTouch();

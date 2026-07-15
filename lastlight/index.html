@@ -43,26 +43,33 @@
         </a>
         <div class="topbar-actions">
           <button id="practice-button" class="text-button" type="button" aria-haspopup="dialog" aria-controls="practice-dialog">Practice</button>
-          <button id="run-history-button" class="text-button" type="button">Past runs</button>
-          <button id="guide-button" class="text-button" type="button" aria-label="Upgrade archive">Upgrade archive</button>
-          <button id="how-button" class="text-button" type="button">Field manual</button>
-          <button id="quality-button" class="text-button" type="button">Display</button>
-          <button id="audio-button" class="icon-button" type="button" aria-label="Open sound settings · locked" aria-haspopup="dialog">Sound locked</button>
+          <details class="command-menu">
+            <summary>Menu</summary>
+            <div class="command-menu-panel">
+              <button id="run-history-button" class="text-button" type="button">Past runs</button>
+              <button id="guide-button" class="text-button" type="button" aria-label="Upgrade archive">Upgrade archive</button>
+              <button id="how-button" class="text-button" type="button">Field manual</button>
+              <button id="quality-button" class="text-button" type="button">Display &amp; accessibility</button>
+              <button id="audio-button" class="text-button" type="button" aria-label="Open sound settings · locked" aria-haspopup="dialog">Sound locked</button>
+            </div>
+          </details>
         </div>
       </nav>
 
-      <div class="control-ribbon" aria-label="Keyboard controls">
-        <strong>Controls</strong>
-        <span data-control-movement><kbd>WASD</kbd> Move</span>
-        <span><kbd>Mouse</kbd> Aim</span>
-        <span data-control-action="autoAim"><kbd>C</kbd> Auto-aim</span>
-        <span data-control-action="active"><kbd>E</kbd> Ability</span>
-        <span data-control-action="ultimate"><kbd>R</kbd> Ultimate</span>
-        <span data-control-choices><kbd>1–3</kbd> Upgrade</span>
-        <span data-control-ping data-control-action="ping"><kbd>G</kbd> Ping</span>
-        <span data-control-action="pause"><kbd>Esc</kbd> Pause</span>
-        <span data-control-action="report"><kbd>` / ~</kbd> Report</span>
-      </div>
+      <details class="reference-disclosure home-controls-disclosure">
+        <summary><span>Controls</span><small>Keyboard quick reference</small></summary>
+        <div class="control-ribbon" aria-label="Keyboard controls">
+          <span data-control-movement><kbd>WASD</kbd> Move</span>
+          <span><kbd>Mouse</kbd> Aim</span>
+          <span data-control-action="autoAim"><kbd>C</kbd> Auto-aim</span>
+          <span data-control-action="active"><kbd>E</kbd> Ability</span>
+          <span data-control-action="ultimate"><kbd>R</kbd> Ultimate</span>
+          <span data-control-choices><kbd>1–3</kbd> Upgrade</span>
+          <span data-control-ping data-control-action="ping"><kbd>G</kbd> Ping</span>
+          <span data-control-action="pause"><kbd>Esc</kbd> Pause</span>
+          <span data-control-action="report"><kbd>` / ~</kbd> Report</span>
+        </div>
+      </details>
 
       <div class="home-content">
         <header class="hero-copy">
@@ -138,12 +145,15 @@
                   </select>
                 </label>
               </div>
-              <section id="seeded-operations" class="seeded-operations" aria-labelledby="seeded-operations-title">
-                <header><div><span>Shared deterministic contracts</span><strong id="seeded-operations-title">Seeded operations</strong></div><small>No account · local records only</small></header>
+              <details id="seeded-operations" class="seeded-operations" aria-labelledby="seeded-operations-title">
+                <summary><span><small>Shared deterministic contracts</small><strong id="seeded-operations-title">Seeded operations</strong></span><em>No account · local records only</em></summary>
                 <div id="seeded-operation-cards" class="seeded-operation-cards"></div>
                 <p id="seeded-operation-status" class="seeded-operation-status" role="status" aria-live="polite">Standard operation selected.</p>
-              </section>
-              <section id="deployment-mutations" class="mutation-package" aria-live="polite"></section>
+              </details>
+              <details class="setup-disclosure">
+                <summary><span>Operation rules</span><small>Baseline &amp; mutation package</small></summary>
+                <section id="deployment-mutations" class="mutation-package" aria-live="polite"></section>
+              </details>
               <p id="progression-note" class="progression-note"></p>
 
               <button id="deploy-button" class="deploy-button" type="button">
@@ -162,22 +172,20 @@
         <header class="lobby-header">
           <button id="lobby-back" class="text-button" type="button">← Leave squad</button>
           <div class="mission-chip"><span class="status-dot"></span><span id="lobby-mission">Iron District · Story</span></div>
-          <div class="lobby-header-actions"><button id="lobby-practice" class="text-button" type="button" aria-haspopup="dialog" aria-controls="practice-dialog">Practice</button><button id="lobby-run-history" class="text-button" type="button">Past runs</button><button id="lobby-guide" class="text-button" type="button" aria-label="Upgrade archive">Upgrade archive</button><button id="lobby-quality" class="text-button" type="button">Display</button><button id="lobby-audio" class="icon-button" type="button" aria-label="Open sound settings · locked" aria-haspopup="dialog">Sound locked</button></div>
+          <div class="lobby-header-actions"><button id="lobby-practice" class="text-button" type="button" aria-haspopup="dialog" aria-controls="practice-dialog">Practice</button><details class="command-menu"><summary>Menu</summary><div class="command-menu-panel"><button id="lobby-run-history" class="text-button" type="button">Past runs</button><button id="lobby-guide" class="text-button" type="button" aria-label="Upgrade archive">Upgrade archive</button><button id="lobby-quality" class="text-button" type="button">Display &amp; accessibility</button><button id="lobby-audio" class="text-button" type="button" aria-label="Open sound settings · locked" aria-haspopup="dialog">Sound locked</button></div></details></div>
         </header>
 
-        <section id="lobby-mutations" class="mutation-package lobby-mutation-package" aria-label="Active campaign mutation package"></section>
-
-        <div class="control-ribbon lobby-controls" aria-label="Keyboard controls">
-          <strong>Controls</strong>
-          <span data-control-movement><kbd>WASD</kbd> Move</span>
-          <span><kbd>Mouse</kbd> Aim</span>
-          <span data-control-action="autoAim"><kbd>C</kbd> Auto-aim</span>
-          <span data-control-action="active"><kbd>E</kbd> Ability</span>
-          <span data-control-action="ultimate"><kbd>R</kbd> Ultimate</span>
-          <span data-control-choices><kbd>1–3</kbd> Upgrade</span>
-          <span data-control-ping data-control-action="ping"><kbd>G</kbd> Ping</span>
-          <span data-control-action="pause"><kbd>Esc</kbd> Pause</span>
-          <span data-control-action="report"><kbd>` / ~</kbd> Report</span>
+        <div class="lobby-brief" aria-label="Operation reference">
+          <details class="reference-disclosure">
+            <summary><span>Operation rules</span><small>Campaign package</small></summary>
+            <section id="lobby-mutations" class="mutation-package lobby-mutation-package" aria-label="Active campaign mutation package"></section>
+          </details>
+          <details class="reference-disclosure">
+            <summary><span>Controls</span><small>Keyboard quick reference</small></summary>
+            <div class="control-ribbon lobby-controls" aria-label="Keyboard controls">
+              <span data-control-movement><kbd>WASD</kbd> Move</span><span><kbd>Mouse</kbd> Aim</span><span data-control-action="autoAim"><kbd>C</kbd> Auto-aim</span><span data-control-action="active"><kbd>E</kbd> Ability</span><span data-control-action="ultimate"><kbd>R</kbd> Ultimate</span><span data-control-choices><kbd>1–3</kbd> Upgrade</span><span data-control-ping data-control-action="ping"><kbd>G</kbd> Ping</span><span data-control-action="pause"><kbd>Esc</kbd> Pause</span><span data-control-action="report"><kbd>` / ~</kbd> Report</span>
+            </div>
+          </details>
         </div>
 
         <div class="lobby-title-row">
@@ -307,18 +315,21 @@
       <div id="synergy-live-region" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
       <div id="participation-live-region" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
       <div id="discovery-live-region" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
-      <aside class="damage-ledger no-data" id="damage-ledger" aria-label="Leading damage sources">
+      <aside class="damage-ledger no-data collapsed" id="damage-ledger" aria-label="Leading damage sources">
         <header id="damage-ledger-handle" class="damage-ledger-handle" tabindex="0" aria-label="Move Damage Sources panel with arrow keys. Hold Control and use arrow keys to resize.">
           <strong>Damage sources</strong>
           <span class="damage-ledger-actions">
             <button id="damage-ledger-reset" type="button" title="Reset panel position and size" aria-label="Reset Damage Sources panel position and size">Reset</button>
-            <button id="damage-ledger-collapse" type="button" title="Collapse Damage Sources" aria-label="Collapse Damage Sources" aria-expanded="true"><span aria-hidden="true">&minus;</span></button>
+            <button id="damage-ledger-collapse" type="button" title="Expand Damage Sources" aria-label="Expand Damage Sources" aria-expanded="false"><span aria-hidden="true">+</span></button>
           </span>
         </header>
         <div id="damage-ledger-content" class="damage-ledger-content" aria-live="polite"></div>
       </aside>
       <div class="xp-wrap"><span id="level-label">LV 1</span><div class="xp-track"><i id="xp-progress"></i></div></div>
-      <div class="game-controls-hint" aria-label="Keyboard controls"><span data-control-movement><kbd>WASD</kbd> Move</span><span data-control-action="autoAim"><kbd>C</kbd> Auto-aim</span><span><kbd>Mouse</kbd> Aim</span><span data-control-ping data-control-action="ping"><kbd>G</kbd> Ping</span><span data-control-action="inspect"><kbd>Shift</kbd> Inspect</span><span data-control-action="report"><kbd>` / ~</kbd> Report</span></div>
+      <details class="game-controls-hint">
+        <summary>Controls</summary>
+        <div aria-label="Keyboard controls"><span data-control-movement><kbd>WASD</kbd> Move</span><span data-control-action="autoAim"><kbd>C</kbd> Auto-aim</span><span><kbd>Mouse</kbd> Aim</span><span data-control-ping data-control-action="ping"><kbd>G</kbd> Ping</span><span data-control-action="inspect"><kbd>Shift</kbd> Inspect</span><span data-control-action="report"><kbd>` / ~</kbd> Report</span></div>
+      </details>
       <aside id="inspect-panel" class="inspect-panel hidden" role="tooltip" aria-live="polite">
         <span id="inspect-kind">Field object</span>
         <strong id="inspect-title">Supply cache</strong>
@@ -343,7 +354,10 @@
           <div class="upgrade-draft">
             <section class="upgrade-local">
               <div class="upgrade-player-heading"><span>You</span><strong id="upgrade-local-name">Rookie</strong><i id="upgrade-local-status">Choosing</i></div>
-              <aside id="upgrade-current-stats" class="upgrade-current-stats" aria-label="Current specialist statistics"></aside>
+              <details class="upgrade-build-disclosure">
+                <summary><span>Current build</span><small>9 live statistics</small></summary>
+                <aside id="upgrade-current-stats" class="upgrade-current-stats" aria-label="Current specialist statistics"></aside>
+              </details>
               <div id="draft-controls" class="draft-controls" aria-label="Draft controls">
                 <button id="draft-reroll" type="button" data-control-action="reroll"><kbd>4</kbd><span>Reroll</span><b id="draft-rerolls">2</b></button>
                 <button id="draft-banish" type="button" data-control-action="banish" aria-pressed="false"><kbd>5</kbd><span>Banish</span><b id="draft-banishes">2</b></button>
@@ -360,12 +374,15 @@
             <aside id="teammate-upgrades" class="teammate-upgrades" aria-label="Teammate upgrade choices"></aside>
           </div>
           <p id="upgrade-wait" class="upgrade-wait">Time resumes when the squad has chosen.</p>
-          <div class="upgrade-reference" aria-label="Upgrade reference">
-            <span><b>Weapon</b> Adds or ranks an automatic attack.</span>
-            <span><b>Passive</b> Improves every compatible system.</span>
-            <span><b>Evolution</b> Level 5 weapon + matching passive + elite access card.</span>
-            <button id="upgrade-guide-button" type="button">Open field guide</button>
-          </div>
+          <details class="upgrade-reference-disclosure">
+            <summary><span>Upgrade rules</span><small>Weapons, passives &amp; evolution</small></summary>
+            <div class="upgrade-reference" aria-label="Upgrade reference">
+              <span><b>Weapon</b> Adds or ranks an automatic attack.</span>
+              <span><b>Passive</b> Improves every compatible system.</span>
+              <span><b>Evolution</b> Level 5 weapon + matching passive + elite access card.</span>
+              <button id="upgrade-guide-button" type="button">Open field guide</button>
+            </div>
+          </details>
         </div>
       </div>
 
@@ -373,8 +390,8 @@
         <div class="pause-card">
           <p class="eyebrow">Operation suspended</p>
           <h2>PAUSED</h2>
-          <div class="pause-reference">
-            <strong>Quick field reference</strong>
+          <details class="pause-reference">
+            <summary>Quick field reference</summary>
             <ul>
               <li><i class="reference-swatch xp"></i><span><b>Cyan shards</b> are experience.</span></li>
               <li><i class="reference-swatch hostile"></i><span><b>Orange bolts</b> are hostile fire.</span></li>
@@ -382,7 +399,7 @@
               <li data-control-action="inspect"><kbd>Shift</kbd><span>Point at a field object to inspect it.</span></li>
             </ul>
             <button id="pause-guide-button" type="button">Open full field guide</button>
-          </div>
+          </details>
           <section id="pause-mutations" class="mutation-package pause-mutation-package" aria-label="Active campaign mutation package"></section>
           <label class="pause-setting pause-setting-select" for="enemy-health-bars-toggle">
             <span><strong>Enemy health bars</strong><small>Choose which targets show remaining health.</small></span>
@@ -423,19 +440,23 @@
           <div><span>Level</span><strong id="result-level">18</strong></div>
           <div><span>Gold</span><strong id="result-gold">240</strong></div>
         </div>
-        <section id="result-mutations" class="result-mutations" aria-labelledby="result-mutations-title"><h3 id="result-mutations-title">Campaign package</h3><div class="mutation-package"></div></section>
+        <details id="result-mutations" class="result-disclosure result-mutations" aria-labelledby="result-mutations-title"><summary id="result-mutations-title"><span>Campaign package</span><small>Operation rules</small></summary><div class="mutation-package"></div></details>
         <section id="result-mastery" class="result-mastery hidden" aria-labelledby="result-mastery-title"><p class="eyebrow">Specialist mastery</p><h3 id="result-mastery-title">Track advanced</h3><p id="result-mastery-copy"></p></section>
         <section id="result-achievements" class="result-discoveries hidden" aria-labelledby="result-achievements-title"><p class="eyebrow">Challenge archive</p><h3 id="result-achievements-title">Records completed</h3><p id="result-achievements-copy"></p><ul id="result-achievement-list"></ul></section>
         <section id="result-seeded-operation" class="result-discoveries hidden" aria-labelledby="result-seeded-operation-title"><p class="eyebrow">Seeded operation</p><h3 id="result-seeded-operation-title">Local record updated</h3><p id="result-seeded-operation-copy"></p><ul id="result-seeded-operation-list"></ul></section>
         <section id="result-discoveries" class="result-discoveries hidden" aria-labelledby="result-discoveries-title"><p class="eyebrow">Field Manual</p><h3 id="result-discoveries-title">Signals catalogued</h3><p id="result-discoveries-copy"></p><ul id="result-discovery-list"></ul></section>
-        <div class="scoreboard-wrap">
-          <table class="result-scoreboard">
-            <thead><tr><th>Specialist</th><th>Deployment</th><th>Damage</th><th>DPS</th><th>Kills</th><th>XP picked up</th><th>Damage taken</th><th>Revives</th><th>Distance</th><th>Share</th></tr></thead>
-            <tbody id="result-scoreboard-body"></tbody>
-          </table>
-        </div>
-        <section id="result-contribution" class="result-contribution hidden" aria-labelledby="result-contribution-title">
-          <header><div><p class="eyebrow">Effective work // anonymous slots</p><h3 id="result-contribution-title">Squad contribution</h3></div><p>Only effective, bounded actions count. Focus or tap a column heading for its definition.</p></header>
+        <details class="result-disclosure result-scoreboard-disclosure">
+          <summary><span>Squad scoreboard</span><small>10 performance metrics</small></summary>
+          <div class="scoreboard-wrap">
+            <table class="result-scoreboard">
+              <thead><tr><th>Specialist</th><th>Deployment</th><th>Damage</th><th>DPS</th><th>Kills</th><th>XP picked up</th><th>Damage taken</th><th>Revives</th><th>Distance</th><th>Share</th></tr></thead>
+              <tbody id="result-scoreboard-body"></tbody>
+            </table>
+          </div>
+        </details>
+        <details id="result-contribution" class="result-disclosure result-contribution hidden" aria-labelledby="result-contribution-title">
+          <summary><span id="result-contribution-title">Squad contribution</span><small>Effective support &amp; teamwork</small></summary>
+          <header><div><p class="eyebrow">Effective work // anonymous slots</p><h3>Squad contribution</h3></div><p>Only effective, bounded actions count. Focus or tap a column heading for its definition.</p></header>
           <div class="contribution-wrap" tabindex="0" aria-label="Scrollable squad contribution table">
             <table class="contribution-table">
               <caption>Shared credit is non-zero-sum for genuine overlap. Excess healing or shielding, duplicate effects, overkill, idle proximity, and system restoration are excluded.</caption>
@@ -444,16 +465,26 @@
             </table>
           </div>
           <div class="sr-only"><p id="contribution-support-help">Effective health restored plus shield actually granted.</p><p id="contribution-prevented-help">Damage absorbed by attributed shields plus direct impact mitigation.</p><p id="contribution-assists-help">Qualified damage assists plus effective crowd control assists.</p><p id="contribution-revive-help">Completed revive credits and active contribution time.</p><p id="contribution-objective-help">Objective presence, positive relay movement, and completions.</p><p id="contribution-priority-help">Qualified elite and apex participation, never proximity alone.</p><p id="contribution-synergy-help">Breach, ultimate resonance, and moving screen actions with effective impact.</p></div>
-        </section>
+        </details>
         <section id="result-synergies" class="result-synergies hidden" aria-labelledby="result-synergies-title"><h3 id="result-synergies-title">Teamwork</h3><div id="result-synergy-cards"></div></section>
-        <div id="result-damage-breakdown" class="result-damage-breakdown"></div>
+        <details class="result-disclosure result-damage-disclosure">
+          <summary><span>Damage breakdown</span><small>Sources, share &amp; DPS</small></summary>
+          <div id="result-damage-breakdown" class="result-damage-breakdown"></div>
+        </details>
         <div class="result-actions">
-          <button id="again-button" class="deploy-button" type="button"><span>Run it again</span><span>↻</span></button>
-          <button id="watch-replay" class="text-button hidden" type="button">Watch verified replay</button>
-          <button id="copy-squad-report" class="text-button" type="button">Copy squad report</button>
-          <button id="copy-squad-report-named" class="text-button" type="button">Copy with callsigns</button>
-          <button id="result-run-history" class="text-button" type="button">View past runs</button>
-          <button id="result-home" class="text-button" type="button">Return to command</button>
+          <div class="result-primary-actions">
+            <button id="again-button" class="deploy-button" type="button"><span>Run it again</span><span>↻</span></button>
+            <button id="result-home" class="secondary-button" type="button">Return to command</button>
+          </div>
+          <details class="result-more-actions">
+            <summary>More debrief actions</summary>
+            <div>
+              <button id="watch-replay" class="text-button hidden" type="button">Watch verified replay</button>
+              <button id="copy-squad-report" class="text-button" type="button">Copy squad report</button>
+              <button id="copy-squad-report-named" class="text-button" type="button">Copy with callsigns</button>
+              <button id="result-run-history" class="text-button" type="button">View past runs</button>
+            </div>
+          </details>
         </div>
       </div>
     </section>

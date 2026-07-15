@@ -27,7 +27,8 @@ test("performance reports expose cosmetic environmental load without protocol fi
 
 test("damage source telemetry updates a persistent interactive panel shell", () => {
   assert.match(html, /id="damage-ledger-handle"[^>]+tabindex="0"/);
-  assert.match(html, /id="damage-ledger-collapse"[^>]+aria-expanded="true"/);
+  assert.match(html, /class="damage-ledger no-data collapsed"/);
+  assert.match(html, /id="damage-ledger-collapse"[^>]+aria-expanded="false"/);
   assert.match(html, /id="damage-ledger-content"[^>]+aria-live="polite"/);
   assert.match(game, /lastlight:damage-ledger-layout:v1/);
   assert.match(game, /new ResizeObserver/);
@@ -39,6 +40,8 @@ test("damage source telemetry updates a persistent interactive panel shell", () 
   assert.doesNotMatch(game, /\$\("damage-ledger"\)\.innerHTML/);
   assert.match(css, /\.damage-ledger \{[^}]+resize: both;/s);
   assert.match(css, /\.damage-ledger\.collapsed \{[^}]+resize: none;/s);
+  assert.match(css, /\.game-screen\.tactical-intel \.damage-ledger\.collapsed \.damage-ledger-content \{ display: block;/);
+  assert.match(game, /DAMAGE_LEDGER_DEFAULT = Object\.freeze\(\{[^}]+collapsed: true/);
 });
 
 test("active powerups expose detailed pointer and keyboard inspection", () => {
@@ -293,8 +296,10 @@ test("enemy identity guide stays named and reachable on mobile", () => {
   assert.match(game, /Hasted elite/);
   assert.match(game, /Shielded elite/);
   assert.match(game, /Volatile elite/);
-  assert.match(css, /\.topbar-actions #guide-button \{ display: inline-flex;/);
-  assert.match(css, /#lobby-guide \{ display: inline-flex;/);
+  assert.match(html, /class="command-menu-panel"[\s\S]+id="guide-button"/);
+  assert.match(html, /class="command-menu-panel"[\s\S]+id="lobby-guide"/);
+  assert.match(css, /\.topbar-actions \.command-menu-panel \.text-button \{ display: flex;/);
+  assert.match(css, /\.lobby-header-actions \.command-menu-panel \.text-button \{ display: flex;/);
 });
 
 test("mobile reuses the visible E and R slots instead of rendering duplicate cast buttons", () => {
