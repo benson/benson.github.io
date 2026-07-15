@@ -15,6 +15,7 @@ import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./m
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
 import { PING_INTENTS, PING_LIFETIME_TICKS, selectVisiblePings } from "./ping-contract.js?v=20260713.4";
 import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260715.1";
+import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260715.1";
 
 const TAU = Math.PI * 2;
 const PING_BUFFER_LIMIT = 32;
@@ -941,7 +942,7 @@ export class Renderer {
     for (const item of items) {
       if (item.type === "cover") this.drawCover(map, item.value);
       else if (item.type === "pod") this.drawPods([item.value]);
-      else if (item.type === "enemy" || item.type === "enemy-death") this.drawEnemies([item.value], previous, t, map, state.players, visualDt);
+      else if (item.type === "enemy" || item.type === "enemy-death") this.drawEnemies([item.value], previous, t, map, state.players, visualDt, state.tick);
       else if (item.type === "drone") this.drawDrones([item.value], state.players, previous, t);
       else this.drawPlayers([item.value], previous, t, localPlayerId, visualDt);
     }
@@ -1660,7 +1661,7 @@ export class Renderer {
     }
   }
 
-  drawEnemies(enemies, previous, t, map, players = [], visualDt = 1 / 60) {
+  drawEnemies(enemies, previous, t, map, players = [], visualDt = 1 / 60, simulationTick = undefined) {
     const ctx = this.ctx, now = performance.now();
     for (const raw of enemies) {
       if (!this.isWorldVisible(raw, 110)) continue;
@@ -1684,11 +1685,15 @@ export class Renderer {
       const firedRangedShot = e.boss && Number.isFinite(e.shotCd) && Number.isFinite(visual.lastShotCd) && e.shotCd > visual.lastShotCd + .3;
       visual.rangedAttackFlash = firedRangedShot ? .2 : Math.max(0, visual.rangedAttackFlash - frameTime);
       const authoritativeAttackFlash = Math.max(e.attackFlash || 0, visual.rangedAttackFlash);
-      const motionState = enemyMotionState(authoritativeAttackFlash === (e.attackFlash || 0) ? e : { ...e, attackFlash: authoritativeAttackFlash }, moving, nearTarget);
+      const motionEnemy = authoritativeAttackFlash === (e.attackFlash || 0) ? e : { ...e, attackFlash: authoritativeAttackFlash };
+      const fallbackMotionState = enemyMotionState(motionEnemy, moving, nearTarget);
       const retriggered = authoritativeAttackFlash > visual.lastAttackFlash + .03 || (e.hitFlash || 0) > visual.lastHitFlash + .02;
-      if (visual.animation !== motionState || retriggered) { visual.animation = motionState; visual.animationTime = 0; }
+      if (visual.animation !== fallbackMotionState || retriggered) visual.animationTime = 0;
       else visual.animationTime += frameTime;
-      const motion = motionFrame(animation, motionState, visual.animationTime, { reducedMotion: this.reducedMotion });
+      const bodyPlan = enemyBodyMotionPlan({ enemy: motionEnemy, tick: simulationTick, rig: animation, moving, nearTarget, fallbackState: fallbackMotionState, fallbackElapsed: visual.animationTime });
+      const motionState = bodyPlan.state;
+      visual.animation = motionState;
+      const motion = motionFrame(animation, bodyPlan.state, bodyPlan.elapsed, { reducedMotion: this.reducedMotion });
       const drawFacing = motionState.startsWith("attack") ? visual.aimFacing : visual.facing;
       visual.directionColumn = stableDirectionColumn(drawFacing, visual.directionColumn);
       visual.lastAttackFlash = authoritativeAttackFlash; visual.lastHitFlash = e.hitFlash || 0; visual.lastShotCd = e.shotCd; visual.lastEntity = { ...raw, x: e.x, y: e.y }; visual.updatedAt = now;
