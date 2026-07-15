@@ -51,6 +51,9 @@ test("preview evidence includes aiming, backpedal, hysteresis, and authored tran
     ]) assert.ok(scenarios.has(required), `${preview.specialist}/${preview.mode} includes ${required}`);
     const rapidTurns = preview.frames.filter((frame) => frame.scenario === "rapid-west-east-turns");
     assert.deepEqual(rapidTurns.map((frame) => frame.resolvedDirection), ["west", "east", "west"]);
+    const signatureAim = preview.frames.filter((frame) => frame.scenario === "nearest-threat-signature-aim");
+    assert.ok(signatureAim.length >= 4);
+    assert.ok(signatureAim.every((frame) => frame.requestedState === "run" && frame.resolvedDirection === "north"), "moving auto-aim keeps the authoritative target-facing column");
     const hysteresis = preview.frames.filter((frame) => frame.scenario === "direction-hysteresis");
     assert.ok(hysteresis.length >= 4);
     assert.equal(new Set(hysteresis.map((frame) => frame.resolvedColumn)).size, 1, "boundary jitter does not flicker atlas columns");

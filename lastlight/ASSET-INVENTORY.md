@@ -9,7 +9,7 @@ Every checked-in runtime asset is project-authored. Generated imagery was direct
 | --- | --- | ---: | --- | --- |
 | Branding | `assets/branding`, `assets/og*` | 4 | SVG, JSON, PNG | Project-authored mark and social composition; text wordmark remains the UI fallback. |
 | Specialist cutouts | `assets/sprites`, `assets/squad-atlas*` | 13 | transparent PNG | Project-authored, generated, and curated; semantic specialist names and CSS framing remain available. |
-| Motion | `assets/motion`, `assets/motion-normalized` | 36 | source PNG/WebP and normalized WebP atlases | Project-authored generation plus deterministic normalization; static cutouts are the fallback. |
+| Motion | `assets/motion`, `assets/motion-normalized` | 37 | source PNG/WebP and normalized WebP atlases | Project-authored generation plus deterministic normalization; static cutouts are the fallback. |
 | Weapons | `assets/weapons` | 21 | transparent WebP | Project-authored; weapon name and family glyph remain required. |
 | Enemies | `assets/enemies` | 7 | transparent WebP plus generation record | Project-authored and generated; shape, label, telegraph, and audio cue preserve the role. |
 | Environments | `assets/environments`, `assets/environment-chunks` | 8 | WebP backgrounds and atlases | Project-authored and generated; collision and readability contracts do not depend on the bitmap. |
@@ -18,7 +18,7 @@ Every checked-in runtime asset is project-authored. Generated imagery was direct
 | Effects | `assets/effects` | 3 | transparent WebP plus canvas effects | Project-authored; the readability pass order owns priority and fallback geometry. |
 | Audio | `audio-cues.js` | 0 binary assets | generated Web Audio | Project-authored synthesis with no external samples; every critical cue has a visual equivalent. |
 
-The 141 files under `assets/` are covered by the nine visual families above. Audio is deliberately code-generated and therefore adds no binary asset. Counts include source records and generation documentation, not just decoded runtime images.
+The 142 files under `assets/` are covered by the nine visual families above. Audio is deliberately code-generated and therefore adds no binary asset. Counts include source records and generation documentation, not just decoded runtime images.
 
 ## Source-to-runtime rules
 

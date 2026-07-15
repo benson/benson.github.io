@@ -127,12 +127,12 @@ test("strict schema rejects unknown keys, naming drift, duplicate cells, bad bou
   }
 });
 
-test("verify rejects render anchors or timing that drift from runtime theme metadata", () => {
-  const manifest = productionManifest(); manifest.atlases[0].render.anchor = [0.4, 0.82];
-  const relative = writeManifest("invalid-runtime-drift.json", manifest);
+test("verify rejects a sprite output that drifts from the motion-normalization handoff", () => {
+  const manifest = productionManifest(); manifest.atlases[0].output.path = "assets/sprites/zuri-motion-atlas-drift.png";
+  const relative = writeManifest("invalid-runtime-handoff.json", manifest);
   const result = spawnSync(PYTHON, [TOOL, "verify", "--manifest", relative], { cwd: ROOT, encoding: "utf8" });
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /runtime metadata drift/);
+  assert.match(result.stderr, /normalization handoff drift/);
 });
 
 test("manifest pins the raw source and runtime output SHA-256 records", () => {

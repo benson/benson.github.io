@@ -186,6 +186,11 @@ be consumed directly as runtime grids. `motion_atlas_tool.py` segments their
 connected alpha foreground and writes isolated 256 × 256 runtime cells under
 `assets/motion-normalized/`.
 
+An atlas may declare `sourceGridRows` when an immutable legacy source has a
+different physical row count from its runtime contract. Zuri uses this path to
+promote its four-by-five PNG into a four-by-six runtime WebP; every duplicated
+or remapped pose remains explicit in `sourceRows` and in the QA report.
+
 Run from `lastlight/`:
 
 ```bash

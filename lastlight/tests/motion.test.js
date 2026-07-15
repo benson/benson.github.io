@@ -31,7 +31,7 @@ test("direction hysteresis prevents diagonal frame-to-frame atlas flicker", () =
 
 test("specialist facing honors the simulation's aim, contact, and dash policies", () => {
   assert.equal(specialistFacingTarget({ autoAim: false, facing: 0, movementFacing: Math.PI, aimFacing: 0 }, true), 0, "manual aim can backpedal without turning away");
-  assert.equal(specialistFacingTarget({ input: { autoAim: true }, facing: 0, movementFacing: Math.PI, aimFacing: 0 }, true), Math.PI, "auto-aim leaves projectile targeting independent while the body follows travel");
+  assert.equal(specialistFacingTarget({ input: { autoAim: true }, facing: 0, movementFacing: Math.PI, aimFacing: 0 }, true), 0, "auto-aim preserves the specialist's authoritative aim-facing policy while backpedalling");
   assert.equal(specialistFacingTarget({ autoAim: true, facing: 0, movementFacing: Math.PI, aimFacing: 0 }, false), 0, "an idle auto-aim specialist can face the active target");
   assert.equal(specialistFacingTarget({ facing: Math.PI, movementFacing: Math.PI, aimFacing: 0 }, true), Math.PI, "contact-facing specialist follows locomotion");
   assert.equal(specialistFacingTarget({ animState: "dash", dashFacing: -Math.PI / 2, facing: 0 }, true), -Math.PI / 2, "dash pose follows dash travel");

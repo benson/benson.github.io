@@ -125,7 +125,7 @@ function previewRequestAt(timeMs) {
     entityOverrides: { facing: 0, aimFacing: 0, movementFacing: Math.PI, autoAim: false, input: { autoAim: false } },
   };
   if (timeMs < 2200) return {
-    requestId: "idle", direction: "north", clipTime: (timeMs - 1800) / 1000, scenario: "nearest-threat-signature-aim",
+    requestId: "run", direction: "north", clipTime: (timeMs - 1800) / 1000, scenario: "nearest-threat-signature-aim",
     entityOverrides: { facing: -Math.PI / 2, aimFacing: -Math.PI / 2, movementFacing: Math.PI / 2, autoAim: true, input: { autoAim: true } },
   };
   if (timeMs < 2500) return { requestId: "mobility-dash", direction: "west", clipTime: (timeMs - 2200) / 1000, scenario: "mobility-dash" };

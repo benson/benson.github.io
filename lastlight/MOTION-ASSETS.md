@@ -44,7 +44,7 @@ timing, but removes metadata-driven offset, rotation, and squash/stretch.
 
 Specialists:
 
-- `assets/sprites/zuri-motion-atlas.png` (prototype grid)
+- `assets/motion-normalized/specialists/zuri.webp` (production runtime atlas promoted from the legacy source grid)
 - `assets/motion/specialists/echo.webp`
 - `assets/motion/specialists/sola.webp`
 - `assets/motion/specialists/bront.webp`
@@ -78,18 +78,20 @@ to six rows (1024 × 1536).
 
 ## Current state
 
-`assets/sprites/zuri-motion-atlas.png` is a 1256 × 1255, 4 × 5 prototype. It
-contains real directional idle, run, action, and hurt poses. Cast, down, revive,
-and victory currently reuse those physical rows and are therefore marked
-unauthored. The other eight specialists now have directional idle, run, action,
-hurt, and down art. All six field enemy archetypes have directional idle,
-locomotion, attack-contact, hurt, and death art. Logical recovery frames reuse
+`assets/sprites/zuri-motion-atlas.png` remains the immutable legacy source for
+Zuri's real directional idle, run, action, and hurt poses. The normalizer maps
+that four-by-five source explicitly into the standard four-by-six runtime atlas
+at `assets/motion-normalized/specialists/zuri.webp`. Cast, down, revive, and
+victory continue to reuse those physical poses and remain marked unauthored.
+The other eight specialists have directional idle, run, action, hurt, and down
+art. All six field enemy archetypes have directional idle, locomotion,
+attack-contact, hurt, and death art. Logical recovery frames reuse
 those authored poses with bounded transforms. Tunnelmaw, Red Hunger, Void
 Empress, and Abyss Blade each have a dedicated directional apex atlas.
 
-`getMissingMotionAssets()` returns only the Zuri prototype because it still uses
-the legacy 4 × 5 grid. Any future unavailable atlas is not requested by the
-browser, so there are no intentional 404s. To activate a delivered atlas, place
+`getMissingMotionAssets()` now returns an empty list for the shipped theme. Any
+future unavailable atlas is not requested by the browser, so there are no
+intentional 404s. To activate a delivered atlas, place
 it at the exact path, set its manifest `available` to `true` and `status` to
 `ready`, confirm `expectedSize`, and mark only genuinely authored logical clips
 as `authored: true`. The renderer verifies dimensions at runtime and falls back

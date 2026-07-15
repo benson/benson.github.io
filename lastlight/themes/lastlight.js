@@ -218,23 +218,6 @@ function plannedSpecialistRig(id) {
   };
 }
 
-function zuriPrototypeRig() {
-  const rig = plannedSpecialistRig("zuri");
-  return {
-    ...rig, status: "prototype", atlas: { src: "assets/sprites/zuri-motion-atlas.png", available: true, expectedSize: [1256, 1255] },
-    grid: { columns: 4, rows: 5 }, anchor: [.5, .82], drawSize: [138, 110],
-    states: {
-      idle: { ...frames([0, 0], [260, 260], true), loop: true },
-      run: { ...frames([1, 2], 250, true), loop: true },
-      mobility: frames([3, 3, 3], [60, 60, 100], true),
-      cast: frames([3, 3, 3, 0], [80, 80, 70, 130]),
-      hurt: frames([4, 4], [80, 150], true), down: frames([4, 4, 4, 4], [90, 110, 140, 420]),
-      revive: frames([0, 0, 0, 0], [100, 100, 100, 180]),
-      victory: { ...frames([0, 0, 0, 0], [150, 150, 180, 220]), loop: true },
-    },
-  };
-}
-
 function plannedEnemyRig(id, layout, boss = false) {
   const source = boss ? `assets/motion-normalized/bosses/${id}.webp` : `assets/motion-normalized/enemies/${id}.webp`;
   const compactFiveRows = id === "spitter" || id === "bomber" || (boss && id === "beachhead");
@@ -259,7 +242,7 @@ function plannedEnemyRig(id, layout, boss = false) {
   };
 }
 
-const specialistMotions = Object.fromEntries(THEME_ASSET_KEYS.specialists.map((id) => [id, id === "zuri" ? zuriPrototypeRig() : plannedSpecialistRig(id)]));
+const specialistMotions = Object.fromEntries(THEME_ASSET_KEYS.specialists.map((id) => [id, plannedSpecialistRig(id)]));
 const enemyMotions = Object.fromEntries(THEME_ASSET_KEYS.enemies.map((id) => [id, plannedEnemyRig(id, enemyLayout[id])]));
 const bossMotions = Object.fromEntries(MOTION_BOSS_IDS.map((id) => [id, plannedEnemyRig(id, { anchor: [.5, .875], drawSize: [190, 160], groundY: 32, shadow: [76, 24], contact: [90, 2] }, true)]));
 

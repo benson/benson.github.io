@@ -8,7 +8,7 @@
     "assets/motion-normalized/specialists/rift.webp": { "dimensions": [1024, 1536], "pixelSha256": "d5a8d5e0bc680da839f8ffc581e76529f10e4f3cb4eb872d08b6b7e230f7d456" },
     "assets/motion-normalized/specialists/sola.webp": { "dimensions": [1024, 1536], "pixelSha256": "7848cf1b35b74d9a7edae343567351c021b192ab5afbd694e898bc5fb8b39364" },
     "assets/motion-normalized/specialists/vesper.webp": { "dimensions": [1024, 1536], "pixelSha256": "2a47083e22fec5462ccdf944309a59027982f28270b0fa799a0a7ea85f1dc53b" },
-    "assets/sprites/zuri-motion-atlas.png": { "dimensions": [1256, 1255], "pixelSha256": "41d3bd2a66276f165aed85c2839cb0f715d5a4317fd42a533d1bdab3f381c837" }
+    "assets/motion-normalized/specialists/zuri.webp": { "dimensions": [1024, 1536], "pixelSha256": "0e8bb520d18f6202af54a6914d7353db343a432295572e4947d3e21d301b42f1" }
   },
   "budgets": {
     "contactSheetDimensions": [1440, 2520],
@@ -44,31 +44,31 @@
       "sola/reduced-motion": "e35ecff05ed416259774230de66ab84a136490a1447739ccd2f1712cd1f789a5",
       "vesper/normal": "99f1ad596a8458a258369ea0187ed5dc604254c8338dc46f45b6696398c5bae2",
       "vesper/reduced-motion": "b9179780ee610c943aae2162f1231749af3b7d70765a037ad8ff600ad632d591",
-      "zuri/normal": "350329d86ee6d519ad52baa5115b2a3afbe41ea412ac76a2054b69fb91b5bfb3",
-      "zuri/reduced-motion": "bc1d8f76f4f5c4388364f2f0996d8728d65e55611036540c8c9f135881c75aa2"
+      "zuri/normal": "77f5cd67185ee1cd238b99471727923a2cc506b07315fc138159a4c42107b40c",
+      "zuri/reduced-motion": "5f5c8af0caf311bae3744adcd244c9adad3527a7e958f74aeeb4c96c4c4c8d92"
     },
     "previews": {
-      "bront/normal": "4d2d3eea46bbeb406db1610ff1997aa43b14560e5dbdda349a9945693ab233b1",
-      "bront/reduced-motion": "f24b15d01b62413ff67ec2254de151d95aebbc47b31b98042bf675d226471075",
-      "echo/normal": "d301690edd20439c9440a55dfa297b0c862a3a8a7c14a38d3f7ab5551c28c850",
-      "echo/reduced-motion": "5882b1490c5ad8d0f05593424dcfb3f899639ed900cab89fe5d6484c01bb8630",
-      "fang/normal": "f64acdb765c9b1c3dea3304250f9de2e6e434d51acb42634bb9c3a58f093dcc7",
-      "fang/reduced-motion": "5b8a372c3780d85718d20a6b3d1ad5459e0915d17788f8215d97fd03c6bb34d8",
-      "gale/normal": "d7bdcaf2a0087ce9849ef5554b5cc0cd29125d28498a53989d11fc8b4749e609",
-      "gale/reduced-motion": "10e41c2919aa416d2786987e16c78cffac3c95a3665bffb8110282038c7000e6",
-      "nova/normal": "6201da10f01971befc65ea840d5c537454319cdd6618b56b8a28fb96e71aca99",
-      "nova/reduced-motion": "c32504f80f7cf4ea65a6ff98081e17ac0da9af4fe36a7ae748ae2f0214784675",
-      "rift/normal": "921fd1bf5ee3a068de66518609c008f5a53859e117d0cd76924c4c9c7e59c02b",
-      "rift/reduced-motion": "49d0cdef0edcc1a8e0de490fe4625c064a04bc3bff1a58c1f4e408063f361b1a",
-      "sola/normal": "371e10f35079ab2a6314e7440da3990349655a714456730980f3de0b243d0ebc",
-      "sola/reduced-motion": "ad66a798117bf53ebbbf0d4634a5153ea9ed886ef1a590639619ccf504efd75a",
-      "vesper/normal": "64e7ac7b0117a0e619277e243758d5aed6f75a08656f9d93c461135dedcdb24e",
-      "vesper/reduced-motion": "8af78a37fe71f6eb35bd30f79d4d510afdd3d92a7bd77fb92aa5c318673a6b4f",
-      "zuri/normal": "bcc55fc44be00ab22160fea9d3739c8d2eb34fc9a072a4e8ad1a50f9c71620a3",
-      "zuri/reduced-motion": "c3b9b5d1930d2a7ca84e4329ccecb9169f54f8b83d89e488a70b4c9525259e69"
+      "bront/normal": "b9e615cb68f90f809e00913ac1aa4c3289edd49ca747bfad20910fd49413c26d",
+      "bront/reduced-motion": "0099488240f2f00902ba63bc79288f753506649a562a4f4c3a66008cef0a1676",
+      "echo/normal": "d9d1d4e0824799d7d55d241d4a27ec6332e6ff4e05281c4020fdaa86e002a2c7",
+      "echo/reduced-motion": "e743990eeb715a0832cbc4e55ca490202765dd8c9b3bcc9293b13ab3f2084172",
+      "fang/normal": "c5168821eef5ac9db1e516a05e6f3f52f943d7a9786657b5967cbdd67a6e401d",
+      "fang/reduced-motion": "76088fa8c10d5b64cfb31575a09837b04071b9f22dde71ba92dceb367f5e4992",
+      "gale/normal": "f5fcc5029b69f71ae5cebfd77969d11db8b455dca638f63da06c1b284b83c60a",
+      "gale/reduced-motion": "2c913dbf20b0e8177b472d9aba1b65e4afb5396341f865e160fc593f3628daa0",
+      "nova/normal": "d69484b898e4fc681ea260fd60b0b1c8afb208894a768749e4769c4153a369f4",
+      "nova/reduced-motion": "8cc6be77cea163c2b868525f3853ffeceb466460cde5cf53c117183b25b5275e",
+      "rift/normal": "c3508c3c50593419b18d449b6180d723403ad234569e01f4d863d81ce38ac50c",
+      "rift/reduced-motion": "eacb137d44c98073a2969f73f7652050a793ace521a5b0584185bfaddf3d572c",
+      "sola/normal": "a35f4ff248f52cef0e553a3eef427ce427eac4a4f7908ab5061efb8e2912be14",
+      "sola/reduced-motion": "f0346e433ef88e352f2236e10dad4c9191018405a7193b1bec9c353239143ee9",
+      "vesper/normal": "2da985f0c6e526c2b3ad979f48313e6098261fe6285f2164879bbfd5f5061f09",
+      "vesper/reduced-motion": "6431b5095c1df4e720d4abb2926e266f4cf046f689e0dc5baf0119262db7b177",
+      "zuri/normal": "c2df27bb4688e77dc30f36c0d2fe18b7cab2f327a6094e57d7c1078d20849410",
+      "zuri/reduced-motion": "3ac67e19db745ecb20e65e3e7d90deabd52945137229cb05a0129080c9b5e42c"
     }
   },
-  "metadataSha256": "d601aedf3c8d06b91aef77f300afddc28bfd64e18e0fedae7e468a42cec63c23",
+  "metadataSha256": "91ee06c3cb7e4d8cbe008b3fa245103b02c97c4520daadc1a27e768618e840fb",
   "pillowVersion": "12.1.1",
   "schema": "lastlight.motion-audit.v1"
 }
