@@ -11,7 +11,7 @@ test("launch and lobby keep primary actions visible while reference tools sit on
   assert.match(html, /class="reference-disclosure home-controls-disclosure"[\s\S]+<summary><span>Controls<\/span>/);
   assert.match(html, /<details id="seeded-operations" class="seeded-operations"/);
   assert.match(html, /class="setup-disclosure hidden"[\s\S]+id="deployment-mutations"/);
-  assert.match(html, /class="lobby-brief"[\s\S]+id="lobby-mutations"[\s\S]+class="control-ribbon lobby-controls"/);
+  assert.match(html, /class="lobby-brief"[\s\S]+class="control-ribbon lobby-controls"[\s\S]+id="lobby-mutations"/);
   assert.match(css, /\.command-menu-panel \{[^}]+position: absolute;[^}]+transform-origin: top right;/s);
 });
 

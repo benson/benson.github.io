@@ -26,8 +26,10 @@ test("Normal keeps custom rules out of setup, lobby, pause, and results", () => 
 });
 
 test("mastery, upgrade loadout, aligned cards, and explainable results are first-class", () => {
-  assert.match(html, /id="mastery-button"/);
-  assert.match(html, /id="mastery-menu-button"/);
+  assert.match(html, /id="home-specialist-progress"/);
+  assert.match(html, /id="home-specialist-grid"/);
+  assert.match(game, /function renderHomeMasteryRoster/);
+  assert.match(game, /data-home-specialist=/);
   assert.match(html, /id="mastery-dialog"/);
   assert.match(html, /id="upgrade-current-loadout"/);
   assert.doesNotMatch(html, /UPGRADE RULES|upgrade-reference-disclosure/);
@@ -35,6 +37,13 @@ test("mastery, upgrade loadout, aligned cards, and explainable results are first
   for (const zone of ["identity", "description", "evolution", "forecast", "affected", "recommendation"]) assert.match(game, new RegExp(`upgrade-zone-${zone}`));
   assert.match(game, /function resultInspectable/);
   assert.match(css, /\.result-item-tooltip/);
+});
+
+test("lobby controls stay visible and edge utilities share the right rail", () => {
+  assert.match(html, /class="lobby-controls-panel"[\s\S]+class="control-ribbon lobby-controls"/);
+  assert.doesNotMatch(html, /<details class="reference-disclosure">[\s\S]+class="control-ribbon lobby-controls"/);
+  assert.match(html, /class="edge-utilities"[\s\S]+id="build-history-button"[\s\S]+id="report-button"/);
+  assert.match(css, /\.detail-art-wrap \{[^}]*min-height: 190px;[^}]*flex: 0 0 clamp/);
 });
 
 test("frame diagnostics are optional, persistent, and keyboard reachable", () => {

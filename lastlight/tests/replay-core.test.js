@@ -139,7 +139,7 @@ test("paused pointer sampling coalesces safely and mixed-case authored choices r
 
 test("paused multiplayer input coalesces per player even when samples interleave", () => {
   const recorder = new ReplayRecorder({
-    build: "2026.07.16.3", balanceVersion: "2026.07.12-signatures.3", balanceHash: "fnv1a32:e36834e8",
+    build: "2026.07.16.4", balanceVersion: "2026.07.12-signatures.3", balanceHash: "fnv1a32:e36834e8",
     rng: "xoshiro128ss-v1", seed: "0123456789abcdef0123456789abcdef",
     run: { map: "warehouse", difficulty: "story", duration: 240 },
   });

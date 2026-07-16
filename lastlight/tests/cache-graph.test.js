@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const RELEASE = "20260716.3";
+const RELEASE = "20260716.4";
 const importers = [
   "index.html", "game.js", "engine.js", "render.js", "replay-timeline.js",
   "replay-game-adapters.js", "specialist-identity.js", "host-migration.js",
@@ -44,7 +44,7 @@ test("the active build cache-busts every changed module through the transitive b
 test("the visible and runtime build identities match the cache release", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
   const game = readFileSync(new URL("../game.js", import.meta.url), "utf8");
-  assert.match(html, /Lastlight build 2026\.07\.16\.3/);
-  assert.match(html, /<strong>2026\.07\.16\.3<\/strong>/);
-  assert.match(game, /const BUILD = "2026\.07\.16\.3"/);
+  assert.match(html, /Lastlight build 2026\.07\.16\.4/);
+  assert.match(html, /<strong>2026\.07\.16\.4<\/strong>/);
+  assert.match(game, /const BUILD = "2026\.07\.16\.4"/);
 });
