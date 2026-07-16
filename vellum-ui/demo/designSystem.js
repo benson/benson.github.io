@@ -17,7 +17,7 @@ import {
   statusStateHtml,
   themeToggle as bindThemeToggle,
   toast,
-} from '../index.js?v=a2b3b4706c4a';
+} from '../index.js?v=d37dba750819';
 
 const mount = document.getElementById('designSystemMount');
 
@@ -34,7 +34,7 @@ const BRAND_STUDY_IDEAS = [
   ['Bookish hierarchy', 'Serif type appears at meaningful hierarchy changes, while controls stay fast and sans.'],
   ['Folio numbers', 'Catalog sections gain quiet two-digit index numbers for rhythm and wayfinding.'],
   ['V bookplate', 'A tiny monogram gives Vellum a recognizable signature without becoming a logo-heavy shell.'],
-  ['Spine rule', 'The hero uses one plum edge instead of a dark outline around every side.'],
+  ['Quiet framing', 'Cards use the same fine warm hairline on every edge; brand color stays inside the content.'],
   ['Editorial measure', 'The introduction narrows to a comfortable reading width and gets slightly more leading.'],
   ['Index navigation', 'The active catalog item reads like a marked index entry, with a dot and pale ink wash.'],
   ['Purposeful corners', 'Controls stay compact; sheets and overlays get the softer radius.'],
