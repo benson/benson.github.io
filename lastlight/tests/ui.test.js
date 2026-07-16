@@ -75,6 +75,20 @@ test("objective notices use longer dwell times and a short interruptible fade", 
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
 });
 
+test("lobby selection flows into a restrained, accessible combat launch", () => {
+  assert.match(html, /class="squad-panel"[^>]+aria-label="Lobby squad"/);
+  assert.match(html, /id="squad-count">1 of 4 connected/);
+  assert.match(html, /id="party-list"[^>]+aria-label="Squad slots"/);
+  assert.match(html, /id="launch-transition"[^>]+aria-hidden="true"/);
+  assert.match(game, /event\.detail > 0/);
+  assert.match(game, /detail\.animate\(\[\{ opacity: \.72, transform: "translateX\(7px\)" \}/);
+  assert.match(game, /function playLaunchTransition\(\)/);
+  assert.match(game, /target\.classList\.toggle\("hidden", !mutation\.enabled && !encounter\)/);
+  assert.match(css, /\.game-screen\.is-opening \.game-topbar/);
+  assert.match(css, /\.objective-banner\[data-type="wave"\]/);
+  assert.match(css, /\.launch-transition-copy[\s\S]+cubic-bezier\(\.23,1,\.32,1\)/);
+});
+
 test("desktop-only type overrides preserve compact controls while result actions stay readable", () => {
   const desktop = css.match(/@media \(min-width: 981px\) \{([\s\S]+?)\n\}/)?.[1] || "";
   assert.match(desktop, /\.control-ribbon \{ font-size: 10px; \}/);

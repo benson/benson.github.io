@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260716.4">
+  <link rel="stylesheet" href="styles.css?v=20260716.5">
 </head>
 <body>
   <main id="app">
@@ -199,11 +199,15 @@
             <p class="eyebrow">Select your specialist</p>
             <h2>ASSEMBLE THE LINE</h2>
           </div>
-          <div id="room-card" class="room-card hidden">
-            <span>Invite code</span>
-            <strong id="room-code">—</strong>
-            <button id="copy-link" type="button">Copy invite link</button>
-          </div>
+          <aside class="squad-panel" aria-label="Lobby squad">
+            <header><span>Squad</span><strong id="squad-count">1 of 4 connected</strong></header>
+            <div id="room-card" class="room-card local">
+              <span id="room-label">Local lobby</span>
+              <strong id="room-code">SOLO</strong>
+              <button id="copy-link" class="hidden" type="button">Copy invite link</button>
+            </div>
+            <div id="party-list" class="party-list" aria-label="Squad slots"></div>
+          </aside>
         </div>
 
         <section id="reinforcement-panel" class="reinforcement-panel hidden" aria-labelledby="reinforcement-title" aria-describedby="reinforcement-copy">
@@ -271,7 +275,7 @@
         </div>
 
         <footer class="lobby-footer">
-          <div id="party-list" class="party-list"></div>
+          <p class="lobby-lock-note"><span aria-hidden="true">◆</span> Your specialist locks when the level starts.</p>
           <button id="ready-button" class="deploy-button ready-button" type="button"><span>Ready</span><span>01 / 04</span></button>
         </footer>
       </div>
@@ -280,6 +284,13 @@
     <section id="game-screen" class="screen game-screen hidden" aria-busy="false">
       <canvas id="game-canvas" tabindex="0" aria-label="Lastlight game arena"></canvas>
       <div class="scanlines" aria-hidden="true"></div>
+      <div id="launch-transition" class="launch-transition" aria-hidden="true">
+        <div class="launch-transition-copy">
+          <span id="launch-kicker">SQUAD LOCKED</span>
+          <strong id="launch-map">IRON DISTRICT</strong>
+          <small id="launch-roster">1 SPECIALIST DEPLOYING</small>
+        </div>
+      </div>
       <header class="game-topbar">
         <div class="squad-hud" id="squad-hud" role="list" aria-label="Squad connection and health status"></div>
         <div class="timer-hud">
@@ -709,7 +720,16 @@
       </div>
       <div class="build-history-body">
         <article class="build-release current-build">
-          <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.16.4</h3></div><time class="build-shipped-at" datetime="2026-07-16T11:02:23-04:00" data-build-shipped-at="2026-07-16T11:02:23-04:00">Shipped Jul 16, 2026 · 11:02 AM EDT</time></header>
+          <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.16.5</h3></div><time class="build-shipped-at" datetime="2026-07-16T11:36:08-04:00" data-build-shipped-at="2026-07-16T11:36:08-04:00">Shipped Jul 16, 2026 · 11:36 AM EDT</time></header>
+          <ul>
+            <li>Unified the invite code, copy confirmation, connected count, and all four party slots into one readable squad panel.</li>
+            <li>Added restrained pointer feedback while browsing specialists and a short map-and-roster lock-in when a level starts.</li>
+            <li>Staged the opening HUD, strengthened wave and danger announcements, and kept the existing upgrade return cue crisp.</li>
+            <li>Removed baseline campaign-rule noise from the in-game HUD when no custom encounter system is active.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header><div><span class="build-release-status">Previous build</span><h3>2026.07.16.4</h3></div><time class="build-shipped-at" datetime="2026-07-16T11:02:23-04:00" data-build-shipped-at="2026-07-16T11:02:23-04:00">Shipped Jul 16, 2026 · 11:02 AM EDT</time></header>
           <ul>
             <li>Made all nine specialist portraits, mastery levels, progress, and current challenge states visible directly on the home screen.</li>
             <li>Kept the full mastery browser available from every roster card without hiding the useful progress overview behind navigation.</li>
@@ -1326,10 +1346,10 @@
   </main>
 
   <aside class="edge-utilities" aria-label="Build and feedback">
-    <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.16.4. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.16.4</strong></button>
+    <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.16.5. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.16.5</strong></button>
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report a problem</button>
   </aside>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260716.4"></script>
+  <script type="module" src="game.js?v=20260716.5"></script>
 </body>
 </html>
