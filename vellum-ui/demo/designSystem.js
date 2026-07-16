@@ -186,6 +186,7 @@ export function renderDesignSystem(target) {
     tokensGroup(),
     typeGroup(),
     buttonsGroup(),
+    motionGroup(),
     formsGroup(),
     statusGroup(),
     dataGroup(),
@@ -759,7 +760,9 @@ function statusGroup() {
           '<div class="toast toast-danger"><span class="toast-message">save failed</span></div>',
       );
       const fire = el('button', { className: 'btn', type: 'button', text: 'fire toast', dataset: { dsFireToast: '' } });
-      fire.addEventListener('click', () => toast('toast fired from the catalog', { tone: 'success' }));
+      fire.addEventListener('click', (event) =>
+        toast('toast fired from the catalog', { tone: 'success', reason: 'trigger', event }),
+      );
       row.append(fire);
       return row;
     }),
@@ -856,6 +859,93 @@ function dataGroup() {
   );
 }
 
+function motionGroup() {
+  return group(
+    'motion',
+    'Motion',
+    entry(
+      'Motion workbench',
+      ['--vui-motion-enter', '--vui-motion-exit', '--vui-ease-out', '[data-vui-motion]'],
+      'A shared motion contract: controls snap, transient surfaces arrive quickly and leave faster, and overlays preserve spatial context. Pointer actions animate; keyboard dismissal is immediate; reduced-motion keeps a quiet fade.',
+      () => {
+        const lab = el('div', { className: 'ds-motion-lab', dataset: { dsMotionLab: '' } });
+        const speed = el('div', { className: 'segmented segmented-compact', role: 'group', ariaLabel: 'motion playback speed' });
+        for (const [label, scale] of [['1x', '1'], ['3x', '3'], ['instant', '0']]) {
+          const button = el('button', {
+            className: label === '1x' ? 'segment-btn active' : 'segment-btn',
+            type: 'button',
+            text: label,
+            dataset: { dsMotionSpeed: scale },
+          });
+          button.addEventListener('click', () => {
+            document.documentElement.style.setProperty('--vui-motion-scale', scale);
+            speed.querySelectorAll('.segment-btn').forEach((item) => item.classList.toggle('active', item === button));
+          });
+          speed.append(button);
+        }
+
+        const tiers = el('div', { className: 'ds-motion-tiers' });
+        for (const [name, token, note] of [
+          ['snap', '70ms', 'press and direct feedback'],
+          ['transient', '180ms in / 120ms out', 'menus, popovers, toasts'],
+          ['overlay', '180ms', 'modal context change'],
+        ]) {
+          tiers.append(
+            el(
+              'div',
+              { className: 'ds-motion-tier' },
+              el('strong', { text: name }),
+              el('code', { text: token }),
+              el('span', { text: note }),
+            ),
+          );
+        }
+
+        const actions = el('div', { className: 'ds-motion-actions' });
+        const menuWrap = el('div', { className: 'ds-motion-menu-wrap' });
+        const menuTrigger = el('button', { className: 'btn', type: 'button', text: 'replay popover', dataset: { dsMotionPopover: '' } });
+        const menu = el('div', { className: 'ui-popover floating-menu', role: 'menu', hidden: true });
+        for (const label of ['open book', 'add note', 'share shelf']) {
+          menu.append(el('button', { className: 'floating-menu-item', type: 'button', role: 'menuitem', text: label }));
+        }
+        const menuApi = floatingMenu(menuTrigger, menu, { keyboard: true });
+        menuTrigger.addEventListener('click', (clickEvent) => {
+          if (menuApi.isOpen()) menuApi.close({ reason: 'trigger', event: clickEvent });
+          else menuApi.open({ reason: 'trigger', event: clickEvent });
+        });
+        menuWrap.append(menuTrigger, menu);
+
+        const modalEl = el(
+          'div',
+          { className: 'ui-modal', hidden: true, ariaHidden: 'true' },
+          el(
+            'section',
+            { className: 'ui-modal-card ds-motion-modal' },
+            el('header', { className: 'ui-modal-head' }, el('h3', { className: 'ui-modal-title', text: 'motion, with restraint' })),
+            el('div', { className: 'ui-modal-body', text: 'A short centered settle preserves context without making the dialog perform.' }),
+            el('footer', { className: 'ui-modal-actions' }, el('button', { className: 'btn', type: 'button', text: 'close', dataset: { modalClose: '' } })),
+          ),
+        );
+        const modalApi = modal(modalEl, { interactive: false });
+        const modalTrigger = el('button', { className: 'btn', type: 'button', text: 'replay modal', dataset: { dsMotionModal: '' } });
+        modalTrigger.addEventListener('click', (clickEvent) => modalApi.open({ reason: 'trigger', event: clickEvent }));
+
+        const toastTrigger = el('button', { className: 'btn', type: 'button', text: 'replay toast', dataset: { dsMotionToast: '' } });
+        toastTrigger.addEventListener('click', (clickEvent) =>
+          toast('saved to your shelf', { tone: 'success', reason: 'trigger', event: clickEvent }),
+        );
+        actions.append(menuWrap, modalTrigger, toastTrigger, modalEl);
+        lab.append(
+          el('div', { className: 'ds-motion-toolbar' }, el('span', { text: 'playback' }), speed),
+          tiers,
+          actions,
+        );
+        return lab;
+      },
+    ),
+  );
+}
+
 function overlaysGroup() {
   return group(
     'overlays',
@@ -893,7 +983,7 @@ function overlaysGroup() {
         ),
       );
       const api = modal(modalEl);
-      const trigger = el('button', { className: 'btn', type: 'button', text: 'open modal', onClick: () => api.open() });
+      const trigger = el('button', { className: 'btn', type: 'button', text: 'open modal', onClick: (event) => api.open({ reason: 'trigger', event }) });
       trigger.dataset.dsOpenModal = '';
       wrap.append(trigger, modalEl);
       return wrap;
@@ -947,8 +1037,10 @@ function overlaysGroup() {
         menu.append(simpleItem('compare build'), submenuWrap, simpleItem('remove'));
         wrap.append(trigger, menu);
         controller = floatingMenu(trigger, menu, { keyboard: true, hoverIntent: true });
-        trigger.addEventListener('click', () =>
-          controller.isOpen() ? controller.close() : controller.open({ focusFirst: true }),
+        trigger.addEventListener('click', (event) =>
+          controller.isOpen()
+            ? controller.close({ reason: 'trigger', event })
+            : controller.open({ focusFirst: true, reason: 'trigger', event }),
         );
         return wrap;
       },
