@@ -1,4 +1,4 @@
-import { attrs, esc } from './escape.js?v=d37dba750819';
+import { attrs, esc } from './escape.js?v=8aef8835f3ab';
 
 export function buttonHtml({
   label,

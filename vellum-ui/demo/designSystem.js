@@ -17,13 +17,13 @@ import {
   statusStateHtml,
   themeToggle as bindThemeToggle,
   toast,
-} from '../index.js?v=d37dba750819';
+} from '../index.js?v=8aef8835f3ab';
 
 const mount = document.getElementById('designSystemMount');
 
 const PLAYGROUND_KEY = 'vellum_ds_token_overrides_v1';
 const THEME_KEY = 'vellum_ds_theme_v1';
-const BRAND_STUDY_KEY = 'vellum_ds_brand_study_v1';
+const BRAND_STUDY_KEY = 'vellum_ds_brand_study_v2';
 
 const BRAND_STUDY_IDEAS = [
   ['Vellum canvas', 'A warmer, less grey page ground makes the system feel tactile without adding texture.'],
@@ -257,9 +257,10 @@ function readBrandStudy() {
   const requested = new URLSearchParams(location.search).get('study');
   if (requested === 'branded' || requested === 'before') return requested === 'branded' ? 'after' : 'before';
   try {
-    return localStorage.getItem(BRAND_STUDY_KEY) === 'after' ? 'after' : 'before';
+    const saved = localStorage.getItem(BRAND_STUDY_KEY);
+    return saved === 'before' || saved === 'after' ? saved : 'after';
   } catch {
-    return 'before';
+    return 'after';
   }
 }
 
@@ -272,8 +273,7 @@ function applyBrandStudy(mode, { persist = false } = {}) {
       /* ignore */
     }
     const url = new URL(location.href);
-    if (mode === 'after') url.searchParams.set('study', 'branded');
-    else url.searchParams.delete('study');
+    url.searchParams.set('study', mode === 'after' ? 'branded' : 'before');
     history.replaceState(null, '', url);
   }
   document.querySelectorAll('[data-brand-study-mode]').forEach((button) => {
