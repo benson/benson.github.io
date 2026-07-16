@@ -2,7 +2,7 @@
   "schema": "lastlight.fixture-budgets.v1",
   "schemaVersion": 1,
   "budgets": {
-    "early-solo-contact": { "maxSnapshotBytes": 18100, "maxTotalEntities": 65, "maxWorkUnitsPerTick": 220 },
+    "early-solo-contact": { "maxSnapshotBytes": 18200, "maxTotalEntities": 65, "maxWorkUnitsPerTick": 220 },
     "mid-solo-build": { "maxSnapshotBytes": 50500, "maxTotalEntities": 190, "maxWorkUnitsPerTick": 3500 },
     "late-solo-storm": { "maxSnapshotBytes": 220500, "maxTotalEntities": 1450, "maxWorkUnitsPerTick": 50000 },
     "objective-coordination": { "maxSnapshotBytes": 20000, "maxTotalEntities": 60, "maxWorkUnitsPerTick": 230 },

@@ -1,49 +1,50 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260715.2";
-import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260715.2";
-import { Renderer } from "./render.js?v=20260715.2";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260715.3";
+import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260715.3";
+import { Renderer } from "./render.js?v=20260715.3";
 import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260713.2";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
-import { getThemeAsset, getThemeEnvironmentChunks, getThemeMaterial } from "./themes/lastlight.js?v=20260715.2";
-import { submitRunTelemetry } from "./telemetry.js?v=20260715.2";
+import { getThemeAsset, getThemeEnvironmentChunks, getThemeMaterial } from "./themes/lastlight.js?v=20260715.3";
+import { submitRunTelemetry } from "./telemetry.js?v=20260715.3";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260715.2";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260715.2";
+import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260715.3";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260715.3";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
-import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260715.2";
-import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260715.2";
+import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260715.3";
+import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260715.3";
 import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260711.5";
 import {
   ACCESSIBILITY_ACTIONS, GAMEPAD_ACTIONS, bindingLabel, defaultAccessibilitySettings,
   keyboardActionForEvent, loadAccessibilitySettings, readStandardGamepad, saveAccessibilitySettings,
-} from "./accessibility-settings.js?v=20260715.2";
-import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260715.2";
+} from "./accessibility-settings.js?v=20260715.3";
+import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260715.3";
 import { GuestInputSequenceTracker, HostInputSequenceGate, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260713.2";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260713.2";
-import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260715.2";
-import { advancePlayerMovement } from "./movement.js?v=20260715.2";
+import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260715.3";
+import { advancePlayerMovement } from "./movement.js?v=20260715.3";
+import { abilityChoreography } from "./combat-choreography.js?v=20260715.3";
 import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
 import { DynamicAudioMixer } from "./audio-mix.js?v=20260713.1";
 import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260713.1";
 import { enemyAudioCueName, newEntities, spatialAudioPan, weaponAudioCueName, weaponTimerActivations } from "./audio-events.js?v=20260713.1";
 import { FUNNY_VOICE_MIN_INTERVAL_MS, audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260713.1";
-import { playFeedbackHaptics } from "./feedback-haptics.js?v=20260715.2";
-import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260715.2";
-import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260715.2";
+import { playFeedbackHaptics } from "./feedback-haptics.js?v=20260715.3";
+import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260715.3";
+import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260715.3";
 import { getWeaponEvolution } from "./weapon-evolution.js?v=20260713.1";
 import { isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260712.1";
-import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260715.2";
-import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260715.2";
-import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260715.2";
+import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260715.3";
+import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260715.3";
+import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260715.3";
 import { reconcileActiveBuffs } from "./active-buffs.js?v=20260713.1";
 import { ELITE_AFFIXES, ENEMY_ARCHETYPES, eliteAffixEligibility } from "./enemy-archetypes.js?v=20260713.1";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
-import { mapMechanicDefinition } from "./map-mechanics.js?v=20260715.2";
-import { CAMPAIGN_MUTATIONS, campaignMutationDefinition } from "./campaign-mutations.js?v=20260715.2";
+import { mapMechanicDefinition } from "./map-mechanics.js?v=20260715.3";
+import { CAMPAIGN_MUTATIONS, campaignMutationDefinition } from "./campaign-mutations.js?v=20260715.3";
 import {
   AuthoritySnapshotGate, HOST_MIGRATION_PROTOCOL_VERSION, MIGRATION_CHECKPOINT_INTERVAL_TICKS,
   createMigrationCapabilities, createMigrationCheckpoint, createMigrationReady,
   migrationCompatibilityMatches, validateMigrationCheckpoint,
-} from "./host-migration.js?v=20260715.2";
+} from "./host-migration.js?v=20260715.3";
 import { RECONNECT_DELAYS_MS, SquadPresenceTracker, authorityStateCopy } from "./reconnect-state.js?v=20260713.3";
 import {
   HostPingGate, PING_INTENTS, PING_LIFETIME_TICKS, PING_WHEEL_ORDER, PingSequenceTracker,
@@ -59,32 +60,32 @@ import { DraftRecommendationStore, recommendationMarkerModel } from "./draft-rec
 import { SQUAD_SYNERGY_REGISTRY } from "./squad-synergies.js?v=20260713.6";
 import { reconcileActiveSynergies } from "./active-synergies.js?v=20260713.6";
 import { PARTICIPATION_REGISTRY } from "./participation-credit.js?v=20260713.7";
-import { campaignJoinEligibility } from "./join-in-progress.js?v=20260715.2";
+import { campaignJoinEligibility } from "./join-in-progress.js?v=20260715.3";
 import {
   RUN_ARCHIVE_STORAGE_KEY, createSquadRunReport, decodeSquadRunFragment, normalizeRunArchiveStorage,
   squadRunShareFragment, upsertRunArchive,
-} from "./run-archive.js?v=20260715.2";
+} from "./run-archive.js?v=20260715.3";
 import {
   SPECIALIST_MASTERY, SPECIALIST_MASTERY_LEVELS, awardSpecialistMastery, loadSpecialistMasteryState,
   masteryStartDefinition, saveSpecialistMasteryState, selectMasteryStart,
-} from "./specialist-mastery.js?v=20260715.2";
+} from "./specialist-mastery.js?v=20260715.3";
 import {
   RARE_DISCOVERY_REGISTRY, awardRareDiscoveries, loadRareDiscoveryCollection,
   rareDiscoveryDefinition, rareDiscoveryTelemetry, saveRareDiscoveryCollection,
-} from "./rare-discoveries.js?v=20260715.2";
+} from "./rare-discoveries.js?v=20260715.3";
 import {
   CHALLENGE_ACHIEVEMENT_REGISTRY, awardChallengeAchievements, challengeAchievementDefinition,
   challengeAchievementTelemetry, evaluateChallengeAchievements, loadChallengeAchievementState,
   saveChallengeAchievementState,
-} from "./challenge-achievements.js?v=20260715.2";
+} from "./challenge-achievements.js?v=20260715.3";
 import {
   loadSeededOperationRecords, recordSeededOperationResult, saveSeededOperationRecords,
   seededOperationFor, seededOperationFromId, seededOperationTelemetry,
-} from "./seeded-operations.js?v=20260715.2";
+} from "./seeded-operations.js?v=20260715.3";
 import {
   PRACTICE_MAX_PASSIVES, PRACTICE_MAX_WEAPONS, defaultPracticeLaboratoryConfig,
   measurePracticeLaboratory, normalizePracticeLaboratoryConfig,
-} from "./practice-laboratory.js?v=20260715.2";
+} from "./practice-laboratory.js?v=20260715.3";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -93,7 +94,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.15.2";
+const BUILD = "2026.07.15.3";
 const AUTHORITY_WATCHDOG_MS = Object.freeze({ synchronizing: 10_000, migrating: 25_000 });
 const BALANCE = getBalanceConfig();
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
@@ -1720,18 +1721,21 @@ function cast(slot) {
   }
   if (state.isHost) {
     if (recordHostCast(state.clientId, slot)) {
-      sfx(slot === "r" ? "ultimate" : "ability");
-      send({ type: "cast_audio", playerId: state.clientId, slot });
-      if (slot === "r") comicVoice("pew pew pew");
+      // The simulation's release event owns contact audio. Playing here would
+      // make the cue lead the authored windup and double on snapshot delivery.
     }
   } else {
     if (movementPredictor.player && !player.downed) {
+      const choreography = abilityChoreography(player.specialist, slot);
       movementPredictor.player.animState = slot === "r" ? "castR" : "castE";
-      movementPredictor.player.animTime = slot === "r" ? .42 : .28;
+      movementPredictor.player.animTime = (choreography?.anticipationTicks || (slot === "r" ? 4 : 2)) / 60;
+      movementPredictor.player.castSlot = slot;
+      movementPredictor.player.castStartedTick = Number(game.tick) || 0;
+      movementPredictor.player.castContactTick = movementPredictor.player.castStartedTick + (choreography?.anticipationTicks || 2);
+      movementPredictor.player.castRecoveryUntilTick = movementPredictor.player.castContactTick + (choreography?.recoveryTicks || 18);
       movementPredictor.player.aimFacing = state.input.aim;
     }
-    send({ type: "cast", slot }); sfx(slot === "r" ? "ultimate" : "ability");
-    if (slot === "r") comicVoice("pew pew pew");
+    send({ type: "cast", slot });
   }
 }
 
@@ -2666,7 +2670,11 @@ function chooseUpgrade(choiceId) {
 function processEvents(events) {
   for (const event of events) {
     if (event.seq <= state.lastEventSeq) continue; state.lastEventSeq = event.seq;
-    if (event.type === "cast") continue;
+    if (event.type === "cast") {
+      sfx(event.slot === "r" ? "ultimate" : "ability");
+      if (event.slot === "r" && event.playerId === state.clientId) comicVoice("pew pew pew");
+      continue;
+    }
     if (event.type === "signature-evolution-proc" || event.type === "weapon-evolution-proc") continue;
     if (event.type === "synergy") {
       $("synergy-live-region").textContent = `${event.title}. ${event.copy || ""}`.trim();
@@ -3431,11 +3439,9 @@ function handleNetworkMessage(raw) {
   else if (message.type === "input" && state.isHost) applyGuestNetworkInput(message);
   else if (message.type === "cast" && state.isHost) {
     if (recordHostCast(message._from, message.slot)) {
-      sfx(message.slot === "r" ? "ultimate" : "ability");
-      send({ type: "cast_audio", playerId: message._from, slot: message.slot });
+      // Release audio is emitted from the authoritative cast event.
     }
   }
-  else if (message.type === "cast_audio" && !state.isHost && message.playerId !== state.clientId) sfx(message.slot === "r" ? "ultimate" : "ability");
   else if (message.type === "choice" && state.isHost) recordHostChoice(message._from, message.choiceId);
   else if (message.type === "draft_action" && state.isHost) {
     let action; try { action = sanitizeDraftActionMessage(message, { transport: true }); } catch { return; }

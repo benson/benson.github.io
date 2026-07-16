@@ -1,11 +1,11 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
-} from "./data.js?v=20260715.2";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260715.2";
+} from "./data.js?v=20260715.3";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260715.3";
 import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.5";
-import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260715.2";
-import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260715.2";
+import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260715.3";
+import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260715.3";
 import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260713.1";
 import { MAX_CORRIDOR_CANDIDATES, accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget, orderEntitiesByDistance } from "./projectile-decisions.js?v=20260713.1";
 import { eliteAffixEligibility, selectEliteAffixes, selectSpawnArchetype, spawnPhaseAt } from "./enemy-archetypes.js?v=20260713.1";
@@ -28,23 +28,24 @@ import {
   beginDownedActivity, createDownedActivityState, removeDownedActivity, triggerDownedSupport,
   validateDownedActivityState,
 } from "./downed-activity.js?v=20260713.9";
-import { generateJoinPackage, JOIN_IN_PROGRESS_REGISTRY, joinPackageUpgradeIds, transitionJoinPackage } from "./join-in-progress.js?v=20260715.2";
+import { generateJoinPackage, JOIN_IN_PROGRESS_REGISTRY, joinPackageUpgradeIds, transitionJoinPackage } from "./join-in-progress.js?v=20260715.3";
 import {
   DIRECTOR_APPROACHES, DIRECTOR_FORMATIONS, createSquadDirectorState, planSquadFormation, validateSquadDirectorState,
-} from "./enemy-director.js?v=20260715.2";
-import { mapMechanicFrame, mapSpawnWeights, pointInMapMechanic } from "./map-mechanics.js?v=20260715.2";
+} from "./enemy-director.js?v=20260715.3";
+import { mapMechanicFrame, mapSpawnWeights, pointInMapMechanic } from "./map-mechanics.js?v=20260715.3";
 import {
   CAMPAIGN_MUTATIONS, campaignMutationDefinition, campaignMutationObjectiveCompleted, campaignMutationWaveStarted,
   cancelCampaignMutationEncounter, consumeCampaignMutationEncounter, createCampaignMutationState,
   resolveCampaignMutationEncounter, validateCampaignMutationState,
-} from "./campaign-mutations.js?v=20260715.2";
-import { masteryStartDefinition } from "./specialist-mastery.js?v=20260715.2";
+} from "./campaign-mutations.js?v=20260715.3";
+import { masteryStartDefinition } from "./specialist-mastery.js?v=20260715.3";
 import {
   createRareDiscoveryRunState, rareDiscoveryIdForBoon, recordRareDiscovery,
   revealNextAugmentDossier, validateRareDiscoveryRunState,
-} from "./rare-discoveries.js?v=20260715.2";
-import { validateSeededOperation } from "./seeded-operations.js?v=20260715.2";
-import { commitCombatFacing, resolvedCombatFacing, selectStickyAutoAimTarget } from "./combat-orientation.js?v=20260715.2";
+} from "./rare-discoveries.js?v=20260715.3";
+import { validateSeededOperation } from "./seeded-operations.js?v=20260715.3";
+import { commitCombatFacing, resolvedCombatFacing, selectStickyAutoAimTarget } from "./combat-orientation.js?v=20260715.3";
+import { abilityChoreography } from "./combat-choreography.js?v=20260715.3";
 
 const BALANCE = getBalanceConfig();
 
@@ -522,6 +523,7 @@ export class Simulation {
       combatFacing: 0, combatFacingTick: 0, combatFacingUntilTick: 0, combatSourceId: "", combatTargetId: "",
       moveVx: 0, moveVy: 0, moveInputX: 0, moveInputY: 0, moveSpeedRatio: 0, movementMode: "idle", dashRecovery: 0,
       animState: "idle", animTime: 0, weaponFlash: 0, recoilAngle: 0, skidTime: 0,
+      castSlot: "", castStartedTick: 0, castContactTick: 0, castRecoveryUntilTick: 0, castSequence: 0,
       eCd: 0, eCdMax: 0, rCd: 0, rCdMax: 0, shield: 0, invuln: 2, hitGrace: 0, hurtFlash: 0, hurtAngle: 0, knockVx: 0, knockVy: 0, frenzy: 0, hasteBuff: 0, speedBuff: 0,
       dead: false, downed: false, downTimer: 0, respawnTimer: 0, reviveProgress: 0, deaths: 0,
       downedSupportCooldown: 0, downedSupportCooldownMax: DOWNED_ACTIVITY_REGISTRY.support.cooldownTicks / SIMULATION_TICK_RATE,
@@ -1388,6 +1390,19 @@ export class Simulation {
 
   executeTask(task) {
     const payload = task.payload || {};
+    if (task.kind === "player-cast-release") {
+      const player = this.players.find((candidate) => candidate.id === payload.ownerId);
+      if (!player || player.dead || player.downed) return;
+      const choreography = abilityChoreography(player.specialist, payload.slot);
+      if (player.castSequence === payload.castSequence) {
+        player.castContactTick = this.tick;
+        player.castRecoveryUntilTick = this.tick + (choreography?.recoveryTicks || 18);
+        player.animState = payload.slot === "r" ? "castR" : "castE";
+        player.animTime = (choreography?.recoveryTicks || 18) / SIMULATION_TICK_RATE;
+      }
+      if (payload.slot === "r") this.castR(player, payload.castSequence); else this.castE(player, payload.castSequence);
+      return;
+    }
     if (task.kind === "echo-projectile-repeat") {
       const player = this.players.find((candidate) => candidate.id === payload.ownerId);
       if (!player || player.dead || player.downed) return;
@@ -2085,15 +2100,23 @@ export class Simulation {
     if (slot === "e") {
       if (this.level < 3 || p.eCd > 0) return false;
       p.eCd = p.eCdMax = this.cooldown(p, spec.cooldownE);
-      p.animState = "castE"; p.animTime = .28;
-      this.castE(p);
+      const choreography = abilityChoreography(p.specialist, slot);
+      p.castSlot = slot; p.castStartedTick = this.tick; p.castSequence = (p.castSequence || 0) + 1;
+      p.castContactTick = this.tick + (choreography?.anticipationTicks || 2);
+      p.castRecoveryUntilTick = p.castContactTick + (choreography?.recoveryTicks || 15);
+      p.animState = "castE"; p.animTime = (choreography?.anticipationTicks || 2) / SIMULATION_TICK_RATE;
+      this.scheduleTask("player-cast-release", (choreography?.anticipationTicks || 2) / SIMULATION_TICK_RATE, { ownerId: p.id, slot, castSequence: p.castSequence });
       return true;
     }
     if (slot === "r") {
       if (this.level < 6 || p.rCd > 0) return false;
       p.rCd = p.rCdMax = this.cooldown(p, spec.cooldownR);
-      p.animState = "castR"; p.animTime = .42;
-      this.castR(p);
+      const choreography = abilityChoreography(p.specialist, slot);
+      p.castSlot = slot; p.castStartedTick = this.tick; p.castSequence = (p.castSequence || 0) + 1;
+      p.castContactTick = this.tick + (choreography?.anticipationTicks || 4);
+      p.castRecoveryUntilTick = p.castContactTick + (choreography?.recoveryTicks || 24);
+      p.animState = "castR"; p.animTime = (choreography?.anticipationTicks || 4) / SIMULATION_TICK_RATE;
+      this.scheduleTask("player-cast-release", (choreography?.anticipationTicks || 4) / SIMULATION_TICK_RATE, { ownerId: p.id, slot, castSequence: p.castSequence });
       this.recordSquadUltimate(p);
       return true;
     }
@@ -2132,7 +2155,7 @@ export class Simulation {
     return granted;
   }
 
-  castE(p) {
+  castE(p, castSequence = p.castSequence || 0) {
     const spec = SPECIALISTS[p.specialist], aim = this.aimForPlayer(p), mobilityAim = this.mobilityAimForPlayer(p), area = this.playerStat(p, "area");
     if (p.specialist === "zuri") {
       commitCombatFacing(p, aim, this.tick, { sourceId: "ability:e" });
@@ -2167,10 +2190,11 @@ export class Simulation {
         feather.dead = true;
       }
     }
-    this.pushEvent("cast", spec.active[0], p.name);
+    const choreography = abilityChoreography(p.specialist, "e");
+    this.pushEvent("cast", spec.active[0], p.name, { playerId: p.id, specialistId: p.specialist, slot: "e", family: choreography?.family || "ability", castSequence });
   }
 
-  castR(p) {
+  castR(p, castSequence = p.castSequence || 0) {
     const spec = SPECIALISTS[p.specialist], aim = this.aimForPlayer(p), mobilityAim = this.mobilityAimForPlayer(p), area = this.playerStat(p, "area");
     if (["zuri", "sola", "gale"].includes(p.specialist)) commitCombatFacing(p, aim, this.tick, { sourceId: "ability:r" });
     if (p.specialist === "zuri") this.shoot(p, aim, 900, 450 + this.level * 50, { radius: 24, color: "#ffb050", explosion: 600 * area, life: 2.5, pierce: 0, sourceId: "ability:r", executeMissingHealthBonus: BALANCE.identityTuning.zuri.executeMissingHealthBonus });
@@ -2197,7 +2221,8 @@ export class Simulation {
       const count = 12 + this.playerStat(p, "projectiles") * 3;
       for (let i = 0; i < count; i++) this.shoot(p, i * TAU / count, 620, 80 + this.level * 9, { radius: 7, color: spec.color, pierce: 12, life: 1.8, dagger: true, leaveFeather: true, sourceId: "ability:r", bodyDriving: false });
     }
-    this.pushEvent("cast", spec.ultimate[0], p.name);
+    const choreography = abilityChoreography(p.specialist, "r");
+    this.pushEvent("cast", spec.ultimate[0], p.name, { playerId: p.id, specialistId: p.specialist, slot: "r", family: choreography?.family || "ultimate", castSequence });
   }
 
   dashPlayer(p, angle, distanceAmount) {
@@ -2791,7 +2816,7 @@ export class Simulation {
 
   revive(p) {
     if (this.downedState?.enabled) this.downedState = removeDownedActivity(this.downedState, p.replaySlot);
-    p.dead = false; p.downed = false; p.hp = p.maxHp * .5; p.invuln = 4; p.reviveProgress = 0; p.respawnTimer = 0; p.animState = "revive"; p.animTime = .4;
+    p.dead = false; p.downed = false; p.hp = p.maxHp * .5; p.invuln = 4; p.reviveProgress = 0; p.respawnTimer = 0; p.animState = "revive"; p.animTime = .4; p.revivedTick = this.tick;
     resetPlayerMovement(p);
     this.syncDownedPresentation(p);
     this.pushEvent("boon", `${p.name} rejoined`, "Four seconds of invulnerability");
