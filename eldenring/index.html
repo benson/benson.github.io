@@ -1,0 +1,1010 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0c0b">
+  <meta name="color-scheme" content="dark">
+  <title>Elden Ring Field Guide — a spoiler-light beginner companion</title>
+  <meta name="description" content="A spoiler-light, mobile-first Elden Ring beginner guide: what to do first, how to build, how combat works, and what to do when you get stuck.">
+  <meta property="og:title" content="Elden Ring Field Guide">
+  <meta property="og:description" content="Get deep into the Lands Between without getting stuck or frustrated.">
+  <meta property="og:image" content="https://bensonperry.com/eldenring/assets/og.jpg">
+  <meta property="og:url" content="https://bensonperry.com/eldenring/">
+  <meta property="og:type" content="article">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    :root {
+      --bg: #0b0c0b;
+      --bg-raised: #111310;
+      --surface: #171915;
+      --surface-2: #1d201b;
+      --ink: #f2efe5;
+      --text: #cbc8bc;
+      --muted: #8e9187;
+      --faint: #61655d;
+      --line: rgba(241, 232, 203, .11);
+      --line-strong: rgba(224, 190, 104, .24);
+      --gold: #dbbf73;
+      --gold-bright: #f0d58a;
+      --gold-wash: rgba(219, 191, 115, .10);
+      --green: #9fc39b;
+      --red: #d89883;
+      --radius: 1.15rem;
+      --shadow: 0 1.5rem 4rem rgba(0, 0, 0, .28);
+    }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: calc(5rem + env(safe-area-inset-top));
+      background: var(--bg);
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
+
+    body {
+      margin: 0;
+      min-width: 20rem;
+      background:
+        radial-gradient(circle at 85% 8%, rgba(188, 150, 70, .09), transparent 28rem),
+        var(--bg);
+      color: var(--text);
+      font: 400 1rem/1.68 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+      font-optical-sizing: auto;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    a { color: var(--gold-bright); text-underline-offset: .18em; }
+    button, input { font: inherit; }
+    img { max-width: 100%; }
+
+    .topbar {
+      position: sticky;
+      z-index: 20;
+      top: 0;
+      padding-top: env(safe-area-inset-top);
+      background: rgba(11, 12, 11, .72);
+      backdrop-filter: blur(1.25rem) saturate(150%);
+      -webkit-backdrop-filter: blur(1.25rem) saturate(150%);
+    }
+
+    .topbar-inner {
+      height: 3.25rem;
+      display: flex;
+      align-items: center;
+      gap: .8rem;
+      width: min(100% - 1.5rem, 72rem);
+      margin: 0 auto;
+    }
+
+    .home-link {
+      flex: 0 0 auto;
+      min-height: 2.75rem;
+      display: inline-flex;
+      align-items: center;
+      color: var(--ink);
+      text-decoration: none;
+      font-size: .82rem;
+      font-weight: 650;
+      letter-spacing: .01em;
+    }
+
+    .top-title {
+      min-width: 0;
+      flex: 1;
+      color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-align: right;
+      font-size: .78rem;
+      letter-spacing: .02em;
+    }
+
+    .progress-track { height: 2px; background: rgba(255,255,255,.04); }
+    .progress-bar {
+      display: block;
+      width: 0;
+      height: 100%;
+      background: linear-gradient(90deg, #94763f, var(--gold-bright));
+      box-shadow: 0 0 .8rem rgba(240, 213, 138, .42);
+      transform-origin: left;
+    }
+
+    .hero {
+      position: relative;
+      min-height: min(44rem, 82svh);
+      display: grid;
+      align-items: end;
+      overflow: hidden;
+      border-bottom: 1px solid var(--line);
+      isolation: isolate;
+    }
+
+    .hero picture, .hero-image, .hero-scrim { position: absolute; inset: 0; }
+    .hero picture { z-index: -3; }
+    .hero-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: 50% 52%;
+      filter: saturate(.82) contrast(1.03) brightness(.83);
+    }
+
+    .hero-scrim {
+      z-index: -2;
+      background:
+        linear-gradient(180deg, rgba(6,7,6,.08) 15%, rgba(6,7,6,.32) 52%, #0b0c0b 98%),
+        linear-gradient(90deg, rgba(6,7,6,.66), transparent 70%);
+    }
+
+    .hero-copy {
+      width: min(100% - 2rem, 72rem);
+      margin: 0 auto;
+      padding: 7rem 0 3rem;
+    }
+
+    .eyebrow {
+      margin: 0 0 .7rem;
+      color: var(--gold-bright);
+      font-size: .72rem;
+      font-weight: 750;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3 { color: var(--ink); margin-top: 0; text-wrap: balance; }
+    h1 {
+      max-width: 13ch;
+      margin-bottom: 1rem;
+      font-family: ui-serif, Georgia, "Times New Roman", serif;
+      font-size: clamp(2.65rem, 9vw, 5.8rem);
+      font-weight: 500;
+      line-height: .96;
+      letter-spacing: -.045em;
+      text-shadow: 0 .25rem 2rem rgba(0,0,0,.5);
+    }
+
+    .hero-deck {
+      max-width: 37rem;
+      margin: 0;
+      color: #e0ddd2;
+      font-size: clamp(1.02rem, 2vw, 1.22rem);
+      line-height: 1.55;
+      text-shadow: 0 .15rem 1rem rgba(0,0,0,.75);
+    }
+
+    .spoiler-note {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      margin-top: 1.4rem;
+      padding: .55rem .75rem;
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 999px;
+      background: rgba(7,8,7,.46);
+      color: #cbc8bc;
+      font-size: .75rem;
+      backdrop-filter: blur(.75rem);
+      -webkit-backdrop-filter: blur(.75rem);
+    }
+
+    .spoiler-note::before {
+      content: "";
+      width: .45rem;
+      height: .45rem;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 .6rem rgba(159,195,155,.65);
+    }
+
+    .jump-shell {
+      position: sticky;
+      z-index: 15;
+      top: calc(3.25rem + env(safe-area-inset-top));
+      background: linear-gradient(180deg, rgba(11,12,11,.95) 75%, rgba(11,12,11,0));
+      padding: .55rem 0 1rem;
+    }
+
+    .jump-nav {
+      width: min(100%, 72rem);
+      margin: 0 auto;
+      padding: 0 .75rem;
+      display: flex;
+      gap: .5rem;
+      overflow-x: auto;
+      overscroll-behavior-inline: contain;
+      scrollbar-width: none;
+      scroll-snap-type: x proximity;
+    }
+
+    .jump-nav::-webkit-scrollbar { display: none; }
+    .jump-nav a {
+      flex: 0 0 auto;
+      min-height: 2.65rem;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 .85rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(23,25,21,.86);
+      color: var(--muted);
+      text-decoration: none;
+      font-size: .8rem;
+      font-weight: 600;
+      scroll-snap-align: start;
+      transition: color .18s ease, border-color .18s ease, background .18s ease, transform .12s ease;
+    }
+
+    .jump-nav a:active { transform: scale(.97); }
+    .jump-nav a.active { color: var(--ink); border-color: var(--line-strong); background: #25261f; }
+
+    main {
+      width: min(100% - 2rem, 47rem);
+      margin: 0 auto;
+      padding: 2.2rem 0 max(8rem, calc(5rem + env(safe-area-inset-bottom)));
+    }
+
+    section { padding: 3.2rem 0; border-bottom: 1px solid var(--line); }
+    section:first-child { padding-top: 1rem; }
+    section:last-child { border-bottom: 0; }
+
+    .section-number {
+      display: block;
+      margin-bottom: .35rem;
+      color: var(--gold);
+      font-size: .69rem;
+      font-weight: 750;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      margin-bottom: .8rem;
+      font-family: ui-serif, Georgia, "Times New Roman", serif;
+      font-size: clamp(2rem, 7vw, 3.15rem);
+      font-weight: 500;
+      line-height: 1.03;
+      letter-spacing: -.035em;
+    }
+
+    h3 {
+      margin-bottom: .45rem;
+      font-size: 1.03rem;
+      line-height: 1.3;
+      letter-spacing: -.01em;
+    }
+
+    .lede { margin: 0 0 1.7rem; color: var(--muted); font-size: 1.03rem; }
+    p { margin: 0 0 1rem; }
+    strong { color: var(--ink); font-weight: 650; }
+    ul, ol { margin: 0; padding-left: 1.25rem; }
+    li { margin: .55rem 0; padding-left: .2rem; }
+    li::marker { color: var(--gold); }
+
+    .card {
+      margin: 1rem 0;
+      padding: 1.1rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(145deg, rgba(29,32,27,.94), rgba(19,21,18,.94));
+      box-shadow: inset 0 1px rgba(255,255,255,.025);
+    }
+
+    .card p:last-child, .callout p:last-child { margin-bottom: 0; }
+    .card-label {
+      display: block;
+      margin-bottom: .25rem;
+      color: var(--gold);
+      font-size: .68rem;
+      font-weight: 750;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .quick-grid { display: grid; gap: .75rem; }
+    .quick-grid .card { margin: 0; }
+
+    .gold-card {
+      border-color: var(--line-strong);
+      background:
+        radial-gradient(circle at 85% 0%, rgba(219,191,115,.11), transparent 45%),
+        linear-gradient(145deg, #202019, #151713);
+    }
+
+    .one-rule {
+      margin-top: 1.5rem;
+      padding: 1.25rem;
+      border-left: .2rem solid var(--gold);
+      background: var(--gold-wash);
+      color: #dfd9c7;
+      font-size: 1.06rem;
+    }
+
+    .checklist { list-style: none; padding: 0; display: grid; gap: .65rem; }
+    .checklist li { margin: 0; padding: 0; }
+    .check-row {
+      min-height: 3.25rem;
+      display: flex;
+      gap: .8rem;
+      align-items: flex-start;
+      padding: .85rem .95rem;
+      border: 1px solid var(--line);
+      border-radius: .9rem;
+      background: var(--surface);
+      cursor: pointer;
+      user-select: none;
+      transition: background .18s ease, border-color .18s ease, transform .12s ease;
+    }
+
+    .check-row:active { transform: scale(.99); }
+    .check-row:has(input:checked) { background: #121411; border-color: rgba(159,195,155,.2); }
+    .check-row input {
+      appearance: none;
+      flex: 0 0 auto;
+      width: 1.35rem;
+      height: 1.35rem;
+      margin: .1rem 0 0;
+      border: 1px solid #5c6158;
+      border-radius: 50%;
+      background: #0d0f0c;
+      display: grid;
+      place-items: center;
+    }
+
+    .check-row input::after {
+      content: "";
+      width: .48rem;
+      height: .28rem;
+      border-left: 2px solid #0c100c;
+      border-bottom: 2px solid #0c100c;
+      transform: translateY(-.06rem) rotate(-45deg) scale(0);
+      transition: transform .18s ease;
+    }
+
+    .check-row input:checked { background: var(--green); border-color: var(--green); }
+    .check-row input:checked::after { transform: translateY(-.06rem) rotate(-45deg) scale(1); }
+    .check-row input:checked + span { color: var(--faint); text-decoration: line-through; text-decoration-thickness: 1px; }
+
+    .route { position: relative; margin: 1.5rem 0 0; }
+    .route::before {
+      content: "";
+      position: absolute;
+      top: 1rem;
+      bottom: 1rem;
+      left: .85rem;
+      width: 1px;
+      background: linear-gradient(var(--gold), rgba(219,191,115,.08));
+    }
+
+    .route-step { position: relative; padding: 0 0 1.4rem 2.7rem; }
+    .route-step:last-child { padding-bottom: 0; }
+    .route-dot {
+      position: absolute;
+      left: .35rem;
+      top: .15rem;
+      width: 1.05rem;
+      height: 1.05rem;
+      border: .25rem solid var(--bg);
+      border-radius: 50%;
+      background: var(--gold);
+      box-shadow: 0 0 0 1px rgba(219,191,115,.45), 0 0 .75rem rgba(219,191,115,.2);
+    }
+
+    .route-step p { margin: .25rem 0 0; color: var(--muted); font-size: .92rem; }
+    .route-time { color: var(--gold); font-size: .68rem; font-weight: 750; letter-spacing: .11em; text-transform: uppercase; }
+
+    figure {
+      margin: 2rem 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    figure img {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      filter: saturate(.86) brightness(.92);
+    }
+
+    figcaption { padding: .8rem 1rem; color: var(--muted); font-size: .76rem; line-height: 1.5; }
+
+    .tablist {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: .35rem;
+      margin: 1.2rem 0 .75rem;
+      padding: .3rem;
+      border: 1px solid var(--line);
+      border-radius: .9rem;
+      background: #10120f;
+    }
+
+    .tab {
+      min-height: 2.85rem;
+      padding: .4rem;
+      border: 0;
+      border-radius: .66rem;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: .78rem;
+      font-weight: 650;
+      transition: color .18s ease, background .18s ease, transform .12s ease;
+    }
+
+    .tab:active { transform: scale(.96); }
+    .tab[aria-selected="true"] { color: var(--ink); background: var(--surface-2); box-shadow: 0 .25rem 1rem rgba(0,0,0,.2); }
+    .tab-panel[hidden] { display: none; }
+    .tab-panel { padding: 1rem 1.05rem; border: 1px solid var(--line); border-radius: 1rem; background: var(--surface); }
+    .tab-panel p { color: var(--muted); }
+
+    .formula {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .45rem;
+      align-items: center;
+      margin: 1rem 0;
+      color: var(--muted);
+      font-size: .84rem;
+    }
+
+    .formula b {
+      padding: .35rem .6rem;
+      border: 1px solid var(--line-strong);
+      border-radius: 999px;
+      background: var(--gold-wash);
+      color: var(--ink);
+      font-weight: 650;
+    }
+
+    .callout {
+      margin: 1.25rem 0;
+      padding: 1rem 1rem 1rem 1.1rem;
+      border: 1px solid var(--line);
+      border-left: .2rem solid var(--green);
+      border-radius: .25rem 1rem 1rem .25rem;
+      background: rgba(159,195,155,.055);
+    }
+
+    .callout.warn { border-left-color: var(--gold); background: var(--gold-wash); }
+    .callout.danger { border-left-color: var(--red); background: rgba(216,152,131,.065); }
+    .callout-label { color: var(--green); font-size: .68rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .callout.warn .callout-label { color: var(--gold); }
+    .callout.danger .callout-label { color: var(--red); }
+
+    .combat-loop {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: .35rem;
+      margin: 1.4rem 0;
+      counter-reset: combat-step;
+    }
+
+    .combat-loop span {
+      counter-increment: combat-step;
+      min-height: 4.8rem;
+      display: grid;
+      place-items: center;
+      padding: .45rem;
+      border: 1px solid var(--line);
+      border-radius: .8rem;
+      background: var(--surface);
+      color: var(--ink);
+      text-align: center;
+      font-size: .76rem;
+      font-weight: 650;
+      line-height: 1.25;
+    }
+
+    .combat-loop span::before {
+      content: counter(combat-step, decimal-leading-zero);
+      display: block;
+      margin-bottom: .2rem;
+      color: var(--gold);
+      font-size: .62rem;
+      letter-spacing: .08em;
+    }
+
+    .versus { display: grid; gap: .55rem; margin: 1.1rem 0; }
+    .versus-row { display: grid; grid-template-columns: 1fr 1fr; gap: .55rem; }
+    .versus-cell { padding: .8rem; border-radius: .8rem; background: var(--surface); font-size: .84rem; }
+    .versus-cell:first-child { color: #a99f95; }
+    .versus-cell:last-child { color: #dce3d7; border: 1px solid rgba(159,195,155,.14); }
+    .versus-head { color: var(--muted); font-size: .68rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
+
+    details {
+      margin: .75rem 0;
+      border: 1px solid var(--line);
+      border-radius: .9rem;
+      background: var(--surface);
+      overflow: clip;
+    }
+
+    summary {
+      min-height: 3.35rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: .8rem 1rem;
+      color: var(--ink);
+      cursor: pointer;
+      font-weight: 650;
+      list-style: none;
+    }
+
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: "+"; color: var(--gold); font-size: 1.25rem; font-weight: 400; }
+    details[open] summary::after { content: "−"; }
+    .details-body { padding: 0 1rem 1rem; color: var(--muted); }
+    .details-body p:last-child, .details-body ul:last-child { margin-bottom: 0; }
+
+    .sos {
+      border-color: rgba(216,152,131,.22);
+      background:
+        radial-gradient(circle at 100% 0%, rgba(216,152,131,.12), transparent 45%),
+        linear-gradient(145deg, #201b18, #141512);
+    }
+
+    .sos ol { padding-left: 1.35rem; }
+    .sos li { margin: .75rem 0; }
+
+    .sources { color: var(--muted); font-size: .82rem; }
+    .credits {
+      margin-top: 3.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--line);
+      color: var(--faint);
+      font-size: .75rem;
+      line-height: 1.55;
+    }
+
+    .footer-mark { color: var(--muted); text-decoration: none; }
+    :focus-visible { outline: 2px solid var(--gold-bright); outline-offset: 3px; }
+
+    @media (min-width: 42rem) {
+      .hero-copy { padding-bottom: 4.6rem; }
+      .quick-grid { grid-template-columns: repeat(2, 1fr); }
+      .quick-grid .gold-card { grid-column: 1 / -1; }
+      .card { padding: 1.35rem; }
+      main { padding-top: 3.5rem; }
+      section { padding: 4.2rem 0; }
+    }
+
+    @media (max-width: 30rem) {
+      .hero { min-height: 78svh; }
+      .hero-image { object-position: 57% 50%; }
+      .combat-loop { grid-template-columns: repeat(2, 1fr); }
+      .versus-row { grid-template-columns: 1fr; }
+      .versus-cell:first-child { border-bottom-left-radius: .25rem; border-bottom-right-radius: .25rem; }
+      .versus-cell:last-child { border-top-left-radius: .25rem; border-top-right-radius: .25rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+    }
+
+    @media (prefers-reduced-transparency: reduce) {
+      .topbar, .jump-shell { background: var(--bg); backdrop-filter: none; -webkit-backdrop-filter: none; }
+      .spoiler-note { background: #111310; backdrop-filter: none; -webkit-backdrop-filter: none; }
+    }
+
+    @media (prefers-contrast: more) {
+      :root { --line: rgba(255,255,255,.28); --muted: #b9bbb3; }
+      .card, .tab-panel, details, .check-row { border-color: rgba(255,255,255,.3); }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="home-link" href="/" aria-label="Back to bensonperry.com">← bensonperry.com</a>
+      <span class="top-title">Elden Ring field guide</span>
+    </div>
+    <div class="progress-track" aria-hidden="true"><span class="progress-bar" id="progress"></span></div>
+  </header>
+
+  <div class="hero">
+    <picture>
+      <source media="(max-width: 767px)" srcset="assets/hero-768.webp">
+      <img class="hero-image" src="assets/hero-1536.webp" alt="A lone fantasy wanderer looking across a ruined kingdom toward a luminous golden tree" width="1536" height="1024" fetchpriority="high">
+    </picture>
+    <div class="hero-scrim" aria-hidden="true"></div>
+    <div class="hero-copy">
+      <p class="eyebrow">A beginner companion</p>
+      <h1>Elden Ring, without the misery.</h1>
+      <p class="hero-deck">A spoiler-light field guide for getting deep into the game without wandering in circles, ruining your build, or beating your head against the wrong boss.</p>
+      <span class="spoiler-note">Only mild location spoilers through the first castle</span>
+    </div>
+  </div>
+
+  <div class="jump-shell">
+    <nav class="jump-nav" aria-label="Guide sections">
+      <a href="#rules">Start here</a>
+      <a href="#route">First evening</a>
+      <a href="#build">Your build</a>
+      <a href="#combat">Combat</a>
+      <a href="#explore">Exploration</a>
+      <a href="#stuck">I'm stuck</a>
+      <a href="#quests">Quests</a>
+      <a href="#reference">Cheat sheet</a>
+    </nav>
+  </div>
+
+  <main>
+    <section id="rules">
+      <span class="section-number">Read this first</span>
+      <h2>The six rules that fix most frustration</h2>
+      <p class="lede">You do not need a walkthrough. You need a few good habits and permission to leave.</p>
+
+      <div class="quick-grid">
+        <article class="card gold-card">
+          <span class="card-label">The big one</span>
+          <h3>If something feels brutally hard, go somewhere else.</h3>
+          <p>The world is your difficulty slider. Mark the spot, explore, upgrade, and return. The Tree Sentinel is placed near the beginning specifically to teach this.</p>
+        </article>
+        <article class="card">
+          <span class="card-label">Survive</span>
+          <h3>Level Vigor first.</h3>
+          <p>Aim for about <strong>25–30 Vigor early</strong>. Health buys learning time. Damage stats barely matter until your weapon is upgraded.</p>
+        </article>
+        <article class="card">
+          <span class="card-label">Move normally</span>
+          <h3>Stay at Medium Load.</h3>
+          <p>Open Equipment and check the right side. If it says <strong>Heavy Load</strong>, remove armor or weapons until it says Medium.</p>
+        </article>
+        <article class="card">
+          <span class="card-label">Get strong</span>
+          <h3>Upgrade one weapon you like.</h3>
+          <p>Early weapon upgrades give far more damage than scattering levels across Strength, Dexterity, Intelligence, Faith, and Arcane.</p>
+        </article>
+        <article class="card">
+          <span class="card-label">Use the game</span>
+          <h3>Summons are not cheating.</h3>
+          <p>Spirit ashes, NPC helpers, co-op, shields, status effects, and strong weapon skills are all normal parts of the combat system.</p>
+        </article>
+      </div>
+
+      <div class="one-rule"><strong>Your real objective:</strong> stay curious. Runes are replaceable; discoveries are the reward.</div>
+    </section>
+
+    <section id="route">
+      <span class="section-number">A gentle opening</span>
+      <h2>Your first evening, in order</h2>
+      <p class="lede">This route unlocks the basic systems, gives you room to learn, and avoids pushing you into the first major boss too soon.</p>
+
+      <ul class="checklist" aria-label="First evening checklist">
+        <li><label class="check-row"><input type="checkbox" data-check="tutorial"><span>Jump into the tutorial hole beside the ghost in the Stranded Graveyard.</span></label></li>
+        <li><label class="check-row"><input type="checkbox" data-check="church"><span>Visit the Church of Elleh. Buy the Crafting Kit and a torch from Kalé.</span></label></li>
+        <li><label class="check-row"><input type="checkbox" data-check="gatefront"><span>Follow the road to Gatefront Ruins. Rest at nearby graces until you meet Melina and unlock leveling plus Torrent.</span></label></li>
+        <li><label class="check-row"><input type="checkbox" data-check="map"><span>Grab the Limgrave map fragment at the roadside monument in Gatefront Ruins.</span></label></li>
+        <li><label class="check-row"><input type="checkbox" data-check="bell"><span>Return to the Church of Elleh at night for the Spirit Calling Bell. If nobody appears, buy it later at Roundtable Hold.</span></label></li>
+        <li><label class="check-row"><input type="checkbox" data-check="south"><span>Explore Limgrave, then cross the bridge south into the Weeping Peninsula before forcing Stormveil.</span></label></li>
+      </ul>
+
+      <div class="route" aria-label="Suggested early progression">
+        <div class="route-step"><span class="route-dot"></span><span class="route-time">Hours 0–2</span><h3>Church → Gatefront → nearby caves</h3><p>Learn the controls, unlock Torrent and spirits, test weapons, and clear small dungeons.</p></div>
+        <div class="route-step"><span class="route-dot"></span><span class="route-time">Hours 2–6</span><h3>Explore Limgrave freely</h3><p>Follow roads, visit churches, investigate mines, and treat every ruin as a small question.</p></div>
+        <div class="route-step"><span class="route-dot"></span><span class="route-time">Hours 6–10</span><h3>Go south to the Weeping Peninsula</h3><p>It is a forgiving early region with flask upgrades, useful equipment, and a manageable castle.</p></div>
+        <div class="route-step"><span class="route-dot"></span><span class="route-time">When ready</span><h3>Return to Margit and Stormveil</h3><p>You will arrive with more health, stronger flasks, an upgraded weapon, and actual combat instincts.</p></div>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-label">Good readiness check</span>
+        <p>For the first castle, a comfortable beginner is often around <strong>level 25–35</strong> with a regular weapon near <strong>+3 to +5</strong>, several flask charges, Medium Load, and a spirit they understand. These are guide rails, not requirements.</p>
+      </div>
+    </section>
+
+    <section id="build">
+      <span class="section-number">No build anxiety</span>
+      <h2>Pick a fantasy, then keep it simple</h2>
+      <p class="lede">Starting class is a head start, not a permanent choice. Choose the play style that sounds fun; you can respec later.</p>
+
+      <div class="tablist" role="tablist" aria-label="Beginner build paths">
+        <button class="tab" role="tab" aria-selected="true" aria-controls="melee-panel" id="melee-tab">Shield</button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="swift-panel" id="swift-tab">Swift</button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="magic-panel" id="magic-tab">Magic</button>
+      </div>
+
+      <div class="tab-panel" id="melee-panel" role="tabpanel" aria-labelledby="melee-tab">
+        <span class="card-label">Safest first run</span>
+        <h3>Vagabond · Strength or quality melee</h3>
+        <p>Use a 100% physical-block shield, block ordinary hits, then guard counter with a heavy attack. Remove an extra weapon immediately if your starting equipment causes Heavy Load.</p>
+        <div class="formula"><b>Vigor</b><span>+</span><b>Endurance as needed</b><span>+</span><b>one damage stat</b></div>
+      </div>
+
+      <div class="tab-panel" id="swift-panel" role="tabpanel" aria-labelledby="swift-tab" hidden>
+        <span class="card-label">Flexible and aggressive</span>
+        <h3>Samurai · Dexterity melee</h3>
+        <p>The katana is excellent, the bow gives you a safe pull, and bleed rewards sustained pressure. Two-hand the katana when you do not need the shield.</p>
+        <div class="formula"><b>Vigor</b><span>+</span><b>Dexterity</b><span>+</span><b>enough Endurance</b></div>
+      </div>
+
+      <div class="tab-panel" id="magic-panel" role="tabpanel" aria-labelledby="magic-tab" hidden>
+        <span class="card-label">Strong, but more menus</span>
+        <h3>Astrologer · Intelligence caster</h3>
+        <p>Keep a melee weapon for small enemies, allocate some flasks to FP, and create distance before casting. Level Vigor anyway—being a mage does not make one-shot deaths fun.</p>
+        <div class="formula"><b>Vigor</b><span>+</span><b>Intelligence</b><span>+</span><b>Mind when FP feels tight</b></div>
+      </div>
+
+      <h3 style="margin-top: 2rem">A leveling rule you can remember</h3>
+      <ol>
+        <li>Meet the minimum requirements for the weapon or spell you want.</li>
+        <li>Push Vigor toward 25–30.</li>
+        <li>Add Endurance or Mind only when stamina, equip load, or FP is actively annoying you.</li>
+        <li>Invest in one main damage stat. Do not level everything evenly.</li>
+      </ol>
+
+      <div class="callout danger">
+        <span class="callout-label">Do not sell equipment</span>
+        <p>Rune returns are tiny, and some weapons are unique per playthrough. Store unwanted gear in your chest instead. Golden Rune items are your safe, unlosable bank.</p>
+      </div>
+    </section>
+
+    <section id="combat">
+      <span class="section-number">Make the fighting click</span>
+      <h2>Combat is a conversation</h2>
+      <p class="lede">Enemies ask a question with an attack. Your job is to answer safely, take one clean punish, and reset.</p>
+
+      <figure>
+        <picture>
+          <source media="(max-width: 767px)" srcset="assets/combat-768.webp">
+          <img src="assets/combat-1536.webp" alt="A shield-bearing adventurer facing a much larger armored knight in a ruined courtyard" width="1536" height="862" loading="lazy">
+        </picture>
+        <figcaption>Winning is usually less about faster reactions and more about recognizing when the enemy has actually finished.</figcaption>
+      </figure>
+
+      <div class="combat-loop" aria-label="Combat loop">
+        <span>Watch</span><span>Defend</span><span>Punish once</span><span>Reset</span>
+      </div>
+
+      <div class="versus" aria-label="Common combat mistakes and better habits">
+        <div class="versus-head">Instead of → try this</div>
+        <div class="versus-row"><div class="versus-cell">Rolling backward repeatedly</div><div class="versus-cell">Dodge diagonally through the attack and end beside the enemy.</div></div>
+        <div class="versus-row"><div class="versus-cell">Emptying your stamina bar</div><div class="versus-cell">Leave enough stamina for one emergency dodge.</div></div>
+        <div class="versus-row"><div class="versus-cell">Holding your shield forever</div><div class="versus-cell">Lower it between attacks so stamina recovers quickly.</div></div>
+        <div class="versus-row"><div class="versus-cell">Taking four attacks because one landed</div><div class="versus-cell">Take one or two safe hits, then disengage.</div></div>
+        <div class="versus-row"><div class="versus-cell">Ignoring L2 / LT</div><div class="versus-cell">Learn your weapon skill. It is often your best move.</div></div>
+      </div>
+
+      <details>
+        <summary>Five tools the tutorial undersells</summary>
+        <div class="details-body">
+          <ul>
+            <li><strong>Guard counter:</strong> after blocking, immediately heavy attack. Excellent against ordinary enemies.</li>
+            <li><strong>Jumping heavy:</strong> safe gap-closing plus strong stance damage.</li>
+            <li><strong>Charged heavy:</strong> punish long openings and help break posture.</li>
+            <li><strong>Two-handing:</strong> gives effective Strength and prevents shield habits when you want aggression.</li>
+            <li><strong>Lock-off:</strong> useful against groups or huge enemies when the camera becomes the real boss.</li>
+          </ul>
+        </div>
+      </details>
+
+      <details>
+        <summary>How to heal without getting punished</summary>
+        <div class="details-body"><p>Do not heal merely because you are far away—many bosses are built to punish that. Bait an attack, dodge it, then use the recovery window to drink instead of attacking. A pillar or terrain break can also create safety.</p></div>
+      </details>
+    </section>
+
+    <section id="explore">
+      <span class="section-number">Let the world guide you</span>
+      <h2>Read the map like an adventurer</h2>
+      <p class="lede">The map is intentionally incomplete, but it gives consistent visual clues. Follow curiosity before objectives.</p>
+
+      <figure>
+        <picture>
+          <source media="(max-width: 767px)" srcset="assets/explore-768.webp">
+          <img src="assets/explore-1536.webp" alt="A traveler on a spectral steed pauses where roads branch toward a church, mine, bridge, and distant castle" width="1536" height="862" loading="lazy">
+        </picture>
+        <figcaption>Roads connect useful places. Churches, mines, ruins, towers, strange shapes, and anything glowing are nearly always worth a detour.</figcaption>
+      </figure>
+
+      <div class="quick-grid">
+        <article class="card"><span class="card-label">Blank map</span><h3>Find the little monument icon</h3><p>Map fragments usually sit at those roadside stone pillars. You can see the pillar symbol even before revealing the region.</p></article>
+        <article class="card"><span class="card-label">Weapon upgrades</span><h3>Look for mine entrances</h3><p>Dark, reddish-rimmed tunnel marks on the revealed map often indicate mines packed with smithing stones.</p></article>
+        <article class="card"><span class="card-label">More flask uses</span><h3>Visit tiny golden trees</h3><p>Golden Seeds increase your number of flask charges when used at a Site of Grace.</p></article>
+        <article class="card"><span class="card-label">Stronger healing</span><h3>Visit churches</h3><p>Sacred Tears improve how much each flask restores. Use them through the Flask menu at a grace.</p></article>
+      </div>
+
+      <div class="callout">
+        <span class="callout-label">About the golden arrows</span>
+        <p>Guidance of Grace points toward major objectives. It does not mean “you should go here now,” and it may continue pointing toward a place you already explored. Treat it as a compass, not a quest marker.</p>
+      </div>
+
+      <h3>Small habits that prevent lost time</h3>
+      <ul>
+        <li>Place skull markers on bosses you are postponing and remove them when defeated.</li>
+        <li>Mark merchants, locked doors, strange statues, and treasure you cannot yet reach.</li>
+        <li>Spend runes before entering an obvious fog wall or suspiciously empty arena.</li>
+        <li>Keep Torrent and your spirit summon in the pouch, not the item carousel.</li>
+        <li>Buy a lantern when you find a merchant selling one; it keeps both hands free.</li>
+      </ul>
+    </section>
+
+    <section id="stuck">
+      <span class="section-number">Emergency procedure</span>
+      <h2>When a boss stops being fun</h2>
+      <p class="lede">Give it a few serious attempts. Then diagnose the problem instead of repeating the same fight while tilted.</p>
+
+      <article class="card sos">
+        <span class="card-label">The 90-second boss audit</span>
+        <ol>
+          <li><strong>Am I dying in one or two hits?</strong> Raise Vigor and check armor.</li>
+          <li><strong>Am I dealing tiny damage?</strong> Upgrade the weapon and confirm you meet its stat requirements.</li>
+          <li><strong>Is my dodge slow?</strong> Fix Heavy Load immediately.</li>
+          <li><strong>Do I understand one safe opening?</strong> Spend an attempt only watching and dodging.</li>
+          <li><strong>Can I change the matchup?</strong> Try a shield, different damage type, status buildup, spirit, NPC, or co-op.</li>
+          <li><strong>Am I angry?</strong> Leave. Explore for an hour. Return richer and calmer.</li>
+        </ol>
+      </article>
+
+      <h3>The spoiler-light help ladder</h3>
+      <ol>
+        <li>Read the item descriptions for nearby key items and boss rewards.</li>
+        <li>Ask yourself what single move is killing you and practice only that dodge.</li>
+        <li>Search for “<em>boss name</em> hint” rather than watching a full guide.</li>
+        <li>Use a written guide for the exact mechanic.</li>
+        <li>Watch a video only if timing or positioning still makes no sense.</li>
+      </ol>
+
+      <div class="callout warn">
+        <span class="callout-label">Runes are not progress</span>
+        <p>If recovering a small rune pile is making you miserable, abandon it. The game gives dramatically more runes later. Your knowledge, unlocked graces, upgrade materials, and found equipment are the progress that matters.</p>
+      </div>
+    </section>
+
+    <section id="quests">
+      <span class="section-number">NPCs and secrets</span>
+      <h2>Quest without living on a wiki</h2>
+      <p class="lede">Elden Ring has no traditional quest log. You are not expected to complete every character story blind in one playthrough.</p>
+
+      <ul>
+        <li><strong>Talk until dialogue repeats.</strong> Some NPCs need several interactions before they give an item or move.</li>
+        <li><strong>Revisit people after major bosses.</strong> Roundtable Hold changes often.</li>
+        <li><strong>Read item descriptions.</strong> The “Info” tab also stores tutorial messages.</li>
+        <li><strong>Do not attack neutral NPCs.</strong> If someone does not lock on automatically, pause before swinging.</li>
+        <li><strong>Keep a tiny note.</strong> “Wolf guy wants something in the underground river” is enough.</li>
+      </ul>
+
+      <details>
+        <summary>When should I look up quests?</summary>
+        <div class="details-body"><p>Play the first major regions mostly blind. If an NPC fascinates you, look up only their next step after you have searched naturally. Near the late game, use a missables checklist if completion matters more to you than surprise.</p></div>
+      </details>
+
+      <details>
+        <summary>Can I permanently ruin my character?</summary>
+        <div class="details-body"><p>Almost never. You eventually unlock stat respecs, weapon upgrades can be farmed or purchased, missed spirit-bell access has a backup shop, and most failures cost only runes. Some NPC outcomes and unique items are missable, but your build is highly recoverable.</p></div>
+      </details>
+    </section>
+
+    <section id="reference">
+      <span class="section-number">Keep this part handy</span>
+      <h2>The pocket cheat sheet</h2>
+
+      <div class="card gold-card">
+        <span class="card-label">Before any boss</span>
+        <ul>
+          <li>Spend your runes.</li>
+          <li>Confirm Medium Load.</li>
+          <li>Refill and allocate flasks.</li>
+          <li>Equip the spirit and useful consumables.</li>
+          <li>Two-hand, shield, or staff ready—whatever your plan requires.</li>
+        </ul>
+      </div>
+
+      <details>
+        <summary>What every major stat actually does</summary>
+        <div class="details-body">
+          <ul>
+            <li><strong>Vigor:</strong> health. Best beginner stat.</li>
+            <li><strong>Mind:</strong> FP for spells, skills, and spirits.</li>
+            <li><strong>Endurance:</strong> stamina and maximum equipment weight.</li>
+            <li><strong>Strength / Dexterity:</strong> weapon requirements and physical scaling.</li>
+            <li><strong>Intelligence / Faith:</strong> spell requirements and magical scaling.</li>
+            <li><strong>Arcane:</strong> specialized scaling, discovery, and some status builds. Ignore unless your chosen gear asks for it.</li>
+          </ul>
+        </div>
+      </details>
+
+      <details>
+        <summary>Regular vs. somber weapons</summary>
+        <div class="details-body"><p>Ordinary weapons use Smithing Stones and go to +25. Special weapons use Somber Smithing Stones and go to +10. Somber levels are much larger jumps; a +3 somber weapon is not equivalent to a +3 regular weapon.</p></div>
+      </details>
+
+      <details>
+        <summary>What does the little tombstone icon mean?</summary>
+        <div class="details-body"><p>It means spirit summoning is available in that area. Equip a spirit ash, ensure you have enough FP or HP for its cost, and use it once per encounter. Spirits cannot normally be used while a multiplayer ally is present.</p></div>
+      </details>
+
+      <details>
+        <summary>What should go in the pouch?</summary>
+        <div class="details-body"><p>Put Torrent’s whistle, your favorite spirit ash, and two frequently used utility items there. Keep healing and FP flasks on the normal quick-item bar so holding the cycle button can jump back to the first slot.</p></div>
+      </details>
+
+      <div class="sources">
+        <p><strong>Useful official references:</strong> Bandai Namco’s <a href="https://en.bandainamcoent.eu/elden-ring/news/elden-ring-starter-guide-tips-know-playing-the-game" rel="noopener">complete starter guide</a> and <a href="https://en.bandainamcoent.eu/elden-ring/news/elden-ring-early-game-tips" rel="noopener">early-game tips</a>. Both explain the core systems without requiring a build wiki.</p>
+      </div>
+
+      <div class="one-rule"><strong>Last thing:</strong> the winning play style is the one that makes you want to open the game again tomorrow.</div>
+
+      <div class="credits">
+        <p>Fan-made beginner guide for Elden Ring. Elden Ring and its names are trademarks of FromSoftware and Bandai Namco Entertainment. Original editorial illustrations were generated for this page; no official game artwork is reproduced. Updated July 2026.</p>
+        <p><a class="footer-mark" href="/">bensonperry.com</a></p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const progress = document.getElementById('progress');
+    const setProgress = () => {
+      const max = document.documentElement.scrollHeight - innerHeight;
+      const value = max > 0 ? Math.min(1, scrollY / max) : 0;
+      progress.style.width = `${value * 100}%`;
+    };
+    addEventListener('scroll', setProgress, { passive: true });
+    addEventListener('resize', setProgress, { passive: true });
+    setProgress();
+
+    const navScroller = document.querySelector('.jump-nav');
+    const navLinks = [...navScroller.querySelectorAll('a')];
+    const sections = navLinks.map(link => document.querySelector(link.hash)).filter(Boolean);
+    const observer = new IntersectionObserver(entries => {
+      const visible = entries.filter(entry => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+      if (!visible) return;
+      navLinks.forEach(link => {
+        const active = link.hash === `#${visible.target.id}`;
+        link.classList.toggle('active', active);
+        if (active) {
+          const left = link.offsetLeft - (navScroller.clientWidth - link.offsetWidth) / 2;
+          navScroller.scrollTo({ left, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+        }
+      });
+    }, { rootMargin: '-28% 0px -58% 0px', threshold: [0, .2, .6] });
+    sections.forEach(section => observer.observe(section));
+
+    const storageKey = 'eldenring-field-guide-checks';
+    let savedChecks = {};
+    try { savedChecks = JSON.parse(localStorage.getItem(storageKey) || '{}'); } catch (_) {}
+    document.querySelectorAll('[data-check]').forEach(input => {
+      input.checked = Boolean(savedChecks[input.dataset.check]);
+      input.addEventListener('change', () => {
+        if (input.checked) savedChecks[input.dataset.check] = true;
+        else delete savedChecks[input.dataset.check];
+        try { localStorage.setItem(storageKey, JSON.stringify(savedChecks)); } catch (_) {}
+      });
+    });
+
+    const tabs = [...document.querySelectorAll('[role="tab"]')];
+    tabs.forEach((tab, index) => {
+      tab.addEventListener('click', () => activateTab(tab));
+      tab.addEventListener('keydown', event => {
+        if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+        event.preventDefault();
+        const direction = event.key === 'ArrowRight' ? 1 : -1;
+        const next = tabs[(index + direction + tabs.length) % tabs.length];
+        activateTab(next);
+        next.focus();
+      });
+    });
+
+    function activateTab(activeTab) {
+      tabs.forEach(tab => {
+        const selected = tab === activeTab;
+        tab.setAttribute('aria-selected', selected);
+        document.getElementById(tab.getAttribute('aria-controls')).hidden = !selected;
+      });
+    }
+  </script>
+</body>
+</html>
