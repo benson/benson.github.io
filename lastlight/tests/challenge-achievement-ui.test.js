@@ -12,13 +12,14 @@ test("challenge records are reachable, explicit, no-power, and result accessible
   assert.match(game, /They never grant gameplay power/);
   assert.match(html, /id="result-achievements"[^>]+aria-labelledby="result-achievements-title"/);
   assert.match(game, /renderResultChallengeAchievements\(challengeAward\)/);
-  assert.match(game, /Rewards are local, cosmetic or informational, and grant no gameplay power/);
+  assert.match(game, /resultInspectable\(\{/);
+  assert.match(game, /detail: item\?\.summary/);
 });
 
 test("live challenge conditions use provisional authoritative report evidence without awarding early", () => {
   assert.match(html, /id="challenge-watch"[^>]+role="status"[^>]+aria-live="polite"/);
   assert.match(game, /createSquadRunReport\(\{ \.\.\.game, stage: "lost" \}, \{ build: BUILD \}\)/);
-  assert.match(game, /complete the operation to archive/);
+  assert.match(game, /Finish the level to save your progress/);
   assert.doesNotMatch(game, /updateChallengeWatch[\s\S]{0,1200}awardChallengeAchievements/);
   assert.match(css, /\.challenge-watch/);
 });

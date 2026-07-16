@@ -9,14 +9,14 @@ const archive = readFileSync(new URL("../run-archive.js", import.meta.url), "utf
 const replay = readFileSync(new URL("../replay.js", import.meta.url), "utf8");
 const engine = readFileSync(new URL("../engine.js", import.meta.url), "utf8");
 
-test("deployment exposes explicit daily, weekly, local-only, and standard-operation states", () => {
+test("deployment exposes explicit daily, weekly, and standard-level states without account jargon", () => {
   for (const id of ["seeded-operations", "seeded-operations-title", "seeded-operation-cards", "seeded-operation-status"]) assert.match(html, new RegExp(`id="${id}"`));
-  assert.match(html, /No account · local records only/);
+  assert.doesNotMatch(html, /No account · local records only/);
   assert.match(game, /seededOperationFor\("daily", now\)/);
   assert.match(game, /seededOperationFor\("weekly", now\)/);
   assert.match(game, /selected\?\.challengeIds\.map\(\(id\) => challengeAchievementDefinition\(id\)\?\.name \|\| id\)/);
-  assert.match(game, /Select again to return to a standard operation/);
-  assert.match(game, /stay only in this browser unless you explicitly share a report/);
+  assert.match(game, /Select again for a standard level/);
+  assert.match(html, /Progress and unlocks stay in this browser/);
   assert.match(game, /state\.config\.seededOperation\?\.seed \|\| createRandomSeed\(\)/);
 });
 

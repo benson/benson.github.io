@@ -6,10 +6,10 @@ const HEALTH_BARS = new Set(["all", "important", "off"]);
 const PRESETS = new Set(["auto", "high", "reduced", "minimal", "custom"]);
 
 export const QUALITY_PRESETS = Object.freeze({
-  auto: Object.freeze({ preset: "auto", effectsDensity: "full", shake: "full", hitFlashes: "full", healthBars: "important", reducedMotion: false, flashIntensity: "full" }),
-  high: Object.freeze({ preset: "high", effectsDensity: "full", shake: "full", hitFlashes: "full", healthBars: "all", reducedMotion: false, flashIntensity: "full" }),
-  reduced: Object.freeze({ preset: "reduced", effectsDensity: "balanced", shake: "balanced", hitFlashes: "balanced", healthBars: "important", reducedMotion: false, flashIntensity: "balanced" }),
-  minimal: Object.freeze({ preset: "minimal", effectsDensity: "low", shake: "off", hitFlashes: "low", healthBars: "important", reducedMotion: true, flashIntensity: "low" }),
+  auto: Object.freeze({ preset: "auto", effectsDensity: "full", shake: "full", hitFlashes: "full", healthBars: "important", reducedMotion: false, flashIntensity: "full", showFps: false }),
+  high: Object.freeze({ preset: "high", effectsDensity: "full", shake: "full", hitFlashes: "full", healthBars: "all", reducedMotion: false, flashIntensity: "full", showFps: false }),
+  reduced: Object.freeze({ preset: "reduced", effectsDensity: "balanced", shake: "balanced", hitFlashes: "balanced", healthBars: "important", reducedMotion: false, flashIntensity: "balanced", showFps: false }),
+  minimal: Object.freeze({ preset: "minimal", effectsDensity: "low", shake: "off", hitFlashes: "low", healthBars: "important", reducedMotion: true, flashIntensity: "low", showFps: false }),
 });
 
 export const RENDER_PROFILES = Object.freeze({
@@ -27,7 +27,9 @@ function exactObject(value, keys) {
 
 export function normalizeQualitySettings(source, systemReducedMotion = false) {
   const fallback = QUALITY_PRESETS.auto;
-  if (!exactObject(source, ["version", "preset", "effectsDensity", "shake", "hitFlashes", "healthBars", "reducedMotion", "flashIntensity"])) {
+  const legacyFields = ["version", "preset", "effectsDensity", "shake", "hitFlashes", "healthBars", "reducedMotion", "flashIntensity"];
+  if (exactObject(source, legacyFields)) source = { ...source, showFps: false };
+  if (!exactObject(source, [...legacyFields, "showFps"])) {
     return { ...fallback, reducedMotion: Boolean(systemReducedMotion) };
   }
   const preset = PRESETS.has(source.preset) ? source.preset : fallback.preset;
@@ -40,6 +42,7 @@ export function normalizeQualitySettings(source, systemReducedMotion = false) {
     healthBars: HEALTH_BARS.has(source.healthBars) ? source.healthBars : base.healthBars,
     reducedMotion: typeof source.reducedMotion === "boolean" ? source.reducedMotion : Boolean(systemReducedMotion || base.reducedMotion),
     flashIntensity: INTENSITIES.has(source.flashIntensity) ? source.flashIntensity : base.flashIntensity,
+    showFps: typeof source.showFps === "boolean" ? source.showFps : false,
   };
 }
 

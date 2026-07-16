@@ -9,3 +9,7 @@ export function shouldOpenReportShortcut(event = {}, context = {}) {
     && !context.isTyping
     && !context.dialogOpen;
 }
+
+export function isFpsShortcut(event = {}) {
+  return event.code === "F3" && !event.repeat;
+}

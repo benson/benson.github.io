@@ -10,7 +10,7 @@ test("launch and lobby keep primary actions visible while reference tools sit on
   assert.match(html, /id="practice-button"[\s\S]+<details class="command-menu">[\s\S]+id="run-history-button"[\s\S]+id="quality-button"/);
   assert.match(html, /class="reference-disclosure home-controls-disclosure"[\s\S]+<summary><span>Controls<\/span>/);
   assert.match(html, /<details id="seeded-operations" class="seeded-operations"/);
-  assert.match(html, /class="setup-disclosure"[\s\S]+id="deployment-mutations"/);
+  assert.match(html, /class="setup-disclosure hidden"[\s\S]+id="deployment-mutations"/);
   assert.match(html, /class="lobby-brief"[\s\S]+id="lobby-mutations"[\s\S]+class="control-ribbon lobby-controls"/);
   assert.match(css, /\.command-menu-panel \{[^}]+position: absolute;[^}]+transform-origin: top right;/s);
 });
@@ -30,7 +30,8 @@ test("combat defaults to signal-level HUD and Shift temporarily reveals tactical
 
 test("upgrade, pause, and results expose complete detail through semantic disclosures", () => {
   assert.match(html, /class="upgrade-build-disclosure"[\s\S]+id="upgrade-current-stats"/);
-  assert.match(html, /class="upgrade-reference-disclosure"[\s\S]+id="upgrade-guide-button"/);
+  assert.match(html, /id="upgrade-current-loadout"/);
+  assert.doesNotMatch(html, /upgrade-reference-disclosure|upgrade-guide-button/);
   assert.match(html, /<details class="pause-reference">[\s\S]+id="pause-guide-button"/);
   assert.match(html, /class="result-disclosure result-scoreboard-disclosure"[\s\S]+id="result-scoreboard-body"/);
   assert.match(html, /id="result-contribution" class="result-disclosure result-contribution hidden"/);

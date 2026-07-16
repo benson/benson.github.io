@@ -8,7 +8,7 @@ const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 
 test("result and archive surfaces expose anonymous-default squad sharing and explicit named disclosure", () => {
   for (const id of ["copy-squad-report", "copy-squad-report-named", "run-history-dialog", "run-history-list"]) assert.match(html, new RegExp(`id="${id}"`));
-  assert.match(html, /Squad operation archive/);
+  assert.match(html, /Run history/);
   assert.match(game, /copySquadReportLink\(state\.resultReport\)/);
   assert.match(game, /copySquadReportLink\(state\.resultReport, \{ includeCallsigns: true \}\)/);
   assert.match(game, /url\.search = ""; url\.hash = squadRunShareFragment/);
