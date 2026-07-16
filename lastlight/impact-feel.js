@@ -40,6 +40,7 @@ export function impactFeedbackPlan({
   const crowdScale = crowded ? .58 : 1, densityScale = clamp(density, .25, 1);
   const flashScale = reducedFlash ? .22 : 1;
   const motionScale = reducedMotion ? 0 : 1;
+  const impactCue = resolvedTier === "critical" ? "impact-critical" : resolvedTier === "heavy" ? "impact-heavy" : null;
   return freeze({
     schema: IMPACT_FEEL_SCHEMA, tier: resolvedTier, source, angle: Number.isFinite(Number(angle)) ? Number(angle) : 0,
     priority: base.priority, cost: base.cost,
@@ -66,10 +67,24 @@ export function impactFeedbackPlan({
       smear: !reducedMotion && ["heavy", "critical"].includes(resolvedTier),
       aftermath: base.aftermath * densityScale,
     }),
-    audio: freeze({ gain: base.audio, duck: resolvedTier === "critical" ? .26 : resolvedTier === "heavy" ? .14 : 0, pitchVariance: resolvedTier === "critical" ? 0 : .035 }),
+    audio: freeze({
+      cue: impactCue,
+      gain: base.audio,
+      duck: resolvedTier === "critical" ? .26 : resolvedTier === "heavy" ? .14 : 0,
+      pitchVariance: resolvedTier === "critical" ? 0 : .035,
+      minimumIntervalMs: resolvedTier === "critical" ? 72 : resolvedTier === "heavy" ? 96 : 0,
+    }),
     haptic: reducedMotion ? IMPACT_TIER_PROFILES.ambient.haptic : base.haptic,
     reducedMotion: Boolean(reducedMotion), reducedFlash: Boolean(reducedFlash), crowded: Boolean(crowded),
   });
+}
+
+export function impactAnimationTimeScale(targetVisual = null, attackerVisual = null) {
+  const frozen = [targetVisual, attackerVisual].some((visual) => {
+    const freezeMs = Math.max(0, Number(visual?.plan?.timing?.freezeMs) || 0);
+    return freezeMs > 0 && Math.max(0, Number(visual?.ageMs) || 0) < freezeMs;
+  });
+  return frozen ? 0 : 1;
 }
 
 export function impactReactionTransform(plan, progress = 0) {

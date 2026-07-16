@@ -1,4 +1,4 @@
-import { CHALLENGE_ACHIEVEMENT_REGISTRY } from "./challenge-achievements.js?v=20260715.4";
+import { CHALLENGE_ACHIEVEMENT_REGISTRY } from "./challenge-achievements.js?v=20260715.5";
 
 export const SEEDED_OPERATION_SCHEMA = "lastlight.seeded-operation.v1";
 export const SEEDED_OPERATION_DESCRIPTOR_SCHEMA = "lastlight.seeded-operation-report.v1";

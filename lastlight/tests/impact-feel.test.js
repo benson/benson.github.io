@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   IMPACT_FEEL_SCHEMA, IMPACT_FEEL_TIERS, IMPACT_MASS_PROFILES, IMPACT_TIER_PROFILES,
   ImpactIntensityDirector, aftermathPlan, attackerRecoilTransform, cameraLookBias,
-  impactFeedbackPlan, impactPhaseProgress, impactReactionTransform, impactTierForEvent,
+  impactAnimationTimeScale, impactFeedbackPlan, impactPhaseProgress, impactReactionTransform, impactTierForEvent,
   projectileMotionPlan, secondaryMotionPlan, selectImpactFeedback,
 } from "../impact-feel.js";
 
@@ -29,7 +29,18 @@ test("feedback plans synchronize timing force vfx sound and haptics", () => {
   assert.ok(plan.timing.holdMs > 0 && plan.timing.freezeMs > 0);
   assert.ok(plan.force.reaction > 0 && plan.force.cameraPunch > 0 && plan.force.attackerRecoil > 0);
   assert.ok(plan.vfx.criticalGraphic && plan.vfx.smear && plan.vfx.aftermath > 0);
-  assert.ok(plan.audio.duck > 0 && plan.haptic.strong > plan.haptic.weak);
+  assert.equal(plan.audio.cue, "impact-critical");
+  assert.ok(plan.audio.duck > 0 && plan.audio.minimumIntervalMs > 0 && plan.haptic.strong > plan.haptic.weak);
+});
+
+test("frequent impacts stay quiet while heavy accents and visual hit-stop share one tier", () => {
+  const light = impactFeedbackPlan({ tier: "light" });
+  const heavy = impactFeedbackPlan({ tier: "heavy" });
+  assert.equal(light.audio.cue, null);
+  assert.equal(heavy.audio.cue, "impact-heavy");
+  assert.equal(impactAnimationTimeScale({ plan: heavy, ageMs: heavy.timing.freezeMs - 1 }), 0);
+  assert.equal(impactAnimationTimeScale(null, { plan: heavy, ageMs: heavy.timing.freezeMs }), 1);
+  assert.equal(impactAnimationTimeScale({ plan: light, ageMs: 0 }), 1);
 });
 
 test("reduced motion and reduced flash preserve information without displacement", () => {
