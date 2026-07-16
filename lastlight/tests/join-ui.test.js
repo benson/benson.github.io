@@ -26,7 +26,7 @@ test("live admission uses the relay slot and deterministic package before commit
 
 test("late reinforcement campaign clears require bounded pre-apex participation", () => {
   assert.match(game, /campaignJoinEligibility\(\{ activeCombatTicks: Number\(localPlayer\.preApexDeployedTicks/);
-  assert.match(game, /Campaign clear not awarded/);
+  assert.match(game, /Unlock progress not awarded/);
 });
 
 test("feedback screenshots attach by paste without a file-picker surface", () => {

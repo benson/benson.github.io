@@ -43,8 +43,8 @@ test("renderer and HUD wire every rhythm cue with accessible fallbacks", () => {
   assert.match(render, /enemyDepartureMotionPlan\(deathProgress/);
   assert.match(render, /apexPhaseMotionPlan\(e, simulationTick/);
   for (const cue of ["cooldownReady", "waveShift", "combatResume"]) assert.match(game, new RegExp(`"${cue}"`));
-  assert.match(game, /OPERATION COMPLETE/);
-  assert.match(game, /SIGNAL LOST/);
+  assert.match(game, /LEVEL COMPLETE/);
+  assert.match(game, /LEVEL FAILED/);
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.ability-slot::after[\s\S]*transition-property: opacity, color/);
   assert.match(styles, /\.ability-slot\.cooldown-ready::after[^{]*\{[^}]*transition-duration: 140ms, 220ms/);
   assert.match(styles, /#wave-label\.rhythm-wave-shift[^{]*\{[^}]*transition-duration: 160ms, 240ms, 180ms/);

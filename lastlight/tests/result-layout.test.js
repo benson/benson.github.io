@@ -15,7 +15,7 @@ test("post-game hierarchy uses one compact semantic header before unchanged stat
   assert.ok(result.indexOf('class="result-header"') < result.indexOf('class="result-stats"'));
   for (const id of ["result-time", "result-kills", "result-level", "result-gold", "result-scoreboard-body", "result-contribution", "result-contribution-body", "result-damage-breakdown", "watch-replay", "result-run-history", "result-home"]) assert.match(result, new RegExp(`id="${id}"`));
   assert.ok(result.indexOf('class="scoreboard-wrap"') < result.indexOf('id="result-contribution"'));
-  assert.match(result, /<caption>Shared credit is non-zero-sum/);
+  assert.match(result, /<caption>Healing beyond maximum health/);
   for (const id of ["support", "prevented", "assists", "revive", "objective", "priority", "synergy"]) assert.match(result, new RegExp(`aria-describedby="contribution-${id}-help"`));
 });
 

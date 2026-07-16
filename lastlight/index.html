@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260715.5">
+  <link rel="stylesheet" href="styles.css?v=20260716.3">
 </head>
 <body>
   <main id="app">
@@ -42,10 +42,12 @@
           <span>LASTLIGHT</span>
         </a>
         <div class="topbar-actions">
+          <button id="mastery-button" class="text-button" type="button" aria-haspopup="dialog" aria-controls="mastery-dialog">Specialists</button>
           <button id="practice-button" class="text-button" type="button" aria-haspopup="dialog" aria-controls="practice-dialog">Practice</button>
           <details class="command-menu">
             <summary>Menu</summary>
             <div class="command-menu-panel">
+              <button id="mastery-menu-button" class="text-button mobile-menu-only" type="button" aria-haspopup="dialog" aria-controls="mastery-dialog">Specialists</button>
               <button id="run-history-button" class="text-button" type="button">Past runs</button>
               <button id="guide-button" class="text-button" type="button" aria-label="Upgrade archive">Upgrade archive</button>
               <button id="how-button" class="text-button" type="button">Field manual</button>
@@ -81,18 +83,18 @@
         <div class="setup-flow">
           <section class="identity-panel" aria-labelledby="identity-title">
             <header class="setup-step-header">
-              <span>01 / Identity</span>
-              <strong id="identity-title">Set your callsign</strong>
+              <span>01 / Player</span>
+              <strong id="identity-title">Choose your name</strong>
             </header>
             <div class="identity-body">
-              <label class="input-label" for="callsign-input">Callsign</label>
-              <input id="callsign-input" class="callsign-input" maxlength="16" autocomplete="nickname" value="Rookie" aria-label="Callsign">
+              <label class="input-label" for="callsign-input">Name</label>
+              <input id="callsign-input" class="callsign-input" maxlength="16" autocomplete="nickname" value="Rookie" aria-label="Name">
             </div>
           </section>
 
           <section id="recovery-offer" class="recovery-offer hidden" aria-labelledby="recovery-title">
             <div>
-              <span>Interrupted operation</span>
+              <span>Interrupted run</span>
               <strong id="recovery-title">Recovery available</strong>
               <small id="recovery-copy">A recent local checkpoint is ready.</small>
             </div>
@@ -104,12 +106,11 @@
 
           <section class="setup-panel" aria-labelledby="deployment-title">
             <header class="setup-step-header deployment-heading">
-              <span>02 / Deployment</span>
+              <span>02 / Play</span>
               <strong id="deployment-title">Choose how to play</strong>
             </header>
             <div class="mode-tabs" role="tablist" aria-label="Party type">
-              <button class="mode-tab active" type="button" data-party-mode="solo" role="tab" aria-selected="true">Solo run</button>
-              <button class="mode-tab" type="button" data-party-mode="host" role="tab" aria-selected="false">Create squad</button>
+              <button class="mode-tab active" type="button" data-party-mode="host" role="tab" aria-selected="true">Start a lobby</button>
               <button class="mode-tab" type="button" data-party-mode="join" role="tab" aria-selected="false">Join code</button>
             </div>
 
@@ -121,7 +122,7 @@
 
               <div id="host-options" class="host-options">
                 <label class="select-field">
-                  <span class="input-label">Operation</span>
+                  <span class="input-label">Level</span>
                   <select id="map-select">
                     <option value="warehouse">Iron District</option>
                     <option value="outskirts">Ash Outskirts</option>
@@ -130,15 +131,15 @@
                   </select>
                 </label>
                 <label class="select-field">
-                  <span class="input-label">Threat</span>
+                  <span class="input-label">Difficulty</span>
                   <select id="difficulty-select">
-                    <option value="story">Story · Sharp hits · Lighter opening</option>
+                    <option value="story">Normal · Sharp hits · Lighter opening</option>
                     <option value="hard">Hard · 2.5× health · 1.8× damage</option>
                     <option value="extreme">Extreme · 4.5× health · 2.4× damage</option>
                   </select>
                 </label>
                 <label class="select-field full-span">
-                  <span class="input-label">Pacing</span>
+                  <span class="input-label">Run length</span>
                   <select id="duration-select">
                     <option value="240">Field test · 4 minutes</option>
                     <option value="900">Original pacing · 15 minutes</option>
@@ -146,21 +147,21 @@
                 </label>
               </div>
               <details id="seeded-operations" class="seeded-operations" aria-labelledby="seeded-operations-title">
-                <summary><span><small>Shared deterministic contracts</small><strong id="seeded-operations-title">Seeded operations</strong></span><em>No account · local records only</em></summary>
+                <summary><span><small>Same challenge for everyone</small><strong id="seeded-operations-title">Seeded levels</strong></span></summary>
                 <div id="seeded-operation-cards" class="seeded-operation-cards"></div>
-                <p id="seeded-operation-status" class="seeded-operation-status" role="status" aria-live="polite">Standard operation selected.</p>
+                <p id="seeded-operation-status" class="seeded-operation-status" role="status" aria-live="polite">Standard level selected.</p>
               </details>
-              <details class="setup-disclosure">
-                <summary><span>Operation rules</span><small>Baseline &amp; mutation package</small></summary>
+              <details id="deployment-rules-disclosure" class="setup-disclosure hidden">
+                <summary><span>Custom rules</span><small>Difficulty modifiers</small></summary>
                 <section id="deployment-mutations" class="mutation-package" aria-live="polite"></section>
               </details>
               <p id="progression-note" class="progression-note"></p>
 
               <button id="deploy-button" class="deploy-button" type="button">
-                <span>Deploy solo</span>
+                <span>Start a lobby</span>
                 <span class="deploy-arrow">↗</span>
               </button>
-              <p id="connection-note" class="connection-note">No sign-in. Desktop keyboard recommended; touch controls included.</p>
+              <p id="connection-note" class="connection-note">Progress and unlocks stay in this browser. Desktop keyboard recommended; touch controls included.</p>
             </div>
           </section>
         </div>
@@ -170,15 +171,15 @@
     <section id="lobby-screen" class="screen lobby-screen hidden">
       <div class="lobby-shell">
         <header class="lobby-header">
-          <button id="lobby-back" class="text-button" type="button">← Leave squad</button>
+          <button id="lobby-back" class="text-button" type="button">← Leave lobby</button>
           <div class="mission-chip"><span class="status-dot"></span><span id="lobby-mission">Iron District · Story</span></div>
           <div class="lobby-header-actions"><button id="lobby-practice" class="text-button" type="button" aria-haspopup="dialog" aria-controls="practice-dialog">Practice</button><details class="command-menu"><summary>Menu</summary><div class="command-menu-panel"><button id="lobby-run-history" class="text-button" type="button">Past runs</button><button id="lobby-guide" class="text-button" type="button" aria-label="Upgrade archive">Upgrade archive</button><button id="lobby-quality" class="text-button" type="button">Display &amp; accessibility</button><button id="lobby-audio" class="text-button" type="button" aria-label="Open sound settings · locked" aria-haspopup="dialog">Sound locked</button></div></details></div>
         </header>
 
-        <div class="lobby-brief" aria-label="Operation reference">
-          <details class="reference-disclosure">
-            <summary><span>Operation rules</span><small>Campaign package</small></summary>
-            <section id="lobby-mutations" class="mutation-package lobby-mutation-package" aria-label="Active campaign mutation package"></section>
+        <div class="lobby-brief" aria-label="Level reference">
+          <details id="lobby-rules-disclosure" class="reference-disclosure hidden">
+            <summary><span>Custom rules</span><small>Difficulty modifiers</small></summary>
+            <section id="lobby-mutations" class="mutation-package lobby-mutation-package" aria-label="Active custom rules"></section>
           </details>
           <details class="reference-disclosure">
             <summary><span>Controls</span><small>Keyboard quick reference</small></summary>
@@ -194,7 +195,7 @@
             <h2>ASSEMBLE THE LINE</h2>
           </div>
           <div id="room-card" class="room-card hidden">
-            <span>Squad code</span>
+            <span>Invite code</span>
             <strong id="room-code">—</strong>
             <button id="copy-link" type="button">Copy invite link</button>
           </div>
@@ -202,7 +203,7 @@
 
         <section id="reinforcement-panel" class="reinforcement-panel hidden" aria-labelledby="reinforcement-title" aria-describedby="reinforcement-copy">
           <header>
-            <div><p class="eyebrow">Active operation // reinforcement</p><h3 id="reinforcement-title">CHOOSE A DEPLOYMENT PACKAGE</h3></div>
+            <div><p class="eyebrow">Run in progress</p><h3 id="reinforcement-title">CHOOSE HOW TO JOIN</h3></div>
             <span id="reinforcement-status" role="status" aria-live="polite">Your choices do not pause the squad.</span>
           </header>
           <p id="reinforcement-copy">Pick a specialist, then choose how the command rig distributes your deterministic catch-up ranks. Catch-up grants no retroactive XP, gold, rare finds, or participation.</p>
@@ -235,7 +236,7 @@
             </div>
             <section id="mastery-loadout" class="mastery-loadout" aria-labelledby="mastery-loadout-title">
               <header><div><span>Specialist mastery</span><strong id="mastery-loadout-title">Overclock // level 1</strong></div><em id="mastery-points">0 / 120</em></header>
-              <p id="mastery-summary">Complete operations with this specialist to unlock lasting records and sidegrade field kits.</p>
+              <p id="mastery-summary">Complete levels with this specialist to earn mastery and unlock alternate starting kits.</p>
               <div class="mastery-start-options" role="radiogroup" aria-label="Starting package">
                 <button type="button" role="radio" aria-checked="true" data-mastery-start="baseline"><strong>Standard issue</strong><small>Authored baseline kit.</small></button>
                 <button type="button" role="radio" aria-checked="false" data-mastery-start="field-kit"><strong>Field kit</strong><small>Locked until mastery level 3.</small></button>
@@ -281,7 +282,7 @@
           <strong id="game-timer">04:00</strong>
           <div class="timer-track"><i id="timer-progress"></i></div>
         </div>
-        <div class="game-stats"><span><b id="kill-count">0</b> kills</span><span><b id="gold-count">0</b> gold</span><button id="pause-button" type="button">Pause</button></div>
+        <div class="game-stats"><output id="fps-counter" hidden aria-label="Frame rate">60 FPS</output><span><b id="kill-count">0</b> kills</span><span><b id="gold-count">0</b> gold</span><button id="pause-button" type="button">Pause</button></div>
       </header>
 
       <div id="objective-banner" class="objective-banner hidden"><span>NEW DIRECTIVE</span><strong>Capture the uplink</strong></div>
@@ -328,7 +329,7 @@
       <div class="xp-wrap"><span id="level-label">LV 1</span><div class="xp-track"><i id="xp-progress"></i></div></div>
       <details class="game-controls-hint">
         <summary>Controls</summary>
-        <div aria-label="Keyboard controls"><span data-control-movement><kbd>WASD</kbd> Move</span><span data-control-action="autoAim"><kbd>C</kbd> Auto-aim</span><span><kbd>Mouse</kbd> Aim</span><span data-control-ping data-control-action="ping"><kbd>G</kbd> Ping</span><span data-control-action="inspect"><kbd>Shift</kbd> Inspect</span><span data-control-action="report"><kbd>` / ~</kbd> Report</span></div>
+        <div aria-label="Keyboard controls"><span data-control-movement><kbd>WASD</kbd> Move</span><span data-control-action="autoAim"><kbd>C</kbd> Auto-aim</span><span><kbd>Mouse</kbd> Aim</span><span data-control-ping data-control-action="ping"><kbd>G</kbd> Ping</span><span data-control-action="inspect"><kbd>Shift</kbd> Inspect</span><span><kbd>F3</kbd> FPS</span><span data-control-action="report"><kbd>` / ~</kbd> Report</span></div>
       </details>
       <aside id="inspect-panel" class="inspect-panel hidden" role="tooltip" aria-live="polite">
         <span id="inspect-kind">Field object</span>
@@ -354,8 +355,12 @@
           <div class="upgrade-draft">
             <section class="upgrade-local">
               <div class="upgrade-player-heading"><span>You</span><strong id="upgrade-local-name">Rookie</strong><i id="upgrade-local-status">Choosing</i></div>
+              <section class="upgrade-build-overview" aria-labelledby="upgrade-build-title">
+                <header><span id="upgrade-build-title">Current build</span><small>Focus or point at an item for details</small></header>
+                <div id="upgrade-current-loadout" class="upgrade-current-loadout"></div>
+              </section>
               <details class="upgrade-build-disclosure">
-                <summary><span>Current build</span><small>9 live statistics</small></summary>
+                <summary><span>Build statistics</span><small>9 live values</small></summary>
                 <aside id="upgrade-current-stats" class="upgrade-current-stats" aria-label="Current specialist statistics"></aside>
               </details>
               <div id="draft-controls" class="draft-controls" aria-label="Draft controls">
@@ -374,21 +379,12 @@
             <aside id="teammate-upgrades" class="teammate-upgrades" aria-label="Teammate upgrade choices"></aside>
           </div>
           <p id="upgrade-wait" class="upgrade-wait">Time resumes when the squad has chosen.</p>
-          <details class="upgrade-reference-disclosure">
-            <summary><span>Upgrade rules</span><small>Weapons, passives &amp; evolution</small></summary>
-            <div class="upgrade-reference" aria-label="Upgrade reference">
-              <span><b>Weapon</b> Adds or ranks an automatic attack.</span>
-              <span><b>Passive</b> Improves every compatible system.</span>
-              <span><b>Evolution</b> Level 5 weapon + matching passive + elite access card.</span>
-              <button id="upgrade-guide-button" type="button">Open field guide</button>
-            </div>
-          </details>
         </div>
       </div>
 
       <div id="pause-overlay" class="overlay pause-overlay hidden">
         <div class="pause-card">
-          <p class="eyebrow">Operation suspended</p>
+          <p class="eyebrow">Run paused</p>
           <h2>PAUSED</h2>
           <details class="pause-reference">
             <summary>Quick field reference</summary>
@@ -426,12 +422,12 @@
       <div class="result-card">
         <header class="result-header" aria-labelledby="result-title">
           <div class="result-heading">
-            <p id="result-eyebrow" class="eyebrow">Operation complete</p>
+            <p id="result-eyebrow" class="eyebrow">Level complete</p>
             <h2 id="result-title">APEX NEUTRALIZED</h2>
           </div>
           <div class="result-debrief">
             <p id="result-copy">The line held. Final City gets another sunrise.</p>
-            <div id="result-unlock" class="result-unlock hidden"></div>
+            <ul id="result-unlock" class="result-unlock hidden" aria-label="New unlocks"></ul>
           </div>
         </header>
         <div class="result-stats">
@@ -440,11 +436,11 @@
           <div><span>Level</span><strong id="result-level">18</strong></div>
           <div><span>Gold</span><strong id="result-gold">240</strong></div>
         </div>
-        <details id="result-mutations" class="result-disclosure result-mutations" aria-labelledby="result-mutations-title"><summary id="result-mutations-title"><span>Campaign package</span><small>Operation rules</small></summary><div class="mutation-package"></div></details>
+        <details id="result-mutations" class="result-disclosure result-mutations hidden" aria-labelledby="result-mutations-title"><summary id="result-mutations-title"><span>Custom rules</span><small>Difficulty modifiers</small></summary><div class="mutation-package"></div></details>
         <section id="result-mastery" class="result-mastery hidden" aria-labelledby="result-mastery-title"><p class="eyebrow">Specialist mastery</p><h3 id="result-mastery-title">Track advanced</h3><p id="result-mastery-copy"></p></section>
-        <section id="result-achievements" class="result-discoveries hidden" aria-labelledby="result-achievements-title"><p class="eyebrow">Challenge archive</p><h3 id="result-achievements-title">Records completed</h3><p id="result-achievements-copy"></p><ul id="result-achievement-list"></ul></section>
-        <section id="result-seeded-operation" class="result-discoveries hidden" aria-labelledby="result-seeded-operation-title"><p class="eyebrow">Seeded operation</p><h3 id="result-seeded-operation-title">Local record updated</h3><p id="result-seeded-operation-copy"></p><ul id="result-seeded-operation-list"></ul></section>
-        <section id="result-discoveries" class="result-discoveries hidden" aria-labelledby="result-discoveries-title"><p class="eyebrow">Field Manual</p><h3 id="result-discoveries-title">Signals catalogued</h3><p id="result-discoveries-copy"></p><ul id="result-discovery-list"></ul></section>
+        <section id="result-achievements" class="result-discoveries hidden" aria-labelledby="result-achievements-title"><p class="eyebrow">Challenges</p><h3 id="result-achievements-title">Challenges completed</h3><p id="result-achievements-copy"></p><ul id="result-achievement-list"></ul></section>
+        <section id="result-seeded-operation" class="result-discoveries hidden" aria-labelledby="result-seeded-operation-title"><p class="eyebrow">Seeded level</p><h3 id="result-seeded-operation-title">Record updated</h3><p id="result-seeded-operation-copy"></p><ul id="result-seeded-operation-list"></ul></section>
+        <section id="result-discoveries" class="result-discoveries hidden" aria-labelledby="result-discoveries-title"><p class="eyebrow">Discoveries</p><h3 id="result-discoveries-title">Discoveries found</h3><p id="result-discoveries-copy"></p><ul id="result-discovery-list"></ul></section>
         <details class="result-disclosure result-scoreboard-disclosure">
           <summary><span>Squad scoreboard</span><small>10 performance metrics</small></summary>
           <div class="scoreboard-wrap">
@@ -455,12 +451,12 @@
           </div>
         </details>
         <details id="result-contribution" class="result-disclosure result-contribution hidden" aria-labelledby="result-contribution-title">
-          <summary><span id="result-contribution-title">Squad contribution</span><small>Effective support &amp; teamwork</small></summary>
-          <header><div><p class="eyebrow">Effective work // anonymous slots</p><h3>Squad contribution</h3></div><p>Only effective, bounded actions count. Focus or tap a column heading for its definition.</p></header>
+          <summary><span id="result-contribution-title">Team contribution</span><small>Support &amp; teamwork</small></summary>
+          <header><p>Only actions that helped the team are counted. Focus or point at a heading for its definition.</p></header>
           <div class="contribution-wrap" tabindex="0" aria-label="Scrollable squad contribution table">
             <table class="contribution-table">
-              <caption>Shared credit is non-zero-sum for genuine overlap. Excess healing or shielding, duplicate effects, overkill, idle proximity, and system restoration are excluded.</caption>
-              <thead><tr><th scope="col">Specialist</th><th scope="col"><button type="button" aria-describedby="contribution-support-help"><span aria-hidden="true">+</span> Support</button></th><th scope="col"><button type="button" aria-describedby="contribution-prevented-help"><span aria-hidden="true">◇</span> Prevented</button></th><th scope="col"><button type="button" aria-describedby="contribution-assists-help"><span aria-hidden="true">A</span> Assists</button></th><th scope="col"><button type="button" aria-describedby="contribution-revive-help"><span aria-hidden="true">R</span> Revive</button></th><th scope="col"><button type="button" aria-describedby="contribution-objective-help"><span aria-hidden="true">O</span> Objective</button></th><th scope="col"><button type="button" aria-describedby="contribution-priority-help"><span aria-hidden="true">!</span> Priority</button></th><th scope="col"><button type="button" aria-describedby="contribution-synergy-help"><span aria-hidden="true">S</span> Synergy</button></th></tr></thead>
+              <caption>Healing beyond maximum health, duplicate effects, overkill, and idle proximity are excluded.</caption>
+              <thead><tr><th scope="col">Player</th><th scope="col"><button type="button" aria-describedby="contribution-support-help">Healing &amp; shields</button></th><th scope="col"><button type="button" aria-describedby="contribution-prevented-help">Damage prevented</button></th><th scope="col"><button type="button" aria-describedby="contribution-assists-help">Assists</button></th><th scope="col"><button type="button" aria-describedby="contribution-revive-help">Revives</button></th><th scope="col"><button type="button" aria-describedby="contribution-objective-help">Objectives</button></th><th scope="col"><button type="button" aria-describedby="contribution-priority-help">Priority targets</button></th><th scope="col"><button type="button" aria-describedby="contribution-synergy-help">Teamwork</button></th></tr></thead>
               <tbody id="result-contribution-body"></tbody>
             </table>
           </div>
@@ -474,14 +470,14 @@
         <div class="result-actions">
           <div class="result-primary-actions">
             <button id="again-button" class="deploy-button" type="button"><span>Run it again</span><span>↻</span></button>
-            <button id="result-home" class="secondary-button" type="button">Return to command</button>
+            <button id="result-home" class="secondary-button" type="button">Home</button>
           </div>
           <details class="result-more-actions">
             <summary>More debrief actions</summary>
             <div>
               <button id="watch-replay" class="text-button hidden" type="button">Watch verified replay</button>
               <button id="copy-squad-report" class="text-button" type="button">Copy squad report</button>
-              <button id="copy-squad-report-named" class="text-button" type="button">Copy with callsigns</button>
+              <button id="copy-squad-report-named" class="text-button" type="button">Copy with names</button>
               <button id="result-run-history" class="text-button" type="button">View past runs</button>
             </div>
           </details>
@@ -496,7 +492,7 @@
         <span id="network-state-mark" class="network-state-mark" aria-hidden="true">↻</span>
         <p class="eyebrow">Squad authority // verified recovery</p>
         <h2 id="network-state-title">MIGRATING HOST</h2>
-        <p id="network-state-copy">The operation is frozen while deterministic authority is restored.</p>
+        <p id="network-state-copy">The run is paused while the squad connection is restored.</p>
         <p id="network-state-progress" class="network-state-progress" aria-live="polite">Verification pending</p>
         <div class="network-state-steps" aria-hidden="true"><i></i><i></i><i></i></div>
         <div class="network-state-actions">
@@ -507,9 +503,20 @@
       </div>
     </div>
 
+    <dialog id="mastery-dialog" class="guide-dialog mastery-dialog" aria-labelledby="mastery-browser-title">
+      <div class="manual-header">
+        <div><p class="eyebrow">Your specialists</p><h2 id="mastery-browser-title">MASTERY &amp; CHALLENGES</h2></div>
+        <button id="mastery-close" class="icon-button" type="button" aria-label="Close specialist progress">Close</button>
+      </div>
+      <div class="mastery-browser-body">
+        <nav id="mastery-browser-list" class="mastery-browser-list" aria-label="Choose a specialist"></nav>
+        <section id="mastery-browser-detail" class="mastery-browser-detail" aria-live="polite"></section>
+      </div>
+    </dialog>
+
     <dialog id="replay-dialog" class="replay-dialog" aria-labelledby="replay-title">
       <div class="manual-header replay-header">
-        <div><p class="eyebrow">Deterministic operation record</p><h2 id="replay-title">WATCH REPLAY</h2></div>
+        <div><p class="eyebrow">Verified run recording</p><h2 id="replay-title">WATCH REPLAY</h2></div>
         <div class="replay-header-actions">
           <span id="replay-verification" class="replay-verification" role="status">Verifying checkpoint...</span>
           <button id="replay-close" class="icon-button" type="button" aria-label="Close replay viewer">Close</button>
@@ -540,7 +547,7 @@
 
     <dialog id="run-history-dialog" class="run-history-dialog" aria-labelledby="run-history-title">
       <div class="manual-header">
-        <div><p class="eyebrow">Squad operation archive</p><h2 id="run-history-title">PAST RUNS</h2></div>
+        <div><p class="eyebrow">Run history</p><h2 id="run-history-title">PAST RUNS</h2></div>
         <button id="run-history-close" class="icon-button" type="button" aria-label="Close past runs">Close</button>
       </div>
       <div id="run-history-list" class="run-history-list"></div>
@@ -571,7 +578,7 @@
           <label><span>Specialist</span><select id="practice-specialist"></select></label>
           <label><span>Starting package</span><select id="practice-mastery-start"></select></label>
           <label><span>Range map</span><select id="practice-map"></select></label>
-          <label><span>Threat tuning</span><select id="practice-difficulty"></select></label>
+          <label><span>Difficulty</span><select id="practice-difficulty"></select></label>
           <label><span>Target</span><select id="practice-target"></select></label>
           <label><span>Elite affix</span><select id="practice-affix"></select></label>
           <label><span>Target behavior</span><select id="practice-behavior"><option value="stationary">Stationary measurement target</option><option value="active">Active authored behavior</option></select></label>
@@ -593,7 +600,7 @@
         <button id="guide-close" class="icon-button" type="button" aria-label="Close upgrade archive">Close</button>
       </div>
       <nav class="guide-tabs" aria-label="Upgrade archive sections">
-        <a href="#guide-campaign">Campaign</a><a href="#guide-map-mechanics">Operations</a><a href="#guide-environments">Environments</a><a href="#guide-apex">Apexes</a><a href="#guide-specialists">Specialists</a><a href="#guide-field">Field objects</a><a href="#guide-signatures">Signatures</a><a href="#guide-weapons">Weapons</a><a href="#guide-materials">Materials</a><a href="#guide-passives">Passives</a><a href="#guide-downed">Downed activity</a><a href="#guide-participation">Participation</a><a href="#guide-synergies">Squad synergies</a><a href="#guide-director">Director</a><a href="#guide-challenges">Challenges</a><a href="#guide-rare">Rare finds</a>
+        <a href="#guide-campaign">Progress</a><a href="#guide-map-mechanics">Levels</a><a href="#guide-environments">Environments</a><a href="#guide-apex">Apexes</a><a href="#guide-specialists">Specialists</a><a href="#guide-field">Field objects</a><a href="#guide-signatures">Signatures</a><a href="#guide-weapons">Weapons</a><a href="#guide-materials">Materials</a><a href="#guide-passives">Passives</a><a href="#guide-downed">Downed activity</a><a href="#guide-participation">Participation</a><a href="#guide-synergies">Squad synergies</a><a href="#guide-director">Director</a><a href="#guide-challenges">Challenges</a><a href="#guide-rare">Rare finds</a>
       </nav>
       <div id="guide-content" class="guide-content"></div>
     </dialog>
@@ -618,6 +625,7 @@
             <label><span><strong>Flash intensity</strong><small>Muzzle, damage, and screen-edge brightness.</small></span><select id="quality-flash"><option value="full">Full</option><option value="balanced">Reduced</option><option value="low">Low</option><option value="off">Off</option></select></label>
             <label><span><strong>Enemy health bars</strong><small>Keep priority targets legible in busy waves.</small></span><select id="quality-health-bars"><option value="all">All enemies</option><option value="important">Elites & apex</option><option value="off">Off</option></select></label>
             <label class="quality-toggle" for="quality-reduced-motion"><span><strong>Reduce motion</strong><small>Removes camera look-ahead, bob, and decorative movement.</small></span><input id="quality-reduced-motion" type="checkbox"><i aria-hidden="true"></i></label>
+            <label class="quality-toggle" for="quality-show-fps"><span><strong>Show frame rate</strong><small>Displays a small FPS counter during play. Toggle with F3.</small></span><input id="quality-show-fps" type="checkbox"><i aria-hidden="true"></i></label>
           </div>
           <section id="accessibility-settings" class="accessibility-settings" aria-labelledby="accessibility-title">
             <header><div><span>Input, vision, motion, and scale</span><h3 id="accessibility-title">Accessibility</h3></div><button id="accessibility-reset" type="button">Reset accessibility</button></header>
@@ -696,7 +704,16 @@
       </div>
       <div class="build-history-body">
         <article class="build-release current-build">
-          <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.15.5</h3></div><time class="build-shipped-at" datetime="2026-07-15T22:15:01-04:00" data-build-shipped-at="2026-07-15T22:15:01-04:00">Shipped Jul 15, 2026 · 10:15 PM EDT</time></header>
+          <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.16.3</h3></div><time class="build-shipped-at" datetime="2026-07-16T10:23:17-04:00" data-build-shipped-at="2026-07-16T10:23:17-04:00">Shipped Jul 16, 2026 · 10:23 AM EDT</time></header>
+          <ul>
+            <li>Unified starting and joining into one lobby flow with a shareable invite code, clearer language, specialist progress on the home screen, and Lastlight key art.</li>
+            <li>Simplified Normal-mode setup and results, added hoverable explanations for unlocks, challenges, and discoveries, and rebuilt team contribution as a clean table.</li>
+            <li>Added current weapons and passives to upgrade drafts, removed the rules accordion, and aligned every upgrade card into stable comparison zones.</li>
+            <li>Added an optional F3 frame-rate counter and fixed paused multiplayer replay input coalescing so interleaved aim samples cannot overflow one tick.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header><div><span class="build-release-status">Previous build</span><h3>2026.07.15.5</h3></div><time class="build-shipped-at" datetime="2026-07-15T22:15:01-04:00" data-build-shipped-at="2026-07-15T22:15:01-04:00">Shipped Jul 15, 2026 · 10:15 PM EDT</time></header>
           <ul>
             <li>Synchronized heavy and critical hit-stop, target reaction, attacker recoil, particles, spatial audio, camera impulse, and controller haptics through one bounded impact event.</li>
             <li>Kept frequent light hits quiet, rate-limited authored heavy accents, reserved critical mix priority, and automatically damped camera and particles in crowded fights.</li>
@@ -1295,8 +1312,8 @@
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.15.5. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.15.5</strong></button>
+  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.16.3. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.16.3</strong></button>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260715.5"></script>
+  <script type="module" src="game.js?v=20260716.3"></script>
 </body>
 </html>

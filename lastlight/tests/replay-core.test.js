@@ -137,6 +137,25 @@ test("paused pointer sampling coalesces safely and mixed-case authored choices r
   assert.deepEqual(replay.commands.map((command) => command[2]), ["i", "u", "a"]);
 });
 
+test("paused multiplayer input coalesces per player even when samples interleave", () => {
+  const recorder = new ReplayRecorder({
+    build: "2026.07.16.3", balanceVersion: "2026.07.12-signatures.3", balanceHash: "fnv1a32:e36834e8",
+    rng: "xoshiro128ss-v1", seed: "0123456789abcdef0123456789abcdef",
+    run: { map: "warehouse", difficulty: "story", duration: 240 },
+  });
+  recorder.registerPlayer("host", "rift", { slot: 0, initial: true });
+  recorder.registerPlayer("guest", "echo", { slot: 1, initial: true });
+  for (let sample = 0; sample < 80; sample++) {
+    recorder.recordInput("host", 986, { x: 0, y: 0, aim: sample / 20, autoAim: false }, { coalesceSameTick: true });
+    recorder.recordInput("guest", 986, { x: 0, y: 0, aim: -sample / 20, autoAim: true }, { coalesceSameTick: true });
+  }
+  const replay = recorder.finalize(986, "1111111111111111");
+  const inputs = replay.commands.filter((command) => command[2] === "i");
+  assert.equal(inputs.length, 2);
+  assert.deepEqual(inputs.map((command) => command[3]), [0, 1]);
+  assert.doesNotThrow(() => validateReplay(replay));
+});
+
 test("legacy v1 replay manifests remain readable with the original gameplay identity", () => {
   const legacy = base();
   legacy.schema = "lastlight.replay.v1"; stripMastery(legacy);

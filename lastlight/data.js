@@ -1,5 +1,5 @@
-import { getThemeAsset } from "./themes/lastlight.js?v=20260715.5";
-import { BALANCE_CONFIG } from "./balance-config.js?v=20260715.5";
+import { getThemeAsset } from "./themes/lastlight.js?v=20260716.3";
+import { BALANCE_CONFIG } from "./balance-config.js?v=20260716.3";
 
 // One vitality point is one readable unit of player health. Standard specialists
 // are balanced around 10; every hostile hit can therefore be discussed in hits-to-down.
@@ -138,7 +138,7 @@ export const MAPS = {
 };
 
 export const DIFFICULTIES = Object.fromEntries(Object.entries(BALANCE_CONFIG.difficulties).map(([id, tuning]) => [id, {
-  id, name: id[0].toUpperCase() + id.slice(1), ...tuning,
+  id, name: id === "story" ? "Normal" : id[0].toUpperCase() + id.slice(1), ...tuning,
 }]));
 
 export const ENEMY_TYPES = {

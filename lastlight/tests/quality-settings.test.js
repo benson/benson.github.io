@@ -21,9 +21,24 @@ test("quality settings persist safely and malformed storage falls back to auto",
   const saved = saveQualitySettings({ ...settingsForPreset("reduced"), preset: "custom", healthBars: "off" }, storage);
   assert.equal(saved.healthBars, "off");
   assert.equal(loadQualitySettings(storage).preset, "custom");
+  assert.equal(loadQualitySettings(storage).showFps, false);
   assert.match(memory.get(QUALITY_STORAGE_KEY), /"version":1/);
   memory.set(QUALITY_STORAGE_KEY, "not json");
   assert.equal(loadQualitySettings(storage).preset, "auto");
+});
+
+test("FPS visibility persists without changing preset render behavior", () => {
+  const memory = new Map();
+  const storage = { getItem: (key) => memory.get(key), setItem: (key, value) => memory.set(key, value) };
+  const saved = saveQualitySettings({ ...settingsForPreset("auto"), preset: "custom", showFps: true }, storage);
+  assert.equal(saved.showFps, true);
+  assert.equal(loadQualitySettings(storage).showFps, true);
+  assert.equal(resolveQualityProfile(saved).tier, "high");
+});
+
+test("legacy quality settings migrate with the FPS counter hidden", () => {
+  const legacy = { version: 1, preset: "reduced", effectsDensity: "balanced", shake: "balanced", hitFlashes: "balanced", healthBars: "important", reducedMotion: false, flashIntensity: "balanced" };
+  assert.equal(normalizeQualitySettings(legacy).showFps, false);
 });
 
 test("normalization rejects unknown values without carrying unknown fields", () => {
