@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260716.3">
+  <link rel="stylesheet" href="styles.css?v=20260716.4">
 </head>
 <body>
   <main id="app">
@@ -42,12 +42,10 @@
           <span>LASTLIGHT</span>
         </a>
         <div class="topbar-actions">
-          <button id="mastery-button" class="text-button" type="button" aria-haspopup="dialog" aria-controls="mastery-dialog">Specialists</button>
           <button id="practice-button" class="text-button" type="button" aria-haspopup="dialog" aria-controls="practice-dialog">Practice</button>
           <details class="command-menu">
             <summary>Menu</summary>
             <div class="command-menu-panel">
-              <button id="mastery-menu-button" class="text-button mobile-menu-only" type="button" aria-haspopup="dialog" aria-controls="mastery-dialog">Specialists</button>
               <button id="run-history-button" class="text-button" type="button">Past runs</button>
               <button id="guide-button" class="text-button" type="button" aria-label="Upgrade archive">Upgrade archive</button>
               <button id="how-button" class="text-button" type="button">Field manual</button>
@@ -78,6 +76,13 @@
           <p class="eyebrow"><span class="status-dot"></span> Final City breach // live</p>
           <h1>OUTRUN<br><em>THE END.</em></h1>
           <p class="hero-deck">A 1–4 player browser bullet heaven. Pick a specialist, build impossible weapons, and hold the line until the apex arrives.</p>
+          <section id="home-specialist-progress" class="home-specialist-progress" aria-labelledby="home-specialist-title">
+            <header>
+              <div><span>Your roster</span><h2 id="home-specialist-title">SPECIALIST PROGRESS</h2></div>
+              <small>Choose a specialist for full details</small>
+            </header>
+            <div id="home-specialist-grid" class="home-specialist-grid"></div>
+          </section>
         </header>
 
         <div class="setup-flow">
@@ -177,15 +182,15 @@
         </header>
 
         <div class="lobby-brief" aria-label="Level reference">
-          <details id="lobby-rules-disclosure" class="reference-disclosure hidden">
-            <summary><span>Custom rules</span><small>Difficulty modifiers</small></summary>
-            <section id="lobby-mutations" class="mutation-package lobby-mutation-package" aria-label="Active custom rules"></section>
-          </details>
-          <details class="reference-disclosure">
-            <summary><span>Controls</span><small>Keyboard quick reference</small></summary>
+          <section class="lobby-controls-panel" aria-labelledby="lobby-controls-title">
+            <header><span id="lobby-controls-title">Controls</span><small>Keyboard quick reference</small></header>
             <div class="control-ribbon lobby-controls" aria-label="Keyboard controls">
               <span data-control-movement><kbd>WASD</kbd> Move</span><span><kbd>Mouse</kbd> Aim</span><span data-control-action="autoAim"><kbd>C</kbd> Auto-aim</span><span data-control-action="active"><kbd>E</kbd> Ability</span><span data-control-action="ultimate"><kbd>R</kbd> Ultimate</span><span data-control-choices><kbd>1–3</kbd> Upgrade</span><span data-control-ping data-control-action="ping"><kbd>G</kbd> Ping</span><span data-control-action="pause"><kbd>Esc</kbd> Pause</span><span data-control-action="report"><kbd>` / ~</kbd> Report</span>
             </div>
+          </section>
+          <details id="lobby-rules-disclosure" class="reference-disclosure hidden">
+            <summary><span>Custom rules</span><small>Difficulty modifiers</small></summary>
+            <section id="lobby-mutations" class="mutation-package lobby-mutation-package" aria-label="Active custom rules"></section>
           </details>
         </div>
 
@@ -704,7 +709,16 @@
       </div>
       <div class="build-history-body">
         <article class="build-release current-build">
-          <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.16.3</h3></div><time class="build-shipped-at" datetime="2026-07-16T10:23:17-04:00" data-build-shipped-at="2026-07-16T10:23:17-04:00">Shipped Jul 16, 2026 · 10:23 AM EDT</time></header>
+          <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.16.4</h3></div><time class="build-shipped-at" datetime="2026-07-16T11:02:23-04:00" data-build-shipped-at="2026-07-16T11:02:23-04:00">Shipped Jul 16, 2026 · 11:02 AM EDT</time></header>
+          <ul>
+            <li>Made all nine specialist portraits, mastery levels, progress, and current challenge states visible directly on the home screen.</li>
+            <li>Kept the full mastery browser available from every roster card without hiding the useful progress overview behind navigation.</li>
+            <li>Rebuilt lobby controls as a stable, always-visible full-width ribbon and stopped the selected-specialist art from collapsing on shorter layouts.</li>
+            <li>Grouped Build and Report a problem into one clean utility rail on the right edge.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header><div><span class="build-release-status">Previous build</span><h3>2026.07.16.3</h3></div><time class="build-shipped-at" datetime="2026-07-16T10:23:17-04:00" data-build-shipped-at="2026-07-16T10:23:17-04:00">Shipped Jul 16, 2026 · 10:23 AM EDT</time></header>
           <ul>
             <li>Unified starting and joining into one lobby flow with a shareable invite code, clearer language, specialist progress on the home screen, and Lastlight key art.</li>
             <li>Simplified Normal-mode setup and results, added hoverable explanations for unlocks, challenges, and discoveries, and rebuilt team contribution as a clean table.</li>
@@ -1309,11 +1323,13 @@
     </dialog>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report problem</button>
   </main>
 
-  <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.16.3. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.16.3</strong></button>
+  <aside class="edge-utilities" aria-label="Build and feedback">
+    <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.16.4. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.16.4</strong></button>
+    <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report a problem</button>
+  </aside>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260716.3"></script>
+  <script type="module" src="game.js?v=20260716.4"></script>
 </body>
 </html>

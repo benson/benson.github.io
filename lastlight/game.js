@@ -1,51 +1,51 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260716.3";
-import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260716.3";
-import { Renderer } from "./render.js?v=20260716.3";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260716.4";
+import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260716.4";
+import { Renderer } from "./render.js?v=20260716.4";
 import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260713.2";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
-import { getThemeAsset, getThemeEnvironmentChunks, getThemeMaterial } from "./themes/lastlight.js?v=20260716.3";
-import { submitRunTelemetry } from "./telemetry.js?v=20260716.3";
+import { getThemeAsset, getThemeEnvironmentChunks, getThemeMaterial } from "./themes/lastlight.js?v=20260716.4";
+import { submitRunTelemetry } from "./telemetry.js?v=20260716.4";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260716.3";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260716.3";
+import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260716.4";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260716.4";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
-import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260716.3";
-import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260716.3";
-import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260716.3";
+import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260716.4";
+import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260716.4";
+import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260716.4";
 import {
   ACCESSIBILITY_ACTIONS, GAMEPAD_ACTIONS, bindingLabel, defaultAccessibilitySettings,
   keyboardActionForEvent, loadAccessibilitySettings, readStandardGamepad, saveAccessibilitySettings,
-} from "./accessibility-settings.js?v=20260716.3";
-import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260716.3";
+} from "./accessibility-settings.js?v=20260716.4";
+import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260716.4";
 import { GuestInputSequenceTracker, HostInputSequenceGate, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260713.2";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260713.2";
-import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260716.3";
-import { advancePlayerMovement } from "./movement.js?v=20260716.3";
-import { abilityChoreography } from "./combat-choreography.js?v=20260716.3";
-import { combatRhythmTransition } from "./combat-rhythm.js?v=20260716.3";
+import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260716.4";
+import { advancePlayerMovement } from "./movement.js?v=20260716.4";
+import { abilityChoreography } from "./combat-choreography.js?v=20260716.4";
+import { combatRhythmTransition } from "./combat-rhythm.js?v=20260716.4";
 import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
-import { DynamicAudioMixer } from "./audio-mix.js?v=20260716.3";
-import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260716.3";
+import { DynamicAudioMixer } from "./audio-mix.js?v=20260716.4";
+import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260716.4";
 import { enemyAudioCueName, newEntities, spatialAudioPan, weaponAudioCueName, weaponTimerActivations } from "./audio-events.js?v=20260713.1";
 import { FUNNY_VOICE_MIN_INTERVAL_MS, audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260713.1";
-import { playFeedbackHaptics } from "./feedback-haptics.js?v=20260716.3";
-import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260716.3";
-import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260716.3";
+import { playFeedbackHaptics } from "./feedback-haptics.js?v=20260716.4";
+import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260716.4";
+import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260716.4";
 import { getWeaponEvolution } from "./weapon-evolution.js?v=20260713.1";
-import { isFpsShortcut, isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260716.3";
-import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260716.3";
-import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260716.3";
-import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260716.3";
+import { isFpsShortcut, isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260716.4";
+import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260716.4";
+import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260716.4";
+import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260716.4";
 import { reconcileActiveBuffs } from "./active-buffs.js?v=20260713.1";
 import { ELITE_AFFIXES, ENEMY_ARCHETYPES, eliteAffixEligibility } from "./enemy-archetypes.js?v=20260713.1";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
-import { mapMechanicDefinition } from "./map-mechanics.js?v=20260716.3";
-import { CAMPAIGN_MUTATIONS, campaignMutationDefinition, campaignMutationPackageVisible } from "./campaign-mutations.js?v=20260716.3";
+import { mapMechanicDefinition } from "./map-mechanics.js?v=20260716.4";
+import { CAMPAIGN_MUTATIONS, campaignMutationDefinition, campaignMutationPackageVisible } from "./campaign-mutations.js?v=20260716.4";
 import {
   AuthoritySnapshotGate, HOST_MIGRATION_PROTOCOL_VERSION, MIGRATION_CHECKPOINT_INTERVAL_TICKS,
   createMigrationCapabilities, createMigrationCheckpoint, createMigrationReady,
   migrationCompatibilityMatches, validateMigrationCheckpoint,
-} from "./host-migration.js?v=20260716.3";
+} from "./host-migration.js?v=20260716.4";
 import { RECONNECT_DELAYS_MS, SquadPresenceTracker, authorityStateCopy } from "./reconnect-state.js?v=20260713.3";
 import {
   HostPingGate, PING_INTENTS, PING_LIFETIME_TICKS, PING_WHEEL_ORDER, PingSequenceTracker,
@@ -61,32 +61,32 @@ import { DraftRecommendationStore, recommendationMarkerModel } from "./draft-rec
 import { SQUAD_SYNERGY_REGISTRY } from "./squad-synergies.js?v=20260713.6";
 import { reconcileActiveSynergies } from "./active-synergies.js?v=20260713.6";
 import { PARTICIPATION_REGISTRY } from "./participation-credit.js?v=20260713.7";
-import { campaignJoinEligibility } from "./join-in-progress.js?v=20260716.3";
+import { campaignJoinEligibility } from "./join-in-progress.js?v=20260716.4";
 import {
   RUN_ARCHIVE_STORAGE_KEY, createSquadRunReport, decodeSquadRunFragment, normalizeRunArchiveStorage,
   squadRunShareFragment, upsertRunArchive,
-} from "./run-archive.js?v=20260716.3";
+} from "./run-archive.js?v=20260716.4";
 import {
   SPECIALIST_MASTERY, SPECIALIST_MASTERY_LEVELS, awardSpecialistMastery, loadSpecialistMasteryState,
   masteryStartDefinition, saveSpecialistMasteryState, selectMasteryStart,
-} from "./specialist-mastery.js?v=20260716.3";
+} from "./specialist-mastery.js?v=20260716.4";
 import {
   RARE_DISCOVERY_REGISTRY, awardRareDiscoveries, loadRareDiscoveryCollection,
   rareDiscoveryDefinition, rareDiscoveryTelemetry, saveRareDiscoveryCollection,
-} from "./rare-discoveries.js?v=20260716.3";
+} from "./rare-discoveries.js?v=20260716.4";
 import {
   CHALLENGE_ACHIEVEMENT_REGISTRY, awardChallengeAchievements, challengeAchievementDefinition,
   challengeAchievementTelemetry, evaluateChallengeAchievements, loadChallengeAchievementState,
   saveChallengeAchievementState,
-} from "./challenge-achievements.js?v=20260716.3";
+} from "./challenge-achievements.js?v=20260716.4";
 import {
   loadSeededOperationRecords, recordSeededOperationResult, saveSeededOperationRecords,
   seededOperationFor, seededOperationFromId, seededOperationTelemetry,
-} from "./seeded-operations.js?v=20260716.3";
+} from "./seeded-operations.js?v=20260716.4";
 import {
   PRACTICE_MAX_PASSIVES, PRACTICE_MAX_WEAPONS, defaultPracticeLaboratoryConfig,
   measurePracticeLaboratory, normalizePracticeLaboratoryConfig,
-} from "./practice-laboratory.js?v=20260716.3";
+} from "./practice-laboratory.js?v=20260716.4";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -95,7 +95,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.16.3";
+const BUILD = "2026.07.16.4";
 const AUTHORITY_WATCHDOG_MS = Object.freeze({ synchronizing: 10_000, migrating: 25_000 });
 const BALANCE = getBalanceConfig();
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
@@ -244,6 +244,7 @@ const runtimeConfigReady = loadRuntimeConfig({ endpoint: RUNTIME_CONFIG_ENDPOINT
   syncAccessibilityAvailability();
   renderSeededOperations();
   renderMasteryLoadout(state.selected);
+  renderHomeMasteryRoster();
   refreshRecoveryOffer();
   return result;
 });
@@ -984,6 +985,7 @@ function updateProgressionUI() {
     ? `Progress ${clears}/12 · Beat ${requirementCopy(MAP_REQUIREMENTS[nextMap])} to unlock ${MAPS[nextMap].name}.`
     : `Progress ${clears}/12 · Every level is unlocked. Beat the remaining difficulties to finish.`;
   $("progression-note").classList.toggle("hidden", clears === 0 || state.partyMode === "join");
+  renderHomeMasteryRoster();
   if ($("guide-dialog").open) renderGuide();
 }
 
@@ -1370,6 +1372,31 @@ function masteryChallengeLabel(field) {
   return ({ damage: "Deal damage", kills: "Defeat enemies", distance: "Travel distance", xpCollected: "Collect XP", effectiveShielding: "Provide effective shields", controlAssists: "Earn control assists", mitigationPrevented: "Prevent damage", objectiveMovement: "Move objectives", effectiveHealing: "Provide effective healing" })[field.replace("participation.", "")] || field.replace("participation.", "");
 }
 
+function specialistMasteryProgress(track) {
+  const mastered = track.level === 5;
+  const floor = SPECIALIST_MASTERY_LEVELS[Math.max(0, track.level - 1)] || 0;
+  const next = SPECIALIST_MASTERY_LEVELS[track.level] ?? SPECIALIST_MASTERY_LEVELS.at(-1);
+  const progress = mastered ? 100 : Math.max(0, Math.min(100, Math.round((track.points - floor) / Math.max(1, next - floor) * 100)));
+  return { mastered, next, progress };
+}
+
+function renderHomeMasteryRoster() {
+  const section = $("home-specialist-progress"), grid = $("home-specialist-grid");
+  if (!section || !grid) return;
+  const enabled = Boolean(state.runtimeConfig?.config?.flags?.specialistMastery ?? true);
+  section.classList.toggle("hidden", !enabled);
+  if (!enabled) return;
+  grid.innerHTML = SPECIALIST_ORDER.map((id) => {
+    const spec = SPECIALISTS[id], definition = SPECIALIST_MASTERY.tracks[id], track = state.mastery.tracks[id];
+    const { mastered, next, progress } = specialistMasteryProgress(track);
+    const challengeDone = track.completedChallenges.includes(definition.challenge.id);
+    const points = mastered ? "Mastered" : `${track.points} / ${next} points`;
+    const challenge = challengeDone ? "Challenge complete" : `${masteryChallengeLabel(definition.challenge.field)} ${definition.challenge.minimum.toLocaleString()}`;
+    return `<button type="button" class="home-specialist-card" data-home-specialist="${id}" aria-haspopup="dialog" aria-controls="mastery-dialog" aria-label="${escapeHTML(spec.name)}, mastery level ${track.level}, ${escapeHTML(points)}, ${escapeHTML(challenge)}"><img src="${escapeHTML(spec.sprite)}" alt=""><span><strong>${escapeHTML(spec.name)}</strong><small>Level ${track.level} · ${escapeHTML(points)}</small><i aria-hidden="true"><b style="width:${progress}%"></b></i><em class="${challengeDone ? "complete" : ""}">${escapeHTML(challenge)}</em></span></button>`;
+  }).join("");
+  grid.querySelectorAll("[data-home-specialist]").forEach((button) => button.addEventListener("click", () => openMasteryBrowser(button.dataset.homeSpecialist)));
+}
+
 function renderMasteryBrowser(id = state.selected) {
   if (!SPECIALISTS[id]) id = SPECIALIST_ORDER[0];
   const nav = $("mastery-browser-list"), detail = $("mastery-browser-detail");
@@ -1380,17 +1407,17 @@ function renderMasteryBrowser(id = state.selected) {
   }).join("");
   nav.querySelectorAll("button").forEach((button) => button.addEventListener("click", () => renderMasteryBrowser(button.dataset.masterySpecialist)));
   const spec = SPECIALISTS[id], definition = SPECIALIST_MASTERY.tracks[id], track = state.mastery.tracks[id];
-  const next = SPECIALIST_MASTERY_LEVELS[track.level] ?? SPECIALIST_MASTERY_LEVELS.at(-1), mastered = track.level === 5;
-  const progress = mastered ? 100 : Math.max(0, Math.min(100, Math.round((track.points - SPECIALIST_MASTERY_LEVELS[track.level - 1]) / Math.max(1, next - SPECIALIST_MASTERY_LEVELS[track.level - 1]) * 100)));
+  const { next, mastered, progress } = specialistMasteryProgress(track);
   const challengeDone = track.completedChallenges.includes(definition.challenge.id);
   detail.innerHTML = `<header><img src="${escapeHTML(spec.sprite)}" alt=""><div><p>${escapeHTML(spec.role)}</p><h3>${escapeHTML(spec.name)}</h3><span>${escapeHTML(definition.name)} · mastery level ${track.level}</span></div></header><p class="mastery-browser-summary">${escapeHTML(definition.summary)}</p><section class="mastery-browser-progress" aria-label="Mastery progress"><div><span>${mastered ? "Mastered" : `${track.points} / ${next} points`}</span><strong>${progress}%</strong></div><i><b style="width:${progress}%"></b></i></section><section class="mastery-browser-challenge ${challengeDone ? "complete" : ""}"><span>${challengeDone ? "Challenge complete" : "Challenge"}</span><strong>${escapeHTML(masteryChallengeLabel(definition.challenge.field))}: ${definition.challenge.minimum.toLocaleString()}</strong><p>Complete this in one level for +${definition.challenge.rewardPoints} mastery points.</p></section><section class="mastery-browser-unlocks"><h4>Unlocks</h4>${definition.unlocks.map((unlock) => `<div class="${track.level >= unlock.level ? "unlocked" : ""}"><span>Level ${unlock.level}</span><strong>${escapeHTML(unlock.kind === "start" ? "Field kit starting option" : `${unlock.kind[0].toUpperCase()}${unlock.kind.slice(1)} reward`)}</strong><small>${track.level >= unlock.level ? "Unlocked" : "Locked"}</small></div>`).join("")}</section>`;
   nav.querySelector(`[data-mastery-specialist="${id}"]`)?.setAttribute("aria-current", "true");
 }
 
-function openMasteryBrowser() {
-  renderMasteryBrowser(state.selected);
+function openMasteryBrowser(id = state.selected) {
+  const target = SPECIALISTS[id] ? id : state.selected;
+  renderMasteryBrowser(target);
   $("mastery-dialog").showModal();
-  requestAnimationFrame(() => $("mastery-browser-list").querySelector(`[data-mastery-specialist="${state.selected}"]`)?.focus());
+  requestAnimationFrame(() => $("mastery-browser-list").querySelector(`[data-mastery-specialist="${target}"]`)?.focus());
 }
 
 function chooseMasteryStart(startId) {
@@ -4336,7 +4363,6 @@ function bindEvents() {
   });
   $("replacement-cancel").addEventListener("click", () => { closeReplacement(); state.lastUpgradeKey = ""; });
   for (const id of ["guide-button", "lobby-guide", "pause-guide-button"]) $(id).addEventListener("click", () => { renderGuide(); $("guide-dialog").showModal(); });
-  for (const id of ["mastery-button", "mastery-menu-button"]) $(id).addEventListener("click", openMasteryBrowser);
   $("mastery-close").addEventListener("click", () => $("mastery-dialog").close());
   $("mastery-dialog").addEventListener("click", (event) => { if (event.target === $("mastery-dialog")) $("mastery-dialog").close(); });
   $("guide-close").addEventListener("click", () => $("guide-dialog").close());
