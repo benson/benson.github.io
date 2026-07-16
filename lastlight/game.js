@@ -1,51 +1,51 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260716.4";
-import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260716.4";
-import { Renderer } from "./render.js?v=20260716.4";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260716.5";
+import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260716.5";
+import { Renderer } from "./render.js?v=20260716.5";
 import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260713.2";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
-import { getThemeAsset, getThemeEnvironmentChunks, getThemeMaterial } from "./themes/lastlight.js?v=20260716.4";
-import { submitRunTelemetry } from "./telemetry.js?v=20260716.4";
+import { getThemeAsset, getThemeEnvironmentChunks, getThemeMaterial } from "./themes/lastlight.js?v=20260716.5";
+import { submitRunTelemetry } from "./telemetry.js?v=20260716.5";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260716.4";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260716.4";
+import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260716.5";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260716.5";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
-import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260716.4";
-import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260716.4";
-import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260716.4";
+import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260716.5";
+import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260716.5";
+import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260716.5";
 import {
   ACCESSIBILITY_ACTIONS, GAMEPAD_ACTIONS, bindingLabel, defaultAccessibilitySettings,
   keyboardActionForEvent, loadAccessibilitySettings, readStandardGamepad, saveAccessibilitySettings,
-} from "./accessibility-settings.js?v=20260716.4";
-import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260716.4";
+} from "./accessibility-settings.js?v=20260716.5";
+import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260716.5";
 import { GuestInputSequenceTracker, HostInputSequenceGate, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260713.2";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260713.2";
-import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260716.4";
-import { advancePlayerMovement } from "./movement.js?v=20260716.4";
-import { abilityChoreography } from "./combat-choreography.js?v=20260716.4";
-import { combatRhythmTransition } from "./combat-rhythm.js?v=20260716.4";
+import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260716.5";
+import { advancePlayerMovement } from "./movement.js?v=20260716.5";
+import { abilityChoreography } from "./combat-choreography.js?v=20260716.5";
+import { combatRhythmTransition } from "./combat-rhythm.js?v=20260716.5";
 import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
-import { DynamicAudioMixer } from "./audio-mix.js?v=20260716.4";
-import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260716.4";
+import { DynamicAudioMixer } from "./audio-mix.js?v=20260716.5";
+import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260716.5";
 import { enemyAudioCueName, newEntities, spatialAudioPan, weaponAudioCueName, weaponTimerActivations } from "./audio-events.js?v=20260713.1";
 import { FUNNY_VOICE_MIN_INTERVAL_MS, audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260713.1";
-import { playFeedbackHaptics } from "./feedback-haptics.js?v=20260716.4";
-import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260716.4";
-import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260716.4";
+import { playFeedbackHaptics } from "./feedback-haptics.js?v=20260716.5";
+import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260716.5";
+import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260716.5";
 import { getWeaponEvolution } from "./weapon-evolution.js?v=20260713.1";
-import { isFpsShortcut, isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260716.4";
-import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260716.4";
-import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260716.4";
-import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260716.4";
+import { isFpsShortcut, isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260716.5";
+import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260716.5";
+import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260716.5";
+import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260716.5";
 import { reconcileActiveBuffs } from "./active-buffs.js?v=20260713.1";
 import { ELITE_AFFIXES, ENEMY_ARCHETYPES, eliteAffixEligibility } from "./enemy-archetypes.js?v=20260713.1";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
-import { mapMechanicDefinition } from "./map-mechanics.js?v=20260716.4";
-import { CAMPAIGN_MUTATIONS, campaignMutationDefinition, campaignMutationPackageVisible } from "./campaign-mutations.js?v=20260716.4";
+import { mapMechanicDefinition } from "./map-mechanics.js?v=20260716.5";
+import { CAMPAIGN_MUTATIONS, campaignMutationDefinition, campaignMutationPackageVisible } from "./campaign-mutations.js?v=20260716.5";
 import {
   AuthoritySnapshotGate, HOST_MIGRATION_PROTOCOL_VERSION, MIGRATION_CHECKPOINT_INTERVAL_TICKS,
   createMigrationCapabilities, createMigrationCheckpoint, createMigrationReady,
   migrationCompatibilityMatches, validateMigrationCheckpoint,
-} from "./host-migration.js?v=20260716.4";
+} from "./host-migration.js?v=20260716.5";
 import { RECONNECT_DELAYS_MS, SquadPresenceTracker, authorityStateCopy } from "./reconnect-state.js?v=20260713.3";
 import {
   HostPingGate, PING_INTENTS, PING_LIFETIME_TICKS, PING_WHEEL_ORDER, PingSequenceTracker,
@@ -61,32 +61,32 @@ import { DraftRecommendationStore, recommendationMarkerModel } from "./draft-rec
 import { SQUAD_SYNERGY_REGISTRY } from "./squad-synergies.js?v=20260713.6";
 import { reconcileActiveSynergies } from "./active-synergies.js?v=20260713.6";
 import { PARTICIPATION_REGISTRY } from "./participation-credit.js?v=20260713.7";
-import { campaignJoinEligibility } from "./join-in-progress.js?v=20260716.4";
+import { campaignJoinEligibility } from "./join-in-progress.js?v=20260716.5";
 import {
   RUN_ARCHIVE_STORAGE_KEY, createSquadRunReport, decodeSquadRunFragment, normalizeRunArchiveStorage,
   squadRunShareFragment, upsertRunArchive,
-} from "./run-archive.js?v=20260716.4";
+} from "./run-archive.js?v=20260716.5";
 import {
   SPECIALIST_MASTERY, SPECIALIST_MASTERY_LEVELS, awardSpecialistMastery, loadSpecialistMasteryState,
   masteryStartDefinition, saveSpecialistMasteryState, selectMasteryStart,
-} from "./specialist-mastery.js?v=20260716.4";
+} from "./specialist-mastery.js?v=20260716.5";
 import {
   RARE_DISCOVERY_REGISTRY, awardRareDiscoveries, loadRareDiscoveryCollection,
   rareDiscoveryDefinition, rareDiscoveryTelemetry, saveRareDiscoveryCollection,
-} from "./rare-discoveries.js?v=20260716.4";
+} from "./rare-discoveries.js?v=20260716.5";
 import {
   CHALLENGE_ACHIEVEMENT_REGISTRY, awardChallengeAchievements, challengeAchievementDefinition,
   challengeAchievementTelemetry, evaluateChallengeAchievements, loadChallengeAchievementState,
   saveChallengeAchievementState,
-} from "./challenge-achievements.js?v=20260716.4";
+} from "./challenge-achievements.js?v=20260716.5";
 import {
   loadSeededOperationRecords, recordSeededOperationResult, saveSeededOperationRecords,
   seededOperationFor, seededOperationFromId, seededOperationTelemetry,
-} from "./seeded-operations.js?v=20260716.4";
+} from "./seeded-operations.js?v=20260716.5";
 import {
   PRACTICE_MAX_PASSIVES, PRACTICE_MAX_WEAPONS, defaultPracticeLaboratoryConfig,
   measurePracticeLaboratory, normalizePracticeLaboratoryConfig,
-} from "./practice-laboratory.js?v=20260716.4";
+} from "./practice-laboratory.js?v=20260716.5";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -95,7 +95,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.16.4";
+const BUILD = "2026.07.16.5";
 const AUTHORITY_WATCHDOG_MS = Object.freeze({ synchronizing: 10_000, migrating: 25_000 });
 const BALANCE = getBalanceConfig();
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
@@ -212,7 +212,7 @@ const state = {
   qualitySettings: initialQualitySettings, accessibilitySettings: initialAccessibilitySettings, accessibilityCapture: "", showEnemyHealthBars: initialQualitySettings.healthBars !== "off", inspectPointer: null, inspectActive: false,
   performanceMetrics: null, lastDamageLedgerKey: "", lastFpsUpdate: 0,
   damageLedgerLayout: loadDamageLedgerLayout(), damageLedgerResizeObserver: null,
-  bannerTimer: null, bannerExitTimer: null, rhythmTimers: new Map(),
+  bannerTimer: null, bannerExitTimer: null, rhythmTimers: new Map(), launchTimers: [], specialistDetailAnimation: null,
   resumeToken: loadClientToken(),
   hostPreviousMotion: null, inputMotionStartedAt: 0, inputMotionStart: null, inputWasActive: false,
   replayRecorder: null, lastReplayCheckpointTick: -1, lastReplay: loadLastReplay(), resultReplay: null,
@@ -1346,7 +1346,7 @@ function renderSpecialistGrid() {
     const spec = SPECIALISTS[id];
     return `<button class="specialist-card" type="button" role="option" data-specialist="${id}" aria-selected="${id === state.selected}"><small>${spec.number}</small><img class="specialist-art" src="${spec.sprite}" alt=""><span class="specialist-name">${spec.name.toUpperCase()}</span><span class="specialist-weapon"><img src="${spec.signature.icon}" alt=""><em>${escapeHTML(spec.signature.name)}</em></span></button>`;
   }).join("");
-  $("specialist-grid").querySelectorAll("button").forEach((button) => button.addEventListener("click", () => selectSpecialist(button.dataset.specialist)));
+  $("specialist-grid").querySelectorAll("button").forEach((button) => button.addEventListener("click", (event) => selectSpecialist(button.dataset.specialist, { animate: event.detail > 0 })));
   $("mastery-loadout").querySelectorAll("[data-mastery-start]").forEach((button) => button.addEventListener("click", () => chooseMasteryStart(button.dataset.masteryStart)));
 }
 
@@ -1429,7 +1429,7 @@ function chooseMasteryStart(startId) {
   } catch { toast("That field kit is still locked"); }
 }
 
-function selectSpecialist(id) {
+function selectSpecialist(id, { animate = false } = {}) {
   if (!SPECIALISTS[id]) return;
   state.selected = id;
   const spec = SPECIALISTS[id];
@@ -1447,6 +1447,11 @@ function selectSpecialist(id) {
   $("active-name").textContent = spec.active[0]; $("active-copy").textContent = spec.active[1];
   $("ultimate-name").textContent = spec.ultimate[0]; $("ultimate-copy").textContent = spec.ultimate[1];
   renderMasteryLoadout(id);
+  const detail = document.querySelector(".specialist-detail");
+  state.specialistDetailAnimation?.cancel();
+  state.specialistDetailAnimation = animate && !prefersReducedMotion() && detail?.animate
+    ? detail.animate([{ opacity: .72, transform: "translateX(7px)" }, { opacity: 1, transform: "translateX(0)" }], { duration: 180, easing: "cubic-bezier(.23,1,.32,1)" })
+    : null;
   if (state.screen === "lobby") updateLocalProfile({ specialist: id, masteryStart: state.mastery.tracks[id].selectedStart });
 }
 
@@ -1503,7 +1508,6 @@ function enterLobbySoloPreview() {
 
 function enterLobby() {
   setScreen("lobby");
-  $("room-card").classList.toggle("hidden", !state.room); $("room-code").textContent = state.room || "—";
   renderLobby();
 }
 
@@ -1535,6 +1539,11 @@ function renderLobby() {
   if (!showRules) $("lobby-mutations").innerHTML = "";
   renderParty();
   const button = $("ready-button"), members = [...state.lobby.values()];
+  $("squad-count").textContent = `${members.length} of 4 connected`;
+  $("room-card").classList.toggle("local", !state.room);
+  $("room-label").textContent = state.room ? "Invite code" : "Local lobby";
+  $("room-code").textContent = state.room || "SOLO";
+  $("copy-link").classList.toggle("hidden", !state.room);
   renderReinforcementPanel();
   if (state.joiningActiveRun) {
     const choosing = ["fresh", "waiting"].includes(state.runAdmission?.kind) && !state.joinRequestSent && state.runAdmission?.kind !== "denied";
@@ -1552,11 +1561,13 @@ function renderLobby() {
 
 function renderParty() {
   const members = [...state.lobby.values()];
-  $("party-list").innerHTML = members.map((member) => {
+  const occupied = members.map((member) => {
     const spec = SPECIALISTS[member.specialist] || SPECIALISTS.zuri;
     const start = member.masteryStart === "field-kit" ? "FIELD KIT" : "STANDARD";
     return `<div class="party-member ${member.ready || member.id === state.clientId && state.isHost ? "ready" : ""}"><img src="${spec.sprite}" alt=""><div><strong>${escapeHTML(member.name || "Connecting…")}</strong><small>${member.id === state.clientId ? "YOU" : member.ready ? "READY" : "CHOOSING"} · ${spec.name} · ${start}</small></div></div>`;
-  }).join("");
+  });
+  const open = Array.from({ length: Math.max(0, 4 - members.length) }, (_, index) => `<div class="party-member open"><span>${members.length + index + 1}</span><div><strong>Open slot</strong><small>${state.room ? "SHARE THE CODE" : "AVAILABLE"}</small></div></div>`);
+  $("party-list").innerHTML = [...occupied, ...open].join("");
 }
 
 function updateLocalProfile(patch = {}) {
@@ -1626,7 +1637,29 @@ function enterGame() {
   state.lastDamageLedgerKey = "";
   state.lastSend = 0; state.lastBroadcast = 0; state.hostPreviousMotion = null; state.inputMotionStartedAt = 0; state.inputMotionStart = null; state.inputWasActive = false;
   fixedClock.reset(); movementPredictor.reset(); resetInputProtocol(); renderer.resetCamera(); $("game-canvas").focus();
+  playLaunchTransition();
   if (!state.animation) state.animation = requestAnimationFrame(gameLoop);
+}
+
+function playLaunchTransition() {
+  const transition = $("launch-transition"), game = screens.game;
+  if (!transition || !game) return;
+  for (const timer of state.launchTimers) clearTimeout(timer);
+  state.launchTimers = [];
+  const map = MAPS[state.config.map] || MAPS.warehouse;
+  const count = Math.max(1, state.lobby.size);
+  $("launch-map").textContent = map.name.toUpperCase();
+  $("launch-roster").textContent = `${count} SPECIALIST${count === 1 ? "" : "S"} DEPLOYING`;
+  transition.classList.remove("is-active", "is-exiting");
+  game.classList.remove("is-opening");
+  void transition.offsetWidth;
+  transition.classList.add("is-active"); game.classList.add("is-opening");
+  const reduced = prefersReducedMotion();
+  state.launchTimers.push(setTimeout(() => transition.classList.add("is-exiting"), reduced ? 120 : 720));
+  state.launchTimers.push(setTimeout(() => {
+    transition.classList.remove("is-active", "is-exiting");
+    game.classList.remove("is-opening");
+  }, reduced ? 180 : 1040));
 }
 
 function gameLoop(now) {
@@ -2407,6 +2440,7 @@ function updateMutationHUD(game) {
   const target = $("mutation-hud"), mutation = game.mutationState;
   if (!target || !mutation) return;
   const definition = campaignMutationDefinition(mutation.difficulty), encounter = mutation.pending || mutation.active;
+  target.classList.toggle("hidden", !mutation.enabled && !encounter);
   target.classList.toggle("is-active", Boolean(encounter));
   target.classList.toggle("is-enabled", Boolean(mutation.enabled));
   if (mutation.pending) {
@@ -2446,7 +2480,10 @@ function updateHUD(game) {
   updateSoundState(game);
   const spec = SPECIALISTS[player.specialist];
   const wave = Number(game.wave || 0);
-  if (game.stage === "running" && state.lastWave !== null && wave !== state.lastWave) pulseCombatRhythm("wave", $("wave-label"), "rhythm-wave-shift", "waveShift");
+  if (game.stage === "running" && state.lastWave !== null && wave !== state.lastWave) {
+    pulseCombatRhythm("wave", $("wave-label"), "rhythm-wave-shift", "waveShift");
+    showBanner(`Wave ${String(wave + 1).padStart(2, "0")}`, WAVE_NAMES[wave] || "Incoming", "wave");
+  }
   if (game.stage === "running") state.lastWave = wave;
   $("game-timer").textContent = game.stage === "boss" ? "APEX" : formatTime(game.remaining);
   $("wave-label").textContent = game.stage === "boss" ? `${(typeof game.map === "string" ? MAPS[game.map] : game.map).boss} · ENRAGE ${formatTime(300 - (game.bossElapsed || 0))}` : `Wave ${String((game.wave || 0) + 1).padStart(2, "0")} · ${WAVE_NAMES[game.wave || 0]}`;
@@ -3671,8 +3708,11 @@ function closeSocket({ preserveReconnect = false } = {}) {
 function randomRoomCode() { const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; return Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join(""); }
 
 async function copyInvite() {
+  if (!state.room) return;
   const url = new URL(location.href); url.search = ""; url.searchParams.set("room", state.room);
-  try { await navigator.clipboard.writeText(url.toString()); toast("Invite link copied"); } catch { toast(state.room); }
+  const button = $("copy-link"), original = button.textContent;
+  try { await navigator.clipboard.writeText(url.toString()); button.textContent = "Invite copied ✓"; toast("Invite link copied"); } catch { button.textContent = "Code ready to share"; toast(state.room); }
+  setTimeout(() => { button.textContent = original; }, 1800);
 }
 
 function toast(message) { const node = $("toast"); node.textContent = message; node.classList.add("show"); clearTimeout(state.toastTimer); state.toastTimer = setTimeout(() => node.classList.remove("show"), 2600); }
