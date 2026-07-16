@@ -86,6 +86,8 @@ test("renderer preloads theme-owned runtime art for every field-guide enemy", ()
 
 test("renderer loads every delivered specialist, field-enemy, and map-apex atlas", () => {
   const renderer = createRenderer();
+  assert.deepEqual(Object.keys(renderer.supplyContainerSprites), ["cargo", "utility", "pressure"]);
+  assert.equal(renderer.supplyContainerSprites.utility.currentSrc, "assets/supply-containers/utility.png");
   assert.deepEqual(Object.keys(renderer.animationAtlases), ["zuri", "echo", "sola", "bront", "fang", "gale", "rift", "nova", "vesper"]);
   assert.equal(renderer.animationAtlases.zuri.currentSrc, "assets/motion-normalized/specialists/zuri.webp");
   assert.deepEqual(Object.keys(renderer.enemyAnimationAtlases), ["mite", "hound", "spitter", "brute", "bomber", "shark", "boss:warehouse", "boss:outskirts", "boss:lab", "boss:beachhead"]);
@@ -334,11 +336,12 @@ test("renderer draws bounded theme-owned environmental props and contacts", () =
   assert.equal(renderer.environmentDiagnostics().activeProps, 0);
 });
 
-test("renderer shares fitted compound structure geometry with material and inspection presentation", () => {
+test("renderer shares exact alpha-silhouette structure geometry with material and inspection presentation", () => {
   assert.match(renderSource, /this\.environmentChunkLayout\.map\(\(chunk\) => chunk\.collider\)/);
-  assert.match(renderSource, /for \(const part of chunk\.collider\.parts\)/);
   assert.match(renderSource, /circleIntersectsCollider\(worldX, worldY, \.01, chunk\.collider\)/);
   assert.match(renderSource, /ctx\.rotate\(chunk\.rotation \|\| 0\)/);
+  assert.match(renderSource, /drawEnvironmentChunkImage\(map, environmentChunk/);
+  assert.match(renderSource, /brightness\(0\) invert\(1\)/);
   assert.doesNotMatch(renderSource, /fillRect\(baseX/);
 });
 

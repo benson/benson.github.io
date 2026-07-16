@@ -1,4 +1,4 @@
-import { circleIntersectsCollider, normalizeCollider } from "./collision-geometry.js?v=20260716.11";
+import { circleIntersectsCollider, normalizeCollider } from "./collision-geometry.js?v=20260716.12";
 
 export const DOWNED_ACTIVITY_SCHEMA = "lastlight.downed-activity.v1";
 export const DOWNED_ACTIVITY_STATE_SCHEMA = "lastlight.downed-activity-state.v1";
@@ -124,6 +124,14 @@ function validateObstacles(obstacles) {
     catch { throw new TypeError(`obstacle ${index} is invalid`); }
     collider.bounds.forEach((value, field) => finite(value, -10_000, 10_000, `obstacle ${index}.${field}`));
     if (collider.bounds[2] < 0 || collider.bounds[3] < 0) throw new TypeError(`obstacle ${index} has invalid size`);
+    if (collider.mask) {
+      finite(collider.mask.width, 1, 10_000, `obstacle ${index}.mask.width`);
+      finite(collider.mask.height, 1, 10_000, `obstacle ${index}.mask.height`);
+      if (!Array.isArray(collider.mask.rows) || collider.mask.rows.length !== collider.mask.height) {
+        throw new TypeError(`obstacle ${index} has invalid alpha-mask rows`);
+      }
+      continue;
+    }
     for (const part of collider.parts) for (const [pointIndex, point] of part.points.entries()) {
       if (!Array.isArray(point) || point.length !== 2) throw new TypeError(`obstacle ${index} point ${pointIndex} is invalid`);
       point.forEach((value, field) => finite(value, -10_000, 10_000, `obstacle ${index}.${pointIndex}.${field}`));

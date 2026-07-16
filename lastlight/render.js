@@ -1,32 +1,32 @@
-import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260716.11";
-import { WORLD } from "./engine.js?v=20260716.11";
-import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260716.11";
+import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260716.12";
+import { WORLD } from "./engine.js?v=20260716.12";
+import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260716.12";
 import { springCamera } from "./feel.js?v=20260713.2";
 import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistFacingTarget, specialistMotionState, stableDirectionColumn } from "./motion.js?v=20260713.1";
 import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260716.11";
-import { impactRenderPlan } from "./impact-grammar.js?v=20260716.11";
-import { movementVisualState } from "./movement.js?v=20260716.11";
-import { effectReadabilityCategory, partitionEffects, readabilityPlan } from "./readability.js?v=20260716.11";
-import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260716.11";
+import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260716.12";
+import { impactRenderPlan } from "./impact-grammar.js?v=20260716.12";
+import { movementVisualState } from "./movement.js?v=20260716.12";
+import { effectReadabilityCategory, partitionEffects, readabilityPlan } from "./readability.js?v=20260716.12";
+import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260716.12";
 import { EnvironmentInteractionField, stableEnvironmentUnit } from "./environment-interactions.js?v=20260712.1";
-import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260716.11";
-import { circleIntersectsCollider, rectCollider } from "./collision-geometry.js?v=20260716.11";
-import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260716.11";
+import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260716.12";
+import { circleIntersectsCollider, rectCollider } from "./collision-geometry.js?v=20260716.12";
+import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260716.12";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
 import { PING_INTENTS, PING_LIFETIME_TICKS, selectVisiblePings } from "./ping-contract.js?v=20260713.4";
-import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260716.11";
-import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260716.11";
+import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260716.12";
+import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260716.12";
 import {
   ImpactIntensityDirector, aftermathPlan, attackerRecoilTransform, cameraLookBias,
   impactAnimationTimeScale, impactFeedbackPlan, impactReactionTransform, impactTierForEvent, projectileMotionPlan,
   secondaryMotionPlan, selectImpactFeedback,
-} from "./impact-feel.js?v=20260716.11";
-import { combatTurnPlan, isBodyDrivingSource, resolvedCombatFacing, specialistMuzzlePoint } from "./combat-orientation.js?v=20260716.11";
+} from "./impact-feel.js?v=20260716.12";
+import { combatTurnPlan, isBodyDrivingSource, resolvedCombatFacing, specialistMuzzlePoint } from "./combat-orientation.js?v=20260716.12";
 import {
   cameraCompositionPlan, castMotionPlan, combatDensityPlan, playerLifecycleMotionPlan, rewardMotionPlan,
-} from "./combat-choreography.js?v=20260716.11";
-import { apexPhaseMotionPlan, enemyArrivalMotionPlan, enemyDepartureMotionPlan } from "./combat-rhythm.js?v=20260716.11";
+} from "./combat-choreography.js?v=20260716.12";
+import { apexPhaseMotionPlan, enemyArrivalMotionPlan, enemyDepartureMotionPlan } from "./combat-rhythm.js?v=20260716.12";
 
 const TAU = Math.PI * 2;
 const PING_BUFFER_LIMIT = 32;
@@ -215,6 +215,7 @@ export class Renderer {
     this.sprites = {};
     this.environments = {};
     this.environmentChunkAtlases = {};
+    this.supplyContainerSprites = {};
     this.effectSprites = {};
     this.enemySprites = {};
     this.animationAtlases = {};
@@ -294,6 +295,9 @@ export class Renderer {
       drone: getThemeAsset("weapons.universal.drone"),
     })) {
       const image = new Image(); image.src = src; this.effectSprites[name] = image;
+    }
+    for (const kind of ["cargo", "utility", "pressure"]) {
+      const image = new Image(); image.src = getThemeAsset(`supplyContainers.${kind}`); this.supplyContainerSprites[kind] = image;
     }
   }
 
@@ -995,35 +999,26 @@ export class Renderer {
     ctx.strokeRect(-WORLD.width / 2, -WORLD.height / 2, WORLD.width, WORLD.height); ctx.globalAlpha = 1;
   }
 
-  drawEnvironmentChunk(map, chunk) {
+  drawEnvironmentChunkImage(map, chunk, { offsetX = 0, offsetY = 0, alpha = 1, filter = "none" } = {}) {
     const atlas = this.environmentChunkAtlases[map.id], theme = this.environmentChunkTheme;
-    if (!atlas?.complete || !atlas.naturalWidth || !atlas.naturalHeight || !chunk) return;
+    if (!atlas?.complete || !atlas.naturalWidth || !atlas.naturalHeight || !chunk) return false;
     const sourceWidth = atlas.naturalWidth / theme.atlas.columns, sourceHeight = atlas.naturalHeight / theme.atlas.rows;
     const ctx = this.ctx, frame = theme.maps[map.id].frames[chunk.frame];
     const sourceX = (chunk.frame % theme.atlas.columns) * sourceWidth, sourceY = Math.floor(chunk.frame / theme.atlas.columns) * sourceHeight;
     const width = frame.drawSize[0] * chunk.scale, height = frame.drawSize[1] * chunk.scale;
-    // Ground the prop with the same fitted compound silhouette used by gameplay
-    // collision. Transparent atlas corners remain traversable and never read as
-    // an invisible rectangular wall.
-    ctx.save();
-    for (const part of chunk.collider.parts) {
-      const trace = (offsetX = 0, offsetY = 0) => {
-        ctx.beginPath();
-        part.points.forEach(([x, y], index) => index ? ctx.lineTo(x + offsetX, y + offsetY) : ctx.moveTo(x + offsetX, y + offsetY));
-        ctx.closePath();
-      };
-      trace(7, 10); ctx.fillStyle = "rgba(1,6,10,.52)"; ctx.fill();
-      trace(); ctx.fillStyle = map.deco; ctx.globalAlpha = .5; ctx.fill();
-      ctx.globalAlpha = .82; ctx.strokeStyle = "rgba(1,6,10,.92)"; ctx.lineWidth = 5; ctx.stroke();
-      ctx.globalAlpha = .68; ctx.strokeStyle = `${map.accent}8f`; ctx.lineWidth = 2; ctx.stroke();
-    }
-    ctx.restore();
-    ctx.save(); ctx.translate(chunk.x, chunk.y); ctx.rotate(chunk.rotation || 0); ctx.scale(chunk.flipX ? -1 : 1, 1);
-    ctx.globalAlpha = chunk.opacity;
-    ctx.filter = "saturate(.9) brightness(.88)";
+    ctx.save(); ctx.translate(chunk.x + offsetX, chunk.y + offsetY); ctx.rotate(chunk.rotation || 0); ctx.scale(chunk.flipX ? -1 : 1, 1);
+    ctx.globalAlpha = alpha; ctx.filter = filter;
     ctx.drawImage(atlas, sourceX, sourceY, sourceWidth, sourceHeight, -width * frame.anchor[0], -height * frame.anchor[1], width, height);
     ctx.restore();
-    ctx.globalAlpha = 1; ctx.filter = "none";
+    return true;
+  }
+
+  drawEnvironmentChunk(map, chunk) {
+    // Shadow, selection, art, and physics all derive from the atlas alpha. No
+    // hand-authored polygon or rectangular platform can drift from the sprite.
+    if (!this.drawEnvironmentChunkImage(map, chunk, { offsetX: 7, offsetY: 10, alpha: .52, filter: "brightness(0)" })) return;
+    this.drawEnvironmentChunkImage(map, chunk, { alpha: chunk.opacity, filter: "saturate(.9) brightness(.88)" });
+    this.ctx.globalAlpha = 1; this.ctx.filter = "none";
   }
 
   drawMapMechanic(frame, map) {
@@ -1233,34 +1228,20 @@ export class Renderer {
   }
 
   drawPods(pods) {
-    const ctx = this.ctx, texture = this.effectSprites.barricade;
+    const ctx = this.ctx;
     for (const pod of pods) {
       if (!this.isWorldVisible(pod, 45)) continue;
       const health = clamp((pod.hp ?? 100) / 100, 0, 1), damage = 1 - health, kind = pod.kind || "cargo";
+      const sprite = this.supplyContainerSprites[kind] || this.supplyContainerSprites.cargo;
       ctx.save(); ctx.translate(pod.x, pod.y);
-
-      // Three low, still silhouettes keep supply containers distinct from
-      // pickups without covering each one in a redundant BREAK label.
-      const traceShape = () => {
-        ctx.beginPath();
-        if (kind === "utility") { ctx.moveTo(-22, -13); ctx.lineTo(17, -17); ctx.lineTo(24, 11); ctx.lineTo(-17, 16); ctx.closePath(); }
-        else if (kind === "pressure") { ctx.ellipse(0, 0, 19, 22, 0, 0, TAU); }
-        else ctx.rect(-25, -17, 50, 34);
-      };
-      ctx.fillStyle = "rgba(0,0,0,.46)"; ctx.beginPath(); ctx.ellipse(3, 19, kind === "pressure" ? 21 : 27, 8, 0, 0, TAU); ctx.fill();
-      traceShape(); ctx.fillStyle = "#071019"; ctx.fill();
-      ctx.save(); traceShape(); ctx.clip();
-      ctx.fillStyle = "#152936"; ctx.fillRect(-25, -22, 50, 40);
-      if (texture?.complete && texture.naturalWidth) { ctx.globalAlpha = .38; ctx.drawImage(texture, 55, 55, 400, 260, -25, -20, 50, 38); }
-      ctx.restore();
+      const size = kind === "utility" ? 58 : kind === "pressure" ? 62 : 60;
+      ctx.fillStyle = "rgba(0,0,0,.5)"; ctx.beginPath(); ctx.ellipse(3, 17, size * .42, 8, 0, 0, TAU); ctx.fill();
+      if (sprite?.complete && sprite.naturalWidth) {
+        ctx.globalAlpha = .96; ctx.filter = health < .35 ? "saturate(.75) brightness(.8)" : "none";
+        ctx.drawImage(sprite, -size / 2, -size / 2, size, size);
+        ctx.filter = "none"; ctx.globalAlpha = 1;
+      }
       const warning = health < .35 ? "#ff4f45" : "#ff7955";
-      traceShape(); ctx.strokeStyle = warning; ctx.lineWidth = 2; ctx.stroke();
-      ctx.strokeStyle = "rgba(255,255,255,.2)"; ctx.lineWidth = 1;
-      ctx.beginPath();
-      if (kind === "pressure") { ctx.moveTo(-13, -9); ctx.lineTo(13, -9); ctx.moveTo(-15, 8); ctx.lineTo(15, 8); }
-      else if (kind === "utility") { ctx.moveTo(-16, -8); ctx.lineTo(16, -11); ctx.moveTo(-13, 8); ctx.lineTo(18, 5); }
-      else { ctx.moveTo(-20, -10); ctx.lineTo(20, -10); ctx.moveTo(0, -15); ctx.lineTo(0, 11); }
-      ctx.stroke();
 
       // Persistent armor rail plus progressively revealed cracks gives immediate
       // and continuous feedback that shots are damaging the cache.
@@ -1269,8 +1250,8 @@ export class Renderer {
       ctx.fillStyle = warning; ctx.fillRect(-railWidth / 2 + 1, 13, (railWidth - 2) * health, 2);
       if (damage > .01) {
         ctx.strokeStyle = `rgba(255,225,203,${.32 + damage * .58})`; ctx.lineWidth = 1.25;
-        ctx.beginPath(); ctx.moveTo(6, -14); ctx.lineTo(2, -8); ctx.lineTo(7, -3); ctx.lineTo(1, 3); ctx.stroke();
-        if (damage > .48) { ctx.beginPath(); ctx.moveTo(-16, -14); ctx.lineTo(-10, -9); ctx.lineTo(-14, -4); ctx.lineTo(-7, 1); ctx.stroke(); }
+        ctx.beginPath(); ctx.moveTo(6, -16); ctx.lineTo(2, -9); ctx.lineTo(7, -3); ctx.lineTo(1, 4); ctx.stroke();
+        if (damage > .48) { ctx.beginPath(); ctx.moveTo(-16, -15); ctx.lineTo(-10, -9); ctx.lineTo(-14, -3); ctx.lineTo(-7, 2); ctx.stroke(); }
       }
       ctx.restore();
     }
@@ -2110,16 +2091,24 @@ export class Renderer {
     }
     const environmentChunk = this.environmentChunkLayout.find((chunk) => chunk.id === hoveredId);
     if (environmentChunk) {
-      ctx.save(); ctx.lineJoin = "round";
-      for (const part of environmentChunk.collider.parts) {
-        ctx.beginPath();
-        part.points.forEach(([x, y], index) => index ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
-        ctx.closePath(); ctx.fillStyle = "rgba(255,255,255,.055)"; ctx.fill();
-        ctx.strokeStyle = "rgba(2,8,13,.92)"; ctx.lineWidth = 7; ctx.stroke();
-        ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.setLineDash([7,5]);
-        ctx.lineDashOffset = this.reducedMotion ? 0 : -performance.now() * .025; ctx.stroke();
+      this.drawEnvironmentChunkImage(map, environmentChunk, {
+        alpha: .42,
+        filter: `brightness(0) invert(1) drop-shadow(0 0 2px #fff) drop-shadow(0 0 7px ${map.accent})`,
+      });
+      return;
+    }
+    const supplyContainer = state.pods?.find((entry) => entry.id === hoveredId);
+    if (supplyContainer) {
+      const sprite = this.supplyContainerSprites[supplyContainer.kind] || this.supplyContainerSprites.cargo;
+      if (sprite?.complete && sprite.naturalWidth) {
+        const size = supplyContainer.kind === "pressure" ? 65 : supplyContainer.kind === "utility" ? 61 : 64;
+        ctx.save(); ctx.translate(supplyContainer.x, supplyContainer.y);
+        ctx.globalAlpha = .48;
+        ctx.filter = `brightness(0) invert(1) drop-shadow(0 0 2px #fff) drop-shadow(0 0 7px ${map.accent})`;
+        ctx.drawImage(sprite, -size / 2, -size / 2, size, size);
+        ctx.restore();
+        return;
       }
-      ctx.restore(); return;
     }
     let entity = null;
     if (hoveredId === "machine") entity = { x: 0, y: 0, radius: 77 };

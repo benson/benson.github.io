@@ -1,7 +1,8 @@
-import { mapMechanicDefinition } from "./map-mechanics.js?v=20260716.11";
-import { compoundCollider, transformCollisionParts } from "./collision-geometry.js?v=20260716.11";
+import { mapMechanicDefinition } from "./map-mechanics.js?v=20260716.12";
+import { alphaMaskCollider } from "./collision-geometry.js?v=20260716.12";
+import { ENVIRONMENT_COLLISION_MASKS } from "./environment-collision-masks.js?v=20260716.12";
 
-export const ENVIRONMENT_CHUNK_SCHEMA = "lastlight.environment-chunks.v3";
+export const ENVIRONMENT_CHUNK_SCHEMA = "lastlight.environment-chunks.v4";
 export const ENVIRONMENT_CHUNK_MAP_IDS = Object.freeze(["warehouse", "outskirts", "lab", "beachhead"]);
 export const ENVIRONMENT_CHUNK_QUALITY_TIERS = Object.freeze(["high", "reduced", "minimal"]);
 
@@ -10,37 +11,6 @@ const FRAME_IDS = Object.freeze({
   outskirts: Object.freeze(["wrecked-transport", "ruined-checkpoint", "field-power", "road-salvage"]),
   lab: Object.freeze(["cryo-pods", "pressure-manifold", "specimen-cargo", "emergency-plant"]),
   beachhead: Object.freeze(["broken-skiff", "corrupted-beacon", "ruptured-cargo", "sea-wall-machine"]),
-});
-
-// Normalized compound footprints fitted to the actual grounded objects in each
-// atlas frame. Multiple convex parts allow cranes, checkpoints, cable stations,
-// and wreckage to create readable L-shaped and diagonal cover without a large
-// invisible rectangle around the transparent sprite cell.
-const FRAME_COLLISION_PARTS = deepFreeze({
-  warehouse: [
-    [[[.08,.62],[.28,.48],[.55,.57],[.52,.82],[.18,.88]], [[.56,.60],[.82,.62],[.90,.82],[.60,.84]]],
-    [[[.12,.49],[.25,.36],[.73,.34],[.90,.51],[.86,.75],[.67,.86],[.22,.82],[.08,.65]]],
-    [[[.10,.58],[.28,.52],[.42,.60],[.38,.83],[.12,.84]], [[.39,.44],[.66,.42],[.80,.58],[.70,.76],[.43,.70]]],
-    [[[.12,.64],[.45,.55],[.58,.70],[.50,.86],[.18,.86]], [[.52,.50],[.88,.55],[.88,.72],[.58,.72]]],
-  ],
-  outskirts: [
-    [[[.08,.45],[.23,.30],[.68,.33],[.83,.50],[.77,.68],[.30,.70]], [[.50,.67],[.86,.62],[.91,.82],[.55,.86]]],
-    [[[.08,.61],[.27,.51],[.86,.47],[.92,.68],[.75,.84],[.18,.84]]],
-    [[[.11,.56],[.40,.49],[.59,.58],[.56,.85],[.16,.86]], [[.54,.55],[.82,.61],[.86,.82],[.58,.84]]],
-    [[[.13,.51],[.85,.48],[.91,.64],[.78,.76],[.21,.80],[.08,.65]]],
-  ],
-  lab: [
-    [[[.08,.50],[.20,.34],[.73,.34],[.91,.50],[.86,.78],[.65,.87],[.21,.83]]],
-    [[[.12,.56],[.28,.43],[.75,.42],[.90,.58],[.81,.82],[.56,.79],[.45,.88],[.17,.78]]],
-    [[[.09,.55],[.28,.39],[.70,.40],[.88,.55],[.84,.82],[.61,.86],[.16,.82]]],
-    [[[.13,.49],[.63,.40],[.83,.54],[.88,.82],[.60,.87],[.18,.80]]],
-  ],
-  beachhead: [
-    [[[.08,.55],[.27,.33],[.72,.39],[.89,.58],[.78,.79],[.31,.86],[.11,.73]]],
-    [[[.17,.59],[.35,.45],[.62,.42],[.86,.62],[.74,.85],[.26,.82]]],
-    [[[.13,.49],[.49,.41],[.77,.52],[.87,.78],[.60,.86],[.18,.81]]],
-    [[[.10,.54],[.30,.42],[.72,.44],[.91,.61],[.82,.83],[.24,.86]]],
-  ],
 });
 
 const MAP_COPY = Object.freeze({
@@ -68,7 +38,7 @@ const MAP_COPY = Object.freeze({
 
 const framesFor = (mapId) => FRAME_IDS[mapId].map((id, index) => Object.freeze({
   id, index, layer: "grounded", collision: "solid", anchor: Object.freeze([.5, .5]), drawSize: Object.freeze([300, 300]),
-  collisionParts: FRAME_COLLISION_PARTS[mapId][index],
+  collisionMask: ENVIRONMENT_COLLISION_MASKS.maps[mapId].frames[index],
 }));
 
 export const LASTLIGHT_ENVIRONMENT_CHUNKS = deepFreeze({
@@ -90,9 +60,9 @@ export const LASTLIGHT_ENVIRONMENT_CHUNKS = deepFreeze({
 });
 
 function deepFreeze(value) {
-  if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
+  if (!value || typeof value !== "object") return value;
   for (const child of Object.values(value)) deepFreeze(child);
-  return Object.freeze(value);
+  return Object.isFrozen(value) ? value : Object.freeze(value);
 }
 
 function exactKeys(value, keys) {
@@ -135,14 +105,17 @@ export function validateEnvironmentChunks(theme) {
     const ids = new Set();
     for (let index = 0; index < map.frames.length; index++) {
       const frame = map.frames[index], framePath = `${path}.frames[${index}]`;
-      if (!exactKeys(frame, ["id", "index", "layer", "collision", "anchor", "drawSize", "collisionParts"])) { errors.push(`${framePath}: fields mismatch`); continue; }
+      if (!exactKeys(frame, ["id", "index", "layer", "collision", "anchor", "drawSize", "collisionMask"])) { errors.push(`${framePath}: fields mismatch`); continue; }
       if (typeof frame.id !== "string" || ids.has(frame.id)) errors.push(`${framePath}.id: invalid or duplicate`); else ids.add(frame.id);
       if (frame.index !== index || frame.layer !== "grounded" || frame.collision !== "solid") errors.push(`${framePath}: invalid index/layer/collision`);
       if (!Array.isArray(frame.anchor) || frame.anchor.length !== 2 || frame.anchor.some((value) => !finite(value, 0, 1))) errors.push(`${framePath}.anchor: invalid`);
       if (!Array.isArray(frame.drawSize) || frame.drawSize.length !== 2 || frame.drawSize.some((value) => !finite(value, 160, 640))) errors.push(`${framePath}.drawSize: invalid`);
-      if (!Array.isArray(frame.collisionParts) || !frame.collisionParts.length || frame.collisionParts.length > 4
-        || frame.collisionParts.some((part) => !Array.isArray(part) || part.length < 3 || part.length > 10
-          || part.some((point) => !Array.isArray(point) || point.length !== 2 || point.some((value) => !finite(value, 0, 1))))) errors.push(`${framePath}.collisionParts: invalid`);
+      const mask = frame.collisionMask;
+      if (!mask || !Number.isInteger(mask.width) || !Number.isInteger(mask.height) || mask.width < 1 || mask.height < 1
+        || !Array.isArray(mask.bounds) || mask.bounds.length !== 4 || !Array.isArray(mask.rows) || mask.rows.length !== mask.height
+        || mask.rows.some((row) => !Array.isArray(row) || row.length % 2 || row.some((value) => !Number.isInteger(value) || value < 0 || value > mask.width))) {
+        errors.push(`${framePath}.collisionMask: invalid`);
+      }
     }
   }
   if (!exactKeys(theme.budgets, ENVIRONMENT_CHUNK_QUALITY_TIERS)) errors.push("environmentChunks.budgets: quality coverage mismatch");
@@ -186,7 +159,11 @@ export function environmentChunkCollisionRect(chunk, theme = LASTLIGHT_ENVIRONME
 export function environmentChunkCollider(chunk, theme = LASTLIGHT_ENVIRONMENT_CHUNKS) {
   if (!chunk || !ENVIRONMENT_CHUNK_MAP_IDS.includes(chunk.mapId) || !Number.isInteger(chunk.frame) || chunk.frame < 0 || chunk.frame > 3) throw new TypeError("Invalid environment chunk collision source");
   const frame = theme.maps[chunk.mapId].frames[chunk.frame];
-  return compoundCollider(chunk.id || `environment:${chunk.mapId}:${chunk.frame}`, transformCollisionParts(frame, chunk));
+  return alphaMaskCollider(chunk.id || `environment:${chunk.mapId}:${chunk.frame}`, frame.collisionMask, {
+    x: chunk.x, y: chunk.y,
+    width: frame.drawSize[0] * chunk.scale, height: frame.drawSize[1] * chunk.scale,
+    rotation: chunk.rotation || 0, flipX: chunk.flipX, anchor: frame.anchor,
+  });
 }
 
 export function environmentChunkLayout({ mapId, tier = "high", world = { width: 3600, height: 2400 }, obstacles = [], theme = LASTLIGHT_ENVIRONMENT_CHUNKS } = {}) {

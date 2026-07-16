@@ -15,6 +15,7 @@ export function polygonBounds(parts) {
 
 export function normalizeCollider(obstacle, id = "cover") {
   if (Array.isArray(obstacle) && obstacle.length === 4 && obstacle.every(Number.isFinite)) return rectCollider(obstacle, id);
+  if (obstacle?.mask && obstacle?.transform && Array.isArray(obstacle.bounds) && obstacle.bounds.length === 4) return obstacle;
   if (!obstacle || !Array.isArray(obstacle.parts) || !obstacle.parts.length) throw new TypeError("Invalid cover collider");
   return obstacle;
 }
@@ -38,6 +39,7 @@ function pointSegmentDistanceSquared(px, py, ax, ay, bx, by) {
 export function circleIntersectsCollider(x, y, radius, obstacle) {
   const collider = normalizeCollider(obstacle), [left, top, width, height] = collider.bounds;
   if (x + radius < left || x - radius > left + width || y + radius < top || y - radius > top + height) return false;
+  if (collider.mask) return circleIntersectsAlphaMask(x, y, radius, collider);
   const radiusSquared = radius * radius;
   for (const { points } of collider.parts) {
     if (pointInPolygon(x, y, points)) return true;
@@ -57,7 +59,8 @@ export function sweptCircleColliderImpact(startX, startY, endX, endY, radius, ob
   if (pathRight < left || pathLeft > left + width || pathBottom < top || pathTop > top + height) return null;
   if (circleIntersectsCollider(startX, startY, padding, collider)) return Object.freeze({ t: 0, x: startX, y: startY });
   const dx = endX - startX, dy = endY - startY, distance = Math.hypot(dx, dy);
-  const steps = Math.max(1, Math.ceil(distance / 4));
+  const stepSize = collider.mask ? Math.max(.5, Math.min(4, Math.max(padding * .5, collider.pixelSize))) : 4;
+  const steps = Math.max(1, Math.ceil(distance / stepSize));
   let previous = 0;
   for (let step = 1; step <= steps; step++) {
     const t = step / steps, x = startX + dx * t, y = startY + dy * t;
@@ -86,4 +89,70 @@ export function transformCollisionParts(frame, chunk) {
 export function compoundCollider(id, parts) {
   const frozen = Object.freeze(parts.map((part) => Object.freeze({ points: Object.freeze(part.points.map((point) => Object.freeze([...point]))) })));
   return Object.freeze({ id, bounds: polygonBounds(frozen), parts: frozen });
+}
+
+function transformedPoint(transform, localX, localY) {
+  const cosine = Math.cos(transform.rotation), sine = Math.sin(transform.rotation), flip = transform.flipX ? -1 : 1;
+  const x = localX * flip;
+  return [transform.x + x * cosine - localY * sine, transform.y + x * sine + localY * cosine];
+}
+
+function transformedMaskBounds(mask, transform) {
+  const [left, top, right, bottom] = mask.bounds;
+  const toLocalX = (pixel) => (pixel / mask.width - transform.anchor[0]) * transform.width;
+  const toLocalY = (pixel) => (pixel / mask.height - transform.anchor[1]) * transform.height;
+  const points = [
+    transformedPoint(transform, toLocalX(left), toLocalY(top)),
+    transformedPoint(transform, toLocalX(right), toLocalY(top)),
+    transformedPoint(transform, toLocalX(right), toLocalY(bottom)),
+    transformedPoint(transform, toLocalX(left), toLocalY(bottom)),
+  ];
+  const xs = points.map(([x]) => x), ys = points.map(([, y]) => y);
+  const minX = Math.min(...xs), minY = Math.min(...ys);
+  return Object.freeze([minX, minY, Math.max(...xs) - minX, Math.max(...ys) - minY]);
+}
+
+function validateAlphaMask(mask) {
+  if (!mask || !Number.isInteger(mask.width) || !Number.isInteger(mask.height) || mask.width < 1 || mask.height < 1
+    || !Array.isArray(mask.bounds) || mask.bounds.length !== 4 || !Array.isArray(mask.rows) || mask.rows.length !== mask.height) {
+    throw new TypeError("Invalid alpha collision mask");
+  }
+}
+
+export function alphaMaskCollider(id, mask, { x = 0, y = 0, width, height, rotation = 0, flipX = false, anchor = [.5, .5] } = {}) {
+  validateAlphaMask(mask);
+  if (![x, y, width, height, rotation].every(Number.isFinite) || width <= 0 || height <= 0
+    || !Array.isArray(anchor) || anchor.length !== 2 || anchor.some((value) => !Number.isFinite(value))) throw new TypeError("Invalid alpha collision transform");
+  const transform = Object.freeze({ x, y, width, height, rotation, flipX: Boolean(flipX), anchor: Object.freeze([...anchor]) });
+  return Object.freeze({
+    id, mask, transform,
+    bounds: transformedMaskBounds(mask, transform),
+    pixelSize: Math.min(width / mask.width, height / mask.height),
+  });
+}
+
+function circleIntersectsAlphaMask(x, y, radius, collider) {
+  const { mask, transform } = collider, cosine = Math.cos(transform.rotation), sine = Math.sin(transform.rotation);
+  const dx = x - transform.x, dy = y - transform.y;
+  const localX = (dx * cosine + dy * sine) * (transform.flipX ? -1 : 1);
+  const localY = -dx * sine + dy * cosine;
+  const rowStart = Math.max(0, Math.floor(((localY - radius) / transform.height + transform.anchor[1]) * mask.height));
+  const rowEnd = Math.min(mask.height - 1, Math.ceil(((localY + radius) / transform.height + transform.anchor[1]) * mask.height));
+  const radiusSquared = radius * radius;
+  for (let row = rowStart; row <= rowEnd; row++) {
+    const runs = mask.rows[row];
+    if (!runs?.length) continue;
+    const top = (row / mask.height - transform.anchor[1]) * transform.height;
+    const bottom = ((row + 1) / mask.height - transform.anchor[1]) * transform.height;
+    const nearestY = Math.max(Math.min(top, bottom), Math.min(localY, Math.max(top, bottom)));
+    const verticalSquared = (localY - nearestY) ** 2;
+    if (verticalSquared > radiusSquared) continue;
+    for (let index = 0; index < runs.length; index += 2) {
+      const left = (runs[index] / mask.width - transform.anchor[0]) * transform.width;
+      const right = (runs[index + 1] / mask.width - transform.anchor[0]) * transform.width;
+      const nearestX = Math.max(Math.min(left, right), Math.min(localX, Math.max(left, right)));
+      if ((localX - nearestX) ** 2 + verticalSquared <= radiusSquared) return true;
+    }
+  }
+  return false;
 }
