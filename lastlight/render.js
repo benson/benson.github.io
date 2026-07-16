@@ -1,30 +1,31 @@
-import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260715.3";
-import { WORLD } from "./engine.js?v=20260715.3";
-import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260715.3";
+import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260715.4";
+import { WORLD } from "./engine.js?v=20260715.4";
+import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260715.4";
 import { springCamera } from "./feel.js?v=20260713.2";
 import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistFacingTarget, specialistMotionState, stableDirectionColumn } from "./motion.js?v=20260713.1";
 import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
 import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260711.5";
-import { impactRenderPlan } from "./impact-grammar.js?v=20260715.3";
-import { movementVisualState } from "./movement.js?v=20260715.3";
+import { impactRenderPlan } from "./impact-grammar.js?v=20260715.4";
+import { movementVisualState } from "./movement.js?v=20260715.4";
 import { effectReadabilityCategory, partitionEffects, readabilityPlan, shouldPromoteCache } from "./readability.js?v=20260711.8";
 import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260711.8";
 import { EnvironmentInteractionField, stableEnvironmentUnit } from "./environment-interactions.js?v=20260712.1";
-import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260715.3";
-import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260715.3";
+import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260715.4";
+import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260715.4";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
 import { PING_INTENTS, PING_LIFETIME_TICKS, selectVisiblePings } from "./ping-contract.js?v=20260713.4";
-import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260715.3";
-import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260715.3";
+import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260715.4";
+import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260715.4";
 import {
   ImpactIntensityDirector, aftermathPlan, attackerRecoilTransform, cameraLookBias,
   impactFeedbackPlan, impactReactionTransform, impactTierForEvent, projectileMotionPlan,
   secondaryMotionPlan, selectImpactFeedback,
-} from "./impact-feel.js?v=20260715.3";
-import { combatTurnPlan, isBodyDrivingSource, resolvedCombatFacing, specialistMuzzlePoint } from "./combat-orientation.js?v=20260715.3";
+} from "./impact-feel.js?v=20260715.4";
+import { combatTurnPlan, isBodyDrivingSource, resolvedCombatFacing, specialistMuzzlePoint } from "./combat-orientation.js?v=20260715.4";
 import {
   cameraCompositionPlan, castMotionPlan, combatDensityPlan, playerLifecycleMotionPlan, rewardMotionPlan,
-} from "./combat-choreography.js?v=20260715.3";
+} from "./combat-choreography.js?v=20260715.4";
+import { apexPhaseMotionPlan, enemyArrivalMotionPlan, enemyDepartureMotionPlan } from "./combat-rhythm.js?v=20260715.4";
 
 const TAU = Math.PI * 2;
 const PING_BUFFER_LIMIT = 32;
@@ -1842,30 +1843,42 @@ export class Renderer {
       visual.lastAttackFlash = authoritativeAttackFlash; visual.lastHitFlash = e.hitFlash || 0; visual.lastShotCd = e.shotCd; visual.lastEntity = { ...raw, x: e.x, y: e.y }; visual.updatedAt = now;
       this.enemyVisuals.set(e.id, visual);
 
-      const spawn = clamp((e.spawnLife || 0) / .24, 0, 1);
       const attack = clamp(authoritativeAttackFlash / .2, 0, 1) * this.qualityProfile.hitFlashes;
       const hitFlash = (e.hitFlash || 0) * this.qualityProfile.hitFlashes;
       const groundY = animation?.groundY ?? e.radius * .7;
       const shadow = animation?.shadow || [e.radius * .9, e.radius * .45];
       const deathProgress = e.dead ? clamp((e._deathElapsed || 0) / Math.max(.35, motionClipDuration(animation, "death")), 0, 1) : 0;
+      const arrival = enemyArrivalMotionPlan(e, { reducedMotion: this.reducedMotion });
+      const departure = enemyDepartureMotionPlan(deathProgress, { boss: e.boss, reducedMotion: this.reducedMotion });
+      const apexPhase = apexPhaseMotionPlan(e, simulationTick, { reducedMotion: this.reducedMotion });
       const wobble = this.reducedMotion ? 0 : Math.sin(now * .006 + e.x * .02 + e.y * .01) * .026;
       const step = (motion?.offsetY || 0) + (this.reducedMotion ? 0 : Math.sin(visual.stride) * 1.5 * clamp(speed * .75, .18, 1));
 
       ctx.save(); ctx.translate(e.x, e.y);
       const hitTransform = this.impactTransformFor(e.id), recoilTransform = this.impactTransformFor(e.id, true);
       for (const transform of [hitTransform, recoilTransform]) if (transform) { ctx.translate(transform.x, transform.y); ctx.rotate(transform.rotation); if (transform.scaleX) ctx.scale(transform.scaleX, transform.scaleY); }
-      ctx.globalAlpha = (1 - spawn * .55) * (1 - deathProgress * .72);
+      if (arrival.ringAlpha > 0) {
+        ctx.save(); ctx.globalAlpha = arrival.ringAlpha; ctx.strokeStyle = e.boss ? map.accent : e.elite || e.miniboss ? "#ffe073" : e.color;
+        ctx.lineWidth = e.boss ? 5 : 2; ctx.setLineDash(e.boss ? [18, 10] : [7, 7]); ctx.rotate(phase * .15);
+        ctx.beginPath(); ctx.ellipse(0, groundY, (e.radius + 12) * arrival.ringScale, Math.max(8, (e.radius * .42) * arrival.ringScale), 0, 0, TAU); ctx.stroke(); ctx.restore();
+      }
+      if (apexPhase.ringAlpha > 0) {
+        ctx.save(); ctx.globalAlpha = apexPhase.ringAlpha; ctx.strokeStyle = map.accent; ctx.lineWidth = 6; ctx.setLineDash([24, 13]); ctx.rotate(apexPhase.progress * .35);
+        ctx.beginPath(); ctx.arc(0, 0, (e.radius + 28) * apexPhase.ringScale, 0, TAU); ctx.stroke(); ctx.restore();
+      }
+      ctx.globalAlpha = arrival.shadowAlpha * departure.shadowAlpha;
       ctx.fillStyle = e.dead ? "rgba(0,0,0,.18)" : "rgba(0,0,0,.34)"; ctx.beginPath(); ctx.ellipse(4, groundY, shadow[0], shadow[1], 0, 0, TAU); ctx.fill();
       if (!e.dead && (e.elite || e.boss)) {
-        ctx.strokeStyle = e.boss ? map.accent : "#ffe073"; ctx.globalAlpha = .45; ctx.lineWidth = e.boss ? 8 : 4;
-        ctx.beginPath(); ctx.arc(0, 0, e.radius + 10 + Math.sin(now * .005) * 3, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1 - spawn * .55;
+        ctx.save(); ctx.strokeStyle = e.boss ? map.accent : "#ffe073"; ctx.globalAlpha = .45 * arrival.bodyAlpha; ctx.lineWidth = e.boss ? 8 : 4;
+        ctx.beginPath(); ctx.arc(0, 0, e.radius + 10 + Math.sin(now * .005) * 3, 0, TAU); ctx.stroke(); ctx.restore();
       }
 
       ctx.save();
-      ctx.translate(0, step);
+      ctx.globalAlpha = arrival.bodyAlpha * departure.bodyAlpha;
+      ctx.translate(0, step + arrival.bodyOffsetY + departure.bodyOffsetY);
       ctx.translate(motion?.offsetX || 0, 0); ctx.rotate((motion?.rotation || 0) + wobble * (e.stun > 0 ? .35 : 1));
-      const spawnScale = this.reducedMotion ? 1 : 1 - spawn * .42;
-      ctx.scale(spawnScale * (motion?.scaleX || 1), spawnScale * (motion?.scaleY || 1));
+      const rhythmScale = arrival.bodyScale * departure.bodyScale * apexPhase.bodyScale;
+      ctx.scale(rhythmScale * (motion?.scaleX || 1), rhythmScale * (motion?.scaleY || 1));
       ctx.shadowColor = attack > 0 ? "#ff5a43" : e.color;
       ctx.shadowBlur = (attack > 0 ? 30 : e.boss ? 28 : e.elite ? 18 : 5) * this.qualityProfile.flashIntensity;
       const motionAtlas = this.enemyAnimationAtlases[e.boss ? `boss:${map.id}` : e.type];
@@ -1893,6 +1906,11 @@ export class Renderer {
         ctx.arc(e.radius * .23, -e.radius * .1, Math.max(2, e.radius * .11), 0, TAU); ctx.fill();
       }
       ctx.restore();
+
+      if (departure.residueAlpha > 0) {
+        ctx.save(); ctx.globalAlpha = departure.residueAlpha; ctx.strokeStyle = e.boss ? map.accent : e.color; ctx.lineWidth = e.boss ? 4 : 2; ctx.setLineDash([5, 8]);
+        ctx.beginPath(); ctx.ellipse(0, groundY, (e.radius + 8) * departure.residueScale, Math.max(7, e.radius * .34 * departure.residueScale), 0, 0, TAU); ctx.stroke(); ctx.restore();
+      }
 
       if (!e.dead && hitFlash > 0) {
         ctx.save(); ctx.rotate(e.hitAngle || 0); ctx.strokeStyle = "#fff"; ctx.globalAlpha = clamp(e.hitFlash / .1, 0, 1); ctx.lineWidth = 3;

@@ -1,8 +1,8 @@
-import { BALANCE_CONFIG } from "./balance-config.js?v=20260715.3";
-import { PASSIVES, SPECIALISTS, WEAPONS } from "./data.js?v=20260715.3";
-import { formatProjectileDisplay, getCombatMetadata } from "./combat-metadata.js?v=20260715.3";
-import { playerCombatStat, playerMovementSpeed, previewPlayerUpgrade, UPGRADE_GOLD_REWARD } from "./engine.js?v=20260715.3";
-import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260715.3";
+import { BALANCE_CONFIG } from "./balance-config.js?v=20260715.4";
+import { PASSIVES, SPECIALISTS, WEAPONS } from "./data.js?v=20260715.4";
+import { formatProjectileDisplay, getCombatMetadata } from "./combat-metadata.js?v=20260715.4";
+import { playerCombatStat, playerMovementSpeed, previewPlayerUpgrade, UPGRADE_GOLD_REWARD } from "./engine.js?v=20260715.4";
+import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260715.4";
 
 const { weapons: weaponBalance } = BALANCE_CONFIG;
 

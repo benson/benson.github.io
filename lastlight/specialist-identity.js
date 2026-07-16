@@ -1,5 +1,5 @@
-import { BALANCE_CONFIG, BALANCE_IDS, BALANCE_VERSION } from "./balance-config.js?v=20260715.3";
-import { SPECIALISTS } from "./data.js?v=20260715.3";
+import { BALANCE_CONFIG, BALANCE_IDS, BALANCE_VERSION } from "./balance-config.js?v=20260715.4";
+import { SPECIALISTS } from "./data.js?v=20260715.4";
 
 export const SPECIALIST_IDENTITY_VERSION = "lastlight.specialist-identity.v1";
 

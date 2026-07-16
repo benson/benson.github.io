@@ -1,9 +1,9 @@
-import { BALANCE_CONFIG } from "./balance-config.js?v=20260715.3";
-import { DIFFICULTIES, MAPS, PASSIVES, SPECIALISTS, WEAPONS } from "./data.js?v=20260715.3";
-import { Simulation, applyPlayerUpgrade } from "./engine.js?v=20260715.3";
+import { BALANCE_CONFIG } from "./balance-config.js?v=20260715.4";
+import { DIFFICULTIES, MAPS, PASSIVES, SPECIALISTS, WEAPONS } from "./data.js?v=20260715.4";
+import { Simulation, applyPlayerUpgrade } from "./engine.js?v=20260715.4";
 import { ELITE_AFFIX_IDS, ENEMY_ARCHETYPE_IDS, eliteAffixEligibility } from "./enemy-archetypes.js?v=20260713.1";
-import { gameplayFeatureContract } from "./feature-config.js?v=20260715.3";
-import { playerBuildStats, weaponTelemetry } from "./upgrade-preview.js?v=20260715.3";
+import { gameplayFeatureContract } from "./feature-config.js?v=20260715.4";
+import { playerBuildStats, weaponTelemetry } from "./upgrade-preview.js?v=20260715.4";
 
 export const PRACTICE_LABORATORY_SCHEMA = "lastlight.practice-laboratory.v1";
 export const PRACTICE_LABORATORY_SEED = "1a57cafe1a57cafe1a57cafe1a57cafe";
