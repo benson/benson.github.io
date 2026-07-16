@@ -2,6 +2,15 @@
   "blurb": "played 20 other games in the last week, went 8-12",
   "recent": [
     {
+      "champion": "Nami",
+      "win": false,
+      "kills": 2,
+      "deaths": 8,
+      "assists": 13,
+      "damage": 14197,
+      "minutes": 28
+    },
+    {
       "champion": "Vayne",
       "win": true,
       "kills": 11,
@@ -36,15 +45,6 @@
       "assists": 19,
       "damage": 19791,
       "minutes": 25
-    },
-    {
-      "champion": "Varus",
-      "win": false,
-      "kills": 5,
-      "deaths": 8,
-      "assists": 1,
-      "damage": 11277,
-      "minutes": 21
     }
   ],
   "ddragonVersion": "16.14.1",
