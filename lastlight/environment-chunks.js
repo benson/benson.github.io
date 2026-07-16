@@ -1,5 +1,5 @@
-import { mapMechanicDefinition } from "./map-mechanics.js?v=20260716.10";
-import { compoundCollider, transformCollisionParts } from "./collision-geometry.js?v=20260716.10";
+import { mapMechanicDefinition } from "./map-mechanics.js?v=20260716.11";
+import { compoundCollider, transformCollisionParts } from "./collision-geometry.js?v=20260716.11";
 
 export const ENVIRONMENT_CHUNK_SCHEMA = "lastlight.environment-chunks.v3";
 export const ENVIRONMENT_CHUNK_MAP_IDS = Object.freeze(["warehouse", "outskirts", "lab", "beachhead"]);

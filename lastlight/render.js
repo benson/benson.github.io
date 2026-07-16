@@ -1,32 +1,32 @@
-import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260716.10";
-import { WORLD } from "./engine.js?v=20260716.10";
-import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260716.10";
+import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260716.11";
+import { WORLD } from "./engine.js?v=20260716.11";
+import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260716.11";
 import { springCamera } from "./feel.js?v=20260713.2";
 import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistFacingTarget, specialistMotionState, stableDirectionColumn } from "./motion.js?v=20260713.1";
 import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260716.10";
-import { impactRenderPlan } from "./impact-grammar.js?v=20260716.10";
-import { movementVisualState } from "./movement.js?v=20260716.10";
-import { effectReadabilityCategory, partitionEffects, readabilityPlan } from "./readability.js?v=20260716.10";
-import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260711.8";
+import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260716.11";
+import { impactRenderPlan } from "./impact-grammar.js?v=20260716.11";
+import { movementVisualState } from "./movement.js?v=20260716.11";
+import { effectReadabilityCategory, partitionEffects, readabilityPlan } from "./readability.js?v=20260716.11";
+import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260716.11";
 import { EnvironmentInteractionField, stableEnvironmentUnit } from "./environment-interactions.js?v=20260712.1";
-import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260716.10";
-import { circleIntersectsCollider, rectCollider } from "./collision-geometry.js?v=20260716.10";
-import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260716.10";
+import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260716.11";
+import { circleIntersectsCollider, rectCollider } from "./collision-geometry.js?v=20260716.11";
+import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260716.11";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
 import { PING_INTENTS, PING_LIFETIME_TICKS, selectVisiblePings } from "./ping-contract.js?v=20260713.4";
-import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260716.10";
-import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260716.10";
+import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260716.11";
+import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260716.11";
 import {
   ImpactIntensityDirector, aftermathPlan, attackerRecoilTransform, cameraLookBias,
   impactAnimationTimeScale, impactFeedbackPlan, impactReactionTransform, impactTierForEvent, projectileMotionPlan,
   secondaryMotionPlan, selectImpactFeedback,
-} from "./impact-feel.js?v=20260716.10";
-import { combatTurnPlan, isBodyDrivingSource, resolvedCombatFacing, specialistMuzzlePoint } from "./combat-orientation.js?v=20260716.10";
+} from "./impact-feel.js?v=20260716.11";
+import { combatTurnPlan, isBodyDrivingSource, resolvedCombatFacing, specialistMuzzlePoint } from "./combat-orientation.js?v=20260716.11";
 import {
   cameraCompositionPlan, castMotionPlan, combatDensityPlan, playerLifecycleMotionPlan, rewardMotionPlan,
-} from "./combat-choreography.js?v=20260716.10";
-import { apexPhaseMotionPlan, enemyArrivalMotionPlan, enemyDepartureMotionPlan } from "./combat-rhythm.js?v=20260716.10";
+} from "./combat-choreography.js?v=20260716.11";
+import { apexPhaseMotionPlan, enemyArrivalMotionPlan, enemyDepartureMotionPlan } from "./combat-rhythm.js?v=20260716.11";
 
 const TAU = Math.PI * 2;
 const PING_BUFFER_LIMIT = 32;
