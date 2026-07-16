@@ -32,4 +32,4 @@ landmark names or file paths.
 
 The structures remain slightly darkened behind the combat hierarchy but render near-opaque so they
 read as physical objects. Generated art does not animate, so reduced-motion output is identical.
-Every quality tier retains the same four structures because graphics settings cannot change cover.
+Every quality tier retains the same eight structures because graphics settings cannot change cover.

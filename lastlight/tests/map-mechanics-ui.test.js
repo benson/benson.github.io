@@ -8,15 +8,21 @@ const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 
 test("battlefield map mechanics expose shape, pattern, countdown, and inspection cues", () => {
   assert.match(render, /mechanicFrameForState\(state\)/);
+  assert.match(render, /state\?\.mapMechanics/);
   assert.match(render, /pointInMapMechanic\(mapMechanic, worldX, worldY\)/);
   assert.match(render, /ctx\.setLineDash\(active \? \[\] : \[18, 12\]\)/);
   assert.match(render, /WARNING \$\{frame\.remainingSeconds\}/);
   assert.match(render, /description: `\$\{definition\.description\} \$\{definition\.counterplay\}`/);
   assert.match(render, /drawForcedMovementCue\(mapMechanic, state, localPlayerId, map, "ground"\)/);
   assert.match(render, /drawForcedMovementCue\(mapMechanic, state, localPlayerId, map, "overlay"\)/);
+  assert.match(render, /drawImpactMovementCue\(state, localPlayerId, map, "ground"\)/);
+  assert.match(render, /drawImpactMovementCue\(state, localPlayerId, map, "overlay"\)/);
+  assert.match(render, /ENEMY IMPACT/);
+  assert.match(render, /Math\.hypot\(velocityX, velocityY\)/);
   assert.match(render, /MOVING \$\{directionName\}/);
   assert.match(render, /MOVES \$\{directionName\} IN \$\{frame\.remainingSeconds\}/);
   assert.match(render, /this\.reducedMotion \? \.5/);
+  assert.match(render, /state\.tick \+ pressureAdvanceTicks/);
 });
 
 test("problem reports capture whether a map mechanic is moving the local player", () => {

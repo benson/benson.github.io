@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260716.8">
+  <link rel="stylesheet" href="styles.css?v=20260716.9">
 </head>
 <body>
   <main id="app">
@@ -719,7 +719,15 @@
       </div>
       <div class="build-history-body">
         <article class="build-release current-build">
-          <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.16.8</h3></div><time class="build-shipped-at" datetime="2026-07-16T13:08:55-04:00" data-build-shipped-at="2026-07-16T13:08:55-04:00">Shipped Jul 16, 2026 · 1:08 PM EDT</time></header>
+          <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.16.9</h3></div><time class="build-shipped-at" datetime="2026-07-16T13:50:11-04:00" data-build-shipped-at="2026-07-16T13:50:11-04:00">Shipped Jul 16, 2026 · 1:50 PM EDT</time></header>
+          <ul>
+            <li>Doubled solid environment structures from four to eight per level and added grounded foundations so cover reads as real battlefield geometry.</li>
+            <li>Added a local enemy-impact vector and label whenever hit knockback moves the specialist.</li>
+            <li>Kept Freight Grid warnings synchronized with campaign pressure modifiers and corrected the Field Manual’s collision description.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header><div><span class="build-release-status">Previous build</span><h3>2026.07.16.8</h3></div><time class="build-shipped-at" datetime="2026-07-16T13:08:55-04:00" data-build-shipped-at="2026-07-16T13:08:55-04:00">Shipped Jul 16, 2026 · 1:08 PM EDT</time></header>
           <ul>
             <li>Made each operation’s four major environment structures solid cover that blocks specialists, enemies, and ordinary shots.</li>
             <li>Added local directional warnings whenever Freight Grid or another map mechanic is about to move the player.</li>
@@ -1367,10 +1375,10 @@
   </main>
 
   <aside class="edge-utilities" aria-label="Build and feedback">
-    <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.16.8. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.16.8</strong></button>
+    <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.16.9. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.16.9</strong></button>
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report a problem</button>
   </aside>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260716.8"></script>
+  <script type="module" src="game.js?v=20260716.9"></script>
 </body>
 </html>
