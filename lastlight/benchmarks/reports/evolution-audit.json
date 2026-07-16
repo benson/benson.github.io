@@ -353,7 +353,7 @@
         "common": {
           "damage": 4816,
           "hits": 56,
-          "uniqueTargets": 7,
+          "uniqueTargets": 6,
           "activations": 8,
           "activationRate": 0.444,
           "projectiles": 56,
@@ -384,12 +384,12 @@
           "droneProtocol": 0,
           "impactIdentity": 56
         },
-        "finalHash": "6fc258b81220ed30",
+        "finalHash": "0138dc93636d0db0",
         "ticks": 1081,
         "structure": {
           "peakEntities": 17,
           "maxWorkUnitsPerTick": 72,
-          "maxSnapshotBytes": 11985
+          "maxSnapshotBytes": 11920
         }
       },
       "evolved": {
@@ -400,13 +400,13 @@
           "evolved": true
         },
         "common": {
-          "damage": 13244,
-          "hits": 154,
+          "damage": 14448,
+          "hits": 168,
           "uniqueTargets": 9,
           "activations": 16,
           "activationRate": 0.889,
           "projectiles": 112,
-          "effects": 21,
+          "effects": 18,
           "tasks": 0,
           "maxEntities": 24
         },
@@ -431,25 +431,25 @@
           "railAimAlignment": 0,
           "transitPush": 0,
           "droneProtocol": 0,
-          "impactIdentity": 133
+          "impactIdentity": 130
         },
-        "finalHash": "1c4d95e3052ca298",
+        "finalHash": "30e6ac1559b6c006",
         "ticks": 1081,
         "structure": {
           "peakEntities": 24,
           "maxWorkUnitsPerTick": 135,
-          "maxSnapshotBytes": 14646
+          "maxSnapshotBytes": 14712
         }
       },
       "delta": {
         "common": {
-          "damage": 8428,
-          "hits": 98,
-          "uniqueTargets": 2,
+          "damage": 9632,
+          "hits": 112,
+          "uniqueTargets": 3,
           "activations": 8,
           "activationRate": 0.445,
           "projectiles": 56,
-          "effects": 21,
+          "effects": 18,
           "tasks": 0,
           "maxEntities": 7
         },
@@ -474,7 +474,7 @@
           "railAimAlignment": 0,
           "transitPush": 0,
           "droneProtocol": 0,
-          "impactIdentity": 77
+          "impactIdentity": 74
         }
       },
       "nonCosmeticDeltaCount": 8
@@ -512,7 +512,7 @@
           "activations": 9,
           "activationRate": 0.5,
           "projectiles": 68,
-          "effects": 9,
+          "effects": 10,
           "tasks": 14,
           "maxEntities": 22
         },
@@ -537,14 +537,14 @@
           "railAimAlignment": 0,
           "transitPush": 0,
           "droneProtocol": 0,
-          "impactIdentity": 91
+          "impactIdentity": 92
         },
-        "finalHash": "b564ab3848761c81",
+        "finalHash": "9ea0db05a517ff6d",
         "ticks": 1081,
         "structure": {
           "peakEntities": 22,
           "maxWorkUnitsPerTick": 90,
-          "maxSnapshotBytes": 13249
+          "maxSnapshotBytes": 13409
         }
       },
       "evolved": {
@@ -555,13 +555,13 @@
           "evolved": true
         },
         "common": {
-          "damage": 14632,
-          "hits": 124,
+          "damage": 13452,
+          "hits": 114,
           "uniqueTargets": 9,
           "activations": 14,
           "activationRate": 0.778,
           "projectiles": 108,
-          "effects": 24,
+          "effects": 28,
           "tasks": 27,
           "maxEntities": 27
         },
@@ -586,25 +586,25 @@
           "railAimAlignment": 0,
           "transitPush": 0,
           "droneProtocol": 0,
-          "impactIdentity": 159
+          "impactIdentity": 163
         },
-        "finalHash": "cde3c1e7e56b4ab8",
+        "finalHash": "59fa8f051597bac8",
         "ticks": 1081,
         "structure": {
           "peakEntities": 27,
           "maxWorkUnitsPerTick": 162,
-          "maxSnapshotBytes": 15877
+          "maxSnapshotBytes": 16109
         }
       },
       "delta": {
         "common": {
-          "damage": 5074,
-          "hits": 43,
+          "damage": 3894,
+          "hits": 33,
           "uniqueTargets": 0,
           "activations": 5,
           "activationRate": 0.278,
           "projectiles": 40,
-          "effects": 15,
+          "effects": 18,
           "tasks": 13,
           "maxEntities": 5
         },
@@ -629,7 +629,7 @@
           "railAimAlignment": 0,
           "transitPush": 0,
           "droneProtocol": 0,
-          "impactIdentity": 68
+          "impactIdentity": 71
         }
       },
       "nonCosmeticDeltaCount": 9
@@ -661,15 +661,15 @@
           "evolved": false
         },
         "common": {
-          "damage": 3091.5,
-          "hits": 30,
-          "uniqueTargets": 9,
+          "damage": 4122,
+          "hits": 40,
+          "uniqueTargets": 8,
           "activations": 11,
           "activationRate": 0.611,
           "projectiles": 44,
           "effects": 0,
           "tasks": 0,
-          "maxEntities": 16
+          "maxEntities": 17
         },
         "capabilityMetrics": {
           "cadence": 0.566,
@@ -694,12 +694,12 @@
           "droneProtocol": 0,
           "impactIdentity": 44
         },
-        "finalHash": "6051e5005bf77f03",
+        "finalHash": "d841ac33592e29d1",
         "ticks": 1081,
         "structure": {
-          "peakEntities": 16,
+          "peakEntities": 17,
           "maxWorkUnitsPerTick": 45,
-          "maxSnapshotBytes": 12412
+          "maxSnapshotBytes": 12368
         }
       },
       "evolved": {
@@ -710,15 +710,15 @@
           "evolved": true
         },
         "common": {
-          "damage": 3194.55,
-          "hits": 31,
-          "uniqueTargets": 9,
+          "damage": 4225.05,
+          "hits": 41,
+          "uniqueTargets": 8,
           "activations": 12,
           "activationRate": 0.667,
           "projectiles": 48,
           "effects": 0,
           "tasks": 0,
-          "maxEntities": 14
+          "maxEntities": 15
         },
         "capabilityMetrics": {
           "cadence": 0.659,
@@ -743,12 +743,12 @@
           "droneProtocol": 0,
           "impactIdentity": 48
         },
-        "finalHash": "b2971b45c80b57af",
+        "finalHash": "dd178f240a38f7c8",
         "ticks": 1081,
         "structure": {
-          "peakEntities": 14,
+          "peakEntities": 15,
           "maxWorkUnitsPerTick": 45,
-          "maxSnapshotBytes": 13747
+          "maxSnapshotBytes": 13895
         }
       },
       "delta": {
@@ -816,8 +816,8 @@
           "evolved": false
         },
         "common": {
-          "damage": 5320,
-          "hits": 28,
+          "damage": 6270,
+          "hits": 33,
           "uniqueTargets": 9,
           "activations": 5,
           "activationRate": 0.278,
@@ -849,12 +849,12 @@
           "droneProtocol": 0,
           "impactIdentity": 10
         },
-        "finalHash": "6cb3602a3e0030b3",
+        "finalHash": "25b2e73ce5bb504f",
         "ticks": 1081,
         "structure": {
           "peakEntities": 19,
           "maxWorkUnitsPerTick": 81,
-          "maxSnapshotBytes": 11994
+          "maxSnapshotBytes": 12102
         }
       },
       "evolved": {
@@ -865,15 +865,15 @@
           "evolved": true
         },
         "common": {
-          "damage": 10840,
-          "hits": 52,
+          "damage": 12940,
+          "hits": 62,
           "uniqueTargets": 9,
           "activations": 7,
           "activationRate": 0.389,
           "projectiles": 0,
           "effects": 14,
           "tasks": 7,
-          "maxEntities": 23
+          "maxEntities": 20
         },
         "capabilityMetrics": {
           "cadence": 0.365,
@@ -898,25 +898,25 @@
           "droneProtocol": 0,
           "impactIdentity": 35
         },
-        "finalHash": "28180bbb1179d70a",
+        "finalHash": "31cd64f143f4dfb3",
         "ticks": 1081,
         "structure": {
-          "peakEntities": 23,
-          "maxWorkUnitsPerTick": 117,
-          "maxSnapshotBytes": 12673
+          "peakEntities": 20,
+          "maxWorkUnitsPerTick": 81,
+          "maxSnapshotBytes": 12333
         }
       },
       "delta": {
         "common": {
-          "damage": 5520,
-          "hits": 24,
+          "damage": 6670,
+          "hits": 29,
           "uniqueTargets": 0,
           "activations": 2,
           "activationRate": 0.111,
           "projectiles": 0,
           "effects": 9,
           "tasks": 7,
-          "maxEntities": 4
+          "maxEntities": 1
         },
         "capabilityMetrics": {
           "cadence": 0.116,
@@ -971,8 +971,8 @@
           "evolved": false
         },
         "common": {
-          "damage": 8825.5,
-          "hits": 76,
+          "damage": 4761.125,
+          "hits": 41,
           "uniqueTargets": 9,
           "activations": 12,
           "activationRate": 0.667,
@@ -1004,12 +1004,12 @@
           "droneProtocol": 0,
           "impactIdentity": 24
         },
-        "finalHash": "8b37570e9e59e4e8",
+        "finalHash": "ae27847a7d8951bc",
         "ticks": 1081,
         "structure": {
           "peakEntities": 13,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 11418
+          "maxSnapshotBytes": 11515
         }
       },
       "evolved": {
@@ -1020,8 +1020,8 @@
           "evolved": true
         },
         "common": {
-          "damage": 10683.5,
-          "hits": 92,
+          "damage": 11148,
+          "hits": 96,
           "uniqueTargets": 9,
           "activations": 15,
           "activationRate": 0.833,
@@ -1053,18 +1053,18 @@
           "droneProtocol": 0,
           "impactIdentity": 30
         },
-        "finalHash": "8b9411764732667e",
+        "finalHash": "de7e6dee1377b7ad",
         "ticks": 1081,
         "structure": {
           "peakEntities": 14,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 12580
+          "maxSnapshotBytes": 12551
         }
       },
       "delta": {
         "common": {
-          "damage": 1858,
-          "hits": 16,
+          "damage": 6386.875,
+          "hits": 55,
           "uniqueTargets": 0,
           "activations": 3,
           "activationRate": 0.166,
@@ -1127,13 +1127,13 @@
           "evolved": false
         },
         "common": {
-          "damage": 5057.5,
-          "hits": 26,
-          "uniqueTargets": 9,
+          "damage": 3187.5,
+          "hits": 15,
+          "uniqueTargets": 3,
           "activations": 5,
           "activationRate": 0.278,
           "projectiles": 15,
-          "effects": 2,
+          "effects": 3,
           "tasks": 0,
           "maxEntities": 15
         },
@@ -1158,14 +1158,14 @@
           "railAimAlignment": 0,
           "transitPush": 0,
           "droneProtocol": 0,
-          "impactIdentity": 17
+          "impactIdentity": 18
         },
-        "finalHash": "7f881fcf09ac5742",
+        "finalHash": "6e941d95326b99cc",
         "ticks": 1141,
         "structure": {
           "peakEntities": 15,
           "maxWorkUnitsPerTick": 54,
-          "maxSnapshotBytes": 11913
+          "maxSnapshotBytes": 10846
         }
       },
       "evolved": {
@@ -1176,15 +1176,15 @@
           "evolved": true
         },
         "common": {
-          "damage": 5822.5,
-          "hits": 29,
+          "damage": 6247.5,
+          "hits": 27,
           "uniqueTargets": 9,
           "activations": 6,
           "activationRate": 0.333,
           "projectiles": 18,
           "effects": 3,
           "tasks": 0,
-          "maxEntities": 16
+          "maxEntities": 21
         },
         "capabilityMetrics": {
           "cadence": 10.345,
@@ -1209,25 +1209,25 @@
           "droneProtocol": 0,
           "impactIdentity": 21
         },
-        "finalHash": "b6382943f61ba513",
+        "finalHash": "be785b38a7e79b9a",
         "ticks": 1141,
         "structure": {
-          "peakEntities": 16,
-          "maxWorkUnitsPerTick": 63,
-          "maxSnapshotBytes": 12159
+          "peakEntities": 21,
+          "maxWorkUnitsPerTick": 108,
+          "maxSnapshotBytes": 12971
         }
       },
       "delta": {
         "common": {
-          "damage": 765,
-          "hits": 3,
-          "uniqueTargets": 0,
+          "damage": 3060,
+          "hits": 12,
+          "uniqueTargets": 6,
           "activations": 1,
           "activationRate": 0.055,
           "projectiles": 3,
-          "effects": 1,
+          "effects": 0,
           "tasks": 0,
-          "maxEntities": 1
+          "maxEntities": 6
         },
         "capabilityMetrics": {
           "cadence": 0,
@@ -1250,10 +1250,10 @@
           "railAimAlignment": 0,
           "transitPush": 0,
           "droneProtocol": 0,
-          "impactIdentity": 4
+          "impactIdentity": 3
         }
       },
-      "nonCosmeticDeltaCount": 7
+      "nonCosmeticDeltaCount": 8
     },
     {
       "sourceKey": "signature:rift",
@@ -1282,8 +1282,8 @@
           "evolved": false
         },
         "common": {
-          "damage": 5913.6,
-          "hits": 48,
+          "damage": 5420.8,
+          "hits": 44,
           "uniqueTargets": 8,
           "activations": 20,
           "activationRate": 1.111,
@@ -1315,12 +1315,12 @@
           "droneProtocol": 0,
           "impactIdentity": 40
         },
-        "finalHash": "7969324415d7a4fe",
+        "finalHash": "4093b4ad37114758",
         "ticks": 1081,
         "structure": {
           "peakEntities": 14,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 11472
+          "maxSnapshotBytes": 11367
         }
       },
       "evolved": {
@@ -1331,8 +1331,8 @@
           "evolved": true
         },
         "common": {
-          "damage": 16878.4,
-          "hits": 137,
+          "damage": 7515.2,
+          "hits": 61,
           "uniqueTargets": 8,
           "activations": 27,
           "activationRate": 1.5,
@@ -1364,18 +1364,18 @@
           "droneProtocol": 0,
           "impactIdentity": 54
         },
-        "finalHash": "96fb855dc1f9f801",
+        "finalHash": "2e15d01681fa64eb",
         "ticks": 1081,
         "structure": {
           "peakEntities": 13,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 13030
+          "maxSnapshotBytes": 13190
         }
       },
       "delta": {
         "common": {
-          "damage": 10964.8,
-          "hits": 89,
+          "damage": 2094.4,
+          "hits": 17,
           "uniqueTargets": 0,
           "activations": 7,
           "activationRate": 0.389,
@@ -1437,13 +1437,13 @@
           "evolved": false
         },
         "common": {
-          "damage": 2145,
-          "hits": 15,
-          "uniqueTargets": 9,
+          "damage": 3718,
+          "hits": 26,
+          "uniqueTargets": 7,
           "activations": 7,
           "activationRate": 0.389,
           "projectiles": 28,
-          "effects": 4,
+          "effects": 3,
           "tasks": 0,
           "maxEntities": 18
         },
@@ -1468,14 +1468,14 @@
           "railAimAlignment": 0,
           "transitPush": 0,
           "droneProtocol": 0,
-          "impactIdentity": 32
+          "impactIdentity": 31
         },
-        "finalHash": "5a79997558753669",
+        "finalHash": "c319a22cb55911bd",
         "ticks": 1081,
         "structure": {
           "peakEntities": 18,
           "maxWorkUnitsPerTick": 45,
-          "maxSnapshotBytes": 12088
+          "maxSnapshotBytes": 12193
         }
       },
       "evolved": {
@@ -1486,13 +1486,13 @@
           "evolved": true
         },
         "common": {
-          "damage": 3575,
-          "hits": 25,
-          "uniqueTargets": 9,
+          "damage": 4290,
+          "hits": 30,
+          "uniqueTargets": 8,
           "activations": 11,
           "activationRate": 0.611,
           "projectiles": 44,
-          "effects": 19,
+          "effects": 20,
           "tasks": 0,
           "maxEntities": 20
         },
@@ -1517,25 +1517,25 @@
           "railAimAlignment": 0,
           "transitPush": 0,
           "droneProtocol": 0,
-          "impactIdentity": 63
+          "impactIdentity": 64
         },
-        "finalHash": "3c1812b98895ebeb",
+        "finalHash": "2397ed7d933c8985",
         "ticks": 1081,
         "structure": {
           "peakEntities": 20,
           "maxWorkUnitsPerTick": 81,
-          "maxSnapshotBytes": 13221
+          "maxSnapshotBytes": 13003
         }
       },
       "delta": {
         "common": {
-          "damage": 1430,
-          "hits": 10,
-          "uniqueTargets": 0,
+          "damage": 572,
+          "hits": 4,
+          "uniqueTargets": 1,
           "activations": 4,
           "activationRate": 0.222,
           "projectiles": 16,
-          "effects": 15,
+          "effects": 17,
           "tasks": 0,
           "maxEntities": 2
         },
@@ -1560,10 +1560,10 @@
           "railAimAlignment": 0,
           "transitPush": 0,
           "droneProtocol": 0,
-          "impactIdentity": 31
+          "impactIdentity": 33
         }
       },
-      "nonCosmeticDeltaCount": 7
+      "nonCosmeticDeltaCount": 8
     },
     {
       "sourceKey": "signature:vesper",
@@ -1592,15 +1592,15 @@
           "evolved": false
         },
         "common": {
-          "damage": 3536,
-          "hits": 26,
-          "uniqueTargets": 9,
+          "damage": 3400,
+          "hits": 25,
+          "uniqueTargets": 7,
           "activations": 9,
           "activationRate": 0.5,
           "projectiles": 18,
           "effects": 6,
           "tasks": 0,
-          "maxEntities": 26
+          "maxEntities": 27
         },
         "capabilityMetrics": {
           "cadence": 0.496,
@@ -1625,12 +1625,12 @@
           "droneProtocol": 0,
           "impactIdentity": 24
         },
-        "finalHash": "e46bce66bdb1abc3",
+        "finalHash": "4582dbdc07a0b3ba",
         "ticks": 1081,
         "structure": {
-          "peakEntities": 26,
+          "peakEntities": 27,
           "maxWorkUnitsPerTick": 27,
-          "maxSnapshotBytes": 12597
+          "maxSnapshotBytes": 12537
         }
       },
       "evolved": {
@@ -1641,15 +1641,15 @@
           "evolved": true
         },
         "common": {
-          "damage": 5168,
-          "hits": 38,
+          "damage": 4760,
+          "hits": 35,
           "uniqueTargets": 9,
           "activations": 15,
           "activationRate": 0.833,
           "projectiles": 30,
-          "effects": 8,
+          "effects": 11,
           "tasks": 0,
-          "maxEntities": 36
+          "maxEntities": 37
         },
         "capabilityMetrics": {
           "cadence": 0.796,
@@ -1672,25 +1672,25 @@
           "railAimAlignment": 0,
           "transitPush": 0,
           "droneProtocol": 0,
-          "impactIdentity": 38
+          "impactIdentity": 41
         },
-        "finalHash": "14281af20031a8ee",
+        "finalHash": "939bab252bb48f04",
         "ticks": 1081,
         "structure": {
-          "peakEntities": 36,
+          "peakEntities": 37,
           "maxWorkUnitsPerTick": 45,
-          "maxSnapshotBytes": 13951
+          "maxSnapshotBytes": 13867
         }
       },
       "delta": {
         "common": {
-          "damage": 1632,
-          "hits": 12,
-          "uniqueTargets": 0,
+          "damage": 1360,
+          "hits": 10,
+          "uniqueTargets": 2,
           "activations": 6,
           "activationRate": 0.333,
           "projectiles": 12,
-          "effects": 2,
+          "effects": 5,
           "tasks": 0,
           "maxEntities": 10
         },
@@ -1715,10 +1715,10 @@
           "railAimAlignment": 0,
           "transitPush": 0,
           "droneProtocol": 0,
-          "impactIdentity": 14
+          "impactIdentity": 17
         }
       },
-      "nonCosmeticDeltaCount": 7
+      "nonCosmeticDeltaCount": 8
     },
     {
       "sourceKey": "universal:uwu",
@@ -1780,12 +1780,12 @@
           "droneProtocol": 0,
           "impactIdentity": 100
         },
-        "finalHash": "5a86ad0fa2f97d5a",
+        "finalHash": "379b1b93f6ec7605",
         "ticks": 1201,
         "structure": {
           "peakEntities": 14,
           "maxWorkUnitsPerTick": 27,
-          "maxSnapshotBytes": 10902
+          "maxSnapshotBytes": 11007
         }
       },
       "evolved": {
@@ -1829,12 +1829,12 @@
           "droneProtocol": 0,
           "impactIdentity": 108
         },
-        "finalHash": "78040f358a123e9b",
+        "finalHash": "156b2292875ae195",
         "ticks": 1201,
         "structure": {
           "peakEntities": 16,
           "maxWorkUnitsPerTick": 45,
-          "maxSnapshotBytes": 13788
+          "maxSnapshotBytes": 13894
         }
       },
       "delta": {
@@ -1934,12 +1934,12 @@
           "droneProtocol": 0,
           "impactIdentity": 1008
         },
-        "finalHash": "f5e4746a4aed0740",
+        "finalHash": "afed28248613d192",
         "ticks": 1080,
         "structure": {
           "peakEntities": 25,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 13264
+          "maxSnapshotBytes": 13372
         }
       },
       "evolved": {
@@ -1983,12 +1983,12 @@
           "droneProtocol": 0,
           "impactIdentity": 1008
         },
-        "finalHash": "2d7106fcb632964b",
+        "finalHash": "b47ec06e232179f1",
         "ticks": 1080,
         "structure": {
           "peakEntities": 25,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 13315
+          "maxSnapshotBytes": 13423
         }
       },
       "delta": {
@@ -2088,12 +2088,12 @@
           "droneProtocol": 0,
           "impactIdentity": 0
         },
-        "finalHash": "e806bb0e2df019a6",
+        "finalHash": "cddb6aa2be3719fa",
         "ticks": 1080,
         "structure": {
           "peakEntities": 11,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 11113
+          "maxSnapshotBytes": 11221
         }
       },
       "evolved": {
@@ -2137,12 +2137,12 @@
           "droneProtocol": 0,
           "impactIdentity": 60
         },
-        "finalHash": "a9a198a0f32e4afa",
+        "finalHash": "5236f9733ba37e56",
         "ticks": 1080,
         "structure": {
           "peakEntities": 11,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 12503
+          "maxSnapshotBytes": 12611
         }
       },
       "delta": {
@@ -2242,12 +2242,12 @@
           "droneProtocol": 0,
           "impactIdentity": 28
         },
-        "finalHash": "994ffb388463d493",
+        "finalHash": "70e9462f3d173947",
         "ticks": 1080,
         "structure": {
           "peakEntities": 28,
           "maxWorkUnitsPerTick": 135,
-          "maxSnapshotBytes": 13509
+          "maxSnapshotBytes": 13617
         }
       },
       "evolved": {
@@ -2291,12 +2291,12 @@
           "droneProtocol": 0,
           "impactIdentity": 28
         },
-        "finalHash": "550034ffcb997a62",
+        "finalHash": "3e1bbdc1c7f3e4de",
         "ticks": 1080,
         "structure": {
           "peakEntities": 30,
           "maxWorkUnitsPerTick": 144,
-          "maxSnapshotBytes": 16679
+          "maxSnapshotBytes": 16793
         }
       },
       "delta": {
@@ -2398,12 +2398,12 @@
           "droneProtocol": 0,
           "impactIdentity": 62
         },
-        "finalHash": "d04023f95f5fa931",
+        "finalHash": "b6188e82d10c4116",
         "ticks": 1260,
         "structure": {
           "peakEntities": 22,
           "maxWorkUnitsPerTick": 81,
-          "maxSnapshotBytes": 12301
+          "maxSnapshotBytes": 12411
         }
       },
       "evolved": {
@@ -2447,12 +2447,12 @@
           "droneProtocol": 0,
           "impactIdentity": 55
         },
-        "finalHash": "c449c39fa40923b0",
+        "finalHash": "44c8052ae01310e0",
         "ticks": 1260,
         "structure": {
           "peakEntities": 21,
           "maxWorkUnitsPerTick": 72,
-          "maxSnapshotBytes": 14224
+          "maxSnapshotBytes": 14334
         }
       },
       "delta": {
@@ -2553,12 +2553,12 @@
           "droneProtocol": 0,
           "impactIdentity": 21
         },
-        "finalHash": "445f39b41fc062b8",
+        "finalHash": "b0c86e8f53e64682",
         "ticks": 1140,
         "structure": {
           "peakEntities": 17,
           "maxWorkUnitsPerTick": 36,
-          "maxSnapshotBytes": 11973
+          "maxSnapshotBytes": 12079
         }
       },
       "evolved": {
@@ -2602,12 +2602,12 @@
           "droneProtocol": 0,
           "impactIdentity": 21
         },
-        "finalHash": "aadc59ea24fc7b4c",
+        "finalHash": "bd92e195152dfcbe",
         "ticks": 1140,
         "structure": {
           "peakEntities": 17,
           "maxWorkUnitsPerTick": 36,
-          "maxSnapshotBytes": 14408
+          "maxSnapshotBytes": 14520
         }
       },
       "delta": {
@@ -2707,12 +2707,12 @@
           "droneProtocol": 0,
           "impactIdentity": 48
         },
-        "finalHash": "540228c02d437680",
+        "finalHash": "7799fe6871579cd0",
         "ticks": 1080,
         "structure": {
           "peakEntities": 20,
           "maxWorkUnitsPerTick": 63,
-          "maxSnapshotBytes": 12755
+          "maxSnapshotBytes": 12863
         }
       },
       "evolved": {
@@ -2723,8 +2723,8 @@
           "evolved": true
         },
         "common": {
-          "damage": 9855,
-          "hits": 73,
+          "damage": 8235,
+          "hits": 61,
           "uniqueTargets": 9,
           "activations": 8,
           "activationRate": 0.444,
@@ -2756,18 +2756,18 @@
           "droneProtocol": 0,
           "impactIdentity": 48
         },
-        "finalHash": "be100b4ae372348e",
+        "finalHash": "31caf0a21e3235eb",
         "ticks": 1080,
         "structure": {
           "peakEntities": 20,
           "maxWorkUnitsPerTick": 63,
-          "maxSnapshotBytes": 14068
+          "maxSnapshotBytes": 14232
         }
       },
       "delta": {
         "common": {
-          "damage": -7155,
-          "hits": -53,
+          "damage": -8775,
+          "hits": -65,
           "uniqueTargets": 2,
           "activations": 0,
           "activationRate": 0,
@@ -2861,12 +2861,12 @@
           "droneProtocol": 0,
           "impactIdentity": 49
         },
-        "finalHash": "afe5010157bf95b7",
+        "finalHash": "f963bde811f850ea",
         "ticks": 1080,
         "structure": {
           "peakEntities": 21,
           "maxWorkUnitsPerTick": 72,
-          "maxSnapshotBytes": 12677
+          "maxSnapshotBytes": 12785
         }
       },
       "evolved": {
@@ -2910,12 +2910,12 @@
           "droneProtocol": 0,
           "impactIdentity": 104
         },
-        "finalHash": "683a89c57ca25874",
+        "finalHash": "2917398e1ef36b0a",
         "ticks": 1080,
         "structure": {
           "peakEntities": 28,
           "maxWorkUnitsPerTick": 135,
-          "maxSnapshotBytes": 14917
+          "maxSnapshotBytes": 15025
         }
       },
       "delta": {
@@ -3016,12 +3016,12 @@
           "droneProtocol": 0,
           "impactIdentity": 2
         },
-        "finalHash": "2c0fc8789498287c",
+        "finalHash": "a6dccc6c2952fcc0",
         "ticks": 1080,
         "structure": {
           "peakEntities": 17,
           "maxWorkUnitsPerTick": 27,
-          "maxSnapshotBytes": 10768
+          "maxSnapshotBytes": 10882
         }
       },
       "evolved": {
@@ -3065,12 +3065,12 @@
           "droneProtocol": 0,
           "impactIdentity": 2
         },
-        "finalHash": "941a7c5015f7ec31",
+        "finalHash": "e4d939787c78ee03",
         "ticks": 1080,
         "structure": {
           "peakEntities": 17,
           "maxWorkUnitsPerTick": 27,
-          "maxSnapshotBytes": 12042
+          "maxSnapshotBytes": 12154
         }
       },
       "delta": {
@@ -3170,12 +3170,12 @@
           "droneProtocol": 0,
           "impactIdentity": 0
         },
-        "finalHash": "3d6d39b24619b5a9",
+        "finalHash": "2026f4f56000cead",
         "ticks": 1081,
         "structure": {
           "peakEntities": 13,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 11133
+          "maxSnapshotBytes": 11241
         }
       },
       "evolved": {
@@ -3219,12 +3219,12 @@
           "droneProtocol": 0,
           "impactIdentity": 0
         },
-        "finalHash": "1225ed9d412d7ab1",
+        "finalHash": "3ec4a2f56a624399",
         "ticks": 1081,
         "structure": {
           "peakEntities": 13,
           "maxWorkUnitsPerTick": 9,
-          "maxSnapshotBytes": 11131
+          "maxSnapshotBytes": 11239
         }
       },
       "delta": {
@@ -3324,12 +3324,12 @@
           "droneProtocol": 0,
           "impactIdentity": 1
         },
-        "finalHash": "a9f01eb84671e085",
+        "finalHash": "0370f1dc23352cc5",
         "ticks": 1081,
         "structure": {
           "peakEntities": 24,
           "maxWorkUnitsPerTick": 90,
-          "maxSnapshotBytes": 13119
+          "maxSnapshotBytes": 13227
         }
       },
       "evolved": {
@@ -3373,12 +3373,12 @@
           "droneProtocol": 0,
           "impactIdentity": 1
         },
-        "finalHash": "9dbc0ccbc1481e45",
+        "finalHash": "60ab47d97777d3c9",
         "ticks": 1081,
         "structure": {
           "peakEntities": 24,
           "maxWorkUnitsPerTick": 90,
-          "maxSnapshotBytes": 13118
+          "maxSnapshotBytes": 13226
         }
       },
       "delta": {
@@ -3482,12 +3482,12 @@
           "droneProtocol": 0,
           "impactIdentity": 72
         },
-        "finalHash": "cc359040095fef31",
+        "finalHash": "471d716bded8db51",
         "ticks": 3245,
         "structure": {
           "peakEntities": 18,
           "maxWorkUnitsPerTick": 64,
-          "maxSnapshotBytes": 12518
+          "maxSnapshotBytes": 12626
         }
       },
       "evolved": {
@@ -3531,12 +3531,12 @@
           "droneProtocol": 1,
           "impactIdentity": 74
         },
-        "finalHash": "3ba3bc1abf3f7b36",
+        "finalHash": "6c4462578af7e256",
         "ticks": 3245,
         "structure": {
           "peakEntities": 18,
           "maxWorkUnitsPerTick": 64,
-          "maxSnapshotBytes": 12925
+          "maxSnapshotBytes": 13033
         }
       },
       "delta": {

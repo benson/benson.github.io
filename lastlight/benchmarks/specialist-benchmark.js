@@ -151,6 +151,11 @@ function activeAbilityState(sim, player) {
 function castTracked(sim, player, slot, tracking) {
   const before = new Map(sim.players.map((entry) => [entry.id, { shield: entry.shield, invuln: entry.invuln }]));
   if (!sim.cast(player.id, slot)) return false;
+  // Balance probes measure the cast payload, not presentation latency. Resolve
+  // the real production task descriptor immediately so shield/support deltas
+  // remain observable without adding benchmark-only gameplay hooks.
+  const releaseIndex = sim.tasks.findIndex((task) => task.kind === "player-cast-release" && task.payload?.ownerId === player.id && task.payload?.slot === slot);
+  if (releaseIndex >= 0) sim.executeTask(sim.tasks.splice(releaseIndex, 1)[0]);
   tracking.casts[slot]++;
   for (const ally of sim.players) {
     const prior = before.get(ally.id);

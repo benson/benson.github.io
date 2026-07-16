@@ -81,16 +81,20 @@ test("events and delayed tasks use tick-stamped serializable state", () => {
   const sola = create("sola");
   sola.level = 3;
   sola.cast("p1", "e");
+  assert.deepEqual(sola.tasks.map((task) => task.kind), ["player-cast-release"]);
+  assert.equal(sola.tasks[0].dueTick, 3);
+  sola.tick = 3;
+  sola.updateTasks();
   assert.deepEqual(sola.tasks.map((task) => task.kind), ["sola-detonate", "sola-aftershock"]);
-  assert.deepEqual(sola.tasks.map((task) => task.dueTick), [180, 300]);
+  assert.deepEqual(sola.tasks.map((task) => task.dueTick), [183, 303]);
   assert.doesNotThrow(() => JSON.stringify(sola.tasks));
   assert.equal(Object.values(sola.tasks[0]).some((value) => typeof value === "function"), false);
-  sola.tick = 179;
+  sola.tick = 182;
   sola.update(1 / SIMULATION_TICK_RATE);
   assert.equal(sola.players[0].armor, 25);
   assert.deepEqual(sola.tasks.map((task) => task.kind), ["sola-aftershock"]);
   sola.pushEvent("test", "Tick event");
-  assert.equal(sola.events.at(-1).at, 180);
+  assert.equal(sola.events.at(-1).at, 183);
 });
 
 test("versioned gameplay flags can safely suppress optional objective systems", () => {

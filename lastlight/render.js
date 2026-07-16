@@ -1,26 +1,30 @@
-import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260715.2";
-import { WORLD } from "./engine.js?v=20260715.2";
-import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260715.2";
+import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260715.3";
+import { WORLD } from "./engine.js?v=20260715.3";
+import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260715.3";
 import { springCamera } from "./feel.js?v=20260713.2";
 import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistFacingTarget, specialistMotionState, stableDirectionColumn } from "./motion.js?v=20260713.1";
 import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
 import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260711.5";
-import { impactRenderPlan } from "./impact-grammar.js?v=20260715.2";
-import { movementVisualState } from "./movement.js?v=20260715.2";
+import { impactRenderPlan } from "./impact-grammar.js?v=20260715.3";
+import { movementVisualState } from "./movement.js?v=20260715.3";
 import { effectReadabilityCategory, partitionEffects, readabilityPlan, shouldPromoteCache } from "./readability.js?v=20260711.8";
 import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260711.8";
 import { EnvironmentInteractionField, stableEnvironmentUnit } from "./environment-interactions.js?v=20260712.1";
-import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260715.2";
-import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260715.2";
+import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260715.3";
+import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260715.3";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
 import { PING_INTENTS, PING_LIFETIME_TICKS, selectVisiblePings } from "./ping-contract.js?v=20260713.4";
-import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260715.2";
-import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260715.2";
+import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260715.3";
+import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260715.3";
 import {
   ImpactIntensityDirector, aftermathPlan, attackerRecoilTransform, cameraLookBias,
   impactFeedbackPlan, impactReactionTransform, impactTierForEvent, projectileMotionPlan,
   secondaryMotionPlan, selectImpactFeedback,
-} from "./impact-feel.js?v=20260715.2";
+} from "./impact-feel.js?v=20260715.3";
+import { combatTurnPlan, isBodyDrivingSource, resolvedCombatFacing, specialistMuzzlePoint } from "./combat-orientation.js?v=20260715.3";
+import {
+  cameraCompositionPlan, castMotionPlan, combatDensityPlan, playerLifecycleMotionPlan, rewardMotionPlan,
+} from "./combat-choreography.js?v=20260715.3";
 
 const TAU = Math.PI * 2;
 const PING_BUFFER_LIMIT = 32;
@@ -403,8 +407,9 @@ export class Renderer {
     for (const [id, item] of this.targetImpactVisuals) { item.ageMs += elapsedMs; if (item.ageMs > item.lifetimeMs) this.targetImpactVisuals.delete(id); }
     for (const [id, item] of this.attackerImpactVisuals) { item.ageMs += elapsedMs; if (item.ageMs > item.lifetimeMs) this.attackerImpactVisuals.delete(id); }
 
-    const density = this.qualityProfile.effectsDensity;
-    const crowded = (state.enemies?.length || 0) > 24 || (state.effects?.length || 0) > 80;
+    const densityPlan = this.combatDensity || combatDensityPlan(state, this.qualityProfile.effectsDensity);
+    const density = densityPlan.cosmeticDensity;
+    const crowded = densityPlan.crowded;
     this.impactDirector.beginFrame({ crowded, density });
     const candidates = [];
     for (const event of state.impactEvents || []) {
@@ -818,6 +823,7 @@ export class Renderer {
 
   draw(state, localPlayerId, previous = null, interpolation = 1, frameSeconds = 1 / 60) {
     if (!state?.players) return;
+    this.renderTick = Number(state.tick) || 0;
     this.updateQuality(frameSeconds);
     // The renderer is constructed while the game screen is display:none. Some
     // browsers therefore report a 0x0 canvas until the first run begins. Never
@@ -827,12 +833,14 @@ export class Renderer {
     const map = typeof state.map === "string" ? MAPS[state.map] : state.map;
     this.updateMaterialImpacts(state, map, frameSeconds);
     this.updateEnemyAttackContacts(state, frameSeconds);
+    this.combatDensity = combatDensityPlan(state, this.qualityProfile.effectsDensity);
     this.updateImpactFeel(state, frameSeconds, localPlayerId);
     const current = state.players.find((p) => p.id === localPlayerId) || state.players[0] || { x: 0, y: 0 };
     const pos = this.position(current, previous?.players, interpolation);
-    const lookAngle = Number.isFinite(current.aimFacing) ? current.aimFacing : current.facing || 0;
+    const lookAngle = resolvedCombatFacing(current, this.renderTick);
     const look = cameraLookBias({ aimAngle: lookAngle, moving: current.moving, speedRatio: current.moveSpeedRatio, reducedMotion: this.reducedMotion });
-    springCamera(this.camera, { x: pos.x + look.x, y: pos.y + look.y }, frameSeconds);
+    const composition = cameraCompositionPlan(current, this.renderTick, this.combatDensity, { reducedMotion: this.reducedMotion });
+    springCamera(this.camera, { x: pos.x + look.x + composition.x, y: pos.y + look.y + composition.y }, frameSeconds);
     const hurt = this.reducedMotion ? 0 : clamp((current.hurtFlash || 0) / .24, 0, 1) * this.qualityProfile.hitFlashes;
     this.lastLocalHurt = hurt;
     const visualDt = frameSeconds;
@@ -1255,8 +1263,11 @@ export class Renderer {
     const ctx = this.ctx, now = performance.now();
     for (const drop of drops) {
       if (!this.isWorldVisible(drop, 45)) continue;
-      const bob = this.reducedMotion ? 0 : Math.sin(now * .004 + drop.x) * 3, pulse = 1 + Math.sin(now * .007 + drop.x) * .07;
+      const reward = rewardMotionPlan(drop, now, { reducedMotion: this.reducedMotion, important: drop.type === "card" });
+      const bob = reward.bob, pulse = reward.scale;
       ctx.save(); ctx.translate(drop.x, drop.y + bob);
+      ctx.globalAlpha = reward.haloAlpha; ctx.strokeStyle = drop.type === "card" ? "#f8d85c" : "#fff"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(0, 0, drop.radius * reward.haloScale + 7, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1;
       ctx.fillStyle = "rgba(0,0,0,.42)"; ctx.beginPath(); ctx.ellipse(3, drop.radius * .78, drop.radius * .95, drop.radius * .4, 0, 0, TAU); ctx.fill();
       ctx.scale(pulse, pulse); ctx.lineJoin = "round";
       if (drop.type === "card") {
@@ -1286,8 +1297,9 @@ export class Renderer {
     const ctx = this.ctx, now = performance.now(), image = this.effectSprites.xpShard;
     for (const orb of orbs) {
       if (!this.isWorldVisible(orb, 35)) continue;
-      const pulse = 1 + Math.sin(now * .009 + orb.x * .03) * .1, size = Math.max(16, orb.radius * 3.25) * pulse;
-      ctx.save(); ctx.translate(orb.x, orb.y + (this.reducedMotion ? 0 : Math.sin(now * .004 + orb.y) * 1.8));
+      const reward = rewardMotionPlan(orb, now, { reducedMotion: this.reducedMotion, important: orb.radius >= 9 });
+      const size = Math.max(16, orb.radius * 3.25) * reward.scale;
+      ctx.save(); ctx.translate(orb.x, orb.y + reward.bob);
       ctx.fillStyle = "rgba(0,0,0,.38)"; ctx.beginPath(); ctx.ellipse(2, orb.radius * .8, size * .32, size * .14, 0, 0, TAU); ctx.fill();
       ctx.shadowColor = "#56f4ed"; ctx.shadowBlur = 8;
       if (image?.complete && image.naturalWidth) ctx.drawImage(image, -size / 2, -size / 2, size, size);
@@ -1434,7 +1446,13 @@ export class Renderer {
       const plan = hostile ? null : impactRenderPlan(b, state, { reducedMotion: this.reducedMotion, density: this.qualityProfile.effectsDensity });
       const motionPlan = plan ? projectileMotionPlan(b, plan, { reducedMotion: this.reducedMotion }) : null;
       const silhouette = plan?.silhouette || "", speed=Math.hypot(b.vx||0,b.vy||0), angle=Math.atan2(b.vy||0,b.vx||0), color=plan?.colors.body||b.color||"#8cefff";
-      ctx.save();ctx.translate(b.x,b.y);ctx.rotate(angle);ctx.lineJoin="round";ctx.lineCap="round";
+      const launchAge = Math.max(0, Number(b.age) || 0), launchProgress = Math.min(1, launchAge / .075), launchBlend = (1 - launchProgress) ** 3;
+      const owner = launchProgress < 1 && !b.bodyNeutral && isBodyDrivingSource(b.sourceId) ? state.players?.find(({ id }) => id === b.owner) : null;
+      const muzzle = owner ? specialistMuzzlePoint(owner, Number.isFinite(owner.recoilAngle) ? owner.recoilAngle : angle) : null;
+      const launchX = muzzle ? muzzle.x + (Number(b.vx) || 0) * launchAge : b.x;
+      const launchY = muzzle ? muzzle.y + (Number(b.vy) || 0) * launchAge : b.y;
+      const drawX = b.x + (launchX - b.x) * launchBlend, drawY = b.y + (launchY - b.y) * launchBlend;
+      ctx.save();ctx.translate(drawX,drawY);ctx.rotate(angle);ctx.lineJoin="round";ctx.lineCap="round";
       if(hostile){
         // Hostile shots are always winged arrowheads with a long hot tail. The
         // silhouette stays dangerous even when their source enemy is teal.
@@ -1987,7 +2005,7 @@ export class Renderer {
       const reportedMoving = Boolean(p.downed ? raw.downedCrawling : raw.moving ?? inferredMoving) && !p.dead;
       const inferredFacing = inferredMoving ? Math.atan2(dy, dx) : 0;
       const locomotionTarget = specialistFacingTarget(raw, reportedMoving, inferredFacing);
-      const aimTarget = Number.isFinite(raw.aimFacing) ? raw.aimFacing : locomotionTarget;
+      const aimTarget = resolvedCombatFacing(raw, this.renderTick);
       const now = performance.now();
       const visual = this.playerVisuals.get(p.id) || {
         facing: locomotionTarget, aimFacing: aimTarget, directionColumn: directionColumn(locomotionTarget), turn: Math.cos(locomotionTarget) >= 0 ? 1 : -1,
@@ -2010,11 +2028,15 @@ export class Renderer {
       visual.groundOffset += (movementTarget.groundOffset - visual.groundOffset) * movementBlend;
       visual.shadowX += (movementTarget.shadowX - visual.shadowX) * movementBlend;
       visual.shadowY += (movementTarget.shadowY - visual.shadowY) * movementBlend;
-      visual.secondary = secondaryMotionPlan({ turnDelta: facingDelta, speedRatio: raw.moveSpeedRatio, recoil: clamp((raw.weaponFlash || 0) / .09, 0, 1), mass: "player", reducedMotion: this.reducedMotion });
+      const recoil = clamp((raw.weaponFlash || 0) / .09, 0, 1);
+      const bodyTurn = combatTurnPlan({ from: visual.aimFacing, to: aimTarget, recoil, reducedMotion: this.reducedMotion });
+      const secondary = secondaryMotionPlan({ turnDelta: facingDelta, speedRatio: raw.moveSpeedRatio, recoil, mass: "player", reducedMotion: this.reducedMotion });
+      visual.secondary = { ...secondary, rotation: secondary.rotation + bodyTurn.rotation, shear: secondary.shear + bodyTurn.shear };
 
       const hurt = clamp((p.hurtFlash || 0) / .24, 0, 1) * this.qualityProfile.hitFlashes;
       const animation = specialistMotionState(raw, moving, hurt);
-      const usesAimFacing = ["castE", "castR", "cast"].includes(animation);
+      const combatCommitted = raw.orient === 1 || Number(raw.combatFacingUntilTick) >= this.renderTick;
+      const usesAimFacing = ["castE", "castR", "cast"].includes(animation) || combatCommitted || raw.orient === 2 || Boolean(raw.autoAim && (raw.autoAimTargetId || raw.autoAimTracking));
       const drawFacing = usesAimFacing || !moving ? visual.aimFacing : visual.facing;
       visual.directionColumn = stableDirectionColumn(drawFacing, visual.directionColumn);
       const targetTurn = Math.cos(drawFacing) >= 0 ? 1 : -1;
@@ -2038,10 +2060,22 @@ export class Renderer {
 
       const groundY = animationConfig?.groundY ?? 24;
       const movementForm = { lean: visual.movementLean, groundOffset: visual.groundOffset, shadowX: visual.shadowX, shadowY: visual.shadowY };
+      const castPlan = castMotionPlan(raw, this.renderTick, { reducedMotion: this.reducedMotion });
+      const lifecyclePlan = playerLifecycleMotionPlan(raw, this.renderTick, { reducedMotion: this.reducedMotion });
       ctx.save(); ctx.translate(p.x, p.y);
       const hitTransform = this.impactTransformFor(p.id), recoilTransform = this.impactTransformFor(p.id, true);
       for (const transform of [hitTransform, recoilTransform]) if (transform) { ctx.translate(transform.x, transform.y); ctx.rotate(transform.rotation); if (transform.scaleX) ctx.scale(transform.scaleX, transform.scaleY); }
       const shadow = animationConfig?.shadow || [35, 14];
+      if (castPlan.active && castPlan.ringAlpha > 0) {
+        ctx.save(); ctx.translate(0, groundY - 2); ctx.globalAlpha = castPlan.ringAlpha; ctx.strokeStyle = spec.color; ctx.lineWidth = castPlan.slot === "r" ? 4 : 2;
+        if (castPlan.ring === "inward") ctx.setLineDash([3, 7]);
+        else if (castPlan.ring === "brace") ctx.setLineDash([12, 4]);
+        ctx.beginPath(); ctx.ellipse(0, 0, 41 * castPlan.ringScale, 18 * castPlan.ringScale, 0, 0, TAU); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+      }
+      if (lifecyclePlan.reviveRingAlpha > 0) {
+        ctx.save(); ctx.translate(0, groundY - 2); ctx.globalAlpha = lifecyclePlan.reviveRingAlpha; ctx.strokeStyle = "#63f2df"; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.ellipse(0, 0, 34 + lifecyclePlan.reviveProgress * 25, 14 + lifecyclePlan.reviveProgress * 11, 0, 0, TAU); ctx.stroke(); ctx.restore();
+      }
       ctx.fillStyle = p.dead || p.downed ? "rgba(0,0,0,.2)" : "rgba(0,0,0,.38)";
       ctx.beginPath(); ctx.ellipse(2, groundY, shadow[0] * movementForm.shadowX, shadow[1] * movementForm.shadowY, 0, 0, TAU); ctx.fill();
       if (p.id === localPlayerId) {
@@ -2091,6 +2125,9 @@ export class Renderer {
       });
       if (!spritePlan.fallback) {
         ctx.save();
+        ctx.translate(castPlan.translateX, castPlan.translateY + lifecyclePlan.translateY);
+        ctx.rotate(castPlan.rotation + lifecyclePlan.rotation);
+        ctx.scale(castPlan.scaleX * lifecyclePlan.scaleX, castPlan.scaleY * lifecyclePlan.scaleY);
         ctx.translate(...spritePlan.translate);
         ctx.rotate(spritePlan.rotation + (visual.secondary?.rotation || 0));
         ctx.transform(1, 0, visual.secondary?.shear || 0, 1, 0, 0);
@@ -2103,7 +2140,9 @@ export class Renderer {
         const image = this.sprites[p.specialist];
         if (image?.complete) {
           const size = p.specialist === "sola" ? 118 : 104;
-          ctx.save(); ctx.translate(this.reducedMotion ? 0 : Math.sin(now * .08) * hurt * 3, movementForm.groundOffset - (this.reducedMotion ? 0 : hurt * 2));
+          ctx.save(); ctx.translate(castPlan.translateX, castPlan.translateY + lifecyclePlan.translateY);
+          ctx.rotate(castPlan.rotation + lifecyclePlan.rotation); ctx.scale(castPlan.scaleX * lifecyclePlan.scaleX, castPlan.scaleY * lifecyclePlan.scaleY);
+          ctx.translate(this.reducedMotion ? 0 : Math.sin(now * .08) * hurt * 3, movementForm.groundOffset - (this.reducedMotion ? 0 : hurt * 2));
           ctx.rotate(movementForm.lean + (visual.secondary?.rotation || 0) + (this.reducedMotion ? 0 : Math.sin(p.hurtAngle || 0) * hurt * .09));
           ctx.transform(1, 0, visual.secondary?.shear || 0, 1, 0, 0);
           ctx.transform(visual.turn, 0, -Math.sin(drawFacing) * .045, 1, 0, 0);
@@ -2115,8 +2154,7 @@ export class Renderer {
 
       if ((p.weaponFlash || 0) > 0 && !p.dead && !p.downed) {
         const flash = clamp(p.weaponFlash / .09, 0, 1), angle = Number.isFinite(p.recoilAngle) ? p.recoilAngle : visual.aimFacing;
-        const muzzle = animationConfig?.sockets?.muzzle;
-        const distance = muzzle?.distance ?? animationConfig?.muzzleDistance ?? 47, x = Math.cos(angle) * distance, y = Math.sin(angle) * distance + (muzzle?.vertical ?? -8);
+        const { x, y } = specialistMuzzlePoint({ x: 0, y: 0, specialist: p.specialist }, angle);
         ctx.save(); ctx.translate(x, y); ctx.rotate(angle); ctx.globalAlpha = flash * this.qualityProfile.flashIntensity; ctx.shadowColor = "#ff5c91"; ctx.shadowBlur = 16 * this.qualityProfile.flashIntensity;
         ctx.fillStyle = "#fff4c7"; ctx.beginPath(); ctx.moveTo(18, 0); ctx.lineTo(-6, -7); ctx.lineTo(-1, 0); ctx.lineTo(-6, 7); ctx.closePath(); ctx.fill(); ctx.restore();
       }

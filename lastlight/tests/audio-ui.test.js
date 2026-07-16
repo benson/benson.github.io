@@ -52,8 +52,8 @@ test("audio persistence, cue registry, mixer diagnostics, and error context are 
   assert.match(game, /state\.audioSettings\.funnyVoice/);
   assert.match(game, /FUNNY_VOICE_MIN_INTERVAL_MS/);
   assert.match(game, /window\.speechSynthesis\.speaking \|\| window\.speechSynthesis\.pending/);
-  assert.match(game, /send\(\{ type: "cast_audio", playerId: message\._from, slot: message\.slot \}\)/);
-  assert.match(game, /message\.type === "cast_audio" && !state\.isHost && message\.playerId !== state\.clientId/);
+  assert.match(game, /event\.type === "cast"[\s\S]*sfx\(event\.slot === "r" \? "ultimate" : "ability"\)/);
+  assert.doesNotMatch(game, /type: "cast_audio"/);
   assert.match(game, /sfx\("test"\) \? "Test tone played\." : "Test tone is busy\./);
   assert.match(game, /utterance\.volume = state\.audioSettings\.voice \* state\.audioSettings\.master/);
 });

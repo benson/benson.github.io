@@ -1,4 +1,4 @@
-import { BALANCE_CONFIG } from "./balance-config.js?v=20260715.2";
+import { BALANCE_CONFIG } from "./balance-config.js?v=20260715.3";
 
 const EPSILON = 1e-6;
 const DEFAULT_MOVEMENT_POLICIES = Object.freeze(Object.fromEntries(
@@ -136,11 +136,13 @@ export function movementVisualState(player, reducedMotion = false, balance = BAL
   const lateral = (-Math.sin(facing) * (Number(player.moveVx) || 0) + Math.cos(facing) * (Number(player.moveVy) || 0)) / Math.max(1, Number(player.baseSpeed) || 1);
   const recovery = clamp((Number(player.dashRecovery) || 0) / profile.dashRecovery, 0, 1);
   const speed = clamp(Number(player.moveSpeedRatio) || 0, 0, 1);
+  const plant = clamp((Number(player.skidTime) || 0) / .16, 0, 1);
+  const plantEnvelope = Math.sin(plant * Math.PI);
   return {
     lean: clamp(lateral, -1, 1) * profile.leanDegrees * Math.PI / 180,
-    groundOffset: recovery * 2,
-    shadowX: 1 + speed * .07 + recovery * .08,
-    shadowY: 1 - speed * .08 - recovery * .08,
-    recovery,
+    groundOffset: recovery * 2 + plantEnvelope * 1.5,
+    shadowX: 1 + speed * .07 + recovery * .08 + plantEnvelope * .06,
+    shadowY: 1 - speed * .08 - recovery * .08 + plantEnvelope * .04,
+    recovery, plant: plantEnvelope,
   };
 }

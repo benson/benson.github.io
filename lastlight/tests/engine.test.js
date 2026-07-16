@@ -3,6 +3,13 @@ import assert from "node:assert/strict";
 import { MAP_OBSTACLES } from "../data.js";
 import { projectileBlockedByCover, segmentCoverImpact, Simulation } from "../engine.js";
 
+function releasePendingCast(sim) {
+  const task = sim.tasks.find(({ kind }) => kind === "player-cast-release");
+  assert.ok(task, "accepted cast must schedule an authoritative release");
+  sim.tick = task.dueTick;
+  sim.updateTasks();
+}
+
 test("swept cover collision blocks ordinary fire without tunneling and preserves authored exceptions", () => {
   const obstacle = [[0, -20, 40, 40]];
   const impact = segmentCoverImpact(-100, 0, 100, 0, 5, obstacle);
@@ -196,13 +203,16 @@ test("level-five Echo shields stay on the ten-vitality scale under sustained Sto
   player.invuln = 0;
   player.hitGrace = 0;
   assert.equal(sim.cast(player.id, "e"), true);
+  releasePendingCast(sim);
   assert.equal(player.shield, 2.5);
 
   player.eCd = 0;
   assert.equal(sim.cast(player.id, "e"), true);
+  releasePendingCast(sim);
   assert.equal(player.shield, player.maxHp * 0.5, "repeat casts cap at half a health bar");
   player.eCd = 0;
   assert.equal(sim.cast(player.id, "e"), true);
+  releasePendingCast(sim);
   assert.equal(player.shield, player.maxHp * 0.5, "the cap cannot be bypassed by rapid recasts");
 
   const brute = sim.spawnEnemy("mite");
@@ -228,6 +238,7 @@ test("all repeatable active shields share the bounded vitality-scale contract", 
     sim.level = 5;
     const player = sim.players[0];
     assert.equal(sim.cast(player.id, "e"), true, specialist);
+    releasePendingCast(sim);
     assert.ok(player.shield > 0 && player.shield <= player.maxHp * 0.5, `${specialist} shield was ${player.shield}`);
     for (let cast = 0; cast < 5; cast++) { player.eCd = 0; sim.cast(player.id, "e"); }
     assert.ok(player.shield <= player.maxHp * 0.5, `${specialist} repeat shield was ${player.shield}`);
@@ -261,6 +272,7 @@ test("Nova signature hits apply a mark that level-three Veilstep detonates", () 
   assert.equal(enemy.hexed, 8);
   const before = enemy.hp;
   assert.equal(sim.cast(player.id, "e"), true);
+  releasePendingCast(sim);
   assert.ok(enemy.hp < before);
   assert.equal(enemy.hexed, 0);
   assert.ok(player.damageBySource["ability:e"] > 0);
@@ -272,6 +284,7 @@ test("Vesper Blade Recall credits the active ability", () => {
   const player = sim.players[0];
   sim.feathers.push({ id: "feather", owner: player.id, x: 100, y: 0, radius: 7, life: 15, color: "#fff" });
   assert.equal(sim.cast(player.id, "e"), true);
+  releasePendingCast(sim);
   assert.equal(sim.projectiles[0].sourceId, "ability:e");
   const enemy = sim.spawnEnemy("brute");
   Object.assign(enemy, { x: 50, y: 0, hp: 1_000, maxHp: 1_000, speed: 0 });
@@ -537,6 +550,7 @@ test("cursor-directed mobility ignores weapon auto-aim", () => {
   const startX = player.x, startY = player.y;
 
   assert.equal(sim.cast(player.id, "e"), true);
+  releasePendingCast(sim);
   assert.equal(player.eCdMax, player.eCd);
   assert.ok(player.x > startX + 450, "dash should move right toward the cursor, not left toward the auto-aim target");
   assert.ok(Math.abs(player.y - startY) < .001);
