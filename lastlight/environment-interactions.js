@@ -1,4 +1,4 @@
-import { MATERIAL_CLASSES, MATERIAL_TARGET_METADATA } from "./material-impacts.js?v=20260711.8";
+import { MATERIAL_CLASSES, MATERIAL_TARGET_METADATA } from "./material-impacts.js?v=20260716.11";
 
 export const ENVIRONMENT_INTERACTION_SCHEMA = "lastlight.environment-interactions.v1";
 export const ENVIRONMENT_PROP_KINDS = Object.freeze(["debris", "puddle", "cable", "fiber", "dust"]);
