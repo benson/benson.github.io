@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260716.6">
+  <link rel="stylesheet" href="styles.css?v=20260716.7">
 </head>
 <body>
   <main id="app">
@@ -719,7 +719,14 @@
       </div>
       <div class="build-history-body">
         <article class="build-release current-build">
-          <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.16.6</h3></div><time class="build-shipped-at" datetime="2026-07-16T11:46:05-04:00" data-build-shipped-at="2026-07-16T11:46:05-04:00">Shipped Jul 16, 2026 · 11:46 AM EDT</time></header>
+          <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.16.7</h3></div><time class="build-shipped-at" datetime="2026-07-16T12:12:06-04:00" data-build-shipped-at="2026-07-16T12:12:06-04:00">Shipped Jul 16, 2026 · 12:12 PM EDT</time></header>
+          <ul>
+            <li>Made specialist detail changes instantaneous so rapid roster browsing stays crisp and game-like.</li>
+            <li>Kept feedback on the selected character card instead of repeatedly animating the entire information panel.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header><div><span class="build-release-status">Previous build</span><h3>2026.07.16.6</h3></div><time class="build-shipped-at" datetime="2026-07-16T11:46:05-04:00" data-build-shipped-at="2026-07-16T11:46:05-04:00">Shipped Jul 16, 2026 · 11:46 AM EDT</time></header>
           <ul>
             <li>Condensed the lobby controls into one direct keybind row and removed the redundant “Controls · Keyboard quick reference” header.</li>
             <li>Replaced the misleading intrinsic “I” keycap with an explicit “Specialist passive” label in every specialist kit.</li>
@@ -1352,10 +1359,10 @@
   </main>
 
   <aside class="edge-utilities" aria-label="Build and feedback">
-    <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.16.6. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.16.6</strong></button>
+    <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.16.7. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.16.7</strong></button>
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report a problem</button>
   </aside>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260716.6"></script>
+  <script type="module" src="game.js?v=20260716.7"></script>
 </body>
 </html>

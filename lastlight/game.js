@@ -1,51 +1,51 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260716.6";
-import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260716.6";
-import { Renderer } from "./render.js?v=20260716.6";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260716.7";
+import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260716.7";
+import { Renderer } from "./render.js?v=20260716.7";
 import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260713.2";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
-import { getThemeAsset, getThemeEnvironmentChunks, getThemeMaterial } from "./themes/lastlight.js?v=20260716.6";
-import { submitRunTelemetry } from "./telemetry.js?v=20260716.6";
+import { getThemeAsset, getThemeEnvironmentChunks, getThemeMaterial } from "./themes/lastlight.js?v=20260716.7";
+import { submitRunTelemetry } from "./telemetry.js?v=20260716.7";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260716.6";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260716.6";
+import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260716.7";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260716.7";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
-import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260716.6";
-import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260716.6";
-import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260716.6";
+import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260716.7";
+import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260716.7";
+import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260716.7";
 import {
   ACCESSIBILITY_ACTIONS, GAMEPAD_ACTIONS, bindingLabel, defaultAccessibilitySettings,
   keyboardActionForEvent, loadAccessibilitySettings, readStandardGamepad, saveAccessibilitySettings,
-} from "./accessibility-settings.js?v=20260716.6";
-import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260716.6";
+} from "./accessibility-settings.js?v=20260716.7";
+import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260716.7";
 import { GuestInputSequenceTracker, HostInputSequenceGate, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260713.2";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260713.2";
-import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260716.6";
-import { advancePlayerMovement } from "./movement.js?v=20260716.6";
-import { abilityChoreography } from "./combat-choreography.js?v=20260716.6";
-import { combatRhythmTransition } from "./combat-rhythm.js?v=20260716.6";
+import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260716.7";
+import { advancePlayerMovement } from "./movement.js?v=20260716.7";
+import { abilityChoreography } from "./combat-choreography.js?v=20260716.7";
+import { combatRhythmTransition } from "./combat-rhythm.js?v=20260716.7";
 import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
-import { DynamicAudioMixer } from "./audio-mix.js?v=20260716.6";
-import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260716.6";
+import { DynamicAudioMixer } from "./audio-mix.js?v=20260716.7";
+import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260716.7";
 import { enemyAudioCueName, newEntities, spatialAudioPan, weaponAudioCueName, weaponTimerActivations } from "./audio-events.js?v=20260713.1";
 import { FUNNY_VOICE_MIN_INTERVAL_MS, audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260713.1";
-import { playFeedbackHaptics } from "./feedback-haptics.js?v=20260716.6";
-import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260716.6";
-import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260716.6";
+import { playFeedbackHaptics } from "./feedback-haptics.js?v=20260716.7";
+import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260716.7";
+import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260716.7";
 import { getWeaponEvolution } from "./weapon-evolution.js?v=20260713.1";
-import { isFpsShortcut, isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260716.6";
-import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260716.6";
-import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260716.6";
-import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260716.6";
+import { isFpsShortcut, isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260716.7";
+import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260716.7";
+import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260716.7";
+import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260716.7";
 import { reconcileActiveBuffs } from "./active-buffs.js?v=20260713.1";
 import { ELITE_AFFIXES, ENEMY_ARCHETYPES, eliteAffixEligibility } from "./enemy-archetypes.js?v=20260713.1";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
-import { mapMechanicDefinition } from "./map-mechanics.js?v=20260716.6";
-import { CAMPAIGN_MUTATIONS, campaignMutationDefinition, campaignMutationPackageVisible } from "./campaign-mutations.js?v=20260716.6";
+import { mapMechanicDefinition } from "./map-mechanics.js?v=20260716.7";
+import { CAMPAIGN_MUTATIONS, campaignMutationDefinition, campaignMutationPackageVisible } from "./campaign-mutations.js?v=20260716.7";
 import {
   AuthoritySnapshotGate, HOST_MIGRATION_PROTOCOL_VERSION, MIGRATION_CHECKPOINT_INTERVAL_TICKS,
   createMigrationCapabilities, createMigrationCheckpoint, createMigrationReady,
   migrationCompatibilityMatches, validateMigrationCheckpoint,
-} from "./host-migration.js?v=20260716.6";
+} from "./host-migration.js?v=20260716.7";
 import { RECONNECT_DELAYS_MS, SquadPresenceTracker, authorityStateCopy } from "./reconnect-state.js?v=20260713.3";
 import {
   HostPingGate, PING_INTENTS, PING_LIFETIME_TICKS, PING_WHEEL_ORDER, PingSequenceTracker,
@@ -61,32 +61,32 @@ import { DraftRecommendationStore, recommendationMarkerModel } from "./draft-rec
 import { SQUAD_SYNERGY_REGISTRY } from "./squad-synergies.js?v=20260713.6";
 import { reconcileActiveSynergies } from "./active-synergies.js?v=20260713.6";
 import { PARTICIPATION_REGISTRY } from "./participation-credit.js?v=20260713.7";
-import { campaignJoinEligibility } from "./join-in-progress.js?v=20260716.6";
+import { campaignJoinEligibility } from "./join-in-progress.js?v=20260716.7";
 import {
   RUN_ARCHIVE_STORAGE_KEY, createSquadRunReport, decodeSquadRunFragment, normalizeRunArchiveStorage,
   squadRunShareFragment, upsertRunArchive,
-} from "./run-archive.js?v=20260716.6";
+} from "./run-archive.js?v=20260716.7";
 import {
   SPECIALIST_MASTERY, SPECIALIST_MASTERY_LEVELS, awardSpecialistMastery, loadSpecialistMasteryState,
   masteryStartDefinition, saveSpecialistMasteryState, selectMasteryStart,
-} from "./specialist-mastery.js?v=20260716.6";
+} from "./specialist-mastery.js?v=20260716.7";
 import {
   RARE_DISCOVERY_REGISTRY, awardRareDiscoveries, loadRareDiscoveryCollection,
   rareDiscoveryDefinition, rareDiscoveryTelemetry, saveRareDiscoveryCollection,
-} from "./rare-discoveries.js?v=20260716.6";
+} from "./rare-discoveries.js?v=20260716.7";
 import {
   CHALLENGE_ACHIEVEMENT_REGISTRY, awardChallengeAchievements, challengeAchievementDefinition,
   challengeAchievementTelemetry, evaluateChallengeAchievements, loadChallengeAchievementState,
   saveChallengeAchievementState,
-} from "./challenge-achievements.js?v=20260716.6";
+} from "./challenge-achievements.js?v=20260716.7";
 import {
   loadSeededOperationRecords, recordSeededOperationResult, saveSeededOperationRecords,
   seededOperationFor, seededOperationFromId, seededOperationTelemetry,
-} from "./seeded-operations.js?v=20260716.6";
+} from "./seeded-operations.js?v=20260716.7";
 import {
   PRACTICE_MAX_PASSIVES, PRACTICE_MAX_WEAPONS, defaultPracticeLaboratoryConfig,
   measurePracticeLaboratory, normalizePracticeLaboratoryConfig,
-} from "./practice-laboratory.js?v=20260716.6";
+} from "./practice-laboratory.js?v=20260716.7";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -95,7 +95,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.16.6";
+const BUILD = "2026.07.16.7";
 const AUTHORITY_WATCHDOG_MS = Object.freeze({ synchronizing: 10_000, migrating: 25_000 });
 const BALANCE = getBalanceConfig();
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
@@ -212,7 +212,7 @@ const state = {
   qualitySettings: initialQualitySettings, accessibilitySettings: initialAccessibilitySettings, accessibilityCapture: "", showEnemyHealthBars: initialQualitySettings.healthBars !== "off", inspectPointer: null, inspectActive: false,
   performanceMetrics: null, lastDamageLedgerKey: "", lastFpsUpdate: 0,
   damageLedgerLayout: loadDamageLedgerLayout(), damageLedgerResizeObserver: null,
-  bannerTimer: null, bannerExitTimer: null, rhythmTimers: new Map(), launchTimers: [], specialistDetailAnimation: null,
+  bannerTimer: null, bannerExitTimer: null, rhythmTimers: new Map(), launchTimers: [],
   resumeToken: loadClientToken(),
   hostPreviousMotion: null, inputMotionStartedAt: 0, inputMotionStart: null, inputWasActive: false,
   replayRecorder: null, lastReplayCheckpointTick: -1, lastReplay: loadLastReplay(), resultReplay: null,
@@ -1346,7 +1346,7 @@ function renderSpecialistGrid() {
     const spec = SPECIALISTS[id];
     return `<button class="specialist-card" type="button" role="option" data-specialist="${id}" aria-selected="${id === state.selected}"><small>${spec.number}</small><img class="specialist-art" src="${spec.sprite}" alt=""><span class="specialist-name">${spec.name.toUpperCase()}</span><span class="specialist-weapon"><img src="${spec.signature.icon}" alt=""><em>${escapeHTML(spec.signature.name)}</em></span></button>`;
   }).join("");
-  $("specialist-grid").querySelectorAll("button").forEach((button) => button.addEventListener("click", (event) => selectSpecialist(button.dataset.specialist, { animate: event.detail > 0 })));
+  $("specialist-grid").querySelectorAll("button").forEach((button) => button.addEventListener("click", () => selectSpecialist(button.dataset.specialist)));
   $("mastery-loadout").querySelectorAll("[data-mastery-start]").forEach((button) => button.addEventListener("click", () => chooseMasteryStart(button.dataset.masteryStart)));
 }
 
@@ -1429,7 +1429,7 @@ function chooseMasteryStart(startId) {
   } catch { toast("That field kit is still locked"); }
 }
 
-function selectSpecialist(id, { animate = false } = {}) {
+function selectSpecialist(id) {
   if (!SPECIALISTS[id]) return;
   state.selected = id;
   const spec = SPECIALISTS[id];
@@ -1447,11 +1447,6 @@ function selectSpecialist(id, { animate = false } = {}) {
   $("active-name").textContent = spec.active[0]; $("active-copy").textContent = spec.active[1];
   $("ultimate-name").textContent = spec.ultimate[0]; $("ultimate-copy").textContent = spec.ultimate[1];
   renderMasteryLoadout(id);
-  const detail = document.querySelector(".specialist-detail");
-  state.specialistDetailAnimation?.cancel();
-  state.specialistDetailAnimation = animate && !prefersReducedMotion() && detail?.animate
-    ? detail.animate([{ opacity: .72, transform: "translateX(7px)" }, { opacity: 1, transform: "translateX(0)" }], { duration: 180, easing: "cubic-bezier(.23,1,.32,1)" })
-    : null;
   if (state.screen === "lobby") updateLocalProfile({ specialist: id, masteryStart: state.mastery.tracks[id].selectedStart });
 }
 

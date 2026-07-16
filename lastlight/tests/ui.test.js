@@ -83,8 +83,7 @@ test("lobby selection flows into a restrained, accessible combat launch", () => 
   assert.match(html, /id="squad-count">1 of 4 connected/);
   assert.match(html, /id="party-list"[^>]+aria-label="Squad slots"/);
   assert.match(html, /id="launch-transition"[^>]+aria-hidden="true"/);
-  assert.match(game, /event\.detail > 0/);
-  assert.match(game, /detail\.animate\(\[\{ opacity: \.72, transform: "translateX\(7px\)" \}/);
+  assert.doesNotMatch(game, /specialistDetailAnimation|detail\.animate|event\.detail > 0/);
   assert.match(game, /function playLaunchTransition\(\)/);
   assert.match(game, /target\.classList\.toggle\("hidden", !mutation\.enabled && !encounter\)/);
   assert.match(css, /\.game-screen\.is-opening \.game-topbar/);
