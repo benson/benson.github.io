@@ -1,6 +1,15 @@
 {
-  "blurb": "played 20 other games in the last week, went 9-11",
+  "blurb": "played 20 other games in the last week, went 8-12",
   "recent": [
+    {
+      "champion": "Gragas",
+      "win": false,
+      "kills": 1,
+      "deaths": 11,
+      "assists": 19,
+      "damage": 19791,
+      "minutes": 25
+    },
     {
       "champion": "Varus",
       "win": false,
@@ -36,17 +45,8 @@
       "assists": 6,
       "damage": 30394,
       "minutes": 25
-    },
-    {
-      "champion": "Tryndamere",
-      "win": false,
-      "kills": 6,
-      "deaths": 8,
-      "assists": 5,
-      "damage": 28086,
-      "minutes": 26
     }
   ],
   "ddragonVersion": "16.14.1",
-  "date": "2026-07-15"
+  "date": "2026-07-16"
 }
