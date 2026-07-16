@@ -76,6 +76,9 @@ test("objective notices use longer dwell times and a short interruptible fade", 
 });
 
 test("lobby selection flows into a restrained, accessible combat launch", () => {
+  assert.match(html, /class="lobby-controls-panel" aria-label="Controls"/);
+  assert.doesNotMatch(html, /id="lobby-controls-title"|lobby-controls-panel[\s\S]{0,200}Keyboard quick reference/);
+  assert.match(html, /class="kit-type">Specialist passive<\/span>/);
   assert.match(html, /class="squad-panel"[^>]+aria-label="Lobby squad"/);
   assert.match(html, /id="squad-count">1 of 4 connected/);
   assert.match(html, /id="party-list"[^>]+aria-label="Squad slots"/);
