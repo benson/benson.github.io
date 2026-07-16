@@ -1,4 +1,4 @@
-import { applyMotionMode, applyMotionState } from './motion.js?v=0d68fa59571c';
+import { applyMotionMode, applyMotionState } from './motion.js?v=54f748b9d565';
 
 const RESIZE_EDGES = ['bottom', 'left', 'bottom-left'];
 const MODAL_STACK_BASE = 100;
