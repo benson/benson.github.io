@@ -163,6 +163,19 @@
   --vui-motion-fast: 120ms;
   --vui-motion-base: 180ms;
   --vui-motion-slow: 260ms;
+  /* Semantic motion: quick feedback stays on snap; transient surfaces enter
+     with a little more time than they take to leave. Consumers can slow the
+     whole surface system in a motion lab without changing interaction snap. */
+  --vui-motion-scale: 1;
+  --vui-motion-enter: calc(var(--vui-motion-base) * var(--vui-motion-scale));
+  --vui-motion-exit: calc(var(--vui-motion-fast) * var(--vui-motion-scale));
+  --vui-motion-overlay: calc(var(--vui-motion-base) * var(--vui-motion-scale));
+  --vui-motion-drawer: calc(var(--vui-motion-slow) * var(--vui-motion-scale));
+  --vui-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --vui-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --vui-ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --vui-popover-origin-x: 50%;
+  --vui-popover-origin-y: 0%;
   --vui-space-1: 4px;
   --vui-space-2: 8px;
   --vui-space-3: 12px;
@@ -949,6 +962,46 @@ input[type='range']:focus-visible {
   display: flex;
 }
 
+/* Controlled modals animate the surface, not the layout around it. Individual
+   scale composes with the card's translate transform used by drag/resize. */
+.ui-modal[data-vui-state] {
+  opacity: 0;
+  transition:
+    opacity var(--vui-motion-exit) var(--vui-ease-out),
+    display var(--vui-motion-exit) allow-discrete;
+}
+
+.ui-modal[data-vui-state='open'] {
+  opacity: 1;
+  transition-duration: var(--vui-motion-overlay), var(--vui-motion-overlay);
+}
+
+.ui-modal[data-vui-state] .ui-modal-card {
+  opacity: 0;
+  scale: 0.97;
+  transform-origin: center;
+  transition:
+    opacity var(--vui-motion-exit) var(--vui-ease-out),
+    scale var(--vui-motion-exit) var(--vui-ease-out);
+}
+
+.ui-modal[data-vui-state='open'] .ui-modal-card {
+  opacity: 1;
+  scale: 1;
+  transition-duration: var(--vui-motion-overlay), var(--vui-motion-overlay);
+}
+
+@starting-style {
+  .ui-modal[data-vui-state='open'] {
+    opacity: 0;
+  }
+
+  .ui-modal[data-vui-state='open'] .ui-modal-card {
+    opacity: 0;
+    scale: 0.97;
+  }
+}
+
 .ui-modal-backdrop {
   align-items: center;
   background: var(--vui-modal-backdrop);
@@ -1180,6 +1233,224 @@ input[type='range']:focus-visible {
   color: var(--vui-color-text);
   box-shadow: var(--vui-shadow-popover);
   padding: var(--vui-space-2);
+}
+
+.ui-popover[data-vui-state] {
+  opacity: 0;
+  scale: 0.97;
+  transform-origin: var(--vui-popover-origin-x) var(--vui-popover-origin-y);
+  transition:
+    opacity var(--vui-motion-exit) var(--vui-ease-out),
+    scale var(--vui-motion-exit) var(--vui-ease-out),
+    display var(--vui-motion-exit) allow-discrete;
+}
+
+.ui-popover[data-vui-state='open'] {
+  opacity: 1;
+  scale: 1;
+  transition-duration:
+    var(--vui-motion-enter),
+    var(--vui-motion-enter),
+    var(--vui-motion-enter);
+}
+
+/* Drawers and sheets share one spatial model: the layer owns the scrim while
+   the panel enters from, and exits toward, its physical edge. */
+.ui-drawer-layer {
+  display: grid;
+  inset: 0;
+  pointer-events: none;
+  position: fixed;
+  z-index: var(--vui-z-modal);
+}
+
+body.vui-drawer-open {
+  overflow: hidden;
+}
+
+.ui-drawer-backdrop {
+  appearance: none;
+  background: var(--vui-modal-backdrop);
+  border: 0;
+  cursor: default;
+  grid-area: 1 / 1;
+  inset: 0;
+  opacity: 0;
+  padding: 0;
+  pointer-events: none;
+  position: fixed;
+  transition: opacity var(--vui-motion-exit) var(--vui-ease-out);
+}
+
+.ui-drawer {
+  background: var(--vui-color-surface);
+  box-shadow: var(--vui-shadow-float);
+  display: flex;
+  flex-direction: column;
+  grid-area: 1 / 1;
+  height: 100dvh;
+  max-width: min(92vw, 480px);
+  overflow: hidden;
+  pointer-events: auto;
+  position: relative;
+  transition: transform var(--vui-motion-exit) var(--vui-ease-drawer);
+  width: min(440px, 92vw);
+  will-change: transform;
+  z-index: 1;
+}
+
+.ui-drawer[data-vui-drawer-side='right'],
+.ui-drawer-layer[data-vui-drawer-side='right'] .ui-drawer {
+  border-left: var(--vui-border-width) solid var(--vui-color-text-strong);
+  justify-self: end;
+  transform: translate3d(100%, 0, 0);
+}
+
+.ui-drawer[data-vui-drawer-side='left'],
+.ui-drawer-layer[data-vui-drawer-side='left'] .ui-drawer {
+  border-right: var(--vui-border-width) solid var(--vui-color-text-strong);
+  justify-self: start;
+  transform: translate3d(-100%, 0, 0);
+}
+
+.ui-drawer[data-vui-drawer-side='bottom'],
+.ui-drawer-layer[data-vui-drawer-side='bottom'] .ui-drawer {
+  align-self: end;
+  border-radius: var(--vui-radius-soft) var(--vui-radius-soft) 0 0;
+  border-top: var(--vui-border-width) solid var(--vui-color-text-strong);
+  height: min(78dvh, 680px);
+  max-width: none;
+  transform: translate3d(0, 100%, 0);
+  width: 100%;
+}
+
+.ui-drawer-layer[data-vui-state='open'] {
+  pointer-events: auto;
+}
+
+.ui-drawer-layer:not([data-vui-state='open']) .ui-drawer,
+.ui-drawer-layer:not([data-vui-state='open']) .ui-drawer-backdrop {
+  pointer-events: none;
+}
+
+.ui-drawer-layer[data-vui-state='open'] .ui-drawer-backdrop {
+  opacity: 1;
+  pointer-events: auto;
+  transition-duration: var(--vui-motion-drawer);
+}
+
+.ui-drawer-layer[data-vui-state='open'] .ui-drawer {
+  transform: translate3d(0, 0, 0);
+  transition-duration: var(--vui-motion-drawer);
+}
+
+.ui-drawer.is-vui-drawer-dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.ui-drawer-head {
+  align-items: center;
+  background: var(--vui-color-text);
+  color: var(--vui-color-text-inverse);
+  display: flex;
+  flex: 0 0 auto;
+  gap: var(--vui-space-3);
+  justify-content: space-between;
+  padding: var(--vui-modal-head-padding);
+}
+
+.ui-drawer-title {
+  font-size: var(--vui-font-size-md);
+  line-height: 1.2;
+  margin: 0;
+}
+
+.ui-drawer-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: var(--vui-modal-body-padding);
+}
+
+.ui-drawer-actions {
+  align-items: center;
+  border-top: var(--vui-border-width) solid var(--vui-color-line);
+  display: flex;
+  flex: 0 0 auto;
+  gap: var(--vui-modal-actions-gap);
+  justify-content: flex-end;
+  padding: var(--vui-modal-actions-padding);
+}
+
+.ui-drawer [data-vui-drawer-handle] {
+  touch-action: pan-y;
+}
+
+.ui-drawer[data-vui-drawer-side='bottom'] [data-vui-drawer-handle] {
+  touch-action: pan-x;
+}
+
+@starting-style {
+  .ui-drawer-layer[data-vui-state='open'] .ui-drawer-backdrop {
+    opacity: 0;
+  }
+
+  .ui-drawer-layer[data-vui-state='open'][data-vui-drawer-side='right'] .ui-drawer {
+    transform: translate3d(100%, 0, 0);
+  }
+
+  .ui-drawer-layer[data-vui-state='open'][data-vui-drawer-side='left'] .ui-drawer {
+    transform: translate3d(-100%, 0, 0);
+  }
+
+  .ui-drawer-layer[data-vui-state='open'][data-vui-drawer-side='bottom'] .ui-drawer {
+    transform: translate3d(0, 100%, 0);
+  }
+}
+
+@starting-style {
+  .ui-popover[data-vui-state='open'] {
+    opacity: 0;
+    scale: 0.97;
+  }
+}
+
+.ui-modal[data-vui-motion='none'],
+.ui-modal[data-vui-motion='none'] .ui-modal-card,
+.ui-popover[data-vui-motion='none'],
+.ui-drawer-layer[data-vui-motion='none'] .ui-drawer,
+.ui-drawer-layer[data-vui-motion='none'] .ui-drawer-backdrop {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-modal[data-vui-state],
+  .ui-popover[data-vui-state],
+  .ui-drawer-layer[data-vui-state] .ui-drawer-backdrop {
+    transition-duration: var(--vui-motion-fast);
+  }
+
+  .ui-modal[data-vui-state] .ui-modal-card,
+  .ui-popover[data-vui-state] {
+    scale: 1;
+  }
+
+  .ui-modal[data-vui-state] .ui-modal-card {
+    transition: opacity var(--vui-motion-fast) var(--vui-ease-out);
+  }
+
+  .ui-drawer-layer[data-vui-state] .ui-drawer {
+    opacity: 0;
+    transform: none;
+    transition: opacity var(--vui-motion-fast) var(--vui-ease-out);
+  }
+
+  .ui-drawer-layer[data-vui-state='open'] .ui-drawer {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* [hidden] handled globally in base.css. */
@@ -1741,14 +2012,28 @@ body.feedback-capture-capturing .feedback-capture-widget {
   font-family: var(--vui-font-mono);
   font-size: var(--vui-font-size-sm);
   padding: var(--vui-space-2) var(--vui-space-3);
+  opacity: 1;
+  translate: 0 0;
   transition:
-    opacity var(--vui-motion-base),
-    transform var(--vui-motion-base);
+    opacity var(--vui-motion-enter) var(--vui-ease-out),
+    translate var(--vui-motion-enter) var(--vui-ease-out);
 }
 
 .toast.is-leaving {
   opacity: 0;
-  transform: translateY(4px);
+  translate: 0 4px;
+  transition-duration: var(--vui-motion-exit), var(--vui-motion-exit);
+}
+
+@starting-style {
+  .toast {
+    opacity: 0;
+    translate: 0 4px;
+  }
+}
+
+.toast[data-vui-motion='none'] {
+  transition: none;
 }
 
 .toast-success {
@@ -1773,7 +2058,8 @@ body.feedback-capture-capturing .feedback-capture-widget {
 
 @media (prefers-reduced-motion: reduce) {
   .toast {
-    transition: none;
+    translate: 0;
+    transition: opacity var(--vui-motion-fast) var(--vui-ease-out);
   }
 }
 
@@ -2758,6 +3044,68 @@ body.vui-design-system-page {
 }
 .ds-type-ramp-sample {
   white-space: nowrap;
+}
+
+/* Motion workbench: contract first, replay controls second. */
+.ds-motion-lab {
+  display: grid;
+  gap: var(--vui-space-4);
+}
+
+.ds-motion-toolbar {
+  align-items: center;
+  display: flex;
+  font-family: var(--vui-font-mono);
+  font-size: var(--vui-font-size-xs);
+  gap: var(--vui-space-3);
+  justify-content: space-between;
+}
+
+.ds-motion-tiers {
+  display: grid;
+  gap: var(--vui-space-2);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ds-motion-tier {
+  background: var(--vui-color-surface-raised);
+  border: 1px solid var(--vui-color-line);
+  display: grid;
+  gap: var(--vui-space-1);
+  padding: var(--vui-space-3);
+}
+
+.ds-motion-tier strong,
+.ds-motion-tier code {
+  font-family: var(--vui-font-mono);
+  font-size: var(--vui-font-size-xs);
+}
+
+.ds-motion-tier span {
+  color: var(--vui-color-text-muted);
+  font-size: var(--vui-font-size-xs);
+  line-height: 1.35;
+}
+
+.ds-motion-actions {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vui-space-2);
+}
+
+.ds-motion-menu-wrap {
+  position: relative;
+}
+
+.ds-motion-modal {
+  width: min(420px, calc(100vw - 32px));
+}
+
+@media (max-width: 680px) {
+  .ds-motion-tiers {
+    grid-template-columns: 1fr;
+  }
 }
 
 
