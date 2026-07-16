@@ -37,6 +37,7 @@ export const AUDIO_POLICIES = Object.freeze({
 
 const EXACT_CATEGORIES = Object.freeze({
   xp: "pickup", shot: "weapon", kill: "impact", select: "ui", ui: "ui", test: "test", deploy: "objective",
+  "impact-heavy": "impact", "impact-critical": "damage",
   ability: "ability", hurt: "damage", reward: "objective", level: "objective", objective: "objective",
   danger: "danger", ultimate: "ultimate", victory: "victory", defeat: "victory",
 });

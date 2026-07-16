@@ -20,6 +20,7 @@ test("default cue registry is strict, complete, calibrated, and runtime-generate
   assert.equal(AUDIO_HEADROOM_TARGET_DB, -3);
   assert.ok(Math.max(...LASTLIGHT_AUDIO_CUES.cues.ultimate.voices.map((voice) => voice.volume)) > LASTLIGHT_AUDIO_CUES.weapon.pulse.voices[0].volume);
   assert.equal(LASTLIGHT_AUDIO_CUES.cues.test.voices.length, 3);
+  assert.ok(resolveAudioCue("impact-critical").voices.reduce((sum, voice) => sum + voice.volume, 0) > resolveAudioCue("impact-heavy").voices.reduce((sum, voice) => sum + voice.volume, 0));
 });
 
 test("theme resolver handles named families, calibration details, and safe fallbacks", () => {

@@ -12,6 +12,7 @@ test("audio hierarchy classifies every shipped cue with critical information abo
   assert.ok(audioCuePolicy("enemy:spitter").priority > audioCuePolicy("weapon:pulse").priority);
   assert.ok(audioCuePolicy("enemy:apex").priority >= audioCuePolicy("danger").priority);
   assert.ok(audioCuePolicy("victory").duck < audioCuePolicy("ability").duck);
+  assert.ok(audioCuePolicy("impact-critical").priority > audioCuePolicy("impact-heavy").priority);
 });
 
 test("cue variation is deterministic, bounded, and does not use gameplay randomness", () => {

@@ -64,6 +64,8 @@ const cues = {
   shot: cue(voice(820, 210, 0, .055, "square", .022)),
   hurt: cue(voice(145, 65, 0, .11, "sawtooth", .055), voice(72, 48, .025, .16, "square", .034)),
   kill: cue(voice(150, 80, 0, .07, "triangle", .036), voice(440, 260, .025, .06, "square", .022)),
+  "impact-heavy": cue(voice(128, 62, 0, .085, "triangle", .026), voice(940, 420, .012, .052, "square", .014)),
+  "impact-critical": cue(voice(74, 36, 0, .13, "sine", .038), voice(1320, 390, .018, .075, "triangle", .024)),
   select: cue(voice(520, 650, 0, .08, "triangle", .042), voice(780, 900, .06, .1, "sine", .032)),
   ui: cue(voice(440, 560, 0, .08, "sine", .035)),
   deploy: cue(voice(170, 420, 0, .18, "sawtooth", .052), voice(520, 760, .1, .16, "triangle", .04)),

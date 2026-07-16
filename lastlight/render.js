@@ -1,31 +1,31 @@
-import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260715.4";
-import { WORLD } from "./engine.js?v=20260715.4";
-import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260715.4";
+import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260715.5";
+import { WORLD } from "./engine.js?v=20260715.5";
+import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260715.5";
 import { springCamera } from "./feel.js?v=20260713.2";
 import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistFacingTarget, specialistMotionState, stableDirectionColumn } from "./motion.js?v=20260713.1";
 import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
 import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260711.5";
-import { impactRenderPlan } from "./impact-grammar.js?v=20260715.4";
-import { movementVisualState } from "./movement.js?v=20260715.4";
-import { effectReadabilityCategory, partitionEffects, readabilityPlan, shouldPromoteCache } from "./readability.js?v=20260711.8";
+import { impactRenderPlan } from "./impact-grammar.js?v=20260715.5";
+import { movementVisualState } from "./movement.js?v=20260715.5";
+import { effectReadabilityCategory, partitionEffects, readabilityPlan } from "./readability.js?v=20260715.5";
 import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260711.8";
 import { EnvironmentInteractionField, stableEnvironmentUnit } from "./environment-interactions.js?v=20260712.1";
-import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260715.4";
-import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260715.4";
+import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260715.5";
+import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260715.5";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
 import { PING_INTENTS, PING_LIFETIME_TICKS, selectVisiblePings } from "./ping-contract.js?v=20260713.4";
-import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260715.4";
-import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260715.4";
+import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260715.5";
+import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260715.5";
 import {
   ImpactIntensityDirector, aftermathPlan, attackerRecoilTransform, cameraLookBias,
-  impactFeedbackPlan, impactReactionTransform, impactTierForEvent, projectileMotionPlan,
+  impactAnimationTimeScale, impactFeedbackPlan, impactReactionTransform, impactTierForEvent, projectileMotionPlan,
   secondaryMotionPlan, selectImpactFeedback,
-} from "./impact-feel.js?v=20260715.4";
-import { combatTurnPlan, isBodyDrivingSource, resolvedCombatFacing, specialistMuzzlePoint } from "./combat-orientation.js?v=20260715.4";
+} from "./impact-feel.js?v=20260715.5";
+import { combatTurnPlan, isBodyDrivingSource, resolvedCombatFacing, specialistMuzzlePoint } from "./combat-orientation.js?v=20260715.5";
 import {
   cameraCompositionPlan, castMotionPlan, combatDensityPlan, playerLifecycleMotionPlan, rewardMotionPlan,
-} from "./combat-choreography.js?v=20260715.4";
-import { apexPhaseMotionPlan, enemyArrivalMotionPlan, enemyDepartureMotionPlan } from "./combat-rhythm.js?v=20260715.4";
+} from "./combat-choreography.js?v=20260715.5";
+import { apexPhaseMotionPlan, enemyArrivalMotionPlan, enemyDepartureMotionPlan } from "./combat-rhythm.js?v=20260715.5";
 
 const TAU = Math.PI * 2;
 const PING_BUFFER_LIMIT = 32;
@@ -435,11 +435,15 @@ export class Renderer {
       const residue = aftermathPlan(plan, { radius: Math.max(10, event.targetKind === "boss" ? 52 : 20), material: event.targetKind === "player" ? "energy" : "organic" });
       if (residue.visible) this.impactAftermath.push({ id: `${event.id}:aftermath`, x: event.x, y: event.y, angle: event.angle, ageMs: 0, lifetimeMs: residue.lifetimeMs, residue });
       if (this.impactAftermath.length > 40) this.impactAftermath.splice(0, this.impactAftermath.length - 40);
-      if (event.kind === "player-hit" && event.targetId === localPlayerId || event.critical || event.killed) {
+      const localImpact = event.targetId === localPlayerId || event.ownerId === localPlayerId;
+      if (localImpact && plan.force.cameraPunch > 0) {
         this.cameraImpact.vx -= Math.cos(plan.angle) * plan.force.cameraPunch * 42;
         this.cameraImpact.vy -= Math.sin(plan.angle) * plan.force.cameraPunch * 42;
       }
-      this.impactFeedbackSignals.push({ id: event.id, tier: plan.tier, priority: plan.priority, audio: plan.audio, haptic: plan.haptic, local: event.targetId === localPlayerId || event.ownerId === localPlayerId });
+      this.impactFeedbackSignals.push({
+        id: event.id, tier: plan.tier, priority: plan.priority, audio: plan.audio, haptic: plan.haptic,
+        local: localImpact, kind: event.kind, killed: Boolean(event.killed), x: event.x, y: event.y,
+      });
     }
     if (this.impactContacts.length > 28) this.impactContacts.splice(0, this.impactContacts.length - 28);
     if (this.impactFeedbackSignals.length > 12) this.impactFeedbackSignals.splice(0, this.impactFeedbackSignals.length - 12);
@@ -1217,12 +1221,6 @@ export class Renderer {
       ctx.fillText(player.dead ? "RETURNING" : revivePercent > 0 ? `RESCUE ${revivePercent}%` : `BLEED ${Math.max(0, Math.ceil(player.downTimer || 0))}s`, 0, 42); ctx.restore();
     }
 
-    const localPlayer = (state.players || []).find((player) => player.id === localPlayerId && !player.dead);
-    for (const pod of state.pods || []) {
-      if (!this.isWorldVisible(pod, 55) || !shouldPromoteCache(pod, { localPlayer, hoveredId: this.hoveredEntity?.id })) continue;
-      corner(pod.x, pod.y, (pod.radius || 24) + 9, obstacleRead.palette.core);
-    }
-
     for (const drop of state.drops || []) {
       if (!this.isWorldVisible(drop, 45)) continue;
       ctx.save(); ctx.translate(drop.x, drop.y); ctx.strokeStyle = pickupRead.palette.keyline; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0, 0, (drop.radius || 14) + 7, 0, TAU); ctx.stroke();
@@ -1820,9 +1818,9 @@ export class Renderer {
       const locomotionFacing = moving ? Math.atan2(dy, dx) : aimFacing, targetDistance = target ? Math.hypot(target.x - e.x, target.y - e.y) : Infinity;
       const nearTarget = targetDistance <= (e.type === "spitter" || e.boss ? 520 : (e.radius || 20) + (target?.radius || 18) + 45);
       const visual = this.enemyVisuals.get(e.id) || { facing: locomotionFacing, aimFacing, directionColumn: directionColumn(locomotionFacing), stride: phase, animation: "idle", animationTime: 0, lastAttackFlash: 0, lastHitFlash: 0, lastShotCd: e.shotCd, rangedAttackFlash: 0, updatedAt: now };
-      const targetImpact = this.targetImpactVisuals.get(e.id);
+      const targetImpact = this.targetImpactVisuals.get(e.id), attackerImpact = this.attackerImpactVisuals.get(e.id);
       const rawFrameTime = Math.min(.05, Math.max(0, visualDt || (now - visual.updatedAt) / 1000));
-      const frameTime = targetImpact && targetImpact.ageMs < targetImpact.plan.timing.freezeMs ? 0 : rawFrameTime;
+      const frameTime = rawFrameTime * impactAnimationTimeScale(targetImpact, attackerImpact);
       if (moving) visual.facing += Math.atan2(Math.sin(locomotionFacing - visual.facing), Math.cos(locomotionFacing - visual.facing)) * (1 - Math.exp(-16 * frameTime));
       visual.aimFacing += Math.atan2(Math.sin(aimFacing - visual.aimFacing), Math.cos(aimFacing - visual.aimFacing)) * (1 - Math.exp(-22 * frameTime));
       visual.stride += speed > .12 ? .16 : .035;
@@ -2031,9 +2029,9 @@ export class Renderer {
         animation: "idle", animationTime: 0, displayHp: p.hp, trailHp: p.hp,
         previousFootRow: null, wasSkidding: false, movementHold: 0, lastAuthoritativeAnimTime: 0, updatedAt: now,
       };
-      const targetImpact = this.targetImpactVisuals.get(p.id);
+      const targetImpact = this.targetImpactVisuals.get(p.id), attackerImpact = this.attackerImpactVisuals.get(p.id);
       const rawFrameTime = Math.min(.05, Math.max(0, visualDt || (now - visual.updatedAt) / 1000));
-      const frameTime = targetImpact && targetImpact.ageMs < targetImpact.plan.timing.freezeMs ? 0 : rawFrameTime;
+      const frameTime = rawFrameTime * impactAnimationTimeScale(targetImpact, attackerImpact);
       visual.movementHold = reportedMoving ? .11 : Math.max(0, (visual.movementHold || 0) - frameTime);
       const moving = reportedMoving || visual.movementHold > 0;
       const facingDelta = Math.atan2(Math.sin(locomotionTarget - visual.facing), Math.cos(locomotionTarget - visual.facing));

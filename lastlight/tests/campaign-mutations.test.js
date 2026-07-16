@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   CAMPAIGN_MUTATIONS, CAMPAIGN_MUTATION_DIFFICULTIES, CAMPAIGN_MUTATION_MAPS,
   campaignMutationObjectiveCompleted, campaignMutationWaveStarted, cancelCampaignMutationEncounter, consumeCampaignMutationEncounter,
-  createCampaignMutationState, resolveCampaignMutationEncounter, validateCampaignMutationState, validateCampaignMutations,
+  campaignMutationPackageVisible, createCampaignMutationState, resolveCampaignMutationEncounter, validateCampaignMutationState, validateCampaignMutations,
 } from "../campaign-mutations.js";
 
 const frozen = (value) => !value || typeof value !== "object" || (Object.isFrozen(value) && Object.values(value).every(frozen));
@@ -20,9 +20,11 @@ test("campaign mutation registry is strict, immutable, and covers every tier and
 test("Story is inert while Hard objective retaliation is exact, bounded, and rewarded", () => {
   const story = createCampaignMutationState("story");
   assert.equal(story.enabled, false);
+  assert.equal(campaignMutationPackageVisible(story), false);
   assert.equal(campaignMutationObjectiveCompleted(story, { tick: 60 }), story);
 
   const hard = createCampaignMutationState("hard");
+  assert.equal(campaignMutationPackageVisible(hard), true);
   const scheduled = campaignMutationObjectiveCompleted(hard, { tick: 120, objectiveKind: "uplink" });
   assert.equal(scheduled.objectiveCompletions, 1);
   assert.equal(scheduled.pressureAdvanceTicks, 180);

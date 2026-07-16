@@ -97,6 +97,10 @@ export function createCampaignMutationState(difficulty, enabled = true) {
   });
 }
 
+export function campaignMutationPackageVisible(state) {
+  return Boolean(validateCampaignMutationState(state) && state.enabled);
+}
+
 export function validateCampaignMutationState(state, registry = CAMPAIGN_MUTATIONS) {
   const keys = ["schema", "enabled", "difficulty", "packageId", "objectiveCompletions", "pressureAdvanceTicks", "triggeredSurgeWaves", "pending", "active", "readyTick", "encounterSequence", "resolvedEncounters"];
   if (!exact(state, keys) || state.schema !== CAMPAIGN_MUTATION_SCHEMA || typeof state.enabled !== "boolean") return false;
