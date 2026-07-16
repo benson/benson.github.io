@@ -1,7 +1,7 @@
 import { ENEMY_MOTION_STATES, MOTION_DIRECTIONS, MOTION_SCHEMA, SPECIALIST_MOTION_STATES, validateMotionRig } from "../motion.js?v=20260713.1";
-import { LASTLIGHT_MATERIAL_THEME, MATERIAL_CLASSES, validateMaterialTheme } from "../material-impacts.js?v=20260716.13";
+import { LASTLIGHT_MATERIAL_THEME, MATERIAL_CLASSES, validateMaterialTheme } from "../material-impacts.js?v=20260716.14";
 import { LASTLIGHT_ENVIRONMENT_INTERACTIONS, validateEnvironmentInteractions } from "../environment-interactions.js?v=20260712.1";
-import { LASTLIGHT_ENVIRONMENT_CHUNKS, validateEnvironmentChunks } from "../environment-chunks.js?v=20260716.13";
+import { LASTLIGHT_ENVIRONMENT_CHUNKS, validateEnvironmentChunks } from "../environment-chunks.js?v=20260716.14";
 
 /**
  * The canonical asset contract for a Lastlight visual theme.
@@ -17,6 +17,8 @@ export const THEME_ASSET_KEYS = deepFreeze({
   universalWeapons: ["uwu", "slicers", "aura", "mines", "crossbow", "boomerang", "rail", "glove", "transit", "ice", "annihilator", "drone"],
   environments: ["warehouse", "outskirts", "lab", "beachhead"],
   environmentChunks: ["warehouse", "outskirts", "lab", "beachhead"],
+  mapMechanics: ["warehouse", "outskirts", "lab", "beachhead"],
+  supplyContainerMaps: ["warehouse", "outskirts", "lab", "beachhead"],
   supplyContainers: ["cargo", "utility", "pressure"],
   enemies: ["mite", "hound", "spitter", "brute", "bomber", "shark"],
   effects: ["xpShard", "hostileBolt", "barricade"],
@@ -95,10 +97,33 @@ const LASTLIGHT_ASSETS = {
     lab: "assets/environment-chunks/lab-atlas.webp",
     beachhead: "assets/environment-chunks/beachhead-atlas.webp",
   },
+  mapMechanics: {
+    warehouse: "assets/map-mechanics/freight-conveyor-v14.webp",
+    outskirts: "assets/map-mechanics/ion-lane-v14.webp",
+    lab: "assets/map-mechanics/cryo-lane-v14.webp",
+    beachhead: "assets/map-mechanics/undertow-lane-v14.webp",
+  },
   supplyContainers: {
-    cargo: "assets/supply-containers/cargo-v13.png",
-    utility: "assets/supply-containers/utility-v13.png",
-    pressure: "assets/supply-containers/pressure-v13.png",
+    warehouse: {
+      cargo: "assets/supply-containers/warehouse-cargo-v14.webp",
+      utility: "assets/supply-containers/warehouse-utility-v14.webp",
+      pressure: "assets/supply-containers/warehouse-pressure-v14.webp",
+    },
+    outskirts: {
+      cargo: "assets/supply-containers/outskirts-cargo-v14.webp",
+      utility: "assets/supply-containers/outskirts-utility-v14.webp",
+      pressure: "assets/supply-containers/outskirts-pressure-v14.webp",
+    },
+    lab: {
+      cargo: "assets/supply-containers/lab-cargo-v14.webp",
+      utility: "assets/supply-containers/lab-utility-v14.webp",
+      pressure: "assets/supply-containers/lab-pressure-v14.webp",
+    },
+    beachhead: {
+      cargo: "assets/supply-containers/beachhead-cargo-v14.webp",
+      utility: "assets/supply-containers/beachhead-utility-v14.webp",
+      pressure: "assets/supply-containers/beachhead-pressure-v14.webp",
+    },
   },
   enemies: {
     mite: "assets/enemies/skitter.webp",
@@ -357,7 +382,8 @@ export function validateTheme(theme) {
     ["weapons.universal", theme.assets?.weapons?.universal, THEME_ASSET_KEYS.universalWeapons],
     ["environments", theme.assets?.environments, THEME_ASSET_KEYS.environments],
     ["environmentChunks", theme.assets?.environmentChunks, THEME_ASSET_KEYS.environmentChunks],
-    ["supplyContainers", theme.assets?.supplyContainers, THEME_ASSET_KEYS.supplyContainers],
+    ["mapMechanics", theme.assets?.mapMechanics, THEME_ASSET_KEYS.mapMechanics],
+    ...THEME_ASSET_KEYS.supplyContainerMaps.map((mapId) => [`supplyContainers.${mapId}`, theme.assets?.supplyContainers?.[mapId], THEME_ASSET_KEYS.supplyContainers]),
     ["enemies", theme.assets?.enemies, THEME_ASSET_KEYS.enemies],
     ["effects", theme.assets?.effects, THEME_ASSET_KEYS.effects],
     ["guide.passives", theme.assets?.guide?.passives, THEME_ASSET_KEYS.guidePassives],

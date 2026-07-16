@@ -21,17 +21,18 @@ test("default theme satisfies the complete asset contract", () => {
   const result = validateTheme(LASTLIGHT_THEME);
   assert.deepEqual(result.errors, []);
   assert.equal(result.valid, true);
-  assert.equal(result.assetCount, 117);
+  assert.equal(result.assetCount, 130);
   assert.equal(Object.isFrozen(LASTLIGHT_THEME), true);
   assert.equal(Object.isFrozen(LASTLIGHT_THEME.assets.archive.augments), true);
   assert.equal(getThemeEnvironmentChunks().schema, "lastlight.environment-chunks.v4");
 });
 
-test("supply containers use three distinct theme-owned generated icons", async () => {
+test("every map uses three distinct theme-owned generated supply-container icons", async () => {
   assert.deepEqual(THEME_ASSET_KEYS.supplyContainers, ["cargo", "utility", "pressure"]);
-  const paths = Object.values(LASTLIGHT_THEME.assets.supplyContainers);
-  assert.equal(new Set(paths).size, 3);
-  assert.ok(paths.every((path) => path.startsWith("assets/supply-containers/") && path.endsWith(".png")));
+  assert.deepEqual(THEME_ASSET_KEYS.supplyContainerMaps, ["warehouse", "outskirts", "lab", "beachhead"]);
+  const paths = Object.values(LASTLIGHT_THEME.assets.supplyContainers).flatMap((group) => Object.values(group));
+  assert.equal(new Set(paths).size, 12);
+  assert.ok(paths.every((path) => path.startsWith("assets/supply-containers/") && path.endsWith(".webp")));
   const root = fileURLToPath(new URL("../", import.meta.url));
   await Promise.all(paths.map((path) => access(`${root}${path}`)));
 });

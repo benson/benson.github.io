@@ -30,10 +30,38 @@ function pointInPolygon(x, y, points) {
 }
 
 function pointSegmentDistanceSquared(px, py, ax, ay, bx, by) {
+  const [x, y] = nearestPointOnSegment(px, py, ax, ay, bx, by);
+  return (px - x) ** 2 + (py - y) ** 2;
+}
+
+function nearestPointOnSegment(px, py, ax, ay, bx, by) {
   const dx = bx - ax, dy = by - ay, lengthSquared = dx * dx + dy * dy;
   const t = lengthSquared <= EPSILON ? 0 : Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lengthSquared));
-  const x = ax + dx * t, y = ay + dy * t;
-  return (px - x) ** 2 + (py - y) ** 2;
+  return [ax + dx * t, ay + dy * t];
+}
+
+function normalizedVector(x, y, fallbackX = 1, fallbackY = 0) {
+  let length = Math.hypot(x, y);
+  if (length <= EPSILON) { x = fallbackX; y = fallbackY; length = Math.hypot(x, y); }
+  if (length <= EPSILON) return Object.freeze({ x: 1, y: 0 });
+  return Object.freeze({ x: x / length, y: y / length });
+}
+
+function polygonContactNormal(x, y, collider, fallbackX, fallbackY) {
+  let nearest = null;
+  for (const { points } of collider.parts) {
+    const inside = pointInPolygon(x, y, points);
+    for (let index = 0; index < points.length; index++) {
+      const [ax, ay] = points[index], [bx, by] = points[(index + 1) % points.length];
+      const [nearX, nearY] = nearestPointOnSegment(x, y, ax, ay, bx, by);
+      const distanceSquared = (x - nearX) ** 2 + (y - nearY) ** 2;
+      if (!nearest || distanceSquared < nearest.distanceSquared) nearest = { nearX, nearY, distanceSquared, inside };
+    }
+  }
+  if (!nearest) return normalizedVector(fallbackX, fallbackY);
+  return nearest.inside
+    ? normalizedVector(nearest.nearX - x, nearest.nearY - y, fallbackX, fallbackY)
+    : normalizedVector(x - nearest.nearX, y - nearest.nearY, fallbackX, fallbackY);
 }
 
 export function circleIntersectsCollider(x, y, radius, obstacle) {
@@ -49,6 +77,17 @@ export function circleIntersectsCollider(x, y, radius, obstacle) {
     }
   }
   return false;
+}
+
+// Returns the exact local surface normal at a contact point. Polygon colliders
+// use their authored edges; alpha colliders use the occupied run rectangles in
+// the mask itself. The fallback is only used for a degenerate point exactly on
+// a vertex and should point away from the attempted movement.
+export function colliderContactNormal(x, y, obstacle, fallbackX = 1, fallbackY = 0) {
+  const collider = normalizeCollider(obstacle);
+  return collider.mask
+    ? alphaMaskContactNormal(x, y, collider, fallbackX, fallbackY)
+    : polygonContactNormal(x, y, collider, fallbackX, fallbackY);
 }
 
 export function sweptCircleColliderImpact(startX, startY, endX, endY, radius, obstacle) {
@@ -95,6 +134,50 @@ function transformedPoint(transform, localX, localY) {
   const cosine = Math.cos(transform.rotation), sine = Math.sin(transform.rotation), flip = transform.flipX ? -1 : 1;
   const x = localX * flip;
   return [transform.x + x * cosine - localY * sine, transform.y + x * sine + localY * cosine];
+}
+
+function worldToMaskLocal(transform, x, y) {
+  const cosine = Math.cos(transform.rotation), sine = Math.sin(transform.rotation);
+  const dx = x - transform.x, dy = y - transform.y;
+  return [(dx * cosine + dy * sine) * (transform.flipX ? -1 : 1), -dx * sine + dy * cosine];
+}
+
+function maskLocalVectorToWorld(transform, x, y) {
+  const cosine = Math.cos(transform.rotation), sine = Math.sin(transform.rotation), flip = transform.flipX ? -1 : 1;
+  x *= flip;
+  return [x * cosine - y * sine, x * sine + y * cosine];
+}
+
+function alphaMaskContactNormal(x, y, collider, fallbackX, fallbackY) {
+  const { mask, transform } = collider, [localX, localY] = worldToMaskLocal(transform, x, y);
+  let nearest = null;
+  for (let row = 0; row < mask.height; row++) {
+    const runs = mask.rows[row];
+    if (!runs?.length) continue;
+    const top = (row / mask.height - transform.anchor[1]) * transform.height;
+    const bottom = ((row + 1) / mask.height - transform.anchor[1]) * transform.height;
+    for (let index = 0; index < runs.length; index += 2) {
+      const left = (runs[index] / mask.width - transform.anchor[0]) * transform.width;
+      const right = (runs[index + 1] / mask.width - transform.anchor[0]) * transform.width;
+      const minX = Math.min(left, right), maxX = Math.max(left, right), minY = Math.min(top, bottom), maxY = Math.max(top, bottom);
+      const inside = localX >= minX && localX <= maxX && localY >= minY && localY <= maxY;
+      let nearX = Math.max(minX, Math.min(localX, maxX)), nearY = Math.max(minY, Math.min(localY, maxY));
+      if (inside) {
+        const faces = [
+          { distance: localX - minX, x: minX, y: localY }, { distance: maxX - localX, x: maxX, y: localY },
+          { distance: localY - minY, x: localX, y: minY }, { distance: maxY - localY, x: localX, y: maxY },
+        ].sort((leftFace, rightFace) => leftFace.distance - rightFace.distance);
+        nearX = faces[0].x; nearY = faces[0].y;
+      }
+      const distanceSquared = (localX - nearX) ** 2 + (localY - nearY) ** 2;
+      if (!nearest || distanceSquared < nearest.distanceSquared) nearest = { nearX, nearY, distanceSquared, inside };
+    }
+  }
+  if (!nearest) return normalizedVector(fallbackX, fallbackY);
+  const localNormalX = nearest.inside ? nearest.nearX - localX : localX - nearest.nearX;
+  const localNormalY = nearest.inside ? nearest.nearY - localY : localY - nearest.nearY;
+  const [worldNormalX, worldNormalY] = maskLocalVectorToWorld(transform, localNormalX, localNormalY);
+  return normalizedVector(worldNormalX, worldNormalY, fallbackX, fallbackY);
 }
 
 function transformedMaskBounds(mask, transform) {

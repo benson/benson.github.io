@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260716.13">
+  <link rel="stylesheet" href="styles.css?v=20260716.14">
 </head>
 <body>
   <main id="app">
@@ -302,7 +302,7 @@
 
       <div id="objective-banner" class="objective-banner hidden"><span>NEW DIRECTIVE</span><strong>Capture the uplink</strong></div>
       <aside id="mutation-hud" class="mutation-hud" aria-live="polite" aria-atomic="true"></aside>
-      <aside id="challenge-watch" class="challenge-watch hidden" role="status" aria-live="polite" aria-atomic="true"></aside>
+      <aside id="challenge-watch" class="challenge-watch hidden" role="status" aria-label="Completed challenges" aria-live="polite" aria-atomic="true"></aside>
       <div id="boss-hud" class="boss-hud hidden" role="progressbar" aria-label="Apex health" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" aria-valuetext="Apex phase 1, 100 percent health"><span id="boss-name" aria-live="polite">APEX</span><div><i id="boss-health"></i><em id="boss-health-segments" class="health-dividers" aria-hidden="true"></em></div></div>
 
       <aside id="downed-activity" class="downed-activity hidden" aria-labelledby="downed-activity-title">
@@ -332,12 +332,9 @@
       <div id="participation-live-region" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
       <div id="discovery-live-region" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
       <aside class="damage-ledger no-data collapsed" id="damage-ledger" aria-label="Leading damage sources">
-        <header id="damage-ledger-handle" class="damage-ledger-handle" tabindex="0" aria-label="Move Damage Sources panel with arrow keys. Hold Control and use arrow keys to resize.">
+        <header class="damage-ledger-handle">
           <strong>Damage sources</strong>
-          <span class="damage-ledger-actions">
-            <button id="damage-ledger-reset" type="button" title="Reset panel position and size" aria-label="Reset Damage Sources panel position and size">Reset</button>
-            <button id="damage-ledger-collapse" type="button" title="Expand Damage Sources" aria-label="Expand Damage Sources" aria-expanded="false"><span aria-hidden="true">+</span></button>
-          </span>
+          <button id="damage-ledger-collapse" type="button" title="Expand Damage Sources" aria-label="Expand Damage Sources" aria-controls="damage-ledger-content" aria-expanded="false"><span aria-hidden="true">+</span></button>
         </header>
         <div id="damage-ledger-content" class="damage-ledger-content" aria-live="polite"></div>
       </aside>
@@ -369,22 +366,18 @@
           <div class="upgrade-draft">
             <section class="upgrade-local">
               <div class="upgrade-player-heading"><span>You</span><strong id="upgrade-local-name">Rookie</strong><i id="upgrade-local-status">Choosing</i></div>
-              <section class="upgrade-build-overview" aria-labelledby="upgrade-build-title">
-                <header><span id="upgrade-build-title">Current build</span><small>Focus or point at an item for details</small></header>
+              <section class="upgrade-build-card" aria-label="Equipped loadout and specialist statistics">
                 <div id="upgrade-current-loadout" class="upgrade-current-loadout"></div>
+                <aside id="upgrade-current-stats" class="upgrade-current-stats" aria-label="Current specialist statistics"></aside>
               </section>
               <aside id="upgrade-loadout-tooltip" class="upgrade-loadout-tooltip" role="tooltip" hidden></aside>
-              <details class="upgrade-build-disclosure">
-                <summary><span>Build statistics</span><small>9 live values</small></summary>
-                <aside id="upgrade-current-stats" class="upgrade-current-stats" aria-label="Current specialist statistics"></aside>
-              </details>
+              <div id="upgrade-cards" class="upgrade-cards"></div>
               <div id="draft-controls" class="draft-controls" aria-label="Draft controls">
                 <button id="draft-reroll" type="button" data-control-action="reroll"><kbd>4</kbd><span>Reroll</span><b id="draft-rerolls">2</b></button>
                 <button id="draft-banish" type="button" data-control-action="banish" aria-pressed="false"><kbd>5</kbd><span>Banish</span><b id="draft-banishes">2</b></button>
                 <button id="draft-skip" type="button" data-control-action="skip"><kbd>0</kbd><span>Skip · +30 gold</span><b id="draft-skips">1</b></button>
                 <span id="draft-status" class="sr-only" aria-live="polite"></span>
               </div>
-              <div id="upgrade-cards" class="upgrade-cards"></div>
               <section id="replacement-tray" class="replacement-tray hidden" aria-labelledby="replacement-title">
                 <header><div><span>Loadout full</span><h3 id="replacement-title">Choose an item to replace</h3></div><button id="replacement-cancel" type="button">Back <kbd>Esc</kbd></button></header>
                 <p id="replacement-copy"></p>
@@ -705,7 +698,7 @@
           </div>
           <div id="report-context" class="report-context"></div>
           <div id="report-status" class="report-status" role="status" aria-live="polite"></div>
-          <div class="report-actions"><button id="report-submit" class="deploy-button" type="submit"><span>Send report</span><span>↗</span></button><button id="report-copy" class="text-button" type="button">Copy diagnostic details</button></div>
+          <div class="report-actions"><button id="report-submit" class="deploy-button" type="submit" aria-keyshortcuts="Shift+Enter" title="Send report (Shift+Enter)"><span>Send report</span><span>↗</span></button><button id="report-copy" class="text-button" type="button">Copy diagnostic details</button></div>
         </div>
       </form>
     </dialog>
@@ -719,8 +712,18 @@
         <button id="build-history-close" class="icon-button" type="button" aria-label="Close build history">Close</button>
       </div>
       <div class="build-history-body">
-        <article class="build-release current-build">
-          <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.16.13</h3></div><time class="build-shipped-at" datetime="2026-07-16T17:12:36-04:00" data-build-shipped-at="2026-07-16T17:12:36-04:00">Shipped Jul 16, 2026 · 5:12 PM EDT</time></header>
+          <article class="build-release current-build">
+            <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.16.14</h3></div><time class="build-shipped-at" datetime="2026-07-16T19:19:34-04:00" data-build-shipped-at="2026-07-16T19:19:34-04:00">Shipped Jul 16, 2026 · 7:19 PM EDT</time></header>
+            <ul>
+              <li>Replaced abstract forced-movement rectangles with subdued, animated floor machinery and unique map surfaces.</li>
+              <li>Added map-specific supply-container art, destruction effects, and clearer gold-cache guidance.</li>
+              <li>Made exact structure silhouettes easier to move around with deterministic surface sliding.</li>
+              <li>Simplified upgrades into one compact build card and a cleaner choice-first layout.</li>
+              <li>Made Damage Sources a fixed open/closed panel that always fits its content.</li>
+            </ul>
+          </article>
+          <article class="build-release">
+            <header><div><span class="build-release-status">Previous build</span><h3>2026.07.16.13</h3></div><time class="build-shipped-at" datetime="2026-07-16T17:12:36-04:00" data-build-shipped-at="2026-07-16T17:12:36-04:00">Shipped Jul 16, 2026 · 5:12 PM EDT</time></header>
           <ul>
             <li>Versioned the three new supply-container images so browsers and the production CDN fetch them immediately on first load.</li>
           </ul>
@@ -1404,10 +1407,10 @@
   </main>
 
   <aside class="edge-utilities" aria-label="Build and feedback">
-    <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.16.13. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.16.13</strong></button>
+    <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.16.14. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.16.14</strong></button>
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report a problem</button>
   </aside>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260716.13"></script>
+  <script type="module" src="game.js?v=20260716.14"></script>
 </body>
 </html>

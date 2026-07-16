@@ -496,10 +496,14 @@ test("Sola's relative armor buff and delayed shield obey the active shield cap",
 test("area attacks damage supply caches", () => {
   const sim = new Simulation({ players: [{ id: "p1", name: "One", specialist: "fang" }] });
   const player = sim.players[0];
-  sim.pods = [{ id: "cache", x: 75, y: 0, radius: 25, hp: 100, dead: false }];
+  sim.pods = [{ id: "cache", x: 75, y: 0, radius: 25, hp: 100, kind: "pressure", dead: false }];
   sim.blast(0, 0, 90, 120, player.id, "#fff", true, "slash", "signature");
   assert.equal(sim.pods[0].dead, true);
   assert.equal(sim.drops.length, 1);
+  assert.deepEqual(sim.effects.find((effect) => effect.kind === "containerBreak") && {
+    kind: sim.effects.find((effect) => effect.kind === "containerBreak").containerKind,
+    mapId: sim.effects.find((effect) => effect.kind === "containerBreak").mapId,
+  }, { kind: "pressure", mapId: "warehouse" });
 });
 
 test("raised cover blocks movement and long dashes", () => {
