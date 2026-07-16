@@ -1,11 +1,11 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
-} from "./data.js?v=20260716.9";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260716.9";
+} from "./data.js?v=20260716.10";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260716.10";
 import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.5";
-import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260716.9";
-import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260716.9";
+import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260716.10";
+import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260716.10";
 import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260713.1";
 import { MAX_CORRIDOR_CANDIDATES, accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget, orderEntitiesByDistance } from "./projectile-decisions.js?v=20260713.1";
 import { eliteAffixEligibility, selectEliteAffixes, selectSpawnArchetype, spawnPhaseAt } from "./enemy-archetypes.js?v=20260713.1";
@@ -28,30 +28,33 @@ import {
   beginDownedActivity, createDownedActivityState, removeDownedActivity, triggerDownedSupport,
   validateDownedActivityState,
 } from "./downed-activity.js?v=20260713.9";
-import { generateJoinPackage, JOIN_IN_PROGRESS_REGISTRY, joinPackageUpgradeIds, transitionJoinPackage } from "./join-in-progress.js?v=20260716.9";
+import { generateJoinPackage, JOIN_IN_PROGRESS_REGISTRY, joinPackageUpgradeIds, transitionJoinPackage } from "./join-in-progress.js?v=20260716.10";
 import {
   DIRECTOR_APPROACHES, DIRECTOR_FORMATIONS, createSquadDirectorState, planSquadFormation, validateSquadDirectorState,
-} from "./enemy-director.js?v=20260716.9";
-import { mapMechanicFrame, mapSpawnWeights, pointInMapMechanic } from "./map-mechanics.js?v=20260716.9";
+} from "./enemy-director.js?v=20260716.10";
+import { mapMechanicFrame, mapSpawnWeights, pointInMapMechanic } from "./map-mechanics.js?v=20260716.10";
 import {
   CAMPAIGN_MUTATIONS, campaignMutationDefinition, campaignMutationObjectiveCompleted, campaignMutationWaveStarted,
   cancelCampaignMutationEncounter, consumeCampaignMutationEncounter, createCampaignMutationState,
   resolveCampaignMutationEncounter, validateCampaignMutationState,
-} from "./campaign-mutations.js?v=20260716.9";
-import { masteryStartDefinition } from "./specialist-mastery.js?v=20260716.9";
+} from "./campaign-mutations.js?v=20260716.10";
+import { masteryStartDefinition } from "./specialist-mastery.js?v=20260716.10";
 import {
   createRareDiscoveryRunState, rareDiscoveryIdForBoon, recordRareDiscovery,
   revealNextAugmentDossier, validateRareDiscoveryRunState,
-} from "./rare-discoveries.js?v=20260716.9";
-import { validateSeededOperation } from "./seeded-operations.js?v=20260716.9";
-import { commitCombatFacing, resolvedCombatFacing, selectStickyAutoAimTarget } from "./combat-orientation.js?v=20260716.9";
-import { abilityChoreography } from "./combat-choreography.js?v=20260716.9";
-import { environmentChunkObstacles } from "./environment-chunks.js?v=20260716.9";
+} from "./rare-discoveries.js?v=20260716.10";
+import { validateSeededOperation } from "./seeded-operations.js?v=20260716.10";
+import { commitCombatFacing, resolvedCombatFacing, selectStickyAutoAimTarget } from "./combat-orientation.js?v=20260716.10";
+import { abilityChoreography } from "./combat-choreography.js?v=20260716.10";
+import { environmentChunkObstacles } from "./environment-chunks.js?v=20260716.10";
+import { circleIntersectsCollider, rectCollider, sweptCircleColliderImpact } from "./collision-geometry.js?v=20260716.10";
 
 const BALANCE = getBalanceConfig();
 
 const TAU = Math.PI * 2;
 const WORLD = { width: 3600, height: 2400 };
+const SUPPLY_CONTAINER_KINDS = Object.freeze(["cargo", "utility", "pressure"]);
+const SUPPLY_CONTAINER_COUNT = 12;
 export const SIMULATION_TICK_RATE = 60;
 const COVER_OBSTACLE_CACHE = new Map();
 
@@ -59,7 +62,7 @@ export function coverObstaclesForMap(mapId) {
   const id = MAPS[mapId]?.id || MAPS.warehouse.id;
   if (!COVER_OBSTACLE_CACHE.has(id)) {
     const authored = environmentChunkObstacles({ mapId: id, world: WORLD, obstacles: MAP_OBSTACLES });
-    COVER_OBSTACLE_CACHE.set(id, Object.freeze([...MAP_OBSTACLES, ...authored]));
+    COVER_OBSTACLE_CACHE.set(id, Object.freeze([...MAP_OBSTACLES.map((rect, index) => rectCollider(rect, `raised-cover:${index}`)), ...authored]));
   }
   return COVER_OBSTACLE_CACHE.get(id);
 }
@@ -150,10 +153,7 @@ function recoveryRecord(value, playerIds) {
 }
 
 export function collidesWithCover(x, y, radius, obstacles = MAP_OBSTACLES) {
-  for (const [left, top, width, height] of obstacles) {
-    const nearestX = clamp(x, left, left + width), nearestY = clamp(y, top, top + height);
-    if ((x - nearestX) ** 2 + (y - nearestY) ** 2 < radius ** 2) return true;
-  }
+  for (const obstacle of obstacles) if (circleIntersectsCollider(x, y, radius, obstacle)) return true;
   return false;
 }
 
@@ -161,18 +161,8 @@ export function segmentCoverImpact(startX, startY, endX, endY, radius = 0, obsta
   const dx = endX - startX, dy = endY - startY, padding = Math.max(0, Number(radius) || 0);
   let earliest = null;
   for (let obstacleIndex = 0; obstacleIndex < obstacles.length; obstacleIndex++) {
-    const [left, top, width, height] = obstacles[obstacleIndex];
-    const bounds = [left - padding, top - padding, left + width + padding, top + height + padding];
-    let entry = 0, exit = 1, valid = true;
-    for (const [origin, delta, minimum, maximum] of [[startX, dx, bounds[0], bounds[2]], [startY, dy, bounds[1], bounds[3]]]) {
-      if (Math.abs(delta) < 1e-9) { if (origin < minimum || origin > maximum) valid = false; continue; }
-      const first = (minimum - origin) / delta, second = (maximum - origin) / delta;
-      entry = Math.max(entry, Math.min(first, second)); exit = Math.min(exit, Math.max(first, second));
-      if (entry > exit) { valid = false; break; }
-    }
-    if (!valid || exit < 0 || entry > 1) continue;
-    const t = clamp(entry, 0, 1);
-    if (!earliest || t < earliest.t) earliest = { t, obstacleIndex, x: startX + dx * t, y: startY + dy * t };
+    const impact = sweptCircleColliderImpact(startX, startY, endX, endY, padding, obstacles[obstacleIndex]);
+    if (impact && (!earliest || impact.t < earliest.t)) earliest = { ...impact, obstacleIndex };
   }
   return earliest;
 }
@@ -1387,9 +1377,40 @@ export class Simulation {
   }
 
   seedPods() {
-    for (let i = 0; i < 14; i++) {
-      const a = this.random(0, TAU), r = this.random(260, 1080);
-      this.pods.push({ id: this.nextGameplayId("p"), x: Math.cos(a) * r, y: Math.sin(a) * r, radius: 25, hp: 100, dead: false });
+    const radius = 25, placementRng = this.gameplayRng.fork(`supply-containers:${this.map.id}`);
+    // Preserve the historical 14-container placement budget (angle + radius)
+    // so old replay timelines keep the same combat RNG stream. Actual layout
+    // now uses its own fork, so fitted-cover rejection cannot perturb combat.
+    for (let draw = 0; draw < 28; draw++) this.gameplayRng.nextFloat();
+    const available = (x, y) => !this.collidesWithCover(x, y, radius + 8)
+      && this.pods.every((pod) => Math.hypot(pod.x - x, pod.y - y) >= pod.radius + radius + 36)
+      && this.players.every((player) => Math.hypot(player.x - x, player.y - y) >= player.radius + radius + 80);
+    const deterministicFallback = (index) => {
+      for (let ring = 0; ring < 9; ring++) {
+        const r = 300 + ring * 105;
+        for (let step = 0; step < 24; step++) {
+          const a = (step + index * 7) * TAU / 24;
+          const point = { x: Math.cos(a) * r, y: Math.sin(a) * r };
+          if (available(point.x, point.y)) return point;
+        }
+      }
+      return null;
+    };
+    for (let i = 0; i < SUPPLY_CONTAINER_COUNT; i++) {
+      // Container layout owns a forked stream: fitted-cover rejection cannot
+      // perturb combat spawns, yet different run seeds still produce variety.
+      let point = null;
+      for (let attempt = 0; attempt < 64 && !point; attempt++) {
+        const a = placementRng.float(0, TAU), r = placementRng.float(260, 1080);
+        const candidate = { x: Math.cos(a) * r, y: Math.sin(a) * r };
+        if (available(candidate.x, candidate.y)) point = candidate;
+      }
+      point ||= deterministicFallback(i);
+      if (!point) throw new RangeError(`No collision-safe supply container point is available for slot ${i}`);
+      this.pods.push({
+        id: this.nextGameplayId("p"), kind: SUPPLY_CONTAINER_KINDS[i % SUPPLY_CONTAINER_KINDS.length],
+        x: point.x, y: point.y, radius, hp: 100, dead: false,
+      });
     }
   }
 
@@ -2198,7 +2219,13 @@ export class Simulation {
     } else if (p.specialist === "vesper") {
       for (const feather of this.feathers.filter((f) => f.owner === p.id)) {
         const a = angleTo(feather, p), v = fromAngle(a, 950);
-        this.projectiles.push({ id: this.nextGameplayId("b"), owner: p.id, x: feather.x, y: feather.y, radius: 8, vx: v.x, vy: v.y, damage: (54 + this.level * 6) * this.playerStat(p, "damage"), life: 2, pierce: BALANCE.identityTuning.vesper.recallPierce, color: spec.color, dead: false, hit: new Set(), dagger: true, sourceId: "ability:e", age: 0 });
+        this.projectiles.push({
+          id: this.nextGameplayId("b"), owner: p.id, recallTarget: p.id, recallSpeed: 950,
+          x: feather.x, y: feather.y, radius: 8, vx: v.x, vy: v.y,
+          damage: (54 + this.level * 6) * this.playerStat(p, "damage"), life: 2,
+          pierce: BALANCE.identityTuning.vesper.recallPierce, color: spec.color, dead: false,
+          hit: new Set(), dagger: true, sourceId: "ability:e", age: 0,
+        });
         feather.dead = true;
       }
     }
@@ -2250,6 +2277,12 @@ export class Simulation {
     for (const bullet of this.projectiles) {
       bullet.age = (bullet.age || 0) + dt;
       bullet.life -= dt;
+      const recallOwner = bullet.recallTarget ? this.players.find((player) => player.id === bullet.recallTarget && !player.dead) : null;
+      if (recallOwner) {
+        const a = angleTo(bullet, recallOwner), speed = Math.max(1, Number(bullet.recallSpeed) || Math.hypot(bullet.vx, bullet.vy));
+        bullet.vx = Math.cos(a) * speed;
+        bullet.vy = Math.sin(a) * speed;
+      }
       const owner = bullet.boomerang ? this.players.find((p) => p.id === bullet.owner) : null;
       if (bullet.evolvedBoomerang && owner) {
         bullet.boomerangOwnerTravel = accumulateMovementDistance(

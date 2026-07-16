@@ -1,3 +1,5 @@
+import { circleIntersectsCollider, normalizeCollider } from "./collision-geometry.js?v=20260716.10";
+
 export const DOWNED_ACTIVITY_SCHEMA = "lastlight.downed-activity.v1";
 export const DOWNED_ACTIVITY_STATE_SCHEMA = "lastlight.downed-activity-state.v1";
 
@@ -111,18 +113,21 @@ function integrate(current, target, rate, seconds) {
   return { velocity: target + (current - target) * decay, distance: target * seconds + (current - target) * (1 - decay) / rate };
 }
 function collides(x, y, radius, obstacles) {
-  for (const [left, top, width, height] of obstacles) {
-    const nearX = clamp(x, left, left + width), nearY = clamp(y, top, top + height);
-    if ((x - nearX) ** 2 + (y - nearY) ** 2 < radius ** 2) return true;
-  }
+  for (const obstacle of obstacles) if (circleIntersectsCollider(x, y, radius, obstacle)) return true;
   return false;
 }
 function validateObstacles(obstacles) {
   if (!Array.isArray(obstacles) || obstacles.length > 256) throw new TypeError("obstacles exceed bounds");
   for (const [index, obstacle] of obstacles.entries()) {
-    if (!Array.isArray(obstacle) || obstacle.length !== 4) throw new TypeError(`obstacle ${index} is invalid`);
-    obstacle.forEach((value, field) => finite(value, -10_000, 10_000, `obstacle ${index}.${field}`));
-    if (obstacle[2] < 0 || obstacle[3] < 0) throw new TypeError(`obstacle ${index} has invalid size`);
+    let collider;
+    try { collider = normalizeCollider(obstacle, `downed-cover-${index}`); }
+    catch { throw new TypeError(`obstacle ${index} is invalid`); }
+    collider.bounds.forEach((value, field) => finite(value, -10_000, 10_000, `obstacle ${index}.${field}`));
+    if (collider.bounds[2] < 0 || collider.bounds[3] < 0) throw new TypeError(`obstacle ${index} has invalid size`);
+    for (const part of collider.parts) for (const [pointIndex, point] of part.points.entries()) {
+      if (!Array.isArray(point) || point.length !== 2) throw new TypeError(`obstacle ${index} point ${pointIndex} is invalid`);
+      point.forEach((value, field) => finite(value, -10_000, 10_000, `obstacle ${index}.${pointIndex}.${field}`));
+    }
   }
 }
 

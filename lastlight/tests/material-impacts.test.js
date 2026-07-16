@@ -63,6 +63,17 @@ test("world-space material resolution follows target priority then terrain fallb
   assert.equal(materialAtPoint({ x: 1700, y: 1100 }, state, []).material, "liquid");
 });
 
+test("compound cover resolves its fitted parts rather than transparent bounding-box corners", () => {
+  const collider = {
+    id: "fitted-structure",
+    bounds: [500, 400, 100, 100],
+    parts: [{ points: [[500, 400], [600, 400], [500, 500]] }],
+  };
+  const state = { map: "lab", enemies: [], pods: [], objectives: [], relayBalls: [] };
+  assert.deepEqual(materialAtPoint({ x: 510, y: 410 }, state, [collider], 1), { material: "concrete", kind: "cover", targetId: "fitted-structure" });
+  assert.deepEqual(materialAtPoint({ x: 590, y: 490 }, state, [collider], 1), { material: "liquid", kind: "terrain", targetId: "lab" });
+});
+
 test("all 42 base/evolved variants resolve all six material responses", () => {
   const matrix = createMaterialImpactStressFixture();
   assert.equal(matrix.length, 42 * 6);

@@ -1,3 +1,5 @@
+import { circleIntersectsCollider, normalizeCollider } from "./collision-geometry.js?v=20260716.10";
+
 export const MATERIAL_SCHEMA = "lastlight.material-impacts.v1";
 export const MATERIAL_CLASSES = Object.freeze(["metal", "concrete", "liquid", "organic", "energy", "void"]);
 
@@ -126,8 +128,14 @@ export function materialAtPoint(point, state = {}, obstacles = [], radius = 18) 
   for (const ball of state.relayBalls || []) consider(ball, ball.radius || 28, MATERIAL_TARGET_METADATA.objectives.relayBall, "relay-ball");
   consider({ id: "machine", x: 0, y: 0 }, 77, MATERIAL_TARGET_METADATA.objectives.machine, "machine");
   for (let index = 0; index < obstacles.length; index++) {
-    const [x, y, width, height] = obstacles[index], px = Math.max(x, Math.min(x + width, point.x || 0)), py = Math.max(y, Math.min(y + height, point.y || 0));
-    consider({ id: `cover-${index}`, x: px, y: py }, 0, MATERIAL_TARGET_METADATA.obstacles.raisedCover[index] || "concrete", "cover");
+    const collider = normalizeCollider(obstacles[index], `cover-${index}`);
+    if (!circleIntersectsCollider(point.x || 0, point.y || 0, radius, collider)) continue;
+    // Shape contact is exact, rather than a distance to the broad bounding box.
+    // Transparent corners around fitted structures remain terrain impacts.
+    if (bestDistance > 0) {
+      bestDistance = 0;
+      best = { material: MATERIAL_TARGET_METADATA.obstacles.raisedCover[index] || "concrete", kind: "cover", targetId: collider.id || `cover-${index}` };
+    }
   }
   return best || { material: MATERIAL_TARGET_METADATA.terrain[mapId] || "concrete", kind: "terrain", targetId: mapId };
 }

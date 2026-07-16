@@ -12,7 +12,7 @@ test("every operation promotes eight visible landmarks into deterministic solid 
     const obstacles = coverObstaclesForMap(mapId);
     assert.equal(layout.length, 8);
     assert.equal(obstacles.length, MAP_OBSTACLES.length + 8);
-    assert.deepEqual(obstacles.slice(MAP_OBSTACLES.length), layout.map(({ collisionRect }) => collisionRect));
+    assert.deepEqual(obstacles.slice(MAP_OBSTACLES.length), layout.map(({ collider }) => collider));
   }
 });
 

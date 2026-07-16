@@ -334,7 +334,8 @@ test("mobile reuses the visible E and R slots instead of rendering duplicate cas
 test("draft intelligence remains visible for local and teammate locked choices", () => {
   assert.match(game, /draftForecastIdentity\(game\)/);
   assert.match(game, /forecastDraftChoice\(choice, player, \{ gold: game\.gold, gameLevel: game\.level \}\)/);
-  assert.match(game, /buildcraftTagsMarkup\(buildcraft, 2\)/);
+  assert.match(game, /buildcraftTagsMarkup\(buildcraft\)/);
+  assert.doesNotMatch(game, /buildcraftTagsMarkup\(buildcraft, \d+\)/);
   assert.match(game, /forecastConsequencesMarkup\(forecast\)/);
   assert.match(game, /ready \? `aria-disabled="true"`/);
   assert.doesNotMatch(game, /ready \? "disabled"/);

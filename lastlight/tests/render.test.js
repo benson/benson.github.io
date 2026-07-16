@@ -121,11 +121,11 @@ test("inspection identifies breakable caches without implying collision", () => 
     map: "warehouse",
     machine: { charge: 0, cooldown: 0 },
     enemies: [], drops: [], orbs: [], objectives: [], relayBalls: [], drones: [], projectiles: [], hostile: [], effects: [],
-    pods: [{ id: "cache-1", x: 120, y: -40, radius: 25, hp: 65 }],
+    pods: [{ id: "cache-1", x: 120, y: -40, radius: 25, hp: 65, kind: "cargo" }],
   };
   const result = renderer.inspectAt(620, 310, state);
   assert.equal(result.type, "cache");
-  assert.equal(result.name, "Breakable Supply Cache");
+  assert.equal(result.name, "Cargo Supply Crate");
   assert.match(result.description, /does not block movement/i);
   assert.equal(result.stats.Integrity, "65 / 100");
 });
@@ -332,6 +332,14 @@ test("renderer draws bounded theme-owned environmental props and contacts", () =
   renderer.setQualitySettings(settingsForPreset("minimal"));
   renderer.environmentField.update({ mapId: "outskirts", bounds: fixture.bounds, state: { players: [], enemies: [] }, previous: { players: [], enemies: [] }, frameSeconds: 1 / 60, tier: "minimal", effectsDensity: .3, reducedMotion: true });
   assert.equal(renderer.environmentDiagnostics().activeProps, 0);
+});
+
+test("renderer shares fitted compound structure geometry with material and inspection presentation", () => {
+  assert.match(renderSource, /this\.environmentChunkLayout\.map\(\(chunk\) => chunk\.collider\)/);
+  assert.match(renderSource, /for \(const part of chunk\.collider\.parts\)/);
+  assert.match(renderSource, /circleIntersectsCollider\(worldX, worldY, \.01, chunk\.collider\)/);
+  assert.match(renderSource, /ctx\.rotate\(chunk\.rotation \|\| 0\)/);
+  assert.doesNotMatch(renderSource, /fillRect\(baseX/);
 });
 
 test("motion playback keeps anchors stable, respects specialist facing policies, and caps retained deaths", () => {

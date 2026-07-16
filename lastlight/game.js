@@ -1,51 +1,51 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260716.9";
-import { Simulation, WORLD, coverObstaclesForMap, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260716.9";
-import { Renderer } from "./render.js?v=20260716.9";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260716.10";
+import { Simulation, WORLD, coverObstaclesForMap, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260716.10";
+import { Renderer } from "./render.js?v=20260716.10";
 import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260713.2";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
-import { getThemeAsset, getThemeEnvironmentChunks, getThemeMaterial } from "./themes/lastlight.js?v=20260716.9";
-import { submitRunTelemetry } from "./telemetry.js?v=20260716.9";
+import { getThemeAsset, getThemeEnvironmentChunks, getThemeMaterial } from "./themes/lastlight.js?v=20260716.10";
+import { submitRunTelemetry } from "./telemetry.js?v=20260716.10";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260716.9";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260716.9";
+import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260716.10";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260716.10";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
-import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260716.9";
-import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260716.9";
-import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260716.9";
+import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260716.10";
+import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260716.10";
+import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260716.10";
 import {
   ACCESSIBILITY_ACTIONS, GAMEPAD_ACTIONS, bindingLabel, defaultAccessibilitySettings,
   keyboardActionForEvent, loadAccessibilitySettings, readStandardGamepad, saveAccessibilitySettings,
-} from "./accessibility-settings.js?v=20260716.9";
-import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260716.9";
+} from "./accessibility-settings.js?v=20260716.10";
+import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260716.10";
 import { GuestInputSequenceTracker, HostInputSequenceGate, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260713.2";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260713.2";
-import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260716.9";
-import { advancePlayerMovement } from "./movement.js?v=20260716.9";
-import { abilityChoreography } from "./combat-choreography.js?v=20260716.9";
-import { combatRhythmTransition } from "./combat-rhythm.js?v=20260716.9";
+import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260716.10";
+import { advancePlayerMovement } from "./movement.js?v=20260716.10";
+import { abilityChoreography } from "./combat-choreography.js?v=20260716.10";
+import { combatRhythmTransition } from "./combat-rhythm.js?v=20260716.10";
 import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260711.8";
-import { DynamicAudioMixer } from "./audio-mix.js?v=20260716.9";
-import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260716.9";
+import { DynamicAudioMixer } from "./audio-mix.js?v=20260716.10";
+import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260716.10";
 import { enemyAudioCueName, newEntities, spatialAudioPan, weaponAudioCueName, weaponTimerActivations } from "./audio-events.js?v=20260713.1";
 import { FUNNY_VOICE_MIN_INTERVAL_MS, audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260713.1";
-import { playFeedbackHaptics } from "./feedback-haptics.js?v=20260716.9";
-import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260716.9";
-import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260716.9";
+import { playFeedbackHaptics } from "./feedback-haptics.js?v=20260716.10";
+import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260716.10";
+import { BUILDCRAFT_CATEGORY_DEFINITIONS, passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260716.10";
 import { getWeaponEvolution } from "./weapon-evolution.js?v=20260713.1";
-import { isFpsShortcut, isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260716.9";
-import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260716.9";
-import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260716.9";
-import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260716.9";
+import { isFpsShortcut, isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260716.10";
+import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260716.10";
+import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260716.10";
+import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260716.10";
 import { reconcileActiveBuffs } from "./active-buffs.js?v=20260713.1";
 import { ELITE_AFFIXES, ENEMY_ARCHETYPES, eliteAffixEligibility } from "./enemy-archetypes.js?v=20260713.1";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
-import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260716.9";
-import { CAMPAIGN_MUTATIONS, campaignMutationDefinition, campaignMutationPackageVisible } from "./campaign-mutations.js?v=20260716.9";
+import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260716.10";
+import { CAMPAIGN_MUTATIONS, campaignMutationDefinition, campaignMutationPackageVisible } from "./campaign-mutations.js?v=20260716.10";
 import {
   AuthoritySnapshotGate, HOST_MIGRATION_PROTOCOL_VERSION, MIGRATION_CHECKPOINT_INTERVAL_TICKS,
   createMigrationCapabilities, createMigrationCheckpoint, createMigrationReady,
   migrationCompatibilityMatches, validateMigrationCheckpoint,
-} from "./host-migration.js?v=20260716.9";
+} from "./host-migration.js?v=20260716.10";
 import { RECONNECT_DELAYS_MS, SquadPresenceTracker, authorityStateCopy } from "./reconnect-state.js?v=20260713.3";
 import {
   HostPingGate, PING_INTENTS, PING_LIFETIME_TICKS, PING_WHEEL_ORDER, PingSequenceTracker,
@@ -61,32 +61,32 @@ import { DraftRecommendationStore, recommendationMarkerModel } from "./draft-rec
 import { SQUAD_SYNERGY_REGISTRY } from "./squad-synergies.js?v=20260713.6";
 import { reconcileActiveSynergies } from "./active-synergies.js?v=20260713.6";
 import { PARTICIPATION_REGISTRY } from "./participation-credit.js?v=20260713.7";
-import { campaignJoinEligibility } from "./join-in-progress.js?v=20260716.9";
+import { campaignJoinEligibility } from "./join-in-progress.js?v=20260716.10";
 import {
   RUN_ARCHIVE_STORAGE_KEY, createSquadRunReport, decodeSquadRunFragment, normalizeRunArchiveStorage,
   squadRunShareFragment, upsertRunArchive,
-} from "./run-archive.js?v=20260716.9";
+} from "./run-archive.js?v=20260716.10";
 import {
   SPECIALIST_MASTERY, SPECIALIST_MASTERY_LEVELS, awardSpecialistMastery, loadSpecialistMasteryState,
   masteryStartDefinition, saveSpecialistMasteryState, selectMasteryStart,
-} from "./specialist-mastery.js?v=20260716.9";
+} from "./specialist-mastery.js?v=20260716.10";
 import {
   RARE_DISCOVERY_REGISTRY, awardRareDiscoveries, loadRareDiscoveryCollection,
   rareDiscoveryDefinition, rareDiscoveryTelemetry, saveRareDiscoveryCollection,
-} from "./rare-discoveries.js?v=20260716.9";
+} from "./rare-discoveries.js?v=20260716.10";
 import {
   CHALLENGE_ACHIEVEMENT_REGISTRY, awardChallengeAchievements, challengeAchievementDefinition,
   challengeAchievementTelemetry, evaluateChallengeAchievements, loadChallengeAchievementState,
   saveChallengeAchievementState,
-} from "./challenge-achievements.js?v=20260716.9";
+} from "./challenge-achievements.js?v=20260716.10";
 import {
   loadSeededOperationRecords, recordSeededOperationResult, saveSeededOperationRecords,
   seededOperationFor, seededOperationFromId, seededOperationTelemetry,
-} from "./seeded-operations.js?v=20260716.9";
+} from "./seeded-operations.js?v=20260716.10";
 import {
   PRACTICE_MAX_PASSIVES, PRACTICE_MAX_WEAPONS, defaultPracticeLaboratoryConfig,
   measurePracticeLaboratory, normalizePracticeLaboratoryConfig,
-} from "./practice-laboratory.js?v=20260716.9";
+} from "./practice-laboratory.js?v=20260716.10";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -95,7 +95,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.16.9";
+const BUILD = "2026.07.16.10";
 const AUTHORITY_WATCHDOG_MS = Object.freeze({ synchronizing: 10_000, migrating: 25_000 });
 const BALANCE = getBalanceConfig();
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
@@ -1271,7 +1271,7 @@ function renderGuide() {
       return guideCard("EN", enemy.name, `${identity.role.replaceAll("-", " ")} · ${identity.handler.replace("-v1", "").replaceAll("-", " ")}`, behavior, "", enemy.icon, { Health: enemy.health, "Story hit": `${storyDamage.toFixed(1)} HP`, "Hits vs 10 HP": Math.ceil(BASE_VITALITY / storyDamage), Speed: enemy.speed, XP: enemy.xp });
     }),
     guideCard("XP", "Combat data", "Cyan crystal pickup", "Collect data motes to advance the squad's next upgrade choice.", "", getThemeAsset("guide.field.combatData"), { Effect: "Squad XP", Attraction: "Pickup radius" }),
-    guideCard("BREAK", "Supply cache", "Destructible field object", "Damage the orange cache with projectiles or area attacks to reveal a random pickup.", "", getThemeAsset("guide.field.supplyCache"), { Integrity: 100, Collision: "None", Drops: "Repair / vacuum / mine / gold" }),
+    guideCard("SUP", "Supply containers", "Destructible field objects", "Damage orange cargo crates, utility cases, or pressure canisters with projectiles or area attacks to reveal a random pickup.", "", getThemeAsset("guide.field.supplyCache"), { Integrity: 100, Collision: "None", Drops: "Repair / vacuum / mine / gold" }),
     guideCard("!", "Hostile projectile", "Orange-red enemy fire", "Evade hostile bolts. Apex attacks lock exact danger geometry after a named countdown.", "", getThemeAsset("guide.field.hostileProjectile"), { Threat: "Damage", Apex: "Named shape telegraph" }),
     guideCard("+", "Repair kit", "Green squad pickup", "Restores 20% health to every surviving specialist.", "", getThemeAsset("guide.field.repairKit"), { Healing: "20% max HP", Target: "Whole squad" }),
     guideCard("ORB", "Relay ball", "Push objective", "Make contact to drive the relay core into its destination ring.", "", getThemeAsset("guide.field.relayBall"), { Time: "62 seconds", Reward: "Gold + data + access card" }),
@@ -1335,7 +1335,7 @@ function renderGuide() {
       `${item.summary} Reward: ${item.reward.name} (${item.reward.kind}).`, complete ? "complete" : "open", item.icon,
       { Progress: complete ? "1 / 1" : "0 / 1", Evidence: "Validated terminal report", Power: "No gameplay power", Rollback: "Independent runtime flag" });
   }).join("") : "";
-  $("guide-content").innerHTML = `<section id="guide-campaign" class="guide-section"><h3>Campaign route</h3><p>Clear threat tiers to unlock harder operations. Progress is saved in this browser.</p><div class="campaign-route">${campaign}</div></section><section id="guide-map-mechanics" class="guide-section"><h3>Operation identities</h3><p>Every operation changes battlefield routing, enemy composition, and counterplay through a deterministic map mechanic.</p><div class="guide-grid">${mapMechanics}</div></section><section id="guide-environments" class="guide-section"><h3>Environment identities</h3><p>Each operation has eight solid structures. Specialists and enemies route around their grounded footprints, and ordinary shots stop on contact. Small reactive debris remains visual only.</p><div class="guide-grid">${environments}</div></section><section id="guide-apex" class="guide-section"><h3>Map apexes</h3><p>Every apex has two deterministic phases, a real health gate, named attacks, and a map-specific arena change.</p><div class="guide-grid">${apexes}</div></section><section id="guide-specialists" class="guide-section"><h3>Specialist identities</h3><p>Measured roles, strengths, and failure points from the versioned simulation contract.</p><div class="guide-grid">${identities}</div></section><section id="guide-field" class="guide-section"><h3>Field objects</h3><p>Hold Shift and point at a live field object for its current stats.</p><div class="guide-grid">${fieldObjects}</div></section><section id="guide-signatures" class="guide-section"><h3>Signature evolutions</h3><div class="guide-grid">${signatures}</div></section><section id="guide-weapons" class="guide-section"><h3>Universal weapons</h3><div class="guide-grid">${weapons}</div></section><section id="guide-materials" class="guide-section"><h3>Impact materials</h3><p>Every weapon keeps its silhouette while contact particles, decals, flash, and sound adapt to the target. Shape and pattern remain available when color or motion is reduced.</p><div class="guide-grid">${materials}</div></section><section id="guide-passives" class="guide-section"><h3>Passive upgrades</h3><div class="guide-grid">${passives}</div></section><section id="guide-downed" class="guide-section"><h3>Downed activity</h3><p>A downed specialist stays useful but cannot fight, collect, score objective work, or revive themself. The authoritative simulation decides every action.</p><div class="guide-grid">${downed}</div></section><section id="guide-participation" class="guide-section"><h3>Participation credit</h3><p>Credit records effective work by anonymous specialist slot. Genuine overlap is shared; duplicate traffic, excess values, idle proximity, and system restoration are excluded.</p><div class="guide-grid">${participation}</div></section><section id="guide-synergies" class="guide-section"><h3>Squad synergies</h3><p>Coordinate roles, ultimate timing, and movement. Effects are authoritative, bounded, non-stacking, and disabled in solo runs.</p><div class="guide-grid">${synergies}</div></section><section id="guide-director" class="guide-section"><h3>Squad enemy director</h3><p>Squad runs receive deterministic, objective-aware formations while solo and rollback paths preserve the original spawn contract.</p><div class="guide-grid">${director}</div></section>${challengeEnabled ? `<section id="guide-challenges" class="guide-section"><h3>Challenges & achievements // ${completedChallenges.size}/${CHALLENGE_ACHIEVEMENT_REGISTRY.entries.length}</h3><p>Authored goals reward unusual builds and cooperative mastery with local badges, titles, lore, and cosmetics. They never grant gameplay power.</p><div class="guide-grid">${challenges}</div></section>` : ""}<section id="guide-rare" class="guide-section"><h3>Rare finds & events</h3><div class="guide-grid">${rare}</div></section>`;
+  $("guide-content").innerHTML = `<section id="guide-campaign" class="guide-section"><h3>Campaign route</h3><p>Clear threat tiers to unlock harder operations. Progress is saved in this browser.</p><div class="campaign-route">${campaign}</div></section><section id="guide-map-mechanics" class="guide-section"><h3>Operation identities</h3><p>Every operation changes battlefield routing, enemy composition, and counterplay through a deterministic map mechanic.</p><div class="guide-grid">${mapMechanics}</div></section><section id="guide-environments" class="guide-section"><h3>Environment identities</h3><p>Each operation has eight solid structures. Specialists and enemies route around their fitted footprints, and ordinary shots stop on contact. Small reactive debris remains visual only.</p><div class="guide-grid">${environments}</div></section><section id="guide-apex" class="guide-section"><h3>Map apexes</h3><p>Every apex has two deterministic phases, a real health gate, named attacks, and a map-specific arena change.</p><div class="guide-grid">${apexes}</div></section><section id="guide-specialists" class="guide-section"><h3>Specialist identities</h3><p>Measured roles, strengths, and failure points from the versioned simulation contract.</p><div class="guide-grid">${identities}</div></section><section id="guide-field" class="guide-section"><h3>Field objects</h3><p>Press Space to Quick Pause, then point at any live field object for its current stats.</p><div class="guide-grid">${fieldObjects}</div></section><section id="guide-signatures" class="guide-section"><h3>Signature evolutions</h3><div class="guide-grid">${signatures}</div></section><section id="guide-weapons" class="guide-section"><h3>Universal weapons</h3><div class="guide-grid">${weapons}</div></section><section id="guide-materials" class="guide-section"><h3>Impact materials</h3><p>Every weapon keeps its silhouette while contact particles, decals, flash, and sound adapt to the target. Shape and pattern remain available when color or motion is reduced.</p><div class="guide-grid">${materials}</div></section><section id="guide-passives" class="guide-section"><h3>Passive upgrades</h3><div class="guide-grid">${passives}</div></section><section id="guide-downed" class="guide-section"><h3>Downed activity</h3><p>A downed specialist stays useful but cannot fight, collect, score objective work, or revive themself. The authoritative simulation decides every action.</p><div class="guide-grid">${downed}</div></section><section id="guide-participation" class="guide-section"><h3>Participation credit</h3><p>Credit records effective work by anonymous specialist slot. Genuine overlap is shared; duplicate traffic, excess values, idle proximity, and system restoration are excluded.</p><div class="guide-grid">${participation}</div></section><section id="guide-synergies" class="guide-section"><h3>Squad synergies</h3><p>Coordinate roles, ultimate timing, and movement. Effects are authoritative, bounded, non-stacking, and disabled in solo runs.</p><div class="guide-grid">${synergies}</div></section><section id="guide-director" class="guide-section"><h3>Squad enemy director</h3><p>Squad runs receive deterministic, objective-aware formations while solo and rollback paths preserve the original spawn contract.</p><div class="guide-grid">${director}</div></section>${challengeEnabled ? `<section id="guide-challenges" class="guide-section"><h3>Challenges & achievements // ${completedChallenges.size}/${CHALLENGE_ACHIEVEMENT_REGISTRY.entries.length}</h3><p>Authored goals reward unusual builds and cooperative mastery with local badges, titles, lore, and cosmetics. They never grant gameplay power.</p><div class="guide-grid">${challenges}</div></section>` : ""}<section id="guide-rare" class="guide-section"><h3>Rare finds & events</h3><div class="guide-grid">${rare}</div></section>`;
   const rareSection = $("guide-content").querySelector("#guide-rare");
   rareSection.querySelector("h3").textContent = rareHeading;
   if (discoveryEnabled) rareSection.querySelector("h3").insertAdjacentHTML("afterend", "<p>Discoveries are informational, local to this browser, and never grant combat power.</p>");
@@ -1715,7 +1715,7 @@ function gameLoop(now) {
       state.soundState.lastMaterial = now; sfx(`material:${materialCue.family}`, { ...materialCue, pan: accessibleAudioPan(spatialAudioPan(materialCue, listener)) });
     }
     const hudStarted = performance.now(); updateHUD(current); updateUpgrade(current); processEvents(current.events || []); const hudMs = performance.now() - hudStarted;
-    if (state.inspectActive && state.inspectPointer) inspectCanvasAt({ ...state.inspectPointer, shiftKey: true });
+    if ((state.inspectActive || quickPauseActive(current)) && state.inspectPointer) inspectCanvasAt(state.inspectPointer);
     trackInputLatency(renderState || current, input, now);
     trackPerformance(current, dt * 1000, performance.now() - frameStarted, simulationMs, renderMs, hudMs);
     updateFpsCounter(now);
@@ -1875,8 +1875,11 @@ function weaponSlotMarkup(weaponId, weapon, player, spec, game) {
   const evolution = weaponId === "signature" ? signatureEvolutionTelemetry(player.specialist, player) : null;
   const buildcraft = sourceBuildcraft(weaponId, { specialistId: player.specialist, evolved: Boolean(weapon.evolved) });
   const signatureRows = evolution ? `<div><dt>Radius</dt><dd>${escapeHTML(telemetry.radius)}</dd></div><div><dt>Reach</dt><dd>${escapeHTML(telemetry.reach)}</dd></div><div><dt>Pierce</dt><dd>${escapeHTML(telemetry.pierce)}</dd></div><div><dt>Lifetime</dt><dd>${escapeHTML(telemetry.lifetime)}</dd></div><div><dt>Secondary</dt><dd>${escapeHTML(telemetry.secondary)}</dd></div>` : "";
-  const evolutionCopy = `${evolution ? `${evolution.requirement}. Paired passive: ${evolution.pairedPassive.name} — ${pairedPassiveDelta(evolution)}. Evolution delta: ${evolution.summary}` : `Level 5 + ${PASSIVES[passive]?.name || passive} + an elite access card`} Build traits: ${buildcraft?.traits.map(({ value }) => value).join(", ") || "none"}. Direct scaling: ${buildcraft?.scalesWith.map(({ name }) => name).join(", ") || "none"}.`;
-  return `<div class="weapon-slot ${weapon.evolved ? "evolved" : ""}" data-weapon-id="${weaponId}" data-cooldown-max="${telemetry.cooldownSeconds}" data-cadence-kind="${telemetry.cadenceKind || "cooldown"}" tabindex="0" aria-label="${escapeHTML(weapon.evolved ? data.evolve : data.name)} weapon details"><img src="${icon}" alt=""><i class="weapon-cooldown-sweep" aria-hidden="true"></i><b class="weapon-cooldown-seconds" aria-hidden="true"></b><small>${weapon.evolved ? "E" : weapon.level}</small><div class="weapon-tooltip"><span>${weapon.evolved ? "Evolved weapon" : `Level ${weapon.level}`}</span><strong>${escapeHTML(weapon.evolved ? data.evolve : data.name)}</strong><p>${escapeHTML(data.copy || spec.tagline)}</p><dl><div><dt>Damage</dt><dd>${telemetry.damage}</dd></div><div><dt>${evolution ? "Cadence" : "Cooldown"}</dt><dd>${telemetry.interval}</dd></div><div><dt>Projectiles</dt><dd>${telemetry.projectiles}</dd></div>${signatureRows}<div><dt>Impact</dt><dd>${escapeHTML(impactSummary(impact))}</dd></div><div><dt>Run damage</dt><dd data-run-damage>${statNumber(damage)}</dd></div><div><dt>DPS</dt><dd data-run-dps>${dps.toFixed(1)}</dd></div></dl><em>${escapeHTML(evolution ? telemetry.secondary : weapon.evolved ? impact?.behavior || telemetry.note : impact?.evolvedDifference || telemetry.note)}</em><small>Evolution: ${escapeHTML(evolutionCopy)}</small></div></div>`;
+  const evolutionRequirement = evolution ? evolution.requirement : `Level 5 + ${PASSIVES[passive]?.name || passive} + an elite access card`;
+  const behavior = evolution ? telemetry.secondary : weapon.evolved ? impact?.behavior || telemetry.note : impact?.evolvedDifference || telemetry.note;
+  const evolutionEffect = evolution ? `${evolution.pairedPassive.name}: ${pairedPassiveDelta(evolution)}. ${evolution.summary}` : impact?.evolvedDifference || data.evolve || "Improves this weapon's authored behavior.";
+  const scaling = buildcraft?.scalesWith.map(({ name }) => name).join(", ") || "No direct passive scaling";
+  return `<div class="weapon-slot ${weapon.evolved ? "evolved" : ""}" data-weapon-id="${weaponId}" data-cooldown-max="${telemetry.cooldownSeconds}" data-cadence-kind="${telemetry.cadenceKind || "cooldown"}" tabindex="0" aria-label="${escapeHTML(weapon.evolved ? data.evolve : data.name)} weapon details"><img src="${icon}" alt=""><i class="weapon-cooldown-sweep" aria-hidden="true"></i><b class="weapon-cooldown-seconds" aria-hidden="true"></b><small>${weapon.evolved ? "E" : weapon.level}</small><div class="weapon-tooltip"><span>${weapon.evolved ? "Evolved weapon" : `Level ${weapon.level}`}</span><strong>${escapeHTML(weapon.evolved ? data.evolve : data.name)}</strong><p>${richTooltipCopy(data.copy || spec.tagline)}</p>${buildcraftTagsMarkup(buildcraft)}<dl><div><dt>Damage</dt><dd>${telemetry.damage}</dd></div><div><dt>${evolution ? "Cadence" : "Cooldown"}</dt><dd>${telemetry.interval}</dd></div><div><dt>Projectiles</dt><dd>${telemetry.projectiles}</dd></div>${signatureRows}<div><dt>Impact</dt><dd>${escapeHTML(impactSummary(impact))}</dd></div><div><dt>Run damage</dt><dd data-run-damage>${statNumber(damage)}</dd></div><div><dt>DPS</dt><dd data-run-dps>${dps.toFixed(1)}</dd></div></dl><section><b>Behavior</b><p>${richTooltipCopy(behavior)}</p></section><section><b>Evolution</b><p><strong>Requires:</strong> ${escapeHTML(evolutionRequirement)}</p><p>${richTooltipCopy(evolutionEffect)}</p></section><small><b>Scales with:</b> ${escapeHTML(scaling)}</small></div></div>`;
 }
 
 function currentAffectedSources(passiveId, player, gameLevel = 0) {
@@ -1894,7 +1897,7 @@ function passiveSlotMarkup(passiveId, rank, player, gameLevel = 0) {
   const affected = currentAffectedSources(passiveId, player, gameLevel);
   const buildcraft = passiveBuildcraft(passiveId);
   const impact = `${affected.length ? `Affects now: ${affected.map((source) => source.name).join(", ")}.` : passiveId === "projectiles" ? "No equipped attacks can gain another projectile yet." : "Improves a core specialist system rather than a specific attack."} Trait: ${buildcraft?.trait.category.replaceAll("-", " ") || "support"}. Evolution pairs: ${buildcraft?.pairedSources.map(({ name }) => name).join(", ") || "none"}.`;
-  return `<div class="passive-slot" style="--passive-color:${escapeHTML(passive.color)}" tabindex="0" aria-label="${escapeHTML(passive.name)}, passive rank ${level} of ${passive.max}"><span><img src="${passive.icon}" alt=""></span><small>${level}</small><div class="weapon-tooltip"><span>Passive upgrade</span><strong>${escapeHTML(passive.name)}</strong><p>${escapeHTML(passive.amount)} per rank. ${passive.id === "projectiles" ? "Applies only to attacks marked as multishot-compatible." : "Compatibility comes from the authoritative combat model."}</p><dl><div><dt>Current rank</dt><dd>${level} / ${passive.max}</dd></div><div><dt>Each rank</dt><dd>${escapeHTML(passive.amount)}</dd></div></dl><em>${escapeHTML(impact)}</em></div></div>`;
+  return `<div class="passive-slot" style="--passive-color:${escapeHTML(passive.color)}" tabindex="0" aria-label="${escapeHTML(passive.name)}, passive rank ${level} of ${passive.max}"><span><img src="${passive.icon}" alt=""></span><small>${level}</small><div class="weapon-tooltip"><span>Passive upgrade</span><strong>${escapeHTML(passive.name)}</strong><p>${escapeHTML(passive.amount)} per rank. ${passive.id === "projectiles" ? "Applies only to attacks marked as multishot-compatible." : "Improves compatible specialist systems."}</p>${buildcraftTagsMarkup(buildcraft)}<dl><div><dt>Current rank</dt><dd>${level} / ${passive.max}</dd></div><div><dt>Each rank</dt><dd>${escapeHTML(passive.amount)}</dd></div></dl><section><b>Affects your build</b><p>${escapeHTML(impact)}</p></section></div></div>`;
 }
 
 function prefersReducedMotion() { return matchMedia("(prefers-reduced-motion: reduce)").matches; }
@@ -1958,7 +1961,7 @@ const ACCESSIBILITY_FIELD_IDS = Object.freeze({
 });
 const ACCESSIBILITY_ACTION_LABELS = Object.freeze({
   moveUp: "Move up", moveDown: "Move down", moveLeft: "Move left", moveRight: "Move right", active: "Active ability",
-  ultimate: "Ultimate ability", autoAim: "Toggle auto-aim", ping: "Contextual ping", pause: "Pause", inspect: "Inspect field",
+  ultimate: "Ultimate ability", autoAim: "Toggle signature aim", ping: "Contextual ping", pause: "Menu pause", quickPause: "Quick Pause", inspect: "Inspect field",
   report: "Open report", choice1: "Draft choice 1", choice2: "Draft choice 2", choice3: "Draft choice 3",
   reroll: "Reroll draft", banish: "Banish draft choice", skip: "Skip draft",
 });
@@ -2057,9 +2060,10 @@ function performMappedAction(action) {
   }
   if (action === "active") cast("e");
   else if (action === "ultimate") cast("r");
-  else if (action === "autoAim") { state.input.autoAim = !state.input.autoAim; toast(state.input.autoAim ? "Auto-aim on" : "Manual aim on"); }
+  else if (action === "autoAim") { state.input.autoAim = !state.input.autoAim; toast(state.input.autoAim ? "Signature aim on" : "Signature follows cursor"); }
   else if (action === "ping") openPingWheel({ source: "keyboard" });
   else if (action === "pause") togglePause();
+  else if (action === "quickPause") toggleQuickPause();
   else if (action === "report") openReport();
   else return false;
   return true;
@@ -2081,7 +2085,7 @@ function pollGamepadInput() {
   const status = $("accessibility-controller-status");
   const statusCopy = sample.connected ? `${gamepad.id || "Standard gamepad"} connected.` : "No standard gamepad detected.";
   if (status && status.textContent !== statusCopy) status.textContent = statusCopy;
-  state.inspectActive = sample.held.includes(4) || state.input.keys.has(settings.bindings.inspect);
+  state.inspectActive = quickPauseActive() || sample.held.includes(4) || state.input.keys.has(settings.bindings.inspect);
   setTacticalIntel(state.inspectActive);
   const draftOpen = !$(`upgrade-overlay`).classList.contains("hidden");
   if (draftOpen) {
@@ -2263,6 +2267,11 @@ function saveDamageLedgerLayout() {
 
 function damageLedgerIsMobile() { return matchMedia("(max-width: 650px)").matches; }
 
+function damageLedgerHudScale() {
+  const value = Number(getComputedStyle(document.documentElement).getPropertyValue("--hud-scale"));
+  return Number.isFinite(value) && value > 0 ? value : 1;
+}
+
 function fitDamageLedgerToContents() {
   const panel = $("damage-ledger"), layout = state.damageLedgerLayout;
   if (!panel || layout.userSized || layout.collapsed || damageLedgerIsMobile() || panel.classList.contains("no-data")) return;
@@ -2274,12 +2283,13 @@ function fitDamageLedgerToContents() {
 
 function clampDamageLedgerLayout() {
   const panel = $("damage-ledger"), bounds = panel.parentElement.getBoundingClientRect(), layout = state.damageLedgerLayout;
-  const maxWidth = Math.max(210, Math.min(440, bounds.width - 16));
-  const maxHeight = Math.max(110, bounds.height - 96);
+  const scale = damageLedgerHudScale();
+  const maxWidth = Math.max(210, Math.min(440, (bounds.width - 16) / scale));
+  const maxHeight = Math.max(110, (bounds.height - DAMAGE_LEDGER_DEFAULT.y - 24) / scale);
   layout.width = clamp(Number(layout.width) || DAMAGE_LEDGER_DEFAULT.width, 210, maxWidth);
   layout.height = clamp(Number(layout.height) || DAMAGE_LEDGER_DEFAULT.height, 110, maxHeight);
-  layout.x = clamp(Number(layout.x) || 0, 8, Math.max(8, bounds.width - layout.width - 8));
-  layout.y = clamp(Number(layout.y) || 0, DAMAGE_LEDGER_DEFAULT.y, Math.max(DAMAGE_LEDGER_DEFAULT.y, bounds.height - (layout.collapsed ? 40 : layout.height) - 24));
+  layout.x = clamp(Number(layout.x) || 0, 8, Math.max(8, bounds.width - layout.width * scale - 8));
+  layout.y = clamp(Number(layout.y) || 0, DAMAGE_LEDGER_DEFAULT.y, Math.max(DAMAGE_LEDGER_DEFAULT.y, bounds.height - (layout.collapsed ? 40 : layout.height) * scale - 24));
 }
 
 function applyDamageLedgerLayout({ persist = false } = {}) {
@@ -2359,9 +2369,10 @@ function setupDamageLedger() {
   });
   state.damageLedgerResizeObserver = new ResizeObserver(() => {
     if (applying || damageLedgerIsMobile() || state.damageLedgerLayout.collapsed) return;
-    const rect = panel.getBoundingClientRect();
-    if (Math.abs(rect.width - state.damageLedgerLayout.width) < 1 && Math.abs(rect.height - state.damageLedgerLayout.height) < 1) return;
-    state.damageLedgerLayout.width = rect.width; state.damageLedgerLayout.height = rect.height;
+    const rect = panel.getBoundingClientRect(), scale = damageLedgerHudScale();
+    const width = rect.width / scale, height = rect.height / scale;
+    if (Math.abs(width - state.damageLedgerLayout.width) < 1 && Math.abs(height - state.damageLedgerLayout.height) < 1) return;
+    state.damageLedgerLayout.width = width; state.damageLedgerLayout.height = height;
     applying = true; applyDamageLedgerLayout({ persist: true }); applying = false;
   });
   state.damageLedgerResizeObserver.observe(panel);
@@ -2369,12 +2380,30 @@ function setupDamageLedger() {
   applyDamageLedgerLayout();
 }
 
+function quickPauseActive(game = currentGameState()) { return Boolean(game?.paused && game.pauseReason === "quick"); }
+
 function togglePause(force) {
   if (!state.isHost || !state.sim) { toast("Only the squad leader can pause"); return; }
   if (state.sim.pauseReason === "upgrade") return;
+  if (force === undefined && quickPauseActive(state.sim)) {
+    state.sim.pauseReason = "manual"; hideInspectPanel(); setTacticalIntel(false); $("pause-overlay").classList.remove("hidden"); return;
+  }
   const next = force ?? !state.sim.paused; state.sim.paused = next; state.sim.pauseReason = next ? "manual" : "";
   if (next) closePingWheel({ restoreFocus: false });
   $("pause-overlay").classList.toggle("hidden", !next);
+}
+
+function toggleQuickPause(force) {
+  if (!state.isHost || !state.sim) { toast("Only the squad leader can Quick Pause"); return; }
+  if (state.sim.pauseReason === "upgrade" || state.sim.pauseReason === "manual") return;
+  const next = force ?? !quickPauseActive(state.sim);
+  state.sim.paused = next; state.sim.pauseReason = next ? "quick" : "";
+  if (next) { closePingWheel({ restoreFocus: false }); state.input.keys.clear(); }
+  $("pause-overlay").classList.add("hidden");
+  state.inspectActive = next;
+  setTacticalIntel(next);
+  if (next && state.inspectPointer) inspectCanvasAt(state.inspectPointer);
+  else if (!next) hideInspectPanel();
 }
 
 function abandon() {
@@ -2552,10 +2581,20 @@ function upgradeChoiceVisual(choice) {
 
 function upgradeChoiceDetails(choice, player, forecast) { return forecast?.comparisonRows || buildUpgradeComparison(choice, player); }
 
-function buildcraftTagsMarkup(buildcraft, limit = 3) {
+function richTooltipCopy(value) {
+  return escapeHTML(String(value || ""))
+    .replace(/\b(damage|cooldown|projectiles?|critical hits?|piercing|shield|healing|evolution|evolved|range|duration|movement|area)\b/gi, "<strong>$1</strong>")
+    .replace(/([.!?])\s+(?=[A-Z])/g, "$1<br>");
+}
+
+function buildcraftTagsMarkup(buildcraft) {
   if (!buildcraft) return "";
-  const traits = buildcraft.traits || (buildcraft.trait ? [buildcraft.trait] : []), shown = traits.slice(0, limit), hidden = Math.max(0, traits.length - shown.length);
-  return `<div class="buildcraft-tags" aria-label="Build traits">${shown.map(({ category, value, themeToken }) => `<span data-buildcraft-category="${escapeHTML(category)}" data-theme-token="${escapeHTML(themeToken)}">${escapeHTML(value)}</span>`).join("")}${hidden ? `<b aria-label="${hidden} more build traits">+${hidden}</b>` : ""}</div>`;
+  const traits = buildcraft.traits || (buildcraft.trait ? [buildcraft.trait] : []);
+  return `<div class="buildcraft-tags" aria-label="Build traits">${traits.map(({ category, value, themeToken }) => {
+    const categoryLabel = category === "damage-shape" ? "Type" : BUILDCRAFT_CATEGORY_DEFINITIONS[category]?.label || category.replaceAll("-", " ");
+    const readableValue = category === "range" && value === "mid" ? "Medium" : value;
+    return `<span data-buildcraft-category="${escapeHTML(category)}" data-theme-token="${escapeHTML(themeToken)}"><em>${escapeHTML(categoryLabel)}:</em> ${escapeHTML(readableValue)}</span>`;
+  }).join("")}</div>`;
 }
 
 function forecastConsequencesMarkup(forecast) {
@@ -2591,7 +2630,10 @@ function ensureDraftForecasts(game) {
 function cachedDraftForecast(playerId, choiceId) { return state.draftForecastCache.get(`${playerId}:${choiceId}`) || null; }
 
 function upgradeComparisonMarkup(rows) {
-  return rows.map(({ label, before, after, changed }) => `<div class="${changed ? "changed" : "unchanged"}"><dt>${escapeHTML(label)}</dt><dd><span>${escapeHTML(before)}</span><i aria-hidden="true">→</i><strong>${escapeHTML(after)}</strong></dd></div>`).join("");
+  return rows.map(({ label, before, after, changed }) => {
+    const firstAcquisition = before === "Not owned" || before === "—";
+    return `<div class="${changed ? "changed" : "unchanged"} ${firstAcquisition ? "first-acquisition" : ""}"><dt>${escapeHTML(label)}</dt><dd>${firstAcquisition ? "" : `<span>${escapeHTML(before)}</span><i aria-hidden="true">→</i>`}<strong>${escapeHTML(after)}</strong></dd></div>`;
+  }).join("");
 }
 
 function evolutionPair(choice, player) {
@@ -2658,6 +2700,34 @@ function renderUpgradeLoadout(player, game) {
   const weapons = Object.entries(player.weapons || {}).map(([weaponId, weapon]) => weaponSlotMarkup(weaponId, weapon, player, spec, game)).join("");
   const passives = Object.entries(player.passives || {}).filter(([, rank]) => Number(rank) > 0).map(([passiveId, rank]) => passiveSlotMarkup(passiveId, rank, player, game.level)).join("");
   target.innerHTML = `<section aria-label="Equipped weapons"><span>Weapons</span><div>${weapons || "<small>None equipped</small>"}</div></section><section aria-label="Equipped passive upgrades"><span>Passives</span><div>${passives || "<small>None equipped</small>"}</div></section>`;
+  bindUpgradeLoadoutTooltips(target);
+}
+
+function hideUpgradeLoadoutTooltip() {
+  const tooltip = $("upgrade-loadout-tooltip");
+  if (!tooltip) return;
+  tooltip.hidden = true; tooltip.innerHTML = "";
+}
+
+function showUpgradeLoadoutTooltip(slot) {
+  const source = slot?.querySelector(".weapon-tooltip"), tooltip = $("upgrade-loadout-tooltip");
+  if (!source || !tooltip) return;
+  tooltip.innerHTML = source.innerHTML; tooltip.hidden = false;
+  const trigger = slot.getBoundingClientRect(), margin = 10, width = Math.min(380, window.innerWidth - margin * 2);
+  tooltip.style.width = `${width}px`;
+  const height = tooltip.offsetHeight, left = clamp(trigger.left, margin, window.innerWidth - width - margin);
+  const below = trigger.bottom + 8, top = below + height <= window.innerHeight - margin ? below : Math.max(margin, trigger.top - height - 8);
+  tooltip.style.left = `${left}px`; tooltip.style.top = `${top}px`;
+}
+
+function bindUpgradeLoadoutTooltips(root) {
+  for (const slot of root.querySelectorAll(".weapon-slot, .passive-slot")) {
+    slot.setAttribute("aria-describedby", "upgrade-loadout-tooltip");
+    slot.addEventListener("pointerenter", () => showUpgradeLoadoutTooltip(slot));
+    slot.addEventListener("pointerleave", hideUpgradeLoadoutTooltip);
+    slot.addEventListener("focusin", () => showUpgradeLoadoutTooltip(slot));
+    slot.addEventListener("focusout", hideUpgradeLoadoutTooltip);
+  }
 }
 
 function draftRecommendationMarkersMarkup(game, target, optionIndex) {
@@ -2710,7 +2780,7 @@ function updateUpgrade(game) {
   if (!pending) {
     if (pruneDraftRecommendations(game) && state.isHost) sendDraftRecommendationSync();
     const overlay = $("upgrade-overlay"), wasOpen = !overlay.classList.contains("hidden");
-    overlay.classList.add("hidden"); state.lastUpgradeKey = ""; ensureDraftForecasts(game);
+    overlay.classList.add("hidden"); hideUpgradeLoadoutTooltip(); state.lastUpgradeKey = ""; ensureDraftForecasts(game);
     if (wasOpen && ["running", "boss"].includes(game.stage)) pulseCombatRhythm("combat-resume", screens.game, "combat-resumed", "combatResume");
     return;
   }
@@ -2741,7 +2811,7 @@ function updateUpgrade(game) {
     const pair = evolutionPair(choice, localPlayer);
     const target = choice.id.split(":")[1], buildcraft = forecast?.tags || (choice.kind === "weapon" ? sourceBuildcraft(target, { specialistId: localPlayer.specialist }) : choice.kind === "passive" ? passiveBuildcraft(target) : null);
     const needsReplacement = replacementRequired(choice, localPlayer);
-    return `<button class="upgrade-card ${pair ? "evolution-ready" : ""} ${needsReplacement ? "replacement-required" : ""} ${selected ? "selected" : ""} ${passed ? "passed" : ""}" type="button" data-choice="${escapeHTML(choice.id)}" data-upgrade-kind="${escapeHTML(choice.kind)}" ${ready ? `aria-disabled="true"` : ""}><span class="card-type">${selected ? "Locked choice" : needsReplacement ? "Replacement required" : escapeHTML(choice.kind)}</span><kbd class="choice-key">${index + 1}</kbd><div class="card-icon ${visual.className}">${visual.markup}</div><div class="upgrade-zone-identity"><h3>${escapeHTML(choice.name)}</h3>${buildcraftTagsMarkup(buildcraft)}</div><p class="upgrade-zone-description">${escapeHTML(choice.copy)}</p><div class="upgrade-zone-evolution">${evolutionPairMarkup(pair)}</div><dl class="card-stats">${upgradeComparisonMarkup(details)}</dl><div class="upgrade-zone-forecast">${forecastConsequencesMarkup(forecast)}</div><div class="upgrade-zone-affected">${affectedLoadoutMarkup(choice, localPlayer, forecast, game.level)}</div><div class="upgrade-zone-recommendation">${draftRecommendationMarkersMarkup(game, localPlayer, index)}</div><div class="level-pips">${Array.from({ length: choice.max }, (_, i) => `<i class="${i < choice.level ? "on" : ""}"></i>`).join("")}</div></button>`;
+    return `<button class="upgrade-card ${pair ? "evolution-ready" : ""} ${needsReplacement ? "replacement-required" : ""} ${selected ? "selected" : ""} ${passed ? "passed" : ""}" type="button" data-choice="${escapeHTML(choice.id)}" data-upgrade-kind="${escapeHTML(choice.kind)}" ${ready ? `aria-disabled="true"` : ""}><kbd class="choice-key">${index + 1}</kbd><div class="upgrade-card-header"><div class="card-icon ${visual.className}">${visual.markup}</div><div class="upgrade-zone-identity"><span class="card-type">${selected ? "Locked choice" : needsReplacement ? "Replacement required" : escapeHTML(choice.kind)}</span><h3>${escapeHTML(choice.name)}</h3>${buildcraftTagsMarkup(buildcraft)}</div></div><p class="upgrade-zone-description">${escapeHTML(choice.copy)}</p><div class="upgrade-zone-evolution">${evolutionPairMarkup(pair)}</div><dl class="card-stats">${upgradeComparisonMarkup(details)}</dl><div class="upgrade-zone-forecast">${forecastConsequencesMarkup(forecast)}</div><div class="upgrade-zone-affected">${affectedLoadoutMarkup(choice, localPlayer, forecast, game.level)}</div><div class="upgrade-zone-recommendation">${draftRecommendationMarkersMarkup(game, localPlayer, index)}</div><div class="level-pips">${Array.from({ length: choice.max }, (_, i) => `<i class="${i < choice.level ? "on" : ""}"></i>`).join("")}</div></button>`;
   }).join("");
   if (!ready) $("upgrade-cards").querySelectorAll("button").forEach((button) => button.addEventListener("click", () => chooseUpgrade(button.dataset.choice)));
 
@@ -2757,7 +2827,7 @@ function updateUpgrade(game) {
       const target = choice.id.split(":")[1], buildcraft = forecast?.tags || (choice.kind === "weapon" ? sourceBuildcraft(target, { specialistId: player.specialist }) : choice.kind === "passive" ? passiveBuildcraft(target) : null);
       const replacedId = teammateDecision.startsWith("replace:") && choice.id === teammateSelection ? teammateDecision.split(":")[3] : "";
       const replacedName = replacedId ? teammateDecision.split(":")[1] === "passive" ? PASSIVES[replacedId]?.name || replacedId : WEAPONS[replacedId]?.name || replacedId : "";
-      return `<div class="teammate-choice ${pair ? "evolution-ready" : ""} ${choice.id === teammateSelection ? "selected" : ""} ${teammateReady && choice.id !== teammateSelection ? "passed" : ""}" tabindex="0"><i class="${visual.className}">${visual.markup}</i><b>${escapeHTML(choice.name)}</b>${buildcraftTagsMarkup(buildcraft, 2)}<small>${escapeHTML(choice.kind)} · ${choice.level}/${choice.max}${replacedName ? ` · replaces ${escapeHTML(replacedName)}` : ""}</small>${draftRecommendationMarkersMarkup(game, player, optionIndex)}${draftRecommendationButtonMarkup(game, player, choice, optionIndex, teammateReady)}<div class="teammate-choice-tooltip"><span>${escapeHTML(choice.kind)} · level ${choice.level}/${choice.max}</span><strong>${escapeHTML(choice.name)}</strong><p>${escapeHTML(choice.copy)}</p>${evolutionPairMarkup(pair)}<dl>${upgradeComparisonMarkup(details)}</dl>${forecastConsequencesMarkup(forecast)}</div></div>`;
+      return `<div class="teammate-choice ${pair ? "evolution-ready" : ""} ${choice.id === teammateSelection ? "selected" : ""} ${teammateReady && choice.id !== teammateSelection ? "passed" : ""}" tabindex="0"><i class="${visual.className}">${visual.markup}</i><b>${escapeHTML(choice.name)}</b>${buildcraftTagsMarkup(buildcraft)}<small>${escapeHTML(choice.kind)} · ${choice.level}/${choice.max}${replacedName ? ` · replaces ${escapeHTML(replacedName)}` : ""}</small>${draftRecommendationMarkersMarkup(game, player, optionIndex)}${draftRecommendationButtonMarkup(game, player, choice, optionIndex, teammateReady)}<div class="teammate-choice-tooltip"><span>${escapeHTML(choice.kind)} · level ${choice.level}/${choice.max}</span><strong>${escapeHTML(choice.name)}</strong><p>${escapeHTML(choice.copy)}</p>${evolutionPairMarkup(pair)}<dl>${upgradeComparisonMarkup(details)}</dl>${forecastConsequencesMarkup(forecast)}</div></div>`;
     }).join("")}</div></section>`;
   }).join("");
   bindDraftRecommendationButtons();
@@ -2790,7 +2860,7 @@ function setTacticalIntel(active) { $("game-screen")?.classList.toggle("tactical
 function hideInspectPanel() { renderer.clearInspection(); $("inspect-panel").classList.add("hidden"); }
 
 function inspectCanvasAt(pointer) {
-  if (state.screen !== "game" || !pointer?.shiftKey) { hideInspectPanel(); return; }
+  if (state.screen !== "game" || !pointer || !(state.inspectActive || quickPauseActive())) { hideInspectPanel(); return; }
   const game = state.isHost ? state.sim : state.snapshot; if (!game) { hideInspectPanel(); return; }
   const detail = renderer.inspectAt(pointer.clientX, pointer.clientY, game);
   if (!detail) { hideInspectPanel(); return; }
@@ -4435,6 +4505,7 @@ function bindEvents() {
     if (handleBindingCapture(event)) return;
     const target = event.target;
     const isTyping = target instanceof Element && Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
+    const isInteractive = target instanceof Element && Boolean(target.closest("button, a, input, textarea, select, [contenteditable='true']"));
     const dialogOpen = Boolean(document.querySelector("dialog[open]"));
     const key = event.key.toLowerCase();
     const action = keyboardActionForEvent(effectiveAccessibilitySettings(), event);
@@ -4470,6 +4541,7 @@ function bindEvents() {
       return;
     }
     if (isTyping || dialogOpen || state.screen !== "game") return;
+    if (action === "quickPause" && isInteractive) return;
     if (state.authorityState !== "active") {
       if (action) event.preventDefault();
       return;
@@ -4497,21 +4569,21 @@ function bindEvents() {
       return;
     }
     if (action) event.preventDefault();
-    if (!event.repeat && ["active", "ultimate", "autoAim", "pause"].includes(action)) performMappedAction(action);
+    if (!event.repeat && ["active", "ultimate", "autoAim", "pause", "quickPause"].includes(action)) performMappedAction(action);
     state.input.keys.add(event.code);
   });
-  window.addEventListener("keyup", (event) => { const action = keyboardActionForEvent(effectiveAccessibilitySettings(), event); state.input.keys.delete(event.code); if (action === "ping" && state.pingWheel?.source === "keyboard") { event.preventDefault(); closePingWheel({ commit: true }); } if (action === "inspect") { state.inspectActive = false; setTacticalIntel(false); hideInspectPanel(); } });
+  window.addEventListener("keyup", (event) => { const action = keyboardActionForEvent(effectiveAccessibilitySettings(), event); state.input.keys.delete(event.code); if (action === "ping" && state.pingWheel?.source === "keyboard") { event.preventDefault(); closePingWheel({ commit: true }); } if (action === "inspect" && !quickPauseActive()) { state.inspectActive = false; setTacticalIntel(false); hideInspectPanel(); } });
   window.addEventListener("blur", () => { closePingWheel(); state.input.keys.clear(); state.inspectActive = false; setTacticalIntel(false); hideInspectPanel(); });
   $("game-canvas").addEventListener("pointermove", (event) => {
     const rect = $("game-canvas").getBoundingClientRect();
     state.input.aim = Math.atan2(event.clientY - rect.top - rect.height / 2, event.clientX - rect.left - rect.width / 2);
     state.inspectPointer = { clientX: event.clientX, clientY: event.clientY };
     if (state.pingWheel && (state.pingWheel.source === "keyboard" || event.pointerId === state.pingPointerId)) updatePingWheel(event.clientX, event.clientY);
-    state.inspectActive = event.shiftKey || state.input.keys.has(effectiveAccessibilitySettings().bindings.inspect);
+    state.inspectActive = quickPauseActive() || event.shiftKey || state.input.keys.has(effectiveAccessibilitySettings().bindings.inspect);
     setTacticalIntel(state.inspectActive);
-    inspectCanvasAt({ ...state.inspectPointer, shiftKey: state.inspectActive });
+    inspectCanvasAt(state.inspectPointer);
   });
-  $("game-canvas").addEventListener("pointerleave", () => { state.inspectPointer = null; state.inspectActive = false; setTacticalIntel(false); hideInspectPanel(); });
+  $("game-canvas").addEventListener("pointerleave", () => { state.inspectPointer = null; state.inspectActive = quickPauseActive(); setTacticalIntel(state.inspectActive); hideInspectPanel(); });
   document.addEventListener("contextmenu", (event) => event.preventDefault());
   setupPingControls();
   setupTouch();

@@ -1,14 +1,14 @@
-export const ACCESSIBILITY_SETTINGS_VERSION = 1;
-export const ACCESSIBILITY_STORAGE_KEY = "lastlight:accessibility:v1";
+export const ACCESSIBILITY_SETTINGS_VERSION = 2;
+export const ACCESSIBILITY_STORAGE_KEY = "lastlight:accessibility:v2";
 
 export const ACCESSIBILITY_ACTIONS = Object.freeze([
-  "moveUp", "moveDown", "moveLeft", "moveRight", "active", "ultimate", "autoAim", "ping", "pause", "inspect", "report",
+  "moveUp", "moveDown", "moveLeft", "moveRight", "active", "ultimate", "autoAim", "ping", "pause", "quickPause", "inspect", "report",
   "choice1", "choice2", "choice3", "reroll", "banish", "skip",
 ]);
 
 export const DEFAULT_ACCESSIBILITY_BINDINGS = Object.freeze({
   moveUp: "KeyW", moveDown: "KeyS", moveLeft: "KeyA", moveRight: "KeyD",
-  active: "KeyE", ultimate: "KeyR", autoAim: "KeyC", ping: "KeyG", pause: "Escape", inspect: "ShiftLeft", report: "Backquote",
+  active: "KeyE", ultimate: "KeyR", autoAim: "KeyC", ping: "KeyG", pause: "Escape", quickPause: "Space", inspect: "ShiftLeft", report: "Backquote",
   choice1: "Digit1", choice2: "Digit2", choice3: "Digit3", reroll: "Digit4", banish: "Digit5", skip: "Digit0",
 });
 
@@ -40,7 +40,7 @@ function deepFreeze(value) {
 export function defaultAccessibilitySettings(systemReducedMotion = false) {
   return deepFreeze({
     version: ACCESSIBILITY_SETTINGS_VERSION, bindings: { ...DEFAULT_ACCESSIBILITY_BINDINGS }, controller: { enabled: true, deadzone: .18 },
-    hudScale: 1, textScale: 1, touchScale: 1, colorVision: "default", reducedFlash: Boolean(systemReducedMotion), directionalAudio: "standard",
+    hudScale: 1.25, textScale: 1.25, touchScale: 1, colorVision: "default", reducedFlash: Boolean(systemReducedMotion), directionalAudio: "standard",
   });
 }
 
@@ -59,7 +59,7 @@ export function validateAccessibilitySettings(value) {
 export function normalizeAccessibilitySettings(source, systemReducedMotion = false) {
   const fallback = structuredClone(defaultAccessibilitySettings(systemReducedMotion));
   if (!source || typeof source !== "object" || Array.isArray(source)) return deepFreeze(fallback);
-  const migrated = source.version === 0 ? { ...fallback, ...source, version: 1, controller: { ...fallback.controller, ...(source.controller || {}) }, bindings: { ...fallback.bindings, ...(source.bindings || {}) } } : source;
+  const migrated = [0, 1].includes(source.version) ? { ...fallback, ...source, version: ACCESSIBILITY_SETTINGS_VERSION, controller: { ...fallback.controller, ...(source.controller || {}) }, bindings: { ...fallback.bindings, ...(source.bindings || {}) } } : source;
   try { return deepFreeze(structuredClone(validateAccessibilitySettings(migrated))); }
   catch { return deepFreeze(fallback); }
 }
