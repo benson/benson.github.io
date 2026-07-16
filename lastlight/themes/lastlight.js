@@ -1,7 +1,7 @@
 import { ENEMY_MOTION_STATES, MOTION_DIRECTIONS, MOTION_SCHEMA, SPECIALIST_MOTION_STATES, validateMotionRig } from "../motion.js?v=20260713.1";
-import { LASTLIGHT_MATERIAL_THEME, MATERIAL_CLASSES, validateMaterialTheme } from "../material-impacts.js?v=20260716.12";
+import { LASTLIGHT_MATERIAL_THEME, MATERIAL_CLASSES, validateMaterialTheme } from "../material-impacts.js?v=20260716.13";
 import { LASTLIGHT_ENVIRONMENT_INTERACTIONS, validateEnvironmentInteractions } from "../environment-interactions.js?v=20260712.1";
-import { LASTLIGHT_ENVIRONMENT_CHUNKS, validateEnvironmentChunks } from "../environment-chunks.js?v=20260716.12";
+import { LASTLIGHT_ENVIRONMENT_CHUNKS, validateEnvironmentChunks } from "../environment-chunks.js?v=20260716.13";
 
 /**
  * The canonical asset contract for a Lastlight visual theme.
@@ -96,9 +96,9 @@ const LASTLIGHT_ASSETS = {
     beachhead: "assets/environment-chunks/beachhead-atlas.webp",
   },
   supplyContainers: {
-    cargo: "assets/supply-containers/cargo.png",
-    utility: "assets/supply-containers/utility.png",
-    pressure: "assets/supply-containers/pressure.png",
+    cargo: "assets/supply-containers/cargo-v13.png",
+    utility: "assets/supply-containers/utility-v13.png",
+    pressure: "assets/supply-containers/pressure-v13.png",
   },
   enemies: {
     mite: "assets/enemies/skitter.webp",
