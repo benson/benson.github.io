@@ -1,31 +1,31 @@
-import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260716.7";
-import { WORLD } from "./engine.js?v=20260716.7";
-import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260716.7";
+import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260716.8";
+import { WORLD } from "./engine.js?v=20260716.8";
+import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260716.8";
 import { springCamera } from "./feel.js?v=20260713.2";
 import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistFacingTarget, specialistMotionState, stableDirectionColumn } from "./motion.js?v=20260713.1";
 import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260716.7";
-import { impactRenderPlan } from "./impact-grammar.js?v=20260716.7";
-import { movementVisualState } from "./movement.js?v=20260716.7";
-import { effectReadabilityCategory, partitionEffects, readabilityPlan } from "./readability.js?v=20260716.7";
+import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260716.8";
+import { impactRenderPlan } from "./impact-grammar.js?v=20260716.8";
+import { movementVisualState } from "./movement.js?v=20260716.8";
+import { effectReadabilityCategory, partitionEffects, readabilityPlan } from "./readability.js?v=20260716.8";
 import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260711.8";
 import { EnvironmentInteractionField, stableEnvironmentUnit } from "./environment-interactions.js?v=20260712.1";
-import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260716.7";
-import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260716.7";
+import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260716.8";
+import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260716.8";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
 import { PING_INTENTS, PING_LIFETIME_TICKS, selectVisiblePings } from "./ping-contract.js?v=20260713.4";
-import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260716.7";
-import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260716.7";
+import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260716.8";
+import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260716.8";
 import {
   ImpactIntensityDirector, aftermathPlan, attackerRecoilTransform, cameraLookBias,
   impactAnimationTimeScale, impactFeedbackPlan, impactReactionTransform, impactTierForEvent, projectileMotionPlan,
   secondaryMotionPlan, selectImpactFeedback,
-} from "./impact-feel.js?v=20260716.7";
-import { combatTurnPlan, isBodyDrivingSource, resolvedCombatFacing, specialistMuzzlePoint } from "./combat-orientation.js?v=20260716.7";
+} from "./impact-feel.js?v=20260716.8";
+import { combatTurnPlan, isBodyDrivingSource, resolvedCombatFacing, specialistMuzzlePoint } from "./combat-orientation.js?v=20260716.8";
 import {
   cameraCompositionPlan, castMotionPlan, combatDensityPlan, playerLifecycleMotionPlan, rewardMotionPlan,
-} from "./combat-choreography.js?v=20260716.7";
-import { apexPhaseMotionPlan, enemyArrivalMotionPlan, enemyDepartureMotionPlan } from "./combat-rhythm.js?v=20260716.7";
+} from "./combat-choreography.js?v=20260716.8";
+import { apexPhaseMotionPlan, enemyArrivalMotionPlan, enemyDepartureMotionPlan } from "./combat-rhythm.js?v=20260716.8";
 
 const TAU = Math.PI * 2;
 const PING_BUFFER_LIMIT = 32;
@@ -222,7 +222,9 @@ export class Renderer {
     this.environmentField = new EnvironmentInteractionField(getThemeEnvironmentInteractions());
     this.environmentChunkTheme = getThemeEnvironmentChunks();
     this.environmentChunkLayouts = new Map();
+    this.environmentChunkLayout = Object.freeze([]);
     this.visibleEnvironmentChunks = Object.freeze([]);
+    this.coverObstacles = MAP_OBSTACLES;
     this.materialImpacts = [];
     this.materialProjectileHistory = new Map();
     this.materialEffectHistory = new Set();
@@ -531,7 +533,7 @@ export class Renderer {
     for (const projectile of state.projectiles || []) {
       const weaponPlan = impactRenderPlan(projectile, state, { reducedMotion: this.reducedMotion, density: this.qualityProfile.effectsDensity });
       if (!weaponPlan) continue;
-      nextHistory.set(projectile.id, { entity: { id: projectile.id, x: projectile.x, y: projectile.y, vx: projectile.vx, vy: projectile.vy }, weaponPlan, target: materialAtPoint(projectile, state, MAP_OBSTACLES, Math.max(24, projectile.radius || 0) + 24) });
+      nextHistory.set(projectile.id, { entity: { id: projectile.id, x: projectile.x, y: projectile.y, vx: projectile.vx, vy: projectile.vy }, weaponPlan, target: materialAtPoint(projectile, state, this.coverObstacles, Math.max(24, projectile.radius || 0) + 24) });
     }
     this.materialProjectileHistory = nextHistory;
 
@@ -540,7 +542,7 @@ export class Renderer {
       currentEffects.add(effect.id);
       if (this.materialEffectHistory.has(effect.id) || !effect.sourceId) continue;
       const weaponPlan = impactRenderPlan(effect, state, { reducedMotion: this.reducedMotion, density: this.qualityProfile.effectsDensity });
-      if (weaponPlan) this.emitMaterialImpact(effect, materialAtPoint(effect, state, MAP_OBSTACLES, Math.max(24, effect.radius || 0)), weaponPlan);
+      if (weaponPlan) this.emitMaterialImpact(effect, materialAtPoint(effect, state, this.coverObstacles, Math.max(24, effect.radius || 0)), weaponPlan);
     }
     this.materialEffectHistory = currentEffects;
     const elapsedMs = Math.max(0, Math.min(50, frameSeconds * 1000));
@@ -715,7 +717,7 @@ export class Renderer {
   }
 
   environmentDiagnostics() {
-    return { ...this.environmentField.diagnostics(), chunks: { schema: this.environmentChunkTheme.schema, visible: this.visibleEnvironmentChunks.length, collision: "none", snapshotBytes: 0 } };
+    return { ...this.environmentField.diagnostics(), chunks: { schema: this.environmentChunkTheme.schema, visible: this.visibleEnvironmentChunks.length, solid: this.environmentChunkLayout.length, collision: "solid", snapshotBytes: 0 } };
   }
 
   clearInspection() {
@@ -810,6 +812,16 @@ export class Renderer {
       const obstacle = { id: `obstacle-${index}`, x: x + w / 2, y: y + h / 2 };
       consider(obstacle, Math.max(w, h), { type: "obstacle", name: "Raised Cover", description: "Solid environmental cover. Specialists cannot move or dash through it, and ordinary friendly or hostile fire stops on contact.", stats: { Width: Math.round(w), Height: Math.round(h), Collision: "Solid", "Projectile cover": "Most shots", Exceptions: "Rail lanes · Apex fire" } }, -.2);
     }
+    for (const chunk of this.environmentChunkLayout) {
+      const [x, y, w, h] = chunk.collisionRect;
+      if (worldX < x || worldX > x + w || worldY < y || worldY > y + h) continue;
+      const frame = this.environmentChunkTheme.maps[chunk.mapId].frames[chunk.frame];
+      consider({ id: chunk.id, x: x + w / 2, y: y + h / 2 }, Math.max(w, h), {
+        type: "obstacle", name: frame.id.split("-").map((word) => word[0].toUpperCase() + word.slice(1)).join(" "),
+        description: "A solid map structure. Specialists and enemies route around its grounded footprint, and ordinary friendly or hostile fire stops on contact.",
+        stats: { Width: Math.round(w), Height: Math.round(h), Collision: "Solid", "Projectile cover": "Most shots", Exceptions: "Rail lanes · Apex fire" },
+      }, -.2);
+    }
     const machine = { id: "machine", x: 0, y: 0, radius: 77 };
     consider(machine, 77, { type: "objective", name: map?.mechanic || "Field Device", description: "Stand nearby to charge this operation-specific field device.", stats: { Charge: `${Math.round(((state.machine?.charge || 0) / 2.4) * 100)}%`, Cooldown: `${Math.max(0, Math.ceil(state.machine?.cooldown || 0))}s` } }, .04);
     const mapMechanic = mechanicFrameForState(state);
@@ -836,6 +848,12 @@ export class Renderer {
     if (Math.abs(this.canvas.clientWidth - this.width) > 1 || Math.abs(this.canvas.clientHeight - this.height) > 1) this.resize();
     const ctx = this.ctx;
     const map = typeof state.map === "string" ? MAPS[state.map] : state.map;
+    const environmentLayoutKey = `${map.id}:solid`;
+    if (!this.environmentChunkLayouts.has(environmentLayoutKey)) this.environmentChunkLayouts.set(environmentLayoutKey, environmentChunkLayout({
+      mapId: map.id, tier: "minimal", world: WORLD, obstacles: MAP_OBSTACLES, theme: this.environmentChunkTheme,
+    }));
+    this.environmentChunkLayout = this.environmentChunkLayouts.get(environmentLayoutKey);
+    this.coverObstacles = Object.freeze([...MAP_OBSTACLES, ...this.environmentChunkLayout.map((chunk) => chunk.collisionRect)]);
     this.updateMaterialImpacts(state, map, frameSeconds);
     this.updateEnemyAttackContacts(state, frameSeconds);
     this.combatDensity = combatDensityPlan(state, this.qualityProfile.effectsDensity);
@@ -855,14 +873,10 @@ export class Renderer {
       state, previous, materialImpacts: this.materialImpacts, frameSeconds: visualDt,
       tier: this.qualityProfile.tier, effectsDensity: this.qualityProfile.effectsDensity, reducedMotion: this.reducedMotion,
     });
-    const environmentLayoutKey = `${map.id}:${this.qualityProfile.tier}`;
-    if (!this.environmentChunkLayouts.has(environmentLayoutKey)) this.environmentChunkLayouts.set(environmentLayoutKey, environmentChunkLayout({
-      mapId: map.id, tier: this.qualityProfile.tier, world: WORLD, obstacles: MAP_OBSTACLES, theme: this.environmentChunkTheme,
-    }));
     this.visibleEnvironmentChunks = environmentChunksForBounds({
       mapId: map.id,
       bounds: { left: this.camera.x - this.width / 2 - 180, top: this.camera.y - this.height / 2 - 180, right: this.camera.x + this.width / 2 + 180, bottom: this.camera.y + this.height / 2 + 180 },
-      tier: this.qualityProfile.tier, world: WORLD, obstacles: MAP_OBSTACLES, theme: this.environmentChunkTheme, layout: this.environmentChunkLayouts.get(environmentLayoutKey),
+      tier: this.qualityProfile.tier, world: WORLD, obstacles: MAP_OBSTACLES, theme: this.environmentChunkTheme, layout: this.environmentChunkLayout,
     });
     const shakeX = this.reducedMotion ? 0 : this.cameraImpact.x * this.qualityProfile.shake;
     const shakeY = this.reducedMotion ? 0 : this.cameraImpact.y * this.qualityProfile.shake;
@@ -873,9 +887,10 @@ export class Renderer {
     ctx.save();
     ctx.translate(this.width / 2 - this.camera.x + shakeX, this.height / 2 - this.camera.y + shakeY);
     this.drawWorldBorder(map);
-    this.drawEnvironmentChunks(map);
     this.drawMapGuides(map);
-    this.drawMapMechanic(mechanicFrameForState(state), map);
+    const mapMechanic = mechanicFrameForState(state);
+    this.drawMapMechanic(mapMechanic, map);
+    this.drawForcedMovementCue(mapMechanic, state, localPlayerId, map, "ground");
     this.drawEnvironmentalProps();
     this.drawMachine(state, map);
     const effectPasses = partitionEffects(state.effects || []);
@@ -894,6 +909,7 @@ export class Renderer {
     this.drawProjectiles(friendlyProjectiles, false, state);
     this.drawGroundParticles(visualDt);
     this.drawGroundedQueue(state, previous, interpolation, map, localPlayerId, visualDt);
+    this.drawForcedMovementCue(mapMechanic, state, localPlayerId, map, "overlay");
     this.drawPings(state.tick);
     // Intent geometry is authoritative combat information, not cosmetic density.
     // Draw it from the complete viewport-culled enemy list so a low quality
@@ -968,21 +984,18 @@ export class Renderer {
     ctx.strokeRect(-WORLD.width / 2, -WORLD.height / 2, WORLD.width, WORLD.height); ctx.globalAlpha = 1;
   }
 
-  drawEnvironmentChunks(map) {
+  drawEnvironmentChunk(map, chunk) {
     const atlas = this.environmentChunkAtlases[map.id], theme = this.environmentChunkTheme;
-    if (!atlas?.complete || !atlas.naturalWidth || !atlas.naturalHeight || !this.visibleEnvironmentChunks.length) return;
+    if (!atlas?.complete || !atlas.naturalWidth || !atlas.naturalHeight || !chunk) return;
     const sourceWidth = atlas.naturalWidth / theme.atlas.columns, sourceHeight = atlas.naturalHeight / theme.atlas.rows;
-    const ctx = this.ctx;
-    for (const chunk of this.visibleEnvironmentChunks) {
-      const frame = theme.maps[map.id].frames[chunk.frame];
-      const sourceX = (chunk.frame % theme.atlas.columns) * sourceWidth, sourceY = Math.floor(chunk.frame / theme.atlas.columns) * sourceHeight;
-      const width = frame.drawSize[0] * chunk.scale, height = frame.drawSize[1] * chunk.scale;
-      ctx.save(); ctx.translate(chunk.x, chunk.y); ctx.rotate(chunk.rotation); ctx.scale(chunk.flipX ? -1 : 1, 1);
-      ctx.globalAlpha = chunk.opacity * .72;
-      ctx.filter = "saturate(.78) brightness(.76)";
-      ctx.drawImage(atlas, sourceX, sourceY, sourceWidth, sourceHeight, -width * frame.anchor[0], -height * frame.anchor[1], width, height);
-      ctx.restore();
-    }
+    const ctx = this.ctx, frame = theme.maps[map.id].frames[chunk.frame];
+    const sourceX = (chunk.frame % theme.atlas.columns) * sourceWidth, sourceY = Math.floor(chunk.frame / theme.atlas.columns) * sourceHeight;
+    const width = frame.drawSize[0] * chunk.scale, height = frame.drawSize[1] * chunk.scale;
+    ctx.save(); ctx.translate(chunk.x, chunk.y); ctx.scale(chunk.flipX ? -1 : 1, 1);
+    ctx.globalAlpha = chunk.opacity;
+    ctx.filter = "saturate(.9) brightness(.88)";
+    ctx.drawImage(atlas, sourceX, sourceY, sourceWidth, sourceHeight, -width * frame.anchor[0], -height * frame.anchor[1], width, height);
+    ctx.restore();
     ctx.globalAlpha = 1; ctx.filter = "none";
   }
 
@@ -1014,6 +1027,45 @@ export class Renderer {
     ctx.font = "900 17px Inter"; ctx.lineWidth = 6; ctx.strokeStyle = "#06101a"; ctx.fillStyle = "#fff";
     const label = `${frame.name.toUpperCase()} · ${active ? "ACTIVE" : `WARNING ${frame.remainingSeconds}`}`;
     ctx.strokeText(label, labelX, labelY); ctx.fillText(label, labelX, labelY);
+    ctx.restore();
+  }
+
+  drawForcedMovementCue(frame, state, localPlayerId, map, pass = "ground") {
+    if (!frame || frame.phase === "idle" || !(frame.effect?.pushPerSecond > 0)) return;
+    const player = (state.players || []).find((entry) => entry.id === localPlayerId) || state.players?.[0];
+    if (!player || player.dead || player.downed || !pointInMapMechanic(frame, player.x, player.y)) return;
+    const ctx = this.ctx, direction = frame.direction > 0 ? 1 : -1, active = frame.active;
+    const color = active ? map.accent : "#ffd36b", directionName = direction > 0 ? "EAST" : "WEST";
+    ctx.save();
+    if (pass === "ground") {
+      const pulse = this.reducedMotion ? .5 : (this.renderTick % 30) / 30;
+      ctx.translate(player.x, player.y + Math.max(18, Number(player.radius || 24) * .72));
+      ctx.globalAlpha = active ? .9 : .68;
+      ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = active ? 4 : 3;
+      ctx.setLineDash(active ? [] : [9, 7]);
+      ctx.beginPath(); ctx.moveTo(-direction * 72, 0); ctx.lineTo(direction * 86, 0); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(direction * 86, 0); ctx.lineTo(direction * 68, -11); ctx.lineTo(direction * 68, 11); ctx.closePath(); ctx.fill();
+      for (let index = 0; index < 3; index++) {
+        const travel = this.reducedMotion ? index / 3 : (index / 3 + pulse) % 1;
+        const x = direction * (-54 + travel * 112);
+        ctx.globalAlpha = (active ? .28 : .2) + travel * .5;
+        ctx.beginPath(); ctx.moveTo(x - direction * 10, -8); ctx.lineTo(x, 0); ctx.lineTo(x - direction * 10, 8); ctx.stroke();
+      }
+      ctx.globalAlpha = active ? .18 : .11;
+      ctx.beginPath(); ctx.ellipse(0, 0, 94, 24, 0, 0, TAU); ctx.stroke();
+    } else {
+      const headline = active ? `MOVING ${directionName}` : `MOVES ${directionName} IN ${frame.remainingSeconds}`;
+      const subline = frame.name.toUpperCase();
+      ctx.translate(player.x, player.y - Math.max(62, Number(player.radius || 24) + 34));
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.font = "900 13px Inter";
+      const width = Math.max(ctx.measureText(headline).width, 92) + 24;
+      ctx.fillStyle = "rgba(3,10,16,.9)"; ctx.fillRect(-width / 2, -18, width, 36);
+      ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.strokeRect(-width / 2, -18, width, 36);
+      ctx.fillStyle = "#f4fffd"; ctx.fillText(headline, 0, -5);
+      ctx.font = "800 8px Inter"; ctx.fillStyle = color; ctx.fillText(subline, 0, 9);
+    }
     ctx.restore();
   }
 
@@ -1056,6 +1108,7 @@ export class Renderer {
       const value = { ...visual.lastEntity, dead: true, _deathElapsed: elapsed, hitFlash: 0, attackFlash: 0 };
       items.push({ type: "enemy-death", value, sortY: value.y + (value.radius || 0) * .45 }); deathVisuals++;
     }
+    for (const chunk of this.visibleEnvironmentChunks) items.push({ type: "environment-chunk", value: chunk, sortY: chunk.collisionRect[1] + chunk.collisionRect[3] });
     for (const block of MAP_OBSTACLES) items.push({ type: "cover", value: block, sortY: block[1] + block[3] });
     for (const pod of state.pods || []) items.push({ type: "pod", value: pod, sortY: pod.y + (pod.radius || 0) });
     for (const enemy of this.budget(state.enemies || [], this.renderBudgets.enemies, (entry) => entry.boss || entry.elite || entry.miniboss || entry.eventType || enemyAffixIds(entry).length)) {
@@ -1072,7 +1125,8 @@ export class Renderer {
     }
     items.sort((a, b) => a.sortY - b.sortY || a.type.localeCompare(b.type));
     for (const item of items) {
-      if (item.type === "cover") this.drawCover(map, item.value);
+      if (item.type === "environment-chunk") this.drawEnvironmentChunk(map, item.value);
+      else if (item.type === "cover") this.drawCover(map, item.value);
       else if (item.type === "pod") this.drawPods([item.value]);
       else if (item.type === "enemy" || item.type === "enemy-death") this.drawEnemies([item.value], previous, t, map, state.players, visualDt, state.tick);
       else if (item.type === "drone") this.drawDrones([item.value], state.players, previous, t);

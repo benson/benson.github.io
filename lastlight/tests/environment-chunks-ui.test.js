@@ -22,7 +22,7 @@ function webpMetadata(path) {
 
 test("every operation owns a unique bounded alpha atlas through the theme contract", () => {
   assert.equal(validateTheme(LASTLIGHT_THEME).valid, true);
-  assert.equal(getThemeEnvironmentChunks().schema, "lastlight.environment-chunks.v1");
+  assert.equal(getThemeEnvironmentChunks().schema, "lastlight.environment-chunks.v2");
   const paths = ENVIRONMENT_CHUNK_MAP_IDS.map((mapId) => getThemeAsset(`environmentChunks.${mapId}`));
   assert.equal(new Set(paths).size, 4);
   for (const relativePath of paths) {
@@ -33,25 +33,28 @@ test("every operation owns a unique bounded alpha atlas through the theme contra
   }
 });
 
-test("renderer derives chunks locally below every gameplay readability layer", () => {
+test("simulation and renderer derive the same solid chunks without snapshot growth", () => {
   const render = source("render.js"), engine = source("engine.js"), replay = source("replay.js");
   assert.match(render, /environmentChunksForBounds\(/);
   assert.match(render, /environmentChunkLayouts\.has\(environmentLayoutKey\)/);
   assert.match(render, /getThemeAsset\(`environmentChunks\.\$\{map\.id\}`\)/);
-  assert.ok(render.indexOf("this.drawEnvironmentChunks(map)") < render.indexOf("this.drawMapGuides(map)"));
-  assert.ok(render.indexOf("this.drawEnvironmentChunks(map)") < render.indexOf("this.drawMapMechanic(mechanicFrameForState(state), map)"));
-  assert.ok(render.indexOf("this.drawEnvironmentChunks(map)") < render.indexOf("this.drawObjectives(state.objectives || [], map, \"ground\")"));
+  assert.match(render, /type: "environment-chunk"/);
+  assert.match(render, /this\.drawEnvironmentChunk\(map, item\.value\)/);
+  assert.match(render, /collision: "solid"/);
+  assert.match(engine, /environmentChunkObstacles\(/);
+  assert.match(engine, /coverObstaclesForMap\(/);
   assert.match(render, /snapshotBytes: 0/);
-  assert.doesNotMatch(engine, /environment-chunks|environmentChunks/);
   assert.doesNotMatch(replay, /environment-chunks|environmentChunks/);
 });
 
-test("Field Manual tells players the generated chunks are visual-only and theme-swappable", () => {
+test("Field Manual explains solid structures and the contract remains theme-swappable", () => {
   const game = source("game.js"), html = source("index.html"), docs = source("ENVIRONMENT-CHUNKS.md");
   assert.match(html, /href="#guide-environments">Environments<\/a>/);
   assert.match(game, /id="guide-environments"/);
-  assert.match(game, /visual only: they never block movement, hide a pickup, or enter multiplayer snapshots/);
+  assert.match(game, /four major solid structures/);
+  assert.match(game, /ordinary shots stop on contact/);
   assert.match(game, /getThemeAsset\(environment\.atlasKey\)/);
   assert.match(docs, /snapshot-byte neutral/);
+  assert.match(docs, /graphics settings cannot change cover/);
   assert.match(docs, /replacement theme supplies both/i);
 });

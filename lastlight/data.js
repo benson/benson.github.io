@@ -1,5 +1,5 @@
-import { getThemeAsset } from "./themes/lastlight.js?v=20260716.7";
-import { BALANCE_CONFIG } from "./balance-config.js?v=20260716.7";
+import { getThemeAsset } from "./themes/lastlight.js?v=20260716.8";
+import { BALANCE_CONFIG } from "./balance-config.js?v=20260716.8";
 
 // One vitality point is one readable unit of player health. Standard specialists
 // are balanced around 10; every hostile hit can therefore be discussed in hits-to-down.

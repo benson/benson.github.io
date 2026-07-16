@@ -12,6 +12,17 @@ test("battlefield map mechanics expose shape, pattern, countdown, and inspection
   assert.match(render, /ctx\.setLineDash\(active \? \[\] : \[18, 12\]\)/);
   assert.match(render, /WARNING \$\{frame\.remainingSeconds\}/);
   assert.match(render, /description: `\$\{definition\.description\} \$\{definition\.counterplay\}`/);
+  assert.match(render, /drawForcedMovementCue\(mapMechanic, state, localPlayerId, map, "ground"\)/);
+  assert.match(render, /drawForcedMovementCue\(mapMechanic, state, localPlayerId, map, "overlay"\)/);
+  assert.match(render, /MOVING \$\{directionName\}/);
+  assert.match(render, /MOVES \$\{directionName\} IN \$\{frame\.remainingSeconds\}/);
+  assert.match(render, /this\.reducedMotion \? \.5/);
+});
+
+test("problem reports capture whether a map mechanic is moving the local player", () => {
+  assert.match(game, /mapMechanic: mechanic \? \{/);
+  assert.match(game, /affectsLocalPlayer: mechanicAffectsPlayer/);
+  assert.match(game, /forcedMovementActive: mechanic\.active && mechanicAffectsPlayer && mechanic\.effect\.pushPerSecond > 0/);
 });
 
 test("Field Manual documents all operation identities with readable image-backed cards", () => {
