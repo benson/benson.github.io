@@ -8,64 +8,64 @@ Matrix: 9 specialists × 10 fixed-seed scenarios = 90 cases
 
 | Specialist | L1 DPS | Mature area DPS | Effective vitality | Escape | Solo survival | Elite TTK | Apex TTK | Squad damage | Support | Pickup reach |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Zuri | 61.31 | 2917.846 | 10 | 2.05s | 11.1s | 0.133s | 23.25s | 0.226 | 0 | 80 |
-| Echo | 30.756 | 3714.04 | 10 | 1.1s | 23.85s | 1.467s | 14.867s | 0.404 | 48.128 | 80 |
-| Sola | 24.041 | 3139.643 | 13.75 | 2.4s | 45s | 5.05s | 34.217s | 0.171 | 0 | 80 |
-| Bront | 24.27 | 2967.307 | 17.25 | 1.15s | 21.617s | 3.05s | 31.717s | 0.18 | 6.86 | 80 |
-| Fang | 33.113 | 4140.645 | 13.8 | 0.017s | 45s | 2.683s | 16.083s | 0.759 | 0 | 80 |
-| Gale | 23.092 | 1958.942 | 10.45 | 0.417s | 17.133s | 8.067s | 24.017s | 0.26 | 0 | 80 |
-| Rift | 51.904 | 3854.694 | 12 | 0.383s | 45s | 16.3s | 61.133s | 0.124 | 0 | 80 |
-| Nova | 32.919 | 1498.977 | 9 | 0.017s | 10.183s | 10.2s | 43.6s | 0.266 | 0 | 80 |
-| Vesper | 30.789 | 2179.447 | 9.5 | 1.1s | 12.233s | 5.467s | 31.783s | 0.087 | 0 | 400 |
+| Zuri | 61.31 | 2917.846 | 10 | — | 10.567s | 0.133s | 22.167s | 0.217 | 0 | 80 |
+| Echo | 30.756 | 3714.04 | 10 | — | 10.25s | 1.467s | 12.983s | 0.169 | 44.802 | 80 |
+| Sola | 24.041 | 3139.643 | 13.75 | — | 45s | 5.05s | 42.25s | 0.163 | 0 | 80 |
+| Bront | 24.27 | 2967.307 | 17.25 | — | 18.1s | 3.033s | 25.883s | 0.333 | 7.68 | 80 |
+| Fang | 33.113 | 6133.34 | 13.8 | — | 45s | 1.683s | 14.017s | 0.855 | 0 | 80 |
+| Gale | 23.092 | 1984.725 | 10.45 | — | 45s | 10.433s | 72.7s | 0.334 | 0 | 80 |
+| Rift | 51.904 | 3854.694 | 12 | — | 45s | 16.4s | 82.533s | 0.109 | 0 | 80 |
+| Nova | 32.919 | 1694 | 9 | — | 20.667s | 10.933s | 69.25s | 0.109 | 0 | 80 |
+| Vesper | 30.789 | 2232.227 | 9.5 | — | 7.6s | 4.9s | 52.333s | 0.079 | 0 | 400 |
 
 ## Rankings
 
 - **Level 1 single-target DPS:** 1. Zuri (61.31) · 2. Rift (51.904) · 3. Fang (33.113) · 4. Nova (32.919) · 5. Vesper (30.789) · 6. Echo (30.756) · 7. Bront (24.27) · 8. Sola (24.041) · 9. Gale (23.092)
-- **Mature area DPS:** 1. Fang (4140.645) · 2. Rift (3854.694) · 3. Echo (3714.04) · 4. Sola (3139.643) · 5. Bront (2967.307) · 6. Zuri (2917.846) · 7. Vesper (2179.447) · 8. Gale (1958.942) · 9. Nova (1498.977)
+- **Mature area DPS:** 1. Fang (6133.34) · 2. Rift (3854.694) · 3. Echo (3714.04) · 4. Sola (3139.643) · 5. Bront (2967.307) · 6. Zuri (2917.846) · 7. Vesper (2232.227) · 8. Gale (1984.725) · 9. Nova (1694)
 - **Base effective vitality:** 1. Bront (17.25) · 2. Fang (13.8) · 3. Sola (13.75) · 4. Rift (12) · 5. Gale (10.45) · 6. Echo (10) · 7. Zuri (10) · 8. Vesper (9.5) · 9. Nova (9)
-- **Escape time:** 1. Fang (0.017) · 2. Nova (0.017) · 3. Rift (0.383) · 4. Gale (0.417) · 5. Echo (1.1) · 6. Vesper (1.1) · 7. Bront (1.15) · 8. Zuri (2.05) · 9. Sola (2.4)
-- **Solo pressure survival:** 1. Fang (45) · 2. Rift (45) · 3. Sola (45) · 4. Echo (23.85) · 5. Bront (21.617) · 6. Gale (17.133) · 7. Vesper (12.233) · 8. Zuri (11.1) · 9. Nova (10.183)
-- **Elite time-to-kill:** 1. Zuri (0.133) · 2. Echo (1.467) · 3. Fang (2.683) · 4. Bront (3.05) · 5. Sola (5.05) · 6. Vesper (5.467) · 7. Gale (8.067) · 8. Nova (10.2) · 9. Rift (16.3)
-- **Apex time-to-kill:** 1. Echo (14.867) · 2. Fang (16.083) · 3. Zuri (23.25) · 4. Gale (24.017) · 5. Bront (31.717) · 6. Vesper (31.783) · 7. Sola (34.217) · 8. Nova (43.6) · 9. Rift (61.133)
-- **Four-player damage share:** 1. Fang (0.759) · 2. Echo (0.404) · 3. Nova (0.266) · 4. Gale (0.26) · 5. Zuri (0.226) · 6. Bront (0.18) · 7. Sola (0.171) · 8. Rift (0.124) · 9. Vesper (0.087)
-- **Four-player support score:** 1. Echo (48.128) · 2. Bront (6.86) · 3. Fang (0) · 4. Gale (0) · 5. Nova (0) · 6. Rift (0) · 7. Sola (0) · 8. Vesper (0) · 9. Zuri (0)
+- **Escape time:** 1. Bront (not completed) · 2. Echo (not completed) · 3. Fang (not completed) · 4. Gale (not completed) · 5. Nova (not completed) · 6. Rift (not completed) · 7. Sola (not completed) · 8. Vesper (not completed) · 9. Zuri (not completed)
+- **Solo pressure survival:** 1. Fang (45) · 2. Gale (45) · 3. Rift (45) · 4. Sola (45) · 5. Nova (20.667) · 6. Bront (18.1) · 7. Zuri (10.567) · 8. Echo (10.25) · 9. Vesper (7.6)
+- **Elite time-to-kill:** 1. Zuri (0.133) · 2. Echo (1.467) · 3. Fang (1.683) · 4. Bront (3.033) · 5. Vesper (4.9) · 6. Sola (5.05) · 7. Gale (10.433) · 8. Nova (10.933) · 9. Rift (16.4)
+- **Apex time-to-kill:** 1. Echo (12.983) · 2. Fang (14.017) · 3. Zuri (22.167) · 4. Bront (25.883) · 5. Sola (42.25) · 6. Vesper (52.333) · 7. Nova (69.25) · 8. Gale (72.7) · 9. Rift (82.533)
+- **Four-player damage share:** 1. Fang (0.855) · 2. Gale (0.334) · 3. Bront (0.333) · 4. Zuri (0.217) · 5. Echo (0.169) · 6. Sola (0.163) · 7. Nova (0.109) · 8. Rift (0.109) · 9. Vesper (0.079)
+- **Four-player support score:** 1. Echo (44.802) · 2. Bront (7.68) · 3. Fang (0) · 4. Gale (0) · 5. Nova (0) · 6. Rift (0) · 7. Sola (0) · 8. Vesper (0) · 9. Zuri (0)
 - **Measured pickup reach:** 1. Vesper (400) · 2. Bront (80) · 3. Echo (80) · 4. Fang (80) · 5. Gale (80) · 6. Nova (80) · 7. Rift (80) · 8. Sola (80) · 9. Zuri (80)
 
 ## Flagged outliers
 
-- Echo: apexTtkSeconds is low at 0.469× median (14.867).
-- Fang: apexTtkSeconds is low at 0.507× median (16.083).
-- Nova: apexTtkSeconds is high at 1.375× median (43.6).
-- Rift: apexTtkSeconds is high at 1.927× median (61.133).
+- Bront: apexTtkSeconds is low at 0.613× median (25.883).
+- Echo: apexTtkSeconds is low at 0.307× median (12.983).
+- Fang: apexTtkSeconds is low at 0.332× median (14.017).
+- Gale: apexTtkSeconds is high at 1.721× median (72.7).
+- Nova: apexTtkSeconds is high at 1.639× median (69.25).
+- Rift: apexTtkSeconds is high at 1.953× median (82.533).
+- Zuri: apexTtkSeconds is low at 0.525× median (22.167).
 - Bront: effectiveVitality is high at 1.651× median (17.25).
-- Bront: eliteTtkSeconds is low at 0.604× median (3.05).
-- Echo: eliteTtkSeconds is low at 0.29× median (1.467).
-- Fang: eliteTtkSeconds is low at 0.531× median (2.683).
-- Gale: eliteTtkSeconds is high at 1.597× median (8.067).
-- Nova: eliteTtkSeconds is high at 2.02× median (10.2).
-- Rift: eliteTtkSeconds is high at 3.228× median (16.3).
-- Zuri: eliteTtkSeconds is low at 0.026× median (0.133).
-- Fang: escapeTimeSeconds is low at 0.015× median (0.017).
-- Gale: escapeTimeSeconds is low at 0.379× median (0.417).
-- Nova: escapeTimeSeconds is low at 0.015× median (0.017).
-- Rift: escapeTimeSeconds is low at 0.348× median (0.383).
-- Sola: escapeTimeSeconds is high at 2.182× median (2.4).
-- Zuri: escapeTimeSeconds is high at 1.864× median (2.05).
+- Bront: eliteTtkSeconds is low at 0.619× median (3.033).
+- Echo: eliteTtkSeconds is low at 0.299× median (1.467).
+- Fang: eliteTtkSeconds is low at 0.343× median (1.683).
+- Gale: eliteTtkSeconds is high at 2.129× median (10.433).
+- Nova: eliteTtkSeconds is high at 2.231× median (10.933).
+- Rift: eliteTtkSeconds is high at 3.347× median (16.4).
+- Zuri: eliteTtkSeconds is low at 0.027× median (0.133).
 - Rift: level1Dps is high at 1.686× median (51.904).
 - Zuri: level1Dps is high at 1.991× median (61.31).
-- Fang: matureAreaDps is high at 1.395× median (4140.645).
-- Nova: matureAreaDps is low at 0.505× median (1498.977).
+- Fang: matureAreaDps is high at 2.067× median (6133.34).
+- Nova: matureAreaDps is low at 0.571× median (1694).
 - Vesper: pickupReach is high at 5× median (400).
-- Fang: soloSurvivalSeconds is high at 2.082× median (45).
-- Nova: soloSurvivalSeconds is low at 0.471× median (10.183).
-- Rift: soloSurvivalSeconds is high at 2.082× median (45).
-- Sola: soloSurvivalSeconds is high at 2.082× median (45).
-- Vesper: soloSurvivalSeconds is low at 0.566× median (12.233).
-- Zuri: soloSurvivalSeconds is low at 0.513× median (11.1).
-- Echo: squadDamageShare is high at 1.788× median (0.404).
-- Fang: squadDamageShare is high at 3.358× median (0.759).
-- Rift: squadDamageShare is low at 0.549× median (0.124).
-- Vesper: squadDamageShare is low at 0.385× median (0.087).
+- Echo: soloSurvivalSeconds is low at 0.496× median (10.25).
+- Fang: soloSurvivalSeconds is high at 2.177× median (45).
+- Gale: soloSurvivalSeconds is high at 2.177× median (45).
+- Rift: soloSurvivalSeconds is high at 2.177× median (45).
+- Sola: soloSurvivalSeconds is high at 2.177× median (45).
+- Vesper: soloSurvivalSeconds is low at 0.368× median (7.6).
+- Zuri: soloSurvivalSeconds is low at 0.511× median (10.567).
+- Bront: squadDamageShare is high at 1.97× median (0.333).
+- Fang: squadDamageShare is high at 5.059× median (0.855).
+- Gale: squadDamageShare is high at 1.976× median (0.334).
+- Nova: squadDamageShare is low at 0.645× median (0.109).
+- Rift: squadDamageShare is low at 0.645× median (0.109).
+- Vesper: squadDamageShare is low at 0.467× median (0.079).
 
 ## Scenario matrix
 

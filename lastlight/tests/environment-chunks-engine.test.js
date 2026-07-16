@@ -6,12 +6,12 @@ import { environmentChunkLayout } from "../environment-chunks.js";
 
 const SEED = "1234567890abcdef1234567890abcdef";
 
-test("every operation promotes four visible landmarks into deterministic solid cover", () => {
+test("every operation promotes eight visible landmarks into deterministic solid cover", () => {
   for (const mapId of ["warehouse", "outskirts", "lab", "beachhead"]) {
     const layout = environmentChunkLayout({ mapId, tier: "minimal", obstacles: MAP_OBSTACLES });
     const obstacles = coverObstaclesForMap(mapId);
-    assert.equal(layout.length, 4);
-    assert.equal(obstacles.length, MAP_OBSTACLES.length + 4);
+    assert.equal(layout.length, 8);
+    assert.equal(obstacles.length, MAP_OBSTACLES.length + 8);
     assert.deepEqual(obstacles.slice(MAP_OBSTACLES.length), layout.map(({ collisionRect }) => collisionRect));
   }
 });

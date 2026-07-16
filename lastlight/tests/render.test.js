@@ -18,7 +18,7 @@ globalThis.Image = class {
   set src(value) { this.currentSrc = value; }
 };
 
-const { Renderer } = await import("../render.js?renderer-tests");
+const { Renderer, mechanicFrameForState } = await import("../render.js?renderer-tests");
 const renderSource = readFileSync(new URL("../render.js", import.meta.url), "utf8");
 
 function createRenderer() {
@@ -214,6 +214,30 @@ test("world and offscreen pings render all six non-color labels and stay static 
   const scales = calls.filter(([name]) => name === "scale").map(([, x, y]) => [x, y]);
   assert.ok(scales.length > 0);
   assert.ok(scales.every(([x, y]) => x === 1 && y === 1), "reduced-motion markers do not pulse");
+});
+
+test("enemy knockback draws a directional ground vector and labels strong displacement", () => {
+  const { renderer, calls } = createRecordingRenderer();
+  const state = { players: [{ id: "local", x: 40, y: -20, radius: 24, knockVx: 160, knockVy: 0 }] };
+  renderer.drawImpactMovementCue(state, "local", { accent: "#56f1df" }, "ground");
+  assert.ok(calls.some(([name, x, y]) => name === "translate" && x === 40 && y === -20));
+  assert.ok(calls.some(([name, angle]) => name === "rotate" && angle === 0));
+  calls.length = 0;
+  renderer.drawImpactMovementCue(state, "local", { accent: "#56f1df" }, "overlay");
+  assert.ok(calls.some(([name, label]) => name === "fillText" && label === "ENEMY IMPACT"));
+
+  calls.length = 0;
+  renderer.drawImpactMovementCue({ players: [{ ...state.players[0], knockVx: 10 }] }, "local", { accent: "#56f1df" }, "ground");
+  assert.equal(calls.length, 0, "ordinary low residual velocity does not add combat noise");
+});
+
+test("solo simulation and network snapshots resolve the same visible map mechanic", () => {
+  const shared = { map: "warehouse", stage: "running", tick: 900, mutationState: { pressureAdvanceTicks: 20 } };
+  const solo = mechanicFrameForState({ ...shared, mapMechanics: true });
+  const snapshot = mechanicFrameForState({ ...shared, features: { mapMechanics: true } });
+  assert.deepEqual(solo, snapshot);
+  assert.equal(solo.phase, "warning");
+  assert.equal(mechanicFrameForState({ ...shared, mapMechanics: false }), null);
 });
 
 test("renderer applies quality profiles without mutating simulation lists", () => {

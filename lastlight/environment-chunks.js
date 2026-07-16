@@ -1,3 +1,5 @@
+import { mapMechanicDefinition } from "./map-mechanics.js?v=20260716.9";
+
 export const ENVIRONMENT_CHUNK_SCHEMA = "lastlight.environment-chunks.v2";
 export const ENVIRONMENT_CHUNK_MAP_IDS = Object.freeze(["warehouse", "outskirts", "lab", "beachhead"]);
 export const ENVIRONMENT_CHUNK_QUALITY_TIERS = Object.freeze(["high", "reduced", "minimal"]);
@@ -29,7 +31,7 @@ const MAP_COPY = Object.freeze({
   outskirts: Object.freeze({
     name: "Ash checkpoints", short: "Transport, checkpoint, field power, rubble",
     story: "Collapsed defensive positions and abandoned field logistics make Ash Outskirts feel evacuated rather than merely dusty.",
-    material: "Scorched asphalt · field steel · amber signals", frameOffset: 1, density: .84,
+    material: "Scorched asphalt · field steel · amber signals", frameOffset: 1, density: .96,
   }),
   lab: Object.freeze({
     name: "Cryogenic infrastructure", short: "Cryo pods, manifolds, specimens, vents",
@@ -52,17 +54,18 @@ export const LASTLIGHT_ENVIRONMENT_CHUNKS = deepFreeze({
   schema: ENVIRONMENT_CHUNK_SCHEMA,
   atlas: { columns: 2, rows: 2, frameCount: 4 },
   field: {
-    cellSize: 320, worldMargin: 70, placementRadius: 125, centerClearance: 620,
-    obstaclePadding: 45, corridorCenters: [-390, 420], corridorHalfWidth: 88,
+    cellSize: 320, worldMargin: 70, placementRadius: 125, centerClearance: 500,
+    obstaclePadding: 45, corridorCenters: [], corridorHalfWidth: 88,
     scaleMin: .82, scaleMax: 1.02, rotationMax: 0, opacityMin: .9, opacityMax: 1,
   },
   maps: Object.fromEntries(ENVIRONMENT_CHUNK_MAP_IDS.map((mapId) => [mapId, {
     ...MAP_COPY[mapId], atlasKey: `environmentChunks.${mapId}`, frames: framesFor(mapId),
     collision: "solid", readability: "raised-cover",
   }])),
-  // All four authored structures are gameplay geometry, so every quality tier
-  // renders the same four objects. Quality may simplify effects, never cover.
-  budgets: { high: 4, reduced: 4, minimal: 4 },
+  // Each authored structure appears twice as gameplay geometry. Every quality
+  // tier renders the same eight objects: quality may simplify effects, never
+  // remove cover or change routing.
+  budgets: { high: 8, reduced: 8, minimal: 8 },
 });
 
 function deepFreeze(value) {
@@ -97,7 +100,7 @@ export function validateEnvironmentChunks(theme) {
   ]) if (!finite(theme.field?.[key], minimum, maximum)) errors.push(`environmentChunks.field.${key}: invalid`);
   if (theme.field?.scaleMin > theme.field?.scaleMax) errors.push("environmentChunks.field: scale range inverted");
   if (theme.field?.opacityMin > theme.field?.opacityMax) errors.push("environmentChunks.field: opacity range inverted");
-  if (!Array.isArray(theme.field?.corridorCenters) || theme.field.corridorCenters.length !== 2 || theme.field.corridorCenters.some((value) => !finite(value, -2000, 2000))) errors.push("environmentChunks.field.corridorCenters: invalid");
+  if (!Array.isArray(theme.field?.corridorCenters) || theme.field.corridorCenters.length > 4 || theme.field.corridorCenters.some((value) => !finite(value, -2000, 2000))) errors.push("environmentChunks.field.corridorCenters: invalid");
   if (!exactKeys(theme.maps, ENVIRONMENT_CHUNK_MAP_IDS)) errors.push("environmentChunks.maps: map coverage mismatch");
   for (const mapId of ENVIRONMENT_CHUNK_MAP_IDS) {
     const map = theme.maps?.[mapId], path = `environmentChunks.maps.${mapId}`;
@@ -146,6 +149,11 @@ export function environmentChunkClearance(chunk, { obstacles = [], theme = LASTL
   if (Math.hypot(chunk.x, chunk.y) < field.centerClearance + radius) return false;
   if (field.corridorCenters.some((center) => Math.abs(chunk.y - center) < field.corridorHalfWidth + radius)) return false;
   if (obstacles.some((rect) => circleIntersectsRect(chunk.x, chunk.y, radius, rect, field.obstaclePadding))) return false;
+  const mechanic = mapMechanicDefinition(chunk.mapId);
+  if (mechanic.effect.pushPerSecond > 0 && mechanic.pattern === "horizontal-lanes") {
+    const [, top, , height] = chunk.collisionRect || environmentChunkCollisionRect(chunk, theme), flowClearance = 48;
+    if (mechanic.lanes.some((center) => top < center + flowClearance && top + height > center - flowClearance)) return false;
+  }
   return true;
 }
 
@@ -194,12 +202,15 @@ export function environmentChunkLayout({ mapId, tier = "high", world = { width: 
   // hash keeps each map's arrangement from collapsing into a perfect ring.
   const selectionPriority = (chunk) => Math.hypot(chunk.x / halfWidth, chunk.y / halfHeight) + chunk.priority * .24;
   candidates.sort((left, right) => selectionPriority(left) - selectionPriority(right) || left.id.localeCompare(right.id));
-  const landmarks = [];
+  const landmarks = [], budget = theme.budgets[tier];
+  // Select in balanced rounds so the field cannot fill with a single repeated
+  // silhouette. The built-in eight-object budget yields two of every authored
+  // structure while preserving the stable near-to-far ordering.
   for (let frame = 0; frame < map.frames.length; frame++) {
-    const candidate = candidates.find((chunk) => chunk.frame === frame);
-    if (candidate) landmarks.push(candidate);
+    const target = Math.floor(budget / map.frames.length) + (frame < budget % map.frames.length ? 1 : 0);
+    landmarks.push(...candidates.filter((chunk) => chunk.frame === frame).slice(0, target));
   }
-  if (landmarks.length !== theme.budgets[tier]) throw new Error(`Environment chunk layout for ${mapId} cannot place one solid landmark per frame`);
+  if (landmarks.length !== budget) throw new Error(`Environment chunk layout for ${mapId} cannot place its balanced solid-landmark budget`);
   landmarks.sort((left, right) => selectionPriority(left) - selectionPriority(right) || left.id.localeCompare(right.id));
   return Object.freeze(landmarks);
 }

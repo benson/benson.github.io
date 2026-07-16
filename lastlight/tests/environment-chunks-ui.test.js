@@ -40,6 +40,8 @@ test("simulation and renderer derive the same solid chunks without snapshot grow
   assert.match(render, /getThemeAsset\(`environmentChunks\.\$\{map\.id\}`\)/);
   assert.match(render, /type: "environment-chunk"/);
   assert.match(render, /this\.drawEnvironmentChunk\(map, item\.value\)/);
+  assert.match(render, /chunk\.collisionRect/);
+  assert.match(render, /formerly translucent set/);
   assert.match(render, /collision: "solid"/);
   assert.match(engine, /environmentChunkObstacles\(/);
   assert.match(engine, /coverObstaclesForMap\(/);
@@ -51,7 +53,7 @@ test("Field Manual explains solid structures and the contract remains theme-swap
   const game = source("game.js"), html = source("index.html"), docs = source("ENVIRONMENT-CHUNKS.md");
   assert.match(html, /href="#guide-environments">Environments<\/a>/);
   assert.match(game, /id="guide-environments"/);
-  assert.match(game, /four major solid structures/);
+  assert.match(game, /eight solid structures/);
   assert.match(game, /ordinary shots stop on contact/);
   assert.match(game, /getThemeAsset\(environment\.atlasKey\)/);
   assert.match(docs, /snapshot-byte neutral/);

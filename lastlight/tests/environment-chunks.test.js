@@ -33,13 +33,13 @@ test("the authored environment chunk contract is strict, immutable, and complete
 test("world layouts are deterministic, map-authored, and exact at every quality tier", () => {
   for (const mapId of ENVIRONMENT_CHUNK_MAP_IDS) {
     const layouts = Object.fromEntries(ENVIRONMENT_CHUNK_QUALITY_TIERS.map((tier) => [tier, environmentChunkLayout({ mapId, tier, obstacles: MAP_OBSTACLES })]));
-    assert.equal(layouts.high.length, 4);
-    assert.equal(layouts.reduced.length, 4);
-    assert.equal(layouts.minimal.length, 4);
+    assert.equal(layouts.high.length, 8);
+    assert.equal(layouts.reduced.length, 8);
+    assert.equal(layouts.minimal.length, 8);
     assert.deepEqual(layouts.high, environmentChunkLayout({ mapId, tier: "high", obstacles: MAP_OBSTACLES }));
     assert.deepEqual(layouts.reduced, layouts.high);
     assert.deepEqual(layouts.minimal, layouts.high);
-    assert.equal(new Set(layouts.high.map(({ frame }) => frame)).size, 4);
+    assert.deepEqual([...layouts.high.reduce((counts, { frame }) => counts.set(frame, (counts.get(frame) || 0) + 1), new Map()).values()].sort(), [2, 2, 2, 2]);
     for (const chunk of layouts.high) {
       assert.equal(chunk.mapId, mapId);
       assert.equal(chunk.collision, "solid");

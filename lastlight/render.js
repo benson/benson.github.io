@@ -1,31 +1,31 @@
-import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260716.8";
-import { WORLD } from "./engine.js?v=20260716.8";
-import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260716.8";
+import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260716.9";
+import { WORLD } from "./engine.js?v=20260716.9";
+import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260716.9";
 import { springCamera } from "./feel.js?v=20260713.2";
 import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistFacingTarget, specialistMotionState, stableDirectionColumn } from "./motion.js?v=20260713.1";
 import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260716.8";
-import { impactRenderPlan } from "./impact-grammar.js?v=20260716.8";
-import { movementVisualState } from "./movement.js?v=20260716.8";
-import { effectReadabilityCategory, partitionEffects, readabilityPlan } from "./readability.js?v=20260716.8";
+import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260716.9";
+import { impactRenderPlan } from "./impact-grammar.js?v=20260716.9";
+import { movementVisualState } from "./movement.js?v=20260716.9";
+import { effectReadabilityCategory, partitionEffects, readabilityPlan } from "./readability.js?v=20260716.9";
 import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260711.8";
 import { EnvironmentInteractionField, stableEnvironmentUnit } from "./environment-interactions.js?v=20260712.1";
-import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260716.8";
-import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260716.8";
+import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260716.9";
+import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260716.9";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
 import { PING_INTENTS, PING_LIFETIME_TICKS, selectVisiblePings } from "./ping-contract.js?v=20260713.4";
-import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260716.8";
-import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260716.8";
+import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260716.9";
+import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260716.9";
 import {
   ImpactIntensityDirector, aftermathPlan, attackerRecoilTransform, cameraLookBias,
   impactAnimationTimeScale, impactFeedbackPlan, impactReactionTransform, impactTierForEvent, projectileMotionPlan,
   secondaryMotionPlan, selectImpactFeedback,
-} from "./impact-feel.js?v=20260716.8";
-import { combatTurnPlan, isBodyDrivingSource, resolvedCombatFacing, specialistMuzzlePoint } from "./combat-orientation.js?v=20260716.8";
+} from "./impact-feel.js?v=20260716.9";
+import { combatTurnPlan, isBodyDrivingSource, resolvedCombatFacing, specialistMuzzlePoint } from "./combat-orientation.js?v=20260716.9";
 import {
   cameraCompositionPlan, castMotionPlan, combatDensityPlan, playerLifecycleMotionPlan, rewardMotionPlan,
-} from "./combat-choreography.js?v=20260716.8";
-import { apexPhaseMotionPlan, enemyArrivalMotionPlan, enemyDepartureMotionPlan } from "./combat-rhythm.js?v=20260716.8";
+} from "./combat-choreography.js?v=20260716.9";
+import { apexPhaseMotionPlan, enemyArrivalMotionPlan, enemyDepartureMotionPlan } from "./combat-rhythm.js?v=20260716.9";
 
 const TAU = Math.PI * 2;
 const PING_BUFFER_LIMIT = 32;
@@ -74,10 +74,12 @@ export function specialistAtlasRenderPlan({
   });
 }
 
-function mechanicFrameForState(state) {
-  if (!state?.features?.mapMechanics || state.stage !== "running" || !Number.isSafeInteger(state.tick)) return null;
+export function mechanicFrameForState(state) {
+  const enabled = typeof state?.features?.mapMechanics === "boolean" ? state.features.mapMechanics : state?.mapMechanics;
+  if (!enabled || state.stage !== "running" || !Number.isSafeInteger(state.tick)) return null;
   const mapId = typeof state.map === "string" ? state.map : state.map?.id;
-  return mapMechanicFrame(mapId, state.tick, { worldWidth: WORLD.width, worldHeight: WORLD.height });
+  const pressureAdvanceTicks = Number.isSafeInteger(state.mutationState?.pressureAdvanceTicks) ? state.mutationState.pressureAdvanceTicks : 0;
+  return mapMechanicFrame(mapId, state.tick + pressureAdvanceTicks, { worldWidth: WORLD.width, worldHeight: WORLD.height });
 }
 const PING_RENDER_LIMITS = Object.freeze({ high: 12, reduced: 8, minimal: 4 });
 const PING_COLORS = Object.freeze({
@@ -891,6 +893,7 @@ export class Renderer {
     const mapMechanic = mechanicFrameForState(state);
     this.drawMapMechanic(mapMechanic, map);
     this.drawForcedMovementCue(mapMechanic, state, localPlayerId, map, "ground");
+    this.drawImpactMovementCue(state, localPlayerId, map, "ground");
     this.drawEnvironmentalProps();
     this.drawMachine(state, map);
     const effectPasses = partitionEffects(state.effects || []);
@@ -910,6 +913,7 @@ export class Renderer {
     this.drawGroundParticles(visualDt);
     this.drawGroundedQueue(state, previous, interpolation, map, localPlayerId, visualDt);
     this.drawForcedMovementCue(mapMechanic, state, localPlayerId, map, "overlay");
+    this.drawImpactMovementCue(state, localPlayerId, map, "overlay");
     this.drawPings(state.tick);
     // Intent geometry is authoritative combat information, not cosmetic density.
     // Draw it from the complete viewport-culled enemy list so a low quality
@@ -991,6 +995,16 @@ export class Renderer {
     const ctx = this.ctx, frame = theme.maps[map.id].frames[chunk.frame];
     const sourceX = (chunk.frame % theme.atlas.columns) * sourceWidth, sourceY = Math.floor(chunk.frame / theme.atlas.columns) * sourceHeight;
     const width = frame.drawSize[0] * chunk.scale, height = frame.drawSize[1] * chunk.scale;
+    const [baseX, baseY, baseWidth, baseHeight] = chunk.collisionRect;
+    // A grounded foundation makes the exact blocking footprint legible without
+    // exposing a debug collision box. It also gives formerly translucent set
+    // dressing enough visual weight to read as real cover.
+    ctx.save();
+    ctx.fillStyle = "rgba(1,6,10,.52)"; ctx.fillRect(baseX + 9, baseY + 11, baseWidth, baseHeight);
+    ctx.fillStyle = map.deco; ctx.globalAlpha = .58; ctx.fillRect(baseX, baseY, baseWidth, baseHeight);
+    ctx.globalAlpha = .86; ctx.strokeStyle = "rgba(1,6,10,.92)"; ctx.lineWidth = 5; ctx.strokeRect(baseX, baseY, baseWidth, baseHeight);
+    ctx.strokeStyle = `${map.accent}8f`; ctx.lineWidth = 2; ctx.strokeRect(baseX + 3, baseY + 3, Math.max(0, baseWidth - 6), Math.max(0, baseHeight - 6));
+    ctx.restore();
     ctx.save(); ctx.translate(chunk.x, chunk.y); ctx.scale(chunk.flipX ? -1 : 1, 1);
     ctx.globalAlpha = chunk.opacity;
     ctx.filter = "saturate(.9) brightness(.88)";
@@ -1065,6 +1079,37 @@ export class Renderer {
       ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.strokeRect(-width / 2, -18, width, 36);
       ctx.fillStyle = "#f4fffd"; ctx.fillText(headline, 0, -5);
       ctx.font = "800 8px Inter"; ctx.fillStyle = color; ctx.fillText(subline, 0, 9);
+    }
+    ctx.restore();
+  }
+
+  drawImpactMovementCue(state, localPlayerId, map, pass = "ground") {
+    const player = (state.players || []).find((entry) => entry.id === localPlayerId) || state.players?.[0];
+    if (!player || player.dead || player.downed) return;
+    const velocityX = Number(player.knockVx || 0), velocityY = Number(player.knockVy || 0);
+    const speed = Math.hypot(velocityX, velocityY);
+    if (!Number.isFinite(speed) || speed < 28) return;
+    const ctx = this.ctx, angle = Math.atan2(velocityY, velocityX), radius = Math.max(18, Number(player.radius || 24));
+    const strength = clamp((speed - 28) / 170, .35, 1), length = 48 + strength * 34;
+    ctx.save();
+    if (pass === "ground") {
+      ctx.translate(player.x, player.y); ctx.rotate(angle);
+      ctx.globalAlpha = .62 + strength * .28; ctx.strokeStyle = "#ff795d"; ctx.fillStyle = "#ff795d"; ctx.lineWidth = 3 + strength * 2;
+      ctx.beginPath(); ctx.moveTo(radius * .35, 0); ctx.lineTo(length, 0); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(length, 0); ctx.lineTo(length - 17, -10); ctx.lineTo(length - 17, 10); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "#f4fffd"; ctx.lineWidth = 3;
+      for (let index = 0; index < 2; index++) {
+        const x = -radius - 7 - index * 10;
+        ctx.beginPath(); ctx.moveTo(x - 7, -10); ctx.lineTo(x, 0); ctx.lineTo(x - 7, 10); ctx.stroke();
+      }
+    } else if (speed >= 78) {
+      const headline = "ENEMY IMPACT";
+      ctx.translate(player.x, player.y - radius - 38);
+      ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "900 11px Inter";
+      const width = Math.max(ctx.measureText(headline).width + 22, 104);
+      ctx.fillStyle = "rgba(3,10,16,.9)"; ctx.fillRect(-width / 2, -13, width, 26);
+      ctx.strokeStyle = "#ff795d"; ctx.lineWidth = 2; ctx.strokeRect(-width / 2, -13, width, 26);
+      ctx.fillStyle = "#f4fffd"; ctx.fillText(headline, 0, 0);
     }
     ctx.restore();
   }
