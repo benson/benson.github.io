@@ -3,6 +3,7 @@ import {
   chipNode,
   clearNode,
   combobox,
+  drawer,
   edgeResize,
   el,
   fieldRowHtml,
@@ -186,6 +187,7 @@ export function renderDesignSystem(target) {
     tokensGroup(),
     typeGroup(),
     buttonsGroup(),
+    motionGroup(),
     formsGroup(),
     statusGroup(),
     dataGroup(),
@@ -213,7 +215,7 @@ function pageHeader() {
     el('p', {
       className: 'ds-page-sub',
       text:
-        'Shared tokens, hard-shadow primitives, and small browser-native helpers for Biblioplex, PoolBuilder, and future apps.',
+        'Shared tokens, restrained primitives, and small browser-native helpers for Biblioplex, PoolBuilder, and future apps.',
     }),
     el(
       'nav',
@@ -436,7 +438,7 @@ function typeGroup() {
   return group(
     'type',
     'Type',
-    entry('Faces', ['--vui-font-display', '--vui-font-heading', '--vui-font-body', '--vui-font-mono'], 'The four voices: a quiet Palatino-family serif carries display and headings (BEN-623); system body does the reading; mono does the data.', () => {
+    entry('Faces', ['--vui-font-display', '--vui-font-heading', '--vui-font-body', '--vui-font-mono'], 'The four voices: a quiet bookish serif carries display and headings; Inter or the system sans does the reading; mono is reserved for data.', () => {
       const col = el('div', { className: 'ds-type-faces' });
       col.append(
         el('div', { className: 'ds-type-face', style: { fontFamily: 'var(--vui-font-display)', fontSize: 'var(--vui-font-size-display)' }, text: 'arcane ledger — display' }),
@@ -472,7 +474,7 @@ function buttonsGroup() {
   return group(
     'buttons',
     'Buttons',
-    entry('Buttons', ['.btn', '.btn-secondary', '.btn-danger', '.btn-ink', '.btn-link', '.btn-shortcut'], 'Primary gold, secondary blue, danger red, ink, disabled, and bare text actions. Append a .btn-shortcut chip for an optional keyboard hint — same treatment the fab pills use.', () =>
+    entry('Buttons', ['.btn', '.btn-secondary', '.btn-danger', '.btn-ink', '.btn-link', '.btn-shortcut'], 'Accent primary, quiet secondary, soft danger, ink, disabled, and bare text actions. Ordinary labels stay medium-weight; primary actions carry the stronger voice.', () =>
       demoHtml(
         buttonHtml({ label: 'reload' }) +
           buttonHtml({ label: 'save' }) +
@@ -509,13 +511,13 @@ function buttonsGroup() {
     ),
     entry(
       'Floating actions',
-      ['.fab-cluster', '.fab-btn', '.fab-glyph', '.fab-shortcut'],
-      'Solid ink action pills. Apps stack them in a fixed .fab-cluster at the bottom-right (shown inline here); the feedback widget mounts one as its launcher.',
+      ['.fab-cluster', '.fab-btn', '.fab-btn-primary', '.fab-glyph', '.fab-shortcut'],
+      'Quiet utility actions with an optional accent primary. Apps stack them in a fixed .fab-cluster at the bottom-right; the feedback widget mounts one as its launcher.',
       () =>
         el(
           'div',
           { className: 'ds-row' },
-          fabDemo('+', 'add', 'a'),
+          fabDemo('+', 'add', 'a', true),
           fabDemo('?', 'help', 'h'),
           fabDemo('!', 'feedback', 'f'),
         ),
@@ -523,10 +525,10 @@ function buttonsGroup() {
   );
 }
 
-function fabDemo(glyph, label, shortcut) {
+function fabDemo(glyph, label, shortcut, primary = false) {
   return el(
     'button',
-    { className: 'fab-btn', type: 'button', ariaLabel: label },
+    { className: `fab-btn${primary ? ' fab-btn-primary' : ''}`, type: 'button', ariaLabel: label },
     el('span', { className: 'fab-glyph', text: glyph }),
     el('span', { className: 'fab-label', text: label }),
     el('span', { className: 'fab-shortcut', ariaHidden: 'true', text: shortcut }),
@@ -737,7 +739,7 @@ function statusGroup() {
       );
       return banner;
     }),
-    entry('Chips', ['.ui-chip', '.ui-chip-remove', '.ui-chip-emoji'], 'One chip family — tags, statuses, filters, and location pills all wear the same sticker. Apps tint per-domain through the --ui-chip-bg/--ui-chip-border/--ui-chip-ink hooks instead of forking variants.', () => {
+    entry('Chips', ['.ui-chip', '.ui-chip-remove', '.ui-chip-emoji'], 'One quiet metadata family for tags, statuses, filters, and locations. Apps tint it per domain through the --ui-chip-bg/--ui-chip-border/--ui-chip-ink hooks.', () => {
       const row = el('div', { className: 'ds-row' });
       const emoji = el('span', { className: 'ui-chip-emoji', text: '✨' });
       const colored = chipNode({ text: 'tinted' });
@@ -759,7 +761,9 @@ function statusGroup() {
           '<div class="toast toast-danger"><span class="toast-message">save failed</span></div>',
       );
       const fire = el('button', { className: 'btn', type: 'button', text: 'fire toast', dataset: { dsFireToast: '' } });
-      fire.addEventListener('click', () => toast('toast fired from the catalog', { tone: 'success' }));
+      fire.addEventListener('click', (event) =>
+        toast('toast fired from the catalog', { tone: 'success', reason: 'trigger', event }),
+      );
       row.append(fire);
       return row;
     }),
@@ -856,11 +860,175 @@ function dataGroup() {
   );
 }
 
+function motionGroup() {
+  return group(
+    'motion',
+    'Motion',
+    entry(
+      'Motion workbench',
+      ['--vui-motion-enter', '--vui-motion-exit', '--vui-ease-out', '[data-vui-motion]'],
+      'A shared motion contract: controls snap, transient surfaces arrive quickly and leave faster, and overlays preserve spatial context. Pointer actions animate; keyboard dismissal is immediate; reduced-motion keeps a quiet fade.',
+      () => {
+        const lab = el('div', { className: 'ds-motion-lab', dataset: { dsMotionLab: '' } });
+        const speed = el('div', { className: 'segmented segmented-compact', role: 'group', ariaLabel: 'motion playback speed' });
+        for (const [label, scale] of [['1x', '1'], ['3x', '3'], ['instant', '0']]) {
+          const button = el('button', {
+            className: label === '1x' ? 'segment-btn active' : 'segment-btn',
+            type: 'button',
+            text: label,
+            dataset: { dsMotionSpeed: scale },
+          });
+          button.addEventListener('click', () => {
+            document.documentElement.style.setProperty('--vui-motion-scale', scale);
+            speed.querySelectorAll('.segment-btn').forEach((item) => item.classList.toggle('active', item === button));
+          });
+          speed.append(button);
+        }
+
+        const tiers = el('div', { className: 'ds-motion-tiers' });
+        for (const [name, token, note] of [
+          ['snap', '70ms', 'press and direct feedback'],
+          ['transient', '180ms in / 120ms out', 'menus, popovers, toasts'],
+          ['overlay', '180ms', 'modal context change'],
+        ]) {
+          tiers.append(
+            el(
+              'div',
+              { className: 'ds-motion-tier' },
+              el('strong', { text: name }),
+              el('code', { text: token }),
+              el('span', { text: note }),
+            ),
+          );
+        }
+
+        const actions = el('div', { className: 'ds-motion-actions' });
+        const menuWrap = el('div', { className: 'ds-motion-menu-wrap' });
+        const menuTrigger = el('button', { className: 'btn', type: 'button', text: 'replay popover', dataset: { dsMotionPopover: '' } });
+        const menu = el('div', { className: 'ui-popover floating-menu', role: 'menu', hidden: true });
+        for (const label of ['open book', 'add note', 'share shelf']) {
+          menu.append(el('button', { className: 'floating-menu-item', type: 'button', role: 'menuitem', text: label }));
+        }
+        const menuApi = floatingMenu(menuTrigger, menu, { keyboard: true });
+        menuTrigger.addEventListener('click', (clickEvent) => {
+          if (menuApi.isOpen()) menuApi.close({ reason: 'trigger', event: clickEvent });
+          else menuApi.open({ reason: 'trigger', event: clickEvent });
+        });
+        menuWrap.append(menuTrigger, menu);
+
+        const modalEl = el(
+          'div',
+          { className: 'ui-modal', hidden: true, ariaHidden: 'true' },
+          el(
+            'section',
+            { className: 'ui-modal-card ds-motion-modal' },
+            el('header', { className: 'ui-modal-head' }, el('h3', { className: 'ui-modal-title', text: 'motion, with restraint' })),
+            el('div', { className: 'ui-modal-body', text: 'A short centered settle preserves context without making the dialog perform.' }),
+            el('footer', { className: 'ui-modal-actions' }, el('button', { className: 'btn', type: 'button', text: 'close', dataset: { modalClose: '' } })),
+          ),
+        );
+        const modalApi = modal(modalEl, { interactive: false });
+        const modalTrigger = el('button', { className: 'btn', type: 'button', text: 'replay modal', dataset: { dsMotionModal: '' } });
+        modalTrigger.addEventListener('click', (clickEvent) => modalApi.open({ reason: 'trigger', event: clickEvent }));
+
+        const toastTrigger = el('button', { className: 'btn', type: 'button', text: 'replay toast', dataset: { dsMotionToast: '' } });
+        toastTrigger.addEventListener('click', (clickEvent) =>
+          toast('saved to your shelf', { tone: 'success', reason: 'trigger', event: clickEvent }),
+        );
+        actions.append(menuWrap, modalTrigger, toastTrigger, modalEl);
+        lab.append(
+          el('div', { className: 'ds-motion-toolbar' }, el('span', { text: 'playback' }), speed),
+          tiers,
+          actions,
+        );
+        return lab;
+      },
+    ),
+    entry(
+      'Drawer and sheet',
+      ['drawer()', '.ui-drawer-layer', '.ui-drawer', '--vui-ease-drawer'],
+      'One controller serves attached side drawers and mobile bottom sheets. Drag the ink-band handle toward its edge for direct manipulation; Escape and keyboard activation remain immediate.',
+      () => {
+        const actions = el('div', { className: 'ds-motion-actions' });
+        const rightTrigger = el('button', {
+          className: 'btn',
+          type: 'button',
+          text: 'open right drawer',
+          dataset: { dsOpenDrawer: '' },
+        });
+        const sheetTrigger = el('button', {
+          className: 'btn',
+          type: 'button',
+          text: 'open bottom sheet',
+          dataset: { dsOpenSheet: '' },
+        });
+
+        const rightLayer = drawerLayer({
+          side: 'right',
+          title: 'add to shelf',
+          body: 'An attached workspace keeps the collection in view while you add a title.',
+          inputLabel: 'book title',
+          openDataset: { dsDrawerLayer: '' },
+        });
+        const sheetLayer = drawerLayer({
+          side: 'bottom',
+          title: 'quick add',
+          body: 'The same primitive becomes a thumb-reachable sheet without changing its interaction contract.',
+          inputLabel: 'scan or search',
+          openDataset: { dsSheetLayer: '' },
+        });
+        const rightApi = drawer(rightLayer, { side: 'right' });
+        const sheetApi = drawer(sheetLayer, { side: 'bottom' });
+        rightTrigger.addEventListener('click', (event) => rightApi.open({ reason: 'trigger', event, trigger: rightTrigger }));
+        sheetTrigger.addEventListener('click', (event) => sheetApi.open({ reason: 'trigger', event, trigger: sheetTrigger }));
+        actions.append(rightTrigger, sheetTrigger, rightLayer, sheetLayer);
+        return actions;
+      },
+    ),
+  );
+}
+
+function drawerLayer({ side, title, body, inputLabel, openDataset }) {
+  return el(
+    'div',
+    {
+      className: 'ui-drawer-layer',
+      hidden: true,
+      ariaHidden: 'true',
+      dataset: { vuiDrawerSide: side, ...openDataset },
+    },
+    el('button', { className: 'ui-drawer-backdrop', type: 'button', ariaLabel: 'close drawer' }),
+    el(
+      'aside',
+      { className: 'ui-drawer', dataset: { vuiDrawerSide: side } },
+      el(
+        'header',
+        { className: 'ui-drawer-head', dataset: { vuiDrawerHandle: '' } },
+        el('h3', { className: 'ui-drawer-title', text: title }),
+        el('button', { className: 'rune-close', type: 'button', ariaLabel: 'close', text: '×', dataset: { drawerClose: '' } }),
+      ),
+      el(
+        'div',
+        { className: 'ui-drawer-body' },
+        el('p', { text: body }),
+        el('label', { className: 'field-label', text: inputLabel }),
+        el('input', { className: 'input', type: 'text', placeholder: inputLabel }),
+      ),
+      el(
+        'footer',
+        { className: 'ui-drawer-actions' },
+        el('button', { className: 'btn', type: 'button', text: 'cancel', dataset: { drawerClose: '' } }),
+        el('button', { className: 'btn btn-primary', type: 'button', text: 'add' }),
+      ),
+    ),
+  );
+}
+
 function overlaysGroup() {
   return group(
     'overlays',
     'Overlays',
-    entry('Modal frame', ['.ui-modal-card', '.ui-modal-head', '.ui-modal-body', '.rune-close'], 'Canonical modal card: ONE head fleet-wide — the ink band with inverse title and the quiet × — whether the panel is centered or floating.', () =>
+    entry('Modal frame', ['.ui-modal-card', '.ui-modal-head', '.ui-modal-body', '.rune-close'], 'Canonical modal card: one calm surface and one quiet header treatment, whether the panel is centered or floating.', () =>
       el(
         'section',
         { className: 'ui-modal-card', style: { width: 'min(520px, 100%)' } },
@@ -893,7 +1061,7 @@ function overlaysGroup() {
         ),
       );
       const api = modal(modalEl);
-      const trigger = el('button', { className: 'btn', type: 'button', text: 'open modal', onClick: () => api.open() });
+      const trigger = el('button', { className: 'btn', type: 'button', text: 'open modal', onClick: (event) => api.open({ reason: 'trigger', event }) });
       trigger.dataset.dsOpenModal = '';
       wrap.append(trigger, modalEl);
       return wrap;
@@ -947,8 +1115,10 @@ function overlaysGroup() {
         menu.append(simpleItem('compare build'), submenuWrap, simpleItem('remove'));
         wrap.append(trigger, menu);
         controller = floatingMenu(trigger, menu, { keyboard: true, hoverIntent: true });
-        trigger.addEventListener('click', () =>
-          controller.isOpen() ? controller.close() : controller.open({ focusFirst: true }),
+        trigger.addEventListener('click', (event) =>
+          controller.isOpen()
+            ? controller.close({ reason: 'trigger', event })
+            : controller.open({ focusFirst: true, reason: 'trigger', event }),
         );
         return wrap;
       },
