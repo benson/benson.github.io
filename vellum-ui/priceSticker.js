@@ -1,4 +1,4 @@
-import { esc } from './escape.js?v=54f748b9d565';
+import { esc } from './escape.js?v=a2b3b4706c4a';
 
 // Format a numeric amount for the .card-sleeve-price label. The label is a
 // narrow fixed-size sticker, so once a price clears $100 we drop the cents and
