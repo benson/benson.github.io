@@ -1,51 +1,51 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260716.13";
-import { Simulation, WORLD, coverObstaclesForMap, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260716.13";
-import { Renderer } from "./render.js?v=20260716.13";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260716.14";
+import { Simulation, WORLD, coverObstaclesForMap, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260716.14";
+import { Renderer } from "./render.js?v=20260716.14";
 import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260713.2";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
-import { getThemeAsset, getThemeEnvironmentChunks, getThemeMaterial } from "./themes/lastlight.js?v=20260716.13";
-import { submitRunTelemetry } from "./telemetry.js?v=20260716.13";
+import { getThemeAsset, getThemeEnvironmentChunks, getThemeMaterial } from "./themes/lastlight.js?v=20260716.14";
+import { submitRunTelemetry } from "./telemetry.js?v=20260716.14";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260716.13";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260716.13";
+import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260716.14";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260716.14";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
-import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260716.13";
-import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260716.13";
-import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260716.13";
+import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260716.14";
+import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260716.14";
+import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260716.14";
 import {
   ACCESSIBILITY_ACTIONS, GAMEPAD_ACTIONS, bindingLabel, defaultAccessibilitySettings,
   keyboardActionForEvent, loadAccessibilitySettings, readStandardGamepad, saveAccessibilitySettings,
-} from "./accessibility-settings.js?v=20260716.13";
-import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260716.13";
+} from "./accessibility-settings.js?v=20260716.14";
+import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260716.14";
 import { GuestInputSequenceTracker, HostInputSequenceGate, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260713.2";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260713.2";
-import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260716.13";
-import { advancePlayerMovement } from "./movement.js?v=20260716.13";
-import { abilityChoreography } from "./combat-choreography.js?v=20260716.13";
-import { combatRhythmTransition } from "./combat-rhythm.js?v=20260716.13";
-import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260716.13";
-import { DynamicAudioMixer } from "./audio-mix.js?v=20260716.13";
-import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260716.13";
+import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260716.14";
+import { advancePlayerMovement } from "./movement.js?v=20260716.14";
+import { abilityChoreography } from "./combat-choreography.js?v=20260716.14";
+import { combatRhythmTransition } from "./combat-rhythm.js?v=20260716.14";
+import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260716.14";
+import { DynamicAudioMixer } from "./audio-mix.js?v=20260716.14";
+import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260716.14";
 import { enemyAudioCueName, newEntities, spatialAudioPan, weaponAudioCueName, weaponTimerActivations } from "./audio-events.js?v=20260713.1";
 import { FUNNY_VOICE_MIN_INTERVAL_MS, audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260713.1";
-import { playFeedbackHaptics } from "./feedback-haptics.js?v=20260716.13";
-import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260716.13";
-import { BUILDCRAFT_CATEGORY_DEFINITIONS, passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260716.13";
+import { playFeedbackHaptics } from "./feedback-haptics.js?v=20260716.14";
+import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260716.14";
+import { BUILDCRAFT_CATEGORY_DEFINITIONS, passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260716.14";
 import { getWeaponEvolution } from "./weapon-evolution.js?v=20260713.1";
-import { isFpsShortcut, isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260716.13";
-import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260716.13";
-import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260716.13";
-import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260716.13";
+import { isFpsShortcut, isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260716.14";
+import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260716.14";
+import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260716.14";
+import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260716.14";
 import { reconcileActiveBuffs } from "./active-buffs.js?v=20260713.1";
 import { ELITE_AFFIXES, ENEMY_ARCHETYPES, eliteAffixEligibility } from "./enemy-archetypes.js?v=20260713.1";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
-import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260716.13";
-import { CAMPAIGN_MUTATIONS, campaignMutationDefinition, campaignMutationPackageVisible } from "./campaign-mutations.js?v=20260716.13";
+import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260716.14";
+import { CAMPAIGN_MUTATIONS, campaignMutationDefinition, campaignMutationPackageVisible } from "./campaign-mutations.js?v=20260716.14";
 import {
   AuthoritySnapshotGate, HOST_MIGRATION_PROTOCOL_VERSION, MIGRATION_CHECKPOINT_INTERVAL_TICKS,
   createMigrationCapabilities, createMigrationCheckpoint, createMigrationReady,
   migrationCompatibilityMatches, validateMigrationCheckpoint,
-} from "./host-migration.js?v=20260716.13";
+} from "./host-migration.js?v=20260716.14";
 import { RECONNECT_DELAYS_MS, SquadPresenceTracker, authorityStateCopy } from "./reconnect-state.js?v=20260713.3";
 import {
   HostPingGate, PING_INTENTS, PING_LIFETIME_TICKS, PING_WHEEL_ORDER, PingSequenceTracker,
@@ -61,32 +61,32 @@ import { DraftRecommendationStore, recommendationMarkerModel } from "./draft-rec
 import { SQUAD_SYNERGY_REGISTRY } from "./squad-synergies.js?v=20260713.6";
 import { reconcileActiveSynergies } from "./active-synergies.js?v=20260713.6";
 import { PARTICIPATION_REGISTRY } from "./participation-credit.js?v=20260713.7";
-import { campaignJoinEligibility } from "./join-in-progress.js?v=20260716.13";
+import { campaignJoinEligibility } from "./join-in-progress.js?v=20260716.14";
 import {
   RUN_ARCHIVE_STORAGE_KEY, createSquadRunReport, decodeSquadRunFragment, normalizeRunArchiveStorage,
   squadRunShareFragment, upsertRunArchive,
-} from "./run-archive.js?v=20260716.13";
+} from "./run-archive.js?v=20260716.14";
 import {
   SPECIALIST_MASTERY, SPECIALIST_MASTERY_LEVELS, awardSpecialistMastery, loadSpecialistMasteryState,
   masteryStartDefinition, saveSpecialistMasteryState, selectMasteryStart,
-} from "./specialist-mastery.js?v=20260716.13";
+} from "./specialist-mastery.js?v=20260716.14";
 import {
   RARE_DISCOVERY_REGISTRY, awardRareDiscoveries, loadRareDiscoveryCollection,
   rareDiscoveryDefinition, rareDiscoveryTelemetry, saveRareDiscoveryCollection,
-} from "./rare-discoveries.js?v=20260716.13";
+} from "./rare-discoveries.js?v=20260716.14";
 import {
   CHALLENGE_ACHIEVEMENT_REGISTRY, awardChallengeAchievements, challengeAchievementDefinition,
   challengeAchievementTelemetry, evaluateChallengeAchievements, loadChallengeAchievementState,
   saveChallengeAchievementState,
-} from "./challenge-achievements.js?v=20260716.13";
+} from "./challenge-achievements.js?v=20260716.14";
 import {
   loadSeededOperationRecords, recordSeededOperationResult, saveSeededOperationRecords,
   seededOperationFor, seededOperationFromId, seededOperationTelemetry,
-} from "./seeded-operations.js?v=20260716.13";
+} from "./seeded-operations.js?v=20260716.14";
 import {
   PRACTICE_MAX_PASSIVES, PRACTICE_MAX_WEAPONS, defaultPracticeLaboratoryConfig,
   measurePracticeLaboratory, normalizePracticeLaboratoryConfig,
-} from "./practice-laboratory.js?v=20260716.13";
+} from "./practice-laboratory.js?v=20260716.14";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -95,7 +95,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.16.13";
+const BUILD = "2026.07.16.14";
 const AUTHORITY_WATCHDOG_MS = Object.freeze({ synchronizing: 10_000, migrating: 25_000 });
 const BALANCE = getBalanceConfig();
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
@@ -133,9 +133,8 @@ const hostDraftRecommendationGate = new HostDraftRecommendationGate();
 const PROGRESS_KEY = "lastlight:campaign:v1";
 const LEGACY_RUN_HISTORY_KEYS = Object.freeze(["lastlight:runs:v6", "lastlight:runs:v5", "lastlight:runs:v4", "lastlight:runs:v3", "lastlight:runs:v2", "lastlight:runs:v1"]);
 const CLIENT_TOKEN_KEY = "lastlight:session-token:v1";
-const DAMAGE_LEDGER_LAYOUT_KEY = "lastlight:damage-ledger-layout:v1";
+const DAMAGE_LEDGER_COLLAPSED_KEY = "lastlight:damage-ledger-collapsed:v1";
 const LAST_REPLAY_KEY = "lastlight:last-replay:v1";
-const DAMAGE_LEDGER_DEFAULT = Object.freeze({ x: 22, y: 232, width: 250, height: 150, collapsed: true, userSized: false });
 const emptySoundState = () => ({
   projectileIds: new Set(), effectIds: new Set(), hostileIds: new Set(), attackingIds: new Set(), weaponTimers: new Map(),
   kills: 0, level: 1, damageTaken: 0, xpCollected: 0,
@@ -174,12 +173,10 @@ function loadClientToken() {
   } catch { return crypto.randomUUID().replace(/-/g, "").slice(0, 24); }
 }
 
-function loadDamageLedgerLayout() {
+function loadDamageLedgerCollapsed() {
   try {
-    const saved = JSON.parse(localStorage.getItem(DAMAGE_LEDGER_LAYOUT_KEY) || "null");
-    if (!saved || typeof saved !== "object") return { ...DAMAGE_LEDGER_DEFAULT };
-    return { ...DAMAGE_LEDGER_DEFAULT, ...saved, y: Number(saved.y) === 112 ? DAMAGE_LEDGER_DEFAULT.y : saved.y, userSized: typeof saved.userSized === "boolean" ? saved.userSized : Number(saved.height) !== DAMAGE_LEDGER_DEFAULT.height };
-  } catch { return { ...DAMAGE_LEDGER_DEFAULT }; }
+    return localStorage.getItem(DAMAGE_LEDGER_COLLAPSED_KEY) !== "false";
+  } catch { return true; }
 }
 
 function loadLastReplay() {
@@ -211,7 +208,7 @@ const state = {
   recentErrors: [], reportSubmitting: false, resumeAfterReport: false, reportImageDataUrl: "", reportImageMimeType: "", reportImageName: "", telemetrySent: false,
   qualitySettings: initialQualitySettings, accessibilitySettings: initialAccessibilitySettings, accessibilityCapture: "", showEnemyHealthBars: initialQualitySettings.healthBars !== "off", inspectPointer: null, inspectActive: false,
   performanceMetrics: null, lastDamageLedgerKey: "", lastFpsUpdate: 0,
-  damageLedgerLayout: loadDamageLedgerLayout(), damageLedgerResizeObserver: null,
+  damageLedgerCollapsed: loadDamageLedgerCollapsed(),
   bannerTimer: null, bannerExitTimer: null, rhythmTimers: new Map(), launchTimers: [],
   resumeToken: loadClientToken(),
   hostPreviousMotion: null, inputMotionStartedAt: 0, inputMotionStart: null, inputWasActive: false,
@@ -2060,7 +2057,7 @@ function performMappedAction(action) {
   }
   if (action === "active") cast("e");
   else if (action === "ultimate") cast("r");
-  else if (action === "autoAim") { state.input.autoAim = !state.input.autoAim; toast(state.input.autoAim ? "Signature aim on" : "Signature follows cursor"); }
+  else if (action === "autoAim") { state.input.autoAim = !state.input.autoAim; toast(state.input.autoAim ? "Auto-aim on — firing automatically toward the nearest enemy." : "Auto-aim off — firing toward your cursor."); }
   else if (action === "ping") openPingWheel({ source: "keyboard" });
   else if (action === "pause") togglePause();
   else if (action === "quickPause") toggleQuickPause();
@@ -2254,130 +2251,36 @@ function updateDamageLedger(player, game) {
   const seconds = elapsedRunSeconds(game), panel = $("damage-ledger"), content = $("damage-ledger-content");
   panel.classList.toggle("no-data", sources.length === 0);
   content.innerHTML = sources.map(([id, damage], index) => `<div class="${index === 0 ? "leader" : ""}"><span>${escapeHTML(sourceName(id, player))}</span><b>${statNumber(damage)}</b><small>${(damage / seconds).toFixed(1)} DPS</small></div>`).join("");
-  fitDamageLedgerToContents();
 }
 
 function healthDividerMarkup(layout) {
   return layout.dividers.map((divider) => `<i class="health-divider${divider.major ? " major" : ""}" style="left:${(divider.position * 100).toFixed(4)}%"></i>`).join("");
 }
 
-function saveDamageLedgerLayout() {
-  try { localStorage.setItem(DAMAGE_LEDGER_LAYOUT_KEY, JSON.stringify(state.damageLedgerLayout)); } catch { /* Storage is optional. */ }
+function saveDamageLedgerCollapsed() {
+  try { localStorage.setItem(DAMAGE_LEDGER_COLLAPSED_KEY, String(state.damageLedgerCollapsed)); } catch { /* Storage is optional. */ }
 }
 
-function damageLedgerIsMobile() { return matchMedia("(max-width: 650px)").matches; }
-
-function damageLedgerHudScale() {
-  const value = Number(getComputedStyle(document.documentElement).getPropertyValue("--hud-scale"));
-  return Number.isFinite(value) && value > 0 ? value : 1;
-}
-
-function fitDamageLedgerToContents() {
-  const panel = $("damage-ledger"), layout = state.damageLedgerLayout;
-  if (!panel || layout.userSized || layout.collapsed || damageLedgerIsMobile() || panel.classList.contains("no-data")) return;
-  const bounds = panel.parentElement.getBoundingClientRect();
-  const rowsHeight = [...$("damage-ledger-content").children].reduce((height, row) => height + row.getBoundingClientRect().height, 0);
-  layout.height = clamp($("damage-ledger-handle").getBoundingClientRect().height + rowsHeight + 14, 110, Math.max(110, bounds.height - 96));
-  applyDamageLedgerLayout();
-}
-
-function clampDamageLedgerLayout() {
-  const panel = $("damage-ledger"), bounds = panel.parentElement.getBoundingClientRect(), layout = state.damageLedgerLayout;
-  const scale = damageLedgerHudScale();
-  const maxWidth = Math.max(210, Math.min(440, (bounds.width - 16) / scale));
-  const maxHeight = Math.max(110, (bounds.height - DAMAGE_LEDGER_DEFAULT.y - 24) / scale);
-  layout.width = clamp(Number(layout.width) || DAMAGE_LEDGER_DEFAULT.width, 210, maxWidth);
-  layout.height = clamp(Number(layout.height) || DAMAGE_LEDGER_DEFAULT.height, 110, maxHeight);
-  layout.x = clamp(Number(layout.x) || 0, 8, Math.max(8, bounds.width - layout.width * scale - 8));
-  layout.y = clamp(Number(layout.y) || 0, DAMAGE_LEDGER_DEFAULT.y, Math.max(DAMAGE_LEDGER_DEFAULT.y, bounds.height - (layout.collapsed ? 40 : layout.height) * scale - 24));
-}
-
-function applyDamageLedgerLayout({ persist = false } = {}) {
-  const panel = $("damage-ledger"), layout = state.damageLedgerLayout, mobile = damageLedgerIsMobile();
-  panel.classList.toggle("mobile-pinned", mobile);
-  panel.classList.toggle("collapsed", Boolean(layout.collapsed));
-  const collapseButton = $("damage-ledger-collapse"), action = layout.collapsed ? "Expand" : "Collapse";
-  collapseButton.setAttribute("aria-expanded", String(!layout.collapsed));
+function applyDamageLedgerState({ persist = false } = {}) {
+  const panel = $("damage-ledger"), collapsed = Boolean(state.damageLedgerCollapsed);
+  panel.classList.toggle("collapsed", collapsed);
+  const collapseButton = $("damage-ledger-collapse"), action = collapsed ? "Expand" : "Collapse";
+  collapseButton.setAttribute("aria-expanded", String(!collapsed));
   collapseButton.setAttribute("aria-label", `${action} Damage Sources`); collapseButton.title = `${action} Damage Sources`;
-  collapseButton.querySelector("span").textContent = layout.collapsed ? "+" : "−";
-  if (mobile) {
-    panel.style.left = ""; panel.style.top = ""; panel.style.width = ""; panel.style.height = "";
-  } else {
-    clampDamageLedgerLayout();
-    panel.style.left = `${layout.x}px`; panel.style.top = `${layout.y}px`; panel.style.width = `${layout.width}px`;
-    panel.style.height = layout.collapsed ? "" : `${layout.height}px`;
-  }
-  if (persist) saveDamageLedgerLayout();
+  collapseButton.querySelector("span").textContent = collapsed ? "+" : "−";
+  if (persist) saveDamageLedgerCollapsed();
 }
 
 function setupDamageLedger() {
-  const panel = $("damage-ledger"), handle = $("damage-ledger-handle"), collapseButton = $("damage-ledger-collapse");
-  let drag = null, applying = false, resizeArmed = false;
-  const finishDrag = (event) => {
-    if (!drag || (event.pointerId !== undefined && event.pointerId !== drag.pointerId)) return;
-    drag = null; handle.classList.remove("dragging"); saveDamageLedgerLayout();
-  };
-  handle.addEventListener("pointerdown", (event) => {
-    event.stopPropagation();
-    if (damageLedgerIsMobile() || event.button !== 0 || event.target.closest("button")) return;
-    drag = { pointerId: event.pointerId, clientX: event.clientX, clientY: event.clientY, x: state.damageLedgerLayout.x, y: state.damageLedgerLayout.y };
-    handle.setPointerCapture(event.pointerId); handle.classList.add("dragging"); event.preventDefault();
-  });
-  handle.addEventListener("pointermove", (event) => {
-    if (!drag || event.pointerId !== drag.pointerId) return;
-    state.damageLedgerLayout.x = drag.x + event.clientX - drag.clientX;
-    state.damageLedgerLayout.y = drag.y + event.clientY - drag.clientY;
-    applyDamageLedgerLayout();
-  });
-  handle.addEventListener("pointerup", finishDrag); handle.addEventListener("pointercancel", finishDrag);
-  handle.addEventListener("keydown", (event) => {
-    if (!event.key.startsWith("Arrow") || damageLedgerIsMobile()) return;
-    const amount = event.shiftKey ? 1 : 10, layout = state.damageLedgerLayout, resize = event.ctrlKey || event.metaKey;
-    if (resize) {
-      if (event.key === "ArrowLeft") layout.width -= amount;
-      if (event.key === "ArrowRight") layout.width += amount;
-      if (event.key === "ArrowUp") layout.height -= amount;
-      if (event.key === "ArrowDown") layout.height += amount;
-    } else {
-      if (event.key === "ArrowLeft") layout.x -= amount;
-      if (event.key === "ArrowRight") layout.x += amount;
-      if (event.key === "ArrowUp") layout.y -= amount;
-      if (event.key === "ArrowDown") layout.y += amount;
-    }
-    if (resize) state.damageLedgerLayout.userSized = true;
-    event.preventDefault(); event.stopPropagation(); applyDamageLedgerLayout({ persist: true });
-  });
+  const panel = $("damage-ledger"), collapseButton = $("damage-ledger-collapse");
   panel.addEventListener("keydown", (event) => event.stopPropagation());
   panel.addEventListener("keyup", (event) => event.stopPropagation());
-  panel.addEventListener("pointerdown", (event) => {
-    event.stopPropagation();
-    const rect = panel.getBoundingClientRect();
-    resizeArmed = !damageLedgerIsMobile() && event.button === 0 && event.clientX >= rect.right - 20 && event.clientY >= rect.bottom - 20;
-  });
-  window.addEventListener("pointerup", () => {
-    if (!resizeArmed) return;
-    resizeArmed = false; state.damageLedgerLayout.userSized = true; saveDamageLedgerLayout();
-  });
+  panel.addEventListener("pointerdown", (event) => event.stopPropagation());
   collapseButton.addEventListener("click", () => {
-    state.damageLedgerLayout.collapsed = !state.damageLedgerLayout.collapsed;
-    applyDamageLedgerLayout({ persist: true });
-    if (!state.damageLedgerLayout.collapsed) fitDamageLedgerToContents();
+    state.damageLedgerCollapsed = !state.damageLedgerCollapsed;
+    applyDamageLedgerState({ persist: true });
   });
-  $("damage-ledger-reset").addEventListener("click", () => {
-    state.damageLedgerLayout = { ...DAMAGE_LEDGER_DEFAULT, collapsed: state.damageLedgerLayout.collapsed };
-    fitDamageLedgerToContents(); applyDamageLedgerLayout({ persist: true }); handle.focus();
-  });
-  state.damageLedgerResizeObserver = new ResizeObserver(() => {
-    if (applying || damageLedgerIsMobile() || state.damageLedgerLayout.collapsed) return;
-    const rect = panel.getBoundingClientRect(), scale = damageLedgerHudScale();
-    const width = rect.width / scale, height = rect.height / scale;
-    if (Math.abs(width - state.damageLedgerLayout.width) < 1 && Math.abs(height - state.damageLedgerLayout.height) < 1) return;
-    state.damageLedgerLayout.width = width; state.damageLedgerLayout.height = height;
-    applying = true; applyDamageLedgerLayout({ persist: true }); applying = false;
-  });
-  state.damageLedgerResizeObserver.observe(panel);
-  window.addEventListener("resize", () => applyDamageLedgerLayout({ persist: true }));
-  applyDamageLedgerLayout();
+  applyDamageLedgerState();
 }
 
 function quickPauseActive(game = currentGameState()) { return Boolean(game?.paused && game.pauseReason === "quick"); }
@@ -2499,8 +2402,21 @@ function updateChallengeWatch(game, player) {
     if (key === state.lastChallengeWatchKey) return;
     state.lastChallengeWatchKey = key;
     target.classList.toggle("hidden", !achieved.length);
-    if (achieved.length) target.innerHTML = `<span>Challenge complete</span><strong>${achieved.slice(0, 2).map((id) => escapeHTML(challengeAchievementDefinition(id)?.name || id)).join(" · ")}${achieved.length > 2 ? ` · +${achieved.length - 2} more` : ""}</strong><small>Finish the level to save your progress.</small>`;
+    if (achieved.length) {
+      const inspectable = quickPauseActive(game);
+      target.innerHTML = `<span>Challenge complete</span><div class="challenge-watch-list">${achieved.map((id, index) => {
+        const definition = challengeAchievementDefinition(id), tooltipId = `challenge-watch-detail-${index}`;
+        return `<button type="button" class="challenge-watch-row" tabindex="${inspectable ? "0" : "-1"}" aria-describedby="${tooltipId}"><strong>${escapeHTML(definition?.name || id)}</strong><span id="${tooltipId}" class="challenge-watch-detail" role="tooltip"><b>${escapeHTML(definition?.summary || "Challenge condition completed.")}</b><small>Reward: ${escapeHTML(definition?.reward?.name || "Challenge record")} · saved after the level ends.</small></span></button>`;
+      }).join("")}</div><small>Finish the level to save your progress.${inspectable ? " Focus a challenge for details." : " Quick Pause to inspect details."}</small>`;
+      setChallengeWatchInspectable(inspectable);
+    }
   } catch { target.classList.add("hidden"); }
+}
+
+function setChallengeWatchInspectable(active) {
+  const target = $("challenge-watch"), inspectable = Boolean(active && !target?.classList.contains("hidden"));
+  target?.classList.toggle("is-inspectable", inspectable);
+  for (const row of target?.querySelectorAll(".challenge-watch-row") || []) row.tabIndex = inspectable ? 0 : -1;
 }
 
 function updateHUD(game) {
@@ -2605,7 +2521,7 @@ function forecastConsequencesMarkup(forecast) {
   if (forecast.evolution.newlyReady.length) notes.push(`${forecast.evolution.newlyReady.map(({ sourceId }) => sourceId === "signature" ? "Signature" : WEAPONS[sourceId]?.name || sourceId).join(", ")} ready for next access card`);
   if (forecast.slots.weapons.after > forecast.slots.weapons.before) notes.push(`Weapons ${forecast.slots.weapons.before}/${forecast.slots.weapons.max} → ${forecast.slots.weapons.after}/${forecast.slots.weapons.max}`);
   if (forecast.slots.passives.after > forecast.slots.passives.before) notes.push(`Passives ${forecast.slots.passives.before}/${forecast.slots.passives.max} → ${forecast.slots.passives.after}/${forecast.slots.passives.max}`);
-  notes.push(forecast.requiresReplacement ? "Choose a replacement to preview the final result" : `Squad gold +${forecast.economy.delta}`);
+  notes.push(forecast.requiresReplacement ? "Choose a replacement to preview the final result" : `Pick bonus +${forecast.economy.delta} gold`);
   return `<div class="forecast-consequences" aria-label="Draft consequences">${notes.map((note) => `<span>${escapeHTML(note)}</span>`).join("")}</div>`;
 }
 
@@ -2686,11 +2602,11 @@ function renderUpgradeStats(player) {
     ["pickup", "Pickup radius", `${Math.round(pickup)}`, pickup],
     ["regen", "Repair / sec", `${regen.toFixed(2)}`, regen],
   ];
-  $("upgrade-current-stats").innerHTML = `<strong>Current build</strong>${stats.map(([id, label, value, raw]) => {
+  $("upgrade-current-stats").innerHTML = stats.map(([id, label, value, raw]) => {
     const explanation = getCurrentStatExplanation(id, raw);
     const tooltipId = `stat-help-${id}`;
     return `<div class="upgrade-stat" tabindex="0" aria-describedby="${tooltipId}"><span>${escapeHTML(label)}</span><b>${escapeHTML(value)}</b><aside id="${tooltipId}" class="upgrade-stat-tooltip" role="tooltip"><strong>${escapeHTML(explanation?.name || label)}</strong><em>${escapeHTML(explanation?.value || value)}</em><p>${escapeHTML(explanation?.definition || "Current specialist statistic.")}</p></aside></div>`;
-  }).join("")}<p>Focus or point at a current stat for its formula. Upgrade cards list every equipped weapon or ability affected right now.</p>`;
+  }).join("");
 }
 
 function renderUpgradeLoadout(player, game) {
@@ -2794,6 +2710,7 @@ function updateUpgrade(game) {
   const localPlayer = game.players.find((player) => player.id === state.clientId);
   renderUpgradeLoadout(localPlayer, game);
   renderUpgradeStats(localPlayer);
+  document.querySelector(".upgrade-player-heading")?.classList.toggle("hidden", game.players.length <= 1);
   $("upgrade-local-name").textContent = localPlayer?.name || callsign();
   $("upgrade-local-status").textContent = ready ? "Locked" : "Choosing";
   const draft = localPlayer?.draft || {};
@@ -2835,7 +2752,7 @@ function updateUpgrade(game) {
   const waiting = game.players.filter((player) => !game.choiceReady?.[player.id]).map((player) => player.id === state.clientId ? "you" : player.name);
   const picked = pending.find((choice) => choice.id === selectedId);
   const pickedName = selectedDecision === "draft:skip" ? `Skipped · +${BALANCE.core.draft.skipGold} gold` : picked?.name || "Upgrade";
-  $("upgrade-wait").textContent = ready ? `${pickedName} locked. Waiting on ${waiting.join(", ") || "the squad"}.` : state.draftBanishMode ? "Banish mode: press 1, 2, or 3 to remove that option from this run. Press Escape to cancel." : "Press 1, 2, or 3 to pick. Use 4 to reroll, 5 to banish, or 0 twice to skip.";
+  $("upgrade-wait").textContent = ready ? `${pickedName} locked. Waiting on ${waiting.join(", ") || "the squad"}.` : state.draftBanishMode ? "Banish mode: choose an option to remove it from this run." : "Choose one upgrade. Time resumes when the squad has chosen.";
   renderReplacementTray(game, localPlayer);
 }
 
@@ -2855,7 +2772,10 @@ function showInspectPanel(detail = {}) {
   panel.style.top = `${clamp(top, 10, Math.max(10, innerHeight - height - 18))}px`;
 }
 
-function setTacticalIntel(active) { $("game-screen")?.classList.toggle("tactical-intel", Boolean(active)); }
+function setTacticalIntel(active) {
+  $("game-screen")?.classList.toggle("tactical-intel", Boolean(active));
+  setChallengeWatchInspectable(Boolean(active && quickPauseActive()));
+}
 
 function hideInspectPanel() { renderer.clearInspection(); $("inspect-panel").classList.add("hidden"); }
 
@@ -3940,6 +3860,12 @@ function handleReportClosed() {
   state.resumeAfterReport = false;
 }
 
+function handleReportSubmitShortcut(event) {
+  if (event.key !== "Enter" || !event.shiftKey || event.isComposing) return;
+  event.preventDefault();
+  if (!state.reportSubmitting) event.currentTarget.requestSubmit($("report-submit"));
+}
+
 async function submitReport(event) {
   event.preventDefault();
   if (state.reportSubmitting) return;
@@ -4494,6 +4420,7 @@ function bindEvents() {
   $("report-dialog").addEventListener("click", (event) => { if (event.target === $("report-dialog")) $("report-dialog").close(); });
   $("report-dialog").addEventListener("paste", pasteReportImage);
   $("report-dialog").addEventListener("close", handleReportClosed);
+  $("report-form").addEventListener("keydown", handleReportSubmitShortcut);
   $("report-form").addEventListener("submit", submitReport); $("report-copy").addEventListener("click", copyDiagnostics);
   window.addEventListener("lastlight:inspect", (event) => showInspectPanel(event.detail || {}));
   window.addEventListener("lastlight:inspect-clear", hideInspectPanel);

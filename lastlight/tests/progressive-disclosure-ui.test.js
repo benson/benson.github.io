@@ -18,20 +18,19 @@ test("launch and lobby keep primary actions visible while reference tools sit on
 test("combat defaults to signal-level HUD and Quick Pause reveals tactical intelligence", () => {
   assert.match(html, /class="damage-ledger no-data collapsed"/);
   assert.match(html, /<details class="game-controls-hint">[\s\S]+<summary>Controls<\/summary>/);
-  assert.match(game, /DAMAGE_LEDGER_DEFAULT = Object\.freeze\(\{[^}]+collapsed: true/);
-  assert.match(game, /Number\(saved\.y\) === 112 \? DAMAGE_LEDGER_DEFAULT\.y/);
-  assert.match(game, /layout\.y = clamp\([^\n]+DAMAGE_LEDGER_DEFAULT\.y/);
+  assert.match(game, /function loadDamageLedgerCollapsed\(\)[\s\S]+!== "false"/);
+  assert.match(game, /function applyDamageLedgerState\(/);
   assert.match(game, /function setTacticalIntel\(active\)/);
   assert.match(game, /action === "inspect"[\s\S]+setTacticalIntel\(true\)/);
   assert.match(game, /action === "inspect"[\s\S]+setTacticalIntel\(false\)/);
   assert.match(game, /action === "quickPause"[\s\S]+toggleQuickPause\(\)/);
-  assert.match(css, /\.game-screen\.tactical-intel \.damage-ledger\.collapsed \.damage-ledger-content \{ display: block;/);
+  assert.doesNotMatch(css, /\.game-screen\.tactical-intel \.damage-ledger/);
   assert.match(css, /\.mutation-hud:not\(\.is-active\):not\(\.is-enabled\)/);
 });
 
-test("upgrade, pause, and results expose complete detail through semantic disclosures", () => {
-  assert.match(html, /class="upgrade-build-disclosure"[\s\S]+id="upgrade-current-stats"/);
-  assert.match(html, /id="upgrade-current-loadout"/);
+test("upgrade keeps compact build context visible while pause and results expose semantic disclosures", () => {
+  assert.match(html, /class="upgrade-build-card"[\s\S]+id="upgrade-current-loadout"[\s\S]+id="upgrade-current-stats"/);
+  assert.doesNotMatch(html, /class="upgrade-build-disclosure"/);
   assert.doesNotMatch(html, /upgrade-reference-disclosure|upgrade-guide-button/);
   assert.match(html, /<section class="pause-reference"[\s\S]+id="pause-guide-button"/);
   assert.match(html, /class="result-disclosure result-scoreboard-disclosure"[\s\S]+id="result-scoreboard-body"/);

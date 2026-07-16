@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { alphaMaskCollider, circleIntersectsCollider, sweptCircleColliderImpact } from "../collision-geometry.js";
+import { alphaMaskCollider, circleIntersectsCollider, colliderContactNormal, sweptCircleColliderImpact } from "../collision-geometry.js";
 
 const mask = Object.freeze({
   width: 5,
@@ -31,4 +31,13 @@ test("swept collision cannot tunnel through a one-pixel alpha feature", () => {
   const impact = sweptCircleColliderImpact(-70, 0, 70, 0, 2, collider);
   assert.ok(impact);
   assert.ok(impact.t > .45 && impact.t < .6);
+});
+
+test("alpha-mask contacts expose the transformed occupied-pixel surface normal", () => {
+  const solid = Object.freeze({ width: 1, height: 1, bounds: Object.freeze([0, 0, 1, 1]), rows: Object.freeze([Object.freeze([0, 1])]) });
+  const collider = alphaMaskCollider("rotated", solid, { x: 0, y: 0, width: 100, height: 50, rotation: Math.PI / 4, anchor: [.5, .5] });
+  const localY = 35, point = { x: -localY / Math.SQRT2, y: localY / Math.SQRT2 };
+  const normal = colliderContactNormal(point.x, point.y, collider);
+  assert.ok(Math.abs(normal.x + Math.SQRT1_2) < 1e-9);
+  assert.ok(Math.abs(normal.y - Math.SQRT1_2) < 1e-9);
 });

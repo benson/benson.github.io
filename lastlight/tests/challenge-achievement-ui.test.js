@@ -17,11 +17,24 @@ test("challenge records are reachable, explicit, no-power, and result accessible
 });
 
 test("live challenge conditions use provisional authoritative report evidence without awarding early", () => {
-  assert.match(html, /id="challenge-watch"[^>]+role="status"[^>]+aria-live="polite"/);
+  assert.match(html, /id="challenge-watch"[^>]+role="status"[^>]+aria-label="Completed challenges"[^>]+aria-live="polite"/);
   assert.match(game, /createSquadRunReport\(\{ \.\.\.game, stage: "lost" \}, \{ build: BUILD \}\)/);
   assert.match(game, /Finish the level to save your progress/);
   assert.doesNotMatch(game, /updateChallengeWatch[\s\S]{0,1200}awardChallengeAchievements/);
   assert.match(css, /\.challenge-watch/);
+});
+
+test("Quick Pause makes every completed challenge hoverable and keyboard inspectable", () => {
+  assert.match(game, /achieved\.map\(\(id, index\) =>/);
+  assert.match(game, /class="challenge-watch-row"[^>]+tabindex="\$\{inspectable \? "0" : "-1"\}"[^>]+aria-describedby="\$\{tooltipId\}"/);
+  assert.match(game, /class="challenge-watch-detail" role="tooltip"/);
+  assert.match(game, /definition\?\.summary/);
+  assert.match(game, /definition\?\.reward\?\.name/);
+  assert.match(game, /setChallengeWatchInspectable\(Boolean\(active && quickPauseActive\(\)\)\)/);
+  assert.match(game, /row\.tabIndex = inspectable \? 0 : -1/);
+  assert.match(css, /\.challenge-watch \{[^}]+pointer-events: none;/s);
+  assert.match(css, /\.challenge-watch\.is-inspectable \{ pointer-events: auto; \}/);
+  assert.match(css, /\.challenge-watch-row:hover \.challenge-watch-detail, \.challenge-watch-row:focus-visible \.challenge-watch-detail/);
 });
 
 test("terminal and imported report claims are explicit, bounded, and archive-visible", () => {

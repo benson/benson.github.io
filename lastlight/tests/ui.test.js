@@ -25,23 +25,21 @@ test("performance reports expose cosmetic environmental load without protocol fi
   assert.doesNotMatch(game, /send\([^\n]+environmentInteractions/);
 });
 
-test("damage source telemetry updates a persistent interactive panel shell", () => {
-  assert.match(html, /id="damage-ledger-handle"[^>]+tabindex="0"/);
+test("damage source telemetry updates a fixed, two-state panel that fits every row", () => {
   assert.match(html, /class="damage-ledger no-data collapsed"/);
-  assert.match(html, /id="damage-ledger-collapse"[^>]+aria-expanded="false"/);
+  assert.match(html, /id="damage-ledger-collapse"[^>]+aria-controls="damage-ledger-content"[^>]+aria-expanded="false"/);
   assert.match(html, /id="damage-ledger-content"[^>]+aria-live="polite"/);
-  assert.match(game, /lastlight:damage-ledger-layout:v1/);
-  assert.match(game, /new ResizeObserver/);
-  assert.match(game, /event\.ctrlKey \|\| event\.metaKey/);
-  assert.match(game, /matchMedia\("\(max-width: 650px\)"\)/);
-  assert.match(game, /fitDamageLedgerToContents\(\)/);
-  assert.match(game, /userSized/);
+  assert.match(game, /lastlight:damage-ledger-collapsed:v1/);
+  assert.match(game, /state\.damageLedgerCollapsed = !state\.damageLedgerCollapsed/);
+  assert.doesNotMatch(html, /damage-ledger-reset|Move Damage Sources panel/);
+  assert.doesNotMatch(game, /damageLedgerLayout|fitDamageLedgerToContents|damageLedgerResizeObserver/);
   assert.doesNotMatch(game, /damageBySource[^\n]+slice\(0, 3\)/);
   assert.doesNotMatch(game, /\$\("damage-ledger"\)\.innerHTML/);
-  assert.match(css, /\.damage-ledger \{[^}]+resize: both;/s);
-  assert.match(css, /\.damage-ledger\.collapsed \{[^}]+resize: none;/s);
-  assert.match(css, /\.game-screen\.tactical-intel \.damage-ledger\.collapsed \.damage-ledger-content \{ display: block;/);
-  assert.match(game, /DAMAGE_LEDGER_DEFAULT = Object\.freeze\(\{[^}]+collapsed: true/);
+  assert.match(css, /\.damage-ledger \{[^}]+width: 250px;[^}]+height: auto;[^}]+overflow: visible;[^}]+resize: none;/s);
+  assert.match(css, /\.damage-ledger-content \{[^}]+height: auto;[^}]+overflow: visible;/s);
+  assert.doesNotMatch(css, /\.game-screen\.tactical-intel \.damage-ledger/);
+  assert.match(game, /Auto-aim on — firing automatically toward the nearest enemy\./);
+  assert.match(game, /Auto-aim off — firing toward your cursor\./);
 });
 
 test("active powerups expose detailed pointer and keyboard inspection", () => {
@@ -94,11 +92,11 @@ test("lobby selection flows into a restrained, accessible combat launch", () => 
 test("desktop-only type overrides preserve compact controls while result actions stay readable", () => {
   const desktop = css.match(/@media \(min-width: 981px\) \{([\s\S]+?)\n\}/)?.[1] || "";
   assert.match(desktop, /\.control-ribbon \{ font-size: 10px; \}/);
-  for (const selector of [".control-ribbon kbd", ".damage-ledger-actions button", ".guide-tabs a", ".report-button", ".build-badge"]) {
+  for (const selector of [".control-ribbon kbd", ".damage-ledger-handle button", ".guide-tabs a", ".report-button", ".build-badge"]) {
     assert.match(desktop, new RegExp(selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
   assert.match(css, /\.copy-scorecard \{[^}]+font: 700 12px\/1 var\(--sans\)/s);
-  assert.match(css, /@media \(max-width: 650px\) \{[\s\S]+\.damage-ledger \{[^}]+resize: none;/);
+  assert.match(css, /@media \(max-width: 650px\) \{[\s\S]+\.damage-ledger \{[^}]+width: min\(250px, calc\(100vw - 24px\)\);/);
 });
 
 test("squad and boss HUD bars share the segmented health contract", () => {

@@ -86,13 +86,29 @@ test("renderer preloads theme-owned runtime art for every field-guide enemy", ()
 
 test("renderer loads every delivered specialist, field-enemy, and map-apex atlas", () => {
   const renderer = createRenderer();
-  assert.deepEqual(Object.keys(renderer.supplyContainerSprites), ["cargo", "utility", "pressure"]);
-  assert.equal(renderer.supplyContainerSprites.utility.currentSrc, "assets/supply-containers/utility-v13.png");
+  assert.deepEqual(Object.keys(renderer.supplyContainerSprites), ["warehouse", "outskirts", "lab", "beachhead"]);
+  assert.deepEqual(Object.keys(renderer.supplyContainerSprites.warehouse), ["cargo", "utility", "pressure"]);
+  assert.equal(renderer.supplyContainerSprites.lab.utility.currentSrc, "assets/supply-containers/lab-utility-v14.webp");
+  assert.equal(renderer.mapMechanicSprites.warehouse.currentSrc, "assets/map-mechanics/freight-conveyor-v14.webp");
   assert.deepEqual(Object.keys(renderer.animationAtlases), ["zuri", "echo", "sola", "bront", "fang", "gale", "rift", "nova", "vesper"]);
   assert.equal(renderer.animationAtlases.zuri.currentSrc, "assets/motion-normalized/specialists/zuri.webp");
   assert.deepEqual(Object.keys(renderer.enemyAnimationAtlases), ["mite", "hound", "spitter", "brute", "bomber", "shark", "boss:warehouse", "boss:outskirts", "boss:lab", "boss:beachhead"]);
   assert.equal(renderer.enemyAnimationAtlases.hound.currentSrc, "assets/motion-normalized/enemies/hound.webp");
   assert.equal(renderer.enemyAnimationAtlases["boss:lab"].currentSrc, "assets/motion-normalized/bosses/lab.webp");
+});
+
+test("map mechanics render as subdued textured surfaces without dashed rectangular UI geometry", () => {
+  const { renderer, calls } = createRecordingRenderer();
+  const sprite = renderer.mapMechanicSprites.warehouse;
+  sprite.complete = true; sprite.naturalWidth = 1000; sprite.naturalHeight = 180;
+  renderer.renderTick = 30;
+  renderer.drawMapMechanic({
+    phase: "active", active: true, warning: false, name: "Freight Grid", direction: 1,
+    effect: { pushPerSecond: 92 }, geometry: { axis: "horizontal", center: 0, halfWidth: 118 },
+  }, { id: "warehouse", accent: "#63f2df" });
+  assert.ok(calls.some(([name]) => name === "drawImage"));
+  assert.equal(calls.some(([name]) => name === "strokeRect"), false);
+  assert.equal(calls.some(([name]) => name === "setLineDash"), false);
 });
 
 test("inspection returns structured combat details and controls hover state", () => {
@@ -130,6 +146,20 @@ test("inspection identifies breakable caches without implying collision", () => 
   assert.equal(result.name, "Cargo Supply Crate");
   assert.match(result.description, /does not block movement/i);
   assert.equal(result.stats.Integrity, "65 / 100");
+});
+
+test("Gold Cache inspection explains how draft gold is spent", () => {
+  const renderer = createRenderer();
+  const state = {
+    map: "warehouse",
+    machine: { charge: 0, cooldown: 0 },
+    enemies: [], drops: [{ id: "gold-1", type: "gold", x: 120, y: -40, radius: 15 }], orbs: [], pods: [],
+    objectives: [], relayBalls: [], drones: [], projectiles: [], hostile: [], effects: [],
+  };
+  const result = renderer.inspectAt(620, 310, state);
+  assert.equal(result.name, "Gold Cache");
+  assert.match(result.description, /upgrade rerolls/i);
+  assert.match(result.description, /draft actions/i);
 });
 
 test("inspection explains raised-cover projectile interception and authored exceptions", () => {

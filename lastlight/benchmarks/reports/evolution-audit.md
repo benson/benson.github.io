@@ -11,9 +11,9 @@ Matrix: 21 legal L5 paired base/evolved cases
 | signature:echo | meaningful | cadence, lifetime | 9558→13452 | 0.5→0.778 | lifetime | pass |
 | signature:sola | meaningful | cadence, guard-return | 4122→4225.05 | 0.611→0.667 | guard-return | pass |
 | signature:bront | meaningful | cadence, repeat | 6270→12940 | 0.278→0.389 | repeat | pass |
-| signature:fang | meaningful | cadence, predator-hook | 4761.125→11148 | 0.667→0.833 | predator-hook | pass |
+| signature:fang | meaningful | cadence, predator-hook | 7664.25→11496.375 | 0.667→0.833 | predator-hook | pass |
 | signature:gale | meaningful | cadence, pierce, flow-regeneration | 3187.5→6247.5 | 0.278→0.333 | flow-regeneration | pass |
-| signature:rift | meaningful | cadence, kinetic-reserve | 5420.8→7515.2 | 1.111→1.5 | kinetic-reserve | pass |
+| signature:rift | meaningful | cadence, kinetic-reserve | 9732.8→13552 | 1.111→1.5 | kinetic-reserve | pass |
 | signature:nova | meaningful | cadence, lifetime | 3718→4290 | 0.389→0.611 | lifetime | pass |
 | signature:vesper | meaningful | cadence, pierce | 3400→4760 | 0.5→0.833 | pierce | pass |
 | universal:uwu | meaningful | cadence, retarget | 7644→13720.2 | 2.778→3 | needle-retarget | pass |

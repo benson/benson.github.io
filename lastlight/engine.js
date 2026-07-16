@@ -1,11 +1,11 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
-} from "./data.js?v=20260716.13";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260716.13";
+} from "./data.js?v=20260716.14";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260716.14";
 import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.5";
-import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260716.13";
-import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260716.13";
+import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260716.14";
+import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260716.14";
 import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260713.1";
 import { MAX_CORRIDOR_CANDIDATES, accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget, orderEntitiesByDistance } from "./projectile-decisions.js?v=20260713.1";
 import { eliteAffixEligibility, selectEliteAffixes, selectSpawnArchetype, spawnPhaseAt } from "./enemy-archetypes.js?v=20260713.1";
@@ -27,27 +27,27 @@ import {
   DOWNED_ACTIVITY_REGISTRY, DOWNED_ACTIVITY_SCHEMA, advanceDownedBleedout, advanceDownedCrawl,
   beginDownedActivity, createDownedActivityState, removeDownedActivity, triggerDownedSupport,
   validateDownedActivityState,
-} from "./downed-activity.js?v=20260716.13";
-import { generateJoinPackage, JOIN_IN_PROGRESS_REGISTRY, joinPackageUpgradeIds, transitionJoinPackage } from "./join-in-progress.js?v=20260716.13";
+} from "./downed-activity.js?v=20260716.14";
+import { generateJoinPackage, JOIN_IN_PROGRESS_REGISTRY, joinPackageUpgradeIds, transitionJoinPackage } from "./join-in-progress.js?v=20260716.14";
 import {
   DIRECTOR_APPROACHES, DIRECTOR_FORMATIONS, createSquadDirectorState, planSquadFormation, validateSquadDirectorState,
-} from "./enemy-director.js?v=20260716.13";
-import { mapMechanicFrame, mapSpawnWeights, pointInMapMechanic } from "./map-mechanics.js?v=20260716.13";
+} from "./enemy-director.js?v=20260716.14";
+import { mapMechanicFrame, mapSpawnWeights, pointInMapMechanic } from "./map-mechanics.js?v=20260716.14";
 import {
   CAMPAIGN_MUTATIONS, campaignMutationDefinition, campaignMutationObjectiveCompleted, campaignMutationWaveStarted,
   cancelCampaignMutationEncounter, consumeCampaignMutationEncounter, createCampaignMutationState,
   resolveCampaignMutationEncounter, validateCampaignMutationState,
-} from "./campaign-mutations.js?v=20260716.13";
-import { masteryStartDefinition } from "./specialist-mastery.js?v=20260716.13";
+} from "./campaign-mutations.js?v=20260716.14";
+import { masteryStartDefinition } from "./specialist-mastery.js?v=20260716.14";
 import {
   createRareDiscoveryRunState, rareDiscoveryIdForBoon, recordRareDiscovery,
   revealNextAugmentDossier, validateRareDiscoveryRunState,
-} from "./rare-discoveries.js?v=20260716.13";
-import { validateSeededOperation } from "./seeded-operations.js?v=20260716.13";
-import { commitCombatFacing, resolvedCombatFacing, selectStickyAutoAimTarget } from "./combat-orientation.js?v=20260716.13";
-import { abilityChoreography } from "./combat-choreography.js?v=20260716.13";
-import { environmentChunkObstacles } from "./environment-chunks.js?v=20260716.13";
-import { circleIntersectsCollider, rectCollider, sweptCircleColliderImpact } from "./collision-geometry.js?v=20260716.13";
+} from "./rare-discoveries.js?v=20260716.14";
+import { validateSeededOperation } from "./seeded-operations.js?v=20260716.14";
+import { commitCombatFacing, resolvedCombatFacing, selectStickyAutoAimTarget } from "./combat-orientation.js?v=20260716.14";
+import { abilityChoreography } from "./combat-choreography.js?v=20260716.14";
+import { environmentChunkObstacles } from "./environment-chunks.js?v=20260716.14";
+import { circleIntersectsCollider, colliderContactNormal, rectCollider, sweptCircleColliderImpact } from "./collision-geometry.js?v=20260716.14";
 
 const BALANCE = getBalanceConfig();
 
@@ -174,12 +174,34 @@ export function projectileBlockedByCover(projectile, hostile = false) {
 }
 
 export function moveEntityWithCover(entity, dx, dy, obstacles = MAP_OBSTACLES) {
-  const steps = Math.max(1, Math.ceil(Math.hypot(dx, dy) / 18));
-  for (let step = 0; step < steps; step++) {
-    const nextX = clamp(entity.x + dx / steps, -WORLD.width / 2 + 40, WORLD.width / 2 - 40);
-    if (!collidesWithCover(nextX, entity.y, entity.radius, obstacles)) entity.x = nextX;
-    const nextY = clamp(entity.y + dy / steps, -WORLD.height / 2 + 40, WORLD.height / 2 - 40);
-    if (!collidesWithCover(entity.x, nextY, entity.radius, obstacles)) entity.y = nextY;
+  let remainingX = Number(dx) || 0, remainingY = Number(dy) || 0;
+  // The sweep refines contact to roughly 1/512 of a four-unit sample. A .05
+  // world-unit clearance stays comfortably outside that bound without becoming
+  // visually or mechanically measurable.
+  const radius = Math.max(0, Number(entity.radius) || 0), clearance = .05;
+  // Resolve at most four contacts. That is enough to follow a compound edge and
+  // settle into a corner while keeping runtime work and replay math bounded.
+  for (let iteration = 0; iteration < 4; iteration++) {
+    const targetX = clamp(entity.x + remainingX, -WORLD.width / 2 + 40, WORLD.width / 2 - 40);
+    const targetY = clamp(entity.y + remainingY, -WORLD.height / 2 + 40, WORLD.height / 2 - 40);
+    remainingX = targetX - entity.x; remainingY = targetY - entity.y;
+    const distance = Math.hypot(remainingX, remainingY);
+    if (distance <= clearance) break;
+    const impact = segmentCoverImpact(entity.x, entity.y, targetX, targetY, radius, obstacles);
+    if (!impact) { entity.x = targetX; entity.y = targetY; break; }
+
+    // Stop a deterministic sub-pixel distance before exact contact, then keep
+    // only the tangent component of the unused motion. This preserves the true
+    // polygon/alpha boundary while making held input glide instead of stick.
+    const safeT = Math.max(0, impact.t - clearance / distance);
+    entity.x += remainingX * safeT; entity.y += remainingY * safeT;
+    const unused = 1 - impact.t;
+    let slideX = remainingX * unused, slideY = remainingY * unused;
+    const normal = colliderContactNormal(impact.x, impact.y, obstacles[impact.obstacleIndex], -remainingX, -remainingY);
+    const intoSurface = slideX * normal.x + slideY * normal.y;
+    if (intoSurface < 0) { slideX -= normal.x * intoSurface; slideY -= normal.y * intoSurface; }
+    if (Math.hypot(slideX, slideY) <= clearance) break;
+    remainingX = slideX; remainingY = slideY;
   }
   return entity;
 }
@@ -1233,14 +1255,35 @@ export class Simulation {
       for (const player of this.players) {
         if (player.dead || player.downed) continue;
         const d = distance(player, ball);
-        if (d > player.radius + ball.radius + 14) continue;
-        const angle = angleTo(player, ball), force = 680 * (1 - clamp(d / (player.radius + ball.radius + 14), 0, 1) * .35);
-        const fx = Math.cos(angle) * force * dt, fy = Math.sin(angle) * force * dt;
+        const contactDistance = player.radius + ball.radius;
+        if (d > contactDistance) continue;
+        const fallbackAngle = Number.isFinite(player.facing) ? player.facing : 0;
+        const nx = d > Number.EPSILON ? (ball.x - player.x) / d : Math.cos(fallbackAngle);
+        const ny = d > Number.EPSILON ? (ball.y - player.y) / d : Math.sin(fallbackAngle);
+        ball.x = player.x + nx * contactDistance;
+        ball.y = player.y + ny * contactDistance;
+        const outwardSpeed = ball.vx * nx + ball.vy * ny;
+        const impulse = Math.max(0, 220 - outwardSpeed);
+        const fx = nx * impulse, fy = ny * impulse;
         ball.vx += fx; ball.vy += fy; forceShares.push({ slot: player.replaySlot, fx, fy });
       }
       const speed = Math.hypot(ball.vx, ball.vy);
       if (speed > 290) { ball.vx = ball.vx / speed * 290; ball.vy = ball.vy / speed * 290; }
-      ball.x += ball.vx * dt; ball.y += ball.vy * dt;
+      const movementX = ball.vx * dt, movementY = ball.vy * dt;
+      const coverImpact = segmentCoverImpact(ball.x, ball.y, ball.x + movementX, ball.y + movementY, ball.radius, this.coverObstacles);
+      if (coverImpact) {
+        const travel = Math.hypot(movementX, movementY);
+        const safeT = Math.max(0, coverImpact.t - .05 / Math.max(.05, travel));
+        ball.x += movementX * safeT; ball.y += movementY * safeT;
+        const normal = colliderContactNormal(coverImpact.x, coverImpact.y, this.coverObstacles[coverImpact.obstacleIndex], -movementX, -movementY);
+        const inwardSpeed = ball.vx * normal.x + ball.vy * normal.y;
+        if (inwardSpeed < 0) {
+          ball.vx -= 1.45 * inwardSpeed * normal.x;
+          ball.vy -= 1.45 * inwardSpeed * normal.y;
+        }
+      } else {
+        ball.x += movementX; ball.y += movementY;
+      }
       const towardMovement = Math.max(0, beforeDistance - Math.hypot(ball.x - ball.targetX, ball.y - ball.targetY));
       if (towardMovement > 0 && forceShares.length && this.participationState?.enabled) {
         const tx = ball.targetX - ball.x, ty = ball.targetY - ball.y, length = Math.max(Number.EPSILON, Math.hypot(tx, ty));
@@ -2977,6 +3020,11 @@ export class Simulation {
 
   breakPod(pod) {
     pod.dead = true;
+    this.effects.push({
+      id: this.nextCosmeticId("cache-break"), x: pod.x, y: pod.y, radius: 48,
+      life: .52, maxLife: .52, damage: 0, owner: "environment", color: this.map.accent,
+      kind: "containerBreak", containerKind: pod.kind || "cargo", mapId: this.map.id,
+    });
     const roll = this.gameplayRng.nextFloat();
     const type = roll < .28 ? "heal" : roll < .48 ? "vacuum" : roll < .74 ? "mine" : "gold";
     this.drops.push({ id: this.nextGameplayId("d"), type, x: pod.x, y: pod.y, radius: 15 });
@@ -3498,8 +3546,18 @@ export class Simulation {
       return result;
     });
     const players = clean(this.players, ["input", "reconnectKey", "mapMoveMultiplier", "mapMechanicHitKey", "autoAim", "autoAimFacing", "combatFacing", "combatFacingTick", "combatFacingUntilTick", "combatSourceId", "combatTargetId"]).map((entry, index) => {
+      const source = this.players[index];
       if (entry.autoAimTargetId) entry.orient = 2;
-      else if (Number(this.players[index]?.combatFacingUntilTick) >= this.tick) entry.orient = 1;
+      else if (Number(source?.combatFacingUntilTick) >= this.tick) entry.orient = 1;
+      // The compact snapshot intentionally omits the internal orientation
+      // bookkeeping. Preserve its authoritative result in the public facing
+      // fields so a shot committed after movement still renders in the fired
+      // direction on this frame (not one simulation tick later).
+      if (entry.orient) {
+        const presentationFacing = resolvedCombatFacing(source, this.tick);
+        entry.facing = presentationFacing;
+        entry.aimFacing = presentationFacing;
+      }
       delete entry.autoAimTargetId; return entry;
     });
     return {

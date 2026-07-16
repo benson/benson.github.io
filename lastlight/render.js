@@ -1,35 +1,36 @@
-import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260716.13";
-import { WORLD } from "./engine.js?v=20260716.13";
-import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260716.13";
+import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260716.14";
+import { WORLD } from "./engine.js?v=20260716.14";
+import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260716.14";
 import { springCamera } from "./feel.js?v=20260713.2";
 import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistFacingTarget, specialistMotionState, stableDirectionColumn } from "./motion.js?v=20260713.1";
 import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260716.13";
-import { impactRenderPlan } from "./impact-grammar.js?v=20260716.13";
-import { movementVisualState } from "./movement.js?v=20260716.13";
-import { effectReadabilityCategory, partitionEffects, readabilityPlan } from "./readability.js?v=20260716.13";
-import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260716.13";
+import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260716.14";
+import { impactRenderPlan } from "./impact-grammar.js?v=20260716.14";
+import { movementVisualState } from "./movement.js?v=20260716.14";
+import { effectReadabilityCategory, partitionEffects, readabilityPlan } from "./readability.js?v=20260716.14";
+import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260716.14";
 import { EnvironmentInteractionField, stableEnvironmentUnit } from "./environment-interactions.js?v=20260712.1";
-import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260716.13";
-import { circleIntersectsCollider, rectCollider } from "./collision-geometry.js?v=20260716.13";
-import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260716.13";
+import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260716.14";
+import { circleIntersectsCollider, rectCollider } from "./collision-geometry.js?v=20260716.14";
+import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260716.14";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
 import { PING_INTENTS, PING_LIFETIME_TICKS, selectVisiblePings } from "./ping-contract.js?v=20260713.4";
-import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260716.13";
-import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260716.13";
+import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260716.14";
+import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260716.14";
 import {
   ImpactIntensityDirector, aftermathPlan, attackerRecoilTransform, cameraLookBias,
   impactAnimationTimeScale, impactFeedbackPlan, impactReactionTransform, impactTierForEvent, projectileMotionPlan,
   secondaryMotionPlan, selectImpactFeedback,
-} from "./impact-feel.js?v=20260716.13";
-import { combatTurnPlan, isBodyDrivingSource, resolvedCombatFacing, specialistMuzzlePoint } from "./combat-orientation.js?v=20260716.13";
+} from "./impact-feel.js?v=20260716.14";
+import { combatTurnPlan, isBodyDrivingSource, resolvedCombatFacing, specialistMuzzlePoint } from "./combat-orientation.js?v=20260716.14";
 import {
   cameraCompositionPlan, castMotionPlan, combatDensityPlan, playerLifecycleMotionPlan, rewardMotionPlan,
-} from "./combat-choreography.js?v=20260716.13";
-import { apexPhaseMotionPlan, enemyArrivalMotionPlan, enemyDepartureMotionPlan } from "./combat-rhythm.js?v=20260716.13";
+} from "./combat-choreography.js?v=20260716.14";
+import { apexPhaseMotionPlan, enemyArrivalMotionPlan, enemyDepartureMotionPlan } from "./combat-rhythm.js?v=20260716.14";
 
 const TAU = Math.PI * 2;
 const PING_BUFFER_LIMIT = 32;
+const INSPECTION_HIGHLIGHT_MAX_AGE_MS = 250;
 
 /**
  * Resolve the exact atlas crop and local Canvas2D transforms used to draw a
@@ -216,6 +217,7 @@ export class Renderer {
     this.environments = {};
     this.environmentChunkAtlases = {};
     this.supplyContainerSprites = {};
+    this.mapMechanicSprites = {};
     this.effectSprites = {};
     this.enemySprites = {};
     this.animationAtlases = {};
@@ -278,6 +280,7 @@ export class Renderer {
       if (!map.texture) continue;
       const image = new Image(); image.src = map.texture; this.environments[map.id] = image;
       const chunkAtlas = new Image(); chunkAtlas.src = getThemeAsset(`environmentChunks.${map.id}`); this.environmentChunkAtlases[map.id] = chunkAtlas;
+      const mechanic = new Image(); mechanic.src = getThemeAsset(`mapMechanics.${map.id}`); this.mapMechanicSprites[map.id] = mechanic;
     }
     for (const type of Object.keys(ENEMY_TYPES)) {
       const image = new Image(); image.src = getThemeAsset(`enemies.${type}`); this.enemySprites[type] = image;
@@ -296,8 +299,11 @@ export class Renderer {
     })) {
       const image = new Image(); image.src = src; this.effectSprites[name] = image;
     }
-    for (const kind of ["cargo", "utility", "pressure"]) {
-      const image = new Image(); image.src = getThemeAsset(`supplyContainers.${kind}`); this.supplyContainerSprites[kind] = image;
+    for (const mapId of Object.keys(MAPS)) {
+      this.supplyContainerSprites[mapId] = {};
+      for (const kind of ["cargo", "utility", "pressure"]) {
+        const image = new Image(); image.src = getThemeAsset(`supplyContainers.${mapId}.${kind}`); this.supplyContainerSprites[mapId][kind] = image;
+      }
     }
   }
 
@@ -796,7 +802,7 @@ export class Renderer {
     const pickupNames = {
       card: ["Elite Access Card", "Evolves an eligible level-five weapon or upgrades the squad."],
       heal: ["Repair Kit", "Restores health to the whole squad."], vacuum: ["Data Vacuum", "Collects every loose data mote."],
-      mine: ["Sea Mine", "Damages every non-apex enemy."], gold: ["Gold Cache", "Adds bonus operation gold."],
+      mine: ["Sea Mine", "Damages every non-apex enemy."], gold: ["Gold Cache", "Adds gold used for upgrade rerolls, banishes, and other draft actions."],
     };
     for (const drop of state.drops || []) {
       const [name, description] = pickupNames[drop.type] || ["Pickup", "Collect for an immediate squad benefit."];
@@ -1023,6 +1029,30 @@ export class Renderer {
 
   drawMapMechanic(frame, map) {
     if (!frame || frame.phase === "idle") return;
+    const mechanicSprite = this.mapMechanicSprites[map.id];
+    if (!mechanicSprite?.complete || !mechanicSprite.naturalWidth || !mechanicSprite.naturalHeight) return;
+    const mechanicContext = this.ctx, mechanicGeometry = frame.geometry, mechanicVertical = mechanicGeometry.axis === "vertical";
+    const mechanicLength = mechanicVertical ? WORLD.height : WORLD.width, mechanicThickness = mechanicGeometry.halfWidth * 2;
+    const mechanicTileLength = Math.max(360, Math.round(mechanicThickness * mechanicSprite.naturalWidth / mechanicSprite.naturalHeight));
+    const mechanicDirection = frame.direction > 0 ? 1 : -1;
+    const mechanicTravel = frame.active && !this.reducedMotion && frame.effect?.pushPerSecond > 0 ? (this.renderTick * 1.35 * mechanicDirection) % mechanicTileLength : 0;
+    mechanicContext.save();
+    mechanicContext.translate(mechanicVertical ? mechanicGeometry.center : 0, mechanicVertical ? 0 : mechanicGeometry.center);
+    if (mechanicVertical) mechanicContext.rotate(Math.PI / 2);
+    mechanicContext.globalAlpha = frame.active ? (map.id === "warehouse" ? .7 : .48) : .22;
+    mechanicContext.filter = frame.active ? "saturate(.92) brightness(.88)" : "saturate(.58) brightness(.64)";
+    for (let along = -mechanicLength / 2 - mechanicTileLength + mechanicTravel; along < mechanicLength / 2 + mechanicTileLength; along += mechanicTileLength) {
+      mechanicContext.drawImage(mechanicSprite, along, -mechanicThickness / 2, mechanicTileLength + 1, mechanicThickness);
+    }
+    mechanicContext.filter = "none";
+    if (frame.warning && !mechanicVertical) {
+      const labelAlong = mechanicVertical ? this.camera.y : this.camera.x;
+      mechanicContext.globalAlpha = .82; mechanicContext.textAlign = "center"; mechanicContext.textBaseline = "middle";
+      mechanicContext.font = "800 10px Inter"; mechanicContext.fillStyle = "#f5d985";
+      mechanicContext.fillText(`${frame.name.toUpperCase()} · ${frame.remainingSeconds}s`, clamp(labelAlong, -mechanicLength / 2 + 120, mechanicLength / 2 - 120), 0);
+    }
+    mechanicContext.restore();
+    return;
     const ctx = this.ctx, geometry = frame.geometry, vertical = geometry.axis === "vertical";
     const x = vertical ? geometry.center - geometry.halfWidth : -WORLD.width / 2;
     const y = vertical ? -WORLD.height / 2 : geometry.center - geometry.halfWidth;
@@ -1053,6 +1083,17 @@ export class Renderer {
   }
 
   drawForcedMovementCue(frame, state, localPlayerId, map, pass = "ground") {
+    if (pass !== "overlay" || !frame?.active || !(frame.effect?.pushPerSecond > 0)) return;
+    const movingPlayer = (state.players || []).find((entry) => entry.id === localPlayerId) || state.players?.[0];
+    if (!movingPlayer || movingPlayer.dead || movingPlayer.downed || !pointInMapMechanic(frame, movingPlayer.x, movingPlayer.y)) return;
+    const movementContext = this.ctx, movementDirection = frame.direction > 0 ? "EAST" : "WEST";
+    movementContext.save();
+    movementContext.translate(movingPlayer.x, movingPlayer.y - Math.max(58, Number(movingPlayer.radius || 24) + 30));
+    movementContext.globalAlpha = .72; movementContext.textAlign = "center"; movementContext.textBaseline = "middle";
+    movementContext.font = "800 9px Inter"; movementContext.fillStyle = map.accent;
+    movementContext.fillText(`${frame.name.toUpperCase()} · MOVING ${movementDirection}`, 0, 0);
+    movementContext.restore();
+    return;
     if (!frame || frame.phase === "idle" || !(frame.effect?.pushPerSecond > 0)) return;
     const player = (state.players || []).find((entry) => entry.id === localPlayerId) || state.players?.[0];
     if (!player || player.dead || player.downed || !pointInMapMechanic(frame, player.x, player.y)) return;
@@ -1180,7 +1221,7 @@ export class Renderer {
     for (const item of items) {
       if (item.type === "environment-chunk") this.drawEnvironmentChunk(map, item.value);
       else if (item.type === "cover") this.drawCover(map, item.value);
-      else if (item.type === "pod") this.drawPods([item.value]);
+      else if (item.type === "pod") this.drawPods([item.value], map);
       else if (item.type === "enemy" || item.type === "enemy-death") this.drawEnemies([item.value], previous, t, map, state.players, visualDt, state.tick);
       else if (item.type === "drone") this.drawDrones([item.value], state.players, previous, t);
       else this.drawPlayers([item.value], previous, t, localPlayerId, visualDt);
@@ -1227,18 +1268,31 @@ export class Renderer {
     ctx.restore();
   }
 
-  drawPods(pods) {
+  supplyContainerSprite(mapId, kind) {
+    const mapSprites = this.supplyContainerSprites[mapId] || this.supplyContainerSprites.warehouse || {};
+    return mapSprites[kind] || mapSprites.cargo;
+  }
+
+  drawSupplyContainerImage(mapId, kind, size) {
+    const sprite = this.supplyContainerSprite(mapId, kind);
+    if (!sprite?.complete || !sprite.naturalWidth || !sprite.naturalHeight) return false;
+    const ratio = sprite.naturalWidth / sprite.naturalHeight;
+    const width = ratio >= 1 ? size : size * ratio, height = ratio >= 1 ? size / ratio : size;
+    this.ctx.drawImage(sprite, -width / 2, -height / 2, width, height);
+    return true;
+  }
+
+  drawPods(pods, map) {
     const ctx = this.ctx;
     for (const pod of pods) {
       if (!this.isWorldVisible(pod, 45)) continue;
       const health = clamp((pod.hp ?? 100) / 100, 0, 1), damage = 1 - health, kind = pod.kind || "cargo";
-      const sprite = this.supplyContainerSprites[kind] || this.supplyContainerSprites.cargo;
       ctx.save(); ctx.translate(pod.x, pod.y);
       const size = kind === "utility" ? 58 : kind === "pressure" ? 62 : 60;
       ctx.fillStyle = "rgba(0,0,0,.5)"; ctx.beginPath(); ctx.ellipse(3, 17, size * .42, 8, 0, 0, TAU); ctx.fill();
-      if (sprite?.complete && sprite.naturalWidth) {
+      {
         ctx.globalAlpha = .96; ctx.filter = health < .35 ? "saturate(.75) brightness(.8)" : "none";
-        ctx.drawImage(sprite, -size / 2, -size / 2, size, size);
+        this.drawSupplyContainerImage(map?.id || "warehouse", kind, size);
         ctx.filter = "none"; ctx.globalAlpha = 1;
       }
       const warning = health < .35 ? "#ff4f45" : "#ff7955";
@@ -1442,6 +1496,29 @@ export class Renderer {
         ctx.rotate(e.angle || 0); ctx.strokeStyle=e.color; ctx.lineWidth=5; ctx.globalAlpha=.9*(1-progress);
         ctx.beginPath();ctx.arc(0,0,e.radius*(.35+progress*.65),-.85,.85);ctx.stroke();
         for(let i=-2;i<=2;i++){const a=i*.28,len=e.radius*(.65+progress*.75);ctx.beginPath();ctx.moveTo(Math.cos(a)*12,Math.sin(a)*12);ctx.lineTo(Math.cos(a)*len,Math.sin(a)*len);ctx.stroke();}
+        ctx.restore();continue;
+      }
+      if (e.kind === "containerBreak") {
+        const size = e.containerKind === "pressure" ? 62 : e.containerKind === "utility" ? 58 : 60;
+        const ease = 1 - Math.pow(1 - progress, 3), fade = 1 - progress;
+        for (let index = 0; index < 4; index++) {
+          const sideX = index % 2 ? 1 : -1, sideY = index < 2 ? -1 : 1;
+          ctx.save();
+          ctx.translate(sideX * ease * 17, sideY * ease * 13 - Math.sin(progress * Math.PI) * 8);
+          ctx.rotate(sideX * sideY * ease * .24);
+          ctx.globalAlpha = fade;
+          ctx.beginPath(); ctx.rect(sideX < 0 ? -size / 2 : 0, sideY < 0 ? -size / 2 : 0, size / 2, size / 2); ctx.clip();
+          this.drawSupplyContainerImage(e.mapId || map.id, e.containerKind || "cargo", size);
+          ctx.restore();
+        }
+        ctx.strokeStyle = e.color; ctx.lineWidth = 3; ctx.globalAlpha = .72 * fade;
+        ctx.beginPath(); ctx.arc(0, 0, 12 + ease * 45, 0, TAU); ctx.stroke();
+        ctx.fillStyle = "#ffd282";
+        for (let index = 0; index < 7; index++) {
+          const angle = index * TAU / 7 + .4, distance = 12 + ease * 52;
+          ctx.save(); ctx.translate(Math.cos(angle) * distance, Math.sin(angle) * distance); ctx.rotate(angle + progress * 2);
+          ctx.globalAlpha = fade; ctx.fillRect(-4, -1.5, 8, 3); ctx.restore();
+        }
         ctx.restore();continue;
       }
       if (e.kind === "pickup") {
@@ -2083,6 +2160,13 @@ export class Renderer {
 
   drawHovered(state, map) {
     if (!this.hoveredEntity) return;
+    // Inspection is refreshed every paint while the inspect control or Quick
+    // Pause is active. Expire one-shot lookups (for example, a cancelled ping)
+    // so their dashed ring cannot remain clipped against a screen edge.
+    if (performance.now() - this.lastInspection.at > INSPECTION_HIGHLIGHT_MAX_AGE_MS) {
+      this.clearInspection();
+      return;
+    }
     const ctx = this.ctx, hoveredId = this.hoveredEntity.id;
     if (hoveredId.startsWith("obstacle-")) {
       const block = MAP_OBSTACLES[Number(hoveredId.split("-")[1])];
@@ -2099,13 +2183,13 @@ export class Renderer {
     }
     const supplyContainer = state.pods?.find((entry) => entry.id === hoveredId);
     if (supplyContainer) {
-      const sprite = this.supplyContainerSprites[supplyContainer.kind] || this.supplyContainerSprites.cargo;
+      const sprite = this.supplyContainerSprite(map.id, supplyContainer.kind);
       if (sprite?.complete && sprite.naturalWidth) {
         const size = supplyContainer.kind === "pressure" ? 65 : supplyContainer.kind === "utility" ? 61 : 64;
         ctx.save(); ctx.translate(supplyContainer.x, supplyContainer.y);
         ctx.globalAlpha = .48;
         ctx.filter = `brightness(0) invert(1) drop-shadow(0 0 2px #fff) drop-shadow(0 0 7px ${map.accent})`;
-        ctx.drawImage(sprite, -size / 2, -size / 2, size, size);
+        this.drawSupplyContainerImage(map.id, supplyContainer.kind, size);
         ctx.restore();
         return;
       }

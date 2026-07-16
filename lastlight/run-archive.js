@@ -1,7 +1,7 @@
-import { DIFFICULTIES, MAPS, PASSIVES, SPECIALISTS, WEAPONS } from "./data.js?v=20260716.13";
-import { canonicalStringify, fnv1a64 } from "./replay.js?v=20260716.13";
-import { RARE_DISCOVERY_IDS } from "./rare-discoveries.js?v=20260716.13";
-import { seededOperationDescriptor, validateSeededOperationDescriptor } from "./seeded-operations.js?v=20260716.13";
+import { DIFFICULTIES, MAPS, PASSIVES, SPECIALISTS, WEAPONS } from "./data.js?v=20260716.14";
+import { canonicalStringify, fnv1a64 } from "./replay.js?v=20260716.14";
+import { RARE_DISCOVERY_IDS } from "./rare-discoveries.js?v=20260716.14";
+import { seededOperationDescriptor, validateSeededOperationDescriptor } from "./seeded-operations.js?v=20260716.14";
 
 export const SQUAD_RUN_REPORT_SCHEMA = "lastlight.squad-run-report.v5";
 export const SQUAD_RUN_SHARE_SCHEMA = "lastlight.squad-run-share.v1";

@@ -55,8 +55,8 @@ test("every theme asset exists and every checked-in asset belongs to a declared 
   for (const path of [...themePaths, ...motionPaths]) assert.equal(existsSync(join(root, path)), true, `missing ${path}`);
 
   const assetPaths = walk(join(root, "assets")).map((path) => relative(root, path).replaceAll("\\", "/"));
-  assert.equal(assetPaths.length, 145);
-  const covered = assetPaths.filter((path) => /^(?:assets\/(?:archive|branding|effects|enemies|environment-chunks|environments|guide|motion|motion-normalized|sprites|supply-containers|weapons)\/|assets\/(?:og|squad-atlas))/.test(path));
+  assert.equal(assetPaths.length, 161);
+  const covered = assetPaths.filter((path) => /^(?:assets\/(?:archive|branding|effects|enemies|environment-chunks|environments|guide|map-mechanics|motion|motion-normalized|sprites|supply-containers|weapons)\/|assets\/(?:og|squad-atlas))/.test(path));
   assert.deepEqual(sorted(covered), sorted(assetPaths));
 });
 
