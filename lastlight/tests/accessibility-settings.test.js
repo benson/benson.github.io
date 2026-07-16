@@ -14,7 +14,7 @@ test("accessibility settings are strict, complete, immutable, identity-free, and
   const defaults = defaultAccessibilitySettings();
   assert.deepEqual(Object.keys(defaults.bindings), ACCESSIBILITY_ACTIONS);
   assert.equal(Object.isFrozen(defaults.bindings), true);
-  assert.equal(validateAccessibilitySettings(structuredClone(defaults)).version, 1);
+  assert.equal(validateAccessibilitySettings(structuredClone(defaults)).version, 2);
   assert.throws(() => validateAccessibilitySettings({ ...structuredClone(defaults), callsign: "Rookie" }), /unsupported/);
   assert.throws(() => validateAccessibilitySettings({ ...structuredClone(defaults), bindings: { ...defaults.bindings, active: defaults.bindings.ultimate } }), /unique/);
   assert.throws(() => validateAccessibilitySettings({ ...structuredClone(defaults), bindings: { ...defaults.bindings, active: "Tab" } }), /supported/);
@@ -37,6 +37,7 @@ test("remapped keyboard actions resolve by physical code with readable labels", 
   assert.equal(keyboardActionForEvent(settings, { code: "KeyE" }), "moveUp");
   assert.equal(keyboardActionForEvent(settings, { code: "Unknown" }), null);
   assert.equal(bindingLabel("Backquote"), "` / ~"); assert.equal(bindingLabel(DEFAULT_ACCESSIBILITY_BINDINGS.inspect), "Left Shift");
+  assert.equal(bindingLabel(DEFAULT_ACCESSIBILITY_BINDINGS.quickPause), "Space");
 });
 
 test("standard gamepad sampling applies deadzones, d-pad precedence, aim, and edge actions", () => {

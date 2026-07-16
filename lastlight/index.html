@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260716.9">
+  <link rel="stylesheet" href="styles.css?v=20260716.10">
 </head>
 <body>
   <main id="app">
@@ -61,7 +61,7 @@
         <div class="control-ribbon" aria-label="Keyboard controls">
           <span data-control-movement><kbd>WASD</kbd> Move</span>
           <span><kbd>Mouse</kbd> Aim</span>
-          <span data-control-action="autoAim"><kbd>C</kbd> Auto-aim</span>
+          <span data-control-action="autoAim"><kbd>C</kbd> Signature aim</span>
           <span data-control-action="active"><kbd>E</kbd> Ability</span>
           <span data-control-action="ultimate"><kbd>R</kbd> Ultimate</span>
           <span data-control-choices><kbd>1–3</kbd> Upgrade</span>
@@ -184,7 +184,7 @@
         <div class="lobby-brief" aria-label="Level reference">
           <section class="lobby-controls-panel" aria-label="Controls">
             <div class="control-ribbon lobby-controls" aria-label="Keyboard controls">
-              <span data-control-movement><kbd>WASD</kbd> Move</span><span><kbd>Mouse</kbd> Aim</span><span data-control-action="autoAim"><kbd>C</kbd> Auto-aim</span><span data-control-action="active"><kbd>E</kbd> Ability</span><span data-control-action="ultimate"><kbd>R</kbd> Ultimate</span><span data-control-choices><kbd>1–3</kbd> Upgrade</span><span data-control-ping data-control-action="ping"><kbd>G</kbd> Ping</span><span data-control-action="pause"><kbd>Esc</kbd> Pause</span><span data-control-action="report"><kbd>` / ~</kbd> Report</span>
+              <span data-control-movement><kbd>WASD</kbd> Move</span><span><kbd>Mouse</kbd> Aim</span><span data-control-action="autoAim"><kbd>C</kbd> Signature aim</span><span data-control-action="active"><kbd>E</kbd> Ability</span><span data-control-action="ultimate"><kbd>R</kbd> Ultimate</span><span data-control-choices><kbd>1–3</kbd> Upgrade</span><span data-control-ping data-control-action="ping"><kbd>G</kbd> Ping</span><span data-control-action="quickPause"><kbd>Space</kbd> Quick Pause</span><span data-control-action="pause"><kbd>Esc</kbd> Menu</span><span data-control-action="report"><kbd>` / ~</kbd> Report</span>
             </div>
           </section>
           <details id="lobby-rules-disclosure" class="reference-disclosure hidden">
@@ -344,7 +344,7 @@
       <div class="xp-wrap"><span id="level-label">LV 1</span><div class="xp-track"><i id="xp-progress"></i></div></div>
       <details class="game-controls-hint">
         <summary>Controls</summary>
-        <div aria-label="Keyboard controls"><span data-control-movement><kbd>WASD</kbd> Move</span><span data-control-action="autoAim"><kbd>C</kbd> Auto-aim</span><span><kbd>Mouse</kbd> Aim</span><span data-control-ping data-control-action="ping"><kbd>G</kbd> Ping</span><span data-control-action="inspect"><kbd>Shift</kbd> Inspect</span><span><kbd>F3</kbd> FPS</span><span data-control-action="report"><kbd>` / ~</kbd> Report</span></div>
+        <div aria-label="Keyboard controls"><span data-control-movement><kbd>WASD</kbd> Move</span><span data-control-action="autoAim"><kbd>C</kbd> Signature aim</span><span><kbd>Mouse</kbd> Aim</span><span data-control-ping data-control-action="ping"><kbd>G</kbd> Ping</span><span data-control-action="quickPause"><kbd>Space</kbd> Quick Pause + inspect</span><span><kbd>F3</kbd> FPS</span><span data-control-action="report"><kbd>` / ~</kbd> Report</span></div>
       </details>
       <aside id="inspect-panel" class="inspect-panel hidden" role="tooltip" aria-live="polite">
         <span id="inspect-kind">Field object</span>
@@ -365,7 +365,6 @@
 
       <div id="upgrade-overlay" class="overlay upgrade-overlay hidden">
         <div class="upgrade-panel">
-          <p class="eyebrow">Combat data acquired</p>
           <h2>CHOOSE AN UPGRADE</h2>
           <div class="upgrade-draft">
             <section class="upgrade-local">
@@ -374,6 +373,7 @@
                 <header><span id="upgrade-build-title">Current build</span><small>Focus or point at an item for details</small></header>
                 <div id="upgrade-current-loadout" class="upgrade-current-loadout"></div>
               </section>
+              <aside id="upgrade-loadout-tooltip" class="upgrade-loadout-tooltip" role="tooltip" hidden></aside>
               <details class="upgrade-build-disclosure">
                 <summary><span>Build statistics</span><small>9 live values</small></summary>
                 <aside id="upgrade-current-stats" class="upgrade-current-stats" aria-label="Current specialist statistics"></aside>
@@ -401,16 +401,17 @@
         <div class="pause-card">
           <p class="eyebrow">Run paused</p>
           <h2>PAUSED</h2>
-          <details class="pause-reference">
-            <summary>Quick field reference</summary>
+          <section class="pause-reference" aria-labelledby="pause-reference-title">
+            <h3 id="pause-reference-title">Quick field reference</h3>
             <ul>
               <li><i class="reference-swatch xp"></i><span><b>Cyan shards</b> are experience.</span></li>
               <li><i class="reference-swatch hostile"></i><span><b>Orange bolts</b> are hostile fire.</span></li>
-              <li><i class="reference-swatch cache"></i><span><b>BREAK caches</b> open when shot.</span></li>
-              <li data-control-action="inspect"><kbd>Shift</kbd><span>Point at a field object to inspect it.</span></li>
+              <li><i class="reference-swatch cache"></i><span><b>Supply containers</b> open when shot.</span></li>
+              <li><i class="reference-swatch cover"></i><span><b>Solid structures</b> block movement and most shots.</span></li>
+              <li><kbd>Space</kbd><span><b>Quick Pause</b>, then point at anything to inspect it.</span></li>
             </ul>
             <button id="pause-guide-button" type="button">Open full field guide</button>
-          </details>
+          </section>
           <section id="pause-mutations" class="mutation-package pause-mutation-package" aria-label="Active campaign mutation package"></section>
           <label class="pause-setting pause-setting-select" for="enemy-health-bars-toggle">
             <span><strong>Enemy health bars</strong><small>Choose which targets show remaining health.</small></span>
@@ -574,12 +575,12 @@
         <button id="manual-close" class="icon-button" type="button" aria-label="Close field manual">Close</button>
       </div>
       <div class="manual-grid">
-        <section><span class="manual-number">01</span><h3>Move, aim, cast</h3><p>Move with WASD or arrow keys. Your signature weapon fires automatically toward the cursor. Tap C to toggle auto-aim. E and R are active abilities.</p></section>
+            <section><span class="manual-number">01</span><h3>Move, aim, cast</h3><p>Move with WASD or arrow keys. Your signature weapon follows the cursor; C lets that weapon track a nearby target instead. Other weapons keep their own seeking, orbit, lane, or area behavior. E and R are active abilities.</p></section>
         <section><span class="manual-number">02</span><h3>Build the machine</h3><p>Collect cyan data motes to level up. Pick weapons and passive stats. A level-five weapon plus its matching passive can evolve when an elite drops an access key.</p></section>
         <section><span class="manual-number">03</span><h3>Hold for the apex</h3><p>Enemy tiers and wave density rise throughout the operation. Survive the timer, then defeat the map's apex before its five-minute enrage.</p></section>
         <section><span class="manual-number">04</span><h3>Stay active when downed</h3><p>In co-op, crawl toward safety, press E to shield a nearby standing ally, and use G to call for help. A squadmate inside your ring completes the rescue in three seconds.</p></section>
       </div>
-      <div class="manual-controls"><span data-control-movement><kbd>WASD</kbd> Move</span><span><kbd>Mouse</kbd> Aim</span><span data-control-action="autoAim"><kbd>C</kbd> Auto-aim</span><span data-control-action="active"><kbd>E</kbd> Ability</span><span data-control-action="ultimate"><kbd>R</kbd> Ultimate</span><span data-control-choices><kbd>1–3</kbd> Upgrade</span><span data-control-action="pause"><kbd>Esc</kbd> Pause</span><span data-control-action="report"><kbd>` / ~</kbd> Report</span></div>
+          <div class="manual-controls"><span data-control-movement><kbd>WASD</kbd> Move</span><span><kbd>Mouse</kbd> Aim</span><span data-control-action="autoAim"><kbd>C</kbd> Signature aim</span><span data-control-action="active"><kbd>E</kbd> Ability</span><span data-control-action="ultimate"><kbd>R</kbd> Ultimate</span><span data-control-choices><kbd>1–3</kbd> Upgrade</span><span data-control-action="quickPause"><kbd>Space</kbd> Quick Pause</span><span data-control-action="pause"><kbd>Esc</kbd> Menu</span><span data-control-action="report"><kbd>` / ~</kbd> Report</span></div>
     </dialog>
 
     <dialog id="practice-dialog" class="guide-dialog practice-dialog" aria-labelledby="practice-title">
@@ -719,7 +720,16 @@
       </div>
       <div class="build-history-body">
         <article class="build-release current-build">
-          <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.16.9</h3></div><time class="build-shipped-at" datetime="2026-07-16T13:50:11-04:00" data-build-shipped-at="2026-07-16T13:50:11-04:00">Shipped Jul 16, 2026 · 1:50 PM EDT</time></header>
+          <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.16.10</h3></div><time class="build-shipped-at" datetime="2026-07-16T14:50:16-04:00" data-build-shipped-at="2026-07-16T14:50:16-04:00">Shipped Jul 16, 2026 · 2:50 PM EDT</time></header>
+          <ul>
+            <li>Rebuilt upgrade cards into a denser aligned layout, exposed every readable build tag, and added unclipped structured loadout details.</li>
+            <li>Added Space Quick Pause for unobstructed battlefield inspection while keeping Escape as the full pause menu.</li>
+            <li>Fitted structure collision to the visible art, added varied supply-container silhouettes, and removed redundant BREAK labels.</li>
+            <li>Made Vesper recall daggers track their moving owner and increased default HUD readability without allowing scaled panels off-screen.</li>
+          </ul>
+        </article>
+        <article class="build-release">
+          <header><div><span class="build-release-status">Previous build</span><h3>2026.07.16.9</h3></div><time class="build-shipped-at" datetime="2026-07-16T13:50:11-04:00" data-build-shipped-at="2026-07-16T13:50:11-04:00">Shipped Jul 16, 2026 · 1:50 PM EDT</time></header>
           <ul>
             <li>Doubled solid environment structures from four to eight per level and added grounded foundations so cover reads as real battlefield geometry.</li>
             <li>Added a local enemy-impact vector and label whenever hit knockback moves the specialist.</li>
@@ -1375,10 +1385,10 @@
   </main>
 
   <aside class="edge-utilities" aria-label="Build and feedback">
-    <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.16.9. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.16.9</strong></button>
+    <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.16.10. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.16.10</strong></button>
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report a problem</button>
   </aside>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260716.9"></script>
+  <script type="module" src="game.js?v=20260716.10"></script>
 </body>
 </html>

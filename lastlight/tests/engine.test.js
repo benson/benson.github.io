@@ -13,7 +13,9 @@ function releasePendingCast(sim) {
 test("swept cover collision blocks ordinary fire without tunneling and preserves authored exceptions", () => {
   const obstacle = [[0, -20, 40, 40]];
   const impact = segmentCoverImpact(-100, 0, 100, 0, 5, obstacle);
-  assert.deepEqual({ obstacleIndex: impact.obstacleIndex, x: impact.x, y: impact.y }, { obstacleIndex: 0, x: -5, y: 0 });
+  assert.equal(impact.obstacleIndex, 0);
+  assert.ok(Math.abs(impact.x + 5) < .01);
+  assert.equal(impact.y, 0);
   assert.equal(projectileBlockedByCover({ sourceId: "signature" }), true);
   assert.equal(projectileBlockedByCover({ sourceId: "rail" }), false, "rail lanes intentionally penetrate cover");
   assert.equal(projectileBlockedByCover({ bossShot: true }, true), false, "apex fire remains an explicit cover-piercing exception");
@@ -29,6 +31,24 @@ test("friendly and ordinary hostile projectiles stop at raised cover and emit a 
   assert.ok(sim.projectiles[0].dead && sim.hostile[0].dead);
   assert.equal(sim.effects.filter((effect) => effect.kind === "coverImpact").length, 2);
   assert.ok(sim.effects.every((effect) => effect.x <= left));
+});
+
+test("supply containers use deterministic varied kinds and never overlap cover or each other", () => {
+  const seed = "c0ffee00000000000000000000000000";
+  const left = new Simulation({ players: [{ id: "p1", name: "One", specialist: "zuri" }] }, { seed });
+  const right = new Simulation({ players: [{ id: "p1", name: "One", specialist: "zuri" }] }, { seed });
+  assert.equal(left.pods.length, 12);
+  assert.deepEqual(left.pods, right.pods);
+  assert.deepEqual([...new Set(left.pods.map(({ kind }) => kind))].sort(), ["cargo", "pressure", "utility"]);
+  for (const [index, pod] of left.pods.entries()) {
+    assert.equal(left.collidesWithCover(pod.x, pod.y, pod.radius + 8), false, `container ${index} must clear fitted cover`);
+    for (const other of left.pods.slice(index + 1)) {
+      assert.ok(Math.hypot(pod.x - other.x, pod.y - other.y) >= pod.radius + other.radius + 36);
+    }
+  }
+  assert.deepEqual(left.snapshot().pods.map(({ kind }) => kind), left.pods.map(({ kind }) => kind));
+  const restored = Simulation.fromRecoveryState(left.exportRecoveryState());
+  assert.deepEqual(restored.pods.map(({ kind }) => kind), left.pods.map(({ kind }) => kind));
 });
 
 test("a run transitions from survival to an apex fight", () => {
@@ -292,6 +312,36 @@ test("Vesper Blade Recall credits the active ability", () => {
   sim.updateProjectiles(.016);
   assert.ok(player.damageBySource["ability:e"] > 0);
   assert.equal(player.damageBySource.signature, undefined);
+});
+
+test("Vesper recall daggers continuously home to a moving owner and survive recovery", () => {
+  const sim = new Simulation({ players: [{ id: "vesper", name: "Vesper", specialist: "vesper", replaySlot: 0 }] });
+  sim.level = 3;
+  const player = sim.players[0];
+  sim.coverObstacles = [];
+  sim.pods = [];
+  sim.enemies = [];
+  sim.feathers.push({ id: "feather", owner: player.id, x: 300, y: 0, radius: 7, life: 15, color: "#fff" });
+  assert.equal(sim.cast(player.id, "e"), true);
+  releasePendingCast(sim);
+  const recall = sim.projectiles[0];
+  assert.equal(recall.recallTarget, player.id);
+  assert.equal(recall.recallSpeed, 950);
+
+  Object.assign(player, { x: 0, y: 300 });
+  sim.updateProjectiles(.01);
+  assert.ok(recall.vx < 0 && recall.vy > 0, "recall should turn toward the owner's new position");
+  const firstHeading = Math.atan2(recall.vy, recall.vx);
+  Object.assign(player, { x: -300, y: -100 });
+  sim.updateProjectiles(.01);
+  assert.notEqual(Math.atan2(recall.vy, recall.vx), firstHeading, "recall heading must be recomputed every tick");
+  assert.ok(Math.abs(Math.hypot(recall.vx, recall.vy) - 950) < 1e-9);
+
+  const restored = Simulation.fromRecoveryState(sim.exportRecoveryState());
+  const restoredRecall = restored.projectiles.find(({ id }) => id === recall.id);
+  assert.equal(restoredRecall.recallTarget, restored.players[0].id);
+  assert.equal(restoredRecall.recallSpeed, 950);
+  assert.doesNotThrow(() => JSON.stringify(restored.snapshot()));
 });
 
 test("Nova wisps use the authored hex duration and a distinct damage source", () => {

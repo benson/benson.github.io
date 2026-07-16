@@ -67,6 +67,13 @@ test("crawl has deterministic acceleration, braking, collision, and world contai
   const blocked = advanceDownedCrawl(state, { slot: 0, tick: 201, inputX: 1, obstacles: [[45, -100, 20, 200]] });
   assert.equal(blocked.blockedX, true); assert.equal(entry(blocked.state).vx, 0);
 
+  // The crawl shares fitted compound geometry with ordinary movement: the
+  // transparent corner of this triangular structure's bounds stays open.
+  const fitted = { id: "triangle", bounds: [45, -100, 100, 200], parts: [{ points: [[45, -100], [145, -100], [45, 100]] }] };
+  state = begin(createDownedActivityState(), 0, { x: 130, y: 80 });
+  const throughTransparentCorner = advanceDownedCrawl(state, { slot: 0, tick: 11, inputX: 1, obstacles: [fitted] });
+  assert.ok(throughTransparentCorner.dx > 0); assert.equal(throughTransparentCorner.blockedX, false);
+
   state = begin(createDownedActivityState(), 0, { x: 55, y: 0 });
   for (let tick = 11; tick < 300; tick++) state = advanceDownedCrawl(state, { slot: 0, tick, inputX: 1, worldHalfWidth: 100, worldHalfHeight: 100 }).state;
   assert.equal(entry(state).x, 60);

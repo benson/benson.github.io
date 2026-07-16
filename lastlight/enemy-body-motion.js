@@ -1,5 +1,5 @@
 import { enemyMotionState, motionClipDuration } from "./motion.js";
-import { impactPhaseProgress } from "./impact-feel.js?v=20260716.9";
+import { impactPhaseProgress } from "./impact-feel.js?v=20260716.10";
 
 export const ENEMY_BODY_MOTION_SCHEMA = "lastlight.enemy-body-motion.v1";
 export const ENEMY_BODY_MOTION_TYPES = Object.freeze(["hound", "spitter", "brute", "bomber", "shark"]);

@@ -1,31 +1,32 @@
-import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260716.9";
-import { WORLD } from "./engine.js?v=20260716.9";
-import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260716.9";
+import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260716.10";
+import { WORLD } from "./engine.js?v=20260716.10";
+import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260716.10";
 import { springCamera } from "./feel.js?v=20260713.2";
 import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistFacingTarget, specialistMotionState, stableDirectionColumn } from "./motion.js?v=20260713.1";
 import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260716.9";
-import { impactRenderPlan } from "./impact-grammar.js?v=20260716.9";
-import { movementVisualState } from "./movement.js?v=20260716.9";
-import { effectReadabilityCategory, partitionEffects, readabilityPlan } from "./readability.js?v=20260716.9";
+import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260716.10";
+import { impactRenderPlan } from "./impact-grammar.js?v=20260716.10";
+import { movementVisualState } from "./movement.js?v=20260716.10";
+import { effectReadabilityCategory, partitionEffects, readabilityPlan } from "./readability.js?v=20260716.10";
 import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260711.8";
 import { EnvironmentInteractionField, stableEnvironmentUnit } from "./environment-interactions.js?v=20260712.1";
-import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260716.9";
-import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260716.9";
+import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260716.10";
+import { circleIntersectsCollider, rectCollider } from "./collision-geometry.js?v=20260716.10";
+import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260716.10";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
 import { PING_INTENTS, PING_LIFETIME_TICKS, selectVisiblePings } from "./ping-contract.js?v=20260713.4";
-import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260716.9";
-import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260716.9";
+import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260716.10";
+import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260716.10";
 import {
   ImpactIntensityDirector, aftermathPlan, attackerRecoilTransform, cameraLookBias,
   impactAnimationTimeScale, impactFeedbackPlan, impactReactionTransform, impactTierForEvent, projectileMotionPlan,
   secondaryMotionPlan, selectImpactFeedback,
-} from "./impact-feel.js?v=20260716.9";
-import { combatTurnPlan, isBodyDrivingSource, resolvedCombatFacing, specialistMuzzlePoint } from "./combat-orientation.js?v=20260716.9";
+} from "./impact-feel.js?v=20260716.10";
+import { combatTurnPlan, isBodyDrivingSource, resolvedCombatFacing, specialistMuzzlePoint } from "./combat-orientation.js?v=20260716.10";
 import {
   cameraCompositionPlan, castMotionPlan, combatDensityPlan, playerLifecycleMotionPlan, rewardMotionPlan,
-} from "./combat-choreography.js?v=20260716.9";
-import { apexPhaseMotionPlan, enemyArrivalMotionPlan, enemyDepartureMotionPlan } from "./combat-rhythm.js?v=20260716.9";
+} from "./combat-choreography.js?v=20260716.10";
+import { apexPhaseMotionPlan, enemyArrivalMotionPlan, enemyDepartureMotionPlan } from "./combat-rhythm.js?v=20260716.10";
 
 const TAU = Math.PI * 2;
 const PING_BUFFER_LIMIT = 32;
@@ -226,7 +227,7 @@ export class Renderer {
     this.environmentChunkLayouts = new Map();
     this.environmentChunkLayout = Object.freeze([]);
     this.visibleEnvironmentChunks = Object.freeze([]);
-    this.coverObstacles = MAP_OBSTACLES;
+    this.coverObstacles = Object.freeze(MAP_OBSTACLES.map((rect, index) => rectCollider(rect, `raised-cover:${index}`)));
     this.materialImpacts = [];
     this.materialProjectileHistory = new Map();
     this.materialEffectHistory = new Set();
@@ -798,7 +799,10 @@ export class Renderer {
       consider(drop, drop.radius + 10, { type: "pickup", name, description, stats: { Effect: drop.type, Source: drop.source === "drone" ? "Yuum.AI Drone" : "Field drop" } }, .2);
     }
     for (const orb of state.orbs || []) consider(orb, orb.radius + 12, { type: "pickup", name: "Combat Data", description: "Collect this mote to advance the squad's next upgrade.", stats: { Data: Math.round(orb.value || 0) } }, .2);
-    for (const pod of state.pods || []) consider(pod, pod.radius + 10, { type: "cache", name: "Breakable Supply Cache", description: "Shoot it open to reveal a random pickup. It does not block movement.", stats: { Integrity: `${Math.max(0, Math.ceil(pod.hp))} / 100` } }, .16);
+    for (const pod of state.pods || []) {
+      const name = { cargo: "Cargo Supply Crate", utility: "Utility Supply Case", pressure: "Pressure Supply Canister" }[pod.kind] || "Supply Container";
+      consider(pod, pod.radius + 10, { type: "cache", name, description: "Shoot it open to reveal a random pickup. It does not block movement.", stats: { Integrity: `${Math.max(0, Math.ceil(pod.hp))} / 100` } }, .16);
+    }
     for (const objective of state.objectives || []) consider(objective, objective.radius, { type: "objective", name: objective.kind === "trial" ? "Breach Trial" : "Uplink", description: objective.kind === "trial" ? "Hold the marked zone while the breach intensifies." : "Stand inside the ring to capture the uplink.", stats: { Progress: `${Math.round((objective.progress || 0) * 100)}%`, Time: `${Math.max(0, Math.ceil(objective.life || 0))}s` } }, .08);
     for (const ball of state.relayBalls || []) consider(ball, ball.radius + 10, { type: "objective", name: "Relay Ball", description: "Make contact to push the core into its marked destination ring.", stats: { Time: `${Math.max(0, Math.ceil(ball.life || 0))}s`, Goal: `${Math.round(Math.hypot(ball.x - ball.targetX, ball.y - ball.targetY))}m` } }, .12);
     for (const drone of state.drones || []) consider(drone, drone.radius + 12, { type: "ally", name: drone.evolved ? "Yuum.AI Final" : "Yuum.AI Drone", description: "An autonomous wingmate that attacks, gathers data, and periodically drops repairs.", stats: { Level: drone.level, Repair: `${Math.max(0, Math.ceil(drone.repairClock || 0))}s` } }, .18);
@@ -815,8 +819,8 @@ export class Renderer {
       consider(obstacle, Math.max(w, h), { type: "obstacle", name: "Raised Cover", description: "Solid environmental cover. Specialists cannot move or dash through it, and ordinary friendly or hostile fire stops on contact.", stats: { Width: Math.round(w), Height: Math.round(h), Collision: "Solid", "Projectile cover": "Most shots", Exceptions: "Rail lanes · Apex fire" } }, -.2);
     }
     for (const chunk of this.environmentChunkLayout) {
-      const [x, y, w, h] = chunk.collisionRect;
-      if (worldX < x || worldX > x + w || worldY < y || worldY > y + h) continue;
+      const [x, y, w, h] = chunk.collider.bounds;
+      if (!circleIntersectsCollider(worldX, worldY, .01, chunk.collider)) continue;
       const frame = this.environmentChunkTheme.maps[chunk.mapId].frames[chunk.frame];
       consider({ id: chunk.id, x: x + w / 2, y: y + h / 2 }, Math.max(w, h), {
         type: "obstacle", name: frame.id.split("-").map((word) => word[0].toUpperCase() + word.slice(1)).join(" "),
@@ -855,7 +859,10 @@ export class Renderer {
       mapId: map.id, tier: "minimal", world: WORLD, obstacles: MAP_OBSTACLES, theme: this.environmentChunkTheme,
     }));
     this.environmentChunkLayout = this.environmentChunkLayouts.get(environmentLayoutKey);
-    this.coverObstacles = Object.freeze([...MAP_OBSTACLES, ...this.environmentChunkLayout.map((chunk) => chunk.collisionRect)]);
+    this.coverObstacles = Object.freeze([
+      ...MAP_OBSTACLES.map((rect, index) => rectCollider(rect, `raised-cover:${index}`)),
+      ...this.environmentChunkLayout.map((chunk) => chunk.collider),
+    ]);
     this.updateMaterialImpacts(state, map, frameSeconds);
     this.updateEnemyAttackContacts(state, frameSeconds);
     this.combatDensity = combatDensityPlan(state, this.qualityProfile.effectsDensity);
@@ -995,17 +1002,23 @@ export class Renderer {
     const ctx = this.ctx, frame = theme.maps[map.id].frames[chunk.frame];
     const sourceX = (chunk.frame % theme.atlas.columns) * sourceWidth, sourceY = Math.floor(chunk.frame / theme.atlas.columns) * sourceHeight;
     const width = frame.drawSize[0] * chunk.scale, height = frame.drawSize[1] * chunk.scale;
-    const [baseX, baseY, baseWidth, baseHeight] = chunk.collisionRect;
-    // A grounded foundation makes the exact blocking footprint legible without
-    // exposing a debug collision box. It also gives formerly translucent set
-    // dressing enough visual weight to read as real cover.
+    // Ground the prop with the same fitted compound silhouette used by gameplay
+    // collision. Transparent atlas corners remain traversable and never read as
+    // an invisible rectangular wall.
     ctx.save();
-    ctx.fillStyle = "rgba(1,6,10,.52)"; ctx.fillRect(baseX + 9, baseY + 11, baseWidth, baseHeight);
-    ctx.fillStyle = map.deco; ctx.globalAlpha = .58; ctx.fillRect(baseX, baseY, baseWidth, baseHeight);
-    ctx.globalAlpha = .86; ctx.strokeStyle = "rgba(1,6,10,.92)"; ctx.lineWidth = 5; ctx.strokeRect(baseX, baseY, baseWidth, baseHeight);
-    ctx.strokeStyle = `${map.accent}8f`; ctx.lineWidth = 2; ctx.strokeRect(baseX + 3, baseY + 3, Math.max(0, baseWidth - 6), Math.max(0, baseHeight - 6));
+    for (const part of chunk.collider.parts) {
+      const trace = (offsetX = 0, offsetY = 0) => {
+        ctx.beginPath();
+        part.points.forEach(([x, y], index) => index ? ctx.lineTo(x + offsetX, y + offsetY) : ctx.moveTo(x + offsetX, y + offsetY));
+        ctx.closePath();
+      };
+      trace(7, 10); ctx.fillStyle = "rgba(1,6,10,.52)"; ctx.fill();
+      trace(); ctx.fillStyle = map.deco; ctx.globalAlpha = .5; ctx.fill();
+      ctx.globalAlpha = .82; ctx.strokeStyle = "rgba(1,6,10,.92)"; ctx.lineWidth = 5; ctx.stroke();
+      ctx.globalAlpha = .68; ctx.strokeStyle = `${map.accent}8f`; ctx.lineWidth = 2; ctx.stroke();
+    }
     ctx.restore();
-    ctx.save(); ctx.translate(chunk.x, chunk.y); ctx.scale(chunk.flipX ? -1 : 1, 1);
+    ctx.save(); ctx.translate(chunk.x, chunk.y); ctx.rotate(chunk.rotation || 0); ctx.scale(chunk.flipX ? -1 : 1, 1);
     ctx.globalAlpha = chunk.opacity;
     ctx.filter = "saturate(.9) brightness(.88)";
     ctx.drawImage(atlas, sourceX, sourceY, sourceWidth, sourceHeight, -width * frame.anchor[0], -height * frame.anchor[1], width, height);
@@ -1223,38 +1236,37 @@ export class Renderer {
     const ctx = this.ctx, texture = this.effectSprites.barricade;
     for (const pod of pods) {
       if (!this.isWorldVisible(pod, 45)) continue;
-      const health = clamp((pod.hp ?? 100) / 100, 0, 1), damage = 1 - health;
+      const health = clamp((pod.hp ?? 100) / 100, 0, 1), damage = 1 - health, kind = pod.kind || "cargo";
       ctx.save(); ctx.translate(pod.x, pod.y);
 
-      // These are shoot-to-open supply caches, not pickups or collision props.
-      // Keep them low, still, and tightly matched to their projectile hit radius.
-      ctx.fillStyle = "rgba(0,0,0,.46)"; ctx.beginPath(); ctx.ellipse(3, 18, 27, 8, 0, 0, TAU); ctx.fill();
-      ctx.fillStyle = "#071019"; ctx.fillRect(-25, -17, 50, 34);
-      ctx.fillStyle = "#152936"; ctx.fillRect(-22, -14, 44, 24);
-      if (texture?.complete && texture.naturalWidth) {
-        ctx.save(); ctx.beginPath(); ctx.rect(-22, -14, 44, 24); ctx.clip();
-        ctx.globalAlpha = .42; ctx.drawImage(texture, 55, 55, 400, 260, -22, -14, 44, 28); ctx.restore();
-      }
-      ctx.fillStyle = "rgba(2,8,13,.6)"; ctx.fillRect(-22, -14, 44, 24);
-      ctx.strokeStyle = "rgba(255,255,255,.19)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-20, -12); ctx.lineTo(20, -12); ctx.stroke();
-
-      // Safety-orange framing and an explicit verb communicate destructibility
-      // without the glow, bob, or spin language used by collectible objects.
+      // Three low, still silhouettes keep supply containers distinct from
+      // pickups without covering each one in a redundant BREAK label.
+      const traceShape = () => {
+        ctx.beginPath();
+        if (kind === "utility") { ctx.moveTo(-22, -13); ctx.lineTo(17, -17); ctx.lineTo(24, 11); ctx.lineTo(-17, 16); ctx.closePath(); }
+        else if (kind === "pressure") { ctx.ellipse(0, 0, 19, 22, 0, 0, TAU); }
+        else ctx.rect(-25, -17, 50, 34);
+      };
+      ctx.fillStyle = "rgba(0,0,0,.46)"; ctx.beginPath(); ctx.ellipse(3, 19, kind === "pressure" ? 21 : 27, 8, 0, 0, TAU); ctx.fill();
+      traceShape(); ctx.fillStyle = "#071019"; ctx.fill();
+      ctx.save(); traceShape(); ctx.clip();
+      ctx.fillStyle = "#152936"; ctx.fillRect(-25, -22, 50, 40);
+      if (texture?.complete && texture.naturalWidth) { ctx.globalAlpha = .38; ctx.drawImage(texture, 55, 55, 400, 260, -25, -20, 50, 38); }
+      ctx.restore();
       const warning = health < .35 ? "#ff4f45" : "#ff7955";
-      ctx.strokeStyle = warning; ctx.lineWidth = 2; ctx.strokeRect(-24, -16, 48, 32);
-      ctx.fillStyle = warning;
-      for (const side of [-1, 1]) {
-        ctx.save(); ctx.translate(side * 18, 10); ctx.rotate(side * -.32);
-        ctx.fillRect(-5, -2, 3, 4); ctx.fillRect(1, -2, 3, 4); ctx.restore();
-      }
-      ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillStyle = "rgba(2,8,13,.88)"; ctx.fillRect(-19, -7, 38, 14);
-      ctx.fillStyle = "#f7f4e8"; ctx.font = "900 8px Inter"; ctx.fillText("BREAK", 0, 0);
+      traceShape(); ctx.strokeStyle = warning; ctx.lineWidth = 2; ctx.stroke();
+      ctx.strokeStyle = "rgba(255,255,255,.2)"; ctx.lineWidth = 1;
+      ctx.beginPath();
+      if (kind === "pressure") { ctx.moveTo(-13, -9); ctx.lineTo(13, -9); ctx.moveTo(-15, 8); ctx.lineTo(15, 8); }
+      else if (kind === "utility") { ctx.moveTo(-16, -8); ctx.lineTo(16, -11); ctx.moveTo(-13, 8); ctx.lineTo(18, 5); }
+      else { ctx.moveTo(-20, -10); ctx.lineTo(20, -10); ctx.moveTo(0, -15); ctx.lineTo(0, 11); }
+      ctx.stroke();
 
       // Persistent armor rail plus progressively revealed cracks gives immediate
       // and continuous feedback that shots are damaging the cache.
-      ctx.fillStyle = "rgba(0,0,0,.78)"; ctx.fillRect(-22, 12, 44, 4);
-      ctx.fillStyle = warning; ctx.fillRect(-21, 13, 42 * health, 2);
+      const railWidth = kind === "pressure" ? 30 : 44;
+      ctx.fillStyle = "rgba(0,0,0,.78)"; ctx.fillRect(-railWidth / 2, 12, railWidth, 4);
+      ctx.fillStyle = warning; ctx.fillRect(-railWidth / 2 + 1, 13, (railWidth - 2) * health, 2);
       if (damage > .01) {
         ctx.strokeStyle = `rgba(255,225,203,${.32 + damage * .58})`; ctx.lineWidth = 1.25;
         ctx.beginPath(); ctx.moveTo(6, -14); ctx.lineTo(2, -8); ctx.lineTo(7, -3); ctx.lineTo(1, 3); ctx.stroke();
@@ -2095,6 +2107,19 @@ export class Renderer {
       const block = MAP_OBSTACLES[Number(hoveredId.split("-")[1])];
       if (!block) return;
       const [x,y,w,h] = block; ctx.save(); ctx.strokeStyle = "#fff"; ctx.lineWidth = 4; ctx.strokeRect(x-5,y-5,w+10,h+10); ctx.strokeStyle = map.accent; ctx.lineWidth = 2; ctx.setLineDash([8,6]); ctx.strokeRect(x-9,y-9,w+18,h+18); ctx.restore(); return;
+    }
+    const environmentChunk = this.environmentChunkLayout.find((chunk) => chunk.id === hoveredId);
+    if (environmentChunk) {
+      ctx.save(); ctx.lineJoin = "round";
+      for (const part of environmentChunk.collider.parts) {
+        ctx.beginPath();
+        part.points.forEach(([x, y], index) => index ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+        ctx.closePath(); ctx.fillStyle = "rgba(255,255,255,.055)"; ctx.fill();
+        ctx.strokeStyle = "rgba(2,8,13,.92)"; ctx.lineWidth = 7; ctx.stroke();
+        ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.setLineDash([7,5]);
+        ctx.lineDashOffset = this.reducedMotion ? 0 : -performance.now() * .025; ctx.stroke();
+      }
+      ctx.restore(); return;
     }
     let entity = null;
     if (hoveredId === "machine") entity = { x: 0, y: 0, radius: 77 };
