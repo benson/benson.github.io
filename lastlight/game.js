@@ -1,5 +1,5 @@
 import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260716.7";
-import { Simulation, WORLD, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260716.7";
+import { Simulation, WORLD, coverObstaclesForMap, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260716.7";
 import { Renderer } from "./render.js?v=20260716.7";
 import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260713.2";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
@@ -39,7 +39,7 @@ import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist
 import { reconcileActiveBuffs } from "./active-buffs.js?v=20260713.1";
 import { ELITE_AFFIXES, ENEMY_ARCHETYPES, eliteAffixEligibility } from "./enemy-archetypes.js?v=20260713.1";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
-import { mapMechanicDefinition } from "./map-mechanics.js?v=20260716.7";
+import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260716.7";
 import { CAMPAIGN_MUTATIONS, campaignMutationDefinition, campaignMutationPackageVisible } from "./campaign-mutations.js?v=20260716.7";
 import {
   AuthoritySnapshotGate, HOST_MIGRATION_PROTOCOL_VERSION, MIGRATION_CHECKPOINT_INTERVAL_TICKS,
@@ -1335,7 +1335,7 @@ function renderGuide() {
       `${item.summary} Reward: ${item.reward.name} (${item.reward.kind}).`, complete ? "complete" : "open", item.icon,
       { Progress: complete ? "1 / 1" : "0 / 1", Evidence: "Validated terminal report", Power: "No gameplay power", Rollback: "Independent runtime flag" });
   }).join("") : "";
-  $("guide-content").innerHTML = `<section id="guide-campaign" class="guide-section"><h3>Campaign route</h3><p>Clear threat tiers to unlock harder operations. Progress is saved in this browser.</p><div class="campaign-route">${campaign}</div></section><section id="guide-map-mechanics" class="guide-section"><h3>Operation identities</h3><p>Every operation changes battlefield routing, enemy composition, and counterplay through a deterministic map mechanic.</p><div class="guide-grid">${mapMechanics}</div></section><section id="guide-environments" class="guide-section"><h3>Environment identities</h3><p>Generated landmark atlases give every operation authored set dressing. These chunks are visual only: they never block movement, hide a pickup, or enter multiplayer snapshots.</p><div class="guide-grid">${environments}</div></section><section id="guide-apex" class="guide-section"><h3>Map apexes</h3><p>Every apex has two deterministic phases, a real health gate, named attacks, and a map-specific arena change.</p><div class="guide-grid">${apexes}</div></section><section id="guide-specialists" class="guide-section"><h3>Specialist identities</h3><p>Measured roles, strengths, and failure points from the versioned simulation contract.</p><div class="guide-grid">${identities}</div></section><section id="guide-field" class="guide-section"><h3>Field objects</h3><p>Hold Shift and point at a live field object for its current stats.</p><div class="guide-grid">${fieldObjects}</div></section><section id="guide-signatures" class="guide-section"><h3>Signature evolutions</h3><div class="guide-grid">${signatures}</div></section><section id="guide-weapons" class="guide-section"><h3>Universal weapons</h3><div class="guide-grid">${weapons}</div></section><section id="guide-materials" class="guide-section"><h3>Impact materials</h3><p>Every weapon keeps its silhouette while contact particles, decals, flash, and sound adapt to the target. Shape and pattern remain available when color or motion is reduced.</p><div class="guide-grid">${materials}</div></section><section id="guide-passives" class="guide-section"><h3>Passive upgrades</h3><div class="guide-grid">${passives}</div></section><section id="guide-downed" class="guide-section"><h3>Downed activity</h3><p>A downed specialist stays useful but cannot fight, collect, score objective work, or revive themself. The authoritative simulation decides every action.</p><div class="guide-grid">${downed}</div></section><section id="guide-participation" class="guide-section"><h3>Participation credit</h3><p>Credit records effective work by anonymous specialist slot. Genuine overlap is shared; duplicate traffic, excess values, idle proximity, and system restoration are excluded.</p><div class="guide-grid">${participation}</div></section><section id="guide-synergies" class="guide-section"><h3>Squad synergies</h3><p>Coordinate roles, ultimate timing, and movement. Effects are authoritative, bounded, non-stacking, and disabled in solo runs.</p><div class="guide-grid">${synergies}</div></section><section id="guide-director" class="guide-section"><h3>Squad enemy director</h3><p>Squad runs receive deterministic, objective-aware formations while solo and rollback paths preserve the original spawn contract.</p><div class="guide-grid">${director}</div></section>${challengeEnabled ? `<section id="guide-challenges" class="guide-section"><h3>Challenges & achievements // ${completedChallenges.size}/${CHALLENGE_ACHIEVEMENT_REGISTRY.entries.length}</h3><p>Authored goals reward unusual builds and cooperative mastery with local badges, titles, lore, and cosmetics. They never grant gameplay power.</p><div class="guide-grid">${challenges}</div></section>` : ""}<section id="guide-rare" class="guide-section"><h3>Rare finds & events</h3><div class="guide-grid">${rare}</div></section>`;
+  $("guide-content").innerHTML = `<section id="guide-campaign" class="guide-section"><h3>Campaign route</h3><p>Clear threat tiers to unlock harder operations. Progress is saved in this browser.</p><div class="campaign-route">${campaign}</div></section><section id="guide-map-mechanics" class="guide-section"><h3>Operation identities</h3><p>Every operation changes battlefield routing, enemy composition, and counterplay through a deterministic map mechanic.</p><div class="guide-grid">${mapMechanics}</div></section><section id="guide-environments" class="guide-section"><h3>Environment identities</h3><p>Each operation has four major solid structures. Specialists and enemies route around their grounded footprints, and ordinary shots stop on contact. Small reactive debris remains visual only.</p><div class="guide-grid">${environments}</div></section><section id="guide-apex" class="guide-section"><h3>Map apexes</h3><p>Every apex has two deterministic phases, a real health gate, named attacks, and a map-specific arena change.</p><div class="guide-grid">${apexes}</div></section><section id="guide-specialists" class="guide-section"><h3>Specialist identities</h3><p>Measured roles, strengths, and failure points from the versioned simulation contract.</p><div class="guide-grid">${identities}</div></section><section id="guide-field" class="guide-section"><h3>Field objects</h3><p>Hold Shift and point at a live field object for its current stats.</p><div class="guide-grid">${fieldObjects}</div></section><section id="guide-signatures" class="guide-section"><h3>Signature evolutions</h3><div class="guide-grid">${signatures}</div></section><section id="guide-weapons" class="guide-section"><h3>Universal weapons</h3><div class="guide-grid">${weapons}</div></section><section id="guide-materials" class="guide-section"><h3>Impact materials</h3><p>Every weapon keeps its silhouette while contact particles, decals, flash, and sound adapt to the target. Shape and pattern remain available when color or motion is reduced.</p><div class="guide-grid">${materials}</div></section><section id="guide-passives" class="guide-section"><h3>Passive upgrades</h3><div class="guide-grid">${passives}</div></section><section id="guide-downed" class="guide-section"><h3>Downed activity</h3><p>A downed specialist stays useful but cannot fight, collect, score objective work, or revive themself. The authoritative simulation decides every action.</p><div class="guide-grid">${downed}</div></section><section id="guide-participation" class="guide-section"><h3>Participation credit</h3><p>Credit records effective work by anonymous specialist slot. Genuine overlap is shared; duplicate traffic, excess values, idle proximity, and system restoration are excluded.</p><div class="guide-grid">${participation}</div></section><section id="guide-synergies" class="guide-section"><h3>Squad synergies</h3><p>Coordinate roles, ultimate timing, and movement. Effects are authoritative, bounded, non-stacking, and disabled in solo runs.</p><div class="guide-grid">${synergies}</div></section><section id="guide-director" class="guide-section"><h3>Squad enemy director</h3><p>Squad runs receive deterministic, objective-aware formations while solo and rollback paths preserve the original spawn contract.</p><div class="guide-grid">${director}</div></section>${challengeEnabled ? `<section id="guide-challenges" class="guide-section"><h3>Challenges & achievements // ${completedChallenges.size}/${CHALLENGE_ACHIEVEMENT_REGISTRY.entries.length}</h3><p>Authored goals reward unusual builds and cooperative mastery with local badges, titles, lore, and cosmetics. They never grant gameplay power.</p><div class="guide-grid">${challenges}</div></section>` : ""}<section id="guide-rare" class="guide-section"><h3>Rare finds & events</h3><div class="guide-grid">${rare}</div></section>`;
   const rareSection = $("guide-content").querySelector("#guide-rare");
   rareSection.querySelector("h3").textContent = rareHeading;
   if (discoveryEnabled) rareSection.querySelector("h3").insertAdjacentHTML("afterend", "<p>Discoveries are informational, local to this browser, and never grant combat power.</p>");
@@ -1683,7 +1683,10 @@ function gameLoop(now) {
   } else if (state.authorityState === "active") {
     const authoritative = state.snapshot?.players?.find((player) => player.id === state.clientId);
     if (authoritative && !movementPredictor.player) movementPredictor.sync(authoritative);
-    if (movementPredictor.player && !authoritative?.downed) movementPredictor.advance(input, dt, playerMovementSpeed(movementPredictor.player), moveEntityWithCover);
+    if (movementPredictor.player && !authoritative?.downed) {
+      const obstacles = coverObstaclesForMap(typeof state.snapshot?.map === "string" ? state.snapshot.map : state.snapshot?.map?.id);
+      movementPredictor.advance(input, dt, playerMovementSpeed(movementPredictor.player), (entity, dx, dy) => moveEntityWithCover(entity, dx, dy, obstacles));
+    }
     renderState = withPredictedPlayer(state.snapshot, authoritative?.downed ? null : movementPredictor.player); renderPrevious = state.previousSnapshot;
     interpolation = clamp((now - state.snapshotAt) / state.snapshotInterval, 0, 1);
     if (state.ws?.readyState === WebSocket.OPEN && now - state.lastSend > 35) {
@@ -1731,7 +1734,8 @@ function withLocalMovementPreview(game, input, remainingSeconds) {
   if (!player || player.downed || remainingSeconds <= 0) return game;
   const preview = { ...player, predicted: true };
   const predictedInput = input?.autoAim ? { ...input, aim: Number(player.aimFacing) || 0 } : input;
-  advancePlayerMovement(preview, predictedInput, remainingSeconds, playerMovementSpeed(player), moveEntityWithCover);
+  const obstacles = coverObstaclesForMap(typeof game.map === "string" ? game.map : game.map?.id);
+  advancePlayerMovement(preview, predictedInput, remainingSeconds, playerMovementSpeed(player), (entity, dx, dy) => moveEntityWithCover(entity, dx, dy, obstacles));
   return { ...game, players: game.players.map((entry) => entry.id === preview.id ? preview : entry) };
 }
 
@@ -3717,6 +3721,9 @@ function gameDiagnostics() {
   const game = state.isHost ? state.sim : state.snapshot;
   const map = game ? (typeof game.map === "string" ? game.map : game.map?.id) : state.config?.map;
   const difficulty = game ? (typeof game.difficulty === "string" ? game.difficulty : game.difficulty?.id) : state.config?.difficulty;
+  const localPlayer = game?.players?.find((player) => player.id === state.clientId) || null;
+  const mechanic = game && map ? mapMechanicFrame(map, Math.max(0, Math.floor(Number(game.tick) || 0))) : null;
+  const mechanicAffectsPlayer = Boolean(mechanic && localPlayer && pointInMapMechanic(mechanic, localPlayer.x, localPlayer.y));
   return {
     build: BUILD,
     screen: state.screen,
@@ -3771,6 +3778,16 @@ function gameDiagnostics() {
     },
     enemyHealthBars: state.showEnemyHealthBars,
     enemyHealthBarMode: state.qualitySettings.healthBars,
+    mapMechanic: mechanic ? {
+      name: mechanic.name,
+      phase: mechanic.phase,
+      remainingSeconds: mechanic.remainingSeconds,
+      axis: mechanic.geometry.axis,
+      direction: mechanic.direction > 0 ? "positive" : "negative",
+      pushPerSecond: mechanic.effect.pushPerSecond,
+      affectsLocalPlayer: mechanicAffectsPlayer,
+      forcedMovementActive: mechanic.active && mechanicAffectsPlayer && mechanic.effect.pushPerSecond > 0,
+    } : null,
     displayQuality: renderer.getQualityStatus(),
     audio: audioDiagnostics(),
     audioMix: state.audioMixer?.diagnostics() || null,

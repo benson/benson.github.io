@@ -1,4 +1,4 @@
-export const ENVIRONMENT_CHUNK_SCHEMA = "lastlight.environment-chunks.v1";
+export const ENVIRONMENT_CHUNK_SCHEMA = "lastlight.environment-chunks.v2";
 export const ENVIRONMENT_CHUNK_MAP_IDS = Object.freeze(["warehouse", "outskirts", "lab", "beachhead"]);
 export const ENVIRONMENT_CHUNK_QUALITY_TIERS = Object.freeze(["high", "reduced", "minimal"]);
 
@@ -7,6 +7,17 @@ const FRAME_IDS = Object.freeze({
   outskirts: Object.freeze(["wrecked-transport", "ruined-checkpoint", "field-power", "road-salvage"]),
   lab: Object.freeze(["cryo-pods", "pressure-manifold", "specimen-cargo", "emergency-plant"]),
   beachhead: Object.freeze(["broken-skiff", "corrupted-beacon", "ruptured-cargo", "sea-wall-machine"]),
+});
+
+// Normalized solid footprints inside each 300x300 atlas cell. The art may rise
+// above this rectangle, but the grounded base is the part that blocks movement
+// and ordinary projectiles. Keeping these footprints in the authored contract
+// makes collision identical for every renderer quality tier and future theme.
+const FRAME_FOOTPRINTS = deepFreeze({
+  warehouse: [[.12, .40, .76, .46], [.14, .34, .72, .52], [.10, .42, .80, .43], [.10, .43, .80, .42]],
+  outskirts: [[.12, .34, .76, .52], [.09, .46, .82, .36], [.12, .38, .76, .46], [.10, .43, .80, .42]],
+  lab: [[.10, .35, .80, .52], [.10, .38, .80, .48], [.09, .36, .82, .52], [.12, .34, .76, .54]],
+  beachhead: [[.10, .38, .80, .50], [.14, .36, .72, .52], [.11, .38, .78, .50], [.10, .38, .80, .50]],
 });
 
 const MAP_COPY = Object.freeze({
@@ -33,22 +44,25 @@ const MAP_COPY = Object.freeze({
 });
 
 const framesFor = (mapId) => FRAME_IDS[mapId].map((id, index) => Object.freeze({
-  id, index, layer: "ground", collision: "none", anchor: Object.freeze([.5, .5]), drawSize: Object.freeze([300, 300]),
+  id, index, layer: "grounded", collision: "solid", anchor: Object.freeze([.5, .5]), drawSize: Object.freeze([300, 300]),
+  footprint: FRAME_FOOTPRINTS[mapId][index],
 }));
 
 export const LASTLIGHT_ENVIRONMENT_CHUNKS = deepFreeze({
   schema: ENVIRONMENT_CHUNK_SCHEMA,
   atlas: { columns: 2, rows: 2, frameCount: 4 },
   field: {
-    cellSize: 320, worldMargin: 70, placementRadius: 125, centerClearance: 240,
+    cellSize: 320, worldMargin: 70, placementRadius: 125, centerClearance: 620,
     obstaclePadding: 45, corridorCenters: [-390, 420], corridorHalfWidth: 88,
-    scaleMin: .78, scaleMax: 1.02, rotationMax: .035, opacityMin: .58, opacityMax: .72,
+    scaleMin: .82, scaleMax: 1.02, rotationMax: 0, opacityMin: .9, opacityMax: 1,
   },
   maps: Object.fromEntries(ENVIRONMENT_CHUNK_MAP_IDS.map((mapId) => [mapId, {
     ...MAP_COPY[mapId], atlasKey: `environmentChunks.${mapId}`, frames: framesFor(mapId),
-    collision: "none", readability: "background-only",
+    collision: "solid", readability: "raised-cover",
   }])),
-  budgets: { high: 12, reduced: 8, minimal: 4 },
+  // All four authored structures are gameplay geometry, so every quality tier
+  // renders the same four objects. Quality may simplify effects, never cover.
+  budgets: { high: 4, reduced: 4, minimal: 4 },
 });
 
 function deepFreeze(value) {
@@ -92,16 +106,19 @@ export function validateEnvironmentChunks(theme) {
     if (map.atlasKey !== `environmentChunks.${mapId}`) errors.push(`${path}.atlasKey: invalid`);
     if (!Number.isInteger(map.frameOffset) || map.frameOffset < 0 || map.frameOffset > 3) errors.push(`${path}.frameOffset: invalid`);
     if (!finite(map.density, .25, 1)) errors.push(`${path}.density: invalid`);
-    if (map.collision !== "none" || map.readability !== "background-only") errors.push(`${path}: chunks must remain cosmetic background art`);
+    if (map.collision !== "solid" || map.readability !== "raised-cover") errors.push(`${path}: chunks must remain visible solid cover`);
     if (!Array.isArray(map.frames) || map.frames.length !== 4) { errors.push(`${path}.frames: expected four frames`); continue; }
     const ids = new Set();
     for (let index = 0; index < map.frames.length; index++) {
       const frame = map.frames[index], framePath = `${path}.frames[${index}]`;
-      if (!exactKeys(frame, ["id", "index", "layer", "collision", "anchor", "drawSize"])) { errors.push(`${framePath}: fields mismatch`); continue; }
+      if (!exactKeys(frame, ["id", "index", "layer", "collision", "anchor", "drawSize", "footprint"])) { errors.push(`${framePath}: fields mismatch`); continue; }
       if (typeof frame.id !== "string" || ids.has(frame.id)) errors.push(`${framePath}.id: invalid or duplicate`); else ids.add(frame.id);
-      if (frame.index !== index || frame.layer !== "ground" || frame.collision !== "none") errors.push(`${framePath}: invalid index/layer/collision`);
+      if (frame.index !== index || frame.layer !== "grounded" || frame.collision !== "solid") errors.push(`${framePath}: invalid index/layer/collision`);
       if (!Array.isArray(frame.anchor) || frame.anchor.length !== 2 || frame.anchor.some((value) => !finite(value, 0, 1))) errors.push(`${framePath}.anchor: invalid`);
       if (!Array.isArray(frame.drawSize) || frame.drawSize.length !== 2 || frame.drawSize.some((value) => !finite(value, 160, 640))) errors.push(`${framePath}.drawSize: invalid`);
+      if (!Array.isArray(frame.footprint) || frame.footprint.length !== 4 || frame.footprint.some((value) => !finite(value, 0, 1))
+        || frame.footprint[0] + frame.footprint[2] > 1 || frame.footprint[1] + frame.footprint[3] > 1
+        || frame.footprint[2] < .2 || frame.footprint[3] < .2) errors.push(`${framePath}.footprint: invalid`);
     }
   }
   if (!exactKeys(theme.budgets, ENVIRONMENT_CHUNK_QUALITY_TIERS)) errors.push("environmentChunks.budgets: quality coverage mismatch");
@@ -132,6 +149,14 @@ export function environmentChunkClearance(chunk, { obstacles = [], theme = LASTL
   return true;
 }
 
+export function environmentChunkCollisionRect(chunk, theme = LASTLIGHT_ENVIRONMENT_CHUNKS) {
+  if (!chunk || !ENVIRONMENT_CHUNK_MAP_IDS.includes(chunk.mapId) || !Number.isInteger(chunk.frame) || chunk.frame < 0 || chunk.frame > 3) throw new TypeError("Invalid environment chunk collision source");
+  const frame = theme.maps[chunk.mapId].frames[chunk.frame], [left, top, width, height] = frame.footprint;
+  const drawWidth = frame.drawSize[0] * chunk.scale, drawHeight = frame.drawSize[1] * chunk.scale;
+  const originX = chunk.x - drawWidth * frame.anchor[0], originY = chunk.y - drawHeight * frame.anchor[1];
+  return Object.freeze([originX + left * drawWidth, originY + top * drawHeight, width * drawWidth, height * drawHeight]);
+}
+
 export function environmentChunkLayout({ mapId, tier = "high", world = { width: 3600, height: 2400 }, obstacles = [], theme = LASTLIGHT_ENVIRONMENT_CHUNKS } = {}) {
   const errors = validateEnvironmentChunks(theme);
   if (errors.length) throw new Error(`Invalid environment chunk theme:\n- ${errors.join("\n- ")}`);
@@ -155,10 +180,11 @@ export function environmentChunkLayout({ mapId, tier = "high", world = { width: 
         x: baseX + (stableChunkUnit(`${id}:x`) - .5) * offset * 2,
         y: baseY + (stableChunkUnit(`${id}:y`) - .5) * offset * 2,
         scale, flipX: stableChunkUnit(`${id}:flip`) >= .5,
-        rotation: (stableChunkUnit(`${id}:rotation`) - .5) * field.rotationMax * 2,
+        rotation: 0,
         opacity: field.opacityMin + stableChunkUnit(`${id}:opacity`) * (field.opacityMax - field.opacityMin),
-        priority: stableChunkUnit(`${id}:priority`), layer: "ground", collision: "none",
+        priority: stableChunkUnit(`${id}:priority`), layer: "grounded", collision: "solid",
       };
+      chunk.collisionRect = environmentChunkCollisionRect(chunk, theme);
       const radius = field.placementRadius * scale;
       if (Math.abs(chunk.x) + radius > halfWidth - field.worldMargin || Math.abs(chunk.y) + radius > halfHeight - field.worldMargin) continue;
       if (environmentChunkClearance(chunk, { obstacles, theme })) candidates.push(Object.freeze(chunk));
@@ -168,7 +194,18 @@ export function environmentChunkLayout({ mapId, tier = "high", world = { width: 
   // hash keeps each map's arrangement from collapsing into a perfect ring.
   const selectionPriority = (chunk) => Math.hypot(chunk.x / halfWidth, chunk.y / halfHeight) + chunk.priority * .24;
   candidates.sort((left, right) => selectionPriority(left) - selectionPriority(right) || left.id.localeCompare(right.id));
-  return Object.freeze(candidates.slice(0, theme.budgets[tier]));
+  const landmarks = [];
+  for (let frame = 0; frame < map.frames.length; frame++) {
+    const candidate = candidates.find((chunk) => chunk.frame === frame);
+    if (candidate) landmarks.push(candidate);
+  }
+  if (landmarks.length !== theme.budgets[tier]) throw new Error(`Environment chunk layout for ${mapId} cannot place one solid landmark per frame`);
+  landmarks.sort((left, right) => selectionPriority(left) - selectionPriority(right) || left.id.localeCompare(right.id));
+  return Object.freeze(landmarks);
+}
+
+export function environmentChunkObstacles({ mapId, world, obstacles = [], theme = LASTLIGHT_ENVIRONMENT_CHUNKS } = {}) {
+  return Object.freeze(environmentChunkLayout({ mapId, tier: "minimal", world, obstacles, theme }).map((chunk) => chunk.collisionRect));
 }
 
 export function environmentChunksForBounds({ mapId, bounds, tier = "high", world, obstacles, theme = LASTLIGHT_ENVIRONMENT_CHUNKS, layout = null } = {}) {

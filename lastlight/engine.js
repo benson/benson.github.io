@@ -46,12 +46,23 @@ import {
 import { validateSeededOperation } from "./seeded-operations.js?v=20260716.7";
 import { commitCombatFacing, resolvedCombatFacing, selectStickyAutoAimTarget } from "./combat-orientation.js?v=20260716.7";
 import { abilityChoreography } from "./combat-choreography.js?v=20260716.7";
+import { environmentChunkObstacles } from "./environment-chunks.js?v=20260716.7";
 
 const BALANCE = getBalanceConfig();
 
 const TAU = Math.PI * 2;
 const WORLD = { width: 3600, height: 2400 };
 export const SIMULATION_TICK_RATE = 60;
+const COVER_OBSTACLE_CACHE = new Map();
+
+export function coverObstaclesForMap(mapId) {
+  const id = MAPS[mapId]?.id || MAPS.warehouse.id;
+  if (!COVER_OBSTACLE_CACHE.has(id)) {
+    const authored = environmentChunkObstacles({ mapId: id, world: WORLD, obstacles: MAP_OBSTACLES });
+    COVER_OBSTACLE_CACHE.set(id, Object.freeze([...MAP_OBSTACLES, ...authored]));
+  }
+  return COVER_OBSTACLE_CACHE.get(id);
+}
 
 function angleTo(a, b) { return Math.atan2(b.y - a.y, b.x - a.x); }
 function fromAngle(angle, speed) { return { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed }; }
@@ -138,8 +149,8 @@ function recoveryRecord(value, playerIds) {
   return result;
 }
 
-export function collidesWithCover(x, y, radius) {
-  for (const [left, top, width, height] of MAP_OBSTACLES) {
+export function collidesWithCover(x, y, radius, obstacles = MAP_OBSTACLES) {
+  for (const [left, top, width, height] of obstacles) {
     const nearestX = clamp(x, left, left + width), nearestY = clamp(y, top, top + height);
     if ((x - nearestX) ** 2 + (y - nearestY) ** 2 < radius ** 2) return true;
   }
@@ -172,13 +183,13 @@ export function projectileBlockedByCover(projectile, hostile = false) {
   return hostile || projectile.sourceId !== "rail";
 }
 
-export function moveEntityWithCover(entity, dx, dy) {
+export function moveEntityWithCover(entity, dx, dy, obstacles = MAP_OBSTACLES) {
   const steps = Math.max(1, Math.ceil(Math.hypot(dx, dy) / 18));
   for (let step = 0; step < steps; step++) {
     const nextX = clamp(entity.x + dx / steps, -WORLD.width / 2 + 40, WORLD.width / 2 - 40);
-    if (!collidesWithCover(nextX, entity.y, entity.radius)) entity.x = nextX;
+    if (!collidesWithCover(nextX, entity.y, entity.radius, obstacles)) entity.x = nextX;
     const nextY = clamp(entity.y + dy / steps, -WORLD.height / 2 + 40, WORLD.height / 2 - 40);
-    if (!collidesWithCover(entity.x, nextY, entity.radius)) entity.y = nextY;
+    if (!collidesWithCover(entity.x, nextY, entity.radius, obstacles)) entity.y = nextY;
   }
   return entity;
 }
@@ -357,6 +368,7 @@ export class Simulation {
     // recovery, and deterministic hashes; snapshots expose only a small tail.
     this.impactEventSequence = 1;
     this.map = MAPS[config.map] || MAPS.warehouse;
+    this.coverObstacles = coverObstaclesForMap(this.map.id);
     this.difficulty = DIFFICULTIES[config.difficulty] || DIFFICULTIES.story;
     this.seededOperation = config.seededOperation ? validateSeededOperation(config.seededOperation) : null;
     if (this.seededOperation && (this.seededOperation.seed !== this.seed || this.seededOperation.map !== this.map.id || this.seededOperation.difficulty !== this.difficulty.id || this.seededOperation.duration !== Number(config.duration))) throw new RangeError("Seeded operation simulation configuration is inconsistent");
@@ -564,7 +576,7 @@ export class Simulation {
     const radii = [82, 118, 156, 204], directions = 12;
     const safe = (x, y) => {
       if (Math.abs(x) > WORLD.width / 2 - player.radius - 40 || Math.abs(y) > WORLD.height / 2 - player.radius - 40) return false;
-      if (collidesWithCover(x, y, player.radius + 8)) return false;
+      if (collidesWithCover(x, y, player.radius + 8, this.coverObstacles)) return false;
       if (this.enemies.some((enemy) => !enemy.dead && Math.hypot(enemy.x - x, enemy.y - y) < enemy.radius + player.radius + 100)) return false;
       if (this.hostile.some((shot) => !shot.dead && Math.hypot(shot.x - x, shot.y - y) < Number(shot.radius || 0) + player.radius + 60)) return false;
       if (this.effects.some((effect) => Number(effect.damage || 0) > 0 && Math.hypot(effect.x - x, effect.y - y) < Number(effect.radius || 0) + player.radius + 36)) return false;
@@ -713,7 +725,7 @@ export class Simulation {
           const stepTicks = Math.max(1, Math.min(DOWNED_ACTIVITY_REGISTRY.caps.stepTicks, Math.round(dt * SIMULATION_TICK_RATE) || 1));
           const crawl = advanceDownedCrawl(this.downedState, {
             slot: p.replaySlot, tick: this.tick, inputX: p.input.x, inputY: p.input.y, stepTicks,
-            obstacles: MAP_OBSTACLES, worldHalfWidth: WORLD.width / 2, worldHalfHeight: WORLD.height / 2,
+            obstacles: this.coverObstacles, worldHalfWidth: WORLD.width / 2, worldHalfHeight: WORLD.height / 2,
           });
           this.downedState = crawl.state; crawling = crawl.distance > .001;
           const activity = this.downedState.entries.find((entry) => entry.slot === p.replaySlot);
@@ -998,11 +1010,11 @@ export class Simulation {
   }
 
   collidesWithCover(x, y, radius) {
-    return collidesWithCover(x, y, radius);
+    return collidesWithCover(x, y, radius, this.coverObstacles);
   }
 
   movePlayer(p, dx, dy) {
-    moveEntityWithCover(p, dx, dy);
+    moveEntityWithCover(p, dx, dy, this.coverObstacles);
   }
 
   updateSpawns(dt) {
@@ -1109,11 +1121,11 @@ export class Simulation {
         const candidateRadius = Math.max(60, radius + radialOffset);
         const x = clamp(target.x + Math.cos(angle + offset) * candidateRadius, -WORLD.width / 2 + 30, WORLD.width / 2 - 30);
         const y = clamp(target.y + Math.sin(angle + offset) * candidateRadius, -WORLD.height / 2 + 30, WORLD.height / 2 - 30);
-        if (!collidesWithCover(x, y, 34)) return { x, y };
+        if (!collidesWithCover(x, y, 34, this.coverObstacles)) return { x, y };
       }
     }
     for (let y = -WORLD.height / 2 + 48; y <= WORLD.height / 2 - 48; y += 96) {
-      for (let x = -WORLD.width / 2 + 48; x <= WORLD.width / 2 - 48; x += 96) if (!collidesWithCover(x, y, 34)) return { x, y };
+      for (let x = -WORLD.width / 2 + 48; x <= WORLD.width / 2 - 48; x += 96) if (!collidesWithCover(x, y, 34, this.coverObstacles)) return { x, y };
     }
     throw new RangeError("No collision-safe directed spawn point is available");
   }
@@ -1338,7 +1350,7 @@ export class Simulation {
     }
     for (const enemy of this.enemies) {
       if (enemy.dead || enemy.boss || !pointInMapMechanic(frame, enemy.x, enemy.y)) continue;
-      if (effect.pushPerSecond > 0) moveEntityWithCover(enemy, frame.direction * effect.pushPerSecond * dt, 0);
+      if (effect.pushPerSecond > 0) moveEntityWithCover(enemy, frame.direction * effect.pushPerSecond * dt, 0, this.coverObstacles);
       if (effect.enemyControlSeconds > 0) this.applyControl(enemy, effect.enemyControlSeconds);
       if (effect.enemyDamageFraction > 0 && enemy.mapMechanicHitKey !== hitKey) {
         enemy.mapMechanicHitKey = hitKey;
@@ -1784,7 +1796,7 @@ export class Simulation {
         for (const enemy of hookTargets) {
           if (enemy.dead) continue;
           const direction = angleTo(enemy, p);
-          moveEntityWithCover(enemy, Math.cos(direction) * pull, Math.sin(direction) * pull);
+          moveEntityWithCover(enemy, Math.cos(direction) * pull, Math.sin(direction) * pull, this.coverObstacles);
           enemy.knockVx = 0; enemy.knockVy = 0; affected++;
         }
         this.pushSignatureEvolutionProc(p, "predator-hook", activation, { x: tx, y: ty }, aim, { affected, pullDistance: pull });
@@ -2261,7 +2273,7 @@ export class Simulation {
         }
       }
       const startX = bullet.x, startY = bullet.y, endX = startX + bullet.vx * dt, endY = startY + bullet.vy * dt;
-      const coverImpact = projectileBlockedByCover(bullet) ? segmentCoverImpact(startX, startY, endX, endY, bullet.radius) : null;
+      const coverImpact = projectileBlockedByCover(bullet) ? segmentCoverImpact(startX, startY, endX, endY, bullet.radius, this.coverObstacles) : null;
       if (coverImpact) {
         bullet.x = coverImpact.x; bullet.y = coverImpact.y; bullet.dead = true; bullet.coverImpact = coverImpact.obstacleIndex;
         const impact = { id: this.nextCosmeticId("cover"), x: bullet.x, y: bullet.y, radius: Math.max(10, bullet.radius * 1.6), life: .18, maxLife: .18, damage: 0, owner: bullet.owner || "cover", color: bullet.color, kind: "coverImpact", obstacleIndex: coverImpact.obstacleIndex, hit: new Set() };
@@ -2344,7 +2356,7 @@ export class Simulation {
     for (const bullet of this.hostile) {
       bullet.life -= dt;
       const startX = bullet.x, startY = bullet.y, endX = startX + bullet.vx * dt, endY = startY + bullet.vy * dt;
-      const coverImpact = projectileBlockedByCover(bullet, true) ? segmentCoverImpact(startX, startY, endX, endY, bullet.radius) : null;
+      const coverImpact = projectileBlockedByCover(bullet, true) ? segmentCoverImpact(startX, startY, endX, endY, bullet.radius, this.coverObstacles) : null;
       if (coverImpact) {
         bullet.x = coverImpact.x; bullet.y = coverImpact.y; bullet.dead = true; bullet.coverImpact = coverImpact.obstacleIndex;
         this.effects.push({ id: this.nextCosmeticId("cover"), x: bullet.x, y: bullet.y, radius: Math.max(10, bullet.radius * 1.6), life: .18, maxLife: .18, damage: 0, owner: "cover", color: bullet.color, kind: "coverImpact", obstacleIndex: coverImpact.obstacleIndex, hit: new Set() });
@@ -2396,7 +2408,7 @@ export class Simulation {
           else if (!enemy.dead) {
             const tuning = BALANCE.weapons.universal.transit;
             const beforeX = enemy.x, beforeY = enemy.y, direction = Math.sign(effect.vx || tuning.speed) || 1;
-            moveEntityWithCover(enemy, direction * tuning.evolvedPushDistance, 0);
+            moveEntityWithCover(enemy, direction * tuning.evolvedPushDistance, 0, this.coverObstacles);
             this.applyControl(enemy, tuning.evolvedStun, effect.owner);
             if (!effect.pushProcEmitted) {
               effect.pushProcEmitted = true;
@@ -2492,7 +2504,7 @@ export class Simulation {
   }
 
   moveEnemy(enemy, angle, amount) {
-    moveEntityWithCover(enemy, Math.cos(angle) * amount, Math.sin(angle) * amount);
+    moveEntityWithCover(enemy, Math.cos(angle) * amount, Math.sin(angle) * amount, this.coverObstacles);
   }
 
   enemyContact(enemy, target, cooldown) {
@@ -2519,7 +2531,7 @@ export class Simulation {
       const travel = tuning.chargeSpeed * tuning.active;
       const targetX = clamp(enemy.x + Math.cos(enemy.attackAngle) * travel, -WORLD.width / 2 + 40, WORLD.width / 2 - 40);
       const targetY = clamp(enemy.y + Math.sin(enemy.attackAngle) * travel, -WORLD.height / 2 + 40, WORLD.height / 2 - 40);
-      const impact = segmentCoverImpact(enemy.x, enemy.y, targetX, targetY, enemy.radius);
+      const impact = segmentCoverImpact(enemy.x, enemy.y, targetX, targetY, enemy.radius, this.coverObstacles);
       const resolvedAngle = Math.atan2(targetY - enemy.y, targetX - enemy.x), unclippedTravel = Math.hypot(targetX - enemy.x, targetY - enemy.y), resolvedTravel = impact ? unclippedTravel * Math.max(0, impact.t - .01) : unclippedTravel;
       enemy.attackAngle = resolvedAngle;
       enemy.behaviorEndX = enemy.x + Math.cos(enemy.attackAngle) * resolvedTravel;

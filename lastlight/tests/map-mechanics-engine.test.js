@@ -26,11 +26,11 @@ test("feature-off keeps movement, damage, control, and snapshot shape on the leg
 test("Freight Grid carries specialists and ordinary enemies without damaging either", () => {
   const simulation = createSimulation("warehouse"), player = simulation.players[0];
   simulation.tick = 1_020; player.x = 0; player.y = -540;
-  const enemy = simulation.spawnEnemy("brute", { x: 200, y: -540 });
+  const enemy = simulation.spawnEnemy("brute", { x: -300, y: -540 });
   const playerHealth = player.hp, enemyHealth = enemy.hp;
   simulation.updateMapMechanic(1);
   assert.ok(player.x > 80);
-  assert.ok(enemy.x > 280);
+  assert.ok(enemy.x > -220);
   assert.equal(player.hp, playerHealth);
   assert.equal(enemy.hp, enemyHealth);
 });
