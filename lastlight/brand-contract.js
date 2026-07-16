@@ -78,7 +78,7 @@ export const LASTLIGHT_BRAND = freeze({
     { id: "environments", role: "map-atmosphere-and-collision-safe-chunks", source: "assets/environments + assets/environment-chunks", runtime: "webp-atlases", provenance: "project-authored-generated", constraints: "gameplay-clearance-and-bounded-decode" },
     { id: "guide", role: "passive-field-and-enemy-reference", source: "assets/guide", runtime: "transparent-webp", provenance: "project-authored", constraints: "semantic-label-always-accompanies-image" },
     { id: "archive", role: "event-boon-and-augment-records", source: "assets/archive", runtime: "webp", provenance: "project-authored", constraints: "informational-not-rarity-by-color-alone" },
-    { id: "effects", role: "pickup-hostile-and-cover-anchors", source: "assets/effects", runtime: "transparent-webp-plus-canvas", provenance: "project-authored", constraints: "readability-contract-controls-priority" },
+    { id: "effects", role: "pickup-hostile-cover-and-container-anchors", source: "assets/effects + assets/supply-containers", runtime: "transparent-webp-png-plus-canvas", provenance: "project-authored-generated", constraints: "readability-contract-controls-priority" },
     { id: "audio", role: "weapon-material-enemy-ui-and-critical-cues", source: "audio-cues.js", runtime: "web-audio-generated", provenance: "project-authored-no-external-assets", constraints: "critical-headroom-visual-equivalent" },
   ],
   voice: {

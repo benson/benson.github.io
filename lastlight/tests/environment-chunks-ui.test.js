@@ -22,7 +22,7 @@ function webpMetadata(path) {
 
 test("every operation owns a unique bounded alpha atlas through the theme contract", () => {
   assert.equal(validateTheme(LASTLIGHT_THEME).valid, true);
-  assert.equal(getThemeEnvironmentChunks().schema, "lastlight.environment-chunks.v3");
+  assert.equal(getThemeEnvironmentChunks().schema, "lastlight.environment-chunks.v4");
   const paths = ENVIRONMENT_CHUNK_MAP_IDS.map((mapId) => getThemeAsset(`environmentChunks.${mapId}`));
   assert.equal(new Set(paths).size, 4);
   for (const relativePath of paths) {
@@ -41,7 +41,8 @@ test("simulation and renderer derive the same solid chunks without snapshot grow
   assert.match(render, /type: "environment-chunk"/);
   assert.match(render, /this\.drawEnvironmentChunk\(map, item\.value\)/);
   assert.match(render, /chunk\.collider/);
-  assert.match(render, /for \(const part of chunk\.collider\.parts\)/);
+  assert.match(render, /drawEnvironmentChunkImage\(map, chunk/);
+  assert.match(render, /physics all derive from the atlas alpha/);
   assert.match(render, /collision: "solid"/);
   assert.match(engine, /environmentChunkObstacles\(/);
   assert.match(engine, /coverObstaclesForMap\(/);
@@ -59,4 +60,5 @@ test("Field Manual explains solid structures and the contract remains theme-swap
   assert.match(docs, /snapshot-byte neutral/);
   assert.match(docs, /graphics settings cannot change cover/);
   assert.match(docs, /replacement theme supplies both/i);
+  assert.match(docs, /alpha mask/i);
 });

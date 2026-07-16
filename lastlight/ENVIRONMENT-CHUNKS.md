@@ -1,35 +1,42 @@
-# Authored environment chunks
+# Asset-derived environment collision
 
 `environment-chunks.js` owns the strict world-geometry contract
-`lastlight.environment-chunks.v2`. It connects authored map art to live gameplay:
+`lastlight.environment-chunks.v4`. It connects authored map art to live gameplay:
 
-- one generated transparent 2×2 landmark atlas per operation;
-- a deterministic layout derived only from map id and bounded world-cell coordinates;
+- one transparent 2×2 landmark atlas per level;
+- deterministic layouts derived only from the level id and bounded world cells;
 - fixed center, objective-corridor, world-edge, and raised-cover clearance;
-- four canonical solid structures per operation at High, Reduced, and Minimal quality;
-- authored grounded footprints for movement, enemy routing, downed crawling, and ordinary projectile cover;
+- eight solid structures per level at High, Reduced, and Minimal quality;
+- exact asset-alpha collision for movement, routing, downed crawling, and ordinary projectile cover;
 - Y-sorted rendering so a specialist passes visibly behind or in front of a structure.
 
-Chunks have `collision: "solid"`. Their fixed layout is derived from map id by both simulation and
-renderer, so collision is identical in solo, multiplayer, replay, recovery, migration, and every
-graphics tier without adding coordinates to snapshots or relay messages. This keeps the layout
-snapshot-byte neutral while making every building-shaped landmark a truthful gameplay affordance.
+Every frame's collision mask is generated directly from its atlas alpha at a fixed threshold. The
+same anchor, scale, horizontal flip, and rotation transform is used by Canvas rendering and collision.
+Transparent corners and openings stay traversable; every visible opaque pixel is solid. There are no
+manually traced polygons or rectangular platforms to drift from the art.
+
+Chunks have `collision: "solid"`. Simulation and renderer derive the same fixed layout from level id,
+so geometry is identical in solo, multiplayer, replay, recovery, migration, and every graphics tier
+without adding coordinates to snapshots or relay messages. The layout remains snapshot-byte neutral,
+and graphics settings cannot change cover.
+
+## Rebuilding masks
+
+Run `npm run collision-masks:build` after replacing an atlas. The generator splits each atlas into its
+four frames, encodes opaque runs for every pixel row, records the source SHA-256, and writes
+`environment-collision-masks.js`. CI runs `npm run collision-masks:verify` to reject stale masks.
+
+This row-run alpha mask representation scales to arbitrary silhouettes, holes, rotation, mirroring,
+and non-uniform rendered size without requiring new runtime geometry code.
 
 ## Theme swap
 
 A replacement theme supplies both:
 
-1. `assets.environmentChunks.{warehouse,outskirts,lab,beachhead}` with a unique alpha WebP atlas
-   for each operation; and
-2. an `environmentChunks` contract with the same strict map, footprint, and quality coverage.
+1. `assets.environmentChunks.{warehouse,outskirts,lab,beachhead}` with a unique alpha WebP atlas for
+   each level; and
+2. an `environmentChunks` contract with the same strict map, mask, and quality coverage.
 
-The current Lastlight atlases were generated as isolated top-down 3/4 prop clusters on a flat
-chroma background, converted locally to alpha WebP, and validated for four frames, transparent
-corners, unique paths, and the public asset budget. Renderer code never contains Lastlight-specific
-landmark names or file paths.
-
-## Readability and motion
-
-The structures remain slightly darkened behind the combat hierarchy but render near-opaque so they
-read as physical objects. Generated art does not animate, so reduced-motion output is identical.
-Every quality tier retains the same eight structures because graphics settings cannot change cover.
+The current Lastlight atlases were generated as isolated top-down 3/4 prop clusters, converted to
+alpha WebP, and validated for four frames, transparent corners, unique paths, and the public asset
+budget. Renderer code contains no Lastlight-specific landmark names or file paths.

@@ -1,7 +1,7 @@
 import { ENEMY_MOTION_STATES, MOTION_DIRECTIONS, MOTION_SCHEMA, SPECIALIST_MOTION_STATES, validateMotionRig } from "../motion.js?v=20260713.1";
-import { LASTLIGHT_MATERIAL_THEME, MATERIAL_CLASSES, validateMaterialTheme } from "../material-impacts.js?v=20260716.11";
+import { LASTLIGHT_MATERIAL_THEME, MATERIAL_CLASSES, validateMaterialTheme } from "../material-impacts.js?v=20260716.12";
 import { LASTLIGHT_ENVIRONMENT_INTERACTIONS, validateEnvironmentInteractions } from "../environment-interactions.js?v=20260712.1";
-import { LASTLIGHT_ENVIRONMENT_CHUNKS, validateEnvironmentChunks } from "../environment-chunks.js?v=20260716.11";
+import { LASTLIGHT_ENVIRONMENT_CHUNKS, validateEnvironmentChunks } from "../environment-chunks.js?v=20260716.12";
 
 /**
  * The canonical asset contract for a Lastlight visual theme.
@@ -17,6 +17,7 @@ export const THEME_ASSET_KEYS = deepFreeze({
   universalWeapons: ["uwu", "slicers", "aura", "mines", "crossbow", "boomerang", "rail", "glove", "transit", "ice", "annihilator", "drone"],
   environments: ["warehouse", "outskirts", "lab", "beachhead"],
   environmentChunks: ["warehouse", "outskirts", "lab", "beachhead"],
+  supplyContainers: ["cargo", "utility", "pressure"],
   enemies: ["mite", "hound", "spitter", "brute", "bomber", "shark"],
   effects: ["xpShard", "hostileBolt", "barricade"],
   guidePassives: ["damage", "haste", "maxHealth", "armor", "move", "area", "crit", "duration", "projectiles", "xp", "pickup", "regen"],
@@ -93,6 +94,11 @@ const LASTLIGHT_ASSETS = {
     outskirts: "assets/environment-chunks/outskirts-atlas.webp",
     lab: "assets/environment-chunks/lab-atlas.webp",
     beachhead: "assets/environment-chunks/beachhead-atlas.webp",
+  },
+  supplyContainers: {
+    cargo: "assets/supply-containers/cargo.png",
+    utility: "assets/supply-containers/utility.png",
+    pressure: "assets/supply-containers/pressure.png",
   },
   enemies: {
     mite: "assets/enemies/skitter.webp",
@@ -351,6 +357,7 @@ export function validateTheme(theme) {
     ["weapons.universal", theme.assets?.weapons?.universal, THEME_ASSET_KEYS.universalWeapons],
     ["environments", theme.assets?.environments, THEME_ASSET_KEYS.environments],
     ["environmentChunks", theme.assets?.environmentChunks, THEME_ASSET_KEYS.environmentChunks],
+    ["supplyContainers", theme.assets?.supplyContainers, THEME_ASSET_KEYS.supplyContainers],
     ["enemies", theme.assets?.enemies, THEME_ASSET_KEYS.enemies],
     ["effects", theme.assets?.effects, THEME_ASSET_KEYS.effects],
     ["guide.passives", theme.assets?.guide?.passives, THEME_ASSET_KEYS.guidePassives],

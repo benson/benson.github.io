@@ -1,5 +1,5 @@
-import { Simulation } from "./engine.js?v=20260716.11";
-import { hashSimulationState, replayGameplayFeatures } from "./replay.js?v=20260716.11";
+import { Simulation } from "./engine.js?v=20260716.12";
+import { hashSimulationState, replayGameplayFeatures } from "./replay.js?v=20260716.12";
 
 export function anonymousReplayToken(slot) {
   const digit = Math.max(0, Math.min(3, Number(slot) || 0)) + 1;

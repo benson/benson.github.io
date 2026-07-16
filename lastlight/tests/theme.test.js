@@ -21,10 +21,19 @@ test("default theme satisfies the complete asset contract", () => {
   const result = validateTheme(LASTLIGHT_THEME);
   assert.deepEqual(result.errors, []);
   assert.equal(result.valid, true);
-  assert.equal(result.assetCount, 114);
+  assert.equal(result.assetCount, 117);
   assert.equal(Object.isFrozen(LASTLIGHT_THEME), true);
   assert.equal(Object.isFrozen(LASTLIGHT_THEME.assets.archive.augments), true);
-  assert.equal(getThemeEnvironmentChunks().schema, "lastlight.environment-chunks.v3");
+  assert.equal(getThemeEnvironmentChunks().schema, "lastlight.environment-chunks.v4");
+});
+
+test("supply containers use three distinct theme-owned generated icons", async () => {
+  assert.deepEqual(THEME_ASSET_KEYS.supplyContainers, ["cargo", "utility", "pressure"]);
+  const paths = Object.values(LASTLIGHT_THEME.assets.supplyContainers);
+  assert.equal(new Set(paths).size, 3);
+  assert.ok(paths.every((path) => path.startsWith("assets/supply-containers/") && path.endsWith(".png")));
+  const root = fileURLToPath(new URL("../", import.meta.url));
+  await Promise.all(paths.map((path) => access(`${root}${path}`)));
 });
 
 test("runtime enemy contract has unique deployable cutouts and render anchors", async () => {

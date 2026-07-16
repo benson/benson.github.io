@@ -18,7 +18,7 @@ Every checked-in runtime asset is project-authored. Generated imagery was direct
 | Effects | `assets/effects` | 3 | transparent WebP plus canvas effects | Project-authored; the readability pass order owns priority and fallback geometry. |
 | Audio | `audio-cues.js` | 0 binary assets | generated Web Audio | Project-authored synthesis with no external samples; every critical cue has a visual equivalent. |
 
-The 142 files under `assets/` are covered by the nine visual families above. Audio is deliberately code-generated and therefore adds no binary asset. Counts include source records and generation documentation, not just decoded runtime images.
+The 145 files under `assets/` are covered by the nine visual families above. Audio is deliberately code-generated and therefore adds no binary asset. Counts include source records and generation documentation, not just decoded runtime images. The effects family includes the three transparent, generated supply-container icons used in the live field.
 
 ## Source-to-runtime rules
 

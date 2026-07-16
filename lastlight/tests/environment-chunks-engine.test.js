@@ -33,7 +33,7 @@ test("authored structures block specialists, enemies, and ordinary projectile se
   const impact = segmentCoverImpact(left - 120, top + height / 2, left + width + 120, top + height / 2, 6, simulation.coverObstacles);
   assert.ok(impact);
   assert.ok(impact.obstacleIndex >= MAP_OBSTACLES.length);
-  assert.ok(Math.abs(impact.x - (left - 6)) < .01);
+  assert.ok(impact.x >= left - 6 && impact.x <= left + width + 6, "impact follows the opaque silhouette rather than the broad bounds edge");
 });
 
 test("solid layout remains client-derived instead of entering snapshots", () => {
