@@ -28,7 +28,7 @@ test('modern play boosters preserve bonus-sheet and Special Guest source cards',
 
   assert.equal(mh3.appBoosterMap.play, 'play');
   assert.ok(mh3.boosters.play.sheets.specialGuest);
-  assert.ok(blb.extraSheetsByBoosterType.play.theList);
+  assert.ok(blb.extraSheetsByBoosterType.play.specialGuest);
   assert.ok(setCodes(blb).has('spg'));
   assert.ok(setCodes(otj).has('big'));
   assert.ok(setCodes(otj).has('otp'));
