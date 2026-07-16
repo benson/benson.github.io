@@ -418,6 +418,45 @@
 
     figcaption { padding: .8rem 1rem; color: var(--muted); font-size: .76rem; line-height: 1.5; }
 
+    .game-shot img, .game-map img { filter: saturate(.95) brightness(.96); }
+    .game-map img { aspect-ratio: auto; object-fit: contain; }
+    .source-link { color: #c9b979; text-underline-offset: .18em; }
+    .tap-note { color: var(--faint); white-space: nowrap; }
+
+    .shot-grid { display: grid; gap: .8rem; margin: 1.2rem 0; }
+    .shot-grid figure { margin: 0; }
+
+    .icon-legend {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: .65rem;
+      margin: 1.2rem 0 1.5rem;
+    }
+
+    .icon-card {
+      min-width: 0;
+      padding: .75rem;
+      border: 1px solid var(--line);
+      border-radius: .9rem;
+      background: var(--surface);
+    }
+
+    .icon-sample {
+      height: 4.8rem;
+      display: grid;
+      place-items: center;
+      margin-bottom: .65rem;
+      border-radius: .65rem;
+      overflow: hidden;
+      background: radial-gradient(circle, #393a31 0%, #191b17 72%);
+    }
+
+    .icon-sample img { width: 4rem; height: 4rem; object-fit: contain; }
+    .icon-sample img.tall { width: 2.6rem; height: 4.4rem; }
+    .icon-sample img.screen-crop { width: 100%; height: 100%; object-fit: cover; }
+    .icon-card h3 { margin-bottom: .25rem; font-size: .9rem; }
+    .icon-card p { margin: 0; color: var(--muted); font-size: .76rem; line-height: 1.4; }
+
     .tablist {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -576,6 +615,8 @@
       .hero-copy { padding-bottom: 4.6rem; }
       .quick-grid { grid-template-columns: repeat(2, 1fr); }
       .quick-grid .gold-card { grid-column: 1 / -1; }
+      .shot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .icon-legend { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .card { padding: 1.35rem; }
       main { padding-top: 3.5rem; }
       section { padding: 4.2rem 0; }
@@ -676,6 +717,14 @@
         </article>
       </div>
 
+      <figure class="game-shot">
+        <picture>
+          <source media="(max-width: 767px)" srcset="assets/game/tree-sentinel-640.webp">
+          <img src="assets/game/tree-sentinel-1000.webp" alt="The mounted Tree Sentinel charging the player in Limgrave" width="1000" height="563" loading="lazy">
+        </picture>
+        <figcaption>The Tree Sentinel is the first lesson: seeing an enemy does not create an obligation. Ride around him and return stronger. <a class="source-link" href="https://en.bandainamcoent.eu/elden-ring/news/elden-ring-early-game-tips">Official early-game screenshot</a>.</figcaption>
+      </figure>
+
       <div class="one-rule"><strong>Your real objective:</strong> stay curious. Runes are replaceable; discoveries are the reward.</div>
     </section>
 
@@ -692,6 +741,14 @@
         <li><label class="check-row"><input type="checkbox" data-check="bell"><span>Return to the Church of Elleh at night for the Spirit Calling Bell. If nobody appears, buy it later at Roundtable Hold.</span></label></li>
         <li><label class="check-row"><input type="checkbox" data-check="south"><span>Explore Limgrave, then cross the bridge south into the Weeping Peninsula before forcing Stormveil.</span></label></li>
       </ul>
+
+      <figure class="game-shot">
+        <picture>
+          <source media="(max-width: 767px)" srcset="assets/game/spirit-bell-640.webp">
+          <img src="assets/game/spirit-bell-1000.webp" alt="Renna speaking with the player at the Church of Elleh at night" width="1000" height="563" loading="lazy">
+        </picture>
+        <figcaption>After Melina gives you Torrent, return to the Church of Elleh at night. This is the encounter that gives you the Spirit Calling Bell and Lone Wolf Ashes. <a class="source-link" href="https://en.bandainamcoent.eu/elden-ring/news/elden-ring-early-game-tips">Official early-game screenshot</a>.</figcaption>
+      </figure>
 
       <div class="route" aria-label="Suggested early progression">
         <div class="route-step"><span class="route-dot"></span><span class="route-time">Hours 0–2</span><h3>Church → Gatefront → nearby caves</h3><p>Learn the controls, unlock Torrent and spirits, test weapons, and clear small dungeons.</p></div>
@@ -745,6 +802,14 @@
         <li>Add Endurance or Mind only when stamina, equip load, or FP is actively annoying you.</li>
         <li>Invest in one main damage stat. Do not level everything evenly.</li>
       </ol>
+
+      <figure class="game-shot game-map">
+        <picture>
+          <source media="(max-width: 767px)" srcset="assets/game/level-up-768.webp">
+          <img src="assets/game/level-up-1280.webp" alt="The Elden Ring Level Up screen with Vigor, Mind, Endurance, Strength and the other attributes listed" width="1280" height="720" loading="lazy">
+        </picture>
+        <figcaption>The attribute list you will actually see. Vigor raises HP; the blue comparison numbers show what the selected level changes before you confirm. <a class="source-link" href="https://en.bandainamcoent.eu/elden-ring/news/elden-ring-early-game-tips">Official early-game screenshot</a>.</figcaption>
+      </figure>
 
       <div class="callout danger">
         <span class="callout-label">Do not sell equipment</span>
@@ -802,17 +867,76 @@
       <h2>Read the map like an adventurer</h2>
       <p class="lede">The map is intentionally incomplete, but it gives consistent visual clues. Follow curiosity before objectives.</p>
 
-      <figure>
-        <picture>
-          <source media="(max-width: 767px)" srcset="assets/explore-768.webp">
-          <img src="assets/explore-1536.webp" alt="A traveler on a spectral steed pauses where roads branch toward a church, mine, bridge, and distant castle" width="1536" height="862" loading="lazy">
-        </picture>
-        <figcaption>Roads connect useful places. Churches, mines, ruins, towers, strange shapes, and anything glowing are nearly always worth a detour.</figcaption>
+      <figure class="game-map">
+        <a href="assets/game/map-limgrave-1536.webp" aria-label="Open the Limgrave map at full size">
+          <picture>
+            <source media="(max-width: 767px)" srcset="assets/game/map-limgrave-768.webp">
+            <img src="assets/game/map-limgrave-1536.webp" alt="The in-game Limgrave map showing golden Sites of Grace and long golden Guidance of Grace trails" width="1536" height="864" loading="lazy">
+          </picture>
+        </a>
+        <figcaption>This is the real Limgrave map. Gold circles are Sites of Grace; the long gold trails attached to some of them are Guidance of Grace. Roads and drawn structures are often more useful than labels. <span class="tap-note">Tap for full size.</span> <a class="source-link" href="https://en.bandainamcoent.eu/elden-ring/news/elden-ring-early-game-tips">Official screenshot</a>.</figcaption>
       </figure>
 
+      <h3>The exact icons worth recognizing</h3>
+      <p>Match these symbols directly; you do not need to memorize somebody's description of their shape.</p>
+
+      <div class="icon-legend" aria-label="In-game map and HUD icon legend">
+        <article class="icon-card">
+          <div class="icon-sample"><img class="screen-crop" src="assets/game/icon-map-fragment.webp" alt="The map fragment stele symbol on an unrevealed map" width="480" height="220" loading="lazy"></div>
+          <h3>Map fragment stele</h3>
+          <p>Ride to this on the blank map to reveal the region.</p>
+        </article>
+        <article class="icon-card">
+          <div class="icon-sample"><img src="assets/game/icon-grace.png" alt="Site of Grace map icon" width="135" height="135" loading="lazy"></div>
+          <h3>Site of Grace</h3>
+          <p>Rest, level, refill, and fast-travel here once found.</p>
+        </article>
+        <article class="icon-card">
+          <div class="icon-sample"><img class="tall" src="assets/game/icon-guidance.png" alt="Guidance of Grace map icon" width="97" height="290" loading="lazy"></div>
+          <h3>Guidance of Grace</h3>
+          <p>A suggested major direction, never an order.</p>
+        </article>
+        <article class="icon-card">
+          <div class="icon-sample"><img src="assets/game/icon-tunnel.png" alt="Tunnel map icon" width="175" height="154" loading="lazy"></div>
+          <h3>Tunnel</h3>
+          <p>Prioritize these when you need Smithing Stones.</p>
+        </article>
+        <article class="icon-card">
+          <div class="icon-sample"><img src="assets/game/icon-cave.png" alt="Cave map icon" width="171" height="156" loading="lazy"></div>
+          <h3>Cave</h3>
+          <p>A small optional dungeon, usually with a boss and reward.</p>
+        </article>
+        <article class="icon-card">
+          <div class="icon-sample"><img class="screen-crop" src="assets/game/icon-spirit-summon.webp" alt="Rebirth monument icon shown on the left side of the HUD" width="440" height="200" loading="lazy"></div>
+          <h3>Spirit summon available</h3>
+          <p>When this appears at screen-left, a Spirit Ash can be used.</p>
+        </article>
+      </div>
+
+      <div class="shot-grid">
+        <figure class="game-map">
+          <a href="assets/game/map-fragment-1280.webp" aria-label="Open the map fragment screenshot at full size">
+            <picture>
+              <source media="(max-width: 767px)" srcset="assets/game/map-fragment-768.webp">
+              <img src="assets/game/map-fragment-1280.webp" alt="An unrevealed map with the glowing map fragment stele icon under the cursor" width="1280" height="720" loading="lazy">
+            </picture>
+          </a>
+          <figcaption>The stele symbol remains visible through an unrevealed map. Put a beacon on it and follow the road. <a class="source-link" href="https://en.bandainamcoent.eu/elden-ring/news/elden-ring-early-game-tips">Official screenshot</a>.</figcaption>
+        </figure>
+        <figure class="game-map">
+          <a href="assets/game/limgrave-tunnels-1280.webp" aria-label="Open the Limgrave Tunnels map screenshot at full size">
+            <picture>
+              <source media="(max-width: 767px)" srcset="assets/game/limgrave-tunnels-768.webp">
+              <img src="assets/game/limgrave-tunnels-1280.webp" alt="The in-game map with Limgrave Tunnels selected east of the starting area" width="1280" height="720" loading="lazy">
+            </picture>
+          </a>
+          <figcaption>Limgrave Tunnels is just east of the early graces and is your first dependable Smithing Stone run. <a class="source-link" href="https://en.bandainamcoent.eu/elden-ring/news/elden-ring-early-game-tips">Official screenshot</a>.</figcaption>
+        </figure>
+      </div>
+
       <div class="quick-grid">
-        <article class="card"><span class="card-label">Blank map</span><h3>Find the little monument icon</h3><p>Map fragments usually sit at those roadside stone pillars. You can see the pillar symbol even before revealing the region.</p></article>
-        <article class="card"><span class="card-label">Weapon upgrades</span><h3>Look for mine entrances</h3><p>Dark, reddish-rimmed tunnel marks on the revealed map often indicate mines packed with smithing stones.</p></article>
+        <article class="card"><span class="card-label">Blank map</span><h3>Match the stele icon above</h3><p>Map fragments usually sit at roadside stone pillars, and their exact symbol remains visible before the region is revealed.</p></article>
+        <article class="card"><span class="card-label">Weapon upgrades</span><h3>Match the tunnel icon above</h3><p>Tunnels and mines are packed with Smithing Stones. Clear one whenever your weapon damage starts to feel low.</p></article>
         <article class="card"><span class="card-label">More flask uses</span><h3>Visit tiny golden trees</h3><p>Golden Seeds increase your number of flask charges when used at a Site of Grace.</p></article>
         <article class="card"><span class="card-label">Stronger healing</span><h3>Visit churches</h3><p>Sacred Tears improve how much each flask restores. Use them through the Flask menu at a grace.</p></article>
       </div>
@@ -923,8 +1047,8 @@
       </details>
 
       <details>
-        <summary>What does the little tombstone icon mean?</summary>
-        <div class="details-body"><p>It means spirit summoning is available in that area. Equip a spirit ash, ensure you have enough FP or HP for its cost, and use it once per encounter. Spirits cannot normally be used while a multiplayer ally is present.</p></div>
+        <summary>What does the spirit-summon HUD icon mean?</summary>
+        <div class="details-body"><p>It is the white monument symbol shown in the icon legend above. When it appears at screen-left, spirit summoning is available in that area. Equip a spirit ash, ensure you have enough FP or HP for its cost, and use it once per encounter. Spirits cannot normally be used while a multiplayer ally is present.</p></div>
       </details>
 
       <details>
@@ -934,12 +1058,13 @@
 
       <div class="sources">
         <p><strong>Useful official references:</strong> Bandai Namco’s <a href="https://en.bandainamcoent.eu/elden-ring/news/elden-ring-starter-guide-tips-know-playing-the-game" rel="noopener">complete starter guide</a> and <a href="https://en.bandainamcoent.eu/elden-ring/news/elden-ring-early-game-tips" rel="noopener">early-game tips</a>. Both explain the core systems without requiring a build wiki.</p>
+        <p><strong>Visual reference:</strong> exact interface symbols are cross-checked against Eldenpedia’s <a href="https://eldenring.wiki.gg/wiki/Map/Icons" rel="noopener">in-game map icon gallery</a> and <a href="https://eldenring.wiki.gg/wiki/About_Monument_Icon" rel="noopener">rebirth-monument tutorial capture</a>.</p>
       </div>
 
       <div class="one-rule"><strong>Last thing:</strong> the winning play style is the one that makes you want to open the game again tomorrow.</div>
 
       <div class="credits">
-        <p>Fan-made beginner guide for Elden Ring. Elden Ring and its names are trademarks of FromSoftware and Bandai Namco Entertainment. Original editorial illustrations were generated for this page; no official game artwork is reproduced. Updated July 2026.</p>
+        <p>Fan-made beginner guide for Elden Ring. Game screenshots, map, and interface symbols © FromSoftware / Bandai Namco Entertainment, reproduced in context for identification and commentary; sources are linked beside the images. Original editorial illustrations were generated for this page. Updated July 2026.</p>
         <p><a class="footer-mark" href="/">bensonperry.com</a></p>
       </div>
     </section>
