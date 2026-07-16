@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const RELEASE = "20260715.3";
+const RELEASE = "20260715.4";
 const importers = [
   "index.html", "game.js", "engine.js", "render.js", "replay-timeline.js",
   "replay-game-adapters.js", "specialist-identity.js", "host-migration.js",
@@ -11,7 +11,7 @@ const importers = [
   "run-archive.js", "map-mechanics.js", "environment-chunks.js", "themes/lastlight.js",
   "campaign-mutations.js", "rare-discoveries.js", "challenge-achievements.js",
   "seeded-operations.js", "practice-laboratory.js", "accessibility-settings.js",
-  "enemy-body-motion.js", "impact-feel.js", "feedback-haptics.js", "combat-choreography.js",
+  "enemy-body-motion.js", "impact-feel.js", "feedback-haptics.js", "combat-choreography.js", "combat-rhythm.js",
 ];
 const changedTargets = new Set([
   "styles.css", "game.js", "engine.js", "render.js",
@@ -21,7 +21,7 @@ const changedTargets = new Set([
   "telemetry.js", "data.js", "movement.js", "specialist-identity.js", "upgrade-preview.js",
   "combat-metadata.js", "impact-grammar.js", "synergy-tags.js",
   "run-archive.js", "map-mechanics.js", "environment-chunks.js", "themes/lastlight.js", "rare-discoveries.js", "challenge-achievements.js", "seeded-operations.js", "practice-laboratory.js", "accessibility-settings.js",
-  "enemy-body-motion.js", "impact-feel.js", "feedback-haptics.js", "combat-choreography.js",
+  "enemy-body-motion.js", "impact-feel.js", "feedback-haptics.js", "combat-choreography.js", "combat-rhythm.js",
 ]);
 
 test("the active build cache-busts every changed module through the transitive browser graph", () => {
@@ -41,7 +41,7 @@ test("the active build cache-busts every changed module through the transitive b
 test("the visible and runtime build identities match the cache release", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
   const game = readFileSync(new URL("../game.js", import.meta.url), "utf8");
-  assert.match(html, /Lastlight build 2026\.07\.15\.3/);
-  assert.match(html, /<strong>2026\.07\.15\.3<\/strong>/);
-  assert.match(game, /const BUILD = "2026\.07\.15\.3"/);
+  assert.match(html, /Lastlight build 2026\.07\.15\.4/);
+  assert.match(html, /<strong>2026\.07\.15\.4<\/strong>/);
+  assert.match(game, /const BUILD = "2026\.07\.15\.4"/);
 });
