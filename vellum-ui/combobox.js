@@ -1,4 +1,4 @@
-import { outsideClick } from './outsideClick.js?v=54f748b9d565';
+import { outsideClick } from './outsideClick.js?v=a2b3b4706c4a';
 
 export function combobox(input, options = {}) {
   const {

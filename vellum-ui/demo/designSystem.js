@@ -17,12 +17,36 @@ import {
   statusStateHtml,
   themeToggle as bindThemeToggle,
   toast,
-} from '../index.js?v=54f748b9d565';
+} from '../index.js?v=a2b3b4706c4a';
 
 const mount = document.getElementById('designSystemMount');
 
 const PLAYGROUND_KEY = 'vellum_ds_token_overrides_v1';
 const THEME_KEY = 'vellum_ds_theme_v1';
+const BRAND_STUDY_KEY = 'vellum_ds_brand_study_v1';
+
+const BRAND_STUDY_IDEAS = [
+  ['Vellum canvas', 'A warmer, less grey page ground makes the system feel tactile without adding texture.'],
+  ['Paper surfaces', 'Raised surfaces move toward clean book paper; sunken surfaces keep a quiet parchment cast.'],
+  ['Plum ink', 'The existing purple becomes a deliberate editorial ink rather than a generic product accent.'],
+  ['Antique gold', 'A second, very sparse accent marks folios and special details without competing with actions.'],
+  ['Warm charcoal', 'Text shifts away from neutral black so ink and paper feel related.'],
+  ['Bookish hierarchy', 'Serif type appears at meaningful hierarchy changes, while controls stay fast and sans.'],
+  ['Folio numbers', 'Catalog sections gain quiet two-digit index numbers for rhythm and wayfinding.'],
+  ['V bookplate', 'A tiny monogram gives Vellum a recognizable signature without becoming a logo-heavy shell.'],
+  ['Spine rule', 'The hero uses one plum edge instead of a dark outline around every side.'],
+  ['Editorial measure', 'The introduction narrows to a comfortable reading width and gets slightly more leading.'],
+  ['Index navigation', 'The active catalog item reads like a marked index entry, with a dot and pale ink wash.'],
+  ['Purposeful corners', 'Controls stay compact; sheets and overlays get the softer radius.'],
+  ['Ink-wash selection', 'Selected tabs, segments, and rows share one pale plum selection language.'],
+  ['Pressed ink', 'Primary controls compress subtly on press and use a firmer plum at hover.'],
+  ['Halo focus', 'Focus combines a crisp ink edge with a translucent outer halo.'],
+  ['Quiet fields', 'Inputs remain paper-white at rest and pick up a warm plum edge only when engaged.'],
+  ['Ledger tables', 'Table headers receive a restrained parchment band and stronger numeric alignment.'],
+  ['Paper overlays', 'Menus and dialogs use brighter paper, a fine warm line, and one consistent floating shadow.'],
+  ['Calm motion', 'Entrances settle quickly with ease-out; repeated hover feedback stays nearly instant.'],
+  ['Vellum voice', 'Labels and examples use concise, book-and-catalog language instead of generic demo copy.'],
+];
 
 const PLAYGROUND_GROUPS = [
   {
@@ -102,6 +126,7 @@ const PLAYGROUND_TOKENS = PLAYGROUND_GROUPS.flatMap((groupDef) => groupDef.token
 // Theme first, then defaults, then stored overrides — defaults must reflect
 // the active theme but not the overrides.
 applyStoredTheme({ storageKey: THEME_KEY, fallbackToSystem: false });
+applyBrandStudy(readBrandStudy());
 const tokenDefaults = readTokenDefaults();
 applyOverrides(readOverrides());
 
@@ -197,6 +222,7 @@ export function renderDesignSystem(target) {
   for (const groupNode of groups) content.append(groupNode);
   target.append(
     pageHeader(),
+    brandStudyNotes(),
     el(
       'div',
       { className: 'ds-page-layout' },
@@ -220,8 +246,86 @@ function pageHeader() {
     el(
       'nav',
       { className: 'ds-page-actions', ariaLabel: 'Vellum UI pages' },
+      brandStudyToggle(),
       el('a', { className: 'btn', href: 'https://bensonperry.com/', text: 'home' }),
       el('a', { className: 'btn', href: '../labs/modal/', text: 'modal lab' }),
+    ),
+  );
+}
+
+function readBrandStudy() {
+  const requested = new URLSearchParams(location.search).get('study');
+  if (requested === 'branded' || requested === 'before') return requested === 'branded' ? 'after' : 'before';
+  try {
+    return localStorage.getItem(BRAND_STUDY_KEY) === 'after' ? 'after' : 'before';
+  } catch {
+    return 'before';
+  }
+}
+
+function applyBrandStudy(mode, { persist = false } = {}) {
+  document.documentElement.dataset.vuiBrandStudy = mode;
+  if (persist) {
+    try {
+      localStorage.setItem(BRAND_STUDY_KEY, mode);
+    } catch {
+      /* ignore */
+    }
+    const url = new URL(location.href);
+    if (mode === 'after') url.searchParams.set('study', 'branded');
+    else url.searchParams.delete('study');
+    history.replaceState(null, '', url);
+  }
+  document.querySelectorAll('[data-brand-study-mode]').forEach((button) => {
+    const active = button.dataset.brandStudyMode === mode;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+  if (document.querySelector('.ds-playground')) refreshTokenDefaults();
+}
+
+function brandStudyToggle() {
+  const control = el('div', {
+    className: 'segmented segmented-compact ds-brand-study-toggle',
+    role: 'group',
+    ariaLabel: 'Brand study comparison',
+  });
+  for (const mode of ['before', 'after']) {
+    control.append(
+      el('button', {
+        className: `segment-btn${document.documentElement.dataset.vuiBrandStudy === mode ? ' active' : ''}`,
+        type: 'button',
+        text: mode,
+        ariaPressed: document.documentElement.dataset.vuiBrandStudy === mode,
+        dataset: { brandStudyMode: mode },
+        onClick: () => applyBrandStudy(mode, { persist: true }),
+      }),
+    );
+  }
+  return el(
+    'div',
+    { className: 'ds-brand-study-control' },
+    el('span', { className: 'ds-brand-study-label', text: 'brand study' }),
+    control,
+  );
+}
+
+function brandStudyNotes() {
+  return el(
+    'details',
+    { className: 'ds-brand-study-notes' },
+    el(
+      'summary',
+      {},
+      el('span', { text: '20 decisions in the branded direction' }),
+      el('span', { className: 'ds-brand-study-summary-mark', text: 'field notes' }),
+    ),
+    el(
+      'ol',
+      { className: 'ds-brand-study-grid' },
+      BRAND_STUDY_IDEAS.map(([title, description]) =>
+        el('li', {}, el('strong', { text: title }), el('span', { text: description })),
+      ),
     ),
   );
 }
