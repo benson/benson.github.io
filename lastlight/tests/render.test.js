@@ -190,6 +190,8 @@ test("inspection explains raised-cover projectile interception and authored exce
   const result = renderer.inspectAt(500, 350, state);
   assert.equal(result.type, "obstacle");
   assert.equal(result.stats["Projectile cover"], "Most shots");
+  assert.equal(Object.hasOwn(result.stats, "Width"), false);
+  assert.equal(Object.hasOwn(result.stats, "Height"), false);
   assert.equal(result.stats.Exceptions, "Rail lanes · Apex fire");
 });
 
@@ -390,13 +392,14 @@ test("renderer shares exact alpha-silhouette structure geometry with material an
   assert.doesNotMatch(renderSource, /fillRect\(baseX/);
 });
 
-test("motion playback keeps anchors stable, respects specialist facing policies, and caps retained deaths", () => {
+test("motion playback keeps anchors stable, trusts authoritative input-facing, and caps retained deaths", () => {
   assert.match(renderSource, /const locomotionTarget =/);
   assert.match(renderSource, /const aimTarget =/);
   assert.match(renderSource, /specialistFacingTarget\(raw, reportedMoving, inferredFacing\)/);
-  assert.match(renderSource, /const drawFacing = usesAimFacing \|\| !moving \? visual\.aimFacing : visual\.facing/);
+  assert.match(renderSource, /const drawFacing = visual\.aimFacing/);
   assert.match(renderSource, /stableDirectionColumn\(drawFacing, visual\.directionColumn\)/);
-  assert.doesNotMatch(renderSource, /usesAimFacing[^\n]+weaponFlash/);
+  assert.doesNotMatch(renderSource, /usesAimFacing/);
+  assert.doesNotMatch(renderSource, /p\.id === localPlayerId[\s\S]{0,180}ellipse\(0, groundY - 2, 39, 17/);
   assert.match(renderSource, /fixedSpriteTop/);
   assert.match(renderSource, /deathBudget = Math\.min\(24/);
   assert.match(renderSource, /type: "enemy-death"/);

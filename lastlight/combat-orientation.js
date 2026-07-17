@@ -41,12 +41,25 @@ export function commitCombatFacing(player, angle, tick, { sourceId = "signature"
 export function resolvedCombatFacing(player, tick = Infinity) {
   if (!player) return 0;
   if (player.animState === "dash" && Number(player.animTime) > 0 && Number.isFinite(player.dashFacing)) return player.dashFacing;
-  if (Number.isFinite(player.combatFacing) && Number(player.combatFacingUntilTick) >= Number(tick)) return player.combatFacing;
-  if (player.autoAim && (player.autoAimTargetId || player.autoAimTracking) && Number.isFinite(player.autoAimFacing)) return player.autoAimFacing;
   if (player.autoAim) return player.moving && Number.isFinite(player.movementFacing) ? player.movementFacing : Number(player.facing) || 0;
   if (Number.isFinite(player.input?.aim)) return player.input.aim;
   if (Number.isFinite(player.aimFacing)) return player.aimFacing;
   return Number(player.facing) || 0;
+}
+
+export function movementClassificationFacing(player, tick = Infinity) {
+  if (!player) return 0;
+  if (Number.isFinite(player.combatFacing) && Number(player.combatFacingUntilTick) >= Number(tick)) return player.combatFacing;
+  if (player.autoAim && (player.autoAimTargetId || player.autoAimTracking) && Number.isFinite(player.autoAimFacing)) return player.autoAimFacing;
+  if (player.autoAim) return player.moving && Number.isFinite(player.movementFacing) ? player.movementFacing : Number(player.facing) || 0;
+  if (Number.isFinite(player.input?.aim)) return player.input.aim;
+  return Number(player.aimFacing) || Number(player.facing) || 0;
+}
+
+export function pointerAimFromWorld(player, pointerWorld, fallback = 0) {
+  if (!player || !Number.isFinite(pointerWorld?.x) || !Number.isFinite(pointerWorld?.y)) return Number(fallback) || 0;
+  const dx = pointerWorld.x - Number(player.x || 0), dy = pointerWorld.y - Number(player.y || 0);
+  return Math.hypot(dx, dy) > 1e-6 ? Math.atan2(dy, dx) : Number(fallback) || 0;
 }
 
 export function combatTurnPlan({ from = 0, to = 0, recoil = 0, reducedMotion = false } = {}) {

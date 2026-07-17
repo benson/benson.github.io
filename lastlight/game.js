@@ -1,51 +1,52 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260716.15";
-import { Simulation, WORLD, coverObstaclesForMap, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260716.15";
-import { Renderer } from "./render.js?v=20260716.15";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260717.1";
+import { Simulation, WORLD, coverObstaclesForMap, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260717.1";
+import { Renderer } from "./render.js?v=20260717.1";
 import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260713.2";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
-import { getThemeAsset, getThemeEnvironmentChunks, getThemeMaterial } from "./themes/lastlight.js?v=20260716.15";
-import { submitRunTelemetry } from "./telemetry.js?v=20260716.15";
+import { getThemeAsset, getThemeEnvironmentChunks, getThemeMaterial } from "./themes/lastlight.js?v=20260717.1";
+import { submitRunTelemetry } from "./telemetry.js?v=20260717.1";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260716.15";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260716.15";
+import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260717.1";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260717.1";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
-import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260716.15";
-import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260716.15";
-import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260716.15";
+import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260717.1";
+import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260717.1";
+import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260717.1";
 import {
   ACCESSIBILITY_ACTIONS, GAMEPAD_ACTIONS, bindingLabel, defaultAccessibilitySettings,
   keyboardActionForEvent, loadAccessibilitySettings, readStandardGamepad, saveAccessibilitySettings,
-} from "./accessibility-settings.js?v=20260716.15";
-import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260716.15";
+} from "./accessibility-settings.js?v=20260717.1";
+import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260717.1";
 import { GuestInputSequenceTracker, HostInputSequenceGate, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260713.2";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260713.2";
-import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260716.15";
-import { advancePlayerMovement } from "./movement.js?v=20260716.15";
-import { abilityChoreography } from "./combat-choreography.js?v=20260716.15";
-import { combatRhythmTransition } from "./combat-rhythm.js?v=20260716.15";
-import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260716.15";
-import { DynamicAudioMixer } from "./audio-mix.js?v=20260716.15";
-import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260716.15";
+import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260717.1";
+import { advancePlayerMovement } from "./movement.js?v=20260717.1";
+import { pointerAimFromWorld } from "./combat-orientation.js?v=20260717.1";
+import { abilityChoreography } from "./combat-choreography.js?v=20260717.1";
+import { combatRhythmTransition } from "./combat-rhythm.js?v=20260717.1";
+import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260717.1";
+import { DynamicAudioMixer } from "./audio-mix.js?v=20260717.1";
+import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260717.1";
 import { enemyAudioCueName, newEntities, spatialAudioPan, weaponAudioCueName, weaponTimerActivations } from "./audio-events.js?v=20260713.1";
 import { FUNNY_VOICE_MIN_INTERVAL_MS, audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260713.1";
-import { playFeedbackHaptics } from "./feedback-haptics.js?v=20260716.15";
-import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260716.15";
-import { BUILDCRAFT_CATEGORY_DEFINITIONS, passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260716.15";
+import { playFeedbackHaptics } from "./feedback-haptics.js?v=20260717.1";
+import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260717.1";
+import { BUILDCRAFT_CATEGORY_DEFINITIONS, passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260717.1";
 import { getWeaponEvolution } from "./weapon-evolution.js?v=20260713.1";
-import { isFpsShortcut, isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260716.15";
-import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260716.15";
-import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260716.15";
-import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260716.15";
+import { isFpsShortcut, isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260717.1";
+import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260717.1";
+import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260717.1";
+import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260717.1";
 import { reconcileActiveBuffs } from "./active-buffs.js?v=20260713.1";
 import { ELITE_AFFIXES, ENEMY_ARCHETYPES, eliteAffixEligibility } from "./enemy-archetypes.js?v=20260713.1";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
-import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260716.15";
-import { CAMPAIGN_MUTATIONS, campaignMutationDefinition, campaignMutationPackageVisible } from "./campaign-mutations.js?v=20260716.15";
+import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260717.1";
+import { CAMPAIGN_MUTATIONS, campaignMutationDefinition, campaignMutationPackageVisible } from "./campaign-mutations.js?v=20260717.1";
 import {
   AuthoritySnapshotGate, HOST_MIGRATION_PROTOCOL_VERSION, MIGRATION_CHECKPOINT_INTERVAL_TICKS,
   createMigrationCapabilities, createMigrationCheckpoint, createMigrationReady,
   migrationCompatibilityMatches, validateMigrationCheckpoint,
-} from "./host-migration.js?v=20260716.15";
+} from "./host-migration.js?v=20260717.1";
 import { RECONNECT_DELAYS_MS, SquadPresenceTracker, authorityStateCopy } from "./reconnect-state.js?v=20260713.3";
 import {
   HostPingGate, PING_INTENTS, PING_LIFETIME_TICKS, PING_WHEEL_ORDER, PingSequenceTracker,
@@ -61,32 +62,32 @@ import { DraftRecommendationStore, recommendationMarkerModel } from "./draft-rec
 import { SQUAD_SYNERGY_REGISTRY } from "./squad-synergies.js?v=20260713.6";
 import { reconcileActiveSynergies } from "./active-synergies.js?v=20260713.6";
 import { PARTICIPATION_REGISTRY } from "./participation-credit.js?v=20260713.7";
-import { campaignJoinEligibility } from "./join-in-progress.js?v=20260716.15";
+import { campaignJoinEligibility } from "./join-in-progress.js?v=20260717.1";
 import {
   RUN_ARCHIVE_STORAGE_KEY, createSquadRunReport, decodeSquadRunFragment, normalizeRunArchiveStorage,
   squadRunShareFragment, upsertRunArchive,
-} from "./run-archive.js?v=20260716.15";
+} from "./run-archive.js?v=20260717.1";
 import {
   SPECIALIST_MASTERY, SPECIALIST_MASTERY_LEVELS, awardSpecialistMastery, loadSpecialistMasteryState,
   masteryStartDefinition, saveSpecialistMasteryState, selectMasteryStart,
-} from "./specialist-mastery.js?v=20260716.15";
+} from "./specialist-mastery.js?v=20260717.1";
 import {
   RARE_DISCOVERY_REGISTRY, awardRareDiscoveries, loadRareDiscoveryCollection,
   rareDiscoveryDefinition, rareDiscoveryTelemetry, saveRareDiscoveryCollection,
-} from "./rare-discoveries.js?v=20260716.15";
+} from "./rare-discoveries.js?v=20260717.1";
 import {
   CHALLENGE_ACHIEVEMENT_REGISTRY, awardChallengeAchievements, challengeAchievementDefinition,
   challengeAchievementTelemetry, evaluateChallengeAchievements, loadChallengeAchievementState,
   saveChallengeAchievementState,
-} from "./challenge-achievements.js?v=20260716.15";
+} from "./challenge-achievements.js?v=20260717.1";
 import {
   loadSeededOperationRecords, recordSeededOperationResult, saveSeededOperationRecords,
   seededOperationFor, seededOperationFromId, seededOperationTelemetry,
-} from "./seeded-operations.js?v=20260716.15";
+} from "./seeded-operations.js?v=20260717.1";
 import {
   PRACTICE_MAX_PASSIVES, PRACTICE_MAX_WEAPONS, defaultPracticeLaboratoryConfig,
   measurePracticeLaboratory, normalizePracticeLaboratoryConfig,
-} from "./practice-laboratory.js?v=20260716.15";
+} from "./practice-laboratory.js?v=20260717.1";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -95,7 +96,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.16.15";
+const BUILD = "2026.07.17.1";
 const AUTHORITY_WATCHDOG_MS = Object.freeze({ synchronizing: 10_000, migrating: 25_000 });
 const BALANCE = getBalanceConfig();
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
@@ -189,7 +190,7 @@ const state = {
   lobby: new Map(), ws: null, connecting: false, connectResolve: null, connectReject: null,
   config: { map: "warehouse", difficulty: "story", duration: 240 }, sim: null,
   previousSnapshot: null, snapshot: null, snapshotAt: 0, snapshotInterval: 90,
-  input: { keys: new Set(), aim: 0, autoAim: true, touchX: 0, touchY: 0, gamepadX: 0, gamepadY: 0, gamepadButtons: new Set() },
+  input: { keys: new Set(), aim: 0, pointer: null, autoAim: true, touchX: 0, touchY: 0, gamepadX: 0, gamepadY: 0, gamepadButtons: new Set() },
   animation: 0, lastFrame: 0, lastSend: 0, lastBroadcast: 0, lastLobbyBroadcast: 0,
   lastUpgradeKey: "", lastWeaponHUDKey: "", lastPassiveHUDKey: "", lastSquadHUDKey: "", lastBossHUDKey: "", lastEventSeq: 0, lastWave: null, endShown: false, resultTimer: null,
   progress: loadProgress(), runHistory: loadRunHistory(), resultGame: null, resultReport: null, resultSavedKey: "",
@@ -1237,7 +1238,7 @@ function renderGuide() {
     const spec = SPECIALISTS[id], identity = getSpecialistIdentity(id);
     const label = (value) => String(value).replaceAll("-", " ");
     const strong = (tier) => ["high", "very-high"].includes(tier);
-    const strengths = [strong(identity.mobility.tier) && `${label(identity.mobility.tier)} mobility`, strong(identity.safety.tier) && `${label(identity.safety.tier)} safety`, strong(identity.control.tier) && `${label(identity.control.tier)} control`, strong(identity.support.tier) && `${label(identity.support.tier)} support`].filter(Boolean).join(" · ") || `${label(identity.damageShape.cadence)} ${label(identity.range)}-range damage`;
+    const strengths = [strong(identity.mobility.tier) && `${label(identity.mobility.tier)} mobility`, strong(identity.safety.tier) && `${label(identity.safety.tier)} safety`, strong(identity.control.tier) && `${label(identity.control.tier)} control`, strong(identity.support.tier) && `${label(identity.support.tier)} support`].filter(Boolean).join(" · ") || `${cadenceDescription(identity.damageShape.cadence)} ${label(identity.range)}-range damage`;
     return guideCard(spec.number, spec.name, `${label(identity.role.primary)} · ${label(identity.role.specialization)}`, `${strengths}. Failure point: ${identity.failureModes[0].consequence}`, "", spec.sprite, {
       Range: label(identity.range), Mobility: label(identity.mobility.tier), Durability: label(identity.durability.tier), Safety: label(identity.safety.tier), Control: label(identity.control.tier), Support: label(identity.support.tier), "Identity contract": SPECIALIST_IDENTITY_VERSION,
     });
@@ -1426,6 +1427,10 @@ function chooseMasteryStart(startId) {
   } catch { toast("That field kit is still locked"); }
 }
 
+function cadenceDescription(cadence) {
+  return cadence === "gated" ? "flow-powered" : String(cadence).replaceAll("-", " ");
+}
+
 function selectSpecialist(id) {
   if (!SPECIALISTS[id]) return;
   state.selected = id;
@@ -1436,7 +1441,7 @@ function selectSpecialist(id) {
   $("detail-health").textContent = spec.health; $("detail-armor").textContent = spec.armor; $("detail-range").textContent = spec.range;
   const identity = getSpecialistIdentity(id), label = (value) => String(value).replaceAll("-", " ");
   const strong = (tier) => ["high", "very-high"].includes(tier);
-  $("identity-strengths").textContent = [strong(identity.mobility.tier) && `${label(identity.mobility.tier)} mobility`, strong(identity.safety.tier) && `${label(identity.safety.tier)} safety`, strong(identity.control.tier) && `${label(identity.control.tier)} control`, strong(identity.support.tier) && `${label(identity.support.tier)} support`].filter(Boolean).join(" · ") || `${label(identity.damageShape.cadence)} ${label(identity.range)}-range damage`;
+  $("identity-strengths").textContent = [strong(identity.mobility.tier) && `${label(identity.mobility.tier)} mobility`, strong(identity.safety.tier) && `${label(identity.safety.tier)} safety`, strong(identity.control.tier) && `${label(identity.control.tier)} control`, strong(identity.support.tier) && `${label(identity.support.tier)} support`].filter(Boolean).join(" · ") || `${cadenceDescription(identity.damageShape.cadence)} ${label(identity.range)}-range damage`;
   $("identity-risk").textContent = identity.failureModes[0].consequence;
   $("detail-weapon-icon").src = spec.signature.icon; $("detail-weapon-icon").alt = ""; $("detail-weapon-name").textContent = spec.signature.name;
   renderStartingWeaponDetails(spec);
@@ -1820,6 +1825,9 @@ function percentileFrom(values = [], amount = .95) {
 
 function currentInput() {
   const keys = state.input.keys, bindings = effectiveAccessibilitySettings().bindings;
+  const pointerWorld = state.input.pointer ? renderer.clientToWorld(state.input.pointer.clientX, state.input.pointer.clientY) : null;
+  const player = movementPredictor.player || localGamePlayer();
+  if (pointerWorld && player) state.input.aim = pointerAimFromWorld(player, pointerWorld, state.input.aim);
   let x = (keys.has(bindings.moveRight) ? 1 : 0) - (keys.has(bindings.moveLeft) ? 1 : 0) + state.input.touchX + state.input.gamepadX;
   let y = (keys.has(bindings.moveDown) ? 1 : 0) - (keys.has(bindings.moveUp) ? 1 : 0) + state.input.touchY + state.input.gamepadY;
   const length = Math.hypot(x, y); if (length > 1) { x /= length; y /= length; }
@@ -2521,7 +2529,7 @@ function forecastConsequencesMarkup(forecast) {
   if (forecast.evolution.newlyReady.length) notes.push(`${forecast.evolution.newlyReady.map(({ sourceId }) => sourceId === "signature" ? "Signature" : WEAPONS[sourceId]?.name || sourceId).join(", ")} ready for next access card`);
   if (forecast.slots.weapons.after > forecast.slots.weapons.before) notes.push(`Weapons ${forecast.slots.weapons.before}/${forecast.slots.weapons.max} → ${forecast.slots.weapons.after}/${forecast.slots.weapons.max}`);
   if (forecast.slots.passives.after > forecast.slots.passives.before) notes.push(`Passives ${forecast.slots.passives.before}/${forecast.slots.passives.max} → ${forecast.slots.passives.after}/${forecast.slots.passives.max}`);
-  notes.push(forecast.requiresReplacement ? "Choose a replacement to preview the final result" : `Pick bonus +${forecast.economy.delta} gold`);
+  if (forecast.requiresReplacement) notes.push("Choose a replacement to preview the final result");
   return `<div class="forecast-consequences" aria-label="Draft consequences">${notes.map((note) => `<span>${escapeHTML(note)}</span>`).join("")}</div>`;
 }
 
@@ -4434,7 +4442,7 @@ function bindEvents() {
     const isTyping = target instanceof Element && Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
     const isInteractive = target instanceof Element && Boolean(target.closest("button, a, input, textarea, select, [contenteditable='true']"));
     const dialogOpen = Boolean(document.querySelector("dialog[open]"));
-    const key = event.key.toLowerCase();
+    const key = String(event.key || "").toLowerCase();
     const action = keyboardActionForEvent(effectiveAccessibilitySettings(), event);
     if (!isTyping && !dialogOpen && !action && isFpsShortcut(event)) {
       event.preventDefault();
@@ -4502,8 +4510,10 @@ function bindEvents() {
   window.addEventListener("keyup", (event) => { const action = keyboardActionForEvent(effectiveAccessibilitySettings(), event); state.input.keys.delete(event.code); if (action === "ping" && state.pingWheel?.source === "keyboard") { event.preventDefault(); closePingWheel({ commit: true }); } if (action === "inspect" && !quickPauseActive()) { state.inspectActive = false; setTacticalIntel(false); hideInspectPanel(); } });
   window.addEventListener("blur", () => { closePingWheel(); state.input.keys.clear(); state.inspectActive = false; setTacticalIntel(false); hideInspectPanel(); });
   $("game-canvas").addEventListener("pointermove", (event) => {
-    const rect = $("game-canvas").getBoundingClientRect();
-    state.input.aim = Math.atan2(event.clientY - rect.top - rect.height / 2, event.clientX - rect.left - rect.width / 2);
+    state.input.pointer = { clientX: event.clientX, clientY: event.clientY };
+    const pointerWorld = renderer.clientToWorld(event.clientX, event.clientY);
+    const player = movementPredictor.player || localGamePlayer();
+    if (pointerWorld && player) state.input.aim = pointerAimFromWorld(player, pointerWorld, state.input.aim);
     state.inspectPointer = { clientX: event.clientX, clientY: event.clientY };
     if (state.pingWheel && (state.pingWheel.source === "keyboard" || event.pointerId === state.pingPointerId)) updatePingWheel(event.clientX, event.clientY);
     state.inspectActive = quickPauseActive() || event.shiftKey || state.input.keys.has(effectiveAccessibilitySettings().bindings.inspect);

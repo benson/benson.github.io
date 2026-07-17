@@ -124,7 +124,7 @@ test("banish persists for the run and skip resolves the multiplayer barrier with
   assert.equal(sim.paused, true);
   sim.choose("p2", sim.pendingChoices.p2[0].id);
   assert.equal(sim.paused, false);
-  assert.equal(sim.gold, 40);
+  assert.equal(sim.gold, 30);
   sim.beginUpgradeChoice();
   assert.ok(!sim.pendingChoices.p1.some(({ id }) => id === banished.id));
 });
@@ -150,8 +150,19 @@ test("full loadouts require one atomic explicit replacement and clean source sta
   assert.equal(player.weaponTimers.drone, undefined);
   assert.equal(player.weaponActivations.drone, undefined);
   assert.equal(sim.drones.some(({ owner }) => owner === player.id), false);
-  assert.equal(sim.gold, 10);
+  assert.equal(sim.gold, 0);
   assert.equal(replaced.decisionId, "replace:weapon:uwu:drone");
+});
+
+test("leveling grants gold exactly once before the draft, independent of the chosen upgrade", () => {
+  const sim = new Simulation({ players: [{ id: "p1", name: "One", specialist: "zuri" }] });
+  sim.teamXP = sim.xpNeed;
+  sim.updatePickups(1 / 60);
+  assert.equal(sim.level, 2);
+  assert.equal(sim.gold, 10);
+  assert.equal(sim.paused, true);
+  sim.choose("p1", sim.pendingChoices.p1[0].id);
+  assert.equal(sim.gold, 10);
 });
 
 test("access cards evolve a level-five weapon with its passive", () => {

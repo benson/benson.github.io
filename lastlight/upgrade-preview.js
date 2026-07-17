@@ -1,8 +1,8 @@
-import { BALANCE_CONFIG } from "./balance-config.js?v=20260716.15";
-import { PASSIVES, SPECIALISTS, WEAPONS } from "./data.js?v=20260716.15";
-import { formatProjectileDisplay, getCombatMetadata } from "./combat-metadata.js?v=20260716.15";
-import { playerCombatStat, playerMovementSpeed, previewPlayerUpgrade, UPGRADE_GOLD_REWARD } from "./engine.js?v=20260716.15";
-import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260716.15";
+import { BALANCE_CONFIG } from "./balance-config.js?v=20260717.1";
+import { PASSIVES, SPECIALISTS, WEAPONS } from "./data.js?v=20260717.1";
+import { formatProjectileDisplay, getCombatMetadata } from "./combat-metadata.js?v=20260717.1";
+import { playerCombatStat, playerMovementSpeed, previewPlayerUpgrade } from "./engine.js?v=20260717.1";
+import { passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260717.1";
 
 const { weapons: weaponBalance } = BALANCE_CONFIG;
 
@@ -262,7 +262,7 @@ export function forecastDraftChoice(choice, player, { gold = 0, gameLevel = 0, r
     statChanges: Object.freeze(statChanges), affectedSources: Object.freeze(affectedSources), tags,
     evolution: Object.freeze({ before: Object.freeze(beforeEvolution), after: Object.freeze(afterEvolution), newlyReady: Object.freeze(newlyReady), noLongerReady: Object.freeze(noLongerReady), nextEligible: afterEvolution.find(({ ready }) => ready)?.sourceId || null }),
     slots: Object.freeze({ weapons: Object.freeze({ before: beforeWeapons, after: afterWeapons, max: BALANCE_CONFIG.core.maxWeaponSlots }), passives: Object.freeze({ before: beforePassives, after: afterPassives, max: BALANCE_CONFIG.core.maxPassiveSlots }) }),
-    economy: Object.freeze({ before: Number(gold) || 0, after: (Number(gold) || 0) + (requiresReplacement ? 0 : UPGRADE_GOLD_REWARD), delta: requiresReplacement ? 0 : UPGRADE_GOLD_REWARD }),
+    economy: Object.freeze({ before: Number(gold) || 0, after: Number(gold) || 0, delta: 0 }),
     afterPlayer,
   });
 }

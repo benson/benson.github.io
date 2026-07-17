@@ -1,32 +1,32 @@
-import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260716.15";
-import { WORLD } from "./engine.js?v=20260716.15";
-import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260716.15";
+import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260717.1";
+import { WORLD } from "./engine.js?v=20260717.1";
+import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260717.1";
 import { springCamera } from "./feel.js?v=20260713.2";
 import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistFacingTarget, specialistMotionState, stableDirectionColumn } from "./motion.js?v=20260713.1";
 import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260716.15";
-import { impactRenderPlan } from "./impact-grammar.js?v=20260716.15";
-import { movementVisualState } from "./movement.js?v=20260716.15";
-import { effectReadabilityCategory, partitionEffects, readabilityPlan } from "./readability.js?v=20260716.15";
-import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260716.15";
+import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260717.1";
+import { impactRenderPlan } from "./impact-grammar.js?v=20260717.1";
+import { movementVisualState } from "./movement.js?v=20260717.1";
+import { effectReadabilityCategory, partitionEffects, readabilityPlan } from "./readability.js?v=20260717.1";
+import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260717.1";
 import { EnvironmentInteractionField, stableEnvironmentUnit } from "./environment-interactions.js?v=20260712.1";
-import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260716.15";
-import { circleIntersectsCollider, rectCollider } from "./collision-geometry.js?v=20260716.15";
-import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260716.15";
+import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260717.1";
+import { circleIntersectsCollider, rectCollider } from "./collision-geometry.js?v=20260717.1";
+import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260717.1";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
 import { PING_INTENTS, PING_LIFETIME_TICKS, selectVisiblePings } from "./ping-contract.js?v=20260713.4";
-import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260716.15";
-import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260716.15";
+import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260717.1";
+import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260717.1";
 import {
   ImpactIntensityDirector, aftermathPlan, attackerRecoilTransform, cameraLookBias,
   impactAnimationTimeScale, impactFeedbackPlan, impactReactionTransform, impactTierForEvent, projectileMotionPlan,
   secondaryMotionPlan, selectImpactFeedback,
-} from "./impact-feel.js?v=20260716.15";
-import { combatTurnPlan, isBodyDrivingSource, resolvedCombatFacing, specialistMuzzlePoint } from "./combat-orientation.js?v=20260716.15";
+} from "./impact-feel.js?v=20260717.1";
+import { combatTurnPlan, isBodyDrivingSource, resolvedCombatFacing, specialistMuzzlePoint } from "./combat-orientation.js?v=20260717.1";
 import {
   cameraCompositionPlan, castMotionPlan, combatDensityPlan, playerLifecycleMotionPlan, rewardMotionPlan,
-} from "./combat-choreography.js?v=20260716.15";
-import { apexPhaseMotionPlan, enemyArrivalMotionPlan, enemyDepartureMotionPlan } from "./combat-rhythm.js?v=20260716.15";
+} from "./combat-choreography.js?v=20260717.1";
+import { apexPhaseMotionPlan, enemyArrivalMotionPlan, enemyDepartureMotionPlan } from "./combat-rhythm.js?v=20260717.1";
 
 const TAU = Math.PI * 2;
 const PING_BUFFER_LIMIT = 32;
@@ -826,7 +826,7 @@ export class Renderer {
       const [x,y,w,h] = MAP_OBSTACLES[index];
       if (worldX < x || worldX > x + w || worldY < y || worldY > y + h) continue;
       const obstacle = { id: `obstacle-${index}`, x: x + w / 2, y: y + h / 2 };
-      consider(obstacle, Math.max(w, h), { type: "obstacle", name: "Raised Cover", description: "Solid environmental cover. Specialists cannot move or dash through it, and ordinary friendly or hostile fire stops on contact.", stats: { Width: Math.round(w), Height: Math.round(h), Collision: "Solid", "Projectile cover": "Most shots", Exceptions: "Rail lanes · Apex fire" } }, -.2);
+      consider(obstacle, Math.max(w, h), { type: "obstacle", name: "Raised Cover", description: "Solid environmental cover. Specialists cannot move or dash through it, and ordinary friendly or hostile fire stops on contact.", stats: { Collision: "Solid", "Projectile cover": "Most shots", Exceptions: "Rail lanes · Apex fire" } }, -.2);
     }
     for (const chunk of this.environmentChunkLayout) {
       const [x, y, w, h] = chunk.collider.bounds;
@@ -835,7 +835,7 @@ export class Renderer {
       consider({ id: chunk.id, x: x + w / 2, y: y + h / 2 }, Math.max(w, h), {
         type: "obstacle", name: frame.id.split("-").map((word) => word[0].toUpperCase() + word.slice(1)).join(" "),
         description: "A solid map structure. Specialists and enemies route around its grounded footprint, and ordinary friendly or hostile fire stops on contact.",
-        stats: { Width: Math.round(w), Height: Math.round(h), Collision: "Solid", "Projectile cover": "Most shots", Exceptions: "Rail lanes · Apex fire" },
+        stats: { Collision: "Solid", "Projectile cover": "Most shots", Exceptions: "Rail lanes · Apex fire" },
       }, -.2);
     }
     const machine = { id: "machine", x: 0, y: 0, radius: 77 };
@@ -1063,6 +1063,7 @@ export class Renderer {
 
   drawForcedMovementCue(frame, state, localPlayerId, map, pass = "ground") {
     if (pass !== "overlay" || !frame?.active || !(frame.effect?.pushPerSecond > 0)) return;
+    if (map.id === "warehouse") return;
     const movingPlayer = (state.players || []).find((entry) => entry.id === localPlayerId) || state.players?.[0];
     if (!movingPlayer || movingPlayer.dead || movingPlayer.downed || !pointInMapMechanic(frame, movingPlayer.x, movingPlayer.y)) return;
     const movementContext = this.ctx, movementDirection = frame.direction > 0 ? "EAST" : "WEST";
@@ -1073,42 +1074,6 @@ export class Renderer {
     movementContext.fillText(`${frame.name.toUpperCase()} · MOVING ${movementDirection}`, 0, 0);
     movementContext.restore();
     return;
-    if (!frame || frame.phase === "idle" || !(frame.effect?.pushPerSecond > 0)) return;
-    const player = (state.players || []).find((entry) => entry.id === localPlayerId) || state.players?.[0];
-    if (!player || player.dead || player.downed || !pointInMapMechanic(frame, player.x, player.y)) return;
-    const ctx = this.ctx, direction = frame.direction > 0 ? 1 : -1, active = frame.active;
-    const color = active ? map.accent : "#ffd36b", directionName = direction > 0 ? "EAST" : "WEST";
-    ctx.save();
-    if (pass === "ground") {
-      const pulse = this.reducedMotion ? .5 : (this.renderTick % 30) / 30;
-      ctx.translate(player.x, player.y + Math.max(18, Number(player.radius || 24) * .72));
-      ctx.globalAlpha = active ? .9 : .68;
-      ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = active ? 4 : 3;
-      ctx.setLineDash(active ? [] : [9, 7]);
-      ctx.beginPath(); ctx.moveTo(-direction * 72, 0); ctx.lineTo(direction * 86, 0); ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.beginPath(); ctx.moveTo(direction * 86, 0); ctx.lineTo(direction * 68, -11); ctx.lineTo(direction * 68, 11); ctx.closePath(); ctx.fill();
-      for (let index = 0; index < 3; index++) {
-        const travel = this.reducedMotion ? index / 3 : (index / 3 + pulse) % 1;
-        const x = direction * (-54 + travel * 112);
-        ctx.globalAlpha = (active ? .28 : .2) + travel * .5;
-        ctx.beginPath(); ctx.moveTo(x - direction * 10, -8); ctx.lineTo(x, 0); ctx.lineTo(x - direction * 10, 8); ctx.stroke();
-      }
-      ctx.globalAlpha = active ? .18 : .11;
-      ctx.beginPath(); ctx.ellipse(0, 0, 94, 24, 0, 0, TAU); ctx.stroke();
-    } else {
-      const headline = active ? `MOVING ${directionName}` : `MOVES ${directionName} IN ${frame.remainingSeconds}`;
-      const subline = frame.name.toUpperCase();
-      ctx.translate(player.x, player.y - Math.max(62, Number(player.radius || 24) + 34));
-      ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.font = "900 13px Inter";
-      const width = Math.max(ctx.measureText(headline).width, 92) + 24;
-      ctx.fillStyle = "rgba(3,10,16,.9)"; ctx.fillRect(-width / 2, -18, width, 36);
-      ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.strokeRect(-width / 2, -18, width, 36);
-      ctx.fillStyle = "#f4fffd"; ctx.fillText(headline, 0, -5);
-      ctx.font = "800 8px Inter"; ctx.fillStyle = color; ctx.fillText(subline, 0, 9);
-    }
-    ctx.restore();
   }
 
   drawImpactMovementCue(state, localPlayerId, map, pass = "ground") {
@@ -2227,9 +2192,7 @@ export class Renderer {
 
       const hurt = clamp((p.hurtFlash || 0) / .24, 0, 1) * this.qualityProfile.hitFlashes;
       const animation = specialistMotionState(raw, moving, hurt);
-      const combatCommitted = raw.orient === 1 || Number(raw.combatFacingUntilTick) >= this.renderTick;
-      const usesAimFacing = ["castE", "castR", "cast"].includes(animation) || combatCommitted || raw.orient === 2 || Boolean(raw.autoAim && (raw.autoAimTargetId || raw.autoAimTracking));
-      const drawFacing = usesAimFacing || !moving ? visual.aimFacing : visual.facing;
+      const drawFacing = visual.aimFacing;
       visual.directionColumn = stableDirectionColumn(drawFacing, visual.directionColumn);
       const targetTurn = Math.cos(drawFacing) >= 0 ? 1 : -1;
       visual.turn += (targetTurn - visual.turn) * (1 - Math.exp(-16 * Math.max(frameTime, 1 / 120)));
@@ -2270,10 +2233,6 @@ export class Renderer {
       }
       ctx.fillStyle = p.dead || p.downed ? "rgba(0,0,0,.2)" : "rgba(0,0,0,.38)";
       ctx.beginPath(); ctx.ellipse(2, groundY, shadow[0] * movementForm.shadowX, shadow[1] * movementForm.shadowY, 0, 0, TAU); ctx.fill();
-      if (p.id === localPlayerId) {
-        ctx.strokeStyle = spec.color; ctx.globalAlpha = .66; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.ellipse(0, groundY - 2, 39, 17, 0, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1;
-      }
       if (p.downed) {
         const bleedout = clamp((Number(p.downTimer) || 0) / 10, 0, 1);
         const reviveRequired = Math.max(.01, Number(p.reviveRequired) || 3);

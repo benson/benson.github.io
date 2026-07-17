@@ -39,7 +39,7 @@ function createRecordingRenderer() {
   return { renderer: new Renderer(canvas), calls };
 }
 
-test("Nova snapshots immediately preserve westward committed attack facing", () => {
+test("Nova snapshots preserve westward manual cursor facing independently of firing", () => {
   const sim = new Simulation({ players: [{ id: "nova", name: "Nova", specialist: "nova" }] }, { seed: "0123456789abcdef0123456789abcdef" });
   const player = sim.players[0];
   sim.tick = 10;
@@ -49,10 +49,11 @@ test("Nova snapshots immediately preserve westward committed attack facing", () 
     player.aimFacing = 0;
     player.combatFacingUntilTick = -1;
     sim.setInput(player.id, { x: 0, y: 0, aim, autoAim: false });
+    sim.updatePlayers(1 / 60);
     assert.equal(sim.fireSignature(player), true);
     const presentation = sim.snapshot().players[0];
-    assert.ok(Math.abs(angleDelta(presentation.facing, aim)) < 1e-9, `facing ${presentation.facing} should match ${aim}`);
-    assert.ok(Math.abs(angleDelta(presentation.aimFacing, aim)) < 1e-9, `aim facing ${presentation.aimFacing} should match ${aim}`);
+    assert.ok(Math.abs(angleDelta(presentation.facing, aim)) < .051, `facing ${presentation.facing} should match ${aim}`);
+    assert.ok(Math.abs(angleDelta(presentation.aimFacing, aim)) < .051, `aim facing ${presentation.aimFacing} should match ${aim}`);
   }
 });
 

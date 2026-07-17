@@ -14,7 +14,7 @@ function runAtRate(specialist, fps, seconds, input) {
   return subject;
 }
 
-test("movement profiles and facing policies exhaustively cover the specialist roster", () => {
+test("movement profiles exhaustively cover the specialist roster and auto-aim faces travel", () => {
   assert.deepEqual(Object.keys(BALANCE_CONFIG.movement.specialists).sort(), Object.keys(BALANCE_CONFIG.specialists).sort());
   for (const id of Object.keys(BALANCE_CONFIG.specialists)) {
     const policy = movementPolicy(id);
@@ -22,8 +22,7 @@ test("movement profiles and facing policies exhaustively cover the specialist ro
     assert.ok(["aim", "hybrid", "contact"].includes(policy.facing));
     const subject = player(id);
     advancePlayerMovement(subject, { x: 0, y: 1, aim: 0, autoAim: true }, 1 / 60, subject.baseSpeed, move);
-    const expectedFacing = policy.facing === "contact" ? Math.PI / 2 : 0;
-    assert.ok(Math.abs(subject.facing - expectedFacing) < 1e-9, `${id} applies its authored ${policy.facing} policy`);
+    assert.ok(Math.abs(subject.facing - Math.PI / 2) < 1e-9, `${id} faces its auto-aim movement direction`);
   }
 });
 
@@ -54,12 +53,12 @@ test("starts, turns, braking, and settle retain immediate control with role-spec
   assert.equal(nimble.moveVx, 0); assert.equal(nimble.moveVy, 0); assert.equal(nimble.moving, false);
 });
 
-test("ranged specialists strafe and backpedal while contact specialists lead with locomotion", () => {
+test("manual aim preserves cursor-facing strafes and backpedals for every specialist", () => {
   const ranged = player("echo"), contact = player("fang"), hybrid = player("vesper");
   for (const subject of [ranged, contact, hybrid]) advancePlayerMovement(subject, { x: 0, y: 1, aim: 0, autoAim: false }, 1 / 60, 280, move);
   assert.equal(ranged.movementMode, "strafe-right");
   assert.equal(ranged.facing, 0);
-  assert.ok(Math.abs(contact.facing - Math.PI / 2) < 1e-9);
+  assert.equal(contact.facing, 0);
   assert.equal(hybrid.facing, 0);
   assert.equal(classifyMovement(-1, 0, 0), "backpedal");
   assert.equal(classifyMovement(.2, 0, 0), "forward", "analog strength does not alter directional intent");
@@ -77,12 +76,17 @@ test("revive and reconnect reset helpers clear retained momentum without changin
   assert.equal(subject.moving, false); assert.equal(subject.facing, facing);
 });
 
-test("mouse, auto-aim, keyboard, and touch-equivalent inputs share one deterministic policy", () => {
-  const variants = [
-    { x: .75, y: -.25, aim: 1.2, autoAim: false },
-    { x: .75, y: -.25, aim: 1.2, autoAim: true },
-  ].map((input) => runAtRate("nova", 120, .5, input));
-  for (const key of ["x", "y", "moveVx", "moveVy", "facing", "movementFacing"]) assert.equal(variants[0][key], variants[1][key], key);
+test("manual aim faces the cursor while auto-aim faces movement and holds that direction when idle", () => {
+  const input = { x: .75, y: -.25, aim: 1.2 };
+  const manual = runAtRate("nova", 120, .5, { ...input, autoAim: false });
+  const automatic = runAtRate("nova", 120, .5, { ...input, autoAim: true });
+  for (const key of ["x", "y", "moveVx", "moveVy"]) assert.equal(manual[key], automatic[key], key);
+  assert.ok(Math.abs(manual.movementFacing - automatic.movementFacing) < 1e-12);
+  assert.equal(manual.facing, 1.2);
+  assert.equal(automatic.facing, automatic.movementFacing);
+  const held = automatic.facing;
+  advancePlayerMovement(automatic, { x: 0, y: 0, aim: -2.6, autoAim: true }, 1 / 60, automatic.baseSpeed, move);
+  assert.ok(Math.abs(automatic.facing - held) < 1e-12);
 });
 
 test("dash recovery preserves steering but temporarily restores role weight", () => {

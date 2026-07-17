@@ -25,6 +25,11 @@ test("performance reports expose cosmetic environmental load without protocol fi
   assert.doesNotMatch(game, /send\([^\n]+environmentInteractions/);
 });
 
+test("home art is preloaded in a compact format instead of progressively decoding the social image", () => {
+  assert.match(html, /rel="preload" as="image" href="assets\/og-home\.webp"[^>]+fetchpriority="high"/);
+  assert.match(css, /\.home-screen::after \{[\s\S]+image-set\(url\("assets\/og-home\.webp"\)/);
+});
+
 test("damage source telemetry updates a fixed, two-state panel that fits every row", () => {
   assert.match(html, /class="damage-ledger no-data collapsed"/);
   assert.match(html, /id="damage-ledger-collapse"[^>]+aria-controls="damage-ledger-content"[^>]+aria-expanded="false"/);
@@ -96,7 +101,7 @@ test("desktop-only type overrides preserve compact controls while result actions
     assert.match(desktop, new RegExp(selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
   assert.match(css, /\.copy-scorecard \{[^}]+font: 700 12px\/1 var\(--sans\)/s);
-  assert.match(css, /@media \(max-width: 650px\) \{[\s\S]+\.damage-ledger \{[^}]+width: min\(250px, calc\(100vw - 24px\)\);/);
+  assert.match(css, /@media \(max-width: 650px\) \{[\s\S]+\.damage-ledger \{[^}]+display: none;/);
 });
 
 test("squad and boss HUD bars share the segmented health contract", () => {
@@ -179,8 +184,17 @@ test("the report hotkey is global but yields to typing and open dialogs", () => 
   assert.match(game, /shouldOpenReportShortcut\(event, \{ isTyping, dialogOpen \}\)/);
   assert.match(game, /if \(isTyping \|\| dialogOpen \|\| state\.screen !== "game"\) return/);
   assert.doesNotMatch(game, /state\.screen !== "game"\) return;\s*const key[\s\S]{0,500}reportKey/);
+  assert.match(game, /const key = String\(event\.key \|\| ""\)\.toLowerCase\(\)/);
   assert.match(game, /state\.screen === "game" && state\.authorityState === "active" && state\.isHost && state\.sim && !state\.sim\.paused/);
   assert.match(game, /state\.resumeAfterReport && state\.screen === "game" && state\.isHost && state\.sim\?\.paused && state\.sim\.pauseReason === "manual"/);
+});
+
+test("phone feedback uses a viewport-contained one-column dialog and hides the desktop damage ledger", () => {
+  const mobile = css.match(/@media \(max-width: 650px\) \{([\s\S]+?)\n\}/)?.[1] || "";
+  assert.match(mobile, /\.damage-ledger \{ display: none; \}/);
+  assert.match(mobile, /\.report-dialog \{[^}]+max-height: calc\(100dvh - 8px\);[^}]+overflow-y: auto;/);
+  assert.match(mobile, /\.report-fields, \.report-actions \{ grid-template-columns: 1fr; \}/);
+  assert.match(mobile, /\.report-fields textarea \{ min-height: 112px; resize: none; \}/);
 });
 
 test("relay identity is sent after WebSocket upgrade instead of in the request URL", () => {

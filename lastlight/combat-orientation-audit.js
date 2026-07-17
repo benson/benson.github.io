@@ -20,7 +20,7 @@ function specialistCase(specialist) {
   const projectileOrigins = sim.projectiles.some(({ owner }) => owner === player.id) ? [`${muzzle.x.toFixed(3)},${muzzle.y.toFixed(3)}`] : [];
   const committed = player.combatFacing;
   commitCombatFacing(player, committed, sim.tick, { sourceId: "signature" }); sim.shoot(player, committed + 1, 500, 10, { sourceId: "uwu" }); sim.updatePlayers(1 / 60);
-  return Object.freeze({ specialist, fired, pointerFacing: -2.4, autoFacing: expectedFacing, committedFacing: committed, facingError: Math.abs(angleDelta(committed, expectedFacing)), stickyTargetId, expectedStickyTargetId, switchedTargetId, expectedSwitchedTargetId, movementMode: player.movementMode, bodyNeutralPreserved: player.combatFacing === committed, muzzle, projectileOrigins, combatSourceId: player.combatSourceId });
+  return Object.freeze({ specialist, fired, pointerFacing: -2.4, autoFacing: expectedFacing, committedFacing: committed, facingError: Math.abs(angleDelta(committed, expectedFacing)), bodyFacing: player.facing, bodyFacingError: Math.abs(angleDelta(player.facing, Math.PI / 2)), stickyTargetId, expectedStickyTargetId, switchedTargetId, expectedSwitchedTargetId, movementMode: player.movementMode, bodyNeutralPreserved: player.combatFacing === committed, muzzle, projectileOrigins, combatSourceId: player.combatSourceId });
 }
 
 export function buildCombatOrientationAudit() {
@@ -35,10 +35,11 @@ export function assertCombatOrientationAudit(report) {
   if (report?.cases?.length !== COMBAT_ORIENTATION_SPECIALISTS.length) errors.push("all nine specialists must be present");
   for (const entry of report?.cases || []) {
     if (!entry.fired) errors.push(`${entry.specialist}: signature did not fire`);
-    if (entry.facingError > 1e-8) errors.push(`${entry.specialist}: body missed authoritative auto-aim`);
+    if (entry.facingError > 1e-8) errors.push(`${entry.specialist}: signature missed authoritative auto-aim`);
+    if (entry.bodyFacingError > 1e-8) errors.push(`${entry.specialist}: body did not follow auto-aim movement`);
     if (entry.stickyTargetId !== entry.expectedStickyTargetId) errors.push(`${entry.specialist}: target switched without hysteresis`);
     if (entry.switchedTargetId !== entry.expectedSwitchedTargetId) errors.push(`${entry.specialist}: target did not switch for a meaningful challenger`);
-    if (!String(entry.movementMode).startsWith("strafe")) errors.push(`${entry.specialist}: auto-facing did not drive strafe language`);
+    if (!String(entry.movementMode).startsWith("strafe")) errors.push(`${entry.specialist}: established target-relative movement tuning changed`);
     if (!entry.bodyNeutralPreserved) errors.push(`${entry.specialist}: autonomous fire stole body ownership`);
     if (entry.combatSourceId !== "signature") errors.push(`${entry.specialist}: signature source ownership missing`);
     if (entry.projectileOrigins.length > 1) errors.push(`${entry.specialist}: fan projectiles did not share the authored muzzle`);

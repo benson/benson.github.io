@@ -21,9 +21,9 @@ test("battlefield map mechanics expose shape, pattern, countdown, and inspection
   assert.match(render, /drawImpactMovementCue\(state, localPlayerId, map, "overlay"\)/);
   assert.match(render, /ENEMY IMPACT/);
   assert.match(render, /Math\.hypot\(velocityX, velocityY\)/);
-  assert.match(render, /MOVING \$\{directionName\}/);
-  assert.match(render, /MOVES \$\{directionName\} IN \$\{frame\.remainingSeconds\}/);
-  assert.match(render, /this\.reducedMotion \? \.5/);
+  assert.match(render, /if \(map\.id === "warehouse"\) return/);
+  assert.doesNotMatch(render, /MOVING \$\{directionName\}/);
+  assert.doesNotMatch(render, /MOVES \$\{directionName\} IN \$\{frame\.remainingSeconds\}/);
   assert.match(render, /state\.tick \+ pressureAdvanceTicks/);
 });
 
