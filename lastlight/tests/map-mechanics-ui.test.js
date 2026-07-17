@@ -10,8 +10,10 @@ test("battlefield map mechanics expose shape, pattern, countdown, and inspection
   assert.match(render, /mechanicFrameForState\(state\)/);
   assert.match(render, /state\?\.mapMechanics/);
   assert.match(render, /pointInMapMechanic\(mapMechanic, worldX, worldY\)/);
-  assert.match(render, /ctx\.setLineDash\(active \? \[\] : \[18, 12\]\)/);
-  assert.match(render, /WARNING \$\{frame\.remainingSeconds\}/);
+  assert.match(render, /definition\.lanes\.map/);
+  assert.match(render, /frame\.phase === "idle" && map\.id !== "warehouse"/);
+  assert.doesNotMatch(render, /ctx\.setLineDash\(active \? \[\] : \[18, 12\]\)/);
+  assert.match(render, /frame\.name\.toUpperCase\(\).*frame\.remainingSeconds/);
   assert.match(render, /description: `\$\{definition\.description\} \$\{definition\.counterplay\}`/);
   assert.match(render, /drawForcedMovementCue\(mapMechanic, state, localPlayerId, map, "ground"\)/);
   assert.match(render, /drawForcedMovementCue\(mapMechanic, state, localPlayerId, map, "overlay"\)/);

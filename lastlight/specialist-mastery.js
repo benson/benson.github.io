@@ -1,4 +1,4 @@
-import { fnv1a64 } from "./replay.js?v=20260716.14";
+import { fnv1a64 } from "./replay.js?v=20260716.15";
 
 export const SPECIALIST_MASTERY_SCHEMA = "lastlight.specialist-mastery.v1";
 export const SPECIALIST_MASTERY_STORAGE_VERSION = 1;

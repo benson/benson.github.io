@@ -111,6 +111,21 @@ test("map mechanics render as subdued textured surfaces without dashed rectangul
   assert.equal(calls.some(([name]) => name === "setLineDash"), false);
 });
 
+test("warehouse conveyor belts remain visible while idle and only the selected lane energizes", () => {
+  const { renderer, calls } = createRecordingRenderer();
+  const sprite = renderer.mapMechanicSprites.warehouse;
+  sprite.complete = true; sprite.naturalWidth = 1000; sprite.naturalHeight = 180;
+  renderer.renderTick = 30;
+  renderer.drawMapMechanic({
+    phase: "idle", active: false, warning: false, name: "Freight Grid", direction: 1,
+    effect: { pushPerSecond: 92 }, geometry: { axis: "horizontal", center: 0, halfWidth: 118 },
+  }, { id: "warehouse", accent: "#63f2df" });
+  const laneTranslations = calls.filter(([name, x]) => name === "translate" && x === 0).map(([, , y]) => y);
+  assert.deepEqual(laneTranslations, [-540, 0, 540]);
+  assert.ok(calls.filter(([name]) => name === "drawImage").length >= 9);
+  assert.equal(calls.some(([name]) => name === "fillText"), false);
+});
+
 test("inspection returns structured combat details and controls hover state", () => {
   const renderer = createRenderer();
   renderer.camera.x = 0;
