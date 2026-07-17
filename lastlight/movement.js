@@ -1,4 +1,4 @@
-import { BALANCE_CONFIG } from "./balance-config.js?v=20260716.15";
+import { BALANCE_CONFIG } from "./balance-config.js?v=20260717.1";
 
 const EPSILON = 1e-6;
 const DEFAULT_MOVEMENT_POLICIES = Object.freeze(Object.fromEntries(
@@ -82,8 +82,9 @@ export function advancePlayerMovement(player, input, frameSeconds, speed, move, 
   const dt = clamp(Number(frameSeconds) || 0, 0, .05);
   const profile = movementPolicy(player.specialist, balance);
   const normalized = normalizeMovementInput(input);
-  const aimFacing = Number.isFinite(input?.aim) ? input.aim : Number(player.aimFacing) || 0;
-  const mode = classifyMovement(normalized.x, normalized.y, aimFacing);
+  const pointerFacing = Number.isFinite(input?.aim) ? input.aim : Number(player.aimFacing) || 0;
+  const classificationFacing = Number.isFinite(input?.movementAim) ? input.movementAim : pointerFacing;
+  const mode = classifyMovement(normalized.x, normalized.y, classificationFacing);
   const multiplier = directionalSpeed(profile, mode);
   const targetX = normalized.x * speed * multiplier, targetY = normalized.y * speed * multiplier;
   const previousLength = Math.hypot(player.moveInputX, player.moveInputY);
@@ -112,13 +113,15 @@ export function advancePlayerMovement(player, input, frameSeconds, speed, move, 
   player.moveVx = Math.abs(x.velocity) < profile.settleSpeed && !normalized.active ? 0 : x.velocity;
   player.moveVy = Math.abs(y.velocity) < profile.settleSpeed && !normalized.active ? 0 : y.velocity;
   player.moveInputX = normalized.x; player.moveInputY = normalized.y;
-  player.aimFacing = aimFacing;
+  player.aimFacing = pointerFacing;
   const actualSpeed = Math.hypot(actualX, actualY) / Math.max(dt, EPSILON);
   player.moving = actualSpeed > profile.settleSpeed * .35;
   if (player.moving) player.movementFacing = Math.atan2(actualY, actualX);
   player.movementMode = player.moving ? mode : "idle";
   player.moveSpeedRatio = clamp(actualSpeed / Math.max(1, speed), 0, 1.3);
-  player.facing = facingForPolicy(profile.facing, player.movementMode, player.movementFacing, aimFacing, player.moving);
+  player.facing = input?.autoAim
+    ? player.moving ? player.movementFacing : Number(player.facing) || 0
+    : pointerFacing;
   player.dashRecovery = Math.max(0, player.dashRecovery - dt);
   return { dx: actualX, dy: actualY, distance: Math.hypot(actualX, actualY), profile };
 }

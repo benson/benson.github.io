@@ -1,11 +1,11 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
-} from "./data.js?v=20260716.15";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260716.15";
+} from "./data.js?v=20260717.1";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260717.1";
 import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.5";
-import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260716.15";
-import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260716.15";
+import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260717.1";
+import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260717.1";
 import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260713.1";
 import { MAX_CORRIDOR_CANDIDATES, accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget, orderEntitiesByDistance } from "./projectile-decisions.js?v=20260713.1";
 import { eliteAffixEligibility, selectEliteAffixes, selectSpawnArchetype, spawnPhaseAt } from "./enemy-archetypes.js?v=20260713.1";
@@ -27,27 +27,27 @@ import {
   DOWNED_ACTIVITY_REGISTRY, DOWNED_ACTIVITY_SCHEMA, advanceDownedBleedout, advanceDownedCrawl,
   beginDownedActivity, createDownedActivityState, removeDownedActivity, triggerDownedSupport,
   validateDownedActivityState,
-} from "./downed-activity.js?v=20260716.15";
-import { generateJoinPackage, JOIN_IN_PROGRESS_REGISTRY, joinPackageUpgradeIds, transitionJoinPackage } from "./join-in-progress.js?v=20260716.15";
+} from "./downed-activity.js?v=20260717.1";
+import { generateJoinPackage, JOIN_IN_PROGRESS_REGISTRY, joinPackageUpgradeIds, transitionJoinPackage } from "./join-in-progress.js?v=20260717.1";
 import {
   DIRECTOR_APPROACHES, DIRECTOR_FORMATIONS, createSquadDirectorState, planSquadFormation, validateSquadDirectorState,
-} from "./enemy-director.js?v=20260716.15";
-import { mapMechanicFrame, mapSpawnWeights, pointInMapMechanic } from "./map-mechanics.js?v=20260716.15";
+} from "./enemy-director.js?v=20260717.1";
+import { mapMechanicFrame, mapSpawnWeights, pointInMapMechanic } from "./map-mechanics.js?v=20260717.1";
 import {
   CAMPAIGN_MUTATIONS, campaignMutationDefinition, campaignMutationObjectiveCompleted, campaignMutationWaveStarted,
   cancelCampaignMutationEncounter, consumeCampaignMutationEncounter, createCampaignMutationState,
   resolveCampaignMutationEncounter, validateCampaignMutationState,
-} from "./campaign-mutations.js?v=20260716.15";
-import { masteryStartDefinition } from "./specialist-mastery.js?v=20260716.15";
+} from "./campaign-mutations.js?v=20260717.1";
+import { masteryStartDefinition } from "./specialist-mastery.js?v=20260717.1";
 import {
   createRareDiscoveryRunState, rareDiscoveryIdForBoon, recordRareDiscovery,
   revealNextAugmentDossier, validateRareDiscoveryRunState,
-} from "./rare-discoveries.js?v=20260716.15";
-import { validateSeededOperation } from "./seeded-operations.js?v=20260716.15";
-import { commitCombatFacing, resolvedCombatFacing, selectStickyAutoAimTarget } from "./combat-orientation.js?v=20260716.15";
-import { abilityChoreography } from "./combat-choreography.js?v=20260716.15";
-import { environmentChunkObstacles } from "./environment-chunks.js?v=20260716.15";
-import { circleIntersectsCollider, colliderContactNormal, rectCollider, sweptCircleColliderImpact } from "./collision-geometry.js?v=20260716.15";
+} from "./rare-discoveries.js?v=20260717.1";
+import { validateSeededOperation } from "./seeded-operations.js?v=20260717.1";
+import { commitCombatFacing, movementClassificationFacing, selectStickyAutoAimTarget } from "./combat-orientation.js?v=20260717.1";
+import { abilityChoreography } from "./combat-choreography.js?v=20260717.1";
+import { environmentChunkObstacles } from "./environment-chunks.js?v=20260717.1";
+import { circleIntersectsCollider, colliderContactNormal, rectCollider, sweptCircleColliderImpact } from "./collision-geometry.js?v=20260717.1";
 
 const BALANCE = getBalanceConfig();
 
@@ -358,7 +358,7 @@ export function previewPlayerUpgrade(player, choice, { replacementId = "" } = {}
   return replacementId ? applyPlayerReplacement(preview, choice, replacementId) : applyPlayerUpgrade(preview, choice);
 }
 
-export const UPGRADE_GOLD_REWARD = BALANCE.core.draft.choiceGold;
+export const LEVEL_UP_GOLD_REWARD = BALANCE.core.draft.choiceGold;
 export const SKIP_GOLD_REWARD = BALANCE.core.draft.skipGold;
 
 export class Simulation {
@@ -815,7 +815,7 @@ export class Simulation {
       }
 
       this.refreshAutoAim(p);
-      let movementInput = { ...p.input, aim: resolvedCombatFacing(p, this.tick) };
+      let movementInput = { ...p.input, movementAim: movementClassificationFacing(p, this.tick) };
       if (p.frenzy > 0) {
         const target = this.nearestEnemy(p);
         if (target) {
@@ -3079,6 +3079,7 @@ export class Simulation {
     while (!this.paused && this.teamXP >= this.xpNeed && this.stage !== "won" && this.stage !== "lost") {
       this.teamXP -= this.xpNeed;
       this.level++;
+      this.gold += LEVEL_UP_GOLD_REWARD;
       this.xpNeed = Math.round(BALANCE.waves.xp.base * Math.pow(this.level, BALANCE.waves.xp.exponent));
       if (this.level >= BALANCE.waves.xp.activeLevel && this.level - BALANCE.waves.xp.activeLevel <= 1) this.pushEvent("upgrade", "Active ability online", "Press E to cast");
       if (this.level >= BALANCE.waves.xp.ultimateLevel && this.level - BALANCE.waves.xp.ultimateLevel <= 1) this.pushEvent("upgrade", "Ultimate online", "Press R when the line breaks");
@@ -3185,7 +3186,6 @@ export class Simulation {
       applyPlayerReplacement(p, choice, replacementId);
       if (replacementId === "drone") this.drones = this.drones.filter((drone) => drone.owner !== p.id);
     } else applyPlayerUpgrade(p, choice);
-    this.gold += UPGRADE_GOLD_REWARD;
   }
 
   maybeResumeFromChoices() {
@@ -3546,18 +3546,7 @@ export class Simulation {
       return result;
     });
     const players = clean(this.players, ["input", "reconnectKey", "mapMoveMultiplier", "mapMechanicHitKey", "autoAim", "autoAimFacing", "combatFacing", "combatFacingTick", "combatFacingUntilTick", "combatSourceId", "combatTargetId"]).map((entry, index) => {
-      const source = this.players[index];
-      if (entry.autoAimTargetId) entry.orient = 2;
-      else if (Number(source?.combatFacingUntilTick) >= this.tick) entry.orient = 1;
-      // The compact snapshot intentionally omits the internal orientation
-      // bookkeeping. Preserve its authoritative result in the public facing
-      // fields so a shot committed after movement still renders in the fired
-      // direction on this frame (not one simulation tick later).
-      if (entry.orient) {
-        const presentationFacing = resolvedCombatFacing(source, this.tick);
-        entry.facing = presentationFacing;
-        entry.aimFacing = presentationFacing;
-      }
+      entry.autoAim = Boolean(this.players[index]?.autoAim);
       delete entry.autoAimTargetId; return entry;
     });
     return {

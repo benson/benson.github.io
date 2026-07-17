@@ -26,8 +26,8 @@ test("draft controls follow the choices while all mapped shortcuts remain wired"
   assert.match(game, /<kbd class="choice-key">\$\{index \+ 1\}<\/kbd>/);
 });
 
-test("draft copy names the ordinary reward and avoids keyboard instruction prose", () => {
-  assert.match(game, /`Pick bonus \+\$\{forecast\.economy\.delta\} gold`/);
+test("draft copy keeps level-up gold separate from the chosen card and avoids keyboard instruction prose", () => {
+  assert.doesNotMatch(game, /Pick bonus|forecast\.economy\.delta/);
   assert.doesNotMatch(game, /`Squad gold \+\$\{forecast\.economy\.delta\}`/);
   assert.match(game, /"Choose one upgrade\. Time resumes when the squad has chosen\."/);
   assert.doesNotMatch(game, /Press 1, 2, or 3 to pick|Use 4 to reroll|Press Escape to cancel/);

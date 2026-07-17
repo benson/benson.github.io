@@ -1,9 +1,9 @@
 import { WEAPON_EVOLUTION_CONTRACT, validateWeaponEvolutionContract } from "./weapon-evolution.js?v=20260713.1";
 import { validateEnemyIdentityContract } from "./enemy-archetypes.js?v=20260713.1";
 import { APEX_CONTRACTS, validateApexContracts } from "./apex-encounters.js?v=20260713.1";
-import { CAMPAIGN_MUTATIONS, validateCampaignMutations } from "./campaign-mutations.js?v=20260716.15";
-import { SPECIALIST_MASTERY, validateSpecialistMasteryRegistry } from "./specialist-mastery.js?v=20260716.15";
-import { RARE_DISCOVERY_REGISTRY, validateRareDiscoveryRegistry } from "./rare-discoveries.js?v=20260716.15";
+import { CAMPAIGN_MUTATIONS, validateCampaignMutations } from "./campaign-mutations.js?v=20260717.1";
+import { SPECIALIST_MASTERY, validateSpecialistMasteryRegistry } from "./specialist-mastery.js?v=20260717.1";
+import { RARE_DISCOVERY_REGISTRY, validateRareDiscoveryRegistry } from "./rare-discoveries.js?v=20260717.1";
 
 // Balance is a versioned simulation input. Replays and fixtures should record
 // this exact version so a future tuning pass never silently changes old runs.
@@ -341,7 +341,7 @@ export function validateBalanceConfig(candidate = BALANCE_CONFIG) {
     requireFinite(`core.draft.${key}`, candidate.core?.draft?.[key], { min: 0 });
   }
   if (candidate.core.draft.maxBanished !== candidate.core.draft.banishes) throw new TypeError("core.draft maxBanished must equal the banish budget");
-  if (candidate.core.draft.skipGold <= candidate.core.draft.choiceGold) throw new TypeError("core.draft skipGold must exceed the ordinary choice reward");
+  if (candidate.core.draft.skipGold <= candidate.core.draft.choiceGold) throw new TypeError("core.draft skipGold must exceed the level-up reward");
   for (const [id, specialist] of Object.entries(candidate.specialists || {})) {
     for (const key of ["health", "speed", "cooldownE", "cooldownR"]) requireFinite(`specialists.${id}.${key}`, specialist[key], { min: 0, exclusiveMin: true });
     requireFinite(`specialists.${id}.armor`, specialist.armor, { min: 0 });

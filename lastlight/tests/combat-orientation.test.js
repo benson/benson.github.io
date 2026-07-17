@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  angleDelta, combatTurnPlan, commitCombatFacing, resolvedCombatFacing,
+  angleDelta, combatTurnPlan, commitCombatFacing, pointerAimFromWorld, resolvedCombatFacing,
   selectStickyAutoAimTarget, specialistMuzzlePoint,
 } from "../combat-orientation.js";
 import { Simulation } from "../engine.js";
@@ -17,14 +17,24 @@ test("sticky auto-aim preserves a target until a challenger is meaningfully clos
   assert.equal(selectStickyAutoAimTarget(origin, [{ ...current, dead: true }], "b"), null);
 });
 
-test("facing priority is dash, committed attack, auto target, then pointer", () => {
-  const player = { input: { aim: -2 }, autoAim: true, autoAimTargetId: "enemy", autoAimFacing: 1, combatFacing: .5, combatFacingUntilTick: 40, animState: "idle", animTime: 0 };
-  assert.equal(resolvedCombatFacing(player, 30), .5);
-  assert.equal(resolvedCombatFacing(player, 41), 1);
+test("body facing follows input mode while a dash temporarily owns direction", () => {
+  const player = { input: { aim: -2 }, autoAim: true, autoAimTargetId: "enemy", autoAimFacing: 1, combatFacing: .5, combatFacingUntilTick: 40, moving: true, movementFacing: -1, facing: .75, animState: "idle", animTime: 0 };
+  assert.equal(resolvedCombatFacing(player, 30), -1);
+  player.moving = false;
+  assert.equal(resolvedCombatFacing(player, 41), .75);
   Object.assign(player, { animState: "dash", animTime: .1, dashFacing: 2.5 });
   assert.equal(resolvedCombatFacing(player, 30), 2.5);
   player.animTime = 0; player.autoAim = false;
   assert.equal(resolvedCombatFacing(player, 50), -2);
+});
+
+test("world-space pointer aim is measured from the player rather than the canvas center", () => {
+  const player = { x: 420, y: 240 };
+  assert.equal(pointerAimFromWorld(player, { x: 320, y: 240 }), Math.PI);
+  assert.equal(pointerAimFromWorld(player, { x: 420, y: 140 }), -Math.PI / 2);
+  assert.equal(pointerAimFromWorld(player, { x: 520, y: 240 }), 0);
+  assert.equal(pointerAimFromWorld(player, { x: 420, y: 340 }), Math.PI / 2);
+  assert.equal(pointerAimFromWorld(player, null, .4), .4);
 });
 
 test("body ownership rejects autonomous sources and produces bounded turn motion", () => {
@@ -63,13 +73,14 @@ test("all nine signatures commit their center aim while sharing one exact muzzle
   }
 });
 
-test("auto-aim drives strafe classification while autonomous fire cannot steal body facing", () => {
+test("auto-aim movement faces travel while autonomous fire cannot steal body facing", () => {
   const sim = new Simulation({ players: [{ id: "p", name: "P", specialist: "zuri" }] }, { seed: "fedcba9876543210fedcba9876543210" });
   const player = sim.players[0], enemy = sim.spawnEnemy("mite");
   Object.assign(enemy, { x: player.x + 300, y: player.y });
   sim.setInput("p", { x: 0, y: 1, aim: Math.PI, autoAim: true });
   sim.updatePlayers(1 / 60);
   assert.match(player.movementMode, /^strafe-/);
+  assert.ok(Math.abs(player.facing - Math.PI / 2) < 1e-9);
   commitCombatFacing(player, .25, sim.tick, { sourceId: "signature" });
   player.recoilAngle = .25;
   sim.shoot(player, 2, 500, 10, { sourceId: "uwu" });

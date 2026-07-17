@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { PASSIVES, SPECIALISTS, WEAPONS } from "../data.js";
-import { Simulation, previewPlayerUpgrade, UPGRADE_GOLD_REWARD } from "../engine.js";
+import { Simulation, previewPlayerUpgrade } from "../engine.js";
 import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "../upgrade-preview.js";
 
 const relevantPlayerState = (player) => ({
@@ -35,7 +35,7 @@ test("upgrade previews never mutate their source and exactly match engine applic
   }
 });
 
-test("draft forecasts use the exact engine outcome, slots, and shared gold reward", () => {
+test("draft forecasts use the exact engine outcome and do not attach level gold to a choice", () => {
   for (const specialist of Object.keys(SPECIALISTS)) {
     for (const choice of [{ id: "weapon:uwu" }, { id: "passive:haste" }, { id: "heal" }]) {
       const sim = new Simulation({ players: [{ id: "p", name: "P", specialist }] });
@@ -45,7 +45,7 @@ test("draft forecasts use the exact engine outcome, slots, and shared gold rewar
       assert.deepEqual(relevantPlayerState(player), before);
       sim.applyUpgrade(player, choice);
       assert.deepEqual(relevantPlayerState(forecast.afterPlayer), relevantPlayerState(player));
-      assert.deepEqual(forecast.economy, { before: 30, after: 30 + UPGRADE_GOLD_REWARD, delta: UPGRADE_GOLD_REWARD });
+      assert.deepEqual(forecast.economy, { before: 30, after: 30, delta: 0 });
       assert.equal(forecast.slots.weapons.max, 5); assert.equal(forecast.slots.passives.max, 6);
     }
   }

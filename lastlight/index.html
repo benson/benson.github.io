@@ -27,10 +27,11 @@
   <link rel="icon" href="assets/branding/favicon.svg" type="image/svg+xml">
   <link rel="mask-icon" href="assets/branding/favicon.svg" color="#ff5c35">
   <link rel="manifest" href="assets/branding/site.webmanifest">
+  <link rel="preload" as="image" href="assets/og-home.webp" type="image/webp" fetchpriority="high">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260716.15">
+  <link rel="stylesheet" href="styles.css?v=20260717.1">
 </head>
 <body>
   <main id="app">
@@ -713,7 +714,17 @@
       </div>
       <div class="build-history-body">
           <article class="build-release current-build">
-            <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.16.15</h3></div><time class="build-shipped-at" datetime="2026-07-16T20:06:46-04:00" data-build-shipped-at="2026-07-16T20:06:46-04:00">Shipped Jul 16, 2026 · 8:06 PM EDT</time></header>
+            <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.17.1</h3></div><time class="build-shipped-at" datetime="2026-07-17T15:56:29-04:00" data-build-shipped-at="2026-07-17T15:56:29-04:00">Shipped Jul 17, 2026 · 3:56 PM EDT</time></header>
+            <ul>
+              <li>Made manual facing follow the cursor and auto-aim facing follow movement, with dash travel taking temporary priority.</li>
+              <li>Moved the +10 gold reward to level-up itself so choosing an upgrade never grants a second bonus.</li>
+              <li>Fixed the undefined-key run crash and made problem reporting practical on compact mobile screens.</li>
+              <li>Removed mobile Damage Sources, terrain dimensions, the constant player ring, and redundant Freight Grid direction text.</li>
+              <li>Preloaded a much smaller home-screen image while keeping the original artwork and composition.</li>
+            </ul>
+          </article>
+          <article class="build-release">
+            <header><div><span class="build-release-status">Previous build</span><h3>2026.07.16.15</h3></div><time class="build-shipped-at" datetime="2026-07-16T20:06:46-04:00" data-build-shipped-at="2026-07-16T20:06:46-04:00">Shipped Jul 16, 2026 · 8:06 PM EDT</time></header>
             <ul>
               <li>Made every Iron District conveyor a permanent, walkable terrain surface that only animates when its freight lane is actively moving.</li>
             </ul>
@@ -1413,10 +1424,10 @@
   </main>
 
   <aside class="edge-utilities" aria-label="Build and feedback">
-    <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.16.15. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.16.15</strong></button>
+    <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.17.1. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.17.1</strong></button>
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report a problem</button>
   </aside>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260716.15"></script>
+  <script type="module" src="game.js?v=20260717.1"></script>
 </body>
 </html>
