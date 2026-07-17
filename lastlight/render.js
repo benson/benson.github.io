@@ -1,32 +1,32 @@
-import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260716.14";
-import { WORLD } from "./engine.js?v=20260716.14";
-import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260716.14";
+import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260716.15";
+import { WORLD } from "./engine.js?v=20260716.15";
+import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260716.15";
 import { springCamera } from "./feel.js?v=20260713.2";
 import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistFacingTarget, specialistMotionState, stableDirectionColumn } from "./motion.js?v=20260713.1";
 import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260716.14";
-import { impactRenderPlan } from "./impact-grammar.js?v=20260716.14";
-import { movementVisualState } from "./movement.js?v=20260716.14";
-import { effectReadabilityCategory, partitionEffects, readabilityPlan } from "./readability.js?v=20260716.14";
-import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260716.14";
+import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260716.15";
+import { impactRenderPlan } from "./impact-grammar.js?v=20260716.15";
+import { movementVisualState } from "./movement.js?v=20260716.15";
+import { effectReadabilityCategory, partitionEffects, readabilityPlan } from "./readability.js?v=20260716.15";
+import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260716.15";
 import { EnvironmentInteractionField, stableEnvironmentUnit } from "./environment-interactions.js?v=20260712.1";
-import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260716.14";
-import { circleIntersectsCollider, rectCollider } from "./collision-geometry.js?v=20260716.14";
-import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260716.14";
+import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260716.15";
+import { circleIntersectsCollider, rectCollider } from "./collision-geometry.js?v=20260716.15";
+import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260716.15";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
 import { PING_INTENTS, PING_LIFETIME_TICKS, selectVisiblePings } from "./ping-contract.js?v=20260713.4";
-import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260716.14";
-import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260716.14";
+import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260716.15";
+import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260716.15";
 import {
   ImpactIntensityDirector, aftermathPlan, attackerRecoilTransform, cameraLookBias,
   impactAnimationTimeScale, impactFeedbackPlan, impactReactionTransform, impactTierForEvent, projectileMotionPlan,
   secondaryMotionPlan, selectImpactFeedback,
-} from "./impact-feel.js?v=20260716.14";
-import { combatTurnPlan, isBodyDrivingSource, resolvedCombatFacing, specialistMuzzlePoint } from "./combat-orientation.js?v=20260716.14";
+} from "./impact-feel.js?v=20260716.15";
+import { combatTurnPlan, isBodyDrivingSource, resolvedCombatFacing, specialistMuzzlePoint } from "./combat-orientation.js?v=20260716.15";
 import {
   cameraCompositionPlan, castMotionPlan, combatDensityPlan, playerLifecycleMotionPlan, rewardMotionPlan,
-} from "./combat-choreography.js?v=20260716.14";
-import { apexPhaseMotionPlan, enemyArrivalMotionPlan, enemyDepartureMotionPlan } from "./combat-rhythm.js?v=20260716.14";
+} from "./combat-choreography.js?v=20260716.15";
+import { apexPhaseMotionPlan, enemyArrivalMotionPlan, enemyDepartureMotionPlan } from "./combat-rhythm.js?v=20260716.15";
 
 const TAU = Math.PI * 2;
 const PING_BUFFER_LIMIT = 32;
@@ -1028,58 +1028,37 @@ export class Renderer {
   }
 
   drawMapMechanic(frame, map) {
-    if (!frame || frame.phase === "idle") return;
+    if (!frame || (frame.phase === "idle" && map.id !== "warehouse")) return;
     const mechanicSprite = this.mapMechanicSprites[map.id];
     if (!mechanicSprite?.complete || !mechanicSprite.naturalWidth || !mechanicSprite.naturalHeight) return;
-    const mechanicContext = this.ctx, mechanicGeometry = frame.geometry, mechanicVertical = mechanicGeometry.axis === "vertical";
-    const mechanicLength = mechanicVertical ? WORLD.height : WORLD.width, mechanicThickness = mechanicGeometry.halfWidth * 2;
-    const mechanicTileLength = Math.max(360, Math.round(mechanicThickness * mechanicSprite.naturalWidth / mechanicSprite.naturalHeight));
-    const mechanicDirection = frame.direction > 0 ? 1 : -1;
-    const mechanicTravel = frame.active && !this.reducedMotion && frame.effect?.pushPerSecond > 0 ? (this.renderTick * 1.35 * mechanicDirection) % mechanicTileLength : 0;
-    mechanicContext.save();
-    mechanicContext.translate(mechanicVertical ? mechanicGeometry.center : 0, mechanicVertical ? 0 : mechanicGeometry.center);
-    if (mechanicVertical) mechanicContext.rotate(Math.PI / 2);
-    mechanicContext.globalAlpha = frame.active ? (map.id === "warehouse" ? .7 : .48) : .22;
-    mechanicContext.filter = frame.active ? "saturate(.92) brightness(.88)" : "saturate(.58) brightness(.64)";
-    for (let along = -mechanicLength / 2 - mechanicTileLength + mechanicTravel; along < mechanicLength / 2 + mechanicTileLength; along += mechanicTileLength) {
-      mechanicContext.drawImage(mechanicSprite, along, -mechanicThickness / 2, mechanicTileLength + 1, mechanicThickness);
+    const definition = map.id === "warehouse" ? mapMechanicDefinition(map.id) : null;
+    const surfaces = definition
+      ? definition.lanes.map((center) => ({ geometry: { ...frame.geometry, axis: "horizontal", center }, selected: center === frame.geometry.center }))
+      : [{ geometry: frame.geometry, selected: true }];
+    for (const surface of surfaces) {
+      const mechanicContext = this.ctx, mechanicGeometry = surface.geometry, mechanicVertical = mechanicGeometry.axis === "vertical";
+      const mechanicLength = mechanicVertical ? WORLD.height : WORLD.width, mechanicThickness = mechanicGeometry.halfWidth * 2;
+      const mechanicTileLength = Math.max(360, Math.round(mechanicThickness * mechanicSprite.naturalWidth / mechanicSprite.naturalHeight));
+      const energized = surface.selected && frame.active, warning = surface.selected && frame.warning;
+      const mechanicDirection = frame.direction > 0 ? 1 : -1;
+      const mechanicTravel = energized && !this.reducedMotion && frame.effect?.pushPerSecond > 0 ? (this.renderTick * 1.35 * mechanicDirection) % mechanicTileLength : 0;
+      mechanicContext.save();
+      mechanicContext.translate(mechanicVertical ? mechanicGeometry.center : 0, mechanicVertical ? 0 : mechanicGeometry.center);
+      if (mechanicVertical) mechanicContext.rotate(Math.PI / 2);
+      mechanicContext.globalAlpha = map.id === "warehouse" ? (energized ? .72 : warning ? .45 : .34) : (energized ? .48 : .22);
+      mechanicContext.filter = energized ? "saturate(.92) brightness(.88)" : warning ? "saturate(.72) brightness(.78)" : "saturate(.52) brightness(.7) contrast(.9)";
+      for (let along = -mechanicLength / 2 - mechanicTileLength + mechanicTravel; along < mechanicLength / 2 + mechanicTileLength; along += mechanicTileLength) {
+        mechanicContext.drawImage(mechanicSprite, along, -mechanicThickness / 2, mechanicTileLength + 1, mechanicThickness);
+      }
+      mechanicContext.filter = "none";
+      if (warning && !mechanicVertical) {
+        const labelAlong = mechanicVertical ? this.camera.y : this.camera.x;
+        mechanicContext.globalAlpha = .82; mechanicContext.textAlign = "center"; mechanicContext.textBaseline = "middle";
+        mechanicContext.font = "800 10px Inter"; mechanicContext.fillStyle = "#f5d985";
+        mechanicContext.fillText(`${frame.name.toUpperCase()} · ${frame.remainingSeconds}s`, clamp(labelAlong, -mechanicLength / 2 + 120, mechanicLength / 2 - 120), 0);
+      }
+      mechanicContext.restore();
     }
-    mechanicContext.filter = "none";
-    if (frame.warning && !mechanicVertical) {
-      const labelAlong = mechanicVertical ? this.camera.y : this.camera.x;
-      mechanicContext.globalAlpha = .82; mechanicContext.textAlign = "center"; mechanicContext.textBaseline = "middle";
-      mechanicContext.font = "800 10px Inter"; mechanicContext.fillStyle = "#f5d985";
-      mechanicContext.fillText(`${frame.name.toUpperCase()} · ${frame.remainingSeconds}s`, clamp(labelAlong, -mechanicLength / 2 + 120, mechanicLength / 2 - 120), 0);
-    }
-    mechanicContext.restore();
-    return;
-    const ctx = this.ctx, geometry = frame.geometry, vertical = geometry.axis === "vertical";
-    const x = vertical ? geometry.center - geometry.halfWidth : -WORLD.width / 2;
-    const y = vertical ? -WORLD.height / 2 : geometry.center - geometry.halfWidth;
-    const width = vertical ? geometry.halfWidth * 2 : WORLD.width;
-    const height = vertical ? WORLD.height : geometry.halfWidth * 2;
-    const active = frame.active, direction = frame.direction;
-    ctx.save();
-    ctx.fillStyle = active ? `${map.accent}26` : "rgba(255,203,92,.09)";
-    ctx.strokeStyle = active ? map.accent : "#ffd36b";
-    ctx.lineWidth = active ? 5 : 3;
-    ctx.setLineDash(active ? [] : [18, 12]);
-    ctx.fillRect(x, y, width, height); ctx.strokeRect(x, y, width, height);
-    ctx.globalAlpha = active ? .9 : .72;
-    const alongStart = vertical ? y + 70 : x + 70, alongEnd = vertical ? y + height - 70 : x + width - 70;
-    const cross = vertical ? geometry.center : geometry.center;
-    for (let cursor = alongStart; cursor <= alongEnd; cursor += 150) {
-      ctx.save(); ctx.translate(vertical ? cross : cursor, vertical ? cursor : cross);
-      ctx.rotate(direction > 0 ? 0 : Math.PI); ctx.strokeStyle = active ? "#f4fffd" : "#ffd36b"; ctx.lineWidth = 3; ctx.setLineDash([]);
-      ctx.beginPath(); ctx.moveTo(-14, -10); ctx.lineTo(0, 0); ctx.lineTo(-14, 10); ctx.moveTo(0, -10); ctx.lineTo(14, 0); ctx.lineTo(0, 10); ctx.stroke(); ctx.restore();
-    }
-    const labelX = vertical ? geometry.center : clamp(this.camera.x, -WORLD.width / 2 + 180, WORLD.width / 2 - 180);
-    const labelY = vertical ? clamp(this.camera.y - this.height * .28, -WORLD.height / 2 + 50, WORLD.height / 2 - 50) : geometry.center;
-    ctx.setLineDash([]); ctx.globalAlpha = .96; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.font = "900 17px Inter"; ctx.lineWidth = 6; ctx.strokeStyle = "#06101a"; ctx.fillStyle = "#fff";
-    const label = `${frame.name.toUpperCase()} · ${active ? "ACTIVE" : `WARNING ${frame.remainingSeconds}`}`;
-    ctx.strokeText(label, labelX, labelY); ctx.fillText(label, labelX, labelY);
-    ctx.restore();
   }
 
   drawForcedMovementCue(frame, state, localPlayerId, map, pass = "ground") {
