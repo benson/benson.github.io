@@ -1,6 +1,15 @@
 {
-  "blurb": "played 20 other games in the last week, went 8-12",
+  "blurb": "played 20 other games in the last week, went 9-11",
   "recent": [
+    {
+      "champion": "Lillia",
+      "win": true,
+      "kills": 22,
+      "deaths": 6,
+      "assists": 15,
+      "damage": 126903,
+      "minutes": 27
+    },
     {
       "champion": "Nami",
       "win": false,
@@ -36,15 +45,6 @@
       "assists": 12,
       "damage": 40235,
       "minutes": 23
-    },
-    {
-      "champion": "Gragas",
-      "win": false,
-      "kills": 1,
-      "deaths": 11,
-      "assists": 19,
-      "damage": 19791,
-      "minutes": 25
     }
   ],
   "ddragonVersion": "16.14.1",
