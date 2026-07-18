@@ -1,6 +1,15 @@
 {
-  "blurb": "played 20 other games in the last week, went 9-11",
+  "blurb": "played 19 other games in the last week, went 8-11",
   "recent": [
+    {
+      "champion": "Maokai",
+      "win": false,
+      "kills": 2,
+      "deaths": 7,
+      "assists": 10,
+      "damage": 16539,
+      "minutes": 27
+    },
     {
       "champion": "Swain",
       "win": true,
@@ -35,15 +44,6 @@
       "deaths": 7,
       "assists": 16,
       "damage": 42363,
-      "minutes": 23
-    },
-    {
-      "champion": "Chogath",
-      "win": false,
-      "kills": 4,
-      "deaths": 7,
-      "assists": 2,
-      "damage": 12791,
       "minutes": 23
     }
   ],
