@@ -1,7 +1,7 @@
 import { ENEMY_MOTION_STATES, MOTION_DIRECTIONS, MOTION_SCHEMA, SPECIALIST_MOTION_STATES, validateMotionRig } from "../motion.js?v=20260713.1";
-import { LASTLIGHT_MATERIAL_THEME, MATERIAL_CLASSES, validateMaterialTheme } from "../material-impacts.js?v=20260718.1";
+import { LASTLIGHT_MATERIAL_THEME, MATERIAL_CLASSES, validateMaterialTheme } from "../material-impacts.js?v=20260718.2";
 import { LASTLIGHT_ENVIRONMENT_INTERACTIONS, validateEnvironmentInteractions } from "../environment-interactions.js?v=20260712.1";
-import { LASTLIGHT_ENVIRONMENT_CHUNKS, validateEnvironmentChunks } from "../environment-chunks.js?v=20260718.1";
+import { LASTLIGHT_ENVIRONMENT_CHUNKS, validateEnvironmentChunks } from "../environment-chunks.js?v=20260718.2";
 
 /**
  * The canonical asset contract for a Lastlight visual theme.
@@ -226,9 +226,16 @@ const frames = (rows, ms, authored = false) => ({
 });
 
 function plannedSpecialistRig(id) {
+  const correctedAtlasFiles = {
+    bront: "bront-v2.webp",
+    gale: "gale-v2.webp",
+    nova: "nova-v2.webp",
+    rift: "rift-v2.webp",
+  };
+  const atlasFile = correctedAtlasFiles[id] || `${id}.webp`;
   return {
     schema: MOTION_SCHEMA, kind: "specialist", status: "ready",
-    atlas: { src: `assets/motion-normalized/specialists/${id}.webp`, available: true, expectedSize: [1024, 1536] },
+    atlas: { src: `assets/motion-normalized/specialists/${atlasFile}`, available: true, expectedSize: [1024, 1536] },
     grid: { columns: 4, rows: 6 }, directions: [...MOTION_DIRECTIONS],
     anchor: [.5, .875], drawSize: specialistSizes[id], collisionOffset: [0, 0], groundY: 18, shadow: [34, 12],
     sockets: { muzzle: { distance: id === "sola" || id === "bront" ? 53 : 58, vertical: -8 } },

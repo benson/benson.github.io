@@ -163,7 +163,7 @@ class MotionAtlasNormalizationTests(unittest.TestCase):
         with self.assertRaisesRegex(tool.MotionAtlasError, "permutation"):
             tool.validate_manifest(manifest)
 
-    def test_production_direction_overrides_pin_echo_and_vesper_semantics(self):
+    def test_production_direction_overrides_pin_roster_semantics(self):
         manifest_path = Path(__file__).resolve().parents[1] / "motion-atlas-manifest.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         atlases = {atlas["id"]: atlas for atlas in manifest["atlases"]}
@@ -171,6 +171,27 @@ class MotionAtlasNormalizationTests(unittest.TestCase):
         self.assertEqual(echo["sourceSlots"][2], [0, 3, 2, 1])
         self.assertEqual(echo["sourceRows"], {"run-a.north": 3})
         self.assertEqual(echo["flipX"], ["run-a.west", "run-b.west", "action.west"])
+        bront = atlases["bront"]
+        self.assertEqual(bront["output"]["path"], "assets/motion-normalized/specialists/bront-v2.webp")
+        self.assertEqual(bront["flipX"], [
+            "idle-a.west", "idle-b.west",
+            "run-a.west", "run-a.east", "run-b.west", "run-b.east",
+            "action.west", "action.east", "hurt-down.east",
+        ])
+        gale = atlases["gale"]
+        self.assertEqual(gale["output"]["path"], "assets/motion-normalized/specialists/gale-v2.webp")
+        self.assertEqual(gale["flipX"], [
+            "idle-a.west", "idle-b.west", "run-a.west",
+            "run-b.west", "action.west", "hurt-down.west",
+        ])
+        nova = atlases["nova"]
+        self.assertEqual(nova["output"]["path"], "assets/motion-normalized/specialists/nova-v2.webp")
+        self.assertEqual(nova["flipX"], [
+            "run-a.west", "run-b.west", "action.west", "hurt-down.west",
+        ])
+        rift = atlases["rift"]
+        self.assertEqual(rift["output"]["path"], "assets/motion-normalized/specialists/rift-v2.webp")
+        self.assertEqual(rift["flipX"], ["idle-a.west", "idle-b.west"])
         vesper = atlases["vesper"]
         self.assertEqual(vesper["sourceSlots"][0], [0, 3, 2, 1])
         self.assertEqual(vesper["sourceSlots"][1], [0, 3, 2, 1])

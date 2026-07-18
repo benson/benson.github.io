@@ -28,9 +28,9 @@
     {
       "id": "bront", "kind": "specialist", "rows": 6,
       "source": { "path": "assets/motion/specialists/bront.webp", "sha256": "07ad4705ba859ce64a5183f50e5575f7833caf340ece4066849da82e684585a1", "width": 1024, "height": 1536 },
-      "output": { "path": "assets/motion-normalized/specialists/bront.webp", "pixelSha256": "0ae80836f4e99648725ef0e832c4a14bc3d1362a11e6735d1255f6e0be370945", "width": 1024, "height": 1536 },
+      "output": { "path": "assets/motion-normalized/specialists/bront-v2.webp", "pixelSha256": "eed14103deec6882e4a5ef97487f810ae0f9045bd744c3e1d197948376277181", "width": 1024, "height": 1536 },
       "sourceSlots": [[0,1,2,3], [0,1,2,3], [0,1,2,3], [0,1,2,3], [0,1,2,3], [0,1,2,3]],
-      "sourceRows": {}, "flipX": [],
+      "sourceRows": {}, "flipX": ["idle-a.west", "idle-b.west", "run-a.west", "run-a.east", "run-b.west", "run-b.east", "action.west", "action.east", "hurt-down.east"],
       "directions": ["south", "west", "north", "east"], "states": ["idle-a", "idle-b", "run-a", "run-b", "action", "hurt-down"], "anchor": [0.5, 0.875]
     },
     {
@@ -52,25 +52,25 @@
     {
       "id": "gale", "kind": "specialist", "rows": 6,
       "source": { "path": "assets/motion/specialists/gale.webp", "sha256": "840da1a8dcee979b0300742bb02fc31360f4b01d9b8c29d50cf5524460d5bac8", "width": 1024, "height": 1536 },
-      "output": { "path": "assets/motion-normalized/specialists/gale.webp", "pixelSha256": "0ef87f9d86f4fb4817a89b23005c55f9aa3f03b85def324fae6cc3d02aeeca84", "width": 1024, "height": 1536 },
+      "output": { "path": "assets/motion-normalized/specialists/gale-v2.webp", "pixelSha256": "3418a4e7d267c3db88b34ba5ad96bc6dfa26833fabd5bf9f9812e44167a1bbe4", "width": 1024, "height": 1536 },
       "sourceSlots": [[0,1,2,3], [0,1,2,3], [0,1,2,3], [0,1,2,3], [0,1,2,3], [0,1,2,3]],
-      "sourceRows": {}, "flipX": [],
+      "sourceRows": {}, "flipX": ["idle-a.west", "idle-b.west", "run-a.west", "run-b.west", "action.west", "hurt-down.west"],
       "directions": ["south", "west", "north", "east"], "states": ["idle-a", "idle-b", "run-a", "run-b", "action", "hurt-down"], "anchor": [0.5, 0.875]
     },
     {
       "id": "nova", "kind": "specialist", "rows": 6,
       "source": { "path": "assets/motion/specialists/nova.webp", "sha256": "42494a088a5b3b5101a6d6fc515eb8c339cad16b95560ec592317c24aac2b312", "width": 1024, "height": 1536 },
-      "output": { "path": "assets/motion-normalized/specialists/nova.webp", "pixelSha256": "291482dec87641dc913a8aa875222ee81108eaa37531831b906271dea772db90", "width": 1024, "height": 1536 },
+      "output": { "path": "assets/motion-normalized/specialists/nova-v2.webp", "pixelSha256": "2462e2a0e06b4919f943569d6a3aa7bd1e687a035739f642aaf75fcc9c0b62a9", "width": 1024, "height": 1536 },
       "sourceSlots": [[0,1,2,3], [0,1,2,3], [0,1,2,3], [0,1,2,3], [0,1,2,3], [0,1,2,3]],
-      "sourceRows": {}, "flipX": [],
+      "sourceRows": {}, "flipX": ["run-a.west", "run-b.west", "action.west", "hurt-down.west"],
       "directions": ["south", "west", "north", "east"], "states": ["idle-a", "idle-b", "run-a", "run-b", "action", "hurt-down"], "anchor": [0.5, 0.875]
     },
     {
       "id": "rift", "kind": "specialist", "rows": 6,
       "source": { "path": "assets/motion/specialists/rift.webp", "sha256": "8fd7e1017bb54df8c1f58e428b9e0d3e0958d520af8bb95e56e03beb8a72ca2b", "width": 1024, "height": 1536 },
-      "output": { "path": "assets/motion-normalized/specialists/rift.webp", "pixelSha256": "3bf3a0d60e3790b0fedae4546b8e58cd374dbde808dd1448dd6c9d19b3cbca1b", "width": 1024, "height": 1536 },
+      "output": { "path": "assets/motion-normalized/specialists/rift-v2.webp", "pixelSha256": "904ee7b1754c0882e7a4915fea0529a6191b93a8988f04d1490ac51606a42bee", "width": 1024, "height": 1536 },
       "sourceSlots": [[0,1,2,3], [0,1,2,3], [0,1,2,3], [0,1,2,3], [0,1,2,3], [0,1,2,3]],
-      "sourceRows": {}, "flipX": [],
+      "sourceRows": {}, "flipX": ["idle-a.west", "idle-b.west"],
       "directions": ["south", "west", "north", "east"], "states": ["idle-a", "idle-b", "run-a", "run-b", "action", "hurt-down"], "anchor": [0.5, 0.875]
     },
     {
