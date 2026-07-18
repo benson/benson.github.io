@@ -1,6 +1,24 @@
 {
-  "blurb": "played 17 other games in the last week, went 8-9",
+  "blurb": "played 19 other games in the last week, went 10-9",
   "recent": [
+    {
+      "champion": "Corki",
+      "win": true,
+      "kills": 10,
+      "deaths": 2,
+      "assists": 21,
+      "damage": 67147,
+      "minutes": 23
+    },
+    {
+      "champion": "Kaisa",
+      "win": true,
+      "kills": 8,
+      "deaths": 9,
+      "assists": 12,
+      "damage": 35452,
+      "minutes": 24
+    },
     {
       "champion": "Lillia",
       "win": true,
@@ -27,24 +45,6 @@
       "assists": 5,
       "damage": 56819,
       "minutes": 26
-    },
-    {
-      "champion": "Swain",
-      "win": true,
-      "kills": 21,
-      "deaths": 8,
-      "assists": 9,
-      "damage": 116732,
-      "minutes": 29
-    },
-    {
-      "champion": "Lillia",
-      "win": false,
-      "kills": 5,
-      "deaths": 5,
-      "assists": 12,
-      "damage": 40235,
-      "minutes": 23
     }
   ],
   "ddragonVersion": "16.14.1",
