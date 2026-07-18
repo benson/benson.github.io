@@ -1,11 +1,11 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
-} from "./data.js?v=20260718.3";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260718.3";
+} from "./data.js?v=20260718.4";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260718.4";
 import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.5";
-import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260718.3";
-import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260718.3";
+import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260718.4";
+import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260718.4";
 import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260713.1";
 import { MAX_CORRIDOR_CANDIDATES, accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget, orderEntitiesByDistance } from "./projectile-decisions.js?v=20260713.1";
 import { eliteAffixEligibility, selectEliteAffixes, selectSpawnArchetype, spawnPhaseAt } from "./enemy-archetypes.js?v=20260713.1";
@@ -27,27 +27,27 @@ import {
   DOWNED_ACTIVITY_REGISTRY, DOWNED_ACTIVITY_SCHEMA, advanceDownedBleedout, advanceDownedCrawl,
   beginDownedActivity, createDownedActivityState, removeDownedActivity, triggerDownedSupport,
   validateDownedActivityState,
-} from "./downed-activity.js?v=20260718.3";
-import { generateJoinPackage, JOIN_IN_PROGRESS_REGISTRY, joinPackageUpgradeIds, transitionJoinPackage } from "./join-in-progress.js?v=20260718.3";
+} from "./downed-activity.js?v=20260718.4";
+import { generateJoinPackage, JOIN_IN_PROGRESS_REGISTRY, joinPackageUpgradeIds, transitionJoinPackage } from "./join-in-progress.js?v=20260718.4";
 import {
   DIRECTOR_APPROACHES, DIRECTOR_FORMATIONS, createSquadDirectorState, planSquadFormation, validateSquadDirectorState,
-} from "./enemy-director.js?v=20260718.3";
-import { mapMechanicFrame, mapSpawnWeights, pointInMapMechanic } from "./map-mechanics.js?v=20260718.3";
+} from "./enemy-director.js?v=20260718.4";
+import { mapMechanicFrame, mapSpawnWeights, pointInMapMechanic } from "./map-mechanics.js?v=20260718.4";
 import {
   CAMPAIGN_MUTATIONS, campaignMutationDefinition, campaignMutationObjectiveCompleted, campaignMutationWaveStarted,
   cancelCampaignMutationEncounter, consumeCampaignMutationEncounter, createCampaignMutationState,
   resolveCampaignMutationEncounter, validateCampaignMutationState,
-} from "./campaign-mutations.js?v=20260718.3";
-import { masteryStartDefinition } from "./specialist-mastery.js?v=20260718.3";
+} from "./campaign-mutations.js?v=20260718.4";
+import { masteryStartDefinition } from "./specialist-mastery.js?v=20260718.4";
 import {
   createRareDiscoveryRunState, rareDiscoveryIdForBoon, recordRareDiscovery,
   revealNextAugmentDossier, validateRareDiscoveryRunState,
-} from "./rare-discoveries.js?v=20260718.3";
-import { validateSeededOperation } from "./seeded-operations.js?v=20260718.3";
-import { commitCombatFacing, movementClassificationFacing, selectStickyAutoAimTarget } from "./combat-orientation.js?v=20260718.3";
-import { abilityChoreography } from "./combat-choreography.js?v=20260718.3";
-import { environmentChunkObstacles } from "./environment-chunks.js?v=20260718.3";
-import { circleIntersectsCollider, colliderContactNormal, rectCollider, sweptCircleColliderImpact } from "./collision-geometry.js?v=20260718.3";
+} from "./rare-discoveries.js?v=20260718.4";
+import { validateSeededOperation } from "./seeded-operations.js?v=20260718.4";
+import { commitCombatFacing, movementClassificationFacing, selectStickyAutoAimTarget } from "./combat-orientation.js?v=20260718.4";
+import { abilityChoreography } from "./combat-choreography.js?v=20260718.4";
+import { environmentChunkObstacles } from "./environment-chunks.js?v=20260718.4";
+import { circleIntersectsCollider, colliderContactNormal, rectCollider, sweptCircleColliderImpact } from "./collision-geometry.js?v=20260718.4";
 
 const BALANCE = getBalanceConfig();
 

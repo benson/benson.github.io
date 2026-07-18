@@ -1,7 +1,7 @@
 # Lastlight asset inventory
 
 Version: `lastlight.brand.v1`  
-Applies to: build `2026.07.18.3`
+Applies to: build `2026.07.18.4`
 
 Every checked-in runtime asset is project-authored. Generated imagery was directed and curated for Lastlight, normalized by the repository tooling where applicable, and carries no external stock or third-party asset dependency. Source files stay beside their runtime derivatives so replacements remain attributable and reversible.
 

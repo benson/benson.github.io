@@ -34,6 +34,11 @@ test("problem reports capture whether a map mechanic is moving the local player"
   assert.match(game, /forcedMovementActive: mechanic\.active && mechanicAffectsPlayer && mechanic\.effect\.pushPerSecond > 0/);
 });
 
+test("map devices communicate activation visually instead of naming themselves in event banners", () => {
+  assert.match(game, /\["Healing relay charged", "Ion cannon online", "Freeze core discharged"\]\.includes\(event\.title\)/);
+  assert.match(game, /sfx\("reward"\);\s+continue;/);
+});
+
 test("Field Manual documents all operation identities with readable image-backed cards", () => {
   assert.match(game, /id="guide-map-mechanics"/);
   assert.match(game, /mapMechanicDefinition\(mapId\)/);
