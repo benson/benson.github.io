@@ -1,39 +1,40 @@
-import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260718.5";
-import { WORLD } from "./engine.js?v=20260718.5";
-import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260718.5";
+import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260718.7";
+import { WORLD } from "./engine.js?v=20260718.7";
+import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260718.7";
 import { springCamera } from "./feel.js?v=20260713.2";
 import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistFacingTarget, specialistMotionState, stableDirectionColumn } from "./motion.js?v=20260713.1";
 import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260718.5";
-import { impactRenderPlan } from "./impact-grammar.js?v=20260718.5";
-import { movementVisualState } from "./movement.js?v=20260718.5";
-import { effectReadabilityCategory, partitionEffects, readabilityPlan } from "./readability.js?v=20260718.5";
-import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260718.5";
+import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260718.7";
+import { impactRenderPlan } from "./impact-grammar.js?v=20260718.7";
+import { movementVisualState } from "./movement.js?v=20260718.7";
+import { effectReadabilityCategory, partitionEffects, readabilityPlan } from "./readability.js?v=20260718.7";
+import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260718.7";
 import { EnvironmentInteractionField, stableEnvironmentUnit } from "./environment-interactions.js?v=20260712.1";
-import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260718.5";
-import { circleIntersectsCollider, rectCollider } from "./collision-geometry.js?v=20260718.5";
-import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260718.5";
+import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260718.7";
+import { circleIntersectsCollider, rectCollider } from "./collision-geometry.js?v=20260718.7";
+import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260718.7";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
 import { PING_INTENTS, PING_LIFETIME_TICKS, selectVisiblePings } from "./ping-contract.js?v=20260713.4";
-import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260718.5";
-import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260718.5";
+import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260718.7";
+import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260718.7";
 import {
   ImpactIntensityDirector, aftermathPlan, attackerRecoilTransform, cameraLookBias,
   impactAnimationTimeScale, impactFeedbackPlan, impactReactionTransform, impactTierForEvent, projectileMotionPlan,
   secondaryMotionPlan, selectImpactFeedback,
-} from "./impact-feel.js?v=20260718.5";
-import { combatTurnPlan, isBodyDrivingSource, resolvedCombatFacing, specialistMuzzlePoint } from "./combat-orientation.js?v=20260718.5";
+} from "./impact-feel.js?v=20260718.7";
+import { combatTurnPlan, isBodyDrivingSource, resolvedCombatFacing, specialistMuzzlePoint } from "./combat-orientation.js?v=20260718.7";
 import {
   cameraCompositionPlan, castMotionPlan, combatDensityPlan, playerLifecycleMotionPlan, rewardMotionPlan,
-} from "./combat-choreography.js?v=20260718.5";
-import { apexPhaseMotionPlan, enemyArrivalMotionPlan, enemyDepartureMotionPlan } from "./combat-rhythm.js?v=20260718.5";
+} from "./combat-choreography.js?v=20260718.7";
+import { apexPhaseMotionPlan, enemyArrivalMotionPlan, enemyDepartureMotionPlan } from "./combat-rhythm.js?v=20260718.7";
 import {
   enemyGroundingPlan, impactCameraImpulsePlan, locomotionPlantPlan, weaponKickPlan,
-} from "./combat-weight.js?v=20260718.5";
+} from "./combat-weight.js?v=20260718.7";
 
 const TAU = Math.PI * 2;
 const PING_BUFFER_LIMIT = 32;
 const INSPECTION_HIGHLIGHT_MAX_AGE_MS = 250;
+export const FREIGHT_CONVEYOR_ALPHA = .7;
 
 /**
  * Resolve the exact atlas crop and local Canvas2D transforms used to draw a
@@ -85,6 +86,22 @@ export function mechanicFrameForState(state) {
   const mapId = typeof state.map === "string" ? state.map : state.map?.id;
   const pressureAdvanceTicks = Number.isSafeInteger(state.mutationState?.pressureAdvanceTicks) ? state.mutationState.pressureAdvanceTicks : 0;
   return mapMechanicFrame(mapId, state.tick + pressureAdvanceTicks, { worldWidth: WORLD.width, worldHeight: WORLD.height });
+}
+
+export function freightConveyorTravel(frame, laneIndex, laneCount, activeTicks) {
+  const cycle = Math.max(0, Math.floor(Number(frame?.cycle) || 0));
+  const lanes = Math.max(1, Math.floor(Number(laneCount) || 1));
+  const lane = Math.max(0, Math.min(lanes - 1, Math.floor(Number(laneIndex) || 0)));
+  const duration = Math.max(1, Math.floor(Number(activeTicks) || 1));
+  let travel = 0;
+  for (let completedCycle = lane; completedCycle < cycle; completedCycle += lanes) {
+    travel += (completedCycle % 2 === 0 ? 1 : -1) * duration;
+  }
+  if (frame?.active && cycle % lanes === lane) {
+    const elapsed = clamp(duration - Math.max(0, Number(frame.remainingTicks) || 0), 0, duration);
+    travel += (frame.direction > 0 ? 1 : -1) * elapsed;
+  }
+  return travel;
 }
 
 export function supplyContainerDamageState(hp = 100) {
@@ -943,7 +960,6 @@ export class Renderer {
     const mapMechanic = mechanicFrameForState(state);
     this.drawMapMechanic(mapMechanic, map);
     this.drawForcedMovementCue(mapMechanic, state, localPlayerId, map, "ground");
-    this.drawImpactMovementCue(state, localPlayerId, map, "ground");
     this.drawEnvironmentalProps();
     this.drawMachine(state, map);
     const effectPasses = partitionEffects(state.effects || []);
@@ -963,7 +979,6 @@ export class Renderer {
     this.drawGroundParticles(visualDt);
     this.drawGroundedQueue(state, previous, interpolation, map, localPlayerId, visualDt);
     this.drawForcedMovementCue(mapMechanic, state, localPlayerId, map, "overlay");
-    this.drawImpactMovementCue(state, localPlayerId, map, "overlay");
     this.drawPings(state.tick);
     // Intent geometry is authoritative combat information, not cosmetic density.
     // Draw it from the complete viewport-culled enemy list so a low quality
@@ -1066,7 +1081,7 @@ export class Renderer {
     if (!mechanicSprite?.complete || !mechanicSprite.naturalWidth || !mechanicSprite.naturalHeight) return;
     const definition = map.id === "warehouse" ? mapMechanicDefinition(map.id) : null;
     const surfaces = definition
-      ? definition.lanes.map((center) => ({ geometry: { ...frame.geometry, axis: "horizontal", center }, selected: center === frame.geometry.center }))
+      ? definition.lanes.map((center, laneIndex) => ({ geometry: { ...frame.geometry, axis: "horizontal", center }, laneIndex, selected: center === frame.geometry.center }))
       : [{ geometry: frame.geometry, selected: true }];
     for (const surface of surfaces) {
       const mechanicContext = this.ctx, mechanicGeometry = surface.geometry, mechanicVertical = mechanicGeometry.axis === "vertical";
@@ -1074,11 +1089,16 @@ export class Renderer {
       const mechanicTileLength = Math.max(360, Math.round(mechanicThickness * mechanicSprite.naturalWidth / mechanicSprite.naturalHeight));
       const energized = surface.selected && frame.active;
       const mechanicDirection = frame.direction > 0 ? 1 : -1;
-      const mechanicTravel = energized && !this.reducedMotion && frame.effect?.pushPerSecond > 0 ? (this.renderTick * 1.35 * mechanicDirection) % mechanicTileLength : 0;
+      const rawTravel = definition && !this.reducedMotion
+        ? freightConveyorTravel(frame, surface.laneIndex, definition.lanes.length, definition.activeTicks) * 1.35
+        : energized && !this.reducedMotion && frame.effect?.pushPerSecond > 0
+          ? this.renderTick * 1.35 * mechanicDirection
+          : 0;
+      const mechanicTravel = ((rawTravel % mechanicTileLength) + mechanicTileLength) % mechanicTileLength;
       mechanicContext.save();
       mechanicContext.translate(mechanicVertical ? mechanicGeometry.center : 0, mechanicVertical ? 0 : mechanicGeometry.center);
       if (mechanicVertical) mechanicContext.rotate(Math.PI / 2);
-      mechanicContext.globalAlpha = map.id === "warehouse" ? .66 : (energized ? .48 : .22);
+      mechanicContext.globalAlpha = map.id === "warehouse" ? FREIGHT_CONVEYOR_ALPHA : (energized ? .48 : .22);
       mechanicContext.filter = map.id === "warehouse" ? "saturate(.84) brightness(.82)" : energized ? "saturate(.92) brightness(.88)" : "saturate(.62) brightness(.74)";
       for (let along = -mechanicLength / 2 - mechanicTileLength + mechanicTravel; along < mechanicLength / 2 + mechanicTileLength; along += mechanicTileLength) {
         mechanicContext.drawImage(mechanicSprite, along, -mechanicThickness / 2, mechanicTileLength + 1, mechanicThickness);
@@ -1102,37 +1122,6 @@ export class Renderer {
     movementContext.fillStyle = map.accent; movementContext.fill();
     movementContext.restore();
     return;
-  }
-
-  drawImpactMovementCue(state, localPlayerId, map, pass = "ground") {
-    const player = (state.players || []).find((entry) => entry.id === localPlayerId) || state.players?.[0];
-    if (!player || player.dead || player.downed) return;
-    const velocityX = Number(player.knockVx || 0), velocityY = Number(player.knockVy || 0);
-    const speed = Math.hypot(velocityX, velocityY);
-    if (!Number.isFinite(speed) || speed < 28) return;
-    const ctx = this.ctx, angle = Math.atan2(velocityY, velocityX), radius = Math.max(18, Number(player.radius || 24));
-    const strength = clamp((speed - 28) / 170, .35, 1), length = 48 + strength * 34;
-    ctx.save();
-    if (pass === "ground") {
-      ctx.translate(player.x, player.y); ctx.rotate(angle);
-      ctx.globalAlpha = .62 + strength * .28; ctx.strokeStyle = "#ff795d"; ctx.fillStyle = "#ff795d"; ctx.lineWidth = 3 + strength * 2;
-      ctx.beginPath(); ctx.moveTo(radius * .35, 0); ctx.lineTo(length, 0); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(length, 0); ctx.lineTo(length - 17, -10); ctx.lineTo(length - 17, 10); ctx.closePath(); ctx.fill();
-      ctx.strokeStyle = "#f4fffd"; ctx.lineWidth = 3;
-      for (let index = 0; index < 2; index++) {
-        const x = -radius - 7 - index * 10;
-        ctx.beginPath(); ctx.moveTo(x - 7, -10); ctx.lineTo(x, 0); ctx.lineTo(x - 7, 10); ctx.stroke();
-      }
-    } else if (speed >= 78) {
-      const headline = "ENEMY IMPACT";
-      ctx.translate(player.x, player.y - radius - 38);
-      ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "900 11px Inter";
-      const width = Math.max(ctx.measureText(headline).width + 22, 104);
-      ctx.fillStyle = "rgba(3,10,16,.9)"; ctx.fillRect(-width / 2, -13, width, 26);
-      ctx.strokeStyle = "#ff795d"; ctx.lineWidth = 2; ctx.strokeRect(-width / 2, -13, width, 26);
-      ctx.fillStyle = "#f4fffd"; ctx.fillText(headline, 0, 0);
-    }
-    ctx.restore();
   }
 
   drawMapGuides(map) {
@@ -1863,6 +1852,16 @@ export class Renderer {
           const x = range * index / 4; ctx.strokeStyle = danger.palette.core; ctx.lineWidth = 2; ctx.beginPath();
           ctx.moveTo(x - 10, -8); ctx.lineTo(x, 0); ctx.lineTo(x - 10, 8); ctx.stroke();
         }
+      } else if (kind === "lane") {
+        const span = Math.max(0, range - start), revealed = start + span * timing;
+        ctx.fillStyle = danger.palette.body; ctx.globalAlpha = .035;
+        ctx.fillRect(start, -halfWidth, span, halfWidth * 2);
+        ctx.globalAlpha = .12;
+        ctx.fillRect(start, -halfWidth * .72, Math.max(0, revealed - start), halfWidth * 1.44);
+        ctx.strokeStyle = danger.palette.body; ctx.globalAlpha = .34; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(start, 0); ctx.lineTo(revealed, 0); ctx.stroke();
+        ctx.strokeStyle = danger.palette.core; ctx.globalAlpha = .62; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.moveTo(range, -halfWidth * .7); ctx.lineTo(range, halfWidth * .7); ctx.stroke();
       } else {
         halfWidth = kind === "line" ? 13 : halfWidth;
         ctx.fillStyle = danger.palette.body; ctx.globalAlpha = kind === "line" ? .035 : .065; ctx.fillRect(start, -halfWidth, range - start, halfWidth * 2); ctx.globalAlpha = .94;
@@ -1879,7 +1878,7 @@ export class Renderer {
         }
       }
       const family = enemyAttackFamily({ type: raw.type, telegraphKind: kind });
-      if (family) this.drawEnemyAttackAccents(enemyAttackMotionPlan({
+      if (family && !(family === "charge" && kind === "lane")) this.drawEnemyAttackAccents(enemyAttackMotionPlan({
         family, stage: "windup", progress,
         geometry: { radius, range, start, halfWidth },
         reducedMotion: this.reducedMotion, reducedFlash: this.qualityProfile.flashIntensity <= .25,
@@ -2312,14 +2311,6 @@ export class Renderer {
         ctx.strokeStyle = p.invuln > 0 ? "#fff" : spec.color; ctx.globalAlpha = .55; ctx.lineWidth = 4;
         ctx.beginPath(); ctx.ellipse(0, -4, 43 + (this.reducedMotion ? 0 : Math.sin(now * .008) * 2), 49, 0, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1;
       }
-      if (hurt > 0) {
-        ctx.save(); ctx.rotate(p.hurtAngle || 0); ctx.strokeStyle = "#ff5870"; ctx.lineWidth = 4; ctx.globalAlpha = hurt;
-        ctx.beginPath(); ctx.arc(0, 0, 45 + hurt * 9, -.9, .9); ctx.stroke(); ctx.restore();
-        ctx.save(); ctx.translate(0, groundY - 2); ctx.rotate(p.hurtAngle || 0); ctx.globalAlpha = hurt; ctx.strokeStyle = "#fff"; ctx.lineWidth = 3;
-        for (const side of [-1, 1]) { ctx.beginPath(); ctx.moveTo(35, side * 12); ctx.lineTo(47, side * 7); ctx.lineTo(38, side * 2); ctx.stroke(); }
-        ctx.restore();
-      }
-
       const atlas = this.animationAtlases[p.specialist];
       const spritePlan = specialistAtlasRenderPlan({
         rig: animationConfig, atlas, frame: atlasFrame, direction: visual.directionColumn,

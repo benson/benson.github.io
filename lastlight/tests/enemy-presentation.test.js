@@ -49,7 +49,8 @@ test("authoritative enemy intent remains visible when minimal sprite budgets omi
   renderer.drawEnemyBehaviorTelegraphs(enemies, null, 1, { tick: 25 });
 
   assert.ok(calls.some(([name]) => name === "stroke"), "essential intent draws independently of effect density");
-  assert.ok(calls.some(([name, dash]) => name === "setLineDash" && Array.isArray(dash) && dash.length), "intent includes a non-color lane pattern");
+  assert.equal(calls.some(([name, dash]) => name === "setLineDash" && Array.isArray(dash) && dash.length), false, "charge intent avoids dotted vector rails");
+  assert.ok(calls.some(([name]) => name === "fillRect"), "charge intent uses a restrained ground footprint");
   assert.deepEqual(enemies, before, "presentation never mutates authoritative enemies");
 });
 

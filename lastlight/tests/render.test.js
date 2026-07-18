@@ -18,7 +18,9 @@ globalThis.Image = class {
   set src(value) { this.currentSrc = value; }
 };
 
-const { Renderer, mechanicFrameForState, supplyContainerDamageState } = await import("../render.js?renderer-tests");
+const {
+  FREIGHT_CONVEYOR_ALPHA, Renderer, freightConveyorTravel, mechanicFrameForState, supplyContainerDamageState,
+} = await import("../render.js?renderer-tests");
 const renderSource = readFileSync(new URL("../render.js", import.meta.url), "utf8");
 
 function createRenderer() {
@@ -128,6 +130,17 @@ test("warehouse conveyor belts remain visible while idle and only the selected l
   assert.deepEqual(laneTranslations, [-540, 0, 540]);
   assert.ok(calls.filter(([name]) => name === "drawImage").length >= 9);
   assert.equal(calls.some(([name]) => name === "fillText"), false);
+  assert.equal(FREIGHT_CONVEYOR_ALPHA, .7);
+});
+
+test("warehouse conveyor travel holds its exact phase between activations", () => {
+  const activeTicks = 300, laneCount = 3;
+  const activeEnd = { cycle: 0, active: true, direction: 1, remainingTicks: 0 };
+  const nextIdle = { cycle: 1, active: false, direction: -1, remainingTicks: 810 };
+  assert.equal(freightConveyorTravel(activeEnd, 0, laneCount, activeTicks), 300);
+  assert.equal(freightConveyorTravel(nextIdle, 0, laneCount, activeTicks), 300, "lane zero does not snap after stopping");
+  assert.equal(freightConveyorTravel(nextIdle, 1, laneCount, activeTicks), 0, "the next lane has not moved yet");
+  assert.equal(freightConveyorTravel({ cycle: 1, active: true, direction: -1, remainingTicks: 240 }, 1, laneCount, activeTicks), -60);
 });
 
 test("supply containers switch authored art states without health rails or procedural cracks", () => {
@@ -294,19 +307,11 @@ test("world and offscreen pings render all six non-color labels and stay static 
   assert.ok(scales.every(([x, y]) => x === 1 && y === 1), "reduced-motion markers do not pulse");
 });
 
-test("enemy knockback draws a directional ground vector and labels strong displacement", () => {
-  const { renderer, calls } = createRecordingRenderer();
-  const state = { players: [{ id: "local", x: 40, y: -20, radius: 24, knockVx: 160, knockVy: 0 }] };
-  renderer.drawImpactMovementCue(state, "local", { accent: "#56f1df" }, "ground");
-  assert.ok(calls.some(([name, x, y]) => name === "translate" && x === 40 && y === -20));
-  assert.ok(calls.some(([name, angle]) => name === "rotate" && angle === 0));
-  calls.length = 0;
-  renderer.drawImpactMovementCue(state, "local", { accent: "#56f1df" }, "overlay");
-  assert.ok(calls.some(([name, label]) => name === "fillText" && label === "ENEMY IMPACT"));
-
-  calls.length = 0;
-  renderer.drawImpactMovementCue({ players: [{ ...state.players[0], knockVx: 10 }] }, "local", { accent: "#56f1df" }, "ground");
-  assert.equal(calls.length, 0, "ordinary low residual velocity does not add combat noise");
+test("player hits rely on authored reactions without legacy direction vectors or labels", () => {
+  assert.doesNotMatch(renderSource, /drawImpactMovementCue/);
+  assert.doesNotMatch(renderSource, /ENEMY IMPACT/);
+  assert.doesNotMatch(renderSource, /ctx\.rotate\(p\.hurtAngle[\s\S]{0,300}ctx\.lineTo\(47/);
+  assert.match(renderSource, /specialistAtlasRenderPlan\([\s\S]+hurt,/);
 });
 
 test("solo simulation and network snapshots resolve the same visible map mechanic", () => {

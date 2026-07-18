@@ -124,6 +124,14 @@ test("squad and boss HUD bars share the segmented health contract", () => {
   assert.match(html, /href="#guide-apex">Apexes/);
 });
 
+test("the game topbar keeps counters contained across scaled desktop widths", () => {
+  assert.match(html, /class="game-stat"><b id="kill-count">0<\/b><small>kills<\/small>/);
+  assert.match(html, /class="game-stat"><b id="gold-count">0<\/b><small>gold<\/small>/);
+  assert.match(css, /\.game-topbar \{[^}]+grid-template-columns: minmax\(0,1fr\) auto minmax\(0,1fr\)/s);
+  assert.match(css, /\.game-stats \{[^}]+min-width: 0;[^}]+max-width: 100%;[^}]+white-space: nowrap;/s);
+  assert.match(css, /@media \(max-width: 1180px\) \{[\s\S]+\.game-stat small \{ display: none; \}/s);
+});
+
 test("specialist select exposes an accessible authored starting-weapon detail surface", () => {
   assert.match(html, /id="starting-weapon-trigger"[^>]+aria-controls="starting-weapon-tooltip"[^>]+aria-describedby="starting-weapon-tooltip"/);
   assert.match(html, /id="starting-weapon-tooltip"[^>]+role="tooltip"/);
