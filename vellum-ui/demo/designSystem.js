@@ -17,7 +17,7 @@ import {
   statusStateHtml,
   themeToggle as bindThemeToggle,
   toast,
-} from '../index.js?v=8aef8835f3ab';
+} from '../index.js?v=a39000de6b94';
 
 const mount = document.getElementById('designSystemMount');
 
@@ -626,6 +626,21 @@ function buttonsGroup() {
           fabDemo('!', 'feedback', 'f'),
         ),
     ),
+    entry(
+      'Mobile application chrome',
+      [
+        '.mobile-toolbar',
+        '.mobile-toolbar-title',
+        '.mobile-bottom-nav',
+        '.mobile-bottom-nav-item',
+        '.mobile-bottom-nav-icon',
+        '.mobile-utility-menu',
+        '.mobile-utility-menu-panel',
+        '.mobile-utility-menu-item',
+      ],
+      'Thumb-reachable application navigation, a quiet sticky content toolbar, and one overflow menu for secondary utilities. Consumers choose the breakpoint; Vellum supplies 44px targets, safe-area spacing, and the surface treatment.',
+      () => mobileChromeDemo(),
+    ),
   );
 }
 
@@ -636,6 +651,21 @@ function fabDemo(glyph, label, shortcut, primary = false) {
     el('span', { className: 'fab-glyph', text: glyph }),
     el('span', { className: 'fab-label', text: label }),
     el('span', { className: 'fab-shortcut', ariaHidden: 'true', text: shortcut }),
+  );
+}
+
+function mobileChromeDemo() {
+  return demoHtml(
+    '<div style="width:min(390px,100%);border:1px solid var(--vui-color-line);background:var(--vui-color-bg);">' +
+      '<div class="mobile-toolbar" style="position:static"><span class="mobile-toolbar-title">collection</span><button class="btn btn-secondary" type="button" style="min-height:var(--vui-touch-target)">browse &amp; filter</button></div>' +
+      '<div style="min-height:100px;padding:16px;color:var(--vui-color-text-muted)">mobile content stays clear of persistent navigation.</div>' +
+      '<nav class="mobile-bottom-nav" aria-label="primary" style="position:static;grid-template-columns:repeat(4,minmax(0,1fr))">' +
+      '<button class="mobile-bottom-nav-item active" type="button"><span class="mobile-bottom-nav-icon">&#8801;</span><span>collection</span></button>' +
+      '<button class="mobile-bottom-nav-item" type="button"><span class="mobile-bottom-nav-icon">&#9635;</span><span>decks</span></button>' +
+      '<button class="mobile-bottom-nav-item" type="button"><span class="mobile-bottom-nav-icon">&#8962;</span><span>storage</span></button>' +
+      '<button class="mobile-bottom-nav-item" type="button"><span class="mobile-bottom-nav-icon">&#9675;</span><span>account</span></button>' +
+      '</nav>' +
+      '</div>',
   );
 }
 

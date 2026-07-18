@@ -1,4 +1,4 @@
-import { buttonHtml, el, fieldRowHtml, makeModalInteractive, modal } from '../../index.js?v=8aef8835f3ab';
+import { buttonHtml, el, fieldRowHtml, makeModalInteractive, modal } from '../../index.js?v=a39000de6b94';
 
 const mount = document.getElementById('modalLabMount');
 
