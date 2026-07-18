@@ -30,6 +30,14 @@ test("home art is preloaded in a compact format instead of progressively decodin
   assert.match(css, /\.home-screen::after \{[\s\S]+image-set\(url\("assets\/og-home\.webp"\)/);
 });
 
+test("home difficulty choices use plain labels and keep tuning details out of the select", () => {
+  assert.match(html, /<option value="story">Normal<\/option>/);
+  assert.match(html, /<option value="hard">Hard<\/option>/);
+  assert.match(html, /<option value="extreme">Extreme<\/option>/);
+  assert.match(game, /const DIFFICULTY_COPY = \{ story: "Normal", hard: "Hard", extreme: "Extreme" \}/);
+  assert.doesNotMatch(html, /Sharp hits|Lighter opening|2\.5× health|4\.5× health/);
+});
+
 test("damage source telemetry updates a fixed, two-state panel that fits every row", () => {
   assert.match(html, /class="damage-ledger no-data collapsed"/);
   assert.match(html, /id="damage-ledger-collapse"[^>]+aria-controls="damage-ledger-content"[^>]+aria-expanded="false"/);

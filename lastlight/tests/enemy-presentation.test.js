@@ -66,6 +66,16 @@ test("volatile affix windups draw under reduced motion even while archetype beha
   assert.ok(calls.some(([name]) => name === "fill"), "warning retains a static threat footprint");
 });
 
+test("ordinary ranged bolts do not add a ground-path telegraph", () => {
+  const { renderer, calls } = recordingRenderer();
+  renderer.drawEnemyBehaviorTelegraphs([{
+    id: "spitter", type: "spitter", x: 0, y: 0, radius: 24,
+    behaviorState: { phase: "windup", handlerId: "kite-shot-v1" },
+    behaviorStartedTick: 10, behaviorUntilTick: 40, attackAngle: 0,
+  }], null, 1, { tick: 25, effects: [] });
+  assert.equal(calls.some(([name]) => ["stroke", "fill", "fillRect"].includes(name)), false);
+});
+
 test("elite affix badges use stable patterns and expose behavior through inspection", () => {
   const { renderer, calls } = recordingRenderer();
   renderer.drawEnemyAffixBadges({ affixIds: ["hasted", "shielded", "volatile"] }, -45);

@@ -34,7 +34,7 @@ test("host applies only newer valid v3 sequences in the committed authority epoc
   assert.deepEqual(gate.diagnostics(), { protocolVersion: 3, epoch: 0, sequencedPeers: 1, rejectedStale: 2, rejectedInvalid: 0, rejectedEpoch: 1 });
 });
 
-test("deterministic replay records accepted host order without transport metadata", () => {
+test("deterministic replay records the final accepted same-tick host input without transport metadata", () => {
   const gate = new HostInputSequenceGate();
   const recorder = new ReplayRecorder({
     build: "2026.07.11.4", balanceVersion: "2026.07.11-baseline.1", balanceHash: "fnv1a32:7e33be79",
@@ -48,7 +48,7 @@ test("deterministic replay records accepted host order without transport metadat
   }
   recorder.addCheckpoint(0, "0000000000000000");
   const replay = recorder.finalize(12, "1111111111111111");
-  assert.equal(replay.commands.length, 2);
+  assert.equal(replay.commands.length, 1);
   assert.doesNotMatch(JSON.stringify(replay), /protocolVersion|"seq"|guest-1/);
 });
 
