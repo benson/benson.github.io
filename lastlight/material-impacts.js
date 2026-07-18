@@ -1,4 +1,4 @@
-import { circleIntersectsCollider, normalizeCollider } from "./collision-geometry.js?v=20260718.1";
+import { circleIntersectsCollider, normalizeCollider } from "./collision-geometry.js?v=20260718.2";
 
 export const MATERIAL_SCHEMA = "lastlight.material-impacts.v1";
 export const MATERIAL_CLASSES = Object.freeze(["metal", "concrete", "liquid", "organic", "energy", "void"]);
