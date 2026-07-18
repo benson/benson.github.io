@@ -1,6 +1,15 @@
 {
-  "blurb": "played 19 other games in the last week, went 10-9",
+  "blurb": "played 20 other games in the last week, went 10-10",
   "recent": [
+    {
+      "champion": "Chogath",
+      "win": false,
+      "kills": 4,
+      "deaths": 7,
+      "assists": 2,
+      "damage": 12791,
+      "minutes": 23
+    },
     {
       "champion": "Corki",
       "win": true,
@@ -36,15 +45,6 @@
       "assists": 13,
       "damage": 14197,
       "minutes": 28
-    },
-    {
-      "champion": "Vayne",
-      "win": true,
-      "kills": 11,
-      "deaths": 12,
-      "assists": 5,
-      "damage": 56819,
-      "minutes": 26
     }
   ],
   "ddragonVersion": "16.14.1",
