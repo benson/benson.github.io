@@ -7,8 +7,8 @@ const freeze = (value) => Object.freeze(value);
 export const IMPACT_TIER_PROFILES = freeze({
   ambient: freeze({ cost: 1, priority: 0, holdMs: 0, freezeMs: 0, reaction: 1.5, attackerRecoil: .5, cameraPunch: 0, actorPunch: .5, particles: 2, trailScale: .7, aftermath: .35, audio: .32, haptic: freeze({ duration: 0, strong: 0, weak: 0 }) }),
   light: freeze({ cost: 2, priority: 1, holdMs: 16, freezeMs: 0, reaction: 3, attackerRecoil: 1.1, cameraPunch: 0, actorPunch: 1, particles: 3, trailScale: 1, aftermath: .55, audio: .52, haptic: freeze({ duration: 24, strong: .08, weak: .04 }) }),
-  heavy: freeze({ cost: 4, priority: 2, holdMs: 33, freezeMs: 24, reaction: 6, attackerRecoil: 2.2, cameraPunch: 3, actorPunch: 2, particles: 6, trailScale: 1.28, aftermath: .9, audio: .78, haptic: freeze({ duration: 46, strong: .28, weak: .12 }) }),
-  critical: freeze({ cost: 7, priority: 3, holdMs: 50, freezeMs: 45, reaction: 10, attackerRecoil: 3.6, cameraPunch: 6, actorPunch: 3.5, particles: 9, trailScale: 1.58, aftermath: 1.3, audio: 1, haptic: freeze({ duration: 72, strong: .58, weak: .24 }) }),
+  heavy: freeze({ cost: 4, priority: 2, holdMs: 33, freezeMs: 24, reaction: 7, attackerRecoil: 3, cameraPunch: 3.8, actorPunch: 2.6, particles: 6, trailScale: 1.28, aftermath: .9, audio: .78, haptic: freeze({ duration: 46, strong: .28, weak: .12 }) }),
+  critical: freeze({ cost: 7, priority: 3, holdMs: 50, freezeMs: 45, reaction: 12, attackerRecoil: 4.8, cameraPunch: 7.2, actorPunch: 4.2, particles: 9, trailScale: 1.58, aftermath: 1.3, audio: 1, haptic: freeze({ duration: 72, strong: .58, weak: .24 }) }),
 });
 
 export const IMPACT_MASS_PROFILES = freeze({
@@ -88,21 +88,34 @@ export function impactAnimationTimeScale(targetVisual = null, attackerVisual = n
 }
 
 export function impactReactionTransform(plan, progress = 0) {
-  const p = clamp(progress, 0, 1), peak = p < .2 ? p / .2 : 1 - (p - .2) / .8;
-  const envelope = clamp(peak, 0, 1), distance = plan?.force?.reaction * envelope, angle = Number(plan?.angle) || 0;
+  const p = clamp(progress, 0, 1);
+  // Contact begins at peak displacement. The previous ramp from zero made a
+  // hit read as a slow push after the flash instead of one causal event.
+  const envelope = Math.pow(1 - p, 2.15), distance = plan?.force?.reaction * envelope, angle = Number(plan?.angle) || 0;
+  const compression = Math.min(.12, distance * .012);
   return freeze({
     x: Math.cos(angle) * distance,
     y: Math.sin(angle) * distance,
-    rotation: Math.sin(angle) * distance * .012,
-    scaleX: 1 + envelope * Math.min(.08, distance * .009),
-    scaleY: 1 - envelope * Math.min(.1, distance * .011),
+    rotation: Math.sin(angle) * distance * .008,
+    axisRotation: angle,
+    scaleX: 1 - compression,
+    scaleY: 1 + compression * .55,
     envelope,
   });
 }
 
 export function attackerRecoilTransform(plan, remaining = 0) {
-  const envelope = clamp(remaining, 0, 1), amount = (plan?.force?.attackerRecoil || 0) * envelope, angle = Number(plan?.angle) || 0;
-  return freeze({ x: -Math.cos(angle) * amount, y: -Math.sin(angle) * amount, rotation: -Math.sin(angle) * amount * .012, envelope });
+  const envelope = Math.pow(clamp(remaining, 0, 1), 1.8), amount = (plan?.force?.attackerRecoil || 0) * envelope, angle = Number(plan?.angle) || 0;
+  const compression = Math.min(.055, amount * .011);
+  return freeze({
+    x: -Math.cos(angle) * amount,
+    y: -Math.sin(angle) * amount,
+    rotation: -Math.sin(angle) * amount * .009,
+    axisRotation: angle,
+    scaleX: 1 - compression,
+    scaleY: 1 + compression * .45,
+    envelope,
+  });
 }
 
 export function impactPhaseProgress(type = "default", phase = "recovery", progress = 0, reducedMotion = false) {
