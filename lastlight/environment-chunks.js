@@ -1,6 +1,6 @@
-import { mapMechanicDefinition } from "./map-mechanics.js?v=20260718.3";
-import { alphaMaskCollider } from "./collision-geometry.js?v=20260718.3";
-import { ENVIRONMENT_COLLISION_MASKS } from "./environment-collision-masks.js?v=20260718.3";
+import { mapMechanicDefinition } from "./map-mechanics.js?v=20260718.4";
+import { alphaMaskCollider } from "./collision-geometry.js?v=20260718.4";
+import { ENVIRONMENT_COLLISION_MASKS } from "./environment-collision-masks.js?v=20260718.4";
 
 export const ENVIRONMENT_CHUNK_SCHEMA = "lastlight.environment-chunks.v4";
 export const ENVIRONMENT_CHUNK_MAP_IDS = Object.freeze(["warehouse", "outskirts", "lab", "beachhead"]);
