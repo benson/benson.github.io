@@ -31,7 +31,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260718.4">
+  <link rel="stylesheet" href="styles.css?v=20260718.5">
 </head>
 <body>
   <main id="app">
@@ -416,7 +416,7 @@
             </select>
           </label>
           <button id="pause-quality" class="quality-shortcut" type="button"><span><strong>Display & accessibility</strong><small>Effects, motion, flashes, shake, and performance.</small></span><b>Open</b></button>
-          <button id="pause-audio" class="quality-shortcut" type="button" aria-label="Open sound settings · locked" aria-haspopup="dialog"><span><strong>Sound locked</strong><small>Readiness, volume, voice, and output test.</small></span><b>Open</b></button>
+          <button id="pause-audio" class="quality-shortcut" type="button" aria-label="Open sound settings · locked" aria-haspopup="dialog"><span><strong>Sound locked</strong><small>Music, effects, readiness, and output test.</small></span><b>Open</b></button>
           <button id="resume-button" class="deploy-button" type="button"><span>Resume</span><span>Esc</span></button>
           <button id="abandon-button" class="text-button danger" type="button">Abandon run</button>
         </div>
@@ -660,7 +660,7 @@
     <dialog id="audio-dialog" class="audio-dialog" aria-labelledby="audio-title">
       <form method="dialog">
         <div class="manual-header">
-          <div><p class="eyebrow">Local sound profile</p><h2 id="audio-title">SOUND & VOICE</h2></div>
+          <div><p class="eyebrow">Local sound profile</p><h2 id="audio-title">SOUND</h2></div>
           <button id="audio-close" class="icon-button" type="submit" aria-label="Close sound settings">Close</button>
         </div>
         <div class="audio-body">
@@ -670,12 +670,11 @@
           </section>
           <div class="audio-grid">
             <label for="audio-master"><span><strong>Master volume</strong><small>Overall output with protected headroom.</small></span><span class="audio-range"><input id="audio-master" type="range" min="0" max="100" step="1" value="95"><output id="audio-master-value" for="audio-master">95%</output></span></label>
+            <label for="audio-music"><span><strong>Music volume</strong><small>Adaptive score, ambience, and escalating combat layers.</small></span><span class="audio-range"><input id="audio-music" type="range" min="0" max="100" step="1" value="72"><output id="audio-music-value" for="audio-music">72%</output></span></label>
             <label for="audio-effects"><span><strong>Effects volume</strong><small>Layered weapons, spatial impacts, and priority threat cues.</small></span><span class="audio-range"><input id="audio-effects" type="range" min="0" max="100" step="1" value="100"><output id="audio-effects-value" for="audio-effects">100%</output></span></label>
-            <label for="audio-voice"><span><strong>Voice volume</strong><small>Optional comic “pew pew pew” callouts.</small></span><span class="audio-range"><input id="audio-voice" type="range" min="0" max="100" step="1" value="32"><output id="audio-voice-value" for="audio-voice">32%</output></span></label>
-            <label class="quality-toggle" for="audio-funny-voice"><span><strong>Funny voice callouts</strong><small>Uses the browser's local speech voice. Optional and rate-limited.</small></span><input id="audio-funny-voice" type="checkbox" checked><i aria-hidden="true"></i></label>
           </div>
-          <section class="audio-test-row"><div><strong>Output check</strong><small>Plays a short three-note synthesized test cue.</small><span id="audio-test-result" role="status" aria-live="polite"></span></div><button id="audio-test" class="deploy-button" type="button"><span>Test sound</span><span aria-hidden="true">♪</span></button></section>
-          <p class="quality-note">Sound settings are stored only on this device. Critical hits, hostile fire, and apex warnings stay above friendly weapon chatter. Funny voice callouts use a separate control and cadence. All shipped cues are generated locally at runtime; no external sound pack is loaded.</p>
+          <section class="audio-test-row"><div><strong>Output check</strong><small>Plays a short layered sample and synthesized signature.</small><span id="audio-test-result" role="status" aria-live="polite"></span></div><button id="audio-test" class="deploy-button" type="button"><span>Test sound</span><span aria-hidden="true">♪</span></button></section>
+          <p class="quality-note">Sound settings are stored only on this device. Critical hits, hostile fire, and apex warnings stay above friendly weapon chatter. Recorded effects and adaptive music are loaded only after sound is unlocked; generated cues remain available as a fallback.</p>
         </div>
       </form>
     </dialog>
@@ -714,7 +713,16 @@
       </div>
       <div class="build-history-body">
           <article class="build-release current-build">
-            <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.18.4</h3></div><time class="build-shipped-at" datetime="2026-07-18T14:22:46-04:00" data-build-shipped-at="2026-07-18T14:22:46-04:00">Shipped Jul 18, 2026 · 2:22 PM EDT</time></header>
+            <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.18.5</h3></div><time class="build-shipped-at" datetime="2026-07-18T15:32:55-04:00" data-build-shipped-at="2026-07-18T15:32:55-04:00">Shipped Jul 18, 2026 · 3:32 PM EDT</time></header>
+            <ul>
+              <li>Replaced browser text-to-speech callouts with a cohesive CC0 adaptive score and layered recorded effects.</li>
+              <li>Added escalating containment, pressure, breach, and apex music states that follow wave progress in both four- and fifteen-minute levels.</li>
+              <li>Gave weapons, impacts, enemies, pickups, field devices, and map mechanics physical sample layers while preserving synthesized fallback cues.</li>
+              <li>Added independent music and effects controls, lazy audio loading, spatial variation, critical-cue ducking, and complete asset provenance.</li>
+            </ul>
+          </article>
+          <article class="build-release">
+            <header><div><span class="build-release-status">Previous build</span><h3>2026.07.18.4</h3></div><time class="build-shipped-at" datetime="2026-07-18T14:22:46-04:00" data-build-shipped-at="2026-07-18T14:22:46-04:00">Shipped Jul 18, 2026 · 2:22 PM EDT</time></header>
             <ul>
               <li>Removed the remaining map-device activation banners so Healing Relay, Ion Cannon, and Freeze Core communicate through their authored art and effects during play.</li>
             </ul>
@@ -1459,10 +1467,10 @@
   </main>
 
   <aside class="edge-utilities" aria-label="Build and feedback">
-    <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.18.4. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.18.4</strong></button>
+    <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.18.5. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.18.5</strong></button>
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report a problem</button>
   </aside>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260718.4"></script>
+  <script type="module" src="game.js?v=20260718.5"></script>
 </body>
 </html>

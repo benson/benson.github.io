@@ -1,52 +1,54 @@
-import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260718.4";
-import { Simulation, WORLD, coverObstaclesForMap, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260718.4";
-import { Renderer } from "./render.js?v=20260718.4";
+import { SPECIALISTS, SPECIALIST_ORDER, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES, WAVE_NAMES, BOONS, AUGMENTS, BASE_VITALITY, formatTime, clamp } from "./data.js?v=20260718.5";
+import { Simulation, WORLD, coverObstaclesForMap, moveEntityWithCover, playerMovementSpeed } from "./engine.js?v=20260718.5";
+import { Renderer } from "./render.js?v=20260718.5";
 import { FixedStepClock, MovementPredictor } from "./feel.js?v=20260713.2";
 import { MAP_ORDER, DIFFICULTY_ORDER, MAP_REQUIREMENTS, completeRun, emptyProgress, hasCompleted, isDifficultyUnlocked, isMapUnlocked, normalizeProgress } from "./progression.js?v=20260711.5";
-import { getThemeAsset, getThemeEnvironmentChunks, getThemeMaterial } from "./themes/lastlight.js?v=20260718.4";
-import { submitRunTelemetry } from "./telemetry.js?v=20260718.4";
+import { getThemeAsset, getThemeEnvironmentChunks, getThemeMaterial } from "./themes/lastlight.js?v=20260718.5";
+import { submitRunTelemetry } from "./telemetry.js?v=20260718.5";
 import { bossHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260718.4";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260718.4";
+import { getCurrentStatExplanation, getPassiveAffectedSources } from "./combat-metadata.js?v=20260718.5";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig } from "./balance-config.js?v=20260718.5";
 import { RNG_ALGORITHM, createRandomSeed } from "./rng.js?v=20260711.5";
-import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260718.4";
-import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260718.4";
-import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260718.4";
+import { ReplayRecorder, dequantizeReplayInput, hashSimulationState, quantizeReplayInput, validateReplay } from "./replay.js?v=20260718.5";
+import { DEFAULT_RUNTIME_CONFIG, gameplayFeatureContract, loadRuntimeConfig, runtimeConfigEndpoint } from "./feature-config.js?v=20260718.5";
+import { QUALITY_STORAGE_KEY, loadQualitySettings, saveQualitySettings, settingsForPreset } from "./quality-settings.js?v=20260718.5";
 import {
   ACCESSIBILITY_ACTIONS, GAMEPAD_ACTIONS, bindingLabel, defaultAccessibilitySettings,
   keyboardActionForEvent, loadAccessibilitySettings, readStandardGamepad, saveAccessibilitySettings,
-} from "./accessibility-settings.js?v=20260718.4";
-import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260718.4";
+} from "./accessibility-settings.js?v=20260718.5";
+import { RECOVERY_SIMULATION_VERSION, clearRunRecovery, createRunRecovery, loadRunRecovery, runtimeRecoveryIdentity, saveRunRecovery } from "./recovery.js?v=20260718.5";
 import { GuestInputSequenceTracker, HostInputSequenceGate, createDraftActionMessage, createSnapshotMessage, sanitizeDraftActionMessage, sanitizeSnapshotMessage } from "./protocol.js?v=20260713.2";
 import { createActivatedNetworkLab, resolveNetworkLabActivation } from "./network-lab.js?v=20260713.2";
-import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260718.4";
-import { advancePlayerMovement } from "./movement.js?v=20260718.4";
-import { pointerAimFromWorld } from "./combat-orientation.js?v=20260718.4";
-import { abilityChoreography } from "./combat-choreography.js?v=20260718.4";
-import { combatRhythmTransition } from "./combat-rhythm.js?v=20260718.4";
-import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260718.4";
-import { DynamicAudioMixer } from "./audio-mix.js?v=20260718.4";
-import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260718.4";
+import { getWeaponImpactGrammar, impactSummary, resolveEntityImpact } from "./impact-grammar.js?v=20260718.5";
+import { advancePlayerMovement } from "./movement.js?v=20260718.5";
+import { pointerAimFromWorld } from "./combat-orientation.js?v=20260718.5";
+import { abilityChoreography } from "./combat-choreography.js?v=20260718.5";
+import { combatRhythmTransition } from "./combat-rhythm.js?v=20260718.5";
+import { MATERIAL_CLASSES } from "./material-impacts.js?v=20260718.5";
+import { DynamicAudioMixer } from "./audio-mix.js?v=20260718.5";
+import { LASTLIGHT_AUDIO_CUES, audioCueEnvelopeDuration, resolveAudioCue } from "./audio-cues.js?v=20260718.5";
+import { AUDIO_PRELOAD_CUES, DecodedSampleBank, sampleCueDescriptor } from "./audio-assets.js?v=20260718.5";
+import { AdaptiveMusicDirector, musicStateForGame } from "./music-director.js?v=20260718.5";
 import { enemyAudioCueName, newEntities, spatialAudioPan, weaponAudioCueName, weaponTimerActivations } from "./audio-events.js?v=20260713.1";
-import { FUNNY_VOICE_MIN_INTERVAL_MS, audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260713.1";
-import { playFeedbackHaptics } from "./feedback-haptics.js?v=20260718.4";
-import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260718.4";
-import { BUILDCRAFT_CATEGORY_DEFINITIONS, passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260718.4";
+import { audioOutputState, audioPercent, loadAudioSettings, saveAudioSettings, settleAudioResume } from "./audio-settings.js?v=20260718.5";
+import { playFeedbackHaptics } from "./feedback-haptics.js?v=20260718.5";
+import { buildUpgradeComparison, forecastDraftChoice, playerBuildStats, signatureEvolutionTelemetry, weaponTelemetry } from "./upgrade-preview.js?v=20260718.5";
+import { BUILDCRAFT_CATEGORY_DEFINITIONS, passiveBuildcraft, sourceBuildcraft } from "./synergy-tags.js?v=20260718.5";
 import { getWeaponEvolution } from "./weapon-evolution.js?v=20260713.1";
-import { isFpsShortcut, isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260718.4";
-import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260718.4";
-import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260718.4";
-import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260718.4";
+import { isFpsShortcut, isReportShortcut, shouldOpenReportShortcut } from "./hotkeys.js?v=20260718.5";
+import { VerifiedReplayTimeline } from "./replay-timeline.js?v=20260718.5";
+import { createGameReplayAdapters } from "./replay-game-adapters.js?v=20260718.5";
+import { SPECIALIST_IDENTITY_VERSION, getSpecialistIdentity } from "./specialist-identity.js?v=20260718.5";
 import { reconcileActiveBuffs } from "./active-buffs.js?v=20260713.1";
 import { ELITE_AFFIXES, ENEMY_ARCHETYPES, eliteAffixEligibility } from "./enemy-archetypes.js?v=20260713.1";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
-import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260718.4";
-import { CAMPAIGN_MUTATIONS, campaignMutationDefinition, campaignMutationPackageVisible } from "./campaign-mutations.js?v=20260718.4";
+import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260718.5";
+import { CAMPAIGN_MUTATIONS, campaignMutationDefinition, campaignMutationPackageVisible } from "./campaign-mutations.js?v=20260718.5";
 import {
   AuthoritySnapshotGate, HOST_MIGRATION_PROTOCOL_VERSION, MIGRATION_CHECKPOINT_INTERVAL_TICKS,
   createMigrationCapabilities, createMigrationCheckpoint, createMigrationReady,
   migrationCompatibilityMatches, validateMigrationCheckpoint,
-} from "./host-migration.js?v=20260718.4";
+} from "./host-migration.js?v=20260718.5";
 import { RECONNECT_DELAYS_MS, SquadPresenceTracker, authorityStateCopy } from "./reconnect-state.js?v=20260713.3";
 import {
   HostPingGate, PING_INTENTS, PING_LIFETIME_TICKS, PING_WHEEL_ORDER, PingSequenceTracker,
@@ -62,32 +64,32 @@ import { DraftRecommendationStore, recommendationMarkerModel } from "./draft-rec
 import { SQUAD_SYNERGY_REGISTRY } from "./squad-synergies.js?v=20260713.6";
 import { reconcileActiveSynergies } from "./active-synergies.js?v=20260713.6";
 import { PARTICIPATION_REGISTRY } from "./participation-credit.js?v=20260713.7";
-import { campaignJoinEligibility } from "./join-in-progress.js?v=20260718.4";
+import { campaignJoinEligibility } from "./join-in-progress.js?v=20260718.5";
 import {
   RUN_ARCHIVE_STORAGE_KEY, createSquadRunReport, decodeSquadRunFragment, normalizeRunArchiveStorage,
   squadRunShareFragment, upsertRunArchive,
-} from "./run-archive.js?v=20260718.4";
+} from "./run-archive.js?v=20260718.5";
 import {
   SPECIALIST_MASTERY, SPECIALIST_MASTERY_LEVELS, awardSpecialistMastery, loadSpecialistMasteryState,
   masteryStartDefinition, saveSpecialistMasteryState, selectMasteryStart,
-} from "./specialist-mastery.js?v=20260718.4";
+} from "./specialist-mastery.js?v=20260718.5";
 import {
   RARE_DISCOVERY_REGISTRY, awardRareDiscoveries, loadRareDiscoveryCollection,
   rareDiscoveryDefinition, rareDiscoveryTelemetry, saveRareDiscoveryCollection,
-} from "./rare-discoveries.js?v=20260718.4";
+} from "./rare-discoveries.js?v=20260718.5";
 import {
   CHALLENGE_ACHIEVEMENT_REGISTRY, awardChallengeAchievements, challengeAchievementDefinition,
   challengeAchievementTelemetry, evaluateChallengeAchievements, loadChallengeAchievementState,
   saveChallengeAchievementState,
-} from "./challenge-achievements.js?v=20260718.4";
+} from "./challenge-achievements.js?v=20260718.5";
 import {
   loadSeededOperationRecords, recordSeededOperationResult, saveSeededOperationRecords,
   seededOperationFor, seededOperationFromId, seededOperationTelemetry,
-} from "./seeded-operations.js?v=20260718.4";
+} from "./seeded-operations.js?v=20260718.5";
 import {
   PRACTICE_MAX_PASSIVES, PRACTICE_MAX_WEAPONS, defaultPracticeLaboratoryConfig,
   measurePracticeLaboratory, normalizePracticeLaboratoryConfig,
-} from "./practice-laboratory.js?v=20260718.4";
+} from "./practice-laboratory.js?v=20260718.5";
 
 const $ = (id) => document.getElementById(id);
 const screens = { home: $("home-screen"), lobby: $("lobby-screen"), game: $("game-screen"), result: $("result-screen") };
@@ -96,7 +98,7 @@ const localHost = ["localhost", "127.0.0.1"].includes(location.hostname);
 const RELAY_BASE = query.get("relay") || (localHost ? "ws://localhost:8787/room/" : "wss://lastlight-relay.bensonperry.workers.dev/room/");
 const RUNTIME_CONFIG_ENDPOINT = runtimeConfigEndpoint(RELAY_BASE);
 const FEEDBACK_URL = "https://biblioplex-api.bensonperry.com/feedback";
-const BUILD = "2026.07.18.4";
+const BUILD = "2026.07.18.5";
 const AUTHORITY_WATCHDOG_MS = Object.freeze({ synchronizing: 10_000, migrating: 25_000 });
 const BALANCE = getBalanceConfig();
 const NETWORK_LAB_ACTIVATION = resolveNetworkLabActivation({ url: location.href });
@@ -140,6 +142,7 @@ const emptySoundState = () => ({
   projectileIds: new Set(), effectIds: new Set(), hostileIds: new Set(), attackingIds: new Set(), weaponTimers: new Map(),
   kills: 0, level: 1, damageTaken: 0, xpCollected: 0,
   lastShot: 0, lastEnemy: 0, lastKill: 0, lastImpact: 0, lastMaterial: 0, lastXP: 0,
+  mapMechanicKey: "",
 });
 const DIFFICULTY_COPY = { story: "Normal", hard: "Hard", extreme: "Extreme" };
 
@@ -204,7 +207,7 @@ const state = {
   audioSettings: initialAudioSettings,
   audioAvailable: audioSupported,
   audioStatus: audioOutputState({ supported: audioSupported, enabled: initialAudioSettings.enabled }),
-  audioContext: null, audioMixer: null, audioUnlockInFlight: null, audioUnlockAttempts: 0, audioUnlockReason: "startup", audioLastError: "", activeAudioNodes: 0, peakAudioNodes: 0, toastTimer: null, lastVoiceAt: 0,
+  audioContext: null, audioMixer: null, audioSamples: null, musicDirector: null, audioUnlockInFlight: null, audioUnlockAttempts: 0, audioUnlockReason: "startup", audioLastError: "", activeAudioNodes: 0, peakAudioNodes: 0, toastTimer: null,
   soundState: emptySoundState(),
   recentErrors: [], reportSubmitting: false, resumeAfterReport: false, reportImageDataUrl: "", reportImageMimeType: "", reportImageName: "", telemetrySent: false,
   qualitySettings: initialQualitySettings, accessibilitySettings: initialAccessibilitySettings, accessibilityCapture: "", showEnemyHealthBars: initialQualitySettings.healthBars !== "off", inspectPointer: null, inspectActive: false,
@@ -918,6 +921,7 @@ function setScreen(name) {
   for (const [key, screen] of Object.entries(screens)) screen.classList.toggle("hidden", key !== name);
   document.body.style.overflow = name === "game" ? "hidden" : "auto";
   if (name !== "game") { state.inspectActive = false; setTacticalIntel(false); hideInspectPanel(); }
+  syncAdaptiveMusic();
 }
 
 function callsign() {
@@ -1634,6 +1638,7 @@ function enterGame() {
   state.lastDamageLedgerKey = "";
   state.lastSend = 0; state.lastBroadcast = 0; state.hostPreviousMotion = null; state.inputMotionStartedAt = 0; state.inputMotionStart = null; state.inputWasActive = false;
   fixedClock.reset(); movementPredictor.reset(); resetInputProtocol(); renderer.resetCamera(); $("game-canvas").focus();
+  syncAdaptiveMusic(state.sim || currentGameState(), { immediate: true });
   playLaunchTransition();
   if (!state.animation) state.animation = requestAnimationFrame(gameLoop);
 }
@@ -2133,9 +2138,32 @@ function openQualitySettings() {
   requestAnimationFrame(() => $("quality-preset").focus());
 }
 
+function syncMapMechanicAudio(game) {
+  if (!game || !state.audioSamples || !state.audioMixer) return;
+  const mapId = typeof game.map === "string" ? game.map : game.map?.id;
+  if (!mapId || game.features?.mapMechanics === false || state.runtimeConfig?.config?.flags?.mapMechanics === false) {
+    state.audioSamples.stopAllLoops();
+    state.soundState.mapMechanicKey = "";
+    return;
+  }
+  let frame;
+  try { frame = mapMechanicFrame(mapId, Math.max(0, Math.floor(Number(game.tick) || 0))); }
+  catch { return; }
+  const key = `${mapId}:${frame.cycle}:${frame.phase}`;
+  const kind = frame.effect.kind;
+  if (frame.active && kind !== "ion") {
+    state.audioSamples.startLoop(`map:${kind}`, `world:${kind}-loop`, { destination: state.audioMixer.buses.ambience });
+  } else state.audioSamples.stopAllLoops();
+  if (key === state.soundState.mapMechanicKey) return;
+  state.soundState.mapMechanicKey = key;
+  if (frame.warning) sfx("world:warning");
+  else if (frame.active) sfx(`world:${kind}-active`);
+}
+
 function updateSoundState(game) {
   const now = performance.now();
   const local = game.players?.find((player) => player.id === state.clientId) || game.players?.[0];
+  syncMapMechanicAudio(game);
   const timerActivations = weaponTimerActivations(state.soundState.weaponTimers, game.players);
   state.soundState.weaponTimers = timerActivations.timers;
   const fieldActivation = [...timerActivations.activated].reverse().find(({ player }) => player.id === local?.id) || timerActivations.activated.at(-1);
@@ -2302,6 +2330,7 @@ function togglePause(force) {
   const next = force ?? !state.sim.paused; state.sim.paused = next; state.sim.pauseReason = next ? "manual" : "";
   if (next) closePingWheel({ restoreFocus: false });
   $("pause-overlay").classList.toggle("hidden", !next);
+  syncAdaptiveMusic(state.sim);
 }
 
 function toggleQuickPause(force) {
@@ -2315,6 +2344,7 @@ function toggleQuickPause(force) {
   setTacticalIntel(next);
   if (next && state.inspectPointer) inspectCanvasAt(state.inspectPointer);
   else if (!next) hideInspectPanel();
+  syncAdaptiveMusic(state.sim);
 }
 
 function abandon() {
@@ -2430,6 +2460,7 @@ function setChallengeWatchInspectable(active) {
 function updateHUD(game) {
   const player = game.players.find((p) => p.id === state.clientId) || game.players[0]; if (!player) return;
   updateSoundState(game);
+  syncAdaptiveMusic(game);
   const spec = SPECIALISTS[player.specialist];
   const wave = Number(game.wave || 0);
   if (game.stage === "running" && state.lastWave !== null && wave !== state.lastWave) {
@@ -2837,7 +2868,6 @@ function processEvents(events) {
     if (event.seq <= state.lastEventSeq) continue; state.lastEventSeq = event.seq;
     if (event.type === "cast") {
       sfx(event.slot === "r" ? "ultimate" : "ability");
-      if (event.slot === "r" && event.playerId === state.clientId) comicVoice("pew pew pew");
       continue;
     }
     if (event.type === "signature-evolution-proc" || event.type === "weapon-evolution-proc") continue;
@@ -2852,7 +2882,12 @@ function processEvents(events) {
       continue;
     }
     if (event.type === "boon" && ["Healing relay charged", "Ion cannon online", "Freeze core discharged"].includes(event.title)) {
-      sfx("reward");
+      const fieldCue = {
+        "Healing relay charged": "world:heal",
+        "Ion cannon online": "world:cannon",
+        "Freeze core discharged": "world:freeze",
+      }[event.title];
+      sfx(fieldCue);
       continue;
     }
     if (event.type === "discovery") {
@@ -3933,8 +3968,11 @@ function ensureAudio() {
       density: state.qualitySettings.effectsDensity,
       masterVolume: state.audioSettings.master,
       effectsVolume: state.audioSettings.effects,
+      musicVolume: state.audioSettings.music,
       muted: !state.audioSettings.enabled,
     });
+    state.audioSamples = new DecodedSampleBank(state.audioContext);
+    state.musicDirector = new AdaptiveMusicDirector(state.audioContext, state.audioMixer.buses.music);
     state.audioContext.addEventListener?.("statechange", () => {
       state.audioStatus = audioOutputState({ supported: true, enabled: state.audioSettings.enabled, contextState: state.audioContext.state });
       renderAudioControls();
@@ -3959,6 +3997,8 @@ function audioDiagnostics() {
     settings: { ...state.audioSettings },
     cueRegistry: { schema: LASTLIGHT_AUDIO_CUES.schema, version: LASTLIGHT_AUDIO_CUES.schemaVersion, provenance: { ...LASTLIGHT_AUDIO_CUES.provenance } },
     runtimeNodes: { active: state.activeAudioNodes, peak: state.peakAudioNodes },
+    samples: state.audioSamples?.diagnostics() || null,
+    music: state.musicDirector?.diagnostics() || null,
     mix: state.audioMixer?.diagnostics() || null,
   };
 }
@@ -3986,19 +4026,17 @@ function renderAudioControls() {
   $("audio-status").dataset.state = state.audioStatus;
   $("audio-mute").textContent = state.audioSettings.enabled ? "Mute sound" : "Turn sound on";
   $("audio-mute").setAttribute("aria-pressed", String(!state.audioSettings.enabled));
-  for (const [key, id] of [["master", "audio-master"], ["effects", "audio-effects"], ["voice", "audio-voice"]]) {
+  for (const [key, id] of [["master", "audio-master"], ["music", "audio-music"], ["effects", "audio-effects"]]) {
     $(id).value = String(Math.round(state.audioSettings[key] * 100));
     $(`${id}-value`).textContent = audioPercent(state.audioSettings[key]);
   }
-  $("audio-funny-voice").checked = state.audioSettings.funnyVoice;
   $("audio-test").disabled = state.audioStatus === "unavailable" || !state.audioSettings.enabled;
 }
 
 function applyAudioSettings(settings, persist = true) {
   state.audioSettings = persist ? saveAudioSettings(settings) : settings;
-  state.audioMixer?.setVolumes({ master: state.audioSettings.master, effects: state.audioSettings.effects });
+  state.audioMixer?.setVolumes({ master: state.audioSettings.master, music: state.audioSettings.music, effects: state.audioSettings.effects });
   state.audioMixer?.setMuted(!state.audioSettings.enabled);
-  if (!state.audioSettings.enabled || !state.audioSettings.funnyVoice || state.audioSettings.voice <= 0) window.speechSynthesis?.cancel();
   state.audioStatus = audioOutputState({ supported: state.audioAvailable, enabled: state.audioSettings.enabled, contextState: state.audioContext?.state });
   renderAudioControls();
 }
@@ -4016,6 +4054,10 @@ async function unlockAudioFromGesture(reason = "gesture") {
       if (audio.state !== "running" && !await settleAudioResume(audio.resume())) throw new Error("Audio unlock timed out");
       state.audioLastError = "";
       state.audioStatus = audioOutputState({ supported: state.audioAvailable, enabled: state.audioSettings.enabled, contextState: audio.state });
+      if (state.audioStatus === "ready") {
+        state.audioSamples?.preload(AUDIO_PRELOAD_CUES);
+        syncAdaptiveMusic();
+      }
       return state.audioStatus === "ready";
     } catch (error) {
       state.audioLastError = String(error?.message || error).slice(0, 240);
@@ -4090,6 +4132,15 @@ function renderReplacementTray(game, player) {
   tray.querySelectorAll("[data-replacement]").forEach((button) => button.addEventListener("click", () => performDraftAction({ type: "replace", choiceId: choice.id, replacementId: button.dataset.replacement })));
 }
 
+function syncAdaptiveMusic(game = null, { immediate = false } = {}) {
+  if (!state.musicDirector || state.audioStatus !== "ready" || !state.audioSettings.enabled) return;
+  const current = game || (state.screen === "result" ? state.resultGame : currentGameState());
+  const desired = musicStateForGame(state.screen, current);
+  state.musicDirector.setPaused(Boolean(state.screen === "game" && current?.paused));
+  if (state.screen !== "game") state.audioSamples?.stopAllLoops();
+  void state.musicDirector.transition(desired, { immediate });
+}
+
 function sfx(name, details = {}) {
   if (!state.audioSettings.enabled || state.audioStatus === "unavailable") return false;
   const audio = ensureAudio(); if (!audio) return false;
@@ -4097,26 +4148,26 @@ function sfx(name, details = {}) {
   const definition = resolveAudioCue(name, details);
   const envelope = audioCueEnvelopeDuration(name, details);
   const cue = state.audioMixer.requestCue(name, { ...details, duration: Math.max(Number(details.duration) || 0, envelope), voiceCount: definition.voices.length }); if (!cue) return false;
+  const sampleDescriptor = sampleCueDescriptor(name);
+  const samplePlayback = state.audioSamples?.playCue(name, {
+    destination: cue.destination,
+    pan: cue.pan,
+    variation: cue.variation,
+    sequence: cue.sequence,
+  });
+  const toneGain = samplePlayback ? sampleDescriptor?.toneGain ?? 1 : sampleDescriptor?.sampleOnly ? 0 : 1;
   for (const voice of definition.voices) audioTone(
     audio,
     voice.frequency * cue.variation.pitch,
     voice.offset,
     voice.duration,
     voice.waveform,
-    voice.volume * cue.variation.gain,
+    voice.volume * cue.variation.gain * toneGain,
     voice.endFrequency * cue.variation.pitch,
     cue.destination,
     cue.pan,
   );
-  return true;
-}
-
-function comicVoice(words) {
-  const now = performance.now();
-  if (!state.audioSettings.enabled || !state.audioSettings.funnyVoice || state.audioSettings.voice <= 0 || !window.speechSynthesis || window.speechSynthesis.speaking || window.speechSynthesis.pending || now - state.lastVoiceAt < FUNNY_VOICE_MIN_INTERVAL_MS) return;
-  state.lastVoiceAt = now;
-  const utterance = new SpeechSynthesisUtterance(words); utterance.rate = 1.65; utterance.pitch = 1.35; utterance.volume = state.audioSettings.voice * state.audioSettings.master;
-  window.speechSynthesis.speak(utterance);
+  return Boolean(samplePlayback || toneGain > 0);
 }
 
 async function measureOfflineAudioHeadroom(names = []) {
@@ -4142,7 +4193,10 @@ async function measureOfflineAudioHeadroom(names = []) {
 
 async function toggleAudio() {
   applyAudioSettings({ ...state.audioSettings, enabled: !state.audioSettings.enabled });
-  if (state.audioSettings.enabled && await unlockAudioFromGesture("settings-toggle")) sfx("ui");
+  if (state.audioSettings.enabled && await unlockAudioFromGesture("settings-toggle")) {
+    syncAdaptiveMusic();
+    sfx("ui");
+  }
 }
 
 function openAudioSettings() {
@@ -4155,7 +4209,7 @@ function openAudioSettings() {
 async function testAudioOutput() {
   $("audio-test-result").textContent = "Unlocking audio…";
   const ready = await unlockAudioFromGesture("sound-test");
-  if (ready) $("audio-test-result").textContent = sfx("test") ? "Test tone played." : "Test tone is busy. Try again in a moment.";
+  if (ready) $("audio-test-result").textContent = sfx("test") ? "Layered output check played." : "Output check is busy. Try again in a moment.";
   else $("audio-test-result").textContent = state.audioStatus === "muted" ? "Turn sound on before testing." : state.audioStatus === "unavailable" ? "Web Audio is unavailable in this browser." : "Audio is still locked. Try clicking Test sound again.";
 }
 
@@ -4389,10 +4443,9 @@ function bindEvents() {
   $("audio-dialog").addEventListener("click", (event) => { if (event.target === $("audio-dialog")) $("audio-dialog").close(); });
   $("audio-mute").addEventListener("click", toggleAudio);
   $("audio-test").addEventListener("click", testAudioOutput);
-  for (const [key, id] of [["master", "audio-master"], ["effects", "audio-effects"], ["voice", "audio-voice"]]) {
+  for (const [key, id] of [["master", "audio-master"], ["music", "audio-music"], ["effects", "audio-effects"]]) {
     $(id).addEventListener("input", (event) => applyAudioSettings({ ...state.audioSettings, [key]: Number(event.currentTarget.value) / 100 }));
   }
-  $("audio-funny-voice").addEventListener("change", (event) => applyAudioSettings({ ...state.audioSettings, funnyVoice: event.currentTarget.checked }));
   for (const id of ["quality-button", "lobby-quality", "pause-quality"]) $(id).addEventListener("click", openQualitySettings);
   $("quality-dialog").addEventListener("click", (event) => { if (event.target === $("quality-dialog")) $("quality-dialog").close(); });
   $("quality-preset").addEventListener("change", (event) => applyQualitySettings({ ...settingsForPreset(event.target.value, systemReducedMotion), showFps: state.qualitySettings.showFps }));

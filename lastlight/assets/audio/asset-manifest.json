@@ -1,0 +1,230 @@
+{
+    "schema":  "lastlight.audio-asset-manifest.v1",
+    "generatedAt":  "2026-07-18T15:32:55-04:00",
+    "count":  37,
+    "totalBytes":  5959096,
+    "files":  [
+                  {
+                      "path":  "music/apex-space-boss.ogg",
+                      "bytes":  1364445,
+                      "sha256":  "629e92ab923498e48f93cc0919c758c45646d72d403031452cbb066d9ad3d434",
+                      "source":  "space-boss-battle"
+                  },
+                  {
+                      "path":  "music/combat-pulse.ogg",
+                      "bytes":  831824,
+                      "sha256":  "6350f0e1ab342c0d358346094334dfb74ed842abda33d8e1653336c13dd530ae",
+                      "source":  "dark-sci-fi-audio-pack"
+                  },
+                  {
+                      "path":  "music/combat-sector.ogg",
+                      "bytes":  817770,
+                      "sha256":  "d5862627e6d0c424fc157eaffaa5421bae4f0bb177e7628d520bfb6a45aa9676",
+                      "source":  "dark-sci-fi-audio-pack"
+                  },
+                  {
+                      "path":  "music/combat-urgent.ogg",
+                      "bytes":  828217,
+                      "sha256":  "f8c36b37cac782f0d2b23b52b2c2736af3a748360b829212b415c07fc5d504e5",
+                      "source":  "dark-sci-fi-audio-pack"
+                  },
+                  {
+                      "path":  "music/home-airy.ogg",
+                      "bytes":  1117106,
+                      "sha256":  "ce86ac7d78b0b3257b5242fa7de4fb378616a7a85cb4ea4a17b5a74f76a7d003",
+                      "source":  "dark-sci-fi-audio-pack"
+                  },
+                  {
+                      "path":  "music/victory.ogg",
+                      "bytes":  91504,
+                      "sha256":  "9acde356c84b1d326a3e7b813e43e8849596a285796144f7fabed898f2c21007",
+                      "source":  "dark-sci-fi-audio-pack"
+                  },
+                  {
+                      "path":  "sfx/impacts/concrete-01.ogg",
+                      "bytes":  12035,
+                      "sha256":  "36b4ea107222d073c67ca64dde26944975609202d5090b2f2021213c1a7e35cd",
+                      "source":  "kenney-impact-sounds"
+                  },
+                  {
+                      "path":  "sfx/impacts/concrete-02.ogg",
+                      "bytes":  12160,
+                      "sha256":  "4237fa2cd80364ad81cd0af44f67d7497f1c5edcc7bdb02cd22be2ba4580c83d",
+                      "source":  "kenney-impact-sounds"
+                  },
+                  {
+                      "path":  "sfx/impacts/glass-01.ogg",
+                      "bytes":  7403,
+                      "sha256":  "b44b39a940e8948e74b9bd3776bff980df43cf220abdaf0d467dc4c43c0244a5",
+                      "source":  "kenney-impact-sounds"
+                  },
+                  {
+                      "path":  "sfx/impacts/glass-02.ogg",
+                      "bytes":  8596,
+                      "sha256":  "dccea1ecc3d942ee5fd217c684632638f6c039c97cd3ae59c75ab15d0c3f0b59",
+                      "source":  "kenney-impact-sounds"
+                  },
+                  {
+                      "path":  "sfx/impacts/metal-heavy-01.ogg",
+                      "bytes":  7279,
+                      "sha256":  "83554049f81f4db9209379e103c30bfa63f65c42189a03f300b045c2c82e23ae",
+                      "source":  "kenney-impact-sounds"
+                  },
+                  {
+                      "path":  "sfx/impacts/metal-heavy-02.ogg",
+                      "bytes":  5788,
+                      "sha256":  "6d65b463c0555dd5be16b8db6d2cbe23a94e07a4637779b8ad17d0db3e500a87",
+                      "source":  "kenney-impact-sounds"
+                  },
+                  {
+                      "path":  "sfx/impacts/metal-light-01.ogg",
+                      "bytes":  7651,
+                      "sha256":  "33b5e6e37c6e9d54e07bf5a89b12c76e879f40c1ea83cdd82714df1d6f9fec6d",
+                      "source":  "kenney-impact-sounds"
+                  },
+                  {
+                      "path":  "sfx/impacts/metal-light-02.ogg",
+                      "bytes":  9023,
+                      "sha256":  "92d5db6bfc672d9dc1b4f390b2900504f013187fa36335472554fafefa9050b1",
+                      "source":  "kenney-impact-sounds"
+                  },
+                  {
+                      "path":  "sfx/impacts/organic-01.ogg",
+                      "bytes":  10861,
+                      "sha256":  "f92f5cb6ba4ff2766497292ffd90865654317eeca976f5652e0708dbdcdc0dd9",
+                      "source":  "kenney-impact-sounds"
+                  },
+                  {
+                      "path":  "sfx/impacts/organic-02.ogg",
+                      "bytes":  9509,
+                      "sha256":  "2d7c719c05999e0532f4384e1018e04cd916db715140bf16dee2dff3f820e908",
+                      "source":  "kenney-impact-sounds"
+                  },
+                  {
+                      "path":  "sfx/ui/confirm-01.ogg",
+                      "bytes":  8968,
+                      "sha256":  "063564703b6094d70718a3e787a55cc9141611e4ecd6b6637f8828f79b4a8c3a",
+                      "source":  "kenney-interface-sounds"
+                  },
+                  {
+                      "path":  "sfx/ui/confirm-02.ogg",
+                      "bytes":  9535,
+                      "sha256":  "3091bf0be0497f825769ee0733ca7bdc3bcd59bd6c6e8f2ba8f93d580ff38022",
+                      "source":  "kenney-interface-sounds"
+                  },
+                  {
+                      "path":  "sfx/ui/error-01.ogg",
+                      "bytes":  12256,
+                      "sha256":  "885b28175c7b511118bcffab95675b48bbac9005cf6514656ebdad979276b3ab",
+                      "source":  "kenney-interface-sounds"
+                  },
+                  {
+                      "path":  "sfx/ui/pickup-01.ogg",
+                      "bytes":  6103,
+                      "sha256":  "183eebee20eb0a532b0b85104d139cbf2673eb66d95c3cc733ac9ea98362e7e8",
+                      "source":  "kenney-interface-sounds"
+                  },
+                  {
+                      "path":  "sfx/ui/pickup-02.ogg",
+                      "bytes":  5732,
+                      "sha256":  "9a6f16e3c2eff6fe5d017a4755a28306b14555728831cd00d70308e8f9689566",
+                      "source":  "kenney-interface-sounds"
+                  },
+                  {
+                      "path":  "sfx/ui/select-01.ogg",
+                      "bytes":  5468,
+                      "sha256":  "aec0c31ea934a35936ae0d2ab8fac8123c93aa5647f935853a58dbaf90278b7a",
+                      "source":  "kenney-interface-sounds"
+                  },
+                  {
+                      "path":  "sfx/ui/select-02.ogg",
+                      "bytes":  6901,
+                      "sha256":  "9a612fd2f513d52a296906b41071c990f75defe56be3bee60d2d4e2423b51b8b",
+                      "source":  "kenney-interface-sounds"
+                  },
+                  {
+                      "path":  "sfx/weapons/heavy-01.ogg",
+                      "bytes":  25566,
+                      "sha256":  "a56d95794cd732d6c2d66ce488c14cf557fe526c282897c9a77675c2bd9b77e6",
+                      "source":  "kenney-sci-fi-sounds"
+                  },
+                  {
+                      "path":  "sfx/weapons/heavy-02.ogg",
+                      "bytes":  26104,
+                      "sha256":  "3c7b3c9d856ee31fa1b92d29322f6ee472446627381595baeaba2af35c07135f",
+                      "source":  "kenney-sci-fi-sounds"
+                  },
+                  {
+                      "path":  "sfx/weapons/pulse-01.ogg",
+                      "bytes":  7286,
+                      "sha256":  "72b589eadd41781257ac859e4f4d030222e623390e4a1a83f6d05329a6e026f1",
+                      "source":  "kenney-sci-fi-sounds"
+                  },
+                  {
+                      "path":  "sfx/weapons/pulse-02.ogg",
+                      "bytes":  8973,
+                      "sha256":  "e70139466c3e801358c9041ee17db7ff82c0e9a9cdf44647ad0ea6b9f8458f63",
+                      "source":  "kenney-sci-fi-sounds"
+                  },
+                  {
+                      "path":  "sfx/weapons/pulse-03.ogg",
+                      "bytes":  8632,
+                      "sha256":  "a464e34436f3c2a09f0e3a03dc0658a9036148062bbf293722007df4cfd8ff08",
+                      "source":  "kenney-sci-fi-sounds"
+                  },
+                  {
+                      "path":  "sfx/world/cryo-loop.ogg",
+                      "bytes":  120178,
+                      "sha256":  "29b4842f6d8c0ba2b0cb00bfaff3b852b492bb43197a82e697917aacbe106757",
+                      "source":  "kenney-sci-fi-sounds"
+                  },
+                  {
+                      "path":  "sfx/world/explosion-01.ogg",
+                      "bytes":  47916,
+                      "sha256":  "fdd04d6f0032d4d57c134ad37f3587d2d00e58c9572715275bd8cf4f43593576",
+                      "source":  "kenney-sci-fi-sounds"
+                  },
+                  {
+                      "path":  "sfx/world/explosion-02.ogg",
+                      "bytes":  54824,
+                      "sha256":  "8c7197bb3a1c504690319c3abe0e62a5423ee246dd70caab57963d0b7aa8144f",
+                      "source":  "kenney-sci-fi-sounds"
+                  },
+                  {
+                      "path":  "sfx/world/forcefield-01.ogg",
+                      "bytes":  25672,
+                      "sha256":  "c2916f2a062c8ddd1aca2826d134fe90847037db31342726ffb0f9097afe339c",
+                      "source":  "kenney-sci-fi-sounds"
+                  },
+                  {
+                      "path":  "sfx/world/forcefield-02.ogg",
+                      "bytes":  23938,
+                      "sha256":  "15e3fe971ffd3415e5ab641d3a4d043fb31f6712b0956315b524ba29c3889cda",
+                      "source":  "kenney-sci-fi-sounds"
+                  },
+                  {
+                      "path":  "sfx/world/low-impact-01.ogg",
+                      "bytes":  14317,
+                      "sha256":  "3cb48d86dab63140cfb9aaeea4d4a6846abaca5831d157d8adbec0490da26343",
+                      "source":  "kenney-sci-fi-sounds"
+                  },
+                  {
+                      "path":  "sfx/world/machinery-loop.ogg",
+                      "bytes":  177470,
+                      "sha256":  "8ab85f9fa85e9e692287f98acb36b9ac3ba15313b007c039055e286b736f4e3a",
+                      "source":  "kenney-sci-fi-sounds"
+                  },
+                  {
+                      "path":  "sfx/world/organic-projectile-01.ogg",
+                      "bytes":  20870,
+                      "sha256":  "480ee82b690136ea9db6966a3c3033356b8274752795c4e37afd6b6defcfacff",
+                      "source":  "kenney-sci-fi-sounds"
+                  },
+                  {
+                      "path":  "sfx/world/undertow-loop.ogg",
+                      "bytes":  201216,
+                      "sha256":  "0fdc474d93f209debf1fc4ea77765a669dcb7676db31b4d8a0a509685bccf374",
+                      "source":  "kenney-sci-fi-sounds"
+                  }
+              ]
+}

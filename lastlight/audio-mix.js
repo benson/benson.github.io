@@ -19,7 +19,7 @@ export function audioSoftClipCurve(size = AUDIO_SOFT_CLIP_CURVE_SIZE) {
 const policy = (category, bus, priority, cap, duration, duck = 1) => Object.freeze({ category, bus, priority, cap, duration, duck });
 
 export const AUDIO_POLICIES = Object.freeze({
-  ambient: policy("ambient", "low", 0, 1, 1.2),
+  ambient: policy("ambient", "ambience", 0, 2, 1.2),
   pickup: policy("pickup", "low", 1, 3, .09),
   weapon: policy("weapon", "combat", 1, 6, .18),
   impact: policy("impact", "combat", 2, 5, .22),
@@ -44,7 +44,9 @@ const EXACT_CATEGORIES = Object.freeze({
 
 export function audioCuePolicy(name) {
   const cue = String(name || "ui");
-  const category = cue.startsWith("weapon:") ? "weapon"
+  const category = cue.startsWith("world:") && cue.endsWith("-loop") ? "ambient"
+    : cue.startsWith("world:") ? "objective"
+      : cue.startsWith("weapon:") ? "weapon"
     : cue.startsWith("material:") ? "impact"
       : cue === "enemy:apex" ? "apex"
         : cue.startsWith("enemy:") ? "hostile"
@@ -121,8 +123,8 @@ export class DynamicAudioMixer {
     if (!context?.createGain || !context?.destination) throw new TypeError("DynamicAudioMixer requires a Web Audio context");
     this.context = context;
     this.budget = new AudioVoiceBudget(options);
-    this.baseGains = Object.freeze({ low: .7, combat: .86, critical: 1, ui: .78 });
-    this.volumes = { master: 1, effects: 1 };
+    this.baseGains = Object.freeze({ low: .7, combat: .86, critical: 1, ui: .78, music: .78, ambience: .58 });
+    this.volumes = { master: 1, effects: 1, music: .72 };
     this.muted = Boolean(options.muted);
     this.master = context.createGain(); this.master.gain.value = this.muted ? .0001 : AUDIO_MASTER_CALIBRATION;
     this.compressor = context.createDynamicsCompressor?.() || null;
@@ -139,17 +141,21 @@ export class DynamicAudioMixer {
     this.buses = Object.fromEntries(Object.entries(this.baseGains).map(([name, gain]) => {
       const node = context.createGain(); node.gain.value = gain; node.connect(this.master); return [name, node];
     }));
-    this.setVolumes({ master: options.masterVolume, effects: options.effectsVolume }, false);
+    this.setVolumes({ master: options.masterVolume, effects: options.effectsVolume, music: options.musicVolume }, false);
   }
 
   setDensity(density) { this.budget.setDensity(density); }
 
-  effectiveBusGain(name) { return this.baseGains[name] * this.volumes.effects; }
+  effectiveBusGain(name) {
+    const channelVolume = name === "music" || name === "ambience" ? this.volumes.music : this.volumes.effects;
+    return this.baseGains[name] * channelVolume;
+  }
 
-  setVolumes({ master, effects } = {}, smooth = true) {
+  setVolumes({ master, effects, music } = {}, smooth = true) {
     const clamp = (value, fallback) => Number.isFinite(Number(value)) ? Math.max(0, Math.min(1, Number(value))) : fallback;
     this.volumes.master = clamp(master, this.volumes.master);
     this.volumes.effects = clamp(effects, this.volumes.effects);
+    this.volumes.music = clamp(music, this.volumes.music);
     const now = this.context.currentTime, masterTarget = this.muted ? .0001 : Math.max(.0001, AUDIO_MASTER_CALIBRATION * this.volumes.master);
     this.master.gain.cancelScheduledValues?.(now);
     if (smooth) this.master.gain.setTargetAtTime(masterTarget, now, .025); else this.master.gain.value = masterTarget;
@@ -169,7 +175,7 @@ export class DynamicAudioMixer {
 
   duck(rule, now) {
     if (rule.duck >= 1) return;
-    for (const busName of ["low", "combat"]) {
+    for (const busName of ["low", "combat", "music", "ambience"]) {
       const parameter = this.buses[busName].gain, base = this.effectiveBusGain(busName), target = Math.max(.0001, base * rule.duck);
       parameter.cancelScheduledValues?.(now);
       parameter.setValueAtTime(Math.max(target, Number(parameter.value) || base), now);
