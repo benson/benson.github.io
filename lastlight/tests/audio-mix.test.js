@@ -80,21 +80,22 @@ function audioContext() {
   };
 }
 
-test("dynamic mixer routes buses, ducks low-priority channels, and exposes bounded diagnostics", () => {
-  const context = audioContext(), mixer = new DynamicAudioMixer(context, { globalLimit: 8, masterVolume: .75, effectsVolume: .5 });
+test("dynamic mixer routes effects, ambience, and music buses with bounded diagnostics", () => {
+  const context = audioContext(), mixer = new DynamicAudioMixer(context, { globalLimit: 8, masterVolume: .75, effectsVolume: .5, musicVolume: .6 });
   assert.equal(mixer.master.gain.value, AUDIO_MASTER_CALIBRATION * .75);
   assert.equal(mixer.buses.combat.gain.value, mixer.baseGains.combat * .5);
+  assert.equal(mixer.buses.music.gain.value, mixer.baseGains.music * .6);
   const weapon = mixer.requestCue("weapon:pulse", { voiceCount: 2, pan: -.6, duration: .3 }), ultimate = mixer.requestCue("ultimate", { voiceCount: 3 });
   assert.equal(weapon.destination, mixer.buses.combat);
   assert.equal(weapon.pan, -.6);
   assert.equal(ultimate.destination, mixer.buses.critical);
   assert.ok(mixer.buses.low.gain.calls.some(([kind]) => kind === "ramp"));
   assert.ok(mixer.buses.combat.gain.calls.some(([kind]) => kind === "target"));
-  mixer.setDensity("balanced"); mixer.setMuted(true); mixer.setVolumes({ master: .6, effects: .4 });
+  mixer.setDensity("balanced"); mixer.setMuted(true); mixer.setVolumes({ master: .6, effects: .4, music: .3 });
   const diagnostics = mixer.diagnostics();
   assert.equal(diagnostics.density, "balanced");
-  assert.deepEqual(diagnostics.buses.sort(), ["combat", "critical", "low", "ui"]);
-  assert.deepEqual(diagnostics.volumes, { master: .6, effects: .4 });
+  assert.deepEqual(diagnostics.buses.sort(), ["ambience", "combat", "critical", "low", "music", "ui"]);
+  assert.deepEqual(diagnostics.volumes, { master: .6, effects: .4, music: .3 });
   assert.equal(diagnostics.masterCalibration, AUDIO_MASTER_CALIBRATION);
   assert.equal(diagnostics.headroomTargetDb, AUDIO_HEADROOM_TARGET_DB);
   assert.equal(diagnostics.outputCeilingGain, AUDIO_OUTPUT_CEILING_GAIN);
@@ -103,6 +104,7 @@ test("dynamic mixer routes buses, ducks low-priority channels, and exposes bound
   assert.equal(diagnostics.activeOscillators, 5);
   assert.equal(diagnostics.muted, true);
   assert.ok(mixer.buses.combat.gain.calls.some(([kind, target]) => kind === "target" && target === mixer.baseGains.combat * .4));
+  assert.ok(mixer.buses.music.gain.calls.some(([kind, target]) => kind === "target" && target === mixer.baseGains.music * .3));
   mixer.dispose();
   assert.equal(mixer.budget.active.length, 0);
 });

@@ -1,9 +1,9 @@
 # Lastlight asset inventory
 
 Version: `lastlight.brand.v1`  
-Applies to: build `2026.07.18.4`
+Applies to: build `2026.07.18.5`
 
-Every checked-in runtime asset is project-authored. Generated imagery was directed and curated for Lastlight, normalized by the repository tooling where applicable, and carries no external stock or third-party asset dependency. Source files stay beside their runtime derivatives so replacements remain attributable and reversible.
+Every checked-in visual runtime asset is project-authored. Generated imagery was directed and curated for Lastlight and normalized by the repository tooling where applicable. The audio family uses curated CC0 recordings with exact source and integrity records. Source files and provenance stay beside their runtime derivatives so replacements remain attributable and reversible.
 
 | Family | Owned paths | Files | Runtime form | Provenance and fallback |
 | --- | --- | ---: | --- | --- |
@@ -19,9 +19,9 @@ Every checked-in runtime asset is project-authored. Generated imagery was direct
 | Guide | `assets/guide` | 25 | transparent WebP | Project-authored; every image has an adjacent semantic label. |
 | Archive | `assets/archive` | 24 | WebP | Project-authored; event, boon, and augment records remain legible as text. |
 | Effects | `assets/effects` | 3 | transparent WebP plus canvas effects | Project-authored; the readability pass order owns priority and fallback geometry. |
-| Audio | `audio-cues.js` | 0 binary assets | generated Web Audio | Project-authored synthesis with no external samples; every critical cue has a visual equivalent. |
+| Audio | `assets/audio`, `audio-assets.js`, `music-director.js`, `audio-cues.js` | 39 assets and records | streamed and decoded OGG plus generated Web Audio | CC0 recordings with source/license/hash records plus project-authored synthesis fallback; every critical cue has a visual equivalent. |
 
-The 202 files under `assets/` are covered by the visual families above. Audio is deliberately code-generated and therefore adds no binary asset. Counts include source records and generation documentation, not just decoded runtime images.
+The 241 files under `assets/` are covered by the families above: 202 existing visual files plus 37 OGG recordings and two audio provenance records. Counts include source records and generation documentation, not just decoded runtime media.
 
 ## Source-to-runtime rules
 

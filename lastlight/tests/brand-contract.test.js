@@ -45,7 +45,7 @@ test("identity, weapon, material, and render taxonomies cover the runtime contra
   assert.deepEqual(LASTLIGHT_BRAND.weapons.universal, Object.keys(WEAPONS));
   assert.deepEqual(LASTLIGHT_BRAND.materials, MATERIAL_CLASSES);
   assert.deepEqual(LASTLIGHT_BRAND.renderPriority, READABILITY_PASS_ORDER);
-  assert.match(LASTLIGHT_BRAND.assetFamilies.find(({ id }) => id === "audio").provenance, /project-authored-no-external-assets/);
+  assert.match(LASTLIGHT_BRAND.assetFamilies.find(({ id }) => id === "audio").provenance, /cc0-recordings-and-project-authored-runtime/);
 });
 
 test("every theme asset exists and every checked-in asset belongs to a declared family", () => {
@@ -55,8 +55,8 @@ test("every theme asset exists and every checked-in asset belongs to a declared 
   for (const path of [...themePaths, ...motionPaths]) assert.equal(existsSync(join(root, path)), true, `missing ${path}`);
 
   const assetPaths = walk(join(root, "assets")).map((path) => relative(root, path).replaceAll("\\", "/"));
-  assert.equal(assetPaths.length, 202);
-  const covered = assetPaths.filter((path) => /^(?:assets\/(?:archive|branding|effects|enemies|environment-chunks|environments|guide|map-devices|map-mechanics|motion|motion-normalized|sprites|supply-containers|weapons)\/|assets\/(?:og|squad-atlas))/.test(path));
+  assert.equal(assetPaths.length, 241);
+  const covered = assetPaths.filter((path) => /^(?:assets\/(?:archive|audio|branding|effects|enemies|environment-chunks|environments|guide|map-devices|map-mechanics|motion|motion-normalized|sprites|supply-containers|weapons)\/|assets\/(?:og|squad-atlas))/.test(path));
   assert.deepEqual(sorted(covered), sorted(assetPaths));
 });
 
@@ -77,7 +77,7 @@ test("CSS tokens and written bible agree with the machine contract", () => {
   for (const heading of ["The promise", "Mark and naming", "Color", "Typography and voice", "Geometry, layers, and iconography", "Materials and effects", "Motion", "Character and threat identity", "Maps and environment", "Audio identity", "Surface audit", "Asset inventory and provenance", "Production checklist"]) assert.match(bible, new RegExp(`## ${heading}`));
   for (const collection of [LASTLIGHT_BRAND.specialists, LASTLIGHT_BRAND.enemies, LASTLIGHT_BRAND.apexes, LASTLIGHT_BRAND.maps]) for (const { label } of Object.values(collection)) assert.match(bible, new RegExp(label, "i"));
   for (const { id } of LASTLIGHT_BRAND.assetFamilies) assert.match(`${bible}\n${inventory}`, new RegExp(id.replaceAll("-", "[- ]"), "i"));
-  assert.match(inventory, /202 files/);
+  assert.match(inventory, /241 files/);
 });
 
 test("branding remains presentation-only and preserves exact simulation hashes", () => {

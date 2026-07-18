@@ -6,13 +6,14 @@ const game = readFileSync(new URL("../game.js", import.meta.url), "utf8");
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 
-test("sound settings expose an accessible readiness, volume, voice, and test surface", () => {
-  for (const id of ["audio-dialog", "audio-title", "audio-status", "audio-mute", "audio-master", "audio-effects", "audio-voice", "audio-funny-voice", "audio-test", "audio-test-result"]) assert.match(html, new RegExp(`id="${id}"`));
+test("sound settings expose accessible readiness, music/effects volume, and test controls", () => {
+  for (const id of ["audio-dialog", "audio-title", "audio-status", "audio-mute", "audio-master", "audio-music", "audio-effects", "audio-test", "audio-test-result"]) assert.match(html, new RegExp(`id="${id}"`));
   assert.match(html, /id="audio-dialog"[^>]+aria-labelledby="audio-title"/);
   assert.match(html, /id="audio-status"[^>]+role="status"[^>]+aria-live="polite"/);
   assert.match(html, /id="audio-test-result"[^>]+role="status"[^>]+aria-live="polite"/);
   assert.match(html, /id="audio-master" type="range" min="0" max="100"/);
   assert.match(html, /id="audio-test"[^>]+type="button"/);
+  assert.doesNotMatch(html, /audio-funny-voice|audio-voice|pew pew pew|SOUND & VOICE/);
   assert.match(css, /\.audio-readiness p\[data-state="ready"\]/);
   assert.match(css, /\.audio-range input:focus-visible/);
   assert.match(html, /id="pause-audio"[^>]+aria-haspopup="dialog"/);
@@ -44,16 +45,17 @@ test("audio persistence, cue registry, mixer diagnostics, and error context are 
   assert.match(game, /weaponTimerActivations\(state\.soundState\.weaponTimers, game\.players\)/);
   assert.match(game, /enemyAudioCueName\(projectile, game\.enemies\)/);
   assert.match(game, /runtimeNodes: \{ active: state\.activeAudioNodes, peak: state\.peakAudioNodes \}/);
+  assert.match(game, /samples: state\.audioSamples\?\.diagnostics\(\)/);
+  assert.match(game, /music: state\.musicDirector\?\.diagnostics\(\)/);
   assert.match(game, /async function measureOfflineAudioHeadroom\(names = \[\]\)/);
   assert.match(game, /measureAudioHeadroom: \(names = \[\]\) => measureOfflineAudioHeadroom\(names\)/);
   assert.match(game, /audio: audioDiagnostics\(\)/);
   assert.match(game, /lastError: state\.audioLastError \|\| null/);
   assert.match(game, /cueRegistry: \{ schema: LASTLIGHT_AUDIO_CUES\.schema/);
-  assert.match(game, /state\.audioSettings\.funnyVoice/);
-  assert.match(game, /FUNNY_VOICE_MIN_INTERVAL_MS/);
-  assert.match(game, /window\.speechSynthesis\.speaking \|\| window\.speechSynthesis\.pending/);
+  assert.match(game, /new DecodedSampleBank\(state\.audioContext\)/);
+  assert.match(game, /new AdaptiveMusicDirector\(state\.audioContext, state\.audioMixer\.buses\.music\)/);
+  assert.doesNotMatch(game, /speechSynthesis|SpeechSynthesisUtterance|FUNNY_VOICE|comicVoice/);
   assert.match(game, /event\.type === "cast"[\s\S]*sfx\(event\.slot === "r" \? "ultimate" : "ability"\)/);
   assert.doesNotMatch(game, /type: "cast_audio"/);
-  assert.match(game, /sfx\("test"\) \? "Test tone played\." : "Test tone is busy\./);
-  assert.match(game, /utterance\.volume = state\.audioSettings\.voice \* state\.audioSettings\.master/);
+  assert.match(game, /sfx\("test"\) \? "Layered output check played\." : "Output check is busy\./);
 });

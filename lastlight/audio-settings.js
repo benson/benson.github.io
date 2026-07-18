@@ -1,15 +1,13 @@
-export const AUDIO_SETTINGS_SCHEMA = "lastlight.audio-settings.v1";
+export const AUDIO_SETTINGS_SCHEMA = "lastlight.audio-settings.v2";
 export const AUDIO_SETTINGS_STORAGE_KEY = "lastlight:audio-settings:v1";
 export const AUDIO_OUTPUT_STATES = Object.freeze(["locked", "ready", "muted", "unavailable"]);
-export const FUNNY_VOICE_MIN_INTERVAL_MS = 12_000;
-export const AUDIO_CALIBRATION_VERSION = 2;
+export const AUDIO_CALIBRATION_VERSION = 3;
 
 export const DEFAULT_AUDIO_SETTINGS = Object.freeze({
   enabled: true,
   master: 0.95,
   effects: 1,
-  voice: 0.32,
-  funnyVoice: true,
+  music: 0.72,
   calibrationVersion: AUDIO_CALIBRATION_VERSION,
 });
 
@@ -25,8 +23,7 @@ export function normalizeAudioSettings(value = {}) {
     enabled: typeof source.enabled === "boolean" ? source.enabled : DEFAULT_AUDIO_SETTINGS.enabled,
     master: legacyDefaults ? DEFAULT_AUDIO_SETTINGS.master : clamp01(source.master, DEFAULT_AUDIO_SETTINGS.master),
     effects: legacyDefaults ? DEFAULT_AUDIO_SETTINGS.effects : clamp01(source.effects, DEFAULT_AUDIO_SETTINGS.effects),
-    voice: clamp01(source.voice, DEFAULT_AUDIO_SETTINGS.voice),
-    funnyVoice: typeof source.funnyVoice === "boolean" ? source.funnyVoice : DEFAULT_AUDIO_SETTINGS.funnyVoice,
+    music: clamp01(source.music, DEFAULT_AUDIO_SETTINGS.music),
     calibrationVersion: AUDIO_CALIBRATION_VERSION,
   });
 }

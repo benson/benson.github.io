@@ -79,7 +79,7 @@ export const LASTLIGHT_BRAND = freeze({
     { id: "guide", role: "passive-field-and-enemy-reference", source: "assets/guide", runtime: "transparent-webp", provenance: "project-authored", constraints: "semantic-label-always-accompanies-image" },
     { id: "archive", role: "event-boon-and-augment-records", source: "assets/archive", runtime: "webp", provenance: "project-authored", constraints: "informational-not-rarity-by-color-alone" },
     { id: "effects", role: "pickup-hostile-cover-and-container-anchors", source: "assets/effects + assets/supply-containers", runtime: "transparent-webp-png-plus-canvas", provenance: "project-authored-generated", constraints: "readability-contract-controls-priority" },
-    { id: "audio", role: "weapon-material-enemy-ui-and-critical-cues", source: "audio-cues.js", runtime: "web-audio-generated", provenance: "project-authored-no-external-assets", constraints: "critical-headroom-visual-equivalent" },
+    { id: "audio", role: "adaptive-score-weapon-material-enemy-ui-and-critical-cues", source: "assets/audio + audio-assets.js + audio-cues.js", runtime: "streamed-and-decoded-web-audio-with-generated-fallback", provenance: "cc0-recordings-and-project-authored-runtime", constraints: "critical-headroom-visual-equivalent-license-manifest" },
   ],
   voice: {
     headlines: "short-imperative-operational", status: "plain-specific-and-actionable", flavor: "wry-but-never-obscures-rules",

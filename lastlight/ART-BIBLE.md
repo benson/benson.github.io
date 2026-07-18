@@ -103,7 +103,7 @@ Environment art may enrich clear space but cannot counterfeit collision, pickups
 
 ## Audio identity
 
-The default audio is project-authored runtime synthesis with no bundled or downloaded third-party sound pack. Weapon, hostile, material, UI, objective, danger, apex, outcome, and voice buses follow `audio-cues.js` and `audio-mix.js`. Critical warnings keep protected headroom. Directional modes may strengthen pan or collapse to mono without changing cue priority. Every critical cue has a visual equivalent.
+The default audio combines a compact, documented CC0 recording bank with project-authored runtime synthesis. Adaptive music follows home, containment, pressure, breach, apex, and victory states; weapon, hostile, material, UI, objective, danger, apex, and outcome cues layer physical transients beneath authored signatures. Browser text-to-speech is not part of the game. Routing follows `audio-assets.js`, `music-director.js`, `audio-cues.js`, and `audio-mix.js`. Critical warnings keep protected headroom. Directional modes may strengthen pan or collapse to mono without changing cue priority. Every critical cue has a visual equivalent.
 
 Future sampled audio requires source URL, creator, license, modification history, local fallback, and a failure path back to generated cues. Silence is not an acceptable missing-theme fallback.
 

@@ -61,11 +61,12 @@ test("strict registry validation permits theme swaps but rejects unsafe or unlic
   assert.match(validateAudioCueRegistry(crowded).join("\n"), /too many voices|authored peak exceeds limit/);
 });
 
-test("provenance document explicitly excludes external packs and explains optional speech", () => {
+test("provenance document records CC0 samples, generated fallback, and removed browser speech", () => {
   const provenance = readFileSync(new URL("../AUDIO-ASSETS.md", import.meta.url), "utf8");
-  assert.match(provenance, /does not ship or download a third-party sound pack/i);
-  assert.match(provenance, /runtime-generated/);
+  assert.match(provenance, /local CC0 recordings/i);
+  assert.match(provenance, /assets\/audio\/LICENSES\.md/);
   assert.match(provenance, /project-authored/);
   assert.match(provenance, /pew pew pew/i);
   assert.match(provenance, /fallback/i);
+  assert.match(provenance, /text-to-speech.+removed/i);
 });

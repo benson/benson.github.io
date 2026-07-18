@@ -1,17 +1,47 @@
-# Audio cue provenance
+# Audio architecture and provenance
 
-Lastlight does not ship or download a third-party sound pack.
+Lastlight uses a hybrid audio system:
 
-The default cue registry is `audio-cues.js` (`lastlight.audio-cues.v1`). Every effect is project-authored data rendered at runtime with the browser Web Audio oscillator and gain APIs. The registry records:
+- `audio-assets.js` maps gameplay cues to a compact bank of local CC0 recordings.
+- `music-director.js` streams one current and one incoming music track through equal-power-style crossfades.
+- `audio-cues.js` retains the project-authored oscillator registry as a signature layer and permanent fallback.
+- `audio-mix.js` routes effects, ambience, music, UI, and critical information through separate gain buses with protected headroom.
 
-- `source: runtime-generated`
-- `license: project-authored`
-- `externalAssets: false`
+No audio is requested before a browser audio gesture. After sound unlocks, the small effects bank is decoded in the background; music is streamed only when its state becomes active. A missing, undecodable, or blocked recording falls back to the generated cue instead of becoming silent.
 
-There are no sampled recordings, music tracks, voice clips, or copyrighted game sounds in the default theme. A replacement visual/audio theme can provide another registry with the same strict schema, but its author must document every external file's source URL, creator, license, and modification history before it can ship.
+## Adaptive score
 
-The optional “pew pew pew” callout uses the browser's local speech-synthesis voice. It does not bundle or transmit a voice model or recording, is rate-limited to one unqueued callout every twelve seconds, and can be disabled independently or reduced to zero volume.
+The score follows the eight authored waves rather than elapsed seconds, so it has the same dramatic shape in four- and fifteen-minute levels:
 
-The authored mix targets 3 dB of output headroom. Every cue is limited to five oscillators and a conservative 0.24 authored amplitude sum; the runtime reserves twelve of its 42 oscillator slots for damage, hostile, objective, danger, apex, ultimate, and outcome feedback. A compressor, bounded soft-clip stage, and fixed output ceiling protect dense-wave peaks, while low-priority chatter is suppressed before critical feedback.
+| State | Waves | Track |
+| --- | --- | --- |
+| Home / lobby | — | `home-airy.ogg` |
+| Containment | 1–2 | `combat-sector.ogg` |
+| Pressure | 3–5 | `combat-pulse.ogg` |
+| Breach | 6–8 | `combat-urgent.ogg` |
+| Apex | Apex encounter | `apex-space-boss.ogg` |
+| Victory | Results transition | `victory.ogg` |
 
-The oscillator implementation remains the permanent fallback even if a future theme adds licensed local audio files. Missing or failed theme assets must fall back to these generated cues rather than silence.
+Normal state changes crossfade over 3.2 seconds. Pause lowers the score without stopping it, preserving musical continuity. Critical cues duck music, ambience, and friendly combat chatter before the limiter.
+
+## Effects grammar
+
+Important sounds combine a recorded transient with a quieter synthesized identity:
+
+- Weapons: laser or physical attack transient plus the specialist/weapon oscillator signature.
+- Materials: metal, concrete, organic, liquid, energy, glass, and void recordings selected by impact grammar.
+- Enemies: body, projectile, explosion, and apex layers selected by authored archetype.
+- World: distinct healing, ion cannon, freeze, freight, cryo, and undertow sounds.
+- Interface: restrained selection, confirmation, error, pickup, and reward transients.
+
+Variant selection is deterministic cosmetic variation and never consumes gameplay randomness. Spatial cues retain bounded stereo panning. Dense-wave category caps still reserve capacity for damage, hostile, objective, danger, apex, ultimate, and outcome feedback.
+
+## Voice
+
+Browser text-to-speech and the comic “pew pew pew” callout have been removed. Lastlight ships no synthesized speech, bundled voice model, or recorded dialogue.
+
+## Licensing
+
+Every shipped recording is CC0. Exact sources, creators, local mappings, and modification history are recorded in `assets/audio/LICENSES.md`; file size and SHA-256 integrity data live in `assets/audio/asset-manifest.json`.
+
+Do not add an audio file without updating both records. Third-party assets with custom EULAs, non-commercial clauses, attribution requirements, or unclear provenance require an explicit licensing decision before they enter the repository.
