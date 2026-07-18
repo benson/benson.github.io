@@ -26,6 +26,9 @@ test("scaling reflows at 200 percent and touch controls retain minimum target si
   assert.match(styles, /data-interface-scale="2"[^}]+grid-template-columns: minmax\(0,1fr\)/s);
   assert.match(styles, /min-height: max\(44px/);
   assert.match(styles, /--hud-scale/);
+  assert.match(styles, /--hud-scale-inverse/);
+  assert.match(game, /--hud-scale-inverse", 1 \/ access\.hudScale/);
+  assert.match(styles, /\.game-topbar \{[^}]+width: calc\(100% \* var\(--hud-scale-inverse\)\)/s);
   assert.match(styles, /--touch-scale/);
   assert.match(styles, /data-reduced-flash="true"/);
   assert.match(styles, /topbar-actions \.command-menu-panel \.text-button \{ display: flex/);

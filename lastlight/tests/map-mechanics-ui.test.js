@@ -17,10 +17,8 @@ test("battlefield map mechanics expose shape, pattern, countdown, and inspection
   assert.match(render, /description: `\$\{definition\.description\} \$\{definition\.counterplay\}`/);
   assert.match(render, /drawForcedMovementCue\(mapMechanic, state, localPlayerId, map, "ground"\)/);
   assert.match(render, /drawForcedMovementCue\(mapMechanic, state, localPlayerId, map, "overlay"\)/);
-  assert.match(render, /drawImpactMovementCue\(state, localPlayerId, map, "ground"\)/);
-  assert.match(render, /drawImpactMovementCue\(state, localPlayerId, map, "overlay"\)/);
-  assert.match(render, /ENEMY IMPACT/);
-  assert.match(render, /Math\.hypot\(velocityX, velocityY\)/);
+  assert.doesNotMatch(render, /drawImpactMovementCue/);
+  assert.doesNotMatch(render, /ENEMY IMPACT/);
   assert.match(render, /if \(map\.id === "warehouse"\) return/);
   assert.doesNotMatch(render, /MOVING \$\{directionName\}/);
   assert.doesNotMatch(render, /MOVES \$\{directionName\} IN \$\{frame\.remainingSeconds\}/);
