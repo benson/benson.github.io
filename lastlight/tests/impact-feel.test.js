@@ -57,11 +57,15 @@ test("reduced motion and reduced flash preserve information without displacement
 
 test("directional target and attacker reactions transfer force in opposite directions", () => {
   const plan = impactFeedbackPlan({ tier: "heavy", angle: 0 });
-  const target = impactReactionTransform(plan, .2), attacker = attackerRecoilTransform(plan, 1);
+  const contact = impactReactionTransform(plan, 0), settling = impactReactionTransform(plan, .2), attacker = attackerRecoilTransform(plan, 1);
+  assert.ok(contact.x > settling.x, "contact starts at peak force instead of ramping into a delayed push");
+  const target = settling;
   assert.ok(target.x > 0);
   assert.ok(attacker.x < 0);
   assert.equal(Math.abs(target.y), 0);
   assert.equal(Math.abs(attacker.y), 0);
+  assert.equal(contact.axisRotation, 0);
+  assert.ok(contact.scaleX < 1 && contact.scaleY > 1, "contact compresses along the incoming force axis");
 });
 
 test("mass curves distinguish quick enemies from brutes and apexes", () => {

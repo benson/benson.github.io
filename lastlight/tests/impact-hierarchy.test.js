@@ -11,7 +11,8 @@ test("deterministic impact hierarchy audit passes every contract", () => {
 test("runtime synchronizes local camera, animation hold, spatial audio, and haptics from one signal", () => {
   const render = readFileSync(new URL("../render.js", import.meta.url), "utf8");
   const game = readFileSync(new URL("../game.js", import.meta.url), "utf8");
-  assert.match(render, /localImpact && plan\.force\.cameraPunch > 0/);
+  assert.match(render, /impactCameraImpulsePlan\(\{ plan, distance, localImpact/);
+  assert.match(render, /weaponKickPlan\(\{/);
   assert.match(render, /impactAnimationTimeScale\(targetImpact, attackerImpact\)/);
   assert.match(game, /impactAccent\.audio\.minimumIntervalMs/);
   assert.match(game, /spatialAudioPan\(impactAccent, listener\)/);

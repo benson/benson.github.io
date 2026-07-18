@@ -1,8 +1,9 @@
 import {
   IMPACT_FEEL_SCHEMA, IMPACT_FEEL_TIERS, IMPACT_TIER_PROFILES,
-  impactAnimationTimeScale, impactFeedbackPlan,
+  impactAnimationTimeScale, impactFeedbackPlan, impactReactionTransform,
 } from "./impact-feel.js";
 import { audioCuePolicy } from "./audio-mix.js";
+import { impactCameraImpulsePlan, weaponKickPlan } from "./combat-weight.js";
 
 export function runImpactHierarchyAudit() {
   const plans = Object.fromEntries(IMPACT_FEEL_TIERS.map((tier) => [tier, impactFeedbackPlan({ tier })]));
@@ -36,6 +37,25 @@ export function runImpactHierarchyAudit() {
     detail: "The same event can briefly hold target and attacker animation before recoil recovery",
   });
   checks.push({
+    id: "contact-first-force",
+    pass: impactReactionTransform(plans.heavy, 0).envelope === 1
+      && impactReactionTransform(plans.heavy, .2).envelope < 1,
+    detail: "Directional compression begins at contact and settles instead of ramping into a delayed push",
+  });
+  checks.push({
+    id: "release-frame-recoil",
+    pass: weaponKickPlan({ specialist: "bront", flash: 1 }).envelope === 1
+      && weaponKickPlan({ specialist: "bront", flash: 0 }).envelope === 0,
+    detail: "Specialist body recoil is synchronized to weapon release rather than the eventual projectile hit",
+  });
+  checks.push({
+    id: "nearby-heavy-camera",
+    pass: impactCameraImpulsePlan({ plan: plans.light, distance: 0 }).strength === 0
+      && impactCameraImpulsePlan({ plan: plans.heavy, distance: 160 }).strength > 0
+      && impactCameraImpulsePlan({ plan: plans.heavy, distance: 800 }).strength === 0,
+    detail: "Only nearby heavy and critical world contacts contribute attenuated non-local camera force",
+  });
+  checks.push({
     id: "bounded-timing",
     pass: plans.heavy.timing.freezeMs <= 24 && plans.critical.timing.freezeMs <= 45
       && plans.heavy.audio.minimumIntervalMs >= 90 && plans.critical.audio.minimumIntervalMs >= 70,
@@ -67,5 +87,5 @@ export function runImpactHierarchyAudit() {
 
 export function impactHierarchyAuditHtml(report = runImpactHierarchyAudit()) {
   const checks = report.checks.map((check) => `<li class="${check.pass ? "pass" : "fail"}"><b>${check.pass ? "PASS" : "FAIL"}</b><strong>${check.id}</strong><span>${check.detail}</span></li>`).join("");
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Lastlight Impact Hierarchy Audit</title><style>body{margin:0;padding:32px;background:#06101a;color:#dbeaf0;font:14px Inter,system-ui}h1{margin:0;font-size:34px}p,li span{color:#8ca8b5}.summary{color:#65f1d7;font-weight:800}ul{display:grid;gap:8px;padding:0;margin-top:24px}li{display:grid;grid-template-columns:52px 190px 1fr;gap:12px;padding:12px;border-left:4px solid #60dabf;background:#0b1925;list-style:none}li.fail{border-color:#ff6270}</style></head><body><h1>Impact hierarchy audit</h1><p>Shared hit-stop, recoil, camera, particles, audio accents, density restraint, and reduced-motion evidence.</p><div class="summary">${report.passed}/${report.total} deterministic checks passed</div><ul>${checks}</ul></body></html>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Lastlight Impact Hierarchy Audit</title><style>body{margin:0;padding:32px;background:#06101a;color:#dbeaf0;font:14px Inter,system-ui}h1{margin:0;font-size:34px}p,li span{color:#8ca8b5}.summary{color:#65f1d7;font-weight:800}ul{display:grid;gap:8px;padding:0;margin-top:24px}li{display:grid;grid-template-columns:52px 190px 1fr;gap:12px;padding:12px;border-left:4px solid #60dabf;background:#0b1925;list-style:none}li.fail{border-color:#ff6270}</style></head><body><h1>Impact hierarchy audit</h1><p>Contact-first force, release recoil, shared hit-stop, nearby camera response, particles, audio accents, density restraint, and reduced-motion evidence.</p><div class="summary">${report.passed}/${report.total} deterministic checks passed</div><ul>${checks}</ul></body></html>`;
 }
