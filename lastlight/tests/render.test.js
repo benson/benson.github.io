@@ -18,7 +18,7 @@ globalThis.Image = class {
   set src(value) { this.currentSrc = value; }
 };
 
-const { Renderer, mechanicFrameForState } = await import("../render.js?renderer-tests");
+const { Renderer, mechanicFrameForState, supplyContainerDamageState } = await import("../render.js?renderer-tests");
 const renderSource = readFileSync(new URL("../render.js", import.meta.url), "utf8");
 
 function createRenderer() {
@@ -88,8 +88,12 @@ test("renderer loads every delivered specialist, field-enemy, and map-apex atlas
   const renderer = createRenderer();
   assert.deepEqual(Object.keys(renderer.supplyContainerSprites), ["warehouse", "outskirts", "lab", "beachhead"]);
   assert.deepEqual(Object.keys(renderer.supplyContainerSprites.warehouse), ["cargo", "utility", "pressure"]);
-  assert.equal(renderer.supplyContainerSprites.lab.utility.currentSrc, "assets/supply-containers/lab-utility-v14.webp");
+  assert.deepEqual(Object.keys(renderer.supplyContainerSprites.lab.utility), ["intact", "damaged", "critical"]);
+  assert.equal(renderer.supplyContainerSprites.lab.utility.intact.currentSrc, "assets/supply-containers/lab-utility-v15.webp");
+  assert.equal(renderer.supplyContainerSprites.lab.utility.damaged.currentSrc, "assets/supply-containers/lab-utility-v15-damaged.webp");
+  assert.equal(renderer.supplyContainerSprites.lab.utility.critical.currentSrc, "assets/supply-containers/lab-utility-v15-critical.webp");
   assert.equal(renderer.mapMechanicSprites.warehouse.currentSrc, "assets/map-mechanics/freight-conveyor-v14.webp");
+  assert.equal(renderer.mapDeviceSprites.warehouse.currentSrc, "assets/map-devices/warehouse-device-v1.webp");
   assert.deepEqual(Object.keys(renderer.animationAtlases), ["zuri", "echo", "sola", "bront", "fang", "gale", "rift", "nova", "vesper"]);
   assert.equal(renderer.animationAtlases.zuri.currentSrc, "assets/motion-normalized/specialists/zuri.webp");
   assert.deepEqual(Object.keys(renderer.enemyAnimationAtlases), ["mite", "hound", "spitter", "brute", "bomber", "shark", "boss:warehouse", "boss:outskirts", "boss:lab", "boss:beachhead"]);
@@ -124,6 +128,31 @@ test("warehouse conveyor belts remain visible while idle and only the selected l
   assert.deepEqual(laneTranslations, [-540, 0, 540]);
   assert.ok(calls.filter(([name]) => name === "drawImage").length >= 9);
   assert.equal(calls.some(([name]) => name === "fillText"), false);
+});
+
+test("supply containers switch authored art states without health rails or procedural cracks", () => {
+  assert.equal(supplyContainerDamageState(100), "intact");
+  assert.equal(supplyContainerDamageState(75), "damaged");
+  assert.equal(supplyContainerDamageState(26), "damaged");
+  assert.equal(supplyContainerDamageState(25), "critical");
+  const { renderer, calls } = createRecordingRenderer();
+  const states = [];
+  renderer.isWorldVisible = () => true;
+  renderer.drawSupplyContainerImage = (_map, _kind, _size, state) => { states.push(state); return true; };
+  renderer.drawPods([
+    { id: "intact", x: 0, y: 0, hp: 100, kind: "cargo" },
+    { id: "damaged", x: 80, y: 0, hp: 60, kind: "utility" },
+    { id: "critical", x: 160, y: 0, hp: 20, kind: "pressure" },
+  ], { id: "warehouse" });
+  assert.deepEqual(states, ["intact", "damaged", "critical"]);
+  assert.equal(calls.some(([name]) => name === "fillRect"), false, "containers have no health rail");
+  assert.equal(calls.some(([name]) => name === "lineTo"), false, "containers have no procedural crack pass");
+});
+
+test("world objectives use visual marks instead of persistent relay or device text", () => {
+  assert.doesNotMatch(renderSource, /fillText\("RELAY GOAL"/);
+  assert.doesNotMatch(renderSource, /map\.mechanic\.toUpperCase/);
+  assert.doesNotMatch(renderSource, /MOVING \$\{movementDirection\}/);
 });
 
 test("inspection returns structured combat details and controls hover state", () => {

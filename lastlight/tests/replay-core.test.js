@@ -137,6 +137,22 @@ test("paused pointer sampling coalesces safely and mixed-case authored choices r
   assert.deepEqual(replay.commands.map((command) => command[2]), ["i", "u", "a"]);
 });
 
+test("same-tick pointer sampling always coalesces outside explicit pause state", () => {
+  const recorder = new ReplayRecorder({
+    build: "2026.07.18.3", balanceVersion: "2026.07.12-signatures.3", balanceHash: "fnv1a32:e36834e8",
+    rng: "xoshiro128ss-v1", seed: "0123456789abcdef0123456789abcdef",
+    run: { map: "warehouse", difficulty: "story", duration: 240 },
+  });
+  recorder.registerPlayer("host", "gale", { slot: 0, initial: true });
+  for (let sample = 0; sample < 80; sample++) {
+    recorder.recordInput("host", 986, { x: -1, y: 0, aim: Math.PI - sample / 100, autoAim: false });
+  }
+  const replay = recorder.finalize(986, "1111111111111111");
+  assert.equal(replay.commands.length, 1);
+  assert.equal(replay.commands[0][2], "i");
+  assert.doesNotThrow(() => validateReplay(replay));
+});
+
 test("paused multiplayer input coalesces per player even when samples interleave", () => {
   const recorder = new ReplayRecorder({
     build: "2026.07.16.4", balanceVersion: "2026.07.12-signatures.3", balanceHash: "fnv1a32:e36834e8",

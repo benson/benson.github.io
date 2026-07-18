@@ -666,24 +666,22 @@ export class ReplayRecorder {
     return tuple;
   }
 
-  recordInput(actualId, tick, input, { coalesceSameTick = false } = {}) {
+  recordInput(actualId, tick, input) {
     const slot = this.slotFor(actualId), quantized = quantizeReplayInput(input);
     const key = `${quantized.x}/${quantized.y}/${quantized.aim}/${quantized.auto}`;
     if (this.lastInputs.get(slot) === key) return null;
     this.lastInputs.set(slot, key);
-    // A paused simulation can receive interleaved pointer samples from several
-    // players without advancing a fixed tick. Only the final input for each
-    // slot can affect the next step. Replace that input unless a meaningful
-    // command from the same slot occurred after it, which preserves ordering.
+    // Pointer samples can arrive faster than any fixed simulation tick,
+    // including during drafts and other states that do not set sim.paused.
+    // Only the final uninterrupted input for a slot can affect the next step.
+    // Replace it unless a meaningful same-slot command followed it.
     let coalescedIndex = -1;
-    if (coalesceSameTick) {
-      for (let index = this.commands.length - 1; index >= 0; index--) {
-        const command = this.commands[index];
-        if (command[0] !== tick) break;
-        if (command[3] !== slot) continue;
-        if (command[2] === "i") coalescedIndex = index;
-        break;
-      }
+    for (let index = this.commands.length - 1; index >= 0; index--) {
+      const command = this.commands[index];
+      if (command[0] !== tick) break;
+      if (command[3] !== slot) continue;
+      if (command[2] === "i") coalescedIndex = index;
+      break;
     }
     if (coalescedIndex >= 0) {
       const previous = this.commands[coalescedIndex];

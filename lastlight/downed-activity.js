@@ -1,4 +1,4 @@
-import { circleIntersectsCollider, normalizeCollider } from "./collision-geometry.js?v=20260718.2";
+import { circleIntersectsCollider, normalizeCollider } from "./collision-geometry.js?v=20260718.3";
 
 export const DOWNED_ACTIVITY_SCHEMA = "lastlight.downed-activity.v1";
 export const DOWNED_ACTIVITY_STATE_SCHEMA = "lastlight.downed-activity-state.v1";

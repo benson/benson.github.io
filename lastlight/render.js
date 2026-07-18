@@ -1,35 +1,35 @@
-import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260718.2";
-import { WORLD } from "./engine.js?v=20260718.2";
-import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260718.2";
+import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260718.3";
+import { WORLD } from "./engine.js?v=20260718.3";
+import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260718.3";
 import { springCamera } from "./feel.js?v=20260713.2";
 import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistFacingTarget, specialistMotionState, stableDirectionColumn } from "./motion.js?v=20260713.1";
 import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260718.2";
-import { impactRenderPlan } from "./impact-grammar.js?v=20260718.2";
-import { movementVisualState } from "./movement.js?v=20260718.2";
-import { effectReadabilityCategory, partitionEffects, readabilityPlan } from "./readability.js?v=20260718.2";
-import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260718.2";
+import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260718.3";
+import { impactRenderPlan } from "./impact-grammar.js?v=20260718.3";
+import { movementVisualState } from "./movement.js?v=20260718.3";
+import { effectReadabilityCategory, partitionEffects, readabilityPlan } from "./readability.js?v=20260718.3";
+import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260718.3";
 import { EnvironmentInteractionField, stableEnvironmentUnit } from "./environment-interactions.js?v=20260712.1";
-import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260718.2";
-import { circleIntersectsCollider, rectCollider } from "./collision-geometry.js?v=20260718.2";
-import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260718.2";
+import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260718.3";
+import { circleIntersectsCollider, rectCollider } from "./collision-geometry.js?v=20260718.3";
+import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260718.3";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
 import { PING_INTENTS, PING_LIFETIME_TICKS, selectVisiblePings } from "./ping-contract.js?v=20260713.4";
-import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260718.2";
-import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260718.2";
+import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260718.3";
+import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260718.3";
 import {
   ImpactIntensityDirector, aftermathPlan, attackerRecoilTransform, cameraLookBias,
   impactAnimationTimeScale, impactFeedbackPlan, impactReactionTransform, impactTierForEvent, projectileMotionPlan,
   secondaryMotionPlan, selectImpactFeedback,
-} from "./impact-feel.js?v=20260718.2";
-import { combatTurnPlan, isBodyDrivingSource, resolvedCombatFacing, specialistMuzzlePoint } from "./combat-orientation.js?v=20260718.2";
+} from "./impact-feel.js?v=20260718.3";
+import { combatTurnPlan, isBodyDrivingSource, resolvedCombatFacing, specialistMuzzlePoint } from "./combat-orientation.js?v=20260718.3";
 import {
   cameraCompositionPlan, castMotionPlan, combatDensityPlan, playerLifecycleMotionPlan, rewardMotionPlan,
-} from "./combat-choreography.js?v=20260718.2";
-import { apexPhaseMotionPlan, enemyArrivalMotionPlan, enemyDepartureMotionPlan } from "./combat-rhythm.js?v=20260718.2";
+} from "./combat-choreography.js?v=20260718.3";
+import { apexPhaseMotionPlan, enemyArrivalMotionPlan, enemyDepartureMotionPlan } from "./combat-rhythm.js?v=20260718.3";
 import {
   enemyGroundingPlan, impactCameraImpulsePlan, locomotionPlantPlan, weaponKickPlan,
-} from "./combat-weight.js?v=20260718.2";
+} from "./combat-weight.js?v=20260718.3";
 
 const TAU = Math.PI * 2;
 const PING_BUFFER_LIMIT = 32;
@@ -85,6 +85,13 @@ export function mechanicFrameForState(state) {
   const mapId = typeof state.map === "string" ? state.map : state.map?.id;
   const pressureAdvanceTicks = Number.isSafeInteger(state.mutationState?.pressureAdvanceTicks) ? state.mutationState.pressureAdvanceTicks : 0;
   return mapMechanicFrame(mapId, state.tick + pressureAdvanceTicks, { worldWidth: WORLD.width, worldHeight: WORLD.height });
+}
+
+export function supplyContainerDamageState(hp = 100) {
+  const health = clamp(Number(hp) / 100, 0, 1);
+  if (health <= .25) return "critical";
+  if (health <= .75) return "damaged";
+  return "intact";
 }
 const PING_RENDER_LIMITS = Object.freeze({ high: 12, reduced: 8, minimal: 4 });
 const PING_COLORS = Object.freeze({
@@ -192,7 +199,9 @@ function enemyTelegraphKind(enemy, tick = 0) {
   if (!activePhase) return null;
   if (enemy.type === "bomber" || /detonate|fuse/.test(behavior + phase)) return "burst";
   if (enemy.type === "brute" || /slam/.test(behavior + phase)) return "ring";
-  if (enemy.type === "spitter" || /kite-shot|spit|shot/.test(behavior + phase)) return "line";
+  // Ordinary hostile bolts remain visible throughout their travel. Ground
+  // geometry is reserved for committed lanes, charges, areas, and delays.
+  if (enemy.type === "spitter" || /kite-shot|spit|shot/.test(behavior + phase)) return null;
   if (enemy.type === "shark" || /siege/.test(behavior + phase)) return "wedge";
   if (enemy.type === "hound" || /charge/.test(behavior + phase)) return "lane";
   return "ring";
@@ -221,6 +230,7 @@ export class Renderer {
     this.environmentChunkAtlases = {};
     this.supplyContainerSprites = {};
     this.mapMechanicSprites = {};
+    this.mapDeviceSprites = {};
     this.effectSprites = {};
     this.enemySprites = {};
     this.animationAtlases = {};
@@ -284,6 +294,7 @@ export class Renderer {
       const image = new Image(); image.src = map.texture; this.environments[map.id] = image;
       const chunkAtlas = new Image(); chunkAtlas.src = getThemeAsset(`environmentChunks.${map.id}`); this.environmentChunkAtlases[map.id] = chunkAtlas;
       const mechanic = new Image(); mechanic.src = getThemeAsset(`mapMechanics.${map.id}`); this.mapMechanicSprites[map.id] = mechanic;
+      const device = new Image(); device.src = getThemeAsset(`mapDevices.${map.id}`); this.mapDeviceSprites[map.id] = device;
     }
     for (const type of Object.keys(ENEMY_TYPES)) {
       const image = new Image(); image.src = getThemeAsset(`enemies.${type}`); this.enemySprites[type] = image;
@@ -305,7 +316,12 @@ export class Renderer {
     for (const mapId of Object.keys(MAPS)) {
       this.supplyContainerSprites[mapId] = {};
       for (const kind of ["cargo", "utility", "pressure"]) {
-        const image = new Image(); image.src = getThemeAsset(`supplyContainers.${mapId}.${kind}`); this.supplyContainerSprites[mapId][kind] = image;
+        const intactSrc = getThemeAsset(`supplyContainers.${mapId}.${kind}`);
+        this.supplyContainerSprites[mapId][kind] = Object.fromEntries(["intact", "damaged", "critical"].map((state) => {
+          const image = new Image();
+          image.src = state === "intact" ? intactSrc : intactSrc.replace(/\.webp$/i, `-${state}.webp`);
+          return [state, image];
+        }));
       }
     }
   }
@@ -858,7 +874,7 @@ export class Renderer {
     const machine = { id: "machine", x: 0, y: 0, radius: 77 };
     consider(machine, 77, { type: "objective", name: map?.mechanic || "Field Device", description: "Stand nearby to charge this operation-specific field device.", stats: { Charge: `${Math.round(((state.machine?.charge || 0) / 2.4) * 100)}%`, Cooldown: `${Math.max(0, Math.ceil(state.machine?.cooldown || 0))}s` } }, .04);
     const mapMechanic = mechanicFrameForState(state);
-    if (mapMechanic && mapMechanic.phase !== "idle" && pointInMapMechanic(mapMechanic, worldX, worldY)) {
+    if (mapMechanic && pointInMapMechanic(mapMechanic, worldX, worldY)) {
       const definition = mapMechanicDefinition(mapMechanic.mapId);
       consider({ id: `map-mechanic-${mapMechanic.cycle}`, x: worldX, y: worldY }, 34, {
         type: "hazard", name: definition.name, description: `${definition.description} ${definition.counterplay}`,
@@ -1056,24 +1072,18 @@ export class Renderer {
       const mechanicContext = this.ctx, mechanicGeometry = surface.geometry, mechanicVertical = mechanicGeometry.axis === "vertical";
       const mechanicLength = mechanicVertical ? WORLD.height : WORLD.width, mechanicThickness = mechanicGeometry.halfWidth * 2;
       const mechanicTileLength = Math.max(360, Math.round(mechanicThickness * mechanicSprite.naturalWidth / mechanicSprite.naturalHeight));
-      const energized = surface.selected && frame.active, warning = surface.selected && frame.warning;
+      const energized = surface.selected && frame.active;
       const mechanicDirection = frame.direction > 0 ? 1 : -1;
       const mechanicTravel = energized && !this.reducedMotion && frame.effect?.pushPerSecond > 0 ? (this.renderTick * 1.35 * mechanicDirection) % mechanicTileLength : 0;
       mechanicContext.save();
       mechanicContext.translate(mechanicVertical ? mechanicGeometry.center : 0, mechanicVertical ? 0 : mechanicGeometry.center);
       if (mechanicVertical) mechanicContext.rotate(Math.PI / 2);
-      mechanicContext.globalAlpha = map.id === "warehouse" ? (energized ? .72 : warning ? .45 : .34) : (energized ? .48 : .22);
-      mechanicContext.filter = energized ? "saturate(.92) brightness(.88)" : warning ? "saturate(.72) brightness(.78)" : "saturate(.52) brightness(.7) contrast(.9)";
+      mechanicContext.globalAlpha = map.id === "warehouse" ? .66 : (energized ? .48 : .22);
+      mechanicContext.filter = map.id === "warehouse" ? "saturate(.84) brightness(.82)" : energized ? "saturate(.92) brightness(.88)" : "saturate(.62) brightness(.74)";
       for (let along = -mechanicLength / 2 - mechanicTileLength + mechanicTravel; along < mechanicLength / 2 + mechanicTileLength; along += mechanicTileLength) {
         mechanicContext.drawImage(mechanicSprite, along, -mechanicThickness / 2, mechanicTileLength + 1, mechanicThickness);
       }
       mechanicContext.filter = "none";
-      if (warning && !mechanicVertical) {
-        const labelAlong = mechanicVertical ? this.camera.y : this.camera.x;
-        mechanicContext.globalAlpha = .82; mechanicContext.textAlign = "center"; mechanicContext.textBaseline = "middle";
-        mechanicContext.font = "800 10px Inter"; mechanicContext.fillStyle = "#f5d985";
-        mechanicContext.fillText(`${frame.name.toUpperCase()} · ${frame.remainingSeconds}s`, clamp(labelAlong, -mechanicLength / 2 + 120, mechanicLength / 2 - 120), 0);
-      }
       mechanicContext.restore();
     }
   }
@@ -1083,12 +1093,13 @@ export class Renderer {
     if (map.id === "warehouse") return;
     const movingPlayer = (state.players || []).find((entry) => entry.id === localPlayerId) || state.players?.[0];
     if (!movingPlayer || movingPlayer.dead || movingPlayer.downed || !pointInMapMechanic(frame, movingPlayer.x, movingPlayer.y)) return;
-    const movementContext = this.ctx, movementDirection = frame.direction > 0 ? "EAST" : "WEST";
+    const movementContext = this.ctx, movementDirection = frame.direction > 0 ? 1 : -1;
     movementContext.save();
     movementContext.translate(movingPlayer.x, movingPlayer.y - Math.max(58, Number(movingPlayer.radius || 24) + 30));
-    movementContext.globalAlpha = .72; movementContext.textAlign = "center"; movementContext.textBaseline = "middle";
-    movementContext.font = "800 9px Inter"; movementContext.fillStyle = map.accent;
-    movementContext.fillText(`${frame.name.toUpperCase()} · MOVING ${movementDirection}`, 0, 0);
+    movementContext.scale(movementDirection, 1);
+    movementContext.globalAlpha = .72; movementContext.strokeStyle = "#041017"; movementContext.lineWidth = 6;
+    movementContext.beginPath(); movementContext.moveTo(-22, -9); movementContext.lineTo(-3, -9); movementContext.lineTo(-3, -18); movementContext.lineTo(23, 0); movementContext.lineTo(-3, 18); movementContext.lineTo(-3, 9); movementContext.lineTo(-22, 9); movementContext.closePath(); movementContext.stroke();
+    movementContext.fillStyle = map.accent; movementContext.fill();
     movementContext.restore();
     return;
   }
@@ -1225,17 +1236,26 @@ export class Renderer {
     ctx.beginPath(); ctx.arc(0, 0, 77, 0, TAU); ctx.fill(); ctx.stroke();
     ctx.strokeStyle = map.accent; ctx.globalAlpha = .3 + (m.active > 0 ? .5 : 0); ctx.lineWidth = 8;
     ctx.beginPath(); ctx.arc(0, 0, 58, -.5*Math.PI, -.5*Math.PI + TAU * clamp((m.charge || 0)/2.4,0,1)); ctx.stroke();
-    ctx.globalAlpha = 1; ctx.fillStyle = map.accent; ctx.font = "700 11px Inter"; ctx.textAlign = "center"; ctx.fillText(m.cooldown > 0 ? `${Math.ceil(m.cooldown)}s` : map.mechanic.toUpperCase(), 0, 4);
+    ctx.globalAlpha = m.cooldown > 0 ? .5 : .95;
+    const device = this.mapDeviceSprites[map.id];
+    if (device?.complete && device.naturalWidth && device.naturalHeight) {
+      const ratio = device.naturalWidth / device.naturalHeight, width = ratio >= 1 ? 72 : 72 * ratio, height = ratio >= 1 ? 72 / ratio : 72;
+      ctx.drawImage(device, -width / 2, -height / 2, width, height);
+    } else {
+      ctx.fillStyle = map.accent; ctx.beginPath(); ctx.moveTo(0, -26); ctx.lineTo(22, -10); ctx.lineTo(22, 15); ctx.lineTo(0, 29); ctx.lineTo(-22, 15); ctx.lineTo(-22, -10); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#f5fffb"; ctx.fillRect(-5, -17, 10, 34); ctx.fillRect(-17, -5, 34, 10);
+    }
     ctx.restore();
   }
 
-  supplyContainerSprite(mapId, kind) {
+  supplyContainerSprite(mapId, kind, state = "intact") {
     const mapSprites = this.supplyContainerSprites[mapId] || this.supplyContainerSprites.warehouse || {};
-    return mapSprites[kind] || mapSprites.cargo;
+    const states = mapSprites[kind] || mapSprites.cargo || {};
+    return states[state] || states.intact;
   }
 
-  drawSupplyContainerImage(mapId, kind, size) {
-    const sprite = this.supplyContainerSprite(mapId, kind);
+  drawSupplyContainerImage(mapId, kind, size, state = "intact") {
+    const sprite = this.supplyContainerSprite(mapId, kind, state);
     if (!sprite?.complete || !sprite.naturalWidth || !sprite.naturalHeight) return false;
     const ratio = sprite.naturalWidth / sprite.naturalHeight;
     const width = ratio >= 1 ? size : size * ratio, height = ratio >= 1 ? size / ratio : size;
@@ -1247,26 +1267,14 @@ export class Renderer {
     const ctx = this.ctx;
     for (const pod of pods) {
       if (!this.isWorldVisible(pod, 45)) continue;
-      const health = clamp((pod.hp ?? 100) / 100, 0, 1), damage = 1 - health, kind = pod.kind || "cargo";
+      const kind = pod.kind || "cargo";
       ctx.save(); ctx.translate(pod.x, pod.y);
       const size = kind === "utility" ? 58 : kind === "pressure" ? 62 : 60;
       ctx.fillStyle = "rgba(0,0,0,.5)"; ctx.beginPath(); ctx.ellipse(3, 17, size * .42, 8, 0, 0, TAU); ctx.fill();
       {
-        ctx.globalAlpha = .96; ctx.filter = health < .35 ? "saturate(.75) brightness(.8)" : "none";
-        this.drawSupplyContainerImage(map?.id || "warehouse", kind, size);
+        ctx.globalAlpha = .96;
+        this.drawSupplyContainerImage(map?.id || "warehouse", kind, size, supplyContainerDamageState(pod.hp ?? 100));
         ctx.filter = "none"; ctx.globalAlpha = 1;
-      }
-      const warning = health < .35 ? "#ff4f45" : "#ff7955";
-
-      // Persistent armor rail plus progressively revealed cracks gives immediate
-      // and continuous feedback that shots are damaging the cache.
-      const railWidth = kind === "pressure" ? 30 : 44;
-      ctx.fillStyle = "rgba(0,0,0,.78)"; ctx.fillRect(-railWidth / 2, 12, railWidth, 4);
-      ctx.fillStyle = warning; ctx.fillRect(-railWidth / 2 + 1, 13, (railWidth - 2) * health, 2);
-      if (damage > .01) {
-        ctx.strokeStyle = `rgba(255,225,203,${.32 + damage * .58})`; ctx.lineWidth = 1.25;
-        ctx.beginPath(); ctx.moveTo(6, -16); ctx.lineTo(2, -9); ctx.lineTo(7, -3); ctx.lineTo(1, 4); ctx.stroke();
-        if (damage > .48) { ctx.beginPath(); ctx.moveTo(-16, -15); ctx.lineTo(-10, -9); ctx.lineTo(-14, -3); ctx.lineTo(-7, 2); ctx.stroke(); }
       }
       ctx.restore();
     }
@@ -1340,7 +1348,9 @@ export class Renderer {
       ctx.strokeStyle = objectiveRead.palette.keyline; ctx.lineWidth = 7; ctx.beginPath(); ctx.arc(0, 0, 82, 0, TAU); ctx.stroke();
       ctx.strokeStyle = objectiveRead.palette.body; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, 82, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
       ctx.fillStyle = "rgba(2,7,13,.9)"; ctx.fillRect(-35, -9, 70, 18); ctx.strokeStyle = objectiveRead.palette.body; ctx.strokeRect(-35, -9, 70, 18);
-      ctx.fillStyle = objectiveRead.palette.core; ctx.font = "800 9px Inter"; ctx.textAlign = "center"; ctx.fillText("RELAY GOAL", 0, 4); ctx.restore();
+      ctx.strokeStyle = objectiveRead.palette.core; ctx.lineWidth = 3;
+      for (let index = 0; index < 4; index++) { ctx.save(); ctx.rotate(index * Math.PI / 2); ctx.beginPath(); ctx.moveTo(18, -8); ctx.lineTo(8, 0); ctx.lineTo(18, 8); ctx.stroke(); ctx.restore(); }
+      ctx.restore();
     }
 
     ctx.save(); ctx.strokeStyle = objectiveRead.palette.keyline; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(0, 0, 80, 0, TAU); ctx.stroke();
@@ -1355,13 +1365,14 @@ export class Renderer {
       ctx.translate(ball.targetX, ball.targetY); ctx.setLineDash([10, 8]); ctx.lineDashOffset = this.reducedMotion ? 0 : -performance.now() * .03; ctx.lineWidth = 4; ctx.strokeStyle = "#f7d76a"; ctx.globalAlpha = .75;
       ctx.beginPath(); ctx.arc(0, 0, 82 + Math.sin(performance.now() * .005) * 4, 0, TAU); ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0;
       ctx.globalAlpha = .12; ctx.fillStyle = "#f7d76a"; ctx.beginPath(); ctx.arc(0, 0, 78, 0, TAU); ctx.fill();
-      ctx.globalAlpha = 1; ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.font = "800 9px Inter"; ctx.fillText("RELAY GOAL", 0, 4); ctx.restore();
+      ctx.globalAlpha = 1; ctx.strokeStyle = "#fff3b0"; ctx.lineWidth = 3;
+      for (let index = 0; index < 4; index++) { ctx.save(); ctx.rotate(index * Math.PI / 2); ctx.beginPath(); ctx.moveTo(18, -8); ctx.lineTo(8, 0); ctx.lineTo(18, 8); ctx.stroke(); ctx.restore(); }
+      ctx.restore();
       ctx.save(); ctx.strokeStyle = "rgba(247,215,106,.22)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(ball.x, ball.y); ctx.lineTo(ball.targetX, ball.targetY); ctx.stroke();
       ctx.translate(ball.x, ball.y); ctx.shadowColor = "#f7d76a"; ctx.shadowBlur = 22;
       const glow = ctx.createRadialGradient(-12, -14, 3, 0, 0, ball.radius); glow.addColorStop(0, "#fff6bd"); glow.addColorStop(.35, "#f7d76a"); glow.addColorStop(1, "#8d5b20");
       ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(0, 0, ball.radius, 0, TAU); ctx.fill(); ctx.shadowBlur = 0;
-      ctx.strokeStyle = map.accent; ctx.lineWidth = 3; ctx.rotate(this.reducedMotion ? 0 : performance.now() * .0015); ctx.beginPath(); ctx.arc(0, 0, ball.radius * .62, .2, TAU * .72); ctx.stroke(); ctx.rotate(this.reducedMotion ? 0 : -performance.now() * .0015);
-      ctx.fillStyle = "#fff"; ctx.font = "800 9px Inter"; ctx.textAlign = "center"; ctx.fillText(`${Math.max(0, Math.ceil(ball.life))}s`, 0, 4); ctx.restore();
+      ctx.strokeStyle = map.accent; ctx.lineWidth = 3; ctx.rotate(this.reducedMotion ? 0 : performance.now() * .0015); ctx.beginPath(); ctx.arc(0, 0, ball.radius * .62, .2, TAU * .72); ctx.stroke(); ctx.restore();
     }
   }
 
@@ -1469,7 +1480,7 @@ export class Renderer {
           ctx.rotate(sideX * sideY * ease * .24);
           ctx.globalAlpha = fade;
           ctx.beginPath(); ctx.rect(sideX < 0 ? -size / 2 : 0, sideY < 0 ? -size / 2 : 0, size / 2, size / 2); ctx.clip();
-          this.drawSupplyContainerImage(e.mapId || map.id, e.containerKind || "cargo", size);
+          this.drawSupplyContainerImage(e.mapId || map.id, e.containerKind || "cargo", size, "critical");
           ctx.restore();
         }
         ctx.strokeStyle = e.color; ctx.lineWidth = 3; ctx.globalAlpha = .72 * fade;
@@ -2147,13 +2158,14 @@ export class Renderer {
     }
     const supplyContainer = state.pods?.find((entry) => entry.id === hoveredId);
     if (supplyContainer) {
-      const sprite = this.supplyContainerSprite(map.id, supplyContainer.kind);
+      const damageState = supplyContainerDamageState(supplyContainer.hp ?? 100);
+      const sprite = this.supplyContainerSprite(map.id, supplyContainer.kind, damageState);
       if (sprite?.complete && sprite.naturalWidth) {
         const size = supplyContainer.kind === "pressure" ? 65 : supplyContainer.kind === "utility" ? 61 : 64;
         ctx.save(); ctx.translate(supplyContainer.x, supplyContainer.y);
         ctx.globalAlpha = .48;
         ctx.filter = `brightness(0) invert(1) drop-shadow(0 0 2px #fff) drop-shadow(0 0 7px ${map.accent})`;
-        this.drawSupplyContainerImage(map.id, supplyContainer.kind, size);
+        this.drawSupplyContainerImage(map.id, supplyContainer.kind, size, damageState);
         ctx.restore();
         return;
       }
@@ -2454,8 +2466,8 @@ export class Renderer {
   }
 
   drawOffscreenMarkers(state,map,localPlayerId){
-    const targets=[...(state.objectives||[]).map(o=>({...o,label:o.kind==="trial"?"TRIAL":"UPLINK",color:o.kind==="trial"?"#ff6274":map.accent})),...(state.relayBalls||[]).map(ball=>({x:ball.targetX,y:ball.targetY,label:"RELAY",color:"#f7d76a"})),...(state.enemies||[]).filter(e=>e.boss||e.eventType==="treasure").map(e=>({...e,label:e.boss?"APEX":"LOOT",color:e.boss?map.accent:"#f7d76a"}))];
+    const targets=[...(state.objectives||[]).map(o=>({...o,label:o.kind==="trial"?"TRIAL":"UPLINK",color:o.kind==="trial"?"#ff6274":map.accent})),...(state.relayBalls||[]).map(ball=>({x:ball.targetX,y:ball.targetY,label:"",color:"#f7d76a"})),...(state.enemies||[]).filter(e=>e.boss||e.eventType==="treasure").map(e=>({...e,label:e.boss?"APEX":"LOOT",color:e.boss?map.accent:"#f7d76a"}))];
     const p=state.players.find(x=>x.id===localPlayerId)||state.players[0];if(!p)return;const ctx=this.ctx;
-    for(const target of targets){const sx=target.x-this.camera.x+this.width/2,sy=target.y-this.camera.y+this.height/2;if(sx>45&&sx<this.width-45&&sy>80&&sy<this.height-55)continue;const a=Math.atan2(target.y-p.y,target.x-p.x);const margin=65,x=clamp(this.width/2+Math.cos(a)*this.width*.42,margin,this.width-margin),y=clamp(this.height/2+Math.sin(a)*this.height*.38,95,this.height-margin);ctx.save();ctx.translate(x,y);ctx.rotate(a);ctx.fillStyle=target.color;ctx.beginPath();ctx.moveTo(15,0);ctx.lineTo(-7,-7);ctx.lineTo(-7,7);ctx.closePath();ctx.fill();ctx.rotate(-a);ctx.fillStyle="#fff";ctx.font="800 8px Inter";ctx.textAlign="center";ctx.fillText(target.label,0,22);ctx.restore();}
+    for(const target of targets){const sx=target.x-this.camera.x+this.width/2,sy=target.y-this.camera.y+this.height/2;if(sx>45&&sx<this.width-45&&sy>80&&sy<this.height-55)continue;const a=Math.atan2(target.y-p.y,target.x-p.x);const margin=65,x=clamp(this.width/2+Math.cos(a)*this.width*.42,margin,this.width-margin),y=clamp(this.height/2+Math.sin(a)*this.height*.38,95,this.height-margin);ctx.save();ctx.translate(x,y);ctx.rotate(a);ctx.fillStyle=target.color;ctx.beginPath();ctx.moveTo(15,0);ctx.lineTo(-7,-7);ctx.lineTo(-7,7);ctx.closePath();ctx.fill();ctx.rotate(-a);if(target.label){ctx.fillStyle="#fff";ctx.font="800 8px Inter";ctx.textAlign="center";ctx.fillText(target.label,0,22);}else{ctx.strokeStyle="#fff3b0";ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,20,6,0,TAU);ctx.stroke();}ctx.restore();}
   }
 }
