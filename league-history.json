@@ -1,6 +1,33 @@
 {
-  "blurb": "played 20 other games in the last week, went 9-11",
+  "blurb": "played 20 other games in the last week, went 10-10",
   "recent": [
+    {
+      "champion": "Taric",
+      "win": false,
+      "kills": 0,
+      "deaths": 10,
+      "assists": 12,
+      "damage": 9315,
+      "minutes": 21
+    },
+    {
+      "champion": "LeeSin",
+      "win": true,
+      "kills": 11,
+      "deaths": 7,
+      "assists": 4,
+      "damage": 44573,
+      "minutes": 30
+    },
+    {
+      "champion": "Brand",
+      "win": true,
+      "kills": 7,
+      "deaths": 6,
+      "assists": 8,
+      "damage": 28305,
+      "minutes": 23
+    },
     {
       "champion": "TahmKench",
       "win": true,
@@ -18,35 +45,8 @@
       "assists": 10,
       "damage": 16539,
       "minutes": 27
-    },
-    {
-      "champion": "Swain",
-      "win": true,
-      "kills": 14,
-      "deaths": 7,
-      "assists": 13,
-      "damage": 99914,
-      "minutes": 26
-    },
-    {
-      "champion": "Yuumi",
-      "win": false,
-      "kills": 1,
-      "deaths": 7,
-      "assists": 7,
-      "damage": 7808,
-      "minutes": 24
-    },
-    {
-      "champion": "Sett",
-      "win": false,
-      "kills": 3,
-      "deaths": 6,
-      "assists": 7,
-      "damage": 23455,
-      "minutes": 25
     }
   ],
   "ddragonVersion": "16.14.1",
-  "date": "2026-07-18"
+  "date": "2026-07-19"
 }
