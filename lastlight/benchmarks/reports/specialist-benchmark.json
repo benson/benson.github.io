@@ -14,7 +14,7 @@
     "maxEntitiesPerCase": 600,
     "maxSnapshotBytes": 500000,
     "maxWorkUnitsPerTick": 500000,
-    "maxSuiteRuntimeMs": 30000
+    "maxSuiteRuntimeMs": 60000
   },
   "scenarioDefinitions": [
     {

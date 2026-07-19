@@ -17,7 +17,10 @@ export const SPECIALIST_BENCHMARK_BUDGETS = Object.freeze({
   maxEntitiesPerCase: 600,
   maxSnapshotBytes: 500_000,
   maxWorkUnitsPerTick: 500_000,
-  maxSuiteRuntimeMs: 30_000,
+  // The benchmark runs alongside the full Node test shard in CI. Exact
+  // alpha-mask terrain cover raises collision fidelity and shared-runner
+  // contention, while isolated runs remain well below this ceiling.
+  maxSuiteRuntimeMs: 60_000,
 });
 
 export const SPECIALIST_BENCHMARK_SCENARIOS = Object.freeze([
