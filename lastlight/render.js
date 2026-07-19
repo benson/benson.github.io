@@ -1,35 +1,35 @@
-import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260718.7";
-import { WORLD } from "./engine.js?v=20260718.7";
-import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260718.7";
+import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260718.8";
+import { WORLD } from "./engine.js?v=20260718.8";
+import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260718.8";
 import { springCamera } from "./feel.js?v=20260713.2";
 import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistFacingTarget, specialistMotionState, stableDirectionColumn } from "./motion.js?v=20260713.1";
 import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260718.7";
-import { impactRenderPlan } from "./impact-grammar.js?v=20260718.7";
-import { movementVisualState } from "./movement.js?v=20260718.7";
-import { effectReadabilityCategory, partitionEffects, readabilityPlan } from "./readability.js?v=20260718.7";
-import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260718.7";
+import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260718.8";
+import { impactRenderPlan } from "./impact-grammar.js?v=20260718.8";
+import { movementVisualState } from "./movement.js?v=20260718.8";
+import { effectReadabilityCategory, partitionEffects, readabilityPlan } from "./readability.js?v=20260718.8";
+import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260718.8";
 import { EnvironmentInteractionField, stableEnvironmentUnit } from "./environment-interactions.js?v=20260712.1";
-import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260718.7";
-import { circleIntersectsCollider, rectCollider } from "./collision-geometry.js?v=20260718.7";
-import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260718.7";
+import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260718.8";
+import { circleIntersectsCollider, rectCollider } from "./collision-geometry.js?v=20260718.8";
+import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260718.8";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
 import { PING_INTENTS, PING_LIFETIME_TICKS, selectVisiblePings } from "./ping-contract.js?v=20260713.4";
-import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260718.7";
-import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260718.7";
+import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260718.8";
+import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260718.8";
 import {
   ImpactIntensityDirector, aftermathPlan, attackerRecoilTransform, cameraLookBias,
   impactAnimationTimeScale, impactFeedbackPlan, impactReactionTransform, impactTierForEvent, projectileMotionPlan,
   secondaryMotionPlan, selectImpactFeedback,
-} from "./impact-feel.js?v=20260718.7";
-import { combatTurnPlan, isBodyDrivingSource, resolvedCombatFacing, specialistMuzzlePoint } from "./combat-orientation.js?v=20260718.7";
+} from "./impact-feel.js?v=20260718.8";
+import { combatTurnPlan, isBodyDrivingSource, resolvedCombatFacing, specialistMuzzlePoint } from "./combat-orientation.js?v=20260718.8";
 import {
   cameraCompositionPlan, castMotionPlan, combatDensityPlan, playerLifecycleMotionPlan, rewardMotionPlan,
-} from "./combat-choreography.js?v=20260718.7";
-import { apexPhaseMotionPlan, enemyArrivalMotionPlan, enemyDepartureMotionPlan } from "./combat-rhythm.js?v=20260718.7";
+} from "./combat-choreography.js?v=20260718.8";
+import { apexPhaseMotionPlan, enemyArrivalMotionPlan, enemyDepartureMotionPlan } from "./combat-rhythm.js?v=20260718.8";
 import {
   enemyGroundingPlan, impactCameraImpulsePlan, locomotionPlantPlan, weaponKickPlan,
-} from "./combat-weight.js?v=20260718.7";
+} from "./combat-weight.js?v=20260718.8";
 
 const TAU = Math.PI * 2;
 const PING_BUFFER_LIMIT = 32;
@@ -255,6 +255,7 @@ export class Renderer {
     this.playerVisuals = new Map();
     this.enemyVisuals = new Map();
     this.groundParticles = [];
+    this.groundExplosionVisuals = new Map();
     this.environmentField = new EnvironmentInteractionField(getThemeEnvironmentInteractions());
     this.environmentChunkTheme = getThemeEnvironmentChunks();
     this.environmentChunkLayouts = new Map();
@@ -326,6 +327,10 @@ export class Renderer {
       xpShard: getThemeAsset("effects.xpShard"),
       hostileBolt: getThemeAsset("effects.hostileBolt"),
       barricade: getThemeAsset("effects.barricade"),
+      uplink: getThemeAsset("effects.uplink"),
+      train: getThemeAsset("effects.train"),
+      groundExplosion: getThemeAsset("effects.groundExplosion"),
+      blastBarricade: getThemeAsset("effects.blastBarricade"),
       drone: getThemeAsset("weapons.universal.drone"),
     })) {
       const image = new Image(); image.src = src; this.effectSprites[name] = image;
@@ -345,7 +350,7 @@ export class Renderer {
 
   resetCamera() {
     this.camera.x = 0; this.camera.y = 0; this.camera.vx = 0; this.camera.vy = 0;
-    this.playerVisuals.clear(); this.enemyVisuals.clear(); this.groundParticles = []; this.environmentField.reset(); this.visibleEnvironmentChunks = Object.freeze([]); this.materialImpacts = []; this.materialProjectileHistory.clear(); this.materialEffectHistory.clear(); this.enemyAttackThreatHistory.clear(); this.enemyAttackContacts = []; this.materialAudioCues = []; this.pings = Object.freeze([]); this.lastLocalHurt = 0;
+    this.playerVisuals.clear(); this.enemyVisuals.clear(); this.groundParticles = []; this.groundExplosionVisuals.clear(); this.environmentField.reset(); this.visibleEnvironmentChunks = Object.freeze([]); this.materialImpacts = []; this.materialProjectileHistory.clear(); this.materialEffectHistory.clear(); this.enemyAttackThreatHistory.clear(); this.enemyAttackContacts = []; this.materialAudioCues = []; this.pings = Object.freeze([]); this.lastLocalHurt = 0;
     this.seenImpactIds.clear(); this.targetImpactVisuals.clear(); this.attackerImpactVisuals.clear(); this.impactContacts = []; this.impactAftermath = []; this.impactFeedbackSignals = []; this.cameraImpact = { x: 0, y: 0, vx: 0, vy: 0 };
   }
 
@@ -1043,14 +1048,36 @@ export class Renderer {
   }
 
   drawWorldBorder(map) {
-    const ctx = this.ctx;
+    const ctx = this.ctx, barricade = this.effectSprites.blastBarricade;
     ctx.fillStyle = map.edge;
     ctx.fillRect(-WORLD.width / 2 - 500, -WORLD.height / 2 - 500, WORLD.width + 1000, 500);
     ctx.fillRect(-WORLD.width / 2 - 500, WORLD.height / 2, WORLD.width + 1000, 500);
     ctx.fillRect(-WORLD.width / 2 - 500, -WORLD.height / 2, 500, WORLD.height);
     ctx.fillRect(WORLD.width / 2, -WORLD.height / 2, 500, WORLD.height);
-    ctx.strokeStyle = map.accent; ctx.globalAlpha = .35; ctx.lineWidth = 3;
-    ctx.strokeRect(-WORLD.width / 2, -WORLD.height / 2, WORLD.width, WORLD.height); ctx.globalAlpha = 1;
+    ctx.save();
+    ctx.strokeStyle = "rgba(1,6,11,.92)"; ctx.lineWidth = 34;
+    ctx.strokeRect(-WORLD.width / 2, -WORLD.height / 2, WORLD.width, WORLD.height);
+    ctx.strokeStyle = `${map.accent}42`; ctx.lineWidth = 5;
+    ctx.strokeRect(-WORLD.width / 2 + 15, -WORLD.height / 2 + 15, WORLD.width - 30, WORLD.height - 30);
+    if (barricade?.complete && barricade.naturalWidth) {
+      const tile = 230, depth = 196, halfW = WORLD.width / 2, halfH = WORLD.height / 2;
+      const drawTile = (x, y, rotation = 0) => {
+        ctx.save(); ctx.translate(x, y); ctx.rotate(rotation);
+        ctx.globalAlpha = .88; ctx.filter = "saturate(.72) brightness(.62)";
+        const ratio = barricade.naturalWidth / barricade.naturalHeight;
+        ctx.drawImage(barricade, -tile / 2, -depth * .72, tile, tile / ratio);
+        ctx.restore();
+      };
+      for (let x = -halfW + tile / 2; x < halfW; x += tile) {
+        drawTile(x, -halfH + 20, 0);
+        drawTile(x, halfH - 20, Math.PI);
+      }
+      for (let y = -halfH + tile / 2; y < halfH; y += tile) {
+        drawTile(-halfW + 18, y, Math.PI / 2);
+        drawTile(halfW - 18, y, -Math.PI / 2);
+      }
+    }
+    ctx.restore(); ctx.globalAlpha = 1; ctx.filter = "none";
   }
 
   drawEnvironmentChunkImage(map, chunk, { offsetX = 0, offsetY = 0, alpha = 1, filter = "none" } = {}) {
@@ -1090,7 +1117,7 @@ export class Renderer {
       const energized = surface.selected && frame.active;
       const mechanicDirection = frame.direction > 0 ? 1 : -1;
       const rawTravel = definition && !this.reducedMotion
-        ? freightConveyorTravel(frame, surface.laneIndex, definition.lanes.length, definition.activeTicks) * 1.35
+        ? freightConveyorTravel(frame, surface.laneIndex, definition.lanes.length, definition.activeTicks) * 2.8
         : energized && !this.reducedMotion && frame.effect?.pushPerSecond > 0
           ? this.renderTick * 1.35 * mechanicDirection
           : 0;
@@ -1100,8 +1127,19 @@ export class Renderer {
       if (mechanicVertical) mechanicContext.rotate(Math.PI / 2);
       mechanicContext.globalAlpha = map.id === "warehouse" ? FREIGHT_CONVEYOR_ALPHA : (energized ? .48 : .22);
       mechanicContext.filter = map.id === "warehouse" ? "saturate(.84) brightness(.82)" : energized ? "saturate(.92) brightness(.88)" : "saturate(.62) brightness(.74)";
-      for (let along = -mechanicLength / 2 - mechanicTileLength + mechanicTravel; along < mechanicLength / 2 + mechanicTileLength; along += mechanicTileLength) {
+      // The bed is terrain and never moves or fades. A second clipped pass
+      // carries the authored slats while active and freezes on its exact phase.
+      for (let along = -mechanicLength / 2 - mechanicTileLength; along < mechanicLength / 2 + mechanicTileLength; along += mechanicTileLength) {
         mechanicContext.drawImage(mechanicSprite, along, -mechanicThickness / 2, mechanicTileLength + 1, mechanicThickness);
+      }
+      if (map.id === "warehouse") {
+        mechanicContext.beginPath(); mechanicContext.rect(-mechanicLength / 2, -mechanicThickness / 2, mechanicLength, mechanicThickness); mechanicContext.clip();
+        mechanicContext.globalAlpha = energized ? .42 : .18;
+        mechanicContext.filter = energized ? "saturate(1.05) brightness(1.08)" : "saturate(.7) brightness(.78)";
+        const movingTile = Math.max(118, mechanicThickness * .62);
+        for (let along = -mechanicLength / 2 - movingTile + (mechanicTravel % movingTile); along < mechanicLength / 2 + movingTile; along += movingTile) {
+          mechanicContext.drawImage(mechanicSprite, along, -mechanicThickness * .27, movingTile, mechanicThickness * .54);
+        }
       }
       mechanicContext.filter = "none";
       mechanicContext.restore();
@@ -1131,20 +1169,19 @@ export class Renderer {
   }
 
   drawCover(map, block) {
-    const ctx = this.ctx, texture = this.effectSprites.barricade, [x,y,w,h] = block;
+    const ctx = this.ctx, texture = this.effectSprites.blastBarricade, [x,y,w,h] = block;
     ctx.save();
     ctx.fillStyle = "rgba(0,0,0,.42)"; ctx.fillRect(x + 10, y + 12, w, h);
-    ctx.fillStyle = map.deco; ctx.globalAlpha = .74; ctx.fillRect(x, y, w, h);
     if (texture?.complete && texture.naturalWidth) {
-      ctx.globalAlpha = .64; ctx.drawImage(texture, 0, 0, texture.naturalWidth, texture.naturalHeight, x, y, w, h);
-    }
-    ctx.globalAlpha = 1; ctx.strokeStyle = "rgba(1,5,10,.82)"; ctx.lineWidth = 6; ctx.strokeRect(x, y, w, h);
-    ctx.strokeStyle = `${map.accent}78`; ctx.lineWidth = 2; ctx.strokeRect(x + 3, y + 3, w - 6, h - 6);
-    ctx.strokeStyle = "rgba(255,255,255,.23)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x + 8, y + 8); ctx.lineTo(x + w - 8, y + 8); ctx.stroke();
-    const bandY = y + h - 15, segment = 17;
-    for (let sx = x + 12, i = 0; sx < x + Math.min(w - 12, 116); sx += segment, i++) {
-      ctx.fillStyle = i % 2 ? "#f3e4c0" : "#e35f32"; ctx.globalAlpha = .72;
-      ctx.beginPath(); ctx.moveTo(sx, bandY + 10); ctx.lineTo(sx + 8, bandY); ctx.lineTo(sx + 15, bandY); ctx.lineTo(sx + 7, bandY + 10); ctx.closePath(); ctx.fill();
+      const ratio = texture.naturalWidth / texture.naturalHeight;
+      const tileHeight = Math.min(164, h + 74), tileWidth = tileHeight * ratio;
+      const count = Math.max(1, Math.ceil(w / Math.max(150, tileWidth * .72)));
+      for (let index = 0; index < count; index++) {
+        const centerX = x + w * (index + .5) / count;
+        ctx.globalAlpha = .96; ctx.drawImage(texture, centerX - tileWidth / 2, y + h - tileHeight, tileWidth, tileHeight);
+      }
+    } else {
+      ctx.fillStyle = map.deco; ctx.globalAlpha = .74; ctx.fillRect(x, y, w, h);
     }
     ctx.restore();
   }
@@ -1277,12 +1314,15 @@ export class Renderer {
       ctx.save(); ctx.translate(objective.x, objective.y);
       if (pass !== "overlay") {
         ctx.fillStyle = "rgba(0,0,0,.28)"; ctx.beginPath(); ctx.ellipse(7, 12, objective.radius * 1.05, objective.radius * .54, 0, 0, TAU); ctx.fill();
-        ctx.globalAlpha = .12; ctx.fillStyle = color; ctx.beginPath(); ctx.arc(0, 0, objective.radius, 0, TAU); ctx.fill();
+        ctx.globalAlpha = trial ? .09 : .07; ctx.fillStyle = color; ctx.beginPath(); ctx.arc(0, 0, objective.radius, 0, TAU); ctx.fill();
+        if (!trial && this.effectSprites.uplink?.complete) {
+          const image = this.effectSprites.uplink, height = 112, width = height * image.naturalWidth / image.naturalHeight;
+          ctx.globalAlpha = .96; ctx.drawImage(image, -width / 2, -height * .74, width, height);
+        }
       }
       if (pass === "ground") { ctx.restore(); continue; }
-      ctx.globalAlpha = 1; ctx.setLineDash(trial ? [3, 6] : [13, 8]); ctx.lineDashOffset = this.reducedMotion ? 0 : -now * (trial ? .038 : .02);
-      ctx.lineWidth = trial ? 5 : 3; ctx.strokeStyle = objectiveRead.palette.keyline; ctx.beginPath(); ctx.arc(0, 0, objective.radius + (this.reducedMotion ? 0 : Math.sin(now * .004) * 3), 0, TAU); ctx.stroke();
-      ctx.lineWidth = trial ? 3 : 2; ctx.strokeStyle = color; ctx.beginPath(); ctx.arc(0, 0, objective.radius + (this.reducedMotion ? 0 : Math.sin(now * .004) * 3), 0, TAU); ctx.stroke();
+      ctx.globalAlpha = trial ? .72 : .28; ctx.setLineDash(trial ? [3, 6] : []); ctx.lineDashOffset = this.reducedMotion ? 0 : -now * .038;
+      ctx.lineWidth = trial ? 3 : 2; ctx.strokeStyle = color; ctx.beginPath(); ctx.arc(0, 0, objective.radius, 0, TAU); ctx.stroke();
       ctx.setLineDash([]); ctx.lineDashOffset = 0;
       ctx.strokeStyle = objectiveRead.palette.core; ctx.lineWidth = 2;
       if (trial) {
@@ -1291,16 +1331,14 @@ export class Renderer {
           const a = i * Math.PI / 2 + Math.PI / 4; ctx.save(); ctx.rotate(a); ctx.translate(objective.radius - 10, 0);
           ctx.fillStyle = dangerRead.palette.body; ctx.beginPath(); ctx.moveTo(-16, -9); ctx.lineTo(4, 0); ctx.lineTo(-16, 9); ctx.closePath(); ctx.fill(); ctx.restore();
         }
-      } else {
-        for (let i = 0; i < 4; i++) {
-          const a = i * Math.PI / 2 + Math.PI / 4, r = objective.radius - 9, x = Math.cos(a) * r, y = Math.sin(a) * r;
-          ctx.save(); ctx.translate(x, y); ctx.rotate(a); ctx.strokeRect(-7, -7, 14, 14); ctx.restore();
-        }
       }
       const progress = clamp(objective.progress, 0, 1);
       ctx.strokeStyle = objectiveRead.palette.core; ctx.globalAlpha = .9; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(0, 0, Math.max(18, objective.radius * .38), -.5 * Math.PI, -.5 * Math.PI + TAU * progress); ctx.stroke();
-      ctx.globalAlpha = 1; ctx.fillStyle = "rgba(2,7,13,.92)"; ctx.fillRect(-31, -10, 62, 20); ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.strokeRect(-31, -10, 62, 20);
-      ctx.fillStyle = objectiveRead.palette.core; ctx.textAlign = "center"; ctx.font = "800 10px Inter"; ctx.fillText(trial ? "TRIAL" : "UPLINK", 0, 4); ctx.restore();
+      if (trial) {
+        ctx.globalAlpha = 1; ctx.fillStyle = "rgba(2,7,13,.92)"; ctx.fillRect(-31, -10, 62, 20); ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.strokeRect(-31, -10, 62, 20);
+        ctx.fillStyle = objectiveRead.palette.core; ctx.textAlign = "center"; ctx.font = "800 10px Inter"; ctx.fillText("TRIAL", 0, 4);
+      }
+      ctx.restore();
     }
   }
 
@@ -1425,12 +1463,61 @@ export class Renderer {
     ctx.globalAlpha=1;
   }
 
+  drawGroundExplosionSprite(effect, progress) {
+    const image = this.effectSprites.groundExplosion;
+    if (!image?.complete || !image.naturalWidth || !image.naturalHeight) return false;
+    const frame = Math.min(5, Math.max(0, Math.floor(clamp(progress, 0, .999) * 6)));
+    const sourceWidth = image.naturalWidth / 3, sourceHeight = image.naturalHeight / 2;
+    const sourceX = (frame % 3) * sourceWidth, sourceY = Math.floor(frame / 3) * sourceHeight;
+    const size = Math.max(96, Math.min(360, Number(effect.radius || 100) * 2.35));
+    this.ctx.save();
+    this.ctx.globalAlpha = frame === 5 ? .58 * (1 - progress) + .22 : .92;
+    this.ctx.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, -size / 2, -size * .58, size, size * .68);
+    this.ctx.restore();
+    return true;
+  }
+
+  drawGroundExplosionVisuals() {
+    const now = performance.now();
+    for (const [id, visual] of this.groundExplosionVisuals) {
+      const progress = (now - visual.startedAt) / 560;
+      if (progress >= 1) { this.groundExplosionVisuals.delete(id); continue; }
+      this.ctx.save(); this.ctx.translate(visual.x, visual.y);
+      this.drawGroundExplosionSprite(visual, progress);
+      this.ctx.restore();
+    }
+  }
+
+  drawTrainSprite(effect) {
+    const image = this.effectSprites.train;
+    if (!image?.complete || !image.naturalWidth || !image.naturalHeight) return false;
+    const sourceWidth = image.naturalWidth / 3, sourceHeight = image.naturalHeight;
+    const direction = Number(effect.vx) < 0 ? -1 : 1;
+    const height = 112, width = height * sourceWidth / sourceHeight;
+    const frames = effect.evolved ? [0, 1, 1, 2] : [0, 1, 2];
+    this.ctx.save(); this.ctx.scale(direction, 1);
+    this.ctx.fillStyle = "rgba(0,0,0,.42)"; this.ctx.beginPath();
+    this.ctx.ellipse(-width * (frames.length - 1) * .46, 28, width * frames.length * .52, 19, 0, 0, TAU); this.ctx.fill();
+    frames.forEach((frame, index) => {
+      const x = -index * width * .9;
+      this.ctx.drawImage(image, frame * sourceWidth, 0, sourceWidth, sourceHeight, x - width / 2, -height * .64, width, height);
+    });
+    this.ctx.globalCompositeOperation = "screen"; this.ctx.globalAlpha = .18;
+    this.ctx.fillStyle = effect.color || "#63f2df"; this.ctx.fillRect(-width * frames.length, -6, width * frames.length, 10);
+    this.ctx.restore();
+    return true;
+  }
+
   drawEffects(effects, map, previous, t, pass = "ground", state = {}) {
     const ctx = this.ctx;
+    if (pass === "ground") this.drawGroundExplosionVisuals();
     const expected = pass === "threat" ? "lethalTelegraph" : pass === "feedback" ? "damageFeedback" : null;
     const relevant = effects.filter((raw) => expected ? effectReadabilityCategory(raw) === expected : !["lethalTelegraph", "damageFeedback"].includes(effectReadabilityCategory(raw)));
     const rendered = pass === "threat" ? relevant : this.budget(relevant, this.renderBudgets.effects, (effect) => this.readability(effectReadabilityCategory(effect)).essential);
     for (const raw of rendered) {
+      if (pass === "ground" && raw?.delayed && raw.triggered && !this.groundExplosionVisuals.has(raw.id)) {
+        this.groundExplosionVisuals.set(raw.id, { x: raw.x, y: raw.y, radius: raw.radius, startedAt: performance.now() });
+      }
       if (!this.isWorldVisible(raw, Math.max(40, raw.radius || 0))) continue;
       const semantic = this.readability(effectReadabilityCategory(raw)), essential = semantic.essential;
       if (!semantic.visible) continue;
@@ -1444,8 +1531,10 @@ export class Renderer {
         ctx.globalAlpha=clamp(e.life/.35,0,1);ctx.fillStyle=e.color;ctx.font=`800 ${e.critical?18:13}px ${e.critical?"Barlow Condensed":"Inter"}`;ctx.textAlign="center";ctx.fillText(`${e.critical?"✦ ":""}${e.damage}`,0,-progress*34);ctx.restore();continue;
       }
       if (e.kind === "train") {
-        ctx.fillStyle=e.color;ctx.globalAlpha=.3;ctx.fillRect(-120,-35,240,70);ctx.strokeStyle="#fff";ctx.globalAlpha=.82;ctx.lineWidth=3;ctx.strokeRect(-110,-29,220,58);
-        ctx.fillStyle="#fff";ctx.globalAlpha=.72;for(let x=-58;x<=58;x+=58){ctx.beginPath();ctx.moveTo(x+18,0);ctx.lineTo(x-5,-12);ctx.lineTo(x-5,12);ctx.closePath();ctx.fill();}ctx.restore();continue;
+        this.drawTrainSprite(e); ctx.restore(); continue;
+      }
+      if (e.kind === "groundExplosion") {
+        this.drawGroundExplosionSprite(e, progress); ctx.restore(); continue;
       }
       if (e.kind === "windwall") {
         ctx.strokeStyle=e.color;ctx.lineWidth=18;ctx.globalAlpha=.36;ctx.beginPath();ctx.moveTo(0,-e.radius);ctx.bezierCurveTo(35,-e.radius/2,-30,e.radius/2,0,e.radius);ctx.stroke();ctx.restore();continue;
@@ -1505,16 +1594,12 @@ export class Renderer {
           }), semantic);
           ctx.restore(); continue;
         }
-        // Enemy ground damage owns a fixed red/black warning language: solid
-        // perimeter, inward teeth, and a closing white timing ring.
-        ctx.fillStyle = "rgba(93,4,18,.28)"; ctx.beginPath(); ctx.arc(0,0,e.radius,0,TAU); ctx.fill();
-        ctx.strokeStyle = semantic.palette.keyline; ctx.lineWidth = 9; ctx.beginPath(); ctx.arc(0,0,e.radius,0,TAU); ctx.stroke();
-        ctx.strokeStyle = semantic.palette.body; ctx.shadowColor = semantic.palette.body; ctx.shadowBlur = semantic.flash === "none" ? 0 : 8; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0,0,e.radius,0,TAU); ctx.stroke(); ctx.shadowBlur = 0;
-        for (let i = 0; i < 6; i++) {
-          const a=i*TAU/6;ctx.save();ctx.rotate(a);ctx.translate(e.radius-7,0);ctx.fillStyle=i%2?semantic.palette.body:semantic.palette.core;ctx.beginPath();ctx.moveTo(-18,-7);ctx.lineTo(1,0);ctx.lineTo(-18,7);ctx.closePath();ctx.fill();ctx.restore();
-        }
-        ctx.strokeStyle=semantic.palette.core;ctx.globalAlpha=.82;ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,e.radius*(.18+progress*.72),0,TAU);ctx.stroke();
-        ctx.globalAlpha=.26;ctx.strokeStyle="#ff9a54";ctx.lineWidth=2;for(let a=0;a<TAU;a+=Math.PI/3){ctx.beginPath();ctx.moveTo(Math.cos(a)*e.radius*.22,Math.sin(a)*e.radius*.22);ctx.lineTo(Math.cos(a)*e.radius*.72,Math.sin(a)*e.radius*.72);ctx.stroke();}
+        // Short enemy windups are carried by character animation. The ground
+        // cue is only a quiet confirmation of the affected footprint.
+        ctx.fillStyle = semantic.palette.body; ctx.globalAlpha = .055 + progress * .04;
+        ctx.beginPath(); ctx.arc(0,0,e.radius,0,TAU); ctx.fill();
+        ctx.strokeStyle = semantic.palette.body; ctx.globalAlpha = .18 + progress * .16; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0,0,e.radius,0,TAU); ctx.stroke();
         if (attackFamily) this.drawEnemyAttackAccents(enemyAttackMotionPlan({
           family: attackFamily, stage: "windup", progress,
           geometry: { radius: e.radius, angle: e.attackAngle || 0 },
@@ -1526,10 +1611,11 @@ export class Renderer {
       const delayed = e.delayed && e.life > 0;
       if (plan && plan.decal !== "none") this.drawImpactDecal(e, plan, progress);
       if (plan) { ctx.shadowColor = plan.colors.body; ctx.shadowBlur = ({ none: 0, low: 3, medium: 7, high: 11 }[plan.flash] || 0) * this.qualityProfile.flashIntensity; }
-      ctx.globalAlpha = delayed ? .16 + progress*.22 : .48 * (1-progress);
-      ctx.fillStyle=e.color;ctx.beginPath();ctx.arc(0,0,e.radius*(delayed ? .45+progress*.55 : progress),0,TAU);ctx.fill();
-      ctx.globalAlpha = delayed ? .75 : .6*(1-progress);ctx.strokeStyle=e.color;ctx.lineWidth=delayed?3:5;ctx.beginPath();ctx.arc(0,0,e.radius*(delayed?1:.35+progress*.65),0,TAU);ctx.stroke();
-      if(delayed){ctx.setLineDash([8,7]);ctx.globalAlpha=.52;ctx.beginPath();ctx.arc(0,0,e.radius*.82,0,TAU);ctx.stroke();ctx.setLineDash([]);for(let i=0;i<4;i++){const a=i*Math.PI/2;ctx.save();ctx.rotate(a);ctx.translate(e.radius*.58,0);ctx.fillStyle=e.color;ctx.beginPath();ctx.moveTo(8,0);ctx.lineTo(-5,-5);ctx.lineTo(-5,5);ctx.closePath();ctx.fill();ctx.restore();}}
+      ctx.globalAlpha = delayed ? .08 + progress*.12 : .32 * (1-progress);
+      ctx.fillStyle=e.color;ctx.beginPath();ctx.arc(0,0,e.radius*(delayed ? 1 : .3+progress*.7),0,TAU);ctx.fill();
+      if (!delayed) {
+        ctx.globalAlpha=.34*(1-progress);ctx.strokeStyle=e.color;ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,e.radius*(.35+progress*.65),0,TAU);ctx.stroke();
+      }
       ctx.restore();
     }
     ctx.globalAlpha=1;ctx.setLineDash([]);ctx.shadowBlur=0;
@@ -1827,31 +1913,18 @@ export class Renderer {
       let halfWidth = Math.max(22, (raw.radius || 24) * .82), start = Math.max(8, (raw.radius || 24) * .45);
 
       if (kind === "ring" || kind === "burst") {
-        ctx.fillStyle = danger.palette.body; ctx.globalAlpha = .07; ctx.beginPath(); ctx.arc(0, 0, radius, 0, TAU); ctx.fill(); ctx.globalAlpha = .94;
-        outlined(() => { ctx.beginPath(); ctx.arc(0, 0, radius, 0, TAU); }, kind === "burst" ? [5, 5] : [12, 7]);
-        // Inward teeth remain legible in greyscale and do not depend on motion.
-        ctx.fillStyle = danger.palette.core;
-        for (let index = 0; index < 8; index++) {
-          ctx.save(); ctx.rotate(index * TAU / 8); ctx.translate(radius - 1, 0); ctx.beginPath();
-          ctx.moveTo(0, -5); ctx.lineTo(-12, 0); ctx.lineTo(0, 5); ctx.closePath(); ctx.fill(); ctx.restore();
-        }
-        ctx.strokeStyle = danger.palette.core; ctx.lineWidth = 4; ctx.beginPath();
-        ctx.arc(0, 0, Math.max(16, radius - 12), -.5 * Math.PI, -.5 * Math.PI + TAU * timing); ctx.stroke();
-        if (kind === "burst") {
-          ctx.strokeStyle = danger.palette.keyline; ctx.lineWidth = 6;
-          for (let index = 0; index < 4; index++) { ctx.save(); ctx.rotate(Math.PI / 4 + index * Math.PI / 2); ctx.beginPath(); ctx.moveTo(radius * .2, 0); ctx.lineTo(radius * .62, 0); ctx.stroke(); ctx.restore(); }
-          ctx.strokeStyle = danger.palette.core; ctx.lineWidth = 2;
-          for (let index = 0; index < 4; index++) { ctx.save(); ctx.rotate(Math.PI / 4 + index * Math.PI / 2); ctx.beginPath(); ctx.moveTo(radius * .2, 0); ctx.lineTo(radius * .62, 0); ctx.stroke(); ctx.restore(); }
-        }
+        const pulse = this.reducedMotion ? 1 : .92 + Math.sin(timing * Math.PI) * .08;
+        ctx.fillStyle = danger.palette.body; ctx.globalAlpha = kind === "burst" ? .055 : .075;
+        ctx.beginPath(); ctx.arc(0, 0, radius * pulse, 0, TAU); ctx.fill();
+        ctx.strokeStyle = danger.palette.body; ctx.globalAlpha = .22 + timing * .16; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0, 0, radius * pulse, 0, TAU); ctx.stroke();
       } else if (kind === "wedge") {
         const halfAngle = .38;
-        ctx.fillStyle = danger.palette.body; ctx.globalAlpha = .07; ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, range, -halfAngle, halfAngle); ctx.closePath(); ctx.fill(); ctx.globalAlpha = .94;
-        outlined(() => { ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(-halfAngle) * range, Math.sin(-halfAngle) * range); ctx.arc(0, 0, range, -halfAngle, halfAngle); ctx.closePath(); }, [11, 7]);
-        outlined(() => { ctx.beginPath(); ctx.arc(range, 0, radius, 0, TAU); }, [5, 6]);
-        for (let index = 1; index <= 3; index++) {
-          const x = range * index / 4; ctx.strokeStyle = danger.palette.core; ctx.lineWidth = 2; ctx.beginPath();
-          ctx.moveTo(x - 10, -8); ctx.lineTo(x, 0); ctx.lineTo(x - 10, 8); ctx.stroke();
-        }
+        const reveal = Math.max(.18, timing);
+        ctx.fillStyle = danger.palette.body; ctx.globalAlpha = .055 + timing * .035;
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, range * reveal, -halfAngle, halfAngle); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = danger.palette.body; ctx.globalAlpha = .2; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0, 0, range * reveal, -halfAngle, halfAngle); ctx.stroke();
       } else if (kind === "lane") {
         const span = Math.max(0, range - start), revealed = start + span * timing;
         ctx.fillStyle = danger.palette.body; ctx.globalAlpha = .035;
@@ -1878,7 +1951,7 @@ export class Renderer {
         }
       }
       const family = enemyAttackFamily({ type: raw.type, telegraphKind: kind });
-      if (family && !(family === "charge" && kind === "lane")) this.drawEnemyAttackAccents(enemyAttackMotionPlan({
+      if (family && !["burst", "ring", "wedge"].includes(kind) && !(family === "charge" && kind === "lane")) this.drawEnemyAttackAccents(enemyAttackMotionPlan({
         family, stage: "windup", progress,
         geometry: { radius, range, start, halfWidth },
         reducedMotion: this.reducedMotion, reducedFlash: this.qualityProfile.flashIntensity <= .25,

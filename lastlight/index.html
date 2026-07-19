@@ -31,7 +31,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260718.7">
+  <link rel="stylesheet" href="styles.css?v=20260718.8">
 </head>
 <body>
   <main id="app">
@@ -713,7 +713,17 @@
       </div>
       <div class="build-history-body">
           <article class="build-release current-build">
-            <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.18.7</h3></div><time class="build-shipped-at" datetime="2026-07-18T17:00:50-04:00" data-build-shipped-at="2026-07-18T17:00:50-04:00">Shipped Jul 18, 2026 · 5:00 PM EDT</time></header>
+            <header><div><span class="build-release-status"><i></i> Current build</span><h3>2026.07.18.8</h3></div><time class="build-shipped-at" datetime="2026-07-18T23:33:40-04:00" data-build-shipped-at="2026-07-18T23:33:40-04:00">Shipped Jul 18, 2026 · 11:33 PM EDT</time></header>
+            <ul>
+              <li>Added authored uplink, Final City train, ground-eruption, and industrial barricade artwork with transparent game-ready silhouettes.</li>
+              <li>Made Iron District conveyors visibly travel while active and freeze at their exact texture phase without opacity changes or rewind.</li>
+              <li>Replaced bright radial and fan-line enemy warnings with restrained ground fills that defer to enemy wind-up animation.</li>
+              <li>Added a substantial physical arena boundary, replaced stretched cover panels with tiled authored props, and compacted upgrade-card spacing.</li>
+              <li>Kept weapon and passive HUD rows separate with screen-safe tooltips, and made left/right mouse the primary ability controls while preserving E/R.</li>
+            </ul>
+          </article>
+          <article class="build-release">
+            <header><div><span class="build-release-status">Previous build</span><h3>2026.07.18.7</h3></div><time class="build-shipped-at" datetime="2026-07-18T17:00:50-04:00" data-build-shipped-at="2026-07-18T17:00:50-04:00">Shipped Jul 18, 2026 · 5:00 PM EDT</time></header>
             <ul>
               <li>Made each Iron District conveyor preserve its exact texture position while stopped, with constant terrain opacity through every phase.</li>
               <li>Replaced dotted charge lanes and repeated arrow vectors with a restrained red ground-path reveal and fixed endpoint.</li>
@@ -1476,10 +1486,10 @@
   </main>
 
   <aside class="edge-utilities" aria-label="Build and feedback">
-    <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.18.7. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.18.7</strong></button>
+    <button id="build-history-button" class="build-badge" type="button" aria-label="Lastlight build 2026.07.18.8. View build history" aria-haspopup="dialog" aria-controls="build-history-dialog"><span></span> BUILD <strong>2026.07.18.8</strong></button>
     <button id="report-button" class="report-button" type="button"><span id="report-alert" class="hidden">!</span> Report a problem</button>
   </aside>
   <script src="build-history.js?v=20260712.1"></script>
-  <script type="module" src="game.js?v=20260718.7"></script>
+  <script type="module" src="game.js?v=20260718.8"></script>
 </body>
 </html>
