@@ -1,5 +1,6 @@
-import { getThemeAsset } from "./themes/lastlight.js?v=20260718.8";
-import { BALANCE_CONFIG } from "./balance-config.js?v=20260718.8";
+import { getThemeAsset } from "./themes/lastlight.js?v=20260718.9";
+import { BALANCE_CONFIG } from "./balance-config.js?v=20260718.9";
+import { TERRAIN_PROP_SLOTS } from "./terrain-prop-slots.js?v=20260718.9";
 
 // One vitality point is one readable unit of player health. Standard specialists
 // are balanced around 10; every hostile hit can therefore be discussed in hits-to-down.
@@ -150,11 +151,7 @@ export const ENEMY_TYPES = {
   shark: { id: "shark", name: "Siegebreaker", ...BALANCE_CONFIG.enemies.shark, color: "#ff5575", shape: 5, icon: getThemeAsset("guide.enemies.shark") },
 };
 
-export const MAP_OBSTACLES = [
-  [-1450,-840,360,140],[-1040,-1040,170,260],[-540,-920,310,90],[620,-1050,420,150],[1250,-760,220,330],
-  [-1570,650,300,220],[-950,880,430,105],[-220,1030,280,110],[580,850,180,260],[1130,790,390,130],
-  [-1640,-170,180,300],[1480,-130,150,360],[-640,280,220,80],[720,-300,260,86],
-];
+export const MAP_OBSTACLES = TERRAIN_PROP_SLOTS;
 
 export const WAVE_NAMES = BALANCE_CONFIG.waves.names;
 

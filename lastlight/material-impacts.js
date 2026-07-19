@@ -1,4 +1,5 @@
-import { circleIntersectsCollider, normalizeCollider } from "./collision-geometry.js?v=20260718.8";
+import { circleIntersectsCollider, normalizeCollider } from "./collision-geometry.js?v=20260718.9";
+import { TERRAIN_PROPS } from "./terrain-props.js?v=20260718.9";
 
 export const MATERIAL_SCHEMA = "lastlight.material-impacts.v1";
 export const MATERIAL_CLASSES = Object.freeze(["metal", "concrete", "liquid", "organic", "energy", "void"]);
@@ -68,7 +69,7 @@ export const MATERIAL_TARGET_METADATA = deepFreeze({
     mite: "organic", hound: "organic", spitter: "void", brute: "metal", bomber: "metal", shark: "metal",
     treasure: "energy", bosses: { warehouse: "metal", outskirts: "organic", lab: "void", beachhead: "void" },
   },
-  obstacles: { supplyCache: "metal", raisedCover: Array(14).fill("concrete") },
+  obstacles: { supplyCache: "metal", raisedCover: Array(TERRAIN_PROPS.length).fill("concrete") },
   terrain: { warehouse: "concrete", outskirts: "concrete", lab: "liquid", beachhead: "void" },
   objectives: { machine: "energy", uplink: "energy", trial: "void", relayBall: "metal", destination: "energy" },
 });
@@ -101,7 +102,7 @@ export function validateMaterialTargets(metadata = MATERIAL_TARGET_METADATA) {
   if (!exactKeys(metadata, ["enemies", "obstacles", "terrain", "objectives"])) return ["material targets: fields mismatch"];
   for (const [id, value] of Object.entries(metadata.enemies || {})) id === "bosses" ? Object.entries(value).forEach(([map, material]) => check(material, `enemies.bosses.${map}`)) : check(value, `enemies.${id}`);
   check(metadata.obstacles?.supplyCache, "obstacles.supplyCache");
-  if (!Array.isArray(metadata.obstacles?.raisedCover) || metadata.obstacles.raisedCover.length !== 14) errors.push("obstacles.raisedCover: must cover 14 obstacles");
+  if (!Array.isArray(metadata.obstacles?.raisedCover) || metadata.obstacles.raisedCover.length !== TERRAIN_PROPS.length) errors.push(`obstacles.raisedCover: must cover ${TERRAIN_PROPS.length} fitted terrain props`);
   else metadata.obstacles.raisedCover.forEach((value, index) => check(value, `obstacles.raisedCover.${index}`));
   for (const [id, value] of Object.entries(metadata.terrain || {})) check(value, `terrain.${id}`);
   for (const [id, value] of Object.entries(metadata.objectives || {})) check(value, `objectives.${id}`);

@@ -41,7 +41,10 @@ test("every case has finite comparable metrics, hashes, and structural headroom"
   const structural = assertSpecialistBenchmarkBudgets(report);
   assert.equal(structural.cases, 90);
   assert.ok(structural.totalTicks <= SPECIALIST_BENCHMARK_BUDGETS.maxTotalTicks);
-  assert.ok(runtimeMs <= SPECIALIST_BENCHMARK_BUDGETS.maxSuiteRuntimeMs);
+  assert.ok(
+    runtimeMs <= SPECIALIST_BENCHMARK_BUDGETS.maxSuiteRuntimeMs,
+    `specialist benchmark took ${Math.round(runtimeMs)}ms; budget is ${SPECIALIST_BENCHMARK_BUDGETS.maxSuiteRuntimeMs}ms`,
+  );
   for (const specialist of report.specialists) for (const scenario of specialist.scenarios) {
     assert.match(scenario.seed, /^[0-9a-f]{32}$/);
     assert.match(scenario.finalHash, /^[0-9a-f]{16}$/);

@@ -1,35 +1,36 @@
-import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260718.8";
-import { WORLD } from "./engine.js?v=20260718.8";
-import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260718.8";
+import { SPECIALISTS, MAPS, ENEMY_TYPES, MAP_OBSTACLES, clamp } from "./data.js?v=20260718.9";
+import { WORLD } from "./engine.js?v=20260718.9";
+import { getThemeAnimation, getThemeAsset, getThemeEnemyAnimation, getThemeEnvironmentChunks, getThemeEnvironmentInteractions } from "./themes/lastlight.js?v=20260718.9";
 import { springCamera } from "./feel.js?v=20260713.2";
 import { directionColumn, enemyMotionState, motionAtlasReady, motionClipDuration, motionFrame, specialistFacingTarget, specialistMotionState, stableDirectionColumn } from "./motion.js?v=20260713.1";
 import { bossHealthSegments, enemyHealthSegments, playerHealthSegments } from "./health-bars.js?v=20260711.5";
-import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260718.8";
-import { impactRenderPlan } from "./impact-grammar.js?v=20260718.8";
-import { movementVisualState } from "./movement.js?v=20260718.8";
-import { effectReadabilityCategory, partitionEffects, readabilityPlan } from "./readability.js?v=20260718.8";
-import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260718.8";
+import { AdaptiveQualityController, settingsForPreset } from "./quality-settings.js?v=20260718.9";
+import { impactRenderPlan } from "./impact-grammar.js?v=20260718.9";
+import { movementVisualState } from "./movement.js?v=20260718.9";
+import { effectReadabilityCategory, partitionEffects, readabilityPlan } from "./readability.js?v=20260718.9";
+import { materialAtPoint, resolveMaterialImpact, stableImpactUnit } from "./material-impacts.js?v=20260718.9";
 import { EnvironmentInteractionField, stableEnvironmentUnit } from "./environment-interactions.js?v=20260712.1";
-import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260718.8";
-import { circleIntersectsCollider, rectCollider } from "./collision-geometry.js?v=20260718.8";
-import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260718.8";
+import { environmentChunkLayout, environmentChunksForBounds } from "./environment-chunks.js?v=20260718.9";
+import { circleIntersectsCollider } from "./collision-geometry.js?v=20260718.9";
+import { TERRAIN_PROPS, TERRAIN_PROP_COLLIDERS } from "./terrain-props.js?v=20260718.9";
+import { mapMechanicDefinition, mapMechanicFrame, pointInMapMechanic } from "./map-mechanics.js?v=20260718.9";
 import { APEX_CONTRACTS } from "./apex-encounters.js?v=20260713.1";
 import { PING_INTENTS, PING_LIFETIME_TICKS, selectVisiblePings } from "./ping-contract.js?v=20260713.4";
-import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260718.8";
-import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260718.8";
+import { enemyAttackEffectPresentation, enemyAttackFamily, enemyAttackMotionPlan } from "./enemy-attack-motion.js?v=20260718.9";
+import { enemyBodyMotionPlan } from "./enemy-body-motion.js?v=20260718.9";
 import {
   ImpactIntensityDirector, aftermathPlan, attackerRecoilTransform, cameraLookBias,
   impactAnimationTimeScale, impactFeedbackPlan, impactReactionTransform, impactTierForEvent, projectileMotionPlan,
   secondaryMotionPlan, selectImpactFeedback,
-} from "./impact-feel.js?v=20260718.8";
-import { combatTurnPlan, isBodyDrivingSource, resolvedCombatFacing, specialistMuzzlePoint } from "./combat-orientation.js?v=20260718.8";
+} from "./impact-feel.js?v=20260718.9";
+import { combatTurnPlan, isBodyDrivingSource, resolvedCombatFacing, specialistMuzzlePoint } from "./combat-orientation.js?v=20260718.9";
 import {
   cameraCompositionPlan, castMotionPlan, combatDensityPlan, playerLifecycleMotionPlan, rewardMotionPlan,
-} from "./combat-choreography.js?v=20260718.8";
-import { apexPhaseMotionPlan, enemyArrivalMotionPlan, enemyDepartureMotionPlan } from "./combat-rhythm.js?v=20260718.8";
+} from "./combat-choreography.js?v=20260718.9";
+import { apexPhaseMotionPlan, enemyArrivalMotionPlan, enemyDepartureMotionPlan } from "./combat-rhythm.js?v=20260718.9";
 import {
   enemyGroundingPlan, impactCameraImpulsePlan, locomotionPlantPlan, weaponKickPlan,
-} from "./combat-weight.js?v=20260718.8";
+} from "./combat-weight.js?v=20260718.9";
 
 const TAU = Math.PI * 2;
 const PING_BUFFER_LIMIT = 32;
@@ -261,7 +262,8 @@ export class Renderer {
     this.environmentChunkLayouts = new Map();
     this.environmentChunkLayout = Object.freeze([]);
     this.visibleEnvironmentChunks = Object.freeze([]);
-    this.coverObstacles = Object.freeze(MAP_OBSTACLES.map((rect, index) => rectCollider(rect, `raised-cover:${index}`)));
+    this.terrainProps = TERRAIN_PROPS;
+    this.coverObstacles = TERRAIN_PROP_COLLIDERS;
     this.materialImpacts = [];
     this.materialProjectileHistory = new Map();
     this.materialEffectHistory = new Set();
@@ -877,11 +879,14 @@ export class Renderer {
       if (!(effect.owner === "enemy" || effect.kind === "danger" || effect.kind === "bossCast")) continue;
       consider(effect, effect.radius, { type: "hazard", name: "Enemy Telegraph", description: "A hostile attack is about to resolve inside this marked area.", stats: { Radius: Math.round(effect.radius || 0), Time: `${Math.max(0, Number(effect.life || 0)).toFixed(1)}s` } }, .02);
     }
-    for (let index = 0; index < MAP_OBSTACLES.length; index++) {
-      const [x,y,w,h] = MAP_OBSTACLES[index];
-      if (worldX < x || worldX > x + w || worldY < y || worldY > y + h) continue;
-      const obstacle = { id: `obstacle-${index}`, x: x + w / 2, y: y + h / 2 };
-      consider(obstacle, Math.max(w, h), { type: "obstacle", name: "Raised Cover", description: "Solid environmental cover. Specialists cannot move or dash through it, and ordinary friendly or hostile fire stops on contact.", stats: { Collision: "Solid", "Projectile cover": "Most shots", Exceptions: "Rail lanes · Apex fire" } }, -.2);
+    for (const prop of this.terrainProps) {
+      if (!circleIntersectsCollider(worldX, worldY, .01, prop.collider)) continue;
+      const [x, y, w, h] = prop.collider.bounds;
+      consider({ id: prop.id, x: x + w / 2, y: y + h / 2 }, Math.max(w, h), {
+        type: "obstacle", name: "Blast Barricade",
+        description: "Solid environmental cover. Its visible silhouette is its exact movement and projectile hitbox.",
+        stats: { Collision: "Visual silhouette", "Projectile cover": "Most shots", Exceptions: "Rail lanes · Apex fire" },
+      }, -.2);
     }
     for (const chunk of this.environmentChunkLayout) {
       const [x, y, w, h] = chunk.collider.bounds;
@@ -924,10 +929,7 @@ export class Renderer {
       mapId: map.id, tier: "minimal", world: WORLD, obstacles: MAP_OBSTACLES, theme: this.environmentChunkTheme,
     }));
     this.environmentChunkLayout = this.environmentChunkLayouts.get(environmentLayoutKey);
-    this.coverObstacles = Object.freeze([
-      ...MAP_OBSTACLES.map((rect, index) => rectCollider(rect, `raised-cover:${index}`)),
-      ...this.environmentChunkLayout.map((chunk) => chunk.collider),
-    ]);
+    this.coverObstacles = Object.freeze([...TERRAIN_PROP_COLLIDERS, ...this.environmentChunkLayout.map((chunk) => chunk.collider)]);
     this.updateMaterialImpacts(state, map, frameSeconds);
     this.updateEnemyAttackContacts(state, frameSeconds);
     this.combatDensity = combatDensityPlan(state, this.qualityProfile.effectsDensity);
@@ -1168,20 +1170,33 @@ export class Renderer {
     ctx.beginPath(); ctx.moveTo(-WORLD.width/2, -390); ctx.lineTo(WORLD.width/2, -390); ctx.moveTo(-WORLD.width/2, 420); ctx.lineTo(WORLD.width/2, 420); ctx.stroke();
   }
 
-  drawCover(map, block) {
-    const ctx = this.ctx, texture = this.effectSprites.blastBarricade, [x,y,w,h] = block;
+  drawTerrainProp(map, prop, { alpha = .96, filter = "none" } = {}) {
+    const ctx = this.ctx, texture = this.effectSprites.blastBarricade;
     ctx.save();
-    ctx.fillStyle = "rgba(0,0,0,.42)"; ctx.fillRect(x + 10, y + 12, w, h);
+    ctx.translate(prop.x, prop.y);
+    ctx.globalAlpha = alpha;
+    ctx.filter = filter;
     if (texture?.complete && texture.naturalWidth) {
-      const ratio = texture.naturalWidth / texture.naturalHeight;
-      const tileHeight = Math.min(164, h + 74), tileWidth = tileHeight * ratio;
-      const count = Math.max(1, Math.ceil(w / Math.max(150, tileWidth * .72)));
-      for (let index = 0; index < count; index++) {
-        const centerX = x + w * (index + .5) / count;
-        ctx.globalAlpha = .96; ctx.drawImage(texture, centerX - tileWidth / 2, y + h - tileHeight, tileWidth, tileHeight);
-      }
+      ctx.drawImage(texture, -prop.width * prop.anchor[0], -prop.height * prop.anchor[1], prop.width, prop.height);
     } else {
-      ctx.fillStyle = map.deco; ctx.globalAlpha = .74; ctx.fillRect(x, y, w, h);
+      // Keep the fallback fitted to the same alpha silhouette as physics. A
+      // broad rectangle here would recreate the visual/collision mismatch.
+      const { mask, transform } = prop.collider;
+      const scaleX = transform.width / mask.width, scaleY = transform.height / mask.height;
+      const left = -transform.width * transform.anchor[0], top = -transform.height * transform.anchor[1];
+      ctx.fillStyle = map.deco;
+      ctx.globalAlpha = .74;
+      mask.rows.forEach((runs, row) => {
+        for (let index = 0; index < runs.length; index += 2) {
+          const start = runs[index], end = runs[index + 1];
+          ctx.fillRect(
+            left + start * scaleX,
+            top + row * scaleY,
+            Math.max(scaleX, (end - start) * scaleX),
+            Math.max(1, scaleY),
+          );
+        }
+      });
     }
     ctx.restore();
   }
@@ -1201,7 +1216,7 @@ export class Renderer {
       items.push({ type: "enemy-death", value, sortY: value.y + (value.radius || 0) * .45 }); deathVisuals++;
     }
     for (const chunk of this.visibleEnvironmentChunks) items.push({ type: "environment-chunk", value: chunk, sortY: chunk.collisionRect[1] + chunk.collisionRect[3] });
-    for (const block of MAP_OBSTACLES) items.push({ type: "cover", value: block, sortY: block[1] + block[3] });
+    for (const prop of this.terrainProps) items.push({ type: "terrain-prop", value: prop, sortY: prop.collider.bounds[1] + prop.collider.bounds[3] });
     for (const pod of state.pods || []) items.push({ type: "pod", value: pod, sortY: pod.y + (pod.radius || 0) });
     for (const enemy of this.budget(state.enemies || [], this.renderBudgets.enemies, (entry) => entry.boss || entry.elite || entry.miniboss || entry.eventType || enemyAffixIds(entry).length)) {
       const position = this.position(enemy, previous?.enemies, t);
@@ -1218,7 +1233,7 @@ export class Renderer {
     items.sort((a, b) => a.sortY - b.sortY || a.type.localeCompare(b.type));
     for (const item of items) {
       if (item.type === "environment-chunk") this.drawEnvironmentChunk(map, item.value);
-      else if (item.type === "cover") this.drawCover(map, item.value);
+      else if (item.type === "terrain-prop") this.drawTerrainProp(map, item.value);
       else if (item.type === "pod") this.drawPods([item.value], map);
       else if (item.type === "enemy" || item.type === "enemy-death") this.drawEnemies([item.value], previous, t, map, state.players, visualDt, state.tick);
       else if (item.type === "drone") this.drawDrones([item.value], state.players, previous, t);
@@ -2215,10 +2230,14 @@ export class Renderer {
       return;
     }
     const ctx = this.ctx, hoveredId = this.hoveredEntity.id;
-    if (hoveredId.startsWith("obstacle-")) {
-      const block = MAP_OBSTACLES[Number(hoveredId.split("-")[1])];
-      if (!block) return;
-      const [x,y,w,h] = block; ctx.save(); ctx.strokeStyle = "#fff"; ctx.lineWidth = 4; ctx.strokeRect(x-5,y-5,w+10,h+10); ctx.strokeStyle = map.accent; ctx.lineWidth = 2; ctx.setLineDash([8,6]); ctx.strokeRect(x-9,y-9,w+18,h+18); ctx.restore(); return;
+    if (hoveredId.startsWith("terrain-prop:")) {
+      const prop = this.terrainProps.find((entry) => entry.id === hoveredId);
+      if (!prop) return;
+      this.drawTerrainProp(map, prop, {
+        alpha: .42,
+        filter: `brightness(0) invert(1) drop-shadow(0 0 2px #fff) drop-shadow(0 0 7px ${map.accent})`,
+      });
+      return;
     }
     const environmentChunk = this.environmentChunkLayout.find((chunk) => chunk.id === hoveredId);
     if (environmentChunk) {

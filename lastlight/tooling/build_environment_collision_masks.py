@@ -13,8 +13,10 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSET_DIR = ROOT / "assets" / "environment-chunks"
+EFFECT_ASSET_DIR = ROOT / "assets" / "effects"
 OUTPUT = ROOT / "environment-collision-masks.js"
 MAP_IDS = ("warehouse", "outskirts", "lab", "beachhead")
+PROP_SOURCES = {"blastBarricade": EFFECT_ASSET_DIR / "blast-barricade-v1.webp"}
 ALPHA_THRESHOLD = 16
 
 
@@ -51,6 +53,7 @@ def frame_mask(alpha: Image.Image) -> dict:
 
 def build_payload() -> dict:
     maps = {}
+    props = {}
     sources = {}
     for map_id in MAP_IDS:
         path = ASSET_DIR / f"{map_id}-atlas.webp"
@@ -66,12 +69,18 @@ def build_payload() -> dict:
             frames.append(frame_mask(atlas.crop((left, top, left + frame_width, top + frame_height)).getchannel("A")))
         maps[map_id] = {"frames": frames}
         sources[map_id] = {"path": f"assets/environment-chunks/{path.name}", "sha256": hashlib.sha256(raw).hexdigest()}
+    for prop_id, path in PROP_SOURCES.items():
+        raw = path.read_bytes()
+        image = Image.open(path).convert("RGBA")
+        props[prop_id] = frame_mask(image.getchannel("A"))
+        sources[prop_id] = {"path": f"assets/effects/{path.name}", "sha256": hashlib.sha256(raw).hexdigest()}
     return {
         "schema": "lastlight.environment-alpha-collision.v1",
         "alphaThreshold": ALPHA_THRESHOLD,
         "atlas": {"columns": 2, "rows": 2},
         "sources": sources,
         "maps": maps,
+        "props": props,
     }
 
 

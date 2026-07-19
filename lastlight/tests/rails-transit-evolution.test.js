@@ -1,9 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { BALANCE_CONFIG } from "../balance-config.js";
-import { MAP_OBSTACLES } from "../data.js";
 import { Simulation, bestHorizontalCorridor, collidesWithCover } from "../engine.js";
 import { getWeaponEvolution } from "../weapon-evolution.js";
+import { TERRAIN_PROPS } from "../terrain-props.js";
 
 const SEED = "83870000000000000000000000008387";
 
@@ -175,14 +175,18 @@ test("Limited Express uses the exact 58-unit contact band and never pushes a tar
 test("Limited Express push resolves against cover without overlap", () => {
   const { sim, player } = scenario();
   player.weapons.transit = { level: 5, evolved: true };
-  const [left, top, width, height] = MAP_OBSTACLES[0];
-  const target = enemy(sim, { id: "covered", x: left - 50, y: top + height / 2 });
+  const prop = TERRAIN_PROPS[0], mask = prop.collider.mask, transform = prop.collider.transform;
+  const row = mask.rows.reduce((best, runs, index) => runs.length && runs[runs.length - 1] - runs[0] > best.width
+    ? { index, runs, width: runs[runs.length - 1] - runs[0] } : best, { index: 0, runs: [], width: -1 });
+  const visibleLeft = transform.x + (row.runs[0] / mask.width - transform.anchor[0]) * transform.width;
+  const visibleY = transform.y + ((row.index + .5) / mask.height - transform.anchor[1]) * transform.height;
+  const target = enemy(sim, { id: "covered", x: visibleLeft - 50, y: visibleY });
   sim.fireCommonWeapon(player, "transit", player.weapons.transit);
   const train = sim.effects[0]; train.x = target.x - 50; train.y = target.y;
-  const before = target.x;
+  const before = { x: target.x, y: target.y };
   sim.updateEffects(0);
-  const resolved = target.x - before;
-  assert.ok(resolved > 0 && resolved < 120);
+  const resolved = Math.hypot(target.x - before.x, target.y - before.y);
+  assert.ok(target.x > before.x && resolved > 0 && resolved < 120);
   assert.equal(collidesWithCover(target.x, target.y, target.radius), false);
   assert.equal(procs(sim, "transit-cover-push")[0].resolvedDistance, resolved);
 });
