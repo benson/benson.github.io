@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { ENEMY_TYPES, MAPS, MAP_OBSTACLES } from "../data.js";
+import { ENEMY_TYPES, MAPS } from "../data.js";
+import { TERRAIN_PROPS, TERRAIN_PROP_COLLIDERS } from "../terrain-props.js";
 import { createImpactStressFixture, createMaterialImpactStressFixture } from "../fixtures/impact-stress.js";
 import {
   LASTLIGHT_MATERIAL_THEME,
@@ -35,7 +36,7 @@ test("strict theme contract defines exactly six bounded material classes", () =>
 test("enemy, obstacle, terrain, and objective metadata exhaustively select materials", () => {
   assert.deepEqual(Object.keys(MATERIAL_TARGET_METADATA.enemies).filter((id) => !["treasure", "bosses"].includes(id)), Object.keys(ENEMY_TYPES));
   assert.deepEqual(Object.keys(MATERIAL_TARGET_METADATA.terrain), Object.keys(MAPS));
-  assert.equal(MATERIAL_TARGET_METADATA.obstacles.raisedCover.length, MAP_OBSTACLES.length);
+  assert.equal(MATERIAL_TARGET_METADATA.obstacles.raisedCover.length, TERRAIN_PROPS.length);
   assert.deepEqual(new Set([
     ...Object.values(MATERIAL_TARGET_METADATA.enemies).flatMap((value) => typeof value === "object" ? Object.values(value) : value),
     ...MATERIAL_TARGET_METADATA.obstacles.raisedCover,
@@ -56,10 +57,10 @@ test("world-space material resolution follows target priority then terrain fallb
     objectives: [{ id: "trial", kind: "trial", x: 340, y: 100, radius: 50 }],
     relayBalls: [{ id: "ball", x: 460, y: 100, radius: 28 }],
   };
-  assert.equal(materialAtPoint({ x: 100, y: 100 }, state, MAP_OBSTACLES).material, "metal");
-  assert.equal(materialAtPoint({ x: 220, y: 100 }, state, MAP_OBSTACLES).material, "metal");
-  assert.equal(materialAtPoint({ x: 340, y: 100 }, state, MAP_OBSTACLES).material, "void");
-  assert.equal(materialAtPoint({ x: 460, y: 100 }, state, MAP_OBSTACLES).material, "metal");
+  assert.equal(materialAtPoint({ x: 100, y: 100 }, state, TERRAIN_PROP_COLLIDERS).material, "metal");
+  assert.equal(materialAtPoint({ x: 220, y: 100 }, state, TERRAIN_PROP_COLLIDERS).material, "metal");
+  assert.equal(materialAtPoint({ x: 340, y: 100 }, state, TERRAIN_PROP_COLLIDERS).material, "void");
+  assert.equal(materialAtPoint({ x: 460, y: 100 }, state, TERRAIN_PROP_COLLIDERS).material, "metal");
   assert.equal(materialAtPoint({ x: 1700, y: 1100 }, state, []).material, "liquid");
 });
 

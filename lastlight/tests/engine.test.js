@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { MAP_OBSTACLES } from "../data.js";
 import { projectileBlockedByCover, segmentCoverImpact, Simulation } from "../engine.js";
+import { TERRAIN_PROPS } from "../terrain-props.js";
 
 function releasePendingCast(sim) {
   const task = sim.tasks.find(({ kind }) => kind === "player-cast-release");
@@ -22,15 +22,19 @@ test("swept cover collision blocks ordinary fire without tunneling and preserves
   assert.equal(projectileBlockedByCover({ ownerId: "spitter" }, true), true);
 });
 
-test("friendly and ordinary hostile projectiles stop at raised cover and emit a contact marker", () => {
+test("friendly and ordinary hostile projectiles stop at the visible terrain silhouette", () => {
   const sim = new Simulation({ players: [{ id: "p1", name: "One", specialist: "zuri" }] });
-  const [left, top, , height] = MAP_OBSTACLES[0];
-  sim.projectiles = [{ id: "friendly", owner: "p1", sourceId: "signature", x: left - 40, y: top + height / 2, vx: 900, vy: 0, radius: 6, damage: 10, life: 2, pierce: 0, color: "#fff", dead: false, hit: new Set(), age: 0 }];
-  sim.hostile = [{ id: "hostile", ownerId: "spitter", x: left - 40, y: top + height / 2 + 20, vx: 900, vy: 0, radius: 6, damage: 1, life: 2, color: "#f00", dead: false }];
+  const prop = TERRAIN_PROPS[0], mask = prop.collider.mask, transform = prop.collider.transform;
+  const row = mask.rows.reduce((best, runs, index) => runs.length && runs[runs.length - 1] - runs[0] > best.width
+    ? { index, runs, width: runs[runs.length - 1] - runs[0] } : best, { index: 0, runs: [], width: -1 });
+  const visibleLeft = transform.x + (row.runs[0] / mask.width - transform.anchor[0]) * transform.width;
+  const visibleY = transform.y + ((row.index + .5) / mask.height - transform.anchor[1]) * transform.height;
+  sim.projectiles = [{ id: "friendly", owner: "p1", sourceId: "signature", x: visibleLeft - 40, y: visibleY, vx: 900, vy: 0, radius: 6, damage: 10, life: 2, pierce: 0, color: "#fff", dead: false, hit: new Set(), age: 0 }];
+  sim.hostile = [{ id: "hostile", ownerId: "spitter", x: visibleLeft - 40, y: visibleY, vx: 900, vy: 0, radius: 6, damage: 1, life: 2, color: "#f00", dead: false }];
   sim.updateProjectiles(.05);
   assert.ok(sim.projectiles[0].dead && sim.hostile[0].dead);
   assert.equal(sim.effects.filter((effect) => effect.kind === "coverImpact").length, 2);
-  assert.ok(sim.effects.every((effect) => effect.x <= left));
+  assert.ok(sim.effects.every((effect) => effect.x <= visibleLeft));
 });
 
 test("supply containers use deterministic varied kinds and never overlap cover or each other", () => {
@@ -517,15 +521,22 @@ test("area attacks damage supply caches", () => {
   }, { kind: "pressure", mapId: "warehouse" });
 });
 
-test("raised cover blocks movement and long dashes", () => {
+test("alpha-fitted terrain blocks movement and long dashes at the visible surface", () => {
   const sim = new Simulation({ players: [{ id: "p1", name: "One", specialist: "gale" }] });
-  const player = sim.players[0];
-  player.x = -720; player.y = 320;
+  const player = sim.players[0], prop = TERRAIN_PROPS[0], mask = prop.collider.mask, transform = prop.collider.transform;
+  const row = mask.rows.reduce((best, runs, index) => {
+    const width = runs.reduce((sum, value, runIndex) => sum + (runIndex % 2 ? value - runs[runIndex - 1] : 0), 0);
+    return width > best.width ? { index, runs, width } : best;
+  }, { index: 0, runs: [], width: -1 });
+  const runStart = row.runs[0];
+  const visibleLeft = transform.x + (runStart / mask.width - transform.anchor[0]) * transform.width;
+  player.x = visibleLeft - player.radius - 20;
+  player.y = transform.y + ((row.index + .5) / mask.height - transform.anchor[1]) * transform.height;
   sim.movePlayer(player, 180, 0);
-  assert.ok(player.x <= -670, `player stopped at ${player.x}`);
+  assert.ok(player.x < visibleLeft, `player crossed the visible surface at ${visibleLeft}: ${player.x}`);
   const before = player.x;
   sim.dashPlayer(player, 0, 475);
-  assert.ok(player.x <= -670);
+  assert.ok(player.x < visibleLeft);
   assert.ok(player.x >= before);
 });
 

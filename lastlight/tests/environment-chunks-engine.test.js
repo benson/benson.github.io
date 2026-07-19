@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { MAP_OBSTACLES } from "../data.js";
 import { Simulation, coverObstaclesForMap, segmentCoverImpact } from "../engine.js";
 import { environmentChunkLayout } from "../environment-chunks.js";
+import { TERRAIN_PROPS } from "../terrain-props.js";
 
 const SEED = "1234567890abcdef1234567890abcdef";
 
@@ -11,8 +12,8 @@ test("every operation promotes eight visible landmarks into deterministic solid 
     const layout = environmentChunkLayout({ mapId, tier: "minimal", obstacles: MAP_OBSTACLES });
     const obstacles = coverObstaclesForMap(mapId);
     assert.equal(layout.length, 8);
-    assert.equal(obstacles.length, MAP_OBSTACLES.length + 8);
-    assert.deepEqual(obstacles.slice(MAP_OBSTACLES.length), layout.map(({ collider }) => collider));
+    assert.equal(obstacles.length, TERRAIN_PROPS.length + 8);
+    assert.deepEqual(obstacles.slice(TERRAIN_PROPS.length), layout.map(({ collider }) => collider));
   }
 });
 

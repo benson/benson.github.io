@@ -1,11 +1,11 @@
 import {
   SPECIALISTS, PASSIVES, WEAPONS, MAPS, DIFFICULTIES, ENEMY_TYPES,
   WAVE_NAMES, BOONS, MAP_OBSTACLES, clamp, distance,
-} from "./data.js?v=20260718.8";
-import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260718.8";
+} from "./data.js?v=20260718.9";
+import { BALANCE_HASH, BALANCE_VERSION, getBalanceConfig, valueAtLevel } from "./balance-config.js?v=20260718.9";
 import { createRandomSeed, SeededRng } from "./rng.js?v=20260711.5";
-import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260718.8";
-import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260718.8";
+import { gameplayFeatureContract, validateGameplayFeatureContract } from "./feature-config.js?v=20260718.9";
+import { advancePlayerMovement, beginDashRecovery, ensureMovementState, resetPlayerMovement } from "./movement.js?v=20260718.9";
 import { parseWeaponVariantId, resolveWeaponVariant, stampWeaponVariant } from "./weapon-evolution.js?v=20260713.1";
 import { MAX_CORRIDOR_CANDIDATES, accumulateMovementDistance, bestCorridorTarget, nearestUnhitTarget, orderEntitiesByDistance } from "./projectile-decisions.js?v=20260713.1";
 import { eliteAffixEligibility, selectEliteAffixes, selectSpawnArchetype, spawnPhaseAt } from "./enemy-archetypes.js?v=20260713.1";
@@ -27,27 +27,28 @@ import {
   DOWNED_ACTIVITY_REGISTRY, DOWNED_ACTIVITY_SCHEMA, advanceDownedBleedout, advanceDownedCrawl,
   beginDownedActivity, createDownedActivityState, removeDownedActivity, triggerDownedSupport,
   validateDownedActivityState,
-} from "./downed-activity.js?v=20260718.8";
-import { generateJoinPackage, JOIN_IN_PROGRESS_REGISTRY, joinPackageUpgradeIds, transitionJoinPackage } from "./join-in-progress.js?v=20260718.8";
+} from "./downed-activity.js?v=20260718.9";
+import { generateJoinPackage, JOIN_IN_PROGRESS_REGISTRY, joinPackageUpgradeIds, transitionJoinPackage } from "./join-in-progress.js?v=20260718.9";
 import {
   DIRECTOR_APPROACHES, DIRECTOR_FORMATIONS, createSquadDirectorState, planSquadFormation, validateSquadDirectorState,
-} from "./enemy-director.js?v=20260718.8";
-import { mapMechanicFrame, mapSpawnWeights, pointInMapMechanic } from "./map-mechanics.js?v=20260718.8";
+} from "./enemy-director.js?v=20260718.9";
+import { mapMechanicFrame, mapSpawnWeights, pointInMapMechanic } from "./map-mechanics.js?v=20260718.9";
 import {
   CAMPAIGN_MUTATIONS, campaignMutationDefinition, campaignMutationObjectiveCompleted, campaignMutationWaveStarted,
   cancelCampaignMutationEncounter, consumeCampaignMutationEncounter, createCampaignMutationState,
   resolveCampaignMutationEncounter, validateCampaignMutationState,
-} from "./campaign-mutations.js?v=20260718.8";
-import { masteryStartDefinition } from "./specialist-mastery.js?v=20260718.8";
+} from "./campaign-mutations.js?v=20260718.9";
+import { masteryStartDefinition } from "./specialist-mastery.js?v=20260718.9";
 import {
   createRareDiscoveryRunState, rareDiscoveryIdForBoon, recordRareDiscovery,
   revealNextAugmentDossier, validateRareDiscoveryRunState,
-} from "./rare-discoveries.js?v=20260718.8";
-import { validateSeededOperation } from "./seeded-operations.js?v=20260718.8";
-import { commitCombatFacing, movementClassificationFacing, selectStickyAutoAimTarget } from "./combat-orientation.js?v=20260718.8";
-import { abilityChoreography } from "./combat-choreography.js?v=20260718.8";
-import { environmentChunkObstacles } from "./environment-chunks.js?v=20260718.8";
-import { circleIntersectsCollider, colliderContactNormal, rectCollider, sweptCircleColliderImpact } from "./collision-geometry.js?v=20260718.8";
+} from "./rare-discoveries.js?v=20260718.9";
+import { validateSeededOperation } from "./seeded-operations.js?v=20260718.9";
+import { commitCombatFacing, movementClassificationFacing, selectStickyAutoAimTarget } from "./combat-orientation.js?v=20260718.9";
+import { abilityChoreography } from "./combat-choreography.js?v=20260718.9";
+import { environmentChunkObstacles } from "./environment-chunks.js?v=20260718.9";
+import { circleIntersectsCollider, colliderContactNormal, sweptCircleColliderImpact } from "./collision-geometry.js?v=20260718.9";
+import { TERRAIN_PROP_COLLIDERS } from "./terrain-props.js?v=20260718.9";
 
 const BALANCE = getBalanceConfig();
 
@@ -62,7 +63,7 @@ export function coverObstaclesForMap(mapId) {
   const id = MAPS[mapId]?.id || MAPS.warehouse.id;
   if (!COVER_OBSTACLE_CACHE.has(id)) {
     const authored = environmentChunkObstacles({ mapId: id, world: WORLD, obstacles: MAP_OBSTACLES });
-    COVER_OBSTACLE_CACHE.set(id, Object.freeze([...MAP_OBSTACLES.map((rect, index) => rectCollider(rect, `raised-cover:${index}`)), ...authored]));
+    COVER_OBSTACLE_CACHE.set(id, Object.freeze([...TERRAIN_PROP_COLLIDERS, ...authored]));
   }
   return COVER_OBSTACLE_CACHE.get(id);
 }
@@ -152,12 +153,12 @@ function recoveryRecord(value, playerIds) {
   return result;
 }
 
-export function collidesWithCover(x, y, radius, obstacles = MAP_OBSTACLES) {
+export function collidesWithCover(x, y, radius, obstacles = TERRAIN_PROP_COLLIDERS) {
   for (const obstacle of obstacles) if (circleIntersectsCollider(x, y, radius, obstacle)) return true;
   return false;
 }
 
-export function segmentCoverImpact(startX, startY, endX, endY, radius = 0, obstacles = MAP_OBSTACLES) {
+export function segmentCoverImpact(startX, startY, endX, endY, radius = 0, obstacles = TERRAIN_PROP_COLLIDERS) {
   const dx = endX - startX, dy = endY - startY, padding = Math.max(0, Number(radius) || 0);
   let earliest = null;
   for (let obstacleIndex = 0; obstacleIndex < obstacles.length; obstacleIndex++) {
@@ -173,7 +174,7 @@ export function projectileBlockedByCover(projectile, hostile = false) {
   return hostile || projectile.sourceId !== "rail";
 }
 
-export function moveEntityWithCover(entity, dx, dy, obstacles = MAP_OBSTACLES) {
+export function moveEntityWithCover(entity, dx, dy, obstacles = TERRAIN_PROP_COLLIDERS) {
   let remainingX = Number(dx) || 0, remainingY = Number(dy) || 0;
   // The sweep refines contact to roughly 1/512 of a four-unit sample. A .05
   // world-unit clearance stays comfortably outside that bound without becoming
