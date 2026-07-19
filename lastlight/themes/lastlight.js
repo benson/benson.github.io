@@ -1,7 +1,7 @@
 import { ENEMY_MOTION_STATES, MOTION_DIRECTIONS, MOTION_SCHEMA, SPECIALIST_MOTION_STATES, validateMotionRig } from "../motion.js?v=20260713.1";
-import { LASTLIGHT_MATERIAL_THEME, MATERIAL_CLASSES, validateMaterialTheme } from "../material-impacts.js?v=20260718.7";
+import { LASTLIGHT_MATERIAL_THEME, MATERIAL_CLASSES, validateMaterialTheme } from "../material-impacts.js?v=20260718.8";
 import { LASTLIGHT_ENVIRONMENT_INTERACTIONS, validateEnvironmentInteractions } from "../environment-interactions.js?v=20260712.1";
-import { LASTLIGHT_ENVIRONMENT_CHUNKS, validateEnvironmentChunks } from "../environment-chunks.js?v=20260718.7";
+import { LASTLIGHT_ENVIRONMENT_CHUNKS, validateEnvironmentChunks } from "../environment-chunks.js?v=20260718.8";
 
 /**
  * The canonical asset contract for a Lastlight visual theme.
@@ -22,7 +22,7 @@ export const THEME_ASSET_KEYS = deepFreeze({
   supplyContainerMaps: ["warehouse", "outskirts", "lab", "beachhead"],
   supplyContainers: ["cargo", "utility", "pressure"],
   enemies: ["mite", "hound", "spitter", "brute", "bomber", "shark"],
-  effects: ["xpShard", "hostileBolt", "barricade"],
+  effects: ["xpShard", "hostileBolt", "barricade", "uplink", "train", "groundExplosion", "blastBarricade"],
   guidePassives: ["damage", "haste", "maxHealth", "armor", "move", "area", "crit", "duration", "projectiles", "xp", "pickup", "regen"],
   guideEnemies: ["mite", "hound", "spitter", "brute", "bomber", "shark"],
   guideField: ["combatData", "supplyCache", "hostileProjectile", "repairKit", "relayBall", "fieldDevice"],
@@ -144,6 +144,10 @@ const LASTLIGHT_ASSETS = {
     xpShard: "assets/effects/xp-shard.webp",
     hostileBolt: "assets/effects/hostile-bolt.webp",
     barricade: "assets/effects/barricade.webp",
+    uplink: "assets/effects/uplink-terminal-v1.webp",
+    train: "assets/effects/final-city-train-v1.webp",
+    groundExplosion: "assets/effects/ground-explosion-v1.webp",
+    blastBarricade: "assets/effects/blast-barricade-v1.webp",
   },
   guide: {
     passives: {

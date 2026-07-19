@@ -21,7 +21,7 @@ test("default theme satisfies the complete asset contract", () => {
   const result = validateTheme(LASTLIGHT_THEME);
   assert.deepEqual(result.errors, []);
   assert.equal(result.valid, true);
-  assert.equal(result.assetCount, 134);
+  assert.equal(result.assetCount, 138);
   assert.equal(Object.isFrozen(LASTLIGHT_THEME), true);
   assert.equal(Object.isFrozen(LASTLIGHT_THEME.assets.archive.augments), true);
   assert.equal(getThemeEnvironmentChunks().schema, "lastlight.environment-chunks.v4");
