@@ -1,6 +1,24 @@
 {
-  "blurb": "played 20 other games in the last week, went 11-9",
+  "blurb": "played 20 other games in the last week, went 12-8",
   "recent": [
+    {
+      "champion": "Sona",
+      "win": true,
+      "kills": 8,
+      "deaths": 7,
+      "assists": 22,
+      "damage": 32273,
+      "minutes": 26
+    },
+    {
+      "champion": "Maokai",
+      "win": false,
+      "kills": 9,
+      "deaths": 5,
+      "assists": 23,
+      "damage": 47393,
+      "minutes": 26
+    },
     {
       "champion": "Fiora",
       "win": true,
@@ -27,26 +45,8 @@
       "assists": 12,
       "damage": 9315,
       "minutes": 21
-    },
-    {
-      "champion": "LeeSin",
-      "win": true,
-      "kills": 11,
-      "deaths": 7,
-      "assists": 4,
-      "damage": 44573,
-      "minutes": 30
-    },
-    {
-      "champion": "Brand",
-      "win": true,
-      "kills": 7,
-      "deaths": 6,
-      "assists": 8,
-      "damage": 28305,
-      "minutes": 23
     }
   ],
   "ddragonVersion": "16.14.1",
-  "date": "2026-07-20"
+  "date": "2026-07-21"
 }
