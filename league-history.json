@@ -2,6 +2,15 @@
   "blurb": "played 20 other games in the last week, went 11-9",
   "recent": [
     {
+      "champion": "Janna",
+      "win": true,
+      "kills": 2,
+      "deaths": 5,
+      "assists": 23,
+      "damage": 15679,
+      "minutes": 22
+    },
+    {
       "champion": "Amumu",
       "win": true,
       "kills": 9,
@@ -36,15 +45,6 @@
       "assists": 13,
       "damage": 107321,
       "minutes": 26
-    },
-    {
-      "champion": "Cassiopeia",
-      "win": true,
-      "kills": 6,
-      "deaths": 14,
-      "assists": 7,
-      "damage": 25912,
-      "minutes": 24
     }
   ],
   "ddragonVersion": "16.14.1",
