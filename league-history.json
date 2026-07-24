@@ -1,52 +1,5 @@
 {
-  "blurb": "played 20 other games in the last week, went 16-4",
-  "recent": [
-    {
-      "champion": "Gwen",
-      "win": true,
-      "kills": 4,
-      "deaths": 6,
-      "assists": 15,
-      "damage": 36673,
-      "minutes": 23
-    },
-    {
-      "champion": "Syndra",
-      "win": true,
-      "kills": 6,
-      "deaths": 6,
-      "assists": 4,
-      "damage": 24844,
-      "minutes": 22
-    },
-    {
-      "champion": "Sylas",
-      "win": true,
-      "kills": 14,
-      "deaths": 9,
-      "assists": 9,
-      "damage": 48644,
-      "minutes": 26
-    },
-    {
-      "champion": "Swain",
-      "win": true,
-      "kills": 10,
-      "deaths": 5,
-      "assists": 16,
-      "damage": 62847,
-      "minutes": 26
-    },
-    {
-      "champion": "Leona",
-      "win": true,
-      "kills": 7,
-      "deaths": 9,
-      "assists": 28,
-      "damage": 40175,
-      "minutes": 24
-    }
-  ],
-  "ddragonVersion": "16.14.1",
+  "blurb": "no games this week",
+  "recent": [],
   "date": "2026-07-24"
 }
