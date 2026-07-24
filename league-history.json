@@ -1,6 +1,24 @@
 {
-  "blurb": "played 20 other games in the last week, went 12-8",
+  "blurb": "played 20 other games in the last week, went 13-7",
   "recent": [
+    {
+      "champion": "Leona",
+      "win": true,
+      "kills": 7,
+      "deaths": 9,
+      "assists": 28,
+      "damage": 40175,
+      "minutes": 24
+    },
+    {
+      "champion": "TwistedFate",
+      "win": true,
+      "kills": 7,
+      "deaths": 6,
+      "assists": 6,
+      "damage": 35812,
+      "minutes": 26
+    },
     {
       "champion": "Blitzcrank",
       "win": true,
@@ -27,26 +45,8 @@
       "assists": 16,
       "damage": 110340,
       "minutes": 24
-    },
-    {
-      "champion": "Volibear",
-      "win": false,
-      "kills": 2,
-      "deaths": 6,
-      "assists": 0,
-      "damage": 10538,
-      "minutes": 21
-    },
-    {
-      "champion": "Lux",
-      "win": true,
-      "kills": 10,
-      "deaths": 6,
-      "assists": 14,
-      "damage": 46141,
-      "minutes": 22
     }
   ],
   "ddragonVersion": "16.14.1",
-  "date": "2026-07-23"
+  "date": "2026-07-24"
 }
