@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#070d18">
+  <meta name="description" content="A beginner-friendly Windows guide for collaborating on Lastlight with GitHub, Claude Code, GitHub Pages, and Cloudflare.">
+  <link rel="canonical" href="https://bensonperry.com/lastlight/collaborate/">
+  <meta property="og:title" content="Ship Lastlight Together">
+  <meta property="og:description" content="From a brand-new GitHub account to a safe first production push—one step at a time.">
+  <meta property="og:image" content="https://bensonperry.com/lastlight/assets/og.png">
+  <meta property="og:image:alt" content="The Lastlight squad holding the line together">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://bensonperry.com/lastlight/collaborate/">
+  <meta property="og:site_name" content="Lastlight">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Ship Lastlight Together">
+  <meta name="twitter:description" content="A zero-assumptions collaboration guide for Benson and Jacob.">
+  <meta name="twitter:image" content="https://bensonperry.com/lastlight/assets/og.png">
+  <title>Ship Lastlight Together</title>
+  <link rel="icon" href="../assets/branding/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#guide">Skip to the guide</a>
+
+  <header class="site-header">
+    <a class="wordmark" href="../" aria-label="Play Lastlight">
+      <span class="wordmark-mark" aria-hidden="true">L</span>
+      <span>LASTLIGHT</span>
+    </a>
+    <nav class="header-links" aria-label="Page links">
+      <a href="#map">The map</a>
+      <a href="#ship">Ship a change</a>
+      <a class="play-link" href="../">Play the game <span aria-hidden="true">↗</span></a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="page-title">
+      <div class="hero-grid" aria-hidden="true"></div>
+      <div class="hero-art" aria-hidden="true"></div>
+      <div class="hero-content">
+        <p class="eyebrow"><span class="status-dot"></span> Collaboration protocol // Windows</p>
+        <h1 id="page-title">SHIP<br><em>TOGETHER.</em></h1>
+        <p class="hero-deck">Jacob’s zero-to-first-push guide. Create the accounts, learn the five Git words that matter, ask Claude Code for the change, and safely put it live.</p>
+        <div class="hero-actions">
+          <a class="primary-action" href="#start">Start at step one <span aria-hidden="true">↓</span></a>
+          <a class="secondary-action" href="#daily">I’m already set up</a>
+        </div>
+        <ul class="hero-facts" aria-label="Guide facts">
+          <li><strong>8</strong><span>guided stages</span></li>
+          <li><strong>0</strong><span>Git experience needed</span></li>
+          <li><strong>1</strong><span>live branch: master</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="deployment-strip" aria-label="How Lastlight deploys">
+      <div>
+        <span class="strip-label">Game website</span>
+        <strong>Push to <code>master</code></strong>
+        <small>GitHub Pages publishes automatically</small>
+      </div>
+      <span class="strip-arrow" aria-hidden="true">→</span>
+      <div>
+        <span class="strip-label">Live game</span>
+        <strong>bensonperry.com/lastlight</strong>
+        <small>Hard-refresh after deployment</small>
+      </div>
+      <span class="strip-arrow" aria-hidden="true">+</span>
+      <div>
+        <span class="strip-label">Multiplayer relay</span>
+        <strong>Deploy only when changed</strong>
+        <small>Cloudflare is a separate release</small>
+      </div>
+    </section>
+
+    <section id="map" class="map-section section-shell" aria-labelledby="map-title">
+      <div class="section-heading">
+        <p class="kicker">Before the first mission</p>
+        <h2 id="map-title">THE WHOLE MAP</h2>
+        <p>Finish the one-time setup once. After that, the day-to-day loop is just pull, build, check, push, verify.</p>
+      </div>
+      <ol class="mission-map">
+        <li><a href="#start"><span>01</span><strong>Accounts</strong><small>Jacob</small></a></li>
+        <li><a href="#access"><span>02</span><strong>Access</strong><small>Benson</small></a></li>
+        <li><a href="#windows"><span>03</span><strong>Windows</strong><small>Jacob</small></a></li>
+        <li><a href="#clone"><span>04</span><strong>First clone</strong><small>Together</small></a></li>
+        <li><a href="#local"><span>05</span><strong>Local run</strong><small>Jacob</small></a></li>
+        <li><a href="#daily"><span>06</span><strong>Daily loop</strong><small>Jacob</small></a></li>
+        <li><a href="#relay"><span>07</span><strong>Relay</strong><small>When needed</small></a></li>
+        <li><a href="#recovery"><span>08</span><strong>Recovery</strong><small>No panic</small></a></li>
+      </ol>
+    </section>
+
+    <section class="glossary section-shell" aria-labelledby="glossary-title">
+      <div class="section-heading compact">
+        <p class="kicker">The only vocabulary lesson</p>
+        <h2 id="glossary-title">FIVE GIT WORDS</h2>
+      </div>
+      <div class="glossary-grid">
+        <article><span>01</span><h3>Repository</h3><p>The project folder plus its complete change history.</p></article>
+        <article><span>02</span><h3>Commit</h3><p>A named snapshot saved on your computer.</p></article>
+        <article><span>03</span><h3>Pull</h3><p>Download Benson’s newest work before you start.</p></article>
+        <article><span>04</span><h3>Push</h3><p>Upload your commits. A push to <code>master</code> publishes the site.</p></article>
+        <article><span>05</span><h3>Deploy</h3><p>Make a version live for players.</p></article>
+      </div>
+      <p class="master-rule"><strong><code>master</code> is the live lane.</strong> Treat every push like a production release. Never force-push.</p>
+    </section>
+
+    <div id="guide" class="guide-layout section-shell">
+      <aside class="guide-sidebar" aria-label="Guide navigation">
+        <div class="progress-card">
+          <div class="progress-copy"><span>Your progress</span><strong id="progress-count">0 / 15</strong></div>
+          <div class="progress-track" aria-hidden="true"><span id="progress-bar"></span></div>
+          <button id="reset-progress" type="button">Reset checklist</button>
+        </div>
+        <nav>
+          <a href="#start"><span>01</span> Accounts</a>
+          <a href="#access"><span>02</span> Access</a>
+          <a href="#windows"><span>03</span> Windows setup</a>
+          <a href="#clone"><span>04</span> First clone</a>
+          <a href="#local"><span>05</span> Local test</a>
+          <a href="#daily"><span>06</span> Change &amp; ship</a>
+          <a href="#relay"><span>07</span> Relay deploy</a>
+          <a href="#recovery"><span>08</span> Recovery</a>
+        </nav>
+      </aside>
+
+      <div class="guide-content">
+        <section id="start" class="guide-section" data-section="start" aria-labelledby="start-title">
+          <header class="guide-section-header">
+            <span class="section-number">01</span>
+            <div><p class="role-tag jacob">Jacob’s setup</p><h2 id="start-title">CREATE YOUR ACCOUNTS</h2></div>
+          </header>
+
+          <article class="step-card">
+            <label class="check-row">
+              <input type="checkbox" data-check="github-account">
+              <span><strong>Create a free GitHub account</strong><small>Your username and commits will be public in this repository.</small></span>
+            </label>
+            <ol>
+              <li>Open <a href="https://github.com/signup" target="_blank" rel="noreferrer">github.com/signup <span aria-hidden="true">↗</span></a>.</li>
+              <li>Choose GitHub Free, a username you like, and a unique password.</li>
+              <li>Open GitHub’s email and verify your address.</li>
+              <li>Send Benson your exact GitHub username. Don’t create a repository.</li>
+            </ol>
+          </article>
+
+          <article class="step-card">
+            <label class="check-row">
+              <input type="checkbox" data-check="github-2fa">
+              <span><strong>Protect it with two-factor authentication</strong><small>This account can publish the game, so recovery matters.</small></span>
+            </label>
+            <ol>
+              <li>On GitHub, open <strong>Settings → Password and authentication</strong>.</li>
+              <li>Enable two-factor authentication with an authenticator app or passkey.</li>
+              <li>Save the recovery codes in your password manager.</li>
+            </ol>
+            <p class="safety-note">Never send Benson your password, authenticator codes, or recovery codes.</p>
+          </article>
+
+          <article class="step-card">
+            <label class="check-row">
+              <input type="checkbox" data-check="cloudflare-account">
+              <span><strong>Create a Cloudflare account</strong><small>Only needed to release multiplayer relay changes.</small></span>
+            </label>
+            <ol>
+              <li>Open <a href="https://dash.cloudflare.com/sign-up" target="_blank" rel="noreferrer">Cloudflare sign-up <span aria-hidden="true">↗</span></a>.</li>
+              <li>Create and verify the account.</li>
+              <li>Send Benson the account email. Don’t create a Worker.</li>
+            </ol>
+          </article>
+        </section>
+
+        <section id="access" class="guide-section" data-section="access" aria-labelledby="access-title">
+          <header class="guide-section-header">
+            <span class="section-number">02</span>
+            <div><p class="role-tag benson">Benson’s setup</p><h2 id="access-title">OPEN THE RIGHT DOORS</h2></div>
+          </header>
+
+          <article class="step-card owner-card">
+            <label class="check-row">
+              <input type="checkbox" data-check="github-invite">
+              <span><strong>Invite Jacob to the GitHub repository</strong><small>This gives him normal pull and push access.</small></span>
+            </label>
+            <ol>
+              <li>Open the <a href="https://github.com/benson/benson.github.io/settings/access" target="_blank" rel="noreferrer">repository access settings <span aria-hidden="true">↗</span></a>.</li>
+              <li>Choose <strong>Add people</strong> and enter Jacob’s exact username.</li>
+              <li>Jacob accepts from his email or GitHub notifications.</li>
+            </ol>
+          </article>
+
+          <article class="step-card owner-card">
+            <label class="check-row">
+              <input type="checkbox" data-check="branch-protection">
+              <span><strong>Add a light safety rail to <code>master</code></strong><small>Allow direct pushes; block history rewrites and deletion.</small></span>
+            </label>
+            <ol>
+              <li>Open <strong>Repository Settings → Branches</strong>.</li>
+              <li>Add a classic protection rule matching <code>master</code>.</li>
+              <li>Do not require pull requests or status checks.</li>
+              <li>Leave force pushes and branch deletion disabled.</li>
+            </ol>
+          </article>
+
+          <article class="step-card owner-card">
+            <label class="check-row">
+              <input type="checkbox" data-check="cloudflare-invite">
+              <span><strong>Invite Jacob to Cloudflare</strong><small>Use his own identity—never share an API token.</small></span>
+            </label>
+            <ol>
+              <li>Open <strong>Cloudflare → Manage Account → Members → Invite</strong>.</li>
+              <li>Enter Jacob’s Cloudflare email.</li>
+              <li>Scope it to Benson’s account and assign <strong>Workers Platform Admin</strong>.</li>
+              <li>Do not grant Super Administrator or billing access.</li>
+            </ol>
+          </article>
+
+          <details class="detail-card">
+            <summary>Recommended: teach Claude Code about Jacob’s direct-push exception</summary>
+            <div>
+              <p>The repository normally tells coding agents to use task branches. Add this exception to the root <code>CLAUDE.md</code> so Claude understands the authorized Lastlight workflow:</p>
+              <div class="code-block">
+                <button class="copy-button" type="button">Copy</button>
+                <pre><code>## Authorized Lastlight collaborator workflow
+
+When Jacob states that he is working under Benson's standing authorization,
+he may work directly on `master` for changes confined to `lastlight/**`.
+
+Require a clean tree and `git pull --ff-only origin master` before editing.
+Run the complete Lastlight checks before pushing. Never force-push. Stop on
+conflicts, failed checks, unexpected files, or changes outside `lastlight/**`.</code></pre>
+              </div>
+            </div>
+          </details>
+        </section>
+
+        <section id="windows" class="guide-section" data-section="windows" aria-labelledby="windows-title">
+          <header class="guide-section-header">
+            <span class="section-number">03</span>
+            <div><p class="role-tag jacob">Jacob’s setup</p><h2 id="windows-title">PREPARE WINDOWS</h2></div>
+          </header>
+
+          <article class="step-card">
+            <label class="check-row">
+              <input type="checkbox" data-check="windows-tools">
+              <span><strong>Install the four project tools</strong><small>Use PowerShell. Paste one line at a time.</small></span>
+            </label>
+            <div class="code-block">
+              <button class="copy-button" type="button">Copy all</button>
+              <pre><code>winget install --id Git.Git -e --source winget
+winget install --id GitHub.cli -e --source winget
+winget install --id OpenJS.NodeJS.LTS -e --source winget
+winget install --id Python.Python.3.13 -e --source winget</code></pre>
+            </div>
+            <p>Close the entire PowerShell window and open a fresh one when installation finishes.</p>
+          </article>
+
+          <article class="step-card">
+            <label class="check-row">
+              <input type="checkbox" data-check="claude">
+              <span><strong>Install and sign in to Claude Code</strong><small>Claude will handle most of the technical work.</small></span>
+            </label>
+            <div class="code-block">
+              <button class="copy-button" type="button">Copy</button>
+              <pre><code>npm install -g @anthropic-ai/claude-code
+claude
+claude doctor</code></pre>
+            </div>
+            <details class="inline-detail">
+              <summary>If Claude cannot find Git Bash</summary>
+              <div class="code-block">
+                <button class="copy-button" type="button">Copy</button>
+                <pre><code>$env:CLAUDE_CODE_GIT_BASH_PATH = "C:\Program Files\Git\bin\bash.exe"
+claude</code></pre>
+              </div>
+            </details>
+          </article>
+
+          <article class="step-card">
+            <label class="check-row">
+              <input type="checkbox" data-check="github-login">
+              <span><strong>Connect PowerShell to GitHub</strong><small>The browser will ask Jacob to approve access.</small></span>
+            </label>
+            <div class="code-block">
+              <button class="copy-button" type="button">Copy</button>
+              <pre><code>gh auth login --hostname github.com --git-protocol https --web
+gh auth status</code></pre>
+            </div>
+          </article>
+
+          <article class="step-card">
+            <label class="check-row">
+              <input type="checkbox" data-check="git-identity">
+              <span><strong>Set the name attached to commits</strong><small>This uses GitHub’s private email address.</small></span>
+            </label>
+            <div class="code-block">
+              <button class="copy-button" type="button">Copy</button>
+              <pre><code>git config --global user.name "Jacob Lastname"
+$gitHubLogin = gh api user --jq .login
+$gitHubId = gh api user --jq .id
+git config --global user.email "$gitHubId+$gitHubLogin@users.noreply.github.com"</code></pre>
+            </div>
+            <p>Replace <code>Jacob Lastname</code> with Jacob’s real name.</p>
+          </article>
+        </section>
+
+        <section id="clone" class="guide-section" data-section="clone" aria-labelledby="clone-title">
+          <header class="guide-section-header">
+            <span class="section-number">04</span>
+            <div><p class="role-tag together">Do this together</p><h2 id="clone-title">DOWNLOAD LASTLIGHT</h2></div>
+          </header>
+
+          <article class="step-card feature-card">
+            <label class="check-row">
+              <input type="checkbox" data-check="clone">
+              <span><strong>Make Jacob’s first local copy</strong><small>In Git language, this is a clone.</small></span>
+            </label>
+            <div class="code-block">
+              <button class="copy-button" type="button">Copy</button>
+              <pre><code>New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\Projects"
+Set-Location "$env:USERPROFILE\Projects"
+git clone https://github.com/benson/benson.github.io.git
+Set-Location .\benson.github.io
+git branch --show-current
+git status --short --branch
+npm ci --prefix lastlight/worker
+py -3.13 -m pip install Pillow==12.1.1</code></pre>
+            </div>
+            <div class="expected-result"><span>Expected result</span><strong>Branch: <code>master</code> · Working tree: clean</strong></div>
+          </article>
+
+          <article class="step-card">
+            <label class="check-row">
+              <input type="checkbox" data-check="cloudflare-login">
+              <span><strong>Connect Wrangler to Cloudflare</strong><small>Jacob signs in as himself.</small></span>
+            </label>
+            <div class="code-block">
+              <button class="copy-button" type="button">Copy</button>
+              <pre><code>Set-Location "$env:USERPROFILE\Projects\benson.github.io\lastlight\worker"
+npx wrangler login
+npx wrangler whoami
+Set-Location "$env:USERPROFILE\Projects\benson.github.io"</code></pre>
+            </div>
+          </article>
+        </section>
+
+        <section id="local" class="guide-section" data-section="local" aria-labelledby="local-title">
+          <header class="guide-section-header">
+            <span class="section-number">05</span>
+            <div><p class="role-tag jacob">First rehearsal</p><h2 id="local-title">RUN IT LOCALLY</h2></div>
+          </header>
+
+          <div class="split-steps">
+            <article class="step-card">
+              <p class="terminal-label">PowerShell window 1</p>
+              <h3>Website</h3>
+              <div class="code-block">
+                <button class="copy-button" type="button">Copy</button>
+                <pre><code>Set-Location "$env:USERPROFILE\Projects\benson.github.io"
+py -3.13 -m http.server 4173</code></pre>
+              </div>
+              <a class="test-link" href="http://localhost:4173/lastlight/" target="_blank" rel="noreferrer">Open local game <span aria-hidden="true">↗</span></a>
+            </article>
+            <article class="step-card">
+              <p class="terminal-label">PowerShell window 2</p>
+              <h3>Multiplayer relay</h3>
+              <div class="code-block">
+                <button class="copy-button" type="button">Copy</button>
+                <pre><code>Set-Location "$env:USERPROFILE\Projects\benson.github.io"
+npm --prefix lastlight/worker run dev</code></pre>
+              </div>
+              <a class="test-link" href="http://localhost:4173/lastlight/?relay=ws://localhost:8787/room/" target="_blank" rel="noreferrer">Open local multiplayer <span aria-hidden="true">↗</span></a>
+            </article>
+          </div>
+          <label class="standalone-check">
+            <input type="checkbox" data-check="local-run">
+            <span><strong>I opened the local game successfully</strong><small>Press Ctrl+C in each PowerShell window when finished.</small></span>
+          </label>
+        </section>
+
+        <section id="daily" class="guide-section" data-section="daily" aria-labelledby="daily-title">
+          <header class="guide-section-header">
+            <span class="section-number">06</span>
+            <div><p class="role-tag ship">Every real change</p><h2 id="daily-title">CHANGE, CHECK, SHIP</h2></div>
+          </header>
+
+          <div class="release-flow" aria-label="Release sequence">
+            <span>Pull</span><i>→</i><span>Ask Claude</span><i>→</i><span>Review</span><i>→</i><span>Check</span><i>→</i><span>Push</span><i>→</i><span>Verify</span>
+          </div>
+
+          <article class="step-card">
+            <h3>1. Start clean and pull Benson’s latest work</h3>
+            <div class="code-block">
+              <button class="copy-button" type="button">Copy</button>
+              <pre><code>Set-Location "$env:USERPROFILE\Projects\benson.github.io"
+git switch master
+git status --short
+git pull --ff-only origin master
+claude</code></pre>
+            </div>
+            <p class="safety-note">If <code>git status --short</code> prints unfamiliar files, stop. Ask Claude to explain them. Don’t delete, reset, or overwrite them.</p>
+          </article>
+
+          <article class="step-card prompt-card">
+            <h3>2. Give Claude the mission</h3>
+            <p>Replace the bracketed line with the actual change.</p>
+            <div class="code-block">
+              <button class="copy-button" type="button">Copy prompt</button>
+              <pre><code>I am Jacob, working under Benson's standing authorization to make this
+Lastlight change directly on master. Work only inside lastlight/**.
+
+Task: [DESCRIBE THE CHANGE AND WHAT “DONE” LOOKS LIKE]
+
+Before editing, confirm the branch is master, the tree is clean, and
+origin/master is pulled with --ff-only. Implement and test the change, run
+the complete Lastlight GitHub Actions check suite, and review the final diff.
+
+Never force-push, discard work, or touch other project folders. Stop on a
+conflict, a check you cannot fix, or an unexpected file outside lastlight/**.
+
+When everything is green, make one focused commit, synchronize with the newest
+origin/master, push directly to master, watch Lastlight Checks and GitHub Pages,
+and verify the live game. If lastlight/worker/** changed, test and deploy the
+Cloudflare relay separately, report its version, and verify /health.</code></pre>
+            </div>
+          </article>
+
+          <article class="step-card">
+            <h3>3. The checks that guard the live game</h3>
+            <p>Claude should run all of these before pushing:</p>
+            <div class="code-block tall-code">
+              <button class="copy-button" type="button">Copy all</button>
+              <pre><code>npm --prefix lastlight run check
+npm --prefix lastlight run sprites:verify
+npm --prefix lastlight run motion-atlases:verify
+npm --prefix lastlight run motion-atlases:test
+npm --prefix lastlight test
+npm --prefix lastlight run fixtures:verify -- --report=artifacts/fixture-report.json
+npm --prefix lastlight run soak:ci -- --report artifacts/multiplayer-soak.json
+npm ci --prefix lastlight/worker
+npm test --prefix lastlight/worker</code></pre>
+            </div>
+            <p class="warning-note"><strong>Why local checks matter:</strong> GitHub Pages starts publishing as soon as the push lands. The online checks do not currently hold the deployment back.</p>
+          </article>
+
+          <article class="step-card">
+            <h3>4. Review, commit, synchronize, push</h3>
+            <div class="code-block">
+              <button class="copy-button" type="button">Copy</button>
+              <pre><code>git status --short
+git diff
+git add -- lastlight
+git diff --cached
+git commit -m "Lastlight: describe the change"
+git pull --rebase origin master
+git push origin master</code></pre>
+            </div>
+            <p>Do not use <code>git add .</code> in this multi-project repository. Stage only Lastlight.</p>
+          </article>
+
+          <article id="ship" class="step-card live-card">
+            <label class="check-row">
+              <input type="checkbox" data-check="first-push">
+              <span><strong>Verify the release</strong><small>A push is not finished until both checks are green and the live behavior works.</small></span>
+            </label>
+            <div class="verify-grid">
+              <a href="https://github.com/benson/benson.github.io/actions/workflows/lastlight-check.yml" target="_blank" rel="noreferrer"><span>01</span><strong>Lastlight Checks</strong><small>Wait for success ↗</small></a>
+              <a href="https://github.com/benson/benson.github.io/deployments" target="_blank" rel="noreferrer"><span>02</span><strong>Pages deployment</strong><small>Wait for success ↗</small></a>
+              <a href="../" target="_blank"><span>03</span><strong>Live game</strong><small>Ctrl+F5 and test ↗</small></a>
+            </div>
+          </article>
+        </section>
+
+        <section id="relay" class="guide-section" data-section="relay" aria-labelledby="relay-title">
+          <header class="guide-section-header">
+            <span class="section-number">07</span>
+            <div><p class="role-tag relay">Only if worker code changed</p><h2 id="relay-title">DEPLOY THE RELAY</h2></div>
+          </header>
+
+          <div class="conditional-banner">
+            <strong>Did anything under <code>lastlight/worker/**</code> change?</strong>
+            <span>No → skip this entire stage.</span>
+            <span>Yes → test, deploy, verify, report.</span>
+          </div>
+
+          <article class="step-card">
+            <h3>Test and deploy</h3>
+            <div class="code-block">
+              <button class="copy-button" type="button">Copy</button>
+              <pre><code>Set-Location "$env:USERPROFILE\Projects\benson.github.io"
+npm ci --prefix lastlight/worker
+npm test --prefix lastlight/worker
+npm --prefix lastlight/worker run deploy</code></pre>
+            </div>
+            <p>Save the deployment/version identifier Wrangler prints.</p>
+          </article>
+
+          <article class="step-card">
+            <label class="check-row">
+              <input type="checkbox" data-check="relay-verify">
+              <span><strong>Verify production</strong><small>Both endpoints must succeed, then test a real live lobby.</small></span>
+            </label>
+            <div class="code-block">
+              <button class="copy-button" type="button">Copy</button>
+              <pre><code>curl.exe -f https://lastlight-relay.bensonperry.workers.dev/health
+curl.exe -f -H "Origin: https://bensonperry.com" https://lastlight-relay.bensonperry.workers.dev/config</code></pre>
+            </div>
+          </article>
+
+          <article class="handoff-card">
+            <p>Send Benson this handoff</p>
+            <div class="code-block">
+              <button class="copy-button" type="button">Copy message</button>
+              <pre><code>Shipped Lastlight commit [SHORT COMMIT ID] to master.
+Lastlight Checks: passed.
+GitHub Pages: deployed and live-verified.
+Relay: [not changed / deployed version ID and health check passed].
+Tested: [brief list].</code></pre>
+            </div>
+          </article>
+        </section>
+
+        <section id="recovery" class="guide-section" data-section="recovery" aria-labelledby="recovery-title">
+          <header class="guide-section-header">
+            <span class="section-number">08</span>
+            <div><p class="role-tag recovery">No panic protocol</p><h2 id="recovery-title">RECOVER SAFELY</h2></div>
+          </header>
+
+          <div class="recovery-grid">
+            <details class="detail-card">
+              <summary>My push was rejected</summary>
+              <div>
+                <p>Benson probably pushed first. This is normal. Never add <code>--force</code>.</p>
+                <div class="code-block">
+                  <button class="copy-button" type="button">Copy</button>
+                  <pre><code>git pull --rebase origin master</code></pre>
+                </div>
+                <p>Resolve with Claude, rerun every check, then push normally.</p>
+              </div>
+            </details>
+
+            <details class="detail-card">
+              <summary>A bad website commit is live</summary>
+              <div>
+                <p>Make a new commit that reverses it. This keeps history intact.</p>
+                <div class="code-block">
+                  <button class="copy-button" type="button">Copy</button>
+                  <pre><code>git log --oneline -10
+git revert BAD_COMMIT_ID
+git push origin master</code></pre>
+                </div>
+              </div>
+            </details>
+
+            <details class="detail-card">
+              <summary>A bad relay deployment is live</summary>
+              <div>
+                <p>Tell Benson immediately, then roll back and verify health.</p>
+                <div class="code-block">
+                  <button class="copy-button" type="button">Copy</button>
+                  <pre><code>Set-Location "$env:USERPROFILE\Projects\benson.github.io\lastlight\worker"
+npx wrangler deployments list
+npx wrangler rollback</code></pre>
+                </div>
+              </div>
+            </details>
+
+            <details class="detail-card">
+              <summary>Claude wants to touch another project</summary>
+              <div>
+                <p>Stop it. This collaboration is scoped to <code>lastlight/**</code>. Other folders publish unrelated parts of Benson’s website.</p>
+              </div>
+            </details>
+          </div>
+
+          <p class="never-banner"><strong>The two never-commands:</strong> never force-push shared <code>master</code>, and never use <code>git reset --hard</code> to solve a collaboration problem.</p>
+        </section>
+
+        <section class="finish-card" aria-labelledby="finish-title">
+          <div>
+            <p class="kicker">Protocol complete</p>
+            <h2 id="finish-title">YOU’RE READY TO SHIP.</h2>
+            <p>For the first release, make a tiny documentation change together. Run the whole loop once, watch both green checks appear, and then use the same rhythm for real work.</p>
+          </div>
+          <a class="primary-action" href="#daily">Review the ship loop <span aria-hidden="true">↑</span></a>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <a class="wordmark" href="../">
+      <span class="wordmark-mark" aria-hidden="true">L</span>
+      <span>LASTLIGHT</span>
+    </a>
+    <p>Built for Benson + Jacob. Keep the branch clean. Keep the checks green.</p>
+    <a href="https://github.com/benson/benson.github.io" target="_blank" rel="noreferrer">View repository ↗</a>
+  </footer>
+
+  <div id="copy-toast" class="copy-toast" role="status" aria-live="polite">Copied</div>
+  <script src="guide.js"></script>
+</body>
+</html>
