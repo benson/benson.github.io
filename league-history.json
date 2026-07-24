@@ -1,6 +1,42 @@
 {
-  "blurb": "played 20 other games in the last week, went 13-7",
+  "blurb": "played 20 other games in the last week, went 16-4",
   "recent": [
+    {
+      "champion": "Gwen",
+      "win": true,
+      "kills": 4,
+      "deaths": 6,
+      "assists": 15,
+      "damage": 36673,
+      "minutes": 23
+    },
+    {
+      "champion": "Syndra",
+      "win": true,
+      "kills": 6,
+      "deaths": 6,
+      "assists": 4,
+      "damage": 24844,
+      "minutes": 22
+    },
+    {
+      "champion": "Sylas",
+      "win": true,
+      "kills": 14,
+      "deaths": 9,
+      "assists": 9,
+      "damage": 48644,
+      "minutes": 26
+    },
+    {
+      "champion": "Swain",
+      "win": true,
+      "kills": 10,
+      "deaths": 5,
+      "assists": 16,
+      "damage": 62847,
+      "minutes": 26
+    },
     {
       "champion": "Leona",
       "win": true,
@@ -8,42 +44,6 @@
       "deaths": 9,
       "assists": 28,
       "damage": 40175,
-      "minutes": 24
-    },
-    {
-      "champion": "TwistedFate",
-      "win": true,
-      "kills": 7,
-      "deaths": 6,
-      "assists": 6,
-      "damage": 35812,
-      "minutes": 26
-    },
-    {
-      "champion": "Blitzcrank",
-      "win": true,
-      "kills": 6,
-      "deaths": 6,
-      "assists": 28,
-      "damage": 35747,
-      "minutes": 24
-    },
-    {
-      "champion": "Volibear",
-      "win": true,
-      "kills": 10,
-      "deaths": 6,
-      "assists": 13,
-      "damage": 47991,
-      "minutes": 28
-    },
-    {
-      "champion": "Udyr",
-      "win": true,
-      "kills": 18,
-      "deaths": 6,
-      "assists": 16,
-      "damage": 110340,
       "minutes": 24
     }
   ],
