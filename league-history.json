@@ -1,6 +1,24 @@
 {
-  "blurb": "played 20 other games in the last week, went 15-5",
+  "blurb": "played 20 other games in the last week, went 16-4",
   "recent": [
+    {
+      "champion": "Sion",
+      "win": true,
+      "kills": 9,
+      "deaths": 6,
+      "assists": 23,
+      "damage": 54356,
+      "minutes": 25
+    },
+    {
+      "champion": "Milio",
+      "win": true,
+      "kills": 4,
+      "deaths": 3,
+      "assists": 26,
+      "damage": 18405,
+      "minutes": 23
+    },
     {
       "champion": "Renata",
       "win": true,
@@ -27,24 +45,6 @@
       "assists": 15,
       "damage": 36673,
       "minutes": 23
-    },
-    {
-      "champion": "Syndra",
-      "win": true,
-      "kills": 6,
-      "deaths": 6,
-      "assists": 4,
-      "damage": 24844,
-      "minutes": 22
-    },
-    {
-      "champion": "Sylas",
-      "win": true,
-      "kills": 14,
-      "deaths": 9,
-      "assists": 9,
-      "damage": 48644,
-      "minutes": 26
     }
   ],
   "ddragonVersion": "16.14.1",
