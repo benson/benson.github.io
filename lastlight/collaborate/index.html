@@ -44,9 +44,9 @@
       <div class="hero-grid" aria-hidden="true"></div>
       <div class="hero-art" aria-hidden="true"></div>
       <div class="hero-content">
-        <p class="eyebrow"><span class="status-dot"></span> Collaboration protocol // Windows</p>
-        <h1 id="page-title">SHIP<br><em>TOGETHER.</em></h1>
-        <p class="hero-deck">Jacob’s zero-to-first-push guide. Create the accounts, learn the five Git words that matter, ask Claude Code for the change, and safely put it live.</p>
+        <p class="eyebrow">Benson + Jacob · Windows guide</p>
+        <h1 id="page-title">Set up Lastlight collaboration</h1>
+        <p class="hero-deck">A step-by-step guide for going from a new GitHub account to a safe first production push with Claude Code.</p>
         <div class="hero-actions">
           <a class="primary-action" href="#start">Start at step one <span aria-hidden="true">↓</span></a>
           <a class="secondary-action" href="#daily">I’m already set up</a>
@@ -81,26 +81,25 @@
 
     <section id="map" class="map-section section-shell" aria-labelledby="map-title">
       <div class="section-heading">
-        <p class="kicker">Before the first mission</p>
-        <h2 id="map-title">THE WHOLE MAP</h2>
+        <p class="kicker">Start here</p>
+        <h2 id="map-title">Setup overview</h2>
         <p>Finish the one-time setup once. After that, the day-to-day loop is just pull, build, check, push, verify.</p>
       </div>
       <ol class="mission-map">
         <li><a href="#start"><span>01</span><strong>Accounts</strong><small>Jacob</small></a></li>
-        <li><a href="#access"><span>02</span><strong>Access</strong><small>Benson</small></a></li>
-        <li><a href="#windows"><span>03</span><strong>Windows</strong><small>Jacob</small></a></li>
-        <li><a href="#clone"><span>04</span><strong>First clone</strong><small>Together</small></a></li>
-        <li><a href="#local"><span>05</span><strong>Local run</strong><small>Jacob</small></a></li>
-        <li><a href="#daily"><span>06</span><strong>Daily loop</strong><small>Jacob</small></a></li>
-        <li><a href="#relay"><span>07</span><strong>Relay</strong><small>When needed</small></a></li>
-        <li><a href="#recovery"><span>08</span><strong>Recovery</strong><small>No panic</small></a></li>
+        <li><a href="#windows"><span>02</span><strong>Windows</strong><small>Install tools</small></a></li>
+        <li><a href="#clone"><span>03</span><strong>First clone</strong><small>Download the game</small></a></li>
+        <li><a href="#local"><span>04</span><strong>Local run</strong><small>Test the setup</small></a></li>
+        <li><a href="#daily"><span>05</span><strong>Daily loop</strong><small>Change and ship</small></a></li>
+        <li><a href="#relay"><span>06</span><strong>Relay</strong><small>When needed</small></a></li>
+        <li><a href="#recovery"><span>07</span><strong>Recovery</strong><small>No panic</small></a></li>
       </ol>
     </section>
 
     <section class="glossary section-shell" aria-labelledby="glossary-title">
       <div class="section-heading compact">
-        <p class="kicker">The only vocabulary lesson</p>
-        <h2 id="glossary-title">FIVE GIT WORDS</h2>
+        <p class="kicker">Quick reference</p>
+        <h2 id="glossary-title">Five Git words</h2>
       </div>
       <div class="glossary-grid">
         <article><span>01</span><h3>Repository</h3><p>The project folder plus its complete change history.</p></article>
@@ -115,19 +114,18 @@
     <div id="guide" class="guide-layout section-shell">
       <aside class="guide-sidebar" aria-label="Guide navigation">
         <div class="progress-card">
-          <div class="progress-copy"><span>Your progress</span><strong id="progress-count">0 / 15</strong></div>
+          <div class="progress-copy"><span>Your progress</span><strong id="progress-count">0 / 12</strong></div>
           <div class="progress-track" aria-hidden="true"><span id="progress-bar"></span></div>
           <button id="reset-progress" type="button">Reset checklist</button>
         </div>
         <nav>
           <a href="#start"><span>01</span> Accounts</a>
-          <a href="#access"><span>02</span> Access</a>
-          <a href="#windows"><span>03</span> Windows setup</a>
-          <a href="#clone"><span>04</span> First clone</a>
-          <a href="#local"><span>05</span> Local test</a>
-          <a href="#daily"><span>06</span> Change &amp; ship</a>
-          <a href="#relay"><span>07</span> Relay deploy</a>
-          <a href="#recovery"><span>08</span> Recovery</a>
+          <a href="#windows"><span>02</span> Windows setup</a>
+          <a href="#clone"><span>03</span> First clone</a>
+          <a href="#local"><span>04</span> Local test</a>
+          <a href="#daily"><span>05</span> Change &amp; ship</a>
+          <a href="#relay"><span>06</span> Relay deploy</a>
+          <a href="#recovery"><span>07</span> Recovery</a>
         </nav>
       </aside>
 
@@ -177,72 +175,9 @@
           </article>
         </section>
 
-        <section id="access" class="guide-section" data-section="access" aria-labelledby="access-title">
-          <header class="guide-section-header">
-            <span class="section-number">02</span>
-            <div><p class="role-tag benson">Benson’s setup</p><h2 id="access-title">OPEN THE RIGHT DOORS</h2></div>
-          </header>
-
-          <article class="step-card owner-card">
-            <label class="check-row">
-              <input type="checkbox" data-check="github-invite">
-              <span><strong>Invite Jacob to the GitHub repository</strong><small>This gives him normal pull and push access.</small></span>
-            </label>
-            <ol>
-              <li>Open the <a href="https://github.com/benson/benson.github.io/settings/access" target="_blank" rel="noreferrer">repository access settings <span aria-hidden="true">↗</span></a>.</li>
-              <li>Choose <strong>Add people</strong> and enter Jacob’s exact username.</li>
-              <li>Jacob accepts from his email or GitHub notifications.</li>
-            </ol>
-          </article>
-
-          <article class="step-card owner-card">
-            <label class="check-row">
-              <input type="checkbox" data-check="branch-protection">
-              <span><strong>Add a light safety rail to <code>master</code></strong><small>Allow direct pushes; block history rewrites and deletion.</small></span>
-            </label>
-            <ol>
-              <li>Open <strong>Repository Settings → Branches</strong>.</li>
-              <li>Add a classic protection rule matching <code>master</code>.</li>
-              <li>Do not require pull requests or status checks.</li>
-              <li>Leave force pushes and branch deletion disabled.</li>
-            </ol>
-          </article>
-
-          <article class="step-card owner-card">
-            <label class="check-row">
-              <input type="checkbox" data-check="cloudflare-invite">
-              <span><strong>Invite Jacob to Cloudflare</strong><small>Use his own identity—never share an API token.</small></span>
-            </label>
-            <ol>
-              <li>Open <strong>Cloudflare → Manage Account → Members → Invite</strong>.</li>
-              <li>Enter Jacob’s Cloudflare email.</li>
-              <li>Scope it to Benson’s account and assign <strong>Workers Platform Admin</strong>.</li>
-              <li>Do not grant Super Administrator or billing access.</li>
-            </ol>
-          </article>
-
-          <details class="detail-card">
-            <summary>Recommended: teach Claude Code about Jacob’s direct-push exception</summary>
-            <div>
-              <p>The repository normally tells coding agents to use task branches. Add this exception to the root <code>CLAUDE.md</code> so Claude understands the authorized Lastlight workflow:</p>
-              <div class="code-block">
-                <button class="copy-button" type="button">Copy</button>
-                <pre><code>## Authorized Lastlight collaborator workflow
-
-When Jacob states that he is working under Benson's standing authorization,
-he may work directly on `master` for changes confined to `lastlight/**`.
-
-Require a clean tree and `git pull --ff-only origin master` before editing.
-Run the complete Lastlight checks before pushing. Never force-push. Stop on
-conflicts, failed checks, unexpected files, or changes outside `lastlight/**`.</code></pre>
-              </div>
-            </div>
-          </details>
-        </section>
-
         <section id="windows" class="guide-section" data-section="windows" aria-labelledby="windows-title">
           <header class="guide-section-header">
-            <span class="section-number">03</span>
+            <span class="section-number">02</span>
             <div><p class="role-tag jacob">Jacob’s setup</p><h2 id="windows-title">PREPARE WINDOWS</h2></div>
           </header>
 
@@ -312,7 +247,7 @@ git config --global user.email "$gitHubId+$gitHubLogin@users.noreply.github.com"
 
         <section id="clone" class="guide-section" data-section="clone" aria-labelledby="clone-title">
           <header class="guide-section-header">
-            <span class="section-number">04</span>
+            <span class="section-number">03</span>
             <div><p class="role-tag together">Do this together</p><h2 id="clone-title">DOWNLOAD LASTLIGHT</h2></div>
           </header>
 
@@ -352,7 +287,7 @@ Set-Location "$env:USERPROFILE\Projects\benson.github.io"</code></pre>
 
         <section id="local" class="guide-section" data-section="local" aria-labelledby="local-title">
           <header class="guide-section-header">
-            <span class="section-number">05</span>
+            <span class="section-number">04</span>
             <div><p class="role-tag jacob">First rehearsal</p><h2 id="local-title">RUN IT LOCALLY</h2></div>
           </header>
 
@@ -386,7 +321,7 @@ npm --prefix lastlight/worker run dev</code></pre>
 
         <section id="daily" class="guide-section" data-section="daily" aria-labelledby="daily-title">
           <header class="guide-section-header">
-            <span class="section-number">06</span>
+            <span class="section-number">05</span>
             <div><p class="role-tag ship">Every real change</p><h2 id="daily-title">CHANGE, CHECK, SHIP</h2></div>
           </header>
 
@@ -479,7 +414,7 @@ git push origin master</code></pre>
 
         <section id="relay" class="guide-section" data-section="relay" aria-labelledby="relay-title">
           <header class="guide-section-header">
-            <span class="section-number">07</span>
+            <span class="section-number">06</span>
             <div><p class="role-tag relay">Only if worker code changed</p><h2 id="relay-title">DEPLOY THE RELAY</h2></div>
           </header>
 
@@ -528,7 +463,7 @@ Tested: [brief list].</code></pre>
 
         <section id="recovery" class="guide-section" data-section="recovery" aria-labelledby="recovery-title">
           <header class="guide-section-header">
-            <span class="section-number">08</span>
+            <span class="section-number">07</span>
             <div><p class="role-tag recovery">No panic protocol</p><h2 id="recovery-title">RECOVER SAFELY</h2></div>
           </header>
 
