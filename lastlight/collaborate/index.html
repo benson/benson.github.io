@@ -72,16 +72,16 @@
       <div class="section-heading">
         <p class="kicker">Start here</p>
         <h2 id="map-title">Setup overview</h2>
-        <p>Finish the one-time setup once. After that, the day-to-day loop is just pull, build, check, push, verify.</p>
+        <p>Finish the one-time setup once. After that, give Claude each change and personally verify the live result.</p>
       </div>
       <ol class="mission-map">
         <li><a href="#start"><span>01</span><strong>Accounts</strong><small>Jacob</small></a></li>
-        <li><a href="#windows"><span>02</span><strong>Windows</strong><small>Install tools</small></a></li>
-        <li><a href="#clone"><span>03</span><strong>First clone</strong><small>Download the game</small></a></li>
-        <li><a href="#local"><span>04</span><strong>Local run</strong><small>Test the setup</small></a></li>
-        <li><a href="#daily"><span>05</span><strong>Daily loop</strong><small>Change and ship</small></a></li>
-        <li><a href="#relay"><span>06</span><strong>Relay</strong><small>When needed</small></a></li>
-        <li><a href="#recovery"><span>07</span><strong>Recovery</strong><small>No panic</small></a></li>
+        <li><a href="#windows"><span>02</span><strong>Windows</strong><small>Ask Claude to prepare it</small></a></li>
+        <li><a href="#clone"><span>03</span><strong>First clone</strong><small>Ask Claude to download it</small></a></li>
+        <li><a href="#local"><span>04</span><strong>Local run</strong><small>Ask Claude to start it</small></a></li>
+        <li><a href="#daily"><span>05</span><strong>Daily loop</strong><small>Give Claude the task</small></a></li>
+        <li><a href="#relay"><span>06</span><strong>Relay</strong><small>Claude handles when needed</small></a></li>
+        <li><a href="#recovery"><span>07</span><strong>Recovery</strong><small>Give Claude the error</small></a></li>
       </ol>
     </section>
 
@@ -167,109 +167,69 @@
         <section id="windows" class="guide-section" data-section="windows" aria-labelledby="windows-title">
           <header class="guide-section-header">
             <span class="section-number">02</span>
-            <div><p class="role-tag jacob">Computer setup</p><h2 id="windows-title">Prepare Windows</h2></div>
+            <div><p class="role-tag jacob">Paste this to Claude</p><h2 id="windows-title">Prepare Windows</h2></div>
           </header>
 
           <article class="step-card">
-            <label class="check-row">
-              <input type="checkbox" data-check="windows-tools">
-              <span><strong>Install the four project tools</strong><small>Use PowerShell. Paste one line at a time.</small></span>
-            </label>
+            <p>Open Claude Code and paste this prompt. Claude can inspect the computer, install anything missing, and walk you through the browser sign-in. Approve each action only after reading it.</p>
             <div class="code-block">
-              <button class="copy-button" type="button">Copy all</button>
-              <pre><code>winget install --id Git.Git -e --source winget
-winget install --id GitHub.cli -e --source winget
-winget install --id OpenJS.NodeJS.LTS -e --source winget
-winget install --id Python.Python.3.13 -e --source winget</code></pre>
-            </div>
-            <p>Close the entire PowerShell window and open a fresh one when installation finishes.</p>
-          </article>
+              <button class="copy-button" type="button">Copy prompt</button>
+              <pre><code>I already have Claude Code working on this Windows computer. Please prepare it
+for collaborating on Lastlight.
 
-          <article class="step-card">
-            <label class="check-row">
-              <input type="checkbox" data-check="claude">
-              <span><strong>Install and sign in to Claude Code</strong><small>Claude will handle most of the technical work.</small></span>
-            </label>
-            <div class="code-block">
-              <button class="copy-button" type="button">Copy</button>
-              <pre><code>npm install -g @anthropic-ai/claude-code
-claude
-claude doctor</code></pre>
-            </div>
-            <details class="inline-detail">
-              <summary>If Claude cannot find Git Bash</summary>
-              <div class="code-block">
-                <button class="copy-button" type="button">Copy</button>
-                <pre><code>$env:CLAUDE_CODE_GIT_BASH_PATH = "C:\Program Files\Git\bin\bash.exe"
-claude</code></pre>
-              </div>
-            </details>
-          </article>
+Check whether Git, GitHub CLI, Node.js LTS, npm, and Python 3.13 are installed.
+Install only what is missing, using normal Windows tools. Then help me sign in
+to GitHub with my own account and configure Git commits with my real name and
+GitHub noreply email.
 
-          <article class="step-card">
-            <label class="check-row">
-              <input type="checkbox" data-check="github-login">
-              <span><strong>Connect PowerShell to GitHub</strong><small>The browser will ask Jacob to approve access.</small></span>
-            </label>
-            <div class="code-block">
-              <button class="copy-button" type="button">Copy</button>
-              <pre><code>gh auth login --hostname github.com --git-protocol https --web
-gh auth status</code></pre>
+Pause whenever I need to complete a browser sign-in or approve something.
+Never ask me to paste a password, two-factor code, recovery code, or access
+token into this chat. Explain what you are changing, and finish by verifying
+that every tool and the GitHub login work.</code></pre>
             </div>
-          </article>
-
-          <article class="step-card">
             <label class="check-row">
-              <input type="checkbox" data-check="git-identity">
-              <span><strong>Set the name attached to commits</strong><small>This uses GitHub’s private email address.</small></span>
+              <input type="checkbox" data-check="windows-ready">
+              <span><strong>Claude confirmed the computer and GitHub login are ready</strong><small>If Claude reports a problem, send its exact message to Benson.</small></span>
             </label>
-            <div class="code-block">
-              <button class="copy-button" type="button">Copy</button>
-              <pre><code>git config --global user.name "Jacob Lastname"
-$gitHubLogin = gh api user --jq .login
-$gitHubId = gh api user --jq .id
-git config --global user.email "$gitHubId+$gitHubLogin@users.noreply.github.com"</code></pre>
-            </div>
-            <p>Replace <code>Jacob Lastname</code> with Jacob’s real name.</p>
           </article>
         </section>
 
         <section id="clone" class="guide-section" data-section="clone" aria-labelledby="clone-title">
           <header class="guide-section-header">
             <span class="section-number">03</span>
-            <div><p class="role-tag together">Project setup</p><h2 id="clone-title">Download Lastlight</h2></div>
+            <div><p class="role-tag together">Paste this to Claude</p><h2 id="clone-title">Download Lastlight</h2></div>
           </header>
 
           <article class="step-card feature-card">
-            <label class="check-row">
-              <input type="checkbox" data-check="clone">
-              <span><strong>Make Jacob’s first local copy</strong><small>In Git language, this is a clone.</small></span>
-            </label>
+            <p>Use this after Benson has added your GitHub account to the repository. Claude will download the project and prepare its dependencies.</p>
             <div class="code-block">
-              <button class="copy-button" type="button">Copy</button>
-              <pre><code>New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\Projects"
-Set-Location "$env:USERPROFILE\Projects"
-git clone https://github.com/benson/benson.github.io.git
-Set-Location .\benson.github.io
-git branch --show-current
-git status --short --branch
-npm ci --prefix lastlight/worker
-py -3.13 -m pip install Pillow==12.1.1</code></pre>
+              <button class="copy-button" type="button">Copy prompt</button>
+              <pre><code>Please set up my local copy of Lastlight.
+
+Clone https://github.com/benson/benson.github.io.git into my Windows Projects
+folder, unless it already exists. Work only with this repository. Confirm that
+I have collaborator access, that the current branch is master, and that the
+working tree is clean and synchronized with origin/master.
+
+Install the dependencies required by Lastlight and its worker using the
+versions expected by the repository. Do not edit or commit project files.
+Show me a short final summary of what you verified.</code></pre>
             </div>
-            <div class="expected-result"><span>Expected result</span><strong>Branch: <code>master</code> · Working tree: clean</strong></div>
+            <label class="check-row">
+              <input type="checkbox" data-check="clone-ready">
+              <span><strong>Claude confirmed <code>master</code> is clean and up to date</strong><small>The project should be inside your Windows Projects folder.</small></span>
+            </label>
           </article>
 
           <article class="step-card">
-            <label class="check-row">
-              <input type="checkbox" data-check="cloudflare-login">
-              <span><strong>Connect Wrangler to Cloudflare</strong><small>Jacob signs in as himself.</small></span>
-            </label>
+            <h3>Connect Cloudflare when Benson has invited you</h3>
+            <p>This is only needed if you will change the multiplayer relay. Paste this to Claude and complete the browser sign-in yourself.</p>
             <div class="code-block">
-              <button class="copy-button" type="button">Copy</button>
-              <pre><code>Set-Location "$env:USERPROFILE\Projects\benson.github.io\lastlight\worker"
-npx wrangler login
-npx wrangler whoami
-Set-Location "$env:USERPROFILE\Projects\benson.github.io"</code></pre>
+              <button class="copy-button" type="button">Copy prompt</button>
+              <pre><code>Please connect this Lastlight project to Cloudflare using my own Cloudflare
+account. Use the repository's existing Wrangler setup. Pause for me to complete
+the browser sign-in, do not ask for credentials in chat, and verify the login.
+Do not create, change, or deploy a Worker.</code></pre>
             </div>
           </article>
         </section>
@@ -277,63 +237,35 @@ Set-Location "$env:USERPROFILE\Projects\benson.github.io"</code></pre>
         <section id="local" class="guide-section" data-section="local" aria-labelledby="local-title">
           <header class="guide-section-header">
             <span class="section-number">04</span>
-            <div><p class="role-tag jacob">First test</p><h2 id="local-title">Run it locally</h2></div>
+            <div><p class="role-tag jacob">Paste this to Claude</p><h2 id="local-title">Run it locally</h2></div>
           </header>
 
-          <div class="split-steps">
-            <article class="step-card">
-              <p class="terminal-label">PowerShell window 1</p>
-              <h3>Website</h3>
-              <div class="code-block">
-                <button class="copy-button" type="button">Copy</button>
-                <pre><code>Set-Location "$env:USERPROFILE\Projects\benson.github.io"
-py -3.13 -m http.server 4173</code></pre>
-              </div>
-              <a class="test-link" href="http://localhost:4173/lastlight/" target="_blank" rel="noreferrer">Open local game <span aria-hidden="true">↗</span></a>
-            </article>
-            <article class="step-card">
-              <p class="terminal-label">PowerShell window 2</p>
-              <h3>Multiplayer relay</h3>
-              <div class="code-block">
-                <button class="copy-button" type="button">Copy</button>
-                <pre><code>Set-Location "$env:USERPROFILE\Projects\benson.github.io"
-npm --prefix lastlight/worker run dev</code></pre>
-              </div>
-              <a class="test-link" href="http://localhost:4173/lastlight/?relay=ws://localhost:8787/room/" target="_blank" rel="noreferrer">Open local multiplayer <span aria-hidden="true">↗</span></a>
-            </article>
-          </div>
-          <label class="standalone-check">
-            <input type="checkbox" data-check="local-run">
-            <span><strong>I opened the local game successfully</strong><small>Press Ctrl+C in each PowerShell window when finished.</small></span>
-          </label>
+          <article class="step-card">
+            <p>Claude can start both local services and give you the links to open.</p>
+            <div class="code-block">
+              <button class="copy-button" type="button">Copy prompt</button>
+              <pre><code>Please run my local Lastlight setup without changing any files.
+
+Start the website and the local multiplayer relay using the repository's
+documented commands. Keep both processes running and give me clickable links
+for the normal local game and local multiplayer game. Check the terminal output
+for errors. After I finish testing, stop both processes cleanly.</code></pre>
+            </div>
+            <label class="check-row">
+              <input type="checkbox" data-check="local-run">
+              <span><strong>The local game and local multiplayer both opened</strong><small>Tell Claude when you are finished so it can stop the local services.</small></span>
+            </label>
+          </article>
         </section>
 
         <section id="daily" class="guide-section" data-section="daily" aria-labelledby="daily-title">
           <header class="guide-section-header">
             <span class="section-number">05</span>
-            <div><p class="role-tag ship">Every change</p><h2 id="daily-title">Change, check, and ship</h2></div>
+            <div><p class="role-tag ship">Paste this to Claude</p><h2 id="daily-title">Change, check, and ship</h2></div>
           </header>
 
-          <div class="release-flow" aria-label="Release sequence">
-            <span>Pull</span><i>→</i><span>Ask Claude</span><i>→</i><span>Review</span><i>→</i><span>Check</span><i>→</i><span>Push</span><i>→</i><span>Verify</span>
-          </div>
-
-          <article class="step-card">
-            <h3>1. Start clean and pull Benson’s latest work</h3>
-            <div class="code-block">
-              <button class="copy-button" type="button">Copy</button>
-              <pre><code>Set-Location "$env:USERPROFILE\Projects\benson.github.io"
-git switch master
-git status --short
-git pull --ff-only origin master
-claude</code></pre>
-            </div>
-            <p class="safety-note">If <code>git status --short</code> prints unfamiliar files, stop. Ask Claude to explain them. Don’t delete, reset, or overwrite them.</p>
-          </article>
-
           <article class="step-card prompt-card">
-            <h3>2. Give Claude the mission</h3>
-            <p>Replace the bracketed line with the actual change.</p>
+            <p>Start Claude Code inside the repository. Replace the bracketed line with the change you want, then paste the whole prompt. Claude will handle the terminal work, tests, commit, push, and deployment checks.</p>
             <div class="code-block">
               <button class="copy-button" type="button">Copy prompt</button>
               <pre><code>I am Jacob, working under Benson's standing authorization to make this
@@ -355,43 +287,12 @@ Cloudflare relay separately, report its version, and verify /health.</code></pre
             </div>
           </article>
 
-          <article class="step-card">
-            <h3>3. The checks that guard the live game</h3>
-            <p>Claude should run all of these before pushing:</p>
-            <div class="code-block tall-code">
-              <button class="copy-button" type="button">Copy all</button>
-              <pre><code>npm --prefix lastlight run check
-npm --prefix lastlight run sprites:verify
-npm --prefix lastlight run motion-atlases:verify
-npm --prefix lastlight run motion-atlases:test
-npm --prefix lastlight test
-npm --prefix lastlight run fixtures:verify -- --report=artifacts/fixture-report.json
-npm --prefix lastlight run soak:ci -- --report artifacts/multiplayer-soak.json
-npm ci --prefix lastlight/worker
-npm test --prefix lastlight/worker</code></pre>
-            </div>
-            <p class="warning-note"><strong>Why local checks matter:</strong> GitHub Pages starts publishing as soon as the push lands. The online checks do not currently hold the deployment back.</p>
-          </article>
-
-          <article class="step-card">
-            <h3>4. Review, commit, synchronize, push</h3>
-            <div class="code-block">
-              <button class="copy-button" type="button">Copy</button>
-              <pre><code>git status --short
-git diff
-git add -- lastlight
-git diff --cached
-git commit -m "Lastlight: describe the change"
-git pull --rebase origin master
-git push origin master</code></pre>
-            </div>
-            <p>Do not use <code>git add .</code> in this multi-project repository. Stage only Lastlight.</p>
-          </article>
+          <p class="warning-note"><strong>Before approving the push:</strong> read Claude’s summary. Confirm it changed only Lastlight files and that every local check passed.</p>
 
           <article id="ship" class="step-card live-card">
             <label class="check-row">
               <input type="checkbox" data-check="first-push">
-              <span><strong>Verify the release</strong><small>A push is not finished until both checks are green and the live behavior works.</small></span>
+              <span><strong>Personally verify the live change</strong><small>Claude should watch the automated checks, but you should still open the game and confirm the change works.</small></span>
             </label>
             <div class="verify-grid">
               <a href="https://github.com/benson/benson.github.io/actions/workflows/lastlight-check.yml" target="_blank" rel="noreferrer"><span>01</span><strong>Lastlight Checks</strong><small>Wait for success ↗</small></a>
@@ -404,103 +305,51 @@ git push origin master</code></pre>
         <section id="relay" class="guide-section" data-section="relay" aria-labelledby="relay-title">
           <header class="guide-section-header">
             <span class="section-number">06</span>
-            <div><p class="role-tag relay">Only when worker code changed</p><h2 id="relay-title">Deploy the multiplayer relay</h2></div>
+            <div><p class="role-tag relay">Usually handled by Claude</p><h2 id="relay-title">Deploy the multiplayer relay</h2></div>
           </header>
 
-          <div class="conditional-banner">
-            <strong>Did anything under <code>lastlight/worker/**</code> change?</strong>
-            <span>No → skip this entire stage.</span>
-            <span>Yes → test, deploy, verify, report.</span>
-          </div>
-
           <article class="step-card">
-            <h3>Test and deploy</h3>
+            <p>The daily prompt already tells Claude to deploy the relay when worker code changes. If Claude stops before doing that, paste this follow-up. If worker code did not change, skip this section.</p>
             <div class="code-block">
-              <button class="copy-button" type="button">Copy</button>
-              <pre><code>Set-Location "$env:USERPROFILE\Projects\benson.github.io"
-npm ci --prefix lastlight/worker
-npm test --prefix lastlight/worker
-npm --prefix lastlight/worker run deploy</code></pre>
-            </div>
-            <p>Save the deployment/version identifier Wrangler prints.</p>
-          </article>
+              <button class="copy-button" type="button">Copy prompt</button>
+              <pre><code>Finish the multiplayer relay part of this Lastlight release.
 
-          <article class="step-card">
+First confirm whether anything under lastlight/worker/** changed in the commit.
+If not, do not deploy. If it did change, run the worker tests, deploy the
+existing Cloudflare Worker, record the deployment version, verify the production
+health and config endpoints, and test a real live lobby.
+
+Do not change Cloudflare settings or secrets. Give me a concise final report
+with the commit, deployment version, checks, and live verification.</code></pre>
+            </div>
             <label class="check-row">
               <input type="checkbox" data-check="relay-verify">
-              <span><strong>Verify production</strong><small>Both endpoints must succeed, then test a real live lobby.</small></span>
+              <span><strong>Claude verified the production relay and I tested a live lobby</strong><small>Save Claude’s final report and send it to Benson.</small></span>
             </label>
-            <div class="code-block">
-              <button class="copy-button" type="button">Copy</button>
-              <pre><code>curl.exe -f https://lastlight-relay.bensonperry.workers.dev/health
-curl.exe -f -H "Origin: https://bensonperry.com" https://lastlight-relay.bensonperry.workers.dev/config</code></pre>
-            </div>
-          </article>
-
-          <article class="handoff-card">
-            <p>Send Benson this handoff</p>
-            <div class="code-block">
-              <button class="copy-button" type="button">Copy message</button>
-              <pre><code>Shipped Lastlight commit [SHORT COMMIT ID] to master.
-Lastlight Checks: passed.
-GitHub Pages: deployed and live-verified.
-Relay: [not changed / deployed version ID and health check passed].
-Tested: [brief list].</code></pre>
-            </div>
           </article>
         </section>
 
         <section id="recovery" class="guide-section" data-section="recovery" aria-labelledby="recovery-title">
           <header class="guide-section-header">
             <span class="section-number">07</span>
-            <div><p class="role-tag recovery">If something goes wrong</p><h2 id="recovery-title">Recover safely</h2></div>
+            <div><p class="role-tag recovery">Paste this to Claude</p><h2 id="recovery-title">Recover safely</h2></div>
           </header>
 
-          <div class="recovery-grid">
-            <details class="detail-card">
-              <summary>My push was rejected</summary>
-              <div>
-                <p>Benson probably pushed first. This is normal. Never add <code>--force</code>.</p>
-                <div class="code-block">
-                  <button class="copy-button" type="button">Copy</button>
-                  <pre><code>git pull --rebase origin master</code></pre>
-                </div>
-                <p>Resolve with Claude, rerun every check, then push normally.</p>
-              </div>
-            </details>
+          <p>Paste the exact error or describe what went wrong in the bracketed line. Claude should diagnose it without erasing work or rewriting shared history.</p>
+          <div class="code-block">
+            <button class="copy-button" type="button">Copy prompt</button>
+            <pre><code>Something went wrong while I was working on Lastlight:
 
-            <details class="detail-card">
-              <summary>A bad website commit is live</summary>
-              <div>
-                <p>Make a new commit that reverses it. This keeps history intact.</p>
-                <div class="code-block">
-                  <button class="copy-button" type="button">Copy</button>
-                  <pre><code>git log --oneline -10
-git revert BAD_COMMIT_ID
-git push origin master</code></pre>
-                </div>
-              </div>
-            </details>
+[PASTE THE EXACT ERROR AND DESCRIBE THE LAST THING THAT HAPPENED]
 
-            <details class="detail-card">
-              <summary>A bad relay deployment is live</summary>
-              <div>
-                <p>Tell Benson immediately, then roll back and verify health.</p>
-                <div class="code-block">
-                  <button class="copy-button" type="button">Copy</button>
-                  <pre><code>Set-Location "$env:USERPROFILE\Projects\benson.github.io\lastlight\worker"
-npx wrangler deployments list
-npx wrangler rollback</code></pre>
-                </div>
-              </div>
-            </details>
+Diagnose the current state before changing anything. Preserve all uncommitted
+work and explain the safest recovery plan in plain language.
 
-            <details class="detail-card">
-              <summary>Claude wants to touch another project</summary>
-              <div>
-                <p>Stop it. This collaboration is scoped to <code>lastlight/**</code>. Other folders publish unrelated parts of Benson’s website.</p>
-              </div>
-            </details>
+Never force-push, use git reset --hard, delete unfamiliar files, expose secrets,
+or touch anything outside lastlight/**. If a bad website commit is already live,
+use a new revert commit rather than rewriting history. If a bad relay deployment
+is live, show me the rollback plan and ask before executing it. Rerun the full
+Lastlight checks after any fix and verify production afterward.</code></pre>
           </div>
 
           <p class="never-banner"><strong>The two never-commands:</strong> never force-push shared <code>master</code>, and never use <code>git reset --hard</code> to solve a collaboration problem.</p>
