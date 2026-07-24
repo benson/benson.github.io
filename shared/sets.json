@@ -1126,6 +1126,7 @@
     "mtgjsonBoosterTypes": [
       "arena",
       "box-topper",
+      "box-topper-jp",
       "collector",
       "collector-jp",
       "draft",
