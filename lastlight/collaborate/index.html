@@ -3,25 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#070d18">
+  <meta name="theme-color" content="#ffffff">
   <meta name="description" content="A beginner-friendly Windows guide for collaborating on Lastlight with GitHub, Claude Code, GitHub Pages, and Cloudflare.">
   <link rel="canonical" href="https://bensonperry.com/lastlight/collaborate/">
-  <meta property="og:title" content="Ship Lastlight Together">
-  <meta property="og:description" content="From a brand-new GitHub account to a safe first production push—one step at a time.">
+  <meta property="og:title" content="Lastlight collaboration setup">
+  <meta property="og:description" content="Windows setup instructions for collaborating on Lastlight with GitHub and Claude Code.">
   <meta property="og:image" content="https://bensonperry.com/lastlight/assets/og.png">
   <meta property="og:image:alt" content="The Lastlight squad holding the line together">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://bensonperry.com/lastlight/collaborate/">
   <meta property="og:site_name" content="Lastlight">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Ship Lastlight Together">
-  <meta name="twitter:description" content="A zero-assumptions collaboration guide for Benson and Jacob.">
+  <meta name="twitter:title" content="Lastlight collaboration setup">
+  <meta name="twitter:description" content="Windows setup instructions for collaborating on Lastlight with GitHub and Claude Code.">
   <meta name="twitter:image" content="https://bensonperry.com/lastlight/assets/og.png">
-  <title>Ship Lastlight Together</title>
+  <title>Lastlight collaboration setup</title>
   <link rel="icon" href="../assets/branding/favicon.svg" type="image/svg+xml">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -33,33 +30,25 @@
       <span>LASTLIGHT</span>
     </a>
     <nav class="header-links" aria-label="Page links">
-      <a href="#map">The map</a>
-      <a href="#ship">Ship a change</a>
       <a class="play-link" href="../">Play the game <span aria-hidden="true">↗</span></a>
     </nav>
   </header>
 
   <main>
     <section class="hero" aria-labelledby="page-title">
-      <div class="hero-grid" aria-hidden="true"></div>
-      <div class="hero-art" aria-hidden="true"></div>
       <div class="hero-content">
-        <p class="eyebrow">Benson + Jacob · Windows guide</p>
+        <p class="eyebrow">Jacob’s Windows setup guide</p>
         <h1 id="page-title">Set up Lastlight collaboration</h1>
         <p class="hero-deck">A step-by-step guide for going from a new GitHub account to a safe first production push with Claude Code.</p>
         <div class="hero-actions">
           <a class="primary-action" href="#start">Start at step one <span aria-hidden="true">↓</span></a>
           <a class="secondary-action" href="#daily">I’m already set up</a>
         </div>
-        <ul class="hero-facts" aria-label="Guide facts">
-          <li><strong>8</strong><span>guided stages</span></li>
-          <li><strong>0</strong><span>Git experience needed</span></li>
-          <li><strong>1</strong><span>live branch: master</span></li>
-        </ul>
       </div>
     </section>
 
-    <section class="deployment-strip" aria-label="How Lastlight deploys">
+    <section class="deployment-strip" aria-labelledby="publishing-title">
+      <h2 id="publishing-title">How publishing works</h2>
       <div>
         <span class="strip-label">Game website</span>
         <strong>Push to <code>master</code></strong>
@@ -133,7 +122,7 @@
         <section id="start" class="guide-section" data-section="start" aria-labelledby="start-title">
           <header class="guide-section-header">
             <span class="section-number">01</span>
-            <div><p class="role-tag jacob">Jacob’s setup</p><h2 id="start-title">CREATE YOUR ACCOUNTS</h2></div>
+            <div><p class="role-tag jacob">Account setup</p><h2 id="start-title">Create your accounts</h2></div>
           </header>
 
           <article class="step-card">
@@ -178,7 +167,7 @@
         <section id="windows" class="guide-section" data-section="windows" aria-labelledby="windows-title">
           <header class="guide-section-header">
             <span class="section-number">02</span>
-            <div><p class="role-tag jacob">Jacob’s setup</p><h2 id="windows-title">PREPARE WINDOWS</h2></div>
+            <div><p class="role-tag jacob">Computer setup</p><h2 id="windows-title">Prepare Windows</h2></div>
           </header>
 
           <article class="step-card">
@@ -248,7 +237,7 @@ git config --global user.email "$gitHubId+$gitHubLogin@users.noreply.github.com"
         <section id="clone" class="guide-section" data-section="clone" aria-labelledby="clone-title">
           <header class="guide-section-header">
             <span class="section-number">03</span>
-            <div><p class="role-tag together">Do this together</p><h2 id="clone-title">DOWNLOAD LASTLIGHT</h2></div>
+            <div><p class="role-tag together">Project setup</p><h2 id="clone-title">Download Lastlight</h2></div>
           </header>
 
           <article class="step-card feature-card">
@@ -288,7 +277,7 @@ Set-Location "$env:USERPROFILE\Projects\benson.github.io"</code></pre>
         <section id="local" class="guide-section" data-section="local" aria-labelledby="local-title">
           <header class="guide-section-header">
             <span class="section-number">04</span>
-            <div><p class="role-tag jacob">First rehearsal</p><h2 id="local-title">RUN IT LOCALLY</h2></div>
+            <div><p class="role-tag jacob">First test</p><h2 id="local-title">Run it locally</h2></div>
           </header>
 
           <div class="split-steps">
@@ -322,7 +311,7 @@ npm --prefix lastlight/worker run dev</code></pre>
         <section id="daily" class="guide-section" data-section="daily" aria-labelledby="daily-title">
           <header class="guide-section-header">
             <span class="section-number">05</span>
-            <div><p class="role-tag ship">Every real change</p><h2 id="daily-title">CHANGE, CHECK, SHIP</h2></div>
+            <div><p class="role-tag ship">Every change</p><h2 id="daily-title">Change, check, and ship</h2></div>
           </header>
 
           <div class="release-flow" aria-label="Release sequence">
@@ -415,7 +404,7 @@ git push origin master</code></pre>
         <section id="relay" class="guide-section" data-section="relay" aria-labelledby="relay-title">
           <header class="guide-section-header">
             <span class="section-number">06</span>
-            <div><p class="role-tag relay">Only if worker code changed</p><h2 id="relay-title">DEPLOY THE RELAY</h2></div>
+            <div><p class="role-tag relay">Only when worker code changed</p><h2 id="relay-title">Deploy the multiplayer relay</h2></div>
           </header>
 
           <div class="conditional-banner">
@@ -464,7 +453,7 @@ Tested: [brief list].</code></pre>
         <section id="recovery" class="guide-section" data-section="recovery" aria-labelledby="recovery-title">
           <header class="guide-section-header">
             <span class="section-number">07</span>
-            <div><p class="role-tag recovery">No panic protocol</p><h2 id="recovery-title">RECOVER SAFELY</h2></div>
+            <div><p class="role-tag recovery">If something goes wrong</p><h2 id="recovery-title">Recover safely</h2></div>
           </header>
 
           <div class="recovery-grid">
@@ -516,15 +505,6 @@ npx wrangler rollback</code></pre>
 
           <p class="never-banner"><strong>The two never-commands:</strong> never force-push shared <code>master</code>, and never use <code>git reset --hard</code> to solve a collaboration problem.</p>
         </section>
-
-        <section class="finish-card" aria-labelledby="finish-title">
-          <div>
-            <p class="kicker">Protocol complete</p>
-            <h2 id="finish-title">YOU’RE READY TO SHIP.</h2>
-            <p>For the first release, make a tiny documentation change together. Run the whole loop once, watch both green checks appear, and then use the same rhythm for real work.</p>
-          </div>
-          <a class="primary-action" href="#daily">Review the ship loop <span aria-hidden="true">↑</span></a>
-        </section>
       </div>
     </div>
   </main>
@@ -534,7 +514,7 @@ npx wrangler rollback</code></pre>
       <span class="wordmark-mark" aria-hidden="true">L</span>
       <span>LASTLIGHT</span>
     </a>
-    <p>Built for Benson + Jacob. Keep the branch clean. Keep the checks green.</p>
+    <p>Lastlight collaboration guide.</p>
     <a href="https://github.com/benson/benson.github.io" target="_blank" rel="noreferrer">View repository ↗</a>
   </footer>
 
