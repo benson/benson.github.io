@@ -2,6 +2,15 @@
   "blurb": "played 20 other games in the last week, went 16-4",
   "recent": [
     {
+      "champion": "Shen",
+      "win": true,
+      "kills": 4,
+      "deaths": 6,
+      "assists": 18,
+      "damage": 27581,
+      "minutes": 20
+    },
+    {
       "champion": "Sion",
       "win": true,
       "kills": 9,
@@ -35,15 +44,6 @@
       "deaths": 6,
       "assists": 9,
       "damage": 35394,
-      "minutes": 23
-    },
-    {
-      "champion": "Gwen",
-      "win": true,
-      "kills": 4,
-      "deaths": 6,
-      "assists": 15,
-      "damage": 36673,
       "minutes": 23
     }
   ],
