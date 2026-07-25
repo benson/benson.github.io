@@ -1,6 +1,24 @@
 {
-  "blurb": "played 20 other games in the last week, went 16-4",
+  "blurb": "played 20 other games in the last week, went 17-3",
   "recent": [
+    {
+      "champion": "Soraka",
+      "win": true,
+      "kills": 3,
+      "deaths": 7,
+      "assists": 17,
+      "damage": 7956,
+      "minutes": 25
+    },
+    {
+      "champion": "Tristana",
+      "win": true,
+      "kills": 19,
+      "deaths": 10,
+      "assists": 9,
+      "damage": 110299,
+      "minutes": 25
+    },
     {
       "champion": "Shen",
       "win": true,
@@ -26,24 +44,6 @@
       "deaths": 3,
       "assists": 26,
       "damage": 18405,
-      "minutes": 23
-    },
-    {
-      "champion": "Renata",
-      "win": true,
-      "kills": 6,
-      "deaths": 8,
-      "assists": 22,
-      "damage": 51180,
-      "minutes": 27
-    },
-    {
-      "champion": "Swain",
-      "win": false,
-      "kills": 9,
-      "deaths": 6,
-      "assists": 9,
-      "damage": 35394,
       "minutes": 23
     }
   ],
