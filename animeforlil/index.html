@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anime for Lil</title>
+  <meta name="description" content="A quick anime chooser for a first watch together.">
+  <meta property="og:title" content="Anime for Lil">
+  <meta property="og:description" content="A short, low-spoiler chooser for picking a first anime together.">
+  <meta property="og:url" content="https://bensonperry.com/animeforlil/">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="intro">
+      <a class="home-link" href="/">bensonperry.com</a>
+      <p class="kicker">a very serious sibling research document</p>
+      <h1>Pick an anime for us to watch</h1>
+      <p class="lede">I cut the extra-sleepy stuff and kept shows that are easy to get into, light on fanservice, and good for a first anime night. Some are cozy, some are tense, some involve volleyball feelings.</p>
+    </header>
+
+    <section class="controls" aria-label="Filter shows">
+      <button class="filter is-active" type="button" data-filter="all">All</button>
+      <button class="filter" type="button" data-filter="gentler">Gentler</button>
+      <button class="filter" type="button" data-filter="sports">Sports</button>
+      <button class="filter" type="button" data-filter="food">Food/fantasy</button>
+      <button class="filter" type="button" data-filter="tense">Tense</button>
+      <button class="filter" type="button" data-filter="short">Short</button>
+    </section>
+
+    <section class="top-picks" aria-labelledby="top-picks-title">
+      <h2 id="top-picks-title">Fastest safe picks</h2>
+      <div class="pick-row">
+        <article>
+          <span class="rank">1</span>
+          <h3>Haikyu!!</h3>
+          <p>Fun, sincere, barely any baggage. The safest first pick if you want momentum.</p>
+        </article>
+        <article>
+          <span class="rank">2</span>
+          <h3>Delicious in Dungeon</h3>
+          <p>Fantasy adventure plus cooking. Weird in a friendly way.</p>
+        </article>
+        <article>
+          <span class="rank">3</span>
+          <h3>Spy x Family</h3>
+          <p>Easy comedy, cute family setup, plenty of plot without being heavy.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="grid" aria-label="Anime options">
+      <article class="show" data-tags="sports gentler">
+        <a class="thumb" href="https://www.youtube.com/watch?v=JOGp2c7-cKc" target="_blank" rel="noopener">
+          <img src="https://img.youtube.com/vi/JOGp2c7-cKc/hqdefault.jpg" alt="Trailer still for Haikyu!!">
+          <span>Trailer</span>
+        </a>
+        <div class="copy">
+          <div class="meta"><span>Sports</span><span>TV-14-ish</span><span>Low fanservice</span></div>
+          <h2>Haikyu!!</h2>
+          <p class="pitch">A tiny, wildly determined volleyball kid joins a team and turns every point into an emotional event.</p>
+          <p><strong>Pick this if:</strong> she likes underdog stories, team dynamics, comedy, or sports movies.</p>
+          <p><strong>Heads up:</strong> lots of yelling and tournament intensity, but it is wholesome yelling.</p>
+        </div>
+      </article>
+
+      <article class="show" data-tags="food fantasy gentler">
+        <a class="thumb" href="https://www.youtube.com/watch?v=n5JEoD7keVo" target="_blank" rel="noopener">
+          <img src="https://img.youtube.com/vi/n5JEoD7keVo/hqdefault.jpg" alt="Trailer still for Delicious in Dungeon">
+          <span>Trailer</span>
+        </a>
+        <div class="copy">
+          <div class="meta"><span>Food</span><span>Fantasy</span><span>Low fanservice</span></div>
+          <h2>Delicious in Dungeon</h2>
+          <p class="pitch">A dungeon party has to rescue a friend, but the practical solution is to cook and eat the monsters.</p>
+          <p><strong>Pick this if:</strong> she likes fantasy, cooking shows, tabletop-game nonsense, or ensemble comedy.</p>
+          <p><strong>Heads up:</strong> some monster grossness and danger, but the tone is mostly playful.</p>
+        </div>
+      </article>
+
+      <article class="show" data-tags="gentler">
+        <a class="thumb" href="https://www.youtube.com/watch?v=ofXigq9aIpo" target="_blank" rel="noopener">
+          <img src="https://img.youtube.com/vi/ofXigq9aIpo/hqdefault.jpg" alt="Trailer still for Spy x Family">
+          <span>Trailer</span>
+        </a>
+        <div class="copy">
+          <div class="meta"><span>Comedy</span><span>Action-lite</span><span>Low fanservice</span></div>
+          <h2>Spy x Family</h2>
+          <p class="pitch">A spy, an assassin, and a telepathic kid form a fake family and accidentally become adorable.</p>
+          <p><strong>Pick this if:</strong> she wants something charming, funny, and easy to understand instantly.</p>
+          <p><strong>Heads up:</strong> it has broad anime comedy, but it is very first-timer friendly.</p>
+        </div>
+      </article>
+
+      <article class="show" data-tags="short gentler">
+        <a class="thumb" href="https://www.youtube.com/watch?v=V_ZCv-52Cdo" target="_blank" rel="noopener">
+          <img src="https://img.youtube.com/vi/V_ZCv-52Cdo/hqdefault.jpg" alt="Trailer still for A Place Further Than the Universe">
+          <span>Trailer</span>
+        </a>
+        <div class="copy">
+          <div class="meta"><span>13 episodes</span><span>Adventure</span><span>Low fanservice</span></div>
+          <h2>A Place Further Than the Universe</h2>
+          <p class="pitch">Four girls decide they are done waiting for life to happen and try to get to Antarctica.</p>
+          <p><strong>Pick this if:</strong> she likes emotional friendship stories, travel dreams, and a complete short arc.</p>
+          <p><strong>Heads up:</strong> it gets sentimental, but it is not grim.</p>
+        </div>
+      </article>
+
+      <article class="show" data-tags="short gentler">
+        <a class="thumb" href="https://www.youtube.com/watch?v=1gmN_3kr4wo" target="_blank" rel="noopener">
+          <img src="https://img.youtube.com/vi/1gmN_3kr4wo/hqdefault.jpg" alt="Trailer still for Barakamon">
+          <span>Trailer</span>
+        </a>
+        <div class="copy">
+          <div class="meta"><span>12 episodes</span><span>Slice of life</span><span>No fanservice vibe</span></div>
+          <h2>Barakamon</h2>
+          <p class="pitch">A burned-out calligrapher moves to a rural island and gets gently bullied into becoming a person again.</p>
+          <p><strong>Pick this if:</strong> she wants warm, funny, human-scale comfort without much lore.</p>
+          <p><strong>Heads up:</strong> quieter than the others, but not as sleepy as pure cozy camping anime.</p>
+        </div>
+      </article>
+
+      <article class="show" data-tags="sports gentler">
+        <a class="thumb" href="https://www.youtube.com/watch?v=gIYVsSERTQ0" target="_blank" rel="noopener">
+          <img src="https://img.youtube.com/vi/gIYVsSERTQ0/hqdefault.jpg" alt="Trailer still for Run with the Wind">
+          <span>Trailer</span>
+        </a>
+        <div class="copy">
+          <div class="meta"><span>23 episodes</span><span>Sports</span><span>Low fanservice</span></div>
+          <h2>Run with the Wind</h2>
+          <p class="pitch">A group of college guys get pulled into training for a legendary relay race, mostly against their will.</p>
+          <p><strong>Pick this if:</strong> she wants a more grown-up sports story with character drama and less chaos.</p>
+          <p><strong>Heads up:</strong> slower build than Haikyu!!, but the payoff is great.</p>
+        </div>
+      </article>
+
+      <article class="show" data-tags="fantasy">
+        <a class="thumb" href="https://www.youtube.com/watch?v=Iwr1aLEDpe4" target="_blank" rel="noopener">
+          <img src="https://img.youtube.com/vi/Iwr1aLEDpe4/hqdefault.jpg" alt="Trailer still for Frieren: Beyond Journey's End">
+          <span>Trailer</span>
+        </a>
+        <div class="copy">
+          <div class="meta"><span>Fantasy</span><span>Melancholy</span><span>Low fanservice</span></div>
+          <h2>Frieren: Beyond Journey's End</h2>
+          <p class="pitch">After the big fantasy quest is already over, an elf mage slowly learns what her old companions meant to her.</p>
+          <p><strong>Pick this if:</strong> she wants gorgeous, thoughtful fantasy with bursts of excellent action.</p>
+          <p><strong>Heads up:</strong> it is a gentle slow burn, so only pick it if contemplative sounds good.</p>
+        </div>
+      </article>
+
+      <article class="show" data-tags="short gentler">
+        <a class="thumb" href="https://www.youtube.com/watch?v=b95pvNfDv8M" target="_blank" rel="noopener">
+          <img src="https://img.youtube.com/vi/b95pvNfDv8M/hqdefault.jpg" alt="Trailer still for Keep Your Hands Off Eizouken!">
+          <span>Trailer</span>
+        </a>
+        <div class="copy">
+          <div class="meta"><span>12 episodes</span><span>Creative</span><span>Low fanservice</span></div>
+          <h2>Keep Your Hands Off Eizouken!</h2>
+          <p class="pitch">Three girls start making animation, and their imagination keeps turning the real world into a sketchbook.</p>
+          <p><strong>Pick this if:</strong> she likes creative people, art-process shows, or fast visual invention.</p>
+          <p><strong>Heads up:</strong> it is more eccentric than the others, in a fun way.</p>
+        </div>
+      </article>
+
+      <article class="show" data-tags="tense">
+        <a class="thumb" href="https://www.youtube.com/watch?v=NlJZ-YgAt-c" target="_blank" rel="noopener">
+          <img src="https://img.youtube.com/vi/NlJZ-YgAt-c/hqdefault.jpg" alt="Trailer still for Death Note">
+          <span>Trailer</span>
+        </a>
+        <div class="copy">
+          <div class="meta"><span>Thriller</span><span>37 episodes</span><span>Low fanservice</span></div>
+          <h2>Death Note</h2>
+          <p class="pitch">A brilliant student finds a notebook that can kill people, then starts a cat-and-mouse game with a detective.</p>
+          <p><strong>Pick this if:</strong> she likes murder mysteries, mind games, and morally messy main characters.</p>
+          <p><strong>Heads up:</strong> dark, intense, and melodramatic. Great gateway, but not chill.</p>
+        </div>
+      </article>
+
+      <article class="show" data-tags="tense fantasy">
+        <a class="thumb" href="https://www.youtube.com/watch?v=RNwNA1M8A94" target="_blank" rel="noopener">
+          <img src="https://img.youtube.com/vi/RNwNA1M8A94/hqdefault.jpg" alt="Trailer still for Fullmetal Alchemist: Brotherhood">
+          <span>Trailer</span>
+        </a>
+        <div class="copy">
+          <div class="meta"><span>Adventure</span><span>64 episodes</span><span>Low fanservice</span></div>
+          <h2>Fullmetal Alchemist: Brotherhood</h2>
+          <p class="pitch">Two brothers try to fix a terrible mistake in a world of alchemy, military conspiracies, and big feelings.</p>
+          <p><strong>Pick this if:</strong> she wants the classic big adventure with jokes, tragedy, and a real ending.</p>
+          <p><strong>Heads up:</strong> heavier themes, body horror, war, grief, and a longer commitment.</p>
+        </div>
+      </article>
+    </section>
+
+    <section class="footer-note">
+      <h2>My vote</h2>
+      <p>If we want the lowest-risk first night: <strong>Haikyu!!</strong>. If we want food and fantasy weirdness: <strong>Delicious in Dungeon</strong>. If we want darker and more addictive: <strong>Death Note</strong> or <strong>FMA:B</strong>.</p>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
