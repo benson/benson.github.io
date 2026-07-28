@@ -1,6 +1,33 @@
 {
-  "blurb": "played 20 other games in the last week, went 16-4",
+  "blurb": "played 20 other games in the last week, went 15-5",
   "recent": [
+    {
+      "champion": "Shen",
+      "win": true,
+      "kills": 7,
+      "deaths": 10,
+      "assists": 14,
+      "damage": 67934,
+      "minutes": 23
+    },
+    {
+      "champion": "Shen",
+      "win": true,
+      "kills": 9,
+      "deaths": 8,
+      "assists": 23,
+      "damage": 55418,
+      "minutes": 26
+    },
+    {
+      "champion": "Zoe",
+      "win": false,
+      "kills": 6,
+      "deaths": 6,
+      "assists": 5,
+      "damage": 13242,
+      "minutes": 27
+    },
     {
       "champion": "Brand",
       "win": true,
@@ -18,33 +45,6 @@
       "assists": 13,
       "damage": 74699,
       "minutes": 22
-    },
-    {
-      "champion": "XinZhao",
-      "win": false,
-      "kills": 1,
-      "deaths": 8,
-      "assists": 1,
-      "damage": 9586,
-      "minutes": 23
-    },
-    {
-      "champion": "Trundle",
-      "win": false,
-      "kills": 1,
-      "deaths": 10,
-      "assists": 7,
-      "damage": 14227,
-      "minutes": 28
-    },
-    {
-      "champion": "Graves",
-      "win": false,
-      "kills": 1,
-      "deaths": 4,
-      "assists": 0,
-      "damage": 5278,
-      "minutes": 25
     }
   ],
   "ddragonVersion": "16.14.1",
