@@ -27,6 +27,7 @@ window.BELIEFS = [
       "What counts as a sufficiently serious health risk in difficult cases.",
       "Whether strongly unwanted parenthood reliably predicts worse outcomes for the parent or child."
     ],
+    "references": [],
     "sourcePath": "beliefs/morality/abortion-should-remain-legal-until-birth.md",
     "githubUrl": "https://github.com/benson/worldview/blob/main/beliefs/morality/abortion-should-remain-legal-until-birth.md",
     "searchText": "abortion should remain legal until birth morality abortion bodily-autonomy medical-care law morality i have no moral objection to contraception or early abortion. a late elective abortion can be selfish, irresponsible, and seriously immoral without needing to be illegal. i would rather tolerate rare abuses than have the law block legitimate care it cannot reliably distinguish from them. a willing, qualified clinician should be allowed to provide an abortion until birth without the patient or clinician being criminally punished. individual clinicians and hospitals should not ordinarily be compelled to provide an elective abortion. emergency stabilization is a separate obligation. if ending a late pregnancy is necessary and live delivery would not materially increase the mother's risk, preserving the fetus feels morally preferable."
@@ -57,6 +58,7 @@ window.BELIEFS = [
       "The exact amount and selection criteria for legal immigration.",
       "The best reforms for asylum, employment visas, work authorization, and enforcement."
     ],
+    "references": [],
     "sourcePath": "beliefs/politics/immigration-rules-should-work-in-practice.md",
     "githubUrl": "https://github.com/benson/worldview/blob/main/beliefs/politics/immigration-rules-should-work-in-practice.md",
     "searchText": "immigration rules should work in practice politics immigration enforcement asylum employment-visas incentives i broadly support immigration, but not open borders or unfettered, unlimited immigration. i want immigration to be carefully monitored, gradual, and selective, including favoring high-skill immigrants and family connections. immigration policy should be judged by how it actually works, not just by the rules written on paper. i think several current channels, including asylum and employment-based systems, are highly gameable or underenforced. migrants, employers, and other participants sometimes knowingly exploit these systems. long underenforcement creates painful dependencies, but that pain does not by itself make later enforcement unjust."
@@ -86,6 +88,7 @@ window.BELIEFS = [
     "notYetSettled": [
       "How to judge independent migration by older teenagers."
     ],
+    "references": [],
     "sourcePath": "beliefs/politics/knowingly-remaining-illegally-means-accepting-deportation-risk.md",
     "githubUrl": "https://github.com/benson/worldview/blob/main/beliefs/politics/knowingly-remaining-illegally-means-accepting-deportation-risk.md",
     "searchText": "knowingly remaining illegally means accepting deportation risk politics immigration deportation responsibility children enforcement if i knowingly enter or remain in another country illegally, i accept the risk of being deported. building a job, family, or life on top of that choice does not by itself create a right to remain. deportation can be tragic and painful without being unjust. if i was brought here without meaningfully choosing it, i incurred no moral debt for coming here. responsibility tracks actual agency and understanding; turning eighteen is not a magical dividing line. a citizen child should be protected and given a safe transition, but their needs do not give the parent a right to stay. separation can harm the child without making removal unjust; the parent chose to build the child's life around that risk."
@@ -110,6 +113,12 @@ window.BELIEFS = [
     "notYetSettled": [
       "My exact probability of living in a simulation.",
       "Exactly which parts of Scott Alexander’s argument I agree with."
+    ],
+    "references": [
+      {
+        "label": "Scott Alexander, “My AI Opinions”",
+        "url": "https://www.astralcodexten.com/p/my-ai-opinions"
+      }
     ],
     "sourcePath": "beliefs/spirituality/our-existence-was-probably-not-intentionally-created.md",
     "githubUrl": "https://github.com/benson/worldview/blob/main/beliefs/spirituality/our-existence-was-probably-not-intentionally-created.md",
@@ -140,6 +149,12 @@ window.BELIEFS = [
       "How the ability to feel both joy and sadness fits into this argument.",
       "How to define the individual moral floor.",
       "How much suffering should count as evidence against different ideas of God, even if it is not a logical disproof."
+    ],
+    "references": [
+      {
+        "label": "Scott Alexander, “Answer to Job”",
+        "url": "https://www.lesswrong.com/posts/Lt8Rn4rkYwqiTXGPy/answer-to-job"
+      }
     ],
     "sourcePath": "beliefs/spirituality/suffering-does-not-logically-disprove-god.md",
     "githubUrl": "https://github.com/benson/worldview/blob/main/beliefs/spirituality/suffering-does-not-logically-disprove-god.md",
@@ -173,6 +188,7 @@ window.BELIEFS = [
       "Whether permanent residence without citizenship is a fair consequence or an unacceptable permanent nonvoting class.",
       "Whether granting lifetime residence would itself unfairly skip the legal immigration line."
     ],
+    "references": [],
     "sourcePath": "beliefs/politics/response-to-the-established-unauthorized-population.md",
     "githubUrl": "https://github.com/benson/worldview/blob/main/beliefs/politics/response-to-the-established-unauthorized-population.md",
     "searchText": "the response to the established unauthorized population is unresolved politics immigration deportation legalization citizenship amnesty i have not decided whether adults already here illegally should be gradually deported or offered a one-time legalization program. eventual slow and steady deportation of everyone who knowingly came or stayed illegally is not morally untenable to me. i am also open to a one-time reset because government and enforcement failures have allowed whole lives and industries to be built around the current system. one possible reset would let people come forward for lawful residence and work authorization, but not citizenship. i do not want people who came illegally to get ahead of people following the legal immigration process. any reset would be a pragmatic response to systemic failure, not a moral entitlement earned by remaining illegally for long enough."
