@@ -64,6 +64,23 @@ function renderDetail(belief) {
     detail.append(open);
   }
 
+  if (belief.references?.length) {
+    const referenceSection = element("section", { className: "references" });
+    referenceSection.append(element("h3", { text: "references" }));
+    const referenceList = element("ul");
+    for (const reference of belief.references) {
+      const link = element("a", { text: reference.label });
+      link.href = reference.url;
+      link.target = "_blank";
+      link.rel = "noreferrer";
+      const item = element("li");
+      item.append(link);
+      referenceList.append(item);
+    }
+    referenceSection.append(referenceList);
+    detail.append(referenceSection);
+  }
+
   const isLocal = location.protocol === "file:" || ["localhost", "127.0.0.1"].includes(location.hostname);
   if (isLocal) {
     const source = element("a", { className: "source", text: "read the markdown card ↗" });
