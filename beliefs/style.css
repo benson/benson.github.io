@@ -1,0 +1,209 @@
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  color-scheme: light;
+  font-family: "Times New Roman", Times, Georgia, serif;
+  background: #f8f7f4;
+  color: #171717;
+}
+
+body {
+  margin: 0;
+  padding: 42px 28px;
+}
+
+main {
+  margin: 0 auto;
+  max-width: 1050px;
+}
+
+header {
+  border-bottom: 1px solid #d8d5cf;
+  margin-bottom: 25px;
+  padding-bottom: 24px;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  font-size: 1.65rem;
+  font-weight: 400;
+  margin-bottom: 8px;
+}
+
+header p,
+.muted,
+.meta,
+footer {
+  color: #777;
+}
+
+.controls {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(220px, 1fr) 150px 160px;
+  margin-bottom: 24px;
+}
+
+label span {
+  color: #888;
+  display: block;
+  font-size: 0.75rem;
+  margin-bottom: 5px;
+}
+
+input,
+select {
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 0;
+  color: inherit;
+  font: inherit;
+  padding: 8px 9px;
+  width: 100%;
+}
+
+.explorer {
+  display: grid;
+  grid-template-columns: minmax(230px, 0.8fr) minmax(0, 1.7fr);
+  min-height: 460px;
+}
+
+nav {
+  border-right: 1px solid #d8d5cf;
+  padding-right: 24px;
+}
+
+#belief-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+#belief-list button {
+  background: transparent;
+  border: 0;
+  border-top: 1px solid #ddd;
+  color: inherit;
+  cursor: pointer;
+  display: block;
+  padding: 14px 8px;
+  text-align: left;
+  width: 100%;
+}
+
+#belief-list button:hover,
+#belief-list button.selected {
+  background: #eeece6;
+}
+
+#belief-list strong,
+#belief-list small {
+  display: block;
+}
+
+#belief-list strong {
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.25;
+}
+
+#belief-list small {
+  color: #888;
+  font-size: 0.7rem;
+  margin-top: 6px;
+}
+
+article {
+  padding: 3px 0 36px 40px;
+}
+
+.meta {
+  font-size: 0.72rem;
+  text-transform: lowercase;
+}
+
+h2 {
+  font-size: clamp(1.7rem, 4vw, 2.7rem);
+  font-weight: 400;
+  line-height: 1.05;
+  margin-bottom: 27px;
+  max-width: 650px;
+}
+
+.position,
+.unsettled {
+  margin: 0;
+  max-width: 680px;
+  padding-left: 1.2rem;
+}
+
+.position li {
+  font-size: 1.18rem;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+details {
+  border-top: 1px solid #ddd;
+  margin-top: 32px;
+  max-width: 680px;
+  padding-top: 15px;
+}
+
+summary {
+  color: #666;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.unsettled {
+  color: #555;
+  line-height: 1.5;
+  margin-top: 14px;
+}
+
+.unsettled li {
+  margin-bottom: 8px;
+}
+
+.source {
+  color: #555;
+  display: inline-block;
+  font-size: 0.78rem;
+  margin-top: 30px;
+}
+
+footer {
+  border-top: 1px solid #d8d5cf;
+  font-size: 0.72rem;
+  padding-top: 18px;
+}
+
+@media (max-width: 700px) {
+  body {
+    padding: 25px 18px;
+  }
+
+  .controls,
+  .explorer {
+    grid-template-columns: 1fr;
+  }
+
+  nav {
+    border-bottom: 1px solid #d8d5cf;
+    border-right: 0;
+    margin-bottom: 28px;
+    padding: 0 0 20px;
+  }
+
+  article {
+    padding: 0 0 32px;
+  }
+}
