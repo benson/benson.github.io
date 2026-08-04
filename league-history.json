@@ -1,5 +1,5 @@
 {
-  "blurb": "played 5 other games in the last week, went 4-1",
+  "blurb": "played 2 other games in the last week, went 2-0",
   "recent": [
     {
       "champion": "Lissandra",
@@ -18,33 +18,6 @@
       "assists": 9,
       "damage": 48913,
       "minutes": 23
-    },
-    {
-      "champion": "Shen",
-      "win": true,
-      "kills": 7,
-      "deaths": 10,
-      "assists": 14,
-      "damage": 67934,
-      "minutes": 23
-    },
-    {
-      "champion": "Shen",
-      "win": true,
-      "kills": 9,
-      "deaths": 8,
-      "assists": 23,
-      "damage": 55418,
-      "minutes": 26
-    },
-    {
-      "champion": "Zoe",
-      "win": false,
-      "kills": 6,
-      "deaths": 6,
-      "assists": 5,
-      "damage": 13242,
-      "minutes": 27
     }
   ],
   "ddragonVersion": "16.15.1",
