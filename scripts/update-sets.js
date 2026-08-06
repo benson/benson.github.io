@@ -21,6 +21,11 @@ const LIMITED_PRIORITY = ['play', 'draft', 'default', 'set', 'jumpstart'];
 const ARENA_ONLY = /^arena(?:-|$)|-arena$/i;
 
 const SPECIAL_SET_CODES = new Set(['spg', 'big']);
+// sets pulled in ahead of release, while MTGJSON still flags them isPartialPreview.
+// entries become no-ops once the set ships; safe to drop then.
+const EARLY_ACCESS_SETS = new Set(
+  (process.env.EARLY_ACCESS_SETS ?? 'hob').split(',').map(normalizeCode).filter(Boolean)
+);
 const EXTRA_SHEET_PATTERN = /(?:^|[^a-z])(thelist|the-list|specialguest|special-guest)(?:[^a-z]|$)/i;
 
 const setCache = new Map();
@@ -264,10 +269,14 @@ async function buildRecord(setData) {
   return record;
 }
 
+function isEarlyAccess(code) {
+  return EARLY_ACCESS_SETS.has(normalizeCode(code));
+}
+
 function isVisibleSet(setData, record) {
   if (!record) return false;
   if (setData.isOnlineOnly) return false;
-  if (setData.isPartialPreview) return false;
+  if (setData.isPartialPreview && !isEarlyAccess(setData.code)) return false;
   return true;
 }
 
@@ -330,7 +339,7 @@ async function findCardsInAllPrintings(missingUuids) {
 function filterSets(records, today = new Date()) {
   const todayDate = new Date(today);
   return records
-    .filter(record => record && new Date(record.set.releaseDate) <= todayDate)
+    .filter(record => record && (new Date(record.set.releaseDate) <= todayDate || isEarlyAccess(record.set.code)))
     .sort((a, b) => new Date(b.set.releaseDate) - new Date(a.set.releaseDate))
     .map(setSummary);
 }

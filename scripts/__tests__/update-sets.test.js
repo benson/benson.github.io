@@ -52,6 +52,15 @@ test('filterSets drops future sets even if MTGJSON has a config', () => {
   assert.deepEqual(out.map(s => s.code), ['tdm']);
 });
 
+test('filterSets keeps early-access sets ahead of their release date', () => {
+  const out = filterSets([
+    record({ code: 'hob', releaseDate: '2026-08-14' }),
+    record({ code: 'msh', releaseDate: '2026-06-26' }),
+    record({ code: 'tdm', releaseDate: '2025-04-11' }),
+  ], TODAY);
+  assert.deepEqual(out.map(s => s.code), ['hob', 'tdm']);
+});
+
 test('filterSets sorts released sets newest first and includes MTGJSON fields', () => {
   const out = filterSets([
     record({ code: 'm15', name: 'Magic 2015', releaseDate: '2014-07-18', limitedBoosterType: 'draft', limitedLabel: 'draft booster', mtgjsonBoosterTypes: ['draft'] }),
