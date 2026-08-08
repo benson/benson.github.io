@@ -31,6 +31,7 @@
       "collector",
       "jumpstart",
       "play",
+      "play-arena",
       "prerelease"
     ],
     "extraSheetLabel": null
@@ -50,6 +51,7 @@
       "codex-bundle",
       "collector",
       "play",
+      "play-arena",
       "prerelease-lorehold",
       "prerelease-prismari",
       "prerelease-quandrix",
@@ -72,6 +74,7 @@
     "mtgjsonBoosterTypes": [
       "collector",
       "play",
+      "play-arena",
       "prerelease"
     ],
     "extraSheetLabel": null
@@ -90,6 +93,7 @@
     "mtgjsonBoosterTypes": [
       "collector",
       "play",
+      "play-arena",
       "prerelease"
     ],
     "extraSheetLabel": "the list / special guests"
@@ -124,6 +128,7 @@
       "collector",
       "commander-bundle",
       "play",
+      "play-arena",
       "prerelease",
       "prerelease-aang",
       "prerelease-azula",
@@ -166,6 +171,7 @@
       "collector",
       "collector-sample",
       "play",
+      "play-arena",
       "prerelease"
     ],
     "extraSheetLabel": "the list / special guests"
@@ -188,6 +194,7 @@
       "collector",
       "collector-sample",
       "play",
+      "play-arena",
       "prerelease"
     ],
     "extraSheetLabel": null
@@ -207,6 +214,7 @@
       "collector",
       "collector-sample",
       "play",
+      "play-arena",
       "prerelease",
       "prerelease-abzan",
       "prerelease-jeskai",
@@ -232,6 +240,7 @@
       "collector",
       "collector-sample",
       "play",
+      "play-arena",
       "prerelease"
     ],
     "extraSheetLabel": "the list / special guests"
@@ -268,6 +277,7 @@
       "beginner",
       "collector",
       "play",
+      "play-arena",
       "prerelease"
     ],
     "extraSheetLabel": "the list / special guests"
@@ -303,6 +313,7 @@
       "collector-sample",
       "nightmare",
       "play",
+      "play-arena",
       "prerelease"
     ],
     "extraSheetLabel": "the list / special guests"
@@ -322,6 +333,7 @@
       "collector",
       "collector-sample",
       "play",
+      "play-arena",
       "prerelease",
       "value"
     ],
@@ -374,6 +386,7 @@
       "collector",
       "collector-sample",
       "play",
+      "play-arena",
       "prerelease"
     ],
     "extraSheetLabel": "the list / special guests"
@@ -393,6 +406,7 @@
       "collector",
       "collector-sample",
       "play",
+      "play-arena",
       "prerelease"
     ],
     "extraSheetLabel": "the big score / special guests"
