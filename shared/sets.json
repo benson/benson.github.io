@@ -73,6 +73,7 @@
     "limitedLabel": "play",
     "mtgjsonBoosterTypes": [
       "collector",
+      "pizza-bundle",
       "play",
       "play-arena",
       "prerelease"
@@ -710,6 +711,7 @@
       "collector",
       "collector-sample",
       "draft",
+      "gift-bundle-transformers",
       "jumpstart",
       "prerelease",
       "set"
@@ -3063,8 +3065,8 @@
     "extraSheetLabel": null
   },
   {
-    "code": "rin",
-    "name": "Rinascimento",
+    "code": "ren",
+    "name": "Renaissance",
     "released": "1995-08-01",
     "boosterTypes": [
       "play"
@@ -3078,8 +3080,8 @@
     "extraSheetLabel": null
   },
   {
-    "code": "ren",
-    "name": "Renaissance",
+    "code": "rin",
+    "name": "Rinascimento",
     "released": "1995-08-01",
     "boosterTypes": [
       "play"
