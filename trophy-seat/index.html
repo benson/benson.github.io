@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f7f2ea">
+    <title>trophy seat — replay a 7-win mtg draft</title>
+    <meta name="description" content="Someone trophied from this seat. Replay their first eight MTG draft picks and see whether you found the same line.">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="trophy seat">
+    <meta property="og:description" content="Someone trophied from this seat. Would you have taken what they took?">
+    <meta property="og:url" content="https://bensonperry.com/trophy-seat/">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="../vellum-ui/vellum-ui.css?v=20260818">
+    <link rel="stylesheet" href="style.css?v=1">
+  </head>
+  <body class="no-shared-footer">
+    <header class="site-head">
+      <a class="wordmark" href="./" aria-label="trophy seat home">
+        <span class="wordmark-mark" aria-hidden="true">Ⅷ</span>
+        <span>trophy seat</span>
+      </a>
+      <div class="head-actions">
+        <button class="quiet-button" id="about-button" type="button">how it works</button>
+        <label class="theme-control">
+          <span class="sr-only">use dark theme</span>
+          <input id="theme-toggle" type="checkbox">
+          <span class="theme-track" aria-hidden="true"><span></span></span>
+          <span>dark</span>
+        </label>
+      </div>
+    </header>
+
+    <main class="app-shell">
+      <section class="loading-view" id="loading-view" aria-live="polite">
+        <span class="loading-mark" aria-hidden="true">Ⅷ</span>
+        <p>finding a trophy seat…</p>
+      </section>
+
+      <section class="intro-view hidden" id="intro-view">
+        <div class="intro-copy">
+          <p class="eyebrow">a real 7-win draft · first eight picks</p>
+          <h1>someone trophied<br>from this seat.</h1>
+          <p class="intro-question">would you have taken what they took?</p>
+          <p class="intro-note">The packs are from an anonymous Premier Draft in the public 17Lands data. Their choices stay hidden until you finish.</p>
+          <button class="primary-button intro-start" id="start-button" type="button">
+            take the seat
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11m-4-4 4 4-4 4"/></svg>
+          </button>
+        </div>
+        <div class="intro-cards" id="intro-cards" aria-hidden="true"></div>
+        <div class="intro-proof" id="intro-proof"></div>
+      </section>
+
+      <section class="draft-view hidden" id="draft-view">
+        <div class="draft-status">
+          <div>
+            <p class="eyebrow" id="pick-label">pack 1 · pick 1</p>
+            <h1>what’s your pick?</h1>
+          </div>
+          <div class="pick-progress" id="pick-progress" aria-label="draft progress"></div>
+        </div>
+
+        <div class="draft-layout">
+          <section class="pack-panel" aria-labelledby="pack-heading">
+            <div class="panel-head">
+              <h2 id="pack-heading">the pack</h2>
+              <p id="pack-count"></p>
+            </div>
+            <div class="card-grid" id="card-grid"></div>
+          </section>
+
+          <aside class="your-picks-panel" aria-labelledby="your-picks-heading">
+            <div class="panel-head">
+              <h2 id="your-picks-heading">your first eight</h2>
+              <p><span id="your-pick-count">0</span>/8</p>
+            </div>
+            <div class="pick-tray" id="pick-tray"></div>
+            <p class="tray-note">no hindsight. their picks are revealed at the end.</p>
+          </aside>
+        </div>
+        <p class="keyboard-note">choose a card · keys 1—9 select the first row</p>
+      </section>
+
+      <section class="results-view hidden" id="results-view">
+        <div class="result-hero">
+          <div class="score-lockup">
+            <span class="score-number" id="score-number">0</span>
+            <span class="score-denominator">/ 8</span>
+          </div>
+          <div class="result-copy">
+            <p class="eyebrow" id="result-eyebrow"></p>
+            <h1 id="result-title"></h1>
+            <p id="result-body"></p>
+          </div>
+          <div class="trophy-proof" id="trophy-proof"></div>
+        </div>
+
+        <div class="result-actions">
+          <button class="primary-button" id="another-button" type="button">take another seat</button>
+          <button class="secondary-button" id="share-button" type="button">copy this seat</button>
+        </div>
+
+        <section class="comparison-section" aria-labelledby="comparison-heading">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">the first lap</p>
+              <h2 id="comparison-heading">where your drafts split</h2>
+            </div>
+            <p>These eight packs are exact. Your picks cannot change what reaches you until the pack comes back around.</p>
+          </div>
+          <div class="comparison-list" id="comparison-list"></div>
+        </section>
+
+        <section class="outcome-section" aria-labelledby="outcome-heading">
+          <div class="section-heading outcome-heading">
+            <div>
+              <p class="eyebrow">what happened next</p>
+              <h2 id="outcome-heading">the trophy draft</h2>
+            </div>
+            <div class="view-tabs" role="tablist" aria-label="trophy draft views">
+              <button class="view-tab active" id="deck-tab" type="button" role="tab" aria-selected="true">final deck</button>
+              <button class="view-tab" id="watch-tab" type="button" role="tab" aria-selected="false">picks 9—42</button>
+            </div>
+          </div>
+
+          <div class="deck-view" id="deck-view" role="tabpanel" aria-labelledby="deck-tab">
+            <div class="deck-summary" id="deck-summary"></div>
+            <div class="deck-columns" id="deck-columns"></div>
+            <p class="data-note">This is the drafter’s last recorded build. A trophy is evidence that this line worked—not that it was the only correct line.</p>
+          </div>
+
+          <div class="watch-view hidden" id="watch-view" role="tabpanel" aria-labelledby="watch-tab">
+            <div class="watch-toolbar">
+              <div>
+                <p class="eyebrow" id="watch-label">pack 1 · pick 9</p>
+                <h3 id="watch-choice"></h3>
+              </div>
+              <div class="watch-controls">
+                <button class="secondary-button small" id="watch-previous" type="button">previous</button>
+                <button class="primary-button small" id="watch-next" type="button">next pick</button>
+              </div>
+            </div>
+            <div class="watch-pack" id="watch-pack"></div>
+            <button class="text-button" id="reveal-log-button" type="button">show the full pick log</button>
+            <ol class="pick-log hidden" id="pick-log"></ol>
+            <p class="data-note">From pick nine on, this is a replay—not a simulation. Different early picks would change the packs once they returned to the drafter.</p>
+          </div>
+        </section>
+      </section>
+
+      <section class="error-view hidden" id="error-view" role="alert">
+        <p class="eyebrow">the table is empty</p>
+        <h1>this trophy seat could not be loaded.</h1>
+        <p id="error-message">Try refreshing the page.</p>
+        <button class="primary-button" type="button" onclick="location.reload()">try again</button>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>made by <a href="https://bensonperry.com">benson</a></span>
+      <span>draft data by <a href="https://www.17lands.com/public_datasets">17Lands</a> · card images by <a href="https://scryfall.com">Scryfall</a></span>
+    </footer>
+
+    <dialog class="about-dialog" id="about-dialog">
+      <form method="dialog" class="about-card">
+        <button class="dialog-close" value="close" aria-label="close">×</button>
+        <p class="eyebrow">how trophy seat works</p>
+        <h2>one real seat. eight blind choices.</h2>
+        <p>An anonymous 17Lands player drafted these exact packs and finished with seven wins and no more than two losses.</p>
+        <p>You replay their first eight picks without seeing what they chose. Those packs are safe to reproduce: before pick nine, nothing you take can circle the table and affect a pack you receive.</p>
+        <p>After that, the draft becomes a replay. You can inspect every later choice and the final recorded deck, but the app does not pretend those later packs would have stayed the same.</p>
+        <p class="dialog-source">17Lands public datasets are used under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.</p>
+        <button class="primary-button dialog-done" value="close">got it</button>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="app.js?v=1"></script>
+  </body>
+</html>
