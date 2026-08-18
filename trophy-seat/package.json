@@ -1,0 +1,9 @@
+{
+  "name": "trophy-seat",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:data": "node scripts/build-data.mjs --limit 32",
+    "test": "node --test tests/*.test.js"
+  }
+}
