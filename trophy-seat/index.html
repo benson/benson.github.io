@@ -12,7 +12,7 @@
     <meta property="og:url" content="https://bensonperry.com/trophy-seat/">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="../vellum-ui/vellum-ui.css?v=20260818">
-    <link rel="stylesheet" href="style.css?v=8">
+    <link rel="stylesheet" href="style.css?v=9">
   </head>
   <body class="no-shared-footer">
     <header class="site-head">
@@ -111,19 +111,13 @@
             <span class="score-denominator">/ 8</span>
           </div>
           <div class="result-copy">
-            <p class="eyebrow" id="result-eyebrow"></p>
             <h1 id="result-title"></h1>
             <p id="result-body"></p>
           </div>
           <div class="trophy-proof" id="trophy-proof"></div>
         </div>
 
-        <section class="postgame-card" aria-labelledby="postgame-heading">
-          <div class="postgame-copy">
-            <p class="eyebrow">your line at a glance</p>
-            <h2 id="postgame-heading">how your eight compared.</h2>
-            <p id="postgame-meta"></p>
-          </div>
+        <section class="postgame-card" aria-label="your pick-by-pick result">
           <div class="postgame-board">
             <div class="result-grid" id="result-grid" aria-label="your pick-by-pick comparison"></div>
             <p class="result-legend"><span><i class="same" aria-hidden="true">✦</i>same pick</span><span><i class="different" aria-hidden="true">↗</i>different pick</span></p>
@@ -137,21 +131,14 @@
 
         <section class="comparison-section" aria-labelledby="comparison-heading">
           <div class="section-heading">
-            <div>
-              <p class="eyebrow">the first lap</p>
-              <h2 id="comparison-heading">where your drafts split</h2>
-            </div>
-            <p>These eight packs are exact. Your picks cannot change what reaches you until the pack comes back around.</p>
+            <h2 id="comparison-heading">where your drafts split</h2>
           </div>
           <div class="comparison-list" id="comparison-list"></div>
         </section>
 
         <section class="outcome-section" aria-labelledby="outcome-heading">
           <div class="section-heading outcome-heading">
-            <div>
-              <p class="eyebrow">what happened next</p>
-              <h2 id="outcome-heading">the trophy draft</h2>
-            </div>
+            <h2 id="outcome-heading">the trophy draft</h2>
             <div class="view-tabs" role="tablist" aria-label="trophy draft views">
               <button class="view-tab active" id="deck-tab" type="button" role="tab" aria-selected="true">final deck</button>
               <button class="view-tab" id="watch-tab" type="button" role="tab" aria-selected="false">picks 9—42</button>
@@ -235,6 +222,6 @@
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script type="module" src="app.js?v=9"></script>
+    <script type="module" src="app.js?v=10"></script>
   </body>
 </html>
