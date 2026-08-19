@@ -100,22 +100,18 @@ export function sampleIntroCards(cards, draft, random = Math.random) {
 
 export function resultCopy(score) {
   if (score === 8) return {
-    eyebrow: 'same seat, same eight',
     title: 'you found their exact line.',
     body: 'Eight decisions, no daylight between you and the trophy drafter.',
   };
   if (score >= 6) return {
-    eyebrow: 'nearly in lockstep',
     title: 'you read the seat almost the same way.',
     body: 'A couple forks in the road, but the shape of the draft was shared.',
   };
   if (score >= 3) return {
-    eyebrow: 'same seat, different map',
     title: 'you agreed on the signals, not the route.',
     body: 'The overlap is real. So are the places where your draft became your own.',
   };
   return {
-    eyebrow: 'another draft entirely',
     title: 'you saw a different deck in these packs.',
     body: 'That is the point: the trophy is proof a line worked, not proof it was the only line.',
   };

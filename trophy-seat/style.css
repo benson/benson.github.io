@@ -735,7 +735,7 @@ body[data-view="draft"] .app-shell {
   margin: 18px 0 10px;
   padding: clamp(18px, 2vw, 26px);
   display: grid;
-  grid-template-columns: minmax(210px, 0.8fr) minmax(320px, 1.25fr) minmax(210px, 0.75fr) minmax(210px, auto);
+  grid-template-columns: minmax(560px, 1fr) auto minmax(210px, auto);
   align-items: center;
   gap: 22px clamp(24px, 3vw, 48px);
   border: 1px solid var(--vui-color-line);
@@ -744,27 +744,11 @@ body[data-view="draft"] .app-shell {
     color-mix(in srgb, var(--vui-color-surface-raised) 82%, transparent);
 }
 
-.postgame-copy h2 {
-  margin: 0;
-  color: var(--vui-color-text-strong);
-  font-family: var(--vui-font-heading);
-  font-size: clamp(1.65rem, 2.5vw, 2.4rem);
-  font-weight: 500;
-  letter-spacing: -0.035em;
-  line-height: 1;
-}
-
-.postgame-copy > p:last-child {
-  margin: 10px 0 0;
-  color: var(--vui-color-text-muted);
-  font-size: 0.72rem;
-}
-
 .result-grid {
   display: grid;
   grid-template-columns: repeat(8, minmax(30px, 1fr));
   align-items: end;
-  gap: 5px;
+  gap: 8px;
 }
 
 .result-card {
@@ -879,9 +863,7 @@ body[data-view="draft"] .app-shell {
 
 .result-stats {
   margin: 0;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px 24px;
+  display: block;
 }
 
 .result-stats div {
@@ -899,7 +881,7 @@ body[data-view="draft"] .app-shell {
   margin: 2px 0 0;
   color: var(--vui-color-text-strong);
   font-family: var(--vui-font-heading);
-  font-size: 1.05rem;
+  font-size: 1.3rem;
 }
 
 .postgame-actions {
@@ -1587,7 +1569,7 @@ body[data-view="draft"] .app-shell {
   }
 
   .postgame-card {
-    grid-template-columns: minmax(220px, 0.85fr) minmax(300px, 1.15fr);
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .postgame-actions {
@@ -1602,11 +1584,6 @@ body[data-view="draft"] .app-shell {
 
   .postgame-actions > * {
     width: auto;
-  }
-
-  .result-stats {
-    grid-column: 1 / -1;
-    grid-template-columns: repeat(2, 1fr);
   }
 
   .trophy-proof {
@@ -1739,9 +1716,9 @@ body[data-view="draft"] .app-shell {
     gap: 20px;
   }
 
-  .result-stats {
-    grid-column: auto;
-    grid-template-columns: 1fr 1fr;
+  .result-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
   }
 
   .postgame-actions {

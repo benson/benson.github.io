@@ -52,6 +52,13 @@ test('formatRank replaces Arena rank separators with spaces', async () => {
   assert.equal(formatRank('Platinum-3'), 'Platinum 3');
 });
 
+test('resultCopy keeps the result hierarchy to a title and one sentence', async () => {
+  const { resultCopy } = await modelPromise;
+  for (const score of [0, 4, 7, 8]) {
+    assert.deepEqual(Object.keys(resultCopy(score)).sort(), ['body', 'title']);
+  }
+});
+
 test('sampleIntroCards returns unique non-land cards the drafter never picked', async () => {
   const { sampleIntroCards } = await modelPromise;
   const cards = {

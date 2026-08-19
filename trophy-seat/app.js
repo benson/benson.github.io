@@ -12,7 +12,7 @@ import {
   scorePicks,
   sortPackCards,
   validateDataset,
-} from './model.js?v=5';
+} from './model.js?v=6';
 
 const DATA_URL = './data/drafts.json?v=2';
 const SEEN_KEY = 'trophy-seat-seen-v1';
@@ -51,11 +51,9 @@ const elements = {
   pickTray: document.querySelector('#pick-tray'),
   yourPickCount: document.querySelector('#your-pick-count'),
   scoreNumber: document.querySelector('#score-number'),
-  resultEyebrow: document.querySelector('#result-eyebrow'),
   resultTitle: document.querySelector('#result-title'),
   resultBody: document.querySelector('#result-body'),
   trophyProof: document.querySelector('#trophy-proof'),
-  postgameMeta: document.querySelector('#postgame-meta'),
   resultGrid: document.querySelector('#result-grid'),
   resultStats: document.querySelector('#result-stats'),
   comparisonList: document.querySelector('#comparison-list'),
@@ -288,12 +286,12 @@ function comparisonMarkup(pick, index) {
       <span class="comparison-pick-label">p1p${index + 1}</span>
       <div class="comparison-card">
         ${imageMarkup(userChoice)}
-        <span title="${escapeHtml(userChoice)}">you · ${escapeHtml(userChoice)}</span>
+        <span title="${escapeHtml(userChoice)}">you</span>
       </div>
       <span class="comparison-marker" aria-label="${matched ? 'same pick' : 'different pick'}">${matched ? '✓' : '→'}</span>
       <div class="comparison-card">
         ${imageMarkup(pick.choice)}
-        <span title="${escapeHtml(pick.choice)}">them · ${escapeHtml(pick.choice)}</span>
+        <span title="${escapeHtml(pick.choice)}">them</span>
       </div>
     </article>
   `;
@@ -378,23 +376,20 @@ function resultGridMarkup(outcomes) {
 }
 
 function statMarkup(stats) {
-  const firstSplit = stats.firstSplit ? `p1p${stats.firstSplit}` : 'none';
   return `
     <div><dt>same picks</dt><dd>${stats.matches} / ${stats.total}</dd></div>
-    <div><dt>first different pick</dt><dd>${firstSplit}</dd></div>
   `;
 }
 
 function buildShareText(stats) {
   const spellbook = stats.outcomes.map(matched => matched ? '✦' : '↗').join('  ');
-  const firstSplit = stats.firstSplit ? `first different pick: p1p${stats.firstSplit}` : 'same all the way through';
   return [
     '✦ trophy seat ✦',
     `${state.data.set.name} · ${formatDraftDate(state.draft.date)}`,
     `reference drafter: ${state.draft.record} · ${formatRank(state.draft.rank)}`,
     '',
     spellbook,
-    `I made ${stats.matches}/${stats.total} of the same picks · ${firstSplit}`,
+    `I made ${stats.matches}/${stats.total} of the same picks`,
     '✦ same pick · ↗ different pick',
     '',
     'Can you beat my line? Draft the same seat:',
@@ -404,7 +399,6 @@ function buildShareText(stats) {
 
 function renderPostgame(stats) {
   const meta = `${state.data.set.name} · ${formatDraftDate(state.draft.date)} · reference ${state.draft.record}`;
-  elements.postgameMeta.textContent = meta;
   elements.resultGrid.innerHTML = resultGridMarkup(stats.outcomes);
   elements.resultStats.innerHTML = statMarkup(stats);
   elements.shareMeta.textContent = meta;
@@ -419,7 +413,6 @@ function showResults() {
   const stats = comparisonStats(state.userPicks, state.draft.picks);
   const copy = resultCopy(score);
   elements.scoreNumber.textContent = String(score);
-  elements.resultEyebrow.textContent = copy.eyebrow;
   elements.resultTitle.textContent = copy.title;
   elements.resultBody.textContent = copy.body;
   elements.trophyProof.innerHTML = `
