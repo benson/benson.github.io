@@ -35,13 +35,22 @@ export function validateDataset(data) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(draft.date || '')) {
       throw new Error('A draft is missing its date.');
     }
-    if (!Array.isArray(draft.picks) || draft.picks.length < SIMULATED_PICK_COUNT) {
-      throw new Error('A draft does not contain eight picks.');
+    if (!/^https:\/\/www\.17lands\.com\/draft\/[a-f0-9]{32}$/.test(draft.sourceUrl || '')) {
+      throw new Error('A draft is missing its original 17Lands link.');
+    }
+    if (!Array.isArray(draft.picks) || draft.picks.length < 40) {
+      throw new Error('A draft does not contain a complete pick log.');
+    }
+    if (!draft.deck || !Array.isArray(draft.deck.main) || draft.deck.main.length === 0) {
+      throw new Error('A draft is missing its recorded deck.');
     }
     for (const pick of draft.picks.slice(0, SIMULATED_PICK_COUNT)) {
       if (!pick.choice || !Array.isArray(pick.cards) || !pick.cards.includes(pick.choice)) {
         throw new Error('A trophy pick is missing from its pack.');
       }
+    }
+    if (draft.picks[0].cards.length < 12) {
+      throw new Error('A draft is missing its exact opening pack.');
     }
   }
   return data;

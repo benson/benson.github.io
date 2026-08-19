@@ -12,7 +12,7 @@
     <meta property="og:url" content="https://bensonperry.com/trophy-seat/">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="../vellum-ui/vellum-ui.css?v=20260818">
-    <link rel="stylesheet" href="style.css?v=10">
+    <link rel="stylesheet" href="style.css?v=13">
   </head>
   <body class="no-shared-footer">
     <header class="site-head">
@@ -60,20 +60,34 @@
 
       <section class="intro-view hidden" id="intro-view">
         <div class="intro-copy">
-          <p class="eyebrow">a real 7-win draft · first eight picks</p>
           <h1>someone trophied<br>from this seat.</h1>
           <p class="intro-question">would you have taken what they took?</p>
-          <p class="intro-note">Eight exact packs from a real <a href="https://www.17lands.com/trophy_decks?expansion=HOB&amp;format=PremierDraft" target="_blank" rel="noreferrer">17Lands trophy draft</a>. Their picks stay hidden until you finish.</p>
-          <div class="intro-actions">
-            <button class="primary-button intro-start" id="start-button" type="button">
-              take the seat
-              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11m-4-4 4 4-4 4"/></svg>
-            </button>
-            <button class="secondary-button intro-reroll" id="reroll-button" type="button">
-              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 7V3m0 0h-4m4 0-2.2 2.2A6.5 6.5 0 1 0 16.5 10"/></svg>
-              reroll seat
-            </button>
-          </div>
+          <section class="intro-seat" id="intro-seat" aria-label="selected trophy draft">
+            <div class="intro-seat-top">
+              <label class="intro-set-field">
+                <span>set</span>
+                <select id="set-select" aria-label="draft set"></select>
+              </label>
+              <div class="intro-seat-tools">
+                <a id="intro-source-link" target="_blank" rel="noreferrer">17Lands draft ↗</a>
+                <button class="intro-reroll" id="reroll-button" type="button" aria-label="try another seat" title="try another seat">
+                  <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 7V3m0 0h-4m4 0-2.2 2.2A6.5 6.5 0 1 0 16.5 10"/></svg>
+                </button>
+              </div>
+            </div>
+            <dl class="intro-seat-meta">
+              <div><dt>drafted</dt><dd id="intro-seat-date"></dd></div>
+              <div><dt>rank</dt><dd id="intro-seat-rank"></dd></div>
+              <div class="intro-seat-record"><dt>finish</dt><dd id="intro-seat-record"></dd></div>
+            </dl>
+            <div class="intro-seat-action">
+              <p>Their picks stay hidden until you finish.</p>
+              <button class="primary-button intro-start" id="start-button" type="button">
+                take the seat
+                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11m-4-4 4 4-4 4"/></svg>
+              </button>
+            </div>
+          </section>
         </div>
         <div class="intro-cards" id="intro-cards" aria-hidden="true"></div>
       </section>
@@ -173,16 +187,19 @@
 
     <footer class="site-footer">
       <span>made by <a href="https://bensonperry.com">benson</a></span>
-      <span>draft logs by <a href="https://www.17lands.com/trophy_decks?expansion=HOB&amp;format=PremierDraft">17Lands</a> · card images by <a href="https://scryfall.com">Scryfall</a></span>
+      <span>draft logs by <a href="https://www.17lands.com/public_datasets">17Lands</a> · card images by <a href="https://scryfall.com">Scryfall</a></span>
     </footer>
 
     <dialog class="about-dialog" id="about-dialog">
       <form method="dialog" class="about-card">
         <button class="dialog-close" value="close" aria-label="close">×</button>
-        <h2>one real seat. eight blind choices.</h2>
-        <p>Replay the first eight picks of a real draft that finished 7–2 or better. The drafter’s choices stay hidden until you finish.</p>
-        <p>Those eight packs are exact: nothing can wheel before pick nine. Later picks and the final deck are a replay, not a simulation.</p>
-        <p class="dialog-source">Draft logs from <a href="https://www.17lands.com/trophy_decks?expansion=HOB&amp;format=PremierDraft">17Lands</a>, cached locally with no live requests.</p>
+        <h2>how trophy seat works.</h2>
+        <p>In a Magic draft, eight players open packs, take one card at a time, and pass the rest around the table. What reaches you depends on where you’re sitting and what everyone else takes.</p>
+        <p>Someone sat in this exact seat and did extremely well: they trophied, meaning they reached the maximum seven wins before taking three losses. They aren’t necessarily a pro, and their choices weren’t necessarily the only right ones. This is simply a draft we know succeeded.</p>
+        <p>You’ll make the first eight picks from their exact packs without seeing what they chose. When you finish, we’ll put your choices next to theirs so you can see where you agreed and where your drafts split.</p>
+        <p>We stop there because cards can begin returning around the table after eight picks. Different choices from you could change every later pack, so the rest of their draft is shown as a replay—not presented as a simulation of yours.</p>
+        <p>Then you can inspect their later picks and exact final recorded deck, share your result, or challenge a friend to draft the same seat.</p>
+        <p class="dialog-source">Every seat links to its original public draft log. Data from <a href="https://www.17lands.com/public_datasets">17Lands</a>, cached locally with no live requests.</p>
         <button class="primary-button dialog-done" value="close">got it</button>
       </form>
     </dialog>
@@ -211,6 +228,6 @@
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script type="module" src="app.js?v=11"></script>
+    <script type="module" src="app.js?v=14"></script>
   </body>
 </html>

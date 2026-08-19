@@ -13,9 +13,9 @@ import {
   scorePicks,
   sortPackCards,
   validateDataset,
-} from './model.js?v=7';
+} from './model.js?v=8';
 
-const DATA_URL = './data/drafts.json?v=2';
+const CATALOG_URL = './data/index.json?v=1';
 const SEEN_KEY = 'trophy-seat-seen-v1';
 const THEME_KEY = 'trophy-seat-theme';
 const PUBLIC_APP_URL = 'https://bensonperry.com/trophy-seat/';
@@ -42,6 +42,12 @@ const elements = {
   aboutDialog: document.querySelector('#about-dialog'),
   themeToggle: document.querySelector('#theme-toggle'),
   introCards: document.querySelector('#intro-cards'),
+  introSeat: document.querySelector('#intro-seat'),
+  setSelect: document.querySelector('#set-select'),
+  introSeatDate: document.querySelector('#intro-seat-date'),
+  introSeatRank: document.querySelector('#intro-seat-rank'),
+  introSeatRecord: document.querySelector('#intro-seat-record'),
+  introSourceLink: document.querySelector('#intro-source-link'),
   seatLedger: document.querySelector('#seat-ledger'),
   seatLedgerSet: document.querySelector('#seat-ledger-set'),
   seatLedgerDate: document.querySelector('#seat-ledger-date'),
@@ -75,6 +81,7 @@ const elements = {
 };
 
 const state = {
+  catalog: null,
   data: null,
   draft: null,
   currentPick: 0,
@@ -82,6 +89,7 @@ const state = {
   locked: false,
   watchIndex: SIMULATED_PICK_COUNT,
   toastTimer: null,
+  loadingSet: false,
 };
 
 let activeZoomTarget = null;
@@ -148,6 +156,39 @@ function selectDraft() {
   return chooseDraft(state.data.drafts, Array.isArray(seen) ? seen : []);
 }
 
+function catalogSet(code) {
+  return state.catalog.sets.find(set => set.code === String(code || '').toUpperCase());
+}
+
+function setCodeFromSeatId(seatId) {
+  return state.catalog.sets.find(set => String(seatId || '').startsWith(`${set.code.toLowerCase()}-`))?.code;
+}
+
+function renderSetOptions() {
+  elements.setSelect.innerHTML = state.catalog.sets.map(set => (
+    `<option value="${escapeHtml(set.code)}">${escapeHtml(set.name)}</option>`
+  )).join('');
+}
+
+function setSeatLoading(loading) {
+  state.loadingSet = loading;
+  elements.introSeat.classList.toggle('loading', loading);
+  elements.introSeat.setAttribute('aria-busy', String(loading));
+  elements.setSelect.disabled = loading;
+  elements.rerollButton.disabled = loading;
+  elements.startButton.disabled = loading;
+}
+
+async function loadSetData(code) {
+  const set = catalogSet(code);
+  if (!set) throw new Error(`The ${code} draft set is unavailable.`);
+  const response = await fetch(set.dataUrl);
+  if (!response.ok) throw new Error(`${set.name} draft data returned ${response.status}.`);
+  const data = validateDataset(await response.json());
+  if (data.set.code !== set.code) throw new Error(`${set.name} draft data is mismatched.`);
+  state.data = data;
+}
+
 function rememberDraft(draftId) {
   const existing = storedJson(SEEN_KEY, []);
   const next = [...new Set([...(Array.isArray(existing) ? existing : []), draftId])].slice(-64);
@@ -156,6 +197,7 @@ function rememberDraft(draftId) {
 
 function updateSeatUrl(draftId) {
   const url = new URL(location.href);
+  url.searchParams.delete('set');
   url.searchParams.set('seat', draftId);
   history.replaceState(null, '', url);
 }
@@ -187,6 +229,11 @@ function renderSeatLedger() {
   elements.seatLedgerDate.textContent = formatDraftDate(state.draft.date);
   elements.seatLedgerRank.textContent = formatRank(state.draft.rank);
   elements.seatLedgerRecord.textContent = state.draft.record;
+  elements.setSelect.value = state.data.set.code;
+  elements.introSeatDate.textContent = formatDraftDate(state.draft.date);
+  elements.introSeatRank.textContent = formatRank(state.draft.rank);
+  elements.introSeatRecord.textContent = state.draft.record;
+  elements.introSourceLink.href = safeUrl(state.draft.sourceUrl);
   elements.seatLedger.classList.remove('hidden');
 }
 
@@ -428,6 +475,26 @@ function rerollSeat() {
   scrollToTop();
 }
 
+async function changeSet(code) {
+  if (state.loadingSet || code === state.data?.set.code) return;
+  setSeatLoading(true);
+  try {
+    await loadSetData(code);
+    const seen = storedJson(SEEN_KEY, []);
+    state.draft = chooseDraft(state.data.drafts, Array.isArray(seen) ? seen : []);
+    updateSeatUrl(state.draft.id);
+    resetRun();
+    showOnly(elements.introView);
+    scrollToTop();
+  } catch (error) {
+    console.error(error);
+    elements.errorMessage.textContent = error.message || 'Try refreshing the page.';
+    showOnly(elements.errorView);
+  } finally {
+    setSeatLoading(false);
+  }
+}
+
 function anotherSeat() {
   loadAnotherSeat();
   startDraft();
@@ -502,6 +569,7 @@ function bindCardZoom() {
 function bindEvents() {
   elements.startButton.addEventListener('click', startDraft);
   elements.rerollButton.addEventListener('click', rerollSeat);
+  elements.setSelect.addEventListener('change', event => changeSet(event.target.value));
   elements.anotherButton.addEventListener('click', anotherSeat);
   elements.shareButton.addEventListener('click', openShareDialog);
   elements.copyResultButton.addEventListener('click', copyResult);
@@ -528,9 +596,20 @@ async function initialize() {
   initializeTheme();
   bindEvents();
   try {
-    const response = await fetch(DATA_URL);
-    if (!response.ok) throw new Error(`Draft data returned ${response.status}.`);
-    state.data = validateDataset(await response.json());
+    const response = await fetch(CATALOG_URL);
+    if (!response.ok) throw new Error(`Draft catalog returned ${response.status}.`);
+    state.catalog = await response.json();
+    if (!Array.isArray(state.catalog.sets) || !state.catalog.sets.length) {
+      throw new Error('The draft catalog is empty.');
+    }
+    renderSetOptions();
+    const params = new URLSearchParams(location.search);
+    const requestedSeat = params.get('seat');
+    const requestedSet = setCodeFromSeatId(requestedSeat)
+      || catalogSet(params.get('set'))?.code
+      || catalogSet(state.catalog.defaultSet)?.code
+      || state.catalog.sets[0].code;
+    await loadSetData(requestedSet);
     state.draft = selectDraft();
     updateSeatUrl(state.draft.id);
     resetRun();
