@@ -16,7 +16,7 @@ const DATA_URL = './data/drafts.json?v=2';
 const SEEN_KEY = 'trophy-seat-seen-v1';
 const THEME_KEY = 'trophy-seat-theme';
 const PUBLIC_APP_URL = 'https://bensonperry.com/trophy-seat/';
-const CARD_ZOOM_SELECTOR = '.card-button, .intro-card, .tray-slot.filled, .result-card, .comparison-card, .deck-card, .watch-card';
+const CARD_ZOOM_SELECTOR = '.card-button';
 const COLOR_NAMES = { W: 'white', U: 'blue', B: 'black', R: 'red', G: 'green' };
 
 const elements = {
@@ -27,6 +27,7 @@ const elements = {
   errorView: document.querySelector('#error-view'),
   errorMessage: document.querySelector('#error-message'),
   startButton: document.querySelector('#start-button'),
+  rerollButton: document.querySelector('#reroll-button'),
   anotherButton: document.querySelector('#another-button'),
   shareButton: document.querySelector('#share-button'),
   shareDialog: document.querySelector('#share-dialog'),
@@ -443,13 +444,23 @@ function showResults() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function anotherSeat() {
+function loadAnotherSeat() {
   const currentId = state.draft.id;
   const storedSeen = storedJson(SEEN_KEY, []);
   const seen = [...new Set([...(Array.isArray(storedSeen) ? storedSeen : []), currentId])];
   state.draft = chooseDraft(state.data.drafts, seen);
   updateSeatUrl(state.draft.id);
   resetRun();
+}
+
+function rerollSeat() {
+  loadAnotherSeat();
+  showOnly(elements.introView);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function anotherSeat() {
+  loadAnotherSeat();
   startDraft();
 }
 
@@ -498,7 +509,7 @@ function positionCardZoom() {
 }
 
 function bindCardZoom() {
-  const canHover = window.matchMedia('(hover: hover) and (pointer: fine)');
+  const canHover = window.matchMedia('(min-width: 781px) and (hover: hover) and (pointer: fine)');
   document.addEventListener('pointerover', event => {
     if (!canHover.matches || (event.pointerType && event.pointerType !== 'mouse')) return;
     const target = event.target.closest?.(CARD_ZOOM_SELECTOR);
@@ -522,6 +533,7 @@ function bindCardZoom() {
 
 function bindEvents() {
   elements.startButton.addEventListener('click', startDraft);
+  elements.rerollButton.addEventListener('click', rerollSeat);
   elements.anotherButton.addEventListener('click', anotherSeat);
   elements.shareButton.addEventListener('click', openShareDialog);
   elements.copyResultButton.addEventListener('click', copyResult);
