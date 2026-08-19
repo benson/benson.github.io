@@ -38,15 +38,12 @@ const elements = {
   aboutDialog: document.querySelector('#about-dialog'),
   themeToggle: document.querySelector('#theme-toggle'),
   introCards: document.querySelector('#intro-cards'),
-  introProof: document.querySelector('#intro-proof'),
   seatLedger: document.querySelector('#seat-ledger'),
   seatLedgerSet: document.querySelector('#seat-ledger-set'),
   seatLedgerDate: document.querySelector('#seat-ledger-date'),
   seatLedgerRank: document.querySelector('#seat-ledger-rank'),
   seatLedgerRecord: document.querySelector('#seat-ledger-record'),
   pickLabel: document.querySelector('#pick-label'),
-  pickProgress: document.querySelector('#pick-progress'),
-  packCount: document.querySelector('#pack-count'),
   cardGrid: document.querySelector('#card-grid'),
   pickTray: document.querySelector('#pick-tray'),
   yourPickCount: document.querySelector('#your-pick-count'),
@@ -74,7 +71,6 @@ const elements = {
   pickLog: document.querySelector('#pick-log'),
   cardZoom: document.querySelector('#card-zoom'),
   cardZoomImage: document.querySelector('#card-zoom-image'),
-  cardZoomLabel: document.querySelector('#card-zoom-label'),
   toast: document.querySelector('#toast'),
 };
 
@@ -200,10 +196,6 @@ function renderIntro() {
   elements.introCards.innerHTML = fanNames.map(name => (
     `<div class="intro-card">${imageMarkup(name, 'card-image', 'eager')}</div>`
   )).join('');
-  elements.introProof.innerHTML = `
-    <span><span class="proof-record">${escapeHtml(state.data.set.name)}</span> · Premier Draft</span>
-    <span>${escapeHtml(formatDraftDate(state.draft.date))} · anonymous ${escapeHtml(state.draft.record)} run</span>
-  `;
 }
 
 function resetRun() {
@@ -215,20 +207,7 @@ function resetRun() {
   elements.revealLogButton.textContent = 'show the full pick log';
   renderSeatLedger();
   renderIntro();
-  renderProgress();
   renderPickTray();
-}
-
-function renderProgress() {
-  elements.pickProgress.innerHTML = Array.from({ length: SIMULATED_PICK_COUNT }, (_, index) => {
-    const classes = [
-      'progress-dot',
-      index < state.currentPick ? 'complete' : '',
-      index === state.currentPick ? 'current' : '',
-    ].filter(Boolean).join(' ');
-    return `<span class="${classes}"></span>`;
-  }).join('');
-  elements.pickProgress.setAttribute('aria-label', `${state.currentPick} of ${SIMULATED_PICK_COUNT} picks complete`);
 }
 
 function renderPickTray() {
@@ -249,7 +228,6 @@ function renderCurrentPack() {
   const sortedCards = sortPackCards(pick.cards, state.data.cards);
   state.locked = false;
   elements.pickLabel.textContent = `pack ${pick.pack} · pick ${pick.pick}`;
-  elements.packCount.textContent = `${pick.cards.length} cards · rarity order`;
   elements.cardGrid.innerHTML = sortedCards.map((name, index) => `
     <button
       class="card-button"
@@ -266,7 +244,6 @@ function renderCurrentPack() {
     button.addEventListener('click', () => chooseCard(button.dataset.cardName, button));
   }
 
-  renderProgress();
   preloadNextPack();
   window.scrollTo({ top: 0, behavior: state.currentPick ? 'smooth' : 'auto' });
 }
@@ -530,7 +507,6 @@ function bindCardZoom() {
     activeZoomTarget = target;
     elements.cardZoomImage.src = image.currentSrc;
     elements.cardZoomImage.alt = image.alt;
-    elements.cardZoomLabel.textContent = image.alt;
     elements.cardZoom.classList.add('show');
     elements.cardZoom.setAttribute('aria-hidden', 'false');
     positionCardZoom();
@@ -564,13 +540,6 @@ function bindEvents() {
   elements.revealLogButton.addEventListener('click', () => {
     const hidden = elements.pickLog.classList.toggle('hidden');
     elements.revealLogButton.textContent = hidden ? 'show the full pick log' : 'hide the full pick log';
-  });
-  document.addEventListener('keydown', event => {
-    if (elements.draftView.classList.contains('hidden') || state.locked) return;
-    const number = Number(event.key);
-    if (number < 1 || number > 9) return;
-    const button = elements.cardGrid.querySelectorAll('.card-button')[number - 1];
-    if (button) button.click();
   });
   bindCardZoom();
 }
