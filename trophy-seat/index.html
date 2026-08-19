@@ -12,7 +12,7 @@
     <meta property="og:url" content="https://bensonperry.com/trophy-seat/">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="../vellum-ui/vellum-ui.css?v=20260818">
-    <link rel="stylesheet" href="style.css?v=5">
+    <link rel="stylesheet" href="style.css?v=6">
   </head>
   <body class="no-shared-footer">
     <header class="site-head">
@@ -70,7 +70,6 @@
           </button>
         </div>
         <div class="intro-cards" id="intro-cards" aria-hidden="true"></div>
-        <div class="intro-proof" id="intro-proof"></div>
       </section>
 
       <section class="draft-view hidden" id="draft-view">
@@ -79,14 +78,12 @@
             <p class="eyebrow" id="pick-label">pack 1 · pick 1</p>
             <h1>what’s your pick?</h1>
           </div>
-          <div class="pick-progress" id="pick-progress" aria-label="draft progress"></div>
         </div>
 
         <div class="draft-layout">
           <section class="pack-panel" aria-labelledby="pack-heading">
             <div class="panel-head">
               <h2 id="pack-heading">the pack</h2>
-              <p id="pack-count"></p>
             </div>
             <div class="card-grid" id="card-grid"></div>
           </section>
@@ -97,10 +94,8 @@
               <p><span id="your-pick-count">0</span>/8</p>
             </div>
             <div class="pick-tray" id="pick-tray"></div>
-            <p class="tray-note">no hindsight. their picks are revealed at the end.</p>
           </aside>
         </div>
-        <p class="keyboard-note">choose a card · keys 1—9 select the first row</p>
       </section>
 
       <section class="results-view hidden" id="results-view">
@@ -231,10 +226,9 @@
 
     <div class="card-zoom" id="card-zoom" aria-hidden="true">
       <img id="card-zoom-image" alt="">
-      <span id="card-zoom-label"></span>
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script type="module" src="app.js?v=6"></script>
+    <script type="module" src="app.js?v=7"></script>
   </body>
 </html>
