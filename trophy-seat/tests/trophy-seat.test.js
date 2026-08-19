@@ -17,6 +17,7 @@ test('the shipped dataset contains only complete trophy drafts', async () => {
 
   for (const draft of data.drafts) {
     assert.match(draft.record, /^7-[012]$/);
+    assert.match(draft.date, /^\d{4}-\d{2}-\d{2}$/);
     assert.ok(draft.picks.length >= 40);
     assert.ok(draft.deck.main.length > 0);
     assert.match(draft.sourceUrl, /^https:\/\/www\.17lands\.com\/draft\/[a-f0-9]+$/);
@@ -24,6 +25,34 @@ test('the shipped dataset contains only complete trophy drafts', async () => {
       assert.ok(data.cards[pick.choice], `metadata exists for ${pick.choice}`);
     }
   }
+});
+
+test('comparisonStats describes the shape of the first eight choices', async () => {
+  const { comparisonStats } = await modelPromise;
+  const reference = Array.from({ length: 10 }, (_, index) => ({ choice: `card ${index}` }));
+  const user = ['card 0', 'different 1', 'card 2', 'card 3', 'different 4', 'card 5', 'different 6', 'different 7'];
+  const cards = Object.fromEntries([
+    ...reference.map((pick, index) => [pick.choice, { rarity: index < 4 ? 'rare' : 'common' }]),
+    ['different 1', { rarity: 'rare' }],
+    ['different 4', { rarity: 'uncommon' }],
+    ['different 6', { rarity: 'common' }],
+    ['different 7', { rarity: 'uncommon' }],
+  ]);
+
+  assert.deepEqual(comparisonStats(user, reference, cards), {
+    total: 8,
+    matches: 4,
+    firstSplit: 2,
+    longestMatchStreak: 2,
+    rarityMatches: 6,
+    outcomes: [true, false, true, true, false, true, false, false],
+  });
+});
+
+test('formatDraftDate turns the stored ISO day into readable proof copy', async () => {
+  const { formatDraftDate } = await modelPromise;
+  assert.equal(formatDraftDate('2026-08-13'), 'August 13, 2026');
+  assert.equal(formatDraftDate('not-a-date'), 'date unavailable');
 });
 
 test('scorePicks compares only the reproducible first eight picks', async () => {
