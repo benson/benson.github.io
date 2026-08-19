@@ -5,12 +5,14 @@ import {
   deckCount,
   deckGroupCount,
   formatDraftDate,
+  formatRank,
   groupDeckCards,
   resultCopy,
+  sampleIntroCards,
   scorePicks,
   sortPackCards,
   validateDataset,
-} from './model.js?v=4';
+} from './model.js?v=5';
 
 const DATA_URL = './data/drafts.json?v=2';
 const SEEN_KEY = 'trophy-seat-seen-v1';
@@ -179,21 +181,15 @@ function imageMarkup(name, className = 'card-image', loading = 'lazy') {
 }
 
 function renderSeatLedger() {
-  elements.seatLedgerSet.textContent = `${state.data.set.name} Premier`;
+  elements.seatLedgerSet.textContent = state.data.set.name;
   elements.seatLedgerDate.textContent = formatDraftDate(state.draft.date);
-  elements.seatLedgerRank.textContent = state.draft.rank;
+  elements.seatLedgerRank.textContent = formatRank(state.draft.rank);
   elements.seatLedgerRecord.textContent = state.draft.record;
   elements.seatLedger.classList.remove('hidden');
 }
 
 function renderIntro() {
-  const firstPack = state.draft.picks[0];
-  const choiceIndex = firstPack.cards.indexOf(firstPack.choice);
-  const fanNames = [
-    firstPack.cards[(choiceIndex + 3) % firstPack.cards.length],
-    firstPack.choice,
-    firstPack.cards[(choiceIndex + 8) % firstPack.cards.length],
-  ];
+  const fanNames = sampleIntroCards(state.data.cards, state.draft);
   elements.introCards.innerHTML = fanNames.map(name => (
     `<div class="intro-card">${imageMarkup(name, 'card-image', 'eager')}</div>`
   )).join('');
@@ -395,7 +391,7 @@ function buildShareText(stats) {
   return [
     '✦ trophy seat ✦',
     `${state.data.set.name} · ${formatDraftDate(state.draft.date)}`,
-    `reference drafter: ${state.draft.record} · ${state.draft.rank}`,
+    `reference drafter: ${state.draft.record} · ${formatRank(state.draft.rank)}`,
     '',
     spellbook,
     `I made ${stats.matches}/${stats.total} of the same picks · ${firstSplit}`,
@@ -430,7 +426,7 @@ function showResults() {
     <span class="proof-trophy" aria-hidden="true">
       <svg viewBox="0 0 32 32"><path d="M9 6h14l-2 7c-.8 3-2.6 5-5 6-2.4-1-4.2-3-5-6L9 6Zm2 2H6v3c0 3.1 1.9 5 5.2 5M21 8h5v3c0 3.1-1.9 5-5.2 5M16 19v6m-5 2h10"/></svg>
     </span>
-    <span class="proof-copy"><strong>${escapeHtml(state.draft.record)}</strong><span>${escapeHtml(state.draft.rank)} · ${escapeHtml(state.data.set.name)}</span><span>${escapeHtml(formatDraftDate(state.draft.date))}</span></span>
+    <span class="proof-copy"><strong>${escapeHtml(state.draft.record)}</strong><span>${escapeHtml(formatRank(state.draft.rank))} · ${escapeHtml(state.data.set.name)}</span><span>${escapeHtml(formatDraftDate(state.draft.date))}</span></span>
   `;
   renderPostgame(stats);
   elements.comparisonList.innerHTML = state.draft.picks

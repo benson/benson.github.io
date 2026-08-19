@@ -46,6 +46,31 @@ test('formatDraftDate turns the stored ISO day into readable proof copy', async 
   assert.equal(formatDraftDate('not-a-date'), 'date unavailable');
 });
 
+test('formatRank replaces Arena rank separators with spaces', async () => {
+  const { formatRank } = await modelPromise;
+  assert.equal(formatRank('Mythic-1'), 'Mythic 1');
+  assert.equal(formatRank('Platinum-3'), 'Platinum 3');
+});
+
+test('sampleIntroCards returns unique non-land cards the drafter never picked', async () => {
+  const { sampleIntroCards } = await modelPromise;
+  const cards = {
+    Picked: { typeLine: 'Creature — Goblin' },
+    Forest: { basic: true, typeLine: 'Basic Land — Forest' },
+    Mirkwood: { typeLine: 'Land' },
+    One: { typeLine: 'Creature — Dwarf' },
+    Two: { typeLine: 'Instant' },
+    Three: { typeLine: 'Enchantment' },
+    Four: { typeLine: 'Sorcery' },
+  };
+  const sampled = sampleIntroCards(cards, { picks: [{ choice: 'Picked' }] }, () => 0);
+
+  assert.deepEqual(sampled, ['One', 'Two', 'Three']);
+  assert.equal(new Set(sampled).size, 3);
+  assert.ok(sampled.every(name => !/\bLand\b/.test(cards[name].typeLine)));
+  assert.ok(!sampled.includes('Picked'));
+});
+
 test('scorePicks compares only the reproducible first eight picks', async () => {
   const { scorePicks } = await modelPromise;
   const reference = Array.from({ length: 10 }, (_, index) => ({ choice: `card ${index}` }));
