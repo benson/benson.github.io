@@ -12,7 +12,7 @@
     <meta property="og:url" content="https://bensonperry.com/trophy-seat/">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="../vellum-ui/vellum-ui.css?v=20260818">
-    <link rel="stylesheet" href="style.css?v=3">
+    <link rel="stylesheet" href="style.css?v=4">
   </head>
   <body class="no-shared-footer">
     <header class="site-head">
@@ -96,10 +96,22 @@
           <div class="trophy-proof" id="trophy-proof"></div>
         </div>
 
-        <div class="result-actions">
-          <button class="primary-button" id="another-button" type="button">take another seat</button>
-          <button class="secondary-button" id="share-button" type="button">copy this seat</button>
-        </div>
+        <section class="postgame-card" aria-labelledby="postgame-heading">
+          <div class="postgame-copy">
+            <p class="eyebrow">your line at a glance</p>
+            <h2 id="postgame-heading">how your eight compared.</h2>
+            <p id="postgame-meta"></p>
+          </div>
+          <div class="postgame-board">
+            <div class="result-grid" id="result-grid" aria-label="your pick-by-pick comparison"></div>
+            <p class="result-legend"><span><i class="same"></i>same pick</span><span><i class="different"></i>different pick</span></p>
+          </div>
+          <dl class="result-stats" id="result-stats"></dl>
+          <div class="postgame-actions">
+            <button class="primary-button" id="share-button" type="button">share + challenge a friend</button>
+            <button class="secondary-button" id="another-button" type="button">take another seat</button>
+          </div>
+        </section>
 
         <section class="comparison-section" aria-labelledby="comparison-heading">
           <div class="section-heading">
@@ -175,7 +187,33 @@
       </form>
     </dialog>
 
+    <dialog class="share-dialog" id="share-dialog">
+      <form method="dialog" class="share-card">
+        <button class="dialog-close" value="close" aria-label="close">×</button>
+        <p class="eyebrow">pass the seat</p>
+        <h2>challenge a friend.</h2>
+        <p class="share-intro">Your result comes with a permanent link that starts them at pick one of this exact trophy draft.</p>
+        <div class="share-preview">
+          <div class="share-preview-head">
+            <span class="share-mark" aria-hidden="true">Ⅷ</span>
+            <div>
+              <strong>trophy seat</strong>
+              <span id="share-meta"></span>
+            </div>
+          </div>
+          <div class="result-grid share-result-grid" id="share-result-grid" aria-hidden="true"></div>
+          <pre id="share-text-preview"></pre>
+        </div>
+        <button class="primary-button share-copy-button" id="copy-result-button" type="button">copy result + challenge</button>
+      </form>
+    </dialog>
+
+    <div class="card-zoom" id="card-zoom" aria-hidden="true">
+      <img id="card-zoom-image" alt="">
+      <span id="card-zoom-label"></span>
+    </div>
+
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script type="module" src="app.js?v=4"></script>
+    <script type="module" src="app.js?v=5"></script>
   </body>
 </html>

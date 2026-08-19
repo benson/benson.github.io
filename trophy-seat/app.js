@@ -1,18 +1,22 @@
 import {
   SIMULATED_PICK_COUNT,
   chooseDraft,
+  comparisonStats,
   deckCount,
   deckGroupCount,
+  formatDraftDate,
   groupDeckCards,
   resultCopy,
   scorePicks,
   sortPackCards,
   validateDataset,
-} from './model.js?v=2';
+} from './model.js?v=3';
 
 const DATA_URL = './data/drafts.json?v=2';
 const SEEN_KEY = 'trophy-seat-seen-v1';
 const THEME_KEY = 'trophy-seat-theme';
+const PUBLIC_APP_URL = 'https://bensonperry.com/trophy-seat/';
+const CARD_ZOOM_SELECTOR = '.card-button, .intro-card, .tray-slot.filled, .comparison-card, .deck-card, .watch-card';
 const COLOR_NAMES = { W: 'white', U: 'blue', B: 'black', R: 'red', G: 'green' };
 
 const elements = {
@@ -25,6 +29,11 @@ const elements = {
   startButton: document.querySelector('#start-button'),
   anotherButton: document.querySelector('#another-button'),
   shareButton: document.querySelector('#share-button'),
+  shareDialog: document.querySelector('#share-dialog'),
+  shareMeta: document.querySelector('#share-meta'),
+  shareResultGrid: document.querySelector('#share-result-grid'),
+  shareTextPreview: document.querySelector('#share-text-preview'),
+  copyResultButton: document.querySelector('#copy-result-button'),
   aboutButton: document.querySelector('#about-button'),
   aboutDialog: document.querySelector('#about-dialog'),
   themeToggle: document.querySelector('#theme-toggle'),
@@ -41,6 +50,9 @@ const elements = {
   resultTitle: document.querySelector('#result-title'),
   resultBody: document.querySelector('#result-body'),
   trophyProof: document.querySelector('#trophy-proof'),
+  postgameMeta: document.querySelector('#postgame-meta'),
+  resultGrid: document.querySelector('#result-grid'),
+  resultStats: document.querySelector('#result-stats'),
   comparisonList: document.querySelector('#comparison-list'),
   deckTab: document.querySelector('#deck-tab'),
   watchTab: document.querySelector('#watch-tab'),
@@ -55,6 +67,9 @@ const elements = {
   watchPack: document.querySelector('#watch-pack'),
   revealLogButton: document.querySelector('#reveal-log-button'),
   pickLog: document.querySelector('#pick-log'),
+  cardZoom: document.querySelector('#card-zoom'),
+  cardZoomImage: document.querySelector('#card-zoom-image'),
+  cardZoomLabel: document.querySelector('#card-zoom-label'),
   toast: document.querySelector('#toast'),
 };
 
@@ -67,6 +82,8 @@ const state = {
   watchIndex: SIMULATED_PICK_COUNT,
   toastTimer: null,
 };
+
+let activeZoomTarget = null;
 
 function escapeHtml(value) {
   return String(value)
@@ -96,6 +113,7 @@ function showOnly(view) {
   ]) {
     candidate.classList.toggle('hidden', candidate !== view);
   }
+  document.body.dataset.view = view.id.replace('-view', '');
 }
 
 function storedJson(key, fallback) {
@@ -141,6 +159,12 @@ function updateSeatUrl(draftId) {
   history.replaceState(null, '', url);
 }
 
+function publicSeatUrl() {
+  const url = new URL(PUBLIC_APP_URL);
+  url.searchParams.set('seat', state.draft.id);
+  return url.href;
+}
+
 function cardDetails(name) {
   return state.data.cards[name] || { name, typeLine: '', manaValue: 0 };
 }
@@ -165,7 +189,7 @@ function renderIntro() {
   )).join('');
   elements.introProof.innerHTML = `
     <span><span class="proof-record">${escapeHtml(state.data.set.name)}</span> · Premier Draft</span>
-    <span>anonymous 7-win run · public 17Lands draft log</span>
+    <span>${escapeHtml(formatDraftDate(state.draft.date))} · anonymous ${escapeHtml(state.draft.record)} run</span>
   `;
 }
 
@@ -245,6 +269,7 @@ function preloadNextPack() {
 
 function chooseCard(name, selectedButton) {
   if (state.locked || state.currentPick >= SIMULATED_PICK_COUNT) return;
+  hideCardZoom();
   state.locked = true;
   state.userPicks.push(name);
   renderPickTray();
@@ -352,9 +377,56 @@ function setOutcomeView(view) {
   if (!showDeck) renderWatchPick();
 }
 
+function resultGridMarkup(outcomes) {
+  return outcomes.map((matched, index) => `
+    <span class="result-tile ${matched ? 'same' : 'different'}" aria-label="pick ${index + 1}: ${matched ? 'same pick' : 'different pick'}">
+      ${index + 1}
+    </span>
+  `).join('');
+}
+
+function statMarkup(stats) {
+  const firstSplit = stats.firstSplit ? `p1p${stats.firstSplit}` : 'none';
+  const streakLabel = stats.longestMatchStreak === 1 ? 'pick' : 'picks';
+  return `
+    <div><dt>same picks</dt><dd>${stats.matches} / ${stats.total}</dd></div>
+    <div><dt>first split</dt><dd>${firstSplit}</dd></div>
+    <div><dt>longest shared run</dt><dd>${stats.longestMatchStreak} ${streakLabel}</dd></div>
+    <div><dt>same rarity tier</dt><dd>${stats.rarityMatches} / ${stats.total}</dd></div>
+  `;
+}
+
+function buildShareText(stats) {
+  const grid = stats.outcomes.map(matched => matched ? '🟩' : '🟨').join('');
+  const firstSplit = stats.firstSplit ? `first split p1p${stats.firstSplit}` : 'no splits';
+  const streakLabel = stats.longestMatchStreak === 1 ? 'pick' : 'picks';
+  return [
+    `trophy seat — ${state.data.set.name} — ${formatDraftDate(state.draft.date)}`,
+    `I matched ${stats.matches}/8 picks with a ${state.draft.record} drafter.`,
+    '',
+    grid,
+    `same rarity ${stats.rarityMatches}/8 · ${firstSplit} · longest shared run ${stats.longestMatchStreak} ${streakLabel}`,
+    '',
+    'Can you beat my line? Draft the same seat:',
+    publicSeatUrl(),
+  ].join('\n');
+}
+
+function renderPostgame(stats) {
+  const meta = `${state.data.set.name} · ${formatDraftDate(state.draft.date)} · reference ${state.draft.record}`;
+  elements.postgameMeta.textContent = meta;
+  elements.resultGrid.innerHTML = resultGridMarkup(stats.outcomes);
+  elements.resultStats.innerHTML = statMarkup(stats);
+  elements.shareMeta.textContent = meta;
+  elements.shareResultGrid.innerHTML = resultGridMarkup(stats.outcomes);
+  elements.shareTextPreview.textContent = buildShareText(stats);
+  elements.copyResultButton.textContent = 'copy result + challenge';
+}
+
 function showResults() {
   rememberDraft(state.draft.id);
   const score = scorePicks(state.userPicks, state.draft.picks);
+  const stats = comparisonStats(state.userPicks, state.draft.picks, state.data.cards);
   const copy = resultCopy(score);
   elements.scoreNumber.textContent = String(score);
   elements.resultEyebrow.textContent = copy.eyebrow;
@@ -364,8 +436,9 @@ function showResults() {
     <span class="proof-trophy" aria-hidden="true">
       <svg viewBox="0 0 32 32"><path d="M9 6h14l-2 7c-.8 3-2.6 5-5 6-2.4-1-4.2-3-5-6L9 6Zm2 2H6v3c0 3.1 1.9 5 5.2 5M21 8h5v3c0 3.1-1.9 5-5.2 5M16 19v6m-5 2h10"/></svg>
     </span>
-    <span><strong>${escapeHtml(state.draft.record)}</strong><span>${escapeHtml(state.draft.rank)} · ${escapeHtml(state.data.set.name)}</span></span>
+    <span class="proof-copy"><strong>${escapeHtml(state.draft.record)}</strong><span>${escapeHtml(state.draft.rank)} · ${escapeHtml(state.data.set.name)}</span><span>${escapeHtml(formatDraftDate(state.draft.date))}</span></span>
   `;
+  renderPostgame(stats);
   elements.comparisonList.innerHTML = state.draft.picks
     .slice(0, SIMULATED_PICK_COUNT)
     .map(comparisonMarkup)
@@ -394,19 +467,72 @@ function showToast(message) {
   state.toastTimer = window.setTimeout(() => elements.toast.classList.remove('show'), 2200);
 }
 
-async function copySeat() {
+async function copyResult() {
+  const stats = comparisonStats(state.userPicks, state.draft.picks, state.data.cards);
   try {
-    await navigator.clipboard.writeText(location.href);
-    showToast('seat link copied');
+    await navigator.clipboard.writeText(buildShareText(stats));
+    elements.copyResultButton.textContent = 'copied — send it to a friend';
+    showToast('result and challenge copied');
   } catch {
-    showToast('copy failed — use the address bar');
+    showToast('copy failed — select the preview text');
   }
+}
+
+function openShareDialog() {
+  const stats = comparisonStats(state.userPicks, state.draft.picks, state.data.cards);
+  renderPostgame(stats);
+  elements.shareDialog.showModal();
+}
+
+function hideCardZoom() {
+  activeZoomTarget = null;
+  elements.cardZoom.classList.remove('show');
+  elements.cardZoom.setAttribute('aria-hidden', 'true');
+}
+
+function positionCardZoom() {
+  const bounds = elements.cardZoom.getBoundingClientRect();
+  const targetBounds = activeZoomTarget?.getBoundingClientRect();
+  if (!targetBounds) return;
+  const gap = 22;
+  const edge = 14;
+  let left = targetBounds.right + gap;
+  if (left + bounds.width > window.innerWidth - edge) left = targetBounds.left - bounds.width - gap;
+  const targetCenter = targetBounds.top + (targetBounds.height / 2);
+  const top = Math.max(edge, Math.min(targetCenter - (bounds.height / 2), window.innerHeight - bounds.height - edge));
+  elements.cardZoom.style.left = `${Math.max(edge, left)}px`;
+  elements.cardZoom.style.top = `${top}px`;
+}
+
+function bindCardZoom() {
+  const canHover = window.matchMedia('(hover: hover) and (pointer: fine)');
+  document.addEventListener('pointerover', event => {
+    if (!canHover.matches || (event.pointerType && event.pointerType !== 'mouse')) return;
+    const target = event.target.closest?.(CARD_ZOOM_SELECTOR);
+    const image = target?.querySelector('img');
+    if (!target || !image?.currentSrc) return;
+    activeZoomTarget = target;
+    elements.cardZoomImage.src = image.currentSrc;
+    elements.cardZoomImage.alt = image.alt;
+    elements.cardZoomLabel.textContent = image.alt;
+    elements.cardZoom.classList.add('show');
+    elements.cardZoom.setAttribute('aria-hidden', 'false');
+    positionCardZoom();
+  });
+  document.addEventListener('pointerout', event => {
+    const target = event.target.closest?.(CARD_ZOOM_SELECTOR);
+    if (!target || target !== activeZoomTarget) return;
+    if (event.relatedTarget && target.contains(event.relatedTarget)) return;
+    hideCardZoom();
+  });
+  window.addEventListener('scroll', hideCardZoom, { passive: true });
 }
 
 function bindEvents() {
   elements.startButton.addEventListener('click', startDraft);
   elements.anotherButton.addEventListener('click', anotherSeat);
-  elements.shareButton.addEventListener('click', copySeat);
+  elements.shareButton.addEventListener('click', openShareDialog);
+  elements.copyResultButton.addEventListener('click', copyResult);
   elements.aboutButton.addEventListener('click', () => elements.aboutDialog.showModal());
   elements.themeToggle.addEventListener('change', event => setTheme(event.target.checked));
   elements.deckTab.addEventListener('click', () => setOutcomeView('deck'));
@@ -430,6 +556,7 @@ function bindEvents() {
     const button = elements.cardGrid.querySelectorAll('.card-button')[number - 1];
     if (button) button.click();
   });
+  bindCardZoom();
 }
 
 async function initialize() {

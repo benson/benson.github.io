@@ -73,9 +73,9 @@ a {
 
 .site-head {
   width: min(100%, calc(var(--content-max) + var(--page-pad) * 2));
-  min-height: 72px;
+  min-height: 66px;
   margin: 0 auto;
-  padding: 18px var(--page-pad);
+  padding: 13px var(--page-pad);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -86,7 +86,7 @@ a {
 .wordmark {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   color: var(--vui-color-text-strong);
   font-family: var(--vui-font-heading);
   font-size: 1.2rem;
@@ -96,15 +96,17 @@ a {
 }
 
 .wordmark-mark {
-  width: 30px;
-  height: 30px;
+  width: 38px;
+  height: 38px;
   display: grid;
   place-items: center;
   border: 1px solid color-mix(in srgb, var(--gold) 58%, var(--vui-color-line));
   border-radius: 50%;
   color: var(--gold);
   font-family: var(--vui-font-heading);
-  font-size: 0.82rem;
+  font-size: 0.76rem;
+  letter-spacing: 0.035em;
+  line-height: 1;
 }
 
 .head-actions,
@@ -181,6 +183,10 @@ a {
   min-height: calc(100vh - 138px);
   margin: 0 auto;
   padding: clamp(28px, 5vw, 76px) var(--page-pad) 70px;
+}
+
+body[data-view="results"] .app-shell {
+  padding-top: 16px;
 }
 
 .loading-view,
@@ -516,6 +522,45 @@ a {
   box-shadow: 0 14px 26px rgba(35, 29, 25, 0.22);
 }
 
+.card-zoom {
+  width: clamp(250px, 22vw, 340px);
+  padding: 7px;
+  position: fixed;
+  z-index: calc(var(--vui-z-toast) - 1);
+  visibility: hidden;
+  border: 1px solid color-mix(in srgb, var(--gold) 48%, var(--vui-color-line));
+  border-radius: 12px;
+  background: var(--vui-color-surface-raised);
+  box-shadow: 0 24px 70px rgba(20, 16, 15, 0.38);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px) scale(0.985);
+  transition: opacity 110ms ease, transform 110ms ease, visibility 110ms ease;
+}
+
+.card-zoom.show {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.card-zoom img {
+  width: 100%;
+  aspect-ratio: var(--card-ratio);
+  display: block;
+  border-radius: 4.7% / 3.4%;
+}
+
+.card-zoom span {
+  padding: 7px 5px 2px;
+  display: block;
+  overflow: hidden;
+  color: var(--vui-color-text-muted);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .card-button[disabled] {
   cursor: default;
 }
@@ -601,18 +646,18 @@ a {
 }
 
 .result-hero {
-  min-height: 290px;
-  padding: clamp(20px, 4vw, 52px) 0;
+  min-height: 0;
+  padding: 18px 0 24px;
   display: grid;
-  grid-template-columns: auto minmax(0, 720px) auto;
+  grid-template-columns: auto minmax(0, 720px) minmax(220px, auto);
   align-items: center;
   justify-content: space-between;
-  gap: 5vw;
+  gap: clamp(26px, 3vw, 48px);
   border-bottom: 1px solid var(--vui-color-line);
 }
 
 .score-lockup {
-  min-width: 190px;
+  min-width: 150px;
   display: flex;
   align-items: baseline;
   color: var(--gold);
@@ -620,41 +665,46 @@ a {
 }
 
 .score-number {
-  font-size: clamp(6rem, 13vw, 12rem);
+  font-size: clamp(5rem, 8vw, 7.5rem);
   font-weight: 500;
   letter-spacing: -0.09em;
   line-height: 0.72;
 }
 
 .score-denominator {
-  margin-left: 12px;
-  font-size: clamp(1.3rem, 3vw, 2.4rem);
+  margin-left: 10px;
+  font-size: clamp(1.2rem, 2vw, 1.8rem);
 }
 
 .result-copy h1 {
   max-width: 680px;
-  font-size: clamp(2.3rem, 5.2vw, 5.8rem);
-  line-height: 0.94;
+  font-size: clamp(2.2rem, 3.7vw, 4.3rem);
+  line-height: 0.96;
 }
 
 .result-copy > p:last-child {
   max-width: 580px;
-  margin: 20px 0 0;
+  margin: 12px 0 0;
   color: var(--vui-color-text-muted);
 }
 
 .trophy-proof {
-  min-width: 150px;
-  padding: 22px;
+  min-width: 220px;
+  padding: 12px 0 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 14px;
   border-left: 1px solid var(--vui-color-line);
   color: var(--vui-color-text-muted);
-  text-align: center;
+  text-align: left;
 }
 
 .proof-trophy {
-  width: 48px;
-  height: 48px;
-  margin: 0 auto 12px;
+  width: 46px;
+  height: 46px;
+  margin: 0;
+  flex: 0 0 46px;
   display: grid;
   place-items: center;
   border: 1px solid var(--gold);
@@ -677,24 +727,149 @@ a {
   display: block;
   color: var(--vui-color-text-strong);
   font-family: var(--vui-font-heading);
-  font-size: 1.2rem;
+  font-size: 1.15rem;
+  line-height: 1;
 }
 
-.trophy-proof span {
+.trophy-proof .proof-copy,
+.trophy-proof .proof-copy span {
   display: block;
   margin-top: 4px;
   font-size: 0.7rem;
 }
 
-.result-actions {
-  padding: 24px 0;
+.trophy-proof .proof-copy {
+  min-width: 0;
+  margin-top: 0;
+}
+
+.postgame-card {
+  margin: 18px 0 10px;
+  padding: clamp(18px, 2vw, 26px);
+  display: grid;
+  grid-template-columns: minmax(210px, 0.8fr) minmax(250px, 0.95fr) minmax(270px, 1.05fr) minmax(210px, auto);
+  align-items: center;
+  gap: 22px clamp(24px, 3vw, 48px);
+  border: 1px solid var(--vui-color-line);
+  background:
+    linear-gradient(120deg, var(--gold-soft), transparent 36%),
+    color-mix(in srgb, var(--vui-color-surface-raised) 82%, transparent);
+}
+
+.postgame-copy h2 {
+  margin: 0;
+  color: var(--vui-color-text-strong);
+  font-family: var(--vui-font-heading);
+  font-size: clamp(1.65rem, 2.5vw, 2.4rem);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+.postgame-copy > p:last-child {
+  margin: 10px 0 0;
+  color: var(--vui-color-text-muted);
+  font-size: 0.72rem;
+}
+
+.result-grid {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(28px, 1fr));
+  gap: 6px;
+}
+
+.result-tile {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  font-family: var(--vui-font-heading);
+  font-size: clamp(0.68rem, 1vw, 0.82rem);
+  font-weight: 700;
+}
+
+.result-tile.same {
+  border-color: color-mix(in srgb, var(--match) 74%, white);
+  color: white;
+  background: var(--match);
+}
+
+.result-tile.different {
+  border-color: var(--gold);
+  color: var(--vui-color-text-strong);
+  background: var(--gold-soft);
+}
+
+.result-legend {
+  margin: 9px 0 0;
   display: flex;
-  justify-content: flex-end;
+  gap: 14px;
+  color: var(--vui-color-text-muted);
+  font-size: 0.64rem;
+}
+
+.result-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.result-legend i {
+  width: 8px;
+  height: 8px;
+  display: inline-block;
+  border-radius: 2px;
+  background: var(--match);
+}
+
+.result-legend i.different {
+  border: 1px solid var(--gold);
+  background: var(--gold-soft);
+}
+
+.result-stats {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 24px;
+}
+
+.result-stats div {
+  min-width: 0;
+}
+
+.result-stats dt {
+  color: var(--vui-color-text-muted);
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.result-stats dd {
+  margin: 2px 0 0;
+  color: var(--vui-color-text-strong);
+  font-family: var(--vui-font-heading);
+  font-size: 1.05rem;
+}
+
+.postgame-actions {
+  padding-left: 22px;
+  display: flex;
+  align-items: stretch;
+  flex-direction: column;
+  justify-content: center;
   gap: 10px;
+  border-left: 1px solid var(--vui-color-line);
+}
+
+.postgame-actions > * {
+  width: 100%;
+  white-space: nowrap;
 }
 
 .comparison-section {
-  padding: clamp(34px, 5vw, 68px) 0;
+  padding: clamp(30px, 4vw, 54px) 0;
 }
 
 .section-heading {
@@ -1070,7 +1245,8 @@ a {
   text-underline-offset: 3px;
 }
 
-.about-dialog {
+.about-dialog,
+.share-dialog {
   width: min(92vw, 560px);
   max-width: 560px;
   padding: 0;
@@ -1081,12 +1257,19 @@ a {
   box-shadow: var(--vui-shadow-overlay);
 }
 
-.about-dialog::backdrop {
+.share-dialog {
+  width: min(92vw, 640px);
+  max-width: 640px;
+}
+
+.about-dialog::backdrop,
+.share-dialog::backdrop {
   background: var(--vui-modal-backdrop);
   backdrop-filter: blur(2px);
 }
 
-.about-card {
+.about-card,
+.share-card {
   padding: 30px;
   position: relative;
   border: 1px solid var(--vui-color-line);
@@ -1094,7 +1277,8 @@ a {
   background: var(--vui-color-surface-raised);
 }
 
-.about-card h2 {
+.about-card h2,
+.share-card h2 {
   margin: 0 0 20px;
   padding-right: 30px;
   color: var(--vui-color-text-strong);
@@ -1107,6 +1291,88 @@ a {
 .about-card p:not(.eyebrow) {
   color: var(--vui-color-text-muted);
   font-size: 0.86rem;
+}
+
+.share-intro {
+  max-width: 510px;
+  margin: -4px 0 20px;
+  color: var(--vui-color-text-muted);
+  font-size: 0.86rem;
+}
+
+.share-preview {
+  padding: 18px;
+  border: 1px solid var(--vui-color-line);
+  background:
+    linear-gradient(135deg, var(--gold-soft), transparent 45%),
+    var(--vui-color-surface-sunken);
+}
+
+.share-preview-head {
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.share-preview-head > div {
+  min-width: 0;
+}
+
+.share-preview-head strong,
+.share-preview-head span {
+  display: block;
+}
+
+.share-preview-head strong {
+  color: var(--vui-color-text-strong);
+  font-family: var(--vui-font-heading);
+  font-size: 1.05rem;
+}
+
+.share-preview-head span:not(.share-mark) {
+  overflow: hidden;
+  color: var(--vui-color-text-muted);
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.share-mark {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  display: grid !important;
+  place-items: center;
+  border: 1px solid var(--gold);
+  border-radius: 50%;
+  color: var(--gold);
+  font-family: var(--vui-font-heading);
+  font-size: 0.74rem;
+  letter-spacing: 0.03em;
+}
+
+.share-result-grid {
+  max-width: 380px;
+}
+
+.share-preview pre {
+  max-height: 230px;
+  margin: 18px 0 0;
+  padding: 14px 0 0;
+  overflow: auto;
+  border-top: 1px solid var(--vui-color-line);
+  color: var(--vui-color-text);
+  font-family: var(--vui-font-mono, ui-monospace, monospace);
+  font-size: 0.72rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.share-copy-button {
+  width: 100%;
+  margin-top: 14px;
 }
 
 .dialog-close {
@@ -1203,6 +1469,29 @@ a {
 
   .result-hero {
     grid-template-columns: auto 1fr;
+  }
+
+  .postgame-card {
+    grid-template-columns: minmax(220px, 0.85fr) minmax(300px, 1.15fr);
+  }
+
+  .postgame-actions {
+    grid-column: 1 / -1;
+    padding: 16px 0 0;
+    align-items: center;
+    flex-direction: row;
+    justify-content: flex-end;
+    border-top: 1px solid var(--vui-color-line);
+    border-left: 0;
+  }
+
+  .postgame-actions > * {
+    width: auto;
+  }
+
+  .result-stats {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(4, 1fr);
   }
 
   .trophy-proof {
@@ -1307,30 +1596,46 @@ a {
 
   .result-hero {
     min-height: 0;
-    padding-top: 24px;
+    padding: 10px 0 20px;
     display: block;
   }
 
   .score-lockup {
-    margin-bottom: 26px;
+    min-width: 0;
+    margin-bottom: 18px;
   }
 
   .score-number {
-    font-size: 8rem;
+    font-size: 6.5rem;
   }
 
   .trophy-proof {
-    margin-top: 28px;
+    min-width: 0;
+    margin-top: 20px;
+    padding-top: 16px;
     justify-content: flex-start;
     text-align: left;
   }
 
-  .result-actions {
-    justify-content: stretch;
+  .postgame-card {
+    margin-top: 14px;
+    grid-template-columns: 1fr;
+    gap: 20px;
   }
 
-  .result-actions > * {
-    flex: 1;
+  .result-stats {
+    grid-column: auto;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .postgame-actions {
+    grid-column: auto;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .postgame-actions > * {
+    width: 100%;
   }
 
   .section-heading,
@@ -1428,8 +1733,11 @@ a {
     grid-template-columns: repeat(2, minmax(96px, 1fr));
   }
 
-  .result-actions {
-    flex-direction: column;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .card-zoom {
+    display: none;
   }
 }
 

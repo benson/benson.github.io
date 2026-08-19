@@ -1,4 +1,18 @@
 export const SIMULATED_PICK_COUNT = 8;
+const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
 const PACK_RARITY_ORDER = new Map([
   ['mythic', 0],
   ['rare', 1],
@@ -18,6 +32,9 @@ export function validateDataset(data) {
     if (!draft.id || !/^7-[012]$/.test(draft.record || '')) {
       throw new Error('A draft has an invalid trophy record.');
     }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(draft.date || '')) {
+      throw new Error('A draft is missing its date.');
+    }
     if (!Array.isArray(draft.picks) || draft.picks.length < SIMULATED_PICK_COUNT) {
       throw new Error('A draft does not contain eight picks.');
     }
@@ -34,6 +51,43 @@ export function scorePicks(userPicks, referencePicks) {
   return referencePicks.slice(0, SIMULATED_PICK_COUNT).reduce((score, pick, index) => (
     score + (userPicks[index] === pick.choice ? 1 : 0)
   ), 0);
+}
+
+export function comparisonStats(userPicks, referencePicks, cards = {}) {
+  const picks = referencePicks.slice(0, SIMULATED_PICK_COUNT);
+  const outcomes = picks.map((pick, index) => userPicks[index] === pick.choice);
+  let longestMatchStreak = 0;
+  let currentMatchStreak = 0;
+
+  for (const matched of outcomes) {
+    currentMatchStreak = matched ? currentMatchStreak + 1 : 0;
+    longestMatchStreak = Math.max(longestMatchStreak, currentMatchStreak);
+  }
+
+  const rarityMatches = picks.reduce((total, pick, index) => {
+    const userRarity = cards[userPicks[index]]?.rarity;
+    const drafterRarity = cards[pick.choice]?.rarity;
+    return total + (userRarity && userRarity === drafterRarity ? 1 : 0);
+  }, 0);
+  const firstSplitIndex = outcomes.findIndex(matched => !matched);
+
+  return {
+    total: outcomes.length,
+    matches: outcomes.filter(Boolean).length,
+    firstSplit: firstSplitIndex === -1 ? null : firstSplitIndex + 1,
+    longestMatchStreak,
+    rarityMatches,
+    outcomes,
+  };
+}
+
+export function formatDraftDate(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || '');
+  if (!match) return 'date unavailable';
+  const [, year, month, day] = match;
+  const monthName = MONTH_NAMES[Number(month) - 1];
+  if (!monthName || Number(day) < 1 || Number(day) > 31) return 'date unavailable';
+  return `${monthName} ${Number(day)}, ${year}`;
 }
 
 export function resultCopy(score) {
