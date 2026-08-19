@@ -9,10 +9,11 @@ import {
   groupDeckCards,
   resultCopy,
   sampleIntroCards,
+  shareText,
   scorePicks,
   sortPackCards,
   validateDataset,
-} from './model.js?v=6';
+} from './model.js?v=7';
 
 const DATA_URL = './data/drafts.json?v=2';
 const SEEN_KEY = 'trophy-seat-seen-v1';
@@ -52,10 +53,8 @@ const elements = {
   yourPickCount: document.querySelector('#your-pick-count'),
   scoreNumber: document.querySelector('#score-number'),
   resultTitle: document.querySelector('#result-title'),
-  resultBody: document.querySelector('#result-body'),
   trophyProof: document.querySelector('#trophy-proof'),
   resultGrid: document.querySelector('#result-grid'),
-  resultStats: document.querySelector('#result-stats'),
   comparisonList: document.querySelector('#comparison-list'),
   deckTab: document.querySelector('#deck-tab'),
   watchTab: document.querySelector('#watch-tab'),
@@ -167,6 +166,11 @@ function publicSeatUrl() {
   return url.href;
 }
 
+function scrollToTop(behavior = 'smooth') {
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  window.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : behavior });
+}
+
 function cardDetails(name) {
   return state.data.cards[name] || { name, typeLine: '', manaValue: 0 };
 }
@@ -199,7 +203,7 @@ function resetRun() {
   state.locked = false;
   state.watchIndex = SIMULATED_PICK_COUNT;
   elements.pickLog.classList.add('hidden');
-  elements.revealLogButton.textContent = 'show the full pick log';
+  elements.revealLogButton.textContent = 'show all picks';
   renderSeatLedger();
   renderIntro();
   renderPickTray();
@@ -229,7 +233,7 @@ function renderCurrentPack() {
       type="button"
       data-card-name="${escapeHtml(name)}"
       aria-label="pick ${escapeHtml(name)}"
-      style="animation-delay: ${Math.min(index * 22, 180)}ms"
+      style="animation-delay: ${Math.min(index * 14, 98)}ms"
     >
       ${imageMarkup(name, 'card-image', index < 7 ? 'eager' : 'lazy')}
     </button>
@@ -240,7 +244,7 @@ function renderCurrentPack() {
   }
 
   preloadNextPack();
-  window.scrollTo({ top: 0, behavior: state.currentPick ? 'smooth' : 'auto' });
+  scrollToTop(state.currentPick ? 'smooth' : 'auto');
 }
 
 function preloadNextPack() {
@@ -269,7 +273,7 @@ function chooseCard(name, selectedButton) {
     state.currentPick += 1;
     if (state.currentPick >= SIMULATED_PICK_COUNT) showResults();
     else renderCurrentPack();
-  }, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 20 : 360);
+  }, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 20 : 180);
 }
 
 function startDraft() {
@@ -303,7 +307,7 @@ function renderDeck() {
   const colors = [...new Set([...(deck.mainColors || []), ...(deck.splashColors || [])])];
   const sideboardCount = (deck.sideboard || []).reduce((sum, card) => sum + card.count, 0);
   elements.deckSummary.innerHTML = `
-    <span><strong>${deckCount(deck)} cards</strong> · last recorded build · ${sideboardCount} in sideboard</span>
+    <span><strong>${deckCount(deck)} cards</strong> · ${sideboardCount} in sideboard</span>
     <span class="deck-summary-actions">
       <span class="color-pips" aria-label="deck colors: ${colors.map(color => COLOR_NAMES[color]).join(', ')}">
         ${colors.map(color => `<span class="color-pip ${color}" title="${COLOR_NAMES[color]}">${color}</span>`).join('')}
@@ -338,7 +342,7 @@ function renderPickLog() {
 function renderWatchPick() {
   const pick = state.draft.picks[state.watchIndex];
   const sortedCards = sortPackCards(pick.cards, state.data.cards);
-  elements.watchLabel.textContent = `pack ${pick.pack} · pick ${pick.pick} · ${state.watchIndex + 1} of ${state.draft.picks.length}`;
+  elements.watchLabel.textContent = `pack ${pick.pack} · pick ${pick.pick}`;
   elements.watchChoice.textContent = `they took ${pick.choice}`;
   elements.watchPack.innerHTML = sortedCards.map(name => `
     <div class="watch-card ${name === pick.choice ? 'chosen' : ''}">
@@ -375,36 +379,13 @@ function resultGridMarkup(outcomes) {
   }).join('');
 }
 
-function statMarkup(stats) {
-  return `
-    <div><dt>same picks</dt><dd>${stats.matches} / ${stats.total}</dd></div>
-  `;
-}
-
-function buildShareText(stats) {
-  const spellbook = stats.outcomes.map(matched => matched ? '✦' : '↗').join('  ');
-  return [
-    '✦ trophy seat ✦',
-    `${state.data.set.name} · ${formatDraftDate(state.draft.date)}`,
-    `reference drafter: ${state.draft.record} · ${formatRank(state.draft.rank)}`,
-    '',
-    spellbook,
-    `I made ${stats.matches}/${stats.total} of the same picks`,
-    '✦ same pick · ↗ different pick',
-    '',
-    'Can you beat my line? Draft the same seat:',
-    publicSeatUrl(),
-  ].join('\n');
-}
-
 function renderPostgame(stats) {
-  const meta = `${state.data.set.name} · ${formatDraftDate(state.draft.date)} · reference ${state.draft.record}`;
+  const meta = `${state.data.set.name} · ${formatDraftDate(state.draft.date)} · ${state.draft.record}`;
   elements.resultGrid.innerHTML = resultGridMarkup(stats.outcomes);
-  elements.resultStats.innerHTML = statMarkup(stats);
   elements.shareMeta.textContent = meta;
   elements.shareResultGrid.innerHTML = resultGridMarkup(stats.outcomes);
-  elements.shareTextPreview.textContent = buildShareText(stats);
-  elements.copyResultButton.textContent = 'copy result + challenge';
+  elements.shareTextPreview.textContent = shareText(stats.outcomes, publicSeatUrl());
+  elements.copyResultButton.textContent = 'copy result + link';
 }
 
 function showResults() {
@@ -414,7 +395,6 @@ function showResults() {
   const copy = resultCopy(score);
   elements.scoreNumber.textContent = String(score);
   elements.resultTitle.textContent = copy.title;
-  elements.resultBody.textContent = copy.body;
   elements.trophyProof.innerHTML = `
     <span class="proof-trophy" aria-hidden="true">
       <svg viewBox="0 0 32 32"><path d="M9 6h14l-2 7c-.8 3-2.6 5-5 6-2.4-1-4.2-3-5-6L9 6Zm2 2H6v3c0 3.1 1.9 5 5.2 5M21 8h5v3c0 3.1-1.9 5-5.2 5M16 19v6m-5 2h10"/></svg>
@@ -430,7 +410,7 @@ function showResults() {
   renderPickLog();
   setOutcomeView('deck');
   showOnly(elements.resultsView);
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  scrollToTop();
 }
 
 function loadAnotherSeat() {
@@ -445,7 +425,7 @@ function loadAnotherSeat() {
 function rerollSeat() {
   loadAnotherSeat();
   showOnly(elements.introView);
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  scrollToTop();
 }
 
 function anotherSeat() {
@@ -463,9 +443,8 @@ function showToast(message) {
 async function copyResult() {
   const stats = comparisonStats(state.userPicks, state.draft.picks);
   try {
-    await navigator.clipboard.writeText(buildShareText(stats));
-    elements.copyResultButton.textContent = 'copied — send it to a friend';
-    showToast('result and challenge copied');
+    await navigator.clipboard.writeText(shareText(stats.outcomes, publicSeatUrl()));
+    elements.copyResultButton.textContent = 'copied';
   } catch {
     showToast('copy failed — select the preview text');
   }
@@ -540,7 +519,7 @@ function bindEvents() {
   });
   elements.revealLogButton.addEventListener('click', () => {
     const hidden = elements.pickLog.classList.toggle('hidden');
-    elements.revealLogButton.textContent = hidden ? 'show the full pick log' : 'hide the full pick log';
+    elements.revealLogButton.textContent = hidden ? 'show all picks' : 'hide all picks';
   });
   bindCardZoom();
 }

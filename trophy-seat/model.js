@@ -101,20 +101,21 @@ export function sampleIntroCards(cards, draft, random = Math.random) {
 export function resultCopy(score) {
   if (score === 8) return {
     title: 'you found their exact line.',
-    body: 'Eight decisions, no daylight between you and the trophy drafter.',
   };
   if (score >= 6) return {
     title: 'you read the seat almost the same way.',
-    body: 'A couple forks in the road, but the shape of the draft was shared.',
   };
   if (score >= 3) return {
     title: 'you agreed on the signals, not the route.',
-    body: 'The overlap is real. So are the places where your draft became your own.',
   };
   return {
     title: 'you saw a different deck in these packs.',
-    body: 'That is the point: the trophy is proof a line worked, not proof it was the only line.',
   };
+}
+
+export function shareText(outcomes, seatUrl) {
+  const spellbook = outcomes.map(matched => matched ? '✦' : '↗').join('  ');
+  return ['trophy seat', spellbook, `draft this seat: ${seatUrl}`].join('\n');
 }
 
 export function chooseDraft(drafts, seenIds = [], random = Math.random) {
