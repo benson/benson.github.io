@@ -3,26 +3,51 @@ import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 
 const modelPromise = import('../model.js');
-const dataPromise = readFile(new URL('../data/drafts.json', import.meta.url), 'utf8')
+const catalogPromise = readFile(new URL('../data/index.json', import.meta.url), 'utf8')
   .then(JSON.parse);
 
-test('the shipped dataset contains only complete trophy drafts', async () => {
-  const { validateDataset } = await modelPromise;
-  const data = await dataPromise;
-  assert.equal(validateDataset(data), data);
-  assert.equal(data.drafts.length, 32);
-  assert.equal(data.set.code, 'HOB');
-  assert.equal(data.set.name, 'The Hobbit');
-  assert.ok(Object.keys(data.cards).length > 180);
+const expectedDraftCounts = new Map([
+  ['HOB', 32],
+  ['MSH', 50],
+  ['SOS', 50],
+]);
 
-  for (const draft of data.drafts) {
-    assert.match(draft.record, /^7-[012]$/);
-    assert.match(draft.date, /^\d{4}-\d{2}-\d{2}$/);
-    assert.ok(draft.picks.length >= 40);
-    assert.ok(draft.deck.main.length > 0);
-    assert.match(draft.sourceUrl, /^https:\/\/www\.17lands\.com\/draft\/[a-f0-9]+$/);
-    for (const pick of draft.picks) {
-      assert.ok(data.cards[pick.choice], `metadata exists for ${pick.choice}`);
+test('the shipped catalog contains only exact, directly linked trophy drafts', async () => {
+  const { validateDataset } = await modelPromise;
+  const catalog = await catalogPromise;
+  assert.equal(catalog.defaultSet, 'HOB');
+  assert.deepEqual(catalog.sets.map(set => set.code), [...expectedDraftCounts.keys()]);
+  assert.equal(catalog.sets.reduce((sum, set) => sum + set.draftCount, 0), 132);
+
+  const seenSourceUrls = new Set();
+  for (const set of catalog.sets) {
+    const dataUrl = new URL(`..${set.dataUrl.slice(1).split('?')[0]}`, import.meta.url);
+    const data = JSON.parse(await readFile(dataUrl, 'utf8'));
+    assert.equal(validateDataset(data), data);
+    assert.equal(data.set.code, set.code);
+    assert.equal(data.set.name, set.name);
+    assert.equal(data.drafts.length, expectedDraftCounts.get(set.code));
+    assert.equal(set.draftCount, data.drafts.length);
+    assert.ok(Object.keys(data.cards).length > 100);
+
+    for (const draft of data.drafts) {
+      assert.match(draft.record, /^7-[012]$/);
+      assert.match(draft.date, /^\d{4}-\d{2}-\d{2}$/);
+      assert.ok(draft.picks.length >= 40);
+      assert.ok(draft.picks[0].cards.length >= 12);
+      assert.ok(draft.deck.main.length > 0);
+      assert.match(draft.sourceUrl, /^https:\/\/www\.17lands\.com\/draft\/[a-f0-9]{32}$/);
+      assert.ok(!seenSourceUrls.has(draft.sourceUrl), `duplicate source ${draft.sourceUrl}`);
+      seenSourceUrls.add(draft.sourceUrl);
+
+      for (const pick of draft.picks) {
+        assert.ok(pick.cards.includes(pick.choice), `${pick.choice} was present in its exact pack`);
+        assert.ok(data.cards[pick.choice], `metadata exists for ${pick.choice}`);
+        for (const name of pick.cards) assert.ok(data.cards[name], `metadata exists for ${name}`);
+      }
+      for (const card of [...draft.deck.main, ...draft.deck.sideboard]) {
+        assert.ok(data.cards[card.name], `deck metadata exists for ${card.name}`);
+      }
     }
   }
 });
