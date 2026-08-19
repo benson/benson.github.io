@@ -52,11 +52,19 @@ test('formatRank replaces Arena rank separators with spaces', async () => {
   assert.equal(formatRank('Platinum-3'), 'Platinum 3');
 });
 
-test('resultCopy keeps the result hierarchy to a title and one sentence', async () => {
+test('resultCopy keeps the result hierarchy to one title', async () => {
   const { resultCopy } = await modelPromise;
   for (const score of [0, 4, 7, 8]) {
-    assert.deepEqual(Object.keys(resultCopy(score)).sort(), ['body', 'title']);
+    assert.deepEqual(Object.keys(resultCopy(score)), ['title']);
   }
+});
+
+test('shareText is a compact three-line challenge', async () => {
+  const { shareText } = await modelPromise;
+  assert.equal(
+    shareText([true, false, true], 'https://example.com/?seat=abc'),
+    'trophy seat\n✦  ↗  ✦\ndraft this seat: https://example.com/?seat=abc',
+  );
 });
 
 test('sampleIntroCards returns unique non-land cards the drafter never picked', async () => {
