@@ -1,4 +1,10 @@
 export const SIMULATED_PICK_COUNT = 8;
+const PACK_RARITY_ORDER = new Map([
+  ['mythic', 0],
+  ['rare', 1],
+  ['uncommon', 2],
+  ['common', 3],
+]);
 
 export function validateDataset(data) {
   if (!data || !Array.isArray(data.drafts) || data.drafts.length === 0) {
@@ -59,6 +65,17 @@ export function chooseDraft(drafts, seenIds = [], random = Math.random) {
   return pool[Math.floor(random() * pool.length)];
 }
 
+export function sortPackCards(cardNames, cards) {
+  return cardNames
+    .map((name, index) => ({ name, index, card: cards[name] || {} }))
+    .sort((left, right) => {
+      const leftRarity = left.card.basic ? 4 : (PACK_RARITY_ORDER.get(left.card.rarity) ?? 4);
+      const rightRarity = right.card.basic ? 4 : (PACK_RARITY_ORDER.get(right.card.rarity) ?? 4);
+      return leftRarity - rightRarity || left.index - right.index;
+    })
+    .map(entry => entry.name);
+}
+
 export function groupDeckCards(deck, cards) {
   const groups = [
     { id: 'early', label: '0—1', cards: [] },
@@ -72,7 +89,9 @@ export function groupDeckCards(deck, cards) {
 
   for (const entry of deck.main || []) {
     const card = cards[entry.name] || { name: entry.name, manaValue: 0, typeLine: '' };
-    const copies = Array.from({ length: entry.count }, () => ({ ...card, name: entry.name }));
+    const copies = card.basic
+      ? [{ ...card, name: entry.name, count: entry.count }]
+      : Array.from({ length: entry.count }, () => ({ ...card, name: entry.name, count: 1 }));
     let groupIndex;
     if (card.basic || /\bLand\b/.test(card.typeLine || '')) groupIndex = 6;
     else if (card.manaValue <= 1) groupIndex = 0;
@@ -85,6 +104,10 @@ export function groupDeckCards(deck, cards) {
     group.cards.sort((left, right) => left.name.localeCompare(right.name));
   }
   return groups;
+}
+
+export function deckGroupCount(group) {
+  return (group.cards || []).reduce((sum, card) => sum + (card.count || 1), 0);
 }
 
 export function deckCount(deck) {

@@ -12,7 +12,7 @@
     <meta property="og:url" content="https://bensonperry.com/trophy-seat/">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="../vellum-ui/vellum-ui.css?v=20260818">
-    <link rel="stylesheet" href="style.css?v=1">
+    <link rel="stylesheet" href="style.css?v=3">
   </head>
   <body class="no-shared-footer">
     <header class="site-head">
@@ -42,7 +42,7 @@
           <p class="eyebrow">a real 7-win draft · first eight picks</p>
           <h1>someone trophied<br>from this seat.</h1>
           <p class="intro-question">would you have taken what they took?</p>
-          <p class="intro-note">The packs are from an anonymous Premier Draft in the public 17Lands data. Their choices stay hidden until you finish.</p>
+          <p class="intro-note">The packs are from an anonymous HOB Premier Draft linked on the <a href="https://www.17lands.com/trophy_decks?expansion=HOB&amp;format=PremierDraft" target="_blank" rel="noreferrer">17Lands Trophy Decks page</a>. Their choices stay hidden until you finish.</p>
           <button class="primary-button intro-start" id="start-button" type="button">
             take the seat
             <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11m-4-4 4 4-4 4"/></svg>
@@ -159,7 +159,7 @@
 
     <footer class="site-footer">
       <span>made by <a href="https://bensonperry.com">benson</a></span>
-      <span>draft data by <a href="https://www.17lands.com/public_datasets">17Lands</a> · card images by <a href="https://scryfall.com">Scryfall</a></span>
+      <span>draft logs by <a href="https://www.17lands.com/trophy_decks?expansion=HOB&amp;format=PremierDraft">17Lands</a> · card images by <a href="https://scryfall.com">Scryfall</a></span>
     </footer>
 
     <dialog class="about-dialog" id="about-dialog">
@@ -170,12 +170,12 @@
         <p>An anonymous 17Lands player drafted these exact packs and finished with seven wins and no more than two losses.</p>
         <p>You replay their first eight picks without seeing what they chose. Those packs are safe to reproduce: before pick nine, nothing you take can circle the table and affect a pack you receive.</p>
         <p>After that, the draft becomes a replay. You can inspect every later choice and the final recorded deck, but the app does not pretend those later packs would have stayed the same.</p>
-        <p class="dialog-source">17Lands public datasets are used under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.</p>
+        <p class="dialog-source">Each seat comes from an individual public draft log on <a href="https://www.17lands.com/trophy_decks?expansion=HOB&amp;format=PremierDraft">17Lands</a>. The app uses a fixed cached snapshot and makes no live data requests.</p>
         <button class="primary-button dialog-done" value="close">got it</button>
       </form>
     </dialog>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script type="module" src="app.js?v=1"></script>
+    <script type="module" src="app.js?v=3"></script>
   </body>
 </html>
