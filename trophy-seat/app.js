@@ -8,9 +8,9 @@ import {
   scorePicks,
   sortPackCards,
   validateDataset,
-} from './model.js';
+} from './model.js?v=2';
 
-const DATA_URL = './data/drafts.json';
+const DATA_URL = './data/drafts.json?v=2';
 const SEEN_KEY = 'trophy-seat-seen-v1';
 const THEME_KEY = 'trophy-seat-theme';
 const COLOR_NAMES = { W: 'white', U: 'blue', B: 'black', R: 'red', G: 'green' };
