@@ -1,257 +1,136 @@
 import { createHash } from 'node:crypto';
-import { createReadStream } from 'node:fs';
-import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { createGunzip } from 'node:zlib';
-import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(HERE, '..');
-const DEFAULT_EXPANSION = 'SOS';
-const DEFAULT_FORMAT = 'PremierDraft';
 const DEFAULT_LIMIT = 32;
-const DATASET_ROOT = 'https://17lands-public.s3.amazonaws.com/analysis_data';
-const SCRYFALL_SET_CODES = ['sos', 'soa', 'soc', 'spg'];
+const EXPANSION = 'HOB';
+const FORMAT = 'PremierDraft';
+const SET_NAME = 'The Hobbit';
+const TROPHY_PAGE = 'https://www.17lands.com/trophy_decks?expansion=HOB&format=PremierDraft';
 const BASIC_LANDS = new Set(['Plains', 'Island', 'Swamp', 'Mountain', 'Forest']);
-const SCRYFALL_HEADERS = {
+const REQUEST_HEADERS = {
   Accept: 'application/json',
-  'User-Agent': 'trophy-seat/1.0 (https://bensonperry.com/trophy-seat/)',
+  'User-Agent': 'trophy-seat/1.1 (https://bensonperry.com/trophy-seat/)',
 };
 
-export function parseCsvLine(line) {
-  const fields = [];
-  let field = '';
-  let quoted = false;
-
-  for (let index = 0; index < line.length; index += 1) {
-    const character = line[index];
-    if (character === '"') {
-      if (quoted && line[index + 1] === '"') {
-        field += '"';
-        index += 1;
-      } else {
-        quoted = !quoted;
-      }
-    } else if (character === ',' && !quoted) {
-      fields.push(field);
-      field = '';
-    } else {
-      field += character;
-    }
-  }
-
-  if (quoted) throw new Error('Unterminated quoted CSV field');
-  fields.push(field);
-  return fields;
-}
-
-export function expandCardCounts(fields, columns) {
-  const cards = [];
-  for (const column of columns) {
-    const count = Number(fields[column.index]) || 0;
-    for (let copy = 0; copy < count; copy += 1) cards.push(column.cardName);
-  }
-  return cards;
-}
-
-export function isTrophyRecord(wins, losses) {
-  return Number(wins) === 7 && Number(losses) <= 2;
-}
+// A small, fixed snapshot of public individual draft logs linked from the HOB
+// Trophy Decks page. Keeping the IDs explicit avoids live scraping and makes
+// every production seat reproducible. deckIndex is the build linked by 17Lands.
+const HOB_TROPHY_SEATS = [
+  ['13a97e7703424513ba770488fb3750a3', 0],
+  ['359c5a654ba44fc9a6cd04acf30442fd', 0],
+  ['b65b790aca464a5a986789e0ea7d67df', 0],
+  ['e7dc4916ed914327b25d32013a054a9a', 0],
+  ['aa121a5396904115a946a89bdb8a19c7', 0],
+  ['9b5707f3f2014282a8f5b5dbadcb8009', 3],
+  ['777aab403c2d49d8802345ed3f351729', 0],
+  ['9bcb39aeed6f47fea3aea2000093f457', 1],
+  ['8ed73547049b4342b9ce3796f4613a67', 0],
+  ['70f426f68d1f43389a469ed1190c9c2f', 0],
+  ['3684ccf84b1f4765a559a349898c4087', 0],
+  ['7d2a773b29064417b32b1c7173238dae', 0],
+  ['68a50377d429418da50ad54c51e7778e', 0],
+  ['2fe2da0b201e4003b452c55ef5d20f68', 0],
+  ['f79e23b9a7d74559b662cfa2722a2c46', 0],
+  ['d3767ac88a674998aa6ed3cdae762835', 0],
+  ['b799fe13c65342958b5086dbc73b4eec', 0],
+  ['118a27627b8f4b9083ffa9d717129887', 0],
+  ['d61ebbe5953c4f9a822cdb84fc5e7908', 0],
+  ['465ae87e306640fdabe714716b414f27', 1],
+  ['380ee81f36714fad8cb820b32e12f02a', 0],
+  ['4f487253ef644485963982dd87b30d50', 0],
+  ['5df9d2995fbb49029a65d9888a37d694', 2],
+  ['4300c575ac0e4691949ac6f3b3752478', 0],
+  ['f5210001e2e1422a9c8af948c39ed77b', 0],
+  ['7e8a06a498fc4f449103ede14fff1bed', 0],
+  ['da6d7e3393214a898dc3f0d048d2a130', 0],
+  ['de751de97bbf43d28b2885389271bbeb', 0],
+  ['1fcc714aa7974ef1b0463488340be4ef', 0],
+  ['9f7fe580209d412893265ccbe685b192', 0],
+  ['013a94aa3fa1420da2c7464e0bf0706d', 0],
+  ['5e4f3452ab20423f9f89bebb4c0c2f8a', 0],
+];
 
 function parseArgs(argv) {
   const args = {};
   for (let index = 0; index < argv.length; index += 1) {
     const value = argv[index];
     if (!value.startsWith('--')) continue;
-    const key = value.slice(2);
     const next = argv[index + 1];
-    if (!next || next.startsWith('--')) args[key] = true;
+    if (!next || next.startsWith('--')) args[value.slice(2)] = true;
     else {
-      args[key] = next;
+      args[value.slice(2)] = next;
       index += 1;
     }
   }
   return args;
 }
 
-function datasetUrl(kind, expansion, format) {
-  return `${DATASET_ROOT}/${kind}/${kind}_public.${expansion}.${format}.csv.gz`;
-}
-
-function cachePath(kind, expansion, format) {
-  return join(PROJECT_ROOT, '.cache', `${kind}_public.${expansion}.${format}.csv.gz`);
-}
-
-async function ensureDownload(url, outputPath) {
+async function readCache(path) {
   try {
-    await access(outputPath);
-    return;
+    return JSON.parse(await readFile(path, 'utf8'));
   } catch (error) {
     if (error.code !== 'ENOENT') throw error;
+    return null;
   }
-
-  console.log(`Downloading ${url}`);
-  const response = await fetch(url, { headers: SCRYFALL_HEADERS });
-  if (!response.ok) throw new Error(`Download failed (${response.status}): ${url}`);
-  await mkdir(dirname(outputPath), { recursive: true });
-  await writeFile(outputPath, Buffer.from(await response.arrayBuffer()));
 }
 
-function buildColumnMap(header) {
-  return new Map(header.map((name, index) => [name, index]));
+async function fetchJson(url, cachePath) {
+  const cached = await readCache(cachePath);
+  if (cached) return cached;
+
+  await new Promise(resolve => setTimeout(resolve, 180));
+  const response = await fetch(url, { headers: REQUEST_HEADERS });
+  if (!response.ok) throw new Error(`Request failed (${response.status}): ${url}`);
+  const data = await response.json();
+  await mkdir(dirname(cachePath), { recursive: true });
+  await writeFile(cachePath, JSON.stringify(data));
+  return data;
 }
 
-async function readTrophyDrafts(filePath, targetCount) {
-  const reader = createInterface({
-    input: createReadStream(filePath).pipe(createGunzip()),
-    crlfDelay: Infinity,
-  });
+async function fetchSeat(sourceId, deckIndex) {
+  const cacheRoot = join(PROJECT_ROOT, '.cache', 'hob-trophy-logs');
+  const draftUrl = `https://www.17lands.com/data/draft?draft_id=${sourceId}`;
+  const previewUrl = `https://www.17lands.com/data/event_preview?draft_id=${sourceId}`;
+  const [draft, preview] = await Promise.all([
+    fetchJson(draftUrl, join(cacheRoot, `${sourceId}-draft.json`)),
+    fetchJson(previewUrl, join(cacheRoot, `${sourceId}-preview.json`)),
+  ]);
 
-  let columns;
-  let packColumns;
-  let current;
-  const drafts = [];
-  let rowsRead = 0;
-
-  function finishCurrent() {
-    if (!current) return;
-    current.picks.sort((left, right) => (
-      left.packNumber - right.packNumber || left.pickNumber - right.pickNumber
-    ));
-    const firstEight = current.picks.filter(pick => pick.packNumber === 0 && pick.pickNumber < 8);
-    if (firstEight.length === 8 && current.picks.length >= 40) drafts.push(current);
-    current = null;
+  if (draft.expansion !== EXPANSION || preview.expansion !== EXPANSION) {
+    throw new Error(`Seat ${sourceId} is not ${EXPANSION}`);
+  }
+  if (Number(preview.wins) !== 7 || Number(preview.losses) > 2) {
+    throw new Error(`Seat ${sourceId} is not a 7-0, 7-1, or 7-2 trophy`);
+  }
+  if (!Array.isArray(draft.picks) || draft.picks.length < 40) {
+    throw new Error(`Seat ${sourceId} does not contain a complete draft log`);
   }
 
-  for await (const line of reader) {
-    if (!columns) {
-      const header = parseCsvLine(line.replace(/^\uFEFF/, ''));
-      columns = buildColumnMap(header);
-      packColumns = header
-        .map((name, index) => ({ name, index }))
-        .filter(column => column.name.startsWith('pack_card_'))
-        .map(column => ({ index: column.index, cardName: column.name.slice('pack_card_'.length) }));
-      continue;
-    }
-
-    if (!line || /^\0+$/.test(line)) continue;
-    rowsRead += 1;
-    const fields = parseCsvLine(line);
-    if (!isTrophyRecord(fields[columns.get('event_match_wins')], fields[columns.get('event_match_losses')])) {
-      continue;
-    }
-
-    const draftId = fields[columns.get('draft_id')];
-    if (current && current.sourceId !== draftId) {
-      finishCurrent();
-      if (drafts.length >= targetCount) {
-        reader.close();
-        break;
-      }
-    }
-
-    if (!current) {
-      current = {
-        sourceId: draftId,
-        date: fields[columns.get('draft_time')].slice(0, 10),
-        rank: fields[columns.get('rank')] || 'unknown',
-        wins: Number(fields[columns.get('event_match_wins')]),
-        losses: Number(fields[columns.get('event_match_losses')]),
-        picks: [],
-      };
-    }
-
-    current.picks.push({
-      packNumber: Number(fields[columns.get('pack_number')]),
-      pickNumber: Number(fields[columns.get('pick_number')]),
-      choice: fields[columns.get('pick')],
-      pack: expandCardCounts(fields, packColumns),
-    });
-  }
-
-  if (drafts.length < targetCount) finishCurrent();
-  console.log(`Read ${rowsRead.toLocaleString()} draft rows; found ${drafts.length} trophy drafts`);
-  return drafts.slice(0, targetCount);
+  const deck = preview.decks?.[deckIndex];
+  if (!deck) throw new Error(`Seat ${sourceId} has no deck ${deckIndex}`);
+  return { sourceId, deckIndex, draft, preview, deck };
 }
 
-function cardCounts(fields, columns) {
-  return columns
-    .map(column => ({ name: column.cardName, count: Number(fields[column.index]) || 0 }))
-    .filter(card => card.count > 0);
-}
-
-async function readFinalDecks(filePath, draftIds) {
-  const reader = createInterface({
-    input: createReadStream(filePath).pipe(createGunzip()),
-    crlfDelay: Infinity,
-  });
-
-  let columns;
-  let deckColumns;
-  let sideboardColumns;
-  let rowsRead = 0;
-  const decks = new Map();
-
-  for await (const line of reader) {
-    if (!columns) {
-      const header = parseCsvLine(line.replace(/^\uFEFF/, ''));
-      columns = buildColumnMap(header);
-      deckColumns = header
-        .map((name, index) => ({ name, index }))
-        .filter(column => column.name.startsWith('deck_'))
-        .map(column => ({ index: column.index, cardName: column.name.slice('deck_'.length) }));
-      sideboardColumns = header
-        .map((name, index) => ({ name, index }))
-        .filter(column => column.name.startsWith('sideboard_'))
-        .map(column => ({ index: column.index, cardName: column.name.slice('sideboard_'.length) }));
-      continue;
-    }
-
-    if (!line || /^\0+$/.test(line)) continue;
-    rowsRead += 1;
-    const fields = parseCsvLine(line);
-    const draftId = fields[columns.get('draft_id')];
-    if (!draftIds.has(draftId)) continue;
-
-    const buildIndex = Number(fields[columns.get('build_index')]) || 0;
-    const existing = decks.get(draftId);
-    if (existing && existing.buildIndex > buildIndex) continue;
-
-    decks.set(draftId, {
-      buildIndex,
-      mainColors: (fields[columns.get('main_colors')] || '').split('').filter(Boolean),
-      splashColors: (fields[columns.get('splash_colors')] || '').split('').filter(Boolean),
-      main: cardCounts(fields, deckColumns),
-      sideboard: cardCounts(fields, sideboardColumns),
-    });
-  }
-
-  console.log(`Read ${rowsRead.toLocaleString()} game rows; found ${decks.size} final decks`);
-  return decks;
-}
-
-async function fetchScryfallCards(setCodes) {
-  const cacheFile = join(PROJECT_ROOT, '.cache', `scryfall-${setCodes.join('-')}.json`);
-  try {
-    return JSON.parse(await readFile(cacheFile, 'utf8'));
-  } catch (error) {
-    if (error.code !== 'ENOENT') throw error;
-  }
+async function fetchScryfallCards(setCode) {
+  const cacheFile = join(PROJECT_ROOT, '.cache', `scryfall-${setCode}.json`);
+  const cached = await readCache(cacheFile);
+  if (cached) return cached;
 
   const cards = [];
-  for (const setCode of setCodes) {
-    let url = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(`e:${setCode} unique:prints`)}`;
-    while (url) {
-      await new Promise(resolve => setTimeout(resolve, 120));
-      const response = await fetch(url, { headers: SCRYFALL_HEADERS });
-      if (!response.ok) throw new Error(`Scryfall failed (${response.status}): ${url}`);
-      const data = await response.json();
-      cards.push(...data.data);
-      url = data.has_more ? data.next_page : null;
-    }
+  let url = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(`e:${setCode} unique:prints`)}`;
+  while (url) {
+    await new Promise(resolve => setTimeout(resolve, 120));
+    const response = await fetch(url, { headers: REQUEST_HEADERS });
+    if (!response.ok) throw new Error(`Scryfall failed (${response.status}): ${url}`);
+    const data = await response.json();
+    cards.push(...data.data);
+    url = data.has_more ? data.next_page : null;
   }
-
+  await mkdir(dirname(cacheFile), { recursive: true });
   await writeFile(cacheFile, JSON.stringify(cards));
   return cards;
 }
@@ -271,10 +150,12 @@ function preferredCard(left, right) {
   const leftArena = left.arena_id ? 0 : 1;
   const rightArena = right.arena_id ? 0 : 1;
   if (leftArena !== rightArena) return leftArena < rightArena ? left : right;
-  return Number.parseInt(left.collector_number, 10) <= Number.parseInt(right.collector_number, 10) ? left : right;
+  return Number.parseInt(left.collector_number, 10) <= Number.parseInt(right.collector_number, 10)
+    ? left
+    : right;
 }
 
-function buildCardMetadata(rawCards, usedNames) {
+function scryfallIndex(rawCards) {
   const byName = new Map();
   for (const card of rawCards) {
     byName.set(normalizedName(card.name), preferredCard(byName.get(normalizedName(card.name)), card));
@@ -282,16 +163,31 @@ function buildCardMetadata(rawCards, usedNames) {
       if (face.name) byName.set(normalizedName(face.name), preferredCard(byName.get(normalizedName(face.name)), card));
     }
   }
+  return byName;
+}
 
+function cardNamesFromSeat(seat) {
+  const names = new Set();
+  for (const pick of seat.draft.picks) {
+    if (pick.pick?.name) names.add(pick.pick.name);
+    for (const card of pick.available || []) names.add(card.name);
+  }
+  for (const card of Object.values(seat.preview.cards || {})) names.add(card.name);
+  return names;
+}
+
+function buildCardMetadata(seats, rawCards) {
+  const byName = scryfallIndex(rawCards);
+  const usedNames = new Set(seats.flatMap(seat => [...cardNamesFromSeat(seat)]));
   const output = {};
   const missing = [];
+
   for (const name of [...usedNames].sort()) {
     const card = byName.get(normalizedName(name));
     if (!card) {
       missing.push(name);
       continue;
     }
-
     const imageUris = card.image_uris || card.card_faces?.[0]?.image_uris || {};
     output[name] = {
       name,
@@ -307,86 +203,84 @@ function buildCardMetadata(rawCards, usedNames) {
       scryfall: card.scryfall_uri,
     };
   }
-
   if (missing.length) throw new Error(`Missing Scryfall cards: ${missing.join(', ')}`);
   return output;
 }
 
-function publicDraft(draft, finalDeck) {
+function countCards(ids, cardsById) {
+  const counts = new Map();
+  for (const id of ids || []) {
+    const name = cardsById[String(id)]?.name;
+    if (!name) throw new Error(`Missing 17Lands card metadata for Arena card ${id}`);
+    counts.set(name, (counts.get(name) || 0) + 1);
+  }
+  return [...counts].map(([name, count]) => ({ name, count }));
+}
+
+function finalDeck(seat) {
+  const groups = new Map((seat.deck.groups || []).map(group => [group.name.toLowerCase(), group.cards]));
+  const colors = String(seat.deck.colors || '');
   return {
-    id: `sos-${createHash('sha256').update(draft.sourceId).digest('hex').slice(0, 10)}`,
-    date: draft.date,
-    rank: draft.rank,
-    record: `${draft.wins}-${draft.losses}`,
-    picks: draft.picks.map(pick => ({
-      pack: pick.packNumber + 1,
-      pick: pick.pickNumber + 1,
-      choice: pick.choice,
-      cards: pick.pack,
-    })),
-    deck: finalDeck,
+    mainColors: [...colors].filter(color => color === color.toUpperCase()),
+    splashColors: [...colors].filter(color => color !== color.toUpperCase()).map(color => color.toUpperCase()),
+    main: countCards(groups.get('maindeck'), seat.preview.cards),
+    sideboard: countCards(groups.get('sideboard'), seat.preview.cards),
   };
 }
 
-function collectUsedNames(drafts) {
-  const names = new Set();
-  for (const draft of drafts) {
-    for (const pick of draft.picks) {
-      names.add(pick.choice);
-      for (const card of pick.pack) names.add(card);
-    }
-    for (const card of draft.deck.main) names.add(card.name);
-    for (const card of draft.deck.sideboard) names.add(card.name);
+function publicDraft(seat) {
+  const firstEight = seat.draft.picks.slice(0, 8);
+  if (firstEight.some(pick => !pick.pick?.name || !(pick.available || []).some(card => card.name === pick.pick.name))) {
+    throw new Error(`Seat ${seat.sourceId} has incomplete first-eight pack data`);
   }
-  return names;
+  return {
+    id: `hob-${createHash('sha256').update(seat.sourceId).digest('hex').slice(0, 10)}`,
+    date: String(seat.preview.first_pick_time || '').slice(0, 10),
+    rank: seat.preview.end_rank || 'unknown rank',
+    record: `${seat.preview.wins}-${seat.preview.losses}`,
+    sourceUrl: `https://www.17lands.com/draft/${seat.sourceId}`,
+    picks: seat.draft.picks.map(pick => ({
+      pack: Number(pick.pack_number) + 1,
+      pick: Number(pick.pick_number) + 1,
+      choice: pick.pick.name,
+      cards: pick.available.map(card => card.name),
+    })),
+    deck: finalDeck(seat),
+  };
 }
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const expansion = String(args.expansion || DEFAULT_EXPANSION).toUpperCase();
-  const format = String(args.format || DEFAULT_FORMAT);
   const limit = Number(args.limit || DEFAULT_LIMIT);
-  const draftFile = cachePath('draft_data', expansion, format);
-  const gameFile = cachePath('game_data', expansion, format);
+  const sources = HOB_TROPHY_SEATS.slice(0, limit);
+  if (sources.length < limit) throw new Error(`Only ${sources.length} HOB seats are configured; requested ${limit}`);
 
-  await ensureDownload(datasetUrl('draft_data', expansion, format), draftFile);
-  await ensureDownload(datasetUrl('game_data', expansion, format), gameFile);
-
-  const sourceDrafts = await readTrophyDrafts(draftFile, limit + 8);
-  const draftIds = new Set(sourceDrafts.map(draft => draft.sourceId));
-  const finalDecks = await readFinalDecks(gameFile, draftIds);
-  const completeDrafts = sourceDrafts
-    .filter(draft => finalDecks.has(draft.sourceId))
-    .slice(0, limit)
-    .map(draft => ({ ...draft, deck: finalDecks.get(draft.sourceId) }));
-
-  if (completeDrafts.length < limit) {
-    throw new Error(`Only ${completeDrafts.length} trophy drafts had final deck data; requested ${limit}`);
+  const seats = [];
+  for (const [sourceId, deckIndex] of sources) {
+    console.log(`Reading HOB trophy seat ${seats.length + 1}/${sources.length}`);
+    seats.push(await fetchSeat(sourceId, deckIndex));
   }
 
-  const rawCards = await fetchScryfallCards(SCRYFALL_SET_CODES);
-  const cards = buildCardMetadata(rawCards, collectUsedNames(completeDrafts));
+  const cards = buildCardMetadata(seats, await fetchScryfallCards('hob'));
   const output = {
-    version: 1,
+    version: 2,
     generatedAt: new Date().toISOString(),
-    set: { code: expansion, name: 'Secrets of Strixhaven' },
-    format,
-    description: 'Anonymous 7-win Premier Drafts from the public 17Lands dataset.',
+    set: { code: EXPANSION, name: SET_NAME },
+    format: FORMAT,
+    description: 'Anonymous 7-win HOB Premier Drafts from public individual 17Lands trophy logs.',
     source: {
       provider: '17Lands',
-      page: 'https://www.17lands.com/public_datasets',
-      draftDataset: datasetUrl('draft_data', expansion, format),
-      gameDataset: datasetUrl('game_data', expansion, format),
-      license: 'https://creativecommons.org/licenses/by/4.0/',
+      page: TROPHY_PAGE,
+      usageGuidelines: 'https://www.17lands.com/usage_guidelines',
     },
     cards,
-    drafts: completeDrafts.map(draft => publicDraft(draft, draft.deck)),
+    drafts: seats.map(publicDraft),
   };
 
   const outputPath = join(PROJECT_ROOT, 'data', 'drafts.json');
   await mkdir(dirname(outputPath), { recursive: true });
   await writeFile(outputPath, JSON.stringify(output));
-  console.log(`Wrote ${completeDrafts.length} trophy drafts and ${Object.keys(cards).length} cards to ${outputPath}`);
+  console.log(`Wrote ${output.drafts.length} HOB trophy drafts and ${Object.keys(cards).length} cards to ${outputPath}`);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

@@ -11,12 +11,15 @@ test('the shipped dataset contains only complete trophy drafts', async () => {
   const data = await dataPromise;
   assert.equal(validateDataset(data), data);
   assert.equal(data.drafts.length, 32);
-  assert.ok(Object.keys(data.cards).length > 300);
+  assert.equal(data.set.code, 'HOB');
+  assert.equal(data.set.name, 'The Hobbit');
+  assert.ok(Object.keys(data.cards).length > 180);
 
   for (const draft of data.drafts) {
     assert.match(draft.record, /^7-[012]$/);
     assert.ok(draft.picks.length >= 40);
     assert.ok(draft.deck.main.length > 0);
+    assert.match(draft.sourceUrl, /^https:\/\/www\.17lands\.com\/draft\/[a-f0-9]+$/);
     for (const pick of draft.picks) {
       assert.ok(data.cards[pick.choice], `metadata exists for ${pick.choice}`);
     }
@@ -40,7 +43,7 @@ test('chooseDraft avoids already seen seats until the pool is exhausted', async 
 });
 
 test('groupDeckCards places spells on curve and lands at the end', async () => {
-  const { groupDeckCards } = await modelPromise;
+  const { deckGroupCount, groupDeckCards } = await modelPromise;
   const groups = groupDeckCards({
     main: [
       { name: 'One', count: 1 },
@@ -52,13 +55,22 @@ test('groupDeckCards places spells on curve and lands at the end', async () => {
     Three: { name: 'Three', manaValue: 3, typeLine: 'Sorcery' },
     Plains: { name: 'Plains', basic: true, manaValue: 0, typeLine: 'Basic Land — Plains' },
   });
-  assert.deepEqual(groups.map(group => group.cards.length), [1, 0, 2, 0, 0, 0, 3]);
+  assert.deepEqual(groups.map(group => group.cards.length), [1, 0, 2, 0, 0, 0, 1]);
+  assert.equal(deckGroupCount(groups.at(-1)), 3);
+  assert.equal(groups.at(-1).cards[0].count, 3);
 });
 
-test('CSV parsing keeps quoted Magic card names intact', async () => {
-  const { parseCsvLine } = await import('../scripts/build-data.mjs');
+test('sortPackCards follows booster rarity order and leaves each rarity stable', async () => {
+  const { sortPackCards } = await modelPromise;
   assert.deepEqual(
-    parseCsvLine('SOS,"Abigale, Poet Laureate","a ""quoted"" card"'),
-    ['SOS', 'Abigale, Poet Laureate', 'a "quoted" card'],
+    sortPackCards(['common a', 'uncommon a', 'rare', 'common b', 'mythic', 'basic'], {
+      'common a': { rarity: 'common' },
+      'uncommon a': { rarity: 'uncommon' },
+      rare: { rarity: 'rare' },
+      'common b': { rarity: 'common' },
+      mythic: { rarity: 'mythic' },
+      basic: { rarity: 'common', basic: true },
+    }),
+    ['mythic', 'rare', 'uncommon a', 'common a', 'common b', 'basic'],
   );
 });

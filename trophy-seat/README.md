@@ -6,9 +6,9 @@ The first eight picks are exact reproductions. From pick nine onward the app del
 
 ## data
 
-The shipped sample contains 32 Secrets of Strixhaven trophy drafts built from the 17Lands public `draft_data` and `game_data` datasets. Eligible runs finished 7-0, 7-1, or 7-2. Card metadata and images come from Scryfall.
+The shipped sample contains 32 The Hobbit (HOB) trophy drafts built from individual public draft logs linked on the 17Lands Trophy Decks page. Eligible runs finished 7-0, 7-1, or 7-2. Card metadata and images come from Scryfall.
 
-17Lands public data is used under the [Creative Commons Attribution 4.0 license](https://creativecommons.org/licenses/by/4.0/).
+The selected public draft IDs are fixed in the build script. Rebuilding reads each individual draft and final deck once, then ships a static cache; the production app does not request live data from 17Lands.
 
 To rebuild the static client dataset:
 
@@ -16,4 +16,4 @@ To rebuild the static client dataset:
 node scripts/build-data.mjs --limit 32
 ```
 
-Downloaded source files and the Scryfall response cache stay in `.cache/` and are not committed.
+Downloaded draft logs and the Scryfall response cache stay in `.cache/` and are not committed.

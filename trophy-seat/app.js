@@ -2,9 +2,11 @@ import {
   SIMULATED_PICK_COUNT,
   chooseDraft,
   deckCount,
+  deckGroupCount,
   groupDeckCards,
   resultCopy,
   scorePicks,
+  sortPackCards,
   validateDataset,
 } from './model.js';
 
@@ -163,7 +165,7 @@ function renderIntro() {
   )).join('');
   elements.introProof.innerHTML = `
     <span><span class="proof-record">${escapeHtml(state.data.set.name)}</span> · Premier Draft</span>
-    <span>anonymous 7-win run · public 17Lands data</span>
+    <span>anonymous 7-win run · public 17Lands draft log</span>
   `;
 }
 
@@ -197,7 +199,6 @@ function renderPickTray() {
     if (!name) return `<div class="tray-slot"><span>${index + 1}</span></div>`;
     return `
       <div class="tray-slot filled" title="pick ${index + 1}: ${escapeHtml(name)}">
-        <span class="tray-number">${index + 1}</span>
         ${imageMarkup(name, 'mini-card-image')}
       </div>
     `;
@@ -207,10 +208,11 @@ function renderPickTray() {
 
 function renderCurrentPack() {
   const pick = state.draft.picks[state.currentPick];
+  const sortedCards = sortPackCards(pick.cards, state.data.cards);
   state.locked = false;
   elements.pickLabel.textContent = `pack ${pick.pack} · pick ${pick.pick}`;
-  elements.packCount.textContent = `${pick.cards.length} cards`;
-  elements.cardGrid.innerHTML = pick.cards.map((name, index) => `
+  elements.packCount.textContent = `${pick.cards.length} cards · rarity order`;
+  elements.cardGrid.innerHTML = sortedCards.map((name, index) => `
     <button
       class="card-button"
       type="button"
@@ -219,7 +221,6 @@ function renderCurrentPack() {
       style="animation-delay: ${Math.min(index * 22, 180)}ms"
     >
       ${imageMarkup(name, 'card-image', index < 7 ? 'eager' : 'lazy')}
-      ${index < 9 ? `<span class="card-shortcut" aria-hidden="true">${index + 1}</span>` : ''}
     </button>
   `).join('');
 
@@ -292,18 +293,22 @@ function renderDeck() {
   const sideboardCount = (deck.sideboard || []).reduce((sum, card) => sum + card.count, 0);
   elements.deckSummary.innerHTML = `
     <span><strong>${deckCount(deck)} cards</strong> · last recorded build · ${sideboardCount} in sideboard</span>
-    <span class="color-pips" aria-label="deck colors: ${colors.map(color => COLOR_NAMES[color]).join(', ')}">
-      ${colors.map(color => `<span class="color-pip ${color}" title="${COLOR_NAMES[color]}">${color}</span>`).join('')}
+    <span class="deck-summary-actions">
+      <span class="color-pips" aria-label="deck colors: ${colors.map(color => COLOR_NAMES[color]).join(', ')}">
+        ${colors.map(color => `<span class="color-pip ${color}" title="${COLOR_NAMES[color]}">${color}</span>`).join('')}
+      </span>
+      ${safeUrl(state.draft.sourceUrl) ? `<a class="source-link" href="${escapeHtml(safeUrl(state.draft.sourceUrl))}" target="_blank" rel="noreferrer">original draft ↗</a>` : ''}
     </span>
   `;
   elements.deckColumns.innerHTML = groups.map(group => `
     <section class="deck-column">
-      <div class="deck-column-head"><span>${group.label}</span><span>${group.cards.length}</span></div>
+      <div class="deck-column-head"><span>${group.label}</span><span>${deckGroupCount(group)}</span></div>
       <div class="deck-card-stack">
-        ${group.cards.map(card => {
+        ${group.cards.map((card, index) => {
           const target = safeUrl(card.scryfall);
           const image = imageMarkup(card.name);
-          return `<div class="deck-card" title="${escapeHtml(card.name)}">${target ? `<a href="${escapeHtml(target)}" target="_blank" rel="noreferrer">${image}</a>` : image}</div>`;
+          const count = card.count > 1 ? `<span class="deck-card-count" aria-label="${card.count} copies">${card.count}</span>` : '';
+          return `<div class="deck-card" style="--stack-index:${index}" title="${escapeHtml(card.name)}">${target ? `<a href="${escapeHtml(target)}" target="_blank" rel="noreferrer">${image}</a>` : image}${count}</div>`;
         }).join('')}
       </div>
     </section>
@@ -321,9 +326,10 @@ function renderPickLog() {
 
 function renderWatchPick() {
   const pick = state.draft.picks[state.watchIndex];
+  const sortedCards = sortPackCards(pick.cards, state.data.cards);
   elements.watchLabel.textContent = `pack ${pick.pack} · pick ${pick.pick} · ${state.watchIndex + 1} of ${state.draft.picks.length}`;
   elements.watchChoice.textContent = `they took ${pick.choice}`;
-  elements.watchPack.innerHTML = pick.cards.map(name => `
+  elements.watchPack.innerHTML = sortedCards.map(name => `
     <div class="watch-card ${name === pick.choice ? 'chosen' : ''}">
       ${imageMarkup(name)}
       ${name === pick.choice ? '<span class="watch-choice-label">their pick</span>' : ''}
