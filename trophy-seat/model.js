@@ -75,6 +75,29 @@ export function formatDraftDate(value) {
   return `${monthName} ${Number(day)}, ${year}`;
 }
 
+export function formatRank(value) {
+  return String(value || 'rank unavailable').replaceAll('-', ' ');
+}
+
+export function sampleIntroCards(cards, draft, random = Math.random) {
+  const draftedCards = new Set((draft?.picks || []).map(pick => pick.choice));
+  const candidates = Object.entries(cards || {})
+    .filter(([name, card]) => (
+      name
+      && !draftedCards.has(name)
+      && !card?.basic
+      && !/\bLand\b/i.test(card?.typeLine || '')
+    ))
+    .map(([name]) => name);
+
+  for (let index = 0; index < Math.min(3, candidates.length); index += 1) {
+    const swapIndex = index + Math.floor(random() * (candidates.length - index));
+    [candidates[index], candidates[swapIndex]] = [candidates[swapIndex], candidates[index]];
+  }
+
+  return candidates.slice(0, 3);
+}
+
 export function resultCopy(score) {
   if (score === 8) return {
     eyebrow: 'same seat, same eight',

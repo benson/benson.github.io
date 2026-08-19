@@ -255,6 +255,11 @@ body[data-view="intro"] .app-shell {
   min-height: calc(100svh - 177px);
 }
 
+body[data-view="draft"] .app-shell {
+  padding-top: clamp(18px, 2.4vw, 34px);
+  padding-bottom: 40px;
+}
+
 .loading-view,
 .error-view {
   min-height: 60vh;
@@ -453,7 +458,7 @@ body[data-view="intro"] .app-shell {
 }
 
 .draft-status {
-  margin-bottom: 22px;
+  margin-bottom: 16px;
 }
 
 .draft-status h1 {
@@ -465,7 +470,7 @@ body[data-view="intro"] .app-shell {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 230px;
   gap: 34px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .pack-panel,
@@ -482,8 +487,7 @@ body[data-view="intro"] .app-shell {
 
 .your-picks-panel {
   padding: 18px;
-  position: sticky;
-  top: 18px;
+  position: relative;
 }
 
 .panel-head {
