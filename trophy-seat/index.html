@@ -12,7 +12,7 @@
     <meta property="og:url" content="https://bensonperry.com/trophy-seat/">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="../vellum-ui/vellum-ui.css?v=20260818">
-    <link rel="stylesheet" href="style.css?v=4">
+    <link rel="stylesheet" href="style.css?v=5">
   </head>
   <body class="no-shared-footer">
     <header class="site-head">
@@ -30,6 +30,27 @@
         </label>
       </div>
     </header>
+
+    <section class="seat-ledger hidden" id="seat-ledger" aria-label="Trophy draft details">
+      <dl class="seat-ledger-inner">
+        <div class="seat-ledger-set">
+          <dt>replaying</dt>
+          <dd id="seat-ledger-set"></dd>
+        </div>
+        <div>
+          <dt>drafted</dt>
+          <dd id="seat-ledger-date"></dd>
+        </div>
+        <div>
+          <dt>rank</dt>
+          <dd id="seat-ledger-rank"></dd>
+        </div>
+        <div class="seat-ledger-record">
+          <dt>finish</dt>
+          <dd id="seat-ledger-record"></dd>
+        </div>
+      </dl>
+    </section>
 
     <main class="app-shell">
       <section class="loading-view" id="loading-view" aria-live="polite">
@@ -104,7 +125,7 @@
           </div>
           <div class="postgame-board">
             <div class="result-grid" id="result-grid" aria-label="your pick-by-pick comparison"></div>
-            <p class="result-legend"><span><i class="same"></i>same pick</span><span><i class="different"></i>different pick</span></p>
+            <p class="result-legend"><span><i class="same" aria-hidden="true">✦</i>same pick</span><span><i class="different" aria-hidden="true">↗</i>different pick</span></p>
           </div>
           <dl class="result-stats" id="result-stats"></dl>
           <div class="postgame-actions">
@@ -214,6 +235,6 @@
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script type="module" src="app.js?v=5"></script>
+    <script type="module" src="app.js?v=6"></script>
   </body>
 </html>

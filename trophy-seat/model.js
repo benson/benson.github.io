@@ -53,30 +53,15 @@ export function scorePicks(userPicks, referencePicks) {
   ), 0);
 }
 
-export function comparisonStats(userPicks, referencePicks, cards = {}) {
+export function comparisonStats(userPicks, referencePicks) {
   const picks = referencePicks.slice(0, SIMULATED_PICK_COUNT);
   const outcomes = picks.map((pick, index) => userPicks[index] === pick.choice);
-  let longestMatchStreak = 0;
-  let currentMatchStreak = 0;
-
-  for (const matched of outcomes) {
-    currentMatchStreak = matched ? currentMatchStreak + 1 : 0;
-    longestMatchStreak = Math.max(longestMatchStreak, currentMatchStreak);
-  }
-
-  const rarityMatches = picks.reduce((total, pick, index) => {
-    const userRarity = cards[userPicks[index]]?.rarity;
-    const drafterRarity = cards[pick.choice]?.rarity;
-    return total + (userRarity && userRarity === drafterRarity ? 1 : 0);
-  }, 0);
   const firstSplitIndex = outcomes.findIndex(matched => !matched);
 
   return {
     total: outcomes.length,
     matches: outcomes.filter(Boolean).length,
     firstSplit: firstSplitIndex === -1 ? null : firstSplitIndex + 1,
-    longestMatchStreak,
-    rarityMatches,
     outcomes,
   };
 }

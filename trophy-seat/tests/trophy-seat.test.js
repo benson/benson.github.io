@@ -31,20 +31,11 @@ test('comparisonStats describes the shape of the first eight choices', async () 
   const { comparisonStats } = await modelPromise;
   const reference = Array.from({ length: 10 }, (_, index) => ({ choice: `card ${index}` }));
   const user = ['card 0', 'different 1', 'card 2', 'card 3', 'different 4', 'card 5', 'different 6', 'different 7'];
-  const cards = Object.fromEntries([
-    ...reference.map((pick, index) => [pick.choice, { rarity: index < 4 ? 'rare' : 'common' }]),
-    ['different 1', { rarity: 'rare' }],
-    ['different 4', { rarity: 'uncommon' }],
-    ['different 6', { rarity: 'common' }],
-    ['different 7', { rarity: 'uncommon' }],
-  ]);
 
-  assert.deepEqual(comparisonStats(user, reference, cards), {
+  assert.deepEqual(comparisonStats(user, reference), {
     total: 8,
     matches: 4,
     firstSplit: 2,
-    longestMatchStreak: 2,
-    rarityMatches: 6,
     outcomes: [true, false, true, true, false, true, false, false],
   });
 });
