@@ -10,13 +10,13 @@ import {
   scorePicks,
   sortPackCards,
   validateDataset,
-} from './model.js?v=3';
+} from './model.js?v=4';
 
 const DATA_URL = './data/drafts.json?v=2';
 const SEEN_KEY = 'trophy-seat-seen-v1';
 const THEME_KEY = 'trophy-seat-theme';
 const PUBLIC_APP_URL = 'https://bensonperry.com/trophy-seat/';
-const CARD_ZOOM_SELECTOR = '.card-button, .intro-card, .tray-slot.filled, .comparison-card, .deck-card, .watch-card';
+const CARD_ZOOM_SELECTOR = '.card-button, .intro-card, .tray-slot.filled, .result-card, .comparison-card, .deck-card, .watch-card';
 const COLOR_NAMES = { W: 'white', U: 'blue', B: 'black', R: 'red', G: 'green' };
 
 const elements = {
@@ -39,6 +39,11 @@ const elements = {
   themeToggle: document.querySelector('#theme-toggle'),
   introCards: document.querySelector('#intro-cards'),
   introProof: document.querySelector('#intro-proof'),
+  seatLedger: document.querySelector('#seat-ledger'),
+  seatLedgerSet: document.querySelector('#seat-ledger-set'),
+  seatLedgerDate: document.querySelector('#seat-ledger-date'),
+  seatLedgerRank: document.querySelector('#seat-ledger-rank'),
+  seatLedgerRecord: document.querySelector('#seat-ledger-record'),
   pickLabel: document.querySelector('#pick-label'),
   pickProgress: document.querySelector('#pick-progress'),
   packCount: document.querySelector('#pack-count'),
@@ -176,6 +181,14 @@ function imageMarkup(name, className = 'card-image', loading = 'lazy') {
   return `<img class="${className}" src="${escapeHtml(image)}" alt="${escapeHtml(name)}" loading="${loading}" decoding="async">`;
 }
 
+function renderSeatLedger() {
+  elements.seatLedgerSet.textContent = `${state.data.set.name} Premier`;
+  elements.seatLedgerDate.textContent = formatDraftDate(state.draft.date);
+  elements.seatLedgerRank.textContent = state.draft.rank;
+  elements.seatLedgerRecord.textContent = state.draft.record;
+  elements.seatLedger.classList.remove('hidden');
+}
+
 function renderIntro() {
   const firstPack = state.draft.picks[0];
   const choiceIndex = firstPack.cards.indexOf(firstPack.choice);
@@ -200,6 +213,7 @@ function resetRun() {
   state.watchIndex = SIMULATED_PICK_COUNT;
   elements.pickLog.classList.add('hidden');
   elements.revealLogButton.textContent = 'show the full pick log';
+  renderSeatLedger();
   renderIntro();
   renderProgress();
   renderPickTray();
@@ -378,34 +392,36 @@ function setOutcomeView(view) {
 }
 
 function resultGridMarkup(outcomes) {
-  return outcomes.map((matched, index) => `
-    <span class="result-tile ${matched ? 'same' : 'different'}" aria-label="pick ${index + 1}: ${matched ? 'same pick' : 'different pick'}">
-      ${index + 1}
+  return outcomes.map((matched, index) => {
+    const name = state.userPicks[index];
+    return `
+    <span class="result-card ${matched ? 'same' : 'different'}" aria-label="pick ${index + 1}, ${escapeHtml(name)}: ${matched ? 'same pick' : 'different pick'}" title="p1p${index + 1} · ${escapeHtml(name)}">
+      ${imageMarkup(name, 'result-card-image', 'eager')}
+      <span class="result-card-mark" aria-hidden="true"><span>p1p${index + 1}</span><b>${matched ? '✦' : '↗'}</b></span>
     </span>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function statMarkup(stats) {
   const firstSplit = stats.firstSplit ? `p1p${stats.firstSplit}` : 'none';
-  const streakLabel = stats.longestMatchStreak === 1 ? 'pick' : 'picks';
   return `
     <div><dt>same picks</dt><dd>${stats.matches} / ${stats.total}</dd></div>
-    <div><dt>first split</dt><dd>${firstSplit}</dd></div>
-    <div><dt>longest shared run</dt><dd>${stats.longestMatchStreak} ${streakLabel}</dd></div>
-    <div><dt>same rarity tier</dt><dd>${stats.rarityMatches} / ${stats.total}</dd></div>
+    <div><dt>first different pick</dt><dd>${firstSplit}</dd></div>
   `;
 }
 
 function buildShareText(stats) {
-  const grid = stats.outcomes.map(matched => matched ? '🟩' : '🟨').join('');
-  const firstSplit = stats.firstSplit ? `first split p1p${stats.firstSplit}` : 'no splits';
-  const streakLabel = stats.longestMatchStreak === 1 ? 'pick' : 'picks';
+  const spellbook = stats.outcomes.map(matched => matched ? '✦' : '↗').join('  ');
+  const firstSplit = stats.firstSplit ? `first different pick: p1p${stats.firstSplit}` : 'same all the way through';
   return [
-    `trophy seat — ${state.data.set.name} — ${formatDraftDate(state.draft.date)}`,
-    `I matched ${stats.matches}/8 picks with a ${state.draft.record} drafter.`,
+    '✦ trophy seat ✦',
+    `${state.data.set.name} · ${formatDraftDate(state.draft.date)}`,
+    `reference drafter: ${state.draft.record} · ${state.draft.rank}`,
     '',
-    grid,
-    `same rarity ${stats.rarityMatches}/8 · ${firstSplit} · longest shared run ${stats.longestMatchStreak} ${streakLabel}`,
+    spellbook,
+    `I made ${stats.matches}/${stats.total} of the same picks · ${firstSplit}`,
+    '✦ same pick · ↗ different pick',
     '',
     'Can you beat my line? Draft the same seat:',
     publicSeatUrl(),
@@ -426,7 +442,7 @@ function renderPostgame(stats) {
 function showResults() {
   rememberDraft(state.draft.id);
   const score = scorePicks(state.userPicks, state.draft.picks);
-  const stats = comparisonStats(state.userPicks, state.draft.picks, state.data.cards);
+  const stats = comparisonStats(state.userPicks, state.draft.picks);
   const copy = resultCopy(score);
   elements.scoreNumber.textContent = String(score);
   elements.resultEyebrow.textContent = copy.eyebrow;
@@ -468,7 +484,7 @@ function showToast(message) {
 }
 
 async function copyResult() {
-  const stats = comparisonStats(state.userPicks, state.draft.picks, state.data.cards);
+  const stats = comparisonStats(state.userPicks, state.draft.picks);
   try {
     await navigator.clipboard.writeText(buildShareText(stats));
     elements.copyResultButton.textContent = 'copied — send it to a friend';
@@ -479,7 +495,7 @@ async function copyResult() {
 }
 
 function openShareDialog() {
-  const stats = comparisonStats(state.userPicks, state.draft.picks, state.data.cards);
+  const stats = comparisonStats(state.userPicks, state.draft.picks);
   renderPostgame(stats);
   elements.shareDialog.showModal();
 }
