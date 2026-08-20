@@ -80,7 +80,7 @@ a {
   width: min(100%, calc(var(--content-max) + var(--page-pad) * 2));
   min-height: 66px;
   margin: 0 auto;
-  padding: 13px var(--page-pad);
+  padding: 10px var(--page-pad);
   display: flex;
   align-items: center;
   justify-content: space-between;
