@@ -3,10 +3,12 @@
   --page-pad: clamp(16px, 3vw, 42px);
   --content-max: 1500px;
   --card-ratio: 0.716;
+  --accent: var(--vui-color-accent, #653d78);
+  --accent-soft: var(--vui-color-accent-soft, #eee3f2);
   --gold: var(--vui-color-brand-gold, #a77b37);
   --gold-soft: color-mix(in srgb, var(--gold) 14%, transparent);
-  --arcane: #685578;
-  --arcane-soft: color-mix(in srgb, var(--arcane) 18%, transparent);
+  --arcane: var(--accent);
+  --arcane-soft: var(--accent-soft);
   --match: var(--vui-color-success, #607d58);
   --mismatch: var(--vui-color-danger, #a3423a);
 }
@@ -33,9 +35,7 @@ body {
   margin: 0;
   overflow-x: clip;
   color: var(--vui-color-text);
-  background:
-    radial-gradient(circle at 72% 4%, var(--gold-soft), transparent 28rem),
-    var(--vui-color-bg);
+  background: var(--vui-color-bg);
   font-family: var(--vui-font-body);
   font-size: var(--vui-font-base, 0.9375rem);
   line-height: 1.45;
@@ -92,9 +92,7 @@ a {
   width: min(100%, calc(var(--content-max) + var(--page-pad) * 2));
   margin: 0 auto;
   border-bottom: 1px solid var(--vui-color-line);
-  background:
-    linear-gradient(90deg, var(--gold-soft), transparent 26%),
-    color-mix(in srgb, var(--vui-color-surface-raised) 42%, transparent);
+  background: var(--vui-color-surface-raised);
 }
 
 .seat-ledger-inner {
@@ -122,11 +120,11 @@ a {
 
 .seat-ledger dt {
   color: var(--vui-color-text-muted);
-  font-size: 0.54rem;
+  font-size: 0.62rem;
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.02em;
   line-height: 1.1;
-  text-transform: uppercase;
+  text-transform: lowercase;
 }
 
 .seat-ledger dd {
@@ -158,23 +156,23 @@ body[data-view="results"] .seat-ledger {
   gap: 12px;
   color: var(--vui-color-text-strong);
   font-family: var(--vui-font-heading);
-  font-size: 1.2rem;
+  font-size: 1.08rem;
   font-weight: 600;
   letter-spacing: -0.025em;
   text-decoration: none;
 }
 
 .wordmark-mark {
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   display: grid;
   place-items: center;
   border: 1px solid color-mix(in srgb, var(--gold) 58%, var(--vui-color-line));
   border-radius: 50%;
   color: var(--gold);
   font-family: var(--vui-font-heading);
-  font-size: 0.76rem;
-  letter-spacing: 0.035em;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
   line-height: 1;
 }
 
@@ -237,7 +235,7 @@ body[data-view="results"] .seat-ledger {
 
 .theme-control input:checked + .theme-track span {
   transform: translateX(15px);
-  background: var(--gold);
+  background: var(--accent);
 }
 
 .theme-control input:focus-visible + .theme-track {
@@ -292,16 +290,16 @@ body[data-view="draft"] .app-shell {
 }
 
 .eyebrow {
-  margin: 0 0 10px;
-  color: var(--gold);
-  font-size: 0.7rem;
+  margin: 0 0 7px;
+  color: var(--vui-color-text-muted);
+  font-size: 0.72rem;
   font-weight: 600;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
 }
 
 .intro-view {
-  min-height: min(760px, calc(100vh - 170px));
+  min-height: min(680px, calc(100vh - 170px));
   display: grid;
   grid-template-columns: minmax(320px, 0.82fr) minmax(500px, 1.18fr);
   align-items: center;
@@ -327,25 +325,25 @@ body[data-view="draft"] .app-shell {
 }
 
 .intro-copy h1 {
-  font-size: clamp(3.3rem, 7vw, 7.4rem);
-  line-height: 0.87;
+  font-size: clamp(3.15rem, 6vw, 5.8rem);
+  line-height: 0.92;
 }
 
 .intro-question {
-  margin: 24px 0 0;
-  color: var(--vui-color-text);
-  font-family: var(--vui-font-heading);
-  font-size: clamp(1.35rem, 2.2vw, 2rem);
-  font-style: italic;
+  margin: 18px 0 0;
+  color: var(--vui-color-text-muted);
+  font-family: var(--vui-font-body);
+  font-size: clamp(0.95rem, 1.4vw, 1.08rem);
+  font-style: normal;
 }
 
 .intro-seat {
   max-width: 590px;
   margin-top: 26px;
+  overflow: hidden;
   border: 1px solid var(--vui-color-line);
-  background:
-    linear-gradient(110deg, var(--gold-soft), transparent 46%),
-    color-mix(in srgb, var(--vui-color-surface-raised) 84%, transparent);
+  border-radius: var(--vui-radius-soft);
+  background: var(--vui-color-surface-raised);
   transition: opacity var(--vui-motion-fast);
 }
 
@@ -372,11 +370,11 @@ body[data-view="draft"] .app-shell {
 .intro-set-field > span,
 .intro-seat-meta dt {
   color: var(--vui-color-text-muted);
-  font-size: 0.52rem;
+  font-size: 0.62rem;
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.02em;
   line-height: 1.1;
-  text-transform: uppercase;
+  text-transform: lowercase;
 }
 
 .intro-set-field select {
@@ -413,7 +411,7 @@ body[data-view="draft"] .app-shell {
   flex: 0 0 44px;
   place-items: center;
   border: 1px solid var(--vui-color-line-strong);
-  border-radius: var(--vui-radius-sharp);
+  border-radius: var(--vui-radius-soft);
   color: var(--vui-color-text-muted);
   background: transparent;
   cursor: pointer;
@@ -495,7 +493,7 @@ body[data-view="draft"] .app-shell {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  border-radius: var(--vui-radius-sharp);
+  border-radius: var(--vui-radius-soft);
   cursor: pointer;
   font-size: 0.85rem;
   font-weight: 600;
@@ -503,9 +501,9 @@ body[data-view="draft"] .app-shell {
 }
 
 .primary-button {
-  border: 1px solid var(--vui-color-text-strong);
-  color: var(--vui-color-bg);
-  background: var(--vui-color-text-strong);
+  border: 1px solid var(--accent);
+  color: var(--vui-color-text-inverse);
+  background: var(--accent);
 }
 
 .primary-button:active,
@@ -550,13 +548,13 @@ body[data-view="draft"] .app-shell {
 }
 
 .intro-cards {
-  min-height: 590px;
+  min-height: 540px;
   position: relative;
   perspective: 1200px;
 }
 
 .intro-card {
-  width: clamp(210px, 19vw, 300px);
+  width: clamp(205px, 18vw, 280px);
   aspect-ratio: var(--card-ratio);
   position: absolute;
   top: 50%;
@@ -565,7 +563,7 @@ body[data-view="draft"] .app-shell {
   border: 1px solid rgba(0, 0, 0, 0.26);
   border-radius: 4.7% / 3.4%;
   background: var(--vui-color-surface-sunken);
-  box-shadow: 0 24px 54px rgba(35, 29, 25, 0.25);
+  box-shadow: var(--vui-shadow-float);
   transform-origin: 50% 110%;
 }
 
@@ -599,8 +597,8 @@ body[data-view="draft"] .app-shell {
 }
 
 .draft-status h1 {
-  font-size: clamp(2.2rem, 4vw, 4rem);
-  line-height: 0.95;
+  font-size: clamp(2rem, 3.2vw, 3rem);
+  line-height: 1;
 }
 
 .draft-layout {
@@ -614,11 +612,12 @@ body[data-view="draft"] .app-shell {
 .your-picks-panel,
 .outcome-section {
   border: 1px solid var(--vui-color-line);
-  background: color-mix(in srgb, var(--vui-color-surface-raised) 74%, transparent);
+  border-radius: var(--vui-radius-soft);
+  background: var(--vui-color-surface-raised);
 }
 
 .pack-panel {
-  min-height: 640px;
+  min-height: 0;
   padding: 18px;
 }
 
@@ -663,7 +662,7 @@ body[data-view="draft"] .app-shell {
   border-radius: 4.7% / 3.4%;
   background: var(--vui-color-surface-sunken);
   cursor: pointer;
-  box-shadow: 0 2px 5px rgba(35, 29, 25, 0.16);
+  box-shadow: var(--vui-shadow-soft);
   transition: transform var(--vui-motion-fast), box-shadow var(--vui-motion-fast), opacity var(--vui-motion-fast);
   animation: deal-in 180ms var(--vui-ease-out) both;
 }
@@ -702,7 +701,7 @@ body[data-view="draft"] .app-shell {
 }
 
 .card-button.chosen {
-  outline: 3px solid var(--gold);
+  outline: 3px solid var(--accent);
   outline-offset: 3px;
   transform: translateY(-5px) scale(1.025);
 }
@@ -754,7 +753,7 @@ body[data-view="draft"] .app-shell {
   position: relative;
   overflow: hidden;
   border: 1px dashed var(--vui-color-line-strong);
-  border-radius: 5px;
+  border-radius: var(--vui-radius-sharp);
   color: var(--vui-color-text-muted);
   background: color-mix(in srgb, var(--vui-color-surface-sunken) 62%, transparent);
   font-size: 0.65rem;
@@ -772,7 +771,7 @@ body[data-view="draft"] .app-shell {
 
 .result-hero {
   min-height: 0;
-  padding: 18px 0 24px;
+  padding: 16px 0 22px;
   display: grid;
   grid-template-columns: auto minmax(0, 720px) minmax(220px, auto);
   align-items: center;
@@ -790,7 +789,7 @@ body[data-view="draft"] .app-shell {
 }
 
 .score-number {
-  font-size: clamp(5rem, 8vw, 7.5rem);
+  font-size: clamp(4.4rem, 7vw, 6rem);
   font-weight: 500;
   letter-spacing: -0.09em;
   line-height: 0.72;
@@ -803,8 +802,8 @@ body[data-view="draft"] .app-shell {
 
 .result-copy h1 {
   max-width: 680px;
-  font-size: clamp(2.2rem, 3.7vw, 4.3rem);
-  line-height: 0.96;
+  font-size: clamp(2rem, 3.1vw, 3.35rem);
+  line-height: 1;
 }
 
 .trophy-proof {
@@ -870,9 +869,8 @@ body[data-view="draft"] .app-shell {
   align-items: center;
   gap: 22px clamp(24px, 3vw, 48px);
   border: 1px solid var(--vui-color-line);
-  background:
-    linear-gradient(120deg, var(--gold-soft), transparent 36%),
-    color-mix(in srgb, var(--vui-color-surface-raised) 82%, transparent);
+  border-radius: var(--vui-radius-soft);
+  background: var(--vui-color-surface-raised);
 }
 
 .result-grid {
@@ -890,14 +888,14 @@ body[data-view="draft"] .app-shell {
   border: 2px solid var(--arcane);
   border-radius: 5% / 3.7%;
   background: var(--vui-color-surface-sunken);
-  box-shadow: 0 4px 10px rgba(27, 21, 29, 0.2);
+  box-shadow: var(--vui-shadow-soft);
   opacity: 0.76;
 }
 
 .result-card.same {
   border-color: var(--gold);
   opacity: 1;
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--gold) 44%, transparent), 0 5px 14px rgba(27, 21, 29, 0.24);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--gold) 44%, transparent);
 }
 
 .result-card-image {
@@ -1007,7 +1005,7 @@ body[data-view="draft"] .app-shell {
 }
 
 .comparison-section {
-  padding: clamp(30px, 4vw, 54px) 0;
+  padding: clamp(26px, 3vw, 42px) 0;
 }
 
 .section-heading {
@@ -1022,7 +1020,7 @@ body[data-view="draft"] .app-shell {
   margin: 0;
   color: var(--vui-color-text-strong);
   font-family: var(--vui-font-heading);
-  font-size: clamp(1.7rem, 3vw, 2.7rem);
+  font-size: clamp(1.55rem, 2.4vw, 2.2rem);
   font-weight: 500;
   letter-spacing: -0.035em;
 }
@@ -1049,6 +1047,7 @@ body[data-view="draft"] .app-shell {
   align-items: center;
   position: relative;
   border: 1px solid var(--vui-color-line);
+  border-radius: var(--vui-radius-soft);
   background: var(--vui-color-surface-raised);
 }
 
@@ -1107,18 +1106,20 @@ body[data-view="draft"] .app-shell {
 }
 
 .view-tabs {
-  padding: 3px;
+  padding: 0;
   display: flex;
-  border: 1px solid var(--vui-color-line);
-  border-radius: var(--vui-radius-sharp);
-  background: var(--vui-color-surface-sunken);
+  gap: 14px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .view-tab {
   min-height: 40px;
-  padding: 5px 12px;
+  padding: 5px 0;
   border: 0;
-  border-radius: 3px;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
   color: var(--vui-color-text-muted);
   background: transparent;
   cursor: pointer;
@@ -1126,9 +1127,10 @@ body[data-view="draft"] .app-shell {
 }
 
 .view-tab.active {
-  color: var(--vui-color-text-strong);
-  background: var(--vui-color-surface-raised);
-  box-shadow: var(--vui-shadow-soft);
+  color: var(--accent);
+  border-bottom-color: currentColor;
+  background: transparent;
+  box-shadow: none;
 }
 
 .deck-summary {
@@ -1188,9 +1190,8 @@ body[data-view="draft"] .app-shell {
   justify-content: center;
   overflow-x: auto;
   border: 1px solid var(--vui-color-line);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--vui-color-surface-sunken) 74%, transparent), transparent 180px),
-    color-mix(in srgb, var(--vui-color-surface-raised) 82%, transparent);
+  border-radius: var(--vui-radius-soft);
+  background: var(--vui-color-bg);
 }
 
 .deck-column {
@@ -1411,7 +1412,7 @@ body[data-view="draft"] .app-shell {
   padding-right: 30px;
   color: var(--vui-color-text-strong);
   font-family: var(--vui-font-heading);
-  font-size: 2rem;
+  font-size: 1.55rem;
   font-weight: 500;
   letter-spacing: -0.035em;
 }
@@ -1425,9 +1426,8 @@ body[data-view="draft"] .app-shell {
 .share-preview {
   padding: 18px;
   border: 1px solid var(--vui-color-line);
-  background:
-    linear-gradient(135deg, var(--gold-soft), transparent 45%),
-    var(--vui-color-surface-sunken);
+  border-radius: var(--vui-radius-soft);
+  background: var(--vui-color-surface);
 }
 
 .share-preview-head {
@@ -1579,8 +1579,8 @@ body[data-view="draft"] .app-shell {
   }
 
   .intro-reroll:hover {
-    color: var(--vui-color-text);
-    border-color: var(--vui-color-text);
+    color: var(--accent);
+    border-color: var(--accent);
     transform: rotate(18deg);
   }
 
@@ -1590,8 +1590,8 @@ body[data-view="draft"] .app-shell {
 
   .card-button:hover {
     z-index: 3;
-    transform: translateY(-5px) scale(1.02);
-    box-shadow: 0 14px 26px rgba(35, 29, 25, 0.22);
+    transform: translateY(-4px) scale(1.015);
+    box-shadow: var(--vui-shadow-float);
   }
 
   .source-link:hover {
@@ -1622,12 +1622,12 @@ body[data-view="draft"] .app-shell {
   }
 
   .intro-copy h1 {
-    font-size: clamp(3.4rem, min(6vw, 10.5vh), 6rem);
+    font-size: clamp(3.15rem, min(5.4vw, 9.5vh), 5.35rem);
   }
 
   .intro-question {
-    margin-top: 16px;
-    font-size: clamp(1.2rem, 2vw, 1.7rem);
+    margin-top: 14px;
+    font-size: clamp(0.95rem, 1.3vw, 1.05rem);
   }
 
   .intro-seat {
@@ -1751,7 +1751,7 @@ body[data-view="draft"] .app-shell {
   }
 
   .intro-copy h1 {
-    font-size: clamp(3.4rem, 17vw, 5.8rem);
+    font-size: clamp(3rem, 15vw, 5rem);
   }
 
   .intro-seat {
