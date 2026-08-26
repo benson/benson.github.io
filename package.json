@@ -2,6 +2,7 @@
   "scripts": {
     "test": "node --test scripts/__tests__/*.test.js mtgcollection/__tests__/*.test.js mtgcollection/cli/__tests__/*.test.js trophy-seat/tests/*.test.js",
     "check": "npm test",
+    "spotify:reauthorize": "node scripts/spotify-auth.js",
     "store:fourthwall": "node scripts/store/fourthwall.mjs",
     "store:publish": "node scripts/store/fourthwall.mjs publish",
     "store:checkout:serve": "node scripts/store/checkout-server.mjs",
