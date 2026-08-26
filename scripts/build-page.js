@@ -20,7 +20,20 @@ async function getSpotifyToken() {
   const clientId = process.env.SPOTIFY_CLIENT_ID;
   const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
   const refreshToken = process.env.SPOTIFY_REFRESH_TOKEN;
-  if (!clientId || !clientSecret || !refreshToken) return null;
+  const credentials = {
+    SPOTIFY_CLIENT_ID: clientId,
+    SPOTIFY_CLIENT_SECRET: clientSecret,
+    SPOTIFY_REFRESH_TOKEN: refreshToken,
+  };
+  const configured = Object.values(credentials).filter(Boolean).length;
+  if (!configured) return null;
+  if (configured !== Object.keys(credentials).length) {
+    const missing = Object.entries(credentials)
+      .filter(([, value]) => !value)
+      .map(([name]) => name)
+      .join(', ');
+    throw new Error(`spotify credentials are incomplete (missing ${missing})`);
+  }
 
   const res = await fetch('https://accounts.spotify.com/api/token', {
     method: 'POST',
@@ -31,7 +44,14 @@ async function getSpotifyToken() {
     body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: refreshToken }),
   });
   const data = await res.json();
-  if (!data.access_token) throw new Error('spotify: no access token');
+  if (!res.ok || !data.access_token) {
+    const code = data.error || `http_${res.status}`;
+    const description = data.error_description ? `: ${data.error_description}` : '';
+    const recovery = code === 'invalid_grant'
+      ? ' Reauthorize Spotify and replace the SPOTIFY_REFRESH_TOKEN repository secret.'
+      : '';
+    throw new Error(`spotify token refresh failed (${code})${description}.${recovery}`);
+  }
   return data.access_token;
 }
 
@@ -152,12 +172,7 @@ async function buildLeague() {
 async function main() {
   let html = fs.readFileSync(HTML_PATH, 'utf8');
 
-  let spotifyToken = null;
-  try {
-    spotifyToken = await getSpotifyToken();
-  } catch (err) {
-    console.error('spotify auth error:', err.message);
-  }
+  const spotifyToken = await getSpotifyToken();
 
   if (spotifyToken) {
     try {
@@ -201,4 +216,11 @@ async function main() {
   console.log('wrote index.html');
 }
 
-main();
+if (require.main === module) {
+  main().catch(err => {
+    console.error(err.message);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = { getSpotifyToken, main };
