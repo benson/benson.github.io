@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -47,3 +48,8 @@ jobs:
           git add shared/sets.json shared/metadata.json shared/mtgjson-manifest.json shared/boosters
           git commit -m "$msg"
           git push
+
+      - name: Deploy homepage
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy-pages.yml --ref master
