@@ -4,7 +4,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $taskName = 'Benson Homepage League Match Collector'
-$installDirectory = Join-Path $env:LOCALAPPDATA 'BensonHomepage'
+$installDirectory = Join-Path $env:PUBLIC 'BensonHomepage'
 $installedCollector = Join-Path $installDirectory 'league-client-collector.js'
 
 if ($Uninstall) {
@@ -29,9 +29,11 @@ $arguments = @(
   '--scheduled'
   '--gh-executable'
   ('"{0}"' -f $gh)
+  '--log-directory'
+  ('"{0}"' -f $installDirectory)
 ) -join ' '
 
-$action = New-ScheduledTaskAction -Execute $node -Argument $arguments -WorkingDirectory $installDirectory
+$action = New-ScheduledTaskAction -Execute $node -Argument $arguments
 $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) `
   -RepetitionInterval (New-TimeSpan -Minutes 5) `
   -RepetitionDuration (New-TimeSpan -Days 3650)

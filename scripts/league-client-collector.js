@@ -7,6 +7,7 @@ const DEFAULT_REPOSITORY = 'benson/benson.github.io';
 const DEFAULT_REMOTE_PATH = 'league-client-history.json';
 const HISTORY_LIMIT = 100;
 let ghExecutable = 'gh.exe';
+let scheduledLogDirectory = null;
 
 const QUEUE_NAMES = {
   400: 'normal', 420: 'ranked', 440: 'ranked flex', 450: 'aram', 490: 'normal', 720: 'aram',
@@ -24,6 +25,7 @@ function parseArgs(argv) {
     else if (arg === '--repository') args.repository = argv[++index];
     else if (arg === '--gh-path') args.remotePath = argv[++index];
     else if (arg === '--gh-executable') args.ghExecutable = argv[++index];
+    else if (arg === '--log-directory') args.logDirectory = argv[++index];
     else throw new Error(`unknown argument: ${arg}`);
   }
   return args;
@@ -58,7 +60,7 @@ function lcuRequest(credentials, endpoint) {
       method: 'GET',
       headers: { Authorization: `Basic ${Buffer.from(`riot:${credentials.token}`).toString('base64')}` },
       rejectUnauthorized: false,
-      timeout: 10_000,
+      timeout: 30_000,
     }, response => {
       let body = '';
       response.setEncoding('utf8');
@@ -75,7 +77,7 @@ function lcuRequest(credentials, endpoint) {
         }
       });
     });
-    request.on('timeout', () => request.destroy(new Error('League client request timed out')));
+    request.on('timeout', () => request.destroy(new Error(`League client request timed out for ${endpoint}`)));
     request.on('error', reject);
     request.end();
   });
@@ -219,7 +221,8 @@ function publishCache(repository, remotePath, collectedGames) {
 }
 
 function appendScheduledLog(message) {
-  const directory = path.join(process.env.LOCALAPPDATA || __dirname, 'BensonHomepage');
+  const directory = scheduledLogDirectory
+    || path.join(process.env.LOCALAPPDATA || __dirname, 'BensonHomepage');
   fs.mkdirSync(directory, { recursive: true });
   const logPath = path.join(directory, 'league-client-collector.log');
   let lines = [];
@@ -231,6 +234,7 @@ function appendScheduledLog(message) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   ghExecutable = args.ghExecutable || ghExecutable;
+  scheduledLogDirectory = args.logDirectory || scheduledLogDirectory;
   let credentials;
   try {
     credentials = discoverLcuCredentials();
