@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - master
+    paths-ignore:
+      - league-client-history.json
   workflow_dispatch:
 
 permissions:

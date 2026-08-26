@@ -134,12 +134,6 @@ async function buildOnRepeat(token) {
 }
 
 async function buildLeague() {
-  const apiKey = process.env.RIOT_API_KEY;
-  if (!apiKey) {
-    console.log('league: skipping (no credentials)');
-    return null;
-  }
-
   const leaguePath = path.join(ROOT, 'league-history.json');
   if (!fs.existsSync(leaguePath)) {
     console.log('league: no league-history.json');
