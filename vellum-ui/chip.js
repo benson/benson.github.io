@@ -1,4 +1,4 @@
-import { esc } from './escape.js?v=061305447462';
+import { esc } from './escape.js?v=c35c20311b84';
 
 function normalizeChipText(value) {
   return String(value ?? '').trim();
