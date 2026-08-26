@@ -1,4 +1,4 @@
-import { applyMotionMode, applyMotionState } from './motion.js?v=a39000de6b94';
+import { applyMotionMode, applyMotionState } from './motion.js?v=f0fdf843e91d';
 
 const MIN_LEAVE_FALLBACK_MS = 260;
 
