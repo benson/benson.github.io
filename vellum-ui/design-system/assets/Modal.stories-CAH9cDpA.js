@@ -9,13 +9,14 @@ import{n as e}from"./rolldown-runtime-DkW27tQK.js";import{n as t,o as n}from"./s
       </div>
       <footer class="ui-modal-actions">
         <button class="btn btn-secondary" type="button" data-modal-close>cancel</button>
-        <button class="btn" type="button">save note</button>
+        <button class="btn" type="button" data-story-save>save note</button>
       </footer>
     </section>
-  </div>`)}function z({onClose:e,onOpen:t,openOnLoad:r,title:i}){let a=document.createElement(`div`);a.className=`vui-story-demo-frame`;let o=document.createElement(`button`);o.className=`btn`,o.type=`button`,o.textContent=`open dialog`;let c=R({open:r,title:i});c.querySelector(`.ui-modal-title`).textContent=i;let l=s(c,{focusTarget:()=>c.querySelector(`input`),onClose:e,onOpen:t});return o.addEventListener(`click`,e=>l.open({reason:`trigger`,event:e})),a.append(o,c),n(a,()=>l.destroy())}function B({title:e}){let t=R({open:!0,title:e});t.className=``,t.removeAttribute(`role`),t.removeAttribute(`aria-modal`),t.removeAttribute(`aria-hidden`),t.querySelector(`.ui-modal-title`).textContent=e,t.querySelector(`.rune-close`).disabled=!0,t.querySelectorAll(`[data-modal-close]`).forEach(e=>{e.disabled=!0});let n=t.firstElementChild;return n.classList.add(`vui-story-modal-frame`),n}var V,H,U,W,G,K,q,J;function Y(){return(Y=e((()=>{L(),{expect:V,fn:H,waitFor:U}=__STORYBOOK_MODULE_TEST__,W={title:`Patterns/Modal`,tags:[`autodocs`],render:z,parameters:{layout:`fullscreen`},args:{onClose:H(),onOpen:H(),openOnLoad:!1,title:`reading note`},argTypes:{openOnLoad:{control:`boolean`},title:{control:`text`}}},G={play:async({args:e,canvas:t,userEvent:n})=>{await n.click(t.getByRole(`button`,{name:`open dialog`}));let r=t.getByRole(`dialog`,{name:`reading note`});await U(()=>V(r).toBeVisible()),await V(t.getByRole(`textbox`,{name:`note`})).toHaveFocus(),await V(e.onOpen).toHaveBeenCalledOnce(),await n.click(t.getByRole(`button`,{name:`close dialog`})),await V(r).not.toBeVisible(),await V(e.onClose).toHaveBeenCalledOnce()}},K={args:{openOnLoad:!0}},q={render:B,parameters:{layout:`padded`}},G.parameters={...G.parameters,docs:{...G.parameters?.docs,source:{originalSource:`{
+  </div>`)}function z({onClose:e,onOpen:t,openOnLoad:r,title:i}){let a=document.createElement(`div`);a.className=`vui-story-demo-frame`;let o=document.createElement(`button`);o.className=`btn`,o.type=`button`,o.textContent=`open dialog`;let c=R({open:r,title:i});c.querySelector(`.ui-modal-title`).textContent=i;let l=document.createElement(`p`);l.className=`vui-story-note`,l.setAttribute(`role`,`status`),l.textContent=`No note saved.`;let u=s(c,{focusTarget:()=>c.querySelector(`input`),onClose:e,onOpen:t});return o.addEventListener(`click`,e=>u.open({reason:`trigger`,event:e})),c.querySelector(`[data-story-save]`).addEventListener(`click`,e=>{l.textContent=`Saved note: ${c.querySelector(`input`).value}.`,u.close({reason:`save`,event:e})}),a.append(o,c,l),n(a,()=>u.destroy())}function B({title:e}){let t=R({open:!0,title:e});t.className=``,t.removeAttribute(`role`),t.removeAttribute(`aria-modal`),t.removeAttribute(`aria-hidden`),t.querySelector(`.ui-modal-title`).textContent=e,t.querySelector(`.rune-close`).disabled=!0,t.querySelectorAll(`[data-modal-close]`).forEach(e=>{e.disabled=!0});let n=t.firstElementChild;return n.classList.add(`vui-story-modal-frame`),n}var V,H,U,W,G,K,q,J;function Y(){return(Y=e((()=>{L(),{expect:V,fn:H,waitFor:U}=__STORYBOOK_MODULE_TEST__,W={title:`Patterns/Modal`,tags:[`autodocs`],render:z,parameters:{layout:`fullscreen`},args:{onClose:H(),onOpen:H(),openOnLoad:!1,title:`reading note`},argTypes:{openOnLoad:{control:`boolean`},title:{control:`text`}}},G={play:async({args:e,canvas:t,canvasElement:n,userEvent:r})=>{await r.click(t.getByRole(`button`,{name:`open dialog`}));let i=t.getByRole(`dialog`,{name:`reading note`});await U(()=>V(i).toBeVisible()),await V(t.getByRole(`textbox`,{name:`note`})).toHaveFocus(),await V(e.onOpen).toHaveBeenCalledOnce(),await r.click(t.getByRole(`button`,{name:`close dialog`})),await V(i).not.toBeVisible(),await V(e.onClose).toHaveBeenCalledOnce(),await r.click(t.getByRole(`button`,{name:`open dialog`})),await r.click(t.getByRole(`button`,{name:`save note`})),await V(t.getByRole(`status`)).toHaveTextContent(`Saved note`),n.replaceChildren(z(e))}},K={args:{openOnLoad:!0}},q={render:B,parameters:{layout:`padded`,controls:{include:[`title`]}},play:async({parameters:e})=>{await V(e.controls.include).toEqual([`title`])}},G.parameters={...G.parameters,docs:{...G.parameters?.docs,source:{originalSource:`{
   play: async ({
     args,
     canvas,
+    canvasElement,
     userEvent
   }) => {
     await userEvent.click(canvas.getByRole("button", {
@@ -34,6 +35,14 @@ import{n as e}from"./rolldown-runtime-DkW27tQK.js";import{n as t,o as n}from"./s
     }));
     await expect(dialog).not.toBeVisible();
     await expect(args.onClose).toHaveBeenCalledOnce();
+    await userEvent.click(canvas.getByRole("button", {
+      name: "open dialog"
+    }));
+    await userEvent.click(canvas.getByRole("button", {
+      name: "save note"
+    }));
+    await expect(canvas.getByRole("status")).toHaveTextContent("Saved note");
+    canvasElement.replaceChildren(renderModal(args));
   }
 }`,...G.parameters?.docs?.source}}},K.parameters={...K.parameters,docs:{...K.parameters?.docs,source:{originalSource:`{
   args: {
@@ -42,6 +51,14 @@ import{n as e}from"./rolldown-runtime-DkW27tQK.js";import{n as t,o as n}from"./s
 }`,...K.parameters?.docs?.source}}},q.parameters={...q.parameters,docs:{...q.parameters?.docs,source:{originalSource:`{
   render: renderFrame,
   parameters: {
-    layout: "padded"
+    layout: "padded",
+    controls: {
+      include: ["title"]
+    }
+  },
+  play: async ({
+    parameters
+  }) => {
+    await expect(parameters.controls.include).toEqual(["title"]);
   }
 }`,...q.parameters?.docs?.source}}},J=[`Interactive`,`Open`,`Frame`]})))()}Y();export{q as Frame,G as Interactive,K as Open,J as __namedExportsOrder,W as default};

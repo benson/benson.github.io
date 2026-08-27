@@ -16,26 +16,28 @@ import{n as e}from"./rolldown-runtime-DkW27tQK.js";import{a as t,i as n,n as r,r
   </div>`),t=r(`<div class="empty-state"><span class="empty-state-glyph" aria-hidden="true">📚</span><span>no books match these filters</span></div>`);return i(e,t)}function b(){let e=n();for(let t of[8,62,100]){let n=r(`<div class="vui-story-field">
       <span class="vui-story-label">${t}% imported</span>
       <div class="progress" role="progressbar" aria-label="import progress" aria-valuenow="${t}" aria-valuemin="0" aria-valuemax="100" style="--progress: ${t}%"><span class="progress-fill"></span></div>
-    </div>`);e.append(n)}return e}var x,S,C,w,T,E,D,O;function k(){return(k=e((()=>{m(),{expect:x}=__STORYBOOK_MODULE_TEST__,S={title:`Components/Data display`,tags:[`autodocs`]},C={render:h},w={render:g,play:async({canvas:e,userEvent:t})=>{await t.click(e.getByRole(`button`,{name:`next page`})),await x(e.getByRole(`button`,{name:`page 8`})).toHaveAttribute(`aria-current`,`page`)}},T={name:`Card sleeves & price stickers`,render:v},E={name:`Loading & empty`,render:y},D={render:b},C.parameters={...C.parameters,docs:{...C.parameters?.docs,source:{originalSource:`{
+    </div>`);e.append(n)}return e}var x,S,C,w,T,E,D,O;function k(){return(k=e((()=>{m(),{expect:x}=__STORYBOOK_MODULE_TEST__,S={title:`Components/Data display`,tags:[`autodocs`]},C={render:h},w={render:g,play:async({canvas:e,canvasElement:t,userEvent:n})=>{await n.click(e.getByRole(`button`,{name:`next page`})),await x(e.getByRole(`button`,{name:`page 8`})).toHaveAttribute(`aria-current`,`page`),t.replaceChildren(g())}},T={name:`Card sleeves & price stickers`,render:v},E={name:`Loading & empty`,render:y},D={render:b},C.parameters={...C.parameters,docs:{...C.parameters?.docs,source:{originalSource:`{
   render: renderTable
 }`,...C.parameters?.docs?.source}}},w.parameters={...w.parameters,docs:{...w.parameters?.docs,source:{originalSource:`{
   render: renderPagination,
   play: async ({
     canvas,
+    canvasElement,
     userEvent
   }) => {
-    await userEvent.click(canvas.getByRole('button', {
-      name: 'next page'
+    await userEvent.click(canvas.getByRole("button", {
+      name: "next page"
     }));
-    await expect(canvas.getByRole('button', {
-      name: 'page 8'
-    })).toHaveAttribute('aria-current', 'page');
+    await expect(canvas.getByRole("button", {
+      name: "page 8"
+    })).toHaveAttribute("aria-current", "page");
+    canvasElement.replaceChildren(renderPagination());
   }
 }`,...w.parameters?.docs?.source}}},T.parameters={...T.parameters,docs:{...T.parameters?.docs,source:{originalSource:`{
-  name: 'Card sleeves & price stickers',
+  name: "Card sleeves & price stickers",
   render: renderCardSleeves
 }`,...T.parameters?.docs?.source}}},E.parameters={...E.parameters,docs:{...E.parameters?.docs,source:{originalSource:`{
-  name: 'Loading & empty',
+  name: "Loading & empty",
   render: renderLoadingAndEmpty
 }`,...E.parameters?.docs?.source}}},D.parameters={...D.parameters,docs:{...D.parameters?.docs,source:{originalSource:`{
   render: renderProgress

@@ -2,45 +2,55 @@ import{n as e}from"./rolldown-runtime-DkW27tQK.js";import{a as t,i as n,n as r,o
     <span class="banner-message">the catalog has been updated</span>
     <div class="banner-actions"><button class="btn" type="button">reload</button></div>
     <button class="icon-btn banner-dismiss" type="button" aria-label="dismiss update">×</button>
-  </aside>`);return e.querySelector(`.banner-dismiss`).addEventListener(`click`,()=>e.remove()),e}function w(){let e=n(),r=t(`button`,`save book`,`btn`),a=null;return r.type=`button`,r.addEventListener(`click`,t=>{a?.dismiss({motion:`none`}),a=m(`book saved to your library`,{documentRef:e.ownerDocument,duration:3e4,event:t,reason:`trigger`,tone:`success`})}),e.append(r,t(`p`,`Toasts pause while hovered or focused and dismiss themselves.`,`vui-story-note`)),i(e,()=>a?.dismiss({motion:`none`}))}function T(){return r(`<div class="vui-story-row">
+  </aside>`);return e.querySelector(`.banner-dismiss`).addEventListener(`click`,()=>e.remove()),e.querySelector(`.banner-actions .btn`).addEventListener(`click`,t=>{e.querySelector(`.banner-message`).textContent=`the catalog is current`,t.currentTarget.textContent=`reloaded`,t.currentTarget.disabled=!0}),e}function w(){let e=n(),r=t(`button`,`save book`,`btn`),a=null;return r.type=`button`,r.addEventListener(`click`,t=>{a?.dismiss({motion:`none`}),a=m(`book saved to your library`,{documentRef:e.ownerDocument,duration:3e4,event:t,reason:`trigger`,tone:`success`})}),e.append(r,t(`p`,`Toasts pause while hovered or focused and dismiss themselves.`,`vui-story-note`)),i(e,()=>a?.dismiss({motion:`none`}))}function T(){let e=r(`<div class="vui-story-row">
     <span class="badge">3</span>
     <span class="badge badge-quiet">12</span>
     <span class="badge badge-accent">99+</span>
-    <button class="btn btn-secondary" type="button">loans <span class="badge badge-quiet">4</span></button>
-  </div>`)}var E,D,O,k,A,j,M,N,P;function F(){return(F=e((()=>{l(),f(),y(),{expect:E}=__STORYBOOK_MODULE_TEST__,D={title:`Components/Status & feedback`,tags:[`autodocs`]},O={render:b},k={render:x,play:async({canvas:e,userEvent:t})=>{await t.click(e.getByRole(`button`,{name:`retry`})),await E(e.getByText(`trying again…`)).toBeVisible()}},A={render:S,play:async({canvas:e,userEvent:t})=>{await t.click(e.getByRole(`button`,{name:`remove hardcover filter`})),await E(e.queryByText(`hardcover`)).not.toBeInTheDocument()}},j={render:C,play:async({canvas:e,userEvent:t})=>{await t.click(e.getByRole(`button`,{name:`dismiss update`})),await E(e.queryByLabelText(`site update`)).not.toBeInTheDocument()}},M={render:w,play:async({canvas:e,canvasElement:t,userEvent:n})=>{await n.click(e.getByRole(`button`,{name:`save book`}));let r=t.ownerDocument.querySelector(`[role="status"].toast`);await E(r).toHaveTextContent(`book saved to your library`)}},N={render:T},O.parameters={...O.parameters,docs:{...O.parameters?.docs,source:{originalSource:`{
+    <button class="btn btn-secondary" type="button" aria-pressed="false">loans <span class="badge badge-quiet">4</span></button>
+  </div>`),t=e.querySelector(`button`);return t.addEventListener(`click`,()=>{let e=t.getAttribute(`aria-pressed`)!==`true`;t.setAttribute(`aria-pressed`,String(e)),t.querySelector(`.badge`).textContent=e?`3`:`4`}),e}var E,D,O,k,A,j,M,N,P;function F(){return(F=e((()=>{l(),f(),y(),{expect:E}=__STORYBOOK_MODULE_TEST__,D={title:`Components/Status & feedback`,tags:[`autodocs`]},O={render:b},k={render:x,play:async({canvas:e,canvasElement:t,userEvent:n})=>{await n.click(e.getByRole(`button`,{name:`retry`})),await E(e.getByText(`trying again…`)).toBeVisible(),t.replaceChildren(x())}},A={render:S,play:async({canvas:e,canvasElement:t,userEvent:n})=>{await n.click(e.getByRole(`button`,{name:`remove hardcover filter`})),await E(e.queryByText(`hardcover`)).not.toBeInTheDocument(),t.replaceChildren(S())}},j={render:C,play:async({canvas:e,canvasElement:t,userEvent:n})=>{await n.click(e.getByRole(`button`,{name:`reload`})),await E(e.getByText(`the catalog is current`)).toBeVisible(),await n.click(e.getByRole(`button`,{name:`dismiss update`})),await E(e.queryByLabelText(`site update`)).not.toBeInTheDocument(),t.replaceChildren(C())}},M={render:w,play:async({canvas:e,canvasElement:t,userEvent:n})=>{await n.click(e.getByRole(`button`,{name:`save book`}));let r=t.ownerDocument.querySelector(`[role="status"].toast`);await E(r).toHaveTextContent(`book saved to your library`),t.replaceChildren(w())}},N={render:T,play:async({canvas:e,canvasElement:t,userEvent:n})=>{let r=e.getByRole(`button`,{name:/loans/});await n.click(r),await E(r).toHaveAttribute(`aria-pressed`,`true`),await E(r).toHaveTextContent(`3`),t.replaceChildren(T())}},O.parameters={...O.parameters,docs:{...O.parameters?.docs,source:{originalSource:`{
   render: renderTones
 }`,...O.parameters?.docs?.source}}},k.parameters={...k.parameters,docs:{...k.parameters?.docs,source:{originalSource:`{
   render: renderStates,
   play: async ({
     canvas,
+    canvasElement,
     userEvent
   }) => {
     await userEvent.click(canvas.getByRole("button", {
       name: "retry"
     }));
     await expect(canvas.getByText("trying again…")).toBeVisible();
+    canvasElement.replaceChildren(renderStates());
   }
 }`,...k.parameters?.docs?.source}}},A.parameters={...A.parameters,docs:{...A.parameters?.docs,source:{originalSource:`{
   render: renderChips,
   play: async ({
     canvas,
+    canvasElement,
     userEvent
   }) => {
     await userEvent.click(canvas.getByRole("button", {
       name: "remove hardcover filter"
     }));
     await expect(canvas.queryByText("hardcover")).not.toBeInTheDocument();
+    canvasElement.replaceChildren(renderChips());
   }
 }`,...A.parameters?.docs?.source}}},j.parameters={...j.parameters,docs:{...j.parameters?.docs,source:{originalSource:`{
   render: renderBanner,
   play: async ({
     canvas,
+    canvasElement,
     userEvent
   }) => {
+    await userEvent.click(canvas.getByRole("button", {
+      name: "reload"
+    }));
+    await expect(canvas.getByText("the catalog is current")).toBeVisible();
     await userEvent.click(canvas.getByRole("button", {
       name: "dismiss update"
     }));
     await expect(canvas.queryByLabelText("site update")).not.toBeInTheDocument();
+    canvasElement.replaceChildren(renderBanner());
   }
 }`,...j.parameters?.docs?.source}}},M.parameters={...M.parameters,docs:{...M.parameters?.docs,source:{originalSource:`{
   render: renderToast,
@@ -54,7 +64,21 @@ import{n as e}from"./rolldown-runtime-DkW27tQK.js";import{a as t,i as n,n as r,o
     }));
     const notification = canvasElement.ownerDocument.querySelector('[role="status"].toast');
     await expect(notification).toHaveTextContent("book saved to your library");
+    canvasElement.replaceChildren(renderToast());
   }
 }`,...M.parameters?.docs?.source}}},N.parameters={...N.parameters,docs:{...N.parameters?.docs,source:{originalSource:`{
-  render: renderBadges
+  render: renderBadges,
+  play: async ({
+    canvas,
+    canvasElement,
+    userEvent
+  }) => {
+    const loans = canvas.getByRole("button", {
+      name: /loans/
+    });
+    await userEvent.click(loans);
+    await expect(loans).toHaveAttribute("aria-pressed", "true");
+    await expect(loans).toHaveTextContent("3");
+    canvasElement.replaceChildren(renderBadges());
+  }
 }`,...N.parameters?.docs?.source}}},P=[`Tones`,`ApplicationStates`,`Chips`,`Banner`,`Toast`,`Badges`]})))()}F();export{k as ApplicationStates,N as Badges,j as Banner,A as Chips,M as Toast,O as Tones,P as __namedExportsOrder,D as default};
