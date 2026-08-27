@@ -1,6 +1,48 @@
 {
-  "blurb": "played 3 aram mayhem games and 3 league classic games in the last week, went 4-2 overall",
+  "blurb": "played 5 league classic games and 4 aram mayhem games in the last week, went 5-4 overall",
   "recent": [
+    {
+      "gameId": "5628949391",
+      "startedAt": 1787783096710,
+      "queueId": 4310,
+      "gameMode": "JADE",
+      "queue": "league classic",
+      "champion": "Twitch",
+      "win": true,
+      "kills": 14,
+      "deaths": 8,
+      "assists": 7,
+      "damage": 36731,
+      "minutes": 36
+    },
+    {
+      "gameId": "5628935479",
+      "startedAt": 1787781532092,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "Sion",
+      "win": false,
+      "kills": 7,
+      "deaths": 15,
+      "assists": 34,
+      "damage": 52107,
+      "minutes": 18
+    },
+    {
+      "gameId": "5628855304",
+      "startedAt": 1787772660974,
+      "queueId": 4310,
+      "gameMode": "JADE",
+      "queue": "league classic",
+      "champion": "Evelynn",
+      "win": false,
+      "kills": 2,
+      "deaths": 4,
+      "assists": 8,
+      "damage": 7393,
+      "minutes": 26
+    },
     {
       "gameId": "5628750655",
       "startedAt": 1787757192499,
@@ -28,50 +70,8 @@
       "assists": 7,
       "damage": 31993,
       "minutes": 39
-    },
-    {
-      "gameId": "5628264885",
-      "startedAt": 1787687906014,
-      "queueId": 2400,
-      "gameMode": "KIWI",
-      "queue": "aram mayhem",
-      "champion": "Nunu",
-      "win": false,
-      "kills": 10,
-      "deaths": 14,
-      "assists": 13,
-      "damage": 26605,
-      "minutes": 18
-    },
-    {
-      "gameId": "5628256748",
-      "startedAt": 1787686489776,
-      "queueId": 2400,
-      "gameMode": "KIWI",
-      "queue": "aram mayhem",
-      "champion": "Xerath",
-      "win": true,
-      "kills": 16,
-      "deaths": 7,
-      "assists": 21,
-      "damage": 41052,
-      "minutes": 19
-    },
-    {
-      "gameId": "5628242832",
-      "startedAt": 1787684263338,
-      "queueId": 2400,
-      "gameMode": "KIWI",
-      "queue": "aram mayhem",
-      "champion": "Caitlyn",
-      "win": false,
-      "kills": 19,
-      "deaths": 15,
-      "assists": 18,
-      "damage": 52093,
-      "minutes": 23
     }
   ],
   "ddragonVersion": "16.17.1",
-  "date": "2026-08-26"
+  "date": "2026-08-27"
 }
