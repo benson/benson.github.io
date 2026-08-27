@@ -1,4 +1,4 @@
-import { applyMotionMode, applyMotionState } from './motion.js?v=6764d0ccdb46';
+import { applyMotionMode, applyMotionState } from './motion.js?v=972d585a5205';
 
 const FOCUSABLE_SELECTOR = [
   'a[href]',

@@ -4,10 +4,11 @@ import{n as e}from"./rolldown-runtime-DkW27tQK.js";import{o as t}from"./storyHel
       <span class="combobox"><input class="input" type="search"></span>
     </label>
     <p class="vui-story-note" aria-live="polite">No book selected.</p>
-  `;let c=s.querySelector(`input`),u=s.querySelector(`.vui-story-note`);c.value=e,c.placeholder=o;let d=i(c,{minLength:n,openOnFocus:a,getItems:async e=>{let t=e.toLowerCase();return l.filter(e=>e.label.toLowerCase().includes(t))},toHint:e=>e.hint,onSelect:e=>{u.textContent=`Selected ${e.label}.`,r(e)}});return t(s,()=>d.destroy())}var s,c,l,u,d,f,p;function m(){return(m=e((()=>{a(),{expect:s,fn:c}=__STORYBOOK_MODULE_TEST__,l=[{label:`A Wizard of Earthsea`,hint:`Ursula K. Le Guin`},{label:`The Left Hand of Darkness`,hint:`Ursula K. Le Guin`},{label:`The Dispossessed`,hint:`Ursula K. Le Guin`},{label:`Piranesi`,hint:`Susanna Clarke`}],u={title:`Components/Combobox`,tags:[`autodocs`],render:o,argTypes:{initialValue:{control:`text`},placeholder:{control:`text`},minLength:{control:{type:`number`,min:0,max:5}},openOnFocus:{control:`boolean`}},args:{initialValue:``,minLength:0,onSelect:c(),openOnFocus:!0,placeholder:`search the catalog…`}},d={play:async({args:e,canvas:t,userEvent:n})=>{let r=t.getByRole(`combobox`);await n.click(r),await n.type(r,`left`),await t.findByRole(`option`,{name:/The Left Hand of Darkness/}),await n.keyboard(`{ArrowDown}{Enter}`),await s(r).toHaveValue(`The Left Hand of Darkness`),await s(e.onSelect).toHaveBeenCalledOnce()}},f={args:{minLength:2,openOnFocus:!1}},d.parameters={...d.parameters,docs:{...d.parameters?.docs,source:{originalSource:`{
+  `;let c=s.querySelector(`input`),u=s.querySelector(`.vui-story-note`);c.value=e,c.placeholder=o;let d=i(c,{minLength:n,openOnFocus:a,getItems:async e=>{let t=e.toLowerCase();return l.filter(e=>e.label.toLowerCase().includes(t))},toHint:e=>e.hint,onSelect:e=>{u.textContent=`Selected ${e.label}.`,r(e)}});return t(s,()=>d.destroy())}var s,c,l,u,d,f,p;function m(){return(m=e((()=>{a(),{expect:s,fn:c}=__STORYBOOK_MODULE_TEST__,l=[{label:`A Wizard of Earthsea`,hint:`Ursula K. Le Guin`},{label:`The Left Hand of Darkness`,hint:`Ursula K. Le Guin`},{label:`The Dispossessed`,hint:`Ursula K. Le Guin`},{label:`Piranesi`,hint:`Susanna Clarke`}],u={title:`Components/Combobox`,tags:[`autodocs`],render:o,argTypes:{initialValue:{control:`text`},placeholder:{control:`text`},minLength:{control:{type:`number`,min:0,max:5}},openOnFocus:{control:`boolean`}},args:{initialValue:``,minLength:0,onSelect:c(),openOnFocus:!0,placeholder:`search the catalog…`}},d={play:async({args:e,canvas:t,canvasElement:n,userEvent:r})=>{let i=t.getByRole(`combobox`);await r.click(i),await r.type(i,`left`),await t.findByRole(`option`,{name:/The Left Hand of Darkness/}),await r.keyboard(`{ArrowDown}{Enter}`),await s(i).toHaveValue(`The Left Hand of Darkness`),await s(e.onSelect).toHaveBeenCalledOnce(),n.replaceChildren(o(e))}},f={args:{minLength:2,openOnFocus:!1}},d.parameters={...d.parameters,docs:{...d.parameters?.docs,source:{originalSource:`{
   play: async ({
     args,
     canvas,
+    canvasElement,
     userEvent
   }) => {
     const input = canvas.getByRole("combobox");
@@ -19,6 +20,7 @@ import{n as e}from"./rolldown-runtime-DkW27tQK.js";import{o as t}from"./storyHel
     await userEvent.keyboard("{ArrowDown}{Enter}");
     await expect(input).toHaveValue("The Left Hand of Darkness");
     await expect(args.onSelect).toHaveBeenCalledOnce();
+    canvasElement.replaceChildren(renderCombobox(args));
   }
 }`,...d.parameters?.docs?.source}}},f.parameters={...f.parameters,docs:{...f.parameters?.docs,source:{originalSource:`{
   args: {
