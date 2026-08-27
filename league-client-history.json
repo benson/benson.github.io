@@ -1,7 +1,49 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-26T19:29:46.694Z",
+  "capturedAt": "2026-08-27T00:00:14.926Z",
   "games": [
+    {
+      "gameId": "5628949391",
+      "startedAt": 1787783096710,
+      "queueId": 4310,
+      "gameMode": "JADE",
+      "queue": "league classic",
+      "champion": "Twitch",
+      "win": true,
+      "kills": 14,
+      "deaths": 8,
+      "assists": 7,
+      "damage": 36731,
+      "minutes": 36
+    },
+    {
+      "gameId": "5628935479",
+      "startedAt": 1787781532092,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "Sion",
+      "win": false,
+      "kills": 7,
+      "deaths": 15,
+      "assists": 34,
+      "damage": 52107,
+      "minutes": 18
+    },
+    {
+      "gameId": "5628855304",
+      "startedAt": 1787772660974,
+      "queueId": 4310,
+      "gameMode": "JADE",
+      "queue": "league classic",
+      "champion": "Evelynn",
+      "win": false,
+      "kills": 2,
+      "deaths": 4,
+      "assists": 8,
+      "damage": 7393,
+      "minutes": 26
+    },
     {
       "gameId": "5628750655",
       "startedAt": 1787757192499,
@@ -1359,48 +1401,6 @@
       "assists": 15,
       "damage": 55356,
       "minutes": 25
-    },
-    {
-      "gameId": "5604097588",
-      "startedAt": 1784408264493,
-      "queueId": 1740,
-      "gameMode": "CHERRY",
-      "queue": "bravery arena",
-      "champion": "Maokai",
-      "win": false,
-      "kills": 2,
-      "deaths": 7,
-      "assists": 10,
-      "damage": 16539,
-      "minutes": 27
-    },
-    {
-      "gameId": "5604014258",
-      "startedAt": 1784398904236,
-      "queueId": 1740,
-      "gameMode": "CHERRY",
-      "queue": "bravery arena",
-      "champion": "Swain",
-      "win": true,
-      "kills": 14,
-      "deaths": 7,
-      "assists": 13,
-      "damage": 99914,
-      "minutes": 26
-    },
-    {
-      "gameId": "5604005859",
-      "startedAt": 1784397788564,
-      "queueId": 1740,
-      "gameMode": "CHERRY",
-      "queue": "bravery arena",
-      "champion": "Yuumi",
-      "win": false,
-      "kills": 1,
-      "deaths": 7,
-      "assists": 7,
-      "damage": 7808,
-      "minutes": 24
     }
   ]
 }
