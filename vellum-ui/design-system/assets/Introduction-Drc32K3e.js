@@ -1,4 +1,4 @@
-import{n as e}from"./rolldown-runtime-DkW27tQK.js";import{i as t,r as n}from"./react-Bl2r1tuC.js";import{a as r}from"./chunk-W22LQPXL-D4JctAE3.js";import{a as i,o as a}from"./blocks-DvMdcR-s.js";function o(e){let n={h1:`h1`,h2:`h2`,li:`li`,p:`p`,strong:`strong`,ul:`ul`,...t(),...e.components};return(0,c.jsxs)(c.Fragment,{children:[(0,c.jsx)(i,{title:`Vellum UI/Introduction`}),`
+import{n as e}from"./rolldown-runtime-DkW27tQK.js";import{i as t,r as n}from"./react-Bl2r1tuC.js";import{a as r}from"./chunk-W22LQPXL-D4JctAE3.js";import{a as i,o as a}from"./blocks-B81OFHKs.js";function o(e){let n={h1:`h1`,h2:`h2`,li:`li`,p:`p`,strong:`strong`,ul:`ul`,...t(),...e.components};return(0,c.jsxs)(c.Fragment,{children:[(0,c.jsx)(i,{title:`Vellum UI/Introduction`}),`
 `,(0,c.jsx)(n.h1,{id:`vellum-ui`,children:`Vellum UI`}),`
 `,(0,c.jsx)(n.p,{children:`Vellum is the shared layer of CSS tokens, browser-native primitives, and small
 ESM interaction helpers used across Benson Perry apps.`}),`
