@@ -1,4 +1,4 @@
-import{n as e}from"./rolldown-runtime-DkW27tQK.js";import{n as t,r as n}from"./controlPrimitives-Cg8obPNg.js";import{a as r,i,n as a}from"./storyHelpers-SrU9jVcn.js";function o(){return a(`<form class="vui-story-stack" style="width: min(420px, 100%)">
+import{n as e}from"./rolldown-runtime-DkW27tQK.js";import{n as t,r as n}from"./controlPrimitives-Cg8obPNg.js";import{a as r,i,n as a}from"./storyHelpers-BDeT8eX0.js";function o(){return a(`<form class="vui-story-stack" style="width: min(420px, 100%)">
     ${t({label:`book title`,controlHtml:`<input class="input" name="title" value="A Wizard of Earthsea">`})}
     ${t({label:`format`,controlHtml:`<select name="format"><option>hardcover</option><option>paperback</option></select>`})}
     ${t({label:`notes`,controlHtml:`<textarea name="notes" rows="3" placeholder="condition, edition, provenance…"></textarea>`})}
