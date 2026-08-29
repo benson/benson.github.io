@@ -1,5 +1,5 @@
 {
-  "blurb": "played 9 aram mayhem games, 6 league classic games and 2 cherry games in the last week, went 8-9 overall",
+  "blurb": "played 9 aram mayhem games, 7 league classic games and 2 cherry games in the last week, went 9-9 overall",
   "recent": [
     {
       "gameId": "5630259514",
@@ -30,6 +30,20 @@
       "minutes": 25
     },
     {
+      "gameId": "5630157011",
+      "startedAt": 1787929465186,
+      "queueId": 4310,
+      "gameMode": "JADE",
+      "queue": "league classic",
+      "champion": "MissFortune",
+      "win": true,
+      "kills": 8,
+      "deaths": 0,
+      "assists": 3,
+      "damage": 11009,
+      "minutes": 16
+    },
+    {
       "gameId": "5629693527",
       "startedAt": 1787874101295,
       "queueId": 2400,
@@ -56,22 +70,8 @@
       "assists": 30,
       "damage": 41016,
       "minutes": 23
-    },
-    {
-      "gameId": "5629548574",
-      "startedAt": 1787859727056,
-      "queueId": 2400,
-      "gameMode": "KIWI",
-      "queue": "aram mayhem",
-      "champion": "Ashe",
-      "win": false,
-      "kills": 18,
-      "deaths": 21,
-      "assists": 38,
-      "damage": 39405,
-      "minutes": 23
     }
   ],
   "ddragonVersion": "16.17.1",
-  "date": "2026-08-28"
+  "date": "2026-08-29"
 }
