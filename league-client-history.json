@@ -1,7 +1,49 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-28T00:00:20.323Z",
+  "capturedAt": "2026-08-29T00:00:16.840Z",
   "games": [
+    {
+      "gameId": "5630259514",
+      "startedAt": 1787946107669,
+      "queueId": 1750,
+      "gameMode": "CHERRY",
+      "queue": "arena 3x6",
+      "champion": "Leona",
+      "win": false,
+      "kills": 3,
+      "deaths": 7,
+      "assists": 13,
+      "damage": 26682,
+      "minutes": 27
+    },
+    {
+      "gameId": "5630245687",
+      "startedAt": 1787944618398,
+      "queueId": 1750,
+      "gameMode": "CHERRY",
+      "queue": "arena 3x6",
+      "champion": "Malzahar",
+      "win": true,
+      "kills": 3,
+      "deaths": 9,
+      "assists": 16,
+      "damage": 19076,
+      "minutes": 25
+    },
+    {
+      "gameId": "5630157011",
+      "startedAt": 1787929465186,
+      "queueId": 4310,
+      "gameMode": "JADE",
+      "queue": "league classic",
+      "champion": "MissFortune",
+      "win": true,
+      "kills": 8,
+      "deaths": 0,
+      "assists": 3,
+      "damage": 11009,
+      "minutes": 16
+    },
     {
       "gameId": "5629693527",
       "startedAt": 1787874101295,
@@ -1359,48 +1401,6 @@
       "assists": 2,
       "damage": 32836,
       "minutes": 29
-    },
-    {
-      "gameId": "5605613460",
-      "startedAt": 1784598165991,
-      "queueId": 2400,
-      "gameMode": "KIWI",
-      "queue": "aram mayhem",
-      "champion": "Lux",
-      "win": true,
-      "kills": 9,
-      "deaths": 9,
-      "assists": 39,
-      "damage": 36098,
-      "minutes": 19
-    },
-    {
-      "gameId": "5605592068",
-      "startedAt": 1784596609764,
-      "queueId": 1750,
-      "gameMode": "CHERRY",
-      "queue": "arena 3x6",
-      "champion": "Sona",
-      "win": true,
-      "kills": 8,
-      "deaths": 7,
-      "assists": 22,
-      "damage": 32273,
-      "minutes": 26
-    },
-    {
-      "gameId": "5605572113",
-      "startedAt": 1784595131693,
-      "queueId": 1750,
-      "gameMode": "CHERRY",
-      "queue": "arena 3x6",
-      "champion": "Maokai",
-      "win": false,
-      "kills": 9,
-      "deaths": 5,
-      "assists": 23,
-      "damage": 47393,
-      "minutes": 26
     }
   ]
 }
