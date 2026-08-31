@@ -360,6 +360,94 @@ kbd { font-family: inherit; }
 .dimension-fill { width: 0; height: 100%; background: #666; }
 .dimension-value { text-align: right; font-variant-numeric: tabular-nums; }
 
+.score-analysis {
+  margin: 0 0 34px;
+}
+
+.score-analysis[hidden] { display: none; }
+
+.score-analysis h2 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  font-weight: 400;
+}
+
+.score-analysis-intro {
+  max-width: 600px;
+  margin: 0 0 18px;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.score-detail {
+  border-top: 1px solid var(--line);
+}
+
+.score-detail:last-child {
+  border-bottom: 1px solid var(--line);
+}
+
+.score-detail summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 10px 0;
+  cursor: pointer;
+  font-size: 0.85rem;
+  list-style: none;
+}
+
+.score-detail summary::-webkit-details-marker { display: none; }
+
+.score-detail summary::before {
+  content: "+";
+  width: 12px;
+  color: var(--ink-soft);
+}
+
+.score-detail[open] summary::before { content: "−"; }
+
+.score-detail summary > span:first-of-type { flex: 1; }
+
+.score-detail summary:focus-visible {
+  outline: 1px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.score-detail-value {
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.score-detail-body {
+  padding: 2px 0 22px 30px;
+}
+
+.score-detail-why {
+  max-width: 600px;
+  margin: 0 0 16px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.score-examples {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.score-examples article {
+  border-left: 1px solid var(--line);
+  padding-left: 10px;
+}
+
+.score-examples p {
+  margin: 5px 0 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
 .evidence-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -447,7 +535,9 @@ dialog p { margin-bottom: 12px; line-height: 1.45; }
   .timer-wrap { display: none !important; }
   .answer-controls > span { display: none; }
   .answer-controls { justify-content: flex-end; }
-  .evidence-grid { grid-template-columns: 1fr; gap: 22px; }
+  .evidence-grid,
+  .score-examples { grid-template-columns: 1fr; gap: 22px; }
+  .score-detail-body { padding-left: 22px; }
   .dimension { grid-template-columns: 82px 1fr 30px; }
   footer span:last-child { display: none; }
 }
