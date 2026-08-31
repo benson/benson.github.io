@@ -80,26 +80,64 @@ function addMessage(role, content) {
   article.scrollIntoView({ behavior: 'auto', block: 'center' });
 }
 
-function addThinking() {
+function addThinking(isFinal = false) {
   const article = document.createElement('article');
-  article.className = 'message assistant thinking-message';
+  article.className = `message assistant thinking-message${isFinal ? ' scoring-message' : ''}`;
   const speaker = document.createElement('span');
   speaker.className = 'speaker';
-  speaker.textContent = 'thinking allegedly';
-  const dots = document.createElement('span');
-  dots.className = 'thinking';
-  dots.innerHTML = '<i></i><i></i><i></i>';
-  article.append(speaker, dots);
+  speaker.textContent = isFinal ? 'scoring your answers' : 'thinking allegedly';
+  article.setAttribute('role', 'status');
+  article.setAttribute('aria-live', 'polite');
+
+  let statusTimer = 0;
+  if (isFinal) {
+    const note = document.createElement('p');
+    note.className = 'scoring-note';
+    note.textContent = 'checking each answer against the same rubric';
+    const track = document.createElement('span');
+    track.className = 'scoring-track';
+    track.setAttribute('aria-hidden', 'true');
+    const fill = document.createElement('span');
+    fill.className = 'scoring-fill';
+    track.append(fill);
+    article.append(speaker, note, track);
+
+    const updates = [
+      [8000, 'comparing the four parts'],
+      [18000, 'still working — the grader can take up to a minute'],
+      [32000, 'still working — your answers were submitted'],
+    ];
+    let updateIndex = 0;
+    const scheduleUpdate = () => {
+      if (updateIndex >= updates.length) return;
+      const [delay, text] = updates[updateIndex];
+      const previousDelay = updateIndex === 0 ? 0 : updates[updateIndex - 1][0];
+      statusTimer = window.setTimeout(() => {
+        note.textContent = text;
+        updateIndex += 1;
+        scheduleUpdate();
+      }, delay - previousDelay);
+    };
+    scheduleUpdate();
+  } else {
+    article.append(speaker);
+  }
+
   elements.conversation.append(article);
   article.scrollIntoView({ behavior: 'auto', block: 'center' });
-  return article;
+  return {
+    remove() {
+      window.clearTimeout(statusTimer);
+      article.remove();
+    },
+  };
 }
 
-function setBusy(busy) {
+function setBusy(busy, label = 'hmm') {
   state.busy = busy;
   elements.input.disabled = busy;
   elements.send.disabled = busy;
-  elements.send.querySelector('span:first-child').textContent = busy ? 'hmm' : 'send';
+  elements.send.querySelector('span:first-child').textContent = busy ? label : 'send';
 }
 
 async function request(payload) {
@@ -154,8 +192,9 @@ async function submitAnswer(event) {
   addMessage('user', answer);
   state.transcript.push({ role: 'user', content: answer });
   elements.input.value = '';
-  setBusy(true);
-  const thinking = addThinking();
+  const isFinal = state.round >= state.maxRounds - 1;
+  setBusy(true, isFinal ? 'scoring' : 'hmm');
+  const thinking = addThinking(isFinal);
 
   try {
     const data = await request({
