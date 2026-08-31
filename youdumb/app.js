@@ -11,7 +11,6 @@ const screens = {
 
 const elements = {
   start: document.querySelector('#start-button'),
-  laugh: document.querySelector('#laugh'),
   form: document.querySelector('#answer-form'),
   input: document.querySelector('#answer-input'),
   send: document.querySelector('#send-button'),
@@ -46,7 +45,7 @@ const state = {
 
 function showScreen(name) {
   Object.entries(screens).forEach(([key, screen]) => screen.classList.toggle('is-active', key === name));
-  window.scrollTo({ top: 0, behavior: 'instant' });
+  window.scrollTo({ top: 0, behavior: 'auto' });
 }
 
 function formatElapsed(milliseconds) {
@@ -78,7 +77,7 @@ function addMessage(role, content) {
   paragraph.textContent = content;
   article.append(speaker, paragraph);
   elements.conversation.append(article);
-  article.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  article.scrollIntoView({ behavior: 'auto', block: 'center' });
 }
 
 function addThinking() {
@@ -92,7 +91,7 @@ function addThinking() {
   dots.innerHTML = '<i></i><i></i><i></i>';
   article.append(speaker, dots);
   elements.conversation.append(article);
-  article.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  article.scrollIntoView({ behavior: 'auto', block: 'center' });
   return article;
 }
 
@@ -118,8 +117,9 @@ async function begin() {
   if (state.busy) return;
   state.busy = true;
   elements.start.disabled = true;
-  elements.laugh.classList.add('is-visible');
-  await new Promise((resolve) => setTimeout(resolve, 520));
+  const startLabel = elements.start.querySelector('.button-label');
+  startLabel.textContent = 'ha.';
+  await new Promise((resolve) => setTimeout(resolve, 280));
 
   try {
     const data = await request({ action: 'start' });
@@ -129,7 +129,6 @@ async function begin() {
     state.result = null;
     elements.conversation.replaceChildren();
     elements.input.value = '';
-    elements.laugh.classList.remove('is-visible');
     showScreen('test');
     updateProgress();
     addMessage('assistant', data.question);
@@ -138,9 +137,9 @@ async function begin() {
     setBusy(false);
     elements.input.focus();
   } catch (error) {
-    elements.laugh.classList.remove('is-visible');
     showError(error);
   } finally {
+    startLabel.textContent = 'yes';
     elements.start.disabled = false;
     state.busy = false;
   }
@@ -187,20 +186,7 @@ async function submitAnswer(event) {
 }
 
 function animateScore(target) {
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (reduced) {
-    elements.score.textContent = target;
-    return;
-  }
-  const start = performance.now();
-  const duration = 700;
-  function frame(now) {
-    const t = Math.min(1, (now - start) / duration);
-    const eased = 1 - Math.pow(1 - t, 4);
-    elements.score.textContent = Math.round(target * eased);
-    if (t < 1) requestAnimationFrame(frame);
-  }
-  requestAnimationFrame(frame);
+  elements.score.textContent = target;
 }
 
 function renderResult(result) {

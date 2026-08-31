@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
-  <rect width="1200" height="630" fill="#f2efdf"/>
-  <circle cx="1030" cy="110" r="270" fill="#d8ff45"/>
-  <text x="70" y="125" font-family="Arial,Helvetica,sans-serif" font-size="32" font-weight="800" letter-spacing="4">A VERY UNOFFICIAL INTELLIGENCE TEST</text>
-  <text x="52" y="405" font-family="Arial,Helvetica,sans-serif" font-size="280" font-weight="900" letter-spacing="-24" fill="#12120f">you</text>
-  <text x="490" y="405" font-family="Georgia,serif" font-size="270" font-style="italic" letter-spacing="-20" fill="#ff4d3d">dumb?</text>
-  <text x="74" y="548" font-family="Arial,Helvetica,sans-serif" font-size="38" fill="#12120f">Five questions. One suspiciously specific read.</text>
+  <rect width="1200" height="630" fill="#f8f7f4"/>
+  <text x="80" y="155" font-family="Times New Roman,Times,serif" font-size="34" fill="#767676">a very unofficial intelligence test</text>
+  <text x="80" y="315" font-family="Times New Roman,Times,serif" font-size="112" fill="#000">youdumb?</text>
+  <text x="80" y="405" font-family="Times New Roman,Times,serif" font-size="38" fill="#000">five questions. about two minutes.</text>
+  <line x1="80" y1="500" x2="1120" y2="500" stroke="#ccc"/>
+  <text x="80" y="555" font-family="Times New Roman,Times,serif" font-size="26" fill="#767676">bensonperry.com/youdumb</text>
 </svg>
