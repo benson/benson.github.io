@@ -222,8 +222,49 @@ main { width: 100%; }
   color: #555;
 }
 
-.thinking-message .speaker::after { content: "..."; }
-.thinking { display: none; }
+.thinking-message:not(.scoring-message) .speaker::after { content: "..."; }
+
+.scoring-message {
+  width: min(100%, 360px);
+}
+
+.scoring-note {
+  margin: 0 0 8px;
+  color: var(--ink-soft);
+  font-size: 0.8rem !important;
+}
+
+.scoring-track {
+  display: block;
+  height: 2px;
+  overflow: hidden;
+  background: #ddd;
+}
+
+.scoring-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #666;
+  transform: translateX(-62%) scaleX(0.28);
+  transform-origin: left center;
+  animation: scoring-progress 1.35s ease-in-out infinite;
+}
+
+@keyframes scoring-progress {
+  0% { transform: translateX(-62%) scaleX(0.28); }
+  50% { transform: translateX(62%) scaleX(0.42); }
+  100% { transform: translateX(162%) scaleX(0.28); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scoring-fill {
+    width: 100%;
+    opacity: 0.55;
+    transform: none;
+    animation: none;
+  }
+}
 
 .answer-form {
   margin-top: 38px;
