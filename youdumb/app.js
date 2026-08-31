@@ -36,7 +36,7 @@ const elements = {
 const state = {
   transcript: [],
   round: 0,
-  maxRounds: 5,
+  maxRounds: 4,
   startedAt: 0,
   timerId: 0,
   busy: false,
