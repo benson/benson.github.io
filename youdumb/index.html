@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f2efdf">
+  <meta name="description" content="A very short, very unofficial conversational intelligence test.">
+  <meta property="og:title" content="youdumb?">
+  <meta property="og:description" content="Five questions. One suspiciously specific read on how you think.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://bensonperry.com/youdumb/">
+  <meta property="og:image" content="https://bensonperry.com/youdumb/assets/og.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="youdumb?">
+  <meta name="twitter:description" content="Five questions. One suspiciously specific read on how you think.">
+  <meta name="twitter:image" content="https://bensonperry.com/youdumb/assets/og.svg">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://youdumb-api.bensonperry.workers.dev http://127.0.0.1:8787 http://localhost:8787; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <title>youdumb?</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <a class="wordmark" href="./" aria-label="youdumb home">you<span>dumb</span>?</a>
+    <button class="text-button" id="about-button" type="button" aria-haspopup="dialog">what is this</button>
+  </header>
+
+  <main>
+    <section class="screen intro-screen is-active" id="intro-screen" aria-labelledby="intro-title">
+      <div class="eyebrow"><span class="status-dot"></span> highly unofficial intelligence technology</div>
+      <h1 id="intro-title">you<br><em>dumb?</em></h1>
+      <div class="intro-copy">
+        <p>Five questions. About two minutes. One suspiciously specific read on how you think.</p>
+        <p class="fine-print">Not an IQ test. Not science. Not for decisions that matter. Weirdly perceptive, though.</p>
+      </div>
+      <button class="primary-button" id="start-button" type="button">
+        <span class="button-label">yes</span>
+        <span class="button-arrow" aria-hidden="true">↗</span>
+      </button>
+      <p class="joke-note">please answer the question honestly</p>
+    </section>
+
+    <section class="screen test-screen" id="test-screen" aria-labelledby="test-title">
+      <div class="test-meta">
+        <div>
+          <span class="meta-label">question</span>
+          <span id="round-label">01 / 05</span>
+        </div>
+        <div class="timer-wrap">
+          <span class="meta-label">elapsed</span>
+          <span id="timer">00:00</span>
+        </div>
+      </div>
+      <div class="progress-track" aria-hidden="true"><div id="progress-fill"></div></div>
+
+      <div class="conversation" id="conversation" aria-live="polite">
+        <h2 id="test-title" class="sr-only">The test</h2>
+      </div>
+
+      <form class="answer-form" id="answer-form">
+        <label for="answer-input">your move</label>
+        <textarea id="answer-input" rows="3" maxlength="900" placeholder="Think out loud. Or don't. That's data too." required></textarea>
+        <div class="answer-controls">
+          <span><kbd>Enter</kbd> send · <kbd>Shift</kbd> + <kbd>Enter</kbd> new line</span>
+          <button class="send-button" id="send-button" type="submit" aria-label="Send answer">
+            <span>send</span><span aria-hidden="true">↑</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section class="screen result-screen" id="result-screen" aria-labelledby="result-title">
+      <div class="result-kicker">the benson intelligence index</div>
+      <div class="score-lockup">
+        <div class="score-number" id="score-number">—</div>
+        <div class="score-out-of">/100ish</div>
+      </div>
+      <h1 id="result-title">calculating your damage...</h1>
+      <p class="result-read" id="result-read"></p>
+
+      <div class="dimensions" id="dimensions"></div>
+
+      <div class="evidence-grid">
+        <article>
+          <span class="meta-label">best move</span>
+          <p id="strongest-moment"></p>
+        </article>
+        <article>
+          <span class="meta-label">watch this</span>
+          <p id="watchout"></p>
+        </article>
+      </div>
+
+      <div class="result-actions">
+        <button class="primary-button compact" id="share-button" type="button">
+          <span class="button-label">copy my result</span><span class="button-arrow" aria-hidden="true">↗</span>
+        </button>
+        <button class="text-button" id="retake-button" type="button">go again</button>
+      </div>
+
+      <p class="result-disclaimer">This is an experimental AI reading of one short conversation—not IQ, diagnosis, or destiny. The app does not store your transcript.</p>
+    </section>
+
+    <section class="screen error-screen" id="error-screen" aria-labelledby="error-title">
+      <div class="error-face" aria-hidden="true">:/</div>
+      <h1 id="error-title">server dumb.</h1>
+      <p id="error-message">Something broke before we could judge you. Convenient.</p>
+      <button class="primary-button compact" id="retry-button" type="button"><span>try again</span><span aria-hidden="true">↻</span></button>
+    </section>
+  </main>
+
+  <footer>
+    <span>made by <a href="https://bensonperry.com">benson</a> + a machine</span>
+    <span>v1 · transcripts are not stored</span>
+  </footer>
+
+  <dialog id="about-dialog">
+    <div class="dialog-head">
+      <span class="wordmark small">you<span>dumb</span>?</span>
+      <button class="close-button" id="close-about" type="button" aria-label="Close">×</button>
+    </div>
+    <h2>A read, not a measurement.</h2>
+    <p>youdumb asks compact reasoning questions, adapts to your answers, and makes an AI-scored profile of the thinking you demonstrated here.</p>
+    <p>It does not measure full-scale intelligence, compare you with a representative population, or know anything about your potential. Treat it like a sharp stranger's first impression.</p>
+    <p class="dialog-fine">Your answers are processed by Cloudflare Workers AI. This app does not create an account or store the transcript.</p>
+  </dialog>
+
+  <div class="laugh" id="laugh" aria-hidden="true">HA.</div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
