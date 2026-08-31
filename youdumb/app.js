@@ -22,6 +22,8 @@ const elements = {
   resultTitle: document.querySelector('#result-title'),
   resultRead: document.querySelector('#result-read'),
   dimensions: document.querySelector('#dimensions'),
+  scoreAnalysis: document.querySelector('#score-analysis'),
+  dimensionAnalysis: document.querySelector('#dimension-analysis'),
   strongest: document.querySelector('#strongest-moment'),
   watchout: document.querySelector('#watchout'),
   share: document.querySelector('#share-button'),
@@ -252,6 +254,65 @@ function renderResult(result) {
     row.append(label, track, number);
     elements.dimensions.append(row);
     setTimeout(() => { fill.style.width = `${value}%`; }, 100 + index * 60);
+  });
+
+  renderDimensionAnalysis(result.dimensionAnalysis);
+}
+
+function renderDimensionAnalysis(analysis) {
+  const entries = Object.entries(analysis ?? {});
+  elements.dimensionAnalysis.replaceChildren();
+  elements.scoreAnalysis.hidden = entries.length === 0;
+  if (!entries.length) return;
+
+  const scores = entries.map(([, detail]) => Number(detail.score));
+  const highest = Math.max(...scores);
+  const lowest = Math.min(...scores);
+  const initiallyOpen = new Set();
+  initiallyOpen.add(entries.find(([, detail]) => Number(detail.score) === highest)?.[0]);
+  if (lowest !== highest) initiallyOpen.add(entries.find(([, detail]) => Number(detail.score) === lowest)?.[0]);
+
+  entries.forEach(([name, detail]) => {
+    const disclosure = document.createElement('details');
+    disclosure.className = 'score-detail';
+    disclosure.open = initiallyOpen.has(name);
+
+    const summary = document.createElement('summary');
+    const label = document.createElement('span');
+    label.textContent = name;
+    const score = document.createElement('span');
+    score.className = 'score-detail-value';
+    score.textContent = `${Number(detail.score) * 25} · ${detail.score}/4`;
+    summary.append(label, score);
+
+    const body = document.createElement('div');
+    body.className = 'score-detail-body';
+    const why = document.createElement('p');
+    why.className = 'score-detail-why';
+    why.textContent = detail.why;
+
+    const examples = document.createElement('div');
+    examples.className = 'score-examples';
+    const full = document.createElement('article');
+    const fullLabel = document.createElement('span');
+    fullLabel.className = 'meta-label';
+    fullLabel.textContent = 'one 4/4 response';
+    const fullText = document.createElement('p');
+    fullText.textContent = detail.fullExample;
+    full.append(fullLabel, fullText);
+
+    const lower = document.createElement('article');
+    const lowerLabel = document.createElement('span');
+    lowerLabel.className = 'meta-label';
+    lowerLabel.textContent = 'one lower-scoring response';
+    const lowerText = document.createElement('p');
+    lowerText.textContent = detail.lowerExample;
+    lower.append(lowerLabel, lowerText);
+
+    examples.append(full, lower);
+    body.append(why, examples);
+    disclosure.append(summary, body);
+    elements.dimensionAnalysis.append(disclosure);
   });
 }
 
