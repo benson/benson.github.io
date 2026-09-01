@@ -109,6 +109,12 @@ function renderResults(run) {
   const cost = complete.reduce((sum, job) => sum + Number(job.usage?.cost ?? 0), 0);
   const mean = complete.length ? complete.reduce((sum, job) => sum + job.result.index, 0) / complete.length : 0;
   el['run-summary'].innerHTML = `<span>${complete.length}/${run.jobs.length} complete</span><span>overall mean ${mean.toFixed(1)}</span><span>reported model cost $${cost.toFixed(4)}</span><span>assessment ${run.assessmentVersion}</span>`;
+  for (const warning of run.diagnostics?.warnings ?? []) {
+    const item = document.createElement('span');
+    item.className = 'warning';
+    item.textContent = warning;
+    el['run-summary'].append(item);
+  }
   el['summary-body'].replaceChildren(...(run.summary ?? []).map((group) => {
     const row = document.createElement('tr');
     [group.model, group.profile, group.mean, `${group.min}–${group.max}`, group.standardDeviation].forEach((value) => {
@@ -183,6 +189,13 @@ async function processRun(run) {
   el['start-run'].disabled = true;
   el['resume-run'].hidden = true;
   const jobs = run.jobs.filter((job) => job.status !== 'complete');
+  const workerCount = Math.min(2, jobs.length);
+  const initiallyRunning = new Set(jobs.slice(0, workerCount).map((job) => job.id));
+  state.selectedRun = {
+    ...run,
+    jobs: run.jobs.map((job) => initiallyRunning.has(job.id) ? { ...job, status: 'running' } : job),
+  };
+  renderResults(state.selectedRun);
   let cursor = 0;
   async function worker() {
     while (cursor < jobs.length) {
@@ -195,7 +208,7 @@ async function processRun(run) {
       await loadRun(run.id);
     }
   }
-  await Promise.all(Array.from({ length: Math.min(2, jobs.length) }, () => worker()));
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
   state.processing = false;
   await Promise.all([loadRun(run.id), loadRuns()]);
   updatePlan();
