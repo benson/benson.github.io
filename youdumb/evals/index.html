@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://youdumb-api.bensonperry.workers.dev http://127.0.0.1:8787 http://localhost:8787; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <title>youdumb? evals</title>
+  <link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+  <header>
+    <a href="../" class="wordmark">you<span>dumb</span>?</a>
+    <span>eval room</span>
+  </header>
+
+  <main>
+    <section id="login-view" class="panel narrow">
+      <p class="eyebrow">private dashboard</p>
+      <h1>prove the test isn't hallucinating.</h1>
+      <p>Enter the dashboard key once. It stays in this browser and is only sent to the youdumb worker.</p>
+      <form id="login-form">
+        <label for="token-input">dashboard key</label>
+        <input id="token-input" type="password" autocomplete="off" required>
+        <button type="submit">open evals</button>
+      </form>
+      <p class="error" id="login-error" role="alert"></p>
+    </section>
+
+    <div id="dashboard" hidden>
+      <section class="topline">
+        <div>
+          <p class="eyebrow">synthetic respondent matrix</p>
+          <h1>run the machines through the machine.</h1>
+        </div>
+        <div class="connection" id="connection-status">checking openrouter…</div>
+      </section>
+
+      <section class="panel" aria-labelledby="new-run-title">
+        <h2 id="new-run-title">new run</h2>
+        <form id="run-form">
+          <fieldset>
+            <legend>models</legend>
+            <div class="choice-list" id="model-choices"></div>
+          </fieldset>
+          <fieldset>
+            <legend>response policies</legend>
+            <div class="choice-list profiles" id="profile-choices"></div>
+          </fieldset>
+          <div class="run-options">
+            <label for="replicates">replicates
+              <select id="replicates">
+                <option value="1">1</option>
+                <option value="2" selected>2</option>
+                <option value="3">3</option>
+              </select>
+            </label>
+            <div class="call-plan" id="call-plan"></div>
+            <button id="start-run" type="submit">start run</button>
+          </div>
+        </form>
+        <p class="error" id="run-error" role="alert"></p>
+      </section>
+
+      <section class="panel" id="active-panel" hidden aria-labelledby="active-title">
+        <div class="section-head">
+          <h2 id="active-title">running</h2>
+          <span id="active-count"></span>
+        </div>
+        <div class="progress"><span id="active-progress"></span></div>
+        <p id="active-detail"></p>
+        <button id="resume-run" type="button" hidden>resume unfinished jobs</button>
+      </section>
+
+      <div class="two-column">
+        <section class="panel" aria-labelledby="history-title">
+          <div class="section-head">
+            <h2 id="history-title">saved runs</h2>
+            <button class="quiet" id="refresh-runs" type="button">refresh</button>
+          </div>
+          <div id="run-list" class="run-list"></div>
+        </section>
+
+        <section class="panel results-panel" aria-labelledby="results-title">
+          <div class="section-head">
+            <h2 id="results-title">results</h2>
+            <span id="selected-run-date"></span>
+          </div>
+          <div id="empty-results" class="empty">select a saved run, or start a new one.</div>
+          <div id="results" hidden>
+            <div class="run-summary" id="run-summary"></div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>model</th><th>policy</th><th>mean</th><th>range</th><th>sd</th></tr></thead>
+              <tbody id="summary-body"></tbody>
+            </table></div>
+            <h3>individual conversations</h3>
+            <div id="job-results"></div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <span>synthetic runs test scorer behavior, not human intelligence.</span>
+    <button class="quiet" id="forget-key" type="button" hidden>forget dashboard key</button>
+  </footer>
+  <script type="module" src="app.js?v=1"></script>
+</body>
+</html>
