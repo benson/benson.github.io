@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://youdumb-api.bensonperry.workers.dev http://127.0.0.1:8787 http://localhost:8787; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <title>response donation · youdumb?</title>
+  <link rel="stylesheet" href="style.css?v=2.3.0">
+</head>
+<body class="privacy-page">
+  <header class="site-header">
+    <a class="wordmark" href="./">you<span>dumb</span>?</a>
+    <span>response donation</span>
+  </header>
+  <main>
+    <article class="privacy-copy">
+      <p class="eyebrow">the short version</p>
+      <h1>your answers are yours.</h1>
+      <p>The normal test processes your answers to calculate a result and does not store the transcript. Afterward, adults may explicitly donate one transcript to help audit and improve the test.</p>
+
+      <h2>what a donation contains</h2>
+      <p>Your five answers, the questions and assessment version, rubric classifications, score, a broad completion-time bucket, and any optional feedback you type. We do not intentionally store your IP address, browser details, account, location, cookies, or advertising identifiers with the donation.</p>
+
+      <h2>what happens to it</h2>
+      <p>Common emails, phone numbers, links, handles, and long identifiers are automatically removed before storage. This filter cannot reliably recognize every name, address, or identifying story, so do not include sensitive or identifying information. The resulting record is encrypted, available only through the private research dashboard, and automatically expires after 90 days. Individual answers are not sold, published, or used for unrelated model training.</p>
+
+      <h2>processing</h2>
+      <p>Cloudflare Workers and Workers AI process the test and donation. Cloudflare states that Workers AI customer content is not used to train models or improve Cloudflare or third-party services without explicit consent. Donation storage uses Cloudflare KV.</p>
+
+      <h2>delete a donation</h2>
+      <p>Every donation returns a deletion receipt. It is the only credential connected to that submission, so save it if you may want the transcript removed early.</p>
+      <form id="deletion-form" class="deletion-form">
+        <label for="deletion-input">deletion receipt</label>
+        <input id="deletion-input" type="text" autocomplete="off" required>
+        <button class="text-button" type="submit">delete my donation</button>
+      </form>
+      <p id="deletion-status" class="donation-status" role="status"></p>
+
+      <p class="privacy-fine">Notice version: September 1, 2026. Questions about this experiment can be directed through <a href="https://bensonperry.com">bensonperry.com</a>. This notice describes the product design and is not legal advice.</p>
+    </article>
+  </main>
+  <script type="module" src="privacy.js?v=1"></script>
+</body>
+</html>
