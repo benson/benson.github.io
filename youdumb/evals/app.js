@@ -109,7 +109,7 @@ function renderResults(run) {
   const cost = complete.reduce((sum, job) => sum + Number(job.usage?.cost ?? 0), 0);
   const mean = complete.length ? complete.reduce((sum, job) => sum + job.result.index, 0) / complete.length : 0;
   el['run-summary'].innerHTML = `<span>${complete.length}/${run.jobs.length} complete</span><span>overall mean ${mean.toFixed(1)}</span><span>reported model cost $${cost.toFixed(4)}</span><span>assessment ${run.assessmentVersion}</span>`;
-  el['summary-body'].replaceChildren(...run.summary.map((group) => {
+  el['summary-body'].replaceChildren(...(run.summary ?? []).map((group) => {
     const row = document.createElement('tr');
     [group.model, group.profile, group.mean, `${group.min}–${group.max}`, group.standardDeviation].forEach((value) => {
       const cell = document.createElement('td');
