@@ -80,6 +80,7 @@ button:disabled { color: #999; cursor: wait; }
 .run-row span { display: block; margin-top: 3px; color: var(--soft); font-size: .7rem; }
 .empty { padding: 20px 0; color: var(--soft); font-size: .82rem; }
 .run-summary { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-bottom: 18px; color: var(--soft); font-size: .75rem; }
+.run-summary .warning { flex-basis: 100%; color: var(--bad); }
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: .76rem; }
 th, td { padding: 7px 8px 7px 0; border-bottom: 1px solid var(--faint); text-align: left; font-weight: 400; }
