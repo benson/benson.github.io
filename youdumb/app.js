@@ -22,6 +22,7 @@ const elements = {
   resultTitle: document.querySelector('#result-title'),
   resultRead: document.querySelector('#result-read'),
   dimensions: document.querySelector('#dimensions'),
+  responseDepth: document.querySelector('#response-depth'),
   scoreAnalysis: document.querySelector('#score-analysis'),
   dimensionAnalysis: document.querySelector('#dimension-analysis'),
   strongest: document.querySelector('#strongest-moment'),
@@ -38,7 +39,7 @@ const elements = {
 const state = {
   transcript: [],
   round: 0,
-  maxRounds: 4,
+  maxRounds: 5,
   startedAt: 0,
   timerId: 0,
   busy: false,
@@ -105,7 +106,7 @@ function addThinking(isFinal = false) {
     article.append(speaker, note, track);
 
     const updates = [
-      [8000, 'comparing the four parts'],
+      [8000, 'comparing the five parts'],
       [18000, 'still working — the grader can take up to a minute'],
       [32000, 'still working — your answers were submitted'],
     ];
@@ -255,6 +256,12 @@ function renderResult(result) {
     elements.dimensions.append(row);
     setTimeout(() => { fill.style.width = `${value}%`; }, 100 + index * 60);
   });
+
+  const engagement = result.engagement;
+  elements.responseDepth.hidden = !engagement;
+  if (engagement) {
+    elements.responseDepth.textContent = `response depth ${engagement.score} · ${engagement.developedAnswers} of 5 answers showed their reasoning · not part of the score`;
+  }
 
   renderDimensionAnalysis(result.dimensionAnalysis);
 }
