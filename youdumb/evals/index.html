@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex, nofollow">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://youdumb-api.bensonperry.workers.dev http://127.0.0.1:8787 http://localhost:8787; object-src 'none'; base-uri 'self'; form-action 'self'">
   <title>youdumb? evals</title>
-  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
   <header>
@@ -93,9 +93,16 @@
           <div id="results" hidden>
             <div class="run-summary" id="run-summary"></div>
             <div class="table-wrap"><table>
-              <thead><tr><th>model</th><th>policy</th><th>mean</th><th>range</th><th>sd</th></tr></thead>
+              <thead><tr><th>model</th><th>policy</th><th>valid</th><th>mean</th><th>range</th><th>sd</th></tr></thead>
               <tbody id="summary-body"></tbody>
             </table></div>
+            <div class="calibration-map" id="calibration-map">
+              <h3>profile × dimension — policy-valid conversations only</h3>
+              <div class="table-wrap"><table class="heatmap">
+                <thead><tr><th>policy</th><th>n</th><th>causal</th><th>updating</th><th>deduction</th><th>estimation</th><th>communication</th></tr></thead>
+                <tbody id="heatmap-body"></tbody>
+              </table></div>
+            </div>
             <h3>individual conversations</h3>
             <div id="job-results"></div>
           </div>
@@ -124,6 +131,6 @@
     <span>synthetic runs test scorer behavior, not human intelligence.</span>
     <button class="quiet" id="forget-key" type="button" hidden>forget dashboard key</button>
   </footer>
-  <script type="module" src="app.js?v=7"></script>
+  <script type="module" src="app.js?v=8"></script>
 </body>
 </html>

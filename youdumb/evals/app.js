@@ -55,18 +55,56 @@ function updatePlan() {
   const conversations = selected('model').length * selected('profile').length * Number(el.replicates.value);
   const modelCount = selected('model').length;
   const questionCount = state.config?.questionCount ?? 5;
-  el['call-plan'].textContent = `${conversations} conversations · ${conversations * questionCount} respondent calls + up to ${modelCount} preflights · ${conversations} scorer calls`;
+  const authoredSelected = selected('model').includes('fixture/authored');
+  const authoredConversations = authoredSelected ? selected('profile').length * Number(el.replicates.value) : 0;
+  const respondentCalls = (conversations - authoredConversations) * questionCount;
+  const remoteModels = modelCount - (authoredSelected ? 1 : 0);
+  el['call-plan'].textContent = `${conversations} conversations · ${respondentCalls} paid/free respondent calls + up to ${remoteModels} remote preflights · ${conversations} scorer calls`;
   el['start-run'].disabled = !state.config?.connected || conversations === 0 || conversations > (state.config?.limits.maxJobs ?? 48) || state.processing || state.starting;
 }
 
 function renderConfig() {
-  el['model-choices'].replaceChildren(...state.config.models.map((model, index) => choice(model, 'model', index < 3)));
+  el['model-choices'].replaceChildren(...state.config.models.map((model, index) => choice(model, 'model', model.defaultSelected ?? index < 3)));
   const defaults = new Set(['careful-generalist', 'first-plausible-answer', 'verbal-but-unnumerate', 'polished-confabulator']);
   el['profile-choices'].replaceChildren(...state.config.profiles.map((profile) => choice({ ...profile, label: profile.id }, 'profile', defaults.has(profile.id))));
   el['connection-status'].textContent = state.config.connected ? 'openrouter connected' : 'openrouter not connected';
   el['connection-status'].className = `connection ${state.config.connected ? 'connected' : 'disconnected'}`;
   document.querySelectorAll('#run-form input, #replicates').forEach((input) => input.addEventListener('change', updatePlan));
   updatePlan();
+}
+
+function calibrationEligible(job) {
+  return job.status === 'complete' && job.compliance?.eligible !== false;
+}
+
+function renderHeatmap(run) {
+  const jobs = run.jobs.filter(calibrationEligible);
+  const dimensions = ['causal', 'updating', 'deduction', 'estimation', 'communication'];
+  const profiles = [...new Set(run.jobs.map(({ profile }) => profile))];
+  el['calibration-map'].hidden = jobs.length === 0;
+  el['heatmap-body'].replaceChildren(...profiles.map((profile) => {
+    const values = jobs.filter((job) => job.profile === profile);
+    const row = document.createElement('tr');
+    const label = document.createElement('td');
+    label.textContent = profile;
+    row.append(label);
+    const count = document.createElement('td');
+    count.textContent = values.length;
+    row.append(count);
+    dimensions.forEach((dimension) => {
+      const cell = document.createElement('td');
+      if (values.length) {
+        const mean = values.reduce((sum, job) => sum + Number(job.result.dimensions[dimension] ?? 0), 0) / values.length;
+        cell.textContent = mean.toFixed(1);
+        cell.className = 'heat';
+        cell.style.setProperty('--heat', String(mean / 100));
+      } else {
+        cell.textContent = '—';
+      }
+      row.append(cell);
+    });
+    return row;
+  }));
 }
 
 function renderRuns() {
@@ -109,11 +147,12 @@ function renderResults(run) {
   el['download-run'].hidden = false;
   el['selected-run-date'].textContent = formatDate(run.createdAt);
   const complete = run.jobs.filter((job) => job.status === 'complete');
+  const eligible = complete.filter(calibrationEligible);
   const jobCost = complete.reduce((sum, job) => sum + Number(job.usage?.cost ?? 0), 0);
   const preflightCost = (run.preflight ?? []).reduce((sum, check) => sum + Number(check.usage?.cost ?? 0), 0);
   const cost = jobCost + preflightCost;
-  const mean = complete.length ? complete.reduce((sum, job) => sum + job.result.index, 0) / complete.length : 0;
-  el['run-summary'].innerHTML = `<span>${complete.length}/${run.jobs.length} complete</span><span>overall mean ${mean.toFixed(1)}</span><span>reported model cost $${cost.toFixed(4)}</span><span>assessment ${run.assessmentVersion}</span>`;
+  const mean = eligible.length ? eligible.reduce((sum, job) => sum + job.result.index, 0) / eligible.length : 0;
+  el['run-summary'].innerHTML = `<span>${complete.length}/${run.jobs.length} complete</span><span>${eligible.length}/${complete.length} policy-valid</span><span>calibration mean ${eligible.length ? mean.toFixed(1) : '—'}</span><span>reported model cost $${cost.toFixed(4)}</span><span>assessment ${run.assessmentVersion}</span>`;
   if (run.unavailableModels?.length) {
     const skipped = document.createElement('span');
     skipped.className = 'warning';
@@ -128,7 +167,7 @@ function renderResults(run) {
   }
   el['summary-body'].replaceChildren(...(run.summary ?? []).map((group) => {
     const row = document.createElement('tr');
-    [group.model, group.profile, group.mean, `${group.min}–${group.max}`, group.standardDeviation].forEach((value) => {
+    [group.model, group.profile, `${group.eligibleRuns}/${group.runs}`, group.mean ?? '—', group.mean === null ? '—' : `${group.min}–${group.max}`, group.standardDeviation ?? '—'].forEach((value) => {
       const cell = document.createElement('td');
       cell.textContent = value;
       row.append(cell);
@@ -151,8 +190,17 @@ function renderResults(run) {
     if (job.status === 'complete') {
       const meta = document.createElement('p');
       meta.className = 'job-meta';
-      meta.textContent = `${Math.round(job.latencyMs.respondent / 1000)}s respondent · ${Math.round(job.latencyMs.scorer / 1000)}s scorer · ${job.usage.promptTokens + job.usage.completionTokens} tokens`;
+      const policy = job.compliance
+        ? ` · policy fit ${job.compliance.score}%${job.compliance.eligible ? '' : ' · excluded from aggregates'}`
+        : ' · legacy run (policy fit not measured)';
+      meta.textContent = `${Math.round(job.latencyMs.respondent / 1000)}s respondent · ${Math.round(job.latencyMs.scorer / 1000)}s scorer · ${job.usage.promptTokens + job.usage.completionTokens} tokens${policy}`;
       body.append(meta);
+      if (job.compliance?.mismatches?.length) {
+        const mismatch = document.createElement('p');
+        mismatch.className = `policy-note${job.compliance.eligible ? '' : ' excluded'}`;
+        mismatch.textContent = `policy drift: ${job.compliance.mismatches.map(({ label }) => label).join('; ')}`;
+        body.append(mismatch);
+      }
       job.answers.forEach((answer, index) => {
         const row = document.createElement('div');
         row.className = 'answer';
@@ -177,6 +225,7 @@ function renderResults(run) {
     details.append(summary, body);
     return details;
   }));
+  renderHeatmap(run);
   renderActive(run);
   renderRuns();
 }

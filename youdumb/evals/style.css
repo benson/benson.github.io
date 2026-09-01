@@ -89,6 +89,10 @@ table { width: 100%; border-collapse: collapse; font-size: .76rem; }
 th, td { padding: 7px 8px 7px 0; border-bottom: 1px solid var(--faint); text-align: left; font-weight: 400; }
 th { color: var(--soft); }
 td:nth-child(n+3), th:nth-child(n+3) { text-align: right; }
+.calibration-map { margin-top: 28px; }
+.heatmap td.heat { background: rgba(0, 0, 0, calc(.025 + (var(--heat) * .14))); }
+.heatmap td, .heatmap th { padding-left: 7px; }
+.heatmap td:first-child, .heatmap th:first-child { padding-left: 0; }
 
 .job { border-top: 1px solid var(--line); }
 .job:last-child { border-bottom: 1px solid var(--line); }
@@ -97,6 +101,8 @@ td:nth-child(n+3), th:nth-child(n+3) { text-align: right; }
 .job summary span:last-child { text-align: right; }
 .job-body { padding: 4px 0 22px; }
 .job-meta { margin-bottom: 14px; color: var(--soft); font-size: .7rem; }
+.policy-note { margin: -6px 0 14px; color: var(--soft); font-size: .72rem; }
+.policy-note.excluded { color: var(--bad); }
 .answer { display: grid; grid-template-columns: 110px 1fr; gap: 12px; padding: 8px 0; border-top: 1px solid var(--faint); font-size: .78rem; line-height: 1.45; }
 .answer span { color: var(--soft); }
 .dimensions { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 12px; color: var(--soft); font-size: .72rem; }
