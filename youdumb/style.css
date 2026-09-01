@@ -360,6 +360,15 @@ kbd { font-family: inherit; }
 .dimension-fill { width: 0; height: 100%; background: #666; }
 .dimension-value { text-align: right; font-variant-numeric: tabular-nums; }
 
+.response-depth {
+  margin: -24px 0 34px;
+  color: var(--ink-soft);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.response-depth[hidden] { display: none; }
+
 .score-analysis {
   margin: 0 0 34px;
 }

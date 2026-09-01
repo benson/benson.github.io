@@ -4,7 +4,7 @@ const API_BASE = ['localhost', '127.0.0.1'].includes(location.hostname)
 const TOKEN_KEY = 'youdumb-eval-token';
 
 const el = Object.fromEntries([...document.querySelectorAll('[id]')].map((node) => [node.id, node]));
-const state = { token: localStorage.getItem(TOKEN_KEY) || '', config: null, runs: [], selectedRun: null, processing: false };
+const state = { token: localStorage.getItem(TOKEN_KEY) || '', config: null, runs: [], selectedRun: null, processing: false, starting: false };
 
 async function api(path, options = {}) {
   const response = await fetch(`${API_BASE}${path}`, {
@@ -53,8 +53,10 @@ function selected(name) {
 
 function updatePlan() {
   const conversations = selected('model').length * selected('profile').length * Number(el.replicates.value);
-  el['call-plan'].textContent = `${conversations} conversations · ${conversations * 4} respondent calls · ${conversations} scorer calls`;
-  el['start-run'].disabled = !state.config?.connected || conversations === 0 || conversations > (state.config?.limits.maxJobs ?? 48) || state.processing;
+  const modelCount = selected('model').length;
+  const questionCount = state.config?.questionCount ?? 5;
+  el['call-plan'].textContent = `${conversations} conversations · ${conversations * questionCount} respondent calls + up to ${modelCount} preflights · ${conversations} scorer calls`;
+  el['start-run'].disabled = !state.config?.connected || conversations === 0 || conversations > (state.config?.limits.maxJobs ?? 48) || state.processing || state.starting;
 }
 
 function renderConfig() {
@@ -79,7 +81,7 @@ function renderRuns() {
     const title = document.createElement('strong');
     title.textContent = formatDate(run.createdAt);
     const detail = document.createElement('span');
-    detail.textContent = `${run.total} conversations · ${run.models.length} models`;
+    detail.textContent = `${run.total} conversations · ${run.models?.length ?? 0} models`;
     button.append(title, detail);
     button.addEventListener('click', () => loadRun(run.id));
     return button;
@@ -107,9 +109,17 @@ function renderResults(run) {
   el['download-run'].hidden = false;
   el['selected-run-date'].textContent = formatDate(run.createdAt);
   const complete = run.jobs.filter((job) => job.status === 'complete');
-  const cost = complete.reduce((sum, job) => sum + Number(job.usage?.cost ?? 0), 0);
+  const jobCost = complete.reduce((sum, job) => sum + Number(job.usage?.cost ?? 0), 0);
+  const preflightCost = (run.preflight ?? []).reduce((sum, check) => sum + Number(check.usage?.cost ?? 0), 0);
+  const cost = jobCost + preflightCost;
   const mean = complete.length ? complete.reduce((sum, job) => sum + job.result.index, 0) / complete.length : 0;
   el['run-summary'].innerHTML = `<span>${complete.length}/${run.jobs.length} complete</span><span>overall mean ${mean.toFixed(1)}</span><span>reported model cost $${cost.toFixed(4)}</span><span>assessment ${run.assessmentVersion}</span>`;
+  if (run.unavailableModels?.length) {
+    const skipped = document.createElement('span');
+    skipped.className = 'warning';
+    skipped.textContent = `Skipped unavailable models after preflight: ${run.unavailableModels.map(({ model }) => model).join(', ')}.`;
+    el['run-summary'].append(skipped);
+  }
   for (const warning of run.diagnostics?.warnings ?? []) {
     const item = document.createElement('span');
     item.className = 'warning';
@@ -249,6 +259,9 @@ el['login-form'].addEventListener('submit', async (event) => {
 el['run-form'].addEventListener('submit', async (event) => {
   event.preventDefault();
   el['run-error'].textContent = '';
+  state.starting = true;
+  el['start-run'].textContent = 'checking models…';
+  updatePlan();
   try {
     const data = await api('/eval/runs', {
       method: 'POST',
@@ -260,6 +273,10 @@ el['run-form'].addEventListener('submit', async (event) => {
     processRun(data.run);
   } catch (error) {
     el['run-error'].textContent = error.message;
+  } finally {
+    state.starting = false;
+    el['start-run'].textContent = 'start run';
+    updatePlan();
   }
 });
 
