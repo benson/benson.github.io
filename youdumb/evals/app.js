@@ -193,6 +193,7 @@ async function processRun(run) {
   const initiallyRunning = new Set(jobs.slice(0, workerCount).map((job) => job.id));
   state.selectedRun = {
     ...run,
+    progress: { ...run.progress, running: workerCount },
     jobs: run.jobs.map((job) => initiallyRunning.has(job.id) ? { ...job, status: 'running' } : job),
   };
   renderResults(state.selectedRun);
