@@ -27,6 +27,14 @@ const elements = {
   dimensionAnalysis: document.querySelector('#dimension-analysis'),
   strongest: document.querySelector('#strongest-moment'),
   watchout: document.querySelector('#watchout'),
+  donationPanel: document.querySelector('#donation-panel'),
+  donationFeedback: document.querySelector('#donation-feedback'),
+  donationConsent: document.querySelector('#donation-consent'),
+  donate: document.querySelector('#donate-button'),
+  donationStatus: document.querySelector('#donation-status'),
+  deletionReceipt: document.querySelector('#deletion-receipt'),
+  deletionCode: document.querySelector('#deletion-code'),
+  copyDeletionCode: document.querySelector('#copy-deletion-code'),
   share: document.querySelector('#share-button'),
   retake: document.querySelector('#retake-button'),
   retry: document.querySelector('#retry-button'),
@@ -44,6 +52,9 @@ const state = {
   timerId: 0,
   busy: false,
   result: null,
+  donationToken: null,
+  deletionReceipt: null,
+  elapsedSeconds: 0,
 };
 
 function showScreen(name) {
@@ -168,6 +179,9 @@ async function begin() {
     state.round = data.round;
     state.maxRounds = data.maxRounds;
     state.result = null;
+    state.donationToken = null;
+    state.deletionReceipt = null;
+    state.elapsedSeconds = 0;
     elements.conversation.replaceChildren();
     elements.input.value = '';
     showScreen('test');
@@ -209,7 +223,9 @@ async function submitAnswer(event) {
 
     if (data.complete) {
       clearInterval(state.timerId);
+      state.elapsedSeconds = Math.round((Date.now() - state.startedAt) / 1000);
       state.result = data.result;
+      state.donationToken = data.donationToken || null;
       renderResult(data.result);
       showScreen('result');
       return;
@@ -264,6 +280,60 @@ function renderResult(result) {
   }
 
   renderDimensionAnalysis(result.dimensionAnalysis);
+  resetDonationPanel();
+}
+
+function resetDonationPanel() {
+  elements.donationPanel.hidden = !state.donationToken;
+  elements.donationFeedback.value = '';
+  elements.donationConsent.checked = false;
+  elements.donate.disabled = true;
+  elements.donate.textContent = 'donate my answers';
+  elements.donationStatus.textContent = '';
+  elements.deletionReceipt.hidden = true;
+  elements.deletionCode.textContent = '';
+}
+
+async function donateAnswers() {
+  if (!state.donationToken || !elements.donationConsent.checked || state.deletionReceipt) return;
+  elements.donate.disabled = true;
+  elements.donate.textContent = 'encrypting…';
+  elements.donationStatus.textContent = 'removing common contact details and encrypting the transcript';
+  try {
+    const response = await fetch(`${API_BASE}/research/donate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        donationToken: state.donationToken,
+        transcript: state.transcript,
+        elapsedSeconds: state.elapsedSeconds,
+        feedback: elements.donationFeedback.value.trim(),
+        consentAdult: true,
+      }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || 'The answers could not be donated.');
+    state.deletionReceipt = data.deletionReceipt;
+    elements.donationStatus.textContent = `donated. it will expire by ${new Date(data.expiresAt).toLocaleDateString()}.`;
+    elements.deletionCode.textContent = data.deletionReceipt;
+    elements.deletionReceipt.hidden = false;
+    elements.donate.textContent = 'answers donated';
+  } catch (error) {
+    elements.donationStatus.textContent = error.message;
+    elements.donate.textContent = 'try donation again';
+    elements.donate.disabled = false;
+  }
+}
+
+async function copyDeletionReceipt() {
+  if (!state.deletionReceipt) return;
+  try {
+    await navigator.clipboard.writeText(state.deletionReceipt);
+    elements.copyDeletionCode.textContent = 'copied';
+    setTimeout(() => { elements.copyDeletionCode.textContent = 'copy receipt'; }, 1600);
+  } catch {
+    window.prompt('Save this deletion receipt:', state.deletionReceipt);
+  }
 }
 
 function renderDimensionAnalysis(analysis) {
@@ -351,6 +421,11 @@ elements.input.addEventListener('keydown', (event) => {
   }
 });
 elements.share.addEventListener('click', shareResult);
+elements.donationConsent.addEventListener('change', () => {
+  elements.donate.disabled = !elements.donationConsent.checked || Boolean(state.deletionReceipt);
+});
+elements.donate.addEventListener('click', donateAnswers);
+elements.copyDeletionCode.addEventListener('click', copyDeletionReceipt);
 elements.retake.addEventListener('click', () => { showScreen('intro'); window.scrollTo(0, 0); });
 elements.retry.addEventListener('click', begin);
 elements.about.addEventListener('click', () => elements.aboutDialog.showModal());

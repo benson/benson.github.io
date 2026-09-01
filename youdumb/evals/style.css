@@ -68,6 +68,8 @@ button:disabled { color: #999; cursor: wait; }
 #login-form input { width: 100%; }
 .section-head { display: flex; justify-content: space-between; align-items: baseline; gap: 20px; }
 .section-head > span { color: var(--soft); font-size: .74rem; }
+.section-head h2 { margin-bottom: 3px; }
+.section-note { color: var(--soft); font-size: .72rem; }
 .result-controls { display: flex; align-items: baseline; gap: 14px; color: var(--soft); font-size: .74rem; }
 .progress { height: 3px; margin: 4px 0 12px; overflow: hidden; background: #ddd; }
 .progress span { display: block; width: 0; height: 100%; background: #555; transition: width 180ms ease-out; }
@@ -99,6 +101,9 @@ td:nth-child(n+3), th:nth-child(n+3) { text-align: right; }
 .answer span { color: var(--soft); }
 .dimensions { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 12px; color: var(--soft); font-size: .72rem; }
 .failed { color: var(--bad); }
+.research-panel { margin-top: 32px; }
+.research-panel .section-head { align-items: flex-start; }
+.research-feedback { color: #4f3c2b; }
 
 footer { display: flex; justify-content: space-between; gap: 20px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--soft); font-size: .74rem; }
 

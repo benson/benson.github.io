@@ -4,7 +4,7 @@ const API_BASE = ['localhost', '127.0.0.1'].includes(location.hostname)
 const TOKEN_KEY = 'youdumb-eval-token';
 
 const el = Object.fromEntries([...document.querySelectorAll('[id]')].map((node) => [node.id, node]));
-const state = { token: localStorage.getItem(TOKEN_KEY) || '', config: null, runs: [], selectedRun: null, processing: false, starting: false };
+const state = { token: localStorage.getItem(TOKEN_KEY) || '', config: null, runs: [], selectedRun: null, research: [], processing: false, starting: false };
 
 async function api(path, options = {}) {
   const response = await fetch(`${API_BASE}${path}`, {
@@ -194,10 +194,94 @@ function downloadSelectedRun() {
   URL.revokeObjectURL(url);
 }
 
+function renderResearch() {
+  const submissions = state.research;
+  el['research-empty'].hidden = submissions.length > 0;
+  el['download-research'].hidden = submissions.length === 0;
+  el['research-summary'].replaceChildren();
+  if (submissions.length) {
+    const count = document.createElement('span');
+    count.textContent = `${submissions.length} active donation${submissions.length === 1 ? '' : 's'}`;
+    el['research-summary'].append(count);
+  }
+  el['research-results'].replaceChildren(...submissions.map((submission) => {
+    const details = document.createElement('details');
+    details.className = 'job research-submission';
+    const summary = document.createElement('summary');
+    const date = document.createElement('span');
+    date.textContent = formatDate(submission.donatedAt);
+    const version = document.createElement('span');
+    version.textContent = `assessment ${submission.assessmentVersion}`;
+    const score = document.createElement('span');
+    score.textContent = submission.result?.index ?? '—';
+    summary.append(date, version, score);
+
+    const body = document.createElement('div');
+    body.className = 'job-body';
+    const meta = document.createElement('p');
+    meta.className = 'job-meta';
+    meta.textContent = `${submission.elapsedBucket} · expires ${formatDate(submission.expiresAt)}`;
+    body.append(meta);
+    if (submission.feedback) {
+      const feedback = document.createElement('div');
+      feedback.className = 'answer research-feedback';
+      const label = document.createElement('span');
+      label.textContent = 'felt wrong';
+      const text = document.createElement('p');
+      text.textContent = submission.feedback;
+      feedback.append(label, text);
+      body.append(feedback);
+    }
+    submission.transcript.filter(({ role }) => role === 'user').forEach((message, index) => {
+      const row = document.createElement('div');
+      row.className = 'answer';
+      const label = document.createElement('span');
+      label.textContent = `answer ${index + 1}`;
+      const text = document.createElement('p');
+      text.textContent = message.content;
+      row.append(label, text);
+      body.append(row);
+    });
+    const dimensions = document.createElement('div');
+    dimensions.className = 'dimensions';
+    Object.entries(submission.result?.dimensions ?? {}).forEach(([name, value]) => {
+      const item = document.createElement('span');
+      item.textContent = `${name} ${value}`;
+      dimensions.append(item);
+    });
+    if (submission.result?.engagement) {
+      const effort = document.createElement('span');
+      effort.textContent = `response depth ${submission.result.engagement.score} (not scored)`;
+      dimensions.append(effort);
+    }
+    body.append(dimensions);
+    details.append(summary, body);
+    return details;
+  }));
+}
+
+function downloadResearch() {
+  const blob = new Blob([`${JSON.stringify({ exportedAt: new Date().toISOString(), submissions: state.research }, null, 2)}\n`], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `youdumb-human-donations-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 async function loadRuns() {
   const data = await api('/eval/runs');
   state.runs = data.runs;
   renderRuns();
+}
+
+async function loadResearch() {
+  const data = await api('/eval/research/submissions');
+  state.research = data.submissions ?? [];
+  renderResearch();
 }
 
 async function loadRun(id) {
@@ -246,7 +330,7 @@ async function authenticate(token) {
   localStorage.setItem(TOKEN_KEY, state.token);
   setAuthenticated(true);
   renderConfig();
-  await loadRuns();
+  await Promise.all([loadRuns(), loadResearch()]);
 }
 
 el['login-form'].addEventListener('submit', async (event) => {
@@ -283,6 +367,8 @@ el['run-form'].addEventListener('submit', async (event) => {
 el['resume-run'].addEventListener('click', () => state.selectedRun && processRun(state.selectedRun));
 el['refresh-runs'].addEventListener('click', loadRuns);
 el['download-run'].addEventListener('click', downloadSelectedRun);
+el['refresh-research'].addEventListener('click', loadResearch);
+el['download-research'].addEventListener('click', downloadResearch);
 el['forget-key'].addEventListener('click', () => {
   localStorage.removeItem(TOKEN_KEY);
   state.token = '';

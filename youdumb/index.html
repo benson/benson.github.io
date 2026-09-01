@@ -17,7 +17,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; img-src 'self' data:; connect-src 'self' https://youdumb-api.bensonperry.workers.dev https://cloudflareinsights.com http://127.0.0.1:8787 http://localhost:8787; object-src 'none'; base-uri 'self'; form-action 'self'">
   <title>youdumb?</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css?v=2.2.0">
+  <link rel="stylesheet" href="style.css?v=2.3.0">
 </head>
 <body>
   <div class="noise" aria-hidden="true"></div>
@@ -33,7 +33,7 @@
       <h1 id="intro-title">five questions. about four minutes.</h1>
       <div class="intro-copy">
         <p>One suspiciously specific read on how you think.</p>
-        <p class="fine-print">Not an IQ test. Not science. Not for decisions that matter. Weirdly perceptive, though.</p>
+        <p class="fine-print">Not an IQ test. Not science. Not for decisions that matter. Your answers are processed for the result and remain unstored unless you explicitly donate them afterward.</p>
       </div>
       <button class="primary-button" id="start-button" type="button">
         <span class="button-label">yes</span>
@@ -107,7 +107,25 @@
         <button class="text-button" id="retake-button" type="button">go again</button>
       </div>
 
-      <p class="result-disclaimer">This is an experimental AI reading of one short conversation—not IQ, diagnosis, or destiny. The app does not store your transcript.</p>
+      <section class="donation-panel" id="donation-panel" hidden aria-labelledby="donation-title">
+        <h2 id="donation-title">help make this less wrong</h2>
+        <p>Optionally donate these five answers for scorer research. We remove common contact details, encrypt the submission, store no account or network identifiers, and delete it automatically after 90 days.</p>
+        <label for="donation-feedback">which score felt most wrong, if any? <span>(optional)</span></label>
+        <textarea id="donation-feedback" rows="2" maxlength="1000" placeholder="e.g. the updating score missed what I meant"></textarea>
+        <label class="donation-consent" for="donation-consent">
+          <input id="donation-consent" type="checkbox">
+          <span>I am 18 or older and want to donate my answers under the <a href="privacy.html" target="_blank" rel="noopener">response-donation notice</a>.</span>
+        </label>
+        <button class="text-button" id="donate-button" type="button" disabled>donate my answers</button>
+        <p class="donation-status" id="donation-status" role="status"></p>
+        <div class="deletion-receipt" id="deletion-receipt" hidden>
+          <span class="meta-label">save this deletion receipt</span>
+          <code id="deletion-code"></code>
+          <button class="text-button" id="copy-deletion-code" type="button">copy receipt</button>
+        </div>
+      </section>
+
+      <p class="result-disclaimer">This is an experimental AI reading of one short conversation—not IQ, diagnosis, or destiny. Your transcript is not stored unless you explicitly donate it above.</p>
     </section>
 
     <section class="screen error-screen" id="error-screen" aria-labelledby="error-title">
@@ -120,7 +138,7 @@
 
   <footer>
     <span>made by <a href="https://bensonperry.com">benson</a> + a machine</span>
-    <span>v2 · transcripts are not stored</span>
+    <span>v2 · <a href="privacy.html">privacy</a></span>
   </footer>
 
   <dialog id="about-dialog">
@@ -131,10 +149,10 @@
     <h2>A read, not a measurement.</h2>
     <p>youdumb asks five compact reasoning questions. An AI applies a task-by-task rubric, and the app calculates a profile from the reasoning you demonstrated here.</p>
     <p>It does not measure full-scale intelligence, compare you with a representative population, or know anything about your potential. Treat it like a sharp stranger's first impression.</p>
-    <p class="dialog-fine">Your answers are processed by Cloudflare Workers AI. This app does not create an account or store the transcript.</p>
+    <p class="dialog-fine">Your answers are processed by Cloudflare Workers AI. The app creates no account and stores no transcript unless you explicitly donate it after seeing your result.</p>
   </dialog>
 
   <div class="laugh" id="laugh" aria-hidden="true">HA.</div>
-  <script type="module" src="app.js?v=2.2.0"></script>
+  <script type="module" src="app.js?v=2.3.0"></script>
 </body>
 </html>
