@@ -104,6 +104,7 @@ function renderActive(run) {
 function renderResults(run) {
   el['empty-results'].hidden = true;
   el.results.hidden = false;
+  el['download-run'].hidden = false;
   el['selected-run-date'].textContent = formatDate(run.createdAt);
   const complete = run.jobs.filter((job) => job.status === 'complete');
   const cost = complete.reduce((sum, job) => sum + Number(job.usage?.cost ?? 0), 0);
@@ -168,6 +169,19 @@ function renderResults(run) {
   }));
   renderActive(run);
   renderRuns();
+}
+
+function downloadSelectedRun() {
+  if (!state.selectedRun) return;
+  const blob = new Blob([`${JSON.stringify(state.selectedRun, null, 2)}\n`], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `youdumb-eval-${state.selectedRun.id}.json`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 async function loadRuns() {
@@ -251,6 +265,7 @@ el['run-form'].addEventListener('submit', async (event) => {
 
 el['resume-run'].addEventListener('click', () => state.selectedRun && processRun(state.selectedRun));
 el['refresh-runs'].addEventListener('click', loadRuns);
+el['download-run'].addEventListener('click', downloadSelectedRun);
 el['forget-key'].addEventListener('click', () => {
   localStorage.removeItem(TOKEN_KEY);
   state.token = '';
