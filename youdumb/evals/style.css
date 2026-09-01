@@ -68,6 +68,7 @@ button:disabled { color: #999; cursor: wait; }
 #login-form input { width: 100%; }
 .section-head { display: flex; justify-content: space-between; align-items: baseline; gap: 20px; }
 .section-head > span { color: var(--soft); font-size: .74rem; }
+.result-controls { display: flex; align-items: baseline; gap: 14px; color: var(--soft); font-size: .74rem; }
 .progress { height: 3px; margin: 4px 0 12px; overflow: hidden; background: #ddd; }
 .progress span { display: block; width: 0; height: 100%; background: #555; transition: width 180ms ease-out; }
 #active-detail { margin-bottom: 10px; color: var(--soft); font-size: .8rem; }

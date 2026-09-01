@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex, nofollow">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://youdumb-api.bensonperry.workers.dev http://127.0.0.1:8787 http://localhost:8787; object-src 'none'; base-uri 'self'; form-action 'self'">
   <title>youdumb? evals</title>
-  <link rel="stylesheet" href="style.css?v=4">
+  <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
   <header>
@@ -84,7 +84,10 @@
         <section class="panel results-panel" aria-labelledby="results-title">
           <div class="section-head">
             <h2 id="results-title">results</h2>
-            <span id="selected-run-date"></span>
+            <div class="result-controls">
+              <span id="selected-run-date"></span>
+              <button class="quiet" id="download-run" type="button" hidden>download json</button>
+            </div>
           </div>
           <div id="empty-results" class="empty">select a saved run, or start a new one.</div>
           <div id="results" hidden>
@@ -105,6 +108,6 @@
     <span>synthetic runs test scorer behavior, not human intelligence.</span>
     <button class="quiet" id="forget-key" type="button" hidden>forget dashboard key</button>
   </footer>
-  <script type="module" src="app.js?v=4"></script>
+  <script type="module" src="app.js?v=5"></script>
 </body>
 </html>
