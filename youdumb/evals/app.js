@@ -64,7 +64,8 @@ function updatePlan() {
 }
 
 function renderConfig() {
-  el['model-choices'].replaceChildren(...state.config.models.map((model, index) => choice(model, 'model', model.defaultSelected ?? index < 3)));
+  const hasExplicitDefaults = state.config.models.some((model) => Object.hasOwn(model, 'defaultSelected'));
+  el['model-choices'].replaceChildren(...state.config.models.map((model, index) => choice(model, 'model', hasExplicitDefaults ? Boolean(model.defaultSelected) : index < 3)));
   const defaults = new Set(['careful-generalist', 'first-plausible-answer', 'verbal-but-unnumerate', 'polished-confabulator']);
   el['profile-choices'].replaceChildren(...state.config.profiles.map((profile) => choice({ ...profile, label: profile.id }, 'profile', defaults.has(profile.id))));
   el['connection-status'].textContent = state.config.connected ? 'openrouter connected' : 'openrouter not connected';
