@@ -1,4 +1,4 @@
-import { REVIEW_GUIDE, ratingOptions } from './review-guide.mjs?v=12';
+import { REVIEW_GUIDE, ratingOptions, reviewResponsesFor } from './review-guide.mjs?v=13';
 
 const API_BASE = ['localhost', '127.0.0.1'].includes(location.hostname) ? 'http://127.0.0.1:8787' : 'https://youdumb-api.bensonperry.workers.dev';
 const token = localStorage.getItem('youdumb-eval-token');
@@ -22,26 +22,32 @@ async function api(method = 'GET', body) {
   return data;
 }
 
+function renderResponses(dimension) {
+  return reviewResponsesFor(dimension, selectedCase).map(({ number, question, answer }) => {
+    const row = document.createElement('section'); row.className = 'review-item';
+    const prompt = document.createElement('p'); prompt.className = 'review-question'; prompt.textContent = `${number}. ${question}`;
+    const caption = document.createElement('p'); caption.className = 'review-answer-label'; caption.textContent = 'response';
+    const text = document.createElement('p'); text.className = 'review-response-text'; text.textContent = answer;
+    row.append(prompt, caption, text); return row;
+  });
+}
+
 function renderCase() {
   selectedCase = cases.find(({ id }) => id === el['review-case'].value);
   if (!selectedCase) return;
   el['review-error'].textContent = '';
   el['review-progress'].textContent = `${cases.filter((item) => item.review).length}/${cases.length} judgments saved · reviewer ${reviewerId.slice(0, 8)}`;
-  el['review-transcript'].replaceChildren(...selectedCase.answers.map((answer, index) => {
-    const row = document.createElement('section'); row.className = 'review-item';
-    row.id = `answer-${index + 1}`; row.tabIndex = -1;
-    const caption = document.createElement('p'); caption.className = 'review-answer-label'; caption.textContent = 'response';
-    const question = document.createElement('p'); question.className = 'review-question'; question.textContent = `${index + 1}. ${selectedCase.questions[index]}`;
-    const text = document.createElement('p'); text.textContent = answer;
-    row.append(question, caption, text); return row;
-  }));
+  el['review-transcript'].hidden = !selectedCase.review;
+  el['review-transcript'].replaceChildren(...(selectedCase.review ? renderResponses('communication') : []));
   el['review-form'].hidden = Boolean(selectedCase.review);
   el['review-ratings'].replaceChildren(...Object.entries(REVIEW_GUIDE).map(([dimension, guide]) => {
     const section = document.createElement('fieldset'); section.className = 'review-dimension';
+    section.dataset.dimension = dimension;
     const legend = document.createElement('legend'); legend.textContent = guide.title;
     const scope = document.createElement('p'); scope.className = 'review-scope'; scope.textContent = guide.scope;
-    const links = document.createElement('nav'); links.className = 'review-answer-links'; links.setAttribute('aria-label', `${guide.title}: reread answers`);
-    guide.questions.forEach((number) => { const link = document.createElement('a'); link.href = `#answer-${number}`; link.textContent = `reread answer ${number}`; links.append(link); });
+    const layout = document.createElement('div'); layout.className = 'review-dimension-layout';
+    const responses = document.createElement('div'); responses.className = 'review-evidence'; responses.append(...renderResponses(dimension));
+    const grading = document.createElement('div'); grading.className = 'review-grading';
     const rule = document.createElement('p'); rule.id = `rule-${dimension}`; rule.textContent = guide.rule;
     const criteria = document.createElement('ul');
     guide.criteria.forEach((text) => { const item = document.createElement('li'); item.textContent = text; criteria.append(item); });
@@ -51,7 +57,9 @@ function renderCase() {
     const label = document.createElement('label'); label.htmlFor = `rating-${dimension}`; label.textContent = `your ${guide.title} rating`;
     const select = document.createElement('select'); select.id = label.htmlFor; select.name = dimension; select.required = true; select.setAttribute('aria-describedby', rule.id);
     ratingOptions(dimension).forEach(([value, text]) => { const option = document.createElement('option'); option.value = value; option.textContent = text; select.append(option); });
-    section.append(legend, scope, links, rule, criteria, examples, label, select); return section;
+    grading.append(rule, criteria, label, select, examples);
+    layout.append(responses, grading);
+    section.append(legend, scope, layout); return section;
   }));
   el['review-rationale'].value = '';
   const alreadyRevealed = localStorage.getItem(`youdumb-seen-scores:${runId}`) === 'yes';

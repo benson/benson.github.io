@@ -92,3 +92,11 @@ export const REVIEW_GUIDE = {
 export function ratingOptions(dimension) {
   return [['', 'choose a rating'], ['uncertain', 'uncertain — cannot judge reliably'], ...REVIEW_GUIDE[dimension].options.map(([value, label]) => [String(value), label])];
 }
+
+export function reviewResponsesFor(dimension, reviewCase) {
+  return REVIEW_GUIDE[dimension].questions.map((number) => ({
+    number,
+    question: reviewCase.questions[number - 1] ?? 'Question unavailable.',
+    answer: reviewCase.answers[number - 1] ?? 'No response provided.',
+  }));
+}

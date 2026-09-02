@@ -129,20 +129,28 @@ footer { display: flex; justify-content: space-between; gap: 20px; padding-top: 
 .review-ratings select { width: max-content; }
 #review-form textarea { width: 100%; padding: 10px; margin-top: 8px; font: inherit; }
 .review-controls { display: flex; flex-wrap: wrap; gap: 16px; align-items: baseline; margin-top: 18px; }
-.review-page main { max-width: 780px; }
+.review-page main { max-width: 1180px; }
+.review-page main > .section-note, .review-guide > p, .review-guide > ol, .review-guide > details { max-width: 780px; }
 .review-page .section-note { font-size: .82rem; }
 .review-guide { margin: 24px 0; padding: 20px 0; border-block: 1px solid var(--line); }
-.review-guide h2 { font-size: 1.2rem; }
+.review-guide > summary { font-size: 1.2rem; cursor: pointer; }
 .review-guide p, .review-guide ol { margin-top: 12px; }
 .review-guide ol, .review-guide ul, .review-dimension ul { padding-left: 22px; }
 .review-guide li, .review-dimension li { margin-top: 8px; line-height: 1.45; }
 .review-page .review-answer-label { margin-bottom: 0; color: var(--soft); font-size: .76rem; }
-.review-item { scroll-margin-top: 24px; }
 .review-dimension { min-width: 0; padding: 18px 0; margin: 0; border-top: 1px solid var(--line); }
 .review-dimension legend { width: auto; padding-right: 12px; color: var(--ink); font-size: 1.15rem; }
 .review-dimension p, .review-dimension li { font-size: .92rem; }
 .review-dimension .review-scope { color: var(--soft); font-size: .84rem; }
-.review-answer-links { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 8px 0 16px; font-size: .8rem; }
+.review-dimension-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 36px; align-items: start; margin-top: 16px; }
+.review-evidence, .review-grading { min-width: 0; overflow-wrap: anywhere; }
+.review-evidence .review-item { margin: 0 0 20px; padding-bottom: 16px; border-bottom: 1px solid var(--faint); }
+.review-evidence .review-item:last-child { margin-bottom: 0; border-bottom: 0; }
+.review-evidence .review-item p:first-child { margin-top: 0; }
+.review-evidence .review-response-text { white-space: pre-wrap; margin-top: 6px; font-size: 1rem; }
+.review-grading { position: sticky; top: 20px; }
+.review-grading .review-examples { margin-bottom: 0; }
+#review-form > h2 { margin-top: 24px; }
 .review-examples { margin: 16px 0; }
 .review-examples summary { cursor: pointer; font-size: .9rem; }
 .review-examples h3 { margin: 16px 0 4px; color: var(--ink); font-size: .9rem; }
@@ -158,4 +166,6 @@ footer { display: flex; justify-content: space-between; gap: 20px; padding-top: 
   .choice-list, .choice-list.profiles { grid-template-columns: 1fr; }
   .two-column { grid-template-columns: 1fr; gap: 14px; }
   .answer { grid-template-columns: 1fr; gap: 3px; }
+  .review-dimension-layout { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .review-grading { position: static; }
 }
