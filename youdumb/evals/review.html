@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://youdumb-api.bensonperry.workers.dev http://127.0.0.1:8787; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <title>youdumb? blind review</title>
+  <link rel="stylesheet" href="style.css?v=11">
+</head>
+<body>
+  <header><a href="./?asset=11" class="wordmark">youdumb?</a><span>private review room</span></header>
+  <main>
+    <p class="eyebrow">human rubric review</p>
+    <h1>judge the answers before the score.</h1>
+    <p class="section-note">These are synthetic answers, not people. Source labels, intended outcomes, and model scores are withheld from this review endpoint until you save your judgment of that case. Admins can still reveal results elsewhere; disclose any prior exposure. Your ratings and notes are saved privately under a random browser reviewer ID, without a name. This is a rubric check, not a validation of intelligence.</p>
+    <p id="review-error" class="error" role="alert"></p>
+    <div id="review-workspace" hidden>
+      <p id="review-progress" class="section-note"></p>
+      <div class="review-controls"><label for="review-case">case</label><select id="review-case"></select><a href="./?asset=11">back to dashboard</a></div>
+      <div id="review-transcript" class="review-transcript"></div>
+      <form id="review-form">
+        <h2>your rubric ratings</h2>
+        <p class="section-note">Count demonstrated reasoning, not polish or length. Credit an explicit final correction. Use “uncertain” when the evidence does not support a confident rating; do not infer what the respondent probably meant.</p>
+        <div id="review-ratings" class="review-ratings"></div>
+        <label for="review-rationale">why? cite a concrete passage or ambiguity.</label>
+        <textarea id="review-rationale" rows="3" maxlength="2000" required></textarea>
+        <div class="review-controls">
+          <label><input id="review-seen" type="checkbox"> I have already seen model scores or intended outcomes for this case.</label>
+          <button id="save-review" type="submit">save judgment, then reveal comparison</button>
+        </div>
+        <p class="section-note">Saved judgments cannot be edited after the comparison is revealed.</p>
+      </form>
+      <section id="review-comparison" class="panel" hidden aria-live="polite"></section>
+    </div>
+  </main>
+  <footer><a href="./?asset=11">dashboard / sign in</a><span>human judgments are not supplied by another LLM.</span></footer>
+  <script type="module" src="review.js?v=11"></script>
+</body>
+</html>
