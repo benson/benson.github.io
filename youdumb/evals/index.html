@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex, nofollow">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://youdumb-api.bensonperry.workers.dev http://127.0.0.1:8787 http://localhost:8787; object-src 'none'; base-uri 'self'; form-action 'self'">
   <title>youdumb? evals</title>
-  <link rel="stylesheet" href="style.css?v=8">
+  <link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
   <header>
@@ -129,8 +129,12 @@
 
   <footer>
     <span>synthetic runs test scorer behavior, not human intelligence.</span>
-    <button class="quiet" id="forget-key" type="button" hidden>forget dashboard key</button>
+    <div class="key-controls" id="key-controls" hidden>
+      <button class="quiet" id="copy-key" type="button" title="Copy your private dashboard password for another browser">copy dashboard key</button>
+      <button class="quiet" id="forget-key" type="button" hidden>forget dashboard key</button>
+      <span id="key-copy-status" role="status" aria-live="polite"></span>
+    </div>
   </footer>
-  <script type="module" src="app.js?v=9"></script>
+  <script type="module" src="app.js?v=10"></script>
 </body>
 </html>
