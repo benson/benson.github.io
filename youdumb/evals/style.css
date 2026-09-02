@@ -150,6 +150,14 @@ footer { display: flex; justify-content: space-between; gap: 20px; padding-top: 
 .review-evidence .review-response-text { white-space: pre-wrap; margin-top: 6px; font-size: 1rem; }
 .review-grading { position: sticky; top: 20px; }
 .review-grading .review-examples { margin-bottom: 0; }
+.criterion-list { margin-top: 12px; }
+.criterion-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 10px 0; border-bottom: 1px solid var(--faint); }
+.criterion-choices { display: flex; gap: 10px; }
+.review-dimension .criterion-choices label { display: flex; align-items: center; gap: 5px; margin: 0; min-height: 28px; cursor: pointer; }
+.criterion-choices input, .criterion-uncertain input { accent-color: var(--ink); }
+.review-dimension .criterion-uncertain { display: flex; align-items: baseline; gap: 8px; line-height: 1.4; color: var(--soft); cursor: pointer; }
+.criterion-progress { margin-top: 10px; }
+.criterion-list.is-uncertain { opacity: .55; }
 #review-form > h2 { margin-top: 24px; }
 .review-examples { margin: 16px 0; }
 .review-examples summary { cursor: pointer; font-size: .9rem; }
