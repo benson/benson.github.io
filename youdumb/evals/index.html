@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex, nofollow">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://youdumb-api.bensonperry.workers.dev http://127.0.0.1:8787 http://localhost:8787; object-src 'none'; base-uri 'self'; form-action 'self'">
   <title>youdumb? evals</title>
-  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="style.css?v=11">
 </head>
 <body>
   <header>
@@ -34,6 +34,13 @@
           <h1>run the machines through the machine.</h1>
         </div>
         <div class="connection" id="connection-status">checking openrouter…</div>
+      </section>
+
+      <section class="panel" aria-labelledby="holdout-title">
+        <h2 id="holdout-title">fresh-answer holdout + repeated grading</h2>
+        <p class="section-note">Six new transcripts of the current five questions, each graded three times with identical settings. Frozen expectations, paired writing styles, self-corrections, and an ambiguous case. No OpenRouter calls; 18 normal Cloudflare scorer calls. After first exposure this becomes regression data—not an independent intelligence validation.</p>
+        <button id="start-holdout" type="button">run holdout × 3</button>
+        <p id="holdout-error" class="error" role="alert"></p>
       </section>
 
       <section class="panel" aria-labelledby="new-run-title">
@@ -91,13 +98,22 @@
           </div>
           <div id="empty-results" class="empty">select a saved run, or start a new one.</div>
           <div id="results" hidden>
+            <div id="holdout-controls" hidden>
+              <p id="holdout-note" class="section-note"></p>
+              <div class="holdout-actions">
+                <a id="blind-review-link" href="review.html">review answers before seeing scores</a>
+                <button id="reveal-model-results" type="button">reveal model results (ends blinding)</button>
+              </div>
+            </div>
+            <div id="model-results">
             <div class="run-summary" id="run-summary"></div>
+            <div id="holdout-analysis" hidden></div>
             <div class="table-wrap"><table>
               <thead><tr><th>model</th><th>policy</th><th>valid</th><th>mean</th><th>range</th><th>sd</th></tr></thead>
               <tbody id="summary-body"></tbody>
             </table></div>
             <div class="calibration-map" id="calibration-map">
-              <h3>profile × dimension — policy-valid conversations only</h3>
+              <h3 id="heatmap-title">profile × dimension — policy-valid conversations only</h3>
               <div class="table-wrap"><table class="heatmap">
                 <thead><tr><th>policy</th><th>n</th><th>causal</th><th>updating</th><th>deduction</th><th>estimation</th><th>communication</th></tr></thead>
                 <tbody id="heatmap-body"></tbody>
@@ -105,6 +121,7 @@
             </div>
             <h3>individual conversations</h3>
             <div id="job-results"></div>
+            </div>
           </div>
         </section>
       </div>
@@ -135,6 +152,6 @@
       <span id="key-copy-status" role="status" aria-live="polite"></span>
     </div>
   </footer>
-  <script type="module" src="app.js?v=10"></script>
+  <script type="module" src="app.js?v=11"></script>
 </body>
 </html>

@@ -81,6 +81,7 @@ function updatePlan() {
   const remoteModels = modelCount - (authoredSelected ? 1 : 0);
   el['call-plan'].textContent = `${conversations} conversations · ${respondentCalls} paid/free respondent calls + up to ${remoteModels} remote preflights · ${conversations} scorer calls`;
   el['start-run'].disabled = !state.config?.connected || conversations === 0 || conversations > (state.config?.limits.maxJobs ?? 48) || state.processing || state.starting;
+  el['start-holdout'].disabled = state.processing || state.starting || !state.authenticated;
 }
 
 function renderConfig() {
@@ -140,7 +141,7 @@ function renderRuns() {
     const title = document.createElement('strong');
     title.textContent = formatDate(run.createdAt);
     const detail = document.createElement('span');
-    detail.textContent = `${run.total} conversations · ${run.models?.length ?? 0} models`;
+    detail.textContent = run.suite ? `${run.total} grades · frozen holdout` : `${run.total} conversations · ${run.models?.length ?? 0} models`;
     button.append(title, detail);
     button.addEventListener('click', () => loadRun(run.id));
     return button;
@@ -167,13 +168,23 @@ function renderResults(run) {
   el.results.hidden = false;
   el['download-run'].hidden = false;
   el['selected-run-date'].textContent = formatDate(run.createdAt);
+  const isHoldout = Boolean(run.holdout);
+  el['heatmap-title'].textContent = isHoldout ? 'case × dimension — all completed grades' : 'profile × dimension — policy-valid conversations only';
+  const revealed = localStorage.getItem(`youdumb-seen-scores:${run.id}`) === 'yes';
+  el['holdout-controls'].hidden = !isHoldout;
+  el['model-results'].hidden = isHoldout && !revealed;
+  el['reveal-model-results'].hidden = revealed;
+  if (isHoldout) {
+    el['blind-review-link'].href = `review.html?run=${encodeURIComponent(run.id)}`;
+    el['holdout-note'].textContent = `${run.holdout.version} · frozen snapshot ${run.holdout.hash.slice(0, 12)} · ${run.progress.completed}/${run.progress.total} grades finished. Model scores are hidden here until you choose to reveal them. Review first for an unprimed judgment; downloading JSON also exposes the scores.`;
+  }
   const complete = run.jobs.filter((job) => job.status === 'complete');
   const eligible = complete.filter(calibrationEligible);
   const jobCost = complete.reduce((sum, job) => sum + Number(job.usage?.cost ?? 0), 0);
   const preflightCost = (run.preflight ?? []).reduce((sum, check) => sum + Number(check.usage?.cost ?? 0), 0);
   const cost = jobCost + preflightCost;
   const mean = eligible.length ? eligible.reduce((sum, job) => sum + job.result.index, 0) / eligible.length : 0;
-  el['run-summary'].innerHTML = `<span>${complete.length}/${run.jobs.length} complete</span><span>${eligible.length}/${complete.length} policy-valid</span><span>calibration mean ${eligible.length ? mean.toFixed(1) : '—'}</span><span>reported model cost $${cost.toFixed(4)}</span><span>assessment ${run.assessmentVersion}</span>`;
+  el['run-summary'].innerHTML = `<span>${complete.length}/${run.jobs.length} complete</span><span>${isHoldout ? 'all completed grades retained' : `${eligible.length}/${complete.length} policy-valid`}</span><span>calibration mean ${eligible.length ? mean.toFixed(1) : '—'}</span><span>OpenRouter cost $${cost.toFixed(4)} (Cloudflare grading separate)</span><span>assessment ${run.assessmentVersion}</span>`;
   if (run.unavailableModels?.length) {
     const skipped = document.createElement('span');
     skipped.className = 'warning';
@@ -213,7 +224,7 @@ function renderResults(run) {
       meta.className = 'job-meta';
       const policy = job.compliance
         ? ` · policy fit ${job.compliance.score}%${job.compliance.eligible ? '' : ' · excluded from aggregates'}`
-        : ' · legacy run (policy fit not measured)';
+        : isHoldout ? ' · fixed holdout; no policy-based exclusions' : ' · legacy run (policy fit not measured)';
       meta.textContent = `${Math.round(job.latencyMs.respondent / 1000)}s respondent · ${Math.round(job.latencyMs.scorer / 1000)}s scorer · ${job.usage.promptTokens + job.usage.completionTokens} tokens${policy}`;
       body.append(meta);
       if (job.compliance?.mismatches?.length) {
@@ -247,12 +258,37 @@ function renderResults(run) {
     return details;
   }));
   renderHeatmap(run);
+  renderHoldoutAnalysis(run);
   renderActive(run);
   renderRuns();
 }
 
+function renderHoldoutAnalysis(run) {
+  const panel = el['holdout-analysis'];
+  panel.replaceChildren();
+  panel.hidden = !run.holdout;
+  if (!run.holdout) return;
+  const report = run.holdoutAnalysis;
+  const add = (text, className = 'section-note') => {
+    const p = document.createElement('p');
+    p.className = className;
+    p.textContent = text;
+    panel.append(p);
+  };
+  add('Frozen expectation checks and reproducibility. Three repeats measure same-settings stability, not test–retest reliability in people. No failed checks are filtered out.');
+  for (const item of report?.cases ?? []) {
+    add(`${item.name}: ${item.completed}/${item.requested} graded · mean ${item.mean ?? '—'} · spread ${item.range ?? '—'} · ${item.exploratory ? 'exploratory; no expected score' : `${item.failures.length}/${item.checks.length} expectation checks failed`}`, item.failures.length ? 'warning' : 'section-note');
+    for (const failure of item.failures) add(`  #${failure.replicate} ${failure.dimension}: ${failure.actual}; frozen range ${failure.expected.join('–')}.`, 'warning');
+  }
+  for (const pair of report?.pairs ?? []) add(`${pair.id}: ${pair.status}${pair.indexGap === undefined ? '' : ` · mean score gap ${pair.indexGap} (limit ${pair.maxIndexGap}) · dimension gaps ${Object.entries(pair.dimensionGaps).map(([key, value]) => `${key} ${value}`).join(', ')}`}`, pair.status === 'flag' ? 'warning' : 'section-note');
+  const reviews = run.reviews ?? [];
+  add(`${reviews.length} saved human review records; ${reviews.filter((review) => !review.hadSeenModelScores).length} self-reported unprimed. Reviewer IDs are not verified identities. No human agreement claim until someone reviews.`);
+  for (const review of reviews) add(`Review ${review.reviewerId.slice(0, 8)} / ${review.caseId} (${review.hadSeenModelScores ? 'scores seen beforehand' : 'unprimed'}): ${Object.entries(review.comparison).map(([key, value]) => `${key} human ${value.human ?? 'uncertain'} / model ${value.modelMean ?? 'pending'} / gap ${value.absoluteGap ?? '—'}`).join('; ')}`);
+}
+
 function downloadSelectedRun() {
   if (!state.selectedRun) return;
+  if (state.selectedRun.holdout) localStorage.setItem(`youdumb-seen-scores:${state.selectedRun.id}`, 'yes');
   const blob = new Blob([`${JSON.stringify(state.selectedRun, null, 2)}\n`], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -364,6 +400,7 @@ async function loadRun(id) {
 async function processRun(run) {
   if (state.processing) return;
   state.processing = true;
+  el['start-holdout'].disabled = true;
   el['start-run'].disabled = true;
   el['resume-run'].hidden = true;
   const jobs = run.jobs.filter((job) => job.status !== 'complete');
@@ -435,6 +472,33 @@ el['run-form'].addEventListener('submit', async (event) => {
 });
 
 el['resume-run'].addEventListener('click', () => state.selectedRun && processRun(state.selectedRun));
+el['start-holdout'].addEventListener('click', async () => {
+  if (state.processing || state.starting) return;
+  state.starting = true;
+  el['holdout-error'].textContent = '';
+  updatePlan();
+  try {
+    const data = await api('/eval/runs', { method: 'POST', body: JSON.stringify({ suite: 'holdout', replicates: 3 }) });
+    state.selectedRun = data.run;
+    await loadRuns();
+    renderResults(data.run);
+    void processRun(data.run).catch((error) => {
+      state.processing = false;
+      el['holdout-error'].textContent = error.message;
+      updatePlan();
+    });
+  } catch (error) {
+    el['holdout-error'].textContent = error.message;
+  } finally {
+    state.starting = false;
+    updatePlan();
+  }
+});
+el['reveal-model-results'].addEventListener('click', () => {
+  if (!state.selectedRun?.holdout) return;
+  localStorage.setItem(`youdumb-seen-scores:${state.selectedRun.id}`, 'yes');
+  renderResults(state.selectedRun);
+});
 el['refresh-runs'].addEventListener('click', loadRuns);
 el['download-run'].addEventListener('click', downloadSelectedRun);
 el['refresh-research'].addEventListener('click', loadResearch);
