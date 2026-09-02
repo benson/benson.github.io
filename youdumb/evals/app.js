@@ -4,7 +4,7 @@ const API_BASE = ['localhost', '127.0.0.1'].includes(location.hostname)
 const TOKEN_KEY = 'youdumb-eval-token';
 
 const el = Object.fromEntries([...document.querySelectorAll('[id]')].map((node) => [node.id, node]));
-const state = { token: localStorage.getItem(TOKEN_KEY) || '', config: null, runs: [], selectedRun: null, research: [], processing: false, starting: false };
+const state = { token: localStorage.getItem(TOKEN_KEY) || '', authenticated: false, copyingKey: false, config: null, runs: [], selectedRun: null, research: [], processing: false, starting: false };
 
 async function api(path, options = {}) {
   const response = await fetch(`${API_BASE}${path}`, {
@@ -26,9 +26,29 @@ function formatDate(value) {
 }
 
 function setAuthenticated(authenticated) {
+  state.authenticated = authenticated;
   el['login-view'].hidden = authenticated;
   el.dashboard.hidden = !authenticated;
+  el['key-controls'].hidden = !authenticated;
   el['forget-key'].hidden = !authenticated;
+  el['key-copy-status'].textContent = '';
+}
+
+async function copyDashboardKey() {
+  if (!state.authenticated || !state.token || state.copyingKey) return;
+  state.copyingKey = true;
+  el['copy-key'].disabled = true;
+  el['key-copy-status'].textContent = '';
+  try {
+    // Keep credentials out of rendered text, logs, URLs, and downloads.
+    await navigator.clipboard.writeText(state.token);
+    if (state.authenticated) el['key-copy-status'].textContent = 'copied — paste into your other browser. keep this key private.';
+  } catch {
+    if (state.authenticated) el['key-copy-status'].textContent = 'could not copy. focus this tab and try again.';
+  } finally {
+    state.copyingKey = false;
+    el['copy-key'].disabled = false;
+  }
 }
 
 function choice({ id, label, description, tier }, type, checked) {
@@ -419,6 +439,7 @@ el['refresh-runs'].addEventListener('click', loadRuns);
 el['download-run'].addEventListener('click', downloadSelectedRun);
 el['refresh-research'].addEventListener('click', loadResearch);
 el['download-research'].addEventListener('click', downloadResearch);
+el['copy-key'].addEventListener('click', copyDashboardKey);
 el['forget-key'].addEventListener('click', () => {
   localStorage.removeItem(TOKEN_KEY);
   state.token = '';

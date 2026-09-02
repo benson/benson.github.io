@@ -112,6 +112,8 @@ td:nth-child(n+3), th:nth-child(n+3) { text-align: right; }
 .research-feedback { color: #4f3c2b; }
 
 footer { display: flex; justify-content: space-between; gap: 20px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--soft); font-size: .74rem; }
+.key-controls:not([hidden]) { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: baseline; gap: 10px 18px; }
+#key-copy-status { flex-basis: 100%; text-align: right; }
 
 @media (max-width: 800px) {
   body { padding: 26px 20px; }
