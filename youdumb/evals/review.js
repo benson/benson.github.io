@@ -1,4 +1,5 @@
-import { REVIEW_GUIDE, ratingOptions, reviewResponsesFor } from './review-guide.mjs?v=13';
+import { REVIEW_GUIDE, reviewResponsesFor } from './review-guide.mjs?v=14';
+import { CRITERION_KEYS, REVIEW_CRITERIA_VERSION, normalizeCriteria } from './review-criteria.mjs?v=14';
 
 const API_BASE = ['localhost', '127.0.0.1'].includes(location.hostname) ? 'http://127.0.0.1:8787' : 'https://youdumb-api.bensonperry.workers.dev';
 const token = localStorage.getItem('youdumb-eval-token');
@@ -49,15 +50,36 @@ function renderCase() {
     const responses = document.createElement('div'); responses.className = 'review-evidence'; responses.append(...renderResponses(dimension));
     const grading = document.createElement('div'); grading.className = 'review-grading';
     const rule = document.createElement('p'); rule.id = `rule-${dimension}`; rule.textContent = guide.rule;
-    const criteria = document.createElement('ul');
-    guide.criteria.forEach((text) => { const item = document.createElement('li'); item.textContent = text; criteria.append(item); });
+    const criteria = document.createElement('div'); criteria.className = 'criterion-list';
+    guide.criteria.forEach((text, index) => {
+      const key = CRITERION_KEYS[dimension][index];
+      const row = document.createElement('div'); row.className = 'criterion-row'; row.setAttribute('role', 'radiogroup');
+      const description = document.createElement('p'); description.id = `criterion-${dimension}-${key}`; description.textContent = text;
+      row.setAttribute('aria-labelledby', description.id);
+      const choices = document.createElement('div'); choices.className = 'criterion-choices';
+      for (const value of ['yes', 'no']) {
+        const label = document.createElement('label');
+        const input = document.createElement('input'); input.type = 'radio'; input.name = `${dimension}-${key}`; input.value = value; input.required = true;
+        input.dataset.criterion = key;
+        label.append(input, document.createTextNode(value)); choices.append(label);
+      }
+      row.append(description, choices); criteria.append(row);
+    });
+    const uncertain = document.createElement('label'); uncertain.className = 'criterion-uncertain';
+    const skip = document.createElement('input'); skip.type = 'checkbox'; skip.className = 'criterion-skip';
+    uncertain.append(skip, document.createTextNode(`I can’t reliably judge ${guide.title} from this text.`));
+    const progress = document.createElement('p'); progress.className = 'criterion-progress section-note'; progress.setAttribute('aria-live', 'polite');
+    const refreshChoices = () => {
+      criteria.querySelectorAll('input').forEach(input => { input.disabled = skip.checked; });
+      criteria.classList.toggle('is-uncertain', skip.checked);
+      progress.textContent = skip.checked ? 'Marked uncertain; no score will be assigned to this dimension.' : `${criteria.querySelectorAll('input:checked').length} / ${guide.criteria.length} criteria answered`;
+    };
+    section.addEventListener('change', refreshChoices);
+    refreshChoices();
     const examples = document.createElement('details'); examples.className = 'review-examples';
     const summary = document.createElement('summary'); summary.textContent = 'examples & scoring notes'; examples.append(summary);
     guide.examples.forEach(([title, text]) => { const heading = document.createElement('h3'); heading.textContent = title; const paragraph = document.createElement('p'); paragraph.textContent = text; examples.append(heading, paragraph); });
-    const label = document.createElement('label'); label.htmlFor = `rating-${dimension}`; label.textContent = `your ${guide.title} rating`;
-    const select = document.createElement('select'); select.id = label.htmlFor; select.name = dimension; select.required = true; select.setAttribute('aria-describedby', rule.id);
-    ratingOptions(dimension).forEach(([value, text]) => { const option = document.createElement('option'); option.value = value; option.textContent = text; select.append(option); });
-    grading.append(rule, criteria, label, select, examples);
+    grading.append(rule, criteria, progress, uncertain, examples);
     layout.append(responses, grading);
     section.append(legend, scope, layout); return section;
   }));
@@ -74,6 +96,17 @@ function renderComparison() {
   const heading = document.createElement('h2'); heading.textContent = 'saved judgment vs. model mean'; panel.append(heading);
   const note = document.createElement('p'); note.textContent = selectedCase.review.rationale; panel.append(note);
   const status = document.createElement('p'); status.className = 'section-note'; status.textContent = selectedCase.review.hadSeenModelScores ? 'Prior score exposure declared; this review is not blinded.' : 'No prior score exposure declared.'; panel.append(status);
+  if (selectedCase.review.criteriaJudgments) {
+    const savedChoices = document.createElement('details'); savedChoices.className = 'review-examples';
+    const summary = document.createElement('summary'); summary.textContent = 'your saved yes/no judgments'; savedChoices.append(summary);
+    for (const [dimension, keys] of Object.entries(CRITERION_KEYS)) {
+      const values = selectedCase.review.criteriaJudgments[dimension];
+      const heading = document.createElement('h3'); heading.textContent = REVIEW_GUIDE[dimension].title; savedChoices.append(heading);
+      if (values === null) { const note = document.createElement('p'); note.textContent = 'uncertain'; savedChoices.append(note); continue; }
+      keys.forEach((key, index) => { const item = document.createElement('p'); item.textContent = `${values[key] ? 'yes' : 'no'} — ${REVIEW_GUIDE[dimension].criteria[index]}`; savedChoices.append(item); });
+    }
+    panel.append(savedChoices);
+  }
   for (const [dimension, value] of Object.entries(selectedCase.comparison)) {
     const line = document.createElement('p');
     line.textContent = `${dimension}: you ${value.human ?? 'uncertain'} · model ${value.modelMean ?? 'pending'} · absolute gap ${value.absoluteGap ?? '—'}`;
@@ -86,9 +119,9 @@ el['review-case'].addEventListener('change', renderCase);
 el['review-form'].addEventListener('submit', async (event) => {
   event.preventDefault(); if (saving || selectedCase.review) return;
   saving = true; el['save-review'].disabled = true; el['review-case'].disabled = true;
-  const ratings = Object.fromEntries([...el['review-ratings'].querySelectorAll('select')].map((input) => [input.name, input.value === 'uncertain' ? null : input.value === '' ? 'missing' : Number(input.value)]));
   try {
-    const saved = await api('POST', { reviewerId, caseId: selectedCase.id, ratings, rationale: el['review-rationale'].value, hadSeenModelScores: el['review-seen'].checked || localStorage.getItem(`youdumb-seen-scores:${runId}`) === 'yes' });
+    const criteriaJudgments = normalizeCriteria(Object.fromEntries([...el['review-ratings'].querySelectorAll('.review-dimension')].map(section => [section.dataset.dimension, section.querySelector('.criterion-skip').checked ? null : Object.fromEntries([...section.querySelectorAll('input[type="radio"]:checked')].map(input => [input.dataset.criterion, input.value === 'yes']))])));
+    const saved = await api('POST', { reviewerId, caseId: selectedCase.id, criteriaVersion: REVIEW_CRITERIA_VERSION, criteriaJudgments, rationale: el['review-rationale'].value, hadSeenModelScores: el['review-seen'].checked || localStorage.getItem(`youdumb-seen-scores:${runId}`) === 'yes' });
     Object.assign(selectedCase, saved);
     renderCase();
   } catch (error) { el['review-error'].textContent = error.message; }
