@@ -129,6 +129,28 @@ footer { display: flex; justify-content: space-between; gap: 20px; padding-top: 
 .review-ratings select { width: max-content; }
 #review-form textarea { width: 100%; padding: 10px; margin-top: 8px; font: inherit; }
 .review-controls { display: flex; flex-wrap: wrap; gap: 16px; align-items: baseline; margin-top: 18px; }
+.review-page main { max-width: 780px; }
+.review-page .section-note { font-size: .82rem; }
+.review-guide { margin: 24px 0; padding: 20px 0; border-block: 1px solid var(--line); }
+.review-guide h2 { font-size: 1.2rem; }
+.review-guide p, .review-guide ol { margin-top: 12px; }
+.review-guide ol, .review-guide ul, .review-dimension ul { padding-left: 22px; }
+.review-guide li, .review-dimension li { margin-top: 8px; line-height: 1.45; }
+.review-page .review-answer-label { margin-bottom: 0; color: var(--soft); font-size: .76rem; }
+.review-item { scroll-margin-top: 24px; }
+.review-dimension { min-width: 0; padding: 18px 0; margin: 0; border-top: 1px solid var(--line); }
+.review-dimension legend { width: auto; padding-right: 12px; color: var(--ink); font-size: 1.15rem; }
+.review-dimension p, .review-dimension li { font-size: .92rem; }
+.review-dimension .review-scope { color: var(--soft); font-size: .84rem; }
+.review-answer-links { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 8px 0 16px; font-size: .8rem; }
+.review-examples { margin: 16px 0; }
+.review-examples summary { cursor: pointer; font-size: .9rem; }
+.review-examples h3 { margin: 16px 0 4px; color: var(--ink); font-size: .9rem; }
+.review-examples p { margin-top: 6px; }
+.review-dimension label { margin-top: 18px; color: var(--ink); font-size: .84rem; }
+.review-ratings select { width: auto; max-width: 100%; margin-top: 6px; }
+.review-page :focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+#rationale-help { margin-top: 8px; }
 
 @media (max-width: 800px) {
   body { padding: 26px 20px; }

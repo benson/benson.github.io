@@ -6,14 +6,35 @@
   <meta name="robots" content="noindex, nofollow">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://youdumb-api.bensonperry.workers.dev http://127.0.0.1:8787; object-src 'none'; base-uri 'self'; form-action 'self'">
   <title>youdumb? blind review</title>
-  <link rel="stylesheet" href="style.css?v=11">
+  <link rel="stylesheet" href="style.css?v=12">
 </head>
-<body>
+<body class="review-page">
   <header><a href="./?asset=11" class="wordmark">youdumb?</a><span>private review room</span></header>
   <main>
     <p class="eyebrow">human rubric review</p>
     <h1>judge the answers before the score.</h1>
     <p class="section-note">These are synthetic answers, not people. Source labels, intended outcomes, and model scores are withheld from this review endpoint until you save your judgment of that case. Admins can still reveal results elsewhere; disclose any prior exposure. Your ratings and notes are saved privately under a random browser reviewer ID, without a name. This is a rubric check, not a validation of intelligence.</p>
+    <section class="review-guide" aria-labelledby="how-to-grade">
+      <h2 id="how-to-grade">how to grade a case</h2>
+      <p>You are checking what the answers demonstrate—not guessing how smart the writer is, or predicting the model’s score. A case is one set of five answers.</p>
+      <ol>
+        <li>Read the five answers once. Then use the instructions beside each rating to count the reasoning that is actually present.</li>
+        <li>Choose one score for each of the five dimensions. The dropdowns explain each score; “examples & scoring notes” shows how to apply it. Nothing is preselected.</li>
+        <li>Add a short reason for your ratings, especially borderline calls. Save only when ready: saving locks this case’s judgment and reveals its model comparison.</li>
+      </ol>
+      <p>These numbers are rubric points, not school grades, percentiles, or IQ. A 50 does not mean “below average”; a 100 means the listed criteria were demonstrated, not that an answer is perfect in every way.</p>
+      <details class="review-examples">
+        <summary>partial credit, corrections, and when to choose “uncertain”</summary>
+        <ul>
+          <li>Count each criterion once, only when the text supports it. One short sentence may earn several criteria. Do not invent a missing explanation or demand particular words.</li>
+          <li>Partial credit comes from the criteria shown—not a general impression. Do not award half a criterion or round an updating score to a school grade.</li>
+          <li>Credit an explicit final correction. An earlier mistake does not cancel corrected reasoning, but do not silently repair a contradiction for the writer.</li>
+          <li>Use a numeric score when you can judge the evidence—even if the answer is weak or incomplete. A clearly absent criterion earns no points.</li>
+          <li>Choose “uncertain” when missing, unreadable, or genuinely ambiguous text prevents a reliable judgment. It is not a middle score and does not count as zero. Explain what you could not judge in the notes.</li>
+          <li>Ignore spelling, dialect, confidence, and fancy vocabulary. A wrong answer can still be clearly communicated; score each dimension independently.</li>
+        </ul>
+      </details>
+    </section>
     <p id="review-error" class="error" role="alert"></p>
     <div id="review-workspace" hidden>
       <p id="review-progress" class="section-note"></p>
@@ -21,10 +42,11 @@
       <div id="review-transcript" class="review-transcript"></div>
       <form id="review-form">
         <h2>your rubric ratings</h2>
-        <p class="section-note">Count demonstrated reasoning, not polish or length. Credit an explicit final correction. Use “uncertain” when the evidence does not support a confident rating; do not infer what the respondent probably meant.</p>
+        <p class="section-note">Use the rules below for each dimension, not an overall impression. The examples explain the rubric; they are not grades or intended outcomes for the selected case.</p>
         <div id="review-ratings" class="review-ratings"></div>
         <label for="review-rationale">why? cite a concrete passage or ambiguity.</label>
-        <textarea id="review-rationale" rows="3" maxlength="2000" required></textarea>
+        <p id="rationale-help" class="section-note">A few sentences are enough. Name the dimension, point to the evidence, and say what earned or missed credit. For example: “Estimation: the assumptions multiply to the stated total, but there is no range or main uncertainty. Updating: I couldn’t tell whether the original claim was withdrawn.”</p>
+        <textarea id="review-rationale" rows="4" maxlength="2000" aria-describedby="rationale-help" required></textarea>
         <div class="review-controls">
           <label><input id="review-seen" type="checkbox"> I have already seen model scores or intended outcomes for this case.</label>
           <button id="save-review" type="submit">save judgment, then reveal comparison</button>
@@ -35,6 +57,6 @@
     </div>
   </main>
   <footer><a href="./?asset=11">dashboard / sign in</a><span>human judgments are not supplied by another LLM.</span></footer>
-  <script type="module" src="review.js?v=11"></script>
+  <script type="module" src="review.js?v=12"></script>
 </body>
 </html>
