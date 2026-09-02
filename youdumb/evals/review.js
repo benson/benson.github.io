@@ -1,3 +1,5 @@
+import { REVIEW_GUIDE, ratingOptions } from './review-guide.mjs?v=12';
+
 const API_BASE = ['localhost', '127.0.0.1'].includes(location.hostname) ? 'http://127.0.0.1:8787' : 'https://youdumb-api.bensonperry.workers.dev';
 const token = localStorage.getItem('youdumb-eval-token');
 const runId = new URL(location.href).searchParams.get('run');
@@ -7,13 +9,6 @@ if (!/^[a-f0-9-]{36}$/i.test(reviewerId ?? '')) {
   reviewerId = crypto.randomUUID();
   localStorage.setItem('youdumb-reviewer-id', reviewerId);
 }
-const criteria = {
-  causal: '25 each: plausible alternative; concrete comparison; explains which outcomes favor which cause; recognizes limitations or mixed causes. No relevant attempt = 0.',
-  updating: '12.5 each across two items. Café: uses time-of-day evidence; shifts toward reduced hours; names a concrete uncertainty; identifies further separating evidence. Checkout: uses conversion rate; weakens design claim; traffic explains count; names an isolating comparison. Count each context only if relevant.',
-  deduction: '0 no attempt; 25 wrong answer; 50 Ana without valid reasoning; 75 Ana with valid but incomplete reasoning; 100 sufficient proof across all valid orders (enumeration or equivalent elimination proof).',
-  estimation: '25 each: numeric estimate; two quantitative assumptions; arithmetic actually supports estimate; range or sensitivity/most-uncertain assumption. No relevant attempt = 0. There is no preferred final number.',
-  communication: 'Features: understandable; conclusions connected to reasons; concise and calibrated. 0 none, 50 one, 75 two, 100 all three. Do not penalize spelling or dialect if understandable.',
-};
 let cases = [];
 let selectedCase;
 let saving = false;
@@ -34,19 +29,29 @@ function renderCase() {
   el['review-progress'].textContent = `${cases.filter((item) => item.review).length}/${cases.length} judgments saved · reviewer ${reviewerId.slice(0, 8)}`;
   el['review-transcript'].replaceChildren(...selectedCase.answers.map((answer, index) => {
     const row = document.createElement('section'); row.className = 'review-item';
+    row.id = `answer-${index + 1}`; row.tabIndex = -1;
+    const caption = document.createElement('p'); caption.className = 'review-answer-label'; caption.textContent = 'response';
     const question = document.createElement('p'); question.className = 'review-question'; question.textContent = `${index + 1}. ${selectedCase.questions[index]}`;
     const text = document.createElement('p'); text.textContent = answer;
-    row.append(question, text); return row;
+    row.append(question, caption, text); return row;
   }));
   el['review-form'].hidden = Boolean(selectedCase.review);
-  el['review-ratings'].replaceChildren(...Object.entries(criteria).map(([dimension, description]) => {
-    const label = document.createElement('label'); label.textContent = dimension;
-    const select = document.createElement('select'); select.name = dimension; select.required = true;
-    const step = dimension === 'updating' ? 12.5 : 25;
-    const options = [['', 'choose a rating'], ['uncertain', 'uncertain / not assessable'], ...Array.from({ length: 100 / step + 1 }, (_, i) => [String(i * step), String(i * step)])];
-    options.forEach(([value, text]) => { const option = document.createElement('option'); option.value = value; option.textContent = text; select.append(option); });
-    const help = document.createElement('small'); help.textContent = description;
-    label.append(select, help); return label;
+  el['review-ratings'].replaceChildren(...Object.entries(REVIEW_GUIDE).map(([dimension, guide]) => {
+    const section = document.createElement('fieldset'); section.className = 'review-dimension';
+    const legend = document.createElement('legend'); legend.textContent = guide.title;
+    const scope = document.createElement('p'); scope.className = 'review-scope'; scope.textContent = guide.scope;
+    const links = document.createElement('nav'); links.className = 'review-answer-links'; links.setAttribute('aria-label', `${guide.title}: reread answers`);
+    guide.questions.forEach((number) => { const link = document.createElement('a'); link.href = `#answer-${number}`; link.textContent = `reread answer ${number}`; links.append(link); });
+    const rule = document.createElement('p'); rule.id = `rule-${dimension}`; rule.textContent = guide.rule;
+    const criteria = document.createElement('ul');
+    guide.criteria.forEach((text) => { const item = document.createElement('li'); item.textContent = text; criteria.append(item); });
+    const examples = document.createElement('details'); examples.className = 'review-examples';
+    const summary = document.createElement('summary'); summary.textContent = 'examples & scoring notes'; examples.append(summary);
+    guide.examples.forEach(([title, text]) => { const heading = document.createElement('h3'); heading.textContent = title; const paragraph = document.createElement('p'); paragraph.textContent = text; examples.append(heading, paragraph); });
+    const label = document.createElement('label'); label.htmlFor = `rating-${dimension}`; label.textContent = `your ${guide.title} rating`;
+    const select = document.createElement('select'); select.id = label.htmlFor; select.name = dimension; select.required = true; select.setAttribute('aria-describedby', rule.id);
+    ratingOptions(dimension).forEach(([value, text]) => { const option = document.createElement('option'); option.value = value; option.textContent = text; select.append(option); });
+    section.append(legend, scope, links, rule, criteria, examples, label, select); return section;
   }));
   el['review-rationale'].value = '';
   const alreadyRevealed = localStorage.getItem(`youdumb-seen-scores:${runId}`) === 'yes';
