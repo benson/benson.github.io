@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex, nofollow">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://youdumb-api.bensonperry.workers.dev http://127.0.0.1:8787; object-src 'none'; base-uri 'self'; form-action 'self'">
   <title>youdumb? blind review</title>
-  <link rel="stylesheet" href="style.css?v=12">
+  <link rel="stylesheet" href="style.css?v=13">
 </head>
 <body class="review-page">
   <header><a href="./?asset=11" class="wordmark">youdumb?</a><span>private review room</span></header>
@@ -14,11 +14,11 @@
     <p class="eyebrow">human rubric review</p>
     <h1>judge the answers before the score.</h1>
     <p class="section-note">These are synthetic answers, not people. Source labels, intended outcomes, and model scores are withheld from this review endpoint until you save your judgment of that case. Admins can still reveal results elsewhere; disclose any prior exposure. Your ratings and notes are saved privately under a random browser reviewer ID, without a name. This is a rubric check, not a validation of intelligence.</p>
-    <section class="review-guide" aria-labelledby="how-to-grade">
-      <h2 id="how-to-grade">how to grade a case</h2>
+    <details class="review-guide">
+      <summary id="how-to-grade">how to grade a case</summary>
       <p>You are checking what the answers demonstrate—not guessing how smart the writer is, or predicting the model’s score. A case is one set of five answers.</p>
       <ol>
-        <li>Read the five answers once. Then use the instructions beside each rating to count the reasoning that is actually present.</li>
+        <li>Each dimension puts the relevant responses beside its criteria and rating. Read the response, count the reasoning actually present, and choose a score right there. On a narrow screen, the response sits directly above its criteria.</li>
         <li>Choose one score for each of the five dimensions. The dropdowns explain each score; “examples & scoring notes” shows how to apply it. Nothing is preselected.</li>
         <li>Add a short reason for your ratings, especially borderline calls. Save only when ready: saving locks this case’s judgment and reveals its model comparison.</li>
       </ol>
@@ -34,15 +34,15 @@
           <li>Ignore spelling, dialect, confidence, and fancy vocabulary. A wrong answer can still be clearly communicated; score each dimension independently.</li>
         </ul>
       </details>
-    </section>
+    </details>
     <p id="review-error" class="error" role="alert"></p>
     <div id="review-workspace" hidden>
       <p id="review-progress" class="section-note"></p>
       <div class="review-controls"><label for="review-case">case</label><select id="review-case"></select><a href="./?asset=11">back to dashboard</a></div>
-      <div id="review-transcript" class="review-transcript"></div>
+      <div id="review-transcript" class="review-transcript" hidden></div>
       <form id="review-form">
         <h2>your rubric ratings</h2>
-        <p class="section-note">Use the rules below for each dimension, not an overall impression. The examples explain the rubric; they are not grades or intended outcomes for the selected case.</p>
+        <p class="section-note">Read, compare, and rate in each section below. The examples explain the rubric; they are not grades or intended outcomes for the selected case.</p>
         <div id="review-ratings" class="review-ratings"></div>
         <label for="review-rationale">why? cite a concrete passage or ambiguity.</label>
         <p id="rationale-help" class="section-note">A few sentences are enough. Name the dimension, point to the evidence, and say what earned or missed credit. For example: “Estimation: the assumptions multiply to the stated total, but there is no range or main uncertainty. Updating: I couldn’t tell whether the original claim was withdrawn.”</p>
@@ -57,6 +57,6 @@
     </div>
   </main>
   <footer><a href="./?asset=11">dashboard / sign in</a><span>human judgments are not supplied by another LLM.</span></footer>
-  <script type="module" src="review.js?v=12"></script>
+  <script type="module" src="review.js?v=13"></script>
 </body>
 </html>
