@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex, nofollow">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://youdumb-api.bensonperry.workers.dev http://127.0.0.1:8787; object-src 'none'; base-uri 'self'; form-action 'self'">
   <title>youdumb? blind review</title>
-  <link rel="stylesheet" href="style.css?v=14">
+  <link rel="stylesheet" href="style.css?v=15">
 </head>
 <body class="review-page">
   <header><a href="./?asset=11" class="wordmark">youdumb?</a><span>private review room</span></header>
@@ -19,8 +19,8 @@
       <p>You are checking what the answers demonstrate—not guessing how smart the writer is, or predicting the model’s score. A case is one set of five answers.</p>
       <ol>
         <li>Read the response beside each checklist. For every criterion, choose yes if the text demonstrates it and no if it does not. On a narrow screen, the response sits directly above its criteria.</li>
-        <li>No dropdowns or point calculations: the app derives the score from your yes/no judgments. Nothing is preselected. If you cannot reliably judge a dimension, mark its uncertainty box and explain why in your notes.</li>
-        <li>Add a short reason for your ratings, especially borderline calls. Save only when ready: saving locks this case’s judgment and reveals its model comparison.</li>
+        <li>Work through one section at a time, or choose “show all sections.” Nothing is preselected. If you cannot reliably judge a section, mark its uncertainty box.</li>
+        <li>Notes are optional—even for uncertain answers. Save only when ready: saving locks this case’s judgment and reveals its model comparison.</li>
       </ol>
       <p>These numbers are rubric points, not school grades, percentiles, or IQ. A 50 does not mean “below average”; a 100 means the listed criteria were demonstrated, not that an answer is perfect in every way.</p>
       <details class="review-examples">
@@ -30,7 +30,7 @@
           <li>Partial credit is calculated automatically from the criteria shown—not a general impression. You only decide whether each criterion is demonstrated.</li>
           <li>Credit an explicit final correction. An earlier mistake does not cancel corrected reasoning, but do not silently repair a contradiction for the writer.</li>
           <li>Choose no for a clearly absent criterion, even if other parts of the answer are good. Leaving yes/no unanswered is not the same as no; complete each row before saving.</li>
-          <li>Mark a dimension uncertain when missing, unreadable, or genuinely ambiguous text prevents a reliable judgment. It is not a middle score and does not count as zero. Explain what you could not judge in the notes.</li>
+          <li>Mark a dimension uncertain when missing, unreadable, or genuinely ambiguous text prevents a reliable judgment. It is not a middle score and does not count as zero. You can optionally note what made it hard to judge.</li>
           <li>Ignore spelling, dialect, confidence, and fancy vocabulary. A wrong answer can still be clearly communicated; score each dimension independently.</li>
         </ul>
       </details>
@@ -40,13 +40,19 @@
       <p id="review-progress" class="section-note"></p>
       <div class="review-controls"><label for="review-case">case</label><select id="review-case"></select><a href="./?asset=11">back to dashboard</a></div>
       <div id="review-transcript" class="review-transcript" hidden></div>
-      <form id="review-form">
+      <form id="review-form" novalidate>
         <h2>your criterion checklists</h2>
-        <p class="section-note">Choose yes or no for each criterion beside the response. The app handles the points. The examples explain the rubric; they are not grades for this case.</p>
+        <p class="review-instruction">A “yes” credits this one feature—not the whole answer. Choose no if it is absent. Use “what counts?” for borderline cases.</p>
+        <nav id="review-steps" class="review-steps" aria-label="grading sections"></nav>
+        <div class="review-flow-status"><p id="step-status" class="section-note" aria-live="polite"></p><button id="show-all-sections" type="button">show all sections</button></div>
         <div id="review-ratings" class="review-ratings"></div>
-        <label for="review-rationale">why? cite a concrete passage or ambiguity.</label>
-        <p id="rationale-help" class="section-note">A few sentences are enough. Name the dimension, point to the evidence, and say what earned or missed credit. For example: “Estimation: the assumptions multiply to the stated total, but there is no range or main uncertainty. Updating: I couldn’t tell whether the original claim was withdrawn.”</p>
-        <textarea id="review-rationale" rows="4" maxlength="2000" aria-describedby="rationale-help" required></textarea>
+        <div class="review-paging"><button id="previous-section" type="button">previous section</button><button id="next-section" type="button">next section</button></div>
+        <details class="review-notes"><summary>add a note (optional)</summary>
+          <label for="review-rationale">anything unclear or worth flagging?</label>
+          <p id="rationale-help" class="section-note">Leave this blank if you have nothing to add. Your yes/no decisions are enough to save the review.</p>
+          <textarea id="review-rationale" rows="3" maxlength="2000" aria-describedby="rationale-help"></textarea>
+        </details>
+        <p id="draft-status" class="section-note" role="status"></p>
         <div class="review-controls">
           <label><input id="review-seen" type="checkbox"> I have already seen model scores or intended outcomes for this case.</label>
           <button id="save-review" type="submit">save judgment, then reveal comparison</button>
@@ -57,6 +63,6 @@
     </div>
   </main>
   <footer><a href="./?asset=11">dashboard / sign in</a><span>human judgments are not supplied by another LLM.</span></footer>
-  <script type="module" src="review.js?v=14"></script>
+  <script type="module" src="review.js?v=15"></script>
 </body>
 </html>
