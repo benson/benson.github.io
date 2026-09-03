@@ -1731,21 +1731,6 @@
     "extraSheetLabel": null
   },
   {
-    "code": "mm2",
-    "name": "Modern Masters 2015",
-    "released": "2015-05-22",
-    "boosterTypes": [
-      "play"
-    ],
-    "defaultBoosterType": "play",
-    "limitedBoosterType": "draft",
-    "limitedLabel": "draft booster",
-    "mtgjsonBoosterTypes": [
-      "draft"
-    ],
-    "extraSheetLabel": null
-  },
-  {
     "code": "dtk",
     "name": "Dragons of Tarkir",
     "released": "2015-03-27",
