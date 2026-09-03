@@ -48,7 +48,8 @@ function updateNavigation() {
   });
   el['step-status'].textContent = `${showAll ? 'All sections' : `Section ${step + 1} of ${dimensions.length}`} · ${resolved} / 23 checks resolved`;
   el['previous-section'].disabled = step === 0;
-  el['next-section'].disabled = step === dimensions.length - 1;
+  el['next-section'].disabled = saving;
+  el['next-section'].textContent = saving ? 'submitting…' : step === dimensions.length - 1 ? 'Submit' : 'next section';
   el['show-all-sections'].textContent = showAll ? 'focus one section' : 'show all sections';
 }
 
@@ -173,7 +174,7 @@ function renderComparison() {
   if (!selectedCase.review) return;
   const heading = document.createElement('h2'); heading.textContent = 'saved judgment vs. model mean'; panel.append(heading);
   if (selectedCase.review.rationale) { const note = document.createElement('p'); note.textContent = selectedCase.review.rationale; panel.append(note); }
-  const guidance = document.createElement('p'); guidance.className = 'section-note'; guidance.textContent = 'Differences are things to inspect, not corrections to your answers. The model is not the answer key.'; panel.append(guidance);
+  const guidance = document.createElement('p'); guidance.className = 'section-note'; guidance.textContent = 'Model means average repeated grading passes, so they can fall between rubric point values. Differences are things to inspect, not corrections to your answers. The model is not the answer key.'; panel.append(guidance);
   const status = document.createElement('p'); status.className = 'section-note'; status.textContent = selectedCase.review.hadSeenModelScores ? 'Prior score exposure declared; this review is not blinded.' : 'No prior score exposure declared.'; panel.append(status);
   if (selectedCase.review.criteriaJudgments) {
     const savedChoices = document.createElement('details'); savedChoices.className = 'review-examples';
@@ -202,7 +203,13 @@ el['review-case'].addEventListener('change', () => { persistDraft(); renderCase(
 el['review-form'].addEventListener('change', () => { persistDraft(); updateNavigation(); });
 el['review-rationale'].addEventListener('input', persistDraft);
 el['previous-section'].addEventListener('click', () => { showAll = false; setStep(Math.max(0, step - 1), true); persistDraft(); });
-el['next-section'].addEventListener('click', () => { showAll = false; setStep(Math.min(dimensions.length - 1, step + 1), true); persistDraft(); });
+el['next-section'].addEventListener('click', () => {
+  if (saving) return;
+  // Keep this a button: changing its type while entering the last section
+  // could submit on the same click that was intended only to navigate.
+  if (step === dimensions.length - 1) { el['review-form'].requestSubmit(); return; }
+  showAll = false; setStep(step + 1, true); persistDraft();
+});
 el['show-all-sections'].addEventListener('click', () => { showAll = !showAll; setStep(step); });
 el['review-form'].addEventListener('submit', async (event) => {
   event.preventDefault(); if (saving || selectedCase.review) return;
@@ -212,7 +219,7 @@ el['review-form'].addEventListener('submit', async (event) => {
     el['review-error'].textContent = `Finish the yes/no checks in ${REVIEW_GUIDE[dimensions[unfinished]].title}, or mark that section uncertain. Notes are optional.`;
     return;
   }
-  saving = true; el['save-review'].disabled = true; el['review-case'].disabled = true;
+  saving = true; el['save-review'].disabled = true; el['review-case'].disabled = true; updateNavigation();
   try {
     const criteriaJudgments = normalizeCriteria(Object.fromEntries([...el['review-ratings'].querySelectorAll('.review-dimension')].map(section => [section.dataset.dimension, section.querySelector('.criterion-skip').checked ? null : Object.fromEntries([...section.querySelectorAll('input[type="radio"]:checked')].map(input => [input.dataset.criterion, input.value === 'yes']))])));
     const saved = await api('POST', { reviewerId, caseId: selectedCase.id, criteriaVersion: REVIEW_CRITERIA_VERSION, criteriaJudgments, rationale: el['review-rationale'].value, hadSeenModelScores: el['review-seen'].checked || localStorage.getItem(`youdumb-seen-scores:${runId}`) === 'yes' });
@@ -221,7 +228,7 @@ el['review-form'].addEventListener('submit', async (event) => {
     Object.assign(selectedCase, saved);
     renderCase();
   } catch (error) { el['review-error'].textContent = error.message; }
-  finally { saving = false; el['save-review'].disabled = false; el['review-case'].disabled = false; }
+  finally { saving = false; el['save-review'].disabled = false; el['review-case'].disabled = false; updateNavigation(); }
 });
 
 async function start() {
