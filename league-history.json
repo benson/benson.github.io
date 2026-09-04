@@ -1,6 +1,48 @@
 {
-  "blurb": "played 7 cherry games, 5 aram mayhem games and 1 league classic game in the last week, went 6-7 overall",
+  "blurb": "played 7 aram mayhem games, 7 cherry games and 1 league classic game in the last week, went 6-9 overall",
   "recent": [
+    {
+      "gameId": "5634162387",
+      "startedAt": 1788402277574,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "Shen",
+      "win": false,
+      "kills": 4,
+      "deaths": 14,
+      "assists": 33,
+      "damage": 20591,
+      "minutes": 17
+    },
+    {
+      "gameId": "5634147023",
+      "startedAt": 1788400971061,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "Sivir",
+      "win": true,
+      "kills": 15,
+      "deaths": 11,
+      "assists": 20,
+      "damage": 62191,
+      "minutes": 20
+    },
+    {
+      "gameId": "5634118609",
+      "startedAt": 1788399714084,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "TwistedFate",
+      "win": false,
+      "kills": 12,
+      "deaths": 15,
+      "assists": 26,
+      "damage": 66709,
+      "minutes": 19
+    },
     {
       "gameId": "5634096277",
       "startedAt": 1788397923689,
@@ -28,50 +70,8 @@
       "assists": 13,
       "damage": 80403,
       "minutes": 28
-    },
-    {
-      "gameId": "5633978522",
-      "startedAt": 1788389092239,
-      "queueId": 1740,
-      "gameMode": "CHERRY",
-      "queue": "cherry",
-      "champion": "Chogath",
-      "win": true,
-      "kills": 11,
-      "deaths": 7,
-      "assists": 19,
-      "damage": 57826,
-      "minutes": 26
-    },
-    {
-      "gameId": "5633287293",
-      "startedAt": 1788300216421,
-      "queueId": 1750,
-      "gameMode": "CHERRY",
-      "queue": "cherry",
-      "champion": "Vayne",
-      "win": false,
-      "kills": 2,
-      "deaths": 7,
-      "assists": 2,
-      "damage": 13795,
-      "minutes": 25
-    },
-    {
-      "gameId": "5633275322",
-      "startedAt": 1788298863467,
-      "queueId": 1750,
-      "gameMode": "CHERRY",
-      "queue": "cherry",
-      "champion": "TahmKench",
-      "win": false,
-      "kills": 4,
-      "deaths": 10,
-      "assists": 5,
-      "damage": 21231,
-      "minutes": 26
     }
   ],
   "ddragonVersion": "16.17.1",
-  "date": "2026-09-03"
+  "date": "2026-09-04"
 }
