@@ -1,5 +1,20 @@
 [
   {
+    "code": "slz",
+    "name": "The Zeta Set",
+    "released": "2026-09-02",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "default"
+    ],
+    "extraSheetLabel": null
+  },
+  {
     "code": "hob",
     "name": "The Hobbit",
     "released": "2026-08-14",
@@ -1727,6 +1742,21 @@
       "prerelease-jace",
       "prerelease-liliana",
       "prerelease-nissa"
+    ],
+    "extraSheetLabel": null
+  },
+  {
+    "code": "mm2",
+    "name": "Modern Masters 2015",
+    "released": "2015-05-22",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
     ],
     "extraSheetLabel": null
   },
