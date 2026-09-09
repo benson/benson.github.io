@@ -17,7 +17,7 @@
   <!-- vellum tokens only — the page keeps its own minimal styling; component
        styles are class-gated so nothing applies without opting in -->
   <link rel="stylesheet" href="vellum-ui/vellum-ui.css">
-  <link rel="stylesheet" href="style.css?v=13">
+  <link rel="stylesheet" href="style.css?v=14">
 </head>
 <body>
   <header>
@@ -35,22 +35,35 @@
 
   <pre id="orbit-strip"></pre>
 
-  <section>
+  <section class="projects">
     <h2>projects</h2>
-    <ul>
-      <li><a href="https://biblioplex.bensonperry.com/">biblioplex</a> <span class="project-labels">[beta] [new]</span> <span class="desc">&mdash; manage a magic collection</span></li>
-      <li><a href="/youdumb/">youdumb?</a> <span class="desc">— a two-minute conversation about how you think</span></li>
-      <li><a href="/glimmer/">glimmer</a> <span class="desc">— a loose canvas of beautiful things</span> <a href="https://github.com/benson/glimmer" class="github-link">[github]</a></li>
-      <li><a href="/recipeboy/">recipeboy</a> <span class="desc">— a shared recipe box for links and loose notes</span> <a href="https://github.com/benson/recipeboy" class="github-link">[github]</a></li>
-      <li><a href="/mareinfinitus/">mare infinitus</a> <span class="desc">— living pixel ocean simulation</span> <a href="https://github.com/benson/mareinfinitus" class="github-link">[github]</a></li>
-      <li><a href="/packcracker">pack cracker</a> <span class="desc">— mtg booster value guide</span> <a href="https://github.com/benson/packcracker" class="github-link">[github]</a></li>
-      <li><a href="/poolbuilder">pool builder</a> <span class="desc">— sealed pool simulator</span> <a href="https://github.com/benson/poolbuilder" class="github-link">[github]</a></li>
-      <li><a href="/trophy-seat/">trophy seat</a> <span class="desc">— replay a real 7-win mtg draft</span> <a href="https://github.com/benson/benson.github.io/tree/master/trophy-seat" class="github-link">[github]</a></li>
-      <li><a href="/lastlight/">lastlight</a> <span class="desc">— 1–4 player browser bullet-heaven game</span> <a href="https://github.com/benson/lastlight" class="github-link">[github]</a></li>
-      <li><a href="/survivor">survivor draft</a> <span class="desc">— perry family survivor draft</span> <a href="https://github.com/benson/survivor" class="github-link">[github]</a></li>
-      <li><a href="/vellum-ui/design-system/">vellum ui</a> <span class="wip">wip</span> <span class="desc">&mdash; shared design system</span> <a href="https://github.com/benson/vellum-ui" class="github-link">[github]</a></li>
-      <li><a href="/store/">store</a> <span class="wip">wip</span> <span class="desc">&mdash; shirts, playmats, hats, and small merch</span> <a href="https://github.com/benson/benson.github.io/tree/master/store" class="github-link">[github]</a></li>
-    </ul>
+    <div class="project-group">
+      <h3>ongoing</h3>
+      <ul>
+        <li><span class="project-name"><a href="https://biblioplex.bensonperry.com/">biblioplex</a> <span class="project-label">[beta]</span> <span class="project-label project-label-new">[new]</span></span> <span class="desc">&mdash; manage a magic collection</span></li>
+        <li><span class="project-name"><a href="/recipeboy/">recipeboy</a> <span class="project-label project-label-new">[new]</span></span> <span class="desc">— a shared recipe box for links and loose notes</span> <a href="https://github.com/benson/recipeboy" class="github-link" aria-label="recipeboy on GitHub">[github]</a></li>
+        <li><span class="project-name"><a href="/mareinfinitus/">mare infinitus</a> <span class="project-label project-label-new">[new]</span></span> <span class="desc">— living pixel ocean simulation</span> <a href="https://github.com/benson/mareinfinitus" class="github-link" aria-label="mare infinitus on GitHub">[github]</a></li>
+        <li><span class="project-name"><a href="/vellum-ui/design-system/">vellum ui</a></span> <span class="desc">&mdash; shared design system</span> <a href="https://github.com/benson/vellum-ui" class="github-link" aria-label="vellum ui on GitHub">[github]</a></li>
+      </ul>
+    </div>
+    <div class="project-group">
+      <h3>completed</h3>
+      <ul>
+        <li><span class="project-name"><a href="/packcracker">pack cracker</a></span> <span class="desc">— mtg booster value guide</span> <a href="https://github.com/benson/packcracker" class="github-link" aria-label="pack cracker on GitHub">[github]</a></li>
+        <li><span class="project-name"><a href="/poolbuilder">pool builder</a></span> <span class="desc">— sealed pool simulator</span> <a href="https://github.com/benson/poolbuilder" class="github-link" aria-label="pool builder on GitHub">[github]</a></li>
+        <li><span class="project-name"><a href="/trophy-seat/">trophy seat</a></span> <span class="desc">— replay a real 7-win mtg draft</span> <a href="https://github.com/benson/benson.github.io/tree/master/trophy-seat" class="github-link" aria-label="trophy seat on GitHub">[github]</a></li>
+        <li><span class="project-name"><a href="/survivor">survivor draft</a></span> <span class="desc">— perry family survivor draft</span> <a href="https://github.com/benson/survivor" class="github-link" aria-label="survivor draft on GitHub">[github]</a></li>
+      </ul>
+    </div>
+    <div class="project-group">
+      <h3>on hold</h3>
+      <ul>
+        <li><span class="project-name"><a href="/lastlight/">lastlight</a></span> <span class="desc">— 1–4 player browser bullet-heaven game</span> <a href="https://github.com/benson/lastlight" class="github-link" aria-label="lastlight on GitHub">[github]</a></li>
+        <li><span class="project-name"><a href="/store/">store</a></span> <span class="desc">&mdash; shirts, playmats, hats, and small merch</span> <a href="https://github.com/benson/benson.github.io/tree/master/store" class="github-link" aria-label="store on GitHub">[github]</a></li>
+        <li><span class="project-name"><a href="/youdumb/">youdumb?</a></span> <span class="desc">— a two-minute conversation about how you think</span></li>
+        <li><span class="project-name"><a href="/glimmer/">glimmer</a></span> <span class="desc">— a loose canvas of beautiful things</span> <a href="https://github.com/benson/glimmer" class="github-link" aria-label="glimmer on GitHub">[github]</a></li>
+      </ul>
+    </div>
   </section>
 
   <section class="thoughts-section">

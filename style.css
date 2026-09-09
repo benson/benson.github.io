@@ -112,9 +112,33 @@ li a:hover {
   text-transform: none;
 }
 
-.project-labels {
+.project-group + .project-group {
+  margin-top: 22px;
+}
+
+.project-group h3 {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--ink-soft);
+  margin-bottom: 10px;
+}
+
+.project-name {
+  white-space: nowrap;
+}
+
+.project-label {
   font-size: 0.7rem;
-  color: var(--vui-color-neutral-350, #999);
+  color: var(--ink-soft);
+}
+
+.project-label-new {
+  color: #506a4c;
+}
+
+.projects .github-link {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
   white-space: nowrap;
 }
 
