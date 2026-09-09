@@ -112,6 +112,12 @@ li a:hover {
   text-transform: none;
 }
 
+.project-labels {
+  font-size: 0.7rem;
+  color: var(--vui-color-neutral-350, #999);
+  white-space: nowrap;
+}
+
 .wip {
   display: inline-block;
   font-size: 0.7rem;
