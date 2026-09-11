@@ -1,5 +1,5 @@
-import { esc } from './escape.js?v=8c30252dcd62';
-import { buttonHtml } from './controlPrimitives.js?v=8c30252dcd62';
+import { esc } from './escape.js?v=7d4abc6fa5c7';
+import { buttonHtml } from './controlPrimitives.js?v=7d4abc6fa5c7';
 
 const VALID_TONES = new Set(['neutral', 'success', 'warn', 'danger']);
 const VALID_KINDS = new Set([
