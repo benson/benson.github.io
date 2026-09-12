@@ -1,5 +1,5 @@
 {
-  "blurb": "played 6 aram mayhem games in the last week, went 3-3",
+  "blurb": "played 4 aram mayhem games in the last week, went 2-2",
   "recent": [
     {
       "gameId": "5636006235",
@@ -56,20 +56,6 @@
       "assists": 32,
       "damage": 49650,
       "minutes": 20
-    },
-    {
-      "gameId": "5635808251",
-      "startedAt": 1788620107242,
-      "queueId": 2400,
-      "gameMode": "KIWI",
-      "queue": "aram mayhem",
-      "champion": "Brand",
-      "win": true,
-      "kills": 14,
-      "deaths": 10,
-      "assists": 29,
-      "damage": 49914,
-      "minutes": 16
     }
   ],
   "ddragonVersion": "16.18.1",
