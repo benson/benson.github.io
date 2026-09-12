@@ -1,5 +1,5 @@
 {
-  "blurb": "played 4 aram mayhem games in the last week, went 2-2",
+  "blurb": "played 3 aram mayhem games in the last week, went 2-1",
   "recent": [
     {
       "gameId": "5636006235",
@@ -42,20 +42,6 @@
       "assists": 24,
       "damage": 82620,
       "minutes": 19
-    },
-    {
-      "gameId": "5635850034",
-      "startedAt": 1788627149833,
-      "queueId": 2400,
-      "gameMode": "KIWI",
-      "queue": "aram mayhem",
-      "champion": "Senna",
-      "win": false,
-      "kills": 8,
-      "deaths": 13,
-      "assists": 32,
-      "damage": 49650,
-      "minutes": 20
     }
   ],
   "ddragonVersion": "16.18.1",
