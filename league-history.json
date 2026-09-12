@@ -1,5 +1,5 @@
 {
-  "blurb": "played 3 aram mayhem games in the last week, went 2-1",
+  "blurb": "played 2 aram mayhem games in the last week, went 1-1",
   "recent": [
     {
       "gameId": "5636006235",
@@ -28,20 +28,6 @@
       "assists": 31,
       "damage": 44411,
       "minutes": 14
-    },
-    {
-      "gameId": "5635979049",
-      "startedAt": 1788641860015,
-      "queueId": 2400,
-      "gameMode": "KIWI",
-      "queue": "aram mayhem",
-      "champion": "Caitlyn",
-      "win": true,
-      "kills": 25,
-      "deaths": 11,
-      "assists": 24,
-      "damage": 82620,
-      "minutes": 19
     }
   ],
   "ddragonVersion": "16.18.1",
