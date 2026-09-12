@@ -1,35 +1,6 @@
 {
-  "blurb": "played 2 aram mayhem games in the last week, went 1-1",
-  "recent": [
-    {
-      "gameId": "5636006235",
-      "startedAt": 1788644922023,
-      "queueId": 2400,
-      "gameMode": "KIWI",
-      "queue": "aram mayhem",
-      "champion": "Bard",
-      "win": false,
-      "kills": 10,
-      "deaths": 16,
-      "assists": 33,
-      "damage": 36909,
-      "minutes": 24
-    },
-    {
-      "gameId": "5635991520",
-      "startedAt": 1788643843155,
-      "queueId": 2400,
-      "gameMode": "KIWI",
-      "queue": "aram mayhem",
-      "champion": "TwistedFate",
-      "win": true,
-      "kills": 14,
-      "deaths": 6,
-      "assists": 31,
-      "damage": 44411,
-      "minutes": 14
-    }
-  ],
+  "blurb": "no games this week",
+  "recent": [],
   "ddragonVersion": "16.18.1",
   "date": "2026-09-12"
 }
