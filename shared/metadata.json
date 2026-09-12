@@ -1,7 +1,7 @@
 {
   "version": 2,
   "source": "mtgjson",
-  "generatedAt": "2026-09-11T12:08:02.498Z",
+  "generatedAt": "2026-09-12T11:33:45.633Z",
   "sets": {
     "2ed": {
       "extraSheetLabel": null,
@@ -124,14 +124,14 @@
       ],
       "limitedBoosterType": "default"
     },
-    "akh": {
+    "arb": {
       "extraSheetLabel": null,
       "boosterTypes": [
         "play"
       ],
       "limitedBoosterType": "draft"
     },
-    "arb": {
+    "akh": {
       "extraSheetLabel": null,
       "boosterTypes": [
         "play"
@@ -160,14 +160,14 @@
       ],
       "limitedBoosterType": "draft"
     },
-    "apc": {
+    "ala": {
       "extraSheetLabel": null,
       "boosterTypes": [
         "play"
       ],
       "limitedBoosterType": "draft"
     },
-    "ala": {
+    "apc": {
       "extraSheetLabel": null,
       "boosterTypes": [
         "play"
@@ -217,18 +217,18 @@
       ],
       "limitedBoosterType": "draft"
     },
+    "chk": {
+      "extraSheetLabel": null,
+      "boosterTypes": [
+        "play"
+      ],
+      "limitedBoosterType": "draft"
+    },
     "bro": {
       "extraSheetLabel": "the list",
       "boosterTypes": [
         "play",
         "collector"
-      ],
-      "limitedBoosterType": "draft"
-    },
-    "chk": {
-      "extraSheetLabel": null,
-      "boosterTypes": [
-        "play"
       ],
       "limitedBoosterType": "draft"
     },
@@ -246,14 +246,14 @@
       ],
       "limitedBoosterType": "draft"
     },
-    "cns": {
+    "cn2": {
       "extraSheetLabel": null,
       "boosterTypes": [
         "play"
       ],
       "limitedBoosterType": "draft"
     },
-    "cn2": {
+    "cns": {
       "extraSheetLabel": null,
       "boosterTypes": [
         "play"
@@ -327,6 +327,13 @@
       ],
       "limitedBoosterType": "draft"
     },
+    "dka": {
+      "extraSheetLabel": null,
+      "boosterTypes": [
+        "play"
+      ],
+      "limitedBoosterType": "draft"
+    },
     "dft": {
       "extraSheetLabel": "the list / special guests",
       "boosterTypes": [
@@ -334,13 +341,6 @@
         "collector"
       ],
       "limitedBoosterType": "play"
-    },
-    "dka": {
-      "extraSheetLabel": null,
-      "boosterTypes": [
-        "play"
-      ],
-      "limitedBoosterType": "draft"
     },
     "dom": {
       "extraSheetLabel": null,
@@ -385,7 +385,7 @@
       ],
       "limitedBoosterType": "draft"
     },
-    "dsk": {
+    "ecl": {
       "extraSheetLabel": "the list / special guests",
       "boosterTypes": [
         "play",
@@ -393,7 +393,7 @@
       ],
       "limitedBoosterType": "play"
     },
-    "ecl": {
+    "dsk": {
       "extraSheetLabel": "the list / special guests",
       "boosterTypes": [
         "play",
@@ -510,6 +510,13 @@
       ],
       "limitedBoosterType": "draft"
     },
+    "ice": {
+      "extraSheetLabel": null,
+      "boosterTypes": [
+        "play"
+      ],
+      "limitedBoosterType": "default"
+    },
     "ima": {
       "extraSheetLabel": null,
       "boosterTypes": [
@@ -517,12 +524,12 @@
       ],
       "limitedBoosterType": "draft"
     },
-    "ice": {
+    "grn": {
       "extraSheetLabel": null,
       "boosterTypes": [
         "play"
       ],
-      "limitedBoosterType": "default"
+      "limitedBoosterType": "draft"
     },
     "hob": {
       "extraSheetLabel": null,
@@ -531,13 +538,6 @@
         "collector"
       ],
       "limitedBoosterType": "play"
-    },
-    "grn": {
-      "extraSheetLabel": null,
-      "boosterTypes": [
-        "play"
-      ],
-      "limitedBoosterType": "draft"
     },
     "hou": {
       "extraSheetLabel": null,
@@ -562,13 +562,6 @@
       ],
       "limitedBoosterType": "draft"
     },
-    "ktk": {
-      "extraSheetLabel": null,
-      "boosterTypes": [
-        "play"
-      ],
-      "limitedBoosterType": "draft"
-    },
     "kld": {
       "extraSheetLabel": null,
       "boosterTypes": [
@@ -577,6 +570,13 @@
       "limitedBoosterType": "draft"
     },
     "jou": {
+      "extraSheetLabel": null,
+      "boosterTypes": [
+        "play"
+      ],
+      "limitedBoosterType": "draft"
+    },
+    "ktk": {
       "extraSheetLabel": null,
       "boosterTypes": [
         "play"
@@ -640,14 +640,14 @@
       ],
       "limitedBoosterType": "draft"
     },
-    "lrw": {
+    "lgn": {
       "extraSheetLabel": null,
       "boosterTypes": [
         "play"
       ],
       "limitedBoosterType": "draft"
     },
-    "lgn": {
+    "lrw": {
       "extraSheetLabel": null,
       "boosterTypes": [
         "play"
@@ -769,14 +769,14 @@
       ],
       "limitedBoosterType": "draft"
     },
-    "mm3": {
+    "mm2": {
       "extraSheetLabel": null,
       "boosterTypes": [
         "play"
       ],
       "limitedBoosterType": "draft"
     },
-    "mm2": {
+    "mm3": {
       "extraSheetLabel": null,
       "boosterTypes": [
         "play"
@@ -790,21 +790,6 @@
       ],
       "limitedBoosterType": "draft"
     },
-    "mmq": {
-      "extraSheetLabel": null,
-      "boosterTypes": [
-        "play"
-      ],
-      "limitedBoosterType": "draft"
-    },
-    "mh3": {
-      "extraSheetLabel": "the list / special guests",
-      "boosterTypes": [
-        "play",
-        "collector"
-      ],
-      "limitedBoosterType": "play"
-    },
     "mat": {
       "extraSheetLabel": null,
       "boosterTypes": [
@@ -812,6 +797,21 @@
         "collector"
       ],
       "limitedBoosterType": "default"
+    },
+    "mmq": {
+      "extraSheetLabel": null,
+      "boosterTypes": [
+        "play"
+      ],
+      "limitedBoosterType": "draft"
+    },
+    "mh2": {
+      "extraSheetLabel": "the list",
+      "boosterTypes": [
+        "play",
+        "collector"
+      ],
+      "limitedBoosterType": "draft"
     },
     "mid": {
       "extraSheetLabel": "the list",
@@ -828,22 +828,15 @@
       ],
       "limitedBoosterType": "draft"
     },
-    "mh2": {
-      "extraSheetLabel": "the list",
+    "mh3": {
+      "extraSheetLabel": "the list / special guests",
       "boosterTypes": [
         "play",
         "collector"
       ],
-      "limitedBoosterType": "draft"
+      "limitedBoosterType": "play"
     },
     "mor": {
-      "extraSheetLabel": null,
-      "boosterTypes": [
-        "play"
-      ],
-      "limitedBoosterType": "draft"
-    },
-    "nem": {
       "extraSheetLabel": null,
       "boosterTypes": [
         "play"
@@ -855,6 +848,13 @@
       "boosterTypes": [
         "play",
         "collector"
+      ],
+      "limitedBoosterType": "draft"
+    },
+    "nem": {
+      "extraSheetLabel": null,
+      "boosterTypes": [
+        "play"
       ],
       "limitedBoosterType": "draft"
     },
@@ -931,14 +931,14 @@
       ],
       "limitedBoosterType": "draft"
     },
-    "pls": {
+    "plc": {
       "extraSheetLabel": null,
       "boosterTypes": [
         "play"
       ],
       "limitedBoosterType": "draft"
     },
-    "plc": {
+    "pls": {
       "extraSheetLabel": null,
       "boosterTypes": [
         "play"
@@ -1089,13 +1089,6 @@
       ],
       "limitedBoosterType": "draft"
     },
-    "ss1": {
-      "extraSheetLabel": null,
-      "boosterTypes": [
-        "play"
-      ],
-      "limitedBoosterType": "default"
-    },
     "ss2": {
       "extraSheetLabel": null,
       "boosterTypes": [
@@ -1104,6 +1097,13 @@
       "limitedBoosterType": "default"
     },
     "ss3": {
+      "extraSheetLabel": null,
+      "boosterTypes": [
+        "play"
+      ],
+      "limitedBoosterType": "default"
+    },
+    "ss1": {
       "extraSheetLabel": null,
       "boosterTypes": [
         "play"
@@ -1170,6 +1170,29 @@
       ],
       "limitedBoosterType": "draft"
     },
+    "thb": {
+      "extraSheetLabel": null,
+      "boosterTypes": [
+        "play",
+        "collector"
+      ],
+      "limitedBoosterType": "draft"
+    },
+    "tdm": {
+      "extraSheetLabel": "the list / special guests",
+      "boosterTypes": [
+        "play",
+        "collector"
+      ],
+      "limitedBoosterType": "play"
+    },
+    "tor": {
+      "extraSheetLabel": null,
+      "boosterTypes": [
+        "play"
+      ],
+      "limitedBoosterType": "draft"
+    },
     "tle": {
       "extraSheetLabel": null,
       "boosterTypes": [
@@ -1179,29 +1202,6 @@
     },
     "tla": {
       "extraSheetLabel": null,
-      "boosterTypes": [
-        "play",
-        "collector"
-      ],
-      "limitedBoosterType": "play"
-    },
-    "thb": {
-      "extraSheetLabel": null,
-      "boosterTypes": [
-        "play",
-        "collector"
-      ],
-      "limitedBoosterType": "draft"
-    },
-    "tor": {
-      "extraSheetLabel": null,
-      "boosterTypes": [
-        "play"
-      ],
-      "limitedBoosterType": "draft"
-    },
-    "tdm": {
-      "extraSheetLabel": "the list / special guests",
       "boosterTypes": [
         "play",
         "collector"
@@ -1251,14 +1251,14 @@
       ],
       "limitedBoosterType": "draft"
     },
-    "ust": {
+    "tsp": {
       "extraSheetLabel": null,
       "boosterTypes": [
         "play"
       ],
       "limitedBoosterType": "draft"
     },
-    "tsp": {
+    "ust": {
       "extraSheetLabel": null,
       "boosterTypes": [
         "play"
