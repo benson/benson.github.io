@@ -28,7 +28,8 @@
     "mtgjsonBoosterTypes": [
       "box-topper",
       "collector",
-      "play"
+      "play",
+      "prerelease"
     ],
     "extraSheetLabel": null
   },
@@ -512,6 +513,8 @@
       "arena",
       "box-topper",
       "box-topper-foil",
+      "bundle-promo",
+      "bundle-promo-foil",
       "collector",
       "collector-sample",
       "draft",
