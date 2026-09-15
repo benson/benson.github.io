@@ -1,6 +1,77 @@
 {
-  "blurb": "no games this week",
-  "recent": [],
+  "blurb": "played 16 aram mayhem games in the last week, went 9-7",
+  "recent": [
+    {
+      "gameId": "5642227358",
+      "startedAt": 1789429307750,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "XinZhao",
+      "win": false,
+      "kills": 5,
+      "deaths": 12,
+      "assists": 31,
+      "damage": 27079,
+      "minutes": 17
+    },
+    {
+      "gameId": "5642098212",
+      "startedAt": 1789413851846,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "Mordekaiser",
+      "win": false,
+      "kills": 24,
+      "deaths": 12,
+      "assists": 19,
+      "damage": 57894,
+      "minutes": 18
+    },
+    {
+      "gameId": "5642033729",
+      "startedAt": 1789402957441,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "Nunu",
+      "win": true,
+      "kills": 19,
+      "deaths": 11,
+      "assists": 41,
+      "damage": 62477,
+      "minutes": 19
+    },
+    {
+      "gameId": "5641519075",
+      "startedAt": 1789334699920,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "Chogath",
+      "win": true,
+      "kills": 21,
+      "deaths": 8,
+      "assists": 26,
+      "damage": 55004,
+      "minutes": 23
+    },
+    {
+      "gameId": "5641510254",
+      "startedAt": 1789334482222,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "Zyra",
+      "win": true,
+      "kills": 1,
+      "deaths": 0,
+      "assists": 0,
+      "damage": 895,
+      "minutes": 2
+    }
+  ],
   "ddragonVersion": "16.18.1",
-  "date": "2026-09-14"
+  "date": "2026-09-15"
 }
