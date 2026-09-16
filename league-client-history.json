@@ -1,7 +1,63 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-09-15T00:00:15.365Z",
+  "capturedAt": "2026-09-16T16:27:48.113Z",
   "games": [
+    {
+      "gameId": "5642316968",
+      "startedAt": 1789435981500,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "Nami",
+      "win": true,
+      "kills": 6,
+      "deaths": 8,
+      "assists": 39,
+      "damage": 19104,
+      "minutes": 16
+    },
+    {
+      "gameId": "5642285051",
+      "startedAt": 1789433803173,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "Nunu",
+      "win": true,
+      "kills": 17,
+      "deaths": 13,
+      "assists": 32,
+      "damage": 32410,
+      "minutes": 15
+    },
+    {
+      "gameId": "5642258609",
+      "startedAt": 1789432347879,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "Ezreal",
+      "win": true,
+      "kills": 15,
+      "deaths": 10,
+      "assists": 26,
+      "damage": 31406,
+      "minutes": 17
+    },
+    {
+      "gameId": "5642252186",
+      "startedAt": 1789431323201,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "DrMundo",
+      "win": false,
+      "kills": 7,
+      "deaths": 15,
+      "assists": 19,
+      "damage": 35919,
+      "minutes": 15
+    },
     {
       "gameId": "5642227358",
       "startedAt": 1789429307750,
@@ -1345,62 +1401,6 @@
       "assists": 9,
       "damage": 24334,
       "minutes": 32
-    },
-    {
-      "gameId": "5611068005",
-      "startedAt": 1785347838130,
-      "queueId": 1750,
-      "gameMode": "CHERRY",
-      "queue": "arena 3x6",
-      "champion": "Lissandra",
-      "win": true,
-      "kills": 10,
-      "deaths": 15,
-      "assists": 9,
-      "damage": 30216,
-      "minutes": 25
-    },
-    {
-      "gameId": "5610543870",
-      "startedAt": 1785272828528,
-      "queueId": 1750,
-      "gameMode": "CHERRY",
-      "queue": "arena 3x6",
-      "champion": "Teemo",
-      "win": true,
-      "kills": 10,
-      "deaths": 9,
-      "assists": 9,
-      "damage": 48913,
-      "minutes": 23
-    },
-    {
-      "gameId": "5610457936",
-      "startedAt": 1785259980164,
-      "queueId": 1750,
-      "gameMode": "CHERRY",
-      "queue": "arena 3x6",
-      "champion": "Shen",
-      "win": true,
-      "kills": 7,
-      "deaths": 10,
-      "assists": 14,
-      "damage": 67934,
-      "minutes": 23
-    },
-    {
-      "gameId": "5610445211",
-      "startedAt": 1785257902375,
-      "queueId": 1750,
-      "gameMode": "CHERRY",
-      "queue": "arena 3x6",
-      "champion": "Shen",
-      "win": true,
-      "kills": 9,
-      "deaths": 8,
-      "assists": 23,
-      "damage": 55418,
-      "minutes": 26
     }
   ]
 }
