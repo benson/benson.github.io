@@ -17,7 +17,7 @@ import {
   statusStateHtml,
   themeToggle as bindThemeToggle,
   toast,
-} from '../index.js?v=8374cba9edbb';
+} from '../index.js?v=77e0e1980f4e';
 
 const mount = document.getElementById('designSystemMount');
 
@@ -117,6 +117,7 @@ const PLAYGROUND_GROUPS = [
       '--vui-space-4',
       '--vui-control-height',
       '--vui-motion-base',
+      '--vui-spin-duration',
     ],
   },
 ];
@@ -871,9 +872,10 @@ function statusGroup() {
           '<span class="status-state status-state-blocking-error"><span class="status-state-message">backup unavailable</span><span class="status-state-detail">worker unreachable</span></span>',
       ),
     ),
-    entry('Loading spinner', ['.loading-spinner'], 'Inline spinner sized to the surrounding text; inherits currentColor.', () =>
+    entry('Loading spinner', ['.loading-spinner'], 'Inline spinner sized to the surrounding text; inherits currentColor. Uses --vui-spin-duration (800ms per rotation), with a 1600ms minimum under reduced motion.', () =>
       demoHtml(
-        '<span class="loading-spinner" aria-hidden="true"></span> <span class="loading-spinner" style="font-size: 1.5em;" aria-hidden="true"></span> <span class="loading-spinner" style="font-size: 2.2em;" aria-hidden="true"></span>',
+        '<span class="loading-spinner" aria-hidden="true"></span> <span class="loading-spinner" style="font-size: 1.5em;" aria-hidden="true"></span> <span class="loading-spinner" style="font-size: 2.2em;" aria-hidden="true"></span>' +
+          '<div class="toast" role="status"><span class="loading-spinner" aria-hidden="true"></span><span class="toast-message">syncing collection…</span></div>',
       ),
     ),
     entry('Banner', ['.banner', '.banner-message', '.banner-actions', '.banner-dismiss'], 'Full-width inline banner with a message, CTA, and right-aligned dismiss control.', () => {
