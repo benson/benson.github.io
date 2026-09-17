@@ -15,9 +15,9 @@
  *   mountFeedbackCaptureDom for the expected element contract). Used by apps
  *   that own their markup, e.g. biblioplex.
  */
-import { el } from './dom.js?v=8374cba9edbb';
-import { toast } from './toast.js?v=8374cba9edbb';
-import { makeDraggable } from './makeDraggable.js?v=8374cba9edbb';
+import { el } from './dom.js?v=77e0e1980f4e';
+import { toast } from './toast.js?v=77e0e1980f4e';
+import { makeDraggable } from './makeDraggable.js?v=77e0e1980f4e';
 
 export const FEEDBACK_CAPTURE_KIND = 'vellum.feedback';
 export const FEEDBACK_CAPTURE_VERSION = 1;
