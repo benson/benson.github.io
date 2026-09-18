@@ -17,7 +17,7 @@ import {
   statusStateHtml,
   themeToggle as bindThemeToggle,
   toast,
-} from '../index.js?v=65eb102ec6c5';
+} from '../index.js?v=1f5a5439f866';
 
 const mount = document.getElementById('designSystemMount');
 
