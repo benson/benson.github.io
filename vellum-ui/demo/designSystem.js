@@ -17,7 +17,7 @@ import {
   statusStateHtml,
   themeToggle as bindThemeToggle,
   toast,
-} from '../index.js?v=77e0e1980f4e';
+} from '../index.js?v=65eb102ec6c5';
 
 const mount = document.getElementById('designSystemMount');
 
@@ -139,7 +139,7 @@ renderDesignSystem(mount);
 mountFeedbackCapture({
   requireOwnerKey: true,
   project: 'vellum-ui',
-  apiUrl: 'https://biblioplex-api.bensonperry.com',
+  apiUrl: 'https://api.tomebound.app',
 });
 
 function readTokenDefaults() {
@@ -242,7 +242,7 @@ function pageHeader() {
     el('p', {
       className: 'ds-page-sub',
       text:
-        'Shared tokens, restrained primitives, and small browser-native helpers for Biblioplex, PoolBuilder, and future apps.',
+        'Shared tokens, restrained primitives, and small browser-native helpers for Tomebound, PoolBuilder, and future apps.',
     }),
     el(
       'nav',
