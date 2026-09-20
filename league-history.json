@@ -1,6 +1,20 @@
 {
-  "blurb": "played 32 aram mayhem games and 1 cherry game in the last week, went 22-11 overall",
+  "blurb": "played 32 aram mayhem games and 2 cherry games in the last week, went 22-12 overall",
   "recent": [
+    {
+      "gameId": "5645772879",
+      "startedAt": 1789929100235,
+      "queueId": 1750,
+      "gameMode": "CHERRY",
+      "queue": "cherry",
+      "champion": "Khazix",
+      "win": false,
+      "kills": 4,
+      "deaths": 8,
+      "assists": 6,
+      "damage": 31490,
+      "minutes": 27
+    },
     {
       "gameId": "5645745878",
       "startedAt": 1789925393242,
@@ -56,20 +70,6 @@
       "assists": 22,
       "damage": 20920,
       "minutes": 12
-    },
-    {
-      "gameId": "5645050740",
-      "startedAt": 1789835492996,
-      "queueId": 2400,
-      "gameMode": "KIWI",
-      "queue": "aram mayhem",
-      "champion": "Brand",
-      "win": true,
-      "kills": 3,
-      "deaths": 8,
-      "assists": 19,
-      "damage": 16360,
-      "minutes": 13
     }
   ],
   "ddragonVersion": "16.18.1",
