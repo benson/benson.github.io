@@ -727,6 +727,7 @@
     "limitedLabel": "draft booster",
     "mtgjsonBoosterTypes": [
       "arena",
+      "bundle-transformers",
       "collector",
       "collector-sample",
       "draft",
