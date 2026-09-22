@@ -1,7 +1,63 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-09-21T00:00:16.977Z",
+  "capturedAt": "2026-09-22T00:00:14.599Z",
   "games": [
+    {
+      "gameId": "5646534264",
+      "startedAt": 1790032112035,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "Veigar",
+      "win": true,
+      "kills": 14,
+      "deaths": 15,
+      "assists": 29,
+      "damage": 75041,
+      "minutes": 25
+    },
+    {
+      "gameId": "5646503725",
+      "startedAt": 1790029644969,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "Brand",
+      "win": true,
+      "kills": 22,
+      "deaths": 14,
+      "assists": 25,
+      "damage": 52085,
+      "minutes": 22
+    },
+    {
+      "gameId": "5646376548",
+      "startedAt": 1790009759043,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "Lucian",
+      "win": false,
+      "kills": 11,
+      "deaths": 16,
+      "assists": 30,
+      "damage": 43816,
+      "minutes": 21
+    },
+    {
+      "gameId": "5646362974",
+      "startedAt": 1790004563370,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "Gnar",
+      "win": false,
+      "kills": 17,
+      "deaths": 19,
+      "assists": 25,
+      "damage": 43314,
+      "minutes": 25
+    },
     {
       "gameId": "5645789102",
       "startedAt": 1789931240523,
@@ -1345,62 +1401,6 @@
       "assists": 3,
       "damage": 58077,
       "minutes": 47
-    },
-    {
-      "gameId": "5614568592",
-      "startedAt": 1785794726895,
-      "queueId": 4310,
-      "gameMode": "JADE",
-      "queue": "league classic",
-      "champion": "Teemo",
-      "win": true,
-      "kills": 5,
-      "deaths": 3,
-      "assists": 3,
-      "damage": 10367,
-      "minutes": 17
-    },
-    {
-      "gameId": "5614474128",
-      "startedAt": 1785782269395,
-      "queueId": 4310,
-      "gameMode": "JADE",
-      "queue": "league classic",
-      "champion": "Teemo",
-      "win": true,
-      "kills": 12,
-      "deaths": 8,
-      "assists": 2,
-      "damage": 21951,
-      "minutes": 31
-    },
-    {
-      "gameId": "5614134330",
-      "startedAt": 1785724896540,
-      "queueId": 4310,
-      "gameMode": "JADE",
-      "queue": "league classic",
-      "champion": "Teemo",
-      "win": false,
-      "kills": 7,
-      "deaths": 7,
-      "assists": 3,
-      "damage": 26424,
-      "minutes": 28
-    },
-    {
-      "gameId": "5614100728",
-      "startedAt": 1785723257431,
-      "queueId": 4310,
-      "gameMode": "JADE",
-      "queue": "league classic",
-      "champion": "Teemo",
-      "win": true,
-      "kills": 7,
-      "deaths": 2,
-      "assists": 2,
-      "damage": 10891,
-      "minutes": 22
     }
   ]
 }
