@@ -43,14 +43,6 @@ header {
   line-height: 1.2;
 }
 
-#orbit-win .glass {
-  position: absolute;
-  left: 2ch;
-  top: 2.4em;
-  width: 74ch;
-  height: 15.6em;
-}
-
 #orbit-strip {
   position: relative;
   font: inherit;
