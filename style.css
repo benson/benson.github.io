@@ -34,16 +34,31 @@ header {
   margin-bottom: 0;
 }
 
-#orbit-strip {
+#orbit-win {
+  position: relative;
+  display: inline-block;
+  margin: 20px 0;
   font-family: "Courier New", Courier, monospace;
   font-size: clamp(6.5px, 1.85vw, 10px);
   line-height: 1.2;
+  user-select: none;
+  touch-action: pan-y;
+}
+
+#orbit-win .glass {
+  position: absolute;
+  left: 2ch;
+  top: 2.4em;
+  width: 74ch;
+  height: 15.6em;
+}
+
+#orbit-strip {
+  position: relative;
+  font: inherit;
   color: var(--orbit-ink);
-  margin: 20px 0;
-  padding: 0;
   white-space: pre;
   overflow: hidden;
-  user-select: none;
 }
 
 h1 {
