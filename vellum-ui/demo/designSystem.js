@@ -10,14 +10,13 @@ import {
   floatingMenu,
   initTheme as applyStoredTheme,
   modal,
-  mountFeedbackCapture,
   paginationRange,
   priceStickerNode,
   renderStatusState,
   statusStateHtml,
   themeToggle as bindThemeToggle,
   toast,
-} from '../index.js?v=1f5a5439f866';
+} from '../index.js?v=20260928';
 
 const mount = document.getElementById('designSystemMount');
 
@@ -132,15 +131,6 @@ const tokenDefaults = readTokenDefaults();
 applyOverrides(readOverrides());
 
 renderDesignSystem(mount);
-
-// Owner feedback: file design-system feedback straight to the vellum-ui Linear
-// project. Mounts only on machines holding the owner key (adopt it once via
-// ?feedback-key=<key>); routed through the biblioplex worker's /feedback.
-mountFeedbackCapture({
-  requireOwnerKey: true,
-  project: 'vellum-ui',
-  apiUrl: 'https://api.tomebound.app',
-});
 
 function readTokenDefaults() {
   const computed = getComputedStyle(document.documentElement);
@@ -617,7 +607,7 @@ function buttonsGroup() {
     entry(
       'Floating actions',
       ['.fab-cluster', '.fab-btn', '.fab-btn-primary', '.fab-glyph', '.fab-shortcut'],
-      'Quiet utility actions with an optional accent primary. Apps stack them in a fixed .fab-cluster at the bottom-right; the feedback widget mounts one as its launcher.',
+      'Quiet utility actions with an optional accent primary. Apps stack them in a fixed .fab-cluster at the bottom-right.',
       () =>
         el(
           'div',
