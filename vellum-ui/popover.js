@@ -2,8 +2,8 @@
 // + escape handling. The search-help popover and the collection column-settings
 // dropdown consume it. Known exception: the quick-jump palette (quickJump.js) is
 // keyboard-launched (Ctrl+K, no trigger element) and stays hand-rolled.
-import { outsideClick } from './outsideClick.js?v=3d5d10722308';
-import { applyMotionMode, applyMotionState, setPopoverTransformOrigin } from './motion.js?v=3d5d10722308';
+import { outsideClick } from './outsideClick.js?v=b32ef657992f';
+import { applyMotionMode, applyMotionState, setPopoverTransformOrigin } from './motion.js?v=b32ef657992f';
 
 function normalizedCloseOn(closeOn) {
   if (!Array.isArray(closeOn)) return new Set(['outside', 'escape']);
