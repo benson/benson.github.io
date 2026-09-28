@@ -275,7 +275,11 @@
   const win = document.getElementById('orbit-win'), pre = document.getElementById('orbit-strip');
   const glass = win.querySelector('.glass'), cap = document.getElementById('orbit-caption');
   const g = new Grid();
-  let t = 0, visible = true, started = false;
+  let t = 0, visible = true, started = false, held = false;
+  // freeze while the text is being selected, so it can be dragged over and copied
+  win.addEventListener('pointerdown', () => { held = true; });
+  addEventListener('pointerup', () => { held = false; });
+  const selecting = () => { const s = getSelection(); return held || (s && !s.isCollapsed && s.containsNode(pre, true)); };
   new IntersectionObserver(([en]) => { visible = en.isIntersecting; }).observe(win);
   const tick = () => {
     g.clear(); step(g, t++, glass); pre.innerHTML = g.html();
@@ -288,7 +292,7 @@
     tick();
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     let last = 0;
-    (function loop(ts) { if (ts - last > 50 && visible && !document.hidden) { last = ts; tick(); } requestAnimationFrame(loop); })(0);
+    (function loop(ts) { if (ts - last > 50 && visible && !document.hidden && !selecting()) { last = ts; tick(); } requestAnimationFrame(loop); })(0);
   }
   if (override) { applyOverride(); start(); }
   else {

@@ -41,8 +41,6 @@ header {
   font-family: "Courier New", Courier, monospace;
   font-size: clamp(6.5px, 1.85vw, 10px);
   line-height: 1.2;
-  user-select: none;
-  touch-action: pan-y;
 }
 
 #orbit-win .glass {
