@@ -140,10 +140,10 @@
   const bld = [];
   for (let x = 1; x <= 76;) {
     const w = Math.floor(rnd(4, 9)), h = Math.floor(rnd(3, 10)), top = 14 - h;
-    bld.push({ x0: x, x1: x + w - 1, top, tower: w >= 5 && top >= 5 && Math.random() < .45 ? x + 1 + Math.floor(rnd(0, w - 4)) : 0 });
+    bld.push({ x0: x, x1: x + w - 1, top, tower: w >= 6 && top >= 5 && Math.random() < .45 ? x + 1 + Math.floor(rnd(0, w - 5)) : 0 });
     x += w + Math.floor(rnd(1, 4));
   }
-  const roofAt = x => { for (const b of bld) if (x >= b.x0 && x <= b.x1) return b.tower && x >= b.tower && x <= b.tower + 2 ? b.top - 3 : b.top; return 14; };
+  const roofAt = x => { for (const b of bld) if (x >= b.x0 && x <= b.x1) return b.tower && x >= b.tower && x <= b.tower + 3 ? b.top - 3 : b.top; return 14; };
   const wins = [];
   for (const b of bld) for (let y = b.top + 2; y <= 13; y += 2) for (let x = b.x0 + 2; x < b.x1 - 1; x += 2) wins.push({ x, y, r: Math.random() });
   const stars = [...Array(40)].map(() => ({ x: Math.floor(rnd(2, 76)), y: Math.floor(rnd(2, 9)), p: rnd(0, 6), r: Math.random() }));
@@ -224,7 +224,10 @@
       for (let y = b.top; y <= 14; y++) for (let x = b.x0; x <= b.x1; x++) g.set(x, y, stip(x, y, fillTone) || ' ', fogged(hatch));
       hline(g, b.x0, b.x1, b.top, '_', mid);
       vline(g, b.x0, b.top + 1, 14, '|', mid); vline(g, b.x1, b.top + 1, 14, '|', mid);
-      if (b.tower) { g.text(b.tower, b.top - 3, ' A', mid); g.text(b.tower, b.top - 2, '|_|', mid); g.text(b.tower, b.top - 1, '/ \\', mid); }
+      // rooftop water tower: cap, barrel tank, legs standing on the roof line
+      if (b.tower) [' /\\ ', '|  |', '|__|', '/||\\'].forEach((row, i) => {
+        for (let k = 0; k < 4; k++) if (i || row[k] !== ' ') g.set(b.tower + k, b.top - 3 + i, row[k], mid);
+      });
     }
     if (Math.random() < .08) wins[Math.floor(Math.random() * wins.length)].r = Math.random();
     const litFrac = .05 + .42 * n + .1 * dk;
